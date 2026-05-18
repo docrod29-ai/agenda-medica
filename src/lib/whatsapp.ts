@@ -1,0 +1,98 @@
+import { Appointment, ClinicConfig, WaitlistEntry } from '@/types'
+
+// ── Generadores de mensajes ───────────────────────────────────
+
+export function msgConfirmacion(cita: Appointment, config: ClinicConfig): string {
+  const fecha = formatFechaWA(cita.fechaHora)
+  const hora = cita.fechaHora.slice(11, 16)
+  return [
+    `Hola ${cita.pacienteNombre}, su cita con ${config.nombreMedico || 'el médico'} ha sido agendada.`,
+    ``,
+    `📅 *${fecha}* a las *${hora} hrs*`,
+    config.direccion ? `📍 ${config.direccion}` : '',
+    config.googleMapsUrl ? `🗺 ${config.googleMapsUrl}` : '',
+    ``,
+    `Responda:`,
+    `✅ *CONFIRMAR* — para confirmar asistencia`,
+    `🔄 *CAMBIAR* — para reagendar`,
+    `❌ *CANCELAR* — para cancelar`,
+  ].filter(l => l !== null && l !== undefined && !(l === '' && false)).join('\n').replace(/\n{3,}/g, '\n\n').trim()
+}
+
+export function msgRecordatorio24h(cita: Appointment, config: ClinicConfig): string {
+  const hora = cita.fechaHora.slice(11, 16)
+  return [
+    `Hola ${cita.pacienteNombre} 👋`,
+    ``,
+    `Le recordamos su cita médica *mañana a las ${hora} hrs* con ${config.nombreMedico || 'el médico'}.`,
+    config.direccion ? `\n📍 ${config.direccion}` : '',
+    ``,
+    `Favor de confirmar su asistencia respondiendo *CONFIRMAR*, o avisarnos si necesita cambiar su cita.`,
+  ].join('\n').replace(/\n{3,}/g, '\n\n').trim()
+}
+
+export function msgRecordatorioDia(cita: Appointment, config: ClinicConfig): string {
+  const hora = cita.fechaHora.slice(11, 16)
+  return [
+    `Hola ${cita.pacienteNombre} 👋`,
+    ``,
+    `*Hoy tiene cita médica a las ${hora} hrs* con ${config.nombreMedico || 'el médico'}.`,
+    `Favor de acudir puntualmente.`,
+    config.direccion ? `\n📍 ${config.direccion}` : '',
+  ].join('\n').replace(/\n{3,}/g, '\n\n').trim()
+}
+
+export function msgCancelacion(cita: Appointment, config: ClinicConfig): string {
+  return `Hola ${cita.pacienteNombre}, su cita del ${formatFechaWA(cita.fechaHora)} a las ${cita.fechaHora.slice(11, 16)} hrs ha sido cancelada.\n\nSi desea reagendar, contáctenos o responda *CITA* a este mensaje.`
+}
+
+export function msgListaEsperaAviso(entry: WaitlistEntry, config: ClinicConfig, fecha: string, hora: string): string {
+  return [
+    `Hola ${entry.pacienteNombre} 👋`,
+    ``,
+    `Se liberó un espacio con ${config.nombreMedico || 'el médico'}:`,
+    ``,
+    `📅 *${formatFechaWA(fecha + ' ' + hora)}* a las *${hora} hrs*`,
+    ``,
+    `¿Desea tomarlo? Responda *SÍ* para confirmar antes de que se ocupe.`,
+  ].join('\n')
+}
+
+export function msgResumenDiario(citas: Appointment[], config: ClinicConfig): string {
+  const fecha = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })
+  const lines = citas.map((c, i) =>
+    `${i + 1}. ${c.fechaHora.slice(11, 16)} — ${c.pacienteNombre} — ${c.tipo} — ${c.estado}`
+  )
+  return [
+    `📅 *Agenda ${fecha}*`,
+    ``,
+    ...lines,
+    ``,
+    `Total: ${citas.length} consulta${citas.length !== 1 ? 's' : ''}`,
+  ].join('\n')
+}
+
+// ── Abrir WhatsApp ────────────────────────────────────────────
+
+export function openWhatsApp(telefono: string, mensaje: string): void {
+  const tel = telefono.replace(/\D/g, '')
+  const number = tel.startsWith('52') ? tel : `52${tel}`
+  window.open(`https://wa.me/${number}?text=${encodeURIComponent(mensaje)}`, '_blank')
+}
+
+export function copyToClipboard(text: string): Promise<void> {
+  return navigator.clipboard?.writeText(text) ?? Promise.reject('No clipboard API')
+}
+
+// ── Webhook handler (Next.js API route) ───────────────────────
+// Ver: src/app/api/whatsapp/webhook/route.ts
+// Documentación: https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks
+
+function formatFechaWA(fechaHora: string): string {
+  try {
+    const d = new Date(fechaHora.slice(0, 16).replace(' ', 'T'))
+    return d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  } catch {
+    return fechaHora
+  }
+}
