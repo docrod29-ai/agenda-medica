@@ -1,0 +1,53 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Solo usuarios autenticados pueden acceder
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Citas
+    match /appointments/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Pacientes
+    match /patients/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Lista de espera
+    match /waitlist/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Configuración de la clínica
+    match /config/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Logs de notificaciones
+    match /notificationLogs/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Auditoría
+    match /auditLogs/{docId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if false; // logs son inmutables
+    }
+
+    // Tokens de Google Calendar (solo lectura/escritura del mismo UID)
+    match /googleTokens/{uid} {
+      allow read, write: if isAuthenticated() && request.auth.uid == uid;
+    }
+
+    // Denegar todo lo demás
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

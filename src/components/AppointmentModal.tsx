@@ -22,7 +22,7 @@ interface Props {
 
 const TIPOS = Object.entries(APPOINTMENT_TYPE_CONFIG) as [AppointmentType, { label: string; icon: string; defaultMinutes: number }][]
 
-const ORIGENES: AppointmentOrigin[] = ['Manual', 'WhatsApp', 'Teléfono', 'Referido', 'Google Sheets', 'Otro']
+const ORIGENES: AppointmentOrigin[] = ['Manual', 'WhatsApp', 'Teléfono', 'Referido', 'Google Calendar', 'Otro']
 
 const STATUSES_EDIT: AppointmentStatus[] = [
   'pendiente-confirmar', 'confirmada', 'recordatorio-enviado',
@@ -129,9 +129,33 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
         await updateAppointment(appointment.id, payload)
         id = appointment.id
         toast('Cita actualizada', 'success')
+        // Sync with Google Calendar in background
+        if (user?.uid) {
+          fetch('/api/calendar/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'update',
+              appointment: { ...appointment, ...payload, id },
+              uid: user.uid,
+            }),
+          }).catch(() => {/* non-critical */})
+        }
       } else {
         id = await createAppointment({ ...payload, createdAt: '', updatedAt: '' })
         toast('Cita agendada', 'success')
+        // Sync with Google Calendar in background
+        if (user?.uid) {
+          fetch('/api/calendar/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'create',
+              appointment: { ...payload, id, createdAt: '', updatedAt: '' },
+              uid: user.uid,
+            }),
+          }).catch(() => {/* non-critical */})
+        }
       }
       onSaved?.(id)
       onClose()

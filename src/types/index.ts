@@ -31,7 +31,7 @@ export type AppointmentOrigin =
   | 'WhatsApp'
   | 'Teléfono'
   | 'Referido'
-  | 'Google Sheets'
+  | 'Google Calendar'
   | 'Otro'
 
 export type UserRole = 'medico' | 'secretaria' | 'admin'
@@ -75,7 +75,8 @@ export interface Appointment {
   recordatorioMismoDiaEnviado: boolean
   notasInternas?: string
   consentimientoMensajes: boolean
-  googleSheetSyncStatus?: 'pending' | 'synced' | 'error'
+  googleCalendarEventId?: string
+  googleCalendarSyncStatus?: 'pending' | 'synced' | 'error'
   createdAt: string
   updatedAt: string
   creadoPor: string
@@ -151,7 +152,7 @@ export interface ClinicConfig {
   horaResumenDiario: string
   diasFestivos: string[]
   whatsappProveedor: string
-  googleSheetsId: string
+  googleCalendarId: string
   updatedAt?: string
 }
 
@@ -223,5 +224,5 @@ export const DEFAULT_CONFIG: ClinicConfig = {
   horaResumenDiario: '07:00',
   diasFestivos: [],
   whatsappProveedor: '',
-  googleSheetsId: '',
+  googleCalendarId: '',
 }

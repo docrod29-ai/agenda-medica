@@ -4,22 +4,95 @@ import { ClinicConfig, DEFAULT_CONFIG, AppointmentType, APPOINTMENT_TYPE_CONFIG 
 import { saveConfig } from '@/lib/firestore'
 import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
-import { Loader2, Save, MessageSquare, Copy } from 'lucide-react'
+import { auth } from '@/lib/firebase'
+import { Loader2, Save, Copy, Calendar, CheckCircle2, XCircle, Link } from 'lucide-react'
 import { msgConfirmacion, msgRecordatorio24h, msgRecordatorioDia } from '@/lib/whatsapp'
 import { copyToClipboard } from '@/lib/whatsapp'
+import { useSearchParams } from 'next/navigation'
 
 const DIAS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'] as const
 const DIAS_LABELS = { lunes: 'Lunes', martes: 'Martes', miercoles: 'Miércoles', jueves: 'Jueves', viernes: 'Viernes', sabado: 'Sábado', domingo: 'Domingo' }
 
-type Tab = 'general' | 'horario' | 'duraciones' | 'notificaciones' | 'plantillas'
+type Tab = 'general' | 'horario' | 'duraciones' | 'notificaciones' | 'integraciones' | 'plantillas'
 
 export default function ConfiguracionPage() {
   const { config, loading } = useConfig()
   const { toast } = useToast()
+  const searchParams = useSearchParams()
   const [tab, setTab] = useState<Tab>('general')
   const [form, setForm] = useState<ClinicConfig>({ ...DEFAULT_CONFIG })
   const [saving, setSaving] = useState(false)
   const [copied, setCopied] = useState('')
+  const [gcalConnected, setGcalConnected] = useState<boolean | null>(null)
+  const [gcalLoading, setGcalLoading] = useState(false)
+  const [gcalCalendars, setGcalCalendars] = useState<{ id: string; summary: string; primary: boolean }[]>([])
+
+  // Check Google Calendar status on mount
+  useEffect(() => {
+    const checkGcal = async () => {
+      const uid = auth.currentUser?.uid
+      if (!uid) return
+      try {
+        const res = await fetch(`/api/calendar/status?uid=${uid}`)
+        const data = await res.json()
+        setGcalConnected(data.connected)
+        if (data.connected) loadCalendars(uid)
+      } catch {
+        setGcalConnected(false)
+      }
+    }
+    checkGcal()
+  }, [])
+
+  // Handle return from Google OAuth
+  useEffect(() => {
+    const gcal = searchParams.get('gcal')
+    if (gcal === 'connected') {
+      toast('Google Calendar conectado', 'success')
+      setGcalConnected(true)
+      setTab('integraciones')
+      const uid = auth.currentUser?.uid
+      if (uid) loadCalendars(uid)
+    } else if (gcal === 'error') {
+      toast('Error al conectar Google Calendar', 'error')
+      setTab('integraciones')
+    }
+  }, [searchParams]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadCalendars = async (uid: string) => {
+    try {
+      const res = await fetch(`/api/calendar/calendars?uid=${uid}`)
+      const data = await res.json()
+      if (data.calendars) setGcalCalendars(data.calendars)
+    } catch { /* ignore */ }
+  }
+
+  const handleConnectGcal = async () => {
+    setGcalLoading(true)
+    try {
+      const uid = auth.currentUser?.uid
+      if (!uid) { toast('Sesión expirada, inicia sesión nuevamente', 'error'); return }
+      const res = await fetch(`/api/calendar/connect?uid=${uid}`)
+      const { url } = await res.json()
+      window.location.href = url
+    } catch {
+      toast('Error al conectar con Google', 'error')
+      setGcalLoading(false)
+    }
+  }
+
+  const handleDisconnectGcal = async () => {
+    const uid = auth.currentUser?.uid
+    if (!uid) return
+    try {
+      await fetch(`/api/calendar/status?uid=${uid}`, { method: 'DELETE' })
+      setGcalConnected(false)
+      setGcalCalendars([])
+      toast('Google Calendar desconectado', 'success')
+    } catch {
+      toast('Error al desconectar', 'error')
+    }
+  }
 
   useEffect(() => {
     if (!loading) setForm({ ...config })
@@ -70,6 +143,7 @@ export default function ConfiguracionPage() {
     { key: 'horario', label: 'Horario' },
     { key: 'duraciones', label: 'Duraciones' },
     { key: 'notificaciones', label: 'Notificaciones' },
+    { key: 'integraciones', label: 'Integraciones' },
     { key: 'plantillas', label: 'Plantillas WA' },
   ]
 
@@ -86,9 +160,11 @@ export default function ConfiguracionPage() {
     <div style={{ padding: 24, maxWidth: 860, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Configuración</h1>
-        <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-          {saving ? <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Guardando…</> : <><Save size={15} /> Guardar</>}
-        </button>
+        {tab !== 'integraciones' && (
+          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+            {saving ? <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Guardando…</> : <><Save size={15} /> Guardar</>}
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -224,10 +300,126 @@ export default function ConfiguracionPage() {
             <label className="label">Hora de resumen diario</label>
             <input className="input" type="time" value={form.horaResumenDiario} onChange={upd('horaResumenDiario')} />
           </div>
-          <div className="form-group">
-            <label className="label">ID de Google Sheets (sincronización)</label>
-            <input className="input" value={form.googleSheetsId} onChange={upd('googleSheetsId')} placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms" />
-            <span style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>El ID del archivo de Google Sheets donde se exportarán las citas</span>
+        </div>
+      )}
+
+      {/* Integraciones */}
+      {tab === 'integraciones' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+          {/* Google Calendar */}
+          <div style={{ padding: 20, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(0,212,168,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Calendar size={20} style={{ color: 'var(--teal)' }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Google Calendar</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
+                    Sincroniza tus citas automáticamente con Google Calendar
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {gcalConnected === true && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#4ade80', background: 'rgba(74,222,128,0.1)', padding: '4px 10px', borderRadius: 20 }}>
+                    <CheckCircle2 size={13} /> Conectado
+                  </span>
+                )}
+                {gcalConnected === false && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--text3)', background: 'var(--s2)', padding: '4px 10px', borderRadius: 20 }}>
+                    <XCircle size={13} /> No conectado
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {gcalConnected ? (
+                <>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={handleDisconnectGcal}
+                    style={{ color: '#f87171' }}
+                  >
+                    <XCircle size={14} /> Desconectar
+                  </button>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => { const uid = auth.currentUser?.uid; if (uid) loadCalendars(uid) }}
+                  >
+                    Actualizar calendarios
+                  </button>
+                </>
+              ) : (
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={handleConnectGcal}
+                  disabled={gcalLoading}
+                >
+                  {gcalLoading ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Conectando…</> : <><Link size={14} /> Conectar con Google</>}
+                </button>
+              )}
+            </div>
+
+            {/* Calendar selector */}
+            {gcalConnected && gcalCalendars.length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <label className="label">Calendario destino</label>
+                <select
+                  className="input"
+                  value={form.googleCalendarId}
+                  onChange={upd('googleCalendarId')}
+                  style={{ marginTop: 6 }}
+                >
+                  <option value="">Calendario principal</option>
+                  {gcalCalendars.map(c => (
+                    <option key={c.id} value={c.id ?? ''}>
+                      {c.summary}{c.primary ? ' (principal)' : ''}
+                    </option>
+                  ))}
+                </select>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
+                  <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
+                    {saving ? 'Guardando…' : 'Guardar calendario'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div style={{ marginTop: 14, padding: '10px 14px', background: 'rgba(0,212,168,0.05)', border: '1px solid rgba(0,212,168,0.15)', borderRadius: 8 }}>
+              <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
+                Al conectar Google Calendar, todas las citas nuevas y cambios se sincronizarán automáticamente.
+                Las citas canceladas se marcarán en rojo en tu calendario.
+              </p>
+            </div>
+          </div>
+
+          {/* WhatsApp status */}
+          <div style={{ padding: 20, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(74,222,128,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: 20 }}>💬</span>
+              </div>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>WhatsApp Business</div>
+                <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
+                  Recordatorios automáticos enviados cada hora via Vercel Cron
+                </div>
+              </div>
+              <div style={{ marginLeft: 'auto' }}>
+                <span style={{ fontSize: 12, color: 'var(--text3)', background: 'var(--s2)', padding: '4px 10px', borderRadius: 20 }}>
+                  Configura las credenciales en Vercel
+                </span>
+              </div>
+            </div>
+            <div style={{ marginTop: 14, padding: '10px 14px', background: 'rgba(0,212,168,0.05)', border: '1px solid rgba(0,212,168,0.15)', borderRadius: 8 }}>
+              <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
+                Para activar WhatsApp, agrega <strong style={{ color: 'var(--text2)' }}>WHATSAPP_API_TOKEN</strong> y <strong style={{ color: 'var(--text2)' }}>WHATSAPP_PHONE_NUMBER_ID</strong> en las variables de entorno de Vercel.
+                Los recordatorios se envían automáticamente cada hora.
+              </p>
+            </div>
           </div>
         </div>
       )}
@@ -235,7 +427,7 @@ export default function ConfiguracionPage() {
       {/* Plantillas */}
       {tab === 'plantillas' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <p style={{ fontSize: 13, color: 'var(--text3)', margin: 0 }}>Vista previa de los mensajes de WhatsApp que se envían automáticamente. Los textos se generan con los datos de configuración.</p>
+          <p style={{ fontSize: 13, color: 'var(--text3)', margin: 0 }}>Vista previa de los mensajes de WhatsApp que se envían automáticamente.</p>
           {[
             { key: 'confirmacion', label: '✅ Confirmación de cita', msg: msgConfirmacion(demoAppt, form) },
             { key: 'recordatorio24', label: '⏰ Recordatorio 24 horas', msg: msgRecordatorio24h(demoAppt, form) },
