@@ -1,13 +1,15 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useAppointments } from '@/hooks/useAppointments'
 import { useConfig } from '@/hooks/useConfig'
 import { useMode } from '@/context/ModeContext'
+import { useToast } from '@/context/ToastContext'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Appointment, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { formatDateMX } from '@/lib/availability'
 import { Plus, TrendingUp, CalendarCheck2, Clock, UserX, ChevronRight, CalendarDays } from 'lucide-react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10)
@@ -28,6 +30,18 @@ function greet() {
 export default function DashboardPage() {
   const { appointments, loading } = useAppointments()
   const { config } = useConfig()
+  const { toast } = useToast()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const checkout = searchParams.get('checkout')
+    const plan = searchParams.get('plan')
+    if (checkout === 'success') {
+      toast(`¡Plan ${plan ? plan.charAt(0).toUpperCase() + plan.slice(1) : ''} activado! Bienvenido 🎉`, 'success')
+    } else if (checkout === 'cancelled') {
+      toast('Pago cancelado. Puedes activar tu plan cuando quieras.', 'info')
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const { isDoctor } = useMode()
   const [showNewModal, setShowNewModal] = useState(false)
 

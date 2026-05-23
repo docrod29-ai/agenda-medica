@@ -7,7 +7,40 @@ import { Sidebar } from '@/components/Sidebar'
 import { ToastProvider } from '@/context/ToastContext'
 import { ModeProvider } from '@/context/ModeContext'
 import { ClinicProvider } from '@/context/ClinicContext'
-import { Menu, Loader2 } from 'lucide-react'
+import { Menu, Loader2, AlertTriangle } from 'lucide-react'
+import Link from 'next/link'
+
+function TrialBanner() {
+  const { clinic } = useClinic()
+  if (!clinic || clinic.plan !== 'trial' || clinic.status !== 'trial') return null
+  const trialEnds = clinic.trialEndsAt ? new Date(clinic.trialEndsAt) : null
+  const daysLeft = trialEnds
+    ? Math.max(0, Math.ceil((trialEnds.getTime() - Date.now()) / 86400000))
+    : 14
+  return (
+    <div style={{
+      background: daysLeft <= 3 ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.08)',
+      borderBottom: `1px solid ${daysLeft <= 3 ? 'rgba(239,68,68,0.25)' : 'rgba(245,158,11,0.2)'}`,
+      padding: '8px 20px',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap',
+    }}>
+      <AlertTriangle size={14} color={daysLeft <= 3 ? '#f87171' : '#f59e0b'} />
+      <span style={{ fontSize: 13, color: daysLeft <= 3 ? '#f87171' : '#f59e0b' }}>
+        {daysLeft > 0
+          ? `Tu prueba gratuita termina en ${daysLeft} día${daysLeft !== 1 ? 's' : ''}.`
+          : 'Tu prueba gratuita ha terminado.'
+        }
+      </span>
+      <Link href="/dashboard/configuracion?tab=suscripcion" style={{
+        fontSize: 12, fontWeight: 700, color: '#000',
+        background: daysLeft <= 3 ? '#f87171' : '#f59e0b',
+        padding: '3px 10px', borderRadius: 6, textDecoration: 'none',
+      }}>
+        Activar plan →
+      </Link>
+    </div>
+  )
+}
 
 function DashboardInner({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth()
@@ -68,6 +101,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
           <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Agenda Médica</span>
         </div>
 
+        <TrialBanner />
         <main style={{ flex: 1, overflowY: 'auto' }}>
           {children}
         </main>

@@ -7,7 +7,7 @@ import { useDoctors } from '@/hooks/useDoctors'
 import { useToast } from '@/context/ToastContext'
 import { useClinic } from '@/context/ClinicContext'
 import { auth } from '@/lib/firebase'
-import { Loader2, Save, Copy, Calendar, CheckCircle2, XCircle, Link, Bot } from 'lucide-react'
+import { Loader2, Save, Copy, Calendar, CheckCircle2, XCircle, Link, Bot, CreditCard, ExternalLink } from 'lucide-react'
 import { msgConfirmacion, msgRecordatorio24h, msgRecordatorioDia } from '@/lib/whatsapp'
 import { copyToClipboard } from '@/lib/whatsapp'
 import { useSearchParams } from 'next/navigation'
@@ -15,7 +15,7 @@ import { useSearchParams } from 'next/navigation'
 const DIAS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'] as const
 const DIAS_LABELS = { lunes: 'Lunes', martes: 'Martes', miercoles: 'Miércoles', jueves: 'Jueves', viernes: 'Viernes', sabado: 'Sábado', domingo: 'Domingo' }
 
-type Tab = 'general' | 'horario' | 'duraciones' | 'notificaciones' | 'integraciones' | 'plantillas' | 'bot' | 'medicos'
+type Tab = 'general' | 'horario' | 'duraciones' | 'notificaciones' | 'integraciones' | 'plantillas' | 'bot' | 'medicos' | 'suscripcion'
 
 export default function ConfiguracionPage() {
   const { config, loading } = useConfig()
@@ -48,9 +48,10 @@ export default function ConfiguracionPage() {
     checkGcal()
   }, [])
 
-  // Handle return from Google OAuth
+  // Handle return from Google OAuth or direct tab link
   useEffect(() => {
     const gcal = searchParams.get('gcal')
+    const tabParam = searchParams.get('tab') as Tab | null
     if (gcal === 'connected') {
       toast('Google Calendar conectado', 'success')
       setGcalConnected(true)
@@ -60,6 +61,8 @@ export default function ConfiguracionPage() {
     } else if (gcal === 'error') {
       toast('Error al conectar Google Calendar', 'error')
       setTab('integraciones')
+    } else if (tabParam) {
+      setTab(tabParam)
     }
   }, [searchParams]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -151,6 +154,7 @@ export default function ConfiguracionPage() {
     { key: 'plantillas', label: 'Plantillas WA' },
     { key: 'bot', label: '🤖 Bot FAQ' },
     { key: 'medicos', label: 'Médicos' },
+    { key: 'suscripcion', label: '💳 Suscripción' },
   ]
 
   if (loading) {
@@ -464,6 +468,9 @@ export default function ConfiguracionPage() {
       {/* Médicos */}
       {tab === 'medicos' && <MedicosTab />}
 
+      {/* Suscripción */}
+      {tab === 'suscripcion' && <SuscripcionTab clinicId={clinicId} />}
+
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
@@ -716,6 +723,176 @@ function MedicosTab() {
       {doctors.length === 0 && (
         <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text3)', fontSize: 13 }}>
           No hay médicos registrados. Agrega uno para habilitar el portal del asistente.
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ── Suscripción Tab ─────────────────────────────────────────── */
+const PLAN_DISPLAY: Record<string, { label: string; color: string; price: string }> = {
+  trial:   { label: 'Prueba gratuita',  color: '#f59e0b', price: '$0 MXN/mes' },
+  basico:  { label: 'Plan Básico',      color: '#60a5fa', price: '$299 MXN/mes' },
+  pro:     { label: 'Plan Pro',         color: '#00d4a8', price: '$499 MXN/mes' },
+  clinica: { label: 'Plan Clínica',     color: '#a78bfa', price: '$999 MXN/mes' },
+}
+
+const PLAN_FEATURES: Record<string, string[]> = {
+  trial:   ['14 días gratuitos', 'Todas las funciones Pro', 'Sin tarjeta de crédito'],
+  basico:  ['1 médico', 'Agenda y calendario', 'Recordatorios automáticos', 'Portal de secretaria'],
+  pro:     ['1 médico', 'Bot de WhatsApp 24/7', 'Lista de espera automática', 'Google Calendar sync', 'Todo el plan Básico'],
+  clinica: ['Hasta 5 médicos', 'Múltiples secretarias', 'Dashboard de métricas', 'Soporte prioritario', 'Todo el plan Pro'],
+}
+
+function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
+  const { clinic } = useClinic()
+  const { toast } = useToast()
+  const [loading, setLoading] = useState(false)
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null)
+
+  const plan    = clinic?.plan    ?? 'trial'
+  const status  = clinic?.status  ?? 'trial'
+  const planInfo = PLAN_DISPLAY[plan] ?? PLAN_DISPLAY.trial
+  const features = PLAN_FEATURES[plan] ?? []
+
+  const openPortal = async () => {
+    if (!clinicId) return
+    setLoading(true)
+    try {
+      const res = await fetch('/api/stripe/portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicId }),
+      })
+      const data = await res.json()
+      if (data.url) window.open(data.url, '_blank')
+      else toast(data.error ?? 'Error', 'error')
+    } catch {
+      toast('Error al abrir portal', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const startCheckout = async (targetPlan: string) => {
+    if (!clinicId) return
+    setCheckoutLoading(targetPlan)
+    const user = auth.currentUser
+    try {
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicId, plan: targetPlan, email: user?.email ?? '' }),
+      })
+      const data = await res.json()
+      if (data.url) window.location.href = data.url
+      else toast(data.error ?? 'Error', 'error')
+    } catch {
+      toast('Error al iniciar pago', 'error')
+    } finally {
+      setCheckoutLoading(null)
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Current plan */}
+      <div style={{
+        background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 24px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap',
+      }}>
+        <div>
+          <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 4 }}>Plan actual</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <CreditCard size={18} color={planInfo.color} />
+            <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>{planInfo.label}</span>
+            <span style={{
+              fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 100,
+              background: status === 'active' ? 'rgba(0,212,168,0.12)' : 'rgba(245,158,11,0.12)',
+              color: status === 'active' ? 'var(--teal)' : '#f59e0b',
+              border: `1px solid ${status === 'active' ? 'rgba(0,212,168,0.3)' : 'rgba(245,158,11,0.3)'}`,
+            }}>
+              {status === 'active' ? 'ACTIVO' : status === 'trial' ? 'PRUEBA' : status === 'suspended' ? 'SUSPENDIDO' : 'CANCELADO'}
+            </span>
+          </div>
+          <div style={{ fontSize: 14, color: 'var(--text3)', marginTop: 4 }}>{planInfo.price}</div>
+        </div>
+
+        {clinic?.stripeSubscriptionId && (
+          <button
+            onClick={openPortal}
+            disabled={loading}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: 'var(--s2)', border: '1px solid var(--border)',
+              color: 'var(--text)', fontSize: 13, fontWeight: 600,
+              padding: '10px 16px', borderRadius: 8, cursor: 'pointer',
+            }}
+          >
+            {loading
+              ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Cargando…</>
+              : <><ExternalLink size={14} /> Gestionar facturación</>
+            }
+          </button>
+        )}
+      </div>
+
+      {/* Current features */}
+      <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 24px' }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 14 }}>Incluido en tu plan:</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {features.map(f => (
+            <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <CheckCircle2 size={15} color="var(--teal)" />
+              <span style={{ fontSize: 13, color: 'var(--text2)' }}>{f}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Upgrade options */}
+      {plan !== 'clinica' && (
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 12 }}>
+            {plan === 'trial' ? 'Activa tu plan antes de que termine la prueba:' : 'Opciones de actualización:'}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {(['basico', 'pro', 'clinica'] as const)
+              .filter(p => p !== plan)
+              .map(p => {
+                const info = PLAN_DISPLAY[p]
+                return (
+                  <div key={p} style={{
+                    background: 'var(--s1)', border: p === 'pro' ? '1px solid rgba(0,212,168,0.4)' : '1px solid var(--border)',
+                    borderRadius: 10, padding: '16px 20px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                  }}>
+                    <div>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{info.label}</div>
+                      <div style={{ fontSize: 13, color: 'var(--text3)' }}>{info.price}</div>
+                    </div>
+                    <button
+                      onClick={() => startCheckout(p)}
+                      disabled={checkoutLoading === p}
+                      style={{
+                        background: p === 'pro' ? 'var(--teal)' : 'var(--s2)',
+                        color: p === 'pro' ? '#000' : 'var(--text)',
+                        border: p === 'pro' ? 'none' : '1px solid var(--border)',
+                        fontSize: 13, fontWeight: 700,
+                        padding: '8px 16px', borderRadius: 8, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 6,
+                      }}
+                    >
+                      {checkoutLoading === p
+                        ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Cargando…</>
+                        : `Elegir ${info.label}`
+                      }
+                    </button>
+                  </div>
+                )
+              })
+            }
+          </div>
         </div>
       )}
     </div>

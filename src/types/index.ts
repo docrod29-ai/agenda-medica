@@ -2,7 +2,7 @@
 // MODELOS DE DATOS — Agenda Médica Inteligente (SaaS Multi-tenant)
 // ══════════════════════════════════════════════════════════════
 
-export type ClinicPlan = 'trial' | 'basico' | 'pro'
+export type ClinicPlan = 'trial' | 'basico' | 'pro' | 'clinica'
 export type ClinicStatus = 'active' | 'trial' | 'suspended' | 'cancelled'
 
 export interface Clinic {
