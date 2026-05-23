@@ -3,49 +3,77 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Solo usuarios autenticados pueden acceder
-    function isAuthenticated() {
+    function isAuth() {
       return request.auth != null;
     }
 
-    // Citas
-    match /appointments/{docId} {
-      allow read, write: if isAuthenticated();
+    function memberClinicId() {
+      return get(/databases/$(database)/documents/clinic_members/$(request.auth.uid)).data.clinicId;
     }
 
-    // Pacientes
-    match /patients/{docId} {
-      allow read, write: if isAuthenticated();
+    function isMember(clinicId) {
+      return isAuth() && memberClinicId() == clinicId;
     }
 
-    // Lista de espera
-    match /waitlist/{docId} {
-      allow read, write: if isAuthenticated();
+    function isAdmin(clinicId) {
+      return isAuth() &&
+        get(/databases/$(database)/documents/clinic_members/$(request.auth.uid)).data.clinicId == clinicId &&
+        get(/databases/$(database)/documents/clinic_members/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Configuración de la clínica
-    match /config/{docId} {
-      allow read, write: if isAuthenticated();
+    // Clinic metadata (root)
+    match /clinics/{clinicId} {
+      allow read: if isMember(clinicId);
+      allow create: if isAuth();
+      allow update: if isAdmin(clinicId);
+      allow delete: if false;
+
+      match /appointments/{docId} {
+        allow read, write: if isMember(clinicId);
+      }
+      match /patients/{docId} {
+        allow read, write: if isMember(clinicId);
+      }
+      match /waitlist/{docId} {
+        allow read, write: if isMember(clinicId);
+      }
+      match /config/{docId} {
+        allow read, write: if isMember(clinicId);
+      }
+      match /doctors/{docId} {
+        allow read, write: if isMember(clinicId);
+      }
+      match /bot_sessions/{docId} {
+        allow read, write: if false; // Admin SDK only
+      }
+      match /audit_log/{docId} {
+        allow read: if isMember(clinicId);
+        allow create: if isMember(clinicId);
+        allow update, delete: if false;
+      }
+      match /notification_logs/{docId} {
+        allow read: if isMember(clinicId);
+        allow create: if isMember(clinicId);
+        allow update, delete: if false;
+      }
     }
 
-    // Logs de notificaciones
-    match /notificationLogs/{docId} {
-      allow read, write: if isAuthenticated();
+    // Clinic memberships
+    match /clinic_members/{uid} {
+      allow read: if isAuth() && request.auth.uid == uid;
+      allow create: if isAuth() && (
+        request.auth.uid == uid ||
+        isAdmin(request.resource.data.clinicId)
+      );
+      allow update: if isAdmin(resource.data.clinicId);
+      allow delete: if false;
     }
 
-    // Auditoría
-    match /auditLogs/{docId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update, delete: if false; // logs son inmutables
-    }
-
-    // Tokens de Google Calendar (solo lectura/escritura del mismo UID)
+    // Google OAuth tokens (per-user)
     match /googleTokens/{uid} {
-      allow read, write: if isAuthenticated() && request.auth.uid == uid;
+      allow read, write: if isAuth() && request.auth.uid == uid;
     }
 
-    // Denegar todo lo demás
     match /{document=**} {
       allow read, write: if false;
     }

@@ -1,16 +1,20 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { collection, query, onSnapshot } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { Appointment } from '@/types'
+import { useClinic } from '@/context/ClinicContext'
 
 export function useAppointments() {
+  const { clinicId } = useClinic()
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const q = query(collection(db, 'appointments'))
+    if (!clinicId) { setLoading(false); return }
+
+    const q = query(collection(db, 'clinics', clinicId, 'appointments'))
     const unsub = onSnapshot(q,
       (snap) => {
         setAppointments(snap.docs.map(d => ({ id: d.id, ...d.data() } as Appointment)))
@@ -19,7 +23,7 @@ export function useAppointments() {
       (err) => { setError(err.message); setLoading(false) }
     )
     return () => unsub()
-  }, [])
+  }, [clinicId])
 
   return { appointments, loading, error }
 }

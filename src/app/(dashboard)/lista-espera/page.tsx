@@ -5,6 +5,7 @@ import { getWaitlist, createWaitlistEntry, updateWaitlistEntry } from '@/lib/fir
 import { useToast } from '@/context/ToastContext'
 import { useConfig } from '@/hooks/useConfig'
 import { useAuth } from '@/hooks/useAuth'
+import { useClinic } from '@/context/ClinicContext'
 import { openWhatsApp, msgListaEsperaAviso } from '@/lib/whatsapp'
 import { Plus, X, MessageSquare, CheckCircle2, Loader2, Clock } from 'lucide-react'
 
@@ -12,24 +13,26 @@ export default function ListaEsperaPage() {
   const { toast } = useToast()
   const { config } = useConfig()
   const { user } = useAuth()
+  const { clinicId } = useClinic()
   const [entries, setEntries] = useState<WaitlistEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
 
   const load = async () => {
+    if (!clinicId) return
     try {
-      const data = await getWaitlist()
+      const data = await getWaitlist(clinicId)
       setEntries(data)
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [clinicId])
 
   const handleRemove = async (id: string) => {
     try {
-      await updateWaitlistEntry(id, { estado: 'eliminado' })
+      await updateWaitlistEntry(clinicId!, id, { estado: 'eliminado' })
       toast('Eliminado de la lista', 'info')
       load()
     } catch {
@@ -46,7 +49,7 @@ export default function ListaEsperaPage() {
 
   const handleConverted = async (id: string) => {
     try {
-      await updateWaitlistEntry(id, { estado: 'convertido' })
+      await updateWaitlistEntry(clinicId!, id, { estado: 'convertido' })
       toast('Marcado como convertido', 'success')
       load()
     } catch {
@@ -149,6 +152,7 @@ export default function ListaEsperaPage() {
 
 function AddWaitlistModal({ onClose, onSaved, userEmail }: { onClose: () => void; onSaved: () => void; userEmail: string }) {
   const { toast } = useToast()
+  const { clinicId } = useClinic()
   const [saving, setSaving] = useState(false)
   const [nombre, setNombre] = useState('')
   const [telefono, setTelefono] = useState('')
@@ -162,7 +166,7 @@ function AddWaitlistModal({ onClose, onSaved, userEmail }: { onClose: () => void
     if (!nombre.trim()) { toast('El nombre es requerido', 'error'); return }
     setSaving(true)
     try {
-      await createWaitlistEntry({
+      await createWaitlistEntry(clinicId!, {
         pacienteNombre: nombre.trim(),
         pacienteTelefono: telefono.replace(/\D/g, ''),
         tipo, fechaDeseada, rangoHorario, prioridad,

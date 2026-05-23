@@ -85,116 +85,105 @@ async function sendWhatsApp(phone: string, message: string, config: ClinicConfig
 }
 
 export async function GET(req: NextRequest) {
-  // Verify cron secret
   const auth = req.headers.get('authorization')
   if (CRON_SECRET && auth !== `Bearer ${CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
-    const configSnap = await adminDb.collection('config').doc('main').get()
-    if (!configSnap.exists) return NextResponse.json({ skipped: 'no config' })
-
-    const config = configSnap.data() as ClinicConfig
-    if (!config.recordatorio24h && !config.recordatorioMismoDia) {
-      return NextResponse.json({ skipped: 'reminders disabled' })
-    }
-
     const now = new Date()
-    const results = { sent: 0, failed: 0, skipped: 0 }
+    const totals = { sent: 0, failed: 0, skipped: 0, clinics: 0 }
 
-    // Get all pending/confirmed appointments
-    const snap = await adminDb
-      .collection('appointments')
-      .where('estado', 'in', ['confirmada', 'pendiente-confirmar', 'solicitada'])
+    // ── Get all active clinics ────────────────────────────────
+    const clinicsSnap = await adminDb.collection('clinics')
+      .where('status', 'in', ['active', 'trial'])
       .get()
 
-    const appointments = snap.docs.map(d => ({ id: d.id, ...d.data() } as Appointment))
+    for (const clinicDoc of clinicsSnap.docs) {
+      const clinicId = clinicDoc.id
+      totals.clinics++
 
-    const defaultTemplate24h =
-      `Hola {paciente} 👋\n\nTe recordamos que tienes una cita *mañana* con {medico}.\n\n📅 {fecha}\n🕐 {hora}\n📍 {clinica}\n{direccion}\n\n¿Confirmas tu asistencia? Responde *SÍ* para confirmar o *NO* para cancelar.\n\nConsultorio: {telefono}`
+      try {
+        const configSnap = await adminDb
+          .collection('clinics').doc(clinicId)
+          .collection('config').doc('main').get()
 
-    const defaultTemplateSameDay =
-      `Buenos días {paciente} ☀️\n\nHoy tienes tu cita con {medico}:\n\n🕐 {hora}\n📍 {clinica}\n{direccion}\n\nTe esperamos. Cualquier duda: {telefono}`
+        if (!configSnap.exists) continue
 
-    for (const appt of appointments) {
-      if (!appt.consentimientoMensajes) { results.skipped++; continue }
-      const phone = appt.pacienteTelefono
-      if (!phone) { results.skipped++; continue }
+        const config = configSnap.data() as ClinicConfig
+        if (!config.recordatorio24h && !config.recordatorioMismoDia) continue
 
-      const apptDate = appt.fechaHora.slice(0, 10)
-      const apptHour = appt.fechaHora.slice(11, 16)
-      const apptDateObj = new Date(`${apptDate}T${apptHour}:00`)
+        // ── Get appointments for this clinic ─────────────────
+        const snap = await adminDb
+          .collection('clinics').doc(clinicId)
+          .collection('appointments')
+          .where('estado', 'in', ['confirmada', 'pendiente-confirmar', 'solicitada'])
+          .get()
 
-      const diffHours = (apptDateObj.getTime() - now.getTime()) / (1000 * 60 * 60)
-      const msgData = {
-        paciente: appt.pacienteNombre,
-        fecha: formatDateES(apptDate),
-        hora: apptHour,
-        medico: `Dr. ${config.nombreMedico}`,
-        clinica: config.nombreClinica,
-        direccion: config.direccion,
-        telefono: config.whatsappConsultorio || config.telefonoAdmin,
-      }
+        const appointments = snap.docs.map(d => ({ id: d.id, ...d.data() } as Appointment))
 
-      // 24h reminder: window 23–26 hours before
-      if (
-        config.recordatorio24h &&
-        !appt.recordatorio24hEnviado &&
-        diffHours >= 23 && diffHours <= 26
-      ) {
-        const msg = buildWhatsAppMessage(defaultTemplate24h, msgData)
-        const ok = await sendWhatsApp(phone, msg, config)
-        if (ok) {
-          await adminDb.collection('appointments').doc(appt.id).update({
-            recordatorio24hEnviado: true,
-            estado: appt.estado === 'confirmada' ? 'recordatorio-enviado' : appt.estado,
-            updatedAt: now.toISOString(),
-          })
-          await adminDb.collection('notificationLogs').add({
-            appointmentId: appt.id,
-            pacienteId: appt.pacienteId,
-            tipo: 'recordatorio-24h',
-            canal: 'whatsapp',
-            estado: 'enviado',
-            sentAt: now.toISOString(),
-          })
-          results.sent++
-        } else {
-          results.failed++
+        const template24h =
+          `Hola {paciente} 👋\n\nTe recordamos que tienes una cita *mañana* con {medico}.\n\n📅 {fecha}\n🕐 {hora}\n📍 {clinica}\n{direccion}\n\n¿Confirmas tu asistencia? Responde *SÍ* para confirmar o *NO* para cancelar.\n\nConsultorio: {telefono}`
+
+        const templateSameDay =
+          `Buenos días {paciente} ☀️\n\nHoy tienes tu cita con {medico}:\n\n🕐 {hora}\n📍 {clinica}\n{direccion}\n\nTe esperamos. Cualquier duda: {telefono}`
+
+        for (const appt of appointments) {
+          if (!appt.consentimientoMensajes) { totals.skipped++; continue }
+          const phone = appt.pacienteTelefono
+          if (!phone) { totals.skipped++; continue }
+
+          const apptDate = appt.fechaHora.slice(0, 10)
+          const apptHour = appt.fechaHora.slice(11, 16)
+          const apptDateObj = new Date(`${apptDate}T${apptHour}:00`)
+          const diffHours = (apptDateObj.getTime() - now.getTime()) / (1000 * 60 * 60)
+
+          const msgData = {
+            paciente: appt.pacienteNombre,
+            fecha: formatDateES(apptDate),
+            hora: apptHour,
+            medico: config.nombreMedico || 'el médico',
+            clinica: config.nombreClinica,
+            direccion: config.direccion || '',
+            telefono: config.whatsappConsultorio || config.telefonoAdmin,
+          }
+
+          // 24h reminder (window: 23–26h before)
+          if (config.recordatorio24h && !appt.recordatorio24hEnviado && diffHours >= 23 && diffHours <= 26) {
+            const msg = buildWhatsAppMessage(template24h, msgData)
+            const ok = await sendWhatsApp(phone, msg, config)
+            if (ok) {
+              await adminDb.collection('clinics').doc(clinicId)
+                .collection('appointments').doc(appt.id).update({
+                  recordatorio24hEnviado: true,
+                  estado: appt.estado === 'confirmada' ? 'recordatorio-enviado' : appt.estado,
+                  updatedAt: now.toISOString(),
+                })
+              totals.sent++
+            } else { totals.failed++ }
+            continue
+          }
+
+          // Same-day reminder (window: 1–4h before)
+          if (config.recordatorioMismoDia && !appt.recordatorioMismoDiaEnviado && diffHours >= 1 && diffHours <= 4) {
+            const msg = buildWhatsAppMessage(templateSameDay, msgData)
+            const ok = await sendWhatsApp(phone, msg, config)
+            if (ok) {
+              await adminDb.collection('clinics').doc(clinicId)
+                .collection('appointments').doc(appt.id).update({
+                  recordatorioMismoDiaEnviado: true,
+                  updatedAt: now.toISOString(),
+                })
+              totals.sent++
+            } else { totals.failed++ }
+          }
         }
-        continue
-      }
-
-      // Same-day reminder: 2–4 hours before
-      if (
-        config.recordatorioMismoDia &&
-        !appt.recordatorioMismoDiaEnviado &&
-        diffHours >= 1 && diffHours <= 4
-      ) {
-        const msg = buildWhatsAppMessage(defaultTemplateSameDay, msgData)
-        const ok = await sendWhatsApp(phone, msg, config)
-        if (ok) {
-          await adminDb.collection('appointments').doc(appt.id).update({
-            recordatorioMismoDiaEnviado: true,
-            updatedAt: now.toISOString(),
-          })
-          await adminDb.collection('notificationLogs').add({
-            appointmentId: appt.id,
-            pacienteId: appt.pacienteId,
-            tipo: 'recordatorio-dia',
-            canal: 'whatsapp',
-            estado: 'enviado',
-            sentAt: now.toISOString(),
-          })
-          results.sent++
-        } else {
-          results.failed++
-        }
+      } catch (clinicErr) {
+        console.error(`[Cron] Error for clinic ${clinicId}:`, clinicErr)
       }
     }
 
-    return NextResponse.json({ ok: true, ...results })
+    return NextResponse.json({ ok: true, ...totals })
   } catch (err) {
     console.error('Reminders cron error:', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })

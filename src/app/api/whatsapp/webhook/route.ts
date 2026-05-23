@@ -133,36 +133,66 @@ interface Session {
   createdAt: string
 }
 
-async function getSession(telefono: string): Promise<(Session & { id: string }) | null> {
-  const snap = await adminDb.collection('bot_sessions')
-    .where('telefono', '==', telefono)
-    .limit(1)
-    .get()
+function clinicSessions(clinicId: string) {
+  return adminDb.collection('clinics').doc(clinicId).collection('bot_sessions')
+}
+
+async function getSession(clinicId: string, telefono: string): Promise<(Session & { id: string }) | null> {
+  const snap = await clinicSessions(clinicId).where('telefono', '==', telefono).limit(1).get()
   if (snap.empty) return null
   const d = snap.docs[0]
   return { id: d.id, ...(d.data() as Session) }
 }
 
-async function saveSession(telefono: string, update: Partial<Session>): Promise<void> {
+async function saveSession(clinicId: string, telefono: string, update: Partial<Session>): Promise<void> {
   const now = new Date().toISOString()
-  const existing = await getSession(telefono)
+  const existing = await getSession(clinicId, telefono)
   if (existing) {
-    await adminDb.collection('bot_sessions').doc(existing.id).update({ ...update, lastMessageAt: now })
+    await clinicSessions(clinicId).doc(existing.id).update({ ...update, lastMessageAt: now })
   } else {
-    await adminDb.collection('bot_sessions').add({
-      telefono,
-      estado: 'inicio',
-      datos: {},
-      lastMessageAt: now,
-      createdAt: now,
-      ...update,
+    await clinicSessions(clinicId).add({
+      telefono, estado: 'inicio', datos: {}, lastMessageAt: now, createdAt: now, ...update,
     })
   }
 }
 
-async function clearSession(telefono: string): Promise<void> {
-  const existing = await getSession(telefono)
-  if (existing) await adminDb.collection('bot_sessions').doc(existing.id).delete()
+async function clearSession(clinicId: string, telefono: string): Promise<void> {
+  const existing = await getSession(clinicId, telefono)
+  if (existing) await clinicSessions(clinicId).doc(existing.id).delete()
+}
+
+// ── Find clinic by WhatsApp phoneNumberId ─────────────────────
+
+async function findClinicByPhoneNumberId(phoneNumberId: string): Promise<string | null> {
+  // Look up in each clinic's config for matching phoneNumberId
+  // This is O(n clinics) but clinics are small; cache in production
+  const clinicsSnap = await adminDb.collection('clinics')
+    .where('status', 'in', ['active', 'trial'])
+    .get()
+
+  for (const clinic of clinicsSnap.docs) {
+    const configSnap = await adminDb
+      .collection('clinics').doc(clinic.id)
+      .collection('config').doc('main').get()
+    if (configSnap.exists) {
+      const cfg = configSnap.data()
+      // Check if phoneNumberId matches (stored in config or env fallback)
+      if (cfg?.whatsappPhoneNumberId === phoneNumberId) {
+        return clinic.id
+      }
+    }
+  }
+
+  // Fallback: if only one clinic exists, use it (common for single-tenant installs)
+  if (clinicsSnap.size === 1) return clinicsSnap.docs[0].id
+
+  // Last resort: use env var to find the clinic
+  const envPhoneId = process.env.WHATSAPP_PHONE_NUMBER_ID
+  if (envPhoneId === phoneNumberId && clinicsSnap.size === 1) {
+    return clinicsSnap.docs[0].id
+  }
+
+  return null
 }
 
 // ── FAQ detector ─────────────────────────────────────────────
@@ -220,14 +250,15 @@ const TIPO_OPTIONS: { key: AppointmentType; label: string; n: string }[] = [
 
 // ── Main state machine ────────────────────────────────────────
 
-async function handleMessage(from: string, body: string): Promise<void> {
+async function handleMessage(from: string, body: string, clinicId: string): Promise<void> {
   const text = body.trim()
   const tLow = text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
-  // Load config and first active doctor
+  // Load config and first active doctor for this clinic
+  const clinicRef = adminDb.collection('clinics').doc(clinicId)
   const [configSnap, doctorSnap] = await Promise.all([
-    adminDb.collection('config').doc('main').get(),
-    adminDb.collection('doctors').where('activo', '==', true).limit(1).get(),
+    clinicRef.collection('config').doc('main').get(),
+    clinicRef.collection('doctors').where('activo', '==', true).limit(1).get(),
   ])
 
   const config = configSnap.exists
@@ -241,7 +272,7 @@ async function handleMessage(from: string, body: string): Promise<void> {
   const clinicName = config?.nombreClinica || config?.nombreMedico || 'el consultorio'
   const adminPhone = config?.telefonoAdmin || config?.whatsappConsultorio || ''
 
-  const session = await getSession(from)
+  const session = await getSession(clinicId, from)
   const estado = session?.estado || 'inicio'
   const datos = session?.datos || {}
 
@@ -250,9 +281,9 @@ async function handleMessage(from: string, body: string): Promise<void> {
     const last = new Date(session.lastMessageAt).getTime()
     const elapsed = Date.now() - last
     if (elapsed > 2 * 60 * 60 * 1000) {
-      await clearSession(from)
+      await clearSession(clinicId, from)
       await send(from, buildMenu(clinicName))
-      await saveSession(from, { estado: 'menu', datos: {} })
+      await saveSession(clinicId, from, { estado: 'menu', datos: {} })
       return
     }
   }
@@ -263,7 +294,7 @@ async function handleMessage(from: string, body: string): Promise<void> {
     const reply = buildFAQReply(faqKey, doctor, config || ({} as ClinicConfig))
     await send(from, reply)
     await send(from, '¿Desea hacer algo más?\n\n1️⃣ Agendar cita\n2️⃣ Otra consulta\n0️⃣ Salir')
-    await saveSession(from, { estado: 'menu' })
+    await saveSession(clinicId, from, { estado: 'menu' })
     return
   }
 
@@ -273,7 +304,7 @@ async function handleMessage(from: string, body: string): Promise<void> {
     /^(hola|buenas|buen dia|buenos|hi|hey|inicio|menu|empezar|start)/.test(tLow)
   ) {
     await send(from, buildMenu(clinicName))
-    await saveSession(from, { estado: 'menu', datos: {} })
+    await saveSession(clinicId, from, { estado: 'menu', datos: {} })
     return
   }
 
@@ -281,27 +312,27 @@ async function handleMessage(from: string, body: string): Promise<void> {
   if (estado === 'menu') {
     if (tLow === '1' || /agendar|cita|quiero cita/.test(tLow)) {
       await send(from, `¿Cuál es su nombre completo?`)
-      await saveSession(from, { estado: 'agendar_nombre' })
+      await saveSession(clinicId, from, { estado: 'agendar_nombre' })
       return
     }
     if (tLow === '2' || /informacion|info|pregunta/.test(tLow)) {
       await send(from, buildInfoMenu(config))
-      await saveSession(from, { estado: 'menu' })
+      await saveSession(clinicId, from, { estado: 'menu' })
       return
     }
     if (tLow === '3' || /cancelar/.test(tLow)) {
       await send(from, `Para cancelar su cita, por favor comuníquese al ${adminPhone}.\n\nTambién puede escribir su nombre completo y le ayudamos.`)
-      await saveSession(from, { estado: 'cancelar_buscar', datos: {} })
+      await saveSession(clinicId, from, { estado: 'cancelar_buscar', datos: {} })
       return
     }
     if (tLow === '0' || /adios|gracias|salir/.test(tLow)) {
       await send(from, `¡Hasta luego! Cuando guste puede escribirnos. 😊`)
-      await clearSession(from)
+      await clearSession(clinicId, from)
       return
     }
     // Didn't match menu options, show again
     await send(from, `No entendí su opción. ${buildMenu(clinicName)}`)
-    await saveSession(from, { estado: 'menu' })
+    await saveSession(clinicId, from, { estado: 'menu' })
     return
   }
 
@@ -314,7 +345,7 @@ async function handleMessage(from: string, body: string): Promise<void> {
     datos.nombre = text
     const tipoMenu = TIPO_OPTIONS.map(t => `${t.n}️⃣ ${t.label}`).join('\n')
     await send(from, `Gracias ${text.split(' ')[0]}.\n\n¿Qué tipo de consulta necesita?\n\n${tipoMenu}`)
-    await saveSession(from, { estado: 'agendar_tipo', datos })
+    await saveSession(clinicId, from, { estado: 'agendar_tipo', datos })
     return
   }
 
@@ -329,16 +360,16 @@ async function handleMessage(from: string, body: string): Promise<void> {
     datos.duracion = String((doctor?.duraciones?.[opt.key] ?? config?.duraciones?.[opt.key]) || 30)
 
     // Find available days (next 7 days)
-    const availableDays = await getAvailableDays(datos.duracion, config, doctor)
+    const availableDays = await getAvailableDays(clinicId, datos.duracion, config, doctor)
     if (availableDays.length === 0) {
       await send(from, `En este momento no hay horarios disponibles.\n\nLe invitamos a llamar al ${adminPhone} para coordinar su cita.`)
-      await clearSession(from)
+      await clearSession(clinicId, from)
       return
     }
     datos.availableDays = availableDays.join(',')
     const daysMenu = availableDays.map((d, i) => `${i + 1}️⃣ ${formatDate(d)} (${d})`).join('\n')
     await send(from, `¿Qué día prefiere?\n\n${daysMenu}`)
-    await saveSession(from, { estado: 'agendar_fecha', datos })
+    await saveSession(clinicId, from, { estado: 'agendar_fecha', datos })
     return
   }
 
@@ -355,7 +386,7 @@ async function handleMessage(from: string, body: string): Promise<void> {
     const duracion = parseInt(datos.duracion || '30')
 
     // Get appointments for this date
-    const apptSnap = await adminDb.collection('appointments')
+    const apptSnap = await adminDb.collection('clinics').doc(clinicId).collection('appointments')
       .where('fechaHora', '>=', fecha + ' 00:00')
       .where('fechaHora', '<=', fecha + ' 23:59')
       .get()
@@ -375,7 +406,7 @@ async function handleMessage(from: string, body: string): Promise<void> {
     datos.availableSlots = displaySlots.join(',')
     const horasMenu = displaySlots.map((h, i) => `${i + 1}️⃣ ${h} hrs`).join('\n')
     await send(from, `Horarios disponibles el ${formatDate(fecha)}:\n\n${horasMenu}`)
-    await saveSession(from, { estado: 'agendar_hora', datos })
+    await saveSession(clinicId, from, { estado: 'agendar_hora', datos })
     return
   }
 
@@ -406,7 +437,7 @@ async function handleMessage(from: string, body: string): Promise<void> {
     ].filter(l => l !== '').join('\n')
 
     await send(from, confirmMsg)
-    await saveSession(from, { estado: 'agendar_confirm', datos })
+    await saveSession(clinicId, from, { estado: 'agendar_confirm', datos })
     return
   }
 
@@ -420,7 +451,7 @@ async function handleMessage(from: string, body: string): Promise<void> {
       const medicoNombre = doctor?.nombre || config?.nombreMedico || 'Dr.'
       const doctorId = doctor?.id
 
-      const apptRef = await adminDb.collection('appointments').add({
+      const apptRef = await adminDb.collection('clinics').doc(clinicId).collection('appointments').add({
         pacienteId: '',
         pacienteNombre: datos.nombre,
         pacienteTelefono: from,
@@ -472,13 +503,13 @@ async function handleMessage(from: string, body: string): Promise<void> {
         ].join('\n'))
       }
 
-      await clearSession(from)
+      await clearSession(clinicId, from)
       return
     }
 
     if (/^(no|cancelar|cancel|nope|2)$/i.test(tLow)) {
       await send(from, `Cita cancelada. ¿Desea elegir otra fecha?\n\n1️⃣ Sí, quiero otra fecha\n2️⃣ No, gracias`)
-      await saveSession(from, { estado: 'agendar_reintentar', datos })
+      await saveSession(clinicId, from, { estado: 'agendar_reintentar', datos })
       return
     }
 
@@ -492,10 +523,10 @@ async function handleMessage(from: string, body: string): Promise<void> {
       // Go back to type selection
       const tipoMenu = TIPO_OPTIONS.map(t => `${t.n}️⃣ ${t.label}`).join('\n')
       await send(from, `¿Qué tipo de consulta necesita?\n\n${tipoMenu}`)
-      await saveSession(from, { estado: 'agendar_tipo', datos: { nombre: datos.nombre } })
+      await saveSession(clinicId, from, { estado: 'agendar_tipo', datos: { nombre: datos.nombre } })
     } else {
       await send(from, `Entendido. ¡Hasta luego! Puede escribirnos cuando guste. 😊`)
-      await clearSession(from)
+      await clearSession(clinicId, from)
     }
     return
   }
@@ -503,7 +534,7 @@ async function handleMessage(from: string, body: string): Promise<void> {
   // ── CANCELAR: buscar cita ─────────────────────────────────
   if (estado === 'cancelar_buscar') {
     await send(from, `Para cancelar su cita comuníquese directamente al consultorio:\n📞 ${adminPhone}\n\n¿Hay algo más en lo que pueda ayudarle?`)
-    await saveSession(from, { estado: 'menu' })
+    await saveSession(clinicId, from, { estado: 'menu' })
     return
   }
 
@@ -517,7 +548,7 @@ async function handleMessage(from: string, body: string): Promise<void> {
       // Create appointment
       const duracion = 30
       const now = new Date().toISOString()
-      await adminDb.collection('appointments').add({
+      await adminDb.collection('clinics').doc(clinicId).collection('appointments').add({
         pacienteId: datos.pacienteId || '',
         pacienteNombre: datos.nombre,
         pacienteTelefono: from,
@@ -551,22 +582,22 @@ async function handleMessage(from: string, body: string): Promise<void> {
         await send(adminPhone, `🔔 Paciente de lista de espera confirmó cita:\n${datos.nombre} – ${slotFecha} ${slotHora}`)
       }
 
-      await clearSession(from)
+      await clearSession(clinicId, from)
     } else {
       await send(from, `Entendido, le quitamos de la oferta. Si desea agendar en otro momento, escríbanos.\n\n¿Quiere seguir en la lista de espera?`)
-      await saveSession(from, { estado: 'menu' })
+      await saveSession(clinicId, from, { estado: 'menu' })
     }
     return
   }
 
   // ── Default: doesn't match any state ─────────────────────
   await send(from, buildMenu(clinicName))
-  await saveSession(from, { estado: 'menu', datos: {} })
+  await saveSession(clinicId, from, { estado: 'menu', datos: {} })
 }
 
 // ── Helper: get next available days (up to 5) ────────────────
 
-async function getAvailableDays(duracionStr: string, config: ClinicConfig | null, doctor: Doctor | null): Promise<string[]> {
+async function getAvailableDays(clinicId: string, duracionStr: string, config: ClinicConfig | null, doctor: Doctor | null): Promise<string[]> {
   if (!config) return []
   const duracion = parseInt(duracionStr || '30')
   const days: string[] = []
@@ -574,7 +605,7 @@ async function getAvailableDays(duracionStr: string, config: ClinicConfig | null
 
   // Get all appointments for next 14 days
   const endDate = addDays(cursor, 14)
-  const snap = await adminDb.collection('appointments')
+  const snap = await adminDb.collection('clinics').doc(clinicId).collection('appointments')
     .where('fechaHora', '>=', cursor + ' 00:00')
     .where('fechaHora', '<=', endDate + ' 23:59')
     .get()
@@ -655,6 +686,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
+    // Identify which clinic owns this phoneNumberId
+    const phoneNumberId: string = value?.metadata?.phone_number_id || ''
+    const clinicId = await findClinicByPhoneNumberId(phoneNumberId)
+
+    if (!clinicId) {
+      console.warn('[Bot] No clinic found for phoneNumberId:', phoneNumberId)
+      return NextResponse.json({ ok: true })
+    }
+
     for (const msg of messages) {
       if (msg.type !== 'text') continue
       const from: string = msg.from
@@ -662,7 +702,7 @@ export async function POST(req: NextRequest) {
       if (!from || !text) continue
 
       // Handle async, don't block webhook response
-      handleMessage(from, text).catch(err => {
+      handleMessage(from, text, clinicId).catch(err => {
         console.error(`[Bot] Error handling message from ${from}:`, err)
       })
     }

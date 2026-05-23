@@ -4,11 +4,13 @@ import { Patient } from '@/types'
 import { getPatients, createPatient, updatePatient } from '@/lib/firestore'
 import { useToast } from '@/context/ToastContext'
 import { useAuth } from '@/hooks/useAuth'
+import { useClinic } from '@/context/ClinicContext'
 import { Plus, Search, X, Loader2, Users, Phone, AlertCircle } from 'lucide-react'
 
 export default function PacientesPage() {
   const { toast } = useToast()
   const { user } = useAuth()
+  const { clinicId } = useClinic()
   const [patients, setPatients] = useState<Patient[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -16,15 +18,16 @@ export default function PacientesPage() {
   const [editPatient, setEditPatient] = useState<Patient | null>(null)
 
   const load = async () => {
+    if (!clinicId) return
     try {
-      const data = await getPatients()
+      const data = await getPatients(clinicId)
       setPatients(data)
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [clinicId])
 
   const filtered = useMemo(() =>
     patients.filter(p =>
@@ -139,6 +142,7 @@ function PatientModal({ patient, onClose, onSaved, userEmail }: {
   userEmail: string
 }) {
   const { toast } = useToast()
+  const { clinicId } = useClinic()
   const [saving, setSaving] = useState(false)
   const [f, setF] = useState({
     nombre: patient?.nombre ?? '',
@@ -178,10 +182,10 @@ function PatientModal({ patient, onClose, onSaved, userEmail }: {
         createdAt: patient?.createdAt ?? new Date().toISOString(),
       }
       if (patient) {
-        await updatePatient(patient.id, payload)
+        await updatePatient(clinicId!, patient.id, payload)
         toast('Paciente actualizado', 'success')
       } else {
-        await createPatient(payload)
+        await createPatient(clinicId!, payload)
         toast('Paciente registrado', 'success')
       }
       onSaved()

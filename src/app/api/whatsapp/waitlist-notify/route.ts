@@ -60,24 +60,34 @@ function formatDate(fecha: string): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const { fecha, hora, doctorId } = await req.json()
+    const { fecha, hora, clinicId: bodyClinicId } = await req.json()
     if (!fecha || !hora) {
       return NextResponse.json({ error: 'fecha and hora required' }, { status: 400 })
     }
 
+    // clinicId can be passed in body or default to the only clinic (single-tenant compat)
+    let clinicId = bodyClinicId
+    if (!clinicId) {
+      const snap = await adminDb.collection('clinics').limit(1).get()
+      if (snap.empty) return NextResponse.json({ error: 'no clinics' }, { status: 500 })
+      clinicId = snap.docs[0].id
+    }
+
+    const clinicRef = adminDb.collection('clinics').doc(clinicId)
+
     // Load config
-    const configSnap = await adminDb.collection('config').doc('main').get()
+    const configSnap = await clinicRef.collection('config').doc('main').get()
     if (!configSnap.exists) {
       return NextResponse.json({ error: 'no config' }, { status: 500 })
     }
     const config = configSnap.data() as ClinicConfig
 
-    // Get active waitlist entries (ordered by priority then creation)
-    const waitlistSnap = await adminDb.collection('waitlist')
+    // Get active waitlist entries
+    const waitlistSnap = await clinicRef.collection('waitlist')
       .where('estado', '==', 'activo')
       .orderBy('prioridad', 'desc')
       .orderBy('createdAt', 'asc')
-      .limit(3) // notify top 3, first to respond gets the slot
+      .limit(3)
       .get()
 
     if (waitlistSnap.empty) {
@@ -109,7 +119,6 @@ export async function POST(req: NextRequest) {
       if (ok) {
         notified++
 
-        // Set bot session so when they reply YES it books them
         const sessionData = {
           telefono: entry.pacienteTelefono,
           estado: 'esperando_lista',
@@ -125,19 +134,17 @@ export async function POST(req: NextRequest) {
           createdAt: new Date().toISOString(),
         }
 
-        // Upsert bot session
-        const sessionSnap = await adminDb.collection('bot_sessions')
-          .where('telefono', '==', entry.pacienteTelefono)
-          .limit(1)
-          .get()
+        // Upsert bot session (clinic-scoped)
+        const sessionSnap = await clinicRef.collection('bot_sessions')
+          .where('telefono', '==', entry.pacienteTelefono).limit(1).get()
         if (!sessionSnap.empty) {
-          await adminDb.collection('bot_sessions').doc(sessionSnap.docs[0].id).set(sessionData)
+          await clinicRef.collection('bot_sessions').doc(sessionSnap.docs[0].id).set(sessionData)
         } else {
-          await adminDb.collection('bot_sessions').add(sessionData)
+          await clinicRef.collection('bot_sessions').add(sessionData)
         }
 
         // Mark waitlist entry as contactado
-        await adminDb.collection('waitlist').doc(entry.id).update({ estado: 'contactado' })
+        await clinicRef.collection('waitlist').doc(entry.id).update({ estado: 'contactado' })
       }
     }
 

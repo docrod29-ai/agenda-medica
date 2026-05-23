@@ -6,6 +6,7 @@
  */
 import { useState } from 'react'
 import { updateDoctor } from '@/lib/firestore'
+import { useClinic } from '@/context/ClinicContext'
 import { Doctor } from '@/types'
 
 interface Props {
@@ -57,6 +58,7 @@ const STEPS = [
 ]
 
 export function DoctorOnboarding({ doctor, onComplete }: Props) {
+  const { clinicId } = useClinic()
   const [step, setStep] = useState(0)
   const [values, setValues] = useState<Record<string, string>>({
     padecimientos: doctor.botConfig?.padecimientos || '',
@@ -79,7 +81,7 @@ export function DoctorOnboarding({ doctor, onComplete }: Props) {
     // Save on last step
     setSaving(true)
     try {
-      await updateDoctor(doctor.id, {
+      await updateDoctor(clinicId!, doctor.id, {
         botConfig: {
           padecimientos: values.padecimientos,
           costoConsulta: values.costoConsulta,

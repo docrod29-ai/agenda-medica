@@ -5,6 +5,7 @@ import { saveConfig, updateDoctor } from '@/lib/firestore'
 import { useConfig } from '@/hooks/useConfig'
 import { useDoctors } from '@/hooks/useDoctors'
 import { useToast } from '@/context/ToastContext'
+import { useClinic } from '@/context/ClinicContext'
 import { auth } from '@/lib/firebase'
 import { Loader2, Save, Copy, Calendar, CheckCircle2, XCircle, Link, Bot } from 'lucide-react'
 import { msgConfirmacion, msgRecordatorio24h, msgRecordatorioDia } from '@/lib/whatsapp'
@@ -19,6 +20,7 @@ type Tab = 'general' | 'horario' | 'duraciones' | 'notificaciones' | 'integracio
 export default function ConfiguracionPage() {
   const { config, loading } = useConfig()
   const { activeDoctors } = useDoctors()
+  const { clinicId } = useClinic()
   const { toast } = useToast()
   const searchParams = useSearchParams()
   const [tab, setTab] = useState<Tab>('general')
@@ -103,7 +105,7 @@ export default function ConfiguracionPage() {
   const handleSave = async () => {
     setSaving(true)
     try {
-      await saveConfig(form)
+      await saveConfig(clinicId!, form)
       toast('Configuración guardada', 'success')
     } catch {
       toast('Error al guardar', 'error')
@@ -473,6 +475,7 @@ import { Doctor } from '@/types'
 
 function BotFAQTab({ doctors }: { doctors: Doctor[] }) {
   const { toast } = useToast()
+  const { clinicId } = useClinic()
   const doctor = doctors[0] // primary doctor
   const [values, setValues] = useState({
     padecimientos: '',
@@ -500,7 +503,7 @@ function BotFAQTab({ doctors }: { doctors: Doctor[] }) {
     if (!doctor) { toast('No hay médico configurado', 'error'); return }
     setSaving(true)
     try {
-      await updateDoctor(doctor.id, {
+      await updateDoctor(clinicId!, doctor.id, {
         botConfig: { ...values, completado: true },
       })
       toast('Bot FAQ actualizado', 'success')
@@ -589,6 +592,7 @@ import { createDoctor, deleteDoctor } from '@/lib/firestore'
 function MedicosTab() {
   const { doctors, loading } = useDoctors()
   const { config } = useConfig()
+  const { clinicId } = useClinic()
   const { toast } = useToast()
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -600,7 +604,7 @@ function MedicosTab() {
     if (!form.nombre.trim()) { toast('El nombre es requerido', 'error'); return }
     setSaving(true)
     try {
-      await createDoctor({
+      await createDoctor(clinicId!, {
         nombre: form.nombre.trim(),
         especialidad: form.especialidad.trim(),
         telefono: form.telefono.trim(),
@@ -700,7 +704,7 @@ function MedicosTab() {
               {doc.activo ? 'Activo' : 'Inactivo'}
             </span>
             <button
-              onClick={() => updateDoctor(doc.id, { activo: !doc.activo }).catch(() => toast('Error', 'error'))}
+              onClick={() => updateDoctor(clinicId!, doc.id, { activo: !doc.activo }).catch(() => toast('Error', 'error'))}
               style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text3)', fontSize: 12, borderRadius: 6, padding: '4px 8px', cursor: 'pointer' }}
             >
               {doc.activo ? 'Desactivar' : 'Activar'}

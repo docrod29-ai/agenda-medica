@@ -17,6 +17,7 @@ import { CalendarDays, Clock, User, Phone, Stethoscope, CheckCircle2, Loader2 } 
 import { format, addDays } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useAuth } from '@/hooks/useAuth'
+import { useClinic } from '@/context/ClinicContext'
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10)
@@ -40,6 +41,7 @@ const TIPOS: { value: AppointmentType; label: string }[] = Object.entries(APPOIN
 
 export default function AsistentePage() {
   const { user } = useAuth()
+  const { clinicId } = useClinic()
   const { appointments } = useAppointments()
   const { config } = useConfig()
   const { activeDoctors, loading: doctorsLoading } = useDoctors()
@@ -100,7 +102,7 @@ export default function AsistentePage() {
     const doctor = activeDoctors.find(d => d.id === doctorId)
     setSaving(true)
     try {
-      await createAppointment({
+      await createAppointment(clinicId!, {
         pacienteId: '',
         pacienteNombre: nombre.trim(),
         pacienteTelefono: telefono.replace(/\D/g, ''),

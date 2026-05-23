@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/context/ToastContext'
 import { createAppointment, updateAppointment } from '@/lib/firestore'
 import { getAvailableSlots, hasConflict } from '@/lib/availability'
+import { useClinic } from '@/context/ClinicContext'
 import { StatusBadge } from './StatusBadge'
 import { X, Phone, MessageSquare, Clock, AlertCircle, Loader2 } from 'lucide-react'
 import { openWhatsApp, msgConfirmacion } from '@/lib/whatsapp'
@@ -34,6 +35,7 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
   const { config } = useConfig()
   const { appointments } = useAppointments()
   const { user } = useAuth()
+  const { clinicId } = useClinic()
   const { toast } = useToast()
 
   const isEdit = !!appointment
@@ -126,7 +128,7 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
 
       let id: string
       if (isEdit && appointment) {
-        await updateAppointment(appointment.id, payload)
+        await updateAppointment(clinicId!, appointment.id, payload)
         id = appointment.id
         toast('Cita actualizada', 'success')
         // Sync with Google Calendar in background
@@ -151,11 +153,12 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
             body: JSON.stringify({
               fecha: appointment.fechaHora.slice(0, 10),
               hora: appointment.fechaHora.slice(11, 16),
+              clinicId,
             }),
           }).catch(() => {/* non-critical */})
         }
       } else {
-        id = await createAppointment({ ...payload, createdAt: '', updatedAt: '' })
+        id = await createAppointment(clinicId!, { ...payload, createdAt: '', updatedAt: '' })
         toast('Cita agendada', 'success')
         // Sync with Google Calendar in background
         if (user?.uid) {

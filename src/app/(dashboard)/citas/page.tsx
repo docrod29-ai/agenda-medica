@@ -8,6 +8,7 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { AppointmentModal } from '@/components/AppointmentModal'
 import { Appointment, AppointmentStatus, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { updateAppointment, deleteAppointment } from '@/lib/firestore'
+import { useClinic } from '@/context/ClinicContext'
 import { openWhatsApp, msgConfirmacion, msgCancelacion } from '@/lib/whatsapp'
 import {
   Plus, Search, Filter, Trash2, Edit2, MessageSquare,
@@ -43,6 +44,7 @@ export default function CitasPage() {
   const router = useRouter()
   const { appointments, loading } = useAppointments()
   const { config } = useConfig()
+  const { clinicId } = useClinic()
   const { toast } = useToast()
 
   const [selectedDate, setSelectedDate] = useState(todayStr())
@@ -87,7 +89,7 @@ export default function CitasPage() {
 
   const handleStatusChange = async (appt: Appointment, newStatus: AppointmentStatus) => {
     try {
-      await updateAppointment(appt.id, { estado: newStatus })
+      await updateAppointment(clinicId!, appt.id, { estado: newStatus })
       toast(`Estado actualizado: ${newStatus}`, 'success')
       setMenuId(null)
     } catch {
@@ -99,7 +101,7 @@ export default function CitasPage() {
     if (!confirm('¿Eliminar esta cita permanentemente?')) return
     setDeletingId(id)
     try {
-      await deleteAppointment(id)
+      await deleteAppointment(clinicId!, id)
       toast('Cita eliminada', 'info')
     } catch {
       toast('Error al eliminar', 'error')

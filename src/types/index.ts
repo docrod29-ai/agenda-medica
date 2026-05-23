@@ -1,6 +1,31 @@
 // ══════════════════════════════════════════════════════════════
-// MODELOS DE DATOS — Agenda Médica Inteligente
+// MODELOS DE DATOS — Agenda Médica Inteligente (SaaS Multi-tenant)
 // ══════════════════════════════════════════════════════════════
+
+export type ClinicPlan = 'trial' | 'basico' | 'pro'
+export type ClinicStatus = 'active' | 'trial' | 'suspended' | 'cancelled'
+
+export interface Clinic {
+  id: string
+  nombreClinica: string
+  nombreMedico: string
+  plan: ClinicPlan
+  status: ClinicStatus
+  trialEndsAt?: string          // ISO date
+  stripeCustomerId?: string
+  stripeSubscriptionId?: string
+  ownerId: string               // Firebase uid del creador
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ClinicMember {
+  clinicId: string
+  role: 'admin' | 'medico' | 'secretaria'
+  createdAt: string
+}
+
+// ── Helpers ───────────────────────────────────────────────────
 
 export type AppointmentStatus =
   | 'solicitada'
