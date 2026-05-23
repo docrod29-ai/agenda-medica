@@ -141,6 +141,19 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
             }),
           }).catch(() => {/* non-critical */})
         }
+        // If appointment cancelled → notify waitlist
+        const wasCancelled = ['cancelada', 'reagendada', 'no-asistio'].includes(estado) &&
+          !['cancelada', 'reagendada', 'no-asistio'].includes(appointment.estado)
+        if (wasCancelled) {
+          fetch('/api/whatsapp/waitlist-notify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fecha: appointment.fechaHora.slice(0, 10),
+              hora: appointment.fechaHora.slice(11, 16),
+            }),
+          }).catch(() => {/* non-critical */})
+        }
       } else {
         id = await createAppointment({ ...payload, createdAt: '', updatedAt: '' })
         toast('Cita agendada', 'success')

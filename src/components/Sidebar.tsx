@@ -7,11 +7,12 @@ import { useMode } from '@/context/ModeContext'
 import { useConfig } from '@/hooks/useConfig'
 import {
   LayoutDashboard, CalendarDays, Calendar, Users, Clock,
-  Settings, LogOut, Stethoscope, Shield,
+  Settings, LogOut, Stethoscope, Shield, Bot, UserSquare2,
 } from 'lucide-react'
 
 const NAV = [
   { href: '/dashboard',     label: 'Dashboard',      icon: LayoutDashboard },
+  { href: '/asistente',     label: 'Agendar rápido', icon: UserSquare2 },
   { href: '/citas',         label: 'Citas',          icon: CalendarDays },
   { href: '/calendario',    label: 'Calendario',     icon: Calendar },
   { href: '/pacientes',     label: 'Pacientes',      icon: Users },

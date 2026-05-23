@@ -1,11 +1,12 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { ClinicConfig, DEFAULT_CONFIG, AppointmentType, APPOINTMENT_TYPE_CONFIG } from '@/types'
-import { saveConfig } from '@/lib/firestore'
+import { saveConfig, updateDoctor } from '@/lib/firestore'
 import { useConfig } from '@/hooks/useConfig'
+import { useDoctors } from '@/hooks/useDoctors'
 import { useToast } from '@/context/ToastContext'
 import { auth } from '@/lib/firebase'
-import { Loader2, Save, Copy, Calendar, CheckCircle2, XCircle, Link } from 'lucide-react'
+import { Loader2, Save, Copy, Calendar, CheckCircle2, XCircle, Link, Bot } from 'lucide-react'
 import { msgConfirmacion, msgRecordatorio24h, msgRecordatorioDia } from '@/lib/whatsapp'
 import { copyToClipboard } from '@/lib/whatsapp'
 import { useSearchParams } from 'next/navigation'
@@ -13,10 +14,11 @@ import { useSearchParams } from 'next/navigation'
 const DIAS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'] as const
 const DIAS_LABELS = { lunes: 'Lunes', martes: 'Martes', miercoles: 'Miércoles', jueves: 'Jueves', viernes: 'Viernes', sabado: 'Sábado', domingo: 'Domingo' }
 
-type Tab = 'general' | 'horario' | 'duraciones' | 'notificaciones' | 'integraciones' | 'plantillas'
+type Tab = 'general' | 'horario' | 'duraciones' | 'notificaciones' | 'integraciones' | 'plantillas' | 'bot' | 'medicos'
 
 export default function ConfiguracionPage() {
   const { config, loading } = useConfig()
+  const { activeDoctors } = useDoctors()
   const { toast } = useToast()
   const searchParams = useSearchParams()
   const [tab, setTab] = useState<Tab>('general')
@@ -145,6 +147,8 @@ export default function ConfiguracionPage() {
     { key: 'notificaciones', label: 'Notificaciones' },
     { key: 'integraciones', label: 'Integraciones' },
     { key: 'plantillas', label: 'Plantillas WA' },
+    { key: 'bot', label: '🤖 Bot FAQ' },
+    { key: 'medicos', label: 'Médicos' },
   ]
 
   if (loading) {
@@ -452,7 +456,264 @@ export default function ConfiguracionPage() {
         </div>
       )}
 
+      {/* Bot FAQ */}
+      {tab === 'bot' && <BotFAQTab doctors={activeDoctors} />}
+
+      {/* Médicos */}
+      {tab === 'medicos' && <MedicosTab />}
+
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  )
+}
+
+// ── Bot FAQ sub-component ────────────────────────────────────
+
+import { Doctor } from '@/types'
+
+function BotFAQTab({ doctors }: { doctors: Doctor[] }) {
+  const { toast } = useToast()
+  const doctor = doctors[0] // primary doctor
+  const [values, setValues] = useState({
+    padecimientos: '',
+    costoConsulta: '',
+    seguros: '',
+    comoLlegar: '',
+    infoExtra: '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [webhookToken] = useState(process.env.NEXT_PUBLIC_APP_URL || '')
+
+  useEffect(() => {
+    if (doctor?.botConfig) {
+      setValues({
+        padecimientos: doctor.botConfig.padecimientos || '',
+        costoConsulta: doctor.botConfig.costoConsulta || '',
+        seguros: doctor.botConfig.seguros || '',
+        comoLlegar: doctor.botConfig.comoLlegar || '',
+        infoExtra: doctor.botConfig.infoExtra || '',
+      })
+    }
+  }, [doctor])
+
+  const handleSave = async () => {
+    if (!doctor) { toast('No hay médico configurado', 'error'); return }
+    setSaving(true)
+    try {
+      await updateDoctor(doctor.id, {
+        botConfig: { ...values, completado: true },
+      })
+      toast('Bot FAQ actualizado', 'success')
+    } catch {
+      toast('Error al guardar', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const appUrl = typeof window !== 'undefined' ? window.location.origin : ''
+  const webhookUrl = `${appUrl}/api/whatsapp/webhook`
+
+  const FIELDS = [
+    { id: 'padecimientos', label: '🩺 Padecimientos que atiende', placeholder: 'Infecciones bacterianas, virales, VIH/SIDA, tuberculosis…' },
+    { id: 'costoConsulta', label: '💰 Costo de consulta', placeholder: 'Primera vez $800, seguimiento $600…' },
+    { id: 'seguros', label: '🏥 Seguros aceptados', placeholder: 'GNP, AXA… / No aceptamos IMSS/ISSSTE' },
+    { id: 'comoLlegar', label: '📍 Cómo llegar / Dirección detallada', placeholder: 'Edificio X, piso 3, consultorio 304…' },
+    { id: 'infoExtra', label: '💬 Información adicional (opcional)', placeholder: 'Traer estudios previos, llegar 10 min antes…' },
+  ] as const
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ background: 'rgba(0,212,168,0.05)', border: '1px solid rgba(0,212,168,0.2)', borderRadius: 12, padding: 16 }}>
+        <p style={{ fontSize: 13, color: 'var(--text2)', margin: 0, lineHeight: 1.6 }}>
+          🤖 <strong style={{ color: 'var(--teal)' }}>Bot de WhatsApp</strong> — estas respuestas se usan cuando los pacientes pregunten por WhatsApp sobre horarios, costos, ubicación, etc.
+        </p>
+        <p style={{ fontSize: 12, color: 'var(--text3)', margin: '8px 0 0' }}>
+          URL del Webhook (para Meta): <code style={{ background: 'var(--s2)', padding: '2px 6px', borderRadius: 4, fontSize: 11 }}>{webhookUrl}</code>
+          &nbsp;
+          <button
+            onClick={() => navigator.clipboard?.writeText(webhookUrl)}
+            style={{ background: 'none', border: 'none', color: 'var(--teal)', cursor: 'pointer', fontSize: 12 }}
+          >
+            Copiar
+          </button>
+        </p>
+        <p style={{ fontSize: 12, color: 'var(--text3)', margin: '4px 0 0' }}>
+          Token de verificación: <code style={{ background: 'var(--s2)', padding: '2px 6px', borderRadius: 4, fontSize: 11 }}>agenda-medica-bot</code>
+          &nbsp;(variable WHATSAPP_WEBHOOK_TOKEN en Vercel)
+        </p>
+      </div>
+
+      {!doctor && (
+        <div style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 10, padding: 14, fontSize: 13, color: '#fbbf24' }}>
+          ⚠️ No hay médico configurado. Ve a Configuración → General para agregar un médico.
+        </div>
+      )}
+
+      {FIELDS.map(f => (
+        <div key={f.id}>
+          <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', display: 'block', marginBottom: 8 }}>
+            {f.label}
+          </label>
+          <textarea
+            value={values[f.id]}
+            onChange={e => setValues(v => ({ ...v, [f.id]: e.target.value }))}
+            placeholder={f.placeholder}
+            rows={3}
+            disabled={!doctor}
+            style={{
+              width: '100%', background: 'var(--s2)', border: '1px solid var(--border)',
+              borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--text)',
+              outline: 'none', resize: 'vertical', lineHeight: 1.6,
+            }}
+          />
+        </div>
+      ))}
+
+      <button
+        onClick={handleSave}
+        disabled={saving || !doctor}
+        className="btn btn-primary"
+        style={{ alignSelf: 'flex-start' }}
+      >
+        {saving ? <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Guardando…</> : <><Save size={15} /> Guardar FAQ del bot</>}
+      </button>
+    </div>
+  )
+}
+
+// ── Médicos sub-component ────────────────────────────────────
+
+import { createDoctor, deleteDoctor } from '@/lib/firestore'
+
+function MedicosTab() {
+  const { doctors, loading } = useDoctors()
+  const { config } = useConfig()
+  const { toast } = useToast()
+  const [showForm, setShowForm] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({
+    nombre: '', especialidad: '', telefono: '', email: '', activo: true,
+  })
+
+  const handleCreate = async () => {
+    if (!form.nombre.trim()) { toast('El nombre es requerido', 'error'); return }
+    setSaving(true)
+    try {
+      await createDoctor({
+        nombre: form.nombre.trim(),
+        especialidad: form.especialidad.trim(),
+        telefono: form.telefono.trim(),
+        email: form.email.trim(),
+        activo: form.activo,
+        horario: config.horario || DEFAULT_CONFIG.horario,
+        duraciones: config.duraciones || DEFAULT_CONFIG.duraciones,
+        intervaloMinutos: config.intervaloMinutos || 10,
+        zonaHoraria: config.zonaHoraria || 'America/Chihuahua',
+        createdAt: '',
+        updatedAt: '',
+      })
+      toast('Médico agregado', 'success')
+      setShowForm(false)
+      setForm({ nombre: '', especialidad: '', telefono: '', email: '', activo: true })
+    } catch {
+      toast('Error al guardar', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) return <div style={{ color: 'var(--text3)', fontSize: 13 }}>Cargando…</div>
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <p style={{ fontSize: 13, color: 'var(--text3)', margin: 0 }}>
+          {doctors.length} médico{doctors.length !== 1 ? 's' : ''} registrado{doctors.length !== 1 ? 's' : ''}
+        </p>
+        <button className="btn btn-primary btn-sm" onClick={() => setShowForm(s => !s)}>
+          {showForm ? 'Cancelar' : '+ Agregar médico'}
+        </button>
+      </div>
+
+      {showForm && (
+        <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 16 }}>Nuevo médico</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            {[
+              { key: 'nombre', label: 'Nombre completo *', placeholder: 'Dr. David Rodríguez' },
+              { key: 'especialidad', label: 'Especialidad', placeholder: 'Infectología' },
+              { key: 'telefono', label: 'Teléfono', placeholder: '656 551 8875' },
+              { key: 'email', label: 'Correo', placeholder: 'doctor@email.com' },
+            ].map(f => (
+              <div key={f.key}>
+                <label style={{ fontSize: 12, color: 'var(--text2)', display: 'block', marginBottom: 5 }}>{f.label}</label>
+                <input
+                  value={form[f.key as keyof typeof form] as string}
+                  onChange={e => setForm(v => ({ ...v, [f.key]: e.target.value }))}
+                  placeholder={f.placeholder}
+                  style={{
+                    width: '100%', background: 'var(--s2)', border: '1px solid var(--border)',
+                    borderRadius: 8, padding: '9px 12px', fontSize: 13, color: 'var(--text)', outline: 'none',
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 14, display: 'flex', gap: 10 }}>
+            <button onClick={handleCreate} disabled={saving} className="btn btn-primary">
+              {saving ? 'Guardando…' : 'Guardar médico'}
+            </button>
+          </div>
+          <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 10 }}>
+            Horario y duraciones se copian de la configuración general. Puedes editarlos después.
+          </p>
+        </div>
+      )}
+
+      {doctors.map(doc => (
+        <div key={doc.id} style={{
+          background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12,
+          padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--s2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
+              👨‍⚕️
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{doc.nombre}</div>
+              <div style={{ fontSize: 12, color: 'var(--text3)' }}>{doc.especialidad}</div>
+              {doc.botConfig?.completado && (
+                <span style={{ fontSize: 11, color: 'var(--teal)', marginTop: 2, display: 'block' }}>
+                  ✅ Bot FAQ configurado
+                </span>
+              )}
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{
+              fontSize: 11, padding: '3px 8px', borderRadius: 20,
+              background: doc.activo ? 'rgba(0,212,168,0.1)' : 'rgba(255,255,255,0.05)',
+              color: doc.activo ? 'var(--teal)' : 'var(--text3)',
+              border: doc.activo ? '1px solid rgba(0,212,168,0.3)' : '1px solid var(--border)',
+            }}>
+              {doc.activo ? 'Activo' : 'Inactivo'}
+            </span>
+            <button
+              onClick={() => updateDoctor(doc.id, { activo: !doc.activo }).catch(() => toast('Error', 'error'))}
+              style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text3)', fontSize: 12, borderRadius: 6, padding: '4px 8px', cursor: 'pointer' }}
+            >
+              {doc.activo ? 'Desactivar' : 'Activar'}
+            </button>
+          </div>
+        </div>
+      ))}
+
+      {doctors.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text3)', fontSize: 13 }}>
+          No hay médicos registrados. Agrega uno para habilitar el portal del asistente.
+        </div>
+      )}
     </div>
   )
 }

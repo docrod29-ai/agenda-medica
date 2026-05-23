@@ -36,6 +36,31 @@ export type AppointmentOrigin =
 
 export type UserRole = 'medico' | 'secretaria' | 'admin'
 
+export interface Doctor {
+  id: string
+  nombre: string
+  especialidad: string
+  telefono?: string
+  email?: string
+  foto?: string
+  horario: ClinicConfig['horario']
+  duraciones: ClinicConfig['duraciones']
+  intervaloMinutos: number
+  zonaHoraria: string
+  activo: boolean
+  // Onboarding para el bot
+  botConfig?: {
+    padecimientos: string
+    costoConsulta: string
+    seguros: string
+    comoLlegar: string
+    infoExtra: string
+    completado: boolean
+  }
+  createdAt: string
+  updatedAt: string
+}
+
 export interface Patient {
   id: string
   nombre: string
@@ -75,6 +100,7 @@ export interface Appointment {
   recordatorioMismoDiaEnviado: boolean
   notasInternas?: string
   consentimientoMensajes: boolean
+  doctorId?: string
   googleCalendarEventId?: string
   googleCalendarSyncStatus?: 'pending' | 'synced' | 'error'
   createdAt: string
