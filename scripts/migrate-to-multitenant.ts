@@ -28,12 +28,19 @@ const serviceAccount = {
 initializeApp({ credential: cert(serviceAccount as any) })
 const db = getFirestore()
 
-const OWNER_UID   = process.env.MIGRATION_OWNER_UID!   // Firebase UID of Dr. David
-const OWNER_EMAIL = process.env.MIGRATION_OWNER_EMAIL! // docrod29@gmail.com
+const OWNER_EMAIL = process.env.MIGRATION_OWNER_EMAIL || 'docrod29@gmail.com'
 
 async function migrate() {
-  if (!OWNER_UID || !OWNER_EMAIL) {
-    console.error('Set MIGRATION_OWNER_UID and MIGRATION_OWNER_EMAIL in .env.local')
+  const { getAuth } = await import('firebase-admin/auth')
+
+  // Look up UID by email
+  let OWNER_UID: string
+  try {
+    const userRecord = await getAuth().getUserByEmail(OWNER_EMAIL)
+    OWNER_UID = userRecord.uid
+    console.log(`👤 Found user: ${OWNER_EMAIL} → UID: ${OWNER_UID}`)
+  } catch (err) {
+    console.error(`❌ Could not find user with email ${OWNER_EMAIL}:`, err)
     process.exit(1)
   }
 
