@@ -5,6 +5,15 @@
 export type ClinicPlan = 'trial' | 'basico' | 'pro' | 'clinica'
 export type ClinicStatus = 'active' | 'trial' | 'suspended' | 'cancelled'
 
+export interface ClinicWhatsApp {
+  provider: '360dialog' | 'meta' | 'none'
+  apiKey?: string          // 360dialog permanent API key
+  phoneNumberId?: string   // Meta phone_number_id (also used by 360dialog)
+  phoneNumber?: string     // E.164 format, e.g. "+526141234567"
+  connected: boolean
+  connectedAt?: string     // ISO date
+}
+
 export interface Clinic {
   id: string
   nombreClinica: string
@@ -14,6 +23,8 @@ export interface Clinic {
   trialEndsAt?: string          // ISO date
   stripeCustomerId?: string
   stripeSubscriptionId?: string
+  stripeSubscriptionStatus?: string
+  whatsapp?: ClinicWhatsApp     // WhatsApp connection (set after 360dialog enrollment)
   ownerId: string               // Firebase uid del creador
   createdAt: string
   updatedAt: string

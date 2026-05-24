@@ -1,0 +1,171 @@
+/**
+ * Unified WhatsApp send function
+ *
+ * All message sending in the app goes through here.
+ * Reads per-clinic credentials from Firestore (set by 360dialog enrollment).
+ * Falls back to global env vars for backward compatibility.
+ */
+
+import { adminDb } from '@/lib/firebase-admin'
+import type { ClinicWhatsApp } from '@/types'
+
+interface SendResult {
+  ok: boolean
+  error?: string
+}
+
+/** Normalise a Mexican phone number to E.164 without '+' (WhatsApp format) */
+function normalisePhone(raw: string): string {
+  const digits = raw.replace(/\D/g, '')
+  // If already has country code (52XXXXXXXXXX) keep it; otherwise prepend 52
+  return digits.startsWith('52') && digits.length >= 12 ? digits : `52${digits}`
+}
+
+// ── 360dialog ────────────────────────────────────────────────────────────────
+
+async function sendVia360dialog(apiKey: string, to: string, body: string): Promise<SendResult> {
+  try {
+    const res = await fetch('https://waba.360dialog.io/v1/messages', {
+      method: 'POST',
+      headers: {
+        'D360-API-KEY': apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to,
+        type: 'text',
+        text: { preview_url: false, body },
+      }),
+    })
+    if (!res.ok) {
+      const err = await res.text()
+      return { ok: false, error: `360dialog ${res.status}: ${err}` }
+    }
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: String(e) }
+  }
+}
+
+// ── Meta Cloud API ────────────────────────────────────────────────────────────
+
+async function sendViaMeta(token: string, phoneNumberId: string, to: string, body: string): Promise<SendResult> {
+  try {
+    const res = await fetch(`https://graph.facebook.com/v19.0/${phoneNumberId}/messages`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to,
+        type: 'text',
+        text: { body },
+      }),
+    })
+    if (!res.ok) {
+      const err = await res.text()
+      return { ok: false, error: `Meta ${res.status}: ${err}` }
+    }
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: String(e) }
+  }
+}
+
+// ── Twilio ───────────────────────────────────────────────────────────────────
+
+async function sendViaTwilio(to: string, body: string): Promise<SendResult> {
+  const sid  = process.env.TWILIO_ACCOUNT_SID
+  const auth = process.env.TWILIO_AUTH_TOKEN
+  const from = process.env.TWILIO_WHATSAPP_FROM
+  if (!sid || !auth || !from) return { ok: false, error: 'Twilio not configured' }
+  try {
+    const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${sid}:${auth}`).toString('base64')}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({ From: from, To: `whatsapp:+${to}`, Body: body }),
+    })
+    return res.ok ? { ok: true } : { ok: false, error: `Twilio ${res.status}` }
+  } catch (e) {
+    return { ok: false, error: String(e) }
+  }
+}
+
+// ── Main export ───────────────────────────────────────────────────────────────
+
+/**
+ * Send a WhatsApp message on behalf of a clinic.
+ *
+ * Credential resolution order:
+ *   1. Clinic's own 360dialog api_key (from Firestore)
+ *   2. Clinic's own Meta token (from Firestore)
+ *   3. Global env vars (WHATSAPP_PROVIDER / WHATSAPP_API_TOKEN / ...)
+ */
+export async function sendWhatsApp(
+  clinicId: string,
+  to: string,
+  body: string,
+): Promise<SendResult> {
+  const phone = normalisePhone(to)
+
+  // ── 1. Load clinic WhatsApp config from Firestore ─────────────
+  let waConfig: ClinicWhatsApp | undefined
+  try {
+    const clinicSnap = await adminDb.collection('clinics').doc(clinicId).get()
+    waConfig = clinicSnap.data()?.whatsapp as ClinicWhatsApp | undefined
+  } catch {
+    // Firestore unavailable — fall through to env vars
+  }
+
+  // ── 2. Use clinic-specific credentials ─────────────────────────
+  if (waConfig?.connected) {
+    if (waConfig.provider === '360dialog' && waConfig.apiKey) {
+      const result = await sendVia360dialog(waConfig.apiKey, phone, body)
+      if (!result.ok) console.error(`[WhatsApp] 360dialog error for clinic ${clinicId}:`, result.error)
+      return result
+    }
+
+    if (waConfig.provider === 'meta' && waConfig.apiKey && waConfig.phoneNumberId) {
+      return sendViaMeta(waConfig.apiKey, waConfig.phoneNumberId, phone, body)
+    }
+  }
+
+  // ── 3. Fall back to global env vars ────────────────────────────
+  const provider = process.env.WHATSAPP_PROVIDER || 'meta'
+
+  if (provider === 'meta') {
+    const token = process.env.WHATSAPP_API_TOKEN
+    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID
+    if (!token || !phoneNumberId) {
+      console.warn(`[WhatsApp] No credentials for clinic ${clinicId} and no global env vars set.`)
+      return { ok: false, error: 'WhatsApp not configured for this clinic' }
+    }
+    return sendViaMeta(token, phoneNumberId, phone, body)
+  }
+
+  if (provider === 'twilio') {
+    return sendViaTwilio(phone, body)
+  }
+
+  return { ok: false, error: 'No WhatsApp provider configured' }
+}
+
+/**
+ * Quick lookup: find clinicId from a 360dialog api_key.
+ * Uses the whatsapp_channels index collection for O(1) lookup.
+ */
+export async function findClinicByDialog360ApiKey(apiKey: string): Promise<string | null> {
+  try {
+    const snap = await adminDb.collection('whatsapp_channels').doc(apiKey).get()
+    return snap.exists ? (snap.data()!.clinicId as string) : null
+  } catch {
+    return null
+  }
+}

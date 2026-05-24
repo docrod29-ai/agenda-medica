@@ -11,46 +11,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
 import { ClinicConfig, WaitlistEntry } from '@/types'
+import { sendWhatsApp } from '@/lib/whatsapp-send'
 
-async function send(to: string, body: string): Promise<boolean> {
-  const provider = process.env.WHATSAPP_PROVIDER || 'meta'
-  const clean = to.replace(/\D/g, '')
-  const phone = clean.startsWith('52') ? clean : `52${clean}`
-
-  if (provider === 'meta') {
-    const token = process.env.WHATSAPP_API_TOKEN
-    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID
-    if (!token || !phoneNumberId) return false
-    const res = await fetch(`https://graph.facebook.com/v19.0/${phoneNumberId}/messages`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        to: phone,
-        type: 'text',
-        text: { body },
-      }),
-    })
-    return res.ok
-  }
-
-  if (provider === 'twilio') {
-    const sid = process.env.TWILIO_ACCOUNT_SID
-    const auth = process.env.TWILIO_AUTH_TOKEN
-    const from = process.env.TWILIO_WHATSAPP_FROM
-    if (!sid || !auth || !from) return false
-    const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${Buffer.from(`${sid}:${auth}`).toString('base64')}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({ From: from, To: `whatsapp:+${phone}`, Body: body }),
-    })
-    return res.ok
-  }
-
-  return false
+async function send(to: string, body: string, clinicId: string): Promise<boolean> {
+  const { ok } = await sendWhatsApp(clinicId, to, body)
+  return ok
 }
 
 function formatDate(fecha: string): string {
@@ -115,7 +80,7 @@ export async function POST(req: NextRequest) {
         `Si ya no está interesado, responda *NO* y le quitamos de la lista.`,
       ].join('\n')
 
-      const ok = await send(entry.pacienteTelefono, msg)
+      const ok = await send(entry.pacienteTelefono, msg, clinicId)
       if (ok) {
         notified++
 

@@ -20,50 +20,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
 import { ClinicConfig, Doctor, Appointment, AppointmentType } from '@/types'
+import { sendWhatsApp } from '@/lib/whatsapp-send'
 
 const VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_TOKEN || 'agenda-medica-bot'
 
-// ── Helpers ───────────────────────────────────────────────────
+// ── send helper — uses per-clinic credentials via whatsapp-send ───
+// clinicId is set at the top of handleMessage and captured via closure
+let _currentClinicId = ''
 
 async function send(to: string, body: string): Promise<boolean> {
-  const provider = process.env.WHATSAPP_PROVIDER || 'meta'
-  const clean = to.replace(/\D/g, '')
-  const phone = clean.startsWith('52') ? clean : `52${clean}`
-
-  if (provider === 'meta') {
-    const token = process.env.WHATSAPP_API_TOKEN
-    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID
-    if (!token || !phoneNumberId) return false
-    const res = await fetch(`https://graph.facebook.com/v19.0/${phoneNumberId}/messages`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        to: phone,
-        type: 'text',
-        text: { body },
-      }),
-    })
-    return res.ok
-  }
-
-  if (provider === 'twilio') {
-    const sid = process.env.TWILIO_ACCOUNT_SID
-    const auth = process.env.TWILIO_AUTH_TOKEN
-    const from = process.env.TWILIO_WHATSAPP_FROM
-    if (!sid || !auth || !from) return false
-    const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${Buffer.from(`${sid}:${auth}`).toString('base64')}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({ From: from, To: `whatsapp:+${phone}`, Body: body }),
-    })
-    return res.ok
-  }
-
-  return false
+  const { ok } = await sendWhatsApp(_currentClinicId, to, body)
+  return ok
 }
 
 function formatDate(fecha: string): string {
@@ -250,7 +217,8 @@ const TIPO_OPTIONS: { key: AppointmentType; label: string; n: string }[] = [
 
 // ── Main state machine ────────────────────────────────────────
 
-async function handleMessage(from: string, body: string, clinicId: string): Promise<void> {
+export async function handleMessage(from: string, body: string, clinicId: string): Promise<void> {
+  _currentClinicId = clinicId // set for send() closure
   const text = body.trim()
   const tLow = text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 

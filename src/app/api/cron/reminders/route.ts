@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
 import { Appointment, ClinicConfig } from '@/types'
+import { sendWhatsApp as sendWA } from '@/lib/whatsapp-send'
 
 const CRON_SECRET = process.env.CRON_SECRET
 
@@ -31,57 +32,10 @@ function formatDateES(dateStr: string): string {
   return d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
-async function sendWhatsApp(phone: string, message: string, config: ClinicConfig): Promise<boolean> {
-  const provider = config.whatsappProveedor || process.env.WHATSAPP_PROVIDER || 'meta'
-  const cleanPhone = phone.replace(/\D/g, '')
-  const whatsappNumber = cleanPhone.startsWith('52') ? cleanPhone : `52${cleanPhone}`
-
-  if (provider === 'meta') {
-    const token = process.env.WHATSAPP_API_TOKEN
-    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID
-    if (!token || !phoneNumberId) return false
-
-    const res = await fetch(
-      `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`,
-      {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messaging_product: 'whatsapp',
-          to: whatsappNumber,
-          type: 'text',
-          text: { body: message },
-        }),
-      }
-    )
-    return res.ok
-  }
-
-  if (provider === 'twilio') {
-    const sid = process.env.TWILIO_ACCOUNT_SID
-    const authToken = process.env.TWILIO_AUTH_TOKEN
-    const from = process.env.TWILIO_WHATSAPP_FROM
-    if (!sid || !authToken || !from) return false
-
-    const res = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Basic ${Buffer.from(`${sid}:${authToken}`).toString('base64')}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          From: from,
-          To: `whatsapp:+${whatsappNumber}`,
-          Body: message,
-        }),
-      }
-    )
-    return res.ok
-  }
-
-  return false
+/** Thin wrapper — uses per-clinic credentials from whatsapp-send.ts */
+async function sendWhatsApp(phone: string, message: string, _config: ClinicConfig, clinicId: string): Promise<boolean> {
+  const { ok } = await sendWA(clinicId, phone, message)
+  return ok
 }
 
 export async function GET(req: NextRequest) {
@@ -151,7 +105,7 @@ export async function GET(req: NextRequest) {
           // 24h reminder (window: 23–26h before)
           if (config.recordatorio24h && !appt.recordatorio24hEnviado && diffHours >= 23 && diffHours <= 26) {
             const msg = buildWhatsAppMessage(template24h, msgData)
-            const ok = await sendWhatsApp(phone, msg, config)
+            const ok = await sendWhatsApp(phone, msg, config, clinicId)
             if (ok) {
               await adminDb.collection('clinics').doc(clinicId)
                 .collection('appointments').doc(appt.id).update({
@@ -167,7 +121,7 @@ export async function GET(req: NextRequest) {
           // Same-day reminder (window: 1–4h before)
           if (config.recordatorioMismoDia && !appt.recordatorioMismoDiaEnviado && diffHours >= 1 && diffHours <= 4) {
             const msg = buildWhatsAppMessage(templateSameDay, msgData)
-            const ok = await sendWhatsApp(phone, msg, config)
+            const ok = await sendWhatsApp(phone, msg, config, clinicId)
             if (ok) {
               await adminDb.collection('clinics').doc(clinicId)
                 .collection('appointments').doc(appt.id).update({

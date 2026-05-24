@@ -7,7 +7,7 @@ import { useDoctors } from '@/hooks/useDoctors'
 import { useToast } from '@/context/ToastContext'
 import { useClinic } from '@/context/ClinicContext'
 import { auth } from '@/lib/firebase'
-import { Loader2, Save, Copy, Calendar, CheckCircle2, XCircle, Link, Bot, CreditCard, ExternalLink } from 'lucide-react'
+import { Loader2, Save, Copy, Calendar, CheckCircle2, XCircle, Link, Bot, CreditCard, ExternalLink, MessageCircle, Smartphone } from 'lucide-react'
 import { msgConfirmacion, msgRecordatorio24h, msgRecordatorioDia } from '@/lib/whatsapp'
 import { copyToClipboard } from '@/lib/whatsapp'
 import { useSearchParams } from 'next/navigation'
@@ -61,9 +61,19 @@ export default function ConfiguracionPage() {
     } else if (gcal === 'error') {
       toast('Error al conectar Google Calendar', 'error')
       setTab('integraciones')
-    } else if (tabParam) {
-      setTab(tabParam)
     }
+
+    const wa = searchParams.get('wa')
+    if (wa === 'connected') {
+      toast('¡WhatsApp conectado! El bot ya está activo.', 'success')
+      setTab('integraciones')
+    } else if (wa === 'error') {
+      const reason = searchParams.get('reason')
+      toast(`Error al conectar WhatsApp${reason ? `: ${reason}` : ''}`, 'error')
+      setTab('integraciones')
+    }
+
+    if (tabParam && !gcal && !wa) setTab(tabParam)
   }, [searchParams]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadCalendars = async (uid: string) => {
@@ -406,31 +416,8 @@ export default function ConfiguracionPage() {
             </div>
           </div>
 
-          {/* WhatsApp status */}
-          <div style={{ padding: 20, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(74,222,128,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: 20 }}>💬</span>
-              </div>
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>WhatsApp Business</div>
-                <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
-                  Recordatorios automáticos enviados cada hora via Vercel Cron
-                </div>
-              </div>
-              <div style={{ marginLeft: 'auto' }}>
-                <span style={{ fontSize: 12, color: 'var(--text3)', background: 'var(--s2)', padding: '4px 10px', borderRadius: 20 }}>
-                  Configura las credenciales en Vercel
-                </span>
-              </div>
-            </div>
-            <div style={{ marginTop: 14, padding: '10px 14px', background: 'rgba(0,212,168,0.05)', border: '1px solid rgba(0,212,168,0.15)', borderRadius: 8 }}>
-              <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
-                Para activar WhatsApp, agrega <strong style={{ color: 'var(--text2)' }}>WHATSAPP_API_TOKEN</strong> y <strong style={{ color: 'var(--text2)' }}>WHATSAPP_PHONE_NUMBER_ID</strong> en las variables de entorno de Vercel.
-                Los recordatorios se envían automáticamente cada hora.
-              </p>
-            </div>
-          </div>
+          {/* WhatsApp — 360dialog connect */}
+          <WhatsAppConnectCard clinicId={clinicId} />
         </div>
       )}
 
@@ -479,6 +466,137 @@ export default function ConfiguracionPage() {
 // ── Bot FAQ sub-component ────────────────────────────────────
 
 import { Doctor } from '@/types'
+
+/* ── WhatsApp Connect Card ─────────────────────────────────────── */
+const PARTNER_ID = process.env.NEXT_PUBLIC_DIALOG360_PARTNER_ID ?? ''
+const APP_URL    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.vercel.app'
+
+function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
+  const { clinic } = useClinic()
+  const { toast }  = useToast()
+  const [disconnecting, setDisconnecting] = useState(false)
+
+  const wa = clinic?.whatsapp
+  const connected = wa?.connected === true
+
+  const handleConnect = () => {
+    if (!clinicId) { toast('Cargando clínica...', 'info'); return }
+    if (!PARTNER_ID) {
+      toast('Configura NEXT_PUBLIC_DIALOG360_PARTNER_ID en Vercel', 'error')
+      return
+    }
+    const callbackUrl = encodeURIComponent(
+      `${APP_URL}/api/whatsapp/360dialog-callback?clinicId=${clinicId}`
+    )
+    const enrollUrl = `https://hub.360dialog.io/dashboard/app/${PARTNER_ID}/permissions?redirect_url=${callbackUrl}`
+    window.open(enrollUrl, 'wa_connect', 'width=640,height=720,left=200,top=100')
+  }
+
+  const handleDisconnect = async () => {
+    if (!clinicId) return
+    setDisconnecting(true)
+    try {
+      const res = await fetch('/api/clinic/whatsapp-disconnect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicId }),
+      })
+      if (res.ok) toast('WhatsApp desconectado', 'success')
+      else toast('Error al desconectar', 'error')
+    } catch {
+      toast('Error al desconectar', 'error')
+    } finally {
+      setDisconnecting(false)
+    }
+  }
+
+  return (
+    <div style={{ padding: 20, background: 'var(--s1)', border: `1px solid ${connected ? 'rgba(74,222,128,0.3)' : 'var(--border)'}`, borderRadius: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+            background: connected ? 'rgba(74,222,128,0.12)' : 'rgba(0,212,168,0.08)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <MessageCircle size={20} color={connected ? '#4ade80' : 'var(--teal)'} />
+          </div>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>WhatsApp Business</div>
+            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
+              {connected
+                ? `Conectado · ${wa?.phoneNumber ?? 'número activo'}`
+                : 'Bot de agendamiento automático 24/7'
+              }
+            </div>
+          </div>
+        </div>
+
+        {/* Status badge */}
+        <span style={{
+          display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600,
+          padding: '4px 12px', borderRadius: 20,
+          background: connected ? 'rgba(74,222,128,0.1)' : 'var(--s2)',
+          color: connected ? '#4ade80' : 'var(--text3)',
+        }}>
+          {connected ? <><CheckCircle2 size={13} /> Conectado</> : <><XCircle size={13} /> No conectado</>}
+        </span>
+      </div>
+
+      {/* Actions */}
+      <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        {connected ? (
+          <>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.2)',
+              borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#4ade80',
+            }}>
+              <Smartphone size={14} />
+              <span>Bot activo — los pacientes ya pueden escribir para agendar</span>
+            </div>
+            <button
+              onClick={handleDisconnect}
+              disabled={disconnecting}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: 'none', border: '1px solid rgba(239,68,68,0.3)',
+                color: '#f87171', fontSize: 13, padding: '8px 14px',
+                borderRadius: 8, cursor: 'pointer',
+              }}
+            >
+              {disconnecting ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <XCircle size={13} />}
+              Desconectar
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={handleConnect}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: '#25D366', color: '#fff',
+              border: 'none', borderRadius: 10, padding: '11px 20px',
+              fontSize: 14, fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            <MessageCircle size={16} />
+            Conectar WhatsApp
+          </button>
+        )}
+      </div>
+
+      {/* Info box */}
+      {!connected && (
+        <div style={{ marginTop: 14, padding: '10px 14px', background: 'rgba(0,212,168,0.05)', border: '1px solid rgba(0,212,168,0.15)', borderRadius: 8 }}>
+          <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
+            Al hacer clic se abrirá una ventana de Meta. Solo necesitas iniciar sesión con Facebook
+            y verificar tu número de WhatsApp. El proceso tarda menos de 3 minutos.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
 
 function BotFAQTab({ doctors }: { doctors: Doctor[] }) {
   const { toast } = useToast()
