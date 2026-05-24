@@ -467,29 +467,88 @@ export default function ConfiguracionPage() {
 
 import { Doctor } from '@/types'
 
-/* ── WhatsApp Connect Card ─────────────────────────────────────── */
-const PARTNER_ID = process.env.NEXT_PUBLIC_DIALOG360_PARTNER_ID ?? ''
-const APP_URL    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.vercel.app'
+/* ── WhatsApp Connect Card (Meta Embedded Signup) ──────────────── */
+const META_APP_ID = process.env.NEXT_PUBLIC_META_APP_ID ?? ''
+
+/** Declare FB SDK global injected by the script tag */
+declare global {
+  interface Window {
+    FB?: {
+      init: (opts: Record<string, unknown>) => void
+      login: (cb: (response: { authResponse?: { code?: string } }) => void, opts: Record<string, unknown>) => void
+    }
+    fbAsyncInit?: () => void
+  }
+}
+
+function loadFBSDK(appId: string): Promise<void> {
+  return new Promise(resolve => {
+    if (window.FB) { resolve(); return }
+    window.fbAsyncInit = () => {
+      window.FB!.init({ appId, cookie: true, xfbml: true, version: 'v20.0' })
+      resolve()
+    }
+    if (!document.getElementById('facebook-jssdk')) {
+      const s = document.createElement('script')
+      s.id = 'facebook-jssdk'
+      s.src = 'https://connect.facebook.net/en_US/sdk.js'
+      document.head.appendChild(s)
+    }
+  })
+}
 
 function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
   const { clinic } = useClinic()
   const { toast }  = useToast()
+  const [connecting,    setConnecting]    = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
 
   const wa = clinic?.whatsapp
   const connected = wa?.connected === true
 
-  const handleConnect = () => {
+  const handleConnect = async () => {
     if (!clinicId) { toast('Cargando clínica...', 'info'); return }
-    if (!PARTNER_ID) {
-      toast('Configura NEXT_PUBLIC_DIALOG360_PARTNER_ID en Vercel', 'error')
+    if (!META_APP_ID) {
+      toast('Configura NEXT_PUBLIC_META_APP_ID en Vercel', 'error')
       return
     }
-    const callbackUrl = encodeURIComponent(
-      `${APP_URL}/api/whatsapp/360dialog-callback?clinicId=${clinicId}`
-    )
-    const enrollUrl = `https://hub.360dialog.io/dashboard/app/${PARTNER_ID}/permissions?redirect_url=${callbackUrl}`
-    window.open(enrollUrl, 'wa_connect', 'width=640,height=720,left=200,top=100')
+    setConnecting(true)
+    try {
+      await loadFBSDK(META_APP_ID)
+      window.FB!.login(async (response) => {
+        const code = response.authResponse?.code
+        if (!code) {
+          setConnecting(false)
+          toast('Conexión cancelada', 'info')
+          return
+        }
+        // Exchange code for permanent token + save to Firestore
+        const res = await fetch('/api/whatsapp/meta-connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, clinicId }),
+        })
+        const data = await res.json()
+        if (res.ok && data.ok) {
+          toast(`✅ WhatsApp conectado: ${data.phoneNumber}`, 'success')
+        } else {
+          toast(data.error ?? 'Error al conectar', 'error')
+        }
+        setConnecting(false)
+      }, {
+        config_id: META_APP_ID,  // use your App ID as config_id for Embedded Signup
+        response_type: 'code',
+        override_default_response_type: true,
+        extras: {
+          setup: {},
+          featureType: '',
+          sessionInfoVersion: '3',
+        },
+      })
+    } catch (e) {
+      toast('Error al cargar el SDK de Meta', 'error')
+      setConnecting(false)
+    }
   }
 
   const handleDisconnect = async () => {
@@ -572,15 +631,18 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
         ) : (
           <button
             onClick={handleConnect}
+            disabled={connecting}
             style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              background: '#25D366', color: '#fff',
+              background: connecting ? 'var(--s3)' : '#25D366', color: '#fff',
               border: 'none', borderRadius: 10, padding: '11px 20px',
-              fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              fontSize: 14, fontWeight: 700, cursor: connecting ? 'default' : 'pointer',
             }}
           >
-            <MessageCircle size={16} />
-            Conectar WhatsApp
+            {connecting
+              ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Conectando…</>
+              : <><MessageCircle size={16} /> Conectar WhatsApp con Meta</>
+            }
           </button>
         )}
       </div>

@@ -131,31 +131,36 @@ async function clearSession(clinicId: string, telefono: string): Promise<void> {
 // ── Find clinic by WhatsApp phoneNumberId ─────────────────────
 
 async function findClinicByPhoneNumberId(phoneNumberId: string): Promise<string | null> {
-  // Look up in each clinic's config for matching phoneNumberId
-  // This is O(n clinics) but clinics are small; cache in production
+  // 1. Fast O(1) lookup via whatsapp_channels index (set by meta-connect / 360dialog-callback)
+  try {
+    const channelSnap = await adminDb.collection('whatsapp_channels').doc(phoneNumberId).get()
+    if (channelSnap.exists) return channelSnap.data()!.clinicId as string
+  } catch {
+    // Index not available — fall through to scan
+  }
+
+  // 2. Scan clinics (legacy / env-var configured installs)
   const clinicsSnap = await adminDb.collection('clinics')
     .where('status', 'in', ['active', 'trial'])
     .get()
 
   for (const clinic of clinicsSnap.docs) {
+    // Check whatsapp.phoneNumberId on the clinic doc itself (set by Embedded Signup)
+    const waPhoneId = clinic.data()?.whatsapp?.phoneNumberId
+    if (waPhoneId === phoneNumberId) return clinic.id
+
+    // Also check legacy config field
     const configSnap = await adminDb
       .collection('clinics').doc(clinic.id)
       .collection('config').doc('main').get()
-    if (configSnap.exists) {
-      const cfg = configSnap.data()
-      // Check if phoneNumberId matches (stored in config or env fallback)
-      if (cfg?.whatsappPhoneNumberId === phoneNumberId) {
-        return clinic.id
-      }
+    if (configSnap.exists && configSnap.data()?.whatsappPhoneNumberId === phoneNumberId) {
+      return clinic.id
     }
   }
 
-  // Fallback: if only one clinic exists, use it (common for single-tenant installs)
-  if (clinicsSnap.size === 1) return clinicsSnap.docs[0].id
-
-  // Last resort: use env var to find the clinic
+  // 3. Fallback: single clinic + env var match
   const envPhoneId = process.env.WHATSAPP_PHONE_NUMBER_ID
-  if (envPhoneId === phoneNumberId && clinicsSnap.size === 1) {
+  if (clinicsSnap.size === 1 && (!envPhoneId || envPhoneId === phoneNumberId)) {
     return clinicsSnap.docs[0].id
   }
 

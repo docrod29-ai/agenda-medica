@@ -105,7 +105,7 @@ async function sendViaTwilio(to: string, body: string): Promise<SendResult> {
  *
  * Credential resolution order:
  *   1. Clinic's own 360dialog api_key (from Firestore)
- *   2. Clinic's own Meta token (from Firestore)
+ *   2. Clinic's own Meta token + phoneNumberId (from Firestore — set by Embedded Signup)
  *   3. Global env vars (WHATSAPP_PROVIDER / WHATSAPP_API_TOKEN / ...)
  */
 export async function sendWhatsApp(
