@@ -5,7 +5,8 @@ import { useClinic } from '@/context/ClinicContext'
 import { getPatients, createPatient, getAppointments } from '@/lib/firestore'
 import { useAuth } from '@/hooks/useAuth'
 import type { Patient } from '@/types'
-import { FileText, Search, Loader2, ChevronRight, AlertTriangle, CalendarClock } from 'lucide-react'
+import { FileText, Search, Loader2, ChevronRight, AlertTriangle, CalendarClock, Plus, X } from 'lucide-react'
+import { useToast } from '@/context/ToastContext'
 
 /** Entrada unificada: paciente del directorio o derivado de citas */
 interface Entrada {
@@ -21,11 +22,13 @@ interface Entrada {
 export default function ExpedientesPage() {
   const { clinicId } = useClinic()
   const { user } = useAuth()
+  const { toast } = useToast()
   const router = useRouter()
   const [entradas, setEntradas] = useState<Entrada[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [abriendo, setAbriendo] = useState<string | null>(null)
+  const [modalNuevo, setModalNuevo] = useState(false)
 
   useEffect(() => {
     if (!clinicId) return
@@ -96,14 +99,41 @@ export default function ExpedientesPage() {
     }
   }
 
+  const crearYAbrir = async (datos: { nombre: string; telefono: string; edad?: number; sexo?: Patient['sexo']; alergias?: string; notas?: string }) => {
+    if (!clinicId) return
+    const id = await createPatient(clinicId, {
+      nombre: datos.nombre.trim(),
+      telefono: datos.telefono.replace(/\D/g, ''),
+      edad: datos.edad,
+      sexo: datos.sexo,
+      alergias: datos.alergias?.trim() || undefined,
+      notas: datos.notas?.trim() || undefined,
+      noShowCount: 0,
+      cancelacionCount: 0,
+      createdAt: '',
+      updatedAt: '',
+      creadoPor: user?.email || 'medico',
+    })
+    toast('Paciente creado', 'success')
+    router.push(`/expediente/${id}`)
+  }
+
   return (
     <div style={{ padding: 24, maxWidth: 900, margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-        <FileText size={22} color="var(--teal)" />
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Expedientes clínicos</h1>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <FileText size={22} color="var(--teal)" />
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Expedientes clínicos</h1>
+        </div>
+        <button onClick={() => setModalNuevo(true)} style={{
+          display: 'flex', alignItems: 'center', gap: 8, background: 'var(--teal)', color: '#000',
+          border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+        }}>
+          <Plus size={16} /> Nuevo paciente
+        </button>
       </div>
       <p style={{ fontSize: 14, color: 'var(--text3)', marginBottom: 20 }}>
-        Selecciona un paciente para ver su expediente o iniciar una consulta asistida por IA.
+        Selecciona un paciente para ver su expediente, o crea uno nuevo aunque no tenga cita.
       </p>
 
       <div style={{ position: 'relative', marginBottom: 20 }}>
@@ -177,7 +207,98 @@ export default function ExpedientesPage() {
           })}
         </div>
       )}
+      {modalNuevo && (
+        <NuevoPacienteModal
+          onClose={() => setModalNuevo(false)}
+          onGuardar={async d => { await crearYAbrir(d) }}
+        />
+      )}
+
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  )
+}
+
+function NuevoPacienteModal({ onClose, onGuardar }: {
+  onClose: () => void
+  onGuardar: (d: { nombre: string; telefono: string; edad?: number; sexo?: Patient['sexo']; alergias?: string; notas?: string }) => Promise<void>
+}) {
+  const [f, setF] = useState({ nombre: '', telefono: '', edad: '', sexo: '' as '' | Patient['sexo'], alergias: '', notas: '' })
+  const [saving, setSaving] = useState(false)
+  const valido = f.nombre.trim().length > 2
+
+  const guardar = async () => {
+    if (!valido) return
+    setSaving(true)
+    try {
+      await onGuardar({
+        nombre: f.nombre, telefono: f.telefono,
+        edad: f.edad ? Number(f.edad) : undefined,
+        sexo: f.sexo || undefined,
+        alergias: f.alergias, notas: f.notas,
+      })
+    } finally { setSaving(false) }
+  }
+
+  const inputStyle: React.CSSProperties = { width: '100%', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 14, color: 'var(--text)', outline: 'none' }
+  const labelStyle: React.CSSProperties = { fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 5 }
+
+  return (
+    <div onClick={e => e.target === e.currentTarget && onClose()} style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(3px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 16,
+    }}>
+      <div style={{ width: '100%', maxWidth: 460, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Nuevo paciente</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', display: 'flex' }}><X size={18} /></button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div>
+            <label style={labelStyle}>Nombre completo *</label>
+            <input autoFocus value={f.nombre} onChange={e => setF({ ...f, nombre: e.target.value })} placeholder="Juan García López" style={inputStyle} />
+          </div>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <div style={{ flex: 2 }}>
+              <label style={labelStyle}>Teléfono</label>
+              <input value={f.telefono} onChange={e => setF({ ...f, telefono: e.target.value })} placeholder="614-123-4567" style={inputStyle} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Edad</label>
+              <input type="number" value={f.edad} onChange={e => setF({ ...f, edad: e.target.value })} placeholder="años" style={inputStyle} />
+            </div>
+          </div>
+          <div>
+            <label style={labelStyle}>Sexo</label>
+            <select value={f.sexo} onChange={e => setF({ ...f, sexo: e.target.value as '' | Patient['sexo'] })} style={inputStyle}>
+              <option value="">—</option>
+              <option value="Masculino">Masculino</option>
+              <option value="Femenino">Femenino</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>Alergias</label>
+            <input value={f.alergias} onChange={e => setF({ ...f, alergias: e.target.value })} placeholder="Penicilina, sulfas… (o 'Negadas')" style={inputStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>Notas</label>
+            <textarea value={f.notas} onChange={e => setF({ ...f, notas: e.target.value })} placeholder="Comorbilidades, observaciones…" rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={{ background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 10, padding: '10px 18px', fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
+          <button onClick={guardar} disabled={!valido || saving} style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: valido ? 'var(--teal)' : 'var(--s3)', color: valido ? '#000' : 'var(--text3)',
+            border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: valido && !saving ? 'pointer' : 'default',
+          }}>
+            {saving ? <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Creando…</> : 'Crear y abrir expediente'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
