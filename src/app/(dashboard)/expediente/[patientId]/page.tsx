@@ -108,6 +108,7 @@ export default function ExpedientePage() {
               abierta={expandida === n.id}
               onToggle={() => setExpandida(expandida === n.id ? null : n.id)}
               onEditar={() => router.push(`/consulta/${patientId}?nota=${n.id}`)}
+              onImprimir={() => router.push(`/nota/${patientId}/${n.id}`)}
               onBorrar={() => borrarNota(n.id)}
             />
           ))}
@@ -118,8 +119,8 @@ export default function ExpedientePage() {
   )
 }
 
-function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onBorrar }: {
-  nota: NotaMedica; esUltima: boolean; abierta: boolean; onToggle: () => void; onEditar: () => void; onBorrar: () => void
+function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onBorrar }: {
+  nota: NotaMedica; esUltima: boolean; abierta: boolean; onToggle: () => void; onEditar: () => void; onImprimir: () => void; onBorrar: () => void
 }) {
   const firmada = nota.estado === 'firmada'
   return (
@@ -205,7 +206,7 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onBorrar }: {
               {!firmada && (
                 <button onClick={onEditar} style={ghostBtn}>Continuar edición</button>
               )}
-              <button onClick={() => window.print()} style={ghostBtn}><Printer size={13} /> Imprimir</button>
+              <button onClick={onImprimir} style={ghostBtn}><Printer size={13} /> Imprimir / PDF</button>
               {!firmada && (
                 <button onClick={onBorrar} style={{ ...ghostBtn, color: '#f87171', borderColor: 'rgba(239,68,68,0.3)' }}>
                   <Trash2 size={13} /> Eliminar borrador
