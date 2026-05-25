@@ -114,7 +114,7 @@ export function PreopAssessment({ edadPaciente, disabled, onAplicar, initialInpu
     const lineas = [
       `Riesgo cardiaco RCRI (Lee): ${rcriRes.puntos} punto(s) — Clase ${rcriRes.clase} (MACE 30 d ${rcriRes.riesgoEstimadoLee}, Lee 1999). ${rcriRes.interpretacion}`,
       `Capacidad funcional DASI: ${dasiRes.score} puntos ≈ ${dasiRes.mets} METs. ${dasiRes.interpretacion}`,
-      `Riesgo pulmonar ARISCAT: ${ariscatRes.puntos} puntos — ${ariscatRes.nivel} (complicaciones pulmonares ${ariscatRes.riesgoEstimado}).`,
+      `Riesgo pulmonar ARISCAT: ${ariscatRes.puntos} puntos — ${ariscatRes.nivel} (complicaciones pulmonares ${ariscatRes.riesgoEstimado}). Conducta: ${ariscatRes.conducta}`,
       `Apnea del sueño STOP-BANG: ${stopbangRes.puntos}/8 — riesgo ${stopbangRes.nivel}. ${stopbangRes.interpretacion}`,
       `Riesgo de TEV (Caprini): ${capriniRes.puntos} puntos — ${capriniRes.nivel}. ${capriniRes.profilaxisSugerida}`,
     ]
@@ -125,9 +125,24 @@ export function PreopAssessment({ edadPaciente, disabled, onAplicar, initialInpu
     }
     const conclusion = lineas.join('\n\n')
 
-    const recomTexto = recomendaciones
-      .map(r => `• [${r.categoria}${r.cor ? ` · ${r.cor}${r.loe ? `/${r.loe}` : ''}` : ''}] ${r.texto} (${r.fuente})`)
-      .join('\n')
+    // Recomendaciones limpias para la nota: agrupadas por categoría, sin códigos
+    // ni referencias por línea. Una sola cita global al pie.
+    const orden: CategoriaRec[] = ['Medicamentos', 'Tiempos', 'Tromboprofilaxis', 'Biomarcadores', 'Pruebas', 'General']
+    const bloques = orden
+      .map(cat => {
+        const items = recomendaciones.filter(r => r.categoria === cat)
+        if (items.length === 0) return ''
+        const titulo = cat === 'Medicamentos' ? 'Manejo de medicamentos'
+          : cat === 'Tiempos' ? 'Tiempos quirúrgicos'
+          : cat === 'Tromboprofilaxis' ? 'Anticoagulación / tromboprofilaxis'
+          : cat === 'Biomarcadores' ? 'Biomarcadores'
+          : cat === 'Pruebas' ? 'Estudios complementarios'
+          : 'Generales'
+        return `${titulo}:\n` + items.map(r => `  • ${r.texto}`).join('\n')
+      })
+      .filter(Boolean)
+    const recomTexto = bloques.join('\n\n') +
+      '\n\nReferencias: Guía 2024 AHA/ACC de manejo cardiovascular perioperatorio (JACC 2024;84:1869-1969); Patel et al. (JACC 2015;66:2140-8).'
 
     onAplicar(conclusion, recomTexto, {
       inputs: { ...rcri, dasi, caprini, stopbang, chadsvasc, hasbled, ariscat, ...ctx },
@@ -199,7 +214,7 @@ export function PreopAssessment({ edadPaciente, disabled, onAplicar, initialInpu
           {chk(ariscat.emergencia, () => setAriscat(a => ({ ...a, emergencia: !a.emergencia })), 'Procedimiento de emergencia (+8)')}
         </div>
         <Resultado>
-          <strong>{ariscatRes.puntos} puntos · Riesgo {ariscatRes.nivel}</strong> — complicaciones pulmonares {ariscatRes.riesgoEstimado} (Canet 2010).
+          <strong>{ariscatRes.puntos} puntos · Riesgo {ariscatRes.nivel}</strong> — complicaciones pulmonares {ariscatRes.riesgoEstimado} (Canet 2010). <span style={{ color: ariscatRes.nivel === 'Bajo' ? '#4ade80' : '#f59e0b' }}>Conducta: {ariscatRes.conducta}</span>
         </Resultado>
       </Card>
 

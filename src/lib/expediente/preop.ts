@@ -60,8 +60,8 @@ export function calcularRCRI(input: RCRIInput): RCRIResult {
   return {
     puntos, clase, riesgoEstimadoLee: riesgo, elevado,
     interpretacion: elevado
-      ? `Riesgo ELEVADO de MACE (RCRI > 1). Considerar capacidad funcional y biomarcadores.`
-      : `Riesgo bajo de MACE perioperatorio (RCRI ≤ 1).`,
+      ? `Riesgo cardiaco elevado. Conducta: evaluar la capacidad funcional (DASI). Si es menor a 4 METs en cirugía de riesgo elevado, solicitar BNP/NT-proBNP y troponina basal para afinar el riesgo; reservar pruebas no invasivas (ecocardiograma de estrés o SPECT) únicamente cuando su resultado cambiaría la conducta. Optimizar comorbilidades antes de la cirugía.`
+      : `Riesgo cardiaco bajo. Conducta: puede proceder a cirugía sin estudios cardiacos adicionales si la capacidad funcional es adecuada.`,
   }
 }
 
@@ -104,8 +104,8 @@ export function calcularDASI(seleccionadas: Record<string, boolean>): DASIResult
     mets: Math.round(mets * 10) / 10,
     capacidadBaja,
     interpretacion: capacidadBaja
-      ? 'Capacidad funcional reducida (DASI ≤ 34, < ~4 METs). En cirugía de riesgo elevado, considerar pruebas adicionales SOLO si modifican el manejo.'
-      : 'Capacidad funcional conservada (DASI > 34, ≥ ~4 METs). Generalmente puede proceder a cirugía.',
+      ? 'Capacidad funcional reducida (< 4 METs). Conducta: en cirugía de riesgo elevado, solicitar BNP/NT-proBNP y troponina basal para precisar el riesgo. Considerar ecocardiograma o prueba de estrés solo si el resultado modificaría el plan (revascularización, optimización o cambio de abordaje).'
+      : 'Capacidad funcional conservada (≥ 4 METs). Conducta: generalmente puede proceder a cirugía sin pruebas cardiacas adicionales.',
   }
 }
 
@@ -198,10 +198,10 @@ export function calcularStopBang(sel: Record<string, boolean>): StopBangResult {
   return {
     puntos, nivel,
     interpretacion: nivel === 'Alto'
-      ? 'Alta probabilidad de AOS moderada-grave. Considerar optimización, manejo de vía aérea cuidadoso y monitorización posoperatoria.'
+      ? 'Alta probabilidad de apnea del sueño moderada-grave. Conducta: si la cirugía es electiva, considerar polisomnografía y valoración por neumología/medicina del sueño; precauciones de vía aérea, minimizar opioides y sedantes, monitorización con oximetría continua posoperatoria y continuar CPAP si ya lo usa.'
       : nivel === 'Intermedio'
-        ? 'Probabilidad intermedia de AOS. Valorar factores adicionales (IMC, cuello, sexo) y precauciones perioperatorias.'
-        : 'Baja probabilidad de AOS.',
+        ? 'Probabilidad intermedia de apnea del sueño. Conducta: extremar precauciones perioperatorias (limitar sedantes/opioides, oximetría posoperatoria) y valorar estudio del sueño según el contexto.'
+        : 'Baja probabilidad de apnea del sueño. Conducta: manejo perioperatorio habitual.',
   }
 }
 
@@ -224,6 +224,7 @@ export interface AriscatResult {
   puntos: number
   nivel: 'Bajo' | 'Intermedio' | 'Alto'
   riesgoEstimado: string
+  conducta: string
 }
 
 export function calcularAriscat(i: AriscatInput): AriscatResult {
@@ -252,7 +253,10 @@ export function calcularAriscat(i: AriscatInput): AriscatResult {
   if (p < 26)      { nivel = 'Bajo';       riesgo = '≈ 1.6 %' }
   else if (p < 45) { nivel = 'Intermedio'; riesgo = '≈ 13.3 %' }
   else             { nivel = 'Alto';       riesgo = '≈ 42.1 %' }
-  return { puntos: p, nivel, riesgoEstimado: riesgo }
+  const conducta = nivel === 'Bajo'
+    ? 'Manejo respiratorio habitual.'
+    : 'Optimización pulmonar preoperatoria (suspender tabaco, tratar infección/broncoespasmo, fisioterapia respiratoria e inspirometría incentiva), corregir anemia si aplica, técnica anestésica protectora (ventilación protectora, evitar bloqueo neuromuscular residual) y vigilancia respiratoria posoperatoria.'
+  return { puntos: p, nivel, riesgoEstimado: riesgo, conducta }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -284,10 +288,10 @@ export function calcularChadsVasc(sel: Record<string, boolean>): ChadsVascResult
     if (sel[it.key]) puntos += it.peso
   }
   const interpretacion = puntos >= 2
-    ? 'Riesgo tromboembólico que justifica anticoagulación oral (en FA). Influye en la decisión de interrumpir/puentear anticoagulación perioperatoria.'
+    ? 'Riesgo tromboembólico alto: justifica anticoagulación oral en fibrilación auricular. Conducta perioperatoria: el riesgo trombótico NO obliga a puenteo salvo riesgo muy alto (válvula mecánica mitral, EVC reciente); en la mayoría de pacientes con FA se suspende el anticoagulante sin puente. Reiniciar lo antes posible tras hemostasia.'
     : puntos === 1
-      ? 'Riesgo bajo-intermedio; individualizar anticoagulación.'
-      : 'Riesgo bajo.'
+      ? 'Riesgo intermedio: individualizar la anticoagulación. Conducta: suspensión perioperatoria simple sin puenteo.'
+      : 'Riesgo bajo: generalmente no requiere anticoagulación crónica.'
   return { puntos, interpretacion }
 }
 
@@ -320,8 +324,8 @@ export function calcularHasBled(sel: Record<string, boolean>): HasBledResult {
   return {
     puntos, nivel,
     interpretacion: nivel === 'Alto'
-      ? 'Riesgo de sangrado ALTO (≥ 3): mayor precaución, corregir factores modificables (TA, INR lábil, AINE, alcohol) y reevaluar el balance al interrumpir/reiniciar anticoagulación.'
-      : 'Riesgo de sangrado bajo. Corregir factores modificables de todos modos.',
+      ? 'Riesgo de sangrado alto. Importante: NO contraindica anticoagular; identifica al paciente que requiere vigilancia estrecha. Conducta: corregir factores modificables (controlar TA, estabilizar INR, evitar AINE y alcohol), extremar la hemostasia y planear con cuidado el momento de suspender/reiniciar el anticoagulante.'
+      : 'Riesgo de sangrado bajo. Conducta: corregir de todos modos los factores modificables.',
   }
 }
 
