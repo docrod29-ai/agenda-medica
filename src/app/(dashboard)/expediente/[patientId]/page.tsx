@@ -11,7 +11,7 @@ import { TIPO_NOTA_LABEL } from '@/types/expediente'
 import type { NotaMedica } from '@/types/expediente'
 import {
   ArrowLeft, Mic, FileText, Loader2, AlertTriangle, CheckCircle2,
-  Clock, ChevronDown, ChevronUp, Plus, Printer, Trash2,
+  Clock, ChevronDown, ChevronUp, Plus, Printer, Trash2, Send,
 } from 'lucide-react'
 
 export default function ExpedientePage() {
@@ -73,9 +73,14 @@ export default function ExpedientePage() {
             {patient?.telefono ? ` · ${patient.telefono}` : ''}
           </div>
         </div>
-        <button onClick={() => router.push(`/consulta/${patientId}`)} style={primaryBtn}>
-          <Mic size={16} /> Nueva consulta con IA
-        </button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button onClick={() => router.push(`/referencia/${patientId}`)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+            <Send size={15} /> Carta de referencia
+          </button>
+          <button onClick={() => router.push(`/consulta/${patientId}`)} style={primaryBtn}>
+            <Mic size={16} /> Nueva consulta con IA
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
