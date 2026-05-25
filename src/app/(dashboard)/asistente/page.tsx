@@ -10,7 +10,7 @@ import { useAppointments } from '@/hooks/useAppointments'
 import { useConfig } from '@/hooks/useConfig'
 import { useDoctors } from '@/hooks/useDoctors'
 import { useToast } from '@/context/ToastContext'
-import { createAppointment } from '@/lib/firestore'
+import { createAppointment, getPatients, createPatient } from '@/lib/firestore'
 import { getAvailableSlots } from '@/lib/availability'
 import { AppointmentType, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { CalendarDays, Clock, User, Phone, Stethoscope, CheckCircle2, Loader2 } from 'lucide-react'
@@ -102,10 +102,37 @@ export default function AsistentePage() {
     const doctor = activeDoctors.find(d => d.id === doctorId)
     setSaving(true)
     try {
+      // ── Buscar o crear paciente en el directorio (para que aparezca en Expedientes) ──
+      const tel = telefono.replace(/\D/g, '')
+      const nombreLimpio = nombre.trim()
+      let pacienteId = ''
+      try {
+        const pacientes = await getPatients(clinicId!)
+        const existente = pacientes.find(p =>
+          (tel && p.telefono.replace(/\D/g, '') === tel) ||
+          p.nombre.toLowerCase().trim() === nombreLimpio.toLowerCase()
+        )
+        if (existente) {
+          pacienteId = existente.id
+        } else {
+          pacienteId = await createPatient(clinicId!, {
+            nombre: nombreLimpio,
+            telefono: tel,
+            noShowCount: 0,
+            cancelacionCount: 0,
+            createdAt: '',
+            updatedAt: '',
+            creadoPor: user?.email || 'asistente',
+          })
+        }
+      } catch {
+        // si falla la búsqueda/creación, continuamos con la cita de todos modos
+      }
+
       await createAppointment(clinicId!, {
-        pacienteId: '',
-        pacienteNombre: nombre.trim(),
-        pacienteTelefono: telefono.replace(/\D/g, ''),
+        pacienteId,
+        pacienteNombre: nombreLimpio,
+        pacienteTelefono: tel,
         fechaHora: `${fecha} ${horaSeleccionada}`,
         duracion,
         tipo,
