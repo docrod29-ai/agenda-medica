@@ -9,11 +9,18 @@ export function useExpediente(patientId: string | null) {
   const [notas, setNotas] = useState<NotaMedica[]>([])
   const [loading, setLoading] = useState(true)
 
+  const [error, setError] = useState<string | null>(null)
+
   const reload = useCallback(async () => {
     if (!clinicId || !patientId) { setNotas([]); setLoading(false); return }
     setLoading(true)
+    setError(null)
     try {
       setNotas(await getNotas(clinicId, patientId))
+    } catch (e) {
+      console.error('[useExpediente] error cargando notas:', e)
+      setError('No se pudieron cargar las notas')
+      setNotas([])
     } finally {
       setLoading(false)
     }
@@ -21,5 +28,5 @@ export function useExpediente(patientId: string | null) {
 
   useEffect(() => { reload() }, [reload])
 
-  return { notas, loading, reload }
+  return { notas, loading, error, reload }
 }
