@@ -89,13 +89,11 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
       {/* Main area */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         {/* Mobile topbar */}
-        <div className="md:hidden" style={{
-          height: 52, background: 'var(--s1)', borderBottom: '1px solid var(--border)',
-          display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12, flexShrink: 0,
-        }}>
+        <div className="mobile-topbar">
           <button
             onClick={() => setSidebarOpen(true)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text2)', display: 'flex' }}
+            className="mobile-topbar-btn"
+            aria-label="Abrir menú"
           >
             <Menu size={22} />
           </button>

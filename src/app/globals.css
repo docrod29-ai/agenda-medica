@@ -210,6 +210,7 @@ tbody tr:last-child { border-bottom: none; }
 
 .sidebar-logo {
   padding: 20px 16px;
+  padding-top: max(20px, env(safe-area-inset-top, 20px));
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -484,9 +485,6 @@ tbody tr:last-child { border-bottom: none; }
 
 /* ── Indicador offline ────────────────────────────────────── */
 .offline-banner {
-  position: sticky;
-  top: 0;
-  z-index: 60;
   background: var(--amber);
   color: #1a1a1a;
   font-size: 13px;
@@ -497,7 +495,42 @@ tbody tr:last-child { border-bottom: none; }
   align-items: center;
   justify-content: center;
   gap: 8px;
+  flex-shrink: 0;
 }
+
+/* ── Barra superior móvil (con área segura para notch) ─────── */
+.mobile-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 0 16px;
+  padding-top: env(safe-area-inset-top, 0px);
+  background: var(--s1);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 45;
+}
+/* En tablet/escritorio se oculta (la barra lateral toma su lugar) */
+@media (min-width: 768px) {
+  .mobile-topbar { display: none; }
+}
+.mobile-topbar-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.mobile-topbar-btn:active { background: var(--s2); }
 
 /* ── Responsive ───────────────────────────────────────────── */
 @media (max-width: 768px) {

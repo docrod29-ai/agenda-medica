@@ -97,15 +97,19 @@ export function calcularDASI(seleccionadas: Record<string, boolean>): DASIResult
   const score = DASI_ITEMS.reduce((s, it) => s + (seleccionadas[it.key] ? it.peso : 0), 0)
   const vo2pico = 0.43 * score + 9.6
   const mets = vo2pico / 3.5
-  const capacidadBaja = score <= 34
+  // El umbral de decisión perioperatorio es < 4 METs (no el DASI ≤34).
+  // La capacidad se interpreta según los METs estimados para que concuerde
+  // con el valor mostrado.
+  const metsRedondeado = Math.round(mets * 10) / 10
+  const capacidadBaja = metsRedondeado < 4
   return {
     score: Math.round(score * 10) / 10,
     vo2pico: Math.round(vo2pico * 10) / 10,
-    mets: Math.round(mets * 10) / 10,
+    mets: metsRedondeado,
     capacidadBaja,
     interpretacion: capacidadBaja
-      ? 'Capacidad funcional reducida (< 4 METs). Conducta: en cirugía de riesgo elevado, solicitar BNP/NT-proBNP y troponina basal para precisar el riesgo. Considerar ecocardiograma o prueba de estrés solo si el resultado modificaría el plan (revascularización, optimización o cambio de abordaje).'
-      : 'Capacidad funcional conservada (≥ 4 METs). Conducta: generalmente puede proceder a cirugía sin pruebas cardiacas adicionales.',
+      ? `Capacidad funcional reducida (≈ ${metsRedondeado} METs, < 4). Conducta: en cirugía de riesgo elevado, solicitar BNP/NT-proBNP y troponina basal para precisar el riesgo. Considerar ecocardiograma o prueba de estrés solo si el resultado modificaría el plan (revascularización, optimización o cambio de abordaje).`
+      : `Capacidad funcional conservada (≈ ${metsRedondeado} METs, ≥ 4). Conducta: generalmente puede proceder a cirugía sin pruebas cardiacas adicionales.`,
   }
 }
 
