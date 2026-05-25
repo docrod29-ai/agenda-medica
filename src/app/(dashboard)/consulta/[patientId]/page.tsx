@@ -8,7 +8,7 @@ import { auth } from '@/lib/firebase'
 import { getPatients } from '@/lib/firestore'
 import { useGrabacionVoz } from '@/hooks/useGrabacionVoz'
 import {
-  createNota, updateNota, getNota, getUltimasNotasResumen,
+  createNota, updateNota, getNota, deleteNota, getUltimasNotasResumen,
 } from '@/lib/expediente/firestore'
 import { seccionesVacias, requiereSignosVitales } from '@/lib/expediente/templates'
 import { validarNOM004 } from '@/lib/expediente/nom004'
@@ -186,6 +186,25 @@ export default function ConsultaActivaPage() {
       setGuardando(false)
     }
   }, [clinicId, patientId, notaId, firmada, construirNota, toast])
+
+  // ── Descartar borrador ─────────────────────────────────────────
+  const descartar = useCallback(async () => {
+    if (firmada) return
+    const confirmar = window.confirm('¿Descartar esta consulta? Se eliminará y no podrás recuperarla.')
+    if (!confirmar) return
+    setGuardando(true)
+    try {
+      if (clinicId && notaId) {
+        await deleteNota(clinicId, patientId, notaId)
+      }
+      toast('Consulta descartada', 'info')
+      router.push(`/expediente/${patientId}`)
+    } catch (e) {
+      console.error('[consulta] error al descartar:', e)
+      toast('Error al descartar', 'error')
+      setGuardando(false)
+    }
+  }, [firmada, clinicId, notaId, patientId, router, toast])
 
   // ── Autoguardado cada 30s ──────────────────────────────────────
   useEffect(() => {
@@ -443,6 +462,9 @@ export default function ConsultaActivaPage() {
             <button onClick={() => guardarBorrador()} disabled={guardando} style={S.guardar}>
               {guardando ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : 'Guardar borrador'}
             </button>
+            <button onClick={descartar} disabled={guardando} style={S.descartar}>
+              <Trash2 size={14} /> Descartar
+            </button>
             <span style={{ fontSize: 12, color: 'var(--text3)' }}>Completitud: {validacion.puntajeCompletitud}%</span>
           </div>
         </>
@@ -490,4 +512,5 @@ const S = {
   valBox: (t: 'error' | 'warn'): React.CSSProperties => ({ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 6, background: t === 'error' ? 'rgba(239,68,68,0.08)' : 'rgba(245,158,11,0.08)', border: `1px solid ${t === 'error' ? 'rgba(239,68,68,0.25)' : 'rgba(245,158,11,0.25)'}`, color: t === 'error' ? '#f87171' : '#f59e0b', borderRadius: 8, padding: '12px 14px', fontSize: 12.5 }),
   firmar: (d: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: 8, background: d ? 'var(--s3)' : 'var(--teal)', color: d ? 'var(--text3)' : '#000', border: 'none', borderRadius: 10, padding: '13px 22px', fontSize: 15, fontWeight: 700, cursor: d ? 'default' : 'pointer' }),
   guardar: { background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 10, padding: '13px 18px', fontSize: 14, cursor: 'pointer' } as React.CSSProperties,
+  descartar: { display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', borderRadius: 10, padding: '13px 16px', fontSize: 14, cursor: 'pointer' } as React.CSSProperties,
 }

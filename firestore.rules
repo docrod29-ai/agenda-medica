@@ -38,9 +38,9 @@ service cloud.firestore {
         match /notas/{notaId} {
           allow read: if isMember(clinicId);
           allow create: if isMember(clinicId);
-          // Solo se pueden editar borradores; las firmadas son inmutables (NOM-024)
+          // Solo se pueden editar/borrar borradores; las firmadas son inmutables (NOM-024)
           allow update: if isMember(clinicId) && resource.data.estado != 'firmada';
-          allow delete: if false;
+          allow delete: if isMember(clinicId) && resource.data.estado != 'firmada';
         }
       }
       match /waitlist/{docId} {

@@ -4,22 +4,37 @@ import { useParams, useRouter } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
 import { useExpediente } from '@/hooks/useExpediente'
 import { getPatients } from '@/lib/firestore'
+import { deleteNota } from '@/lib/expediente/firestore'
+import { useToast } from '@/context/ToastContext'
 import type { Patient } from '@/types'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
 import type { NotaMedica } from '@/types/expediente'
 import {
   ArrowLeft, Mic, FileText, Loader2, AlertTriangle, CheckCircle2,
-  Clock, ChevronDown, ChevronUp, Plus, Printer,
+  Clock, ChevronDown, ChevronUp, Plus, Printer, Trash2,
 } from 'lucide-react'
 
 export default function ExpedientePage() {
   const { patientId } = useParams<{ patientId: string }>()
   const router = useRouter()
   const { clinicId } = useClinic()
-  const { notas, loading } = useExpediente(patientId)
+  const { toast } = useToast()
+  const { notas, loading, reload } = useExpediente(patientId)
   const [patient, setPatient] = useState<Patient | null>(null)
   const [filtro, setFiltro] = useState<'todas' | 'consulta' | 'hospital'>('todas')
   const [expandida, setExpandida] = useState<string | null>(null)
+
+  const borrarNota = async (notaId: string) => {
+    if (!clinicId) return
+    if (!window.confirm('¿Eliminar este borrador? No podrás recuperarlo.')) return
+    try {
+      await deleteNota(clinicId, patientId, notaId)
+      toast('Borrador eliminado', 'info')
+      reload()
+    } catch {
+      toast('Error al eliminar', 'error')
+    }
+  }
 
   useEffect(() => {
     if (!clinicId || !patientId) return
@@ -93,6 +108,7 @@ export default function ExpedientePage() {
               abierta={expandida === n.id}
               onToggle={() => setExpandida(expandida === n.id ? null : n.id)}
               onEditar={() => router.push(`/consulta/${patientId}?nota=${n.id}`)}
+              onBorrar={() => borrarNota(n.id)}
             />
           ))}
         </div>
@@ -102,8 +118,8 @@ export default function ExpedientePage() {
   )
 }
 
-function NotaCard({ nota, esUltima, abierta, onToggle, onEditar }: {
-  nota: NotaMedica; esUltima: boolean; abierta: boolean; onToggle: () => void; onEditar: () => void
+function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onBorrar }: {
+  nota: NotaMedica; esUltima: boolean; abierta: boolean; onToggle: () => void; onEditar: () => void; onBorrar: () => void
 }) {
   const firmada = nota.estado === 'firmada'
   return (
@@ -190,6 +206,11 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar }: {
                 <button onClick={onEditar} style={ghostBtn}>Continuar edición</button>
               )}
               <button onClick={() => window.print()} style={ghostBtn}><Printer size={13} /> Imprimir</button>
+              {!firmada && (
+                <button onClick={onBorrar} style={{ ...ghostBtn, color: '#f87171', borderColor: 'rgba(239,68,68,0.3)' }}>
+                  <Trash2 size={13} /> Eliminar borrador
+                </button>
+              )}
             </div>
             {firmada && nota.firma && (
               <div style={{ marginTop: 14, fontSize: 11, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 6 }}>

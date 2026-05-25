@@ -1,5 +1,5 @@
 import {
-  collection, doc, addDoc, getDoc, getDocs, updateDoc,
+  collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc,
   query, orderBy, where,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -50,6 +50,15 @@ export async function createNota(
 ): Promise<string> {
   const ref = await addDoc(notasCol(clinicId, patientId), stripUndefined(data))
   return ref.id
+}
+
+/** Borra una nota. Solo borradores (las firmadas son inmutables por las reglas). */
+export async function deleteNota(
+  clinicId: string,
+  patientId: string,
+  notaId: string,
+): Promise<void> {
+  await deleteDoc(notaDoc(clinicId, patientId, notaId))
 }
 
 /** Solo se permite actualizar borradores (NOM-024: las firmadas son inmutables) */
