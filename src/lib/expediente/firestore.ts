@@ -27,12 +27,28 @@ export async function getNota(clinicId: string, patientId: string, notaId: strin
   return snap.exists() ? ({ id: snap.id, ...snap.data() } as NotaMedica) : null
 }
 
+/** Firestore rechaza valores `undefined`. Los eliminamos recursivamente. */
+function stripUndefined<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map(v => stripUndefined(v)) as unknown as T
+  }
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (v === undefined) continue
+      out[k] = stripUndefined(v)
+    }
+    return out as T
+  }
+  return value
+}
+
 export async function createNota(
   clinicId: string,
   patientId: string,
   data: Omit<NotaMedica, 'id'>,
 ): Promise<string> {
-  const ref = await addDoc(notasCol(clinicId, patientId), data)
+  const ref = await addDoc(notasCol(clinicId, patientId), stripUndefined(data))
   return ref.id
 }
 
@@ -43,10 +59,10 @@ export async function updateNota(
   notaId: string,
   data: Partial<NotaMedica>,
 ): Promise<void> {
-  await updateDoc(notaDoc(clinicId, patientId, notaId), {
+  await updateDoc(notaDoc(clinicId, patientId, notaId), stripUndefined({
     ...data,
     updatedAt: new Date().toISOString(),
-  })
+  }))
 }
 
 /** Última nota firmada para construir contexto de IA */

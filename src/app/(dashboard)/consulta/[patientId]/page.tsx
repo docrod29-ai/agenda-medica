@@ -166,7 +166,8 @@ export default function ConsultaActivaPage() {
   }, [notaId, clinicId, patientId, patient, tipo, config, resumen, secciones, signos, diagnosticos, medicamentos, voz.transcripcion])
 
   // ── Guardar borrador ───────────────────────────────────────────
-  const guardarBorrador = useCallback(async () => {
+  // silencioso=true para el autoguardado (no muestra toast)
+  const guardarBorrador = useCallback(async (silencioso = false) => {
     if (!clinicId || firmada) return
     setGuardando(true)
     try {
@@ -177,17 +178,19 @@ export default function ConsultaActivaPage() {
         const id = await createNota(clinicId, patientId, nota)
         setNotaId(id)
       }
-    } catch {
-      // silencioso (autoguardado)
+      if (!silencioso) toast('Borrador guardado', 'success')
+    } catch (e) {
+      console.error('[consulta] error guardando borrador:', e)
+      if (!silencioso) toast('Error al guardar el borrador', 'error')
     } finally {
       setGuardando(false)
     }
-  }, [clinicId, patientId, notaId, firmada, construirNota])
+  }, [clinicId, patientId, notaId, firmada, construirNota, toast])
 
   // ── Autoguardado cada 30s ──────────────────────────────────────
   useEffect(() => {
     if (firmada) return
-    const t = setInterval(() => { if (resumen || secciones.some(s => s.value)) guardarBorrador() }, 30000)
+    const t = setInterval(() => { if (resumen || secciones.some(s => s.value)) guardarBorrador(true) }, 30000)
     return () => clearInterval(t)
   }, [firmada, resumen, secciones, guardarBorrador])
 
@@ -437,7 +440,7 @@ export default function ConsultaActivaPage() {
             <button onClick={firmar} disabled={!validacion.valida || guardando} style={S.firmar(!validacion.valida || guardando)}>
               <FileSignature size={17} /> Firmar y cerrar nota
             </button>
-            <button onClick={guardarBorrador} disabled={guardando} style={S.guardar}>
+            <button onClick={() => guardarBorrador()} disabled={guardando} style={S.guardar}>
               {guardando ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : 'Guardar borrador'}
             </button>
             <span style={{ fontSize: 12, color: 'var(--text3)' }}>Completitud: {validacion.puntajeCompletitud}%</span>
