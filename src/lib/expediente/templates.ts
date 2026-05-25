@@ -58,6 +58,13 @@ export const SECCIONES_POR_TIPO: Record<TipoNota, Omit<NotaSeccion, 'value'>[]> 
     { key: 'signosAlarma',         label: 'Signos de alarma',                    obligatorio: true,  placeholder: 'Acudir a urgencias si…' },
     { key: 'pronostico',           label: 'Pronóstico',                          obligatorio: true },
   ],
+  valoracion_preoperatoria: [
+    { key: 'cirugiaPropuesta',  label: 'Cirugía propuesta',          obligatorio: true,  placeholder: 'Procedimiento, fecha, urgencia' },
+    { key: 'resumenClinico',    label: 'Resumen clínico y comorbilidades', obligatorio: true },
+    { key: 'laboratorios',      label: 'Laboratorios relevantes',    placeholder: 'BH, QS (creatinina, glucosa), electrolitos, coagulación, etc.' },
+    { key: 'conclusionRiesgo',  label: 'Conclusión de riesgo',       obligatorio: true,  placeholder: 'Se llena automáticamente con las escalas' },
+    { key: 'recomendaciones',   label: 'Recomendaciones perioperatorias', obligatorio: true,  placeholder: 'Se generan automáticamente según la evidencia' },
+  ],
 }
 
 /** Construye las secciones vacías para un tipo de nota */
@@ -67,7 +74,12 @@ export function seccionesVacias(tipo: TipoNota): NotaSeccion[] {
 
 /** ¿Esta nota usa signos vitales obligatorios? */
 export function requiereSignosVitales(tipo: TipoNota): boolean {
-  return ['historia_clinica', 'primera_vez', 'seguimiento', 'ingreso', 'evolucion'].includes(tipo)
+  return ['historia_clinica', 'primera_vez', 'seguimiento', 'ingreso', 'evolucion', 'valoracion_preoperatoria'].includes(tipo)
+}
+
+/** ¿Es una valoración preoperatoria? */
+export function esPreoperatoria(tipo: TipoNota): boolean {
+  return tipo === 'valoracion_preoperatoria'
 }
 
 /** ¿Es una nota hospitalaria? */

@@ -10,7 +10,8 @@ import { useGrabacionVoz } from '@/hooks/useGrabacionVoz'
 import {
   createNota, updateNota, getNota, deleteNota, getUltimasNotasResumen,
 } from '@/lib/expediente/firestore'
-import { seccionesVacias, requiereSignosVitales } from '@/lib/expediente/templates'
+import { seccionesVacias, requiereSignosVitales, esPreoperatoria } from '@/lib/expediente/templates'
+import { PreopAssessment } from '@/components/PreopAssessment'
 import { validarNOM004 } from '@/lib/expediente/nom004'
 import { generarHashIntegridad, generarHashFirma } from '@/lib/expediente/integrity'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
@@ -21,7 +22,7 @@ import {
   Trash2, Plus, ShieldCheck, Pill, Stethoscope, FileSignature,
 } from 'lucide-react'
 
-const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'alta_consulta', 'ingreso', 'evolucion', 'egreso']
+const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'valoracion_preoperatoria', 'alta_consulta', 'ingreso', 'evolucion', 'egreso']
 
 export default function ConsultaActivaPage() {
   const { patientId } = useParams<{ patientId: string }>()
@@ -44,6 +45,7 @@ export default function ConsultaActivaPage() {
   const [guardando, setGuardando] = useState(false)
   const [firmada, setFirmada] = useState(false)
   const [notaId, setNotaId] = useState<string | null>(notaIdParam)
+  const [preop, setPreop] = useState<{ inputs: Record<string, unknown>; resultados: Record<string, unknown> } | undefined>(undefined)
   const ultimasNotasRef = useRef('')
 
   // ── Cargar paciente + contexto IA ──────────────────────────────
@@ -65,6 +67,7 @@ export default function ConsultaActivaPage() {
       setMedicamentos(n.medicamentos)
       setResumen(n.resumenEjecutivo ?? '')
       setFirmada(n.estado === 'firmada')
+      if (n.preop) setPreop(n.preop)
       if (n.transcripcionCruda) voz.setTranscripcion(n.transcripcionCruda)
     })
   }, [clinicId, patientId, notaIdParam]) // eslint-disable-line
@@ -156,6 +159,7 @@ export default function ConsultaActivaPage() {
       alergias: patient?.alergias
         ? [{ alergeno: patient.alergias, tipo: 'medicamento', reaccion: 'Ver expediente', severidad: 'moderada', confirmada: true }]
         : [],
+      preop,
       transcripcionCruda: voz.transcripcion || undefined,
       estado,
       fechaConsulta: now,
@@ -163,7 +167,7 @@ export default function ConsultaActivaPage() {
       updatedAt: now,
       creadoPor: auth.currentUser?.uid ?? '',
     }
-  }, [notaId, clinicId, patientId, patient, tipo, config, resumen, secciones, signos, diagnosticos, medicamentos, voz.transcripcion])
+  }, [notaId, clinicId, patientId, patient, tipo, config, resumen, secciones, signos, diagnosticos, medicamentos, preop, voz.transcripcion])
 
   // ── Guardar borrador ───────────────────────────────────────────
   // silencioso=true para el autoguardado (no muestra toast)
@@ -381,6 +385,24 @@ export default function ConsultaActivaPage() {
             ))}
           </div>
         </Section>
+      )}
+
+      {/* ── Calculadoras de valoración preoperatoria ── */}
+      {esPreoperatoria(tipo) && (
+        <PreopAssessment
+          edadPaciente={patient?.edad}
+          disabled={firmada}
+          initialInputs={preop?.inputs}
+          onAplicar={(conclusion, recomendaciones, preopData) => {
+            setPreop(preopData)
+            setSecciones(prev => prev.map(s => {
+              if (s.key === 'conclusionRiesgo') return { ...s, value: conclusion }
+              if (s.key === 'recomendaciones') return { ...s, value: recomendaciones }
+              return s
+            }))
+            toast('Escalas aplicadas a la nota', 'success')
+          }}
+        />
       )}
 
       {/* ── Secciones narrativas ── */}

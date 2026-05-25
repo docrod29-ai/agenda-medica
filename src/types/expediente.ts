@@ -13,6 +13,7 @@ export type TipoNota =
   | 'ingreso'            // Ingreso hospitalario
   | 'evolucion'          // Evolución hospitalaria (SOAP diario)
   | 'egreso'             // Egreso hospitalario
+  | 'valoracion_preoperatoria' // Valoración de riesgo preoperatorio
 
 export const TIPO_NOTA_LABEL: Record<TipoNota, string> = {
   historia_clinica: 'Historia Clínica',
@@ -22,6 +23,7 @@ export const TIPO_NOTA_LABEL: Record<TipoNota, string> = {
   ingreso:          'Nota de Ingreso Hospitalario',
   evolucion:        'Nota de Evolución',
   egreso:           'Nota de Egreso Hospitalario',
+  valoracion_preoperatoria: 'Valoración Preoperatoria',
 }
 
 export type EstadoNota = 'borrador' | 'firmada' | 'cancelada'
@@ -151,6 +153,12 @@ export interface NotaMedica {
     candidatoDesescalada?: boolean
     candidatoSwitchIVVO?: boolean
     cultivosSeguimiento?: string
+  }
+
+  // Datos estructurados de valoración preoperatoria (cuando tipo === 'valoracion_preoperatoria')
+  preop?: {
+    inputs: Record<string, unknown>   // selecciones de RCRI/DASI/Caprini + contexto
+    resultados: Record<string, unknown> // puntajes calculados
   }
 
   // Trazabilidad: transcripción cruda de voz junto a la nota procesada
