@@ -3,9 +3,10 @@ import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
 import { getPatients, createPatient, getAppointments } from '@/lib/firestore'
+import { deletePatientExpediente } from '@/lib/expediente/firestore'
 import { useAuth } from '@/hooks/useAuth'
 import type { Patient } from '@/types'
-import { FileText, Search, Loader2, ChevronRight, AlertTriangle, CalendarClock, Plus, X } from 'lucide-react'
+import { FileText, Search, Loader2, ChevronRight, AlertTriangle, CalendarClock, Plus, X, Trash2 } from 'lucide-react'
 import { useToast } from '@/context/ToastContext'
 
 /** Entrada unificada: paciente del directorio o derivado de citas */
@@ -118,6 +119,26 @@ export default function ExpedientesPage() {
     router.push(`/expediente/${id}`)
   }
 
+  const [borrando, setBorrando] = useState<string | null>(null)
+  const borrarPaciente = async (e: Entrada) => {
+    if (!clinicId || !e.id) return
+    if (!window.confirm(`¿Eliminar a ${e.nombre} del expediente? Esta acción no se puede deshacer.`)) return
+    setBorrando(e.id)
+    try {
+      const res = await deletePatientExpediente(clinicId, e.id)
+      if (res.ok) {
+        toast('Paciente eliminado', 'info')
+        setEntradas(prev => prev.filter(x => x.id !== e.id))
+      } else {
+        toast(res.motivo ?? 'No se puede eliminar', 'error')
+      }
+    } catch {
+      toast('Error al eliminar', 'error')
+    } finally {
+      setBorrando(null)
+    }
+  }
+
   return (
     <div style={{ padding: 24, maxWidth: 900, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
@@ -162,17 +183,18 @@ export default function ExpedientesPage() {
           {filtered.map((e, i) => {
             const cargando = abriendo === e.nombre + e.telefono
             return (
-              <button
+              <div
                 key={(e.id ?? 'orphan') + i}
-                onClick={() => abrir(e)}
-                disabled={cargando}
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10,
-                  padding: '14px 18px', cursor: 'pointer', textAlign: 'left', gap: 12,
+                  padding: '14px 18px', gap: 12,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div
+                  onClick={() => !cargando && abrir(e)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1, cursor: cargando ? 'default' : 'pointer', minWidth: 0 }}
+                >
                   <div style={{
                     width: 38, height: 38, borderRadius: '50%', background: 'var(--s3)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -180,7 +202,7 @@ export default function ExpedientesPage() {
                   }}>
                     {e.nombre.charAt(0).toUpperCase()}
                   </div>
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
                       {e.nombre}
                       {e.soloCitas && (
@@ -199,10 +221,25 @@ export default function ExpedientesPage() {
                     </div>
                   </div>
                 </div>
-                {cargando
-                  ? <Loader2 size={16} color="var(--text3)" style={{ animation: 'spin 1s linear infinite' }} />
-                  : <ChevronRight size={18} color="var(--text3)" />}
-              </button>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                  {e.id && (
+                    <button
+                      onClick={() => borrarPaciente(e)}
+                      disabled={borrando === e.id}
+                      title="Eliminar paciente"
+                      style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: 6, display: 'flex' }}
+                    >
+                      {borrando === e.id
+                        ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
+                        : <Trash2 size={15} />}
+                    </button>
+                  )}
+                  {cargando
+                    ? <Loader2 size={16} color="var(--text3)" style={{ animation: 'spin 1s linear infinite' }} />
+                    : <ChevronRight size={18} color="var(--text3)" />}
+                </div>
+              </div>
             )
           })}
         </div>

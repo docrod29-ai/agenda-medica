@@ -61,6 +61,30 @@ export async function deleteNota(
   await deleteDoc(notaDoc(clinicId, patientId, notaId))
 }
 
+/**
+ * Borra un paciente del expediente.
+ * SALVAGUARDA NOM-004: si tiene notas FIRMADAS, no se permite (registro legal).
+ * Si solo tiene borradores, se eliminan junto con el paciente.
+ * Devuelve { ok, motivo }.
+ */
+export async function deletePatientExpediente(
+  clinicId: string,
+  patientId: string,
+): Promise<{ ok: boolean; motivo?: string }> {
+  const notas = await getNotas(clinicId, patientId)
+  const firmadas = notas.filter(n => n.estado === 'firmada')
+  if (firmadas.length > 0) {
+    return { ok: false, motivo: `Tiene ${firmadas.length} nota(s) firmada(s). Los registros clínicos firmados no pueden eliminarse (NOM-004).` }
+  }
+  // Borrar borradores primero
+  for (const n of notas) {
+    await deleteDoc(notaDoc(clinicId, patientId, n.id))
+  }
+  // Borrar el documento del paciente
+  await deleteDoc(doc(db, 'clinics', clinicId, 'patients', patientId))
+  return { ok: true }
+}
+
 /** Solo se permite actualizar borradores (NOM-024: las firmadas son inmutables) */
 export async function updateNota(
   clinicId: string,
