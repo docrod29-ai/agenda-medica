@@ -168,6 +168,164 @@ export function calcularCaprini(sel: Record<string, boolean>): CapriniResult {
 }
 
 // ════════════════════════════════════════════════════════════════
+// 3b. STOP-BANG — Riesgo de apnea obstructiva del sueño (AOS)
+//     Chung F et al. Anesthesiology 2008 / Br J Anaesth 2012
+// ════════════════════════════════════════════════════════════════
+
+export const STOPBANG_ITEMS: { key: string; label: string }[] = [
+  { key: 'snoring',     label: 'Ronquido fuerte (S - Snoring): más fuerte que hablar o se oye tras puertas cerradas' },
+  { key: 'tiredness',   label: 'Cansancio diurno (T - Tiredness): somnolencia/fatiga frecuente durante el día' },
+  { key: 'observed',    label: 'Apnea observada (O - Observed): alguien ha visto que deja de respirar al dormir' },
+  { key: 'pressure',    label: 'Presión (P - Pressure): hipertensión arterial o en tratamiento' },
+  { key: 'bmi35',       label: 'IMC > 35 kg/m² (B - BMI)' },
+  { key: 'age50',       label: 'Edad > 50 años (A - Age)' },
+  { key: 'neck40',      label: 'Circunferencia de cuello > 40 cm (N - Neck)' },
+  { key: 'genderMale',  label: 'Sexo masculino (G - Gender)' },
+]
+
+export interface StopBangResult {
+  puntos: number
+  nivel: 'Bajo' | 'Intermedio' | 'Alto'
+  interpretacion: string
+}
+
+export function calcularStopBang(sel: Record<string, boolean>): StopBangResult {
+  const puntos = STOPBANG_ITEMS.filter(i => sel[i.key]).length
+  let nivel: StopBangResult['nivel']
+  if (puntos <= 2) nivel = 'Bajo'
+  else if (puntos <= 4) nivel = 'Intermedio'
+  else nivel = 'Alto'
+  return {
+    puntos, nivel,
+    interpretacion: nivel === 'Alto'
+      ? 'Alta probabilidad de AOS moderada-grave. Considerar optimización, manejo de vía aérea cuidadoso y monitorización posoperatoria.'
+      : nivel === 'Intermedio'
+        ? 'Probabilidad intermedia de AOS. Valorar factores adicionales (IMC, cuello, sexo) y precauciones perioperatorias.'
+        : 'Baja probabilidad de AOS.',
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// 3c. ARISCAT — Riesgo de complicaciones pulmonares posoperatorias
+//     Canet J et al. Anesthesiology 2010
+// ════════════════════════════════════════════════════════════════
+
+export interface AriscatInput {
+  edad: number
+  spo2: number                 // % aire ambiente
+  infeccionRespiratoria: boolean // último mes
+  anemia: boolean              // Hb ≤ 10 g/dL
+  incision: '' | 'periferica' | 'abdominal_alta' | 'intratoracica'
+  duracion: '' | 'menos2h' | 'de2a3h' | 'mas3h'
+  emergencia: boolean
+}
+
+export interface AriscatResult {
+  puntos: number
+  nivel: 'Bajo' | 'Intermedio' | 'Alto'
+  riesgoEstimado: string
+}
+
+export function calcularAriscat(i: AriscatInput): AriscatResult {
+  let p = 0
+  // Edad
+  if (i.edad > 80) p += 16
+  else if (i.edad >= 51) p += 3
+  // SpO2
+  if (i.spo2 > 0 && i.spo2 <= 90) p += 24
+  else if (i.spo2 >= 91 && i.spo2 <= 95) p += 8
+  // Infección respiratoria último mes
+  if (i.infeccionRespiratoria) p += 17
+  // Anemia (Hb ≤ 10)
+  if (i.anemia) p += 11
+  // Incisión quirúrgica
+  if (i.incision === 'abdominal_alta') p += 15
+  else if (i.incision === 'intratoracica') p += 24
+  // Duración
+  if (i.duracion === 'de2a3h') p += 16
+  else if (i.duracion === 'mas3h') p += 23
+  // Emergencia
+  if (i.emergencia) p += 8
+
+  let nivel: AriscatResult['nivel']
+  let riesgo: string
+  if (p < 26)      { nivel = 'Bajo';       riesgo = '≈ 1.6 %' }
+  else if (p < 45) { nivel = 'Intermedio'; riesgo = '≈ 13.3 %' }
+  else             { nivel = 'Alto';       riesgo = '≈ 42.1 %' }
+  return { puntos: p, nivel, riesgoEstimado: riesgo }
+}
+
+// ════════════════════════════════════════════════════════════════
+// 3d. CHA₂DS₂-VASc — Riesgo tromboembólico en fibrilación auricular
+//     Lip GYH et al. Chest 2010
+// ════════════════════════════════════════════════════════════════
+
+export const CHADSVASC_ITEMS: { key: string; label: string; peso: number }[] = [
+  { key: 'icc',         label: 'Insuficiencia cardiaca / disfunción ventricular (C)', peso: 1 },
+  { key: 'hta',         label: 'Hipertensión arterial (H)', peso: 1 },
+  { key: 'edad75',      label: 'Edad ≥ 75 años (A₂)', peso: 2 },
+  { key: 'diabetes',    label: 'Diabetes mellitus (D)', peso: 1 },
+  { key: 'evcPrevia',   label: 'EVC / AIT / tromboembolia previa (S₂)', peso: 2 },
+  { key: 'enfVascular', label: 'Enfermedad vascular (IAM, EAP, placa aórtica) (V)', peso: 1 },
+  { key: 'edad65_74',   label: 'Edad 65-74 años (A)', peso: 1 },
+  { key: 'sexoFemenino', label: 'Sexo femenino (Sc)', peso: 1 },
+]
+
+export interface ChadsVascResult {
+  puntos: number
+  interpretacion: string
+}
+
+export function calcularChadsVasc(sel: Record<string, boolean>): ChadsVascResult {
+  // Edad ≥75 (2 pts) tiene prioridad sobre 65-74 (1 pt)
+  let puntos = 0
+  for (const it of CHADSVASC_ITEMS) {
+    if (it.key === 'edad65_74' && sel['edad75']) continue
+    if (sel[it.key]) puntos += it.peso
+  }
+  const interpretacion = puntos >= 2
+    ? 'Riesgo tromboembólico que justifica anticoagulación oral (en FA). Influye en la decisión de interrumpir/puentear anticoagulación perioperatoria.'
+    : puntos === 1
+      ? 'Riesgo bajo-intermedio; individualizar anticoagulación.'
+      : 'Riesgo bajo.'
+  return { puntos, interpretacion }
+}
+
+// ════════════════════════════════════════════════════════════════
+// 3e. HAS-BLED — Riesgo de sangrado con anticoagulación
+//     Pisters R et al. Chest 2010
+// ════════════════════════════════════════════════════════════════
+
+export const HASBLED_ITEMS: { key: string; label: string }[] = [
+  { key: 'htaNoControlada', label: 'Hipertensión no controlada (TAS > 160 mmHg) (H)' },
+  { key: 'renalAnormal',    label: 'Función renal anormal (diálisis, trasplante, creatinina > 2.26 mg/dL) (A)' },
+  { key: 'hepaticaAnormal', label: 'Función hepática anormal (cirrosis, bilirrubina >2x, transaminasas >3x) (A)' },
+  { key: 'evc',             label: 'EVC previo (S)' },
+  { key: 'sangradoPrevio',  label: 'Sangrado previo o predisposición (anemia) (B)' },
+  { key: 'inrLabil',        label: 'INR lábil (TRT < 60%) (L)' },
+  { key: 'edad65',          label: 'Edad > 65 años (E)' },
+  { key: 'farmacos',        label: 'Fármacos que aumentan sangrado (antiplaquetarios, AINE) (D)' },
+  { key: 'alcohol',         label: 'Consumo de alcohol ≥ 8 bebidas/semana (D)' },
+]
+
+export interface HasBledResult {
+  puntos: number
+  nivel: 'Bajo' | 'Alto'
+  interpretacion: string
+}
+
+export function calcularHasBled(sel: Record<string, boolean>): HasBledResult {
+  const puntos = HASBLED_ITEMS.filter(i => sel[i.key]).length
+  const nivel: HasBledResult['nivel'] = puntos >= 3 ? 'Alto' : 'Bajo'
+  return {
+    puntos, nivel,
+    interpretacion: nivel === 'Alto'
+      ? 'Riesgo de sangrado ALTO (≥ 3): mayor precaución, corregir factores modificables (TA, INR lábil, AINE, alcohol) y reevaluar el balance al interrumpir/reiniciar anticoagulación.'
+      : 'Riesgo de sangrado bajo. Corregir factores modificables de todos modos.',
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
 // 4. MOTOR DE RECOMENDACIONES (2024 AHA/ACC)
 //    Cada recomendación cita su clase (COR) y nivel de evidencia (LOE)
 // ════════════════════════════════════════════════════════════════

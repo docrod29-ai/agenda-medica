@@ -2,10 +2,11 @@
 import { useState, useMemo } from 'react'
 import {
   rcriItems, calcularRCRI, DASI_ITEMS, calcularDASI, CAPRINI_ITEMS, calcularCaprini,
-  generarRecomendaciones,
-  type RCRIInput, type PreopContexto, type Recomendacion, type CategoriaRec,
+  STOPBANG_ITEMS, calcularStopBang, calcularAriscat, CHADSVASC_ITEMS, calcularChadsVasc,
+  HASBLED_ITEMS, calcularHasBled, generarRecomendaciones,
+  type RCRIInput, type AriscatInput, type PreopContexto, type Recomendacion, type CategoriaRec,
 } from '@/lib/expediente/preop'
-import { Activity, HeartPulse, Droplets, ClipboardCheck, ExternalLink, Stethoscope, Pill, Check } from 'lucide-react'
+import { Activity, HeartPulse, Droplets, ClipboardCheck, ExternalLink, Pill, Check, Wind, Moon, Brain } from 'lucide-react'
 
 interface Props {
   edadPaciente?: number
@@ -38,6 +39,14 @@ export function PreopAssessment({ edadPaciente, disabled, onAplicar, initialInpu
   // DASI y Caprini
   const [dasi, setDasi] = useState<Record<string, boolean>>((init.dasi as Record<string, boolean>) ?? {})
   const [caprini, setCaprini] = useState<Record<string, boolean>>((init.caprini as Record<string, boolean>) ?? {})
+  // STOP-BANG, CHA2DS2-VASc, HAS-BLED, ARISCAT
+  const [stopbang, setStopbang] = useState<Record<string, boolean>>((init.stopbang as Record<string, boolean>) ?? {})
+  const [chadsvasc, setChadsvasc] = useState<Record<string, boolean>>((init.chadsvasc as Record<string, boolean>) ?? {})
+  const [hasbled, setHasbled] = useState<Record<string, boolean>>((init.hasbled as Record<string, boolean>) ?? {})
+  const [ariscat, setAriscat] = useState<AriscatInput>((init.ariscat as AriscatInput) ?? {
+    edad: edadPaciente ?? 0, spo2: 0, infeccionRespiratoria: false, anemia: false,
+    incision: '', duracion: '', emergencia: false,
+  })
 
   // Contexto de medicamentos / situación
   const [ctx, setCtx] = useState({
@@ -67,6 +76,10 @@ export function PreopAssessment({ edadPaciente, disabled, onAplicar, initialInpu
   const rcriRes = useMemo(() => calcularRCRI(rcri), [rcri])
   const dasiRes = useMemo(() => calcularDASI(dasi), [dasi])
   const capriniRes = useMemo(() => calcularCaprini(caprini), [caprini])
+  const stopbangRes = useMemo(() => calcularStopBang(stopbang), [stopbang])
+  const ariscatRes = useMemo(() => calcularAriscat(ariscat), [ariscat])
+  const chadsvascRes = useMemo(() => calcularChadsVasc(chadsvasc), [chadsvasc])
+  const hasbledRes = useMemo(() => calcularHasBled(hasbled), [hasbled])
 
   const recomendaciones = useMemo<Recomendacion[]>(() => {
     const contexto: PreopContexto = {
@@ -98,19 +111,27 @@ export function PreopAssessment({ edadPaciente, disabled, onAplicar, initialInpu
   }, [rcri, ctx, rcriRes.elevado])
 
   const aplicar = () => {
-    const conclusion = [
+    const lineas = [
       `Riesgo cardiaco RCRI (Lee): ${rcriRes.puntos} punto(s) — Clase ${rcriRes.clase} (MACE 30 d ${rcriRes.riesgoEstimadoLee}, Lee 1999). ${rcriRes.interpretacion}`,
       `Capacidad funcional DASI: ${dasiRes.score} puntos ≈ ${dasiRes.mets} METs. ${dasiRes.interpretacion}`,
+      `Riesgo pulmonar ARISCAT: ${ariscatRes.puntos} puntos — ${ariscatRes.nivel} (complicaciones pulmonares ${ariscatRes.riesgoEstimado}).`,
+      `Apnea del sueño STOP-BANG: ${stopbangRes.puntos}/8 — riesgo ${stopbangRes.nivel}. ${stopbangRes.interpretacion}`,
       `Riesgo de TEV (Caprini): ${capriniRes.puntos} puntos — ${capriniRes.nivel}. ${capriniRes.profilaxisSugerida}`,
-    ].join('\n\n')
+    ]
+    // CHA2DS2-VASc / HAS-BLED solo si se capturó algo (relevantes en FA/anticoagulación)
+    if (chadsvascRes.puntos > 0 || ctx.tomaAnticoagulante) {
+      lineas.push(`CHA₂DS₂-VASc: ${chadsvascRes.puntos} puntos. ${chadsvascRes.interpretacion}`)
+      lineas.push(`HAS-BLED: ${hasbledRes.puntos} puntos — riesgo ${hasbledRes.nivel}. ${hasbledRes.interpretacion}`)
+    }
+    const conclusion = lineas.join('\n\n')
 
     const recomTexto = recomendaciones
       .map(r => `• [${r.categoria}${r.cor ? ` · ${r.cor}${r.loe ? `/${r.loe}` : ''}` : ''}] ${r.texto} (${r.fuente})`)
       .join('\n')
 
     onAplicar(conclusion, recomTexto, {
-      inputs: { ...rcri, dasi, caprini, ...ctx },
-      resultados: { rcri: rcriRes, dasi: dasiRes, caprini: capriniRes },
+      inputs: { ...rcri, dasi, caprini, stopbang, chadsvasc, hasbled, ariscat, ...ctx },
+      resultados: { rcri: rcriRes, dasi: dasiRes, caprini: capriniRes, stopbang: stopbangRes, ariscat: ariscatRes, chadsvasc: chadsvascRes, hasbled: hasbledRes },
     })
   }
 
@@ -160,6 +181,52 @@ export function PreopAssessment({ edadPaciente, disabled, onAplicar, initialInpu
         <Resultado>
           <strong>{capriniRes.puntos} puntos · Riesgo {capriniRes.nivel}</strong>. {capriniRes.profilaxisSugerida}
         </Resultado>
+      </Card>
+
+      {/* ── ARISCAT ── */}
+      <Card icon={<Wind size={15} />} titulo="ARISCAT — Riesgo de complicaciones pulmonares posoperatorias" color="#38bdf8">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+          <Num label="Edad" value={ariscat.edad} onChange={v => setAriscat(a => ({ ...a, edad: v }))} />
+          <Num label="SpO₂ (% aire ambiente)" value={ariscat.spo2} onChange={v => setAriscat(a => ({ ...a, spo2: v }))} />
+          <Sel label="Incisión quirúrgica" value={ariscat.incision} onChange={v => setAriscat(a => ({ ...a, incision: v as AriscatInput['incision'] }))}
+            opciones={[['', '—'], ['periferica', 'Periférica'], ['abdominal_alta', 'Abdominal alta (+15)'], ['intratoracica', 'Intratorácica (+24)']]} />
+          <Sel label="Duración de cirugía" value={ariscat.duracion} onChange={v => setAriscat(a => ({ ...a, duracion: v as AriscatInput['duracion'] }))}
+            opciones={[['', '—'], ['menos2h', '< 2 h'], ['de2a3h', '2-3 h (+16)'], ['mas3h', '> 3 h (+23)']]} />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0 20px', marginTop: 6 }}>
+          {chk(ariscat.infeccionRespiratoria, () => setAriscat(a => ({ ...a, infeccionRespiratoria: !a.infeccionRespiratoria })), 'Infección respiratoria en el último mes (+17)')}
+          {chk(ariscat.anemia, () => setAriscat(a => ({ ...a, anemia: !a.anemia })), 'Anemia preoperatoria (Hb ≤ 10 g/dL) (+11)')}
+          {chk(ariscat.emergencia, () => setAriscat(a => ({ ...a, emergencia: !a.emergencia })), 'Procedimiento de emergencia (+8)')}
+        </div>
+        <Resultado>
+          <strong>{ariscatRes.puntos} puntos · Riesgo {ariscatRes.nivel}</strong> — complicaciones pulmonares {ariscatRes.riesgoEstimado} (Canet 2010).
+        </Resultado>
+      </Card>
+
+      {/* ── STOP-BANG ── */}
+      <Card icon={<Moon size={15} />} titulo="STOP-BANG — Riesgo de apnea obstructiva del sueño" color="#818cf8">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0 20px' }}>
+          {STOPBANG_ITEMS.map(it => chk(!!stopbang[it.key], () => setStopbang(s => ({ ...s, [it.key]: !s[it.key] })), it.label))}
+        </div>
+        <Resultado>
+          <strong>{stopbangRes.puntos}/8 · Riesgo {stopbangRes.nivel}</strong>. {stopbangRes.interpretacion}
+        </Resultado>
+      </Card>
+
+      {/* ── CHA2DS2-VASc + HAS-BLED ── */}
+      <Card icon={<Brain size={15} />} titulo="CHA₂DS₂-VASc / HAS-BLED — Tromboembolia y sangrado (FA / anticoagulación)" color="#f472b6">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }} className="preop-2col">
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', marginBottom: 4 }}>CHA₂DS₂-VASc</div>
+            {CHADSVASC_ITEMS.map(it => chk(!!chadsvasc[it.key], () => setChadsvasc(c => ({ ...c, [it.key]: !c[it.key] })), it.label, it.peso))}
+            <Resultado><strong>{chadsvascRes.puntos} puntos.</strong> {chadsvascRes.interpretacion}</Resultado>
+          </div>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', marginBottom: 4 }}>HAS-BLED</div>
+            {HASBLED_ITEMS.map(it => chk(!!hasbled[it.key], () => setHasbled(h => ({ ...h, [it.key]: !h[it.key] })), it.label))}
+            <Resultado><strong>{hasbledRes.puntos} puntos · {hasbledRes.nivel}.</strong> {hasbledRes.interpretacion}</Resultado>
+          </div>
+        </div>
       </Card>
 
       {/* ── Contexto / Medicamentos ── */}
