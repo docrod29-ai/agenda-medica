@@ -15,7 +15,61 @@ import { buildSystemPrompt, buildUserPrompt } from '@/lib/expediente/prompts'
 import type { TipoNota, PacienteContexto } from '@/types/expediente'
 
 const API_KEY = process.env.ANTHROPIC_API_KEY ?? ''
-const MODEL   = process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-20250514'
+const MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL ?? ''
+const ANTHROPIC_VERSION = '2023-06-01'
+
+// Modelos candidatos en orden de preferencia (el primero disponible se usa)
+const MODELOS_CANDIDATOS = [
+  'claude-sonnet-4-5',
+  'claude-sonnet-4-5-20250929',
+  'claude-sonnet-4-20250514',
+  'claude-3-7-sonnet-latest',
+  'claude-3-5-sonnet-latest',
+]
+
+const headersAnthropic = {
+  'x-api-key': API_KEY,
+  'anthropic-version': ANTHROPIC_VERSION,
+  'Content-Type': 'application/json',
+}
+
+/** Cachea el modelo resuelto entre invocaciones del runtime */
+let modeloResuelto = ''
+
+/** Descubre un modelo válido para esta cuenta vía /v1/models */
+async function resolverModelo(): Promise<string> {
+  if (MODELO_OVERRIDE_OK()) return MODEL_OVERRIDE
+  if (modeloResuelto) return modeloResuelto
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/models?limit=100', { headers: headersAnthropic })
+    if (res.ok) {
+      const data = await res.json()
+      const ids: string[] = (data.data ?? []).map((m: { id: string }) => m.id)
+      // Prefiere candidatos conocidos; si no, el primer "sonnet"; si no, el primero
+      const elegido =
+        MODELOS_CANDIDATOS.find(c => ids.includes(c)) ??
+        ids.find(id => id.includes('sonnet')) ??
+        ids[0]
+      if (elegido) { modeloResuelto = elegido; return elegido }
+    }
+  } catch { /* cae al fallback */ }
+  return MODELOS_CANDIDATOS[0]
+}
+
+function MODELO_OVERRIDE_OK() { return MODEL_OVERRIDE.length > 0 }
+
+async function llamarClaude(model: string, system: string, userMsg: string) {
+  return fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: headersAnthropic,
+    body: JSON.stringify({
+      model,
+      max_tokens: 4000,
+      system,
+      messages: [{ role: 'user', content: userMsg }],
+    }),
+  })
+}
 
 export async function POST(req: NextRequest) {
   if (!API_KEY) {
@@ -38,25 +92,23 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': API_KEY,
-        'anthropic-version': '2023-06-01',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 4000,
-        system: buildSystemPrompt(tipo),
-        messages: [{ role: 'user', content: buildUserPrompt(transcripcion, contexto) }],
-      }),
-    })
+    const system  = buildSystemPrompt(tipo)
+    const userMsg = buildUserPrompt(transcripcion, contexto)
+
+    let model = await resolverModelo()
+    let res = await llamarClaude(model, system, userMsg)
+
+    // Si el modelo no existe (404), redescubre y reintenta una vez
+    if (res.status === 404) {
+      modeloResuelto = ''
+      model = await resolverModelo()
+      res = await llamarClaude(model, system, userMsg)
+    }
 
     if (!res.ok) {
       const err = await res.text()
       console.error('[expediente/procesar] Claude error:', res.status, err)
-      return NextResponse.json({ ok: false, error: `Claude ${res.status}` }, { status: 502 })
+      return NextResponse.json({ ok: false, error: `Claude ${res.status} (${model})` }, { status: 502 })
     }
 
     const data = await res.json()
