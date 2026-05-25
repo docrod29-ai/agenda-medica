@@ -230,7 +230,7 @@ export function PreopAssessment({ edadPaciente, disabled, onAplicar, initialInpu
 
       {/* ── CHA2DS2-VASc + HAS-BLED ── */}
       <Card icon={<Brain size={15} />} titulo="CHA₂DS₂-VASc / HAS-BLED — Tromboembolia y sangrado (FA / anticoagulación)" color="#f472b6">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }} className="preop-2col">
+        <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', marginBottom: 4 }}>CHA₂DS₂-VASc</div>
             {CHADSVASC_ITEMS.map(it => chk(!!chadsvasc[it.key], () => setChadsvasc(c => ({ ...c, [it.key]: !c[it.key] })), it.label, it.peso))}

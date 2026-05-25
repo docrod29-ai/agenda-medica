@@ -198,7 +198,7 @@ export default function ConfiguracionPage() {
 
       {/* General */}
       {tab === 'general' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 24px' }}>
+        <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 24px' }}>
           <div className="form-group">
             <label className="label">Nombre del médico</label>
             <input className="input" value={form.nombreMedico} onChange={upd('nombreMedico')} placeholder="Dr. García López" />
@@ -838,7 +838,7 @@ function MedicosTab() {
       {showForm && (
         <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
           <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 16 }}>Nuevo médico</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             {[
               { key: 'nombre', label: 'Nombre completo *', placeholder: 'Dr. David Rodríguez' },
               { key: 'especialidad', label: 'Especialidad', placeholder: 'Infectología' },

@@ -215,7 +215,7 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
 
         {/* Body */}
         <div className="modal-body">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
+          <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
             {/* Paciente */}
             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
               <label className="label">Nombre del paciente *</label>

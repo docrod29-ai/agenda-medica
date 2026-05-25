@@ -9,6 +9,7 @@ import { ModeProvider } from '@/context/ModeContext'
 import { ClinicProvider } from '@/context/ClinicContext'
 import { Menu, Loader2, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
+import { OfflineBanner } from '@/components/OfflineBanner'
 
 function TrialBanner() {
   const { clinic } = useClinic()
@@ -101,6 +102,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
           <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Agenda Médica</span>
         </div>
 
+        <OfflineBanner />
         <TrialBanner />
         <main style={{ flex: 1, overflowY: 'auto' }}>
           {children}

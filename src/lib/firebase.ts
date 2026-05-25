@@ -1,6 +1,9 @@
 import { initializeApp, getApps } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
-import { getFirestore, initializeFirestore, persistentLocalCache } from 'firebase/firestore'
+import {
+  getFirestore, initializeFirestore,
+  persistentLocalCache, persistentMultipleTabManager,
+} from 'firebase/firestore'
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -15,9 +18,11 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0
 
 export const auth = getAuth(app)
 
-// Persistencia offline habilitada
+// Persistencia offline habilitada (multi-pestaña para uso en varias ventanas)
 export const db = typeof window !== 'undefined'
-  ? initializeFirestore(app, { localCache: persistentLocalCache() })
+  ? initializeFirestore(app, {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+    })
   : getFirestore(app)
 
 export default app

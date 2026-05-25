@@ -222,7 +222,7 @@ function PatientModal({ patient, onClose, onSaved, userEmail }: {
           <button className="btn btn-ghost btn-icon" onClick={onClose}><X size={18} /></button>
         </div>
         <div className="modal-body">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
+          <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
               <label className="label">Nombre completo *</label>
               <input className="input" value={f.nombre} onChange={upd('nombre')} placeholder="Apellido Apellido, Nombre" />

@@ -209,7 +209,7 @@ function AddWaitlistModal({ onClose, onSaved, userEmail }: { onClose: () => void
                 ))}
               </select>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               <div className="form-group">
                 <label className="label">Fecha disponible a partir de</label>
                 <input className="input" type="date" value={fechaDeseada} onChange={e => setFechaDeseada(e.target.value)} />

@@ -1,0 +1,66 @@
+/* Service Worker — Agenda Médica
+ * Estrategia conservadora para no romper la carga de Next.js:
+ *  - Navegaciones: network-first con respaldo en caché (app shell offline)
+ *  - Estáticos (/_next, css, js, fuentes, imágenes): stale-while-revalidate
+ *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
+ *    (Firestore maneja su propia persistencia offline vía IndexedDB)
+ */
+const CACHE = 'agenda-medica-v1'
+
+self.addEventListener('install', (event) => {
+  self.skipWaiting()
+  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/']).catch(() => {})))
+})
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
+  )
+})
+
+self.addEventListener('fetch', (event) => {
+  const req = event.request
+  if (req.method !== 'GET') return
+
+  let url
+  try { url = new URL(req.url) } catch { return }
+
+  // Solo manejar mismo origen; Firestore/APIs externas pasan directo
+  if (url.origin !== self.location.origin) return
+  // No interferir con rutas API del servidor
+  if (url.pathname.startsWith('/api/')) return
+
+  // Navegaciones de página: network-first
+  if (req.mode === 'navigate') {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          const copy = res.clone()
+          caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {})
+          return res
+        })
+        .catch(() => caches.match(req).then((r) => r || caches.match('/')))
+    )
+    return
+  }
+
+  // Estáticos: stale-while-revalidate
+  const esEstatico = url.pathname.startsWith('/_next/') ||
+    /\.(?:css|js|mjs|woff2?|ttf|otf|png|jpe?g|svg|gif|webp|ico|json)$/.test(url.pathname)
+  if (esEstatico) {
+    event.respondWith(
+      caches.match(req).then((cached) => {
+        const fetchPromise = fetch(req)
+          .then((res) => {
+            const copy = res.clone()
+            caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {})
+            return res
+          })
+          .catch(() => cached)
+        return cached || fetchPromise
+      })
+    )
+  }
+})

@@ -181,7 +181,7 @@ export default function AsistentePage() {
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+      <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
         {/* Left column — patient info */}
         <div style={{
           background: 'var(--s1)',
@@ -262,7 +262,7 @@ export default function AsistentePage() {
               <label style={{ fontSize: 12, color: 'var(--text2)', display: 'block', marginBottom: 8 }}>
                 Tipo de consulta
               </label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 {TIPOS.map(t => (
                   <button
                     key={t.value}

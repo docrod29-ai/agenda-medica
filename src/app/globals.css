@@ -456,10 +456,58 @@ tbody tr:last-child { border-bottom: none; }
   100% { background-position: -200% 0; }
 }
 
+/* ── Responsive utilities ─────────────────────────────────── */
+/* Rejilla de 2 columnas que colapsa a 1 en teléfonos.
+   El !important vence al estilo inline en pantallas chicas. */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; }
+@media (max-width: 640px) {
+  .grid-2 { grid-template-columns: 1fr !important; }
+}
+
+/* Áreas seguras (notch / home indicator de iPhone) */
+@supports (padding: max(0px)) {
+  .topbar {
+    padding-left:  max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
+  }
+  .toast-container {
+    bottom: max(24px, env(safe-area-inset-bottom));
+    right:  max(16px, env(safe-area-inset-right));
+  }
+}
+
+/* Evitar zoom de iOS al enfocar inputs (requiere font-size >= 16 en móvil) */
+@media (max-width: 640px) {
+  input, select, textarea, .input { font-size: 16px !important; }
+  .toast { max-width: calc(100vw - 32px); }
+}
+
+/* ── Indicador offline ────────────────────────────────────── */
+.offline-banner {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  background: var(--amber);
+  color: #1a1a1a;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
 /* ── Responsive ───────────────────────────────────────────── */
 @media (max-width: 768px) {
   .sidebar { display: none; }
   .sidebar.open { display: flex; position: fixed; inset-y: 0; left: 0; z-index: 50; width: 260px; }
   .modal { max-width: 100%; margin: 0; border-radius: 16px 16px 0 0; align-self: flex-end; }
   .modal-overlay { align-items: flex-end; padding: 0; }
+}
+
+/* Teléfonos pequeños: reducir padding de página marcada con .page-pad */
+@media (max-width: 480px) {
+  .page-pad { padding: 16px !important; }
 }
