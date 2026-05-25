@@ -7,7 +7,7 @@ import { useMode } from '@/context/ModeContext'
 import { useConfig } from '@/hooks/useConfig'
 import {
   LayoutDashboard, CalendarDays, Calendar, Users, Clock,
-  Settings, LogOut, Stethoscope, Shield, Bot, UserSquare2,
+  Settings, LogOut, Stethoscope, Shield, Bot, UserSquare2, FileText,
 } from 'lucide-react'
 
 const NAV = [
@@ -16,6 +16,7 @@ const NAV = [
   { href: '/citas',         label: 'Citas',          icon: CalendarDays },
   { href: '/calendario',    label: 'Calendario',     icon: Calendar },
   { href: '/pacientes',     label: 'Pacientes',      icon: Users },
+  { href: '/expedientes',   label: 'Expedientes',    icon: FileText },
   { href: '/lista-espera',  label: 'Lista de espera',icon: Clock },
 ]
 

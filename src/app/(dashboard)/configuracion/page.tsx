@@ -207,6 +207,14 @@ export default function ConfiguracionPage() {
             <label className="label">Nombre de la clínica / consultorio</label>
             <input className="input" value={form.nombreClinica} onChange={upd('nombreClinica')} placeholder="Consultorio Médico García" />
           </div>
+          <div className="form-group">
+            <label className="label">Cédula profesional <span style={{ color: '#f87171' }}>*</span></label>
+            <input className="input" value={form.cedulaProfesional ?? ''} onChange={upd('cedulaProfesional')} placeholder="12345678 (requerida para firmar expedientes)" />
+          </div>
+          <div className="form-group">
+            <label className="label">Especialidad</label>
+            <input className="input" value={form.especialidad ?? ''} onChange={upd('especialidad')} placeholder="Infectología" />
+          </div>
           <div className="form-group" style={{ gridColumn: '1 / -1' }}>
             <label className="label">Dirección</label>
             <input className="input" value={form.direccion} onChange={upd('direccion')} placeholder="Av. Independencia 123, Col. Centro" />

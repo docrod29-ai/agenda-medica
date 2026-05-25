@@ -1,0 +1,25 @@
+'use client'
+import { useState, useEffect, useCallback } from 'react'
+import { useClinic } from '@/context/ClinicContext'
+import { getNotas } from '@/lib/expediente/firestore'
+import type { NotaMedica } from '@/types/expediente'
+
+export function useExpediente(patientId: string | null) {
+  const { clinicId } = useClinic()
+  const [notas, setNotas] = useState<NotaMedica[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const reload = useCallback(async () => {
+    if (!clinicId || !patientId) { setNotas([]); setLoading(false); return }
+    setLoading(true)
+    try {
+      setNotas(await getNotas(clinicId, patientId))
+    } finally {
+      setLoading(false)
+    }
+  }, [clinicId, patientId])
+
+  useEffect(() => { reload() }, [reload])
+
+  return { notas, loading, reload }
+}

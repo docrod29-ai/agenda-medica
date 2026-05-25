@@ -33,6 +33,15 @@ service cloud.firestore {
       }
       match /patients/{docId} {
         allow read, write: if isMember(clinicId);
+
+        // Expediente Clínico Electrónico — notas del paciente
+        match /notas/{notaId} {
+          allow read: if isMember(clinicId);
+          allow create: if isMember(clinicId);
+          // Solo se pueden editar borradores; las firmadas son inmutables (NOM-024)
+          allow update: if isMember(clinicId) && resource.data.estado != 'firmada';
+          allow delete: if false;
+        }
       }
       match /waitlist/{docId} {
         allow read, write: if isMember(clinicId);

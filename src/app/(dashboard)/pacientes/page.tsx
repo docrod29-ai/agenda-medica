@@ -5,12 +5,14 @@ import { getPatients, createPatient, updatePatient } from '@/lib/firestore'
 import { useToast } from '@/context/ToastContext'
 import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
-import { Plus, Search, X, Loader2, Users, Phone, AlertCircle } from 'lucide-react'
+import { Plus, Search, X, Loader2, Users, Phone, AlertCircle, FileText } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 export default function PacientesPage() {
   const { toast } = useToast()
   const { user } = useAuth()
   const { clinicId } = useClinic()
+  const router = useRouter()
   const [patients, setPatients] = useState<Patient[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -117,6 +119,20 @@ export default function PacientesPage() {
                     )}
                   </div>
                 )}
+
+                {/* Expediente */}
+                <button
+                  onClick={e => { e.stopPropagation(); router.push(`/expediente/${p.id}`) }}
+                  title="Ver expediente clínico"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
+                    background: 'rgba(0,212,168,0.08)', border: '1px solid rgba(0,212,168,0.25)',
+                    color: 'var(--teal)', borderRadius: 8, padding: '6px 12px',
+                    fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  <FileText size={13} /> Expediente
+                </button>
               </div>
             ))}
           </div>

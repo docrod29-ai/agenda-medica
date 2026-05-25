@@ -193,6 +193,8 @@ export interface ClinicConfig {
   id?: string
   nombreMedico: string
   nombreClinica: string
+  cedulaProfesional?: string   // NOM-004 — requerido para firmar notas
+  especialidad?: string        // NOM-004 — aparece en la firma y el PDF
   direccion: string
   googleMapsUrl: string
   telefonoAdmin: string
@@ -262,6 +264,8 @@ export const APPOINTMENT_TYPE_CONFIG: Record<AppointmentType, { label: string; i
 export const DEFAULT_CONFIG: ClinicConfig = {
   nombreMedico: '',
   nombreClinica: '',
+  cedulaProfesional: '',
+  especialidad: '',
   direccion: '',
   googleMapsUrl: '',
   telefonoAdmin: '',
