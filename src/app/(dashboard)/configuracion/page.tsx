@@ -426,6 +426,9 @@ export default function ConfiguracionPage() {
 
           {/* WhatsApp — 360dialog connect */}
           <WhatsAppConnectCard clinicId={clinicId} />
+
+          {/* Enlace de auto-agenda (click-to-WhatsApp) */}
+          <AutoAgendaLink configNumero={form.whatsappConsultorio} onCopy={(t, k) => handleCopy(t, k)} copied={copied} />
         </div>
       )}
 
@@ -474,6 +477,78 @@ export default function ConfiguracionPage() {
 // ── Bot FAQ sub-component ────────────────────────────────────
 
 import { Doctor } from '@/types'
+
+/* ── Enlace de auto-agenda (click-to-WhatsApp) ─────────────────── */
+function AutoAgendaLink({ configNumero, onCopy, copied }: {
+  configNumero: string
+  onCopy: (texto: string, key: string) => void
+  copied: string
+}) {
+  const { clinic } = useClinic()
+  const [mensaje, setMensaje] = useState('Hola 👋 Quiero agendar una cita')
+
+  // Número: preferir el de WhatsApp conectado; si no, el del consultorio
+  const crudo = (clinic?.whatsapp?.phoneNumber || configNumero || '').replace(/\D/g, '')
+  const numero = crudo ? (crudo.startsWith('52') ? crudo : `52${crudo}`) : ''
+  const link = numero ? `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}` : ''
+  const qr = link ? `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(link)}` : ''
+
+  return (
+    <div style={{ padding: 20, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+        <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(0,212,168,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Smartphone size={20} color="var(--teal)" />
+        </div>
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Enlace de auto-agenda</div>
+          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
+            Pon este enlace en tu botón de WhatsApp (Facebook, web, tarjeta). Al tocarlo, el bot inicia el agendamiento.
+          </div>
+        </div>
+      </div>
+
+      {!numero ? (
+        <div style={{ fontSize: 13, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <XCircle size={15} /> Conecta tu WhatsApp o escribe el número del consultorio (pestaña General) para generar el enlace.
+        </div>
+      ) : (
+        <>
+          <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 5 }}>Mensaje pre-escrito</label>
+          <input className="input" value={mensaje} onChange={e => setMensaje(e.target.value)} style={{ marginBottom: 12 }} />
+
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+            <div style={{ flex: 1, minWidth: 240 }}>
+              <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 5 }}>Tu enlace</label>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <input className="input" readOnly value={link} style={{ flex: 1, minWidth: 180, fontSize: 12 }} onFocus={e => e.currentTarget.select()} />
+                <button className="btn btn-secondary btn-sm" onClick={() => onCopy(link, 'wa-link')} style={{ color: copied === 'wa-link' ? 'var(--teal)' : undefined }}>
+                  <Copy size={13} /> {copied === 'wa-link' ? 'Copiado' : 'Copiar'}
+                </button>
+                <a className="btn btn-primary btn-sm" href={link} target="_blank" rel="noopener noreferrer">
+                  <MessageCircle size={13} /> Probar
+                </a>
+              </div>
+              <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(0,212,168,0.05)', border: '1px solid rgba(0,212,168,0.15)', borderRadius: 8 }}>
+                <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
+                  En tu página de Facebook: <strong style={{ color: 'var(--text2)' }}>Editar página → Botón → WhatsApp</strong> y pega este número. O usa el enlace directo en cualquier botón/web.
+                </p>
+              </div>
+            </div>
+
+            {qr && (
+              <div style={{ textAlign: 'center' }}>
+                <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 5 }}>Código QR</label>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={qr} alt="QR de auto-agenda" width={140} height={140} style={{ borderRadius: 8, background: '#fff', padding: 6 }} />
+                <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>Imprímelo en tu consultorio</div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
 
 /* ── WhatsApp Connect Card (Meta Embedded Signup) ──────────────── */
 const META_APP_ID = process.env.NEXT_PUBLIC_META_APP_ID ?? ''
