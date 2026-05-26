@@ -585,9 +585,38 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
   const { toast }  = useToast()
   const [connecting,    setConnecting]    = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
+  const [manualOpen, setManualOpen] = useState(false)
+  const [manual, setManual] = useState({ phoneNumberId: '', token: '' })
+  const [manualSaving, setManualSaving] = useState(false)
 
   const wa = clinic?.whatsapp
   const connected = wa?.connected === true
+
+  const handleManualConnect = async () => {
+    if (!clinicId) return
+    if (!manual.phoneNumberId.trim() || !manual.token.trim()) {
+      toast('Ingresa Phone Number ID y token', 'error'); return
+    }
+    setManualSaving(true)
+    try {
+      const res = await fetch('/api/whatsapp/manual-connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicId, phoneNumberId: manual.phoneNumberId.trim(), token: manual.token.trim() }),
+      })
+      const data = await res.json()
+      if (res.ok && data.ok) {
+        toast(`✅ WhatsApp conectado: ${data.phoneNumber}`, 'success')
+        setTimeout(() => window.location.reload(), 900)
+      } else {
+        toast(data.error ?? 'Error al conectar', 'error')
+      }
+    } catch {
+      toast('Error al conectar', 'error')
+    } finally {
+      setManualSaving(false)
+    }
+  }
 
   const handleConnect = async () => {
     if (!clinicId) { toast('Cargando clínica...', 'info'); return }
@@ -730,14 +759,49 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
         )}
       </div>
 
-      {/* Info box */}
+      {/* Info box + conexión manual */}
       {!connected && (
-        <div style={{ marginTop: 14, padding: '10px 14px', background: 'rgba(0,212,168,0.05)', border: '1px solid rgba(0,212,168,0.15)', borderRadius: 8 }}>
-          <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
-            Al hacer clic se abrirá una ventana de Meta. Solo necesitas iniciar sesión con Facebook
-            y verificar tu número de WhatsApp. El proceso tarda menos de 3 minutos.
-          </p>
-        </div>
+        <>
+          <div style={{ marginTop: 14, padding: '10px 14px', background: 'rgba(0,212,168,0.05)', border: '1px solid rgba(0,212,168,0.15)', borderRadius: 8 }}>
+            <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
+              Al hacer clic se abrirá una ventana de Meta. Solo necesitas iniciar sesión con Facebook
+              y verificar tu número de WhatsApp.
+            </p>
+          </div>
+
+          <button
+            onClick={() => setManualOpen(o => !o)}
+            style={{ marginTop: 12, background: 'none', border: 'none', color: 'var(--teal)', fontSize: 13, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+          >
+            {manualOpen ? 'Ocultar conexión manual' : '¿Ya tienes tus credenciales? Conectar manualmente'}
+          </button>
+
+          {manualOpen && (
+            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10, padding: 14, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10 }}>
+              <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
+                Desde <strong style={{ color: 'var(--text2)' }}>developers.facebook.com → tu app → WhatsApp → API Setup</strong>: copia el <strong style={{ color: 'var(--text2)' }}>Phone Number ID</strong> y el <strong style={{ color: 'var(--text2)' }}>Access Token</strong>. Funciona también con el número de prueba gratuito de Meta.
+              </p>
+              <div>
+                <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>Phone Number ID</label>
+                <input className="input" value={manual.phoneNumberId} onChange={e => setManual(m => ({ ...m, phoneNumberId: e.target.value }))} placeholder="123456789012345" />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>Access Token</label>
+                <input className="input" type="password" value={manual.token} onChange={e => setManual(m => ({ ...m, token: e.target.value }))} placeholder="EAAxxxxxxxx…" />
+              </div>
+              <button
+                onClick={handleManualConnect}
+                disabled={manualSaving}
+                style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#000', border: 'none', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+              >
+                {manualSaving ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Conectando…</> : 'Conectar'}
+              </button>
+              <p style={{ fontSize: 11, color: 'var(--text3)', margin: 0 }}>
+                Además, en Meta configura el webhook: <strong style={{ color: 'var(--text2)' }}>{`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.vercel.app'}/api/whatsapp/webhook`}</strong> y suscríbete a <strong style={{ color: 'var(--text2)' }}>messages</strong>.
+              </p>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
