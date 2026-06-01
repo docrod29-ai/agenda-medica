@@ -65,6 +65,10 @@ service cloud.firestore {
         allow create: if isMember(clinicId);
         allow update, delete: if false;
       }
+      // Bloqueos de horario (vacaciones, ausencias)
+      match /time_blocks/{blockId} {
+        allow read, write: if isMember(clinicId);
+      }
       // Chat interno (médico ↔ asistente)
       match /chat/{msgId} {
         allow read:   if isMember(clinicId);

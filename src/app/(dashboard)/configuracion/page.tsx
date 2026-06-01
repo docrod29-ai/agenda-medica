@@ -16,11 +16,15 @@ import {
   crearInvitacion, listarInvitaciones, revocarInvitacion,
   type Invitacion, type RolInvitacion,
 } from '@/lib/invitations'
+import {
+  crearBloque, listarBloques, borrarBloque,
+  type TimeBlock, type TipoBloque, TIPO_BLOQUE_LABEL,
+} from '@/lib/time-blocks'
 
 const DIAS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'] as const
 const DIAS_LABELS = { lunes: 'Lunes', martes: 'Martes', miercoles: 'Miércoles', jueves: 'Jueves', viernes: 'Viernes', sabado: 'Sábado', domingo: 'Domingo' }
 
-type Tab = 'general' | 'horario' | 'duraciones' | 'notificaciones' | 'integraciones' | 'plantillas' | 'bot' | 'medicos' | 'equipo' | 'suscripcion'
+type Tab = 'general' | 'horario' | 'duraciones' | 'bloqueos' | 'notificaciones' | 'integraciones' | 'plantillas' | 'bot' | 'medicos' | 'equipo' | 'suscripcion'
 
 export default function ConfiguracionPage() {
   const { config, loading } = useConfig()
@@ -164,6 +168,7 @@ export default function ConfiguracionPage() {
     { key: 'general', label: 'General' },
     { key: 'horario', label: 'Horario' },
     { key: 'duraciones', label: 'Duraciones' },
+    { key: 'bloqueos', label: '🌴 Bloqueos' },
     { key: 'notificaciones', label: 'Notificaciones' },
     { key: 'integraciones', label: 'Integraciones' },
     { key: 'plantillas', label: 'Plantillas WA' },
@@ -474,6 +479,9 @@ export default function ConfiguracionPage() {
 
       {/* Equipo (invitaciones) */}
       {tab === 'equipo' && <EquipoTab clinicId={clinicId} clinicNombre={form.nombreClinica || 'tu clínica'} />}
+
+      {/* Bloqueos de horario */}
+      {tab === 'bloqueos' && <BloqueosTab clinicId={clinicId} />}
 
       {/* Suscripción */}
       {tab === 'suscripcion' && <SuscripcionTab clinicId={clinicId} />}
@@ -1400,3 +1408,113 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
   )
 }
 
+
+
+/* ── Bloqueos de horario ─────────────────────────────────── */
+function BloqueosTab({ clinicId }: { clinicId: string | null }) {
+  const { user } = useAuth()
+  const { toast } = useToast()
+  const [bloques, setBloques] = useState<TimeBlock[]>([])
+  const [loading, setLoading] = useState(true)
+  const [desde, setDesde] = useState("")
+  const [hasta, setHasta] = useState("")
+  const [tipo, setTipo] = useState<TipoBloque>("vacaciones")
+  const [motivo, setMotivo] = useState("")
+  const [saving, setSaving] = useState(false)
+
+  const cargar = async () => {
+    if (!clinicId) return
+    setLoading(true)
+    try { setBloques(await listarBloques(clinicId)) } finally { setLoading(false) }
+  }
+  useEffect(() => { cargar() }, [clinicId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const crear = async () => {
+    if (!clinicId || !user) return
+    if (!desde || !hasta) { toast("Indica fecha y hora de inicio y fin", "error"); return }
+    setSaving(true)
+    try {
+      await crearBloque(clinicId, {
+        desde: new Date(desde).toISOString(),
+        hasta: new Date(hasta).toISOString(),
+        tipo, motivo: motivo.trim() || undefined,
+        creadoPor: user.email ?? "",
+      })
+      setDesde(""); setHasta(""); setMotivo("")
+      await cargar()
+      toast("Bloqueo creado", "success")
+    } catch (e) {
+      toast((e as Error).message || "Error al crear", "error")
+    } finally { setSaving(false) }
+  }
+
+  const borrar = async (id: string) => {
+    if (!clinicId) return
+    if (!window.confirm("¿Eliminar este bloqueo? Los slots volverán a estar disponibles.")) return
+    try { await borrarBloque(clinicId, id); await cargar(); toast("Bloqueo eliminado", "info") }
+    catch { toast("Error al eliminar", "error") }
+  }
+
+  const fmt = (iso: string) => new Date(iso).toLocaleString("es-MX", {
+    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+  })
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <p style={{ fontSize: 13, color: "var(--text3)", lineHeight: 1.55, margin: 0 }}>
+        Los bloqueos impiden que los pacientes agenden durante esos horarios — útil para vacaciones,
+        ausencias puntuales, eventos o mantenimiento. Aplica a la agenda manual, al bot de WhatsApp y al portal público.
+      </p>
+
+      <div className="card" style={{ padding: 16 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 12 }}>Nuevo bloqueo</div>
+        <div className="grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div>
+            <label style={{ fontSize: 12, color: "var(--text3)", display: "block", marginBottom: 4 }}>Desde</label>
+            <input className="input" type="datetime-local" value={desde} onChange={e => setDesde(e.target.value)} />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, color: "var(--text3)", display: "block", marginBottom: 4 }}>Hasta</label>
+            <input className="input" type="datetime-local" value={hasta} onChange={e => setHasta(e.target.value)} />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, color: "var(--text3)", display: "block", marginBottom: 4 }}>Tipo</label>
+            <select className="input" value={tipo} onChange={e => setTipo(e.target.value as TipoBloque)}>
+              {Object.entries(TIPO_BLOQUE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: 12, color: "var(--text3)", display: "block", marginBottom: 4 }}>Motivo (opcional)</label>
+            <input className="input" value={motivo} onChange={e => setMotivo(e.target.value)} placeholder="Vacaciones de verano" />
+          </div>
+        </div>
+        <button onClick={crear} disabled={saving} style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 6, background: "var(--teal)", color: "#040b12", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 14, fontWeight: 700, cursor: saving ? "default" : "pointer" }}>
+          {saving ? <><Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> Guardando…</> : "+ Crear bloqueo"}
+        </button>
+      </div>
+
+      <div className="card" style={{ padding: 16 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 12 }}>
+          Bloqueos activos ({bloques.length})
+        </div>
+        {loading ? (
+          <div style={{ fontSize: 13, color: "var(--text3)" }}>Cargando…</div>
+        ) : bloques.length === 0 ? (
+          <div style={{ fontSize: 13, color: "var(--text3)" }}>No hay bloqueos activos.</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {bloques.map(b => (
+              <div key={b.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "var(--s2)", border: "1px solid var(--border)", borderRadius: 8, flexWrap: "wrap" }}>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text)" }}>{TIPO_BLOQUE_LABEL[b.tipo]} {b.motivo && <span style={{ color: "var(--text3)", fontWeight: 400 }}>· {b.motivo}</span>}</div>
+                  <div style={{ fontSize: 11.5, color: "var(--text3)" }}>{fmt(b.desde)} → {fmt(b.hasta)}</div>
+                </div>
+                <button onClick={() => borrar(b.id)} style={{ background: "none", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171", borderRadius: 6, padding: "5px 10px", fontSize: 11.5, cursor: "pointer" }}>Eliminar</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

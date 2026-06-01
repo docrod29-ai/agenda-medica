@@ -1,4 +1,6 @@
 import { Appointment, ClinicConfig } from '@/types'
+import type { TimeBlock } from '@/lib/time-blocks'
+import { estaBloqueado } from '@/lib/time-blocks'
 import { format } from 'date-fns'
 
 const DAY_KEYS = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'] as const
@@ -17,7 +19,9 @@ export function getAvailableSlots(
   duracionMin: number,
   appointments: Appointment[],
   config: ClinicConfig,
-  excludeId?: string
+  excludeId?: string,
+  bloques: TimeBlock[] = [],
+  medicoId?: string,
 ): string[] {
   const schedule = getDaySchedule(fecha, config)
   if (!schedule) return []
@@ -37,15 +41,24 @@ export function getAvailableSlots(
   const slots: string[] = []
   for (let m = startMin; m + duracionMin <= endMin; m += interval) {
     const slotEnd = m + duracionMin
+    const hh = String(Math.floor(m / 60)).padStart(2, '0')
+    const mm = String(m % 60).padStart(2, '0')
+    const slot = `${hh}:${mm}`
+
+    // 1. ¿Cae en un bloque de tiempo (vacaciones, ausencia, etc.)?
+    if (bloques.length > 0) {
+      const bloqueado = estaBloqueado(`${fecha} ${slot}`, bloques, medicoId)
+      if (bloqueado) continue
+    }
+
+    // 2. ¿Se solapa con una cita existente?
     const hasConflict = dayAppts.some(a => {
       const [ch, cm] = a.fechaHora.slice(11, 16).split(':').map(Number)
       const aStart = ch * 60 + cm
       const aEnd = aStart + a.duracion
       return m < aEnd && slotEnd > aStart
     })
-    if (!hasConflict) {
-      slots.push(`${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`)
-    }
+    if (!hasConflict) slots.push(slot)
   }
   return slots
 }
