@@ -7,6 +7,7 @@ import { useToast } from '@/context/ToastContext'
 import { auth } from '@/lib/firebase'
 import { getPatients } from '@/lib/firestore'
 import { useGrabacionVoz } from '@/hooks/useGrabacionVoz'
+import { useGrabacionAudio } from '@/hooks/useGrabacionAudio'
 import {
   createNota, updateNota, getNota, deleteNota, getUltimasNotasResumen,
 } from '@/lib/expediente/firestore'
@@ -36,6 +37,17 @@ export default function ConsultaActivaPage() {
   const { config } = useConfig()
   const { toast } = useToast()
   const voz = useGrabacionVoz()
+  const audio = useGrabacionAudio()
+  // 'vivo' = Web Speech (Chrome/Edge desktop) — transcribe en tiempo real
+  // 'whisper' = MediaRecorder → /api/expediente/transcribir — funciona en TODOS los dispositivos
+  const [modoVoz, setModoVoz] = useState<'vivo' | 'whisper'>(voz.soportado ? 'vivo' : 'whisper')
+
+  // Cuando termina Whisper, copia el texto a voz.setTranscripcion para reutilizar el flujo de IA
+  useEffect(() => {
+    if (audio.estado === 'listo' && audio.transcripcion) {
+      voz.setTranscripcion(audio.transcripcion)
+    }
+  }, [audio.estado, audio.transcripcion]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [patient, setPatient] = useState<Patient | null>(null)
   const [tipo, setTipo] = useState<TipoNota>('primera_vez')
@@ -368,11 +380,47 @@ export default function ConsultaActivaPage() {
       {/* ── Grabación ── */}
       {!firmada && (
         <div style={S.grabCard}>
-          {!voz.soportado ? (
-            <div style={{ fontSize: 13, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <AlertTriangle size={15} /> Tu navegador no soporta dictado por voz. Usa Chrome o Edge, o escribe la nota manualmente abajo.
+          {/* Selector de modo de captura */}
+          {(voz.soportado || audio.soportado) && (
+            <div style={{ display: 'flex', gap: 6, marginBottom: 12, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10, padding: 3 }}>
+              {voz.soportado && (
+                <button
+                  onClick={() => setModoVoz('vivo')}
+                  style={{
+                    flex: 1, padding: '7px 10px', fontSize: 12.5, fontWeight: 600,
+                    background: modoVoz === 'vivo' ? 'var(--teal)' : 'transparent',
+                    color: modoVoz === 'vivo' ? '#040b12' : 'var(--text3)',
+                    border: 'none', borderRadius: 7, cursor: 'pointer',
+                  }}
+                >
+                  🎙️ Dictado en vivo
+                </button>
+              )}
+              {audio.soportado && (
+                <button
+                  onClick={() => setModoVoz('whisper')}
+                  style={{
+                    flex: 1, padding: '7px 10px', fontSize: 12.5, fontWeight: 600,
+                    background: modoVoz === 'whisper' ? 'var(--teal)' : 'transparent',
+                    color: modoVoz === 'whisper' ? '#040b12' : 'var(--text3)',
+                    border: 'none', borderRadius: 7, cursor: 'pointer',
+                  }}
+                >
+                  🎤 Grabar y procesar (Whisper)
+                </button>
+              )}
             </div>
-          ) : (
+          )}
+
+          {/* Mensaje útil cuando NO hay opción de voz */}
+          {!voz.soportado && !audio.soportado && (
+            <div style={{ fontSize: 13, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <AlertTriangle size={15} /> Tu navegador no soporta dictado por voz. Escribe la nota manualmente abajo.
+            </div>
+          )}
+
+          {/* Modo VIVO (Web Speech) */}
+          {modoVoz === 'vivo' && voz.soportado && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
               <button
                 onClick={() => voz.grabando ? voz.detener() : iniciarGrabacion()}
@@ -385,13 +433,54 @@ export default function ConsultaActivaPage() {
               >
                 {voz.grabando ? <Square size={24} color="#fff" fill="#fff" /> : <Mic size={26} color="#000" />}
               </button>
-              <div style={{ flex: 1, minWidth: 200 }}>
+              <div style={{ flex: 1, minWidth: 180 }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>
-                  {voz.grabando ? `🔴 Grabando · ${mmss}` : 'Grabar consulta'}
+                  {voz.grabando ? `🔴 Grabando · ${mmss}` : 'Grabar consulta (en vivo)'}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--text3)' }}>
-                  Ctrl/Cmd+R grabar · Ctrl/Cmd+P procesar IA · Ctrl/Cmd+Enter firmar
+                <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>
+                  Transcribe mientras hablas · Chrome/Edge · Ctrl/Cmd+R
                 </div>
+              </div>
+              <button onClick={procesarIA} disabled={procesando || !voz.transcripcion.trim()} style={S.iaBtn(procesando || !voz.transcripcion.trim())}>
+                {procesando ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Claude estructurando…</> : <><Sparkles size={16} /> Procesar con IA</>}
+              </button>
+            </div>
+          )}
+
+          {/* Modo WHISPER (MediaRecorder + servidor) */}
+          {modoVoz === 'whisper' && audio.soportado && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+              <button
+                onClick={async () => {
+                  if (audio.estado === 'grabando') await audio.detener()
+                  else if (consentimiento) audio.iniciar()
+                  else setModalConsentimiento(true)
+                }}
+                disabled={audio.estado === 'subiendo'}
+                style={{
+                  width: 64, height: 64, borderRadius: '50%', border: 'none', cursor: audio.estado === 'subiendo' ? 'default' : 'pointer', flexShrink: 0,
+                  background: audio.estado === 'grabando' ? '#ef4444' : 'var(--teal)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  animation: audio.estado === 'grabando' ? 'pulse 1.5s infinite' : 'none',
+                }}
+              >
+                {audio.estado === 'subiendo'
+                  ? <Loader2 size={24} color="#fff" style={{ animation: 'spin 1s linear infinite' }} />
+                  : audio.estado === 'grabando'
+                    ? <Square size={24} color="#fff" fill="#fff" />
+                    : <Mic size={26} color="#000" />}
+              </button>
+              <div style={{ flex: 1, minWidth: 180 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>
+                  {audio.estado === 'grabando' ? `🔴 Grabando · ${String(Math.floor(audio.duracion / 60)).padStart(2,'0')}:${String(audio.duracion % 60).padStart(2,'0')}`
+                    : audio.estado === 'subiendo' ? 'Transcribiendo audio…'
+                    : audio.estado === 'listo' ? '✅ Transcripción lista'
+                    : 'Grabar audio para transcribir'}
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>
+                  Funciona en cualquier dispositivo · Mayor precisión médica · Requiere internet
+                </div>
+                {audio.error && <div style={{ fontSize: 11.5, color: '#f87171', marginTop: 3 }}>⚠ {audio.error}</div>}
               </div>
               <button onClick={procesarIA} disabled={procesando || !voz.transcripcion.trim()} style={S.iaBtn(procesando || !voz.transcripcion.trim())}>
                 {procesando ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Claude estructurando…</> : <><Sparkles size={16} /> Procesar con IA</>}
