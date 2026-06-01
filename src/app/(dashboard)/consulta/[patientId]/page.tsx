@@ -13,6 +13,7 @@ import {
 import { seccionesVacias, requiereSignosVitales, esPreoperatoria } from '@/lib/expediente/templates'
 import { PreopAssessment } from '@/components/PreopAssessment'
 import { RevisionPanel } from '@/components/RevisionPanel'
+import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
 import { validarNOM004 } from '@/lib/expediente/nom004'
 import { generarHashIntegridad, generarHashFirma } from '@/lib/expediente/integrity'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
@@ -51,7 +52,20 @@ export default function ConsultaActivaPage() {
   const [extraction, setExtraction] = useState<Record<string, unknown> | undefined>(undefined)
   const [safety, setSafety] = useState<Record<string, unknown> | undefined>(undefined)
   const [aprobados, setAprobados] = useState<Set<string>>(new Set())
+  // Fase C: consentimiento del paciente antes de iniciar grabación
+  const [consentimiento, setConsentimiento] = useState(false)
+  const [modalConsentimiento, setModalConsentimiento] = useState(false)
   const ultimasNotasRef = useRef('')
+
+  const iniciarGrabacion = () => {
+    if (consentimiento) { voz.iniciar(); return }
+    setModalConsentimiento(true)
+  }
+  const confirmarConsentimiento = () => {
+    setConsentimiento(true)
+    setModalConsentimiento(false)
+    voz.iniciar()
+  }
 
   // ── Cargar paciente + contexto IA ──────────────────────────────
   useEffect(() => {
@@ -293,7 +307,7 @@ export default function ConsultaActivaPage() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey)) return
-      if (e.key === 'r') { e.preventDefault(); voz.grabando ? voz.detener() : voz.iniciar() }
+      if (e.key === 'r') { e.preventDefault(); voz.grabando ? voz.detener() : iniciarGrabacion() }
       if (e.key === 'p') { e.preventDefault(); procesarIA() }
       if (e.key === 'Enter') { e.preventDefault(); firmar() }
     }
@@ -347,7 +361,7 @@ export default function ConsultaActivaPage() {
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
               <button
-                onClick={() => voz.grabando ? voz.detener() : voz.iniciar()}
+                onClick={() => voz.grabando ? voz.detener() : iniciarGrabacion()}
                 style={{
                   width: 64, height: 64, borderRadius: '50%', border: 'none', cursor: 'pointer', flexShrink: 0,
                   background: voz.grabando ? '#ef4444' : 'var(--teal)',
@@ -390,6 +404,29 @@ export default function ConsultaActivaPage() {
           <span style={{ fontSize: 13, color: 'var(--text)', fontStyle: 'italic' }}>{resumen}</span>
         </div>
       )}
+
+      {/* ── Alertas clínicas cruzadas (Fase C) ── */}
+      {(() => {
+        const alergiasPaciente = patient?.alergias
+          ? [{ alergeno: patient.alergias, reaccion: '' }]
+          : []
+        const alertas = validarAlergiasVsMedicamentos(alergiasPaciente, medicamentos)
+        if (alertas.length === 0) return null
+        return (
+          <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 10, padding: '12px 14px', marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#f87171', marginBottom: 6 }}>
+              ⚠️ Alertas clínicas detectadas
+            </div>
+            {alertas.map((a, i) => (
+              <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginBottom: 4 }}>
+                <strong style={{ color: a.severidad === 'critica' ? '#f87171' : '#f59e0b' }}>
+                  [{a.severidad.toUpperCase()}]
+                </strong> {a.mensaje}
+              </div>
+            ))}
+          </div>
+        )
+      })()}
 
       {/* ── Panel de revisión IA (Fase B) ── */}
       {(extraction || safety) && !firmada && (
@@ -523,6 +560,38 @@ export default function ConsultaActivaPage() {
             <span style={{ fontSize: 12, color: 'var(--text3)' }}>Completitud: {validacion.puntajeCompletitud}%</span>
           </div>
         </>
+      )}
+
+      {/* ── Modal de consentimiento (Fase C) ── */}
+      {modalConsentimiento && (
+        <div onClick={e => e.target === e.currentTarget && setModalConsentimiento(false)} style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(3px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 16,
+        }}>
+          <div style={{ width: '100%', maxWidth: 460, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 24 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: '0 0 10px' }}>
+              Consentimiento para grabar la consulta
+            </h3>
+            <p style={{ fontSize: 13.5, color: 'var(--text2)', lineHeight: 1.65, margin: '0 0 14px' }}>
+              Confirme que el paciente fue informado de que la conversación será grabada y transcrita para
+              estructurar la nota clínica con asistencia de IA. El audio no se guarda; solo se conserva la
+              transcripción de texto vinculada a su expediente.
+            </p>
+            <ul style={{ margin: '0 0 16px', paddingLeft: 18, fontSize: 12.5, color: 'var(--text3)', lineHeight: 1.7 }}>
+              <li>El paciente puede pedir detener la grabación en cualquier momento.</li>
+              <li>La nota final debe ser revisada y firmada por usted.</li>
+              <li>La IA NO guarda datos clínicos sin su aprobación.</li>
+            </ul>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => setModalConsentimiento(false)} style={{ background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 10, padding: '10px 16px', fontSize: 13, cursor: 'pointer' }}>
+                Cancelar
+              </button>
+              <button onClick={confirmarConsentimiento} style={{ background: 'var(--teal)', color: '#000', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                Confirmo el consentimiento e iniciar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <style>{`
