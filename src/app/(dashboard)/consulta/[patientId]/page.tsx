@@ -12,6 +12,7 @@ import {
 } from '@/lib/expediente/firestore'
 import { seccionesVacias, requiereSignosVitales, esPreoperatoria } from '@/lib/expediente/templates'
 import { PreopAssessment } from '@/components/PreopAssessment'
+import { RevisionPanel } from '@/components/RevisionPanel'
 import { validarNOM004 } from '@/lib/expediente/nom004'
 import { generarHashIntegridad, generarHashFirma } from '@/lib/expediente/integrity'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
@@ -46,6 +47,10 @@ export default function ConsultaActivaPage() {
   const [firmada, setFirmada] = useState(false)
   const [notaId, setNotaId] = useState<string | null>(notaIdParam)
   const [preop, setPreop] = useState<{ inputs: Record<string, unknown>; resultados: Record<string, unknown> } | undefined>(undefined)
+  // Fase B: bloque auditable de la IA + aprobaciones por campo
+  const [extraction, setExtraction] = useState<Record<string, unknown> | undefined>(undefined)
+  const [safety, setSafety] = useState<Record<string, unknown> | undefined>(undefined)
+  const [aprobados, setAprobados] = useState<Set<string>>(new Set())
   const ultimasNotasRef = useRef('')
 
   // ── Cargar paciente + contexto IA ──────────────────────────────
@@ -68,6 +73,11 @@ export default function ConsultaActivaPage() {
       setResumen(n.resumenEjecutivo ?? '')
       setFirmada(n.estado === 'firmada')
       if (n.preop) setPreop(n.preop)
+      if (n.iaAuditoria) {
+        if (n.iaAuditoria.extraction) setExtraction(n.iaAuditoria.extraction)
+        if (n.iaAuditoria.safety) setSafety(n.iaAuditoria.safety)
+        if (Array.isArray(n.iaAuditoria.aprobadosPorMedico)) setAprobados(new Set(n.iaAuditoria.aprobadosPorMedico))
+      }
       if (n.transcripcionCruda) voz.setTranscripcion(n.transcripcionCruda)
     })
   }, [clinicId, patientId, notaIdParam]) // eslint-disable-line
@@ -118,7 +128,13 @@ export default function ConsultaActivaPage() {
           peso: sv.peso || undefined, talla: sv.talla || undefined,
         })
       }
-      toast('✨ Nota estructurada por IA — revisa y edita', 'success')
+
+      // Bloque auditable (Fase B): guardamos extraction + safety para el panel de revisión
+      if (data.extraction) setExtraction(data.extraction)
+      if (data.safety) setSafety(data.safety)
+      setAprobados(new Set()) // reset de aprobaciones al nuevo procesamiento
+
+      toast('✨ Nota estructurada por IA — revisa campo por campo', 'success')
     } catch {
       toast('Error al conectar con la IA', 'error')
     } finally {
@@ -160,6 +176,12 @@ export default function ConsultaActivaPage() {
         ? [{ alergeno: patient.alergias, tipo: 'medicamento', reaccion: 'Ver expediente', severidad: 'moderada', confirmada: true }]
         : [],
       preop,
+      iaAuditoria: extraction || safety ? {
+        extraction, safety,
+        aprobadosPorMedico: Array.from(aprobados),
+        procesadoEn: now,
+        aprobadoPor: estado === 'firmada' ? (auth.currentUser?.email ?? '') : undefined,
+      } : undefined,
       transcripcionCruda: voz.transcripcion || undefined,
       estado,
       fechaConsulta: now,
@@ -167,7 +189,7 @@ export default function ConsultaActivaPage() {
       updatedAt: now,
       creadoPor: auth.currentUser?.uid ?? '',
     }
-  }, [notaId, clinicId, patientId, patient, tipo, config, resumen, secciones, signos, diagnosticos, medicamentos, preop, voz.transcripcion])
+  }, [notaId, clinicId, patientId, patient, tipo, config, resumen, secciones, signos, diagnosticos, medicamentos, preop, extraction, safety, aprobados, voz.transcripcion])
 
   // ── Guardar borrador ───────────────────────────────────────────
   // silencioso=true para el autoguardado (no muestra toast)
@@ -367,6 +389,17 @@ export default function ConsultaActivaPage() {
           <Sparkles size={14} color="var(--teal)" style={{ flexShrink: 0, marginTop: 2 }} />
           <span style={{ fontSize: 13, color: 'var(--text)', fontStyle: 'italic' }}>{resumen}</span>
         </div>
+      )}
+
+      {/* ── Panel de revisión IA (Fase B) ── */}
+      {(extraction || safety) && !firmada && (
+        <RevisionPanel
+          extraction={extraction as Parameters<typeof RevisionPanel>[0]['extraction']}
+          safety={safety as Parameters<typeof RevisionPanel>[0]['safety']}
+          aprobados={aprobados}
+          onAprobar={id => setAprobados(prev => new Set(prev).add(id))}
+          onRechazar={id => setAprobados(prev => { const n = new Set(prev); n.delete(id); return n })}
+        />
       )}
 
       {/* ── Signos vitales ── */}

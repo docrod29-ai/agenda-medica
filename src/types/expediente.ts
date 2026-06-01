@@ -161,6 +161,15 @@ export interface NotaMedica {
     resultados: Record<string, unknown> // puntajes calculados
   }
 
+  // Fase B — Trazabilidad auditable de la IA
+  iaAuditoria?: {
+    extraction?: Record<string, unknown>   // bloque completo retornado por IA
+    safety?: Record<string, unknown>       // conflictos / faltantes / autos
+    aprobadosPorMedico?: string[]          // ids de campos aprobados explícitamente
+    procesadoEn?: string                   // ISO timestamp del último procesamiento
+    aprobadoPor?: string                   // email del médico que aprobó al firmar
+  }
+
   // Trazabilidad: transcripción cruda de voz junto a la nota procesada
   transcripcionCruda?: string
 

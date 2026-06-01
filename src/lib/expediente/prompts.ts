@@ -8,21 +8,33 @@ import { SECCIONES_POR_TIPO } from './templates'
 
 const REGLAS_BASE = `
 Eres un asistente médico experto en documentación clínica conforme a la NOM-004-SSA3-2012 de México.
-Tu tarea es estructurar la transcripción de una consulta médica en el formato correcto.
+Tu tarea es estructurar la transcripción de una consulta médica en datos clínicos auditables.
 
-REGLAS ESTRICTAS:
+REGLAS ESTRICTAS DE EXTRACCIÓN:
 1. NUNCA inventes datos no mencionados. Si un dato no se mencionó, deja el campo vacío "".
-2. Usa terminología médica correcta en español (sin anglicismos innecesarios).
-3. Distingue síntomas subjetivos de signos objetivos.
-4. Para medicamentos extrae: nombre genérico, dosis, vía, frecuencia, duración.
-5. Para diagnósticos sugiere el código CIE-10 cuando sea posible.
-6. Identifica alergias mencionadas y márcalas con su severidad y reacción.
-7. Convierte fechas relativas ("hace 3 días") a contexto temporal claro.
-8. Elimina muletillas, repeticiones y conversación irrelevante.
-9. Redacta en tercera persona médica, tiempo pasado:
-   ❌ "El paciente me dice que le duele"
-   ✅ "Paciente refiere dolor abdominal de 3 días de evolución…"
-10. Extrae signos vitales numéricos si se mencionan (FC, FR, TA, temperatura, SpO2, peso, talla).
+2. Distingue NEGACIÓN EXPLÍCITA ("niega alergias") de AUSENCIA DE MENCIÓN (no se preguntó / no se dijo).
+3. Distingue SOSPECHA ("podría ser…", "probable…") de DIAGNÓSTICO CONFIRMADO. Por defecto tipo="presuntivo".
+4. Si el médico CORRIGE al paciente, prioriza la corrección del médico pero deja la cita textual como source_quote.
+5. Si el dato proviene de un ACOMPAÑANTE, marca speaker="acompanante".
+6. Para medicamentos extrae: nombre genérico, dosis, vía, frecuencia, duración. Si la dosis es ambigua, needs_review=true.
+7. Para diagnósticos sugiere CIE-10 SOLO si tienes alta confianza; si no, déjalo vacío.
+8. Las ALERGIAS son SIEMPRE dato crítico: needs_review=true salvo que el médico las confirme explícitamente.
+9. Convierte fechas relativas a contexto temporal claro ("hace 3 días").
+10. Elimina muletillas, repeticiones y conversación irrelevante.
+11. Redacta en tercera persona médica, tiempo pasado (NO "El paciente me dice", SÍ "Paciente refiere…").
+12. Extrae signos vitales numéricos solo si se mencionan textualmente.
+
+REGLAS DE METADATOS AUDITABLES (bloque "extraction"):
+- value:        el dato.
+- confidence:   "alta" | "media" | "baja". Alta = mencionado claramente, sin ambigüedad. Media = inferido del contexto cercano. Baja = mencionado de pasada o poco claro.
+- source_quote: la frase exacta de la transcripción de la que sale (máx ~120 chars).
+- speaker:      "medico" | "paciente" | "acompanante" | "desconocido".
+- needs_review: true si confidence != "alta", o si es dato crítico (alergia, dosis, diagnóstico grave, embarazo, anticoagulante, insulina, antibiótico, opioide, benzodiacepina), o si hay conflicto.
+- reason:       motivo breve cuando needs_review=true.
+
+BLOQUE safety:
+- conflicts_detected: contradicciones (ej. paciente dice "sí" y médico dice "no").
+- missing_critical_fields: alergias/medicamentos no preguntados que deberían estarlo.
 
 FORMATO DE RESPUESTA: ÚNICAMENTE JSON válido. Sin markdown, sin backticks, sin texto antes o después.
 `
@@ -41,7 +53,7 @@ export function buildSystemPrompt(tipo: TipoNota): string {
 
   return `${REGLAS_BASE}
 ${ESPECIFICO[tipo] ? `\nINSTRUCCIONES ESPECÍFICAS:\n${ESPECIFICO[tipo]}\n` : ''}
-ESTRUCTURA JSON ESPERADA:
+ESTRUCTURA JSON ESPERADA (incluye los campos planos + el bloque auditable "extraction" + "safety"):
 {
   "resumenEjecutivo": "1 línea que resume el caso",
   "secciones": {
@@ -50,7 +62,33 @@ ${listaSecciones.split('\n').map(l => l.replace(/^   - "(\w+)".*/, '     "$1": "
   "diagnosticos": [{ "descripcion": "", "codigoCIE10": "", "tipo": "presuntivo|definitivo|diferencial", "estado": "activo" }],
   "medicamentos": [{ "nombre": "", "dosis": "", "via": "oral", "frecuencia": "", "duracion": "", "indicacion": "" }],
   "alergias": [{ "alergeno": "", "tipo": "medicamento", "reaccion": "", "severidad": "leve", "confirmada": false }],
-  "signosVitales": { "fc": null, "fr": null, "ta": "", "temperatura": null, "spo2": null, "peso": null, "talla": null }
+  "signosVitales": { "fc": null, "fr": null, "ta": "", "temperatura": null, "spo2": null, "peso": null, "talla": null },
+
+  "extraction": {
+    "resumenEjecutivo": { "value": "", "confidence": "alta|media|baja", "source_quote": "", "speaker": "medico|paciente|acompanante|desconocido", "needs_review": false, "reason": "" },
+    "secciones": {
+${listaSecciones.split('\n').map(l => l.replace(/^   - "(\w+)".*/, '       "$1": { "value": "", "confidence": "baja", "source_quote": "", "speaker": "desconocido", "needs_review": true, "reason": "" }')).join(',\n')}
+    },
+    "diagnosticos": [{ "descripcion": "", "codigoCIE10": "", "tipo": "presuntivo", "estado": "activo", "confidence": "media", "source_quote": "", "speaker": "medico", "needs_review": true, "reason": "" }],
+    "medicamentos": [{ "nombre": "", "dosis": "", "via": "oral", "frecuencia": "", "duracion": "", "indicacion": "", "confidence": "alta", "source_quote": "", "speaker": "medico", "needs_review": false, "reason": "" }],
+    "alergias": [{ "alergeno": "", "tipo": "medicamento", "reaccion": "", "severidad": "moderada", "confirmada": false, "confidence": "alta", "source_quote": "", "speaker": "paciente", "needs_review": true, "reason": "Dato crítico — confirmar con paciente" }],
+    "signosVitales": {
+      "ta":          { "value": "", "confidence": "alta", "source_quote": "", "speaker": "medico", "needs_review": false, "reason": "" },
+      "fc":          { "value": null, "confidence": "alta", "source_quote": "", "speaker": "medico", "needs_review": false, "reason": "" },
+      "fr":          { "value": null, "confidence": "alta", "source_quote": "", "speaker": "medico", "needs_review": false, "reason": "" },
+      "temperatura": { "value": null, "confidence": "alta", "source_quote": "", "speaker": "medico", "needs_review": false, "reason": "" },
+      "spo2":        { "value": null, "confidence": "alta", "source_quote": "", "speaker": "medico", "needs_review": false, "reason": "" },
+      "peso":        { "value": null, "confidence": "alta", "source_quote": "", "speaker": "medico", "needs_review": false, "reason": "" },
+      "talla":       { "value": null, "confidence": "alta", "source_quote": "", "speaker": "medico", "needs_review": false, "reason": "" }
+    }
+  },
+
+  "safety": {
+    "fields_auto_filled": ["lista de campos con confidence alta y needs_review=false"],
+    "fields_requiring_review": ["lista de campos con needs_review=true"],
+    "conflicts_detected": ["descripción breve de cualquier contradicción"],
+    "missing_critical_fields": ["alergias/medicamentos/etc no preguntados pero importantes"]
+  }
 }
 
 Las secciones a llenar para esta nota (${tipo}) son exactamente:

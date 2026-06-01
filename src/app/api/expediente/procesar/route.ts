@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { buildSystemPrompt, buildUserPrompt } from '@/lib/expediente/prompts'
+import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
 import type { TipoNota, PacienteContexto } from '@/types/expediente'
 
 const API_KEY = process.env.ANTHROPIC_API_KEY ?? ''
@@ -120,7 +121,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Respuesta de IA no parseable', raw: text }, { status: 502 })
     }
 
-    return NextResponse.json({ ok: true, ...parsed })
+    // Validar con Zod. Si falla, devolvemos lo que sí se pudo parsear
+    // (modo permisivo: el frontend prioriza los campos planos y muestra el extraction si llega).
+    const validation = RespuestaExtraccion.safeParse(parsed)
+    if (!validation.success) {
+      console.warn('[procesar] Validación parcial:', validation.error.issues.slice(0, 3))
+      return NextResponse.json({ ok: true, ...parsed, _schemaWarning: true })
+    }
+
+    return NextResponse.json({ ok: true, ...validation.data })
   } catch (err) {
     console.error('[expediente/procesar] Error:', err)
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
