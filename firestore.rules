@@ -65,6 +65,15 @@ service cloud.firestore {
         allow create: if isMember(clinicId);
         allow update, delete: if false;
       }
+      // Chat interno (médico ↔ asistente)
+      match /chat/{msgId} {
+        allow read:   if isMember(clinicId);
+        allow create: if isMember(clinicId) && request.auth.uid == request.resource.data.senderId;
+        allow update, delete: if false; // los mensajes son inmutables
+      }
+      match /chat_reads/{uid} {
+        allow read, write: if isAuth() && request.auth.uid == uid && isMember(clinicId);
+      }
     }
 
     // Clinic memberships

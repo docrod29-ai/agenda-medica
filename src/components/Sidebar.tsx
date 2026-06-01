@@ -8,7 +8,12 @@ import { useConfig } from '@/hooks/useConfig'
 import {
   LayoutDashboard, CalendarDays, Calendar, Users, Clock,
   Settings, LogOut, Stethoscope, Shield, Bot, UserSquare2, FileText,
+  MessageCircle,
 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useAuth } from '@/hooks/useAuth'
+import { useClinic } from '@/context/ClinicContext'
+import { suscribirMensajes, suscribirLectura, contarNoLeidos, type ChatMessage } from '@/lib/chat'
 
 const NAV = [
   { href: '/dashboard',     label: 'Dashboard',      icon: LayoutDashboard },
@@ -18,6 +23,7 @@ const NAV = [
   { href: '/pacientes',     label: 'Pacientes',      icon: Users },
   { href: '/expedientes',   label: 'Expedientes',    icon: FileText },
   { href: '/lista-espera',  label: 'Lista de espera',icon: Clock },
+  { href: '/chat',          label: 'Chat',           icon: MessageCircle },
 ]
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {
@@ -25,6 +31,24 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   const router = useRouter()
   const { mode, setMode, isDoctor } = useMode()
   const { config } = useConfig()
+  const { user } = useAuth()
+  const { clinicId } = useClinic()
+  const [mensajes, setMensajes] = useState<ChatMessage[]>([])
+  const [lastReadAt, setLastReadAt] = useState<string | null>(null)
+
+  // Suscripción a mensajes del chat para badge de no-leídos
+  useEffect(() => {
+    if (!clinicId) return
+    const unsub = suscribirMensajes(clinicId, setMensajes, 50)
+    return () => unsub()
+  }, [clinicId])
+  useEffect(() => {
+    if (!clinicId || !user?.uid) return
+    const unsub = suscribirLectura(clinicId, user.uid, setLastReadAt)
+    return () => unsub()
+  }, [clinicId, user?.uid])
+
+  const noLeidos = user?.uid ? contarNoLeidos(mensajes, user.uid, lastReadAt) : 0
 
   const handleLogout = async () => {
     await signOut(auth)
@@ -50,17 +74,31 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
       {/* Nav */}
       <nav className="sidebar-nav">
-        {NAV.map(({ href, label, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            onClick={onClose}
-            className={`nav-item${pathname === href || (href !== '/dashboard' && pathname.startsWith(href)) ? ' active' : ''}`}
-          >
-            <Icon size={17} className="nav-icon" />
-            {label}
-          </Link>
-        ))}
+        {NAV.map(({ href, label, icon: Icon }) => {
+          const esChat = href === '/chat'
+          const mostrarBadge = esChat && noLeidos > 0 && pathname !== '/chat'
+          return (
+            <Link
+              key={href}
+              href={href}
+              onClick={onClose}
+              className={`nav-item${pathname === href || (href !== '/dashboard' && pathname.startsWith(href)) ? ' active' : ''}`}
+              style={{ position: 'relative' }}
+            >
+              <Icon size={17} className="nav-icon" />
+              <span style={{ flex: 1 }}>{label}</span>
+              {mostrarBadge && (
+                <span style={{
+                  background: 'var(--teal)', color: '#040b12',
+                  fontSize: 10, fontWeight: 800, borderRadius: 100,
+                  padding: '1px 7px', minWidth: 18, textAlign: 'center',
+                }}>
+                  {noLeidos > 99 ? '99+' : noLeidos}
+                </span>
+              )}
+            </Link>
+          )
+        })}
 
         <div className="nav-section-title" style={{ marginTop: 12 }}>Sistema</div>
 
