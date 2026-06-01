@@ -544,3 +544,56 @@ tbody tr:last-child { border-bottom: none; }
 @media (max-width: 480px) {
   .page-pad { padding: 16px !important; }
 }
+
+/* ── Mobile topbar (hamburguesa + título) ────────────────── */
+.mobile-topbar {
+  display: none; /* oculto por defecto en desktop */
+  height: 52px;
+  background: var(--s1);
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+  gap: 12px;
+  padding: 0 max(16px, env(safe-area-inset-left)) 0 max(16px, env(safe-area-inset-right));
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+@media (max-width: 768px) {
+  .mobile-topbar { display: flex; }
+}
+.mobile-topbar-btn {
+  background: none;
+  border: none;
+  color: var(--text2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 6px;
+  transition: background 0.1s, color 0.1s;
+}
+.mobile-topbar-btn:hover { background: var(--s2); color: var(--text); }
+.mobile-topbar-btn:active { background: var(--s3); }
+
+/* ── Filas de acciones en headers (evita empalmes) ───────── */
+.actions-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.actions-row > button,
+.actions-row > a {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .actions-row { width: 100%; }
+  .actions-row > button,
+  .actions-row > a {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+}

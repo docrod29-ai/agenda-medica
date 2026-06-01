@@ -89,7 +89,9 @@ export interface DASIResult {
   score: number              // 0 – 58.2
   vo2pico: number            // mL/kg/min (Hlatky: 0.43·DASI + 9.6)
   mets: number               // VO2 / 3.5
-  capacidadBaja: boolean     // DASI ≤ 34 → mayor riesgo (guía 2024)
+  metsAdecuados: boolean     // METs ≥ 4 (umbral clínico tradicional)
+  dasiSobreUmbral: boolean   // DASI > 34 (umbral BASEL-PMI / Wijeysundera 2018)
+  capacidadBaja: boolean     // alias = !metsAdecuados (compat con UI existente)
   interpretacion: string
 }
 
@@ -97,19 +99,34 @@ export function calcularDASI(seleccionadas: Record<string, boolean>): DASIResult
   const score = DASI_ITEMS.reduce((s, it) => s + (seleccionadas[it.key] ? it.peso : 0), 0)
   const vo2pico = 0.43 * score + 9.6
   const mets = vo2pico / 3.5
-  // El umbral de decisión perioperatorio es < 4 METs (no el DASI ≤34).
-  // La capacidad se interpreta según los METs estimados para que concuerde
-  // con el valor mostrado.
+  const scoreRedondeado = Math.round(score * 10) / 10
   const metsRedondeado = Math.round(mets * 10) / 10
-  const capacidadBaja = metsRedondeado < 4
+
+  // Dos umbrales DISTINTOS — no son equivalentes:
+  //   · METs ≥ 4 = umbral clínico tradicional de capacidad adecuada
+  //   · DASI > 34 = umbral derivado del estudio BASEL-PMI (Wijeysundera 2018):
+  //     DASI ≤ 34 se asoció a mayor riesgo de muerte/IAM perioperatorio.
+  // La interpretación principal usa METs (concuerda con el valor mostrado).
+  // El umbral DASI ≤34 se reporta como marcador adicional de riesgo.
+  const metsAdecuados   = metsRedondeado >= 4
+  const dasiSobreUmbral = scoreRedondeado > 34
+  const capacidadBaja   = !metsAdecuados
+
+  let interpretacion: string
+  if (metsAdecuados && dasiSobreUmbral) {
+    interpretacion = `Capacidad funcional adecuada (≈ ${metsRedondeado} METs, ≥ 4) y DASI ${scoreRedondeado} sobre el umbral de 34. Conducta: generalmente puede proceder a cirugía sin pruebas cardiacas adicionales.`
+  } else if (metsAdecuados && !dasiSobreUmbral) {
+    interpretacion = `Capacidad funcional adecuada por METs (≈ ${metsRedondeado}, ≥ 4), pero DASI ${scoreRedondeado} ≤ 34 — umbral del estudio BASEL-PMI asociado a mayor riesgo perioperatorio. Conducta: en cirugía de riesgo elevado, considerar BNP/NT-proBNP y troponina basal para afinar la estratificación.`
+  } else {
+    interpretacion = `Capacidad funcional reducida (≈ ${metsRedondeado} METs, < 4). Conducta: en cirugía de riesgo elevado, solicitar BNP/NT-proBNP y troponina basal. Considerar ecocardiograma o prueba de estrés solo si el resultado modificaría el plan (revascularización, optimización o cambio de abordaje).`
+  }
+
   return {
-    score: Math.round(score * 10) / 10,
+    score: scoreRedondeado,
     vo2pico: Math.round(vo2pico * 10) / 10,
     mets: metsRedondeado,
-    capacidadBaja,
-    interpretacion: capacidadBaja
-      ? `Capacidad funcional reducida (≈ ${metsRedondeado} METs, < 4). Conducta: en cirugía de riesgo elevado, solicitar BNP/NT-proBNP y troponina basal para precisar el riesgo. Considerar ecocardiograma o prueba de estrés solo si el resultado modificaría el plan (revascularización, optimización o cambio de abordaje).`
-      : `Capacidad funcional conservada (≈ ${metsRedondeado} METs, ≥ 4). Conducta: generalmente puede proceder a cirugía sin pruebas cardiacas adicionales.`,
+    metsAdecuados, dasiSobreUmbral, capacidadBaja,
+    interpretacion,
   }
 }
 
