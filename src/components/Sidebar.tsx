@@ -15,17 +15,21 @@ import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
 import { suscribirMensajes, suscribirLectura, contarNoLeidos, type ChatMessage } from '@/lib/chat'
 
-const NAV = [
-  { href: '/dashboard',     label: 'Dashboard',      icon: LayoutDashboard },
-  { href: '/asistente',     label: 'Agendar rápido', icon: UserSquare2 },
-  { href: '/citas',         label: 'Citas',          icon: CalendarDays },
-  { href: '/calendario',    label: 'Calendario',     icon: Calendar },
-  { href: '/pacientes',     label: 'Pacientes',      icon: Users },
-  { href: '/expedientes',   label: 'Expedientes',    icon: FileText },
-  { href: '/lista-espera',  label: 'Lista de espera',icon: Clock },
-  { href: '/crm',           label: 'CRM',            icon: TrendingUp },
-  { href: '/resenas',       label: 'Reseñas',        icon: Star },
-  { href: '/chat',          label: 'Chat',           icon: MessageCircle },
+// Cada item declara en qué modos aparece:
+//   medico       → solo cuando el usuario está en modo Médico
+//   secretaria   → solo cuando está en modo Secretaria
+//   ambos        → siempre visible
+const NAV: { href: string; label: string; icon: typeof LayoutDashboard; modos: 'ambos' | 'medico' | 'secretaria' }[] = [
+  { href: '/dashboard',     label: 'Dashboard',      icon: LayoutDashboard, modos: 'ambos' },
+  { href: '/asistente',     label: 'Agendar rápido', icon: UserSquare2,     modos: 'ambos' },
+  { href: '/citas',         label: 'Citas',          icon: CalendarDays,    modos: 'ambos' },
+  { href: '/calendario',    label: 'Calendario',     icon: Calendar,        modos: 'ambos' },
+  { href: '/pacientes',     label: 'Pacientes',      icon: Users,           modos: 'ambos' },
+  { href: '/expedientes',   label: 'Expedientes',    icon: FileText,        modos: 'medico' },
+  { href: '/lista-espera',  label: 'Lista de espera',icon: Clock,           modos: 'ambos' },
+  { href: '/crm',           label: 'CRM',            icon: TrendingUp,      modos: 'medico' },
+  { href: '/resenas',       label: 'Reseñas',        icon: Star,            modos: 'medico' },
+  { href: '/chat',          label: 'Chat',           icon: MessageCircle,   modos: 'ambos' },
 ]
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {
@@ -52,6 +56,11 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
   const noLeidos = user?.uid ? contarNoLeidos(mensajes, user.uid, lastReadAt) : 0
 
+  // Filtrar NAV según el modo activo
+  const navVisible = NAV.filter(item =>
+    item.modos === 'ambos' || (mode === 'medico' ? item.modos === 'medico' : item.modos === 'secretaria')
+  )
+
   const handleLogout = async () => {
     await signOut(auth)
     router.replace('/login')
@@ -76,7 +85,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
       {/* Nav */}
       <nav className="sidebar-nav">
-        {NAV.map(({ href, label, icon: Icon }) => {
+        {navVisible.map(({ href, label, icon: Icon }) => {
           const esChat = href === '/chat'
           const mostrarBadge = esChat && noLeidos > 0 && pathname !== '/chat'
           return (

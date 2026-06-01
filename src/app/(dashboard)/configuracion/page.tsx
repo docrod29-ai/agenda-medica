@@ -12,6 +12,7 @@ import { msgConfirmacion, msgRecordatorio24h, msgRecordatorioDia } from '@/lib/w
 import { copyToClipboard } from '@/lib/whatsapp'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
+import { useMode } from '@/context/ModeContext'
 import {
   crearInvitacion, listarInvitaciones, revocarInvitacion,
   type Invitacion, type RolInvitacion,
@@ -164,7 +165,8 @@ export default function ConfiguracionPage() {
     consentimientoMensajes: true, createdAt: '', updatedAt: '', creadoPor: '', updatedPor: '',
   }
 
-  const TABS: { key: Tab; label: string }[] = [
+  const { mode } = useMode()
+  const TABS_ALL: { key: Tab; label: string; modoMin?: 'medico' }[] = [
     { key: 'general', label: 'General' },
     { key: 'horario', label: 'Horario' },
     { key: 'duraciones', label: 'Duraciones' },
@@ -172,11 +174,13 @@ export default function ConfiguracionPage() {
     { key: 'notificaciones', label: 'Notificaciones' },
     { key: 'integraciones', label: 'Integraciones' },
     { key: 'plantillas', label: 'Plantillas WA' },
-    { key: 'bot', label: '🤖 Bot FAQ' },
-    { key: 'medicos', label: 'Médicos' },
+    { key: 'bot', label: '🤖 Bot FAQ', modoMin: 'medico' },
+    { key: 'medicos', label: 'Médicos', modoMin: 'medico' },
     { key: 'equipo', label: '👥 Equipo' },
-    { key: 'suscripcion', label: '💳 Suscripción' },
+    { key: 'suscripcion', label: '💳 Suscripción', modoMin: 'medico' },
   ]
+  // Filtrar según modo
+  const TABS = TABS_ALL.filter(t => !t.modoMin || mode === t.modoMin)
 
   if (loading) {
     return (

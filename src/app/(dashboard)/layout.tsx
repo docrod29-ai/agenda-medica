@@ -10,6 +10,21 @@ import { ClinicProvider } from '@/context/ClinicContext'
 import { Menu, Loader2, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 import { OfflineBanner } from '@/components/OfflineBanner'
+import { useMode } from '@/context/ModeContext'
+
+function ModeBanner() {
+  const { mode } = useMode()
+  if (mode !== 'secretaria') return null
+  return (
+    <div style={{
+      background: 'rgba(59,130,246,0.1)', borderBottom: '1px solid rgba(59,130,246,0.25)',
+      color: '#60a5fa', fontSize: 12, fontWeight: 600, textAlign: 'center',
+      padding: '5px 12px',
+    }}>
+      🔵 Modo Secretaria · vista enfocada en agenda y atención al paciente
+    </div>
+  )
+}
 
 function TrialBanner() {
   const { clinic } = useClinic()
@@ -46,14 +61,23 @@ function TrialBanner() {
 function DashboardInner({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth()
   const { clinicId, loading: clinicLoading, needsSetup } = useClinic()
+  const { mode } = useMode()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  // Rutas que NO están disponibles en modo Secretaria
+  const RUTAS_SOLO_MEDICO = ['/expedientes', '/expediente/', '/consulta/', '/nota/', '/referencia/', '/crm', '/resenas']
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : ''
 
   useEffect(() => {
     if (authLoading || clinicLoading) return
     if (!user) { router.replace('/login'); return }
     if (needsSetup) { router.replace('/setup'); return }
-  }, [user, authLoading, clinicId, clinicLoading, needsSetup, router])
+    // Si modo secretaria intenta acceder a ruta solo-médico, devolver a dashboard
+    if (mode === 'secretaria' && RUTAS_SOLO_MEDICO.some(r => pathname.startsWith(r))) {
+      router.replace('/dashboard')
+    }
+  }, [user, authLoading, clinicId, clinicLoading, needsSetup, router, mode, pathname])
 
   if (authLoading || clinicLoading) {
     return (
@@ -101,6 +125,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
         </div>
 
         <OfflineBanner />
+        <ModeBanner />
         <TrialBanner />
         <main style={{ flex: 1, overflowY: 'auto' }}>
           {children}
