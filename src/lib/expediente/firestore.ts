@@ -62,27 +62,71 @@ export async function deleteNota(
 }
 
 /**
- * Borra un paciente del expediente.
+ * Borra un paciente del expediente — CASCADA.
  * SALVAGUARDA NOM-004: si tiene notas FIRMADAS, no se permite (registro legal).
- * Si solo tiene borradores, se eliminan junto con el paciente.
- * Devuelve { ok, motivo }.
+ * Si solo tiene borradores, se eliminan junto con el paciente Y sus citas.
+ * Borrar citas evita que el paciente reaparezca como "de cita" en Expedientes.
+ * Devuelve { ok, motivo, borradas? }.
  */
 export async function deletePatientExpediente(
   clinicId: string,
   patientId: string,
-): Promise<{ ok: boolean; motivo?: string }> {
+  /** Datos del paciente para borrar también citas que coinciden por nombre/teléfono */
+  matchInfo?: { nombre?: string; telefono?: string },
+): Promise<{ ok: boolean; motivo?: string; borradas?: { notas: number; citas: number } }> {
+  // 1. Verificar notas firmadas (NOM-004 — bloqueo legal)
   const notas = await getNotas(clinicId, patientId)
   const firmadas = notas.filter(n => n.estado === 'firmada')
   if (firmadas.length > 0) {
-    return { ok: false, motivo: `Tiene ${firmadas.length} nota(s) firmada(s). Los registros clínicos firmados no pueden eliminarse (NOM-004).` }
+    return {
+      ok: false,
+      motivo: `Tiene ${firmadas.length} nota(s) firmada(s). Los registros clínicos firmados no pueden eliminarse (NOM-004).`,
+    }
   }
-  // Borrar borradores primero
+
+  // 2. Borrar todos los borradores
   for (const n of notas) {
     await deleteDoc(notaDoc(clinicId, patientId, n.id))
   }
-  // Borrar el documento del paciente
+
+  // 3. Borrar TODAS las citas asociadas (por pacienteId y, si se dio, por nombre+tel)
+  //    Esto previene que la lógica de "huérfanos" reviva al paciente.
+  const citasRef = collection(db, 'clinics', clinicId, 'appointments')
+  let citasBorradas = 0
+
+  // 3a. Por pacienteId
+  try {
+    const snap = await getDocs(query(citasRef, where('pacienteId', '==', patientId)))
+    for (const d of snap.docs) {
+      await deleteDoc(d.ref)
+      citasBorradas++
+    }
+  } catch { /* ignore */ }
+
+  // 3b. Coincidencia por nombre+teléfono (cubre citas con pacienteId vacío)
+  if (matchInfo?.nombre || matchInfo?.telefono) {
+    const norm = (s: string) => s.toLowerCase().trim()
+    const normTel = (s: string) => s.replace(/\D/g, '')
+    try {
+      const all = await getDocs(citasRef)
+      for (const d of all.docs) {
+        const data = d.data() as { pacienteId?: string; pacienteNombre?: string; pacienteTelefono?: string }
+        // ya borradas en 3a
+        if (data.pacienteId === patientId) continue
+        const nombreMatch  = matchInfo.nombre   && data.pacienteNombre   && norm(data.pacienteNombre) === norm(matchInfo.nombre)
+        const telefonoMatch = matchInfo.telefono && data.pacienteTelefono && normTel(data.pacienteTelefono) === normTel(matchInfo.telefono)
+        if (nombreMatch || telefonoMatch) {
+          await deleteDoc(d.ref)
+          citasBorradas++
+        }
+      }
+    } catch { /* ignore */ }
+  }
+
+  // 4. Borrar el documento del paciente
   await deleteDoc(doc(db, 'clinics', clinicId, 'patients', patientId))
-  return { ok: true }
+
+  return { ok: true, borradas: { notas: notas.length, citas: citasBorradas } }
 }
 
 /** Solo se permite actualizar borradores (NOM-024: las firmadas son inmutables) */

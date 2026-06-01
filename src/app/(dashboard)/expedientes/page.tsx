@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
 import { getPatients, createPatient, getAppointments } from '@/lib/firestore'
 import { deletePatientExpediente } from '@/lib/expediente/firestore'
+import { collection, deleteDoc, getDocs } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import type { Patient } from '@/types'
 import { FileText, Search, Loader2, ChevronRight, AlertTriangle, CalendarClock, Plus, X, Trash2 } from 'lucide-react'
@@ -120,15 +122,62 @@ export default function ExpedientesPage() {
   }
 
   const [borrando, setBorrando] = useState<string | null>(null)
+
+  /** Borra solo las citas de un paciente "huérfano" (sin doc de paciente). */
+  const borrarHuerfano = async (e: Entrada) => {
+    if (!clinicId) return
+    if (!window.confirm(`¿Eliminar todas las citas de ${e.nombre}? No tiene registro de paciente; se borrarán solo las citas.`)) return
+    setBorrando(e.id ?? e.nombre + e.telefono)
+    try {
+      const norm = (s: string) => s.toLowerCase().trim()
+      const normTel = (s: string) => s.replace(/\D/g, '')
+      const citasRef = collection(db, 'clinics', clinicId, 'appointments')
+      const all = await getDocs(citasRef)
+      let citasBorradas = 0
+      for (const d of all.docs) {
+        const data = d.data() as { pacienteNombre?: string; pacienteTelefono?: string }
+        const nombreMatch  = e.nombre   && data.pacienteNombre   && norm(data.pacienteNombre)   === norm(e.nombre)
+        const telefonoMatch = e.telefono && data.pacienteTelefono && normTel(data.pacienteTelefono) === normTel(e.telefono)
+        if (nombreMatch || telefonoMatch) {
+          await deleteDoc(d.ref)
+          citasBorradas++
+        }
+      }
+      toast(`Citas eliminadas (${citasBorradas})`, 'info')
+      setEntradas(prev => prev.filter(x =>
+        !(norm(x.nombre) === norm(e.nombre) && normTel(x.telefono) === normTel(e.telefono))
+      ))
+    } catch {
+      toast('Error al eliminar', 'error')
+    } finally {
+      setBorrando(null)
+    }
+  }
+
   const borrarPaciente = async (e: Entrada) => {
     if (!clinicId || !e.id) return
-    if (!window.confirm(`¿Eliminar a ${e.nombre} del expediente? Esta acción no se puede deshacer.`)) return
+    if (!window.confirm(
+      `¿Eliminar a ${e.nombre} del expediente?\n\nSe borrarán también sus citas y borradores. ` +
+      `Esta acción no se puede deshacer.`
+    )) return
     setBorrando(e.id)
     try {
-      const res = await deletePatientExpediente(clinicId, e.id)
+      const res = await deletePatientExpediente(clinicId, e.id, {
+        nombre: e.nombre, telefono: e.telefono,
+      })
       if (res.ok) {
-        toast('Paciente eliminado', 'info')
-        setEntradas(prev => prev.filter(x => x.id !== e.id))
+        const msg = res.borradas
+          ? `Paciente eliminado (${res.borradas.notas} borradores, ${res.borradas.citas} citas)`
+          : 'Paciente eliminado'
+        toast(msg, 'info')
+        // Filtrar por id Y por nombre+telefono normalizado (para huérfanos también)
+        const norm = (s: string) => s.toLowerCase().trim()
+        const normTel = (s: string) => s.replace(/\D/g, '')
+        setEntradas(prev => prev.filter(x =>
+          x.id !== e.id &&
+          !(e.telefono && normTel(x.telefono) === normTel(e.telefono)) &&
+          norm(x.nombre) !== norm(e.nombre)
+        ))
       } else {
         toast(res.motivo ?? 'No se puede eliminar', 'error')
       }
@@ -223,18 +272,16 @@ export default function ExpedientesPage() {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                  {e.id && (
-                    <button
-                      onClick={() => borrarPaciente(e)}
-                      disabled={borrando === e.id}
-                      title="Eliminar paciente"
-                      style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: 6, display: 'flex' }}
-                    >
-                      {borrando === e.id
-                        ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
-                        : <Trash2 size={15} />}
-                    </button>
-                  )}
+                  <button
+                    onClick={() => e.id ? borrarPaciente(e) : borrarHuerfano(e)}
+                    disabled={borrando === (e.id ?? e.nombre + e.telefono)}
+                    title={e.id ? 'Eliminar paciente' : 'Eliminar citas de este paciente sin registro'}
+                    style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: 6, display: 'flex' }}
+                  >
+                    {borrando === (e.id ?? e.nombre + e.telefono)
+                      ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
+                      : <Trash2 size={15} />}
+                  </button>
                   {cargando
                     ? <Loader2 size={16} color="var(--text3)" style={{ animation: 'spin 1s linear infinite' }} />
                     : <ChevronRight size={18} color="var(--text3)" />}

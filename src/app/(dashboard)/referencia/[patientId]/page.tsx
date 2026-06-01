@@ -7,7 +7,8 @@ import { getNotas } from '@/lib/expediente/firestore'
 import { getPatients } from '@/lib/firestore'
 import type { NotaMedica } from '@/types/expediente'
 import type { Patient } from '@/types'
-import { ArrowLeft, Printer, Loader2, Send } from 'lucide-react'
+import { ArrowLeft, Printer, Loader2, Send, Download } from 'lucide-react'
+import { descargarComoPDF } from '@/lib/pdf-download'
 
 type Tipo = 'referencia' | 'contrarreferencia'
 type Urgencia = 'Rutina' | 'Prioritario' | 'Urgente'
@@ -32,6 +33,24 @@ export default function CartaReferenciaPage() {
   const [diagnosticos, setDiagnosticos] = useState('')
   const [tratamiento, setTratamiento] = useState('')
   const [estudios, setEstudios] = useState('')
+  const [descargando, setDescargando] = useState(false)
+
+  const descargarPDF = async () => {
+    const el = document.getElementById('doc')
+    if (!el) return
+    setDescargando(true)
+    try {
+      const nombre = (patient?.nombre ?? 'paciente').replace(/[^\w\sáéíóúñ-]/gi, '').replace(/\s+/g, '_')
+      const fechaCorta = new Date().toISOString().slice(0, 10)
+      const tag = tipo === 'referencia' ? 'Referencia' : 'Contrarreferencia'
+      await descargarComoPDF(el, { filename: `${tag}_${nombre}_${fechaCorta}` })
+    } catch (e) {
+      console.error('PDF error:', e)
+      alert('No se pudo generar el PDF. Intenta con Imprimir → Guardar como PDF.')
+    } finally {
+      setDescargando(false)
+    }
+  }
 
   useEffect(() => {
     if (!clinicId || !patientId) return
@@ -78,9 +97,16 @@ export default function CartaReferenciaPage() {
         <button onClick={() => router.push(`/expediente/${patientId}`)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}>
           <ArrowLeft size={15} /> Expediente
         </button>
-        <button onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--teal)', color: '#000', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-          <Printer size={16} /> Imprimir / Guardar PDF
-        </button>
+        <div className="actions-row">
+          <button onClick={descargarPDF} disabled={descargando} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--teal)', color: '#000', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: descargando ? 'default' : 'pointer' }}>
+            {descargando
+              ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</>
+              : <><Download size={16} /> Descargar PDF</>}
+          </button>
+          <button onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+            <Printer size={16} /> Imprimir
+          </button>
+        </div>
       </div>
 
       {/* Formulario (no se imprime) */}
