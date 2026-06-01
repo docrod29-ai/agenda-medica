@@ -98,18 +98,35 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
         <Sidebar />
       </div>
 
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 49, backdropFilter: 'blur(2px)' }}
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-      {sidebarOpen && (
-        <div style={{ position: 'fixed', inset: '0 auto 0 0', zIndex: 50, width: 'min(78vw, 320px)', maxHeight: '100vh', overflowY: 'auto' }}>
-          <Sidebar onClose={() => setSidebarOpen(false)} />
-        </div>
-      )}
+      {/* Mobile sidebar — siempre en DOM, se desliza con transform (más confiable que conditional render) */}
+      <div
+        onClick={() => setSidebarOpen(false)}
+        aria-hidden={!sidebarOpen}
+        style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+          zIndex: 49, backdropFilter: 'blur(2px)',
+          opacity: sidebarOpen ? 1 : 0,
+          pointerEvents: sidebarOpen ? 'auto' : 'none',
+          transition: 'opacity 0.2s ease',
+        }}
+      />
+      <div
+        role="dialog"
+        aria-label="Menú"
+        style={{
+          position: 'fixed', top: 0, left: 0, bottom: 0,
+          width: 'min(82vw, 320px)',
+          background: 'var(--s1)',
+          zIndex: 50,
+          transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
+          transition: 'transform 0.25s ease',
+          overflowY: 'auto',
+          boxShadow: sidebarOpen ? '4px 0 20px rgba(0,0,0,0.4)' : 'none',
+        }}
+        className="mobile-sidebar-wrap"
+      >
+        <Sidebar onClose={() => setSidebarOpen(false)} />
+      </div>
 
       {/* Main area */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>

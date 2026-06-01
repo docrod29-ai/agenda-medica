@@ -557,6 +557,13 @@ tbody tr:last-child { border-bottom: none; }
   .sidebar { width: 78vw !important; max-width: 320px; }
 }
 
+/* En desktop ocultar el wrapper móvil (sidebar lateral se muestra fijo) */
+@media (min-width: 769px) {
+  .mobile-sidebar-wrap { display: none !important; }
+}
+/* Sidebar interno dentro del wrapper móvil debe ocupar todo el ancho */
+.mobile-sidebar-wrap .sidebar { width: 100% !important; }
+
 /* ── Bottom Nav — solo visible en móvil ─────────────────── */
 .bottom-nav-wrap { display: none; }
 @media (max-width: 768px) {
