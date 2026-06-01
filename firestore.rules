@@ -76,6 +76,26 @@ service cloud.firestore {
       }
     }
 
+    // Invitaciones de clínica (top-level — el invitado las lee con el code)
+    match /clinic_invitations/{code} {
+      // Cualquier usuario autenticado puede LEER por código (necesario para aceptar)
+      allow read: if isAuth();
+      // Crear: solo miembros de la clínica destino
+      allow create: if isAuth()
+        && exists(/databases/$(database)/documents/clinic_members/$(request.auth.uid))
+        && get(/databases/$(database)/documents/clinic_members/$(request.auth.uid)).data.clinicId == request.resource.data.clinicId;
+      // Actualizar: solo el invitado puede marcarla como usada (used: true + usedBy = su uid)
+      allow update: if isAuth()
+        && resource.data.used == false
+        && request.resource.data.used == true
+        && request.resource.data.usedBy == request.auth.uid
+        && request.resource.data.clinicId == resource.data.clinicId;
+      // Borrar (revocar): solo miembros de la clínica que creó la invitación
+      allow delete: if isAuth()
+        && exists(/databases/$(database)/documents/clinic_members/$(request.auth.uid))
+        && get(/databases/$(database)/documents/clinic_members/$(request.auth.uid)).data.clinicId == resource.data.clinicId;
+    }
+
     // Clinic memberships
     match /clinic_members/{uid} {
       allow read: if isAuth() && request.auth.uid == uid;

@@ -11,11 +11,16 @@ import { Loader2, Save, Copy, Calendar, CheckCircle2, XCircle, Link, Bot, Credit
 import { msgConfirmacion, msgRecordatorio24h, msgRecordatorioDia } from '@/lib/whatsapp'
 import { copyToClipboard } from '@/lib/whatsapp'
 import { useSearchParams } from 'next/navigation'
+import { useAuth } from '@/hooks/useAuth'
+import {
+  crearInvitacion, listarInvitaciones, revocarInvitacion,
+  type Invitacion, type RolInvitacion,
+} from '@/lib/invitations'
 
 const DIAS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'] as const
 const DIAS_LABELS = { lunes: 'Lunes', martes: 'Martes', miercoles: 'Miércoles', jueves: 'Jueves', viernes: 'Viernes', sabado: 'Sábado', domingo: 'Domingo' }
 
-type Tab = 'general' | 'horario' | 'duraciones' | 'notificaciones' | 'integraciones' | 'plantillas' | 'bot' | 'medicos' | 'suscripcion'
+type Tab = 'general' | 'horario' | 'duraciones' | 'notificaciones' | 'integraciones' | 'plantillas' | 'bot' | 'medicos' | 'equipo' | 'suscripcion'
 
 export default function ConfiguracionPage() {
   const { config, loading } = useConfig()
@@ -164,6 +169,7 @@ export default function ConfiguracionPage() {
     { key: 'plantillas', label: 'Plantillas WA' },
     { key: 'bot', label: '🤖 Bot FAQ' },
     { key: 'medicos', label: 'Médicos' },
+    { key: 'equipo', label: '👥 Equipo' },
     { key: 'suscripcion', label: '💳 Suscripción' },
   ]
 
@@ -465,6 +471,9 @@ export default function ConfiguracionPage() {
 
       {/* Médicos */}
       {tab === 'medicos' && <MedicosTab />}
+
+      {/* Equipo (invitaciones) */}
+      {tab === 'equipo' && <EquipoTab clinicId={clinicId} clinicNombre={form.nombreClinica || 'tu clínica'} />}
 
       {/* Suscripción */}
       {tab === 'suscripcion' && <SuscripcionTab clinicId={clinicId} />}
@@ -1225,3 +1234,169 @@ function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
     </div>
   )
 }
+
+
+/* ── Equipo (invitar asistente / colaboradores) ──────────── */
+function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinicNombre: string }) {
+  const { user } = useAuth()
+  const { toast } = useToast()
+
+  const [invitaciones, setInvitaciones] = useState<Invitacion[]>([])
+  const [loading, setLoading] = useState(true)
+  const [creando, setCreando] = useState(false)
+  const [nombreInv, setNombreInv] = useState('')
+  const [rol, setRol] = useState<RolInvitacion>('secretaria')
+  const [generada, setGenerada] = useState<Invitacion | null>(null)
+  const [copiado, setCopiado] = useState(false)
+
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.vercel.app'
+
+  const recargar = async () => {
+    if (!clinicId) return
+    setLoading(true)
+    try {
+      const list = await listarInvitaciones(clinicId)
+      setInvitaciones(list)
+    } finally { setLoading(false) }
+  }
+  useEffect(() => { recargar() /* eslint-disable-next-line */ }, [clinicId])
+
+  const generar = async () => {
+    if (!clinicId || !user) { toast('No estás autenticado', 'error'); return }
+    setCreando(true)
+    try {
+      const inv = await crearInvitacion(
+        clinicId, clinicNombre, rol,
+        { uid: user.uid, email: user.email ?? '' },
+        nombreInv,
+      )
+      setGenerada(inv)
+      setNombreInv('')
+      recargar()
+    } catch {
+      toast('Error al crear la invitación', 'error')
+    } finally { setCreando(false) }
+  }
+
+  const linkDe = (inv: Invitacion) => `${APP_URL}/unirse/${inv.code}`
+
+  const copiar = async (text: string) => {
+    try { await navigator.clipboard.writeText(text); setCopiado(true); setTimeout(() => setCopiado(false), 2000); toast('Enlace copiado', 'success') }
+    catch { toast('No se pudo copiar', 'error') }
+  }
+  const compartirWhatsApp = (inv: Invitacion) => {
+    const msg = encodeURIComponent(
+      `Te invito a unirte a ${clinicNombre} como ${inv.role === 'secretaria' ? 'asistente' : inv.role}.\n\nCrea tu cuenta aquí: ${linkDe(inv)}`,
+    )
+    window.open(`https://wa.me/?text=${msg}`, '_blank')
+  }
+  const revocar = async (code: string) => {
+    if (!window.confirm('¿Revocar esta invitación? El enlace dejará de funcionar.')) return
+    try { await revocarInvitacion(code); recargar(); toast('Invitación revocada', 'info') }
+    catch { toast('Error al revocar', 'error') }
+  }
+
+  const pendientes = invitaciones.filter(i => !i.used)
+  const usadas    = invitaciones.filter(i =>  i.used)
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.55 }}>
+        Genera un enlace que tu asistente abrirá para crear su cuenta y unirse a esta clínica.
+        Los enlaces expiran en 7 días.
+      </div>
+
+      {/* Crear invitación */}
+      <div className="card" style={{ padding: 16 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>Invitar a alguien</div>
+        <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div>
+            <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>Nombre (opcional)</label>
+            <input className="input" value={nombreInv} onChange={e => setNombreInv(e.target.value)} placeholder="María Pérez" />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>Rol</label>
+            <select className="input" value={rol} onChange={e => setRol(e.target.value as RolInvitacion)}>
+              <option value="secretaria">Asistente / Secretaria</option>
+              <option value="medico">Médico</option>
+              <option value="admin">Administrador</option>
+            </select>
+          </div>
+        </div>
+        <button onClick={generar} disabled={creando} style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#040b12', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: creando ? 'default' : 'pointer' }}>
+          {creando ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</> : '✨ Generar enlace de invitación'}
+        </button>
+
+        {generada && (
+          <div style={{ marginTop: 14, padding: 12, background: 'rgba(0,212,168,0.06)', border: '1px solid rgba(0,212,168,0.25)', borderRadius: 10 }}>
+            <div style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 600, marginBottom: 6 }}>✅ Enlace listo</div>
+            <div style={{ fontSize: 11.5, color: 'var(--text3)', wordBreak: 'break-all', marginBottom: 10 }}>
+              {linkDe(generada)}
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button onClick={() => copiar(linkDe(generada))} style={{ background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Copy size={12} /> {copiado ? 'Copiado' : 'Copiar enlace'}
+              </button>
+              <button onClick={() => compartirWhatsApp(generada)} style={{ background: '#25D366', border: 'none', color: '#fff', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <MessageCircle size={12} /> Enviar por WhatsApp
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Pendientes */}
+      <div className="card" style={{ padding: 16 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>
+          Invitaciones pendientes ({pendientes.length})
+        </div>
+        {loading ? (
+          <div style={{ fontSize: 13, color: 'var(--text3)' }}>Cargando…</div>
+        ) : pendientes.length === 0 ? (
+          <div style={{ fontSize: 13, color: 'var(--text3)' }}>No hay invitaciones pendientes.</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {pendientes.map(inv => (
+              <div key={inv.code} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: 180 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
+                    {inv.nombreInvitado || '(Sin nombre)'} · <span style={{ color: 'var(--teal)' }}>{inv.role}</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text3)' }}>
+                    Creado {new Date(inv.createdAt).toLocaleDateString('es-MX')} · Expira {new Date(inv.expiresAt).toLocaleDateString('es-MX')}
+                  </div>
+                </div>
+                <button onClick={() => copiar(linkDe(inv))} style={{ background: 'var(--s3)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 6, padding: '5px 10px', fontSize: 11.5, cursor: 'pointer' }}>
+                  Copiar enlace
+                </button>
+                <button onClick={() => compartirWhatsApp(inv)} style={{ background: '#25D366', border: 'none', color: '#fff', borderRadius: 6, padding: '5px 10px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
+                  WhatsApp
+                </button>
+                <button onClick={() => revocar(inv.code)} style={{ background: 'none', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', borderRadius: 6, padding: '5px 10px', fontSize: 11.5, cursor: 'pointer' }}>
+                  Revocar
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Usadas */}
+      {usadas.length > 0 && (
+        <div className="card" style={{ padding: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>
+            Invitaciones aceptadas ({usadas.length})
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {usadas.map(inv => (
+              <div key={inv.code} style={{ fontSize: 12.5, color: 'var(--text2)', padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+                ✅ {inv.nombreInvitado || '(Sin nombre)'} ({inv.role}) — aceptada {inv.usedAt ? new Date(inv.usedAt).toLocaleDateString('es-MX') : ''}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+

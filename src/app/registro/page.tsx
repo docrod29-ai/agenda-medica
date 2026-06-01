@@ -1,6 +1,6 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
@@ -17,7 +17,19 @@ const BENEFICIOS = [
 ]
 
 export default function RegistroPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: 'var(--bg)' }} />}>
+      <RegistroInner />
+    </Suspense>
+  )
+}
+
+function RegistroInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const invite = searchParams.get('invite')   // si viene de /unirse/CODE
+  const destinoTrasRegistro = invite ? `/unirse/${invite}` : '/setup'
+
   const { user, loading } = useAuth()
   const [step, setStep] = useState<'form' | 'verifying'>('form')
   const [nombre, setNombre] = useState('')
@@ -28,8 +40,8 @@ export default function RegistroPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (!loading && user) router.replace('/setup')
-  }, [user, loading, router])
+    if (!loading && user) router.replace(destinoTrasRegistro)
+  }, [user, loading, router, destinoTrasRegistro])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,7 +51,7 @@ export default function RegistroPage() {
     try {
       const cred = await createUserWithEmailAndPassword(auth, email.trim(), password)
       await updateProfile(cred.user, { displayName: nombre.trim() })
-      router.replace('/setup')
+      router.replace(destinoTrasRegistro)
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? ''
       if (code === 'auth/email-already-in-use') {
