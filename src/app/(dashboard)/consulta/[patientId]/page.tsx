@@ -14,6 +14,7 @@ import { seccionesVacias, requiereSignosVitales, esPreoperatoria } from '@/lib/e
 import { PreopAssessment } from '@/components/PreopAssessment'
 import { RevisionPanel } from '@/components/RevisionPanel'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
+import { logAudit } from '@/lib/expediente/audit-log'
 import { validarNOM004 } from '@/lib/expediente/nom004'
 import { generarHashIntegridad, generarHashFirma } from '@/lib/expediente/integrity'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
@@ -147,6 +148,13 @@ export default function ConsultaActivaPage() {
       if (data.extraction) setExtraction(data.extraction)
       if (data.safety) setSafety(data.safety)
       setAprobados(new Set()) // reset de aprobaciones al nuevo procesamiento
+
+      // Auditoría (Fase F)
+      if (clinicId) logAudit({
+        evento: 'ia_procesamiento', clinicId, patientId, notaId: notaId ?? undefined,
+        medicoUid: auth.currentUser?.uid, medicoEmail: auth.currentUser?.email ?? undefined,
+        meta: { tipo, transcripcionLen: voz.transcripcion.length },
+      })
 
       toast('✨ Nota estructurada por IA — revisa campo por campo', 'success')
     } catch {
@@ -295,6 +303,12 @@ export default function ConsultaActivaPage() {
       }
       setFirmada(true)
       toast('✅ Nota firmada y sellada (NOM-024)', 'success')
+      // Auditoría (Fase F)
+      if (clinicId) logAudit({
+        evento: 'nota_firmada', clinicId, patientId, notaId: id,
+        medicoUid: auth.currentUser?.uid, medicoEmail: auth.currentUser?.email ?? undefined,
+        meta: { tipo, aprobadosIA: aprobados.size, diagnosticos: diagnosticos.length, medicamentos: medicamentos.length },
+      })
       setTimeout(() => router.push(`/expediente/${patientId}`), 1200)
     } catch (e) {
       toast('Error al firmar', 'error')
