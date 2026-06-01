@@ -13,6 +13,8 @@ const STATUS_STYLES: Record<AppointmentStatus, { label: string; bg: string; text
   'cancelada':            { label: 'Cancelada',            bg: 'rgba(239,68,68,0.12)',   text: '#f87171', dot: '#f87171' },
   'reagendada':           { label: 'Reagendada',           bg: 'rgba(251,146,60,0.12)',  text: '#fb923c', dot: '#fb923c' },
   'no-asistio':           { label: 'No asistió',           bg: 'rgba(239,68,68,0.12)',   text: '#ef4444', dot: '#ef4444' },
+  'pendiente-pago':       { label: 'Pendiente de pago',    bg: 'rgba(249,115,22,0.15)',  text: '#fb923c', dot: '#fb923c' },
+  'pagada':               { label: 'Pagada',               bg: 'rgba(34,197,94,0.12)',   text: '#4ade80', dot: '#4ade80' },
 }
 
 interface Props {

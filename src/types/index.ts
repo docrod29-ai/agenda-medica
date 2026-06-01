@@ -51,6 +51,8 @@ export type AppointmentStatus =
   | 'cancelada'
   | 'reagendada'
   | 'no-asistio'
+  | 'pendiente-pago'   // facturación esperando cobro
+  | 'pagada'
 
 export type AppointmentType =
   | 'primera-vez'
@@ -97,6 +99,38 @@ export interface Doctor {
   updatedAt: string
 }
 
+/** Etiquetas operativas para triage de pacientes (configurables, no rompen nada). */
+export type PatientTag =
+  | 'nuevo'
+  | 'seguimiento'
+  | 'frecuente'
+  | 'alto-riesgo'
+  | 'requiere-llamada'
+  | 'pendiente-estudios'
+  | 'pendiente-pago'
+  | 'requiere-factura'
+  | 'requiere-consentimiento'
+  | 'requiere-interprete'
+  | 'embarazo'
+  | 'cronico'
+  | 'inactivo'
+
+export const PATIENT_TAG_CONFIG: Record<PatientTag, { label: string; color: string }> = {
+  'nuevo':                    { label: 'Nuevo',                   color: '#60a5fa' },
+  'seguimiento':              { label: 'Seguimiento',             color: '#94a3b8' },
+  'frecuente':                { label: 'Frecuente',               color: '#22c55e' },
+  'alto-riesgo':              { label: 'Alto riesgo',             color: '#ef4444' },
+  'requiere-llamada':         { label: 'Requiere llamada',        color: '#f59e0b' },
+  'pendiente-estudios':       { label: 'Pendiente estudios',      color: '#a855f7' },
+  'pendiente-pago':           { label: 'Pendiente pago',          color: '#f97316' },
+  'requiere-factura':         { label: 'Requiere factura',        color: '#06b6d4' },
+  'requiere-consentimiento':  { label: 'Requiere consentimiento', color: '#eab308' },
+  'requiere-interprete':      { label: 'Requiere intérprete',     color: '#84cc16' },
+  'embarazo':                 { label: 'Embarazo',                color: '#ec4899' },
+  'cronico':                  { label: 'Crónico',                 color: '#8b5cf6' },
+  'inactivo':                 { label: 'Inactivo',                color: '#64748b' },
+}
+
 export interface Patient {
   id: string
   nombre: string
@@ -109,6 +143,9 @@ export interface Patient {
   seguroMedico?: string
   alergias?: string
   notas?: string
+  tags?: PatientTag[]               // ✨ NUEVO — opcional, no rompe nada
+  ultimaCita?: string               // ISO — para detectar inactivos
+  proximoSeguimiento?: string       // ISO — para CRM/campañas
   noShowCount: number
   cancelacionCount: number
   createdAt: string
@@ -248,6 +285,8 @@ export const APPOINTMENT_STATUS_CONFIG: Record<AppointmentStatus, { label: strin
   'cancelada':            { label: 'Cancelada',           color: 'text-red-400',    bgColor: 'bg-red-400/10',    dotColor: 'bg-red-400' },
   'reagendada':           { label: 'Reagendada',          color: 'text-orange-400', bgColor: 'bg-orange-400/10', dotColor: 'bg-orange-400' },
   'no-asistio':           { label: 'No asistió',          color: 'text-red-500',    bgColor: 'bg-red-500/10',    dotColor: 'bg-red-500' },
+  'pendiente-pago':       { label: 'Pendiente de pago',   color: 'text-orange-400', bgColor: 'bg-orange-400/15', dotColor: 'bg-orange-400' },
+  'pagada':               { label: 'Pagada',              color: 'text-green-400',  bgColor: 'bg-green-400/10',  dotColor: 'bg-green-400' },
 }
 
 export const APPOINTMENT_TYPE_CONFIG: Record<AppointmentType, { label: string; icon: string; defaultMinutes: number }> = {

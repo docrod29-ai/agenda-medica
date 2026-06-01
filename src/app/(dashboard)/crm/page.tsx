@@ -1,0 +1,203 @@
+'use client'
+/**
+ * CRM / Revenue Dashboard
+ *
+ * Métricas de conversión, retención e ingresos.
+ * Lee citas y pacientes de Firestore (read-only, no modifica nada).
+ */
+import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
+import { useClinic } from '@/context/ClinicContext'
+import { getAppointments, getPatients } from '@/lib/firestore'
+import type { Appointment, Patient } from '@/types'
+import {
+  TrendingUp, TrendingDown, Users, CalendarCheck2, UserX,
+  DollarSign, ArrowUpRight, Loader2,
+} from 'lucide-react'
+
+type Periodo = 'hoy' | 'semana' | 'mes' | '3meses'
+
+function isoDaysAgo(d: number): string {
+  return new Date(Date.now() - d * 86400_000).toISOString().slice(0, 10)
+}
+
+export default function CRMPage() {
+  const { clinicId } = useClinic()
+  const [appts, setAppts] = useState<Appointment[]>([])
+  const [pacientes, setPacientes] = useState<Patient[]>([])
+  const [loading, setLoading] = useState(true)
+  const [periodo, setPeriodo] = useState<Periodo>('mes')
+
+  useEffect(() => {
+    if (!clinicId) return
+    Promise.all([getAppointments(clinicId), getPatients(clinicId)]).then(([a, p]) => {
+      setAppts(a)
+      setPacientes(p)
+      setLoading(false)
+    })
+  }, [clinicId])
+
+  const desde = useMemo(() => {
+    return periodo === 'hoy' ? isoDaysAgo(0)
+      : periodo === 'semana' ? isoDaysAgo(7)
+      : periodo === 'mes' ? isoDaysAgo(30)
+      : isoDaysAgo(90)
+  }, [periodo])
+
+  const enPeriodo = useMemo(() => appts.filter(a => a.fechaHora.slice(0, 10) >= desde), [appts, desde])
+
+  // Métricas operativas
+  const total = enPeriodo.length
+  const confirmadas = enPeriodo.filter(a => ['confirmada', 'recordatorio-enviado', 'en-sala', 'en-consulta', 'atendida', 'finalizada', 'pagada'].includes(a.estado)).length
+  const noShows = enPeriodo.filter(a => a.estado === 'no-asistio').length
+  const canceladas = enPeriodo.filter(a => a.estado === 'cancelada').length
+  const reagendadas = enPeriodo.filter(a => a.estado === 'reagendada').length
+  const atendidas = enPeriodo.filter(a => ['atendida', 'finalizada', 'pagada'].includes(a.estado)).length
+  const tasaConfirm = total > 0 ? (confirmadas / total) * 100 : 0
+  const tasaNoShow = total > 0 ? (noShows / total) * 100 : 0
+  const tasaCancel = total > 0 ? (canceladas / total) * 100 : 0
+  const tasaAtencion = total > 0 ? (atendidas / total) * 100 : 0
+
+  // Retención
+  const pacientesActivos = pacientes.filter(p => p.ultimaCita && p.ultimaCita >= isoDaysAgo(90)).length
+  const pacientesInactivos = pacientes.filter(p => !p.ultimaCita || p.ultimaCita < isoDaysAgo(90)).length
+  const requierenSeguimiento = pacientes.filter(p => p.proximoSeguimiento && p.proximoSeguimiento <= isoDaysAgo(0)).length
+  const enRiesgoNoShow = pacientes.filter(p => p.noShowCount >= 2).length
+
+  // Pipeline (estados como columnas)
+  const pipeline = {
+    solicitada:           enPeriodo.filter(a => a.estado === 'solicitada').length,
+    'pendiente-confirmar':enPeriodo.filter(a => a.estado === 'pendiente-confirmar').length,
+    confirmada:           enPeriodo.filter(a => a.estado === 'confirmada' || a.estado === 'recordatorio-enviado').length,
+    'en-consulta':        enPeriodo.filter(a => a.estado === 'en-sala' || a.estado === 'en-consulta').length,
+    finalizada:           atendidas,
+  }
+
+  return (
+    <div className="page-pad" style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: 0 }}>CRM &amp; Revenue</h1>
+          <p style={{ fontSize: 13, color: 'var(--text3)', margin: '4px 0 0' }}>
+            Pipeline, conversión, retención y oportunidades.
+          </p>
+        </div>
+        <select value={periodo} onChange={e => setPeriodo(e.target.value as Periodo)}
+          style={{ background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10, padding: '9px 14px', fontSize: 14, color: 'var(--text)' }}>
+          <option value="hoy">Hoy</option>
+          <option value="semana">Últimos 7 días</option>
+          <option value="mes">Últimos 30 días</option>
+          <option value="3meses">Últimos 90 días</option>
+        </select>
+      </div>
+
+      {loading ? (
+        <div style={{ padding: 60, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Cargando datos…
+        </div>
+      ) : (
+        <>
+          {/* KPIs principales */}
+          <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14, marginBottom: 24 }}>
+            <KPI icon={<CalendarCheck2 size={18} />} label="Tasa de confirmación" valor={`${tasaConfirm.toFixed(0)}%`} sub={`${confirmadas} de ${total} citas`} color="#22c55e" />
+            <KPI icon={<UserX size={18} />} label="Tasa de no-show" valor={`${tasaNoShow.toFixed(0)}%`} sub={`${noShows} ausencias`} color={tasaNoShow > 10 ? '#ef4444' : '#94a3b8'} trend={tasaNoShow > 15 ? 'down' : 'neutral'} />
+            <KPI icon={<TrendingDown size={18} />} label="Cancelaciones" valor={`${tasaCancel.toFixed(0)}%`} sub={`${canceladas} canceladas · ${reagendadas} reagendadas`} color="#f97316" />
+            <KPI icon={<TrendingUp size={18} />} label="Tasa de atención" valor={`${tasaAtencion.toFixed(0)}%`} sub={`${atendidas} consultas completadas`} color="var(--teal)" />
+          </div>
+
+          {/* Pipeline */}
+          <Section title="Pipeline de citas">
+            <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
+              <PipeStep label="Solicitadas"           count={pipeline.solicitada}             color="#f59e0b" />
+              <PipeStep label="Pendientes confirmar"  count={pipeline['pendiente-confirmar']} color="#f59e0b" />
+              <PipeStep label="Confirmadas"           count={pipeline.confirmada}             color="#22c55e" />
+              <PipeStep label="En sala / consulta"    count={pipeline['en-consulta']}         color="#a855f7" />
+              <PipeStep label="Finalizadas"           count={pipeline.finalizada}             color="var(--teal)" />
+            </div>
+          </Section>
+
+          {/* Retención */}
+          <Section title="Retención de pacientes">
+            <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+              <Retencion label="Pacientes activos (≤90d)"      count={pacientesActivos}     color="#22c55e" icon={<Users size={16} />} />
+              <Retencion label="Pacientes inactivos"           count={pacientesInactivos}   color="#94a3b8" icon={<Users size={16} />} />
+              <Retencion label="Seguimientos vencidos"         count={requierenSeguimiento} color="#f59e0b" icon={<ArrowUpRight size={16} />} />
+              <Retencion label="Riesgo de no-show (≥2 ausencias)" count={enRiesgoNoShow}    color="#ef4444" icon={<UserX size={16} />} />
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 12, lineHeight: 1.6 }}>
+              <strong style={{ color: 'var(--text2)' }}>Recomendación:</strong> Para pacientes en riesgo de no-show,
+              activa doble confirmación 48 h y 2 h antes. Para inactivos, considera una campaña de reactivación con
+              mensaje empático y opción de teleconsulta.
+            </p>
+          </Section>
+
+          {/* Acciones rápidas */}
+          <Section title="Próximos pasos sugeridos">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <Sugerencia text={`Confirma manualmente ${pipeline['pendiente-confirmar']} citas pendientes para reducir no-shows.`} link="/citas" linkLabel="Ir a citas" />
+              {requierenSeguimiento > 0 && <Sugerencia text={`${requierenSeguimiento} pacientes con seguimiento vencido.`} link="/pacientes" linkLabel="Revisar pacientes" />}
+              {pacientesInactivos > 5 && <Sugerencia text={`Tienes ${pacientesInactivos} pacientes inactivos. Considera reactivación.`} link="/pacientes" linkLabel="Ver lista" />}
+              <Sugerencia text="Configura el bot de WhatsApp para reducir trabajo administrativo y captar citas 24/7." link="/configuracion?tab=integraciones" linkLabel="Configurar" />
+            </div>
+          </Section>
+        </>
+      )}
+
+      <p style={{ fontSize: 11, color: 'var(--text3)', marginTop: 24, fontStyle: 'italic' }}>
+        💡 Los ingresos se calcularán automáticamente cuando configures precios por tipo de consulta y pagos.
+        Este dashboard se enriquecerá conforme uses la app.
+      </p>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  )
+}
+
+/* Subcomponentes */
+function KPI({ icon, label, valor, sub, color, trend }: { icon: React.ReactNode; label: string; valor: string; sub: string; color: string; trend?: 'up' | 'down' | 'neutral' }) {
+  return (
+    <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text3)' }}>
+        <span style={{ color }}>{icon}</span> {label}
+        {trend === 'down' && <TrendingDown size={12} color="#ef4444" />}
+        {trend === 'up' && <TrendingUp size={12} color="#22c55e" />}
+      </div>
+      <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)', marginTop: 6 }}>{valor}</div>
+      <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>{sub}</div>
+    </div>
+  )
+}
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginBottom: 24 }}>
+      <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>{title}</h2>
+      {children}
+    </div>
+  )
+}
+function PipeStep({ label, count, color }: { label: string; count: number; color: string }) {
+  return (
+    <div style={{ background: 'var(--s1)', border: `1px solid ${color}33`, borderRadius: 10, padding: '12px 14px' }}>
+      <div style={{ fontSize: 11, color: 'var(--text3)' }}>{label}</div>
+      <div style={{ fontSize: 22, fontWeight: 700, color, marginTop: 4 }}>{count}</div>
+    </div>
+  )
+}
+function Retencion({ label, count, color, icon }: { label: string; count: number; color: string; icon: React.ReactNode }) {
+  return (
+    <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ width: 32, height: 32, borderRadius: 8, background: `${color}1A`, color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</div>
+      <div>
+        <div style={{ fontSize: 11, color: 'var(--text3)' }}>{label}</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>{count}</div>
+      </div>
+    </div>
+  )
+}
+function Sugerencia({ text, link, linkLabel }: { text: string; link: string; linkLabel: string }) {
+  return (
+    <Link href={link} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, textDecoration: 'none' }}>
+      <span style={{ fontSize: 13, color: 'var(--text2)' }}>{text}</span>
+      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--teal)', whiteSpace: 'nowrap' }}>{linkLabel} →</span>
+    </Link>
+  )
+}
