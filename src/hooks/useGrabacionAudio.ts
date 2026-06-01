@@ -1,4 +1,5 @@
 'use client'
+import { corregirTranscripcion } from '@/lib/expediente/medical-vocabulary'
 /**
  * Hook de grabación de audio cruda (MediaRecorder) para enviar a Whisper.
  *
@@ -89,7 +90,9 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       const res = await fetch('/api/expediente/transcribir', { method: 'POST', body: fd })
       const data = await res.json()
       if (data.ok) {
-        setTranscripcion(data.text ?? '')
+        // Corrección médica post-Whisper
+        const { corregido } = corregirTranscripcion(data.text ?? '')
+        setTranscripcion(corregido)
         setEstado('listo')
       } else {
         setError(data.error ?? 'Error transcribiendo')

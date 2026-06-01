@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { corregirTranscripcion } from '@/lib/expediente/medical-vocabulary'
 
 /**
  * Grabación de voz con Web Speech API (sin costo, en el navegador).
@@ -77,7 +78,9 @@ export function useGrabacionVoz(): UseGrabacionVoz {
         const r = e.results[i]
         const txt = r[0].transcript
         if (r.isFinal) {
-          finalRef.current += txt + ' '
+          // Corrige cada chunk final con el vocabulario médico antes de acumular
+          const { corregido } = corregirTranscripcion(txt)
+          finalRef.current += corregido + ' '
         } else {
           interimTxt += txt
         }

@@ -13,6 +13,7 @@
  * Requiere env var: OPENAI_API_KEY
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { WHISPER_PROMPT_MEDICO } from '@/lib/expediente/medical-vocabulary'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -47,11 +48,8 @@ export async function POST(req: NextRequest) {
     upstream.append('file', audio, 'consulta.webm')
     upstream.append('model', 'whisper-1')
     upstream.append('language', 'es')
-    // Prompt clínico para mejorar precisión de términos médicos comunes en MX
-    upstream.append(
-      'prompt',
-      'Consulta médica en español de México. Términos: paciente, padecimiento, antecedente, alergia, medicamento, dosis, frecuencia, vía oral, exploración física, signos vitales, diagnóstico, plan, seguimiento, diabetes mellitus, hipertensión, losartán, metformina, ceftriaxona, amoxicilina, omeprazol, levotiroxina, prednisona.',
-    )
+    // Prompt clínico amplio (vocabulario médico) para mejorar precisión
+    upstream.append('prompt', WHISPER_PROMPT_MEDICO)
 
     const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
