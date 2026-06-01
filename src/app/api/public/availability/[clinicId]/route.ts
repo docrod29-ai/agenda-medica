@@ -26,6 +26,14 @@ export async function GET(
     if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
       return NextResponse.json({ error: 'Fecha inválida (YYYY-MM-DD)' }, { status: 400 })
     }
+    // Solo permitir consultar fechas razonables (hoy ... +90 días)
+    const dt = new Date(fecha + 'T12:00:00')
+    const hoy = new Date()
+    hoy.setHours(0,0,0,0)
+    const limite = new Date(hoy.getTime() + 90 * 86400_000)
+    if (dt < hoy || dt > limite) {
+      return NextResponse.json({ ok: true, slots: [], motivo: 'Fuera de rango' })
+    }
 
     // 1. Configuración
     const configSnap = await adminDb.collection('clinics').doc(clinicId).collection('config').doc('main').get()

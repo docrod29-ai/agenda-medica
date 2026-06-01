@@ -39,6 +39,18 @@ export async function POST(req: NextRequest) {
     if (!consentimientos?.avisoPrivacidad || !consentimientos?.informado) {
       return NextResponse.json({ ok: false, error: 'Se requieren los consentimientos' }, { status: 400 })
     }
+    // Validaciones de forma (defensa contra abuso de endpoint público)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return NextResponse.json({ ok: false, error: 'Fecha inválida' }, { status: 400 })
+    if (!/^\d{2}:\d{2}$/.test(hora)) return NextResponse.json({ ok: false, error: 'Hora inválida' }, { status: 400 })
+    if (paciente.nombre.length > 120 || paciente.nombre.length < 3) return NextResponse.json({ ok: false, error: 'Nombre fuera de rango' }, { status: 400 })
+    if (paciente.telefono.replace(/\D/g, '').length < 7) return NextResponse.json({ ok: false, error: 'Teléfono inválido' }, { status: 400 })
+    if (paciente.email && paciente.email.length > 200) return NextResponse.json({ ok: false, error: 'Correo demasiado largo' }, { status: 400 })
+    if (paciente.motivo && paciente.motivo.length > 500) return NextResponse.json({ ok: false, error: 'Motivo demasiado largo' }, { status: 400 })
+    // Fecha futura — no permitir agendar en pasado
+    const fechaHoraDt = new Date(`${fecha}T${hora}:00`)
+    if (isNaN(fechaHoraDt.getTime()) || fechaHoraDt.getTime() < Date.now()) {
+      return NextResponse.json({ ok: false, error: 'No se puede agendar en el pasado' }, { status: 400 })
+    }
 
     const clinicRef = adminDb.collection('clinics').doc(clinicId)
     const clinicSnap = await clinicRef.get()
@@ -134,6 +146,13 @@ export async function POST(req: NextRequest) {
       timestamp: now,
       meta: { tipo, fecha, hora, origen: 'portal-publico' },
     }).catch(() => { /* no romper si falla */ })
+
+    // Notificación WhatsApp al paciente (si el bot está conectado en la clínica)
+    try {
+      const { sendWhatsApp } = await import('@/lib/whatsapp-send')
+      const msg = `¡Hola ${paciente.nombre.split(' ')[0]}! 👋\n\nRecibimos tu solicitud de cita en ${cfg.nombreClinica ?? 'el consultorio'}:\n\n📅 ${fecha} · 🕐 ${hora} h\n\nTe contactaremos para confirmar. Gracias.`
+      await sendWhatsApp(clinicId, tel, msg).catch(() => {})
+    } catch { /* no romper si la notificación falla */ }
 
     return NextResponse.json({ ok: true, citaId: apptRef.id, fecha, hora, duracion })
   } catch (err) {
