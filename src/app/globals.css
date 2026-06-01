@@ -545,6 +545,32 @@ tbody tr:last-child { border-bottom: none; }
   .page-pad { padding: 16px !important; }
 }
 
+/* ── Densidad móvil: menos espacios desperdiciados ─────────── */
+@media (max-width: 768px) {
+  /* Reducir padding de páginas que aún no usan .page-pad */
+  main > div { padding-top: 16px; padding-bottom: 16px; }
+  /* Títulos h1 ligeramente menores */
+  main h1 { font-size: 19px !important; line-height: 1.25; }
+  /* Tarjetas pegadas a los bordes para usar todo el ancho */
+  main .card { padding: 14px !important; }
+  /* Sidebar móvil: que ocupe mejor el ancho cuando se abre */
+  .sidebar { width: 78vw !important; max-width: 320px; }
+}
+
+/* ── Bottom Nav — solo visible en móvil ─────────────────── */
+.bottom-nav-wrap { display: none; }
+@media (max-width: 768px) {
+  .bottom-nav-wrap { display: block; }
+  /* Espacio inferior en main para que la última fila no quede tapada */
+  main { padding-bottom: 70px !important; }
+  /* En desktop la mobile-topbar está oculta; en móvil la hacemos más compacta */
+  .mobile-topbar {
+    height: 48px !important;
+    padding-top: max(8px, env(safe-area-inset-top));
+    height: calc(48px + env(safe-area-inset-top)) !important;
+  }
+}
+
 /* ── Mobile topbar (hamburguesa + título) ────────────────── */
 .mobile-topbar {
   display: none; /* oculto por defecto en desktop */

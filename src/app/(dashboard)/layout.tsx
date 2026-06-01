@@ -11,6 +11,7 @@ import { Menu, Loader2, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 import { OfflineBanner } from '@/components/OfflineBanner'
 import { useMode } from '@/context/ModeContext'
+import { BottomNav } from '@/components/BottomNav'
 
 function ModeBanner() {
   const { mode } = useMode()
@@ -105,7 +106,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
         />
       )}
       {sidebarOpen && (
-        <div style={{ position: 'fixed', inset: '0 auto 0 0', zIndex: 50, width: 260 }}>
+        <div style={{ position: 'fixed', inset: '0 auto 0 0', zIndex: 50, width: 'min(78vw, 320px)', maxHeight: '100vh', overflowY: 'auto' }}>
           <Sidebar onClose={() => setSidebarOpen(false)} />
         </div>
       )}
@@ -130,6 +131,10 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
         <main style={{ flex: 1, overflowY: 'auto' }}>
           {children}
         </main>
+        {/* Barra inferior — solo móvil (gestionada por CSS) */}
+        <div className="bottom-nav-wrap">
+          <BottomNav />
+        </div>
       </div>
     </div>
   )
