@@ -131,6 +131,17 @@ export const PATIENT_TAG_CONFIG: Record<PatientTag, { label: string; color: stri
   'inactivo':                 { label: 'Inactivo',                color: '#64748b' },
 }
 
+/** Sucursal / sede / consultorio físico — opcional para clínicas multi-sede. */
+export interface Branch {
+  id: string
+  nombre: string
+  direccion?: string
+  telefono?: string
+  googleMapsUrl?: string
+  activa: boolean
+  createdAt: string
+}
+
 export interface Patient {
   id: string
   nombre: string
@@ -174,6 +185,7 @@ export interface Appointment {
   notasInternas?: string
   consentimientoMensajes: boolean
   doctorId?: string
+  branchId?: string            // ✨ multi-sucursal (opcional)
   googleCalendarEventId?: string
   googleCalendarSyncStatus?: 'pending' | 'synced' | 'error'
   createdAt: string

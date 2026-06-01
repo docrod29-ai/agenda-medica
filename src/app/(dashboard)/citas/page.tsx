@@ -5,6 +5,9 @@ import { useAppointments } from '@/hooks/useAppointments'
 import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
 import { StatusBadge } from '@/components/StatusBadge'
+import { calcularRiesgoNoShow, NIVEL_LABEL, NIVEL_COLOR } from '@/lib/no-show-risk'
+import { getPatients } from '@/lib/firestore'
+import type { Patient } from '@/types'
 import { AppointmentModal } from '@/components/AppointmentModal'
 import { Appointment, AppointmentStatus, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { updateAppointment, deleteAppointment } from '@/lib/firestore'
@@ -46,6 +49,12 @@ export default function CitasPage() {
   const { config } = useConfig()
   const { clinicId } = useClinic()
   const { toast } = useToast()
+  const [pacientes, setPacientes] = useState<Patient[]>([])
+
+  useEffect(() => {
+    if (!clinicId) return
+    getPatients(clinicId).then(setPacientes).catch(() => { /* ignore */ })
+  }, [clinicId])
 
   const [selectedDate, setSelectedDate] = useState(todayStr())
   const [statusFilter, setStatusFilter] = useState<AppointmentStatus | 'todas'>('todas')
@@ -192,6 +201,7 @@ export default function CitasPage() {
               <AppointmentRowFull
                 key={appt.id}
                 appt={appt}
+                paciente={pacientes.find(p => p.id === appt.pacienteId) ?? null}
                 config={config}
                 isLast={i === filtered.length - 1}
                 menuOpen={menuId === appt.id}
@@ -223,9 +233,10 @@ export default function CitasPage() {
 }
 
 function AppointmentRowFull({
-  appt, config, isLast, menuOpen, onMenuToggle, onEdit, onDelete, onStatusChange, deleting,
+  appt, paciente, config, isLast, menuOpen, onMenuToggle, onEdit, onDelete, onStatusChange, deleting,
 }: {
   appt: Appointment
+  paciente: Patient | null
   config: ReturnType<typeof useConfig>['config']
   isLast: boolean
   menuOpen: boolean
@@ -237,6 +248,9 @@ function AppointmentRowFull({
 }) {
   const hora = appt.fechaHora.slice(11, 16)
   const typeCfg = APPOINTMENT_TYPE_CONFIG[appt.tipo]
+  // Riesgo de no-show — solo mostrar para citas pendientes/confirmadas (no las ya atendidas)
+  const mostrarRiesgo = !['atendida','finalizada','cancelada','no-asistio','pagada'].includes(appt.estado)
+  const riesgo = mostrarRiesgo ? calcularRiesgoNoShow(appt, paciente) : null
 
   const handleWA = () => {
     if (!appt.pacienteTelefono) return
@@ -281,6 +295,21 @@ function AppointmentRowFull({
 
       {/* Status */}
       <StatusBadge status={appt.estado} size="sm" />
+
+      {/* Riesgo de no-show (solo niveles alto/muy_alto) */}
+      {riesgo && (riesgo.nivel === 'alto' || riesgo.nivel === 'muy_alto') && (
+        <span
+          title={`Riesgo: ${riesgo.score}/100. ${riesgo.recomendacion}`}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 3,
+            fontSize: 10, fontWeight: 700,
+            background: `${NIVEL_COLOR[riesgo.nivel]}1A`, color: NIVEL_COLOR[riesgo.nivel],
+            border: `1px solid ${NIVEL_COLOR[riesgo.nivel]}55`,
+            padding: '2px 7px', borderRadius: 100, flexShrink: 0,
+          }}>
+          ⚠ {NIVEL_LABEL[riesgo.nivel]}
+        </span>
+      )}
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>

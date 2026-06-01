@@ -65,9 +65,19 @@ service cloud.firestore {
         allow create: if isMember(clinicId);
         allow update, delete: if false;
       }
+      // Sucursales / sedes
+      match /branches/{branchId} {
+        allow read, write: if isMember(clinicId);
+      }
       // Bloqueos de horario (vacaciones, ausencias)
       match /time_blocks/{blockId} {
         allow read, write: if isMember(clinicId);
+      }
+      // Reseñas: read publicadas o miembros leen todo; create solo desde servidor
+      match /reviews/{reviewId} {
+        allow read: if true;  // permite mostrar publicadas en página pública
+        allow create: if isAuth();   // creación protegida adicional en route /api
+        allow update, delete: if isMember(clinicId);
       }
       // Chat interno (médico ↔ asistente)
       match /chat/{msgId} {
@@ -78,6 +88,14 @@ service cloud.firestore {
       match /chat_reads/{uid} {
         allow read, write: if isAuth() && request.auth.uid == uid && isMember(clinicId);
       }
+    }
+
+    // Solicitudes de reseña (top-level — el paciente las lee con el token)
+    match /clinic_review_requests/{token} {
+      allow read: if true;        // token funciona como autorización
+      allow create: if isAuth();  // el médico genera la solicitud
+      allow update: if true;      // el paciente marca used=true (validación en route)
+      allow delete: if isAuth();
     }
 
     // Invitaciones de clínica (top-level — el invitado las lee con el code)

@@ -8,7 +8,7 @@ import { useConfig } from '@/hooks/useConfig'
 import {
   LayoutDashboard, CalendarDays, Calendar, Users, Clock,
   Settings, LogOut, Stethoscope, Shield, Bot, UserSquare2, FileText,
-  MessageCircle, TrendingUp,
+  MessageCircle, TrendingUp, Star,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
@@ -24,6 +24,7 @@ const NAV = [
   { href: '/expedientes',   label: 'Expedientes',    icon: FileText },
   { href: '/lista-espera',  label: 'Lista de espera',icon: Clock },
   { href: '/crm',           label: 'CRM',            icon: TrendingUp },
+  { href: '/resenas',       label: 'Reseñas',        icon: Star },
   { href: '/chat',          label: 'Chat',           icon: MessageCircle },
 ]
 
