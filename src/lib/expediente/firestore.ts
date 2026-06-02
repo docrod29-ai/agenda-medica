@@ -19,12 +19,14 @@ function notaDoc(clinicId: string, patientId: string, notaId: string) {
 
 export async function getNotas(clinicId: string, patientId: string): Promise<NotaMedica[]> {
   const snap = await getDocs(query(notasCol(clinicId, patientId), orderBy('fechaConsulta', 'desc')))
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as NotaMedica))
+  return snap.docs.map(d => ({ ...d.data(), id: d.id } as NotaMedica))
 }
 
 export async function getNota(clinicId: string, patientId: string, notaId: string): Promise<NotaMedica | null> {
   const snap = await getDoc(notaDoc(clinicId, patientId, notaId))
-  return snap.exists() ? ({ id: snap.id, ...snap.data() } as NotaMedica) : null
+  // IMPORTANTE: id va DESPUÉS del spread para que sobreescriba cualquier 'id'
+  // erróneo que se haya guardado en data (bug legacy, líneas 183 y 189 de consulta/page.tsx).
+  return snap.exists() ? ({ ...snap.data(), id: snap.id } as NotaMedica) : null
 }
 
 /**
@@ -39,7 +41,7 @@ export async function findNotaByIdInClinic(clinicId: string, notaId: string): Pr
   for (const p of patientsSnap.docs) {
     const ns = await getDoc(notaDoc(clinicId, p.id, notaId))
     if (ns.exists()) {
-      return { patientId: p.id, nota: { id: ns.id, ...ns.data() } as NotaMedica }
+      return { patientId: p.id, nota: { ...ns.data(), id: ns.id } as NotaMedica }
     }
   }
   return null
@@ -66,7 +68,11 @@ export async function createNota(
   patientId: string,
   data: Omit<NotaMedica, 'id'>,
 ): Promise<string> {
-  const ref = await addDoc(notasCol(clinicId, patientId), stripUndefined(data))
+  // Strip 'id' por si llega como '' desde el caller — si se guarda en data,
+  // sobreescribe el doc.id al leer con spread y rompe la navegación.
+  const { id: _ignorado, ...sinId } = data as NotaMedica
+  void _ignorado
+  const ref = await addDoc(notasCol(clinicId, patientId), stripUndefined(sinId))
   return ref.id
 }
 
@@ -154,8 +160,11 @@ export async function updateNota(
   notaId: string,
   data: Partial<NotaMedica>,
 ): Promise<void> {
+  // Strip 'id' del payload — solo el doc.id es la fuente de verdad.
+  const { id: _ignorado, ...sinId } = data as Partial<NotaMedica>
+  void _ignorado
   await updateDoc(notaDoc(clinicId, patientId, notaId), stripUndefined({
-    ...data,
+    ...sinId,
     updatedAt: new Date().toISOString(),
   }))
 }
