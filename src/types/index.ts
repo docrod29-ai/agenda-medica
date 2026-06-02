@@ -266,6 +266,9 @@ export interface ClinicConfig {
   diasFestivos: string[]
   whatsappProveedor: string
   googleCalendarId: string
+  // Portal público de auto-agenda
+  publicBookingEnabled?: boolean   // Si true, el portal /reservar/[clinicId] acepta citas
+  publicBookingNote?: string       // Mensaje opcional para pacientes ("solo nuevas consultas, etc.")
   updatedAt?: string
 }
 
@@ -342,4 +345,6 @@ export const DEFAULT_CONFIG: ClinicConfig = {
   diasFestivos: [],
   whatsappProveedor: '',
   googleCalendarId: '',
+  publicBookingEnabled: true,
+  publicBookingNote: '',
 }

@@ -25,7 +25,7 @@ import {
 const DIAS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'] as const
 const DIAS_LABELS = { lunes: 'Lunes', martes: 'Martes', miercoles: 'Miércoles', jueves: 'Jueves', viernes: 'Viernes', sabado: 'Sábado', domingo: 'Domingo' }
 
-type Tab = 'general' | 'horario' | 'duraciones' | 'bloqueos' | 'notificaciones' | 'integraciones' | 'plantillas' | 'bot' | 'medicos' | 'equipo' | 'suscripcion'
+type Tab = 'general' | 'horario' | 'duraciones' | 'bloqueos' | 'notificaciones' | 'integraciones' | 'plantillas' | 'portal' | 'bot' | 'medicos' | 'equipo' | 'suscripcion'
 
 export default function ConfiguracionPage() {
   const { config, loading } = useConfig()
@@ -174,6 +174,7 @@ export default function ConfiguracionPage() {
     { key: 'notificaciones', label: 'Notificaciones' },
     { key: 'integraciones', label: 'Integraciones' },
     { key: 'plantillas', label: 'Plantillas WA' },
+    { key: 'portal', label: '🔗 Portal del paciente' },
     { key: 'bot', label: '🤖 Bot FAQ', modoMin: 'medico' },
     { key: 'medicos', label: 'Médicos', modoMin: 'medico' },
     { key: 'equipo', label: '👥 Equipo' },
@@ -486,6 +487,9 @@ export default function ConfiguracionPage() {
 
       {/* Bloqueos de horario */}
       {tab === 'bloqueos' && <BloqueosTab clinicId={clinicId} />}
+
+      {/* Portal del paciente */}
+      {tab === 'portal' && <PortalTab clinicId={clinicId} clinicNombre={form.nombreClinica || 'tu clínica'} />}
 
       {/* Suscripción */}
       {tab === 'suscripcion' && <SuscripcionTab clinicId={clinicId} />}
@@ -1518,6 +1522,183 @@ function BloqueosTab({ clinicId }: { clinicId: string | null }) {
             ))}
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+/* ── Portal del paciente Tab ─────────────────────────────────── */
+
+function PortalTab({ clinicId, clinicNombre }: { clinicId: string | null; clinicNombre: string }) {
+  const { config } = useConfig()
+  const { toast } = useToast()
+  const [enabled, setEnabled] = useState(config?.publicBookingEnabled !== false)
+  const [note, setNote] = useState(config?.publicBookingNote ?? '')
+  const [saving, setSaving] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    if (config) {
+      setEnabled(config.publicBookingEnabled !== false)
+      setNote(config.publicBookingNote ?? '')
+    }
+  }, [config])
+
+  // URL pública del portal. No expone clinicId más allá de lo necesario (es el id real, pero el endpoint público filtra qué datos devuelve).
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const url = clinicId ? `${origin}/reservar/${clinicId}` : ''
+  // QR vía servicio externo. La URL ya es pública, no hay fuga de PII al solicitar el QR.
+  const qrUrl = url ? `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(url)}&size=240x240&margin=10` : ''
+
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      toast('No se pudo copiar el link', 'error')
+    }
+  }
+
+  const compartirWA = () => {
+    const texto = encodeURIComponent(
+      `Hola, soy ${clinicNombre}. Puedes agendar tu cita aquí: ${url}`,
+    )
+    window.open(`https://wa.me/?text=${texto}`, '_blank', 'noopener,noreferrer')
+  }
+
+  const guardar = async () => {
+    if (!clinicId || !config) return
+    setSaving(true)
+    try {
+      await saveConfig(clinicId, { ...config, publicBookingEnabled: enabled, publicBookingNote: note })
+      toast('Portal actualizado', 'success')
+    } catch {
+      toast('Error al guardar', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!clinicId) {
+    return <div style={{ color: 'var(--text3)', padding: 16 }}>Cargando…</div>
+  }
+
+  return (
+    <div style={{ display: 'grid', gap: 18 }}>
+      {/* Estado */}
+      <div style={{ padding: 16, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
+              Portal de auto-agenda 24/7
+            </div>
+            <div style={{ fontSize: 12.5, color: 'var(--text3)', marginTop: 4 }}>
+              Tus pacientes pueden reservar cita solos, sin necesidad de llamar.
+            </div>
+          </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}>
+            <input
+              type="checkbox"
+              checked={enabled}
+              onChange={(e) => setEnabled(e.target.checked)}
+              style={{ width: 18, height: 18, accentColor: 'var(--teal)' }}
+            />
+            <span style={{ fontSize: 13, fontWeight: 600, color: enabled ? 'var(--teal)' : 'var(--text3)' }}>
+              {enabled ? 'Activado' : 'Desactivado'}
+            </span>
+          </label>
+        </div>
+      </div>
+
+      {/* Link público + QR */}
+      <div style={{ padding: 16, background: 'var(--s)', border: '1px solid var(--border)', borderRadius: 12 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 10 }}>
+          Tu link para compartir
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+          <input
+            value={url}
+            readOnly
+            style={{
+              flex: 1, minWidth: 220, padding: '10px 12px', borderRadius: 8,
+              border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)',
+              fontSize: 13, fontFamily: 'monospace',
+            }}
+            onFocus={(e) => e.currentTarget.select()}
+          />
+          <button onClick={copiar} className="btn btn-primary" style={{ minWidth: 110 }}>
+            <Copy size={14} /> {copied ? '¡Copiado!' : 'Copiar'}
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button onClick={compartirWA} className="btn" style={{ background: '#25D366', color: '#000', border: 'none', fontWeight: 700 }}>
+            <MessageCircle size={14} /> Compartir por WhatsApp
+          </button>
+          <a href={url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary">
+            <ExternalLink size={14} /> Ver portal
+          </a>
+        </div>
+
+        {/* QR */}
+        {qrUrl && (
+          <div style={{ marginTop: 18, padding: 14, background: 'var(--s2)', borderRadius: 10, border: '1px dashed var(--border)' }}>
+            <div style={{ fontSize: 12.5, color: 'var(--text2)', marginBottom: 10, fontWeight: 600 }}>
+              📱 QR para imprimir o pegar en el consultorio
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={qrUrl} alt="QR del portal de reservas" style={{ background: '#fff', padding: 8, borderRadius: 8 }} width={240} height={240} />
+            </div>
+            <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 10, textAlign: 'center' }}>
+              Los pacientes escanean con la cámara del celular → abre el portal automáticamente
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Mensaje opcional para pacientes */}
+      <div style={{ padding: 16, background: 'var(--s)', border: '1px solid var(--border)', borderRadius: 12 }}>
+        <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>
+          Mensaje para pacientes (opcional)
+        </label>
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value.slice(0, 280))}
+          placeholder='Ej: "Solo primeras consultas por este portal. Para seguimientos, contacta directamente."'
+          rows={3}
+          style={{
+            width: '100%', padding: '10px 12px', borderRadius: 8,
+            border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)',
+            fontSize: 13, resize: 'vertical', fontFamily: 'inherit',
+          }}
+        />
+        <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4, textAlign: 'right' }}>
+          {note.length}/280
+        </div>
+      </div>
+
+      {/* Cómo funciona */}
+      <div style={{ padding: 16, background: 'rgba(20,184,166,0.06)', border: '1px solid rgba(20,184,166,0.2)', borderRadius: 12 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--teal)', marginBottom: 10 }}>
+          ¿Cómo funciona?
+        </div>
+        <ol style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.7, paddingLeft: 18, margin: 0 }}>
+          <li>El paciente abre tu link (por WhatsApp, web, QR, etc.)</li>
+          <li>Elige el tipo de cita, fecha y hora disponibles según <strong>tu horario</strong> y <strong>tus bloqueos</strong></li>
+          <li>Llena nombre + teléfono y acepta el aviso de privacidad</li>
+          <li>La cita queda <strong>automáticamente en tu agenda</strong> y se le envía confirmación por WhatsApp</li>
+          <li>Tú la ves al instante en Citas / Calendario</li>
+        </ol>
+      </div>
+
+      {/* Guardar */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <button onClick={guardar} disabled={saving} className="btn btn-primary">
+          {saving ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Guardando…</> : <><Save size={14} /> Guardar cambios</>}
+        </button>
       </div>
     </div>
   )
