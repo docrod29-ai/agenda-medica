@@ -1841,7 +1841,7 @@ function EmbedSnippets({ url, clinicNombre }: { url: string; clinicNombre: strin
 
 import { RecetaDocumento } from '@/components/RecetaDocumento'
 import { resizeImageFile, formatBytes } from '@/lib/image-utils'
-import { PAPER_SIZES, ESTILOS_RECETA } from '@/lib/receta-template'
+import { PAPER_SIZES, ESTILOS_RECETA, detectarPaperSize } from '@/lib/receta-template'
 import type { RecetaConfig, PaperSize as PaperSizeT, EstiloReceta as EstiloT, Patient } from '@/types'
 import { Upload, X as IconX, Pill, ClipboardList } from 'lucide-react'
 
@@ -1907,39 +1907,101 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
    */
   const [subiendoDiseno, setSubiendoDiseno] = useState(false)
   const [progresoDiseno, setProgresoDiseno] = useState('')
+
+  /**
+   * Sube el diseño completo del médico — PDF o imagen.
+   * Estrategia de CALIDAD:
+   *  1. PDFs se renderizan a 240 DPI como PNG (texto y líneas perfectas, sin JPEG artifacts).
+   *  2. Si pesa más de 900KB (límite Firestore), reintenta a 200 DPI, luego 160 DPI.
+   *  3. Si AÚN pesa mucho, cae a JPEG q92 — última opción para no perder demasiado.
+   *  4. Las imágenes se redimensionan a max 2200px ancho (más generoso que antes), q95.
+   *  5. Detecta dimensiones del PDF en mm → auto-selecciona el paperSize que coincide
+   *     → CERO distorsión por aspect ratio mismatch.
+   */
   const subirDisenoCompleto = async (file: File) => {
     setSubiendoDiseno(true)
     setProgresoDiseno('Iniciando…')
     try {
       let dataUrl: string
       let sizeBytes: number
+      let widthMm: number | null = null
+      let heightMm: number | null = null
 
       if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
         const { pdfFileToImageDataUrl } = await import('@/lib/pdf-to-image')
-        const result = await pdfFileToImageDataUrl(file, {
-          dpi: 180,
-          quality: 0.85,
-          onProgress: setProgresoDiseno,
-          timeoutMs: 60_000,
+
+        // Intento 1: PNG 240 DPI (máxima calidad)
+        let result = await pdfFileToImageDataUrl(file, {
+          dpi: 240, quality: 0.95, type: 'image/png',
+          onProgress: setProgresoDiseno, timeoutMs: 60_000,
+        })
+        // Si pesa demasiado: PNG 200 DPI
+        if (result.sizeBytes > 900_000) {
+          setProgresoDiseno('Reduciendo tamaño (200 DPI)…')
+          result = await pdfFileToImageDataUrl(file, {
+            dpi: 200, quality: 0.95, type: 'image/png',
+            onProgress: setProgresoDiseno, timeoutMs: 60_000,
+          })
+        }
+        // Si aún pesa: PNG 160 DPI
+        if (result.sizeBytes > 900_000) {
+          setProgresoDiseno('Reduciendo tamaño (160 DPI)…')
+          result = await pdfFileToImageDataUrl(file, {
+            dpi: 160, quality: 0.95, type: 'image/png',
+            onProgress: setProgresoDiseno, timeoutMs: 60_000,
+          })
+        }
+        // Último recurso: JPEG alta calidad
+        if (result.sizeBytes > 900_000) {
+          setProgresoDiseno('Optimizando (JPEG alta calidad)…')
+          result = await pdfFileToImageDataUrl(file, {
+            dpi: 200, quality: 0.92, type: 'image/jpeg',
+            onProgress: setProgresoDiseno, timeoutMs: 60_000,
+          })
+        }
+        dataUrl = result.dataUrl
+        sizeBytes = result.sizeBytes
+        widthMm = result.widthMm
+        heightMm = result.heightMm
+      } else if (file.type.startsWith('image/')) {
+        setProgresoDiseno('Optimizando imagen…')
+        // Mucho mejor que antes: 2200px de ancho máx, q95
+        const result = await resizeImageFile(file, {
+          maxWidth: 2200, maxHeight: 3200, quality: 0.95,
+          type: file.type === 'image/png' ? 'image/png' : 'image/jpeg',
         })
         dataUrl = result.dataUrl
         sizeBytes = result.sizeBytes
-      } else if (file.type.startsWith('image/')) {
-        setProgresoDiseno('Optimizando imagen…')
-        const result = await resizeImageFile(file, { maxWidth: 1600, maxHeight: 2400, quality: 0.88 })
-        dataUrl = result.dataUrl
-        sizeBytes = result.sizeBytes
+        // Aproximamos el tamaño mm asumiendo 96 DPI (escaneados típicos)
+        widthMm = (result.width * 25.4) / 96
+        heightMm = (result.height * 25.4) / 96
       } else {
         toast('Sube un PDF o una imagen (PNG/JPG)', 'error')
         return
       }
 
       if (sizeBytes > 900_000) {
-        toast(`Diseño muy pesado (${formatBytes(sizeBytes)}). Sube un PDF más simple o una imagen de menor calidad.`, 'error')
+        toast(`Aún muy pesado (${formatBytes(sizeBytes)}). Sube como JPG en menor resolución.`, 'error')
         return
       }
-      setRx({ ...rx, disenoCompletoDataUrl: dataUrl })
-      toast(`Diseño cargado (${formatBytes(sizeBytes)})`, 'success')
+
+      // Auto-detectar tamaño de papel para evitar distorsión por aspect ratio
+      let nuevoPaperSize = rx.paperSize
+      let auto = false
+      if (widthMm && heightMm) {
+        const detectado = detectarPaperSize(widthMm, heightMm)
+        if (detectado && detectado !== rx.paperSize) {
+          nuevoPaperSize = detectado
+          auto = true
+        }
+      }
+
+      setRx({ ...rx, disenoCompletoDataUrl: dataUrl, paperSize: nuevoPaperSize })
+      if (auto) {
+        toast(`Diseño cargado (${formatBytes(sizeBytes)}) · papel ajustado a ${PAPER_SIZES[nuevoPaperSize].label}`, 'success')
+      } else {
+        toast(`Diseño cargado (${formatBytes(sizeBytes)})`, 'success')
+      }
     } catch (e) {
       console.error('[disenoCompleto] error:', e)
       toast(`No se pudo procesar: ${(e as Error).message}`, 'error')

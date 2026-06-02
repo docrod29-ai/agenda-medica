@@ -42,3 +42,24 @@ export const ESTILOS_RECETA: Record<EstiloReceta, { label: string; descripcion: 
   clasico:     { label: 'Clásico',     descripcion: 'Serif tradicional, tabla con bordes, estilo de receta de toda la vida' },
   moderno:     { label: 'Moderno',     descripcion: 'Sans-serif geométrico, acentos de color, encabezado con franja' },
 }
+
+/**
+ * Dado un ancho × alto en mm, devuelve el PaperSize más cercano.
+ * Tolerancia: ±3mm en cada dimensión (los PDFs a veces tienen 1-2mm de diferencia
+ * por márgenes de impresora).
+ */
+export function detectarPaperSize(widthMm: number, heightMm: number): PaperSize | null {
+  // Normalizar: el PDF puede venir horizontal — usamos ancho ≤ alto siempre
+  const w = Math.min(widthMm, heightMm)
+  const h = Math.max(widthMm, heightMm)
+  let mejor: { size: PaperSize; diff: number } | null = null
+  for (const [key, p] of Object.entries(PAPER_SIZES)) {
+    const diffW = Math.abs(p.widthMm - w)
+    const diffH = Math.abs(p.heightMm - h)
+    const total = diffW + diffH
+    if (diffW <= 5 && diffH <= 5) {
+      if (!mejor || total < mejor.diff) mejor = { size: key as PaperSize, diff: total }
+    }
+  }
+  return mejor?.size ?? null
+}

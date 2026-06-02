@@ -20,16 +20,27 @@ interface PdfToImageOptions {
   timeoutMs?: number
 }
 
+export interface PdfRenderResult {
+  dataUrl: string
+  widthPx: number
+  heightPx: number
+  /** Ancho real de la página en mm (calculado desde el viewport del PDF) */
+  widthMm: number
+  /** Alto real de la página en mm */
+  heightMm: number
+  sizeBytes: number
+}
+
 export async function pdfFileToImageDataUrl(
   file: File,
   options: PdfToImageOptions = {},
-): Promise<{ dataUrl: string; widthPx: number; heightPx: number; sizeBytes: number }> {
+): Promise<PdfRenderResult> {
   if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
     throw new Error('El archivo no es un PDF')
   }
-  const dpi = options.dpi ?? 150
-  const quality = options.quality ?? 0.85
-  const type = options.type ?? 'image/jpeg'
+  const dpi = options.dpi ?? 240          // ALTA CALIDAD (antes 150)
+  const quality = options.quality ?? 0.95
+  const type = options.type ?? 'image/png' // PNG por default (preserva texto y líneas, sin JPEG artifacts)
   const timeoutMs = options.timeoutMs ?? 60_000
   const progress = options.onProgress ?? (() => {})
 
@@ -49,7 +60,7 @@ export async function pdfFileToImageDataUrl(
 async function procesarPdf(
   file: File,
   opts: { dpi: number; quality: number; type: 'image/jpeg' | 'image/png'; progress: (etapa: string) => void },
-): Promise<{ dataUrl: string; widthPx: number; heightPx: number; sizeBytes: number }> {
+): Promise<PdfRenderResult> {
   opts.progress('Cargando librería PDF…')
 
   // Import dinámico (primera vez puede tardar varios segundos en conexiones lentas)
@@ -78,6 +89,11 @@ async function procesarPdf(
   const scale = opts.dpi / 72
   const viewport = page.getViewport({ scale })
 
+  // Dimensiones reales del PDF en mm (sin escalar). 1pt = 1/72 inch = 25.4/72 mm
+  const viewportNatural = page.getViewport({ scale: 1 })
+  const widthMm = (viewportNatural.width * 25.4) / 72
+  const heightMm = (viewportNatural.height * 25.4) / 72
+
   const canvas = document.createElement('canvas')
   canvas.width = Math.floor(viewport.width)
   canvas.height = Math.floor(viewport.height)
@@ -103,5 +119,12 @@ async function procesarPdf(
   canvas.width = 0
   canvas.height = 0
 
-  return { dataUrl, widthPx: canvas.width || Math.floor(viewport.width), heightPx: canvas.height || Math.floor(viewport.height), sizeBytes }
+  return {
+    dataUrl,
+    widthPx: canvas.width || Math.floor(viewport.width),
+    heightPx: canvas.height || Math.floor(viewport.height),
+    widthMm,
+    heightMm,
+    sizeBytes,
+  }
 }

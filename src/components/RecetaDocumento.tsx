@@ -390,7 +390,7 @@ function DocumentoConDisenoCustom({
         width: `${paper.widthMm}mm`,
         height: `${paper.heightMm}mm`,
         position: 'relative',
-        background: `#fff url(${recetaConfig.disenoCompletoDataUrl}) center / 100% 100% no-repeat`,
+        background: '#fff',
         margin: '0 auto',
         boxShadow: '0 6px 24px rgba(0,0,0,0.15)',
         color: '#1a1a1a',
@@ -398,6 +398,25 @@ function DocumentoConDisenoCustom({
         overflow: 'hidden',
       }}
     >
+      {/* Diseño del médico como <img> — preserva aspect ratio sin distorsión.
+          object-fit:contain → si el aspect ratio no coincide exacto, mantiene
+          la proporción y rellena el resto con fondo blanco (mejor que estirar). */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={recetaConfig.disenoCompletoDataUrl}
+        alt="Diseño de receta"
+        style={{
+          position: 'absolute',
+          top: 0, left: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'contain',  // PRESERVA RATIO — sin distorsión
+          objectPosition: 'center',
+          pointerEvents: 'none',
+          userSelect: 'none',
+        }}
+        draggable={false}
+      />
       {/* Área de contenido — los márgenes definen dónde empieza y termina */}
       <div
         style={{

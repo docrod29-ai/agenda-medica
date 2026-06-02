@@ -34,9 +34,19 @@ export async function descargarComoPDF(elemento: HTMLElement, opts: PdfOptions):
     .set({
       margin,
       filename,
-      image: { type: 'jpeg', quality: 0.95 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-      jsPDF: { unit: 'mm', format, orientation },
+      // Calidad máxima — JPEG q98, scale 3x para capturar texto y líneas con nitidez
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: {
+        scale: 3,                  // antes 2 — más nitidez en texto e imágenes
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        letterRendering: true,     // mejora kerning del texto
+        imageTimeout: 30000,       // espera hasta 30s a que carguen imágenes (membrete, firma)
+      },
+      jsPDF: {
+        unit: 'mm', format, orientation,
+        compress: true,            // comprime el PDF resultante (menor tamaño sin perder calidad visible)
+      },
       pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
     })
     .from(elemento)
