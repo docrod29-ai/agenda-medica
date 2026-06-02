@@ -8,7 +8,7 @@ import { getPatients } from '@/lib/firestore'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
 import type { NotaMedica } from '@/types/expediente'
 import type { Patient } from '@/types'
-import { ArrowLeft, Printer, Loader2, Download } from 'lucide-react'
+import { ArrowLeft, Printer, Loader2, Download, Pill, ClipboardList } from 'lucide-react'
 import { descargarComoPDF } from '@/lib/pdf-download'
 
 export default function NotaImprimiblePage() {
@@ -81,6 +81,17 @@ export default function NotaImprimiblePage() {
           <button onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
             <Printer size={16} /> Imprimir
           </button>
+          {/* Generar receta y orden — solo cuando la nota está firmada */}
+          {nota.estado === 'firmada' && (
+            <>
+              <button onClick={() => router.push(`/receta/${patientId}/${notaId}`)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(20,184,166,0.12)', color: 'var(--teal)', border: '1px solid rgba(20,184,166,0.4)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                <Pill size={16} /> Receta
+              </button>
+              <button onClick={() => router.push(`/orden/${patientId}/${notaId}`)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(167,139,250,0.12)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.4)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                <ClipboardList size={16} /> Orden
+              </button>
+            </>
+          )}
         </div>
       </div>
 

@@ -25,7 +25,7 @@ import {
 const DIAS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'] as const
 const DIAS_LABELS = { lunes: 'Lunes', martes: 'Martes', miercoles: 'Miércoles', jueves: 'Jueves', viernes: 'Viernes', sabado: 'Sábado', domingo: 'Domingo' }
 
-type Tab = 'general' | 'horario' | 'duraciones' | 'bloqueos' | 'notificaciones' | 'integraciones' | 'plantillas' | 'portal' | 'bot' | 'medicos' | 'equipo' | 'suscripcion'
+type Tab = 'general' | 'horario' | 'duraciones' | 'bloqueos' | 'notificaciones' | 'integraciones' | 'plantillas' | 'portal' | 'recetas' | 'bot' | 'medicos' | 'equipo' | 'suscripcion'
 
 export default function ConfiguracionPage() {
   const { config, loading } = useConfig()
@@ -175,6 +175,7 @@ export default function ConfiguracionPage() {
     { key: 'integraciones', label: 'Integraciones' },
     { key: 'plantillas', label: 'Plantillas WA' },
     { key: 'portal', label: '🔗 Portal del paciente' },
+    { key: 'recetas', label: '🩺 Recetas y órdenes', modoMin: 'medico' },
     { key: 'bot', label: '🤖 Bot FAQ', modoMin: 'medico' },
     { key: 'medicos', label: 'Médicos', modoMin: 'medico' },
     { key: 'equipo', label: '👥 Equipo' },
@@ -490,6 +491,9 @@ export default function ConfiguracionPage() {
 
       {/* Portal del paciente */}
       {tab === 'portal' && <PortalTab clinicId={clinicId} clinicNombre={form.nombreClinica || 'tu clínica'} />}
+
+      {/* Recetas y órdenes */}
+      {tab === 'recetas' && <RecetasTab clinicId={clinicId} />}
 
       {/* Suscripción */}
       {tab === 'suscripcion' && <SuscripcionTab clinicId={clinicId} />}
@@ -1823,4 +1827,313 @@ function EmbedSnippets({ url, clinicNombre }: { url: string; clinicNombre: strin
       </div>
     </div>
   )
+}
+
+/* ── Recetas y órdenes Tab ───────────────────────────────────── */
+
+import { RecetaDocumento } from '@/components/RecetaDocumento'
+import { resizeImageFile, formatBytes } from '@/lib/image-utils'
+import { PAPER_SIZES, ESTILOS_RECETA } from '@/lib/receta-template'
+import type { RecetaConfig, PaperSize as PaperSizeT, EstiloReceta as EstiloT, Patient } from '@/types'
+import { Upload, X as IconX, Pill, ClipboardList } from 'lucide-react'
+
+function RecetasTab({ clinicId }: { clinicId: string | null }) {
+  const { config } = useConfig()
+  const { toast } = useToast()
+  const [saving, setSaving] = useState(false)
+  const [tipoPreview, setTipoPreview] = useState<'receta' | 'orden'>('receta')
+
+  const [rx, setRx] = useState<RecetaConfig>({
+    paperSize: 'media-carta',
+    estilo: 'minimalista',
+    colorAccento: '#14b8a6',
+    mostrarQR: true,
+    copiasEnHoja: 1,
+    vigenciaDias: 30,
+    mostrarAlergias: true,
+    mostrarDiagnostico: true,
+    mostrarSignosVitales: false,
+    avisoLegal: 'Esta receta es personal e intransferible. Conserve este documento como respaldo médico.',
+  })
+
+  useEffect(() => {
+    if (config?.recetaConfig) setRx({ ...rx, ...config.recetaConfig })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config])
+
+  const guardar = async () => {
+    if (!clinicId || !config) return
+    setSaving(true)
+    try {
+      await saveConfig(clinicId, { ...config, recetaConfig: rx })
+      toast('Template guardado', 'success')
+    } catch {
+      toast('Error al guardar', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const subirImagen = async (campo: 'membreteDataUrl' | 'pieDataUrl', file: File) => {
+    try {
+      const { dataUrl, sizeBytes } = await resizeImageFile(file, {
+        maxWidth: campo === 'membreteDataUrl' ? 1400 : 1200,
+        maxHeight: campo === 'membreteDataUrl' ? 600 : 250,
+        quality: 0.85,
+      })
+      if (sizeBytes > 800_000) {
+        toast(`Imagen muy grande (${formatBytes(sizeBytes)}). Intenta con una más chica o menos detallada.`, 'error')
+        return
+      }
+      setRx({ ...rx, [campo]: dataUrl })
+      toast(`Imagen cargada (${formatBytes(sizeBytes)})`, 'success')
+    } catch (e) {
+      toast(`No se pudo procesar: ${(e as Error).message}`, 'error')
+    }
+  }
+
+  if (!clinicId) return <div style={{ color: 'var(--text3)' }}>Cargando…</div>
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 20, alignItems: 'start' }}>
+      {/* Editor */}
+      <div style={{ display: 'grid', gap: 16 }}>
+        {/* Tamaño de papel */}
+        <Section title="Tamaño de papel">
+          <select
+            value={rx.paperSize}
+            onChange={(e) => setRx({ ...rx, paperSize: e.target.value as PaperSizeT })}
+            style={cfgInput}
+          >
+            {(Object.keys(PAPER_SIZES) as PaperSizeT[]).map(k => (
+              <option key={k} value={k}>{PAPER_SIZES[k].label}</option>
+            ))}
+          </select>
+        </Section>
+
+        {/* Estilo visual */}
+        <Section title="Estilo visual">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            {(Object.keys(ESTILOS_RECETA) as EstiloT[]).map(k => {
+              const activo = rx.estilo === k
+              return (
+                <button
+                  key={k}
+                  onClick={() => setRx({ ...rx, estilo: k })}
+                  style={{
+                    padding: 12, borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+                    background: activo ? 'rgba(20,184,166,0.1)' : 'var(--s2)',
+                    border: activo ? '1px solid var(--teal)' : '1px solid var(--border)',
+                    color: activo ? 'var(--teal)' : 'var(--text2)',
+                  }}
+                >
+                  <div style={{ fontSize: 13, fontWeight: 700 }}>{ESTILOS_RECETA[k].label}</div>
+                  <div style={{ fontSize: 10.5, marginTop: 3, lineHeight: 1.3 }}>{ESTILOS_RECETA[k].descripcion}</div>
+                </button>
+              )
+            })}
+          </div>
+        </Section>
+
+        {/* Color de acento */}
+        <Section title="Color de acento (líneas, encabezado)">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <input
+              type="color"
+              value={rx.colorAccento ?? '#14b8a6'}
+              onChange={(e) => setRx({ ...rx, colorAccento: e.target.value })}
+              style={{ width: 50, height: 36, border: '1px solid var(--border)', borderRadius: 6, padding: 2, cursor: 'pointer', background: 'var(--s2)' }}
+            />
+            <input
+              value={rx.colorAccento ?? '#14b8a6'}
+              onChange={(e) => setRx({ ...rx, colorAccento: e.target.value })}
+              style={{ ...cfgInput, width: 110, fontFamily: 'monospace' }}
+            />
+          </div>
+        </Section>
+
+        {/* Membrete */}
+        <Section title="📄 Membrete (encabezado custom)">
+          <p style={{ fontSize: 11.5, color: 'var(--text3)', marginBottom: 8 }}>
+            Sube una imagen del encabezado de tu papel membretado (logo, nombre, datos del consultorio).
+            Si no subes nada, se usa un encabezado generado con los datos de tu clínica.
+          </p>
+          {rx.membreteDataUrl ? (
+            <div style={{ position: 'relative', border: '1px dashed var(--border)', borderRadius: 8, padding: 10, background: 'var(--s2)' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={rx.membreteDataUrl} alt="Membrete" style={{ maxWidth: '100%', maxHeight: 120, display: 'block', margin: '0 auto', background: '#fff' }} />
+              <button
+                onClick={() => setRx({ ...rx, membreteDataUrl: undefined })}
+                style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 6, padding: '3px 6px', fontSize: 11, cursor: 'pointer' }}
+              >
+                <IconX size={11} /> Quitar
+              </button>
+            </div>
+          ) : (
+            <label style={{
+              display: 'block', textAlign: 'center', padding: '20px 12px',
+              border: '2px dashed var(--border)', borderRadius: 8, background: 'var(--s2)',
+              cursor: 'pointer', color: 'var(--text3)',
+            }}>
+              <Upload size={20} style={{ marginBottom: 6 }} />
+              <div style={{ fontSize: 13, fontWeight: 600 }}>Subir membrete</div>
+              <div style={{ fontSize: 11, marginTop: 2 }}>PNG o JPG · Máx 800 KB después de optimizar</div>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) subirImagen('membreteDataUrl', f) }}
+                style={{ display: 'none' }}
+              />
+            </label>
+          )}
+        </Section>
+
+        {/* Pie de página */}
+        <Section title="📑 Pie de página (opcional)">
+          {rx.pieDataUrl ? (
+            <div style={{ position: 'relative', border: '1px dashed var(--border)', borderRadius: 8, padding: 10, background: 'var(--s2)' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={rx.pieDataUrl} alt="Pie" style={{ maxWidth: '100%', maxHeight: 60, display: 'block', margin: '0 auto', background: '#fff' }} />
+              <button
+                onClick={() => setRx({ ...rx, pieDataUrl: undefined })}
+                style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 6, padding: '3px 6px', fontSize: 11, cursor: 'pointer' }}
+              >
+                <IconX size={11} /> Quitar
+              </button>
+            </div>
+          ) : (
+            <label style={{
+              display: 'block', textAlign: 'center', padding: '14px 12px',
+              border: '2px dashed var(--border)', borderRadius: 8, background: 'var(--s2)',
+              cursor: 'pointer', color: 'var(--text3)',
+            }}>
+              <Upload size={16} />
+              <div style={{ fontSize: 12, fontWeight: 600, marginTop: 4 }}>Subir pie de página</div>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) subirImagen('pieDataUrl', f) }}
+                style={{ display: 'none' }}
+              />
+            </label>
+          )}
+        </Section>
+
+        {/* Opciones */}
+        <Section title="Opciones">
+          <div style={{ display: 'grid', gap: 8 }}>
+            <Toggle label="Mostrar caja de alergias" checked={rx.mostrarAlergias !== false} onChange={(v) => setRx({ ...rx, mostrarAlergias: v })} />
+            <Toggle label="Mostrar diagnóstico" checked={rx.mostrarDiagnostico !== false} onChange={(v) => setRx({ ...rx, mostrarDiagnostico: v })} />
+            <Toggle label="Mostrar signos vitales (en órdenes)" checked={rx.mostrarSignosVitales === true} onChange={(v) => setRx({ ...rx, mostrarSignosVitales: v })} />
+            <Toggle label="QR de verificación al pie" checked={rx.mostrarQR !== false} onChange={(v) => setRx({ ...rx, mostrarQR: v })} />
+          </div>
+        </Section>
+
+        <Section title="Datos legales adicionales (opcional)">
+          <div style={{ display: 'grid', gap: 8 }}>
+            <div>
+              <label style={cfgLabel}>RFC</label>
+              <input value={rx.rfc ?? ''} onChange={(e) => setRx({ ...rx, rfc: e.target.value })} style={cfgInput} placeholder="RODR890101ABC" />
+            </div>
+            <div>
+              <label style={cfgLabel}>Registro DGP/SSA (psicotrópicos)</label>
+              <input value={rx.registroDGP ?? ''} onChange={(e) => setRx({ ...rx, registroDGP: e.target.value })} style={cfgInput} placeholder="Para Rx de medicamentos controlados" />
+            </div>
+            <div>
+              <label style={cfgLabel}>Vigencia default (días)</label>
+              <input type="number" value={rx.vigenciaDias ?? 30} onChange={(e) => setRx({ ...rx, vigenciaDias: parseInt(e.target.value) || 30 })} style={cfgInput} min={1} max={365} />
+            </div>
+            <div>
+              <label style={cfgLabel}>Aviso legal al pie</label>
+              <textarea value={rx.avisoLegal ?? ''} onChange={(e) => setRx({ ...rx, avisoLegal: e.target.value.slice(0, 240) })} rows={2} style={{ ...cfgInput, resize: 'vertical' }} />
+            </div>
+          </div>
+        </Section>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <button onClick={guardar} disabled={saving} className="btn btn-primary">
+            {saving ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Guardando…</> : <><Save size={14} /> Guardar template</>}
+          </button>
+        </div>
+      </div>
+
+      {/* Preview en vivo */}
+      <div style={{ position: 'sticky', top: 20 }}>
+        <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', marginBottom: 8 }}>Vista previa en vivo</div>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 10 }}>
+          <button
+            onClick={() => setTipoPreview('receta')}
+            style={{
+              padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              background: tipoPreview === 'receta' ? 'rgba(20,184,166,0.15)' : 'var(--s2)',
+              border: tipoPreview === 'receta' ? '1px solid var(--teal)' : '1px solid var(--border)',
+              color: tipoPreview === 'receta' ? 'var(--teal)' : 'var(--text3)',
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+            }}
+          >
+            <Pill size={12} /> Receta
+          </button>
+          <button
+            onClick={() => setTipoPreview('orden')}
+            style={{
+              padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              background: tipoPreview === 'orden' ? 'rgba(167,139,250,0.15)' : 'var(--s2)',
+              border: tipoPreview === 'orden' ? '1px solid #a78bfa' : '1px solid var(--border)',
+              color: tipoPreview === 'orden' ? '#a78bfa' : 'var(--text3)',
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+            }}
+          >
+            <ClipboardList size={12} /> Orden
+          </button>
+        </div>
+        <div style={{ transform: 'scale(0.7)', transformOrigin: 'top center' }}>
+          <RecetaDocumento
+            data={{
+              tipo: tipoPreview,
+              folio: 'RX-DEMO-01',
+              fecha: new Date(),
+              paciente: { id: 'demo', nombre: 'Juan Pérez García', edad: 42, sexo: 'Masculino', telefono: '614 123 4567', alergias: 'Penicilina', noShowCount: 0, cancelacionCount: 0, createdAt: '', updatedAt: '', creadoPor: '' } as Patient,
+              diagnostico: 'Faringitis aguda (J02.9)',
+              medicamentos: tipoPreview === 'receta' ? [
+                { nombre: 'Amoxicilina', dosis: '500 mg', via: 'oral', frecuencia: 'Cada 8 horas', duracion: '7 días', indicacion: 'Tomar con alimentos' },
+                { nombre: 'Paracetamol', dosis: '500 mg', via: 'oral', frecuencia: 'Cada 6 hrs si dolor o fiebre', duracion: '5 días' },
+              ] : undefined,
+              estudios: tipoPreview === 'orden' ? ['Biometría hemática completa', 'PCR cuantitativa', 'Cultivo faríngeo'] : undefined,
+              indicaciones: 'Reposo relativo, hidratación abundante. Acudir a control en 5 días.',
+              notaParaPaciente: 'Si presenta fiebre >39°C, acudir a urgencias.',
+            }}
+            config={config ?? null}
+            recetaConfig={rx}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ background: 'var(--s)', border: '1px solid var(--border)', borderRadius: 10, padding: 14 }}>
+      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text2)', marginBottom: 8 }}>{title}</div>
+      {children}
+    </div>
+  )
+}
+
+function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none', padding: '4px 0' }}>
+      <span style={{ fontSize: 12.5, color: 'var(--text)' }}>{label}</span>
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--teal)', cursor: 'pointer' }} />
+    </label>
+  )
+}
+
+const cfgInput: React.CSSProperties = {
+  width: '100%', padding: '8px 10px', borderRadius: 6,
+  border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)',
+  fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box',
+}
+const cfgLabel: React.CSSProperties = {
+  display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--text2)', marginBottom: 3,
 }

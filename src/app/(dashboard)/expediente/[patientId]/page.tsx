@@ -11,7 +11,7 @@ import { TIPO_NOTA_LABEL } from '@/types/expediente'
 import type { NotaMedica } from '@/types/expediente'
 import {
   ArrowLeft, Mic, FileText, Loader2, AlertTriangle, CheckCircle2,
-  Clock, ChevronDown, ChevronUp, Plus, Printer, Trash2, Send,
+  Clock, ChevronDown, ChevronUp, Plus, Printer, Trash2, Send, Pill, ClipboardList,
 } from 'lucide-react'
 
 export default function ExpedientePage() {
@@ -131,6 +131,14 @@ export default function ExpedientePage() {
                 if (!pid) { router.push(`/nota/${n.id}`); return }
                 router.push(`/nota/${pid}/${n.id}`)
               }}
+              onGenerarReceta={() => {
+                const pid = n.pacienteId || patientId || (typeof window !== 'undefined' ? window.location.pathname.split('/').filter(Boolean)[1] : '')
+                if (pid && n.id) router.push(`/receta/${pid}/${n.id}`)
+              }}
+              onGenerarOrden={() => {
+                const pid = n.pacienteId || patientId || (typeof window !== 'undefined' ? window.location.pathname.split('/').filter(Boolean)[1] : '')
+                if (pid && n.id) router.push(`/orden/${pid}/${n.id}`)
+              }}
               onBorrar={() => borrarNota(n.id)}
             />
           ))}
@@ -141,8 +149,8 @@ export default function ExpedientePage() {
   )
 }
 
-function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onBorrar }: {
-  nota: NotaMedica; esUltima: boolean; abierta: boolean; onToggle: () => void; onEditar: () => void; onImprimir: () => void; onBorrar: () => void
+function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onGenerarReceta, onGenerarOrden, onBorrar }: {
+  nota: NotaMedica; esUltima: boolean; abierta: boolean; onToggle: () => void; onEditar: () => void; onImprimir: () => void; onGenerarReceta: () => void; onGenerarOrden: () => void; onBorrar: () => void
 }) {
   const firmada = nota.estado === 'firmada'
   return (
@@ -224,11 +232,22 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onB
                 ))}
               </div>
             )}
-            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+            <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
               {!firmada && (
                 <button onClick={onEditar} style={ghostBtn}>Continuar edición</button>
               )}
               <button onClick={onImprimir} style={ghostBtn}><Printer size={13} /> Imprimir / PDF</button>
+              {/* Receta y Orden — solo cuando la nota está firmada (datos confiables) */}
+              {firmada && (
+                <>
+                  <button onClick={onGenerarReceta} style={{ ...ghostBtn, color: 'var(--teal)', borderColor: 'rgba(20,184,166,0.4)', background: 'rgba(20,184,166,0.08)' }}>
+                    <Pill size={13} /> Generar receta
+                  </button>
+                  <button onClick={onGenerarOrden} style={{ ...ghostBtn, color: '#a78bfa', borderColor: 'rgba(167,139,250,0.4)', background: 'rgba(167,139,250,0.08)' }}>
+                    <ClipboardList size={13} /> Orden médica
+                  </button>
+                </>
+              )}
               {!firmada && (
                 <button onClick={onBorrar} style={{ ...ghostBtn, color: '#f87171', borderColor: 'rgba(239,68,68,0.3)' }}>
                   <Trash2 size={13} /> Eliminar borrador

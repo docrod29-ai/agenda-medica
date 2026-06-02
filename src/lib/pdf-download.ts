@@ -9,7 +9,8 @@
 interface PdfOptions {
   filename: string
   margin?: number          // mm
-  format?: 'a4' | 'letter'
+  /** 'a4' | 'letter' | 'a5' | tupla [width, height] en mm para tamaños custom (media carta, oficio, etc.) */
+  format?: 'a4' | 'letter' | 'a5' | [number, number]
   orientation?: 'portrait' | 'landscape'
 }
 

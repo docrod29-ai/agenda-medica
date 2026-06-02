@@ -269,7 +269,42 @@ export interface ClinicConfig {
   // Portal público de auto-agenda
   publicBookingEnabled?: boolean   // Si true, el portal /reservar/[clinicId] acepta citas
   publicBookingNote?: string       // Mensaje opcional para pacientes ("solo nuevas consultas, etc.")
+  // Receta y órdenes médicas
+  recetaConfig?: RecetaConfig
   updatedAt?: string
+}
+
+/** Re-exports desde lib/receta-template para que ClinicConfig consumidores no necesiten otro import */
+export type { PaperSize, EstiloReceta } from '@/lib/receta-template'
+
+/** Configuración de impresos: recetas y órdenes médicas */
+export interface RecetaConfig {
+  /** Tamaño de papel */
+  paperSize: 'media-carta' | 'carta' | 'oficio' | 'a4' | 'a5'
+  /** Estilo visual */
+  estilo: 'minimalista' | 'clasico' | 'moderno'
+  /** Membrete: imagen del encabezado del doctor (logo + clínica + datos) en data URL base64 */
+  membreteDataUrl?: string
+  /** Pie de página: imagen opcional al final (firma escaneada, datos extra) */
+  pieDataUrl?: string
+  /** Color de acento (botones, líneas) */
+  colorAccento?: string
+  /** Mostrar QR de verificación al pie de la receta */
+  mostrarQR?: boolean
+  /** Generar copias: médico + paciente + farmacia en una sola hoja */
+  copiasEnHoja?: 1 | 2 | 3
+  /** Vigencia default de la receta en días */
+  vigenciaDias?: number
+  /** Texto del aviso legal al pie */
+  avisoLegal?: string
+  /** Datos opcionales del médico que sobrescriben los de ClinicConfig */
+  rfc?: string
+  registroDGP?: string             // Registro DGP/SSA para psicotrópicos
+  registroAntidopaje?: string      // Opcional para deportólogos
+  // Lo que se debe imprimir
+  mostrarAlergias?: boolean
+  mostrarDiagnostico?: boolean
+  mostrarSignosVitales?: boolean
 }
 
 export interface DashboardStats {
@@ -347,4 +382,16 @@ export const DEFAULT_CONFIG: ClinicConfig = {
   googleCalendarId: '',
   publicBookingEnabled: true,
   publicBookingNote: '',
+  recetaConfig: {
+    paperSize: 'media-carta',
+    estilo: 'minimalista',
+    colorAccento: '#14b8a6',
+    mostrarQR: true,
+    copiasEnHoja: 1,
+    vigenciaDias: 30,
+    mostrarAlergias: true,
+    mostrarDiagnostico: true,
+    mostrarSignosVitales: false,
+    avisoLegal: 'Esta receta es personal e intransferible. Conserve este documento como respaldo médico.',
+  },
 }
