@@ -5,11 +5,16 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'agenda-medica-v4'   // bump para invalidar cachés viejas
+const CACHE = 'agenda-medica-v5'   // bump para invalidar cachés viejas
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/']).catch(() => {})))
+})
+
+// Permite al cliente forzar activación cuando hay una nueva versión esperando
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting()
 })
 
 self.addEventListener('activate', (event) => {
@@ -37,8 +42,11 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const copy = res.clone()
-          caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {})
+          // No cachear respuestas de error (404/500) — evita 404 "fantasmas"
+          if (res && res.ok && res.status === 200) {
+            const copy = res.clone()
+            caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {})
+          }
           return res
         })
         .catch(() => caches.match(req).then((r) => r || caches.match('/')))
@@ -54,8 +62,10 @@ self.addEventListener('fetch', (event) => {
       caches.match(req).then((cached) => {
         const fetchPromise = fetch(req)
           .then((res) => {
-            const copy = res.clone()
-            caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {})
+            if (res && res.ok && res.status === 200) {
+              const copy = res.clone()
+              caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {})
+            }
             return res
           })
           .catch(() => cached)
