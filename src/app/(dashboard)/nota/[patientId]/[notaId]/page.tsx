@@ -192,8 +192,23 @@ export default function NotaImprimiblePage() {
           </div>
         )}
 
-        {/* Firma */}
+        {/* Firma — solo si la nota está firmada */}
         <div style={{ marginTop: 40, textAlign: 'center' }}>
+          {/* Imagen de firma + sello (si el médico la subió en Configuración) */}
+          {nota.estado === 'firmada' && config?.firmaImagenDataUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={config.firmaImagenDataUrl}
+              alt="Firma del médico"
+              style={{
+                maxHeight: 70,
+                maxWidth: 280,
+                display: 'block',
+                margin: '0 auto -8px auto',  // overlap discreto con la línea
+                objectFit: 'contain',
+              }}
+            />
+          )}
           <div style={{ borderTop: '1px solid #1a1a1a', width: 280, margin: '0 auto', paddingTop: 4, fontSize: 12.5 }}>
             <strong>{medico}</strong><br />
             {especialidad}<br />

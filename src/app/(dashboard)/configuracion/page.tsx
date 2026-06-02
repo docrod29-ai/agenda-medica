@@ -264,6 +264,14 @@ export default function ConfiguracionPage() {
               <option value="America/Tijuana">Tijuana / Baja California (UTC-8)</option>
             </select>
           </div>
+
+          {/* 🖋️ Firma + sello — se renderiza encima de la línea de firma en notas, recetas y órdenes */}
+          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+            <FirmaUploadSection
+              firmaDataUrl={form.firmaImagenDataUrl}
+              onChange={(dataUrl) => setForm({ ...form, firmaImagenDataUrl: dataUrl })}
+            />
+          </div>
         </div>
       )}
 
@@ -2301,6 +2309,123 @@ function MargenInput({ label, value, onChange }: { label: string; value: number;
           }}
         />
         <span style={{ fontSize: 10.5, color: 'var(--text3)' }}>mm</span>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Sección para subir la firma + sello del médico.
+ *
+ * Se renderiza después automáticamente en:
+ *  - Notas firmadas (vista imprimible)
+ *  - Recetas (modo template y modo diseño custom)
+ *  - Órdenes médicas
+ *
+ * Recomendado: PNG con FONDO TRANSPARENTE para que se vea bien sobre cualquier papel.
+ * Si el médico sube un JPG, le agregamos fondo blanco igualmente.
+ */
+function FirmaUploadSection({ firmaDataUrl, onChange }: { firmaDataUrl?: string; onChange: (dataUrl: string | undefined) => void }) {
+  const { toast } = useToast()
+  const [procesando, setProcesando] = useState(false)
+
+  const subir = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast('Sube una imagen PNG o JPG', 'error')
+      return
+    }
+    setProcesando(true)
+    try {
+      // Para firma, preferimos PNG (preserva transparencia)
+      // Si el archivo original es PNG, lo mantenemos como PNG; si es JPG, redimensionamos
+      const esPNG = file.type === 'image/png'
+      const { dataUrl, sizeBytes } = await resizeImageFile(file, {
+        maxWidth: 800,
+        maxHeight: 400,
+        quality: 0.9,
+        type: esPNG ? 'image/png' : 'image/jpeg',
+      })
+      if (sizeBytes > 400_000) {
+        toast(`Imagen muy pesada (${formatBytes(sizeBytes)}). Sube una versión más pequeña.`, 'error')
+        return
+      }
+      onChange(dataUrl)
+      toast(`Firma cargada (${formatBytes(sizeBytes)})`, 'success')
+    } catch (e) {
+      toast(`No se pudo procesar: ${(e as Error).message}`, 'error')
+    } finally {
+      setProcesando(false)
+    }
+  }
+
+  return (
+    <div style={{
+      background: 'linear-gradient(135deg, rgba(20,184,166,0.06), rgba(20,184,166,0.02))',
+      border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginTop: 4,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+        <span style={{ fontSize: 20 }}>🖋️</span>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>Firma + sello (imagen)</div>
+          <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>
+            Aparece automáticamente sobre la línea de firma en <strong>notas firmadas, recetas y órdenes médicas</strong>.
+          </div>
+        </div>
+      </div>
+
+      {firmaDataUrl ? (
+        <div style={{ position: 'relative', background: '#fff', borderRadius: 8, padding: 14, border: '1px solid var(--border)', textAlign: 'center' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={firmaDataUrl}
+            alt="Firma del médico"
+            style={{ maxWidth: '100%', maxHeight: 120, display: 'block', margin: '0 auto' }}
+          />
+          <button
+            onClick={() => onChange(undefined)}
+            style={{
+              position: 'absolute', top: 8, right: 8,
+              background: 'rgba(239,68,68,0.9)', color: '#fff', border: 'none',
+              borderRadius: 6, padding: '4px 10px', fontSize: 11.5, fontWeight: 600,
+              cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4,
+            }}
+          >
+            <IconX size={11} /> Quitar
+          </button>
+        </div>
+      ) : (
+        <label style={{
+          display: 'block', textAlign: 'center', padding: '20px 14px',
+          border: '2px dashed rgba(20,184,166,0.4)', borderRadius: 10,
+          background: 'rgba(20,184,166,0.04)', cursor: procesando ? 'wait' : 'pointer',
+          color: 'var(--text2)',
+        }}>
+          {procesando ? (
+            <>
+              <Loader2 size={20} style={{ animation: 'spin 1s linear infinite', marginBottom: 6 }} />
+              <div style={{ fontSize: 12.5, fontWeight: 600 }}>Procesando…</div>
+            </>
+          ) : (
+            <>
+              <Upload size={20} style={{ marginBottom: 6, color: 'var(--teal)' }} />
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Sube tu firma + sello</div>
+              <div style={{ fontSize: 11, marginTop: 4 }}>
+                PNG (recomendado, fondo transparente) o JPG · Máx 400 KB
+              </div>
+            </>
+          )}
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            disabled={procesando}
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) subir(f) }}
+            style={{ display: 'none' }}
+          />
+        </label>
+      )}
+
+      <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 8, padding: '6px 10px', background: 'rgba(255,200,0,0.05)', borderLeft: '2px solid #f59e0b', borderRadius: 3 }}>
+        💡 Tip: Escanea tu firma en una hoja blanca con tu sello al lado, recórtalo en blanco y súbelo como PNG con fondo transparente. Mide unos 6 × 3 cm en la vida real.
       </div>
     </div>
   )

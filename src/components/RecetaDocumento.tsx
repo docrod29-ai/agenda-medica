@@ -52,6 +52,7 @@ export function RecetaDocumento({ data, config, recetaConfig, containerId = 'rec
     return (
       <DocumentoConDisenoCustom
         data={data}
+        config={config}
         recetaConfig={recetaConfig}
         containerId={containerId}
         paper={paper}
@@ -225,13 +226,27 @@ export function RecetaDocumento({ data, config, recetaConfig, containerId = 'rec
       )}
 
       {/* Firma del médico */}
-      <div style={{ marginTop: 'auto', paddingTop: 18 }}>
+      <div style={{ marginTop: 'auto', paddingTop: 14, textAlign: 'center' }}>
+        {/* Imagen de firma + sello sobre la línea (si el médico la subió) */}
+        {config?.firmaImagenDataUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={config.firmaImagenDataUrl}
+            alt="Firma del médico"
+            style={{
+              maxHeight: '18mm',
+              maxWidth: '60mm',
+              margin: '0 auto -4mm auto', // -4mm: ligero overlap con la línea
+              display: 'block',
+              objectFit: 'contain',
+            }}
+          />
+        )}
         <div style={{
           borderTop: '1px solid #1a1a1a',
           width: 200,
           margin: '0 auto',
           paddingTop: 3,
-          textAlign: 'center',
           fontSize: 10,
         }}>
           <strong>{medico}</strong><br />
@@ -357,9 +372,10 @@ function EncabezadoAuto({
  * contenido caiga exactamente donde su papel lo espera.
  */
 function DocumentoConDisenoCustom({
-  data, recetaConfig, containerId, paper,
+  data, config, recetaConfig, containerId, paper,
 }: {
   data: RecetaData
+  config: ClinicConfig | null
   recetaConfig: RecetaConfig
   containerId: string
   paper: { widthMm: number; heightMm: number }
@@ -476,6 +492,25 @@ function DocumentoConDisenoCustom({
           </div>
         )}
       </div>
+
+      {/* Firma + sello (imagen) en la zona inferior central. Se posiciona ENCIMA del diseño
+          del médico — si su diseño ya tenía firma impresa, debería quitar esta imagen. */}
+      {config?.firmaImagenDataUrl && (
+        <div style={{
+          position: 'absolute',
+          bottom: `${Math.max(4, margenes.bottom - 22)}mm`,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          textAlign: 'center',
+        }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={config.firmaImagenDataUrl}
+            alt="Firma"
+            style={{ maxHeight: '20mm', maxWidth: '60mm', display: 'block' }}
+          />
+        </div>
+      )}
 
       {/* QR opcional al pie (esquina inferior derecha, fuera del área de contenido) */}
       {recetaConfig.mostrarQR && (

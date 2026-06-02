@@ -269,6 +269,12 @@ export interface ClinicConfig {
   // Portal público de auto-agenda
   publicBookingEnabled?: boolean   // Si true, el portal /reservar/[clinicId] acepta citas
   publicBookingNote?: string       // Mensaje opcional para pacientes ("solo nuevas consultas, etc.")
+  /**
+   * Firma + sello del médico (imagen). Si está presente, se renderiza encima de la
+   * línea de firma en notas firmadas, recetas y órdenes. Se guarda como data URL
+   * base64 ya redimensionado.
+   */
+  firmaImagenDataUrl?: string
   // Receta y órdenes médicas
   recetaConfig?: RecetaConfig
   updatedAt?: string
