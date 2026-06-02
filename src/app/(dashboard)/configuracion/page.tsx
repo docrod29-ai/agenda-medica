@@ -1680,6 +1680,9 @@ function PortalTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
         </div>
       </div>
 
+      {/* Embeber en tu sitio web */}
+      <EmbedSnippets url={url} clinicNombre={clinicNombre} />
+
       {/* Cómo funciona */}
       <div style={{ padding: 16, background: 'rgba(20,184,166,0.06)', border: '1px solid rgba(20,184,166,0.2)', borderRadius: 12 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--teal)', marginBottom: 10 }}>
@@ -1699,6 +1702,124 @@ function PortalTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
         <button onClick={guardar} disabled={saving} className="btn btn-primary">
           {saving ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Guardando…</> : <><Save size={14} /> Guardar cambios</>}
         </button>
+      </div>
+    </div>
+  )
+}
+
+/* ── Snippets embebibles para sitio web ──────────────────────── */
+
+function EmbedSnippets({ url, clinicNombre }: { url: string; clinicNombre: string }) {
+  const { toast } = useToast()
+  const [tipo, setTipo] = useState<'boton' | 'flotante' | 'iframe'>('boton')
+  const [copied, setCopied] = useState(false)
+
+  if (!url) return null
+
+  // Escapamos comillas para que el snippet sea válido HTML al pegarse
+  const safeUrl = url.replace(/"/g, '&quot;')
+  const safeName = clinicNombre.replace(/"/g, '&quot;').replace(/</g, '&lt;')
+
+  // 1) Botón inline (a tag con estilos inline → funciona en cualquier sitio sin clases CSS)
+  const snippetBoton = `<a href="${safeUrl}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;background:#14b8a6;color:#000;font-family:system-ui,-apple-system,sans-serif;font-weight:700;font-size:15px;padding:12px 22px;border-radius:10px;text-decoration:none;box-shadow:0 2px 8px rgba(20,184,166,.3)">📅 Agendar cita</a>`
+
+  // 2) Botón flotante (sticky bottom-right)
+  const snippetFlotante = `<a href="${safeUrl}" target="_blank" rel="noopener" style="position:fixed;bottom:20px;right:20px;display:inline-flex;align-items:center;gap:8px;background:#14b8a6;color:#000;font-family:system-ui,-apple-system,sans-serif;font-weight:700;font-size:15px;padding:14px 22px;border-radius:50px;text-decoration:none;box-shadow:0 4px 16px rgba(20,184,166,.4);z-index:9999">📅 Agendar cita</a>`
+
+  // 3) Iframe (portal completo embebido). Requiere que el sitio host permita iframes.
+  const snippetIframe = `<iframe src="${safeUrl}" title="Agendar cita con ${safeName}" style="width:100%;max-width:540px;height:720px;border:1px solid #ddd;border-radius:12px;background:#fff" loading="lazy"></iframe>`
+
+  const actual = tipo === 'boton' ? snippetBoton : tipo === 'flotante' ? snippetFlotante : snippetIframe
+
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(actual)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      toast('No se pudo copiar', 'error')
+    }
+  }
+
+  const tabs: { key: typeof tipo; label: string; desc: string }[] = [
+    { key: 'boton', label: 'Botón en línea', desc: 'Pega en cualquier parte del HTML — botón verde estándar' },
+    { key: 'flotante', label: 'Botón flotante', desc: 'Botón fijo en esquina inferior derecha — siempre visible' },
+    { key: 'iframe', label: 'Portal embebido', desc: 'El portal completo dentro de tu página' },
+  ]
+
+  return (
+    <div style={{ padding: 16, background: 'var(--s)', border: '1px solid var(--border)', borderRadius: 12 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>
+        💻 Embeber en tu sitio web
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>
+        Pega este código en tu página web (WordPress, Wix, Squarespace, Webflow, etc.) y aparecerá el botón / portal.
+      </div>
+
+      {/* Selector de tipo */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+        {tabs.map(t => (
+          <button
+            key={t.key}
+            onClick={() => setTipo(t.key)}
+            style={{
+              padding: '8px 14px', borderRadius: 8,
+              border: tipo === t.key ? '1px solid var(--teal)' : '1px solid var(--border)',
+              background: tipo === t.key ? 'rgba(20,184,166,0.1)' : 'var(--s2)',
+              color: tipo === t.key ? 'var(--teal)' : 'var(--text2)',
+              fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ fontSize: 11.5, color: 'var(--text3)', marginBottom: 8 }}>
+        {tabs.find(t => t.key === tipo)?.desc}
+      </div>
+
+      {/* Preview del botón (solo para 'boton' y 'flotante') */}
+      {tipo === 'boton' && (
+        <div style={{ padding: 16, background: '#fafafa', borderRadius: 8, marginBottom: 10, border: '1px dashed var(--border)', display: 'flex', justifyContent: 'center' }}>
+          <a
+            href={url} target="_blank" rel="noopener noreferrer"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#14b8a6', color: '#000', fontWeight: 700, fontSize: 15, padding: '12px 22px', borderRadius: 10, textDecoration: 'none', boxShadow: '0 2px 8px rgba(20,184,166,.3)' }}
+          >
+            📅 Agendar cita
+          </a>
+        </div>
+      )}
+      {tipo === 'flotante' && (
+        <div style={{ padding: 16, background: '#fafafa', borderRadius: 8, marginBottom: 10, border: '1px dashed var(--border)', position: 'relative', height: 110, overflow: 'hidden' }}>
+          <div style={{ fontSize: 11, color: '#999', position: 'absolute', top: 8, left: 12 }}>↓ Simulación del botón flotante</div>
+          <a
+            href={url} target="_blank" rel="noopener noreferrer"
+            style={{ position: 'absolute', bottom: 12, right: 12, display: 'inline-flex', alignItems: 'center', gap: 8, background: '#14b8a6', color: '#000', fontWeight: 700, fontSize: 15, padding: '14px 22px', borderRadius: 50, textDecoration: 'none', boxShadow: '0 4px 16px rgba(20,184,166,.4)' }}
+          >
+            📅 Agendar cita
+          </a>
+        </div>
+      )}
+
+      {/* Código */}
+      <div style={{ position: 'relative' }}>
+        <pre style={{
+          margin: 0, padding: '12px 14px', background: '#0a0a0a', color: '#a3e635',
+          borderRadius: 8, fontSize: 11.5, fontFamily: 'ui-monospace, "SF Mono", monospace',
+          overflow: 'auto', maxHeight: 200, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+          border: '1px solid var(--border)',
+        }}>
+          <code>{actual}</code>
+        </pre>
+        <button onClick={copiar} className="btn btn-primary" style={{ position: 'absolute', top: 8, right: 8, padding: '6px 10px', fontSize: 11.5 }}>
+          <Copy size={12} /> {copied ? '¡Copiado!' : 'Copiar código'}
+        </button>
+      </div>
+
+      <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8 }}>
+        💡 Tip: Si usas <strong>WordPress</strong>, pega el código en un bloque <em>HTML personalizado</em>.
+        En <strong>Wix/Squarespace</strong> busca el elemento "Código embebido".
       </div>
     </div>
   )
