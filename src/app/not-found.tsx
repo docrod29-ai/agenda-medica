@@ -3,13 +3,17 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 /**
- * Página 404 personalizada con auto-recovery.
- *
- * Si el usuario llegó aquí por culpa de un SW/caché viejo, el botón
- * "Reintentar" limpia todo (SW + caches + localStorage flags) y recarga.
+ * Página 404 personalizada con auto-recovery + diagnóstico de URL fallido.
  */
 export default function NotFound() {
   const [intentando, setIntentando] = useState(false)
+  const [urlFallido, setUrlFallido] = useState('')
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setUrlFallido(window.location.pathname + window.location.search)
+    }
+  }, [])
 
   const reintentarLimpio = async () => {
     setIntentando(true)
@@ -90,6 +94,20 @@ export default function NotFound() {
         <div style={{ fontSize: 12, color: '#6e7681', marginTop: 24 }}>
           Si el problema persiste, cierra y vuelve a abrir la app desde tu pantalla de inicio.
         </div>
+
+        {/* Diagnóstico — útil para reportar el problema */}
+        {urlFallido && (
+          <div style={{
+            marginTop: 20, padding: '10px 14px', background: '#0d1117',
+            border: '1px solid #2d333b', borderRadius: 8, fontSize: 11,
+            color: '#8b949e', fontFamily: 'ui-monospace, monospace',
+            wordBreak: 'break-all', textAlign: 'left',
+          }}>
+            <div style={{ color: '#6e7681', marginBottom: 4 }}>URL fallida:</div>
+            <div style={{ color: '#e6edf3' }}>{urlFallido}</div>
+            <div style={{ color: '#6e7681', marginTop: 8 }}>Build: 2026-06-01-rutas-fix</div>
+          </div>
+        )}
       </div>
     </div>
   )
