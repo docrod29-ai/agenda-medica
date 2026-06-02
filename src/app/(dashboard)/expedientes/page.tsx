@@ -10,6 +10,9 @@ import { useAuth } from '@/hooks/useAuth'
 import type { Patient } from '@/types'
 import { FileText, Search, Loader2, ChevronRight, AlertTriangle, CalendarClock, Plus, X, Trash2 } from 'lucide-react'
 import { useToast } from '@/context/ToastContext'
+import { useMode } from '@/context/ModeContext'
+import Link from 'next/link'
+import { Calendar } from 'lucide-react'
 
 /** Entrada unificada: paciente del directorio o derivado de citas */
 interface Entrada {
@@ -27,6 +30,7 @@ export default function ExpedientesPage() {
   const { user } = useAuth()
   const { toast } = useToast()
   const router = useRouter()
+  const { mode } = useMode()
   const [entradas, setEntradas] = useState<Entrada[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -195,12 +199,34 @@ export default function ExpedientesPage() {
           <FileText size={22} color="var(--teal)" />
           <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Expedientes clínicos</h1>
         </div>
-        <button onClick={() => setModalNuevo(true)} style={{
-          display: 'flex', alignItems: 'center', gap: 8, background: 'var(--teal)', color: '#000',
-          border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-        }}>
-          <Plus size={16} /> Nuevo paciente
-        </button>
+        {/* Modo Secretaria: solo agendar (unifica flujo). Modo Médico: ambos. */}
+        {mode === 'secretaria' ? (
+          <Link href="/asistente">
+            <button style={{
+              display: 'flex', alignItems: 'center', gap: 8, background: 'var(--teal)', color: '#000',
+              border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+            }}>
+              <Calendar size={16} /> Agendar (registra paciente)
+            </button>
+          </Link>
+        ) : (
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Link href="/asistente">
+              <button style={{
+                display: 'flex', alignItems: 'center', gap: 8, background: 'transparent', color: 'var(--text)',
+                border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+              }}>
+                <Calendar size={16} /> Agendar
+              </button>
+            </Link>
+            <button onClick={() => setModalNuevo(true)} style={{
+              display: 'flex', alignItems: 'center', gap: 8, background: 'var(--teal)', color: '#000',
+              border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+            }}>
+              <Plus size={16} /> Nuevo paciente
+            </button>
+          </div>
+        )}
       </div>
       <p style={{ fontSize: 14, color: 'var(--text3)', marginBottom: 20 }}>
         Selecciona un paciente para ver su expediente, o crea uno nuevo aunque no tenga cita.

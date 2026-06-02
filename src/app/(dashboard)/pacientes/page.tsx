@@ -5,13 +5,16 @@ import { getPatients, createPatient, updatePatient } from '@/lib/firestore'
 import { useToast } from '@/context/ToastContext'
 import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
-import { Plus, Search, X, Loader2, Users, Phone, AlertCircle, FileText } from 'lucide-react'
+import { useMode } from '@/context/ModeContext'
+import { Plus, Search, X, Loader2, Users, Phone, AlertCircle, FileText, Calendar } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function PacientesPage() {
   const { toast } = useToast()
   const { user } = useAuth()
   const { clinicId } = useClinic()
+  const { mode } = useMode()
   const router = useRouter()
   const [patients, setPatients] = useState<Patient[]>([])
   const [loading, setLoading] = useState(true)
@@ -54,7 +57,23 @@ export default function PacientesPage() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Pacientes</h1>
-        <button className="btn btn-primary" onClick={openNew}><Plus size={16} /> Nuevo paciente</button>
+        {/* Modo Secretaria: solo botón de Agendar (unifica flujo). Modo Médico: botón completo + atajo a Agendar. */}
+        {mode === 'secretaria' ? (
+          <Link href="/asistente">
+            <button className="btn btn-primary">
+              <Calendar size={16} /> Agendar (registra paciente)
+            </button>
+          </Link>
+        ) : (
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Link href="/asistente">
+              <button className="btn btn-secondary">
+                <Calendar size={16} /> Agendar
+              </button>
+            </Link>
+            <button className="btn btn-primary" onClick={openNew}><Plus size={16} /> Nuevo paciente</button>
+          </div>
+        )}
       </div>
 
       {/* Search */}
