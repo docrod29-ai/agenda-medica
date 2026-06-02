@@ -112,15 +112,23 @@ export default function ExpedientePage() {
               esUltima={i === notasFiltradas.length - 1}
               abierta={expandida === n.id}
               onToggle={() => setExpandida(expandida === n.id ? null : n.id)}
-              // patientId del param a veces está vacío en el callback (timing de useParams);
-              // usamos n.pacienteId como fuente de verdad (siempre presente en la nota).
-              onEditar={() => router.push(`/consulta/${n.pacienteId || patientId}?nota=${n.id}`)}
+              // Triple fuente para el patientId: 1) nota.pacienteId (legacy puede no tenerlo),
+              // 2) param de la URL via useParams, 3) extraído de window.location.pathname.
+              // Si TODO falla, navegamos solo con notaId y dejamos que la ruta de rescate lo resuelva.
+              onEditar={() => {
+                const pid = n.pacienteId || patientId || (typeof window !== 'undefined' ? window.location.pathname.split('/').filter(Boolean)[1] : '')
+                if (pid && n.id) router.push(`/consulta/${pid}?nota=${n.id}`)
+                else if (n.id) router.push(`/nota/${n.id}`)  // rescate buscará el paciente
+                else alert('No se pudo abrir la nota.')
+              }}
               onImprimir={() => {
-                const pid = n.pacienteId || patientId
-                if (!pid || !n.id) {
-                  alert('No se pudo abrir la nota: faltan datos. Recarga la página e intenta de nuevo.')
-                  return
-                }
+                const pidParam = patientId
+                const pidNota = n.pacienteId
+                const pidPath = typeof window !== 'undefined' ? window.location.pathname.split('/').filter(Boolean)[1] : ''
+                const pid = pidNota || pidParam || pidPath
+                if (!n.id) { alert('Esta nota no tiene ID. Recarga el expediente.'); return }
+                // Si no tenemos pid de ninguna fuente, vamos a la ruta de rescate (busca en la clínica)
+                if (!pid) { router.push(`/nota/${n.id}`); return }
                 router.push(`/nota/${pid}/${n.id}`)
               }}
               onBorrar={() => borrarNota(n.id)}
