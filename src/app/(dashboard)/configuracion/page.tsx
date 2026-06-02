@@ -1906,18 +1906,26 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
    * cómodo en Firestore (<800KB).
    */
   const [subiendoDiseno, setSubiendoDiseno] = useState(false)
+  const [progresoDiseno, setProgresoDiseno] = useState('')
   const subirDisenoCompleto = async (file: File) => {
     setSubiendoDiseno(true)
+    setProgresoDiseno('Iniciando…')
     try {
       let dataUrl: string
       let sizeBytes: number
 
       if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
         const { pdfFileToImageDataUrl } = await import('@/lib/pdf-to-image')
-        const result = await pdfFileToImageDataUrl(file, { dpi: 180, quality: 0.85 })
+        const result = await pdfFileToImageDataUrl(file, {
+          dpi: 180,
+          quality: 0.85,
+          onProgress: setProgresoDiseno,
+          timeoutMs: 60_000,
+        })
         dataUrl = result.dataUrl
         sizeBytes = result.sizeBytes
       } else if (file.type.startsWith('image/')) {
+        setProgresoDiseno('Optimizando imagen…')
         const result = await resizeImageFile(file, { maxWidth: 1600, maxHeight: 2400, quality: 0.88 })
         dataUrl = result.dataUrl
         sizeBytes = result.sizeBytes
@@ -1933,9 +1941,11 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
       setRx({ ...rx, disenoCompletoDataUrl: dataUrl })
       toast(`Diseño cargado (${formatBytes(sizeBytes)})`, 'success')
     } catch (e) {
+      console.error('[disenoCompleto] error:', e)
       toast(`No se pudo procesar: ${(e as Error).message}`, 'error')
     } finally {
       setSubiendoDiseno(false)
+      setProgresoDiseno('')
     }
   }
 
@@ -2001,7 +2011,11 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
               {subiendoDiseno ? (
                 <>
                   <Loader2 size={22} style={{ animation: 'spin 1s linear infinite', marginBottom: 6 }} />
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>Procesando…</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{progresoDiseno || 'Procesando…'}</div>
+                  <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 6 }}>
+                    La primera vez puede tardar 5-15 seg (descarga la librería PDF).
+                    Si pasa de 1 minuto, intenta subir tu PDF como imagen PNG.
+                  </div>
                 </>
               ) : (
                 <>
