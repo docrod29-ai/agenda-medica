@@ -1892,12 +1892,155 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
     }
   }
 
+  /**
+   * Sube el diseño COMPLETO de la receta del médico (su propio papel).
+   * Acepta PDF (renderiza primera página) o imagen. Se resizea para que quepa
+   * cómodo en Firestore (<800KB).
+   */
+  const [subiendoDiseno, setSubiendoDiseno] = useState(false)
+  const subirDisenoCompleto = async (file: File) => {
+    setSubiendoDiseno(true)
+    try {
+      let dataUrl: string
+      let sizeBytes: number
+
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        const { pdfFileToImageDataUrl } = await import('@/lib/pdf-to-image')
+        const result = await pdfFileToImageDataUrl(file, { dpi: 180, quality: 0.85 })
+        dataUrl = result.dataUrl
+        sizeBytes = result.sizeBytes
+      } else if (file.type.startsWith('image/')) {
+        const result = await resizeImageFile(file, { maxWidth: 1600, maxHeight: 2400, quality: 0.88 })
+        dataUrl = result.dataUrl
+        sizeBytes = result.sizeBytes
+      } else {
+        toast('Sube un PDF o una imagen (PNG/JPG)', 'error')
+        return
+      }
+
+      if (sizeBytes > 900_000) {
+        toast(`Diseño muy pesado (${formatBytes(sizeBytes)}). Sube un PDF más simple o una imagen de menor calidad.`, 'error')
+        return
+      }
+      setRx({ ...rx, disenoCompletoDataUrl: dataUrl })
+      toast(`Diseño cargado (${formatBytes(sizeBytes)})`, 'success')
+    } catch (e) {
+      toast(`No se pudo procesar: ${(e as Error).message}`, 'error')
+    } finally {
+      setSubiendoDiseno(false)
+    }
+  }
+
   if (!clinicId) return <div style={{ color: 'var(--text3)' }}>Cargando…</div>
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 20, alignItems: 'start' }}>
       {/* Editor */}
       <div style={{ display: 'grid', gap: 16 }}>
+
+        {/* MODO TU PROPIO DISEÑO — primera sección, destacada */}
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(20,184,166,0.10), rgba(167,139,250,0.10))',
+          border: '1px solid rgba(20,184,166,0.4)', borderRadius: 12, padding: 16,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, gap: 8, flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
+                ⭐ Usa TU propia receta
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--text2)', marginTop: 2 }}>
+                Sube tu diseño actual (PDF o imagen). Lo usamos como fondo y solo
+                sobreponemos los datos del paciente, Rx, indicaciones y firma.
+              </div>
+            </div>
+            {rx.disenoCompletoDataUrl && (
+              <span style={{
+                fontSize: 10.5, fontWeight: 700, padding: '4px 10px',
+                background: 'var(--teal)', color: '#000', borderRadius: 100,
+              }}>
+                ACTIVO
+              </span>
+            )}
+          </div>
+
+          {rx.disenoCompletoDataUrl ? (
+            <div style={{ position: 'relative', background: '#fff', borderRadius: 8, padding: 8, border: '1px solid var(--border)' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={rx.disenoCompletoDataUrl}
+                alt="Diseño de receta"
+                style={{ width: '100%', maxHeight: 240, objectFit: 'contain', display: 'block' }}
+              />
+              <button
+                onClick={() => setRx({ ...rx, disenoCompletoDataUrl: undefined })}
+                style={{
+                  position: 'absolute', top: 12, right: 12,
+                  background: 'rgba(239,68,68,0.9)', color: '#fff', border: 'none',
+                  borderRadius: 6, padding: '4px 10px', fontSize: 11.5, fontWeight: 600,
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+                }}
+              >
+                <IconX size={11} /> Quitar diseño
+              </button>
+            </div>
+          ) : (
+            <label style={{
+              display: 'block', textAlign: 'center', padding: '26px 14px',
+              border: '2px dashed rgba(20,184,166,0.5)', borderRadius: 10,
+              background: 'rgba(20,184,166,0.06)', cursor: subiendoDiseno ? 'wait' : 'pointer',
+              color: 'var(--text2)',
+            }}>
+              {subiendoDiseno ? (
+                <>
+                  <Loader2 size={22} style={{ animation: 'spin 1s linear infinite', marginBottom: 6 }} />
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>Procesando…</div>
+                </>
+              ) : (
+                <>
+                  <Upload size={22} style={{ marginBottom: 6, color: 'var(--teal)' }} />
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>Sube tu receta</div>
+                  <div style={{ fontSize: 11.5, marginTop: 4 }}>PDF o imagen PNG/JPG · Recomendado: tu receta en blanco con logo y datos</div>
+                </>
+              )}
+              <input
+                type="file"
+                accept="application/pdf,image/png,image/jpeg,image/webp"
+                disabled={subiendoDiseno}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) subirDisenoCompleto(f) }}
+                style={{ display: 'none' }}
+              />
+            </label>
+          )}
+
+          {/* Calibración de márgenes — solo cuando hay diseño */}
+          {rx.disenoCompletoDataUrl && (
+            <div style={{ marginTop: 12, padding: 12, background: 'rgba(0,0,0,0.15)', borderRadius: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
+                📐 Calibrar área de contenido (mm)
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 10 }}>
+                Define dónde caen los datos del paciente y la receta. Mira la vista previa →
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+                <MargenInput label="Arriba" value={rx.disenoMargenes?.top ?? 35} onChange={(v) => setRx({ ...rx, disenoMargenes: { ...defaultMargenes(rx), top: v } })} />
+                <MargenInput label="Abajo" value={rx.disenoMargenes?.bottom ?? 30} onChange={(v) => setRx({ ...rx, disenoMargenes: { ...defaultMargenes(rx), bottom: v } })} />
+                <MargenInput label="Izquierda" value={rx.disenoMargenes?.left ?? 12} onChange={(v) => setRx({ ...rx, disenoMargenes: { ...defaultMargenes(rx), left: v } })} />
+                <MargenInput label="Derecha" value={rx.disenoMargenes?.right ?? 12} onChange={(v) => setRx({ ...rx, disenoMargenes: { ...defaultMargenes(rx), right: v } })} />
+              </div>
+              <div style={{ marginTop: 10 }}>
+                <label style={cfgLabel}>Tamaño de letra del contenido (px)</label>
+                <input
+                  type="range" min={8} max={16} step={0.5}
+                  value={rx.disenoFontSize ?? 11}
+                  onChange={(e) => setRx({ ...rx, disenoFontSize: parseFloat(e.target.value) })}
+                  style={{ width: '100%' }}
+                />
+                <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'right' }}>{rx.disenoFontSize ?? 11}px</div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Tamaño de papel */}
         <Section title="Tamaño de papel">
           <select
@@ -2136,4 +2279,29 @@ const cfgInput: React.CSSProperties = {
 }
 const cfgLabel: React.CSSProperties = {
   display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--text2)', marginBottom: 3,
+}
+
+function defaultMargenes(rx: RecetaConfig) {
+  return rx.disenoMargenes ?? { top: 35, right: 12, bottom: 30, left: 12 }
+}
+
+function MargenInput({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+  return (
+    <div>
+      <label style={{ fontSize: 11, color: 'var(--text3)', display: 'block', marginBottom: 2 }}>{label}</label>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <input
+          type="number" min={0} max={100} step={1}
+          value={value}
+          onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+          style={{
+            width: '100%', padding: '4px 6px', borderRadius: 4,
+            border: '1px solid var(--border)', background: 'var(--s2)',
+            color: 'var(--text)', fontSize: 12,
+          }}
+        />
+        <span style={{ fontSize: 10.5, color: 'var(--text3)' }}>mm</span>
+      </div>
+    </div>
+  )
 }

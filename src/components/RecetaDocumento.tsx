@@ -46,6 +46,19 @@ export function RecetaDocumento({ data, config, recetaConfig, containerId = 'rec
   const accent = recetaConfig.colorAccento ?? '#14b8a6'
   const estilo = recetaConfig.estilo ?? 'minimalista'
 
+  // Si el médico subió su diseño completo, lo usamos como fondo y solo sobreponemos
+  // los datos dinámicos. Este es el modo "tu propio papel".
+  if (recetaConfig.disenoCompletoDataUrl) {
+    return (
+      <DocumentoConDisenoCustom
+        data={data}
+        recetaConfig={recetaConfig}
+        containerId={containerId}
+        paper={paper}
+      />
+    )
+  }
+
   const medico = config?.nombreMedico ?? '—'
   const cedula = config?.cedulaProfesional ?? '—'
   const especialidad = config?.especialidad ?? ''
@@ -329,6 +342,157 @@ function EncabezadoAuto({
       {clinica && <div style={{ fontSize: 10, color: '#444', marginTop: 1 }}>{clinica}</div>}
       {direccion && <div style={{ fontSize: 9.5, color: '#666' }}>{direccion}</div>}
       {telefono && <div style={{ fontSize: 9.5, color: '#666' }}>Tel. {telefono}</div>}
+    </div>
+  )
+}
+
+/**
+ * Documento con diseño custom del médico.
+ *
+ * Renderiza la imagen del médico como fondo a tamaño completo de la hoja,
+ * y sobre ella coloca SOLO el contenido dinámico (paciente, Rx, indicaciones,
+ * firma) en una "zona de contenido" definida por los márgenes.
+ *
+ * El médico calibra los márgenes una vez en Configuración para que el
+ * contenido caiga exactamente donde su papel lo espera.
+ */
+function DocumentoConDisenoCustom({
+  data, recetaConfig, containerId, paper,
+}: {
+  data: RecetaData
+  recetaConfig: RecetaConfig
+  containerId: string
+  paper: { widthMm: number; heightMm: number }
+}) {
+  const margenes = recetaConfig.disenoMargenes ?? { top: 35, right: 12, bottom: 30, left: 12 }
+  const fontSize = recetaConfig.disenoFontSize ?? 11
+
+  return (
+    <div
+      id={containerId}
+      style={{
+        width: `${paper.widthMm}mm`,
+        height: `${paper.heightMm}mm`,
+        position: 'relative',
+        background: `#fff url(${recetaConfig.disenoCompletoDataUrl}) center / 100% 100% no-repeat`,
+        margin: '0 auto',
+        boxShadow: '0 6px 24px rgba(0,0,0,0.15)',
+        color: '#1a1a1a',
+        fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Área de contenido — los márgenes definen dónde empieza y termina */}
+      <div
+        style={{
+          position: 'absolute',
+          top: `${margenes.top}mm`,
+          right: `${margenes.right}mm`,
+          bottom: `${margenes.bottom}mm`,
+          left: `${margenes.left}mm`,
+          fontSize: `${fontSize}px`,
+          lineHeight: 1.35,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        {/* Folio + fecha (esquina superior derecha del área) */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: fontSize - 1, color: '#444', marginBottom: 4 }}>
+          <span>{data.fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
+          <span style={{ fontFamily: 'monospace' }}>Folio: {data.folio}</span>
+        </div>
+
+        {/* Paciente */}
+        <div style={{ marginBottom: 4 }}>
+          <strong>Nombre:</strong> {data.paciente?.nombre ?? '—'}
+          {data.paciente?.edad ? `   ·   Edad: ${data.paciente.edad}` : ''}
+          {data.paciente?.sexo ? `   ·   ${data.paciente.sexo}` : ''}
+        </div>
+
+        {/* Diagnóstico opcional */}
+        {recetaConfig.mostrarDiagnostico !== false && data.diagnostico && (
+          <div style={{ marginBottom: 4 }}>
+            <strong>Dx:</strong> {data.diagnostico}
+          </div>
+        )}
+
+        {/* Alergias resaltadas (si está activo) */}
+        {recetaConfig.mostrarAlergias !== false && data.paciente?.alergias && (
+          <div style={{
+            border: '1px solid #b91c1c', color: '#b91c1c',
+            padding: '2px 6px', borderRadius: 3,
+            fontSize: fontSize - 1, fontWeight: 700, marginBottom: 6,
+          }}>
+            ALERGIAS: {data.paciente.alergias}
+          </div>
+        )}
+
+        {/* Línea separadora discreta */}
+        <div style={{ height: 1, background: 'rgba(0,0,0,0.15)', margin: '4px 0 6px 0' }} />
+
+        {/* Cuerpo: Rx o estudios */}
+        {data.tipo === 'receta' && data.medicamentos && data.medicamentos.length > 0 && (
+          <ol style={{ margin: 0, paddingLeft: 18, fontSize: fontSize, lineHeight: 1.5 }}>
+            {data.medicamentos.map((m, i) => (
+              <li key={i} style={{ marginBottom: 4 }}>
+                <strong>{m.nombre}{m.dosis ? ` ${m.dosis}` : ''}</strong>
+                {m.via && <span> · {m.via}</span>}
+                <br />
+                <span style={{ fontSize: fontSize - 0.5 }}>
+                  {m.frecuencia}
+                  {m.duracion && ` por ${m.duracion}`}
+                  {m.indicacion && ` — ${m.indicacion}`}
+                </span>
+              </li>
+            ))}
+          </ol>
+        )}
+
+        {data.tipo === 'orden' && data.estudios && data.estudios.length > 0 && (
+          <div>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>Estudios solicitados:</div>
+            <ol style={{ margin: 0, paddingLeft: 18, lineHeight: 1.5 }}>
+              {data.estudios.map((e, i) => <li key={i}>{e}</li>)}
+            </ol>
+          </div>
+        )}
+
+        {/* Indicaciones generales */}
+        {data.indicaciones && (
+          <div style={{ marginTop: 6 }}>
+            <strong>Indicaciones:</strong>
+            <div style={{ whiteSpace: 'pre-wrap' }}>{data.indicaciones}</div>
+          </div>
+        )}
+
+        {/* Nota destacada al paciente */}
+        {data.notaParaPaciente && (
+          <div style={{
+            marginTop: 6, padding: '3px 6px', borderRadius: 3,
+            background: 'rgba(255,200,0,0.15)', borderLeft: '2px solid #f59e0b',
+            fontSize: fontSize - 0.5,
+          }}>
+            {data.notaParaPaciente}
+          </div>
+        )}
+      </div>
+
+      {/* QR opcional al pie (esquina inferior derecha, fuera del área de contenido) */}
+      {recetaConfig.mostrarQR && (
+        <div style={{
+          position: 'absolute',
+          bottom: `${Math.max(2, margenes.bottom - 16)}mm`,
+          right: `${margenes.right}mm`,
+          textAlign: 'center',
+        }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(`Folio:${data.folio}`)}&size=80x80&margin=2`}
+            alt="QR"
+            style={{ width: '12mm', height: '12mm', background: 'rgba(255,255,255,0.8)', padding: 2, borderRadius: 2 }}
+          />
+        </div>
+      )}
     </div>
   )
 }

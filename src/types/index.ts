@@ -287,6 +287,17 @@ export interface RecetaConfig {
   membreteDataUrl?: string
   /** Pie de página: imagen opcional al final (firma escaneada, datos extra) */
   pieDataUrl?: string
+  /**
+   * Diseño COMPLETO de receta subido por el médico (su propio papel).
+   * Cuando se usa, sustituye membrete/pie/encabezado generado: la imagen se renderiza
+   * como fondo a tamaño completo y SOLO se sobreponen los datos dinámicos (paciente,
+   * Rx, indicaciones, firma) en la zona definida por `disenoMargenes`.
+   */
+  disenoCompletoDataUrl?: string
+  /** Márgenes del área de contenido cuando se usa diseño completo (en mm). */
+  disenoMargenes?: { top: number; right: number; bottom: number; left: number }
+  /** Tamaño de fuente del contenido sobre el diseño custom (px) */
+  disenoFontSize?: number
   /** Color de acento (botones, líneas) */
   colorAccento?: string
   /** Mostrar QR de verificación al pie de la receta */
