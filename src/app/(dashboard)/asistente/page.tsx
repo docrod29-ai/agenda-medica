@@ -16,6 +16,8 @@ import { AppointmentType, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { CalendarDays, Clock, User, Phone, Stethoscope, CheckCircle2, Loader2 } from 'lucide-react'
 import { format, addDays } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
 
@@ -40,20 +42,33 @@ const TIPOS: { value: AppointmentType; label: string }[] = Object.entries(APPOIN
 )
 
 export default function AsistentePage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 24, color: 'var(--text3)' }}>Cargando…</div>}>
+      <AsistenteInner />
+    </Suspense>
+  )
+}
+
+function AsistenteInner() {
   const { user } = useAuth()
   const { clinicId } = useClinic()
   const { appointments } = useAppointments()
   const { config } = useConfig()
   const { activeDoctors, loading: doctorsLoading } = useDoctors()
   const { toast } = useToast()
+  const sp = useSearchParams()
+
+  // Lectura de query params (?fecha=YYYY-MM-DD&hora=HH:MM)
+  const fechaParam = sp.get('fecha')
+  const horaParam = sp.get('hora')
 
   // Form state
   const [nombre, setNombre] = useState('')
   const [telefono, setTelefono] = useState('')
   const [doctorId, setDoctorId] = useState('')
   const [tipo, setTipo] = useState<AppointmentType>('primera-vez')
-  const [fecha, setFecha] = useState(todayStr())
-  const [horaSeleccionada, setHoraSeleccionada] = useState('')
+  const [fecha, setFecha] = useState(fechaParam || todayStr())
+  const [horaSeleccionada, setHoraSeleccionada] = useState(horaParam || '')
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
 

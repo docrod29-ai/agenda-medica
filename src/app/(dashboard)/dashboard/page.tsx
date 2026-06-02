@@ -82,7 +82,7 @@ export default function DashboardPage() {
             {fechaLabel.charAt(0).toUpperCase() + fechaLabel.slice(1)}
           </p>
         </div>
-        <Link href="/citas?new=1">
+        <Link href="/asistente">
           <button className="btn btn-primary">
             <Plus size={16} /> Nueva cita
           </button>
@@ -141,7 +141,7 @@ export default function DashboardPage() {
             <div style={{ padding: 48, textAlign: 'center' }}>
               <CalendarDays size={40} color="var(--text3)" style={{ margin: '0 auto 12px' }} />
               <p style={{ color: 'var(--text3)', fontSize: 14, margin: 0 }}>Sin citas hoy</p>
-              <Link href="/citas?new=1">
+              <Link href="/asistente">
                 <button className="btn btn-secondary btn-sm" style={{ marginTop: 12 }}>
                   <Plus size={14} /> Agendar cita
                 </button>

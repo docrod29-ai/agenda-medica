@@ -64,19 +64,14 @@ export default function CitasPage() {
   const [menuId, setMenuId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  // Open new-appointment modal from query param
+  // Solo abrir modal cuando es para EDITAR (ya no auto-abre para crear)
   useEffect(() => {
-    if (params.get('new') === '1') {
-      setEditAppt(null)
-      setModalOpen(true)
-      router.replace('/citas')
-    }
     const id = params.get('id')
     if (id) {
       const found = appointments.find(a => a.id === id)
       if (found) { setEditAppt(found); setModalOpen(true) }
     }
-  }, [params, appointments, router])
+  }, [params, appointments])
 
   const filtered = useMemo(() => {
     return appointments.filter(a => {
@@ -124,7 +119,7 @@ export default function CitasPage() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, gap: 12, flexWrap: 'wrap' }}>
         <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Citas</h1>
-        <button className="btn btn-primary" onClick={() => { setEditAppt(null); setModalOpen(true) }}>
+        <button className="btn btn-primary" onClick={() => router.push('/asistente')}>
           <Plus size={16} /> Nueva cita
         </button>
       </div>

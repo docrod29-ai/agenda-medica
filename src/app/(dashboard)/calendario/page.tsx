@@ -1,5 +1,6 @@
 'use client'
 import { useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAppointments } from '@/hooks/useAppointments'
 import { useConfig } from '@/hooks/useConfig'
 import { AppointmentModal } from '@/components/AppointmentModal'
@@ -15,6 +16,7 @@ type View = 'semana' | 'mes' | 'dia'
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 7) // 7am–7pm
 
 export default function CalendarioPage() {
+  const router = useRouter()
   const { appointments, loading } = useAppointments()
   const { config } = useConfig()
   const [view, setView] = useState<View>('semana')
@@ -26,11 +28,13 @@ export default function CalendarioPage() {
 
   const weekDates = useMemo(() => getWeekDates(baseDate), [baseDate])
 
+  // Crear cita: redirige al flujo unificado "Agendar rápido" con fecha/hora prellenada
   const openNew = (fecha: string, hora: string) => {
-    setEditAppt(null)
-    setDefaultDate(fecha)
-    setDefaultHour(hora)
-    setModalOpen(true)
+    const qs = new URLSearchParams()
+    if (fecha) qs.set('fecha', fecha)
+    if (hora) qs.set('hora', hora)
+    const s = qs.toString()
+    router.push(s ? `/asistente?${s}` : '/asistente')
   }
 
   const openEdit = (appt: Appointment) => {
