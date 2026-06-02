@@ -55,7 +55,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `(function(){
               try{
-                var KEY='__am_sw_reset_v5';
+                var KEY='__am_sw_reset_v6';
                 if(localStorage.getItem(KEY)) return;
                 if(!('serviceWorker' in navigator)) { localStorage.setItem(KEY,'1'); return; }
                 navigator.serviceWorker.getRegistrations().then(function(rs){

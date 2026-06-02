@@ -27,7 +27,7 @@ export default function NotFound() {
         await Promise.all(keys.map(k => caches.delete(k)))
       }
       // Reset flags para forzar re-corrida del kill-switch
-      try { localStorage.removeItem('__am_sw_reset_v5') } catch {}
+      try { localStorage.removeItem('__am_sw_reset_v6') } catch {}
     } finally {
       window.location.replace('/dashboard')
     }
@@ -105,7 +105,7 @@ export default function NotFound() {
           }}>
             <div style={{ color: '#6e7681', marginBottom: 4 }}>URL fallida:</div>
             <div style={{ color: '#e6edf3' }}>{urlFallido}</div>
-            <div style={{ color: '#6e7681', marginTop: 8 }}>Build: 2026-06-01-rutas-fix</div>
+            <div style={{ color: '#6e7681', marginTop: 8 }}>Build: 2026-06-01-rescate-nota</div>
           </div>
         )}
       </div>

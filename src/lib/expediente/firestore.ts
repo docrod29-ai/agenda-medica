@@ -27,6 +27,24 @@ export async function getNota(clinicId: string, patientId: string, notaId: strin
   return snap.exists() ? ({ id: snap.id, ...snap.data() } as NotaMedica) : null
 }
 
+/**
+ * Busca una nota por ID sin conocer el patientId.
+ * Recorre todos los pacientes de la clínica buscando la nota.
+ * Útil como ruta de rescate cuando el URL llega malformado (un solo segmento).
+ * No expone PII fuera del tenant — usa la misma estructura clinics/{clinicId}/patients.
+ */
+export async function findNotaByIdInClinic(clinicId: string, notaId: string): Promise<{ patientId: string; nota: NotaMedica } | null> {
+  // Listar todos los pacientes del tenant
+  const patientsSnap = await getDocs(collection(db, 'clinics', clinicId, 'patients'))
+  for (const p of patientsSnap.docs) {
+    const ns = await getDoc(notaDoc(clinicId, p.id, notaId))
+    if (ns.exists()) {
+      return { patientId: p.id, nota: { id: ns.id, ...ns.data() } as NotaMedica }
+    }
+  }
+  return null
+}
+
 /** Firestore rechaza valores `undefined`. Los eliminamos recursivamente. */
 function stripUndefined<T>(value: T): T {
   if (Array.isArray(value)) {
