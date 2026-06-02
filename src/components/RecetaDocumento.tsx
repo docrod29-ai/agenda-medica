@@ -412,39 +412,44 @@ function DocumentoConDisenoCustom({
           flexDirection: 'column',
         }}
       >
-        {/* Folio + fecha (esquina superior derecha del área) */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: fontSize - 1, color: '#444', marginBottom: 4 }}>
-          <span>{data.fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
-          <span style={{ fontFamily: 'monospace' }}>Folio: {data.folio}</span>
-        </div>
+        {/* Modo "solo Rx": oculta folio/paciente/dx porque ya están pre-impresos en el papel */}
+        {!recetaConfig.disenoSoloRx && (
+          <>
+            {/* Folio + fecha (esquina superior derecha del área) */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: fontSize - 1, color: '#444', marginBottom: 4 }}>
+              <span>{data.fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
+              <span style={{ fontFamily: 'monospace' }}>Folio: {data.folio}</span>
+            </div>
 
-        {/* Paciente */}
-        <div style={{ marginBottom: 4 }}>
-          <strong>Nombre:</strong> {data.paciente?.nombre ?? '—'}
-          {data.paciente?.edad ? `   ·   Edad: ${data.paciente.edad}` : ''}
-          {data.paciente?.sexo ? `   ·   ${data.paciente.sexo}` : ''}
-        </div>
+            {/* Paciente */}
+            <div style={{ marginBottom: 4 }}>
+              <strong>Nombre:</strong> {data.paciente?.nombre ?? '—'}
+              {data.paciente?.edad ? `   ·   Edad: ${data.paciente.edad}` : ''}
+              {data.paciente?.sexo ? `   ·   ${data.paciente.sexo}` : ''}
+            </div>
 
-        {/* Diagnóstico opcional */}
-        {recetaConfig.mostrarDiagnostico !== false && data.diagnostico && (
-          <div style={{ marginBottom: 4 }}>
-            <strong>Dx:</strong> {data.diagnostico}
-          </div>
+            {/* Diagnóstico opcional */}
+            {recetaConfig.mostrarDiagnostico !== false && data.diagnostico && (
+              <div style={{ marginBottom: 4 }}>
+                <strong>Dx:</strong> {data.diagnostico}
+              </div>
+            )}
+
+            {/* Alergias resaltadas (si está activo) */}
+            {recetaConfig.mostrarAlergias !== false && data.paciente?.alergias && (
+              <div style={{
+                border: '1px solid #b91c1c', color: '#b91c1c',
+                padding: '2px 6px', borderRadius: 3,
+                fontSize: fontSize - 1, fontWeight: 700, marginBottom: 6,
+              }}>
+                ALERGIAS: {data.paciente.alergias}
+              </div>
+            )}
+
+            {/* Línea separadora discreta */}
+            <div style={{ height: 1, background: 'rgba(0,0,0,0.15)', margin: '4px 0 6px 0' }} />
+          </>
         )}
-
-        {/* Alergias resaltadas (si está activo) */}
-        {recetaConfig.mostrarAlergias !== false && data.paciente?.alergias && (
-          <div style={{
-            border: '1px solid #b91c1c', color: '#b91c1c',
-            padding: '2px 6px', borderRadius: 3,
-            fontSize: fontSize - 1, fontWeight: 700, marginBottom: 6,
-          }}>
-            ALERGIAS: {data.paciente.alergias}
-          </div>
-        )}
-
-        {/* Línea separadora discreta */}
-        <div style={{ height: 1, background: 'rgba(0,0,0,0.15)', margin: '4px 0 6px 0' }} />
 
         {/* Cuerpo: Rx o estudios */}
         {data.tipo === 'receta' && data.medicamentos && data.medicamentos.length > 0 && (

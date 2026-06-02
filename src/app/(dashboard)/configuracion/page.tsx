@@ -1952,9 +1952,9 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
   if (!clinicId) return <div style={{ color: 'var(--text3)' }}>Cargando…</div>
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 20, alignItems: 'start' }}>
+    <div className="recetas-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 380px', gap: 20, alignItems: 'start' }}>
       {/* Editor */}
-      <div style={{ display: 'grid', gap: 16 }}>
+      <div style={{ display: 'grid', gap: 16, minWidth: 0 }}>
 
         {/* MODO TU PROPIO DISEÑO — primera sección, destacada */}
         <div style={{
@@ -2059,6 +2059,29 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
                 />
                 <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'right' }}>{rx.disenoFontSize ?? 11}px</div>
               </div>
+
+              {/* Toggle "Solo Rx" — para diseños que ya tienen campos pre-impresos */}
+              <label style={{
+                display: 'flex', alignItems: 'center', gap: 10, marginTop: 12,
+                padding: 10, background: 'rgba(20,184,166,0.06)', borderRadius: 6,
+                border: '1px solid rgba(20,184,166,0.25)', cursor: 'pointer',
+              }}>
+                <input
+                  type="checkbox"
+                  checked={rx.disenoSoloRx === true}
+                  onChange={(e) => setRx({ ...rx, disenoSoloRx: e.target.checked })}
+                  style={{ width: 16, height: 16, accentColor: 'var(--teal)' }}
+                />
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>
+                    Mi diseño ya tiene campos del paciente impresos
+                  </div>
+                  <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 2, lineHeight: 1.4 }}>
+                    Si tu receta tiene líneas pre-impresas para Nombre, Edad, Fecha, etc.,
+                    activa esto. Solo se sobreponen los medicamentos / estudios en la zona libre.
+                  </div>
+                </div>
+              </label>
             </div>
           )}
         </div>
@@ -2222,36 +2245,102 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
         </div>
       </div>
 
-      {/* Preview en vivo */}
-      <div style={{ position: 'sticky', top: 20 }}>
-        <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', marginBottom: 8 }}>Vista previa en vivo</div>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 10 }}>
-          <button
-            onClick={() => setTipoPreview('receta')}
-            style={{
-              padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-              background: tipoPreview === 'receta' ? 'rgba(20,184,166,0.15)' : 'var(--s2)',
-              border: tipoPreview === 'receta' ? '1px solid var(--teal)' : '1px solid var(--border)',
-              color: tipoPreview === 'receta' ? 'var(--teal)' : 'var(--text3)',
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-            }}
-          >
-            <Pill size={12} /> Receta
-          </button>
-          <button
-            onClick={() => setTipoPreview('orden')}
-            style={{
-              padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-              background: tipoPreview === 'orden' ? 'rgba(167,139,250,0.15)' : 'var(--s2)',
-              border: tipoPreview === 'orden' ? '1px solid #a78bfa' : '1px solid var(--border)',
-              color: tipoPreview === 'orden' ? '#a78bfa' : 'var(--text3)',
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-            }}
-          >
-            <ClipboardList size={12} /> Orden
-          </button>
-        </div>
-        <div style={{ transform: 'scale(0.7)', transformOrigin: 'top center' }}>
+      {/* Preview en vivo — contenedor de ancho fijo, escala dinámica */}
+      <PreviewReceta tipoPreview={tipoPreview} setTipoPreview={setTipoPreview} rx={rx} config={config} />
+
+      {/* CSS responsive — colapsa preview en pantallas pequeñas */}
+      <style>{`
+        @media (max-width: 1000px) {
+          .recetas-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
+    </div>
+  )
+}
+
+/**
+ * Preview con escala dinámica que SIEMPRE cabe en su contenedor (ancho fijo 360px).
+ * Calcula la escala según el tamaño de papel para que la receta se vea proporcional
+ * sin desbordar el layout — independientemente de si eliges media-carta u oficio.
+ *
+ * También dibuja una GUÍA VISUAL (rectángulo translúcido cian) sobre el diseño
+ * custom mostrando dónde caen los datos. Así el médico calibra sin adivinar.
+ */
+function PreviewReceta({
+  tipoPreview, setTipoPreview, rx, config,
+}: {
+  tipoPreview: 'receta' | 'orden'
+  setTipoPreview: (t: 'receta' | 'orden') => void
+  rx: RecetaConfig
+  config: ClinicConfig | null
+}) {
+  const paper = PAPER_SIZES[rx.paperSize ?? 'media-carta']
+  // 96 DPI estándar web: 1mm ≈ 3.78 px
+  const paperWidthPx = (paper.widthMm * 96) / 25.4
+  const paperHeightPx = (paper.heightMm * 96) / 25.4
+  // Ancho objetivo del contenedor sticky en el lado derecho
+  const TARGET_WIDTH = 340
+  const TARGET_MAX_HEIGHT = 520
+  const scaleByWidth = TARGET_WIDTH / paperWidthPx
+  const scaleByHeight = TARGET_MAX_HEIGHT / paperHeightPx
+  const scale = Math.min(scaleByWidth, scaleByHeight, 1)
+  const containerWidth = paperWidthPx * scale
+  const containerHeight = paperHeightPx * scale
+
+  const margenes = rx.disenoMargenes ?? { top: 35, right: 12, bottom: 30, left: 12 }
+  const usarGuia = !!rx.disenoCompletoDataUrl
+
+  return (
+    <div style={{ position: 'sticky', top: 20 }}>
+      <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', marginBottom: 8 }}>
+        Vista previa · {paper.label.split(' ')[0]}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 10 }}>
+        <button
+          onClick={() => setTipoPreview('receta')}
+          style={{
+            padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            background: tipoPreview === 'receta' ? 'rgba(20,184,166,0.15)' : 'var(--s2)',
+            border: tipoPreview === 'receta' ? '1px solid var(--teal)' : '1px solid var(--border)',
+            color: tipoPreview === 'receta' ? 'var(--teal)' : 'var(--text3)',
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+          }}
+        >
+          <Pill size={12} /> Receta
+        </button>
+        <button
+          onClick={() => setTipoPreview('orden')}
+          style={{
+            padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            background: tipoPreview === 'orden' ? 'rgba(167,139,250,0.15)' : 'var(--s2)',
+            border: tipoPreview === 'orden' ? '1px solid #a78bfa' : '1px solid var(--border)',
+            color: tipoPreview === 'orden' ? '#a78bfa' : 'var(--text3)',
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+          }}
+        >
+          <ClipboardList size={12} /> Orden
+        </button>
+      </div>
+
+      {/* Contenedor que limita el tamaño visible y reserva espacio scaled */}
+      <div style={{
+        width: containerWidth,
+        height: containerHeight,
+        margin: '0 auto',
+        overflow: 'hidden',
+        position: 'relative',
+        background: '#1a2333',
+        borderRadius: 6,
+      }}>
+        <div style={{
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+          width: paperWidthPx,
+          height: paperHeightPx,
+          position: 'relative',
+        }}>
           <RecetaDocumento
             data={{
               tipo: tipoPreview,
@@ -2270,8 +2359,41 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
             config={config ?? null}
             recetaConfig={rx}
           />
+          {/* GUÍA VISUAL: rectángulo cian translúcido sobre la zona de contenido
+              cuando se usa diseño custom. Le muestra al médico DÓNDE caen los datos. */}
+          {usarGuia && (
+            <div style={{
+              position: 'absolute',
+              top: `${margenes.top}mm`,
+              right: `${margenes.right}mm`,
+              bottom: `${margenes.bottom}mm`,
+              left: `${margenes.left}mm`,
+              border: '2px dashed #14b8a6',
+              background: 'rgba(20,184,166,0.08)',
+              pointerEvents: 'none',
+              borderRadius: 2,
+            }}>
+              <div style={{
+                position: 'absolute', top: -22, left: 0,
+                background: '#14b8a6', color: '#000',
+                fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4,
+              }}>
+                ↓ Zona de contenido
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Nota informativa sobre la guía */}
+      {usarGuia && (
+        <div style={{
+          fontSize: 10.5, color: 'var(--text3)', marginTop: 8, textAlign: 'center', lineHeight: 1.4,
+        }}>
+          🔵 El recuadro cian muestra dónde caen los datos.<br />
+          Ajusta los márgenes hasta que NO se sobreponga al diseño impreso.
+        </div>
+      )}
     </div>
   )
 }

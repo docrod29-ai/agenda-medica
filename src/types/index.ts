@@ -304,6 +304,12 @@ export interface RecetaConfig {
   disenoMargenes?: { top: number; right: number; bottom: number; left: number }
   /** Tamaño de fuente del contenido sobre el diseño custom (px) */
   disenoFontSize?: number
+  /**
+   * Solo mostrar Rx/estudios en el área de contenido del diseño custom.
+   * Útil si tu papel YA tiene impresos los campos del paciente (Nombre, Edad,
+   * Fecha, etc.) — así no se sobreponen.
+   */
+  disenoSoloRx?: boolean
   /** Color de acento (botones, líneas) */
   colorAccento?: string
   /** Mostrar QR de verificación al pie de la receta */

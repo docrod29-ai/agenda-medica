@@ -17,6 +17,7 @@ import { getPatients } from '@/lib/firestore'
 import type { NotaMedica, Medicamento } from '@/types/expediente'
 import type { Patient } from '@/types'
 import { RecetaDocumento } from '@/components/RecetaDocumento'
+import { RecetaPreviewWrapper } from '@/components/RecetaPreviewWrapper'
 import { PAPER_SIZES } from '@/lib/receta-template'
 import { descargarComoPDF } from '@/lib/pdf-download'
 import {
@@ -155,7 +156,7 @@ export default function GeneradorRecetaPage() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 24, alignItems: 'start' }}>
+      <div className="receta-gen-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 420px', gap: 24, alignItems: 'start' }}>
         {/* Editor (no se imprime) */}
         <div className="no-print" style={{ display: 'grid', gap: 16 }}>
           {/* Diagnóstico */}
@@ -222,22 +223,32 @@ export default function GeneradorRecetaPage() {
           </div>
         </div>
 
-        {/* Preview en vivo */}
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <RecetaDocumento
-            data={{
-              tipo: 'receta',
-              folio,
-              fecha: new Date(),
-              paciente: patient,
-              diagnostico: diagnostico || undefined,
-              medicamentos,
-              indicaciones,
-              notaParaPaciente,
-            }}
-            config={config}
-            recetaConfig={recetaConfig}
-          />
+        {/* Preview en vivo — escalado para nunca desbordar */}
+        <div style={{ position: 'sticky', top: 20 }}>
+          <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', marginBottom: 8 }}>
+            Vista previa · {PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta'].label.split(' ')[0]}
+          </div>
+          <RecetaPreviewWrapper
+            paperWidthMm={PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta'].widthMm}
+            paperHeightMm={PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta'].heightMm}
+            maxWidth={380}
+            maxHeight={600}
+          >
+            <RecetaDocumento
+              data={{
+                tipo: 'receta',
+                folio,
+                fecha: new Date(),
+                paciente: patient,
+                diagnostico: diagnostico || undefined,
+                medicamentos,
+                indicaciones,
+                notaParaPaciente,
+              }}
+              config={config}
+              recetaConfig={recetaConfig}
+            />
+          </RecetaPreviewWrapper>
         </div>
       </div>
 
@@ -253,8 +264,8 @@ export default function GeneradorRecetaPage() {
           .no-print { display: none !important; }
           @page { size: ${PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta'].cssPage}; margin: 0; }
         }
-        @media (max-width: 900px) {
-          [style*="gridTemplateColumns"][style*="auto"] {
+        @media (max-width: 1000px) {
+          .receta-gen-grid {
             grid-template-columns: 1fr !important;
           }
         }
