@@ -194,11 +194,12 @@ export default function NotaImprimiblePage() {
 
         {/* Firma — solo si la nota está firmada */}
         <div style={{ marginTop: 40, textAlign: 'center' }}>
-          {/* Imagen de firma + sello (si el médico la subió en Configuración) */}
-          {nota.estado === 'firmada' && config?.firmaImagenDataUrl && (
+          {/* NOM-024: usar el SNAPSHOT de firma guardado en la nota (inmutable).
+              Fallback al config actual solo si la nota es vieja y no tiene snapshot. */}
+          {nota.estado === 'firmada' && (nota.firma?.imagenDataUrl || config?.firmaImagenDataUrl) && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={config.firmaImagenDataUrl}
+              src={nota.firma?.imagenDataUrl || config?.firmaImagenDataUrl}
               alt="Firma del médico"
               style={{
                 maxHeight: 70,

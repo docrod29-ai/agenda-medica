@@ -303,6 +303,10 @@ export default function ConsultaActivaPage() {
           institucion: config.nombreClinica,
           timestamp: now,
           hashFirma,
+          // SNAPSHOT de la imagen de firma+sello en este preciso momento.
+          // NOM-024: la nota firmada es inmutable, así que congelamos la firma actual.
+          // Si más adelante el médico cambia su firma, las notas viejas siguen mostrando la suya.
+          imagenDataUrl: config.firmaImagenDataUrl,
         },
       }
 

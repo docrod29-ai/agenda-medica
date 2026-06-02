@@ -79,6 +79,14 @@ export interface Firma {
   institucion?: string
   timestamp: string          // ISO
   hashFirma: string          // SHA-256
+  /**
+   * SNAPSHOT de la imagen de firma+sello al momento de firmar.
+   * NOM-024: las notas firmadas son inmutables, así que copiamos la firma
+   * en ESTE momento y nunca la sobrescribimos. Si el médico cambia su firma
+   * después, las notas viejas siguen mostrando la firma que tenía cuando
+   * las firmó (correcto desde el punto de vista legal).
+   */
+  imagenDataUrl?: string
 }
 
 // ── Sección genérica de la nota ────────────────────────────────
