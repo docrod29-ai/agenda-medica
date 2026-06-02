@@ -112,8 +112,17 @@ export default function ExpedientePage() {
               esUltima={i === notasFiltradas.length - 1}
               abierta={expandida === n.id}
               onToggle={() => setExpandida(expandida === n.id ? null : n.id)}
-              onEditar={() => router.push(`/consulta/${patientId}?nota=${n.id}`)}
-              onImprimir={() => router.push(`/nota/${patientId}/${n.id}`)}
+              // patientId del param a veces está vacío en el callback (timing de useParams);
+              // usamos n.pacienteId como fuente de verdad (siempre presente en la nota).
+              onEditar={() => router.push(`/consulta/${n.pacienteId || patientId}?nota=${n.id}`)}
+              onImprimir={() => {
+                const pid = n.pacienteId || patientId
+                if (!pid || !n.id) {
+                  alert('No se pudo abrir la nota: faltan datos. Recarga la página e intenta de nuevo.')
+                  return
+                }
+                router.push(`/nota/${pid}/${n.id}`)
+              }}
               onBorrar={() => borrarNota(n.id)}
             />
           ))}
