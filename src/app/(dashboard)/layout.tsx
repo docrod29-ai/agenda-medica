@@ -117,15 +117,21 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
           position: 'fixed', top: 0, left: 0, bottom: 0,
           width: 'min(82vw, 320px)',
           background: 'var(--s1)',
+          borderRight: '1px solid var(--border)',
           zIndex: 50,
           transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
           transition: 'transform 0.25s ease',
           overflowY: 'auto',
           boxShadow: sidebarOpen ? '4px 0 20px rgba(0,0,0,0.4)' : 'none',
+          display: 'flex',
+          flexDirection: 'column',
         }}
         className="mobile-sidebar-wrap"
       >
-        <Sidebar onClose={() => setSidebarOpen(false)} />
+        {/* Sidebar con display forzado inline para evitar cualquier CSS que lo oculte */}
+        <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minHeight: '100%' }}>
+          <Sidebar onClose={() => setSidebarOpen(false)} />
+        </div>
       </div>
 
       {/* Main area */}

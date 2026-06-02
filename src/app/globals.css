@@ -562,10 +562,19 @@ tbody tr:last-child { border-bottom: none; }
   .mobile-sidebar-wrap { display: none !important; }
 }
 /* En móvil, el sidebar dentro del wrapper SÍ se muestra (anula display:none global) */
+.mobile-sidebar-wrap,
+.mobile-sidebar-wrap > div,
+.mobile-sidebar-wrap aside,
 .mobile-sidebar-wrap .sidebar {
   display: flex !important;
+  flex-direction: column !important;
   width: 100% !important;
-  min-height: 100vh;
+  min-height: 100% !important;
+}
+/* Asegurar que el contenido interno también se muestre */
+.mobile-sidebar-wrap .sidebar-nav,
+.mobile-sidebar-wrap .sidebar-logo {
+  display: flex !important;
 }
 
 /* ── Bottom Nav — solo visible en móvil ─────────────────── */

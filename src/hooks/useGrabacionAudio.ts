@@ -45,12 +45,28 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     if (!soportado) { setError('Tu navegador no soporta grabación de audio'); setEstado('error'); return }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 16000 },
+        audio: { echoCancellation: true, noiseSuppression: true },
       })
       streamRef.current = stream
       chunksRef.current = []
-      const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm'
-      const rec = new MediaRecorder(stream, { mimeType: mime })
+
+      // iOS Safari NO soporta webm. Probar varios mime types en orden de preferencia.
+      const candidates = [
+        'audio/webm;codecs=opus',  // Chrome/Edge/Firefox desktop
+        'audio/webm',
+        'audio/mp4;codecs=mp4a.40.2', // iOS Safari moderno
+        'audio/mp4',
+        'audio/ogg;codecs=opus',
+        '',                         // último recurso: dejar al navegador elegir
+      ]
+      let mime = ''
+      for (const m of candidates) {
+        if (m === '' || (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(m))) {
+          mime = m
+          break
+        }
+      }
+      const rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream)
       rec.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data) }
       rec.start(1000)
       mediaRef.current = rec
@@ -61,7 +77,14 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       setEstado('grabando')
       setError('')
     } catch (e) {
-      setError('No se pudo acceder al micrófono: ' + String(e))
+      const err = e as Error
+      if (err.name === 'NotAllowedError' || err.message.includes('denied')) {
+        setError('Permiso de micrófono denegado. Permítelo en los ajustes del navegador.')
+      } else if (err.name === 'NotFoundError') {
+        setError('No se detectó micrófono en este dispositivo.')
+      } else {
+        setError('No se pudo iniciar la grabación: ' + err.message)
+      }
       setEstado('error')
     }
   }, [soportado])
@@ -84,9 +107,13 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     const blob = new Blob(chunksRef.current, { type: rec.mimeType })
     if (blob.size === 0) { setEstado('error'); setError('Audio vacío'); return }
 
+    // Whisper acepta mp3/mp4/m4a/wav/webm — extensión correcta según mime
+    const mt = rec.mimeType || ''
+    const ext = mt.includes('mp4') ? 'm4a' : mt.includes('ogg') ? 'ogg' : mt.includes('wav') ? 'wav' : 'webm'
+
     try {
       const fd = new FormData()
-      fd.append('audio', blob, 'consulta.webm')
+      fd.append('audio', blob, `consulta.${ext}`)
       const res = await fetch('/api/expediente/transcribir', { method: 'POST', body: fd })
       const data = await res.json()
       if (data.ok) {
