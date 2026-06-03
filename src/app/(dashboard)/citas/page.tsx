@@ -329,6 +329,21 @@ function AppointmentRowFull({
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
+        {/* Botón Unirse a videollamada para teleconsulta */}
+        {appt.tipo === 'teleconsulta' && (
+          <button
+            onClick={() => window.open(`/teleconsulta/${appt.id}`, '_blank', 'noopener')}
+            title="Unirse a videollamada"
+            style={{
+              background: 'rgba(20,184,166,0.15)', color: 'var(--teal)',
+              border: '1px solid rgba(20,184,166,0.4)', borderRadius: 6,
+              padding: '5px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+            }}
+          >
+            🎥 Unirse
+          </button>
+        )}
         {appt.pacienteTelefono && (
           <button className="btn btn-ghost btn-icon btn-sm" onClick={handleWA} title="WhatsApp">
             <MessageSquare size={15} />

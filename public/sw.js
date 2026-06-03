@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'agenda-medica-v22'  // bump para invalidar cachés viejas
+const CACHE = 'agenda-medica-v23'  // bump para invalidar cachés viejas
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()
@@ -15,6 +15,26 @@ self.addEventListener('install', (event) => {
 // Permite al cliente forzar activación cuando hay una nueva versión esperando
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting()
+})
+
+// Cuando el usuario hace click en una notificación → enfocar/abrir la app en la URL
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const url = (event.notification.data && event.notification.data.url) || '/'
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientsArr) => {
+        // Si ya hay una pestaña abierta de la app, enfocarla y navegar
+        for (const c of clientsArr) {
+          if ('focus' in c) {
+            c.navigate(url).catch(() => {})
+            return c.focus()
+          }
+        }
+        // Si no hay ninguna, abrir nueva
+        if (self.clients.openWindow) return self.clients.openWindow(url)
+      })
+  )
 })
 
 self.addEventListener('activate', (event) => {

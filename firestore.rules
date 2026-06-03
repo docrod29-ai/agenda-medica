@@ -90,6 +90,15 @@ service cloud.firestore {
       match /time_blocks/{blockId} {
         allow read, write: if isMember(clinicId);
       }
+      // Inventario de farmacia interna
+      match /farmacia/{itemId} {
+        allow read, write: if isMember(clinicId);
+      }
+      // Movimientos de farmacia (entradas, salidas, ajustes)
+      match /farmacia_movimientos/{movId} {
+        allow read, create: if isMember(clinicId);
+        allow update, delete: if false;  // movimientos inmutables — registro contable
+      }
       // Reseñas: read publicadas o miembros leen todo; create solo desde servidor
       match /reviews/{reviewId} {
         allow read: if true;  // permite mostrar publicadas en página pública

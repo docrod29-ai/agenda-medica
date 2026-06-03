@@ -10,6 +10,7 @@ import { ClinicProvider } from '@/context/ClinicContext'
 import { Menu, Loader2, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 import { OfflineBanner } from '@/components/OfflineBanner'
+import { NotificacionesPushOptIn } from '@/components/NotificacionesPushOptIn'
 import { useMode } from '@/context/ModeContext'
 import { BottomNav } from '@/components/BottomNav'
 
@@ -151,6 +152,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
         <OfflineBanner />
         <ModeBanner />
         <TrialBanner />
+        <NotificacionesPushOptIn />
         <main style={{ flex: 1, overflowY: 'auto' }}>
           {children}
         </main>
