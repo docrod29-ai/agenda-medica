@@ -99,6 +99,18 @@ service cloud.firestore {
         allow read, create: if isMember(clinicId);
         allow update, delete: if false;  // movimientos inmutables — registro contable
       }
+      // Cobros (registro contable)
+      // Solo se permite crear y leer; cancelar = update con cancelado=true (no delete).
+      match /cobros/{cobroId} {
+        allow read, create: if isMember(clinicId);
+        // Update solo para marcar cancelado o vincular factura (no para editar montos)
+        allow update: if isMember(clinicId)
+          && request.resource.data.monto == resource.data.monto
+          && request.resource.data.metodo == resource.data.metodo
+          && request.resource.data.concepto == resource.data.concepto
+          && request.resource.data.fecha == resource.data.fecha;
+        allow delete: if false;
+      }
       // Reseñas: read publicadas o miembros leen todo; create solo desde servidor
       match /reviews/{reviewId} {
         allow read: if true;  // permite mostrar publicadas en página pública

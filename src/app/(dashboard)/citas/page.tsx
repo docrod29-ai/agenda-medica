@@ -10,6 +10,8 @@ import { getPatients } from '@/lib/firestore'
 import type { Patient } from '@/types'
 import { AppointmentModal } from '@/components/AppointmentModal'
 import { DoctorFilter, useFiltroMedico, colorMedico } from '@/components/DoctorFilter'
+import { CobrarModal } from '@/components/CobrarModal'
+import { useAuth } from '@/hooks/useAuth'
 import { Appointment, AppointmentStatus, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { updateAppointment, deleteAppointment } from '@/lib/firestore'
 import { useClinic } from '@/context/ClinicContext'
@@ -48,7 +50,9 @@ export default function CitasPage() {
   const router = useRouter()
   const { appointments, loading } = useAppointments()
   const { config } = useConfig()
+  const { user } = useAuth()
   const [medicoFiltro, setMedicoFiltro] = useFiltroMedico()
+  const [cobrarAppt, setCobrarAppt] = useState<Appointment | null>(null)
   const { clinicId } = useClinic()
   const { toast } = useToast()
   const [pacientes, setPacientes] = useState<Patient[]>([])
@@ -211,6 +215,7 @@ export default function CitasPage() {
                 onEdit={() => { setEditAppt(appt); setModalOpen(true); setMenuId(null) }}
                 onDelete={() => { handleDelete(appt.id); setMenuId(null) }}
                 onStatusChange={s => handleStatusChange(appt, s)}
+                onCobrar={(a) => setCobrarAppt(a)}
                 deleting={deletingId === appt.id}
               />
             ))}
@@ -226,6 +231,22 @@ export default function CitasPage() {
         onSaved={() => {}}
       />
 
+      {cobrarAppt && clinicId && user && (
+        <CobrarModal
+          clinicId={clinicId}
+          creadoPor={user.uid}
+          prefill={{
+            citaId: cobrarAppt.id,
+            patientId: cobrarAppt.pacienteId,
+            patientNombre: cobrarAppt.pacienteNombre,
+            medicoId: cobrarAppt.medicoId,
+            medicoNombre: cobrarAppt.medicoNombre,
+            concepto: cobrarAppt.tipo === 'teleconsulta' ? 'teleconsulta' : 'consulta',
+          }}
+          onClose={() => setCobrarAppt(null)}
+        />
+      )}
+
       {/* Close menu on outside click */}
       {menuId && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9 }} onClick={() => setMenuId(null)} />
@@ -235,7 +256,7 @@ export default function CitasPage() {
 }
 
 function AppointmentRowFull({
-  appt, paciente, config, isLast, menuOpen, onMenuToggle, onEdit, onDelete, onStatusChange, deleting,
+  appt, paciente, config, isLast, menuOpen, onMenuToggle, onEdit, onDelete, onStatusChange, onCobrar, deleting,
 }: {
   appt: Appointment
   paciente: Patient | null
@@ -246,6 +267,7 @@ function AppointmentRowFull({
   onEdit: () => void
   onDelete: () => void
   onStatusChange: (s: AppointmentStatus) => void
+  onCobrar?: (appt: Appointment) => void
   deleting: boolean
 }) {
   const hora = appt.fechaHora.slice(11, 16)
@@ -329,14 +351,29 @@ function AppointmentRowFull({
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
+        {/* Botón Cobrar — solo cuando la cita no está cancelada/no-asistió */}
+        {appt.estado !== 'cancelada' && appt.estado !== 'no-asistio' && appt.estado !== 'reagendada' && onCobrar && (
+          <button
+            onClick={() => onCobrar(appt)}
+            title="Registrar cobro"
+            style={{
+              background: 'rgba(20,184,166,0.15)', color: 'var(--teal)',
+              border: '1px solid rgba(20,184,166,0.4)', borderRadius: 6,
+              padding: '5px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+            }}
+          >
+            💵 Cobrar
+          </button>
+        )}
         {/* Botón Unirse a videollamada para teleconsulta */}
         {appt.tipo === 'teleconsulta' && (
           <button
             onClick={() => window.open(`/teleconsulta/${appt.id}`, '_blank', 'noopener')}
             title="Unirse a videollamada"
             style={{
-              background: 'rgba(20,184,166,0.15)', color: 'var(--teal)',
-              border: '1px solid rgba(20,184,166,0.4)', borderRadius: 6,
+              background: 'rgba(167,139,250,0.15)', color: '#a78bfa',
+              border: '1px solid rgba(167,139,250,0.4)', borderRadius: 6,
               padding: '5px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: 4,
             }}

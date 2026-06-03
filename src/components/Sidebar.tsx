@@ -31,6 +31,7 @@ const NAV: { href: string; label: string; icon: typeof LayoutDashboard; modos: '
   { href: '/resenas',       label: 'Reseñas',        icon: Star,            modos: 'medico' },
   { href: '/chat',          label: 'Chat',           icon: MessageCircle,   modos: 'ambos' },
   { href: '/farmacia',      label: 'Farmacia',       icon: Pill,            modos: 'ambos' },
+  { href: '/finanzas',      label: 'Finanzas',       icon: TrendingUp,      modos: 'medico' },
   { href: '/cumplimiento',  label: 'Cumplimiento',   icon: ShieldCheck,     modos: 'medico' },
 ]
 
