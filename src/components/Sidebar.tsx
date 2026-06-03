@@ -73,12 +73,24 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
     <aside className="sidebar">
       {/* Logo */}
       <div className="sidebar-logo">
-        <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--teal-glow)', border: '1px solid rgba(0,212,168,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Stethoscope size={18} color="var(--teal)" />
+        <div style={{
+          width: 36, height: 36, borderRadius: 10,
+          background: 'var(--nexus-soft)', border: '1px solid rgba(61,90,254,0.32)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          {/* Mark NexusMED en miniatura */}
+          <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
+            <g stroke="#3D5AFE" strokeWidth="5" strokeLinecap="round" fill="none">
+              <line x1="8" y1="8" x2="8" y2="40"/>
+              <line x1="40" y1="8" x2="40" y2="40"/>
+              <line x1="8" y1="8" x2="40" y2="40"/>
+            </g>
+            <circle cx="24" cy="24" r="3" fill="#F2EFE9"/>
+          </svg>
         </div>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
-            {config.nombreClinica || 'Agenda Médica'}
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+            {config.nombreClinica || 'NexusMED'}
           </div>
           <div style={{ fontSize: 11, color: 'var(--text3)' }}>
             {(() => {

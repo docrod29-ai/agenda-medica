@@ -89,8 +89,8 @@ function RegistroInner() {
             <Stethoscope size={22} color="var(--teal)" />
           </div>
           <div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>Agenda Médica</div>
-            <div style={{ fontSize: 12, color: 'var(--text3)' }}>para médicos en México</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em' }}>NexusMED</div>
+            <div style={{ fontSize: 12, color: 'var(--text3)' }}>El consultorio, conectado.</div>
           </div>
         </div>
 

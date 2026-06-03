@@ -1,12 +1,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect width="512" height="512" rx="112" fill="#040b12"/>
-  <rect x="40" y="40" width="432" height="432" rx="84" fill="none" stroke="#00d4a8" stroke-width="10" opacity="0.25"/>
-  <g fill="none" stroke="#00d4a8" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M168 120 v92 a72 72 0 0 0 144 0 v-92"/>
-    <path d="M168 120 h-26 M168 120 h26"/>
-    <path d="M312 120 h-26 M312 120 h26"/>
-    <path d="M240 356 a64 64 0 0 0 64 -64 v-8"/>
+  <!-- NexusMED app icon — N entrelazada formando un nodo (nexus)
+       Sobre canvas ink-neutro, mark en cobalto NexusMED.
+       Safe area iOS respetada: contenido dentro de inset 88px (17%). -->
+  <defs>
+    <linearGradient id="nx-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3D5AFE"/>
+      <stop offset="100%" stop-color="#2845EA"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Canvas iOS-style con squircle radius -->
+  <rect width="512" height="512" rx="112" fill="#0B0C0E"/>
+
+  <!-- N geométrica: dos verticales + diagonal entrelazada con punto-nodo
+       Las verticales miden 200px, separadas por 168px.
+       La diagonal nace en la parte alta de la izq y termina abajo de la der,
+       pasando por el centro donde un nodo blanco la corta sutilmente. -->
+  <g stroke="url(#nx-grad)" stroke-width="44" stroke-linecap="round" fill="none">
+    <!-- Vertical izquierda -->
+    <line x1="156" y1="148" x2="156" y2="364"/>
+    <!-- Vertical derecha -->
+    <line x1="356" y1="148" x2="356" y2="364"/>
+    <!-- Diagonal del nexo (arriba-izq → abajo-der) -->
+    <line x1="156" y1="148" x2="356" y2="364"/>
   </g>
-  <circle cx="308" cy="288" r="34" fill="#00d4a8"/>
-  <circle cx="308" cy="288" r="14" fill="#040b12"/>
+
+  <!-- Nodo central (el "nexus") — punto bone sobre la diagonal -->
+  <circle cx="256" cy="256" r="22" fill="#F2EFE9"/>
+  <circle cx="256" cy="256" r="9" fill="#0B0C0E"/>
 </svg>

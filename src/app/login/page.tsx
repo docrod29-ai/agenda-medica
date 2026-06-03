@@ -93,7 +93,7 @@ function LoginInner() {
             <Stethoscope size={30} color="var(--teal)" />
           </div>
           <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
-            Agenda Médica
+            NexusMED
           </h1>
           <p style={{ fontSize: 14, color: 'var(--text2)', marginTop: 6 }}>
             Sistema de gestión de citas
@@ -177,7 +177,7 @@ function LoginInner() {
         </div>
 
         <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text3)', marginTop: 20 }}>
-          Agenda Médica © {new Date().getFullYear()}
+          NexusMED © {new Date().getFullYear()}
         </p>
       </div>
 

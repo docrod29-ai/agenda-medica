@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 96" width="480" height="96">
+  <!-- NexusMED wordmark horizontal — mark + texto.
+       Para header de login, sidebar, materiales marketing. -->
+  <defs>
+    <linearGradient id="wm-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3D5AFE"/>
+      <stop offset="100%" stop-color="#2845EA"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Mark (60px, escalado a 48 con padding) -->
+  <g transform="translate(8, 24)">
+    <g stroke="url(#wm-grad)" stroke-width="6.6" stroke-linecap="round" fill="none">
+      <line x1="6" y1="6" x2="6" y2="42"/>
+      <line x1="42" y1="6" x2="42" y2="42"/>
+      <line x1="6" y1="6" x2="42" y2="42"/>
+    </g>
+    <circle cx="24" cy="24" r="3.4" fill="#F2EFE9"/>
+    <circle cx="24" cy="24" r="1.4" fill="#0B0C0E"/>
+  </g>
+
+  <!-- Wordmark "NexusMED" en Geist semibold equivalent -->
+  <text x="72" y="60" font-family="'Geist', system-ui, sans-serif" font-weight="600" font-size="38" fill="currentColor" letter-spacing="-1.2">
+    <tspan fill="currentColor">Nexus</tspan><tspan font-weight="500" opacity="0.7">MED</tspan>
+  </text>
+</svg>

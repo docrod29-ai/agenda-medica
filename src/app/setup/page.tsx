@@ -64,7 +64,7 @@ export default function SetupPage() {
             <Stethoscope size={22} color="var(--teal)" />
           </div>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>Agenda Médica</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em' }}>NexusMED</div>
             <div style={{ fontSize: 12, color: 'var(--text3)' }}>Configura tu consultorio</div>
           </div>
         </div>

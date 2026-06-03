@@ -125,7 +125,7 @@ function Nav() {
         }}>
           <Stethoscope size={17} color="var(--teal)" />
         </div>
-        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Agenda Médica</span>
+        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em' }}>NexusMED</span>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -548,7 +548,7 @@ function Footer() {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <Stethoscope size={16} color="var(--teal)" />
-        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Agenda Médica</span>
+        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>NexusMED</span>
         <span style={{ fontSize: 14, color: 'var(--text3)' }}>· Hecho en México 🇲🇽</span>
       </div>
       <div style={{ display: 'flex', gap: 24 }}>
@@ -557,7 +557,7 @@ function Footer() {
         <a href="mailto:soporte@agendamedica.mx" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Soporte</a>
       </div>
       <div style={{ fontSize: 13, color: 'var(--text3)' }}>
-        © 2025 Agenda Médica. Todos los derechos reservados.
+        © {new Date().getFullYear()} NexusMED. Todos los derechos reservados.
       </div>
     </footer>
   )

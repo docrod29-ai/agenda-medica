@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Geist, Geist_Mono, Fraunces } from "next/font/google"
 import "./globals.css"
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister"
 
@@ -13,22 +13,40 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 })
 
+// Fraunces — serif editorial, uso restringido a hero/citas/momentos editoriales
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  display: "swap",
+})
+
 export const metadata: Metadata = {
-  title: "Agenda Médica",
-  description: "Agenda inteligente y expediente clínico electrónico para médicos en México",
+  title: {
+    default: "NexusMED",
+    template: "%s · NexusMED",
+  },
+  description: "El consultorio, conectado. Agenda, expediente, recetas y cobros en una sola herramienta.",
+  applicationName: "NexusMED",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Agenda Médica",
+    title: "NexusMED",
   },
   icons: {
     icon: "/icon.svg",
     apple: "/icon.svg",
   },
+  openGraph: {
+    title: "NexusMED",
+    description: "El consultorio, conectado.",
+    type: "website",
+    locale: "es_MX",
+  },
 }
 
 export const viewport: Viewport = {
-  themeColor: "#040b12",
+  themeColor: "#0B0C0E",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -41,7 +59,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="es" className={`${geistSans.variable} ${geistMono.variable} h-full`}>
+    <html lang="es" className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full`}>
       <head>
         {/*
           Kill-switch único por versión de deploy.

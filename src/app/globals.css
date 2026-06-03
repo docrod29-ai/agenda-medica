@@ -1,24 +1,51 @@
 @import "tailwindcss";
 
 :root {
-  --bg:        #040b12;
-  --s1:        #0a1628;
-  --s2:        #0f2040;
-  --s3:        #1a3456;
-  --border:    #1e3a5f;
-  --border2:   #2a4a72;
-  --teal:      #00d4a8;
-  --teal-dim:  #00a888;
-  --teal-glow: rgba(0, 212, 168, 0.15);
-  --blue:      #3b82f6;
-  --blue-dim:  #2563eb;
-  --amber:     #f59e0b;
-  --red:       #ef4444;
-  --green:     #22c55e;
-  --purple:    #a855f7;
-  --text:      #e2e8f0;
-  --text2:     #94a3b8;
-  --text3:     #64748b;
+  /* ── NexusMED design tokens ──────────────────────────────────
+     Sistema de color rediseñado:
+     - Canvas: ink neutro (no navy) — más refinado, menos "Bootstrap"
+     - Superficies: shades del ink, contraste preciso
+     - Acento: cobalto mexicano (no teal) — distintivo a nivel global
+     - Texto: bone (warm white) en vez de slate frío
+     Los nombres de variables se mantienen para back-compat: ningún
+     componente necesita cambiar — todo se recolorea automáticamente.
+     ────────────────────────────────────────────────────────────── */
+
+  /* Canvas + superficies (dark mode primario, ink-neutral) */
+  --bg:        #0B0C0E;
+  --s:         #131518;
+  --s1:        #131518;
+  --s2:        #1A1D21;
+  --s3:        #232629;
+
+  /* Bordes — alpha sobre canvas para integración */
+  --border:    rgba(242,239,233,0.08);
+  --border2:   rgba(242,239,233,0.14);
+
+  /* Acento de marca: cobalto NexusMED
+     (los nombres --teal se mantienen por back-compat — son ahora cobalto) */
+  --nexus:        #3D5AFE;
+  --nexus-hover:  #2845EA;
+  --nexus-soft:   rgba(61, 90, 254, 0.12);
+  --teal:         var(--nexus);
+  --teal-dim:     var(--nexus-hover);
+  --teal-glow:    var(--nexus-soft);
+
+  /* Semántica clínica (menos saturada, más profesional) */
+  --blue:      #4F7CE0;
+  --blue-dim:  #3D62C4;
+  --amber:     #D97706;
+  --red:       #DC2626;
+  --green:     #15803D;
+  --purple:    #7C3AED;
+
+  /* Texto bone — warm, sofisticado, no slate-frío */
+  --text:      #F2EFE9;
+  --text2:     #A8ACAE;
+  --text3:     #6C7075;
+
+  /* Tipografía editorial — uso restringido a hero/citas */
+  --font-display: var(--font-fraunces), 'Söhne', 'Geist', system-ui, serif;
 }
 
 @theme inline {
