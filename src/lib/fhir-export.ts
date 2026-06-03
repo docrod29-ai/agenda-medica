@@ -1,0 +1,247 @@
+/**
+ * Exportación del expediente clínico de un paciente al formato HL7 FHIR R4.
+ *
+ * Cumple:
+ *  - OMS Digital Health 2024 (interoperabilidad)
+ *  - NOM-040-SSA3-2014 (información en salud)
+ *  - Lineamientos del SISESP (SSA)
+ *
+ * Genera un Bundle FHIR con:
+ *  - Patient
+ *  - Practitioner (médico tratante)
+ *  - Composition (por cada nota firmada)
+ *  - Condition (diagnósticos)
+ *  - MedicationRequest (recetas)
+ *  - Observation (signos vitales)
+ *  - AllergyIntolerance
+ *
+ * Spec: https://hl7.org/fhir/R4/
+ */
+
+import type { Patient as AmPatient, ClinicConfig } from '@/types'
+import type { NotaMedica } from '@/types/expediente'
+
+/** Tipos FHIR mínimos usados */
+interface FhirReference { reference: string; display?: string }
+interface FhirCoding { system?: string; code?: string; display?: string }
+interface FhirCodeableConcept { coding?: FhirCoding[]; text?: string }
+interface FhirIdentifier { system?: string; value: string }
+
+interface FhirResource { resourceType: string; id: string; [k: string]: unknown }
+interface FhirBundle {
+  resourceType: 'Bundle'
+  type: 'collection'
+  timestamp: string
+  entry: { fullUrl: string; resource: FhirResource }[]
+}
+
+const SYSTEM = {
+  cie10: 'http://hl7.org/fhir/sid/icd-10',
+  loinc: 'http://loinc.org',
+  curp: 'urn:oid:2.16.840.1.113883.4.629', // OID provisional para CURP MX
+  cedula: 'urn:oid:2.16.840.1.113883.4.629.1', // OID provisional para cédula profesional
+} as const
+
+/**
+ * Construye un Bundle FHIR con el expediente del paciente.
+ */
+export function exportarPacienteAFhir({
+  paciente, notas, config,
+}: {
+  paciente: AmPatient
+  notas: NotaMedica[]
+  config: ClinicConfig | null
+}): FhirBundle {
+  const patientId = `Patient/${paciente.id}`
+  const practitionerId = `Practitioner/${config?.cedulaProfesional || 'unknown'}`
+  const now = new Date().toISOString()
+
+  const entries: { fullUrl: string; resource: FhirResource }[] = []
+
+  // === Patient ===
+  const patientResource: FhirResource = {
+    resourceType: 'Patient',
+    id: paciente.id,
+    identifier: paciente.curp ? [{ system: SYSTEM.curp, value: paciente.curp } as FhirIdentifier] : [],
+    active: true,
+    name: [{ use: 'official', text: paciente.nombre }],
+    telecom: [
+      paciente.telefono ? { system: 'phone', value: paciente.telefono, use: 'mobile' } : null,
+      paciente.whatsapp ? { system: 'phone', value: paciente.whatsapp, use: 'mobile' } : null,
+      paciente.email ? { system: 'email', value: paciente.email } : null,
+    ].filter(Boolean),
+    gender: paciente.sexo === 'Masculino' ? 'male' : paciente.sexo === 'Femenino' ? 'female' : 'other',
+    birthDate: paciente.fechaNacimiento || undefined,
+    extension: [
+      paciente.avisoPrivacidad?.aceptado
+        ? {
+            url: 'https://agenda-medica/ext/aviso-privacidad',
+            valueString: `${paciente.avisoPrivacidad.versionAviso} aceptado en ${paciente.avisoPrivacidad.fechaAceptacion} via ${paciente.avisoPrivacidad.medioAceptacion}`,
+          }
+        : null,
+    ].filter(Boolean),
+  }
+  entries.push({ fullUrl: patientId, resource: patientResource })
+
+  // === Practitioner (médico tratante) ===
+  if (config) {
+    entries.push({
+      fullUrl: practitionerId,
+      resource: {
+        resourceType: 'Practitioner',
+        id: config.cedulaProfesional || 'unknown',
+        identifier: [{ system: SYSTEM.cedula, value: config.cedulaProfesional || 'sin-cedula' }],
+        active: true,
+        name: [{ use: 'official', text: config.nombreMedico || 'Médico' }],
+        qualification: config.especialidad
+          ? [{
+              code: { text: config.especialidad } as FhirCodeableConcept,
+              issuer: { display: 'DGP/SEP — Dirección General de Profesiones' },
+            }]
+          : [],
+      },
+    })
+  }
+
+  // === Allergies (AllergyIntolerance) ===
+  if (paciente.alergias && paciente.alergias.trim()) {
+    entries.push({
+      fullUrl: `AllergyIntolerance/${paciente.id}-alergias`,
+      resource: {
+        resourceType: 'AllergyIntolerance',
+        id: `${paciente.id}-alergias`,
+        clinicalStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical', code: 'active' }] } as FhirCodeableConcept,
+        verificationStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-verification', code: 'confirmed' }] } as FhirCodeableConcept,
+        patient: { reference: patientId, display: paciente.nombre } as FhirReference,
+        code: { text: paciente.alergias } as FhirCodeableConcept,
+        recordedDate: paciente.updatedAt,
+      },
+    })
+  }
+
+  // === Por cada nota firmada: Composition + Conditions + MedicationRequests + Observations ===
+  for (const nota of notas.filter(n => n.estado === 'firmada')) {
+    const fechaNota = nota.fechaConsulta || nota.metadata.fechaCreacion
+
+    // Composition (la nota como documento clínico estructurado)
+    const compositionId = `note-${nota.id}`
+    const compositionEntries: { reference: string }[] = []
+
+    // Condiciones (diagnósticos)
+    nota.diagnosticos?.forEach((dx, i) => {
+      const condId = `Condition/${nota.id}-dx-${i}`
+      const condResource: FhirResource = {
+        resourceType: 'Condition',
+        id: `${nota.id}-dx-${i}`,
+        clinicalStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-clinical', code: dx.estado === 'activo' ? 'active' : 'resolved' }] } as FhirCodeableConcept,
+        verificationStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-ver-status', code: dx.tipo === 'definitivo' ? 'confirmed' : 'provisional' }] } as FhirCodeableConcept,
+        code: dx.codigoCIE10
+          ? { coding: [{ system: SYSTEM.cie10, code: dx.codigoCIE10, display: dx.descripcion }], text: dx.descripcion } as FhirCodeableConcept
+          : { text: dx.descripcion } as FhirCodeableConcept,
+        subject: { reference: patientId, display: paciente.nombre } as FhirReference,
+        recordedDate: fechaNota,
+      }
+      entries.push({ fullUrl: condId, resource: condResource })
+      compositionEntries.push({ reference: condId })
+    })
+
+    // Medicamentos prescritos
+    nota.medicamentos?.forEach((med, i) => {
+      const medId = `MedicationRequest/${nota.id}-med-${i}`
+      const medResource: FhirResource = {
+        resourceType: 'MedicationRequest',
+        id: `${nota.id}-med-${i}`,
+        status: 'active',
+        intent: 'order',
+        medicationCodeableConcept: { text: `${med.nombre} ${med.dosis}`.trim() } as FhirCodeableConcept,
+        subject: { reference: patientId } as FhirReference,
+        authoredOn: fechaNota,
+        requester: { reference: practitionerId } as FhirReference,
+        dosageInstruction: [{
+          text: `${med.frecuencia}${med.duracion ? ` por ${med.duracion}` : ''}${med.indicacion ? ` — ${med.indicacion}` : ''}`,
+          route: { text: med.via } as FhirCodeableConcept,
+        }],
+      }
+      entries.push({ fullUrl: medId, resource: medResource })
+      compositionEntries.push({ reference: medId })
+    })
+
+    // Signos vitales (Observations)
+    const sv = nota.signosVitales
+    if (sv) {
+      const obs: Array<{ codigo: string; display: string; valor: string; unidad: string }> = []
+      if (sv.ta) obs.push({ codigo: '85354-9', display: 'Tensión arterial', valor: sv.ta, unidad: 'mmHg' })
+      if (sv.fc) obs.push({ codigo: '8867-4', display: 'Frecuencia cardiaca', valor: String(sv.fc), unidad: '/min' })
+      if (sv.fr) obs.push({ codigo: '9279-1', display: 'Frecuencia respiratoria', valor: String(sv.fr), unidad: '/min' })
+      if (sv.temperatura) obs.push({ codigo: '8310-5', display: 'Temperatura corporal', valor: String(sv.temperatura), unidad: 'Cel' })
+      if (sv.spo2) obs.push({ codigo: '59408-5', display: 'SpO2', valor: String(sv.spo2), unidad: '%' })
+      if (sv.peso) obs.push({ codigo: '29463-7', display: 'Peso', valor: String(sv.peso), unidad: 'kg' })
+      if (sv.talla) obs.push({ codigo: '8302-2', display: 'Talla', valor: String(sv.talla), unidad: 'cm' })
+
+      obs.forEach((o, i) => {
+        const obsId = `Observation/${nota.id}-obs-${i}`
+        entries.push({
+          fullUrl: obsId,
+          resource: {
+            resourceType: 'Observation',
+            id: `${nota.id}-obs-${i}`,
+            status: 'final',
+            category: [{ coding: [{ system: 'http://terminology.hl7.org/CodeSystem/observation-category', code: 'vital-signs' }] } as FhirCodeableConcept],
+            code: { coding: [{ system: SYSTEM.loinc, code: o.codigo, display: o.display }] } as FhirCodeableConcept,
+            subject: { reference: patientId } as FhirReference,
+            effectiveDateTime: fechaNota,
+            valueQuantity: { value: parseFloat(o.valor) || undefined, unit: o.unidad },
+          },
+        })
+        compositionEntries.push({ reference: obsId })
+      })
+    }
+
+    // Composition (documento clínico)
+    const seccionesNarrativa = nota.secciones?.map(s => `<h3>${s.label}</h3><p>${escapeXml(s.value)}</p>`).join('\n') ?? ''
+    entries.push({
+      fullUrl: `Composition/${compositionId}`,
+      resource: {
+        resourceType: 'Composition',
+        id: compositionId,
+        status: 'final',
+        type: { text: 'Nota clínica' } as FhirCodeableConcept,
+        subject: { reference: patientId } as FhirReference,
+        date: fechaNota,
+        author: [{ reference: practitionerId } as FhirReference],
+        title: nota.tipo || 'Nota clínica',
+        attester: nota.firma
+          ? [{
+              mode: 'professional',
+              time: nota.firma.timestamp,
+              party: { reference: practitionerId } as FhirReference,
+            }]
+          : [],
+        section: compositionEntries.length > 0 ? [{
+          title: 'Datos clínicos relacionados',
+          entry: compositionEntries,
+        }] : [],
+        text: {
+          status: 'generated',
+          div: `<div xmlns="http://www.w3.org/1999/xhtml">${seccionesNarrativa}</div>`,
+        },
+      },
+    })
+  }
+
+  return {
+    resourceType: 'Bundle',
+    type: 'collection',
+    timestamp: now,
+    entry: entries,
+  }
+}
+
+function escapeXml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}

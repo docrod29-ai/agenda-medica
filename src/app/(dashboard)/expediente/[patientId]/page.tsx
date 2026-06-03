@@ -86,6 +86,29 @@ export default function ExpedientePage() {
           <button onClick={() => router.push(`/referencia/${patientId}`)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
             <Send size={15} /> Carta de referencia
           </button>
+          <button onClick={async () => {
+            if (!clinicId || !patient) return
+            const { exportarPacienteAFhir } = await import('@/lib/fhir-export')
+            const { logAudit } = await import('@/lib/expediente/audit-log')
+            const { config } = await (async () => {
+              const { getConfig } = await import('@/lib/firestore')
+              return { config: await getConfig(clinicId) }
+            })()
+            const bundle = exportarPacienteAFhir({ paciente: patient, notas, config })
+            const json = JSON.stringify(bundle, null, 2)
+            const nombre = patient.nombre.replace(/[^\w]/g, '_').slice(0, 30)
+            const blob = new Blob([json], { type: 'application/fhir+json' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `expediente_${nombre}_FHIR_R4.json`
+            a.click()
+            URL.revokeObjectURL(url)
+            logAudit({ evento: 'export_datos', clinicId, patientId, medicoUid: user?.uid, medicoEmail: user?.email ?? undefined, meta: { formato: 'FHIR-R4', notas: notas.length } })
+            toast('Expediente exportado en FHIR R4', 'success')
+          }} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+            📤 FHIR
+          </button>
           <button onClick={() => router.push(`/consulta/${patientId}`)} style={primaryBtn}>
             <Mic size={16} /> Nueva consulta con IA
           </button>

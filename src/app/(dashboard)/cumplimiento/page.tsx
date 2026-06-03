@@ -191,7 +191,39 @@ function EstadoCumplimiento({ clinicId, bitacora, arcoList, onCopiarLink }: { cl
         titulo="Multi-tenant aislado"
         descripcion="Tu clínica solo ve sus propios datos. Aislamiento garantizado por reglas Firestore."
       />
+      <RetencionResumen clinicId={clinicId} />
     </div>
+  )
+}
+
+/** Panel de política de retención NOM-004 numeral 5.7 — mínimo 5 años desde última anotación */
+function RetencionResumen({ clinicId }: { clinicId: string }) {
+  const [pacientesViejos, setPacientesViejos] = useState<{ count: number; mas5: number }>({ count: 0, mas5: 0 })
+
+  useEffect(() => {
+    if (!clinicId) return
+    import('@/lib/firestore').then(async ({ getPatients }) => {
+      const pacientes = await getPatients(clinicId)
+      const ahora = Date.now()
+      const cincoAnios = 5 * 365 * 24 * 60 * 60 * 1000
+      const mas5 = pacientes.filter(p => {
+        const ult = p.ultimaCita || p.updatedAt || p.createdAt
+        if (!ult) return false
+        return ahora - new Date(ult).getTime() > cincoAnios
+      }).length
+      setPacientesViejos({ count: pacientes.length, mas5 })
+    }).catch(() => {})
+  }, [clinicId])
+
+  const ok = pacientesViejos.mas5 === 0
+  return (
+    <Resumen
+      ok={ok}
+      titulo="Política de retención (NOM-004 numeral 5.7)"
+      descripcion={ok
+        ? `${pacientesViejos.count} pacientes en expediente. Ninguno supera 5 años sin actividad.`
+        : `⚠️ ${pacientesViejos.mas5} paciente(s) con >5 años sin actividad. Revisa si proceden para archivar o anonimizar.`}
+    />
   )
 }
 

@@ -163,10 +163,35 @@ export async function updateNota(
   // Strip 'id' del payload — solo el doc.id es la fuente de verdad.
   const { id: _ignorado, ...sinId } = data as Partial<NotaMedica>
   void _ignorado
+
+  // NOM-024 Art. 6.4 — versionado: antes de sobrescribir un borrador,
+  // guardamos el snapshot actual como versión histórica.
+  // Solo para borradores; las notas firmadas son inmutables (no llegan aquí).
+  try {
+    const prev = await getDoc(notaDoc(clinicId, patientId, notaId))
+    if (prev.exists() && prev.data().estado !== 'firmada') {
+      await addDoc(
+        collection(db, 'clinics', clinicId, 'patients', patientId, 'notas', notaId, 'versions'),
+        { ...prev.data(), versionadoEn: new Date().toISOString() },
+      )
+    }
+  } catch { /* nunca romper la operación clínica */ }
+
   await updateDoc(notaDoc(clinicId, patientId, notaId), stripUndefined({
     ...sinId,
     updatedAt: new Date().toISOString(),
   }))
+}
+
+/** Lee el historial de versiones de un borrador. NOM-024 trazabilidad. */
+export async function getVersionesNota(clinicId: string, patientId: string, notaId: string) {
+  const snap = await getDocs(
+    query(
+      collection(db, 'clinics', clinicId, 'patients', patientId, 'notas', notaId, 'versions'),
+      orderBy('versionadoEn', 'desc'),
+    ),
+  )
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as NotaMedica & { versionadoEn: string }))
 }
 
 /** Última nota firmada para construir contexto de IA */
