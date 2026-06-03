@@ -234,6 +234,11 @@ export default function ConsultaActivaPage() {
     try {
       const nota = construirNota('borrador')
       if (notaId) {
+        // NOM-024 Art. 6.4: snapshot ANTES de sobrescribir para preservar el historial
+        const { guardarVersion } = await import('@/lib/expediente/versioning')
+        const { id: _ignore, ...sinId } = nota
+        void _ignore
+        guardarVersion(clinicId, patientId, notaId, sinId, auth.currentUser?.uid ?? '', auth.currentUser?.email ?? undefined).catch(() => {})
         await updateNota(clinicId, patientId, notaId, nota)
       } else {
         const id = await createNota(clinicId, patientId, nota)

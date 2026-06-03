@@ -1,0 +1,291 @@
+'use client'
+/**
+ * Configuración de seguridad de la cuenta — incluye 2FA opcional.
+ *
+ * Firebase Auth ofrece MFA con TOTP (Google Authenticator, Authy, 1Password).
+ * Esta página guía al médico para enrollar/desenrollar su factor TOTP.
+ */
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/hooks/useAuth'
+import { multiFactor, TotpMultiFactorGenerator, TotpSecret, getMultiFactorResolver } from 'firebase/auth'
+import { auth } from '@/lib/firebase'
+import { ArrowLeft, Shield, ShieldCheck, AlertTriangle, Loader2, Smartphone, KeyRound, Check, X } from 'lucide-react'
+import { useToast } from '@/context/ToastContext'
+
+type Paso = 'estado' | 'instrucciones' | 'qr' | 'verificar' | 'completado'
+
+export default function SeguridadPage() {
+  const router = useRouter()
+  const { user } = useAuth()
+  const { toast } = useToast()
+  const [paso, setPaso] = useState<Paso>('estado')
+  const [tieneTotp, setTieneTotp] = useState(false)
+  const [factorId, setFactorId] = useState<string | null>(null)
+  const [secret, setSecret] = useState<TotpSecret | null>(null)
+  const [qrUrl, setQrUrl] = useState('')
+  const [codigo, setCodigo] = useState('')
+  const [cargando, setCargando] = useState(false)
+  const [nombreFactor, setNombreFactor] = useState('Mi dispositivo')
+
+  useEffect(() => {
+    if (!user) return
+    const mfaUser = multiFactor(user)
+    const totp = mfaUser.enrolledFactors.find(f => f.factorId === 'totp')
+    setTieneTotp(!!totp)
+    setFactorId(totp?.uid ?? null)
+  }, [user])
+
+  const iniciarEnrolar = async () => {
+    if (!user) return
+    setCargando(true)
+    try {
+      const mfaUser = multiFactor(user)
+      const session = await mfaUser.getSession()
+      const newSecret = await TotpMultiFactorGenerator.generateSecret(session)
+      setSecret(newSecret)
+      const url = newSecret.generateQrCodeUrl(user.email ?? 'medico', 'Agenda Médica')
+      setQrUrl(url)
+      setPaso('qr')
+    } catch (e) {
+      const err = e as { code?: string; message?: string }
+      if (err.code === 'auth/requires-recent-login') {
+        toast('Por seguridad debes volver a iniciar sesión antes de activar 2FA', 'error')
+      } else {
+        toast(`Error: ${err.message ?? 'desconocido'}`, 'error')
+      }
+    } finally {
+      setCargando(false)
+    }
+  }
+
+  const verificarYEnrolar = async () => {
+    if (!user || !secret) return
+    setCargando(true)
+    try {
+      const mfaUser = multiFactor(user)
+      const assertion = TotpMultiFactorGenerator.assertionForEnrollment(secret, codigo.trim())
+      await mfaUser.enroll(assertion, nombreFactor || 'Mi dispositivo')
+      setTieneTotp(true)
+      setPaso('completado')
+      toast('2FA activado correctamente', 'success')
+    } catch (e) {
+      const err = e as { code?: string }
+      if (err.code === 'auth/invalid-verification-code') {
+        toast('Código incorrecto. Verifica los 6 dígitos y vuelve a intentar.', 'error')
+      } else {
+        toast('No se pudo verificar el código', 'error')
+      }
+    } finally {
+      setCargando(false)
+    }
+  }
+
+  const desactivar = async () => {
+    if (!user || !factorId) return
+    if (!window.confirm('¿Seguro que quieres desactivar 2FA? Tu cuenta quedará protegida solo por contraseña.')) return
+    setCargando(true)
+    try {
+      const mfaUser = multiFactor(user)
+      await mfaUser.unenroll(factorId)
+      setTieneTotp(false)
+      setFactorId(null)
+      setPaso('estado')
+      toast('2FA desactivado', 'info')
+    } catch (e) {
+      const err = e as { code?: string; message?: string }
+      if (err.code === 'auth/requires-recent-login') {
+        toast('Vuelve a iniciar sesión antes de modificar 2FA', 'error')
+      } else {
+        toast(`Error: ${err.message ?? 'desconocido'}`, 'error')
+      }
+    } finally {
+      setCargando(false)
+    }
+  }
+
+  if (!user) {
+    return <div style={{ padding: 24, color: 'var(--text3)' }}>Cargando…</div>
+  }
+
+  return (
+    <div style={{ padding: 24, maxWidth: 720, margin: '0 auto' }}>
+      <button onClick={() => router.push('/cumplimiento')} style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        background: 'none', border: 'none', color: 'var(--text3)',
+        fontSize: 13, cursor: 'pointer', marginBottom: 14,
+      }}>
+        <ArrowLeft size={14} /> Cumplimiento
+      </button>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+        <Shield size={22} color="var(--teal)" />
+        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Seguridad de la cuenta</h1>
+      </div>
+
+      {/* PASO: estado actual */}
+      {paso === 'estado' && (
+        <div>
+          <Estado activo={tieneTotp} email={user.email ?? ''} />
+          <div style={{ marginTop: 16 }}>
+            {tieneTotp ? (
+              <button onClick={desactivar} disabled={cargando} className="btn btn-secondary" style={{ color: '#f87171', borderColor: 'rgba(239,68,68,0.3)' }}>
+                {cargando ? <Loader2 size={14} className="spin" /> : <X size={14} />} Desactivar 2FA
+              </button>
+            ) : (
+              <button onClick={() => setPaso('instrucciones')} className="btn btn-primary">
+                <Shield size={14} /> Activar 2FA
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* PASO: instrucciones */}
+      {paso === 'instrucciones' && (
+        <div style={cardStyle}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>¿Cómo funciona el 2FA?</h2>
+          <ol style={{ fontSize: 13.5, color: 'var(--text2)', lineHeight: 1.7, paddingLeft: 20, margin: '0 0 16px' }}>
+            <li>Instala en tu celular una app autenticadora (recomendado: Google Authenticator, Authy, 1Password)</li>
+            <li>Te mostraré un código QR — lo escaneas con la app</li>
+            <li>La app generará códigos de 6 dígitos que cambian cada 30 segundos</li>
+            <li>Al iniciar sesión, además de tu contraseña, te pediré el código actual</li>
+          </ol>
+          <div style={{
+            padding: 10, background: 'rgba(245,158,11,0.06)', borderLeft: '2px solid #f59e0b',
+            borderRadius: 4, fontSize: 12, color: 'var(--text2)', marginBottom: 14,
+          }}>
+            ⚠️ Si pierdes tu celular y no tienes el código de recuperación, NO podrás iniciar sesión.
+            Guarda el código de respaldo que te daré después.
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => setPaso('estado')} className="btn btn-secondary">Cancelar</button>
+            <button onClick={iniciarEnrolar} disabled={cargando} className="btn btn-primary">
+              {cargando ? <><Loader2 size={14} className="spin" /> Generando…</> : <>Continuar <Smartphone size={14} /></>}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* PASO: QR */}
+      {paso === 'qr' && qrUrl && (
+        <div style={cardStyle}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Escanea el código QR</h2>
+          <div style={{ textAlign: 'center', padding: 18, background: '#fff', borderRadius: 10, marginBottom: 12 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qrUrl)}&size=220x220&margin=8`}
+              alt="QR para 2FA"
+              style={{ width: 220, height: 220 }}
+            />
+          </div>
+          <div style={{ fontSize: 11.5, color: 'var(--text3)', marginBottom: 14 }}>
+            ¿No puedes escanear? Copia este código en tu app:<br />
+            <code style={{ display: 'block', fontFamily: 'monospace', padding: 8, marginTop: 4, background: 'var(--s2)', borderRadius: 4, wordBreak: 'break-all' }}>
+              {secret?.secretKey}
+            </code>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => setPaso('instrucciones')} className="btn btn-secondary">Atrás</button>
+            <button onClick={() => setPaso('verificar')} className="btn btn-primary">Ya lo escaneé →</button>
+          </div>
+        </div>
+      )}
+
+      {/* PASO: verificar código */}
+      {paso === 'verificar' && (
+        <div style={cardStyle}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Confirma el código</h2>
+          <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 14 }}>
+            Abre la app autenticadora y escribe el código de 6 dígitos que está mostrando para Agenda Médica.
+          </p>
+
+          <label style={{ fontSize: 12, color: 'var(--text2)', display: 'block', marginBottom: 4 }}>
+            Nombre del dispositivo (opcional)
+          </label>
+          <input
+            value={nombreFactor}
+            onChange={(e) => setNombreFactor(e.target.value)}
+            placeholder="iPhone de Dr. García"
+            style={{
+              width: '100%', padding: '8px 10px', borderRadius: 6,
+              border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)',
+              fontSize: 13, boxSizing: 'border-box', marginBottom: 12,
+            }}
+          />
+
+          <label style={{ fontSize: 12, color: 'var(--text2)', display: 'block', marginBottom: 4 }}>
+            Código de 6 dígitos
+          </label>
+          <input
+            value={codigo}
+            onChange={(e) => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            placeholder="000000"
+            maxLength={6}
+            inputMode="numeric"
+            style={{
+              width: '100%', padding: '12px 14px', borderRadius: 8,
+              border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)',
+              fontSize: 22, fontFamily: 'monospace', letterSpacing: 6, textAlign: 'center',
+              boxSizing: 'border-box', marginBottom: 14,
+            }}
+            autoFocus
+          />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => setPaso('qr')} className="btn btn-secondary">Atrás</button>
+            <button onClick={verificarYEnrolar} disabled={cargando || codigo.length !== 6} className="btn btn-primary">
+              {cargando ? <><Loader2 size={14} className="spin" /> Verificando…</> : <><Check size={14} /> Activar 2FA</>}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* PASO: completado */}
+      {paso === 'completado' && (
+        <div style={{ ...cardStyle, textAlign: 'center' }}>
+          <ShieldCheck size={48} color="#10b981" style={{ marginBottom: 12 }} />
+          <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>2FA activado</h2>
+          <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 18, lineHeight: 1.6 }}>
+            A partir de ahora, cada vez que inicies sesión te pediré además de tu contraseña
+            el código de 6 dígitos de tu app autenticadora.
+          </p>
+          <button onClick={() => setPaso('estado')} className="btn btn-primary">Volver</button>
+        </div>
+      )}
+
+      <style>{`
+        .spin { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
+    </div>
+  )
+}
+
+function Estado({ activo, email }: { activo: boolean; email: string }) {
+  return (
+    <div style={{
+      padding: 18, borderRadius: 12, border: `1px solid ${activo ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.3)'}`,
+      background: activo ? 'rgba(16,185,129,0.04)' : 'rgba(245,158,11,0.04)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+        {activo ? <ShieldCheck size={20} color="#10b981" /> : <AlertTriangle size={20} color="#f59e0b" />}
+        <span style={{ fontSize: 15, fontWeight: 700, color: activo ? '#10b981' : '#f59e0b' }}>
+          {activo ? '2FA activo' : '2FA NO está activo'}
+        </span>
+      </div>
+      <div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.55 }}>
+        Cuenta: <strong>{email}</strong><br />
+        {activo
+          ? 'Tu sesión está protegida con un segundo factor de autenticación (TOTP).'
+          : 'Tu cuenta solo está protegida por contraseña. Activar 2FA agrega una capa extra contra accesos no autorizados.'}
+      </div>
+    </div>
+  )
+}
+
+const cardStyle: React.CSSProperties = {
+  padding: 20, background: 'var(--s)', border: '1px solid var(--border)', borderRadius: 12,
+}
+
+// Imports no usados: suprimimos warnings de no-unused
+void getMultiFactorResolver

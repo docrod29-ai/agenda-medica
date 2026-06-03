@@ -19,7 +19,7 @@ import {
 } from '@/lib/arco'
 import type { AuditEvento } from '@/lib/expediente/audit-log'
 import {
-  ShieldCheck, FileSearch, Inbox, Copy, ExternalLink, AlertTriangle, Check, Clock,
+  ShieldCheck, FileSearch, Inbox, Copy, ExternalLink, AlertTriangle, Check, Clock, Shield,
 } from 'lucide-react'
 import { useToast } from '@/context/ToastContext'
 
@@ -191,8 +191,38 @@ function EstadoCumplimiento({ clinicId, bitacora, arcoList, onCopiarLink }: { cl
         titulo="Multi-tenant aislado"
         descripcion="Tu clínica solo ve sus propios datos. Aislamiento garantizado por reglas Firestore."
       />
+      <Seguridad2FAResumen />
       <RetencionResumen clinicId={clinicId} />
     </div>
+  )
+}
+
+/** Estado de 2FA de la cuenta actual */
+function Seguridad2FAResumen() {
+  const [activo, setActivo] = useState(false)
+  useEffect(() => {
+    import('firebase/auth').then(({ multiFactor }) => {
+      const u = (require('@/lib/firebase') as { auth: { currentUser: unknown } }).auth.currentUser
+      if (!u) return
+      try {
+        const mfa = multiFactor(u as Parameters<typeof multiFactor>[0])
+        setActivo(mfa.enrolledFactors.some(f => f.factorId === 'totp'))
+      } catch { /* no-op */ }
+    })
+  }, [])
+  return (
+    <Resumen
+      ok={activo}
+      titulo="Autenticación de dos factores (2FA)"
+      descripcion={activo
+        ? 'Tu cuenta tiene 2FA activo. Al iniciar sesión te pediré el código de tu autenticador.'
+        : '⚠️ Tu cuenta NO tiene 2FA. Recomendado para protección extra contra accesos no autorizados.'}
+      accion={
+        <a href="/cumplimiento/seguridad" className="btn btn-secondary" style={{ fontSize: 12 }}>
+          <Shield size={12} /> {activo ? 'Administrar' : 'Activar 2FA'}
+        </a>
+      }
+    />
   )
 }
 
@@ -223,6 +253,11 @@ function RetencionResumen({ clinicId }: { clinicId: string }) {
       descripcion={ok
         ? `${pacientesViejos.count} pacientes en expediente. Ninguno supera 5 años sin actividad.`
         : `⚠️ ${pacientesViejos.mas5} paciente(s) con >5 años sin actividad. Revisa si proceden para archivar o anonimizar.`}
+      accion={
+        <a href="/cumplimiento/retencion" className="btn btn-secondary" style={{ fontSize: 12 }}>
+          <FileSearch size={12} /> Ver lista
+        </a>
+      }
     />
   )
 }

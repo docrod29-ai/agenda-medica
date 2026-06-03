@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'agenda-medica-v21'  // bump para invalidar cachés viejas
+const CACHE = 'agenda-medica-v22'  // bump para invalidar cachés viejas
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()
