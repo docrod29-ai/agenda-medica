@@ -1454,6 +1454,9 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
         Los enlaces expiran en 7 días.
       </div>
 
+      {/* Miembros activos del equipo */}
+      <MiembrosActivos clinicId={clinicId} miUid={user?.uid} />
+
       {/* Crear invitación */}
       <div className="card" style={{ padding: 16 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>Invitar a alguien</div>
@@ -2898,6 +2901,133 @@ function FirmaUploadSection({ firmaDataUrl, onChange }: { firmaDataUrl?: string;
       <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 8, padding: '6px 10px', background: 'rgba(255,200,0,0.05)', borderLeft: '2px solid #f59e0b', borderRadius: 3 }}>
         💡 Tip: Escanea tu firma en una hoja blanca con tu sello al lado, recórtalo en blanco y súbelo como PNG con fondo transparente. Mide unos 6 × 3 cm en la vida real.
       </div>
+    </div>
+  )
+}
+
+/* ── Miembros activos del equipo ─────────────────────────────── */
+
+import { listarMiembros, removerMiembro, cambiarRolMiembro, type MiembroActivo } from '@/lib/miembros'
+
+function MiembrosActivos({ clinicId, miUid }: { clinicId: string | null; miUid?: string }) {
+  const { toast } = useToast()
+  const [miembros, setMiembros] = useState<MiembroActivo[]>([])
+  const [cargando, setCargando] = useState(true)
+
+  const recargar = async () => {
+    if (!clinicId) return
+    setCargando(true)
+    try {
+      const list = await listarMiembros(clinicId)
+      setMiembros(list)
+    } catch (e) {
+      console.error('[miembros]', e)
+    } finally { setCargando(false) }
+  }
+  useEffect(() => { recargar() /* eslint-disable-next-line */ }, [clinicId])
+
+  const remover = async (m: MiembroActivo) => {
+    if (m.uid === miUid) { toast('No puedes removerte a ti misma/o', 'error'); return }
+    if (!window.confirm(`¿Remover a ${m.email} del equipo? Perderá acceso inmediatamente.`)) return
+    try {
+      await removerMiembro(m.uid)
+      toast('Miembro removido', 'info')
+      recargar()
+    } catch {
+      toast('Error al remover (revisa que seas admin)', 'error')
+    }
+  }
+
+  const cambiarRol = async (m: MiembroActivo, nuevo: 'admin' | 'medico' | 'secretaria') => {
+    if (m.role === nuevo) return
+    try {
+      await cambiarRolMiembro(m.uid, nuevo)
+      toast(`Rol actualizado a ${nuevo}`, 'success')
+      recargar()
+    } catch {
+      toast('Error al cambiar rol', 'error')
+    }
+  }
+
+  const ROL_LABEL: Record<string, string> = { admin: '👑 Admin', medico: '👨‍⚕️ Médico', secretaria: '👩‍💼 Asistente' }
+  const ROL_COLOR: Record<string, string> = { admin: '#f59e0b', medico: '#14b8a6', secretaria: '#a78bfa' }
+
+  return (
+    <div className="card" style={{ padding: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
+          Equipo activo {miembros.length > 0 && `(${miembros.length})`}
+        </div>
+        <button onClick={recargar} style={{ background: 'none', border: 'none', color: 'var(--text3)', fontSize: 11.5, cursor: 'pointer' }}>
+          ↻ Actualizar
+        </button>
+      </div>
+      {cargando ? (
+        <div style={{ fontSize: 12, color: 'var(--text3)', padding: 8 }}>Cargando…</div>
+      ) : miembros.length === 0 ? (
+        <div style={{ fontSize: 12.5, color: 'var(--text3)', padding: 10 }}>
+          Sin miembros aún. Genera tu primera invitación abajo.
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gap: 6 }}>
+          {miembros.map(m => (
+            <div key={m.uid} style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '10px 12px', background: 'var(--s2)', borderRadius: 8,
+              border: m.uid === miUid ? '1px solid rgba(20,184,166,0.4)' : '1px solid var(--border)',
+            }}>
+              {/* Avatar inicial */}
+              <div style={{
+                width: 32, height: 32, borderRadius: '50%',
+                background: ROL_COLOR[m.role] ?? '#9ca3af', color: '#000',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontWeight: 700, fontSize: 12, flexShrink: 0,
+              }}>
+                {(m.email ?? '?')[0].toUpperCase()}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {m.email}
+                  {m.uid === miUid && <span style={{ marginLeft: 6, fontSize: 10.5, color: 'var(--teal)', fontWeight: 700 }}>(TÚ)</span>}
+                </div>
+                <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 1 }}>
+                  Miembro desde {m.createdAt ? new Date(m.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                </div>
+              </div>
+              {/* Selector de rol — deshabilitado si soy yo */}
+              <select
+                value={m.role}
+                onChange={(e) => cambiarRol(m, e.target.value as 'admin' | 'medico' | 'secretaria')}
+                disabled={m.uid === miUid}
+                style={{
+                  padding: '5px 8px', borderRadius: 6, fontSize: 11.5, fontWeight: 600,
+                  background: 'var(--s)', color: ROL_COLOR[m.role] ?? 'var(--text)',
+                  border: `1px solid ${ROL_COLOR[m.role] ?? 'var(--border)'}55`,
+                  cursor: m.uid === miUid ? 'not-allowed' : 'pointer',
+                  opacity: m.uid === miUid ? 0.6 : 1,
+                }}
+              >
+                <option value="admin">{ROL_LABEL.admin}</option>
+                <option value="medico">{ROL_LABEL.medico}</option>
+                <option value="secretaria">{ROL_LABEL.secretaria}</option>
+              </select>
+              {m.uid !== miUid && (
+                <button
+                  onClick={() => remover(m)}
+                  title="Quitar del equipo"
+                  style={{
+                    background: 'rgba(239,68,68,0.1)', color: '#ef4444',
+                    border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6,
+                    padding: '5px 8px', fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  Quitar
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

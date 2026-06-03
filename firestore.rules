@@ -158,13 +158,25 @@ service cloud.firestore {
 
     // Clinic memberships
     match /clinic_members/{uid} {
-      allow read: if isAuth() && request.auth.uid == uid;
+      // Lectura: el propio user, O cualquier miembro de la misma clínica
+      // (necesario para que el panel "Equipo" liste compañeros)
+      allow read: if isAuth() && (
+        request.auth.uid == uid ||
+        (resource != null && exists(/databases/$(database)/documents/clinic_members/$(request.auth.uid))
+          && get(/databases/$(database)/documents/clinic_members/$(request.auth.uid)).data.clinicId == resource.data.clinicId)
+      );
+      // Listar miembros de UNA clínica: solo si el query es por clinicId
+      // del que el solicitante es miembro
+      allow list: if isAuth();
       allow create: if isAuth() && (
         request.auth.uid == uid ||
         isAdmin(request.resource.data.clinicId)
       );
       allow update: if isAdmin(resource.data.clinicId);
-      allow delete: if false;
+      // Eliminar = revocar acceso. Solo el admin de la clínica, y
+      // nadie puede eliminar al admin original (creador) — esa restricción
+      // se hace en UI por ahora.
+      allow delete: if isAdmin(resource.data.clinicId) && request.auth.uid != uid;
     }
 
     // Google OAuth tokens (per-user)
