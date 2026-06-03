@@ -72,31 +72,46 @@ function LoginInner() {
       overflow: 'hidden',
     }}>
       {/* Background glow */}
+      {/* Halo de marca discreto — cobalto soft */}
       <div style={{
-        position: 'absolute', top: '20%', left: '50%', transform: 'translate(-50%, -50%)',
-        width: 600, height: 600, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(0,212,168,0.06) 0%, transparent 70%)',
-        pointerEvents: 'none',
+        position: 'absolute', top: '15%', left: '50%', transform: 'translate(-50%, -50%)',
+        width: 720, height: 720, borderRadius: '50%',
+        background: 'radial-gradient(circle, var(--nexus-soft) 0%, transparent 65%)',
+        pointerEvents: 'none', opacity: 0.6,
       }} />
 
-      <div style={{ width: '100%', maxWidth: 400, position: 'relative' }}>
-        {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: 40 }}>
+      <div style={{ width: '100%', maxWidth: 420, position: 'relative' }}>
+        {/* Hero brand block */}
+        <div style={{ textAlign: 'center', marginBottom: 36 }}>
+          {/* Mark NexusMED — N geométrica */}
           <div style={{
-            width: 64, height: 64, borderRadius: 18,
-            background: 'var(--teal-glow)',
-            border: '1px solid rgba(0,212,168,0.3)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 16px',
-            boxShadow: '0 0 32px rgba(0,212,168,0.2)',
+            width: 56, height: 56, borderRadius: 14,
+            background: 'var(--s1)',
+            border: '1px solid var(--border2)',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 20px',
           }}>
-            <Stethoscope size={30} color="var(--teal)" />
+            <svg width="30" height="30" viewBox="0 0 48 48" aria-hidden="true">
+              <g stroke="#3D5AFE" strokeWidth="5" strokeLinecap="round" fill="none">
+                <line x1="8" y1="8" x2="8" y2="40"/>
+                <line x1="40" y1="8" x2="40" y2="40"/>
+                <line x1="8" y1="8" x2="40" y2="40"/>
+              </g>
+              <circle cx="24" cy="24" r="3" fill="#F2EFE9"/>
+              <circle cx="24" cy="24" r="1.2" fill="#0B0C0E"/>
+            </svg>
           </div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
+          <h1 className="nx-display" style={{
+            fontSize: 36, color: 'var(--text)', margin: 0,
+            fontWeight: 500,
+          }}>
             NexusMED
           </h1>
-          <p style={{ fontSize: 14, color: 'var(--text2)', marginTop: 6 }}>
-            Sistema de gestión de citas
+          <p style={{
+            fontSize: 14, color: 'var(--text2)', marginTop: 8,
+            letterSpacing: '-0.005em',
+          }}>
+            El consultorio, conectado.
           </p>
         </div>
 
@@ -104,10 +119,13 @@ function LoginInner() {
         <div style={{
           background: 'var(--s1)',
           border: '1px solid var(--border)',
-          borderRadius: 16,
+          borderRadius: 14,
           padding: '28px 28px',
         }}>
-          <h2 style={{ fontSize: 18, fontWeight: 600, color: 'var(--text)', margin: '0 0 24px' }}>
+          <h2 style={{
+            fontSize: 17, fontWeight: 600, color: 'var(--text)',
+            margin: '0 0 22px', letterSpacing: '-0.01em',
+          }}>
             Iniciar sesión
           </h2>
 

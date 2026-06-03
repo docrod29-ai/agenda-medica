@@ -112,34 +112,38 @@ function Nav() {
   return (
     <nav style={{
       position: 'sticky', top: 0, zIndex: 100,
-      background: 'rgba(4,11,18,0.85)', backdropFilter: 'blur(12px)',
+      background: 'rgba(11,12,14,0.78)', backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
       borderBottom: '1px solid var(--border)',
       padding: '0 24px', height: 60,
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{
-          width: 34, height: 34, borderRadius: 9,
-          background: 'rgba(0,212,168,0.15)', border: '1px solid rgba(0,212,168,0.3)',
+          width: 32, height: 32, borderRadius: 8,
+          background: 'var(--s1)', border: '1px solid var(--border2)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <Stethoscope size={17} color="var(--teal)" />
+          <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+            <g stroke="#3D5AFE" strokeWidth="5" strokeLinecap="round" fill="none">
+              <line x1="8" y1="8" x2="8" y2="40"/>
+              <line x1="40" y1="8" x2="40" y2="40"/>
+              <line x1="8" y1="8" x2="40" y2="40"/>
+            </g>
+            <circle cx="24" cy="24" r="3" fill="#F2EFE9"/>
+          </svg>
         </div>
-        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em' }}>NexusMED</span>
+        <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>NexusMED</span>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <Link href="/login" style={{
-          fontSize: 14, color: 'var(--text2)', textDecoration: 'none',
-          padding: '8px 16px', borderRadius: 8,
+          fontSize: 13.5, color: 'var(--text2)', textDecoration: 'none',
+          padding: '8px 14px', borderRadius: 8, fontWeight: 500,
         }}>
           Iniciar sesión
         </Link>
-        <Link href="/registro" style={{
-          fontSize: 14, fontWeight: 600, color: '#000',
-          background: 'var(--teal)', padding: '8px 18px', borderRadius: 8,
-          textDecoration: 'none',
-        }}>
+        <Link href="/registro" className="btn btn-primary" style={{ textDecoration: 'none', height: 36 }}>
           Prueba gratis →
         </Link>
       </div>
@@ -150,57 +154,55 @@ function Nav() {
 function Hero() {
   return (
     <section style={{
-      textAlign: 'center', padding: '100px 24px 80px',
-      background: 'linear-gradient(180deg, rgba(0,212,168,0.04) 0%, transparent 60%)',
+      textAlign: 'center', padding: '120px 24px 88px',
+      position: 'relative', overflow: 'hidden',
     }}>
+      {/* Halo de marca discreto */}
       <div style={{
-        display: 'inline-flex', alignItems: 'center', gap: 8,
-        background: 'rgba(0,212,168,0.08)', border: '1px solid rgba(0,212,168,0.2)',
-        borderRadius: 100, padding: '6px 16px', marginBottom: 32,
-      }}>
-        <span style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 500 }}>
-          ✨ 14 días gratis · Sin tarjeta de crédito
-        </span>
-      </div>
+        position: 'absolute', top: '20%', left: '50%', transform: 'translateX(-50%)',
+        width: 900, height: 900, borderRadius: '50%',
+        background: 'radial-gradient(circle, var(--nexus-soft) 0%, transparent 55%)',
+        pointerEvents: 'none', opacity: 0.5,
+      }} />
 
-      <h1 style={{
-        fontSize: 'clamp(36px, 6vw, 72px)', fontWeight: 900, lineHeight: 1.1,
-        color: 'var(--text)', marginBottom: 24, maxWidth: 800, margin: '0 auto 24px',
-      }}>
-        Tu consultorio en{' '}
-        <span style={{
-          background: 'linear-gradient(90deg, #00d4a8, #00b8ff)',
-          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-        }}>
-          piloto automático
-        </span>
-      </h1>
-
-      <p style={{
-        fontSize: 'clamp(16px, 2vw, 20px)', color: 'var(--text2)',
-        maxWidth: 560, margin: '0 auto 48px', lineHeight: 1.7,
-      }}>
-        Agenda citas, envía recordatorios por WhatsApp y gestiona tu lista de espera
-        — todo automático, sin esfuerzo.
-      </p>
-
-      <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-        <Link href="/registro" style={{
+      <div style={{ position: 'relative' }}>
+        <div style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
-          background: 'var(--teal)', color: '#000', fontWeight: 700,
-          fontSize: 16, padding: '14px 28px', borderRadius: 12,
-          textDecoration: 'none', transition: 'opacity 0.2s',
+          background: 'var(--nexus-soft)', border: '1px solid rgba(61,90,254,0.28)',
+          borderRadius: 100, padding: '5px 14px', marginBottom: 28,
         }}>
-          Comenzar prueba gratis <ArrowRight size={18} />
-        </Link>
-        <a href="#como-funciona" style={{
-          display: 'inline-flex', alignItems: 'center', gap: 8,
-          background: 'var(--s2)', color: 'var(--text)', fontWeight: 600,
-          fontSize: 16, padding: '14px 28px', borderRadius: 12,
-          textDecoration: 'none', border: '1px solid var(--border)',
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--nexus)' }} />
+          <span style={{ fontSize: 12.5, color: 'var(--text)', fontWeight: 500, letterSpacing: '-0.005em' }}>
+            14 días gratis · sin tarjeta
+          </span>
+        </div>
+
+        <h1 className="nx-display" style={{
+          fontSize: 'clamp(40px, 6.5vw, 84px)', lineHeight: 1.02,
+          color: 'var(--text)', maxWidth: 880, margin: '0 auto 28px',
+          fontWeight: 500, letterSpacing: '-0.035em',
         }}>
-          Ver demo
-        </a>
+          El consultorio,<br />
+          <span style={{ color: 'var(--nexus)', fontStyle: 'italic' }}>conectado.</span>
+        </h1>
+
+        <p style={{
+          fontSize: 'clamp(16px, 1.6vw, 19px)', color: 'var(--text2)',
+          maxWidth: 580, margin: '0 auto 44px', lineHeight: 1.6,
+          letterSpacing: '-0.005em',
+        }}>
+          Agenda, expediente, recetas y cobros en una sola herramienta.
+          Sin saltar de app en app.
+        </p>
+
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <Link href="/registro" className="btn btn-primary btn-lg" style={{ textDecoration: 'none' }}>
+            Comenzar prueba gratis <ArrowRight size={17} />
+          </Link>
+          <a href="#como-funciona" className="btn btn-secondary btn-lg" style={{ textDecoration: 'none' }}>
+            Ver demo
+          </a>
+        </div>
       </div>
     </section>
   )

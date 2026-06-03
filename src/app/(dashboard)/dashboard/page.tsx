@@ -102,14 +102,25 @@ export default function DashboardPage() {
 
   return (
     <div style={{ padding: '28px 24px', maxWidth: 1100, margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28, gap: 16, flexWrap: 'wrap' }}>
+      {/* Header — saludo editorial NexusMED */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 32, gap: 16, flexWrap: 'wrap' }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
-            {greet()}{nombreSaludo(role, config.nombreMedico, user?.displayName, user?.email) ? `, ${nombreSaludo(role, config.nombreMedico, user?.displayName, user?.email)}` : ''} 👋
+          <h1 className="nx-display" style={{
+            fontSize: 32, color: 'var(--text)', margin: 0,
+            fontWeight: 500, lineHeight: 1.1,
+          }}>
+            {greet()}
+            {nombreSaludo(role, config.nombreMedico, user?.displayName, user?.email) && (
+              <>, <span style={{ fontStyle: 'italic', color: 'var(--text)' }}>
+                {nombreSaludo(role, config.nombreMedico, user?.displayName, user?.email)}
+              </span></>
+            )}
           </h1>
-          <p style={{ fontSize: 14, color: 'var(--text2)', marginTop: 4 }}>
-            {fechaLabel.charAt(0).toUpperCase() + fechaLabel.slice(1)}
+          <p style={{
+            fontSize: 13.5, color: 'var(--text3)', marginTop: 6,
+            letterSpacing: '0.02em', textTransform: 'capitalize',
+          }}>
+            {fechaLabel}
           </p>
         </div>
         <Link href="/asistente">

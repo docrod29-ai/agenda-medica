@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v30'  // Sprint 2: componentes core rediseñados
+const CACHE = 'nexusmed-v31'  // Sprint 3: páginas hero con tipografía editorial
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()
