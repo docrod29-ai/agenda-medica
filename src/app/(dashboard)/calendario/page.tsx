@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useAppointments } from '@/hooks/useAppointments'
 import { useConfig } from '@/hooks/useConfig'
 import { AppointmentModal } from '@/components/AppointmentModal'
+import { DoctorFilter, useFiltroMedico, colorMedico } from '@/components/DoctorFilter'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Appointment, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { getWeekDates } from '@/lib/availability'
@@ -17,8 +18,14 @@ const HOURS = Array.from({ length: 13 }, (_, i) => i + 7) // 7am–7pm
 
 export default function CalendarioPage() {
   const router = useRouter()
-  const { appointments, loading } = useAppointments()
+  const { appointments: allAppointments, loading } = useAppointments()
   const { config } = useConfig()
+  const [medicoFiltro, setMedicoFiltro] = useFiltroMedico()
+  // Aplicar filtro de médico antes de pasar a las vistas
+  const appointments = useMemo(() => {
+    if (!medicoFiltro) return allAppointments
+    return allAppointments.filter(a => a.medicoId === medicoFiltro)
+  }, [allAppointments, medicoFiltro])
   const [view, setView] = useState<View>('semana')
   const [baseDate, setBaseDate] = useState(new Date())
   const [modalOpen, setModalOpen] = useState(false)
@@ -67,7 +74,9 @@ export default function CalendarioPage() {
     <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 52px)' }}>
       {/* Topbar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0, flex: 1 }}>Calendario</h1>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Calendario</h1>
+        <DoctorFilter medicoId={medicoFiltro} onChange={setMedicoFiltro} />
+        <div style={{ flex: 1 }} />
 
         {/* View tabs */}
         <div style={{ display: 'flex', background: 'var(--s2)', borderRadius: 8, padding: 3, gap: 2 }}>
@@ -203,20 +212,22 @@ function WeekView({ weekDates, appointments, onCellClick, onApptClick, loading }
                 {cellAppts.map(a => {
                   const minOffset = parseInt(a.fechaHora.slice(14, 16))
                   const heightPct = Math.min((a.duracion / 60) * 100, 200)
+                  // Multi-doctor: colorea según el médico de la cita
+                  const color = a.medicoId ? colorMedico(a.medicoId) : '#14b8a6'
                   return (
                     <div
                       key={a.id}
                       onClick={e => { e.stopPropagation(); onApptClick(a) }}
-                      title={`${a.pacienteNombre} — ${a.fechaHora.slice(11, 16)}`}
+                      title={`${a.pacienteNombre} — ${a.fechaHora.slice(11, 16)}${a.medicoNombre ? ` · ${a.medicoNombre}` : ''}`}
                       style={{
                         position: 'absolute', left: 2, right: 2,
                         top: `${(minOffset / 60) * 100}%`,
                         minHeight: 20, height: `${heightPct}%`,
-                        background: 'rgba(0,212,168,0.15)',
-                        border: '1px solid rgba(0,212,168,0.4)',
-                        borderLeft: '3px solid var(--teal)',
+                        background: `${color}22`,
+                        border: `1px solid ${color}66`,
+                        borderLeft: `3px solid ${color}`,
                         borderRadius: 4, padding: '2px 5px',
-                        fontSize: 11, color: 'var(--teal)', fontWeight: 500,
+                        fontSize: 11, color, fontWeight: 500,
                         overflow: 'hidden', zIndex: 2, cursor: 'pointer',
                       }}
                     >

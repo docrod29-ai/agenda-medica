@@ -9,6 +9,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useAppointments } from '@/hooks/useAppointments'
 import { useConfig } from '@/hooks/useConfig'
 import { useDoctors } from '@/hooks/useDoctors'
+import { useFiltroMedico, colorMedico } from '@/components/DoctorFilter'
 import { useToast } from '@/context/ToastContext'
 import { createAppointment, getPatients, createPatient } from '@/lib/firestore'
 import { getAvailableSlots } from '@/lib/availability'
@@ -55,6 +56,7 @@ function AsistenteInner() {
   const { appointments } = useAppointments()
   const { config } = useConfig()
   const { activeDoctors, loading: doctorsLoading } = useDoctors()
+  const [medicoPreferido] = useFiltroMedico()
   const { toast } = useToast()
   const sp = useSearchParams()
 
@@ -72,12 +74,13 @@ function AsistenteInner() {
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
 
-  // Set default doctor
+  // Set default doctor — preferimos el filtro global de la asistente si lo tiene
   useEffect(() => {
     if (!doctorId && activeDoctors.length > 0) {
-      setDoctorId(activeDoctors[0].id)
+      const preseleccionado = medicoPreferido && activeDoctors.find(d => d.id === medicoPreferido)
+      setDoctorId(preseleccionado ? medicoPreferido : activeDoctors[0].id)
     }
-  }, [activeDoctors, doctorId])
+  }, [activeDoctors, doctorId, medicoPreferido])
 
   // Reset hour when date/tipo/doctor changes
   useEffect(() => {
@@ -250,25 +253,42 @@ function AsistenteInner() {
               </div>
             </div>
 
-            {/* Doctor selector */}
+            {/* Doctor selector — chips de color para distinguir entre múltiples médicos */}
             {activeDoctors.length > 1 && (
               <div>
-                <label style={{ fontSize: 12, color: 'var(--text2)', display: 'block', marginBottom: 6 }}>
-                  Médico
+                <label style={{ fontSize: 12, color: 'var(--text2)', display: 'block', marginBottom: 8 }}>
+                  Médico que atenderá
                 </label>
-                <select
-                  value={doctorId}
-                  onChange={e => setDoctorId(e.target.value)}
-                  style={{
-                    width: '100%', background: 'var(--s2)', border: '1px solid var(--border)',
-                    borderRadius: 10, padding: '10px 14px', fontSize: 14, color: 'var(--text)',
-                    outline: 'none',
-                  }}
-                >
-                  {activeDoctors.map(d => (
-                    <option key={d.id} value={d.id}>{d.nombre} — {d.especialidad}</option>
-                  ))}
-                </select>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {activeDoctors.map(d => {
+                    const activo = doctorId === d.id
+                    const color = colorMedico(d.id)
+                    return (
+                      <button
+                        key={d.id}
+                        type="button"
+                        onClick={() => setDoctorId(d.id)}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 8,
+                          padding: '8px 14px', borderRadius: 100, cursor: 'pointer',
+                          background: activo ? `${color}26` : 'var(--s2)',
+                          color: activo ? color : 'var(--text2)',
+                          border: activo ? `1.5px solid ${color}` : '1px solid var(--border)',
+                          fontWeight: activo ? 700 : 500, fontSize: 13,
+                          transition: 'all .12s',
+                        }}
+                      >
+                        <span style={{
+                          width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0,
+                        }} />
+                        {d.nombre.replace(/^Dr\.?\s+|^Dra\.?\s+/i, '').split(' ').slice(0, 2).join(' ')}
+                        {d.especialidad && (
+                          <span style={{ fontSize: 11, opacity: 0.75 }}>· {d.especialidad}</span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             )}
 

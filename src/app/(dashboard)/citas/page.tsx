@@ -9,6 +9,7 @@ import { calcularRiesgoNoShow, NIVEL_LABEL, NIVEL_COLOR } from '@/lib/no-show-ri
 import { getPatients } from '@/lib/firestore'
 import type { Patient } from '@/types'
 import { AppointmentModal } from '@/components/AppointmentModal'
+import { DoctorFilter, useFiltroMedico, colorMedico } from '@/components/DoctorFilter'
 import { Appointment, AppointmentStatus, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { updateAppointment, deleteAppointment } from '@/lib/firestore'
 import { useClinic } from '@/context/ClinicContext'
@@ -47,6 +48,7 @@ export default function CitasPage() {
   const router = useRouter()
   const { appointments, loading } = useAppointments()
   const { config } = useConfig()
+  const [medicoFiltro, setMedicoFiltro] = useFiltroMedico()
   const { clinicId } = useClinic()
   const { toast } = useToast()
   const [pacientes, setPacientes] = useState<Patient[]>([])
@@ -78,9 +80,11 @@ export default function CitasPage() {
       if (a.fechaHora.slice(0, 10) !== selectedDate) return false
       if (statusFilter !== 'todas' && a.estado !== statusFilter) return false
       if (search && !a.pacienteNombre.toLowerCase().includes(search.toLowerCase())) return false
+      // Filtro multi-doctor: si hay médico seleccionado, solo sus citas
+      if (medicoFiltro && a.medicoId !== medicoFiltro) return false
       return true
     }).sort((a, b) => a.fechaHora.localeCompare(b.fechaHora))
-  }, [appointments, selectedDate, statusFilter, search])
+  }, [appointments, selectedDate, statusFilter, search, medicoFiltro])
 
   const dateLabel = useMemo(() => {
     const d = new Date(selectedDate + 'T12:00')
@@ -118,7 +122,10 @@ export default function CitasPage() {
     <div style={{ padding: '24px', maxWidth: 1100, margin: '0 auto' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, gap: 12, flexWrap: 'wrap' }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Citas</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Citas</h1>
+          <DoctorFilter medicoId={medicoFiltro} onChange={setMedicoFiltro} />
+        </div>
         <button className="btn btn-primary" onClick={() => router.push('/asistente')}>
           <Plus size={16} /> Nueva cita
         </button>
@@ -278,7 +285,21 @@ function AppointmentRowFull({
 
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{appt.pacienteNombre}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{appt.pacienteNombre}</div>
+          {/* Badge del médico — visible cuando hay multi-doctor */}
+          {appt.medicoId && appt.medicoNombre && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              padding: '1px 7px', borderRadius: 100, fontSize: 10.5, fontWeight: 600,
+              background: `${colorMedico(appt.medicoId)}22`,
+              color: colorMedico(appt.medicoId),
+              border: `1px solid ${colorMedico(appt.medicoId)}40`,
+            }}>
+              {appt.medicoNombre.replace(/^Dr\.?\s+|^Dra\.?\s+/i, '').split(' ')[0]}
+            </span>
+          )}
+        </div>
         <div style={{ fontSize: 12, color: 'var(--text3)' }}>
           {typeCfg?.icon} {typeCfg?.label}
           {appt.motivo ? ` · ${appt.motivo}` : ''}
