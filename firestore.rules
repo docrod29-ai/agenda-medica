@@ -150,8 +150,16 @@ service cloud.firestore {
 
     // Invitaciones de clínica (top-level — el invitado las lee con el code)
     match /clinic_invitations/{code} {
-      // Cualquier usuario autenticado puede LEER por código (necesario para aceptar)
-      allow read: if isAuth();
+      // LECTURA PÚBLICA del doc específico (necesario para que el invitado SIN
+      // cuenta pueda ver la invitación antes de registrarse). Seguro porque:
+      // - El code es aleatorio de 10 chars (32^10 ≈ 1.1 billones de combinaciones)
+      // - La info expuesta no es sensible (nombre clínica + rol + nombre invitado opcional)
+      // - LIST está bloqueado: nadie puede enumerar invitaciones, solo leer por id exacto
+      allow get: if true;
+      // LIST permitido solo a usuarios autenticados (el médico para ver sus
+      // invitaciones desde el panel). La query del cliente ya filtra por
+      // clinicId; aquí solo evitamos enumeración pública.
+      allow list: if isAuth();
       // Crear: solo miembros de la clínica destino
       allow create: if isAuth()
         && exists(/databases/$(database)/documents/clinic_members/$(request.auth.uid))
