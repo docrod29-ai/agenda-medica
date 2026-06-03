@@ -82,8 +82,13 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           </div>
           <div style={{ fontSize: 11, color: 'var(--text3)' }}>
             {(() => {
+              // Asistente: muestra SU nombre y rol, no el del médico
+              if (!esMedicoReal) {
+                const miNombre = user?.displayName || user?.email?.split('@')[0]
+                return miNombre ? `${miNombre} · Asistente` : 'Asistente'
+              }
+              // Médico: muestra el nombre del consultorio
               if (!config.nombreMedico) return 'Consultorio'
-              // Si el nombre ya empieza con Dr/Dra, no duplicar el prefijo
               const yaTienePrefijo = /^Dr\.?\s+|^Dra\.?\s+/i.test(config.nombreMedico)
               return yaTienePrefijo ? config.nombreMedico : `Dr. ${config.nombreMedico}`
             })()}

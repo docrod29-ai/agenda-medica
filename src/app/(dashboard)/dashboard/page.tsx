@@ -2,6 +2,8 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useAppointments } from '@/hooks/useAppointments'
 import { useConfig } from '@/hooks/useConfig'
+import { useAuth } from '@/hooks/useAuth'
+import { useClinic } from '@/context/ClinicContext'
 import { useMode } from '@/context/ModeContext'
 import { useToast } from '@/context/ToastContext'
 import { StatusBadge } from '@/components/StatusBadge'
@@ -32,9 +34,32 @@ function quitarPrefijoDr(nombre: string): string {
   return nombre.replace(/^Dr\.?\s+|^Dra\.?\s+/i, '').trim()
 }
 
+/**
+ * Devuelve el PRIMER NOMBRE para saludar según quién está logueado.
+ * - Médico/admin: usa config.nombreMedico (nombre del consultorio)
+ * - Asistente: usa su displayName de Firebase Auth (lo capturó al registrarse)
+ * - Si no hay nada: usa email prefix
+ */
+function nombreSaludo(
+  role: string | null,
+  nombreMedico?: string,
+  displayName?: string | null,
+  email?: string | null,
+): string {
+  const esMedico = role === 'medico' || role === 'admin'
+  if (esMedico && nombreMedico) {
+    return quitarPrefijoDr(nombreMedico).split(' ')[0]
+  }
+  if (displayName) return displayName.split(' ')[0]
+  if (email) return email.split('@')[0]
+  return ''
+}
+
 export default function DashboardPage() {
   const { appointments, loading } = useAppointments()
   const { config } = useConfig()
+  const { user } = useAuth()
+  const { role } = useClinic()
   const { toast } = useToast()
   const searchParams = useSearchParams()
 
@@ -81,7 +106,7 @@ export default function DashboardPage() {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28, gap: 16, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
-            {greet()}{config.nombreMedico ? `, ${quitarPrefijoDr(config.nombreMedico).split(' ')[0]}` : ''} 👋
+            {greet()}{nombreSaludo(role, config.nombreMedico, user?.displayName, user?.email) ? `, ${nombreSaludo(role, config.nombreMedico, user?.displayName, user?.email)}` : ''} 👋
           </h1>
           <p style={{ fontSize: 14, color: 'var(--text2)', marginTop: 4 }}>
             {fechaLabel.charAt(0).toUpperCase() + fechaLabel.slice(1)}
