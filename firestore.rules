@@ -60,6 +60,15 @@ service cloud.firestore {
         allow create: if isMember(clinicId);
         allow update, delete: if false;
       }
+      // Solicitudes ARCO (LFPDPPP) — los pacientes pueden CREAR (vía API pública),
+      // los miembros de la clínica pueden leer/actualizar para resolver.
+      // Nunca se pueden borrar (registro legal).
+      match /arco_requests/{docId} {
+        allow read: if isMember(clinicId);
+        allow create: if true;  // creación vía portal público (sin auth)
+        allow update: if isMember(clinicId);
+        allow delete: if false;
+      }
       match /notification_logs/{docId} {
         allow read: if isMember(clinicId);
         allow create: if isMember(clinicId);

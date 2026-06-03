@@ -12,6 +12,12 @@ const nextConfig: NextConfig = {
           { key: "Content-Security-Policy", value: "frame-ancestors *;" },
         ],
       },
+      {
+        source: "/privacidad/:path*",
+        headers: [
+          { key: "Content-Security-Policy", value: "frame-ancestors *;" },
+        ],
+      },
       // Headers de seguridad globales (no afectan routing, no usan lookahead regex)
       {
         source: "/:path*",

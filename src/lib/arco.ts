@@ -1,0 +1,108 @@
+/**
+ * Gestión de solicitudes ARCO (Acceso, Rectificación, Cancelación, Oposición).
+ *
+ * LFPDPPP Art. 28-32 — el titular de los datos personales tiene derecho a:
+ *  - ACCESO: copia de sus datos
+ *  - RECTIFICACIÓN: corregir datos inexactos o incompletos
+ *  - CANCELACIÓN: solicitar eliminación
+ *  - OPOSICIÓN: que sus datos no sean usados para X fin
+ *  - REVOCACIÓN: revocar el consentimiento otorgado
+ *
+ * Plazo de respuesta: 20 días hábiles.
+ *
+ * Las solicitudes viven en clinics/{clinicId}/arco_requests/{requestId}.
+ * Solo médicos/admin de la clínica las pueden ver.
+ */
+import { collection, addDoc, getDocs, doc, updateDoc, query, orderBy, where } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
+
+export type ArcoTipo = 'acceso' | 'rectificacion' | 'cancelacion' | 'oposicion' | 'revocacion'
+
+export const ARCO_TIPO_LABEL: Record<ArcoTipo, string> = {
+  acceso: 'Acceso (copia de mis datos)',
+  rectificacion: 'Rectificación (corrección)',
+  cancelacion: 'Cancelación (borrado)',
+  oposicion: 'Oposición (no usar para X)',
+  revocacion: 'Revocación del consentimiento',
+}
+
+export type ArcoEstado = 'recibida' | 'en_proceso' | 'resuelta' | 'rechazada'
+
+export interface ArcoRequest {
+  id?: string
+  clinicId: string
+  /** ID del paciente si está identificado en el sistema */
+  patientId?: string
+  /** Datos del solicitante */
+  solicitante: {
+    nombre: string
+    telefono: string
+    email?: string
+    curp?: string
+    identificacion?: string  // descripción del documento (ej "INE folio XXXX")
+  }
+  tipo: ArcoTipo
+  descripcion: string             // qué pide específicamente
+  estado: ArcoEstado
+  fechaSolicitud: string          // ISO
+  fechaResolucion?: string
+  resueltoPor?: string            // UID del médico
+  resolucion?: string             // qué se hizo (texto libre)
+  // Plazo legal (20 días hábiles desde fechaSolicitud) — para alertas
+  fechaLimiteRespuesta?: string
+}
+
+/** Calcula la fecha límite (20 días hábiles desde la fecha de solicitud). */
+export function calcularFechaLimite(fechaSolicitud: string): string {
+  const d = new Date(fechaSolicitud)
+  let agregados = 0
+  while (agregados < 20) {
+    d.setDate(d.getDate() + 1)
+    // Saltar fines de semana
+    if (d.getDay() !== 0 && d.getDay() !== 6) agregados++
+  }
+  return d.toISOString()
+}
+
+/** Crea una nueva solicitud ARCO */
+export async function crearSolicitudArco(req: Omit<ArcoRequest, 'id' | 'estado' | 'fechaSolicitud' | 'fechaLimiteRespuesta'>): Promise<string> {
+  const fechaSolicitud = new Date().toISOString()
+  const payload: Omit<ArcoRequest, 'id'> = {
+    ...req,
+    estado: 'recibida',
+    fechaSolicitud,
+    fechaLimiteRespuesta: calcularFechaLimite(fechaSolicitud),
+  }
+  const ref = await addDoc(collection(db, 'clinics', req.clinicId, 'arco_requests'), payload)
+  return ref.id
+}
+
+/** Lista todas las solicitudes ARCO de una clínica */
+export async function listarSolicitudesArco(clinicId: string): Promise<ArcoRequest[]> {
+  const q = query(collection(db, 'clinics', clinicId, 'arco_requests'), orderBy('fechaSolicitud', 'desc'))
+  const snap = await getDocs(q)
+  return snap.docs.map(d => ({ ...d.data(), id: d.id } as ArcoRequest))
+}
+
+/** Lista solo pendientes */
+export async function listarArcoPendientes(clinicId: string): Promise<ArcoRequest[]> {
+  const q = query(
+    collection(db, 'clinics', clinicId, 'arco_requests'),
+    where('estado', 'in', ['recibida', 'en_proceso']),
+    orderBy('fechaSolicitud', 'desc'),
+  )
+  const snap = await getDocs(q)
+  return snap.docs.map(d => ({ ...d.data(), id: d.id } as ArcoRequest))
+}
+
+/** Resuelve una solicitud (médico/admin marca como resuelta o rechazada) */
+export async function resolverSolicitudArco(
+  clinicId: string,
+  requestId: string,
+  resolucion: { estado: 'resuelta' | 'rechazada'; resolucion: string; resueltoPor: string },
+): Promise<void> {
+  await updateDoc(doc(db, 'clinics', clinicId, 'arco_requests', requestId), {
+    ...resolucion,
+    fechaResolucion: new Date().toISOString(),
+  })
+}

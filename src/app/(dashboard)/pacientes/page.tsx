@@ -187,6 +187,7 @@ function PatientModal({ patient, onClose, onSaved, userEmail }: {
     fechaNacimiento: patient?.fechaNacimiento ?? '',
     edad: String(patient?.edad ?? ''),
     sexo: patient?.sexo ?? '',
+    curp: patient?.curp ?? '',
     seguroMedico: patient?.seguroMedico ?? '',
     alergias: patient?.alergias ?? '',
     notas: patient?.notas ?? '',
@@ -207,6 +208,7 @@ function PatientModal({ patient, onClose, onSaved, userEmail }: {
         fechaNacimiento: f.fechaNacimiento,
         edad: f.edad ? Number(f.edad) : undefined,
         sexo: f.sexo as Patient['sexo'],
+        curp: f.curp.trim().toUpperCase() || undefined,
         seguroMedico: f.seguroMedico.trim(),
         alergias: f.alergias.trim(),
         notas: f.notas.trim(),
@@ -274,6 +276,17 @@ function PatientModal({ patient, onClose, onSaved, userEmail }: {
                 <option value="Femenino">Femenino</option>
                 <option value="Otro">Otro</option>
               </select>
+            </div>
+            <div className="form-group">
+              <label className="label">CURP (NOM-024) <span style={{ color: 'var(--text3)', fontSize: 11 }}>opcional</span></label>
+              <input
+                className="input"
+                value={f.curp}
+                onChange={(e) => setF({ ...f, curp: e.target.value.toUpperCase() })}
+                maxLength={18}
+                placeholder="GARC890101HCHRZN09"
+                style={{ fontFamily: 'monospace', textTransform: 'uppercase' }}
+              />
             </div>
             <div className="form-group">
               <label className="label">Seguro médico</label>

@@ -154,11 +154,21 @@ export interface Patient {
   seguroMedico?: string
   alergias?: string
   notas?: string
-  tags?: PatientTag[]               // ✨ NUEVO — opcional, no rompe nada
-  ultimaCita?: string               // ISO — para detectar inactivos
-  proximoSeguimiento?: string       // ISO — para CRM/campañas
+  tags?: PatientTag[]
+  ultimaCita?: string
+  proximoSeguimiento?: string
   noShowCount: number
   cancelacionCount: number
+  // === Cumplimiento NOM-024 + LFPDPPP ===
+  /** CURP del paciente (NOM-024 Art. 5.6.2 — identificación obligatoria) */
+  curp?: string
+  /** Aceptación del aviso de privacidad LFPDPPP */
+  avisoPrivacidad?: {
+    aceptado: boolean
+    fechaAceptacion: string        // ISO
+    versionAviso: string           // ej "2026-06"
+    medioAceptacion: 'presencial' | 'portal' | 'whatsapp' | 'verbal'
+  }
   createdAt: string
   updatedAt: string
   creadoPor: string

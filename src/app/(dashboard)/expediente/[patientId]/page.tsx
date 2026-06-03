@@ -6,6 +6,7 @@ import { useExpediente } from '@/hooks/useExpediente'
 import { getPatients } from '@/lib/firestore'
 import { deleteNota } from '@/lib/expediente/firestore'
 import { useToast } from '@/context/ToastContext'
+import { useAuth } from '@/hooks/useAuth'
 import type { Patient } from '@/types'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
 import type { NotaMedica } from '@/types/expediente'
@@ -18,6 +19,7 @@ export default function ExpedientePage() {
   const { patientId } = useParams<{ patientId: string }>()
   const router = useRouter()
   const { clinicId } = useClinic()
+  const { user } = useAuth()
   const { toast } = useToast()
   const { notas, loading, reload } = useExpediente(patientId)
   const [patient, setPatient] = useState<Patient | null>(null)
@@ -39,7 +41,14 @@ export default function ExpedientePage() {
   useEffect(() => {
     if (!clinicId || !patientId) return
     getPatients(clinicId).then(ps => setPatient(ps.find(p => p.id === patientId) ?? null))
-  }, [clinicId, patientId])
+    // NOM-024 Art. 6.5: bitácora de accesos — registrar lectura del expediente
+    import('@/lib/expediente/audit-log').then(({ logAudit }) => {
+      logAudit({
+        evento: 'expediente_lectura', clinicId, patientId,
+        medicoUid: user?.uid, medicoEmail: user?.email ?? undefined,
+      })
+    })
+  }, [clinicId, patientId, user?.uid, user?.email])
 
   const notasFiltradas = notas.filter(n => {
     if (filtro === 'todas') return true

@@ -29,6 +29,11 @@ export default function NotaImprimiblePage() {
       const nombre = (patient?.nombre ?? 'paciente').replace(/[^\w\sáéíóúñ-]/gi, '').replace(/\s+/g, '_')
       const fechaCorta = new Date(nota?.fechaConsulta ?? Date.now()).toISOString().slice(0, 10)
       await descargarComoPDF(el, { filename: `Nota_${nombre}_${fechaCorta}` })
+      // NOM-024: registrar impresión/descarga del documento
+      if (clinicId) {
+        const { logAudit } = await import('@/lib/expediente/audit-log')
+        await logAudit({ evento: 'nota_impresion', clinicId, patientId, notaId })
+      }
     } catch (e) {
       console.error('PDF error:', e)
       alert('No se pudo generar el PDF. Intenta con Imprimir → Guardar como PDF.')
@@ -46,6 +51,10 @@ export default function NotaImprimiblePage() {
       setNota(n)
       setPatient(ps.find(p => p.id === patientId) ?? null)
       setLoading(false)
+    })
+    // NOM-024 Art. 6.5: registrar lectura de nota clínica
+    import('@/lib/expediente/audit-log').then(({ logAudit }) => {
+      logAudit({ evento: 'nota_lectura', clinicId, patientId, notaId })
     })
   }, [clinicId, patientId, notaId])
 
