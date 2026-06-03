@@ -255,12 +255,12 @@ function Features() {
             borderRadius: 16, padding: '28px 24px',
             transition: 'border-color 0.2s',
           }}
-            onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(0,212,168,0.4)')}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(61,90,254,0.4)')}
             onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
           >
             <div style={{
               width: 44, height: 44, borderRadius: 12,
-              background: 'rgba(0,212,168,0.1)', border: '1px solid rgba(0,212,168,0.2)',
+              background: 'rgba(61,90,254,0.1)', border: '1px solid rgba(61,90,254,0.2)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16,
             }}>
               <f.icon size={20} color="var(--teal)" />
@@ -302,7 +302,7 @@ function HowItWorks() {
               <div key={s.n} style={{ display: 'flex', gap: 20 }}>
                 <div style={{
                   width: 48, height: 48, borderRadius: 12, flexShrink: 0,
-                  background: 'rgba(0,212,168,0.1)', border: '1px solid rgba(0,212,168,0.3)',
+                  background: 'rgba(61,90,254,0.1)', border: '1px solid rgba(61,90,254,0.3)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 13, fontWeight: 700, color: 'var(--teal)', fontFamily: 'monospace',
                 }}>
@@ -395,7 +395,7 @@ function Pricing() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
         {PLANS.map(p => (
           <div key={p.name} style={{
-            background: p.highlight ? 'rgba(0,212,168,0.05)' : 'var(--s1)',
+            background: p.highlight ? 'rgba(61,90,254,0.05)' : 'var(--s1)',
             border: p.highlight ? '2px solid var(--teal)' : '1px solid var(--border)',
             borderRadius: 20, padding: '32px 28px',
             position: 'relative',
@@ -518,7 +518,7 @@ function FinalCTA() {
   return (
     <section style={{
       padding: '96px 24px',
-      background: 'linear-gradient(135deg, rgba(0,212,168,0.06) 0%, rgba(0,184,255,0.04) 100%)',
+      background: 'linear-gradient(135deg, rgba(61,90,254,0.06) 0%, rgba(61,90,254,0.04) 100%)',
       borderTop: '1px solid var(--border)', textAlign: 'center',
     }}>
       <h2 style={{ fontSize: 40, fontWeight: 800, color: 'var(--text)', marginBottom: 16 }}>

@@ -211,7 +211,7 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
               <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{TIPO_NOTA_LABEL[nota.tipo]}</span>
               <span style={{
                 fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 100,
-                background: firmada ? 'rgba(0,212,168,0.12)' : 'rgba(245,158,11,0.12)',
+                background: firmada ? 'rgba(61,90,254,0.12)' : 'rgba(245,158,11,0.12)',
                 color: firmada ? 'var(--teal)' : '#f59e0b',
               }}>
                 {firmada ? 'FIRMADA' : 'BORRADOR'}

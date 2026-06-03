@@ -305,7 +305,7 @@ function AsistenteInner() {
                     style={{
                       padding: '8px 12px', borderRadius: 8, fontSize: 12, fontWeight: 500,
                       border: tipo === t.value ? '1px solid var(--teal)' : '1px solid var(--border)',
-                      background: tipo === t.value ? 'rgba(0,212,168,0.1)' : 'var(--s2)',
+                      background: tipo === t.value ? 'rgba(61,90,254,0.1)' : 'var(--s2)',
                       color: tipo === t.value ? 'var(--teal)' : 'var(--text2)',
                       cursor: 'pointer', transition: 'all 0.15s', textAlign: 'left',
                     }}
@@ -350,7 +350,7 @@ function AsistenteInner() {
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       padding: '10px 14px', borderRadius: 10, fontSize: 13,
                       border: isSelected ? '1px solid var(--teal)' : '1px solid var(--border)',
-                      background: isSelected ? 'rgba(0,212,168,0.1)' : 'var(--s2)',
+                      background: isSelected ? 'rgba(61,90,254,0.1)' : 'var(--s2)',
                       color: daySlots.length === 0 ? 'var(--text3)' : isSelected ? 'var(--teal)' : 'var(--text)',
                       cursor: daySlots.length === 0 ? 'default' : 'pointer',
                       opacity: daySlots.length === 0 ? 0.4 : 1,
@@ -383,7 +383,7 @@ function AsistenteInner() {
                     style={{
                       padding: '8px 4px', borderRadius: 8, fontSize: 13, fontWeight: 500,
                       border: horaSeleccionada === h ? '1px solid var(--teal)' : '1px solid var(--border)',
-                      background: horaSeleccionada === h ? 'rgba(0,212,168,0.15)' : 'var(--s2)',
+                      background: horaSeleccionada === h ? 'rgba(61,90,254,0.15)' : 'var(--s2)',
                       color: horaSeleccionada === h ? 'var(--teal)' : 'var(--text)',
                       cursor: 'pointer', transition: 'all 0.15s',
                     }}

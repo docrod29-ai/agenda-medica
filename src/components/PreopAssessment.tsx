@@ -17,7 +17,7 @@ interface Props {
 }
 
 const CAT_COLOR: Record<CategoriaRec, string> = {
-  Medicamentos: '#00d4a8', Biomarcadores: '#60a5fa', Tiempos: '#f59e0b',
+  Medicamentos: '#3D5AFE', Biomarcadores: '#60a5fa', Tiempos: '#f59e0b',
   Pruebas: '#a78bfa', Tromboprofilaxis: '#f87171', General: '#94a3b8',
 }
 
@@ -245,7 +245,7 @@ export function PreopAssessment({ edadPaciente, disabled, onAplicar, initialInpu
       </Card>
 
       {/* ── Contexto / Medicamentos ── */}
-      <Card icon={<Pill size={15} />} titulo="Medicamentos y situación clínica (para recomendaciones)" color="#00d4a8">
+      <Card icon={<Pill size={15} />} titulo="Medicamentos y situación clínica (para recomendaciones)" color="#3D5AFE">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0 20px' }}>
           {chk(ctx.hipertension, () => setCtx(c => ({ ...c, hipertension: !c.hipertension })), 'Hipertensión arterial')}
           {chk(ctx.insuficienciaCardiacaFErEF, () => setCtx(c => ({ ...c, insuficienciaCardiacaFErEF: !c.insuficienciaCardiacaFErEF })), 'Insuficiencia cardiaca con FE reducida')}

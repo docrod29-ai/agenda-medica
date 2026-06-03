@@ -178,7 +178,7 @@ export default function CitasPage() {
               style={{
                 background: statusFilter === f.value ? 'var(--teal-glow)' : 'var(--s2)',
                 color: statusFilter === f.value ? 'var(--teal)' : 'var(--text2)',
-                border: `1px solid ${statusFilter === f.value ? 'rgba(0,212,168,0.3)' : 'var(--border)'}`,
+                border: `1px solid ${statusFilter === f.value ? 'rgba(61,90,254,0.3)' : 'var(--border)'}`,
               }}
             >
               {f.label}

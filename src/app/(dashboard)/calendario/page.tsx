@@ -274,7 +274,7 @@ function DayView({ date, appointments, onCellClick, onApptClick, loading }: {
                   key={a.id}
                   onClick={e => { e.stopPropagation(); onApptClick(a) }}
                   style={{
-                    background: 'rgba(0,212,168,0.1)', border: '1px solid rgba(0,212,168,0.3)',
+                    background: 'rgba(61,90,254,0.1)', border: '1px solid rgba(61,90,254,0.3)',
                     borderLeft: '3px solid var(--teal)', borderRadius: 6, padding: '6px 10px',
                     cursor: 'pointer',
                   }}
@@ -349,7 +349,7 @@ function MonthView({ date, appointments, onDayClick, onApptClick, loading }: {
               style={{
                 borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)',
                 padding: '6px', cursor: 'pointer', minHeight: 80,
-                background: isToday ? 'rgba(0,212,168,0.05)' : 'transparent',
+                background: isToday ? 'rgba(61,90,254,0.05)' : 'transparent',
                 transition: 'background 0.1s',
               }}
               onMouseEnter={e => !isToday && (e.currentTarget.style.background = 'var(--s2)')}
@@ -370,7 +370,7 @@ function MonthView({ date, appointments, onDayClick, onApptClick, loading }: {
                   onClick={e => { e.stopPropagation(); onApptClick(a) }}
                   style={{
                     fontSize: 10, padding: '2px 5px', borderRadius: 3,
-                    background: 'rgba(0,212,168,0.12)', color: 'var(--teal)',
+                    background: 'rgba(61,90,254,0.12)', color: 'var(--teal)',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     marginBottom: 2, cursor: 'pointer',
                   }}

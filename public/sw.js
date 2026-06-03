@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v32'  // Sprint 5: auditoría — limpieza de colores hardcoded
+const CACHE = 'nexusmed-v33'  // Sprint 6: limpieza profunda — 100% código sin referencias teal
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

@@ -146,7 +146,7 @@ export default function PacientesPage() {
                     title="Ver expediente clínico"
                     style={{
                       display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
-                      background: 'rgba(0,212,168,0.08)', border: '1px solid rgba(0,212,168,0.25)',
+                      background: 'rgba(61,90,254,0.08)', border: '1px solid rgba(61,90,254,0.25)',
                       color: 'var(--teal)', borderRadius: 8, padding: '6px 12px',
                       fontSize: 12, fontWeight: 600, cursor: 'pointer',
                     }}

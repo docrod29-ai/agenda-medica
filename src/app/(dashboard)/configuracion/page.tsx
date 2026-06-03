@@ -461,7 +461,7 @@ export default function ConfiguracionPage() {
           <div style={{ padding: 20, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(0,212,168,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(61,90,254,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Calendar size={20} style={{ color: 'var(--teal)' }} />
                 </div>
                 <div>
@@ -538,7 +538,7 @@ export default function ConfiguracionPage() {
               </div>
             )}
 
-            <div style={{ marginTop: 14, padding: '10px 14px', background: 'rgba(0,212,168,0.05)', border: '1px solid rgba(0,212,168,0.15)', borderRadius: 8 }}>
+            <div style={{ marginTop: 14, padding: '10px 14px', background: 'rgba(61,90,254,0.05)', border: '1px solid rgba(61,90,254,0.15)', borderRadius: 8 }}>
               <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
                 Al conectar Google Calendar, todas las citas nuevas y cambios se sincronizarán automáticamente.
                 Las citas canceladas se marcarán en rojo en tu calendario.
@@ -644,7 +644,7 @@ function AutoAgendaLink({ configNumero, onCopy, copied }: {
   return (
     <div style={{ padding: 20, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(0,212,168,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(61,90,254,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Smartphone size={20} color="var(--teal)" />
         </div>
         <div>
@@ -676,7 +676,7 @@ function AutoAgendaLink({ configNumero, onCopy, copied }: {
                   <MessageCircle size={13} /> Probar
                 </a>
               </div>
-              <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(0,212,168,0.05)', border: '1px solid rgba(0,212,168,0.15)', borderRadius: 8 }}>
+              <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(61,90,254,0.05)', border: '1px solid rgba(61,90,254,0.15)', borderRadius: 8 }}>
                 <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
                   En tu página de Facebook: <strong style={{ color: 'var(--text2)' }}>Editar página → Botón → WhatsApp</strong> y pega este número. O usa el enlace directo en cualquier botón/web.
                 </p>
@@ -835,7 +835,7 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
             width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-            background: connected ? 'rgba(74,222,128,0.12)' : 'rgba(0,212,168,0.08)',
+            background: connected ? 'rgba(74,222,128,0.12)' : 'rgba(61,90,254,0.08)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <MessageCircle size={20} color={connected ? '#4ade80' : 'var(--teal)'} />
@@ -910,7 +910,7 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
       {/* Info box + conexión manual */}
       {!connected && (
         <>
-          <div style={{ marginTop: 14, padding: '10px 14px', background: 'rgba(0,212,168,0.05)', border: '1px solid rgba(0,212,168,0.15)', borderRadius: 8 }}>
+          <div style={{ marginTop: 14, padding: '10px 14px', background: 'rgba(61,90,254,0.05)', border: '1px solid rgba(61,90,254,0.15)', borderRadius: 8 }}>
             <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
               Al hacer clic se abrirá una ventana de Meta. Solo necesitas iniciar sesión con Facebook
               y verificar tu número de WhatsApp.
@@ -1009,7 +1009,7 @@ function BotFAQTab({ doctors }: { doctors: Doctor[] }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div style={{ background: 'rgba(0,212,168,0.05)', border: '1px solid rgba(0,212,168,0.2)', borderRadius: 12, padding: 16 }}>
+      <div style={{ background: 'rgba(61,90,254,0.05)', border: '1px solid rgba(61,90,254,0.2)', borderRadius: 12, padding: 16 }}>
         <p style={{ fontSize: 13, color: 'var(--text2)', margin: 0, lineHeight: 1.6 }}>
           🤖 <strong style={{ color: 'var(--teal)' }}>Bot de WhatsApp</strong> — estas respuestas se usan cuando los pacientes pregunten por WhatsApp sobre horarios, costos, ubicación, etc.
         </p>
@@ -1189,9 +1189,9 @@ function MedicosTab() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{
               fontSize: 11, padding: '3px 8px', borderRadius: 20,
-              background: doc.activo ? 'rgba(0,212,168,0.1)' : 'rgba(255,255,255,0.05)',
+              background: doc.activo ? 'rgba(61,90,254,0.1)' : 'rgba(255,255,255,0.05)',
               color: doc.activo ? 'var(--teal)' : 'var(--text3)',
-              border: doc.activo ? '1px solid rgba(0,212,168,0.3)' : '1px solid var(--border)',
+              border: doc.activo ? '1px solid rgba(61,90,254,0.3)' : '1px solid var(--border)',
             }}>
               {doc.activo ? 'Activo' : 'Inactivo'}
             </span>
@@ -1218,7 +1218,7 @@ function MedicosTab() {
 const PLAN_DISPLAY: Record<string, { label: string; color: string; price: string }> = {
   trial:   { label: 'Prueba gratuita',  color: '#f59e0b', price: '$0 MXN/mes' },
   basico:  { label: 'Plan Básico',      color: '#60a5fa', price: '$299 MXN/mes' },
-  pro:     { label: 'Plan Pro',         color: '#00d4a8', price: '$499 MXN/mes' },
+  pro:     { label: 'Plan Pro',         color: '#3D5AFE', price: '$499 MXN/mes' },
   clinica: { label: 'Plan Clínica',     color: '#a78bfa', price: '$999 MXN/mes' },
 }
 
@@ -1293,9 +1293,9 @@ function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
             <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>{planInfo.label}</span>
             <span style={{
               fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 100,
-              background: status === 'active' ? 'rgba(0,212,168,0.12)' : 'rgba(245,158,11,0.12)',
+              background: status === 'active' ? 'rgba(61,90,254,0.12)' : 'rgba(245,158,11,0.12)',
               color: status === 'active' ? 'var(--teal)' : '#f59e0b',
-              border: `1px solid ${status === 'active' ? 'rgba(0,212,168,0.3)' : 'rgba(245,158,11,0.3)'}`,
+              border: `1px solid ${status === 'active' ? 'rgba(61,90,254,0.3)' : 'rgba(245,158,11,0.3)'}`,
             }}>
               {status === 'active' ? 'ACTIVO' : status === 'trial' ? 'PRUEBA' : status === 'suspended' ? 'SUSPENDIDO' : 'CANCELADO'}
             </span>
@@ -1348,7 +1348,7 @@ function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
                 const info = PLAN_DISPLAY[p]
                 return (
                   <div key={p} style={{
-                    background: 'var(--s1)', border: p === 'pro' ? '1px solid rgba(0,212,168,0.4)' : '1px solid var(--border)',
+                    background: 'var(--s1)', border: p === 'pro' ? '1px solid rgba(61,90,254,0.4)' : '1px solid var(--border)',
                     borderRadius: 10, padding: '16px 20px',
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
                   }}>
@@ -1480,7 +1480,7 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
         </button>
 
         {generada && (
-          <div style={{ marginTop: 14, padding: 12, background: 'rgba(0,212,168,0.06)', border: '1px solid rgba(0,212,168,0.25)', borderRadius: 10 }}>
+          <div style={{ marginTop: 14, padding: 12, background: 'rgba(61,90,254,0.06)', border: '1px solid rgba(61,90,254,0.25)', borderRadius: 10 }}>
             <div style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 600, marginBottom: 6 }}>✅ Enlace listo</div>
             <div style={{ fontSize: 11.5, color: 'var(--text3)', wordBreak: 'break-all', marginBottom: 10 }}>
               {linkDe(generada)}

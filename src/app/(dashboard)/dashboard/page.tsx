@@ -322,7 +322,7 @@ function NextAppointment({ appt }: { appt: Appointment }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
         <div style={{
           width: 40, height: 40, borderRadius: '50%', background: 'var(--teal-glow)',
-          border: '1px solid rgba(0,212,168,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          border: '1px solid rgba(61,90,254,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 16, fontWeight: 700, color: 'var(--teal)',
         }}>
           {appt.pacienteNombre.charAt(0).toUpperCase()}
