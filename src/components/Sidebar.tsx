@@ -81,7 +81,12 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
             {config.nombreClinica || 'Agenda Médica'}
           </div>
           <div style={{ fontSize: 11, color: 'var(--text3)' }}>
-            {config.nombreMedico ? `Dr. ${config.nombreMedico}` : 'Consultorio'}
+            {(() => {
+              if (!config.nombreMedico) return 'Consultorio'
+              // Si el nombre ya empieza con Dr/Dra, no duplicar el prefijo
+              const yaTienePrefijo = /^Dr\.?\s+|^Dra\.?\s+/i.test(config.nombreMedico)
+              return yaTienePrefijo ? config.nombreMedico : `Dr. ${config.nombreMedico}`
+            })()}
           </div>
         </div>
       </div>

@@ -139,19 +139,21 @@ export default function PacientesPage() {
                   </div>
                 )}
 
-                {/* Expediente */}
-                <button
-                  onClick={e => { e.stopPropagation(); router.push(`/expediente/${p.id}`) }}
-                  title="Ver expediente clínico"
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
-                    background: 'rgba(0,212,168,0.08)', border: '1px solid rgba(0,212,168,0.25)',
-                    color: 'var(--teal)', borderRadius: 8, padding: '6px 12px',
-                    fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                  }}
-                >
-                  <FileText size={13} /> Expediente
-                </button>
+                {/* Expediente — solo médicos/admin. La asistente no ve este botón */}
+                {mode === 'medico' && (
+                  <button
+                    onClick={e => { e.stopPropagation(); router.push(`/expediente/${p.id}`) }}
+                    title="Ver expediente clínico"
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
+                      background: 'rgba(0,212,168,0.08)', border: '1px solid rgba(0,212,168,0.25)',
+                      color: 'var(--teal)', borderRadius: 8, padding: '6px 12px',
+                      fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    }}
+                  >
+                    <FileText size={13} /> Expediente
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -178,6 +180,7 @@ function PatientModal({ patient, onClose, onSaved, userEmail }: {
 }) {
   const { toast } = useToast()
   const { clinicId } = useClinic()
+  const { mode } = useMode()
   const [saving, setSaving] = useState(false)
   const [f, setF] = useState({
     nombre: patient?.nombre ?? '',
@@ -292,14 +295,20 @@ function PatientModal({ patient, onClose, onSaved, userEmail }: {
               <label className="label">Seguro médico</label>
               <input className="input" value={f.seguroMedico} onChange={upd('seguroMedico')} placeholder="IMSS, ISSSTE, Gastos mayores…" />
             </div>
-            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-              <label className="label">Alergias</label>
-              <input className="input" value={f.alergias} onChange={upd('alergias')} placeholder="Penicilina, AINES, …" />
-            </div>
-            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-              <label className="label">Notas</label>
-              <textarea className="input" value={f.notas} onChange={upd('notas')} rows={2} placeholder="Información adicional" />
-            </div>
+            {/* Datos CLÍNICOS — solo médicos/admin pueden verlos y editarlos.
+                La asistente solo administra datos demográficos del paciente. */}
+            {mode === 'medico' && (
+              <>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label className="label">Alergias</label>
+                  <input className="input" value={f.alergias} onChange={upd('alergias')} placeholder="Penicilina, AINES, …" />
+                </div>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label className="label">Notas clínicas</label>
+                  <textarea className="input" value={f.notas} onChange={upd('notas')} rows={2} placeholder="Información adicional" />
+                </div>
+              </>
+            )}
           </div>
         </div>
         <div className="modal-footer">

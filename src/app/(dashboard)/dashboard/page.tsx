@@ -27,6 +27,11 @@ function greet() {
   return 'Buenas noches'
 }
 
+/** Quita "Dr.", "Dra.", "Dr ", "Dra " del inicio del nombre — evita el "Dr. Dr." duplicado */
+function quitarPrefijoDr(nombre: string): string {
+  return nombre.replace(/^Dr\.?\s+|^Dra\.?\s+/i, '').trim()
+}
+
 export default function DashboardPage() {
   const { appointments, loading } = useAppointments()
   const { config } = useConfig()
@@ -76,7 +81,7 @@ export default function DashboardPage() {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28, gap: 16, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
-            {greet()}{config.nombreMedico ? `, Dr. ${config.nombreMedico.split(' ')[0]}` : ''} 👋
+            {greet()}{config.nombreMedico ? `, ${quitarPrefijoDr(config.nombreMedico).split(' ')[0]}` : ''} 👋
           </h1>
           <p style={{ fontSize: 14, color: 'var(--text2)', marginTop: 4 }}>
             {fechaLabel.charAt(0).toUpperCase() + fechaLabel.slice(1)}

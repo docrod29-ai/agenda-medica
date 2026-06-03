@@ -196,7 +196,8 @@ export default function ConfiguracionPage() {
     {
       titulo: 'Equipo y permisos',
       tabs: [
-        { key: 'medicos', label: '👨‍⚕️ Médicos (hasta 5)', modoMin: 'medico' },
+        // La asistente puede gestionar perfiles de médicos en agenda
+        { key: 'medicos', label: '👨‍⚕️ Médicos (hasta 5)' },
         { key: 'equipo', label: '👥 Asistentes y secretarias' },
       ],
     },
