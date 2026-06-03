@@ -21,6 +21,7 @@ import { generarHashIntegridad, generarHashFirma } from '@/lib/expediente/integr
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
 import type { TipoNota, NotaMedica, NotaSeccion, Diagnostico, Medicamento, SignosVitales } from '@/types/expediente'
 import type { Patient } from '@/types'
+import { Cie10Autocomplete } from '@/components/Cie10Autocomplete'
 import {
   ArrowLeft, Mic, Square, Sparkles, Loader2, AlertTriangle, CheckCircle2,
   Trash2, Plus, ShieldCheck, Pill, Stethoscope, FileSignature,
@@ -595,16 +596,32 @@ export default function ConsultaActivaPage() {
         </Section>
       ))}
 
-      {/* ── Diagnósticos ── */}
+      {/* ── Diagnósticos (con autocomplete CIE-10 — NOM-035) ── */}
       <Section title="Diagnósticos" icon={<ShieldCheck size={15} />}>
         {diagnosticos.map((d, i) => (
-          <div key={i} style={S.row}>
-            <input value={d.descripcion} disabled={firmada} placeholder="Diagnóstico"
-              onChange={e => setDiagnosticos(prev => prev.map((x, j) => j === i ? { ...x, descripcion: e.target.value } : x))}
-              style={{ ...S.input, flex: 3 }} />
-            <input value={d.codigoCIE10 ?? ''} disabled={firmada} placeholder="CIE-10"
-              onChange={e => setDiagnosticos(prev => prev.map((x, j) => j === i ? { ...x, codigoCIE10: e.target.value } : x))}
-              style={{ ...S.input, flex: 1 }} />
+          <div key={i} style={{ ...S.row, alignItems: 'flex-start' }}>
+            <div style={{ flex: 3 }}>
+              {firmada ? (
+                <input value={d.descripcion} disabled placeholder="Diagnóstico" style={S.input} />
+              ) : (
+                <Cie10Autocomplete
+                  value={d.descripcion}
+                  onChange={(descripcion, codigoCIE10) => {
+                    setDiagnosticos(prev => prev.map((x, j) =>
+                      j === i ? { ...x, descripcion, ...(codigoCIE10 ? { codigoCIE10 } : {}) } : x
+                    ))
+                  }}
+                  placeholder="Faringitis, J02, hipertensión…"
+                />
+              )}
+            </div>
+            <input
+              value={d.codigoCIE10 ?? ''}
+              disabled={firmada}
+              placeholder="CIE-10"
+              onChange={e => setDiagnosticos(prev => prev.map((x, j) => j === i ? { ...x, codigoCIE10: e.target.value.toUpperCase() } : x))}
+              style={{ ...S.input, flex: 1, fontFamily: 'monospace', textTransform: 'uppercase' }}
+            />
             {!firmada && <button onClick={() => setDiagnosticos(prev => prev.filter((_, j) => j !== i))} style={S.del}><Trash2 size={14} /></button>}
           </div>
         ))}
@@ -612,6 +629,11 @@ export default function ConsultaActivaPage() {
           <button onClick={() => setDiagnosticos(prev => [...prev, { descripcion: '', tipo: 'presuntivo', estado: 'activo' }])} style={S.addBtn}>
             <Plus size={13} /> Agregar diagnóstico
           </button>
+        )}
+        {!firmada && diagnosticos.length === 0 && (
+          <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', padding: 6 }}>
+            💡 Escribe el padecimiento y te sugerimos el código CIE-10 del catálogo NOM-035
+          </div>
         )}
       </Section>
 
