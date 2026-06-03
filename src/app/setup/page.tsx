@@ -57,11 +57,18 @@ export default function SetupPage() {
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
           <div style={{
-            width: 44, height: 44, borderRadius: 12,
-            background: 'rgba(0,212,168,0.15)', border: '1px solid rgba(0,212,168,0.3)',
+            width: 44, height: 44, borderRadius: 11,
+            background: 'var(--s1)', border: '1px solid var(--border2)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <Stethoscope size={22} color="var(--teal)" />
+            <svg width="22" height="22" viewBox="0 0 48 48" aria-hidden="true">
+              <g stroke="#3D5AFE" strokeWidth="5" strokeLinecap="round" fill="none">
+                <line x1="8" y1="8" x2="8" y2="40"/>
+                <line x1="40" y1="8" x2="40" y2="40"/>
+                <line x1="8" y1="8" x2="40" y2="40"/>
+              </g>
+              <circle cx="24" cy="24" r="3" fill="#F2EFE9"/>
+            </svg>
           </div>
           <div>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em' }}>NexusMED</div>

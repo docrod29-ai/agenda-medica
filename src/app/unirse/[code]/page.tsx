@@ -106,8 +106,15 @@ export default function UnirsePage() {
     return (
       <div style={containerStyle}>
         <div style={cardStyle}>
-          <div style={{ width: 56, height: 56, borderRadius: 14, background: 'rgba(0,212,168,0.15)', border: '1px solid rgba(0,212,168,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-            <Stethoscope size={26} color="var(--teal)" />
+          <div style={{ width: 56, height: 56, borderRadius: 14, background: 'var(--s1)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true">
+              <g stroke="#3D5AFE" strokeWidth="5" strokeLinecap="round" fill="none">
+                <line x1="8" y1="8" x2="8" y2="40"/>
+                <line x1="40" y1="8" x2="40" y2="40"/>
+                <line x1="8" y1="8" x2="40" y2="40"/>
+              </g>
+              <circle cx="24" cy="24" r="3" fill="#F2EFE9"/>
+            </svg>
           </div>
           <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', margin: '0 0 8px' }}>
             {inv?.nombreInvitado ? `¡Hola, ${inv.nombreInvitado.split(' ')[0]}!` : '¡Te invitaron a una clínica!'}
@@ -121,7 +128,7 @@ export default function UnirsePage() {
             href={`/registro?invite=${code}`}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
-              background: 'var(--teal)', color: '#040b12', fontWeight: 700,
+              background: 'var(--nexus)', color: '#fff', fontWeight: 600,
               fontSize: 15, padding: '12px 22px', borderRadius: 12, textDecoration: 'none',
             }}
           >
@@ -140,10 +147,17 @@ export default function UnirsePage() {
   return (
     <div style={containerStyle}>
       <div style={cardStyle}>
-        <div style={{ width: 56, height: 56, borderRadius: 14, background: 'rgba(0,212,168,0.15)', border: '1px solid rgba(0,212,168,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-          <Stethoscope size={26} color="var(--teal)" />
+        <div style={{ width: 56, height: 56, borderRadius: 14, background: 'var(--s1)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+          <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true">
+            <g stroke="#3D5AFE" strokeWidth="5" strokeLinecap="round" fill="none">
+              <line x1="8" y1="8" x2="8" y2="40"/>
+              <line x1="40" y1="8" x2="40" y2="40"/>
+              <line x1="8" y1="8" x2="40" y2="40"/>
+            </g>
+            <circle cx="24" cy="24" r="3" fill="#F2EFE9"/>
+          </svg>
         </div>
-        <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', margin: '0 0 8px' }}>Unirte a la clínica</h1>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: '0 0 8px', letterSpacing: '-0.015em' }}>Unirte a la clínica</h1>
         <p style={{ fontSize: 14.5, color: 'var(--text2)', lineHeight: 1.6, margin: '0 0 6px' }}>
           <strong style={{ color: 'var(--text)' }}>{inv?.clinicNombre}</strong> te invitó como{' '}
           <strong style={{ color: 'var(--teal)' }}>{ROL_LABEL[inv!.role]}</strong>.
@@ -156,7 +170,7 @@ export default function UnirsePage() {
           disabled={aceptando}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
-            background: 'var(--teal)', color: '#040b12', fontWeight: 700,
+            background: 'var(--nexus)', color: '#fff', fontWeight: 600,
             fontSize: 15, padding: '12px 24px', borderRadius: 12, border: 'none',
             cursor: aceptando ? 'default' : 'pointer',
           }}

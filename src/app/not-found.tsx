@@ -58,10 +58,10 @@ export default function NotFound() {
     <div style={{
       minHeight: '100vh', display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center', padding: 24,
-      background: '#040b12', color: '#e6edf3', fontFamily: 'system-ui, -apple-system, sans-serif',
+      background: '#0B0C0E', color: '#F2EFE9', fontFamily: 'system-ui, -apple-system, sans-serif',
     }}>
       <div style={{ maxWidth: 480, textAlign: 'center' }}>
-        <div style={{ fontSize: 64, fontWeight: 700, color: '#14b8a6', marginBottom: 12 }}>404</div>
+        <div style={{ fontSize: 64, fontWeight: 600, color: '#3D5AFE', marginBottom: 12, letterSpacing: '-0.04em' }}>404</div>
         <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>Página no encontrada</h1>
         <p style={{ fontSize: 14, color: '#8b949e', lineHeight: 1.6, marginBottom: 24 }}>
           Es posible que tu navegador esté usando una versión vieja de la app.
@@ -73,39 +73,39 @@ export default function NotFound() {
             onClick={reintentarLimpio}
             disabled={intentando}
             style={{
-              background: '#14b8a6', color: '#000', border: 'none',
-              padding: '12px 22px', borderRadius: 10, fontWeight: 700, fontSize: 14,
-              cursor: 'pointer', minWidth: 140,
+              background: '#3D5AFE', color: '#fff', border: 'none',
+              padding: '12px 22px', borderRadius: 10, fontWeight: 600, fontSize: 14,
+              cursor: 'pointer', minWidth: 140, letterSpacing: '-0.005em',
             }}
           >
-            {intentando ? 'Limpiando…' : '🔄 Reintentar'}
+            {intentando ? 'Limpiando…' : 'Reintentar'}
           </button>
           <Link href="/dashboard">
             <button style={{
-              background: 'transparent', color: '#e6edf3', border: '1px solid #2d333b',
-              padding: '12px 22px', borderRadius: 10, fontWeight: 600, fontSize: 14,
-              cursor: 'pointer', minWidth: 140,
+              background: 'transparent', color: '#F2EFE9', border: '1px solid rgba(242,239,233,0.14)',
+              padding: '12px 22px', borderRadius: 10, fontWeight: 500, fontSize: 14,
+              cursor: 'pointer', minWidth: 140, letterSpacing: '-0.005em',
             }}>
               Ir al dashboard
             </button>
           </Link>
         </div>
 
-        <div style={{ fontSize: 12, color: '#6e7681', marginTop: 24 }}>
+        <div style={{ fontSize: 12, color: '#6C7075', marginTop: 24 }}>
           Si el problema persiste, cierra y vuelve a abrir la app desde tu pantalla de inicio.
         </div>
 
         {/* Diagnóstico — útil para reportar el problema */}
         {urlFallido && (
           <div style={{
-            marginTop: 20, padding: '10px 14px', background: '#0d1117',
-            border: '1px solid #2d333b', borderRadius: 8, fontSize: 11,
-            color: '#8b949e', fontFamily: 'ui-monospace, monospace',
+            marginTop: 20, padding: '10px 14px', background: '#131518',
+            border: '1px solid rgba(242,239,233,0.08)', borderRadius: 8, fontSize: 11,
+            color: '#A8ACAE', fontFamily: 'ui-monospace, monospace',
             wordBreak: 'break-all', textAlign: 'left',
           }}>
-            <div style={{ color: '#6e7681', marginBottom: 4 }}>URL fallida:</div>
-            <div style={{ color: '#e6edf3' }}>{urlFallido}</div>
-            <div style={{ color: '#6e7681', marginTop: 8 }}>Build: 2026-06-01-rescate-nota</div>
+            <div style={{ color: '#6C7075', marginBottom: 4 }}>URL fallida:</div>
+            <div style={{ color: '#F2EFE9' }}>{urlFallido}</div>
+            <div style={{ color: '#6C7075', marginTop: 8 }}>Build: 2026-06-03-nexusmed</div>
           </div>
         )}
       </div>

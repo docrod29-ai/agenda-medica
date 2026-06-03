@@ -76,52 +76,76 @@ function RegistroInner() {
 
       {/* Left — benefits */}
       <div style={{
-        background: 'linear-gradient(135deg, #040b12 0%, #0a1628 60%, #0f2040 100%)',
+        background: 'var(--bg)',
         padding: '60px 48px', display: 'flex', flexDirection: 'column', justifyContent: 'center',
-        borderRight: '1px solid var(--border)',
+        borderRight: '1px solid var(--border)', position: 'relative', overflow: 'hidden',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 48 }}>
-          <div style={{
-            width: 44, height: 44, borderRadius: 12,
-            background: 'rgba(0,212,168,0.15)', border: '1px solid rgba(0,212,168,0.3)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Stethoscope size={22} color="var(--teal)" />
-          </div>
-          <div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em' }}>NexusMED</div>
-            <div style={{ fontSize: 12, color: 'var(--text3)' }}>El consultorio, conectado.</div>
-          </div>
-        </div>
-
-        <h2 style={{ fontSize: 32, fontWeight: 800, color: 'var(--text)', lineHeight: 1.2, marginBottom: 12 }}>
-          Tu consultorio,<br />
-          <span style={{ color: 'var(--teal)' }}>en piloto automático</span>
-        </h2>
-        <p style={{ fontSize: 15, color: 'var(--text2)', marginBottom: 40, lineHeight: 1.7 }}>
-          Agenda citas, envía recordatorios automáticos por WhatsApp y gestiona tu lista de espera sin esfuerzo.
-        </p>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {BENEFICIOS.map(b => (
-            <div key={b} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <CheckCircle2 size={18} color="var(--teal)" style={{ flexShrink: 0 }} />
-              <span style={{ fontSize: 14, color: 'var(--text2)' }}>{b}</span>
-            </div>
-          ))}
-        </div>
-
+        {/* Halo cobalto soft */}
         <div style={{
-          marginTop: 48, padding: '20px 24px',
-          background: 'rgba(0,212,168,0.06)', border: '1px solid rgba(0,212,168,0.2)',
-          borderRadius: 12,
-        }}>
-          <div style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 600, marginBottom: 6 }}>
-            ✨ 14 días de prueba gratis
+          position: 'absolute', top: '50%', left: '20%', transform: 'translate(-30%, -50%)',
+          width: 500, height: 500, borderRadius: '50%',
+          background: 'radial-gradient(circle, var(--nexus-soft) 0%, transparent 65%)',
+          pointerEvents: 'none', opacity: 0.6,
+        }} />
+
+        <div style={{ position: 'relative' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 48 }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: 11,
+              background: 'var(--s1)', border: '1px solid var(--border2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <svg width="24" height="24" viewBox="0 0 48 48" aria-hidden="true">
+                <g stroke="#3D5AFE" strokeWidth="5" strokeLinecap="round" fill="none">
+                  <line x1="8" y1="8" x2="8" y2="40"/>
+                  <line x1="40" y1="8" x2="40" y2="40"/>
+                  <line x1="8" y1="8" x2="40" y2="40"/>
+                </g>
+                <circle cx="24" cy="24" r="3" fill="#F2EFE9"/>
+              </svg>
+            </div>
+            <div>
+              <div style={{ fontSize: 20, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>NexusMED</div>
+              <div style={{ fontSize: 12, color: 'var(--text3)' }}>El consultorio, conectado.</div>
+            </div>
           </div>
-          <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
-            Sin tarjeta de crédito. Después solo $499 MXN/mes.
-            Cancela cuando quieras.
+
+          <h2 className="nx-display" style={{
+            fontSize: 40, color: 'var(--text)', lineHeight: 1.05, marginBottom: 14,
+            fontWeight: 500, letterSpacing: '-0.03em',
+          }}>
+            Tu consultorio,<br />
+            <span style={{ color: 'var(--nexus)', fontStyle: 'italic' }}>conectado.</span>
+          </h2>
+          <p style={{
+            fontSize: 15, color: 'var(--text2)', marginBottom: 36, lineHeight: 1.6,
+            letterSpacing: '-0.005em', maxWidth: 380,
+          }}>
+            Agenda, expediente, recetas y cobros en una sola herramienta.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {BENEFICIOS.map(b => (
+              <div key={b} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <CheckCircle2 size={16} color="var(--nexus)" style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: 13.5, color: 'var(--text2)', letterSpacing: '-0.005em' }}>{b}</span>
+              </div>
+            ))}
+          </div>
+
+          <div style={{
+            marginTop: 40, padding: '18px 22px',
+            background: 'var(--nexus-soft)', border: '1px solid rgba(61,90,254,0.22)',
+            borderRadius: 10,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--text)', fontWeight: 600, marginBottom: 6, letterSpacing: '-0.005em' }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--nexus)' }} />
+              14 días de prueba gratis
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6, letterSpacing: '-0.005em' }}>
+              Sin tarjeta de crédito. Después solo $499 MXN/mes.
+              Cancela cuando quieras.
+            </div>
           </div>
         </div>
       </div>

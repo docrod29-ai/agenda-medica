@@ -145,8 +145,8 @@ export default function ReservarPage() {
         {/* Hero */}
         <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 16, padding: '20px 22px', marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(0,212,168,0.12)', border: '1px solid rgba(0,212,168,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Stethoscope size={22} color="var(--teal)" />
+            <div style={{ width: 44, height: 44, borderRadius: 11, background: 'var(--s1)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Stethoscope size={20} color="var(--nexus)" />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)' }}>{info.clinic.nombreMedico || info.clinic.nombre}</div>
