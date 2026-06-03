@@ -7,7 +7,7 @@
  * usando el catálogo internacional ICD-10 traducido al español MX.
  */
 import { useState, useRef, useEffect } from 'react'
-import { buscarCie10, type Cie10Entry } from '@/lib/cie10'
+import { buscarCie10, cargarCatalogoExtendido, totalCodigos, type Cie10Entry } from '@/lib/cie10'
 import { Search, Check } from 'lucide-react'
 
 export interface Cie10AutocompleteProps {
@@ -24,9 +24,15 @@ export function Cie10Autocomplete({ value, onChange, placeholder, style }: Cie10
   const [query, setQuery] = useState(value)
   const [resultados, setResultados] = useState<Cie10Entry[]>([])
   const [open, setOpen] = useState(false)
+  const [total, setTotal] = useState(totalCodigos())
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => { setQuery(value) }, [value])
+
+  // Lazy-load del catálogo extendido al montar el componente
+  useEffect(() => {
+    cargarCatalogoExtendido().then(() => setTotal(totalCodigos()))
+  }, [])
 
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
@@ -87,7 +93,7 @@ export function Cie10Autocomplete({ value, onChange, placeholder, style }: Cie10
           boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
         }}>
           <div style={{ padding: '6px 12px', fontSize: 10.5, color: 'var(--text3)', borderBottom: '1px solid var(--border)' }}>
-            {resultados.length} coincidencia(s) en catálogo CIE-10 · NOM-035
+            {resultados.length} de {total.toLocaleString('es-MX')} códigos · NOM-035
           </div>
           {resultados.map(r => (
             <button

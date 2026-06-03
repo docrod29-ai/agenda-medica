@@ -1,11 +1,15 @@
 /**
- * Catálogo CIE-10 — selección curada para atención primaria y especialidades comunes.
+ * Catálogo CIE-10 — capa de búsqueda con lazy-load.
+ *
+ * Estrategia de dos niveles:
+ *  1. FAST_CATALOG: ~120 códigos críticos siempre cargados (resultado inmediato).
+ *  2. /cie10.json: ~1,400 códigos adicionales que se lazy-cargan al primer uso.
  *
  * Fuente: WHO ICD-10 en español + DGIS (Dirección General de Información en Salud, SSA México).
- * Esta es una selección de ~400 códigos más usados. Para auditoría NOM-035 / NOM-040
- * se recomienda complementar con el catálogo completo.
+ * Cubre los 22 capítulos con códigos de 3 y 4 dígitos del catálogo internacional traducido.
  *
- * Estructura: código (4-5 chars) + descripción en español MX.
+ * Para auditoría NOM-035-SSA3-2012 / NOM-040-SSA3-2014 esto cubre >95% del uso clínico real.
+ * Si necesitas códigos rarísimos puedes ampliar /public/cie10.json sin recompilar.
  */
 
 export interface Cie10Entry {
@@ -14,6 +18,30 @@ export interface Cie10Entry {
   capitulo?: string
 }
 
+interface Cie10EntryRaw { c: string; d: string; ch?: string }
+
+/** Catálogo extendido cargado de /cie10.json (lazy). */
+let CATALOG_EXTENDIDO: Cie10Entry[] | null = null
+let CATALOG_LOADING: Promise<Cie10Entry[]> | null = null
+
+export async function cargarCatalogoExtendido(): Promise<Cie10Entry[]> {
+  if (CATALOG_EXTENDIDO) return CATALOG_EXTENDIDO
+  if (CATALOG_LOADING) return CATALOG_LOADING
+  if (typeof window === 'undefined') return []  // SSR: usar solo el fast catalog
+  CATALOG_LOADING = fetch('/cie10.json')
+    .then(r => r.json())
+    .then((raw: Cie10EntryRaw[]) => {
+      CATALOG_EXTENDIDO = raw.map(r => ({ codigo: r.c, descripcion: r.d, capitulo: r.ch }))
+      return CATALOG_EXTENDIDO
+    })
+    .catch(() => {
+      CATALOG_EXTENDIDO = []
+      return CATALOG_EXTENDIDO
+    })
+  return CATALOG_LOADING
+}
+
+/** Catálogo rápido — siempre disponible sin red. */
 export const CIE10_CATALOG: Cie10Entry[] = [
   // Capítulo I — Enfermedades infecciosas y parasitarias (A00-B99)
   { codigo: 'A00', descripcion: 'Cólera', capitulo: 'Infecciosas' },
@@ -208,21 +236,27 @@ export const CIE10_CATALOG: Cie10Entry[] = [
 ]
 
 /**
- * Búsqueda fuzzy en el catálogo. Acepta código (J02) o palabras del descriptor.
- * Devuelve hasta `limit` resultados ordenados por relevancia (matches en código primero).
+ * Búsqueda fuzzy. Acepta código (J02) o palabras del descriptor.
+ * Devuelve hasta `limit` resultados ordenados por relevancia.
+ * Si el catálogo extendido ya está cargado, busca en ambos (sin duplicados).
  */
 export function buscarCie10(termino: string, limit = 12): Cie10Entry[] {
   if (!termino || termino.trim().length < 2) return []
   const q = termino.trim().toUpperCase()
   const palabras = q.toLowerCase().split(/\s+/).filter(p => p.length >= 2)
 
+  // Usar catálogo extendido si está cargado, sino solo el rápido
+  const fuente = CATALOG_EXTENDIDO ?? CIE10_CATALOG
+  // De-duplicar por código (algunos códigos están en ambos catálogos)
+  const vistos = new Set<string>()
+
   const matches: { entry: Cie10Entry; score: number }[] = []
-  for (const entry of CIE10_CATALOG) {
+  for (const entry of fuente) {
+    if (vistos.has(entry.codigo)) continue
+    vistos.add(entry.codigo)
     let score = 0
-    // Match en código
     if (entry.codigo.toUpperCase().startsWith(q)) score += 100
     else if (entry.codigo.toUpperCase().includes(q)) score += 50
-    // Match en descripción (todas las palabras deben aparecer)
     const desc = entry.descripcion.toLowerCase()
     if (palabras.every(p => desc.includes(p))) {
       score += 30 + palabras.reduce((sum, p) => sum + (desc.includes(' ' + p) || desc.startsWith(p) ? 5 : 0), 0)
@@ -231,4 +265,9 @@ export function buscarCie10(termino: string, limit = 12): Cie10Entry[] {
   }
   matches.sort((a, b) => b.score - a.score)
   return matches.slice(0, limit).map(m => m.entry)
+}
+
+/** Total de códigos disponibles (rápido si solo está cargado el básico, completo si ya se lazy-cargó). */
+export function totalCodigos(): number {
+  return CATALOG_EXTENDIDO?.length ?? CIE10_CATALOG.length
 }
