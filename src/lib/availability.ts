@@ -26,7 +26,14 @@ export function getAvailableSlots(
   const schedule = getDaySchedule(fecha, config)
   if (!schedule) return []
 
-  const interval = Number(config.intervaloMinutos ?? 10)
+  // BUG FIX: el step debe ser AL MENOS la duración de la cita, nunca menor.
+  // Si el médico configuró intervalo de 10 min y la cita dura 30 min, antes
+  // generábamos slots cada 10 min (15:00, 15:10, 15:20, 15:30…) lo que daba
+  // 28-30 slots de los cuales solo 10 caben sin solapar. Ahora step = duración
+  // por default, así "cada 30 min" da 10 slots reales no 28 fantasmas.
+  // El intervaloMinutos solo se usa como mínimo cuando es MAYOR (espaciar más).
+  const intervalConf = Number(config.intervaloMinutos ?? 10)
+  const interval = Math.max(intervalConf, duracionMin)
   const [hIni, mIni] = schedule.inicio.split(':').map(Number)
   const [hFin, mFin] = schedule.fin.split(':').map(Number)
   const startMin = hIni * 60 + mIni

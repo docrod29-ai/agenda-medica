@@ -166,24 +166,51 @@ export default function ConfiguracionPage() {
   }
 
   const { mode } = useMode()
-  const TABS_ALL: { key: Tab; label: string; modoMin?: 'medico' }[] = [
-    { key: 'general', label: 'General' },
-    { key: 'horario', label: 'Horario' },
-    { key: 'duraciones', label: 'Duraciones' },
-    { key: 'bloqueos', label: '🌴 Bloqueos' },
-    { key: 'notificaciones', label: 'Notificaciones' },
-    { key: 'integraciones', label: 'Integraciones' },
-    { key: 'plantillas', label: 'Plantillas WA' },
-    { key: 'portal', label: '🔗 Portal del paciente' },
-    { key: 'recetas', label: '🩺 Recetas y órdenes', modoMin: 'medico' },
-    { key: 'seguridad', label: '🔐 Seguridad', modoMin: 'medico' },
-    { key: 'bot', label: '🤖 Bot FAQ', modoMin: 'medico' },
-    { key: 'medicos', label: 'Médicos', modoMin: 'medico' },
-    { key: 'equipo', label: '👥 Equipo' },
-    { key: 'suscripcion', label: '💳 Suscripción', modoMin: 'medico' },
+  // Tabs organizadas en GRUPOS para que no se vea un menú interminable arriba.
+  // Ahora salen en una columna lateral (desktop) o un select (móvil).
+  const TAB_GROUPS: { titulo: string; tabs: { key: Tab; label: string; modoMin?: 'medico' }[] }[] = [
+    {
+      titulo: 'Mi consultorio',
+      tabs: [
+        { key: 'general', label: '🏥 Datos del consultorio' },
+        { key: 'horario', label: '⏰ Horario de atención' },
+        { key: 'duraciones', label: '⌛ Duración de citas' },
+        { key: 'bloqueos', label: '🌴 Vacaciones y bloqueos' },
+      ],
+    },
+    {
+      titulo: 'Comunicación con pacientes',
+      tabs: [
+        { key: 'notificaciones', label: '🔔 Notificaciones' },
+        { key: 'plantillas', label: '💬 Mensajes de WhatsApp' },
+        { key: 'portal', label: '🔗 Portal de auto-agenda' },
+        { key: 'bot', label: '🤖 Bot de preguntas frecuentes', modoMin: 'medico' },
+      ],
+    },
+    {
+      titulo: 'Documentos clínicos',
+      tabs: [
+        { key: 'recetas', label: '🩺 Recetas y órdenes', modoMin: 'medico' },
+      ],
+    },
+    {
+      titulo: 'Equipo y permisos',
+      tabs: [
+        { key: 'medicos', label: '👨‍⚕️ Médicos (hasta 5)', modoMin: 'medico' },
+        { key: 'equipo', label: '👥 Asistentes y secretarias' },
+      ],
+    },
+    {
+      titulo: 'Sistema',
+      tabs: [
+        { key: 'integraciones', label: '🔌 Integraciones' },
+        { key: 'seguridad', label: '🔐 Seguridad', modoMin: 'medico' },
+        { key: 'suscripcion', label: '💳 Mi suscripción', modoMin: 'medico' },
+      ],
+    },
   ]
-  // Filtrar según modo
-  const TABS = TABS_ALL.filter(t => !t.modoMin || mode === t.modoMin)
+  // Aplanar para verificación + filtrar por modo
+  const TABS = TAB_GROUPS.flatMap(g => g.tabs.filter(t => !t.modoMin || mode === t.modoMin))
 
   if (loading) {
     return (
@@ -194,25 +221,93 @@ export default function ConfiguracionPage() {
     )
   }
 
+  // Encontrar la label del tab actual (para el título móvil)
+  const tabActual = TABS.find(t => t.key === tab)
+
   return (
-    <div style={{ padding: 24, maxWidth: 860, margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Configuración</h1>
-        {tab !== 'integraciones' && (
+    <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>⚙️ Configuración</h1>
+        {tab !== 'integraciones' && tab !== 'recetas' && tab !== 'portal' && tab !== 'seguridad' && tab !== 'equipo' && tab !== 'medicos' && tab !== 'bloqueos' && tab !== 'suscripcion' && tab !== 'bot' && (
           <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
             {saving ? <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Guardando…</> : <><Save size={15} /> Guardar</>}
           </button>
         )}
       </div>
 
-      {/* Tabs */}
-      <div className="tabs" style={{ marginBottom: 24 }}>
-        {TABS.map(t => (
-          <button key={t.key} className={`tab${tab === t.key ? ' active' : ''}`} onClick={() => setTab(t.key)}>
-            {t.label}
-          </button>
-        ))}
-      </div>
+      {/* Layout: sidebar agrupado (desktop) / select (móvil) + contenido */}
+      <div className="config-layout" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 24, alignItems: 'start' }}>
+        {/* Sidebar agrupado — solo desktop */}
+        <nav className="config-sidebar" style={{
+          background: 'var(--s)', border: '1px solid var(--border)', borderRadius: 12,
+          padding: 12, position: 'sticky', top: 16,
+        }}>
+          {TAB_GROUPS.map(grupo => {
+            const visibles = grupo.tabs.filter(t => !t.modoMin || mode === t.modoMin)
+            if (visibles.length === 0) return null
+            return (
+              <div key={grupo.titulo} style={{ marginBottom: 12 }}>
+                <div style={{
+                  fontSize: 10.5, fontWeight: 700, color: 'var(--text3)',
+                  textTransform: 'uppercase', letterSpacing: 0.5,
+                  padding: '6px 10px', marginBottom: 2,
+                }}>
+                  {grupo.titulo}
+                </div>
+                {visibles.map(t => (
+                  <button
+                    key={t.key}
+                    onClick={() => setTab(t.key)}
+                    style={{
+                      display: 'block', width: '100%', textAlign: 'left',
+                      padding: '8px 10px', borderRadius: 8, fontSize: 13,
+                      background: tab === t.key ? 'rgba(20,184,166,0.12)' : 'transparent',
+                      color: tab === t.key ? 'var(--teal)' : 'var(--text2)',
+                      border: tab === t.key ? '1px solid rgba(20,184,166,0.3)' : '1px solid transparent',
+                      cursor: 'pointer', marginBottom: 2,
+                      fontWeight: tab === t.key ? 600 : 500,
+                    }}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            )
+          })}
+        </nav>
+
+        {/* Select para móvil */}
+        <div className="config-mobile-select" style={{ display: 'none', marginBottom: 16 }}>
+          <select
+            value={tab}
+            onChange={(e) => setTab(e.target.value as Tab)}
+            style={{
+              width: '100%', padding: '12px 14px', borderRadius: 10,
+              border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)',
+              fontSize: 14, fontWeight: 600,
+            }}
+          >
+            {TAB_GROUPS.map(grupo => {
+              const visibles = grupo.tabs.filter(t => !t.modoMin || mode === t.modoMin)
+              if (visibles.length === 0) return null
+              return (
+                <optgroup key={grupo.titulo} label={grupo.titulo}>
+                  {visibles.map(t => (
+                    <option key={t.key} value={t.key}>{t.label}</option>
+                  ))}
+                </optgroup>
+              )
+            })}
+          </select>
+        </div>
+
+        {/* Contenido del tab activo */}
+        <div style={{ minWidth: 0 }}>
+          {tabActual && (
+            <div className="config-tab-header" style={{ marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: 0 }}>{tabActual.label}</h2>
+            </div>
+          )}
 
       {/* General */}
       {tab === 'general' && (
@@ -509,8 +604,19 @@ export default function ConfiguracionPage() {
 
       {/* Suscripción */}
       {tab === 'suscripcion' && <SuscripcionTab clinicId={clinicId} />}
+        </div>
+      </div>
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 900px) {
+          .config-layout {
+            grid-template-columns: 1fr !important;
+          }
+          .config-sidebar { display: none !important; }
+          .config-mobile-select { display: block !important; }
+        }
+      `}</style>
     </div>
   )
 }
@@ -975,8 +1081,13 @@ function MedicosTab() {
     nombre: '', especialidad: '', telefono: '', email: '', activo: true,
   })
 
+  const MAX_DOCTORS = 5
   const handleCreate = async () => {
     if (!form.nombre.trim()) { toast('El nombre es requerido', 'error'); return }
+    if (doctors.length >= MAX_DOCTORS) {
+      toast(`Máximo ${MAX_DOCTORS} médicos por clínica`, 'error')
+      return
+    }
     setSaving(true)
     try {
       await createDoctor(clinicId!, {
@@ -1008,9 +1119,14 @@ function MedicosTab() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <p style={{ fontSize: 13, color: 'var(--text3)', margin: 0 }}>
-          {doctors.length} médico{doctors.length !== 1 ? 's' : ''} registrado{doctors.length !== 1 ? 's' : ''}
+          {doctors.length} de {MAX_DOCTORS} médicos registrados
+          {doctors.length >= MAX_DOCTORS && <span style={{ color: '#f87171', marginLeft: 8 }}>· Límite alcanzado</span>}
         </p>
-        <button className="btn btn-primary btn-sm" onClick={() => setShowForm(s => !s)}>
+        <button
+          className="btn btn-primary btn-sm"
+          onClick={() => setShowForm(s => !s)}
+          disabled={!showForm && doctors.length >= MAX_DOCTORS}
+        >
           {showForm ? 'Cancelar' : '+ Agregar médico'}
         </button>
       </div>

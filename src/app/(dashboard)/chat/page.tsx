@@ -2,11 +2,14 @@
 import { useEffect, useRef, useState, useMemo } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
+import { useConfig } from '@/hooks/useConfig'
 import {
   enviarMensaje, suscribirMensajes, marcarComoLeido, suscribirLectura,
   type ChatMessage,
 } from '@/lib/chat'
-import { Send, Loader2, MessageCircle, Stethoscope, UserSquare2 } from 'lucide-react'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
+import { Send, Loader2, MessageCircle, Stethoscope, UserSquare2, Edit2, Check, X } from 'lucide-react'
 
 const ROL_LABEL: Record<string, string> = {
   admin: 'Médico', medico: 'Médico', secretaria: 'Asistente',
@@ -18,12 +21,43 @@ const ROL_COLOR: Record<string, string> = {
 export default function ChatPage() {
   const { user } = useAuth()
   const { clinicId, role } = useClinic()
+  const { config } = useConfig()
   const [mensajes, setMensajes] = useState<ChatMessage[]>([])
   const [texto, setTexto] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [lastReadAt, setLastReadAt] = useState<string | null>(null)
+  // Nombre visible: leído del member doc (chat) o calculado por defecto
+  const [miDisplayName, setMiDisplayName] = useState<string>('')
+  const [editandoNombre, setEditandoNombre] = useState(false)
+  const [nombreTemp, setNombreTemp] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  // Calcular nombre por defecto: el médico usa config.nombreMedico, otros usan email-prefix
+  const nombreDefault = useMemo(() => {
+    if ((role === 'medico' || role === 'admin') && config?.nombreMedico) {
+      return config.nombreMedico
+    }
+    return user?.displayName || user?.email?.split('@')[0] || 'Usuario'
+  }, [role, config?.nombreMedico, user?.displayName, user?.email])
+
+  // Cargar nombre custom del member doc
+  useEffect(() => {
+    if (!clinicId || !user?.uid) return
+    getDoc(doc(db, 'clinics', clinicId, 'members', user.uid)).then(snap => {
+      const customName = snap.data()?.displayName
+      setMiDisplayName(customName || nombreDefault)
+    })
+  }, [clinicId, user?.uid, nombreDefault])
+
+  const guardarNombre = async () => {
+    const limpio = nombreTemp.trim()
+    if (!limpio || !clinicId || !user?.uid) return
+    await setDoc(doc(db, 'clinics', clinicId, 'members', user.uid),
+      { displayName: limpio }, { merge: true })
+    setMiDisplayName(limpio)
+    setEditandoNombre(false)
+  }
 
   // Suscripción en tiempo real
   useEffect(() => {
@@ -56,7 +90,8 @@ export default function ChatPage() {
     if (!clinicId || !user || !texto.trim()) return
     setEnviando(true)
     try {
-      const nombre = user.displayName || user.email?.split('@')[0] || 'Usuario'
+      // Usar el nombre custom (member.displayName) o el default según rol
+      const nombre = miDisplayName || nombreDefault
       await enviarMensaje(clinicId, texto, {
         uid: user.uid,
         email: user.email ?? '',
@@ -99,12 +134,48 @@ export default function ChatPage() {
         padding: '14px 20px', borderBottom: '1px solid var(--border)', background: 'var(--s1)', flexShrink: 0,
       }}>
         <MessageCircle size={18} color="var(--teal)" />
-        <div>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Chat de la clínica</div>
           <div style={{ fontSize: 12, color: 'var(--text3)' }}>
             {mensajes.length} mensaje{mensajes.length !== 1 ? 's' : ''} · entre médico y asistente
           </div>
         </div>
+        {/* Mi nombre visible — editable */}
+        {editandoNombre ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <input
+              autoFocus value={nombreTemp}
+              onChange={(e) => setNombreTemp(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') guardarNombre(); if (e.key === 'Escape') setEditandoNombre(false) }}
+              maxLength={40}
+              style={{ width: 160, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 12 }}
+            />
+            <button onClick={guardarNombre} title="Guardar" style={{ background: 'var(--teal)', color: '#000', border: 'none', borderRadius: 6, padding: '5px 7px', cursor: 'pointer' }}>
+              <Check size={11} />
+            </button>
+            <button onClick={() => setEditandoNombre(false)} title="Cancelar" style={{ background: 'var(--s2)', color: 'var(--text3)', border: '1px solid var(--border)', borderRadius: 6, padding: '5px 7px', cursor: 'pointer' }}>
+              <X size={11} />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => { setNombreTemp(miDisplayName); setEditandoNombre(true) }}
+            title="Cambiar mi nombre en el chat"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: 'var(--s2)', border: '1px solid var(--border)',
+              color: 'var(--text2)', borderRadius: 100, padding: '6px 12px',
+              fontSize: 12, cursor: 'pointer',
+            }}
+          >
+            <span style={{
+              width: 8, height: 8, borderRadius: '50%',
+              background: ROL_COLOR[role ?? 'medico'],
+            }} />
+            Tú: <strong style={{ color: 'var(--text)' }}>{miDisplayName || nombreDefault}</strong>
+            <Edit2 size={10} />
+          </button>
+        )}
       </div>
 
       {/* Lista de mensajes */}
@@ -147,9 +218,19 @@ export default function ChatPage() {
                     boxShadow: noLeidoPorMi ? '0 0 0 2px rgba(96,165,250,0.15)' : 'none',
                   }}>
                     {!mio && !mismoEmisor && (
-                      <div style={{ fontSize: 11, fontWeight: 700, color: rolColor, display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
-                        {m.senderRol === 'secretaria' ? <UserSquare2 size={11} /> : <Stethoscope size={11} />}
-                        {m.senderName} <span style={{ fontWeight: 400, color: 'var(--text3)' }}>· {rolLabel}</span>
+                      <div style={{
+                        fontSize: 11.5, fontWeight: 700, color: rolColor,
+                        display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4,
+                        textTransform: 'none',
+                      }}>
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          background: `${rolColor}20`, padding: '2px 8px', borderRadius: 100,
+                        }}>
+                          {m.senderRol === 'secretaria' ? <UserSquare2 size={11} /> : <Stethoscope size={11} />}
+                          {rolLabel}
+                        </span>
+                        <span style={{ color: 'var(--text)', fontWeight: 700 }}>{m.senderName}</span>
                       </div>
                     )}
                     {m.text}

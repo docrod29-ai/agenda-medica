@@ -62,7 +62,9 @@ function getAvailableSlotsForDate(
   if (!schedule?.activo) return []
   if (config.diasFestivos?.includes(fecha)) return []
 
-  const interval = config.intervaloMinutos ?? 10
+  // FIX bug slots fantasma: step ≥ duración para no generar solapamientos
+  const intervalConf = config.intervaloMinutos ?? 10
+  const interval = Math.max(intervalConf, duracion)
   const [hI, mI] = schedule.inicio.split(':').map(Number)
   const [hF, mF] = schedule.fin.split(':').map(Number)
   const startMin = hI * 60 + mI

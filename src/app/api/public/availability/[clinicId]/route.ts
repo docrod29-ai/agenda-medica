@@ -50,7 +50,10 @@ export async function GET(
     }
 
     const duracion = Number((cfg.duraciones ?? {})[tipo] ?? 30)
-    const interval = Number(cfg.intervaloMinutos ?? 10)
+    // FIX bug slots fantasma: el step nunca debe ser menor a la duración.
+    // Sino se generan slots cada 10 min sobre citas de 30 min y se sobrebooks.
+    const intervalConf = Number(cfg.intervaloMinutos ?? 10)
+    const interval = Math.max(intervalConf, duracion)
     const [hI, mI] = schedule.inicio.split(':').map(Number)
     const [hF, mF] = schedule.fin.split(':').map(Number)
     const startMin = hI * 60 + mI
