@@ -21,6 +21,16 @@ service cloud.firestore {
         get(/databases/$(database)/documents/clinic_members/$(request.auth.uid)).data.role == 'admin';
     }
 
+    // Cualquier rol médico (medico o admin), NUNCA secretaria.
+    // Crítico: solo médicos/admin pueden leer notas clínicas, recetas, órdenes
+    // y datos clínicos sensibles. La asistente puede agendar pero NO ver expedientes.
+    function isMedico(clinicId) {
+      return isAuth() &&
+        get(/databases/$(database)/documents/clinic_members/$(request.auth.uid)).data.clinicId == clinicId &&
+        (get(/databases/$(database)/documents/clinic_members/$(request.auth.uid)).data.role == 'medico'
+         || get(/databases/$(database)/documents/clinic_members/$(request.auth.uid)).data.role == 'admin');
+    }
+
     // Clinic metadata (root)
     match /clinics/{clinicId} {
       allow read: if isMember(clinicId);
@@ -35,18 +45,20 @@ service cloud.firestore {
         allow read, write: if isMember(clinicId);
 
         // Expediente Clínico Electrónico — notas del paciente
+        // SECRETO MÉDICO: solo médicos/admin pueden leer o escribir notas clínicas.
+        // La asistente NUNCA tiene acceso (NOM-004 + LFPDPPP datos sensibles).
         match /notas/{notaId} {
-          allow read: if isMember(clinicId);
-          allow create: if isMember(clinicId);
+          allow read: if isMedico(clinicId);
+          allow create: if isMedico(clinicId);
           // Solo se pueden editar/borrar borradores; las firmadas son inmutables (NOM-024)
-          allow update: if isMember(clinicId) && resource.data.estado != 'firmada';
-          allow delete: if isMember(clinicId) && resource.data.estado != 'firmada';
+          allow update: if isMedico(clinicId) && resource.data.estado != 'firmada';
+          allow delete: if isMedico(clinicId) && resource.data.estado != 'firmada';
 
           // Versiones históricas de borradores (NOM-024 Art. 6.4 — trazabilidad de cambios).
           // INMUTABLES una vez creadas.
           match /versions/{versionId} {
-            allow read: if isMember(clinicId);
-            allow create: if isMember(clinicId);
+            allow read: if isMedico(clinicId);
+            allow create: if isMedico(clinicId);
             allow update, delete: if false;
           }
         }

@@ -62,24 +62,31 @@ function TrialBanner() {
 
 function DashboardInner({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth()
-  const { clinicId, loading: clinicLoading, needsSetup } = useClinic()
+  const { clinicId, loading: clinicLoading, needsSetup, role } = useClinic()
   const { mode } = useMode()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  // Rutas que NO están disponibles en modo Secretaria
-  const RUTAS_SOLO_MEDICO = ['/expedientes', '/expediente/', '/consulta/', '/nota/', '/referencia/', '/crm', '/resenas']
+  // Rutas que SOLO pueden ver médicos/admin (datos clínicos sensibles).
+  // La asistente NUNCA debe verlas, sin importar el toggle de UI.
+  const RUTAS_SOLO_MEDICO = [
+    '/expedientes', '/expediente/', '/consulta/', '/nota/', '/referencia/',
+    '/receta/', '/orden/', '/crm', '/resenas', '/cumplimiento', '/finanzas',
+  ]
   const pathname = typeof window !== 'undefined' ? window.location.pathname : ''
+
+  // role viene de Firestore (clinic_members) — NO se puede bypassear desde el cliente
+  const esMedicoReal = role === 'medico' || role === 'admin'
 
   useEffect(() => {
     if (authLoading || clinicLoading) return
     if (!user) { router.replace('/login'); return }
     if (needsSetup) { router.replace('/setup'); return }
-    // Si modo secretaria intenta acceder a ruta solo-médico, devolver a dashboard
-    if (mode === 'secretaria' && RUTAS_SOLO_MEDICO.some(r => pathname.startsWith(r))) {
+    // Bloqueo basado en el ROL REAL del Firestore, no en el toggle de UI
+    if (!esMedicoReal && RUTAS_SOLO_MEDICO.some(r => pathname.startsWith(r))) {
       router.replace('/dashboard')
     }
-  }, [user, authLoading, clinicId, clinicLoading, needsSetup, router, mode, pathname])
+  }, [user, authLoading, clinicId, clinicLoading, needsSetup, router, esMedicoReal, pathname])
 
   if (authLoading || clinicLoading) {
     return (

@@ -38,7 +38,7 @@ const NAV: { href: string; label: string; icon: typeof LayoutDashboard; modos: '
 export function Sidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname()
   const router = useRouter()
-  const { mode, setMode, isDoctor } = useMode()
+  const { mode, setMode, isDoctor, esMedicoReal } = useMode()
   const { config } = useConfig()
   const { user } = useAuth()
   const { clinicId } = useClinic()
@@ -128,33 +128,44 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
       {/* Footer */}
       <div style={{ padding: '12px 8px 16px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {/* Mode toggle */}
-        <div style={{ background: 'var(--s2)', borderRadius: 8, padding: '4px', display: 'flex', gap: 2 }}>
-          <button
-            onClick={() => setMode('medico')}
-            style={{
-              flex: 1, padding: '6px 8px', borderRadius: 6, border: 'none', cursor: 'pointer',
-              fontSize: 12, fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-              background: mode === 'medico' ? 'var(--s3)' : 'transparent',
-              color: mode === 'medico' ? 'var(--teal)' : 'var(--text3)',
-              transition: 'all 0.15s',
-            }}
-          >
-            <Stethoscope size={13} /> Médico
-          </button>
-          <button
-            onClick={() => setMode('secretaria')}
-            style={{
-              flex: 1, padding: '6px 8px', borderRadius: 6, border: 'none', cursor: 'pointer',
-              fontSize: 12, fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-              background: mode === 'secretaria' ? 'var(--s3)' : 'transparent',
-              color: mode === 'secretaria' ? 'var(--blue)' : 'var(--text3)',
-              transition: 'all 0.15s',
-            }}
-          >
-            <Shield size={13} /> Secretaria
-          </button>
-        </div>
+        {/* Mode toggle — solo visible para médicos/admin reales.
+            La asistente no tiene este toggle: su rol está fijo. */}
+        {esMedicoReal ? (
+          <div style={{ background: 'var(--s2)', borderRadius: 8, padding: '4px', display: 'flex', gap: 2 }}>
+            <button
+              onClick={() => setMode('medico')}
+              style={{
+                flex: 1, padding: '6px 8px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                fontSize: 12, fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                background: mode === 'medico' ? 'var(--s3)' : 'transparent',
+                color: mode === 'medico' ? 'var(--teal)' : 'var(--text3)',
+                transition: 'all 0.15s',
+              }}
+            >
+              <Stethoscope size={13} /> Médico
+            </button>
+            <button
+              onClick={() => setMode('secretaria')}
+              style={{
+                flex: 1, padding: '6px 8px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                fontSize: 12, fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                background: mode === 'secretaria' ? 'var(--s3)' : 'transparent',
+                color: mode === 'secretaria' ? 'var(--blue)' : 'var(--text3)',
+                transition: 'all 0.15s',
+              }}
+            >
+              <Shield size={13} /> Secretaria
+            </button>
+          </div>
+        ) : (
+          <div style={{
+            background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.25)',
+            borderRadius: 8, padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 6,
+            fontSize: 11.5, color: '#a78bfa', fontWeight: 600,
+          }}>
+            <Shield size={12} /> Cuenta de Asistente
+          </div>
+        )}
 
         <button onClick={handleLogout} className="nav-item" style={{ color: 'var(--text3)' }}>
           <LogOut size={16} />

@@ -204,40 +204,79 @@ export default function ChatPage() {
               const noLeidoPorMi = !mio && (!lastReadAt || m.createdAt > lastReadAt)
               const rolColor = ROL_COLOR[m.senderRol] ?? '#94a3b8'
               const rolLabel = ROL_LABEL[m.senderRol] ?? m.senderRol
+              const inicial = (m.senderName ?? '?').replace(/^Dr\.?\s+|^Dra\.?\s+/i, '').trim()[0]?.toUpperCase() ?? '?'
               return (
-                <div key={m.id} style={{ display: 'flex', justifyContent: mio ? 'flex-end' : 'flex-start', marginBottom: 6, marginTop: mismoEmisor ? 0 : 8 }}>
+                <div key={m.id} style={{
+                  display: 'flex', justifyContent: mio ? 'flex-end' : 'flex-start',
+                  marginBottom: 6, marginTop: mismoEmisor ? 2 : 12,
+                  gap: 8, alignItems: 'flex-end',
+                }}>
+                  {/* Avatar a la izquierda para mensajes ajenos */}
+                  {!mio && (
+                    <div style={{
+                      width: mismoEmisor ? 30 : 30, height: 30, borderRadius: '50%',
+                      background: mismoEmisor ? 'transparent' : rolColor,
+                      color: '#000', fontWeight: 700, fontSize: 12,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0, visibility: mismoEmisor ? 'hidden' : 'visible',
+                    }}>
+                      {inicial}
+                    </div>
+                  )}
+
                   <div style={{
-                    maxWidth: '78%',
-                    background: mio ? 'var(--teal)' : 'var(--s1)',
+                    maxWidth: '74%',
+                    background: mio ? rolColor : 'var(--s1)',
                     color: mio ? '#040b12' : 'var(--text)',
-                    border: mio ? 'none' : `1px solid ${noLeidoPorMi ? 'rgba(96,165,250,0.4)' : 'var(--border)'}`,
+                    border: mio
+                      ? 'none'
+                      : `1px solid ${noLeidoPorMi ? 'rgba(96,165,250,0.5)' : `${rolColor}33`}`,
                     borderRadius: 14,
+                    borderTopLeftRadius: !mio && !mismoEmisor ? 4 : 14,
+                    borderTopRightRadius: mio && !mismoEmisor ? 4 : 14,
                     padding: '8px 12px',
                     fontSize: 14, lineHeight: 1.45,
                     whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-                    boxShadow: noLeidoPorMi ? '0 0 0 2px rgba(96,165,250,0.15)' : 'none',
+                    boxShadow: noLeidoPorMi ? '0 0 0 2px rgba(96,165,250,0.18)' : 'none',
                   }}>
-                    {!mio && !mismoEmisor && (
+                    {!mismoEmisor && (
                       <div style={{
-                        fontSize: 11.5, fontWeight: 700, color: rolColor,
-                        display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4,
-                        textTransform: 'none',
+                        fontSize: 11, fontWeight: 700,
+                        color: mio ? 'rgba(0,0,0,0.7)' : rolColor,
+                        display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3,
                       }}>
+                        {m.senderRol === 'secretaria' ? <UserSquare2 size={11} /> : <Stethoscope size={11} />}
+                        <span>{m.senderName}</span>
                         <span style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 4,
-                          background: `${rolColor}20`, padding: '2px 8px', borderRadius: 100,
-                        }}>
-                          {m.senderRol === 'secretaria' ? <UserSquare2 size={11} /> : <Stethoscope size={11} />}
-                          {rolLabel}
-                        </span>
-                        <span style={{ color: 'var(--text)', fontWeight: 700 }}>{m.senderName}</span>
+                          fontSize: 9.5, fontWeight: 600,
+                          padding: '1px 6px', borderRadius: 100,
+                          background: mio ? 'rgba(0,0,0,0.15)' : `${rolColor}22`,
+                          color: mio ? 'rgba(0,0,0,0.7)' : rolColor,
+                          marginLeft: 2,
+                        }}>{rolLabel}</span>
                       </div>
                     )}
                     {m.text}
-                    <div style={{ fontSize: 10, color: mio ? 'rgba(0,0,0,0.6)' : 'var(--text3)', marginTop: 2, textAlign: 'right' }}>
+                    <div style={{
+                      fontSize: 10, marginTop: 3, textAlign: 'right',
+                      color: mio ? 'rgba(0,0,0,0.55)' : 'var(--text3)',
+                    }}>
                       {new Date(m.createdAt).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
+
+                  {/* Avatar a la derecha para mis mensajes */}
+                  {mio && (
+                    <div style={{
+                      width: 30, height: 30, borderRadius: '50%',
+                      background: mismoEmisor ? 'transparent' : rolColor,
+                      color: '#000', fontWeight: 700, fontSize: 12,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0, visibility: mismoEmisor ? 'hidden' : 'visible',
+                    }}>
+                      {inicial}
+                    </div>
+                  )}
                 </div>
               )
             })}
