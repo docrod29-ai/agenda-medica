@@ -131,6 +131,15 @@ export const RespuestaExtraccion = z.object({
     signosVitales:    z.record(z.string(), CampoAuditado).optional(),
   }).optional(),
 
+  /**
+   * Factores de riesgo preoperatorios extraídos de la transcripción.
+   * Solo presente cuando tipo === 'valoracion_preoperatoria'. Se mapea
+   * directo a los inputs del componente PreopAssessment para pre-llenar
+   * las escalas (RCRI, Caprini, ARISCAT, etc.) — el médico solo ajusta.
+   * Esquema permisivo (record) porque los campos crecen con el tiempo.
+   */
+  preopInputs: z.record(z.string(), z.unknown()).optional(),
+
   safety: SafetyBlock.optional(),
 })
 export type RespuestaExtraccion = z.infer<typeof RespuestaExtraccion>

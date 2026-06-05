@@ -160,6 +160,16 @@ export default function ConsultaActivaPage() {
       // Bloque auditable (Fase B): guardamos extraction + safety para el panel de revisión
       if (data.extraction) setExtraction(data.extraction)
       if (data.safety) setSafety(data.safety)
+
+      // Si la IA detectó factores de riesgo preoperatorios, los pre-llenamos en el
+      // calculador de escalas (RCRI, Caprini, ARISCAT, etc.). El médico solo afina.
+      if (data.preopInputs && typeof data.preopInputs === 'object') {
+        setPreop(prev => ({
+          inputs: { ...(prev?.inputs ?? {}), ...data.preopInputs },
+          resultados: prev?.resultados ?? {},
+        }))
+        toast('Factores de riesgo pre-llenados desde el dictado', 'info')
+      }
       setAprobados(new Set()) // reset de aprobaciones al nuevo procesamiento
 
       // Auditoría (Fase F)

@@ -45,6 +45,16 @@ const ESPECIFICO: Partial<Record<TipoNota, string>> = {
   ingreso: `Nota de ingreso hospitalario. En "impresionInicial" resume el caso en una línea (ej: "Hombre 58a con DM2/HAS, bacteriemia por K. pneumoniae BLEE+"). Destaca cultivos en estudios.`,
   egreso: `Nota de egreso. En "resumenCaso" da una línea ejecutiva. Incluye procedimientos, evolución y signos de alarma claros.`,
   historia_clinica: `Historia clínica completa de primera vez. Sigue OLDCARTS implícito en el padecimiento actual. Estructura antecedentes heredo-familiares, no patológicos y patológicos por separado.`,
+  valoracion_preoperatoria: `Nota de VALORACIÓN PREOPERATORIA. Estructura ESTRICTA:
+- "cirugiaPropuesta": qué cirugía + fecha programada + urgencia (electiva/urgente/emergencia). Si se menciona el tipo (alto/intermedio/bajo riesgo cardiovascular), inclúyelo.
+- "resumenClinico": resumen del paciente con TODAS sus comorbilidades relevantes (HAS, DM2, dislipidemia, EPOC, ERC, IC, CV previa, ictus, AAA, AOP, SAOS, tabaquismo, anticoagulación, antiagregación, etc.). Capacidad funcional en METs si se menciona ("sube escaleras", "camina X cuadras sin disnea").
+- "laboratorios": valores numéricos relevantes (BH: Hb, Hto, plaquetas, leucos; QS: Cr, glucosa, urea; electrolitos; coagulación: TP/INR/TTP; pruebas hepáticas; HbA1c en diabéticos; eGFR).
+- "conclusionRiesgo": SE LLENA AUTOMÁTICAMENTE con calculadoras (ASA, RCRI, Gupta MICA, ARISCAT, Caprini, etc.) — extrae lo que el médico dictó si dictó conclusiones, pero NO INVENTES escalas si no las dijo.
+- "recomendaciones": SE LLENA AUTOMÁTICAMENTE con motor de recomendaciones — extrae lo que el médico dictó si dictó conducta perioperatoria, pero NO INVENTES guidelines.
+
+CRÍTICO: si el médico mencionó factores de riesgo en la transcripción (edad, sexo, peso, talla, comorbilidades, capacidad funcional, anticoagulación, anestesia previa con complicaciones), todos esos datos van a "resumenClinico" Y se reflejan en diagnósticos. NO los pierdas — el médico los usará para llenar las escalas.
+
+Extrae también signos vitales (TA, FC, FR, SpO2, peso, talla) para que el motor de cálculo los use.`,
 }
 
 export function buildSystemPrompt(tipo: TipoNota): string {
@@ -63,6 +73,27 @@ ${listaSecciones.split('\n').map(l => l.replace(/^   - "(\w+)".*/, '     "$1": "
   "medicamentos": [{ "nombre": "", "dosis": "", "via": "oral", "frecuencia": "", "duracion": "", "indicacion": "" }],
   "alergias": [{ "alergeno": "", "tipo": "medicamento", "reaccion": "", "severidad": "leve", "confirmada": false }],
   "signosVitales": { "fc": null, "fr": null, "ta": "", "temperatura": null, "spo2": null, "peso": null, "talla": null },
+${tipo === 'valoracion_preoperatoria' ? `
+  "preopInputs": {
+    "edad": null,
+    "cirugiaAltoRiesgo": false, "cirugiaElectiva": true,
+    "cardiopatiaIsquemica": false, "insuficienciaCardiaca": false, "insuficienciaCardiacaFErEF": false,
+    "enfermedadCerebrovascular": false, "hipertension": false, "diabetes": false, "diabetesInsulina": false,
+    "creatininaMayor2": false, "anemia": false, "infeccionRespiratoria": false,
+    "tomaBetabloqueador": false, "tomaIECAoARA": false, "tomaEstatina": false,
+    "tomaSGLT2": false, "tomaGLP1": false, "glp1Semanal": false,
+    "tomaAspirina": false, "pciPrevia": false,
+    "tomaAnticoagulante": false, "tipoAnticoagulante": null,
+    "valvulaMecanicaMitral": false,
+    "stentDES": false, "stentDESMotivo": null, "mesesDesdeStent": null,
+    "iamReciente": false, "mesesDesdeIAM": null,
+    "tabaquismoActivo": false, "saos": false, "epoc": false, "obesidad": false
+  },
+  // INSTRUCCIONES preopInputs: SOLO pon true cuando el médico lo MENCIONÓ explícitamente o
+  // se deriva sin ambigüedad. Si no se menciona, deja false (NO INVENTES factores de riesgo).
+  // Para tipoAnticoagulante usa "DOAC" o "warfarina" o null.
+  // Para stentDESMotivo usa "SCA" o "cronico" o null.
+` : ''}
 
   "extraction": {
     "resumenEjecutivo": { "value": "", "confidence": "alta|media|baja", "source_quote": "", "speaker": "medico|paciente|acompanante|desconocido", "needs_review": false, "reason": "" },
