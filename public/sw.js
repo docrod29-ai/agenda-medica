@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v34'  // fix: voz → preop assessment pre-llenado
+const CACHE = 'nexusmed-v35'  // fix: preopInputs ahora incluye escalas anidadas (stopbang/caprini/chadsvasc/hasbled/ariscat)
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()
