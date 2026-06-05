@@ -45,16 +45,55 @@ const ESPECIFICO: Partial<Record<TipoNota, string>> = {
   ingreso: `Nota de ingreso hospitalario. En "impresionInicial" resume el caso en una línea (ej: "Hombre 58a con DM2/HAS, bacteriemia por K. pneumoniae BLEE+"). Destaca cultivos en estudios.`,
   egreso: `Nota de egreso. En "resumenCaso" da una línea ejecutiva. Incluye procedimientos, evolución y signos de alarma claros.`,
   historia_clinica: `Historia clínica completa de primera vez. Sigue OLDCARTS implícito en el padecimiento actual. Estructura antecedentes heredo-familiares, no patológicos y patológicos por separado.`,
-  valoracion_preoperatoria: `Nota de VALORACIÓN PREOPERATORIA. Estructura ESTRICTA:
-- "cirugiaPropuesta": qué cirugía + fecha programada + urgencia (electiva/urgente/emergencia). Si se menciona el tipo (alto/intermedio/bajo riesgo cardiovascular), inclúyelo.
-- "resumenClinico": resumen del paciente con TODAS sus comorbilidades relevantes (HAS, DM2, dislipidemia, EPOC, ERC, IC, CV previa, ictus, AAA, AOP, SAOS, tabaquismo, anticoagulación, antiagregación, etc.). Capacidad funcional en METs si se menciona ("sube escaleras", "camina X cuadras sin disnea").
-- "laboratorios": valores numéricos relevantes (BH: Hb, Hto, plaquetas, leucos; QS: Cr, glucosa, urea; electrolitos; coagulación: TP/INR/TTP; pruebas hepáticas; HbA1c en diabéticos; eGFR).
-- "conclusionRiesgo": SE LLENA AUTOMÁTICAMENTE con calculadoras (ASA, RCRI, Gupta MICA, ARISCAT, Caprini, etc.) — extrae lo que el médico dictó si dictó conclusiones, pero NO INVENTES escalas si no las dijo.
-- "recomendaciones": SE LLENA AUTOMÁTICAMENTE con motor de recomendaciones — extrae lo que el médico dictó si dictó conducta perioperatoria, pero NO INVENTES guidelines.
+  valoracion_preoperatoria: `Nota de VALORACIÓN PREOPERATORIA.
 
-CRÍTICO: si el médico mencionó factores de riesgo en la transcripción (edad, sexo, peso, talla, comorbilidades, capacidad funcional, anticoagulación, anestesia previa con complicaciones), todos esos datos van a "resumenClinico" Y se reflejan en diagnósticos. NO los pierdas — el médico los usará para llenar las escalas.
+REGLA MAESTRA: si la transcripción TIENE CUALQUIER contenido clínico,
+"resumenClinico" NUNCA debe quedar vacío. Captura TODO — incluso las
+NEGACIONES explícitas (son datos clínicos válidos en preop).
 
-Extrae también signos vitales (TA, FC, FR, SpO2, peso, talla) para que el motor de cálculo los use.`,
+Estructura por sección:
+
+▸ "cirugiaPropuesta":
+  - Si el médico mencionó la cirugía: descripción + fecha + urgencia.
+  - Si NO la mencionó: escribe exactamente "Pendiente de especificar
+    — no fue dictada en este audio" (NO la dejes vacía, así el médico
+    sabe que debe complementar).
+
+▸ "resumenClinico" (CAMPO CRÍTICO — debe ir POBLADO siempre):
+  Estructura en bullets o prosa breve. INCLUYE:
+  * Comorbilidades AFIRMADAS (HAS, DM, EPOC, IC, ictus, ERC, AAA,
+    AOP, SAOS, tabaquismo, obesidad, etc.)
+  * Comorbilidades NEGADAS explícitamente ("Niega: TVP previa,
+    fractura de cadera, cirugía de rodilla, …")
+  * Medicamentos AFIRMADOS y NEGADOS ("No toma aspirina")
+  * Antecedentes quirúrgicos previos ("Cirugía previa en piernas, no
+    especificada")
+  * Síntomas referidos (dolor, disnea, dolor de piernas, ronquido,
+    cefalea, etc.)
+  * Capacidad funcional si se menciona en METs o equivalentes
+  * Signos vitales relevantes mencionados (SpO2 basal, FC, TA, peso,
+    talla)
+  EJEMPLO de salida si SOLO hay negaciones + dato suelto:
+  "Paciente femenina. Niega antecedente de TVP, fractura de cadera o
+   cirugía de rodilla. Antecedente de cirugía previa en piernas (no
+   especificada). Refiere dolor de piernas crónico. SpO2 basal 90%
+   aire ambiente. Ronquido nocturno referido (no severo). Niega uso
+   de aspirina. Cefalea ocasional manejada con paracetamol."
+
+▸ "laboratorios":
+  Solo si se mencionaron valores numéricos (BH, QS, coagulación,
+  HbA1c, electrolitos, eGFR). Si NO se mencionaron: déjalo vacío "".
+
+▸ "conclusionRiesgo": SE LLENA AUTOMÁTICAMENTE con calculadoras
+  (ASA, RCRI, ARISCAT, Caprini, etc.). NO INVENTES escalas.
+  Solo si el médico DICTÓ una conclusión textual, transcríbela.
+
+▸ "recomendaciones": SE LLENA AUTOMÁTICAMENTE con motor de
+  recomendaciones perioperatorias. NO INVENTES guidelines.
+  Solo si el médico DICTÓ recomendaciones, transcríbelas.
+
+Adicional: extrae signosVitales (especialmente spo2, peso, talla)
+para que el motor de cálculo los use.`,
 }
 
 export function buildSystemPrompt(tipo: TipoNota): string {

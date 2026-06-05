@@ -145,7 +145,26 @@ export default function ConsultaActivaPage() {
       }
       // Mapear respuesta a estado
       setResumen(data.resumenEjecutivo ?? '')
-      setSecciones(prev => prev.map(s => ({ ...s, value: data.secciones?.[s.key] ?? s.value })))
+      // Para valoración preoperatoria: si la IA dejó "resumenClinico" vacío pero
+      // tenemos transcripción, usamos la transcripción cruda como fallback para
+      // que el médico tenga algo que editar en vez de un campo en blanco.
+      const esPreop = tipo === 'valoracion_preoperatoria'
+      const fallbackResumen = esPreop && voz.transcripcion
+        ? `[Transcripción cruda — edita y estructura]\n\n${voz.transcripcion}`
+        : ''
+      setSecciones(prev => prev.map(s => {
+        const valorIA = data.secciones?.[s.key]
+        // Si IA devuelve string no vacío, úsalo
+        if (typeof valorIA === 'string' && valorIA.trim()) {
+          return { ...s, value: valorIA }
+        }
+        // Fallback específico para resumenClinico en preop
+        if (esPreop && s.key === 'resumenClinico' && fallbackResumen && !s.value) {
+          return { ...s, value: fallbackResumen }
+        }
+        // Si no hay nada nuevo, mantén el valor previo
+        return { ...s, value: valorIA ?? s.value }
+      }))
       if (Array.isArray(data.diagnosticos)) setDiagnosticos(data.diagnosticos.filter((d: Diagnostico) => d.descripcion))
       if (Array.isArray(data.medicamentos)) setMedicamentos(data.medicamentos.filter((m: Medicamento) => m.nombre))
       if (data.signosVitales) {
@@ -169,6 +188,14 @@ export default function ConsultaActivaPage() {
           resultados: prev?.resultados ?? {},
         }))
         toast('Factores de riesgo pre-llenados desde el dictado', 'info')
+      }
+      // Diagnóstico visible: si es preop y las 3 secciones críticas vinieron vacías,
+      // alertamos al médico (probable confusión de tipo de nota o respuesta corta de la IA).
+      if (esPreop && !data.secciones?.cirugiaPropuesta?.trim() &&
+          !data.secciones?.resumenClinico?.trim() &&
+          !data.secciones?.laboratorios?.trim()) {
+        toast('IA no pudo estructurar el dictado para preop. Revisa la transcripción cruda en "Resumen clínico"', 'error')
+        console.warn('[procesar] Secciones preop vacías. Tipo enviado:', tipo, 'Respuesta:', data)
       }
       setAprobados(new Set()) // reset de aprobaciones al nuevo procesamiento
 
