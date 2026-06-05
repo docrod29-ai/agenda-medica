@@ -136,19 +136,44 @@ export async function POST(req: NextRequest) {
   }
 }
 
-/** Extrae JSON aunque venga envuelto en ```json … ``` */
+/**
+ * Extrae JSON aunque venga envuelto en ```json … ``` o con comentarios
+ * que la IA copió accidentalmente del prompt.
+ * Pipeline de fallbacks:
+ *   1. Parse directo
+ *   2. Quitar fences de markdown
+ *   3. Recortar de primer "{" a último "}"
+ *   4. Quitar comentarios // ... y trailing commas (JSON5-ish)
+ */
 function parseJSON(text: string): Record<string, unknown> | null {
   let t = text.trim()
-  // quitar fences de markdown si los hubiera
+  // 1. fence markdown
   const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/)
   if (fence) t = fence[1].trim()
-  // recortar al primer { … último }
+  // 2. recortar al primer { … último }
   const first = t.indexOf('{')
   const last = t.lastIndexOf('}')
   if (first === -1 || last === -1) return null
-  try {
-    return JSON.parse(t.slice(first, last + 1))
-  } catch {
+  const slice = t.slice(first, last + 1)
+
+  // intento 1: parse limpio
+  try { return JSON.parse(slice) } catch { /* sigue al fallback */ }
+
+  // intento 2: limpiar comentarios // y trailing commas que la IA pudo
+  // copiar del prompt. Conserva strings (evita romper URLs con //)
+  const limpio = slice
+    // quitar comentarios de línea // que NO estén dentro de strings
+    .split('\n')
+    .map(line => {
+      const m = line.match(/^([^"]*(?:"[^"]*"[^"]*)*?)\s*\/\/.*$/)
+      return m ? m[1].trimEnd() : line
+    })
+    .join('\n')
+    // trailing comma antes de } o ]
+    .replace(/,(\s*[}\]])/g, '$1')
+
+  try { return JSON.parse(limpio) } catch {
+    console.warn('[procesar] JSON inválido incluso tras limpieza. Primeros 200 chars:', slice.slice(0, 200))
     return null
   }
 }

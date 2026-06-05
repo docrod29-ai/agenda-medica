@@ -114,87 +114,111 @@ ${listaSecciones.split('\n').map(l => l.replace(/^   - "(\w+)".*/, '     "$1": "
   "signosVitales": { "fc": null, "fr": null, "ta": "", "temperatura": null, "spo2": null, "peso": null, "talla": null },
 ${tipo === 'valoracion_preoperatoria' ? `
   "preopInputs": {
-    // ─── Top-level: RCRI + contexto general ─────────────────
     "edad": null,
-    "cirugiaAltoRiesgo": false, "cirugiaElectiva": true,
-    "cardiopatiaIsquemica": false, "insuficienciaCardiaca": false, "insuficienciaCardiacaFErEF": false,
-    "enfermedadCerebrovascular": false, "hipertension": false, "diabetes": false, "diabetesInsulina": false,
-    "creatininaMayor2": false, "anemia": false, "infeccionRespiratoria": false,
-    "tomaBetabloqueador": false, "tomaIECAoARA": false, "tomaEstatina": false,
-    "tomaSGLT2": false, "tomaGLP1": false, "glp1Semanal": false,
-    "tomaAspirina": false, "pciPrevia": false,
-    "tomaAnticoagulante": false, "tipoAnticoagulante": null,
+    "cirugiaAltoRiesgo": false,
+    "cirugiaElectiva": true,
+    "cardiopatiaIsquemica": false,
+    "insuficienciaCardiaca": false,
+    "insuficienciaCardiacaFErEF": false,
+    "enfermedadCerebrovascular": false,
+    "hipertension": false,
+    "diabetes": false,
+    "diabetesInsulina": false,
+    "creatininaMayor2": false,
+    "anemia": false,
+    "infeccionRespiratoria": false,
+    "tomaBetabloqueador": false,
+    "tomaIECAoARA": false,
+    "tomaEstatina": false,
+    "tomaSGLT2": false,
+    "tomaGLP1": false,
+    "glp1Semanal": false,
+    "tomaAspirina": false,
+    "pciPrevia": false,
+    "tomaAnticoagulante": false,
+    "tipoAnticoagulante": null,
     "valvulaMecanicaMitral": false,
-    "stentDES": false, "stentDESMotivo": null, "mesesDesdeStent": null,
-    "iamReciente": false, "mesesDesdeIAM": null,
-    "tabaquismoActivo": false, "saos": false, "epoc": false, "obesidad": false,
-
-    // ─── STOP-BANG (riesgo de apnea del sueño) ──────────────
-    // Keys exactas — usa solo estas llaves
+    "stentDES": false,
+    "stentDESMotivo": null,
+    "mesesDesdeStent": null,
+    "iamReciente": false,
+    "mesesDesdeIAM": null,
+    "tabaquismoActivo": false,
+    "saos": false,
+    "epoc": false,
+    "obesidad": false,
     "stopbang": {
-      "snoring": false,      // ronquido fuerte / ronca tras puertas cerradas
-      "tiredness": false,    // cansancio diurno / somnolencia frecuente
-      "observed": false,     // alguien observó apnea durante el sueño
-      "pressure": false,     // hipertensión arterial conocida o en tratamiento
-      "bmi35": false,        // IMC > 35
-      "age50": false,        // edad > 50 años
-      "neck40": false,       // circunferencia cuello > 40 cm
-      "genderMale": false    // sexo masculino
+      "snoring": false,
+      "tiredness": false,
+      "observed": false,
+      "pressure": false,
+      "bmi35": false,
+      "age50": false,
+      "neck40": false,
+      "genderMale": false
     },
-
-    // ─── CAPRINI (riesgo de TVP/TEP) ────────────────────────
     "caprini": {
-      "edad41_60": false, "cirugiaMenor": false, "imcMayor25": false,
-      "piernasHinchadas": false, "varices": false, "embarazoPosparto": false,
-      "anticonceptivosTRH": false, "sepsis": false, "enfPulmonarGrave": false,
-      "epoc": false, "iamReciente": false, "iccReciente": false,
-      "reposoCama": false, "eii": false,
-      "edad61_74": false, "cirugiaMayor": false, "artroscopia": false,
-      "malignidad": false, "confinadoCama72": false, "yesoInmovilizador": false,
+      "edad41_60": false,
+      "cirugiaMenor": false,
+      "imcMayor25": false,
+      "piernasHinchadas": false,
+      "varices": false,
+      "embarazoPosparto": false,
+      "anticonceptivosTRH": false,
+      "sepsis": false,
+      "enfPulmonarGrave": false,
+      "epoc": false,
+      "iamReciente": false,
+      "iccReciente": false,
+      "reposoCama": false,
+      "eii": false,
+      "edad61_74": false,
+      "cirugiaMayor": false,
+      "artroscopia": false,
+      "malignidad": false,
+      "confinadoCama72": false,
+      "yesoInmovilizador": false,
       "accesoVenosoCentral": false,
-      "edad75": false, "antecedenteTVP": false, "historiaFamiliarTVP": false,
+      "edad75": false,
+      "antecedenteTVP": false,
+      "historiaFamiliarTVP": false,
       "trombofilia": false,
-      "evcReciente": false, "artroplastiaElectiva": false, "fracturaCadera": false,
-      "lesionMedular": false, "politraumatismo": false
+      "evcReciente": false,
+      "artroplastiaElectiva": false,
+      "fracturaCadera": false,
+      "lesionMedular": false,
+      "politraumatismo": false
     },
-
-    // ─── CHADS-VASc (FA - riesgo de ictus) ──────────────────
     "chadsvasc": {
-      "icc": false, "hta": false, "edad75": false, "diabetes": false,
-      "ictusEVC": false, "vasculopatia": false, "edad65_74": false, "mujer": false
+      "icc": false,
+      "hta": false,
+      "edad75": false,
+      "diabetes": false,
+      "ictusEVC": false,
+      "vasculopatia": false,
+      "edad65_74": false,
+      "mujer": false
     },
-
-    // ─── HAS-BLED (riesgo de sangrado en FA) ────────────────
     "hasbled": {
-      "hta": false, "renalAnormal": false, "hepaticaAnormal": false,
-      "ictus": false, "sangradoHistoria": false, "irrLabil": false,
-      "ancianos": false, "drogasAlcohol": false
+      "hta": false,
+      "renalAnormal": false,
+      "hepaticaAnormal": false,
+      "ictus": false,
+      "sangradoHistoria": false,
+      "irrLabil": false,
+      "ancianos": false,
+      "drogasAlcohol": false
     },
-
-    // ─── ARISCAT (riesgo pulmonar postoperatorio) ──────────
     "ariscat": {
-      "edad": null,                // años
-      "spo2": null,                // SpO2 aire ambiente (ej. 90)
-      "infeccionRespiratoria": false,  // última semana
-      "anemia": false,             // Hb < 10
-      "incision": "",              // "periferica" | "torax" | "abdomenAlto" | "abdomenBajo"
-      "duracion": "",              // "menor2h" | "2a3h" | "mayor3h"
+      "edad": null,
+      "spo2": null,
+      "infeccionRespiratoria": false,
+      "anemia": false,
+      "incision": "",
+      "duracion": "",
       "emergencia": false
     }
-  },
-  // INSTRUCCIONES preopInputs (CRÍTICAS):
-  // - SOLO pon true cuando el médico lo MENCIONÓ explícitamente o se deriva sin ambigüedad.
-  // - Si no se menciona, deja false (NO INVENTES factores de riesgo).
-  // - Para CHADS-VASc "mujer" = true solo si sexo femenino confirmado.
-  // - Para tipoAnticoagulante usa "DOAC" o "warfarina" o null.
-  // - Para stentDESMotivo usa "SCA" o "cronico" o null.
-  // - Para ariscat.incision usa exactamente: "periferica" | "torax" | "abdomenAlto" | "abdomenBajo".
-  // - Para ariscat.duracion usa exactamente: "menor2h" | "2a3h" | "mayor3h".
-  // - spo2: pon el número exacto si se mencionó (ej. 90, 95) — NO 0.
-  // - Si el paciente dice "ronca pero no fuerte" → stopbang.snoring=false (debe ser FUERTE).
-  // - Si dice "le hicieron cirugía en las piernas" sin más → caprini.cirugiaMenor=true (asumir menor sin más detalle).
-  // - Negación explícita ("nunca trombosis") deja en false (que era el default — confirma).
-` : ''}
+  }` : ''}
 
   "extraction": {
     "resumenEjecutivo": { "value": "", "confidence": "alta|media|baja", "source_quote": "", "speaker": "medico|paciente|acompanante|desconocido", "needs_review": false, "reason": "" },
@@ -224,7 +248,21 @@ ${listaSecciones.split('\n').map(l => l.replace(/^   - "(\w+)".*/, '       "$1":
 }
 
 Las secciones a llenar para esta nota (${tipo}) son exactamente:
-${listaSecciones}`
+${listaSecciones}
+${tipo === 'valoracion_preoperatoria' ? `
+REGLAS ADICIONALES PARA "preopInputs" (cuando es valoración preoperatoria):
+- SOLO pon true cuando el médico lo MENCIONÓ explícitamente o se deriva sin ambigüedad.
+- Si no se menciona, deja false (NO INVENTES factores de riesgo).
+- Para chadsvasc.mujer = true solo si sexo femenino confirmado.
+- Para tipoAnticoagulante usa "DOAC" o "warfarina" o null.
+- Para stentDESMotivo usa "SCA" o "cronico" o null.
+- Para ariscat.incision usa exactamente: "periferica" | "torax" | "abdomenAlto" | "abdomenBajo".
+- Para ariscat.duracion usa exactamente: "menor2h" | "2a3h" | "mayor3h".
+- spo2: pon el número exacto si se mencionó (ej. 90, 95) — NO 0.
+- Si el paciente dice "ronca pero no fuerte" → stopbang.snoring=false (debe ser FUERTE para puntuar).
+- Si dice "le hicieron cirugía en las piernas" sin más → caprini.cirugiaMenor=true (asumir menor sin más detalle).
+- Negación explícita ("nunca trombosis") deja en false (confirma el default).
+` : ''}`
 }
 
 export function buildUserPrompt(transcripcion: string, ctx: PacienteContexto): string {
