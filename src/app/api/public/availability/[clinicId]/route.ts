@@ -9,6 +9,10 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
+import { validarHorarioDia } from '@/lib/availability'
+
+const MAX_SLOTS_POR_DIA = 24
+const DURACION_MIN_SEGURA = 5
 
 const DAY_KEYS = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'] as const
 
@@ -49,15 +53,20 @@ export async function GET(
       return NextResponse.json({ ok: true, slots: [], motivo: 'Día festivo' })
     }
 
-    const duracion = Number((cfg.duraciones ?? {})[tipo] ?? 30)
-    // FIX bug slots fantasma: el step nunca debe ser menor a la duración.
-    // Sino se generan slots cada 10 min sobre citas de 30 min y se sobrebooks.
+    const duracionRaw = Number((cfg.duraciones ?? {})[tipo] ?? 30)
+    const duracion = Number.isFinite(duracionRaw) && duracionRaw >= DURACION_MIN_SEGURA ? duracionRaw : 30
     const intervalConf = Number(cfg.intervaloMinutos ?? 10)
     const interval = Math.max(intervalConf, duracion)
-    const [hI, mI] = schedule.inicio.split(':').map(Number)
-    const [hF, mF] = schedule.fin.split(':').map(Number)
-    const startMin = hI * 60 + mI
-    const endMin = hF * 60 + mF
+
+    // HARD GUARDRAIL: validar el horario antes de generar. Si está corrupto
+    // (fin ≤ inicio, jornada > 14h, 24:00 mal formado) NO generamos slots
+    // fantasma. Mejor mostrar 0 disponibilidad que 32 lugares ficticios.
+    const validacion = validarHorarioDia(schedule.inicio, schedule.fin)
+    if (!validacion.valido) {
+      console.warn(`[public/availability] ${clinicId} ${fecha}: ${validacion.motivo}`)
+      return NextResponse.json({ ok: true, slots: [], motivo: `Configuración del día: ${validacion.motivo}` })
+    }
+    const { startMin, endMin } = validacion
 
     // 3. Citas existentes ese día
     const apptsSnap = await adminDb.collection('clinics').doc(clinicId).collection('appointments').get()
@@ -87,6 +96,11 @@ export async function GET(
     const baseDate = fecha + 'T00:00:00'
     const baseTs = new Date(baseDate).getTime()
     for (let m = startMin; m + duracion <= endMin; m += interval) {
+      // Tope absoluto: nunca devolver > MAX_SLOTS_POR_DIA al cliente público
+      if (slots.length >= MAX_SLOTS_POR_DIA) {
+        console.warn(`[public/availability] tope ${MAX_SLOTS_POR_DIA} alcanzado para ${clinicId} ${fecha}`)
+        break
+      }
       const ts = baseTs + m * 60 * 1000
       // ¿Bloqueado?
       const bloqueado = bloques.some(b => {

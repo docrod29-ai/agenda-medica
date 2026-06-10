@@ -5,6 +5,65 @@ import { format } from 'date-fns'
 
 const DAY_KEYS = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'] as const
 
+/** Tope absoluto de slots por día (cota de seguridad).
+ *  24h × 60min / 15min step = 96 — pero esto es disparate clínico.
+ *  Cap conservador en 24: equivale a 12 horas con citas de 30 min.
+ *  Si alguien legítimamente necesita más, debe configurarlo conscientemente. */
+const MAX_SLOTS_POR_DIA = 24
+
+/** Duración mínima razonable de una cita (anti config=0 que rompía el loop). */
+const DURACION_MIN_SEGURA = 5
+
+/** Hora máxima razonable para "fin" (00:00-23:59). 24:00 está mal formado. */
+const HORA_MAX_MIN = 23 * 60 + 59  // 1439
+
+/** Resultado de validar un horario diario — semánticamente claro para callers. */
+export interface ValidacionHorario {
+  valido: boolean
+  motivo?: string
+  startMin: number
+  endMin: number
+}
+
+/**
+ * Valida un horario { inicio: "HH:MM", fin: "HH:MM" }.
+ * Reglas:
+ *   - inicio y fin deben tener formato HH:MM válido
+ *   - fin > inicio estrictamente (no se permite jornada 0)
+ *   - duración total ≤ 14 horas (anti config 8:00-24:00 por accidente)
+ *   - endMin se clampea a 23:59 si excede (24:00 → 23:59)
+ *
+ * Diseño: tolerante en lectura (clamp), estricto en validación (rechaza
+ * el día con motivo claro). Esto cubre AMBOS escenarios:
+ *  a) Datos ya corruptos en BD: el slot calc usa los valores clampados
+ *     y nunca genera > MAX_SLOTS_POR_DIA → no aparecen 32 lugares.
+ *  b) Datos nuevos al guardar: el caller debe rechazar el save.
+ */
+export function validarHorarioDia(inicio: string, fin: string): ValidacionHorario {
+  const reHora = /^\d{1,2}:\d{2}$/
+  if (!reHora.test(inicio) || !reHora.test(fin)) {
+    return { valido: false, motivo: 'Formato de hora inválido', startMin: 0, endMin: 0 }
+  }
+  const [hI, mI] = inicio.split(':').map(Number)
+  const [hF, mF] = fin.split(':').map(Number)
+  if ([hI, mI, hF, mF].some(n => Number.isNaN(n))) {
+    return { valido: false, motivo: 'Hora no numérica', startMin: 0, endMin: 0 }
+  }
+  let startMin = hI * 60 + mI
+  let endMin = hF * 60 + mF
+  // Clamp: 24:00 → 23:59 (24:00 NO es válido en HH:MM)
+  if (endMin > HORA_MAX_MIN) endMin = HORA_MAX_MIN
+  if (startMin < 0) startMin = 0
+  if (endMin <= startMin) {
+    return { valido: false, motivo: 'La hora de fin debe ser mayor que la de inicio', startMin, endMin }
+  }
+  const horasTotal = (endMin - startMin) / 60
+  if (horasTotal > 14) {
+    return { valido: false, motivo: `Jornada de ${horasTotal.toFixed(1)}h parece un error (máximo razonable 14h)`, startMin, endMin }
+  }
+  return { valido: true, startMin, endMin }
+}
+
 export function getDaySchedule(fecha: string, config: ClinicConfig) {
   const d = new Date(fecha + 'T12:00:00')
   const dayKey = DAY_KEYS[d.getDay()]
@@ -26,18 +85,30 @@ export function getAvailableSlots(
   const schedule = getDaySchedule(fecha, config)
   if (!schedule) return []
 
-  // BUG FIX: el step debe ser AL MENOS la duración de la cita, nunca menor.
-  // Si el médico configuró intervalo de 10 min y la cita dura 30 min, antes
-  // generábamos slots cada 10 min (15:00, 15:10, 15:20, 15:30…) lo que daba
-  // 28-30 slots de los cuales solo 10 caben sin solapar. Ahora step = duración
-  // por default, así "cada 30 min" da 10 slots reales no 28 fantasmas.
-  // El intervaloMinutos solo se usa como mínimo cuando es MAYOR (espaciar más).
+  // ── HARD GUARDRAIL 1: duración debe ser razonable ───────────────
+  // Si la duración es 0/NaN/negativa el for() loop nunca avanza o
+  // genera infinitos. Default seguro: 30 min (mediana clínica).
+  const duracionSegura = (Number.isFinite(duracionMin) && duracionMin >= DURACION_MIN_SEGURA)
+    ? duracionMin
+    : 30
+
+  // El step debe ser AL MENOS la duración de la cita, nunca menor.
+  // (fix histórico: intervalo=10 con citas 30min → slots fantasma cada 10min)
   const intervalConf = Number(config.intervaloMinutos ?? 10)
-  const interval = Math.max(intervalConf, duracionMin)
-  const [hIni, mIni] = schedule.inicio.split(':').map(Number)
-  const [hFin, mFin] = schedule.fin.split(':').map(Number)
-  const startMin = hIni * 60 + mIni
-  const endMin = hFin * 60 + mFin
+  const interval = Math.max(intervalConf, duracionSegura)
+
+  // ── HARD GUARDRAIL 2: validar el horario ────────────────────────
+  // Si el horario está corrupto (fin ≤ inicio, jornada > 14h), NO
+  // generamos slots. Mejor que mostrar 32 lugares fantasma.
+  const validacion = validarHorarioDia(schedule.inicio, schedule.fin)
+  if (!validacion.valido) {
+    // Diagnóstico en consola sin exponer detalle de paciente
+    if (typeof console !== 'undefined') {
+      console.warn(`[availability] Horario inválido para ${fecha}: ${validacion.motivo}`)
+    }
+    return []
+  }
+  const { startMin, endMin } = validacion
 
   const dayAppts = appointments.filter(a =>
     a.fechaHora.slice(0, 10) === fecha &&
@@ -46,8 +117,15 @@ export function getAvailableSlots(
   )
 
   const slots: string[] = []
-  for (let m = startMin; m + duracionMin <= endMin; m += interval) {
-    const slotEnd = m + duracionMin
+  for (let m = startMin; m + duracionSegura <= endMin; m += interval) {
+    // ── HARD GUARDRAIL 3: tope absoluto de slots por día ──────────
+    // Si llegamos a 24 slots y aún queda horario, ALGO está mal.
+    // Cortamos y registramos. Nunca devolvemos 32 lugares.
+    if (slots.length >= MAX_SLOTS_POR_DIA) {
+      console.warn(`[availability] Tope de ${MAX_SLOTS_POR_DIA} slots alcanzado para ${fecha} — configuración sospechosa`)
+      break
+    }
+    const slotEnd = m + duracionSegura
     const hh = String(Math.floor(m / 60)).padStart(2, '0')
     const mm = String(m % 60).padStart(2, '0')
     const slot = `${hh}:${mm}`
