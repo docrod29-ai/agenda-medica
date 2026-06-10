@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono, Fraunces } from "next/font/google"
 import "./globals.css"
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister"
+import { ThemeToggle } from "@/components/ThemeToggle"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -69,6 +70,22 @@ export default function RootLayout({
           La versión se sube cuando hay deploys que rompen compatibilidad
           de routing (rutas nuevas, layouts movidos, etc.).
         */}
+        {/*
+          Anti-flicker tema: aplica data-theme ANTES de la primera pintada.
+          Si no hay preferencia guardada, queda "auto" (sigue al SO).
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){
+              try{
+                var t = localStorage.getItem('nexusmed.theme');
+                if (t === 'light' || t === 'dark') {
+                  document.documentElement.setAttribute('data-theme', t);
+                }
+              } catch(e){}
+            })();`,
+          }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){
@@ -94,6 +111,7 @@ export default function RootLayout({
       <body className="min-h-full">
         {children}
         <ServiceWorkerRegister />
+        <ThemeToggle />
       </body>
     </html>
   )

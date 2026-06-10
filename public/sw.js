@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v39'  // diagnóstico + JSON mode + max_tokens 8000
+const CACHE = 'nexusmed-v40'  // FASE 2: light/dark mode + glass + microinteracciones premium
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

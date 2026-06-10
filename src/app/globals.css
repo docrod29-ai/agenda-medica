@@ -822,3 +822,266 @@ tbody tr:last-child { border-bottom: none; }
     justify-content: center;
   }
 }
+
+/* ═════════════════════════════════════════════════════════════════
+   NEXUSMED · SPRINT 7 — FASE 2 UI/UX PREMIUM
+   No reescribe reglas anteriores: las EXTIENDE y SOBREESCRIBE
+   solo cuando aporta valor visible (light mode, glass, microinteracciones).
+   Toggle por atributo: <html data-theme="light"> o data-theme="dark".
+   Default sigue siendo dark (sin atributo).
+   ═════════════════════════════════════════════════════════════════ */
+
+/* ── Light mode — paleta bone-soft anti-fatiga ocular ─────────── */
+:root[data-theme="light"] {
+  /* Bone-soft (no blanco puro — reduce fatiga ocular en consulta larga) */
+  --bg:        #FAFAF7;
+  --s:         #FFFFFF;
+  --s1:        #FFFFFF;
+  --s2:        #F5F3EE;
+  --s3:        #ECEAE3;
+
+  /* Bordes ink con alpha sobre canvas claro */
+  --border:    rgba(11, 12, 14, 0.08);
+  --border2:   rgba(11, 12, 14, 0.16);
+
+  /* Cobalto ligeramente más oscuro para contraste AA sobre blanco */
+  --nexus:        #2845EA;
+  --nexus-hover:  #1A35C8;
+  --nexus-soft:   rgba(40, 69, 234, 0.10);
+  --teal:         var(--nexus);
+  --teal-dim:     var(--nexus-hover);
+  --teal-glow:    var(--nexus-soft);
+
+  /* Texto ink (alto contraste pero sin negro puro — más sofisticado) */
+  --text:      #0B0C0E;
+  --text2:     #565A60;
+  --text3:     #8A8E94;
+
+  /* Semánticas — versiones light-mode (contraste AA) */
+  --blue:      #2057C5;
+  --blue-dim:  #1A4AA8;
+  --amber:     #B45309;
+  --red:       #B91C1C;
+  --green:     #14532D;
+  --purple:    #6D28D9;
+}
+
+/* ── Auto-light si el OS prefiere claro y no hay override manual ── */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]):not([data-theme="light"]) {
+    --bg:        #FAFAF7;
+    --s:         #FFFFFF;
+    --s1:        #FFFFFF;
+    --s2:        #F5F3EE;
+    --s3:        #ECEAE3;
+    --border:    rgba(11, 12, 14, 0.08);
+    --border2:   rgba(11, 12, 14, 0.16);
+    --nexus:        #2845EA;
+    --nexus-hover:  #1A35C8;
+    --nexus-soft:   rgba(40, 69, 234, 0.10);
+    --teal:         var(--nexus);
+    --teal-dim:     var(--nexus-hover);
+    --teal-glow:    var(--nexus-soft);
+    --text:      #0B0C0E;
+    --text2:     #565A60;
+    --text3:     #8A8E94;
+    --blue:      #2057C5;
+    --blue-dim:  #1A4AA8;
+    --amber:     #B45309;
+    --red:       #B91C1C;
+    --green:     #14532D;
+    --purple:    #6D28D9;
+  }
+}
+
+/* ── Transición global suave al cambiar de tema ─────────────────── */
+html { color-scheme: dark light; }
+html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item, .tab {
+  transition:
+    background-color 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Glassmorphism — solo donde aporta jerarquía ────────────────── */
+.glass {
+  background: color-mix(in srgb, var(--s1) 72%, transparent);
+  backdrop-filter: saturate(180%) blur(14px);
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
+  border: 1px solid var(--border);
+}
+
+/* Topbar y modal-overlay con glass sutil */
+.topbar {
+  background: color-mix(in srgb, var(--s1) 78%, transparent);
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+}
+
+.modal {
+  /* Glass más denso en modales — protagonismo visual */
+  background: color-mix(in srgb, var(--s1) 92%, transparent);
+  backdrop-filter: saturate(160%) blur(8px);
+  -webkit-backdrop-filter: saturate(160%) blur(8px);
+}
+
+/* ── Micro-interacciones premium ────────────────────────────────── */
+/* Active scale en botones — feedback táctil sutil */
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+  transition-duration: 80ms;
+}
+
+/* Hover lift en cards interactivas */
+.card-hover {
+  transition:
+    border-color 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    background 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.card-hover:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px -8px color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+/* KPI cards con misma personalidad */
+.kpi-card {
+  transition:
+    border-color 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    background 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.kpi-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px -8px color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+/* Focus rings refinados — halo doble (color + bone) */
+.input:focus,
+.btn:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--bg),
+    0 0 0 4px var(--nexus);
+  border-color: var(--nexus);
+}
+.input:focus {
+  box-shadow:
+    0 0 0 3px var(--nexus-soft),
+    inset 0 0 0 1px var(--nexus);
+}
+
+/* Tab indicator animado — slide suave entre tabs */
+.tab {
+  position: relative;
+}
+.tab::after {
+  content: '';
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: -1px;
+  height: 2px;
+  background: var(--nexus);
+  border-radius: 2px 2px 0 0;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.tab.active::after { transform: scaleX(1); }
+.tab.active { border-bottom-color: transparent; }
+
+/* Nav-item active — indicador izquierdo más refinado */
+.nav-item.active::before {
+  transform-origin: center;
+  animation: nx-indicator-in 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes nx-indicator-in {
+  from { transform: scaleY(0); opacity: 0; }
+  to   { transform: scaleY(1); opacity: 1; }
+}
+
+/* ── ThemeToggle component (botón flotante) ─────────────────────── */
+.theme-toggle {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--s1) 80%, transparent);
+  backdrop-filter: saturate(180%) blur(10px);
+  -webkit-backdrop-filter: saturate(180%) blur(10px);
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 199;
+  box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--text) 10%, transparent);
+  transition:
+    background 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.theme-toggle:hover {
+  color: var(--text);
+  transform: scale(1.05);
+}
+.theme-toggle:active { transform: scale(0.95); }
+.theme-toggle svg {
+  width: 18px;
+  height: 18px;
+  transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.theme-toggle:hover svg { transform: rotate(20deg); }
+
+/* En móvil con bottom-nav, sube el toggle para no chocar */
+@media (max-width: 768px) {
+  .theme-toggle {
+    bottom: 78px;
+    right: 12px;
+    width: 34px;
+    height: 34px;
+  }
+  .theme-toggle svg { width: 16px; height: 16px; }
+}
+
+/* ── Tipografía premium para headers de página ──────────────────── */
+.nx-page-title {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1.2;
+}
+.nx-page-subtitle {
+  font-size: 13.5px;
+  color: var(--text2);
+  margin-top: 4px;
+  letter-spacing: -0.005em;
+}
+
+/* ── Skeleton refinado para light mode ─────────────────────────── */
+:root[data-theme="light"] .skeleton,
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .skeleton {
+    background: linear-gradient(90deg, var(--s2) 25%, var(--s3) 50%, var(--s2) 75%);
+    background-size: 200% 100%;
+  }
+}
+
+/* ── Print: forzar light mode para impresión clínica ──────────── */
+@media print {
+  :root {
+    --bg:     #FFFFFF;
+    --s1:     #FFFFFF;
+    --s2:     #F5F5F5;
+    --text:   #000000;
+    --text2:  #333333;
+    --border: #CCCCCC;
+  }
+  .theme-toggle, .sidebar, .topbar, .bottom-nav-wrap { display: none !important; }
+}
