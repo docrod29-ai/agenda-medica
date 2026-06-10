@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v38'  // FASE 1: parser clínico determinista local como fallback
+const CACHE = 'nexusmed-v39'  // diagnóstico + JSON mode + max_tokens 8000
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

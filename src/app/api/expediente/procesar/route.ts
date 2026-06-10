@@ -66,7 +66,9 @@ async function llamarClaude(model: string, system: string, userMsg: string) {
     headers: headersAnthropic,
     body: JSON.stringify({
       model,
-      max_tokens: 4000,
+      // 8000 evita que el JSON se corte a la mitad cuando hay muchas
+      // secciones + extraction + safety + preopInputs
+      max_tokens: 8000,
       system,
       messages: [{ role: 'user', content: userMsg }],
     }),
@@ -109,26 +111,44 @@ export async function POST(req: NextRequest) {
 
     if (!res.ok) {
       const err = await res.text()
-      console.error('[expediente/procesar] Claude error:', res.status, err)
-      // Fallback local: parser determinista llena al menos campos básicos
+      console.error('[expediente/procesar] Claude HTTP error:', res.status, err.slice(0, 500))
       const fallback = parserClinicoComoRespuestaIA(transcripcion, tipo)
       return NextResponse.json({
         ...fallback,
-        _aviso: `IA externa no disponible (Claude ${res.status}). Llené lo básico — revisa todo.`,
+        _aviso: `IA externa no respondió (HTTP ${res.status} de Anthropic). Llené lo básico — revisa todo.`,
+        _causaFallback: 'http_error',
+        _detalleDebug: `Claude ${res.status} en modelo ${model}`,
       })
     }
 
     const data = await res.json()
     const text: string = data.content?.[0]?.text ?? ''
+    const stopReason: string = data.stop_reason ?? ''
 
-    // Parsear el JSON de la respuesta (robusto ante markdown accidental)
-    const parsed = parseJSON(text)
-    if (!parsed) {
-      console.warn('[procesar] JSON no parseable — usando parser local determinista')
+    // Si Claude devolvió string vacío, es signo de bloqueo/timeout
+    if (!text.trim()) {
+      console.warn('[procesar] Claude devolvió texto vacío. stop_reason=', stopReason)
       const fallback = parserClinicoComoRespuestaIA(transcripcion, tipo)
       return NextResponse.json({
         ...fallback,
-        _aviso: 'Respuesta IA malformada. Llené lo básico con parser local — revisa todo.',
+        _aviso: `IA devolvió respuesta vacía (stop_reason=${stopReason || 'desconocido'}). Llené lo básico — revisa todo.`,
+        _causaFallback: 'respuesta_vacia',
+      })
+    }
+
+    // Parsear el JSON (robusto ante markdown accidental y comentarios)
+    const parsed = parseJSON(text)
+    if (!parsed) {
+      console.warn('[procesar] JSON no parseable. stop_reason=', stopReason, 'primeros 300 chars:', text.slice(0, 300))
+      const fallback = parserClinicoComoRespuestaIA(transcripcion, tipo)
+      const fueCortado = stopReason === 'max_tokens'
+      return NextResponse.json({
+        ...fallback,
+        _aviso: fueCortado
+          ? 'IA devolvió JSON cortado por límite de tokens. Llené lo básico — revisa todo.'
+          : 'IA devolvió formato malformado. Llené lo básico con parser local — revisa todo.',
+        _causaFallback: fueCortado ? 'truncado_max_tokens' : 'json_malformado',
+        _detalleDebug: text.slice(0, 200),
       })
     }
 
@@ -142,13 +162,13 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, ...validation.data })
   } catch (err) {
-    console.error('[expediente/procesar] Error:', err)
-    // Última línea de defensa: parser local nunca falla
+    console.error('[expediente/procesar] Exception:', err)
     try {
       const fallback = parserClinicoComoRespuestaIA(transcripcion, tipo)
       return NextResponse.json({
         ...fallback,
-        _aviso: `Error interno al llamar IA (${String(err).slice(0, 80)}). Llené lo básico con parser local — revisa todo.`,
+        _aviso: `Error interno al llamar IA: ${String(err).slice(0, 100)}. Llené lo básico — revisa todo.`,
+        _causaFallback: 'excepcion',
       })
     } catch {
       return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })

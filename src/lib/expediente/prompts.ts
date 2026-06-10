@@ -7,6 +7,13 @@ import { SECCIONES_POR_TIPO } from './templates'
  */
 
 const REGLAS_BASE = `
+RESPONDE EXCLUSIVAMENTE CON UN OBJETO JSON VÁLIDO Y NADA MÁS.
+- NO uses bloques de código markdown.
+- NO incluyas backticks.
+- NO incluyas comentarios // ni /* */ dentro del JSON.
+- NO escribas explicación, encabezado ni nota antes o después del objeto.
+- Tu PRIMER carácter debe ser "{" y tu ÚLTIMO carácter debe ser "}".
+
 Eres un asistente médico experto en documentación clínica conforme a la NOM-004-SSA3-2012 de México.
 Tu tarea es estructurar la transcripción de una consulta médica en datos clínicos auditables.
 
