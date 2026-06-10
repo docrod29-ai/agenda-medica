@@ -375,37 +375,76 @@ export default function ConfiguracionPage() {
       {/* Horario */}
       {tab === 'horario' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 8px' }}>Define los días y horarios de atención del consultorio.</p>
-          {DIAS.map(dia => (
-            <div key={dia} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10 }}>
-              <input
-                type="checkbox"
-                checked={form.horario[dia].activo}
-                onChange={e => updHorario(dia, 'activo', e.target.checked)}
-                style={{ accentColor: 'var(--teal)', width: 16, height: 16 }}
-              />
-              <div style={{ width: 80, fontSize: 14, fontWeight: 500, color: form.horario[dia].activo ? 'var(--text)' : 'var(--text3)' }}>
-                {DIAS_LABELS[dia]}
+          <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 8px' }}>Define los días y horarios de atención del consultorio. El preview muestra cuántos espacios generará cada día.</p>
+          {DIAS.map(dia => {
+            const h = form.horario[dia]
+            // Preview de slots por día — usa la duración de "primera vez" o 30 min default
+            const duracionDefault = Number(form.duraciones?.['primera-vez'] ?? form.duraciones?.['seguimiento'] ?? 30)
+            const intervalo = Math.max(Number(form.intervaloMinutos ?? 10), duracionDefault)
+            let cantidadSlots = 0
+            let minutos = 0
+            if (h.activo && h.inicio && h.fin) {
+              const [hI, mI] = h.inicio.split(':').map(Number)
+              const [hF, mF] = h.fin.split(':').map(Number)
+              minutos = (hF * 60 + mF) - (hI * 60 + mI)
+              if (minutos > 0) {
+                cantidadSlots = Math.floor((minutos - duracionDefault) / intervalo) + 1
+                if (cantidadSlots < 0) cantidadSlots = 0
+              }
+            }
+            const horas = (minutos / 60).toFixed(1).replace('.0', '')
+            // Warning si el día parece desproporcionado (>16 slots = >8h con citas de 30min)
+            const esSospechoso = cantidadSlots > 16
+            return (
+              <div key={dia} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', background: 'var(--s1)', border: `1px solid ${esSospechoso ? 'var(--amber)' : 'var(--border)'}`, borderRadius: 10 }}>
+                <input
+                  type="checkbox"
+                  checked={h.activo}
+                  onChange={e => updHorario(dia, 'activo', e.target.checked)}
+                  style={{ accentColor: 'var(--teal)', width: 16, height: 16 }}
+                />
+                <div style={{ width: 80, fontSize: 14, fontWeight: 500, color: h.activo ? 'var(--text)' : 'var(--text3)' }}>
+                  {DIAS_LABELS[dia]}
+                </div>
+                {h.activo ? (
+                  <>
+                    <input
+                      type="time" className="input" value={h.inicio}
+                      onChange={e => updHorario(dia, 'inicio', e.target.value)}
+                      style={{ width: 110 }}
+                    />
+                    <span style={{ color: 'var(--text3)', fontSize: 14 }}>—</span>
+                    <input
+                      type="time" className="input" value={h.fin}
+                      onChange={e => updHorario(dia, 'fin', e.target.value)}
+                      style={{ width: 110 }}
+                    />
+                    {/* Preview en vivo de cuántos espacios resultan */}
+                    <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                      <span style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: esSospechoso ? 'var(--amber)' : cantidadSlots > 0 ? 'var(--text2)' : 'var(--red)',
+                        fontVariantNumeric: 'tabular-nums',
+                      }}>
+                        {cantidadSlots > 0 ? `${cantidadSlots} espacios` : minutos <= 0 ? 'Horario inválido' : '0 espacios'}
+                      </span>
+                      <span style={{ fontSize: 11, color: 'var(--text3)' }}>
+                        {minutos > 0 ? `${horas}h · cada ${intervalo} min` : '—'}
+                      </span>
+                      {esSospechoso && (
+                        <span style={{ fontSize: 10.5, color: 'var(--amber)', fontWeight: 500 }}>
+                          ⚠️ ¿Atiendes tantas horas?
+                        </span>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <span style={{ fontSize: 13, color: 'var(--text3)' }}>Cerrado</span>
+                )}
               </div>
-              {form.horario[dia].activo ? (
-                <>
-                  <input
-                    type="time" className="input" value={form.horario[dia].inicio}
-                    onChange={e => updHorario(dia, 'inicio', e.target.value)}
-                    style={{ width: 110 }}
-                  />
-                  <span style={{ color: 'var(--text3)', fontSize: 14 }}>—</span>
-                  <input
-                    type="time" className="input" value={form.horario[dia].fin}
-                    onChange={e => updHorario(dia, 'fin', e.target.value)}
-                    style={{ width: 110 }}
-                  />
-                </>
-              ) : (
-                <span style={{ fontSize: 13, color: 'var(--text3)' }}>Cerrado</span>
-              )}
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
