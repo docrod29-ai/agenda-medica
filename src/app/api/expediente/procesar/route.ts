@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { buildSystemPrompt, buildUserPrompt } from '@/lib/expediente/prompts'
 import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
+import { parserClinicoComoRespuestaIA } from '@/lib/expediente/parser-clinico'
 import type { TipoNota, PacienteContexto } from '@/types/expediente'
 
 const API_KEY = process.env.ANTHROPIC_API_KEY ?? ''
@@ -109,7 +110,12 @@ export async function POST(req: NextRequest) {
     if (!res.ok) {
       const err = await res.text()
       console.error('[expediente/procesar] Claude error:', res.status, err)
-      return NextResponse.json({ ok: false, error: `Claude ${res.status} (${model})` }, { status: 502 })
+      // Fallback local: parser determinista llena al menos campos básicos
+      const fallback = parserClinicoComoRespuestaIA(transcripcion, tipo)
+      return NextResponse.json({
+        ...fallback,
+        _aviso: `IA externa no disponible (Claude ${res.status}). Llené lo básico — revisa todo.`,
+      })
     }
 
     const data = await res.json()
@@ -118,7 +124,12 @@ export async function POST(req: NextRequest) {
     // Parsear el JSON de la respuesta (robusto ante markdown accidental)
     const parsed = parseJSON(text)
     if (!parsed) {
-      return NextResponse.json({ ok: false, error: 'Respuesta de IA no parseable', raw: text }, { status: 502 })
+      console.warn('[procesar] JSON no parseable — usando parser local determinista')
+      const fallback = parserClinicoComoRespuestaIA(transcripcion, tipo)
+      return NextResponse.json({
+        ...fallback,
+        _aviso: 'Respuesta IA malformada. Llené lo básico con parser local — revisa todo.',
+      })
     }
 
     // Validar con Zod. Si falla, devolvemos lo que sí se pudo parsear
@@ -132,7 +143,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, ...validation.data })
   } catch (err) {
     console.error('[expediente/procesar] Error:', err)
-    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
+    // Última línea de defensa: parser local nunca falla
+    try {
+      const fallback = parserClinicoComoRespuestaIA(transcripcion, tipo)
+      return NextResponse.json({
+        ...fallback,
+        _aviso: `Error interno al llamar IA (${String(err).slice(0, 80)}). Llené lo básico con parser local — revisa todo.`,
+      })
+    } catch {
+      return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
+    }
   }
 }
 
