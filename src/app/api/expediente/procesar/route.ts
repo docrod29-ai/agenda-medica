@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { buildSystemPrompt, buildUserPrompt } from '@/lib/expediente/prompts'
 import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
 import { parserClinicoComoRespuestaIA } from '@/lib/expediente/parser-clinico'
+import { safeLog, redactarString } from '@/lib/security/sanitize'
 import type { TipoNota, PacienteContexto } from '@/types/expediente'
 
 const API_KEY = process.env.ANTHROPIC_API_KEY ?? ''
@@ -111,7 +112,7 @@ export async function POST(req: NextRequest) {
 
     if (!res.ok) {
       const err = await res.text()
-      console.error('[expediente/procesar] Claude HTTP error:', res.status, err.slice(0, 500))
+      safeLog.error('[expediente/procesar] Claude HTTP error:', res.status, redactarString(err.slice(0, 500)))
       const fallback = parserClinicoComoRespuestaIA(transcripcion, tipo)
       return NextResponse.json({
         ...fallback,

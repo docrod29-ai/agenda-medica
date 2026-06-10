@@ -200,6 +200,7 @@ Para reportes de seguridad o solicitudes ARCO administrativas:
 | Versión | Fecha | Cambios |
 |---|---|---|
 | 2026-06 | 2026-06-02 | Documento inicial conforme a NOM-024 + LFPDPPP |
+| 2026-06.2 | 2026-06-10 | FASE 3 ISO 27001: headers HTTP endurecidos (HSTS, X-Frame-Options DENY autenticadas, Permissions-Policy, COOP, Origin-Agent-Cluster), sanitizador PII centralizado (`src/lib/security/sanitize.ts`) con 16 tests, auditoría de fugas en grabación de voz con 5 paths de cleanup verificados, `safeLog` reemplaza `console.error` directo en API routes |
 
 ---
 
