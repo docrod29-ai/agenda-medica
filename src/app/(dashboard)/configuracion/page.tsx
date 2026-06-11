@@ -2005,8 +2005,22 @@ function EmbedSnippets({ url, clinicNombre }: { url: string; clinicNombre: strin
 import { RecetaDocumento } from '@/components/RecetaDocumento'
 import { resizeImageFile, formatBytes } from '@/lib/image-utils'
 import { PAPER_SIZES, ESTILOS_RECETA, detectarPaperSize } from '@/lib/receta-template'
-import type { RecetaConfig, PaperSize as PaperSizeT, EstiloReceta as EstiloT, Patient } from '@/types'
+import type { RecetaConfig, PaperSize as PaperSizeT, EstiloReceta as EstiloT, Patient, Doctor as DoctorT } from '@/types'
+import { getDoctors } from '@/lib/firestore'
 import { Upload, X as IconX, Pill, ClipboardList } from 'lucide-react'
+
+const RX_DEFAULTS: RecetaConfig = {
+  paperSize: 'media-carta',
+  estilo: 'minimalista',
+  colorAccento: '#14b8a6',
+  mostrarQR: true,
+  copiasEnHoja: 1,
+  vigenciaDias: 30,
+  mostrarAlergias: true,
+  mostrarDiagnostico: true,
+  mostrarSignosVitales: false,
+  avisoLegal: 'Esta receta es personal e intransferible. Conserve este documento como respaldo médico.',
+}
 
 function RecetasTab({ clinicId }: { clinicId: string | null }) {
   const { config } = useConfig()
@@ -2014,30 +2028,45 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
   const [saving, setSaving] = useState(false)
   const [tipoPreview, setTipoPreview] = useState<'receta' | 'orden'>('receta')
 
-  const [rx, setRx] = useState<RecetaConfig>({
-    paperSize: 'media-carta',
-    estilo: 'minimalista',
-    colorAccento: '#14b8a6',
-    mostrarQR: true,
-    copiasEnHoja: 1,
-    vigenciaDias: 30,
-    mostrarAlergias: true,
-    mostrarDiagnostico: true,
-    mostrarSignosVitales: false,
-    avisoLegal: 'Esta receta es personal e intransferible. Conserve este documento como respaldo médico.',
-  })
+  // ── Plantilla por médico ──────────────────────────────────────
+  // '' = plantilla general de la clínica. Un medicoId = override de ese
+  // médico (cada quien tiene su propio papel impreso).
+  const [doctores, setDoctores] = useState<DoctorT[]>([])
+  const [medicoSel, setMedicoSel] = useState<string>('')
 
   useEffect(() => {
-    if (config?.recetaConfig) setRx({ ...rx, ...config.recetaConfig })
+    if (!clinicId) return
+    getDoctors(clinicId).then(setDoctores).catch(() => {})
+  }, [clinicId])
+
+  const [rx, setRx] = useState<RecetaConfig>({ ...RX_DEFAULTS })
+
+  // Cargar la plantilla efectiva al cambiar de médico o de config:
+  // general → directa; médico → general + overrides del médico encima.
+  useEffect(() => {
+    const base = { ...RX_DEFAULTS, ...(config?.recetaConfig ?? {}) }
+    if (!medicoSel) { setRx(base); return }
+    setRx({ ...base, ...(config?.recetasPorMedico?.[medicoSel] ?? {}) })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config])
+  }, [config, medicoSel])
 
   const guardar = async () => {
     if (!clinicId || !config) return
     setSaving(true)
     try {
-      await saveConfig(clinicId, { ...config, recetaConfig: rx })
-      toast('Template guardado', 'success')
+      if (!medicoSel) {
+        await saveConfig(clinicId, { ...config, recetaConfig: rx })
+        toast('Plantilla general guardada', 'success')
+      } else {
+        // El override del médico guarda TODO el rx editado — al cargar se
+        // mergea sobre la general, por lo que es consistente y simple.
+        await saveConfig(clinicId, {
+          ...config,
+          recetasPorMedico: { ...(config.recetasPorMedico ?? {}), [medicoSel]: rx },
+        })
+        const dr = doctores.find(d => d.id === medicoSel)
+        toast(`Plantilla de ${dr?.nombre ?? 'médico'} guardada`, 'success')
+      }
     } catch {
       toast('Error al guardar', 'error')
     } finally {
@@ -2181,6 +2210,31 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
       {/* Editor */}
       <div style={{ display: 'grid', gap: 16, minWidth: 0 }}>
 
+        {/* PLANTILLA POR MÉDICO — cada quien tiene su propio papel impreso */}
+        {doctores.length > 0 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+            padding: '10px 14px', background: 'var(--s2)', border: '1px solid var(--border2)', borderRadius: 10,
+          }}>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text2)' }}>Editando plantilla de:</span>
+            <select
+              value={medicoSel}
+              onChange={(e) => setMedicoSel(e.target.value)}
+              style={{ ...cfgInput, width: 'auto', minWidth: 220 }}
+            >
+              <option value="">🏥 General (toda la clínica)</option>
+              {doctores.map(d => (
+                <option key={d.id} value={d.id}>👨‍⚕️ {d.nombre}{config?.recetasPorMedico?.[d.id] ? ' · personalizada ✓' : ''}</option>
+              ))}
+            </select>
+            <span style={{ fontSize: 11, color: 'var(--text3)', flexBasis: '100%' }}>
+              {medicoSel
+                ? 'Los cambios solo aplican a las recetas/órdenes de este médico. Lo no definido cae a la plantilla general.'
+                : 'Esta plantilla aplica a todos los médicos que no tengan una propia.'}
+            </span>
+          </div>
+        )}
+
         {/* MODO TU PROPIO DISEÑO — primera sección, destacada */}
         <div style={{
           background: 'linear-gradient(135deg, rgba(20,184,166,0.10), rgba(167,139,250,0.10))',
@@ -2323,6 +2377,35 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
             ))}
           </select>
         </Section>
+
+        {/* Dónde se imprime físicamente — resuelve "no se imprime en formato receta" */}
+        {rx.paperSize !== 'carta' && rx.paperSize !== 'oficio' && (
+          <Section title="🖨️ ¿En qué papel imprime tu impresora?">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {([
+                { valor: 'papel-real' as const, titulo: 'Papel de receta', desc: `Tu impresora tiene cargado papel ${PAPER_SIZES[rx.paperSize].label.split(' (')[0].toLowerCase()}. Imprime al tamaño exacto.` },
+                { valor: 'carta' as const, titulo: 'Hoja carta + corte ✂', desc: 'Tu impresora tiene papel carta normal. La receta sale arriba con línea punteada para recortar.' },
+              ]).map(op => {
+                const activo = (rx.imprimirEn ?? 'papel-real') === op.valor
+                return (
+                  <button
+                    key={op.valor}
+                    onClick={() => setRx({ ...rx, imprimirEn: op.valor })}
+                    style={{
+                      padding: 12, borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+                      background: activo ? 'rgba(20,184,166,0.1)' : 'var(--s2)',
+                      border: activo ? '1px solid var(--teal)' : '1px solid var(--border)',
+                      color: activo ? 'var(--teal)' : 'var(--text2)',
+                    }}
+                  >
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>{op.titulo}</div>
+                    <div style={{ fontSize: 10.5, marginTop: 3, lineHeight: 1.35 }}>{op.desc}</div>
+                  </button>
+                )
+              })}
+            </div>
+          </Section>
+        )}
 
         {/* Estilo visual */}
         <Section title="Estilo visual">

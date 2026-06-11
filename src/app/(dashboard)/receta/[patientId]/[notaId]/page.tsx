@@ -16,7 +16,7 @@ import { getNota } from '@/lib/expediente/firestore'
 import { getPatients } from '@/lib/firestore'
 import type { NotaMedica, Medicamento } from '@/types/expediente'
 import type { Patient } from '@/types'
-import { RecetaDocumento } from '@/components/RecetaDocumento'
+import { RecetaDocumento, dimensionesImpresion, contarPaginas } from '@/components/RecetaDocumento'
 import { RecetaPreviewWrapper } from '@/components/RecetaPreviewWrapper'
 import { PAPER_SIZES } from '@/lib/receta-template'
 import { descargarComoPDF } from '@/lib/pdf-download'
@@ -63,28 +63,37 @@ export default function GeneradorRecetaPage() {
     }).catch(() => setLoading(false))
   }, [clinicId, patientId, notaId])
 
-  const recetaConfig = config?.recetaConfig ?? {
-    paperSize: 'media-carta' as const,
-    estilo: 'minimalista' as const,
-    colorAccento: '#14b8a6',
-    mostrarQR: true,
-    vigenciaDias: 30,
-    mostrarAlergias: true,
-    mostrarDiagnostico: true,
-    avisoLegal: 'Esta receta es personal e intransferible.',
-  }
+  // Plantilla efectiva: la del MÉDICO de la nota (si tiene una propia)
+  // sobre la general de la clínica. Cada médico ya tiene su papel impreso.
+  const recetaConfig = useMemo(() => {
+    const base = config?.recetaConfig ?? {
+      paperSize: 'media-carta' as const,
+      estilo: 'minimalista' as const,
+      colorAccento: '#14b8a6',
+      mostrarQR: true,
+      vigenciaDias: 30,
+      mostrarAlergias: true,
+      mostrarDiagnostico: true,
+      avisoLegal: 'Esta receta es personal e intransferible.',
+    }
+    const medicoId = nota?.metadata?.medicoId
+    const porMedico = medicoId ? config?.recetasPorMedico?.[medicoId] : undefined
+    return porMedico ? { ...base, ...porMedico } : base
+  }, [config, nota?.metadata?.medicoId])
 
   const descargarPDF = async () => {
     const el = document.getElementById('receta-doc')
     if (!el) return
     setDescargando(true)
     try {
-      const paper = PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta']
+      // El PDF usa el tamaño FÍSICO de la hoja que sale de la impresora
+      // (carta si imprimirEn === 'carta', el papel de la receta si no)
+      const host = dimensionesImpresion(recetaConfig)
       const nombre = (patient?.nombre ?? 'paciente').replace(/[^\w\sáéíóúñ-]/gi, '').replace(/\s+/g, '_')
       const fechaCorta = new Date().toISOString().slice(0, 10)
       await descargarComoPDF(el, {
         filename: `Receta_${nombre}_${fechaCorta}`,
-        format: [paper.widthMm, paper.heightMm],
+        format: [host.widthMm, host.heightMm],
         orientation: 'portrait',
         margin: 0, // el documento ya tiene su propio padding
       })
@@ -223,46 +232,60 @@ export default function GeneradorRecetaPage() {
           </div>
         </div>
 
-        {/* Preview en vivo — escalado para nunca desbordar */}
+        {/* Preview en vivo — escalado para nunca desbordar; multi-hoja apilada */}
         <div style={{ position: 'sticky', top: 20 }}>
-          <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', marginBottom: 8 }}>
-            Vista previa · {PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta'].label.split(' ')[0]}
-          </div>
-          <RecetaPreviewWrapper
-            paperWidthMm={PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta'].widthMm}
-            paperHeightMm={PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta'].heightMm}
-            maxWidth={380}
-            maxHeight={600}
-          >
-            <RecetaDocumento
-              data={{
-                tipo: 'receta',
-                folio,
-                fecha: new Date(),
-                paciente: patient,
-                diagnostico: diagnostico || undefined,
-                medicamentos,
-                indicaciones,
-                notaParaPaciente,
-              }}
-              config={config}
-              recetaConfig={recetaConfig}
-            />
-          </RecetaPreviewWrapper>
+          {(() => {
+            const dataPreview = {
+              tipo: 'receta' as const,
+              folio,
+              fecha: new Date(),
+              paciente: patient,
+              diagnostico: diagnostico || undefined,
+              medicamentos,
+              indicaciones,
+              notaParaPaciente,
+            }
+            const host = dimensionesImpresion(recetaConfig)
+            const numPages = contarPaginas(dataPreview, config, recetaConfig)
+            return (
+              <>
+                <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', marginBottom: 8 }}>
+                  Vista previa · {PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta'].label.split(' ')[0]}
+                  {numPages > 1 && <strong> · {numPages} hojas</strong>}
+                  {host.esHostCarta && ' · impresa en carta ✂'}
+                </div>
+                <RecetaPreviewWrapper
+                  paperWidthMm={host.widthMm}
+                  paperHeightMm={host.heightMm}
+                  numPages={numPages}
+                  maxWidth={380}
+                  maxHeight={600}
+                >
+                  <RecetaDocumento
+                    data={dataPreview}
+                    config={config}
+                    recetaConfig={recetaConfig}
+                  />
+                </RecetaPreviewWrapper>
+              </>
+            )
+          })()}
         </div>
       </div>
 
-      {/* CSS de impresión: solo el documento, en tamaño de papel correcto */}
+      {/* CSS de impresión: solo el documento, en tamaño de papel correcto.
+          Cada .receta-sheet-wrap lleva su page-break inline → multi-hoja limpia. */}
       <style>{`
         @media print {
           body * { visibility: hidden !important; }
           #receta-doc, #receta-doc * { visibility: visible !important; }
           #receta-doc {
             position: absolute; top: 0; left: 0;
-            margin: 0 !important; box-shadow: none !important;
+            margin: 0 !important;
           }
+          #receta-doc .receta-sheet { box-shadow: none !important; margin: 0 !important; }
           .no-print { display: none !important; }
-          @page { size: ${PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta'].cssPage}; margin: 0; }
+          @page { size: ${dimensionesImpresion(recetaConfig).cssPage}; margin: 0; }
         }
         @media (max-width: 1000px) {
           .receta-gen-grid {

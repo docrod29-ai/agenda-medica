@@ -291,6 +291,12 @@ export interface ClinicConfig {
   firmaImagenDataUrl?: string
   // Receta y órdenes médicas
   recetaConfig?: RecetaConfig
+  /**
+   * Overrides de receta POR MÉDICO (key = medicoId).
+   * Cada médico ya tiene su propio papel impreso — aquí guarda su diseño,
+   * márgenes y tamaño. Lo que no esté definido cae al recetaConfig general.
+   */
+  recetasPorMedico?: Record<string, Partial<RecetaConfig>>
   updatedAt?: string
 }
 
@@ -301,6 +307,16 @@ export type { PaperSize, EstiloReceta } from '@/lib/receta-template'
 export interface RecetaConfig {
   /** Tamaño de papel */
   paperSize: 'media-carta' | 'carta' | 'oficio' | 'a4' | 'a5'
+  /**
+   * Dónde se imprime físicamente:
+   *  - 'papel-real': la impresora tiene cargado el papel del tamaño exacto
+   *    de la receta (default — comportamiento histórico)
+   *  - 'carta': la impresora tiene papel CARTA; la receta se posiciona
+   *    arriba-centro de la hoja con una línea punteada de corte ✂.
+   *    Resuelve el problema clásico de "no se imprime en formato receta"
+   *    cuando el navegador escala/centra tamaños custom impredeciblemente.
+   */
+  imprimirEn?: 'papel-real' | 'carta'
   /** Estilo visual */
   estilo: 'minimalista' | 'clasico' | 'moderno'
   /** Membrete: imagen del encabezado del doctor (logo + clínica + datos) en data URL base64 */

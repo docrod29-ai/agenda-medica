@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v45'  // NerPanel UI + cross-check visual + entidades en consulta
+const CACHE = 'nexusmed-v46'  // Recetas v2: multi-hoja + 2 cols + modo carta + por médico
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()
