@@ -14,6 +14,8 @@ import {
 import { seccionesVacias, requiereSignosVitales, esPreoperatoria } from '@/lib/expediente/templates'
 import { PreopAssessment } from '@/components/PreopAssessment'
 import { RevisionPanel } from '@/components/RevisionPanel'
+import { NerPanel } from '@/components/NerPanel'
+import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { validarNOM004 } from '@/lib/expediente/nom004'
@@ -73,6 +75,10 @@ export default function ConsultaActivaPage() {
   const [medicamentos, setMedicamentos] = useState<Medicamento[]>([])
   const [resumen, setResumen] = useState('')
   const [procesando, setProcesando] = useState(false)
+  // ─── Medical NER (extracción de entidades) ─────────────────────
+  const [entidades, setEntidades] = useState<EntidadesExtraidas | null>(null)
+  const [nerCargando, setNerCargando] = useState(false)
+  const [nerError, setNerError] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [firmada, setFirmada] = useState(false)
   const [notaId, setNotaId] = useState<string | null>(notaIdParam)
@@ -228,6 +234,44 @@ export default function ConsultaActivaPage() {
       setProcesando(false)
     }
   }, [voz.transcripcion, tipo, patient, toast])
+
+  // ── Extraer entidades clínicas (NER) ────────────────────────────
+  // Equivalente local a AWS Comprehend Medical. Toma el texto disponible
+  // (transcripción + secciones ya redactadas) y extrae condiciones+CIE10,
+  // medicamentos+posología, alergias, estudios, procedimientos + cross-check.
+  const extraerEntidades = useCallback(async () => {
+    // Combina transcripción + lo que ya está redactado en secciones
+    const textoFuente = [
+      voz.transcripcion,
+      ...secciones.map(s => s.value).filter(Boolean),
+    ].join('\n\n').trim()
+    if (!textoFuente) { toast('No hay texto que analizar todavía', 'info'); return }
+    setNerCargando(true); setNerError(''); setEntidades(null)
+    try {
+      const res = await fetch('/api/expediente/extraer-entidades', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texto: textoFuente }),
+      })
+      const data = await res.json()
+      if (!data.ok) {
+        setNerError(data.error ?? 'No se pudieron extraer entidades')
+        toast(`NER: ${data.error ?? 'error'}`, 'error')
+        return
+      }
+      setEntidades(data as EntidadesExtraidas)
+      const bloquea = (data.cross_check?.alergia_vs_medicamento ?? []).filter((c: { BLOQUEA_RECETA: boolean }) => c.BLOQUEA_RECETA).length
+      const intGraves = (data.cross_check?.interacciones_farmacologicas ?? []).filter((i: { severidad: string }) => i.severidad === 'mayor' || i.severidad === 'contraindicada').length
+      if (bloquea > 0) toast(`🚨 ${bloquea} alergia(s) cruzada(s) — revisa el panel`, 'error')
+      else if (intGraves > 0) toast(`⚠️ ${intGraves} interacción(es) farmacológica(s) detectadas`, 'info')
+      else toast('🔬 Entidades extraídas — sin conflictos detectados', 'success')
+    } catch {
+      setNerError('Error de red al llamar al NER')
+      toast('Error de red al extraer entidades', 'error')
+    } finally {
+      setNerCargando(false)
+    }
+  }, [voz.transcripcion, secciones, toast])
 
   // ── Construir objeto NotaMedica ────────────────────────────────
   const construirNota = useCallback((estado: 'borrador' | 'firmada'): NotaMedica => {
@@ -620,6 +664,39 @@ export default function ConsultaActivaPage() {
               style={S.transcripcion}
             />
           )}
+        </div>
+      )}
+
+      {/* ── Extraer entidades clínicas (NER — equivalente Comprehend Medical) ── */}
+      {(voz.transcripcion.trim() || secciones.some(s => s.value)) && !firmada && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
+          <button
+            onClick={extraerEntidades}
+            disabled={nerCargando}
+            className="btn btn-secondary btn-sm"
+            title="Extrae condiciones (CIE-10), medicamentos (dosis/vía/intervalo), alergias, estudios e interacciones farmacológicas"
+          >
+            {nerCargando
+              ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Extrayendo entidades…</>
+              : <>🔬 Extraer entidades clínicas {entidades ? '· re-analizar' : ''}</>}
+          </button>
+          {entidades && (
+            <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>
+              {(entidades.conditions?.length ?? 0)} dx · {(entidades.medications?.length ?? 0)} fármacos · {(entidades.allergies?.length ?? 0)} alergias · {(entidades.tests?.length ?? 0)} estudios
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Panel NER en vivo */}
+      {(entidades || nerCargando || nerError) && (
+        <div style={{ marginBottom: 18 }}>
+          <NerPanel
+            entidades={entidades}
+            cargando={nerCargando}
+            error={nerError}
+            onCerrar={() => { setEntidades(null); setNerError('') }}
+          />
         </div>
       )}
 

@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v44'  // Streaming live + pause/resume + crash recovery + NER médico
+const CACHE = 'nexusmed-v45'  // NerPanel UI + cross-check visual + entidades en consulta
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()
