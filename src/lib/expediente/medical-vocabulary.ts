@@ -244,6 +244,135 @@ export const VACUNAS = [
   'anti-herpes zoster', 'antivaricela', 'anti-meningocócica B', 'dengue',
 ]
 
+export const NEUROLOGIA = [
+  // Antiepilépticos (los no cubiertos en psicofármacos)
+  'levetiracetam', 'brivaracetam', 'fenitoína', 'fenobarbital', 'oxcarbazepina',
+  'eslicarbazepina', 'zonisamida', 'perampanel', 'vigabatrina', 'etosuximida', 'cenobamato',
+  // Antiparkinsonianos
+  'levodopa/carbidopa', 'levodopa/benserazida', 'pramipexol', 'ropinirol', 'rotigotina',
+  'rasagilina', 'selegilina', 'safinamida', 'entacapona', 'opicapona', 'amantadina',
+  'biperideno', 'trihexifenidilo', 'apomorfina',
+  // Antimigrañosos
+  'sumatriptán', 'rizatriptán', 'eletriptán', 'zolmitriptán', 'naratriptán',
+  'erenumab', 'fremanezumab', 'galcanezumab', 'eptinezumab', 'rimegepant', 'ubrogepant',
+  'flunarizina', 'cinarizina',
+  // Demencia
+  'donepezilo', 'rivastigmina', 'galantamina', 'memantina', 'lecanemab', 'donanemab',
+  // Esclerosis múltiple
+  'interferón beta', 'acetato de glatiramero', 'fingolimod', 'siponimod', 'ozanimod',
+  'dimetilfumarato', 'teriflunomida', 'cladribina', 'alemtuzumab',
+  // Otros
+  'riluzol', 'edaravona', 'nusinersen', 'tetrabenazina', 'toxina botulínica',
+  'betahistina', 'piracetam', 'citicolina', 'melatonina', 'modafinilo', 'armodafinilo',
+]
+
+export const REUMA_OSTEO = [
+  // Gota
+  'alopurinol', 'febuxostat', 'colchicina', 'probenecid', 'pegloticasa',
+  // Osteoporosis
+  'alendronato', 'risedronato', 'ibandronato', 'ácido zoledrónico', 'zoledronato',
+  'denosumab', 'teriparatida', 'abaloparatida', 'romosozumab', 'raloxifeno',
+  'calcitriol', 'colecalciferol', 'ergocalciferol', 'calcio/vitamina D', 'carbonato de calcio', 'citrato de calcio',
+  // Artritis y otros (los no cubiertos en inmunosupresores)
+  'cloroquina', 'penicilamina', 'apremilast', 'avacopan', 'condroitina', 'glucosamina',
+]
+
+export const DERMA_OFTALMO_ORL = [
+  // Dermatología
+  'isotretinoína', 'tretinoína', 'adapaleno', 'peróxido de benzoilo',
+  'calcipotriol', 'tacalcitol', 'pimecrolimus', 'tacrolimus tópico',
+  'clobetasol', 'betametasona', 'mometasona tópica', 'fluocinolona',
+  'ivermectina', 'permetrina', 'benzoato de bencilo', 'ketoconazol champú',
+  'minoxidil', 'finasterida tópica', 'dutasterida',
+  'hidroquinona', 'ácido azelaico', 'metronidazol tópico', 'dapsona',
+  // Oftalmología
+  'latanoprost', 'bimatoprost', 'travoprost', 'timolol oftálmico', 'brimonidina',
+  'dorzolamida', 'brinzolamida', 'acetazolamida', 'pilocarpina', 'atropina oftálmica',
+  'tropicamida', 'ciclopentolato', 'fenilefrina oftálmica',
+  'prednisolona oftálmica', 'loteprednol', 'fluorometolona',
+  'moxifloxacino oftálmico', 'tobramicina oftálmica', 'tobramicina/dexametasona',
+  'ranibizumab', 'aflibercept', 'brolucizumab', 'faricimab', 'verteporfina',
+  'ciclosporina oftálmica', 'lágrimas artificiales', 'hialuronato de sodio',
+  // ORL
+  'fluticasona nasal', 'mometasona nasal', 'budesonida nasal', 'azelastina',
+  'oximetazolina', 'fenilefrina nasal', 'ipratropio nasal',
+  'cetirizina', 'levocetirizina', 'loratadina', 'desloratadina', 'fexofenadina', 'bilastina',
+  'ebastina', 'rupatadina', 'clorfenamina', 'difenhidramina', 'hidroxizina',
+  'ambroxol', 'bromhexina', 'acetilcisteína', 'carbocisteína', 'dextrometorfano',
+  'benzonatato', 'levodropropizina', 'guaifenesina',
+]
+
+export const GINECO_OBSTETRICIA = [
+  'oxitocina', 'carbetocina', 'ergonovina', 'metilergonovina', 'dinoprostona',
+  'atosibán', 'nifedipino tocolítico', 'sulfato de magnesio',
+  'progesterona', 'progesterona micronizada', 'didrogesterona', 'medroxiprogesterona',
+  'estradiol', 'valerato de estradiol', 'estrógenos conjugados', 'tibolona',
+  'etinilestradiol/levonorgestrel', 'etinilestradiol/drospirenona', 'etinilestradiol/gestodeno',
+  'levonorgestrel', 'desogestrel', 'dienogest', 'acetato de ulipristal',
+  'clomifeno', 'letrozol', 'gonadotropina coriónica', 'hCG', 'FSH recombinante',
+  'cabergolina', 'ácido tranexámico', 'tamoxifeno', 'anastrozol', 'exemestano', 'fulvestrant',
+  'mifepristona', 'metilergometrina',
+  'hierro/ácido fólico', 'multivitamínico prenatal',
+]
+
+export const ANESTESIA_URGENCIAS = [
+  'propofol', 'etomidato', 'ketamina', 'tiopental', 'dexmedetomidina',
+  'sevoflurano', 'desflurano', 'isoflurano', 'óxido nitroso',
+  'rocuronio', 'vecuronio', 'cisatracurio', 'atracurio', 'succinilcolina', 'sugammadex',
+  'neostigmina', 'atropina', 'glicopirrolato',
+  'lidocaína', 'bupivacaína', 'ropivacaína', 'levobupivacaína', 'mepivacaína', 'prilocaína',
+  'remifentanilo', 'sufentanilo', 'alfentanilo',
+  'adrenalina', 'epinefrina', 'noradrenalina', 'norepinefrina', 'vasopresina',
+  'dopamina', 'dobutamina', 'milrinona', 'levosimendán',
+  'nitroprusiato', 'labetalol intravenoso', 'esmolol', 'nicardipino', 'clevidipino',
+  'flumazenil', 'protamina', 'dantroleno', 'intralipid',
+  'gluconato de calcio', 'cloruro de calcio', 'bicarbonato de sodio',
+  'manitol', 'solución salina hipertónica', 'albúmina', 'hartmann', 'solución Ringer lactato',
+]
+
+/** Marcas comerciales frecuentes en México — el médico las dicta como marca. */
+export const MARCAS_COMERCIALES_MX = [
+  'Tafil', 'Rivotril', 'Lexotan', 'Ativan', 'Valium',
+  'Eliquis', 'Xarelto', 'Pradaxa', 'Lixiana', 'Sintrom', 'Coumadin', 'Clexane',
+  'Ozempic', 'Wegovy', 'Mounjaro', 'Trulicity', 'Saxenda', 'Victoza', 'Rybelsus',
+  'Jardiance', 'Forxiga', 'Invokana', 'Januvia', 'Galvus', 'Onglyza', 'Trayenta',
+  'Glucophage', 'Dabex', 'Predial',
+  'Lantus', 'Levemir', 'Tresiba', 'Toujeo', 'NovoRapid', 'Humalog', 'Fiasp',
+  'Lipitor', 'Crestor', 'Zocor', 'Pravacol', 'Ezetrol', 'Repatha', 'Praluent',
+  'Norvasc', 'Adalat', 'Cardura', 'Concor', 'Lopresor', 'Tenormin', 'Dilatrend',
+  'Cozaar', 'Micardis', 'Diován', 'Atacand', 'Aprovel', 'Exforge', 'Co-Diován',
+  'Lasix', 'Aldactone', 'Higrotón', 'Entresto', 'Procoralan',
+  'Plavix', 'Brilinta', 'Effient', 'Cardioaspirina', 'Aspirina Protect',
+  'Losec', 'Nexium', 'Pantozol', 'Controloc', 'Dexilant', 'Pepcidine',
+  'Plasil', 'Motilium', 'Zofran', 'Dramamine',
+  'Eutirox', 'Synthroid', 'Karet', 'Tapazol',
+  'Lyrica', 'Neurontin', 'Cymbalta', 'Tryptanol', 'Keppra', 'Epamin', 'Tegretol',
+  'Depakene', 'Lamictal', 'Topamax', 'Trileptal',
+  'Prozac', 'Zoloft', 'Lexapro', 'Paxil', 'Effexor', 'Wellbutrin', 'Remeron',
+  'Zyprexa', 'Risperdal', 'Seroquel', 'Abilify', 'Invega',
+  'Voltaren', 'Cataflam', 'Dolac', 'Mobic', 'Celebrex', 'Arcoxia', 'Feldene',
+  'Tempra', 'Tylenol', 'Advil', 'Motrín', 'Flanax', 'Naxen', 'Neo-Melubrina', 'Plidan',
+  'Tramacet', 'Sinergix', 'Temgesic', 'Durogesic',
+  'Augmentin', 'Amoxil', 'Pentrexyl', 'Bactrim', 'Septrin', 'Klaricid', 'Zithromax',
+  'Cravit', 'Avelox', 'Ciproxina', 'Flagyl', 'Vibramicina', 'Dalacin', 'Rocephin',
+  'Diflucan', 'Sporanox', 'Vfend', 'Zovirax', 'Valtrex', 'Tamiflu',
+  'Ventolin', 'Seretide', 'Symbicort', 'Spiriva', 'Relvar', 'Trelegy', 'Berodual',
+  'Singulair', 'Xolair', 'Nucala', 'Dupixent',
+  'Allegra', 'Zyrtec', 'Claritin', 'Aerius', 'Avapena', 'Virlix',
+  'Nasonex', 'Flonase', 'Rinofluimucil', 'Afrin',
+  'Humira', 'Enbrel', 'Remicade', 'Stelara', 'Cosentyx', 'Taltz', 'Skyrizi',
+  'Xeljanz', 'Olumiant', 'Rinvoq', 'Mabthera', 'Actemra',
+  'Prograf', 'Sandimmun', 'CellCept', 'Imuran', 'Medrol', 'Meticorten', 'Calcort',
+  'Fosamax', 'Actonel', 'Prolia', 'Forteo', 'Evista',
+  'Zyloprim', 'Adenuric', 'Colchiquim',
+  'Viagra', 'Cialis', 'Levitra', 'Avodart', 'Proscar', 'Flomax', 'Secotex', 'Omnic',
+  'Vesicare', 'Betmiga', 'Ditropan',
+  'Yasmin', 'Diane', 'Belara', 'Mirena', 'Cerazette', 'Primolut',
+  'Roaccutan', 'Differin', 'Benzac', 'Elidel', 'Protopic', 'Dermovate', 'Elocon',
+  'Xalatan', 'Lumigan', 'Cosopt', 'Alphagan', 'Eylea', 'Lucentis', 'Restasis', 'Lagricel',
+  'Keytruda', 'Opdivo', 'Avastin', 'Herceptin', 'Tagrisso', 'Glivec', 'Tarceva',
+]
+
 /* ────────────────────────────────────────────────────────────
  * LABORATORIO / MICROBIOLOGÍA / IMAGENOLOGÍA / PROCEDIMIENTOS
  * ──────────────────────────────────────────────────────────── */
@@ -512,6 +641,9 @@ const TODOS_LOS_TERMINOS: string[] = [
   ...PSICOFARMACOS, ...ANALGESICOS_AINE, ...OPIOIDES,
   ...ANTINEOPLASICOS_COMUNES, ...INHALADORES_BRONCODILATADORES,
   ...GASTRO, ...NEFRO_UROLOGICO, ...HEMATO, ...VACUNAS,
+  // v2 — todas las especialidades
+  ...NEUROLOGIA, ...REUMA_OSTEO, ...DERMA_OFTALMO_ORL,
+  ...GINECO_OBSTETRICIA, ...ANESTESIA_URGENCIAS, ...MARCAS_COMERCIALES_MX,
   ...LABORATORIO, ...IMAGENOLOGIA, ...PROCEDIMIENTOS_QUIRURGICOS,
   ...MICROBIOLOGIA_PATOGENOS,
   ...Object.values(ABREVIATURAS),  // forma expandida también es buena
@@ -608,13 +740,108 @@ function mejorCandidato(palabra: string): { term: string; motivo: CambioTranscri
   return null
 }
 
+/* ════════════════════════════════════════════════════════════════
+ * PASE DE N-GRAMAS — une palabras PARTIDAS por Whisper
+ *
+ * Whisper parte fármacos largos que no conoce:
+ *   "empagliflozina"  → "em pagli flozina"
+ *   "dapagliflozina"  → "dapa gli flozina"
+ *   "ácido zoledrónico" → "asido soledronico"
+ * El corrector palabra-por-palabra NUNCA puede arreglar eso.
+ * Este pase prueba ventanas de 2-3 palabras consecutivas:
+ *   a) unidas SIN espacio  → vs términos de una palabra
+ *   b) unidas CON espacio  → vs términos multipalabra
+ * Solo sustituye con coincidencia fonética exacta (≥8 chars) o
+ * Levenshtein ≤1 en términos largos (≥12 chars) — conservador.
+ * ════════════════════════════════════════════════════════════════ */
+
+/** ¿El token es una palabra "pura" (sin puntuación pegada)? */
+const REGEX_PALABRA_PURA = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ][A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9-]*$/
+
+function buscarTerminoUnido(fonUnido: string): string | null {
+  // Coincidencia exacta en el índice fonético
+  const exacto = INDICE_FONETICO.get(fonUnido)
+  if (exacto && fonUnido.length >= 8) return exacto
+  // Levenshtein ≤ 1 solo para términos largos (≥12 chars fonéticos)
+  if (fonUnido.length >= 12) {
+    for (const { term, fonet } of TERMINOS_LEV) {
+      if (Math.abs(fonet.length - fonUnido.length) > 1) continue
+      if (levenshtein(fonet, fonUnido) <= 1) return term
+    }
+  }
+  return null
+}
+
+export function corregirNGramas(texto: string): ResultadoCorreccion {
+  const cambios: CambioTranscripcion[] = []
+  // split conservando los separadores de espacio (índices impares)
+  const tokens = texto.split(/(\s+)/)
+  // posiciones de tokens que son palabras puras
+  const posPalabras: number[] = []
+  for (let i = 0; i < tokens.length; i++) {
+    if (REGEX_PALABRA_PURA.test(tokens[i])) posPalabras.push(i)
+  }
+
+  let w = 0
+  while (w < posPalabras.length) {
+    let reemplazado = false
+    // ventana 3 primero (más específica), luego 2
+    for (const n of [3, 2]) {
+      if (w + n > posPalabras.length) continue
+      const idxs = posPalabras.slice(w, w + n)
+      // las palabras deben ser CONSECUTIVAS en el texto (solo espacios entre ellas)
+      if (idxs[idxs.length - 1] - idxs[0] !== (n - 1) * 2) continue
+      const palabras = idxs.map(i => tokens[i])
+      // si la unión es muy corta no vale la pena
+      const unida = palabras.join('')
+      if (unida.length < 8) continue
+      // si TODAS son palabras comunes del español, no intentar
+      const todasComunes = palabras.every(p =>
+        PALABRAS_COMUNES.has(p.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''))
+      )
+      if (todasComunes) continue
+
+      // a) unidas sin espacio → término de una palabra
+      // b) unidas con espacio → término multipalabra ("ácido fólico")
+      const term = buscarTerminoUnido(fonetEs(unida)) ?? buscarTerminoUnido(fonetEs(palabras.join(' ')))
+      if (!term) continue
+      // no reemplazar si ya estaba bien escrito
+      if (term.toLowerCase() === palabras.join(' ').toLowerCase()) { reemplazado = false; break }
+
+      // conservar capitalización inicial
+      const empMay = palabras[0][0] === palabras[0][0].toUpperCase()
+      const sustituto = empMay && term[0] !== term[0].toUpperCase()
+        ? term[0].toUpperCase() + term.slice(1)
+        : term
+      cambios.push({ original: palabras.join(' '), corregido: sustituto, motivo: 'fonético' })
+      // sustituir: primer token = término completo, el resto (palabras y espacios intermedios) se vacían
+      tokens[idxs[0]] = sustituto
+      for (let k = idxs[0] + 1; k <= idxs[idxs.length - 1]; k++) tokens[k] = ''
+      w += n
+      reemplazado = true
+      break
+    }
+    if (!reemplazado) w++
+  }
+
+  return { corregido: tokens.join(''), cambios }
+}
+
 /**
  * Corrige una transcripción aplicando el vocabulario médico.
  * Conservadora: solo cambia cuando hay alta confianza.
+ *
+ * Orden de pases:
+ *   1. N-gramas: une palabras que Whisper partió ("em pagli flozina")
+ *   2. Palabra por palabra: fonético exacto → Levenshtein acotado
  */
 export function corregirTranscripcion(texto: string): ResultadoCorreccion {
-  const cambios: CambioTranscripcion[] = []
-  const corregido = texto.replace(REGEX_PALABRA, (palabra) => {
+  // Pase 1 — n-gramas (palabras partidas)
+  const pase1 = corregirNGramas(texto)
+  const cambios: CambioTranscripcion[] = [...pase1.cambios]
+
+  // Pase 2 — palabra por palabra
+  const corregido = pase1.corregido.replace(REGEX_PALABRA, (palabra) => {
     const cand = mejorCandidato(palabra)
     if (!cand) return palabra
     // Conservar la capitalización original (si la palabra empieza en mayúscula)
@@ -633,67 +860,22 @@ export function corregirTranscripcion(texto: string): ResultadoCorreccion {
  * ════════════════════════════════════════════════════════════════ */
 
 export const WHISPER_PROMPT_MEDICO = [
-  'Consulta médica en español de México con vocabulario clínico avanzado.',
-  // Antibióticos y antifúngicos (los más mal transcritos)
-  'Antibióticos: ertapenem, imipenem, meropenem, vancomicina, linezolid, daptomicina,',
-  'piperacilina/tazobactam, ceftriaxona, cefepime, ceftazidima/avibactam, ceftolozano/tazobactam,',
-  'ciprofloxacino, levofloxacino, moxifloxacino, azitromicina, claritromicina, clindamicina,',
-  'metronidazol, trimetoprim/sulfametoxazol, doxiciclina, tigeciclina, eravaciclina,',
-  'fosfomicina, nitrofurantoína, colistina, polimixina, cefiderocol, plazomicina,',
-  'amikacina, gentamicina, tobramicina, amoxicilina, amoxicilina/clavulanato.',
-  'Antifúngicos: fluconazol, voriconazol, posaconazol, isavuconazol, anfotericina B liposomal,',
-  'caspofungina, micafungina, anidulafungina, terbinafina, nistatina.',
-  'Antivirales: aciclovir, valaciclovir, ganciclovir, valganciclovir, oseltamivir, baloxavir,',
-  'remdesivir, nirmatrelvir/ritonavir (Paxlovid), tenofovir, emtricitabina, dolutegravir,',
-  'bictegravir, raltegravir, efavirenz, darunavir, atazanavir.',
-  // Marcas comerciales mexicanas (causa #1 de transcripción errónea)
-  'Marcas comerciales MX: Augmentin, Bactrim, Bactroban, Klaricid, Septrim, Zithromax, Avelox,',
-  'Cravit, Cipro, Flagyl, Vibramicina, Tafil (alprazolam), Rivotril (clonazepam),',
-  'Lexotan (bromazepam), Ativan (lorazepam), Halcion (triazolam), Plidan (metamizol),',
-  'Sintrom (acenocumarol), Eliquis (apixabán), Xarelto (rivaroxabán), Pradaxa (dabigatrán),',
-  'Lixiana (edoxabán), Ozempic (semaglutida), Wegovy, Mounjaro (tirzepatida), Trulicity (dulaglutida),',
-  'Saxenda (liraglutida), Forxiga (dapagliflozina), Jardiance (empagliflozina),',
-  'Januvia (sitagliptina), Galvus (vildagliptina), Glucophage (metformina),',
-  'Lipitor (atorvastatina), Crestor (rosuvastatina), Zocor (simvastatina),',
-  'Norvasc (amlodipino), Tenormin (atenolol), Concor (bisoprolol), Lopressor (metoprolol),',
-  'Coumadin (warfarina), Cardioaspirina, Plavix (clopidogrel), Brilinta (ticagrelor),',
-  'Omeprazol Losec, Pantoprazol Pantozol, Nexium (esomeprazol), Controloc.',
-  // Analgésicos y opioides
-  'Analgésicos: paracetamol, ibuprofeno, naproxeno, ketorolaco, diclofenaco, dexketoprofeno,',
-  'metamizol (dipirona), tramadol, codeína, buprenorfina, morfina, oxicodona, fentanilo, hidromorfona,',
-  'gabapentina, pregabalina (Lyrica), duloxetina (Cymbalta), carbamazepina.',
-  // Cardiovasculares completos
-  'Cardiovasculares: enalapril, lisinopril, ramipril, captopril, losartán, telmisartán, valsartán,',
-  'candesartán, irbesartán, hidroclorotiazida, furosemida (Lasix), espironolactona, eplerenona,',
-  'digoxina, amiodarona, sotalol, propafenona, sacubitril/valsartán (Entresto).',
-  // Endocrino y diabetes
-  'Endocrino: insulina glargina (Lantus), insulina detemir (Levemir), insulina degludec (Tresiba),',
-  'insulina aspart (NovoRapid), insulina lispro (Humalog), insulina NPH, insulina regular R.',
-  'Levotiroxina (Eutirox, Synthroid), metimazol (Tapazol), propiltiouracilo.',
-  // Laboratorios y serologías
-  'Laboratorios: VDRL, RPR, FTA-ABS, HbA1c, TSH, T4 libre, T3 total, BNP, NT-proBNP, troponina,',
-  'CK-MB, PCR ultrasensible, VSG, procalcitonina, dímero D, fibrinógeno, INR, TTPa,',
-  'biometría hemática, química sanguínea, perfil hepático, perfil tiroideo, perfil lipídico,',
-  'ANA, anti-DNA, anti-CCP, ANCA-c ANCA-p, complemento C3 C4, factor reumatoide, anti-Smith,',
-  'hemocultivo, urocultivo, coprocultivo, cultivo de expectoración, antibiograma, CIM (MIC),',
-  'Gram, Ziehl-Neelsen, KOH, PCR para tuberculosis (Xpert MTB/RIF), GeneXpert.',
-  // Microbiología
-  'Patógenos: Staphylococcus aureus, MRSA, MSSA, Streptococcus pneumoniae, Streptococcus pyogenes,',
-  'Enterococcus faecalis, Enterococcus faecium, VRE, Escherichia coli BLEE, Klebsiella pneumoniae,',
-  'Klebsiella KPC NDM OXA-48, Pseudomonas aeruginosa, Acinetobacter baumannii, Enterobacter,',
-  'Serratia marcescens, Proteus mirabilis, Stenotrophomonas maltophilia, Burkholderia cepacia,',
-  'Clostridioides difficile, Mycobacterium tuberculosis, Mycobacterium avium complex,',
-  'Candida albicans, Candida glabrata, Candida auris, Aspergillus fumigatus, Cryptococcus,',
-  'Pneumocystis jirovecii, citomegalovirus CMV, virus de Epstein-Barr VEB, virus sincicial respiratorio VSR.',
-  // Enfermedades y abreviaturas
-  'Abreviaturas: DM2, HAS, HTA, ERC, EPOC, IVU, ITU, IAM, EVC, FA, AR, LES, EII, CUCI, SAOS,',
-  'BLEE, MRSA, VRE, KPC, NDM, NAC, NAH, NAV, BAC, ISO, IAAS, ECMO, VMI, SDRA, FA crónica.',
-  // Escalas que el médico dicta
-  'Escalas: qSOFA, SOFA, APACHE II, CURB-65, PSI, CHA2DS2-VASc, HAS-BLED, Wells, Caprini,',
-  'STOP-BANG, ARISCAT, RCRI, NEWS2, Glasgow, Child-Pugh, MELD, CKD-EPI, Centor, McIsaac,',
-  'Charlson, Beers, Holliday-Segar.',
-  // Procedimientos PROA / Infectología
-  'Términos PROA: terapia empírica, terapia dirigida, desescalada, switch IV a VO, optimización PK PD,',
-  'tiempo sobre MIC, AUC sobre MIC, vancocinemia, niveles séricos, estewardship antimicrobiano,',
-  'foco infeccioso, bacteriemia, fungemia, choque séptico, sepsis, sepsis grave, día de antibiótico.',
+  // ⚠️ LÍMITE DE WHISPER: usa solo los ÚLTIMOS ~224 tokens del prompt.
+  // Si crece más, se trunca EN SILENCIO y el sesgo se pierde (bug real
+  // que tuvimos con la versión de ~1000 tokens). Aquí van SOLO los
+  // fármacos más mal transcritos. El vocabulario completo de todas las
+  // especialidades vive en corregirTranscripcion() — sin límite.
+  'Consulta médica en México. Fármacos:',
+  'empagliflozina, dapagliflozina, canagliflozina, semaglutida, tirzepatida, liraglutida,',
+  'sitagliptina, linagliptina, insulina glargina, insulina degludec,',
+  'atorvastatina, rosuvastatina, losartán, telmisartán, bisoprolol, carvedilol,',
+  'espironolactona, sacubitrilo/valsartán, apixabán, rivaroxabán, dabigatrán, ticagrelor,',
+  'levetiracetam, lamotrigina, pregabalina, escitalopram, venlafaxina, quetiapina,',
+  'meropenem, ertapenem, piperacilina/tazobactam, vancomicina, linezolid, daptomicina,',
+  'ceftriaxona, cefepime, ceftazidima/avibactam, levofloxacino, claritromicina,',
+  'trimetoprim/sulfametoxazol, fluconazol, voriconazol, caspofungina,',
+  'tacrolimus, micofenolato, rituximab, adalimumab, tocilizumab, hidroxicloroquina,',
+  'tamsulosina, alopurinol, colchicina, denosumab, levotiroxina, isotretinoína,',
+  'latanoprost, oxitocina, propofol, rocuronio, ondansetrón.',
+  'Términos: procalcitonina, hemocultivo, antibiograma, BLEE, MRSA, HbA1c, qSOFA, desescalada.',
 ].join(' ')

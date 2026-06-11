@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v47'  // fix guardar template (undefined) + default impresión carta
+const CACHE = 'nexusmed-v48'  // corrector v2: n-gramas + vocab todas especialidades + prompt 224
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

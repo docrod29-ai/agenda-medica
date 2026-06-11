@@ -249,7 +249,10 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       const res = await fetch('/api/expediente/transcribir-chunk', { method: 'POST', body: fd })
       const data = await res.json()
       if (data.ok && data.text) {
-        textosChunksRef.current[idx] = data.text
+        // Corrección léxica médica TAMBIÉN en chunks — el médico ve los
+        // fármacos bien escritos EN VIVO, no solo al final
+        const { corregido } = corregirTranscripcion(data.text)
+        textosChunksRef.current[idx] = corregido
         // Reconstruir transcripción parcial en orden
         const completa = textosChunksRef.current.filter(Boolean).join(' ')
         setTranscripcionParcial(completa)
