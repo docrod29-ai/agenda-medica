@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v46'  // Recetas v2: multi-hoja + 2 cols + modo carta + por médico
+const CACHE = 'nexusmed-v47'  // fix guardar template (undefined) + default impresión carta
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

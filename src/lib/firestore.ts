@@ -173,10 +173,26 @@ export async function getConfig(clinicId: string): Promise<ClinicConfig> {
   return { ...DEFAULT_CONFIG, ...snap.data() } as ClinicConfig
 }
 
+/**
+ * Quita recursivamente las llaves con valor undefined.
+ * Firestore RECHAZA undefined ("Unsupported field value") — un solo campo
+ * undefined (ej. quitar el diseño de receta) hacía fallar TODO el guardado.
+ */
+function sinUndefined<T>(obj: T): T {
+  if (obj === null || typeof obj !== 'object') return obj
+  if (Array.isArray(obj)) return obj.map(v => sinUndefined(v)) as unknown as T
+  const out: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+    if (v === undefined) continue
+    out[k] = sinUndefined(v)
+  }
+  return out as T
+}
+
 export async function saveConfig(clinicId: string, data: ClinicConfig): Promise<void> {
   await setDoc(
     doc(db, 'clinics', clinicId, 'config', 'main'),
-    { ...data, updatedAt: new Date().toISOString() },
+    sinUndefined({ ...data, updatedAt: new Date().toISOString() }),
     { merge: true }
   )
 }

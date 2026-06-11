@@ -66,7 +66,12 @@ const CARTA = { widthMm: 216, heightMm: 279 }
  */
 export function dimensionesImpresion(recetaConfig: RecetaConfig): { widthMm: number; heightMm: number; cssPage: string; esHostCarta: boolean } {
   const paper = PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta']
-  const quiereCarta = recetaConfig.imprimirEn === 'carta'
+  // DEFAULT = 'carta': el diálogo de impresión del navegador solo ofrece los
+  // tamaños que el driver de la impresora reporta — "media carta" casi nunca
+  // existe ahí. Imprimir sobre carta (tamaño universal) con línea de corte ✂
+  // funciona en CUALQUIER impresora sin configurar nada.
+  // Solo quien tiene papel del tamaño exacto cargado elige 'papel-real'.
+  const quiereCarta = (recetaConfig.imprimirEn ?? 'carta') === 'carta'
   const cabeEnCarta = paper.widthMm <= CARTA.widthMm && paper.heightMm <= CARTA.heightMm
   const esMenorQueCarta = paper.widthMm < CARTA.widthMm || paper.heightMm < CARTA.heightMm
   if (quiereCarta && cabeEnCarta && esMenorQueCarta) {

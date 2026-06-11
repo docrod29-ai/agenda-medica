@@ -2067,8 +2067,11 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
         const dr = doctores.find(d => d.id === medicoSel)
         toast(`Plantilla de ${dr?.nombre ?? 'médico'} guardada`, 'success')
       }
-    } catch {
-      toast('Error al guardar', 'error')
+    } catch (e) {
+      // Mostrar la causa real — un "Error al guardar" mudo es indepurable
+      const msg = e instanceof Error ? e.message.slice(0, 120) : String(e).slice(0, 120)
+      toast(`Error al guardar: ${msg}`, 'error')
+      console.error('[recetas/guardar]', e)
     } finally {
       setSaving(false)
     }
@@ -2269,7 +2272,12 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
                 style={{ width: '100%', maxHeight: 240, objectFit: 'contain', display: 'block' }}
               />
               <button
-                onClick={() => setRx({ ...rx, disenoCompletoDataUrl: undefined })}
+                onClick={() => setRx(prev => {
+                  // delete (no undefined): Firestore rechaza valores undefined
+                  const limpio = { ...prev }
+                  delete limpio.disenoCompletoDataUrl
+                  return limpio
+                })}
                 style={{
                   position: 'absolute', top: 12, right: 12,
                   background: 'rgba(239,68,68,0.9)', color: '#fff', border: 'none',
@@ -2383,10 +2391,10 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
           <Section title="🖨️ ¿En qué papel imprime tu impresora?">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               {([
-                { valor: 'papel-real' as const, titulo: 'Papel de receta', desc: `Tu impresora tiene cargado papel ${PAPER_SIZES[rx.paperSize].label.split(' (')[0].toLowerCase()}. Imprime al tamaño exacto.` },
-                { valor: 'carta' as const, titulo: 'Hoja carta + corte ✂', desc: 'Tu impresora tiene papel carta normal. La receta sale arriba con línea punteada para recortar.' },
+                { valor: 'carta' as const, titulo: 'Hoja carta + corte ✂ (recomendado)', desc: 'Funciona con CUALQUIER impresora. La receta sale arriba de la hoja carta con línea punteada para recortar.' },
+                { valor: 'papel-real' as const, titulo: 'Papel de receta exacto', desc: `Solo si tu impresora tiene cargado papel ${PAPER_SIZES[rx.paperSize].label.split(' (')[0].toLowerCase()}. Ojo: el diálogo de impresión debe ofrecer ese tamaño.` },
               ]).map(op => {
-                const activo = (rx.imprimirEn ?? 'papel-real') === op.valor
+                const activo = (rx.imprimirEn ?? 'carta') === op.valor
                 return (
                   <button
                     key={op.valor}
