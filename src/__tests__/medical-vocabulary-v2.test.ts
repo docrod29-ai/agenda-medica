@@ -116,3 +116,73 @@ describe('Pipeline completo corregirTranscripcion (n-gramas + palabra a palabra)
     expect(r.cambios.every(c => c.original && c.corregido)).toBe(true)
   })
 })
+
+// ════════════════════════════════════════════════════════════════
+// v3 — Calibrado con ERRORES REALES del screenshot del Dr. (2026-06-11)
+// ════════════════════════════════════════════════════════════════
+import { aplicarConfusionesConocidas } from '@/lib/expediente/medical-vocabulary'
+
+describe('Diccionario de confusiones REALES (screenshot producción)', () => {
+  it('"Empaq linfocina" → empagliflozina', () => {
+    const r = aplicarConfusionesConocidas('Empaq linfocina 10 mg')
+    expect(r.corregido).toContain('Empagliflozina')
+  })
+  it('"Dag glifos Inna" → dapagliflozina', () => {
+    const r = aplicarConfusionesConocidas('toma Dag glifos Inna en ayunas')
+    expect(r.corregido.toLowerCase()).toContain('dapagliflozina')
+  })
+  it('"Plátano pros" → latanoprost (Whisper oyó una fruta)', () => {
+    const r = aplicarConfusionesConocidas('aplicar Plátano pros una gota cada noche')
+    expect(r.corregido).toContain('Latanoprost')
+    expect(r.corregido).not.toContain('Plátano')
+  })
+  it('"dap glifos" → dapagliflozina', () => {
+    const r = aplicarConfusionesConocidas('Glibenclamida dap glifos')
+    expect(r.corregido.toLowerCase()).toContain('dapagliflozina')
+  })
+  it('NO toca "plátano" cuando es la fruta (sin "pros")', () => {
+    const r = aplicarConfusionesConocidas('desayuna un plátano diario')
+    expect(r.corregido).toContain('plátano')
+    expect(r.cambios).toHaveLength(0)
+  })
+})
+
+describe('Pipeline v3 con el texto EXACTO del screenshot', () => {
+  const TEXTO_REAL = 'Empaq linfocina Dag glifos Inna Linagliptina Dag glifos Inna Metformina losartán Hidroclorotiazida Plátano pros El paciente toma metformina Glibenclamida dap glifos'
+
+  it('corrige TODOS los fármacos destrozados del dictado real', () => {
+    const r = corregirTranscripcion(TEXTO_REAL)
+    const bajo = r.corregido.toLowerCase()
+    expect(bajo).toContain('empagliflozina')
+    expect(bajo).toContain('dapagliflozina')
+    expect(bajo).toContain('latanoprost')
+    // Y conserva los que ya estaban bien
+    expect(bajo).toContain('linagliptina')
+    expect(bajo).toContain('metformina')
+    expect(bajo).toContain('losartán')
+    expect(bajo).toContain('glibenclamida')
+    // Sin rastros de los errores
+    expect(bajo).not.toContain('linfocina')
+    expect(bajo).not.toContain('glifos')
+    expect(bajo).not.toContain('plátano')
+  })
+
+  it('reporta cada corrección con motivo diccionario para trazabilidad', () => {
+    const r = corregirTranscripcion(TEXTO_REAL)
+    const deDiccionario = r.cambios.filter(c => c.motivo === 'diccionario')
+    expect(deDiccionario.length).toBeGreaterThanOrEqual(4)
+  })
+})
+
+describe('N-gramas con umbral calibrado (distAceptable)', () => {
+  it('"empaq linfocina" también se arregla por n-gramas (dist 3)', () => {
+    // Sin depender del diccionario: la fonética unida queda a distancia 3
+    const r = corregirNGramas('receto empaq linfocina ahora')
+    // diccionario no corre aquí — n-grama con umbral nuevo debe lograrlo
+    expect(r.corregido.toLowerCase()).toContain('empagliflozina')
+  })
+  it('"platano pros" se arregla por n-gramas (dist 2, 11 chars)', () => {
+    const r = corregirNGramas('usa platano pros en ojo izquierdo')
+    expect(r.corregido.toLowerCase()).toContain('latanoprost')
+  })
+})

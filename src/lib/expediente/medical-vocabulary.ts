@@ -688,7 +688,7 @@ const PALABRAS_COMUNES = new Set([
 export interface CambioTranscripcion {
   original: string
   corregido: string
-  motivo: 'fonético' | 'levenshtein' | 'abreviatura'
+  motivo: 'fonético' | 'levenshtein' | 'abreviatura' | 'diccionario'
 }
 
 export interface ResultadoCorreccion {
@@ -741,6 +741,90 @@ function mejorCandidato(palabra: string): { term: string; motivo: CambioTranscri
 }
 
 /* ════════════════════════════════════════════════════════════════
+ * DICCIONARIO DE CONFUSIONES CONOCIDAS
+ *
+ * Errores REALES observados en producción (screenshot del Dr., 2026-06-11):
+ *   "Empaq linfocina"  ← empagliflozina   (distancia fonética 3)
+ *   "Dag glifos Inna"  ← dapagliflozina   (distancia 4 — irrecuperable
+ *                                           por fonética; solo diccionario)
+ *   "Plátano pros"     ← latanoprost      (¡Whisper oyó una fruta!)
+ *   "dap glifos"       ← dapagliflozina
+ *
+ * Cada vez que el médico reporte una confusión nueva, se agrega aquí.
+ * Matching: minúsculas + sin acentos, frase completa con límites de palabra.
+ * Este pase corre PRIMERO (antes de n-gramas y palabra-por-palabra).
+ * ════════════════════════════════════════════════════════════════ */
+
+export const CONFUSIONES_CONOCIDAS: Record<string, string> = {
+  // ── Gliflozinas (iSGLT2) — las más destrozadas por Whisper ──
+  'empaq linfocina': 'empagliflozina',
+  'empac linfocina': 'empagliflozina',
+  'empa linfocina': 'empagliflozina',
+  'empaq lifocina': 'empagliflozina',
+  'empa glifocina': 'empagliflozina',
+  'empagli fozina': 'empagliflozina',
+  'empaglifocina': 'empagliflozina',
+  'empaglifozina': 'empagliflozina',
+  'dag glifos inna': 'dapagliflozina',
+  'dag glifos ina': 'dapagliflozina',
+  'dag glifosina': 'dapagliflozina',
+  'dap glifos': 'dapagliflozina',
+  'dapa glifos': 'dapagliflozina',
+  'dapaglifozina': 'dapagliflozina',
+  'dapaglifocina': 'dapagliflozina',
+  'cana glifos': 'canagliflozina',
+  'canaglifozina': 'canagliflozina',
+  // ── Oftálmicos ──
+  'platano pros': 'latanoprost',
+  'platano prost': 'latanoprost',
+  'latano pros': 'latanoprost',
+  // ── GLP-1 ──
+  'sema glutida': 'semaglutida',
+  'tirse patida': 'tirzepatida',
+  'tirze patida': 'tirzepatida',
+  'lira glutida': 'liraglutida',
+  'dula glutida': 'dulaglutida',
+  // ── Otros patrones frecuentes de partición ──
+  'leve tiracetam': 'levetiracetam',
+  'keto rolaco': 'ketorolaco',
+  'pantopra sol': 'pantoprazol',
+}
+
+/** Índice normalizado (sin acentos) para matching robusto */
+const CONFUSIONES_NORMALIZADAS: Array<{ regex: RegExp; term: string; clave: string }> = (() => {
+  const lista: Array<{ regex: RegExp; term: string; clave: string }> = []
+  for (const [frase, term] of Object.entries(CONFUSIONES_CONOCIDAS)) {
+    // Construir regex tolerante: espacios flexibles, límites de palabra,
+    // case-insensitive, acentos opcionales en vocales
+    const cuerpo = frase
+      .replace(/[aá]/g, '[aá]')
+      .replace(/[eé]/g, '[eé]')
+      .replace(/[ií]/g, '[ií]')
+      .replace(/[oó]/g, '[oó]')
+      .replace(/[uú]/g, '[uú]')
+      .replace(/\s+/g, '\\s+')
+    lista.push({ regex: new RegExp(`(?<![A-Za-zÁÉÍÓÚáéíóúñÑ])${cuerpo}(?![A-Za-zÁÉÍÓÚáéíóúñÑ])`, 'gi'), term, clave: frase })
+  }
+  // Frases más largas primero (evita que "dap glifos" gane sobre "dag glifos inna")
+  return lista.sort((a, b) => b.clave.length - a.clave.length)
+})()
+
+/** Aplica el diccionario de confusiones conocidas. Corre PRIMERO. */
+export function aplicarConfusionesConocidas(texto: string): ResultadoCorreccion {
+  const cambios: CambioTranscripcion[] = []
+  let corregido = texto
+  for (const { regex, term } of CONFUSIONES_NORMALIZADAS) {
+    corregido = corregido.replace(regex, (match) => {
+      const empMay = match[0] === match[0].toUpperCase()
+      const sustituto = empMay ? term[0].toUpperCase() + term.slice(1) : term
+      cambios.push({ original: match, corregido: sustituto, motivo: 'diccionario' })
+      return sustituto
+    })
+  }
+  return { corregido, cambios }
+}
+
+/* ════════════════════════════════════════════════════════════════
  * PASE DE N-GRAMAS — une palabras PARTIDAS por Whisper
  *
  * Whisper parte fármacos largos que no conoce:
@@ -751,8 +835,9 @@ function mejorCandidato(palabra: string): { term: string; motivo: CambioTranscri
  * Este pase prueba ventanas de 2-3 palabras consecutivas:
  *   a) unidas SIN espacio  → vs términos de una palabra
  *   b) unidas CON espacio  → vs términos multipalabra
- * Solo sustituye con coincidencia fonética exacta (≥8 chars) o
- * Levenshtein ≤1 en términos largos (≥12 chars) — conservador.
+ * Umbral: el MISMO distAceptable() del pase palabra-por-palabra
+ * (≤2 para 8-11 chars, ≤3 para ≥12) — calibrado con errores reales:
+ * "empaqlinfosina"→"empagliflosina" es distancia 3.
  * ════════════════════════════════════════════════════════════════ */
 
 /** ¿El token es una palabra "pura" (sin puntuación pegada)? */
@@ -762,12 +847,18 @@ function buscarTerminoUnido(fonUnido: string): string | null {
   // Coincidencia exacta en el índice fonético
   const exacto = INDICE_FONETICO.get(fonUnido)
   if (exacto && fonUnido.length >= 8) return exacto
-  // Levenshtein ≤ 1 solo para términos largos (≥12 chars fonéticos)
-  if (fonUnido.length >= 12) {
+  // Levenshtein con el mismo umbral que palabra-por-palabra (distAceptable),
+  // solo para uniones de ≥10 chars fonéticos (las cortas son riesgosas)
+  if (fonUnido.length >= 10) {
+    let mejor: { term: string; dist: number } | null = null
     for (const { term, fonet } of TERMINOS_LEV) {
-      if (Math.abs(fonet.length - fonUnido.length) > 1) continue
-      if (levenshtein(fonet, fonUnido) <= 1) return term
+      if (Math.abs(fonet.length - fonUnido.length) > 3) continue
+      const d = levenshtein(fonet, fonUnido)
+      if (!distAceptable(d, Math.max(fonet.length, fonUnido.length))) continue
+      if (!mejor || d < mejor.dist) mejor = { term, dist: d }
+      if (mejor.dist === 0) break
     }
+    if (mejor) return mejor.term
   }
   return null
 }
@@ -832,13 +923,16 @@ export function corregirNGramas(texto: string): ResultadoCorreccion {
  * Conservadora: solo cambia cuando hay alta confianza.
  *
  * Orden de pases:
+ *   0. Diccionario de confusiones CONOCIDAS (errores reales reportados)
  *   1. N-gramas: une palabras que Whisper partió ("em pagli flozina")
  *   2. Palabra por palabra: fonético exacto → Levenshtein acotado
  */
 export function corregirTranscripcion(texto: string): ResultadoCorreccion {
+  // Pase 0 — confusiones conocidas (lo más certero primero)
+  const pase0 = aplicarConfusionesConocidas(texto)
   // Pase 1 — n-gramas (palabras partidas)
-  const pase1 = corregirNGramas(texto)
-  const cambios: CambioTranscripcion[] = [...pase1.cambios]
+  const pase1 = corregirNGramas(pase0.corregido)
+  const cambios: CambioTranscripcion[] = [...pase0.cambios, ...pase1.cambios]
 
   // Pase 2 — palabra por palabra
   const corregido = pase1.corregido.replace(REGEX_PALABRA, (palabra) => {
