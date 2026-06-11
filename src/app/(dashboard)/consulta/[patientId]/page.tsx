@@ -517,16 +517,45 @@ export default function ConsultaActivaPage() {
                     ? <Square size={24} color="#fff" fill="#fff" />
                     : <Mic size={26} color="#000" />}
               </button>
-              <div style={{ flex: 1, minWidth: 180 }}>
+              <div style={{ flex: 1, minWidth: 200 }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>
                   {audio.estado === 'grabando' ? `🔴 Grabando · ${String(Math.floor(audio.duracion / 60)).padStart(2,'0')}:${String(audio.duracion % 60).padStart(2,'0')}`
                     : audio.estado === 'subiendo' ? 'Transcribiendo audio…'
                     : audio.estado === 'listo' ? '✅ Transcripción lista'
                     : 'Grabar audio para transcribir'}
                 </div>
-                <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>
-                  Funciona en cualquier dispositivo · Mayor precisión médica · Requiere internet
-                </div>
+                {/* Medidor de nivel de audio EN VIVO — confirma visualmente que captura voz */}
+                {audio.estado === 'grabando' && (
+                  <div style={{ marginTop: 6 }}>
+                    <div style={{
+                      position: 'relative', height: 6, background: 'var(--s3)', borderRadius: 3, overflow: 'hidden',
+                    }}>
+                      <div style={{
+                        position: 'absolute', top: 0, left: 0, bottom: 0,
+                        width: `${Math.round(audio.nivelAudio * 100)}%`,
+                        background: audio.nivelAudio < 0.05 ? '#9CA3AF'
+                          : audio.nivelAudio < 0.4 ? '#22C55E'
+                          : audio.nivelAudio < 0.75 ? '#EAB308' : '#EF4444',
+                        transition: 'width 60ms linear, background 200ms',
+                      }} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 4, fontSize: 10.5, color: 'var(--text3)' }}>
+                      <span>
+                        {audio.silencioProlongado
+                          ? '⚠️ Sin señal por +15s — verifica el micrófono'
+                          : audio.nivelAudio < 0.05 ? 'Esperando voz…' : 'Captando bien'}
+                      </span>
+                      <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+                        {(audio.bytesGrabados / 1024 / 1024).toFixed(1)} / 25 MB · 48kHz/128kbps
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {audio.estado !== 'grabando' && (
+                  <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>
+                    HIFI 48kHz · 128kbps Opus · gpt-4o-transcribe · vocabulario médico ampliado
+                  </div>
+                )}
                 {audio.error && <div style={{ fontSize: 11.5, color: '#f87171', marginTop: 3 }}>⚠ {audio.error}</div>}
               </div>
               <button onClick={procesarIA} disabled={procesando || !voz.transcripcion.trim()} style={S.iaBtn(procesando || !voz.transcripcion.trim())}>

@@ -113,7 +113,20 @@ const ESPECIFICO: Partial<Record<TipoNota, string>> = {
   evolucion: `Nota de evolución hospitalaria en formato SOAP diario. Para Infectología: menciona el día X de antibiótico, candidato a desescalada o switch IV→VO, y resultados de cultivos si se mencionan.`,
   ingreso: `Nota de ingreso hospitalario. En "impresionInicial" resume el caso en una línea (ej: "Hombre 58a con DM2/HAS, bacteriemia por K. pneumoniae BLEE+"). Destaca cultivos en estudios.`,
   egreso: `Nota de egreso. En "resumenCaso" da una línea ejecutiva. Incluye procedimientos, evolución y signos de alarma claros.`,
-  historia_clinica: `Historia clínica completa de primera vez. Sigue OLDCARTS implícito en el padecimiento actual. Estructura antecedentes heredo-familiares, no patológicos y patológicos por separado.`,
+  historia_clinica: `Historia clínica completa de primera vez. Sigue OLDCARTS implícito en el padecimiento actual. Estructura antecedentes heredo-familiares, no patológicos y patológicos por separado.
+
+▸ "planAbordajeDx" (OBLIGATORIO): construye el plan diagnóstico con:
+  - Diagnósticos diferenciales priorizados (probabilidad pretest + datos a favor + datos en contra)
+  - Estudios solicitados con razón (BH, QS, EGO, cultivos, imagen, etc.)
+  - Criterio de confirmación/descarte para cada diferencial
+  Si el médico solo dictó parte, complétalo con lo que aplique al cuadro clínico.
+
+▸ "planTratamiento" (OBLIGATORIO): para CADA fármaco:
+  - Denominación genérica + dosis + vía + intervalo + duración
+  - Ajuste por función renal/hepática/peso si los datos lo permiten
+  - Medidas no farmacológicas (dieta, reposo, hidratación, ejercicio según aplique)
+  - Signos de alarma para acudir a urgencias (en lenguaje claro para el paciente)
+  - PROA si hay antibióticos: empírico vs dirigido, día de tratamiento, fecha de reevaluación`,
   valoracion_preoperatoria: `Nota de VALORACIÓN PREOPERATORIA.
 
 REGLA MAESTRA: si la transcripción TIENE CUALQUIER contenido clínico,

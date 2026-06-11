@@ -43,34 +43,63 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Audio mayor a 25 MB. Divide en partes.' }, { status: 400 })
   }
 
-  try {
-    const upstream = new FormData()
-    upstream.append('file', audio, 'consulta.webm')
-    upstream.append('model', 'whisper-1')
-    upstream.append('language', 'es')
-    // Prompt clínico amplio (vocabulario médico) para mejorar precisión
-    upstream.append('prompt', WHISPER_PROMPT_MEDICO)
+  // Cascada de modelos por precisión (mejor → fallback):
+  //   1. gpt-4o-transcribe       — ~30% menos WER que whisper-1 en español médico
+  //   2. gpt-4o-mini-transcribe  — más rápido + barato, también mejor que whisper-1
+  //   3. whisper-1               — fallback histórico (siempre disponible)
+  // Override por env: OPENAI_TRANSCRIBE_MODEL.
+  const modeloOverride = process.env.OPENAI_TRANSCRIBE_MODEL
+  const modelos = modeloOverride
+    ? [modeloOverride]
+    : ['gpt-4o-transcribe', 'gpt-4o-mini-transcribe', 'whisper-1']
 
-    const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+  async function llamarOpenAI(model: string) {
+    const upstream = new FormData()
+    upstream.append('file', audio as Blob, 'consulta.webm')
+    upstream.append('model', model)
+    upstream.append('language', 'es')
+    // temperature 0 → determinístico, no improvisa palabras
+    upstream.append('temperature', '0')
+    // Prompt con vocabulario médico extenso — clave para que la IA NO confunda
+    // "amikacina" con "amigacina", "ceftriaxona" con "septriasona", etc.
+    upstream.append('prompt', WHISPER_PROMPT_MEDICO)
+    return fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}` },
       body: upstream,
     })
-
-    if (!res.ok) {
-      const err = await res.text()
-      console.error('[transcribir] Whisper error:', res.status, err.slice(0, 300))
-      return NextResponse.json({ ok: false, error: `Whisper ${res.status}` }, { status: 502 })
-    }
-
-    const data = await res.json()
-    return NextResponse.json({
-      ok: true,
-      text: data.text ?? '',
-      language: data.language ?? 'es',
-    })
-  } catch (err) {
-    console.error('[transcribir] Error:', err)
-    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
   }
+
+  let ultimoError = ''
+  let ultimoStatus = 0
+  for (const model of modelos) {
+    try {
+      const res = await llamarOpenAI(model)
+      if (res.ok) {
+        const data = await res.json()
+        return NextResponse.json({
+          ok: true,
+          text: data.text ?? '',
+          language: data.language ?? 'es',
+          model,
+        })
+      }
+      // 404 / 403 / 400 → modelo no disponible para esta cuenta, intentar siguiente.
+      // Otros errores (auth, rate-limit, server) los propagamos.
+      ultimoStatus = res.status
+      ultimoError = (await res.text()).slice(0, 300)
+      console.warn(`[transcribir] ${model} respondió ${res.status} — probando siguiente`)
+      if (res.status !== 404 && res.status !== 403 && res.status !== 400) {
+        return NextResponse.json({ ok: false, error: `OpenAI ${res.status} (${model})` }, { status: 502 })
+      }
+    } catch (err) {
+      console.error(`[transcribir] ${model} error de red:`, err)
+      ultimoError = String(err).slice(0, 300)
+    }
+  }
+  console.error('[transcribir] Todos los modelos fallaron. Último:', ultimoStatus, ultimoError)
+  return NextResponse.json(
+    { ok: false, error: `Transcripción no disponible (último error: ${ultimoStatus})` },
+    { status: 502 },
+  )
 }

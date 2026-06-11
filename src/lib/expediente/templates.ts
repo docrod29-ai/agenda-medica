@@ -15,12 +15,16 @@ export const SECCIONES_POR_TIPO: Record<TipoNota, Omit<NotaSeccion, 'value'>[]> 
     { key: 'interrogatorioSistemas',label: 'Interrogatorio por aparatos y sistemas' },
     { key: 'exploracionFisica',     label: 'Exploración física',              obligatorio: true,  placeholder: 'Hallazgos por región' },
     { key: 'estudiosPrevios',       label: 'Estudios previos',                placeholder: 'Laboratorio, imagen' },
+    { key: 'planAbordajeDx',        label: 'Plan de abordaje diagnóstico',    obligatorio: true,  placeholder: 'Estudios solicitados, diagnósticos diferenciales priorizados, criterio de descarte/confirmación' },
+    { key: 'planTratamiento',       label: 'Plan de tratamiento',             obligatorio: true,  placeholder: 'Fármaco · dosis · vía · intervalo · duración. Medidas no farmacológicas. Signos de alarma.' },
   ],
   primera_vez: [
     { key: 'motivoConsulta',        label: 'Motivo de consulta',   obligatorio: true },
     { key: 'padecimientoActual',    label: 'Padecimiento actual',  obligatorio: true },
     { key: 'antecedentesRelevantes',label: 'Antecedentes relevantes' },
     { key: 'exploracionFisica',     label: 'Exploración física',   obligatorio: true },
+    { key: 'planAbordajeDx',        label: 'Plan de abordaje diagnóstico', obligatorio: true,  placeholder: 'Estudios solicitados + diagnósticos diferenciales priorizados' },
+    { key: 'planTratamiento',       label: 'Plan de tratamiento',  obligatorio: true,  placeholder: 'Fármaco · dosis · vía · intervalo · duración' },
   ],
   seguimiento: [
     { key: 'subjetivo',  label: 'Subjetivo (S)',  obligatorio: true,  placeholder: 'Evolución referida, cumplimiento del tratamiento, nuevos síntomas' },

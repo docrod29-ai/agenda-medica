@@ -633,18 +633,67 @@ export function corregirTranscripcion(texto: string): ResultadoCorreccion {
  * ════════════════════════════════════════════════════════════════ */
 
 export const WHISPER_PROMPT_MEDICO = [
-  'Consulta médica en español de México.',
-  'Términos clínicos:',
-  // Antibióticos y antifúngicos clave (los más mal transcritos)
-  'ertapenem, imipenem, meropenem, vancomicina, linezolid, daptomicina, piperacilina/tazobactam,',
-  'ceftriaxona, cefepime, ciprofloxacino, levofloxacino, azitromicina, clindamicina,',
-  'metronidazol, trimetoprim/sulfametoxazol, doxiciclina, tigeciclina,',
-  'fluconazol, voriconazol, posaconazol, anfotericina B liposomal, caspofungina.',
+  'Consulta médica en español de México con vocabulario clínico avanzado.',
+  // Antibióticos y antifúngicos (los más mal transcritos)
+  'Antibióticos: ertapenem, imipenem, meropenem, vancomicina, linezolid, daptomicina,',
+  'piperacilina/tazobactam, ceftriaxona, cefepime, ceftazidima/avibactam, ceftolozano/tazobactam,',
+  'ciprofloxacino, levofloxacino, moxifloxacino, azitromicina, claritromicina, clindamicina,',
+  'metronidazol, trimetoprim/sulfametoxazol, doxiciclina, tigeciclina, eravaciclina,',
+  'fosfomicina, nitrofurantoína, colistina, polimixina, cefiderocol, plazomicina,',
+  'amikacina, gentamicina, tobramicina, amoxicilina, amoxicilina/clavulanato.',
+  'Antifúngicos: fluconazol, voriconazol, posaconazol, isavuconazol, anfotericina B liposomal,',
+  'caspofungina, micafungina, anidulafungina, terbinafina, nistatina.',
+  'Antivirales: aciclovir, valaciclovir, ganciclovir, valganciclovir, oseltamivir, baloxavir,',
+  'remdesivir, nirmatrelvir/ritonavir (Paxlovid), tenofovir, emtricitabina, dolutegravir,',
+  'bictegravir, raltegravir, efavirenz, darunavir, atazanavir.',
+  // Marcas comerciales mexicanas (causa #1 de transcripción errónea)
+  'Marcas comerciales MX: Augmentin, Bactrim, Bactroban, Klaricid, Septrim, Zithromax, Avelox,',
+  'Cravit, Cipro, Flagyl, Vibramicina, Tafil (alprazolam), Rivotril (clonazepam),',
+  'Lexotan (bromazepam), Ativan (lorazepam), Halcion (triazolam), Plidan (metamizol),',
+  'Sintrom (acenocumarol), Eliquis (apixabán), Xarelto (rivaroxabán), Pradaxa (dabigatrán),',
+  'Lixiana (edoxabán), Ozempic (semaglutida), Wegovy, Mounjaro (tirzepatida), Trulicity (dulaglutida),',
+  'Saxenda (liraglutida), Forxiga (dapagliflozina), Jardiance (empagliflozina),',
+  'Januvia (sitagliptina), Galvus (vildagliptina), Glucophage (metformina),',
+  'Lipitor (atorvastatina), Crestor (rosuvastatina), Zocor (simvastatina),',
+  'Norvasc (amlodipino), Tenormin (atenolol), Concor (bisoprolol), Lopressor (metoprolol),',
+  'Coumadin (warfarina), Cardioaspirina, Plavix (clopidogrel), Brilinta (ticagrelor),',
+  'Omeprazol Losec, Pantoprazol Pantozol, Nexium (esomeprazol), Controloc.',
+  // Analgésicos y opioides
+  'Analgésicos: paracetamol, ibuprofeno, naproxeno, ketorolaco, diclofenaco, dexketoprofeno,',
+  'metamizol (dipirona), tramadol, codeína, buprenorfina, morfina, oxicodona, fentanilo, hidromorfona,',
+  'gabapentina, pregabalina (Lyrica), duloxetina (Cymbalta), carbamazepina.',
+  // Cardiovasculares completos
+  'Cardiovasculares: enalapril, lisinopril, ramipril, captopril, losartán, telmisartán, valsartán,',
+  'candesartán, irbesartán, hidroclorotiazida, furosemida (Lasix), espironolactona, eplerenona,',
+  'digoxina, amiodarona, sotalol, propafenona, sacubitril/valsartán (Entresto).',
+  // Endocrino y diabetes
+  'Endocrino: insulina glargina (Lantus), insulina detemir (Levemir), insulina degludec (Tresiba),',
+  'insulina aspart (NovoRapid), insulina lispro (Humalog), insulina NPH, insulina regular R.',
+  'Levotiroxina (Eutirox, Synthroid), metimazol (Tapazol), propiltiouracilo.',
   // Laboratorios y serologías
-  'VDRL, RPR, FTA-ABS, HbA1c, TSH, T4 libre, BNP, NT-proBNP, troponina,',
-  'PCR, VSG, procalcitonina, dímero D, biometría hemática, química sanguínea,',
-  'ANA, anti-DNA, anti-CCP, ANCA, complemento C3 C4, factor reumatoide,',
-  'hemocultivo, urocultivo, antibiograma, CIM, Gram, Ziehl-Neelsen.',
-  // Enfermedades / abreviaturas
-  'DM2, HAS, ERC, EPOC, IVU, IAM, EVC, FA, AR, LES, BLEE, MRSA, VRE.',
+  'Laboratorios: VDRL, RPR, FTA-ABS, HbA1c, TSH, T4 libre, T3 total, BNP, NT-proBNP, troponina,',
+  'CK-MB, PCR ultrasensible, VSG, procalcitonina, dímero D, fibrinógeno, INR, TTPa,',
+  'biometría hemática, química sanguínea, perfil hepático, perfil tiroideo, perfil lipídico,',
+  'ANA, anti-DNA, anti-CCP, ANCA-c ANCA-p, complemento C3 C4, factor reumatoide, anti-Smith,',
+  'hemocultivo, urocultivo, coprocultivo, cultivo de expectoración, antibiograma, CIM (MIC),',
+  'Gram, Ziehl-Neelsen, KOH, PCR para tuberculosis (Xpert MTB/RIF), GeneXpert.',
+  // Microbiología
+  'Patógenos: Staphylococcus aureus, MRSA, MSSA, Streptococcus pneumoniae, Streptococcus pyogenes,',
+  'Enterococcus faecalis, Enterococcus faecium, VRE, Escherichia coli BLEE, Klebsiella pneumoniae,',
+  'Klebsiella KPC NDM OXA-48, Pseudomonas aeruginosa, Acinetobacter baumannii, Enterobacter,',
+  'Serratia marcescens, Proteus mirabilis, Stenotrophomonas maltophilia, Burkholderia cepacia,',
+  'Clostridioides difficile, Mycobacterium tuberculosis, Mycobacterium avium complex,',
+  'Candida albicans, Candida glabrata, Candida auris, Aspergillus fumigatus, Cryptococcus,',
+  'Pneumocystis jirovecii, citomegalovirus CMV, virus de Epstein-Barr VEB, virus sincicial respiratorio VSR.',
+  // Enfermedades y abreviaturas
+  'Abreviaturas: DM2, HAS, HTA, ERC, EPOC, IVU, ITU, IAM, EVC, FA, AR, LES, EII, CUCI, SAOS,',
+  'BLEE, MRSA, VRE, KPC, NDM, NAC, NAH, NAV, BAC, ISO, IAAS, ECMO, VMI, SDRA, FA crónica.',
+  // Escalas que el médico dicta
+  'Escalas: qSOFA, SOFA, APACHE II, CURB-65, PSI, CHA2DS2-VASc, HAS-BLED, Wells, Caprini,',
+  'STOP-BANG, ARISCAT, RCRI, NEWS2, Glasgow, Child-Pugh, MELD, CKD-EPI, Centor, McIsaac,',
+  'Charlson, Beers, Holliday-Segar.',
+  // Procedimientos PROA / Infectología
+  'Términos PROA: terapia empírica, terapia dirigida, desescalada, switch IV a VO, optimización PK PD,',
+  'tiempo sobre MIC, AUC sobre MIC, vancocinemia, niveles séricos, estewardship antimicrobiano,',
+  'foco infeccioso, bacteriemia, fungemia, choque séptico, sepsis, sepsis grave, día de antibiótico.',
 ].join(' ')

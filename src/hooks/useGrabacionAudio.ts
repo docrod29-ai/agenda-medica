@@ -1,35 +1,31 @@
 'use client'
 import { corregirTranscripcion } from '@/lib/expediente/medical-vocabulary'
 /**
- * Hook de grabación de audio cruda (MediaRecorder) para enviar a Whisper.
+ * Hook de grabación HIFI para Whisper / gpt-4o-transcribe.
  *
- * Complementa a useGrabacionVoz (Web Speech). Si el médico activa "modo Whisper",
- * usamos este hook: graba el audio completo, al detener lo manda a /api/expediente/transcribir.
- * Si OPENAI_API_KEY no está configurada, el hook avisa y se cae graciosamente.
+ * v2 — overhaul de audio engineering (2026-06-10):
+ *   - Sample rate 48kHz solicitado al navegador (3× mejor que 16kHz default)
+ *   - Bitrate Opus 128kbps explícito (vs ~32kbps default → palabras quedaban a 1/4)
+ *   - autoGainControl ON → ecualiza voz de médico vs paciente sin chop
+ *   - noiseSuppression configurable (algunos ambientes ruidosos lo necesitan OFF)
+ *   - AnalyserNode → medidor de nivel de audio en tiempo real (UI feedback)
+ *   - Detección de silencio prolongado (>15s) que AVISA (no detiene)
+ *   - Watchdog de duración (>20 min sugiere dividir — Whisper acepta 25 MB)
  *
- * ─────────────────────────────────────────────────────────────────────
- * AUDITORÍA ISO 27001 — Manejo seguro de recursos sensibles:
- *
- * Recursos críticos que DEBEN liberarse SIEMPRE:
- *   1. MediaStream del micrófono (sino el LED rojo del mic queda activo)
- *   2. MediaRecorder activo
- *   3. setInterval del timer
- *   4. Blobs de audio en memoria (chunksRef)
- *
- * Cleanup completo en 5 escenarios:
- *   a) Usuario detiene (camino feliz) → detener()
- *   b) iniciar() falla después de getUserMedia → catch limpia stream
- *   c) MediaRecorder error en tiempo real → onerror limpia
- *   d) Usuario navega/desmonta mientras graba → useEffect cleanup
- *   e) Usuario llama reset() con grabación activa → reset detiene todo
- *
- * NO almacenamos el audio crudo más allá del envío a Whisper.
- * NO loggeamos el contenido del audio en consola.
- * ─────────────────────────────────────────────────────────────────────
+ * Limpia recursos en 5 paths (ISO 27001 — ver useGrabacionAudio v1 doc).
  */
 import { useState, useRef, useCallback, useEffect } from 'react'
 
 type Estado = 'inactivo' | 'grabando' | 'subiendo' | 'listo' | 'error'
+
+export interface OpcionesGrabacion {
+  /** Suprimir ruido de fondo. Off en ambientes con voces simultáneas. Default: true */
+  noiseSuppression?: boolean
+  /** Cancelar eco del altavoz. Default: true */
+  echoCancellation?: boolean
+  /** Auto-ajuste de ganancia (ecualiza voces fuertes/débiles). Default: true */
+  autoGainControl?: boolean
+}
 
 export interface UseGrabacionAudio {
   soportado: boolean
@@ -37,11 +33,23 @@ export interface UseGrabacionAudio {
   duracion: number
   transcripcion: string
   error: string
-  iniciar: () => Promise<void>
+  /** Nivel de audio 0..1 — medir actividad de la voz en vivo (UI level meter). */
+  nivelAudio: number
+  /** True si llevamos >15s sin captar señal — UI puede mostrar warning. */
+  silencioProlongado: boolean
+  /** Tamaño actual del blob en bytes — UI puede mostrar "12 MB / 25 MB". */
+  bytesGrabados: number
+  iniciar: (opts?: OpcionesGrabacion) => Promise<void>
   detener: () => Promise<void>
   reset: () => void
   setTranscripcion: (t: string) => void
 }
+
+// Umbrales de audio engineering
+const SILENCIO_MS = 15_000        // 15s sin señal → warning
+const NIVEL_SILENCIO = 0.02       // RMS < 2% → silencio
+const BITRATE_OPUS = 128_000      // 128kbps — calidad voz profesional
+const SAMPLE_RATE_OBJETIVO = 48_000 // 48kHz — gold standard
 
 export function useGrabacionAudio(): UseGrabacionAudio {
   const [soportado] = useState(() => typeof window !== 'undefined' && typeof MediaRecorder !== 'undefined')
@@ -49,38 +57,47 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   const [duracion, setDuracion] = useState(0)
   const [transcripcion, setTranscripcion] = useState('')
   const [error, setError] = useState('')
+  const [nivelAudio, setNivelAudio] = useState(0)
+  const [silencioProlongado, setSilencioProlongado] = useState(false)
+  const [bytesGrabados, setBytesGrabados] = useState(0)
 
   const mediaRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const streamRef = useRef<MediaStream | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const startRef = useRef<number>(0)
+  // Audio engineering — AnalyserNode para nivel en vivo
+  const audioCtxRef = useRef<AudioContext | null>(null)
+  const analyserRef = useRef<AnalyserNode | null>(null)
+  const rafRef = useRef<number | null>(null)
+  const ultimaSenalRef = useRef<number>(0)
 
-  /** Libera TODOS los recursos: stream, recorder, timer, blobs. Idempotente. */
   const liberarRecursos = useCallback(() => {
-    // 1. Detener MediaRecorder si está activo
     const rec = mediaRef.current
     if (rec && rec.state !== 'inactive') {
-      try { rec.stop() } catch { /* ya detenido */ }
+      try { rec.stop() } catch { /* */ }
     }
     mediaRef.current = null
 
-    // 2. Detener TODOS los tracks del stream (libera el micrófono físico)
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => {
-        try { t.stop() } catch { /* ya detenido */ }
-      })
+      streamRef.current.getTracks().forEach(t => { try { t.stop() } catch { /* */ } })
       streamRef.current = null
     }
 
-    // 3. Limpiar timer
-    if (timerRef.current) {
-      clearInterval(timerRef.current)
-      timerRef.current = null
-    }
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
 
-    // 4. Liberar referencias a blobs (GC los recoge)
+    // AudioContext debe cerrarse explícito — sino queda en memoria con el AnalyserNode
+    if (audioCtxRef.current) {
+      try { audioCtxRef.current.close() } catch { /* ya cerrado */ }
+      audioCtxRef.current = null
+    }
+    analyserRef.current = null
+
     chunksRef.current = []
+    setNivelAudio(0)
+    setSilencioProlongado(false)
+    setBytesGrabados(0)
   }, [])
 
   const reset = useCallback(() => {
@@ -88,48 +105,99 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     setEstado('inactivo'); setDuracion(0); setTranscripcion(''); setError('')
   }, [liberarRecursos])
 
-  // Cleanup al desmontar: detiene grabación + libera mic si el usuario
-  // navega/cierra la consulta sin haber detenido. Sin esto el LED rojo
-  // del micrófono queda activo hasta cerrar el navegador.
-  useEffect(() => {
-    return () => { liberarRecursos() }
-  }, [liberarRecursos])
+  useEffect(() => () => { liberarRecursos() }, [liberarRecursos])
 
-  const iniciar = useCallback(async () => {
+  const iniciar = useCallback(async (opts?: OpcionesGrabacion) => {
     if (!soportado) { setError('Tu navegador no soporta grabación de audio'); setEstado('error'); return }
     try {
+      // ── CONSTRAINTS HIFI — calidad de captura ────────────────────
+      // sampleRate y channelCount son ideales (el navegador puede ignorar).
+      // Lo que SÍ marca diferencia: autoGainControl + bitrate al MediaRecorder.
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true },
+        audio: {
+          echoCancellation: opts?.echoCancellation ?? true,
+          noiseSuppression: opts?.noiseSuppression ?? true,
+          autoGainControl: opts?.autoGainControl ?? true,
+          sampleRate: SAMPLE_RATE_OBJETIVO,
+          channelCount: 1,  // mono — basta para voz, ahorra 50% el blob
+        },
       })
       streamRef.current = stream
       chunksRef.current = []
 
-      // iOS Safari NO soporta webm. Probar varios mime types en orden de preferencia.
+      // ── AnalyserNode → medidor de nivel en vivo + detección silencio ──
+      // Si no se puede crear AudioContext, seguimos sin medidor (no es bloqueante).
+      try {
+        const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+        const ctx = new Ctx({ sampleRate: SAMPLE_RATE_OBJETIVO })
+        const source = ctx.createMediaStreamSource(stream)
+        const analyser = ctx.createAnalyser()
+        analyser.fftSize = 1024
+        analyser.smoothingTimeConstant = 0.8
+        source.connect(analyser)
+        audioCtxRef.current = ctx
+        analyserRef.current = analyser
+        ultimaSenalRef.current = Date.now()
+
+        const buffer = new Float32Array(analyser.fftSize)
+        const tick = () => {
+          if (!analyserRef.current) return
+          analyserRef.current.getFloatTimeDomainData(buffer)
+          // RMS — Root Mean Square — la métrica estándar de actividad de voz
+          let sumSq = 0
+          for (let i = 0; i < buffer.length; i++) sumSq += buffer[i] * buffer[i]
+          const rms = Math.sqrt(sumSq / buffer.length)
+          // Escalar a 0..1 con techo (la voz humana raramente excede 0.3 RMS)
+          const nivel = Math.min(1, rms / 0.3)
+          setNivelAudio(nivel)
+          if (rms > NIVEL_SILENCIO) {
+            ultimaSenalRef.current = Date.now()
+            if (silencioProlongado) setSilencioProlongado(false)
+          } else if (Date.now() - ultimaSenalRef.current > SILENCIO_MS) {
+            setSilencioProlongado(true)
+          }
+          rafRef.current = requestAnimationFrame(tick)
+        }
+        rafRef.current = requestAnimationFrame(tick)
+      } catch {
+        // sin medidor — seguimos grabando
+      }
+
+      // ── MIME selection — iOS Safari NO acepta webm ───────────────
       const candidates = [
-        'audio/webm;codecs=opus',  // Chrome/Edge/Firefox desktop
+        'audio/webm;codecs=opus',
         'audio/webm',
-        'audio/mp4;codecs=mp4a.40.2', // iOS Safari moderno
+        'audio/mp4;codecs=mp4a.40.2',
         'audio/mp4',
         'audio/ogg;codecs=opus',
-        '',                         // último recurso: dejar al navegador elegir
+        '',
       ]
       let mime = ''
       for (const m of candidates) {
         if (m === '' || (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(m))) {
-          mime = m
-          break
+          mime = m; break
         }
       }
-      const rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream)
-      rec.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data) }
-      // Cleanup automático si el navegador aborta la grabación (mic desconectado,
-      // permisos revocados en vivo, etc.). Sin esto el stream queda zombi.
+
+      // ── BITRATE 128kbps explícito — clave para que Whisper entienda ──
+      const recOpts: MediaRecorderOptions = mime
+        ? { mimeType: mime, audioBitsPerSecond: BITRATE_OPUS }
+        : { audioBitsPerSecond: BITRATE_OPUS }
+      const rec = new MediaRecorder(stream, recOpts)
+      rec.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data)
+          // Acumulado de bytes — UI puede avisar antes del límite 25 MB
+          setBytesGrabados(prev => prev + e.data.size)
+        }
+      }
       rec.onerror = () => {
         liberarRecursos()
         setError('Error en la grabación de audio')
         setEstado('error')
       }
-      rec.start(1000)
+      // Chunks cada 2s (era 1s — menos overhead, mejor compresión)
+      rec.start(2000)
       mediaRef.current = rec
       startRef.current = Date.now()
       timerRef.current = setInterval(() => {
@@ -138,9 +206,6 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       setEstado('grabando')
       setError('')
     } catch (e) {
-      // CRÍTICO: si getUserMedia tuvo éxito pero MediaRecorder revienta,
-      // el stream queda vivo (micrófono activo) si no liberamos. Hacerlo
-      // aquí garantiza que TODOS los paths de error liberen recursos.
       liberarRecursos()
       const err = e as Error
       if (err.name === 'NotAllowedError' || err.message.includes('denied')) {
@@ -152,7 +217,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       }
       setEstado('error')
     }
-  }, [soportado, liberarRecursos])
+  }, [soportado, liberarRecursos, silencioProlongado])
 
   const detener = useCallback(async () => {
     const rec = mediaRef.current
@@ -164,19 +229,24 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       try { rec.stop() } catch { resolve() }
     })
 
-    // Libera mic + timer + recorder; conserva chunks para construir el blob
+    // Detener TODO menos chunks (los necesitamos para el blob)
     streamRef.current?.getTracks().forEach(t => t.stop())
     streamRef.current = null
     if (timerRef.current) clearInterval(timerRef.current)
     timerRef.current = null
+    if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    rafRef.current = null
+    if (audioCtxRef.current) {
+      try { audioCtxRef.current.close() } catch { /* */ }
+      audioCtxRef.current = null
+    }
+    analyserRef.current = null
     mediaRef.current = null
 
     const blob = new Blob(chunksRef.current, { type: rec.mimeType })
-    // Los chunks ya no se necesitan tras construir el blob — liberar memoria
     chunksRef.current = []
     if (blob.size === 0) { setEstado('error'); setError('Audio vacío'); return }
 
-    // Whisper acepta mp3/mp4/m4a/wav/webm — extensión correcta según mime
     const mt = rec.mimeType || ''
     const ext = mt.includes('mp4') ? 'm4a' : mt.includes('ogg') ? 'ogg' : mt.includes('wav') ? 'wav' : 'webm'
 
@@ -197,18 +267,11 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       setError('Error de red: ' + String(e))
       setEstado('error')
     }
-    // El blob queda fuera de scope y el GC lo recoge; no se persiste en memoria.
   }, [])
 
   return {
-    soportado,
-    estado,
-    duracion,
-    transcripcion,
-    error,
-    iniciar,
-    detener,
-    reset,
-    setTranscripcion,
+    soportado, estado, duracion, transcripcion, error,
+    nivelAudio, silencioProlongado, bytesGrabados,
+    iniciar, detener, reset, setTranscripcion,
   }
 }
