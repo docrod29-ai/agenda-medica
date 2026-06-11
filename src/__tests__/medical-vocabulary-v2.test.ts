@@ -186,3 +186,36 @@ describe('N-gramas con umbral calibrado (distAceptable)', () => {
     expect(r.corregido.toLowerCase()).toContain('latanoprost')
   })
 })
+
+// ════════════════════════════════════════════════════════════════
+// v4 — Catálogo sistemático ATC integrado al corrector
+// ════════════════════════════════════════════════════════════════
+import { VOCABULARIO_ATC } from '@/lib/expediente/vocabulario-atc'
+
+describe('Catálogo ATC sistemático', () => {
+  it('aporta cientos de fármacos adicionales', () => {
+    expect(VOCABULARIO_ATC.length).toBeGreaterThan(400)
+  })
+  it('cubre las 14 áreas anatómicas con ejemplos representativos', () => {
+    const set = new Set(VOCABULARIO_ATC.map(t => t.toLowerCase()))
+    // A digestivo, B sangre, C cardio, J infeccioso, L onco, N nervioso, R respiratorio, S sensorial, V varios
+    expect(set.has('vonoprazan')).toBe(true)        // A
+    expect(set.has('alteplasa')).toBe(true)          // B
+    expect(set.has('sacubitrilo/valsartán') || set.has('finerenona')).toBe(true) // C
+    expect(set.has('sofosbuvir')).toBe(true)         // J antiviral
+    expect(set.has('venetoclax')).toBe(true)         // L onco
+    expect(set.has('lasmiditán')).toBe(true)         // N nervioso
+    expect(set.has('nintedanib')).toBe(true)         // R respiratorio
+    expect(set.has('netarsudil')).toBe(true)         // S oftálmico
+    expect(set.has('idarucizumab')).toBe(true)       // V antídoto
+  })
+  it('corrige fármacos del catálogo ATC vía fonética (apixaban-like)', () => {
+    // "venetoclax" mal oído como "benetoclax" (v→b fonético)
+    const r = corregirTranscripcion('inicia benetoclax para la leucemia')
+    expect(r.corregido.toLowerCase()).toContain('venetoclax')
+  })
+  it('corrige un antiviral del cuadro de hepatitis C', () => {
+    const r = corregirTranscripcion('esquema con sofosbubir y velpatasvir')
+    expect(r.corregido.toLowerCase()).toContain('sofosbuvir')
+  })
+})

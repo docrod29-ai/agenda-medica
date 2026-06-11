@@ -9,7 +9,10 @@
  *     distancia de Levenshtein para detectar errores comunes de transcripción.
  *  3) Aplicación conservadora: solo corrige cuando hay coincidencia fonética
  *     exacta o distancia muy pequeña, y la palabra original no es de uso común.
+ *  4) Catálogo sistemático ATC (vocabulario-atc.ts) que recorre las 14
+ *     categorías anatómicas de la OMS para máxima cobertura.
  */
+import { VOCABULARIO_ATC } from './vocabulario-atc'
 
 /* ════════════════════════════════════════════════════════════════
  * CATÁLOGOS
@@ -646,6 +649,8 @@ const TODOS_LOS_TERMINOS: string[] = [
   ...GINECO_OBSTETRICIA, ...ANESTESIA_URGENCIAS, ...MARCAS_COMERCIALES_MX,
   ...LABORATORIO, ...IMAGENOLOGIA, ...PROCEDIMIENTOS_QUIRURGICOS,
   ...MICROBIOLOGIA_PATOGENOS,
+  // v4 — catálogo sistemático ATC completo (14 grupos anatómicos A→V)
+  ...VOCABULARIO_ATC,
   ...Object.values(ABREVIATURAS),  // forma expandida también es buena
   ...Object.keys(ABREVIATURAS),     // y la abreviada
 ]
