@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v43'  // Audio HIFI + gpt-4o-transcribe + medidor + plan abordaje
+const CACHE = 'nexusmed-v44'  // Streaming live + pause/resume + crash recovery + NER médico
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

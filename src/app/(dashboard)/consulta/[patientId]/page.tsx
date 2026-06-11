@@ -50,6 +50,21 @@ export default function ConsultaActivaPage() {
     }
   }, [audio.estado, audio.transcripcion]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Texto en vivo del streaming (mientras graba) también va al editor — el médico
+  // ve la transcripción aparecer sin esperar al final.
+  useEffect(() => {
+    if (audio.estado === 'grabando' && audio.transcripcionParcial) {
+      voz.setTranscripcion(audio.transcripcionParcial)
+    }
+  }, [audio.estado, audio.transcripcionParcial]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Detección de audio huérfano de sesión previa (crash recovery)
+  const [ofreceRecovery, setOfreceRecovery] = useState(false)
+  useEffect(() => {
+    if (!patientId) return
+    audio.hayRecovery(`consulta-${patientId}`).then(setOfreceRecovery).catch(() => {})
+  }, [patientId]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const [patient, setPatient] = useState<Patient | null>(null)
   const [tipo, setTipo] = useState<TipoNota>('primera_vez')
   const [secciones, setSecciones] = useState<NotaSeccion[]>(seccionesVacias('primera_vez'))
@@ -497,29 +512,61 @@ export default function ConsultaActivaPage() {
           {/* Modo WHISPER (MediaRecorder + servidor) */}
           {modoVoz === 'whisper' && audio.soportado && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+              {ofreceRecovery && audio.estado === 'inactivo' && (
+                <div style={{
+                  width: '100%', padding: '10px 14px', borderRadius: 10,
+                  border: '1px solid var(--amber)', background: 'rgba(217, 119, 6, 0.08)',
+                  display: 'flex', alignItems: 'center', gap: 12, fontSize: 13,
+                }}>
+                  <span>🎙️ Hay audio guardado de una sesión anterior. ¿Recuperar y transcribir?</span>
+                  <button className="btn btn-sm" style={{ background: 'var(--amber)', color: '#000', border: 'none', fontWeight: 600 }}
+                    onClick={async () => { await audio.recuperarAudio(`consulta-${patientId}`); setOfreceRecovery(false) }}>
+                    Recuperar
+                  </button>
+                  <button className="btn btn-sm btn-ghost" onClick={() => { audio.reset(); setOfreceRecovery(false) }}>
+                    Descartar
+                  </button>
+                </div>
+              )}
               <button
                 onClick={async () => {
                   if (audio.estado === 'grabando') await audio.detener()
-                  else if (consentimiento) audio.iniciar()
+                  else if (audio.estado === 'pausado') await audio.detener()
+                  else if (consentimiento) audio.iniciar({ recoveryKey: `consulta-${patientId}` })
                   else setModalConsentimiento(true)
                 }}
                 disabled={audio.estado === 'subiendo'}
                 style={{
                   width: 64, height: 64, borderRadius: '50%', border: 'none', cursor: audio.estado === 'subiendo' ? 'default' : 'pointer', flexShrink: 0,
-                  background: audio.estado === 'grabando' ? '#ef4444' : 'var(--teal)',
+                  background: (audio.estado === 'grabando' || audio.estado === 'pausado') ? '#ef4444' : 'var(--teal)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   animation: audio.estado === 'grabando' ? 'pulse 1.5s infinite' : 'none',
                 }}
+                title={audio.estado === 'grabando' || audio.estado === 'pausado' ? 'Detener y transcribir' : 'Iniciar grabación'}
               >
                 {audio.estado === 'subiendo'
                   ? <Loader2 size={24} color="#fff" style={{ animation: 'spin 1s linear infinite' }} />
-                  : audio.estado === 'grabando'
+                  : (audio.estado === 'grabando' || audio.estado === 'pausado')
                     ? <Square size={24} color="#fff" fill="#fff" />
                     : <Mic size={26} color="#000" />}
               </button>
+              {(audio.estado === 'grabando' || audio.estado === 'pausado') && (
+                <button
+                  onClick={() => audio.estado === 'grabando' ? audio.pausar() : audio.reanudar()}
+                  style={{
+                    width: 48, height: 48, borderRadius: '50%', border: '1px solid var(--border2)',
+                    background: 'var(--s2)', color: 'var(--text)', cursor: 'pointer', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+                  }}
+                  title={audio.estado === 'grabando' ? 'Pausar (mantiene la grabación)' : 'Reanudar'}
+                >
+                  {audio.estado === 'grabando' ? '⏸' : '▶'}
+                </button>
+              )}
               <div style={{ flex: 1, minWidth: 200 }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>
-                  {audio.estado === 'grabando' ? `🔴 Grabando · ${String(Math.floor(audio.duracion / 60)).padStart(2,'0')}:${String(audio.duracion % 60).padStart(2,'0')}`
+                  {audio.estado === 'grabando' ? `🔴 Grabando · ${String(Math.floor(audio.duracion / 60)).padStart(2,'0')}:${String(audio.duracion % 60).padStart(2,'0')}${audio.chunksTranscritos > 0 ? ` · ${audio.chunksTranscritos} chunks transcritos` : ''}`
+                    : audio.estado === 'pausado' ? `⏸ Pausado · ${String(Math.floor(audio.duracion / 60)).padStart(2,'0')}:${String(audio.duracion % 60).padStart(2,'0')}`
                     : audio.estado === 'subiendo' ? 'Transcribiendo audio…'
                     : audio.estado === 'listo' ? '✅ Transcripción lista'
                     : 'Grabar audio para transcribir'}

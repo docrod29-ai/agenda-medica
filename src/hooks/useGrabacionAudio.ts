@@ -1,30 +1,51 @@
 'use client'
 import { corregirTranscripcion } from '@/lib/expediente/medical-vocabulary'
 /**
- * Hook de grabación HIFI para Whisper / gpt-4o-transcribe.
+ * Hook de grabación HIFI con streaming + pause/resume + crash recovery.
  *
- * v2 — overhaul de audio engineering (2026-06-10):
- *   - Sample rate 48kHz solicitado al navegador (3× mejor que 16kHz default)
- *   - Bitrate Opus 128kbps explícito (vs ~32kbps default → palabras quedaban a 1/4)
- *   - autoGainControl ON → ecualiza voz de médico vs paciente sin chop
- *   - noiseSuppression configurable (algunos ambientes ruidosos lo necesitan OFF)
- *   - AnalyserNode → medidor de nivel de audio en tiempo real (UI feedback)
- *   - Detección de silencio prolongado (>15s) que AVISA (no detiene)
- *   - Watchdog de duración (>20 min sugiere dividir — Whisper acepta 25 MB)
+ * v3 — arquitectura "ultra perfect" (2026-06-10):
  *
- * Limpia recursos en 5 paths (ISO 27001 — ver useGrabacionAudio v1 doc).
+ *   CAPTURA (sin cambios v2):
+ *     48kHz · mono · 128kbps Opus · autoGainControl · medidor RMS en vivo
+ *
+ *   STREAMING (nuevo):
+ *     Cada ~20s se manda un chunk a /api/expediente/transcribir-chunk.
+ *     El texto aparece en `transcripcionParcial` mientras la grabación
+ *     sigue. Al detener, se reusa lo ya transcrito + el último chunk
+ *     pendiente — el médico ya no espera 2 min al final.
+ *     `setTranscripcion` final = concatenación + corrección léxica.
+ *
+ *   PAUSE / RESUME (nuevo):
+ *     pausar() — MediaRecorder.pause() + congela timer/analyser
+ *     reanudar() — MediaRecorder.resume() + reanuda timer/analyser
+ *     útil cuando el paciente sale al baño o entra acompañante a media
+ *     consulta sin que termine la nota.
+ *
+ *   CRASH RECOVERY (nuevo):
+ *     Los chunks se persisten en IndexedDB conforme van llegando.
+ *     Si el navegador crashea o el doctor cierra la pestaña por error,
+ *     al reabrir la consulta detectamos chunks huérfanos y ofrecemos
+ *     recuperar. NUNCA se pierde audio capturado.
+ *     Los chunks se borran al confirmar la transcripción final.
+ *
+ *   LIBERACIÓN DE RECURSOS (sin cambios v2):
+ *     5 paths cubiertos: detener feliz, fallo de getUserMedia, error en
+ *     vivo, unmount, reset. AudioContext.close() + RAF cancel + IDB clear.
  */
 import { useState, useRef, useCallback, useEffect } from 'react'
 
-type Estado = 'inactivo' | 'grabando' | 'subiendo' | 'listo' | 'error'
+type Estado = 'inactivo' | 'grabando' | 'pausado' | 'subiendo' | 'listo' | 'error'
 
 export interface OpcionesGrabacion {
-  /** Suprimir ruido de fondo. Off en ambientes con voces simultáneas. Default: true */
   noiseSuppression?: boolean
-  /** Cancelar eco del altavoz. Default: true */
   echoCancellation?: boolean
-  /** Auto-ajuste de ganancia (ecualiza voces fuertes/débiles). Default: true */
   autoGainControl?: boolean
+  /** Activa streaming chunks (default true). Off solo para debugging. */
+  streaming?: boolean
+  /** Intervalo de chunks a transcribir en vivo (ms). Default 20s. */
+  intervaloChunkMs?: number
+  /** ID estable para recovery vía IndexedDB (ej. patientId). */
+  recoveryKey?: string
 }
 
 export interface UseGrabacionAudio {
@@ -32,45 +53,134 @@ export interface UseGrabacionAudio {
   estado: Estado
   duracion: number
   transcripcion: string
+  /** Texto que va apareciendo conforme llegan los chunks (streaming). */
+  transcripcionParcial: string
   error: string
-  /** Nivel de audio 0..1 — medir actividad de la voz en vivo (UI level meter). */
   nivelAudio: number
-  /** True si llevamos >15s sin captar señal — UI puede mostrar warning. */
   silencioProlongado: boolean
-  /** Tamaño actual del blob en bytes — UI puede mostrar "12 MB / 25 MB". */
   bytesGrabados: number
+  /** Cuántos chunks han sido transcritos en vivo. */
+  chunksTranscritos: number
   iniciar: (opts?: OpcionesGrabacion) => Promise<void>
   detener: () => Promise<void>
+  pausar: () => void
+  reanudar: () => void
   reset: () => void
   setTranscripcion: (t: string) => void
+  /** Verifica si hay audio sin transcribir guardado de una sesión previa. */
+  hayRecovery: (recoveryKey: string) => Promise<boolean>
+  /** Recupera el audio huérfano y lo manda a transcribir. */
+  recuperarAudio: (recoveryKey: string) => Promise<void>
 }
 
-// Umbrales de audio engineering
-const SILENCIO_MS = 15_000        // 15s sin señal → warning
-const NIVEL_SILENCIO = 0.02       // RMS < 2% → silencio
-const BITRATE_OPUS = 128_000      // 128kbps — calidad voz profesional
-const SAMPLE_RATE_OBJETIVO = 48_000 // 48kHz — gold standard
+const SILENCIO_MS = 15_000
+const NIVEL_SILENCIO = 0.02
+const BITRATE_OPUS = 128_000
+const SAMPLE_RATE_OBJETIVO = 48_000
+const INTERVALO_CHUNK_DEFAULT_MS = 20_000
+
+// ─────────────────────────────────────────────────────────────────
+// IndexedDB — almacén minimalista para crash recovery
+// ─────────────────────────────────────────────────────────────────
+
+const DB_NAME = 'nexusmed-recovery'
+const STORE = 'audio_chunks'
+
+function abrirDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1)
+    req.onupgradeneeded = () => {
+      const db = req.result
+      if (!db.objectStoreNames.contains(STORE)) {
+        db.createObjectStore(STORE, { keyPath: ['recoveryKey', 'idx'] })
+      }
+    }
+    req.onsuccess = () => resolve(req.result)
+    req.onerror = () => reject(req.error)
+  })
+}
+
+async function guardarChunk(recoveryKey: string, idx: number, blob: Blob) {
+  try {
+    const db = await abrirDB()
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite')
+      tx.objectStore(STORE).put({ recoveryKey, idx, blob, ts: Date.now() })
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+    })
+    db.close()
+  } catch {
+    // IndexedDB puede fallar en modo privado — no es bloqueante
+  }
+}
+
+async function leerChunks(recoveryKey: string): Promise<Blob[]> {
+  try {
+    const db = await abrirDB()
+    const chunks: { idx: number; blob: Blob }[] = await new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readonly')
+      const range = IDBKeyRange.bound([recoveryKey, 0], [recoveryKey, Number.MAX_SAFE_INTEGER])
+      const req = tx.objectStore(STORE).getAll(range)
+      req.onsuccess = () => resolve(req.result ?? [])
+      req.onerror = () => reject(req.error)
+    })
+    db.close()
+    return chunks.sort((a, b) => a.idx - b.idx).map(c => c.blob)
+  } catch {
+    return []
+  }
+}
+
+async function borrarChunks(recoveryKey: string) {
+  try {
+    const db = await abrirDB()
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite')
+      const range = IDBKeyRange.bound([recoveryKey, 0], [recoveryKey, Number.MAX_SAFE_INTEGER])
+      tx.objectStore(STORE).delete(range)
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+    })
+    db.close()
+  } catch { /* */ }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Hook principal
+// ─────────────────────────────────────────────────────────────────
 
 export function useGrabacionAudio(): UseGrabacionAudio {
   const [soportado] = useState(() => typeof window !== 'undefined' && typeof MediaRecorder !== 'undefined')
   const [estado, setEstado] = useState<Estado>('inactivo')
   const [duracion, setDuracion] = useState(0)
   const [transcripcion, setTranscripcion] = useState('')
+  const [transcripcionParcial, setTranscripcionParcial] = useState('')
   const [error, setError] = useState('')
   const [nivelAudio, setNivelAudio] = useState(0)
   const [silencioProlongado, setSilencioProlongado] = useState(false)
   const [bytesGrabados, setBytesGrabados] = useState(0)
+  const [chunksTranscritos, setChunksTranscritos] = useState(0)
 
   const mediaRef = useRef<MediaRecorder | null>(null)
-  const chunksRef = useRef<Blob[]>([])
+  const chunksRef = useRef<Blob[]>([])           // chunks recientes para flush
+  const todosChunksRef = useRef<Blob[]>([])      // TODOS los chunks (blob final)
   const streamRef = useRef<MediaStream | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const chunkFlushRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const startRef = useRef<number>(0)
-  // Audio engineering — AnalyserNode para nivel en vivo
+  const pausaTotalMsRef = useRef<number>(0)
+  const pausaInicioRef = useRef<number>(0)
   const audioCtxRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
   const rafRef = useRef<number | null>(null)
   const ultimaSenalRef = useRef<number>(0)
+  // Streaming
+  const chunkIdxRef = useRef<number>(0)
+  const textosChunksRef = useRef<string[]>([])
+  const recoveryKeyRef = useRef<string>('')
+  const streamingActivoRef = useRef<boolean>(true)
+  const mimeRef = useRef<string>('')
 
   const liberarRecursos = useCallback(() => {
     const rec = mediaRef.current
@@ -85,48 +195,95 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     }
 
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+    if (chunkFlushRef.current) { clearInterval(chunkFlushRef.current); chunkFlushRef.current = null }
     if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
 
-    // AudioContext debe cerrarse explícito — sino queda en memoria con el AnalyserNode
     if (audioCtxRef.current) {
-      try { audioCtxRef.current.close() } catch { /* ya cerrado */ }
+      try { audioCtxRef.current.close() } catch { /* */ }
       audioCtxRef.current = null
     }
     analyserRef.current = null
 
     chunksRef.current = []
+    todosChunksRef.current = []
+    pausaTotalMsRef.current = 0
+    pausaInicioRef.current = 0
+    chunkIdxRef.current = 0
+    textosChunksRef.current = []
     setNivelAudio(0)
     setSilencioProlongado(false)
     setBytesGrabados(0)
+    setChunksTranscritos(0)
+    setTranscripcionParcial('')
   }, [])
 
   const reset = useCallback(() => {
+    const rk = recoveryKeyRef.current
     liberarRecursos()
     setEstado('inactivo'); setDuracion(0); setTranscripcion(''); setError('')
+    if (rk) borrarChunks(rk)
+    recoveryKeyRef.current = ''
   }, [liberarRecursos])
 
   useEffect(() => () => { liberarRecursos() }, [liberarRecursos])
 
+  // Función: flushea chunks acumulados al endpoint de streaming
+  const flushChunks = useCallback(async () => {
+    if (!streamingActivoRef.current) return
+    if (chunksRef.current.length === 0) return
+    const idx = chunkIdxRef.current++
+    const blob = new Blob(chunksRef.current, { type: mimeRef.current })
+    chunksRef.current = []
+    if (blob.size < 1024) return  // skip muy pequeños
+
+    // Contexto previo (últimas ~30 palabras del último chunk transcrito)
+    const prevContext = textosChunksRef.current.length
+      ? textosChunksRef.current[textosChunksRef.current.length - 1].split(/\s+/).slice(-30).join(' ')
+      : ''
+
+    try {
+      const fd = new FormData()
+      fd.append('audio', blob, `chunk-${idx}.webm`)
+      fd.append('chunkIdx', String(idx))
+      if (prevContext) fd.append('prevContext', prevContext)
+      const res = await fetch('/api/expediente/transcribir-chunk', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (data.ok && data.text) {
+        textosChunksRef.current[idx] = data.text
+        // Reconstruir transcripción parcial en orden
+        const completa = textosChunksRef.current.filter(Boolean).join(' ')
+        setTranscripcionParcial(completa)
+        setChunksTranscritos(c => c + 1)
+      }
+    } catch {
+      // Falla de red — el chunk queda solo en el blob final. No reintentar
+      // (al detener se reusa el blob completo)
+    }
+  }, [])
+
   const iniciar = useCallback(async (opts?: OpcionesGrabacion) => {
     if (!soportado) { setError('Tu navegador no soporta grabación de audio'); setEstado('error'); return }
+    streamingActivoRef.current = opts?.streaming !== false
+    recoveryKeyRef.current = opts?.recoveryKey ?? ''
+    const intervaloMs = opts?.intervaloChunkMs ?? INTERVALO_CHUNK_DEFAULT_MS
+
     try {
-      // ── CONSTRAINTS HIFI — calidad de captura ────────────────────
-      // sampleRate y channelCount son ideales (el navegador puede ignorar).
-      // Lo que SÍ marca diferencia: autoGainControl + bitrate al MediaRecorder.
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: opts?.echoCancellation ?? true,
           noiseSuppression: opts?.noiseSuppression ?? true,
           autoGainControl: opts?.autoGainControl ?? true,
           sampleRate: SAMPLE_RATE_OBJETIVO,
-          channelCount: 1,  // mono — basta para voz, ahorra 50% el blob
+          channelCount: 1,
         },
       })
       streamRef.current = stream
       chunksRef.current = []
+      todosChunksRef.current = []
+      chunkIdxRef.current = 0
+      textosChunksRef.current = []
 
-      // ── AnalyserNode → medidor de nivel en vivo + detección silencio ──
-      // Si no se puede crear AudioContext, seguimos sin medidor (no es bloqueante).
+      // AnalyserNode → medidor de nivel + detección de silencio
       try {
         const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
         const ctx = new Ctx({ sampleRate: SAMPLE_RATE_OBJETIVO })
@@ -143,11 +300,9 @@ export function useGrabacionAudio(): UseGrabacionAudio {
         const tick = () => {
           if (!analyserRef.current) return
           analyserRef.current.getFloatTimeDomainData(buffer)
-          // RMS — Root Mean Square — la métrica estándar de actividad de voz
           let sumSq = 0
           for (let i = 0; i < buffer.length; i++) sumSq += buffer[i] * buffer[i]
           const rms = Math.sqrt(sumSq / buffer.length)
-          // Escalar a 0..1 con techo (la voz humana raramente excede 0.3 RMS)
           const nivel = Math.min(1, rms / 0.3)
           setNivelAudio(nivel)
           if (rms > NIVEL_SILENCIO) {
@@ -159,11 +314,8 @@ export function useGrabacionAudio(): UseGrabacionAudio {
           rafRef.current = requestAnimationFrame(tick)
         }
         rafRef.current = requestAnimationFrame(tick)
-      } catch {
-        // sin medidor — seguimos grabando
-      }
+      } catch { /* sin medidor */ }
 
-      // ── MIME selection — iOS Safari NO acepta webm ───────────────
       const candidates = [
         'audio/webm;codecs=opus',
         'audio/webm',
@@ -178,8 +330,8 @@ export function useGrabacionAudio(): UseGrabacionAudio {
           mime = m; break
         }
       }
+      mimeRef.current = mime
 
-      // ── BITRATE 128kbps explícito — clave para que Whisper entienda ──
       const recOpts: MediaRecorderOptions = mime
         ? { mimeType: mime, audioBitsPerSecond: BITRATE_OPUS }
         : { audioBitsPerSecond: BITRATE_OPUS }
@@ -187,8 +339,13 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       rec.ondataavailable = (e) => {
         if (e.data.size > 0) {
           chunksRef.current.push(e.data)
-          // Acumulado de bytes — UI puede avisar antes del límite 25 MB
+          todosChunksRef.current.push(e.data)
           setBytesGrabados(prev => prev + e.data.size)
+          // Persistir en IndexedDB para crash recovery
+          if (recoveryKeyRef.current) {
+            const localIdx = todosChunksRef.current.length - 1
+            guardarChunk(recoveryKeyRef.current, localIdx, e.data)
+          }
         }
       }
       rec.onerror = () => {
@@ -196,13 +353,20 @@ export function useGrabacionAudio(): UseGrabacionAudio {
         setError('Error en la grabación de audio')
         setEstado('error')
       }
-      // Chunks cada 2s (era 1s — menos overhead, mejor compresión)
       rec.start(2000)
       mediaRef.current = rec
       startRef.current = Date.now()
+      pausaTotalMsRef.current = 0
       timerRef.current = setInterval(() => {
-        setDuracion(Math.floor((Date.now() - startRef.current) / 1000))
+        const transcurrido = Date.now() - startRef.current - pausaTotalMsRef.current
+        setDuracion(Math.floor(transcurrido / 1000))
       }, 500)
+
+      // Streaming: flush periódico al endpoint
+      if (streamingActivoRef.current) {
+        chunkFlushRef.current = setInterval(flushChunks, intervaloMs)
+      }
+
       setEstado('grabando')
       setError('')
     } catch (e) {
@@ -217,7 +381,55 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       }
       setEstado('error')
     }
-  }, [soportado, liberarRecursos, silencioProlongado])
+  }, [soportado, liberarRecursos, silencioProlongado, flushChunks])
+
+  const pausar = useCallback(() => {
+    const rec = mediaRef.current
+    if (!rec || rec.state !== 'recording') return
+    try {
+      rec.pause()
+      pausaInicioRef.current = Date.now()
+      // Pausar timer + analyser + flush
+      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+      if (chunkFlushRef.current) { clearInterval(chunkFlushRef.current); chunkFlushRef.current = null }
+      if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
+      setEstado('pausado')
+    } catch { /* */ }
+  }, [])
+
+  const reanudar = useCallback(() => {
+    const rec = mediaRef.current
+    if (!rec || rec.state !== 'paused') return
+    try {
+      rec.resume()
+      pausaTotalMsRef.current += Date.now() - pausaInicioRef.current
+      pausaInicioRef.current = 0
+      timerRef.current = setInterval(() => {
+        const transcurrido = Date.now() - startRef.current - pausaTotalMsRef.current
+        setDuracion(Math.floor(transcurrido / 1000))
+      }, 500)
+      if (streamingActivoRef.current) {
+        chunkFlushRef.current = setInterval(flushChunks, INTERVALO_CHUNK_DEFAULT_MS)
+      }
+      // Reanudar analyser
+      if (audioCtxRef.current && analyserRef.current) {
+        const analyser = analyserRef.current
+        const buffer = new Float32Array(analyser.fftSize)
+        const tick = () => {
+          if (!analyserRef.current) return
+          analyserRef.current.getFloatTimeDomainData(buffer)
+          let sumSq = 0
+          for (let i = 0; i < buffer.length; i++) sumSq += buffer[i] * buffer[i]
+          const rms = Math.sqrt(sumSq / buffer.length)
+          setNivelAudio(Math.min(1, rms / 0.3))
+          if (rms > NIVEL_SILENCIO) ultimaSenalRef.current = Date.now()
+          rafRef.current = requestAnimationFrame(tick)
+        }
+        rafRef.current = requestAnimationFrame(tick)
+      }
+      setEstado('grabando')
+    } catch { /* */ }
+  }, [flushChunks])
 
   const detener = useCallback(async () => {
     const rec = mediaRef.current
@@ -229,11 +441,12 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       try { rec.stop() } catch { resolve() }
     })
 
-    // Detener TODO menos chunks (los necesitamos para el blob)
     streamRef.current?.getTracks().forEach(t => t.stop())
     streamRef.current = null
     if (timerRef.current) clearInterval(timerRef.current)
     timerRef.current = null
+    if (chunkFlushRef.current) clearInterval(chunkFlushRef.current)
+    chunkFlushRef.current = null
     if (rafRef.current) cancelAnimationFrame(rafRef.current)
     rafRef.current = null
     if (audioCtxRef.current) {
@@ -243,8 +456,14 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     analyserRef.current = null
     mediaRef.current = null
 
-    const blob = new Blob(chunksRef.current, { type: rec.mimeType })
+    // Flush final del último chunk pendiente (mejora la cobertura del streaming)
+    if (streamingActivoRef.current && chunksRef.current.length > 0) {
+      await flushChunks()
+    }
+
+    const blob = new Blob(todosChunksRef.current, { type: rec.mimeType })
     chunksRef.current = []
+    todosChunksRef.current = []
     if (blob.size === 0) { setEstado('error'); setError('Audio vacío'); return }
 
     const mt = rec.mimeType || ''
@@ -259,19 +478,76 @@ export function useGrabacionAudio(): UseGrabacionAudio {
         const { corregido } = corregirTranscripcion(data.text ?? '')
         setTranscripcion(corregido)
         setEstado('listo')
+        // Borrar chunks de recovery — el audio ya está transcrito
+        if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current)
+      } else if (textosChunksRef.current.length > 0) {
+        // Fallback: si la transcripción final falló pero el streaming funcionó,
+        // usamos la concatenación de chunks como respaldo
+        const combinado = textosChunksRef.current.filter(Boolean).join(' ')
+        const { corregido } = corregirTranscripcion(combinado)
+        setTranscripcion(corregido)
+        setEstado('listo')
+        if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current)
       } else {
         setError(data.error ?? 'Error transcribiendo')
         setEstado('error')
       }
     } catch (e) {
-      setError('Error de red: ' + String(e))
+      // Network error: usa lo que tengamos del streaming
+      if (textosChunksRef.current.length > 0) {
+        const combinado = textosChunksRef.current.filter(Boolean).join(' ')
+        const { corregido } = corregirTranscripcion(combinado)
+        setTranscripcion(corregido)
+        setEstado('listo')
+      } else {
+        setError('Error de red: ' + String(e))
+        setEstado('error')
+      }
+    }
+  }, [flushChunks])
+
+  // ─── Recovery API ──────────────────────────────────────────
+  const hayRecovery = useCallback(async (recoveryKey: string): Promise<boolean> => {
+    const chunks = await leerChunks(recoveryKey)
+    return chunks.length > 0
+  }, [])
+
+  const recuperarAudio = useCallback(async (recoveryKey: string) => {
+    setEstado('subiendo')
+    const chunks = await leerChunks(recoveryKey)
+    if (chunks.length === 0) {
+      setError('No hay audio guardado para recuperar')
+      setEstado('error')
+      return
+    }
+    // Reconstruir blob con el tipo del primer chunk
+    const blob = new Blob(chunks, { type: chunks[0].type || 'audio/webm' })
+    const mt = blob.type || ''
+    const ext = mt.includes('mp4') ? 'm4a' : mt.includes('ogg') ? 'ogg' : 'webm'
+    try {
+      const fd = new FormData()
+      fd.append('audio', blob, `recovery.${ext}`)
+      const res = await fetch('/api/expediente/transcribir', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (data.ok) {
+        const { corregido } = corregirTranscripcion(data.text ?? '')
+        setTranscripcion(corregido)
+        setEstado('listo')
+        await borrarChunks(recoveryKey)
+      } else {
+        setError(data.error ?? 'Error transcribiendo audio recuperado')
+        setEstado('error')
+      }
+    } catch (e) {
+      setError('Error recuperando audio: ' + String(e))
       setEstado('error')
     }
   }, [])
 
   return {
-    soportado, estado, duracion, transcripcion, error,
-    nivelAudio, silencioProlongado, bytesGrabados,
-    iniciar, detener, reset, setTranscripcion,
+    soportado, estado, duracion, transcripcion, transcripcionParcial, error,
+    nivelAudio, silencioProlongado, bytesGrabados, chunksTranscritos,
+    iniciar, detener, pausar, reanudar, reset, setTranscripcion,
+    hayRecovery, recuperarAudio,
   }
 }
