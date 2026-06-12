@@ -15,6 +15,7 @@ import { seccionesVacias, requiereSignosVitales, esPreoperatoria } from '@/lib/e
 import { PreopAssessment } from '@/components/PreopAssessment'
 import { RevisionPanel } from '@/components/RevisionPanel'
 import { NerPanel } from '@/components/NerPanel'
+import { CorreccionesPanel } from '@/components/CorreccionesPanel'
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
 import { logAudit } from '@/lib/expediente/audit-log'
@@ -662,6 +663,20 @@ export default function ConsultaActivaPage() {
               onChange={e => voz.setTranscripcion(e.target.value)}
               placeholder="La transcripción aparecerá aquí…"
               style={S.transcripcion}
+            />
+          )}
+
+          {/* Panel de correcciones léxicas — transparencia + deshacer.
+              En un documento legal nada debe cambiar en silencio: el médico
+              ve qué corrigió el sistema y revierte con un clic si se equivocó. */}
+          {audio.estado === 'listo' && audio.correcciones.length > 0 && (
+            <CorreccionesPanel
+              correcciones={audio.correcciones}
+              onRevertir={(c) => {
+                // Revierte una sustitución concreta en el texto del editor
+                const re = new RegExp(`\\b${c.corregido.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`)
+                voz.setTranscripcion(voz.transcripcion.replace(re, c.original))
+              }}
             />
           )}
         </div>

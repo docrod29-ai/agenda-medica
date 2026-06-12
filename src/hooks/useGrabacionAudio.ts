@@ -1,5 +1,5 @@
 'use client'
-import { corregirTranscripcion } from '@/lib/expediente/medical-vocabulary'
+import { corregirTranscripcion, type CambioTranscripcion } from '@/lib/expediente/medical-vocabulary'
 /**
  * Hook de grabación HIFI con streaming + pause/resume + crash recovery.
  *
@@ -61,6 +61,12 @@ export interface UseGrabacionAudio {
   bytesGrabados: number
   /** Cuántos chunks han sido transcritos en vivo. */
   chunksTranscritos: number
+  /**
+   * Correcciones léxicas aplicadas a la transcripción final.
+   * Cada una es { original, corregido, motivo } — el médico puede
+   * revisarlas y revertirlas (documento legal: nada cambia en silencio).
+   */
+  correcciones: CambioTranscripcion[]
   iniciar: (opts?: OpcionesGrabacion) => Promise<void>
   detener: () => Promise<void>
   pausar: () => void
@@ -161,6 +167,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   const [silencioProlongado, setSilencioProlongado] = useState(false)
   const [bytesGrabados, setBytesGrabados] = useState(0)
   const [chunksTranscritos, setChunksTranscritos] = useState(0)
+  const [correcciones, setCorrecciones] = useState<CambioTranscripcion[]>([])
 
   const mediaRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])           // chunks recientes para flush
@@ -221,6 +228,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     const rk = recoveryKeyRef.current
     liberarRecursos()
     setEstado('inactivo'); setDuracion(0); setTranscripcion(''); setError('')
+    setCorrecciones([])
     if (rk) borrarChunks(rk)
     recoveryKeyRef.current = ''
   }, [liberarRecursos])
@@ -478,8 +486,9 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       const res = await fetch('/api/expediente/transcribir', { method: 'POST', body: fd })
       const data = await res.json()
       if (data.ok) {
-        const { corregido } = corregirTranscripcion(data.text ?? '')
+        const { corregido, cambios } = corregirTranscripcion(data.text ?? '')
         setTranscripcion(corregido)
+        setCorrecciones(cambios)
         setEstado('listo')
         // Borrar chunks de recovery — el audio ya está transcrito
         if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current)
@@ -487,8 +496,9 @@ export function useGrabacionAudio(): UseGrabacionAudio {
         // Fallback: si la transcripción final falló pero el streaming funcionó,
         // usamos la concatenación de chunks como respaldo
         const combinado = textosChunksRef.current.filter(Boolean).join(' ')
-        const { corregido } = corregirTranscripcion(combinado)
+        const { corregido, cambios } = corregirTranscripcion(combinado)
         setTranscripcion(corregido)
+        setCorrecciones(cambios)
         setEstado('listo')
         if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current)
       } else {
@@ -499,8 +509,9 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       // Network error: usa lo que tengamos del streaming
       if (textosChunksRef.current.length > 0) {
         const combinado = textosChunksRef.current.filter(Boolean).join(' ')
-        const { corregido } = corregirTranscripcion(combinado)
+        const { corregido, cambios } = corregirTranscripcion(combinado)
         setTranscripcion(corregido)
+        setCorrecciones(cambios)
         setEstado('listo')
       } else {
         setError('Error de red: ' + String(e))
@@ -533,8 +544,9 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       const res = await fetch('/api/expediente/transcribir', { method: 'POST', body: fd })
       const data = await res.json()
       if (data.ok) {
-        const { corregido } = corregirTranscripcion(data.text ?? '')
+        const { corregido, cambios } = corregirTranscripcion(data.text ?? '')
         setTranscripcion(corregido)
+        setCorrecciones(cambios)
         setEstado('listo')
         await borrarChunks(recoveryKey)
       } else {
@@ -549,7 +561,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
 
   return {
     soportado, estado, duracion, transcripcion, transcripcionParcial, error,
-    nivelAudio, silencioProlongado, bytesGrabados, chunksTranscritos,
+    nivelAudio, silencioProlongado, bytesGrabados, chunksTranscritos, correcciones,
     iniciar, detener, pausar, reanudar, reset, setTranscripcion,
     hayRecovery, recuperarAudio,
   }
