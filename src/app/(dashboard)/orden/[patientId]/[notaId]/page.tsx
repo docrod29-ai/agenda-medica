@@ -118,6 +118,7 @@ export default function GeneradorOrdenPage() {
         pacienteNombre: patient?.nombre ?? '',
         pacienteEdad: patient?.edad,
         pacienteSexo: patient?.sexo,
+        pacienteFechaNac: patient?.fechaNacimiento,
         diagnostico: diagnostico || undefined,
         estudios,
         indicaciones,

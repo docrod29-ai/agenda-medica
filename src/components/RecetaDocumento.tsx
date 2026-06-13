@@ -59,6 +59,15 @@ export interface RecetaDocumentoProps {
 /** Carta física: 216 × 279 mm */
 const CARTA = { widthMm: 216, heightMm: 279 }
 
+/** Formatea la fecha de nacimiento (YYYY-MM-DD) como "15/ene/1985". */
+function fmtFechaNac(fecha: string): string {
+  if (!fecha) return ''
+  // Ancla a mediodía para no correr el día por zona horaria
+  const d = new Date(fecha.length === 10 ? fecha + 'T12:00:00' : fecha)
+  if (isNaN(d.getTime())) return fecha
+  return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
 /**
  * Dimensiones FÍSICAS de la hoja que sale de la impresora.
  * En modo 'carta' el host es papel carta aunque la receta sea media carta.
@@ -388,6 +397,7 @@ function HojaCustom({
               <strong>Nombre:</strong> {data.paciente?.nombre ?? '—'}
               {data.paciente?.edad ? `   ·   Edad: ${data.paciente.edad}` : ''}
               {data.paciente?.sexo ? `   ·   ${data.paciente.sexo}` : ''}
+              {data.paciente?.fechaNacimiento ? `   ·   F. nac.: ${fmtFechaNac(data.paciente.fechaNacimiento)}` : ''}
             </div>
             {recetaConfig.mostrarDiagnostico !== false && data.diagnostico && (
               <div style={{ marginBottom: 4 }}>
@@ -567,6 +577,7 @@ function HojaGenerada({
             <div style={{ fontSize: 10, color: '#555', textAlign: 'right' }}>
               {data.paciente?.edad ? <>{data.paciente.edad} años{data.paciente?.sexo ? ' · ' : ''}</> : ''}
               {data.paciente?.sexo || ''}
+              {data.paciente?.fechaNacimiento && <div style={{ fontSize: 9.5, color: '#888' }}>F. nac.: {fmtFechaNac(data.paciente.fechaNacimiento)}</div>}
               {data.paciente?.telefono && <div style={{ fontSize: 9.5, color: '#888' }}>Tel. {data.paciente.telefono}</div>}
             </div>
           </div>

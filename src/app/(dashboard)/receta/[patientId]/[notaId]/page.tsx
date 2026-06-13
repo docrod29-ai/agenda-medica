@@ -128,6 +128,7 @@ export default function GeneradorRecetaPage() {
         pacienteNombre: patient?.nombre ?? '',
         pacienteEdad: patient?.edad,
         pacienteSexo: patient?.sexo,
+        pacienteFechaNac: patient?.fechaNacimiento,
         alergias: patient?.alergias,
         diagnostico: diagnostico || undefined,
         medicamentos,

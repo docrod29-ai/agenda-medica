@@ -23,6 +23,7 @@ export interface RecetaWordData {
   pacienteNombre: string
   pacienteEdad?: number | string
   pacienteSexo?: string
+  pacienteFechaNac?: string
   alergias?: string
   diagnostico?: string
   medicamentos?: Medicamento[]
@@ -33,6 +34,13 @@ export interface RecetaWordData {
 
 function esc(s: string | undefined | null): string {
   return (s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+function fmtFechaNacWord(fecha: string): string {
+  if (!fecha) return ''
+  const d = new Date(fecha.length === 10 ? fecha + 'T12:00:00' : fecha)
+  if (isNaN(d.getTime())) return fecha
+  return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 export function construirRecetaHTML(
@@ -117,7 +125,7 @@ export function construirRecetaHTML(
     <td><b>${titulo}</b></td>
     <td style="text-align:right;color:#666;">Folio: ${esc(data.folio)} · ${fechaTxt}</td>
   </tr></table>
-  <div><b>Paciente:</b> ${esc(data.pacienteNombre)}${data.pacienteEdad ? ' · Edad: ' + esc(String(data.pacienteEdad)) : ''}${data.pacienteSexo ? ' · ' + esc(data.pacienteSexo) : ''}</div>
+  <div><b>Paciente:</b> ${esc(data.pacienteNombre)}${data.pacienteEdad ? ' · Edad: ' + esc(String(data.pacienteEdad)) : ''}${data.pacienteSexo ? ' · ' + esc(data.pacienteSexo) : ''}${data.pacienteFechaNac ? ' · F. nac.: ' + esc(fmtFechaNacWord(data.pacienteFechaNac)) : ''}</div>
   ${alergias}
   ${dx}
   <hr style="border:none;border-top:0.5pt solid #ccc;margin:6pt 0;"/>
