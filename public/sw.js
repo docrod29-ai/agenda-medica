@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v54'  // lote 2 fase 2: verificarMiembro en whatsapp/stripe (anti cross-tenant)
+const CACHE = 'nexusmed-v55'  // lote 2 fase 3: webhook HMAC + send() local (anti fuga cross-tenant)
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

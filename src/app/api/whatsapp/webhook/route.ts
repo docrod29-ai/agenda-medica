@@ -18,20 +18,45 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { createHmac, timingSafeEqual } from 'node:crypto'
 import { adminDb } from '@/lib/firebase-admin'
 import { ClinicConfig, Doctor, Appointment, AppointmentType } from '@/types'
 import { sendWhatsApp } from '@/lib/whatsapp-send'
 
-const VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_TOKEN || 'agenda-medica-bot'
+// Sin fallback público: si no está configurado, la verificación GET fallará
+// (mejor que aceptar un token por defecto que está en el repo).
+const VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_TOKEN || ''
+const META_APP_SECRET = process.env.META_APP_SECRET || ''
 
-// ── send helper — uses per-clinic credentials via whatsapp-send ───
-// clinicId is set at the top of handleMessage and captured via closure
-let _currentClinicId = ''
-
-async function send(to: string, body: string): Promise<boolean> {
-  const { ok } = await sendWhatsApp(_currentClinicId, to, body)
-  return ok
+/**
+ * Verifica la firma X-Hub-Signature-256 de Meta sobre el body CRUDO.
+ * Sin esto, cualquiera que conozca un phone_number_id puede inyectar
+ * mensajes falsos (agendar citas espurias, disparar envíos de WhatsApp
+ * a costa de la clínica).
+ * Migración segura: si META_APP_SECRET no está configurado, se advierte
+ * pero no se bloquea (para no tumbar un bot ya en producción). Una vez
+ * seteado el secreto, la verificación es obligatoria (fail-closed).
+ */
+function firmaValida(rawBody: string, signatureHeader: string | null): boolean {
+  if (!META_APP_SECRET) {
+    console.warn('[Bot] META_APP_SECRET no configurado — firma del webhook NO verificada')
+    return true
+  }
+  if (!signatureHeader || !signatureHeader.startsWith('sha256=')) return false
+  const esperado = 'sha256=' + createHmac('sha256', META_APP_SECRET).update(rawBody).digest('hex')
+  const a = Buffer.from(signatureHeader)
+  const b = Buffer.from(esperado)
+  if (a.length !== b.length) return false
+  return timingSafeEqual(a, b)
 }
+
+// NOTA DE SEGURIDAD: antes existía un `let _currentClinicId` a nivel de
+// módulo + un send() que lo leía por closure. En serverless una instancia
+// atiende peticiones CONCURRENTES, así que dos webhooks de clínicas distintas
+// se pisaban el _currentClinicId → riesgo de enviar el WhatsApp de un paciente
+// con las credenciales de OTRA clínica (fuga cross-tenant de PII).
+// Ahora send() es un closure LOCAL dentro de handleMessage que captura el
+// clinicId del parámetro — sin estado compartido entre invocaciones.
 
 function formatDate(fecha: string): string {
   const d = new Date(fecha + 'T12:00:00')
@@ -225,7 +250,12 @@ const TIPO_OPTIONS: { key: AppointmentType; label: string; n: string }[] = [
 // ── Main state machine ────────────────────────────────────────
 
 export async function handleMessage(from: string, body: string, clinicId: string): Promise<void> {
-  _currentClinicId = clinicId // set for send() closure
+  // send() local: captura clinicId de ESTA invocación (sin estado de módulo
+  // compartido → seguro ante peticiones concurrentes de distintas clínicas).
+  const send = async (to: string, msg: string): Promise<boolean> => {
+    const { ok } = await sendWhatsApp(clinicId, to, msg)
+    return ok
+  }
   const text = body.trim()
   const tLow = text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
@@ -638,10 +668,11 @@ export async function GET(req: NextRequest) {
   const token = searchParams.get('hub.verify_token')
   const challenge = searchParams.get('hub.challenge')
 
-  if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+  if (mode === 'subscribe' && VERIFY_TOKEN && token === VERIFY_TOKEN) {
     console.log('[Bot] Webhook verified')
     return new NextResponse(challenge, { status: 200 })
   }
+  if (!VERIFY_TOKEN) console.warn('[Bot] WHATSAPP_WEBHOOK_TOKEN no configurado — verificación rechazada')
   return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 }
 
@@ -649,7 +680,14 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    // Leer el body CRUDO (los bytes exactos que Meta firmó) ANTES de parsear.
+    const rawBody = await req.text()
+    const firma = req.headers.get('x-hub-signature-256')
+    if (!firmaValida(rawBody, firma)) {
+      console.warn('[Bot] Firma de webhook inválida — petición rechazada')
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+    }
+    const body = JSON.parse(rawBody)
 
     // Meta webhook payload structure
     const entry = body?.entry?.[0]
