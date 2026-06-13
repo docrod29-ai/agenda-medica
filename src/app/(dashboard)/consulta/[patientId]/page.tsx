@@ -20,6 +20,7 @@ import { fetchAutenticado } from '@/lib/auth-client'
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
 import { detectarInteracciones, detectarControlados } from '@/lib/expediente/farmacovigilancia'
+import { construirPlanPROA } from '@/lib/expediente/proa'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { validarNOM004 } from '@/lib/expediente/nom004'
 import { generarHashIntegridad, generarHashFirma } from '@/lib/expediente/integrity'
@@ -768,6 +769,28 @@ export default function ConsultaActivaPage() {
                 ))}
               </div>
             )}
+          </div>
+        )
+      })()}
+
+      {/* ── PROA / Stewardship — cuando hay antimicrobianos ── */}
+      {(() => {
+        const plan = construirPlanPROA(medicamentos)
+        if (!plan.hayAntimicrobianos) return null
+        return (
+          <div style={{ background: 'rgba(15,110,86,0.07)', border: '1px solid rgba(15,110,86,0.3)', borderRadius: 10, padding: '12px 14px', marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#0F6E56' }}>🦠 PROA — reevaluar antimicrobiano</div>
+              <div style={{ fontSize: 11.5, color: 'var(--text2)' }}>
+                Reevaluación sugerida: <strong>{plan.ventana}</strong> (48-72h)
+              </div>
+            </div>
+            <div style={{ fontSize: 11.5, color: 'var(--text3)', marginBottom: 6 }}>
+              Detectado(s): {plan.antimicrobianos.join(', ')}
+            </div>
+            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--text2)', lineHeight: 1.55 }}>
+              {plan.recordatorios.map((r, i) => <li key={i} style={{ marginBottom: 2 }}>{r}</li>)}
+            </ul>
           </div>
         )
       })()}

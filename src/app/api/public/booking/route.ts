@@ -53,15 +53,20 @@ export async function POST(req: NextRequest) {
     }
 
     const clinicRef = adminDb.collection('clinics').doc(clinicId)
-    const clinicSnap = await clinicRef.get()
-    if (!clinicSnap.exists) return NextResponse.json({ ok: false, error: 'Clínica no encontrada' }, { status: 404 })
-
-    const clinic = clinicSnap.data()!
-    if (clinic.status !== 'active' && clinic.status !== 'trial') {
+    // Resiliencia (igual que /api/public/clinic): el doc padre puede ser
+    // "virtual" en Firestore aunque la config exista. Validamos por config.
+    const [clinicSnap, configSnap] = await Promise.all([
+      clinicRef.get(),
+      clinicRef.collection('config').doc('main').get(),
+    ])
+    if (!clinicSnap.exists && !configSnap.exists) {
+      return NextResponse.json({ ok: false, error: 'Clínica no encontrada' }, { status: 404 })
+    }
+    const clinic = clinicSnap.exists ? clinicSnap.data()! : null
+    if (clinic && clinic.status && clinic.status !== 'active' && clinic.status !== 'trial') {
       return NextResponse.json({ ok: false, error: 'Clínica no activa' }, { status: 403 })
     }
 
-    const configSnap = await clinicRef.collection('config').doc('main').get()
     const cfg = configSnap.data() ?? {}
     if (cfg.publicBookingEnabled === false) {
       return NextResponse.json({ ok: false, error: 'Esta clínica no acepta reservas en línea' }, { status: 403 })
