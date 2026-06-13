@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v59'  // export Word editable + fix diseño receta que reaparecía (Firestore merge)
+const CACHE = 'nexusmed-v60'  // plantilla de receta pulida: chips Rx, encabezado, bloque paciente
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

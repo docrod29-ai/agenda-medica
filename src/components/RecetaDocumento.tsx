@@ -177,23 +177,55 @@ function HostCarta({ paper, children }: { paper: { widthMm: number; heightMm: nu
  * Cuerpos compartidos (Rx / estudios / indicaciones / nota)
  * ════════════════════════════════════════════════════════════════ */
 
-function CuerpoRx({ medicamentos, fontSize, startIndex }: { medicamentos: Medicamento[]; fontSize: number; startIndex: number }) {
+function CuerpoRx({ medicamentos, fontSize, startIndex, variant = 'plano', accent = '#2845EA' }: {
+  medicamentos: Medicamento[]; fontSize: number; startIndex: number
+  /** 'limpio' = chips numerados con acento (plantilla generada); 'plano' = lista simple (sobre diseño propio) */
+  variant?: 'limpio' | 'plano'
+  accent?: string
+}) {
   if (medicamentos.length === 0) return null
+
+  if (variant === 'plano') {
+    return (
+      <ol start={startIndex} style={{ margin: 0, paddingLeft: 18, fontSize, lineHeight: 1.5 }}>
+        {medicamentos.map((m, i) => (
+          <li key={i} style={{ marginBottom: 4, breakInside: 'avoid' }}>
+            <strong>{m.nombre}{m.dosis ? ` ${m.dosis}` : ''}</strong>
+            {m.via && <span> · {m.via}</span>}
+            <br />
+            <span style={{ fontSize: fontSize - 0.5 }}>
+              {m.frecuencia}{m.duracion && ` por ${m.duracion}`}{m.indicacion && ` — ${m.indicacion}`}
+            </span>
+          </li>
+        ))}
+      </ol>
+    )
+  }
+
+  // Variante LIMPIA — cada fármaco como fila con número en chip de acento,
+  // nombre+dosis prominente y posología en gris. Calidad "de revista".
   return (
-    <ol start={startIndex} style={{ margin: 0, paddingLeft: 18, fontSize, lineHeight: 1.5 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
       {medicamentos.map((m, i) => (
-        <li key={i} style={{ marginBottom: 4, breakInside: 'avoid' }}>
-          <strong>{m.nombre}{m.dosis ? ` ${m.dosis}` : ''}</strong>
-          {m.via && <span> · {m.via}</span>}
-          <br />
-          <span style={{ fontSize: fontSize - 0.5 }}>
-            {m.frecuencia}
-            {m.duracion && ` por ${m.duracion}`}
-            {m.indicacion && ` — ${m.indicacion}`}
-          </span>
-        </li>
+        <div key={i} style={{ display: 'flex', gap: 9, breakInside: 'avoid', alignItems: 'flex-start' }}>
+          <div style={{
+            flexShrink: 0, width: 18, height: 18, borderRadius: '50%',
+            background: accent, color: '#fff', fontSize: 10.5, fontWeight: 700,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1,
+          }}>{startIndex + i}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: fontSize + 0.5, fontWeight: 700, color: '#111', lineHeight: 1.25 }}>
+              {m.nombre}{m.dosis ? ` ${m.dosis}` : ''}
+              {m.via && <span style={{ fontWeight: 500, color: '#666', fontSize: fontSize - 1 }}> · {m.via}</span>}
+            </div>
+            <div style={{ fontSize: fontSize - 0.5, color: '#444', lineHeight: 1.4, marginTop: 1 }}>
+              {[m.frecuencia, m.duracion && `por ${m.duracion}`].filter(Boolean).join(' · ')}
+              {m.indicacion && <span style={{ fontStyle: 'italic', color: '#666' }}>{(m.frecuencia || m.duracion) ? ' — ' : ''}{m.indicacion}</span>}
+            </div>
+          </div>
+        </div>
       ))}
-    </ol>
+    </div>
   )
 }
 
@@ -523,23 +555,21 @@ function HojaGenerada({
             </div>
           </div>
 
-          {/* Datos del paciente */}
-          <table style={{ width: '100%', fontSize: 10.5, marginBottom: 6, borderCollapse: 'collapse' }}>
-            <tbody>
-              <tr>
-                <td style={{ padding: '1px 0', width: '70%' }}>
-                  <strong>Paciente:</strong> {data.paciente?.nombre ?? '—'}
-                </td>
-                <td style={{ padding: '1px 0', textAlign: 'right' }}>
-                  {data.paciente?.edad ? `Edad: ${data.paciente.edad}` : ''}
-                  {data.paciente?.sexo ? ` · ${data.paciente.sexo}` : ''}
-                </td>
-              </tr>
-              {data.paciente?.telefono && (
-                <tr><td colSpan={2} style={{ padding: '1px 0', fontSize: 10 }}><strong>Tel:</strong> {data.paciente.telefono}</td></tr>
-              )}
-            </tbody>
-          </table>
+          {/* Datos del paciente — bloque con fondo sutil y etiquetas */}
+          <div style={{
+            background: '#f7f8fa', borderRadius: 6, padding: '7px 11px', marginBottom: 7,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, flexWrap: 'wrap',
+          }}>
+            <div style={{ fontSize: 11.5 }}>
+              <span style={{ fontSize: 8.5, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5, display: 'block' }}>Paciente</span>
+              <span style={{ fontWeight: 700, color: '#111' }}>{data.paciente?.nombre ?? '—'}</span>
+            </div>
+            <div style={{ fontSize: 10, color: '#555', textAlign: 'right' }}>
+              {data.paciente?.edad ? <>{data.paciente.edad} años{data.paciente?.sexo ? ' · ' : ''}</> : ''}
+              {data.paciente?.sexo || ''}
+              {data.paciente?.telefono && <div style={{ fontSize: 9.5, color: '#888' }}>Tel. {data.paciente.telefono}</div>}
+            </div>
+          </div>
 
           {/* Alergias destacadas */}
           {recetaConfig.mostrarAlergias !== false && (
@@ -570,10 +600,13 @@ function HojaGenerada({
       {/* Cuerpo de ESTA hoja */}
       {data.tipo === 'receta' && pagina.medicamentos.length > 0 && (
         <div style={{ marginBottom: 10 }}>
-          {estilo === 'clasico' && pagina.esPrimera && (
-            <div style={{ fontSize: 28, fontWeight: 700, marginBottom: 4, fontFamily: 'serif' }}>℞</div>
+          {pagina.esPrimera && (
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 7 }}>
+              <span style={{ fontSize: 24, fontWeight: 700, color: accent, fontFamily: 'Georgia, serif', lineHeight: 1 }}>℞</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: 0.8 }}>Prescripción</span>
+            </div>
           )}
-          <CuerpoRx medicamentos={pagina.medicamentos} fontSize={11} startIndex={startIndex} />
+          <CuerpoRx medicamentos={pagina.medicamentos} fontSize={11} startIndex={startIndex} variant="limpio" accent={accent} />
         </div>
       )}
 
@@ -700,21 +733,39 @@ function EncabezadoAuto({
     )
   }
 
-  // Minimalista y clásico: encabezado centrado
+  // Clásico: centrado serif, doble filete (estilo receta tradicional)
+  if (estilo === 'clasico') {
+    return (
+      <div style={{ textAlign: 'center', paddingBottom: 7, borderBottom: '3px double #1a1a1a', marginBottom: 7 }}>
+        <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: 0.3 }}>{medico}</div>
+        <div style={{ fontSize: 10, marginTop: 2, color: '#333' }}>
+          {especialidad}{especialidad && cedula !== '—' ? ' · ' : ''}{cedula !== '—' ? `Cédula Prof. ${cedula}` : ''}
+        </div>
+        {clinica && <div style={{ fontSize: 10, color: '#444', marginTop: 1 }}>{clinica}</div>}
+        {(direccion || telefono) && <div style={{ fontSize: 9, color: '#666', marginTop: 1 }}>{direccion}{direccion && telefono ? ' · Tel. ' : telefono ? 'Tel. ' : ''}{telefono}</div>}
+      </div>
+    )
+  }
+
+  // Minimalista: nombre a la izquierda con barra de acento, datos a la derecha
   return (
     <div style={{
-      textAlign: 'center',
-      paddingBottom: 6,
-      borderBottom: estilo === 'clasico' ? '2px solid #1a1a1a' : `1.5px solid ${accent}`,
-      marginBottom: 6,
+      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12,
+      paddingBottom: 7, borderBottom: `2px solid ${accent}`, marginBottom: 8,
     }}>
-      <div style={{ fontSize: 15, fontWeight: 700, color: estilo === 'minimalista' ? accent : '#1a1a1a' }}>{medico}</div>
-      <div style={{ fontSize: 10, marginTop: 1 }}>
-        {especialidad}{especialidad && cedula !== '—' ? ' · ' : ''}{cedula !== '—' ? `Cédula Prof. ${cedula}` : ''}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+        <div style={{ width: 3, background: accent, borderRadius: 2, flexShrink: 0 }} />
+        <div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: '#111', letterSpacing: -0.2, lineHeight: 1.1 }}>{medico}</div>
+          {especialidad && <div style={{ fontSize: 10.5, color: accent, fontWeight: 600, marginTop: 1 }}>{especialidad}</div>}
+          {cedula !== '—' && <div style={{ fontSize: 9, color: '#888', marginTop: 1 }}>Cédula Prof. {cedula}</div>}
+        </div>
       </div>
-      {clinica && <div style={{ fontSize: 10, color: '#444', marginTop: 1 }}>{clinica}</div>}
-      {direccion && <div style={{ fontSize: 9.5, color: '#666' }}>{direccion}</div>}
-      {telefono && <div style={{ fontSize: 9.5, color: '#666' }}>Tel. {telefono}</div>}
+      <div style={{ textAlign: 'right', fontSize: 9, color: '#666', lineHeight: 1.5, paddingTop: 2 }}>
+        {clinica && <div style={{ fontWeight: 600, color: '#444', fontSize: 9.5 }}>{clinica}</div>}
+        {direccion && <div>{direccion}</div>}
+        {telefono && <div>Tel. {telefono}</div>}
+      </div>
     </div>
   )
 }
