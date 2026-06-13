@@ -22,6 +22,7 @@ import { PAPER_SIZES } from '@/lib/receta-template'
 import { descargarComoPDF } from '@/lib/pdf-download'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
 import { detectarInteracciones, detectarControlados } from '@/lib/expediente/farmacovigilancia'
+import { evaluarFuncionRenal, ajusteRenalFarmacos } from '@/lib/expediente/funcion-renal'
 import {
   ArrowLeft, Download, Loader2, Plus, Trash2, Printer, Settings, AlertCircle,
 } from 'lucide-react'
@@ -62,6 +63,21 @@ export default function GeneradorRecetaPage() {
   const meds = useMemo(() => medicamentos.filter(m => m.nombre?.trim()).map(m => ({ nombre: m.nombre })), [medicamentos])
   const interacciones = useMemo(() => detectarInteracciones(meds), [meds])
   const controlados = useMemo(() => detectarControlados(meds), [meds])
+
+  // Función renal — opcional: el médico teclea creatinina (y peso opcional)
+  // y se calcula TFG + ajuste de antimicrobianos por depuración (PROA).
+  const [creatinina, setCreatinina] = useState('')
+  const [pesoKg, setPesoKg] = useState('')
+  const renal = useMemo(() => {
+    const cr = parseFloat(creatinina)
+    if (!cr || cr <= 0 || !patient?.edad) return null
+    const peso = parseFloat(pesoKg)
+    return evaluarFuncionRenal(cr, patient.edad, patient.sexo, peso > 0 ? peso : undefined)
+  }, [creatinina, pesoKg, patient?.edad, patient?.sexo])
+  const alertasRenales = useMemo(() => {
+    if (!renal) return []
+    return ajusteRenalFarmacos(meds, renal.depuracionParaDosis)
+  }, [renal, meds])
 
   useEffect(() => {
     if (!clinicId || !patientId || !notaId) return
@@ -250,6 +266,50 @@ export default function GeneradorRecetaPage() {
               ))}
             </div>
           )}
+
+          {/* 🩺 Función renal — ajuste de dosis PROA (opcional) */}
+          <div style={{ padding: '10px 14px', borderRadius: 8, background: 'var(--s2)', border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text2)', marginBottom: 6 }}>
+              🩺 Función renal (opcional) — ajuste de antimicrobianos
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <div>
+                <label style={{ ...labelStyle, fontSize: 10.5 }}>Creatinina (mg/dL)</label>
+                <input value={creatinina} onChange={e => setCreatinina(e.target.value)} placeholder="1.0"
+                  inputMode="decimal" style={{ ...inputStyle, width: 90 }} />
+              </div>
+              <div>
+                <label style={{ ...labelStyle, fontSize: 10.5 }}>Peso (kg, opc.)</label>
+                <input value={pesoKg} onChange={e => setPesoKg(e.target.value)} placeholder="70"
+                  inputMode="decimal" style={{ ...inputStyle, width: 90 }} />
+              </div>
+              {renal && (
+                <div style={{ fontSize: 11.5, color: 'var(--text2)', lineHeight: 1.4 }}>
+                  <div><strong>TFG (CKD-EPI):</strong> {renal.egfrCkdEpi} mL/min/1.73m² · <strong>{renal.estadio}</strong> ({renal.estadioDesc})</div>
+                  {renal.crClCockcroft != null && <div><strong>CrCl (Cockcroft):</strong> {renal.crClCockcroft} mL/min</div>}
+                </div>
+              )}
+            </div>
+            {!patient?.edad && (
+              <div style={{ fontSize: 10.5, color: 'var(--amber)', marginTop: 6 }}>
+                Falta la edad del paciente en su expediente para calcular la TFG.
+              </div>
+            )}
+            {alertasRenales.length > 0 && (
+              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {alertasRenales.map((a, i) => (
+                  <div key={i} style={{
+                    fontSize: 12, lineHeight: 1.45, padding: '6px 10px', borderRadius: 6,
+                    background: a.severidad === 'evitar' ? 'rgba(220,38,38,0.10)' : 'rgba(217,119,6,0.10)',
+                    borderLeft: `3px solid ${a.severidad === 'evitar' ? '#b91c1c' : 'var(--amber)'}`,
+                    color: 'var(--text)',
+                  }}>
+                    {a.severidad === 'evitar' ? '🚫 ' : '⚖️ '}{a.mensaje}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Medicamentos */}
           <div>

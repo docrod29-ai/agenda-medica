@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v57'  // lote C clínico: interacciones fármaco-fármaco + controlados COFEPRIS en receta
+const CACHE = 'nexusmed-v58'  // función renal CKD-EPI + ajuste de antimicrobianos por TFG (PROA)
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()
