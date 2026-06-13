@@ -17,8 +17,9 @@ import { RecetaDocumento, dimensionesImpresion, contarPaginas } from '@/componen
 import { RecetaPreviewWrapper } from '@/components/RecetaPreviewWrapper'
 import { PAPER_SIZES } from '@/lib/receta-template'
 import { descargarComoPDF } from '@/lib/pdf-download'
+import { descargarRecetaWord } from '@/lib/receta-word'
 import {
-  ArrowLeft, Download, Loader2, Plus, Trash2, Printer, Settings, AlertCircle, ChevronDown,
+  ArrowLeft, Download, Loader2, Plus, Trash2, Printer, Settings, AlertCircle, ChevronDown, FileText,
 } from 'lucide-react'
 
 /** Sugerencias de estudios agrupadas por categoría */
@@ -108,6 +109,24 @@ export default function GeneradorOrdenPage() {
     return porMedico ? { ...base, ...porMedico } : base
   }, [config, nota?.metadata?.medicoId])
 
+  const descargarWord = () => {
+    descargarRecetaWord(
+      {
+        tipo: 'orden',
+        folio,
+        fecha: new Date(),
+        pacienteNombre: patient?.nombre ?? '',
+        pacienteEdad: patient?.edad,
+        pacienteSexo: patient?.sexo,
+        diagnostico: diagnostico || undefined,
+        estudios,
+        indicaciones,
+      },
+      config,
+      recetaConfig,
+    )
+  }
+
   const descargarPDF = async () => {
     const el = document.getElementById('receta-doc')
     if (!el) return
@@ -176,6 +195,9 @@ export default function GeneradorOrdenPage() {
           </button>
           <button onClick={() => window.print()} className="btn btn-secondary">
             <Printer size={14} /> Imprimir
+          </button>
+          <button onClick={descargarWord} className="btn btn-secondary" title="Documento editable para tu membrete">
+            <FileText size={14} /> Word
           </button>
           <button onClick={descargarPDF} disabled={descargando} className="btn btn-primary">
             {descargando

@@ -23,8 +23,9 @@ import { descargarComoPDF } from '@/lib/pdf-download'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
 import { detectarInteracciones, detectarControlados } from '@/lib/expediente/farmacovigilancia'
 import { evaluarFuncionRenal, ajusteRenalFarmacos } from '@/lib/expediente/funcion-renal'
+import { descargarRecetaWord } from '@/lib/receta-word'
 import {
-  ArrowLeft, Download, Loader2, Plus, Trash2, Printer, Settings, AlertCircle,
+  ArrowLeft, Download, Loader2, Plus, Trash2, Printer, Settings, AlertCircle, FileText,
 } from 'lucide-react'
 
 const VIAS: Medicamento['via'][] = ['oral', 'iv', 'im', 'sc', 'topica', 'inhalatoria', 'sublingual', 'rectal', 'otra']
@@ -116,6 +117,28 @@ export default function GeneradorRecetaPage() {
     return porMedico ? { ...base, ...porMedico } : base
   }, [config, nota?.metadata?.medicoId])
 
+  // Descarga un Word (.doc) editable — para el médico que prefiere ajustar
+  // a su propio formato/membrete en lugar de la plantilla generada.
+  const descargarWord = () => {
+    descargarRecetaWord(
+      {
+        tipo: 'receta',
+        folio,
+        fecha: new Date(),
+        pacienteNombre: patient?.nombre ?? '',
+        pacienteEdad: patient?.edad,
+        pacienteSexo: patient?.sexo,
+        alergias: patient?.alergias,
+        diagnostico: diagnostico || undefined,
+        medicamentos,
+        indicaciones,
+        notaParaPaciente,
+      },
+      config,
+      recetaConfig,
+    )
+  }
+
   const descargarPDF = async () => {
     const el = document.getElementById('receta-doc')
     if (!el) return
@@ -191,6 +214,9 @@ export default function GeneradorRecetaPage() {
           </button>
           <button onClick={() => window.print()} className="btn btn-secondary">
             <Printer size={14} /> Imprimir
+          </button>
+          <button onClick={descargarWord} className="btn btn-secondary" title="Documento editable para tu membrete">
+            <FileText size={14} /> Word
           </button>
           <button onClick={descargarPDF} disabled={descargando} className="btn btn-primary">
             {descargando

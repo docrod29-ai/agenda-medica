@@ -2273,12 +2273,15 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
                 style={{ width: '100%', maxHeight: 240, objectFit: 'contain', display: 'block' }}
               />
               <button
-                onClick={() => setRx(prev => {
-                  // delete (no undefined): Firestore rechaza valores undefined
-                  const limpio = { ...prev }
-                  delete limpio.disenoCompletoDataUrl
-                  return limpio
-                })}
+                onClick={() => setRx(prev => ({
+                  // '' en vez de delete: Firestore con merge:true NO elimina
+                  // campos ausentes — el diseño viejo "reaparecía". Vacío SÍ
+                  // sobreescribe. (RecetaDocumento trata '' como sin diseño.)
+                  ...prev,
+                  disenoCompletoDataUrl: '',
+                  disenoMargenes: undefined,
+                  disenoSoloRx: false,
+                }))}
                 style={{
                   position: 'absolute', top: 12, right: 12,
                   background: 'rgba(239,68,68,0.9)', color: '#fff', border: 'none',
@@ -2468,7 +2471,7 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={rx.membreteDataUrl} alt="Membrete" style={{ maxWidth: '100%', maxHeight: 120, display: 'block', margin: '0 auto', background: '#fff' }} />
               <button
-                onClick={() => setRx({ ...rx, membreteDataUrl: undefined })}
+                onClick={() => setRx({ ...rx, membreteDataUrl: '' })}
                 style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 6, padding: '3px 6px', fontSize: 11, cursor: 'pointer' }}
               >
                 <IconX size={11} /> Quitar
@@ -2500,7 +2503,7 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={rx.pieDataUrl} alt="Pie" style={{ maxWidth: '100%', maxHeight: 60, display: 'block', margin: '0 auto', background: '#fff' }} />
               <button
-                onClick={() => setRx({ ...rx, pieDataUrl: undefined })}
+                onClick={() => setRx({ ...rx, pieDataUrl: '' })}
                 style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 6, padding: '3px 6px', fontSize: 11, cursor: 'pointer' }}
               >
                 <IconX size={11} /> Quitar

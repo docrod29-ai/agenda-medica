@@ -1,0 +1,150 @@
+'use client'
+/**
+ * Exportación de receta/orden a Word (.doc) editable.
+ *
+ * POR QUÉ: subir el diseño propio como imagen de fondo y sobreponer texto
+ * calibrado se ve mal y es frágil (el nombre no alinea, se empalma). La
+ * alternativa que pidió el médico: un Word LIMPIO que él abre, ajusta a su
+ * membrete/formato y manda/imprime.
+ *
+ * CÓMO: generamos HTML compatible con Word y lo descargamos con MIME
+ * application/msword. Word y Google Docs lo abren como documento editable
+ * SIN librerías pesadas (cero dependencias nuevas). El contenido va
+ * estructurado y con estilos tipográficos limpios — listo para imprimir o
+ * pegar en la hoja membretada del médico.
+ */
+import type { ClinicConfig, RecetaConfig } from '@/types'
+import type { Medicamento } from '@/types/expediente'
+
+export interface RecetaWordData {
+  tipo: 'receta' | 'orden'
+  folio: string
+  fecha: Date
+  pacienteNombre: string
+  pacienteEdad?: number | string
+  pacienteSexo?: string
+  alergias?: string
+  diagnostico?: string
+  medicamentos?: Medicamento[]
+  estudios?: string[]
+  indicaciones?: string
+  notaParaPaciente?: string
+}
+
+function esc(s: string | undefined | null): string {
+  return (s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+export function construirRecetaHTML(
+  data: RecetaWordData,
+  config: ClinicConfig | null,
+  recetaConfig: RecetaConfig,
+): string {
+  const medico = config?.nombreMedico ?? ''
+  const cedula = config?.cedulaProfesional ?? ''
+  const especialidad = config?.especialidad ?? ''
+  const clinica = config?.nombreClinica ?? ''
+  const direccion = config?.direccion ?? ''
+  const telefono = config?.telefonoAdmin || config?.whatsappConsultorio || ''
+  const accent = recetaConfig.colorAccento ?? '#2845EA'
+  const fechaTxt = data.fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })
+  const titulo = data.tipo === 'receta' ? 'RECETA MÉDICA' : 'ORDEN MÉDICA'
+
+  // Encabezado: membrete subido (imagen) o datos del médico generados
+  const encabezado = recetaConfig.membreteDataUrl
+    ? `<img src="${recetaConfig.membreteDataUrl}" style="max-width:100%;max-height:140px;display:block;margin:0 auto 8pt;" />`
+    : `
+      <div style="text-align:center;border-bottom:2px solid ${accent};padding-bottom:6pt;margin-bottom:8pt;">
+        <div style="font-size:16pt;font-weight:bold;color:${accent};">${esc(medico)}</div>
+        <div style="font-size:10pt;">${esc(especialidad)}${especialidad && cedula ? ' · ' : ''}${cedula ? 'Cédula Prof. ' + esc(cedula) : ''}</div>
+        ${clinica ? `<div style="font-size:10pt;color:#444;">${esc(clinica)}</div>` : ''}
+        ${direccion ? `<div style="font-size:9pt;color:#666;">${esc(direccion)}</div>` : ''}
+        ${telefono ? `<div style="font-size:9pt;color:#666;">Tel. ${esc(telefono)}</div>` : ''}
+      </div>`
+
+  // Cuerpo: medicamentos (receta) o estudios (orden)
+  let cuerpo = ''
+  if (data.tipo === 'receta' && data.medicamentos?.length) {
+    cuerpo = `<ol style="margin:0;padding-left:18pt;">` + data.medicamentos.map(m => `
+      <li style="margin-bottom:6pt;">
+        <b>${esc(m.nombre)}${m.dosis ? ' ' + esc(m.dosis) : ''}</b>${m.via ? ' · ' + esc(m.via) : ''}<br/>
+        <span style="font-size:10.5pt;">${esc(m.frecuencia)}${m.duracion ? ' por ' + esc(m.duracion) : ''}${m.indicacion ? ' — ' + esc(m.indicacion) : ''}</span>
+      </li>`).join('') + `</ol>`
+  } else if (data.tipo === 'orden' && data.estudios?.length) {
+    cuerpo = `<div style="font-weight:bold;margin-bottom:4pt;">Estudios solicitados:</div>
+      <ol style="margin:0;padding-left:18pt;">` + data.estudios.map(e => `<li style="margin-bottom:3pt;">${esc(e)}</li>`).join('') + `</ol>`
+  }
+
+  const alergias = recetaConfig.mostrarAlergias !== false
+    ? `<div style="border:1pt solid #b91c1c;color:#b91c1c;padding:3pt 8pt;font-size:10pt;font-weight:bold;margin:6pt 0;">
+        ALERGIAS: ${esc(data.alergias || 'Negadas / no referidas')}</div>`
+    : ''
+
+  const dx = (recetaConfig.mostrarDiagnostico !== false && data.diagnostico)
+    ? `<div style="margin:4pt 0;"><b>Dx:</b> ${esc(data.diagnostico)}</div>` : ''
+
+  const indicaciones = data.indicaciones
+    ? `<div style="margin-top:8pt;"><b>Indicaciones generales:</b><br/>${esc(data.indicaciones).replace(/\n/g, '<br/>')}</div>` : ''
+  const nota = data.notaParaPaciente
+    ? `<div style="margin-top:6pt;padding:4pt 8pt;border-left:3pt solid ${accent};background:#f5f5f5;font-size:10pt;">${esc(data.notaParaPaciente).replace(/\n/g, '<br/>')}</div>` : ''
+
+  const firma = `
+    <div style="margin-top:36pt;text-align:center;">
+      <div style="border-top:1pt solid #000;width:240pt;margin:0 auto;padding-top:4pt;font-size:10pt;">
+        <b>${esc(medico)}</b><br/>
+        ${especialidad ? esc(especialidad) + '<br/>' : ''}
+        Cédula Prof. ${esc(cedula)}
+        ${recetaConfig.registroDGP ? '<br/>Reg. DGP/SSA ' + esc(recetaConfig.registroDGP) : ''}
+      </div>
+    </div>`
+
+  const aviso = recetaConfig.avisoLegal
+    ? `<div style="margin-top:14pt;font-size:8.5pt;color:#666;text-align:center;border-top:1pt dashed #ccc;padding-top:4pt;">
+        ${esc(recetaConfig.avisoLegal)}${recetaConfig.vigenciaDias ? ' · Vigencia: ' + recetaConfig.vigenciaDias + ' días' : ''}</div>`
+    : ''
+
+  // mso: configura página carta con márgenes — el médico ajusta luego en Word
+  return `<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
+<head><meta charset="utf-8"/>
+<style>
+  @page { size: 21.6cm 27.9cm; margin: 2cm 2.2cm; }
+  body { font-family: 'Calibri', Arial, sans-serif; font-size: 11pt; color: #1a1a1a; }
+</style></head>
+<body>
+  ${encabezado}
+  <table style="width:100%;font-size:10pt;margin-bottom:4pt;"><tr>
+    <td><b>${titulo}</b></td>
+    <td style="text-align:right;color:#666;">Folio: ${esc(data.folio)} · ${fechaTxt}</td>
+  </tr></table>
+  <div><b>Paciente:</b> ${esc(data.pacienteNombre)}${data.pacienteEdad ? ' · Edad: ' + esc(String(data.pacienteEdad)) : ''}${data.pacienteSexo ? ' · ' + esc(data.pacienteSexo) : ''}</div>
+  ${alergias}
+  ${dx}
+  <hr style="border:none;border-top:0.5pt solid #ccc;margin:6pt 0;"/>
+  ${cuerpo}
+  ${indicaciones}
+  ${nota}
+  ${firma}
+  ${aviso}
+</body></html>`
+}
+
+/** Genera y descarga la receta/orden como archivo .doc (editable en Word). */
+export function descargarRecetaWord(
+  data: RecetaWordData,
+  config: ClinicConfig | null,
+  recetaConfig: RecetaConfig,
+): void {
+  const html = construirRecetaHTML(data, config, recetaConfig)
+  const blob = new Blob(['﻿', html], { type: 'application/msword' })
+  const url = URL.createObjectURL(blob)
+  const nombrePac = (data.pacienteNombre || 'paciente').replace(/[^\w\sáéíóúñ-]/gi, '').replace(/\s+/g, '_')
+  const fechaCorta = data.fecha.toISOString().slice(0, 10)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${data.tipo === 'receta' ? 'Receta' : 'Orden'}_${nombrePac}_${fechaCorta}.doc`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
