@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v62'  // receta muestra fecha de nacimiento del paciente (del expediente)
+const CACHE = 'nexusmed-v63'  // FIX actualización: sw.js no-cache + chequeo periódico (ya no hay que limpiar caché)
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

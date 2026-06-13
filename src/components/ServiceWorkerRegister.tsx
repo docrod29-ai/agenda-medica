@@ -53,6 +53,9 @@ export function ServiceWorkerRegister() {
         document.addEventListener('visibilitychange', () => {
           if (document.visibilityState === 'visible') checkUpdate()
         })
+        // Y también cada 60s, por si la pestaña queda abierta horas sin perder foco
+        const intervalo = setInterval(checkUpdate, 60_000)
+        window.addEventListener('beforeunload', () => clearInterval(intervalo))
       } catch {
         /* silencioso */
       }

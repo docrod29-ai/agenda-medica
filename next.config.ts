@@ -18,6 +18,18 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   async headers() {
     return [
+      // ── Service Worker: NUNCA cachear el sw.js ──────────────────
+      // Causa raíz de "no veo los cambios": el navegador cachea el propio
+      // sw.js por horas, así que reg.update() bajaba la versión vieja y la
+      // app nunca se actualizaba. no-cache fuerza revalidar en cada visita
+      // → detecta la versión nueva, skipWaiting, recarga sola.
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
       // ── Páginas públicas embebibles ─────────────────────────────
       {
         source: "/reservar/:path*",
