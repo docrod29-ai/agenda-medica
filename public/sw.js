@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v65'  // unificación Pacientes+Expedientes en una entrada con datos en el hub
+const CACHE = 'nexusmed-v66'  // pacientes organizados: Recientes / A-Z agrupado / Con alerta + búsqueda
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

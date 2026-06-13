@@ -19,6 +19,7 @@ export default function PacientesPage() {
   const [patients, setPatients] = useState<Patient[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [filtro, setFiltro] = useState<'recientes' | 'todos' | 'alerta'>('recientes')
   const [modalOpen, setModalOpen] = useState(false)
   const [editPatient, setEditPatient] = useState<Patient | null>(null)
 
@@ -34,15 +35,46 @@ export default function PacientesPage() {
 
   useEffect(() => { load() }, [clinicId])
 
-  const filtered = useMemo(() =>
-    patients.filter(p =>
-      !search ||
-      p.nombre.toLowerCase().includes(search.toLowerCase()) ||
-      p.telefono.includes(search) ||
-      (p.email ?? '').toLowerCase().includes(search.toLowerCase())
-    ),
-    [patients, search]
+  const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+
+  // Búsqueda: aplana resultados sobre TODOS los pacientes (ignora el chip).
+  const resultadosBusqueda = useMemo(() => {
+    const q = norm(search.trim())
+    if (!q) return null
+    return patients
+      .filter(p => norm(p.nombre).includes(q) || p.telefono.includes(search) || norm(p.email ?? '').includes(q))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+  }, [patients, search])
+
+  // Recientes: por última cita (desc), top 15. "No se ve toda la lista".
+  const recientes = useMemo(() =>
+    [...patients]
+      .filter(p => p.ultimaCita)
+      .sort((a, b) => (b.ultimaCita ?? '').localeCompare(a.ultimaCita ?? ''))
+      .slice(0, 15),
+    [patients]
   )
+
+  // Con alerta: no-show o cancelaciones.
+  const conAlerta = useMemo(() =>
+    [...patients]
+      .filter(p => (p.noShowCount ?? 0) > 0 || (p.cancelacionCount ?? 0) > 0)
+      .sort((a, b) => (b.noShowCount + b.cancelacionCount) - (a.noShowCount + a.cancelacionCount)),
+    [patients]
+  )
+
+  // Todos agrupados por inicial (A, B, C…) con orden alfabético español.
+  const grupos = useMemo(() => {
+    const ordenados = [...patients].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+    const map = new Map<string, Patient[]>()
+    for (const p of ordenados) {
+      const ch = (p.nombre.trim()[0] ?? '#').toUpperCase()
+      const letra = /[A-ZÑ]/.test(ch) ? ch : '#'
+      if (!map.has(letra)) map.set(letra, [])
+      map.get(letra)!.push(p)
+    }
+    return Array.from(map.entries())
+  }, [patients])
 
   const openEdit = (p: Patient) => { setEditPatient(p); setModalOpen(true) }
   const openNew = () => { setEditPatient(null); setModalOpen(true) }
@@ -77,90 +109,100 @@ export default function PacientesPage() {
       </div>
 
       {/* Search */}
-      <div style={{ position: 'relative', marginBottom: 16, maxWidth: 360 }}>
+      <div style={{ position: 'relative', marginBottom: 12, maxWidth: 420 }}>
         <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)' }} />
-        <input className="input" style={{ paddingLeft: 32 }} placeholder="Buscar por nombre, teléfono…" value={search} onChange={e => setSearch(e.target.value)} />
+        <input className="input" style={{ paddingLeft: 32 }} placeholder="Buscar por nombre, teléfono o correo…" value={search} onChange={e => setSearch(e.target.value)} />
+        {search && (
+          <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)' }}>
+            <X size={14} />
+          </button>
+        )}
       </div>
 
-      <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 10 }}>{filtered.length} paciente{filtered.length !== 1 ? 's' : ''}</div>
+      {/* Chips de organización — solo cuando NO hay búsqueda activa */}
+      {!search.trim() && (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+          {([
+            ['recientes', `Recientes${recientes.length ? ` (${recientes.length})` : ''}`],
+            ['todos', `Todos A-Z (${patients.length})`],
+            ['alerta', `Con alerta${conAlerta.length ? ` (${conAlerta.length})` : ''}`],
+          ] as const).map(([k, label]) => {
+            const activo = filtro === k
+            return (
+              <button key={k} onClick={() => setFiltro(k)} style={{
+                padding: '6px 14px', borderRadius: 100, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                background: activo ? 'var(--teal)' : 'var(--s2)',
+                color: activo ? '#000' : 'var(--text2)',
+                border: `1px solid ${activo ? 'var(--teal)' : 'var(--border)'}`,
+              }}>{label}</button>
+            )
+          })}
+        </div>
+      )}
 
-      {/* Table */}
+      {/* Lista */}
       <div className="card" style={{ padding: 0 }}>
         {loading ? (
           <div style={{ padding: 48, textAlign: 'center', color: 'var(--text3)' }}>Cargando pacientes…</div>
-        ) : filtered.length === 0 ? (
+        ) : patients.length === 0 ? (
           <div style={{ padding: 48, textAlign: 'center' }}>
             <Users size={40} color="var(--text3)" style={{ margin: '0 auto 12px' }} />
             <p style={{ color: 'var(--text3)', fontSize: 14, margin: 0 }}>No hay pacientes registrados</p>
           </div>
+        ) : resultadosBusqueda ? (
+          // Búsqueda activa → resultados aplanados
+          resultadosBusqueda.length === 0 ? (
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text3)', fontSize: 14 }}>
+              Sin resultados para “{search}”.
+            </div>
+          ) : (
+            <>
+              <ListaEncabezado texto={`${resultadosBusqueda.length} resultado${resultadosBusqueda.length !== 1 ? 's' : ''}`} />
+              {resultadosBusqueda.map(p => (
+                <PacienteRow key={p.id} p={p} mode={mode} onAbrir={() => mode === 'medico' ? router.push(`/expediente/${p.id}`) : openEdit(p)} onEditar={() => openEdit(p)} />
+              ))}
+            </>
+          )
+        ) : filtro === 'recientes' ? (
+          recientes.length === 0 ? (
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text3)', fontSize: 14 }}>
+              Aún no hay pacientes con citas recientes. Usa <strong>Todos A-Z</strong> o busca por nombre.
+            </div>
+          ) : (
+            <>
+              <ListaEncabezado texto="Vistos recientemente" />
+              {recientes.map(p => (
+                <PacienteRow key={p.id} p={p} mode={mode} onAbrir={() => mode === 'medico' ? router.push(`/expediente/${p.id}`) : openEdit(p)} onEditar={() => openEdit(p)} />
+              ))}
+            </>
+          )
+        ) : filtro === 'alerta' ? (
+          conAlerta.length === 0 ? (
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text3)', fontSize: 14 }}>
+              Ningún paciente con inasistencias o cancelaciones. 👍
+            </div>
+          ) : (
+            <>
+              <ListaEncabezado texto={`${conAlerta.length} con inasistencias / cancelaciones`} />
+              {conAlerta.map(p => (
+                <PacienteRow key={p.id} p={p} mode={mode} onAbrir={() => mode === 'medico' ? router.push(`/expediente/${p.id}`) : openEdit(p)} onEditar={() => openEdit(p)} />
+              ))}
+            </>
+          )
         ) : (
-          <div>
-            {filtered.map((p, i) => (
-              <div
-                key={p.id}
-                // Médico: la fila abre el EXPEDIENTE (datos + historia clínica).
-                // Asistente: abre solo los datos de contacto (sin acceso clínico).
-                onClick={() => mode === 'medico' ? router.push(`/expediente/${p.id}`) : openEdit(p)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px',
-                  borderBottom: i === filtered.length - 1 ? 'none' : '1px solid var(--border)',
-                  cursor: 'pointer', transition: 'background 0.1s',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--s2)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-              >
-                {/* Avatar */}
-                <div style={{
-                  width: 40, height: 40, borderRadius: '50%', background: 'var(--s2)', border: '1px solid var(--border)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 600, color: 'var(--text2)', flexShrink: 0,
-                }}>
-                  {p.nombre.charAt(0).toUpperCase()}
-                </div>
-
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{p.nombre}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', gap: 12 }}>
-                    {p.telefono && <span>📞 {p.telefono}</span>}
-                    {p.email && <span>✉️ {p.email}</span>}
-                    {p.edad && <span>🎂 {p.edad} años</span>}
-                  </div>
-                </div>
-
-                {(p.noShowCount > 0 || p.cancelacionCount > 0) && (
-                  <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                    {p.noShowCount > 0 && (
-                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 9999, background: 'rgba(239,68,68,0.1)', color: '#f87171' }}>
-                        {p.noShowCount} no-show{p.noShowCount > 1 ? 's' : ''}
-                      </span>
-                    )}
-                    {p.cancelacionCount > 0 && (
-                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 9999, background: 'rgba(251,146,60,0.1)', color: '#fb923c' }}>
-                        {p.cancelacionCount} cancel.
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {/* Médico: la fila ya entra al expediente; este botón es para
-                    editar SOLO los datos de contacto sin entrar al expediente. */}
-                {mode === 'medico' && (
-                  <button
-                    onClick={e => { e.stopPropagation(); openEdit(p) }}
-                    title="Editar datos de contacto"
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
-                      background: 'var(--s2)', border: '1px solid var(--border)',
-                      color: 'var(--text2)', borderRadius: 8, padding: '6px 12px',
-                      fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                    }}
-                  >
-                    <Pencil size={12} /> Editar
-                  </button>
-                )}
-                {mode === 'medico' && <FileText size={14} color="var(--text3)" style={{ flexShrink: 0 }} />}
-              </div>
-            ))}
-          </div>
+          // Todos A-Z agrupados por inicial
+          grupos.map(([letra, lista]) => (
+            <div key={letra}>
+              <div style={{
+                position: 'sticky', top: 0, zIndex: 1,
+                background: 'var(--s2)', padding: '5px 16px', fontSize: 12, fontWeight: 700,
+                color: 'var(--text3)', letterSpacing: '0.05em', borderBottom: '1px solid var(--border)',
+              }}>{letra}</div>
+              {lista.map(p => (
+                <PacienteRow key={p.id} p={p} mode={mode} onAbrir={() => mode === 'medico' ? router.push(`/expediente/${p.id}`) : openEdit(p)} onEditar={() => openEdit(p)} />
+              ))}
+            </div>
+          ))
         )}
       </div>
 
@@ -172,6 +214,73 @@ export default function PacientesPage() {
           userEmail={user?.email ?? ''}
         />
       )}
+    </div>
+  )
+}
+
+/** Encabezado gris de una sección de la lista. */
+function ListaEncabezado({ texto }: { texto: string }) {
+  return (
+    <div style={{ padding: '8px 16px', fontSize: 11.5, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border)', background: 'var(--s1)' }}>
+      {texto}
+    </div>
+  )
+}
+
+/** Fila de paciente reutilizable (búsqueda, recientes, alerta, A-Z). */
+function PacienteRow({ p, mode, onAbrir, onEditar }: {
+  p: Patient
+  mode: string
+  onAbrir: () => void
+  onEditar: () => void
+}) {
+  return (
+    <div
+      onClick={onAbrir}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px',
+        borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.1s',
+      }}
+      onMouseEnter={e => (e.currentTarget.style.background = 'var(--s2)')}
+      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+    >
+      <div style={{
+        width: 38, height: 38, borderRadius: '50%', background: 'var(--s2)', border: '1px solid var(--border)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 600, color: 'var(--text2)', flexShrink: 0,
+      }}>
+        {p.nombre.charAt(0).toUpperCase()}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.nombre}</div>
+        <div style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          {p.telefono && <span>📞 {p.telefono}</span>}
+          {p.edad && <span>🎂 {p.edad} años</span>}
+        </div>
+      </div>
+      {(p.noShowCount > 0 || p.cancelacionCount > 0) && (
+        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+          {p.noShowCount > 0 && (
+            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 9999, background: 'rgba(239,68,68,0.1)', color: '#f87171' }}>{p.noShowCount} no-show{p.noShowCount > 1 ? 's' : ''}</span>
+          )}
+          {p.cancelacionCount > 0 && (
+            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 9999, background: 'rgba(251,146,60,0.1)', color: '#fb923c' }}>{p.cancelacionCount} cancel.</span>
+          )}
+        </div>
+      )}
+      {mode === 'medico' && (
+        <button
+          onClick={e => { e.stopPropagation(); onEditar() }}
+          title="Editar datos de contacto"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
+            background: 'var(--s2)', border: '1px solid var(--border)',
+            color: 'var(--text2)', borderRadius: 8, padding: '6px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+          }}
+        >
+          <Pencil size={12} /> Editar
+        </button>
+      )}
+      {mode === 'medico' && <FileText size={14} color="var(--text3)" style={{ flexShrink: 0 }} />}
     </div>
   )
 }
