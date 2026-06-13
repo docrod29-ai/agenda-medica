@@ -6,7 +6,7 @@ import { useToast } from '@/context/ToastContext'
 import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
 import { useMode } from '@/context/ModeContext'
-import { Plus, Search, X, Loader2, Users, Phone, AlertCircle, FileText, Calendar } from 'lucide-react'
+import { Plus, Search, X, Loader2, Users, Phone, AlertCircle, FileText, Calendar, Pencil } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -98,7 +98,9 @@ export default function PacientesPage() {
             {filtered.map((p, i) => (
               <div
                 key={p.id}
-                onClick={() => openEdit(p)}
+                // Médico: la fila abre el EXPEDIENTE (datos + historia clínica).
+                // Asistente: abre solo los datos de contacto (sin acceso clínico).
+                onClick={() => mode === 'medico' ? router.push(`/expediente/${p.id}`) : openEdit(p)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px',
                   borderBottom: i === filtered.length - 1 ? 'none' : '1px solid var(--border)',
@@ -139,21 +141,23 @@ export default function PacientesPage() {
                   </div>
                 )}
 
-                {/* Expediente — solo médicos/admin. La asistente no ve este botón */}
+                {/* Médico: la fila ya entra al expediente; este botón es para
+                    editar SOLO los datos de contacto sin entrar al expediente. */}
                 {mode === 'medico' && (
                   <button
-                    onClick={e => { e.stopPropagation(); router.push(`/expediente/${p.id}`) }}
-                    title="Ver expediente clínico"
+                    onClick={e => { e.stopPropagation(); openEdit(p) }}
+                    title="Editar datos de contacto"
                     style={{
                       display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
-                      background: 'rgba(61,90,254,0.08)', border: '1px solid rgba(61,90,254,0.25)',
-                      color: 'var(--teal)', borderRadius: 8, padding: '6px 12px',
+                      background: 'var(--s2)', border: '1px solid var(--border)',
+                      color: 'var(--text2)', borderRadius: 8, padding: '6px 12px',
                       fontSize: 12, fontWeight: 600, cursor: 'pointer',
                     }}
                   >
-                    <FileText size={13} /> Expediente
+                    <Pencil size={12} /> Editar
                   </button>
                 )}
+                {mode === 'medico' && <FileText size={14} color="var(--text3)" style={{ flexShrink: 0 }} />}
               </div>
             ))}
           </div>

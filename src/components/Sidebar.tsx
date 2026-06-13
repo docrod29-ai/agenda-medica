@@ -25,7 +25,6 @@ const NAV: { href: string; label: string; icon: typeof LayoutDashboard; modos: '
   { href: '/citas',         label: 'Citas',          icon: CalendarDays,    modos: 'ambos' },
   { href: '/calendario',    label: 'Calendario',     icon: Calendar,        modos: 'ambos' },
   { href: '/pacientes',     label: 'Pacientes',      icon: Users,           modos: 'ambos' },
-  { href: '/expedientes',   label: 'Expedientes',    icon: FileText,        modos: 'medico' },
   { href: '/lista-espera',  label: 'Lista de espera',icon: Clock,           modos: 'ambos' },
   { href: '/crm',           label: 'CRM',            icon: TrendingUp,      modos: 'medico' },
   { href: '/resenas',       label: 'Reseñas',        icon: Star,            modos: 'medico' },

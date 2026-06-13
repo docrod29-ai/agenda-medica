@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v64'  // FIX portal "clínica no encontrada" (doc padre virtual) + panel PROA
+const CACHE = 'nexusmed-v65'  // unificación Pacientes+Expedientes en una entrada con datos en el hub
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

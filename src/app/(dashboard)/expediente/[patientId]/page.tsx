@@ -12,7 +12,7 @@ import { TIPO_NOTA_LABEL } from '@/types/expediente'
 import type { NotaMedica } from '@/types/expediente'
 import {
   ArrowLeft, Mic, FileText, Loader2, AlertTriangle, CheckCircle2,
-  Clock, ChevronDown, ChevronUp, Plus, Printer, Trash2, Send, Pill, ClipboardList,
+  Clock, ChevronDown, ChevronUp, Plus, Printer, Trash2, Send, Pill, ClipboardList, Pencil,
 } from 'lucide-react'
 
 export default function ExpedientePage() {
@@ -59,8 +59,8 @@ export default function ExpedientePage() {
   return (
     <div style={{ padding: 24, maxWidth: 880, margin: '0 auto' }}>
       {/* Back */}
-      <button onClick={() => router.push('/expedientes')} style={backBtn}>
-        <ArrowLeft size={15} /> Expedientes
+      <button onClick={() => router.push('/pacientes')} style={backBtn}>
+        <ArrowLeft size={15} /> Pacientes
       </button>
 
       {/* Alergias banner — SIEMPRE rojo y visible */}
@@ -113,6 +113,14 @@ export default function ExpedientePage() {
             <Mic size={16} /> Nueva consulta con IA
           </button>
         </div>
+      </div>
+
+      {/* Datos del paciente — vista unificada (antes estaba en "Pacientes") */}
+      <DatosPaciente patient={patient} onEditar={() => router.push('/pacientes')} />
+
+      {/* Historia clínica */}
+      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '4px 0 12px' }}>
+        Historia clínica
       </div>
 
       {/* Filters */}
@@ -177,6 +185,56 @@ export default function ExpedientePage() {
         </div>
       )}
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  )
+}
+
+/** Tarjeta colapsable con los datos de contacto del paciente (unificación
+ *  de Pacientes + Expedientes en una sola pantalla). */
+function DatosPaciente({ patient, onEditar }: { patient: Patient | null; onEditar: () => void }) {
+  const [abierto, setAbierto] = useState(false)
+  if (!patient) return null
+  const campos: Array<[string, string | undefined]> = [
+    ['Edad', patient.edad ? `${patient.edad} años` : undefined],
+    ['Sexo', patient.sexo],
+    ['Fecha de nacimiento', patient.fechaNacimiento],
+    ['Teléfono', patient.telefono],
+    ['WhatsApp', patient.whatsapp],
+    ['Correo', patient.email],
+    ['CURP', patient.curp],
+    ['Seguro', patient.seguroMedico],
+    ['Alergias', patient.alergias],
+    ['Notas', patient.notas],
+  ]
+  const conValor = campos.filter(([, v]) => v && String(v).trim())
+  return (
+    <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', marginBottom: 16, overflow: 'hidden' }}>
+      <button onClick={() => setAbierto(a => !a)} style={{
+        width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px',
+        background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', textAlign: 'left',
+      }}>
+        {abierto ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        <span style={{ fontSize: 14, fontWeight: 700 }}>Datos del paciente</span>
+        <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text3)' }}>{abierto ? 'ocultar' : 'ver / editar'}</span>
+      </button>
+      {abierto && (
+        <div style={{ padding: '4px 16px 14px', borderTop: '1px solid var(--border)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginTop: 12 }}>
+            {conValor.map(([k, v]) => (
+              <div key={k}>
+                <div style={{ fontSize: 10.5, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{k}</div>
+                <div style={{ fontSize: 13.5, color: 'var(--text)', marginTop: 1 }}>{v}</div>
+              </div>
+            ))}
+            {conValor.length === 0 && (
+              <div style={{ fontSize: 13, color: 'var(--text3)' }}>Sin datos de contacto capturados.</div>
+            )}
+          </div>
+          <button onClick={onEditar} className="btn btn-secondary btn-sm" style={{ marginTop: 14 }}>
+            <Pencil size={13} /> Editar datos
+          </button>
+        </div>
+      )}
     </div>
   )
 }
