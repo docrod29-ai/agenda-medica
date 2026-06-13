@@ -15,6 +15,7 @@ import { buildSystemPrompt, buildUserPrompt } from '@/lib/expediente/prompts'
 import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
 import { parserClinicoComoRespuestaIA } from '@/lib/expediente/parser-clinico'
 import { safeLog, redactarString } from '@/lib/security/sanitize'
+import { verificarUsuario } from '@/lib/auth-server'
 import type { TipoNota, PacienteContexto } from '@/types/expediente'
 
 const API_KEY = process.env.ANTHROPIC_API_KEY ?? ''
@@ -77,6 +78,11 @@ async function llamarClaude(model: string, system: string, userMsg: string) {
 }
 
 export async function POST(req: NextRequest) {
+  // Seguridad: solo usuarios autenticados. Procesa PHI y consume la API key
+  // de Anthropic — sin esto cualquiera con la URL la quemaba.
+  const acceso = await verificarUsuario(req)
+  if (!acceso.ok) return acceso.response
+
   if (!API_KEY) {
     return NextResponse.json(
       { ok: false, error: 'ANTHROPIC_API_KEY no configurada en el servidor' },

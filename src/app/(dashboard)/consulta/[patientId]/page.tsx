@@ -16,6 +16,7 @@ import { PreopAssessment } from '@/components/PreopAssessment'
 import { RevisionPanel } from '@/components/RevisionPanel'
 import { NerPanel } from '@/components/NerPanel'
 import { CorreccionesPanel } from '@/components/CorreccionesPanel'
+import { fetchAutenticado } from '@/lib/auth-client'
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
 import { logAudit } from '@/lib/expediente/audit-log'
@@ -143,7 +144,7 @@ export default function ConsultaActivaPage() {
     if (!voz.transcripcion.trim()) { toast('No hay transcripción que procesar', 'info'); return }
     setProcesando(true)
     try {
-      const res = await fetch('/api/expediente/procesar', {
+      const res = await fetchAutenticado('/api/expediente/procesar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -249,7 +250,7 @@ export default function ConsultaActivaPage() {
     if (!textoFuente) { toast('No hay texto que analizar todavía', 'info'); return }
     setNerCargando(true); setNerError(''); setEntidades(null)
     try {
-      const res = await fetch('/api/expediente/extraer-entidades', {
+      const res = await fetchAutenticado('/api/expediente/extraer-entidades', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ texto: textoFuente }),

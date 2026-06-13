@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { NER_SYSTEM_PROMPT, buildNerUserPrompt, EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { safeLog } from '@/lib/security/sanitize'
+import { verificarUsuario } from '@/lib/auth-server'
 
 const API_KEY = process.env.ANTHROPIC_API_KEY ?? ''
 const ANTHROPIC_VERSION = '2023-06-01'
@@ -69,6 +70,9 @@ function parseJSON(text: string): Record<string, unknown> | null {
 }
 
 export async function POST(req: NextRequest) {
+  const acceso = await verificarUsuario(req)
+  if (!acceso.ok) return acceso.response
+
   if (!API_KEY) {
     return NextResponse.json(
       { ok: false, error: 'ANTHROPIC_API_KEY no configurada' },

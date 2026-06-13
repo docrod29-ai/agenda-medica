@@ -18,11 +18,15 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { WHISPER_PROMPT_MEDICO } from '@/lib/expediente/medical-vocabulary'
+import { verificarUsuario } from '@/lib/auth-server'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
 
 export async function POST(req: NextRequest) {
+  const acceso = await verificarUsuario(req)
+  if (!acceso.ok) return acceso.response
+
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) {
     return NextResponse.json({ ok: false, error: 'OPENAI_API_KEY no configurada' }, { status: 503 })

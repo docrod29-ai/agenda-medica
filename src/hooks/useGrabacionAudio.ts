@@ -1,5 +1,6 @@
 'use client'
 import { corregirTranscripcion, type CambioTranscripcion } from '@/lib/expediente/medical-vocabulary'
+import { fetchAutenticado } from '@/lib/auth-client'
 /**
  * Hook de grabación HIFI con streaming + pause/resume + crash recovery.
  *
@@ -254,7 +255,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       fd.append('audio', blob, `chunk-${idx}.webm`)
       fd.append('chunkIdx', String(idx))
       if (prevContext) fd.append('prevContext', prevContext)
-      const res = await fetch('/api/expediente/transcribir-chunk', { method: 'POST', body: fd })
+      const res = await fetchAutenticado('/api/expediente/transcribir-chunk', { method: 'POST', body: fd })
       const data = await res.json()
       if (data.ok && data.text) {
         // Corrección léxica médica TAMBIÉN en chunks — el médico ve los
@@ -483,7 +484,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     try {
       const fd = new FormData()
       fd.append('audio', blob, `consulta.${ext}`)
-      const res = await fetch('/api/expediente/transcribir', { method: 'POST', body: fd })
+      const res = await fetchAutenticado('/api/expediente/transcribir', { method: 'POST', body: fd })
       const data = await res.json()
       if (data.ok) {
         const { corregido, cambios } = corregirTranscripcion(data.text ?? '')
@@ -541,7 +542,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     try {
       const fd = new FormData()
       fd.append('audio', blob, `recovery.${ext}`)
-      const res = await fetch('/api/expediente/transcribir', { method: 'POST', body: fd })
+      const res = await fetchAutenticado('/api/expediente/transcribir', { method: 'POST', body: fd })
       const data = await res.json()
       if (data.ok) {
         const { corregido, cambios } = corregirTranscripcion(data.text ?? '')
