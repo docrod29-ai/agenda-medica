@@ -19,6 +19,7 @@ import { CorreccionesPanel } from '@/components/CorreccionesPanel'
 import { fetchAutenticado } from '@/lib/auth-client'
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
+import { detectarInteracciones, detectarControlados } from '@/lib/expediente/farmacovigilancia'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { validarNOM004 } from '@/lib/expediente/nom004'
 import { generarHashIntegridad, generarHashFirma } from '@/lib/expediente/integrity'
@@ -724,25 +725,49 @@ export default function ConsultaActivaPage() {
         </div>
       )}
 
-      {/* ── Alertas clínicas cruzadas (Fase C) ── */}
+      {/* ── Alertas clínicas cruzadas (punto de atención) ── */}
       {(() => {
         const alergiasPaciente = patient?.alergias
           ? [{ alergeno: patient.alergias, reaccion: '' }]
           : []
         const alertas = validarAlergiasVsMedicamentos(alergiasPaciente, medicamentos)
-        if (alertas.length === 0) return null
+        const interacciones = detectarInteracciones(medicamentos)
+        const controlados = detectarControlados(medicamentos)
+        if (alertas.length === 0 && interacciones.length === 0 && controlados.length === 0) return null
         return (
-          <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 10, padding: '12px 14px', marginBottom: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#f87171', marginBottom: 6 }}>
-              ⚠️ Alertas clínicas detectadas
-            </div>
-            {alertas.map((a, i) => (
-              <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginBottom: 4 }}>
-                <strong style={{ color: a.severidad === 'critica' ? '#f87171' : '#f59e0b' }}>
-                  [{a.severidad.toUpperCase()}]
-                </strong> {a.mensaje}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+            {alertas.length > 0 && (
+              <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 10, padding: '12px 14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#f87171', marginBottom: 6 }}>
+                  🚨 Alergia ↔ medicamento
+                </div>
+                {alertas.map((a, i) => (
+                  <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginBottom: 4 }}>
+                    <strong style={{ color: a.severidad === 'critica' ? '#f87171' : '#f59e0b' }}>[{a.severidad.toUpperCase()}]</strong> {a.mensaje}
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
+            {interacciones.length > 0 && (
+              <div style={{ background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.35)', borderRadius: 10, padding: '12px 14px' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--amber)', marginBottom: 6 }}>⚠️ Posibles interacciones farmacológicas</div>
+                {interacciones.map((it, i) => (
+                  <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginBottom: 4 }}>
+                    <strong>{it.titulo}</strong>{it.severidad === 'mayor' ? ' (mayor)' : ''} — {it.detalle}
+                  </div>
+                ))}
+              </div>
+            )}
+            {controlados.length > 0 && (
+              <div style={{ background: 'rgba(61,90,254,0.06)', border: '1px solid rgba(61,90,254,0.3)', borderRadius: 10, padding: '12px 14px' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--nexus)', marginBottom: 6 }}>🔒 Controlado(s) — requisito COFEPRIS</div>
+                {controlados.map((c, i) => (
+                  <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginBottom: 4 }}>
+                    <strong>{c.farmaco}</strong> — {c.requisito}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )
       })()}
