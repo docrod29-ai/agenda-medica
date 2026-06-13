@@ -39,7 +39,12 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
 
   const guardar = async () => {
     const n = parseFloat(monto)
-    if (!n || n <= 0) { toast('Monto inválido', 'error'); return }
+    // Un reembolso es un cobro NEGATIVO (corrige contabilidad). Para los demás
+    // conceptos, el monto debe ser positivo. Antes el modal bloqueaba ≤0 siempre,
+    // por lo que la funcionalidad de reembolso (que el tipo sí define) era inalcanzable.
+    if (isNaN(n) || n === 0) { toast('Monto inválido', 'error'); return }
+    if (concepto === 'reembolso' && n > 0) { toast('Un reembolso debe ser negativo (ej. -500)', 'error'); return }
+    if (concepto !== 'reembolso' && n < 0) { toast('El monto debe ser positivo', 'error'); return }
     setGuardando(true)
     try {
       const id = await registrarCobro(clinicId, {

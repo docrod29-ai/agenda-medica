@@ -79,6 +79,8 @@ export async function POST(req: NextRequest) {
       const a = d.data()
       if (a.fechaHora?.slice(0, 10) !== fecha) return
       if (['cancelada', 'reagendada', 'no-asistio'].includes(a.estado)) return
+      // MULTI-MÉDICO: el conflicto solo aplica contra citas del mismo médico.
+      if (medicoId && a.medicoId && a.medicoId !== medicoId) return
       const [ah, am] = (a.fechaHora.slice(11, 16) || '00:00').split(':').map(Number)
       const aStart = ah * 60 + am
       const aEnd = aStart + (a.duracion ?? 30)
@@ -98,7 +100,9 @@ export async function POST(req: NextRequest) {
       const newP = await clinicRef.collection('patients').add({
         nombre: paciente.nombre.trim(),
         telefono: tel,
-        email: paciente.email?.trim() || undefined,
+        // '' en vez de undefined: el Admin SDK rechaza undefined ("Unsupported
+        // field value") y abortaba el alta del paciente cuando no había email.
+        email: paciente.email?.trim() || '',
         noShowCount: 0, cancelacionCount: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),

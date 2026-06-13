@@ -160,7 +160,7 @@ export default function FinanzasPage() {
             />
             <Kpi titulo="Cobros" valor={String(resumen.totalCobros)} icon={<Receipt size={14} />} />
             <Kpi titulo="Ticket promedio" valor={fmtMXN(resumen.ticketPromedio)} icon={<Activity size={14} />} />
-            <Kpi titulo="Pacientes únicos" valor={String(resumen.topPacientes.length)} icon={<Users size={14} />} />
+            <Kpi titulo="Pacientes únicos" valor={String(resumen.pacientesUnicos)} icon={<Users size={14} />} />
           </div>
 
           {/* Gráfica de ingresos por día */}

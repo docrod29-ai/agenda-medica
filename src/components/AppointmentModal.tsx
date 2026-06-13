@@ -90,8 +90,8 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
   // Available slots
   const slots = useMemo(() => {
     if (!fecha) return []
-    return getAvailableSlots(fecha, duracion, appointments, config, appointment?.id)
-  }, [fecha, duracion, appointments, config, appointment?.id])
+    return getAvailableSlots(fecha, duracion, appointments, config, appointment?.id, [], appointment?.medicoId)
+  }, [fecha, duracion, appointments, config, appointment?.id, appointment?.medicoId])
 
   // Conflict check
   useEffect(() => {

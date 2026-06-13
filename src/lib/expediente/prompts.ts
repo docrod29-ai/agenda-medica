@@ -338,8 +338,8 @@ REGLAS ADICIONALES PARA "preopInputs" (cuando es valoración preoperatoria):
 - Para chadsvasc.mujer = true solo si sexo femenino confirmado.
 - Para tipoAnticoagulante usa "DOAC" o "warfarina" o null.
 - Para stentDESMotivo usa "SCA" o "cronico" o null.
-- Para ariscat.incision usa exactamente: "periferica" | "torax" | "abdomenAlto" | "abdomenBajo".
-- Para ariscat.duracion usa exactamente: "menor2h" | "2a3h" | "mayor3h".
+- Para ariscat.incision usa EXACTAMENTE uno de: "periferica" | "abdominal_alta" | "intratoracica" (sin otros valores; el calculador solo puntúa estos).
+- Para ariscat.duracion usa EXACTAMENTE uno de: "menos2h" | "de2a3h" | "mas3h".
 - spo2: pon el número exacto si se mencionó (ej. 90, 95) — NO 0.
 - Si el paciente dice "ronca pero no fuerte" → stopbang.snoring=false (debe ser FUERTE para puntuar).
 - Si dice "le hicieron cirugía en las piernas" sin más → caprini.cirugiaMenor=true (asumir menor sin más detalle).

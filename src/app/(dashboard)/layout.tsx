@@ -49,7 +49,7 @@ function TrialBanner() {
           : 'Tu prueba gratuita ha terminado.'
         }
       </span>
-      <Link href="/dashboard/configuracion?tab=suscripcion" style={{
+      <Link href="/configuracion?tab=suscripcion" style={{
         fontSize: 12, fontWeight: 700, color: '#000',
         background: daysLeft <= 3 ? '#f87171' : '#f59e0b',
         padding: '3px 10px', borderRadius: 6, textDecoration: 'none',

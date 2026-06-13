@@ -187,6 +187,8 @@ export interface ResumenMes {
   porMedico: Record<string, { nombre: string; monto: number; n: number }>
   porDia: { dia: string; monto: number; n: number }[]
   topPacientes: { nombre: string; monto: number; n: number }[]
+  /** Conteo REAL de pacientes únicos (topPacientes está truncado a 10). */
+  pacientesUnicos: number
 }
 
 export function agregarResumen(cobros: Cobro[]): ResumenMes {
@@ -199,6 +201,7 @@ export function agregarResumen(cobros: Cobro[]): ResumenMes {
     porMedico: {},
     porDia: [],
     topPacientes: [],
+    pacientesUnicos: 0,
   }
 
   const porDiaMap = new Map<string, { monto: number; n: number }>()
@@ -240,6 +243,7 @@ export function agregarResumen(cobros: Cobro[]): ResumenMes {
   inicial.porDia = Array.from(porDiaMap.entries())
     .map(([dia, v]) => ({ dia, ...v }))
     .sort((a, b) => a.dia.localeCompare(b.dia))
+  inicial.pacientesUnicos = porPacienteMap.size
   inicial.topPacientes = Array.from(porPacienteMap.values())
     .sort((a, b) => b.monto - a.monto)
     .slice(0, 10)

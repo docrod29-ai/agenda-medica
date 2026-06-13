@@ -105,8 +105,8 @@ function AsistenteInner() {
   // Available slots for selected date
   const slots = useMemo(() => {
     if (!fecha || !efectiveConfig) return []
-    return getAvailableSlots(fecha, duracion, appointments, efectiveConfig)
-  }, [fecha, duracion, appointments, efectiveConfig])
+    return getAvailableSlots(fecha, duracion, appointments, efectiveConfig, undefined, [], doctorId || undefined)
+  }, [fecha, duracion, appointments, efectiveConfig, doctorId])
 
   // Generate next 7 days
   const nextDays = useMemo(() => {
@@ -338,7 +338,7 @@ function AsistenteInner() {
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {nextDays.map(d => {
-                const daySlots = getAvailableSlots(d, duracion, appointments, efectiveConfig)
+                const daySlots = getAvailableSlots(d, duracion, appointments, efectiveConfig, undefined, [], doctorId || undefined)
                 const isSelected = d === fecha
                 const isToday = d === todayStr()
                 return (

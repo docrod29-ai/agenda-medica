@@ -113,7 +113,11 @@ export function getAvailableSlots(
   const dayAppts = appointments.filter(a =>
     a.fechaHora.slice(0, 10) === fecha &&
     a.id !== excludeId &&
-    !['cancelada', 'reagendada', 'no-asistio'].includes(a.estado)
+    !['cancelada', 'reagendada', 'no-asistio'].includes(a.estado) &&
+    // MULTI-MÉDICO: si se pide la agenda de un médico, solo cuentan SUS citas.
+    // Sin esto, el slot de la Dra. A se marcaba ocupado por una cita del Dr. B
+    // (agendas cruzadas). Si la cita no tiene medicoId (legacy), cuenta siempre.
+    (!medicoId || !a.medicoId || a.medicoId === medicoId)
   )
 
   const slots: string[] = []

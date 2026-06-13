@@ -20,6 +20,7 @@ import { RecetaDocumento, dimensionesImpresion, contarPaginas } from '@/componen
 import { RecetaPreviewWrapper } from '@/components/RecetaPreviewWrapper'
 import { PAPER_SIZES } from '@/lib/receta-template'
 import { descargarComoPDF } from '@/lib/pdf-download'
+import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
 import {
   ArrowLeft, Download, Loader2, Plus, Trash2, Printer, Settings, AlertCircle,
 } from 'lucide-react'
@@ -43,6 +44,18 @@ export default function GeneradorRecetaPage() {
 
   // Folio único (timestamp corto)
   const folio = useMemo(() => `RX-${Date.now().toString(36).toUpperCase().slice(-7)}`, [])
+
+  // SEGURIDAD CLÍNICA: cruce alergia↔medicamento EN LA RECETA — el artefacto
+  // que se dispensa. Reactivo a cada cambio de medicamento. Antes solo se
+  // chequeaba en la consulta; aquí se podía agregar un fármaco peligroso sin alerta.
+  const alertasAlergia = useMemo(() => {
+    if (!patient?.alergias?.trim()) return []
+    const alergiasArr = patient.alergias.split(/[,;]+/).map(a => ({ alergeno: a.trim() })).filter(a => a.alergeno)
+    return validarAlergiasVsMedicamentos(
+      alergiasArr,
+      medicamentos.filter(m => m.nombre?.trim()).map(m => ({ nombre: m.nombre })),
+    )
+  }, [patient?.alergias, medicamentos])
 
   useEffect(() => {
     if (!clinicId || !patientId || !notaId) return
@@ -178,6 +191,24 @@ export default function GeneradorRecetaPage() {
               style={inputStyle}
             />
           </div>
+
+          {/* ⚠️ Alerta de alergia ↔ medicamento — bloquea visualmente antes de imprimir */}
+          {alertasAlergia.length > 0 && (
+            <div style={{
+              padding: '10px 14px', borderRadius: 8,
+              background: 'rgba(220,38,38,0.10)', border: '2px solid #b91c1c',
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#b91c1c', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                🚨 Alerta de alergia — revisa antes de imprimir
+              </div>
+              {alertasAlergia.map((a, i) => (
+                <div key={i} style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.4 }}>• {a.mensaje}</div>
+              ))}
+              <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 4 }}>
+                Paciente alérgico a: <strong>{patient?.alergias}</strong>. Si decides continuar, es bajo tu criterio clínico.
+              </div>
+            </div>
+          )}
 
           {/* Medicamentos */}
           <div>

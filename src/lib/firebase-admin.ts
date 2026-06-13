@@ -22,4 +22,9 @@ if (!admin.apps.length) {
 }
 
 export const adminDb = admin.firestore()
+// Blindaje global: Firestore Admin RECHAZA valores undefined ("Unsupported
+// field value"). Esto los ignora en TODA escritura del servidor, igual que
+// sinUndefined() hace en el cliente. Evita que un solo campo undefined
+// (email vacío, medicoId ausente, etc.) aborte una operación completa.
+try { adminDb.settings({ ignoreUndefinedProperties: true }) } catch { /* ya configurado */ }
 export default admin

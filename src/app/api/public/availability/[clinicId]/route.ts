@@ -75,6 +75,10 @@ export async function GET(
       const a = doc.data()
       if (a.fechaHora?.slice(0, 10) !== fecha) return
       if (['cancelada', 'reagendada', 'no-asistio'].includes(a.estado)) return
+      // MULTI-MÉDICO: si se consulta la agenda de un médico, solo bloquean SUS
+      // citas. Sin esto, el portal escondía huecos libres de un médico porque
+      // otro estaba ocupado a esa hora.
+      if (medicoId && a.medicoId && a.medicoId !== medicoId) return
       const [ah, am] = (a.fechaHora.slice(11, 16) || '00:00').split(':').map(Number)
       const start = ah * 60 + am
       const end = start + (a.duracion ?? 30)
