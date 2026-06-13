@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { ClinicConfig, DEFAULT_CONFIG, AppointmentType, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { saveConfig, updateDoctor } from '@/lib/firestore'
+import { fetchAutenticado } from '@/lib/auth-client'
 import { useConfig } from '@/hooks/useConfig'
 import { useDoctors } from '@/hooks/useDoctors'
 import { useToast } from '@/context/ToastContext'
@@ -786,7 +787,7 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
     }
     setManualSaving(true)
     try {
-      const res = await fetch('/api/whatsapp/manual-connect', {
+      const res = await fetchAutenticado('/api/whatsapp/manual-connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clinicId, phoneNumberId: manual.phoneNumberId.trim(), token: manual.token.trim() }),
@@ -822,7 +823,7 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
           return
         }
         // Exchange code for permanent token + save to Firestore
-        const res = await fetch('/api/whatsapp/meta-connect', {
+        const res = await fetchAutenticado('/api/whatsapp/meta-connect', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code, clinicId }),
@@ -854,7 +855,7 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
     if (!clinicId) return
     setDisconnecting(true)
     try {
-      const res = await fetch('/api/clinic/whatsapp-disconnect', {
+      const res = await fetchAutenticado('/api/clinic/whatsapp-disconnect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clinicId }),
@@ -1283,7 +1284,7 @@ function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
     if (!clinicId) return
     setLoading(true)
     try {
-      const res = await fetch('/api/stripe/portal', {
+      const res = await fetchAutenticado('/api/stripe/portal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clinicId }),
@@ -1303,7 +1304,7 @@ function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
     setCheckoutLoading(targetPlan)
     const user = auth.currentUser
     try {
-      const res = await fetch('/api/stripe/checkout', {
+      const res = await fetchAutenticado('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clinicId, plan: targetPlan, email: user?.email ?? '' }),

@@ -4,11 +4,14 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
+import { verificarMiembro } from '@/lib/auth-server'
 
 export async function POST(req: NextRequest) {
   try {
     const { clinicId } = await req.json()
     if (!clinicId) return NextResponse.json({ error: 'clinicId required' }, { status: 400 })
+    const acceso = await verificarMiembro(req, clinicId)
+    if (!acceso.ok) return acceso.response
 
     // Read current api_key so we can delete the index entry
     const clinicSnap = await adminDb.collection('clinics').doc(clinicId).get()

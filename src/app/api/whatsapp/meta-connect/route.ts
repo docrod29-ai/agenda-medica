@@ -19,6 +19,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
+import { verificarMiembro } from '@/lib/auth-server'
 
 const APP_ID     = process.env.META_APP_ID ?? ''
 const APP_SECRET = process.env.META_APP_SECRET ?? ''
@@ -140,6 +141,8 @@ export async function POST(req: NextRequest) {
     if (!code || !clinicId) {
       return NextResponse.json({ error: 'code and clinicId required' }, { status: 400 })
     }
+    const acceso = await verificarMiembro(req, clinicId)
+    if (!acceso.ok) return acceso.response
 
     if (!APP_ID || !APP_SECRET) {
       return NextResponse.json({ error: 'META_APP_ID / META_APP_SECRET not configured' }, { status: 500 })

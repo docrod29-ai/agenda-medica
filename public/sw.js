@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v53'  // lote 2 fase 1: auth en rutas clínicas (PHI + API keys protegidas)
+const CACHE = 'nexusmed-v54'  // lote 2 fase 2: verificarMiembro en whatsapp/stripe (anti cross-tenant)
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

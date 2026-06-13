@@ -10,6 +10,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
+import { verificarMiembro } from '@/lib/auth-server'
 
 const GRAPH = 'https://graph.facebook.com/v20.0'
 
@@ -20,6 +21,10 @@ export async function POST(req: NextRequest) {
     if (!clinicId || !phoneNumberId || !token) {
       return NextResponse.json({ ok: false, error: 'Faltan clinicId, phoneNumberId o token' }, { status: 400 })
     }
+    // Seguridad: solo un miembro de ESTA clínica puede conectar su WhatsApp.
+    // Antes era anónimo → se podía secuestrar el canal de otra clínica.
+    const acceso = await verificarMiembro(req, clinicId)
+    if (!acceso.ok) return acceso.response
 
     // 1. Validar credenciales: pedir el número a Graph API
     const res = await fetch(
