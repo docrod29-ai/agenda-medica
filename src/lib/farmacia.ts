@@ -111,17 +111,37 @@ export async function registrarMovimiento(
 ): Promise<void> {
   if (!itemActual.id) throw new Error('Item sin id')
   const fecha = new Date().toISOString()
-  // 1. Registrar el movimiento
-  await addDoc(COL_MOV(clinicId), { ...mov, fecha })
-  // 2. Recalcular el stock
+
+  // Calcular el stock resultante Y la cantidad REALMENTE aplicada.
+  // CLAVE de trazabilidad (NOM-220): el movimiento que se registra debe
+  // cuadrar con el cambio de existencia. Antes, una salida mayor al stock
+  // registraba la cantidad pedida (ej. 10) pero el stock se clampeaba a 0
+  // → historial y existencia quedaban descuadrados (3 − 10 ≠ 0).
   let nuevaCantidad = itemActual.cantidad
-  if (mov.tipo === 'entrada') nuevaCantidad += mov.cantidad
-  else if (mov.tipo === 'salida' || mov.tipo === 'caducidad' || mov.tipo === 'merma') {
-    nuevaCantidad -= mov.cantidad
+  let cantidadAplicada = mov.cantidad
+  let notaAjuste = ''
+
+  if (mov.tipo === 'entrada') {
+    nuevaCantidad += mov.cantidad
+  } else if (mov.tipo === 'salida' || mov.tipo === 'caducidad' || mov.tipo === 'merma') {
+    // No se puede sacar más de lo que hay: el movimiento real = lo disponible.
+    cantidadAplicada = Math.min(mov.cantidad, itemActual.cantidad)
+    if (cantidadAplicada < mov.cantidad) {
+      notaAjuste = ` [ajustado: se solicitaron ${mov.cantidad} pero solo había ${itemActual.cantidad}]`
+    }
+    nuevaCantidad = itemActual.cantidad - cantidadAplicada
   } else if (mov.tipo === 'ajuste') {
     nuevaCantidad = mov.cantidad  // ajuste = set absoluto
   }
-  if (nuevaCantidad < 0) nuevaCantidad = 0
+
+  // 1. Registrar el movimiento con la cantidad REAL aplicada (libros cuadran)
+  await addDoc(COL_MOV(clinicId), {
+    ...mov,
+    cantidad: cantidadAplicada,
+    motivo: (mov.motivo ?? '') + notaAjuste,
+    fecha,
+  })
+  // 2. Persistir el stock resultante (nunca negativo por construcción)
   await actualizarItem(clinicId, itemActual.id, { cantidad: nuevaCantidad })
 }
 

@@ -20,6 +20,8 @@ export default function NotaImprimiblePage() {
   const [patient, setPatient] = useState<Patient | null>(null)
   const [loading, setLoading] = useState(true)
   const [descargando, setDescargando] = useState(false)
+  // null = sin verificar/no aplica · true = sello íntegro · false = ALTERADA
+  const [integridadOk, setIntegridadOk] = useState<boolean | null>(null)
 
   const descargarPDF = async () => {
     const el = document.getElementById('doc')
@@ -47,10 +49,19 @@ export default function NotaImprimiblePage() {
     Promise.all([
       getNota(clinicId, patientId, notaId),
       getPatients(clinicId),
-    ]).then(([n, ps]) => {
+    ]).then(async ([n, ps]) => {
       setNota(n)
       setPatient(ps.find(p => p.id === patientId) ?? null)
       setLoading(false)
+      // Verificar el sello SHA-256 de las notas firmadas. Antes el sello se
+      // MOSTRABA sin recomputarse — daba garantía de no-alteración que el
+      // sistema no comprobaba. Ahora se recalcula y se compara.
+      if (n && n.estado === 'firmada') {
+        try {
+          const { verificarIntegridad } = await import('@/lib/expediente/integrity')
+          setIntegridadOk(await verificarIntegridad(n))
+        } catch { setIntegridadOk(null) }
+      }
     })
     // NOM-024 Art. 6.5: registrar lectura de nota clínica
     import('@/lib/expediente/audit-log').then(({ logAudit }) => {
@@ -226,10 +237,27 @@ export default function NotaImprimiblePage() {
           </div>
         </div>
 
+        {/* Alerta si el sello NO coincide (nota alterada en BD) */}
+        {integridadOk === false && (
+          <div className="no-print" style={{
+            marginTop: 16, padding: '8px 12px', borderRadius: 6,
+            background: 'rgba(220,38,38,0.10)', border: '1.5px solid #b91c1c',
+            color: '#b91c1c', fontSize: 12, fontWeight: 700, textAlign: 'center',
+          }}>
+            ⚠️ INTEGRIDAD NO VERIFICADA — el contenido no coincide con el sello SHA-256
+            registrado al firmar. Esta nota pudo haber sido alterada. No la uses como
+            documento legal sin investigar.
+          </div>
+        )}
+
         {/* Sello de integridad NOM-024 */}
         <div style={{ marginTop: 20, paddingTop: 8, borderTop: '1px dashed #999', fontSize: 9.5, color: '#666', textAlign: 'center' }}>
           {nota.estado === 'firmada' && nota.firma ? (
-            <>Documento firmado electrónicamente el {new Date(nota.firma.timestamp).toLocaleString('es-MX')} · Sello de integridad (SHA-256): {nota.metadata.hashIntegridad || '—'}</>
+            <>
+              Documento firmado electrónicamente el {new Date(nota.firma.timestamp).toLocaleString('es-MX')}
+              {integridadOk === true && ' · ✓ integridad verificada'}
+              {' · Sello (SHA-256): '}{nota.metadata.hashIntegridad || '—'}
+            </>
           ) : (
             <>BORRADOR — documento no firmado. Sin validez hasta su firma.</>
           )}

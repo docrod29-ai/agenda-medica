@@ -21,15 +21,14 @@ import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
+import { hoyISO, sumarDiasISO } from '@/lib/timezone'
 
 function todayStr() {
-  return new Date().toISOString().slice(0, 10)
+  return hoyISO()  // fecha en zona MX, no UTC (bug "hoy salta a mañana")
 }
 
 function addDaysToStr(d: string, n: number): string {
-  const dt = new Date(d + 'T12:00:00')
-  dt.setDate(dt.getDate() + n)
-  return dt.toISOString().slice(0, 10)
+  return sumarDiasISO(d, n)
 }
 
 function formatDateLong(d: string): string {

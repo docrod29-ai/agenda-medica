@@ -8,6 +8,7 @@
 import { useEffect, useRef } from 'react'
 import { useAppointments } from './useAppointments'
 import { programarNotificacion, obtenerPermisoPush } from '@/lib/push-notifications'
+import { hoyISO, sumarDiasISO } from '@/lib/timezone'
 
 export function useNotificacionesCitas() {
   const { appointments } = useAppointments()
@@ -22,8 +23,8 @@ export function useNotificacionesCitas() {
     timeoutsRef.current = []
 
     const ahora = Date.now()
-    const hoy = new Date().toISOString().slice(0, 10)
-    const manana = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+    const hoy = hoyISO()  // zona MX
+    const manana = sumarDiasISO(hoy, 1)
 
     // Solo programamos para hoy y mañana (más allá es demasiado lejos)
     const citasProximas = appointments.filter(a => {

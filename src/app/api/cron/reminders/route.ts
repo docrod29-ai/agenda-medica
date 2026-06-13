@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
 import { Appointment, ClinicConfig } from '@/types'
 import { sendWhatsApp as sendWA } from '@/lib/whatsapp-send'
+import { instanteMX } from '@/lib/timezone'
 
 const CRON_SECRET = process.env.CRON_SECRET
 
@@ -89,7 +90,8 @@ export async function GET(req: NextRequest) {
 
           const apptDate = appt.fechaHora.slice(0, 10)
           const apptHour = appt.fechaHora.slice(11, 16)
-          const apptDateObj = new Date(`${apptDate}T${apptHour}:00`)
+          // Instante REAL de la cita en hora MX (no en la zona del servidor)
+          const apptDateObj = instanteMX(apptDate, apptHour)
           const diffHours = (apptDateObj.getTime() - now.getTime()) / (1000 * 60 * 60)
 
           const msgData = {

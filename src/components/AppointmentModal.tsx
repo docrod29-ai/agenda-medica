@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/context/ToastContext'
 import { createAppointment, updateAppointment } from '@/lib/firestore'
 import { getAvailableSlots, hasConflict } from '@/lib/availability'
+import { hoyISO } from '@/lib/timezone'
 import { useClinic } from '@/context/ClinicContext'
 import { StatusBadge } from './StatusBadge'
 import { X, Phone, MessageSquare, Clock, AlertCircle, Loader2 } from 'lucide-react'
@@ -40,7 +41,7 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
 
   const isEdit = !!appointment
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = hoyISO()  // zona MX: el min-date no debe bloquear horas válidas de hoy
 
   const [nombre, setNombre]       = useState('')
   const [telefono, setTelefono]   = useState('')
@@ -154,6 +155,7 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
               fecha: appointment.fechaHora.slice(0, 10),
               hora: appointment.fechaHora.slice(11, 16),
               clinicId,
+              tipo: appointment.tipo,
             }),
           }).catch(() => {/* non-critical */})
         }

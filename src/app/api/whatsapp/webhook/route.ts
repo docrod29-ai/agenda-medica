@@ -22,6 +22,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 import { adminDb } from '@/lib/firebase-admin'
 import { ClinicConfig, Doctor, Appointment, AppointmentType } from '@/types'
 import { sendWhatsApp } from '@/lib/whatsapp-send'
+import { hoyISO, sumarDiasISO } from '@/lib/timezone'
 
 // Sin fallback público: si no está configurado, la verificación GET fallará
 // (mejor que aceptar un token por defecto que está en el repo).
@@ -64,13 +65,11 @@ function formatDate(fecha: string): string {
 }
 
 function todayStr(): string {
-  return new Date().toISOString().slice(0, 10)
+  return hoyISO()  // zona MX, no UTC del servidor (Vercel corre en UTC)
 }
 
 function addDays(dateStr: string, n: number): string {
-  const d = new Date(dateStr + 'T12:00:00')
-  d.setDate(d.getDate() + n)
-  return d.toISOString().slice(0, 10)
+  return sumarDiasISO(dateStr, n)
 }
 
 const DAY_KEYS = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'] as const

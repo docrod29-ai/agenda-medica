@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { hoyISO, sumarDiasISO } from '@/lib/timezone'
 
 const STATUS_FILTERS: { label: string; value: AppointmentStatus | 'todas' }[] = [
   { label: 'Todas', value: 'todas' },
@@ -35,15 +36,11 @@ const STATUS_FILTERS: { label: string; value: AppointmentStatus | 'todas' }[] = 
 ]
 
 function todayStr() {
-  return new Date().toISOString().slice(0, 10)
+  return hoyISO()  // zona MX, no UTC
 }
 
-function prevDay(d: string) {
-  const dt = new Date(d + 'T12:00'); dt.setDate(dt.getDate() - 1); return dt.toISOString().slice(0, 10)
-}
-function nextDay(d: string) {
-  const dt = new Date(d + 'T12:00'); dt.setDate(dt.getDate() + 1); return dt.toISOString().slice(0, 10)
-}
+function prevDay(d: string) { return sumarDiasISO(d, -1) }
+function nextDay(d: string) { return sumarDiasISO(d, 1) }
 
 export default function CitasPage() {
   const params = useSearchParams()
@@ -104,6 +101,23 @@ export default function CitasPage() {
       await updateAppointment(clinicId!, appt.id, { estado: newStatus })
       toast(`Estado actualizado: ${newStatus}`, 'success')
       setMenuId(null)
+      // Si se liberó el slot (cancelar/no-asistió), avisar a la lista de espera.
+      // Antes solo el modal notificaba; las cancelaciones rápidas del dropdown
+      // dejaban el hueco sin ofrecer.
+      const liberado = ['cancelada', 'reagendada', 'no-asistio'].includes(newStatus) &&
+        !['cancelada', 'reagendada', 'no-asistio'].includes(appt.estado)
+      if (liberado) {
+        fetch('/api/whatsapp/waitlist-notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fecha: appt.fechaHora.slice(0, 10),
+            hora: appt.fechaHora.slice(11, 16),
+            clinicId,
+            tipo: appt.tipo,
+          }),
+        }).catch(() => {/* no crítico */})
+      }
     } catch {
       toast('Error al actualizar', 'error')
     }

@@ -5,7 +5,9 @@
  * Finds active waitlist patients and sends them a WhatsApp offer
  * for the now-open slot.
  *
- * Body: { fecha: string, hora: string, doctorId?: string }
+ * Body: { fecha, hora, clinicId?, tipo? }
+ *   - tipo opcional: si viene, solo se ofrece a quienes pidieron ese tipo
+ *     (o no especificaron) y cuya fechaDeseada no sea posterior al slot.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -25,7 +27,7 @@ function formatDate(fecha: string): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const { fecha, hora, clinicId: bodyClinicId } = await req.json()
+    const { fecha, hora, clinicId: bodyClinicId, tipo: slotTipo } = await req.json()
     if (!fecha || !hora) {
       return NextResponse.json({ error: 'fecha and hora required' }, { status: 400 })
     }
@@ -47,12 +49,14 @@ export async function POST(req: NextRequest) {
     }
     const config = configSnap.data() as ClinicConfig
 
-    // Get active waitlist entries
+    // Candidatos activos ordenados por prioridad (1 = MAYOR prioridad → asc).
+    // Antes era 'desc', que ofrecía el slot al paciente MENOS prioritario.
+    // Traemos más de 3 para poder filtrar por compatibilidad y aún notificar a 3.
     const waitlistSnap = await clinicRef.collection('waitlist')
       .where('estado', '==', 'activo')
-      .orderBy('prioridad', 'desc')
+      .orderBy('prioridad', 'asc')
       .orderBy('createdAt', 'asc')
-      .limit(3)
+      .limit(20)
       .get()
 
     if (waitlistSnap.empty) {
@@ -61,11 +65,20 @@ export async function POST(req: NextRequest) {
 
     const clinicName = config.nombreClinica || config.nombreMedico
     let notified = 0
+    const LIMITE_NOTIFICAR = 3
 
     for (const doc of waitlistSnap.docs) {
+      if (notified >= LIMITE_NOTIFICAR) break
       const entry = { id: doc.id, ...doc.data() } as WaitlistEntry
 
       if (!entry.pacienteTelefono) continue
+
+      // MATCHING: no ofrecer un slot que no le sirve al paciente.
+      // - tipo: si el slot tiene tipo y el paciente pidió otro distinto, saltar.
+      // - fechaDeseada: si el paciente quiere a partir de cierta fecha y el slot
+      //   liberado es ANTES, no le sirve.
+      if (slotTipo && entry.tipo && entry.tipo !== slotTipo) continue
+      if (entry.fechaDeseada && fecha < entry.fechaDeseada) continue
 
       const msg = [
         `🔔 *Espacio disponible en ${clinicName}*`,

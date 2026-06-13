@@ -12,14 +12,14 @@ import { formatDateMX } from '@/lib/availability'
 import { Plus, TrendingUp, CalendarCheck2, Clock, UserX, ChevronRight, CalendarDays } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import { hoyISO, sumarDiasISO } from '@/lib/timezone'
 
 function todayStr() {
-  return new Date().toISOString().slice(0, 10)
+  return hoyISO()  // zona MX, no UTC
 }
 
 function tomorrowStr() {
-  const d = new Date(); d.setDate(d.getDate() + 1)
-  return d.toISOString().slice(0, 10)
+  return sumarDiasISO(hoyISO(), 1)
 }
 
 function greet() {
