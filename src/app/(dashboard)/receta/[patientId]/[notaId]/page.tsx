@@ -21,6 +21,7 @@ import { RecetaPreviewWrapper } from '@/components/RecetaPreviewWrapper'
 import { PAPER_SIZES } from '@/lib/receta-template'
 import { descargarComoPDF } from '@/lib/pdf-download'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
+import { detectarInteracciones, detectarControlados } from '@/lib/expediente/farmacovigilancia'
 import {
   ArrowLeft, Download, Loader2, Plus, Trash2, Printer, Settings, AlertCircle,
 } from 'lucide-react'
@@ -56,6 +57,11 @@ export default function GeneradorRecetaPage() {
       medicamentos.filter(m => m.nombre?.trim()).map(m => ({ nombre: m.nombre })),
     )
   }, [patient?.alergias, medicamentos])
+
+  // Interacciones fármaco-fármaco + controlados COFEPRIS (apoyo decisional)
+  const meds = useMemo(() => medicamentos.filter(m => m.nombre?.trim()).map(m => ({ nombre: m.nombre })), [medicamentos])
+  const interacciones = useMemo(() => detectarInteracciones(meds), [meds])
+  const controlados = useMemo(() => detectarControlados(meds), [meds])
 
   useEffect(() => {
     if (!clinicId || !patientId || !notaId) return
@@ -207,6 +213,41 @@ export default function GeneradorRecetaPage() {
               <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 4 }}>
                 Paciente alérgico a: <strong>{patient?.alergias}</strong>. Si decides continuar, es bajo tu criterio clínico.
               </div>
+            </div>
+          )}
+
+          {/* ⚠️ Interacciones fármaco-fármaco */}
+          {interacciones.length > 0 && (
+            <div style={{
+              padding: '10px 14px', borderRadius: 8,
+              background: 'rgba(217,119,6,0.10)', border: '1.5px solid var(--amber)',
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--amber)', marginBottom: 4 }}>
+                ⚠️ Posibles interacciones farmacológicas
+              </div>
+              {interacciones.map((it, i) => (
+                <div key={i} style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.45, marginBottom: 3 }}>
+                  <strong>{it.titulo}</strong>{it.severidad === 'mayor' ? ' (mayor)' : ''} — {it.detalle}
+                </div>
+              ))}
+              <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 2 }}>Apoyo decisional; no sustituye tu criterio.</div>
+            </div>
+          )}
+
+          {/* 🔒 Controlados COFEPRIS */}
+          {controlados.length > 0 && (
+            <div style={{
+              padding: '10px 14px', borderRadius: 8,
+              background: 'rgba(61,90,254,0.08)', border: '1.5px solid var(--nexus)',
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--nexus)', marginBottom: 4 }}>
+                🔒 Medicamento(s) controlado(s) — requisitos COFEPRIS
+              </div>
+              {controlados.map((c, i) => (
+                <div key={i} style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.45, marginBottom: 3 }}>
+                  <strong>{c.farmaco}</strong> — {c.requisito}
+                </div>
+              ))}
             </div>
           )}
 

@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v56'  // lote 3: timezone MX + lista espera + integridad notas + farmacia stock
+const CACHE = 'nexusmed-v57'  // lote C clínico: interacciones fármaco-fármaco + controlados COFEPRIS en receta
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()
