@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v80'  // Modales restantes a <Modal>: consentimiento de grabación (consulta) + Aviso de Privacidad
+const CACHE = 'nexusmed-v81'  // auto-update no disruptivo: aviso "Hay una versión nueva — Actualizar" (no recarga sola a media nota)
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()
