@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v88'  // Hueco #3: auto-reseña post-visita en el cron (opt-in config.resenaAutomatica) + toggle en Configuración
+const CACHE = 'nexusmed-v89'  // Hueco #2: telemedicina — panel del médico en la teleconsulta (nota IA + expediente) + fix link con ?c=clinicId
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

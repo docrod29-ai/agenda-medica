@@ -287,6 +287,7 @@ function AppointmentRowFull({
   onCobrar?: (appt: Appointment) => void
   deleting: boolean
 }) {
+  const { clinicId: rowClinicId } = useClinic()
   const hora = appt.fechaHora.slice(11, 16)
   const typeCfg = APPOINTMENT_TYPE_CONFIG[appt.tipo]
   // Riesgo de no-show — solo mostrar para citas pendientes/confirmadas (no las ya atendidas)
@@ -386,7 +387,7 @@ function AppointmentRowFull({
         {/* Botón Unirse a videollamada para teleconsulta */}
         {appt.tipo === 'teleconsulta' && (
           <button
-            onClick={() => window.open(`/teleconsulta/${appt.id}`, '_blank', 'noopener')}
+            onClick={() => window.open(`/teleconsulta/${appt.id}?c=${rowClinicId ?? ''}&p=${appt.pacienteId}&dr=1`, '_blank', 'noopener')}
             title="Unirse a videollamada"
             style={{
               background: 'rgba(167,139,250,0.15)', color: '#a78bfa',
