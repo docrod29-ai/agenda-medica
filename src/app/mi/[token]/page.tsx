@@ -3,8 +3,29 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import {
   Calendar, Clock, MapPin, Stethoscope, CheckCircle2, CalendarClock, XCircle,
-  Loader2, Phone, CalendarPlus, ChevronRight, AlertTriangle,
+  Loader2, Phone, CalendarPlus, AlertTriangle, Download, Pill,
 } from 'lucide-react'
+import { descargarRecetaWord } from '@/lib/receta-word'
+import type { Medicamento } from '@/types/expediente'
+
+interface DocReceta {
+  id: string
+  fecha: string
+  medico: string
+  diagnostico: string
+  medicamentos: Medicamento[]
+}
+
+const RECETA_CONFIG_DEFAULT = {
+  paperSize: 'media-carta' as const,
+  estilo: 'minimalista' as const,
+  colorAccento: '#3D5AFE',
+  mostrarQR: false,
+  vigenciaDias: 30,
+  mostrarAlergias: false,
+  mostrarDiagnostico: true,
+  avisoLegal: 'Esta receta es personal e intransferible.',
+}
 
 interface Cita {
   id: string
@@ -54,6 +75,7 @@ export default function MiPortalPage() {
   const params = useParams<{ token: string }>()
   const token = params?.token ?? ''
   const [sesion, setSesion] = useState<Sesion | null>(null)
+  const [docs, setDocs] = useState<DocReceta[] | null>(null)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState('')
   const [accion, setAccion] = useState<string>('') // id de cita con acción en curso
@@ -64,6 +86,11 @@ export default function MiPortalPage() {
       const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'session', token }) })
       if (!r.ok) { setError(r.status === 401 ? 'Este enlace ya no es válido o venció. Pide uno nuevo al consultorio.' : 'No pudimos cargar tu información.'); return }
       setSesion(await r.json())
+      // Documentos (recetas) en paralelo — no bloquea la vista de citas
+      fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'documentos', token }) })
+        .then(res => res.ok ? res.json() : { documentos: [] })
+        .then(d => setDocs(d.documentos || []))
+        .catch(() => setDocs([]))
     } catch {
       setError('Sin conexión. Intenta de nuevo.')
     } finally {
@@ -95,6 +122,21 @@ export default function MiPortalPage() {
   }
   if (error || !sesion) {
     return <Centro><AlertTriangle size={28} color="var(--amber)" /><p style={{ color: 'var(--text2)', marginTop: 12, maxWidth: 320 }}>{error || 'No encontramos tu información.'}</p></Centro>
+  }
+
+  const descargarReceta = (doc: DocReceta) => {
+    descargarRecetaWord(
+      {
+        tipo: 'receta',
+        folio: `RX-${doc.id.slice(-7).toUpperCase()}`,
+        fecha: new Date(doc.fecha.replace(' ', 'T') + ':00-06:00'),
+        pacienteNombre: sesion.paciente,
+        diagnostico: doc.diagnostico || undefined,
+        medicamentos: doc.medicamentos,
+      },
+      null,
+      RECETA_CONFIG_DEFAULT,
+    )
   }
 
   const ahora = Date.now()
@@ -178,6 +220,32 @@ export default function MiPortalPage() {
               })}
             </div>
           </details>
+        )}
+
+        {/* Mis recetas */}
+        {docs && docs.length > 0 && (
+          <div style={{ marginTop: 28 }}>
+            <h2 className="t-h2" style={{ marginBottom: 12 }}>Mis recetas</h2>
+            {docs.map(d => {
+              const f = fmtFecha(d.fecha)
+              return (
+                <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, padding: 14, marginBottom: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--nexus-soft)', color: 'var(--nexus)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Pill size={17} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }} className="t-num">{f.fecha}</div>
+                    <div style={{ fontSize: 12.5, color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {d.diagnostico || `${d.medicamentos.length} medicamento(s)`}{d.medico ? ` · ${d.medico}` : ''}
+                    </div>
+                  </div>
+                  <button onClick={() => descargarReceta(d)} className="btn btn-secondary btn-sm" style={{ flexShrink: 0 }}>
+                    <Download size={14} /> Descargar
+                  </button>
+                </div>
+              )
+            })}
+          </div>
         )}
 
         {/* Pie: consultorio */}

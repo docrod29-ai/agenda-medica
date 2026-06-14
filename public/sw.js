@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v83'  // Portal: entrega del magic-link — botón "Portal" en AppointmentModal abre WhatsApp con el enlace al paciente
+const CACHE = 'nexusmed-v84'  // Portal Fase 2: "Mis recetas" — el paciente descarga sus recetas (Word) desde notas firmadas
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

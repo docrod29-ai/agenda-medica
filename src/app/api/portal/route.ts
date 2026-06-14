@@ -3,6 +3,7 @@ import { adminDb } from '@/lib/firebase-admin'
 import { verificarTokenPaciente } from '@/lib/patient-token'
 import { getAvailableSlots } from '@/lib/availability'
 import type { Appointment, ClinicConfig } from '@/types'
+import type { NotaMedica } from '@/types/expediente'
 
 /**
  * API del Portal del Paciente (magic-link, sin contraseña).
@@ -173,6 +174,28 @@ export async function POST(req: NextRequest) {
           updatedPor: 'paciente',
         })
         return NextResponse.json({ ok: true })
+      }
+
+      case 'documentos': {
+        // Recetas del paciente: derivadas de sus notas FIRMADAS con medicamentos.
+        const snap = await adminDb
+          .collection('clinics').doc(clinicId)
+          .collection('patients').doc(patientId)
+          .collection('notas')
+          .where('estado', '==', 'firmada')
+          .get()
+        const docs = snap.docs
+          .map(d => ({ id: d.id, ...(d.data() as Omit<NotaMedica, 'id'>) }))
+          .filter(n => Array.isArray(n.medicamentos) && n.medicamentos.length > 0)
+          .map(n => ({
+            id: n.id,
+            fecha: n.fechaConsulta,
+            medico: n.firma?.nombreMedico ?? '',
+            diagnostico: (n.diagnosticos ?? []).map(dx => dx.descripcion).filter(Boolean).join(', '),
+            medicamentos: n.medicamentos ?? [],
+          }))
+          .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))
+        return NextResponse.json({ documentos: docs })
       }
 
       default:
