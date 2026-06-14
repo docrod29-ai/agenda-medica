@@ -10,8 +10,9 @@ import { getAvailableSlots, hasConflict } from '@/lib/availability'
 import { hoyISO } from '@/lib/timezone'
 import { useClinic } from '@/context/ClinicContext'
 import { StatusBadge } from './StatusBadge'
-import { X, Phone, MessageSquare, Clock, AlertCircle, Loader2 } from 'lucide-react'
+import { Phone, MessageSquare, Clock, AlertCircle } from 'lucide-react'
 import { openWhatsApp, msgConfirmacion } from '@/lib/whatsapp'
+import { Modal, Button } from '@/components/ui'
 
 interface Props {
   open: boolean
@@ -193,30 +194,26 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
   if (!open) return null
 
   return (
-    <div className="modal-overlay animate-fade-in" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal modal-wide">
-        {/* Header */}
-        <div className="modal-header">
-          <div>
-            <h2 style={{ fontSize: 17, fontWeight: 600, color: 'var(--text)', margin: 0 }}>
-              {isEdit ? 'Editar cita' : 'Nueva cita'}
-            </h2>
-            {isEdit && <StatusBadge status={appointment!.estado} size="sm" />}
-          </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            {isEdit && telefono && (
-              <button className="btn btn-secondary btn-sm" onClick={handleWhatsApp} title="Enviar por WhatsApp">
-                <MessageSquare size={14} /> WhatsApp
-              </button>
-            )}
-            <button className="btn btn-ghost btn-icon" onClick={onClose}>
-              <X size={18} />
-            </button>
-          </div>
-        </div>
-
-        {/* Body */}
-        <div className="modal-body">
+    <Modal
+      open
+      onClose={onClose}
+      size="wide"
+      title={(
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+          {isEdit ? 'Editar cita' : 'Nueva cita'}
+          {isEdit && <StatusBadge status={appointment!.estado} size="sm" />}
+        </span>
+      )}
+      footer={(
+        <>
+          {isEdit && telefono && (
+            <Button variant="secondary" size="sm" icon={<MessageSquare size={14} />} onClick={handleWhatsApp} style={{ marginRight: 'auto' }}>WhatsApp</Button>
+          )}
+          <Button variant="secondary" onClick={onClose} disabled={saving}>Cancelar</Button>
+          <Button onClick={handleSave} loading={saving} disabled={saving || conflict}>{isEdit ? 'Guardar cambios' : 'Agendar cita'}</Button>
+        </>
+      )}
+    >
           <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
             {/* Paciente */}
             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
@@ -320,17 +317,6 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
               </label>
             </div>
           </div>
-        </div>
-
-        {/* Footer */}
-        <div className="modal-footer">
-          <button className="btn btn-secondary" onClick={onClose} disabled={saving}>Cancelar</button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving || conflict}>
-            {saving ? <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Guardando…</> : (isEdit ? 'Guardar cambios' : 'Agendar cita')}
-          </button>
-        </div>
-      </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
+    </Modal>
   )
 }
