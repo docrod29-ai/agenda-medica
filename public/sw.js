@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v81'  // auto-update no disruptivo: aviso "Hay una versión nueva — Actualizar" (no recarga sola a media nota)
+const CACHE = 'nexusmed-v82'  // Portal del Paciente Fase 1: /mi/[token] magic-link — ver/confirmar/reagendar/cancelar citas
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()
