@@ -8,7 +8,8 @@ import { getPatients } from '@/lib/firestore'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
 import type { NotaMedica } from '@/types/expediente'
 import type { Patient } from '@/types'
-import { ArrowLeft, Printer, Loader2, Download, Pill, ClipboardList, AlertTriangle, Check } from 'lucide-react'
+import { ArrowLeft, Printer, Loader2, Download, Pill, ClipboardList, AlertTriangle, Check, FileText } from 'lucide-react'
+import { Spinner, EmptyState } from '@/components/ui'
 import { descargarComoPDF } from '@/lib/pdf-download'
 
 export default function NotaImprimiblePage() {
@@ -70,14 +71,10 @@ export default function NotaImprimiblePage() {
   }, [clinicId, patientId, notaId])
 
   if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text3)', padding: 40 }}>
-        <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Cargando documento…
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    )
+    return <Spinner center label="Cargando documento…" />
   }
-  if (!nota) return <div style={{ padding: 40, color: 'var(--text3)' }}>Nota no encontrada.</div>
+  if (!nota) return <EmptyState icon={<FileText size={22} />} title="Nota no encontrada" />
+
 
   const fecha = new Date(nota.fechaConsulta).toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' })
   const medico = nota.firma?.nombreMedico || config?.nombreMedico || 'Médico'

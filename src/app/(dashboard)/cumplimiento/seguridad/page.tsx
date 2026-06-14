@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { multiFactor, TotpMultiFactorGenerator, TotpSecret, getMultiFactorResolver } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { ArrowLeft, Shield, ShieldCheck, AlertTriangle, Loader2, Smartphone, KeyRound, Check, X } from 'lucide-react'
+import { Button, Spinner } from '@/components/ui'
 import { useToast } from '@/context/ToastContext'
 
 type Paso = 'estado' | 'instrucciones' | 'qr' | 'verificar' | 'completado'
@@ -105,7 +106,7 @@ export default function SeguridadPage() {
   }
 
   if (!user) {
-    return <div style={{ padding: 24, color: 'var(--text3)' }}>Cargando…</div>
+    return <Spinner center label="Cargando…" />
   }
 
   return (
@@ -120,7 +121,7 @@ export default function SeguridadPage() {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
         <Shield size={22} color="var(--teal)" />
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Seguridad de la cuenta</h1>
+        <h1 className="t-h1" style={{ margin: 0 }}>Seguridad de la cuenta</h1>
       </div>
 
       {/* PASO: estado actual */}
@@ -129,13 +130,9 @@ export default function SeguridadPage() {
           <Estado activo={tieneTotp} email={user.email ?? ''} />
           <div style={{ marginTop: 16 }}>
             {tieneTotp ? (
-              <button onClick={desactivar} disabled={cargando} className="btn btn-secondary" style={{ color: '#f87171', borderColor: 'rgba(239,68,68,0.3)' }}>
-                {cargando ? <Loader2 size={14} className="spin" /> : <X size={14} />} Desactivar 2FA
-              </button>
+              <Button variant="danger" loading={cargando} icon={<X size={14} />} onClick={desactivar}>Desactivar 2FA</Button>
             ) : (
-              <button onClick={() => setPaso('instrucciones')} className="btn btn-primary">
-                <Shield size={14} /> Activar 2FA
-              </button>
+              <Button icon={<Shield size={14} />} onClick={() => setPaso('instrucciones')}>Activar 2FA</Button>
             )}
           </div>
         </div>

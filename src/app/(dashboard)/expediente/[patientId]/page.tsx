@@ -14,6 +14,7 @@ import {
   ArrowLeft, Mic, FileText, Loader2, AlertTriangle, CheckCircle2,
   Clock, ChevronDown, ChevronUp, Plus, Printer, Trash2, Send, Pill, ClipboardList, Pencil, Upload,
 } from 'lucide-react'
+import { Button, EmptyState, Spinner } from '@/components/ui'
 
 export default function ExpedientePage() {
   const { patientId } = useParams<{ patientId: string }>()
@@ -74,7 +75,7 @@ export default function ExpedientePage() {
       {/* Patient header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
+          <h1 className="t-h1" style={{ margin: 0 }}>
             {patient?.nombre ?? 'Paciente'}
           </h1>
           <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 4 }}>
@@ -132,17 +133,14 @@ export default function ExpedientePage() {
 
       {/* Timeline */}
       {loading ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text3)', padding: 40 }}>
-          <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Cargando expediente…
-        </div>
+        <Spinner center label="Cargando expediente…" />
       ) : notasFiltradas.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 48 }}>
-          <FileText size={32} color="var(--text3)" style={{ opacity: 0.5 }} />
-          <p style={{ fontSize: 14, color: 'var(--text3)', marginTop: 12 }}>Sin notas todavía.</p>
-          <button onClick={() => router.push(`/consulta/${patientId}`)} style={{ ...primaryBtn, margin: '12px auto 0' }}>
-            <Plus size={16} /> Crear primera nota
-          </button>
-        </div>
+        <EmptyState
+          icon={<FileText size={22} />}
+          title="Sin notas todavía"
+          description="Inicia una consulta para crear la primera nota clínica de este paciente."
+          action={<Button icon={<Plus size={16} />} onClick={() => router.push(`/consulta/${patientId}`)}>Crear primera nota</Button>}
+        />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
           {notasFiltradas.map((n, i) => (

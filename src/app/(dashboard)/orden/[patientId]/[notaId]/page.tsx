@@ -21,6 +21,7 @@ import { descargarRecetaWord } from '@/lib/receta-word'
 import {
   ArrowLeft, Download, Loader2, Plus, Trash2, Printer, Settings, AlertCircle, ChevronDown, FileText, Check, Scissors,
 } from 'lucide-react'
+import { Spinner } from '@/components/ui'
 
 /** Sugerencias de estudios agrupadas por categoría */
 const SUGERENCIAS = {
@@ -163,12 +164,7 @@ export default function GeneradorOrdenPage() {
   }
 
   if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 10, color: 'var(--text3)' }}>
-        <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Cargando…
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    )
+    return <Spinner center label="Cargando…" />
   }
 
   if (!nota) {

@@ -21,6 +21,7 @@ import type { AuditEvento } from '@/lib/expediente/audit-log'
 import {
   ShieldCheck, FileSearch, Inbox, Copy, ExternalLink, AlertTriangle, Check, Clock, Shield,
 } from 'lucide-react'
+import { Tabs, Spinner, EmptyState } from '@/components/ui'
 import { useToast } from '@/context/ToastContext'
 
 interface AuditEntry {
@@ -106,31 +107,30 @@ export default function CumplimientoPage() {
   }
 
   if (!clinicId) {
-    return <div style={{ padding: 24, color: 'var(--text3)' }}>Cargando…</div>
+    return <Spinner center label="Cargando…" />
   }
 
   return (
     <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
         <ShieldCheck size={22} color="var(--teal)" />
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Cumplimiento normativo</h1>
+        <h1 className="t-h1" style={{ margin: 0 }}>Cumplimiento normativo</h1>
       </div>
       <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 20 }}>
         Panel de auditoría para NOM-024-SSA3-2012 y LFPDPPP. Aquí encuentras la bitácora
         de accesos, solicitudes ARCO de tus pacientes, y el estado de cumplimiento.
       </p>
 
-      {/* Tabs */}
-      <div className="tabs" style={{ marginBottom: 20 }}>
-        {([
-          { k: 'estado', label: 'Estado' },
-          { k: 'bitacora', label: 'Bitácora' },
-          { k: 'arco', label: `ARCO${arcoList.filter(a => a.estado === 'recibida' || a.estado === 'en_proceso').length > 0 ? ` (${arcoList.filter(a => a.estado === 'recibida' || a.estado === 'en_proceso').length})` : ''}` },
-        ] as { k: Tab; label: string }[]).map(t => (
-          <button key={t.k} className={`tab${tab === t.k ? ' active' : ''}`} onClick={() => setTab(t.k)}>
-            {t.label}
-          </button>
-        ))}
+      <div style={{ marginBottom: 20 }}>
+        <Tabs<Tab>
+          value={tab}
+          onChange={setTab}
+          items={[
+            { key: 'estado', label: 'Estado' },
+            { key: 'bitacora', label: 'Bitácora' },
+            { key: 'arco', label: 'ARCO', count: arcoList.filter(a => a.estado === 'recibida' || a.estado === 'en_proceso').length },
+          ]}
+        />
       </div>
 
       {tab === 'estado' && (
@@ -280,8 +280,9 @@ function Resumen({ ok, titulo, descripcion, accion }: { ok: boolean; titulo: str
 }
 
 function Bitacora({ entries, loading }: { entries: AuditEntry[]; loading: boolean }) {
-  if (loading) return <div style={{ color: 'var(--text3)', textAlign: 'center', padding: 40 }}>Cargando…</div>
-  if (entries.length === 0) return <div style={{ color: 'var(--text3)', textAlign: 'center', padding: 40 }}>Sin eventos registrados aún.</div>
+  if (loading) return <Spinner center label="Cargando…" />
+  if (entries.length === 0) return <EmptyState icon={<FileSearch size={22} />} title="Sin eventos registrados aún" description="Cada acceso, escritura, impresión y firma quedará aquí con sello de tiempo." />
+
   return (
     <div style={{ background: 'var(--s)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
       <div style={{ padding: 12, borderBottom: '1px solid var(--border)', fontSize: 12, color: 'var(--text3)', display: 'flex', justifyContent: 'space-between' }}>
@@ -315,16 +316,14 @@ function Bitacora({ entries, loading }: { entries: AuditEntry[]; loading: boolea
 }
 
 function ArcoPanel({ requests, loading, onResolver }: { requests: ArcoRequest[]; loading: boolean; onResolver: (req: ArcoRequest, estado: 'resuelta' | 'rechazada') => void }) {
-  if (loading) return <div style={{ color: 'var(--text3)', textAlign: 'center', padding: 40 }}>Cargando…</div>
+  if (loading) return <Spinner center label="Cargando…" />
   if (requests.length === 0) {
     return (
-      <div style={{ textAlign: 'center', padding: 40, color: 'var(--text3)' }}>
-        <Inbox size={32} style={{ opacity: 0.4, marginBottom: 10 }} />
-        <div>Sin solicitudes ARCO todavía.</div>
-        <div style={{ fontSize: 11.5, marginTop: 6 }}>
-          Cuando un paciente solicite acceso, rectificación, cancelación u oposición, aparecerá aquí.
-        </div>
-      </div>
+      <EmptyState
+        icon={<Inbox size={22} />}
+        title="Sin solicitudes ARCO todavía"
+        description="Cuando un paciente solicite acceso, rectificación, cancelación u oposición, aparecerá aquí."
+      />
     )
   }
   return (

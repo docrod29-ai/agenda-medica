@@ -28,6 +28,7 @@ import {
   ArrowLeft, Download, Loader2, Plus, Trash2, Printer, Settings, AlertCircle, FileText,
   AlertTriangle, Lock, Droplet, Ban, Scale, Lightbulb, Scissors,
 } from 'lucide-react'
+import { Spinner } from '@/components/ui'
 
 const VIAS: Medicamento['via'][] = ['oral', 'iv', 'im', 'sc', 'topica', 'inhalatoria', 'sublingual', 'rectal', 'otra']
 
@@ -182,12 +183,7 @@ export default function GeneradorRecetaPage() {
   }
 
   if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 10, color: 'var(--text3)' }}>
-        <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Cargando receta…
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    )
+    return <Spinner center label="Cargando receta…" />
   }
 
   if (!nota) {

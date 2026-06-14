@@ -11,6 +11,7 @@ import { getPatients } from '@/lib/firestore'
 import { getNotas } from '@/lib/expediente/firestore'
 import { evaluarRetencion, formatearAntiguedad, listarPacientesPorRevisar, type PacienteRetencion } from '@/lib/retencion'
 import { ArrowLeft, Loader2, FileSearch, AlertTriangle, Clock, Eye } from 'lucide-react'
+import { Spinner, EmptyState } from '@/components/ui'
 
 export default function RetencionPage() {
   const router = useRouter()
@@ -57,7 +58,7 @@ export default function RetencionPage() {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
         <FileSearch size={22} color="var(--teal)" />
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Política de retención</h1>
+        <h1 className="t-h1" style={{ margin: 0 }}>Política de retención</h1>
       </div>
       <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 20, lineHeight: 1.6 }}>
         NOM-004-SSA3-2012 numeral 5.7: el expediente clínico debe conservarse por un
@@ -89,13 +90,12 @@ export default function RetencionPage() {
 
       {/* Lista */}
       {loading ? (
-        <div style={{ padding: 40, textAlign: 'center', color: 'var(--text3)' }}>
-          <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} /> Evaluando expedientes…
-        </div>
+        <Spinner center label="Evaluando expedientes…" />
       ) : lista.length === 0 ? (
-        <div style={{ padding: 40, textAlign: 'center', color: 'var(--text3)' }}>
-          {filtro === 'por_revisar' ? 'Ningún paciente requiere acción' : 'Sin pacientes registrados'}
-        </div>
+        <EmptyState
+          icon={<FileSearch size={22} />}
+          title={filtro === 'por_revisar' ? 'Ningún paciente requiere acción' : 'Sin pacientes registrados'}
+        />
       ) : (
         <div style={{ display: 'grid', gap: 8 }}>
           {lista.map(e => (
