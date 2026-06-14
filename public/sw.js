@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v89'  // Hueco #2: telemedicina — panel del médico en la teleconsulta (nota IA + expediente) + fix link con ?c=clinicId
+const CACHE = 'nexusmed-v90'  // Hueco #1: anticipo/pago en línea vía link propio (config) → botón "Pagar anticipo" en el portal del paciente
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

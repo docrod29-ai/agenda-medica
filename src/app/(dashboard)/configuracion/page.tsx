@@ -494,6 +494,16 @@ export default function ConfiguracionPage() {
             </div>
             <input type="checkbox" checked={!!form.resenaAutomatica} onChange={updBool('resenaAutomatica')} style={{ accentColor: 'var(--teal)', width: 18, height: 18 }} />
           </div>
+          <div style={{ padding: 16, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10 }}>
+            <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>Anticipo / pago en línea</div>
+            <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 10, lineHeight: 1.5 }}>
+              Pega tu link de pago propio (Stripe Payment Link, MercadoPago, Clip…). El paciente verá un botón <strong>Pagar anticipo</strong> en su portal. Reduce inasistencias.
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 10 }}>
+              <input className="input" placeholder="https://mpago.la/… o https://buy.stripe.com/…" value={form.anticipoLink ?? ''} onChange={upd('anticipoLink')} />
+              <input className="input" type="number" min={0} placeholder="Monto $" value={form.anticipoMonto ?? ''} onChange={(e) => setForm({ ...form, anticipoMonto: e.target.value ? Number(e.target.value) : undefined })} />
+            </div>
+          </div>
           <div className="form-group" style={{ maxWidth: 200 }}>
             <label className="label">Hora de resumen diario</label>
             <input className="input" type="time" value={form.horaResumenDiario} onChange={upd('horaResumenDiario')} />

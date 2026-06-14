@@ -80,6 +80,7 @@ export async function POST(req: NextRequest) {
             direccion: config.direccion || '',
           } : null,
           minHoras: (config as { politicaCancelacionHoras?: number } | null)?.politicaCancelacionHoras ?? MIN_HORAS_DEFECTO,
+          anticipo: config?.anticipoLink ? { link: config.anticipoLink, monto: config.anticipoMonto ?? 0 } : null,
           citas: citas.sort((a, b) => a.fechaHora.localeCompare(b.fechaHora)),
         })
       }

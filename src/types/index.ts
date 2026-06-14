@@ -281,6 +281,10 @@ export interface ClinicConfig {
   recordatorioMismoDia: boolean
   /** Opt-in: pedir reseña por WhatsApp automáticamente tras la visita (cron) */
   resenaAutomatica?: boolean
+  /** Anticipo/pago en línea: link de pago propio del médico (Stripe Payment Link / MercadoPago) */
+  anticipoLink?: string
+  /** Monto del anticipo (MXN) — solo informativo en el botón */
+  anticipoMonto?: number
   horaResumenDiario: string
   diasFestivos: string[]
   whatsappProveedor: string

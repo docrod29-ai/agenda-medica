@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import {
   Calendar, Clock, MapPin, Stethoscope, CheckCircle2, CalendarClock, XCircle,
-  Loader2, Phone, CalendarPlus, AlertTriangle, Download, Pill, ShieldCheck,
+  Loader2, Phone, CalendarPlus, AlertTriangle, Download, Pill, ShieldCheck, CreditCard,
 } from 'lucide-react'
 import { descargarRecetaWord } from '@/lib/receta-word'
 import type { Medicamento } from '@/types/expediente'
@@ -42,6 +42,7 @@ interface Sesion {
   paciente: string
   clinica: { nombre: string; medico: string; telefono: string; direccion: string } | null
   minHoras: number
+  anticipo: { link: string; monto: number } | null
   citas: Cita[]
 }
 
@@ -207,6 +208,24 @@ export default function MiPortalPage() {
             </div>
           )
         })}
+
+        {/* Anticipo / pago en línea */}
+        {sesion.anticipo && proximas.length > 0 && (
+          <a href={sesion.anticipo.link} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', display: 'block', marginTop: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--nexus-soft)', border: '1px solid color-mix(in srgb, var(--nexus) 30%, transparent)', borderRadius: 12, padding: 14 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--nexus)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <CreditCard size={17} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+                  Pagar anticipo{sesion.anticipo.monto > 0 ? ` · $${sesion.anticipo.monto} MXN` : ''}
+                </div>
+                <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Asegura tu lugar y agiliza tu llegada</div>
+              </div>
+              <span style={{ color: 'var(--nexus)', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>Pagar →</span>
+            </div>
+          </a>
+        )}
 
         {/* Pasadas */}
         {pasadas.length > 0 && (
