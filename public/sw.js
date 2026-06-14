@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v73'  // Fase 3 cierre: header de configuración → .t-h1 (consistencia de headers en toda la app)
+const CACHE = 'nexusmed-v74'  // Fase 4: timeline clínico del expediente — nodos con icono por tipo de nota + Badge de estado
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

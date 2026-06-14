@@ -9,12 +9,25 @@ import { useToast } from '@/context/ToastContext'
 import { useAuth } from '@/hooks/useAuth'
 import type { Patient } from '@/types'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
-import type { NotaMedica } from '@/types/expediente'
+import type { NotaMedica, TipoNota } from '@/types/expediente'
 import {
   ArrowLeft, Mic, FileText, Loader2, AlertTriangle, CheckCircle2,
   Clock, ChevronDown, ChevronUp, Plus, Printer, Trash2, Send, Pill, ClipboardList, Pencil, Upload,
+  Stethoscope, Activity, LogIn, LogOut, UserPlus, ClipboardCheck, type LucideIcon,
 } from 'lucide-react'
-import { Button, EmptyState, Spinner } from '@/components/ui'
+import { Button, EmptyState, Spinner, Badge } from '@/components/ui'
+
+/** Icono lineal por tipo de nota — nodo del timeline clínico. */
+const ICONO_TIPO_NOTA: Record<TipoNota, LucideIcon> = {
+  historia_clinica: FileText,
+  primera_vez: UserPlus,
+  seguimiento: Stethoscope,
+  alta_consulta: LogOut,
+  ingreso: LogIn,
+  evolucion: Activity,
+  egreso: LogOut,
+  valoracion_preoperatoria: ClipboardCheck,
+}
 
 export default function ExpedientePage() {
   const { patientId } = useParams<{ patientId: string }>()
@@ -241,21 +254,27 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
   nota: NotaMedica; esUltima: boolean; abierta: boolean; onToggle: () => void; onEditar: () => void; onImprimir: () => void; onGenerarReceta: () => void; onGenerarOrden: () => void; onBorrar: () => void
 }) {
   const firmada = nota.estado === 'firmada'
+  const IconoTipo = ICONO_TIPO_NOTA[nota.tipo] ?? FileText
+  const acento = firmada ? 'var(--nexus)' : 'var(--amber)'
   return (
     <div style={{ display: 'flex', gap: 14 }}>
-      {/* Timeline rail */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 24, flexShrink: 0 }}>
+      {/* Riel del timeline — nodo con icono del tipo de nota */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 34, flexShrink: 0 }}>
         <div style={{
-          width: 12, height: 12, borderRadius: '50%', marginTop: 18,
-          background: firmada ? 'var(--teal)' : '#f59e0b',
-          border: '2px solid var(--bg)', zIndex: 1,
-        }} />
-        {!esUltima && <div style={{ width: 2, flex: 1, background: 'var(--border)' }} />}
+          width: 34, height: 34, borderRadius: '50%', marginTop: 12,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: firmada ? 'var(--nexus-soft)' : 'rgba(245,158,11,0.12)',
+          border: `1.5px solid ${acento}`, color: acento,
+          zIndex: 1, flexShrink: 0,
+        }}>
+          <IconoTipo size={16} />
+        </div>
+        {!esUltima && <div style={{ width: 2, flex: 1, background: 'var(--border)', marginTop: 2 }} />}
       </div>
 
       {/* Card */}
       <div style={{
-        flex: 1, marginBottom: 12, background: 'var(--s1)',
+        flex: 1, marginBottom: 14, background: 'var(--s1)',
         border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden',
       }}>
         <button onClick={onToggle} style={{
@@ -265,13 +284,7 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
               <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{TIPO_NOTA_LABEL[nota.tipo]}</span>
-              <span style={{
-                fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 100,
-                background: firmada ? 'rgba(61,90,254,0.12)' : 'rgba(245,158,11,0.12)',
-                color: firmada ? 'var(--teal)' : '#f59e0b',
-              }}>
-                {firmada ? 'FIRMADA' : 'BORRADOR'}
-              </span>
+              <Badge tone={firmada ? 'cobalt' : 'amber'} dot>{firmada ? 'Firmada' : 'Borrador'}</Badge>
             </div>
             <div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5 }}>
               {nota.resumenEjecutivo || nota.diagnosticos.map(d => d.descripcion).join(', ') || 'Sin resumen'}
