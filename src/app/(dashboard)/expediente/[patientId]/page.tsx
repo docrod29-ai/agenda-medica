@@ -156,6 +156,15 @@ export default function ExpedientePage() {
         />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          <div className="t-overline" style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Activity size={12} className="ds-icon" />
+            {notasFiltradas.length} {notasFiltradas.length === 1 ? 'consulta' : 'consultas'}
+            {(() => {
+              const fechas = notasFiltradas.map(n => n.fechaConsulta).filter(Boolean).sort()
+              const primera = fechas[0]
+              return primera ? <span style={{ color: 'var(--text3)', fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>· desde {new Date(primera).toLocaleDateString('es-MX', { dateStyle: 'medium' })}</span> : null
+            })()}
+          </div>
           {notasFiltradas.map((n, i) => (
             <NotaCard
               key={n.id}
