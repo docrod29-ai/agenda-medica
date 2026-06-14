@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v66'  // pacientes organizados: Recientes / A-Z agrupado / Con alerta + búsqueda
+const CACHE = 'nexusmed-v67'  // design system: identidad técnico-precisa + iconos lucide (sin emojis en chrome clínico)
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

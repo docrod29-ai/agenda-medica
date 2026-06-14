@@ -15,7 +15,7 @@
  */
 
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
-import { AlertTriangle, ShieldAlert, Pill, Stethoscope, TestTube, Scissors, X, Loader2 } from 'lucide-react'
+import { AlertTriangle, ShieldAlert, Pill, Stethoscope, TestTube, Scissors, X, Loader2, FlaskConical, Lightbulb, Bone } from 'lucide-react'
 
 interface NerPanelProps {
   entidades: EntidadesExtraidas | null
@@ -76,7 +76,7 @@ export function NerPanel({ entidades, cargando, error, onCerrar }: NerPanelProps
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-          🔬 Entidades clínicas <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 400 }}>· {totalEntidades} elementos</span>
+          <FlaskConical size={15} className="ds-icon" /> Entidades clínicas <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 400 }}>· {totalEntidades} elementos</span>
         </h3>
         {onCerrar && (
           <button onClick={onCerrar} className="btn btn-ghost btn-sm">
@@ -100,8 +100,8 @@ export function NerPanel({ entidades, cargando, error, onCerrar }: NerPanelProps
             Paciente alérgico a <strong>{c.alergeno}</strong> + fármaco prescrito: <strong>{c.farmaco_riesgoso}</strong>
           </div>
           {c.alternativa_sugerida && (
-            <div style={{ fontSize: 13, color: 'var(--text)', marginTop: 6, padding: '6px 10px', background: 'var(--s2)', borderRadius: 6 }}>
-              💡 Alternativa segura: <strong>{c.alternativa_sugerida}</strong>
+            <div style={{ fontSize: 13, color: 'var(--text)', marginTop: 6, padding: '6px 10px', background: 'var(--s2)', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Lightbulb size={13} className="ds-icon" color="var(--amber)" /> Alternativa segura: <strong>{c.alternativa_sugerida}</strong>
             </div>
           )}
         </div>
@@ -181,7 +181,7 @@ export function NerPanel({ entidades, cargando, error, onCerrar }: NerPanelProps
               </div>
               {m.necesita_ajuste && m.necesita_ajuste !== 'no' && (
                 <div style={{ fontSize: 11, color: 'var(--amber)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  ⚠️ Verificar ajuste por función {m.necesita_ajuste === 'renal' ? 'renal' : m.necesita_ajuste === 'hepatico' ? 'hepática' : 'peso'}
+                  <AlertTriangle size={11} className="ds-icon" /> Verificar ajuste por función {m.necesita_ajuste === 'renal' ? 'renal' : m.necesita_ajuste === 'hepatico' ? 'hepática' : 'peso'}
                 </div>
               )}
               {m.indicacion && (
@@ -236,7 +236,7 @@ export function NerPanel({ entidades, cargando, error, onCerrar }: NerPanelProps
 
       {/* ── ANATOMÍA ──────────────────────────────────────────── */}
       {anatomy.length > 0 && (
-        <Seccion icono={<span style={{ fontSize: 12 }}>🦴</span>} titulo={`Regiones anatómicas · ${anatomy.length}`}>
+        <Seccion icono={<Bone size={14} />} titulo={`Regiones anatómicas · ${anatomy.length}`}>
           {anatomy.map((a, i) => (
             <span key={i} style={chipStyle('gris')} title={a.source_quote}>
               {a.texto}

@@ -31,6 +31,7 @@ import { Cie10Autocomplete } from '@/components/Cie10Autocomplete'
 import {
   ArrowLeft, Mic, Square, Sparkles, Loader2, AlertTriangle, CheckCircle2,
   Trash2, Plus, ShieldCheck, Pill, Stethoscope, FileSignature,
+  Lock, Bug, FlaskConical, Lightbulb,
 } from 'lucide-react'
 
 const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'valoracion_preoperatoria', 'alta_consulta', 'ingreso', 'evolucion', 'egreso']
@@ -231,7 +232,7 @@ export default function ConsultaActivaPage() {
         meta: { tipo, transcripcionLen: voz.transcripcion.length },
       })
 
-      toast('✨ Nota estructurada por IA — revisa campo por campo', 'success')
+      toast('Nota estructurada por IA — revisa campo por campo', 'success')
     } catch {
       toast('Error al conectar con la IA', 'error')
     } finally {
@@ -266,9 +267,9 @@ export default function ConsultaActivaPage() {
       setEntidades(data as EntidadesExtraidas)
       const bloquea = (data.cross_check?.alergia_vs_medicamento ?? []).filter((c: { BLOQUEA_RECETA: boolean }) => c.BLOQUEA_RECETA).length
       const intGraves = (data.cross_check?.interacciones_farmacologicas ?? []).filter((i: { severidad: string }) => i.severidad === 'mayor' || i.severidad === 'contraindicada').length
-      if (bloquea > 0) toast(`🚨 ${bloquea} alergia(s) cruzada(s) — revisa el panel`, 'error')
-      else if (intGraves > 0) toast(`⚠️ ${intGraves} interacción(es) farmacológica(s) detectadas`, 'info')
-      else toast('🔬 Entidades extraídas — sin conflictos detectados', 'success')
+      if (bloquea > 0) toast(`${bloquea} alergia(s) cruzada(s) — revisa el panel`, 'error')
+      else if (intGraves > 0) toast(`${intGraves} interacción(es) farmacológica(s) detectadas`, 'info')
+      else toast('Entidades extraídas — sin conflictos detectados', 'success')
     } catch {
       setNerError('Error de red al llamar al NER')
       toast('Error de red al extraer entidades', 'error')
@@ -424,7 +425,7 @@ export default function ConsultaActivaPage() {
         setNotaId(id)
       }
       setFirmada(true)
-      toast('✅ Nota firmada y sellada (NOM-024)', 'success')
+      toast('Nota firmada y sellada (NOM-024)', 'success')
       // Auditoría (Fase F)
       if (clinicId) logAudit({
         evento: 'nota_firmada', clinicId, patientId, notaId: id,
@@ -501,9 +502,10 @@ export default function ConsultaActivaPage() {
                     background: modoVoz === 'vivo' ? 'var(--teal)' : 'transparent',
                     color: modoVoz === 'vivo' ? '#040b12' : 'var(--text3)',
                     border: 'none', borderRadius: 7, cursor: 'pointer',
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                   }}
                 >
-                  🎙️ Dictado en vivo
+                  <Mic size={13} className="ds-icon" /> Dictado en vivo
                 </button>
               )}
               {audio.soportado && (
@@ -514,9 +516,10 @@ export default function ConsultaActivaPage() {
                     background: modoVoz === 'whisper' ? 'var(--teal)' : 'transparent',
                     color: modoVoz === 'whisper' ? '#040b12' : 'var(--text3)',
                     border: 'none', borderRadius: 7, cursor: 'pointer',
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                   }}
                 >
-                  🎤 Grabar y procesar (Whisper)
+                  <Mic size={13} className="ds-icon" /> Grabar y procesar (Whisper)
                 </button>
               )}
             </div>
@@ -545,7 +548,7 @@ export default function ConsultaActivaPage() {
               </button>
               <div style={{ flex: 1, minWidth: 180 }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>
-                  {voz.grabando ? `🔴 Grabando · ${mmss}` : 'Grabar consulta (en vivo)'}
+                  {voz.grabando ? `Grabando · ${mmss}` : 'Grabar consulta (en vivo)'}
                 </div>
                 <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>
                   Transcribe mientras hablas · Chrome/Edge · Ctrl/Cmd+R
@@ -566,7 +569,7 @@ export default function ConsultaActivaPage() {
                   border: '1px solid var(--amber)', background: 'rgba(217, 119, 6, 0.08)',
                   display: 'flex', alignItems: 'center', gap: 12, fontSize: 13,
                 }}>
-                  <span>🎙️ Hay audio guardado de una sesión anterior. ¿Recuperar y transcribir?</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Mic size={14} className="ds-icon" /> Hay audio guardado de una sesión anterior. ¿Recuperar y transcribir?</span>
                   <button className="btn btn-sm" style={{ background: 'var(--amber)', color: '#000', border: 'none', fontWeight: 600 }}
                     onClick={async () => { await audio.recuperarAudio(`consulta-${patientId}`); setOfreceRecovery(false) }}>
                     Recuperar
@@ -613,10 +616,10 @@ export default function ConsultaActivaPage() {
               )}
               <div style={{ flex: 1, minWidth: 200 }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>
-                  {audio.estado === 'grabando' ? `🔴 Grabando · ${String(Math.floor(audio.duracion / 60)).padStart(2,'0')}:${String(audio.duracion % 60).padStart(2,'0')}${audio.chunksTranscritos > 0 ? ` · ${audio.chunksTranscritos} chunks transcritos` : ''}`
+                  {audio.estado === 'grabando' ? `Grabando · ${String(Math.floor(audio.duracion / 60)).padStart(2,'0')}:${String(audio.duracion % 60).padStart(2,'0')}${audio.chunksTranscritos > 0 ? ` · ${audio.chunksTranscritos} chunks transcritos` : ''}`
                     : audio.estado === 'pausado' ? `⏸ Pausado · ${String(Math.floor(audio.duracion / 60)).padStart(2,'0')}:${String(audio.duracion % 60).padStart(2,'0')}`
                     : audio.estado === 'subiendo' ? 'Transcribiendo audio…'
-                    : audio.estado === 'listo' ? '✅ Transcripción lista'
+                    : audio.estado === 'listo' ? 'Transcripción lista'
                     : 'Grabar audio para transcribir'}
                 </div>
                 {/* Medidor de nivel de audio EN VIVO — confirma visualmente que captura voz */}
@@ -637,7 +640,7 @@ export default function ConsultaActivaPage() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 4, fontSize: 10.5, color: 'var(--text3)' }}>
                       <span>
                         {audio.silencioProlongado
-                          ? '⚠️ Sin señal por +15s — verifica el micrófono'
+                          ? 'Sin señal por +15s — verifica el micrófono'
                           : audio.nivelAudio < 0.05 ? 'Esperando voz…' : 'Captando bien'}
                       </span>
                       <span style={{ fontVariantNumeric: 'tabular-nums' }}>
@@ -651,7 +654,7 @@ export default function ConsultaActivaPage() {
                     HIFI 48kHz · 128kbps Opus · gpt-4o-transcribe · vocabulario médico ampliado
                   </div>
                 )}
-                {audio.error && <div style={{ fontSize: 11.5, color: '#f87171', marginTop: 3 }}>⚠ {audio.error}</div>}
+                {audio.error && <div style={{ fontSize: 11.5, color: '#f87171', marginTop: 3, display: 'flex', alignItems: 'center', gap: 5 }}><AlertTriangle size={12} className="ds-icon" /> {audio.error}</div>}
               </div>
               <button onClick={procesarIA} disabled={procesando || !voz.transcripcion.trim()} style={S.iaBtn(procesando || !voz.transcripcion.trim())}>
                 {procesando ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Claude estructurando…</> : <><Sparkles size={16} /> Procesar con IA</>}
@@ -696,7 +699,7 @@ export default function ConsultaActivaPage() {
           >
             {nerCargando
               ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Extrayendo entidades…</>
-              : <>🔬 Extraer entidades clínicas {entidades ? '· re-analizar' : ''}</>}
+              : <><FlaskConical size={14} /> Extraer entidades clínicas {entidades ? '· re-analizar' : ''}</>}
           </button>
           {entidades && (
             <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>
@@ -740,7 +743,7 @@ export default function ConsultaActivaPage() {
             {alertas.length > 0 && (
               <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 10, padding: '12px 14px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#f87171', marginBottom: 6 }}>
-                  🚨 Alergia ↔ medicamento
+                  <AlertTriangle size={15} className="ds-icon" /> Alergia ↔ medicamento
                 </div>
                 {alertas.map((a, i) => (
                   <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginBottom: 4 }}>
@@ -751,7 +754,7 @@ export default function ConsultaActivaPage() {
             )}
             {interacciones.length > 0 && (
               <div style={{ background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.35)', borderRadius: 10, padding: '12px 14px' }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--amber)', marginBottom: 6 }}>⚠️ Posibles interacciones farmacológicas</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: 'var(--amber)', marginBottom: 6 }}><AlertTriangle size={15} className="ds-icon" /> Posibles interacciones farmacológicas</div>
                 {interacciones.map((it, i) => (
                   <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginBottom: 4 }}>
                     <strong>{it.titulo}</strong>{it.severidad === 'mayor' ? ' (mayor)' : ''} — {it.detalle}
@@ -761,7 +764,7 @@ export default function ConsultaActivaPage() {
             )}
             {controlados.length > 0 && (
               <div style={{ background: 'rgba(61,90,254,0.06)', border: '1px solid rgba(61,90,254,0.3)', borderRadius: 10, padding: '12px 14px' }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--nexus)', marginBottom: 6 }}>🔒 Controlado(s) — requisito COFEPRIS</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: 'var(--nexus)', marginBottom: 6 }}><Lock size={15} className="ds-icon" /> Controlado(s) — requisito COFEPRIS</div>
                 {controlados.map((c, i) => (
                   <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginBottom: 4 }}>
                     <strong>{c.farmaco}</strong> — {c.requisito}
@@ -780,7 +783,7 @@ export default function ConsultaActivaPage() {
         return (
           <div style={{ background: 'rgba(15,110,86,0.07)', border: '1px solid rgba(15,110,86,0.3)', borderRadius: 10, padding: '12px 14px', marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#0F6E56' }}>🦠 PROA — reevaluar antimicrobiano</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#0F6E56' }}><Bug size={15} className="ds-icon" /> PROA — reevaluar antimicrobiano</div>
               <div style={{ fontSize: 11.5, color: 'var(--text2)' }}>
                 Reevaluación sugerida: <strong>{plan.ventana}</strong> (48-72h)
               </div>
@@ -890,8 +893,8 @@ export default function ConsultaActivaPage() {
           </button>
         )}
         {!firmada && diagnosticos.length === 0 && (
-          <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', padding: 6 }}>
-            💡 Escribe el padecimiento y te sugerimos el código CIE-10 del catálogo NOM-035
+          <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', padding: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <Lightbulb size={12} className="ds-icon" /> Escribe el padecimiento y te sugerimos el código CIE-10 del catálogo NOM-035
           </div>
         )}
       </Section>
@@ -932,7 +935,7 @@ export default function ConsultaActivaPage() {
           )}
           {validacion.advertencias.length > 0 && (
             <div style={S.valBox('warn')}>
-              {validacion.advertencias.map((a, i) => <div key={i} style={{ display: 'flex', gap: 6 }}>⚠️ {a}</div>)}
+              {validacion.advertencias.map((a, i) => <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={13} className="ds-icon" /> {a}</div>)}
             </div>
           )}
           <div style={{ display: 'flex', gap: 10, marginTop: 16, alignItems: 'center', flexWrap: 'wrap' }}>
