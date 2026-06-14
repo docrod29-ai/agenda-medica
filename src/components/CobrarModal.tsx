@@ -8,7 +8,8 @@ import {
   registrarCobro, METODO_LABEL, CONCEPTO_LABEL,
   type MetodoPago, type ConceptoCobro,
 } from '@/lib/cobros'
-import { X, DollarSign, Loader2 } from 'lucide-react'
+import { DollarSign } from 'lucide-react'
+import { Modal, Button } from '@/components/ui'
 import { useToast } from '@/context/ToastContext'
 
 export interface CobrarModalProps {
@@ -73,24 +74,17 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
   }
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 1000,
-    }}>
-      <div style={{
-        background: 'var(--bg)', borderRadius: 14, padding: 20, width: '100%', maxWidth: 480,
-        border: '1px solid var(--border)', maxHeight: '92vh', overflow: 'auto',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <h2 style={{ fontSize: 17, fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <DollarSign size={20} color="var(--teal)" />
-            Registrar cobro
-          </h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)' }}>
-            <X size={18} />
-          </button>
-        </div>
-
+    <Modal
+      open
+      onClose={onClose}
+      title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><DollarSign size={18} color="var(--teal)" /> Registrar cobro</span>}
+      footer={(
+        <>
+          <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+          <Button onClick={guardar} loading={guardando}>Registrar cobro</Button>
+        </>
+      )}
+    >
         {prefill?.patientNombre && (
           <div style={{ padding: 10, background: 'var(--s)', borderRadius: 8, marginBottom: 14, fontSize: 13 }}>
             <div style={{ color: 'var(--text3)', fontSize: 11, marginBottom: 2 }}>Paciente</div>
@@ -166,19 +160,7 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
             <input value={notas} onChange={(e) => setNotas(e.target.value)} style={inp} />
           </div>
         </div>
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
-          <button onClick={onClose} className="btn btn-secondary">Cancelar</button>
-          <button onClick={guardar} disabled={guardando} className="btn btn-primary">
-            {guardando ? <><Loader2 size={14} className="spin" /> Guardando…</> : <>Registrar cobro</>}
-          </button>
-        </div>
-        <style>{`
-          .spin { animation: spin 1s linear infinite; }
-          @keyframes spin { to { transform: rotate(360deg); } }
-        `}</style>
-      </div>
-    </div>
+    </Modal>
   )
 }
 
