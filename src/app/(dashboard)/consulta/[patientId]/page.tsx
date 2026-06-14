@@ -16,6 +16,7 @@ import { PreopAssessment } from '@/components/PreopAssessment'
 import { RevisionPanel } from '@/components/RevisionPanel'
 import { NerPanel } from '@/components/NerPanel'
 import { CorreccionesPanel } from '@/components/CorreccionesPanel'
+import { Alert } from '@/components/ui'
 import { fetchAutenticado } from '@/lib/auth-client'
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
@@ -741,36 +742,31 @@ export default function ConsultaActivaPage() {
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
             {alertas.length > 0 && (
-              <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 10, padding: '12px 14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#f87171', marginBottom: 6 }}>
-                  <AlertTriangle size={15} className="ds-icon" /> Alergia ↔ medicamento
-                </div>
+              <Alert tone="danger" icon={<AlertTriangle size={18} />} title="Alergia ↔ medicamento">
                 {alertas.map((a, i) => (
-                  <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginBottom: 4 }}>
-                    <strong style={{ color: a.severidad === 'critica' ? '#f87171' : '#f59e0b' }}>[{a.severidad.toUpperCase()}]</strong> {a.mensaje}
+                  <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginTop: i ? 4 : 0 }}>
+                    <strong style={{ color: a.severidad === 'critica' ? 'var(--red)' : 'var(--amber)' }}>[{a.severidad.toUpperCase()}]</strong> {a.mensaje}
                   </div>
                 ))}
-              </div>
+              </Alert>
             )}
             {interacciones.length > 0 && (
-              <div style={{ background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.35)', borderRadius: 10, padding: '12px 14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: 'var(--amber)', marginBottom: 6 }}><AlertTriangle size={15} className="ds-icon" /> Posibles interacciones farmacológicas</div>
+              <Alert tone="warning" title="Posibles interacciones farmacológicas">
                 {interacciones.map((it, i) => (
-                  <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginBottom: 4 }}>
+                  <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginTop: i ? 4 : 0 }}>
                     <strong>{it.titulo}</strong>{it.severidad === 'mayor' ? ' (mayor)' : ''} — {it.detalle}
                   </div>
                 ))}
-              </div>
+              </Alert>
             )}
             {controlados.length > 0 && (
-              <div style={{ background: 'rgba(61,90,254,0.06)', border: '1px solid rgba(61,90,254,0.3)', borderRadius: 10, padding: '12px 14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: 'var(--nexus)', marginBottom: 6 }}><Lock size={15} className="ds-icon" /> Controlado(s) — requisito COFEPRIS</div>
+              <Alert tone="cobalt" icon={<Lock size={16} />} title="Controlado(s) — requisito COFEPRIS">
                 {controlados.map((c, i) => (
-                  <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginBottom: 4 }}>
+                  <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginTop: i ? 4 : 0 }}>
                     <strong>{c.farmaco}</strong> — {c.requisito}
                   </div>
                 ))}
-              </div>
+              </Alert>
             )}
           </div>
         )
