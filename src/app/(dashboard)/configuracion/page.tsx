@@ -1820,6 +1820,21 @@ function PortalTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
           </a>
         </div>
 
+        {/* Perfil público SEO — la página indexable por Google */}
+        {clinicId && (
+          <div style={{ marginTop: 14, padding: 14, background: 'var(--nexus-soft)', borderRadius: 10, border: '1px solid color-mix(in srgb, var(--nexus) 30%, transparent)' }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>Tu perfil público (aparece en Google)</div>
+            <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 8, lineHeight: 1.5 }}>
+              Página indexable con tu especialidad, servicios y reseñas (con estrellas en los resultados de búsqueda). Compártela en tu Instagram, tarjeta o firma de correo — es tu presencia propia, sin comisiones.
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <code style={{ fontSize: 12, background: 'var(--s2)', padding: '6px 10px', borderRadius: 6, flex: 1, minWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{origin}/dr/{clinicId}</code>
+              <button onClick={() => { navigator.clipboard?.writeText(`${origin}/dr/${clinicId}`); toast('Enlace copiado', 'success') }} className="btn btn-secondary btn-sm"><Copy size={13} /> Copiar</button>
+              <a href={`/dr/${clinicId}`} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm"><ExternalLink size={13} /> Ver</a>
+            </div>
+          </div>
+        )}
+
         {/* QR */}
         {qrUrl && (
           <div style={{ marginTop: 18, padding: 14, background: 'var(--s2)', borderRadius: 10, border: '1px dashed var(--border)' }}>

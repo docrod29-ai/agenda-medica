@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v86'  // Portal Fase 4: pulido — título de pestaña con marca de clínica + línea de confianza
+const CACHE = 'nexusmed-v87'  // Hueco #4: perfil público SEO /dr/[clinicId] (SSR + schema.org Physician + reseñas) + link en Configuración
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()
