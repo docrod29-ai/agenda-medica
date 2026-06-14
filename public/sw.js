@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v79'  // CobrarModal → <Modal>: overlay inline migrado; todos los diálogos ya unificados
+const CACHE = 'nexusmed-v80'  // Modales restantes a <Modal>: consentimiento de grabación (consulta) + Aviso de Privacidad
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

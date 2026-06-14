@@ -8,7 +8,8 @@
 import { useState } from 'react'
 import type { ClinicConfig } from '@/types'
 import { generarAvisoPrivacidad, generarAvisoResumido, VERSION_AVISO } from '@/lib/aviso-privacidad'
-import { X, Check, FileText, Download } from 'lucide-react'
+import { Check, FileText, Download } from 'lucide-react'
+import { Modal, Button } from '@/components/ui'
 
 export interface AvisoPrivacidadModalProps {
   config: ClinicConfig | null
@@ -48,33 +49,28 @@ export function AvisoPrivacidadModal({ config, onAceptar, onCancelar, medioInici
   }
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 1000,
-    }}>
-      <div style={{
-        background: 'var(--bg)', borderRadius: 14, maxWidth: 640, width: '100%',
-        maxHeight: '92vh', display: 'flex', flexDirection: 'column',
-        border: '1px solid var(--border)',
-      }}>
-        {/* Header */}
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <FileText size={20} color="var(--teal)" />
-          <div style={{ flex: 1 }}>
-            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Aviso de Privacidad</h2>
-            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>
-              LFPDPPP · Versión {VERSION_AVISO}
-            </div>
-          </div>
-          <button onClick={onCancelar} style={{
-            background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', padding: 6,
-          }}>
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Body con scroll */}
-        <div style={{ flex: 1, overflow: 'auto', padding: 20 }}>
+    <Modal
+      open
+      onClose={onCancelar}
+      size="wide"
+      title={(
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+          <FileText size={18} color="var(--teal)" />
+          <span style={{ display: 'flex', flexDirection: 'column' }}>
+            Aviso de Privacidad
+            <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 400 }}>LFPDPPP · Versión {VERSION_AVISO}</span>
+          </span>
+        </span>
+      )}
+      footer={(
+        <>
+          <Button variant="ghost" size="sm" icon={<Download size={12} />} onClick={descargarTexto} style={{ marginRight: 'auto' }}>Descargar PDF/texto</Button>
+          <Button variant="secondary" onClick={onCancelar}>Cancelar</Button>
+          <Button onClick={aceptar} disabled={!acepta} icon={<Check size={14} />}>Aceptar y continuar</Button>
+        </>
+      )}
+    >
+        <div>
           {verCompleto ? (
             <pre style={{
               whiteSpace: 'pre-wrap', fontSize: 11.5, color: 'var(--text2)',
@@ -140,28 +136,6 @@ export function AvisoPrivacidadModal({ config, onAceptar, onCancelar, medioInici
             </span>
           </label>
         </div>
-
-        {/* Footer */}
-        <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', display: 'flex', gap: 8, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
-          <button
-            onClick={descargarTexto}
-            style={{
-              background: 'none', border: 'none', color: 'var(--text3)',
-              fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4,
-            }}
-          >
-            <Download size={12} /> Descargar PDF/texto
-          </button>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={onCancelar} className="btn btn-secondary">
-              Cancelar
-            </button>
-            <button onClick={aceptar} disabled={!acepta} className="btn btn-primary">
-              <Check size={14} /> Aceptar y continuar
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

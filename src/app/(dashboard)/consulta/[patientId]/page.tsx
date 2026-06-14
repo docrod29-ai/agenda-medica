@@ -16,7 +16,7 @@ import { PreopAssessment } from '@/components/PreopAssessment'
 import { RevisionPanel } from '@/components/RevisionPanel'
 import { NerPanel } from '@/components/NerPanel'
 import { CorreccionesPanel } from '@/components/CorreccionesPanel'
-import { Alert } from '@/components/ui'
+import { Alert, Modal, Button } from '@/components/ui'
 import { fetchAutenticado } from '@/lib/auth-client'
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
@@ -950,36 +950,28 @@ export default function ConsultaActivaPage() {
       )}
 
       {/* ── Modal de consentimiento (Fase C) ── */}
-      {modalConsentimiento && (
-        <div onClick={e => e.target === e.currentTarget && setModalConsentimiento(false)} style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(3px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 16,
-        }}>
-          <div style={{ width: '100%', maxWidth: 460, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 24 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: '0 0 10px' }}>
-              Consentimiento para grabar la consulta
-            </h3>
-            <p style={{ fontSize: 13.5, color: 'var(--text2)', lineHeight: 1.65, margin: '0 0 14px' }}>
-              Confirme que el paciente fue informado de que la conversación será grabada y transcrita para
-              estructurar la nota clínica con asistencia de IA. El audio no se guarda; solo se conserva la
-              transcripción de texto vinculada a su expediente.
-            </p>
-            <ul style={{ margin: '0 0 16px', paddingLeft: 18, fontSize: 12.5, color: 'var(--text3)', lineHeight: 1.7 }}>
-              <li>El paciente puede pedir detener la grabación en cualquier momento.</li>
-              <li>La nota final debe ser revisada y firmada por usted.</li>
-              <li>La IA NO guarda datos clínicos sin su aprobación.</li>
-            </ul>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button onClick={() => setModalConsentimiento(false)} style={{ background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 10, padding: '10px 16px', fontSize: 13, cursor: 'pointer' }}>
-                Cancelar
-              </button>
-              <button onClick={confirmarConsentimiento} style={{ background: 'var(--teal)', color: '#000', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                Confirmo el consentimiento e iniciar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        open={modalConsentimiento}
+        onClose={() => setModalConsentimiento(false)}
+        title="Consentimiento para grabar la consulta"
+        footer={(
+          <>
+            <Button variant="secondary" onClick={() => setModalConsentimiento(false)}>Cancelar</Button>
+            <Button onClick={confirmarConsentimiento}>Confirmo el consentimiento e iniciar</Button>
+          </>
+        )}
+      >
+        <p style={{ fontSize: 13.5, color: 'var(--text2)', lineHeight: 1.65, margin: '0 0 14px' }}>
+          Confirme que el paciente fue informado de que la conversación será grabada y transcrita para
+          estructurar la nota clínica con asistencia de IA. El audio no se guarda; solo se conserva la
+          transcripción de texto vinculada a su expediente.
+        </p>
+        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text3)', lineHeight: 1.7 }}>
+          <li>El paciente puede pedir detener la grabación en cualquier momento.</li>
+          <li>La nota final debe ser revisada y firmada por usted.</li>
+          <li>La IA NO guarda datos clínicos sin su aprobación.</li>
+        </ul>
+      </Modal>
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
