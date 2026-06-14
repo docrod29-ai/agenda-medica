@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import {
   Calendar, Clock, MapPin, Stethoscope, CheckCircle2, CalendarClock, XCircle,
-  Loader2, Phone, CalendarPlus, AlertTriangle, Download, Pill,
+  Loader2, Phone, CalendarPlus, AlertTriangle, Download, Pill, ShieldCheck,
 } from 'lucide-react'
 import { descargarRecetaWord } from '@/lib/receta-word'
 import type { Medicamento } from '@/types/expediente'
@@ -99,6 +99,12 @@ export default function MiPortalPage() {
   }, [token])
 
   useEffect(() => { cargar() }, [cargar])
+
+  // Título de pestaña con la marca de la clínica (confianza)
+  useEffect(() => {
+    const nombre = sesion?.clinica?.nombre
+    document.title = nombre ? `Mi portal · ${nombre}` : 'Mi portal'
+  }, [sesion?.clinica?.nombre])
 
   const accionCita = async (action: string, citaId: string, extra: Record<string, unknown> = {}) => {
     setAccion(citaId + action)
@@ -256,6 +262,11 @@ export default function MiPortalPage() {
             {sesion.clinica.telefono && <a href={`tel:${sesion.clinica.telefono}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--nexus)' }}><Phone size={13} className="ds-icon" /> {sesion.clinica.telefono}</a>}
           </div>
         )}
+
+        {/* Confianza */}
+        <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 11.5, color: 'var(--text3)' }}>
+          <ShieldCheck size={13} className="ds-icon" /> Acceso privado y seguro · NexusMED
+        </div>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
