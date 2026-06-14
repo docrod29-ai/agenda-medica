@@ -22,6 +22,7 @@ import {
   Pill, Search, Plus, AlertTriangle, Clock, X, Edit2, Trash2,
   Package, ArrowUpCircle, ArrowDownCircle, Loader2, MapPin,
 } from 'lucide-react'
+import { Button, EmptyState, Spinner } from '@/components/ui'
 
 export default function FarmaciaPage() {
   const { clinicId } = useClinic()
@@ -76,12 +77,10 @@ export default function FarmaciaPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, gap: 12, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Pill size={22} color="var(--teal)" />
-          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Farmacia</h1>
+          <h1 className="t-h1" style={{ margin: 0 }}>Farmacia</h1>
           <span style={{ fontSize: 12, color: 'var(--text3)' }}>· {items.length} ítems</span>
         </div>
-        <button onClick={() => setCreando(true)} className="btn btn-primary">
-          <Plus size={14} /> Agregar
-        </button>
+        <Button icon={<Plus size={14} />} onClick={() => setCreando(true)}>Agregar</Button>
       </div>
 
       {/* Tarjetas de resumen */}
@@ -125,15 +124,18 @@ export default function FarmaciaPage() {
 
       {/* Lista */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text3)' }}>
-          <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} /> Cargando inventario…
-        </div>
+        <Spinner center label="Cargando inventario…" />
       ) : visibles.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text3)' }}>
-          {items.length === 0
-            ? 'Aún no tienes ítems. Toca "Agregar" para empezar.'
-            : 'Sin resultados con esos filtros.'}
-        </div>
+        items.length === 0 ? (
+          <EmptyState
+            icon={<Package size={22} />}
+            title="Aún no tienes ítems en farmacia"
+            description="Registra tu inventario para controlar existencias, lotes y caducidades."
+            action={<Button icon={<Plus size={14} />} onClick={() => setCreando(true)}>Agregar</Button>}
+          />
+        ) : (
+          <EmptyState icon={<Package size={22} />} title="Sin resultados con esos filtros" />
+        )
       ) : (
         <div style={{ display: 'grid', gap: 8 }}>
           {visibles.map(item => (

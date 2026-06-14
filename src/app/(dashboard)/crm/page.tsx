@@ -14,6 +14,7 @@ import {
   TrendingUp, TrendingDown, Users, CalendarCheck2, UserX,
   DollarSign, ArrowUpRight, Loader2, Lightbulb,
 } from 'lucide-react'
+import { PageHeader, Spinner, Select } from '@/components/ui'
 
 type Periodo = 'hoy' | 'semana' | 'mes' | '3meses'
 
@@ -75,26 +76,21 @@ export default function CRMPage() {
 
   return (
     <div className="page-pad" style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-        <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: 0 }}>CRM &amp; Revenue</h1>
-          <p style={{ fontSize: 13, color: 'var(--text3)', margin: '4px 0 0' }}>
-            Pipeline, conversión, retención y oportunidades.
-          </p>
-        </div>
-        <select value={periodo} onChange={e => setPeriodo(e.target.value as Periodo)}
-          style={{ background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10, padding: '9px 14px', fontSize: 14, color: 'var(--text)' }}>
-          <option value="hoy">Hoy</option>
-          <option value="semana">Últimos 7 días</option>
-          <option value="mes">Últimos 30 días</option>
-          <option value="3meses">Últimos 90 días</option>
-        </select>
-      </div>
+      <PageHeader
+        title="CRM & Revenue"
+        subtitle="Pipeline, conversión, retención y oportunidades."
+        actions={(
+          <Select value={periodo} onChange={e => setPeriodo(e.target.value as Periodo)} style={{ width: 'auto' }}>
+            <option value="hoy">Hoy</option>
+            <option value="semana">Últimos 7 días</option>
+            <option value="mes">Últimos 30 días</option>
+            <option value="3meses">Últimos 90 días</option>
+          </Select>
+        )}
+      />
 
       {loading ? (
-        <div style={{ padding: 60, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Cargando datos…
-        </div>
+        <Spinner center label="Cargando datos…" />
       ) : (
         <>
           {/* KPIs principales */}

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { WaitlistEntry, AppointmentType, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
+import { PageHeader, Button, EmptyState, Spinner } from '@/components/ui'
 import { getWaitlist, createWaitlistEntry, updateWaitlistEntry } from '@/lib/firestore'
 import { useToast } from '@/context/ToastContext'
 import { useConfig } from '@/hooks/useConfig'
@@ -60,22 +61,22 @@ export default function ListaEsperaPage() {
 
   return (
     <div style={{ padding: 24, maxWidth: 900, margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Lista de espera</h1>
-          <p style={{ fontSize: 13, color: 'var(--text3)', marginTop: 3 }}>Pacientes esperando disponibilidad</p>
-        </div>
-        <button className="btn btn-primary" onClick={() => setModalOpen(true)}><Plus size={16} /> Agregar</button>
-      </div>
+      <PageHeader
+        title="Lista de espera"
+        subtitle="Pacientes esperando disponibilidad"
+        actions={<Button icon={<Plus size={16} />} onClick={() => setModalOpen(true)}>Agregar</Button>}
+      />
 
       <div className="card" style={{ padding: 0 }}>
         {loading ? (
-          <div style={{ padding: 48, textAlign: 'center', color: 'var(--text3)' }}>Cargando lista de espera…</div>
+          <Spinner center label="Cargando lista de espera…" />
         ) : entries.length === 0 ? (
-          <div style={{ padding: 48, textAlign: 'center' }}>
-            <Clock size={40} color="var(--text3)" style={{ margin: '0 auto 12px' }} />
-            <p style={{ color: 'var(--text3)', fontSize: 14, margin: 0 }}>La lista de espera está vacía</p>
-          </div>
+          <EmptyState
+            icon={<Clock size={22} />}
+            title="La lista de espera está vacía"
+            description="Agrega pacientes que esperan un hueco; te avisamos cuando se libere una cita."
+            action={<Button icon={<Plus size={16} />} onClick={() => setModalOpen(true)}>Agregar</Button>}
+          />
         ) : (
           <div>
             {entries.map((entry, i) => (

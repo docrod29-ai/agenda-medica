@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v70'  // Fase 3: migración a componentes ui/ (pacientes/citas/dashboard) — PageHeader/Button/EmptyState/Spinner/Alert
+const CACHE = 'nexusmed-v71'  // Fase 3 lote 2: lista-espera/farmacia/crm → ui/ (PageHeader/Button/EmptyState/Spinner/Select)
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()
