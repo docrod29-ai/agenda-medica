@@ -25,6 +25,7 @@ import {
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { hoyISO, sumarDiasISO } from '@/lib/timezone'
+import { Button, EmptyState, Spinner } from '@/components/ui'
 
 const STATUS_FILTERS: { label: string; value: AppointmentStatus | 'todas' }[] = [
   { label: 'Todas', value: 'todas' },
@@ -143,12 +144,10 @@ export default function CitasPage() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, gap: 12, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Citas</h1>
+          <h1 className="t-h1" style={{ margin: 0 }}>Citas</h1>
           <DoctorFilter medicoId={medicoFiltro} onChange={setMedicoFiltro} />
         </div>
-        <button className="btn btn-primary" onClick={() => router.push('/asistente')}>
-          <Plus size={16} /> Nueva cita
-        </button>
+        <Button icon={<Plus size={16} />} onClick={() => router.push('/asistente')}>Nueva cita</Button>
       </div>
 
       {/* Date navigator */}
@@ -211,12 +210,14 @@ export default function CitasPage() {
       {/* Table */}
       <div className="card" style={{ padding: 0 }}>
         {loading ? (
-          <div style={{ padding: 48, textAlign: 'center', color: 'var(--text3)', fontSize: 14 }}>Cargando citas…</div>
+          <Spinner center label="Cargando citas…" />
         ) : filtered.length === 0 ? (
-          <div style={{ padding: 48, textAlign: 'center' }}>
-            <CalendarDays size={40} color="var(--text3)" style={{ margin: '0 auto 12px' }} />
-            <p style={{ color: 'var(--text3)', fontSize: 14, margin: 0 }}>No hay citas para este filtro</p>
-          </div>
+          <EmptyState
+            icon={<CalendarDays size={22} />}
+            title="No hay citas para este filtro"
+            description="Cambia de fecha o de médico, o agenda una nueva cita."
+            action={<Button icon={<Plus size={16} />} onClick={() => router.push('/asistente')}>Nueva cita</Button>}
+          />
         ) : (
           <div>
             {filtered.map((appt, i) => (

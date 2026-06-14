@@ -8,6 +8,7 @@ import { useMode } from '@/context/ModeContext'
 import { useToast } from '@/context/ToastContext'
 import { StatusBadge } from '@/components/StatusBadge'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
+import { Button, EmptyState, Spinner } from '@/components/ui'
 import { Appointment, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { formatDateMX } from '@/lib/availability'
 import { Plus, TrendingUp, CalendarCheck2, Clock, UserX, ChevronRight, CalendarDays, Users, Settings, Hourglass } from 'lucide-react'
@@ -125,9 +126,7 @@ export default function DashboardPage() {
           </p>
         </div>
         <Link href="/asistente">
-          <button className="btn btn-primary">
-            <Plus size={16} /> Nueva cita
-          </button>
+          <Button icon={<Plus size={16} />}>Nueva cita</Button>
         </Link>
       </div>
 
@@ -176,19 +175,14 @@ export default function DashboardPage() {
             </Link>
           </div>
           {loading ? (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text3)', fontSize: 14 }}>
-              Cargando citas…
-            </div>
+            <Spinner center label="Cargando citas…" />
           ) : todayAppts.length === 0 ? (
-            <div style={{ padding: 48, textAlign: 'center' }}>
-              <CalendarDays size={40} color="var(--text3)" style={{ margin: '0 auto 12px' }} />
-              <p style={{ color: 'var(--text3)', fontSize: 14, margin: 0 }}>Sin citas hoy</p>
-              <Link href="/asistente">
-                <button className="btn btn-secondary btn-sm" style={{ marginTop: 12 }}>
-                  <Plus size={14} /> Agendar cita
-                </button>
-              </Link>
-            </div>
+            <EmptyState
+              icon={<CalendarDays size={22} />}
+              title="Sin citas hoy"
+              description="Tu agenda de hoy está libre."
+              action={<Link href="/asistente"><Button variant="secondary" size="sm" icon={<Plus size={14} />}>Agendar cita</Button></Link>}
+            />
           ) : (
             <div>
               {todayAppts.map((a, i) => (

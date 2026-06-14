@@ -9,6 +9,7 @@ import { useMode } from '@/context/ModeContext'
 import { Plus, Search, X, Loader2, Users, Phone, AlertCircle, FileText, Calendar, Pencil, Cake } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { PageHeader, Button, EmptyState, Spinner } from '@/components/ui'
 
 export default function PacientesPage() {
   const { toast } = useToast()
@@ -86,27 +87,18 @@ export default function PacientesPage() {
 
   return (
     <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Pacientes</h1>
-        {/* Modo Secretaria: solo botón de Agendar (unifica flujo). Modo Médico: botón completo + atajo a Agendar. */}
-        {mode === 'secretaria' ? (
-          <Link href="/asistente">
-            <button className="btn btn-primary">
-              <Calendar size={16} /> Agendar (registra paciente)
-            </button>
-          </Link>
+      {/* Header. Modo Secretaria: solo Agendar (unifica flujo). Modo Médico: Agendar + Nuevo paciente. */}
+      <PageHeader
+        title="Pacientes"
+        actions={mode === 'secretaria' ? (
+          <Link href="/asistente"><Button icon={<Calendar size={16} />}>Agendar (registra paciente)</Button></Link>
         ) : (
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Link href="/asistente">
-              <button className="btn btn-secondary">
-                <Calendar size={16} /> Agendar
-              </button>
-            </Link>
-            <button className="btn btn-primary" onClick={openNew}><Plus size={16} /> Nuevo paciente</button>
-          </div>
+          <>
+            <Link href="/asistente"><Button variant="secondary" icon={<Calendar size={16} />}>Agendar</Button></Link>
+            <Button icon={<Plus size={16} />} onClick={openNew}>Nuevo paciente</Button>
+          </>
         )}
-      </div>
+      />
 
       {/* Search */}
       <div style={{ position: 'relative', marginBottom: 12, maxWidth: 420 }}>
@@ -143,12 +135,16 @@ export default function PacientesPage() {
       {/* Lista */}
       <div className="card" style={{ padding: 0 }}>
         {loading ? (
-          <div style={{ padding: 48, textAlign: 'center', color: 'var(--text3)' }}>Cargando pacientes…</div>
+          <Spinner center label="Cargando pacientes…" />
         ) : patients.length === 0 ? (
-          <div style={{ padding: 48, textAlign: 'center' }}>
-            <Users size={40} color="var(--text3)" style={{ margin: '0 auto 12px' }} />
-            <p style={{ color: 'var(--text3)', fontSize: 14, margin: 0 }}>No hay pacientes registrados</p>
-          </div>
+          <EmptyState
+            icon={<Users size={22} />}
+            title="No hay pacientes registrados"
+            description="Registra tu primer paciente o agéndalo directamente desde el asistente."
+            action={mode === 'medico'
+              ? <Button icon={<Plus size={16} />} onClick={openNew}>Nuevo paciente</Button>
+              : <Link href="/asistente"><Button icon={<Calendar size={16} />}>Agendar</Button></Link>}
+          />
         ) : resultadosBusqueda ? (
           // Búsqueda activa → resultados aplanados
           resultadosBusqueda.length === 0 ? (
