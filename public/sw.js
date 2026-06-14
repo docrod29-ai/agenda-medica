@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v72'  // Fase 3 lote 3: cumplimiento×3/expediente/nota/orden/receta → ui/ (Tabs/Spinner/EmptyState/Button)
+const CACHE = 'nexusmed-v73'  // Fase 3 cierre: header de configuración → .t-h1 (consistencia de headers en toda la app)
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()
