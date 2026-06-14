@@ -12,7 +12,9 @@ import { useClinic } from '@/context/ClinicContext'
 import { StatusBadge } from './StatusBadge'
 import { Phone, MessageSquare, Clock, AlertCircle } from 'lucide-react'
 import { openWhatsApp, msgConfirmacion } from '@/lib/whatsapp'
+import { fetchAutenticado } from '@/lib/auth-client'
 import { Modal, Button } from '@/components/ui'
+import { Send } from 'lucide-react'
 
 interface Props {
   open: boolean
@@ -191,6 +193,27 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
     openWhatsApp(telefono, msg)
   }
 
+  const [enviandoPortal, setEnviandoPortal] = useState(false)
+  const handleEnviarPortal = async () => {
+    if (!appointment || !telefono || !clinicId) return
+    setEnviandoPortal(true)
+    try {
+      const r = await fetchAutenticado('/api/portal/link', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicId, patientId: appointment.pacienteId }),
+      })
+      const data = await r.json().catch(() => ({}))
+      if (!r.ok || !data.url) { toast(data.error || 'No se pudo generar el enlace', 'error'); return }
+      const nombre = (appointment.pacienteNombre || '').split(' ')[0]
+      const msg = `Hola ${nombre} 👋 Aquí puedes ver, confirmar o reagendar tu cita en línea:\n${data.url}`
+      openWhatsApp(telefono, msg)
+    } catch {
+      toast('Sin conexión. Intenta de nuevo.', 'error')
+    } finally {
+      setEnviandoPortal(false)
+    }
+  }
+
   if (!open) return null
 
   return (
@@ -207,7 +230,10 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
       footer={(
         <>
           {isEdit && telefono && (
-            <Button variant="secondary" size="sm" icon={<MessageSquare size={14} />} onClick={handleWhatsApp} style={{ marginRight: 'auto' }}>WhatsApp</Button>
+            <div style={{ display: 'flex', gap: 8, marginRight: 'auto' }}>
+              <Button variant="secondary" size="sm" icon={<MessageSquare size={14} />} onClick={handleWhatsApp}>WhatsApp</Button>
+              <Button variant="secondary" size="sm" icon={<Send size={14} />} onClick={handleEnviarPortal} loading={enviandoPortal} title="Enviar al paciente su portal de citas">Portal</Button>
+            </div>
           )}
           <Button variant="secondary" onClick={onClose} disabled={saving}>Cancelar</Button>
           <Button onClick={handleSave} loading={saving} disabled={saving || conflict}>{isEdit ? 'Guardar cambios' : 'Agendar cita'}</Button>
