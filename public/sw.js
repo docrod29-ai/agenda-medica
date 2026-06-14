@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v87'  // Hueco #4: perfil público SEO /dr/[clinicId] (SSR + schema.org Physician + reseñas) + link en Configuración
+const CACHE = 'nexusmed-v88'  // Hueco #3: auto-reseña post-visita en el cron (opt-in config.resenaAutomatica) + toggle en Configuración
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

@@ -1,10 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { randomUUID } from 'node:crypto'
 import { adminDb } from '@/lib/firebase-admin'
 import { Appointment, ClinicConfig } from '@/types'
 import { sendWhatsApp as sendWA } from '@/lib/whatsapp-send'
 import { instanteMX } from '@/lib/timezone'
 
 const CRON_SECRET = process.env.CRON_SECRET
+
+const ESTADOS_POST_VISITA = ['atendida', 'finalizada', 'pagada']
+
+/**
+ * Crea una solicitud de reseña (server-side) y devuelve el link a enviar.
+ * Mirror de reviews.crearSolicitudResena pero con adminDb (sin client SDK).
+ */
+async function crearSolicitudResenaAdmin(origin: string, clinicId: string, appt: Appointment): Promise<string> {
+  const token = randomUUID().replace(/-/g, '')
+  const now = new Date()
+  await adminDb.collection('clinic_review_requests').doc(token).set({
+    token, clinicId,
+    citaId: appt.id,
+    pacienteId: appt.pacienteId,
+    pacienteNombre: appt.pacienteNombre,
+    medicoNombre: appt.medicoNombre,
+    createdAt: now.toISOString(),
+    expiresAt: new Date(now.getTime() + 30 * 86400_000).toISOString(),
+    used: false,
+  })
+  return `${origin.replace(/\/$/, '')}/resena/${token}`
+}
 
 function buildWhatsAppMessage(
   template: string,
@@ -66,7 +89,7 @@ export async function GET(req: NextRequest) {
         if (!configSnap.exists) continue
 
         const config = configSnap.data() as ClinicConfig
-        if (!config.recordatorio24h && !config.recordatorioMismoDia) continue
+        if (!config.recordatorio24h && !config.recordatorioMismoDia && !config.resenaAutomatica) continue
 
         // ── Get appointments for this clinic ─────────────────
         const snap = await adminDb
@@ -132,6 +155,35 @@ export async function GET(req: NextRequest) {
                 })
               totals.sent++
             } else { totals.failed++ }
+          }
+        }
+
+        // ── Auto-reseña tras la visita (opt-in por clínica) ──
+        if (config.resenaAutomatica) {
+          const origin = req.nextUrl.origin
+          const postSnap = await adminDb
+            .collection('clinics').doc(clinicId)
+            .collection('appointments')
+            .where('estado', 'in', ESTADOS_POST_VISITA)
+            .get()
+          for (const d of postSnap.docs) {
+            const a = { id: d.id, ...d.data() } as Appointment & { resenaSolicitada?: boolean }
+            if (a.resenaSolicitada) continue
+            if (!a.consentimientoMensajes || !a.pacienteTelefono) { totals.skipped++; continue }
+            // Solo citas terminadas hace 2–72h (no spamear histórico viejo)
+            const fin = instanteMX(a.fechaHora.slice(0, 10), a.fechaHora.slice(11, 16))
+            const horas = (now.getTime() - fin.getTime()) / 3_600_000
+            if (horas < 2 || horas > 72) continue
+            try {
+              const link = await crearSolicitudResenaAdmin(origin, clinicId, a)
+              const nombre = (a.pacienteNombre || '').split(' ')[0]
+              const msg = `Hola ${nombre} 🙏 ¿Nos ayudas con una reseña de tu consulta con ${config.nombreMedico || 'el médico'}? Solo toma 30 segundos:\n${link}`
+              const ok = await sendWhatsApp(a.pacienteTelefono, msg, config, clinicId)
+              // Marcar siempre (un intento) para no spamear ante fallos transitorios
+              await adminDb.collection('clinics').doc(clinicId)
+                .collection('appointments').doc(a.id).update({ resenaSolicitada: true, updatedAt: now.toISOString() })
+              if (ok) totals.sent++; else totals.failed++
+            } catch { totals.failed++ }
           }
         }
       } catch (clinicErr) {

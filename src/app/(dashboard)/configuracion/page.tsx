@@ -487,6 +487,13 @@ export default function ConfiguracionPage() {
             </div>
             <input type="checkbox" checked={form.recordatorioMismoDia} onChange={updBool('recordatorioMismoDia')} style={{ accentColor: 'var(--teal)', width: 18, height: 18 }} />
           </div>
+          <div style={{ padding: 16, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>Pedir reseña automáticamente</div>
+              <div style={{ fontSize: 12, color: 'var(--text3)' }}>Tras cada cita atendida, enviar por WhatsApp una invitación a dejar reseña</div>
+            </div>
+            <input type="checkbox" checked={!!form.resenaAutomatica} onChange={updBool('resenaAutomatica')} style={{ accentColor: 'var(--teal)', width: 18, height: 18 }} />
+          </div>
           <div className="form-group" style={{ maxWidth: 200 }}>
             <label className="label">Hora de resumen diario</label>
             <input className="input" type="time" value={form.horaResumenDiario} onChange={upd('horaResumenDiario')} />

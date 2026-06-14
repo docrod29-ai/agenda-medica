@@ -279,6 +279,8 @@ export interface ClinicConfig {
   intervaloMinutos: number
   recordatorio24h: boolean
   recordatorioMismoDia: boolean
+  /** Opt-in: pedir reseña por WhatsApp automáticamente tras la visita (cron) */
+  resenaAutomatica?: boolean
   horaResumenDiario: string
   diasFestivos: string[]
   whatsappProveedor: string
