@@ -19,7 +19,7 @@ import { PAPER_SIZES } from '@/lib/receta-template'
 import { descargarComoPDF } from '@/lib/pdf-download'
 import { descargarRecetaWord } from '@/lib/receta-word'
 import {
-  ArrowLeft, Download, Loader2, Plus, Trash2, Printer, Settings, AlertCircle, ChevronDown, FileText,
+  ArrowLeft, Download, Loader2, Plus, Trash2, Printer, Settings, AlertCircle, ChevronDown, FileText, Check, Scissors,
 } from 'lucide-react'
 
 /** Sugerencias de estudios agrupadas por categoría */
@@ -281,7 +281,7 @@ export default function GeneradorOrdenPage() {
                               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                               background: seleccionado ? 'var(--teal)' : 'transparent', flexShrink: 0,
                             }}>
-                              {seleccionado && <span style={{ color: '#000', fontSize: 11, lineHeight: 1 }}>✓</span>}
+                              {seleccionado && <Check size={11} color="#000" strokeWidth={3} />}
                             </span>
                             {item}
                           </button>
@@ -325,7 +325,7 @@ export default function GeneradorOrdenPage() {
                   Vista previa · {PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta'].label.split(' ')[0]}
                   {numPages > 1 && <strong> · {numPages} hojas</strong>}
                   {estudios.length > 6 && ' · checklist 2 columnas'}
-                  {host.esHostCarta && ' · impresa en carta ✂'}
+                  {host.esHostCarta && <> · impresa en carta <Scissors size={11} className="ds-icon" style={{ display: 'inline' }} /></>}
                 </div>
                 <RecetaPreviewWrapper
                   paperWidthMm={host.widthMm}

@@ -6,7 +6,7 @@ import { useToast } from '@/context/ToastContext'
 import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
 import { useMode } from '@/context/ModeContext'
-import { Plus, Search, X, Loader2, Users, Phone, AlertCircle, FileText, Calendar, Pencil } from 'lucide-react'
+import { Plus, Search, X, Loader2, Users, Phone, AlertCircle, FileText, Calendar, Pencil, Cake } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -179,7 +179,7 @@ export default function PacientesPage() {
         ) : filtro === 'alerta' ? (
           conAlerta.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--text3)', fontSize: 14 }}>
-              Ningún paciente con inasistencias o cancelaciones. 👍
+              Ningún paciente con inasistencias o cancelaciones.
             </div>
           ) : (
             <>
@@ -253,8 +253,8 @@ function PacienteRow({ p, mode, onAbrir, onEditar }: {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.nombre}</div>
         <div style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          {p.telefono && <span>📞 {p.telefono}</span>}
-          {p.edad && <span>🎂 {p.edad} años</span>}
+          {p.telefono && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Phone size={11} className="ds-icon" /> {p.telefono}</span>}
+          {p.edad && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Cake size={11} className="ds-icon" /> {p.edad} años</span>}
         </div>
       </div>
       {(p.noShowCount > 0 || p.cancelacionCount > 0) && (

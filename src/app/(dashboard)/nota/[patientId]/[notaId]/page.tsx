@@ -8,7 +8,7 @@ import { getPatients } from '@/lib/firestore'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
 import type { NotaMedica } from '@/types/expediente'
 import type { Patient } from '@/types'
-import { ArrowLeft, Printer, Loader2, Download, Pill, ClipboardList } from 'lucide-react'
+import { ArrowLeft, Printer, Loader2, Download, Pill, ClipboardList, AlertTriangle, Check } from 'lucide-react'
 import { descargarComoPDF } from '@/lib/pdf-download'
 
 export default function NotaImprimiblePage() {
@@ -243,10 +243,12 @@ export default function NotaImprimiblePage() {
             marginTop: 16, padding: '8px 12px', borderRadius: 6,
             background: 'rgba(220,38,38,0.10)', border: '1.5px solid #b91c1c',
             color: '#b91c1c', fontSize: 12, fontWeight: 700, textAlign: 'center',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           }}>
-            ⚠️ INTEGRIDAD NO VERIFICADA — el contenido no coincide con el sello SHA-256
+            <AlertTriangle size={14} className="ds-icon" style={{ flexShrink: 0 }} />
+            <span>INTEGRIDAD NO VERIFICADA — el contenido no coincide con el sello SHA-256
             registrado al firmar. Esta nota pudo haber sido alterada. No la uses como
-            documento legal sin investigar.
+            documento legal sin investigar.</span>
           </div>
         )}
 
@@ -255,7 +257,7 @@ export default function NotaImprimiblePage() {
           {nota.estado === 'firmada' && nota.firma ? (
             <>
               Documento firmado electrónicamente el {new Date(nota.firma.timestamp).toLocaleString('es-MX')}
-              {integridadOk === true && ' · ✓ integridad verificada'}
+              {integridadOk === true && <> · <Check size={10} className="ds-icon" style={{ display: 'inline' }} /> integridad verificada</>}
               {' · Sello (SHA-256): '}{nota.metadata.hashIntegridad || '—'}
             </>
           ) : (

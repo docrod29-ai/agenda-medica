@@ -7,7 +7,7 @@ import { Sidebar } from '@/components/Sidebar'
 import { ToastProvider } from '@/context/ToastContext'
 import { ModeProvider } from '@/context/ModeContext'
 import { ClinicProvider } from '@/context/ClinicContext'
-import { Menu, Loader2, AlertTriangle } from 'lucide-react'
+import { Menu, Loader2, AlertTriangle, Headset } from 'lucide-react'
 import Link from 'next/link'
 import { OfflineBanner } from '@/components/OfflineBanner'
 import { NotificacionesPushOptIn } from '@/components/NotificacionesPushOptIn'
@@ -22,8 +22,9 @@ function ModeBanner() {
       background: 'rgba(59,130,246,0.1)', borderBottom: '1px solid rgba(59,130,246,0.25)',
       color: '#60a5fa', fontSize: 12, fontWeight: 600, textAlign: 'center',
       padding: '5px 12px',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
     }}>
-      🔵 Modo Secretaria · vista enfocada en agenda y atención al paciente
+      <Headset size={13} className="ds-icon" /> Modo Secretaria · vista enfocada en agenda y atención al paciente
     </div>
   )
 }

@@ -9,7 +9,7 @@ import { useToast } from '@/context/ToastContext'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Appointment, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { formatDateMX } from '@/lib/availability'
-import { Plus, TrendingUp, CalendarCheck2, Clock, UserX, ChevronRight, CalendarDays } from 'lucide-react'
+import { Plus, TrendingUp, CalendarCheck2, Clock, UserX, ChevronRight, CalendarDays, Users, Settings, Hourglass } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { hoyISO, sumarDiasISO } from '@/lib/timezone'
@@ -67,7 +67,7 @@ export default function DashboardPage() {
     const checkout = searchParams.get('checkout')
     const plan = searchParams.get('plan')
     if (checkout === 'success') {
-      toast(`¡Plan ${plan ? plan.charAt(0).toUpperCase() + plan.slice(1) : ''} activado! Bienvenido 🎉`, 'success')
+      toast(`¡Plan ${plan ? plan.charAt(0).toUpperCase() + plan.slice(1) : ''} activado! Bienvenido`, 'success')
     } else if (checkout === 'cancelled') {
       toast('Pago cancelado. Puedes activar tu plan cuando quieras.', 'info')
     }
@@ -218,14 +218,14 @@ export default function DashboardPage() {
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {[
-                { href: '/calendario', label: 'Ver calendario', icon: '📅' },
-                { href: '/lista-espera', label: 'Lista de espera', icon: '⏳' },
-                { href: '/pacientes', label: 'Pacientes', icon: '👥' },
-                { href: '/configuracion', label: 'Configuración', icon: '⚙️' },
+                { href: '/calendario', label: 'Ver calendario', icon: <CalendarDays size={15} /> },
+                { href: '/lista-espera', label: 'Lista de espera', icon: <Hourglass size={15} /> },
+                { href: '/pacientes', label: 'Pacientes', icon: <Users size={15} /> },
+                { href: '/configuracion', label: 'Configuración', icon: <Settings size={15} /> },
               ].map(item => (
                 <Link key={item.href} href={item.href} style={{ textDecoration: 'none' }}>
                   <div className="nav-item" style={{ padding: '8px 10px', borderRadius: 8 }}>
-                    <span>{item.icon}</span>
+                    <span style={{ display: 'inline-flex', color: 'var(--text3)' }}>{item.icon}</span>
                     <span style={{ fontSize: 13 }}>{item.label}</span>
                     <ChevronRight size={14} style={{ marginLeft: 'auto', color: 'var(--text3)' }} />
                   </div>

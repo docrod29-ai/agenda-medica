@@ -26,6 +26,7 @@ import { evaluarFuncionRenal, ajusteRenalFarmacos } from '@/lib/expediente/funci
 import { descargarRecetaWord } from '@/lib/receta-word'
 import {
   ArrowLeft, Download, Loader2, Plus, Trash2, Printer, Settings, AlertCircle, FileText,
+  AlertTriangle, Lock, Droplet, Ban, Scale, Lightbulb, Scissors,
 } from 'lucide-react'
 
 const VIAS: Medicamento['via'][] = ['oral', 'iv', 'im', 'sc', 'topica', 'inhalatoria', 'sublingual', 'rectal', 'otra']
@@ -248,7 +249,7 @@ export default function GeneradorRecetaPage() {
               background: 'rgba(220,38,38,0.10)', border: '2px solid #b91c1c',
             }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#b91c1c', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                🚨 Alerta de alergia — revisa antes de imprimir
+                <AlertTriangle size={15} className="ds-icon" /> Alerta de alergia — revisa antes de imprimir
               </div>
               {alertasAlergia.map((a, i) => (
                 <div key={i} style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.4 }}>• {a.mensaje}</div>
@@ -265,8 +266,8 @@ export default function GeneradorRecetaPage() {
               padding: '10px 14px', borderRadius: 8,
               background: 'rgba(217,119,6,0.10)', border: '1.5px solid var(--amber)',
             }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--amber)', marginBottom: 4 }}>
-                ⚠️ Posibles interacciones farmacológicas
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--amber)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <AlertTriangle size={15} className="ds-icon" /> Posibles interacciones farmacológicas
               </div>
               {interacciones.map((it, i) => (
                 <div key={i} style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.45, marginBottom: 3 }}>
@@ -283,8 +284,8 @@ export default function GeneradorRecetaPage() {
               padding: '10px 14px', borderRadius: 8,
               background: 'rgba(61,90,254,0.08)', border: '1.5px solid var(--nexus)',
             }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--nexus)', marginBottom: 4 }}>
-                🔒 Medicamento(s) controlado(s) — requisitos COFEPRIS
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--nexus)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Lock size={15} className="ds-icon" /> Medicamento(s) controlado(s) — requisitos COFEPRIS
               </div>
               {controlados.map((c, i) => (
                 <div key={i} style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.45, marginBottom: 3 }}>
@@ -296,8 +297,8 @@ export default function GeneradorRecetaPage() {
 
           {/* 🩺 Función renal — ajuste de dosis PROA (opcional) */}
           <div style={{ padding: '10px 14px', borderRadius: 8, background: 'var(--s2)', border: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text2)', marginBottom: 6 }}>
-              🩺 Función renal (opcional) — ajuste de antimicrobianos
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text2)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Droplet size={14} className="ds-icon" /> Función renal (opcional) — ajuste de antimicrobianos
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
               <div>
@@ -330,8 +331,9 @@ export default function GeneradorRecetaPage() {
                     background: a.severidad === 'evitar' ? 'rgba(220,38,38,0.10)' : 'rgba(217,119,6,0.10)',
                     borderLeft: `3px solid ${a.severidad === 'evitar' ? '#b91c1c' : 'var(--amber)'}`,
                     color: 'var(--text)',
+                    display: 'flex', alignItems: 'center', gap: 6,
                   }}>
-                    {a.severidad === 'evitar' ? '🚫 ' : '⚖️ '}{a.mensaje}
+                    {a.severidad === 'evitar' ? <Ban size={13} className="ds-icon" /> : <Scale size={13} className="ds-icon" />}{a.mensaje}
                   </div>
                 ))}
               </div>
@@ -385,9 +387,10 @@ export default function GeneradorRecetaPage() {
             />
           </div>
 
-          <div style={{ fontSize: 11.5, color: 'var(--text3)', padding: 10, background: 'rgba(20,184,166,0.06)', borderRadius: 8 }}>
-            💡 ¿Quieres cambiar el tamaño del papel, subir tu papel membretado o cambiar el estilo?
-            Ve a <strong>Configuración → 🩺 Recetas y órdenes</strong>.
+          <div style={{ fontSize: 11.5, color: 'var(--text3)', padding: 10, background: 'rgba(20,184,166,0.06)', borderRadius: 8, display: 'flex', alignItems: 'flex-start', gap: 7 }}>
+            <Lightbulb size={14} className="ds-icon" style={{ marginTop: 1, flexShrink: 0 }} />
+            <span>¿Quieres cambiar el tamaño del papel, subir tu papel membretado o cambiar el estilo?
+            Ve a <strong>Configuración → Recetas y órdenes</strong>.</span>
           </div>
         </div>
 
@@ -411,7 +414,7 @@ export default function GeneradorRecetaPage() {
                 <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', marginBottom: 8 }}>
                   Vista previa · {PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta'].label.split(' ')[0]}
                   {numPages > 1 && <strong> · {numPages} hojas</strong>}
-                  {host.esHostCarta && ' · impresa en carta ✂'}
+                  {host.esHostCarta && <> · impresa en carta <Scissors size={11} className="ds-icon" style={{ display: 'inline' }} /></>}
                 </div>
                 <RecetaPreviewWrapper
                   paperWidthMm={host.widthMm}
