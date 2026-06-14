@@ -13,8 +13,11 @@ import { StatusBadge } from './StatusBadge'
 import { Phone, MessageSquare, Clock, AlertCircle } from 'lucide-react'
 import { openWhatsApp, msgConfirmacion } from '@/lib/whatsapp'
 import { fetchAutenticado } from '@/lib/auth-client'
+import { crearSolicitudResena } from '@/lib/reviews'
 import { Modal, Button } from '@/components/ui'
-import { Send } from 'lucide-react'
+import { Send, Star } from 'lucide-react'
+
+const ESTADOS_POST_VISITA = new Set<AppointmentStatus>(['atendida', 'finalizada', 'pagada'])
 
 interface Props {
   open: boolean
@@ -214,6 +217,27 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
     }
   }
 
+  const [pidiendoResena, setPidiendoResena] = useState(false)
+  const handlePedirResena = async () => {
+    if (!appointment || !telefono || !clinicId) return
+    setPidiendoResena(true)
+    try {
+      const req = await crearSolicitudResena(clinicId, {
+        citaId: appointment.id,
+        pacienteId: appointment.pacienteId,
+        pacienteNombre: appointment.pacienteNombre,
+        medicoNombre: appointment.medicoNombre,
+      })
+      const nombre = (appointment.pacienteNombre || '').split(' ')[0]
+      const msg = `Hola ${nombre} 🙏 ¿Nos ayudas con una reseña de tu consulta? Solo toma 30 segundos:\n${window.location.origin}/resena/${req.token}`
+      openWhatsApp(telefono, msg)
+    } catch {
+      toast('No se pudo generar la reseña.', 'error')
+    } finally {
+      setPidiendoResena(false)
+    }
+  }
+
   if (!open) return null
 
   return (
@@ -230,9 +254,12 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
       footer={(
         <>
           {isEdit && telefono && (
-            <div style={{ display: 'flex', gap: 8, marginRight: 'auto' }}>
+            <div style={{ display: 'flex', gap: 8, marginRight: 'auto', flexWrap: 'wrap' }}>
               <Button variant="secondary" size="sm" icon={<MessageSquare size={14} />} onClick={handleWhatsApp}>WhatsApp</Button>
               <Button variant="secondary" size="sm" icon={<Send size={14} />} onClick={handleEnviarPortal} loading={enviandoPortal} title="Enviar al paciente su portal de citas">Portal</Button>
+              {appointment && ESTADOS_POST_VISITA.has(appointment.estado) && (
+                <Button variant="secondary" size="sm" icon={<Star size={14} />} onClick={handlePedirResena} loading={pidiendoResena} title="Pedir reseña al paciente por WhatsApp">Reseña</Button>
+              )}
             </div>
           )}
           <Button variant="secondary" onClick={onClose} disabled={saving}>Cancelar</Button>

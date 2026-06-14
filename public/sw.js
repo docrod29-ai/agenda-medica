@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v84'  // Portal Fase 2: "Mis recetas" — el paciente descarga sus recetas (Word) desde notas firmadas
+const CACHE = 'nexusmed-v85'  // Portal Fase 3: botón "Reseña" (post-visita) genera link /resena/[token] y lo manda por WhatsApp
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()
