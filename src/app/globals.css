@@ -1139,3 +1139,78 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
 
 /* Iconografía lucide: alineación y grosor consistentes en chrome */
 .ds-icon { flex-shrink: 0; vertical-align: -0.125em; }
+
+/* ════════════════════════════════════════════════════════════════
+ * DESIGN SYSTEM — Componentes base (src/components/ui/)
+ * Aditivo: clases que consumen tokens; los componentes son wrappers.
+ * ════════════════════════════════════════════════════════════════ */
+
+/* Input en estado de error */
+.input-error { border-color: var(--red) !important; }
+.input-error:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--red) 18%, transparent) !important; }
+
+/* Badge — tonos semánticos (sobre la clase .badge existente) */
+.badge-neutral { background: var(--s2); color: var(--text2); border: 1px solid var(--border); }
+.badge-cobalt  { background: var(--nexus-soft); color: var(--nexus); border: 1px solid color-mix(in srgb, var(--nexus) 30%, transparent); }
+.badge-green   { background: color-mix(in srgb, var(--green) 12%, transparent); color: var(--green); border: 1px solid color-mix(in srgb, var(--green) 32%, transparent); }
+.badge-amber   { background: color-mix(in srgb, var(--amber) 12%, transparent); color: var(--amber); border: 1px solid color-mix(in srgb, var(--amber) 32%, transparent); }
+.badge-red     { background: color-mix(in srgb, var(--red) 12%, transparent); color: var(--red); border: 1px solid color-mix(in srgb, var(--red) 32%, transparent); }
+
+/* Alert — banner consolidado (reemplaza los banners inline dispersos) */
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  border: 1px solid var(--border);
+  background: var(--s2);
+  color: var(--text);
+}
+.alert-icon  { flex-shrink: 0; margin-top: 1px; }
+.alert-title { font-weight: 600; margin-bottom: 2px; }
+.alert-cobalt { background: var(--nexus-soft); border-color: color-mix(in srgb, var(--nexus) 30%, transparent); }
+.alert-cobalt .alert-icon { color: var(--nexus); }
+.alert-green  { background: color-mix(in srgb, var(--green) 9%, transparent); border-color: color-mix(in srgb, var(--green) 32%, transparent); }
+.alert-green .alert-icon  { color: var(--green); }
+.alert-amber  { background: color-mix(in srgb, var(--amber) 9%, transparent); border-color: color-mix(in srgb, var(--amber) 35%, transparent); }
+.alert-amber .alert-icon  { color: var(--amber); }
+.alert-red    { background: color-mix(in srgb, var(--red) 9%, transparent); border-color: color-mix(in srgb, var(--red) 38%, transparent); }
+.alert-red .alert-icon    { color: var(--red); }
+.alert-danger { border-width: 2px; }
+
+/* EmptyState — vacío con propósito */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 48px 24px;
+  color: var(--text3);
+}
+.empty-state-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  color: var(--text3);
+  margin-bottom: 4px;
+}
+.empty-state-title { font-size: 15px; font-weight: 600; color: var(--text2); }
+.empty-state-desc  { font-size: 13px; color: var(--text3); max-width: 360px; }
+
+/* PageHeader — encabezado de pantalla con acciones */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.page-header-sub { font-size: 13px; color: var(--text3); margin-top: 3px; }
+.page-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }

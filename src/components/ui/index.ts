@@ -1,0 +1,15 @@
+// Librería de componentes base — design system "técnico-preciso" (Linear).
+// Wrappers tipados sobre las clases de globals.css. Ver docs/DESIGN_SYSTEM.md.
+export { Button } from './Button'
+export { Card } from './Card'
+export { Spinner } from './Spinner'
+export { Field, Input, Textarea, Select } from './Field'
+export { Badge } from './Badge'
+export { Alert } from './Alert'
+export { EmptyState } from './EmptyState'
+export { PageHeader } from './PageHeader'
+export { Tabs } from './Tabs'
+export type { TabItem } from './Tabs'
+export { Modal } from './Modal'
+export { Table } from './Table'
+export type { Column } from './Table'
