@@ -2,6 +2,9 @@
 // MODELOS DE DATOS — Agenda Médica Inteligente (SaaS Multi-tenant)
 // ══════════════════════════════════════════════════════════════
 
+import type { LucideIcon } from 'lucide-react'
+import { UserPlus, RefreshCw, Siren, Microscope, Video, ClipboardCheck, Stethoscope, ClipboardList } from 'lucide-react'
+
 export type ClinicPlan = 'trial' | 'basico' | 'pro' | 'clinica'
 export type ClinicStatus = 'active' | 'trial' | 'suspended' | 'cancelled'
 
@@ -392,15 +395,15 @@ export const APPOINTMENT_STATUS_CONFIG: Record<AppointmentStatus, { label: strin
   'pagada':               { label: 'Pagada',              color: 'text-green-400',  bgColor: 'bg-green-400/10',  dotColor: 'bg-green-400' },
 }
 
-export const APPOINTMENT_TYPE_CONFIG: Record<AppointmentType, { label: string; icon: string; defaultMinutes: number }> = {
-  'primera-vez':   { label: 'Primera vez',          icon: '🆕', defaultMinutes: 60 },
-  'seguimiento':   { label: 'Seguimiento',          icon: '🔄', defaultMinutes: 30 },
-  'urgente':       { label: 'Urgente',              icon: '🚨', defaultMinutes: 30 },
-  'estudios':      { label: 'Revisión de estudios', icon: '🔬', defaultMinutes: 30 },
-  'teleconsulta':  { label: 'Teleconsulta',         icon: '💻', defaultMinutes: 30 },
-  'prequirurgica': { label: 'Val. prequirúrgica',   icon: '⚕️',  defaultMinutes: 60 },
-  'procedimiento': { label: 'Procedimiento',        icon: '🩺', defaultMinutes: 45 },
-  'otro':          { label: 'Otro',                 icon: '📋', defaultMinutes: 30 },
+export const APPOINTMENT_TYPE_CONFIG: Record<AppointmentType, { label: string; Icon: LucideIcon; defaultMinutes: number }> = {
+  'primera-vez':   { label: 'Primera vez',          Icon: UserPlus,       defaultMinutes: 60 },
+  'seguimiento':   { label: 'Seguimiento',          Icon: RefreshCw,      defaultMinutes: 30 },
+  'urgente':       { label: 'Urgente',              Icon: Siren,          defaultMinutes: 30 },
+  'estudios':      { label: 'Revisión de estudios', Icon: Microscope,     defaultMinutes: 30 },
+  'teleconsulta':  { label: 'Teleconsulta',         Icon: Video,          defaultMinutes: 30 },
+  'prequirurgica': { label: 'Val. prequirúrgica',   Icon: ClipboardCheck, defaultMinutes: 60 },
+  'procedimiento': { label: 'Procedimiento',        Icon: Stethoscope,    defaultMinutes: 45 },
+  'otro':          { label: 'Otro',                 Icon: ClipboardList,  defaultMinutes: 30 },
 }
 
 export const DEFAULT_CONFIG: ClinicConfig = {

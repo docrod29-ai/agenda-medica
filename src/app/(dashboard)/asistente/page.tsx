@@ -10,6 +10,7 @@ import { useAppointments } from '@/hooks/useAppointments'
 import { useConfig } from '@/hooks/useConfig'
 import { useDoctors } from '@/hooks/useDoctors'
 import { useFiltroMedico, colorMedico } from '@/components/DoctorFilter'
+import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { useToast } from '@/context/ToastContext'
 import { createAppointment, getPatients, createPatient } from '@/lib/firestore'
 import { getAvailableSlots } from '@/lib/availability'
@@ -309,7 +310,7 @@ function AsistenteInner() {
                       cursor: 'pointer', transition: 'all 0.15s', textAlign: 'left',
                     }}
                   >
-                    {APPOINTMENT_TYPE_CONFIG[t.value].icon} {t.label}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><TipoCitaIcon tipo={t.value} size={13} /> {t.label}</span>
                     <span style={{ display: 'block', fontSize: 10, color: 'var(--text3)', marginTop: 2 }}>
                       {duracion === efectiveConfig.duraciones?.[t.value] ? `${efectiveConfig.duraciones?.[t.value]} min` : `${efectiveConfig.duraciones?.[t.value] || 30} min`}
                     </span>

@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v68'  // barrido emojis: chrome operativo (citas/farmacia/crm/lista-espera/asistente/cumplimiento/configuración) + componentes
+const CACHE = 'nexusmed-v69'  // tipos de cita: emoji → icono lucide (TipoCitaIcon) en calendario/citas/dashboard/asistente/lista-espera/config
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

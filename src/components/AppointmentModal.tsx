@@ -22,7 +22,7 @@ interface Props {
   onSaved?: (id: string) => void
 }
 
-const TIPOS = Object.entries(APPOINTMENT_TYPE_CONFIG) as [AppointmentType, { label: string; icon: string; defaultMinutes: number }][]
+const TIPOS = Object.entries(APPOINTMENT_TYPE_CONFIG) as [AppointmentType, { label: string; defaultMinutes: number }][]
 
 const ORIGENES: AppointmentOrigin[] = ['Manual', 'WhatsApp', 'Teléfono', 'Referido', 'Google Calendar', 'Otro']
 
@@ -241,7 +241,7 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
               <label className="label">Tipo de consulta *</label>
               <select className="input" value={tipo} onChange={e => setTipo(e.target.value as AppointmentType)}>
                 {TIPOS.map(([k, v]) => (
-                  <option key={k} value={k}>{v.icon} {v.label}</option>
+                  <option key={k} value={k}>{v.label}</option>
                 ))}
               </select>
             </div>

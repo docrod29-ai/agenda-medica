@@ -7,6 +7,7 @@ import { useClinic } from '@/context/ClinicContext'
 import { useMode } from '@/context/ModeContext'
 import { useToast } from '@/context/ToastContext'
 import { StatusBadge } from '@/components/StatusBadge'
+import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { Appointment, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { formatDateMX } from '@/lib/availability'
 import { Plus, TrendingUp, CalendarCheck2, Clock, UserX, ChevronRight, CalendarDays, Users, Settings, Hourglass } from 'lucide-react'
@@ -296,8 +297,8 @@ function AppointmentRow({ appt, isLast }: { appt: Appointment; isLast: boolean }
           <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {appt.pacienteNombre}
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text3)' }}>
-            {typeCfg?.icon} {typeCfg?.label}
+          <div style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+            <TipoCitaIcon tipo={appt.tipo} size={12} /> {typeCfg?.label}
             {appt.motivo ? ` · ${appt.motivo}` : ''}
           </div>
         </div>
@@ -329,7 +330,7 @@ function NextAppointment({ appt }: { appt: Appointment }) {
         </div>
         <div>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{appt.pacienteNombre}</div>
-          <div style={{ fontSize: 12, color: 'var(--text3)' }}>{typeCfg?.icon} {typeCfg?.label}</div>
+          <div style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 5 }}><TipoCitaIcon tipo={appt.tipo} size={12} /> {typeCfg?.label}</div>
         </div>
       </div>
       <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--teal)', marginBottom: 4 }}>{hora} hrs</div>

@@ -6,6 +6,7 @@ import { useConfig } from '@/hooks/useConfig'
 import { AppointmentModal } from '@/components/AppointmentModal'
 import { DoctorFilter, useFiltroMedico, colorMedico } from '@/components/DoctorFilter'
 import { StatusBadge } from '@/components/StatusBadge'
+import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { Appointment, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { getWeekDates } from '@/lib/availability'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
@@ -282,8 +283,8 @@ function DayView({ date, appointments, onCellClick, onApptClick, loading }: {
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
                     {a.fechaHora.slice(11, 16)} — {a.pacienteNombre}
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--text3)' }}>
-                    {APPOINTMENT_TYPE_CONFIG[a.tipo]?.icon} {APPOINTMENT_TYPE_CONFIG[a.tipo]?.label} · {a.duracion}min
+                  <div style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <TipoCitaIcon tipo={a.tipo} size={12} /> {APPOINTMENT_TYPE_CONFIG[a.tipo]?.label} · {a.duracion}min
                   </div>
                 </div>
               ))}

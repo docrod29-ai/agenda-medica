@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { WaitlistEntry, AppointmentType, APPOINTMENT_TYPE_CONFIG } from '@/types'
+import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { getWaitlist, createWaitlistEntry, updateWaitlistEntry } from '@/lib/firestore'
 import { useToast } from '@/context/ToastContext'
 import { useConfig } from '@/hooks/useConfig'
@@ -101,7 +102,7 @@ export default function ListaEsperaPage() {
                   <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{entry.pacienteNombre}</div>
                   <div style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                     {entry.pacienteTelefono && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Phone size={11} className="ds-icon" /> {entry.pacienteTelefono}</span>}
-                    {entry.tipo && <span>{APPOINTMENT_TYPE_CONFIG[entry.tipo]?.icon} {APPOINTMENT_TYPE_CONFIG[entry.tipo]?.label}</span>}
+                    {entry.tipo && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><TipoCitaIcon tipo={entry.tipo} size={11} /> {APPOINTMENT_TYPE_CONFIG[entry.tipo]?.label}</span>}
                     {entry.fechaDeseada && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Calendar size={11} className="ds-icon" /> A partir de: {entry.fechaDeseada}</span>}
                     {entry.rangoHorario && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Clock size={11} className="ds-icon" /> {entry.rangoHorario}</span>}
                   </div>
@@ -205,7 +206,7 @@ function AddWaitlistModal({ onClose, onSaved, userEmail }: { onClose: () => void
               <label className="label">Tipo de consulta</label>
               <select className="input" value={tipo} onChange={e => setTipo(e.target.value as AppointmentType)}>
                 {Object.entries(APPOINTMENT_TYPE_CONFIG).map(([k, v]) => (
-                  <option key={k} value={k}>{v.icon} {v.label}</option>
+                  <option key={k} value={k}>{v.label}</option>
                 ))}
               </select>
             </div>

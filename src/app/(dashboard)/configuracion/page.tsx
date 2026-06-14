@@ -9,6 +9,7 @@ import { useToast } from '@/context/ToastContext'
 import { useClinic } from '@/context/ClinicContext'
 import { auth } from '@/lib/firebase'
 import { Loader2, Save, Copy, Calendar, CheckCircle2, XCircle, Link, Bot, CreditCard, ExternalLink, MessageCircle, Smartphone, AlertTriangle, UserRound, QrCode, Code, Lightbulb, Star, Ruler, KeyRound, Lock, PenLine, Sparkles } from 'lucide-react'
+import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { msgConfirmacion, msgRecordatorio24h, msgRecordatorioDia } from '@/lib/whatsapp'
 import { copyToClipboard } from '@/lib/whatsapp'
 import { useSearchParams } from 'next/navigation'
@@ -453,9 +454,9 @@ export default function ConfiguracionPage() {
       {tab === 'duraciones' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 8px' }}>Duración predeterminada por tipo de consulta (en minutos).</p>
-          {(Object.entries(APPOINTMENT_TYPE_CONFIG) as [AppointmentType, { label: string; icon: string }][]).map(([tipo, cfg]) => (
+          {(Object.entries(APPOINTMENT_TYPE_CONFIG) as [AppointmentType, { label: string }][]).map(([tipo, cfg]) => (
             <div key={tipo} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10 }}>
-              <span style={{ fontSize: 18 }}>{cfg.icon}</span>
+              <span style={{ display: 'inline-flex', color: 'var(--text2)' }}><TipoCitaIcon tipo={tipo} size={18} /></span>
               <div style={{ flex: 1, fontSize: 14, color: 'var(--text)' }}>{cfg.label}</div>
               <input
                 className="input" type="number" min={5} max={240} step={5}

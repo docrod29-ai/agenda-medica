@@ -11,6 +11,7 @@ import type { Patient } from '@/types'
 import { AppointmentModal } from '@/components/AppointmentModal'
 import { DoctorFilter, useFiltroMedico, colorMedico } from '@/components/DoctorFilter'
 import { CobrarModal } from '@/components/CobrarModal'
+import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { useAuth } from '@/hooks/useAuth'
 import { Appointment, AppointmentStatus, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { updateAppointment, deleteAppointment } from '@/lib/firestore'
@@ -337,8 +338,8 @@ function AppointmentRowFull({
             </span>
           )}
         </div>
-        <div style={{ fontSize: 12, color: 'var(--text3)' }}>
-          {typeCfg?.icon} {typeCfg?.label}
+        <div style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+          <TipoCitaIcon tipo={appt.tipo} size={12} /> {typeCfg?.label}
           {appt.motivo ? ` · ${appt.motivo}` : ''}
         </div>
         {appt.pacienteTelefono && (
