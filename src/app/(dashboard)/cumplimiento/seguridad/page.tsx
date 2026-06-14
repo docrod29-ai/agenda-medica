@@ -154,9 +154,11 @@ export default function SeguridadPage() {
           <div style={{
             padding: 10, background: 'rgba(245,158,11,0.06)', borderLeft: '2px solid #f59e0b',
             borderRadius: 4, fontSize: 12, color: 'var(--text2)', marginBottom: 14,
+            display: 'flex', alignItems: 'flex-start', gap: 7,
           }}>
-            ⚠️ Si pierdes tu celular y no tienes el código de recuperación, NO podrás iniciar sesión.
-            Guarda el código de respaldo que te daré después.
+            <AlertTriangle size={14} className="ds-icon" style={{ marginTop: 1, flexShrink: 0, color: '#f59e0b' }} />
+            <span>Si pierdes tu celular y no tienes el código de recuperación, NO podrás iniciar sesión.
+            Guarda el código de respaldo que te daré después.</span>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => setPaso('estado')} className="btn btn-secondary">Cancelar</button>

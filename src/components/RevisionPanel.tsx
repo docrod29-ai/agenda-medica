@@ -197,7 +197,7 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
               {verFuente === id && (
                 <div style={{ marginTop: 6, padding: '6px 10px', background: 'var(--s3)', borderRadius: 6, fontSize: 11.5, color: 'var(--text2)', fontStyle: 'italic' }}>
                   {campo.source_quote ? `"${campo.source_quote}"` : '(sin cita textual)'}
-                  {campo.reason && <div style={{ marginTop: 4, fontSize: 11, color: '#f59e0b', fontStyle: 'normal' }}>⚠ {campo.reason}</div>}
+                  {campo.reason && <div style={{ marginTop: 4, fontSize: 11, color: '#f59e0b', fontStyle: 'normal', display: 'flex', alignItems: 'center', gap: 4 }}><AlertTriangle size={11} className="ds-icon" /> {campo.reason}</div>}
                 </div>
               )}
             </div>

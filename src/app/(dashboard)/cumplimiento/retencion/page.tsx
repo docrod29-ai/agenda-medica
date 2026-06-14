@@ -94,7 +94,7 @@ export default function RetencionPage() {
         </div>
       ) : lista.length === 0 ? (
         <div style={{ padding: 40, textAlign: 'center', color: 'var(--text3)' }}>
-          {filtro === 'por_revisar' ? '✅ Ningún paciente requiere acción' : 'Sin pacientes registrados'}
+          {filtro === 'por_revisar' ? 'Ningún paciente requiere acción' : 'Sin pacientes registrados'}
         </div>
       ) : (
         <div style={{ display: 'grid', gap: 8 }}>

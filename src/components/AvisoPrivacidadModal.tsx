@@ -95,9 +95,10 @@ export function AvisoPrivacidadModal({ config, onAceptar, onCancelar, medioInici
                 style={{
                   background: 'none', border: '1px solid var(--border)', color: 'var(--teal)',
                   borderRadius: 6, padding: '8px 14px', fontSize: 12.5, cursor: 'pointer', fontWeight: 600,
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
                 }}
               >
-                📖 Ver aviso completo (10 secciones)
+                <FileText size={14} className="ds-icon" /> Ver aviso completo (10 secciones)
               </button>
             </>
           )}

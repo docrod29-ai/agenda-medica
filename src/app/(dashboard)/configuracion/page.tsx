@@ -8,7 +8,7 @@ import { useDoctors } from '@/hooks/useDoctors'
 import { useToast } from '@/context/ToastContext'
 import { useClinic } from '@/context/ClinicContext'
 import { auth } from '@/lib/firebase'
-import { Loader2, Save, Copy, Calendar, CheckCircle2, XCircle, Link, Bot, CreditCard, ExternalLink, MessageCircle, Smartphone } from 'lucide-react'
+import { Loader2, Save, Copy, Calendar, CheckCircle2, XCircle, Link, Bot, CreditCard, ExternalLink, MessageCircle, Smartphone, AlertTriangle, UserRound, QrCode, Code, Lightbulb, Star, Ruler, KeyRound, Lock, PenLine, Sparkles } from 'lucide-react'
 import { msgConfirmacion, msgRecordatorio24h, msgRecordatorioDia } from '@/lib/whatsapp'
 import { copyToClipboard } from '@/lib/whatsapp'
 import { useSearchParams } from 'next/navigation'
@@ -173,41 +173,41 @@ export default function ConfiguracionPage() {
     {
       titulo: 'Mi consultorio',
       tabs: [
-        { key: 'general', label: '🏥 Datos del consultorio' },
-        { key: 'horario', label: '⏰ Horario de atención' },
-        { key: 'duraciones', label: '⌛ Duración de citas' },
-        { key: 'bloqueos', label: '🌴 Vacaciones y bloqueos' },
+        { key: 'general', label: 'Datos del consultorio' },
+        { key: 'horario', label: 'Horario de atención' },
+        { key: 'duraciones', label: 'Duración de citas' },
+        { key: 'bloqueos', label: 'Vacaciones y bloqueos' },
       ],
     },
     {
       titulo: 'Comunicación con pacientes',
       tabs: [
-        { key: 'notificaciones', label: '🔔 Notificaciones' },
-        { key: 'plantillas', label: '💬 Mensajes de WhatsApp' },
-        { key: 'portal', label: '🔗 Portal de auto-agenda' },
-        { key: 'bot', label: '🤖 Bot de preguntas frecuentes', modoMin: 'medico' },
+        { key: 'notificaciones', label: 'Notificaciones' },
+        { key: 'plantillas', label: 'Mensajes de WhatsApp' },
+        { key: 'portal', label: 'Portal de auto-agenda' },
+        { key: 'bot', label: 'Bot de preguntas frecuentes', modoMin: 'medico' },
       ],
     },
     {
       titulo: 'Documentos clínicos',
       tabs: [
-        { key: 'recetas', label: '🩺 Recetas y órdenes', modoMin: 'medico' },
+        { key: 'recetas', label: 'Recetas y órdenes', modoMin: 'medico' },
       ],
     },
     {
       titulo: 'Equipo y permisos',
       tabs: [
         // La asistente puede gestionar perfiles de médicos en agenda
-        { key: 'medicos', label: '👨‍⚕️ Médicos (hasta 5)' },
-        { key: 'equipo', label: '👥 Asistentes y secretarias' },
+        { key: 'medicos', label: 'Médicos (hasta 5)' },
+        { key: 'equipo', label: 'Asistentes y secretarias' },
       ],
     },
     {
       titulo: 'Sistema',
       tabs: [
-        { key: 'integraciones', label: '🔌 Integraciones' },
-        { key: 'seguridad', label: '🔐 Seguridad', modoMin: 'medico' },
-        { key: 'suscripcion', label: '💳 Mi suscripción', modoMin: 'medico' },
+        { key: 'integraciones', label: 'Integraciones' },
+        { key: 'seguridad', label: 'Seguridad', modoMin: 'medico' },
+        { key: 'suscripcion', label: 'Mi suscripción', modoMin: 'medico' },
       ],
     },
   ]
@@ -229,7 +229,7 @@ export default function ConfiguracionPage() {
   return (
     <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>⚙️ Configuración</h1>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Configuración</h1>
         {tab !== 'integraciones' && tab !== 'recetas' && tab !== 'portal' && tab !== 'seguridad' && tab !== 'equipo' && tab !== 'medicos' && tab !== 'bloqueos' && tab !== 'suscripcion' && tab !== 'bot' && (
           <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
             {saving ? <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Guardando…</> : <><Save size={15} /> Guardar</>}
@@ -434,8 +434,8 @@ export default function ConfiguracionPage() {
                         {minutos > 0 ? `${horas}h · cada ${intervalo} min` : '—'}
                       </span>
                       {esSospechoso && (
-                        <span style={{ fontSize: 10.5, color: 'var(--amber)', fontWeight: 500 }}>
-                          ⚠️ ¿Atiendes tantas horas?
+                        <span style={{ fontSize: 10.5, color: 'var(--amber)', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <AlertTriangle size={11} className="ds-icon" /> ¿Atiendes tantas horas?
                         </span>
                       )}
                     </div>
@@ -599,9 +599,9 @@ export default function ConfiguracionPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <p style={{ fontSize: 13, color: 'var(--text3)', margin: 0 }}>Vista previa de los mensajes de WhatsApp que se envían automáticamente.</p>
           {[
-            { key: 'confirmacion', label: '✅ Confirmación de cita', msg: msgConfirmacion(demoAppt, form) },
+            { key: 'confirmacion', label: 'Confirmación de cita', msg: msgConfirmacion(demoAppt, form) },
             { key: 'recordatorio24', label: '⏰ Recordatorio 24 horas', msg: msgRecordatorio24h(demoAppt, form) },
-            { key: 'recordatorioDia', label: '📅 Recordatorio mismo día', msg: msgRecordatorioDia(demoAppt, form) },
+            { key: 'recordatorioDia', label: 'Recordatorio mismo día', msg: msgRecordatorioDia(demoAppt, form) },
           ].map(({ key, label, msg }) => (
             <div key={key} style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
               <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -794,7 +794,7 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
       })
       const data = await res.json()
       if (res.ok && data.ok) {
-        toast(`✅ WhatsApp conectado: ${data.phoneNumber}`, 'success')
+        toast(`WhatsApp conectado: ${data.phoneNumber}`, 'success')
         setTimeout(() => window.location.reload(), 900)
       } else {
         toast(data.error ?? 'Error al conectar', 'error')
@@ -830,7 +830,7 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
         })
         const data = await res.json()
         if (res.ok && data.ok) {
-          toast(`✅ WhatsApp conectado: ${data.phoneNumber}`, 'success')
+          toast(`WhatsApp conectado: ${data.phoneNumber}`, 'success')
         } else {
           toast(data.error ?? 'Error al conectar', 'error')
         }
@@ -1040,18 +1040,19 @@ function BotFAQTab({ doctors }: { doctors: Doctor[] }) {
   const webhookUrl = `${appUrl}/api/whatsapp/webhook`
 
   const FIELDS = [
-    { id: 'padecimientos', label: '🩺 Padecimientos que atiende', placeholder: 'Infecciones bacterianas, virales, VIH/SIDA, tuberculosis…' },
-    { id: 'costoConsulta', label: '💰 Costo de consulta', placeholder: 'Primera vez $800, seguimiento $600…' },
-    { id: 'seguros', label: '🏥 Seguros aceptados', placeholder: 'GNP, AXA… / No aceptamos IMSS/ISSSTE' },
-    { id: 'comoLlegar', label: '📍 Cómo llegar / Dirección detallada', placeholder: 'Edificio X, piso 3, consultorio 304…' },
-    { id: 'infoExtra', label: '💬 Información adicional (opcional)', placeholder: 'Traer estudios previos, llegar 10 min antes…' },
+    { id: 'padecimientos', label: 'Padecimientos que atiende', placeholder: 'Infecciones bacterianas, virales, VIH/SIDA, tuberculosis…' },
+    { id: 'costoConsulta', label: 'Costo de consulta', placeholder: 'Primera vez $800, seguimiento $600…' },
+    { id: 'seguros', label: 'Seguros aceptados', placeholder: 'GNP, AXA… / No aceptamos IMSS/ISSSTE' },
+    { id: 'comoLlegar', label: 'Cómo llegar / Dirección detallada', placeholder: 'Edificio X, piso 3, consultorio 304…' },
+    { id: 'infoExtra', label: 'Información adicional (opcional)', placeholder: 'Traer estudios previos, llegar 10 min antes…' },
   ] as const
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div style={{ background: 'rgba(61,90,254,0.05)', border: '1px solid rgba(61,90,254,0.2)', borderRadius: 12, padding: 16 }}>
-        <p style={{ fontSize: 13, color: 'var(--text2)', margin: 0, lineHeight: 1.6 }}>
-          🤖 <strong style={{ color: 'var(--teal)' }}>Bot de WhatsApp</strong> — estas respuestas se usan cuando los pacientes pregunten por WhatsApp sobre horarios, costos, ubicación, etc.
+        <p style={{ fontSize: 13, color: 'var(--text2)', margin: 0, lineHeight: 1.6, display: 'flex', alignItems: 'flex-start', gap: 7 }}>
+          <Bot size={16} className="ds-icon" style={{ marginTop: 2, flexShrink: 0, color: 'var(--teal)' }} />
+          <span><strong style={{ color: 'var(--teal)' }}>Bot de WhatsApp</strong> — estas respuestas se usan cuando los pacientes pregunten por WhatsApp sobre horarios, costos, ubicación, etc.</span>
         </p>
         <p style={{ fontSize: 12, color: 'var(--text3)', margin: '8px 0 0' }}>
           URL del Webhook (para Meta): <code style={{ background: 'var(--s2)', padding: '2px 6px', borderRadius: 4, fontSize: 11 }}>{webhookUrl}</code>
@@ -1070,8 +1071,8 @@ function BotFAQTab({ doctors }: { doctors: Doctor[] }) {
       </div>
 
       {!doctor && (
-        <div style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 10, padding: 14, fontSize: 13, color: '#fbbf24' }}>
-          ⚠️ No hay médico configurado. Ve a Configuración → General para agregar un médico.
+        <div style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 10, padding: 14, fontSize: 13, color: '#fbbf24', display: 'flex', alignItems: 'center', gap: 7 }}>
+          <AlertTriangle size={15} className="ds-icon" style={{ flexShrink: 0 }} /> No hay médico configurado. Ve a Configuración → General para agregar un médico.
         </div>
       )}
 
@@ -1213,15 +1214,15 @@ function MedicosTab() {
           padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--s2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
-              👨‍⚕️
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--s2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text2)' }}>
+              <UserRound size={20} />
             </div>
             <div>
               <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{doc.nombre}</div>
               <div style={{ fontSize: 12, color: 'var(--text3)' }}>{doc.especialidad}</div>
               {doc.botConfig?.completado && (
-                <span style={{ fontSize: 11, color: 'var(--teal)', marginTop: 2, display: 'block' }}>
-                  ✅ Bot FAQ configurado
+                <span style={{ fontSize: 11, color: 'var(--teal)', marginTop: 2, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <CheckCircle2 size={12} className="ds-icon" /> Bot FAQ configurado
                 </span>
               )}
             </div>
@@ -1516,12 +1517,12 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
           </div>
         </div>
         <button onClick={generar} disabled={creando} style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#040b12', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: creando ? 'default' : 'pointer' }}>
-          {creando ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</> : '✨ Generar enlace de invitación'}
+          {creando ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</> : <><Sparkles size={15} /> Generar enlace de invitación</>}
         </button>
 
         {generada && (
           <div style={{ marginTop: 14, padding: 12, background: 'rgba(61,90,254,0.06)', border: '1px solid rgba(61,90,254,0.25)', borderRadius: 10 }}>
-            <div style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 600, marginBottom: 6 }}>✅ Enlace listo</div>
+            <div style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 600, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}><CheckCircle2 size={14} className="ds-icon" /> Enlace listo</div>
             <div style={{ fontSize: 11.5, color: 'var(--text3)', wordBreak: 'break-all', marginBottom: 10 }}>
               {linkDe(generada)}
             </div>
@@ -1581,8 +1582,8 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {usadas.map(inv => (
-              <div key={inv.code} style={{ fontSize: 12.5, color: 'var(--text2)', padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
-                ✅ {inv.nombreInvitado || '(Sin nombre)'} ({inv.role}) — aceptada {inv.usedAt ? new Date(inv.usedAt).toLocaleDateString('es-MX') : ''}
+              <div key={inv.code} style={{ fontSize: 12.5, color: 'var(--text2)', padding: '6px 0', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <CheckCircle2 size={13} className="ds-icon" style={{ color: 'var(--teal)', flexShrink: 0 }} /> {inv.nombreInvitado || '(Sin nombre)'} ({inv.role}) — aceptada {inv.usedAt ? new Date(inv.usedAt).toLocaleDateString('es-MX') : ''}
               </div>
             ))}
           </div>
@@ -1821,8 +1822,8 @@ function PortalTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
         {/* QR */}
         {qrUrl && (
           <div style={{ marginTop: 18, padding: 14, background: 'var(--s2)', borderRadius: 10, border: '1px dashed var(--border)' }}>
-            <div style={{ fontSize: 12.5, color: 'var(--text2)', marginBottom: 10, fontWeight: 600 }}>
-              📱 QR para imprimir o pegar en el consultorio
+            <div style={{ fontSize: 12.5, color: 'var(--text2)', marginBottom: 10, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <QrCode size={14} className="ds-icon" /> QR para imprimir o pegar en el consultorio
             </div>
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1925,8 +1926,8 @@ function EmbedSnippets({ url, clinicNombre }: { url: string; clinicNombre: strin
 
   return (
     <div style={{ padding: 16, background: 'var(--s)', border: '1px solid var(--border)', borderRadius: 12 }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>
-        💻 Embeber en tu sitio web
+      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <Code size={15} className="ds-icon" /> Embeber en tu sitio web
       </div>
       <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>
         Pega este código en tu página web (WordPress, Wix, Squarespace, Webflow, etc.) y aparecerá el botón / portal.
@@ -1994,7 +1995,7 @@ function EmbedSnippets({ url, clinicNombre }: { url: string; clinicNombre: strin
       </div>
 
       <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8 }}>
-        💡 Tip: Si usas <strong>WordPress</strong>, pega el código en un bloque <em>HTML personalizado</em>.
+        <Lightbulb size={12} className="ds-icon" style={{ display: 'inline', verticalAlign: '-2px' }} /> Tip: Si usas <strong>WordPress</strong>, pega el código en un bloque <em>HTML personalizado</em>.
         En <strong>Wix/Squarespace</strong> busca el elemento "Código embebido".
       </div>
     </div>
@@ -2226,9 +2227,9 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
               onChange={(e) => setMedicoSel(e.target.value)}
               style={{ ...cfgInput, width: 'auto', minWidth: 220 }}
             >
-              <option value="">🏥 General (toda la clínica)</option>
+              <option value="">General (toda la clínica)</option>
               {doctores.map(d => (
-                <option key={d.id} value={d.id}>👨‍⚕️ {d.nombre}{config?.recetasPorMedico?.[d.id] ? ' · personalizada ✓' : ''}</option>
+                <option key={d.id} value={d.id}>{d.nombre}{config?.recetasPorMedico?.[d.id] ? ' · personalizada' : ''}</option>
               ))}
             </select>
             <span style={{ fontSize: 11, color: 'var(--text3)', flexBasis: '100%' }}>
@@ -2246,8 +2247,8 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, gap: 8, flexWrap: 'wrap' }}>
             <div>
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
-                ⭐ Usa TU propia receta
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Star size={15} className="ds-icon" /> Usa TU propia receta
               </div>
               <div style={{ fontSize: 11.5, color: 'var(--text2)', marginTop: 2 }}>
                 Sube tu diseño actual (PDF o imagen). Lo usamos como fondo y solo
@@ -2328,8 +2329,8 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
           {/* Calibración de márgenes — solo cuando hay diseño */}
           {rx.disenoCompletoDataUrl && (
             <div style={{ marginTop: 12, padding: 12, background: 'rgba(0,0,0,0.15)', borderRadius: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
-                📐 Calibrar área de contenido (mm)
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Ruler size={14} className="ds-icon" /> Calibrar área de contenido (mm)
               </div>
               <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 10 }}>
                 Define dónde caen los datos del paciente y la receta. Mira la vista previa →
@@ -2392,10 +2393,10 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
 
         {/* Dónde se imprime físicamente — resuelve "no se imprime en formato receta" */}
         {rx.paperSize !== 'carta' && rx.paperSize !== 'oficio' && (
-          <Section title="🖨️ ¿En qué papel imprime tu impresora?">
+          <Section title="¿En qué papel imprime tu impresora?">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               {([
-                { valor: 'carta' as const, titulo: 'Hoja carta + corte ✂ (recomendado)', desc: 'Funciona con CUALQUIER impresora. La receta sale arriba de la hoja carta con línea punteada para recortar.' },
+                { valor: 'carta' as const, titulo: 'Hoja carta + corte (recomendado)', desc: 'Funciona con CUALQUIER impresora. La receta sale arriba de la hoja carta con línea punteada para recortar.' },
                 { valor: 'papel-real' as const, titulo: 'Papel de receta exacto', desc: `Solo si tu impresora tiene cargado papel ${PAPER_SIZES[rx.paperSize].label.split(' (')[0].toLowerCase()}. Ojo: el diálogo de impresión debe ofrecer ese tamaño.` },
               ]).map(op => {
                 const activo = (rx.imprimirEn ?? 'carta') === op.valor
@@ -2461,7 +2462,7 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
         </Section>
 
         {/* Membrete */}
-        <Section title="📄 Membrete (encabezado custom)">
+        <Section title="Membrete (encabezado custom)">
           <p style={{ fontSize: 11.5, color: 'var(--text3)', marginBottom: 8 }}>
             Sube una imagen del encabezado de tu papel membretado (logo, nombre, datos del consultorio).
             Si no subes nada, se usa un encabezado generado con los datos de tu clínica.
@@ -2497,7 +2498,7 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
         </Section>
 
         {/* Pie de página */}
-        <Section title="📑 Pie de página (opcional)">
+        <Section title="Pie de página (opcional)">
           {rx.pieDataUrl ? (
             <div style={{ position: 'relative', border: '1px dashed var(--border)', borderRadius: 8, padding: 10, background: 'var(--s2)' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -2710,7 +2711,7 @@ function PreviewReceta({
         <div style={{
           fontSize: 10.5, color: 'var(--text3)', marginTop: 8, textAlign: 'center', lineHeight: 1.4,
         }}>
-          🔵 El recuadro cian muestra dónde caen los datos.<br />
+          El recuadro cian muestra dónde caen los datos.<br />
           Ajusta los márgenes hasta que NO se sobreponga al diseño impreso.
         </div>
       )}
@@ -2786,7 +2787,7 @@ function SeguridadTab() {
     if (!secret) return
     try {
       await completarEnrolamientoTotp(secret, codigo.trim(), aliasNuevo || 'Llave TOTP')
-      toast('2FA activado ✅', 'success')
+      toast('2FA activado', 'success')
       setFactores(listarFactores(user))
       setPaso('idle')
       setSecret(null)
@@ -2811,7 +2812,7 @@ function SeguridadTab() {
     <div style={{ maxWidth: 600, display: 'grid', gap: 16 }}>
       <div style={{ padding: 16, background: 'var(--s)', border: '1px solid var(--border)', borderRadius: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-          <span style={{ fontSize: 22 }}>🔐</span>
+          <Lock size={20} style={{ color: 'var(--teal)' }} />
           <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text)' }}>Autenticación de dos factores (2FA)</div>
         </div>
         <div style={{ fontSize: 12.5, color: 'var(--text3)', lineHeight: 1.55 }}>
@@ -2850,7 +2851,7 @@ function SeguridadTab() {
       {/* Activar nuevo */}
       {paso === 'idle' && (
         <button onClick={iniciar} className="btn btn-primary" style={{ alignSelf: 'flex-start' }}>
-          🔑 Activar 2FA con app autenticadora
+          <KeyRound size={15} /> Activar 2FA con app autenticadora
         </button>
       )}
 
@@ -2973,7 +2974,7 @@ function FirmaUploadSection({ firmaDataUrl, onChange }: { firmaDataUrl?: string;
       border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginTop: 4,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-        <span style={{ fontSize: 20 }}>🖋️</span>
+        <PenLine size={18} style={{ color: 'var(--teal)' }} />
         <div>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>Firma + sello (imagen)</div>
           <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>
@@ -3033,8 +3034,9 @@ function FirmaUploadSection({ firmaDataUrl, onChange }: { firmaDataUrl?: string;
         </label>
       )}
 
-      <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 8, padding: '6px 10px', background: 'rgba(255,200,0,0.05)', borderLeft: '2px solid #f59e0b', borderRadius: 3 }}>
-        💡 Tip: Escanea tu firma en una hoja blanca con tu sello al lado, recórtalo en blanco y súbelo como PNG con fondo transparente. Mide unos 6 × 3 cm en la vida real.
+      <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 8, padding: '6px 10px', background: 'rgba(255,200,0,0.05)', borderLeft: '2px solid #f59e0b', borderRadius: 3, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+        <Lightbulb size={12} className="ds-icon" style={{ marginTop: 1, flexShrink: 0 }} />
+        <span>Tip: Escanea tu firma en una hoja blanca con tu sello al lado, recórtalo en blanco y súbelo como PNG con fondo transparente. Mide unos 6 × 3 cm en la vida real.</span>
       </div>
     </div>
   )
@@ -3084,7 +3086,7 @@ function MiembrosActivos({ clinicId, miUid }: { clinicId: string | null; miUid?:
     }
   }
 
-  const ROL_LABEL: Record<string, string> = { admin: '👑 Admin', medico: '👨‍⚕️ Médico', secretaria: '👩‍💼 Asistente' }
+  const ROL_LABEL: Record<string, string> = { admin: 'Admin', medico: 'Médico', secretaria: 'Asistente' }
   const ROL_COLOR: Record<string, string> = { admin: '#f59e0b', medico: '#14b8a6', secretaria: '#a78bfa' }
 
   return (

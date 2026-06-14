@@ -12,7 +12,7 @@ import { getAppointments, getPatients } from '@/lib/firestore'
 import type { Appointment, Patient } from '@/types'
 import {
   TrendingUp, TrendingDown, Users, CalendarCheck2, UserX,
-  DollarSign, ArrowUpRight, Loader2,
+  DollarSign, ArrowUpRight, Loader2, Lightbulb,
 } from 'lucide-react'
 
 type Periodo = 'hoy' | 'semana' | 'mes' | '3meses'
@@ -143,9 +143,10 @@ export default function CRMPage() {
         </>
       )}
 
-      <p style={{ fontSize: 11, color: 'var(--text3)', marginTop: 24, fontStyle: 'italic' }}>
-        💡 Los ingresos se calcularán automáticamente cuando configures precios por tipo de consulta y pagos.
-        Este dashboard se enriquecerá conforme uses la app.
+      <p style={{ fontSize: 11, color: 'var(--text3)', marginTop: 24, fontStyle: 'italic', display: 'flex', alignItems: 'flex-start', gap: 7 }}>
+        <Lightbulb size={13} className="ds-icon" style={{ marginTop: 1, flexShrink: 0 }} />
+        <span>Los ingresos se calcularán automáticamente cuando configures precios por tipo de consulta y pagos.
+        Este dashboard se enriquecerá conforme uses la app.</span>
       </p>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>

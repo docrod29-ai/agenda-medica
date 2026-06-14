@@ -20,7 +20,7 @@ import {
 } from '@/lib/farmacia'
 import {
   Pill, Search, Plus, AlertTriangle, Clock, X, Edit2, Trash2,
-  Package, ArrowUpCircle, ArrowDownCircle, Loader2,
+  Package, ArrowUpCircle, ArrowDownCircle, Loader2, MapPin,
 } from 'lucide-react'
 
 export default function FarmaciaPage() {
@@ -116,7 +116,7 @@ export default function FarmaciaPage() {
           }}
         >
           <option value="todas">Todas las categorías</option>
-          {alertas > 0 && <option value="alertas">⚠️ Con alertas ({alertas})</option>}
+          {alertas > 0 && <option value="alertas">Con alertas ({alertas})</option>}
           {(Object.keys(CATEGORIA_LABEL) as FarmaciaCategoria[]).map(k => (
             <option key={k} value={k}>{CATEGORIA_LABEL[k]}</option>
           ))}
@@ -274,7 +274,7 @@ function ItemRow({
         <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 3 }}>
           {CATEGORIA_LABEL[item.categoria]}
           {item.presentacion && ` · ${item.presentacion}`}
-          {item.ubicacion && ` · 📍 ${item.ubicacion}`}
+          {item.ubicacion && <> · <MapPin size={11} className="ds-icon" style={{ display: 'inline' }} /> {item.ubicacion}</>}
           {item.lote && ` · Lote ${item.lote}`}
         </div>
       </div>

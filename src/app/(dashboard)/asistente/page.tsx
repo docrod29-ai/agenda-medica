@@ -356,8 +356,8 @@ function AsistenteInner() {
                       transition: 'all 0.15s',
                     }}
                   >
-                    <span style={{ textTransform: 'capitalize' }}>
-                      {isToday ? '📅 Hoy' : formatDateLong(d)}
+                    <span style={{ textTransform: 'capitalize', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      {isToday ? <><CalendarDays size={13} className="ds-icon" /> Hoy</> : formatDateLong(d)}
                     </span>
                     <span style={{ fontSize: 11, color: isSelected ? 'var(--teal)' : 'var(--text3)' }}>
                       {daySlots.length > 0 ? `${daySlots.length} lugares` : 'Sin lugar'}
@@ -440,7 +440,7 @@ function AsistenteInner() {
             ) : success ? (
               <><CheckCircle2 size={16} /> ¡Agendado!</>
             ) : (
-              '✅ Agendar cita'
+              <><CheckCircle2 size={16} /> Agendar cita</>
             )}
           </button>
         </div>

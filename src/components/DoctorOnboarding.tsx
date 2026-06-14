@@ -8,16 +8,17 @@ import { useState } from 'react'
 import { updateDoctor } from '@/lib/firestore'
 import { useClinic } from '@/context/ClinicContext'
 import { Doctor } from '@/types'
+import { Stethoscope, DollarSign, Building2, MapPin, MessageSquare, Bot, CheckCircle2, ArrowLeft, ArrowRight, type LucideIcon } from 'lucide-react'
 
 interface Props {
   doctor: Doctor
   onComplete: () => void
 }
 
-const STEPS = [
+const STEPS: { id: string; Icon: LucideIcon; title: string; subtitle: string; placeholder: string; multiline: boolean }[] = [
   {
     id: 'padecimientos',
-    emoji: '🩺',
+    Icon: Stethoscope,
     title: '¿Qué padecimientos atiende?',
     subtitle: 'El bot usará esto para responder preguntas de pacientes.',
     placeholder: 'Ej: Infecciones bacterianas, virales, VIH/SIDA, tuberculosis, infecciones de transmisión sexual, fiebre de origen desconocido...',
@@ -25,7 +26,7 @@ const STEPS = [
   },
   {
     id: 'costoConsulta',
-    emoji: '💰',
+    Icon: DollarSign,
     title: '¿Cuánto cuesta la consulta?',
     subtitle: 'Sea específico: primera vez, seguimiento, urgencias.',
     placeholder: 'Ej: Primera vez $800, seguimiento $600. Consulta de urgencias $1,000. Incluye revisión y receta.',
@@ -33,7 +34,7 @@ const STEPS = [
   },
   {
     id: 'seguros',
-    emoji: '🏥',
+    Icon: Building2,
     title: '¿Acepta seguros médicos?',
     subtitle: 'Si no acepta, indique por qué.',
     placeholder: 'Ej: GNP Seguros, AXA, BBVA Seguros. Deducible según póliza del paciente. No aceptamos IMSS/ISSSTE en consulta privada.',
@@ -41,7 +42,7 @@ const STEPS = [
   },
   {
     id: 'comoLlegar',
-    emoji: '📍',
+    Icon: MapPin,
     title: '¿Cómo llegar al consultorio?',
     subtitle: 'Referencias, estacionamiento, transporte.',
     placeholder: 'Ej: Edificio Médica Sur, piso 3, consultorio 304. Estacionamiento gratuito en el sótano. A 2 cuadras del metro...',
@@ -49,7 +50,7 @@ const STEPS = [
   },
   {
     id: 'infoExtra',
-    emoji: '💬',
+    Icon: MessageSquare,
     title: '¿Información adicional para pacientes?',
     subtitle: 'Cualquier otra cosa que el bot deba saber (opcional).',
     placeholder: 'Ej: Traer estudios previos si los tiene. Llegar 10 min antes de su cita. No se realizan estudios de laboratorio en el consultorio...',
@@ -107,8 +108,8 @@ export function DoctorOnboarding({ doctor, onComplete }: Props) {
         {/* Header */}
         <div className="p-6 border-b border-white/10">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-teal-500/20 flex items-center justify-center text-xl">
-              🤖
+            <div className="w-10 h-10 rounded-full bg-teal-500/20 flex items-center justify-center text-teal-300">
+              <Bot size={20} />
             </div>
             <div>
               <p className="text-xs text-white/50 uppercase tracking-wider">Configuración del bot</p>
@@ -127,7 +128,7 @@ export function DoctorOnboarding({ doctor, onComplete }: Props) {
 
         {/* Step content */}
         <div className="p-6">
-          <div className="text-4xl mb-3">{current.emoji}</div>
+          <div className="mb-3 text-teal-300"><current.Icon size={32} /></div>
           <h3 className="text-xl font-semibold text-white mb-1">{current.title}</h3>
           <p className="text-sm text-white/50 mb-4">{current.subtitle}</p>
           <textarea
@@ -144,16 +145,16 @@ export function DoctorOnboarding({ doctor, onComplete }: Props) {
           <button
             onClick={() => step > 0 && setStep(s => s - 1)}
             disabled={step === 0}
-            className="px-4 py-2 text-sm text-white/50 hover:text-white disabled:opacity-30 transition-colors"
+            className="px-4 py-2 text-sm text-white/50 hover:text-white disabled:opacity-30 transition-colors inline-flex items-center gap-1.5"
           >
-            ← Anterior
+            <ArrowLeft size={14} /> Anterior
           </button>
           <button
             onClick={handleNext}
             disabled={!canContinue || saving}
-            className="px-6 py-2.5 rounded-xl bg-teal-500 text-white font-medium text-sm hover:bg-teal-400 disabled:opacity-40 transition-colors"
+            className="px-6 py-2.5 rounded-xl bg-teal-500 text-white font-medium text-sm hover:bg-teal-400 disabled:opacity-40 transition-colors inline-flex items-center gap-1.5"
           >
-            {saving ? 'Guardando…' : isLast ? '✅ Finalizar' : 'Siguiente →'}
+            {saving ? 'Guardando…' : isLast ? <><CheckCircle2 size={15} /> Finalizar</> : <>Siguiente <ArrowRight size={15} /></>}
           </button>
         </div>
 

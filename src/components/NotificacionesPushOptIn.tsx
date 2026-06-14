@@ -41,7 +41,7 @@ export function NotificacionesPushOptIn() {
     if (ok) {
       // Notificación de bienvenida
       const { mostrarNotificacion } = await import('@/lib/push-notifications')
-      mostrarNotificacion('🔔 Recordatorios activados', {
+      mostrarNotificacion('Recordatorios activados', {
         body: 'Te avisaré 30 min antes de cada cita',
         tag: 'welcome',
       })

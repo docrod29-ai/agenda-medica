@@ -7,7 +7,7 @@ import { useConfig } from '@/hooks/useConfig'
 import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
 import { openWhatsApp, msgListaEsperaAviso } from '@/lib/whatsapp'
-import { Plus, X, MessageSquare, CheckCircle2, Loader2, Clock } from 'lucide-react'
+import { Plus, X, MessageSquare, CheckCircle2, Loader2, Clock, Phone, Calendar } from 'lucide-react'
 
 export default function ListaEsperaPage() {
   const { toast } = useToast()
@@ -100,10 +100,10 @@ export default function ListaEsperaPage() {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{entry.pacienteNombre}</div>
                   <div style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    {entry.pacienteTelefono && <span>📞 {entry.pacienteTelefono}</span>}
+                    {entry.pacienteTelefono && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Phone size={11} className="ds-icon" /> {entry.pacienteTelefono}</span>}
                     {entry.tipo && <span>{APPOINTMENT_TYPE_CONFIG[entry.tipo]?.icon} {APPOINTMENT_TYPE_CONFIG[entry.tipo]?.label}</span>}
-                    {entry.fechaDeseada && <span>📅 A partir de: {entry.fechaDeseada}</span>}
-                    {entry.rangoHorario && <span>🕐 {entry.rangoHorario}</span>}
+                    {entry.fechaDeseada && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Calendar size={11} className="ds-icon" /> A partir de: {entry.fechaDeseada}</span>}
+                    {entry.rangoHorario && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Clock size={11} className="ds-icon" /> {entry.rangoHorario}</span>}
                   </div>
                   {entry.notas && (
                     <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 2, fontStyle: 'italic' }}>"{entry.notas}"</div>

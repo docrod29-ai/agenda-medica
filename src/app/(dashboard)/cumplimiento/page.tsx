@@ -34,28 +34,28 @@ interface AuditEntry {
 }
 
 const EVENTO_LABEL: Record<string, string> = {
-  expediente_lectura: '📖 Vio expediente',
-  nota_lectura: '📄 Vio nota',
-  nota_impresion: '🖨️ Imprimió nota',
-  nota_firmada: '✍️ Firmó nota',
-  nota_borrador_guardado: '💾 Guardó borrador',
-  nota_borrada: '🗑️ Borró borrador',
-  receta_generada: '💊 Generó receta',
-  receta_descargada: '⬇️ Descargó receta',
-  orden_generada: '🧪 Generó orden',
-  paciente_creado: '👤 Creó paciente',
-  paciente_modificado: '✏️ Modificó paciente',
-  paciente_borrado: '🗑️ Borró paciente',
-  aviso_privacidad_aceptado: '🛡️ Aviso aceptado',
-  arco_solicitud_recibida: '📩 Solicitud ARCO',
-  arco_solicitud_resuelta: '✅ ARCO resuelta',
-  login_exitoso: '🔓 Inicio de sesión',
-  login_fallido: '🔒 Login fallido',
-  export_datos: '📤 Export de datos',
-  ia_procesamiento: '🤖 IA procesó',
-  ia_campo_aprobado: '✓ Aprobó campo IA',
-  ia_campo_rechazado: '✗ Rechazó campo IA',
-  consentimiento_grabacion: '🎙️ Consintió grabar',
+  expediente_lectura: 'Vio expediente',
+  nota_lectura: 'Vio nota',
+  nota_impresion: 'Imprimió nota',
+  nota_firmada: 'Firmó nota',
+  nota_borrador_guardado: 'Guardó borrador',
+  nota_borrada: 'Borró borrador',
+  receta_generada: 'Generó receta',
+  receta_descargada: 'Descargó receta',
+  orden_generada: 'Generó orden',
+  paciente_creado: 'Creó paciente',
+  paciente_modificado: 'Modificó paciente',
+  paciente_borrado: 'Borró paciente',
+  aviso_privacidad_aceptado: 'Aviso aceptado',
+  arco_solicitud_recibida: 'Solicitud ARCO',
+  arco_solicitud_resuelta: 'ARCO resuelta',
+  login_exitoso: 'Inicio de sesión',
+  login_fallido: 'Login fallido',
+  export_datos: 'Export de datos',
+  ia_procesamiento: 'IA procesó',
+  ia_campo_aprobado: 'Aprobó campo IA',
+  ia_campo_rechazado: 'Rechazó campo IA',
+  consentimiento_grabacion: 'Consintió grabar',
 }
 
 type Tab = 'bitacora' | 'arco' | 'estado'
@@ -123,9 +123,9 @@ export default function CumplimientoPage() {
       {/* Tabs */}
       <div className="tabs" style={{ marginBottom: 20 }}>
         {([
-          { k: 'estado', label: '🛡️ Estado' },
-          { k: 'bitacora', label: '🔍 Bitácora' },
-          { k: 'arco', label: `📩 ARCO${arcoList.filter(a => a.estado === 'recibida' || a.estado === 'en_proceso').length > 0 ? ` (${arcoList.filter(a => a.estado === 'recibida' || a.estado === 'en_proceso').length})` : ''}` },
+          { k: 'estado', label: 'Estado' },
+          { k: 'bitacora', label: 'Bitácora' },
+          { k: 'arco', label: `ARCO${arcoList.filter(a => a.estado === 'recibida' || a.estado === 'en_proceso').length > 0 ? ` (${arcoList.filter(a => a.estado === 'recibida' || a.estado === 'en_proceso').length})` : ''}` },
         ] as { k: Tab; label: string }[]).map(t => (
           <button key={t.k} className={`tab${tab === t.k ? ' active' : ''}`} onClick={() => setTab(t.k)}>
             {t.label}
@@ -164,7 +164,7 @@ function EstadoCumplimiento({ clinicId, bitacora, arcoList, onCopiarLink }: { cl
         titulo={`Derechos ARCO (LFPDPPP)`}
         descripcion={pendientes.length === 0
           ? 'Sin solicitudes pendientes. Todas resueltas.'
-          : `⚠️ Tienes ${pendientes.length} solicitud(es) pendiente(s). Plazo legal: 20 días hábiles.`}
+          : `Tienes ${pendientes.length} solicitud(es) pendiente(s). Plazo legal: 20 días hábiles.`}
       />
       <Resumen
         ok={true}
@@ -216,7 +216,7 @@ function Seguridad2FAResumen() {
       titulo="Autenticación de dos factores (2FA)"
       descripcion={activo
         ? 'Tu cuenta tiene 2FA activo. Al iniciar sesión te pediré el código de tu autenticador.'
-        : '⚠️ Tu cuenta NO tiene 2FA. Recomendado para protección extra contra accesos no autorizados.'}
+        : 'Tu cuenta NO tiene 2FA. Recomendado para protección extra contra accesos no autorizados.'}
       accion={
         <a href="/cumplimiento/seguridad" className="btn btn-secondary" style={{ fontSize: 12 }}>
           <Shield size={12} /> {activo ? 'Administrar' : 'Activar 2FA'}
@@ -252,7 +252,7 @@ function RetencionResumen({ clinicId }: { clinicId: string }) {
       titulo="Política de retención (NOM-004 numeral 5.7)"
       descripcion={ok
         ? `${pacientesViejos.count} pacientes en expediente. Ninguno supera 5 años sin actividad.`
-        : `⚠️ ${pacientesViejos.mas5} paciente(s) con >5 años sin actividad. Revisa si proceden para archivar o anonimizar.`}
+        : `${pacientesViejos.mas5} paciente(s) con >5 años sin actividad. Revisa si proceden para archivar o anonimizar.`}
       accion={
         <a href="/cumplimiento/retencion" className="btn btn-secondary" style={{ fontSize: 12 }}>
           <FileSearch size={12} /> Ver lista

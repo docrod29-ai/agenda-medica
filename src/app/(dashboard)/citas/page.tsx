@@ -19,6 +19,7 @@ import { openWhatsApp, msgConfirmacion, msgCancelacion } from '@/lib/whatsapp'
 import {
   Plus, Search, Filter, Trash2, Edit2, MessageSquare,
   ChevronLeft, ChevronRight, CalendarDays, MoreVertical,
+  Phone, AlertTriangle, DollarSign, Video,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -341,7 +342,7 @@ function AppointmentRowFull({
           {appt.motivo ? ` · ${appt.motivo}` : ''}
         </div>
         {appt.pacienteTelefono && (
-          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>📞 {appt.pacienteTelefono}</div>
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}><Phone size={11} className="ds-icon" /> {appt.pacienteTelefono}</div>
         )}
       </div>
 
@@ -359,7 +360,7 @@ function AppointmentRowFull({
             border: `1px solid ${NIVEL_COLOR[riesgo.nivel]}55`,
             padding: '2px 7px', borderRadius: 100, flexShrink: 0,
           }}>
-          ⚠ {NIVEL_LABEL[riesgo.nivel]}
+          <AlertTriangle size={10} className="ds-icon" /> {NIVEL_LABEL[riesgo.nivel]}
         </span>
       )}
 
@@ -377,7 +378,7 @@ function AppointmentRowFull({
               display: 'inline-flex', alignItems: 'center', gap: 4,
             }}
           >
-            💵 Cobrar
+            <DollarSign size={13} className="ds-icon" /> Cobrar
           </button>
         )}
         {/* Botón Unirse a videollamada para teleconsulta */}
@@ -392,7 +393,7 @@ function AppointmentRowFull({
               display: 'inline-flex', alignItems: 'center', gap: 4,
             }}
           >
-            🎥 Unirse
+            <Video size={13} className="ds-icon" /> Unirse
           </button>
         )}
         {appt.pacienteTelefono && (
