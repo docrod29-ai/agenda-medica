@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v75'  // Fase 4: encabezado de resumen del timeline (N consultas · desde fecha)
+const CACHE = 'nexusmed-v76'  // Modales a <Modal>: lista-espera + farmacia (item/movimiento) con cierre Escape/overlay unificado
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

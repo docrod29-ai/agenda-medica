@@ -19,10 +19,10 @@ import {
   type FarmaciaItem, type FarmaciaCategoria,
 } from '@/lib/farmacia'
 import {
-  Pill, Search, Plus, AlertTriangle, Clock, X, Edit2, Trash2,
-  Package, ArrowUpCircle, ArrowDownCircle, Loader2, MapPin,
+  Pill, Search, Plus, AlertTriangle, Clock, Edit2, Trash2,
+  Package, ArrowUpCircle, ArrowDownCircle, MapPin,
 } from 'lucide-react'
-import { Button, EmptyState, Spinner } from '@/components/ui'
+import { Button, EmptyState, Spinner, Modal } from '@/components/ui'
 
 export default function FarmaciaPage() {
   const { clinicId } = useClinic()
@@ -358,14 +358,17 @@ function ModalItem({ item, onClose, onGuardar }: {
   }
 
   return (
-    <div style={modalOverlay}>
-      <div style={modalCard}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>
-            {item ? 'Editar ítem' : 'Agregar al inventario'}
-          </h2>
-          <button onClick={onClose} style={closeBtn}><X size={16} /></button>
-        </div>
+    <Modal
+      open
+      onClose={onClose}
+      title={item ? 'Editar ítem' : 'Agregar al inventario'}
+      footer={(
+        <>
+          <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+          <Button onClick={guardar} loading={saving}>{item ? 'Guardar cambios' : 'Agregar'}</Button>
+        </>
+      )}
+    >
         <div style={{ display: 'grid', gap: 10 }}>
           <Field label="Nombre *" value={f.nombre} onChange={(v) => setF({ ...f, nombre: v })} placeholder="Amoxicilina 500mg cápsulas" />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -402,14 +405,7 @@ function ModalItem({ item, onClose, onGuardar }: {
             <textarea value={f.notas} onChange={(e) => setF({ ...f, notas: e.target.value })} rows={2} style={{ ...inp, resize: 'vertical' }} />
           </div>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
-          <button onClick={onClose} className="btn btn-secondary">Cancelar</button>
-          <button onClick={guardar} disabled={saving} className="btn btn-primary">
-            {saving ? 'Guardando…' : item ? 'Guardar cambios' : 'Agregar'}
-          </button>
-        </div>
-      </div>
-    </div>
+    </Modal>
   )
 }
 
@@ -434,11 +430,17 @@ function ModalMovimiento({ item, tipo, onClose, onConfirmar }: {
   }
 
   return (
-    <div style={modalOverlay}>
-      <div style={{ ...modalCard, maxWidth: 380 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 700, marginTop: 0, marginBottom: 4 }}>
-          {tipo === 'entrada' ? '+ Registrar entrada' : '− Registrar salida'}
-        </h2>
+    <Modal
+      open
+      onClose={onClose}
+      title={tipo === 'entrada' ? 'Registrar entrada' : 'Registrar salida'}
+      footer={(
+        <>
+          <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+          <Button onClick={confirmar} loading={saving}>Confirmar</Button>
+        </>
+      )}
+    >
         <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 14 }}>
           {item.nombre} · Actual: <strong>{item.cantidad}</strong> {item.unidadMedida ?? 'unidades'}
         </div>
@@ -452,14 +454,7 @@ function ModalMovimiento({ item, tipo, onClose, onConfirmar }: {
             style={inp}
           />
         </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
-          <button onClick={onClose} className="btn btn-secondary">Cancelar</button>
-          <button onClick={confirmar} disabled={saving} className="btn btn-primary">
-            {saving ? 'Registrando…' : 'Confirmar'}
-          </button>
-        </div>
-      </div>
-    </div>
+    </Modal>
   )
 }
 
@@ -477,15 +472,4 @@ const inp: React.CSSProperties = {
   width: '100%', padding: '8px 10px', borderRadius: 6,
   border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)',
   fontSize: 13, boxSizing: 'border-box',
-}
-const modalOverlay: React.CSSProperties = {
-  position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex',
-  alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 1000,
-}
-const modalCard: React.CSSProperties = {
-  background: 'var(--bg)', borderRadius: 14, padding: 20, maxWidth: 560, width: '100%',
-  maxHeight: '92vh', overflow: 'auto', border: '1px solid var(--border)',
-}
-const closeBtn: React.CSSProperties = {
-  background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', padding: 4,
 }

@@ -2,14 +2,14 @@
 import { useState, useEffect } from 'react'
 import { WaitlistEntry, AppointmentType, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
-import { PageHeader, Button, EmptyState, Spinner } from '@/components/ui'
+import { PageHeader, Button, EmptyState, Spinner, Modal, Input, Select, Textarea } from '@/components/ui'
 import { getWaitlist, createWaitlistEntry, updateWaitlistEntry } from '@/lib/firestore'
 import { useToast } from '@/context/ToastContext'
 import { useConfig } from '@/hooks/useConfig'
 import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
 import { openWhatsApp, msgListaEsperaAviso } from '@/lib/whatsapp'
-import { Plus, X, MessageSquare, CheckCircle2, Loader2, Clock, Phone, Calendar } from 'lucide-react'
+import { Plus, X, MessageSquare, CheckCircle2, Clock, Phone, Calendar } from 'lucide-react'
 
 export default function ListaEsperaPage() {
   const { toast } = useToast()
@@ -187,58 +187,32 @@ function AddWaitlistModal({ onClose, onSaved, userEmail }: { onClose: () => void
   }
 
   return (
-    <div className="modal-overlay animate-fade-in" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal">
-        <div className="modal-header">
-          <h2 style={{ fontSize: 17, fontWeight: 600, color: 'var(--text)', margin: 0 }}>Agregar a lista de espera</h2>
-          <button className="btn btn-ghost btn-icon" onClick={onClose}><X size={18} /></button>
+    <Modal
+      open
+      onClose={onClose}
+      title="Agregar a lista de espera"
+      footer={(
+        <>
+          <Button variant="secondary" onClick={onClose} disabled={saving}>Cancelar</Button>
+          <Button onClick={handleSave} loading={saving}>Agregar</Button>
+        </>
+      )}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <Input label="Nombre" required value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre completo" autoFocus />
+        <Input label="Teléfono" type="tel" value={telefono} onChange={e => setTelefono(e.target.value)} placeholder="6641234567" />
+        <Select label="Tipo de consulta" value={tipo} onChange={e => setTipo(e.target.value as AppointmentType)}>
+          {Object.entries(APPOINTMENT_TYPE_CONFIG).map(([k, v]) => (
+            <option key={k} value={k}>{v.label}</option>
+          ))}
+        </Select>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <Input label="Fecha disponible a partir de" type="date" value={fechaDeseada} onChange={e => setFechaDeseada(e.target.value)} />
+          <Input label="Rango horario preferido" value={rangoHorario} onChange={e => setRangoHorario(e.target.value)} placeholder="Ej. Mañana, 9-12" />
         </div>
-        <div className="modal-body">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div className="form-group">
-              <label className="label">Nombre *</label>
-              <input className="input" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre completo" autoFocus />
-            </div>
-            <div className="form-group">
-              <label className="label">Teléfono</label>
-              <input className="input" type="tel" value={telefono} onChange={e => setTelefono(e.target.value)} placeholder="6641234567" />
-            </div>
-            <div className="form-group">
-              <label className="label">Tipo de consulta</label>
-              <select className="input" value={tipo} onChange={e => setTipo(e.target.value as AppointmentType)}>
-                {Object.entries(APPOINTMENT_TYPE_CONFIG).map(([k, v]) => (
-                  <option key={k} value={k}>{v.label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-              <div className="form-group">
-                <label className="label">Fecha disponible a partir de</label>
-                <input className="input" type="date" value={fechaDeseada} onChange={e => setFechaDeseada(e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label className="label">Rango horario preferido</label>
-                <input className="input" value={rangoHorario} onChange={e => setRangoHorario(e.target.value)} placeholder="Ej. Mañana, 9-12" />
-              </div>
-            </div>
-            <div className="form-group">
-              <label className="label">Prioridad (1 = mayor prioridad)</label>
-              <input className="input" type="number" min={1} max={10} value={prioridad} onChange={e => setPrioridad(Number(e.target.value))} />
-            </div>
-            <div className="form-group">
-              <label className="label">Notas</label>
-              <textarea className="input" value={notas} onChange={e => setNotas(e.target.value)} rows={2} placeholder="Observaciones adicionales" />
-            </div>
-          </div>
-        </div>
-        <div className="modal-footer">
-          <button className="btn btn-secondary" onClick={onClose} disabled={saving}>Cancelar</button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-            {saving ? <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Guardando…</> : 'Agregar'}
-          </button>
-        </div>
+        <Input label="Prioridad (1 = mayor prioridad)" type="number" min={1} max={10} value={prioridad} onChange={e => setPrioridad(Number(e.target.value))} />
+        <Textarea label="Notas" value={notas} onChange={e => setNotas(e.target.value)} rows={2} placeholder="Observaciones adicionales" />
       </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
+    </Modal>
   )
 }
