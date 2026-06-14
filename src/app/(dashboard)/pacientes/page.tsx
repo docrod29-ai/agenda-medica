@@ -6,10 +6,10 @@ import { useToast } from '@/context/ToastContext'
 import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
 import { useMode } from '@/context/ModeContext'
-import { Plus, Search, X, Loader2, Users, Phone, AlertCircle, FileText, Calendar, Pencil, Cake } from 'lucide-react'
+import { Plus, Search, X, Users, Phone, AlertCircle, FileText, Calendar, Pencil, Cake } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { PageHeader, Button, EmptyState, Spinner } from '@/components/ui'
+import { PageHeader, Button, EmptyState, Spinner, Modal } from '@/components/ui'
 
 export default function PacientesPage() {
   const { toast } = useToast()
@@ -346,15 +346,18 @@ function PatientModal({ patient, onClose, onSaved, userEmail }: {
   }
 
   return (
-    <div className="modal-overlay animate-fade-in" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal modal-wide">
-        <div className="modal-header">
-          <h2 style={{ fontSize: 17, fontWeight: 600, color: 'var(--text)', margin: 0 }}>
-            {patient ? 'Editar paciente' : 'Nuevo paciente'}
-          </h2>
-          <button className="btn btn-ghost btn-icon" onClick={onClose}><X size={18} /></button>
-        </div>
-        <div className="modal-body">
+    <Modal
+      open
+      onClose={onClose}
+      size="wide"
+      title={patient ? 'Editar paciente' : 'Nuevo paciente'}
+      footer={(
+        <>
+          <Button variant="secondary" onClick={onClose} disabled={saving}>Cancelar</Button>
+          <Button onClick={handleSave} loading={saving}>{patient ? 'Guardar cambios' : 'Registrar'}</Button>
+        </>
+      )}
+    >
           <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
               <label className="label">Nombre completo *</label>
@@ -419,15 +422,6 @@ function PatientModal({ patient, onClose, onSaved, userEmail }: {
               </>
             )}
           </div>
-        </div>
-        <div className="modal-footer">
-          <button className="btn btn-secondary" onClick={onClose} disabled={saving}>Cancelar</button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-            {saving ? <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Guardando…</> : (patient ? 'Guardar cambios' : 'Registrar')}
-          </button>
-        </div>
-      </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
+    </Modal>
   )
 }

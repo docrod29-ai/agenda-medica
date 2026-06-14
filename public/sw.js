@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v77'  // AppointmentModal → <Modal>: header con StatusBadge, WhatsApp movido al footer, cierre Escape unificado
+const CACHE = 'nexusmed-v78'  // PatientModal → <Modal>: último modal con .modal-overlay directo migrado al componente unificado
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()
