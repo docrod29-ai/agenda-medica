@@ -5,14 +5,16 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v101'  // Configuración: tab activo + cajas/pills/gradiente/rol-médico/toggles de teal viejo → cobalto de marca
+const CACHE = 'nexusmed-v102'  // Fix aviso "Actualizar" trabado: sin skipWaiting auto + descarte persistido (no reaparece) + sin sondeo 60s
 
 self.addEventListener('install', (event) => {
-  self.skipWaiting()
+  // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
+  // "Actualizar" (mensaje SKIP_WAITING). Así el aviso sale una vez por versión real
+  // y no genera churn ni se "traba" reapareciendo.
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/']).catch(() => {})))
 })
 
-// Permite al cliente forzar activación cuando hay una nueva versión esperando
+// El cliente fuerza la activación SOLO cuando el usuario toca "Actualizar"
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting()
 })

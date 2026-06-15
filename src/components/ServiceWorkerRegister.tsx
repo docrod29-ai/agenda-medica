@@ -15,6 +15,8 @@ import { RefreshCw, X } from 'lucide-react'
  *    muestra el aviso (no aplica nada todavía).
  * 3. Al tocar "Actualizar": skipWaiting → controllerchange → recarga una vez.
  */
+const DISMISS_KEY = 'nx.sw.dismissed'
+
 export function ServiceWorkerRegister() {
   const [updateReady, setUpdateReady] = useState(false)
   const waitingRef = useRef<ServiceWorker | null>(null)
@@ -23,6 +25,10 @@ export function ServiceWorkerRegister() {
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (!('serviceWorker' in navigator)) return
+
+    const fueDescartada = () => {
+      try { return localStorage.getItem(DISMISS_KEY) === '1' } catch { return false }
+    }
 
     // Recargar SOLO cuando el usuario pidió actualizar (no en la primera instalación)
     navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -39,27 +45,30 @@ export function ServiceWorkerRegister() {
       try {
         const reg = await navigator.serviceWorker.register('/sw.js')
 
-        // ¿Ya había un SW esperando de una sesión anterior? Ofrecer (no auto-aplicar)
-        if (reg.waiting && navigator.serviceWorker.controller) ofrecerActualizacion(reg.waiting)
+        // Update pendiente de antes: ofrecer SOLO si no se descartó esa versión
+        if (reg.waiting && navigator.serviceWorker.controller && !fueDescartada()) {
+          ofrecerActualizacion(reg.waiting)
+        }
 
         reg.addEventListener('updatefound', () => {
           const sw = reg.installing
           if (!sw) return
           sw.addEventListener('statechange', () => {
-            // Instalado + ya hay controlador = es ACTUALIZACIÓN (no primera carga)
+            // Instalado + ya hay controlador = ACTUALIZACIÓN REAL (versión nueva).
+            // Limpia el "descartado" previo: es una versión distinta, vale avisar.
             if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+              try { localStorage.removeItem(DISMISS_KEY) } catch { /* */ }
               ofrecerActualizacion(sw)
             }
           })
         })
 
+        // Chequeo gentil: solo al volver el foco/visibilidad (sin sondeo cada 60s)
         const checkUpdate = () => { reg.update().catch(() => {}) }
         window.addEventListener('focus', checkUpdate)
         document.addEventListener('visibilitychange', () => {
           if (document.visibilityState === 'visible') checkUpdate()
         })
-        const intervalo = setInterval(checkUpdate, 60_000)
-        window.addEventListener('beforeunload', () => clearInterval(intervalo))
       } catch {
         /* silencioso */
       }
@@ -72,9 +81,16 @@ export function ServiceWorkerRegister() {
 
   const actualizar = () => {
     wantsReload.current = true
+    try { localStorage.removeItem(DISMISS_KEY) } catch { /* */ }
     waitingRef.current?.postMessage({ type: 'SKIP_WAITING' })
     // Red de seguridad: si no llega controllerchange en 1.5s, recarga igual
     setTimeout(() => { if (wantsReload.current) window.location.reload() }, 1500)
+  }
+
+  // Al descartar: recuérdalo para NO reaparecer en cada recarga (hasta una versión nueva)
+  const descartar = () => {
+    try { localStorage.setItem(DISMISS_KEY, '1') } catch { /* */ }
+    setUpdateReady(false)
   }
 
   if (!updateReady) return null
@@ -104,7 +120,7 @@ export function ServiceWorkerRegister() {
         Actualizar
       </button>
       <button
-        onClick={() => setUpdateReady(false)}
+        onClick={descartar}
         aria-label="Descartar"
         style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', padding: 4, display: 'flex', flexShrink: 0 }}
       >
