@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
         const cita = await citaDelPaciente(body.citaId)
         if (cita instanceof NextResponse) return cita
         if (!body.fecha) return NextResponse.json({ error: 'Falta la fecha' }, { status: 400 })
-        const [todas, config] = await Promise.all([leerCitasPaciente(clinicId, patientId), leerConfig(clinicId)])
+        const config = await leerConfig(clinicId)
         if (!config) return NextResponse.json({ slots: [] })
         // Necesitamos TODAS las citas de la clínica ese día para detectar conflictos
         const snapDia = await adminDb.collection('clinics').doc(clinicId).collection('appointments')
@@ -132,7 +132,6 @@ export async function POST(req: NextRequest) {
           .where('fechaHora', '<=', `${body.fecha} 23:59`)
           .get()
         const citasDia = snapDia.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Appointment, 'id'>) }))
-        void todas
         const slots = getAvailableSlots(body.fecha, cita.duracion || 30, citasDia, config, cita.id, [], cita.medicoId)
         return NextResponse.json({ slots })
       }
@@ -151,29 +150,38 @@ export async function POST(req: NextRequest) {
         if (!body.nuevaFechaHora || !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(body.nuevaFechaHora)) {
           return NextResponse.json({ error: 'Horario inválido' }, { status: 400 })
         }
-        // Re-validar que el nuevo hueco sigue libre
-        const fecha = body.nuevaFechaHora.slice(0, 10)
-        const snapDia = await adminDb.collection('clinics').doc(clinicId).collection('appointments')
+        const nuevaFechaHora = body.nuevaFechaHora
+        const fecha = nuevaFechaHora.slice(0, 10)
+        const hhmm = nuevaFechaHora.slice(11, 16)
+        const dayQuery = adminDb.collection('clinics').doc(clinicId).collection('appointments')
           .where('fechaHora', '>=', `${fecha} 00:00`)
           .where('fechaHora', '<=', `${fecha} 23:59`)
-          .get()
-        const citasDia = snapDia.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Appointment, 'id'>) }))
-        if (config) {
-          const libres = getAvailableSlots(fecha, cita.duracion || 30, citasDia, config, cita.id, [], cita.medicoId)
-          const hhmm = body.nuevaFechaHora.slice(11, 16)
-          if (!libres.includes(hhmm)) {
-            return NextResponse.json({ error: 'Ese horario ya no está disponible' }, { status: 409 })
-          }
+        const citaRef = adminDb.collection('clinics').doc(clinicId).collection('appointments').doc(cita.id)
+
+        // Transacción: re-leer el día y escribir de forma atómica (sin carrera check-then-write)
+        const CONFLICTO = Symbol('conflicto')
+        try {
+          await adminDb.runTransaction(async (tx) => {
+            const snapDia = await tx.get(dayQuery)
+            const citasDia = snapDia.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Appointment, 'id'>) }))
+            if (config) {
+              const libres = getAvailableSlots(fecha, cita.duracion || 30, citasDia, config, cita.id, [], cita.medicoId)
+              if (!libres.includes(hhmm)) throw CONFLICTO
+            }
+            tx.update(citaRef, {
+              fechaHora: nuevaFechaHora,
+              estado: 'pendiente-confirmar',
+              confirmadoPaciente: false,
+              recordatorio24hEnviado: false,
+              recordatorioMismoDiaEnviado: false,
+              updatedAt: new Date().toISOString(),
+              updatedPor: 'paciente',
+            })
+          })
+        } catch (e) {
+          if (e === CONFLICTO) return NextResponse.json({ error: 'Ese horario ya no está disponible' }, { status: 409 })
+          throw e
         }
-        await adminDb.collection('clinics').doc(clinicId).collection('appointments').doc(cita.id).update({
-          fechaHora: body.nuevaFechaHora,
-          estado: 'pendiente-confirmar',
-          confirmadoPaciente: false,
-          recordatorio24hEnviado: false,
-          recordatorioMismoDiaEnviado: false,
-          updatedAt: new Date().toISOString(),
-          updatedPor: 'paciente',
-        })
         return NextResponse.json({ ok: true })
       }
 

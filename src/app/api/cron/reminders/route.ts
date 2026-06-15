@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { adminDb } from '@/lib/firebase-admin'
 import { Appointment, ClinicConfig } from '@/types'
 import { sendWhatsApp as sendWA } from '@/lib/whatsapp-send'
-import { instanteMX } from '@/lib/timezone'
+import { instanteMX, hoyISO, sumarDiasISO } from '@/lib/timezone'
 
 const CRON_SECRET = process.env.CRON_SECRET
 
@@ -161,13 +161,17 @@ export async function GET(req: NextRequest) {
         // ── Auto-reseña tras la visita (opt-in por clínica) ──
         if (config.resenaAutomatica) {
           const origin = req.nextUrl.origin
+          // Acotar por fecha (~4 días) → desigualdad de un solo campo (índice automático,
+          // sin índice compuesto). El estado se filtra en código.
+          const desdeStr = `${sumarDiasISO(hoyISO(), -4)} 00:00`
           const postSnap = await adminDb
             .collection('clinics').doc(clinicId)
             .collection('appointments')
-            .where('estado', 'in', ESTADOS_POST_VISITA)
+            .where('fechaHora', '>=', desdeStr)
             .get()
           for (const d of postSnap.docs) {
             const a = { id: d.id, ...d.data() } as Appointment & { resenaSolicitada?: boolean }
+            if (!ESTADOS_POST_VISITA.includes(a.estado)) continue
             if (a.resenaSolicitada) continue
             if (!a.consentimientoMensajes || !a.pacienteTelefono) { totals.skipped++; continue }
             // Solo citas terminadas hace 2–72h (no spamear histórico viejo)

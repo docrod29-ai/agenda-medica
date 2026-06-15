@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { cache } from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { adminDb } from '@/lib/firebase-admin'
@@ -33,7 +34,8 @@ const TIPO_LABEL: Record<string, string> = {
   'prequirurgica': 'Valoración prequirúrgica', 'procedimiento': 'Procedimiento',
 }
 
-async function getPerfil(clinicId: string): Promise<Perfil | null> {
+// cache(): dedupe entre generateMetadata() y el componente en el mismo render
+const getPerfil = cache(async (clinicId: string): Promise<Perfil | null> => {
   try {
     const [cfgSnap, doctorsSnap, reviewsSnap] = await Promise.all([
       adminDb.collection('clinics').doc(clinicId).collection('config').doc('main').get(),
@@ -68,7 +70,7 @@ async function getPerfil(clinicId: string): Promise<Perfil | null> {
   } catch {
     return null
   }
-}
+})
 
 export async function generateMetadata({ params }: { params: Promise<{ clinicId: string }> }): Promise<Metadata> {
   const { clinicId } = await params
