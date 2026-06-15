@@ -91,6 +91,14 @@ export default function CitasPage() {
     }).sort((a, b) => a.fechaHora.localeCompare(b.fechaHora))
   }, [appointments, selectedDate, statusFilter, search, medicoFiltro])
 
+  // Resumen del día (real) — ignora filtros de estado/búsqueda; respeta el de médico
+  const daySummary = useMemo(() => {
+    const day = appointments.filter(a => a.fechaHora.slice(0, 10) === selectedDate && (!medicoFiltro || a.medicoId === medicoFiltro))
+    const conf = day.filter(a => ['confirmada', 'en-sala', 'en-consulta', 'atendida', 'finalizada'].includes(a.estado)).length
+    const pend = day.filter(a => ['solicitada', 'pendiente-confirmar', 'pendiente-datos', 'recordatorio-enviado'].includes(a.estado)).length
+    return { total: day.length, conf, pend }
+  }, [appointments, selectedDate, medicoFiltro])
+
   const dateLabel = useMemo(() => {
     const d = new Date(selectedDate + 'T12:00')
     const today = todayStr()
@@ -173,6 +181,15 @@ export default function CitasPage() {
         </button>
       </div>
 
+      {/* Resumen del día */}
+      {!loading && daySummary.total > 0 && (
+        <div className="nx-reveal" style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+          <DiaChip color="var(--nexus)" value={daySummary.total} label={daySummary.total === 1 ? 'cita' : 'citas'} />
+          <DiaChip color="#22c55e" value={daySummary.conf} label="confirmadas" />
+          <DiaChip color="#fb923c" value={daySummary.pend} label="pendientes" />
+        </div>
+      )}
+
       {/* Filters */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: '1 1 200px', maxWidth: 300 }}>
@@ -222,8 +239,8 @@ export default function CitasPage() {
         ) : (
           <div>
             {filtered.map((appt, i) => (
+              <div key={appt.id} className="nx-reveal" style={{ animationDelay: `${Math.min(i, 12) * 28}ms` }}>
               <AppointmentRowFull
-                key={appt.id}
                 appt={appt}
                 paciente={pacientes.find(p => p.id === appt.pacienteId) ?? null}
                 config={config}
@@ -236,6 +253,7 @@ export default function CitasPage() {
                 onCobrar={(a) => setCobrarAppt(a)}
                 deleting={deletingId === appt.id}
               />
+              </div>
             ))}
           </div>
         )}
@@ -270,6 +288,19 @@ export default function CitasPage() {
         <div style={{ position: 'fixed', inset: 0, zIndex: 9 }} onClick={() => setMenuId(null)} />
       )}
     </div>
+  )
+}
+
+function DiaChip({ color, value, label }: { color: string; value: number; label: string }) {
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 7,
+      background: 'var(--s1)', border: '1px solid var(--border)',
+      borderRadius: 99, padding: '7px 13px', fontSize: 13, color: 'var(--text2)',
+    }}>
+      <span style={{ width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0 }} />
+      <strong className="t-num" style={{ color: 'var(--text)', fontWeight: 600 }}>{value}</strong> {label}
+    </span>
   )
 }
 
