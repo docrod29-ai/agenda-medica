@@ -29,6 +29,7 @@ import { TIPO_NOTA_LABEL } from '@/types/expediente'
 import type { TipoNota, NotaMedica, NotaSeccion, Diagnostico, Medicamento, SignosVitales } from '@/types/expediente'
 import type { Patient } from '@/types'
 import { Cie10Autocomplete } from '@/components/Cie10Autocomplete'
+import { CobrarModal } from '@/components/CobrarModal'
 import {
   ArrowLeft, Mic, Square, Sparkles, Loader2, AlertTriangle, CheckCircle2,
   Trash2, Plus, ShieldCheck, Pill, Stethoscope, FileSignature,
@@ -74,6 +75,8 @@ export default function ConsultaActivaPage() {
   }, [patientId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [patient, setPatient] = useState<Patient | null>(null)
+  // Cobro al cerrar la consulta: se ofrece tras firmar; al registrar u omitir → expediente
+  const [cobrar, setCobrar] = useState(false)
   const [tipo, setTipo] = useState<TipoNota>('primera_vez')
   const [secciones, setSecciones] = useState<NotaSeccion[]>(seccionesVacias('primera_vez'))
   const [signos, setSignos] = useState<SignosVitales>({})
@@ -433,7 +436,9 @@ export default function ConsultaActivaPage() {
         medicoUid: auth.currentUser?.uid, medicoEmail: auth.currentUser?.email ?? undefined,
         meta: { tipo, aprobadosIA: aprobados.size, diagnosticos: diagnosticos.length, medicamentos: medicamentos.length },
       })
-      setTimeout(() => router.push(`/expediente/${patientId}`), 1200)
+      // Nota firmada → ofrecer el cobro aquí mismo (cómo pagó y cuánto).
+      // Al registrar u omitir, el modal cierra y de ahí se va al expediente.
+      setCobrar(true)
     } catch (e) {
       toast('Error al firmar', 'error')
     } finally {
@@ -972,6 +977,22 @@ export default function ConsultaActivaPage() {
           <li>La IA NO guarda datos clínicos sin su aprobación.</li>
         </ul>
       </Modal>
+
+      {/* ── Cobro al cerrar la consulta (cómo pagó y cuánto) ── */}
+      {cobrar && clinicId && (
+        <CobrarModal
+          clinicId={clinicId}
+          creadoPor={auth.currentUser?.uid ?? ''}
+          prefill={{
+            patientId,
+            patientNombre: patient?.nombre,
+            medicoId: auth.currentUser?.uid,
+            medicoNombre: config?.nombreMedico,
+            concepto: 'consulta',
+          }}
+          onClose={() => { setCobrar(false); router.push(`/expediente/${patientId}`) }}
+        />
+      )}
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
