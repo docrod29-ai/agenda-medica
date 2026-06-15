@@ -11,6 +11,21 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { PageHeader, Button, EmptyState, Spinner, Modal } from '@/components/ui'
 
+// Avatar con color derivado del nombre (determinista) — da vida a la lista
+const AVATAR_COLORS = [
+  { bg: 'rgba(61,90,254,0.16)', fg: '#9FB0FF' },
+  { bg: 'rgba(16,158,129,0.16)', fg: '#5DCAA5' },
+  { bg: 'rgba(124,58,237,0.16)', fg: '#C4B5FD' },
+  { bg: 'rgba(217,119,6,0.16)', fg: '#FBBF77' },
+  { bg: 'rgba(225,29,72,0.16)', fg: '#FDA4AF' },
+  { bg: 'rgba(21,128,61,0.20)', fg: '#86EFAC' },
+]
+function avatarColor(name: string) {
+  let h = 0
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0
+  return AVATAR_COLORS[h % AVATAR_COLORS.length]
+}
+
 export default function PacientesPage() {
   const { toast } = useToast()
   const { user } = useAuth()
@@ -241,8 +256,9 @@ function PacienteRow({ p, mode, onAbrir, onEditar }: {
       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
     >
       <div style={{
-        width: 38, height: 38, borderRadius: '50%', background: 'var(--s2)', border: '1px solid var(--border)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 600, color: 'var(--text2)', flexShrink: 0,
+        width: 38, height: 38, borderRadius: '50%',
+        background: avatarColor(p.nombre).bg, color: avatarColor(p.nombre).fg,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 600, flexShrink: 0,
       }}>
         {p.nombre.charAt(0).toUpperCase()}
       </div>

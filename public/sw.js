@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v96'  // Citas Dirección A: barra-resumen del día (citas/confirmadas/pendientes) + revelado escalonado en filas
+const CACHE = 'nexusmed-v97'  // Pacientes: avatares con color derivado del nombre (vida a la lista)
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()
