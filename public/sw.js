@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v93'  // Auditoría endpoints: calendar/sync (IDOR+paths), waitlist-notify auth, payment token, admin/migrate borrado
+const CACHE = 'nexusmed-v94'  // Dashboard Dirección A: hero con métrica+sparkline real, banda próxima cita (CTA Iniciar consulta), reveal escalonado, --text3 AA
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

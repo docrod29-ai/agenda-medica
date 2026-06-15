@@ -42,7 +42,8 @@
   /* Texto bone — warm, sofisticado, no slate-frío */
   --text:      #F2EFE9;
   --text2:     #A8ACAE;
-  --text3:     #6C7075;
+  /* --text3 elevado de #6C7075 (≈3.8:1) a #8A8F94 (≈5:1) para cumplir WCAG AA en captions */
+  --text3:     #8A8F94;
 
   /* Tipografía editorial — uso restringido a hero/citas */
   --font-display: var(--font-fraunces), 'Söhne', 'Geist', system-ui, serif;
@@ -1214,3 +1215,49 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
 }
 .page-header-sub { font-size: 13px; color: var(--text3); margin-top: 3px; }
 .page-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* ── Dashboard "Dirección A" — revelado escalonado + banda próxima cita ── */
+@keyframes nx-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.nx-reveal { animation: nx-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .nx-reveal { animation: none; }
+}
+
+/* Banda "próxima cita" — protagonista, borde cobalto con presencia */
+.prox-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background:
+    linear-gradient(0deg, var(--nexus-soft), var(--nexus-soft)) border-box,
+    var(--s1) padding-box;
+  border: 1px solid color-mix(in srgb, var(--nexus) 32%, transparent);
+  border-radius: 16px;
+  padding: 16px 18px;
+}
+.prox-hero-avatar {
+  width: 50px; height: 50px; border-radius: 14px; flex-shrink: 0;
+  background: var(--nexus-soft);
+  color: color-mix(in srgb, var(--nexus) 70%, white 30%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; font-weight: 600;
+  font-family: var(--font-display);
+}
+/* CTA cómodo: ≥44px de área táctil (WCAG / móvil) */
+.prox-hero-cta {
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: 44px; padding: 0 18px;
+  background: var(--nexus); color: #fff;
+  border: none; border-radius: 12px;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  font-family: inherit; white-space: nowrap;
+  transition: background 140ms cubic-bezier(0.16, 1, 0.3, 1), transform 140ms;
+}
+.prox-hero-cta:hover { background: var(--nexus-hover); }
+.prox-hero-cta:active { transform: scale(0.98); }
+
+/* Sparkline del hero */
+.nx-spark { display: block; }

@@ -11,7 +11,7 @@ import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { Button, EmptyState, Spinner } from '@/components/ui'
 import { Appointment, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { formatDateMX } from '@/lib/availability'
-import { Plus, TrendingUp, CalendarCheck2, Clock, UserX, ChevronRight, CalendarDays, Users, Settings, Hourglass } from 'lucide-react'
+import { Plus, CalendarCheck2, Clock, UserX, ChevronRight, CalendarDays, Users, Settings, Hourglass, Mic } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { hoyISO, sumarDiasISO } from '@/lib/timezone'
@@ -99,61 +99,68 @@ export default function DashboardPage() {
     return { total: ta.length, confirmadas, pendientes, noShow, canceladas, manana, prox }
   }, [todayAppts, appointments, today, tomorrow])
 
+  // Tendencia real de citas en los últimos 7 días (para el sparkline del hero)
+  const trend7 = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = sumarDiasISO(today, i - 6)
+      return appointments.filter(a => a.fechaHora.startsWith(d) && !['cancelada', 'no-asistio'].includes(a.estado)).length
+    })
+  }, [appointments, today])
+
   const now = new Date()
   const fechaLabel = now.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 
   return (
     <div style={{ padding: '28px 24px', maxWidth: 1100, margin: '0 auto' }}>
-      {/* Header — saludo editorial NexusMED */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 32, gap: 16, flexWrap: 'wrap' }}>
+      {/* Hero — saludo editorial + métrica del día con tendencia real */}
+      <div className="nx-reveal" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 28, gap: 20, flexWrap: 'wrap' }}>
         <div>
-          <h1 className="nx-display" style={{
-            fontSize: 32, color: 'var(--text)', margin: 0,
-            fontWeight: 500, lineHeight: 1.1,
-          }}>
+          <p className="t-overline" style={{ color: 'var(--text3)', textTransform: 'uppercase' }}>{fechaLabel}</p>
+          <h1 className="nx-display" style={{ fontSize: 32, color: 'var(--text)', margin: '7px 0 0', fontWeight: 500, lineHeight: 1.1 }}>
             {greet()}
             {nombreSaludo(role, config.nombreMedico, user?.displayName, user?.email) && (
-              <>, <span style={{ fontStyle: 'italic', color: 'var(--text)' }}>
-                {nombreSaludo(role, config.nombreMedico, user?.displayName, user?.email)}
-              </span></>
+              <>, <span style={{ fontStyle: 'italic' }}>{nombreSaludo(role, config.nombreMedico, user?.displayName, user?.email)}</span></>
             )}
           </h1>
-          <p style={{
-            fontSize: 13.5, color: 'var(--text3)', marginTop: 6,
-            letterSpacing: '0.02em', textTransform: 'capitalize',
-          }}>
-            {fechaLabel}
-          </p>
         </div>
-        <Link href="/asistente">
-          <Button icon={<Plus size={16} />}>Nueva cita</Button>
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 20, flexWrap: 'wrap' }}>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 12, color: 'var(--text3)' }}>Citas hoy</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, justifyContent: 'flex-end', marginTop: 2 }}>
+              <span className="nx-display" style={{ fontSize: 34, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{loading ? '…' : stats.total}</span>
+              {!loading && <Sparkline data={trend7} />}
+            </div>
+          </div>
+          <Link href="/asistente">
+            <Button icon={<Plus size={16} />}>Nueva cita</Button>
+          </Link>
+        </div>
       </div>
 
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 28 }}>
-        <KpiCard
+        <KpiCard delay={40}
           icon={<CalendarDays size={20} color="var(--teal)" />}
           label="Citas hoy"
           value={loading ? '…' : String(stats.total)}
           sub={stats.manana > 0 ? `${stats.manana} mañana` : ''}
           accentColor="var(--teal)"
         />
-        <KpiCard
+        <KpiCard delay={100}
           icon={<CalendarCheck2 size={20} color="#22c55e" />}
           label="Confirmadas"
           value={loading ? '…' : String(stats.confirmadas)}
           sub={stats.total > 0 ? `${Math.round((stats.confirmadas / stats.total) * 100)}%` : '—'}
           accentColor="#22c55e"
         />
-        <KpiCard
+        <KpiCard delay={160}
           icon={<Clock size={20} color="#fb923c" />}
           label="Pendientes"
           value={loading ? '…' : String(stats.pendientes)}
           sub="por confirmar"
           accentColor="#fb923c"
         />
-        <KpiCard
+        <KpiCard delay={220}
           icon={<UserX size={20} color="#ef4444" />}
           label="No asistieron"
           value={loading ? '…' : String(stats.noShow)}
@@ -161,6 +168,9 @@ export default function DashboardPage() {
           accentColor="#ef4444"
         />
       </div>
+
+      {/* Próxima cita — banda protagonista (Dirección A) */}
+      {!loading && stats.prox && <ProxHero appt={stats.prox} />}
 
       {/* Body grid */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 20 }}>
@@ -194,17 +204,6 @@ export default function DashboardPage() {
 
         {/* Right panel */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Next appointment */}
-          <div className="card">
-            <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--text2)', margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Próxima consulta
-            </h3>
-            {stats.prox ? (
-              <NextAppointment appt={stats.prox} />
-            ) : (
-              <p style={{ fontSize: 13, color: 'var(--text3)', margin: 0 }}>No hay más citas hoy</p>
-            )}
-          </div>
 
           {/* Quick links */}
           <div className="card">
@@ -234,15 +233,16 @@ export default function DashboardPage() {
   )
 }
 
-function KpiCard({ icon, label, value, sub, accentColor }: {
+function KpiCard({ icon, label, value, sub, accentColor, delay = 0 }: {
   icon: React.ReactNode
   label: string
   value: string
   sub?: string
   accentColor: string
+  delay?: number
 }) {
   return (
-    <div className="kpi-card">
+    <div className="kpi-card nx-reveal" style={{ animationDelay: `${delay}ms` }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span className="kpi-label">{label}</span>
         <div style={{ width: 36, height: 36, borderRadius: 10, background: `${accentColor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -252,6 +252,22 @@ function KpiCard({ icon, label, value, sub, accentColor }: {
       <div className="kpi-value">{value}</div>
       {sub && <div className="kpi-delta neutral">{sub}</div>}
     </div>
+  )
+}
+
+/** Sparkline minimal de la tendencia real (sin librerías). */
+function Sparkline({ data, color = 'var(--nexus)' }: { data: number[]; color?: string }) {
+  const w = 72, h = 26
+  const max = Math.max(1, ...data)
+  const pts = data.map((v, i) => {
+    const x = data.length > 1 ? (i / (data.length - 1)) * w : 0
+    const y = h - (v / max) * (h - 5) - 3
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  }).join(' ')
+  return (
+    <svg className="nx-spark" width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
+      <polyline points={pts} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   )
 }
 
@@ -304,36 +320,32 @@ function AppointmentRow({ appt, isLast }: { appt: Appointment; isLast: boolean }
   )
 }
 
-function NextAppointment({ appt }: { appt: Appointment }) {
+function ProxHero({ appt }: { appt: Appointment }) {
   const hora = appt.fechaHora.slice(11, 16)
   const typeCfg = APPOINTMENT_TYPE_CONFIG[appt.tipo]
-  const now = new Date()
   const [h, m] = hora.split(':').map(Number)
   const apptTime = new Date(); apptTime.setHours(h, m, 0, 0)
-  const diffMin = Math.round((apptTime.getTime() - now.getTime()) / 60000)
+  const diffMin = Math.round((apptTime.getTime() - Date.now()) / 60000)
+  const cuando = diffMin <= 0 ? 'en curso' : diffMin < 60 ? `en ${diffMin} min` : `en ${Math.floor(diffMin / 60)}h ${diffMin % 60}min`
 
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-        <div style={{
-          width: 40, height: 40, borderRadius: '50%', background: 'var(--teal-glow)',
-          border: '1px solid rgba(61,90,254,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 16, fontWeight: 700, color: 'var(--teal)',
-        }}>
-          {appt.pacienteNombre.charAt(0).toUpperCase()}
+    <div className="prox-hero nx-reveal" style={{ animationDelay: '180ms', marginBottom: 22 }}>
+      <div className="prox-hero-avatar">{appt.pacienteNombre.charAt(0).toUpperCase()}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="t-overline" style={{ color: 'var(--nexus)' }}>Próxima cita · {cuando}</div>
+        <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {appt.pacienteNombre}
         </div>
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{appt.pacienteNombre}</div>
-          <div style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 5 }}><TipoCitaIcon tipo={appt.tipo} size={12} /> {typeCfg?.label}</div>
+        <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <span className="t-num" style={{ fontWeight: 600, color: 'var(--text)' }}>{hora}</span>
+          <span style={{ color: 'var(--text3)' }}>·</span>
+          <TipoCitaIcon tipo={appt.tipo} size={13} /> {typeCfg?.label}
+          {appt.lugar ? <span style={{ color: 'var(--text3)' }}>· {appt.lugar}</span> : null}
         </div>
       </div>
-      <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--teal)', marginBottom: 4 }}>{hora} hrs</div>
-      {diffMin > 0 && (
-        <div style={{ fontSize: 12, color: 'var(--text3)' }}>
-          En {diffMin < 60 ? `${diffMin} min` : `${Math.round(diffMin / 60)}h ${diffMin % 60}min`}
-        </div>
-      )}
-      <StatusBadge status={appt.estado} size="sm" />
+      <Link href={`/consulta/${appt.pacienteId}`} style={{ textDecoration: 'none', flexShrink: 0 }}>
+        <button className="prox-hero-cta"><Mic size={16} /> Iniciar consulta</button>
+      </Link>
     </div>
   )
 }
