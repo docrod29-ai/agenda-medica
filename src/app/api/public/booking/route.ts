@@ -73,29 +73,9 @@ export async function POST(req: NextRequest) {
     }
     const duracion = Number((cfg.duraciones ?? {})[tipo] ?? 30)
 
-    // Anti-doble-agendamiento: verifica que el slot siga libre
     const fechaHora = `${fecha} ${hora}`
-    const apptsSnap = await clinicRef.collection('appointments').get()
-    const [h, m] = hora.split(':').map(Number)
-    const start = h * 60 + m
-    const end = start + duracion
-    let conflicto = false
-    apptsSnap.forEach(d => {
-      const a = d.data()
-      if (a.fechaHora?.slice(0, 10) !== fecha) return
-      if (['cancelada', 'reagendada', 'no-asistio'].includes(a.estado)) return
-      // MULTI-MÉDICO: el conflicto solo aplica contra citas del mismo médico.
-      if (medicoId && a.medicoId && a.medicoId !== medicoId) return
-      const [ah, am] = (a.fechaHora.slice(11, 16) || '00:00').split(':').map(Number)
-      const aStart = ah * 60 + am
-      const aEnd = aStart + (a.duracion ?? 30)
-      if (start < aEnd && end > aStart) conflicto = true
-    })
-    if (conflicto) {
-      return NextResponse.json({ ok: false, error: 'Ese horario acaba de ocuparse. Elige otro.' }, { status: 409 })
-    }
 
-    // Buscar/crear paciente por teléfono
+    // Buscar/crear paciente por teléfono (fuera de la transacción de la cita)
     const tel = paciente.telefono.replace(/\D/g, '')
     const pacientesSnap = await clinicRef.collection('patients').where('telefono', '==', tel).limit(1).get()
     let pacienteId = ''
@@ -116,42 +96,73 @@ export async function POST(req: NextRequest) {
       pacienteId = newP.id
     }
 
-    // Crear la cita
+    // Crear la cita de forma ATÓMICA: re-chequea el conflicto y escribe en una sola
+    // transacción → cierra la carrera check-then-write si dos pacientes reservan el
+    // mismo hueco al mismo tiempo.
     const now = new Date().toISOString()
-    const apptRef = await clinicRef.collection('appointments').add({
-      pacienteId,
-      pacienteNombre: paciente.nombre.trim(),
-      pacienteTelefono: tel,
-      pacienteEmail: paciente.email?.trim() || '',
-      fechaHora,
-      duracion,
-      tipo,
-      motivo: paciente.motivo?.trim() ?? '',
-      estado: 'solicitada',
-      origen: 'Portal',
-      medicoId: medicoId ?? '',
-      doctorId: medicoId ?? '',
-      lugar: cfg.nombreClinica || '',
-      confirmadoPaciente: true,         // viene del propio paciente
-      recordatorio24hEnviado: false,
-      recordatorioMismoDiaEnviado: false,
-      notasInternas: '',
-      consentimientoMensajes: true,
-      consentimientos: {
-        avisoPrivacidad: true,
-        informado: true,
-        timestamp: now,
-      },
-      creadoPor: 'portal-publico',
-      updatedPor: 'portal-publico',
-      createdAt: now,
-      updatedAt: now,
-    })
+    const apptsCol = clinicRef.collection('appointments')
+    const [h, m] = hora.split(':').map(Number)
+    const start = h * 60 + m
+    const end = start + duracion
+    const CONFLICTO = Symbol('conflicto')
+    let citaId = ''
+    try {
+      await adminDb.runTransaction(async (tx) => {
+        const snap = await tx.get(
+          apptsCol.where('fechaHora', '>=', `${fecha} 00:00`).where('fechaHora', '<=', `${fecha} 23:59`)
+        )
+        let conflicto = false
+        snap.forEach(d => {
+          const a = d.data()
+          if (['cancelada', 'reagendada', 'no-asistio'].includes(a.estado)) return
+          // MULTI-MÉDICO: el conflicto solo aplica contra citas del mismo médico.
+          if (medicoId && a.medicoId && a.medicoId !== medicoId) return
+          const [ah, am] = (a.fechaHora?.slice(11, 16) || '00:00').split(':').map(Number)
+          const aStart = ah * 60 + am
+          const aEnd = aStart + (a.duracion ?? 30)
+          if (start < aEnd && end > aStart) conflicto = true
+        })
+        if (conflicto) throw CONFLICTO
+
+        const ref = apptsCol.doc()
+        tx.set(ref, {
+          pacienteId,
+          pacienteNombre: paciente.nombre.trim(),
+          pacienteTelefono: tel,
+          pacienteEmail: paciente.email?.trim() || '',
+          fechaHora,
+          duracion,
+          tipo,
+          motivo: paciente.motivo?.trim() ?? '',
+          estado: 'solicitada',
+          origen: 'Portal',
+          medicoId: medicoId ?? '',
+          doctorId: medicoId ?? '',
+          lugar: cfg.nombreClinica || '',
+          confirmadoPaciente: true,         // viene del propio paciente
+          recordatorio24hEnviado: false,
+          recordatorioMismoDiaEnviado: false,
+          notasInternas: '',
+          consentimientoMensajes: true,
+          consentimientos: { avisoPrivacidad: true, informado: true, timestamp: now },
+          creadoPor: 'portal-publico',
+          updatedPor: 'portal-publico',
+          createdAt: now,
+          updatedAt: now,
+        })
+        citaId = ref.id
+      })
+    } catch (e) {
+      if (e === CONFLICTO) {
+        return NextResponse.json({ ok: false, error: 'Ese horario acaba de ocuparse. Elige otro.' }, { status: 409 })
+      }
+      throw e
+    }
 
     // Auditoría
     await clinicRef.collection('audit_log').add({
       evento: 'cita_solicitada_portal',
-      clinicId, patientId: pacienteId, citaId: apptRef.id,
+      clinicId, patientId: pacienteId, citaId,
       timestamp: now,
       meta: { tipo, fecha, hora, origen: 'portal-publico' },
     }).catch(() => { /* no romper si falla */ })
@@ -163,7 +174,7 @@ export async function POST(req: NextRequest) {
       await sendWhatsApp(clinicId, tel, msg).catch(() => {})
     } catch { /* no romper si la notificación falla */ }
 
-    return NextResponse.json({ ok: true, citaId: apptRef.id, fecha, hora, duracion })
+    return NextResponse.json({ ok: true, citaId, fecha, hora, duracion })
   } catch (err) {
     console.error('[public/booking]', err)
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })

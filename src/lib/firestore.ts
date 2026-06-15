@@ -110,12 +110,8 @@ export async function getAppointmentsByDate(clinicId: string, fecha: string): Pr
   ])
 }
 
-export async function createAppointment(clinicId: string, data: Omit<Appointment, 'id'>): Promise<string> {
-  const ref = await addDoc(col(clinicId, COLLECTIONS.appointments), {
-    ...data, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-  })
-  return ref.id
-}
+// createAppointment se eliminó: el alta de citas ahora es ATÓMICA vía POST /api/appointments
+// (transacción server-side con re-chequeo de conflicto). Ver src/app/api/appointments/route.ts.
 
 export async function updateAppointment(clinicId: string, id: string, data: Partial<Appointment>): Promise<void> {
   await updateDoc(d(clinicId, COLLECTIONS.appointments, id), { ...data, updatedAt: new Date().toISOString() })

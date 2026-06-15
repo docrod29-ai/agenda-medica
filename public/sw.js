@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v91'  // Auditoría: lectura muerta en slots, cache() en /dr, cron auto-reseña acotado por fecha, reagendar atómico (transacción)
+const CACHE = 'nexusmed-v92'  // Carrera de alta de citas cerrada: booking público + dashboard/asistente vía POST /api/appointments (transacción atómica)
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

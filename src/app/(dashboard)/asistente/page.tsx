@@ -12,7 +12,8 @@ import { useDoctors } from '@/hooks/useDoctors'
 import { useFiltroMedico, colorMedico } from '@/components/DoctorFilter'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { useToast } from '@/context/ToastContext'
-import { createAppointment, getPatients, createPatient } from '@/lib/firestore'
+import { getPatients, createPatient } from '@/lib/firestore'
+import { fetchAutenticado } from '@/lib/auth-client'
 import { getAvailableSlots } from '@/lib/availability'
 import { AppointmentType, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { CalendarDays, Clock, User, Phone, Stethoscope, CheckCircle2, Loader2 } from 'lucide-react'
@@ -147,30 +148,37 @@ function AsistenteInner() {
         // si falla la búsqueda/creación, continuamos con la cita de todos modos
       }
 
-      await createAppointment(clinicId!, {
-        pacienteId,
-        pacienteNombre: nombreLimpio,
-        pacienteTelefono: tel,
-        fechaHora: `${fecha} ${horaSeleccionada}`,
-        duracion,
-        tipo,
-        motivo: '',
-        estado: 'confirmada',
-        origen: 'Manual',
-        medicoNombre: doctor?.nombre || config.nombreMedico || '',
-        medicoId: doctorId || '',
-        doctorId: doctorId || '',
-        lugar: config.nombreClinica || '',
-        confirmadoPaciente: false,
-        recordatorio24hEnviado: false,
-        recordatorioMismoDiaEnviado: false,
-        notasInternas: '',
-        consentimientoMensajes: !!telefono,
-        creadoPor: user?.email || 'asistente',
-        updatedPor: user?.email || 'asistente',
-        createdAt: '',
-        updatedAt: '',
+      const res = await fetchAutenticado('/api/appointments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clinicId,
+          appointment: {
+            pacienteId,
+            pacienteNombre: nombreLimpio,
+            pacienteTelefono: tel,
+            fechaHora: `${fecha} ${horaSeleccionada}`,
+            duracion,
+            tipo,
+            motivo: '',
+            estado: 'confirmada',
+            origen: 'Manual',
+            medicoNombre: doctor?.nombre || config.nombreMedico || '',
+            medicoId: doctorId || '',
+            doctorId: doctorId || '',
+            lugar: config.nombreClinica || '',
+            confirmadoPaciente: false,
+            recordatorio24hEnviado: false,
+            recordatorioMismoDiaEnviado: false,
+            notasInternas: '',
+            consentimientoMensajes: !!telefono,
+            creadoPor: user?.email || 'asistente',
+            updatedPor: user?.email || 'asistente',
+          },
+        }),
       })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data.id) { toast(data.error || 'No se pudo agendar la cita', 'error'); return }
 
       toast(`Cita agendada para ${nombre.split(' ')[0]}`, 'success')
       setSuccess(true)

@@ -5,7 +5,7 @@ import { useConfig } from '@/hooks/useConfig'
 import { useAppointments } from '@/hooks/useAppointments'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/context/ToastContext'
-import { createAppointment, updateAppointment } from '@/lib/firestore'
+import { updateAppointment } from '@/lib/firestore'
 import { getAvailableSlots, hasConflict } from '@/lib/availability'
 import { hoyISO } from '@/lib/timezone'
 import { useClinic } from '@/context/ClinicContext'
@@ -166,7 +166,14 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
           }).catch(() => {/* non-critical */})
         }
       } else {
-        id = await createAppointment(clinicId!, { ...payload, createdAt: '', updatedAt: '' })
+        const res = await fetchAutenticado('/api/appointments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clinicId, appointment: payload }),
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok || !data.id) { toast(data.error || 'No se pudo agendar la cita', 'error'); return }
+        id = data.id
         toast('Cita agendada', 'success')
         // Sync with Google Calendar in background
         if (user?.uid) {
