@@ -25,6 +25,7 @@ import {
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { hoyISO, sumarDiasISO } from '@/lib/timezone'
+import { fetchAutenticado } from '@/lib/auth-client'
 import { Button, EmptyState, Spinner } from '@/components/ui'
 
 const STATUS_FILTERS: { label: string; value: AppointmentStatus | 'todas' }[] = [
@@ -110,7 +111,7 @@ export default function CitasPage() {
       const liberado = ['cancelada', 'reagendada', 'no-asistio'].includes(newStatus) &&
         !['cancelada', 'reagendada', 'no-asistio'].includes(appt.estado)
       if (liberado) {
-        fetch('/api/whatsapp/waitlist-notify', {
+        fetchAutenticado('/api/whatsapp/waitlist-notify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

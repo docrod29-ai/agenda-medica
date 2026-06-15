@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
+import { verificarMiembro } from '@/lib/auth-server'
 import { ClinicConfig, WaitlistEntry } from '@/types'
 import { sendWhatsApp } from '@/lib/whatsapp-send'
 
@@ -27,18 +28,15 @@ function formatDate(fecha: string): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const { fecha, hora, clinicId: bodyClinicId, tipo: slotTipo } = await req.json()
-    if (!fecha || !hora) {
-      return NextResponse.json({ error: 'fecha and hora required' }, { status: 400 })
+    const { fecha, hora, clinicId, tipo: slotTipo } = await req.json()
+    if (!fecha || !hora || !clinicId) {
+      return NextResponse.json({ error: 'fecha, hora y clinicId requeridos' }, { status: 400 })
     }
 
-    // clinicId can be passed in body or default to the only clinic (single-tenant compat)
-    let clinicId = bodyClinicId
-    if (!clinicId) {
-      const snap = await adminDb.collection('clinics').limit(1).get()
-      if (snap.empty) return NextResponse.json({ error: 'no clinics' }, { status: 500 })
-      clinicId = snap.docs[0].id
-    }
+    // AUTORIZACIÓN: solo un miembro de la clínica puede disparar avisos de lista de espera
+    // (antes era público → spam/abuso de WhatsApp y mutación de estado).
+    const acc = await verificarMiembro(req, clinicId)
+    if (!acc.ok) return acc.response
 
     const clinicRef = adminDb.collection('clinics').doc(clinicId)
 

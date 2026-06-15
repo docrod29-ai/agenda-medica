@@ -5,32 +5,39 @@ import {
   deleteCalendarEvent,
 } from '@/lib/google-calendar'
 import { adminDb } from '@/lib/firebase-admin'
+import { verificarMiembro } from '@/lib/auth-server'
 import { Appointment, ClinicConfig } from '@/types'
 
 export async function POST(req: NextRequest) {
   try {
-    const { action, appointment, uid } = await req.json() as {
+    const { action, appointment, clinicId } = await req.json() as {
       action: 'create' | 'update' | 'delete'
       appointment: Appointment
-      uid: string
+      clinicId: string
     }
 
-    // Get stored tokens
+    // AUTORIZACIÓN: el uid sale del TOKEN verificado, nunca del body (antes era IDOR).
+    const acc = await verificarMiembro(req, clinicId)
+    if (!acc.ok) return acc.response
+    const uid = acc.uid
+
+    // Token de Google del usuario autenticado (conexión personal, flat por uid)
     const tokenDoc = await adminDb.collection('googleTokens').doc(uid).get()
     if (!tokenDoc.exists) {
       return NextResponse.json({ error: 'Google Calendar not connected' }, { status: 400 })
     }
     const { refreshToken } = tokenDoc.data() as { refreshToken: string }
 
-    // Get clinic config for calendar ID and timezone
-    const configSnap = await adminDb.collection('config').doc('main').get()
+    // Config y citas SCOPED a la clínica (antes leía/escribía colecciones planas legacy)
+    const clinicRef = adminDb.collection('clinics').doc(clinicId)
+    const configSnap = await clinicRef.collection('config').doc('main').get()
     const config = (configSnap.exists ? configSnap.data() : {}) as ClinicConfig
     const calendarId = config.googleCalendarId || 'primary'
+    const apptRef = clinicRef.collection('appointments').doc(appointment.id)
 
     if (action === 'create') {
       const eventId = await createCalendarEvent(refreshToken, calendarId, appointment, config)
-      // Update appointment with eventId
-      await adminDb.collection('appointments').doc(appointment.id).update({
+      await apptRef.update({
         googleCalendarEventId: eventId,
         googleCalendarSyncStatus: 'synced',
         updatedAt: new Date().toISOString(),
@@ -40,9 +47,8 @@ export async function POST(req: NextRequest) {
 
     if (action === 'update') {
       if (!appointment.googleCalendarEventId) {
-        // No existing event, create one
         const eventId = await createCalendarEvent(refreshToken, calendarId, appointment, config)
-        await adminDb.collection('appointments').doc(appointment.id).update({
+        await apptRef.update({
           googleCalendarEventId: eventId,
           googleCalendarSyncStatus: 'synced',
           updatedAt: new Date().toISOString(),
@@ -50,7 +56,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true, eventId })
       }
       await updateCalendarEvent(refreshToken, calendarId, appointment.googleCalendarEventId, appointment, config)
-      await adminDb.collection('appointments').doc(appointment.id).update({
+      await apptRef.update({
         googleCalendarSyncStatus: 'synced',
         updatedAt: new Date().toISOString(),
       })

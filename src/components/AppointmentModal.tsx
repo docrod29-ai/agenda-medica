@@ -140,13 +140,13 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
         toast('Cita actualizada', 'success')
         // Sync with Google Calendar in background
         if (user?.uid) {
-          fetch('/api/calendar/sync', {
+          fetchAutenticado('/api/calendar/sync', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               action: 'update',
               appointment: { ...appointment, ...payload, id },
-              uid: user.uid,
+              clinicId,
             }),
           }).catch(() => {/* non-critical */})
         }
@@ -154,7 +154,7 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
         const wasCancelled = ['cancelada', 'reagendada', 'no-asistio'].includes(estado) &&
           !['cancelada', 'reagendada', 'no-asistio'].includes(appointment.estado)
         if (wasCancelled) {
-          fetch('/api/whatsapp/waitlist-notify', {
+          fetchAutenticado('/api/whatsapp/waitlist-notify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -177,13 +177,13 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
         toast('Cita agendada', 'success')
         // Sync with Google Calendar in background
         if (user?.uid) {
-          fetch('/api/calendar/sync', {
+          fetchAutenticado('/api/calendar/sync', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               action: 'create',
               appointment: { ...payload, id, createdAt: '', updatedAt: '' },
-              uid: user.uid,
+              clinicId,
             }),
           }).catch(() => {/* non-critical */})
         }

@@ -12,20 +12,32 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { adminDb } from '@/lib/firebase-admin'
+import { verificarTokenPaciente } from '@/lib/patient-token'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.vercel.app'
 
 export async function POST(req: NextRequest) {
   try {
-    const { clinicId, citaId, descripcion, montoMXN, currency = 'mxn' } = await req.json()
+    const { token, citaId, descripcion, montoMXN, currency = 'mxn' } = await req.json()
 
-    if (!clinicId || !citaId || !descripcion || !montoMXN || montoMXN < 10) {
+    // AUTORIZACIÓN: token del portal del paciente (antes era público → cualquiera podía
+    // mutar cualquier cita a 'pendiente-pago'). El clinicId sale del token, no del body.
+    const sesion = verificarTokenPaciente(token)
+    if (!sesion) return NextResponse.json({ ok: false, error: 'Enlace inválido o vencido' }, { status: 401 })
+    const { clinicId, patientId } = sesion
+
+    // TODO(pago fase 2): el monto debe venir de la config del servidor, NO del cliente.
+    if (!citaId || !descripcion || !montoMXN || montoMXN < 10) {
       return NextResponse.json({ ok: false, error: 'Datos inválidos' }, { status: 400 })
     }
 
     const citaRef = adminDb.collection('clinics').doc(clinicId).collection('appointments').doc(citaId)
     const citaSnap = await citaRef.get()
     if (!citaSnap.exists) return NextResponse.json({ ok: false, error: 'Cita no encontrada' }, { status: 404 })
+    // La cita debe pertenecer al paciente del token (evita pagar/mutar citas ajenas)
+    if (citaSnap.data()?.pacienteId !== patientId) {
+      return NextResponse.json({ ok: false, error: 'Cita no encontrada' }, { status: 404 })
+    }
 
     const clinicSnap = await adminDb.collection('clinics').doc(clinicId).get()
     const clinicNombre = clinicSnap.data()?.nombreClinica ?? 'Consultorio'
