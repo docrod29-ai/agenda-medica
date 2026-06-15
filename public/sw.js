@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v102'  // Fix aviso "Actualizar" trabado: sin skipWaiting auto + descarte persistido (no reaparece) + sin sondeo 60s
+const CACHE = 'nexusmed-v103'  // Finanzas por día/semana/mes + hero Efectivo vs Transferencia
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
