@@ -37,7 +37,8 @@ export function ThemeToggle() {
   const [montado, setMontado] = useState(false)
 
   useEffect(() => {
-    const guardado = (localStorage.getItem(KEY) as Modo | null) ?? 'auto'
+    // Default = OSCURO (marca NexusMED). 'auto' solo si el usuario lo eligió antes.
+    const guardado = (localStorage.getItem(KEY) as Modo | null) ?? 'dark'
     setModo(guardado)
     aplicar(guardado)
     setMontado(true)

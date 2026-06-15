@@ -72,17 +72,18 @@ export default function RootLayout({
         */}
         {/*
           Anti-flicker tema: aplica data-theme ANTES de la primera pintada.
-          Si no hay preferencia guardada, queda "auto" (sigue al SO).
+          Default = OSCURO (identidad de marca NexusMED). Solo si el usuario
+          eligió 'light' explícitamente se respeta el claro.
         */}
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){
               try{
                 var t = localStorage.getItem('nexusmed.theme');
-                if (t === 'light' || t === 'dark') {
-                  document.documentElement.setAttribute('data-theme', t);
-                }
-              } catch(e){}
+                document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
+              } catch(e){
+                document.documentElement.setAttribute('data-theme', 'dark');
+              }
             })();`,
           }}
         />

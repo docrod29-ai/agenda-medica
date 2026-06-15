@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v94'  // Dashboard Dirección A: hero con métrica+sparkline real, banda próxima cita (CTA Iniciar consulta), reveal escalonado, --text3 AA
+const CACHE = 'nexusmed-v95'  // Tema OSCURO por defecto (identidad de marca) — antes seguía al SO y el usuario veía el claro plano
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()
