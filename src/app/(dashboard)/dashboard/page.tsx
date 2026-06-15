@@ -9,6 +9,7 @@ import { useToast } from '@/context/ToastContext'
 import { StatusBadge } from '@/components/StatusBadge'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { Button, EmptyState, Spinner } from '@/components/ui'
+import { avatarColor } from '@/lib/avatar-color'
 import { Appointment, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { formatDateMX } from '@/lib/availability'
 import { Plus, CalendarCheck2, Clock, UserX, ChevronRight, CalendarDays, Users, Settings, Hourglass, Mic } from 'lucide-react'
@@ -295,9 +296,10 @@ function AppointmentRow({ appt, isLast }: { appt: Appointment; isLast: boolean }
 
         {/* Avatar */}
         <div style={{
-          width: 36, height: 36, borderRadius: '50%', background: 'var(--s2)',
-          border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 14, fontWeight: 600, color: 'var(--text2)', flexShrink: 0,
+          width: 36, height: 36, borderRadius: '50%',
+          background: avatarColor(appt.pacienteNombre).bg, color: avatarColor(appt.pacienteNombre).fg,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 14, fontWeight: 600, flexShrink: 0,
         }}>
           {appt.pacienteNombre.charAt(0).toUpperCase()}
         </div>

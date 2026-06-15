@@ -16,21 +16,7 @@ import {
   Stethoscope, Activity, LogIn, LogOut, UserPlus, ClipboardCheck, type LucideIcon,
 } from 'lucide-react'
 import { Button, EmptyState, Spinner, Badge } from '@/components/ui'
-
-// Avatar con color derivado del nombre (consistente con la lista de Pacientes)
-const AVATAR_COLORS = [
-  { bg: 'rgba(61,90,254,0.16)', fg: '#9FB0FF' },
-  { bg: 'rgba(16,158,129,0.16)', fg: '#5DCAA5' },
-  { bg: 'rgba(124,58,237,0.16)', fg: '#C4B5FD' },
-  { bg: 'rgba(217,119,6,0.16)', fg: '#FBBF77' },
-  { bg: 'rgba(225,29,72,0.16)', fg: '#FDA4AF' },
-  { bg: 'rgba(21,128,61,0.20)', fg: '#86EFAC' },
-]
-function avatarColor(name: string) {
-  let h = 0
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0
-  return AVATAR_COLORS[h % AVATAR_COLORS.length]
-}
+import { avatarColor } from '@/lib/avatar-color'
 
 /** Icono lineal por tipo de nota — nodo del timeline clínico. */
 const ICONO_TIPO_NOTA: Record<TipoNota, LucideIcon> = {

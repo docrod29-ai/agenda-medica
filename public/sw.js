@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v98'  // Expediente: avatar de color en la cabecera del paciente (consistente con Pacientes)
+const CACHE = 'nexusmed-v99'  // Avatares de color: util compartido (avatar-color) + aplicados en dashboard (filas de agenda)
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()
