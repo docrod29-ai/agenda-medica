@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v99'  // Avatares de color: util compartido (avatar-color) + aplicados en dashboard (filas de agenda)
+const CACHE = 'nexusmed-v100'  // Calendario: bloque de cita en cobalto de marca (era teal viejo) + tinte sutil de fin de semana
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

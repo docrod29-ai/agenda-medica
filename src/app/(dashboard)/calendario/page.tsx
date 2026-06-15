@@ -207,14 +207,17 @@ function WeekView({ weekDates, appointments, onCellClick, onApptClick, loading }
             return (
               <div
                 key={di}
-                style={{ borderLeft: '1px solid var(--border)', position: 'relative', cursor: 'pointer', minHeight: 48 }}
+                style={{
+                  borderLeft: '1px solid var(--border)', position: 'relative', cursor: 'pointer', minHeight: 48,
+                  background: di >= 5 ? 'rgba(242,239,233,0.022)' : 'transparent',  // tinte sutil de fin de semana
+                }}
                 onClick={() => onCellClick(ds, hourStr)}
               >
                 {cellAppts.map(a => {
                   const minOffset = parseInt(a.fechaHora.slice(14, 16))
                   const heightPct = Math.min((a.duracion / 60) * 100, 200)
-                  // Multi-doctor: colorea según el médico de la cita
-                  const color = a.medicoId ? colorMedico(a.medicoId) : '#14b8a6'
+                  // Multi-doctor: colorea según el médico; un solo médico → cobalto de marca
+                  const color = a.medicoId ? colorMedico(a.medicoId) : '#3D5AFE'
                   return (
                     <div
                       key={a.id}
