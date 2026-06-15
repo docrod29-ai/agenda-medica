@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v100'  // Calendario: bloque de cita en cobalto de marca (era teal viejo) + tinte sutil de fin de semana
+const CACHE = 'nexusmed-v101'  // Configuración: tab activo + cajas/pills/gradiente/rol-médico/toggles de teal viejo → cobalto de marca
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

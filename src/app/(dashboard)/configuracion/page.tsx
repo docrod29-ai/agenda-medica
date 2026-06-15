@@ -264,9 +264,9 @@ export default function ConfiguracionPage() {
                     style={{
                       display: 'block', width: '100%', textAlign: 'left',
                       padding: '8px 10px', borderRadius: 8, fontSize: 13,
-                      background: tab === t.key ? 'rgba(20,184,166,0.12)' : 'transparent',
-                      color: tab === t.key ? 'var(--teal)' : 'var(--text2)',
-                      border: tab === t.key ? '1px solid rgba(20,184,166,0.3)' : '1px solid transparent',
+                      background: tab === t.key ? 'var(--nexus-soft)' : 'transparent',
+                      color: tab === t.key ? 'var(--nexus)' : 'var(--text2)',
+                      border: tab === t.key ? '1px solid rgba(61,90,254,0.3)' : '1px solid transparent',
                       cursor: 'pointer', marginBottom: 2,
                       fontWeight: tab === t.key ? 600 : 500,
                     }}
@@ -1894,7 +1894,7 @@ function PortalTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
       <EmbedSnippets url={url} clinicNombre={clinicNombre} />
 
       {/* Cómo funciona */}
-      <div style={{ padding: 16, background: 'rgba(20,184,166,0.06)', border: '1px solid rgba(20,184,166,0.2)', borderRadius: 12 }}>
+      <div style={{ padding: 16, background: 'var(--nexus-soft)', border: '1px solid rgba(61,90,254,0.2)', borderRadius: 12 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--teal)', marginBottom: 10 }}>
           ¿Cómo funciona?
         </div>
@@ -1975,8 +1975,8 @@ function EmbedSnippets({ url, clinicNombre }: { url: string; clinicNombre: strin
             style={{
               padding: '8px 14px', borderRadius: 8,
               border: tipo === t.key ? '1px solid var(--teal)' : '1px solid var(--border)',
-              background: tipo === t.key ? 'rgba(20,184,166,0.1)' : 'var(--s2)',
-              color: tipo === t.key ? 'var(--teal)' : 'var(--text2)',
+              background: tipo === t.key ? 'var(--nexus-soft)' : 'var(--s2)',
+              color: tipo === t.key ? 'var(--nexus)' : 'var(--text2)',
               fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
             }}
           >
@@ -2275,7 +2275,7 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
 
         {/* MODO TU PROPIO DISEÑO — primera sección, destacada */}
         <div style={{
-          background: 'linear-gradient(135deg, rgba(20,184,166,0.10), rgba(167,139,250,0.10))',
+          background: 'linear-gradient(135deg, rgba(61,90,254,0.12), rgba(124,58,237,0.10))',
           border: '1px solid rgba(20,184,166,0.4)', borderRadius: 12, padding: 16,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, gap: 8, flexWrap: 'wrap' }}>
@@ -2439,7 +2439,7 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
                     onClick={() => setRx({ ...rx, imprimirEn: op.valor })}
                     style={{
                       padding: 12, borderRadius: 8, cursor: 'pointer', textAlign: 'left',
-                      background: activo ? 'rgba(20,184,166,0.1)' : 'var(--s2)',
+                      background: activo ? 'var(--nexus-soft)' : 'var(--s2)',
                       border: activo ? '1px solid var(--teal)' : '1px solid var(--border)',
                       color: activo ? 'var(--teal)' : 'var(--text2)',
                     }}
@@ -2464,7 +2464,7 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
                   onClick={() => setRx({ ...rx, estilo: k })}
                   style={{
                     padding: 12, borderRadius: 8, cursor: 'pointer', textAlign: 'left',
-                    background: activo ? 'rgba(20,184,166,0.1)' : 'var(--s2)',
+                    background: activo ? 'var(--nexus-soft)' : 'var(--s2)',
                     border: activo ? '1px solid var(--teal)' : '1px solid var(--border)',
                     color: activo ? 'var(--teal)' : 'var(--text2)',
                   }}
@@ -3120,7 +3120,7 @@ function MiembrosActivos({ clinicId, miUid }: { clinicId: string | null; miUid?:
   }
 
   const ROL_LABEL: Record<string, string> = { admin: 'Admin', medico: 'Médico', secretaria: 'Asistente' }
-  const ROL_COLOR: Record<string, string> = { admin: '#f59e0b', medico: '#14b8a6', secretaria: '#a78bfa' }
+  const ROL_COLOR: Record<string, string> = { admin: '#f59e0b', medico: '#3D5AFE', secretaria: '#a78bfa' }
 
   return (
     <div className="card" style={{ padding: 16 }}>
