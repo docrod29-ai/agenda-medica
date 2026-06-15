@@ -17,6 +17,21 @@ import {
 } from 'lucide-react'
 import { Button, EmptyState, Spinner, Badge } from '@/components/ui'
 
+// Avatar con color derivado del nombre (consistente con la lista de Pacientes)
+const AVATAR_COLORS = [
+  { bg: 'rgba(61,90,254,0.16)', fg: '#9FB0FF' },
+  { bg: 'rgba(16,158,129,0.16)', fg: '#5DCAA5' },
+  { bg: 'rgba(124,58,237,0.16)', fg: '#C4B5FD' },
+  { bg: 'rgba(217,119,6,0.16)', fg: '#FBBF77' },
+  { bg: 'rgba(225,29,72,0.16)', fg: '#FDA4AF' },
+  { bg: 'rgba(21,128,61,0.20)', fg: '#86EFAC' },
+]
+function avatarColor(name: string) {
+  let h = 0
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0
+  return AVATAR_COLORS[h % AVATAR_COLORS.length]
+}
+
 /** Icono lineal por tipo de nota — nodo del timeline clínico. */
 const ICONO_TIPO_NOTA: Record<TipoNota, LucideIcon> = {
   historia_clinica: FileText,
@@ -87,13 +102,24 @@ export default function ExpedientePage() {
 
       {/* Patient header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
-        <div>
-          <h1 className="t-h1" style={{ margin: 0 }}>
-            {patient?.nombre ?? 'Paciente'}
-          </h1>
-          <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 4 }}>
-            {patient?.edad ? `${patient.edad} años` : ''}{patient?.sexo ? ` · ${patient.sexo}` : ''}
-            {patient?.telefono ? ` · ${patient.telefono}` : ''}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+          <div style={{
+            width: 52, height: 52, borderRadius: 16, flexShrink: 0,
+            background: avatarColor(patient?.nombre ?? 'Paciente').bg,
+            color: avatarColor(patient?.nombre ?? 'Paciente').fg,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 20, fontWeight: 600, fontFamily: 'var(--font-display)',
+          }}>
+            {(patient?.nombre ?? 'P').charAt(0).toUpperCase()}
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <h1 className="t-h1" style={{ margin: 0 }}>
+              {patient?.nombre ?? 'Paciente'}
+            </h1>
+            <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 4 }}>
+              {patient?.edad ? `${patient.edad} años` : ''}{patient?.sexo ? ` · ${patient.sexo}` : ''}
+              {patient?.telefono ? ` · ${patient.telefono}` : ''}
+            </div>
           </div>
         </div>
         <div className="actions-row">
