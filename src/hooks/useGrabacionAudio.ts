@@ -193,6 +193,51 @@ async function intentarDiarizar(
   }
 }
 
+/**
+ * Transcribe un blob vía OpenAI. NUNCA lanza: ante 413/500/HTML devuelve ''.
+ * (Antes, res.json() sobre una página de error HTML tiraba SyntaxError.)
+ */
+async function transcribirBlobSimple(blob: Blob, ext: string): Promise<string> {
+  try {
+    const fd = new FormData()
+    fd.append('audio', blob, `audio.${ext}`)
+    const res = await fetchAutenticado('/api/expediente/transcribir', { method: 'POST', body: fd })
+    if (!res.ok) return ''                          // 413 (límite Vercel) / 5xx / HTML → sin texto
+    const data = await res.json().catch(() => null)
+    return data?.ok && data.text ? data.text : ''
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * Transcribe audio largo EN PARTES para no chocar con el límite de ~4.5MB de
+ * Vercel en el body de la función. Agrupa los chunks en lotes < 3.6MB y, como
+ * los fragmentos WebM posteriores no traen cabecera, antepone el primer chunk
+ * (que SÍ la tiene) a cada lote para que el decodificador lo entienda.
+ */
+async function transcribirEnPartes(chunks: Blob[], mime: string, ext: string): Promise<string> {
+  if (chunks.length === 0) return ''
+  const header = chunks[0]
+  const LIMITE = 3_600_000
+  const lotes: Blob[][] = []
+  let actual: Blob[] = []
+  let size = 0
+  for (const c of chunks) {
+    if (size + c.size > LIMITE && actual.length > 0) { lotes.push(actual); actual = []; size = 0 }
+    actual.push(c); size += c.size
+  }
+  if (actual.length) lotes.push(actual)
+
+  const textos: string[] = []
+  for (let b = 0; b < lotes.length; b++) {
+    const parts = b === 0 ? lotes[b] : [header, ...lotes[b]]
+    const t = await transcribirBlobSimple(new Blob(parts, { type: mime }), ext)
+    if (t) textos.push(t)
+  }
+  return textos.join(' ')
+}
+
 // ─────────────────────────────────────────────────────────────────
 // Hook principal
 // ─────────────────────────────────────────────────────────────────
@@ -515,7 +560,8 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       await flushChunks()
     }
 
-    const blob = new Blob(todosChunksRef.current, { type: rec.mimeType })
+    const allChunks = todosChunksRef.current.slice()  // copia ANTES de limpiar (para transcribir en partes)
+    const blob = new Blob(allChunks, { type: rec.mimeType })
     chunksRef.current = []
     todosChunksRef.current = []
     if (blob.size === 0) { setEstado('error'); setError('Audio vacío'); return }
@@ -523,57 +569,50 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     const mt = rec.mimeType || ''
     const ext = mt.includes('mp4') ? 'm4a' : mt.includes('ogg') ? 'ogg' : mt.includes('wav') ? 'wav' : 'webm'
 
-    // 1) Diarización (AssemblyAI) — separa voces. Si no hay llave o falla, null.
-    const diar = await intentarDiarizar(blob, ext)
-    if (diar && diar.text.trim()) {
-      const { corregido, cambios } = corregirTranscripcion(diar.text)
+    const aplicar = (texto: string) => {
+      const { corregido, cambios } = corregirTranscripcion(texto)
       setTranscripcion(corregido)
-      setUtterances(diar.utterances)
       setCorrecciones(cambios)
       setEstado('listo')
+    }
+
+    // El body de las funciones de Vercel está limitado a ~4.5MB. Para audio
+    // largo NO mandamos el blob completo (daba 413 → HTML → SyntaxError):
+    // transcribimos EN PARTES. La diarización (AssemblyAI) solo se intenta en
+    // audio corto, que es lo único que cabe en una sola petición.
+    const GRANDE = blob.size > 3_600_000
+
+    // 1) Diarización solo para audio corto
+    if (!GRANDE) {
+      const diar = await intentarDiarizar(blob, ext)
+      if (diar && diar.text.trim()) {
+        setUtterances(diar.utterances)
+        aplicar(diar.text)
+        if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current)
+        return
+      }
+    }
+
+    // 2) Transcripción robusta (en partes si es grande). Nunca lanza.
+    const texto = GRANDE
+      ? await transcribirEnPartes(allChunks, rec.mimeType, ext)
+      : await transcribirBlobSimple(blob, ext)
+
+    if (texto.trim()) {
+      aplicar(texto)
       if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current)
       return
     }
 
-    // 2) Fallback sin diarización: OpenAI (gpt-4o-transcribe / whisper-1)
-    try {
-      const fd = new FormData()
-      fd.append('audio', blob, `consulta.${ext}`)
-      const res = await fetchAutenticado('/api/expediente/transcribir', { method: 'POST', body: fd })
-      const data = await res.json()
-      if (data.ok) {
-        const { corregido, cambios } = corregirTranscripcion(data.text ?? '')
-        setTranscripcion(corregido)
-        setCorrecciones(cambios)
-        setEstado('listo')
-        // Borrar chunks de recovery — el audio ya está transcrito
-        if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current)
-      } else if (textosChunksRef.current.length > 0) {
-        // Fallback: si la transcripción final falló pero el streaming funcionó,
-        // usamos la concatenación de chunks como respaldo
-        const combinado = textosChunksRef.current.filter(Boolean).join(' ')
-        const { corregido, cambios } = corregirTranscripcion(combinado)
-        setTranscripcion(corregido)
-        setCorrecciones(cambios)
-        setEstado('listo')
-        if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current)
-      } else {
-        setError(data.error ?? 'Error transcribiendo')
-        setEstado('error')
-      }
-    } catch (e) {
-      // Network error: usa lo que tengamos del streaming
-      if (textosChunksRef.current.length > 0) {
-        const combinado = textosChunksRef.current.filter(Boolean).join(' ')
-        const { corregido, cambios } = corregirTranscripcion(combinado)
-        setTranscripcion(corregido)
-        setCorrecciones(cambios)
-        setEstado('listo')
-      } else {
-        setError('Error de red: ' + String(e))
-        setEstado('error')
-      }
+    // 3) Si la transcripción final no dio texto, usa lo que capturó el streaming
+    //    en vivo. NO borramos el audio guardado: queda para reintentar (recovery).
+    if (textosChunksRef.current.length > 0) {
+      aplicar(textosChunksRef.current.filter(Boolean).join(' '))
+      return
     }
+
+    setError('No se pudo transcribir el audio, pero quedó GUARDADO en este dispositivo. Reintenta con "Recuperar audio".')
+    setEstado('error')
   }, [flushChunks])
 
   // ─── Recovery API ──────────────────────────────────────────
@@ -590,27 +629,21 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       setEstado('error')
       return
     }
-    // Reconstruir blob con el tipo del primer chunk
-    const blob = new Blob(chunks, { type: chunks[0].type || 'audio/webm' })
-    const mt = blob.type || ''
-    const ext = mt.includes('mp4') ? 'm4a' : mt.includes('ogg') ? 'ogg' : 'webm'
-    try {
-      const fd = new FormData()
-      fd.append('audio', blob, `recovery.${ext}`)
-      const res = await fetchAutenticado('/api/expediente/transcribir', { method: 'POST', body: fd })
-      const data = await res.json()
-      if (data.ok) {
-        const { corregido, cambios } = corregirTranscripcion(data.text ?? '')
-        setTranscripcion(corregido)
-        setCorrecciones(cambios)
-        setEstado('listo')
-        await borrarChunks(recoveryKey)
-      } else {
-        setError(data.error ?? 'Error transcribiendo audio recuperado')
-        setEstado('error')
-      }
-    } catch (e) {
-      setError('Error recuperando audio: ' + String(e))
+    const mime = chunks[0].type || 'audio/webm'
+    const ext = mime.includes('mp4') ? 'm4a' : mime.includes('ogg') ? 'ogg' : 'webm'
+
+    // Transcribe EN PARTES (audio recuperado suele ser largo → no cabe en una
+    // sola petición por el límite de Vercel). Nunca lanza.
+    const texto = await transcribirEnPartes(chunks, mime, ext)
+    if (texto.trim()) {
+      const { corregido, cambios } = corregirTranscripcion(texto)
+      setTranscripcion(corregido)
+      setCorrecciones(cambios)
+      setEstado('listo')
+      await borrarChunks(recoveryKey)  // solo se borra si SÍ se transcribió
+    } else {
+      // No borramos el audio: sigue disponible para reintentar más tarde.
+      setError('No se pudo transcribir el audio recuperado. Sigue guardado en este dispositivo; reintenta más tarde.')
       setEstado('error')
     }
   }, [])
