@@ -49,11 +49,19 @@ export interface OpcionesGrabacion {
   recoveryKey?: string
 }
 
+/** Un turno de habla diarizado (AssemblyAI): quién habló y qué dijo. */
+export interface Utterance {
+  speaker: string   // 'A' | 'B' | 'C' … (etiqueta cruda de AssemblyAI)
+  text: string
+}
+
 export interface UseGrabacionAudio {
   soportado: boolean
   estado: Estado
   duracion: number
   transcripcion: string
+  /** Turnos de habla separados por voz (vacío si no hubo diarización). */
+  utterances: Utterance[]
   /** Texto que va apareciendo conforme llegan los chunks (streaming). */
   transcripcionParcial: string
   error: string
@@ -153,6 +161,38 @@ async function borrarChunks(recoveryKey: string) {
   } catch { /* */ }
 }
 
+const sleepMs = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+/**
+ * Intenta transcribir CON diarización (AssemblyAI). Sube el audio, encola y
+ * hace polling hasta completar. Devuelve texto + turnos de habla, o null si la
+ * llave no está configurada o algo falla → el caller cae a OpenAI sin diarizar.
+ */
+async function intentarDiarizar(
+  blob: Blob, ext: string,
+): Promise<{ text: string; utterances: Utterance[] } | null> {
+  try {
+    const fd = new FormData()
+    fd.append('audio', blob, `consulta.${ext}`)
+    const res = await fetchAutenticado('/api/expediente/transcribir-diarizado', { method: 'POST', body: fd })
+    if (!res.ok) return null                       // 503 sinClave o error → fallback
+    const sub = await res.json()
+    if (!sub.ok || !sub.id) return null
+    // Polling hasta completar (máx ~3 min: 90 × 2s)
+    for (let i = 0; i < 90; i++) {
+      await sleepMs(2000)
+      const p = await fetchAutenticado(`/api/expediente/transcribir-diarizado?id=${encodeURIComponent(sub.id)}`)
+      if (!p.ok) continue
+      const d = await p.json()
+      if (d.status === 'completed') return { text: d.text ?? '', utterances: (d.utterances ?? []) as Utterance[] }
+      if (d.status === 'error' || d.ok === false) return null
+    }
+    return null                                    // timeout
+  } catch {
+    return null
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────
 // Hook principal
 // ─────────────────────────────────────────────────────────────────
@@ -162,6 +202,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   const [estado, setEstado] = useState<Estado>('inactivo')
   const [duracion, setDuracion] = useState(0)
   const [transcripcion, setTranscripcion] = useState('')
+  const [utterances, setUtterances] = useState<Utterance[]>([])
   const [transcripcionParcial, setTranscripcionParcial] = useState('')
   const [error, setError] = useState('')
   const [nivelAudio, setNivelAudio] = useState(0)
@@ -223,13 +264,14 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     setBytesGrabados(0)
     setChunksTranscritos(0)
     setTranscripcionParcial('')
+    setUtterances([])
   }, [])
 
   const reset = useCallback(() => {
     const rk = recoveryKeyRef.current
     liberarRecursos()
     setEstado('inactivo'); setDuracion(0); setTranscripcion(''); setError('')
-    setCorrecciones([])
+    setCorrecciones([]); setUtterances([])
     if (rk) borrarChunks(rk)
     recoveryKeyRef.current = ''
   }, [liberarRecursos])
@@ -481,6 +523,19 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     const mt = rec.mimeType || ''
     const ext = mt.includes('mp4') ? 'm4a' : mt.includes('ogg') ? 'ogg' : mt.includes('wav') ? 'wav' : 'webm'
 
+    // 1) Diarización (AssemblyAI) — separa voces. Si no hay llave o falla, null.
+    const diar = await intentarDiarizar(blob, ext)
+    if (diar && diar.text.trim()) {
+      const { corregido, cambios } = corregirTranscripcion(diar.text)
+      setTranscripcion(corregido)
+      setUtterances(diar.utterances)
+      setCorrecciones(cambios)
+      setEstado('listo')
+      if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current)
+      return
+    }
+
+    // 2) Fallback sin diarización: OpenAI (gpt-4o-transcribe / whisper-1)
     try {
       const fd = new FormData()
       fd.append('audio', blob, `consulta.${ext}`)
@@ -561,7 +616,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   }, [])
 
   return {
-    soportado, estado, duracion, transcripcion, transcripcionParcial, error,
+    soportado, estado, duracion, transcripcion, utterances, transcripcionParcial, error,
     nivelAudio, silencioProlongado, bytesGrabados, chunksTranscritos, correcciones,
     iniciar, detener, pausar, reanudar, reset, setTranscripcion,
     hayRecovery, recuperarAudio,

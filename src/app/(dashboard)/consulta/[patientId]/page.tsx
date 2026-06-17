@@ -165,13 +165,18 @@ export default function ConsultaActivaPage() {
   const procesarIA = useCallback(async (tipoOverride?: TipoNota) => {
     if (!voz.transcripcion.trim()) { toast('No hay transcripción que procesar', 'info'); return }
     const tipoActivo = tipoOverride ?? tipo
+    // Si hubo diarización, mandamos el diálogo etiquetado por hablante para que la
+    // IA atribuya bien quién dijo qué (médico/paciente). Si no, el texto plano.
+    const transcripcionParaIA = audio.utterances.length > 0
+      ? audio.utterances.map(u => `Hablante ${u.speaker}: ${u.text}`).join('\n')
+      : voz.transcripcion
     setProcesando(true)
     try {
       const res = await fetchAutenticado('/api/expediente/procesar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          transcripcion: voz.transcripcion,
+          transcripcion: transcripcionParaIA,
           tipo: tipoActivo,
           contexto: {
             nombre: patient?.nombre ?? '',
@@ -256,7 +261,7 @@ export default function ConsultaActivaPage() {
     } finally {
       setProcesando(false)
     }
-  }, [voz.transcripcion, tipo, patient, toast])
+  }, [voz.transcripcion, audio.utterances, tipo, patient, toast])
 
   // ── Cambiar la modalidad de nota ───────────────────────────────
   // Si hay dictado, la nota se RE-PROYECTA desde esa fuente hacia la nueva
@@ -725,12 +730,16 @@ export default function ConsultaActivaPage() {
                 </button>
               )}
               {(voz.grabando || verFuente) && (
-                <textarea
-                  value={voz.transcripcion + (voz.interim ? ` ${voz.interim}` : '')}
-                  onChange={e => voz.setTranscripcion(e.target.value)}
-                  placeholder="La transcripción aparecerá aquí…"
-                  style={S.transcripcion}
-                />
+                audio.utterances.length > 0 && !voz.grabando ? (
+                  <DialogoDiarizado utterances={audio.utterances} />
+                ) : (
+                  <textarea
+                    value={voz.transcripcion + (voz.interim ? ` ${voz.interim}` : '')}
+                    onChange={e => voz.setTranscripcion(e.target.value)}
+                    placeholder="La transcripción aparecerá aquí…"
+                    style={S.transcripcion}
+                  />
+                )
               )}
             </div>
           )}
@@ -1061,6 +1070,35 @@ export default function ConsultaActivaPage() {
 }
 
 // ── Subcomponentes ─────────────────────────────────────────────
+// Paleta estable por hablante (A, B, C…) para diferenciar voces visualmente.
+const COLOR_HABLANTE = ['#3D5AFE', '#10b981', '#f59e0b', '#a855f7', '#ec4899', '#06b6d4']
+function colorHablante(speaker: string): string {
+  const idx = speaker.charCodeAt(0) - 65 // 'A' → 0
+  return COLOR_HABLANTE[((idx % COLOR_HABLANTE.length) + COLOR_HABLANTE.length) % COLOR_HABLANTE.length]
+}
+
+/** Diálogo separado por voz (diarización). Solo lectura: es material de origen. */
+function DialogoDiarizado({ utterances }: { utterances: { speaker: string; text: string }[] }) {
+  return (
+    <div style={{ marginTop: 4, maxHeight: 260, overflow: 'auto', display: 'grid', gap: 8 }}>
+      {utterances.map((u, i) => {
+        const c = colorHablante(u.speaker)
+        return (
+          <div key={i} style={{ display: 'flex', gap: 8 }}>
+            <span style={{
+              flexShrink: 0, fontSize: 10.5, fontWeight: 700, color: c,
+              background: `${c}1f`, borderRadius: 6, padding: '2px 7px', height: 'fit-content',
+            }}>
+              Hablante {u.speaker}
+            </span>
+            <span style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5 }}>{u.text}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function Section({ title, icon, obligatorio, children }: { title: string; icon?: React.ReactNode; obligatorio?: boolean; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 16 }}>
