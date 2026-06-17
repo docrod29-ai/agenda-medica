@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v108'  // FIX crítico: transcripción de audio largo en partes (límite 4.5MB Vercel) + nunca crashea + recovery robusto
+const CACHE = 'nexusmed-v109'  // Transcripción usa OpenAI O AssemblyAI (la que esté) — basta una llave
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

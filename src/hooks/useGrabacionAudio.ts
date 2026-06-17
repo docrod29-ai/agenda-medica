@@ -211,6 +211,19 @@ async function transcribirBlobSimple(blob: Blob, ext: string): Promise<string> {
 }
 
 /**
+ * Transcribe UN blob con el motor que esté configurado: primero OpenAI; si no
+ * hay OPENAI_API_KEY (503) o falla, intenta AssemblyAI. Así basta con tener
+ * UNA de las dos llaves. Nunca lanza.
+ */
+async function transcribirParte(blob: Blob, ext: string): Promise<string> {
+  const openai = await transcribirBlobSimple(blob, ext)
+  if (openai) return openai
+  // Fallback: AssemblyAI (la misma llave que usa la diarización)
+  const aai = await intentarDiarizar(blob, ext)
+  return aai?.text ?? ''
+}
+
+/**
  * Transcribe audio largo EN PARTES para no chocar con el límite de ~4.5MB de
  * Vercel en el body de la función. Agrupa los chunks en lotes < 3.6MB y, como
  * los fragmentos WebM posteriores no traen cabecera, antepone el primer chunk
@@ -232,7 +245,7 @@ async function transcribirEnPartes(chunks: Blob[], mime: string, ext: string): P
   const textos: string[] = []
   for (let b = 0; b < lotes.length; b++) {
     const parts = b === 0 ? lotes[b] : [header, ...lotes[b]]
-    const t = await transcribirBlobSimple(new Blob(parts, { type: mime }), ext)
+    const t = await transcribirParte(new Blob(parts, { type: mime }), ext)
     if (t) textos.push(t)
   }
   return textos.join(' ')
