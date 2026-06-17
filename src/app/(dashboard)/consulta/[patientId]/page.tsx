@@ -101,6 +101,22 @@ export default function ConsultaActivaPage() {
   const [modalConsentimiento, setModalConsentimiento] = useState(false)
   const ultimasNotasRef = useRef('')
 
+  // Constraints para capturar TODA la conversación (médico + paciente) en el modo
+  // Whisper: sin supresión de ruido ni cancelación de eco (borran al paciente),
+  // con control de ganancia para levantar su voz.
+  const opcionesWhisper = {
+    recoveryKey: `consulta-${patientId}`,
+    noiseSuppression: false,
+    echoCancellation: false,
+    autoGainControl: true,
+  } as const
+
+  // Arranca el grabador que corresponde al modo seleccionado (no siempre el de voz).
+  const arrancarSegunModo = () => {
+    if (modoVoz === 'whisper') audio.iniciar(opcionesWhisper)
+    else voz.iniciar()
+  }
+
   const iniciarGrabacion = () => {
     if (consentimiento) { voz.iniciar(); return }
     setModalConsentimiento(true)
@@ -108,7 +124,7 @@ export default function ConsultaActivaPage() {
   const confirmarConsentimiento = () => {
     setConsentimiento(true)
     setModalConsentimiento(false)
-    voz.iniciar()
+    arrancarSegunModo()
   }
 
   // ── Cargar paciente + contexto IA ──────────────────────────────
@@ -236,7 +252,15 @@ export default function ConsultaActivaPage() {
         meta: { tipo, transcripcionLen: voz.transcripcion.length },
       })
 
-      toast('Nota estructurada por IA — revisa campo por campo', 'success')
+      // Si la IA externa NO estructuró la nota, el route devuelve fallbackLocal + la
+      // causa real (_aviso). Mostramos esa causa en vez de un falso "éxito" verde —
+      // así se sabe POR QUÉ falló (HTTP 401, sobrecarga, respuesta vacía, etc.).
+      if (data.fallbackLocal || data._aviso) {
+        console.warn('[procesar] Fallback local. Causa:', data._causaFallback, '·', data._detalleDebug)
+        toast(data._aviso || 'La IA no estructuró la nota — se llenó lo básico, revisa todo', 'error')
+      } else {
+        toast('Nota estructurada por IA — revisa campo por campo', 'success')
+      }
     } catch {
       toast('Error al conectar con la IA', 'error')
     } finally {
@@ -525,7 +549,7 @@ export default function ConsultaActivaPage() {
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                   }}
                 >
-                  <Mic size={13} className="ds-icon" /> Grabar y procesar (Whisper)
+                  <Mic size={13} className="ds-icon" /> Conversación completa
                 </button>
               )}
             </div>
@@ -557,7 +581,7 @@ export default function ConsultaActivaPage() {
                   {voz.grabando ? `Grabando · ${mmss}` : 'Grabar consulta (en vivo)'}
                 </div>
                 <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>
-                  Transcribe mientras hablas · Chrome/Edge · Ctrl/Cmd+R
+                  Capta sobre todo tu voz · para grabar también al paciente usa “Conversación completa” · Ctrl/Cmd+R
                 </div>
               </div>
               <button onClick={procesarIA} disabled={procesando || !voz.transcripcion.trim()} style={S.iaBtn(procesando || !voz.transcripcion.trim())}>
@@ -589,7 +613,7 @@ export default function ConsultaActivaPage() {
                 onClick={async () => {
                   if (audio.estado === 'grabando') await audio.detener()
                   else if (audio.estado === 'pausado') await audio.detener()
-                  else if (consentimiento) audio.iniciar({ recoveryKey: `consulta-${patientId}` })
+                  else if (consentimiento) audio.iniciar(opcionesWhisper)
                   else setModalConsentimiento(true)
                 }}
                 disabled={audio.estado === 'subiendo'}
@@ -626,7 +650,7 @@ export default function ConsultaActivaPage() {
                     : audio.estado === 'pausado' ? `⏸ Pausado · ${String(Math.floor(audio.duracion / 60)).padStart(2,'0')}:${String(audio.duracion % 60).padStart(2,'0')}`
                     : audio.estado === 'subiendo' ? 'Transcribiendo audio…'
                     : audio.estado === 'listo' ? 'Transcripción lista'
-                    : 'Grabar audio para transcribir'}
+                    : 'Grabar la conversación completa (médico + paciente)'}
                 </div>
                 {/* Medidor de nivel de audio EN VIVO — confirma visualmente que captura voz */}
                 {audio.estado === 'grabando' && (
@@ -657,7 +681,7 @@ export default function ConsultaActivaPage() {
                 )}
                 {audio.estado !== 'grabando' && (
                   <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>
-                    HIFI 48kHz · 128kbps Opus · gpt-4o-transcribe · vocabulario médico ampliado
+                    Capta a los dos · HIFI 48kHz · gpt-4o-transcribe · vocabulario médico ampliado
                   </div>
                 )}
                 {audio.error && <div style={{ fontSize: 11.5, color: '#f87171', marginTop: 3, display: 'flex', alignItems: 'center', gap: 5 }}><AlertTriangle size={12} className="ds-icon" /> {audio.error}</div>}

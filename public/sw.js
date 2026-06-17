@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v104'  // Cobro al cerrar la consulta (cómo pagó y cuánto) tras firmar
+const CACHE = 'nexusmed-v105'  // Captar conversación completa (paciente incluido) + causa real de fallo IA + retry transitorios
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

@@ -22,14 +22,22 @@ const API_KEY = process.env.ANTHROPIC_API_KEY ?? ''
 const MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL ?? ''
 const ANTHROPIC_VERSION = '2023-06-01'
 
-// Modelos candidatos en orden de preferencia (el primero disponible se usa)
+// Modelos candidatos en orden de preferencia (el primero disponible se usa).
+// resolverModelo() descubre dinámicamente vía /v1/models; esta lista es el
+// respaldo cuando el descubrimiento no está disponible.
 const MODELOS_CANDIDATOS = [
+  'claude-sonnet-4-6',
   'claude-sonnet-4-5',
   'claude-sonnet-4-5-20250929',
   'claude-sonnet-4-20250514',
   'claude-3-7-sonnet-latest',
   'claude-3-5-sonnet-latest',
 ]
+
+// Errores transitorios de Anthropic (sobrecarga / rate-limit / 5xx). Reintentamos
+// con backoff antes de caer al parser local — son la causa #1 de "sigue fallando".
+const STATUS_REINTENTABLE = new Set([429, 500, 502, 503, 529])
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
 const headersAnthropic = {
   'x-api-key': API_KEY,
@@ -77,6 +85,20 @@ async function llamarClaude(model: string, system: string, userMsg: string) {
   })
 }
 
+/**
+ * Llama a Claude reintentando ante errores transitorios (sobrecarga / rate-limit
+ * / 5xx) con backoff. Anthropic devuelve 529 cuando está saturado: un solo
+ * intento hacía que la nota cayera al parser local "porque sí".
+ */
+async function llamarClaudeConReintentos(model: string, system: string, userMsg: string) {
+  let res = await llamarClaude(model, system, userMsg)
+  for (let intento = 1; intento <= 2 && STATUS_REINTENTABLE.has(res.status); intento++) {
+    await sleep(intento * 700)
+    res = await llamarClaude(model, system, userMsg)
+  }
+  return res
+}
+
 export async function POST(req: NextRequest) {
   // Seguridad: solo usuarios autenticados. Procesa PHI y consume la API key
   // de Anthropic — sin esto cualquiera con la URL la quemaba.
@@ -107,13 +129,13 @@ export async function POST(req: NextRequest) {
     const userMsg = buildUserPrompt(transcripcion, contexto)
 
     let model = await resolverModelo()
-    let res = await llamarClaude(model, system, userMsg)
+    let res = await llamarClaudeConReintentos(model, system, userMsg)
 
     // Si el modelo no existe (404), redescubre y reintenta una vez
     if (res.status === 404) {
       modeloResuelto = ''
       model = await resolverModelo()
-      res = await llamarClaude(model, system, userMsg)
+      res = await llamarClaudeConReintentos(model, system, userMsg)
     }
 
     if (!res.ok) {
