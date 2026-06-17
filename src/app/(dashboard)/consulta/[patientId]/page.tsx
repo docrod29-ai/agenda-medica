@@ -33,7 +33,7 @@ import { CobrarModal } from '@/components/CobrarModal'
 import {
   ArrowLeft, Mic, Square, Sparkles, Loader2, AlertTriangle, CheckCircle2,
   Trash2, Plus, ShieldCheck, Pill, Stethoscope, FileSignature,
-  Lock, Bug, FlaskConical, Lightbulb,
+  Lock, Bug, FlaskConical, Lightbulb, FileText, ChevronDown, ChevronUp,
 } from 'lucide-react'
 
 const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'valoracion_preoperatoria', 'alta_consulta', 'ingreso', 'evolucion', 'egreso']
@@ -84,6 +84,8 @@ export default function ConsultaActivaPage() {
   const [medicamentos, setMedicamentos] = useState<Medicamento[]>([])
   const [resumen, setResumen] = useState('')
   const [procesando, setProcesando] = useState(false)
+  // Material de origen (dictado): colapsado por defecto: NO forma parte de la nota
+  const [verFuente, setVerFuente] = useState(false)
   // ─── Medical NER (extracción de entidades) ─────────────────────
   const [entidades, setEntidades] = useState<EntidadesExtraidas | null>(null)
   const [nerCargando, setNerCargando] = useState(false)
@@ -157,14 +159,12 @@ export default function ConsultaActivaPage() {
   }, [clinicId, patientId, notaIdParam]) // eslint-disable-line
 
   // ── Cambiar tipo de nota → reset de secciones ──────────────────
-  const cambiarTipo = (t: TipoNota) => {
-    setTipo(t)
-    setSecciones(seccionesVacias(t))
-  }
-
   // ── Procesar transcripción con IA ──────────────────────────────
-  const procesarIA = useCallback(async () => {
+  // El dictado es la FUENTE DE VERDAD: se puede re-proyectar a cualquier
+  // modalidad de nota pasando tipoOverride (lo usa cambiarTipo).
+  const procesarIA = useCallback(async (tipoOverride?: TipoNota) => {
     if (!voz.transcripcion.trim()) { toast('No hay transcripción que procesar', 'info'); return }
+    const tipoActivo = tipoOverride ?? tipo
     setProcesando(true)
     try {
       const res = await fetchAutenticado('/api/expediente/procesar', {
@@ -172,7 +172,7 @@ export default function ConsultaActivaPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           transcripcion: voz.transcripcion,
-          tipo,
+          tipo: tipoActivo,
           contexto: {
             nombre: patient?.nombre ?? '',
             edad: patient?.edad,
@@ -191,25 +191,14 @@ export default function ConsultaActivaPage() {
       }
       // Mapear respuesta a estado
       setResumen(data.resumenEjecutivo ?? '')
-      // Para valoración preoperatoria: si la IA dejó "resumenClinico" vacío pero
-      // tenemos transcripción, usamos la transcripción cruda como fallback para
-      // que el médico tenga algo que editar en vez de un campo en blanco.
-      const esPreop = tipo === 'valoracion_preoperatoria'
-      const fallbackResumen = esPreop && voz.transcripcion
-        ? `[Transcripción cruda — edita y estructura]\n\n${voz.transcripcion}`
-        : ''
-      setSecciones(prev => prev.map(s => {
+      const esPreop = tipoActivo === 'valoracion_preoperatoria'
+      // La transcripción cruda NUNCA se vuelca dentro de la nota: es material de
+      // origen y vive en su propio panel. Las secciones solo reciben texto que la
+      // IA estructuró. Al re-proyectar a otra modalidad, las secciones que la IA
+      // no llenó quedan vacías (no arrastran valores de la modalidad anterior).
+      setSecciones(seccionesVacias(tipoActivo).map(s => {
         const valorIA = data.secciones?.[s.key]
-        // Si IA devuelve string no vacío, úsalo
-        if (typeof valorIA === 'string' && valorIA.trim()) {
-          return { ...s, value: valorIA }
-        }
-        // Fallback específico para resumenClinico en preop
-        if (esPreop && s.key === 'resumenClinico' && fallbackResumen && !s.value) {
-          return { ...s, value: fallbackResumen }
-        }
-        // Si no hay nada nuevo, mantén el valor previo
-        return { ...s, value: valorIA ?? s.value }
+        return (typeof valorIA === 'string' && valorIA.trim()) ? { ...s, value: valorIA } : s
       }))
       if (Array.isArray(data.diagnosticos)) setDiagnosticos(data.diagnosticos.filter((d: Diagnostico) => d.descripcion))
       if (Array.isArray(data.medicamentos)) setMedicamentos(data.medicamentos.filter((m: Medicamento) => m.nombre))
@@ -240,16 +229,17 @@ export default function ConsultaActivaPage() {
       if (esPreop && !data.secciones?.cirugiaPropuesta?.trim() &&
           !data.secciones?.resumenClinico?.trim() &&
           !data.secciones?.laboratorios?.trim()) {
-        toast('IA no pudo estructurar el dictado para preop. Revisa la transcripción cruda en "Resumen clínico"', 'error')
-        console.warn('[procesar] Secciones preop vacías. Tipo enviado:', tipo, 'Respuesta:', data)
+        toast('La IA no pudo estructurar el dictado para preoperatoria. Revisa el material de origen y reintenta.', 'error')
+        console.warn('[procesar] Secciones preop vacías. Tipo enviado:', tipoActivo, 'Respuesta:', data)
       }
       setAprobados(new Set()) // reset de aprobaciones al nuevo procesamiento
+      setVerFuente(false)     // colapsa el material de origen: la nota ya está estructurada
 
       // Auditoría (Fase F)
       if (clinicId) logAudit({
         evento: 'ia_procesamiento', clinicId, patientId, notaId: notaId ?? undefined,
         medicoUid: auth.currentUser?.uid, medicoEmail: auth.currentUser?.email ?? undefined,
-        meta: { tipo, transcripcionLen: voz.transcripcion.length },
+        meta: { tipo: tipoActivo, transcripcionLen: voz.transcripcion.length },
       })
 
       // Si la IA externa NO estructuró la nota, el route devuelve fallbackLocal + la
@@ -267,6 +257,28 @@ export default function ConsultaActivaPage() {
       setProcesando(false)
     }
   }, [voz.transcripcion, tipo, patient, toast])
+
+  // ── Cambiar la modalidad de nota ───────────────────────────────
+  // Si hay dictado, la nota se RE-PROYECTA desde esa fuente hacia la nueva
+  // modalidad (primera vez → historia clínica → preop, etc.). El dictado es la
+  // fuente de verdad; cada modalidad es una vista estructurada distinta de ella.
+  const cambiarTipo = (t: TipoNota) => {
+    if (firmada || t === tipo) return
+    const hayDictado = voz.transcripcion.trim().length > 0
+    const hayContenido = secciones.some(s => s.value?.trim())
+    if (hayDictado) {
+      if (hayContenido && !window.confirm(
+        `Se reestructurará la nota como "${TIPO_NOTA_LABEL[t]}" a partir del dictado. Los cambios manuales actuales se reemplazarán. ¿Continuar?`
+      )) return
+      setTipo(t)
+      setSecciones(seccionesVacias(t))
+      toast(`Re-estructurando como ${TIPO_NOTA_LABEL[t]}…`, 'info')
+      procesarIA(t)
+    } else {
+      setTipo(t)
+      setSecciones(seccionesVacias(t))
+    }
+  }
 
   // ── Extraer entidades clínicas (NER) ────────────────────────────
   // Equivalente local a AWS Comprehend Medical. Toma el texto disponible
@@ -584,7 +596,7 @@ export default function ConsultaActivaPage() {
                   Capta sobre todo tu voz · para grabar también al paciente usa “Conversación completa” · Ctrl/Cmd+R
                 </div>
               </div>
-              <button onClick={procesarIA} disabled={procesando || !voz.transcripcion.trim()} style={S.iaBtn(procesando || !voz.transcripcion.trim())}>
+              <button onClick={() => procesarIA()} disabled={procesando || !voz.transcripcion.trim()} style={S.iaBtn(procesando || !voz.transcripcion.trim())}>
                 {procesando ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Claude estructurando…</> : <><Sparkles size={16} /> Procesar con IA</>}
               </button>
             </div>
@@ -686,20 +698,41 @@ export default function ConsultaActivaPage() {
                 )}
                 {audio.error && <div style={{ fontSize: 11.5, color: '#f87171', marginTop: 3, display: 'flex', alignItems: 'center', gap: 5 }}><AlertTriangle size={12} className="ds-icon" /> {audio.error}</div>}
               </div>
-              <button onClick={procesarIA} disabled={procesando || !voz.transcripcion.trim()} style={S.iaBtn(procesando || !voz.transcripcion.trim())}>
+              <button onClick={() => procesarIA()} disabled={procesando || !voz.transcripcion.trim()} style={S.iaBtn(procesando || !voz.transcripcion.trim())}>
                 {procesando ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Claude estructurando…</> : <><Sparkles size={16} /> Procesar con IA</>}
               </button>
             </div>
           )}
 
-          {/* Transcripción en vivo / editable */}
+          {/* Material de origen (dictado) — FUENTE, no forma parte de la nota.
+              Mientras graba se ve en vivo; ya estructurada queda colapsada. */}
           {(voz.transcripcion || voz.grabando) && (
-            <textarea
-              value={voz.transcripcion + (voz.interim ? ` ${voz.interim}` : '')}
-              onChange={e => voz.setTranscripcion(e.target.value)}
-              placeholder="La transcripción aparecerá aquí…"
-              style={S.transcripcion}
-            />
+            <div style={{ marginTop: 14 }}>
+              {!voz.grabando && (
+                <button
+                  type="button"
+                  onClick={() => setVerFuente(v => !v)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+                    background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8,
+                    padding: '8px 12px', cursor: 'pointer', color: 'var(--text3)', fontSize: 12,
+                    textAlign: 'left',
+                  }}
+                >
+                  <FileText size={13} className="ds-icon" />
+                  <span style={{ flex: 1 }}>Material de origen (dictado) · no forma parte de la nota ni se imprime</span>
+                  {verFuente ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </button>
+              )}
+              {(voz.grabando || verFuente) && (
+                <textarea
+                  value={voz.transcripcion + (voz.interim ? ` ${voz.interim}` : '')}
+                  onChange={e => voz.setTranscripcion(e.target.value)}
+                  placeholder="La transcripción aparecerá aquí…"
+                  style={S.transcripcion}
+                />
+              )}
+            </div>
           )}
 
           {/* Panel de correcciones léxicas — transparencia + deshacer.
