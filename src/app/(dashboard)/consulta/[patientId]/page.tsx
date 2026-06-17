@@ -364,13 +364,14 @@ export default function ConsultaActivaPage() {
         aprobadoPor: estado === 'firmada' ? (auth.currentUser?.email ?? '') : undefined,
       } : undefined,
       transcripcionCruda: voz.transcripcion || undefined,
+      dialogoDiarizado: audio.utterances.length > 0 ? audio.utterances : undefined,
       estado,
       fechaConsulta: now,
       createdAt: now,
       updatedAt: now,
       creadoPor: auth.currentUser?.uid ?? '',
     }
-  }, [notaId, clinicId, patientId, patient, tipo, config, resumen, secciones, signos, diagnosticos, medicamentos, preop, extraction, safety, aprobados, voz.transcripcion])
+  }, [notaId, clinicId, patientId, patient, tipo, config, resumen, secciones, signos, diagnosticos, medicamentos, preop, extraction, safety, aprobados, voz.transcripcion, audio.utterances])
 
   // ── Guardar borrador ───────────────────────────────────────────
   // silencioso=true para el autoguardado (no muestra toast)

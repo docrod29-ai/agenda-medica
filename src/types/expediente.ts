@@ -180,6 +180,9 @@ export interface NotaMedica {
 
   // Trazabilidad: transcripción cruda de voz junto a la nota procesada
   transcripcionCruda?: string
+  // Trazabilidad legal: diálogo separado por voz (diarización), si la hubo.
+  // Cada turno = quién habló (A/B/C) y qué dijo. Para auditoría/relectura.
+  dialogoDiarizado?: { speaker: string; text: string }[]
 
   // Firma (presente cuando estado === 'firmada')
   firma?: Firma

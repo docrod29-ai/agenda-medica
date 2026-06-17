@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v106'  // Diarización (separar voces, AssemblyAI) + dictado como fuente re-proyectable a cualquier modalidad
+const CACHE = 'nexusmed-v107'  // Firma+sello auto-guardada al subir + diálogo diarizado persistido en el expediente
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

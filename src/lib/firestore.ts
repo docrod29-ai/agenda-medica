@@ -193,6 +193,19 @@ export async function saveConfig(clinicId: string, data: ClinicConfig): Promise<
   )
 }
 
+/**
+ * Guarda SOLO algunos campos de la config (merge), sin tocar el resto.
+ * Útil para persistir un cambio puntual al momento (p. ej. la firma+sello al
+ * subirla) sin depender del botón global "Guardar".
+ */
+export async function saveConfigPartial(clinicId: string, parcial: Partial<ClinicConfig>): Promise<void> {
+  await setDoc(
+    doc(db, 'clinics', clinicId, 'config', 'main'),
+    sinUndefined({ ...parcial, updatedAt: new Date().toISOString() }),
+    { merge: true }
+  )
+}
+
 // ── Doctors ───────────────────────────────────────────────────
 
 export async function getDoctors(clinicId: string): Promise<Doctor[]> {

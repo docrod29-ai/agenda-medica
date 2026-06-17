@@ -232,6 +232,11 @@ export default function NotaImprimiblePage() {
             {especialidad}<br />
             Cédula Profesional {cedula}
           </div>
+          {nota.estado !== 'firmada' && (
+            <div className="no-print" style={{ marginTop: 8, fontSize: 11.5, color: 'var(--text3)', fontStyle: 'italic' }}>
+              La firma y el sello aparecerán automáticamente al firmar la nota.
+            </div>
+          )}
         </div>
 
         {/* Alerta si el sello NO coincide (nota alterada en BD) */}

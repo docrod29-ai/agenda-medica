@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { ClinicConfig, DEFAULT_CONFIG, AppointmentType, APPOINTMENT_TYPE_CONFIG } from '@/types'
-import { saveConfig, updateDoctor } from '@/lib/firestore'
+import { saveConfig, saveConfigPartial, updateDoctor } from '@/lib/firestore'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useConfig } from '@/hooks/useConfig'
 import { useDoctors } from '@/hooks/useDoctors'
@@ -368,7 +368,17 @@ export default function ConfiguracionPage() {
           <div className="form-group" style={{ gridColumn: '1 / -1' }}>
             <FirmaUploadSection
               firmaDataUrl={form.firmaImagenDataUrl}
-              onChange={(dataUrl) => setForm({ ...form, firmaImagenDataUrl: dataUrl })}
+              onChange={(dataUrl) => {
+                setForm({ ...form, firmaImagenDataUrl: dataUrl })
+                // Persistir AL MOMENTO (sin esperar al botón global "Guardar"):
+                // la firma+sello debe quedar en la BD apenas se sube, para que
+                // aparezca en notas, recetas y órdenes sin pasos extra.
+                if (clinicId) {
+                  saveConfigPartial(clinicId, { firmaImagenDataUrl: dataUrl ?? '' })
+                    .then(() => toast(dataUrl ? 'Firma + sello guardada' : 'Firma eliminada', 'success'))
+                    .catch(() => toast('No se pudo guardar la firma', 'error'))
+                }
+              }}
             />
           </div>
         </div>
