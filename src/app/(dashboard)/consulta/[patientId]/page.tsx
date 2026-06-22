@@ -194,26 +194,37 @@ export default function ConsultaActivaPage() {
           : `Error de IA: ${data.error}`, 'error')
         return
       }
-      // Mapear respuesta a estado
-      setResumen(data.resumenEjecutivo ?? '')
+      // Mapear respuesta a estado.
+      // REGLA ANTI-PÉRDIDA: en un "Procesar con IA" normal SOLO se sobreescribe lo
+      // que la IA realmente devolvió; NUNCA se borra lo que ya había. Solo al
+      // RE-PROYECTAR a otra modalidad (tipoOverride) se parte de plantilla limpia.
       const esPreop = tipoActivo === 'valoracion_preoperatoria'
-      // La transcripción cruda NUNCA se vuelca dentro de la nota: es material de
-      // origen y vive en su propio panel. Las secciones solo reciben texto que la
-      // IA estructuró. Al re-proyectar a otra modalidad, las secciones que la IA
-      // no llenó quedan vacías (no arrastran valores de la modalidad anterior).
-      setSecciones(seccionesVacias(tipoActivo).map(s => {
-        const valorIA = data.secciones?.[s.key]
-        return (typeof valorIA === 'string' && valorIA.trim()) ? { ...s, value: valorIA } : s
-      }))
-      if (Array.isArray(data.diagnosticos)) setDiagnosticos(data.diagnosticos.filter((d: Diagnostico) => d.descripcion))
-      if (Array.isArray(data.medicamentos)) setMedicamentos(data.medicamentos.filter((m: Medicamento) => m.nombre))
+
+      if (data.resumenEjecutivo?.trim()) setResumen(data.resumenEjecutivo)
+      else if (tipoOverride) setResumen('')
+
+      // La transcripción cruda NUNCA se vuelca dentro de la nota (es material de origen).
+      setSecciones(prev => {
+        const base = tipoOverride ? seccionesVacias(tipoActivo) : prev
+        return base.map(s => {
+          const valorIA = data.secciones?.[s.key]
+          return (typeof valorIA === 'string' && valorIA.trim()) ? { ...s, value: valorIA } : s
+        })
+      })
+
+      const nuevosDx = Array.isArray(data.diagnosticos) ? data.diagnosticos.filter((d: Diagnostico) => d.descripcion) : []
+      if (nuevosDx.length > 0 || tipoOverride) setDiagnosticos(nuevosDx)
+      const nuevosMed = Array.isArray(data.medicamentos) ? data.medicamentos.filter((m: Medicamento) => m.nombre) : []
+      if (nuevosMed.length > 0 || tipoOverride) setMedicamentos(nuevosMed)
+
       if (data.signosVitales) {
         const sv = data.signosVitales
-        setSignos({
-          fc: sv.fc || undefined, fr: sv.fr || undefined, ta: sv.ta || undefined,
-          temperatura: sv.temperatura || undefined, spo2: sv.spo2 || undefined,
-          peso: sv.peso || undefined, talla: sv.talla || undefined,
-        })
+        // Merge: solo pisa los signos que la IA trae; conserva los demás.
+        setSignos(prev => ({
+          fc: sv.fc || prev.fc, fr: sv.fr || prev.fr, ta: sv.ta || prev.ta,
+          temperatura: sv.temperatura || prev.temperatura, spo2: sv.spo2 || prev.spo2,
+          peso: sv.peso || prev.peso, talla: sv.talla || prev.talla,
+        }))
       }
 
       // Bloque auditable (Fase B): guardamos extraction + safety para el panel de revisión
@@ -270,18 +281,19 @@ export default function ConsultaActivaPage() {
   const cambiarTipo = (t: TipoNota) => {
     if (firmada || t === tipo) return
     const hayDictado = voz.transcripcion.trim().length > 0
-    const hayContenido = secciones.some(s => s.value?.trim())
+    const hayContenido = secciones.some(s => s.value?.trim()) ||
+      diagnosticos.length > 0 || medicamentos.length > 0 || resumen.trim().length > 0
+    // SIEMPRE confirma si hay algo escrito — cambiar de modalidad vacía las secciones.
+    if (hayContenido && !window.confirm(
+      hayDictado
+        ? `Se reestructurará la nota como "${TIPO_NOTA_LABEL[t]}" desde el dictado. El contenido actual se reemplazará. ¿Continuar?`
+        : `Cambiar a "${TIPO_NOTA_LABEL[t]}" vaciará las secciones actuales. ¿Continuar?`
+    )) return
+    setTipo(t)
+    setSecciones(seccionesVacias(t))
     if (hayDictado) {
-      if (hayContenido && !window.confirm(
-        `Se reestructurará la nota como "${TIPO_NOTA_LABEL[t]}" a partir del dictado. Los cambios manuales actuales se reemplazarán. ¿Continuar?`
-      )) return
-      setTipo(t)
-      setSecciones(seccionesVacias(t))
       toast(`Re-estructurando como ${TIPO_NOTA_LABEL[t]}…`, 'info')
       procesarIA(t)
-    } else {
-      setTipo(t)
-      setSecciones(seccionesVacias(t))
     }
   }
 
