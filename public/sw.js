@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v109'  // Transcripción usa OpenAI O AssemblyAI (la que esté) — basta una llave
+const CACHE = 'nexusmed-v110'  // Causa real del fallo de IA de estructura visible en el panel (HTTP + pista de saldo)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

@@ -99,6 +99,19 @@ async function llamarClaudeConReintentos(model: string, system: string, userMsg:
   return res
 }
 
+/**
+ * Devuelve el fallback del parser local PERO con la causa REAL visible en el
+ * panel (safety.missing_critical_fields), no solo en un toast que desaparece.
+ * Así el médico (y nosotros) vemos en pantalla por qué falló la IA.
+ */
+function fallbackVisible(transcripcion: string, tipo: TipoNota, aviso: string, causa: string, debug?: string) {
+  const fallback = parserClinicoComoRespuestaIA(transcripcion, tipo) as {
+    safety: { missing_critical_fields: string[] }
+  } & Record<string, unknown>
+  fallback.safety.missing_critical_fields = [aviso]
+  return NextResponse.json({ ...fallback, _aviso: aviso, _causaFallback: causa, _detalleDebug: debug })
+}
+
 export async function POST(req: NextRequest) {
   // Seguridad: solo usuarios autenticados. Procesa PHI y consume la API key
   // de Anthropic — sin esto cualquiera con la URL la quemaba.
@@ -141,13 +154,17 @@ export async function POST(req: NextRequest) {
     if (!res.ok) {
       const err = await res.text()
       safeLog.error('[expediente/procesar] Claude HTTP error:', res.status, redactarString(err.slice(0, 500)))
-      const fallback = parserClinicoComoRespuestaIA(transcripcion, tipo)
-      return NextResponse.json({
-        ...fallback,
-        _aviso: `IA externa no respondió (HTTP ${res.status} de Anthropic). Llené lo básico — revisa todo.`,
-        _causaFallback: 'http_error',
-        _detalleDebug: `Claude ${res.status} en modelo ${model}`,
-      })
+      const pista = res.status === 401 ? ' — llave inválida'
+        : res.status === 403 ? ' — llave sin permiso'
+        : res.status === 429 ? ' — sin créditos o saturada (carga saldo en console.anthropic.com)'
+        : res.status === 400 ? ' — petición/saldo (revisa créditos en console.anthropic.com)'
+        : ''
+      return fallbackVisible(
+        transcripcion, tipo,
+        `IA de estructura no disponible: Anthropic respondió HTTP ${res.status}${pista}.`,
+        'http_error',
+        `Claude ${res.status} en modelo ${model}`,
+      )
     }
 
     const data = await res.json()
@@ -157,28 +174,26 @@ export async function POST(req: NextRequest) {
     // Si Claude devolvió string vacío, es signo de bloqueo/timeout
     if (!text.trim()) {
       console.warn('[procesar] Claude devolvió texto vacío. stop_reason=', stopReason)
-      const fallback = parserClinicoComoRespuestaIA(transcripcion, tipo)
-      return NextResponse.json({
-        ...fallback,
-        _aviso: `IA devolvió respuesta vacía (stop_reason=${stopReason || 'desconocido'}). Llené lo básico — revisa todo.`,
-        _causaFallback: 'respuesta_vacia',
-      })
+      return fallbackVisible(
+        transcripcion, tipo,
+        `IA de estructura devolvió respuesta vacía (stop_reason=${stopReason || 'desconocido'}).`,
+        'respuesta_vacia',
+      )
     }
 
     // Parsear el JSON (robusto ante markdown accidental y comentarios)
     const parsed = parseJSON(text)
     if (!parsed) {
       console.warn('[procesar] JSON no parseable. stop_reason=', stopReason, 'primeros 300 chars:', text.slice(0, 300))
-      const fallback = parserClinicoComoRespuestaIA(transcripcion, tipo)
       const fueCortado = stopReason === 'max_tokens'
-      return NextResponse.json({
-        ...fallback,
-        _aviso: fueCortado
-          ? 'IA devolvió JSON cortado por límite de tokens. Llené lo básico — revisa todo.'
-          : 'IA devolvió formato malformado. Llené lo básico con parser local — revisa todo.',
-        _causaFallback: fueCortado ? 'truncado_max_tokens' : 'json_malformado',
-        _detalleDebug: text.slice(0, 200),
-      })
+      return fallbackVisible(
+        transcripcion, tipo,
+        fueCortado
+          ? 'IA de estructura devolvió JSON cortado por límite de tokens.'
+          : 'IA de estructura devolvió un formato no válido.',
+        fueCortado ? 'truncado_max_tokens' : 'json_malformado',
+        text.slice(0, 200),
+      )
     }
 
     // Validar con Zod. Si falla, devolvemos lo que sí se pudo parsear
@@ -193,12 +208,11 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error('[expediente/procesar] Exception:', err)
     try {
-      const fallback = parserClinicoComoRespuestaIA(transcripcion, tipo)
-      return NextResponse.json({
-        ...fallback,
-        _aviso: `Error interno al llamar IA: ${String(err).slice(0, 100)}. Llené lo básico — revisa todo.`,
-        _causaFallback: 'excepcion',
-      })
+      return fallbackVisible(
+        transcripcion, tipo,
+        `Error interno al llamar la IA de estructura: ${String(err).slice(0, 100)}.`,
+        'excepcion',
+      )
     } catch {
       return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
     }
