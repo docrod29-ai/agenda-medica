@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v112'  // Barrido de bugs: notas duplicadas (race autosave) + crash por respuesta no-JSON en varios flujos
+const CACHE = 'nexusmed-v113'  // Reintentos ante rate-limit en transcripcion (carga de muchos medicos)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

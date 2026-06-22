@@ -74,11 +74,24 @@ export async function POST(req: NextRequest) {
     })
   }
 
+  // Reintenta ante errores transitorios (rate-limit / 5xx): clave cuando muchos
+  // médicos transcriben a la vez sobre la misma llave.
+  const STATUS_REINTENTABLE = new Set([429, 500, 502, 503, 529])
+  const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+  async function llamarOpenAIConReintentos(model: string) {
+    let res = await llamarOpenAI(model)
+    for (let i = 1; i <= 3 && STATUS_REINTENTABLE.has(res.status); i++) {
+      await sleep(i * 800)
+      res = await llamarOpenAI(model)
+    }
+    return res
+  }
+
   let ultimoError = ''
   let ultimoStatus = 0
   for (const model of modelos) {
     try {
-      const res = await llamarOpenAI(model)
+      const res = await llamarOpenAIConReintentos(model)
       if (res.ok) {
         const data = await res.json()
         return NextResponse.json({
