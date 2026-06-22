@@ -356,8 +356,9 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       fd.append('chunkIdx', String(idx))
       if (prevContext) fd.append('prevContext', prevContext)
       const res = await fetchAutenticado('/api/expediente/transcribir-chunk', { method: 'POST', body: fd })
-      const data = await res.json()
-      if (data.ok && data.text) {
+      if (!res.ok) return                              // 413/5xx/HTML → no parsear (evita SyntaxError)
+      const data = await res.json().catch(() => null)
+      if (data?.ok && data.text) {
         // Corrección léxica médica TAMBIÉN en chunks — el médico ve los
         // fármacos bien escritos EN VIVO, no solo al final
         const { corregido } = corregirTranscripcion(data.text)

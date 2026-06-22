@@ -93,6 +93,11 @@ export default function ConsultaActivaPage() {
   const [guardando, setGuardando] = useState(false)
   const [firmada, setFirmada] = useState(false)
   const [notaId, setNotaId] = useState<string | null>(notaIdParam)
+  // Ref síncrona del notaId + cadena de guardados serializada: evita que dos
+  // autoguardados creen notas DUPLICADAS (setNotaId es asíncrono).
+  const notaIdRef = useRef<string | null>(notaIdParam)
+  useEffect(() => { notaIdRef.current = notaId }, [notaId])
+  const cadenaGuardadoRef = useRef<Promise<unknown>>(Promise.resolve())
   const [preop, setPreop] = useState<{ inputs: Record<string, unknown>; resultados: Record<string, unknown> } | undefined>(undefined)
   // Fase B: bloque auditable de la IA + aprobaciones por campo
   const [extraction, setExtraction] = useState<Record<string, unknown> | undefined>(undefined)
@@ -187,7 +192,8 @@ export default function ConsultaActivaPage() {
           },
         }),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => null)
+      if (!data) { toast('La IA no respondió correctamente. Tu nota NO se modificó; intenta de nuevo.', 'error'); return }
       if (!data.ok) {
         toast(data.error === 'ANTHROPIC_API_KEY no configurada en el servidor'
           ? 'Falta configurar la API key de Claude en Vercel'
@@ -315,10 +321,10 @@ export default function ConsultaActivaPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ texto: textoFuente }),
       })
-      const data = await res.json()
-      if (!data.ok) {
-        setNerError(data.error ?? 'No se pudieron extraer entidades')
-        toast(`NER: ${data.error ?? 'error'}`, 'error')
+      const data = await res.json().catch(() => null)
+      if (!data || !data.ok) {
+        setNerError(data?.error ?? 'No se pudieron extraer entidades')
+        toast(`NER: ${data?.error ?? 'error'}`, 'error')
         return
       }
       setEntidades(data as EntidadesExtraidas)
@@ -387,30 +393,38 @@ export default function ConsultaActivaPage() {
 
   // ── Guardar borrador ───────────────────────────────────────────
   // silencioso=true para el autoguardado (no muestra toast)
-  const guardarBorrador = useCallback(async (silencioso = false) => {
-    if (!clinicId || firmada) return
-    setGuardando(true)
-    try {
-      const nota = construirNota('borrador')
-      if (notaId) {
-        // NOM-024 Art. 6.4: snapshot ANTES de sobrescribir para preservar el historial
-        const { guardarVersion } = await import('@/lib/expediente/versioning')
-        const { id: _ignore, ...sinId } = nota
-        void _ignore
-        guardarVersion(clinicId, patientId, notaId, sinId, auth.currentUser?.uid ?? '', auth.currentUser?.email ?? undefined).catch(() => {})
-        await updateNota(clinicId, patientId, notaId, nota)
-      } else {
-        const id = await createNota(clinicId, patientId, nota)
-        setNotaId(id)
+  const guardarBorrador = useCallback((silencioso = false): Promise<void> => {
+    if (!clinicId || firmada) return Promise.resolve()
+    // Serializa: cada guardado espera al anterior. Así dos autoguardados no
+    // crean la nota dos veces (usa notaIdRef, que es síncrona).
+    const tarea = cadenaGuardadoRef.current.then(async () => {
+      setGuardando(true)
+      try {
+        const nota = construirNota('borrador')
+        const idActual = notaIdRef.current
+        if (idActual) {
+          // NOM-024 Art. 6.4: snapshot ANTES de sobrescribir para preservar el historial
+          const { guardarVersion } = await import('@/lib/expediente/versioning')
+          const { id: _ignore, ...sinId } = nota
+          void _ignore
+          guardarVersion(clinicId, patientId, idActual, sinId, auth.currentUser?.uid ?? '', auth.currentUser?.email ?? undefined).catch(() => {})
+          await updateNota(clinicId, patientId, idActual, nota)
+        } else {
+          const id = await createNota(clinicId, patientId, nota)
+          notaIdRef.current = id   // marca síncrona ANTES de re-render
+          setNotaId(id)
+        }
+        if (!silencioso) toast('Borrador guardado', 'success')
+      } catch (e) {
+        console.error('[consulta] error guardando borrador:', e)
+        if (!silencioso) toast('Error al guardar el borrador', 'error')
+      } finally {
+        setGuardando(false)
       }
-      if (!silencioso) toast('Borrador guardado', 'success')
-    } catch (e) {
-      console.error('[consulta] error guardando borrador:', e)
-      if (!silencioso) toast('Error al guardar el borrador', 'error')
-    } finally {
-      setGuardando(false)
-    }
-  }, [clinicId, patientId, notaId, firmada, construirNota, toast])
+    })
+    cadenaGuardadoRef.current = tarea.catch(() => {})
+    return tarea
+  }, [clinicId, patientId, firmada, construirNota, toast])
 
   // ── Descartar borrador ─────────────────────────────────────────
   const descartar = useCallback(async () => {
@@ -475,11 +489,15 @@ export default function ConsultaActivaPage() {
         },
       }
 
-      let id = notaId
+      // Espera cualquier autoguardado en vuelo y usa la ref síncrona, para NO
+      // crear una nota duplicada al firmar justo después de un autoguardado.
+      await cadenaGuardadoRef.current.catch(() => {})
+      let id = notaIdRef.current
       if (id) {
         await updateNota(clinicId, patientId, id, notaFirmada)
       } else {
         id = await createNota(clinicId, patientId, notaFirmada)
+        notaIdRef.current = id
         setNotaId(id)
       }
       setFirmada(true)

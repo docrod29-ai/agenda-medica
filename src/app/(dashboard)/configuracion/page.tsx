@@ -50,9 +50,10 @@ export default function ConfiguracionPage() {
       if (!uid) return
       try {
         const res = await fetch(`/api/calendar/status?uid=${uid}`)
-        const data = await res.json()
-        setGcalConnected(data.connected)
-        if (data.connected) loadCalendars(uid)
+        if (!res.ok) { setGcalConnected(false); return }
+        const data = await res.json().catch(() => null)
+        setGcalConnected(!!data?.connected)
+        if (data?.connected) loadCalendars(uid)
       } catch {
         setGcalConnected(false)
       }
@@ -91,8 +92,9 @@ export default function ConfiguracionPage() {
   const loadCalendars = async (uid: string) => {
     try {
       const res = await fetch(`/api/calendar/calendars?uid=${uid}`)
-      const data = await res.json()
-      if (data.calendars) setGcalCalendars(data.calendars)
+      if (!res.ok) return
+      const data = await res.json().catch(() => null)
+      if (data?.calendars) setGcalCalendars(data.calendars)
     } catch { /* ignore */ }
   }
 
@@ -102,8 +104,9 @@ export default function ConfiguracionPage() {
       const uid = auth.currentUser?.uid
       if (!uid) { toast('Sesión expirada, inicia sesión nuevamente', 'error'); return }
       const res = await fetch(`/api/calendar/connect?uid=${uid}`)
-      const { url } = await res.json()
-      window.location.href = url
+      const data = res.ok ? await res.json().catch(() => null) : null
+      if (!data?.url) { toast('No se pudo iniciar la conexión con Google', 'error'); return }
+      window.location.href = data.url
     } catch {
       toast('Error al conectar con Google', 'error')
       setGcalLoading(false)
@@ -856,11 +859,11 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code, clinicId }),
         })
-        const data = await res.json()
-        if (res.ok && data.ok) {
+        const data = await res.json().catch(() => null)
+        if (res.ok && data?.ok) {
           toast(`WhatsApp conectado: ${data.phoneNumber}`, 'success')
         } else {
-          toast(data.error ?? 'Error al conectar', 'error')
+          toast(data?.error ?? 'Error al conectar', 'error')
         }
         setConnecting(false)
       }, {

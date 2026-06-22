@@ -105,9 +105,9 @@ export default function ReservarPage() {
           consentimientos: { avisoPrivacidad: c1, informado: c2 },
         }),
       })
-      const data = await r.json()
-      if (data.ok) setStep('exito')
-      else { setErrorMsg(data.error ?? 'No se pudo agendar'); setStep('error') }
+      const data = await r.json().catch(() => null)
+      if (r.ok && data?.ok) setStep('exito')
+      else { setErrorMsg(data?.error ?? 'No se pudo agendar. Intenta de nuevo.'); setStep('error') }
     } catch {
       setErrorMsg('Error de red'); setStep('error')
     } finally { setEnviando(false) }
