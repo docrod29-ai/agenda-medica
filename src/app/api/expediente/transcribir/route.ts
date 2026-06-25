@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { WHISPER_PROMPT_MEDICO } from '@/lib/expediente/medical-vocabulary'
 import { verificarUsuario } from '@/lib/auth-server'
+import { resolverClaveIA, pruebaAgotada, registrarUso } from '@/lib/ai-keys'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -23,11 +24,18 @@ export async function POST(req: NextRequest) {
   const acceso = await verificarUsuario(req)
   if (!acceso.ok) return acceso.response
 
-  const apiKey = process.env.OPENAI_API_KEY
+  // Llave del consultorio (o la del dueño en modo prueba).
+  const { key: apiKey, fuente, clinicId } = await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY)
   if (!apiKey) {
     return NextResponse.json(
       { ok: false, error: 'OPENAI_API_KEY no configurada. La app sigue funcionando con Web Speech.' },
       { status: 503 },
+    )
+  }
+  if (fuente === 'prueba' && await pruebaAgotada(clinicId)) {
+    return NextResponse.json(
+      { ok: false, error: 'Se agotó tu prueba gratis de IA. Configura tu propia API key en Configuración → Llaves de IA.' },
+      { status: 402 },
     )
   }
 
@@ -94,6 +102,7 @@ export async function POST(req: NextRequest) {
       const res = await llamarOpenAIConReintentos(model)
       if (res.ok) {
         const data = await res.json()
+        void registrarUso(clinicId, fuente)
         return NextResponse.json({
           ok: true,
           text: data.text ?? '',

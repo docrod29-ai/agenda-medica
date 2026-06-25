@@ -75,6 +75,11 @@ service cloud.firestore {
       match /bot_sessions/{docId} {
         allow read, write: if false; // Admin SDK only
       }
+      // API keys de IA del consultorio + medidor de uso. NUNCA accesibles desde
+      // el cliente: solo el servidor (Admin SDK) las lee/escribe.
+      match /secretos/{docId} {
+        allow read, write: if false; // Admin SDK only
+      }
       match /audit_log/{docId} {
         allow read: if isMember(clinicId);
         allow create: if isMember(clinicId);

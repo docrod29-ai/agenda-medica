@@ -16,9 +16,10 @@ import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
 import { parserClinicoComoRespuestaIA } from '@/lib/expediente/parser-clinico'
 import { safeLog, redactarString } from '@/lib/security/sanitize'
 import { verificarUsuario } from '@/lib/auth-server'
+import { resolverClaveIA, pruebaAgotada, registrarUso } from '@/lib/ai-keys'
 import type { TipoNota, PacienteContexto } from '@/types/expediente'
 
-const API_KEY = process.env.ANTHROPIC_API_KEY ?? ''
+const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL ?? ''
 const ANTHROPIC_VERSION = '2023-06-01'
 
@@ -39,21 +40,21 @@ const MODELOS_CANDIDATOS = [
 const STATUS_REINTENTABLE = new Set([429, 500, 502, 503, 529])
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
-const headersAnthropic = {
-  'x-api-key': API_KEY,
+const headersAnthropic = (key: string) => ({
+  'x-api-key': key,
   'anthropic-version': ANTHROPIC_VERSION,
   'Content-Type': 'application/json',
-}
+})
 
 /** Cachea el modelo resuelto entre invocaciones del runtime */
 let modeloResuelto = ''
 
 /** Descubre un modelo válido para esta cuenta vía /v1/models */
-async function resolverModelo(): Promise<string> {
+async function resolverModelo(key: string): Promise<string> {
   if (MODELO_OVERRIDE_OK()) return MODEL_OVERRIDE
   if (modeloResuelto) return modeloResuelto
   try {
-    const res = await fetch('https://api.anthropic.com/v1/models?limit=100', { headers: headersAnthropic })
+    const res = await fetch('https://api.anthropic.com/v1/models?limit=100', { headers: headersAnthropic(key) })
     if (res.ok) {
       const data = await res.json()
       const ids: string[] = (data.data ?? []).map((m: { id: string }) => m.id)
@@ -70,10 +71,10 @@ async function resolverModelo(): Promise<string> {
 
 function MODELO_OVERRIDE_OK() { return MODEL_OVERRIDE.length > 0 }
 
-async function llamarClaude(model: string, system: string, userMsg: string) {
+async function llamarClaude(key: string, model: string, system: string, userMsg: string) {
   return fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: headersAnthropic,
+    headers: headersAnthropic(key),
     body: JSON.stringify({
       model,
       // 8000 evita que el JSON se corte a la mitad cuando hay muchas
@@ -90,11 +91,11 @@ async function llamarClaude(model: string, system: string, userMsg: string) {
  * / 5xx) con backoff. Anthropic devuelve 529 cuando está saturado: un solo
  * intento hacía que la nota cayera al parser local "porque sí".
  */
-async function llamarClaudeConReintentos(model: string, system: string, userMsg: string) {
-  let res = await llamarClaude(model, system, userMsg)
+async function llamarClaudeConReintentos(key: string, model: string, system: string, userMsg: string) {
+  let res = await llamarClaude(key, model, system, userMsg)
   for (let intento = 1; intento <= 2 && STATUS_REINTENTABLE.has(res.status); intento++) {
     await sleep(intento * 700)
-    res = await llamarClaude(model, system, userMsg)
+    res = await llamarClaude(key, model, system, userMsg)
   }
   return res
 }
@@ -118,10 +119,18 @@ export async function POST(req: NextRequest) {
   const acceso = await verificarUsuario(req)
   if (!acceso.ok) return acceso.response
 
+  // Llave del consultorio (o la del dueño en modo prueba con tope).
+  const { key: API_KEY, fuente, clinicId } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
   if (!API_KEY) {
     return NextResponse.json(
-      { ok: false, error: 'ANTHROPIC_API_KEY no configurada en el servidor' },
+      { ok: false, error: 'No hay API key de Claude configurada. Agrégala en Configuración → Llaves de IA.' },
       { status: 503 },
+    )
+  }
+  if (fuente === 'prueba' && await pruebaAgotada(clinicId)) {
+    return NextResponse.json(
+      { ok: false, error: 'Se agotó tu prueba gratis de IA. Configura tu propia API key en Configuración → Llaves de IA.' },
+      { status: 402 },
     )
   }
 
@@ -141,14 +150,14 @@ export async function POST(req: NextRequest) {
     const system  = buildSystemPrompt(tipo)
     const userMsg = buildUserPrompt(transcripcion, contexto)
 
-    let model = await resolverModelo()
-    let res = await llamarClaudeConReintentos(model, system, userMsg)
+    let model = await resolverModelo(API_KEY)
+    let res = await llamarClaudeConReintentos(API_KEY, model, system, userMsg)
 
     // Si el modelo no existe (404), redescubre y reintenta una vez
     if (res.status === 404) {
       modeloResuelto = ''
-      model = await resolverModelo()
-      res = await llamarClaudeConReintentos(model, system, userMsg)
+      model = await resolverModelo(API_KEY)
+      res = await llamarClaudeConReintentos(API_KEY, model, system, userMsg)
     }
 
     if (!res.ok) {
@@ -201,9 +210,11 @@ export async function POST(req: NextRequest) {
     const validation = RespuestaExtraccion.safeParse(parsed)
     if (!validation.success) {
       console.warn('[procesar] Validación parcial:', validation.error.issues.slice(0, 3))
+      void registrarUso(clinicId, fuente)
       return NextResponse.json({ ok: true, ...parsed, _schemaWarning: true })
     }
 
+    void registrarUso(clinicId, fuente)
     return NextResponse.json({ ok: true, ...validation.data })
   } catch (err) {
     console.error('[expediente/procesar] Exception:', err)

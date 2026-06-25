@@ -384,6 +384,13 @@ export default function ConfiguracionPage() {
               }}
             />
           </div>
+
+          {/* 🔑 Llaves de IA por consultorio (multi-tenant) */}
+          {clinicId && (
+            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+              <LlavesIASection clinicId={clinicId} />
+            </div>
+          )}
         </div>
       )}
 
@@ -2981,6 +2988,124 @@ function MargenInput({ label, value, onChange }: { label: string; value: number;
  * Recomendado: PNG con FONDO TRANSPARENTE para que se vea bien sobre cualquier papel.
  * Si el médico sube un JPG, le agregamos fondo blanco igualmente.
  */
+type EstadoLlave = { configurada: boolean; hint: string }
+interface EstadoIA {
+  claves: { anthropic: EstadoLlave; assemblyai: EstadoLlave; openai: EstadoLlave }
+  uso: { total: number; prueba: number; limitePrueba: number }
+}
+const PROVEEDORES_IA = [
+  { id: 'anthropic', nombre: 'Claude (ordenar la nota)', url: 'https://console.anthropic.com', placeholder: 'sk-ant-...' },
+  { id: 'assemblyai', nombre: 'AssemblyAI (transcribir + separar voces)', url: 'https://www.assemblyai.com', placeholder: 'tu API key' },
+  { id: 'openai', nombre: 'OpenAI (transcribir, alternativa)', url: 'https://platform.openai.com/api-keys', placeholder: 'sk-...' },
+] as const
+
+/**
+ * Llaves de IA del consultorio. Cada doctor pone SUS propias llaves (paga su
+ * uso); si no, usa la del dueño en modo prueba con tope. Las llaves nunca se
+ * leen de vuelta — solo estado enmascarado.
+ */
+function LlavesIASection({ clinicId }: { clinicId: string }) {
+  const { toast } = useToast()
+  const [estado, setEstado] = useState<EstadoIA | null>(null)
+  const [inputs, setInputs] = useState<Record<string, string>>({ anthropic: '', assemblyai: '', openai: '' })
+  const [guardando, setGuardando] = useState('')
+
+  useEffect(() => {
+    let activo = true
+    fetchAutenticado(`/api/clinic/ai-keys?clinicId=${encodeURIComponent(clinicId)}`)
+      .then(r => r.ok ? r.json().catch(() => null) : null)
+      .then(d => { if (activo && d?.ok) setEstado(d) })
+      .catch(() => {})
+    return () => { activo = false }
+  }, [clinicId])
+
+  const guardar = async (proveedor: string, override?: string) => {
+    const key = override !== undefined ? override : (inputs[proveedor] ?? '')
+    setGuardando(proveedor)
+    try {
+      const r = await fetchAutenticado('/api/clinic/ai-keys', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicId, proveedor, key }),
+      })
+      const d = await r.json().catch(() => null)
+      if (r.ok && d?.ok) {
+        setEstado(d)
+        setInputs(p => ({ ...p, [proveedor]: '' }))
+        toast('Llave guardada', 'success')
+      } else {
+        toast(d?.error ?? 'No se pudo guardar la llave', 'error')
+      }
+    } catch {
+      toast('Error de red al guardar la llave', 'error')
+    } finally {
+      setGuardando('')
+    }
+  }
+
+  const u = estado?.uso
+  return (
+    <div style={{ background: 'linear-gradient(135deg, rgba(61,90,254,0.06), rgba(61,90,254,0.02))', border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginTop: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+        <KeyRound size={18} style={{ color: 'var(--nexus)' }} />
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>Llaves de IA (tu propio saldo)</div>
+      </div>
+      <p style={{ fontSize: 12.5, color: 'var(--text3)', lineHeight: 1.6, margin: '0 0 14px' }}>
+        Pon tus propias llaves para que la transcripción y el ordenado con IA corran con <strong>tu saldo</strong> (no compartido). Si no pones ninguna, usas una <strong>prueba gratis</strong> limitada. La llave se guarda cifrada del lado servidor — nunca se muestra completa.
+      </p>
+
+      {u && (
+        <div style={{ fontSize: 12, color: 'var(--text2)', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', marginBottom: 14 }}>
+          Uso este mes: <strong>{u.total}</strong> · Prueba gratis: <strong>{u.prueba}/{u.limitePrueba}</strong>
+          {u.prueba >= u.limitePrueba && <span style={{ color: '#f59e0b', fontWeight: 700 }}> · prueba agotada, pon tu llave</span>}
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gap: 12 }}>
+        {PROVEEDORES_IA.map(p => {
+          const st = estado?.claves?.[p.id as keyof EstadoIA['claves']]
+          return (
+            <div key={p.id} style={{ display: 'grid', gap: 5 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text2)' }}>{p.nombre}</span>
+                {st?.configurada
+                  ? <span style={{ fontSize: 11, fontWeight: 700, color: '#10b981' }}>● configurada {st.hint}</span>
+                  : <span style={{ fontSize: 11, color: 'var(--text3)' }}>○ modo prueba</span>}
+                <a href={p.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--nexus)', marginLeft: 'auto' }}>obtener llave ↗</a>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  type="password" autoComplete="off"
+                  value={inputs[p.id] ?? ''}
+                  onChange={e => setInputs(prev => ({ ...prev, [p.id]: e.target.value }))}
+                  placeholder={st?.configurada ? 'Pega una nueva para reemplazar' : p.placeholder}
+                  style={{ flex: 1, padding: '8px 11px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 13, boxSizing: 'border-box' }}
+                />
+                <button
+                  className="btn btn-sm btn-primary"
+                  disabled={guardando === p.id || !(inputs[p.id] ?? '').trim()}
+                  onClick={() => guardar(p.id)}
+                >
+                  {guardando === p.id ? '…' : 'Guardar'}
+                </button>
+                {st?.configurada && (
+                  <button
+                    className="btn btn-sm btn-secondary"
+                    disabled={guardando === p.id}
+                    onClick={() => guardar(p.id, '')}
+                    title="Quitar la llave (volver a modo prueba)"
+                  >
+                    Quitar
+                  </button>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function FirmaUploadSection({ firmaDataUrl, onChange }: { firmaDataUrl?: string; onChange: (dataUrl: string | undefined) => void }) {
   const { toast } = useToast()
   const [procesando, setProcesando] = useState(false)

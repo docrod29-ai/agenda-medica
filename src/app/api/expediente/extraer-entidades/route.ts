@@ -16,8 +16,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { NER_SYSTEM_PROMPT, buildNerUserPrompt, EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { safeLog } from '@/lib/security/sanitize'
 import { verificarUsuario } from '@/lib/auth-server'
+import { resolverClaveIA } from '@/lib/ai-keys'
 
-const API_KEY = process.env.ANTHROPIC_API_KEY ?? ''
+const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const ANTHROPIC_VERSION = '2023-06-01'
 
 const MODELOS_CANDIDATOS = [
@@ -29,12 +30,12 @@ const MODELOS_CANDIDATOS = [
 
 let modeloCache = ''
 
-async function resolverModelo(): Promise<string> {
+async function resolverModelo(key: string): Promise<string> {
   if (process.env.ANTHROPIC_MODEL) return process.env.ANTHROPIC_MODEL
   if (modeloCache) return modeloCache
   try {
     const res = await fetch('https://api.anthropic.com/v1/models?limit=100', {
-      headers: { 'x-api-key': API_KEY, 'anthropic-version': ANTHROPIC_VERSION },
+      headers: { 'x-api-key': key, 'anthropic-version': ANTHROPIC_VERSION },
     })
     if (res.ok) {
       const data = await res.json()
@@ -73,9 +74,10 @@ export async function POST(req: NextRequest) {
   const acceso = await verificarUsuario(req)
   if (!acceso.ok) return acceso.response
 
+  const { key: API_KEY } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
   if (!API_KEY) {
     return NextResponse.json(
-      { ok: false, error: 'ANTHROPIC_API_KEY no configurada' },
+      { ok: false, error: 'No hay API key de Claude configurada. Agrégala en Configuración → Llaves de IA.' },
       { status: 503 },
     )
   }
@@ -94,7 +96,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const model = await resolverModelo()
+    const model = await resolverModelo(API_KEY)
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {

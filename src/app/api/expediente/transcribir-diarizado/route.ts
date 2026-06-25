@@ -15,6 +15,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarUsuario } from '@/lib/auth-server'
+import { resolverClaveIA, pruebaAgotada, registrarUso } from '@/lib/ai-keys'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -27,11 +28,17 @@ export async function POST(req: NextRequest) {
   const acceso = await verificarUsuario(req)
   if (!acceso.ok) return acceso.response
 
-  const key = process.env.ASSEMBLYAI_API_KEY
+  const { key, fuente, clinicId } = await resolverClaveIA(acceso.uid, 'assemblyai', process.env.ASSEMBLYAI_API_KEY)
   if (!key) {
     return NextResponse.json(
       { ok: false, sinClave: true, error: 'ASSEMBLYAI_API_KEY no configurada. Se usa transcripción sin diarización.' },
       { status: 503 },
+    )
+  }
+  if (fuente === 'prueba' && await pruebaAgotada(clinicId)) {
+    return NextResponse.json(
+      { ok: false, error: 'Se agotó tu prueba gratis de IA. Configura tu propia API key en Configuración → Llaves de IA.' },
+      { status: 402 },
     )
   }
 
@@ -69,6 +76,7 @@ export async function POST(req: NextRequest) {
     })
     if (!sub.ok) return NextResponse.json({ ok: false, error: `AssemblyAI submit HTTP ${sub.status}` }, { status: 502 })
     const { id } = await sub.json()
+    void registrarUso(clinicId, fuente)   // un job = un uso
     return NextResponse.json({ ok: true, id })
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })
@@ -79,7 +87,8 @@ export async function GET(req: NextRequest) {
   const acceso = await verificarUsuario(req)
   if (!acceso.ok) return acceso.response
 
-  const key = process.env.ASSEMBLYAI_API_KEY
+  // Debe poller con la MISMA llave que envió el job (la del consultorio).
+  const { key } = await resolverClaveIA(acceso.uid, 'assemblyai', process.env.ASSEMBLYAI_API_KEY)
   if (!key) return NextResponse.json({ ok: false, sinClave: true }, { status: 503 })
 
   const id = req.nextUrl.searchParams.get('id')
