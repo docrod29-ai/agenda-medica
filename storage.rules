@@ -10,6 +10,13 @@ service firebase.storage {
       allow write, delete: if request.auth != null && request.auth.uid == uid;
       allow read: if false;
     }
+    // Formato de receta del médico (su papel membretado, alta resolución).
+    // Lo sube el dueño (mismo uid); se lee por la URL de descarga con token vía
+    // el proxy same-origin /api/receta/diseno (no por reglas → read:false).
+    match /receta-diseno/{uid}/{allPaths=**} {
+      allow write, delete: if request.auth != null && request.auth.uid == uid;
+      allow read: if false;
+    }
     // Todo lo demás: denegado.
     match /{allPaths=**} {
       allow read, write: if false;

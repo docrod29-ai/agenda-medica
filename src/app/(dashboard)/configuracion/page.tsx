@@ -7,7 +7,7 @@ import { useConfig } from '@/hooks/useConfig'
 import { useDoctors } from '@/hooks/useDoctors'
 import { useToast } from '@/context/ToastContext'
 import { useClinic } from '@/context/ClinicContext'
-import { auth } from '@/lib/firebase'
+import { auth, storage } from '@/lib/firebase'
 import { Loader2, Save, Copy, Calendar, CheckCircle2, XCircle, Link, Bot, CreditCard, ExternalLink, MessageCircle, Smartphone, AlertTriangle, UserRound, QrCode, Code, Lightbulb, Star, Ruler, KeyRound, Lock, PenLine, Sparkles } from 'lucide-react'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { msgConfirmacion, msgRecordatorio24h, msgRecordatorioDia } from '@/lib/whatsapp'
@@ -2180,29 +2180,31 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
       if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
         const { pdfFileToImageDataUrl } = await import('@/lib/pdf-to-image')
 
-        // Intento 1: PNG 240 DPI (máxima calidad)
+        // Intento 1: PNG 300 DPI (calidad de impresión). Con Storage el peso no
+        // importa → se conserva la máxima nitidez. Las reducciones de abajo SOLO
+        // aplican si NO hay Storage (para caber en el documento Firestore).
         let result = await pdfFileToImageDataUrl(file, {
-          dpi: 240, quality: 0.95, type: 'image/png',
+          dpi: 300, quality: 0.95, type: 'image/png',
           onProgress: setProgresoDiseno, timeoutMs: 60_000,
         })
-        // Si pesa demasiado: PNG 200 DPI
-        if (result.sizeBytes > 900_000) {
+        // Sin Storage y pesa demasiado: PNG 200 DPI
+        if (!storage && result.sizeBytes > 900_000) {
           setProgresoDiseno('Reduciendo tamaño (200 DPI)…')
           result = await pdfFileToImageDataUrl(file, {
             dpi: 200, quality: 0.95, type: 'image/png',
             onProgress: setProgresoDiseno, timeoutMs: 60_000,
           })
         }
-        // Si aún pesa: PNG 160 DPI
-        if (result.sizeBytes > 900_000) {
+        // Sin Storage y aún pesa: PNG 160 DPI
+        if (!storage && result.sizeBytes > 900_000) {
           setProgresoDiseno('Reduciendo tamaño (160 DPI)…')
           result = await pdfFileToImageDataUrl(file, {
             dpi: 160, quality: 0.95, type: 'image/png',
             onProgress: setProgresoDiseno, timeoutMs: 60_000,
           })
         }
-        // Último recurso: JPEG alta calidad
-        if (result.sizeBytes > 900_000) {
+        // Último recurso (sin Storage): JPEG alta calidad
+        if (!storage && result.sizeBytes > 900_000) {
           setProgresoDiseno('Optimizando (JPEG alta calidad)…')
           result = await pdfFileToImageDataUrl(file, {
             dpi: 200, quality: 0.92, type: 'image/jpeg',
@@ -2217,7 +2219,7 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
         setProgresoDiseno('Optimizando imagen…')
         // Mucho mejor que antes: 2200px de ancho máx, q95
         const result = await resizeImageFile(file, {
-          maxWidth: 2200, maxHeight: 3200, quality: 0.95,
+          maxWidth: 2600, maxHeight: 3500, quality: 0.95,
           type: file.type === 'image/png' ? 'image/png' : 'image/jpeg',
         })
         dataUrl = result.dataUrl
@@ -2230,7 +2232,29 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
         return
       }
 
-      if (sizeBytes > 900_000) {
+      // NITIDEZ: subir el diseño en ALTA RESOLUCIÓN a Firebase Storage (sin el
+      // límite de ~1MB de Firestore → sin pixelación) y servirlo por un proxy
+      // same-origin (/api/receta/diseno) para que el PDF no se ensucie por CORS.
+      // Si Storage no está disponible, cae al dataUrl en Firestore (debe caber).
+      let srcFinal = dataUrl
+      let enStorage = false
+      const uid = auth.currentUser?.uid
+      if (storage && uid) {
+        try {
+          setProgresoDiseno('Subiendo en alta resolución…')
+          const { ref: sref, uploadBytes, getDownloadURL } = await import('firebase/storage')
+          const blob = await (await fetch(dataUrl)).blob()
+          const objRef = sref(storage, `receta-diseno/${uid}/diseno-${Date.now()}.png`)
+          await uploadBytes(objRef, blob, { contentType: blob.type || 'image/png' })
+          const url = await getDownloadURL(objRef)
+          srcFinal = `/api/receta/diseno?u=${encodeURIComponent(url)}`
+          enStorage = true
+        } catch (err) {
+          console.warn('[disenoCompleto] Storage no disponible, uso Firestore:', err)
+        }
+      }
+      // Sin Storage: el dataUrl debe caber en el documento Firestore (~1MB).
+      if (!enStorage && sizeBytes > 900_000) {
         toast(`Aún muy pesado (${formatBytes(sizeBytes)}). Sube como JPG en menor resolución.`, 'error')
         return
       }
@@ -2246,11 +2270,12 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
         }
       }
 
-      setRx({ ...rx, disenoCompletoDataUrl: dataUrl, paperSize: nuevoPaperSize })
+      setRx({ ...rx, disenoCompletoDataUrl: srcFinal, paperSize: nuevoPaperSize })
+      const nitido = enStorage ? ' · alta resolución' : ''
       if (auto) {
-        toast(`Diseño cargado (${formatBytes(sizeBytes)}) · papel ajustado a ${PAPER_SIZES[nuevoPaperSize].label}`, 'success')
+        toast(`Diseño cargado (${formatBytes(sizeBytes)})${nitido} · papel ajustado a ${PAPER_SIZES[nuevoPaperSize].label}`, 'success')
       } else {
-        toast(`Diseño cargado (${formatBytes(sizeBytes)})`, 'success')
+        toast(`Diseño cargado (${formatBytes(sizeBytes)})${nitido}`, 'success')
       }
     } catch (e) {
       console.error('[disenoCompleto] error:', e)
@@ -2335,6 +2360,7 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
                   disenoCompletoDataUrl: '',
                   disenoMargenes: undefined,
                   disenoSoloRx: false,
+                  disenoCampos: undefined,
                 }))}
                 style={{
                   position: 'absolute', top: 12, right: 12,
