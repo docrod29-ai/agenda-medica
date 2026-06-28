@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v138'  // Modelo B: tarjeta para iniciar prueba (trial nativo Stripe 14d) + gate elegir-plan + clinica en vivo
+const CACHE = 'nexusmed-v139'  // Login: link a registro + errores de Google legibles (dominio no autorizado, popup)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

@@ -74,8 +74,14 @@ function RegistroInner() {
       router.replace(destinoTrasRegistro)
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? ''
-      if (code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request') {
-        setError('No se pudo registrar con Google. Intenta de nuevo.')
+      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+        // cerró la ventana
+      } else if (code === 'auth/unauthorized-domain') {
+        setError('Este dominio no está autorizado en Firebase (Authentication → Configuración → Dominios autorizados).')
+      } else if (code === 'auth/popup-blocked') {
+        setError('El navegador bloqueó la ventana de Google. Permite ventanas emergentes e intenta de nuevo.')
+      } else {
+        setError(`No se pudo registrar con Google: ${code || 'error desconocido'}`)
       }
     } finally {
       setSubmitting(false)

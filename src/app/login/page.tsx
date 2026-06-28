@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
+import Link from 'next/link'
 import { Stethoscope, Eye, EyeOff, Loader2 } from 'lucide-react'
 
 export default function LoginPage() {
@@ -62,8 +63,12 @@ function LoginInner() {
       const code = (err as { code?: string }).code ?? ''
       if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
         // El usuario cerró la ventana: sin ruido.
+      } else if (code === 'auth/unauthorized-domain') {
+        setError('Este dominio no está autorizado en Firebase. Agrégalo en Authentication → Configuración → Dominios autorizados.')
+      } else if (code === 'auth/popup-blocked') {
+        setError('El navegador bloqueó la ventana de Google. Permite ventanas emergentes e intenta de nuevo.')
       } else {
-        setError('No se pudo entrar con Google. Intenta de nuevo.')
+        setError(`No se pudo entrar con Google: ${code || 'error desconocido'}`)
       }
     } finally {
       setSubmitting(false)
@@ -269,6 +274,18 @@ function LoginInner() {
               ) : 'Iniciar sesión'}
             </button>
           </form>
+        </div>
+
+        {/* Registro — para quien AÚN no tiene cuenta */}
+        <div style={{
+          textAlign: 'center', marginTop: 18, padding: '14px 16px',
+          background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12,
+          fontSize: 14, color: 'var(--text2)',
+        }}>
+          ¿No tienes cuenta?{' '}
+          <Link href={invite ? `/registro?invite=${invite}` : '/registro'} style={{ color: 'var(--teal)', fontWeight: 700, textDecoration: 'none' }}>
+            Crea una gratis →
+          </Link>
         </div>
 
         <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text3)', marginTop: 20 }}>
