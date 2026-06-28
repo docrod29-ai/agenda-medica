@@ -1296,9 +1296,9 @@ function MedicosTab() {
 /* ── Suscripción Tab ─────────────────────────────────────────── */
 const PLAN_DISPLAY: Record<string, { label: string; color: string; price: string }> = {
   trial:   { label: 'Prueba gratuita',  color: '#f59e0b', price: '$0 MXN/mes' },
-  basico:  { label: 'Plan Básico',      color: '#60a5fa', price: '$299 MXN/mes' },
-  pro:     { label: 'Plan Pro',         color: '#3D5AFE', price: '$499 MXN/mes' },
-  clinica: { label: 'Plan Clínica',     color: '#a78bfa', price: '$999 MXN/mes' },
+  basico:  { label: 'Plan Básico',      color: '#60a5fa', price: '$699 MXN/mes' },
+  pro:     { label: 'Plan Pro',         color: '#3D5AFE', price: '$999 MXN/mes' },
+  clinica: { label: 'Plan Clínica',     color: '#a78bfa', price: '$1,799 MXN/mes' },
 }
 
 const PLAN_FEATURES: Record<string, string[]> = {

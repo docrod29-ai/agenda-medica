@@ -46,7 +46,7 @@ const STEPS = [
 const PLANS = [
   {
     name: 'Básico',
-    price: '299',
+    price: '699',
     desc: 'Para médicos que empiezan',
     features: ['1 médico', 'Agenda y calendario', 'Recordatorios automáticos', 'Portal de secretaria', 'Soporte por email'],
     cta: 'Empezar prueba gratis',
@@ -54,7 +54,7 @@ const PLANS = [
   },
   {
     name: 'Pro',
-    price: '499',
+    price: '999',
     desc: 'El más popular',
     features: ['1 médico', 'Todo lo del Básico', 'Bot de WhatsApp 24/7', 'Lista de espera automática', 'Google Calendar sync', 'Soporte prioritario'],
     cta: 'Empezar prueba gratis',
@@ -62,7 +62,7 @@ const PLANS = [
   },
   {
     name: 'Clínica',
-    price: '999',
+    price: '1,799',
     desc: 'Para equipos médicos',
     features: ['Hasta 5 médicos', 'Todo lo del Pro', 'Múltiples secretarias', 'Dashboard de métricas', 'Onboarding dedicado', 'Soporte WhatsApp directo'],
     cta: 'Hablar con ventas',
