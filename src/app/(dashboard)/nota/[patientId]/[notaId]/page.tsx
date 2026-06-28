@@ -203,7 +203,7 @@ export default function NotaImprimiblePage() {
             <SecTitle>Plan farmacológico</SecTitle>
             <ol style={{ margin: 0, paddingLeft: 20, fontSize: 12.5 }}>
               {nota.medicamentos.map((m, i) => (
-                <li key={i}>{m.nombre} {m.dosis} · {m.via} · {m.frecuencia} · {m.duracion}{m.indicacion ? ` — ${m.indicacion}` : ''}</li>
+                <li key={i}>{[`${m.nombre}${m.dosis ? ` ${m.dosis}` : ''}`.trim(), m.via, m.frecuencia, m.duracion].filter(Boolean).join(' · ')}{m.indicacion ? ` — ${m.indicacion}` : ''}</li>
               ))}
             </ol>
           </div>

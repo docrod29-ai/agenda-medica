@@ -349,7 +349,7 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase' }}>Medicamentos</div>
                 {nota.medicamentos.map((m, i) => (
                   <div key={i} style={{ fontSize: 13, color: 'var(--text2)', marginTop: 3 }}>
-                    • {m.nombre} {m.dosis} · {m.via} · {m.frecuencia} · {m.duracion}
+                    • {[`${m.nombre}${m.dosis ? ` ${m.dosis}` : ''}`.trim(), m.via, m.frecuencia, m.duracion].filter(Boolean).join(' · ')}
                   </div>
                 ))}
               </div>

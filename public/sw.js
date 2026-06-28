@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v120'  // D10: codificacion CIE-10 automatica por diagnostico (con needs_review si baja confianza)
+const CACHE = 'nexusmed-v121'  // D1: formato de medicamentos sin separadores colgando (une solo campos presentes)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

@@ -65,7 +65,7 @@ export default function CartaReferenciaPage() {
       if (nota) {
         setResumen(nota.resumenEjecutivo || nota.secciones.find(s => s.value)?.value || '')
         setDiagnosticos(nota.diagnosticos.map(d => `${d.descripcion}${d.codigoCIE10 ? ` (CIE-10: ${d.codigoCIE10})` : ''}`).join('\n'))
-        setTratamiento(nota.medicamentos.map(m => `${m.nombre} ${m.dosis} · ${m.via} · ${m.frecuencia} · ${m.duracion}`).join('\n'))
+        setTratamiento(nota.medicamentos.map(m => [`${m.nombre}${m.dosis ? ` ${m.dosis}` : ''}`.trim(), m.via, m.frecuencia, m.duracion].filter(Boolean).join(' · ')).join('\n'))
       }
       setLoading(false)
     })
