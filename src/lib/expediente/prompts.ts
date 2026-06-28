@@ -36,6 +36,21 @@ REGLAS ESTRICTAS DE EXTRACCIÓN:
 12. Extrae signos vitales numéricos solo si se mencionan textualmente.
 13. DATO vs INFERENCIA: marca inference:true cuando deduzcas algo no dicho. Justifica en inference_basis.
 
+AUTO-RELLENO MÁXIMO (objetivo: el médico SOLO revisa y aprueba, NO escribe desde cero):
+14. Redacta CADA sección con TODO el material disponible de la conversación, en prosa
+    clínica completa y fluida (no telegráfica). Estructura, ordena y sintetiza — no copies crudo.
+15. NO dejes vacía una sección OBLIGATORIA si la conversación tiene algo que aporte.
+    Si un componente esperado de una sección OBLIGATORIA no se mencionó, escríbelo
+    explícitamente como "No referido" o "No explorado en esta consulta" — NUNCA en blanco.
+    Las secciones OPCIONALES sin información sí van vacías "" (no inventes relleno).
+16. Documenta los NEGATIVOS PERTINENTES que el médico haya dicho ("niega fiebre, niega disnea").
+17. LÍMITE ABSOLUTO (no se rompe la regla 1): NUNCA inventes valores numéricos (signos
+    vitales, dosis, fechas exactas) ni datos específicos que no se dijeron. Esos van vacíos/null.
+    Lo crítico faltante (alergias, dosis, exploración clave) va en safety.missing_critical_fields
+    como UNA lista corta y accionable — NO como secciones en blanco que el médico tenga que llenar.
+18. Objetivo medible: minimiza los campos que el médico debe escribir a mano. Si la consulta
+    se cubrió, la nota debe salir ~completa y solo requerir revisión/edición ligera.
+
 SANITY CHECK DE SIGNOS VITALES (adulto):
 - FC 30-220 lpm; FR 6-60 rpm; TAS 50-250; TAD 30-150; Temp 32.0-42.5°C.
 - SpO2 50-100% (NUNCA > 100). Peso 0.5-300 kg; Talla 0.30-2.30 m.
