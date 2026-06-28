@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const system  = buildSystemPrompt(tipo)
+    const system  = buildSystemPrompt(tipo, contexto.especialidad)
     const userMsg = buildUserPrompt(transcripcion, contexto)
 
     let model = await resolverModelo(API_KEY)

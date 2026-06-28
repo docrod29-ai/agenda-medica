@@ -193,12 +193,45 @@ Adicional: extrae signosVitales (especialmente spo2, peso, talla)
 para que el motor de cálculo los use.`,
 }
 
-export function buildSystemPrompt(tipo: TipoNota): string {
+/**
+ * Guía por especialidad: qué enfatizar/estructurar para que la nota salga como
+ * la haría un especialista de esa rama. Se inyecta según la especialidad del
+ * médico. Texto libre normalizado (sin acentos, minúsculas) → busca substring.
+ */
+const ESPECIALIDAD_GUIA: Record<string, string> = {
+  cardiolog: 'CARDIOLOGÍA: clasifica disnea (NYHA) y angina (CCS); documenta factores de riesgo CV (HTA, DM, dislipidemia, tabaquismo, AHF), hallazgos de ECG/eco si se mencionan, y estratifica riesgo. Plan: metas de TA/LDL, antiagregación/anticoagulación con justificación.',
+  pediatr: 'PEDIATRÍA: SIEMPRE peso, talla, perímetro cefálico (lactante) y percentiles si hay datos; dosis en mg/kg/día Y mg/kg/dosis; esquema de vacunación CENSIA; hitos del desarrollo; alimentación. Cálculo de líquidos Holliday-Segar cuando aplique.',
+  ginec: 'GINECOLOGÍA/OBSTETRICIA: FUM, ciclo, G/P/A/C, método anticonceptivo, citología/mama; en embarazo: edad gestacional por FUM/USG, FCF, movimientos fetales, categoría FDA de fármacos. Evita teratógenos.',
+  internista: 'MEDICINA INTERNA: enfoque por problemas (problem list), comorbilidades y su control, polifarmacia y conciliación, criterios de Beers en ≥65. Síntesis de sistemas.',
+  urgenc: 'URGENCIAS: triage, ABCDE, tiempo de evolución, signos de alarma, escalas (qSOFA, Glasgow, dolor torácico). Plan: estabilización, estudios urgentes, criterios de ingreso/alta/observación.',
+  infectolog: 'INFECTOLOGÍA/PROA: foco infeccioso, síndrome, microbiología (cultivos/antibiograma), empírico vs dirigido, esquema completo (fármaco+dosis+vía+intervalo+duración+ajuste renal), desescalada y switch IV→VO, día de tratamiento y reevaluación 48-72h.',
+  cirug: 'CIRUGÍA: diagnóstico quirúrgico, indicación, riesgo (ASA), consentimiento, plan quirúrgico, profilaxis antibiótica y tromboprofilaxis, cuidados pre/postoperatorios.',
+  psiqui: 'PSIQUIATRÍA: examen mental estructurado, riesgo suicida/heteroagresividad, antecedentes psiquiátricos y de consumo, escalas (PHQ-9, GAD-7) si se mencionan, plan farmacológico + psicoterapia.',
+  dermatolog: 'DERMATOLOGÍA: describe lesión elemental (tipo, color, forma, bordes, distribución, topografía), dermatoscopía si aplica, diagnóstico diferencial dermatológico.',
+  ortoped: 'ORTOPEDIA/TRAUMA: mecanismo de lesión, exploración articular (arcos, estabilidad, neurovascular distal), imagen (Rx/TAC), clasificación de fractura, plan (inmovilización/quirúrgico).',
+  endocrin: 'ENDOCRINOLOGÍA: control metabólico (HbA1c, glucosa, perfil tiroideo/lipídico), metas terapéuticas, ajuste de insulina/hipoglucemiantes, complicaciones micro/macrovasculares.',
+  neurolog: 'NEUROLOGÍA: exploración neurológica estructurada (pares, fuerza, sensibilidad, reflejos, marcha, cognición), escalas (NIHSS, Glasgow), localización topográfica del déficit.',
+  neumolog: 'NEUMOLOGÍA: patrón respiratorio, SpO2, espirometría si se menciona, tabaquismo (índice paquetes/año), clasificación (GOLD/GINA), plan inhalado.',
+  gastro: 'GASTROENTEROLOGÍA: síntomas digestivos, signos de alarma, endoscopia si aplica, función hepática, plan dietético y farmacológico.',
+  nefrolog: 'NEFROLOGÍA: función renal (creatinina, eGFR, estadio ERC), balance hídrico, electrolitos, ajuste de fármacos por TFG, indicación de diálisis si aplica.',
+  oncolog: 'ONCOLOGÍA: estadificación (TNM), ECOG/Karnofsky, línea de tratamiento, toxicidades, plan oncológico y de soporte.',
+}
+
+function guiaEspecialidad(especialidad?: string): string {
+  if (!especialidad) return ''
+  const norm = especialidad.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  for (const [clave, guia] of Object.entries(ESPECIALIDAD_GUIA)) {
+    if (norm.includes(clave)) return `\nENFOQUE POR ESPECIALIDAD — ${guia}\n`
+  }
+  return ''
+}
+
+export function buildSystemPrompt(tipo: TipoNota, especialidad?: string): string {
   const secciones = SECCIONES_POR_TIPO[tipo]
   const listaSecciones = secciones.map(s => `   - "${s.key}": ${s.label}${s.obligatorio ? ' (obligatorio)' : ''}`).join('\n')
 
   return `${REGLAS_BASE}
-${ESPECIFICO[tipo] ? `\nINSTRUCCIONES ESPECÍFICAS:\n${ESPECIFICO[tipo]}\n` : ''}
+${guiaEspecialidad(especialidad)}${ESPECIFICO[tipo] ? `\nINSTRUCCIONES ESPECÍFICAS:\n${ESPECIFICO[tipo]}\n` : ''}
 ESTRUCTURA JSON ESPERADA (incluye los campos planos + el bloque auditable "extraction" + "safety"):
 {
   "resumenEjecutivo": "1 línea que resume el caso",

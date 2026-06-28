@@ -212,4 +212,5 @@ export interface PacienteContexto {
   alergias?: string
   notasPrevias?: string          // resumen de notas anteriores
   medicamentosActuales?: string
+  especialidad?: string          // especialidad del médico → estructura la nota a esa especialidad
 }

@@ -189,6 +189,7 @@ export default function ConsultaActivaPage() {
             sexo: patient?.sexo,
             alergias: patient?.alergias,
             notasPrevias: ultimasNotasRef.current,
+            especialidad: config?.especialidad,
           },
         }),
       })
