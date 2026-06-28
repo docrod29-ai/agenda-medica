@@ -28,6 +28,11 @@ export const db = typeof window !== 'undefined'
 
 // Storage — para subir audio largo de consulta y diarizarlo sin chocar con el
 // límite de 4.5MB de las funciones de Vercel. Solo cliente.
-export const storage = typeof window !== 'undefined' ? getStorage(app) : null
+// Defensivo: si el bucket no está bien configurado, NO debe tronar la carga de
+// la app — queda null y la diarización de audio largo cae a su fallback.
+export const storage = (() => {
+  if (typeof window === 'undefined') return null
+  try { return getStorage(app) } catch { return null }
+})()
 
 export default app

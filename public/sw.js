@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v125'  // Error de recuperacion calmado (ambar) + boton Descartar audio guardado a un toque
+const CACHE = 'nexusmed-v126'  // Blindaje: getStorage en try-catch (bucket mal configurado no traba la carga de la app)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
