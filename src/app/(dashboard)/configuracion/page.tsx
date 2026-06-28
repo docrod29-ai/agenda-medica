@@ -3228,27 +3228,54 @@ function FirmaUploadSection({ firmaDataUrl, onChange }: { firmaDataUrl?: string;
   const [procesando, setProcesando] = useState(false)
 
   const subir = async (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      toast('Sube una imagen PNG o JPG', 'error')
+    const esPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+    if (!file.type.startsWith('image/') && !esPDF) {
+      toast('Sube una imagen (PNG/JPG) o un PDF', 'error')
       return
     }
     setProcesando(true)
     try {
-      // Para firma, preferimos PNG (preserva transparencia)
-      // Si el archivo original es PNG, lo mantenemos como PNG; si es JPG, redimensionamos
-      const esPNG = file.type === 'image/png'
-      const { dataUrl, sizeBytes } = await resizeImageFile(file, {
-        maxWidth: 800,
-        maxHeight: 400,
-        quality: 0.9,
-        type: esPNG ? 'image/png' : 'image/jpeg',
-      })
-      if (sizeBytes > 400_000) {
-        toast(`Imagen muy pesada (${formatBytes(sizeBytes)}). Sube una versión más pequeña.`, 'error')
+      // PDF → primera página a imagen; imagen → se redimensiona (PNG conserva transparencia).
+      let dataUrl: string
+      let sizeBytes: number
+      if (esPDF) {
+        const { pdfFileToImageDataUrl } = await import('@/lib/pdf-to-image')
+        const r = await pdfFileToImageDataUrl(file, { dpi: 220, quality: 0.95, type: 'image/png', timeoutMs: 60_000 })
+        dataUrl = r.dataUrl; sizeBytes = r.sizeBytes
+      } else {
+        const esPNG = file.type === 'image/png'
+        const r = await resizeImageFile(file, {
+          maxWidth: 1000, maxHeight: 600, quality: 0.9,
+          type: esPNG ? 'image/png' : 'image/jpeg',
+        })
+        dataUrl = r.dataUrl; sizeBytes = r.sizeBytes
+      }
+
+      // Subir a Storage (sin el tope de 400KB de Firestore) y servir por el proxy
+      // same-origin. Así no satura el documento de config ni truena el PDF por CORS.
+      // Fallback: si Storage no está, usa el dataUrl (debe caber en Firestore).
+      let src = dataUrl
+      let enStorage = false
+      const uid = auth.currentUser?.uid
+      if (storage && uid) {
+        try {
+          const { ref: sref, uploadBytes, getDownloadURL } = await import('firebase/storage')
+          const blob = await (await fetch(dataUrl)).blob()
+          const objRef = sref(storage, `receta-diseno/${uid}/firma-${Date.now()}.png`)
+          await uploadBytes(objRef, blob, { contentType: blob.type || 'image/png' })
+          const url = await getDownloadURL(objRef)
+          src = `/api/receta/diseno?u=${encodeURIComponent(url)}`
+          enStorage = true
+        } catch (err) {
+          console.warn('[firma] Storage no disponible, uso dataUrl:', err)
+        }
+      }
+      if (!enStorage && sizeBytes > 400_000) {
+        toast(`Imagen muy pesada (${formatBytes(sizeBytes)}) y Storage no disponible. Sube una versión más pequeña.`, 'error')
         return
       }
-      onChange(dataUrl)
-      toast(`Firma cargada (${formatBytes(sizeBytes)})`, 'success')
+      onChange(src)
+      toast(`Firma cargada (${formatBytes(sizeBytes)})${enStorage ? ' · alta resolución' : ''}`, 'success')
     } catch (e) {
       toast(`No se pudo procesar: ${(e as Error).message}`, 'error')
     } finally {
@@ -3308,13 +3335,13 @@ function FirmaUploadSection({ firmaDataUrl, onChange }: { firmaDataUrl?: string;
               <Upload size={20} style={{ marginBottom: 6, color: 'var(--teal)' }} />
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Sube tu firma + sello</div>
               <div style={{ fontSize: 11, marginTop: 4 }}>
-                PNG (recomendado, fondo transparente) o JPG · Máx 400 KB
+                PNG (recomendado, fondo transparente), JPG o PDF · alta resolución
               </div>
             </>
           )}
           <input
             type="file"
-            accept="image/png,image/jpeg,image/webp"
+            accept="application/pdf,image/png,image/jpeg,image/webp"
             disabled={procesando}
             onChange={(e) => { const f = e.target.files?.[0]; if (f) subir(f) }}
             style={{ display: 'none' }}

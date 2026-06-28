@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v134'  // Receta nitidez: formato hi-res en Storage + proxy same-origin (sin pixelado, sin CORS en PDF)
+const CACHE = 'nexusmed-v135'  // Firma/sello: acepta PDF + sube a Storage (sin tope 400KB, no satura el doc de config)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
