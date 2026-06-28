@@ -28,7 +28,11 @@ REGLAS ESTRICTAS DE EXTRACCIÓN:
 4. Si el médico CORRIGE al paciente, prioriza la corrección del médico pero deja la cita textual como source_quote.
 5. Si el dato proviene de un ACOMPAÑANTE, marca speaker="acompanante".
 6. Para medicamentos extrae: nombre genérico, dosis, vía, frecuencia, duración. Si la dosis es ambigua, needs_review=true.
-7. Para diagnósticos sugiere CIE-10 SOLO si tienes alta confianza; si no, déjalo vacío.
+7. CODIFICACIÓN: para CADA diagnóstico propón el código CIE-10 más probable (no lo
+   dejes vacío). Si tu confianza no es alta, igual proponlo PERO marca needs_review=true
+   para que el médico confirme. Para procedimientos mencionados, sugiere el concepto
+   facturable (CPT/intervención) cuando sea claro. Nunca inventes un código que no
+   corresponda al diagnóstico; ante duda, el más genérico de esa categoría + needs_review.
 8. Las ALERGIAS son SIEMPRE dato crítico: needs_review=true salvo que el médico las confirme explícitamente.
 9. Convierte fechas relativas a contexto temporal claro ("hace 3 días").
 10. Elimina muletillas, repeticiones y conversación irrelevante.
