@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v118'  // D4: auto-procesar al terminar la grabacion (graba-deten-nota lista, un toque menos)
+const CACHE = 'nexusmed-v119'  // D8: control flotante Detener-y-generar (manos libres, detener desde cualquier parte en celular)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

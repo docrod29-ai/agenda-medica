@@ -1104,6 +1104,30 @@ export default function ConsultaActivaPage() {
         />
       )}
 
+      {/* Control flotante de grabación — visible desde cualquier parte (manos libres / celular) */}
+      {(voz.grabando || audio.estado === 'grabando') && (
+        <div style={{
+          position: 'fixed', left: '50%', bottom: 18, transform: 'translateX(-50%)', zIndex: 200,
+          display: 'flex', alignItems: 'center', gap: 12, maxWidth: 'calc(100vw - 24px)',
+          background: 'var(--s1)', border: '1px solid var(--border2, var(--border))',
+          borderRadius: 999, padding: '8px 8px 8px 16px', boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
+        }}>
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444', flexShrink: 0, animation: 'pulse 1.5s infinite' }} />
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+            Grabando · {modoVoz === 'vivo'
+              ? mmss
+              : `${String(Math.floor(audio.duracion / 60)).padStart(2, '0')}:${String(audio.duracion % 60).padStart(2, '0')}`}
+          </span>
+          <button
+            onClick={async () => { if (modoVoz === 'vivo') voz.detener(); else await audio.detener() }}
+            className="btn btn-primary btn-sm"
+            style={{ borderRadius: 999, flexShrink: 0 }}
+          >
+            <Square size={13} fill="currentColor" /> Detener y generar nota
+          </button>
+        </div>
+      )}
+
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); } 50% { box-shadow: 0 0 0 12px rgba(239,68,68,0); } }
