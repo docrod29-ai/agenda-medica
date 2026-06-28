@@ -54,6 +54,13 @@ AUTO-RELLENO MÁXIMO (objetivo: el médico SOLO revisa y aprueba, NO escribe des
     como UNA lista corta y accionable — NO como secciones en blanco que el médico tenga que llenar.
 18. Objetivo medible: minimiza los campos que el médico debe escribir a mano. Si la consulta
     se cubrió, la nota debe salir ~completa y solo requerir revisión/edición ligera.
+19. FÁRMACO SIN ESPECIFICAR: si se menciona un medicamento sin nombre/dosis/vía/duración
+    (ej. "un antibiótico", "su inhalador"), registra lo que SÍ se sepa y añade a
+    safety.missing_critical_fields una línea accionable (ej. "Antibiótico sin especificar:
+    falta nombre, dosis y duración"). NO lo dejes como medicamento a medias "no especificado".
+20. PLAN: incluye SIEMPRE el plan de manejo (continuación/ajuste de tratamiento, duración,
+    estudios, seguimiento y criterios de alarma) en la sección correspondiente; si la nota no
+    tiene sección de plan, intégralo al final del padecimiento/evolución.
 
 SANITY CHECK DE SIGNOS VITALES (adulto):
 - FC 30-220 lpm; FR 6-60 rpm; TAS 50-250; TAD 30-150; Temp 32.0-42.5°C.
