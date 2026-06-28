@@ -16,6 +16,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarUsuario } from '@/lib/auth-server'
 import { resolverClaveIA, pruebaAgotada, registrarUso } from '@/lib/ai-keys'
+import { WORD_BOOST_MEDICO } from '@/lib/expediente/medical-vocabulary'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -83,6 +84,8 @@ export async function POST(req: NextRequest) {
         language_code: 'es',
         punctuate: true,
         format_text: true,
+        word_boost: WORD_BOOST_MEDICO,  // sesga el ASR hacia fármacos/términos MX
+        boost_param: 'high',
       }),
     })
     if (!sub.ok) return NextResponse.json({ ok: false, error: `AssemblyAI submit HTTP ${sub.status}` }, { status: 502 })

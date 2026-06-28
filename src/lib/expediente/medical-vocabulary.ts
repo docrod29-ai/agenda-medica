@@ -655,6 +655,20 @@ const TODOS_LOS_TERMINOS: string[] = [
   ...Object.keys(ABREVIATURAS),     // y la abreviada
 ]
 
+/**
+ * Lista CURADA y acotada para el "word_boost" de AssemblyAI: sesga el ASR hacia
+ * estos términos para oír bien fármacos/marcas MX. Subconjunto de los más
+ * confundibles (no todo el catálogo: demasiados términos diluyen el boost).
+ * ≤3 palabras, ≥4 letras, sin duplicados, máx 600.
+ */
+export const WORD_BOOST_MEDICO: string[] = Array.from(new Set([
+  ...ANTIBIOTICOS, ...ANTIFUNGICOS, ...CARDIOVASCULARES, ...ENDOCRINO_METABOLICO,
+  ...PSICOFARMACOS, ...ANALGESICOS_AINE, ...OPIOIDES, ...INHALADORES_BRONCODILATADORES,
+  ...GASTRO, ...NEFRO_UROLOGICO, ...MARCAS_COMERCIALES_MX,
+]))
+  .filter(t => typeof t === 'string' && t.length >= 4 && t.trim().split(/\s+/).length <= 3)
+  .slice(0, 600)
+
 // Índice fonético: forma fonética → término canónico
 const INDICE_FONETICO: Map<string, string> = (() => {
   const m = new Map<string, string>()
