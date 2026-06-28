@@ -59,9 +59,13 @@ export async function POST(req: NextRequest) {
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: {
-        trial_period_days: 0, // Trial is managed by us (14-day free period already started)
+        // Modelo B: la tarjeta se captura HOY pero el primer cargo es hasta el día 15.
+        // Stripe gestiona el trial y el cobro automático; si falla → invoice.payment_failed.
+        trial_period_days: 14,
         metadata: { clinicId, plan },
       },
+      // Requerir tarjeta aunque haya trial (sin esto Stripe podría omitirla).
+      payment_method_collection: 'always',
       success_url: `${APP_URL}/dashboard?checkout=success&plan=${plan}`,
       cancel_url:  `${APP_URL}/dashboard?checkout=cancelled`,
       allow_promotion_codes: true,

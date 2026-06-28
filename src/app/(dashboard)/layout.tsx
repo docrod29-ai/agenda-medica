@@ -13,6 +13,7 @@ import { OfflineBanner } from '@/components/OfflineBanner'
 import { NotificacionesPushOptIn } from '@/components/NotificacionesPushOptIn'
 import { useMode } from '@/context/ModeContext'
 import { BottomNav } from '@/components/BottomNav'
+import { fetchAutenticado } from '@/lib/auth-client'
 
 function ModeBanner() {
   const { mode } = useMode()
@@ -62,49 +63,100 @@ function TrialBanner() {
 }
 
 /**
- * ¿Debe bloquearse el acceso? SOLO si la prueba ya venció y NO hay suscripción
- * activa. Es conservador: ante la duda (sin fecha de fin, datos incompletos) NO
- * bloquea — nunca dejar fuera a un usuario que sí pagó o sigue en prueba válida.
+ * Estado de acceso (Modelo B: tarjeta para iniciar la prueba).
+ * - 'ok': suscripción activa o en prueba de Stripe (el webhook mapea trialing→active)
+ *   o cuenta de cortesía (status 'active').
+ * - 'vencido': se canceló o falló el cobro → reactivar.
+ * - 'sin_tarjeta': cuenta nueva sin suscripción → elegir plan + tarjeta.
+ * Conservador: ante la duda (sin clínica) NO bloquea.
  */
-function trialVencido(clinic: { plan?: string; status?: string; trialEndsAt?: string; stripeSubscriptionStatus?: string } | null): boolean {
-  if (!clinic) return false
-  const sub = clinic.stripeSubscriptionStatus
-  if (sub === 'active' || sub === 'trialing') return false   // suscripción al corriente
-  if (clinic.status === 'active') return false               // plan de pago activo
-  if (clinic.status === 'canceled' || clinic.status === 'past_due') return true
-  if (clinic.status === 'trial' || clinic.plan === 'trial') {
-    const ends = clinic.trialEndsAt ? new Date(clinic.trialEndsAt).getTime() : null
-    return ends ? Date.now() > ends : false                  // sin fecha → no bloquear
-  }
-  return false
+function estadoAcceso(clinic: { status?: string } | null): 'ok' | 'sin_tarjeta' | 'vencido' {
+  if (!clinic) return 'ok'
+  if (clinic.status === 'active') return 'ok'
+  if (clinic.status === 'suspended' || clinic.status === 'cancelled' || clinic.status === 'canceled' || clinic.status === 'past_due') return 'vencido'
+  return 'sin_tarjeta'   // 'trial' o cuenta nueva → necesita tarjeta para iniciar
 }
 
-function Paywall({ esMedico }: { esMedico: boolean }) {
+const PLANES_GATE = [
+  { key: 'basico',  label: 'Básico',  price: '$699',   nota: '1 médico' },
+  { key: 'pro',     label: 'Pro',     price: '$999',   nota: '1 médico · WhatsApp 24/7', destacado: true },
+  { key: 'clinica', label: 'Clínica', price: '$1,799', nota: 'Hasta 5 médicos' },
+]
+
+/** Tras pagar, el webhook tarda unos segundos. Clínica en vivo → el gate se quita
+ *  solo al activarse. Fallback: recargar una vez por si el webhook se retrasa. */
+function ActivandoCuenta() {
+  useEffect(() => {
+    const t = setTimeout(() => window.location.reload(), 9000)
+    return () => clearTimeout(t)
+  }, [])
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+      <Loader2 size={30} color="var(--teal)" style={{ animation: 'spin 1s linear infinite' }} />
+      <div style={{ fontSize: 15, color: 'var(--text2)' }}>Activando tu cuenta…</div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  )
+}
+
+function AccesoGate({ estado, clinicId, esMedico, email }: { estado: 'sin_tarjeta' | 'vencido'; clinicId: string | null; esMedico: boolean; email: string }) {
+  const [cargando, setCargando] = useState<string | null>(null)
+  const nuevo = estado === 'sin_tarjeta'
+  const iniciar = async (plan: string) => {
+    if (!clinicId) return
+    setCargando(plan)
+    try {
+      const res = await fetchAutenticado('/api/stripe/checkout', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicId, plan, email }),
+      })
+      const data = await res.json()
+      if (data.url) { window.location.href = data.url; return }
+      setCargando(null)
+    } catch { setCargando(null) }
+  }
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div style={{ maxWidth: 460, width: '100%', textAlign: 'center', background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 16, padding: '36px 28px' }}>
-        <div style={{ width: 52, height: 52, borderRadius: 14, background: 'rgba(245,158,11,0.12)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>
-          <AlertTriangle size={24} color="#f59e0b" />
-        </div>
-        <h1 style={{ fontSize: 22, fontWeight: 600, color: 'var(--text)', margin: '0 0 8px' }}>Tu prueba gratuita terminó</h1>
-        <p style={{ fontSize: 14, color: 'var(--text2)', margin: '0 0 24px', lineHeight: 1.5 }}>
-          Tus datos están a salvo. {esMedico
-            ? 'Activa un plan para seguir usando NexusMED sin interrupciones.'
-            : 'Pídele al médico responsable que active un plan para reanudar el acceso.'}
+      <div style={{ maxWidth: 720, width: '100%', textAlign: 'center' }}>
+        <h1 style={{ fontSize: 26, fontWeight: 600, color: 'var(--text)', margin: '0 0 10px' }}>
+          {nuevo ? 'Inicia tu prueba gratis de 14 días' : 'Reactiva tu suscripción'}
+        </h1>
+        <p style={{ fontSize: 14.5, color: 'var(--text2)', margin: '0 auto 28px', maxWidth: 520, lineHeight: 1.5 }}>
+          {esMedico
+            ? (nuevo
+                ? 'Elige tu plan y agrega tu tarjeta. No se te cobra hoy — el primer cargo es hasta el día 15 y puedes cancelar cuando quieras.'
+                : 'Tu acceso está en pausa. Elige un plan para continuar; tus datos están a salvo.')
+            : 'Pídele al médico responsable del consultorio que active el plan para reanudar el acceso.'}
         </p>
         {esMedico && (
-          <Link href="/configuracion?tab=suscripcion" style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            background: 'var(--teal)', color: '#000', fontWeight: 700, fontSize: 15,
-            padding: '12px 24px', borderRadius: 10, textDecoration: 'none', width: '100%',
-          }}>
-            Ver planes y activar →
-          </Link>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 14, maxWidth: 660, margin: '0 auto' }}>
+            {PLANES_GATE.map(p => (
+              <div key={p.key} style={{
+                background: 'var(--s1)', borderRadius: 14, padding: '22px 18px',
+                border: `1px solid ${p.destacado ? 'var(--teal)' : 'var(--border)'}`,
+                display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center',
+              }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{p.label}</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>{p.price}<span style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 500 }}>/mes</span></div>
+                <div style={{ fontSize: 12, color: 'var(--text3)', minHeight: 32 }}>{p.nota}</div>
+                <button onClick={() => iniciar(p.key)} disabled={!!cargando}
+                  style={{
+                    marginTop: 6, width: '100%', padding: '10px 14px', borderRadius: 9,
+                    cursor: cargando ? 'wait' : 'pointer', border: 'none', fontWeight: 700, fontSize: 14,
+                    background: p.destacado ? 'var(--teal)' : 'var(--s2)',
+                    color: p.destacado ? '#000' : 'var(--text)',
+                  }}>
+                  {cargando === p.key ? 'Abriendo…' : nuevo ? 'Empezar' : 'Elegir'}
+                </button>
+              </div>
+            ))}
+          </div>
         )}
-        <button
-          onClick={() => { import('@/lib/firebase').then(({ auth }) => auth.signOut()) }}
-          style={{ marginTop: 14, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}
-        >
+        {esMedico && nuevo && (
+          <div style={{ marginTop: 14, fontSize: 11.5, color: 'var(--text3)' }}>Pago seguro con Stripe · Cancela cuando quieras</div>
+        )}
+        <button onClick={() => { import('@/lib/firebase').then(({ auth }) => auth.signOut()) }}
+          style={{ marginTop: 22, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}>
           Cerrar sesión
         </button>
       </div>
@@ -151,10 +203,14 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
 
   if (!user || (!clinicId && !needsSetup)) return null
 
-  // Paywall: prueba vencida sin suscripción → bloquea TODO salvo Configuración
-  // (para que el médico pueda activar su plan) y el cierre de sesión.
-  if (trialVencido(clinic) && !pathname.startsWith('/configuracion')) {
-    return <Paywall esMedico={esMedicoReal} />
+  // Modelo B: sin suscripción (cuenta nueva) o vencida → bloquea la app y muestra
+  // elegir plan + tarjeta. Tras pagar (?checkout=success) muestra "Activando…" hasta
+  // que el webhook active la clínica (en vivo → se desbloquea solo).
+  const acceso = estadoAcceso(clinic)
+  if (acceso !== 'ok') {
+    const recienPago = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('checkout') === 'success'
+    if (recienPago) return <ActivandoCuenta />
+    return <AccesoGate estado={acceso} clinicId={clinicId} esMedico={esMedicoReal} email={user?.email ?? ''} />
   }
 
   return (
