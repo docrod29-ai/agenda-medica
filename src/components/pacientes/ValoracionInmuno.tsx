@@ -12,6 +12,7 @@ import { useClinic } from '@/context/ClinicContext'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { Download, Sparkles, Save } from 'lucide-react'
 import type { Patient } from '@/types'
 import { TX_CHIPS, TX_EST_CATS, TX_EST_QUANT, TX_MOT_TIT, hostFlags } from '@/lib/inmuno/catalogos'
 import { compose } from '@/lib/inmuno/compose'
@@ -246,9 +247,9 @@ export default function ValoracionInmuno({ patient }: { patient: Patient }) {
 
         {/* Acciones */}
         <div className="flex flex-wrap gap-2">
-          <Button variant="primary" size="sm" onClick={() => descargarWord()}>⬇ Word completo</Button>
-          <Button variant="secondary" size="sm" loading={iaLoading} onClick={redactarIA}>🤖 Redactar con IA</Button>
-          <Button variant="secondary" size="sm" onClick={guardarHist}>💾 Guardar al historial</Button>
+          <Button variant="primary" size="sm" icon={<Download size={15} />} onClick={() => descargarWord()}>Word completo</Button>
+          <Button variant="secondary" size="sm" icon={<Sparkles size={15} />} loading={iaLoading} onClick={redactarIA}>Redactar con IA</Button>
+          <Button variant="secondary" size="sm" icon={<Save size={15} />} onClick={guardarHist}>Guardar al historial</Button>
         </div>
         {status && <div className="text-xs" style={{ color: 'var(--text3)' }}>{status}</div>}
 
@@ -271,7 +272,7 @@ export default function ValoracionInmuno({ patient }: { patient: Patient }) {
             <div className="text-xs font-semibold mb-1" style={{ color: 'var(--purple,#7c3aed)' }}>Borrador IA — valida y edita antes de usar</div>
             <textarea className={inputCls} rows={12} value={iaTexto} onChange={(e) => setIaTexto(e.target.value)} />
             <div className="flex gap-2 mt-2">
-              <Button variant="secondary" size="sm" onClick={() => descargarWord(iaTexto)}>⬇ Descargar Word</Button>
+              <Button variant="secondary" size="sm" icon={<Download size={15} />} onClick={() => descargarWord(iaTexto)}>Descargar Word</Button>
             </div>
           </Card>
         )}
