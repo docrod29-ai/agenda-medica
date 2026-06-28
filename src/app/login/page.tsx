@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { signInWithEmailAndPassword } from 'firebase/auth'
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import { Stethoscope, Eye, EyeOff, Loader2 } from 'lucide-react'
@@ -26,6 +26,7 @@ function LoginInner() {
   const [showPwd, setShowPwd] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [info, setInfo] = useState('')
 
   useEffect(() => {
     if (!loading && user) router.replace(destino)
@@ -49,6 +50,38 @@ function LoginInner() {
       }
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleGoogle = async () => {
+    setError(''); setInfo(''); setSubmitting(true)
+    try {
+      await signInWithPopup(auth, new GoogleAuthProvider())
+      router.replace(destino)
+    } catch (err: unknown) {
+      const code = (err as { code?: string }).code ?? ''
+      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+        // El usuario cerró la ventana: sin ruido.
+      } else {
+        setError('No se pudo entrar con Google. Intenta de nuevo.')
+      }
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleReset = async () => {
+    setError(''); setInfo('')
+    if (!email.includes('@')) {
+      setError('Escribe tu correo arriba y vuelve a tocar “¿Olvidaste tu contraseña?”.')
+      return
+    }
+    try {
+      await sendPasswordResetEmail(auth, email.trim())
+      setInfo('Te enviamos un correo para restablecer tu contraseña. Revisa tu bandeja (y spam).')
+    } catch {
+      // No revelamos si el correo existe (privacidad): mismo mensaje siempre.
+      setInfo('Si ese correo tiene cuenta, te llegará un enlace para restablecer la contraseña.')
     }
   }
 
@@ -129,6 +162,32 @@ function LoginInner() {
             Iniciar sesión
           </h2>
 
+          {/* Google — un clic, menos fricción */}
+          <button
+            type="button"
+            onClick={handleGoogle}
+            disabled={submitting}
+            className="btn"
+            style={{
+              width: '100%', justifyContent: 'center', gap: 10, padding: '11px 16px',
+              background: '#fff', color: '#1a1a1a', border: '1px solid var(--border2)', fontWeight: 600,
+            }}
+          >
+            <svg width="17" height="17" viewBox="0 0 48 48" aria-hidden="true">
+              <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.6 2.4 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.2 17.7 9.5 24 9.5z"/>
+              <path fill="#4285F4" d="M46.1 24.6c0-1.6-.1-3.1-.4-4.6H24v9.1h12.4c-.5 2.9-2.1 5.3-4.6 7l7.1 5.5c4.2-3.9 6.6-9.6 6.6-17z"/>
+              <path fill="#FBBC05" d="M10.5 28.3c-.5-1.4-.8-2.9-.8-4.3s.3-3 .8-4.3l-7.9-6.1C1 16.5 0 20.1 0 24s1 7.5 2.6 10.4l7.9-6.1z"/>
+              <path fill="#34A853" d="M24 48c6.2 0 11.5-2 15.3-5.5l-7.1-5.5c-2 1.4-4.6 2.2-8.2 2.2-6.3 0-11.6-3.7-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/>
+            </svg>
+            Continuar con Google
+          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '18px 0' }}>
+            <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+            <span style={{ fontSize: 12, color: 'var(--text3)' }}>o con tu correo</span>
+            <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+          </div>
+
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div className="form-group">
               <label className="label">Correo electrónico</label>
@@ -167,6 +226,16 @@ function LoginInner() {
                   {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              <button
+                type="button"
+                onClick={handleReset}
+                style={{
+                  marginTop: 8, background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                  fontSize: 12.5, color: 'var(--teal)', textAlign: 'left',
+                }}
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
             </div>
 
             {error && (
@@ -175,6 +244,14 @@ function LoginInner() {
                 borderRadius: 8, padding: '10px 12px', fontSize: 13, color: '#f87171',
               }}>
                 {error}
+              </div>
+            )}
+            {info && (
+              <div style={{
+                background: 'rgba(20,184,166,0.1)', border: '1px solid rgba(20,184,166,0.3)',
+                borderRadius: 8, padding: '10px 12px', fontSize: 13, color: 'var(--teal)',
+              }}>
+                {info}
               </div>
             )}
 
