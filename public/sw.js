@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v130'  // D3: lexico de voz 2026 (~4000 farmacos/terminos curados) en corrector + word_boost
+const CACHE = 'nexusmed-v131'  // D6: red de seguridad local (respaldo de la nota en el navegador, anti-perdida)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

@@ -101,6 +101,8 @@ export default function ConsultaActivaPage() {
   const [procesando, setProcesando] = useState(false)
   // Material de origen (dictado): colapsado por defecto: NO forma parte de la nota
   const [verFuente, setVerFuente] = useState(false)
+  // Red de seguridad local: respaldo de la nota en el navegador (anti-pérdida)
+  const [respaldoDisponible, setRespaldoDisponible] = useState(false)
   // ─── Medical NER (extracción de entidades) ─────────────────────
   const [entidades, setEntidades] = useState<EntidadesExtraidas | null>(null)
   const [nerCargando, setNerCargando] = useState(false)
@@ -461,6 +463,7 @@ export default function ConsultaActivaPage() {
       if (clinicId && notaId) {
         await deleteNota(clinicId, patientId, notaId)
       }
+      try { localStorage.removeItem(respaldoKey) } catch { /* */ }
       toast('Consulta descartada', 'info')
       router.push(`/expediente/${patientId}`)
     } catch (e) {
@@ -476,6 +479,48 @@ export default function ConsultaActivaPage() {
     const t = setInterval(() => { if (resumen || secciones.some(s => s.value)) guardarBorrador(true) }, 30000)
     return () => clearInterval(t)
   }, [firmada, resumen, secciones, guardarBorrador])
+
+  // ── Red de seguridad LOCAL (anti-pérdida): respalda la nota en el navegador
+  //    mientras escribes (instantáneo, sobrevive a crashes y a estar sin red). ──
+  const respaldoKey = `nx.consulta.bkp.${patientId}`
+  useEffect(() => {
+    if (firmada) return
+    const hayContenido = resumen.trim() || secciones.some(s => s.value?.trim()) ||
+      diagnosticos.length > 0 || medicamentos.length > 0
+    if (!hayContenido) return
+    const id = setTimeout(() => {
+      try {
+        localStorage.setItem(respaldoKey, JSON.stringify({
+          tipo, resumen, secciones, signos, diagnosticos, medicamentos,
+          transcripcion: voz.transcripcion, ts: Date.now(),
+        }))
+      } catch { /* almacenamiento lleno: no es crítico */ }
+    }, 1500)
+    return () => clearTimeout(id)
+  }, [firmada, tipo, resumen, secciones, signos, diagnosticos, medicamentos, voz.transcripcion, respaldoKey])
+
+  // Al abrir: si hay respaldo local y el formulario está vacío, ofrécelo.
+  useEffect(() => {
+    if (!patientId) return
+    try { if (localStorage.getItem(respaldoKey)) setRespaldoDisponible(true) } catch { /* */ }
+  }, [patientId, respaldoKey])
+
+  const restaurarRespaldo = () => {
+    try {
+      const raw = localStorage.getItem(respaldoKey)
+      if (!raw) { setRespaldoDisponible(false); return }
+      const b = JSON.parse(raw)
+      if (b.tipo) setTipo(b.tipo)
+      if (Array.isArray(b.secciones)) setSecciones(b.secciones)
+      if (typeof b.resumen === 'string') setResumen(b.resumen)
+      if (b.signos) setSignos(b.signos)
+      if (Array.isArray(b.diagnosticos)) setDiagnosticos(b.diagnosticos)
+      if (Array.isArray(b.medicamentos)) setMedicamentos(b.medicamentos)
+      if (b.transcripcion) voz.setTranscripcion(b.transcripcion)
+      setRespaldoDisponible(false)
+      toast('Respaldo local restaurado', 'success')
+    } catch { toast('No se pudo restaurar el respaldo', 'error') }
+  }
 
   // ── Firmar nota (NOM-004 + NOM-024) ────────────────────────────
   const firmar = useCallback(async () => {
@@ -526,6 +571,7 @@ export default function ConsultaActivaPage() {
         setNotaId(id)
       }
       setFirmada(true)
+      try { localStorage.removeItem(respaldoKey) } catch { /* */ }  // ya firmada: respaldo local ya no hace falta
       toast('Nota firmada y sellada (NOM-024)', 'success')
       // Auditoría (Fase F)
       if (clinicId) logAudit({
@@ -581,6 +627,27 @@ export default function ConsultaActivaPage() {
         </div>
         {firmada && <span style={S.firmadaBadge}><CheckCircle2 size={14} /> Nota firmada</span>}
       </div>
+
+      {/* Red de seguridad: ofrecer restaurar respaldo local si el formulario está vacío */}
+      {respaldoDisponible && !firmada && !resumen.trim() && !secciones.some(s => s.value?.trim()) && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 16,
+          padding: '10px 14px', borderRadius: 10,
+          background: 'rgba(61,90,254,0.08)', border: '1px solid rgba(61,90,254,0.3)',
+        }}>
+          <ShieldCheck size={16} style={{ color: 'var(--nexus)', flexShrink: 0 }} />
+          <span style={{ fontSize: 13, color: 'var(--text2)', flex: 1, minWidth: 160 }}>
+            Hay un <strong>respaldo local</strong> de una nota sin terminar en este dispositivo.
+          </span>
+          <button onClick={restaurarRespaldo} className="btn btn-sm btn-primary">Restaurar</button>
+          <button
+            onClick={() => { try { localStorage.removeItem(respaldoKey) } catch { /* */ } setRespaldoDisponible(false) }}
+            className="btn btn-sm btn-ghost"
+          >
+            Descartar
+          </button>
+        </div>
+      )}
 
       {/* Selector tipo de nota */}
       {!firmada && (
