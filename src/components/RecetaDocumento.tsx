@@ -334,6 +334,15 @@ function HojaCustom({
 }) {
   const margenes = recetaConfig.disenoMargenes ?? { top: 35, right: 12, bottom: 30, left: 12 }
   const fontSize = recetaConfig.disenoFontSize ?? 11
+  // Calibrador: si el médico colocó campos a mano, se ponen en su coordenada exacta.
+  const campos = recetaConfig.disenoCampos
+  const hayCampos = !!(campos && Object.keys(campos).length > 0)
+  const valorCampo = (k: string): string =>
+    k === 'nombre' ? (data.paciente?.nombre ?? '')
+    : k === 'edad' ? (data.paciente?.edad ? String(data.paciente.edad) : '')
+    : k === 'sexo' ? (data.paciente?.sexo ?? '')
+    : k === 'fecha' ? data.fecha.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    : k === 'folio' ? data.folio : ''
   // Numeración Rx continua entre hojas
   const startIndex = data.medicamentos
     ? (data.medicamentos.findIndex(m => m === pagina.medicamentos[0]) + 1) || 1
@@ -372,6 +381,22 @@ function HojaCustom({
         }}
         draggable={false}
       />
+      {/* Campos CALIBRADOS — cada dato en la coordenada exacta sobre el diseño */}
+      {pagina.esPrimera && hayCampos && campos && (
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+          {(Object.keys(campos) as (keyof typeof campos)[]).map(k => {
+            const pos = campos[k]; const valor = valorCampo(k as string)
+            if (!pos || !valor) return null
+            return (
+              <div key={k} style={{
+                position: 'absolute', left: `${pos.x}%`, top: `${pos.y}%`,
+                transform: 'translateY(-50%)', fontSize: `${fontSize}px`,
+                color: '#1a1a1a', whiteSpace: 'nowrap',
+              }}>{valor}</div>
+            )
+          })}
+        </div>
+      )}
       {/* Área de contenido */}
       <div
         style={{
@@ -389,16 +414,21 @@ function HojaCustom({
         {/* Hoja 1: encabezado completo (salvo modo "solo Rx") */}
         {pagina.esPrimera && !recetaConfig.disenoSoloRx && (
           <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: fontSize - 1, color: '#444', marginBottom: 4 }}>
-              <span>{data.fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
-              <span style={{ fontFamily: 'monospace' }}>Folio: {data.folio}</span>
-            </div>
-            <div style={{ marginBottom: 4 }}>
-              <strong>Nombre:</strong> {data.paciente?.nombre ?? '—'}
-              {data.paciente?.edad ? `   ·   Edad: ${data.paciente.edad}` : ''}
-              {data.paciente?.sexo ? `   ·   ${data.paciente.sexo}` : ''}
-              {data.paciente?.fechaNacimiento ? `   ·   F. nac.: ${fmtFechaNac(data.paciente.fechaNacimiento)}` : ''}
-            </div>
+            {/* Encabezado por defecto SOLO si no se calibraron los campos a mano */}
+            {!hayCampos && (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: fontSize - 1, color: '#444', marginBottom: 4 }}>
+                  <span>{data.fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
+                  <span style={{ fontFamily: 'monospace' }}>Folio: {data.folio}</span>
+                </div>
+                <div style={{ marginBottom: 4 }}>
+                  <strong>Nombre:</strong> {data.paciente?.nombre ?? '—'}
+                  {data.paciente?.edad ? `   ·   Edad: ${data.paciente.edad}` : ''}
+                  {data.paciente?.sexo ? `   ·   ${data.paciente.sexo}` : ''}
+                  {data.paciente?.fechaNacimiento ? `   ·   F. nac.: ${fmtFechaNac(data.paciente.fechaNacimiento)}` : ''}
+                </div>
+              </>
+            )}
             {recetaConfig.mostrarDiagnostico !== false && data.diagnostico && (
               <div style={{ marginBottom: 4 }}>
                 <strong>Dx:</strong> {data.diagnostico}

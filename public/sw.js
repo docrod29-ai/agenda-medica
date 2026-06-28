@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v132'  // TIEMPO REAL: la nota se arma mientras hablas (estructuracion en vivo cada ~30s, toggle)
+const CACHE = 'nexusmed-v133'  // Receta: calibrador visual (arrastra Nombre/Edad/Sexo/Fecha/Folio a su lugar exacto en tu formato)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
