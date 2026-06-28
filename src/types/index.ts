@@ -176,6 +176,12 @@ export interface Patient {
     versionAviso: string           // ej "2026-06"
     medioAceptacion: 'presencial' | 'portal' | 'whatsapp' | 'verbal'
   }
+  // === Valoración infectológica del inmunocomprometido (módulo portado de StewardMX) ===
+  /** Campos del formulario hc_* (chips, estudios, resultados, textos). */
+  txValoracion?: Record<string, string>
+  txValoracionAt?: string
+  /** Historial de valoraciones fechadas. */
+  txValoracionHist?: { fecha: string; modo: string; huesped: string; texto: string }[]
   createdAt: string
   updatedAt: string
   creadoPor: string
@@ -349,6 +355,12 @@ export interface RecetaConfig {
    * Fecha, etc.) — así no se sobreponen.
    */
   disenoSoloRx?: boolean
+  /**
+   * Calibrador: posición EXACTA (en % de la hoja) de cada dato del paciente sobre
+   * el diseño custom. El médico arrastra cada campo a su lugar UNA vez. Si está
+   * definido, esos campos se colocan ahí (no en el bloque de márgenes).
+   */
+  disenoCampos?: Partial<Record<'nombre' | 'edad' | 'sexo' | 'fecha' | 'folio', { x: number; y: number }>>
   /** Color de acento (botones, líneas) */
   colorAccento?: string
   /** Mostrar QR de verificación al pie de la receta */
