@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v117'  // D9: plantillas por especialidad (la IA estructura la nota segun la especialidad del medico)
+const CACHE = 'nexusmed-v118'  // D4: auto-procesar al terminar la grabacion (graba-deten-nota lista, un toque menos)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

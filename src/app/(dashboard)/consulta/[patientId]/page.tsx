@@ -53,9 +53,12 @@ export default function ConsultaActivaPage() {
   const [modoVoz, setModoVoz] = useState<'vivo' | 'whisper'>(voz.soportado ? 'vivo' : 'whisper')
 
   // Cuando termina Whisper, copia el texto a voz.setTranscripcion para reutilizar el flujo de IA
+  // y marca para AUTO-PROCESAR (un toque menos: grabar → detener → nota lista).
+  const autoProcRef = useRef(false)
   useEffect(() => {
     if (audio.estado === 'listo' && audio.transcripcion) {
       voz.setTranscripcion(audio.transcripcion)
+      autoProcRef.current = true
     }
   }, [audio.estado, audio.transcripcion]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -280,6 +283,15 @@ export default function ConsultaActivaPage() {
       setProcesando(false)
     }
   }, [voz.transcripcion, audio.utterances, tipo, patient, toast])
+
+  // Auto-procesa UNA vez cuando llega la transcripción final (flujo "Conversación
+  // completa"): graba → detén → la nota se estructura sola, sin un toque extra.
+  useEffect(() => {
+    if (autoProcRef.current && voz.transcripcion.trim() && !procesando && !firmada) {
+      autoProcRef.current = false
+      procesarIA()
+    }
+  }, [voz.transcripcion, procesando, firmada, procesarIA])
 
   // ── Cambiar la modalidad de nota ───────────────────────────────
   // Si hay dictado, la nota se RE-PROYECTA desde esa fuente hacia la nueva
