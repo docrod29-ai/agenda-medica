@@ -4,6 +4,7 @@ import {
   getFirestore, initializeFirestore,
   persistentLocalCache, persistentMultipleTabManager,
 } from 'firebase/firestore'
+import { getStorage } from 'firebase/storage'
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -24,5 +25,9 @@ export const db = typeof window !== 'undefined'
       localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
     })
   : getFirestore(app)
+
+// Storage — para subir audio largo de consulta y diarizarlo sin chocar con el
+// límite de 4.5MB de las funciones de Vercel. Solo cliente.
+export const storage = typeof window !== 'undefined' ? getStorage(app) : null
 
 export default app

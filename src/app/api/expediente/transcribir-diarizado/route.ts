@@ -42,32 +42,43 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  let formData: FormData
-  try { formData = await req.formData() } catch {
-    return NextResponse.json({ ok: false, error: 'Form-data inválido' }, { status: 400 })
-  }
-  const audio = formData.get('audio')
-  if (!(audio instanceof Blob)) {
-    return NextResponse.json({ ok: false, error: 'Falta archivo de audio' }, { status: 400 })
-  }
+  // Dos modos: (a) JSON { audioUrl } → audio ya está en Storage (audio LARGO,
+  // sin pasar por el límite de 4.5MB de Vercel); (b) multipart con el blob
+  // (audio corto, passthrough a AssemblyAI).
+  const contentType = req.headers.get('content-type') || ''
+  let audio_url: string
 
   try {
-    // 1. Subir el audio a AssemblyAI (passthrough de bytes)
-    const bytes = Buffer.from(await audio.arrayBuffer())
-    const up = await fetch(`${AAI}/upload`, {
-      method: 'POST',
-      headers: { authorization: key },
-      body: bytes,
-    })
-    if (!up.ok) return NextResponse.json({ ok: false, error: `AssemblyAI upload HTTP ${up.status}` }, { status: 502 })
-    const { upload_url } = await up.json()
+    if (contentType.includes('application/json')) {
+      const body = await req.json().catch(() => null)
+      const url = body?.audioUrl
+      if (!url || typeof url !== 'string') {
+        return NextResponse.json({ ok: false, error: 'Falta audioUrl' }, { status: 400 })
+      }
+      audio_url = url
+    } else {
+      const formData = await req.formData()
+      const audio = formData.get('audio')
+      if (!(audio instanceof Blob)) {
+        return NextResponse.json({ ok: false, error: 'Falta archivo de audio' }, { status: 400 })
+      }
+      // Subir el audio a AssemblyAI (passthrough de bytes)
+      const bytes = Buffer.from(await audio.arrayBuffer())
+      const up = await fetch(`${AAI}/upload`, {
+        method: 'POST',
+        headers: { authorization: key },
+        body: bytes,
+      })
+      if (!up.ok) return NextResponse.json({ ok: false, error: `AssemblyAI upload HTTP ${up.status}` }, { status: 502 })
+      audio_url = (await up.json()).upload_url
+    }
 
-    // 2. Encolar transcripción con diarización en español
+    // Encolar transcripción con diarización en español
     const sub = await fetch(`${AAI}/transcript`, {
       method: 'POST',
       headers: { authorization: key, 'content-type': 'application/json' },
       body: JSON.stringify({
-        audio_url: upload_url,
+        audio_url,
         speaker_labels: true,   // separa voces (Hablante A/B/C…)
         language_code: 'es',
         punctuate: true,

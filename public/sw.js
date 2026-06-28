@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v122'  // D1-D2: farmaco sin especificar va a 'requiere atencion'; plan de manejo siempre presente
+const CACHE = 'nexusmed-v123'  // D5: diarizacion en audio largo via Firebase Storage (sin limite 4.5MB), borra PHI al terminar
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

@@ -1,0 +1,18 @@
+rules_version = '2';
+
+// Almacenamiento de audio de consulta (temporal, para diarización en audio largo).
+// El audio se sube, se manda a transcribir y se BORRA al terminar. Solo el dueño
+// del audio (mismo uid) puede escribir/borrar; nadie puede leerlo vía SDK.
+// (AssemblyAI lo descarga con la URL de descarga con token, no por reglas.)
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /consultas-audio/{uid}/{allPaths=**} {
+      allow write, delete: if request.auth != null && request.auth.uid == uid;
+      allow read: if false;
+    }
+    // Todo lo demás: denegado.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,6 +1,8 @@
 'use client'
 import { corregirTranscripcion, type CambioTranscripcion } from '@/lib/expediente/medical-vocabulary'
 import { fetchAutenticado } from '@/lib/auth-client'
+import { auth, storage } from '@/lib/firebase'
+import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
 /**
  * Hook de grabación HIFI con streaming + pause/resume + crash recovery.
  *
@@ -190,6 +192,48 @@ async function intentarDiarizar(
     return null                                    // timeout
   } catch {
     return null
+  }
+}
+
+/**
+ * Diarización de audio LARGO: sube el audio a Firebase Storage (sin pasar por el
+ * límite de 4.5MB de Vercel), manda la URL a AssemblyAI, hace polling y BORRA el
+ * audio al terminar (no deja PHI). Devuelve texto + turnos, o null (→ fallback).
+ */
+async function intentarDiarizarLargo(
+  blob: Blob, ext: string, recoveryKey: string,
+): Promise<{ text: string; utterances: Utterance[] } | null> {
+  if (!storage || !auth.currentUser) return null
+  const uid = auth.currentUser.uid
+  const path = `consultas-audio/${uid}/${(recoveryKey || 'tmp').replace(/[^\w-]/g, '_')}-${Date.now()}.${ext}`
+  const objRef = storageRef(storage, path)
+  let subido = false
+  try {
+    await uploadBytes(objRef, blob, { contentType: blob.type || 'audio/webm' })
+    subido = true
+    const url = await getDownloadURL(objRef)
+    const res = await fetchAutenticado('/api/expediente/transcribir-diarizado', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ audioUrl: url }),
+    })
+    if (!res.ok) return null
+    const sub = await res.json()
+    if (!sub.ok || !sub.id) return null
+    // Polling más holgado (audio largo tarda más): hasta ~6 min
+    for (let i = 0; i < 144; i++) {
+      await sleepMs(2500)
+      const p = await fetchAutenticado(`/api/expediente/transcribir-diarizado?id=${encodeURIComponent(sub.id)}`)
+      if (!p.ok) continue
+      const d = await p.json()
+      if (d.status === 'completed') return { text: d.text ?? '', utterances: (d.utterances ?? []) as Utterance[] }
+      if (d.status === 'error' || d.ok === false) return null
+    }
+    return null
+  } catch {
+    return null
+  } finally {
+    // Borra el audio de Storage pase lo que pase (AssemblyAI ya lo descargó al encolar).
+    if (subido) { try { await deleteObject(objRef) } catch { /* lifecycle rule lo limpia */ } }
   }
 }
 
@@ -590,21 +634,19 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       setEstado('listo')
     }
 
-    // El body de las funciones de Vercel está limitado a ~4.5MB. Para audio
-    // largo NO mandamos el blob completo (daba 413 → HTML → SyntaxError):
-    // transcribimos EN PARTES. La diarización (AssemblyAI) solo se intenta en
-    // audio corto, que es lo único que cabe en una sola petición.
+    // El body de las funciones de Vercel está limitado a ~4.5MB.
     const GRANDE = blob.size > 3_600_000
 
-    // 1) Diarización solo para audio corto
-    if (!GRANDE) {
-      const diar = await intentarDiarizar(blob, ext)
-      if (diar && diar.text.trim()) {
-        setUtterances(diar.utterances)
-        aplicar(diar.text)
-        if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current)
-        return
-      }
+    // 1) Diarización (separa voces): audio corto pasa directo; audio LARGO sube a
+    //    Storage y se diariza por URL (sin chocar con el límite de Vercel).
+    const diar = GRANDE
+      ? await intentarDiarizarLargo(blob, ext, recoveryKeyRef.current)
+      : await intentarDiarizar(blob, ext)
+    if (diar && diar.text.trim()) {
+      setUtterances(diar.utterances)
+      aplicar(diar.text)
+      if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current)
+      return
     }
 
     // 2) Transcripción robusta (en partes si es grande). Nunca lanza.
