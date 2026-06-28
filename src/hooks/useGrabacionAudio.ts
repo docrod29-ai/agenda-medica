@@ -688,9 +688,19 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     const mime = chunks[0].type || 'audio/webm'
     const ext = mime.includes('mp4') ? 'm4a' : mime.includes('ogg') ? 'ogg' : 'webm'
 
-    // Transcribe EN PARTES (audio recuperado suele ser largo → no cabe en una
-    // sola petición por el límite de Vercel). Nunca lanza.
-    const texto = await transcribirEnPartes(chunks, mime, ext)
+    // 1) Mejor opción: audio COMPLETO vía Storage → AssemblyAI (diariza y evita el
+    //    troceado frágil). Si Storage no está habilitado, devuelve null.
+    const blob = new Blob(chunks, { type: mime })
+    const diar = await intentarDiarizarLargo(blob, ext, recoveryKey)
+    let texto = ''
+    if (diar && diar.text.trim()) {
+      setUtterances(diar.utterances)
+      texto = diar.text
+    } else {
+      // 2) Fallback: transcribir EN PARTES (OpenAI o AssemblyAI por trozo). Nunca lanza.
+      texto = await transcribirEnPartes(chunks, mime, ext)
+    }
+
     if (texto.trim()) {
       const { corregido, cambios } = corregirTranscripcion(texto)
       setTranscripcion(corregido)
