@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v127'  // D3: word_boost medico en AssemblyAI (sesga el ASR hacia farmacos/marcas MX)
+const CACHE = 'nexusmed-v128'  // D5: etiquetar voces Hablante A->Medico/Paciente/Acompanante de un toque
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

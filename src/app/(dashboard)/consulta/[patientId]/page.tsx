@@ -1154,24 +1154,62 @@ function colorHablante(speaker: string): string {
   return COLOR_HABLANTE[((idx % COLOR_HABLANTE.length) + COLOR_HABLANTE.length) % COLOR_HABLANTE.length]
 }
 
-/** Diálogo separado por voz (diarización). Solo lectura: es material de origen. */
+/** Diálogo separado por voz (diarización). El médico puede etiquetar cada voz
+ *  (Médico/Paciente/Acompañante) de un toque; es material de origen. */
 function DialogoDiarizado({ utterances }: { utterances: { speaker: string; text: string }[] }) {
+  const [roles, setRoles] = useState<Record<string, string>>({})
+  const hablantes = Array.from(new Set(utterances.map(u => u.speaker)))
+  const ROLES = ['Médico', 'Paciente', 'Acompañante']
+  const etiqueta = (s: string) => roles[s] || `Hablante ${s}`
+
   return (
-    <div style={{ marginTop: 4, maxHeight: 260, overflow: 'auto', display: 'grid', gap: 8 }}>
-      {utterances.map((u, i) => {
-        const c = colorHablante(u.speaker)
-        return (
-          <div key={i} style={{ display: 'flex', gap: 8 }}>
-            <span style={{
-              flexShrink: 0, fontSize: 10.5, fontWeight: 700, color: c,
-              background: `${c}1f`, borderRadius: 6, padding: '2px 7px', height: 'fit-content',
-            }}>
-              Hablante {u.speaker}
-            </span>
-            <span style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5 }}>{u.text}</span>
-          </div>
-        )
-      })}
+    <div style={{ marginTop: 4 }}>
+      {/* Asignar quién es cada voz */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+        {hablantes.map(s => {
+          const c = colorHablante(s)
+          return (
+            <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: c, background: `${c}1f`, borderRadius: 6, padding: '2px 8px' }}>
+                Hablante {s}
+              </span>
+              <span style={{ fontSize: 11, color: 'var(--text3)' }}>es:</span>
+              {ROLES.map(r => {
+                const activo = roles[s] === r
+                return (
+                  <button key={r} type="button" onClick={() => setRoles(p => ({ ...p, [s]: r }))}
+                    style={{
+                      fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 100, cursor: 'pointer',
+                      border: '1px solid ' + (activo ? c : 'var(--border)'),
+                      background: activo ? `${c}22` : 'var(--s2)',
+                      color: activo ? c : 'var(--text3)',
+                    }}>
+                    {r}
+                  </button>
+                )
+              })}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Diálogo con el rol asignado */}
+      <div style={{ maxHeight: 260, overflow: 'auto', display: 'grid', gap: 8 }}>
+        {utterances.map((u, i) => {
+          const c = colorHablante(u.speaker)
+          return (
+            <div key={i} style={{ display: 'flex', gap: 8 }}>
+              <span style={{
+                flexShrink: 0, fontSize: 10.5, fontWeight: 700, color: c,
+                background: `${c}1f`, borderRadius: 6, padding: '2px 7px', height: 'fit-content',
+              }}>
+                {etiqueta(u.speaker)}
+              </span>
+              <span style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5 }}>{u.text}</span>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
