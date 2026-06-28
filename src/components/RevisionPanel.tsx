@@ -48,6 +48,7 @@ const HABLANTE_LABEL: Record<Hablante, string> = {
 
 export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRechazar }: Props) {
   const [verFuente, setVerFuente] = useState<string | null>(null)
+  const [verSeguros, setVerSeguros] = useState(false)
 
   // Aplanar todos los campos auditables a una lista única
   const items = useMemo(() => {
@@ -115,17 +116,69 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
     seguros.forEach(it => { if (!aprobados.has(it.id)) onAprobar(it.id) })
   }
 
+  // Render de un campo (se reutiliza para críticos y seguros)
+  const renderItem = ({ id, label, campo, critico }: { id: string; label: string; campo: CampoAuditado; critico?: boolean }) => {
+    const aprobado = aprobados.has(id)
+    const conf = campo.confidence ?? 'baja'
+    const isCrit = critico || campo.needs_review
+    return (
+      <div key={id} style={{
+        background: aprobado ? 'rgba(74,222,128,0.05)' : 'var(--s2)',
+        border: `1px solid ${aprobado ? 'rgba(74,222,128,0.3)' : isCrit ? 'rgba(245,158,11,0.25)' : 'var(--border)'}`,
+        borderRadius: 8, padding: '8px 12px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: CONF_COLOR[conf], flexShrink: 0 }} title={`Confianza: ${conf}`} />
+          <span style={{ fontSize: 12.5, color: 'var(--text)', flex: 1, minWidth: 120 }}>
+            <strong>{label}:</strong> {String(campo.value ?? '—') || '—'}
+          </span>
+          <span style={{ fontSize: 10, color: 'var(--text3)', background: 'var(--s3)', padding: '2px 6px', borderRadius: 4 }}>
+            {HABLANTE_LABEL[campo.speaker ?? 'desconocido']}
+          </span>
+          {critico && <span style={{ fontSize: 10, color: '#f59e0b', fontWeight: 700 }}>CRÍTICO</span>}
+          <button onClick={() => setVerFuente(verFuente === id ? null : id)}
+            style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', display: 'flex', padding: 2 }} title="Ver fuente">
+            {verFuente === id ? <EyeOff size={13} /> : <Eye size={13} />}
+          </button>
+          {aprobado ? (
+            <button onClick={() => onRechazar(id)}
+              style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', borderRadius: 6, padding: '3px 8px', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
+              <X size={11} /> Quitar
+            </button>
+          ) : (
+            <button onClick={() => onAprobar(id)}
+              style={{ background: 'var(--teal)', border: 'none', color: '#000', borderRadius: 6, padding: '3px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
+              <Check size={11} /> Aprobar
+            </button>
+          )}
+        </div>
+        {verFuente === id && (
+          <div style={{ marginTop: 6, padding: '6px 10px', background: 'var(--s3)', borderRadius: 6, fontSize: 11.5, color: 'var(--text2)', fontStyle: 'italic' }}>
+            {campo.source_quote ? `"${campo.source_quote}"` : '(sin cita textual)'}
+            {campo.reason && <div style={{ marginTop: 4, fontSize: 11, color: '#f59e0b', fontStyle: 'normal', display: 'flex', alignItems: 'center', gap: 4 }}><AlertTriangle size={11} className="ds-icon" /> {campo.reason}</div>}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div style={{
       background: 'var(--s1)', border: '1px solid rgba(96,165,250,0.3)', borderRadius: 12,
       padding: 16, marginBottom: 16,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
         <Sparkles size={16} color="#60a5fa" />
-        <strong style={{ fontSize: 14, color: 'var(--text)' }}>Revisión IA — apruebe campo por campo</strong>
+        <strong style={{ fontSize: 14, color: 'var(--text)' }}>Revisión IA — revisa y aprueba</strong>
         <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text3)' }}>
           {aprobados.size}/{items.length} aprobados
         </span>
+      </div>
+      {/* Foco: solo lo que requiere atención del médico */}
+      <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>
+        {requierenRevision.length > 0
+          ? <>Solo <strong style={{ color: '#f59e0b' }}>{requierenRevision.length}</strong> requieren tu atención · el resto es seguro.</>
+          : <>Todo se ve seguro — aprueba de un toque.</>}
       </div>
 
       {/* Conflictos detectados */}
@@ -148,62 +201,33 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
         </div>
       )}
 
-      {/* Aprobar todos los seguros */}
-      {seguros.length > 0 && (
-        <button onClick={aprobarTodosSeguros}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', color: '#4ade80', fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 8, cursor: 'pointer', marginBottom: 10 }}>
-          <ShieldCheck size={13} /> Aprobar los {seguros.length} campos seguros
-        </button>
+      {/* 1) Lo que REQUIERE atención del médico (críticos / dudosos) — arriba */}
+      {requierenRevision.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+          {requierenRevision.map(renderItem)}
+        </div>
       )}
 
-      {/* Lista de campos */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {items.map(({ id, label, campo, critico }) => {
-          const aprobado = aprobados.has(id)
-          const conf = campo.confidence ?? 'baja'
-          const isCrit = critico || campo.needs_review
-
-          return (
-            <div key={id} style={{
-              background: aprobado ? 'rgba(74,222,128,0.05)' : 'var(--s2)',
-              border: `1px solid ${aprobado ? 'rgba(74,222,128,0.3)' : isCrit ? 'rgba(245,158,11,0.25)' : 'var(--border)'}`,
-              borderRadius: 8, padding: '8px 12px',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: CONF_COLOR[conf], flexShrink: 0 }} title={`Confianza: ${conf}`} />
-                <span style={{ fontSize: 12.5, color: 'var(--text)', flex: 1, minWidth: 120 }}>
-                  <strong>{label}:</strong> {String(campo.value ?? '—') || '—'}
-                </span>
-                <span style={{ fontSize: 10, color: 'var(--text3)', background: 'var(--s3)', padding: '2px 6px', borderRadius: 4 }}>
-                  {HABLANTE_LABEL[campo.speaker ?? 'desconocido']}
-                </span>
-                {critico && <span style={{ fontSize: 10, color: '#f59e0b', fontWeight: 700 }}>CRÍTICO</span>}
-                <button onClick={() => setVerFuente(verFuente === id ? null : id)}
-                  style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', display: 'flex', padding: 2 }} title="Ver fuente">
-                  {verFuente === id ? <EyeOff size={13} /> : <Eye size={13} />}
-                </button>
-                {aprobado ? (
-                  <button onClick={() => onRechazar(id)}
-                    style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', borderRadius: 6, padding: '3px 8px', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
-                    <X size={11} /> Quitar
-                  </button>
-                ) : (
-                  <button onClick={() => onAprobar(id)}
-                    style={{ background: 'var(--teal)', border: 'none', color: '#000', borderRadius: 6, padding: '3px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
-                    <Check size={11} /> Aprobar
-                  </button>
-                )}
-              </div>
-              {verFuente === id && (
-                <div style={{ marginTop: 6, padding: '6px 10px', background: 'var(--s3)', borderRadius: 6, fontSize: 11.5, color: 'var(--text2)', fontStyle: 'italic' }}>
-                  {campo.source_quote ? `"${campo.source_quote}"` : '(sin cita textual)'}
-                  {campo.reason && <div style={{ marginTop: 4, fontSize: 11, color: '#f59e0b', fontStyle: 'normal', display: 'flex', alignItems: 'center', gap: 4 }}><AlertTriangle size={11} className="ds-icon" /> {campo.reason}</div>}
-                </div>
-              )}
+      {/* 2) Campos seguros — colapsados; se aprueban de un toque */}
+      {seguros.length > 0 && (
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+            <button onClick={aprobarTodosSeguros}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.35)', color: '#4ade80', fontSize: 12.5, fontWeight: 700, padding: '7px 14px', borderRadius: 8, cursor: 'pointer' }}>
+              <ShieldCheck size={14} /> Aprobar los {seguros.length} campos seguros
+            </button>
+            <button onClick={() => setVerSeguros(v => !v)}
+              style={{ background: 'none', border: 'none', color: 'var(--text3)', fontSize: 12, cursor: 'pointer' }}>
+              {verSeguros ? 'ocultar' : 'ver detalle'}
+            </button>
+          </div>
+          {verSeguros && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {seguros.map(renderItem)}
             </div>
-          )
-        })}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
