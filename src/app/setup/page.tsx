@@ -24,7 +24,12 @@ export default function SetupPage() {
   })
 
   useEffect(() => {
-    if (!authLoading && !user) router.replace('/login')
+    if (!authLoading && !user) { router.replace('/login'); return }
+    // Registro con Google: pre-llenar el nombre del médico con el de su cuenta
+    // (solo si aún está vacío, para no pisar lo que el usuario escriba).
+    if (user?.displayName) {
+      setForm(f => f.nombreMedico ? f : { ...f, nombreMedico: user.displayName! })
+    }
   }, [user, authLoading, router])
 
   const handleCreate = async () => {
