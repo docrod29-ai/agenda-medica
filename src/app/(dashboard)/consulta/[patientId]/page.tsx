@@ -745,7 +745,16 @@ export default function ConsultaActivaPage() {
                     Capta a los dos · HIFI 48kHz · gpt-4o-transcribe · vocabulario médico ampliado
                   </div>
                 )}
-                {audio.error && <div style={{ fontSize: 11.5, color: '#f87171', marginTop: 3, display: 'flex', alignItems: 'center', gap: 5 }}><AlertTriangle size={12} className="ds-icon" /> {audio.error}</div>}
+                {audio.error && (
+                  <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 11.5, color: '#f59e0b', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      <AlertTriangle size={12} className="ds-icon" /> {audio.error}
+                    </span>
+                    <button className="btn btn-sm btn-ghost" onClick={() => { audio.reset(); setOfreceRecovery(false) }}>
+                      Descartar audio guardado
+                    </button>
+                  </div>
+                )}
               </div>
               <button onClick={() => procesarIA()} disabled={procesando || !voz.transcripcion.trim()} style={S.iaBtn(procesando || !voz.transcripcion.trim())}>
                 {procesando ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Claude estructurando…</> : <><Sparkles size={16} /> Procesar con IA</>}

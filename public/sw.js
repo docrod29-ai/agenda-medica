@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v124'  // Recuperacion usa la ruta robusta de audio largo (Storage->AssemblyAI) antes del troceado
+const CACHE = 'nexusmed-v125'  // Error de recuperacion calmado (ambar) + boton Descartar audio guardado a un toque
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
