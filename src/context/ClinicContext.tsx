@@ -9,7 +9,7 @@
  * If no membership found → user needs onboarding (/setup)
  */
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { doc, getDoc, onSnapshot } from 'firebase/firestore'
+import { doc, onSnapshot } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import { Clinic, ClinicMember } from '@/types'
@@ -51,8 +51,12 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     }
 
     // Load clinic membership for this user
+    let unsubClinic: (() => void) | null = null
     const memberRef = doc(db, 'clinic_members', user.uid)
-    const unsub = onSnapshot(memberRef, async (snap) => {
+    const unsub = onSnapshot(memberRef, (snap) => {
+      // Limpiar el listener de la clínica anterior (cambio de membresía)
+      if (unsubClinic) { unsubClinic(); unsubClinic = null }
+
       if (!snap.exists()) {
         // No clinic yet — needs setup
         setClinicId(null)
@@ -68,15 +72,17 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       setClinicId(member.clinicId)
       setNeedsSetup(false)
 
-      // Load clinic metadata
-      const clinicSnap = await getDoc(doc(db, 'clinics', member.clinicId))
-      if (clinicSnap.exists()) {
-        setClinic({ id: clinicSnap.id, ...clinicSnap.data() } as Clinic)
-      }
-      setLoading(false)
+      // Clínica EN VIVO: si Stripe activa la suscripción (webhook), el plan/estado
+      // se refleja al instante → el gate de pago se desbloquea solo, sin recargar.
+      unsubClinic = onSnapshot(doc(db, 'clinics', member.clinicId), (clinicSnap) => {
+        if (clinicSnap.exists()) {
+          setClinic({ id: clinicSnap.id, ...clinicSnap.data() } as Clinic)
+        }
+        setLoading(false)
+      })
     })
 
-    return () => unsub()
+    return () => { if (unsubClinic) unsubClinic(); unsub() }
   }, [user, authLoading])
 
   return (

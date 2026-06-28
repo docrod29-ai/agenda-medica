@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v137'  // Sincronizar precios mostrados (Basico 699, Pro 999, Clinica 1799) con Stripe
+const CACHE = 'nexusmed-v138'  // Modelo B: tarjeta para iniciar prueba (trial nativo Stripe 14d) + gate elegir-plan + clinica en vivo
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
