@@ -13,6 +13,7 @@
  *     categorías anatómicas de la OMS para máxima cobertura.
  */
 import { VOCABULARIO_ATC } from './vocabulario-atc'
+import { LEXICO_VOZ_2026 } from './lexico-voz-2026'
 
 /* ════════════════════════════════════════════════════════════════
  * CATÁLOGOS
@@ -653,6 +654,7 @@ const TODOS_LOS_TERMINOS: string[] = [
   ...VOCABULARIO_ATC,
   ...Object.values(ABREVIATURAS),  // forma expandida también es buena
   ...Object.keys(ABREVIATURAS),     // y la abreviada
+  ...LEXICO_VOZ_2026,               // léxico de voz 2026 (fármacos/términos raros curados)
 ]
 
 /**
@@ -665,9 +667,10 @@ export const WORD_BOOST_MEDICO: string[] = Array.from(new Set([
   ...ANTIBIOTICOS, ...ANTIFUNGICOS, ...CARDIOVASCULARES, ...ENDOCRINO_METABOLICO,
   ...PSICOFARMACOS, ...ANALGESICOS_AINE, ...OPIOIDES, ...INHALADORES_BRONCODILATADORES,
   ...GASTRO, ...NEFRO_UROLOGICO, ...MARCAS_COMERCIALES_MX,
+  ...LEXICO_VOZ_2026.slice(0, 500),  // fármacos nuevos 2026 (los que más confunde el ASR)
 ]))
   .filter(t => typeof t === 'string' && t.length >= 4 && t.trim().split(/\s+/).length <= 3)
-  .slice(0, 600)
+  .slice(0, 1000)  // AssemblyAI: máx ~1000 términos en word_boost
 
 // Índice fonético: forma fonética → término canónico
 const INDICE_FONETICO: Map<string, string> = (() => {
