@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v139'  // Login: link a registro + errores de Google legibles (dominio no autorizado, popup)
+const CACHE = 'nexusmed-v140'  // Google login: fallback a redireccion (Safari bloquea popups)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
+import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import { Stethoscope, Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react'
@@ -43,6 +43,15 @@ function RegistroInner() {
     if (!loading && user) router.replace(destinoTrasRegistro)
   }, [user, loading, router, destinoTrasRegistro])
 
+  // Completa el registro con Google por REDIRECCIÓN (Safari) y muestra errores.
+  useEffect(() => {
+    getRedirectResult(auth).catch((err: unknown) => {
+      const code = (err as { code?: string }).code ?? ''
+      if (code === 'auth/unauthorized-domain') setError('Este dominio no está autorizado en Firebase (Authentication → Configuración → Dominios autorizados).')
+      else if (code) setError(`No se pudo registrar con Google: ${code}`)
+    })
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!nombre.trim() || !email.trim() || password.length < 6) return
@@ -69,22 +78,24 @@ function RegistroInner() {
   const handleGoogle = async () => {
     setError('')
     setSubmitting(true)
+    const provider = new GoogleAuthProvider()
     try {
-      await signInWithPopup(auth, new GoogleAuthProvider())
+      await signInWithPopup(auth, provider)
       router.replace(destinoTrasRegistro)
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? ''
       if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
-        // cerró la ventana
+        setSubmitting(false)
+      } else if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
+        // Safari bloquea el popup → redirección.
+        try { await signInWithRedirect(auth, provider) } catch { setError('No se pudo registrar con Google.'); setSubmitting(false) }
       } else if (code === 'auth/unauthorized-domain') {
         setError('Este dominio no está autorizado en Firebase (Authentication → Configuración → Dominios autorizados).')
-      } else if (code === 'auth/popup-blocked') {
-        setError('El navegador bloqueó la ventana de Google. Permite ventanas emergentes e intenta de nuevo.')
+        setSubmitting(false)
       } else {
         setError(`No se pudo registrar con Google: ${code || 'error desconocido'}`)
+        setSubmitting(false)
       }
-    } finally {
-      setSubmitting(false)
     }
   }
 

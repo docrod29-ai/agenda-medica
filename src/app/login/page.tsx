@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from 'firebase/auth'
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, sendPasswordResetEmail } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import Link from 'next/link'
@@ -33,6 +33,15 @@ function LoginInner() {
     if (!loading && user) router.replace(destino)
   }, [user, loading, router, destino])
 
+  // Completa el inicio de sesión con Google por REDIRECCIÓN (Safari) y muestra errores.
+  useEffect(() => {
+    getRedirectResult(auth).catch((err: unknown) => {
+      const code = (err as { code?: string }).code ?? ''
+      if (code === 'auth/unauthorized-domain') setError('Este dominio no está autorizado en Firebase (Authentication → Configuración → Dominios autorizados).')
+      else if (code) setError(`No se pudo entrar con Google: ${code}`)
+    })
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -56,22 +65,25 @@ function LoginInner() {
 
   const handleGoogle = async () => {
     setError(''); setInfo(''); setSubmitting(true)
+    const provider = new GoogleAuthProvider()
     try {
-      await signInWithPopup(auth, new GoogleAuthProvider())
+      await signInWithPopup(auth, provider)
       router.replace(destino)
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? ''
       if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
         // El usuario cerró la ventana: sin ruido.
+        setSubmitting(false)
+      } else if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
+        // Safari suele bloquear el popup → redirección (más confiable; no requiere popup).
+        try { await signInWithRedirect(auth, provider) } catch { setError('No se pudo entrar con Google.'); setSubmitting(false) }
       } else if (code === 'auth/unauthorized-domain') {
-        setError('Este dominio no está autorizado en Firebase. Agrégalo en Authentication → Configuración → Dominios autorizados.')
-      } else if (code === 'auth/popup-blocked') {
-        setError('El navegador bloqueó la ventana de Google. Permite ventanas emergentes e intenta de nuevo.')
+        setError('Este dominio no está autorizado en Firebase (Authentication → Configuración → Dominios autorizados).')
+        setSubmitting(false)
       } else {
         setError(`No se pudo entrar con Google: ${code || 'error desconocido'}`)
+        setSubmitting(false)
       }
-    } finally {
-      setSubmitting(false)
     }
   }
 
