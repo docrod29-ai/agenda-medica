@@ -61,9 +61,60 @@ function TrialBanner() {
   )
 }
 
+/**
+ * ¿Debe bloquearse el acceso? SOLO si la prueba ya venció y NO hay suscripción
+ * activa. Es conservador: ante la duda (sin fecha de fin, datos incompletos) NO
+ * bloquea — nunca dejar fuera a un usuario que sí pagó o sigue en prueba válida.
+ */
+function trialVencido(clinic: { plan?: string; status?: string; trialEndsAt?: string; stripeSubscriptionStatus?: string } | null): boolean {
+  if (!clinic) return false
+  const sub = clinic.stripeSubscriptionStatus
+  if (sub === 'active' || sub === 'trialing') return false   // suscripción al corriente
+  if (clinic.status === 'active') return false               // plan de pago activo
+  if (clinic.status === 'canceled' || clinic.status === 'past_due') return true
+  if (clinic.status === 'trial' || clinic.plan === 'trial') {
+    const ends = clinic.trialEndsAt ? new Date(clinic.trialEndsAt).getTime() : null
+    return ends ? Date.now() > ends : false                  // sin fecha → no bloquear
+  }
+  return false
+}
+
+function Paywall({ esMedico }: { esMedico: boolean }) {
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ maxWidth: 460, width: '100%', textAlign: 'center', background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 16, padding: '36px 28px' }}>
+        <div style={{ width: 52, height: 52, borderRadius: 14, background: 'rgba(245,158,11,0.12)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>
+          <AlertTriangle size={24} color="#f59e0b" />
+        </div>
+        <h1 style={{ fontSize: 22, fontWeight: 600, color: 'var(--text)', margin: '0 0 8px' }}>Tu prueba gratuita terminó</h1>
+        <p style={{ fontSize: 14, color: 'var(--text2)', margin: '0 0 24px', lineHeight: 1.5 }}>
+          Tus datos están a salvo. {esMedico
+            ? 'Activa un plan para seguir usando NexusMED sin interrupciones.'
+            : 'Pídele al médico responsable que active un plan para reanudar el acceso.'}
+        </p>
+        {esMedico && (
+          <Link href="/configuracion?tab=suscripcion" style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            background: 'var(--teal)', color: '#000', fontWeight: 700, fontSize: 15,
+            padding: '12px 24px', borderRadius: 10, textDecoration: 'none', width: '100%',
+          }}>
+            Ver planes y activar →
+          </Link>
+        )}
+        <button
+          onClick={() => { import('@/lib/firebase').then(({ auth }) => auth.signOut()) }}
+          style={{ marginTop: 14, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}
+        >
+          Cerrar sesión
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function DashboardInner({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth()
-  const { clinicId, loading: clinicLoading, needsSetup, role } = useClinic()
+  const { clinicId, loading: clinicLoading, needsSetup, role, clinic } = useClinic()
   const { mode } = useMode()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -99,6 +150,12 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
   }
 
   if (!user || (!clinicId && !needsSetup)) return null
+
+  // Paywall: prueba vencida sin suscripción → bloquea TODO salvo Configuración
+  // (para que el médico pueda activar su plan) y el cierre de sesión.
+  if (trialVencido(clinic) && !pathname.startsWith('/configuracion')) {
+    return <Paywall esMedico={esMedicoReal} />
+  }
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
