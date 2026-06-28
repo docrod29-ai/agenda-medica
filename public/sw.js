@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v128'  // D5: etiquetar voces Hablante A->Medico/Paciente/Acompanante de un toque
+const CACHE = 'nexusmed-v129'  // D9: selector VISIBLE de especialidad en la consulta (16 ramas) + alineado con prompt
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

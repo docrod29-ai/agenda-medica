@@ -38,6 +38,15 @@ import {
 
 const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'valoracion_preoperatoria', 'alta_consulta', 'ingreso', 'evolucion', 'egreso']
 
+// Especialidades con plantilla de enfoque (deben contener la clave que detecta
+// guiaEspecialidad en prompts.ts: cardiolog, pediatr, ginec, interna, urgenc…).
+const ESPECIALIDADES = [
+  'Cardiología', 'Pediatría', 'Ginecología y Obstetricia', 'Medicina Interna',
+  'Urgencias', 'Infectología', 'Cirugía General', 'Psiquiatría', 'Dermatología',
+  'Ortopedia y Traumatología', 'Endocrinología', 'Neurología', 'Neumología',
+  'Gastroenterología', 'Nefrología', 'Oncología',
+]
+
 export default function ConsultaActivaPage() {
   const { patientId } = useParams<{ patientId: string }>()
   const router = useRouter()
@@ -81,6 +90,9 @@ export default function ConsultaActivaPage() {
   // Cobro al cerrar la consulta: se ofrece tras firmar; al registrar u omitir → expediente
   const [cobrar, setCobrar] = useState(false)
   const [tipo, setTipo] = useState<TipoNota>('primera_vez')
+  // Especialidad de ESTA nota (la IA la estructura según esto). Default: la del médico.
+  const [especialidadNota, setEspecialidadNota] = useState('')
+  const especialidadEfectiva = especialidadNota || config?.especialidad || ''
   const [secciones, setSecciones] = useState<NotaSeccion[]>(seccionesVacias('primera_vez'))
   const [signos, setSignos] = useState<SignosVitales>({})
   const [diagnosticos, setDiagnosticos] = useState<Diagnostico[]>([])
@@ -192,7 +204,7 @@ export default function ConsultaActivaPage() {
             sexo: patient?.sexo,
             alergias: patient?.alergias,
             notasPrevias: ultimasNotasRef.current,
-            especialidad: config?.especialidad,
+            especialidad: especialidadEfectiva,
           },
         }),
       })
@@ -282,7 +294,7 @@ export default function ConsultaActivaPage() {
     } finally {
       setProcesando(false)
     }
-  }, [voz.transcripcion, audio.utterances, tipo, patient, toast])
+  }, [voz.transcripcion, audio.utterances, tipo, patient, toast, especialidadEfectiva])
 
   // Auto-procesa UNA vez cuando llega la transcripción final (flujo "Conversación
   // completa"): graba → detén → la nota se estructura sola, sin un toque extra.
@@ -572,10 +584,27 @@ export default function ConsultaActivaPage() {
 
       {/* Selector tipo de nota */}
       {!firmada && (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 20 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
           {TIPOS.map(t => (
             <button key={t} onClick={() => cambiarTipo(t)} style={S.chip(tipo === t)}>{TIPO_NOTA_LABEL[t]}</button>
           ))}
+        </div>
+      )}
+
+      {/* Selector de ESPECIALIDAD — la IA estructura la nota a esa especialidad */}
+      {!firmada && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+          <Stethoscope size={14} style={{ color: 'var(--text3)' }} />
+          <span style={{ fontSize: 12.5, color: 'var(--text3)' }}>Especialidad de la nota:</span>
+          <select
+            value={especialidadEfectiva}
+            onChange={e => setEspecialidadNota(e.target.value)}
+            style={{ background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 8, padding: '6px 10px', fontSize: 13, cursor: 'pointer' }}
+          >
+            <option value="">General / Otra</option>
+            {ESPECIALIDADES.map(e => <option key={e} value={e}>{e}</option>)}
+          </select>
+          <span style={{ fontSize: 11, color: 'var(--text3)' }}>· la IA la redacta como esa especialidad</span>
         </div>
       )}
 
