@@ -103,6 +103,12 @@ export default function ConsultaActivaPage() {
   const [verFuente, setVerFuente] = useState(false)
   // Red de seguridad local: respaldo de la nota en el navegador (anti-pérdida)
   const [respaldoDisponible, setRespaldoDisponible] = useState(false)
+  // NOTA EN TIEMPO REAL: la nota se va armando mientras hablas (cada ~30s).
+  const [notaEnVivo, setNotaEnVivo] = useState(true)
+  const [estructurandoVivo, setEstructurandoVivo] = useState(false)
+  const vivoRef = useRef(false)
+  const palabrasEstructuradasRef = useRef(0)
+  const transcripcionRef = useRef('')
   // ─── Medical NER (extracción de entidades) ─────────────────────
   const [entidades, setEntidades] = useState<EntidadesExtraidas | null>(null)
   const [nerCargando, setNerCargando] = useState(false)
@@ -184,15 +190,19 @@ export default function ConsultaActivaPage() {
   // ── Procesar transcripción con IA ──────────────────────────────
   // El dictado es la FUENTE DE VERDAD: se puede re-proyectar a cualquier
   // modalidad de nota pasando tipoOverride (lo usa cambiarTipo).
-  const procesarIA = useCallback(async (tipoOverride?: TipoNota) => {
-    if (!voz.transcripcion.trim()) { toast('No hay transcripción que procesar', 'info'); return }
+  const procesarIA = useCallback(async (tipoOverride?: TipoNota, opts?: { enVivo?: boolean }) => {
+    // enVivo = estructuración EN TIEMPO REAL mientras se graba (silenciosa, sin
+    // toasts ni reset de aprobaciones; la nota se va armando sola).
+    const enVivo = opts?.enVivo === true
+    if (!voz.transcripcion.trim()) { if (!enVivo) toast('No hay transcripción que procesar', 'info'); return }
+    if (enVivo && vivoRef.current) return  // ya hay una estructuración en vivo en curso
     const tipoActivo = tipoOverride ?? tipo
     // Si hubo diarización, mandamos el diálogo etiquetado por hablante para que la
     // IA atribuya bien quién dijo qué (médico/paciente). Si no, el texto plano.
     const transcripcionParaIA = audio.utterances.length > 0
       ? audio.utterances.map(u => `Hablante ${u.speaker}: ${u.text}`).join('\n')
       : voz.transcripcion
-    setProcesando(true)
+    if (enVivo) { vivoRef.current = true; setEstructurandoVivo(true) } else setProcesando(true)
     try {
       const res = await fetchAutenticado('/api/expediente/procesar', {
         method: 'POST',
@@ -211,9 +221,9 @@ export default function ConsultaActivaPage() {
         }),
       })
       const data = await res.json().catch(() => null)
-      if (!data) { toast('La IA no respondió correctamente. Tu nota NO se modificó; intenta de nuevo.', 'error'); return }
+      if (!data) { if (!enVivo) toast('La IA no respondió correctamente. Tu nota NO se modificó; intenta de nuevo.', 'error'); return }
       if (!data.ok) {
-        toast(data.error === 'ANTHROPIC_API_KEY no configurada en el servidor'
+        if (!enVivo) toast(data.error === 'ANTHROPIC_API_KEY no configurada en el servidor'
           ? 'Falta configurar la API key de Claude en Vercel'
           : `Error de IA: ${data.error}`, 'error')
         return
@@ -262,21 +272,23 @@ export default function ConsultaActivaPage() {
           inputs: { ...(prev?.inputs ?? {}), ...data.preopInputs },
           resultados: prev?.resultados ?? {},
         }))
-        toast('Factores de riesgo pre-llenados desde el dictado', 'info')
+        if (!enVivo) toast('Factores de riesgo pre-llenados desde el dictado', 'info')
       }
       // Diagnóstico visible: si es preop y las 3 secciones críticas vinieron vacías,
       // alertamos al médico (probable confusión de tipo de nota o respuesta corta de la IA).
-      if (esPreop && !data.secciones?.cirugiaPropuesta?.trim() &&
+      if (!enVivo && esPreop && !data.secciones?.cirugiaPropuesta?.trim() &&
           !data.secciones?.resumenClinico?.trim() &&
           !data.secciones?.laboratorios?.trim()) {
         toast('La IA no pudo estructurar el dictado para preoperatoria. Revisa el material de origen y reintenta.', 'error')
         console.warn('[procesar] Secciones preop vacías. Tipo enviado:', tipoActivo, 'Respuesta:', data)
       }
-      setAprobados(new Set()) // reset de aprobaciones al nuevo procesamiento
-      setVerFuente(false)     // colapsa el material de origen: la nota ya está estructurada
+      if (!enVivo) {
+        setAprobados(new Set()) // reset de aprobaciones al nuevo procesamiento
+        setVerFuente(false)     // colapsa el material de origen: la nota ya está estructurada
+      }
 
-      // Auditoría (Fase F)
-      if (clinicId) logAudit({
+      // Auditoría (Fase F) — no en vivo (sería cada 30s)
+      if (!enVivo && clinicId) logAudit({
         evento: 'ia_procesamiento', clinicId, patientId, notaId: notaId ?? undefined,
         medicoUid: auth.currentUser?.uid, medicoEmail: auth.currentUser?.email ?? undefined,
         meta: { tipo: tipoActivo, transcripcionLen: voz.transcripcion.length },
@@ -287,14 +299,15 @@ export default function ConsultaActivaPage() {
       // así se sabe POR QUÉ falló (HTTP 401, sobrecarga, respuesta vacía, etc.).
       if (data.fallbackLocal || data._aviso) {
         console.warn('[procesar] Fallback local. Causa:', data._causaFallback, '·', data._detalleDebug)
-        toast(data._aviso || 'La IA no estructuró la nota — se llenó lo básico, revisa todo', 'error')
-      } else {
+        if (!enVivo) toast(data._aviso || 'La IA no estructuró la nota — se llenó lo básico, revisa todo', 'error')
+      } else if (!enVivo) {
         toast('Nota estructurada por IA — revisa campo por campo', 'success')
       }
     } catch {
-      toast('Error al conectar con la IA', 'error')
+      if (!enVivo) toast('Error al conectar con la IA', 'error')
     } finally {
-      setProcesando(false)
+      if (enVivo) { vivoRef.current = false; setEstructurandoVivo(false) }
+      else setProcesando(false)
     }
   }, [voz.transcripcion, audio.utterances, tipo, patient, toast, especialidadEfectiva])
 
@@ -306,6 +319,29 @@ export default function ConsultaActivaPage() {
       procesarIA()
     }
   }, [voz.transcripcion, procesando, firmada, procesarIA])
+
+  // ── NOTA EN TIEMPO REAL ────────────────────────────────────────
+  // Mientras grabas, cada ~30s re-estructura la nota con lo dicho hasta ese
+  // momento (silenciosamente). La nota se va armando sola; al detener se hace
+  // la versión final completa. Refs para que el intervalo sea estable.
+  const procesarIARef = useRef(procesarIA)
+  useEffect(() => { procesarIARef.current = procesarIA }, [procesarIA])
+  useEffect(() => { transcripcionRef.current = voz.transcripcion }, [voz.transcripcion])
+  useEffect(() => {
+    const grabando = voz.grabando || audio.estado === 'grabando'
+    if (!grabando || !notaEnVivo || firmada) return
+    // Baseline al arrancar: solo dispara con palabras NUEVAS a partir de aquí.
+    palabrasEstructuradasRef.current = transcripcionRef.current.trim().split(/\s+/).filter(Boolean).length
+    const t = setInterval(() => {
+      if (vivoRef.current) return
+      const palabras = transcripcionRef.current.trim().split(/\s+/).filter(Boolean).length
+      if (palabras - palabrasEstructuradasRef.current >= 25) {   // ~25 palabras nuevas
+        palabrasEstructuradasRef.current = palabras
+        procesarIARef.current(undefined, { enVivo: true })
+      }
+    }, 30000)
+    return () => clearInterval(t)
+  }, [voz.grabando, audio.estado, notaEnVivo, firmada])
 
   // ── Cambiar la modalidad de nota ───────────────────────────────
   // Si hay dictado, la nota se RE-PROYECTA desde esa fuente hacia la nueva
@@ -672,6 +708,23 @@ export default function ConsultaActivaPage() {
             {ESPECIALIDADES.map(e => <option key={e} value={e}>{e}</option>)}
           </select>
           <span style={{ fontSize: 11, color: 'var(--text3)' }}>· la IA la redacta como esa especialidad</span>
+
+          {/* Nota en tiempo real (se arma mientras hablas) */}
+          <button
+            type="button"
+            onClick={() => setNotaEnVivo(v => !v)}
+            title="La nota se va armando sola mientras grabas (cada ~30s)"
+            style={{
+              marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6,
+              fontSize: 12, fontWeight: 600, padding: '5px 12px', borderRadius: 100, cursor: 'pointer',
+              border: '1px solid ' + (notaEnVivo ? 'var(--nexus)' : 'var(--border)'),
+              background: notaEnVivo ? 'rgba(61,90,254,0.12)' : 'var(--s2)',
+              color: notaEnVivo ? 'var(--nexus)' : 'var(--text3)',
+            }}
+          >
+            <Sparkles size={13} /> Nota en vivo {notaEnVivo ? 'ON' : 'OFF'}
+            {estructurandoVivo && <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />}
+          </button>
         </div>
       )}
 
