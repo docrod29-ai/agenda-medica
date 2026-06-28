@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, sendPasswordResetEmail } from 'firebase/auth'
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithRedirect, getRedirectResult, sendPasswordResetEmail } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import Link from 'next/link'
@@ -65,25 +65,18 @@ function LoginInner() {
 
   const handleGoogle = async () => {
     setError(''); setInfo(''); setSubmitting(true)
-    const provider = new GoogleAuthProvider()
+    // Redirección SIEMPRE (no popup): el popup de Firebase se cuelga en blanco en
+    // Chrome y lo bloquea Safari. La redirección funciona en todos los navegadores.
     try {
-      await signInWithPopup(auth, provider)
-      router.replace(destino)
+      await signInWithRedirect(auth, new GoogleAuthProvider())
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? ''
-      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
-        // El usuario cerró la ventana: sin ruido.
-        setSubmitting(false)
-      } else if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
-        // Safari suele bloquear el popup → redirección (más confiable; no requiere popup).
-        try { await signInWithRedirect(auth, provider) } catch { setError('No se pudo entrar con Google.'); setSubmitting(false) }
-      } else if (code === 'auth/unauthorized-domain') {
+      if (code === 'auth/unauthorized-domain') {
         setError('Este dominio no está autorizado en Firebase (Authentication → Configuración → Dominios autorizados).')
-        setSubmitting(false)
       } else {
         setError(`No se pudo entrar con Google: ${code || 'error desconocido'}`)
-        setSubmitting(false)
       }
+      setSubmitting(false)
     }
   }
 

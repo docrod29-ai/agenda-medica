@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v141'  // Registro con Google: pre-llenar nombre del medico con el de la cuenta
+const CACHE = 'nexusmed-v142'  // Google: redireccion SIEMPRE (el popup de Firebase se cuelga en blanco en Chrome)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
