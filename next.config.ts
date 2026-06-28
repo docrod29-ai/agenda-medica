@@ -16,6 +16,16 @@ import type { NextConfig } from "next";
  * En su lugar protegemos los vectores más peligrosos individualmente.
  */
 const nextConfig: NextConfig = {
+  // Proxy del handler de autenticación de Firebase a NUESTRO dominio.
+  // Permite usar authDomain = dominio propio (same-origin) → el login de Google
+  // (popup/redirect) ya no se cuelga por el bloqueo de cookies entre dominios de
+  // Chrome/Safari. Reenvía /__/auth/* y /__/firebase/* a firebaseapp.com.
+  async rewrites() {
+    return [
+      { source: '/__/auth/:path*', destination: 'https://nexomed-agenda.firebaseapp.com/__/auth/:path*' },
+      { source: '/__/firebase/:path*', destination: 'https://nexomed-agenda.firebaseapp.com/__/firebase/:path*' },
+    ]
+  },
   async headers() {
     return [
       // ── Service Worker: NUNCA cachear el sw.js ──────────────────
