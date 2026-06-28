@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v142'  // Google: redireccion SIEMPRE (el popup de Firebase se cuelga en blanco en Chrome)
+const CACHE = 'nexusmed-v143'  // Google login: authDomain propio + proxy /__/auth (arregla popup en blanco por cookies cross-domain)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
@@ -58,6 +58,9 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return
   // No interferir con rutas API del servidor
   if (url.pathname.startsWith('/api/')) return
+  // No interferir con el handler de autenticación de Firebase (proxy /__/auth/*,
+  // /__/firebase/*) — debe ir SIEMPRE a la red sin caché, o el login de Google se rompe.
+  if (url.pathname.startsWith('/__/')) return
 
   // Navegaciones de página: network-first
   if (req.mode === 'navigate') {

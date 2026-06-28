@@ -8,7 +8,13 @@ import { getStorage } from 'firebase/storage'
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  // authDomain = el MISMO dominio de la app (no firebaseapp.com). Así el handler
+  // de Google (/__/auth/*) es same-origin → Chrome/Safari no bloquean las cookies
+  // entre dominios (la causa del popup en blanco). El proxy en next.config reenvía
+  // /__/auth/* y /__/firebase/* a nexomed-agenda.firebaseapp.com.
+  authDomain: typeof window !== 'undefined'
+    ? window.location.host
+    : process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
