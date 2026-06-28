@@ -176,6 +176,12 @@ export interface Patient {
     versionAviso: string           // ej "2026-06"
     medioAceptacion: 'presencial' | 'portal' | 'whatsapp' | 'verbal'
   }
+  // === Valoración infectológica del inmunocomprometido (módulo portado de StewardMX) ===
+  /** Campos del formulario hc_* (chips, estudios, resultados, textos). */
+  txValoracion?: Record<string, string>
+  txValoracionAt?: string
+  /** Historial de valoraciones fechadas. */
+  txValoracionHist?: { fecha: string; modo: string; huesped: string; texto: string }[]
   createdAt: string
   updatedAt: string
   creadoPor: string
