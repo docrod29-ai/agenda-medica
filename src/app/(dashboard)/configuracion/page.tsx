@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { ClinicConfig, DEFAULT_CONFIG, AppointmentType, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { saveConfig, saveConfigPartial, updateDoctor } from '@/lib/firestore'
 import { fetchAutenticado } from '@/lib/auth-client'
@@ -2379,6 +2379,24 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
             </label>
           )}
 
+          {/* Calibrador VISUAL: arrastra cada dato a su lugar exacto en TU formato */}
+          {rx.disenoCompletoDataUrl && (
+            <div style={{ marginTop: 12, padding: 12, background: 'rgba(0,0,0,0.15)', borderRadius: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <UserRound size={14} className="ds-icon" /> Coloca cada dato en tu formato
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 10 }}>
+                Arrastra <strong>Nombre, Edad, Sexo, Fecha, Folio</strong> al lugar EXACTO de tu receta.
+                Si tu formato ya los trae impresos, déjalos sin colocar. (El cuerpo de Rx usa los márgenes de abajo.)
+              </div>
+              <CalibradorReceta
+                disenoUrl={rx.disenoCompletoDataUrl}
+                campos={rx.disenoCampos}
+                onChange={(c) => setRx({ ...rx, disenoCampos: c })}
+              />
+            </div>
+          )}
+
           {/* Calibración de márgenes — solo cuando hay diseño */}
           {rx.disenoCompletoDataUrl && (
             <div style={{ marginTop: 12, padding: 12, background: 'rgba(0,0,0,0.15)', borderRadius: 8 }}>
@@ -2988,6 +3006,79 @@ function MargenInput({ label, value, onChange }: { label: string; value: number;
  * Recomendado: PNG con FONDO TRANSPARENTE para que se vea bien sobre cualquier papel.
  * Si el médico sube un JPG, le agregamos fondo blanco igualmente.
  */
+// ── Calibrador visual de receta: arrastra cada dato a su lugar exacto ──
+const CAMPOS_RECETA = [
+  { k: 'nombre', label: 'Nombre' }, { k: 'edad', label: 'Edad' },
+  { k: 'sexo', label: 'Sexo' }, { k: 'fecha', label: 'Fecha' }, { k: 'folio', label: 'Folio' },
+] as const
+type CampoRecetaK = typeof CAMPOS_RECETA[number]['k']
+type CamposReceta = Partial<Record<CampoRecetaK, { x: number; y: number }>>
+
+function CalibradorReceta({ disenoUrl, campos, onChange }: {
+  disenoUrl: string
+  campos?: CamposReceta
+  onChange: (c: CamposReceta) => void
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [arrastrando, setArrastrando] = useState<CampoRecetaK | null>(null)
+  const val: CamposReceta = campos ?? {}
+
+  const posDe = (e: React.PointerEvent): { x: number; y: number } | null => {
+    const r = ref.current?.getBoundingClientRect()
+    if (!r || r.width === 0) return null
+    const x = Math.min(100, Math.max(0, ((e.clientX - r.left) / r.width) * 100))
+    const y = Math.min(100, Math.max(0, ((e.clientY - r.top) / r.height) * 100))
+    return { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 }
+  }
+  const onMove = (e: React.PointerEvent) => {
+    if (!arrastrando) return
+    const p = posDe(e); if (!p) return
+    onChange({ ...val, [arrastrando]: p })
+  }
+  const colocar = (k: CampoRecetaK) => onChange({ ...val, [k]: { x: 50, y: 15 } })
+  const quitar = (k: CampoRecetaK) => { const n: CamposReceta = { ...val }; delete n[k]; onChange(n) }
+  const sinColocar = CAMPOS_RECETA.filter(c => !val[c.k])
+
+  return (
+    <div>
+      {sinColocar.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8, alignItems: 'center' }}>
+          <span style={{ fontSize: 11, color: 'var(--text3)' }}>Colocar:</span>
+          {sinColocar.map(c => (
+            <button key={c.k} type="button" onClick={() => colocar(c.k)}
+              style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 100, cursor: 'pointer', border: '1px dashed var(--nexus)', background: 'var(--s2)', color: 'var(--nexus)' }}>
+              + {c.label}
+            </button>
+          ))}
+        </div>
+      )}
+      <div ref={ref} onPointerMove={onMove} onPointerUp={() => setArrastrando(null)} onPointerLeave={() => setArrastrando(null)}
+        style={{ position: 'relative', width: '100%', userSelect: 'none', touchAction: 'none', borderRadius: 8, overflow: 'hidden', background: '#fff' }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={disenoUrl} alt="Formato de receta" style={{ width: '100%', display: 'block', pointerEvents: 'none' }} draggable={false} />
+        {CAMPOS_RECETA.filter(c => val[c.k]).map(c => {
+          const p = val[c.k]!
+          return (
+            <div key={c.k} onPointerDown={(e) => { e.preventDefault(); setArrastrando(c.k) }}
+              style={{
+                position: 'absolute', left: `${p.x}%`, top: `${p.y}%`, transform: 'translate(-50%,-50%)',
+                background: 'var(--nexus)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px',
+                borderRadius: 6, cursor: 'grab', whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
+                display: 'flex', alignItems: 'center', gap: 5,
+              }}>
+              {c.label}
+              <span onPointerDown={(e) => { e.stopPropagation(); quitar(c.k) }} style={{ opacity: 0.85, cursor: 'pointer' }}>✕</span>
+            </div>
+          )
+        })}
+      </div>
+      <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 6 }}>
+        Arrastra cada etiqueta al lugar de tu formato · ✕ para quitar · se guarda al tocar “Guardar configuración”.
+      </div>
+    </div>
+  )
+}
+
 type EstadoLlave = { configurada: boolean; hint: string }
 interface EstadoIA {
   claves: { anthropic: EstadoLlave; assemblyai: EstadoLlave; openai: EstadoLlave }
