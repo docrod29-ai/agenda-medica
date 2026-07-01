@@ -1299,7 +1299,13 @@ export default function ConsultaActivaPage() {
             medicoNombre: config?.nombreMedico,
             concepto: 'consulta',
           }}
-          onClose={() => { setCobrar(false); router.push(`/expediente/${patientId}`) }}
+          onClose={() => {
+            setCobrar(false)
+            // Fluidez: si la consulta dejó medicamentos, encadena directo a la
+            // RECETA (acabas de prescribir → imprímela); si no, al expediente.
+            const nid = notaId || notaIdRef.current
+            router.push(medicamentos.length > 0 && nid ? `/receta/${patientId}/${nid}` : `/expediente/${patientId}`)
+          }}
         />
       )}
 
