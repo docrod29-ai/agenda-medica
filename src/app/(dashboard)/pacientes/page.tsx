@@ -312,6 +312,7 @@ function PatientModal({ patient, onClose, onSaved, userEmail }: {
 
   const handleSave = async () => {
     if (!f.nombre.trim()) { toast('El nombre es requerido', 'error'); return }
+    if (!f.edad.trim()) { toast('La edad es requerida', 'error'); return }
     setSaving(true)
     try {
       const payload = {
@@ -382,7 +383,7 @@ function PatientModal({ patient, onClose, onSaved, userEmail }: {
               <input className="input" type="date" value={f.fechaNacimiento} onChange={upd('fechaNacimiento')} />
             </div>
             <div className="form-group">
-              <label className="label">Edad</label>
+              <label className="label">Edad *</label>
               <input className="input" type="number" value={f.edad} onChange={upd('edad')} min={0} max={130} />
             </div>
             <div className="form-group">
