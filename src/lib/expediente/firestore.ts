@@ -200,14 +200,19 @@ export async function getUltimasNotasResumen(
   patientId: string,
   limit = 3,
 ): Promise<string> {
+  // SIN orderBy en la query: combinarlo con where() exigiría un índice compuesto
+  // que no existe → la consulta fallaba en silencio (card vacío y la IA sin
+  // contexto de visitas previas). Se ordena en memoria (pocas notas por paciente).
   const snap = await getDocs(query(
     notasCol(clinicId, patientId),
     where('estado', '==', 'firmada'),
-    orderBy('fechaConsulta', 'desc'),
   ))
-  const notas = snap.docs.slice(0, limit).map(d => d.data() as NotaMedica)
+  const notas = snap.docs
+    .map(d => d.data() as NotaMedica)
+    .sort((a, b) => (b.fechaConsulta || '').localeCompare(a.fechaConsulta || ''))
+    .slice(0, limit)
   if (notas.length === 0) return ''
   return notas
-    .map(n => `[${n.fechaConsulta.slice(0, 10)}] ${n.resumenEjecutivo || n.diagnosticos.map(d => d.descripcion).join(', ')}`)
+    .map(n => `[${(n.fechaConsulta || '').slice(0, 10)}] ${n.resumenEjecutivo || n.diagnosticos.map(d => d.descripcion).join(', ')}`)
     .join(' · ')
 }
