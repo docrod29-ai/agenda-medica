@@ -335,6 +335,19 @@ export default function ConfiguracionPage() {
             <input className="input" value={form.especialidad ?? ''} onChange={upd('especialidad')} placeholder="Infectología" />
           </div>
           <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+            <label className="label">Estilo de mis notas (la IA escribe a tu manera)</label>
+            <textarea
+              className="input"
+              rows={3}
+              value={form.instruccionesIA ?? ''}
+              onChange={upd('instruccionesIA')}
+              placeholder="Ej: usa formato SOAP; abrevia los diagnósticos; incluye siempre un plan de seguimiento; tono formal."
+            />
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
+              Preferencias de redacción para tus notas por IA. Son de estilo — no cambian las reglas clínicas ni de seguridad.
+            </div>
+          </div>
+          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
             <label className="label">Dirección</label>
             <input className="input" value={form.direccion} onChange={upd('direccion')} placeholder="Av. Independencia 123, Col. Centro" />
           </div>
