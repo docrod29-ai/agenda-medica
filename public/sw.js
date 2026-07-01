@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v148'  // Fix: visitas anteriores no salian (query fallaba por indice compuesto faltante)
+const CACHE = 'nexusmed-v149'  // Alertas de alergia: +sulfas/macrolidos/quinolonas, fix falso positivo paracetamol
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
