@@ -261,6 +261,7 @@ export interface ClinicConfig {
   nombreClinica: string
   cedulaProfesional?: string   // NOM-004 — requerido para firmar notas
   especialidad?: string        // NOM-004 — aparece en la firma y el PDF
+  instruccionesIA?: string     // preferencias del médico para la redacción de notas por IA
   direccion: string
   googleMapsUrl: string
   telefonoAdmin: string

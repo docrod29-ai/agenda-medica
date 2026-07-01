@@ -218,6 +218,7 @@ export default function ConsultaActivaPage() {
             alergias: patient?.alergias,
             notasPrevias: ultimasNotasRef.current,
             especialidad: especialidadEfectiva,
+            instruccionesIA: config?.instruccionesIA,
           },
         }),
       })

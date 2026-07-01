@@ -213,4 +213,5 @@ export interface PacienteContexto {
   notasPrevias?: string          // resumen de notas anteriores
   medicamentosActuales?: string
   especialidad?: string          // especialidad del médico → estructura la nota a esa especialidad
+  instruccionesIA?: string       // preferencias de estilo del médico para redactar la nota
 }
