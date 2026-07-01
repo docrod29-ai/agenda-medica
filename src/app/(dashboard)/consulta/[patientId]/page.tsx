@@ -130,6 +130,7 @@ export default function ConsultaActivaPage() {
   const [consentimiento, setConsentimiento] = useState(false)
   const [modalConsentimiento, setModalConsentimiento] = useState(false)
   const ultimasNotasRef = useRef('')
+  const [contextoPrevio, setContextoPrevio] = useState('')
 
   // Constraints para capturar TODA la conversación (médico + paciente) en el modo
   // Whisper: sin supresión de ruido ni cancelación de eco (borran al paciente),
@@ -161,7 +162,7 @@ export default function ConsultaActivaPage() {
   useEffect(() => {
     if (!clinicId || !patientId) return
     getPatients(clinicId).then(ps => setPatient(ps.find(p => p.id === patientId) ?? null))
-    getUltimasNotasResumen(clinicId, patientId).then(r => { ultimasNotasRef.current = r })
+    getUltimasNotasResumen(clinicId, patientId).then(r => { ultimasNotasRef.current = r; setContextoPrevio(r) })
   }, [clinicId, patientId])
 
   // ── Cargar nota existente (borrador) si viene ?nota= ───────────
@@ -673,6 +674,20 @@ export default function ConsultaActivaPage() {
       {patient?.alergias && (
         <div style={S.alergia}>
           <AlertTriangle size={16} /> <strong>ALERGIA:</strong> {patient.alergias}
+        </div>
+      )}
+
+      {/* Continuidad: contexto de las últimas visitas (solo lectura) */}
+      {contextoPrevio && (
+        <div style={{
+          display: 'flex', gap: 8, alignItems: 'flex-start',
+          background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10,
+          padding: '10px 14px', marginBottom: 16, fontSize: 12.5, color: 'var(--text2)',
+        }}>
+          <FileText size={14} className="ds-icon" style={{ flexShrink: 0, marginTop: 1 }} />
+          <div>
+            <strong style={{ color: 'var(--text)' }}>Visitas anteriores:</strong> {contextoPrevio}
+          </div>
         </div>
       )}
 
