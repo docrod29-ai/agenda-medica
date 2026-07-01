@@ -148,13 +148,45 @@ export function validarAlergiasVsMedicamentos(
       })
     }
 
-    // AINE + alergia a AINE
-    if (alergiasLow.some(a => a.includes('aine') || a.includes('aspirin'))) {
-      const esAine = /ibuprofen|naproxen|aspir|ketorol|diclofen|paracetam/.test(nom)
-      if (esAine) {
+    // AINE + alergia a AINE (paracetamol NO es AINE → excluido para evitar falsos positivos)
+    if (alergiasLow.some(a => a.includes('aine') || a.includes('aspirin') || a.includes('antiinflamator'))) {
+      if (/ibuprofen|naproxen|aspir|acetilsalic|ketorol|diclofen|meloxicam|piroxicam|indometac|celecox|ketoprof|nimesul|metamizol/.test(nom)) {
         alertas.push({
           severidad: 'critica',
           mensaje: `Posible alergia a AINE y se prescribe ${med.nombre}. Revisar.`,
+          campos: ['alergias', 'medicamentos'],
+        })
+      }
+    }
+
+    // Sulfonamidas (alergia frecuente y potencialmente grave)
+    if (alergiasLow.some(a => a.includes('sulfa'))) {
+      if (/sulfametoxazol|trimetoprim|sulfadiaz|sulfasalaz|sulfona/.test(nom)) {
+        alertas.push({
+          severidad: 'critica',
+          mensaje: `Alergia a sulfas y se prescribe ${med.nombre}. Reacción posible — verificar.`,
+          campos: ['alergias', 'medicamentos'],
+        })
+      }
+    }
+
+    // Macrólidos
+    if (alergiasLow.some(a => a.includes('macrolid') || a.includes('eritromic') || a.includes('azitromic') || a.includes('claritromic'))) {
+      if (/eritromic|azitromic|claritromic/.test(nom)) {
+        alertas.push({
+          severidad: 'critica',
+          mensaje: `Alergia a macrólidos y se prescribe ${med.nombre}. Verificar.`,
+          campos: ['alergias', 'medicamentos'],
+        })
+      }
+    }
+
+    // Quinolonas
+    if (alergiasLow.some(a => a.includes('quinolon') || a.includes('floxacin'))) {
+      if (/floxacin/.test(nom)) {
+        alertas.push({
+          severidad: 'critica',
+          mensaje: `Alergia a quinolonas y se prescribe ${med.nombre}. Verificar.`,
           campos: ['alergias', 'medicamentos'],
         })
       }
