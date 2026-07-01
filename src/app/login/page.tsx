@@ -52,7 +52,7 @@ function LoginInner() {
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? ''
       if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
-        setError('Credenciales incorrectas. Verifica tu correo y contraseña.')
+        setError('Correo o contraseña incorrectos. Si te registraste con Google, entra con el botón "Continuar con Google" de arriba. Si olvidaste tu contraseña, usa el enlace de abajo.')
       } else if (code === 'auth/too-many-requests') {
         setError('Demasiados intentos. Espera un momento e inténtalo de nuevo.')
       } else {

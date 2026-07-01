@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v143'  // Google login: authDomain propio + proxy /__/auth (arregla popup en blanco por cookies cross-domain)
+const CACHE = 'nexusmed-v144'  // Login: mensaje guía cuenta Google + recuperar contrasena
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
