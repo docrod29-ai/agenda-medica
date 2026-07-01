@@ -33,7 +33,7 @@ import { CobrarModal } from '@/components/CobrarModal'
 import {
   ArrowLeft, Mic, Square, Sparkles, Loader2, AlertTriangle, CheckCircle2,
   Trash2, Plus, ShieldCheck, Pill, Stethoscope, FileSignature,
-  Lock, Bug, FlaskConical, Lightbulb, FileText, ChevronDown, ChevronUp,
+  Lock, Bug, FlaskConical, Lightbulb, FileText, ChevronDown, ChevronUp, Volume2,
 } from 'lucide-react'
 
 const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'valoracion_preoperatoria', 'alta_consulta', 'ingreso', 'evolucion', 'egreso']
@@ -557,6 +557,29 @@ export default function ConsultaActivaPage() {
       toast('Respaldo local restaurado', 'success')
     } catch { toast('No se pudo restaurar el respaldo', 'error') }
   }
+
+  // ── Resumen hablado de cierre ──────────────────────────────────
+  // La IA (voz del navegador, sin dependencias) lee Dx / Tratamiento / plan para
+  // que el médico CONFIRME de un vistazo antes de firmar. No modifica la nota.
+  const leerResumen = useCallback(() => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
+      toast('Tu navegador no soporta lectura por voz', 'error'); return
+    }
+    const dx = diagnosticos.map(d => d.descripcion).filter(Boolean).join(', ')
+    const rx = medicamentos
+      .map(m => [m.nombre, m.dosis, m.frecuencia].filter(Boolean).join(' '))
+      .filter(Boolean).join('. ')
+    const partes = [
+      dx && `Diagnóstico: ${dx}.`,
+      rx && `Tratamiento: ${rx}.`,
+      resumen.trim() && `Resumen: ${resumen.trim()}.`,
+    ].filter(Boolean) as string[]
+    if (!partes.length) { toast('Aún no hay contenido para leer', 'info'); return }
+    window.speechSynthesis.cancel()
+    const u = new SpeechSynthesisUtterance(partes.join(' '))
+    u.lang = 'es-MX'
+    window.speechSynthesis.speak(u)
+  }, [diagnosticos, medicamentos, resumen, toast])
 
   // ── Firmar nota (NOM-004 + NOM-024) ────────────────────────────
   const firmar = useCallback(async () => {
@@ -1213,6 +1236,9 @@ export default function ConsultaActivaPage() {
             </button>
             <button onClick={() => guardarBorrador()} disabled={guardando} style={S.guardar}>
               {guardando ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : 'Guardar borrador'}
+            </button>
+            <button onClick={leerResumen} disabled={guardando} style={S.guardar} title="La IA te lee Dx, tratamiento y plan para confirmar antes de firmar">
+              <Volume2 size={14} /> Leer resumen
             </button>
             <button onClick={descartar} disabled={guardando} style={S.descartar}>
               <Trash2 size={14} /> Descartar
