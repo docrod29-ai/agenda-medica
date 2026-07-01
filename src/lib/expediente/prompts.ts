@@ -237,12 +237,29 @@ function guiaEspecialidad(especialidad?: string): string {
   return ''
 }
 
+/**
+ * Plantilla DINÁMICA por motivo de consulta: el motor detecta el motivo principal
+ * en el dictado y se asegura de documentar los elementos clave de ese motivo. Si el
+ * médico NO los mencionó, se dejan en blanco (nunca inventar). Compacta a propósito.
+ */
+const GUIA_MOTIVOS = `
+PLANTILLA POR MOTIVO DE CONSULTA — identifica el motivo principal en el dictado y documenta sus elementos clave (si no se mencionaron, deja en blanco; NO inventes):
+- Dolor torácico: características e irradiación, factores de riesgo cardiovascular, síntomas asociados (disnea/diaforesis); en plan valorar ECG/troponinas si aplica.
+- Cefalea: tiempo/curso, características, banderas rojas, focalización neurológica.
+- Dolor abdominal: localización/tipo/irradiación, síntomas GI y urinarios, hallazgos del examen abdominal.
+- Fiebre / cuadro infeccioso: días de evolución, foco probable, síntomas asociados.
+- Control de crónico (HTA/DM): cifras/glucemias recientes, adherencia, complicaciones, metas y ajuste.
+- Tos / síntomas respiratorios: tiempo, disnea, fiebre, auscultación.
+- Control prenatal: edad gestacional, movimientos fetales, FCF, TA, suplementación.
+- Dolor lumbar / articular: mecanismo, banderas rojas, limitación funcional.
+`
+
 export function buildSystemPrompt(tipo: TipoNota, especialidad?: string): string {
   const secciones = SECCIONES_POR_TIPO[tipo]
   const listaSecciones = secciones.map(s => `   - "${s.key}": ${s.label}${s.obligatorio ? ' (obligatorio)' : ''}`).join('\n')
 
   return `${REGLAS_BASE}
-${guiaEspecialidad(especialidad)}${ESPECIFICO[tipo] ? `\nINSTRUCCIONES ESPECÍFICAS:\n${ESPECIFICO[tipo]}\n` : ''}
+${guiaEspecialidad(especialidad)}${GUIA_MOTIVOS}${ESPECIFICO[tipo] ? `\nINSTRUCCIONES ESPECÍFICAS:\n${ESPECIFICO[tipo]}\n` : ''}
 ESTRUCTURA JSON ESPERADA (incluye los campos planos + el bloque auditable "extraction" + "safety"):
 {
   "resumenEjecutivo": "1 línea que resume el caso",
