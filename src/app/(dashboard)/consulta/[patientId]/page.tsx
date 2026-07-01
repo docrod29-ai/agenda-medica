@@ -336,11 +336,11 @@ export default function ConsultaActivaPage() {
     const t = setInterval(() => {
       if (vivoRef.current) return
       const palabras = transcripcionRef.current.trim().split(/\s+/).filter(Boolean).length
-      if (palabras - palabrasEstructuradasRef.current >= 25) {   // ~25 palabras nuevas
+      if (palabras - palabrasEstructuradasRef.current >= 18) {   // ~18 palabras nuevas
         palabrasEstructuradasRef.current = palabras
         procesarIARef.current(undefined, { enVivo: true })
       }
-    }, 30000)
+    }, 15000)   // revisa cada 15s (antes 30s) → la nota se llena más seguido, sensación "streaming"
     return () => clearInterval(t)
   }, [voz.grabando, audio.estado, notaEnVivo, firmada])
 

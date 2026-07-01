@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v151'  // Fase 5: tras firmar+cobro, encadena directo a la receta si hubo medicamentos
+const CACHE = 'nexusmed-v152'  // Fase 6-lite: estructuracion en vivo mas responsiva (15s/18 palabras)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
