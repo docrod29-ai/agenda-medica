@@ -5,7 +5,7 @@ import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
 import { auth } from '@/lib/firebase'
-import { getPatients } from '@/lib/firestore'
+import { getPatients, updatePatient } from '@/lib/firestore'
 import { useGrabacionVoz } from '@/hooks/useGrabacionVoz'
 import { useGrabacionAudio } from '@/hooks/useGrabacionAudio'
 import {
@@ -671,12 +671,26 @@ export default function ConsultaActivaPage() {
         <ArrowLeft size={15} /> Expediente
       </button>
 
-      {/* Alergias banner permanente */}
-      {patient?.alergias && (
-        <div style={S.alergia}>
-          <AlertTriangle size={16} /> <strong>ALERGIA:</strong> {patient.alergias}
-        </div>
-      )}
+      {/* Alergias — SIEMPRE visible y EDITABLE (el Dr. reportó que no había dónde
+          ponerlas). Se guarda en el expediente del paciente y alimenta las alertas
+          de fármaco. Rojo cuando hay alergias; neutro cuando no. */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12,
+        background: patient?.alergias ? 'rgba(239,68,68,0.1)' : 'var(--s2)',
+        border: `1px solid ${patient?.alergias ? 'rgba(239,68,68,0.35)' : 'var(--border)'}`,
+        borderRadius: 10, padding: '9px 13px',
+      }}>
+        <AlertTriangle size={16} color={patient?.alergias ? '#f87171' : 'var(--text3)'} style={{ flexShrink: 0 }} />
+        <strong style={{ flexShrink: 0, fontSize: 13, color: patient?.alergias ? '#f87171' : 'var(--text2)' }}>Alergias:</strong>
+        <input
+          value={patient?.alergias ?? ''}
+          onChange={e => setPatient(prev => prev ? { ...prev, alergias: e.target.value } : prev)}
+          onBlur={() => { if (clinicId && patient) updatePatient(clinicId, patientId, { alergias: patient.alergias ?? '' }).catch(() => {}) }}
+          placeholder="Sin alergias conocidas — escribe aquí si hay (penicilina, AINEs, sulfas…)"
+          disabled={firmada}
+          style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 14 }}
+        />
+      </div>
 
       {/* Continuidad: contexto de las últimas visitas (solo lectura) */}
       {contextoPrevio && (
