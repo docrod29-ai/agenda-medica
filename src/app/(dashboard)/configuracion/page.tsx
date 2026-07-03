@@ -348,6 +348,19 @@ export default function ConfiguracionPage() {
             </div>
           </div>
           <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14, color: 'var(--text)' }}>
+              <input
+                type="checkbox"
+                checked={form.pedirCobroAlCerrar !== false}
+                onChange={e => setForm({ ...form, pedirCobroAlCerrar: e.target.checked })}
+              />
+              Pedir el cobro al terminar la consulta
+            </label>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
+              Si cobras por fuera, apágalo: al firmar la nota ya no te pedirá registrar el pago.
+            </div>
+          </div>
+          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
             <label className="label">Dirección</label>
             <input className="input" value={form.direccion} onChange={upd('direccion')} placeholder="Av. Independencia 123, Col. Centro" />
           </div>
