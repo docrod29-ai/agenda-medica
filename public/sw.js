@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v153'  // Fase 7: instrucciones personalizadas del medico (la IA escribe a tu estilo)
+const CACHE = 'nexusmed-v154'  // Respaldo completo del expediente + buscar por CURP
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
