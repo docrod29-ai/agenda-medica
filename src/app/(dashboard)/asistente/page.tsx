@@ -109,9 +109,10 @@ function AsistenteInner() {
     return getAvailableSlots(fecha, duracion, appointments, efectiveConfig, undefined, [], doctorId || undefined)
   }, [fecha, duracion, appointments, efectiveConfig, doctorId])
 
-  // Generate next 7 days
+  // Chips rápidos de los próximos 14 días (para elegir fechas más lejanas se usa
+  // el selector de fecha de abajo, que llega hasta +90 días).
   const nextDays = useMemo(() => {
-    return Array.from({ length: 7 }, (_, i) => addDaysToStr(todayStr(), i))
+    return Array.from({ length: 14 }, (_, i) => addDaysToStr(todayStr(), i))
   }, [])
 
   const handleSubmit = async () => {
@@ -344,6 +345,16 @@ function AsistenteInner() {
             <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
               <CalendarDays size={16} color="var(--teal)" /> Fecha
             </h2>
+            {/* Selector de CUALQUIER fecha (hasta 90 días) — resuelve el límite de la semana */}
+            <input
+              type="date"
+              className="input"
+              value={fecha}
+              min={todayStr()}
+              max={addDaysToStr(todayStr(), 90)}
+              onChange={e => { if (e.target.value) setFecha(e.target.value) }}
+              style={{ marginBottom: 10 }}
+            />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {nextDays.map(d => {
                 const daySlots = getAvailableSlots(d, duracion, appointments, efectiveConfig, undefined, [], doctorId || undefined)
