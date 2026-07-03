@@ -2,11 +2,12 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Patient } from '@/types'
 import { getPatients, createPatient, updatePatient } from '@/lib/firestore'
+import { getNotas } from '@/lib/expediente/firestore'
 import { useToast } from '@/context/ToastContext'
 import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
 import { useMode } from '@/context/ModeContext'
-import { Plus, Search, X, Users, Phone, AlertCircle, FileText, Calendar, Pencil, Cake } from 'lucide-react'
+import { Plus, Search, X, Users, Phone, AlertCircle, FileText, Calendar, Pencil, Cake, Download, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { PageHeader, Button, EmptyState, Spinner, Modal } from '@/components/ui'
@@ -15,11 +16,12 @@ import { avatarColor } from '@/lib/avatar-color'
 export default function PacientesPage() {
   const { toast } = useToast()
   const { user } = useAuth()
-  const { clinicId } = useClinic()
+  const { clinicId, role } = useClinic()
   const { mode } = useMode()
   const router = useRouter()
   const [patients, setPatients] = useState<Patient[]>([])
   const [loading, setLoading] = useState(true)
+  const [exportando, setExportando] = useState(false)
   const [search, setSearch] = useState('')
   const [filtro, setFiltro] = useState<'recientes' | 'todos' | 'alerta'>('recientes')
   const [modalOpen, setModalOpen] = useState(false)
@@ -37,6 +39,38 @@ export default function PacientesPage() {
 
   useEffect(() => { load() }, [clinicId])
 
+  // Respaldo COMPLETO: todos los pacientes + todas sus notas → archivo descargable.
+  // Copia de seguridad propia del médico ("nunca se pierde" x2). Solo médico/admin
+  // (incluye notas = secreto médico).
+  const exportarTodo = async () => {
+    if (!clinicId || exportando) return
+    setExportando(true)
+    try {
+      const backup = {
+        clinica: clinicId,
+        exportadoEn: new Date().toISOString(),
+        totalPacientes: patients.length,
+        pacientes: [] as Array<Patient & { historial: unknown[] }>,
+      }
+      for (const p of patients) {
+        const historial = await getNotas(clinicId, p.id).catch(() => [] as unknown[])
+        backup.pacientes.push({ ...p, historial })
+      }
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `respaldo_expediente_${new Date().toISOString().slice(0, 10)}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast(`Respaldo descargado: ${patients.length} paciente(s) con sus notas`, 'success')
+    } catch {
+      toast('No se pudo generar el respaldo', 'error')
+    } finally {
+      setExportando(false)
+    }
+  }
+
   const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
   // Búsqueda: aplana resultados sobre TODOS los pacientes (ignora el chip).
@@ -44,7 +78,7 @@ export default function PacientesPage() {
     const q = norm(search.trim())
     if (!q) return null
     return patients
-      .filter(p => norm(p.nombre).includes(q) || p.telefono.includes(search) || norm(p.email ?? '').includes(q))
+      .filter(p => norm(p.nombre).includes(q) || p.telefono.includes(search) || norm(p.email ?? '').includes(q) || norm(p.curp ?? '').includes(q))
       .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
   }, [patients, search])
 
@@ -96,6 +130,17 @@ export default function PacientesPage() {
         ) : (
           <>
             <Link href="/asistente"><Button variant="secondary" icon={<Calendar size={16} />}>Agendar</Button></Link>
+            {(role === 'medico' || role === 'admin') && patients.length > 0 && (
+              <Button
+                variant="secondary"
+                icon={exportando ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={16} />}
+                onClick={exportarTodo}
+                disabled={exportando}
+                title="Descargar todo el expediente (todos los pacientes y sus notas) como respaldo"
+              >
+                {exportando ? 'Generando…' : 'Respaldo'}
+              </Button>
+            )}
             <Button icon={<Plus size={16} />} onClick={openNew}>Nuevo paciente</Button>
           </>
         )}
@@ -104,7 +149,7 @@ export default function PacientesPage() {
       {/* Search */}
       <div style={{ position: 'relative', marginBottom: 12, maxWidth: 420 }}>
         <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)' }} />
-        <input className="input" style={{ paddingLeft: 32 }} placeholder="Buscar por nombre, teléfono o correo…" value={search} onChange={e => setSearch(e.target.value)} />
+        <input className="input" style={{ paddingLeft: 32 }} placeholder="Buscar por nombre, teléfono, correo o CURP…" value={search} onChange={e => setSearch(e.target.value)} />
         {search && (
           <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)' }}>
             <X size={14} />
