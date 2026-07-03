@@ -3071,9 +3071,44 @@ function CalibradorReceta({ disenoUrl, campos, onChange }: {
   campos?: CamposReceta
   onChange: (c: CamposReceta) => void
 }) {
+  const { toast } = useToast()
   const ref = useRef<HTMLDivElement>(null)
   const [arrastrando, setArrastrando] = useState<CampoRecetaK | null>(null)
+  const [detectando, setDetectando] = useState(false)
   const val: CamposReceta = campos ?? {}
+
+  // IA de visión: detecta sola dónde va cada campo en TU formato → pre-llena el
+  // calibrador. "La app se adapta a ti, no tú a ella." El médico ajusta si hace falta.
+  const detectarConIA = async () => {
+    if (detectando) return
+    setDetectando(true)
+    try {
+      const resp = await fetch(disenoUrl)            // proxy same-origin o dataUrl
+      const blob = await resp.blob()
+      const mediaType = blob.type || 'image/png'
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const fr = new FileReader()
+        fr.onload = () => resolve(String(fr.result).split(',')[1] ?? '')
+        fr.onerror = reject
+        fr.readAsDataURL(blob)
+      })
+      const res = await fetchAutenticado('/api/receta/detectar-campos', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imagenBase64: base64, mediaType }),
+      })
+      const data = await res.json()
+      if (data.ok && data.campos) {
+        onChange({ ...val, ...data.campos })
+        toast(`IA colocó ${Object.keys(data.campos).length} campo(s) — revisa y ajusta si hace falta`, 'success')
+      } else {
+        toast(data.error ?? 'La IA no pudo detectar; colócalos a mano arrastrando', 'error')
+      }
+    } catch {
+      toast('No se pudo detectar con IA; colócalos a mano arrastrando', 'error')
+    } finally {
+      setDetectando(false)
+    }
+  }
 
   const posDe = (e: React.PointerEvent): { x: number; y: number } | null => {
     const r = ref.current?.getBoundingClientRect()
@@ -3093,6 +3128,24 @@ function CalibradorReceta({ disenoUrl, campos, onChange }: {
 
   return (
     <div>
+      <button
+        type="button"
+        onClick={detectarConIA}
+        disabled={detectando}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12,
+          fontSize: 13, fontWeight: 700, padding: '8px 14px', borderRadius: 9,
+          cursor: detectando ? 'wait' : 'pointer', border: 'none',
+          background: 'var(--nexus)', color: '#fff',
+        }}
+      >
+        {detectando
+          ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Detectando campos…</>
+          : <><Sparkles size={14} /> Detectar campos con IA</>}
+      </button>
+      <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 10 }}>
+        La IA lee tu formato y coloca Nombre/Edad/Fecha… solos. Luego los puedes arrastrar para ajustar.
+      </div>
       {sinColocar.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8, alignItems: 'center' }}>
           <span style={{ fontSize: 11, color: 'var(--text3)' }}>Colocar:</span>
