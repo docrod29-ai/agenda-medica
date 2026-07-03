@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v154'  // Respaldo completo del expediente + buscar por CURP
+const CACHE = 'nexusmed-v155'  // Fix agenda: agendar hasta 90 dias (antes solo 7) + selector de fecha
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
