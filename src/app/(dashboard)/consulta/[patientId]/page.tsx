@@ -640,9 +640,14 @@ export default function ConsultaActivaPage() {
         medicoUid: auth.currentUser?.uid, medicoEmail: auth.currentUser?.email ?? undefined,
         meta: { tipo, aprobadosIA: aprobados.size, diagnosticos: diagnosticos.length, medicamentos: medicamentos.length },
       })
-      // Nota firmada → ofrecer el cobro aquí mismo (cómo pagó y cuánto).
-      // Al registrar u omitir, el modal cierra y de ahí se va al expediente.
-      setCobrar(true)
+      // Cobro OPCIONAL (Configuración). Muchos médicos cobran por fuera → si está
+      // apagado, no estorba: navega directo (a la receta si hubo medicamentos).
+      if (config?.pedirCobroAlCerrar === false) {
+        const nid = notaIdRef.current
+        router.push(medicamentos.length > 0 && nid ? `/receta/${patientId}/${nid}` : `/expediente/${patientId}`)
+      } else {
+        setCobrar(true)
+      }
     } catch (e) {
       toast('Error al firmar', 'error')
     } finally {

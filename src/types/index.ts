@@ -262,6 +262,7 @@ export interface ClinicConfig {
   cedulaProfesional?: string   // NOM-004 — requerido para firmar notas
   especialidad?: string        // NOM-004 — aparece en la firma y el PDF
   instruccionesIA?: string     // preferencias del médico para la redacción de notas por IA
+  pedirCobroAlCerrar?: boolean  // ofrecer registrar el cobro tras firmar (default true; el que cobra por fuera lo apaga)
   direccion: string
   googleMapsUrl: string
   telefonoAdmin: string
