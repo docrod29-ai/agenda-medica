@@ -3075,6 +3075,7 @@ function MargenInput({ label, value, onChange }: { label: string; value: number;
 const CAMPOS_RECETA = [
   { k: 'nombre', label: 'Nombre' }, { k: 'edad', label: 'Edad' },
   { k: 'sexo', label: 'Sexo' }, { k: 'fecha', label: 'Fecha' }, { k: 'folio', label: 'Folio' },
+  { k: 'firma', label: 'Firma' },
 ] as const
 type CampoRecetaK = typeof CAMPOS_RECETA[number]['k']
 type CamposReceta = Partial<Record<CampoRecetaK, { x: number; y: number }>>
