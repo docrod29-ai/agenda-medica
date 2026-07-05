@@ -438,7 +438,9 @@ function HojaCustom({
         draggable={false}
       />
       {/* Campos CALIBRADOS — cada dato en la coordenada exacta sobre el diseño */}
-      {pagina.esPrimera && hayCampos && campos && (
+      {/* Datos del paciente (nombre/edad/fecha…) en TODAS las hojas — cada hoja es
+          una receta completa que se entrega por separado. */}
+      {hayCampos && campos && (
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
           {(Object.keys(campos) as (keyof typeof campos)[]).map(k => {
             const pos = campos[k]; const valor = valorCampo(k as string)
@@ -515,7 +517,8 @@ function HojaCustom({
 
       {/* Firma — SOLO en la última hoja. Si el médico calibró su posición
           (disenoCampos.firma), se coloca ahí; si no, sobre el margen inferior. */}
-      {pagina.esUltima && config?.firmaImagenDataUrl && (
+      {/* Firma en TODAS las hojas (cada hoja es una receta que se firma y entrega) */}
+      {config?.firmaImagenDataUrl && (
         <div style={campos?.firma
           ? {
               position: 'absolute',
