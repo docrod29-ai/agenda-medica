@@ -29,6 +29,9 @@ const ICONO_TIPO_NOTA: Record<TipoNota, LucideIcon> = {
   egreso: LogOut,
   valoracion_preoperatoria: ClipboardCheck,
   valoracion_inmuno: ShieldPlus,
+  nota_postoperatoria: Activity,
+  nota_anestesia: Activity,
+  consentimiento: FileText,
 }
 
 export default function ExpedientePage() {

@@ -245,6 +245,9 @@ Extrae "medicamentos" SOLO con los fármacos de profilaxis/tratamiento que
 correspondan (deja "dosis" vacía si el médico no la dictó). Extrae
 "diagnosticos" pertinentes (p. ej. "Estado de inmunocompromiso por
 trasplante renal", "Portador de anti-HBc — riesgo de reactivación").`,
+  nota_postoperatoria: `Nota POSTOPERATORIA (NOM-004). Estructura con precisión quirúrgica: diagnóstico pre y postoperatorio, cirugía realizada, hallazgos transoperatorios, técnica, sangrado/líquidos, complicaciones (si ninguna, escribe "sin complicaciones"), estado al salir de quirófano y destino, y plan postoperatorio (analgesia, profilaxis antibiótica y tromboprofilaxis si aplica, cuidados, signos de alarma). No inventes datos que no se dictaron.`,
+  nota_anestesia: `Nota/registro de ANESTESIA. Incluye valoración preanestésica con clasificación ASA y vía aérea, tipo de anestesia, fármacos con dosis, monitoreo transanestésico y eventos, líquidos/hemoderivados, incidentes (si ninguno, "sin incidentes") y estado al egreso (Aldrete, destino). No inventes dosis no dictadas.`,
+  consentimiento: `CONSENTIMIENTO INFORMADO (NOM-004). Redacta en lenguaje CLARO y comprensible para el paciente (no técnico). Estructura: procedimiento propuesto, en qué consiste, beneficios esperados, riesgos y complicaciones (frecuentes y graves), alternativas (incluida la de no tratarse) y declaración de que el paciente comprende y acepta. Neutral y no alarmista; no exageres ni minimices los riesgos.`,
 }
 
 /**
