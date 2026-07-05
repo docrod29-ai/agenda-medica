@@ -53,6 +53,8 @@ export default function ConsultaActivaPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const notaIdParam = searchParams.get('nota')
+  const tipoParam = searchParams.get('tipo')          // tipo de nota preseleccionado (p. ej. desde hospitalización)
+  const internamientoParam = searchParams.get('internamiento') || undefined  // vínculo con el episodio
   const { clinicId } = useClinic()
   const { config } = useConfig()
   const { toast } = useToast()
@@ -90,11 +92,12 @@ export default function ConsultaActivaPage() {
   const [patient, setPatient] = useState<Patient | null>(null)
   // Cobro al cerrar la consulta: se ofrece tras firmar; al registrar u omitir → expediente
   const [cobrar, setCobrar] = useState(false)
-  const [tipo, setTipo] = useState<TipoNota>('primera_vez')
+  const tipoInicial: TipoNota = (tipoParam && TIPOS.includes(tipoParam as TipoNota)) ? (tipoParam as TipoNota) : 'primera_vez'
+  const [tipo, setTipo] = useState<TipoNota>(tipoInicial)
   // Especialidad de ESTA nota (la IA la estructura según esto). Default: la del médico.
   const [especialidadNota, setEspecialidadNota] = useState('')
   const especialidadEfectiva = especialidadNota || config?.especialidad || ''
-  const [secciones, setSecciones] = useState<NotaSeccion[]>(seccionesVacias('primera_vez'))
+  const [secciones, setSecciones] = useState<NotaSeccion[]>(seccionesVacias(tipoInicial))
   const [signos, setSignos] = useState<SignosVitales>({})
   const [diagnosticos, setDiagnosticos] = useState<Diagnostico[]>([])
   const [medicamentos, setMedicamentos] = useState<Medicamento[]>([])
@@ -443,6 +446,7 @@ export default function ConsultaActivaPage() {
         ? [{ alergeno: patient.alergias, tipo: 'medicamento', reaccion: 'Ver expediente', severidad: 'moderada', confirmada: true }]
         : [],
       estudiosOrden: estudiosOrden.length ? estudiosOrden : undefined,
+      internamientoId: internamientoParam,
       preop,
       iaAuditoria: extraction || safety ? {
         extraction, safety,
@@ -458,7 +462,7 @@ export default function ConsultaActivaPage() {
       updatedAt: now,
       creadoPor: auth.currentUser?.uid ?? '',
     }
-  }, [notaId, clinicId, patientId, patient, tipo, config, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, extraction, safety, aprobados, voz.transcripcion, audio.utterances])
+  }, [notaId, clinicId, patientId, patient, tipo, config, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, internamientoParam, preop, extraction, safety, aprobados, voz.transcripcion, audio.utterances])
 
   // ── Guardar borrador ───────────────────────────────────────────
   // silencioso=true para el autoguardado (no muestra toast)
@@ -648,7 +652,7 @@ export default function ConsultaActivaPage() {
       // apagado, no estorba: navega directo (a la receta si hubo medicamentos).
       if (config?.pedirCobroAlCerrar === false) {
         const nid = notaIdRef.current
-        router.push(medicamentos.length > 0 && nid ? `/receta/${patientId}/${nid}` : `/expediente/${patientId}`)
+        router.push(internamientoParam ? `/hospitalizacion/${internamientoParam}` : medicamentos.length > 0 && nid ? `/receta/${patientId}/${nid}` : `/expediente/${patientId}`)
       } else {
         setCobrar(true)
       }
@@ -1354,7 +1358,7 @@ export default function ConsultaActivaPage() {
             // Fluidez: si la consulta dejó medicamentos, encadena directo a la
             // RECETA (acabas de prescribir → imprímela); si no, al expediente.
             const nid = notaId || notaIdRef.current
-            router.push(medicamentos.length > 0 && nid ? `/receta/${patientId}/${nid}` : `/expediente/${patientId}`)
+            router.push(internamientoParam ? `/hospitalizacion/${internamientoParam}` : medicamentos.length > 0 && nid ? `/receta/${patientId}/${nid}` : `/expediente/${patientId}`)
           }}
         />
       )}

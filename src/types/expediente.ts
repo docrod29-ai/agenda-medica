@@ -152,6 +152,10 @@ export interface NotaMedica {
   // Lo llena p. ej. la Valoración del inmunocomprometido (estudios elegidos).
   estudiosOrden?: string[]
 
+  // Vínculo con un episodio de internamiento (módulo de hospitalización).
+  // Las notas hospitalarias (ingreso/evolución/egreso) cuelgan de un internamiento.
+  internamientoId?: string
+
   // Campos específicos hospitalarios (opcionales)
   hospital?: {
     servicio?: string
