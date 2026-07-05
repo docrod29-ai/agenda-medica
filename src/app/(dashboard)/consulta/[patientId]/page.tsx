@@ -11,8 +11,9 @@ import { useGrabacionAudio } from '@/hooks/useGrabacionAudio'
 import {
   createNota, updateNota, getNota, deleteNota, getUltimasNotasResumen,
 } from '@/lib/expediente/firestore'
-import { seccionesVacias, requiereSignosVitales, esPreoperatoria } from '@/lib/expediente/templates'
+import { seccionesVacias, requiereSignosVitales, esPreoperatoria, esInmuno } from '@/lib/expediente/templates'
 import { PreopAssessment } from '@/components/PreopAssessment'
+import ValoracionInmuno from '@/components/pacientes/ValoracionInmuno'
 import { RevisionPanel } from '@/components/RevisionPanel'
 import { NerPanel } from '@/components/NerPanel'
 import { CorreccionesPanel } from '@/components/CorreccionesPanel'
@@ -36,7 +37,7 @@ import {
   Lock, Bug, FlaskConical, Lightbulb, FileText, ChevronDown, ChevronUp, Volume2,
 } from 'lucide-react'
 
-const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'valoracion_preoperatoria', 'alta_consulta', 'ingreso', 'evolucion', 'egreso']
+const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'valoracion_preoperatoria', 'valoracion_inmuno', 'alta_consulta', 'ingreso', 'evolucion', 'egreso']
 
 // Especialidades con plantilla de enfoque (deben contener la clave que detecta
 // guiaEspecialidad en prompts.ts: cardiolog, pediatr, ginec, interna, urgenc…).
@@ -122,6 +123,8 @@ export default function ConsultaActivaPage() {
   useEffect(() => { notaIdRef.current = notaId }, [notaId])
   const cadenaGuardadoRef = useRef<Promise<unknown>>(Promise.resolve())
   const [preop, setPreop] = useState<{ inputs: Record<string, unknown>; resultados: Record<string, unknown> } | undefined>(undefined)
+  // Estudios a solicitar (valoración inmuno → pre-pobla la Orden médica)
+  const [estudiosOrden, setEstudiosOrden] = useState<string[]>([])
   // Fase B: bloque auditable de la IA + aprobaciones por campo
   const [extraction, setExtraction] = useState<Record<string, unknown> | undefined>(undefined)
   const [safety, setSafety] = useState<Record<string, unknown> | undefined>(undefined)
@@ -439,6 +442,7 @@ export default function ConsultaActivaPage() {
       alergias: patient?.alergias
         ? [{ alergeno: patient.alergias, tipo: 'medicamento', reaccion: 'Ver expediente', severidad: 'moderada', confirmada: true }]
         : [],
+      estudiosOrden: estudiosOrden.length ? estudiosOrden : undefined,
       preop,
       iaAuditoria: extraction || safety ? {
         extraction, safety,
@@ -454,7 +458,7 @@ export default function ConsultaActivaPage() {
       updatedAt: now,
       creadoPor: auth.currentUser?.uid ?? '',
     }
-  }, [notaId, clinicId, patientId, patient, tipo, config, resumen, secciones, signos, diagnosticos, medicamentos, preop, extraction, safety, aprobados, voz.transcripcion, audio.utterances])
+  }, [notaId, clinicId, patientId, patient, tipo, config, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, extraction, safety, aprobados, voz.transcripcion, audio.utterances])
 
   // ── Guardar borrador ───────────────────────────────────────────
   // silencioso=true para el autoguardado (no muestra toast)
@@ -1170,6 +1174,32 @@ export default function ConsultaActivaPage() {
             toast('Escalas aplicadas a la nota', 'success')
           }}
         />
+      )}
+
+      {/* ── Valoración del paciente inmunocomprometido (Infectología) ── */}
+      {esInmuno(tipo) && patient && !firmada && (
+        <Section title="Valoración infectológica — inmunocomprometido" icon={<ShieldCheck size={15} />}>
+          <p style={{ fontSize: 12, color: 'var(--text3)', margin: '0 0 10px' }}>
+            Completa el motivo, huésped y los chips (o dicta por voz y usa &quot;Procesar con IA&quot;). Luego pulsa
+            <strong> &quot;Aplicar a la nota clínica&quot;</strong>: se llenan las secciones, los medicamentos de profilaxis y los estudios de la orden.
+          </p>
+          <ValoracionInmuno
+            patient={patient}
+            onAplicarNota={(n) => {
+              setSecciones(prev => prev.map(s => {
+                const val = (n.secciones as Record<string, string>)[s.key]
+                return typeof val === 'string' && val.trim() ? { ...s, value: val } : s
+              }))
+              setMedicamentos(prev => {
+                const names = new Set(prev.map(m => m.nombre.trim().toLowerCase()))
+                const nuevos = n.medicamentos.filter(m => m.nombre && !names.has(m.nombre.trim().toLowerCase()))
+                return [...prev, ...nuevos]
+              })
+              setEstudiosOrden(n.estudios)
+              toast('Valoración aplicada — revisa secciones, medicamentos y estudios', 'success')
+            }}
+          />
+        </Section>
       )}
 
       {/* ── Secciones narrativas ── */}

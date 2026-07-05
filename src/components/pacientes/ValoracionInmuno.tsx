@@ -12,11 +12,12 @@ import { useClinic } from '@/context/ClinicContext'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
-import { Download, Sparkles, Save } from 'lucide-react'
+import { Download, Sparkles, Save, ClipboardPlus } from 'lucide-react'
 import type { Patient } from '@/types'
 import { TX_CHIPS, TX_EST_CATS, TX_EST_QUANT, TX_MOT_TIT, hostFlags } from '@/lib/inmuno/catalogos'
 import { compose } from '@/lib/inmuno/compose'
 import { recomendaciones, type Sev } from '@/lib/inmuno/recomendaciones'
+import { construirNotaInmuno, type NotaInmuno } from '@/lib/inmuno/nota'
 
 type V = Record<string, string>
 type Modo = 'inicial' | 'seguimiento'
@@ -38,7 +39,7 @@ const SEV_COLOR: Record<Sev, string> = { alta: '#dc2626', media: '#d97706', baja
 const inputCls = 'w-full rounded-md border px-2.5 py-1.5 text-sm bg-transparent'
 const SHOWN = new Set(Object.keys(TX_CHIPS))
 
-export default function ValoracionInmuno({ patient }: { patient: Patient }) {
+export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: Patient; onAplicarNota?: (n: NotaInmuno) => void }) {
   const { clinicId, clinic } = useClinic()
   const [v, setV] = useState<V>(() => ({ ...(patient.txValoracion || {}) }))
   const [modo, setModo] = useState<Modo>('inicial')
@@ -247,7 +248,12 @@ export default function ValoracionInmuno({ patient }: { patient: Patient }) {
 
         {/* Acciones */}
         <div className="flex flex-wrap gap-2">
-          <Button variant="primary" size="sm" icon={<Download size={15} />} onClick={() => descargarWord()}>Word completo</Button>
+          {onAplicarNota && (
+            <Button variant="primary" size="sm" icon={<ClipboardPlus size={15} />} onClick={() => { onAplicarNota(construirNotaInmuno(v)); setStatus('Valoración aplicada a la nota — revisa secciones, medicamentos y estudios') }}>
+              Aplicar a la nota clínica
+            </Button>
+          )}
+          <Button variant={onAplicarNota ? 'secondary' : 'primary'} size="sm" icon={<Download size={15} />} onClick={() => descargarWord()}>Word completo</Button>
           <Button variant="secondary" size="sm" icon={<Sparkles size={15} />} loading={iaLoading} onClick={redactarIA}>Redactar con IA</Button>
           <Button variant="secondary" size="sm" icon={<Save size={15} />} onClick={guardarHist}>Guardar al historial</Button>
         </div>

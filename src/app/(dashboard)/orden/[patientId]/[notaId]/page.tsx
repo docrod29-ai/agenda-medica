@@ -90,6 +90,8 @@ export default function GeneradorOrdenPage() {
         const dxs = n.diagnosticos ?? []
         const principal = dxs.find(d => d.tipo === 'definitivo') ?? dxs[0]
         if (principal) setDiagnostico(principal.descripcion + (principal.codigoCIE10 ? ` (${principal.codigoCIE10})` : ''))
+        // Estudios pre-poblados por la nota (p. ej. valoración del inmunocomprometido)
+        if (Array.isArray(n.estudiosOrden) && n.estudiosOrden.length) setEstudios(n.estudiosOrden)
       }
       setLoading(false)
     }).catch(() => setLoading(false))

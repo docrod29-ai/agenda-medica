@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v170'  // Agenda: navegador de mes con flechas (agendar cualquier dia hasta 1 anio)
+const CACHE = 'nexusmed-v171'  // Valoracion inmunocomprometido como tipo de nota (voz+IA+receta+orden)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

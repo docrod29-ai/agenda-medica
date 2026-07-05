@@ -202,6 +202,49 @@ Estructura por sección:
 
 Adicional: extrae signosVitales (especialmente spo2, peso, talla)
 para que el motor de cálculo los use.`,
+  valoracion_inmuno: `Nota de VALORACIÓN INFECTOLÓGICA DEL PACIENTE INMUNOCOMPROMETIDO.
+
+Enfoque de infectología / hospedero inmunocomprometido. NO das citas ni
+inventas dosis: cuando indiques un antimicrobiano de profilaxis o
+tratamiento, si el médico NO dictó la dosis, escribe el fármaco y la vía y
+añade "(dosis a validar por el médico tratante)". Sé conservador.
+
+Estructura por sección:
+
+▸ "motivoHuesped" (OBLIGATORIO): motivo de la interconsulta (aptitud
+  pretrasplante, fiebre/foco, profilaxis, aptitud para biológico, vacunación)
+  + tipo de huésped (SOT renal/hepático/cardiaco/pulmonar, TCMH autólogo/
+  alogénico, VIH, biológicos/corticoides, neutropenia/quimioterapia, asplenia)
+  + estado de inmunosupresión hoy (en curso / va a iniciar / ninguna) +
+  fecha de TX o inicio de IS + CD4 si es VIH.
+
+▸ "historiaInfectologica" (OBLIGATORIO): comorbilidades, dispositivos
+  invasivos, hábitos, inmunosupresión actual (esteroides, calcineurínicos,
+  antimetabolitos, mTOR, anti-CD20, anti-TNF, JAK, etc.), profilaxis activas,
+  antecedentes infectológicos (colonización BLEE/CRE/MRSA/VRE, C. difficile,
+  TB, candidemia, aspergilosis, CMV previos), exposiciones epidemiológicas,
+  vacunación y ALERGIAS a antimicrobianos. Incluye negaciones relevantes.
+
+▸ "estudiosSolicitados": estudios a pedir (serologías basales HBV/HCV/VIH/
+  CMV/EBV/VZV/HSV/toxoplasma/sífilis, IGRA/PPD, radiografía de tórax,
+  cultivos, galactomanano/β-D-glucano, antígeno criptocócico, cargas virales
+  CMV/EBV/BK según huésped). Enuméralos separados por "; ".
+
+▸ "planProfilaxis" (OBLIGATORIO): profilaxis y plan antimicrobiano según el
+  escalón del huésped y la inmunosupresión: PJP (trimetoprima-sulfametoxazol;
+  atovacuona si G6PD deficiente), CMV (valganciclovir; letermovir en TCMH),
+  HSV/VZV (aciclovir/valaciclovir), antifúngica cuando aplique, HBV
+  (entecavir/tenofovir si anti-HBc+ o HBsAg+), TB latente si IGRA+. Cada uno
+  con fármaco · vía · intervalo · duración y ajuste renal cuando el dato lo
+  permita.
+
+▸ "impresionPlan" (OBLIGATORIO): conclusión de la valoración y seguimiento
+  (cuándo reevaluar, qué vigilar).
+
+Extrae "medicamentos" SOLO con los fármacos de profilaxis/tratamiento que
+correspondan (deja "dosis" vacía si el médico no la dictó). Extrae
+"diagnosticos" pertinentes (p. ej. "Estado de inmunocompromiso por
+trasplante renal", "Portador de anti-HBc — riesgo de reactivación").`,
 }
 
 /**
