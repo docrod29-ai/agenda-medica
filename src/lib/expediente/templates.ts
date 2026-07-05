@@ -69,6 +69,13 @@ export const SECCIONES_POR_TIPO: Record<TipoNota, Omit<NotaSeccion, 'value'>[]> 
     { key: 'conclusionRiesgo',  label: 'Conclusión de riesgo',       obligatorio: true,  placeholder: 'Se llena automáticamente con las escalas' },
     { key: 'recomendaciones',   label: 'Recomendaciones perioperatorias', obligatorio: true,  placeholder: 'Se generan automáticamente según la evidencia' },
   ],
+  valoracion_inmuno: [
+    { key: 'motivoHuesped',        label: 'Motivo y tipo de huésped',            obligatorio: true,  placeholder: 'Motivo de la interconsulta, tipo de huésped (SOT/TCMH/VIH…), estado de inmunosupresión, fecha TX/inicio IS, CD4' },
+    { key: 'historiaInfectologica',label: 'Historia clínica dirigida',           obligatorio: true,  placeholder: 'Comorbilidades, dispositivos, hábitos, inmunosupresión actual, profilaxis activas, antecedentes infectológicos, exposiciones, vacunación, alergias' },
+    { key: 'estudiosSolicitados',  label: 'Estudios a solicitar',                placeholder: 'Serologías basales, cultivos, marcadores fúngicos, IGRA, imagen… (se usa para la Orden médica)' },
+    { key: 'planProfilaxis',       label: 'Profilaxis y plan antimicrobiano',    obligatorio: true,  placeholder: 'Profilaxis indicada (PJP, CMV, antifúngica, HBV, TB latente…), fármaco · vía · intervalo · duración. Ajuste renal. Validación clínica.' },
+    { key: 'impresionPlan',        label: 'Impresión y plan — Infectología',     obligatorio: true,  placeholder: 'Conclusión de la valoración y seguimiento' },
+  ],
 }
 
 /** Construye las secciones vacías para un tipo de nota */
@@ -78,12 +85,17 @@ export function seccionesVacias(tipo: TipoNota): NotaSeccion[] {
 
 /** ¿Esta nota usa signos vitales obligatorios? */
 export function requiereSignosVitales(tipo: TipoNota): boolean {
-  return ['historia_clinica', 'primera_vez', 'seguimiento', 'ingreso', 'evolucion', 'valoracion_preoperatoria'].includes(tipo)
+  return ['historia_clinica', 'primera_vez', 'seguimiento', 'ingreso', 'evolucion', 'valoracion_preoperatoria', 'valoracion_inmuno'].includes(tipo)
 }
 
 /** ¿Es una valoración preoperatoria? */
 export function esPreoperatoria(tipo: TipoNota): boolean {
   return tipo === 'valoracion_preoperatoria'
+}
+
+/** ¿Es una valoración del paciente inmunocomprometido (Infectología)? */
+export function esInmuno(tipo: TipoNota): boolean {
+  return tipo === 'valoracion_inmuno'
 }
 
 /** ¿Es una nota hospitalaria? */

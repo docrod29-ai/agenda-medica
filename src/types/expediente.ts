@@ -14,6 +14,7 @@ export type TipoNota =
   | 'evolucion'          // Evolución hospitalaria (SOAP diario)
   | 'egreso'             // Egreso hospitalario
   | 'valoracion_preoperatoria' // Valoración de riesgo preoperatorio
+  | 'valoracion_inmuno'  // Valoración infectológica del paciente inmunocomprometido
 
 export const TIPO_NOTA_LABEL: Record<TipoNota, string> = {
   historia_clinica: 'Historia Clínica',
@@ -24,6 +25,7 @@ export const TIPO_NOTA_LABEL: Record<TipoNota, string> = {
   evolucion:        'Nota de Evolución',
   egreso:           'Nota de Egreso Hospitalario',
   valoracion_preoperatoria: 'Valoración Preoperatoria',
+  valoracion_inmuno: 'Valoración Inmunocomprometido',
 }
 
 export type EstadoNota = 'borrador' | 'firmada' | 'cancelada'
@@ -142,6 +144,10 @@ export interface NotaMedica {
   diagnosticos: Diagnostico[]
   medicamentos: Medicamento[]
   alergias: Alergia[]
+
+  // Estudios/laboratorios a solicitar (pre-pobla la Orden médica).
+  // Lo llena p. ej. la Valoración del inmunocomprometido (estudios elegidos).
+  estudiosOrden?: string[]
 
   // Campos específicos hospitalarios (opcionales)
   hospital?: {

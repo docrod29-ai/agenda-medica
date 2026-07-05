@@ -13,7 +13,7 @@ import type { NotaMedica, TipoNota } from '@/types/expediente'
 import {
   ArrowLeft, Mic, FileText, Loader2, AlertTriangle, CheckCircle2,
   Clock, ChevronDown, ChevronUp, Plus, Printer, Trash2, Send, Pill, ClipboardList, Pencil, Upload,
-  Stethoscope, Activity, LogIn, LogOut, UserPlus, ClipboardCheck, type LucideIcon,
+  Stethoscope, Activity, LogIn, LogOut, UserPlus, ClipboardCheck, ShieldPlus, type LucideIcon,
 } from 'lucide-react'
 import { Button, EmptyState, Spinner, Badge } from '@/components/ui'
 import { avatarColor } from '@/lib/avatar-color'
@@ -29,6 +29,7 @@ const ICONO_TIPO_NOTA: Record<TipoNota, LucideIcon> = {
   evolucion: Activity,
   egreso: LogOut,
   valoracion_preoperatoria: ClipboardCheck,
+  valoracion_inmuno: ShieldPlus,
 }
 
 export default function ExpedientePage() {
