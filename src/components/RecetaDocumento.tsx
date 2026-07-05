@@ -120,17 +120,22 @@ function calcularPaginas(data: RecetaData, config: ClinicConfig | null, recetaCo
 }
 
 export function RecetaDocumento({ data, config, recetaConfig, containerId = 'receta-doc' }: RecetaDocumentoProps) {
-  const paper = PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta']
-  const paginas = calcularPaginas(data, config, recetaConfig)
-  const host = dimensionesImpresion(recetaConfig)
   const custom = !!recetaConfig.disenoCompletoDataUrl
+  // Receta GENERADA (sin membrete subido): tamaño CARTA por defecto — el Dr. pidió
+  // "lo blanco en tamaño carta". Si eligió explícitamente otro tamaño, se respeta.
+  const cfg: RecetaConfig = (!custom && (!recetaConfig.paperSize || recetaConfig.paperSize === 'media-carta'))
+    ? { ...recetaConfig, paperSize: 'carta' }
+    : recetaConfig
+  const paper = PAPER_SIZES[cfg.paperSize ?? 'media-carta']
+  const paginas = calcularPaginas(data, config, cfg)
+  const host = dimensionesImpresion(cfg)
 
   return (
     <div id={containerId}>
       {paginas.map((pagina) => {
         const hoja = custom
-          ? <HojaCustom pagina={pagina} data={data} config={config} recetaConfig={recetaConfig} paper={paper} />
-          : <HojaGenerada pagina={pagina} data={data} config={config} recetaConfig={recetaConfig} paper={paper} />
+          ? <HojaCustom pagina={pagina} data={data} config={config} recetaConfig={cfg} paper={paper} />
+          : <HojaGenerada pagina={pagina} data={data} config={config} recetaConfig={cfg} paper={paper} />
         return (
           // page-break INLINE (no en @media print): html2pdf captura estilos de
           // pantalla, así el PDF también respeta los cortes de hoja.
