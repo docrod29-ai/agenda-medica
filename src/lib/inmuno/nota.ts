@@ -55,8 +55,9 @@ export function estudiosDe(v: V): string[] {
     .map((k) => TX_EST_LABELS[k] || k.slice(7))
 }
 
-/** Construye las secciones/estudios/medicamentos de la nota desde los chips. */
-export function construirNotaInmuno(v: V, opts?: { nowMs?: number }): NotaInmuno {
+/** Construye las secciones/estudios/medicamentos de la nota desde los chips.
+ *  opts.iaTexto: redacción profesional por IA → se usa como impresión y plan. */
+export function construirNotaInmuno(v: V, opts?: { nowMs?: number; iaTexto?: string }): NotaInmuno {
   const g = (id: string) => (v[id] || '').trim()
   const filas = compose(v)                       // [titulo, valor][]
   const recs = recomendaciones({ v, nowMs: opts?.nowMs })
@@ -77,7 +78,9 @@ export function construirNotaInmuno(v: V, opts?: { nowMs?: number }): NotaInmuno
   const historia = filas.filter(([t]) => !excl.has(t)).map(([t, val]) => t + ': ' + val).join('\n')
 
   // ── Plan de profilaxis: recomendaciones deterministas (con cita cuando exista) ──
-  const plan = recs.map((r) => '• ' + r.titulo + ': ' + r.detalle + (r.fuente ? ' [' + r.fuente + ']' : '')).join('\n')
+  const fuentes = [...new Set(recs.map((r) => r.fuente).filter((f): f is string => !!f && !/fuera de las guías|etiqueta del fármaco/i.test(f)))]
+  const plan = recs.map((r) => '• ' + r.titulo + ': ' + r.detalle + (r.fuente ? ' [' + r.fuente + ']' : '')).join('\n') +
+    (fuentes.length ? '\n\nFundamento (guías): ' + fuentes.join('; ') + '.' : '')
 
   // ── Medicamentos sugeridos (dedup por nombre) ──
   const meds: Medicamento[] = []
@@ -98,9 +101,11 @@ export function construirNotaInmuno(v: V, opts?: { nowMs?: number }): NotaInmuno
       historiaInfectologica: historia,
       estudiosSolicitados: estudios.join('; '),
       planProfilaxis: plan,
-      impresionPlan: recs.length
-        ? 'Valoración infectológica completada. Ver profilaxis y estudios indicados. Reevaluar según evolución, resultados de estudios y cambios en la inmunosupresión.'
-        : '',
+      impresionPlan: (opts?.iaTexto && opts.iaTexto.trim())
+        ? opts.iaTexto.trim()
+        : (recs.length
+          ? 'Valoración infectológica completada. Ver profilaxis y estudios indicados. Reevaluar según evolución, resultados de estudios y cambios en la inmunosupresión.'
+          : ''),
     },
     estudios,
     medicamentos: meds,

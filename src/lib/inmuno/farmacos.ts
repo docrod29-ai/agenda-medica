@@ -162,6 +162,76 @@ export function recsFarmacos(v: V): Rec[] {
       'media', 'Consenso IS ACCP/AST/ISHLT 2022')
   }
 
+  // ── Metotrexato ──
+  if (on('mtx')) {
+    rec('Metotrexato — Pneumocystis y hepatotoxicidad',
+      'En dosis inmunosupresora, sobre todo combinado con corticoides o biológicos, considerar profilaxis de Pneumocystis con TMP-SMX (evitar coadministración a dosis altas por toxicidad hematológica aditiva). Tamizar VHB antes de iniciar y vigilar función hepática.',
+      'media', 'ASH 2020; etiqueta del fármaco')
+  }
+
+  // ── Abatacept (CTLA-4 Ig) ──
+  if (on('abatacept')) {
+    rec('Abatacept — tamizaje de TB y VHB antes de iniciar',
+      'Tamizar TB latente (IGRA/PPD) y VHB (HBsAg, anti-HBc) antes de iniciar; tratar la TB latente y dar profilaxis antiviral si VHB+. Riesgo aumentado de infecciones respiratorias.',
+      'media', 'Morrison CID 2014; etiqueta del fármaco')
+  }
+
+  // ── Anti-IL6 (tocilizumab) ──
+  if (on('tocilizumab')) {
+    rec('Anti-IL6 (tocilizumab) — enmascara la fiebre y la PCR',
+      'Suprime la respuesta inflamatoria: la fiebre y la PCR pueden estar ausentes pese a infección grave — mantener umbral bajo de sospecha. Tamizar TB y VHB antes de iniciar. Riesgo de infección bacteriana y de perforación diverticular.',
+      'media', 'Etiqueta del fármaco (fuera de las guías cargadas)')
+  }
+
+  // ── Anti-IL1 (anakinra / canakinumab) ──
+  if (on('anakinra')) {
+    rec('Anti-IL1 (anakinra) — infecciones bacterianas',
+      'Riesgo de infecciones bacterianas graves. Tamizar TB latente antes de iniciar; no combinar con anti-TNF. Suspender ante infección activa.',
+      'baja', 'Etiqueta del fármaco (fuera de las guías cargadas)')
+  }
+
+  // ── Anti-IL12/23 (ustekinumab) ──
+  if (on('ustekinumab')) {
+    rec('Anti-IL12/23 (ustekinumab) — tamizaje de TB',
+      'Tamizar TB latente (IGRA/PPD) antes de iniciar y tratarla si es positiva. Riesgo infeccioso global comparativamente bajo; vigilar micobacterias, Salmonella y BCG en susceptibles.',
+      'baja', 'Etiqueta del fármaco (fuera de las guías cargadas)')
+  }
+
+  // ── Anti-IL17 (secukinumab / ixekizumab) ──
+  if (on('secukinumab')) {
+    rec('Anti-IL17 (secukinumab) — candidiasis mucocutánea',
+      'Mayor riesgo de candidiasis mucocutánea (oral, esofágica, vulvovaginal). Tamizar TB antes de iniciar; precaución en enfermedad inflamatoria intestinal (puede exacerbarla).',
+      'baja', 'Etiqueta del fármaco (fuera de las guías cargadas)')
+  }
+
+  // ── Anti-BAFF (belimumab) ──
+  if (on('belimumab')) {
+    rec('Anti-BAFF (belimumab) — infecciones y vacunas',
+      'Riesgo de infecciones respiratorias y urinarias. No administrar vacunas vivas durante el tratamiento ni en las 4 semanas previas. Tamizar VHB.',
+      'baja', 'Etiqueta del fármaco (fuera de las guías cargadas)')
+  }
+
+  // ── Modulador S1P (fingolimod / ozanimod) ──
+  if (on('fingolimod')) {
+    rec('Modulador S1P (fingolimod) — VZV, criptococo y LMP',
+      'Verificar serología de VZV y VACUNAR al seronegativo antes de iniciar (riesgo de varicela grave). Riesgo de meningitis/infección criptocócica diseminada y de LMP por virus JC: mantener alta sospecha ante cefalea o datos neurológicos. Bradicardia con la primera dosis.',
+      'media', 'Etiqueta del fármaco (fuera de las guías cargadas)')
+  }
+
+  // ── Terapia CAR-T ──
+  if (on('cart')) {
+    rec('CAR-T — hipogammaglobulinemia, profilaxis y monitoreo viral',
+      'Aplasia de células B con hipogammaglobulinemia prolongada: reponer inmunoglobulina (IVIG/SCIG) según niveles e infecciones. Profilaxis anti-herpes (aciclovir/valaciclovir) y anti-Pneumocystis (TMP-SMX). Citopenias prolongadas: vigilar reactivación de CMV/otros virus. Tamizar VHB (profilaxis antiviral si positivo).',
+      'alta', 'Cuvelier 2023')
+  }
+
+  // ── Inhibidor de checkpoint ──
+  if (on('checkpoint')) {
+    rec('Inhibidor de checkpoint — riesgo por su tratamiento inmunosupresor',
+      'Los inhibidores de checkpoint ACTIVAN la inmunidad (no inmunosuprimen). El riesgo infeccioso aparece cuando los efectos adversos inmunomediados se tratan con corticoides en dosis altas prolongadas o con infliximab: en ese caso, indicar profilaxis de Pneumocystis (TMP-SMX) según el umbral de esteroide.',
+      'media', 'ASH 2020 (umbral de esteroide)')
+  }
+
   // ── Quimioterapia (mielosupresora) ──
   if (on('quimio')) {
     rec('Quimioterapia — profilaxis en neutropenia y tamizaje de VHB',
