@@ -17,7 +17,6 @@ import {
 } from 'lucide-react'
 import { Button, EmptyState, Spinner, Badge } from '@/components/ui'
 import { avatarColor } from '@/lib/avatar-color'
-import ValoracionInmuno from '@/components/pacientes/ValoracionInmuno'
 
 /** Icono lineal por tipo de nota — nodo del timeline clínico. */
 const ICONO_TIPO_NOTA: Record<TipoNota, LucideIcon> = {
@@ -146,17 +145,8 @@ export default function ExpedientePage() {
       {/* Datos del paciente — vista unificada (antes estaba en "Pacientes") */}
       <DatosPaciente patient={patient} onEditar={() => router.push('/pacientes')} />
 
-      {/* Valoración infectológica del paciente inmunocomprometido (módulo portado de StewardMX) */}
-      {patient && (
-        <details style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', marginBottom: 16, overflow: 'hidden' }}>
-          <summary style={{ padding: '12px 16px', cursor: 'pointer', fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
-            Valoración por Infectología — paciente inmunocomprometido
-          </summary>
-          <div style={{ padding: '4px 16px 16px', borderTop: '1px solid var(--border)' }}>
-            <ValoracionInmuno patient={patient} />
-          </div>
-        </details>
-      )}
+      {/* La valoración del inmunocomprometido vive ahora como TIPO DE NOTA en la
+          consulta ("Valoración Inmunocomprometido"), no como sección aquí. */}
 
       {/* Historia clínica */}
       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '4px 0 12px' }}>

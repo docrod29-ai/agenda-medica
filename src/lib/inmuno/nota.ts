@@ -77,10 +77,9 @@ export function construirNotaInmuno(v: V, opts?: { nowMs?: number; iaTexto?: str
   const excl = new Set(['Resultados', 'Evolución'])
   const historia = filas.filter(([t]) => !excl.has(t)).map(([t, val]) => t + ': ' + val).join('\n')
 
-  // ── Plan de profilaxis: recomendaciones deterministas (con cita cuando exista) ──
-  const fuentes = [...new Set(recs.map((r) => r.fuente).filter((f): f is string => !!f && !/fuera de las guías|etiqueta del fármaco/i.test(f)))]
-  const plan = recs.map((r) => '• ' + r.titulo + ': ' + r.detalle + (r.fuente ? ' [' + r.fuente + ']' : '')).join('\n') +
-    (fuentes.length ? '\n\nFundamento (guías): ' + fuentes.join('; ') + '.' : '')
+  // ── Plan de profilaxis: recomendaciones deterministas (SIN citas — la nota debe
+  //    leerse como escrita por el médico, no como un documento con referencias) ──
+  const plan = recs.map((r) => '• ' + r.titulo + ': ' + r.detalle).join('\n')
 
   // ── Medicamentos sugeridos (dedup por nombre) ──
   const meds: Medicamento[] = []

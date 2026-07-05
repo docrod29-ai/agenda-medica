@@ -45,10 +45,11 @@ describe('inmuno — construirNotaInmuno (puente a la nota clínica)', () => {
     expect(n.secciones.planProfilaxis).toBe('')
   })
 
-  it('el plan anexa el "Fundamento (guías)" con las fuentes reales', () => {
+  it('la nota NO lleva citas ni referencias (debe parecer nota del médico)', () => {
     const n = construirNotaInmuno({ hc_huesped: 'SOT — Renal', hc_is_estado: 'En curso', ['hc_cb_inmuno_anticd20']: '1' }, { nowMs: 0 })
-    expect(n.secciones.planProfilaxis).toMatch(/Fundamento \(guías\):/)
-    expect(n.secciones.planProfilaxis).toMatch(/Morrison CID 2014/)
+    expect(n.secciones.planProfilaxis).not.toMatch(/\[.*\]/)          // sin [Fuente]
+    expect(n.secciones.planProfilaxis).not.toMatch(/Fundamento|KDIGO|Morrison|ASH 2020/)
+    expect(n.secciones.planProfilaxis).toContain('Pneumocystis')       // pero sí el contenido clínico
   })
 
   it('la redacción por IA se usa como impresión y plan', () => {

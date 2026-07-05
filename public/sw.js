@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v176'  // Fix sello de integridad: canonicalizacion estable (Firestore reordena llaves) + notas legado sin falsa alarma
+const CACHE = 'nexusmed-v177'  // Inmuno: quitar del expediente (ya en consulta), simplificar UI (todo colapsado), SIN citas en notas
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
