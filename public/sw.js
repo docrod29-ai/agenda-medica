@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v160'  // Receta custom: no encimar el encabezado de la app sobre el membrete
+const CACHE = 'nexusmed-v161'  // Receta generada (sin membrete) en tamano CARTA por defecto
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
