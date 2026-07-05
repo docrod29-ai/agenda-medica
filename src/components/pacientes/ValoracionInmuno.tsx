@@ -37,7 +37,7 @@ const IS_ESTADO = ['—', 'En curso', 'Va a iniciar (pre-protocolo)', 'Ninguna /
 const RES_OPTS = ['—', 'Positivo', 'Negativo', 'Pendiente']
 const SEV_COLOR: Record<Sev, string> = { alta: '#dc2626', media: '#d97706', baja: '#0d9488' }
 const CARGA_COLOR: Record<string, string> = { alta: '#dc2626', media: '#d97706', baja: '#0d9488' }
-const ALTA_CARGA = ['atg', 'alemtuzumab', 'anticd20', 'quimio', 'cicfos', 'purinas', 'anticd38']
+const ALTA_CARGA = ['atg', 'alemtuzumab', 'anticd20', 'quimio', 'cicfos', 'purinas', 'anticd38', 'cart', 'fingolimod']
 
 const inputCls = 'w-full rounded-md border px-2.5 py-1.5 text-sm bg-transparent'
 const SHOWN = new Set(Object.keys(TX_CHIPS))
@@ -334,7 +334,7 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
             {/* Acciones */}
             <div className="flex flex-wrap gap-2">
               {onAplicarNota && (
-                <Button variant="primary" size="sm" icon={<ClipboardPlus size={15} />} onClick={() => { onAplicarNota(construirNotaInmuno(v)); setStatus('Valoración aplicada a la nota — revisa secciones, medicamentos y estudios') }}>
+                <Button variant="primary" size="sm" icon={<ClipboardPlus size={15} />} onClick={() => { onAplicarNota(construirNotaInmuno(v, iaTexto ? { iaTexto } : undefined)); setStatus(iaTexto ? 'Valoración + redacción por IA aplicadas a la nota (secciones, medicamentos, estudios y citas)' : 'Valoración aplicada a la nota. Tip: pulsa «Redactar con IA» antes para una impresión más profesional.') }}>
                   Aplicar a la nota clínica
                 </Button>
               )}

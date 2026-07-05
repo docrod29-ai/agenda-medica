@@ -44,4 +44,15 @@ describe('inmuno — construirNotaInmuno (puente a la nota clínica)', () => {
     expect(n.medicamentos).toHaveLength(0)
     expect(n.secciones.planProfilaxis).toBe('')
   })
+
+  it('el plan anexa el "Fundamento (guías)" con las fuentes reales', () => {
+    const n = construirNotaInmuno({ hc_huesped: 'SOT — Renal', hc_is_estado: 'En curso', ['hc_cb_inmuno_anticd20']: '1' }, { nowMs: 0 })
+    expect(n.secciones.planProfilaxis).toMatch(/Fundamento \(guías\):/)
+    expect(n.secciones.planProfilaxis).toMatch(/Morrison CID 2014/)
+  })
+
+  it('la redacción por IA se usa como impresión y plan', () => {
+    const n = construirNotaInmuno({ hc_huesped: 'SOT — Renal', hc_is_estado: 'En curso' }, { nowMs: 0, iaTexto: 'RESUMEN DEL CASO. Paciente renal...' })
+    expect(n.secciones.impresionPlan).toContain('RESUMEN DEL CASO')
+  })
 })

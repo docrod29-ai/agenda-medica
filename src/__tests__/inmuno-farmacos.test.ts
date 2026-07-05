@@ -47,6 +47,24 @@ describe('inmuno — motor por fármaco (basado en guías, con cita)', () => {
     expect(titulos(on('belatacept')).some((t) => /EBV-seronegativos/i.test(t))).toBe(true)
   })
 
+  it('CAR-T → hipogammaglobulinemia + profilaxis (Cuvelier)', () => {
+    const r = recsFarmacos(on('cart'))[0]
+    expect(/hipogammaglobulinemia/i.test(r.detalle)).toBe(true)
+    expect(r.fuente).toMatch(/Cuvelier/)
+  })
+
+  it('fingolimod → VZV/criptococo/LMP', () => {
+    expect(titulos(on('fingolimod')).some((t) => /VZV|criptococo|LMP/i.test(t))).toBe(true)
+  })
+
+  it('tocilizumab → advierte que enmascara la fiebre', () => {
+    expect(recsFarmacos(on('tocilizumab')).some((r) => /enmascara|fiebre/i.test(r.titulo + r.detalle))).toBe(true)
+  })
+
+  it('metotrexato → Pneumocystis / hepatotoxicidad', () => {
+    expect(titulos(on('mtx')).some((t) => /Pneumocystis|hepatotoxicidad/i.test(t))).toBe(true)
+  })
+
   it('sin fármaco → sin recomendaciones por fármaco', () => {
     expect(recsFarmacos({}).length).toBe(0)
   })
