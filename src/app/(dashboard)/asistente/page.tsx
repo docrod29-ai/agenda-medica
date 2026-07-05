@@ -16,7 +16,7 @@ import { getPatients, createPatient } from '@/lib/firestore'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { getAvailableSlots } from '@/lib/availability'
 import { AppointmentType, APPOINTMENT_TYPE_CONFIG } from '@/types'
-import { CalendarDays, Clock, User, Phone, Stethoscope, CheckCircle2, Loader2 } from 'lucide-react'
+import { CalendarDays, Clock, User, Phone, Stethoscope, CheckCircle2, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { format, addDays } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useSearchParams } from 'next/navigation'
@@ -109,11 +109,31 @@ function AsistenteInner() {
     return getAvailableSlots(fecha, duracion, appointments, efectiveConfig, undefined, [], doctorId || undefined)
   }, [fecha, duracion, appointments, efectiveConfig, doctorId])
 
-  // Chips rápidos de los próximos 14 días (para elegir fechas más lejanas se usa
-  // el selector de fecha de abajo, que llega hasta +90 días).
-  const nextDays = useMemo(() => {
-    return Array.from({ length: 14 }, (_, i) => addDaysToStr(todayStr(), i))
-  }, [])
+  // Navegación por MES: se puede avanzar hasta 12 meses (1 año) con las flechas ◀ ▶.
+  const MAX_MES_OFFSET = 12
+  const [mesOffset, setMesOffset] = useState(0)
+
+  // Fecha (día 1) del mes que se está viendo. offset 0 = mes actual.
+  const mesVista = useMemo(() => {
+    const base = new Date(todayStr() + 'T12:00:00')
+    return new Date(base.getFullYear(), base.getMonth() + mesOffset, 1, 12, 0, 0)
+  }, [mesOffset])
+
+  const mesLabel = mesVista.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })
+
+  // Días agendables del mes visto (desde HOY si es el mes actual; nunca días pasados).
+  const diasDelMes = useMemo(() => {
+    const year = mesVista.getFullYear()
+    const month = mesVista.getMonth()
+    const ultimoDia = new Date(year, month + 1, 0).getDate()
+    const hoy = todayStr()
+    const dias: string[] = []
+    for (let dia = 1; dia <= ultimoDia; dia++) {
+      const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`
+      if (iso >= hoy) dias.push(iso)
+    }
+    return dias
+  }, [mesVista])
 
   const handleSubmit = async () => {
     if (!nombre.trim()) { toast('Ingresa el nombre del paciente', 'error'); return }
@@ -345,21 +365,46 @@ function AsistenteInner() {
             <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
               <CalendarDays size={16} color="var(--teal)" /> Fecha
             </h2>
-            {/* Selector de CUALQUIER fecha (hasta 1 año) — permite agendar meses adelante */}
-            <input
-              type="date"
-              className="input"
-              value={fecha}
-              min={todayStr()}
-              max={addDaysToStr(todayStr(), 365)}
-              onChange={e => { if (e.target.value) setFecha(e.target.value) }}
-              style={{ marginBottom: 4 }}
-            />
-            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
-              Toca la fecha de arriba para agendar en cualquier día (hasta 1 año). Los chips son solo un acceso rápido a las próximas 2 semanas.
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {nextDays.map(d => {
+            {/* Navegador de MES con flechas — agenda en cualquier día hasta 1 año adelante */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
+              <button
+                type="button"
+                onClick={() => setMesOffset(m => Math.max(0, m - 1))}
+                disabled={mesOffset <= 0}
+                aria-label="Mes anterior"
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 34, height: 34, borderRadius: 8,
+                  border: '1px solid var(--border)', background: 'var(--s2)',
+                  color: mesOffset <= 0 ? 'var(--text3)' : 'var(--text)',
+                  cursor: mesOffset <= 0 ? 'default' : 'pointer',
+                  opacity: mesOffset <= 0 ? 0.4 : 1,
+                }}
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', textTransform: 'capitalize', textAlign: 'center', flex: 1 }}>
+                {mesLabel}
+              </span>
+              <button
+                type="button"
+                onClick={() => setMesOffset(m => Math.min(MAX_MES_OFFSET, m + 1))}
+                disabled={mesOffset >= MAX_MES_OFFSET}
+                aria-label="Mes siguiente"
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 34, height: 34, borderRadius: 8,
+                  border: '1px solid var(--border)', background: 'var(--s2)',
+                  color: mesOffset >= MAX_MES_OFFSET ? 'var(--text3)' : 'var(--text)',
+                  cursor: mesOffset >= MAX_MES_OFFSET ? 'default' : 'pointer',
+                  opacity: mesOffset >= MAX_MES_OFFSET ? 0.4 : 1,
+                }}
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 420, overflowY: 'auto' }}>
+              {diasDelMes.map(d => {
                 const daySlots = getAvailableSlots(d, duracion, appointments, efectiveConfig, undefined, [], doctorId || undefined)
                 const isSelected = d === fecha
                 const isToday = d === todayStr()
