@@ -411,24 +411,12 @@ function HojaCustom({
           flexDirection: 'column',
         }}
       >
-        {/* Hoja 1: encabezado completo (salvo modo "solo Rx") */}
+        {/* Hoja 1 (salvo modo "solo Rx"). En un membrete CUSTOM la app NUNCA pone
+            su propio "Nombre/Fecha/Folio": tu hoja ya los trae impresos y se
+            encimaría (era el "mugrero" de arriba). Los VALORES del paciente se
+            colocan en su lugar con el calibrador / "Detectar con IA". */}
         {pagina.esPrimera && !recetaConfig.disenoSoloRx && (
           <>
-            {/* Encabezado por defecto SOLO si no se calibraron los campos a mano */}
-            {!hayCampos && (
-              <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: fontSize - 1, color: '#444', marginBottom: 4 }}>
-                  <span>{data.fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
-                  <span style={{ fontFamily: 'monospace' }}>Folio: {data.folio}</span>
-                </div>
-                <div style={{ marginBottom: 4 }}>
-                  <strong>Nombre:</strong> {data.paciente?.nombre ?? '—'}
-                  {data.paciente?.edad ? `   ·   Edad: ${data.paciente.edad}` : ''}
-                  {data.paciente?.sexo ? `   ·   ${data.paciente.sexo}` : ''}
-                  {data.paciente?.fechaNacimiento ? `   ·   F. nac.: ${fmtFechaNac(data.paciente.fechaNacimiento)}` : ''}
-                </div>
-              </>
-            )}
             {recetaConfig.mostrarDiagnostico !== false && data.diagnostico && (
               <div style={{ marginBottom: 4 }}>
                 <strong>Dx:</strong> {data.diagnostico}
