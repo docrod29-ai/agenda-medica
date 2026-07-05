@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v167'  // Receta: nombre del paciente y firma en TODAS las hojas (no solo 1a/ultima)
+const CACHE = 'nexusmed-v168'  // Receta: quitar duracion (cronico-continuacion) e indicacion del renglon y del impreso
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

@@ -484,7 +484,7 @@ function MedRow({
           <Trash2 size={12} />
         </button>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 1fr', gap: 6, marginTop: 6 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 6, marginTop: 6 }}>
         <select
           value={med.via}
           onChange={(e) => onChange('via', e.target.value)}
@@ -498,19 +498,7 @@ function MedRow({
           placeholder="Cada 8 hrs"
           style={inputStyle}
         />
-        <input
-          value={med.duracion}
-          onChange={(e) => onChange('duracion', e.target.value)}
-          placeholder="7 días"
-          style={inputStyle}
-        />
       </div>
-      <input
-        value={med.indicacion ?? ''}
-        onChange={(e) => onChange('indicacion', e.target.value)}
-        placeholder="Indicación o nota (opcional)"
-        style={{ ...inputStyle, marginTop: 6 }}
-      />
     </div>
   )
 }
