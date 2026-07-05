@@ -347,6 +347,11 @@ export interface RecetaConfig {
    * Rx, indicaciones, firma) en la zona definida por `disenoMargenes`.
    */
   disenoCompletoDataUrl?: string
+  /** Dimensiones REALES del membrete subido (mm). La hoja usa EXACTAMENTE este
+   *  tamaño para que la imagen la llene sin bordes blancos → los datos calibrados
+   *  caen justo en su lugar (no "flotando" arriba). */
+  disenoWidthMm?: number
+  disenoHeightMm?: number
   /** Márgenes del área de contenido cuando se usa diseño completo (en mm). */
   disenoMargenes?: { top: number; right: number; bottom: number; left: number }
   /** Tamaño de fuente del contenido sobre el diseño custom (px) */
