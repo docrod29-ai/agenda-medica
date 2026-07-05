@@ -345,16 +345,19 @@ function AsistenteInner() {
             <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
               <CalendarDays size={16} color="var(--teal)" /> Fecha
             </h2>
-            {/* Selector de CUALQUIER fecha (hasta 90 días) — resuelve el límite de la semana */}
+            {/* Selector de CUALQUIER fecha (hasta 1 año) — permite agendar meses adelante */}
             <input
               type="date"
               className="input"
               value={fecha}
               min={todayStr()}
-              max={addDaysToStr(todayStr(), 90)}
+              max={addDaysToStr(todayStr(), 365)}
               onChange={e => { if (e.target.value) setFecha(e.target.value) }}
-              style={{ marginBottom: 10 }}
+              style={{ marginBottom: 4 }}
             />
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
+              Toca la fecha de arriba para agendar en cualquier día (hasta 1 año). Los chips son solo un acceso rápido a las próximas 2 semanas.
+            </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {nextDays.map(d => {
                 const daySlots = getAvailableSlots(d, duracion, appointments, efectiveConfig, undefined, [], doctorId || undefined)
