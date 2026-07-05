@@ -117,6 +117,9 @@ export interface MetadataNOM024 {
   fechaCreacion: string
   fechaModificacion: string
   hashIntegridad: string
+  /** Versión del algoritmo de sello. Ausente/1 = método antiguo (orden de llaves,
+   *  no re-verificable). ≥2 = canonicalización estable (verificable de forma fiable). */
+  hashVersion?: number
   version: number
   estado: EstadoNota
   fuenteGeneracion: FuenteGeneracion

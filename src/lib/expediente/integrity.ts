@@ -17,9 +17,28 @@ async function sha256Hex(input: string): Promise<string> {
     .join('')
 }
 
-/** Contenido canónico de la nota para hashing (orden estable) */
+/**
+ * Serialización ESTABLE: ordena las llaves de todo objeto de forma determinista
+ * y omite `undefined`. Es indispensable porque Firestore NO conserva el orden de
+ * las llaves de los mapas al recargar la nota; sin esto, el JSON —y por tanto el
+ * hash— cambiaría al releer una nota intacta y daría un falso "alterada".
+ */
+function estable(x: unknown): unknown {
+  if (Array.isArray(x)) return x.map(estable)
+  if (x && typeof x === 'object') {
+    const src = x as Record<string, unknown>
+    const out: Record<string, unknown> = {}
+    for (const k of Object.keys(src).sort()) {
+      if (src[k] !== undefined) out[k] = estable(src[k])
+    }
+    return out
+  }
+  return x
+}
+
+/** Contenido canónico de la nota para hashing (independiente del orden de llaves) */
 function contenidoCanonico(nota: NotaMedica): string {
-  return JSON.stringify({
+  return JSON.stringify(estable({
     id: nota.metadata.id,
     tipo: nota.tipo,
     pacienteId: nota.pacienteId,
@@ -30,8 +49,11 @@ function contenidoCanonico(nota: NotaMedica): string {
     medicamentos: nota.medicamentos,
     alergias: nota.alergias,
     signosVitales: nota.signosVitales ?? null,
-  })
+  }))
 }
+
+/** Versión actual del algoritmo de sello (canonicalización estable). */
+export const HASH_VERSION = 2
 
 /** Hash de integridad del contenido clínico (NOM-024) */
 export async function generarHashIntegridad(nota: NotaMedica): Promise<string> {
@@ -47,9 +69,23 @@ export async function generarHashFirma(
   return sha256Hex(`${notaId}|${medicoId}|${timestamp}`)
 }
 
-/** Verifica que una nota firmada no haya sido alterada */
-export async function verificarIntegridad(nota: NotaMedica): Promise<boolean> {
-  if (!nota.metadata.hashIntegridad) return false
+export type EstadoIntegridad = 'verificada' | 'alterada' | 'legado' | 'sin-sello'
+
+/**
+ * Verifica el sello de una nota firmada.
+ * - 'sin-sello': la nota no tiene hash guardado.
+ * - 'legado': sello con el algoritmo antiguo (hashVersion ausente/1). No es
+ *   re-verificable porque Firestore ya reordenó las llaves; NO implica alteración.
+ * - 'verificada' / 'alterada': para sellos estables (hashVersion ≥ 2).
+ */
+export async function verificarIntegridadEstado(nota: NotaMedica): Promise<EstadoIntegridad> {
+  if (!nota.metadata.hashIntegridad) return 'sin-sello'
+  if ((nota.metadata.hashVersion ?? 1) < HASH_VERSION) return 'legado'
   const actual = await generarHashIntegridad(nota)
-  return actual === nota.metadata.hashIntegridad
+  return actual === nota.metadata.hashIntegridad ? 'verificada' : 'alterada'
+}
+
+/** Compat: booleano estricto (true solo si el sello estable coincide). */
+export async function verificarIntegridad(nota: NotaMedica): Promise<boolean> {
+  return (await verificarIntegridadEstado(nota)) === 'verificada'
 }

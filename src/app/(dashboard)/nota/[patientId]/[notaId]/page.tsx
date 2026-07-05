@@ -22,7 +22,7 @@ export default function NotaImprimiblePage() {
   const [loading, setLoading] = useState(true)
   const [descargando, setDescargando] = useState(false)
   // null = sin verificar/no aplica · true = sello íntegro · false = ALTERADA
-  const [integridadOk, setIntegridadOk] = useState<boolean | null>(null)
+  const [integridad, setIntegridad] = useState<'verificada' | 'alterada' | 'legado' | 'sin-sello' | null>(null)
 
   const descargarPDF = async () => {
     const el = document.getElementById('doc')
@@ -59,9 +59,9 @@ export default function NotaImprimiblePage() {
       // sistema no comprobaba. Ahora se recalcula y se compara.
       if (n && n.estado === 'firmada') {
         try {
-          const { verificarIntegridad } = await import('@/lib/expediente/integrity')
-          setIntegridadOk(await verificarIntegridad(n))
-        } catch { setIntegridadOk(null) }
+          const { verificarIntegridadEstado } = await import('@/lib/expediente/integrity')
+          setIntegridad(await verificarIntegridadEstado(n))
+        } catch { setIntegridad(null) }
       }
     })
     // NOM-024 Art. 6.5: registrar lectura de nota clínica
@@ -239,8 +239,8 @@ export default function NotaImprimiblePage() {
           )}
         </div>
 
-        {/* Alerta si el sello NO coincide (nota alterada en BD) */}
-        {integridadOk === false && (
+        {/* Alerta ROJA solo si el sello estable NO coincide (posible alteración real) */}
+        {integridad === 'alterada' && (
           <div className="no-print" style={{
             marginTop: 16, padding: '8px 12px', borderRadius: 6,
             background: 'rgba(220,38,38,0.10)', border: '1.5px solid #b91c1c',
@@ -254,12 +254,26 @@ export default function NotaImprimiblePage() {
           </div>
         )}
 
+        {/* Aviso NEUTRO para notas con sello de formato anterior (no re-verificable) */}
+        {integridad === 'legado' && (
+          <div className="no-print" style={{
+            marginTop: 16, padding: '8px 12px', borderRadius: 6,
+            background: 'var(--s2)', border: '1px solid var(--border)',
+            color: 'var(--text3)', fontSize: 11.5, textAlign: 'center',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          }}>
+            <AlertTriangle size={13} className="ds-icon" style={{ flexShrink: 0 }} />
+            <span>Nota firmada con un formato de sello anterior: el sello no puede recalcularse
+            automáticamente (no implica alteración). Las notas nuevas se verifican solas.</span>
+          </div>
+        )}
+
         {/* Sello de integridad NOM-024 */}
         <div style={{ marginTop: 20, paddingTop: 8, borderTop: '1px dashed #999', fontSize: 9.5, color: '#666', textAlign: 'center' }}>
           {nota.estado === 'firmada' && nota.firma ? (
             <>
               Documento firmado electrónicamente el {new Date(nota.firma.timestamp).toLocaleString('es-MX')}
-              {integridadOk === true && <> · <Check size={10} className="ds-icon" style={{ display: 'inline' }} /> integridad verificada</>}
+              {integridad === 'verificada' && <> · <Check size={10} className="ds-icon" style={{ display: 'inline' }} /> integridad verificada</>}
               {' · Sello (SHA-256): '}{nota.metadata.hashIntegridad || '—'}
             </>
           ) : (

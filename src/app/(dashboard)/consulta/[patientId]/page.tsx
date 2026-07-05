@@ -25,7 +25,7 @@ import { detectarInteracciones, detectarControlados } from '@/lib/expediente/far
 import { construirPlanPROA } from '@/lib/expediente/proa'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { validarNOM004 } from '@/lib/expediente/nom004'
-import { generarHashIntegridad, generarHashFirma } from '@/lib/expediente/integrity'
+import { generarHashIntegridad, generarHashFirma, HASH_VERSION } from '@/lib/expediente/integrity'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
 import type { TipoNota, NotaMedica, NotaSeccion, Diagnostico, Medicamento, SignosVitales } from '@/types/expediente'
 import type { Patient } from '@/types'
@@ -609,7 +609,7 @@ export default function ConsultaActivaPage() {
 
       const notaFirmada: NotaMedica = {
         ...notaParaValidar,
-        metadata: { ...notaParaValidar.metadata, hashIntegridad, fechaModificacion: now },
+        metadata: { ...notaParaValidar.metadata, hashIntegridad, hashVersion: HASH_VERSION, fechaModificacion: now },
         firma: {
           nombreMedico: config.nombreMedico,
           cedulaProfesional: config.cedulaProfesional,
