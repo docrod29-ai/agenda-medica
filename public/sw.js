@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v164'  // Receta en tamano receta (media carta); notas en carta
+const CACHE = 'nexusmed-v165'  // Receta membrete: la hoja toma el aspecto REAL de la imagen al vuelo (sin flotar, sin re-subir)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

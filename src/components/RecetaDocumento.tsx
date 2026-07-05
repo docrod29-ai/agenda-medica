@@ -22,6 +22,7 @@
  * Cada hoja lleva className="receta-sheet" — el padre aplica
  * page-break-after en su CSS de impresión.
  */
+import { useState, useEffect, useMemo } from 'react'
 import type { ClinicConfig, Patient, RecetaConfig } from '@/types'
 import { PAPER_SIZES } from '@/lib/receta-template'
 import { paginarParaDocumento, type PaginaReceta } from '@/lib/receta-paginacion'
@@ -137,10 +138,29 @@ function calcularPaginas(data: RecetaData, config: ClinicConfig | null, recetaCo
 
 export function RecetaDocumento({ data, config, recetaConfig, containerId = 'receta-doc' }: RecetaDocumentoProps) {
   const custom = !!recetaConfig.disenoCompletoDataUrl
-  // La RECETA va en tamaño "receta" (media carta) por defecto — es la hoja chica de
-  // prescripción. Se respeta si el médico eligió otro tamaño. (Las NOTAS clínicas
-  // se imprimen en carta, en su propia página.)
-  const cfg = recetaConfig
+
+  // Aspecto REAL de la imagen del membrete (ancho/alto), leído al vuelo. Con esto
+  // la hoja toma la forma EXACTA de tu formato → la imagen la llena sin bordes y
+  // los datos caen en su lugar, SIN re-subir. Funciona con cualquier membrete.
+  const [imgAspect, setImgAspect] = useState<number | null>(null)
+  useEffect(() => {
+    const url = recetaConfig.disenoCompletoDataUrl
+    if (!custom || !url) { setImgAspect(null); return }
+    const img = new window.Image()
+    img.onload = () => { if (img.naturalWidth && img.naturalHeight) setImgAspect(img.naturalWidth / img.naturalHeight) }
+    img.src = url
+  }, [custom, recetaConfig.disenoCompletoDataUrl])
+
+  // Receta con membrete: ancho tamaño "receta" (140 mm) y alto SEGÚN EL ASPECTO
+  // REAL de la imagen → nada de "flotar" ni hoja oficio. Si no hay medicamentos que
+  // caben, la paginación reparte en varias hojas (cada una repite el membrete).
+  const cfg: RecetaConfig = useMemo(() => {
+    if (!custom) return recetaConfig
+    const w = recetaConfig.disenoWidthMm ?? 140
+    const h = imgAspect ? Math.max(60, Math.round(w / imgAspect)) : (recetaConfig.disenoHeightMm ?? 190)
+    return { ...recetaConfig, disenoWidthMm: w, disenoHeightMm: h }
+  }, [custom, recetaConfig, imgAspect])
+
   const paper = paperEfectivo(cfg)
   const paginas = calcularPaginas(data, config, cfg)
   const host = dimensionesImpresion(cfg)
