@@ -5,15 +5,22 @@
 // gateado por el estado de inmunosupresión y dirigido por los resultados capturados.
 // ════════════════════════════════════════════════════════════════════
 
+import { recsFarmacos } from './farmacos'
+
 export type Sev = 'alta' | 'media' | 'baja'
-export interface Rec { titulo: string; detalle: string; sev: Sev }
+/** `fuente` = guía/artículo de donde proviene la recomendación (para citarla en la nota). */
+export interface Rec { titulo: string; detalle: string; sev: Sev; fuente?: string }
 export interface RecInput { v: Record<string, string>; nowMs?: number }
 
 export function recomendaciones(input: RecInput): Rec[] {
   const v = input.v || {}
   const g = (id: string) => v[id] || ''
   const huesped = g('hc_huesped')
-  if (!huesped || huesped === '—') return []
+  // Las reglas por HUÉSPED necesitan huésped; las reglas por FÁRMACO y por RESULTADO
+  // disparan aunque no se haya declarado huésped (p. ej. biológico en autoinmune).
+  const hayFarmaco = Object.keys(v).some((k) => k.startsWith('hc_cb_inmuno_') && v[k] === '1')
+  const hayHuesped = !!huesped && huesped !== '—'
+  if (!hayHuesped && !hayFarmaco && !Object.keys(v).some((k) => k.startsWith('hc_res_') && v[k] && v[k] !== '—')) return []
 
   const isSOT = /^SOT/.test(huesped), isTCMH = /TCMH/.test(huesped)
   const isAllo = /alog|haplo|cord/i.test(huesped), isVIH = /^VIH/.test(huesped)
@@ -32,8 +39,9 @@ export function recomendaciones(input: RecInput): Rec[] {
   const tienePJP = g('hc_cb_prof_pjp') === '1'
 
   const out: Rec[] = []
-  const rec = (titulo: string, detalle: string, sev: Sev) => out.push({ titulo, detalle, sev })
+  const rec = (titulo: string, detalle: string, sev: Sev, fuente?: string) => out.push({ titulo, detalle, sev, fuente })
 
+  if (hayHuesped) {
   if (isVIH) {
     if (!isNaN(cd4)) {
       const l: string[] = []
@@ -71,7 +79,8 @@ export function recomendaciones(input: RecInput): Rec[] {
   }
   if (/Biológicos/.test(huesped) && (preProto || activeIS)) rec('Tamizaje según el biológico', 'Anti-CD20: tamizar hepatitis B e indicar profilaxis antiviral si hay anti-HBc positivo. Anti-TNF: descartar tuberculosis latente antes de iniciar. Inhibidores de JAK: riesgo de herpes zóster, considerar la vacuna recombinante. Anti-complemento: vacunación antimeningocócica.', 'media')
   if (motivo === 'vacunacion' && activeIS) rec('Vacunación bajo inmunosupresión', 'Aplicar vacunas inactivadas (influenza, neumococo conjugada y polisacárida, hepatitis B, SARS-CoV-2 y herpes zóster recombinante). Las vacunas vivas están contraindicadas. La respuesta es subóptima; programar refuerzos o aprovechar los periodos de menor intensidad de inmunosupresión.', 'media')
-  if (/Asplenia/.test(huesped)) rec('Asplenia', 'Riesgo de sepsis fulminante por bacterias encapsuladas (neumococo, Haemophilus influenzae tipo b y meningococo). Asegurar la vacunación correspondiente, un antibiótico de reserva domiciliario y un umbral bajo para el tratamiento empírico ante fiebre.', 'alta')
+  if (/Asplenia/.test(huesped)) rec('Asplenia', 'Riesgo de sepsis fulminante por bacterias encapsuladas (neumococo, Haemophilus influenzae tipo b y meningococo). Asegurar la vacunación correspondiente, un antibiótico de reserva domiciliario y un umbral bajo para el tratamiento empírico ante fiebre.', 'alta', 'AST IDCOP 2019; KDIGO 2020')
+  }
 
   // ── Dirigidas por resultados (seguimiento) ──
   if (resPos('cmvpcr')) rec('Citomegalovirus detectable', 'Carga viral positiva: iniciar tratamiento anticipado (valganciclovir oral o ganciclovir IV según gravedad) y seguir la carga viral hasta su negativización; reducir la inmunosupresión si es posible (validación clínica).', 'alta')
@@ -86,8 +95,8 @@ export function recomendaciones(input: RecInput): Rec[] {
 
   // ── Hepatitis B por patrón serológico ──
   const hbsagPos = resPos('hbsag'), hbcPos = resPos('antihbc'), hbsPos = resPos('antihbs')
-  if (hbsagPos) rec('Hepatitis B activa (HBsAg positivo)', 'Cuantificar HBV DNA y transaminasas e iniciar tratamiento antiviral con un análogo de alta barrera genética (entecavir o tenofovir), imprescindible antes y durante la inmunosupresión por el riesgo de reactivación e insuficiencia hepática. Coordinar con hepatología; dosis y duración con validación clínica.', 'alta')
-  else if (hbcPos) rec('Hepatitis B resuelta u oculta (anti-HBc positivo, HBsAg negativo)', 'Riesgo de reactivación bajo inmunosupresión, alto con anti-CD20 (rituximab), corticoides en dosis altas o quimioterapia. Indicar profilaxis antiviral (entecavir o tenofovir) durante la inmunosupresión y al menos 6 a 12 meses después —más prolongada tras rituximab—, con vigilancia de HBV DNA y transaminasas; si no se administra profilaxis, monitorización estrecha. Dosis con validación clínica.', 'media')
+  if (hbsagPos) rec('Hepatitis B activa (HBsAg positivo)', 'Cuantificar HBV DNA y transaminasas e iniciar tratamiento antiviral con un análogo de alta barrera genética (entecavir o tenofovir), imprescindible antes y durante la inmunosupresión por el riesgo de reactivación e insuficiencia hepática. Coordinar con hepatología; dosis y duración con validación clínica.', 'alta', 'Morrison CID 2014; ASH 2020')
+  else if (hbcPos) rec('Hepatitis B resuelta u oculta (anti-HBc positivo, HBsAg negativo)', 'Riesgo de reactivación bajo inmunosupresión, alto con anti-CD20 (rituximab), corticoides en dosis altas o quimioterapia. Indicar profilaxis antiviral (entecavir o tenofovir) durante la inmunosupresión y al menos 6 a 12 meses después —más prolongada tras rituximab—, con vigilancia de HBV DNA y transaminasas; si no se administra profilaxis, monitorización estrecha. Dosis con validación clínica.', 'media', 'Morrison CID 2014; ASH 2020')
   else if (neg('hbsag') && neg('antihbc') && neg('antihbs')) rec('Hepatitis B: susceptible', 'Sin infección ni inmunidad (HBsAg, anti-HBc y anti-HBs negativos): vacunar contra hepatitis B. En candidatos a inmunosupresión, considerar esquema acelerado o de doble dosis y verificar la seroconversión (anti-HBs ≥10 mUI/mL).', 'media')
   else if (hbsPos && neg('antihbc')) rec('Hepatitis B: inmune por vacuna', 'Anti-HBs positivo con anti-HBc negativo: inmunidad vacunal; sin medidas adicionales. Vigilar el título si recibe inmunosupresión intensa y reforzar si cae por debajo de 10 mUI/mL.', 'baja')
 
@@ -103,6 +112,9 @@ export function recomendaciones(input: RecInput): Rec[] {
   else if (neg('toxo')) rec('Toxoplasma seronegativo', 'En trasplante cardiaco con donante positivo (D+/R−) es el grupo de mayor riesgo: indicar profilaxis dirigida.', 'media')
   if (resPos('hcv')) rec('Anti-VHC positivo', 'Confirmar con carga viral (HCV RNA); si hay viremia, tratar con antivirales de acción directa y referir a hepatología; vigilar la función hepática bajo inmunosupresión.', 'media')
   if (resPos('sifilis')) rec('VDRL/RPR positivo', 'Confirmar con prueba treponémica (FTA-ABS o TP-PA); estadificar y tratar con penicilina según la etapa; ante datos neurológicos o coinfección por VIH, valorar punción lumbar.', 'media')
+
+  // ── Reglas gatilladas por FÁRMACO inmunosupresor (basadas en guías, con cita) ──
+  out.push(...recsFarmacos(v))
 
   return out
 }

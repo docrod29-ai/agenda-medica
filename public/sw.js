@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v171'  // Valoracion inmunocomprometido como tipo de nota (voz+IA+receta+orden)
+const CACHE = 'nexusmed-v172'  // Inmuno: motor basado en 12 guias + profilaxis gatillada por farmaco con cita
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

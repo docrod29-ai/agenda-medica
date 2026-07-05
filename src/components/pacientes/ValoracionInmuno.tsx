@@ -86,7 +86,7 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
     if (huesped && huesped !== '—') t += 'Huésped: ' + huesped + (v.hc_fechatx ? ' (desde ' + v.hc_fechatx + ')' : '') + (v.hc_cd4 ? ' · CD4 ' + v.hc_cd4 : '') + '\n'
     for (const r of compose(v, SHOWN)) t += r[0] + ': ' + r[1] + '\n'
     if (estudiosSolicitados.length) t += 'Estudios solicitados: ' + estudiosSolicitados.map((k) => TX_EST_CATS.flatMap((c) => Object.entries(c.items)).find(([kk]) => kk === k)?.[1] || k).join('; ') + '\n'
-    if (recs.length) t += '\nPLAN DEFINIDO (motor determinista — no lo cambies, solo redáctalo):\n' + recs.map((r) => '- ' + r.titulo + ': ' + r.detalle).join('\n') + '\n'
+    if (recs.length) t += '\nPLAN DEFINIDO (motor determinista basado en guías — no lo cambies, solo redáctalo y conserva las citas):\n' + recs.map((r) => '- ' + r.titulo + ': ' + r.detalle + (r.fuente ? ' [' + r.fuente + ']' : '')).join('\n') + '\n'
     return t.trim()
   }
 
@@ -123,7 +123,7 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
     const cuerpo = texto
       ? esc(texto).replace(/\n/g, '<br>')
       : compose(v, SHOWN).map((r) => '<p><b>' + esc(r[0]) + ':</b> ' + esc(r[1]) + '</p>').join('') +
-        (recs.length ? '<h3>Impresión y plan — Infectología</h3><ol>' + recs.map((r) => '<li><b>' + esc(r.titulo) + '.</b> ' + esc(r.detalle) + '</li>').join('') + '</ol>' : '')
+        (recs.length ? '<h3>Impresión y plan — Infectología</h3><ol>' + recs.map((r) => '<li><b>' + esc(r.titulo) + '.</b> ' + esc(r.detalle) + (r.fuente ? ' <i style="color:#667;">[' + esc(r.fuente) + ']</i>' : '') + '</li>').join('') + '</ol>' : '')
     const html = '<html><head><meta charset="utf-8"></head><body style="font-family:Calibri,Arial,sans-serif;font-size:11pt;color:#15201d;">' +
       '<div style="border-bottom:3px solid #1a6b52;padding-bottom:8px;margin-bottom:12px;"><div style="font-size:17px;font-weight:bold;color:#1a6b52;">' + esc(clinic?.nombreClinica || '') + '</div><div style="font-size:10px;color:#557;text-transform:uppercase;letter-spacing:1.5px;">Valoración por Infectología</div></div>' +
       '<div style="font-family:Cambria,Georgia,serif;font-size:15px;font-weight:bold;">' + esc(titulo) + '</div>' +
@@ -268,6 +268,7 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
               <div key={i} className="mb-2 pl-2.5" style={{ borderLeft: `3px solid ${SEV_COLOR[r.sev]}` }}>
                 <div className="text-sm font-semibold">{r.titulo}</div>
                 <div className="text-xs leading-relaxed" style={{ color: 'var(--text2)' }}>{r.detalle}</div>
+                {r.fuente && <div className="text-[10px] mt-0.5" style={{ color: 'var(--text3)' }}>Fuente: {r.fuente}</div>}
               </div>
             ))}
         </Card>
