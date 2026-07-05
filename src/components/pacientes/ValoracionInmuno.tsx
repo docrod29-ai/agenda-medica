@@ -2,17 +2,18 @@
 // ════════════════════════════════════════════════════════════════════
 // Valoración infectológica del paciente inmunocomprometido — pestaña (port de StewardMX).
 // La lógica clínica vive en src/lib/inmuno/* (puro, probado). Este componente es la UI:
-// flujo dirigido por el MOTIVO, chips, estudios/resultados, recomendaciones deterministas,
-// redacción por IA (api/inmuno/redactar), historial fechado y Word.
+// COPILOTO en 2 columnas — a la izquierda captura (motivo, huésped, chips colapsables,
+// estudios); a la derecha, PEGADO, el plan de Infectología que se actualiza EN VIVO con
+// citas de guías. Redacción por IA (api/inmuno/redactar), historial fechado y Word.
 // ════════════════════════════════════════════════════════════════════
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useClinic } from '@/context/ClinicContext'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
-import { Download, Sparkles, Save, ClipboardPlus } from 'lucide-react'
+import { Download, Sparkles, Save, ClipboardPlus, ChevronDown, ShieldCheck, FlaskConical, Activity } from 'lucide-react'
 import type { Patient } from '@/types'
 import { TX_CHIPS, TX_EST_CATS, TX_EST_QUANT, TX_MOT_TIT, hostFlags } from '@/lib/inmuno/catalogos'
 import { compose } from '@/lib/inmuno/compose'
@@ -35,9 +36,35 @@ const HUESPEDES = ['—', 'SOT — Renal', 'SOT — Hepático', 'SOT — Cardiac
 const IS_ESTADO = ['—', 'En curso', 'Va a iniciar (pre-protocolo)', 'Ninguna / suspendida']
 const RES_OPTS = ['—', 'Positivo', 'Negativo', 'Pendiente']
 const SEV_COLOR: Record<Sev, string> = { alta: '#dc2626', media: '#d97706', baja: '#0d9488' }
+const CARGA_COLOR: Record<string, string> = { alta: '#dc2626', media: '#d97706', baja: '#0d9488' }
+const ALTA_CARGA = ['atg', 'alemtuzumab', 'anticd20', 'quimio', 'cicfos', 'purinas', 'anticd38']
 
 const inputCls = 'w-full rounded-md border px-2.5 py-1.5 text-sm bg-transparent'
 const SHOWN = new Set(Object.keys(TX_CHIPS))
+
+/** Sección colapsable con contador de seleccionados. */
+function Grupo({ titulo, count, accent = '#0d9488', defaultOpen, children }: { titulo: string; count: number; accent?: string; defaultOpen?: boolean; children: ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen ?? false)
+  return (
+    <div className="rounded-lg border" style={{ borderColor: 'var(--border)', background: 'var(--s1)' }}>
+      <button type="button" onClick={() => setOpen((o) => !o)} className="w-full flex items-center justify-between px-3 py-2 text-left">
+        <span className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--text)' }}>
+          {titulo}
+          {count > 0 && <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5" style={{ background: accent + '26', color: accent }}>{count}</span>}
+        </span>
+        <ChevronDown size={15} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s', color: 'var(--text3)' }} />
+      </button>
+      {open && <div className="px-3 pb-3 pt-0.5">{children}</div>}
+    </div>
+  )
+}
+
+/** Píldora de estratificación (cabecera del copiloto). */
+function Pill({ label, color }: { label: string; color?: string }) {
+  return (
+    <span className="text-[11px] font-semibold rounded-full px-2 py-1" style={{ background: (color ?? '#64748b') + '1f', color: color ?? 'var(--text2)', border: `1px solid ${(color ?? '#64748b')}44` }}>{label}</span>
+  )
+}
 
 export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: Patient; onAplicarNota?: (n: NotaInmuno) => void }) {
   const { clinicId, clinic } = useClinic()
@@ -137,6 +164,55 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
     document.body.appendChild(a); a.click(); setTimeout(() => { a.remove(); URL.revokeObjectURL(url) }, 200)
   }
 
+  // ── Derivados para la cabecera de estratificación (copiloto) ──
+  const countGrupo = (gk: string) => Object.keys(TX_CHIPS[gk].items).filter((ck) => v['hc_cb_' + gk + '_' + ck] === '1').length
+  const farmSel = Object.keys(TX_CHIPS.inmuno.items).filter((ck) => v['hc_cb_inmuno_' + ck] === '1')
+  const cargaIS = farmSel.some((f) => ALTA_CARGA.includes(f)) ? 'alta' : farmSel.length ? 'media' : 'baja'
+  const diasTx = (() => { if (!v.hc_fechatx) return null; const d = Math.floor((Date.now() - new Date(v.hc_fechatx).getTime()) / 86400000); return isNaN(d) ? null : d })()
+  const isEstado = v.hc_is_estado && v.hc_is_estado !== '—' ? v.hc_is_estado : ''
+  const recCounts = { alta: recs.filter((r) => r.sev === 'alta').length, media: recs.filter((r) => r.sev === 'media').length, baja: recs.filter((r) => r.sev === 'baja').length }
+
+  // Panel del copiloto (derecha, pegado) — se reutiliza el bloque de recomendaciones en vivo.
+  const copiloto = (
+    <div className="flex flex-col gap-3" style={{ position: 'sticky', top: 12 }}>
+      {/* Estratificación */}
+      <Card padding={14}>
+        <div className="flex items-center gap-2 mb-2">
+          <span style={{ width: 7, height: 7, borderRadius: 99, background: '#7c3aed', boxShadow: '0 0 0 3px rgba(124,58,237,.18)' }} />
+          <span className="text-[9px] font-mono uppercase tracking-widest" style={{ color: 'var(--purple,#7c3aed)' }}>Copiloto de Infectología · en vivo</span>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {huesped && huesped !== '—' && <Pill label={huesped} color="#0ea5e9" />}
+          {isEstado && <Pill label={'IS: ' + isEstado} color="#7c3aed" />}
+          {diasTx != null && diasTx >= 0 && <Pill label={'Día +' + diasTx} color="#0d9488" />}
+          {farmSel.length > 0 && <Pill label={'Carga IS ' + cargaIS} color={CARGA_COLOR[cargaIS]} />}
+          {v.hc_cd4 && <Pill label={'CD4 ' + v.hc_cd4} color="#d97706" />}
+        </div>
+        <div className="flex flex-wrap gap-3 mt-2.5 text-[11px]" style={{ color: 'var(--text3)' }}>
+          <span className="flex items-center gap-1"><span style={{ width: 8, height: 8, borderRadius: 99, background: SEV_COLOR.alta }} /> {recCounts.alta} prioritarias</span>
+          <span className="flex items-center gap-1"><span style={{ width: 8, height: 8, borderRadius: 99, background: SEV_COLOR.media }} /> {recCounts.media} intermedias</span>
+          <span className="flex items-center gap-1"><span style={{ width: 8, height: 8, borderRadius: 99, background: SEV_COLOR.baja }} /> {recCounts.baja} bajas</span>
+        </div>
+      </Card>
+
+      {/* Plan en vivo */}
+      <Card padding={14}>
+        <div className="text-sm font-semibold mb-2 flex items-center gap-1.5"><ShieldCheck size={15} style={{ color: '#7c3aed' }} /> Impresión y plan {recs.length > 0 && <span style={{ color: 'var(--text3)', fontWeight: 400 }}>· {recs.length}</span>}</div>
+        {recs.length === 0
+          ? <div className="text-sm" style={{ color: 'var(--text3)' }}>Elige el huésped y el estado de inmunosupresión (o marca los fármacos) y el plan aparecerá aquí, con su cita de guía.</div>
+          : <div className="flex flex-col gap-2" style={{ maxHeight: 620, overflowY: 'auto' }}>
+              {recs.map((r, i) => (
+                <div key={i} className="pl-2.5" style={{ borderLeft: `3px solid ${SEV_COLOR[r.sev]}` }}>
+                  <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{r.titulo}</div>
+                  <div className="text-xs leading-relaxed" style={{ color: 'var(--text2)' }}>{r.detalle}</div>
+                  {r.fuente && <div className="text-[10px] mt-0.5 font-mono" style={{ color: 'var(--text3)' }}>▸ {r.fuente}</div>}
+                </div>
+              ))}
+            </div>}
+      </Card>
+    </div>
+  )
+
   return (
     <div className="flex flex-col gap-3">
       <Card padding={14}>
@@ -188,90 +264,90 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
           ))}
         </div>
 
-        {/* Historia por chips */}
-        <Card padding={14}>
-          <div className="text-sm font-semibold mb-2">Historia clínica dirigida</div>
-          {Object.entries(TX_CHIPS).map(([gk, grp]) => (
-            <div key={gk} className="mb-3">
-              <div className="text-xs mb-1" style={{ color: 'var(--text3)' }}>{grp.label}</div>
-              <div className="flex flex-wrap gap-1.5">
-                {Object.entries(grp.items).map(([ck, label]) => {
-                  const on = v['hc_cb_' + gk + '_' + ck] === '1'
-                  return <button key={ck} type="button" onClick={() => toggle('hc_cb_' + gk + '_' + ck)} className="rounded-full border px-2.5 py-1 text-xs" style={on ? { borderColor: '#0d9488', background: 'rgba(13,148,136,.12)', color: '#0d9488' } : {}}>{label}</button>
-                })}
+        {/* Copiloto: captura (izq) + plan en vivo pegado (der) */}
+        <div className="grid gap-3 items-start lg:grid-cols-[minmax(0,1fr)_380px]">
+          {/* ── Columna izquierda: captura ── */}
+          <div className="flex flex-col gap-3 min-w-0">
+            {/* Historia por chips (colapsable) */}
+            <Card padding={14}>
+              <div className="text-sm font-semibold mb-2 flex items-center gap-1.5"><Activity size={15} style={{ color: 'var(--teal)' }} /> Historia clínica dirigida</div>
+              <div className="flex flex-col gap-2">
+                {Object.entries(TX_CHIPS).map(([gk, grp]) => (
+                  <Grupo key={gk} titulo={grp.label} count={countGrupo(gk)} defaultOpen={gk === 'comorb' || gk === 'inmuno'}>
+                    <div className="flex flex-wrap gap-1.5">
+                      {Object.entries(grp.items).map(([ck, label]) => {
+                        const on = v['hc_cb_' + gk + '_' + ck] === '1'
+                        return <button key={ck} type="button" onClick={() => toggle('hc_cb_' + gk + '_' + ck)} className="rounded-full border px-2.5 py-1 text-xs" style={on ? { borderColor: '#0d9488', background: 'rgba(13,148,136,.12)', color: '#0d9488' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{label}</button>
+                      })}
+                    </div>
+                  </Grupo>
+                ))}
               </div>
-            </div>
-          ))}
-          <label className="text-sm block mt-2">Notas / texto libre
-            <textarea className={inputCls} rows={3} value={v.hc_notas || ''} onChange={(e) => set('hc_notas', e.target.value)} />
-          </label>
-          <label className="text-sm block mt-2">Alergias a antimicrobianos
-            <input className={inputCls} value={v.hc_alergias || ''} onChange={(e) => set('hc_alergias', e.target.value)} />
-          </label>
-        </Card>
+              <label className="text-sm block mt-3">Notas / texto libre
+                <textarea className={inputCls} rows={3} value={v.hc_notas || ''} onChange={(e) => set('hc_notas', e.target.value)} />
+              </label>
+              <label className="text-sm block mt-2">Alergias a antimicrobianos
+                <input className={inputCls} value={v.hc_alergias || ''} onChange={(e) => set('hc_alergias', e.target.value)} />
+              </label>
+            </Card>
 
-        {/* Estudios (inicial) */}
-        {modo === 'inicial' && (
-          <Card padding={14}>
-            <div className="text-sm font-semibold mb-2">Estudios a solicitar</div>
-            {TX_EST_CATS.filter((c) => c.g(flags)).map((c) => (
-              <div key={c.cat} className="mb-3">
-                <div className="text-xs mb-1" style={{ color: 'var(--text3)' }}>{c.cat}</div>
-                <div className="flex flex-wrap gap-1.5">
-                  {Object.entries(c.items).map(([k, label]) => {
-                    const on = v['hc_est_' + k] === '1'
-                    return <button key={k} type="button" onClick={() => toggle('hc_est_' + k)} className="rounded-full border px-2.5 py-1 text-xs" style={on ? { borderColor: '#3b82f6', background: 'rgba(59,130,246,.12)', color: '#3b82f6' } : {}}>{label}</button>
+            {/* Estudios (inicial) — colapsable por categoría */}
+            {modo === 'inicial' && (
+              <Card padding={14}>
+                <div className="text-sm font-semibold mb-2 flex items-center gap-1.5"><FlaskConical size={15} style={{ color: '#3b82f6' }} /> Estudios a solicitar {estudiosSolicitados.length > 0 && <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5" style={{ background: '#3b82f626', color: '#3b82f6' }}>{estudiosSolicitados.length}</span>}</div>
+                <div className="flex flex-col gap-2">
+                  {TX_EST_CATS.filter((c) => c.g(flags)).map((c, ci) => {
+                    const sel = Object.keys(c.items).filter((k) => v['hc_est_' + k] === '1').length
+                    return (
+                      <Grupo key={c.cat} titulo={c.cat} count={sel} accent="#3b82f6" defaultOpen={ci === 0}>
+                        <div className="flex flex-wrap gap-1.5">
+                          {Object.entries(c.items).map(([k, label]) => {
+                            const on = v['hc_est_' + k] === '1'
+                            return <button key={k} type="button" onClick={() => toggle('hc_est_' + k)} className="rounded-full border px-2.5 py-1 text-xs" style={on ? { borderColor: '#3b82f6', background: 'rgba(59,130,246,.12)', color: '#3b82f6' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{label}</button>
+                          })}
+                        </div>
+                      </Grupo>
+                    )
                   })}
                 </div>
-              </div>
-            ))}
-          </Card>
-        )}
+              </Card>
+            )}
 
-        {/* Resultados (seguimiento) */}
-        {modo === 'seguimiento' && (
-          <Card padding={14}>
-            <div className="text-sm font-semibold mb-2">Resultados</div>
-            {resultadoKeys.map(({ k, label }) => (
-              <div key={k} className="flex items-center gap-2 mb-1.5">
-                <span className="text-xs flex-1" style={{ color: 'var(--text2)' }}>{label}</span>
-                {TX_EST_QUANT.has(k)
-                  ? <input className="rounded-md border px-2 py-1 text-xs bg-transparent" style={{ width: 170 }} placeholder="valor / hallazgo" value={v['hc_res_' + k] || ''} onChange={(e) => set('hc_res_' + k, e.target.value)} />
-                  : <select className="rounded-md border px-2 py-1 text-xs bg-transparent" style={{ width: 120 }} value={v['hc_res_' + k] || '—'} onChange={(e) => set('hc_res_' + k, e.target.value)}>{RES_OPTS.map((o) => <option key={o}>{o}</option>)}</select>}
-              </div>
-            ))}
-            <label className="text-sm block mt-2">Evolución / cambios
-              <textarea className={inputCls} rows={2} value={v.hc_evolucion || ''} onChange={(e) => set('hc_evolucion', e.target.value)} />
-            </label>
-          </Card>
-        )}
+            {/* Resultados (seguimiento) */}
+            {modo === 'seguimiento' && (
+              <Card padding={14}>
+                <div className="text-sm font-semibold mb-2 flex items-center gap-1.5"><FlaskConical size={15} style={{ color: '#3b82f6' }} /> Resultados</div>
+                {resultadoKeys.map(({ k, label }) => (
+                  <div key={k} className="flex items-center gap-2 mb-1.5">
+                    <span className="text-xs flex-1" style={{ color: 'var(--text2)' }}>{label}</span>
+                    {TX_EST_QUANT.has(k)
+                      ? <input className="rounded-md border px-2 py-1 text-xs bg-transparent" style={{ width: 170 }} placeholder="valor / hallazgo" value={v['hc_res_' + k] || ''} onChange={(e) => set('hc_res_' + k, e.target.value)} />
+                      : <select className="rounded-md border px-2 py-1 text-xs bg-transparent" style={{ width: 120 }} value={v['hc_res_' + k] || '—'} onChange={(e) => set('hc_res_' + k, e.target.value)}>{RES_OPTS.map((o) => <option key={o}>{o}</option>)}</select>}
+                  </div>
+                ))}
+                <label className="text-sm block mt-2">Evolución / cambios
+                  <textarea className={inputCls} rows={2} value={v.hc_evolucion || ''} onChange={(e) => set('hc_evolucion', e.target.value)} />
+                </label>
+              </Card>
+            )}
 
-        {/* Acciones */}
-        <div className="flex flex-wrap gap-2">
-          {onAplicarNota && (
-            <Button variant="primary" size="sm" icon={<ClipboardPlus size={15} />} onClick={() => { onAplicarNota(construirNotaInmuno(v)); setStatus('Valoración aplicada a la nota — revisa secciones, medicamentos y estudios') }}>
-              Aplicar a la nota clínica
-            </Button>
-          )}
-          <Button variant={onAplicarNota ? 'secondary' : 'primary'} size="sm" icon={<Download size={15} />} onClick={() => descargarWord()}>Word completo</Button>
-          <Button variant="secondary" size="sm" icon={<Sparkles size={15} />} loading={iaLoading} onClick={redactarIA}>Redactar con IA</Button>
-          <Button variant="secondary" size="sm" icon={<Save size={15} />} onClick={guardarHist}>Guardar al historial</Button>
+            {/* Acciones */}
+            <div className="flex flex-wrap gap-2">
+              {onAplicarNota && (
+                <Button variant="primary" size="sm" icon={<ClipboardPlus size={15} />} onClick={() => { onAplicarNota(construirNotaInmuno(v)); setStatus('Valoración aplicada a la nota — revisa secciones, medicamentos y estudios') }}>
+                  Aplicar a la nota clínica
+                </Button>
+              )}
+              <Button variant={onAplicarNota ? 'secondary' : 'primary'} size="sm" icon={<Download size={15} />} onClick={() => descargarWord()}>Word completo</Button>
+              <Button variant="secondary" size="sm" icon={<Sparkles size={15} />} loading={iaLoading} onClick={redactarIA}>Redactar con IA</Button>
+              <Button variant="secondary" size="sm" icon={<Save size={15} />} onClick={guardarHist}>Guardar al historial</Button>
+            </div>
+            {status && <div className="text-xs" style={{ color: 'var(--text3)' }}>{status}</div>}
+          </div>
+
+          {/* ── Columna derecha: copiloto pegado ── */}
+          {copiloto}
         </div>
-        {status && <div className="text-xs" style={{ color: 'var(--text3)' }}>{status}</div>}
-
-        {/* Recomendaciones */}
-        <Card padding={14}>
-          <div className="text-[9px] font-mono uppercase tracking-widest mb-2" style={{ color: 'var(--purple,#7c3aed)' }}>Impresión y plan — Infectología</div>
-          {recs.length === 0
-            ? <div className="text-sm" style={{ color: 'var(--text3)' }}>Completa el huésped y el estado de inmunosupresión para ver el plan.</div>
-            : recs.map((r, i) => (
-              <div key={i} className="mb-2 pl-2.5" style={{ borderLeft: `3px solid ${SEV_COLOR[r.sev]}` }}>
-                <div className="text-sm font-semibold">{r.titulo}</div>
-                <div className="text-xs leading-relaxed" style={{ color: 'var(--text2)' }}>{r.detalle}</div>
-                {r.fuente && <div className="text-[10px] mt-0.5" style={{ color: 'var(--text3)' }}>Fuente: {r.fuente}</div>}
-              </div>
-            ))}
-        </Card>
 
         {/* Borrador IA */}
         {iaTexto && (

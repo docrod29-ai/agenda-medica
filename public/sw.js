@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v173'  // Orden medica: catalogo amplio por especialidad + microbiologia + mucha mas imagen
+const CACHE = 'nexusmed-v174'  // Inmuno: rediseno copiloto (2 columnas, plan en vivo pegado, secciones colapsables, estratificacion)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
