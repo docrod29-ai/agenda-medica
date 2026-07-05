@@ -1,68 +1,95 @@
 'use client'
 // ══════════════════════════════════════════════════════════════
-// Ficha del EPISODIO de internamiento: datos administrativos + hilo de notas
-// (ingreso → evoluciones → egreso) + acciones (nueva evolución, egresar).
+// Ficha del EPISODIO de internamiento — con pestañas:
+//  · Resumen/Notas  · Indicaciones + MAR  · Signos vitales  · Interconsultas
+// Rol (médico/enfermería/admin) filtra las acciones visibles (vista, no seguridad).
 // ══════════════════════════════════════════════════════════════
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
+import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
-import { getInternamiento, egresarInternamiento } from '@/lib/hospital/firestore'
+import { auth } from '@/lib/firebase'
+import {
+  getInternamiento, egresarInternamiento,
+  agregarInterconsulta, responderInterconsulta,
+  agregarIndicacion, suspenderIndicacion, registrarAdministracion,
+  agregarSignos, getSignos,
+} from '@/lib/hospital/firestore'
 import { getNotas } from '@/lib/expediente/firestore'
-import { diasEstancia, TIPO_EGRESO_LABEL, type Internamiento, type TipoEgreso } from '@/types/hospital'
+import {
+  diasEstancia, TIPO_EGRESO_LABEL, TIPO_INDICACION_LABEL, ESPECIALIDADES_IC, ROL_HOSPITAL_LABEL,
+  type Internamiento, type TipoEgreso, type TipoIndicacion, type RegistroSignos, type RolHospital,
+} from '@/types/hospital'
 import { TIPO_NOTA_LABEL, type NotaMedica } from '@/types/expediente'
 import { Modal, Button, Spinner } from '@/components/ui'
-import { ArrowLeft, BedDouble, Stethoscope, Clock, FileText, Plus, LogOut, ClipboardList, Pill } from 'lucide-react'
+import {
+  ArrowLeft, BedDouble, Stethoscope, Clock, FileText, Plus, LogOut, Pill,
+  Send, Check, Activity, Syringe, Ban,
+} from 'lucide-react'
 
 const TIPO_EGRESO_OPCIONES: TipoEgreso[] = ['mejoria', 'maximo_beneficio', 'voluntaria', 'traslado', 'defuncion', 'otro']
+const TIPO_IND_OPCIONES: TipoIndicacion[] = ['medicamento', 'liquidos', 'dieta', 'cuidado', 'estudio', 'otro']
+const inputCls = 'w-full rounded-md border px-2.5 py-2 text-sm bg-transparent'
+type Tab = 'resumen' | 'indicaciones' | 'signos' | 'interconsultas'
 
 export default function EpisodioPage() {
   const { internamientoId } = useParams<{ internamientoId: string }>()
   const router = useRouter()
   const { clinicId } = useClinic()
+  const { config } = useConfig()
   const { toast } = useToast()
 
   const [inter, setInter] = useState<Internamiento | null>(null)
   const [notas, setNotas] = useState<NotaMedica[]>([])
+  const [signos, setSignos] = useState<RegistroSignos[]>([])
   const [loading, setLoading] = useState(true)
-  const [modalEgreso, setModalEgreso] = useState(false)
-  const [tipoEgreso, setTipoEgreso] = useState<TipoEgreso>('mejoria')
-  const [resumenEgreso, setResumenEgreso] = useState('')
-  const [egresando, setEgresando] = useState(false)
+  const [tab, setTab] = useState<Tab>('resumen')
+  const [rol, setRol] = useState<RolHospital>('medico')
 
-  useEffect(() => {
+  // modales
+  const [modalEgreso, setModalEgreso] = useState(false)
+  const [modalIC, setModalIC] = useState(false)
+  const [modalInd, setModalInd] = useState(false)
+  const [modalSignos, setModalSignos] = useState(false)
+  const [respondiendo, setRespondiendo] = useState<string | null>(null)  // icId
+  const [administrando, setAdministrando] = useState<string | null>(null) // indId
+  const [busy, setBusy] = useState(false)
+
+  // formularios de los modales
+  const [egr, setEgr] = useState<{ tipo: TipoEgreso; resumen: string }>({ tipo: 'mejoria', resumen: '' })
+  const [icForm, setIcForm] = useState({ especialidad: ESPECIALIDADES_IC[0], motivo: '' })
+  const [respTxt, setRespTxt] = useState('')
+  const [indForm, setIndForm] = useState<{ tipo: TipoIndicacion; descripcion: string; frecuencia: string }>({ tipo: 'medicamento', descripcion: '', frecuencia: '' })
+  const [admNota, setAdmNota] = useState('')
+  const [sg, setSg] = useState({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '' })
+
+  const cargar = async () => {
     if (!clinicId || !internamientoId) return
-    getInternamiento(clinicId, internamientoId).then(async (i) => {
-      setInter(i)
-      if (i) {
-        const todas = await getNotas(clinicId, i.pacienteId).catch(() => [] as NotaMedica[])
-        setNotas(todas.filter(n => n.internamientoId === internamientoId))
-      }
-      setLoading(false)
-    }).catch(() => setLoading(false))
-  }, [clinicId, internamientoId])
+    const i = await getInternamiento(clinicId, internamientoId)
+    setInter(i)
+    if (i) {
+      const [todas, sgs] = await Promise.all([
+        getNotas(clinicId, i.pacienteId).catch(() => [] as NotaMedica[]),
+        getSignos(clinicId, internamientoId).catch(() => [] as RegistroSignos[]),
+      ])
+      setNotas(todas.filter(n => n.internamientoId === internamientoId))
+      setSignos(sgs)
+    }
+    setLoading(false)
+  }
+  useEffect(() => { cargar() }, [clinicId, internamientoId])
+  useEffect(() => { try { const r = localStorage.getItem('hospitalRol') as RolHospital | null; if (r) setRol(r) } catch { /* */ } }, [])
+  const cambiarRol = (r: RolHospital) => { setRol(r); try { localStorage.setItem('hospitalRol', r) } catch { /* */ } }
 
   const notasEpisodio = useMemo(() => [...notas].sort((a, b) => (a.fechaConsulta < b.fechaConsulta ? 1 : -1)), [notas])
   const tieneIngreso = notas.some(n => n.tipo === 'ingreso')
+  const esMedico = rol === 'medico'
+  const puedeEnfermeria = rol === 'medico' || rol === 'enfermeria'
 
-  const nuevaNota = (tipo: 'ingreso' | 'evolucion' | 'egreso') => {
+  const nuevaNota = (tipo: string) => {
     if (!inter) return
     router.push(`/consulta/${inter.pacienteId}?tipo=${tipo}&internamiento=${internamientoId}`)
-  }
-
-  const confirmarEgreso = async () => {
-    if (!clinicId || !internamientoId) return
-    setEgresando(true)
-    try {
-      await egresarInternamiento(clinicId, internamientoId, { tipoEgreso, resumenEgreso: resumenEgreso.trim() || undefined })
-      toast('Paciente egresado del censo', 'success')
-      setModalEgreso(false)
-      // Encadena a la nota de egreso (documento NOM-004)
-      nuevaNota('egreso')
-    } catch {
-      toast('No se pudo egresar', 'error')
-      setEgresando(false)
-    }
   }
 
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><Spinner /></div>
@@ -72,101 +99,296 @@ export default function EpisodioPage() {
       <Button variant="secondary" onClick={() => router.push('/hospitalizacion')}>Volver al censo</Button>
     </div>
   )
-
   const egresado = inter.estado === 'egresado'
+  const indicaciones = inter.indicaciones ?? []
+  const interconsultas = inter.interconsultas ?? []
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '8px 4px 40px' }}>
-      <button onClick={() => router.push('/hospitalizacion')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 13, marginBottom: 12 }}>
-        <ArrowLeft size={15} /> Censo
-      </button>
+    <div style={{ maxWidth: 940, margin: '0 auto', padding: '8px 4px 40px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <button onClick={() => router.push('/hospitalizacion')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 13, marginBottom: 12 }}>
+          <ArrowLeft size={15} /> Censo
+        </button>
+        {/* Rol */}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
+          {(['medico', 'enfermeria', 'admin'] as RolHospital[]).map(r => (
+            <button key={r} onClick={() => cambiarRol(r)} style={{
+              fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 100, cursor: 'pointer',
+              border: '1px solid ' + (rol === r ? 'var(--nexus,#3d5afe)' : 'var(--border)'),
+              background: rol === r ? 'rgba(61,90,254,.12)' : 'var(--s2)', color: rol === r ? 'var(--nexus,#3d5afe)' : 'var(--text3)',
+            }}>{ROL_HOSPITAL_LABEL[r]}</button>
+          ))}
+        </div>
+      </div>
 
-      {/* Cabecera del episodio */}
-      <div style={{ border: '1px solid var(--border)', borderRadius: 14, background: 'var(--s1)', padding: 18, marginBottom: 16 }}>
+      {/* Cabecera */}
+      <div style={{ border: '1px solid var(--border)', borderRadius: 14, background: 'var(--s1)', padding: 18, marginBottom: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
           <div>
             <h1 style={{ fontSize: 21, fontWeight: 700, color: 'var(--text)', margin: 0 }}>{inter.pacienteNombre}</h1>
             <div style={{ fontSize: 13.5, color: 'var(--text2)', marginTop: 3 }}>{inter.diagnosticoIngreso}{inter.cie10 ? ` (${inter.cie10})` : ''}</div>
           </div>
-          <span style={{
-            fontSize: 11.5, fontWeight: 700, padding: '4px 12px', borderRadius: 100,
-            background: egresado ? 'var(--s2)' : 'rgba(13,148,136,.15)', color: egresado ? 'var(--text3)' : '#0d9488',
-            border: `1px solid ${egresado ? 'var(--border)' : 'rgba(13,148,136,.4)'}`,
-          }}>{egresado ? 'Egresado' : 'Internado'}</span>
+          <span style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 12px', borderRadius: 100, background: egresado ? 'var(--s2)' : 'rgba(13,148,136,.15)', color: egresado ? 'var(--text3)' : '#0d9488', border: `1px solid ${egresado ? 'var(--border)' : 'rgba(13,148,136,.4)'}` }}>{egresado ? 'Egresado' : 'Internado'}</span>
         </div>
-
         <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginTop: 14, fontSize: 13, color: 'var(--text2)' }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><BedDouble size={14} /> {inter.servicio}{inter.cama ? ` · Cama ${inter.cama}` : ''}</span>
           {inter.medicoTratanteNombre && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Stethoscope size={14} /> {inter.medicoTratanteNombre}</span>}
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Clock size={14} /> {diasEstancia(inter)} días de estancia</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Clock size={14} /> {diasEstancia(inter)} días</span>
           <span>Ingreso: {new Date(inter.fechaIngreso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-          {egresado && inter.fechaEgreso && <span>Egreso: {new Date(inter.fechaEgreso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}{inter.tipoEgreso ? ` · ${TIPO_EGRESO_LABEL[inter.tipoEgreso]}` : ''}</span>}
+          {egresado && inter.fechaEgreso && <span>Egreso: {new Date(inter.fechaEgreso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}{inter.tipoEgreso ? ` · ${TIPO_EGRESO_LABEL[inter.tipoEgreso]}` : ''}</span>}
         </div>
-        {inter.motivoIngreso && <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}><strong>Motivo:</strong> {inter.motivoIngreso}</div>}
       </div>
 
-      {/* Acciones */}
-      {!egresado && (
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
-          {!tieneIngreso && <Button icon={<Plus size={15} />} onClick={() => nuevaNota('ingreso')}>Nota de ingreso</Button>}
-          <Button variant={tieneIngreso ? 'primary' : 'secondary'} icon={<Plus size={15} />} onClick={() => nuevaNota('evolucion')}>Nota de evolución</Button>
-          <Button variant="secondary" icon={<LogOut size={15} />} onClick={() => setModalEgreso(true)}>Egresar</Button>
-        </div>
-      )}
-
-      {/* Hilo de notas del episodio */}
-      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '4px 0 12px' }}>
-        Notas del internamiento ({notasEpisodio.length})
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap', borderBottom: '1px solid var(--border)' }}>
+        {([['resumen', 'Resumen / Notas'], ['indicaciones', `Indicaciones · MAR${indicaciones.filter(i => i.activa).length ? ' (' + indicaciones.filter(i => i.activa).length + ')' : ''}`], ['signos', 'Signos vitales'], ['interconsultas', `Interconsultas${interconsultas.length ? ' (' + interconsultas.length + ')' : ''}`]] as [Tab, string][]).map(([t, label]) => (
+          <button key={t} onClick={() => setTab(t)} style={{
+            fontSize: 13, fontWeight: 600, padding: '8px 14px', cursor: 'pointer', background: 'none', border: 'none',
+            color: tab === t ? 'var(--nexus,#3d5afe)' : 'var(--text3)', borderBottom: '2px solid ' + (tab === t ? 'var(--nexus,#3d5afe)' : 'transparent'), marginBottom: -1,
+          }}>{label}</button>
+        ))}
       </div>
-      {notasEpisodio.length === 0 ? (
-        <div style={{ fontSize: 13, color: 'var(--text3)', padding: '16px', textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 12 }}>
-          Aún no hay notas. Empieza con la <strong>Nota de ingreso</strong>.
-        </div>
-      ) : (
-        <div style={{ display: 'grid', gap: 8 }}>
-          {notasEpisodio.map(n => (
-            <button key={n.id} onClick={() => router.push(`/nota/${inter.pacienteId}/${n.id}`)}
-              style={{ textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--s1)', cursor: 'pointer' }}>
-              <FileText size={16} style={{ color: 'var(--nexus,#3d5afe)', flexShrink: 0 }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{TIPO_NOTA_LABEL[n.tipo] ?? n.tipo}</div>
-                <div style={{ fontSize: 12, color: 'var(--text3)' }}>{new Date(n.fechaConsulta).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}{n.estado === 'firmada' ? ' · firmada' : ' · borrador'}</div>
-              </div>
-              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                {n.medicamentos?.length > 0 && <Pill size={14} style={{ color: 'var(--text3)' }} />}
-                {n.estudiosOrden?.length ? <ClipboardList size={14} style={{ color: 'var(--text3)' }} /> : null}
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
 
-      {/* Modal de egreso */}
-      <Modal
-        open={modalEgreso}
-        onClose={() => setModalEgreso(false)}
-        title="Egresar paciente"
-        footer={(
-          <>
-            <Button variant="secondary" onClick={() => setModalEgreso(false)}>Cancelar</Button>
-            <Button onClick={confirmarEgreso} loading={egresando}>Egresar y escribir nota</Button>
-          </>
+      {/* ── TAB: RESUMEN / NOTAS ── */}
+      {tab === 'resumen' && (<>
+        {inter.motivoIngreso && <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 14 }}><strong>Motivo de ingreso:</strong> {inter.motivoIngreso}</div>}
+        {egresado && inter.resumenEgreso && <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 14, padding: 12, background: 'var(--s2)', borderRadius: 10 }}><strong>Resumen de egreso:</strong> {inter.resumenEgreso}</div>}
+
+        {esMedico && !egresado && (
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
+            {!tieneIngreso && <Button icon={<Plus size={15} />} onClick={() => nuevaNota('ingreso')}>Nota de ingreso</Button>}
+            <Button variant={tieneIngreso ? 'primary' : 'secondary'} icon={<Plus size={15} />} onClick={() => nuevaNota('evolucion')}>Evolución</Button>
+            <Button variant="secondary" icon={<Activity size={15} />} onClick={() => nuevaNota('nota_postoperatoria')}>Postoperatoria</Button>
+            <Button variant="secondary" icon={<FileText size={15} />} onClick={() => nuevaNota('consentimiento')}>Consentimiento</Button>
+            <Button variant="secondary" icon={<LogOut size={15} />} onClick={() => setModalEgreso(true)}>Egresar</Button>
+          </div>
         )}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div>
-            <label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Tipo de egreso</label>
-            <select className="w-full rounded-md border px-2.5 py-2 text-sm bg-transparent" value={tipoEgreso} onChange={e => setTipoEgreso(e.target.value as TipoEgreso)}>
-              {TIPO_EGRESO_OPCIONES.map(t => <option key={t} value={t}>{TIPO_EGRESO_LABEL[t]}</option>)}
-            </select>
+        {egresado && esMedico && (
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
+            <Button variant="secondary" icon={<Plus size={15} />} onClick={() => nuevaNota('egreso')}>Nota de egreso</Button>
+            <Button variant="secondary" icon={<Clock size={15} />} onClick={() => router.push('/asistente')}>Programar cita de seguimiento</Button>
           </div>
-          <div>
-            <label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Resumen del egreso (opcional)</label>
-            <textarea className="w-full rounded-md border px-2.5 py-2 text-sm bg-transparent" rows={3} placeholder="Evolución y condición al alta" value={resumenEgreso} onChange={e => setResumenEgreso(e.target.value)} />
+        )}
+
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '4px 0 12px' }}>Notas del internamiento ({notasEpisodio.length})</div>
+        {notasEpisodio.length === 0 ? (
+          <div style={{ fontSize: 13, color: 'var(--text3)', padding: 16, textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 12 }}>Aún no hay notas. Empieza con la <strong>Nota de ingreso</strong>.</div>
+        ) : (
+          <div style={{ display: 'grid', gap: 8 }}>
+            {notasEpisodio.map(n => (
+              <button key={n.id} onClick={() => router.push(`/nota/${inter.pacienteId}/${n.id}`)} style={{ textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--s1)', cursor: 'pointer' }}>
+                <FileText size={16} style={{ color: 'var(--nexus,#3d5afe)', flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{TIPO_NOTA_LABEL[n.tipo] ?? n.tipo}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)' }}>{new Date(n.fechaConsulta).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}{n.estado === 'firmada' ? ' · firmada' : ' · borrador'}</div>
+                </div>
+                {n.medicamentos?.length > 0 && <Pill size={14} style={{ color: 'var(--text3)' }} />}
+              </button>
+            ))}
           </div>
-          <p style={{ fontSize: 11.5, color: 'var(--text3)' }}>Al confirmar, el paciente sale del censo y se abre la <strong>Nota de egreso</strong> para completar el documento (NOM-004).</p>
+        )}
+      </>)}
+
+      {/* ── TAB: INDICACIONES + MAR ── */}
+      {tab === 'indicaciones' && (<>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Hoja de indicaciones médicas y registro de administración (MAR).</div>
+          {esMedico && !egresado && <Button size="sm" icon={<Plus size={14} />} onClick={() => setModalInd(true)}>Nueva indicación</Button>}
+        </div>
+        {indicaciones.length === 0 ? (
+          <div style={{ fontSize: 13, color: 'var(--text3)', padding: 16, textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 12 }}>Sin indicaciones. {esMedico ? 'Agrega la primera.' : 'El médico aún no registra indicaciones.'}</div>
+        ) : (
+          <div style={{ display: 'grid', gap: 10 }}>
+            {indicaciones.map(ind => (
+              <div key={ind.id} style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', padding: 14, opacity: ind.activa ? 1 : 0.55 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                  <div>
+                    <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--text3)' }}>{TIPO_INDICACION_LABEL[ind.tipo]}{!ind.activa && ' · suspendida'}</span>
+                    <div style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--text)' }}>{ind.descripcion}</div>
+                    {ind.frecuencia && <div style={{ fontSize: 12.5, color: 'var(--text2)' }}>{ind.frecuencia}</div>}
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                    {puedeEnfermeria && ind.activa && ind.tipo === 'medicamento' && <Button size="sm" variant="secondary" icon={<Syringe size={13} />} onClick={() => setAdministrando(ind.id)}>Administrar</Button>}
+                    {esMedico && <button title={ind.activa ? 'Suspender' : 'Reactivar'} onClick={async () => { if (!clinicId) return; await suspenderIndicacion(clinicId, internamientoId, ind.id, !ind.activa); cargar() }} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 8px', cursor: 'pointer', color: 'var(--text3)' }}><Ban size={13} /></button>}
+                  </div>
+                </div>
+                {ind.administraciones.length > 0 && (
+                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {ind.administraciones.slice(-6).map((a, i) => (
+                      <div key={i} style={{ fontSize: 11.5, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {a.estado === 'administrado' ? <Check size={12} style={{ color: '#0d9488' }} /> : <Ban size={12} style={{ color: '#d97706' }} />}
+                        {new Date(a.fecha).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })} · {a.estado === 'administrado' ? 'Administrado' : 'Omitido'}{a.por ? ' · ' + a.por : ''}{a.nota ? ` — ${a.nota}` : ''}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </>)}
+
+      {/* ── TAB: SIGNOS VITALES ── */}
+      {tab === 'signos' && (<>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Registro seriado de signos vitales.</div>
+          {puedeEnfermeria && !egresado && <Button size="sm" icon={<Plus size={14} />} onClick={() => setModalSignos(true)}>Registrar signos</Button>}
+        </div>
+        {signos.length === 0 ? (
+          <div style={{ fontSize: 13, color: 'var(--text3)', padding: 16, textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 12 }}>Sin registros de signos vitales.</div>
+        ) : (
+          <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 12 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+              <thead>
+                <tr style={{ background: 'var(--s2)', color: 'var(--text3)', textAlign: 'left' }}>
+                  {['Fecha', 'TA', 'FC', 'FR', 'T°', 'SpO₂', 'Gluc.', 'Dolor'].map(h => <th key={h} style={{ padding: '8px 10px', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {[...signos].reverse().map(s => (
+                  <tr key={s.id} style={{ borderTop: '1px solid var(--border)', color: 'var(--text2)' }}>
+                    <td style={{ padding: '7px 10px', whiteSpace: 'nowrap' }}>{new Date(s.fecha).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
+                    <td style={{ padding: '7px 10px' }}>{s.ta ?? '—'}</td>
+                    <td style={{ padding: '7px 10px', color: (s.fc && (s.fc > 100 || s.fc < 50)) ? '#dc2626' : undefined }}>{s.fc ?? '—'}</td>
+                    <td style={{ padding: '7px 10px' }}>{s.fr ?? '—'}</td>
+                    <td style={{ padding: '7px 10px', color: (s.temp && s.temp >= 38) ? '#dc2626' : undefined }}>{s.temp ?? '—'}</td>
+                    <td style={{ padding: '7px 10px', color: (s.spo2 && s.spo2 < 92) ? '#dc2626' : undefined }}>{s.spo2 ?? '—'}</td>
+                    <td style={{ padding: '7px 10px' }}>{s.glucosa ?? '—'}</td>
+                    <td style={{ padding: '7px 10px' }}>{s.dolor != null ? `${s.dolor}/10` : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </>)}
+
+      {/* ── TAB: INTERCONSULTAS ── */}
+      {tab === 'interconsultas' && (<>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Solicitudes a otras especialidades y sus respuestas.</div>
+          {esMedico && !egresado && <Button size="sm" icon={<Send size={14} />} onClick={() => setModalIC(true)}>Solicitar interconsulta</Button>}
+        </div>
+        {interconsultas.length === 0 ? (
+          <div style={{ fontSize: 13, color: 'var(--text3)', padding: 16, textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 12 }}>Sin interconsultas.</div>
+        ) : (
+          <div style={{ display: 'grid', gap: 10 }}>
+            {interconsultas.map(ic => (
+              <div key={ic.id} style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', padding: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text)' }}>{ic.especialidad}</div>
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 100, background: ic.estado === 'respondida' ? 'rgba(13,148,136,.15)' : 'rgba(217,119,6,.15)', color: ic.estado === 'respondida' ? '#0d9488' : '#d97706' }}>{ic.estado === 'respondida' ? 'Respondida' : 'Pendiente'}</span>
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 4 }}>{ic.motivo}</div>
+                <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>Solicitó: {ic.solicitanteNombre || '—'} · {new Date(ic.fecha).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}</div>
+                {ic.respuesta && <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}><strong>Respuesta:</strong> {ic.respuesta}</div>}
+                {esMedico && ic.estado === 'solicitada' && !egresado && (
+                  <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                    <Button size="sm" variant="secondary" onClick={() => setRespondiendo(ic.id)}>Responder (texto)</Button>
+                    {ic.especialidad === 'Infectología' && <Button size="sm" variant="secondary" icon={<Activity size={13} />} onClick={() => nuevaNota('valoracion_inmuno')}>Valoración inmuno</Button>}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </>)}
+
+      {/* ══ MODALES ══ */}
+      {/* Egreso */}
+      <Modal open={modalEgreso} onClose={() => setModalEgreso(false)} title="Egresar paciente"
+        footer={<><Button variant="secondary" onClick={() => setModalEgreso(false)}>Cancelar</Button><Button loading={busy} onClick={async () => {
+          if (!clinicId) return; setBusy(true)
+          try { await egresarInternamiento(clinicId, internamientoId, { tipoEgreso: egr.tipo, resumenEgreso: egr.resumen.trim() || undefined }); toast('Paciente egresado', 'success'); setModalEgreso(false); nuevaNota('egreso') }
+          catch { toast('No se pudo egresar', 'error'); setBusy(false) }
+        }}>Egresar y escribir nota</Button></>}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Tipo de egreso</label>
+            <select className={inputCls} value={egr.tipo} onChange={e => setEgr(x => ({ ...x, tipo: e.target.value as TipoEgreso }))}>{TIPO_EGRESO_OPCIONES.map(t => <option key={t} value={t}>{TIPO_EGRESO_LABEL[t]}</option>)}</select></div>
+          <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Resumen del egreso (opcional)</label>
+            <textarea className={inputCls} rows={3} placeholder="Evolución y condición al alta" value={egr.resumen} onChange={e => setEgr(x => ({ ...x, resumen: e.target.value }))} /></div>
+        </div>
+        <p style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 8 }}>Al confirmar, el paciente sale del censo y se abre la Nota de egreso (NOM-004).</p>
+      </Modal>
+
+      {/* Nueva interconsulta */}
+      <Modal open={modalIC} onClose={() => setModalIC(false)} title="Solicitar interconsulta"
+        footer={<><Button variant="secondary" onClick={() => setModalIC(false)}>Cancelar</Button><Button loading={busy} disabled={!icForm.motivo.trim()} onClick={async () => {
+          if (!clinicId) return; setBusy(true)
+          try { await agregarInterconsulta(clinicId, internamientoId, { especialidad: icForm.especialidad, motivo: icForm.motivo.trim(), solicitanteNombre: config?.nombreMedico ?? '' }); toast('Interconsulta solicitada', 'success'); setModalIC(false); setIcForm({ especialidad: ESPECIALIDADES_IC[0], motivo: '' }); cargar() }
+          finally { setBusy(false) }
+        }}>Solicitar</Button></>}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Especialidad</label>
+            <select className={inputCls} value={icForm.especialidad} onChange={e => setIcForm(f => ({ ...f, especialidad: e.target.value }))}>{ESPECIALIDADES_IC.map(e => <option key={e}>{e}</option>)}</select></div>
+          <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Motivo de la interconsulta</label>
+            <textarea className={inputCls} rows={3} placeholder="Pregunta clínica concreta" value={icForm.motivo} onChange={e => setIcForm(f => ({ ...f, motivo: e.target.value }))} /></div>
+        </div>
+      </Modal>
+
+      {/* Responder interconsulta */}
+      <Modal open={!!respondiendo} onClose={() => setRespondiendo(null)} title="Responder interconsulta"
+        footer={<><Button variant="secondary" onClick={() => setRespondiendo(null)}>Cancelar</Button><Button loading={busy} disabled={!respTxt.trim()} onClick={async () => {
+          if (!clinicId || !respondiendo) return; setBusy(true)
+          try { await responderInterconsulta(clinicId, internamientoId, respondiendo, { respuesta: respTxt.trim(), respondidaPor: config?.nombreMedico ?? '' }); toast('Interconsulta respondida', 'success'); setRespondiendo(null); setRespTxt(''); cargar() }
+          finally { setBusy(false) }
+        }}>Guardar respuesta</Button></>}>
+        <textarea className={inputCls} rows={5} placeholder="Impresión y recomendaciones" value={respTxt} onChange={e => setRespTxt(e.target.value)} />
+      </Modal>
+
+      {/* Nueva indicación */}
+      <Modal open={modalInd} onClose={() => setModalInd(false)} title="Nueva indicación médica"
+        footer={<><Button variant="secondary" onClick={() => setModalInd(false)}>Cancelar</Button><Button loading={busy} disabled={!indForm.descripcion.trim()} onClick={async () => {
+          if (!clinicId) return; setBusy(true)
+          try { await agregarIndicacion(clinicId, internamientoId, { tipo: indForm.tipo, descripcion: indForm.descripcion.trim(), frecuencia: indForm.frecuencia.trim() || undefined, creadaPor: config?.nombreMedico ?? '' }); toast('Indicación agregada', 'success'); setModalInd(false); setIndForm({ tipo: 'medicamento', descripcion: '', frecuencia: '' }); cargar() }
+          finally { setBusy(false) }
+        }}>Agregar</Button></>}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Tipo</label>
+            <select className={inputCls} value={indForm.tipo} onChange={e => setIndForm(f => ({ ...f, tipo: e.target.value as TipoIndicacion }))}>{TIPO_IND_OPCIONES.map(t => <option key={t} value={t}>{TIPO_INDICACION_LABEL[t]}</option>)}</select></div>
+          <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Indicación</label>
+            <input className={inputCls} placeholder="ej. Ceftriaxona 1 g IV" value={indForm.descripcion} onChange={e => setIndForm(f => ({ ...f, descripcion: e.target.value }))} /></div>
+          <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Frecuencia (opcional)</label>
+            <input className={inputCls} placeholder="ej. cada 12 h" value={indForm.frecuencia} onChange={e => setIndForm(f => ({ ...f, frecuencia: e.target.value }))} /></div>
+        </div>
+      </Modal>
+
+      {/* Registrar administración (MAR) */}
+      <Modal open={!!administrando} onClose={() => setAdministrando(null)} title="Registrar administración"
+        footer={<><Button variant="secondary" onClick={() => setAdministrando(null)}>Cancelar</Button>
+          <Button variant="secondary" loading={busy} onClick={() => registrar('omitido')}><Ban size={14} /> Omitido</Button>
+          <Button loading={busy} onClick={() => registrar('administrado')}><Check size={14} /> Administrado</Button></>}>
+        <input className={inputCls} placeholder="Nota (opcional): dosis, vía, motivo de omisión…" value={admNota} onChange={e => setAdmNota(e.target.value)} />
+      </Modal>
+
+      {/* Registrar signos */}
+      <Modal open={modalSignos} onClose={() => setModalSignos(false)} title="Registrar signos vitales"
+        footer={<><Button variant="secondary" onClick={() => setModalSignos(false)}>Cancelar</Button><Button loading={busy} onClick={async () => {
+          if (!clinicId) return; setBusy(true)
+          const num = (x: string) => x.trim() ? Number(x) : undefined
+          try {
+            await agregarSignos(clinicId, internamientoId, { fecha: new Date().toISOString(), ta: sg.ta.trim() || undefined, fc: num(sg.fc), fr: num(sg.fr), temp: num(sg.temp), spo2: num(sg.spo2), glucosa: num(sg.glucosa), dolor: num(sg.dolor), por: config?.nombreMedico ?? '' })
+            toast('Signos registrados', 'success'); setModalSignos(false); setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '' }); cargar()
+          } finally { setBusy(false) }
+        }}>Guardar</Button></>}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          {([['ta', 'TA (120/80)'], ['fc', 'FC (lpm)'], ['fr', 'FR (rpm)'], ['temp', 'T° (°C)'], ['spo2', 'SpO₂ (%)'], ['glucosa', 'Glucosa'], ['dolor', 'Dolor (0-10)']] as [keyof typeof sg, string][]).map(([k, label]) => (
+            <div key={k}><label style={{ fontSize: 12, color: 'var(--text3)' }}>{label}</label>
+              <input className={inputCls} value={sg[k]} onChange={e => setSg(s => ({ ...s, [k]: e.target.value }))} /></div>
+          ))}
         </div>
       </Modal>
     </div>
   )
+
+  // ── helpers de estado (declarados al final por claridad) ──
+  function registrar(estado: 'administrado' | 'omitido') {
+    if (!clinicId || !administrando) return
+    setBusy(true)
+    registrarAdministracion(clinicId, internamientoId, administrando, { fecha: new Date().toISOString(), por: config?.nombreMedico ?? rolNombre(rol), estado, nota: admNota.trim() || undefined })
+      .then(() => { toast('Registro guardado', 'success'); setAdministrando(null); setAdmNota(''); cargar() })
+      .finally(() => setBusy(false))
+  }
 }
+
+function rolNombre(r: RolHospital) { return ROL_HOSPITAL_LABEL[r] }

@@ -5,10 +5,12 @@
 // paciente y se vinculan por `internamientoId`.
 // ══════════════════════════════════════════════════════════════
 import {
-  collection, doc, addDoc, getDoc, getDocs, updateDoc, query, where,
+  collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import type { Internamiento, TipoEgreso } from '@/types/hospital'
+import type {
+  Internamiento, TipoEgreso, Interconsulta, Indicacion, Administracion, RegistroSignos,
+} from '@/types/hospital'
 
 function internamientosCol(clinicId: string) {
   return collection(db, 'clinics', clinicId, 'internamientos')
@@ -81,4 +83,68 @@ export async function egresarInternamiento(
     tipoEgreso: egreso.tipoEgreso,
     resumenEgreso: egreso.resumenEgreso,
   })
+}
+
+function id36() {
+  // ID corto sin depender de crypto (suficiente para elementos dentro del episodio)
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4)
+}
+
+// ── F2 · Interconsultas (array en el doc del internamiento) ──
+export async function agregarInterconsulta(clinicId: string, iid: string, ic: Omit<Interconsulta, 'id' | 'estado' | 'fecha'>): Promise<string> {
+  const inter = await getInternamiento(clinicId, iid)
+  if (!inter) throw new Error('Internamiento no encontrado')
+  const nueva: Interconsulta = { ...ic, id: id36(), estado: 'solicitada', fecha: new Date().toISOString() }
+  await actualizarInternamiento(clinicId, iid, { interconsultas: [...(inter.interconsultas ?? []), nueva] })
+  return nueva.id
+}
+
+export async function responderInterconsulta(clinicId: string, iid: string, icId: string, resp: { respuesta?: string; respondidaPor?: string; notaId?: string }): Promise<void> {
+  const inter = await getInternamiento(clinicId, iid)
+  if (!inter) return
+  const interconsultas = (inter.interconsultas ?? []).map(ic =>
+    ic.id === icId ? { ...ic, estado: 'respondida' as const, fechaRespuesta: new Date().toISOString(), ...resp } : ic
+  )
+  await actualizarInternamiento(clinicId, iid, { interconsultas })
+}
+
+// ── F3 · Indicaciones médicas + MAR (array en el doc) ──
+export async function agregarIndicacion(clinicId: string, iid: string, ind: Omit<Indicacion, 'id' | 'activa' | 'fecha' | 'administraciones'>): Promise<void> {
+  const inter = await getInternamiento(clinicId, iid)
+  if (!inter) throw new Error('Internamiento no encontrado')
+  const nueva: Indicacion = { ...ind, id: id36(), activa: true, fecha: new Date().toISOString(), administraciones: [] }
+  await actualizarInternamiento(clinicId, iid, { indicaciones: [...(inter.indicaciones ?? []), nueva] })
+}
+
+export async function suspenderIndicacion(clinicId: string, iid: string, indId: string, activa: boolean): Promise<void> {
+  const inter = await getInternamiento(clinicId, iid)
+  if (!inter) return
+  const indicaciones = (inter.indicaciones ?? []).map(x => x.id === indId ? { ...x, activa } : x)
+  await actualizarInternamiento(clinicId, iid, { indicaciones })
+}
+
+export async function registrarAdministracion(clinicId: string, iid: string, indId: string, adm: Administracion): Promise<void> {
+  const inter = await getInternamiento(clinicId, iid)
+  if (!inter) return
+  const indicaciones = (inter.indicaciones ?? []).map(x =>
+    x.id === indId ? { ...x, administraciones: [...x.administraciones, adm] } : x
+  )
+  await actualizarInternamiento(clinicId, iid, { indicaciones })
+}
+
+// ── F3 · Signos vitales seriados (subcolección, pueden ser muchos) ──
+function signosCol(clinicId: string, iid: string) {
+  return collection(db, 'clinics', clinicId, 'internamientos', iid, 'signos')
+}
+export async function agregarSignos(clinicId: string, iid: string, s: Omit<RegistroSignos, 'id'>): Promise<void> {
+  await addDoc(signosCol(clinicId, iid), limpiar(s as object))
+}
+export async function getSignos(clinicId: string, iid: string): Promise<RegistroSignos[]> {
+  const snap = await getDocs(signosCol(clinicId, iid))
+  return snap.docs
+    .map(d => ({ ...d.data(), id: d.id } as RegistroSignos))
+    .sort((a, b) => (a.fecha < b.fecha ? -1 : 1))  // ascendente para la gráfica
+}
+export async function borrarSignos(clinicId: string, iid: string, sid: string): Promise<void> {
+  await deleteDoc(doc(db, 'clinics', clinicId, 'internamientos', iid, 'signos', sid))
 }

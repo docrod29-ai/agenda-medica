@@ -37,7 +37,7 @@ import {
   Lock, Bug, FlaskConical, Lightbulb, FileText, ChevronDown, ChevronUp, Volume2,
 } from 'lucide-react'
 
-const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'valoracion_preoperatoria', 'valoracion_inmuno', 'alta_consulta', 'ingreso', 'evolucion', 'egreso']
+const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'valoracion_preoperatoria', 'valoracion_inmuno', 'alta_consulta', 'ingreso', 'evolucion', 'egreso', 'nota_postoperatoria', 'nota_anestesia', 'consentimiento']
 
 // Especialidades con plantilla de enfoque (deben contener la clave que detecta
 // guiaEspecialidad en prompts.ts: cardiolog, pediatr, ginec, interna, urgenc…).

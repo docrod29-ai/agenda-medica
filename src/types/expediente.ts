@@ -15,6 +15,9 @@ export type TipoNota =
   | 'egreso'             // Egreso hospitalario
   | 'valoracion_preoperatoria' // Valoración de riesgo preoperatorio
   | 'valoracion_inmuno'  // Valoración infectológica del paciente inmunocomprometido
+  | 'nota_postoperatoria' // Nota postquirúrgica (NOM-004)
+  | 'nota_anestesia'     // Registro/nota de anestesia
+  | 'consentimiento'     // Consentimiento informado
 
 export const TIPO_NOTA_LABEL: Record<TipoNota, string> = {
   historia_clinica: 'Historia Clínica',
@@ -26,6 +29,9 @@ export const TIPO_NOTA_LABEL: Record<TipoNota, string> = {
   egreso:           'Nota de Egreso Hospitalario',
   valoracion_preoperatoria: 'Valoración Preoperatoria',
   valoracion_inmuno: 'Valoración Inmunocomprometido',
+  nota_postoperatoria: 'Nota Postoperatoria',
+  nota_anestesia:   'Nota de Anestesia',
+  consentimiento:   'Consentimiento Informado',
 }
 
 export type EstadoNota = 'borrador' | 'firmada' | 'cancelada'

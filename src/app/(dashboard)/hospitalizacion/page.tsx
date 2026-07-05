@@ -89,7 +89,10 @@ export default function CensoPage() {
         <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
           <BedDouble size={22} style={{ color: 'var(--nexus, #3d5afe)' }} /> Censo hospitalario
         </h1>
-        <Button icon={<Plus size={16} />} onClick={abrirModal}>Nuevo ingreso</Button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Button variant="secondary" onClick={() => router.push('/hospitalizacion/camas')}>Tablero de camas</Button>
+          <Button icon={<Plus size={16} />} onClick={abrirModal}>Nuevo ingreso</Button>
+        </div>
       </div>
       <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 20px' }}>
         Pacientes internados ahora mismo. Abre un episodio para ver ingreso, evoluciones y egreso.
