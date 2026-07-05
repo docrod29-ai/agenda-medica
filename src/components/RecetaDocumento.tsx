@@ -137,11 +137,10 @@ function calcularPaginas(data: RecetaData, config: ClinicConfig | null, recetaCo
 
 export function RecetaDocumento({ data, config, recetaConfig, containerId = 'receta-doc' }: RecetaDocumentoProps) {
   const custom = !!recetaConfig.disenoCompletoDataUrl
-  // Receta GENERADA (sin membrete subido): tamaño CARTA por defecto — el Dr. pidió
-  // "lo blanco en tamaño carta". Si eligió explícitamente otro tamaño, se respeta.
-  const cfg: RecetaConfig = (!custom && (!recetaConfig.paperSize || recetaConfig.paperSize === 'media-carta'))
-    ? { ...recetaConfig, paperSize: 'carta' }
-    : recetaConfig
+  // La RECETA va en tamaño "receta" (media carta) por defecto — es la hoja chica de
+  // prescripción. Se respeta si el médico eligió otro tamaño. (Las NOTAS clínicas
+  // se imprimen en carta, en su propia página.)
+  const cfg = recetaConfig
   const paper = paperEfectivo(cfg)
   const paginas = calcularPaginas(data, config, cfg)
   const host = dimensionesImpresion(cfg)
