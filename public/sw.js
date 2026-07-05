@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v168'  // Receta: quitar duracion (cronico-continuacion) e indicacion del renglon y del impreso
+const CACHE = 'nexusmed-v169'  // Agenda: agendar hasta 1 anio adelante (antes 90 dias)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
