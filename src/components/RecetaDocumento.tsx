@@ -158,7 +158,23 @@ export function RecetaDocumento({ data, config, recetaConfig, containerId = 'rec
     if (!custom) return recetaConfig
     const w = recetaConfig.disenoWidthMm ?? 140
     const h = imgAspect ? Math.max(60, Math.round(w / imgAspect)) : (recetaConfig.disenoHeightMm ?? 190)
-    return { ...recetaConfig, disenoWidthMm: w, disenoHeightMm: h }
+    // Área de MEDICAMENTOS automática: debajo del campo más bajo (nombre/edad/fecha)
+    // y con un margen inferior sano para no tapar el pie. Así el médico SOLO coloca
+    // los campos y los medicamentos se acomodan solos — nada de calibrar mm.
+    let margenes = recetaConfig.disenoMargenes
+    const c = recetaConfig.disenoCampos
+    if (c) {
+      const ys = (['nombre', 'edad', 'sexo', 'fecha', 'folio'] as const)
+        .map(k => c[k]?.y).filter((v): v is number => typeof v === 'number')
+      if (ys.length) {
+        margenes = {
+          top: Math.round(((Math.max(...ys) + 6) / 100) * h),  // debajo del campo más bajo
+          bottom: Math.round(0.14 * h),                          // arriba del pie
+          right: 12, left: 12,
+        }
+      }
+    }
+    return { ...recetaConfig, disenoWidthMm: w, disenoHeightMm: h, disenoMargenes: margenes }
   }, [custom, recetaConfig, imgAspect])
 
   const paper = paperEfectivo(cfg)
@@ -497,15 +513,24 @@ function HojaCustom({
         )}
       </div>
 
-      {/* Firma — SOLO en la última hoja */}
+      {/* Firma — SOLO en la última hoja. Si el médico calibró su posición
+          (disenoCampos.firma), se coloca ahí; si no, sobre el margen inferior. */}
       {pagina.esUltima && config?.firmaImagenDataUrl && (
-        <div style={{
-          position: 'absolute',
-          bottom: `${Math.max(4, margenes.bottom - 22)}mm`,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          textAlign: 'center',
-        }}>
+        <div style={campos?.firma
+          ? {
+              position: 'absolute',
+              left: `${campos.firma.x}%`,
+              top: `${campos.firma.y}%`,
+              transform: 'translate(-50%, -50%)',
+              textAlign: 'center',
+            }
+          : {
+              position: 'absolute',
+              bottom: `${Math.max(4, margenes.bottom - 22)}mm`,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              textAlign: 'center',
+            }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={config.firmaImagenDataUrl}
