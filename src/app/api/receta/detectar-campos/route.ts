@@ -30,10 +30,10 @@ async function resolverModelo(key: string): Promise<string> {
 }
 
 const PROMPT = `Esta imagen es una PLANTILLA DE RECETA MÉDICA en blanco (papel membretado del médico).
-Encuentra dónde el médico debe ESCRIBIR el valor de cada dato del paciente, junto a las etiquetas impresas (p.ej. "Nombre:", "Edad:", "Sexo:", "Fecha:", "Folio:").
-Devuelve SOLO un objeto JSON con la posición donde debe ir el VALOR de cada campo, en PORCENTAJE del ancho (x) y alto (y) de la imagen, de 0 a 100 (0,0 = esquina superior izquierda).
-Claves posibles: "nombre", "edad", "sexo", "fecha", "folio". Incluye SOLO las que realmente aparezcan en el formato; omite las que no estén.
-Formato exacto: {"nombre":{"x":number,"y":number},"fecha":{"x":number,"y":number}}
+Devuelve SOLO un objeto JSON con:
+1) La posición donde el médico debe ESCRIBIR el VALOR de cada dato del paciente, junto a las etiquetas impresas ("Nombre:", "Edad:", "Sexo:", "Fecha:", "Folio:"), en PORCENTAJE del ancho (x) y alto (y), 0 a 100 (0,0 = esquina superior izquierda). Claves posibles: "nombre","edad","sexo","fecha","folio". Incluye SOLO las que aparezcan.
+2) "cuerpo": el ÁREA EN BLANCO donde va la LISTA DE MEDICAMENTOS (Rx) — DEBAJO de los campos del paciente y ARRIBA del pie/firma/logo del membrete — como {"top":Y%,"bottom":Y%} (porcentaje del alto; top = borde superior del área libre, bottom = donde empieza el pie).
+Formato exacto: {"nombre":{"x":n,"y":n},"fecha":{"x":n,"y":n},"cuerpo":{"top":n,"bottom":n}}
 NO expliques nada. Responde ÚNICAMENTE el JSON.`
 
 const CLAVES_VALIDAS = ['nombre', 'edad', 'sexo', 'fecha', 'folio']
@@ -79,16 +79,23 @@ export async function POST(req: NextRequest) {
     const m = texto.match(/\{[\s\S]*\}/)
     if (!m) return NextResponse.json({ ok: false, error: 'La IA no devolvió coordenadas' }, { status: 422 })
 
-    const crudo = JSON.parse(m[0]) as Record<string, { x?: number; y?: number }>
+    const crudo = JSON.parse(m[0]) as Record<string, { x?: number; y?: number; top?: number; bottom?: number }>
+    const clamp = (n: number) => Math.min(100, Math.max(0, n))
     const campos: Record<string, { x: number; y: number }> = {}
     for (const k of CLAVES_VALIDAS) {
       const c = crudo[k]
       if (c && typeof c.x === 'number' && typeof c.y === 'number') {
-        campos[k] = { x: Math.min(100, Math.max(0, c.x)), y: Math.min(100, Math.max(0, c.y)) }
+        campos[k] = { x: clamp(c.x), y: clamp(c.y) }
       }
     }
-    if (Object.keys(campos).length === 0) return NextResponse.json({ ok: false, error: 'No se detectaron campos' }, { status: 422 })
-    return NextResponse.json({ ok: true, campos })
+    // Área en blanco para la lista de medicamentos (evita que se encimen con el pie)
+    let cuerpo: { top: number; bottom: number } | undefined
+    const cu = crudo.cuerpo
+    if (cu && typeof cu.top === 'number' && typeof cu.bottom === 'number' && cu.bottom > cu.top) {
+      cuerpo = { top: clamp(cu.top), bottom: clamp(cu.bottom) }
+    }
+    if (Object.keys(campos).length === 0 && !cuerpo) return NextResponse.json({ ok: false, error: 'No se detectaron campos' }, { status: 422 })
+    return NextResponse.json({ ok: true, campos, cuerpo })
   } catch (e) {
     return NextResponse.json({ ok: false, error: 'Error al detectar', detalle: String(e).slice(0, 200) }, { status: 500 })
   }

@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v161'  // Receta generada (sin membrete) en tamano CARTA por defecto
+const CACHE = 'nexusmed-v162'  // Receta IA: detecta tambien el area de medicamentos (no se encima con el pie)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
