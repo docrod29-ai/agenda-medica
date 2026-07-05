@@ -2445,6 +2445,12 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
                 disenoUrl={rx.disenoCompletoDataUrl}
                 campos={rx.disenoCampos}
                 onChange={(c) => setRx({ ...rx, disenoCampos: c })}
+                paperHeightMm={PAPER_SIZES[rx.paperSize ?? 'media-carta'].heightMm}
+                onDetectado={(campos, margenes) => setRx(prev => ({
+                  ...prev,
+                  disenoCampos: campos,
+                  ...(margenes ? { disenoMargenes: margenes } : {}),
+                }))}
               />
             </div>
           )}
@@ -3066,10 +3072,12 @@ const CAMPOS_RECETA = [
 type CampoRecetaK = typeof CAMPOS_RECETA[number]['k']
 type CamposReceta = Partial<Record<CampoRecetaK, { x: number; y: number }>>
 
-function CalibradorReceta({ disenoUrl, campos, onChange }: {
+function CalibradorReceta({ disenoUrl, campos, onChange, onDetectado, paperHeightMm }: {
   disenoUrl: string
   campos?: CamposReceta
   onChange: (c: CamposReceta) => void
+  onDetectado?: (campos: CamposReceta, margenes?: { top: number; right: number; bottom: number; left: number }) => void
+  paperHeightMm?: number
 }) {
   const { toast } = useToast()
   const ref = useRef<HTMLDivElement>(null)
@@ -3097,9 +3105,21 @@ function CalibradorReceta({ disenoUrl, campos, onChange }: {
         body: JSON.stringify({ imagenBase64: base64, mediaType }),
       })
       const data = await res.json()
-      if (data.ok && data.campos) {
-        onChange({ ...val, ...data.campos })
-        toast(`IA colocó ${Object.keys(data.campos).length} campo(s) — revisa y ajusta si hace falta`, 'success')
+      if (data.ok && (data.campos || data.cuerpo)) {
+        const nuevos: CamposReceta = { ...val, ...(data.campos ?? {}) }
+        // El área de medicamentos (cuerpo) se convierte a márgenes (mm) para que la
+        // lista NO se encime con el pie/firma del membrete.
+        let margenes: { top: number; right: number; bottom: number; left: number } | undefined
+        if (data.cuerpo && paperHeightMm) {
+          margenes = {
+            top: Math.round((data.cuerpo.top / 100) * paperHeightMm),
+            bottom: Math.round(((100 - data.cuerpo.bottom) / 100) * paperHeightMm),
+            right: 12, left: 12,
+          }
+        }
+        if (onDetectado) onDetectado(nuevos, margenes)
+        else onChange(nuevos)
+        toast(`IA colocó ${Object.keys(data.campos ?? {}).length} campo(s)${margenes ? ' + área de medicamentos' : ''} — ajusta si hace falta`, 'success')
       } else {
         toast(data.error ?? 'La IA no pudo detectar; colócalos a mano arrastrando', 'error')
       }
