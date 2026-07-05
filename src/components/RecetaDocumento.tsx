@@ -73,8 +73,24 @@ function fmtFechaNac(fecha: string): string {
  * En modo 'carta' el host es papel carta aunque la receta sea media carta.
  * Las páginas (receta/orden) usan esto para @page y para el preview wrapper.
  */
+/**
+ * Dimensiones EFECTIVAS de la hoja. Para un membrete custom usa sus dimensiones
+ * REALES (disenoWidthMm/HeightMm) → la imagen llena la hoja sin bordes blancos y
+ * las coordenadas calibradas (nombre/edad/fecha) caen justo en su lugar, en vez de
+ * "flotar" arriba por el letterbox de objectFit:contain. Si no hay dimensiones,
+ * cae al tamaño de papel estándar.
+ */
+function paperEfectivo(recetaConfig: RecetaConfig): { widthMm: number; heightMm: number; cssPage: string } {
+  if (recetaConfig.disenoCompletoDataUrl && recetaConfig.disenoWidthMm && recetaConfig.disenoHeightMm) {
+    const w = recetaConfig.disenoWidthMm, h = recetaConfig.disenoHeightMm
+    return { widthMm: w, heightMm: h, cssPage: `${w}mm ${h}mm` }
+  }
+  const p = PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta']
+  return { widthMm: p.widthMm, heightMm: p.heightMm, cssPage: p.cssPage }
+}
+
 export function dimensionesImpresion(recetaConfig: RecetaConfig): { widthMm: number; heightMm: number; cssPage: string; esHostCarta: boolean } {
-  const paper = PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta']
+  const paper = paperEfectivo(recetaConfig)
   // DEFAULT = 'carta': el diálogo de impresión del navegador solo ofrece los
   // tamaños que el driver de la impresora reporta — "media carta" casi nunca
   // existe ahí. Imprimir sobre carta (tamaño universal) con línea de corte ✂
@@ -95,7 +111,7 @@ export function contarPaginas(data: RecetaData, config: ClinicConfig | null, rec
 }
 
 function calcularPaginas(data: RecetaData, config: ClinicConfig | null, recetaConfig: RecetaConfig): PaginaReceta[] {
-  const paper = PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta']
+  const paper = paperEfectivo(recetaConfig)
   const custom = !!recetaConfig.disenoCompletoDataUrl
   const margenes = custom
     ? (recetaConfig.disenoMargenes ?? { top: 35, right: 12, bottom: 30, left: 12 })
@@ -126,7 +142,7 @@ export function RecetaDocumento({ data, config, recetaConfig, containerId = 'rec
   const cfg: RecetaConfig = (!custom && (!recetaConfig.paperSize || recetaConfig.paperSize === 'media-carta'))
     ? { ...recetaConfig, paperSize: 'carta' }
     : recetaConfig
-  const paper = PAPER_SIZES[cfg.paperSize ?? 'media-carta']
+  const paper = paperEfectivo(cfg)
   const paginas = calcularPaginas(data, config, cfg)
   const host = dimensionesImpresion(cfg)
 

@@ -2296,7 +2296,14 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
         }
       }
 
-      setRx({ ...rx, disenoCompletoDataUrl: srcFinal, paperSize: nuevoPaperSize })
+      setRx({
+        ...rx,
+        disenoCompletoDataUrl: srcFinal,
+        paperSize: nuevoPaperSize,
+        // Dimensiones EXACTAS del membrete → la hoja las usa para que la imagen la
+        // llene sin bordes blancos y los datos calibrados caigan en su sitio.
+        ...(widthMm && heightMm ? { disenoWidthMm: Math.round(widthMm), disenoHeightMm: Math.round(heightMm) } : {}),
+      })
       const nitido = enStorage ? ' · alta resolución' : ''
       if (auto) {
         toast(`Diseño cargado (${formatBytes(sizeBytes)})${nitido} · papel ajustado a ${PAPER_SIZES[nuevoPaperSize].label}`, 'success')
