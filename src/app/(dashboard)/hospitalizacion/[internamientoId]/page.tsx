@@ -48,7 +48,11 @@ type Tab = 'resumen' | 'indicaciones' | 'signos' | 'laboratorio' | 'enfermeria' 
 export default function EpisodioPage() {
   const { internamientoId } = useParams<{ internamientoId: string }>()
   const router = useRouter()
-  const { clinicId } = useClinic()
+  const { clinicId, role: memberRole } = useClinic()
+  // El rol del hospital DERIVA del rol real del usuario (clinic_members), no es
+  // un botón libre. Médico/admin pueden cambiar de vista; el resto queda fijo.
+  const rolReal: RolHospital = memberRole === 'enfermeria' ? 'enfermeria' : memberRole === 'farmacia' ? 'farmacia' : memberRole === 'laboratorio' ? 'laboratorio' : memberRole === 'admin' ? 'admin' : 'medico'
+  const puedeCambiarRol = memberRole === 'medico' || memberRole === 'admin'
   const { config } = useConfig()
   const { toast } = useToast()
 
@@ -112,11 +116,15 @@ export default function EpisodioPage() {
   }
   useEffect(() => { cargar() }, [clinicId, internamientoId])
   useEffect(() => {
+    // Staff clínico (enfermería/farmacia/laboratorio): rol FIJO al del usuario.
+    if (!puedeCambiarRol) { setRol(rolReal); return }
+    // Médico/admin: pueden alternar de vista y se recuerda su preferencia.
     try { const r = localStorage.getItem('hospitalRol') as RolHospital | null; if (r) setRol(r) } catch { /* */ }
     const uid = auth.currentUser?.uid
     if (clinicId && uid) getRolUsuario(clinicId, uid).then(r => { if (r) setRol(r) }).catch(() => {})
-  }, [clinicId])
+  }, [clinicId, puedeCambiarRol, rolReal])
   const cambiarRol = (r: RolHospital) => {
+    if (!puedeCambiarRol) return
     setRol(r)
     try { localStorage.setItem('hospitalRol', r) } catch { /* */ }
     const uid = auth.currentUser?.uid
@@ -216,16 +224,23 @@ export default function EpisodioPage() {
         <button onClick={() => router.push('/hospitalizacion')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 13, marginBottom: 12 }}>
           <ArrowLeft size={15} /> Censo
         </button>
-        {/* Rol */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 12, flexWrap: 'wrap' }}>
-          {(['medico', 'enfermeria', 'farmacia', 'admin'] as RolHospital[]).map(r => (
-            <button key={r} onClick={() => cambiarRol(r)} style={{
-              fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 100, cursor: 'pointer',
-              border: '1px solid ' + (rol === r ? 'var(--nexus,#3d5afe)' : 'var(--border)'),
-              background: rol === r ? 'rgba(61,90,254,.12)' : 'var(--s2)', color: rol === r ? 'var(--nexus,#3d5afe)' : 'var(--text3)',
-            }}>{ROL_HOSPITAL_LABEL[r]}</button>
-          ))}
-        </div>
+        {/* Rol — médico/admin alternan vista; el resto lo ve fijo a su usuario */}
+        {puedeCambiarRol ? (
+          <div style={{ display: 'flex', gap: 4, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: 10.5, color: 'var(--text3)', marginRight: 2 }}>Ver como:</span>
+            {(['medico', 'enfermeria', 'farmacia', 'laboratorio', 'admin'] as RolHospital[]).map(r => (
+              <button key={r} onClick={() => cambiarRol(r)} style={{
+                fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 100, cursor: 'pointer',
+                border: '1px solid ' + (rol === r ? 'var(--nexus,#3d5afe)' : 'var(--border)'),
+                background: rol === r ? 'rgba(61,90,254,.12)' : 'var(--s2)', color: rol === r ? 'var(--nexus,#3d5afe)' : 'var(--text3)',
+              }}>{ROL_HOSPITAL_LABEL[r]}</button>
+            ))}
+          </div>
+        ) : (
+          <div style={{ marginBottom: 12 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 100, background: 'rgba(61,90,254,.12)', color: 'var(--nexus,#3d5afe)', border: '1px solid var(--nexus,#3d5afe)' }}>{ROL_HOSPITAL_LABEL[rol]}</span>
+          </div>
+        )}
       </div>
 
       {/* Cabecera */}

@@ -6,7 +6,7 @@
  * sabe que su rol no puede ejecutar, mostrando mensajes claros.
  */
 
-export type Rol = 'admin' | 'medico' | 'secretaria' | 'recepcion' | 'facturacion'
+export type Rol = 'admin' | 'medico' | 'secretaria' | 'recepcion' | 'facturacion' | 'enfermeria' | 'farmacia' | 'laboratorio'
 
 export const ROL_LABEL: Record<Rol, string> = {
   admin:       'Administrador',
@@ -14,6 +14,9 @@ export const ROL_LABEL: Record<Rol, string> = {
   secretaria:  'Asistente / Secretaria',
   recepcion:   'Recepción',
   facturacion: 'Facturación',
+  enfermeria:  'Enfermería',
+  farmacia:    'Farmacia',
+  laboratorio: 'Laboratorio',
 }
 
 export interface Permisos {
@@ -71,9 +74,21 @@ const FACTURACION: Permisos = {
   moderarResenas: false, manejarPagos: true, cobrarPagos: true,
 }
 
+// Staff clínico hospitalario (enfermería/farmacia/laboratorio): NO ven el
+// expediente ambulatorio ni CRM/finanzas/config; su acceso al módulo de
+// hospitalización se controla en las Firestore Rules (isClinicoHospital).
+const CLINICO_HOSPITAL: Permisos = {
+  verAgenda: false, editarAgenda: false,
+  verExpediente: false, editarExpediente: false, firmarNota: false,
+  verCRM: false, verFinanzas: false,
+  configurarClinica: false, invitarMiembros: false,
+  moderarResenas: false, manejarPagos: false, cobrarPagos: false,
+}
+
 const PERMS: Record<Rol, Permisos> = {
   admin: ADMIN, medico: MEDICO, secretaria: SECRETARIA,
   recepcion: RECEPCION, facturacion: FACTURACION,
+  enfermeria: CLINICO_HOSPITAL, farmacia: CLINICO_HOSPITAL, laboratorio: CLINICO_HOSPITAL,
 }
 
 /** Devuelve los permisos correspondientes al rol. Defaults seguros si rol desconocido. */

@@ -39,7 +39,7 @@ export async function removerMiembro(uid: string): Promise<void> {
 /** Cambia el rol de un miembro (solo admin debería hacerlo). */
 export async function cambiarRolMiembro(
   uid: string,
-  nuevoRol: 'admin' | 'medico' | 'secretaria',
+  nuevoRol: 'admin' | 'medico' | 'secretaria' | 'enfermeria' | 'farmacia' | 'laboratorio',
 ): Promise<void> {
   await updateDoc(doc(db, 'clinic_members', uid), { role: nuevoRol })
 }

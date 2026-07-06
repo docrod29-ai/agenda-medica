@@ -35,7 +35,7 @@ export interface Clinic {
 
 export interface ClinicMember {
   clinicId: string
-  role: 'admin' | 'medico' | 'secretaria'
+  role: 'admin' | 'medico' | 'secretaria' | 'enfermeria' | 'farmacia' | 'laboratorio'
   /** Nombre visible en el chat. Si no se define, usa nombreMedico (médico/admin) o email prefix */
   displayName?: string
   /** Avatar opcional (emoji o data URL) */

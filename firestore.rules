@@ -31,6 +31,14 @@ service cloud.firestore {
          || get(/databases/$(database)/documents/clinic_members/$(request.auth.uid)).data.role == 'admin');
     }
 
+    // Staff clínico hospitalario: médico, admin, enfermería, farmacia, laboratorio.
+    // Acceden al módulo de hospitalización (NO la secretaria/recepción/facturación).
+    function isClinicoHospital(clinicId) {
+      return isAuth() &&
+        get(/databases/$(database)/documents/clinic_members/$(request.auth.uid)).data.clinicId == clinicId &&
+        get(/databases/$(database)/documents/clinic_members/$(request.auth.uid)).data.role in ['medico', 'admin', 'enfermeria', 'farmacia', 'laboratorio'];
+    }
+
     // Clinic metadata (root)
     match /clinics/{clinicId} {
       allow read: if isMember(clinicId);
@@ -70,23 +78,23 @@ service cloud.firestore {
       // clínicos sensibles (diagnósticos, indicaciones, MAR, signos): solo
       // médicos/admin, igual que las notas (NOM-004 · secreto médico).
       match /internamientos/{intId} {
-        allow read, write: if isMedico(clinicId);
+        allow read, write: if isClinicoHospital(clinicId);
         // Signos vitales seriados del internamiento
         match /signos/{signoId} {
-          allow read, write: if isMedico(clinicId);
+          allow read, write: if isClinicoHospital(clinicId);
         }
       }
       // Rol hospitalario por usuario (médico/enfermería/farmacia/laboratorio/admin)
       match /hospital_roles/{uid} {
-        allow read, write: if isMember(clinicId);
+        allow read, write: if isClinicoHospital(clinicId);
       }
       // Módulo de laboratorio — solicitudes y resultados (datos clínicos)
       match /laboratorio/{ordenId} {
-        allow read, write: if isMedico(clinicId);
+        allow read, write: if isClinicoHospital(clinicId);
       }
       // Alertas hospitalarias (lab crítico, NEWS2, interconsulta)
       match /hospital_alertas/{alertaId} {
-        allow read, write: if isMember(clinicId);
+        allow read, write: if isClinicoHospital(clinicId);
       }
       match /config/{docId} {
         allow read, write: if isMember(clinicId);
