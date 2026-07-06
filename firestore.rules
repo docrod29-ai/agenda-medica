@@ -66,6 +66,16 @@ service cloud.firestore {
       match /waitlist/{docId} {
         allow read, write: if isMember(clinicId);
       }
+      // Módulo de hospitalización — episodios de internamiento. Contienen datos
+      // clínicos sensibles (diagnósticos, indicaciones, MAR, signos): solo
+      // médicos/admin, igual que las notas (NOM-004 · secreto médico).
+      match /internamientos/{intId} {
+        allow read, write: if isMedico(clinicId);
+        // Signos vitales seriados del internamiento
+        match /signos/{signoId} {
+          allow read, write: if isMedico(clinicId);
+        }
+      }
       match /config/{docId} {
         allow read, write: if isMember(clinicId);
       }
