@@ -195,6 +195,23 @@ export const ESTUDIOS_LAB_RAPIDOS = [
   'Troponina', 'Dímero D', 'Hemocultivo', 'Urocultivo', 'Lactato', 'Perfil tiroideo',
 ]
 
+// ══════════════════════════════════════════════════════════════
+// Catálogo de camas (inventario + ocupación)
+// ══════════════════════════════════════════════════════════════
+export type EstadoCama = 'libre' | 'ocupada' | 'bloqueada' | 'limpieza'
+export const ESTADO_CAMA_LABEL: Record<EstadoCama, string> = {
+  libre: 'Libre', ocupada: 'Ocupada', bloqueada: 'Bloqueada', limpieza: 'Limpieza',
+}
+export interface Cama {
+  id: string
+  clinicId: string
+  servicio: string
+  etiqueta: string          // "302-A"
+  tipo?: string             // general / UCI / aislamiento
+  estado: EstadoCama
+  createdAt: string
+}
+
 export type RolHospital = 'medico' | 'enfermeria' | 'farmacia' | 'laboratorio' | 'admin'
 export const ROL_HOSPITAL_LABEL: Record<RolHospital, string> = {
   medico: 'Médico',
