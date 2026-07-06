@@ -20,6 +20,7 @@
 
 import type { Patient as AmPatient, ClinicConfig } from '@/types'
 import type { NotaMedica } from '@/types/expediente'
+import { TIPO_EGRESO_LABEL, type Internamiento, type RegistroSignos } from '@/types/hospital'
 
 /** Tipos FHIR mínimos usados */
 interface FhirReference { reference: string; display?: string }
@@ -235,6 +236,122 @@ export function exportarPacienteAFhir({
     timestamp: now,
     entry: entries,
   }
+}
+
+/**
+ * Bundle FHIR de un EPISODIO de internamiento: Patient + notas (reutiliza lo anterior)
+ * + Encounter (inpatient) + MedicationRequest (indicaciones) + MedicationAdministration
+ * (MAR, ciclo cerrado) + Observation (signos vitales seriados).
+ */
+export function exportarInternamientoAFhir({
+  paciente, internamiento, notas, signos, config,
+}: {
+  paciente: AmPatient
+  internamiento: Internamiento
+  notas: NotaMedica[]
+  signos: RegistroSignos[]
+  config: ClinicConfig | null
+}): FhirBundle {
+  const base = exportarPacienteAFhir({ paciente, notas, config })
+  const entries = [...base.entry]
+  const patientId = `Patient/${paciente.id}`
+  const encId = `Encounter/${internamiento.id}`
+
+  // === Encounter (internamiento) ===
+  entries.push({
+    fullUrl: encId,
+    resource: {
+      resourceType: 'Encounter',
+      id: internamiento.id,
+      status: internamiento.estado === 'egresado' ? 'finished' : 'in-progress',
+      class: { system: 'http://terminology.hl7.org/CodeSystem/v3-ActCode', code: 'IMP', display: 'inpatient encounter' } as FhirCoding,
+      subject: { reference: patientId, display: paciente.nombre } as FhirReference,
+      period: { start: internamiento.fechaIngreso, end: internamiento.fechaEgreso },
+      reasonCode: [internamiento.cie10
+        ? { coding: [{ system: SYSTEM.cie10, code: internamiento.cie10, display: internamiento.diagnosticoIngreso }], text: internamiento.diagnosticoIngreso } as FhirCodeableConcept
+        : { text: internamiento.diagnosticoIngreso } as FhirCodeableConcept],
+      serviceType: { text: internamiento.servicio } as FhirCodeableConcept,
+      location: internamiento.cama ? [{ location: { display: `Cama ${internamiento.cama}` } as FhirReference }] : [],
+      hospitalization: internamiento.tipoEgreso ? { dischargeDisposition: { text: TIPO_EGRESO_LABEL[internamiento.tipoEgreso] } as FhirCodeableConcept } : undefined,
+    },
+  })
+
+  // === MedicationRequest (indicaciones) + MedicationAdministration (MAR) ===
+  ;(internamiento.indicaciones ?? []).filter(i => i.tipo === 'medicamento').forEach((ind, idx) => {
+    const mrId = `MedicationRequest/${internamiento.id}-ind-${idx}`
+    entries.push({
+      fullUrl: mrId,
+      resource: {
+        resourceType: 'MedicationRequest',
+        id: `${internamiento.id}-ind-${idx}`,
+        status: ind.activa ? 'active' : 'stopped',
+        intent: 'order',
+        medicationCodeableConcept: { text: ind.descripcion } as FhirCodeableConcept,
+        subject: { reference: patientId } as FhirReference,
+        encounter: { reference: encId } as FhirReference,
+        authoredOn: ind.fecha,
+        dosageInstruction: ind.frecuencia ? [{ text: ind.frecuencia }] : [],
+        // Verificación farmacéutica (ciclo cerrado)
+        extension: ind.verificadaFarmacia ? [{ url: 'https://agenda-medica/ext/verificacion-farmacia', valueString: `verificada por ${ind.verificadaPor ?? ''} el ${ind.fechaVerificacion ?? ''}` }] : [],
+      },
+    })
+    ind.administraciones.forEach((a, ai) => {
+      entries.push({
+        fullUrl: `MedicationAdministration/${internamiento.id}-ind-${idx}-adm-${ai}`,
+        resource: {
+          resourceType: 'MedicationAdministration',
+          id: `${internamiento.id}-ind-${idx}-adm-${ai}`,
+          status: a.estado === 'administrado' ? 'completed' : 'not-done',
+          medicationCodeableConcept: { text: ind.descripcion } as FhirCodeableConcept,
+          subject: { reference: patientId } as FhirReference,
+          context: { reference: encId } as FhirReference,
+          effectiveDateTime: a.fecha,
+          request: { reference: mrId } as FhirReference,
+          performer: a.por ? [{ actor: { display: a.por } as FhirReference }] : [],
+        },
+      })
+    })
+  })
+
+  // === Observation (signos vitales seriados) ===
+  const SV_LOINC: Record<string, { codigo: string; display: string; unidad: string }> = {
+    fc: { codigo: '8867-4', display: 'Frecuencia cardiaca', unidad: '/min' },
+    fr: { codigo: '9279-1', display: 'Frecuencia respiratoria', unidad: '/min' },
+    temp: { codigo: '8310-5', display: 'Temperatura corporal', unidad: 'Cel' },
+    spo2: { codigo: '59408-5', display: 'SpO2', unidad: '%' },
+    glucosa: { codigo: '2339-0', display: 'Glucosa', unidad: 'mg/dL' },
+  }
+  ;(signos ?? []).forEach((s, si) => {
+    if (s.ta) {
+      entries.push({
+        fullUrl: `Observation/${internamiento.id}-sv-${si}-ta`,
+        resource: {
+          resourceType: 'Observation', id: `${internamiento.id}-sv-${si}-ta`, status: 'final',
+          category: [{ coding: [{ system: 'http://terminology.hl7.org/CodeSystem/observation-category', code: 'vital-signs' }] } as FhirCodeableConcept],
+          code: { coding: [{ system: SYSTEM.loinc, code: '85354-9', display: 'Tensión arterial' }] } as FhirCodeableConcept,
+          subject: { reference: patientId } as FhirReference, encounter: { reference: encId } as FhirReference,
+          effectiveDateTime: s.fecha, valueString: s.ta,
+        },
+      })
+    }
+    for (const k of ['fc', 'fr', 'temp', 'spo2', 'glucosa'] as const) {
+      const val = s[k]
+      if (val == null) continue
+      const m = SV_LOINC[k]
+      entries.push({
+        fullUrl: `Observation/${internamiento.id}-sv-${si}-${k}`,
+        resource: {
+          resourceType: 'Observation', id: `${internamiento.id}-sv-${si}-${k}`, status: 'final',
+          category: [{ coding: [{ system: 'http://terminology.hl7.org/CodeSystem/observation-category', code: 'vital-signs' }] } as FhirCodeableConcept],
+          code: { coding: [{ system: SYSTEM.loinc, code: m.codigo, display: m.display }] } as FhirCodeableConcept,
+          subject: { reference: patientId } as FhirReference, encounter: { reference: encId } as FhirReference,
+          effectiveDateTime: s.fecha, valueQuantity: { value: val, unit: m.unidad },
+        },
+      })
+    }
+  })
+
+  return { resourceType: 'Bundle', type: 'collection', timestamp: base.timestamp, entry: entries }
 }
 
 function escapeXml(s: string): string {
