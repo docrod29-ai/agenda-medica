@@ -68,6 +68,11 @@ export interface Internamiento {
   medicamentosCasa?: string[]        // medicamentos que el paciente tomaba en casa (al ingreso)
   conciliadoAl?: string              // fecha ISO de la última conciliación
 
+  // ── Enfermería (F6) ──
+  balanceHidrico?: { fecha: string; ingresos: number; egresos: number; por?: string }[]
+  escalas?: { fecha: string; tipo: 'braden' | 'morse'; score: number; riesgo: string; por?: string }[]
+  sbar?: { fecha: string; texto: string; por?: string }[]
+
   // ── Metadatos ──
   createdAt: string
   updatedAt: string

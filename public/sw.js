@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v184'  // Loop V3-V5: roles persistidos (5) + modulo de laboratorio + motor de alertas (WhatsApp) lab critico/NEWS2/interconsulta
+const CACHE = 'nexusmed-v185'  // Loop V6-V8: enfermeria (balance/Braden/Morse/SBAR) + import FHIR de labs + tablero de indicadores
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

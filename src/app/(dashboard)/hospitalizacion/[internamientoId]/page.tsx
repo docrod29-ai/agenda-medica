@@ -27,6 +27,7 @@ import { code39Svg } from '@/lib/hospital/barcode'
 import { buscarMed } from '@/lib/hospital/medicamentos-catalogo'
 import { calcularNews2 } from '@/lib/hospital/news2'
 import { GraficaSignos, type PuntoSigno } from '@/components/hospital/GraficaSignos'
+import { PanelEnfermeria } from '@/components/hospital/PanelEnfermeria'
 import {
   diasEstancia, TIPO_EGRESO_LABEL, TIPO_INDICACION_LABEL, ESPECIALIDADES_IC, ROL_HOSPITAL_LABEL,
   type Internamiento, type TipoEgreso, type TipoIndicacion, type RegistroSignos, type RolHospital, type Indicacion,
@@ -42,7 +43,7 @@ import {
 const TIPO_EGRESO_OPCIONES: TipoEgreso[] = ['mejoria', 'maximo_beneficio', 'voluntaria', 'traslado', 'defuncion', 'otro']
 const TIPO_IND_OPCIONES: TipoIndicacion[] = ['medicamento', 'liquidos', 'dieta', 'cuidado', 'estudio', 'otro']
 const inputCls = 'w-full rounded-md border px-2.5 py-2 text-sm bg-transparent'
-type Tab = 'resumen' | 'indicaciones' | 'signos' | 'laboratorio' | 'interconsultas'
+type Tab = 'resumen' | 'indicaciones' | 'signos' | 'laboratorio' | 'enfermeria' | 'interconsultas'
 
 export default function EpisodioPage() {
   const { internamientoId } = useParams<{ internamientoId: string }>()
@@ -83,6 +84,8 @@ export default function EpisodioPage() {
   const [labExtra, setLabExtra] = useState('')
   const [cargandoRes, setCargandoRes] = useState<SolicitudLab | null>(null)  // orden a la que se le cargan resultados
   const [resForm, setResForm] = useState<ResultadoLab[]>([])
+  const [modalImport, setModalImport] = useState(false)
+  const [importTxt, setImportTxt] = useState('')
   const [modalConcil, setModalConcil] = useState(false)
   const [medsCasa, setMedsCasa] = useState('')
   const [correctos, setCorrectos] = useState({ paciente: false, medicamento: false, dosis: false, via: false, hora: false })
@@ -250,7 +253,7 @@ export default function EpisodioPage() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap', borderBottom: '1px solid var(--border)' }}>
-        {([['resumen', 'Resumen / Notas'], ['indicaciones', `Indicaciones · MAR${indicaciones.filter(i => i.activa).length ? ' (' + indicaciones.filter(i => i.activa).length + ')' : ''}`], ['signos', 'Signos vitales'], ['laboratorio', `Laboratorio${labs.length ? ' (' + labs.length + ')' : ''}`], ['interconsultas', `Interconsultas${interconsultas.length ? ' (' + interconsultas.length + ')' : ''}`]] as [Tab, string][]).map(([t, label]) => (
+        {([['resumen', 'Resumen / Notas'], ['indicaciones', `Indicaciones · MAR${indicaciones.filter(i => i.activa).length ? ' (' + indicaciones.filter(i => i.activa).length + ')' : ''}`], ['signos', 'Signos vitales'], ['laboratorio', `Laboratorio${labs.length ? ' (' + labs.length + ')' : ''}`], ['enfermeria', 'Enfermería'], ['interconsultas', `Interconsultas${interconsultas.length ? ' (' + interconsultas.length + ')' : ''}`]] as [Tab, string][]).map(([t, label]) => (
           <button key={t} onClick={() => setTab(t)} style={{
             fontSize: 13, fontWeight: 600, padding: '8px 14px', cursor: 'pointer', background: 'none', border: 'none',
             color: tab === t ? 'var(--nexus,#3d5afe)' : 'var(--text3)', borderBottom: '2px solid ' + (tab === t ? 'var(--nexus,#3d5afe)' : 'transparent'), marginBottom: -1,
@@ -421,7 +424,10 @@ export default function EpisodioPage() {
       {tab === 'laboratorio' && (<>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
           <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Solicitudes de laboratorio y resultados. Los valores críticos alertan al médico.</div>
-          {esMedico && !egresado && <Button size="sm" icon={<Plus size={14} />} onClick={() => { setLabSel([]); setLabExtra(''); setLabPrioridad('rutina'); setModalLab(true) }}>Solicitar laboratorio</Button>}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {(rol === 'laboratorio' || rol === 'medico') && !egresado && <Button size="sm" variant="secondary" icon={<Send size={14} />} onClick={() => { setImportTxt(''); setModalImport(true) }}>Importar FHIR</Button>}
+            {esMedico && !egresado && <Button size="sm" icon={<Plus size={14} />} onClick={() => { setLabSel([]); setLabExtra(''); setLabPrioridad('rutina'); setModalLab(true) }}>Solicitar laboratorio</Button>}
+          </div>
         </div>
         {labs.length === 0 ? (
           <div style={{ fontSize: 13, color: 'var(--text3)', padding: 16, textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 12 }}>Sin solicitudes de laboratorio.</div>
@@ -454,6 +460,11 @@ export default function EpisodioPage() {
           </div>
         )}
       </>)}
+
+      {/* ── TAB: ENFERMERÍA ── */}
+      {tab === 'enfermeria' && clinicId && (
+        <PanelEnfermeria clinicId={clinicId} internamiento={inter} por={config?.nombreMedico ?? ROL_HOSPITAL_LABEL[rol]} puedeEditar={puedeEnfermeria && !egresado} onSaved={cargar} />
+      )}
 
       {/* ── TAB: INTERCONSULTAS ── */}
       {tab === 'interconsultas' && (<>
@@ -713,6 +724,23 @@ export default function EpisodioPage() {
             </div>
           ))}
         </div>
+      </Modal>
+
+      {/* Importar resultados de laboratorio desde FHIR */}
+      <Modal open={modalImport} onClose={() => setModalImport(false)} title="Importar resultados (HL7 FHIR)"
+        footer={<><Button variant="secondary" onClick={() => setModalImport(false)}>Cancelar</Button><Button loading={busy} disabled={!importTxt.trim()} onClick={async () => {
+          if (!clinicId || !inter) return; setBusy(true)
+          try {
+            const { parsearLabsFhir } = await import('@/lib/hospital/fhir-import')
+            const resultados = parsearLabsFhir(importTxt)
+            if (!resultados.length) { toast('No se encontraron Observations en el FHIR', 'error'); return }
+            await crearSolicitudLab(clinicId, { clinicId, internamientoId, pacienteId: inter.pacienteId, pacienteNombre: inter.pacienteNombre, estudios: resultados.map(r => r.estudio), prioridad: 'rutina', solicitadaPor: 'Importación FHIR', fecha: new Date().toISOString() })
+              .then(async (id) => { await cargarResultadosLab(clinicId, id, resultados, 'FHIR'); const crit = resultados.filter(r => r.critico); if (crit.length) await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'lab_critico', titulo: 'Valor de laboratorio CRÍTICO (FHIR)', detalle: crit.map(c => `${c.estudio}: ${c.valor} ${c.unidad ?? ''}`).join('; ') }) })
+            toast(`Importados ${resultados.length} resultados`, 'success'); setModalImport(false); cargar()
+          } catch { toast('FHIR inválido', 'error') } finally { setBusy(false) }
+        }}>Importar</Button></>}>
+        <p style={{ fontSize: 11.5, color: 'var(--text3)', marginBottom: 6 }}>Pega un Bundle FHIR R4 (o Observations) del laboratorio. Un LIS que hable FHIR (o HL7 v2 convertido) puede empujar aquí.</p>
+        <textarea className={inputCls} rows={8} style={{ fontFamily: 'monospace', fontSize: 11 }} placeholder='{ "resourceType": "Bundle", "entry": [ ... ] }' value={importTxt} onChange={e => setImportTxt(e.target.value)} />
       </Modal>
 
       {/* Registrar signos */}
