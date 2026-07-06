@@ -220,9 +220,11 @@ service cloud.firestore {
         (resource != null && exists(/databases/$(database)/documents/clinic_members/$(request.auth.uid))
           && get(/databases/$(database)/documents/clinic_members/$(request.auth.uid)).data.clinicId == resource.data.clinicId)
       );
-      // Listar miembros de UNA clínica: solo si el query es por clinicId
-      // del que el solicitante es miembro
-      allow list: if isAuth();
+      // Listar el equipo se sirve por API con Admin SDK (/api/clinic/miembros),
+      // filtrando por la clínica del solicitante. El `list` del cliente queda
+      // CERRADO para evitar enumerar el directorio (correos/roles) de otras
+      // clínicas (fuga cross-tenant · LFPDPPP). El `read` individual sigue arriba.
+      allow list: if false;
       allow create: if isAuth() && (
         request.auth.uid == uid ||
         isAdmin(request.resource.data.clinicId)

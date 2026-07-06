@@ -11,6 +11,7 @@ import { useToast } from '@/context/ToastContext'
 import { auth } from '@/lib/firebase'
 import { getPatients } from '@/lib/firestore'
 import { getCenso, crearInternamiento } from '@/lib/hospital/firestore'
+import { logAudit } from '@/lib/expediente/audit-log'
 import { SERVICIOS_HOSPITAL, diasEstancia, type Internamiento } from '@/types/hospital'
 import type { Patient } from '@/types'
 import { Modal, Button, Spinner, EmptyState } from '@/components/ui'
@@ -75,6 +76,7 @@ export default function CensoPage() {
         fechaIngreso: new Date().toISOString(),
         creadoPor: auth.currentUser?.uid ?? '',
       })
+      logAudit({ evento: 'hosp_ingreso', clinicId, patientId: pac.id, medicoUid: auth.currentUser?.uid, medicoEmail: auth.currentUser?.email ?? undefined, meta: { internamientoId: id, servicio, cama: cama.trim() } })
       toast('Paciente ingresado al censo', 'success')
       router.push(`/hospitalizacion/${id}`)
     } catch (e) {

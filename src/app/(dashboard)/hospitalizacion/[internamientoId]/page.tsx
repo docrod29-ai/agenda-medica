@@ -17,8 +17,9 @@ import {
   verificarIndicacionFarmacia, guardarMedicamentosCasa,
   agregarSignos, getSignos, getRolUsuario, setRolUsuario,
   crearSolicitudLab, getSolicitudesLabDeEpisodio, cargarResultadosLab, crearAlerta, type AlertaHospital,
+  trasladarInternamiento, cambiarTratante,
 } from '@/lib/hospital/firestore'
-import { ESTUDIOS_LAB_RAPIDOS, type SolicitudLab, type ResultadoLab } from '@/types/hospital'
+import { ESTUDIOS_LAB_RAPIDOS, SERVICIOS_HOSPITAL, type SolicitudLab, type ResultadoLab } from '@/types/hospital'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { getNotas } from '@/lib/expediente/firestore'
 import { getPatients } from '@/lib/firestore'
@@ -26,6 +27,7 @@ import { cdsMedicamento, type AlertaCDS } from '@/lib/hospital/cds'
 import { code39Svg } from '@/lib/hospital/barcode'
 import { buscarMed } from '@/lib/hospital/medicamentos-catalogo'
 import { esCriticoLab } from '@/lib/hospital/lab-criticos'
+import { logAudit } from '@/lib/expediente/audit-log'
 import { calcularNews2 } from '@/lib/hospital/news2'
 import { GraficaSignos, type PuntoSigno } from '@/components/hospital/GraficaSignos'
 import { PanelEnfermeria } from '@/components/hospital/PanelEnfermeria'
@@ -93,6 +95,8 @@ export default function EpisodioPage() {
   const [importTxt, setImportTxt] = useState('')
   const [modalConcil, setModalConcil] = useState(false)
   const [medsCasa, setMedsCasa] = useState('')
+  const [modalTraslado, setModalTraslado] = useState(false)
+  const [trForm, setTrForm] = useState({ servicio: '', cama: '', tratante: '' })
   const [correctos, setCorrectos] = useState({ paciente: false, medicamento: false, dosis: false, via: false, hora: false })
   const [folioScan, setFolioScan] = useState('')
 
@@ -291,8 +295,20 @@ export default function EpisodioPage() {
             <Button variant={tieneIngreso ? 'primary' : 'secondary'} icon={<Plus size={15} />} onClick={() => nuevaNota('evolucion')}>Evolución</Button>
             <Button variant="secondary" icon={<Activity size={15} />} onClick={() => nuevaNota('nota_postoperatoria')}>Postoperatoria</Button>
             <Button variant="secondary" icon={<FileText size={15} />} onClick={() => nuevaNota('consentimiento')}>Consentimiento</Button>
+            <Button variant="secondary" icon={<BedDouble size={15} />} onClick={() => { setTrForm({ servicio: inter.servicio, cama: inter.cama, tratante: inter.medicoTratanteNombre }); setModalTraslado(true) }}>Trasladar</Button>
             <Button variant="secondary" icon={<LogOut size={15} />} onClick={() => setModalEgreso(true)}>Egresar</Button>
           </div>
+        )}
+        {/* Historial de movimientos */}
+        {(inter.movimientos?.length ?? 0) > 0 && (
+          <details style={{ marginBottom: 16, fontSize: 12.5, color: 'var(--text3)' }}>
+            <summary style={{ cursor: 'pointer' }}>Movimientos del episodio ({inter.movimientos!.length})</summary>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 6 }}>
+              {[...inter.movimientos!].reverse().map((m, i) => (
+                <div key={i}>{new Date(m.fecha).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })} · {m.tipo === 'traslado' ? 'Traslado' : 'Cambio de tratante'}: {m.detalle}{m.por ? ` · ${m.por}` : ''}</div>
+              ))}
+            </div>
+          </details>
         )}
         {egresado && esMedico && (
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
@@ -521,7 +537,7 @@ export default function EpisodioPage() {
       <Modal open={modalEgreso} onClose={() => setModalEgreso(false)} title="Egresar paciente"
         footer={<><Button variant="secondary" onClick={() => setModalEgreso(false)}>Cancelar</Button><Button loading={busy} onClick={async () => {
           if (!clinicId) return; setBusy(true)
-          try { await egresarInternamiento(clinicId, internamientoId, { tipoEgreso: egr.tipo, resumenEgreso: egr.resumen.trim() || undefined }); toast('Paciente egresado', 'success'); setModalEgreso(false); nuevaNota('egreso') }
+          try { await egresarInternamiento(clinicId, internamientoId, { tipoEgreso: egr.tipo, resumenEgreso: egr.resumen.trim() || undefined }); logAudit({ evento: 'hosp_egreso', clinicId, patientId: inter?.pacienteId, medicoUid: auth.currentUser?.uid, medicoEmail: auth.currentUser?.email ?? undefined, meta: { internamientoId, tipoEgreso: egr.tipo } }); toast('Paciente egresado', 'success'); setModalEgreso(false); nuevaNota('egreso') }
           catch { toast('No se pudo egresar', 'error'); setBusy(false) }
         }}>Egresar y escribir nota</Button></>}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -697,6 +713,30 @@ export default function EpisodioPage() {
         <p style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 8 }}>Al guardar, se comparan con las indicaciones activas para ver cuáles continuar, suspender o modificar (ingreso/traslado/egreso).</p>
       </Modal>
 
+      {/* Traslado de servicio/cama + cambio de tratante */}
+      <Modal open={modalTraslado} onClose={() => setModalTraslado(false)} title="Trasladar / reasignar"
+        footer={<><Button variant="secondary" onClick={() => setModalTraslado(false)}>Cancelar</Button><Button loading={busy} onClick={async () => {
+          if (!clinicId || !inter) return; setBusy(true)
+          const por = config?.nombreMedico ?? ROL_HOSPITAL_LABEL[rol]
+          try {
+            if (trForm.servicio !== inter.servicio || trForm.cama !== inter.cama) await trasladarInternamiento(clinicId, internamientoId, { servicio: trForm.servicio, cama: trForm.cama.trim(), por })
+            if (trForm.tratante.trim() && trForm.tratante.trim() !== inter.medicoTratanteNombre) await cambiarTratante(clinicId, internamientoId, { medicoTratanteId: inter.medicoTratanteId, medicoTratanteNombre: trForm.tratante.trim(), por })
+            toast('Movimiento registrado', 'success'); setModalTraslado(false); cargar()
+          } finally { setBusy(false) }
+        }}>Guardar</Button></>}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Servicio</label>
+              <select className={inputCls} value={trForm.servicio} onChange={e => setTrForm(f => ({ ...f, servicio: e.target.value }))}>{SERVICIOS_HOSPITAL.map(s => <option key={s}>{s}</option>)}</select></div>
+            <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Cama</label>
+              <input className={inputCls} value={trForm.cama} onChange={e => setTrForm(f => ({ ...f, cama: e.target.value }))} /></div>
+          </div>
+          <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Médico tratante</label>
+            <input className={inputCls} placeholder="Nombre del médico responsable" value={trForm.tratante} onChange={e => setTrForm(f => ({ ...f, tratante: e.target.value }))} /></div>
+          <p style={{ fontSize: 11.5, color: 'var(--text3)' }}>Los cambios quedan registrados en el historial de movimientos del episodio.</p>
+        </div>
+      </Modal>
+
       {/* Solicitar laboratorio */}
       <Modal open={modalLab} onClose={() => setModalLab(false)} title="Solicitar laboratorio"
         footer={<><Button variant="secondary" onClick={() => setModalLab(false)}>Cancelar</Button><Button loading={busy} disabled={labSel.length === 0 && !labExtra.trim()} onClick={async () => {
@@ -804,7 +844,7 @@ export default function EpisodioPage() {
     if (!clinicId || !administrando) return
     setBusy(true)
     registrarAdministracion(clinicId, internamientoId, administrando, { fecha: new Date().toISOString(), por: config?.nombreMedico ?? rolNombre(rol), estado, nota: admNota.trim() || undefined, cincoCorrectos, identidadVerificada })
-      .then(() => { toast(estado === 'administrado' ? 'Administración registrada' : 'Omisión registrada', 'success'); setAdministrando(null); setAdmNota(''); setFolioScan(''); setCorrectos({ paciente: false, medicamento: false, dosis: false, via: false, hora: false }); cargar() })
+      .then(() => { toast(estado === 'administrado' ? 'Administración registrada' : 'Omisión registrada', 'success'); logAudit({ evento: 'hosp_administracion', clinicId, patientId: inter?.pacienteId, medicoUid: auth.currentUser?.uid, medicoEmail: auth.currentUser?.email ?? undefined, meta: { internamientoId, estado, indId: administrando, cincoCorrectos } }); setAdministrando(null); setAdmNota(''); setFolioScan(''); setCorrectos({ paciente: false, medicamento: false, dosis: false, via: false, hora: false }); cargar() })
       .catch((e) => { console.error('[MAR] registrar', e); toast('No se pudo registrar la administración. Intenta de nuevo.', 'error') })
       .finally(() => setBusy(false))
   }
