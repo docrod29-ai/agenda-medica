@@ -534,7 +534,8 @@ export default function EpisodioPage() {
     if (!clinicId || !administrando) return
     setBusy(true)
     registrarAdministracion(clinicId, internamientoId, administrando, { fecha: new Date().toISOString(), por: config?.nombreMedico ?? rolNombre(rol), estado, nota: admNota.trim() || undefined, cincoCorrectos, identidadVerificada })
-      .then(() => { toast('Registro guardado', 'success'); setAdministrando(null); setAdmNota(''); setFolioScan(''); setCorrectos({ paciente: false, medicamento: false, dosis: false, via: false, hora: false }); cargar() })
+      .then(() => { toast(estado === 'administrado' ? 'Administración registrada' : 'Omisión registrada', 'success'); setAdministrando(null); setAdmNota(''); setFolioScan(''); setCorrectos({ paciente: false, medicamento: false, dosis: false, via: false, hora: false }); cargar() })
+      .catch((e) => { console.error('[MAR] registrar', e); toast('No se pudo registrar la administración. Intenta de nuevo.', 'error') })
       .finally(() => setBusy(false))
   }
 }
