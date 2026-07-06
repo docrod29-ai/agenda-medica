@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v190'  // Fix ingreso: guard de doble ingreso usaba consulta compuesta (exigia indice) y rompia el alta; ahora 1 campo + filtro JS
+const CACHE = 'nexusmed-v191'  // Seguridad: gateway RBAC por accion — mutaciones del internamiento pasan por el servidor (Admin SDK); las rules bloquean la escritura directa del cliente
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
