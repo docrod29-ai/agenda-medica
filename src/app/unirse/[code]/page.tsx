@@ -10,6 +10,9 @@ const ROL_LABEL: Record<RolInvitacion, string> = {
   secretaria: 'asistente / secretaria',
   medico: 'médico',
   admin: 'administrador',
+  enfermeria: 'enfermería',
+  farmacia: 'farmacia',
+  laboratorio: 'laboratorio',
 }
 
 export default function UnirsePage() {

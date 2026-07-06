@@ -1576,6 +1576,11 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
             <select className="input" value={rol} onChange={e => setRol(e.target.value as RolInvitacion)}>
               <option value="secretaria">Asistente / Secretaria</option>
               <option value="medico">Médico</option>
+              <optgroup label="Hospitalización">
+                <option value="enfermeria">Enfermería</option>
+                <option value="farmacia">Farmacia</option>
+                <option value="laboratorio">Laboratorio</option>
+              </optgroup>
               <option value="admin">Administrador</option>
             </select>
           </div>
@@ -3497,7 +3502,7 @@ function MiembrosActivos({ clinicId, miUid }: { clinicId: string | null; miUid?:
     }
   }
 
-  const cambiarRol = async (m: MiembroActivo, nuevo: 'admin' | 'medico' | 'secretaria') => {
+  const cambiarRol = async (m: MiembroActivo, nuevo: RolInvitacion) => {
     if (m.role === nuevo) return
     try {
       await cambiarRolMiembro(m.uid, nuevo)
@@ -3556,7 +3561,7 @@ function MiembrosActivos({ clinicId, miUid }: { clinicId: string | null; miUid?:
               {/* Selector de rol — deshabilitado si soy yo */}
               <select
                 value={m.role}
-                onChange={(e) => cambiarRol(m, e.target.value as 'admin' | 'medico' | 'secretaria')}
+                onChange={(e) => cambiarRol(m, e.target.value as RolInvitacion)}
                 disabled={m.uid === miUid}
                 style={{
                   padding: '5px 8px', borderRadius: 6, fontSize: 11.5, fontWeight: 600,
@@ -3569,6 +3574,9 @@ function MiembrosActivos({ clinicId, miUid }: { clinicId: string | null; miUid?:
                 <option value="admin">{ROL_LABEL.admin}</option>
                 <option value="medico">{ROL_LABEL.medico}</option>
                 <option value="secretaria">{ROL_LABEL.secretaria}</option>
+                <option value="enfermeria">{ROL_LABEL.enfermeria}</option>
+                <option value="farmacia">{ROL_LABEL.farmacia}</option>
+                <option value="laboratorio">{ROL_LABEL.laboratorio}</option>
               </select>
               {m.uid !== miUid && (
                 <button

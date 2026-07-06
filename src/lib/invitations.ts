@@ -16,7 +16,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
-export type RolInvitacion = 'secretaria' | 'medico' | 'admin'
+export type RolInvitacion = 'secretaria' | 'medico' | 'admin' | 'enfermeria' | 'farmacia' | 'laboratorio'
 
 export interface Invitacion {
   code: string                    // = doc id

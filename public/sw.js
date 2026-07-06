@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v185'  // Loop V6-V8: enfermeria (balance/Braden/Morse/SBAR) + import FHIR de labs + tablero de indicadores
+const CACHE = 'nexusmed-v186'  // Multiusuario hospital: invitar como Enfermeria/Farmacia/Laboratorio; rol del hospital deriva del usuario real; reglas isClinicoHospital
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
