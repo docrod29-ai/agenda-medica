@@ -42,8 +42,11 @@ export type NuevoInternamiento = Omit<Internamiento, 'id' | 'estado' | 'createdA
 /** Registra un ingreso hospitalario (episodio activo). Devuelve el id.
  *  Rechaza si el paciente YA tiene un internamiento activo (evita MAR partido). */
 export async function crearInternamiento(clinicId: string, data: NuevoInternamiento): Promise<string> {
-  const yaActivo = await getDocs(query(internamientosCol(clinicId), where('pacienteId', '==', data.pacienteId), where('estado', '==', 'activo')))
-  if (!yaActivo.empty) throw new Error('DUPLICADO: el paciente ya tiene un internamiento activo.')
+  // Consulta por UN solo campo (pacienteId) + filtro en JS: evita el índice
+  // compuesto que exigiría (pacienteId + estado) y que hacía fallar el ingreso.
+  const delPaciente = await getDocs(query(internamientosCol(clinicId), where('pacienteId', '==', data.pacienteId)))
+  const yaActivo = delPaciente.docs.some(d => (d.data() as { estado?: string }).estado === 'activo')
+  if (yaActivo) throw new Error('DUPLICADO: el paciente ya tiene un internamiento activo.')
   const now = new Date().toISOString()
   const ref = await addDoc(internamientosCol(clinicId), limpiar({
     ...data,
