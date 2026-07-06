@@ -236,3 +236,20 @@ export async function getAlertas(clinicId: string, soloNoLeidas = false): Promis
 export async function marcarAlertaLeida(clinicId: string, id: string): Promise<void> {
   await updateDoc(doc(db, 'clinics', clinicId, 'hospital_alertas', id), { leida: true })
 }
+
+// ── F6 · Enfermería (balance hídrico, escalas, entrega de turno SBAR) ──
+export async function agregarBalance(clinicId: string, iid: string, b: { ingresos: number; egresos: number; por?: string }): Promise<void> {
+  const inter = await getInternamiento(clinicId, iid); if (!inter) return
+  const entrada = { fecha: new Date().toISOString(), ...b }
+  await actualizarInternamiento(clinicId, iid, { balanceHidrico: [...(inter.balanceHidrico ?? []), entrada].slice(-100) })
+}
+export async function agregarEscala(clinicId: string, iid: string, e: { tipo: 'braden' | 'morse'; score: number; riesgo: string; por?: string }): Promise<void> {
+  const inter = await getInternamiento(clinicId, iid); if (!inter) return
+  const entrada = { fecha: new Date().toISOString(), ...e }
+  await actualizarInternamiento(clinicId, iid, { escalas: [...(inter.escalas ?? []), entrada].slice(-100) })
+}
+export async function agregarSbar(clinicId: string, iid: string, s: { texto: string; por?: string }): Promise<void> {
+  const inter = await getInternamiento(clinicId, iid); if (!inter) return
+  const entrada = { fecha: new Date().toISOString(), ...s }
+  await actualizarInternamiento(clinicId, iid, { sbar: [...(inter.sbar ?? []), entrada].slice(-50) })
+}

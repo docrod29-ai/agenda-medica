@@ -91,6 +91,7 @@ export default function CensoPage() {
         </h1>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <Button variant="secondary" onClick={() => router.push('/hospitalizacion/camas')}>Tablero de camas</Button>
+          <Button variant="secondary" onClick={() => router.push('/hospitalizacion/indicadores')}>Indicadores</Button>
           <Button icon={<Plus size={16} />} onClick={abrirModal}>Nuevo ingreso</Button>
         </div>
       </div>
