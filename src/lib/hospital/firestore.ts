@@ -19,9 +19,20 @@ function internamientoDoc(clinicId: string, id: string) {
   return doc(db, 'clinics', clinicId, 'internamientos', id)
 }
 
-/** Quita las llaves con valor undefined (Firestore no las acepta). */
-function limpiar<T extends object>(o: T): T {
-  return Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T
+/**
+ * Quita los `undefined` en PROFUNDIDAD (Firestore los rechaza, incluso anidados
+ * dentro de arreglos/objetos — p. ej. una administración del MAR sin nota).
+ */
+function limpiar<T>(o: T): T {
+  if (Array.isArray(o)) return o.map(limpiar) as unknown as T
+  if (o && typeof o === 'object') {
+    const out: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(o as Record<string, unknown>)) {
+      if (v !== undefined) out[k] = limpiar(v)
+    }
+    return out as T
+  }
+  return o
 }
 
 export type NuevoInternamiento = Omit<Internamiento, 'id' | 'estado' | 'createdAt' | 'updatedAt'>
