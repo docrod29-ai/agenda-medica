@@ -14,18 +14,23 @@ import {
   getInternamiento, egresarInternamiento,
   agregarInterconsulta, responderInterconsulta,
   agregarIndicacion, suspenderIndicacion, registrarAdministracion,
+  verificarIndicacionFarmacia, guardarMedicamentosCasa,
   agregarSignos, getSignos,
 } from '@/lib/hospital/firestore'
 import { getNotas } from '@/lib/expediente/firestore'
+import { getPatients } from '@/lib/firestore'
+import { cdsMedicamento, type AlertaCDS } from '@/lib/hospital/cds'
+import { code39Svg } from '@/lib/hospital/barcode'
 import {
   diasEstancia, TIPO_EGRESO_LABEL, TIPO_INDICACION_LABEL, ESPECIALIDADES_IC, ROL_HOSPITAL_LABEL,
-  type Internamiento, type TipoEgreso, type TipoIndicacion, type RegistroSignos, type RolHospital,
+  type Internamiento, type TipoEgreso, type TipoIndicacion, type RegistroSignos, type RolHospital, type Indicacion,
 } from '@/types/hospital'
 import { TIPO_NOTA_LABEL, type NotaMedica } from '@/types/expediente'
+import type { Patient } from '@/types'
 import { Modal, Button, Spinner } from '@/components/ui'
 import {
   ArrowLeft, BedDouble, Stethoscope, Clock, FileText, Plus, LogOut, Pill,
-  Send, Check, Activity, Syringe, Ban,
+  Send, Check, Activity, Syringe, Ban, ShieldCheck, Printer, AlertTriangle, ScanLine, ClipboardCheck,
 } from 'lucide-react'
 
 const TIPO_EGRESO_OPCIONES: TipoEgreso[] = ['mejoria', 'maximo_beneficio', 'voluntaria', 'traslado', 'defuncion', 'otro']
@@ -63,18 +68,26 @@ export default function EpisodioPage() {
   const [indForm, setIndForm] = useState<{ tipo: TipoIndicacion; descripcion: string; frecuencia: string }>({ tipo: 'medicamento', descripcion: '', frecuencia: '' })
   const [admNota, setAdmNota] = useState('')
   const [sg, setSg] = useState({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '' })
+  const [patient, setPatient] = useState<Patient | null>(null)
+  const [modalConcil, setModalConcil] = useState(false)
+  const [medsCasa, setMedsCasa] = useState('')
+  const [correctos, setCorrectos] = useState({ paciente: false, medicamento: false, dosis: false, via: false, hora: false })
+  const [folioScan, setFolioScan] = useState('')
 
   const cargar = async () => {
     if (!clinicId || !internamientoId) return
     const i = await getInternamiento(clinicId, internamientoId)
     setInter(i)
     if (i) {
-      const [todas, sgs] = await Promise.all([
+      const [todas, sgs, pacientes] = await Promise.all([
         getNotas(clinicId, i.pacienteId).catch(() => [] as NotaMedica[]),
         getSignos(clinicId, internamientoId).catch(() => [] as RegistroSignos[]),
+        getPatients(clinicId).catch(() => [] as Patient[]),
       ])
       setNotas(todas.filter(n => n.internamientoId === internamientoId))
       setSignos(sgs)
+      setPatient(pacientes.find(p => p.id === i.pacienteId) ?? null)
+      setMedsCasa((i.medicamentosCasa ?? []).join('\n'))
     }
     setLoading(false)
   }
@@ -86,10 +99,41 @@ export default function EpisodioPage() {
   const tieneIngreso = notas.some(n => n.tipo === 'ingreso')
   const esMedico = rol === 'medico'
   const puedeEnfermeria = rol === 'medico' || rol === 'enfermeria'
+  const puedeFarmacia = rol === 'medico' || rol === 'farmacia'
+
+  // Medicamentos activos (para el CDS de interacciones)
+  const medsActivos = useMemo(
+    () => (inter?.indicaciones ?? []).filter(x => x.tipo === 'medicamento' && x.activa).map(x => x.descripcion),
+    [inter?.indicaciones],
+  )
+  // CDS EN VIVO para la indicación que se está capturando
+  const alertasCDS: AlertaCDS[] = useMemo(() => {
+    if (indForm.tipo !== 'medicamento' || !indForm.descripcion.trim()) return []
+    return cdsMedicamento({ nombre: indForm.descripcion, alergias: patient?.alergias, medsActivos })
+  }, [indForm.tipo, indForm.descripcion, patient?.alergias, medsActivos])
 
   const nuevaNota = (tipo: string) => {
     if (!inter) return
     router.push(`/consulta/${inter.pacienteId}?tipo=${tipo}&internamiento=${internamientoId}`)
+  }
+
+  // Imprimir brazalete con código de barras (BCMA)
+  const imprimirBrazalete = () => {
+    if (!inter) return
+    const folio = internamientoId.slice(-8).toUpperCase()
+    const svg = code39Svg(folio, { height: 60 })
+    const w = window.open('', '_blank', 'width=520,height=300')
+    if (!w) return
+    w.document.write(`<html><head><title>Brazalete</title></head><body style="font-family:Arial,sans-serif;margin:0;padding:16px;">
+      <div style="border:1px solid #000;border-radius:8px;padding:12px 16px;max-width:420px;">
+        <div style="font-size:18px;font-weight:bold;">${(inter.pacienteNombre || '').replace(/</g, '')}</div>
+        <div style="font-size:12px;color:#333;margin:2px 0 8px;">${inter.servicio}${inter.cama ? ' · Cama ' + inter.cama : ''} · Ingreso ${new Date(inter.fechaIngreso).toLocaleDateString('es-MX')}</div>
+        ${svg}
+        <div style="font-size:10px;color:#666;margin-top:6px;">Folio de internamiento — verificación de identidad (BCMA)</div>
+      </div>
+      <script>window.onload=function(){window.print()}</script>
+    </body></html>`)
+    w.document.close()
   }
 
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><Spinner /></div>
@@ -110,8 +154,8 @@ export default function EpisodioPage() {
           <ArrowLeft size={15} /> Censo
         </button>
         {/* Rol */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
-          {(['medico', 'enfermeria', 'admin'] as RolHospital[]).map(r => (
+        <div style={{ display: 'flex', gap: 4, marginBottom: 12, flexWrap: 'wrap' }}>
+          {(['medico', 'enfermeria', 'farmacia', 'admin'] as RolHospital[]).map(r => (
             <button key={r} onClick={() => cambiarRol(r)} style={{
               fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 100, cursor: 'pointer',
               border: '1px solid ' + (rol === r ? 'var(--nexus,#3d5afe)' : 'var(--border)'),
@@ -128,7 +172,10 @@ export default function EpisodioPage() {
             <h1 style={{ fontSize: 21, fontWeight: 700, color: 'var(--text)', margin: 0 }}>{inter.pacienteNombre}</h1>
             <div style={{ fontSize: 13.5, color: 'var(--text2)', marginTop: 3 }}>{inter.diagnosticoIngreso}{inter.cie10 ? ` (${inter.cie10})` : ''}</div>
           </div>
-          <span style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 12px', borderRadius: 100, background: egresado ? 'var(--s2)' : 'rgba(13,148,136,.15)', color: egresado ? 'var(--text3)' : '#0d9488', border: `1px solid ${egresado ? 'var(--border)' : 'rgba(13,148,136,.4)'}` }}>{egresado ? 'Egresado' : 'Internado'}</span>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button onClick={imprimirBrazalete} title="Imprimir brazalete con código de barras" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)', cursor: 'pointer' }}><Printer size={13} /> Brazalete</button>
+            <span style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 12px', borderRadius: 100, background: egresado ? 'var(--s2)' : 'rgba(13,148,136,.15)', color: egresado ? 'var(--text3)' : '#0d9488', border: `1px solid ${egresado ? 'var(--border)' : 'rgba(13,148,136,.4)'}` }}>{egresado ? 'Egresado' : 'Internado'}</span>
+          </div>
         </div>
         <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginTop: 14, fontSize: 13, color: 'var(--text2)' }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><BedDouble size={14} /> {inter.servicio}{inter.cama ? ` · Cama ${inter.cama}` : ''}</span>
@@ -193,8 +240,23 @@ export default function EpisodioPage() {
       {tab === 'indicaciones' && (<>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
           <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Hoja de indicaciones médicas y registro de administración (MAR).</div>
-          {esMedico && !egresado && <Button size="sm" icon={<Plus size={14} />} onClick={() => setModalInd(true)}>Nueva indicación</Button>}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {esMedico && !egresado && <Button size="sm" variant="secondary" icon={<ClipboardCheck size={14} />} onClick={() => setModalConcil(true)}>Conciliar medicamentos</Button>}
+            {esMedico && !egresado && <Button size="sm" icon={<Plus size={14} />} onClick={() => setModalInd(true)}>Nueva indicación</Button>}
+          </div>
         </div>
+        {/* Conciliación: medicamentos del hogar vs indicaciones activas */}
+        {(inter.medicamentosCasa?.length ?? 0) > 0 && (
+          <div style={{ marginBottom: 14, padding: 12, borderRadius: 10, background: 'var(--s2)', border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--text3)', marginBottom: 6 }}>Conciliación · medicamentos en casa</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {(inter.medicamentosCasa ?? []).map((m, i) => {
+                const continuado = medsActivos.some(a => a.toLowerCase().includes(m.toLowerCase().split(' ')[0]))
+                return <span key={i} style={{ fontSize: 12, padding: '3px 9px', borderRadius: 100, background: continuado ? 'rgba(13,148,136,.12)' : 'rgba(217,119,6,.12)', color: continuado ? '#0d9488' : '#d97706', border: `1px solid ${continuado ? 'rgba(13,148,136,.35)' : 'rgba(217,119,6,.35)'}` }}>{m}{continuado ? ' · continuado' : ' · revisar'}</span>
+              })}
+            </div>
+          </div>
+        )}
         {indicaciones.length === 0 ? (
           <div style={{ fontSize: 13, color: 'var(--text3)', padding: 16, textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 12 }}>Sin indicaciones. {esMedico ? 'Agrega la primera.' : 'El médico aún no registra indicaciones.'}</div>
         ) : (
@@ -206,9 +268,15 @@ export default function EpisodioPage() {
                     <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--text3)' }}>{TIPO_INDICACION_LABEL[ind.tipo]}{!ind.activa && ' · suspendida'}</span>
                     <div style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--text)' }}>{ind.descripcion}</div>
                     {ind.frecuencia && <div style={{ fontSize: 12.5, color: 'var(--text2)' }}>{ind.frecuencia}</div>}
+                    {ind.tipo === 'medicamento' && ind.activa && (
+                      ind.verificadaFarmacia
+                        ? <div style={{ fontSize: 11, color: '#0d9488', display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 3 }}><ShieldCheck size={12} /> Verificada por farmacia{ind.verificadaPor ? ` · ${ind.verificadaPor}` : ''}</div>
+                        : <div style={{ fontSize: 11, color: '#d97706', display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 3 }}><AlertTriangle size={12} /> Pendiente de verificación farmacéutica</div>
+                    )}
                   </div>
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                    {puedeEnfermeria && ind.activa && ind.tipo === 'medicamento' && <Button size="sm" variant="secondary" icon={<Syringe size={13} />} onClick={() => setAdministrando(ind.id)}>Administrar</Button>}
+                    {puedeFarmacia && ind.activa && ind.tipo === 'medicamento' && !ind.verificadaFarmacia && <Button size="sm" variant="secondary" icon={<ShieldCheck size={13} />} onClick={async () => { if (!clinicId) return; await verificarIndicacionFarmacia(clinicId, internamientoId, ind.id, config?.nombreMedico ?? ROL_HOSPITAL_LABEL[rol]); toast('Indicación verificada por farmacia', 'success'); cargar() }}>Verificar</Button>}
+                    {puedeEnfermeria && ind.activa && ind.tipo === 'medicamento' && <Button size="sm" variant="secondary" icon={<Syringe size={13} />} onClick={() => { setCorrectos({ paciente: false, medicamento: false, dosis: false, via: false, hora: false }); setAdministrando(ind.id) }}>Administrar</Button>}
                     {esMedico && <button title={ind.activa ? 'Suspender' : 'Reactivar'} onClick={async () => { if (!clinicId) return; await suspenderIndicacion(clinicId, internamientoId, ind.id, !ind.activa); cargar() }} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 8px', cursor: 'pointer', color: 'var(--text3)' }}><Ban size={13} /></button>}
                   </div>
                 </div>
@@ -350,15 +418,81 @@ export default function EpisodioPage() {
             <input className={inputCls} placeholder="ej. Ceftriaxona 1 g IV" value={indForm.descripcion} onChange={e => setIndForm(f => ({ ...f, descripcion: e.target.value }))} /></div>
           <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Frecuencia (opcional)</label>
             <input className={inputCls} placeholder="ej. cada 12 h" value={indForm.frecuencia} onChange={e => setIndForm(f => ({ ...f, frecuencia: e.target.value }))} /></div>
+          {/* CDS en vivo — alertas de alta especificidad (alergias / interacciones / renal / controlados) */}
+          {alertasCDS.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {alertasCDS.map((a, i) => {
+                const color = a.nivel === 'critica' ? '#dc2626' : a.nivel === 'alta' ? '#d97706' : '#0d9488'
+                return (
+                  <div key={i} style={{ display: 'flex', gap: 7, alignItems: 'flex-start', fontSize: 12.5, padding: '8px 10px', borderRadius: 8, background: color + '14', border: `1px solid ${color}44`, color }}>
+                    <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} /> <span>{a.texto}</span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       </Modal>
 
-      {/* Registrar administración (MAR) */}
-      <Modal open={!!administrando} onClose={() => setAdministrando(null)} title="Registrar administración"
-        footer={<><Button variant="secondary" onClick={() => setAdministrando(null)}>Cancelar</Button>
-          <Button variant="secondary" loading={busy} onClick={() => registrar('omitido')}><Ban size={14} /> Omitido</Button>
-          <Button loading={busy} onClick={() => registrar('administrado')}><Check size={14} /> Administrado</Button></>}>
-        <input className={inputCls} placeholder="Nota (opcional): dosis, vía, motivo de omisión…" value={admNota} onChange={e => setAdmNota(e.target.value)} />
+      {/* Registrar administración (MAR + BCMA "5 correctos") */}
+      {(() => {
+        const indAct = indicaciones.find(x => x.id === administrando)
+        const folioEsperado = internamientoId.slice(-8).toUpperCase()
+        const identidadOk = folioScan.trim().toUpperCase().endsWith(folioEsperado) && folioScan.trim().length >= 4
+        const pacienteOk = correctos.paciente || identidadOk
+        const todos = pacienteOk && correctos.medicamento && correctos.dosis && correctos.via && correctos.hora
+        const chk = (on: boolean, toggle: () => void, label: string) => (
+          <button type="button" onClick={toggle} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderRadius: 8, border: '1px solid ' + (on ? 'rgba(13,148,136,.4)' : 'var(--border)'), background: on ? 'rgba(13,148,136,.1)' : 'var(--s1)', cursor: 'pointer', textAlign: 'left', width: '100%', color: 'var(--text)' }}>
+            <span style={{ width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${on ? '#0d9488' : 'var(--border)'}`, background: on ? '#0d9488' : 'transparent', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{on && <Check size={12} color="#fff" strokeWidth={3} />}</span>
+            <span style={{ fontSize: 13 }}>{label}</span>
+          </button>
+        )
+        return (
+          <Modal open={!!administrando} onClose={() => { setAdministrando(null); setFolioScan('') }} title="Administrar medicamento"
+            footer={<><Button variant="secondary" onClick={() => { setAdministrando(null); setFolioScan('') }}>Cancelar</Button>
+              <Button variant="secondary" loading={busy} onClick={() => registrar('omitido', false, false)}><Ban size={14} /> Omitido</Button>
+              <Button loading={busy} disabled={!todos} onClick={() => registrar('administrado', true, pacienteOk)}><Check size={14} /> Administrar</Button></>}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {indAct && <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{indAct.descripcion}{indAct.frecuencia ? ` · ${indAct.frecuencia}` : ''}</div>}
+              {indAct && !indAct.verificadaFarmacia && (
+                <div style={{ display: 'flex', gap: 7, alignItems: 'center', fontSize: 12.5, padding: '8px 10px', borderRadius: 8, background: 'rgba(217,119,6,.12)', border: '1px solid rgba(217,119,6,.4)', color: '#d97706' }}>
+                  <AlertTriangle size={14} /> Esta indicación NO ha sido verificada por farmacia.
+                </div>
+              )}
+              {/* Escaneo del brazalete (BCMA) */}
+              <div>
+                <label style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 5 }}><ScanLine size={13} /> Escanea el brazalete del paciente (o teclea el folio)</label>
+                <input className={inputCls} placeholder={`Folio: …${folioEsperado}`} value={folioScan} onChange={e => setFolioScan(e.target.value)} autoFocus />
+                {folioScan && (identidadOk
+                  ? <div style={{ fontSize: 11.5, color: '#0d9488', marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}><ShieldCheck size={12} /> Identidad verificada</div>
+                  : <div style={{ fontSize: 11.5, color: '#dc2626', marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}><AlertTriangle size={12} /> El folio no coincide con este paciente</div>)}
+              </div>
+              {/* Los 5 correctos */}
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--text3)' }}>Confirma los 5 correctos</div>
+              <div style={{ display: 'grid', gap: 6 }}>
+                {chk(pacienteOk, () => setCorrectos(c => ({ ...c, paciente: !c.paciente })), 'Paciente correcto' + (identidadOk ? ' (verificado por brazalete)' : ''))}
+                {chk(correctos.medicamento, () => setCorrectos(c => ({ ...c, medicamento: !c.medicamento })), 'Medicamento correcto')}
+                {chk(correctos.dosis, () => setCorrectos(c => ({ ...c, dosis: !c.dosis })), 'Dosis correcta')}
+                {chk(correctos.via, () => setCorrectos(c => ({ ...c, via: !c.via })), 'Vía correcta')}
+                {chk(correctos.hora, () => setCorrectos(c => ({ ...c, hora: !c.hora })), 'Hora correcta')}
+              </div>
+              <input className={inputCls} placeholder="Nota (opcional): dosis, vía, motivo de omisión…" value={admNota} onChange={e => setAdmNota(e.target.value)} />
+            </div>
+          </Modal>
+        )
+      })()}
+
+      {/* Conciliación de medicamentos */}
+      <Modal open={modalConcil} onClose={() => setModalConcil(false)} title="Conciliación de medicamentos"
+        footer={<><Button variant="secondary" onClick={() => setModalConcil(false)}>Cancelar</Button><Button loading={busy} onClick={async () => {
+          if (!clinicId) return; setBusy(true)
+          const meds = medsCasa.split('\n').map(s => s.trim()).filter(Boolean)
+          try { await guardarMedicamentosCasa(clinicId, internamientoId, meds); toast('Conciliación guardada', 'success'); setModalConcil(false); cargar() }
+          finally { setBusy(false) }
+        }}>Guardar</Button></>}>
+        <label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Medicamentos que el paciente tomaba en casa (uno por línea)</label>
+        <textarea className={inputCls} rows={6} placeholder={'Metformina 850 mg c/12h\nLosartán 50 mg c/24h\n…'} value={medsCasa} onChange={e => setMedsCasa(e.target.value)} />
+        <p style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 8 }}>Al guardar, se comparan con las indicaciones activas para ver cuáles continuar, suspender o modificar (ingreso/traslado/egreso).</p>
       </Modal>
 
       {/* Registrar signos */}
@@ -382,11 +516,11 @@ export default function EpisodioPage() {
   )
 
   // ── helpers de estado (declarados al final por claridad) ──
-  function registrar(estado: 'administrado' | 'omitido') {
+  function registrar(estado: 'administrado' | 'omitido', cincoCorrectos: boolean, identidadVerificada: boolean) {
     if (!clinicId || !administrando) return
     setBusy(true)
-    registrarAdministracion(clinicId, internamientoId, administrando, { fecha: new Date().toISOString(), por: config?.nombreMedico ?? rolNombre(rol), estado, nota: admNota.trim() || undefined })
-      .then(() => { toast('Registro guardado', 'success'); setAdministrando(null); setAdmNota(''); cargar() })
+    registrarAdministracion(clinicId, internamientoId, administrando, { fecha: new Date().toISOString(), por: config?.nombreMedico ?? rolNombre(rol), estado, nota: admNota.trim() || undefined, cincoCorrectos, identidadVerificada })
+      .then(() => { toast('Registro guardado', 'success'); setAdministrando(null); setAdmNota(''); setFolioScan(''); setCorrectos({ paciente: false, medicamento: false, dosis: false, via: false, hora: false }); cargar() })
       .finally(() => setBusy(false))
   }
 }

@@ -132,6 +132,21 @@ export async function registrarAdministracion(clinicId: string, iid: string, ind
   await actualizarInternamiento(clinicId, iid, { indicaciones })
 }
 
+/** Verificación farmacéutica de una indicación (ciclo cerrado del medicamento). */
+export async function verificarIndicacionFarmacia(clinicId: string, iid: string, indId: string, por: string): Promise<void> {
+  const inter = await getInternamiento(clinicId, iid)
+  if (!inter) return
+  const indicaciones = (inter.indicaciones ?? []).map(x =>
+    x.id === indId ? { ...x, verificadaFarmacia: true, verificadaPor: por, fechaVerificacion: new Date().toISOString() } : x
+  )
+  await actualizarInternamiento(clinicId, iid, { indicaciones })
+}
+
+/** Guarda los medicamentos que el paciente tomaba en casa (para conciliar). */
+export async function guardarMedicamentosCasa(clinicId: string, iid: string, meds: string[]): Promise<void> {
+  await actualizarInternamiento(clinicId, iid, { medicamentosCasa: meds, conciliadoAl: new Date().toISOString() })
+}
+
 // ── F3 · Signos vitales seriados (subcolección, pueden ser muchos) ──
 function signosCol(clinicId: string, iid: string) {
   return collection(db, 'clinics', clinicId, 'internamientos', iid, 'signos')
