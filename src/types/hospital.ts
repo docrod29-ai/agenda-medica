@@ -64,6 +64,10 @@ export interface Internamiento {
   interconsultas?: Interconsulta[]
   indicaciones?: Indicacion[]
 
+  // ── Conciliación de medicamentos ──
+  medicamentosCasa?: string[]        // medicamentos que el paciente tomaba en casa (al ingreso)
+  conciliadoAl?: string              // fecha ISO de la última conciliación
+
   // ── Metadatos ──
   createdAt: string
   updatedAt: string
@@ -112,6 +116,8 @@ export interface Administracion {
   por: string
   estado: 'administrado' | 'omitido'
   nota?: string
+  cincoCorrectos?: boolean    // BCMA: se verificaron los "5 correctos"
+  identidadVerificada?: boolean  // se escaneó/confirmó el brazalete del paciente
 }
 
 export interface Indicacion {
@@ -123,6 +129,10 @@ export interface Indicacion {
   fecha: string
   creadaPor?: string
   administraciones: Administracion[]
+  // Verificación farmacéutica (ciclo cerrado del medicamento)
+  verificadaFarmacia?: boolean
+  verificadaPor?: string
+  fechaVerificacion?: string
 }
 
 /** Un registro puntual de signos vitales (para la gráfica/tendencia). */
@@ -142,10 +152,11 @@ export interface RegistroSignos {
 // ══════════════════════════════════════════════════════════════
 // F4 — Roles (vista, no seguridad de servidor)
 // ══════════════════════════════════════════════════════════════
-export type RolHospital = 'medico' | 'enfermeria' | 'admin'
+export type RolHospital = 'medico' | 'enfermeria' | 'farmacia' | 'admin'
 export const ROL_HOSPITAL_LABEL: Record<RolHospital, string> = {
   medico: 'Médico',
   enfermeria: 'Enfermería',
+  farmacia: 'Farmacia',
   admin: 'Administración',
 }
 
