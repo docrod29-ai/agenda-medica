@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v188'  // Auditoria vuelta 2: clinic_members list cerrado (API Admin SDK, anti fuga cross-tenant) + traslado/cambio tratante con historial + bitacora hospitalaria
+const CACHE = 'nexusmed-v189'  // Auditoria v3: catalogo de camas (inventario + % ocupacion + camas libres, gestion admin)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

@@ -96,6 +96,10 @@ service cloud.firestore {
       match /hospital_alertas/{alertaId} {
         allow read, write: if isClinicoHospital(clinicId);
       }
+      // Catálogo de camas (inventario + ocupación)
+      match /camas/{camaId} {
+        allow read, write: if isClinicoHospital(clinicId);
+      }
       match /config/{docId} {
         allow read, write: if isMember(clinicId);
       }

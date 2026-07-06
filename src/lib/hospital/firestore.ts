@@ -11,7 +11,7 @@ import { db } from '@/lib/firebase'
 import { setDoc, orderBy, runTransaction } from 'firebase/firestore'
 import type {
   Internamiento, TipoEgreso, Interconsulta, Indicacion, Administracion, RegistroSignos, RolHospital,
-  SolicitudLab, ResultadoLab,
+  SolicitudLab, ResultadoLab, Cama, EstadoCama,
 } from '@/types/hospital'
 
 function internamientosCol(clinicId: string) {
@@ -256,6 +256,22 @@ export async function getAlertas(clinicId: string, soloNoLeidas = false): Promis
 }
 export async function marcarAlertaLeida(clinicId: string, id: string): Promise<void> {
   await updateDoc(doc(db, 'clinics', clinicId, 'hospital_alertas', id), { leida: true })
+}
+
+// ── Catálogo de camas (inventario + ocupación) ──
+function camasCol(clinicId: string) { return collection(db, 'clinics', clinicId, 'camas') }
+export async function crearCama(clinicId: string, c: { servicio: string; etiqueta: string; tipo?: string }): Promise<void> {
+  await addDoc(camasCol(clinicId), limpiar({ ...c, clinicId, estado: 'libre' as EstadoCama, createdAt: new Date().toISOString() }))
+}
+export async function getCamas(clinicId: string): Promise<Cama[]> {
+  const snap = await getDocs(camasCol(clinicId))
+  return snap.docs.map(d => ({ ...d.data(), id: d.id } as Cama)).sort((a, b) => (a.servicio + a.etiqueta).localeCompare(b.servicio + b.etiqueta))
+}
+export async function actualizarCamaEstado(clinicId: string, id: string, estado: EstadoCama): Promise<void> {
+  await updateDoc(doc(db, 'clinics', clinicId, 'camas', id), { estado })
+}
+export async function borrarCama(clinicId: string, id: string): Promise<void> {
+  await deleteDoc(doc(db, 'clinics', clinicId, 'camas', id))
 }
 
 // ── F6 · Enfermería (balance hídrico, escalas, entrega de turno SBAR) — transaccional ──
