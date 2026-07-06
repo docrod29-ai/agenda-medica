@@ -25,6 +25,7 @@ import { getPatients } from '@/lib/firestore'
 import { cdsMedicamento, type AlertaCDS } from '@/lib/hospital/cds'
 import { code39Svg } from '@/lib/hospital/barcode'
 import { buscarMed } from '@/lib/hospital/medicamentos-catalogo'
+import { esCriticoLab } from '@/lib/hospital/lab-criticos'
 import { calcularNews2 } from '@/lib/hospital/news2'
 import { GraficaSignos, type PuntoSigno } from '@/components/hospital/GraficaSignos'
 import { PanelEnfermeria } from '@/components/hospital/PanelEnfermeria'
@@ -79,7 +80,7 @@ export default function EpisodioPage() {
   const [indForm, setIndForm] = useState<{ tipo: TipoIndicacion; descripcion: string; dosis: string; via: string; frecuencia: string }>({ tipo: 'medicamento', descripcion: '', dosis: '', via: '', frecuencia: '' })
   const [medQuery, setMedQuery] = useState('')
   const [admNota, setAdmNota] = useState('')
-  const [sg, setSg] = useState({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '' })
+  const [sg, setSg] = useState<{ ta: string; fc: string; fr: string; temp: string; spo2: string; glucosa: string; dolor: string; conciencia: 'alerta' | 'alterada'; oxigeno: boolean }>({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'alerta', oxigeno: false })
   const [patient, setPatient] = useState<Patient | null>(null)
   const [labs, setLabs] = useState<SolicitudLab[]>([])
   const [modalLab, setModalLab] = useState(false)
@@ -130,6 +131,11 @@ export default function EpisodioPage() {
     const uid = auth.currentUser?.uid
     if (clinicId && uid) setRolUsuario(clinicId, uid, r).catch(() => {})
   }
+  // Aterrizaje por rol: cada quien entra a lo suyo (laboratorio→su bandeja, enfermería/farmacia→MAR).
+  useEffect(() => {
+    if (rol === 'laboratorio') setTab('laboratorio')
+    else if (rol === 'enfermeria' || rol === 'farmacia') setTab('indicaciones')
+  }, [rol])
 
   const notasEpisodio = useMemo(() => [...notas].sort((a, b) => (a.fechaConsulta < b.fechaConsulta ? 1 : -1)), [notas])
   const tieneIngreso = notas.some(n => n.tipo === 'ingreso')
@@ -151,7 +157,7 @@ export default function EpisodioPage() {
   // NEWS2 (deterioro) del último registro de signos + series para las gráficas
   const ultimoSignos = signos.length ? signos[signos.length - 1] : null
   const news2 = useMemo(
-    () => ultimoSignos ? calcularNews2({ fr: ultimoSignos.fr, spo2: ultimoSignos.spo2, temp: ultimoSignos.temp, ta: ultimoSignos.ta, fc: ultimoSignos.fc }) : null,
+    () => ultimoSignos ? calcularNews2({ fr: ultimoSignos.fr, spo2: ultimoSignos.spo2, temp: ultimoSignos.temp, ta: ultimoSignos.ta, fc: ultimoSignos.fc, conciencia: ultimoSignos.conciencia, oxigeno: ultimoSignos.oxigeno }) : null,
     [ultimoSignos],
   )
   const serie = (k: 'fc' | 'fr' | 'temp' | 'spo2' | 'glucosa'): PuntoSigno[] =>
@@ -164,15 +170,13 @@ export default function EpisodioPage() {
     router.push(`/consulta/${inter.pacienteId}?tipo=${tipo}&internamiento=${internamientoId}`)
   }
 
-  // Motor de alertas: guarda la alerta en-app y (si hay teléfono) la envía por WhatsApp.
+  // Motor de alertas: guarda la alerta en-app y pide el envío WhatsApp. El
+  // teléfono destino lo DERIVA el servidor de la config de la clínica (nunca el
+  // cliente), evitando exfiltrar PII a un número arbitrario.
   const dispararAlerta = async (a: Omit<AlertaHospital, 'id' | 'leida' | 'fecha'>) => {
     if (!clinicId) return
     try { await crearAlerta(clinicId, a) } catch { /* */ }
-    const cfg = config as unknown as Record<string, unknown> | null
-    const tel = (cfg?.telefono ?? cfg?.whatsapp ?? cfg?.telefonoClinica) as string | undefined
-    if (tel) {
-      fetchAutenticado('/api/hospital/alerta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clinicId, telefono: tel, mensaje: `🏥 ${a.titulo}\n${a.detalle}\nPaciente: ${a.pacienteNombre}` }) }).catch(() => {})
-    }
+    fetchAutenticado('/api/hospital/alerta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clinicId, mensaje: `🏥 ${a.titulo}\n${a.detalle}\nPaciente: ${a.pacienteNombre}` }) }).catch(() => {})
   }
 
   // Imprimir brazalete con código de barras (BCMA)
@@ -635,7 +639,8 @@ export default function EpisodioPage() {
       {(() => {
         const indAct = indicaciones.find(x => x.id === administrando)
         const folioEsperado = internamientoId.slice(-8).toUpperCase()
-        const identidadOk = folioScan.trim().toUpperCase().endsWith(folioEsperado) && folioScan.trim().length >= 4
+        // Identidad verificada solo con el folio COMPLETO del brazalete (8 chars), no un fragmento adivinable.
+        const identidadOk = folioScan.trim().toUpperCase().endsWith(folioEsperado) && folioScan.trim().length >= 8
         const pacienteOk = correctos.paciente || identidadOk
         const todos = pacienteOk && correctos.medicamento && correctos.dosis && correctos.via && correctos.hora
         const chk = (on: boolean, toggle: () => void, label: string) => (
@@ -720,7 +725,8 @@ export default function EpisodioPage() {
       <Modal open={!!cargandoRes} onClose={() => setCargandoRes(null)} title="Cargar resultados"
         footer={<><Button variant="secondary" onClick={() => setCargandoRes(null)}>Cancelar</Button><Button loading={busy} onClick={async () => {
           if (!clinicId || !cargandoRes || !inter) return; setBusy(true)
-          const resultados = resForm.filter(r => r.valor.trim())
+          // Respaldo determinista: marca crítico por rango aunque no se haya marcado a mano.
+          const resultados = resForm.filter(r => r.valor.trim()).map(r => ({ ...r, critico: r.critico || esCriticoLab(r.estudio, r.valor) }))
           try {
             await cargarResultadosLab(clinicId, cargandoRes.id, resultados, ROL_HOSPITAL_LABEL[rol])
             const criticos = resultados.filter(r => r.critico)
@@ -764,18 +770,30 @@ export default function EpisodioPage() {
           if (!clinicId) return; setBusy(true)
           const num = (x: string) => x.trim() ? Number(x) : undefined
           try {
-            await agregarSignos(clinicId, internamientoId, { fecha: new Date().toISOString(), ta: sg.ta.trim() || undefined, fc: num(sg.fc), fr: num(sg.fr), temp: num(sg.temp), spo2: num(sg.spo2), glucosa: num(sg.glucosa), dolor: num(sg.dolor), por: config?.nombreMedico ?? '' })
-            // Alerta por deterioro (NEWS2 alto)
-            const n2 = calcularNews2({ ta: sg.ta, fc: num(sg.fc), fr: num(sg.fr), temp: num(sg.temp), spo2: num(sg.spo2) })
-            if (n2 && n2.riesgo === 'alto' && inter) await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'news2', titulo: `Deterioro clínico — NEWS2 ${n2.total} (alto)`, detalle: n2.recomendacion })
-            toast('Signos registrados', 'success'); setModalSignos(false); setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '' }); cargar()
+            await agregarSignos(clinicId, internamientoId, { fecha: new Date().toISOString(), ta: sg.ta.trim() || undefined, fc: num(sg.fc), fr: num(sg.fr), temp: num(sg.temp), spo2: num(sg.spo2), glucosa: num(sg.glucosa), dolor: num(sg.dolor), conciencia: sg.conciencia, oxigeno: sg.oxigeno || undefined, por: config?.nombreMedico ?? '' })
+            // Alerta por deterioro: NEWS2 alto O parámetro individual en rojo (criterio Royal College)
+            const n2 = calcularNews2({ ta: sg.ta, fc: num(sg.fc), fr: num(sg.fr), temp: num(sg.temp), spo2: num(sg.spo2), conciencia: sg.conciencia, oxigeno: sg.oxigeno })
+            if (n2 && (n2.riesgo === 'alto' || n2.parametroRojo) && inter) await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'news2', titulo: `Deterioro clínico — NEWS2 ${n2.total} (${n2.riesgo})`, detalle: n2.recomendacion })
+            toast('Signos registrados', 'success'); setModalSignos(false); setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'alerta', oxigeno: false }); cargar()
           } finally { setBusy(false) }
         }}>Guardar</Button></>}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          {([['ta', 'TA (120/80)'], ['fc', 'FC (lpm)'], ['fr', 'FR (rpm)'], ['temp', 'T° (°C)'], ['spo2', 'SpO₂ (%)'], ['glucosa', 'Glucosa'], ['dolor', 'Dolor (0-10)']] as [keyof typeof sg, string][]).map(([k, label]) => (
+          {([['ta', 'TA (120/80)'], ['fc', 'FC (lpm)'], ['fr', 'FR (rpm)'], ['temp', 'T° (°C)'], ['spo2', 'SpO₂ (%)'], ['glucosa', 'Glucosa'], ['dolor', 'Dolor (0-10)']] as ['ta' | 'fc' | 'fr' | 'temp' | 'spo2' | 'glucosa' | 'dolor', string][]).map(([k, label]) => (
             <div key={k}><label style={{ fontSize: 12, color: 'var(--text3)' }}>{label}</label>
               <input className={inputCls} value={sg[k]} onChange={e => setSg(s => ({ ...s, [k]: e.target.value }))} /></div>
           ))}
+        </div>
+        {/* Conciencia (ACVPU) + O2 suplementario — completan el NEWS2 */}
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 10, alignItems: 'center' }}>
+          <div>
+            <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block' }}>Conciencia</label>
+            <div style={{ display: 'flex', gap: 5, marginTop: 2 }}>
+              {(['alerta', 'alterada'] as const).map(c => <button key={c} type="button" onClick={() => setSg(s => ({ ...s, conciencia: c }))} className="rounded-full border px-2.5 py-1 text-xs" style={sg.conciencia === c ? { borderColor: c === 'alterada' ? '#dc2626' : '#0d9488', background: (c === 'alterada' ? '#dc2626' : '#0d9488') + '18', color: c === 'alterada' ? '#dc2626' : '#0d9488', fontWeight: 700 } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{c === 'alerta' ? 'Alerta' : 'Alterada'}</button>)}
+            </div>
+          </div>
+          <label style={{ fontSize: 12.5, color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', marginTop: 14 }}>
+            <input type="checkbox" checked={sg.oxigeno} onChange={e => setSg(s => ({ ...s, oxigeno: e.target.checked }))} /> Recibe O₂ suplementario
+          </label>
         </div>
       </Modal>
     </div>

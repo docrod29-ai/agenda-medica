@@ -151,6 +151,8 @@ export interface RegistroSignos {
   spo2?: number
   glucosa?: number
   dolor?: number             // EVA 0-10
+  conciencia?: 'alerta' | 'alterada'   // ACVPU (para NEWS2)
+  oxigeno?: boolean          // O2 suplementario (para NEWS2)
   por?: string
 }
 

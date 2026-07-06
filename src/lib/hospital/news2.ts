@@ -22,6 +22,7 @@ export interface News2Result {
   riesgo: 'bajo' | 'medio' | 'alto'
   color: string
   parcial: boolean
+  parametroRojo: boolean   // algún parámetro individual = 3 (criterio de escalamiento NEWS2)
   detalle: News2Param[]
   recomendacion: string
 }
@@ -76,10 +77,12 @@ export function calcularNews2(s: SignosNews2): News2Result | null {
   const riesgo: News2Result['riesgo'] = total >= 7 ? 'alto' : (total >= 5 || algun3) ? 'medio' : 'bajo'
   const recomendacion = riesgo === 'alto'
     ? 'Respuesta urgente: valoración médica inmediata y monitoreo continuo.'
-    : riesgo === 'medio'
-      ? 'Revisión por médico y aumento de la frecuencia de monitoreo.'
-      : 'Continuar monitoreo de rutina.'
+    : algun3
+      ? 'Parámetro individual en rojo: requiere revisión médica urgente.'
+      : riesgo === 'medio'
+        ? 'Revisión por médico y aumento de la frecuencia de monitoreo.'
+        : 'Continuar monitoreo de rutina.'
 
   const parcial = s.conciencia === undefined || s.oxigeno === undefined
-  return { total, riesgo, color: COLOR[riesgo], parcial, detalle: det, recomendacion }
+  return { total, riesgo, color: COLOR[riesgo], parcial, parametroRojo: algun3, detalle: det, recomendacion }
 }
