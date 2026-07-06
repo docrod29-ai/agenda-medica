@@ -10,13 +10,13 @@ import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
 import { auth } from '@/lib/firebase'
 import { getPatients } from '@/lib/firestore'
-import { getCenso, crearInternamiento } from '@/lib/hospital/firestore'
+import { suscribirCenso, crearInternamiento, getTelefonoAlertas, setTelefonoAlertas } from '@/lib/hospital/firestore'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { SERVICIOS_HOSPITAL, diasEstancia, type Internamiento } from '@/types/hospital'
 import type { Patient } from '@/types'
 import { Modal, Button, Spinner, EmptyState } from '@/components/ui'
 import { Cie10Autocomplete } from '@/components/Cie10Autocomplete'
-import { BedDouble, Plus, Stethoscope, Clock, Search } from 'lucide-react'
+import { BedDouble, Plus, Stethoscope, Clock, Search, Bell } from 'lucide-react'
 
 const inputCls = 'w-full rounded-md border px-2.5 py-2 text-sm bg-transparent'
 
@@ -41,10 +41,31 @@ export default function CensoPage() {
   const [cie10, setCie10] = useState('')
   const [motivo, setMotivo] = useState('')
 
+  // WhatsApp personal para recibir alertas cuando soy el médico tratante
+  const [modalTel, setModalTel] = useState(false)
+  const [tel, setTel] = useState('')
+  const [telGuardando, setTelGuardando] = useState(false)
+
   useEffect(() => {
     if (!clinicId) return
-    getCenso(clinicId).then(setCenso).catch(() => {}).finally(() => setLoading(false))
+    // Censo EN VIVO: ingresos/egresos/traslados de cualquier usuario aparecen solos.
+    const unsub = suscribirCenso(clinicId, c => { setCenso(c); setLoading(false) })
+    return unsub
   }, [clinicId])
+
+  const abrirTelefono = async () => {
+    setModalTel(true)
+    const uid = auth.currentUser?.uid
+    if (clinicId && uid) { try { setTel(await getTelefonoAlertas(clinicId, uid)) } catch { /* */ } }
+  }
+  const guardarTelefono = async () => {
+    const uid = auth.currentUser?.uid
+    if (!clinicId || !uid) return
+    setTelGuardando(true)
+    try { await setTelefonoAlertas(clinicId, uid, tel); toast('WhatsApp de alertas guardado', 'success'); setModalTel(false) }
+    catch { toast('No se pudo guardar', 'error') }
+    finally { setTelGuardando(false) }
+  }
 
   const abrirModal = () => {
     setModal(true)
@@ -95,11 +116,23 @@ export default function CensoPage() {
           <BedDouble size={22} style={{ color: 'var(--nexus, #3d5afe)' }} /> Censo hospitalario
         </h1>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Button variant="secondary" icon={<Bell size={15} />} onClick={abrirTelefono}>Mis alertas</Button>
           <Button variant="secondary" onClick={() => router.push('/hospitalizacion/camas')}>Tablero de camas</Button>
           <Button variant="secondary" onClick={() => router.push('/hospitalizacion/indicadores')}>Indicadores</Button>
           <Button icon={<Plus size={16} />} onClick={abrirModal}>Nuevo ingreso</Button>
         </div>
       </div>
+
+      {/* Mi WhatsApp para alertas (como médico tratante) */}
+      <Modal open={modalTel} onClose={() => setModalTel(false)} title="Mi WhatsApp para alertas"
+        footer={<><Button variant="secondary" onClick={() => setModalTel(false)}>Cancelar</Button><Button loading={telGuardando} onClick={guardarTelefono}>Guardar</Button></>}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <p style={{ fontSize: 13, color: 'var(--text3)', margin: 0, lineHeight: 1.5 }}>
+            Cuando seas el <strong>médico tratante</strong> de un paciente, las alertas críticas (laboratorio crítico, deterioro NEWS2, interconsultas) llegarán a <strong>este</strong> número. Si lo dejas vacío, van al teléfono general de la clínica.
+          </p>
+          <input className={inputCls} inputMode="tel" placeholder="+52 614 123 4567" value={tel} onChange={e => setTel(e.target.value)} />
+        </div>
+      </Modal>
       <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 20px' }}>
         Pacientes internados ahora mismo. Abre un episodio para ver ingreso, evoluciones y egreso.
       </p>

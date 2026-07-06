@@ -39,9 +39,58 @@ interface FhirBundle {
 const SYSTEM = {
   cie10: 'http://hl7.org/fhir/sid/icd-10',
   loinc: 'http://loinc.org',
+  ucum: 'http://unitsofmeasure.org', // sistema de unidades UCUM (obligatorio en valueQuantity FHIR)
   curp: 'urn:oid:2.16.840.1.113883.4.629', // OID provisional para CURP MX
   cedula: 'urn:oid:2.16.840.1.113883.4.629.1', // OID provisional para cédula profesional
 } as const
+
+// Código UCUM por unidad "humana". FHIR exige `system` + `code` UCUM en valueQuantity;
+// antes solo poníamos `unit` (display), que no es interoperable.
+const UCUM: Record<string, string> = {
+  'mmHg': 'mm[Hg]', '/min': '/min', 'Cel': 'Cel', '%': '%',
+  'kg': 'kg', 'cm': 'cm', 'mg/dL': 'mg/dL',
+}
+function cantidad(value: number | undefined, unidad: string) {
+  const q: Record<string, unknown> = { value, unit: unidad }
+  if (UCUM[unidad]) { q.system = SYSTEM.ucum; q.code = UCUM[unidad] }
+  return q
+}
+
+/** CIE-10 con punto tras el 3er carácter (J189 → J18.9) — formato canónico FHIR sid/icd-10. */
+function normCie10(code?: string): string | undefined {
+  if (!code) return code
+  const c = code.trim().toUpperCase().replace(/\./g, '')
+  return c.length > 3 ? `${c.slice(0, 3)}.${c.slice(3)}` : c
+}
+
+/** Parsea "120/80" (o "120 / 80") → {sis, dia}. null si no es un par válido. */
+function parseTA(ta?: string): { sis: number; dia: number } | null {
+  if (!ta) return null
+  const m = ta.match(/(\d{2,3})\s*\/\s*(\d{2,3})/)
+  return m ? { sis: Number(m[1]), dia: Number(m[2]) } : null
+}
+
+/** Observation de Tensión arterial como PANEL con componentes sistólica/diastólica (FHIR/LOINC 85354-9). */
+function observacionTA(id: string, patientId: string, ta: string, fecha: string, encId?: string): FhirResource | null {
+  const p = parseTA(ta)
+  const base: FhirResource = {
+    resourceType: 'Observation', id, status: 'final',
+    category: [{ coding: [{ system: 'http://terminology.hl7.org/CodeSystem/observation-category', code: 'vital-signs' }] } as FhirCodeableConcept],
+    code: { coding: [{ system: SYSTEM.loinc, code: '85354-9', display: 'Tensión arterial' }], text: 'Tensión arterial' } as FhirCodeableConcept,
+    subject: { reference: patientId } as FhirReference,
+    effectiveDateTime: fecha,
+  }
+  if (encId) base.encounter = { reference: encId } as FhirReference
+  if (p) {
+    base.component = [
+      { code: { coding: [{ system: SYSTEM.loinc, code: '8480-6', display: 'Presión sistólica' }] } as FhirCodeableConcept, valueQuantity: cantidad(p.sis, 'mmHg') },
+      { code: { coding: [{ system: SYSTEM.loinc, code: '8462-4', display: 'Presión diastólica' }] } as FhirCodeableConcept, valueQuantity: cantidad(p.dia, 'mmHg') },
+    ]
+  } else {
+    base.valueString = ta // no parseable: se conserva el texto original
+  }
+  return base
+}
 
 /**
  * Construye un Bundle FHIR con el expediente del paciente.
@@ -137,7 +186,7 @@ export function exportarPacienteAFhir({
         clinicalStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-clinical', code: dx.estado === 'activo' ? 'active' : 'resolved' }] } as FhirCodeableConcept,
         verificationStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-ver-status', code: dx.tipo === 'definitivo' ? 'confirmed' : 'provisional' }] } as FhirCodeableConcept,
         code: dx.codigoCIE10
-          ? { coding: [{ system: SYSTEM.cie10, code: dx.codigoCIE10, display: dx.descripcion }], text: dx.descripcion } as FhirCodeableConcept
+          ? { coding: [{ system: SYSTEM.cie10, code: normCie10(dx.codigoCIE10), display: dx.descripcion }], text: dx.descripcion } as FhirCodeableConcept
           : { text: dx.descripcion } as FhirCodeableConcept,
         subject: { reference: patientId, display: paciente.nombre } as FhirReference,
         recordedDate: fechaNota,
@@ -170,14 +219,19 @@ export function exportarPacienteAFhir({
     // Signos vitales (Observations)
     const sv = nota.signosVitales
     if (sv) {
-      const obs: Array<{ codigo: string; display: string; valor: string; unidad: string }> = []
-      if (sv.ta) obs.push({ codigo: '85354-9', display: 'Tensión arterial', valor: sv.ta, unidad: 'mmHg' })
-      if (sv.fc) obs.push({ codigo: '8867-4', display: 'Frecuencia cardiaca', valor: String(sv.fc), unidad: '/min' })
-      if (sv.fr) obs.push({ codigo: '9279-1', display: 'Frecuencia respiratoria', valor: String(sv.fr), unidad: '/min' })
-      if (sv.temperatura) obs.push({ codigo: '8310-5', display: 'Temperatura corporal', valor: String(sv.temperatura), unidad: 'Cel' })
-      if (sv.spo2) obs.push({ codigo: '59408-5', display: 'SpO2', valor: String(sv.spo2), unidad: '%' })
-      if (sv.peso) obs.push({ codigo: '29463-7', display: 'Peso', valor: String(sv.peso), unidad: 'kg' })
-      if (sv.talla) obs.push({ codigo: '8302-2', display: 'Talla', valor: String(sv.talla), unidad: 'cm' })
+      // Tensión arterial como PANEL con componentes sistólica/diastólica
+      // (antes: parseFloat("120/80") = 120 → se PERDÍA la diastólica).
+      if (sv.ta) {
+        const taObs = observacionTA(`${nota.id}-obs-ta`, patientId, sv.ta, fechaNota)
+        if (taObs) { entries.push({ fullUrl: `Observation/${nota.id}-obs-ta`, resource: taObs }); compositionEntries.push({ reference: `Observation/${nota.id}-obs-ta` }) }
+      }
+      const obs: Array<{ codigo: string; display: string; valor: number; unidad: string }> = []
+      if (sv.fc) obs.push({ codigo: '8867-4', display: 'Frecuencia cardiaca', valor: sv.fc, unidad: '/min' })
+      if (sv.fr) obs.push({ codigo: '9279-1', display: 'Frecuencia respiratoria', valor: sv.fr, unidad: '/min' })
+      if (sv.temperatura) obs.push({ codigo: '8310-5', display: 'Temperatura corporal', valor: sv.temperatura, unidad: 'Cel' })
+      if (sv.spo2) obs.push({ codigo: '59408-5', display: 'SpO2', valor: sv.spo2, unidad: '%' })
+      if (sv.peso) obs.push({ codigo: '29463-7', display: 'Peso', valor: sv.peso, unidad: 'kg' })
+      if (sv.talla) obs.push({ codigo: '8302-2', display: 'Talla', valor: sv.talla, unidad: 'cm' })
 
       obs.forEach((o, i) => {
         const obsId = `Observation/${nota.id}-obs-${i}`
@@ -191,7 +245,7 @@ export function exportarPacienteAFhir({
             code: { coding: [{ system: SYSTEM.loinc, code: o.codigo, display: o.display }] } as FhirCodeableConcept,
             subject: { reference: patientId } as FhirReference,
             effectiveDateTime: fechaNota,
-            valueQuantity: { value: parseFloat(o.valor) || undefined, unit: o.unidad },
+            valueQuantity: cantidad(o.valor, o.unidad),
           },
         })
         compositionEntries.push({ reference: obsId })
@@ -268,7 +322,7 @@ export function exportarInternamientoAFhir({
       subject: { reference: patientId, display: paciente.nombre } as FhirReference,
       period: { start: internamiento.fechaIngreso, end: internamiento.fechaEgreso },
       reasonCode: [internamiento.cie10
-        ? { coding: [{ system: SYSTEM.cie10, code: internamiento.cie10, display: internamiento.diagnosticoIngreso }], text: internamiento.diagnosticoIngreso } as FhirCodeableConcept
+        ? { coding: [{ system: SYSTEM.cie10, code: normCie10(internamiento.cie10), display: internamiento.diagnosticoIngreso }], text: internamiento.diagnosticoIngreso } as FhirCodeableConcept
         : { text: internamiento.diagnosticoIngreso } as FhirCodeableConcept],
       serviceType: { text: internamiento.servicio } as FhirCodeableConcept,
       location: internamiento.cama ? [{ location: { display: `Cama ${internamiento.cama}` } as FhirReference }] : [],
@@ -323,16 +377,8 @@ export function exportarInternamientoAFhir({
   }
   ;(signos ?? []).forEach((s, si) => {
     if (s.ta) {
-      entries.push({
-        fullUrl: `Observation/${internamiento.id}-sv-${si}-ta`,
-        resource: {
-          resourceType: 'Observation', id: `${internamiento.id}-sv-${si}-ta`, status: 'final',
-          category: [{ coding: [{ system: 'http://terminology.hl7.org/CodeSystem/observation-category', code: 'vital-signs' }] } as FhirCodeableConcept],
-          code: { coding: [{ system: SYSTEM.loinc, code: '85354-9', display: 'Tensión arterial' }] } as FhirCodeableConcept,
-          subject: { reference: patientId } as FhirReference, encounter: { reference: encId } as FhirReference,
-          effectiveDateTime: s.fecha, valueString: s.ta,
-        },
-      })
+      const taObs = observacionTA(`${internamiento.id}-sv-${si}-ta`, patientId, s.ta, s.fecha, encId)
+      if (taObs) entries.push({ fullUrl: `Observation/${internamiento.id}-sv-${si}-ta`, resource: taObs })
     }
     for (const k of ['fc', 'fr', 'temp', 'spo2', 'glucosa'] as const) {
       const val = s[k]
@@ -345,7 +391,7 @@ export function exportarInternamientoAFhir({
           category: [{ coding: [{ system: 'http://terminology.hl7.org/CodeSystem/observation-category', code: 'vital-signs' }] } as FhirCodeableConcept],
           code: { coding: [{ system: SYSTEM.loinc, code: m.codigo, display: m.display }] } as FhirCodeableConcept,
           subject: { reference: patientId } as FhirReference, encounter: { reference: encId } as FhirReference,
-          effectiveDateTime: s.fecha, valueQuantity: { value: val, unit: m.unidad },
+          effectiveDateTime: s.fecha, valueQuantity: cantidad(val, m.unidad),
         },
       })
     }

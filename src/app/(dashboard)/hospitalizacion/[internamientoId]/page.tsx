@@ -18,6 +18,7 @@ import {
   agregarSignos, getSignos, getRolUsuario, setRolUsuario,
   crearSolicitudLab, getSolicitudesLabDeEpisodio, cargarResultadosLab, crearAlerta, type AlertaHospital,
   trasladarInternamiento, cambiarTratante,
+  suscribirInternamiento, suscribirSignos,
 } from '@/lib/hospital/firestore'
 import { ESTUDIOS_LAB_RAPIDOS, SERVICIOS_HOSPITAL, type SolicitudLab, type ResultadoLab } from '@/types/hospital'
 import { fetchAutenticado } from '@/lib/auth-client'
@@ -120,6 +121,15 @@ export default function EpisodioPage() {
     setLoading(false)
   }
   useEffect(() => { cargar() }, [clinicId, internamientoId])
+  // Refresco EN VIVO: indicaciones/MAR/interconsultas/traslados y signos que
+  // registran OTROS usuarios (enfermería, farmacia, otro médico) aparecen solos,
+  // sin recargar. Las notas/labs siguen refrescándose con cargar() tras acciones.
+  useEffect(() => {
+    if (!clinicId || !internamientoId) return
+    const u1 = suscribirInternamiento(clinicId, internamientoId, i => { if (i) setInter(i) })
+    const u2 = suscribirSignos(clinicId, internamientoId, setSignos)
+    return () => { u1(); u2() }
+  }, [clinicId, internamientoId])
   useEffect(() => {
     // Staff clínico (enfermería/farmacia/laboratorio): rol FIJO al del usuario.
     if (!puedeCambiarRol) { setRol(rolReal); return }
@@ -175,12 +185,14 @@ export default function EpisodioPage() {
   }
 
   // Motor de alertas: guarda la alerta en-app y pide el envío WhatsApp. El
-  // teléfono destino lo DERIVA el servidor de la config de la clínica (nunca el
-  // cliente), evitando exfiltrar PII a un número arbitrario.
+  // teléfono destino lo DERIVA el servidor (nunca el cliente): primero el
+  // WhatsApp personal del MÉDICO TRATANTE (si lo registró), si no, el general
+  // de la clínica. `destinatarioUid` es solo la clave de búsqueda server-side.
   const dispararAlerta = async (a: Omit<AlertaHospital, 'id' | 'leida' | 'fecha'>) => {
     if (!clinicId) return
-    try { await crearAlerta(clinicId, a) } catch { /* */ }
-    fetchAutenticado('/api/hospital/alerta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clinicId, mensaje: `🏥 ${a.titulo}\n${a.detalle}\nPaciente: ${a.pacienteNombre}` }) }).catch(() => {})
+    const conDest: Omit<AlertaHospital, 'id' | 'leida' | 'fecha'> = { ...a, destinatarioUid: inter?.medicoTratanteId, destinatarioNombre: inter?.medicoTratanteNombre }
+    try { await crearAlerta(clinicId, conDest) } catch { /* */ }
+    fetchAutenticado('/api/hospital/alerta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clinicId, destinatarioUid: inter?.medicoTratanteId, mensaje: `🏥 ${a.titulo}\n${a.detalle}\nPaciente: ${a.pacienteNombre}` }) }).catch(() => {})
   }
 
   // Imprimir brazalete con código de barras (BCMA)

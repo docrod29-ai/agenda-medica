@@ -5,11 +5,15 @@
  * interconsulta/resultado). La alerta en-app se guarda desde el cliente en
  * Firestore; esta ruta SOLO hace el envío por WhatsApp (server-side).
  *
- * SEGURIDAD: el teléfono destino se DERIVA en el servidor de la config de la
- * clínica (Admin SDK) — NUNCA se acepta del cliente (evita exfiltrar PII a un
- * número arbitrario). Restringido a rol clínico (no secretaria/facturación).
+ * SEGURIDAD: el teléfono destino se DERIVA en el servidor (Admin SDK) — NUNCA se
+ * acepta del cliente (evita exfiltrar PII a un número arbitrario). El cliente
+ * puede pasar `destinatarioUid` (el médico tratante del episodio): el servidor
+ * busca el WhatsApp que ESE usuario registró en `hospital_roles/{uid}.telefono`
+ * y le envía a él; si no tiene, cae al teléfono general de la clínica.
+ * Restringido a rol clínico (no secretaria/facturación).
  *
- * Body: { clinicId, mensaje }   Resp: { ok, enviado, motivo? }
+ * Body: { clinicId, mensaje, destinatarioUid? }
+ * Resp: { ok, enviado, destino?, motivo? }
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarMiembro } from '@/lib/auth-server'
@@ -19,10 +23,10 @@ import { sendWhatsApp } from '@/lib/whatsapp-send'
 const ROLES_CLINICOS = ['medico', 'admin', 'enfermeria', 'farmacia', 'laboratorio']
 
 export async function POST(req: NextRequest) {
-  let body: { clinicId?: string; mensaje?: string }
+  let body: { clinicId?: string; mensaje?: string; destinatarioUid?: string }
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }
 
-  const { clinicId, mensaje } = body
+  const { clinicId, mensaje, destinatarioUid } = body
   if (!clinicId || !mensaje) return NextResponse.json({ ok: false, error: 'clinicId y mensaje requeridos' }, { status: 400 })
 
   const acc = await verificarMiembro(req, clinicId)
@@ -32,13 +36,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Rol no autorizado' }, { status: 403 })
   }
 
-  // Deriva el teléfono destino de la config de la clínica (Admin SDK) — nunca del cliente.
+  const clinicRef = adminDb.collection('clinics').doc(clinicId)
+
+  // 1) Preferente: teléfono personal del médico tratante (el que ÉL registró).
+  //    destinatarioUid solo se usa como CLAVE de búsqueda server-side; el número
+  //    nunca viaja desde el cliente.
   let telefono = ''
-  try {
-    const cfg = await adminDb.collection('clinics').doc(clinicId).collection('config').doc('main').get()
-    const d = cfg.exists ? (cfg.data() as Record<string, unknown>) : {}
-    telefono = String(d.telefonoAlertas ?? d.whatsapp ?? d.telefono ?? d.telefonoClinica ?? '').trim()
-  } catch { /* sin config → sin envío */ }
+  let destino: 'tratante' | 'clinica' | '' = ''
+  if (destinatarioUid) {
+    try {
+      const r = await clinicRef.collection('hospital_roles').doc(String(destinatarioUid)).get()
+      const t = r.exists ? String((r.data() as Record<string, unknown>).telefono ?? '').trim() : ''
+      if (t) { telefono = t; destino = 'tratante' }
+    } catch { /* sigue al fallback */ }
+  }
+
+  // 2) Fallback: teléfono general de la clínica.
+  if (!telefono) {
+    try {
+      const cfg = await clinicRef.collection('config').doc('main').get()
+      const d = cfg.exists ? (cfg.data() as Record<string, unknown>) : {}
+      telefono = String(d.telefonoAlertas ?? d.whatsapp ?? d.telefono ?? d.telefonoClinica ?? '').trim()
+      if (telefono) destino = 'clinica'
+    } catch { /* sin config → sin envío */ }
+  }
 
   if (!telefono) return NextResponse.json({ ok: true, enviado: false, motivo: 'sin-telefono' })
 
@@ -46,7 +67,7 @@ export async function POST(req: NextRequest) {
   const texto = String(mensaje).slice(0, 500)
   try {
     const { ok } = await sendWhatsApp(clinicId, telefono, texto)
-    return NextResponse.json({ ok: true, enviado: ok })
+    return NextResponse.json({ ok: true, enviado: ok, destino })
   } catch {
     return NextResponse.json({ ok: true, enviado: false, motivo: 'whatsapp-no-disponible' })
   }
