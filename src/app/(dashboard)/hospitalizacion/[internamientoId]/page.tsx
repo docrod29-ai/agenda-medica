@@ -15,8 +15,11 @@ import {
   agregarInterconsulta, responderInterconsulta,
   agregarIndicacion, suspenderIndicacion, registrarAdministracion,
   verificarIndicacionFarmacia, guardarMedicamentosCasa,
-  agregarSignos, getSignos,
+  agregarSignos, getSignos, getRolUsuario, setRolUsuario,
+  crearSolicitudLab, getSolicitudesLabDeEpisodio, cargarResultadosLab, crearAlerta, type AlertaHospital,
 } from '@/lib/hospital/firestore'
+import { ESTUDIOS_LAB_RAPIDOS, type SolicitudLab, type ResultadoLab } from '@/types/hospital'
+import { fetchAutenticado } from '@/lib/auth-client'
 import { getNotas } from '@/lib/expediente/firestore'
 import { getPatients } from '@/lib/firestore'
 import { cdsMedicamento, type AlertaCDS } from '@/lib/hospital/cds'
@@ -39,7 +42,7 @@ import {
 const TIPO_EGRESO_OPCIONES: TipoEgreso[] = ['mejoria', 'maximo_beneficio', 'voluntaria', 'traslado', 'defuncion', 'otro']
 const TIPO_IND_OPCIONES: TipoIndicacion[] = ['medicamento', 'liquidos', 'dieta', 'cuidado', 'estudio', 'otro']
 const inputCls = 'w-full rounded-md border px-2.5 py-2 text-sm bg-transparent'
-type Tab = 'resumen' | 'indicaciones' | 'signos' | 'interconsultas'
+type Tab = 'resumen' | 'indicaciones' | 'signos' | 'laboratorio' | 'interconsultas'
 
 export default function EpisodioPage() {
   const { internamientoId } = useParams<{ internamientoId: string }>()
@@ -73,6 +76,13 @@ export default function EpisodioPage() {
   const [admNota, setAdmNota] = useState('')
   const [sg, setSg] = useState({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '' })
   const [patient, setPatient] = useState<Patient | null>(null)
+  const [labs, setLabs] = useState<SolicitudLab[]>([])
+  const [modalLab, setModalLab] = useState(false)
+  const [labSel, setLabSel] = useState<string[]>([])
+  const [labPrioridad, setLabPrioridad] = useState<'rutina' | 'urgente'>('rutina')
+  const [labExtra, setLabExtra] = useState('')
+  const [cargandoRes, setCargandoRes] = useState<SolicitudLab | null>(null)  // orden a la que se le cargan resultados
+  const [resForm, setResForm] = useState<ResultadoLab[]>([])
   const [modalConcil, setModalConcil] = useState(false)
   const [medsCasa, setMedsCasa] = useState('')
   const [correctos, setCorrectos] = useState({ paciente: false, medicamento: false, dosis: false, via: false, hora: false })
@@ -83,11 +93,13 @@ export default function EpisodioPage() {
     const i = await getInternamiento(clinicId, internamientoId)
     setInter(i)
     if (i) {
-      const [todas, sgs, pacientes] = await Promise.all([
+      const [todas, sgs, pacientes, labsE] = await Promise.all([
         getNotas(clinicId, i.pacienteId).catch(() => [] as NotaMedica[]),
         getSignos(clinicId, internamientoId).catch(() => [] as RegistroSignos[]),
         getPatients(clinicId).catch(() => [] as Patient[]),
+        getSolicitudesLabDeEpisodio(clinicId, internamientoId).catch(() => [] as SolicitudLab[]),
       ])
+      setLabs(labsE)
       setNotas(todas.filter(n => n.internamientoId === internamientoId))
       setSignos(sgs)
       setPatient(pacientes.find(p => p.id === i.pacienteId) ?? null)
@@ -96,8 +108,17 @@ export default function EpisodioPage() {
     setLoading(false)
   }
   useEffect(() => { cargar() }, [clinicId, internamientoId])
-  useEffect(() => { try { const r = localStorage.getItem('hospitalRol') as RolHospital | null; if (r) setRol(r) } catch { /* */ } }, [])
-  const cambiarRol = (r: RolHospital) => { setRol(r); try { localStorage.setItem('hospitalRol', r) } catch { /* */ } }
+  useEffect(() => {
+    try { const r = localStorage.getItem('hospitalRol') as RolHospital | null; if (r) setRol(r) } catch { /* */ }
+    const uid = auth.currentUser?.uid
+    if (clinicId && uid) getRolUsuario(clinicId, uid).then(r => { if (r) setRol(r) }).catch(() => {})
+  }, [clinicId])
+  const cambiarRol = (r: RolHospital) => {
+    setRol(r)
+    try { localStorage.setItem('hospitalRol', r) } catch { /* */ }
+    const uid = auth.currentUser?.uid
+    if (clinicId && uid) setRolUsuario(clinicId, uid, r).catch(() => {})
+  }
 
   const notasEpisodio = useMemo(() => [...notas].sort((a, b) => (a.fechaConsulta < b.fechaConsulta ? 1 : -1)), [notas])
   const tieneIngreso = notas.some(n => n.tipo === 'ingreso')
@@ -130,6 +151,17 @@ export default function EpisodioPage() {
   const nuevaNota = (tipo: string) => {
     if (!inter) return
     router.push(`/consulta/${inter.pacienteId}?tipo=${tipo}&internamiento=${internamientoId}`)
+  }
+
+  // Motor de alertas: guarda la alerta en-app y (si hay teléfono) la envía por WhatsApp.
+  const dispararAlerta = async (a: Omit<AlertaHospital, 'id' | 'leida' | 'fecha'>) => {
+    if (!clinicId) return
+    try { await crearAlerta(clinicId, a) } catch { /* */ }
+    const cfg = config as unknown as Record<string, unknown> | null
+    const tel = (cfg?.telefono ?? cfg?.whatsapp ?? cfg?.telefonoClinica) as string | undefined
+    if (tel) {
+      fetchAutenticado('/api/hospital/alerta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clinicId, telefono: tel, mensaje: `🏥 ${a.titulo}\n${a.detalle}\nPaciente: ${a.pacienteNombre}` }) }).catch(() => {})
+    }
   }
 
   // Imprimir brazalete con código de barras (BCMA)
@@ -218,7 +250,7 @@ export default function EpisodioPage() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap', borderBottom: '1px solid var(--border)' }}>
-        {([['resumen', 'Resumen / Notas'], ['indicaciones', `Indicaciones · MAR${indicaciones.filter(i => i.activa).length ? ' (' + indicaciones.filter(i => i.activa).length + ')' : ''}`], ['signos', 'Signos vitales'], ['interconsultas', `Interconsultas${interconsultas.length ? ' (' + interconsultas.length + ')' : ''}`]] as [Tab, string][]).map(([t, label]) => (
+        {([['resumen', 'Resumen / Notas'], ['indicaciones', `Indicaciones · MAR${indicaciones.filter(i => i.activa).length ? ' (' + indicaciones.filter(i => i.activa).length + ')' : ''}`], ['signos', 'Signos vitales'], ['laboratorio', `Laboratorio${labs.length ? ' (' + labs.length + ')' : ''}`], ['interconsultas', `Interconsultas${interconsultas.length ? ' (' + interconsultas.length + ')' : ''}`]] as [Tab, string][]).map(([t, label]) => (
           <button key={t} onClick={() => setTab(t)} style={{
             fontSize: 13, fontWeight: 600, padding: '8px 14px', cursor: 'pointer', background: 'none', border: 'none',
             color: tab === t ? 'var(--nexus,#3d5afe)' : 'var(--text3)', borderBottom: '2px solid ' + (tab === t ? 'var(--nexus,#3d5afe)' : 'transparent'), marginBottom: -1,
@@ -385,6 +417,44 @@ export default function EpisodioPage() {
         </>)}
       </>)}
 
+      {/* ── TAB: LABORATORIO ── */}
+      {tab === 'laboratorio' && (<>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Solicitudes de laboratorio y resultados. Los valores críticos alertan al médico.</div>
+          {esMedico && !egresado && <Button size="sm" icon={<Plus size={14} />} onClick={() => { setLabSel([]); setLabExtra(''); setLabPrioridad('rutina'); setModalLab(true) }}>Solicitar laboratorio</Button>}
+        </div>
+        {labs.length === 0 ? (
+          <div style={{ fontSize: 13, color: 'var(--text3)', padding: 16, textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 12 }}>Sin solicitudes de laboratorio.</div>
+        ) : (
+          <div style={{ display: 'grid', gap: 10 }}>
+            {labs.map(l => (
+              <div key={l.id} style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', padding: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{l.estudios.join(', ')}</div>
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 100, background: l.estado === 'resultado' ? 'rgba(13,148,136,.15)' : l.prioridad === 'urgente' ? 'rgba(220,38,38,.12)' : 'rgba(217,119,6,.15)', color: l.estado === 'resultado' ? '#0d9488' : l.prioridad === 'urgente' ? '#dc2626' : '#d97706' }}>{l.estado === 'resultado' ? 'Resultado listo' : l.prioridad === 'urgente' ? 'Urgente · pendiente' : 'Pendiente'}</span>
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>Solicitó: {l.solicitadaPor || '—'} · {new Date(l.fecha).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+                {l.resultados && l.resultados.length > 0 && (
+                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    {l.resultados.map((r, i) => (
+                      <div key={i} style={{ fontSize: 12.5, display: 'flex', justifyContent: 'space-between', gap: 8, color: r.critico ? '#dc2626' : 'var(--text2)', fontWeight: r.critico ? 700 : 400 }}>
+                        <span>{r.critico && '⚠ '}{r.estudio}</span>
+                        <span>{r.valor} {r.unidad ?? ''}{r.referencia ? ` (${r.referencia})` : ''}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {(rol === 'laboratorio' || rol === 'medico') && l.estado !== 'resultado' && (
+                  <div style={{ marginTop: 10 }}>
+                    <Button size="sm" variant="secondary" onClick={() => { setResForm(l.estudios.map(e => ({ estudio: e, valor: '', unidad: '', critico: false }))); setCargandoRes(l) }}>Cargar resultados</Button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </>)}
+
       {/* ── TAB: INTERCONSULTAS ── */}
       {tab === 'interconsultas' && (<>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
@@ -437,7 +507,7 @@ export default function EpisodioPage() {
       <Modal open={modalIC} onClose={() => setModalIC(false)} title="Solicitar interconsulta"
         footer={<><Button variant="secondary" onClick={() => setModalIC(false)}>Cancelar</Button><Button loading={busy} disabled={!icForm.motivo.trim()} onClick={async () => {
           if (!clinicId) return; setBusy(true)
-          try { await agregarInterconsulta(clinicId, internamientoId, { especialidad: icForm.especialidad, motivo: icForm.motivo.trim(), solicitanteNombre: config?.nombreMedico ?? '' }); toast('Interconsulta solicitada', 'success'); setModalIC(false); setIcForm({ especialidad: ESPECIALIDADES_IC[0], motivo: '' }); cargar() }
+          try { await agregarInterconsulta(clinicId, internamientoId, { especialidad: icForm.especialidad, motivo: icForm.motivo.trim(), solicitanteNombre: config?.nombreMedico ?? '' }); if (inter) await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'interconsulta', titulo: `Nueva interconsulta a ${icForm.especialidad}`, detalle: icForm.motivo.trim() }); toast('Interconsulta solicitada', 'success'); setModalIC(false); setIcForm({ especialidad: ESPECIALIDADES_IC[0], motivo: '' }); cargar() }
           finally { setBusy(false) }
         }}>Solicitar</Button></>}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -596,6 +666,55 @@ export default function EpisodioPage() {
         <p style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 8 }}>Al guardar, se comparan con las indicaciones activas para ver cuáles continuar, suspender o modificar (ingreso/traslado/egreso).</p>
       </Modal>
 
+      {/* Solicitar laboratorio */}
+      <Modal open={modalLab} onClose={() => setModalLab(false)} title="Solicitar laboratorio"
+        footer={<><Button variant="secondary" onClick={() => setModalLab(false)}>Cancelar</Button><Button loading={busy} disabled={labSel.length === 0 && !labExtra.trim()} onClick={async () => {
+          if (!clinicId || !inter) return; setBusy(true)
+          const estudios = [...labSel, ...labExtra.split(/[,\n]/).map(s => s.trim()).filter(Boolean)]
+          try { await crearSolicitudLab(clinicId, { clinicId, internamientoId, pacienteId: inter.pacienteId, pacienteNombre: inter.pacienteNombre, estudios, prioridad: labPrioridad, solicitadaPor: config?.nombreMedico ?? '', fecha: new Date().toISOString() }); toast('Laboratorio solicitado', 'success'); setModalLab(false); cargar() }
+          finally { setBusy(false) }
+        }}>Solicitar</Button></>}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div>
+            <label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Estudios</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+              {ESTUDIOS_LAB_RAPIDOS.map(e => { const on = labSel.includes(e); return (
+                <button key={e} type="button" onClick={() => setLabSel(s => on ? s.filter(x => x !== e) : [...s, e])} className="rounded-full border px-2.5 py-1 text-xs" style={on ? { borderColor: '#3d5afe', background: 'rgba(61,90,254,.12)', color: '#3d5afe' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{e}</button>
+              )})}
+            </div>
+          </div>
+          <input className={inputCls} placeholder="Otros estudios (separa con coma)" value={labExtra} onChange={e => setLabExtra(e.target.value)} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            {(['rutina', 'urgente'] as const).map(p => <button key={p} type="button" onClick={() => setLabPrioridad(p)} className="rounded-full border px-3 py-1 text-xs" style={labPrioridad === p ? { borderColor: p === 'urgente' ? '#dc2626' : '#0d9488', background: (p === 'urgente' ? '#dc2626' : '#0d9488') + '18', color: p === 'urgente' ? '#dc2626' : '#0d9488', fontWeight: 700 } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{p === 'urgente' ? 'Urgente' : 'Rutina'}</button>)}
+          </div>
+        </div>
+      </Modal>
+
+      {/* Cargar resultados de laboratorio */}
+      <Modal open={!!cargandoRes} onClose={() => setCargandoRes(null)} title="Cargar resultados"
+        footer={<><Button variant="secondary" onClick={() => setCargandoRes(null)}>Cancelar</Button><Button loading={busy} onClick={async () => {
+          if (!clinicId || !cargandoRes || !inter) return; setBusy(true)
+          const resultados = resForm.filter(r => r.valor.trim())
+          try {
+            await cargarResultadosLab(clinicId, cargandoRes.id, resultados, ROL_HOSPITAL_LABEL[rol])
+            const criticos = resultados.filter(r => r.critico)
+            if (criticos.length) await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'lab_critico', titulo: 'Valor de laboratorio CRÍTICO', detalle: criticos.map(c => `${c.estudio}: ${c.valor} ${c.unidad ?? ''}`).join('; ') })
+            else await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'resultado', titulo: 'Resultado de laboratorio listo', detalle: cargandoRes.estudios.join(', ') })
+            toast('Resultados cargados', 'success'); setCargandoRes(null); cargar()
+          } finally { setBusy(false) }
+        }}>Guardar resultados</Button></>}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {resForm.map((r, i) => (
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 0.8fr auto', gap: 6, alignItems: 'center' }}>
+              <span style={{ fontSize: 12.5, color: 'var(--text2)' }}>{r.estudio}</span>
+              <input className="rounded-md border px-2 py-1 text-xs bg-transparent" placeholder="valor" value={r.valor} onChange={e => setResForm(f => f.map((x, j) => j === i ? { ...x, valor: e.target.value } : x))} />
+              <input className="rounded-md border px-2 py-1 text-xs bg-transparent" placeholder="unidad" value={r.unidad ?? ''} onChange={e => setResForm(f => f.map((x, j) => j === i ? { ...x, unidad: e.target.value } : x))} />
+              <button type="button" title="Marcar crítico" onClick={() => setResForm(f => f.map((x, j) => j === i ? { ...x, critico: !x.critico } : x))} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid ' + (r.critico ? '#dc2626' : 'var(--border)'), background: r.critico ? 'rgba(220,38,38,.12)' : 'transparent', color: r.critico ? '#dc2626' : 'var(--text3)', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>{r.critico ? '⚠ crítico' : 'crítico'}</button>
+            </div>
+          ))}
+        </div>
+      </Modal>
+
       {/* Registrar signos */}
       <Modal open={modalSignos} onClose={() => setModalSignos(false)} title="Registrar signos vitales"
         footer={<><Button variant="secondary" onClick={() => setModalSignos(false)}>Cancelar</Button><Button loading={busy} onClick={async () => {
@@ -603,6 +722,9 @@ export default function EpisodioPage() {
           const num = (x: string) => x.trim() ? Number(x) : undefined
           try {
             await agregarSignos(clinicId, internamientoId, { fecha: new Date().toISOString(), ta: sg.ta.trim() || undefined, fc: num(sg.fc), fr: num(sg.fr), temp: num(sg.temp), spo2: num(sg.spo2), glucosa: num(sg.glucosa), dolor: num(sg.dolor), por: config?.nombreMedico ?? '' })
+            // Alerta por deterioro (NEWS2 alto)
+            const n2 = calcularNews2({ ta: sg.ta, fc: num(sg.fc), fr: num(sg.fr), temp: num(sg.temp), spo2: num(sg.spo2) })
+            if (n2 && n2.riesgo === 'alto' && inter) await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'news2', titulo: `Deterioro clínico — NEWS2 ${n2.total} (alto)`, detalle: n2.recomendacion })
             toast('Signos registrados', 'success'); setModalSignos(false); setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '' }); cargar()
           } finally { setBusy(false) }
         }}>Guardar</Button></>}>

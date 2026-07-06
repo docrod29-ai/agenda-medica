@@ -152,11 +152,45 @@ export interface RegistroSignos {
 // ══════════════════════════════════════════════════════════════
 // F4 — Roles (vista, no seguridad de servidor)
 // ══════════════════════════════════════════════════════════════
-export type RolHospital = 'medico' | 'enfermeria' | 'farmacia' | 'admin'
+// ══════════════════════════════════════════════════════════════
+// F4 — Módulo de laboratorio (solicitud → resultado → valor crítico)
+// ══════════════════════════════════════════════════════════════
+export interface ResultadoLab {
+  estudio: string
+  valor: string
+  unidad?: string
+  referencia?: string
+  critico?: boolean
+}
+export interface SolicitudLab {
+  id: string
+  clinicId: string
+  internamientoId: string
+  pacienteId: string
+  pacienteNombre: string
+  estudios: string[]
+  prioridad: 'rutina' | 'urgente'
+  solicitadaPor: string
+  fecha: string
+  estado: 'solicitada' | 'en_proceso' | 'resultado'
+  resultados?: ResultadoLab[]
+  procesadaPor?: string
+  fechaResultado?: string
+  createdAt: string
+  updatedAt: string
+}
+export const ESTUDIOS_LAB_RAPIDOS = [
+  'Biometría hemática', 'Química sanguínea', 'Electrolitos séricos', 'Pruebas de función hepática',
+  'Tiempos de coagulación', 'Gasometría arterial', 'Examen general de orina', 'PCR', 'Procalcitonina',
+  'Troponina', 'Dímero D', 'Hemocultivo', 'Urocultivo', 'Lactato', 'Perfil tiroideo',
+]
+
+export type RolHospital = 'medico' | 'enfermeria' | 'farmacia' | 'laboratorio' | 'admin'
 export const ROL_HOSPITAL_LABEL: Record<RolHospital, string> = {
   medico: 'Médico',
   enfermeria: 'Enfermería',
   farmacia: 'Farmacia',
+  laboratorio: 'Laboratorio',
   admin: 'Administración',
 }
 

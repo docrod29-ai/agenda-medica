@@ -8,8 +8,10 @@ import {
   collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { setDoc, orderBy } from 'firebase/firestore'
 import type {
-  Internamiento, TipoEgreso, Interconsulta, Indicacion, Administracion, RegistroSignos,
+  Internamiento, TipoEgreso, Interconsulta, Indicacion, Administracion, RegistroSignos, RolHospital,
+  SolicitudLab, ResultadoLab,
 } from '@/types/hospital'
 
 function internamientosCol(clinicId: string) {
@@ -173,4 +175,64 @@ export async function getSignos(clinicId: string, iid: string): Promise<Registro
 }
 export async function borrarSignos(clinicId: string, iid: string, sid: string): Promise<void> {
   await deleteDoc(doc(db, 'clinics', clinicId, 'internamientos', iid, 'signos', sid))
+}
+
+// ── F3/V3 · Rol hospitalario por usuario (persistido, sigue al usuario entre dispositivos) ──
+export async function getRolUsuario(clinicId: string, uid: string): Promise<RolHospital | null> {
+  const snap = await getDoc(doc(db, 'clinics', clinicId, 'hospital_roles', uid))
+  return snap.exists() ? ((snap.data().rol as RolHospital) ?? null) : null
+}
+export async function setRolUsuario(clinicId: string, uid: string, rol: RolHospital): Promise<void> {
+  await setDoc(doc(db, 'clinics', clinicId, 'hospital_roles', uid), { rol, updatedAt: new Date().toISOString() }, { merge: true })
+}
+
+// ── F4 · Laboratorio (solicitud → resultado) ──
+function labCol(clinicId: string) { return collection(db, 'clinics', clinicId, 'laboratorio') }
+
+export async function crearSolicitudLab(clinicId: string, data: Omit<SolicitudLab, 'id' | 'estado' | 'createdAt' | 'updatedAt'>): Promise<string> {
+  const now = new Date().toISOString()
+  const ref = await addDoc(labCol(clinicId), limpiar({ ...data, estado: 'solicitada', createdAt: now, updatedAt: now }))
+  return ref.id
+}
+export async function getSolicitudesLabDeEpisodio(clinicId: string, iid: string): Promise<SolicitudLab[]> {
+  const snap = await getDocs(query(labCol(clinicId), where('internamientoId', '==', iid)))
+  return snap.docs.map(d => ({ ...d.data(), id: d.id } as SolicitudLab)).sort((a, b) => (a.fecha < b.fecha ? 1 : -1))
+}
+/** Solicitudes pendientes de TODA la clínica (bandeja del laboratorio). */
+export async function getBandejaLab(clinicId: string): Promise<SolicitudLab[]> {
+  const snap = await getDocs(query(labCol(clinicId), where('estado', 'in', ['solicitada', 'en_proceso'])))
+  return snap.docs.map(d => ({ ...d.data(), id: d.id } as SolicitudLab)).sort((a, b) => (a.fecha < b.fecha ? 1 : -1))
+}
+export async function cargarResultadosLab(clinicId: string, ordenId: string, resultados: ResultadoLab[], por: string): Promise<void> {
+  await updateDoc(doc(db, 'clinics', clinicId, 'laboratorio', ordenId), limpiar({
+    resultados, estado: 'resultado', procesadaPor: por, fechaResultado: new Date().toISOString(), updatedAt: new Date().toISOString(),
+  }))
+}
+
+// ── F5 · Alertas hospitalarias (lab crítico, NEWS2, interconsulta/resultado) ──
+export interface AlertaHospital {
+  id?: string
+  internamientoId: string
+  pacienteNombre: string
+  tipo: 'lab_critico' | 'news2' | 'interconsulta' | 'resultado'
+  titulo: string
+  detalle: string
+  destinatarioUid?: string
+  destinatarioNombre?: string
+  leida: boolean
+  fecha: string
+  whatsappEnviado?: boolean
+}
+function alertasCol(clinicId: string) { return collection(db, 'clinics', clinicId, 'hospital_alertas') }
+export async function crearAlerta(clinicId: string, a: Omit<AlertaHospital, 'id' | 'leida' | 'fecha'>): Promise<string> {
+  const ref = await addDoc(alertasCol(clinicId), limpiar({ ...a, leida: false, fecha: new Date().toISOString() }))
+  return ref.id
+}
+export async function getAlertas(clinicId: string, soloNoLeidas = false): Promise<AlertaHospital[]> {
+  const snap = await getDocs(query(alertasCol(clinicId), orderBy('fecha', 'desc')))
+  const arr = snap.docs.map(d => ({ ...d.data(), id: d.id } as AlertaHospital))
+  return soloNoLeidas ? arr.filter(x => !x.leida) : arr
+}
+export async function marcarAlertaLeida(clinicId: string, id: string): Promise<void> {
+  await updateDoc(doc(db, 'clinics', clinicId, 'hospital_alertas', id), { leida: true })
 }

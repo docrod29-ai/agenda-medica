@@ -76,6 +76,18 @@ service cloud.firestore {
           allow read, write: if isMedico(clinicId);
         }
       }
+      // Rol hospitalario por usuario (médico/enfermería/farmacia/laboratorio/admin)
+      match /hospital_roles/{uid} {
+        allow read, write: if isMember(clinicId);
+      }
+      // Módulo de laboratorio — solicitudes y resultados (datos clínicos)
+      match /laboratorio/{ordenId} {
+        allow read, write: if isMedico(clinicId);
+      }
+      // Alertas hospitalarias (lab crítico, NEWS2, interconsulta)
+      match /hospital_alertas/{alertaId} {
+        allow read, write: if isMember(clinicId);
+      }
       match /config/{docId} {
         allow read, write: if isMember(clinicId);
       }
