@@ -8,10 +8,9 @@
  *  - Las queries son rápidas con where('clinicId', '==', X)
  *  - Borrar el doc = revocar acceso (Firestore Rules dejan de matchear)
  */
-import {
-  collection, getDocs, query, where, deleteDoc, doc, updateDoc,
-} from 'firebase/firestore'
+import { deleteDoc, doc, updateDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { fetchAutenticado } from '@/lib/auth-client'
 import type { ClinicMember } from '@/types'
 
 export interface MiembroActivo extends ClinicMember {
@@ -20,11 +19,12 @@ export interface MiembroActivo extends ClinicMember {
   invitadoPor?: string
 }
 
-/** Lista todos los miembros activos de una clínica. */
+/** Lista los miembros de una clínica vía API (Admin SDK; no expone `list` en reglas). */
 export async function listarMiembros(clinicId: string): Promise<MiembroActivo[]> {
-  const q = query(collection(db, 'clinic_members'), where('clinicId', '==', clinicId))
-  const snap = await getDocs(q)
-  return snap.docs.map(d => ({ uid: d.id, ...(d.data() as Omit<MiembroActivo, 'uid'>) }))
+  const res = await fetchAutenticado(`/api/clinic/miembros?clinicId=${encodeURIComponent(clinicId)}`)
+  const data = await res.json().catch(() => null)
+  if (!data?.ok) return []
+  return (data.miembros ?? []) as MiembroActivo[]
 }
 
 /**

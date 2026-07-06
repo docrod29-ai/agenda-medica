@@ -36,6 +36,12 @@ export type AuditEvento =
   | 'login_exitoso'              // usuario inició sesión
   | 'login_fallido'              // intento de login fallido
   | 'export_datos'               // se exportaron datos del paciente
+  // === Hospitalización (trazabilidad NOM-004) ===
+  | 'hosp_ingreso'               // ingreso hospitalario
+  | 'hosp_egreso'                // egreso hospitalario
+  | 'hosp_administracion'        // administración de medicamento (MAR)
+  | 'hosp_traslado'              // traslado de cama/servicio o cambio de tratante
+  | 'hosp_lab_resultado'         // se cargó resultado de laboratorio
 
 export interface AuditPayload {
   evento: AuditEvento

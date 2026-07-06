@@ -60,6 +60,9 @@ export interface Internamiento {
   tipoEgreso?: TipoEgreso
   resumenEgreso?: string
 
+  // ── Movimientos del episodio (traslados de cama/servicio, cambio de tratante) ──
+  movimientos?: { fecha: string; tipo: 'traslado' | 'tratante'; detalle: string; por?: string }[]
+
   // ── Interconsultas y órdenes (arrays acotados por episodio) ──
   interconsultas?: Interconsulta[]
   indicaciones?: Indicacion[]

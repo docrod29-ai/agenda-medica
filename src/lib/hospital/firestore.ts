@@ -161,7 +161,24 @@ export async function verificarIndicacionFarmacia(clinicId: string, iid: string,
 
 /** Guarda los medicamentos que el paciente tomaba en casa (para conciliar). */
 export async function guardarMedicamentosCasa(clinicId: string, iid: string, meds: string[]): Promise<void> {
-  await actualizarInternamiento(clinicId, iid, { medicamentosCasa: meds, conciliadoAl: new Date().toISOString() })
+  await mutarInternamiento(clinicId, iid, () => ({ medicamentosCasa: meds, conciliadoAl: new Date().toISOString() }))
+}
+
+/** Traslado de servicio/cama con registro en el historial de movimientos. */
+export async function trasladarInternamiento(clinicId: string, iid: string, dst: { servicio: string; cama: string; por?: string }): Promise<void> {
+  await mutarInternamiento(clinicId, iid, inter => {
+    const detalle = `${inter.servicio}${inter.cama ? ' · Cama ' + inter.cama : ''} → ${dst.servicio}${dst.cama ? ' · Cama ' + dst.cama : ''}`
+    const mov = { fecha: new Date().toISOString(), tipo: 'traslado' as const, detalle, por: dst.por }
+    return { servicio: dst.servicio, cama: dst.cama, movimientos: [...(inter.movimientos ?? []), mov] }
+  })
+}
+
+/** Cambio de médico tratante (responsable) con registro en el historial. */
+export async function cambiarTratante(clinicId: string, iid: string, t: { medicoTratanteId: string; medicoTratanteNombre: string; por?: string }): Promise<void> {
+  await mutarInternamiento(clinicId, iid, inter => {
+    const mov = { fecha: new Date().toISOString(), tipo: 'tratante' as const, detalle: `${inter.medicoTratanteNombre || '—'} → ${t.medicoTratanteNombre}`, por: t.por }
+    return { medicoTratanteId: t.medicoTratanteId, medicoTratanteNombre: t.medicoTratanteNombre, movimientos: [...(inter.movimientos ?? []), mov] }
+  })
 }
 
 // ── F3 · Signos vitales seriados (subcolección, pueden ser muchos) ──
