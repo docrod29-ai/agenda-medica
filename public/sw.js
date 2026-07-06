@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v182'  // Fix MAR: undefined anidado (nota vacia) rompia la escritura a Firestore; limpiar en profundidad + catch de error
+const CACHE = 'nexusmed-v183'  // Loop V1-V2: catalogo de medicamentos buscable (CPOE) + graficas de signos + NEWS2
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
