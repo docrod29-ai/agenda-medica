@@ -77,8 +77,11 @@ export default function CensoPage() {
       })
       toast('Paciente ingresado al censo', 'success')
       router.push(`/hospitalizacion/${id}`)
-    } catch {
-      toast('No se pudo registrar el ingreso', 'error')
+    } catch (e) {
+      const msg = e instanceof Error && e.message.startsWith('DUPLICADO')
+        ? 'Este paciente ya tiene un internamiento activo. Búscalo en el censo.'
+        : 'No se pudo registrar el ingreso'
+      toast(msg, 'error')
       setGuardando(false)
     }
   }

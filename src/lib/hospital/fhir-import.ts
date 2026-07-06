@@ -4,6 +4,7 @@
 // Un LIS que hable FHIR (o HL7 v2 → FHIR vía un conversor) puede empujar aquí.
 // ══════════════════════════════════════════════════════════════
 import type { ResultadoLab } from '@/types/hospital'
+import { esCriticoLab } from './lab-criticos'
 
 interface FhirObs {
   resourceType?: string
@@ -18,9 +19,11 @@ interface FhirObs {
 function nombre(o: FhirObs, fallback = 'Observación'): string {
   return o.code?.text || o.code?.coding?.[0]?.display || fallback
 }
-function esCritico(o: FhirObs): boolean {
+function esCriticoFlag(o: FhirObs): boolean {
+  // Marca de interpretación crítica del LIS: HH/LL/AA (crítico alto/bajo/anormal),
+  // o texto tipo "critical"/"panic". H/L simples NO son crítico (solo alto/bajo).
   const codes = (o.interpretation ?? []).flatMap(i => (i.coding ?? []).map(c => c.code ?? '').concat(i.text ?? ''))
-  return codes.some(c => /^(HH|LL|AA|A|H|L)$|crit/i.test(c) && /^(HH|LL|AA|crit)/i.test(c))
+  return codes.some(c => /^(HH|LL|AA)$/i.test(c.trim()) || /crit|panic|pánico/i.test(c))
 }
 function rango(o: FhirObs): string | undefined {
   const rr = o.referenceRange?.[0]
@@ -40,12 +43,14 @@ export function parsearLabsFhir(json: string): ResultadoLab[] {
   else if (d?.resourceType === 'Bundle') for (const e of d.entry ?? []) { if (e.resource?.resourceType === 'Observation') obs.push(e.resource) }
   else if ((d as FhirObs)?.resourceType === 'Observation') obs.push(d as FhirObs)
 
+  // crítico = flag del LIS (HH/LL/AA/panic) O rango numérico crítico (respaldo determinista)
+  const critOf = (o: FhirObs, est: string, val: string) => esCriticoFlag(o) || esCriticoLab(est, val)
   const out: ResultadoLab[] = []
   for (const o of obs) {
-    if (o.valueQuantity) out.push({ estudio: nombre(o), valor: String(o.valueQuantity.value ?? ''), unidad: o.valueQuantity.unit, referencia: rango(o), critico: esCritico(o) })
-    else if (o.valueString) out.push({ estudio: nombre(o), valor: o.valueString, referencia: rango(o), critico: esCritico(o) })
+    if (o.valueQuantity) { const est = nombre(o), val = String(o.valueQuantity.value ?? ''); out.push({ estudio: est, valor: val, unidad: o.valueQuantity.unit, referencia: rango(o), critico: critOf(o, est, val) }) }
+    else if (o.valueString) out.push({ estudio: nombre(o), valor: o.valueString, referencia: rango(o), critico: esCriticoFlag(o) })
     for (const c of o.component ?? []) {
-      if (c.valueQuantity) out.push({ estudio: nombre(c, nombre(o)), valor: String(c.valueQuantity.value ?? ''), unidad: c.valueQuantity.unit, referencia: rango(c), critico: esCritico(c) })
+      if (c.valueQuantity) { const est = nombre(c, nombre(o)), val = String(c.valueQuantity.value ?? ''); out.push({ estudio: est, valor: val, unidad: c.valueQuantity.unit, referencia: rango(c), critico: critOf(c, est, val) }) }
     }
   }
   return out

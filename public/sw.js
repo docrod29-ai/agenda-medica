@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v186'  // Multiusuario hospital: invitar como Enfermeria/Farmacia/Laboratorio; rol del hospital deriva del usuario real; reglas isClinicoHospital
+const CACHE = 'nexusmed-v187'  // Auditoria fixes: NEWS2 conciencia/O2+parametro rojo, lab criticos deterministas, transacciones atomicas (MAR), guard doble ingreso, alerta PII server-side, aterrizaje por rol
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

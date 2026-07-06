@@ -8,7 +8,7 @@ import {
   collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import { setDoc, orderBy } from 'firebase/firestore'
+import { setDoc, orderBy, runTransaction } from 'firebase/firestore'
 import type {
   Internamiento, TipoEgreso, Interconsulta, Indicacion, Administracion, RegistroSignos, RolHospital,
   SolicitudLab, ResultadoLab,
@@ -39,8 +39,11 @@ function limpiar<T>(o: T): T {
 
 export type NuevoInternamiento = Omit<Internamiento, 'id' | 'estado' | 'createdAt' | 'updatedAt'>
 
-/** Registra un ingreso hospitalario (episodio activo). Devuelve el id. */
+/** Registra un ingreso hospitalario (episodio activo). Devuelve el id.
+ *  Rechaza si el paciente YA tiene un internamiento activo (evita MAR partido). */
 export async function crearInternamiento(clinicId: string, data: NuevoInternamiento): Promise<string> {
+  const yaActivo = await getDocs(query(internamientosCol(clinicId), where('pacienteId', '==', data.pacienteId), where('estado', '==', 'activo')))
+  if (!yaActivo.empty) throw new Error('DUPLICADO: el paciente ya tiene un internamiento activo.')
   const now = new Date().toISOString()
   const ref = await addDoc(internamientosCol(clinicId), limpiar({
     ...data,
@@ -99,60 +102,61 @@ export async function egresarInternamiento(
 }
 
 function id36() {
-  // ID corto sin depender de crypto (suficiente para elementos dentro del episodio)
-  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4)
+  // ID único de elementos internos (indicación/interconsulta). crypto.randomUUID
+  // evita colisiones; fallback por si el runtime no lo expone.
+  try { return crypto.randomUUID() } catch { return Math.random().toString(36).slice(2) + Date.now().toString(36) }
+}
+
+/**
+ * Mutación ATÓMICA del doc de internamiento (evita last-write-wins que perdía
+ * registros del MAR cuando dos usuarios editan a la vez). Lee y escribe dentro
+ * de una transacción; Firestore reintenta si el doc cambió.
+ */
+async function mutarInternamiento(clinicId: string, iid: string, fn: (inter: Internamiento) => Partial<Internamiento>): Promise<void> {
+  const ref = internamientoDoc(clinicId, iid)
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref)
+    if (!snap.exists()) return
+    const inter = { ...snap.data(), id: snap.id } as Internamiento
+    const patch = limpiar({ ...fn(inter), updatedAt: new Date().toISOString() })
+    tx.update(ref, patch as Record<string, unknown>)
+  })
 }
 
 // ── F2 · Interconsultas (array en el doc del internamiento) ──
 export async function agregarInterconsulta(clinicId: string, iid: string, ic: Omit<Interconsulta, 'id' | 'estado' | 'fecha'>): Promise<string> {
-  const inter = await getInternamiento(clinicId, iid)
-  if (!inter) throw new Error('Internamiento no encontrado')
   const nueva: Interconsulta = { ...ic, id: id36(), estado: 'solicitada', fecha: new Date().toISOString() }
-  await actualizarInternamiento(clinicId, iid, { interconsultas: [...(inter.interconsultas ?? []), nueva] })
+  await mutarInternamiento(clinicId, iid, inter => ({ interconsultas: [...(inter.interconsultas ?? []), nueva] }))
   return nueva.id
 }
 
 export async function responderInterconsulta(clinicId: string, iid: string, icId: string, resp: { respuesta?: string; respondidaPor?: string; notaId?: string }): Promise<void> {
-  const inter = await getInternamiento(clinicId, iid)
-  if (!inter) return
-  const interconsultas = (inter.interconsultas ?? []).map(ic =>
-    ic.id === icId ? { ...ic, estado: 'respondida' as const, fechaRespuesta: new Date().toISOString(), ...resp } : ic
-  )
-  await actualizarInternamiento(clinicId, iid, { interconsultas })
+  await mutarInternamiento(clinicId, iid, inter => ({
+    interconsultas: (inter.interconsultas ?? []).map(ic => ic.id === icId ? { ...ic, estado: 'respondida' as const, fechaRespuesta: new Date().toISOString(), ...resp } : ic),
+  }))
 }
 
-// ── F3 · Indicaciones médicas + MAR (array en el doc) ──
+// ── F3 · Indicaciones médicas + MAR (array en el doc, con transacción) ──
 export async function agregarIndicacion(clinicId: string, iid: string, ind: Omit<Indicacion, 'id' | 'activa' | 'fecha' | 'administraciones'>): Promise<void> {
-  const inter = await getInternamiento(clinicId, iid)
-  if (!inter) throw new Error('Internamiento no encontrado')
   const nueva: Indicacion = { ...ind, id: id36(), activa: true, fecha: new Date().toISOString(), administraciones: [] }
-  await actualizarInternamiento(clinicId, iid, { indicaciones: [...(inter.indicaciones ?? []), nueva] })
+  await mutarInternamiento(clinicId, iid, inter => ({ indicaciones: [...(inter.indicaciones ?? []), nueva] }))
 }
 
 export async function suspenderIndicacion(clinicId: string, iid: string, indId: string, activa: boolean): Promise<void> {
-  const inter = await getInternamiento(clinicId, iid)
-  if (!inter) return
-  const indicaciones = (inter.indicaciones ?? []).map(x => x.id === indId ? { ...x, activa } : x)
-  await actualizarInternamiento(clinicId, iid, { indicaciones })
+  await mutarInternamiento(clinicId, iid, inter => ({ indicaciones: (inter.indicaciones ?? []).map(x => x.id === indId ? { ...x, activa } : x) }))
 }
 
 export async function registrarAdministracion(clinicId: string, iid: string, indId: string, adm: Administracion): Promise<void> {
-  const inter = await getInternamiento(clinicId, iid)
-  if (!inter) return
-  const indicaciones = (inter.indicaciones ?? []).map(x =>
-    x.id === indId ? { ...x, administraciones: [...x.administraciones, adm] } : x
-  )
-  await actualizarInternamiento(clinicId, iid, { indicaciones })
+  await mutarInternamiento(clinicId, iid, inter => ({
+    indicaciones: (inter.indicaciones ?? []).map(x => x.id === indId ? { ...x, administraciones: [...x.administraciones, adm] } : x),
+  }))
 }
 
 /** Verificación farmacéutica de una indicación (ciclo cerrado del medicamento). */
 export async function verificarIndicacionFarmacia(clinicId: string, iid: string, indId: string, por: string): Promise<void> {
-  const inter = await getInternamiento(clinicId, iid)
-  if (!inter) return
-  const indicaciones = (inter.indicaciones ?? []).map(x =>
-    x.id === indId ? { ...x, verificadaFarmacia: true, verificadaPor: por, fechaVerificacion: new Date().toISOString() } : x
-  )
-  await actualizarInternamiento(clinicId, iid, { indicaciones })
+  await mutarInternamiento(clinicId, iid, inter => ({
+    indicaciones: (inter.indicaciones ?? []).map(x => x.id === indId ? { ...x, verificadaFarmacia: true, verificadaPor: por, fechaVerificacion: new Date().toISOString() } : x),
+  }))
 }
 
 /** Guarda los medicamentos que el paciente tomaba en casa (para conciliar). */
@@ -237,19 +241,16 @@ export async function marcarAlertaLeida(clinicId: string, id: string): Promise<v
   await updateDoc(doc(db, 'clinics', clinicId, 'hospital_alertas', id), { leida: true })
 }
 
-// ── F6 · Enfermería (balance hídrico, escalas, entrega de turno SBAR) ──
+// ── F6 · Enfermería (balance hídrico, escalas, entrega de turno SBAR) — transaccional ──
 export async function agregarBalance(clinicId: string, iid: string, b: { ingresos: number; egresos: number; por?: string }): Promise<void> {
-  const inter = await getInternamiento(clinicId, iid); if (!inter) return
   const entrada = { fecha: new Date().toISOString(), ...b }
-  await actualizarInternamiento(clinicId, iid, { balanceHidrico: [...(inter.balanceHidrico ?? []), entrada].slice(-100) })
+  await mutarInternamiento(clinicId, iid, inter => ({ balanceHidrico: [...(inter.balanceHidrico ?? []), entrada].slice(-100) }))
 }
 export async function agregarEscala(clinicId: string, iid: string, e: { tipo: 'braden' | 'morse'; score: number; riesgo: string; por?: string }): Promise<void> {
-  const inter = await getInternamiento(clinicId, iid); if (!inter) return
   const entrada = { fecha: new Date().toISOString(), ...e }
-  await actualizarInternamiento(clinicId, iid, { escalas: [...(inter.escalas ?? []), entrada].slice(-100) })
+  await mutarInternamiento(clinicId, iid, inter => ({ escalas: [...(inter.escalas ?? []), entrada].slice(-100) }))
 }
 export async function agregarSbar(clinicId: string, iid: string, s: { texto: string; por?: string }): Promise<void> {
-  const inter = await getInternamiento(clinicId, iid); if (!inter) return
   const entrada = { fecha: new Date().toISOString(), ...s }
-  await actualizarInternamiento(clinicId, iid, { sbar: [...(inter.sbar ?? []), entrada].slice(-50) })
+  await mutarInternamiento(clinicId, iid, inter => ({ sbar: [...(inter.sbar ?? []), entrada].slice(-50) }))
 }
