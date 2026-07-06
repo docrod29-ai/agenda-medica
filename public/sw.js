@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v191'  // Seguridad: gateway RBAC por accion — mutaciones del internamiento pasan por el servidor (Admin SDK); las rules bloquean la escritura directa del cliente
+const CACHE = 'nexusmed-v192'  // Interop FHIR (TA sistolica/diastolica + UCUM + CIE-10 con punto) + alerta al WhatsApp del medico tratante + censo/ficha en vivo (onSnapshot)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

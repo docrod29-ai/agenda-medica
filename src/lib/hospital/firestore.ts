@@ -5,7 +5,7 @@
 // paciente y se vinculan por `internamientoId`.
 // ══════════════════════════════════════════════════════════════
 import {
-  collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where,
+  collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, onSnapshot,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { setDoc, orderBy } from 'firebase/firestore'
@@ -56,6 +56,28 @@ export async function getCenso(clinicId: string): Promise<Internamiento[]> {
   return snap.docs
     .map(d => ({ ...d.data(), id: d.id } as Internamiento))
     .sort((a, b) => (a.fechaIngreso < b.fechaIngreso ? 1 : -1))
+}
+
+/** CENSO en VIVO: se actualiza solo cuando alguien ingresa/egresa/traslada (onSnapshot).
+ *  Devuelve la función para des-suscribir. */
+export function suscribirCenso(clinicId: string, cb: (censo: Internamiento[]) => void): () => void {
+  return onSnapshot(query(internamientosCol(clinicId), where('estado', '==', 'activo')), snap => {
+    cb(snap.docs.map(d => ({ ...d.data(), id: d.id } as Internamiento)).sort((a, b) => (a.fechaIngreso < b.fechaIngreso ? 1 : -1)))
+  }, () => { /* error de permisos/red: se conserva el último estado */ })
+}
+
+/** UN internamiento en VIVO: refleja indicaciones/MAR/interconsultas/traslados de otros usuarios. */
+export function suscribirInternamiento(clinicId: string, id: string, cb: (inter: Internamiento | null) => void): () => void {
+  return onSnapshot(internamientoDoc(clinicId, id), snap => {
+    cb(snap.exists() ? ({ ...snap.data(), id: snap.id } as Internamiento) : null)
+  }, () => { /* error: se conserva el último estado */ })
+}
+
+/** Signos vitales seriados en VIVO (subcolección). */
+export function suscribirSignos(clinicId: string, iid: string, cb: (signos: RegistroSignos[]) => void): () => void {
+  return onSnapshot(signosCol(clinicId, iid), snap => {
+    cb(snap.docs.map(d => ({ ...d.data(), id: d.id } as RegistroSignos)).sort((a, b) => (a.fecha < b.fecha ? -1 : 1)))
+  }, () => { /* error: se conserva el último estado */ })
 }
 
 /** Todos los internamientos (activos + egresados) — para el histórico. */
@@ -162,6 +184,15 @@ export async function getRolUsuario(clinicId: string, uid: string): Promise<RolH
 }
 export async function setRolUsuario(clinicId: string, uid: string, rol: RolHospital): Promise<void> {
   await setDoc(doc(db, 'clinics', clinicId, 'hospital_roles', uid), { rol, updatedAt: new Date().toISOString() }, { merge: true })
+}
+
+/** WhatsApp personal para alertas hospitalarias (al médico tratante en persona). */
+export async function getTelefonoAlertas(clinicId: string, uid: string): Promise<string> {
+  const snap = await getDoc(doc(db, 'clinics', clinicId, 'hospital_roles', uid))
+  return snap.exists() ? String((snap.data().telefono as string) ?? '') : ''
+}
+export async function setTelefonoAlertas(clinicId: string, uid: string, telefono: string): Promise<void> {
+  await setDoc(doc(db, 'clinics', clinicId, 'hospital_roles', uid), { telefono: telefono.trim(), updatedAt: new Date().toISOString() }, { merge: true })
 }
 
 // ── F4 · Laboratorio (solicitud → resultado) ──
