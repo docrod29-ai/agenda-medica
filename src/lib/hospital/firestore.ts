@@ -8,7 +8,8 @@ import {
   collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import { setDoc, orderBy, runTransaction } from 'firebase/firestore'
+import { setDoc, orderBy } from 'firebase/firestore'
+import { fetchAutenticado } from '@/lib/auth-client'
 import type {
   Internamiento, TipoEgreso, Interconsulta, Indicacion, Administracion, RegistroSignos, RolHospital,
   SolicitudLab, ResultadoLab, Cama, EstadoCama,
@@ -42,19 +43,11 @@ export type NuevoInternamiento = Omit<Internamiento, 'id' | 'estado' | 'createdA
 /** Registra un ingreso hospitalario (episodio activo). Devuelve el id.
  *  Rechaza si el paciente YA tiene un internamiento activo (evita MAR partido). */
 export async function crearInternamiento(clinicId: string, data: NuevoInternamiento): Promise<string> {
-  // Consulta por UN solo campo (pacienteId) + filtro en JS: evita el índice
-  // compuesto que exigiría (pacienteId + estado) y que hacía fallar el ingreso.
-  const delPaciente = await getDocs(query(internamientosCol(clinicId), where('pacienteId', '==', data.pacienteId)))
-  const yaActivo = delPaciente.docs.some(d => (d.data() as { estado?: string }).estado === 'activo')
-  if (yaActivo) throw new Error('DUPLICADO: el paciente ya tiene un internamiento activo.')
-  const now = new Date().toISOString()
-  const ref = await addDoc(internamientosCol(clinicId), limpiar({
-    ...data,
-    estado: 'activo',
-    createdAt: now,
-    updatedAt: now,
-  }))
-  return ref.id
+  // Ingreso vía GATEWAY: el servidor valida el rol (medico/admin), aplica el
+  // guard de duplicado activo y escribe con Admin SDK. El cliente ya no escribe
+  // directo (las Rules lo bloquean).
+  const res = await mutar(clinicId, null, 'crear', limpiar(data as unknown as Record<string, unknown>))
+  return res.id ?? ''
 }
 
 /** CENSO: todos los internamientos ACTIVOS (ordenados por ingreso, en JS para no exigir índice). */
@@ -86,102 +79,63 @@ export async function getInternamientosDePaciente(clinicId: string, pacienteId: 
     .sort((a, b) => (a.fechaIngreso < b.fechaIngreso ? 1 : -1))
 }
 
-export async function actualizarInternamiento(clinicId: string, id: string, patch: Partial<Internamiento>): Promise<void> {
-  await updateDoc(internamientoDoc(clinicId, id), limpiar({ ...patch, updatedAt: new Date().toISOString() }))
+/**
+ * TODAS las mutaciones del doc de internamiento pasan por el GATEWAY del servidor
+ * (/api/hospital/mutar), que valida el ROL por acción (RBAC real, no de vista) y
+ * escribe con Admin SDK en una transacción. Las Firestore Rules bloquean la
+ * escritura directa del cliente al doc de internamiento.
+ */
+async function mutar(clinicId: string, internamientoId: string | null, accion: string, payload: Record<string, unknown>): Promise<{ ok: boolean; id?: string; error?: string }> {
+  const res = await fetchAutenticado('/api/hospital/mutar', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ clinicId, internamientoId, accion, payload }),
+  })
+  const data = await res.json().catch(() => ({ ok: false }))
+  if (!data.ok) throw new Error(data.error || 'No se pudo completar la acción')
+  return data
 }
 
 /** Egresa un episodio (lo saca del censo activo). */
-export async function egresarInternamiento(
-  clinicId: string,
-  id: string,
-  egreso: { tipoEgreso: TipoEgreso; resumenEgreso?: string; fechaEgreso?: string },
-): Promise<void> {
-  await actualizarInternamiento(clinicId, id, {
-    estado: 'egresado',
-    fechaEgreso: egreso.fechaEgreso ?? new Date().toISOString(),
-    tipoEgreso: egreso.tipoEgreso,
-    resumenEgreso: egreso.resumenEgreso,
-  })
+export async function egresarInternamiento(clinicId: string, id: string, egreso: { tipoEgreso: TipoEgreso; resumenEgreso?: string; fechaEgreso?: string }): Promise<void> {
+  await mutar(clinicId, id, 'egresar', { tipoEgreso: egreso.tipoEgreso, resumenEgreso: egreso.resumenEgreso })
 }
 
-function id36() {
-  // ID único de elementos internos (indicación/interconsulta). crypto.randomUUID
-  // evita colisiones; fallback por si el runtime no lo expone.
-  try { return crypto.randomUUID() } catch { return Math.random().toString(36).slice(2) + Date.now().toString(36) }
-}
-
-/**
- * Mutación ATÓMICA del doc de internamiento (evita last-write-wins que perdía
- * registros del MAR cuando dos usuarios editan a la vez). Lee y escribe dentro
- * de una transacción; Firestore reintenta si el doc cambió.
- */
-async function mutarInternamiento(clinicId: string, iid: string, fn: (inter: Internamiento) => Partial<Internamiento>): Promise<void> {
-  const ref = internamientoDoc(clinicId, iid)
-  await runTransaction(db, async (tx) => {
-    const snap = await tx.get(ref)
-    if (!snap.exists()) return
-    const inter = { ...snap.data(), id: snap.id } as Internamiento
-    const patch = limpiar({ ...fn(inter), updatedAt: new Date().toISOString() })
-    tx.update(ref, patch as Record<string, unknown>)
-  })
-}
-
-// ── F2 · Interconsultas (array en el doc del internamiento) ──
+// ── F2 · Interconsultas ──
 export async function agregarInterconsulta(clinicId: string, iid: string, ic: Omit<Interconsulta, 'id' | 'estado' | 'fecha'>): Promise<string> {
-  const nueva: Interconsulta = { ...ic, id: id36(), estado: 'solicitada', fecha: new Date().toISOString() }
-  await mutarInternamiento(clinicId, iid, inter => ({ interconsultas: [...(inter.interconsultas ?? []), nueva] }))
-  return nueva.id
+  await mutar(clinicId, iid, 'interconsulta_agregar', { especialidad: ic.especialidad, motivo: ic.motivo, solicitanteNombre: ic.solicitanteNombre })
+  return ''
 }
-
 export async function responderInterconsulta(clinicId: string, iid: string, icId: string, resp: { respuesta?: string; respondidaPor?: string; notaId?: string }): Promise<void> {
-  await mutarInternamiento(clinicId, iid, inter => ({
-    interconsultas: (inter.interconsultas ?? []).map(ic => ic.id === icId ? { ...ic, estado: 'respondida' as const, fechaRespuesta: new Date().toISOString(), ...resp } : ic),
-  }))
+  await mutar(clinicId, iid, 'interconsulta_responder', { icId, respuesta: resp.respuesta, respondidaPor: resp.respondidaPor })
 }
 
-// ── F3 · Indicaciones médicas + MAR (array en el doc, con transacción) ──
+// ── F3 · Indicaciones médicas + MAR ──
 export async function agregarIndicacion(clinicId: string, iid: string, ind: Omit<Indicacion, 'id' | 'activa' | 'fecha' | 'administraciones'>): Promise<void> {
-  const nueva: Indicacion = { ...ind, id: id36(), activa: true, fecha: new Date().toISOString(), administraciones: [] }
-  await mutarInternamiento(clinicId, iid, inter => ({ indicaciones: [...(inter.indicaciones ?? []), nueva] }))
+  await mutar(clinicId, iid, 'indicacion_agregar', { tipo: ind.tipo, descripcion: ind.descripcion, frecuencia: ind.frecuencia, creadaPor: ind.creadaPor })
 }
-
 export async function suspenderIndicacion(clinicId: string, iid: string, indId: string, activa: boolean): Promise<void> {
-  await mutarInternamiento(clinicId, iid, inter => ({ indicaciones: (inter.indicaciones ?? []).map(x => x.id === indId ? { ...x, activa } : x) }))
+  await mutar(clinicId, iid, 'indicacion_suspender', { indId, activa })
 }
-
 export async function registrarAdministracion(clinicId: string, iid: string, indId: string, adm: Administracion): Promise<void> {
-  await mutarInternamiento(clinicId, iid, inter => ({
-    indicaciones: (inter.indicaciones ?? []).map(x => x.id === indId ? { ...x, administraciones: [...x.administraciones, adm] } : x),
-  }))
+  await mutar(clinicId, iid, 'administrar', { indId, adm })
 }
-
-/** Verificación farmacéutica de una indicación (ciclo cerrado del medicamento). */
 export async function verificarIndicacionFarmacia(clinicId: string, iid: string, indId: string, por: string): Promise<void> {
-  await mutarInternamiento(clinicId, iid, inter => ({
-    indicaciones: (inter.indicaciones ?? []).map(x => x.id === indId ? { ...x, verificadaFarmacia: true, verificadaPor: por, fechaVerificacion: new Date().toISOString() } : x),
-  }))
+  await mutar(clinicId, iid, 'verificar_farmacia', { indId, por })
 }
 
 /** Guarda los medicamentos que el paciente tomaba en casa (para conciliar). */
 export async function guardarMedicamentosCasa(clinicId: string, iid: string, meds: string[]): Promise<void> {
-  await mutarInternamiento(clinicId, iid, () => ({ medicamentosCasa: meds, conciliadoAl: new Date().toISOString() }))
+  await mutar(clinicId, iid, 'conciliar', { meds })
 }
 
 /** Traslado de servicio/cama con registro en el historial de movimientos. */
 export async function trasladarInternamiento(clinicId: string, iid: string, dst: { servicio: string; cama: string; por?: string }): Promise<void> {
-  await mutarInternamiento(clinicId, iid, inter => {
-    const detalle = `${inter.servicio}${inter.cama ? ' · Cama ' + inter.cama : ''} → ${dst.servicio}${dst.cama ? ' · Cama ' + dst.cama : ''}`
-    const mov = { fecha: new Date().toISOString(), tipo: 'traslado' as const, detalle, por: dst.por }
-    return { servicio: dst.servicio, cama: dst.cama, movimientos: [...(inter.movimientos ?? []), mov] }
-  })
+  await mutar(clinicId, iid, 'trasladar', { servicio: dst.servicio, cama: dst.cama, por: dst.por })
 }
 
 /** Cambio de médico tratante (responsable) con registro en el historial. */
 export async function cambiarTratante(clinicId: string, iid: string, t: { medicoTratanteId: string; medicoTratanteNombre: string; por?: string }): Promise<void> {
-  await mutarInternamiento(clinicId, iid, inter => {
-    const mov = { fecha: new Date().toISOString(), tipo: 'tratante' as const, detalle: `${inter.medicoTratanteNombre || '—'} → ${t.medicoTratanteNombre}`, por: t.por }
-    return { medicoTratanteId: t.medicoTratanteId, medicoTratanteNombre: t.medicoTratanteNombre, movimientos: [...(inter.movimientos ?? []), mov] }
-  })
+  await mutar(clinicId, iid, 'cambiar_tratante', { medicoTratanteId: t.medicoTratanteId, medicoTratanteNombre: t.medicoTratanteNombre, por: t.por })
 }
 
 // ── F3 · Signos vitales seriados (subcolección, pueden ser muchos) ──
@@ -277,16 +231,13 @@ export async function borrarCama(clinicId: string, id: string): Promise<void> {
   await deleteDoc(doc(db, 'clinics', clinicId, 'camas', id))
 }
 
-// ── F6 · Enfermería (balance hídrico, escalas, entrega de turno SBAR) — transaccional ──
+// ── F6 · Enfermería (balance hídrico, escalas, entrega de turno SBAR) — vía gateway ──
 export async function agregarBalance(clinicId: string, iid: string, b: { ingresos: number; egresos: number; por?: string }): Promise<void> {
-  const entrada = { fecha: new Date().toISOString(), ...b }
-  await mutarInternamiento(clinicId, iid, inter => ({ balanceHidrico: [...(inter.balanceHidrico ?? []), entrada].slice(-100) }))
+  await mutar(clinicId, iid, 'balance', { ingresos: b.ingresos, egresos: b.egresos, por: b.por })
 }
 export async function agregarEscala(clinicId: string, iid: string, e: { tipo: 'braden' | 'morse'; score: number; riesgo: string; por?: string }): Promise<void> {
-  const entrada = { fecha: new Date().toISOString(), ...e }
-  await mutarInternamiento(clinicId, iid, inter => ({ escalas: [...(inter.escalas ?? []), entrada].slice(-100) }))
+  await mutar(clinicId, iid, 'escala', { tipo: e.tipo, score: e.score, riesgo: e.riesgo, por: e.por })
 }
 export async function agregarSbar(clinicId: string, iid: string, s: { texto: string; por?: string }): Promise<void> {
-  const entrada = { fecha: new Date().toISOString(), ...s }
-  await mutarInternamiento(clinicId, iid, inter => ({ sbar: [...(inter.sbar ?? []), entrada].slice(-50) }))
+  await mutar(clinicId, iid, 'sbar', { texto: s.texto, por: s.por })
 }

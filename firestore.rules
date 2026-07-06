@@ -78,8 +78,15 @@ service cloud.firestore {
       // clínicos sensibles (diagnósticos, indicaciones, MAR, signos): solo
       // médicos/admin, igual que las notas (NOM-004 · secreto médico).
       match /internamientos/{intId} {
-        allow read, write: if isClinicoHospital(clinicId);
-        // Signos vitales seriados del internamiento
+        // LECTURA: cualquier clínico hospitalario de la clínica.
+        allow read: if isClinicoHospital(clinicId);
+        // ESCRITURA del doc de internamiento (ingreso, egreso, indicaciones,
+        // MAR, interconsultas, traslados, enfermería): SOLO por el servidor
+        // (/api/hospital/mutar, Admin SDK) que valida el ROL POR ACCIÓN.
+        // El cliente NO escribe directo → RBAC real, no de vista.
+        allow create, update, delete: if false;
+        // Signos vitales seriados del internamiento (escritura directa OK:
+        // médicos/enfermería registran signos; no requieren gate por acción)
         match /signos/{signoId} {
           allow read, write: if isClinicoHospital(clinicId);
         }
