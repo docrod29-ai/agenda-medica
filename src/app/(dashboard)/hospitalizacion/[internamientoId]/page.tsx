@@ -136,6 +136,19 @@ export default function EpisodioPage() {
     w.document.close()
   }
 
+  // Exportar el episodio a HL7 FHIR R4 (interoperabilidad · NOM-024)
+  const exportarFHIR = async () => {
+    if (!inter || !patient) return
+    const { exportarInternamientoAFhir } = await import('@/lib/fhir-export')
+    const bundle = exportarInternamientoAFhir({ paciente: patient, internamiento: inter, notas, signos, config })
+    const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/fhir+json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a'); a.href = url
+    a.download = `internamiento_${(inter.pacienteNombre || 'paciente').replace(/\s+/g, '_')}_FHIR_R4.json`
+    document.body.appendChild(a); a.click(); setTimeout(() => { a.remove(); URL.revokeObjectURL(url) }, 200)
+    toast('Internamiento exportado en FHIR R4', 'success')
+  }
+
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><Spinner /></div>
   if (!inter) return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: 40, textAlign: 'center' }}>
@@ -174,6 +187,7 @@ export default function EpisodioPage() {
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button onClick={imprimirBrazalete} title="Imprimir brazalete con código de barras" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)', cursor: 'pointer' }}><Printer size={13} /> Brazalete</button>
+            <button onClick={exportarFHIR} title="Exportar el internamiento en HL7 FHIR R4 (interoperabilidad)" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)', cursor: 'pointer' }}><Send size={13} /> FHIR</button>
             <span style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 12px', borderRadius: 100, background: egresado ? 'var(--s2)' : 'rgba(13,148,136,.15)', color: egresado ? 'var(--text3)' : '#0d9488', border: `1px solid ${egresado ? 'var(--border)' : 'rgba(13,148,136,.4)'}` }}>{egresado ? 'Egresado' : 'Internado'}</span>
           </div>
         </div>
