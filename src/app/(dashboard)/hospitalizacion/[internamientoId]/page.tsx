@@ -21,6 +21,9 @@ import { getNotas } from '@/lib/expediente/firestore'
 import { getPatients } from '@/lib/firestore'
 import { cdsMedicamento, type AlertaCDS } from '@/lib/hospital/cds'
 import { code39Svg } from '@/lib/hospital/barcode'
+import { buscarMed } from '@/lib/hospital/medicamentos-catalogo'
+import { calcularNews2 } from '@/lib/hospital/news2'
+import { GraficaSignos, type PuntoSigno } from '@/components/hospital/GraficaSignos'
 import {
   diasEstancia, TIPO_EGRESO_LABEL, TIPO_INDICACION_LABEL, ESPECIALIDADES_IC, ROL_HOSPITAL_LABEL,
   type Internamiento, type TipoEgreso, type TipoIndicacion, type RegistroSignos, type RolHospital, type Indicacion,
@@ -30,7 +33,7 @@ import type { Patient } from '@/types'
 import { Modal, Button, Spinner } from '@/components/ui'
 import {
   ArrowLeft, BedDouble, Stethoscope, Clock, FileText, Plus, LogOut, Pill,
-  Send, Check, Activity, Syringe, Ban, ShieldCheck, Printer, AlertTriangle, ScanLine, ClipboardCheck,
+  Send, Check, Activity, Syringe, Ban, ShieldCheck, Printer, AlertTriangle, ScanLine, ClipboardCheck, HeartPulse,
 } from 'lucide-react'
 
 const TIPO_EGRESO_OPCIONES: TipoEgreso[] = ['mejoria', 'maximo_beneficio', 'voluntaria', 'traslado', 'defuncion', 'otro']
@@ -65,7 +68,8 @@ export default function EpisodioPage() {
   const [egr, setEgr] = useState<{ tipo: TipoEgreso; resumen: string }>({ tipo: 'mejoria', resumen: '' })
   const [icForm, setIcForm] = useState({ especialidad: ESPECIALIDADES_IC[0], motivo: '' })
   const [respTxt, setRespTxt] = useState('')
-  const [indForm, setIndForm] = useState<{ tipo: TipoIndicacion; descripcion: string; frecuencia: string }>({ tipo: 'medicamento', descripcion: '', frecuencia: '' })
+  const [indForm, setIndForm] = useState<{ tipo: TipoIndicacion; descripcion: string; dosis: string; via: string; frecuencia: string }>({ tipo: 'medicamento', descripcion: '', dosis: '', via: '', frecuencia: '' })
+  const [medQuery, setMedQuery] = useState('')
   const [admNota, setAdmNota] = useState('')
   const [sg, setSg] = useState({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '' })
   const [patient, setPatient] = useState<Patient | null>(null)
@@ -111,6 +115,17 @@ export default function EpisodioPage() {
     if (indForm.tipo !== 'medicamento' || !indForm.descripcion.trim()) return []
     return cdsMedicamento({ nombre: indForm.descripcion, alergias: patient?.alergias, medsActivos })
   }, [indForm.tipo, indForm.descripcion, patient?.alergias, medsActivos])
+
+  // NEWS2 (deterioro) del último registro de signos + series para las gráficas
+  const ultimoSignos = signos.length ? signos[signos.length - 1] : null
+  const news2 = useMemo(
+    () => ultimoSignos ? calcularNews2({ fr: ultimoSignos.fr, spo2: ultimoSignos.spo2, temp: ultimoSignos.temp, ta: ultimoSignos.ta, fc: ultimoSignos.fc }) : null,
+    [ultimoSignos],
+  )
+  const serie = (k: 'fc' | 'fr' | 'temp' | 'spo2' | 'glucosa'): PuntoSigno[] =>
+    signos.filter(s => s[k] != null).map(s => ({ fecha: s.fecha, valor: Number(s[k]) }))
+  const serieSistolica: PuntoSigno[] = signos
+    .filter(s => s.ta).map(s => ({ fecha: s.fecha!, valor: parseInt(String(s.ta).split('/')[0], 10) })).filter(p => !isNaN(p.valor))
 
   const nuevaNota = (tipo: string) => {
     if (!inter) return
@@ -188,6 +203,7 @@ export default function EpisodioPage() {
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button onClick={imprimirBrazalete} title="Imprimir brazalete con código de barras" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)', cursor: 'pointer' }}><Printer size={13} /> Brazalete</button>
             <button onClick={exportarFHIR} title="Exportar el internamiento en HL7 FHIR R4 (interoperabilidad)" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)', cursor: 'pointer' }}><Send size={13} /> FHIR</button>
+            {news2 && <button onClick={() => setTab('signos')} title={news2.recomendacion} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, padding: '5px 11px', borderRadius: 100, border: `1px solid ${news2.color}`, background: news2.color + '1f', color: news2.color, cursor: 'pointer' }}><HeartPulse size={13} /> NEWS2 {news2.total}</button>}
             <span style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 12px', borderRadius: 100, background: egresado ? 'var(--s2)' : 'rgba(13,148,136,.15)', color: egresado ? 'var(--text3)' : '#0d9488', border: `1px solid ${egresado ? 'var(--border)' : 'rgba(13,148,136,.4)'}` }}>{egresado ? 'Egresado' : 'Internado'}</span>
           </div>
         </div>
@@ -318,7 +334,31 @@ export default function EpisodioPage() {
         </div>
         {signos.length === 0 ? (
           <div style={{ fontSize: 13, color: 'var(--text3)', padding: 16, textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 12 }}>Sin registros de signos vitales.</div>
-        ) : (
+        ) : (<>
+          {/* NEWS2 — score de deterioro del último registro */}
+          {news2 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 14, padding: '12px 14px', borderRadius: 12, border: `1px solid ${news2.color}55`, background: news2.color + '12' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 64 }}>
+                <span style={{ fontSize: 26, fontWeight: 800, color: news2.color, lineHeight: 1 }}>{news2.total}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: news2.color }}>NEWS2 · {news2.riesgo}</span>
+              </div>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ fontSize: 12.5, color: 'var(--text2)', marginBottom: 4 }}>{news2.recomendacion}{news2.parcial ? ' (parcial: sin conciencia/O₂)' : ''}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                  {news2.detalle.filter(d => d.puntos > 0).map((d, i) => <span key={i} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 100, background: 'var(--s2)', color: 'var(--text3)', border: '1px solid var(--border)' }}>{d.param} {d.valor} · +{d.puntos}</span>)}
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Gráficas de tendencia */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10, marginBottom: 14 }}>
+            <GraficaSignos titulo="Frecuencia cardiaca" unidad="lpm" puntos={serie('fc')} normalMin={60} normalMax={100} color="#dc2626" />
+            <GraficaSignos titulo="TA sistólica" unidad="mmHg" puntos={serieSistolica} normalMin={90} normalMax={140} color="#3d5afe" />
+            <GraficaSignos titulo="Frecuencia respiratoria" unidad="rpm" puntos={serie('fr')} normalMin={12} normalMax={20} color="#7c3aed" />
+            <GraficaSignos titulo="Temperatura" unidad="°C" puntos={serie('temp')} normalMin={36} normalMax={38} color="#d97706" />
+            <GraficaSignos titulo="SpO₂" unidad="%" puntos={serie('spo2')} normalMin={92} normalMax={100} color="#0d9488" />
+            <GraficaSignos titulo="Glucosa" unidad="mg/dL" puntos={serie('glucosa')} normalMin={70} normalMax={180} color="#0ea5e9" />
+          </div>
           <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 12 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
               <thead>
@@ -342,7 +382,7 @@ export default function EpisodioPage() {
               </tbody>
             </table>
           </div>
-        )}
+        </>)}
       </>)}
 
       {/* ── TAB: INTERCONSULTAS ── */}
@@ -418,20 +458,67 @@ export default function EpisodioPage() {
         <textarea className={inputCls} rows={5} placeholder="Impresión y recomendaciones" value={respTxt} onChange={e => setRespTxt(e.target.value)} />
       </Modal>
 
-      {/* Nueva indicación */}
-      <Modal open={modalInd} onClose={() => setModalInd(false)} title="Nueva indicación médica"
-        footer={<><Button variant="secondary" onClick={() => setModalInd(false)}>Cancelar</Button><Button loading={busy} disabled={!indForm.descripcion.trim()} onClick={async () => {
+      {/* Nueva indicación (medicamento con catálogo buscable = CPOE estructurado) */}
+      <Modal open={modalInd} onClose={() => { setModalInd(false); setMedQuery('') }} title="Nueva indicación médica"
+        footer={<><Button variant="secondary" onClick={() => { setModalInd(false); setMedQuery('') }}>Cancelar</Button><Button loading={busy} disabled={!indForm.descripcion.trim()} onClick={async () => {
           if (!clinicId) return; setBusy(true)
-          try { await agregarIndicacion(clinicId, internamientoId, { tipo: indForm.tipo, descripcion: indForm.descripcion.trim(), frecuencia: indForm.frecuencia.trim() || undefined, creadaPor: config?.nombreMedico ?? '' }); toast('Indicación agregada', 'success'); setModalInd(false); setIndForm({ tipo: 'medicamento', descripcion: '', frecuencia: '' }); cargar() }
+          const desc = indForm.tipo === 'medicamento'
+            ? [indForm.descripcion.trim(), indForm.dosis.trim(), indForm.via.trim()].filter(Boolean).join(' ')
+            : indForm.descripcion.trim()
+          try { await agregarIndicacion(clinicId, internamientoId, { tipo: indForm.tipo, descripcion: desc, frecuencia: indForm.frecuencia.trim() || undefined, creadaPor: config?.nombreMedico ?? '' }); toast('Indicación agregada', 'success'); setModalInd(false); setIndForm({ tipo: 'medicamento', descripcion: '', dosis: '', via: '', frecuencia: '' }); setMedQuery(''); cargar() }
           finally { setBusy(false) }
         }}>Agregar</Button></>}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Tipo</label>
             <select className={inputCls} value={indForm.tipo} onChange={e => setIndForm(f => ({ ...f, tipo: e.target.value as TipoIndicacion }))}>{TIPO_IND_OPCIONES.map(t => <option key={t} value={t}>{TIPO_INDICACION_LABEL[t]}</option>)}</select></div>
-          <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Indicación</label>
-            <input className={inputCls} placeholder="ej. Ceftriaxona 1 g IV" value={indForm.descripcion} onChange={e => setIndForm(f => ({ ...f, descripcion: e.target.value }))} /></div>
+
+          {indForm.tipo === 'medicamento' ? (<>
+            {/* Buscador del catálogo */}
+            <div style={{ position: 'relative' }}>
+              <label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Medicamento (busca en el catálogo)</label>
+              <input className={inputCls} placeholder="Escribe: ceftriaxona, omeprazol, insulina…" value={indForm.descripcion} onChange={e => { setIndForm(f => ({ ...f, descripcion: e.target.value, dosis: '', via: '' })); setMedQuery(e.target.value) }} />
+              {medQuery.trim().length >= 2 && buscarMed(medQuery).length > 0 && (
+                <div style={{ position: 'absolute', zIndex: 30, left: 0, right: 0, marginTop: 2, maxHeight: 220, overflowY: 'auto', background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.25)' }}>
+                  {buscarMed(medQuery).map(m => (
+                    <button key={m.nombre} type="button" onClick={() => { setIndForm(f => ({ ...f, descripcion: m.nombre, dosis: m.pres[0] ?? '', via: m.vias[0] ?? '' })); setMedQuery('') }}
+                      style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', fontSize: 13, color: 'var(--text)' }}>
+                      <span style={{ fontWeight: 600 }}>{m.nombre}</span> <span style={{ fontSize: 11, color: 'var(--text3)' }}>· {m.cat}{m.marcas?.length ? ' · ' + m.marcas[0] : ''}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {/* Dosis (presentaciones) + vía como chips rápidos */}
+            {(() => { const sel = buscarMed(indForm.descripcion).find(m => m.nombre === indForm.descripcion); return sel ? (
+              <>
+                <div>
+                  <label style={{ fontSize: 12, color: 'var(--text3)' }}>Dosis / presentación</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 3 }}>
+                    {sel.pres.map(p => <button key={p} type="button" onClick={() => setIndForm(f => ({ ...f, dosis: p }))} className="rounded-full border px-2.5 py-1 text-xs" style={indForm.dosis === p ? { borderColor: '#3d5afe', background: 'rgba(61,90,254,.12)', color: '#3d5afe' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{p}</button>)}
+                    <input className="rounded-md border px-2 py-1 text-xs bg-transparent" style={{ width: 100 }} placeholder="otra" value={indForm.dosis} onChange={e => setIndForm(f => ({ ...f, dosis: e.target.value }))} />
+                  </div>
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, color: 'var(--text3)' }}>Vía</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 3 }}>
+                    {sel.vias.map(v2 => <button key={v2} type="button" onClick={() => setIndForm(f => ({ ...f, via: v2 }))} className="rounded-full border px-2.5 py-1 text-xs" style={indForm.via === v2 ? { borderColor: '#3d5afe', background: 'rgba(61,90,254,.12)', color: '#3d5afe' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{v2}</button>)}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <input className={inputCls} placeholder="Dosis (ej. 1 g)" value={indForm.dosis} onChange={e => setIndForm(f => ({ ...f, dosis: e.target.value }))} />
+                <input className={inputCls} placeholder="Vía (ej. IV)" value={indForm.via} onChange={e => setIndForm(f => ({ ...f, via: e.target.value }))} />
+              </div>
+            )})()}
+          </>) : (
+            <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Indicación</label>
+              <input className={inputCls} placeholder="ej. Dieta blanda / Vigilar diuresis" value={indForm.descripcion} onChange={e => setIndForm(f => ({ ...f, descripcion: e.target.value }))} /></div>
+          )}
+
           <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Frecuencia (opcional)</label>
             <input className={inputCls} placeholder="ej. cada 12 h" value={indForm.frecuencia} onChange={e => setIndForm(f => ({ ...f, frecuencia: e.target.value }))} /></div>
+
           {/* CDS en vivo — alertas de alta especificidad (alergias / interacciones / renal / controlados) */}
           {alertasCDS.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
