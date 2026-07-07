@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v193'  // Fix: etiquetas de rol Enfermeria/Farmacia/Laboratorio salian en blanco en el selector del equipo
+const CACHE = 'nexusmed-v194'  // Consola del dueno: panel /superadmin (solo tu) — todas las suscripciones, cobranza, ingresos y pase libre; webhook registra pagos; RBAC por correo dueno
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
