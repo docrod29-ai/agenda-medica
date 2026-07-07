@@ -252,6 +252,16 @@ service cloud.firestore {
       allow read, write: if isAuth() && request.auth.uid == uid;
     }
 
+    // Facturación de la PLATAFORMA (nivel dueño) — pagos registrados por el
+    // webhook de Stripe y bitácora de acciones del dueño. NUNCA accesibles desde
+    // el cliente: solo el servidor (Admin SDK) y la consola /superadmin vía API.
+    match /platform_payments/{payId} {
+      allow read, write: if false; // Admin SDK only
+    }
+    match /platform_admin_log/{logId} {
+      allow read, write: if false; // Admin SDK only
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

@@ -8,12 +8,13 @@ import { useDoctors } from '@/hooks/useDoctors'
 import { useToast } from '@/context/ToastContext'
 import { useClinic } from '@/context/ClinicContext'
 import { auth, storage } from '@/lib/firebase'
-import { Loader2, Save, Copy, Calendar, CheckCircle2, XCircle, Link, Bot, CreditCard, ExternalLink, MessageCircle, Smartphone, AlertTriangle, UserRound, QrCode, Code, Lightbulb, Star, Ruler, KeyRound, Lock, PenLine, Sparkles } from 'lucide-react'
+import { Loader2, Save, Copy, Calendar, CheckCircle2, XCircle, Link, Bot, CreditCard, ExternalLink, MessageCircle, Smartphone, AlertTriangle, UserRound, QrCode, Code, Lightbulb, Star, Ruler, KeyRound, Lock, PenLine, Sparkles, ShieldCheck } from 'lucide-react'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { msgConfirmacion, msgRecordatorio24h, msgRecordatorioDia } from '@/lib/whatsapp'
 import { copyToClipboard } from '@/lib/whatsapp'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
+import { esSuperadminCliente } from '@/lib/superadmin-client'
 import { useMode } from '@/context/ModeContext'
 import {
   crearInvitacion, listarInvitaciones, revocarInvitacion,
@@ -34,6 +35,7 @@ export default function ConfiguracionPage() {
   const { activeDoctors } = useDoctors()
   const { clinicId } = useClinic()
   const { toast } = useToast()
+  const { user: authUser } = useAuth()
   const searchParams = useSearchParams()
   const [tab, setTab] = useState<Tab>('general')
   const [form, setForm] = useState<ClinicConfig>({ ...DEFAULT_CONFIG })
@@ -240,6 +242,23 @@ export default function ConfiguracionPage() {
           </button>
         )}
       </div>
+
+      {/* Entrada a la consola del DUEÑO — solo visible para el superadmin (el gate
+          real lo hace el servidor). Discreta, fuera de las pestañas normales. */}
+      {esSuperadminCliente(authUser?.email) && (
+        <a href="/superadmin" style={{
+          display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none',
+          background: 'linear-gradient(90deg, #7c3aed12, transparent)', border: '1px solid #7c3aed44',
+          borderRadius: 12, padding: '12px 16px', marginBottom: 18,
+        }}>
+          <ShieldCheck size={18} style={{ color: '#7c3aed' }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>Consola de suscripciones (dueño)</div>
+            <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>Todos los consultorios, cobranza, ingresos y pases libres</div>
+          </div>
+          <ExternalLink size={15} style={{ color: 'var(--text3)' }} />
+        </a>
+      )}
 
       {/* Layout: sidebar agrupado (desktop) / select (móvil) + contenido */}
       <div className="config-layout" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 24, alignItems: 'start' }}>

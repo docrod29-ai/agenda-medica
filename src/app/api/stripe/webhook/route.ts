@@ -118,6 +118,27 @@ export async function POST(req: NextRequest) {
         break
       }
 
+      /* ── Payment SUCCEEDED → registra el ingreso ────── */
+      case 'invoice.paid':
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object as import('stripe').Stripe.Invoice
+        const clinicId = await getClinicIdByCustomer(invoice.customer as string)
+        const amount = (invoice.amount_paid ?? 0) / 100  // centavos → MXN
+        if (amount <= 0) break
+        // Registro idempotente por invoice.id (Stripe reintenta el webhook).
+        await adminDb.collection('platform_payments').doc(invoice.id ?? `pay_${event.id}`).set({
+          clinicId: clinicId ?? '',
+          stripeCustomerId: invoice.customer ?? '',
+          invoiceId: invoice.id ?? '',
+          monto: amount,
+          moneda: (invoice.currency ?? 'mxn').toUpperCase(),
+          fecha: new Date((invoice.created ?? Math.floor(Date.now() / 1000)) * 1000).toISOString(),
+          descripcion: invoice.lines?.data?.[0]?.description ?? 'Suscripción',
+          createdAt: new Date().toISOString(),
+        }, { merge: true })
+        break
+      }
+
       /* ── Payment failed ────────────────────────────── */
       case 'invoice.payment_failed': {
         const invoice = event.data.object as import('stripe').Stripe.Invoice

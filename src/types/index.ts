@@ -5,7 +5,7 @@
 import type { LucideIcon } from 'lucide-react'
 import { UserPlus, RefreshCw, Siren, Microscope, Video, ClipboardCheck, Stethoscope, ClipboardList } from 'lucide-react'
 
-export type ClinicPlan = 'trial' | 'basico' | 'pro' | 'clinica'
+export type ClinicPlan = 'trial' | 'basico' | 'pro' | 'clinica' | 'cortesia'
 export type ClinicStatus = 'active' | 'trial' | 'suspended' | 'cancelled'
 
 export interface ClinicWhatsApp {
@@ -27,6 +27,12 @@ export interface Clinic {
   stripeCustomerId?: string
   stripeSubscriptionId?: string
   stripeSubscriptionStatus?: string
+  // Pase libre otorgado por el dueño de la plataforma (cortesía / demo / socio).
+  // Cuando es true, el acceso nunca vence y no se cobra.
+  paseLibre?: boolean
+  paseLibreMotivo?: string
+  paseLibrePor?: string          // correo del dueño que lo otorgó
+  notasInternas?: string         // notas del dueño sobre este cliente (no visibles al cliente)
   whatsapp?: ClinicWhatsApp     // WhatsApp connection (set after 360dialog enrollment)
   ownerId: string               // Firebase uid del creador
   createdAt: string
