@@ -117,9 +117,12 @@ service cloud.firestore {
       match /hospital_alertas/{alertaId} {
         allow read, write: if isClinicoHospital(clinicId);
       }
-      // Catálogo de camas (inventario + ocupación)
+      // Catálogo de camas (inventario + ocupación). LEE todo el staff clínico;
+      // ESCRIBE solo médico/admin (enfermería/farmacia/laboratorio no gestionan el
+      // inventario — antes podían borrar/alterar camas: RBAC era solo de vista).
       match /camas/{camaId} {
-        allow read, write: if isClinicoHospital(clinicId);
+        allow read: if isClinicoHospital(clinicId);
+        allow write: if isMedico(clinicId);
       }
       match /config/{docId} {
         allow read, write: if isMember(clinicId);
@@ -204,7 +207,11 @@ service cloud.firestore {
     match /clinic_review_requests/{token} {
       allow read: if true;        // token funciona como autorización
       allow create: if isAuth();  // el médico genera la solicitud
-      allow update: if true;      // el paciente marca used=true (validación en route)
+      // El paciente SOLO puede marcarla usada (false→true); no puede quemarla sin
+      // enviar ni alterar otros campos (antes `if true` dejaba corromperla).
+      allow update: if resource.data.used == false
+        && request.resource.data.used == true
+        && request.resource.data.clinicId == resource.data.clinicId;
       allow delete: if isAuth();
     }
 

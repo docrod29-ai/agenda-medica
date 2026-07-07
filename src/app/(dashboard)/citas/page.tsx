@@ -401,8 +401,8 @@ function AppointmentRowFull({
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
-        {/* Botón Cobrar — solo cuando la cita no está cancelada/no-asistió */}
-        {appt.estado !== 'cancelada' && appt.estado !== 'no-asistio' && appt.estado !== 'reagendada' && onCobrar && (
+        {/* Botón Cobrar — no cancelada/no-asistió/reagendada Y sin cobro previo (anti doble cobro) */}
+        {appt.estado !== 'cancelada' && appt.estado !== 'no-asistio' && appt.estado !== 'reagendada' && !appt.cobroId && onCobrar && (
           <button
             onClick={() => onCobrar(appt)}
             title="Registrar cobro"

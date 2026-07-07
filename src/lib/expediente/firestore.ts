@@ -17,16 +17,30 @@ function notaDoc(clinicId: string, patientId: string, notaId: string) {
   return doc(db, 'clinics', clinicId, 'patients', patientId, 'notas', notaId)
 }
 
+/** Defaults defensivos: notas viejas pueden no traer arreglos → el timeline del
+ *  expediente reventaba al hacer .map/.length sobre undefined. */
+function normNota(raw: Record<string, unknown>, id: string): NotaMedica {
+  const n = raw as unknown as Partial<NotaMedica>
+  return {
+    ...(raw as unknown as NotaMedica),
+    id,
+    diagnosticos: Array.isArray(n.diagnosticos) ? n.diagnosticos : [],
+    medicamentos: Array.isArray(n.medicamentos) ? n.medicamentos : [],
+    alergias: Array.isArray(n.alergias) ? n.alergias : [],
+    secciones: Array.isArray(n.secciones) ? n.secciones : [],
+  }
+}
+
 export async function getNotas(clinicId: string, patientId: string): Promise<NotaMedica[]> {
   const snap = await getDocs(query(notasCol(clinicId, patientId), orderBy('fechaConsulta', 'desc')))
-  return snap.docs.map(d => ({ ...d.data(), id: d.id } as NotaMedica))
+  return snap.docs.map(d => normNota(d.data(), d.id))
 }
 
 export async function getNota(clinicId: string, patientId: string, notaId: string): Promise<NotaMedica | null> {
   const snap = await getDoc(notaDoc(clinicId, patientId, notaId))
   // IMPORTANTE: id va DESPUÉS del spread para que sobreescriba cualquier 'id'
   // erróneo que se haya guardado en data (bug legacy, líneas 183 y 189 de consulta/page.tsx).
-  return snap.exists() ? ({ ...snap.data(), id: snap.id } as NotaMedica) : null
+  return snap.exists() ? normNota(snap.data(), snap.id) : null
 }
 
 /**

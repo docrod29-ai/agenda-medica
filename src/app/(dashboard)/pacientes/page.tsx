@@ -81,8 +81,9 @@ export default function PacientesPage() {
   const resultadosBusqueda = useMemo(() => {
     const q = norm(search.trim())
     if (!q) return null
+    const qDig = search.replace(/\D/g, '')  // teléfono: comparar solo dígitos (ignora espacios/guiones)
     return patients
-      .filter(p => norm(p.nombre).includes(q) || p.telefono.includes(search) || norm(p.email ?? '').includes(q) || norm(p.curp ?? '').includes(q))
+      .filter(p => norm(p.nombre).includes(q) || (qDig !== '' && (p.telefono ?? '').replace(/\D/g, '').includes(qDig)) || norm(p.email ?? '').includes(q) || norm(p.curp ?? '').includes(q))
       .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
   }, [patients, search])
 
@@ -373,7 +374,7 @@ function PatientModal({ patient, onClose, onSaved, userEmail }: {
         email: f.email.trim(),
         fechaNacimiento: f.fechaNacimiento,
         edad: f.edad ? Number(f.edad) : undefined,
-        sexo: f.sexo as Patient['sexo'],
+        sexo: (f.sexo || undefined) as Patient['sexo'],
         curp: f.curp.trim().toUpperCase() || undefined,
         seguroMedico: f.seguroMedico.trim(),
         alergias: f.alergias.trim(),

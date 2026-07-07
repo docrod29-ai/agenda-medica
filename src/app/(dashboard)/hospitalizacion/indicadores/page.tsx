@@ -34,7 +34,9 @@ export default function IndicadoresPage() {
   const m = useMemo(() => {
     const activos = todos.filter(i => i.estado === 'activo')
     const egresados = todos.filter(i => i.estado === 'egresado')
-    const estMedia = todos.length ? Math.round(todos.reduce((s, i) => s + diasEstancia(i), 0) / todos.length * 10) / 10 : 0
+    // Estancia media SOLO sobre egresados (los activos aún no terminan su estancia
+    // → mezclarlos daba un promedio que cambiaba solo cada día).
+    const estMedia = egresados.length ? Math.round(egresados.reduce((s, i) => s + diasEstancia(i), 0) / egresados.length * 10) / 10 : 0
     // por servicio (activos)
     const servicio = new Map<string, number>()
     for (const i of activos) servicio.set(i.servicio || 'Otro', (servicio.get(i.servicio || 'Otro') ?? 0) + 1)

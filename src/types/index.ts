@@ -222,6 +222,8 @@ export interface Appointment {
   branchId?: string            // ✨ multi-sucursal (opcional)
   googleCalendarEventId?: string
   googleCalendarSyncStatus?: 'pending' | 'synced' | 'error'
+  cobroId?: string             // cobro ya registrado para esta cita (evita doble cobro)
+  cobradoEn?: string
   createdAt: string
   updatedAt: string
   creadoPor: string

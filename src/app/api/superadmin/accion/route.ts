@@ -38,7 +38,8 @@ export async function POST(req: NextRequest) {
       patch = { plan: 'cortesia', status: 'active', paseLibre: true, paseLibreMotivo: body.motivo ?? '', paseLibrePor: acc.email }
       break
     case 'quitar_pase_libre':
-      patch = { plan: 'trial', status: 'trial', paseLibre: false, paseLibreMotivo: '', paseLibrePor: '' }
+      // Da 14 días de gracia (con fecha), si no el gate la bloquea al instante.
+      patch = { plan: 'trial', status: 'trial', paseLibre: false, paseLibreMotivo: '', paseLibrePor: '', trialEndsAt: new Date(Date.now() + 14 * 86400000).toISOString() }
       break
     case 'suspender':
       patch = { status: 'suspended' }
@@ -49,9 +50,14 @@ export async function POST(req: NextRequest) {
     case 'extender_prueba': {
       const dias = Math.max(1, Math.min(365, Number(body.dias ?? 14)))
       const snap = await ref.get()
-      const actual = snap.exists ? String((snap.data() as Any).trialEndsAt ?? '') : ''
+      const d = snap.exists ? (snap.data() as Any) : {}
+      const actual = String(d.trialEndsAt ?? '')
       const base = actual && new Date(actual).getTime() > Date.now() ? new Date(actual).getTime() : Date.now()
-      patch = { status: 'trial', plan: 'trial', trialEndsAt: new Date(base + dias * 86400000).toISOString() }
+      const nuevaFecha = new Date(base + dias * 86400000).toISOString()
+      // NO degradar una clínica ACTIVA / de PAGO / con pase libre: solo empujar la
+      // fecha. Poner status/plan='trial' aquí bloqueaba a clientes que ya pagaban.
+      const esActivaOPago = d.status === 'active' || d.paseLibre === true || d.plan === 'cortesia'
+      patch = esActivaOPago ? { trialEndsAt: nuevaFecha } : { status: 'trial', plan: 'trial', trialEndsAt: nuevaFecha }
       break
     }
     case 'guardar_notas':
@@ -60,6 +66,9 @@ export async function POST(req: NextRequest) {
     case 'asignar_modulos': {
       // Asigna a la clínica un conjunto de módulos (paquete o combinación a mano).
       const modulos = (Array.isArray(body.modulos) ? body.modulos : []).map(String).filter(k => TODOS_LOS_MODULOS.includes(k))
+      // GUARD: un array vacío se interpretaría como "acceso a TODO" (modulosDe),
+      // lo opuesto a lo deseado. Rechazamos: hay que elegir al menos un módulo.
+      if (modulos.length === 0) return NextResponse.json({ ok: false, error: 'Elige al menos un módulo (0 módulos daría acceso total).' }, { status: 400 })
       patch = { modulos, paqueteId: body.paqueteId ?? '', paqueteNombre: body.paqueteNombre ?? '' }
       break
     }

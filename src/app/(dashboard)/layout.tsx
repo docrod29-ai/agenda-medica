@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
 import { Sidebar } from '@/components/Sidebar'
@@ -178,7 +178,10 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
     '/expedientes', '/expediente/', '/consulta/', '/nota/', '/referencia/',
     '/receta/', '/orden/', '/crm', '/resenas', '/cumplimiento', '/finanzas',
   ]
-  const pathname = typeof window !== 'undefined' ? window.location.pathname : ''
+  // usePathname() se re-evalúa en cada navegación (el layout NO se re-monta), a
+  // diferencia de window.location.pathname que quedaba obsoleto → el guard de
+  // rol y de módulos podía no dispararse al navegar dentro del dashboard.
+  const pathname = usePathname() ?? ''
 
   // role viene de Firestore (clinic_members) — NO se puede bypassear desde el cliente
   const esMedicoReal = role === 'medico' || role === 'admin'
