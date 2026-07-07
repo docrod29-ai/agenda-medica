@@ -100,11 +100,13 @@ function AsistenteInner() {
   const efectiveConfig = useMemo(() => {
     const doctor = activeDoctors.find(d => d.id === doctorId)
     if (!doctor) return config
+    // Fallback al config base si el médico (legacy) no trae estos campos: sin esto
+    // se clobbereaba con undefined y el asistente quedaba sin horarios.
     return {
       ...config,
-      horario: doctor.horario,
-      duraciones: doctor.duraciones,
-      intervaloMinutos: doctor.intervaloMinutos,
+      horario: doctor.horario ?? config.horario,
+      duraciones: doctor.duraciones ?? config.duraciones,
+      intervaloMinutos: doctor.intervaloMinutos ?? config.intervaloMinutos,
     }
   }, [config, activeDoctors, doctorId])
 
