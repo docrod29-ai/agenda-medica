@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v198'  // Paquetes de suscripcion predefinidos (Agenda/Consultorio/Consultorio Pro/Hospitalario/Institucion) se siembran solos en platform_packages al abrir la consola
+const CACHE = 'nexusmed-v199'  // Equipo: sin limite de medicos (antes tope 5) ni personal; el apartado de equipo aclara que ahi tambien se agrega al equipo hospitalario (enfermeria/farmacia/laboratorio/medicos)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

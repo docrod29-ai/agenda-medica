@@ -8,7 +8,7 @@ import { useDoctors } from '@/hooks/useDoctors'
 import { useToast } from '@/context/ToastContext'
 import { useClinic } from '@/context/ClinicContext'
 import { auth, storage } from '@/lib/firebase'
-import { Loader2, Save, Copy, Calendar, CheckCircle2, XCircle, Link, Bot, CreditCard, ExternalLink, MessageCircle, Smartphone, AlertTriangle, UserRound, QrCode, Code, Lightbulb, Star, Ruler, KeyRound, Lock, PenLine, Sparkles, ShieldCheck } from 'lucide-react'
+import { Loader2, Save, Copy, Calendar, CheckCircle2, XCircle, Link, Bot, CreditCard, ExternalLink, MessageCircle, Smartphone, AlertTriangle, UserRound, QrCode, Code, Lightbulb, Star, Ruler, KeyRound, Lock, PenLine, Sparkles, ShieldCheck, BedDouble } from 'lucide-react'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { msgConfirmacion, msgRecordatorio24h, msgRecordatorioDia } from '@/lib/whatsapp'
 import { copyToClipboard } from '@/lib/whatsapp'
@@ -204,8 +204,8 @@ export default function ConfiguracionPage() {
       titulo: 'Equipo y permisos',
       tabs: [
         // La asistente puede gestionar perfiles de médicos en agenda
-        { key: 'medicos', label: 'Médicos (hasta 5)' },
-        { key: 'equipo', label: 'Asistentes y secretarias' },
+        { key: 'medicos', label: 'Médicos (ilimitados)' },
+        { key: 'equipo', label: 'Equipo (asistentes y hospital)' },
       ],
     },
     {
@@ -1206,13 +1206,8 @@ function MedicosTab() {
     nombre: '', especialidad: '', telefono: '', email: '', activo: true,
   })
 
-  const MAX_DOCTORS = 5
   const handleCreate = async () => {
     if (!form.nombre.trim()) { toast('El nombre es requerido', 'error'); return }
-    if (doctors.length >= MAX_DOCTORS) {
-      toast(`Máximo ${MAX_DOCTORS} médicos por clínica`, 'error')
-      return
-    }
     setSaving(true)
     try {
       await createDoctor(clinicId!, {
@@ -1244,13 +1239,11 @@ function MedicosTab() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <p style={{ fontSize: 13, color: 'var(--text3)', margin: 0 }}>
-          {doctors.length} de {MAX_DOCTORS} médicos registrados
-          {doctors.length >= MAX_DOCTORS && <span style={{ color: '#f87171', marginLeft: 8 }}>· Límite alcanzado</span>}
+          {doctors.length} {doctors.length === 1 ? 'médico registrado' : 'médicos registrados'} · sin límite
         </p>
         <button
           className="btn btn-primary btn-sm"
           onClick={() => setShowForm(s => !s)}
-          disabled={!showForm && doctors.length >= MAX_DOCTORS}
         >
           {showForm ? 'Cancelar' : '+ Agregar médico'}
         </button>
@@ -1575,8 +1568,18 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.55 }}>
-        Genera un enlace que tu asistente abrirá para crear su cuenta y unirse a esta clínica.
-        Los enlaces expiran en 7 días.
+        Genera un enlace que la persona abrirá para crear su cuenta y unirse a esta clínica.
+        Los enlaces expiran en 7 días. <strong style={{ color: 'var(--text2)' }}>Sin límite de personas.</strong>
+      </div>
+
+      {/* Aviso: aquí también se agrega al equipo hospitalario */}
+      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 14px', borderRadius: 12, background: 'rgba(61,90,254,.08)', border: '1px solid rgba(61,90,254,.3)' }}>
+        <BedDouble size={18} style={{ color: '#3d5afe', flexShrink: 0, marginTop: 1 }} />
+        <div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.55 }}>
+          Aquí agregas a <strong>todo tu equipo</strong>, no solo asistentes: también al <strong>equipo hospitalario</strong> —
+          médicos, enfermería, farmacia y laboratorio— para que cada quien entre con su rol al módulo de hospitalización.
+          Puedes invitar a <strong>cuantas personas necesites</strong> (médicos y personal ilimitados).
+        </div>
       </div>
 
       {/* Miembros activos del equipo */}
