@@ -9,6 +9,8 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
+import { getDaySchedule, validarHorarioDia } from '@/lib/availability'
+import { estaBloqueado } from '@/lib/time-blocks'
 
 interface Body {
   clinicId: string
@@ -74,6 +76,22 @@ export async function POST(req: NextRequest) {
     const duracion = Number((cfg.duraciones ?? {})[tipo] ?? 30)
 
     const fechaHora = `${fecha} ${hora}`
+
+    // RE-VALIDAR el slot en el SERVIDOR (no confiar en que el cliente solo mande
+    // horas válidas): día activo/no festivo, dentro del horario, y sin bloqueo.
+    const schedule = getDaySchedule(fecha, cfg as unknown as import('@/types').ClinicConfig)
+    if (!schedule) return NextResponse.json({ ok: false, error: 'Ese día no hay servicio' }, { status: 409 })
+    const vh = validarHorarioDia(schedule.inicio, schedule.fin)
+    const [rh, rm] = hora.split(':').map(Number)
+    const minSlot = rh * 60 + rm
+    if (!vh.valido || minSlot < vh.startMin || minSlot + duracion > vh.endMin) {
+      return NextResponse.json({ ok: false, error: 'Horario fuera del servicio' }, { status: 409 })
+    }
+    const bloquesSnap = await clinicRef.collection('time_blocks').get()
+    const bloques = bloquesSnap.docs.map(d => ({ id: d.id, ...d.data() })) as unknown as import('@/lib/time-blocks').TimeBlock[]
+    if (estaBloqueado(fechaHora, bloques, medicoId)) {
+      return NextResponse.json({ ok: false, error: 'Ese horario no está disponible (bloqueo/ausencia)' }, { status: 409 })
+    }
 
     // Buscar/crear paciente por teléfono (fuera de la transacción de la cita)
     const tel = paciente.telefono.replace(/\D/g, '')

@@ -259,7 +259,7 @@ function CuerpoRx({ medicamentos, fontSize, startIndex, variant = 'plano', accen
             {m.via && <span> · {m.via}</span>}
             <br />
             <span style={{ fontSize: fontSize - 0.5 }}>
-              {m.frecuencia}
+              {[m.frecuencia, m.duracion && `por ${m.duracion}`, m.indicacion].filter(Boolean).join(' · ')}
             </span>
           </li>
         ))}
@@ -284,7 +284,7 @@ function CuerpoRx({ medicamentos, fontSize, startIndex, variant = 'plano', accen
               {m.via && <span style={{ fontWeight: 500, color: '#666', fontSize: fontSize - 1 }}> · {m.via}</span>}
             </div>
             <div style={{ fontSize: fontSize - 0.5, color: '#444', lineHeight: 1.4, marginTop: 1 }}>
-              {m.frecuencia}
+              {[m.frecuencia, m.duracion && `por ${m.duracion}`, m.indicacion].filter(Boolean).join(' · ')}
             </div>
           </div>
         </div>
