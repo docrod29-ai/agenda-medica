@@ -127,8 +127,9 @@ export default function CitasPage() {
             hora: appt.fechaHora.slice(11, 16),
             clinicId,
             tipo: appt.tipo,
+            medicoId: appt.medicoId,   // ofrecer el hueco solo a quien espera con ESE médico
           }),
-        }).catch(() => {/* no crítico */})
+        }).catch((e) => { console.warn('[waitlist-notify] no se pudo avisar a la lista de espera', e) })
       }
     } catch {
       toast('Error al actualizar', 'error')

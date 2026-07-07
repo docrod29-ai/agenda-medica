@@ -3522,8 +3522,11 @@ function MiembrosActivos({ clinicId, miUid }: { clinicId: string | null; miUid?:
   }
   useEffect(() => { recargar() /* eslint-disable-next-line */ }, [clinicId])
 
+  const soloUnAdmin = () => miembros.filter(x => x.role === 'admin').length <= 1
+
   const remover = async (m: MiembroActivo) => {
     if (m.uid === miUid) { toast('No puedes removerte a ti misma/o', 'error'); return }
+    if (m.role === 'admin' && soloUnAdmin()) { toast('No puedes dejar la clínica sin administrador. Nombra otro admin primero.', 'error'); return }
     if (!window.confirm(`¿Remover a ${m.email} del equipo? Perderá acceso inmediatamente.`)) return
     try {
       await removerMiembro(m.uid)
@@ -3536,6 +3539,7 @@ function MiembrosActivos({ clinicId, miUid }: { clinicId: string | null; miUid?:
 
   const cambiarRol = async (m: MiembroActivo, nuevo: RolInvitacion) => {
     if (m.role === nuevo) return
+    if (m.role === 'admin' && nuevo !== 'admin' && soloUnAdmin()) { toast('No puedes degradar al único administrador. Nombra otro admin primero.', 'error'); return }
     try {
       await cambiarRolMiembro(m.uid, nuevo)
       toast(`Rol actualizado a ${nuevo}`, 'success')
