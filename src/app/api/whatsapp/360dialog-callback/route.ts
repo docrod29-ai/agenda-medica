@@ -33,12 +33,12 @@ export async function GET(req: NextRequest) {
   // ── Validate ──────────────────────────────────────────────────
   if (!clientId || !channelsRaw || !clinicId) {
     console.error('[360dialog callback] Missing params:', { clientId, channelsRaw, clinicId })
-    return NextResponse.redirect(`${APP_URL}/dashboard/configuracion?tab=integraciones&wa=error&reason=missing_params`)
+    return NextResponse.redirect(`${APP_URL}/configuracion?tab=integraciones&wa=error&reason=missing_params`)
   }
 
   if (!PARTNER_ID || !PARTNER_TOKEN) {
     console.error('[360dialog callback] Partner credentials not set in env vars')
-    return NextResponse.redirect(`${APP_URL}/dashboard/configuracion?tab=integraciones&wa=error&reason=not_configured`)
+    return NextResponse.redirect(`${APP_URL}/configuracion?tab=integraciones&wa=error&reason=not_configured`)
   }
 
   let channelIds: string[]
@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
     channelIds = JSON.parse(decodeURIComponent(channelsRaw))
     if (!Array.isArray(channelIds) || channelIds.length === 0) throw new Error('empty')
   } catch {
-    return NextResponse.redirect(`${APP_URL}/dashboard/configuracion?tab=integraciones&wa=error&reason=bad_channels`)
+    return NextResponse.redirect(`${APP_URL}/configuracion?tab=integraciones&wa=error&reason=bad_channels`)
   }
 
   const channelId = channelIds[0] // Use first channel (most doctors have one number)
@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
     if (!keyRes.ok) {
       const body = await keyRes.text()
       console.error('[360dialog callback] Failed to get api_key:', keyRes.status, body)
-      return NextResponse.redirect(`${APP_URL}/dashboard/configuracion?tab=integraciones&wa=error&reason=api_key_failed`)
+      return NextResponse.redirect(`${APP_URL}/configuracion?tab=integraciones&wa=error&reason=api_key_failed`)
     }
 
     const keyData = await keyRes.json()
@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
 
     if (!apiKey) {
       console.error('[360dialog callback] No api_key in response:', JSON.stringify(keyData))
-      return NextResponse.redirect(`${APP_URL}/dashboard/configuracion?tab=integraciones&wa=error&reason=no_api_key`)
+      return NextResponse.redirect(`${APP_URL}/configuracion?tab=integraciones&wa=error&reason=no_api_key`)
     }
 
     // ── Step 2: Get phone number info ─────────────────────────────
@@ -140,12 +140,12 @@ export async function GET(req: NextRequest) {
     console.log(`[360dialog callback] ✅ Connected clinic ${clinicId} → channel ${channelId}`)
 
     return NextResponse.redirect(
-      `${APP_URL}/dashboard/configuracion?tab=integraciones&wa=connected`
+      `${APP_URL}/configuracion?tab=integraciones&wa=connected`
     )
   } catch (err) {
     console.error('[360dialog callback] Unexpected error:', err)
     return NextResponse.redirect(
-      `${APP_URL}/dashboard/configuracion?tab=integraciones&wa=error&reason=unexpected`
+      `${APP_URL}/configuracion?tab=integraciones&wa=error&reason=unexpected`
     )
   }
 }

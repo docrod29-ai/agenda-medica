@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v204'  // Separar Consulta vs Hospital: notas de hospital regresan al episodio (no a consulta); expediente por defecto muestra notas de consultorio; badge 'Internado' en la lista de Consulta
+const CACHE = 'nexusmed-v205'  // Auditoria 60 hallazgos - lote 1: superadmin no degrada clinicas de pago, paciente sin CURP guarda, resena por servidor, timeline no truena, doble cobro, reglas camas/resena, usePathname, +mas
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

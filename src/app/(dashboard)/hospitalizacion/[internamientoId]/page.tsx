@@ -737,7 +737,10 @@ export default function EpisodioPage() {
           const por = config?.nombreMedico ?? ROL_HOSPITAL_LABEL[rol]
           try {
             if (trForm.servicio !== inter.servicio || trForm.cama !== inter.cama) await trasladarInternamiento(clinicId, internamientoId, { servicio: trForm.servicio, cama: trForm.cama.trim(), por })
-            if (trForm.tratante.trim() && trForm.tratante.trim() !== inter.medicoTratanteNombre) await cambiarTratante(clinicId, internamientoId, { medicoTratanteId: inter.medicoTratanteId, medicoTratanteNombre: trForm.tratante.trim(), por })
+            // Al reasignar por nombre (texto libre) NO conservamos el uid viejo: quedaría
+            // apuntando al médico anterior y las alertas irían a la persona equivocada.
+            // Se vacía el id → las alertas caen al teléfono general de la clínica (seguro).
+            if (trForm.tratante.trim() && trForm.tratante.trim() !== inter.medicoTratanteNombre) await cambiarTratante(clinicId, internamientoId, { medicoTratanteId: '', medicoTratanteNombre: trForm.tratante.trim(), por })
             toast('Movimiento registrado', 'success'); setModalTraslado(false); cargar()
           } finally { setBusy(false) }
         }}>Guardar</Button></>}>

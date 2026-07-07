@@ -89,6 +89,7 @@ export async function POST(req: NextRequest) {
   try {
     // Ingreso: create con guard de duplicado activo.
     if (accion === 'crear') {
+      if (!payload.pacienteId) return NextResponse.json({ ok: false, error: 'Falta el paciente' }, { status: 400 })
       const del = await col.where('pacienteId', '==', payload.pacienteId).get()
       if (del.docs.some(d => d.data().estado === 'activo')) return NextResponse.json({ ok: false, error: 'DUPLICADO: el paciente ya tiene un internamiento activo.' }, { status: 409 })
       const ref = await col.add({ ...payload, clinicId, estado: 'activo', createdAt: now, updatedAt: now })

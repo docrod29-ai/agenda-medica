@@ -10,7 +10,7 @@
  * mantener trazabilidad lote → paciente cuando aplique.
  */
 import {
-  collection, addDoc, updateDoc, doc, getDocs, deleteDoc,
+  collection, addDoc, updateDoc, doc, getDocs,
   query, orderBy, where,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -93,7 +93,9 @@ export async function actualizarItem(clinicId: string, itemId: string, data: Par
 }
 
 export async function borrarItem(clinicId: string, itemId: string): Promise<void> {
-  await deleteDoc(doc(COL(clinicId), itemId))
+  // Baja LÓGICA (no hard-delete): conserva el historial de movimientos ligado al
+  // ítem (auditoría de controlados). listarItems ya filtra por activo==true.
+  await updateDoc(doc(COL(clinicId), itemId), { activo: false, updatedAt: new Date().toISOString() })
 }
 
 export async function listarItems(clinicId: string, soloActivos = true): Promise<FarmaciaItem[]> {

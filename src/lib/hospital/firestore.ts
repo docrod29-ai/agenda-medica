@@ -47,7 +47,8 @@ export async function crearInternamiento(clinicId: string, data: NuevoInternamie
   // guard de duplicado activo y escribe con Admin SDK. El cliente ya no escribe
   // directo (las Rules lo bloquean).
   const res = await mutar(clinicId, null, 'crear', limpiar(data as unknown as Record<string, unknown>))
-  return res.id ?? ''
+  if (!res.id) throw new Error('No se pudo registrar el ingreso (sin id).')
+  return res.id
 }
 
 /** CENSO: todos los internamientos ACTIVOS (ordenados por ingreso, en JS para no exigir índice). */

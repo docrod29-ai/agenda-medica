@@ -8,6 +8,7 @@ import {
   registrarCobro, METODO_LABEL, CONCEPTO_LABEL,
   type MetodoPago, type ConceptoCobro,
 } from '@/lib/cobros'
+import { updateAppointment } from '@/lib/firestore'
 import { DollarSign } from 'lucide-react'
 import { Modal, Button } from '@/components/ui'
 import { useToast } from '@/context/ToastContext'
@@ -62,6 +63,10 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
         notas: notas.trim() || undefined,
         creadoPor,
       })
+      // Marca la cita con el cobro para EVITAR DOBLE COBRO (el botón se oculta si ya tiene cobroId).
+      if (prefill?.citaId) {
+        try { await updateAppointment(clinicId, prefill.citaId, { cobroId: id, cobradoEn: new Date().toISOString() }) } catch { /* el cobro ya quedó; no bloquea */ }
+      }
       toast(`Cobro registrado: ${new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n)}`, 'success')
       onCobrado?.(id)
       onClose()

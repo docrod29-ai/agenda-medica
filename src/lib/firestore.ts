@@ -129,14 +129,15 @@ export async function getPatients(clinicId: string): Promise<Patient[]> {
 }
 
 export async function createPatient(clinicId: string, data: Omit<Patient, 'id'>): Promise<string> {
-  const ref = await addDoc(col(clinicId, COLLECTIONS.patients), {
-    ...data, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-  })
+  // sinUndefined: Firestore RECHAZA campos undefined (p. ej. sin CURP) y tronaba el alta.
+  const ref = await addDoc(col(clinicId, COLLECTIONS.patients),
+    sinUndefined({ ...data, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }),
+  )
   return ref.id
 }
 
 export async function updatePatient(clinicId: string, id: string, data: Partial<Patient>): Promise<void> {
-  await updateDoc(d(clinicId, COLLECTIONS.patients, id), { ...data, updatedAt: new Date().toISOString() })
+  await updateDoc(d(clinicId, COLLECTIONS.patients, id), sinUndefined({ ...data, updatedAt: new Date().toISOString() }))
 }
 
 // ── Waitlist ──────────────────────────────────────────────────

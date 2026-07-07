@@ -11,7 +11,7 @@
  * la publica o la rechaza desde el dashboard.
  */
 import {
-  collection, doc, addDoc, getDoc, setDoc, updateDoc, query, where, orderBy, getDocs,
+  collection, doc, getDoc, setDoc, updateDoc, query, where, orderBy, getDocs,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
@@ -80,26 +80,19 @@ export async function enviarResena(
   token: string,
   data: { rating: number; texto: string },
 ): Promise<{ ok: boolean; motivo?: string }> {
-  const req = await obtenerSolicitudResena(token)
-  if (!req) return { ok: false, motivo: 'Enlace inválido' }
-  if (req.used) return { ok: false, motivo: 'Esta reseña ya fue enviada' }
-  if (new Date() > new Date(req.expiresAt)) return { ok: false, motivo: 'Enlace expirado' }
   if (data.rating < 1 || data.rating > 5) return { ok: false, motivo: 'Calificación inválida' }
-
-  // Marcar como usada
-  await updateDoc(doc(db, REQ_COL, token), { used: true })
-
-  // Crear reseña
-  await addDoc(collection(db, 'clinics', req.clinicId, 'reviews'), {
-    citaId: req.citaId,
-    pacienteNombre: req.pacienteNombre,
-    rating: data.rating,
-    texto: data.texto.trim().slice(0, 1000),
-    estado: 'pendiente',
-    createdAt: new Date().toISOString(),
-  } satisfies Omit<Review, 'id'>)
-
-  return { ok: true }
+  // Se hace por SERVIDOR (Admin SDK): el paciente es anónimo (la regla de `reviews`
+  // exige auth) y así crear-reseña + marcar-usada es atómico (no quema el enlace si falla).
+  try {
+    const res = await fetch('/api/public/resena', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, rating: data.rating, texto: data.texto }),
+    })
+    const d = await res.json().catch(() => ({ ok: false, motivo: 'Error de red' }))
+    return { ok: !!d.ok, motivo: d.motivo }
+  } catch {
+    return { ok: false, motivo: 'Sin conexión. Intenta de nuevo.' }
+  }
 }
 
 /** Lista todas las reseñas de la clínica (para dashboard moderación). */

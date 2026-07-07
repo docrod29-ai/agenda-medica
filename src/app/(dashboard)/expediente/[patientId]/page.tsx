@@ -73,7 +73,10 @@ export default function ExpedientePage() {
 
   const notasFiltradas = notas.filter(n => {
     if (filtro === 'todas') return true
-    const hosp = ['ingreso', 'evolucion', 'egreso'].includes(n.tipo)
+    // Marca fiable de nota hospitalaria: pertenece a un internamiento. La lista de
+    // tipos es respaldo para notas viejas sin ese campo (postop/anestesia/consent.
+    // también cuelgan de un internamiento → van a Hospital, no a Consulta).
+    const hosp = !!n.internamientoId || ['ingreso', 'evolucion', 'egreso'].includes(n.tipo)
     return filtro === 'hospital' ? hosp : !hosp
   })
 
@@ -169,12 +172,23 @@ export default function ExpedientePage() {
       {loading ? (
         <Spinner center label="Cargando expediente…" />
       ) : notasFiltradas.length === 0 ? (
+        // Si estás en "Consulta" y no hay notas de consultorio PERO sí de hospital,
+        // no muestres un vacío engañoso: apunta a la pestaña Hospital.
+        (filtro === 'consulta' && notas.some(n => ['ingreso', 'evolucion', 'egreso'].includes(n.tipo))) ? (
+          <EmptyState
+            icon={<FileText size={22} />}
+            title="Sin notas de consultorio"
+            description="Este paciente solo tiene notas de hospitalización. Cambia a la pestaña “Hospital” para verlas."
+            action={<Button variant="secondary" onClick={() => setFiltro('hospital')}>Ver notas de Hospital</Button>}
+          />
+        ) : (
         <EmptyState
           icon={<FileText size={22} />}
           title="Sin notas todavía"
           description="Inicia una consulta para crear la primera nota clínica de este paciente."
           action={<Button icon={<Plus size={16} />} onClick={() => router.push(`/consulta/${patientId}`)}>Crear primera nota</Button>}
         />
+        )
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
           <div className="t-overline" style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
