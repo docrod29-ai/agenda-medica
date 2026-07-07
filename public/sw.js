@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v200'  // Menu: 'Pacientes' renombrado a 'Consulta' (sidebar + bottom nav); misma ruta /pacientes
+const CACHE = 'nexusmed-v201'  // WhatsApp Embedded Signup: usa NEXT_PUBLIC_META_CONFIG_ID como config_id (antes usaba el App ID, incorrecto); guard claro si falta
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

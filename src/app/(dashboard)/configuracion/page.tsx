@@ -823,6 +823,10 @@ function AutoAgendaLink({ configNumero, onCopy, copied }: {
 
 /* ── WhatsApp Connect Card (Meta Embedded Signup) ──────────────── */
 const META_APP_ID = process.env.NEXT_PUBLIC_META_APP_ID ?? ''
+// El Embedded Signup EXIGE un "config_id" propio (la Configuración de registro
+// integrado que creas en el panel de Meta → WhatsApp). NO es el App ID. Si no
+// está, el flujo de un clic no abre correctamente.
+const META_CONFIG_ID = process.env.NEXT_PUBLIC_META_CONFIG_ID ?? ''
 
 /** Declare FB SDK global injected by the script tag */
 declare global {
@@ -895,6 +899,10 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
       toast('Configura NEXT_PUBLIC_META_APP_ID en Vercel', 'error')
       return
     }
+    if (!META_CONFIG_ID) {
+      toast('Configura NEXT_PUBLIC_META_CONFIG_ID en Vercel (el config del registro integrado)', 'error')
+      return
+    }
     setConnecting(true)
     try {
       await loadFBSDK(META_APP_ID)
@@ -919,7 +927,7 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
         }
         setConnecting(false)
       }, {
-        config_id: META_APP_ID,  // use your App ID as config_id for Embedded Signup
+        config_id: META_CONFIG_ID,  // Configuración de Embedded Signup (NO el App ID)
         response_type: 'code',
         override_default_response_type: true,
         extras: {
