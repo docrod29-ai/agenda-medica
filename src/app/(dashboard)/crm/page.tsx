@@ -45,7 +45,12 @@ export default function CRMPage() {
       : isoDaysAgo(90)
   }, [periodo])
 
-  const enPeriodo = useMemo(() => appts.filter(a => a.fechaHora.slice(0, 10) >= desde), [appts, desde])
+  // Cota superior = HOY: las citas FUTURAS aún no ocurren; contarlas falseaba las
+  // tasas de no-show/confirmación/atención (denominador inflado).
+  const enPeriodo = useMemo(() => {
+    const hasta = isoDaysAgo(0)
+    return appts.filter(a => { const d = a.fechaHora.slice(0, 10); return d >= desde && d <= hasta })
+  }, [appts, desde])
 
   // Métricas operativas
   const total = enPeriodo.length

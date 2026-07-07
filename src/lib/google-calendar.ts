@@ -27,8 +27,12 @@ export async function getTokensFromCode(code: string) {
 }
 
 export function buildCalendarEvent(appt: Appointment, config: ClinicConfig) {
-  const startDt = new Date(`${appt.fechaHora.slice(0, 10)}T${appt.fechaHora.slice(11, 16)}:00`)
-  const endDt = new Date(startDt.getTime() + appt.duracion * 60 * 1000)
+  // Hora LOCAL "flotante" (sin Z) + timeZone → Google la interpreta en la zona de
+  // la clínica. Antes se hacía toISOString() en la zona del SERVIDOR (UTC en
+  // Vercel), corriendo la cita 6-7 h. Se calcula el fin en UTC para no re-contaminar.
+  const startNaive = `${appt.fechaHora.slice(0, 10)}T${appt.fechaHora.slice(11, 16)}:00`
+  const startUtc = new Date(`${startNaive}Z`)
+  const endNaive = new Date(startUtc.getTime() + appt.duracion * 60 * 1000).toISOString().slice(0, 19)
 
   const tipoLabel: Record<string, string> = {
     'primera-vez': 'Primera vez',
@@ -50,11 +54,11 @@ export function buildCalendarEvent(appt: Appointment, config: ClinicConfig) {
       `Estado: ${appt.estado}`,
     ].filter(Boolean).join('\n'),
     start: {
-      dateTime: startDt.toISOString(),
+      dateTime: startNaive,
       timeZone: config.zonaHoraria ?? 'America/Chihuahua',
     },
     end: {
-      dateTime: endDt.toISOString(),
+      dateTime: endNaive,
       timeZone: config.zonaHoraria ?? 'America/Chihuahua',
     },
     colorId: appt.estado === 'cancelada' ? '11' :

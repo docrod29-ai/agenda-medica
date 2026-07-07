@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v206'  // Auditoria lote 2 (seguridad P0): unirse por invitacion via servidor (cierra escalada admin cross-tenant); invitaciones solo medico/admin; calendar status/calendars/delete derivan uid del token
+const CACHE = 'nexusmed-v207'  // Auditoria lote 3 (P1 datos+agenda): TZ Google Calendar, dedup pacientes por telefono, consentimiento WhatsApp visible, CRM sin citas futuras, editar cita no pisa medico, ingreso transaccional, stock farmacia transaccional
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

@@ -11,7 +11,7 @@
  */
 import {
   collection, addDoc, updateDoc, doc, getDocs,
-  query, orderBy, where,
+  query, orderBy, where, runTransaction,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
@@ -113,38 +113,32 @@ export async function registrarMovimiento(
 ): Promise<void> {
   if (!itemActual.id) throw new Error('Item sin id')
   const fecha = new Date().toISOString()
+  const itemRef = doc(COL(clinicId), itemActual.id)
 
-  // Calcular el stock resultante Y la cantidad REALMENTE aplicada.
-  // CLAVE de trazabilidad (NOM-220): el movimiento que se registra debe
-  // cuadrar con el cambio de existencia. Antes, una salida mayor al stock
-  // registraba la cantidad pedida (ej. 10) pero el stock se clampeaba a 0
-  // → historial y existencia quedaban descuadrados (3 − 10 ≠ 0).
-  let nuevaCantidad = itemActual.cantidad
-  let cantidadAplicada = mov.cantidad
-  let notaAjuste = ''
+  // TRANSACCIÓN: lee la existencia ACTUAL del doc (no la que trae el caller, que
+  // puede estar vieja) y calcula desde ahí. Antes, dos salidas concurrentes
+  // partían del mismo valor viejo → last-write-wins descuadraba el stock.
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(itemRef)
+    const disponible = snap.exists() ? Number((snap.data() as { cantidad?: number }).cantidad ?? 0) : itemActual.cantidad
+    let nuevaCantidad = disponible
+    let cantidadAplicada = mov.cantidad
+    let notaAjuste = ''
 
-  if (mov.tipo === 'entrada') {
-    nuevaCantidad += mov.cantidad
-  } else if (mov.tipo === 'salida' || mov.tipo === 'caducidad' || mov.tipo === 'merma') {
-    // No se puede sacar más de lo que hay: el movimiento real = lo disponible.
-    cantidadAplicada = Math.min(mov.cantidad, itemActual.cantidad)
-    if (cantidadAplicada < mov.cantidad) {
-      notaAjuste = ` [ajustado: se solicitaron ${mov.cantidad} pero solo había ${itemActual.cantidad}]`
+    if (mov.tipo === 'entrada') {
+      nuevaCantidad = disponible + mov.cantidad
+    } else if (mov.tipo === 'salida' || mov.tipo === 'caducidad' || mov.tipo === 'merma') {
+      cantidadAplicada = Math.min(mov.cantidad, disponible)
+      if (cantidadAplicada < mov.cantidad) notaAjuste = ` [ajustado: se solicitaron ${mov.cantidad} pero solo había ${disponible}]`
+      nuevaCantidad = disponible - cantidadAplicada
+    } else if (mov.tipo === 'ajuste') {
+      nuevaCantidad = mov.cantidad
     }
-    nuevaCantidad = itemActual.cantidad - cantidadAplicada
-  } else if (mov.tipo === 'ajuste') {
-    nuevaCantidad = mov.cantidad  // ajuste = set absoluto
-  }
 
-  // 1. Registrar el movimiento con la cantidad REAL aplicada (libros cuadran)
-  await addDoc(COL_MOV(clinicId), {
-    ...mov,
-    cantidad: cantidadAplicada,
-    motivo: (mov.motivo ?? '') + notaAjuste,
-    fecha,
+    // Movimiento con la cantidad REAL aplicada (libros cuadran) + stock resultante.
+    tx.set(doc(COL_MOV(clinicId)), { ...mov, cantidad: cantidadAplicada, motivo: (mov.motivo ?? '') + notaAjuste, fecha })
+    tx.update(itemRef, { cantidad: nuevaCantidad, updatedAt: fecha })
   })
-  // 2. Persistir el stock resultante (nunca negativo por construcción)
-  await actualizarItem(clinicId, itemActual.id, { cantidad: nuevaCantidad })
 }
 
 export async function listarMovimientos(clinicId: string, itemId: string): Promise<MovimientoFarmacia[]> {

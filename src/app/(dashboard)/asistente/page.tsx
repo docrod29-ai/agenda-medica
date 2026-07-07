@@ -68,6 +68,7 @@ function AsistenteInner() {
   // Form state
   const [nombre, setNombre] = useState('')
   const [telefono, setTelefono] = useState('')
+  const [consiente, setConsiente] = useState(true)   // consentimiento de mensajes (visible/toggleable)
   const [doctorId, setDoctorId] = useState('')
   const [tipo, setTipo] = useState<AppointmentType>('primera-vez')
   const [fecha, setFecha] = useState(fechaParam || todayStr())
@@ -148,10 +149,16 @@ function AsistenteInner() {
       let pacienteId = ''
       try {
         const pacientes = await getPatients(clinicId!)
-        const existente = pacientes.find(p =>
-          (tel && p.telefono.replace(/\D/g, '') === tel) ||
-          p.nombre.toLowerCase().trim() === nombreLimpio.toLowerCase()
-        )
+        // Prioriza el TELÉFONO. Solo funde por nombre si NO hay teléfono en
+        // conflicto (dos personas con el mismo nombre y teléfonos distintos NO se
+        // fusionan → se crea uno nuevo, evita mezclar expedientes).
+        const dig = (t?: string) => (t ?? '').replace(/\D/g, '')
+        const existente =
+          (tel && pacientes.find(p => dig(p.telefono) === tel)) ||
+          pacientes.find(p =>
+            p.nombre.toLowerCase().trim() === nombreLimpio.toLowerCase() &&
+            (!tel || !dig(p.telefono) || dig(p.telefono) === tel)
+          )
         if (existente) {
           pacienteId = existente.id
         } else {
@@ -192,7 +199,7 @@ function AsistenteInner() {
             recordatorio24hEnviado: false,
             recordatorioMismoDiaEnviado: false,
             notasInternas: '',
-            consentimientoMensajes: !!telefono,
+            consentimientoMensajes: !!telefono && consiente,
             creadoPor: user?.email || 'asistente',
             updatedPor: user?.email || 'asistente',
           },
@@ -280,6 +287,12 @@ function AsistenteInner() {
                   onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'}
                 />
               </div>
+              {telefono.trim() && (
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 12.5, color: 'var(--text3)', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={consiente} onChange={e => setConsiente(e.target.checked)} />
+                  El paciente autoriza recibir recordatorios por WhatsApp
+                </label>
+              )}
             </div>
 
             {/* Doctor selector — chips de color para distinguir entre múltiples médicos */}

@@ -87,13 +87,23 @@ export async function POST(req: NextRequest) {
   const col = adminDb.collection('clinics').doc(clinicId).collection('internamientos')
 
   try {
-    // Ingreso: create con guard de duplicado activo.
+    // Ingreso: create con guard de duplicado activo ATÓMICO (transacción: la
+    // consulta y la escritura van juntas → dos ingresos simultáneos no cuelan).
     if (accion === 'crear') {
       if (!payload.pacienteId) return NextResponse.json({ ok: false, error: 'Falta el paciente' }, { status: 400 })
-      const del = await col.where('pacienteId', '==', payload.pacienteId).get()
-      if (del.docs.some(d => d.data().estado === 'activo')) return NextResponse.json({ ok: false, error: 'DUPLICADO: el paciente ya tiene un internamiento activo.' }, { status: 409 })
-      const ref = await col.add({ ...payload, clinicId, estado: 'activo', createdAt: now, updatedAt: now })
-      return NextResponse.json({ ok: true, id: ref.id })
+      try {
+        const id = await adminDb.runTransaction(async (tx) => {
+          const snap = await tx.get(col.where('pacienteId', '==', payload.pacienteId))
+          if (snap.docs.some(d => d.data().estado === 'activo')) throw new Error('DUPLICADO')
+          const nref = col.doc()
+          tx.set(nref, { ...payload, clinicId, estado: 'activo', createdAt: now, updatedAt: now })
+          return nref.id
+        })
+        return NextResponse.json({ ok: true, id })
+      } catch (e) {
+        if (e instanceof Error && e.message === 'DUPLICADO') return NextResponse.json({ ok: false, error: 'DUPLICADO: el paciente ya tiene un internamiento activo.' }, { status: 409 })
+        throw e
+      }
     }
 
     if (!internamientoId) return NextResponse.json({ ok: false, error: 'internamientoId requerido' }, { status: 400 })
