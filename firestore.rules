@@ -43,7 +43,21 @@ service cloud.firestore {
     match /clinics/{clinicId} {
       allow read: if isMember(clinicId);
       allow create: if isAuth();
-      allow update: if isAdmin(clinicId);
+      // El admin de la clínica puede editar metadatos del doc raíz, PERO NUNCA los
+      // campos de FACTURACIÓN/ENTITLEMENTS (plan, estado, prueba, Stripe, pase
+      // libre, módulos/paquete). Esos SOLO los cambia el servidor (webhook Stripe
+      // + consola del dueño con Admin SDK). Así el cliente no puede auto-activarse
+      // ni desbloquear módulos que no pagó. Se usa get(...,default) para tolerar
+      // documentos donde el campo aún no existe.
+      allow update: if isAdmin(clinicId)
+        && request.resource.data.get('plan', '')            == resource.data.get('plan', '')
+        && request.resource.data.get('status', '')          == resource.data.get('status', '')
+        && request.resource.data.get('trialEndsAt', '')     == resource.data.get('trialEndsAt', '')
+        && request.resource.data.get('stripeCustomerId', '') == resource.data.get('stripeCustomerId', '')
+        && request.resource.data.get('stripeSubscriptionId', '') == resource.data.get('stripeSubscriptionId', '')
+        && request.resource.data.get('paseLibre', false)    == resource.data.get('paseLibre', false)
+        && request.resource.data.get('modulos', [])         == resource.data.get('modulos', [])
+        && request.resource.data.get('paqueteId', '')       == resource.data.get('paqueteId', '');
       allow delete: if false;
 
       match /appointments/{docId} {
@@ -259,6 +273,11 @@ service cloud.firestore {
       allow read, write: if false; // Admin SDK only
     }
     match /platform_admin_log/{logId} {
+      allow read, write: if false; // Admin SDK only
+    }
+    // Paquetes de la plataforma (combinaciones de módulos + precio) — los define
+    // el dueño desde /superadmin vía API. Nunca desde el cliente.
+    match /platform_packages/{pkgId} {
       allow read, write: if false; // Admin SDK only
     }
 

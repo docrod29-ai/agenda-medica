@@ -14,6 +14,7 @@ import { NotificacionesPushOptIn } from '@/components/NotificacionesPushOptIn'
 import { useMode } from '@/context/ModeContext'
 import { BottomNav } from '@/components/BottomNav'
 import { fetchAutenticado } from '@/lib/auth-client'
+import { rutaPermitida } from '@/lib/modulos'
 
 function ModeBanner() {
   const { mode } = useMode()
@@ -189,8 +190,14 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
     // Bloqueo basado en el ROL REAL del Firestore, no en el toggle de UI
     if (!esMedicoReal && RUTAS_SOLO_MEDICO.some(r => pathname.startsWith(r))) {
       router.replace('/dashboard')
+      return
     }
-  }, [user, authLoading, clinicId, clinicLoading, needsSetup, router, esMedicoReal, pathname])
+    // Bloqueo por MÓDULOS contratados (paquete de la clínica): si intenta entrar
+    // directo a una ruta que su paquete no incluye, lo regresa al inicio.
+    if (pathname && !rutaPermitida(clinic, pathname)) {
+      router.replace('/dashboard')
+    }
+  }, [user, authLoading, clinicId, clinicLoading, needsSetup, router, esMedicoReal, pathname, clinic])
 
   if (authLoading || clinicLoading) {
     return (

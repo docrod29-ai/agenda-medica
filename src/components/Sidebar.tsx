@@ -13,6 +13,7 @@ import {
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
+import { rutaPermitida } from '@/lib/modulos'
 import { suscribirMensajes, suscribirLectura, contarNoLeidos, type ChatMessage } from '@/lib/chat'
 
 // Cada item declara en qué modos aparece:
@@ -41,7 +42,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   const { mode, setMode, isDoctor, esMedicoReal } = useMode()
   const { config } = useConfig()
   const { user } = useAuth()
-  const { clinicId } = useClinic()
+  const { clinicId, clinic } = useClinic()
   const [mensajes, setMensajes] = useState<ChatMessage[]>([])
   const [lastReadAt, setLastReadAt] = useState<string | null>(null)
 
@@ -59,9 +60,12 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
   const noLeidos = user?.uid ? contarNoLeidos(mensajes, user.uid, lastReadAt) : 0
 
-  // Filtrar NAV según el modo activo
+  // Filtrar NAV según el modo activo Y los módulos contratados por la clínica
+  // (el paquete que compró). rutaPermitida da acceso a TODO si no hay módulos
+  // definidos (clínicas previas) y siempre a las rutas core.
   const navVisible = NAV.filter(item =>
-    item.modos === 'ambos' || (mode === 'medico' ? item.modos === 'medico' : item.modos === 'secretaria')
+    (item.modos === 'ambos' || (mode === 'medico' ? item.modos === 'medico' : item.modos === 'secretaria'))
+    && rutaPermitida(clinic, item.href)
   )
 
   const handleLogout = async () => {

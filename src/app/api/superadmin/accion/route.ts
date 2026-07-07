@@ -16,6 +16,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarSuperadmin } from '@/lib/superadmin'
+import { TODOS_LOS_MODULOS } from '@/lib/modulos'
 
 type Any = Record<string, unknown>
 
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
   const acc = await verificarSuperadmin(req)
   if (!acc.ok) return acc.response
 
-  let body: { clinicId?: string; accion?: string; motivo?: string; dias?: number; notas?: string }
+  let body: { clinicId?: string; accion?: string; motivo?: string; dias?: number; notas?: string; modulos?: unknown[]; paqueteId?: string; paqueteNombre?: string }
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }
   const { clinicId, accion } = body
   if (!clinicId || !accion) return NextResponse.json({ ok: false, error: 'clinicId y accion requeridos' }, { status: 400 })
@@ -56,6 +57,12 @@ export async function POST(req: NextRequest) {
     case 'guardar_notas':
       patch = { notasInternas: String(body.notas ?? '').slice(0, 2000) }
       break
+    case 'asignar_modulos': {
+      // Asigna a la clínica un conjunto de módulos (paquete o combinación a mano).
+      const modulos = (Array.isArray(body.modulos) ? body.modulos : []).map(String).filter(k => TODOS_LOS_MODULOS.includes(k))
+      patch = { modulos, paqueteId: body.paqueteId ?? '', paqueteNombre: body.paqueteNombre ?? '' }
+      break
+    }
     default:
       return NextResponse.json({ ok: false, error: 'Acción desconocida' }, { status: 400 })
   }

@@ -73,6 +73,9 @@ export async function GET(req: NextRequest) {
         stripeCustomerId: c.stripeCustomerId ?? '',
         tieneStripe: !!c.stripeSubscriptionId,
         notasInternas: c.notasInternas ?? '',
+        modulos: Array.isArray(c.modulos) ? c.modulos : null,
+        paqueteId: c.paqueteId ?? '',
+        paqueteNombre: c.paqueteNombre ?? '',
         createdAt: c.createdAt ?? null,
       }
     }).sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')))
