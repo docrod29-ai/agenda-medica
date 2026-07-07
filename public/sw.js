@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v195'  // Paquetes por modulos: el dueno arma combinaciones (agenda/expediente/hospital/etc) y las asigna; la app oculta+bloquea lo no contratado; reglas blindan campos de facturacion/modulos
+const CACHE = 'nexusmed-v196'  // MAR: el boton Administrar ya no queda 'muerto' en silencio — avisa que correctos faltan (paciente/medicamento/dosis/via/hora) + estado en vivo; surface del error real del gateway
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

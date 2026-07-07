@@ -671,6 +671,7 @@ export default function EpisodioPage() {
         const identidadOk = folioScan.trim().toUpperCase().endsWith(folioEsperado) && folioScan.trim().length >= 8
         const pacienteOk = correctos.paciente || identidadOk
         const todos = pacienteOk && correctos.medicamento && correctos.dosis && correctos.via && correctos.hora
+        const faltan = [!pacienteOk && 'paciente', !correctos.medicamento && 'medicamento', !correctos.dosis && 'dosis', !correctos.via && 'vía', !correctos.hora && 'hora'].filter(Boolean) as string[]
         const chk = (on: boolean, toggle: () => void, label: string) => (
           <button type="button" onClick={toggle} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderRadius: 8, border: '1px solid ' + (on ? 'rgba(13,148,136,.4)' : 'var(--border)'), background: on ? 'rgba(13,148,136,.1)' : 'var(--s1)', cursor: 'pointer', textAlign: 'left', width: '100%', color: 'var(--text)' }}>
             <span style={{ width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${on ? '#0d9488' : 'var(--border)'}`, background: on ? '#0d9488' : 'transparent', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{on && <Check size={12} color="#fff" strokeWidth={3} />}</span>
@@ -681,7 +682,8 @@ export default function EpisodioPage() {
           <Modal open={!!administrando} onClose={() => { setAdministrando(null); setFolioScan('') }} title="Administrar medicamento"
             footer={<><Button variant="secondary" onClick={() => { setAdministrando(null); setFolioScan('') }}>Cancelar</Button>
               <Button variant="secondary" loading={busy} onClick={() => registrar('omitido', false, false)}><Ban size={14} /> Omitido</Button>
-              <Button loading={busy} disabled={!todos} onClick={() => registrar('administrado', true, pacienteOk)}><Check size={14} /> Administrar</Button></>}>
+              {/* NO se deshabilita en silencio: si faltan correctos, avisa cuáles (antes "no pasaba nada"). */}
+              <Button loading={busy} onClick={() => { if (!todos) { toast(`Confirma antes de administrar: ${faltan.join(', ')}`, 'error'); return } registrar('administrado', true, pacienteOk) }}><Check size={14} /> Administrar</Button></>}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {indAct && <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{indAct.descripcion}{indAct.frecuencia ? ` · ${indAct.frecuencia}` : ''}</div>}
               {indAct && !indAct.verificadaFarmacia && (
@@ -707,6 +709,9 @@ export default function EpisodioPage() {
                 {chk(correctos.hora, () => setCorrectos(c => ({ ...c, hora: !c.hora })), 'Hora correcta')}
               </div>
               <input className={inputCls} placeholder="Nota (opcional): dosis, vía, motivo de omisión…" value={admNota} onChange={e => setAdmNota(e.target.value)} />
+              <div style={{ fontSize: 12, fontWeight: 600, padding: '7px 10px', borderRadius: 8, color: todos ? '#0d9488' : '#d97706', background: todos ? 'rgba(13,148,136,.1)' : 'rgba(217,119,6,.1)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                {todos ? <><Check size={14} /> Listo para administrar</> : <><AlertTriangle size={14} /> Falta confirmar: {faltan.join(', ')}</>}
+              </div>
             </div>
           </Modal>
         )
@@ -857,7 +862,7 @@ export default function EpisodioPage() {
     setBusy(true)
     registrarAdministracion(clinicId, internamientoId, administrando, { fecha: new Date().toISOString(), por: config?.nombreMedico ?? rolNombre(rol), estado, nota: admNota.trim() || undefined, cincoCorrectos, identidadVerificada })
       .then(() => { toast(estado === 'administrado' ? 'Administración registrada' : 'Omisión registrada', 'success'); logAudit({ evento: 'hosp_administracion', clinicId, patientId: inter?.pacienteId, medicoUid: auth.currentUser?.uid, medicoEmail: auth.currentUser?.email ?? undefined, meta: { internamientoId, estado, indId: administrando, cincoCorrectos } }); setAdministrando(null); setAdmNota(''); setFolioScan(''); setCorrectos({ paciente: false, medicamento: false, dosis: false, via: false, hora: false }); cargar() })
-      .catch((e) => { console.error('[MAR] registrar', e); toast('No se pudo registrar la administración. Intenta de nuevo.', 'error') })
+      .catch((e) => { console.error('[MAR] registrar', e); toast(e instanceof Error && e.message ? e.message : 'No se pudo registrar la administración. Intenta de nuevo.', 'error') })
       .finally(() => setBusy(false))
   }
 }
