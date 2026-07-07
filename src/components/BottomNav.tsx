@@ -22,7 +22,7 @@ const COMMON: Item[] = [
   { href: '/dashboard', label: 'Inicio',     icon: LayoutDashboard, active: p => p === '/dashboard' },
   { href: '/asistente', label: 'Agendar',    icon: UserSquare2,     active: p => p.startsWith('/asistente') },
   { href: '/calendario', label: 'Calendario',icon: Calendar,        active: p => p.startsWith('/calendario') || p.startsWith('/citas') },
-  { href: '/pacientes', label: 'Pacientes',  icon: Users,           active: p => p.startsWith('/pacientes') },
+  { href: '/pacientes', label: 'Consulta',   icon: Users,           active: p => p.startsWith('/pacientes') },
 ]
 
 export function BottomNav() {
