@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v202'  // Fix aviso de actualizacion: ahora es POR VERSION (el SW responde GET_VERSION); descartar recuerda la version → no reaparece por la misma, solo si hay una realmente nueva
+const CACHE = 'nexusmed-v203'  // Cobro: por defecto el medico NO cobra ni ve el mensaje al firmar; la secretaria registra el cobro desde Citas y cae en Finanzas del medico (toggle pedirCobroAlCerrar ahora default OFF)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

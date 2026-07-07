@@ -279,7 +279,7 @@ export interface ClinicConfig {
   cedulaProfesional?: string   // NOM-004 — requerido para firmar notas
   especialidad?: string        // NOM-004 — aparece en la firma y el PDF
   instruccionesIA?: string     // preferencias del médico para la redacción de notas por IA
-  pedirCobroAlCerrar?: boolean  // ofrecer registrar el cobro tras firmar (default true; el que cobra por fuera lo apaga)
+  pedirCobroAlCerrar?: boolean  // ¿el MÉDICO registra el cobro al firmar? default FALSE → la secretaria cobra desde Citas y cae en Finanzas del médico; enciéndelo solo si el médico cobra al cerrar
   direccion: string
   googleMapsUrl: string
   telefonoAdmin: string

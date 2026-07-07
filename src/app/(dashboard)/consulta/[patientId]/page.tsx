@@ -648,13 +648,15 @@ export default function ConsultaActivaPage() {
         medicoUid: auth.currentUser?.uid, medicoEmail: auth.currentUser?.email ?? undefined,
         meta: { tipo, aprobadosIA: aprobados.size, diagnosticos: diagnosticos.length, medicamentos: medicamentos.length },
       })
-      // Cobro OPCIONAL (Configuración). Muchos médicos cobran por fuera → si está
-      // apagado, no estorba: navega directo (a la receta si hubo medicamentos).
-      if (config?.pedirCobroAlCerrar === false) {
+      // Cobro OPCIONAL. Por defecto el MÉDICO NO cobra al firmar: el cobro lo
+      // registra la secretaria desde Citas cuando el paciente se va (y cae en las
+      // Finanzas del médico). Solo si la clínica lo enciende (pedirCobroAlCerrar
+      // === true) se le pide el cobro al médico aquí.
+      if (config?.pedirCobroAlCerrar === true) {
+        setCobrar(true)
+      } else {
         const nid = notaIdRef.current
         router.push(internamientoParam ? `/hospitalizacion/${internamientoParam}` : medicamentos.length > 0 && nid ? `/receta/${patientId}/${nid}` : `/expediente/${patientId}`)
-      } else {
-        setCobrar(true)
       }
     } catch (e) {
       toast('Error al firmar', 'error')
