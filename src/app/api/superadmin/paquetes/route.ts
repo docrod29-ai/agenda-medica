@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarSuperadmin } from '@/lib/superadmin'
-import { TODOS_LOS_MODULOS } from '@/lib/modulos'
+import { TODOS_LOS_MODULOS, PAQUETES_SUGERIDOS } from '@/lib/modulos'
 import { randomUUID } from 'crypto'
 
 type Any = Record<string, unknown>
@@ -19,10 +19,31 @@ function limpiarModulos(m: unknown): string[] {
   return m.map(String).filter(k => TODOS_LOS_MODULOS.includes(k))
 }
 
+/**
+ * Siembra los paquetes por defecto la PRIMERA vez (marca `platform_meta/paquetes.
+ * seeded`). Guardado por la bandera → si el dueño luego borra o edita paquetes,
+ * NO se vuelven a crear. Idempotente (ids fijos + set con merge).
+ */
+async function sembrarSiHaceFalta(now: string) {
+  const metaRef = adminDb.collection('platform_meta').doc('paquetes')
+  const meta = await metaRef.get()
+  if (meta.exists && (meta.data() as Any).seeded) return
+  const batch = adminDb.batch()
+  for (const p of PAQUETES_SUGERIDOS) {
+    batch.set(adminDb.collection(COL).doc(p.id), {
+      nombre: p.nombre, precio: p.precio, modulos: p.modulos, descripcion: p.descripcion,
+      orden: p.orden, activo: true, createdAt: now, updatedAt: now,
+    }, { merge: true })
+  }
+  batch.set(metaRef, { seeded: true, seededAt: now })
+  await batch.commit()
+}
+
 export async function GET(req: NextRequest) {
   const acc = await verificarSuperadmin(req)
   if (!acc.ok) return acc.response
   try {
+    await sembrarSiHaceFalta(new Date().toISOString())
     const snap = await adminDb.collection(COL).get()
     const paquetes = snap.docs
       .map(d => ({ id: d.id, ...(d.data() as Any) }))

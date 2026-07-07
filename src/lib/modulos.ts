@@ -39,6 +39,26 @@ export const MODULOS: ModuloDef[] = [
 export const MODULO_LABEL: Record<string, string> = Object.fromEntries(MODULOS.map(m => [m.key, m.label]))
 export const TODOS_LOS_MODULOS = MODULOS.map(m => m.key)
 
+/**
+ * Catálogo de PAQUETES por defecto (los que se ofrecen al vender). Se siembran
+ * en `platform_packages` la primera vez que el dueño abre la consola. Precios en
+ * MXN/mes — son un punto de partida sensato; el dueño los edita en /superadmin.
+ * ids fijos → sembrar es idempotente (no duplica).
+ */
+export interface PaqueteDef { id: string; nombre: string; precio: number; modulos: string[]; descripcion: string; orden: number }
+export const PAQUETES_SUGERIDOS: PaqueteDef[] = [
+  { id: 'agenda',          nombre: 'Agenda',            precio: 399,  orden: 0, modulos: ['agenda'],
+    descripcion: 'Citas, calendario, recordatorios y lista de espera. Ideal para recepción.' },
+  { id: 'consultorio',     nombre: 'Consultorio',       precio: 699,  orden: 1, modulos: ['agenda', 'expediente'],
+    descripcion: 'Agenda + expediente de consulta con recetas y órdenes. El médico de consultorio.' },
+  { id: 'consultorio-pro', nombre: 'Consultorio Pro',   precio: 999,  orden: 2, modulos: ['agenda', 'expediente', 'farmacia', 'crm', 'finanzas'],
+    descripcion: 'Consultorio completo: además farmacia, CRM/reseñas y finanzas.' },
+  { id: 'hospitalario',    nombre: 'Hospitalario',      precio: 1299, orden: 3, modulos: ['agenda', 'expediente', 'hospitalizacion'],
+    descripcion: 'Consulta + módulo de hospitalización (censo, indicaciones/MAR, camas).' },
+  { id: 'institucion',     nombre: 'Institución (Todo)', precio: 1799, orden: 4, modulos: [...TODOS_LOS_MODULOS],
+    descripcion: 'Acceso completo a toda la plataforma. Clínicas y hospitales.' },
+]
+
 /** Módulos efectivos de una clínica. undefined/null → TODOS (compatibilidad). */
 export function modulosDe(clinic: { modulos?: string[] | null } | null | undefined): string[] {
   if (!clinic) return TODOS_LOS_MODULOS

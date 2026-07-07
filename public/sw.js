@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v197'  // Auditoria botones: alergias avisa si no se guardan (antes catch silencioso); confirmado 30 rutas API OK, 0 botones muertos, gateway 14 acciones OK
+const CACHE = 'nexusmed-v198'  // Paquetes de suscripcion predefinidos (Agenda/Consultorio/Consultorio Pro/Hospitalario/Institucion) se siembran solos en platform_packages al abrir la consola
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
