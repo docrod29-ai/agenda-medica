@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
+import { verificarUsuario } from '@/lib/auth-server'
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url)
-  const uid = searchParams.get('uid')
-
-  if (!uid) return NextResponse.json({ connected: false })
-
+  // uid del token: antes se consultaba el estado de conexión de cualquier uid.
+  const acc = await verificarUsuario(req)
+  if (!acc.ok) return NextResponse.json({ connected: false })
   try {
-    const doc = await adminDb.collection('googleTokens').doc(uid).get()
+    const doc = await adminDb.collection('googleTokens').doc(acc.uid).get()
     return NextResponse.json({ connected: doc.exists && !!doc.data()?.refreshToken })
   } catch {
     return NextResponse.json({ connected: false })
@@ -16,13 +15,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const { searchParams } = new URL(req.url)
-  const uid = searchParams.get('uid')
-
-  if (!uid) return NextResponse.json({ error: 'Missing uid' }, { status: 400 })
-
+  // uid del token: antes cualquiera desconectaba el Google Calendar de otro usuario.
+  const acc = await verificarUsuario(req)
+  if (!acc.ok) return acc.response
   try {
-    await adminDb.collection('googleTokens').doc(uid).delete()
+    await adminDb.collection('googleTokens').doc(acc.uid).delete()
     return NextResponse.json({ success: true })
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 })

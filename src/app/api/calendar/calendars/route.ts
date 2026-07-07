@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { listCalendars } from '@/lib/google-calendar'
 import { adminDb } from '@/lib/firebase-admin'
+import { verificarUsuario } from '@/lib/auth-server'
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url)
-  const uid = searchParams.get('uid')
-
-  if (!uid) return NextResponse.json({ error: 'Missing uid' }, { status: 400 })
+  // uid del TOKEN, no del query: antes cualquiera leía los calendarios de otro uid.
+  const acc = await verificarUsuario(req)
+  if (!acc.ok) return acc.response
+  const uid = acc.uid
 
   try {
     const tokenDoc = await adminDb.collection('googleTokens').doc(uid).get()
