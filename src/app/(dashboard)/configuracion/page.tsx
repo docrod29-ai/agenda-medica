@@ -2935,11 +2935,19 @@ function SeguridadTab() {
   const [paso, setPaso] = useState<'idle' | 'enrolando' | 'verificando'>('idle')
   const [secret, setSecret] = useState<TotpSecret | null>(null)
   const [qrUrl, setQrUrl] = useState('')
+  const [qrDataUrl, setQrDataUrl] = useState('')   // QR generado LOCAL (el secreto no sale del navegador)
   const [manualKey, setManualKey] = useState('')
   const [codigo, setCodigo] = useState('')
   const [aliasNuevo, setAliasNuevo] = useState('Llave principal')
 
   useEffect(() => { setFactores(listarFactores(user)) }, [user])
+
+  // Genera el QR del TOTP en el navegador (antes se mandaba el otpauth con el
+  // SECRETO a api.qrserver.com — fuga del secreto de 2FA a un tercero).
+  useEffect(() => {
+    if (!qrUrl) { setQrDataUrl(''); return }
+    import('qrcode').then(QR => QR.toDataURL(qrUrl, { width: 220, margin: 2 }).then(setQrDataUrl).catch(() => {}))
+  }, [qrUrl])
 
   const iniciar = async () => {
     setPaso('enrolando')
@@ -3035,11 +3043,11 @@ function SeguridadTab() {
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qrUrl)}&size=200x200&margin=4`}
+            {qrDataUrl && <img
+              src={qrDataUrl}
               alt="QR TOTP"
               style={{ width: 200, height: 200, background: '#fff', padding: 8, borderRadius: 6 }}
-            />
+            />}
           </div>
           <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', marginBottom: 4 }}>O pega esta clave manualmente:</div>
           <div style={{ fontFamily: 'monospace', fontSize: 12, textAlign: 'center', padding: '6px 10px', background: 'var(--s2)', borderRadius: 6, marginBottom: 14, userSelect: 'all', wordBreak: 'break-all' }}>

@@ -139,9 +139,17 @@ export default function CitasPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('¿Eliminar esta cita permanentemente?')) return
     setDeletingId(id)
+    const apptBorrada = appointments.find(a => a.id === id)   // capturar antes de borrar (trae el eventId de Google)
     try {
       await deleteAppointment(clinicId!, id)
       toast('Cita eliminada', 'info')
+      // Borrar también el evento en Google Calendar (antes quedaba huérfano).
+      if (apptBorrada?.googleCalendarEventId) {
+        fetchAutenticado('/api/calendar/sync', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'delete', appointment: apptBorrada, clinicId }),
+        }).catch(() => {})
+      }
     } catch {
       toast('Error al eliminar', 'error')
     } finally {
