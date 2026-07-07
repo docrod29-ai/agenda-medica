@@ -10,6 +10,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, UserSquare2, Calendar, Users, MessageCircle, TrendingUp } from 'lucide-react'
 import { useMode } from '@/context/ModeContext'
+import { useClinic } from '@/context/ClinicContext'
+import { rutaPermitida } from '@/lib/modulos'
 
 type Item = {
   href: string; label: string; icon: typeof LayoutDashboard
@@ -26,13 +28,15 @@ const COMMON: Item[] = [
 export function BottomNav() {
   const pathname = usePathname()
   const { mode } = useMode()
+  const { clinic } = useClinic()
 
   // 5to slot cambia según modo
   const lastItem: Item = mode === 'medico'
     ? { href: '/crm', label: 'CRM', icon: TrendingUp, active: p => p.startsWith('/crm') }
     : { href: '/chat', label: 'Chat', icon: MessageCircle, active: p => p.startsWith('/chat') }
 
-  const items: Item[] = [...COMMON, lastItem]
+  // Oculta accesos a módulos que la clínica no contrató (su paquete).
+  const items: Item[] = [...COMMON, lastItem].filter(it => rutaPermitida(clinic, it.href))
 
   return (
     <nav

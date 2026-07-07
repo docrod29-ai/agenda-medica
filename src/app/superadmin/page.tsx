@@ -9,15 +9,18 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { Modal, Button, Spinner } from '@/components/ui'
-import { ShieldCheck, Search, Gift, Ban, Play, CalendarPlus, StickyNote, Lock, RefreshCw } from 'lucide-react'
+import { MODULOS, MODULO_LABEL } from '@/lib/modulos'
+import { ShieldCheck, Search, Gift, Ban, Play, CalendarPlus, StickyNote, Lock, RefreshCw, Package, Plus, Trash2, Boxes } from 'lucide-react'
 
 interface Cliente {
   id: string; nombreClinica: string; nombreMedico: string
   plan: string; status: string; paseLibre: boolean; paseLibreMotivo: string
   trialEndsAt: string | null; diasPrueba: number | null; trialVencido: boolean
   cobranza: 'al_corriente' | 'debe' | 'cortesia' | 'prueba'
-  mrr: number; totalPagado: number; tieneStripe: boolean; notasInternas: string; createdAt: string | null
+  mrr: number; totalPagado: number; tieneStripe: boolean; notasInternas: string
+  modulos: string[] | null; paqueteId: string; paqueteNombre: string; createdAt: string | null
 }
+interface Paquete { id: string; nombre: string; precio: number; modulos: string[]; descripcion?: string; activo?: boolean; orden?: number }
 interface Totales { clinicas: number; activas: number; enPrueba: number; deben: number; cortesia: number; mrr: number; ingresoTotal: number; ingresoMes: number }
 
 const mxn = (n: number) => '$' + Math.round(n).toLocaleString('es-MX')
@@ -34,21 +37,31 @@ export default function SuperadminPage() {
   const { user, loading: authLoading } = useAuth()
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [totales, setTotales] = useState<Totales | null>(null)
+  const [paquetes, setPaquetes] = useState<Paquete[]>([])
   const [loading, setLoading] = useState(true)
   const [denegado, setDenegado] = useState(false)
+  const [vista, setVista] = useState<'clientes' | 'paquetes'>('clientes')
   const [q, setQ] = useState('')
   const [filtro, setFiltro] = useState<'todos' | 'debe' | 'prueba' | 'cortesia'>('todos')
   const [sel, setSel] = useState<Cliente | null>(null)
+
+  const cargarPaquetes = useCallback(async () => {
+    try {
+      const res = await fetchAutenticado('/api/superadmin/paquetes')
+      const d = await res.json()
+      if (d.ok) setPaquetes(d.paquetes)
+    } catch { /* */ }
+  }, [])
 
   const cargar = useCallback(async () => {
     try {
       const res = await fetchAutenticado('/api/superadmin/clientes')
       if (res.status === 403) { setDenegado(true); setLoading(false); return }
       const d = await res.json()
-      if (d.ok) { setClientes(d.clientes); setTotales(d.totales); setDenegado(false) }
+      if (d.ok) { setClientes(d.clientes); setTotales(d.totales); setDenegado(false); cargarPaquetes() }
     } catch { /* */ }
     setLoading(false)
-  }, [])
+  }, [cargarPaquetes])
 
   useEffect(() => {
     if (authLoading) return
@@ -78,8 +91,23 @@ export default function SuperadminPage() {
         </h1>
         <Button variant="secondary" size="sm" icon={<RefreshCw size={14} />} onClick={cargar}>Actualizar</Button>
       </div>
-      <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 20px' }}>Solo tú ves esto. Todos los consultorios, quién paga, cuánto entra y a quién le das pase libre.</p>
+      <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 16px' }}>Solo tú ves esto. Todos los consultorios, quién paga, cuánto entra, a quién le das pase libre y qué paquete tiene cada uno.</p>
 
+      {/* Tabs Clientes / Paquetes */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 20, borderBottom: '1px solid var(--border)' }}>
+        {([['clientes', 'Clientes', <Boxes key="a" size={15} />], ['paquetes', 'Paquetes', <Package key="b" size={15} />]] as const).map(([k, label, icon]) => (
+          <button key={k} onClick={() => setVista(k)} style={{
+            display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', fontSize: 13.5, fontWeight: 600, cursor: 'pointer',
+            background: 'none', border: 'none', borderBottom: `2px solid ${vista === k ? '#7c3aed' : 'transparent'}`,
+            color: vista === k ? 'var(--text)' : 'var(--text3)', marginBottom: -1,
+          }}>{icon} {label}</button>
+        ))}
+      </div>
+
+      {vista === 'paquetes' ? (
+        <PaquetesManager paquetes={paquetes} onCambio={cargarPaquetes} />
+      ) : (
+      <>
       {/* KPIs */}
       {totales && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 24 }}>
@@ -132,7 +160,12 @@ export default function SuperadminPage() {
                     <div style={{ fontWeight: 600, color: 'var(--text)' }}>{c.nombreClinica || '—'}</div>
                     <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>{c.nombreMedico || '—'}</div>
                   </td>
-                  <td style={{ padding: '10px 12px', color: 'var(--text2)' }}>{PLAN_LABEL[c.plan] ?? c.plan}</td>
+                  <td style={{ padding: '10px 12px', color: 'var(--text2)' }}>
+                    <div>{PLAN_LABEL[c.plan] ?? c.plan}</div>
+                    <div style={{ fontSize: 10.5, color: 'var(--text3)' }}>
+                      {c.paqueteNombre ? c.paqueteNombre : c.modulos == null ? 'Todo (sin restringir)' : `${c.modulos.length} módulo${c.modulos.length === 1 ? '' : 's'}`}
+                    </div>
+                  </td>
                   <td style={{ padding: '10px 12px' }}>
                     <span style={{ display: 'inline-block', padding: '2px 9px', borderRadius: 20, fontSize: 11.5, fontWeight: 700, color: cob.color, background: cob.color + '18' }}>{cob.label}</span>
                   </td>
@@ -153,8 +186,10 @@ export default function SuperadminPage() {
           </tbody>
         </table>
       </div>
+      </>
+      )}
 
-      {sel && <ModalGestion cliente={sel} onClose={() => setSel(null)} onHecho={() => { setSel(null); cargar() }} />}
+      {sel && <ModalGestion cliente={sel} paquetes={paquetes} onClose={() => setSel(null)} onHecho={() => { setSel(null); cargar() }} />}
     </div>
   )
 }
@@ -181,11 +216,17 @@ function Centro({ icon, titulo, texto, accion }: { icon: React.ReactNode; titulo
 }
 
 // ── Modal de gestión por clínica ──
-function ModalGestion({ cliente, onClose, onHecho }: { cliente: Cliente; onClose: () => void; onHecho: () => void }) {
+function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Cliente; paquetes: Paquete[]; onClose: () => void; onHecho: () => void }) {
   const [busy, setBusy] = useState<string | null>(null)
   const [motivo, setMotivo] = useState(cliente.paseLibreMotivo || '')
   const [dias, setDias] = useState(14)
   const [notas, setNotas] = useState(cliente.notasInternas || '')
+  // Módulos actuales de la clínica (null = todo). Los editamos a mano o aplicando un paquete.
+  const [mods, setMods] = useState<string[]>(cliente.modulos == null ? MODULOS.map(m => m.key) : cliente.modulos)
+  const [paqNombre, setPaqNombre] = useState(cliente.paqueteNombre || '')
+  const [paqId, setPaqId] = useState(cliente.paqueteId || '')
+  const toggleMod = (k: string) => setMods(prev => prev.includes(k) ? prev.filter(x => x !== k) : [...prev, k])
+  const aplicarPaquete = (p: Paquete) => { setMods(p.modulos); setPaqNombre(p.nombre); setPaqId(p.id) }
 
   const accion = async (accion: string, extra: Record<string, unknown> = {}) => {
     setBusy(accion)
@@ -207,6 +248,35 @@ function ModalGestion({ cliente, onClose, onHecho }: { cliente: Cliente; onClose
           {cliente.nombreMedico} · Plan {PLAN_LABEL[cliente.plan] ?? cliente.plan} · <span style={{ color: COB[cliente.cobranza].color, fontWeight: 700 }}>{COB[cliente.cobranza].label}</span>
           {cliente.totalPagado > 0 && <> · Pagado {mxn(cliente.totalPagado)}</>}
         </div>
+
+        {/* Paquete / acceso a módulos */}
+        <Seccion icono={<Package size={16} color="#2563eb" />} titulo="Paquete y acceso a módulos">
+          {paquetes.length > 0 && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {paquetes.filter(p => p.activo !== false).map(p => (
+                <button key={p.id} onClick={() => aplicarPaquete(p)} style={{
+                  padding: '5px 10px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  border: `1px solid ${paqId === p.id ? '#2563eb' : 'var(--border)'}`,
+                  background: paqId === p.id ? '#2563eb18' : 'transparent', color: paqId === p.id ? '#2563eb' : 'var(--text2)',
+                }}>{p.nombre}{p.precio ? ` · ${mxn(p.precio)}` : ''}</button>
+              ))}
+            </div>
+          )}
+          <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>Aplica un paquete o marca módulos a mano:</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 4 }}>
+            {MODULOS.map(m => (
+              <label key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text2)', cursor: 'pointer', padding: '3px 0' }}>
+                <input type="checkbox" checked={mods.includes(m.key)} onChange={() => { toggleMod(m.key); setPaqId(''); setPaqNombre('') }} />
+                <span style={{ fontWeight: 600 }}>{m.label}</span>
+                <span style={{ fontSize: 11, color: 'var(--text3)' }}>· {m.descripcion}</span>
+              </label>
+            ))}
+          </div>
+          <Button size="sm" loading={busy === 'asignar_modulos'} disabled={mods.length === 0}
+            onClick={() => accion('asignar_modulos', { modulos: mods, paqueteId: paqId, paqueteNombre: paqNombre })}>
+            Guardar acceso {mods.length === MODULOS.length ? '(todo)' : `(${mods.length})`}
+          </Button>
+        </Seccion>
 
         {/* Pase libre */}
         <Seccion icono={<Gift size={16} color="#7c3aed" />} titulo="Pase libre (cortesía)">
@@ -255,6 +325,129 @@ function Seccion({ icono, titulo, children }: { icono: React.ReactNode; titulo: 
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 700, color: 'var(--text2)' }}>{icono} {titulo}</div>
       {children}
+    </div>
+  )
+}
+
+// ── Gestor de PAQUETES (armar combinaciones de módulos con precio) ──
+type BorradorPaquete = { id?: string; nombre: string; precio: number; modulos: string[]; descripcion: string }
+const NUEVO: BorradorPaquete = { nombre: '', precio: 0, modulos: [], descripcion: '' }
+
+function PaquetesManager({ paquetes, onCambio }: { paquetes: Paquete[]; onCambio: () => void }) {
+  const [editar, setEditar] = useState<BorradorPaquete | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  const guardar = async () => {
+    if (!editar || !editar.nombre.trim() || editar.modulos.length === 0) return
+    setBusy(true)
+    try {
+      await fetchAutenticado('/api/superadmin/paquetes', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion: editar.id ? 'editar' : 'crear', id: editar.id, paquete: editar }),
+      })
+      setEditar(null); onCambio()
+    } finally { setBusy(false) }
+  }
+  const borrar = async (id: string) => {
+    setBusy(true)
+    try {
+      await fetchAutenticado('/api/superadmin/paquetes', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion: 'borrar', id }),
+      })
+      onCambio()
+    } finally { setBusy(false) }
+  }
+  const toggle = (k: string) => setEditar(e => e ? { ...e, modulos: e.modulos.includes(k) ? e.modulos.filter(x => x !== k) : [...e.modulos, k] } : e)
+
+  // Genera paquetes de ejemplo (todos editables después). Solo para arrancar.
+  const sugeridos = async () => {
+    setBusy(true)
+    const base: { nombre: string; precio: number; modulos: string[]; descripcion: string }[] = [
+      { nombre: 'Solo agenda', precio: 399, modulos: ['agenda'], descripcion: 'Citas, calendario y recordatorios' },
+      { nombre: 'Consulta', precio: 699, modulos: ['agenda', 'expediente'], descripcion: 'Agenda + expediente de consulta' },
+      { nombre: 'Hospital', precio: 999, modulos: ['agenda', 'hospitalizacion'], descripcion: 'Agenda + módulo de hospitalización' },
+      { nombre: 'Todo', precio: 1799, modulos: MODULOS.map(m => m.key), descripcion: 'Acceso completo a la plataforma' },
+    ]
+    try {
+      for (let i = 0; i < base.length; i++) {
+        await fetchAutenticado('/api/superadmin/paquetes', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accion: 'crear', paquete: { ...base[i], orden: i } }),
+        })
+      }
+      onCambio()
+    } finally { setBusy(false) }
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <p style={{ fontSize: 13, color: 'var(--text3)', margin: 0 }}>Arma tus paquetes: elige qué módulos incluye cada uno y su precio. Luego se los asignas a cada consultorio.</p>
+        <Button size="sm" icon={<Plus size={14} />} onClick={() => setEditar({ ...NUEVO })}>Nuevo paquete</Button>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+        {paquetes.map(p => (
+          <div key={p.id} style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{p.nombre}</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{p.precio ? mxn(p.precio) : 'Gratis'}<span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 500 }}>/mes</span></div>
+            </div>
+            {p.descripcion && <div style={{ fontSize: 12, color: 'var(--text3)' }}>{p.descripcion}</div>}
+            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+              {p.modulos.map(k => <span key={k} style={{ fontSize: 11, fontWeight: 600, color: '#2563eb', background: '#2563eb15', borderRadius: 6, padding: '2px 7px' }}>{MODULO_LABEL[k] ?? k}</span>)}
+            </div>
+            <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+              <Button size="sm" variant="secondary" onClick={() => setEditar({ id: p.id, nombre: p.nombre, precio: p.precio, modulos: [...p.modulos], descripcion: p.descripcion ?? '' })}>Editar</Button>
+              <button title="Borrar" onClick={() => borrar(p.id)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, color: '#dc2626', cursor: 'pointer', padding: '0 10px' }}><Trash2 size={14} /></button>
+            </div>
+          </div>
+        ))}
+        {paquetes.length === 0 && (
+          <div style={{ gridColumn: '1/-1', padding: 30, textAlign: 'center', color: 'var(--text3)', fontSize: 13, border: '1px dashed var(--border)', borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
+            <div>Aún no tienes paquetes. Crea el primero, o arranca con unos de ejemplo (los editas luego).</div>
+            <Button size="sm" variant="secondary" loading={busy} icon={<Boxes size={14} />} onClick={sugeridos}>Crear paquetes de ejemplo</Button>
+          </div>
+        )}
+      </div>
+
+      {editar && (
+        <Modal open onClose={() => setEditar(null)} title={editar.id ? 'Editar paquete' : 'Nuevo paquete'}
+          footer={<><Button variant="secondary" onClick={() => setEditar(null)}>Cancelar</Button><Button loading={busy} disabled={!editar.nombre.trim() || editar.modulos.length === 0} onClick={guardar}>Guardar</Button></>}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
+              <div>
+                <label style={{ fontSize: 12, color: 'var(--text3)' }}>Nombre</label>
+                <input value={editar.nombre} onChange={e => setEditar({ ...editar, nombre: e.target.value })} placeholder="Ej. Consulta, Hospital, Todo…"
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 13 }} />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: 'var(--text3)' }}>Precio $/mes</label>
+                <input type="number" min={0} value={editar.precio} onChange={e => setEditar({ ...editar, precio: Number(e.target.value) })}
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 13 }} />
+              </div>
+            </div>
+            <div>
+              <label style={{ fontSize: 12, color: 'var(--text3)' }}>Descripción (opcional)</label>
+              <input value={editar.descripcion} onChange={e => setEditar({ ...editar, descripcion: e.target.value })}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 13 }} />
+            </div>
+            <div>
+              <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 6 }}>Módulos incluidos</label>
+              <div style={{ display: 'grid', gap: 4 }}>
+                {MODULOS.map(m => (
+                  <label key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text2)', cursor: 'pointer', padding: '3px 0' }}>
+                    <input type="checkbox" checked={editar.modulos.includes(m.key)} onChange={() => toggle(m.key)} />
+                    <span style={{ fontWeight: 600 }}>{m.label}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text3)' }}>· {m.descripcion}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }

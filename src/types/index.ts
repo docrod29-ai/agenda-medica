@@ -33,6 +33,11 @@ export interface Clinic {
   paseLibreMotivo?: string
   paseLibrePor?: string          // correo del dueño que lo otorgó
   notasInternas?: string         // notas del dueño sobre este cliente (no visibles al cliente)
+  // Control de acceso por MÓDULOS (entitlements). undefined = acceso a TODO
+  // (compatibilidad con clínicas previas). Lo asigna el dueño desde /superadmin.
+  modulos?: string[]
+  paqueteId?: string             // paquete aplicado (referencia)
+  paqueteNombre?: string
   whatsapp?: ClinicWhatsApp     // WhatsApp connection (set after 360dialog enrollment)
   ownerId: string               // Firebase uid del creador
   createdAt: string
