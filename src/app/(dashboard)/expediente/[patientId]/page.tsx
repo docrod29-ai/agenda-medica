@@ -42,7 +42,9 @@ export default function ExpedientePage() {
   const { toast } = useToast()
   const { notas, loading, reload } = useExpediente(patientId)
   const [patient, setPatient] = useState<Patient | null>(null)
-  const [filtro, setFiltro] = useState<'todas' | 'consulta' | 'hospital'>('todas')
+  // Por defecto muestra las notas de CONSULTORIO (no mezclar con hospital). Las
+  // notas de hospital viven en su episodio; aquí quedan bajo la pestaña "Hospital".
+  const [filtro, setFiltro] = useState<'todas' | 'consulta' | 'hospital'>('consulta')
   const [expandida, setExpandida] = useState<string | null>(null)
 
   const borrarNota = async (notaId: string) => {
