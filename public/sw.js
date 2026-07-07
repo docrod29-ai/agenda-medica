@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v208'  // Auditoria lote 4 (agenda): horarios respetan vacaciones/bloqueos y no ofrecen horas pasadas; conflicto medico-aware (multi-doctor); WhatsApp disconnect borra indice Meta; MRR usa precio del paquete
+const CACHE = 'nexusmed-v209'  // Auditoria lote 5: bot WhatsApp no doble-reserva (transaccion), booking publico valida horario/festivo/bloqueos server-side, receta imprime duracion+indicacion por farmaco
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

@@ -455,31 +455,48 @@ export async function handleMessage(from: string, body: string, clinicId: string
       const medicoNombre = doctor?.nombre || config?.nombreMedico || 'Dr.'
       const doctorId = doctor?.id
 
-      const apptRef = await adminDb.collection('clinics').doc(clinicId).collection('appointments').add({
-        pacienteId: '',
-        pacienteNombre: datos.nombre,
-        pacienteTelefono: from,
-        fechaHora,
-        duracion,
-        tipo: datos.tipo as AppointmentType,
-        motivo: '',
-        estado: 'solicitada',
-        origen: 'WhatsApp',
-        medicoNombre,
-        medicoId: doctorId || '',
-        doctorId: doctorId || '',
-        lugar: clinicName,
-        confirmadoPaciente: true,
-        fechaConfirmacion: now,
-        recordatorio24hEnviado: false,
-        recordatorioMismoDiaEnviado: false,
-        consentimientoMensajes: true,
-        notasInternas: `Agendada por bot WhatsApp`,
-        createdAt: now,
-        updatedAt: now,
-        creadoPor: 'bot',
-        updatedPor: 'bot',
-      })
+      // Crear ATÓMICO: re-chequea conflicto dentro de la transacción → dos pacientes
+      // no pueden confirmar el mismo horario a la vez (antes era un .add() directo).
+      const apptsCol = adminDb.collection('clinics').doc(clinicId).collection('appointments')
+      const [bh, bm] = datos.hora.split(':').map(Number)
+      const bStart = bh * 60 + bm, bEnd = bStart + duracion
+      let huboConflicto = false
+      let nuevoFolio = ''
+      try {
+        await adminDb.runTransaction(async (tx) => {
+          const snap = await tx.get(apptsCol.where('fechaHora', '>=', `${datos.fecha} 00:00`).where('fechaHora', '<=', `${datos.fecha} 23:59`))
+          let conflicto = false
+          snap.forEach(d => {
+            const a = d.data()
+            if (['cancelada', 'reagendada', 'no-asistio'].includes(a.estado)) return
+            if (doctorId && a.medicoId && a.medicoId !== doctorId) return
+            const [ah, am] = (a.fechaHora?.slice(11, 16) || '00:00').split(':').map(Number)
+            const aS = ah * 60 + am, aE = aS + (a.duracion ?? 30)
+            if (bStart < aE && bEnd > aS) conflicto = true
+          })
+          if (conflicto) throw new Error('CONFLICTO')
+          const nref = apptsCol.doc()
+          nuevoFolio = nref.id
+          tx.set(nref, {
+            pacienteId: '', pacienteNombre: datos.nombre, pacienteTelefono: from,
+            fechaHora, duracion, tipo: datos.tipo as AppointmentType, motivo: '',
+            estado: 'solicitada', origen: 'WhatsApp', medicoNombre,
+            medicoId: doctorId || '', doctorId: doctorId || '', lugar: clinicName,
+            confirmadoPaciente: true, fechaConfirmacion: now,
+            recordatorio24hEnviado: false, recordatorioMismoDiaEnviado: false,
+            consentimientoMensajes: true, notasInternas: `Agendada por bot WhatsApp`,
+            createdAt: now, updatedAt: now, creadoPor: 'bot', updatedPor: 'bot',
+          })
+        })
+      } catch (e) {
+        if (e instanceof Error && e.message === 'CONFLICTO') huboConflicto = true
+        else throw e
+      }
+      if (huboConflicto) {
+        await send(from, `Lo sentimos, ese horario acaba de ocuparse. Por favor elija otro escribiendo *agendar* de nuevo. 🙏`)
+        await saveSession(clinicId, from, { estado: 'menu', datos: {} })
+        return
+      }
 
       const tipoLabel = TIPO_OPTIONS.find(t => t.key === datos.tipo)?.label || datos.tipo
       await send(from, [
@@ -503,7 +520,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
           `📱 Tel: ${from}`,
           `📋 Tipo: ${tipoLabel}`,
           `📅 ${formatDate(datos.fecha)} – ${datos.hora} hrs`,
-          `🆔 Folio: ${apptRef.id.slice(0, 8)}`,
+          `🆔 Folio: ${nuevoFolio.slice(0, 8)}`,
         ].join('\n'))
       }
 
