@@ -499,6 +499,21 @@ function MedRow({
           style={inputStyle}
         />
       </div>
+      {/* Duración + indicación: ahora editables (antes solo salían en el Word/PDF) */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 6, marginTop: 6 }}>
+        <input
+          value={med.duracion ?? ''}
+          onChange={(e) => onChange('duracion', e.target.value)}
+          placeholder="Por 7 días"
+          style={inputStyle}
+        />
+        <input
+          value={med.indicacion ?? ''}
+          onChange={(e) => onChange('indicacion', e.target.value)}
+          placeholder="Indicación (ej. con alimentos)"
+          style={inputStyle}
+        />
+      </div>
     </div>
   )
 }
