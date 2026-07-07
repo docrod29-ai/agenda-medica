@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v203'  // Cobro: por defecto el medico NO cobra ni ve el mensaje al firmar; la secretaria registra el cobro desde Citas y cae en Finanzas del medico (toggle pedirCobroAlCerrar ahora default OFF)
+const CACHE = 'nexusmed-v204'  // Separar Consulta vs Hospital: notas de hospital regresan al episodio (no a consulta); expediente por defecto muestra notas de consultorio; badge 'Internado' en la lista de Consulta
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

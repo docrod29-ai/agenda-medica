@@ -34,7 +34,7 @@ import { CobrarModal } from '@/components/CobrarModal'
 import {
   ArrowLeft, Mic, Square, Sparkles, Loader2, AlertTriangle, CheckCircle2,
   Trash2, Plus, ShieldCheck, Pill, Stethoscope, FileSignature,
-  Lock, Bug, FlaskConical, Lightbulb, FileText, ChevronDown, ChevronUp, Volume2,
+  Lock, Bug, FlaskConical, Lightbulb, FileText, ChevronDown, ChevronUp, Volume2, BedDouble,
 } from 'lucide-react'
 
 const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'valoracion_preoperatoria', 'valoracion_inmuno', 'alta_consulta', 'ingreso', 'evolucion', 'egreso', 'nota_postoperatoria', 'nota_anestesia', 'consentimiento']
@@ -55,6 +55,10 @@ export default function ConsultaActivaPage() {
   const notaIdParam = searchParams.get('nota')
   const tipoParam = searchParams.get('tipo')          // tipo de nota preseleccionado (p. ej. desde hospitalización)
   const internamientoParam = searchParams.get('internamiento') || undefined  // vínculo con el episodio
+  // A dónde REGRESAR: si es nota de hospital, al episodio (Hospitalización); si es
+  // de consultorio, al expediente. Así nunca te rebota a la sección equivocada.
+  const esNotaHospital = !!internamientoParam
+  const volverA = esNotaHospital ? `/hospitalizacion/${internamientoParam}` : `/expediente/${patientId}`
   const { clinicId } = useClinic()
   const { config } = useConfig()
   const { toast } = useToast()
@@ -511,7 +515,7 @@ export default function ConsultaActivaPage() {
       }
       try { localStorage.removeItem(respaldoKey) } catch { /* */ }
       toast('Consulta descartada', 'info')
-      router.push(`/expediente/${patientId}`)
+      router.push(volverA)
     } catch (e) {
       console.error('[consulta] error al descartar:', e)
       toast('Error al descartar', 'error')
@@ -682,8 +686,8 @@ export default function ConsultaActivaPage() {
 
   return (
     <div style={{ padding: 24, maxWidth: 980, margin: '0 auto' }}>
-      <button onClick={() => router.push(`/expediente/${patientId}`)} style={S.back}>
-        <ArrowLeft size={15} /> Expediente
+      <button onClick={() => router.push(volverA)} style={S.back}>
+        <ArrowLeft size={15} /> {esNotaHospital ? 'Volver al episodio' : 'Expediente'}
       </button>
 
       {/* Alergias — SIEMPRE visible y EDITABLE (el Dr. reportó que no había dónde
@@ -718,6 +722,14 @@ export default function ConsultaActivaPage() {
           <div>
             <strong style={{ color: 'var(--text)' }}>Visitas anteriores:</strong> {contextoPrevio}
           </div>
+        </div>
+      )}
+
+      {/* Aviso de contexto: esta nota pertenece a un episodio de HOSPITAL, no a consulta */}
+      {esNotaHospital && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '9px 13px', borderRadius: 10, background: 'rgba(61,90,254,0.08)', border: '1px solid rgba(61,90,254,0.3)', fontSize: 12.5, color: 'var(--text2)' }}>
+          <BedDouble size={15} style={{ color: '#3d5afe', flexShrink: 0 }} />
+          Nota de <strong>Hospitalización</strong> — al guardar/firmar regresas al episodio, no a Consulta.
         </div>
       )}
 

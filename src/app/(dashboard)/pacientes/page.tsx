@@ -3,11 +3,12 @@ import { useState, useEffect, useMemo } from 'react'
 import { Patient } from '@/types'
 import { getPatients, createPatient, updatePatient } from '@/lib/firestore'
 import { getNotas } from '@/lib/expediente/firestore'
+import { getCenso } from '@/lib/hospital/firestore'
 import { useToast } from '@/context/ToastContext'
 import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
 import { useMode } from '@/context/ModeContext'
-import { Plus, Search, X, Users, Phone, AlertCircle, FileText, Calendar, Pencil, Cake, Download, Loader2 } from 'lucide-react'
+import { Plus, Search, X, Users, Phone, AlertCircle, FileText, Calendar, Pencil, Cake, Download, Loader2, BedDouble } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { PageHeader, Button, EmptyState, Spinner, Modal } from '@/components/ui'
@@ -26,12 +27,15 @@ export default function PacientesPage() {
   const [filtro, setFiltro] = useState<'recientes' | 'todos' | 'alerta'>('recientes')
   const [modalOpen, setModalOpen] = useState(false)
   const [editPatient, setEditPatient] = useState<Patient | null>(null)
+  // Pacientes ACTUALMENTE internados → se marcan (viven en Hospitalización).
+  const [internados, setInternados] = useState<Set<string>>(new Set())
 
   const load = async () => {
     if (!clinicId) return
     try {
       const data = await getPatients(clinicId)
       setPatients(data)
+      getCenso(clinicId).then(c => setInternados(new Set(c.map(i => i.pacienteId)))).catch(() => {})
     } finally {
       setLoading(false)
     }
@@ -201,7 +205,7 @@ export default function PacientesPage() {
             <>
               <ListaEncabezado texto={`${resultadosBusqueda.length} resultado${resultadosBusqueda.length !== 1 ? 's' : ''}`} />
               {resultadosBusqueda.map(p => (
-                <PacienteRow key={p.id} p={p} mode={mode} onAbrir={() => mode === 'medico' ? router.push(`/expediente/${p.id}`) : openEdit(p)} onEditar={() => openEdit(p)} />
+                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} onAbrir={() => mode === 'medico' ? router.push(`/expediente/${p.id}`) : openEdit(p)} onEditar={() => openEdit(p)} />
               ))}
             </>
           )
@@ -214,7 +218,7 @@ export default function PacientesPage() {
             <>
               <ListaEncabezado texto="Vistos recientemente" />
               {recientes.map(p => (
-                <PacienteRow key={p.id} p={p} mode={mode} onAbrir={() => mode === 'medico' ? router.push(`/expediente/${p.id}`) : openEdit(p)} onEditar={() => openEdit(p)} />
+                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} onAbrir={() => mode === 'medico' ? router.push(`/expediente/${p.id}`) : openEdit(p)} onEditar={() => openEdit(p)} />
               ))}
             </>
           )
@@ -227,7 +231,7 @@ export default function PacientesPage() {
             <>
               <ListaEncabezado texto={`${conAlerta.length} con inasistencias / cancelaciones`} />
               {conAlerta.map(p => (
-                <PacienteRow key={p.id} p={p} mode={mode} onAbrir={() => mode === 'medico' ? router.push(`/expediente/${p.id}`) : openEdit(p)} onEditar={() => openEdit(p)} />
+                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} onAbrir={() => mode === 'medico' ? router.push(`/expediente/${p.id}`) : openEdit(p)} onEditar={() => openEdit(p)} />
               ))}
             </>
           )
@@ -241,7 +245,7 @@ export default function PacientesPage() {
                 color: 'var(--text3)', letterSpacing: '0.05em', borderBottom: '1px solid var(--border)',
               }}>{letra}</div>
               {lista.map(p => (
-                <PacienteRow key={p.id} p={p} mode={mode} onAbrir={() => mode === 'medico' ? router.push(`/expediente/${p.id}`) : openEdit(p)} onEditar={() => openEdit(p)} />
+                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} onAbrir={() => mode === 'medico' ? router.push(`/expediente/${p.id}`) : openEdit(p)} onEditar={() => openEdit(p)} />
               ))}
             </div>
           ))
@@ -270,9 +274,10 @@ function ListaEncabezado({ texto }: { texto: string }) {
 }
 
 /** Fila de paciente reutilizable (búsqueda, recientes, alerta, A-Z). */
-function PacienteRow({ p, mode, onAbrir, onEditar }: {
+function PacienteRow({ p, mode, internado, onAbrir, onEditar }: {
   p: Patient
   mode: string
+  internado?: boolean
   onAbrir: () => void
   onEditar: () => void
 }) {
@@ -295,9 +300,10 @@ function PacienteRow({ p, mode, onAbrir, onEditar }: {
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.nombre}</div>
-        <div style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           {p.telefono && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Phone size={11} className="ds-icon" /> {p.telefono}</span>}
           {p.edad && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Cake size={11} className="ds-icon" /> {p.edad} años</span>}
+          {internado && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#3d5afe', fontWeight: 600 }}><BedDouble size={11} /> Internado — ver Hospitalización</span>}
         </div>
       </div>
       {(p.noShowCount > 0 || p.cancelacionCount > 0) && (
