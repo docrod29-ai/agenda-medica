@@ -57,8 +57,12 @@ export default function ConsultaActivaPage() {
   const internamientoParam = searchParams.get('internamiento') || undefined  // vínculo con el episodio
   // A dónde REGRESAR: si es nota de hospital, al episodio (Hospitalización); si es
   // de consultorio, al expediente. Así nunca te rebota a la sección equivocada.
-  const esNotaHospital = !!internamientoParam
-  const volverA = esNotaHospital ? `/hospitalizacion/${internamientoParam}` : `/expediente/${patientId}`
+  // Si la nota abierta pertenece a un internamiento (aunque el URL no lo traiga),
+  // se adopta para que back/contexto sean del EPISODIO, no del expediente.
+  const [notaInternamientoId, setNotaInternamientoId] = useState<string | undefined>(undefined)
+  const internamientoActivo = internamientoParam || notaInternamientoId
+  const esNotaHospital = !!internamientoActivo
+  const volverA = esNotaHospital ? `/hospitalizacion/${internamientoActivo}` : `/expediente/${patientId}`
   const { clinicId } = useClinic()
   const { config } = useConfig()
   const { toast } = useToast()
@@ -194,6 +198,7 @@ export default function ConsultaActivaPage() {
         if (Array.isArray(n.iaAuditoria.aprobadosPorMedico)) setAprobados(new Set(n.iaAuditoria.aprobadosPorMedico))
       }
       if (n.transcripcionCruda) voz.setTranscripcion(n.transcripcionCruda)
+      if (n.internamientoId) setNotaInternamientoId(n.internamientoId)  // adopta el episodio
     })
   }, [clinicId, patientId, notaIdParam]) // eslint-disable-line
 
@@ -450,7 +455,7 @@ export default function ConsultaActivaPage() {
         ? [{ alergeno: patient.alergias, tipo: 'medicamento', reaccion: 'Ver expediente', severidad: 'moderada', confirmada: true }]
         : [],
       estudiosOrden: estudiosOrden.length ? estudiosOrden : undefined,
-      internamientoId: internamientoParam,
+      internamientoId: internamientoActivo,
       preop,
       iaAuditoria: extraction || safety ? {
         extraction, safety,
@@ -466,7 +471,7 @@ export default function ConsultaActivaPage() {
       updatedAt: now,
       creadoPor: auth.currentUser?.uid ?? '',
     }
-  }, [notaId, clinicId, patientId, patient, tipo, config, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, internamientoParam, preop, extraction, safety, aprobados, voz.transcripcion, audio.utterances])
+  }, [notaId, clinicId, patientId, patient, tipo, config, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, internamientoActivo, preop, extraction, safety, aprobados, voz.transcripcion, audio.utterances])
 
   // ── Guardar borrador ───────────────────────────────────────────
   // silencioso=true para el autoguardado (no muestra toast)
@@ -660,7 +665,7 @@ export default function ConsultaActivaPage() {
         setCobrar(true)
       } else {
         const nid = notaIdRef.current
-        router.push(internamientoParam ? `/hospitalizacion/${internamientoParam}` : medicamentos.length > 0 && nid ? `/receta/${patientId}/${nid}` : `/expediente/${patientId}`)
+        router.push(internamientoActivo ? `/hospitalizacion/${internamientoActivo}` : medicamentos.length > 0 && nid ? `/receta/${patientId}/${nid}` : `/expediente/${patientId}`)
       }
     } catch (e) {
       toast('Error al firmar', 'error')
@@ -1372,7 +1377,7 @@ export default function ConsultaActivaPage() {
             // Fluidez: si la consulta dejó medicamentos, encadena directo a la
             // RECETA (acabas de prescribir → imprímela); si no, al expediente.
             const nid = notaId || notaIdRef.current
-            router.push(internamientoParam ? `/hospitalizacion/${internamientoParam}` : medicamentos.length > 0 && nid ? `/receta/${patientId}/${nid}` : `/expediente/${patientId}`)
+            router.push(internamientoActivo ? `/hospitalizacion/${internamientoActivo}` : medicamentos.length > 0 && nid ? `/receta/${patientId}/${nid}` : `/expediente/${patientId}`)
           }}
         />
       )}

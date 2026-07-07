@@ -86,6 +86,13 @@ export default function UnirsePage() {
           <AlertTriangle size={36} color="#f87171" style={{ margin: '0 auto 12px' }} />
           <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', margin: '0 0 8px' }}>Enlace no válido</h1>
           <p style={{ fontSize: 14, color: 'var(--text2)', margin: '0 0 18px' }}>{error}</p>
+          {/* Si el problema es que ya pertenece a otra clínica, ofrecer SALIDA clara. */}
+          {user && /otra clínica/i.test(error) && (
+            <button onClick={() => import('firebase/auth').then(({ getAuth, signOut }) => signOut(getAuth()))}
+              style={{ display: 'block', width: '100%', marginBottom: 12, padding: '10px', borderRadius: 10, border: 'none', background: 'var(--teal)', color: '#040b12', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+              Cerrar sesión para aceptar con otra cuenta
+            </button>
+          )}
           <Link href="/" style={{ color: 'var(--teal)', textDecoration: 'underline', fontSize: 13 }}>Ir al inicio</Link>
         </div>
       </div>

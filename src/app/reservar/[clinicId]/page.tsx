@@ -47,7 +47,10 @@ function nextDays(n: number): string[] {
   for (let i = 1; i <= n; i++) {
     const d = new Date(today)
     d.setDate(today.getDate() + i)
-    out.push(d.toISOString().slice(0, 10))
+    // Componentes LOCALES (no toISOString/UTC): de noche en México, UTC ya es el
+    // día siguiente → ofrecía/omitía días corridos.
+    const y = d.getFullYear(), mo = String(d.getMonth() + 1).padStart(2, '0'), da = String(d.getDate()).padStart(2, '0')
+    out.push(`${y}-${mo}-${da}`)
   }
   return out
 }

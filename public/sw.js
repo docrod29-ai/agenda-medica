@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v209'  // Auditoria lote 5: bot WhatsApp no doble-reserva (transaccion), booking publico valida horario/festivo/bloqueos server-side, receta imprime duracion+indicacion por farmaco
+const CACHE = 'nexusmed-v210'  // Auditoria lote 6 (P2/P3): editar nota hospital conserva contexto del episodio; unirse cross-clinica con boton cerrar sesion; reservar fechas locales (no UTC); guard ultimo admin; waitlist error visible
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
