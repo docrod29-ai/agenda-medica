@@ -370,13 +370,15 @@ export default function ConfiguracionPage() {
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14, color: 'var(--text)' }}>
               <input
                 type="checkbox"
-                checked={form.pedirCobroAlCerrar !== false}
+                checked={form.pedirCobroAlCerrar === true}
                 onChange={e => setForm({ ...form, pedirCobroAlCerrar: e.target.checked })}
               />
-              Pedir el cobro al terminar la consulta
+              El médico registra el cobro al terminar la consulta
             </label>
             <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
-              Si cobras por fuera, apágalo: al firmar la nota ya no te pedirá registrar el pago.
+              Apagado (recomendado): el médico NO cobra ni ve el mensaje de pago; la secretaria registra
+              el cobro desde <strong>Citas</strong> cuando el paciente se va, y aparece en las Finanzas del médico.
+              Enciéndelo solo si el propio médico quiere cobrar al firmar.
             </div>
           </div>
           <div className="form-group" style={{ gridColumn: '1 / -1' }}>
