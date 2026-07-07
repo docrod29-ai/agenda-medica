@@ -227,10 +227,11 @@ service cloud.firestore {
       // invitaciones desde el panel). La query del cliente ya filtra por
       // clinicId; aquí solo evitamos enumeración pública.
       allow list: if isAuth();
-      // Crear: solo miembros de la clínica destino
-      allow create: if isAuth()
-        && exists(/databases/$(database)/documents/clinic_members/$(request.auth.uid))
-        && get(/databases/$(database)/documents/clinic_members/$(request.auth.uid)).data.clinicId == request.resource.data.clinicId;
+      // Crear: solo MÉDICO o ADMIN de la clínica destino (la secretaria/enfermería
+      // ya NO puede invitar). Y para invitar con rol 'admin' hay que SER admin
+      // (evita que un médico/secretaria fabrique un admin: escalada de privilegios).
+      allow create: if isMedico(request.resource.data.clinicId)
+        && (request.resource.data.role != 'admin' || isAdmin(request.resource.data.clinicId));
       // Actualizar: solo el invitado puede marcarla como usada (used: true + usedBy = su uid)
       allow update: if isAuth()
         && resource.data.used == false
@@ -257,9 +258,14 @@ service cloud.firestore {
       // CERRADO para evitar enumerar el directorio (correos/roles) de otras
       // clínicas (fuga cross-tenant · LFPDPPP). El `read` individual sigue arriba.
       allow list: if false;
+      // Crear la PROPIA membresía solo es válido al CREAR tu clínica (eres su
+      // ownerId). Unirse por invitación pasa por el servidor (/api/clinic/unirse,
+      // Admin SDK). Así un usuario NO puede auto-asignarse admin en clínicas
+      // ajenas (escalada cross-tenant que antes permitía `request.auth.uid == uid`).
       allow create: if isAuth() && (
-        request.auth.uid == uid ||
-        isAdmin(request.resource.data.clinicId)
+        (request.auth.uid == uid
+          && get(/databases/$(database)/documents/clinics/$(request.resource.data.clinicId)).data.ownerId == request.auth.uid)
+        || isAdmin(request.resource.data.clinicId)
       );
       allow update: if isAdmin(resource.data.clinicId);
       // Eliminar = revocar acceso. Solo el admin de la clínica, y

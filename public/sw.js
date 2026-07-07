@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v205'  // Auditoria 60 hallazgos - lote 1: superadmin no degrada clinicas de pago, paciente sin CURP guarda, resena por servidor, timeline no truena, doble cobro, reglas camas/resena, usePathname, +mas
+const CACHE = 'nexusmed-v206'  // Auditoria lote 2 (seguridad P0): unirse por invitacion via servidor (cierra escalada admin cross-tenant); invitaciones solo medico/admin; calendar status/calendars/delete derivan uid del token
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

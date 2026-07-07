@@ -11,8 +11,8 @@
  *  4. /unirse acepta: crea clinic_members/{uid} + marca invitación como used.
  */
 import {
-  collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc, setDoc,
-  query, where, orderBy, Timestamp,
+  collection, doc, getDoc, getDocs, deleteDoc, setDoc,
+  query, where, orderBy,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
@@ -89,43 +89,28 @@ export function esValida(inv: Invitacion): { ok: true } | { ok: false; motivo: s
 }
 
 /**
- * Acepta la invitación: crea clinic_members/{uid} y marca la invitación como used.
- * Asume que el invitado YA está autenticado y NO tiene otra membresía.
+ * Acepta la invitación vía SERVIDOR (/api/clinic/unirse, Admin SDK). El servidor
+ * valida la invitación y crea la membresía con el rol de la invitación en una
+ * transacción. El cliente ya NO escribe clinic_members directo (cerraba la
+ * escalada de privilegios: auto-asignarse admin en cualquier clínica).
+ * El parámetro `user` se conserva por compatibilidad de firma pero no se usa
+ * (el uid sale del token en el servidor).
  */
 export async function aceptarInvitacion(
   code: string,
-  user: { uid: string; email: string },
+  _user?: { uid: string; email: string },
 ): Promise<{ ok: boolean; motivo?: string; clinicId?: string }> {
-  const inv = await obtenerInvitacion(code)
-  if (!inv) return { ok: false, motivo: 'Invitación no encontrada.' }
-  const v = esValida(inv)
-  if (!v.ok) return { ok: false, motivo: v.motivo }
-
-  // Verificar que el usuario no tenga ya una clínica
-  const memberSnap = await getDoc(doc(db, 'clinic_members', user.uid))
-  if (memberSnap.exists()) {
-    const existing = memberSnap.data() as { clinicId: string }
-    if (existing.clinicId === inv.clinicId) return { ok: true, clinicId: inv.clinicId }
-    return { ok: false, motivo: 'Ya perteneces a otra clínica. Cierra sesión y crea una cuenta nueva para aceptar esta invitación.' }
+  const { fetchAutenticado } = await import('@/lib/auth-client')
+  try {
+    const res = await fetchAutenticado('/api/clinic/unirse', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    })
+    const d = await res.json().catch(() => ({ ok: false, motivo: 'Error de red' }))
+    return { ok: !!d.ok, motivo: d.motivo, clinicId: d.clinicId }
+  } catch {
+    return { ok: false, motivo: 'Sin conexión. Intenta de nuevo.' }
   }
-
-  // 1. Crear membership
-  await setDoc(doc(db, 'clinic_members', user.uid), {
-    clinicId: inv.clinicId,
-    role: inv.role,
-    createdAt: new Date().toISOString(),
-    email: user.email,
-    invitadoPor: inv.creadoPor,
-  })
-
-  // 2. Marcar invitación como usada
-  await updateDoc(doc(db, COL, code), {
-    used: true,
-    usedBy: user.uid,
-    usedAt: new Date().toISOString(),
-  })
-
-  return { ok: true, clinicId: inv.clinicId }
 }
 
 /** Revoca una invitación pendiente (la borra). */

@@ -51,7 +51,7 @@ export default function ConfiguracionPage() {
       const uid = auth.currentUser?.uid
       if (!uid) return
       try {
-        const res = await fetch(`/api/calendar/status?uid=${uid}`)
+        const res = await fetchAutenticado(`/api/calendar/status`)
         if (!res.ok) { setGcalConnected(false); return }
         const data = await res.json().catch(() => null)
         setGcalConnected(!!data?.connected)
@@ -93,7 +93,7 @@ export default function ConfiguracionPage() {
 
   const loadCalendars = async (uid: string) => {
     try {
-      const res = await fetch(`/api/calendar/calendars?uid=${uid}`)
+      const res = await fetchAutenticado(`/api/calendar/calendars`)
       if (!res.ok) return
       const data = await res.json().catch(() => null)
       if (data?.calendars) setGcalCalendars(data.calendars)
@@ -119,7 +119,7 @@ export default function ConfiguracionPage() {
     const uid = auth.currentUser?.uid
     if (!uid) return
     try {
-      await fetch(`/api/calendar/status?uid=${uid}`, { method: 'DELETE' })
+      await fetchAutenticado(`/api/calendar/status`, { method: 'DELETE' })
       setGcalConnected(false)
       setGcalCalendars([])
       toast('Google Calendar desconectado', 'success')
