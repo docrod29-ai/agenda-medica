@@ -38,6 +38,7 @@ export interface Clinic {
   modulos?: string[]
   paqueteId?: string             // paquete aplicado (referencia)
   paqueteNombre?: string
+  paquetePrecio?: number         // precio del paquete asignado (fuente del MRR real)
   whatsapp?: ClinicWhatsApp     // WhatsApp connection (set after 360dialog enrollment)
   ownerId: string               // Firebase uid del creador
   createdAt: string

@@ -15,6 +15,7 @@ import { useToast } from '@/context/ToastContext'
 import { getPatients, createPatient } from '@/lib/firestore'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { getAvailableSlots } from '@/lib/availability'
+import { listarBloques, type TimeBlock } from '@/lib/time-blocks'
 import { AppointmentType, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { CalendarDays, Clock, User, Phone, Stethoscope, CheckCircle2, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { format, addDays } from 'date-fns'
@@ -89,6 +90,12 @@ function AsistenteInner() {
     setHoraSeleccionada('')
   }, [fecha, tipo, doctorId])
 
+  // Bloqueos (vacaciones/ausencias) → no ofrecer horarios en esos periodos.
+  const [bloques, setBloques] = useState<TimeBlock[]>([])
+  useEffect(() => {
+    if (clinicId) listarBloques(clinicId).then(setBloques).catch(() => {})
+  }, [clinicId])
+
   // Get effective config (doctor's config if available)
   const efectiveConfig = useMemo(() => {
     const doctor = activeDoctors.find(d => d.id === doctorId)
@@ -107,8 +114,8 @@ function AsistenteInner() {
   // Available slots for selected date
   const slots = useMemo(() => {
     if (!fecha || !efectiveConfig) return []
-    return getAvailableSlots(fecha, duracion, appointments, efectiveConfig, undefined, [], doctorId || undefined)
-  }, [fecha, duracion, appointments, efectiveConfig, doctorId])
+    return getAvailableSlots(fecha, duracion, appointments, efectiveConfig, undefined, bloques, doctorId || undefined)
+  }, [fecha, duracion, appointments, efectiveConfig, doctorId, bloques])
 
   // Navegación por MES: se puede avanzar hasta 12 meses (1 año) con las flechas ◀ ▶.
   const MAX_MES_OFFSET = 12
@@ -418,7 +425,7 @@ function AsistenteInner() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 420, overflowY: 'auto' }}>
               {diasDelMes.map(d => {
-                const daySlots = getAvailableSlots(d, duracion, appointments, efectiveConfig, undefined, [], doctorId || undefined)
+                const daySlots = getAvailableSlots(d, duracion, appointments, efectiveConfig, undefined, bloques, doctorId || undefined)
                 const isSelected = d === fecha
                 const isToday = d === todayStr()
                 return (

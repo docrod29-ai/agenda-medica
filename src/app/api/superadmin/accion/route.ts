@@ -69,7 +69,12 @@ export async function POST(req: NextRequest) {
       // GUARD: un array vacío se interpretaría como "acceso a TODO" (modulosDe),
       // lo opuesto a lo deseado. Rechazamos: hay que elegir al menos un módulo.
       if (modulos.length === 0) return NextResponse.json({ ok: false, error: 'Elige al menos un módulo (0 módulos daría acceso total).' }, { status: 400 })
-      patch = { modulos, paqueteId: body.paqueteId ?? '', paqueteNombre: body.paqueteNombre ?? '' }
+      // Guarda el PRECIO del paquete asignado → el MRR de la consola usa ese precio real.
+      let paquetePrecio = 0
+      if (body.paqueteId) {
+        try { const pq = await adminDb.collection('platform_packages').doc(String(body.paqueteId)).get(); paquetePrecio = Number((pq.data() as Any | undefined)?.precio ?? 0) } catch { /* */ }
+      }
+      patch = { modulos, paqueteId: body.paqueteId ?? '', paqueteNombre: body.paqueteNombre ?? '', paquetePrecio }
       break
     }
     default:
