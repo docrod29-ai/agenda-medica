@@ -698,7 +698,7 @@ export default function ConsultaActivaPage() {
         <input
           value={patient?.alergias ?? ''}
           onChange={e => setPatient(prev => prev ? { ...prev, alergias: e.target.value } : prev)}
-          onBlur={() => { if (clinicId && patient) updatePatient(clinicId, patientId, { alergias: patient.alergias ?? '' }).catch(() => {}) }}
+          onBlur={() => { if (clinicId && patient) updatePatient(clinicId, patientId, { alergias: patient.alergias ?? '' }).catch(() => toast('No se guardaron las alergias. Revisa tu conexión.', 'error')) }}
           placeholder="Sin alergias conocidas — escribe aquí si hay (penicilina, AINEs, sulfas…)"
           disabled={firmada}
           style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 14 }}

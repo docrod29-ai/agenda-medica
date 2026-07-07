@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v196'  // MAR: el boton Administrar ya no queda 'muerto' en silencio — avisa que correctos faltan (paciente/medicamento/dosis/via/hora) + estado en vivo; surface del error real del gateway
+const CACHE = 'nexusmed-v197'  // Auditoria botones: alergias avisa si no se guardan (antes catch silencioso); confirmado 30 rutas API OK, 0 botones muertos, gateway 14 acciones OK
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
