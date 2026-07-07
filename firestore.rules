@@ -280,6 +280,9 @@ service cloud.firestore {
     match /platform_packages/{pkgId} {
       allow read, write: if false; // Admin SDK only
     }
+    match /platform_meta/{docId} {
+      allow read, write: if false; // Admin SDK only
+    }
 
     match /{document=**} {
       allow read, write: if false;
