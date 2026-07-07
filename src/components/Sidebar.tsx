@@ -25,7 +25,7 @@ const NAV: { href: string; label: string; icon: typeof LayoutDashboard; modos: '
   { href: '/asistente',     label: 'Agendar rápido', icon: UserSquare2,     modos: 'ambos' },
   { href: '/citas',         label: 'Citas',          icon: CalendarDays,    modos: 'ambos' },
   { href: '/calendario',    label: 'Calendario',     icon: Calendar,        modos: 'ambos' },
-  { href: '/pacientes',     label: 'Pacientes',      icon: Users,           modos: 'ambos' },
+  { href: '/pacientes',     label: 'Consulta',       icon: Users,           modos: 'ambos' },
   { href: '/hospitalizacion', label: 'Hospitalización', icon: BedDouble,     modos: 'ambos' },
   { href: '/lista-espera',  label: 'Lista de espera',icon: Clock,           modos: 'ambos' },
   { href: '/crm',           label: 'CRM',            icon: TrendingUp,      modos: 'medico' },
