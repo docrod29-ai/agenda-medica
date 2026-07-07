@@ -123,8 +123,13 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
         motivo: motivo.trim(),
         estado,
         origen,
-        medicoNombre: config.nombreMedico ?? '',
-        confirmadoPaciente: ['confirmada', 'atendida', 'finalizada'].includes(estado),
+        // Al EDITAR conserva el médico de la cita (no lo pisa con el del dueño);
+        // solo usa el principal al crear una cita nueva.
+        medicoNombre: appointment?.medicoNombre ?? config.nombreMedico ?? '',
+        // (medicoId NO se incluye: omitirlo preserva el existente; escribir undefined rompería updateDoc)
+        // No degradar un consentimiento previo ni "confirmar" solo por el estado:
+        // eleva confirmadoPaciente si el estado lo implica, si no conserva el real.
+        confirmadoPaciente: appointment?.confirmadoPaciente || ['confirmada', 'atendida', 'finalizada'].includes(estado),
         recordatorio24hEnviado: appointment?.recordatorio24hEnviado ?? false,
         recordatorioMismoDiaEnviado: appointment?.recordatorioMismoDiaEnviado ?? false,
         notasInternas: notas.trim(),
