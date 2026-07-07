@@ -1,6 +1,7 @@
 import { Appointment, ClinicConfig } from '@/types'
 import type { TimeBlock } from '@/lib/time-blocks'
 import { estaBloqueado } from '@/lib/time-blocks'
+import { hoyISO, ahoraMinutosDelDia } from '@/lib/timezone'
 import { format } from 'date-fns'
 
 const DAY_KEYS = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'] as const
@@ -110,6 +111,10 @@ export function getAvailableSlots(
   }
   const { startMin, endMin } = validacion
 
+  // Si la fecha es HOY, no ofrecer horas que ya pasaron (en la zona de la clínica).
+  const tz = config.zonaHoraria || 'America/Mexico_City'
+  const minMinutoHoy = fecha === hoyISO(tz) ? ahoraMinutosDelDia(tz) : -1
+
   const dayAppts = appointments.filter(a =>
     a.fechaHora.slice(0, 10) === fecha &&
     a.id !== excludeId &&
@@ -129,6 +134,9 @@ export function getAvailableSlots(
       console.warn(`[availability] Tope de ${MAX_SLOTS_POR_DIA} slots alcanzado para ${fecha} — configuración sospechosa`)
       break
     }
+    // 0. ¿Ya pasó esta hora hoy? No ofrecer horas del pasado.
+    if (m < minMinutoHoy) continue
+
     const slotEnd = m + duracionSegura
     const hh = String(Math.floor(m / 60)).padStart(2, '0')
     const mm = String(m % 60).padStart(2, '0')
@@ -157,16 +165,24 @@ export function hasConflict(
   hora: string,
   duracionMin: number,
   appointments: Appointment[],
-  excludeId?: string
+  excludeId?: string,
+  bloques: TimeBlock[] = [],
+  medicoId?: string,
 ): boolean {
   const [h, m] = hora.split(':').map(Number)
   const startMin = h * 60 + m
   const endMin = startMin + duracionMin
 
+  // Bloqueo (vacaciones/ausencia) del médico o de toda la clínica.
+  if (bloques.length > 0 && estaBloqueado(`${fecha} ${hora}`, bloques, medicoId)) return true
+
   return appointments.some(a => {
     if (a.id === excludeId) return false
     if (a.fechaHora.slice(0, 10) !== fecha) return false
     if (['cancelada', 'reagendada', 'no-asistio'].includes(a.estado)) return false
+    // MULTI-MÉDICO: solo choca con citas del MISMO médico (o legacy sin medicoId).
+    // Antes chocaba con las de TODOS → bloqueaba huecos válidos de otro doctor.
+    if (medicoId && a.medicoId && a.medicoId !== medicoId) return false
     const [ah, am] = a.fechaHora.slice(11, 16).split(':').map(Number)
     const aStart = ah * 60 + am
     const aEnd = aStart + a.duracion

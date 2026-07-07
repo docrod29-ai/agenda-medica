@@ -13,9 +13,11 @@ export async function POST(req: NextRequest) {
     const acceso = await verificarMiembro(req, clinicId)
     if (!acceso.ok) return acceso.response
 
-    // Read current api_key so we can delete the index entry
+    // Read current api_key Y phoneNumberId para borrar AMBOS índices posibles.
     const clinicSnap = await adminDb.collection('clinics').doc(clinicId).get()
-    const currentApiKey = clinicSnap.data()?.whatsapp?.apiKey as string | undefined
+    const wa = clinicSnap.data()?.whatsapp as { apiKey?: string; phoneNumberId?: string } | undefined
+    const currentApiKey = wa?.apiKey
+    const currentPhoneNumberId = wa?.phoneNumberId
 
     // Remove from clinic doc
     await adminDb.collection('clinics').doc(clinicId).update({
@@ -30,10 +32,11 @@ export async function POST(req: NextRequest) {
       updatedAt: new Date().toISOString(),
     })
 
-    // Remove index entry
-    if (currentApiKey) {
-      await adminDb.collection('whatsapp_channels').doc(currentApiKey).delete()
-    }
+    // Remove index entries (360dialog indexa por apiKey; Meta por phoneNumberId).
+    // Borrar solo por apiKey dejaba un índice ZOMBIE en Meta → el bot seguía
+    // respondiendo tras "Desconectar".
+    if (currentApiKey) await adminDb.collection('whatsapp_channels').doc(currentApiKey).delete().catch(() => {})
+    if (currentPhoneNumberId) await adminDb.collection('whatsapp_channels').doc(currentPhoneNumberId).delete().catch(() => {})
 
     return NextResponse.json({ ok: true })
   } catch (err) {

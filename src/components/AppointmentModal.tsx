@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/context/ToastContext'
 import { updateAppointment } from '@/lib/firestore'
 import { getAvailableSlots, hasConflict } from '@/lib/availability'
+import { listarBloques, type TimeBlock } from '@/lib/time-blocks'
 import { hoyISO } from '@/lib/timezone'
 import { useClinic } from '@/context/ClinicContext'
 import { StatusBadge } from './StatusBadge'
@@ -62,6 +63,11 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
   const [consent, setConsent]     = useState(true)
   const [saving, setSaving]       = useState(false)
   const [conflict, setConflict]   = useState(false)
+  const [bloques, setBloques]     = useState<TimeBlock[]>([])
+
+  useEffect(() => {
+    if (open && clinicId) listarBloques(clinicId).then(setBloques).catch(() => {})
+  }, [open, clinicId])
 
   // Populate on edit
   useEffect(() => {
@@ -97,14 +103,14 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
   // Available slots
   const slots = useMemo(() => {
     if (!fecha) return []
-    return getAvailableSlots(fecha, duracion, appointments, config, appointment?.id, [], appointment?.medicoId)
-  }, [fecha, duracion, appointments, config, appointment?.id, appointment?.medicoId])
+    return getAvailableSlots(fecha, duracion, appointments, config, appointment?.id, bloques, appointment?.medicoId)
+  }, [fecha, duracion, appointments, config, appointment?.id, appointment?.medicoId, bloques])
 
-  // Conflict check
+  // Conflict check (médico-aware + bloqueos, igual que los slots)
   useEffect(() => {
     if (!fecha || !hora) { setConflict(false); return }
-    setConflict(hasConflict(fecha, hora, duracion, appointments, appointment?.id))
-  }, [fecha, hora, duracion, appointments, appointment?.id])
+    setConflict(hasConflict(fecha, hora, duracion, appointments, appointment?.id, bloques, appointment?.medicoId))
+  }, [fecha, hora, duracion, appointments, appointment?.id, appointment?.medicoId, bloques])
 
   const handleSave = async () => {
     if (!nombre.trim()) { toast('Ingresa el nombre del paciente', 'error'); return }

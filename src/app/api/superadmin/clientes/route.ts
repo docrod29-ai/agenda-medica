@@ -55,7 +55,10 @@ export async function GET(req: NextRequest) {
       const diasPrueba = trialEnds != null ? Math.ceil((trialEnds - ahora) / 86400000) : null
       const plan = String(c.plan ?? 'trial')
       const cob = cobranza(c, trialVencido)
-      const mrr = cob === 'al_corriente' ? (PRECIO_PLAN_MXN[plan] ?? 0) : 0
+      // MRR: si tiene un PAQUETE con precio asignado, ese es el precio real;
+      // si no, cae al precio del plan de Stripe.
+      const precioPaquete = Number(c.paquetePrecio ?? 0)
+      const mrr = cob === 'al_corriente' ? (precioPaquete > 0 ? precioPaquete : (PRECIO_PLAN_MXN[plan] ?? 0)) : 0
       return {
         id: cid,
         nombreClinica: c.nombreClinica ?? '',
