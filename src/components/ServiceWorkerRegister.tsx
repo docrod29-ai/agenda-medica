@@ -15,19 +15,34 @@ import { RefreshCw, X } from 'lucide-react'
  *    muestra el aviso (no aplica nada todavía).
  * 3. Al tocar "Actualizar": skipWaiting → controllerchange → recarga una vez.
  */
-const DISMISS_KEY = 'nx.sw.dismissed'
+// Guardamos QUÉ VERSIÓN se descartó (no un sí/no). Así el aviso solo reaparece
+// cuando hay una versión REALMENTE distinta, no cada vez que entras o enfocas.
+const DISMISSED_VERSION_KEY = 'nx.sw.dismissedVersion'
+
+// Pregunta al SW su versión (el CACHE de sw.js) por un canal de mensajes.
+function pedirVersion(sw: ServiceWorker): Promise<string> {
+  return new Promise((resolve) => {
+    try {
+      const mc = new MessageChannel()
+      mc.port1.onmessage = (e) => resolve(String(e.data?.version ?? ''))
+      sw.postMessage({ type: 'GET_VERSION' }, [mc.port2])
+      setTimeout(() => resolve(''), 800)  // si no responde, no bloquea
+    } catch { resolve('') }
+  })
+}
 
 export function ServiceWorkerRegister() {
   const [updateReady, setUpdateReady] = useState(false)
   const waitingRef = useRef<ServiceWorker | null>(null)
+  const versionRef = useRef<string>('')   // versión que está ofreciendo el aviso actual
   const wantsReload = useRef(false)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (!('serviceWorker' in navigator)) return
 
-    const fueDescartada = () => {
-      try { return localStorage.getItem(DISMISS_KEY) === '1' } catch { return false }
+    const versionDescartada = () => {
+      try { return localStorage.getItem(DISMISSED_VERSION_KEY) ?? '' } catch { return '' }
     }
 
     // Recargar SOLO cuando el usuario pidió actualizar (no en la primera instalación)
@@ -35,9 +50,14 @@ export function ServiceWorkerRegister() {
       if (wantsReload.current) window.location.reload()
     })
 
-    const ofrecerActualizacion = (sw: ServiceWorker | null) => {
+    // Ofrece el aviso SOLO si la versión del SW nuevo es distinta a la ya descartada.
+    const ofrecerActualizacion = async (sw: ServiceWorker | null) => {
       if (!sw) return
+      const version = await pedirVersion(sw)
+      // Si ya descartaste ESTA misma versión, no molestar de nuevo.
+      if (version && version === versionDescartada()) return
       waitingRef.current = sw
+      versionRef.current = version
       setUpdateReady(true)
     }
 
@@ -45,8 +65,8 @@ export function ServiceWorkerRegister() {
       try {
         const reg = await navigator.serviceWorker.register('/sw.js')
 
-        // Update pendiente de antes: ofrecer SOLO si no se descartó esa versión
-        if (reg.waiting && navigator.serviceWorker.controller && !fueDescartada()) {
+        // Update pendiente de antes: ofrecer solo si esa versión no fue descartada
+        if (reg.waiting && navigator.serviceWorker.controller) {
           ofrecerActualizacion(reg.waiting)
         }
 
@@ -54,10 +74,8 @@ export function ServiceWorkerRegister() {
           const sw = reg.installing
           if (!sw) return
           sw.addEventListener('statechange', () => {
-            // Instalado + ya hay controlador = ACTUALIZACIÓN REAL (versión nueva).
-            // Limpia el "descartado" previo: es una versión distinta, vale avisar.
+            // Instalado + ya hay controlador = versión nueva instalada.
             if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-              try { localStorage.removeItem(DISMISS_KEY) } catch { /* */ }
               ofrecerActualizacion(sw)
             }
           })
@@ -81,15 +99,16 @@ export function ServiceWorkerRegister() {
 
   const actualizar = () => {
     wantsReload.current = true
-    try { localStorage.removeItem(DISMISS_KEY) } catch { /* */ }
+    try { localStorage.removeItem(DISMISSED_VERSION_KEY) } catch { /* */ }
     waitingRef.current?.postMessage({ type: 'SKIP_WAITING' })
     // Red de seguridad: si no llega controllerchange en 1.5s, recarga igual
     setTimeout(() => { if (wantsReload.current) window.location.reload() }, 1500)
   }
 
-  // Al descartar: recuérdalo para NO reaparecer en cada recarga (hasta una versión nueva)
+  // Al descartar: recuerda QUÉ versión descartaste → no reaparece por la misma,
+  // pero SÍ saldrá si más adelante hay una versión diferente.
   const descartar = () => {
-    try { localStorage.setItem(DISMISS_KEY, '1') } catch { /* */ }
+    try { if (versionRef.current) localStorage.setItem(DISMISSED_VERSION_KEY, versionRef.current) } catch { /* */ }
     setUpdateReady(false)
   }
 

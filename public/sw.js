@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v201'  // WhatsApp Embedded Signup: usa NEXT_PUBLIC_META_CONFIG_ID como config_id (antes usaba el App ID, incorrecto); guard claro si falta
+const CACHE = 'nexusmed-v202'  // Fix aviso de actualizacion: ahora es POR VERSION (el SW responde GET_VERSION); descartar recuerda la version → no reaparece por la misma, solo si hay una realmente nueva
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
@@ -17,6 +17,11 @@ self.addEventListener('install', (event) => {
 // El cliente fuerza la activación SOLO cuando el usuario toca "Actualizar"
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting()
+  // Devuelve la versión de ESTE SW para que el cliente sepa si el aviso ya se
+  // descartó para esta versión exacta (y no reaparezca por la misma).
+  if (event.data && event.data.type === 'GET_VERSION' && event.ports && event.ports[0]) {
+    event.ports[0].postMessage({ version: CACHE })
+  }
 })
 
 // Cuando el usuario hace click en una notificación → enfocar/abrir la app en la URL
