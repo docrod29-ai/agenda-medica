@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v224'  // Fix guardar plantilla receta: imagenes (membrete/pie) van a Storage y solo se guarda la URL; migra las base64 existentes al guardar → ya no excede 1MB del documento Firestore
+const CACHE = 'nexusmed-v225'  // Editor de plantilla: boton "Imprimir prueba" imprime SOLO la receta a tamano real (aislamiento @media print), ya no imprime toda la pantalla de config
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
