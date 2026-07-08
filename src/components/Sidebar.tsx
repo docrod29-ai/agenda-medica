@@ -8,7 +8,7 @@ import { useConfig } from '@/hooks/useConfig'
 import {
   LayoutDashboard, CalendarDays, Calendar, Users, Clock,
   Settings, LogOut, Stethoscope, Shield, Bot, UserSquare2, FileText,
-  MessageCircle, TrendingUp, Star, ShieldCheck, Pill, BedDouble,
+  MessageCircle, TrendingUp, Star, ShieldCheck, Pill, BedDouble, BookOpen,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
@@ -141,6 +141,15 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         })}
 
         <div className="nav-section-title" style={{ marginTop: 12 }}>Sistema</div>
+
+        <Link
+          href="/guia"
+          onClick={onClose}
+          className={`nav-item${pathname.startsWith('/guia') ? ' active' : ''}`}
+        >
+          <BookOpen size={17} className="nav-icon" />
+          Guía de uso
+        </Link>
 
         <Link
           href="/configuracion"

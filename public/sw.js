@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v230'  // Impresion rapida: receta/orden/nota/referencia imprimen SOLO el documento en ventana limpia (no rasteriza toda la app) -> el dialogo aparece al instante
+const CACHE = 'nexusmed-v231'  // Guia de uso interactiva (/guia) for-dummies con buscador y filtro por rol, enlace en el menu; guion de video promo en docs/
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
