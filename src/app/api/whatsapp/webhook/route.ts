@@ -26,7 +26,10 @@ import { hoyISO, sumarDiasISO } from '@/lib/timezone'
 
 // Sin fallback público: si no está configurado, la verificación GET fallará
 // (mejor que aceptar un token por defecto que está en el repo).
-const VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_TOKEN || ''
+// Acepta CUALQUIERA de los dos nombres (había un desajuste: el conector usaba
+// WHATSAPP_VERIFY_TOKEN y el webhook WHATSAPP_WEBHOOK_TOKEN → la verificación de
+// Meta fallaba si no coincidían). Un solo valor sirve para ambos.
+const VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_TOKEN || process.env.WHATSAPP_VERIFY_TOKEN || ''
 const META_APP_SECRET = process.env.META_APP_SECRET || ''
 
 /**
