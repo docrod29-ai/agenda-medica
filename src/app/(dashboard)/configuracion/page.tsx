@@ -2211,16 +2211,32 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
     if (!clinicId || !config) return
     setSaving(true)
     try {
+      // Migra a Storage cualquier imagen base64 (del rx actual, de la firma y de
+      // las plantillas por médico) para que la config NO exceda el límite de 1 MB
+      // de Firestore. Reemplaza el base64 por una URL corta.
+      const rxSano: RecetaConfig = {
+        ...rx,
+        membreteDataUrl: await aStorageSiEsBase64(rx.membreteDataUrl, 'membrete'),
+        pieDataUrl: await aStorageSiEsBase64(rx.pieDataUrl, 'pie'),
+      }
+      const porMedicoSano: Record<string, Partial<RecetaConfig>> = {}
+      for (const [id, r] of Object.entries(config.recetasPorMedico ?? {})) {
+        porMedicoSano[id] = { ...r, membreteDataUrl: await aStorageSiEsBase64(r.membreteDataUrl, `m-${id}`), pieDataUrl: await aStorageSiEsBase64(r.pieDataUrl, `p-${id}`) }
+      }
+      const baseConfig = { ...config, recetasPorMedico: porMedicoSano }
+
       if (!medicoSel) {
-        await saveConfig(clinicId, { ...config, recetaConfig: rx })
+        await saveConfig(clinicId, { ...baseConfig, recetaConfig: rxSano })
+        setRx(rxSano)
         toast('Plantilla general guardada', 'success')
       } else {
         // El override del médico guarda TODO el rx editado — al cargar se
         // mergea sobre la general, por lo que es consistente y simple.
         await saveConfig(clinicId, {
-          ...config,
-          recetasPorMedico: { ...(config.recetasPorMedico ?? {}), [medicoSel]: rx },
+          ...baseConfig,
+          recetasPorMedico: { ...porMedicoSano, [medicoSel]: rxSano },
         })
+        setRx(rxSano)
         const dr = doctores.find(d => d.id === medicoSel)
         toast(`Plantilla de ${dr?.nombre ?? 'médico'} guardada`, 'success')
       }
@@ -2234,6 +2250,25 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
     }
   }
 
+  // Sube un data URL base64 a Storage y devuelve la URL proxeada (documento chico).
+  // Si ya es una URL, o no hay Storage, devuelve el valor tal cual. CLAVE: evita
+  // que las imágenes (membrete/pie/firma) inflen la config más allá del límite de
+  // 1 MB de Firestore (el error "cannot be written").
+  const aStorageSiEsBase64 = async (valor: string | undefined, nombre: string): Promise<string | undefined> => {
+    if (!valor || !valor.startsWith('data:')) return valor
+    const uid = auth.currentUser?.uid
+    if (!storage || !uid) return valor
+    try {
+      const blob = await (await fetch(valor)).blob()
+      const { ref: sref, uploadBytes, getDownloadURL } = await import('firebase/storage')
+      // Reutiliza la ruta ya permitida en storage.rules (receta-diseno/{uid}).
+      const objRef = sref(storage, `receta-diseno/${uid}/${nombre}-${Date.now()}.png`)
+      await uploadBytes(objRef, blob, { contentType: blob.type || 'image/png' })
+      const url = await getDownloadURL(objRef)
+      return `/api/receta/diseno?u=${encodeURIComponent(url)}`
+    } catch { return valor }
+  }
+
   const subirImagen = async (campo: 'membreteDataUrl' | 'pieDataUrl', file: File) => {
     try {
       const { dataUrl, sizeBytes } = await resizeImageFile(file, {
@@ -2241,6 +2276,13 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
         maxHeight: campo === 'membreteDataUrl' ? 600 : 250,
         quality: 0.85,
       })
+      // Con Storage: sube y guarda la URL (no infla el documento). Sin Storage: base64 con tope.
+      if (storage && auth.currentUser?.uid) {
+        const url = await aStorageSiEsBase64(dataUrl, campo === 'membreteDataUrl' ? 'membrete' : 'pie')
+        setRx({ ...rx, [campo]: url })
+        toast('Imagen cargada', 'success')
+        return
+      }
       if (sizeBytes > 800_000) {
         toast(`Imagen muy grande (${formatBytes(sizeBytes)}). Intenta con una más chica o menos detallada.`, 'error')
         return
