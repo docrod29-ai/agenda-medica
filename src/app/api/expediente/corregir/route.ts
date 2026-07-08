@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST', headers: headers(API_KEY),
-        body: JSON.stringify({ model, max_tokens: 8000, system: SYSTEM, messages: [{ role: 'user', content: userMsg }] }),
+        body: JSON.stringify({ model, max_tokens: 8000, system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }], messages: [{ role: 'user', content: userMsg }] }),
       })
       if (!res.ok) {
         // Modelo no encontrado → prueba el siguiente; otros errores → aborta.

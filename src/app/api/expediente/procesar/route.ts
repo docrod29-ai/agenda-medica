@@ -83,7 +83,10 @@ async function llamarClaude(key: string, model: string, system: string, userMsg:
       // 8000 evita que el JSON se corte a la mitad cuando hay muchas
       // secciones + extraction + safety + preopInputs
       max_tokens: 8000,
-      system,
+      // Prompt caching: el system (instrucciones clínicas, grande y fijo) se
+      // cachea → desde la 2ª nota la IA lo reutiliza y responde más rápido y más
+      // barato, sin cambiar el resultado.
+      system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
       messages: [{ role: 'user', content: userMsg }],
     }),
   })
