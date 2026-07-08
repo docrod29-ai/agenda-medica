@@ -32,7 +32,9 @@ async function sembrarSiHaceFalta(now: string) {
   for (const p of PAQUETES_SUGERIDOS) {
     batch.set(adminDb.collection(COL).doc(p.id), {
       nombre: p.nombre, precio: p.precio, modulos: p.modulos, descripcion: p.descripcion,
-      orden: p.orden, activo: true, createdAt: now, updatedAt: now,
+      orden: p.orden, activo: true,
+      modeloPrecio: p.modeloPrecio ?? 'fijo', precioBase: p.precioBase ?? p.precio, precioPorUnidad: p.precioPorUnidad ?? 0,
+      createdAt: now, updatedAt: now,
     }, { merge: true })
   }
   batch.set(metaRef, { seeded: true, seededAt: now })
@@ -75,13 +77,18 @@ export async function POST(req: NextRequest) {
     const modulos = limpiarModulos(p.modulos)
     if (modulos.length === 0) return NextResponse.json({ ok: false, error: 'Elige al menos un módulo' }, { status: 400 })
 
+    const modeloPrecio = ['fijo', 'por_medico', 'por_cama'].includes(String(p.modeloPrecio)) ? String(p.modeloPrecio) : 'fijo'
+    const precioBase = Math.max(0, Number(p.precioBase ?? p.precio ?? 0))
+    const precioPorUnidad = Math.max(0, Number(p.precioPorUnidad ?? 0))
     const data = {
       nombre,
-      precio: Math.max(0, Number(p.precio ?? 0)),
+      // 'precio' se mantiene = base para vistas simples y como respaldo del modelo 'fijo'.
+      precio: modeloPrecio === 'fijo' ? Math.max(0, Number(p.precio ?? 0)) : precioBase,
       modulos,
       descripcion: String(p.descripcion ?? '').slice(0, 200),
       orden: Number(p.orden ?? 0),
       activo: p.activo !== false,
+      modeloPrecio, precioBase, precioPorUnidad,
       updatedAt: now,
     }
 

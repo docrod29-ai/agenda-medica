@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v228'  // Navegacion: back inteligente (regresa a donde estabas) + boton atras global en barra movil; movil: safe-area lateral + espacio inferior real para que la barra no tape botones
+const CACHE = 'nexusmed-v229'  // Cobro escalable: paquetes por_medico (consultorio) y por_cama (hospital); precio se calcula/recalcula segun medicos y camas reales; consola del dueno con selector de modelo y desglose en vivo
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

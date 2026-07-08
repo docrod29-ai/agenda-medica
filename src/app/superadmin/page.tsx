@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { Modal, Button, Spinner } from '@/components/ui'
 import { MODULOS, MODULO_LABEL } from '@/lib/modulos'
+import { type ModeloPrecio, explicarPrecio } from '@/lib/pricing'
 import { ShieldCheck, Search, Gift, Ban, Play, CalendarPlus, StickyNote, Lock, RefreshCw, Package, Plus, Trash2, Boxes } from 'lucide-react'
 
 interface Cliente {
@@ -20,7 +21,7 @@ interface Cliente {
   mrr: number; totalPagado: number; tieneStripe: boolean; notasInternas: string
   modulos: string[] | null; paqueteId: string; paqueteNombre: string; createdAt: string | null
 }
-interface Paquete { id: string; nombre: string; precio: number; modulos: string[]; descripcion?: string; activo?: boolean; orden?: number }
+interface Paquete { id: string; nombre: string; precio: number; modulos: string[]; descripcion?: string; activo?: boolean; orden?: number; modeloPrecio?: ModeloPrecio; precioBase?: number; precioPorUnidad?: number }
 interface Totales { clinicas: number; activas: number; enPrueba: number; deben: number; cortesia: number; mrr: number; ingresoTotal: number; ingresoMes: number }
 
 const mxn = (n: number) => '$' + Math.round(n).toLocaleString('es-MX')
@@ -330,8 +331,8 @@ function Seccion({ icono, titulo, children }: { icono: React.ReactNode; titulo: 
 }
 
 // ── Gestor de PAQUETES (armar combinaciones de módulos con precio) ──
-type BorradorPaquete = { id?: string; nombre: string; precio: number; modulos: string[]; descripcion: string }
-const NUEVO: BorradorPaquete = { nombre: '', precio: 0, modulos: [], descripcion: '' }
+type BorradorPaquete = { id?: string; nombre: string; precio: number; modulos: string[]; descripcion: string; modeloPrecio: ModeloPrecio; precioBase: number; precioPorUnidad: number }
+const NUEVO: BorradorPaquete = { nombre: '', precio: 0, modulos: [], descripcion: '', modeloPrecio: 'fijo', precioBase: 0, precioPorUnidad: 0 }
 
 function PaquetesManager({ paquetes, onCambio }: { paquetes: Paquete[]; onCambio: () => void }) {
   const [editar, setEditar] = useState<BorradorPaquete | null>(null)
@@ -392,14 +393,19 @@ function PaquetesManager({ paquetes, onCambio }: { paquetes: Paquete[]; onCambio
           <div key={p.id} style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{p.nombre}</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{p.precio ? mxn(p.precio) : 'Gratis'}<span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 500 }}>/mes</span></div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{p.precio ? mxn(p.precio) : 'Gratis'}<span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 500 }}>{(p.modeloPrecio ?? 'fijo') === 'por_medico' ? '/médico' : (p.modeloPrecio ?? 'fijo') === 'por_cama' ? ' base' : '/mes'}</span></div>
             </div>
+            {(p.modeloPrecio ?? 'fijo') !== 'fijo' && (
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#7c3aed', background: '#7c3aed12', borderRadius: 6, padding: '2px 7px', alignSelf: 'flex-start' }}>
+                {p.modeloPrecio === 'por_medico' ? `Por médico · +${mxn(p.precioPorUnidad ?? 0)} c/u extra` : `Por cama · +${mxn(p.precioPorUnidad ?? 0)} c/cama`}
+              </div>
+            )}
             {p.descripcion && <div style={{ fontSize: 12, color: 'var(--text3)' }}>{p.descripcion}</div>}
             <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
               {p.modulos.map(k => <span key={k} style={{ fontSize: 11, fontWeight: 600, color: '#2563eb', background: '#2563eb15', borderRadius: 6, padding: '2px 7px' }}>{MODULO_LABEL[k] ?? k}</span>)}
             </div>
             <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-              <Button size="sm" variant="secondary" onClick={() => setEditar({ id: p.id, nombre: p.nombre, precio: p.precio, modulos: [...p.modulos], descripcion: p.descripcion ?? '' })}>Editar</Button>
+              <Button size="sm" variant="secondary" onClick={() => setEditar({ id: p.id, nombre: p.nombre, precio: p.precio, modulos: [...p.modulos], descripcion: p.descripcion ?? '', modeloPrecio: p.modeloPrecio ?? 'fijo', precioBase: p.precioBase ?? p.precio, precioPorUnidad: p.precioPorUnidad ?? 0 })}>Editar</Button>
               <button title="Borrar" onClick={() => borrar(p.id)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, color: '#dc2626', cursor: 'pointer', padding: '0 10px' }}><Trash2 size={14} /></button>
             </div>
           </div>
@@ -416,18 +422,58 @@ function PaquetesManager({ paquetes, onCambio }: { paquetes: Paquete[]; onCambio
         <Modal open onClose={() => setEditar(null)} title={editar.id ? 'Editar paquete' : 'Nuevo paquete'}
           footer={<><Button variant="secondary" onClick={() => setEditar(null)}>Cancelar</Button><Button loading={busy} disabled={!editar.nombre.trim() || editar.modulos.length === 0} onClick={guardar}>Guardar</Button></>}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
-              <div>
-                <label style={{ fontSize: 12, color: 'var(--text3)' }}>Nombre</label>
-                <input value={editar.nombre} onChange={e => setEditar({ ...editar, nombre: e.target.value })} placeholder="Ej. Consulta, Hospital, Todo…"
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 13 }} />
+            <div>
+              <label style={{ fontSize: 12, color: 'var(--text3)' }}>Nombre</label>
+              <input value={editar.nombre} onChange={e => setEditar({ ...editar, nombre: e.target.value })} placeholder="Ej. Consulta, Hospital, Todo…"
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 13 }} />
+            </div>
+            {/* Modelo de cobro */}
+            <div>
+              <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 6 }}>Modelo de cobro</label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                {([
+                  { v: 'fijo' as const, t: 'Fijo', d: 'Un precio al mes' },
+                  { v: 'por_medico' as const, t: 'Por médico', d: 'Consultorio: escala con médicos' },
+                  { v: 'por_cama' as const, t: 'Por cama', d: 'Hospital: escala con el tamaño' },
+                ]).map(op => {
+                  const activo = editar.modeloPrecio === op.v
+                  return (
+                    <button key={op.v} onClick={() => setEditar({ ...editar, modeloPrecio: op.v })}
+                      style={{ padding: 10, borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+                        background: activo ? '#7c3aed15' : 'transparent', border: activo ? '1px solid #7c3aed' : '1px solid var(--border)', color: activo ? '#7c3aed' : 'var(--text2)' }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700 }}>{op.t}</div>
+                      <div style={{ fontSize: 10.5, marginTop: 2, lineHeight: 1.3 }}>{op.d}</div>
+                    </button>
+                  )
+                })}
               </div>
-              <div>
+            </div>
+            {/* Precios según el modelo */}
+            {editar.modeloPrecio === 'fijo' ? (
+              <div style={{ maxWidth: 180 }}>
                 <label style={{ fontSize: 12, color: 'var(--text3)' }}>Precio $/mes</label>
                 <input type="number" min={0} value={editar.precio} onChange={e => setEditar({ ...editar, precio: Number(e.target.value) })}
                   style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 13 }} />
               </div>
-            </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <label style={{ fontSize: 12, color: 'var(--text3)' }}>{editar.modeloPrecio === 'por_medico' ? 'Precio base (1 médico)' : 'Precio base (hospital)'}</label>
+                  <input type="number" min={0} value={editar.precioBase} onChange={e => setEditar({ ...editar, precioBase: Number(e.target.value) })}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 13 }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, color: 'var(--text3)' }}>{editar.modeloPrecio === 'por_medico' ? '+ por médico extra' : '+ por cama'}</label>
+                  <input type="number" min={0} value={editar.precioPorUnidad} onChange={e => setEditar({ ...editar, precioPorUnidad: Number(e.target.value) })}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 13 }} />
+                </div>
+                <div style={{ gridColumn: '1/-1', fontSize: 11.5, color: 'var(--text3)', background: 'var(--s2)', borderRadius: 8, padding: '8px 10px' }}>
+                  Ejemplo: {editar.modeloPrecio === 'por_medico'
+                    ? explicarPrecio({ modeloPrecio: 'por_medico', precioBase: editar.precioBase, precioPorUnidad: editar.precioPorUnidad }, { medicos: 3, camas: 0 })
+                    : explicarPrecio({ modeloPrecio: 'por_cama', precioBase: editar.precioBase, precioPorUnidad: editar.precioPorUnidad }, { medicos: 0, camas: 20 })}
+                </div>
+              </div>
+            )}
             <div>
               <label style={{ fontSize: 12, color: 'var(--text3)' }}>Descripción (opcional)</label>
               <input value={editar.descripcion} onChange={e => setEditar({ ...editar, descripcion: e.target.value })}

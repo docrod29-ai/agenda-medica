@@ -9,8 +9,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarSuperadmin, PRECIO_PLAN_MXN } from '@/lib/superadmin'
+import { calcularPrecioPaquete } from '@/lib/pricing'
 
 type Any = Record<string, unknown>
+
+async function contar(ref: FirebaseFirestore.CollectionReference): Promise<number> {
+  try { return (await ref.count().get()).data().count } catch { return 0 }
+}
 
 /** Estado de cobranza derivado (para "quién debe"). */
 function cobranza(c: Any, trialVencido: boolean): 'al_corriente' | 'debe' | 'cortesia' | 'prueba' {
@@ -47,7 +52,7 @@ export async function GET(req: NextRequest) {
       if (p.fecha && new Date(String(p.fecha)).getTime() >= iniMes) ingresoMes += monto
     })
 
-    const clientes = clinicsSnap.docs.map(d => {
+    const clientes = (await Promise.all(clinicsSnap.docs.map(async d => {
       const c = { ...(d.data() as Any) } as Any
       const cid = d.id
       const trialEnds = c.trialEndsAt ? new Date(String(c.trialEndsAt)).getTime() : null
@@ -55,9 +60,21 @@ export async function GET(req: NextRequest) {
       const diasPrueba = trialEnds != null ? Math.ceil((trialEnds - ahora) / 86400000) : null
       const plan = String(c.plan ?? 'trial')
       const cob = cobranza(c, trialVencido)
-      // MRR: si tiene un PAQUETE con precio asignado, ese es el precio real;
-      // si no, cae al precio del plan de Stripe.
-      const precioPaquete = Number(c.paquetePrecio ?? 0)
+      // Precio del paquete. Si el paquete escala (por médico / por cama), se
+      // RECALCULA con el tamaño ACTUAL de la clínica (así el cobro sigue a los
+      // médicos que usan el consultorio / a las camas del hospital).
+      const modeloPrecio = String(c.modeloPrecio ?? 'fijo')
+      let medicos = 0, camas = 0
+      let precioPaquete = Number(c.paquetePrecio ?? 0)
+      if (modeloPrecio === 'por_medico' || modeloPrecio === 'por_cama') {
+        const cref = adminDb.collection('clinics').doc(cid)
+        if (modeloPrecio === 'por_medico') medicos = await contar(cref.collection('doctors'))
+        if (modeloPrecio === 'por_cama') camas = await contar(cref.collection('camas'))
+        precioPaquete = calcularPrecioPaquete(
+          { modeloPrecio: modeloPrecio as 'fijo' | 'por_medico' | 'por_cama', precio: Number(c.paquetePrecio ?? 0), precioBase: Number(c.precioBase ?? 0), precioPorUnidad: Number(c.precioPorUnidad ?? 0) },
+          { medicos, camas },
+        )
+      }
       const mrr = cob === 'al_corriente' ? (precioPaquete > 0 ? precioPaquete : (PRECIO_PLAN_MXN[plan] ?? 0)) : 0
       return {
         id: cid,
@@ -72,6 +89,10 @@ export async function GET(req: NextRequest) {
         trialVencido,
         cobranza: cob,
         mrr,
+        precioPaquete,
+        modeloPrecio,
+        medicos,
+        camas,
         totalPagado: pagadoPorClinica.get(cid) ?? 0,
         stripeCustomerId: c.stripeCustomerId ?? '',
         tieneStripe: !!c.stripeSubscriptionId,
@@ -81,7 +102,7 @@ export async function GET(req: NextRequest) {
         paqueteNombre: c.paqueteNombre ?? '',
         createdAt: c.createdAt ?? null,
       }
-    }).sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')))
+    }))).sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')))
 
     const totales = {
       clinicas: clientes.length,

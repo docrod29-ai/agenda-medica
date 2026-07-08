@@ -11,6 +11,7 @@
  * COMPATIBILIDAD: si una clínica NO tiene `modulos` definido (clientes previos),
  * se le da acceso a TODO — nunca se bloquea a alguien que ya usaba la app.
  */
+import type { ModeloPrecio } from './pricing'
 
 export interface ModuloDef {
   key: string
@@ -45,18 +46,31 @@ export const TODOS_LOS_MODULOS = MODULOS.map(m => m.key)
  * MXN/mes — son un punto de partida sensato; el dueño los edita en /superadmin.
  * ids fijos → sembrar es idempotente (no duplica).
  */
-export interface PaqueteDef { id: string; nombre: string; precio: number; modulos: string[]; descripcion: string; orden: number }
+export interface PaqueteDef {
+  id: string; nombre: string; precio: number; modulos: string[]; descripcion: string; orden: number
+  // Cobro escalable: 'por_medico' (consultorio) o 'por_cama' (hospital). Si se
+  // omite, es 'fijo' y se usa `precio`.
+  modeloPrecio?: ModeloPrecio
+  precioBase?: number       // 1er médico / base del hospital
+  precioPorUnidad?: number  // por médico adicional / por cama
+}
 export const PAQUETES_SUGERIDOS: PaqueteDef[] = [
   { id: 'agenda',          nombre: 'Agenda',            precio: 399,  orden: 0, modulos: ['agenda'],
     descripcion: 'Citas, calendario, recordatorios y lista de espera. Ideal para recepción.' },
+  // Consultorios: se cobran POR MÉDICO que usa el consultorio (1º = base, cada extra suma).
   { id: 'consultorio',     nombre: 'Consultorio',       precio: 699,  orden: 1, modulos: ['agenda', 'expediente'],
-    descripcion: 'Agenda + expediente de consulta con recetas y órdenes. El médico de consultorio.' },
+    modeloPrecio: 'por_medico', precioBase: 699, precioPorUnidad: 250,
+    descripcion: 'Agenda + expediente de consulta con recetas y órdenes. Se cobra por médico.' },
   { id: 'consultorio-pro', nombre: 'Consultorio Pro',   precio: 999,  orden: 2, modulos: ['agenda', 'expediente', 'farmacia', 'crm', 'finanzas'],
-    descripcion: 'Consultorio completo: además farmacia, CRM/reseñas y finanzas.' },
+    modeloPrecio: 'por_medico', precioBase: 999, precioPorUnidad: 350,
+    descripcion: 'Consultorio completo: además farmacia, CRM/reseñas y finanzas. Se cobra por médico.' },
+  // Hospital: se cobra POR TAMAÑO (número de camas).
   { id: 'hospitalario',    nombre: 'Hospitalario',      precio: 1299, orden: 3, modulos: ['agenda', 'expediente', 'hospitalizacion'],
-    descripcion: 'Consulta + módulo de hospitalización (censo, indicaciones/MAR, camas).' },
+    modeloPrecio: 'por_cama', precioBase: 1299, precioPorUnidad: 40,
+    descripcion: 'Consulta + hospitalización (censo, indicaciones/MAR, camas). Se cobra por tamaño.' },
   { id: 'institucion',     nombre: 'Institución (Todo)', precio: 1799, orden: 4, modulos: [...TODOS_LOS_MODULOS],
-    descripcion: 'Acceso completo a toda la plataforma. Clínicas y hospitales.' },
+    modeloPrecio: 'por_cama', precioBase: 1799, precioPorUnidad: 40,
+    descripcion: 'Acceso completo a toda la plataforma. Se cobra por tamaño del hospital.' },
 ]
 
 /** Módulos efectivos de una clínica. undefined/null → TODOS (compatibilidad). */

@@ -17,8 +17,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarSuperadmin } from '@/lib/superadmin'
 import { TODOS_LOS_MODULOS } from '@/lib/modulos'
+import { calcularPrecioPaquete } from '@/lib/pricing'
 
 type Any = Record<string, unknown>
+
+/** Cuenta documentos de una subcolección con agregación (barato). */
+async function contar(ref: FirebaseFirestore.CollectionReference): Promise<number> {
+  try { return (await ref.count().get()).data().count } catch { return 0 }
+}
 
 export async function POST(req: NextRequest) {
   const acc = await verificarSuperadmin(req)
@@ -69,12 +75,29 @@ export async function POST(req: NextRequest) {
       // GUARD: un array vacío se interpretaría como "acceso a TODO" (modulosDe),
       // lo opuesto a lo deseado. Rechazamos: hay que elegir al menos un módulo.
       if (modulos.length === 0) return NextResponse.json({ ok: false, error: 'Elige al menos un módulo (0 módulos daría acceso total).' }, { status: 400 })
-      // Guarda el PRECIO del paquete asignado → el MRR de la consola usa ese precio real.
+      // Calcula el PRECIO del paquete según su modelo de cobro y el TAMAÑO real de
+      // la clínica (médicos / camas). Guarda también el modelo → la consola lo
+      // recalcula en vivo cuando cambian los médicos/camas.
       let paquetePrecio = 0
+      let modeloPrecio: string = 'fijo', precioBase = 0, precioPorUnidad = 0
       if (body.paqueteId) {
-        try { const pq = await adminDb.collection('platform_packages').doc(String(body.paqueteId)).get(); paquetePrecio = Number((pq.data() as Any | undefined)?.precio ?? 0) } catch { /* */ }
+        try {
+          const pq = await adminDb.collection('platform_packages').doc(String(body.paqueteId)).get()
+          const pd = (pq.data() as Any | undefined) ?? {}
+          modeloPrecio = String(pd.modeloPrecio ?? 'fijo')
+          precioBase = Number(pd.precioBase ?? pd.precio ?? 0)
+          precioPorUnidad = Number(pd.precioPorUnidad ?? 0)
+          const [medicos, camas] = await Promise.all([
+            contar(ref.collection('doctors')),
+            contar(ref.collection('camas')),
+          ])
+          paquetePrecio = calcularPrecioPaquete(
+            { modeloPrecio: modeloPrecio as 'fijo' | 'por_medico' | 'por_cama', precio: Number(pd.precio ?? 0), precioBase, precioPorUnidad },
+            { medicos, camas },
+          )
+        } catch { /* */ }
       }
-      patch = { modulos, paqueteId: body.paqueteId ?? '', paqueteNombre: body.paqueteNombre ?? '', paquetePrecio }
+      patch = { modulos, paqueteId: body.paqueteId ?? '', paqueteNombre: body.paqueteNombre ?? '', paquetePrecio, modeloPrecio, precioBase, precioPorUnidad }
       break
     }
     default:
