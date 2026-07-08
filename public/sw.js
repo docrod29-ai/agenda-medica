@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v229'  // Cobro escalable: paquetes por_medico (consultorio) y por_cama (hospital); precio se calcula/recalcula segun medicos y camas reales; consola del dueno con selector de modelo y desglose en vivo
+const CACHE = 'nexusmed-v230'  // Impresion rapida: receta/orden/nota/referencia imprimen SOLO el documento en ventana limpia (no rasteriza toda la app) -> el dialogo aparece al instante
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

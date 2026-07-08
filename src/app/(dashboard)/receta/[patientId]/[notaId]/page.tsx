@@ -11,6 +11,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
+import { imprimirElemento } from '@/lib/print-element'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { getNota } from '@/lib/expediente/firestore'
@@ -212,7 +213,7 @@ export default function GeneradorRecetaPage() {
           <button onClick={() => router.push('/configuracion?tab=recetas')} className="btn btn-secondary" title="Configurar template">
             <Settings size={14} /> Template
           </button>
-          <button onClick={() => window.print()} className="btn btn-secondary">
+          <button onClick={() => imprimirElemento(document.getElementById('receta-doc'), 'Receta')} className="btn btn-secondary">
             <Printer size={14} /> Imprimir
           </button>
           <button onClick={descargarWord} className="btn btn-secondary" title="Documento editable para tu membrete">
