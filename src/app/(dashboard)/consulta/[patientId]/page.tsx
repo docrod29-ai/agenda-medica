@@ -111,6 +111,11 @@ export default function ConsultaActivaPage() {
   const [medicamentos, setMedicamentos] = useState<Medicamento[]>([])
   const [resumen, setResumen] = useState('')
   const [procesando, setProcesando] = useState(false)
+  // ── Chat de corrección por IA ──
+  const [chatCorr, setChatCorr] = useState<{ rol: 'user' | 'ia'; texto: string }[]>([])
+  const [instruccionCorr, setInstruccionCorr] = useState('')
+  const [corrigiendo, setCorrigiendo] = useState(false)
+  const [snapshotUndo, setSnapshotUndo] = useState<null | { resumen: string; secciones: NotaSeccion[]; diagnosticos: Diagnostico[]; medicamentos: Medicamento[]; signos: SignosVitales }>(null)
   // Material de origen (dictado): colapsado por defecto: NO forma parte de la nota
   const [verFuente, setVerFuente] = useState(false)
   // Red de seguridad local: respaldo de la nota en el navegador (anti-pérdida)
@@ -685,6 +690,48 @@ export default function ConsultaActivaPage() {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [voz, procesarIA, firmar])
+
+  // Corrige la nota por chat: manda la nota actual + la instrucción; aplica SOLO
+  // el cambio pedido. Guarda un snapshot para poder deshacer.
+  const corregirConIA = async () => {
+    const instr = instruccionCorr.trim()
+    if (!instr || corrigiendo || firmada) return
+    setChatCorr(c => [...c, { rol: 'user', texto: instr }])
+    setInstruccionCorr('')
+    setCorrigiendo(true)
+    setSnapshotUndo({ resumen, secciones, diagnosticos, medicamentos, signos })
+    try {
+      const nota = {
+        resumenEjecutivo: resumen,
+        secciones: Object.fromEntries(secciones.map(s => [s.key, s.value])),
+        diagnosticos, medicamentos, alergias: [], signosVitales: signos,
+      }
+      const res = await fetchAutenticado('/api/expediente/corregir', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nota, instruccion: instr, contexto: { nombre: patient?.nombre, edad: patient?.edad, sexo: patient?.sexo } }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!data?.ok) { setChatCorr(c => [...c, { rol: 'ia', texto: data?.error || 'No pude aplicar el cambio. Reformúlalo.' }]); setSnapshotUndo(null); return }
+      // Aplicar la nota corregida.
+      if (typeof data.resumenEjecutivo === 'string') setResumen(data.resumenEjecutivo)
+      if (data.secciones && typeof data.secciones === 'object') {
+        setSecciones(prev => prev.map(s => (typeof data.secciones[s.key] === 'string' ? { ...s, value: data.secciones[s.key] } : s)))
+      }
+      if (Array.isArray(data.diagnosticos)) setDiagnosticos(data.diagnosticos.filter((d: Diagnostico) => d.descripcion))
+      if (Array.isArray(data.medicamentos)) setMedicamentos(data.medicamentos.filter((m: Medicamento) => m.nombre))
+      if (data.signosVitales && typeof data.signosVitales === 'object') setSignos(data.signosVitales)
+      setChatCorr(c => [...c, { rol: 'ia', texto: '✓ Listo, apliqué el cambio. Revisa la nota (puedes deshacer).' }])
+    } catch {
+      setChatCorr(c => [...c, { rol: 'ia', texto: 'Sin conexión. Intenta de nuevo.' }]); setSnapshotUndo(null)
+    } finally { setCorrigiendo(false) }
+  }
+  const deshacerCorreccion = () => {
+    if (!snapshotUndo) return
+    setResumen(snapshotUndo.resumen); setSecciones(snapshotUndo.secciones)
+    setDiagnosticos(snapshotUndo.diagnosticos); setMedicamentos(snapshotUndo.medicamentos); setSignos(snapshotUndo.signos)
+    setSnapshotUndo(null)
+    setChatCorr(c => [...c, { rol: 'ia', texto: '↩ Deshecho, volví la nota a como estaba.' }])
+  }
 
   const validacion = validarNOM004(construirNota('borrador'))
   const mmss = `${String(Math.floor(voz.duracion / 60)).padStart(2, '0')}:${String(voz.duracion % 60).padStart(2, '0')}`
@@ -1308,6 +1355,45 @@ export default function ConsultaActivaPage() {
       {/* ── Validación + Acciones ── */}
       {!firmada && (
         <>
+          {/* ── Chat de corrección por IA ── */}
+          {!firmada && (
+            <div style={{ marginTop: 18, border: '1px solid rgba(61,90,254,0.35)', borderRadius: 12, background: 'rgba(61,90,254,0.05)', padding: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
+                <Sparkles size={15} style={{ color: 'var(--nexus, #3d5afe)' }} /> Corregir por chat
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 3, marginBottom: 10 }}>
+                Escribe qué está mal y lo corrijo al instante, sin tocar lo demás. Ej: “la dosis de amoxicilina es 500 mg”, “quita la diabetes”, “el Dx correcto es apendicitis”.
+              </div>
+              {chatCorr.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 180, overflowY: 'auto', marginBottom: 10 }}>
+                  {chatCorr.map((m, i) => (
+                    <div key={i} style={{ alignSelf: m.rol === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%', fontSize: 12.5, padding: '7px 11px', borderRadius: 10, background: m.rol === 'user' ? 'var(--nexus, #3d5afe)' : 'var(--s2)', color: m.rol === 'user' ? '#fff' : 'var(--text)' }}>
+                      {m.texto}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input
+                  value={instruccionCorr}
+                  onChange={e => setInstruccionCorr(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); corregirConIA() } }}
+                  placeholder="Escribe la corrección…"
+                  disabled={corrigiendo}
+                  style={{ flex: 1, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 9, padding: '10px 12px', fontSize: 13.5, color: 'var(--text)', outline: 'none' }}
+                />
+                {snapshotUndo && (
+                  <button onClick={deshacerCorreccion} title="Deshacer el último cambio" style={{ background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 9, padding: '10px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>
+                    ↩ Deshacer
+                  </button>
+                )}
+                <button onClick={corregirConIA} disabled={corrigiendo || !instruccionCorr.trim()} style={{ background: (corrigiendo || !instruccionCorr.trim()) ? 'var(--s3)' : 'var(--nexus, #3d5afe)', color: '#fff', border: 'none', borderRadius: 9, padding: '10px 16px', fontSize: 13.5, fontWeight: 700, cursor: (corrigiendo || !instruccionCorr.trim()) ? 'default' : 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  {corrigiendo ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Corrigiendo…</> : 'Corregir'}
+                </button>
+              </div>
+            </div>
+          )}
+
           {validacion.errores.length > 0 && (
             <div style={S.valBox('error')}>
               {validacion.errores.map((e, i) => <div key={i} style={{ display: 'flex', gap: 6 }}><AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 2 }} /> {e}</div>)}
