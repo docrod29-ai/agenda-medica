@@ -13,6 +13,33 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarUsuario } from '@/lib/auth-server'
 import { adminDb } from '@/lib/firebase-admin'
+import { DEFAULT_CONFIG } from '@/types'
+
+/** Crea la ficha del médico en el catálogo (para su agenda) si aún no existe
+ *  una con ese correo. Toma el horario base de la config de la clínica. */
+async function crearMedicoSiFalta(clinicId: string, email: string, nombre?: string) {
+  const docsCol = adminDb.collection('clinics').doc(clinicId).collection('doctors')
+  if (email) {
+    const ya = await docsCol.where('email', '==', email).limit(1).get()
+    if (!ya.empty) return  // ya tiene ficha → no duplicar
+  }
+  const cfgSnap = await adminDb.collection('clinics').doc(clinicId).collection('config').doc('main').get()
+  const cfg = (cfgSnap.exists ? cfgSnap.data() : {}) as Record<string, unknown>
+  const now = new Date().toISOString()
+  await docsCol.add({
+    nombre: (nombre?.trim() || email.split('@')[0] || 'Médico'),
+    especialidad: '',
+    telefono: '',
+    email: email || '',
+    activo: true,
+    horario: cfg.horario ?? DEFAULT_CONFIG.horario,
+    duraciones: cfg.duraciones ?? DEFAULT_CONFIG.duraciones,
+    intervaloMinutos: cfg.intervaloMinutos ?? DEFAULT_CONFIG.intervaloMinutos ?? 10,
+    zonaHoraria: cfg.zonaHoraria ?? DEFAULT_CONFIG.zonaHoraria ?? 'America/Mexico_City',
+    createdAt: now,
+    updatedAt: now,
+  })
+}
 
 export async function POST(req: NextRequest) {
   const acc = await verificarUsuario(req)
@@ -40,10 +67,10 @@ export async function POST(req: NextRequest) {
 
     const resultado = await adminDb.runTransaction(async (tx) => {
       const snap = await tx.get(invRef)
-      if (!snap.exists) return { ok: false, motivo: 'Invitación no encontrada.' }
-      const inv = snap.data() as { clinicId: string; role: string; used?: boolean; expiresAt?: string; creadoPor?: string }
-      if (inv.used === true) return { ok: false, motivo: 'Esta invitación ya fue usada.' }
-      if (inv.expiresAt && new Date() > new Date(inv.expiresAt)) return { ok: false, motivo: 'Esta invitación ha expirado.' }
+      if (!snap.exists) return { ok: false as const, motivo: 'Invitación no encontrada.' }
+      const inv = snap.data() as { clinicId: string; role: string; used?: boolean; expiresAt?: string; creadoPor?: string; nombreInvitado?: string }
+      if (inv.used === true) return { ok: false as const, motivo: 'Esta invitación ya fue usada.' }
+      if (inv.expiresAt && new Date() > new Date(inv.expiresAt)) return { ok: false as const, motivo: 'Esta invitación ha expirado.' }
 
       tx.set(memberRef, {
         clinicId: inv.clinicId,
@@ -53,9 +80,17 @@ export async function POST(req: NextRequest) {
         createdAt: new Date().toISOString(),
       })
       tx.update(invRef, { used: true, usedBy: uid, usedAt: new Date().toISOString() })
-      return { ok: true, clinicId: inv.clinicId }
+      return { ok: true as const, clinicId: inv.clinicId, role: inv.role, nombreInvitado: inv.nombreInvitado }
     })
-    return NextResponse.json(resultado, { status: resultado.ok ? 200 : 409 })
+
+    // UNA SOLA LISTA: si el que se une es MÉDICO, se crea SOLO su ficha en el
+    // catálogo de "Médicos" (para que tenga agenda) — así el admin no tiene que
+    // agregarlo aparte. Se omite si ya existe una ficha con su correo.
+    if (resultado.ok && resultado.role === 'medico') {
+      try { await crearMedicoSiFalta(resultado.clinicId, acc.email ?? '', resultado.nombreInvitado) } catch { /* no bloquea el alta */ }
+    }
+
+    return NextResponse.json({ ok: resultado.ok, clinicId: resultado.ok ? resultado.clinicId : undefined, motivo: resultado.ok ? undefined : resultado.motivo }, { status: resultado.ok ? 200 : 409 })
   } catch (e) {
     return NextResponse.json({ ok: false, motivo: e instanceof Error ? e.message : 'error' }, { status: 500 })
   }
