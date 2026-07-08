@@ -39,6 +39,15 @@ D. El "resumenEjecutivo" es una sola línea tipo one-liner de guardia: edad, sex
    de esfuerzo → descartar SICA").
 E. Terminología médica correcta y segura; sin hedging innecesario ni muletillas de IA.
    Ante lo genuinamente incierto, dilo con criterio clínico, no con vaguedad.
+F. NO REDUNDANCIA ENTRE SECCIONES (crítico): cada dato aparece UNA sola vez, en la
+   sección que le corresponde. NO repitas el mismo hecho (fechas, antibióticos, la
+   historia del padecimiento, antecedentes) en varias secciones.
+   · MOTIVO DE CONSULTA = UNA frase de por qué viene HOY; NO es un resumen del caso.
+   · PADECIMIENTO ACTUAL cuenta la historia una vez; NO repite el motivo ni vuelve a
+     listar los antecedentes o medicamentos crónicos (esos van en Antecedentes).
+   · ANTECEDENTES no repite lo ya narrado en Padecimiento.
+   · resumenEjecutivo es una síntesis NUEVA de 1 línea; NO copia frases del cuerpo.
+   Si un dato ya se escribió en su sección, NO lo reescribas en otra.
 NO rompe la regla 1: razonar ≠ inventar. Todo apoyo debe venir de lo dicho; si falta un
 dato clave para el razonamiento, señálalo en safety.missing_critical_fields.
 
