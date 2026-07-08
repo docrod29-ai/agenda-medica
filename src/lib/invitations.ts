@@ -24,6 +24,7 @@ export interface Invitacion {
   clinicNombre: string
   role: RolInvitacion
   nombreInvitado?: string         // opcional, para mostrar "Bienvenida María"
+  especialidad?: string           // profesión/especialidad (para la ficha del médico)
   creadoPor: string               // uid del médico que invitó
   creadoPorEmail: string
   createdAt: string
@@ -50,12 +51,14 @@ export async function crearInvitacion(
   role: RolInvitacion,
   creador: { uid: string; email: string },
   nombreInvitado?: string,
+  especialidad?: string,
 ): Promise<Invitacion> {
   const code = generarCodigo()
   const now = new Date()
   const data: Invitacion = {
     code, clinicId, clinicNombre, role,
     nombreInvitado: nombreInvitado?.trim() || undefined,
+    especialidad: especialidad?.trim() || undefined,
     creadoPor: creador.uid,
     creadoPorEmail: creador.email,
     createdAt: now.toISOString(),
