@@ -23,7 +23,7 @@ import {
 import { ESTUDIOS_LAB_RAPIDOS, SERVICIOS_HOSPITAL, type SolicitudLab, type ResultadoLab } from '@/types/hospital'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { getNotas } from '@/lib/expediente/firestore'
-import { getPatients } from '@/lib/firestore'
+import { getPatients, getDoctors } from '@/lib/firestore'
 import { cdsMedicamento, type AlertaCDS } from '@/lib/hospital/cds'
 import { code39Svg } from '@/lib/hospital/barcode'
 import { buscarMed } from '@/lib/hospital/medicamentos-catalogo'
@@ -37,7 +37,7 @@ import {
   type Internamiento, type TipoEgreso, type TipoIndicacion, type RegistroSignos, type RolHospital, type Indicacion,
 } from '@/types/hospital'
 import { TIPO_NOTA_LABEL, type NotaMedica } from '@/types/expediente'
-import type { Patient } from '@/types'
+import type { Patient, Doctor } from '@/types'
 import { Modal, Button, Spinner } from '@/components/ui'
 import {
   ArrowLeft, BedDouble, Stethoscope, Clock, FileText, Plus, LogOut, Pill,
@@ -78,7 +78,8 @@ export default function EpisodioPage() {
 
   // formularios de los modales
   const [egr, setEgr] = useState<{ tipo: TipoEgreso; resumen: string }>({ tipo: 'mejoria', resumen: '' })
-  const [icForm, setIcForm] = useState({ especialidad: ESPECIALIDADES_IC[0], motivo: '' })
+  const [icForm, setIcForm] = useState({ especialidad: ESPECIALIDADES_IC[0], motivo: '', medicoSolicitadoId: '' })
+  const [doctores, setDoctores] = useState<Doctor[]>([])
   const [respTxt, setRespTxt] = useState('')
   const [indForm, setIndForm] = useState<{ tipo: TipoIndicacion; descripcion: string; dosis: string; via: string; frecuencia: string }>({ tipo: 'medicamento', descripcion: '', dosis: '', via: '', frecuencia: '' })
   const [medQuery, setMedQuery] = useState('')
@@ -121,6 +122,12 @@ export default function EpisodioPage() {
     setLoading(false)
   }
   useEffect(() => { cargar() }, [clinicId, internamientoId])
+  // Catálogo de médicos del consultorio → para dirigir la interconsulta a uno
+  // concreto y que le llegue el WhatsApp a su teléfono.
+  useEffect(() => {
+    if (!clinicId) return
+    getDoctors(clinicId).then(ds => setDoctores(ds.filter(d => d.activo !== false))).catch(() => {})
+  }, [clinicId])
   // Refresco EN VIVO: indicaciones/MAR/interconsultas/traslados y signos que
   // registran OTROS usuarios (enfermería, farmacia, otro médico) aparecen solos,
   // sin recargar. Las notas/labs siguen refrescándose con cargar() tras acciones.
@@ -188,11 +195,19 @@ export default function EpisodioPage() {
   // teléfono destino lo DERIVA el servidor (nunca el cliente): primero el
   // WhatsApp personal del MÉDICO TRATANTE (si lo registró), si no, el general
   // de la clínica. `destinatarioUid` es solo la clave de búsqueda server-side.
-  const dispararAlerta = async (a: Omit<AlertaHospital, 'id' | 'leida' | 'fecha'>) => {
+  const dispararAlerta = async (
+    a: Omit<AlertaHospital, 'id' | 'leida' | 'fecha'>,
+    // Destino opcional: por defecto el médico tratante. En interconsultas se
+    // dirige al médico SOLICITADO (doctorId → su teléfono en el catálogo) o, al
+    // responder, al médico SOLICITANTE (destinatarioUid → hospital_roles).
+    target?: { destinatarioUid?: string; doctorId?: string; destinatarioNombre?: string },
+  ) => {
     if (!clinicId) return
-    const conDest: Omit<AlertaHospital, 'id' | 'leida' | 'fecha'> = { ...a, destinatarioUid: inter?.medicoTratanteId, destinatarioNombre: inter?.medicoTratanteNombre }
+    const destinatarioUid = target?.destinatarioUid ?? inter?.medicoTratanteId
+    const destinatarioNombre = target?.destinatarioNombre ?? inter?.medicoTratanteNombre
+    const conDest: Omit<AlertaHospital, 'id' | 'leida' | 'fecha'> = { ...a, destinatarioUid, destinatarioNombre }
     try { await crearAlerta(clinicId, conDest) } catch { /* */ }
-    fetchAutenticado('/api/hospital/alerta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clinicId, destinatarioUid: inter?.medicoTratanteId, mensaje: `🏥 ${a.titulo}\n${a.detalle}\nPaciente: ${a.pacienteNombre}` }) }).catch(() => {})
+    fetchAutenticado('/api/hospital/alerta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clinicId, destinatarioUid, doctorId: target?.doctorId, mensaje: `🏥 ${a.titulo}\n${a.detalle}\nPaciente: ${a.pacienteNombre}` }) }).catch(() => {})
   }
 
   // Imprimir brazalete con código de barras (BCMA)
@@ -526,7 +541,7 @@ export default function EpisodioPage() {
             {interconsultas.map(ic => (
               <div key={ic.id} style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', padding: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                  <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text)' }}>{ic.especialidad}</div>
+                  <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text)' }}>{ic.especialidad}{ic.medicoSolicitadoNombre ? <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)' }}> · para {ic.medicoSolicitadoNombre}</span> : null}</div>
                   <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 100, background: ic.estado === 'respondida' ? 'rgba(13,148,136,.15)' : 'rgba(217,119,6,.15)', color: ic.estado === 'respondida' ? '#0d9488' : '#d97706' }}>{ic.estado === 'respondida' ? 'Respondida' : 'Pendiente'}</span>
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 4 }}>{ic.motivo}</div>
@@ -565,12 +580,38 @@ export default function EpisodioPage() {
       <Modal open={modalIC} onClose={() => setModalIC(false)} title="Solicitar interconsulta"
         footer={<><Button variant="secondary" onClick={() => setModalIC(false)}>Cancelar</Button><Button loading={busy} disabled={!icForm.motivo.trim()} onClick={async () => {
           if (!clinicId) return; setBusy(true)
-          try { await agregarInterconsulta(clinicId, internamientoId, { especialidad: icForm.especialidad, motivo: icForm.motivo.trim(), solicitanteNombre: config?.nombreMedico ?? '' }); if (inter) await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'interconsulta', titulo: `Nueva interconsulta a ${icForm.especialidad}`, detalle: icForm.motivo.trim() }); toast('Interconsulta solicitada', 'success'); setModalIC(false); setIcForm({ especialidad: ESPECIALIDADES_IC[0], motivo: '' }); cargar() }
+          try {
+            const medSol = doctores.find(d => d.id === icForm.medicoSolicitadoId)
+            await agregarInterconsulta(clinicId, internamientoId, {
+              especialidad: icForm.especialidad, motivo: icForm.motivo.trim(), solicitanteNombre: config?.nombreMedico ?? '',
+              solicitanteId: auth.currentUser?.uid, medicoSolicitadoId: medSol?.id, medicoSolicitadoNombre: medSol?.nombre,
+            })
+            if (inter) await dispararAlerta(
+              { internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'interconsulta',
+                titulo: medSol ? `Interconsulta para ${medSol.nombre} (${icForm.especialidad})` : `Nueva interconsulta a ${icForm.especialidad}`,
+                detalle: `${icForm.motivo.trim()}${config?.nombreMedico ? `\nSolicita: ${config.nombreMedico}` : ''}` },
+              medSol ? { doctorId: medSol.id, destinatarioNombre: medSol.nombre } : undefined,
+            )
+            toast(medSol ? `Interconsulta enviada a ${medSol.nombre}` : 'Interconsulta solicitada', 'success')
+            setModalIC(false); setIcForm({ especialidad: ESPECIALIDADES_IC[0], motivo: '', medicoSolicitadoId: '' }); cargar()
+          }
           finally { setBusy(false) }
         }}>Solicitar</Button></>}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Especialidad</label>
-            <select className={inputCls} value={icForm.especialidad} onChange={e => setIcForm(f => ({ ...f, especialidad: e.target.value }))}>{ESPECIALIDADES_IC.map(e => <option key={e}>{e}</option>)}</select></div>
+            <select className={inputCls} value={icForm.especialidad} onChange={e => setIcForm(f => ({ ...f, especialidad: e.target.value, medicoSolicitadoId: '' }))}>{ESPECIALIDADES_IC.map(e => <option key={e}>{e}</option>)}</select></div>
+          {(() => {
+            const opciones = doctores.filter(d => d.especialidad === icForm.especialidad)
+            return (
+              <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Dirigir a un médico (opcional) — le llega un WhatsApp</label>
+                <select className={inputCls} value={icForm.medicoSolicitadoId} onChange={e => setIcForm(f => ({ ...f, medicoSolicitadoId: e.target.value }))}>
+                  <option value="">Cualquiera de {icForm.especialidad} · teléfono de guardia</option>
+                  {opciones.map(d => <option key={d.id} value={d.id}>{d.nombre}{d.telefono ? '' : ' — sin WhatsApp'}</option>)}
+                </select>
+                {opciones.length === 0 && <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>No hay médicos de {icForm.especialidad} en tu equipo; la alerta irá al teléfono de guardia de la clínica.</div>}
+              </div>
+            )
+          })()}
           <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Motivo de la interconsulta</label>
             <textarea className={inputCls} rows={3} placeholder="Pregunta clínica concreta" value={icForm.motivo} onChange={e => setIcForm(f => ({ ...f, motivo: e.target.value }))} /></div>
         </div>
@@ -580,7 +621,17 @@ export default function EpisodioPage() {
       <Modal open={!!respondiendo} onClose={() => setRespondiendo(null)} title="Responder interconsulta"
         footer={<><Button variant="secondary" onClick={() => setRespondiendo(null)}>Cancelar</Button><Button loading={busy} disabled={!respTxt.trim()} onClick={async () => {
           if (!clinicId || !respondiendo) return; setBusy(true)
-          try { await responderInterconsulta(clinicId, internamientoId, respondiendo, { respuesta: respTxt.trim(), respondidaPor: config?.nombreMedico ?? '' }); toast('Interconsulta respondida', 'success'); setRespondiendo(null); setRespTxt(''); cargar() }
+          try {
+            await responderInterconsulta(clinicId, internamientoId, respondiendo, { respuesta: respTxt.trim(), respondidaPor: config?.nombreMedico ?? '' })
+            const icResp = (inter?.interconsultas ?? []).find(x => x.id === respondiendo)
+            if (inter && icResp?.solicitanteId) await dispararAlerta(
+              { internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'resultado',
+                titulo: `Interconsulta de ${icResp.especialidad} respondida`,
+                detalle: `${config?.nombreMedico ?? 'El especialista'}: ${respTxt.trim()}` },
+              { destinatarioUid: icResp.solicitanteId, destinatarioNombre: icResp.solicitanteNombre },
+            )
+            toast('Interconsulta respondida', 'success'); setRespondiendo(null); setRespTxt(''); cargar()
+          }
           finally { setBusy(false) }
         }}>Guardar respuesta</Button></>}>
         <textarea className={inputCls} rows={5} placeholder="Impresión y recomendaciones" value={respTxt} onChange={e => setRespTxt(e.target.value)} />

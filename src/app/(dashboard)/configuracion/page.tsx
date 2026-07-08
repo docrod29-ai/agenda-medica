@@ -1526,20 +1526,14 @@ const GRUPOS_ROL: { grupo: string; opciones: OpcionRol[] }[] = [
     { label: 'Asistente / Secretaria', role: 'secretaria' },
     { label: 'Administrador', role: 'admin' },
   ]},
-  { grupo: 'Médicos (por especialidad)', opciones: [
-    'Medicina General', 'Medicina Interna', 'Medicina Familiar', 'Medicina de Urgencias',
-    'Pediatría', 'Ginecología y Obstetricia', 'Cardiología', 'Dermatología', 'Endocrinología',
-    'Gastroenterología', 'Geriatría', 'Hematología', 'Infectología', 'Nefrología', 'Neumología',
-    'Neurología', 'Oftalmología', 'Oncología', 'Ortopedia y Traumatología', 'Otorrinolaringología',
-    'Psiquiatría', 'Reumatología', 'Urología', 'Anestesiología', 'Cirugía General', 'Angiología',
-    'Neurocirugía', 'Cirugía Plástica', 'Radiología', 'Patología', 'Medicina del Deporte',
-    'Algología (Dolor)', 'Medicina del Trabajo', 'Alergología', 'Genética',
-  ].map(e => ({ label: e, role: 'medico' as RolInvitacion, especialidad: e })) },
-  { grupo: 'Otros profesionales de la salud (acceden al expediente)', opciones: [
-    'Psicología', 'Nutrición', 'Odontología', 'Fisioterapia / Rehabilitación', 'Optometría',
-    'Terapia de Lenguaje', 'Terapia Ocupacional', 'Trabajo Social', 'Podología', 'Quiropráctica',
-    'Enfermería (con expediente)',
-  ].map(e => ({ label: e, role: 'medico' as RolInvitacion, especialidad: e })) },
+  { grupo: 'Médicos · especialidades clínicas', opciones:
+    ESPECIALIDADES_CLINICAS.map(e => ({ label: e, role: 'medico' as RolInvitacion, especialidad: e })) },
+  { grupo: 'Médicos · especialidades quirúrgicas', opciones:
+    ESPECIALIDADES_QUIRURGICAS.map(e => ({ label: e, role: 'medico' as RolInvitacion, especialidad: e })) },
+  { grupo: 'Médicos · diagnóstico y apoyo', opciones:
+    ESPECIALIDADES_DIAGNOSTICAS.map(e => ({ label: e, role: 'medico' as RolInvitacion, especialidad: e })) },
+  { grupo: 'Otros profesionales de la salud (acceden al expediente)', opciones:
+    OTROS_PROFESIONALES.map(e => ({ label: e, role: 'medico' as RolInvitacion, especialidad: e })) },
   { grupo: 'Hospitalización', opciones: [
     { label: 'Enfermería', role: 'enfermeria' },
     { label: 'Farmacia', role: 'farmacia' },
@@ -2160,6 +2154,7 @@ function EmbedSnippets({ url, clinicNombre }: { url: string; clinicNombre: strin
 /* ── Recetas y órdenes Tab ───────────────────────────────────── */
 
 import { RecetaDocumento, type RecetaData } from '@/components/RecetaDocumento'
+import { ESPECIALIDADES_CLINICAS, ESPECIALIDADES_QUIRURGICAS, ESPECIALIDADES_DIAGNOSTICAS, OTROS_PROFESIONALES } from '@/lib/especialidades'
 import { resizeImageFile, formatBytes } from '@/lib/image-utils'
 import { PAPER_SIZES, ESTILOS_RECETA, detectarPaperSize } from '@/lib/receta-template'
 import type { RecetaConfig, PaperSize as PaperSizeT, EstiloReceta as EstiloT, Patient, Doctor as DoctorT } from '@/types'

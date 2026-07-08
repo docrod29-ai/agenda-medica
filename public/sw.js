@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v225'  // Editor de plantilla: boton "Imprimir prueba" imprime SOLO la receta a tamano real (aislamiento @media print), ya no imprime toda la pantalla de config
+const CACHE = 'nexusmed-v226'  // Interconsultas: catalogo amplio de especialidades (clinicas+quirurgicas), dirigir a un medico concreto y avisarle por WhatsApp; aviso de vuelta al solicitante al responder
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

@@ -85,18 +85,17 @@ export interface Internamiento {
 // ══════════════════════════════════════════════════════════════
 // F2 — Interconsultas
 // ══════════════════════════════════════════════════════════════
-export const ESPECIALIDADES_IC = [
-  'Infectología', 'Cardiología', 'Nefrología', 'Neumología', 'Neurología',
-  'Gastroenterología', 'Endocrinología', 'Cirugía General', 'Medicina Interna',
-  'Hematología', 'Oncología', 'Psiquiatría', 'Nutrición', 'Cuidados Paliativos',
-  'Rehabilitación', 'Urología', 'Ginecología', 'Traumatología', 'Otra',
-]
+// Catálogo compartido con el alta de equipo (fuente única en @/lib/especialidades).
+export { ESPECIALIDADES_INTERCONSULTA as ESPECIALIDADES_IC } from '@/lib/especialidades'
 
 export interface Interconsulta {
   id: string
   especialidad: string
   motivo: string
   solicitanteNombre: string
+  solicitanteId?: string           // uid del médico que la pide → para avisarle la respuesta por WhatsApp
+  medicoSolicitadoId?: string      // id del médico destino (catálogo doctors) → resuelve su WhatsApp server-side
+  medicoSolicitadoNombre?: string  // a quién se dirige (si se eligió un médico concreto)
   fecha: string
   estado: 'solicitada' | 'respondida'
   respuesta?: string
