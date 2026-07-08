@@ -41,11 +41,36 @@ async function sembrarSiHaceFalta(now: string) {
   await batch.commit()
 }
 
+/**
+ * Rellena el MODELO DE COBRO en paquetes que aún no lo tienen (creados antes de
+ * esta función). Consultorio (tiene expediente) → por médico; Hospital (tiene
+ * hospitalización) → por cama; el resto → fijo. NO pisa el precio que el dueño ya
+ * puso: usa el `precio` actual como base. Idempotente (solo toca los que faltan).
+ */
+async function rellenarModelos(now: string) {
+  const snap = await adminDb.collection(COL).get()
+  const batch = adminDb.batch()
+  let cambios = 0
+  snap.docs.forEach(d => {
+    const p = d.data() as Any
+    if (p.modeloPrecio) return // ya tiene modelo definido → no tocar
+    const modulos: string[] = Array.isArray(p.modulos) ? p.modulos.map(String) : []
+    let modeloPrecio = 'fijo'; let precioPorUnidad = 0
+    if (modulos.includes('hospitalizacion')) { modeloPrecio = 'por_cama'; precioPorUnidad = 40 }
+    else if (modulos.includes('expediente')) { modeloPrecio = 'por_medico'; precioPorUnidad = 250 }
+    batch.set(d.ref, { modeloPrecio, precioBase: Number(p.precio ?? 0), precioPorUnidad, updatedAt: now }, { merge: true })
+    cambios++
+  })
+  if (cambios > 0) await batch.commit()
+}
+
 export async function GET(req: NextRequest) {
   const acc = await verificarSuperadmin(req)
   if (!acc.ok) return acc.response
   try {
-    await sembrarSiHaceFalta(new Date().toISOString())
+    const now = new Date().toISOString()
+    await sembrarSiHaceFalta(now)
+    await rellenarModelos(now)
     const snap = await adminDb.collection(COL).get()
     const paquetes = snap.docs
       .map(d => ({ id: d.id, ...(d.data() as Any) }))
