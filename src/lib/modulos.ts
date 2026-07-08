@@ -24,7 +24,7 @@ export interface ModuloDef {
  * Rutas SIEMPRE disponibles (no se cobran / son la base): inicio, configuración,
  * chat interno y el directorio de pacientes. Sin esto una clínica quedaría inservible.
  */
-export const RUTAS_CORE = ['/dashboard', '/configuracion', '/chat', '/pacientes']
+export const RUTAS_CORE = ['/dashboard', '/configuracion', '/chat', '/pacientes', '/guia']
 
 /** Catálogo de módulos vendibles. El dueño combina estos en paquetes. */
 export const MODULOS: ModuloDef[] = [
