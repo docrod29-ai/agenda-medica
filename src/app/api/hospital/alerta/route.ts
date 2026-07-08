@@ -9,10 +9,12 @@
  * acepta del cliente (evita exfiltrar PII a un número arbitrario). El cliente
  * puede pasar `destinatarioUid` (el médico tratante del episodio): el servidor
  * busca el WhatsApp que ESE usuario registró en `hospital_roles/{uid}.telefono`
- * y le envía a él; si no tiene, cae al teléfono general de la clínica.
- * Restringido a rol clínico (no secretaria/facturación).
+ * y le envía a él. También puede pasar `doctorId` (médico del catálogo, p.ej. el
+ * médico SOLICITADO en una interconsulta): el servidor toma su teléfono de
+ * `doctors/{doctorId}.telefono`. Si nada resuelve, cae al teléfono general de la
+ * clínica. Restringido a rol clínico (no secretaria/facturación).
  *
- * Body: { clinicId, mensaje, destinatarioUid? }
+ * Body: { clinicId, mensaje, destinatarioUid?, doctorId? }
  * Resp: { ok, enviado, destino?, motivo? }
  */
 import { NextRequest, NextResponse } from 'next/server'
@@ -23,10 +25,10 @@ import { sendWhatsApp } from '@/lib/whatsapp-send'
 const ROLES_CLINICOS = ['medico', 'admin', 'enfermeria', 'farmacia', 'laboratorio']
 
 export async function POST(req: NextRequest) {
-  let body: { clinicId?: string; mensaje?: string; destinatarioUid?: string }
+  let body: { clinicId?: string; mensaje?: string; destinatarioUid?: string; doctorId?: string }
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }
 
-  const { clinicId, mensaje, destinatarioUid } = body
+  const { clinicId, mensaje, destinatarioUid, doctorId } = body
   if (!clinicId || !mensaje) return NextResponse.json({ ok: false, error: 'clinicId y mensaje requeridos' }, { status: 400 })
 
   const acc = await verificarMiembro(req, clinicId)
@@ -42,12 +44,22 @@ export async function POST(req: NextRequest) {
   //    destinatarioUid solo se usa como CLAVE de búsqueda server-side; el número
   //    nunca viaja desde el cliente.
   let telefono = ''
-  let destino: 'tratante' | 'clinica' | '' = ''
+  let destino: 'tratante' | 'medico' | 'clinica' | '' = ''
   if (destinatarioUid) {
     try {
       const r = await clinicRef.collection('hospital_roles').doc(String(destinatarioUid)).get()
       const t = r.exists ? String((r.data() as Record<string, unknown>).telefono ?? '').trim() : ''
       if (t) { telefono = t; destino = 'tratante' }
+    } catch { /* sigue al fallback */ }
+  }
+
+  // 1b) Médico del catálogo (p.ej. el solicitado en una interconsulta): su
+  //     teléfono sale de doctors/{doctorId}.telefono, resuelto en el servidor.
+  if (!telefono && doctorId) {
+    try {
+      const r = await clinicRef.collection('doctors').doc(String(doctorId)).get()
+      const t = r.exists ? String((r.data() as Record<string, unknown>).telefono ?? '').trim() : ''
+      if (t) { telefono = t; destino = 'medico' }
     } catch { /* sigue al fallback */ }
   }
 

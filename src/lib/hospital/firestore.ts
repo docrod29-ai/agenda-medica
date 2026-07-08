@@ -125,7 +125,10 @@ export async function egresarInternamiento(clinicId: string, id: string, egreso:
 
 // ── F2 · Interconsultas ──
 export async function agregarInterconsulta(clinicId: string, iid: string, ic: Omit<Interconsulta, 'id' | 'estado' | 'fecha'>): Promise<string> {
-  await mutar(clinicId, iid, 'interconsulta_agregar', { especialidad: ic.especialidad, motivo: ic.motivo, solicitanteNombre: ic.solicitanteNombre })
+  await mutar(clinicId, iid, 'interconsulta_agregar', {
+    especialidad: ic.especialidad, motivo: ic.motivo, solicitanteNombre: ic.solicitanteNombre,
+    solicitanteId: ic.solicitanteId, medicoSolicitadoId: ic.medicoSolicitadoId, medicoSolicitadoNombre: ic.medicoSolicitadoNombre,
+  })
   return ''
 }
 export async function responderInterconsulta(clinicId: string, iid: string, icId: string, resp: { respuesta?: string; respondidaPor?: string; notaId?: string }): Promise<void> {
