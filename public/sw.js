@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v231'  // Guia de uso interactiva (/guia) for-dummies con buscador y filtro por rol, enlace en el menu; guion de video promo en docs/
+const CACHE = 'nexusmed-v232'  // Velocidad: audio 16kHz/64kbps (archivo ~2.5x mas liviano -> transcribe/sube mas rapido, sin perder precision) + generacion IA usa el modelo Sonnet mas nuevo (mas rapido)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
