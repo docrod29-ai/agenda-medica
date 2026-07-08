@@ -13,7 +13,7 @@
  *  - Conflicto detectado → bandera roja.
  *  - "Ver fuente" abre el fragmento textual de la transcripción.
  */
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Check, X, AlertTriangle, Eye, EyeOff, Sparkles, ShieldCheck, ShieldAlert } from 'lucide-react'
 import type { CampoAuditado, Confianza, Hablante } from '@/lib/expediente/extraction-schema'
 
@@ -107,6 +107,16 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
   const faltantesCriticos = safety?.missing_critical_fields ?? []
   const requierenRevision = items.filter(i => i.campo.needs_review || i.critico)
   const seguros = items.filter(i => !i.campo.needs_review && !i.critico)
+
+  // AUTOMATIZADO: en cuanto la IA procesa, se AUTO-ACEPTAN los campos SEGUROS
+  // (alta confianza, no críticos) para ahorrar clics. Solo quedan pendientes de
+  // un vistazo los delicados (alergias, medicamentos, dosis dudosas, Dx definitivo).
+  // Corre una vez por extracción (dep = items, que cambia con cada procesamiento).
+  useEffect(() => {
+    const nuevos = items.filter(i => !i.campo.needs_review && !i.critico && !aprobados.has(i.id))
+    nuevos.forEach(it => onAprobar(it.id))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items])
 
   if (items.length === 0 && conflictos.length === 0 && faltantesCriticos.length === 0) {
     return null
