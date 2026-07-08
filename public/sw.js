@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v233'  // IA mas rapida: prompt caching de Anthropic en generacion de nota + chat de correccion (desde la 2a nota reutiliza el system grande -> menor latencia, mismo resultado)
+const CACHE = 'nexusmed-v234'  // Fix chat de correccion (robusto: prueba siguiente modelo + repara JSON/fences) + nota sin redundancia entre secciones (cada dato una sola vez)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

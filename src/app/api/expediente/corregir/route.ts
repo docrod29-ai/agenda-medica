@@ -38,9 +38,15 @@ FORMATO DE SALIDA: responde EXCLUSIVAMENTE el JSON de la nota corregida, con la 
 Sin markdown, sin backticks, sin texto antes o después. Primer carácter "{", último "}".`
 
 function extraerJSON(txt: string): unknown | null {
-  const i = txt.indexOf('{'); const j = txt.lastIndexOf('}')
+  if (!txt) return null
+  // Quita fences de markdown (```json … ```) que a veces mete el modelo.
+  let s = txt.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '')
+  const i = s.indexOf('{'); const j = s.lastIndexOf('}')
   if (i < 0 || j <= i) return null
-  try { return JSON.parse(txt.slice(i, j + 1)) } catch { return null }
+  s = s.slice(i, j + 1)
+  try { return JSON.parse(s) } catch { /* intenta reparar */ }
+  // Reparo común: comas colgantes antes de } o ]
+  try { return JSON.parse(s.replace(/,\s*([}\]])/g, '$1')) } catch { return null }
 }
 
 export async function POST(req: NextRequest) {
@@ -58,6 +64,7 @@ export async function POST(req: NextRequest) {
 
   const userMsg = `NOTA ACTUAL (JSON):\n${JSON.stringify(body.nota)}\n\nCONTEXTO DEL PACIENTE (referencia, no lo metas a la nota salvo que se pida):\n${JSON.stringify(body.contexto ?? {})}\n\nINSTRUCCIÓN DE CORRECCIÓN DEL MÉDICO:\n"${instruccion}"\n\nDevuelve la nota corregida en JSON aplicando SOLO ese cambio.`
 
+  let ultimoDebug = ''
   for (const model of MODELOS) {
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -65,22 +72,25 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({ model, max_tokens: 8000, system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }], messages: [{ role: 'user', content: userMsg }] }),
       })
       if (!res.ok) {
-        // Modelo no encontrado → prueba el siguiente; otros errores → aborta.
-        if (res.status === 404) continue
-        const err = await res.text().catch(() => '')
-        return NextResponse.json({ ok: false, error: `IA no disponible (${res.status})`, _debug: err.slice(0, 200) }, { status: 502 })
+        // 400/404/422 → ese modelo no existe en la cuenta o no acepta el payload;
+        // 429/5xx → sobrecarga transitoria. En TODOS los casos probamos el
+        // siguiente modelo en vez de abortar (antes un 400 tumbaba todo el chat).
+        ultimoDebug = `HTTP ${res.status}: ${(await res.text().catch(() => '')).slice(0, 150)}`
+        continue
       }
       const data = await res.json()
       const texto = (data?.content?.[0]?.text ?? '') as string
       const nota = extraerJSON(texto)
-      if (!nota || typeof nota !== 'object') return NextResponse.json({ ok: false, error: 'La IA no devolvió una nota válida. Intenta reformular.' }, { status: 502 })
-      return NextResponse.json({ ok: true, ...(nota as Record<string, unknown>) })
-    } catch {
-      // red/timeout → intenta el siguiente modelo
+      if (nota && typeof nota === 'object') return NextResponse.json({ ok: true, ...(nota as Record<string, unknown>) })
+      // Respondió pero no fue JSON parseable → intenta con el siguiente modelo.
+      ultimoDebug = 'parse-fail: ' + texto.slice(0, 150)
+      continue
+    } catch (e) {
+      ultimoDebug = 'red: ' + String(e).slice(0, 120)
       continue
     }
   }
-  return NextResponse.json({ ok: false, error: 'No se pudo contactar a la IA. Intenta de nuevo.' }, { status: 502 })
+  return NextResponse.json({ ok: false, error: 'La IA no pudo aplicar la corrección. Intenta de nuevo o reformúlala.', _debug: ultimoDebug }, { status: 502 })
 }
 
 export const runtime = 'nodejs'
