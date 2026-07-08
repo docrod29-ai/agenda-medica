@@ -24,7 +24,9 @@ import { verificarMiembro } from '@/lib/auth-server'
 const APP_ID     = process.env.META_APP_ID ?? ''
 const APP_SECRET = process.env.META_APP_SECRET ?? ''
 const APP_URL    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.vercel.app'
-const WEBHOOK_VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN ?? 'agenda-medica-bot'
+// Mismo valor que el webhook (acepta cualquiera de los dos nombres para no
+// depender de cuál pusiste en Vercel).
+const WEBHOOK_VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_TOKEN || process.env.WHATSAPP_VERIFY_TOKEN || 'agenda-medica-bot'
 
 const GRAPH = 'https://graph.facebook.com/v20.0'
 

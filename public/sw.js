@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v212'  // Auditoria lote 8: QR de 2FA generado LOCAL (secreto no sale del navegador); editor de receta con duracion+indicacion; borrar cita elimina el evento de Google
+const CACHE = 'nexusmed-v213'  // Meta: unifica el token de verificacion del webhook (acepta WHATSAPP_WEBHOOK_TOKEN o WHATSAPP_VERIFY_TOKEN) para que la verificacion no falle por nombres distintos
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
