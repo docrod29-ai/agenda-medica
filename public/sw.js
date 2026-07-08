@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v220'  // Invitar: lista grande de rol/profesion (especialidades medicas + psicologia/nutricion/etc que acceden al expediente); cada opcion asigna el permiso correcto y guarda la especialidad en su ficha
+const CACHE = 'nexusmed-v221'  // Notas por IA mas concisas y con razonamiento clinico de elite: estilo denso sin paja + DDx priorizado + plan accionable + resumen one-liner
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
