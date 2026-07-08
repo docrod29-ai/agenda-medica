@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v222'  // Chat de correccion por IA en la nota: escribes que esta mal y se corrige al instante (editor de precision, sin alucinar, solo el cambio pedido) + deshacer; edicion manual sigue igual
+const CACHE = 'nexusmed-v223'  // Revision IA automatizada: los campos SEGUROS (alta confianza) se auto-aceptan al procesar; solo quedan los delicados (alergias/meds/dosis dudosas) para un vistazo opcional (no bloquean firmar)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
