@@ -1087,6 +1087,24 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   .theme-toggle, .sidebar, .topbar, .bottom-nav-wrap { display: none !important; }
 }
 
+/* Impresión aislada de UNA receta: el botón "Imprimir prueba" del editor de
+   plantilla pone body.print-solo-receta y así se imprime SOLO #zona-print-receta,
+   no toda la pantalla de configuración. */
+@media print {
+  body.print-solo-receta { background: #fff !important; }
+  body.print-solo-receta * { visibility: hidden !important; }
+  body.print-solo-receta #zona-print-receta,
+  body.print-solo-receta #zona-print-receta * { visibility: visible !important; }
+  body.print-solo-receta #zona-print-receta {
+    display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
 /* ════════════════════════════════════════════════════════════════
  * DESIGN SYSTEM — Escala tipográfica técnico-precisa (Linear)
  * Aditivo: clases utilitarias nuevas, NO modifica tokens existentes.

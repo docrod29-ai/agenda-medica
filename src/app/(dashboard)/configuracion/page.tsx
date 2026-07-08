@@ -2159,12 +2159,12 @@ function EmbedSnippets({ url, clinicNombre }: { url: string; clinicNombre: strin
 
 /* ── Recetas y órdenes Tab ───────────────────────────────────── */
 
-import { RecetaDocumento } from '@/components/RecetaDocumento'
+import { RecetaDocumento, type RecetaData } from '@/components/RecetaDocumento'
 import { resizeImageFile, formatBytes } from '@/lib/image-utils'
 import { PAPER_SIZES, ESTILOS_RECETA, detectarPaperSize } from '@/lib/receta-template'
 import type { RecetaConfig, PaperSize as PaperSizeT, EstiloReceta as EstiloT, Patient, Doctor as DoctorT } from '@/types'
 import { getDoctors } from '@/lib/firestore'
-import { Upload, X as IconX, Pill, ClipboardList } from 'lucide-react'
+import { Upload, X as IconX, Pill, ClipboardList, Printer } from 'lucide-react'
 
 const RX_DEFAULTS: RecetaConfig = {
   paperSize: 'media-carta',
@@ -2867,6 +2867,36 @@ function PreviewReceta({
   const margenes = rx.disenoMargenes ?? { top: 35, right: 12, bottom: 30, left: 12 }
   const usarGuia = !!rx.disenoCompletoDataUrl
 
+  // Datos ficticios compartidos por la vista previa y la impresión de prueba.
+  const demoData: RecetaData = {
+    tipo: tipoPreview,
+    folio: 'RX-DEMO-01',
+    fecha: new Date(),
+    paciente: { id: 'demo', nombre: 'Juan Pérez García', edad: 42, sexo: 'Masculino', telefono: '614 123 4567', alergias: 'Penicilina', noShowCount: 0, cancelacionCount: 0, createdAt: '', updatedAt: '', creadoPor: '' } as Patient,
+    diagnostico: 'Faringitis aguda (J02.9)',
+    medicamentos: tipoPreview === 'receta' ? [
+      { nombre: 'Amoxicilina', dosis: '500 mg', via: 'oral', frecuencia: 'Cada 8 horas', duracion: '7 días', indicacion: 'Tomar con alimentos' },
+      { nombre: 'Paracetamol', dosis: '500 mg', via: 'oral', frecuencia: 'Cada 6 hrs si dolor o fiebre', duracion: '5 días' },
+    ] : undefined,
+    estudios: tipoPreview === 'orden' ? ['Biometría hemática completa', 'PCR cuantitativa', 'Cultivo faríngeo'] : undefined,
+    indicaciones: 'Reposo relativo, hidratación abundante. Acudir a control en 5 días.',
+    notaParaPaciente: 'Si presenta fiebre >39°C, acudir a urgencias.',
+  }
+
+  // Imprime SOLO la receta (a tamaño físico real), no toda la pantalla de config.
+  // Marca el <body> para que el CSS de impresión oculte todo menos #zona-print-receta.
+  const imprimirPrueba = () => {
+    const body = document.body
+    body.classList.add('print-solo-receta')
+    const limpiar = () => {
+      body.classList.remove('print-solo-receta')
+      window.removeEventListener('afterprint', limpiar)
+    }
+    window.addEventListener('afterprint', limpiar)
+    window.print()
+    setTimeout(limpiar, 1500) // respaldo por si el navegador no dispara afterprint
+  }
+
   return (
     <div style={{ position: 'sticky', top: 20 }}>
       <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', marginBottom: 8 }}>
@@ -2899,6 +2929,18 @@ function PreviewReceta({
         </button>
       </div>
 
+      {/* Imprimir prueba — imprime SOLO la receta a tamaño real, no toda la config */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+        <button
+          onClick={imprimirPrueba}
+          className="btn btn-secondary"
+          style={{ fontSize: 12, padding: '6px 14px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          title="Imprime solo la receta de ejemplo para probar tu impresora y formato"
+        >
+          <Printer size={13} /> Imprimir prueba
+        </button>
+      </div>
+
       {/* Contenedor que limita el tamaño visible y reserva espacio scaled */}
       <div style={{
         width: containerWidth,
@@ -2917,20 +2959,7 @@ function PreviewReceta({
           position: 'relative',
         }}>
           <RecetaDocumento
-            data={{
-              tipo: tipoPreview,
-              folio: 'RX-DEMO-01',
-              fecha: new Date(),
-              paciente: { id: 'demo', nombre: 'Juan Pérez García', edad: 42, sexo: 'Masculino', telefono: '614 123 4567', alergias: 'Penicilina', noShowCount: 0, cancelacionCount: 0, createdAt: '', updatedAt: '', creadoPor: '' } as Patient,
-              diagnostico: 'Faringitis aguda (J02.9)',
-              medicamentos: tipoPreview === 'receta' ? [
-                { nombre: 'Amoxicilina', dosis: '500 mg', via: 'oral', frecuencia: 'Cada 8 horas', duracion: '7 días', indicacion: 'Tomar con alimentos' },
-                { nombre: 'Paracetamol', dosis: '500 mg', via: 'oral', frecuencia: 'Cada 6 hrs si dolor o fiebre', duracion: '5 días' },
-              ] : undefined,
-              estudios: tipoPreview === 'orden' ? ['Biometría hemática completa', 'PCR cuantitativa', 'Cultivo faríngeo'] : undefined,
-              indicaciones: 'Reposo relativo, hidratación abundante. Acudir a control en 5 días.',
-              notaParaPaciente: 'Si presenta fiebre >39°C, acudir a urgencias.',
-            }}
+            data={demoData}
             config={config ?? null}
             recetaConfig={rx}
           />
@@ -2969,6 +2998,14 @@ function PreviewReceta({
           Ajusta los márgenes hasta que NO se sobreponga al diseño impreso.
         </div>
       )}
+
+      {/* Receta a TAMAÑO FÍSICO REAL — oculta en pantalla, visible SOLO al imprimir
+          (el CSS de impresión con body.print-solo-receta muestra únicamente esto). */}
+      <div id="zona-print-receta" style={{ display: 'none' }}>
+        <div style={{ width: paperWidthPx, height: paperHeightPx, position: 'relative', background: '#fff' }}>
+          <RecetaDocumento data={demoData} config={config ?? null} recetaConfig={rx} />
+        </div>
+      </div>
     </div>
   )
 }
