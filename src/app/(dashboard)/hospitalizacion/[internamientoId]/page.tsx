@@ -6,6 +6,7 @@
 // ══════════════════════════════════════════════════════════════
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useSmartBack } from '@/hooks/useSmartBack'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
@@ -53,6 +54,7 @@ type Tab = 'resumen' | 'indicaciones' | 'signos' | 'laboratorio' | 'enfermeria' 
 export default function EpisodioPage() {
   const { internamientoId } = useParams<{ internamientoId: string }>()
   const router = useRouter()
+  const volver = useSmartBack('/hospitalizacion')
   const { clinicId, role: memberRole } = useClinic()
   // El rol del hospital DERIVA del rol real del usuario (clinic_members), no es
   // un botón libre. Médico/admin pueden cambiar de vista; el resto queda fijo.
@@ -249,7 +251,7 @@ export default function EpisodioPage() {
   if (!inter) return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: 40, textAlign: 'center' }}>
       <p style={{ color: 'var(--text3)' }}>No se encontró el episodio.</p>
-      <Button variant="secondary" onClick={() => router.push('/hospitalizacion')}>Volver al censo</Button>
+      <Button variant="secondary" onClick={volver}>Volver al censo</Button>
     </div>
   )
   const egresado = inter.estado === 'egresado'
@@ -259,8 +261,8 @@ export default function EpisodioPage() {
   return (
     <div style={{ maxWidth: 940, margin: '0 auto', padding: '8px 4px 40px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <button onClick={() => router.push('/hospitalizacion')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 13, marginBottom: 12 }}>
-          <ArrowLeft size={15} /> Censo
+        <button onClick={volver} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 13, marginBottom: 12 }}>
+          <ArrowLeft size={15} /> Atrás
         </button>
         {/* Rol — médico/admin alternan vista; el resto lo ve fijo a su usuario */}
         {puedeCambiarRol ? (

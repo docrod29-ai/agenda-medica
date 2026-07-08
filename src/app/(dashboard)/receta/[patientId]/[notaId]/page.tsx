@@ -10,6 +10,7 @@
  */
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useSmartBack } from '@/hooks/useSmartBack'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { getNota } from '@/lib/expediente/firestore'
@@ -35,6 +36,7 @@ const VIAS: Medicamento['via'][] = ['oral', 'iv', 'im', 'sc', 'topica', 'inhalat
 export default function GeneradorRecetaPage() {
   const { patientId, notaId } = useParams<{ patientId: string; notaId: string }>()
   const router = useRouter()
+  const volver = useSmartBack(`/expediente/${patientId}`)
   const { clinicId } = useClinic()
   const { config } = useConfig()
 
@@ -191,7 +193,7 @@ export default function GeneradorRecetaPage() {
       <div style={{ padding: 40, textAlign: 'center' }}>
         <AlertCircle size={28} color="#f59e0b" style={{ marginBottom: 12 }} />
         <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>Nota no encontrada</h2>
-        <button onClick={() => router.push('/expedientes')} className="btn btn-primary" style={{ marginTop: 16 }}>
+        <button onClick={() => router.push('/pacientes')} className="btn btn-primary" style={{ marginTop: 16 }}>
           Volver a expedientes
         </button>
       </div>
@@ -202,8 +204,8 @@ export default function GeneradorRecetaPage() {
     <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
       {/* Barra superior */}
       <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
-        <button onClick={() => router.push(`/expediente/${patientId}`)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}>
-          <ArrowLeft size={15} /> Expediente
+        <button onClick={volver} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}>
+          <ArrowLeft size={15} /> Atrás
         </button>
         <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Generador de Receta</h1>
         <div style={{ display: 'flex', gap: 8 }}>

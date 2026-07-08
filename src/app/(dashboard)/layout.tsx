@@ -13,6 +13,7 @@ import { OfflineBanner } from '@/components/OfflineBanner'
 import { NotificacionesPushOptIn } from '@/components/NotificacionesPushOptIn'
 import { useMode } from '@/context/ModeContext'
 import { BottomNav } from '@/components/BottomNav'
+import { MobileBackButton } from '@/components/MobileBackButton'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { rutaPermitida } from '@/lib/modulos'
 
@@ -277,6 +278,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
           >
             <Menu size={22} />
           </button>
+          <MobileBackButton />
           <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Agenda Médica</span>
         </div>
 

@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useSmartBack } from '@/hooks/useSmartBack'
 import { useClinic } from '@/context/ClinicContext'
 import { useExpediente } from '@/hooks/useExpediente'
 import { getPatients } from '@/lib/firestore'
@@ -37,6 +38,7 @@ const ICONO_TIPO_NOTA: Record<TipoNota, LucideIcon> = {
 export default function ExpedientePage() {
   const { patientId } = useParams<{ patientId: string }>()
   const router = useRouter()
+  const volver = useSmartBack('/pacientes')
   const { clinicId } = useClinic()
   const { user } = useAuth()
   const { toast } = useToast()
@@ -83,8 +85,8 @@ export default function ExpedientePage() {
   return (
     <div style={{ padding: 24, maxWidth: 880, margin: '0 auto' }}>
       {/* Back */}
-      <button onClick={() => router.push('/pacientes')} style={backBtn}>
-        <ArrowLeft size={15} /> Pacientes
+      <button onClick={volver} style={backBtn}>
+        <ArrowLeft size={15} /> Atrás
       </button>
 
       {/* Alergias banner — SIEMPRE rojo y visible */}

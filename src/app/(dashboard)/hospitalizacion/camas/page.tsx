@@ -5,6 +5,7 @@
 // ══════════════════════════════════════════════════════════════
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSmartBack } from '@/hooks/useSmartBack'
 import { useClinic } from '@/context/ClinicContext'
 import { getCenso, getCamas, crearCama, actualizarCamaEstado, borrarCama } from '@/lib/hospital/firestore'
 import { SERVICIOS_HOSPITAL, ESTADO_CAMA_LABEL, type Internamiento, type Cama, type EstadoCama } from '@/types/hospital'
@@ -16,6 +17,7 @@ const inputCls = 'w-full rounded-md border px-2.5 py-2 text-sm bg-transparent'
 
 export default function CamasPage() {
   const router = useRouter()
+  const volver = useSmartBack('/hospitalizacion')
   const { clinicId, role } = useClinic()
   const esAdmin = role === 'admin' || role === 'medico'
   const [censo, setCenso] = useState<Internamiento[]>([])
@@ -47,8 +49,8 @@ export default function CamasPage() {
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '8px 4px 40px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-        <button onClick={() => router.push('/hospitalizacion')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 13, marginBottom: 12 }}>
-          <ArrowLeft size={15} /> Censo
+        <button onClick={volver} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 13, marginBottom: 12 }}>
+          <ArrowLeft size={15} /> Atrás
         </button>
         {esAdmin && <Button size="sm" icon={<Plus size={14} />} onClick={() => { setForm({ servicio: SERVICIOS_HOSPITAL[0], etiqueta: '', tipo: '' }); setModal(true) }}>Agregar cama</Button>}
       </div>

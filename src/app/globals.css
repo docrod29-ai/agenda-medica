@@ -684,7 +684,8 @@ tbody tr:last-child { border-bottom: none; }
   align-items: center;
   gap: 12px;
   min-height: 52px;
-  padding: 0 16px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-top: env(safe-area-inset-top, 0px);
   background: var(--s1);
   border-bottom: 1px solid var(--border);
@@ -761,8 +762,17 @@ tbody tr:last-child { border-bottom: none; }
 .bottom-nav-wrap { display: none; }
 @media (max-width: 768px) {
   .bottom-nav-wrap { display: block; }
-  /* Espacio inferior en main para que la última fila no quede tapada */
-  main { padding-bottom: 70px !important; }
+  /* Espacio inferior en main para que la última fila NO quede tapada por la barra
+     inferior. La barra mide ~56px + el área segura del "home indicator" (~34px en
+     iPhone con notch): si solo dejáramos 70px, esos botones quedaban debajo y no
+     se podían tocar. Reservamos la altura real de la barra + su área segura. */
+  main {
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
+    /* Áreas seguras laterales (notch en horizontal / esquinas redondeadas) para
+       que ningún botón quede cortado en el borde. */
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
   /* En desktop la mobile-topbar está oculta; en móvil la hacemos más compacta */
   .mobile-topbar {
     height: 48px !important;

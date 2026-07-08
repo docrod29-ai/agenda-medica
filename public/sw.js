@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v227'  // Editar/borrar en borrador (interconsulta no respondida, indicacion sin administrar, signos, orden lab solicitada); bloqueo server-side una vez firmado/respondido/administrado (NOM-004)
+const CACHE = 'nexusmed-v228'  // Navegacion: back inteligente (regresa a donde estabas) + boton atras global en barra movil; movil: safe-area lateral + espacio inferior real para que la barra no tape botones
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

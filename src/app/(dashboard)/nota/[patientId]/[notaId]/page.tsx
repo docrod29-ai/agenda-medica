@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useSmartBack } from '@/hooks/useSmartBack'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { getNota } from '@/lib/expediente/firestore'
@@ -15,6 +16,7 @@ import { descargarComoPDF } from '@/lib/pdf-download'
 export default function NotaImprimiblePage() {
   const { patientId, notaId } = useParams<{ patientId: string; notaId: string }>()
   const router = useRouter()
+  const volver = useSmartBack(`/expediente/${patientId}`)
   const { clinicId } = useClinic()
   const { config } = useConfig()
   const [nota, setNota] = useState<NotaMedica | null>(null)
@@ -86,8 +88,8 @@ export default function NotaImprimiblePage() {
     <div style={{ background: 'var(--bg)', minHeight: '100vh', padding: 24 }}>
       {/* Barra de acciones (no se imprime) */}
       <div className="no-print" style={{ maxWidth: 800, margin: '0 auto 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button onClick={() => router.push(`/expediente/${patientId}`)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}>
-          <ArrowLeft size={15} /> Expediente
+        <button onClick={volver} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}>
+          <ArrowLeft size={15} /> Atrás
         </button>
         <div className="actions-row">
           <button onClick={descargarPDF} disabled={descargando} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--teal)', color: '#000', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: descargando ? 'default' : 'pointer' }}>
