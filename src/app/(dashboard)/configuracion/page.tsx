@@ -1021,7 +1021,10 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
               Desconectar
             </button>
           </>
-        ) : (
+        ) : (META_APP_ID && META_CONFIG_ID) ? (
+          // El botón de un-clic de Meta SOLO aparece cuando Meta está configurado
+          // (env NEXT_PUBLIC_META_APP_ID + NEXT_PUBLIC_META_CONFIG_ID). Mientras no
+          // lo esté, se oculta para no confundir; reaparece solo al configurarlo.
           <button
             onClick={handleConnect}
             disabled={connecting}
@@ -1037,7 +1040,7 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
               : <><MessageCircle size={16} /> Conectar WhatsApp con Meta</>
             }
           </button>
-        )}
+        ) : null}
       </div>
 
       {/* Info box + conexión manual */}
@@ -1045,8 +1048,9 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
         <>
           <div style={{ marginTop: 14, padding: '10px 14px', background: 'rgba(61,90,254,0.05)', border: '1px solid rgba(61,90,254,0.15)', borderRadius: 8 }}>
             <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
-              Al hacer clic se abrirá una ventana de Meta. Solo necesitas iniciar sesión con Facebook
-              y verificar tu número de WhatsApp.
+              {(META_APP_ID && META_CONFIG_ID)
+                ? 'Al hacer clic se abrirá una ventana de Meta. Solo necesitas iniciar sesión con Facebook y verificar tu número de WhatsApp.'
+                : 'Conecta tu WhatsApp cuando lo necesites: pega tus credenciales de WhatsApp Business abajo. (El conector de un clic de Meta aparecerá aquí cuando configures la app de Meta.)'}
             </p>
           </div>
 

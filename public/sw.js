@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v214'  // Pagina de privacidad general /privacidad (URL fija para la revision de Meta WhatsApp)
+const CACHE = 'nexusmed-v215'  // Oculta el boton 'Conectar con Meta' de Integraciones hasta que Meta este configurado (reaparece solo al poner las llaves)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
