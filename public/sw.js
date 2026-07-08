@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v223'  // Revision IA automatizada: los campos SEGUROS (alta confianza) se auto-aceptan al procesar; solo quedan los delicados (alergias/meds/dosis dudosas) para un vistazo opcional (no bloquean firmar)
+const CACHE = 'nexusmed-v224'  // Fix guardar plantilla receta: imagenes (membrete/pie) van a Storage y solo se guarda la URL; migra las base64 existentes al guardar → ya no excede 1MB del documento Firestore
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
