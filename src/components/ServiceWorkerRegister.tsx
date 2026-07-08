@@ -81,12 +81,11 @@ export function ServiceWorkerRegister() {
           })
         })
 
-        // Chequeo gentil: solo al volver el foco/visibilidad (sin sondeo cada 60s)
-        const checkUpdate = () => { reg.update().catch(() => {}) }
-        window.addEventListener('focus', checkUpdate)
-        document.addEventListener('visibilitychange', () => {
-          if (document.visibilityState === 'visible') checkUpdate()
-        })
+        // Chequeo ÚNICO al abrir/recargar la app (sin re-chequear al cambiar de
+        // ventana). Así el aviso no reaparece cada que regresas el foco; solo
+        // sale al abrir la app si de verdad hay una versión nueva. El navegador
+        // igual detecta versiones nuevas al navegar dentro del scope del SW.
+        reg.update().catch(() => {})
       } catch {
         /* silencioso */
       }
