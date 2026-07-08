@@ -1516,6 +1516,38 @@ function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
 }
 
 
+/* ── Catálogo de roles/profesiones para invitar ──────────────
+ * Cada opción define el PERMISO (role) y, si aplica, la ESPECIALIDAD que se
+ * guarda en su ficha. Médicos y profesionales clínicos (psicología, nutrición…)
+ * usan el rol 'medico' porque necesitan acceso al EXPEDIENTE. */
+type OpcionRol = { label: string; role: RolInvitacion; especialidad?: string }
+const GRUPOS_ROL: { grupo: string; opciones: OpcionRol[] }[] = [
+  { grupo: 'Administrativo', opciones: [
+    { label: 'Asistente / Secretaria', role: 'secretaria' },
+    { label: 'Administrador', role: 'admin' },
+  ]},
+  { grupo: 'Médicos (por especialidad)', opciones: [
+    'Medicina General', 'Medicina Interna', 'Medicina Familiar', 'Medicina de Urgencias',
+    'Pediatría', 'Ginecología y Obstetricia', 'Cardiología', 'Dermatología', 'Endocrinología',
+    'Gastroenterología', 'Geriatría', 'Hematología', 'Infectología', 'Nefrología', 'Neumología',
+    'Neurología', 'Oftalmología', 'Oncología', 'Ortopedia y Traumatología', 'Otorrinolaringología',
+    'Psiquiatría', 'Reumatología', 'Urología', 'Anestesiología', 'Cirugía General', 'Angiología',
+    'Neurocirugía', 'Cirugía Plástica', 'Radiología', 'Patología', 'Medicina del Deporte',
+    'Algología (Dolor)', 'Medicina del Trabajo', 'Alergología', 'Genética',
+  ].map(e => ({ label: e, role: 'medico' as RolInvitacion, especialidad: e })) },
+  { grupo: 'Otros profesionales de la salud (acceden al expediente)', opciones: [
+    'Psicología', 'Nutrición', 'Odontología', 'Fisioterapia / Rehabilitación', 'Optometría',
+    'Terapia de Lenguaje', 'Terapia Ocupacional', 'Trabajo Social', 'Podología', 'Quiropráctica',
+    'Enfermería (con expediente)',
+  ].map(e => ({ label: e, role: 'medico' as RolInvitacion, especialidad: e })) },
+  { grupo: 'Hospitalización', opciones: [
+    { label: 'Enfermería', role: 'enfermeria' },
+    { label: 'Farmacia', role: 'farmacia' },
+    { label: 'Laboratorio', role: 'laboratorio' },
+  ]},
+]
+const OPCIONES_ROL_FLAT = GRUPOS_ROL.flatMap(g => g.opciones)
+
 /* ── Equipo (invitar asistente / colaboradores) ──────────── */
 function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinicNombre: string }) {
   const { user } = useAuth()
@@ -1525,7 +1557,8 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
   const [loading, setLoading] = useState(true)
   const [creando, setCreando] = useState(false)
   const [nombreInv, setNombreInv] = useState('')
-  const [rol, setRol] = useState<RolInvitacion>('secretaria')
+  const [profesion, setProfesion] = useState('Asistente / Secretaria')  // etiqueta elegida
+  const opcionRol = OPCIONES_ROL_FLAT.find(o => o.label === profesion) ?? OPCIONES_ROL_FLAT[0]
   const [generada, setGenerada] = useState<Invitacion | null>(null)
   const [copiado, setCopiado] = useState(false)
 
@@ -1546,9 +1579,9 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
     setCreando(true)
     try {
       const inv = await crearInvitacion(
-        clinicId, clinicNombre, rol,
+        clinicId, clinicNombre, opcionRol.role,
         { uid: user.uid, email: user.email ?? '' },
-        nombreInv,
+        nombreInv, opcionRol.especialidad,
       )
       setGenerada(inv)
       setNombreInv('')
@@ -1608,17 +1641,19 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
             <input className="input" value={nombreInv} onChange={e => setNombreInv(e.target.value)} placeholder="María Pérez" />
           </div>
           <div>
-            <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>Rol</label>
-            <select className="input" value={rol} onChange={e => setRol(e.target.value as RolInvitacion)}>
-              <option value="secretaria">Asistente / Secretaria</option>
-              <option value="medico">Médico</option>
-              <optgroup label="Hospitalización">
-                <option value="enfermeria">Enfermería</option>
-                <option value="farmacia">Farmacia</option>
-                <option value="laboratorio">Laboratorio</option>
-              </optgroup>
-              <option value="admin">Administrador</option>
+            <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>Rol / profesión</label>
+            <select className="input" value={profesion} onChange={e => setProfesion(e.target.value)}>
+              {GRUPOS_ROL.map(g => (
+                <optgroup key={g.grupo} label={g.grupo}>
+                  {g.opciones.map(o => <option key={o.label} value={o.label}>{o.label}</option>)}
+                </optgroup>
+              ))}
             </select>
+            {opcionRol.role === 'medico' && (
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
+                Accede al expediente y tendrá su propia agenda (se crea sola al aceptar).
+              </div>
+            )}
           </div>
         </div>
         <button onClick={generar} disabled={creando} style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#040b12', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: creando ? 'default' : 'pointer' }}>

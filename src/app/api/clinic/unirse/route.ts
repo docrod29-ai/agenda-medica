@@ -17,7 +17,7 @@ import { DEFAULT_CONFIG } from '@/types'
 
 /** Crea la ficha del médico en el catálogo (para su agenda) si aún no existe
  *  una con ese correo. Toma el horario base de la config de la clínica. */
-async function crearMedicoSiFalta(clinicId: string, email: string, nombre?: string) {
+async function crearMedicoSiFalta(clinicId: string, email: string, nombre?: string, especialidad?: string) {
   const docsCol = adminDb.collection('clinics').doc(clinicId).collection('doctors')
   if (email) {
     const ya = await docsCol.where('email', '==', email).limit(1).get()
@@ -28,7 +28,7 @@ async function crearMedicoSiFalta(clinicId: string, email: string, nombre?: stri
   const now = new Date().toISOString()
   await docsCol.add({
     nombre: (nombre?.trim() || email.split('@')[0] || 'Médico'),
-    especialidad: '',
+    especialidad: especialidad?.trim() || '',
     telefono: '',
     email: email || '',
     activo: true,
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     const resultado = await adminDb.runTransaction(async (tx) => {
       const snap = await tx.get(invRef)
       if (!snap.exists) return { ok: false as const, motivo: 'Invitación no encontrada.' }
-      const inv = snap.data() as { clinicId: string; role: string; used?: boolean; expiresAt?: string; creadoPor?: string; nombreInvitado?: string }
+      const inv = snap.data() as { clinicId: string; role: string; used?: boolean; expiresAt?: string; creadoPor?: string; nombreInvitado?: string; especialidad?: string }
       if (inv.used === true) return { ok: false as const, motivo: 'Esta invitación ya fue usada.' }
       if (inv.expiresAt && new Date() > new Date(inv.expiresAt)) return { ok: false as const, motivo: 'Esta invitación ha expirado.' }
 
@@ -80,14 +80,14 @@ export async function POST(req: NextRequest) {
         createdAt: new Date().toISOString(),
       })
       tx.update(invRef, { used: true, usedBy: uid, usedAt: new Date().toISOString() })
-      return { ok: true as const, clinicId: inv.clinicId, role: inv.role, nombreInvitado: inv.nombreInvitado }
+      return { ok: true as const, clinicId: inv.clinicId, role: inv.role, nombreInvitado: inv.nombreInvitado, especialidad: inv.especialidad }
     })
 
     // UNA SOLA LISTA: si el que se une es MÉDICO, se crea SOLO su ficha en el
     // catálogo de "Médicos" (para que tenga agenda) — así el admin no tiene que
     // agregarlo aparte. Se omite si ya existe una ficha con su correo.
     if (resultado.ok && resultado.role === 'medico') {
-      try { await crearMedicoSiFalta(resultado.clinicId, acc.email ?? '', resultado.nombreInvitado) } catch { /* no bloquea el alta */ }
+      try { await crearMedicoSiFalta(resultado.clinicId, acc.email ?? '', resultado.nombreInvitado, resultado.especialidad) } catch { /* no bloquea el alta */ }
     }
 
     return NextResponse.json({ ok: resultado.ok, clinicId: resultado.ok ? resultado.clinicId : undefined, motivo: resultado.ok ? undefined : resultado.motivo }, { status: resultado.ok ? 200 : 409 })
