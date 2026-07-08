@@ -9,6 +9,7 @@ import type { NotaMedica } from '@/types/expediente'
 import type { Patient } from '@/types'
 import { ArrowLeft, Printer, Loader2, Send, Download } from 'lucide-react'
 import { descargarComoPDF } from '@/lib/pdf-download'
+import { useSmartBack } from '@/hooks/useSmartBack'
 
 type Tipo = 'referencia' | 'contrarreferencia'
 type Urgencia = 'Rutina' | 'Prioritario' | 'Urgente'
@@ -17,6 +18,7 @@ export default function CartaReferenciaPage() {
   const { patientId } = useParams<{ patientId: string }>()
   const searchParams = useSearchParams()
   const router = useRouter()
+  const volver = useSmartBack(`/expediente/${patientId}`)
   const { clinicId } = useClinic()
   const { config } = useConfig()
 
@@ -94,8 +96,8 @@ export default function CartaReferenciaPage() {
     <div style={{ background: 'var(--bg)', minHeight: '100vh', padding: 24 }}>
       {/* Acciones */}
       <div className="no-print" style={{ maxWidth: 800, margin: '0 auto 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button onClick={() => router.push(`/expediente/${patientId}`)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}>
-          <ArrowLeft size={15} /> Expediente
+        <button onClick={volver} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}>
+          <ArrowLeft size={15} /> Atrás
         </button>
         <div className="actions-row">
           <button onClick={descargarPDF} disabled={descargando} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--teal)', color: '#000', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: descargando ? 'default' : 'pointer' }}>

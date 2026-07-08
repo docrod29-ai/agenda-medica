@@ -62,11 +62,11 @@ export default function NotaRescuePage() {
           : 'Hubo un error al buscar la nota. Intenta de nuevo desde el expediente.'}
       </p>
       <button
-        onClick={() => router.push('/expedientes')}
+        onClick={() => router.push('/pacientes')}
         className="btn btn-primary"
         style={{ display: 'inline-flex' }}
       >
-        <ArrowLeft size={14} /> Ir a expedientes
+        <ArrowLeft size={14} /> Ir a Consulta
       </button>
     </div>
   )

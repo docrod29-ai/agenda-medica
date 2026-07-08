@@ -5,6 +5,7 @@
 // ══════════════════════════════════════════════════════════════
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSmartBack } from '@/hooks/useSmartBack'
 import { useClinic } from '@/context/ClinicContext'
 import { getInternamientos } from '@/lib/hospital/firestore'
 import { diasEstancia, TIPO_EGRESO_LABEL, type Internamiento } from '@/types/hospital'
@@ -22,6 +23,7 @@ function Kpi({ valor, label, color = 'var(--nexus,#3d5afe)' }: { valor: string |
 
 export default function IndicadoresPage() {
   const router = useRouter()
+  const volver = useSmartBack('/hospitalizacion')
   const { clinicId } = useClinic()
   const [todos, setTodos] = useState<Internamiento[]>([])
   const [loading, setLoading] = useState(true)
@@ -54,8 +56,8 @@ export default function IndicadoresPage() {
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: '8px 4px 40px' }}>
-      <button onClick={() => router.push('/hospitalizacion')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 13, marginBottom: 12 }}>
-        <ArrowLeft size={15} /> Censo
+      <button onClick={volver} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 13, marginBottom: 12 }}>
+        <ArrowLeft size={15} /> Atrás
       </button>
       <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: '0 0 20px', display: 'flex', alignItems: 'center', gap: 10 }}>
         <BarChart3 size={22} style={{ color: 'var(--nexus,#3d5afe)' }} /> Indicadores hospitalarios
