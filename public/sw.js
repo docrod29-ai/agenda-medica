@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v218'  // Una sola lista: al invitar a un Medico, su ficha/agenda se crea sola al aceptar (crearMedicoSiFalta, dedup por correo) → el admin ya no da de alta en Medicos aparte
+const CACHE = 'nexusmed-v219'  // QUITADO el aviso de actualizacion: la app se actualiza sola en silencio al cerrar/reabrir; ya no hay ventanita 'hay una version nueva'
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
