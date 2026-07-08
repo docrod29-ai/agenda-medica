@@ -26,7 +26,10 @@ const ANTHROPIC_VERSION = '2023-06-01'
 // Modelos candidatos en orden de preferencia (el primero disponible se usa).
 // resolverModelo() descubre dinámicamente vía /v1/models; esta lista es el
 // respaldo cuando el descubrimiento no está disponible.
+// Orden de preferencia: el más NUEVO primero (Sonnet 5 es más rápido Y mejor que
+// Sonnet 4.x). resolverModelo() elige el primero disponible en la cuenta.
 const MODELOS_CANDIDATOS = [
+  'claude-sonnet-5',
   'claude-sonnet-4-6',
   'claude-sonnet-4-5',
   'claude-sonnet-4-5-20250929',

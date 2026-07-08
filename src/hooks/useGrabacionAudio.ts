@@ -92,8 +92,13 @@ export interface UseGrabacionAudio {
 
 const SILENCIO_MS = 15_000
 const NIVEL_SILENCIO = 0.02
-const BITRATE_OPUS = 128_000
-const SAMPLE_RATE_OBJETIVO = 48_000
+// Optimizado para VELOCIDAD sin perder precisión: los modelos de transcripción
+// (whisper / gpt-4o-transcribe) remuestrean a 16 kHz mono internamente, así que
+// grabar a 48 kHz / 128 kbps solo generaba un archivo ~2.5× más pesado (subida y
+// transcripción más lentas) sin mejorar el reconocimiento. 16 kHz mono a 64 kbps
+// Opus es calidad de voz excelente y mucho más rápido de subir/procesar.
+const BITRATE_OPUS = 64_000
+const SAMPLE_RATE_OBJETIVO = 16_000
 const INTERVALO_CHUNK_DEFAULT_MS = 20_000
 
 // ─────────────────────────────────────────────────────────────────
