@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v213'  // Meta: unifica el token de verificacion del webhook (acepta WHATSAPP_WEBHOOK_TOKEN o WHATSAPP_VERIFY_TOKEN) para que la verificacion no falle por nombres distintos
+const CACHE = 'nexusmed-v214'  // Pagina de privacidad general /privacidad (URL fija para la revision de Meta WhatsApp)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
