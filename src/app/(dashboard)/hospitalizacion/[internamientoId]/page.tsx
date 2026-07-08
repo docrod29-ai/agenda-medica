@@ -12,11 +12,11 @@ import { useToast } from '@/context/ToastContext'
 import { auth } from '@/lib/firebase'
 import {
   getInternamiento, egresarInternamiento,
-  agregarInterconsulta, responderInterconsulta,
-  agregarIndicacion, suspenderIndicacion, registrarAdministracion,
+  agregarInterconsulta, responderInterconsulta, editarInterconsulta, borrarInterconsulta,
+  agregarIndicacion, suspenderIndicacion, editarIndicacion, borrarIndicacion, registrarAdministracion,
   verificarIndicacionFarmacia, guardarMedicamentosCasa,
-  agregarSignos, getSignos, getRolUsuario, setRolUsuario,
-  crearSolicitudLab, getSolicitudesLabDeEpisodio, cargarResultadosLab, crearAlerta, type AlertaHospital,
+  agregarSignos, getSignos, borrarSignos, getRolUsuario, setRolUsuario,
+  crearSolicitudLab, getSolicitudesLabDeEpisodio, cargarResultadosLab, borrarSolicitudLab, crearAlerta, type AlertaHospital,
   trasladarInternamiento, cambiarTratante,
   suscribirInternamiento, suscribirSignos,
 } from '@/lib/hospital/firestore'
@@ -42,6 +42,7 @@ import { Modal, Button, Spinner } from '@/components/ui'
 import {
   ArrowLeft, BedDouble, Stethoscope, Clock, FileText, Plus, LogOut, Pill,
   Send, Check, Activity, Syringe, Ban, ShieldCheck, Printer, AlertTriangle, ScanLine, ClipboardCheck, HeartPulse,
+  Pencil, Trash2,
 } from 'lucide-react'
 
 const TIPO_EGRESO_OPCIONES: TipoEgreso[] = ['mejoria', 'maximo_beneficio', 'voluntaria', 'traslado', 'defuncion', 'otro']
@@ -73,6 +74,8 @@ export default function EpisodioPage() {
   const [modalInd, setModalInd] = useState(false)
   const [modalSignos, setModalSignos] = useState(false)
   const [respondiendo, setRespondiendo] = useState<string | null>(null)  // icId
+  const [icEditId, setIcEditId] = useState<string | null>(null)          // interconsulta en edición
+  const [indEditId, setIndEditId] = useState<string | null>(null)        // indicación en edición
   const [administrando, setAdministrando] = useState<string | null>(null) // indId
   const [busy, setBusy] = useState(false)
 
@@ -369,7 +372,7 @@ export default function EpisodioPage() {
           <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Hoja de indicaciones médicas y registro de administración (MAR).</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {esMedico && !egresado && <Button size="sm" variant="secondary" icon={<ClipboardCheck size={14} />} onClick={() => setModalConcil(true)}>Conciliar medicamentos</Button>}
-            {esMedico && !egresado && <Button size="sm" icon={<Plus size={14} />} onClick={() => setModalInd(true)}>Nueva indicación</Button>}
+            {esMedico && !egresado && <Button size="sm" icon={<Plus size={14} />} onClick={() => { setIndEditId(null); setIndForm({ tipo: 'medicamento', descripcion: '', dosis: '', via: '', frecuencia: '' }); setMedQuery(''); setModalInd(true) }}>Nueva indicación</Button>}
           </div>
         </div>
         {/* Conciliación: medicamentos del hogar vs indicaciones activas */}
@@ -404,6 +407,9 @@ export default function EpisodioPage() {
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                     {puedeFarmacia && ind.activa && ind.tipo === 'medicamento' && !ind.verificadaFarmacia && <Button size="sm" variant="secondary" icon={<ShieldCheck size={13} />} onClick={async () => { if (!clinicId) return; await verificarIndicacionFarmacia(clinicId, internamientoId, ind.id, config?.nombreMedico ?? ROL_HOSPITAL_LABEL[rol]); toast('Indicación verificada por farmacia', 'success'); cargar() }}>Verificar</Button>}
                     {puedeEnfermeria && ind.activa && ind.tipo === 'medicamento' && <Button size="sm" variant="secondary" icon={<Syringe size={13} />} onClick={() => { setCorrectos({ paciente: false, medicamento: false, dosis: false, via: false, hora: false }); setAdministrando(ind.id) }}>Administrar</Button>}
+                    {/* Editar/Borrar SOLO si nunca se administró (borrador). Una vez con MAR, solo suspender. */}
+                    {esMedico && ind.administraciones.length === 0 && !egresado && <button title="Editar" onClick={() => { setIndEditId(ind.id); setIndForm({ tipo: ind.tipo, descripcion: ind.descripcion, dosis: '', via: '', frecuencia: ind.frecuencia ?? '' }); setMedQuery(''); setModalInd(true) }} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 8px', cursor: 'pointer', color: 'var(--text3)' }}><Pencil size={13} /></button>}
+                    {esMedico && ind.administraciones.length === 0 && !egresado && <button title="Borrar" onClick={async () => { if (!clinicId || !window.confirm('¿Borrar esta indicación?')) return; try { await borrarIndicacion(clinicId, internamientoId, ind.id); toast('Indicación borrada', 'success'); cargar() } catch (e) { toast(e instanceof Error ? e.message : 'No se pudo borrar', 'error') } }} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 8px', cursor: 'pointer', color: 'var(--text3)' }}><Trash2 size={13} /></button>}
                     {esMedico && <button title={ind.activa ? 'Suspender' : 'Reactivar'} onClick={async () => { if (!clinicId) return; await suspenderIndicacion(clinicId, internamientoId, ind.id, !ind.activa); cargar() }} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 8px', cursor: 'pointer', color: 'var(--text3)' }}><Ban size={13} /></button>}
                   </div>
                 </div>
@@ -461,6 +467,7 @@ export default function EpisodioPage() {
               <thead>
                 <tr style={{ background: 'var(--s2)', color: 'var(--text3)', textAlign: 'left' }}>
                   {['Fecha', 'TA', 'FC', 'FR', 'T°', 'SpO₂', 'Gluc.', 'Dolor'].map(h => <th key={h} style={{ padding: '8px 10px', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>)}
+                  {puedeEnfermeria && !egresado && <th style={{ padding: '8px 10px' }}></th>}
                 </tr>
               </thead>
               <tbody>
@@ -474,6 +481,7 @@ export default function EpisodioPage() {
                     <td style={{ padding: '7px 10px', color: (s.spo2 && s.spo2 < 92) ? '#dc2626' : undefined }}>{s.spo2 ?? '—'}</td>
                     <td style={{ padding: '7px 10px' }}>{s.glucosa ?? '—'}</td>
                     <td style={{ padding: '7px 10px' }}>{s.dolor != null ? `${s.dolor}/10` : '—'}</td>
+                    {puedeEnfermeria && !egresado && <td style={{ padding: '7px 10px', textAlign: 'right' }}><button title="Borrar registro mal capturado" onClick={async () => { if (!clinicId || !window.confirm('¿Borrar este registro de signos?')) return; try { await borrarSignos(clinicId, internamientoId, s.id); toast('Registro borrado', 'success'); cargar() } catch { toast('No se pudo borrar', 'error') } }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)' }}><Trash2 size={13} /></button></td>}
                   </tr>
                 ))}
               </tbody>
@@ -512,11 +520,13 @@ export default function EpisodioPage() {
                     ))}
                   </div>
                 )}
-                {(rol === 'laboratorio' || rol === 'medico') && l.estado !== 'resultado' && (
-                  <div style={{ marginTop: 10 }}>
-                    <Button size="sm" variant="secondary" onClick={() => { setResForm(l.estudios.map(e => ({ estudio: e, valor: '', unidad: '', critico: false }))); setCargandoRes(l) }}>Cargar resultados</Button>
+                {((rol === 'laboratorio' || rol === 'medico') && l.estado !== 'resultado') || (esMedico && l.estado === 'solicitada' && !egresado) ? (
+                  <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {(rol === 'laboratorio' || rol === 'medico') && <Button size="sm" variant="secondary" onClick={() => { setResForm(l.estudios.map(e => ({ estudio: e, valor: '', unidad: '', critico: false }))); setCargandoRes(l) }}>Cargar resultados</Button>}
+                    {/* Cancelar SOLO mientras esté 'solicitada' (aún no la procesa el laboratorio). */}
+                    {esMedico && l.estado === 'solicitada' && !egresado && <Button size="sm" variant="secondary" icon={<Trash2 size={13} />} onClick={async () => { if (!clinicId || !window.confirm('¿Cancelar esta orden de laboratorio?')) return; try { await borrarSolicitudLab(clinicId, l.id); toast('Orden cancelada', 'success'); cargar() } catch (e) { toast(e instanceof Error ? e.message : 'No se pudo cancelar', 'error') } }}>Cancelar orden</Button>}
                   </div>
-                )}
+                ) : null}
               </div>
             ))}
           </div>
@@ -532,7 +542,7 @@ export default function EpisodioPage() {
       {tab === 'interconsultas' && (<>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
           <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Solicitudes a otras especialidades y sus respuestas.</div>
-          {esMedico && !egresado && <Button size="sm" icon={<Send size={14} />} onClick={() => setModalIC(true)}>Solicitar interconsulta</Button>}
+          {esMedico && !egresado && <Button size="sm" icon={<Send size={14} />} onClick={() => { setIcEditId(null); setIcForm({ especialidad: ESPECIALIDADES_IC[0], motivo: '', medicoSolicitadoId: '' }); setModalIC(true) }}>Solicitar interconsulta</Button>}
         </div>
         {interconsultas.length === 0 ? (
           <div style={{ fontSize: 13, color: 'var(--text3)', padding: 16, textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 12 }}>Sin interconsultas.</div>
@@ -551,6 +561,9 @@ export default function EpisodioPage() {
                   <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
                     <Button size="sm" variant="secondary" onClick={() => setRespondiendo(ic.id)}>Responder (texto)</Button>
                     {ic.especialidad === 'Infectología' && <Button size="sm" variant="secondary" icon={<Activity size={13} />} onClick={() => nuevaNota('valoracion_inmuno')}>Valoración inmuno</Button>}
+                    {/* Borrador (aún sin responder): editable y borrable. */}
+                    <Button size="sm" variant="secondary" icon={<Pencil size={13} />} onClick={() => { setIcEditId(ic.id); setIcForm({ especialidad: ic.especialidad, motivo: ic.motivo, medicoSolicitadoId: ic.medicoSolicitadoId ?? '' }); setModalIC(true) }}>Editar</Button>
+                    <Button size="sm" variant="secondary" icon={<Trash2 size={13} />} onClick={async () => { if (!clinicId || !window.confirm('¿Borrar esta interconsulta?')) return; try { await borrarInterconsulta(clinicId, internamientoId, ic.id); toast('Interconsulta borrada', 'success'); cargar() } catch (e) { toast(e instanceof Error ? e.message : 'No se pudo borrar', 'error') } }}>Borrar</Button>
                   </div>
                 )}
               </div>
@@ -576,27 +589,36 @@ export default function EpisodioPage() {
         <p style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 8 }}>Al confirmar, el paciente sale del censo y se abre la Nota de egreso (NOM-004).</p>
       </Modal>
 
-      {/* Nueva interconsulta */}
-      <Modal open={modalIC} onClose={() => setModalIC(false)} title="Solicitar interconsulta"
-        footer={<><Button variant="secondary" onClick={() => setModalIC(false)}>Cancelar</Button><Button loading={busy} disabled={!icForm.motivo.trim()} onClick={async () => {
+      {/* Nueva / editar interconsulta */}
+      <Modal open={modalIC} onClose={() => { setModalIC(false); setIcEditId(null) }} title={icEditId ? 'Editar interconsulta' : 'Solicitar interconsulta'}
+        footer={<><Button variant="secondary" onClick={() => { setModalIC(false); setIcEditId(null) }}>Cancelar</Button><Button loading={busy} disabled={!icForm.motivo.trim()} onClick={async () => {
           if (!clinicId) return; setBusy(true)
           try {
             const medSol = doctores.find(d => d.id === icForm.medicoSolicitadoId)
-            await agregarInterconsulta(clinicId, internamientoId, {
-              especialidad: icForm.especialidad, motivo: icForm.motivo.trim(), solicitanteNombre: config?.nombreMedico ?? '',
-              solicitanteId: auth.currentUser?.uid, medicoSolicitadoId: medSol?.id, medicoSolicitadoNombre: medSol?.nombre,
-            })
-            if (inter) await dispararAlerta(
-              { internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'interconsulta',
-                titulo: medSol ? `Interconsulta para ${medSol.nombre} (${icForm.especialidad})` : `Nueva interconsulta a ${icForm.especialidad}`,
-                detalle: `${icForm.motivo.trim()}${config?.nombreMedico ? `\nSolicita: ${config.nombreMedico}` : ''}` },
-              medSol ? { doctorId: medSol.id, destinatarioNombre: medSol.nombre } : undefined,
-            )
-            toast(medSol ? `Interconsulta enviada a ${medSol.nombre}` : 'Interconsulta solicitada', 'success')
-            setModalIC(false); setIcForm({ especialidad: ESPECIALIDADES_IC[0], motivo: '', medicoSolicitadoId: '' }); cargar()
+            if (icEditId) {
+              // Editar borrador (aún no respondida): actualiza sin re-enviar alerta.
+              await editarInterconsulta(clinicId, internamientoId, icEditId, {
+                especialidad: icForm.especialidad, motivo: icForm.motivo.trim(), medicoSolicitadoId: medSol?.id, medicoSolicitadoNombre: medSol?.nombre,
+              })
+              toast('Interconsulta actualizada', 'success')
+            } else {
+              await agregarInterconsulta(clinicId, internamientoId, {
+                especialidad: icForm.especialidad, motivo: icForm.motivo.trim(), solicitanteNombre: config?.nombreMedico ?? '',
+                solicitanteId: auth.currentUser?.uid, medicoSolicitadoId: medSol?.id, medicoSolicitadoNombre: medSol?.nombre,
+              })
+              if (inter) await dispararAlerta(
+                { internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'interconsulta',
+                  titulo: medSol ? `Interconsulta para ${medSol.nombre} (${icForm.especialidad})` : `Nueva interconsulta a ${icForm.especialidad}`,
+                  detalle: `${icForm.motivo.trim()}${config?.nombreMedico ? `\nSolicita: ${config.nombreMedico}` : ''}` },
+                medSol ? { doctorId: medSol.id, destinatarioNombre: medSol.nombre } : undefined,
+              )
+              toast(medSol ? `Interconsulta enviada a ${medSol.nombre}` : 'Interconsulta solicitada', 'success')
+            }
+            setModalIC(false); setIcEditId(null); setIcForm({ especialidad: ESPECIALIDADES_IC[0], motivo: '', medicoSolicitadoId: '' }); cargar()
           }
+          catch (e) { toast(e instanceof Error ? e.message : 'No se pudo guardar', 'error') }
           finally { setBusy(false) }
-        }}>Solicitar</Button></>}>
+        }}>{icEditId ? 'Guardar cambios' : 'Solicitar'}</Button></>}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Especialidad</label>
             <select className={inputCls} value={icForm.especialidad} onChange={e => setIcForm(f => ({ ...f, especialidad: e.target.value, medicoSolicitadoId: '' }))}>{ESPECIALIDADES_IC.map(e => <option key={e}>{e}</option>)}</select></div>
@@ -637,16 +659,26 @@ export default function EpisodioPage() {
         <textarea className={inputCls} rows={5} placeholder="Impresión y recomendaciones" value={respTxt} onChange={e => setRespTxt(e.target.value)} />
       </Modal>
 
-      {/* Nueva indicación (medicamento con catálogo buscable = CPOE estructurado) */}
-      <Modal open={modalInd} onClose={() => { setModalInd(false); setMedQuery('') }} title="Nueva indicación médica"
-        footer={<><Button variant="secondary" onClick={() => { setModalInd(false); setMedQuery('') }}>Cancelar</Button><Button loading={busy} disabled={!indForm.descripcion.trim()} onClick={async () => {
+      {/* Nueva / editar indicación (medicamento con catálogo buscable = CPOE estructurado) */}
+      <Modal open={modalInd} onClose={() => { setModalInd(false); setMedQuery(''); setIndEditId(null) }} title={indEditId ? 'Editar indicación médica' : 'Nueva indicación médica'}
+        footer={<><Button variant="secondary" onClick={() => { setModalInd(false); setMedQuery(''); setIndEditId(null) }}>Cancelar</Button><Button loading={busy} disabled={!indForm.descripcion.trim()} onClick={async () => {
           if (!clinicId) return; setBusy(true)
           const desc = indForm.tipo === 'medicamento'
             ? [indForm.descripcion.trim(), indForm.dosis.trim(), indForm.via.trim()].filter(Boolean).join(' ')
             : indForm.descripcion.trim()
-          try { await agregarIndicacion(clinicId, internamientoId, { tipo: indForm.tipo, descripcion: desc, frecuencia: indForm.frecuencia.trim() || undefined, creadaPor: config?.nombreMedico ?? '' }); toast('Indicación agregada', 'success'); setModalInd(false); setIndForm({ tipo: 'medicamento', descripcion: '', dosis: '', via: '', frecuencia: '' }); setMedQuery(''); cargar() }
+          try {
+            if (indEditId) {
+              await editarIndicacion(clinicId, internamientoId, indEditId, { tipo: indForm.tipo, descripcion: desc, frecuencia: indForm.frecuencia.trim() })
+              toast('Indicación actualizada', 'success')
+            } else {
+              await agregarIndicacion(clinicId, internamientoId, { tipo: indForm.tipo, descripcion: desc, frecuencia: indForm.frecuencia.trim() || undefined, creadaPor: config?.nombreMedico ?? '' })
+              toast('Indicación agregada', 'success')
+            }
+            setModalInd(false); setIndEditId(null); setIndForm({ tipo: 'medicamento', descripcion: '', dosis: '', via: '', frecuencia: '' }); setMedQuery(''); cargar()
+          }
+          catch (e) { toast(e instanceof Error ? e.message : 'No se pudo guardar', 'error') }
           finally { setBusy(false) }
-        }}>Agregar</Button></>}>
+        }}>{indEditId ? 'Guardar cambios' : 'Agregar'}</Button></>}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Tipo</label>
             <select className={inputCls} value={indForm.tipo} onChange={e => setIndForm(f => ({ ...f, tipo: e.target.value as TipoIndicacion }))}>{TIPO_IND_OPCIONES.map(t => <option key={t} value={t}>{TIPO_INDICACION_LABEL[t]}</option>)}</select></div>

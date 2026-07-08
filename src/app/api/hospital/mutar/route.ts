@@ -22,8 +22,12 @@ const GATES: Record<string, string[]> = {
   cambiar_tratante:      ['medico', 'admin'],
   indicacion_agregar:    ['medico', 'admin'],
   indicacion_suspender:  ['medico', 'admin'],
+  indicacion_editar:     ['medico', 'admin'],
+  indicacion_borrar:     ['medico', 'admin'],
   interconsulta_agregar: ['medico', 'admin'],
   interconsulta_responder: ['medico', 'admin'],
+  interconsulta_editar:  ['medico', 'admin'],
+  interconsulta_borrar:  ['medico', 'admin'],
   conciliar:             ['medico', 'admin'],
   administrar:           ['enfermeria', 'medico', 'admin'],
   balance:               ['enfermeria', 'medico', 'admin'],
@@ -50,6 +54,18 @@ function patch(accion: string, inter: Any, p: Any, now: string): Any {
       return { indicaciones: [...arr('indicaciones'), { id: randomUUID(), tipo: p.tipo, descripcion: p.descripcion, frecuencia: p.frecuencia, creadaPor: p.creadaPor, activa: true, fecha: now, administraciones: [] }] }
     case 'indicacion_suspender':
       return { indicaciones: arr('indicaciones').map(x => (x as Any).id === p.indId ? { ...x, activa: p.activa } : x) }
+    case 'indicacion_editar': {
+      // Editable SOLO mientras no se haya administrado (si ya hay MAR, es registro clínico → suspender).
+      const ind = arr('indicaciones').find(x => (x as Any).id === p.indId) as Any | undefined
+      if (!ind) throw new Error('BLOQUEADO: la indicación no existe')
+      if (Array.isArray(ind.administraciones) && ind.administraciones.length > 0) throw new Error('BLOQUEADO: la indicación ya se administró; suspéndela en vez de editarla')
+      return { indicaciones: arr('indicaciones').map(x => (x as Any).id === p.indId ? { ...x, tipo: p.tipo, descripcion: p.descripcion, frecuencia: p.frecuencia } : x) }
+    }
+    case 'indicacion_borrar': {
+      const ind = arr('indicaciones').find(x => (x as Any).id === p.indId) as Any | undefined
+      if (ind && Array.isArray(ind.administraciones) && ind.administraciones.length > 0) throw new Error('BLOQUEADO: la indicación ya se administró; suspéndela en vez de borrarla')
+      return { indicaciones: arr('indicaciones').filter(x => (x as Any).id !== p.indId) }
+    }
     case 'administrar':
       return { indicaciones: arr('indicaciones').map(x => (x as Any).id === p.indId ? { ...x, administraciones: [...((x as Any).administraciones as Any[] ?? []), p.adm] } : x) }
     case 'verificar_farmacia':
@@ -58,6 +74,18 @@ function patch(accion: string, inter: Any, p: Any, now: string): Any {
       return { interconsultas: [...arr('interconsultas'), { id: randomUUID(), especialidad: p.especialidad, motivo: p.motivo, solicitanteNombre: p.solicitanteNombre, solicitanteId: p.solicitanteId ?? null, medicoSolicitadoId: p.medicoSolicitadoId ?? null, medicoSolicitadoNombre: p.medicoSolicitadoNombre ?? null, estado: 'solicitada', fecha: now }] }
     case 'interconsulta_responder':
       return { interconsultas: arr('interconsultas').map(x => (x as Any).id === p.icId ? { ...x, estado: 'respondida', fechaRespuesta: now, respuesta: p.respuesta, respondidaPor: p.respondidaPor } : x) }
+    case 'interconsulta_editar': {
+      // Editable SOLO mientras esté 'solicitada' (una vez respondida es registro clínico definitivo).
+      const ic = arr('interconsultas').find(x => (x as Any).id === p.icId) as Any | undefined
+      if (!ic) throw new Error('BLOQUEADO: la interconsulta no existe')
+      if (ic.estado === 'respondida') throw new Error('BLOQUEADO: una interconsulta ya respondida no se edita')
+      return { interconsultas: arr('interconsultas').map(x => (x as Any).id === p.icId ? { ...x, especialidad: p.especialidad, motivo: p.motivo, medicoSolicitadoId: p.medicoSolicitadoId ?? null, medicoSolicitadoNombre: p.medicoSolicitadoNombre ?? null } : x) }
+    }
+    case 'interconsulta_borrar': {
+      const ic = arr('interconsultas').find(x => (x as Any).id === p.icId) as Any | undefined
+      if (ic && ic.estado === 'respondida') throw new Error('BLOQUEADO: una interconsulta ya respondida no se borra')
+      return { interconsultas: arr('interconsultas').filter(x => (x as Any).id !== p.icId) }
+    }
     case 'conciliar':
       return { medicamentosCasa: p.meds, conciliadoAl: now }
     case 'balance':
@@ -117,6 +145,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'error'
+    if (msg === 'no-existe') return NextResponse.json({ ok: false, error: 'El internamiento no existe' }, { status: 404 })
+    if (msg.startsWith('BLOQUEADO:')) return NextResponse.json({ ok: false, error: msg.replace('BLOQUEADO: ', '') }, { status: 409 })
     return NextResponse.json({ ok: false, error: msg }, { status: 500 })
   }
 }
