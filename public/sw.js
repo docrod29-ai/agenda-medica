@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v226'  // Interconsultas: catalogo amplio de especialidades (clinicas+quirurgicas), dirigir a un medico concreto y avisarle por WhatsApp; aviso de vuelta al solicitante al responder
+const CACHE = 'nexusmed-v227'  // Editar/borrar en borrador (interconsulta no respondida, indicacion sin administrar, signos, orden lab solicitada); bloqueo server-side una vez firmado/respondido/administrado (NOM-004)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

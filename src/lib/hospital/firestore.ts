@@ -11,7 +11,7 @@ import { db } from '@/lib/firebase'
 import { setDoc, orderBy } from 'firebase/firestore'
 import { fetchAutenticado } from '@/lib/auth-client'
 import type {
-  Internamiento, TipoEgreso, Interconsulta, Indicacion, Administracion, RegistroSignos, RolHospital,
+  Internamiento, TipoEgreso, Interconsulta, Indicacion, TipoIndicacion, Administracion, RegistroSignos, RolHospital,
   SolicitudLab, ResultadoLab, Cama, EstadoCama,
 } from '@/types/hospital'
 
@@ -134,6 +134,14 @@ export async function agregarInterconsulta(clinicId: string, iid: string, ic: Om
 export async function responderInterconsulta(clinicId: string, iid: string, icId: string, resp: { respuesta?: string; respondidaPor?: string; notaId?: string }): Promise<void> {
   await mutar(clinicId, iid, 'interconsulta_responder', { icId, respuesta: resp.respuesta, respondidaPor: resp.respondidaPor })
 }
+/** Editar interconsulta — solo mientras esté 'solicitada' (el servidor bloquea si ya respondió). */
+export async function editarInterconsulta(clinicId: string, iid: string, icId: string, ic: { especialidad: string; motivo: string; medicoSolicitadoId?: string; medicoSolicitadoNombre?: string }): Promise<void> {
+  await mutar(clinicId, iid, 'interconsulta_editar', { icId, especialidad: ic.especialidad, motivo: ic.motivo, medicoSolicitadoId: ic.medicoSolicitadoId, medicoSolicitadoNombre: ic.medicoSolicitadoNombre })
+}
+/** Borrar interconsulta — solo mientras esté 'solicitada'. */
+export async function borrarInterconsulta(clinicId: string, iid: string, icId: string): Promise<void> {
+  await mutar(clinicId, iid, 'interconsulta_borrar', { icId })
+}
 
 // ── F3 · Indicaciones médicas + MAR ──
 export async function agregarIndicacion(clinicId: string, iid: string, ind: Omit<Indicacion, 'id' | 'activa' | 'fecha' | 'administraciones'>): Promise<void> {
@@ -141,6 +149,14 @@ export async function agregarIndicacion(clinicId: string, iid: string, ind: Omit
 }
 export async function suspenderIndicacion(clinicId: string, iid: string, indId: string, activa: boolean): Promise<void> {
   await mutar(clinicId, iid, 'indicacion_suspender', { indId, activa })
+}
+/** Editar indicación — solo mientras NO se haya administrado (el servidor lo verifica). */
+export async function editarIndicacion(clinicId: string, iid: string, indId: string, ind: { tipo: TipoIndicacion; descripcion: string; frecuencia: string }): Promise<void> {
+  await mutar(clinicId, iid, 'indicacion_editar', { indId, tipo: ind.tipo, descripcion: ind.descripcion, frecuencia: ind.frecuencia })
+}
+/** Borrar indicación — solo mientras NO se haya administrado. */
+export async function borrarIndicacion(clinicId: string, iid: string, indId: string): Promise<void> {
+  await mutar(clinicId, iid, 'indicacion_borrar', { indId })
 }
 export async function registrarAdministracion(clinicId: string, iid: string, indId: string, adm: Administracion): Promise<void> {
   await mutar(clinicId, iid, 'administrar', { indId, adm })
@@ -215,6 +231,16 @@ export async function getSolicitudesLabDeEpisodio(clinicId: string, iid: string)
 export async function getBandejaLab(clinicId: string): Promise<SolicitudLab[]> {
   const snap = await getDocs(query(labCol(clinicId), where('estado', 'in', ['solicitada', 'en_proceso'])))
   return snap.docs.map(d => ({ ...d.data(), id: d.id } as SolicitudLab)).sort((a, b) => (a.fecha < b.fecha ? 1 : -1))
+}
+/** Cancela (borra) una solicitud de laboratorio — SOLO mientras esté 'solicitada'
+ *  (una vez en proceso o con resultado es registro clínico y no se elimina). */
+export async function borrarSolicitudLab(clinicId: string, ordenId: string): Promise<void> {
+  const ref = doc(db, 'clinics', clinicId, 'laboratorio', ordenId)
+  const snap = await getDoc(ref)
+  if (snap.exists() && snap.data().estado !== 'solicitada') {
+    throw new Error('La orden ya está en proceso o tiene resultado; no se cancela')
+  }
+  await deleteDoc(ref)
 }
 export async function cargarResultadosLab(clinicId: string, ordenId: string, resultados: ResultadoLab[], por: string): Promise<void> {
   await updateDoc(doc(db, 'clinics', clinicId, 'laboratorio', ordenId), limpiar({
