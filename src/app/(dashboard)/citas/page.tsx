@@ -16,11 +16,11 @@ import { useAuth } from '@/hooks/useAuth'
 import { Appointment, AppointmentStatus, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { updateAppointment, deleteAppointment } from '@/lib/firestore'
 import { useClinic } from '@/context/ClinicContext'
-import { openWhatsApp, msgConfirmacion, msgCancelacion } from '@/lib/whatsapp'
+import { openWhatsApp, msgConfirmacion, msgCancelacion, msgRecordatorio24h } from '@/lib/whatsapp'
 import {
   Plus, Search, Filter, Trash2, Edit2, MessageSquare,
   ChevronLeft, ChevronRight, CalendarDays, MoreVertical,
-  Phone, AlertTriangle, DollarSign, Video,
+  Phone, AlertTriangle, DollarSign, Video, BellRing,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -341,6 +341,14 @@ function AppointmentRowFull({
     openWhatsApp(appt.pacienteTelefono, msg)
   }
 
+  // Recordatorio "mañana tiene su cita" — abre WhatsApp con el mensaje ya escrito.
+  const handleRecordar = () => {
+    if (!appt.pacienteTelefono) return
+    openWhatsApp(appt.pacienteTelefono, msgRecordatorio24h(appt, config))
+  }
+  // Cita aún por atender (tiene sentido recordar): no cancelada/atendida/etc.
+  const recordable = !['cancelada', 'no-asistio', 'reagendada', 'atendida', 'finalizada', 'pagada'].includes(appt.estado)
+
   const QUICK_STATUSES: AppointmentStatus[] = ['en-sala', 'en-consulta', 'atendida', 'finalizada', 'cancelada', 'no-asistio']
 
   return (
@@ -423,6 +431,21 @@ function AppointmentRowFull({
             }}
           >
             <DollarSign size={13} className="ds-icon" /> Cobrar
+          </button>
+        )}
+        {/* Botón Recordar — manda por WhatsApp "mañana tiene su cita" (1 clic) */}
+        {recordable && appt.pacienteTelefono && (
+          <button
+            onClick={handleRecordar}
+            title="Enviar recordatorio por WhatsApp"
+            style={{
+              background: 'rgba(37,211,102,0.15)', color: '#1faa52',
+              border: '1px solid rgba(37,211,102,0.4)', borderRadius: 6,
+              padding: '5px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+            }}
+          >
+            <BellRing size={13} className="ds-icon" /> Recordar
           </button>
         )}
         {/* Botón Unirse a videollamada para teleconsulta */}

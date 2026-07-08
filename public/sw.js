@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v215'  // Oculta el boton 'Conectar con Meta' de Integraciones hasta que Meta este configurado (reaparece solo al poner las llaves)
+const CACHE = 'nexusmed-v216'  // Boton visible 'Recordar' en cada cita: manda por WhatsApp el recordatorio de 1 clic
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
