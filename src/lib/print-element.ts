@@ -12,7 +12,17 @@
  * línea como las clases. Si el navegador bloquea la ventana emergente, cae al
  * window.print() de siempre (no se rompe nada).
  */
-export function imprimirElemento(el: HTMLElement | null, titulo = 'Documento'): void {
+/**
+ * opts.formato:
+ *   · 'sangre' (default) → hoja sin márgenes; para RECETAS con membrete propio.
+ *   · 'carta'            → hoja tamaño carta con márgenes bien definidos (~16 mm);
+ *                          para DOCUMENTOS de texto (notas, cartas de referencia).
+ */
+export function imprimirElemento(
+  el: HTMLElement | null,
+  titulo = 'Documento',
+  opts?: { formato?: 'sangre' | 'carta' },
+): void {
   if (typeof window === 'undefined') return
   if (!el) { window.print(); return }
 
@@ -23,11 +33,20 @@ export function imprimirElemento(el: HTMLElement | null, titulo = 'Documento'): 
     .map(n => n.outerHTML)
     .join('\n')
 
+  // Selector del documento para neutralizar su padding/centrado en modo carta
+  // (los márgenes los pone @page, no el elemento).
+  const sel = el.id ? `#${el.id}` : 'body > *'
+  const pageCss = opts?.formato === 'carta'
+    ? `@page{size:letter;margin:18mm}
+       html,body{margin:0;padding:0;background:#fff}
+       ${sel}{max-width:none!important;width:auto!important;margin:0!important;padding:0!important;box-shadow:none!important;border-radius:0!important}`
+    : `@page{margin:0} html,body{margin:0;padding:0;background:#fff}`
+
   win.document.open()
   win.document.write(
     `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${titulo}</title>` +
     estilos +
-    `<style>@page{margin:0} html,body{margin:0;padding:0;background:#fff}</style>` +
+    `<style>${pageCss}</style>` +
     `</head><body>${el.outerHTML}</body></html>`,
   )
   win.document.close()

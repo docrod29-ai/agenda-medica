@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v236'  // Nota limpia: prohibido meta-comentarios de transcripcion y banderas internas (needs review) en la prosa; corrige errores de audio en silencio + limpiador de respaldo
+const CACHE = 'nexusmed-v237'  // Impresion de nota/referencia en tamano carta con margenes de 18mm bien definidos (antes salia pegada a los bordes); receta sigue a sangre con su membrete
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
