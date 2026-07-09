@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v238'  // Impresion de receta/orden: la hoja toma el tamano FISICO exacto de la receta (@page size) -> cae 1:1, centrada, sin partirse por no coincidir con el papel del dialogo
+const CACHE = 'nexusmed-v239'  // Fix margenes: el popup de impresion ya NO copia los <style>@media print viejos de cada pagina (peleaban con los margenes); solo copia CSS global -> nota con margenes 18mm parejos, receta a su tamano
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

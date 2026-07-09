@@ -29,7 +29,11 @@ export function imprimirElemento(
   const win = window.open('', '_blank', 'width=900,height=1000')
   if (!win) { window.print(); return } // ventana emergente bloqueada → respaldo
 
-  const estilos = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+  // Copiamos SOLO las hojas de estilo globales (<link>), NO los <style> de página:
+  // esas páginas inyectan su propio "@media print { #doc{…}; @page{margin} }" del
+  // método de impresión anterior, que peleaba con los márgenes de aquí. Como los
+  // documentos usan estilos EN LÍNEA, con los <link> globales basta.
+  const estilos = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
     .map(n => n.outerHTML)
     .join('\n')
 
