@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v244'  // Receta: QR posicionable (arrastrar en el calibrador) + tamano ajustable de firma/sello y QR (sliders en mm); QR en mayor resolucion
+const CACHE = 'nexusmed-v245'  // FIX RAIZ del 1MB: storage.rules permite lectura al dueno -> getDownloadURL funciona -> imagenes suben a Storage (no base64), ya no se infla la config; hoja membretada exige Storage
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
