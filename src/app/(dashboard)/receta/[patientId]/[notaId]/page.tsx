@@ -119,7 +119,12 @@ export default function GeneradorRecetaPage() {
     }
     const medicoId = nota?.metadata?.medicoId
     const porMedico = medicoId ? config?.recetasPorMedico?.[medicoId] : undefined
-    return porMedico ? { ...base, ...porMedico } : base
+    const merged = porMedico ? { ...base, ...porMedico } : base
+    // Impresión SIEMPRE en hoja carta (tamaño estándar que Safari y la impresora
+    // respetan): la receta se centra y agranda con márgenes. El modo "papel-real"
+    // (media carta exacta) NO funciona en la práctica porque Safari lo redondea a
+    // A5 y recorta el diseño.
+    return { ...merged, imprimirEn: 'carta' as const }
   }, [config, nota?.metadata?.medicoId])
 
   // Descarga un Word (.doc) editable — para el médico que prefiere ajustar
