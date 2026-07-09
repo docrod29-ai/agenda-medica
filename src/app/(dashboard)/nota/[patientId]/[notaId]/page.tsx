@@ -84,6 +84,9 @@ export default function NotaImprimiblePage() {
   const cedula = nota.firma?.cedulaProfesional || config?.cedulaProfesional || '—'
   const especialidad = nota.firma?.especialidad || config?.especialidad || ''
   const establecimiento = nota.metadata.establecimiento || config?.nombreClinica || ''
+  // Hoja membretada del médico (opcional): si existe, la nota se imprime encima.
+  const membrete = config?.notaMembreteDataUrl
+  const mMemb = config?.notaMembreteMargenes ?? { top: 42, right: 22, bottom: 28, left: 22 }
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh', padding: 24 }}>
@@ -98,7 +101,7 @@ export default function NotaImprimiblePage() {
               ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</>
               : <><Download size={16} /> Descargar PDF</>}
           </button>
-          <button onClick={() => imprimirElemento(document.getElementById('doc'), 'Nota médica', { formato: 'carta' })} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => imprimirElemento(document.getElementById('doc'), 'Nota médica', { formato: membrete ? 'membrete' : 'carta' })} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
             <Printer size={16} /> Imprimir
           </button>
           {/* Generar receta y orden — solo cuando la nota está firmada */}
@@ -115,13 +118,26 @@ export default function NotaImprimiblePage() {
         </div>
       </div>
 
-      {/* Documento (hoja blanca) */}
-      <div id="doc" style={{
+      {/* Documento (hoja blanca o hoja membretada del médico) */}
+      <div id="doc" style={membrete ? {
         maxWidth: 800, margin: '0 auto', background: '#fff', color: '#1a1a1a',
+        position: 'relative', borderRadius: 4, fontFamily: '"Times New Roman", Georgia, serif',
+        lineHeight: 1.4, fontSize: 13, aspectRatio: '216 / 279',  // proporción carta para la vista previa
+        paddingTop: `${mMemb.top}mm`, paddingBottom: `${mMemb.bottom}mm`,
+        paddingLeft: `${mMemb.left}mm`, paddingRight: `${mMemb.right}mm`, boxSizing: 'border-box',
+      } : {
+        maxWidth: 800, margin: '0 auto', background: '#fff', color: '#1a1a1a', position: 'relative',
         padding: '40px 48px', borderRadius: 4, fontFamily: '"Times New Roman", Georgia, serif',
         lineHeight: 1.4, fontSize: 13,
       }}>
-        {/* Encabezado */}
+        {/* Hoja membretada del médico como fondo (se repite en cada página al imprimir) */}
+        {membrete && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img className="membrete-bg" src={membrete} alt="" aria-hidden
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'fill', zIndex: -1, pointerEvents: 'none' }} />
+        )}
+        {/* Encabezado de texto — SOLO si NO hay hoja membretada (la membretada ya lo trae) */}
+        {!membrete && (
         <div style={{ textAlign: 'center', borderBottom: '2px solid #1a1a1a', paddingBottom: 12, marginBottom: 16 }}>
           <div style={{ fontSize: 18, fontWeight: 700 }}>{medico}</div>
           <div style={{ fontSize: 12 }}>{especialidad}{especialidad && cedula !== '—' ? ' · ' : ''}{cedula !== '—' ? `Cédula Prof. ${cedula}` : ''}</div>
@@ -129,6 +145,7 @@ export default function NotaImprimiblePage() {
           {config?.direccion && <div style={{ fontSize: 11, color: '#555' }}>{config.direccion}</div>}
           {(config?.telefonoAdmin || config?.whatsappConsultorio) && <div style={{ fontSize: 11, color: '#555' }}>Tel. {config.telefonoAdmin || config.whatsappConsultorio}</div>}
         </div>
+        )}
 
         {/* Título */}
         <div style={{ textAlign: 'center', fontSize: 15, fontWeight: 700, textTransform: 'uppercase', marginBottom: 14 }}>

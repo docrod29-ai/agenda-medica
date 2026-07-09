@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v242'  // Receta/orden FUERZAN hoja carta (ignora 'papel-real' que Safari recorta en A5): diseno completo, centrado, con margenes; ya no se cortan los bordes
+const CACHE = 'nexusmed-v243'  // Hoja membretada para NOTAS: el medico sube su papel (PDF/imagen) en Configuracion y la nota se imprime encima, con calibracion de la zona de contenido; se repite el membrete por pagina
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
