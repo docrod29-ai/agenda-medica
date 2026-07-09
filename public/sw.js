@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v247'  // Membrete al imprimir: base href en la ventana de impresion (URLs relativas /api + CSS cargan) -> ya se ve el membrete; hoja membretada de notas POR MEDICO (cada quien la suya)
+const CACHE = 'nexusmed-v248'  // Subida de imagenes DESDE EL SERVIDOR (Admin SDK): membrete/firma/diseno/hoja-membretada suben via /api/config/imagen (no depende de reglas/CORS del navegador) -> el doc de config ya NO revienta 1MB, guardar FUNCIONA
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
