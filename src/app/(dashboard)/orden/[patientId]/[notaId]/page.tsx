@@ -351,7 +351,10 @@ export default function GeneradorOrdenPage() {
     }
     const medicoId = nota?.metadata?.medicoId
     const porMedico = medicoId ? config?.recetasPorMedico?.[medicoId] : undefined
-    return porMedico ? { ...base, ...porMedico } : base
+    const merged = porMedico ? { ...base, ...porMedico } : base
+    // Impresión SIEMPRE en hoja carta centrada (ver receta): 'papel-real' se
+    // recorta en A5 por una limitación de Safari.
+    return { ...merged, imprimirEn: 'carta' as const }
   }, [config, nota?.metadata?.medicoId])
 
   const descargarWord = () => {
