@@ -3692,9 +3692,15 @@ function MembreteNotaSection({ membreteUrl, margenes, onChange }: {
           enStorage = true
         } catch (err) { console.warn('[membrete-nota] Storage no disponible:', err) }
       }
-      if (!enStorage && sizeBytes > 400_000) { toast(`Imagen muy pesada (${formatBytes(sizeBytes)}) y Storage no disponible. Sube una versión más pequeña.`, 'error'); return }
+      // La hoja membretada es una imagen de página completa: NO cabe como base64 en
+      // el documento de config (tope 1MB). DEBE ir a Storage. Si no subió, avisamos
+      // en vez de guardar un base64 que reventaría el guardado.
+      if (!enStorage) {
+        toast('No se pudo subir la hoja a Storage. Revisa tu conexión e inténtalo otra vez.', 'error')
+        return
+      }
       onChange(src, m)
-      toast(`Hoja membretada cargada (${formatBytes(sizeBytes)})${enStorage ? ' · alta resolución' : ''}`, 'success')
+      toast(`Hoja membretada cargada (${formatBytes(sizeBytes)}) · alta resolución`, 'success')
     } catch (e) { toast(`No se pudo procesar: ${(e as Error).message}`, 'error') }
     finally { setProcesando(false) }
   }
