@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v251'  // FIX RAIZ 'se me borra lo que hago': el form/rx se reiniciaban con el listener en vivo en CADA cambio -> pisaban ediciones sin guardar. Ahora se cargan UNA vez / solo al cambiar de medico
+const CACHE = 'nexusmed-v252'  // Firma/sello POR MEDICO (individual como receta y hoja membretada): selector por medico + firmaPorMedico; receta/orden/nota usan la firma del medico que firma
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

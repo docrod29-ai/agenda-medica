@@ -87,6 +87,11 @@ export default function NotaImprimiblePage() {
   // Hoja membretada: la del MÉDICO de la nota si tiene una propia; si no, la
   // general del consultorio. Se ignora un valor vacío/roto (evita descuadrar).
   const medMembrete = nota.metadata?.medicoId ? config?.notaMembretePorMedico?.[nota.metadata.medicoId] : undefined
+  // Firma a mostrar: el snapshot de la nota (inmutable) o la firma del médico que
+  // la firmó (per-médico) o, en último caso, la general del consultorio.
+  const firmaMostrar = nota.firma?.imagenDataUrl
+    || (nota.metadata?.medicoId ? config?.firmaPorMedico?.[nota.metadata.medicoId] : undefined)
+    || config?.firmaImagenDataUrl
   const mem = (medMembrete?.url ?? config?.notaMembreteDataUrl)?.trim()
   const membrete = (mem && /^(https?:|\/api\/|data:image)/.test(mem)) ? mem : undefined
   const mMemb = medMembrete?.margenes ?? config?.notaMembreteMargenes ?? { top: 42, right: 22, bottom: 28, left: 22 }
@@ -236,10 +241,10 @@ export default function NotaImprimiblePage() {
         <div style={{ marginTop: 40, textAlign: 'center' }}>
           {/* NOM-024: usar el SNAPSHOT de firma guardado en la nota (inmutable).
               Fallback al config actual solo si la nota es vieja y no tiene snapshot. */}
-          {nota.estado === 'firmada' && (nota.firma?.imagenDataUrl || config?.firmaImagenDataUrl) && (
+          {nota.estado === 'firmada' && firmaMostrar && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={nota.firma?.imagenDataUrl || config?.firmaImagenDataUrl}
+              src={firmaMostrar}
               alt="Firma del médico"
               style={{
                 maxHeight: 70,

@@ -320,6 +320,9 @@ export interface ClinicConfig {
    * base64 ya redimensionado.
    */
   firmaImagenDataUrl?: string
+  /** Firma/sello POR MÉDICO (key = medicoId). Cada médico tiene su propia firma;
+   *  si no, cae a `firmaImagenDataUrl`. */
+  firmaPorMedico?: Record<string, string>
   /**
    * Hoja membretada del médico para NOTAS (y órdenes/referencias): imagen de hoja
    * carta con su encabezado/logo (y pie), sobre la que se imprime la nota. Si está
