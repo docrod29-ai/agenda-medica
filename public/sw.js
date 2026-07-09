@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v250'  // Receta y hoja membretada 100% POR MEDICO: se quita la opcion 'General' que confundia; el selector default es el medico de tu cuenta (por correo); cada quien edita la suya
+const CACHE = 'nexusmed-v251'  // FIX RAIZ 'se me borra lo que hago': el form/rx se reiniciaban con el listener en vivo en CADA cambio -> pisaban ediciones sin guardar. Ahora se cargan UNA vez / solo al cambiar de medico
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
