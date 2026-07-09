@@ -129,8 +129,15 @@ export default function ConfiguracionPage() {
     }
   }
 
+  // Inicializa el formulario con la config UNA SOLA VEZ. NO en cada cambio del
+  // listener en vivo — eso PISABA lo que el usuario editaba sin guardar (el bug de
+  // "cambio de ventana y se me borra"). Los guardados ya persisten a Firestore.
+  const formInitRef = useRef(false)
   useEffect(() => {
-    if (!loading) setForm({ ...config })
+    if (!loading && !formInitRef.current) {
+      setForm({ ...config })
+      formInitRef.current = true
+    }
   }, [config, loading])
 
   const handleSave = async () => {
@@ -2185,7 +2192,7 @@ const RX_DEFAULTS: RecetaConfig = {
 }
 
 function RecetasTab({ clinicId }: { clinicId: string | null }) {
-  const { config } = useConfig()
+  const { config, loading: configLoading } = useConfig()
   const { toast } = useToast()
   const [saving, setSaving] = useState(false)
   const [tipoPreview, setTipoPreview] = useState<'receta' | 'orden'>('receta')
@@ -2212,14 +2219,18 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
 
   const [rx, setRx] = useState<RecetaConfig>({ ...RX_DEFAULTS })
 
-  // Cargar la plantilla efectiva al cambiar de médico o de config:
-  // general → directa; médico → general + overrides del médico encima.
+  // Carga la plantilla del médico seleccionado. SOLO se recarga cuando CAMBIA el
+  // médico (o en la primera carga) — NUNCA en cada update del listener en vivo, que
+  // borraba lo que el médico movía sin guardar (QR, firma, márgenes…).
+  const rxKeyRef = useRef<string | null>(null)
   useEffect(() => {
+    if (configLoading) return               // espera a que cargue la config real
+    if (rxKeyRef.current === medicoSel) return  // no recargar en updates del listener
+    rxKeyRef.current = medicoSel
     const base = { ...RX_DEFAULTS, ...(config?.recetaConfig ?? {}) }
-    if (!medicoSel) { setRx(base); return }
-    setRx({ ...base, ...(config?.recetasPorMedico?.[medicoSel] ?? {}) })
+    setRx(medicoSel ? { ...base, ...(config?.recetasPorMedico?.[medicoSel] ?? {}) } : base)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config, medicoSel])
+  }, [medicoSel, configLoading])
 
   const guardar = async () => {
     if (!clinicId || !config) return
