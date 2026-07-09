@@ -2574,7 +2574,7 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
                 <UserRound size={14} className="ds-icon" /> Coloca cada dato en tu formato
               </div>
               <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 10 }}>
-                Arrastra <strong>Nombre, Edad, Sexo, Fecha, Folio</strong> al lugar EXACTO de tu receta.
+                Arrastra <strong>Nombre, Edad, Sexo, Fecha, Folio, Firma/sello y QR</strong> al lugar EXACTO de tu receta.
                 Si tu formato ya los trae impresos, déjalos sin colocar. (El cuerpo de Rx usa los márgenes de abajo.)
               </div>
               <CalibradorReceta
@@ -2588,6 +2588,21 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
                   ...(margenes ? { disenoMargenes: margenes } : {}),
                 }))}
               />
+              {/* Tamaños de firma/sello y QR (mm) */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+                <div>
+                  <label style={cfgLabel}>Tamaño firma / sello: {rx.disenoTamanos?.firma ?? 20} mm</label>
+                  <input type="range" min={10} max={50} step={1} value={rx.disenoTamanos?.firma ?? 20}
+                    onChange={(e) => setRx({ ...rx, disenoTamanos: { ...rx.disenoTamanos, firma: Number(e.target.value) } })}
+                    style={{ width: '100%' }} />
+                </div>
+                <div>
+                  <label style={cfgLabel}>Tamaño QR: {rx.disenoTamanos?.qr ?? 14} mm</label>
+                  <input type="range" min={8} max={40} step={1} value={rx.disenoTamanos?.qr ?? 14}
+                    onChange={(e) => setRx({ ...rx, disenoTamanos: { ...rx.disenoTamanos, qr: Number(e.target.value) } })}
+                    style={{ width: '100%' }} />
+                </div>
+              </div>
             </div>
           )}
 
@@ -3249,7 +3264,7 @@ function MargenInput({ label, value, onChange }: { label: string; value: number;
 const CAMPOS_RECETA = [
   { k: 'nombre', label: 'Nombre' }, { k: 'edad', label: 'Edad' },
   { k: 'sexo', label: 'Sexo' }, { k: 'fecha', label: 'Fecha' }, { k: 'folio', label: 'Folio' },
-  { k: 'firma', label: 'Firma' },
+  { k: 'firma', label: 'Firma / sello' }, { k: 'qr', label: 'QR' },
 ] as const
 type CampoRecetaK = typeof CAMPOS_RECETA[number]['k']
 type CamposReceta = Partial<Record<CampoRecetaK, { x: number; y: number }>>
