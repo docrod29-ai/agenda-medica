@@ -48,6 +48,20 @@ F. NO REDUNDANCIA ENTRE SECCIONES (crítico): cada dato aparece UNA sola vez, en
    · ANTECEDENTES no repite lo ya narrado en Padecimiento.
    · resumenEjecutivo es una síntesis NUEVA de 1 línea; NO copia frases del cuerpo.
    Si un dato ya se escribió en su sección, NO lo reescribas en otra.
+G. LA NOTA ES EL DOCUMENTO CLÍNICO FINAL, no un reporte del proceso. En las
+   secciones (la prosa) NUNCA escribas:
+   · Comentarios sobre la transcripción o el audio: "no especificado en
+     transcripción", "no se transcribió", "referida como '…'", "se escucha como",
+     "interpretado como", "según el dictado", "no especificada en la grabación".
+   · Banderas o notas internas: "needs review", "needs_review", "revisar",
+     "confidence", "(baja confianza)", "por confirmar (IA)". Esas banderas van SOLO
+     en la metadata de extracción/safety, JAMÁS dentro del texto de la nota.
+   Si un término se oyó mal de forma evidente (p. ej. "hypotensión bacterial
+   sistémica" → "hipertensión arterial sistémica"; "septriasona" → "ceftriaxona"),
+   escribe DIRECTAMENTE el término correcto, sin mostrar el error ni tu
+   razonamiento de audio. Si falta un dato (dosis, vía), no lo inventes y, si es
+   crítico, márcalo en la metadata needs_review — no lo anotes en la prosa; en el
+   texto basta con omitirlo o, si aporta, un escueto "dosis no referida".
 NO rompe la regla 1: razonar ≠ inventar. Todo apoyo debe venir de lo dicho; si falta un
 dato clave para el razonamiento, señálalo en safety.missing_critical_fields.
 

@@ -12,6 +12,7 @@ import {
   createNota, updateNota, getNota, deleteNota, getUltimasNotasResumen,
 } from '@/lib/expediente/firestore'
 import { seccionesVacias, requiereSignosVitales, esPreoperatoria, esInmuno } from '@/lib/expediente/templates'
+import { sanitizarProsa } from '@/lib/expediente/sanitizar-prosa'
 import { PreopAssessment } from '@/components/PreopAssessment'
 import ValoracionInmuno from '@/components/pacientes/ValoracionInmuno'
 import { RevisionPanel } from '@/components/RevisionPanel'
@@ -256,7 +257,7 @@ export default function ConsultaActivaPage() {
       // RE-PROYECTAR a otra modalidad (tipoOverride) se parte de plantilla limpia.
       const esPreop = tipoActivo === 'valoracion_preoperatoria'
 
-      if (data.resumenEjecutivo?.trim()) setResumen(data.resumenEjecutivo)
+      if (data.resumenEjecutivo?.trim()) setResumen(sanitizarProsa(data.resumenEjecutivo))
       else if (tipoOverride) setResumen('')
 
       // La transcripción cruda NUNCA se vuelca dentro de la nota (es material de origen).
@@ -264,7 +265,7 @@ export default function ConsultaActivaPage() {
         const base = tipoOverride ? seccionesVacias(tipoActivo) : prev
         return base.map(s => {
           const valorIA = data.secciones?.[s.key]
-          return (typeof valorIA === 'string' && valorIA.trim()) ? { ...s, value: valorIA } : s
+          return (typeof valorIA === 'string' && valorIA.trim()) ? { ...s, value: sanitizarProsa(valorIA) } : s
         })
       })
 
@@ -724,9 +725,9 @@ export default function ConsultaActivaPage() {
       const data = await res.json().catch(() => null)
       if (!data?.ok) { setChatCorr(c => [...c, { rol: 'ia', texto: data?.error || 'No pude aplicar el cambio. Reformúlalo.' }]); setSnapshotUndo(null); return }
       // Aplicar la nota corregida.
-      if (typeof data.resumenEjecutivo === 'string') setResumen(data.resumenEjecutivo)
+      if (typeof data.resumenEjecutivo === 'string') setResumen(sanitizarProsa(data.resumenEjecutivo))
       if (data.secciones && typeof data.secciones === 'object') {
-        setSecciones(prev => prev.map(s => (typeof data.secciones[s.key] === 'string' ? { ...s, value: data.secciones[s.key] } : s)))
+        setSecciones(prev => prev.map(s => (typeof data.secciones[s.key] === 'string' ? { ...s, value: sanitizarProsa(data.secciones[s.key]) } : s)))
       }
       if (Array.isArray(data.diagnosticos)) setDiagnosticos(data.diagnosticos.filter((d: Diagnostico) => d.descripcion))
       if (Array.isArray(data.medicamentos)) setMedicamentos(data.medicamentos.filter((m: Medicamento) => m.nombre))
