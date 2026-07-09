@@ -2229,12 +2229,26 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
         ...rx,
         membreteDataUrl: await aStorageSiEsBase64(rx.membreteDataUrl, 'membrete'),
         pieDataUrl: await aStorageSiEsBase64(rx.pieDataUrl, 'pie'),
+        // El DISEÑO COMPLETO es la imagen más grande (página entera) — DEBE migrar a
+        // Storage o la config revienta el tope de 1 MB de Firestore.
+        disenoCompletoDataUrl: await aStorageSiEsBase64(rx.disenoCompletoDataUrl, 'diseno'),
       }
       const porMedicoSano: Record<string, Partial<RecetaConfig>> = {}
       for (const [id, r] of Object.entries(config.recetasPorMedico ?? {})) {
-        porMedicoSano[id] = { ...r, membreteDataUrl: await aStorageSiEsBase64(r.membreteDataUrl, `m-${id}`), pieDataUrl: await aStorageSiEsBase64(r.pieDataUrl, `p-${id}`) }
+        porMedicoSano[id] = {
+          ...r,
+          membreteDataUrl: await aStorageSiEsBase64(r.membreteDataUrl, `m-${id}`),
+          pieDataUrl: await aStorageSiEsBase64(r.pieDataUrl, `p-${id}`),
+          disenoCompletoDataUrl: await aStorageSiEsBase64(r.disenoCompletoDataUrl, `d-${id}`),
+        }
       }
-      const baseConfig = { ...config, recetasPorMedico: porMedicoSano }
+      // También la firma y la hoja membretada (imágenes grandes en el doc raíz).
+      const baseConfig = {
+        ...config,
+        recetasPorMedico: porMedicoSano,
+        firmaImagenDataUrl: await aStorageSiEsBase64(config.firmaImagenDataUrl, 'firma'),
+        notaMembreteDataUrl: await aStorageSiEsBase64(config.notaMembreteDataUrl, 'nota-membrete'),
+      }
 
       if (!medicoSel) {
         await saveConfig(clinicId, { ...baseConfig, recetaConfig: rxSano })
