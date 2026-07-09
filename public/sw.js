@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v249'  // Hoja membretada por medico robusta: cada medico guarda SOLO su entrada (Firestore merge conserva a los demas) -> no se cruza ni se pierde info entre medicos ni con la general; errores muestran causa real
+const CACHE = 'nexusmed-v250'  // Receta y hoja membretada 100% POR MEDICO: se quita la opcion 'General' que confundia; el selector default es el medico de tu cuenta (por correo); cada quien edita la suya
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

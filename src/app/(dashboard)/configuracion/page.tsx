@@ -2198,7 +2198,16 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
 
   useEffect(() => {
     if (!clinicId) return
-    getDoctors(clinicId).then(setDoctores).catch(() => {})
+    getDoctors(clinicId).then(ds => {
+      setDoctores(ds)
+      // Cada médico edita LA SUYA (no hay "general"). Default: el médico de la
+      // cuenta logueada (por correo); si no se identifica, el primero.
+      setMedicoSel(prev => {
+        if (prev && ds.some(d => d.id === prev)) return prev
+        const mio = ds.find(d => d.email && d.email === auth.currentUser?.email)
+        return mio?.id ?? ds[0]?.id ?? ''
+      })
+    }).catch(() => {})
   }, [clinicId])
 
   const [rx, setRx] = useState<RecetaConfig>({ ...RX_DEFAULTS })
@@ -2436,21 +2445,18 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
             display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
             padding: '10px 14px', background: 'var(--s2)', border: '1px solid var(--border2)', borderRadius: 10,
           }}>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text2)' }}>Editando plantilla de:</span>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text2)' }}>Receta de:</span>
             <select
               value={medicoSel}
               onChange={(e) => setMedicoSel(e.target.value)}
               style={{ ...cfgInput, width: 'auto', minWidth: 220 }}
             >
-              <option value="">General (toda la clínica)</option>
               {doctores.map(d => (
                 <option key={d.id} value={d.id}>{d.nombre}{config?.recetasPorMedico?.[d.id] ? ' · personalizada' : ''}</option>
               ))}
             </select>
             <span style={{ fontSize: 11, color: 'var(--text3)', flexBasis: '100%' }}>
-              {medicoSel
-                ? 'Los cambios solo aplican a las recetas/órdenes de este médico. Lo no definido cae a la plantilla general.'
-                : 'Esta plantilla aplica a todos los médicos que no tengan una propia.'}
+              Cada médico tiene su propia receta. Estos cambios aplican SOLO a las recetas y órdenes de este médico.
             </span>
           </div>
         )}
@@ -3619,10 +3625,21 @@ function MembreteNotaSection({ form, clinicId, onLocalChange }: {
   const { toast } = useToast()
   const [procesando, setProcesando] = useState(false)
   const [doctores, setDoctores] = useState<DoctorT[]>([])
-  const [medicoSel, setMedicoSel] = useState('')  // '' = general (aplica a todos)
+  const [medicoSel, setMedicoSel] = useState('')  // id del médico; cada quien la suya
   const CW = 216, CH = 279  // hoja carta en mm
 
-  useEffect(() => { if (clinicId) getDoctors(clinicId).then(setDoctores).catch(() => {}) }, [clinicId])
+  useEffect(() => {
+    if (!clinicId) return
+    getDoctors(clinicId).then(ds => {
+      setDoctores(ds)
+      // Default: el médico de la cuenta logueada; si no, el primero.
+      setMedicoSel(prev => {
+        if (prev && ds.some(d => d.id === prev)) return prev
+        const mio = ds.find(d => d.email && d.email === auth.currentUser?.email)
+        return mio?.id ?? ds[0]?.id ?? ''
+      })
+    }).catch(() => {})
+  }, [clinicId])
 
   // Valor efectivo según la selección (hoja general del consultorio o la del médico).
   const perMed = medicoSel ? form.notaMembretePorMedico?.[medicoSel] : undefined
@@ -3688,13 +3705,12 @@ function MembreteNotaSection({ form, clinicId, onLocalChange }: {
         </div>
       </div>
 
-      {/* General o por médico — cada médico puede tener su propia hoja */}
+      {/* Cada médico tiene su propia hoja membretada */}
       {doctores.length > 0 && (
         <div style={{ marginBottom: 10 }}>
-          <label style={{ fontSize: 11.5, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>¿Para quién es esta hoja?</label>
+          <label style={{ fontSize: 11.5, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>Hoja de:</label>
           <select value={medicoSel} onChange={(e) => setMedicoSel(e.target.value)}
             style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 13 }}>
-            <option value="">General del consultorio (todos)</option>
             {doctores.map(d => <option key={d.id} value={d.id}>{d.nombre}{form.notaMembretePorMedico?.[d.id]?.url ? ' · tiene la suya' : ''}</option>)}
           </select>
         </div>
