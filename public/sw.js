@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v237'  // Impresion de nota/referencia en tamano carta con margenes de 18mm bien definidos (antes salia pegada a los bordes); receta sigue a sangre con su membrete
+const CACHE = 'nexusmed-v238'  // Impresion de receta/orden: la hoja toma el tamano FISICO exacto de la receta (@page size) -> cae 1:1, centrada, sin partirse por no coincidir con el papel del dialogo
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
