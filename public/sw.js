@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v243'  // Hoja membretada para NOTAS: el medico sube su papel (PDF/imagen) en Configuracion y la nota se imprime encima, con calibracion de la zona de contenido; se repite el membrete por pagina
+const CACHE = 'nexusmed-v244'  // Receta: QR posicionable (arrastrar en el calibrador) + tamano ajustable de firma/sello y QR (sliders en mm); QR en mayor resolucion
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

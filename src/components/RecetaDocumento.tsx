@@ -391,6 +391,9 @@ function HojaCustom({
 }) {
   const margenes = recetaConfig.disenoMargenes ?? { top: 35, right: 12, bottom: 30, left: 12 }
   const fontSize = recetaConfig.disenoFontSize ?? 11
+  // Tamaños (mm) configurables de firma/sello y QR sobre el diseño.
+  const tamFirma = recetaConfig.disenoTamanos?.firma ?? 20
+  const tamQr = recetaConfig.disenoTamanos?.qr ?? 14
   // Calibrador: si el médico colocó campos a mano, se ponen en su coordenada exacta.
   const campos = recetaConfig.disenoCampos
   const hayCampos = !!(campos && Object.keys(campos).length > 0)
@@ -539,24 +542,21 @@ function HojaCustom({
           <img
             src={config.firmaImagenDataUrl}
             alt="Firma"
-            style={{ maxHeight: '20mm', maxWidth: '60mm', display: 'block' }}
+            style={{ height: `${tamFirma}mm`, maxWidth: `${tamFirma * 3.2}mm`, width: 'auto', display: 'block' }}
           />
         </div>
       )}
 
-      {/* QR — SOLO en la última hoja */}
+      {/* QR — SOLO en la última hoja. Posición calibrable (campos.qr) y tamaño configurable. */}
       {pagina.esUltima && recetaConfig.mostrarQR && (
-        <div style={{
-          position: 'absolute',
-          bottom: `${Math.max(2, margenes.bottom - 16)}mm`,
-          right: `${margenes.right}mm`,
-          textAlign: 'center',
-        }}>
+        <div style={campos?.qr
+          ? { position: 'absolute', left: `${campos.qr.x}%`, top: `${campos.qr.y}%`, transform: 'translate(-50%, -50%)', textAlign: 'center' }
+          : { position: 'absolute', bottom: `${Math.max(2, margenes.bottom - 16)}mm`, right: `${margenes.right}mm`, textAlign: 'center' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(`Folio:${data.folio}`)}&size=80x80&margin=2`}
+            src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(`Folio:${data.folio}`)}&size=160x160&margin=2`}
             alt="QR"
-            style={{ width: '12mm', height: '12mm', background: 'rgba(255,255,255,0.8)', padding: 2, borderRadius: 2 }}
+            style={{ width: `${tamQr}mm`, height: `${tamQr}mm`, background: 'rgba(255,255,255,0.8)', padding: 2, borderRadius: 2 }}
           />
         </div>
       )}
