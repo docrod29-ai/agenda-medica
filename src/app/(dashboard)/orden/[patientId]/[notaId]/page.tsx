@@ -357,6 +357,14 @@ export default function GeneradorOrdenPage() {
     return { ...merged, imprimirEn: 'carta' as const }
   }, [config, nota?.metadata?.medicoId])
 
+  // Config con la firma del MÉDICO de esta nota (per-médico), si tiene la suya.
+  const configFirma = useMemo(() => {
+    if (!config) return config
+    const medicoId = nota?.metadata?.medicoId
+    const firma = (medicoId && config.firmaPorMedico?.[medicoId]) || config.firmaImagenDataUrl
+    return { ...config, firmaImagenDataUrl: firma }
+  }, [config, nota?.metadata?.medicoId])
+
   const descargarWord = () => {
     descargarRecetaWord(
       {
@@ -579,7 +587,7 @@ export default function GeneradorOrdenPage() {
                 >
                   <RecetaDocumento
                     data={dataPreview}
-                    config={config}
+                    config={configFirma}
                     recetaConfig={recetaConfig}
                   />
                 </RecetaPreviewWrapper>

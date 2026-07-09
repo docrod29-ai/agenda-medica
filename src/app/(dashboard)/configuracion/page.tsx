@@ -422,21 +422,12 @@ export default function ConfiguracionPage() {
             </select>
           </div>
 
-          {/* 🖋️ Firma + sello — se renderiza encima de la línea de firma en notas, recetas y órdenes */}
+          {/* 🖋️ Firma + sello POR MÉDICO — cada médico la suya */}
           <div className="form-group" style={{ gridColumn: '1 / -1' }}>
             <FirmaUploadSection
-              firmaDataUrl={form.firmaImagenDataUrl}
-              onChange={(dataUrl) => {
-                setForm({ ...form, firmaImagenDataUrl: dataUrl })
-                // Persistir AL MOMENTO (sin esperar al botón global "Guardar"):
-                // la firma+sello debe quedar en la BD apenas se sube, para que
-                // aparezca en notas, recetas y órdenes sin pasos extra.
-                if (clinicId) {
-                  saveConfigPartial(clinicId, { firmaImagenDataUrl: dataUrl ?? '' })
-                    .then(() => toast(dataUrl ? 'Firma + sello guardada' : 'Firma eliminada', 'success'))
-                    .catch(() => toast('No se pudo guardar la firma', 'error'))
-                }
-              }}
+              form={form}
+              clinicId={clinicId}
+              onLocalChange={(patch) => setForm(f => ({ ...f, ...patch }))}
             />
           </div>
 
@@ -3511,9 +3502,47 @@ function LlavesIASection({ clinicId }: { clinicId: string }) {
   )
 }
 
-function FirmaUploadSection({ firmaDataUrl, onChange }: { firmaDataUrl?: string; onChange: (dataUrl: string | undefined) => void }) {
+function FirmaUploadSection({ form, clinicId, onLocalChange }: {
+  form: ClinicConfig
+  clinicId: string | null
+  onLocalChange: (patch: Partial<ClinicConfig>) => void
+}) {
   const { toast } = useToast()
   const [procesando, setProcesando] = useState(false)
+  const [doctores, setDoctores] = useState<DoctorT[]>([])
+  const [medicoSel, setMedicoSel] = useState('')
+
+  useEffect(() => {
+    if (!clinicId) return
+    getDoctors(clinicId).then(ds => {
+      setDoctores(ds)
+      setMedicoSel(prev => {
+        if (prev && ds.some(d => d.id === prev)) return prev
+        const mio = ds.find(d => d.email && d.email === auth.currentUser?.email)
+        return mio?.id ?? ds[0]?.id ?? ''
+      })
+    }).catch(() => {})
+  }, [clinicId])
+
+  // Firma EFECTIVA: la del médico seleccionado (si hay médicos) o la general.
+  const firmaDataUrl = medicoSel ? form.firmaPorMedico?.[medicoSel] : form.firmaImagenDataUrl
+
+  // Guarda la firma del médico (merge conserva las de los demás) o la general.
+  const persistir = (url: string | undefined) => {
+    const medico = doctores.find(d => d.id === medicoSel)
+    if (medicoSel) {
+      onLocalChange({ firmaPorMedico: { ...(form.firmaPorMedico ?? {}), [medicoSel]: url ?? '' } })
+      if (clinicId) saveConfigPartial(clinicId, { firmaPorMedico: { [medicoSel]: url ?? '' } })
+        .then(() => toast(url ? `Firma de ${medico?.nombre ?? 'médico'} guardada` : 'Firma eliminada', 'success'))
+        .catch((e) => toast(`No se pudo guardar: ${e instanceof Error ? e.message.slice(0, 80) : ''}`, 'error'))
+    } else {
+      onLocalChange({ firmaImagenDataUrl: url })
+      if (clinicId) saveConfigPartial(clinicId, { firmaImagenDataUrl: url ?? '' })
+        .then(() => toast(url ? 'Firma guardada' : 'Firma eliminada', 'success'))
+        .catch((e) => toast(`No se pudo guardar: ${e instanceof Error ? e.message.slice(0, 80) : ''}`, 'error'))
+    }
+  }
+  const onChange = (url: string | undefined) => persistir(url)
 
   const subir = async (file: File) => {
     const esPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
@@ -3563,10 +3592,20 @@ function FirmaUploadSection({ firmaDataUrl, onChange }: { firmaDataUrl?: string;
         <div>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>Firma + sello (imagen)</div>
           <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>
-            Aparece automáticamente sobre la línea de firma en <strong>notas firmadas, recetas y órdenes médicas</strong>.
+            Cada médico sube la SUYA. Aparece sobre la línea de firma en <strong>sus</strong> notas, recetas y órdenes.
           </div>
         </div>
       </div>
+
+      {doctores.length > 0 && (
+        <div style={{ marginBottom: 10 }}>
+          <label style={{ fontSize: 11.5, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>Firma de:</label>
+          <select value={medicoSel} onChange={(e) => setMedicoSel(e.target.value)}
+            style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 13 }}>
+            {doctores.map(d => <option key={d.id} value={d.id}>{d.nombre}{form.firmaPorMedico?.[d.id] ? ' · tiene la suya' : ''}</option>)}
+          </select>
+        </div>
+      )}
 
       {firmaDataUrl ? (
         <div style={{ position: 'relative', background: '#fff', borderRadius: 8, padding: 14, border: '1px solid var(--border)', textAlign: 'center' }}>
