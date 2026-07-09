@@ -351,9 +351,7 @@ export default function GeneradorOrdenPage() {
     }
     const medicoId = nota?.metadata?.medicoId
     const porMedico = medicoId ? config?.recetasPorMedico?.[medicoId] : undefined
-    const merged = porMedico ? { ...base, ...porMedico } : base
-    // A tamaño REAL por defecto (media carta), salvo que se haya elegido 'carta'.
-    return { ...merged, imprimirEn: merged.imprimirEn ?? 'papel-real' as const }
+    return porMedico ? { ...base, ...porMedico } : base
   }, [config, nota?.metadata?.medicoId])
 
   const descargarWord = () => {

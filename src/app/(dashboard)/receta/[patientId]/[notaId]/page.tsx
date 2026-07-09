@@ -119,11 +119,7 @@ export default function GeneradorRecetaPage() {
     }
     const medicoId = nota?.metadata?.medicoId
     const porMedico = medicoId ? config?.recetasPorMedico?.[medicoId] : undefined
-    const merged = porMedico ? { ...base, ...porMedico } : base
-    // Por defecto la receta se imprime a su TAMAÑO REAL (media carta), no dentro de
-    // una hoja carta con corte. Si el consultorio eligió explícitamente 'carta' en
-    // Configuración, se respeta.
-    return { ...merged, imprimirEn: merged.imprimirEn ?? 'papel-real' as const }
+    return porMedico ? { ...base, ...porMedico } : base
   }, [config, nota?.metadata?.medicoId])
 
   // Descarga un Word (.doc) editable — para el médico que prefiere ajustar
