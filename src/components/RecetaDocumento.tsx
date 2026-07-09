@@ -208,6 +208,16 @@ export function RecetaDocumento({ data, config, recetaConfig, containerId = 'rec
  * + línea punteada de corte ✂ donde termina el papel de la receta
  * ════════════════════════════════════════════════════════════════ */
 function HostCarta({ paper, children }: { paper: { widthMm: number; heightMm: number }; children: React.ReactNode }) {
+  // La receta va CENTRADA en la hoja carta y agrandada para llenar bien la hoja,
+  // dejando márgenes parejos. Carta es tamaño ESTÁNDAR → el navegador y cualquier
+  // impresora lo respetan (a diferencia de "media carta", que Safari redondea a A5
+  // y desacomoda). Escala = ajustar la receta dentro de (carta − margen), sin
+  // deformar (mantiene proporción).
+  const MARGEN_MM = 14
+  const escala = Math.min(
+    (CARTA.widthMm - 2 * MARGEN_MM) / paper.widthMm,
+    (CARTA.heightMm - 2 * MARGEN_MM) / paper.heightMm,
+  )
   return (
     <div
       className="receta-sheet"
@@ -215,24 +225,16 @@ function HostCarta({ paper, children }: { paper: { widthMm: number; heightMm: nu
         width: `${CARTA.widthMm}mm`,
         height: `${CARTA.heightMm}mm`,
         background: '#fff',
-        position: 'relative',
         margin: '0 auto',
         boxSizing: 'border-box',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
       }}
     >
-      <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)' }}>
+      <div style={{ transform: `scale(${escala})`, transformOrigin: 'center' }}>
         {children}
-      </div>
-      {/* Línea de corte horizontal */}
-      <div style={{
-        position: 'absolute',
-        top: `${paper.heightMm}mm`,
-        left: 0, right: 0,
-        borderTop: '1px dashed #9ca3af',
-        fontSize: 9, color: '#9ca3af',
-        paddingTop: 1, paddingLeft: '6mm',
-      }}>
-        ✂ — — — corte aquí — — —
       </div>
     </div>
   )

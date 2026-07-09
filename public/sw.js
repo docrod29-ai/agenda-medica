@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v240'  // Receta/orden a TAMANO REAL (media carta) por defecto: la hoja toma el tamano exacto de la receta, sin la hoja carta de fondo ni espacio en blanco; @page = medidas reales
+const CACHE = 'nexusmed-v241'  // Receta CENTRADA y agrandada en hoja carta (estandar que Safari/impresora si respetan), con margenes parejos de 14mm; ya no sale chica arriba ni se desborda a A5
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
