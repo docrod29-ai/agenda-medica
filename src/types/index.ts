@@ -320,6 +320,16 @@ export interface ClinicConfig {
    * base64 ya redimensionado.
    */
   firmaImagenDataUrl?: string
+  /**
+   * Hoja membretada del médico para NOTAS (y órdenes/referencias): imagen de hoja
+   * carta con su encabezado/logo (y pie), sobre la que se imprime la nota. Si está
+   * presente, sustituye el encabezado de texto autogenerado. Se sube en
+   * Configuración (acepta PDF o imagen; se guarda en Storage / data URL).
+   */
+  notaMembreteDataUrl?: string
+  /** Zona de contenido de la nota sobre la hoja membretada (mm): márgenes para no
+   *  encimar el encabezado ni el pie. Default: top 42, bottom 28, left 22, right 22. */
+  notaMembreteMargenes?: { top: number; right: number; bottom: number; left: number }
   // Receta y órdenes médicas
   recetaConfig?: RecetaConfig
   /**

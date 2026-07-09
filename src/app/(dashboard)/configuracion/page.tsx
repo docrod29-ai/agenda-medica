@@ -432,6 +432,22 @@ export default function ConfiguracionPage() {
             />
           </div>
 
+          {/* 📄 Hoja membretada para NOTAS — la nota se imprime encima */}
+          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+            <MembreteNotaSection
+              membreteUrl={form.notaMembreteDataUrl}
+              margenes={form.notaMembreteMargenes}
+              onChange={(url, margenes) => {
+                setForm({ ...form, notaMembreteDataUrl: url, notaMembreteMargenes: margenes })
+                if (clinicId) {
+                  saveConfigPartial(clinicId, { notaMembreteDataUrl: url ?? '', ...(margenes ? { notaMembreteMargenes: margenes } : {}) })
+                    .then(() => toast(url ? 'Hoja membretada guardada' : 'Hoja membretada eliminada', 'success'))
+                    .catch(() => toast('No se pudo guardar la hoja membretada', 'error'))
+                }
+              }}
+            />
+          </div>
+
           {/* 🔑 Llaves de IA por consultorio (multi-tenant) */}
           {clinicId && (
             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
@@ -2159,7 +2175,7 @@ import { resizeImageFile, formatBytes } from '@/lib/image-utils'
 import { PAPER_SIZES, ESTILOS_RECETA, detectarPaperSize } from '@/lib/receta-template'
 import type { RecetaConfig, PaperSize as PaperSizeT, EstiloReceta as EstiloT, Patient, Doctor as DoctorT } from '@/types'
 import { getDoctors } from '@/lib/firestore'
-import { Upload, X as IconX, Pill, ClipboardList, Printer } from 'lucide-react'
+import { Upload, X as IconX, Pill, ClipboardList, Printer, FileText } from 'lucide-react'
 
 const RX_DEFAULTS: RecetaConfig = {
   paperSize: 'media-carta',
@@ -3618,6 +3634,107 @@ function FirmaUploadSection({ firmaDataUrl, onChange }: { firmaDataUrl?: string;
         <Lightbulb size={12} className="ds-icon" style={{ marginTop: 1, flexShrink: 0 }} />
         <span>Tip: Escanea tu firma en una hoja blanca con tu sello al lado, recórtalo en blanco y súbelo como PNG con fondo transparente. Mide unos 6 × 3 cm en la vida real.</span>
       </div>
+    </div>
+  )
+}
+
+/* ── Hoja membretada para NOTAS (sube tu papel; la nota se imprime encima) ── */
+function MembreteNotaSection({ membreteUrl, margenes, onChange }: {
+  membreteUrl?: string
+  margenes?: { top: number; right: number; bottom: number; left: number }
+  onChange: (url: string | undefined, margenes?: { top: number; right: number; bottom: number; left: number }) => void
+}) {
+  const { toast } = useToast()
+  const [procesando, setProcesando] = useState(false)
+  const m = margenes ?? { top: 42, right: 22, bottom: 28, left: 22 }
+  const CW = 216, CH = 279  // hoja carta en mm
+
+  const subir = async (file: File) => {
+    const esPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+    if (!file.type.startsWith('image/') && !esPDF) { toast('Sube una imagen (PNG/JPG) o un PDF', 'error'); return }
+    setProcesando(true)
+    try {
+      let dataUrl: string; let sizeBytes: number
+      if (esPDF) {
+        const { pdfFileToImageDataUrl } = await import('@/lib/pdf-to-image')
+        const r = await pdfFileToImageDataUrl(file, { dpi: 200, quality: 0.9, type: 'image/jpeg', timeoutMs: 60_000 })
+        dataUrl = r.dataUrl; sizeBytes = r.sizeBytes
+      } else {
+        const esPNG = file.type === 'image/png'
+        const r = await resizeImageFile(file, { maxWidth: 1240, maxHeight: 1650, quality: 0.9, type: esPNG ? 'image/png' : 'image/jpeg' })
+        dataUrl = r.dataUrl; sizeBytes = r.sizeBytes
+      }
+      let src = dataUrl; let enStorage = false
+      const uid = auth.currentUser?.uid
+      if (storage && uid) {
+        try {
+          const { ref: sref, uploadBytes, getDownloadURL } = await import('firebase/storage')
+          const blob = await (await fetch(dataUrl)).blob()
+          const objRef = sref(storage, `receta-diseno/${uid}/nota-membrete-${Date.now()}.jpg`)
+          await uploadBytes(objRef, blob, { contentType: blob.type || 'image/jpeg' })
+          const url = await getDownloadURL(objRef)
+          src = `/api/receta/diseno?u=${encodeURIComponent(url)}`
+          enStorage = true
+        } catch (err) { console.warn('[membrete-nota] Storage no disponible:', err) }
+      }
+      if (!enStorage && sizeBytes > 400_000) { toast(`Imagen muy pesada (${formatBytes(sizeBytes)}) y Storage no disponible. Sube una versión más pequeña.`, 'error'); return }
+      onChange(src, m)
+      toast(`Hoja membretada cargada (${formatBytes(sizeBytes)})${enStorage ? ' · alta resolución' : ''}`, 'success')
+    } catch (e) { toast(`No se pudo procesar: ${(e as Error).message}`, 'error') }
+    finally { setProcesando(false) }
+  }
+
+  const setM = (k: 'top' | 'right' | 'bottom' | 'left', v: number) => onChange(membreteUrl, { ...m, [k]: Math.max(0, v) })
+
+  return (
+    <div style={{ background: 'linear-gradient(135deg, rgba(20,184,166,0.06), rgba(20,184,166,0.02))', border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginTop: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+        <FileText size={18} style={{ color: 'var(--teal)' }} />
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>Hoja membretada para notas</div>
+          <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>
+            Sube tu <strong>papel membretado</strong> (con tu logo/encabezado y pie). Las <strong>notas</strong> se imprimen ENCIMA — tú solo llenas el contenido.
+          </div>
+        </div>
+      </div>
+
+      {!membreteUrl ? (
+        <label style={{ display: 'block', textAlign: 'center', padding: '20px 14px', border: '2px dashed rgba(20,184,166,0.4)', borderRadius: 10, background: 'rgba(20,184,166,0.04)', cursor: procesando ? 'wait' : 'pointer', color: 'var(--text2)' }}>
+          {procesando ? (
+            <><Loader2 size={20} style={{ animation: 'spin 1s linear infinite', marginBottom: 6 }} /><div style={{ fontSize: 12.5, fontWeight: 600 }}>Procesando…</div></>
+          ) : (
+            <><Upload size={20} style={{ marginBottom: 6, color: 'var(--teal)' }} />
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Sube tu hoja membretada</div>
+              <div style={{ fontSize: 11, marginTop: 4 }}>Hoja carta completa · PDF, PNG o JPG · alta resolución</div></>
+          )}
+          <input type="file" accept="application/pdf,image/png,image/jpeg,image/webp" disabled={procesando} onChange={(e) => { const f = e.target.files?.[0]; if (f) subir(f) }} style={{ display: 'none' }} />
+        </label>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 14, alignItems: 'start' }}>
+          {/* Vista previa con la ZONA de contenido marcada */}
+          <div style={{ position: 'relative', width: 160, aspectRatio: `${CW} / ${CH}`, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={membreteUrl} alt="Hoja membretada" style={{ width: '100%', height: '100%', objectFit: 'fill' }} />
+            <div style={{ position: 'absolute', top: `${m.top / CH * 100}%`, bottom: `${m.bottom / CH * 100}%`, left: `${m.left / CW * 100}%`, right: `${m.right / CW * 100}%`, border: '1.5px dashed #14b8a6', background: 'rgba(20,184,166,0.10)' }} />
+          </div>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Zona de la nota (mm)</div>
+            <div style={{ fontSize: 10.5, color: 'var(--text3)', marginBottom: 8 }}>Ajusta para que el texto NO tape tu encabezado ni tu pie (el recuadro verde es donde cae la nota).</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+              {([['top', 'Arriba'], ['bottom', 'Abajo'], ['left', 'Izquierda'], ['right', 'Derecha']] as const).map(([k, lbl]) => (
+                <label key={k} style={{ fontSize: 11.5, color: 'var(--text2)' }}>
+                  {lbl}
+                  <input type="number" min={0} max={120} value={m[k]} onChange={(e) => setM(k, Number(e.target.value))}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 13, marginTop: 3 }} />
+                </label>
+              ))}
+            </div>
+            <button onClick={() => onChange(undefined, m)} style={{ marginTop: 10, background: 'rgba(239,68,68,0.9)', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <IconX size={12} /> Quitar hoja membretada
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

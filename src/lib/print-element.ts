@@ -21,7 +21,7 @@
 export function imprimirElemento(
   el: HTMLElement | null,
   titulo = 'Documento',
-  opts?: { formato?: 'sangre' | 'carta'; anchoMm?: number; altoMm?: number },
+  opts?: { formato?: 'sangre' | 'carta' | 'membrete'; anchoMm?: number; altoMm?: number },
 ): void {
   if (typeof window === 'undefined') return
   if (!el) { window.print(); return }
@@ -44,7 +44,15 @@ export function imprimirElemento(
   // HOJA a ese tamaño exacto → la receta cae 1:1, centrada y sin partirse por no
   // coincidir con el papel del diálogo (A5/carta/etc.).
   const tamano = (opts?.anchoMm && opts?.altoMm) ? `${opts.anchoMm}mm ${opts.altoMm}mm` : 'auto'
-  const pageCss = opts?.formato === 'carta'
+  const pageCss = opts?.formato === 'membrete'
+    // Hoja membretada: página carta completa (sin margen; el membrete ocupa toda la
+    // hoja). El fondo del membrete se fija (position:fixed) para REPETIRSE en cada
+    // página impresa; el texto lleva sus propios márgenes internos.
+    ? `@page{size:letter;margin:0}
+       html,body{margin:0;padding:0;background:#fff}
+       ${sel}{max-width:none!important;width:auto!important;margin:0!important;box-shadow:none!important;border-radius:0!important;aspect-ratio:auto!important}
+       .membrete-bg{position:fixed!important;inset:0!important;width:100%!important;height:100%!important;z-index:-1!important}`
+    : opts?.formato === 'carta'
     ? `@page{size:letter;margin:18mm}
        html,body{margin:0;padding:0;background:#fff}
        ${sel}{max-width:none!important;width:auto!important;margin:0!important;padding:0!important;box-shadow:none!important;border-radius:0!important}`
