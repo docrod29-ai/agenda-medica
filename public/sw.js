@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v235'  // Voz mas simple y automatica: Nota en vivo SIEMPRE ON, un solo flujo (Dictado en vivo + enlace chico para grabar al paciente), y auto-procesa la nota final al detener sin boton
+const CACHE = 'nexusmed-v236'  // Nota limpia: prohibido meta-comentarios de transcripcion y banderas internas (needs review) en la prosa; corrige errores de audio en silencio + limpiador de respaldo
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
