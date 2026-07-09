@@ -121,7 +121,7 @@ export default function ConsultaActivaPage() {
   // Red de seguridad local: respaldo de la nota en el navegador (anti-pérdida)
   const [respaldoDisponible, setRespaldoDisponible] = useState(false)
   // NOTA EN TIEMPO REAL: la nota se va armando mientras hablas (cada ~30s).
-  const [notaEnVivo, setNotaEnVivo] = useState(true)
+  const [notaEnVivo] = useState(true)  // SIEMPRE activa (la nota se arma sola al hablar)
   const [estructurandoVivo, setEstructurandoVivo] = useState(false)
   const vivoRef = useRef(false)
   const palabrasEstructuradasRef = useRef(0)
@@ -364,6 +364,17 @@ export default function ConsultaActivaPage() {
     }, 15000)   // revisa cada 15s (antes 30s) → la nota se llena más seguido, sensación "streaming"
     return () => clearInterval(t)
   }, [voz.grabando, audio.estado, notaEnVivo, firmada])
+
+  // Al DETENER el dictado en vivo, estructura la versión FINAL sola — sin que el
+  // médico tenga que pulsar "Procesar con IA" (el flujo Whisper ya lo hacía).
+  const eraGrabandoVozRef = useRef(false)
+  useEffect(() => {
+    const acabaDeParar = eraGrabandoVozRef.current && !voz.grabando
+    eraGrabandoVozRef.current = voz.grabando
+    if (acabaDeParar && modoVoz === 'vivo' && !firmada && voz.transcripcion.trim() && !procesando) {
+      procesarIARef.current()
+    }
+  }, [voz.grabando, modoVoz, firmada, procesando, voz.transcripcion])
 
   // ── Cambiar la modalidad de nota ───────────────────────────────
   // Si hay dictado, la nota se RE-PROYECTA desde esa fuente hacia la nueva
@@ -841,58 +852,40 @@ export default function ConsultaActivaPage() {
           </select>
           <span style={{ fontSize: 11, color: 'var(--text3)' }}>· la IA la redacta como esa especialidad</span>
 
-          {/* Nota en tiempo real (se arma mientras hablas) */}
-          <button
-            type="button"
-            onClick={() => setNotaEnVivo(v => !v)}
-            title="La nota se va armando sola mientras grabas (cada ~30s)"
+          {/* Nota en tiempo real: SIEMPRE activa (se arma sola mientras hablas). */}
+          <span
+            title="La nota se va armando sola mientras grabas y se finaliza al detener"
             style={{
               marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6,
-              fontSize: 12, fontWeight: 600, padding: '5px 12px', borderRadius: 100, cursor: 'pointer',
-              border: '1px solid ' + (notaEnVivo ? 'var(--nexus)' : 'var(--border)'),
-              background: notaEnVivo ? 'rgba(61,90,254,0.12)' : 'var(--s2)',
-              color: notaEnVivo ? 'var(--nexus)' : 'var(--text3)',
+              fontSize: 12, fontWeight: 600, padding: '5px 12px', borderRadius: 100,
+              border: '1px solid var(--nexus)', background: 'rgba(61,90,254,0.12)', color: 'var(--nexus)',
             }}
           >
-            <Sparkles size={13} /> Nota en vivo {notaEnVivo ? 'ON' : 'OFF'}
+            <Sparkles size={13} /> Nota en vivo
             {estructurandoVivo && <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />}
-          </button>
+          </span>
         </div>
       )}
 
       {/* ── Grabación ── */}
       {!firmada && (
         <div style={S.grabCard}>
-          {/* Selector de modo de captura */}
-          {(voz.soportado || audio.soportado) && (
-            <div style={{ display: 'flex', gap: 6, marginBottom: 12, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10, padding: 3 }}>
-              {voz.soportado && (
-                <button
-                  onClick={() => setModoVoz('vivo')}
-                  style={{
-                    flex: 1, padding: '7px 10px', fontSize: 12.5, fontWeight: 600,
-                    background: modoVoz === 'vivo' ? 'var(--teal)' : 'transparent',
-                    color: modoVoz === 'vivo' ? '#040b12' : 'var(--text3)',
-                    border: 'none', borderRadius: 7, cursor: 'pointer',
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  }}
-                >
-                  <Mic size={13} className="ds-icon" /> Dictado en vivo
-                </button>
-              )}
-              {audio.soportado && (
-                <button
-                  onClick={() => setModoVoz('whisper')}
-                  style={{
-                    flex: 1, padding: '7px 10px', fontSize: 12.5, fontWeight: 600,
-                    background: modoVoz === 'whisper' ? 'var(--teal)' : 'transparent',
-                    color: modoVoz === 'whisper' ? '#040b12' : 'var(--text3)',
-                    border: 'none', borderRadius: 7, cursor: 'pointer',
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  }}
-                >
-                  <Mic size={13} className="ds-icon" /> Conversación completa
-                </button>
+          {/* Un solo flujo claro: Dictado en vivo (recomendado). Si el médico quiere
+              grabar TAMBIÉN al paciente, un enlace chico cambia a conversación completa. */}
+          {voz.soportado && audio.soportado && !voz.grabando && audio.estado !== 'grabando' && (
+            <div style={{ marginBottom: 10, fontSize: 12, color: 'var(--text3)' }}>
+              {modoVoz === 'vivo' ? (
+                <>Modo: <b style={{ color: 'var(--text2)' }}>Dictado en vivo</b> ·{' '}
+                  <button type="button" onClick={() => setModoVoz('whisper')}
+                    style={{ background: 'none', border: 'none', color: 'var(--teal)', cursor: 'pointer', fontWeight: 600, padding: 0, fontSize: 12 }}>
+                    ¿Grabar también al paciente?
+                  </button></>
+              ) : (
+                <>Modo: <b style={{ color: 'var(--text2)' }}>Conversación completa</b> (médico + paciente) ·{' '}
+                  <button type="button" onClick={() => setModoVoz('vivo')}
+                    style={{ background: 'none', border: 'none', color: 'var(--teal)', cursor: 'pointer', fontWeight: 600, padding: 0, fontSize: 12 }}>
+                    ← Volver a dictado rápido
+                  </button></>
               )}
             </div>
           )}
@@ -923,12 +916,17 @@ export default function ConsultaActivaPage() {
                   {voz.grabando ? `Grabando · ${mmss}` : 'Grabar consulta (en vivo)'}
                 </div>
                 <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>
-                  Capta sobre todo tu voz · para grabar también al paciente usa “Conversación completa” · Ctrl/Cmd+R
+                  {voz.grabando
+                    ? 'La nota se arma sola; al detener se finaliza automáticamente.'
+                    : 'Dicta la consulta. Al detener, la nota se estructura sola. · Ctrl/Cmd+R'}
                 </div>
               </div>
-              <button onClick={() => procesarIA()} disabled={procesando || !voz.transcripcion.trim()} style={S.iaBtn(procesando || !voz.transcripcion.trim())}>
-                {procesando ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Claude estructurando…</> : <><Sparkles size={16} /> Procesar con IA</>}
-              </button>
+              {/* Respaldo manual: normalmente NO hace falta (se procesa solo al detener). */}
+              {procesando
+                ? <span style={{ ...S.iaBtn(true), pointerEvents: 'none' }}><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Claude estructurando…</span>
+                : (!voz.grabando && voz.transcripcion.trim()
+                    ? <button onClick={() => procesarIA()} style={S.iaBtn(false)}><Sparkles size={16} /> Procesar de nuevo</button>
+                    : null)}
             </div>
           )}
 
