@@ -21,7 +21,7 @@
 export function imprimirElemento(
   el: HTMLElement | null,
   titulo = 'Documento',
-  opts?: { formato?: 'sangre' | 'carta' },
+  opts?: { formato?: 'sangre' | 'carta'; anchoMm?: number; altoMm?: number },
 ): void {
   if (typeof window === 'undefined') return
   if (!el) { window.print(); return }
@@ -36,11 +36,17 @@ export function imprimirElemento(
   // Selector del documento para neutralizar su padding/centrado en modo carta
   // (los márgenes los pone @page, no el elemento).
   const sel = el.id ? `#${el.id}` : 'body > *'
+  // Modo 'sangre' (receta): si nos pasan el tamaño físico de la receta, fijamos la
+  // HOJA a ese tamaño exacto → la receta cae 1:1, centrada y sin partirse por no
+  // coincidir con el papel del diálogo (A5/carta/etc.).
+  const tamano = (opts?.anchoMm && opts?.altoMm) ? `${opts.anchoMm}mm ${opts.altoMm}mm` : 'auto'
   const pageCss = opts?.formato === 'carta'
     ? `@page{size:letter;margin:18mm}
        html,body{margin:0;padding:0;background:#fff}
        ${sel}{max-width:none!important;width:auto!important;margin:0!important;padding:0!important;box-shadow:none!important;border-radius:0!important}`
-    : `@page{margin:0} html,body{margin:0;padding:0;background:#fff}`
+    : `@page{size:${tamano};margin:0}
+       html,body{margin:0;padding:0;background:#fff}
+       ${sel}{margin:0 auto!important;box-shadow:none!important;border-radius:0!important}`
 
   win.document.open()
   win.document.write(
