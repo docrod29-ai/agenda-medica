@@ -84,12 +84,12 @@ export default function NotaImprimiblePage() {
   const cedula = nota.firma?.cedulaProfesional || config?.cedulaProfesional || '—'
   const especialidad = nota.firma?.especialidad || config?.especialidad || ''
   const establecimiento = nota.metadata.establecimiento || config?.nombreClinica || ''
-  // Hoja membretada del médico (opcional): si existe una URL VÁLIDA, la nota se
-  // imprime encima. Se ignora un valor vacío/roto (evita descuadrar la nota si
-  // quedó a medias). Debe ser una URL http(s), el proxy /api, o data URL.
-  const mem = config?.notaMembreteDataUrl?.trim()
+  // Hoja membretada: la del MÉDICO de la nota si tiene una propia; si no, la
+  // general del consultorio. Se ignora un valor vacío/roto (evita descuadrar).
+  const medMembrete = nota.metadata?.medicoId ? config?.notaMembretePorMedico?.[nota.metadata.medicoId] : undefined
+  const mem = (medMembrete?.url ?? config?.notaMembreteDataUrl)?.trim()
   const membrete = (mem && /^(https?:|\/api\/|data:image)/.test(mem)) ? mem : undefined
-  const mMemb = config?.notaMembreteMargenes ?? { top: 42, right: 22, bottom: 28, left: 22 }
+  const mMemb = medMembrete?.margenes ?? config?.notaMembreteMargenes ?? { top: 42, right: 22, bottom: 28, left: 22 }
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh', padding: 24 }}>
