@@ -330,6 +330,10 @@ export interface ClinicConfig {
   /** Zona de contenido de la nota sobre la hoja membretada (mm): márgenes para no
    *  encimar el encabezado ni el pie. Default: top 42, bottom 28, left 22, right 22. */
   notaMembreteMargenes?: { top: number; right: number; bottom: number; left: number }
+  /** Hoja membretada de notas POR MÉDICO (key = medicoId). Cada médico tiene su
+   *  propio papel; si no, cae a la general (notaMembreteDataUrl). */
+  notaMembretePorMedico?: Record<string, { url: string; margenes?: { top: number; right: number; bottom: number; left: number } }>
+
   // Receta y órdenes médicas
   recetaConfig?: RecetaConfig
   /**

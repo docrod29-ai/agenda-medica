@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v246'  // Guardar recetas FUNCIONA: guardar() ahora migra a Storage el diseno completo + firma + hoja membretada (antes solo membrete/pie) -> el doc ya no revienta 1MB; nota usa membrete solo si URL valida
+const CACHE = 'nexusmed-v247'  // Membrete al imprimir: base href en la ventana de impresion (URLs relativas /api + CSS cargan) -> ya se ve el membrete; hoja membretada de notas POR MEDICO (cada quien la suya)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

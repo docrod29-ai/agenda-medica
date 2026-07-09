@@ -62,7 +62,12 @@ export function imprimirElemento(
 
   win.document.open()
   win.document.write(
-    `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${titulo}</title>` +
+    `<!doctype html><html lang="es"><head><meta charset="utf-8">` +
+    // Base de URL: la ventana de impresión se abre en blanco; sin esto las rutas
+    // RELATIVAS (el membrete servido como /api/receta/diseno, el CSS de _next) no
+    // cargarían → no se vería el membrete. Con la base, resuelven al mismo origen.
+    `<base href="${location.origin}/">` +
+    `<title>${titulo}</title>` +
     estilos +
     `<style>${pageCss}</style>` +
     `</head><body>${el.outerHTML}</body></html>`,

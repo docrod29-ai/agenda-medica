@@ -432,19 +432,12 @@ export default function ConfiguracionPage() {
             />
           </div>
 
-          {/* 📄 Hoja membretada para NOTAS — la nota se imprime encima */}
+          {/* 📄 Hoja membretada para NOTAS — general o por médico (cada quien la suya) */}
           <div className="form-group" style={{ gridColumn: '1 / -1' }}>
             <MembreteNotaSection
-              membreteUrl={form.notaMembreteDataUrl}
-              margenes={form.notaMembreteMargenes}
-              onChange={(url, margenes) => {
-                setForm({ ...form, notaMembreteDataUrl: url, notaMembreteMargenes: margenes })
-                if (clinicId) {
-                  saveConfigPartial(clinicId, { notaMembreteDataUrl: url ?? '', ...(margenes ? { notaMembreteMargenes: margenes } : {}) })
-                    .then(() => toast(url ? 'Hoja membretada guardada' : 'Hoja membretada eliminada', 'success'))
-                    .catch(() => toast('No se pudo guardar la hoja membretada', 'error'))
-                }
-              }}
+              form={form}
+              clinicId={clinicId}
+              onLocalChange={(patch) => setForm(f => ({ ...f, ...patch }))}
             />
           </div>
 
@@ -3668,15 +3661,39 @@ function FirmaUploadSection({ firmaDataUrl, onChange }: { firmaDataUrl?: string;
 }
 
 /* ── Hoja membretada para NOTAS (sube tu papel; la nota se imprime encima) ── */
-function MembreteNotaSection({ membreteUrl, margenes, onChange }: {
-  membreteUrl?: string
-  margenes?: { top: number; right: number; bottom: number; left: number }
-  onChange: (url: string | undefined, margenes?: { top: number; right: number; bottom: number; left: number }) => void
+function MembreteNotaSection({ form, clinicId, onLocalChange }: {
+  form: ClinicConfig
+  clinicId: string | null
+  onLocalChange: (patch: Partial<ClinicConfig>) => void
 }) {
   const { toast } = useToast()
   const [procesando, setProcesando] = useState(false)
-  const m = margenes ?? { top: 42, right: 22, bottom: 28, left: 22 }
+  const [doctores, setDoctores] = useState<DoctorT[]>([])
+  const [medicoSel, setMedicoSel] = useState('')  // '' = general (aplica a todos)
   const CW = 216, CH = 279  // hoja carta en mm
+
+  useEffect(() => { if (clinicId) getDoctors(clinicId).then(setDoctores).catch(() => {}) }, [clinicId])
+
+  // Valor efectivo según la selección (hoja general del consultorio o la del médico).
+  const perMed = medicoSel ? form.notaMembretePorMedico?.[medicoSel] : undefined
+  const membreteUrl = medicoSel ? perMed?.url : form.notaMembreteDataUrl
+  const m = (medicoSel ? perMed?.margenes : form.notaMembreteMargenes) ?? { top: 42, right: 22, bottom: 28, left: 22 }
+
+  // Guarda en local + Firestore, en general o por médico según la selección.
+  const persistir = (url: string | undefined, margenes: { top: number; right: number; bottom: number; left: number }) => {
+    if (medicoSel) {
+      const map = { ...(form.notaMembretePorMedico ?? {}), [medicoSel]: { url: url ?? '', margenes } }
+      onLocalChange({ notaMembretePorMedico: map })
+      if (clinicId) saveConfigPartial(clinicId, { notaMembretePorMedico: map })
+        .then(() => toast(url ? 'Hoja del médico guardada' : 'Hoja del médico eliminada', 'success'))
+        .catch(() => toast('No se pudo guardar', 'error'))
+    } else {
+      onLocalChange({ notaMembreteDataUrl: url, notaMembreteMargenes: margenes })
+      if (clinicId) saveConfigPartial(clinicId, { notaMembreteDataUrl: url ?? '', notaMembreteMargenes: margenes })
+        .then(() => toast(url ? 'Hoja membretada guardada' : 'Hoja membretada eliminada', 'success'))
+        .catch(() => toast('No se pudo guardar la hoja membretada', 'error'))
+    }
+  }
 
   const subir = async (file: File) => {
     const esPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
@@ -3713,13 +3730,13 @@ function MembreteNotaSection({ membreteUrl, margenes, onChange }: {
         toast('No se pudo subir la hoja a Storage. Revisa tu conexión e inténtalo otra vez.', 'error')
         return
       }
-      onChange(src, m)
+      persistir(src, m)
       toast(`Hoja membretada cargada (${formatBytes(sizeBytes)}) · alta resolución`, 'success')
     } catch (e) { toast(`No se pudo procesar: ${(e as Error).message}`, 'error') }
     finally { setProcesando(false) }
   }
 
-  const setM = (k: 'top' | 'right' | 'bottom' | 'left', v: number) => onChange(membreteUrl, { ...m, [k]: Math.max(0, v) })
+  const setM = (k: 'top' | 'right' | 'bottom' | 'left', v: number) => persistir(membreteUrl, { ...m, [k]: Math.max(0, v) })
 
   return (
     <div style={{ background: 'linear-gradient(135deg, rgba(20,184,166,0.06), rgba(20,184,166,0.02))', border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginTop: 4 }}>
@@ -3732,6 +3749,18 @@ function MembreteNotaSection({ membreteUrl, margenes, onChange }: {
           </div>
         </div>
       </div>
+
+      {/* General o por médico — cada médico puede tener su propia hoja */}
+      {doctores.length > 0 && (
+        <div style={{ marginBottom: 10 }}>
+          <label style={{ fontSize: 11.5, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>¿Para quién es esta hoja?</label>
+          <select value={medicoSel} onChange={(e) => setMedicoSel(e.target.value)}
+            style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 13 }}>
+            <option value="">General del consultorio (todos)</option>
+            {doctores.map(d => <option key={d.id} value={d.id}>{d.nombre}{form.notaMembretePorMedico?.[d.id]?.url ? ' · tiene la suya' : ''}</option>)}
+          </select>
+        </div>
+      )}
 
       {!membreteUrl ? (
         <label style={{ display: 'block', textAlign: 'center', padding: '20px 14px', border: '2px dashed rgba(20,184,166,0.4)', borderRadius: 10, background: 'rgba(20,184,166,0.04)', cursor: procesando ? 'wait' : 'pointer', color: 'var(--text2)' }}>
@@ -3764,7 +3793,7 @@ function MembreteNotaSection({ membreteUrl, margenes, onChange }: {
                 </label>
               ))}
             </div>
-            <button onClick={() => onChange(undefined, m)} style={{ marginTop: 10, background: 'rgba(239,68,68,0.9)', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <button onClick={() => persistir(undefined, m)} style={{ marginTop: 10, background: 'rgba(239,68,68,0.9)', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <IconX size={12} /> Quitar hoja membretada
             </button>
           </div>
