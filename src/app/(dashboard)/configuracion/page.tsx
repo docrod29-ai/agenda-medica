@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { ClinicConfig, DEFAULT_CONFIG, AppointmentType, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { saveConfig, saveConfigPartial, updateDoctor } from '@/lib/firestore'
+import { subirImagen as subirImagenServidor } from '@/lib/subir-imagen'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useConfig } from '@/hooks/useConfig'
 import { useDoctors } from '@/hooks/useDoctors'
@@ -2268,24 +2269,10 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
     }
   }
 
-  // Sube un data URL base64 a Storage y devuelve la URL proxeada (documento chico).
-  // Si ya es una URL, o no hay Storage, devuelve el valor tal cual. CLAVE: evita
-  // que las imágenes (membrete/pie/firma) inflen la config más allá del límite de
-  // 1 MB de Firestore (el error "cannot be written").
-  const aStorageSiEsBase64 = async (valor: string | undefined, nombre: string): Promise<string | undefined> => {
-    if (!valor || !valor.startsWith('data:')) return valor
-    const uid = auth.currentUser?.uid
-    if (!storage || !uid) return valor
-    try {
-      const blob = await (await fetch(valor)).blob()
-      const { ref: sref, uploadBytes, getDownloadURL } = await import('firebase/storage')
-      // Reutiliza la ruta ya permitida en storage.rules (receta-diseno/{uid}).
-      const objRef = sref(storage, `receta-diseno/${uid}/${nombre}-${Date.now()}.png`)
-      await uploadBytes(objRef, blob, { contentType: blob.type || 'image/png' })
-      const url = await getDownloadURL(objRef)
-      return `/api/receta/diseno?u=${encodeURIComponent(url)}`
-    } catch { return valor }
-  }
+  // Sube un data URL base64 a Storage (vía el SERVIDOR, Admin SDK) y devuelve la
+  // URL proxeada — así el documento de config queda chico (no revienta el 1 MB de
+  // Firestore). Si falla, LANZA con la causa real (ya no cae a base64 en silencio).
+  const aStorageSiEsBase64 = (valor: string | undefined, nombre: string) => subirImagenServidor(valor, nombre)
 
   const subirImagen = async (campo: 'membreteDataUrl' | 'pieDataUrl', file: File) => {
     try {
@@ -2394,32 +2381,13 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
         return
       }
 
-      // NITIDEZ: subir el diseño en ALTA RESOLUCIÓN a Firebase Storage (sin el
-      // límite de ~1MB de Firestore → sin pixelación) y servirlo por un proxy
-      // same-origin (/api/receta/diseno) para que el PDF no se ensucie por CORS.
-      // Si Storage no está disponible, cae al dataUrl en Firestore (debe caber).
-      let srcFinal = dataUrl
-      let enStorage = false
-      const uid = auth.currentUser?.uid
-      if (storage && uid) {
-        try {
-          setProgresoDiseno('Subiendo en alta resolución…')
-          const { ref: sref, uploadBytes, getDownloadURL } = await import('firebase/storage')
-          const blob = await (await fetch(dataUrl)).blob()
-          const objRef = sref(storage, `receta-diseno/${uid}/diseno-${Date.now()}.png`)
-          await uploadBytes(objRef, blob, { contentType: blob.type || 'image/png' })
-          const url = await getDownloadURL(objRef)
-          srcFinal = `/api/receta/diseno?u=${encodeURIComponent(url)}`
-          enStorage = true
-        } catch (err) {
-          console.warn('[disenoCompleto] Storage no disponible, uso Firestore:', err)
-        }
-      }
-      // Sin Storage: el dataUrl debe caber en el documento Firestore (~1MB).
-      if (!enStorage && sizeBytes > 900_000) {
-        toast(`Aún muy pesado (${formatBytes(sizeBytes)}). Sube como JPG en menor resolución.`, 'error')
-        return
-      }
+      // NITIDEZ: subir el diseño en ALTA RESOLUCIÓN a Storage vía el SERVIDOR
+      // (Admin SDK) y servirlo por el proxy same-origin. Nunca se queda como base64
+      // en el doc de config. Si falla, avisamos con la causa real.
+      setProgresoDiseno('Subiendo en alta resolución…')
+      let srcFinal: string
+      try { srcFinal = (await subirImagenServidor(dataUrl, 'diseno')) ?? dataUrl }
+      catch (err) { toast(`No se pudo subir el diseño: ${(err as Error).message}`, 'error'); setProgresoDiseno(''); return }
 
       // Auto-detectar tamaño de papel para evitar distorsión por aspect ratio
       let nuevoPaperSize = rx.paperSize
@@ -2440,7 +2408,7 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
         // llene sin bordes blancos y los datos calibrados caigan en su sitio.
         ...(widthMm && heightMm ? { disenoWidthMm: Math.round(widthMm), disenoHeightMm: Math.round(heightMm) } : {}),
       })
-      const nitido = enStorage ? ' · alta resolución' : ''
+      const nitido = ' · alta resolución'
       if (auto) {
         toast(`Diseño cargado (${formatBytes(sizeBytes)})${nitido} · papel ajustado a ${PAPER_SIZES[nuevoPaperSize].label}`, 'success')
       } else {
@@ -3554,31 +3522,13 @@ function FirmaUploadSection({ firmaDataUrl, onChange }: { firmaDataUrl?: string;
         dataUrl = r.dataUrl; sizeBytes = r.sizeBytes
       }
 
-      // Subir a Storage (sin el tope de 400KB de Firestore) y servir por el proxy
-      // same-origin. Así no satura el documento de config ni truena el PDF por CORS.
-      // Fallback: si Storage no está, usa el dataUrl (debe caber en Firestore).
-      let src = dataUrl
-      let enStorage = false
-      const uid = auth.currentUser?.uid
-      if (storage && uid) {
-        try {
-          const { ref: sref, uploadBytes, getDownloadURL } = await import('firebase/storage')
-          const blob = await (await fetch(dataUrl)).blob()
-          const objRef = sref(storage, `receta-diseno/${uid}/firma-${Date.now()}.png`)
-          await uploadBytes(objRef, blob, { contentType: blob.type || 'image/png' })
-          const url = await getDownloadURL(objRef)
-          src = `/api/receta/diseno?u=${encodeURIComponent(url)}`
-          enStorage = true
-        } catch (err) {
-          console.warn('[firma] Storage no disponible, uso dataUrl:', err)
-        }
-      }
-      if (!enStorage && sizeBytes > 400_000) {
-        toast(`Imagen muy pesada (${formatBytes(sizeBytes)}) y Storage no disponible. Sube una versión más pequeña.`, 'error')
-        return
-      }
+      // Subir a Storage vía el SERVIDOR (Admin SDK) → doc de config chico, sin
+      // depender de reglas/CORS del navegador. Si falla, avisamos con la causa real.
+      let src: string
+      try { src = (await subirImagenServidor(dataUrl, 'firma')) ?? dataUrl }
+      catch (err) { toast(`No se pudo subir la firma: ${(err as Error).message}`, 'error'); return }
       onChange(src)
-      toast(`Firma cargada (${formatBytes(sizeBytes)})${enStorage ? ' · alta resolución' : ''}`, 'success')
+      toast(`Firma cargada (${formatBytes(sizeBytes)}) · alta resolución`, 'success')
     } catch (e) {
       toast(`No se pudo procesar: ${(e as Error).message}`, 'error')
     } finally {
@@ -3710,26 +3660,11 @@ function MembreteNotaSection({ form, clinicId, onLocalChange }: {
         const r = await resizeImageFile(file, { maxWidth: 1240, maxHeight: 1650, quality: 0.9, type: esPNG ? 'image/png' : 'image/jpeg' })
         dataUrl = r.dataUrl; sizeBytes = r.sizeBytes
       }
-      let src = dataUrl; let enStorage = false
-      const uid = auth.currentUser?.uid
-      if (storage && uid) {
-        try {
-          const { ref: sref, uploadBytes, getDownloadURL } = await import('firebase/storage')
-          const blob = await (await fetch(dataUrl)).blob()
-          const objRef = sref(storage, `receta-diseno/${uid}/nota-membrete-${Date.now()}.jpg`)
-          await uploadBytes(objRef, blob, { contentType: blob.type || 'image/jpeg' })
-          const url = await getDownloadURL(objRef)
-          src = `/api/receta/diseno?u=${encodeURIComponent(url)}`
-          enStorage = true
-        } catch (err) { console.warn('[membrete-nota] Storage no disponible:', err) }
-      }
-      // La hoja membretada es una imagen de página completa: NO cabe como base64 en
-      // el documento de config (tope 1MB). DEBE ir a Storage. Si no subió, avisamos
-      // en vez de guardar un base64 que reventaría el guardado.
-      if (!enStorage) {
-        toast('No se pudo subir la hoja a Storage. Revisa tu conexión e inténtalo otra vez.', 'error')
-        return
-      }
+      // Subir SIEMPRE a Storage vía el servidor (Admin SDK) — la hoja es página
+      // completa y no cabe como base64 en el doc de config.
+      let src: string
+      try { src = (await subirImagenServidor(dataUrl, 'nota-membrete')) ?? dataUrl }
+      catch (e) { toast(`No se pudo subir la hoja: ${(e as Error).message}`, 'error'); return }
       persistir(src, m)
       toast(`Hoja membretada cargada (${formatBytes(sizeBytes)}) · alta resolución`, 'success')
     } catch (e) { toast(`No se pudo procesar: ${(e as Error).message}`, 'error') }
