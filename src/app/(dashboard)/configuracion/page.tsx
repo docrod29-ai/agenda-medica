@@ -3629,19 +3629,22 @@ function MembreteNotaSection({ form, clinicId, onLocalChange }: {
   const membreteUrl = medicoSel ? perMed?.url : form.notaMembreteDataUrl
   const m = (medicoSel ? perMed?.margenes : form.notaMembreteMargenes) ?? { top: 42, right: 22, bottom: 28, left: 22 }
 
-  // Guarda en local + Firestore, en general o por médico según la selección.
+  // Guarda en local + Firestore. Por médico: escribe SOLO la entrada de ESE médico
+  // (Firestore `merge` conserva las de los demás) → nunca se cruza ni se pierde
+  // info entre médicos, aunque `form` esté desincronizado. La general va aparte.
   const persistir = (url: string | undefined, margenes: { top: number; right: number; bottom: number; left: number }) => {
+    const medico = doctores.find(d => d.id === medicoSel)
     if (medicoSel) {
-      const map = { ...(form.notaMembretePorMedico ?? {}), [medicoSel]: { url: url ?? '', margenes } }
-      onLocalChange({ notaMembretePorMedico: map })
-      if (clinicId) saveConfigPartial(clinicId, { notaMembretePorMedico: map })
-        .then(() => toast(url ? 'Hoja del médico guardada' : 'Hoja del médico eliminada', 'success'))
-        .catch(() => toast('No se pudo guardar', 'error'))
+      const entry = { url: url ?? '', margenes }
+      onLocalChange({ notaMembretePorMedico: { ...(form.notaMembretePorMedico ?? {}), [medicoSel]: entry } })
+      if (clinicId) saveConfigPartial(clinicId, { notaMembretePorMedico: { [medicoSel]: entry } })
+        .then(() => toast(url ? `Hoja de ${medico?.nombre ?? 'médico'} guardada` : 'Hoja del médico eliminada', 'success'))
+        .catch((e) => toast(`No se pudo guardar: ${e instanceof Error ? e.message.slice(0, 80) : ''}`, 'error'))
     } else {
       onLocalChange({ notaMembreteDataUrl: url, notaMembreteMargenes: margenes })
       if (clinicId) saveConfigPartial(clinicId, { notaMembreteDataUrl: url ?? '', notaMembreteMargenes: margenes })
-        .then(() => toast(url ? 'Hoja membretada guardada' : 'Hoja membretada eliminada', 'success'))
-        .catch(() => toast('No se pudo guardar la hoja membretada', 'error'))
+        .then(() => toast(url ? 'Hoja GENERAL del consultorio guardada' : 'Hoja general eliminada', 'success'))
+        .catch((e) => toast(`No se pudo guardar: ${e instanceof Error ? e.message.slice(0, 80) : ''}`, 'error'))
     }
   }
 

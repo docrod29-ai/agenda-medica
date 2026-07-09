@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v248'  // Subida de imagenes DESDE EL SERVIDOR (Admin SDK): membrete/firma/diseno/hoja-membretada suben via /api/config/imagen (no depende de reglas/CORS del navegador) -> el doc de config ya NO revienta 1MB, guardar FUNCIONA
+const CACHE = 'nexusmed-v249'  // Hoja membretada por medico robusta: cada medico guarda SOLO su entrada (Firestore merge conserva a los demas) -> no se cruza ni se pierde info entre medicos ni con la general; errores muestran causa real
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
