@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v282'  // Diagnostico transcripcion: el error 'no se pudo transcribir' ahora muestra la CAUSA real (sin saldo OpenAI / llave faltante / audio muy grande / timeout / HTTP) en vez de un mensaje generico
+const CACHE = 'nexusmed-v283'  // Fix 'no se pudo transcribir': revertido audio a 16kHz/64kbps (el 48k/128k pesaba 2.5x y cruzaba el umbral de 'grande' -> en Safari mp4 el troceado se rompia). Ligero = rapido, sin timeout, sin romper transcripcion. 16kHz es lo que usa el ASR y AssemblyAI diariza igual
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

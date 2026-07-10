@@ -92,13 +92,13 @@ export interface UseGrabacionAudio {
 
 const SILENCIO_MS = 15_000
 const NIVEL_SILENCIO = 0.02
-// CALIDAD PREMIUM para consultorio (dos voces a distancia): 48 kHz mono · 128 kbps
-// Opus. Aunque el ASR remuestrea a 16 kHz para el WER, el audio de banda completa
-// y sin comprimir de más le da a la DIARIZACIÓN (AssemblyAI) mucha más información
-// para separar médico/paciente y capta mejor la voz más lejana (el paciente). El
-// archivo pesa ~2.5× más pero vale: aquí prima la calidad, no el tamaño.
-const BITRATE_OPUS = 128_000
-const SAMPLE_RATE_OBJETIVO = 48_000
+// 16 kHz mono · 64 kbps Opus. Es EXACTAMENTE lo que usa el ASR (remuestrea a 16 kHz)
+// y AssemblyAI diariza perfecto a 16 kHz (es el estándar de voz/telefonía). Se
+// volvió de 48k/128k a esto porque el archivo pesado (~2.5×) cruzaba el umbral de
+// "audio grande" y en Safari (mp4) el troceado por partes fallaba → "no se pudo
+// transcribir". Ligero = sube rápido, no hace timeout y no rompe la transcripción.
+const BITRATE_OPUS = 64_000
+const SAMPLE_RATE_OBJETIVO = 16_000
 const INTERVALO_CHUNK_DEFAULT_MS = 20_000
 
 // ─────────────────────────────────────────────────────────────────
