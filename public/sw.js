@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v259'  // Médico-paciente automático: diarización AssemblyAI 'best' (máx calidad) + atribución de roles con Claude (Hablante A/B → Médico/Paciente auto, editable); la nota IA recibe el diálogo ya etiquetado
+const CACHE = 'nexusmed-v260'  // Captura premium: grabación real a 48kHz/128kbps (el codigo decia 48/128 pero corria a 16k/64k) + AudioContext a frecuencia nativa (evita cortes); mejor diarización y capta mejor la voz del paciente
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
