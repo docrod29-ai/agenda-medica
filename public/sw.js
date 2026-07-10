@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v256'  // Fix: al imprimir usa TU diseno de receta/membrete/firma subido aunque la nota no traiga medicoId — respaldo al unico medico configurado (receta+orden+nota)
+const CACHE = 'nexusmed-v255'  // Sin dropdown de receta/firma/hoja cuando hay UN solo medico (o eres tu): sale 'Tu receta/firma/hoja · <nombre>'; el selector solo con 2+ medicos y admin
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

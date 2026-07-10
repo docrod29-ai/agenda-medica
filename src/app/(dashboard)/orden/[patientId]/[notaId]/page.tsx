@@ -349,10 +349,8 @@ export default function GeneradorOrdenPage() {
       mostrarAlergias: false,
       mostrarDiagnostico: true,
     }
-    const recetasMap = config?.recetasPorMedico ?? {}
     const medicoId = nota?.metadata?.medicoId
-    const ids = Object.keys(recetasMap)
-    const porMedico = (medicoId && recetasMap[medicoId]) || (ids.length === 1 ? recetasMap[ids[0]] : undefined)
+    const porMedico = medicoId ? config?.recetasPorMedico?.[medicoId] : undefined
     const merged = porMedico ? { ...base, ...porMedico } : base
     // Impresión SIEMPRE en hoja carta centrada (ver receta): 'papel-real' se
     // recorta en A5 por una limitación de Safari.
@@ -363,9 +361,7 @@ export default function GeneradorOrdenPage() {
   const configFirma = useMemo(() => {
     if (!config) return config
     const medicoId = nota?.metadata?.medicoId
-    const firmaMap = config.firmaPorMedico ?? {}
-    const fids = Object.keys(firmaMap)
-    const firma = (medicoId && firmaMap[medicoId]) || (fids.length === 1 ? firmaMap[fids[0]] : undefined) || config.firmaImagenDataUrl
+    const firma = (medicoId && config.firmaPorMedico?.[medicoId]) || config.firmaImagenDataUrl
     return { ...config, firmaImagenDataUrl: firma }
   }, [config, nota?.metadata?.medicoId])
 
