@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v254'  // Borrar medicos (boton en Medicos) + con TU cuenta editas SOLO tu config (receta/firma/hoja) sin selector de otros; el selector solo aparece para admin sin ficha de medico
+const CACHE = 'nexusmed-v255'  // Sin dropdown de receta/firma/hoja cuando hay UN solo medico (o eres tu): sale 'Tu receta/firma/hoja · <nombre>'; el selector solo con 2+ medicos y admin
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
