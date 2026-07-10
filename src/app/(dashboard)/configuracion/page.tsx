@@ -2446,8 +2446,10 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
 
   if (!clinicId) return <div style={{ color: 'var(--text3)' }}>Cargando…</div>
 
-  // ¿La cuenta logueada ES un médico? Entonces edita SOLO la suya (sin selector).
+  // Sin dropdown cuando: eres el médico logueado, o solo hay UN médico. El selector
+  // solo aparece si hay 2+ médicos y un admin (sin ficha) configura a nombre de otros.
   const soyDoctor = doctores.find(d => d.email && d.email === auth.currentUser?.email)
+  const medicoUnico = soyDoctor ?? (doctores.length === 1 ? doctores[0] : undefined)
 
   return (
     <div className="recetas-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 380px', gap: 20, alignItems: 'start' }}>
@@ -2461,8 +2463,8 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
             display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
             padding: '10px 14px', background: 'var(--s2)', border: '1px solid var(--border2)', borderRadius: 10,
           }}>
-            {soyDoctor ? (
-              <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text2)' }}>Tu receta · {soyDoctor.nombre}</span>
+            {medicoUnico ? (
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text2)' }}>Tu receta · {medicoUnico.nombre}</span>
             ) : (<>
             <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text2)' }}>Receta de:</span>
             <select
@@ -3617,10 +3619,11 @@ function FirmaUploadSection({ form, clinicId, onLocalChange }: {
 
       {doctores.length > 0 && (() => {
         const soyDoctor = doctores.find(d => d.email && d.email === auth.currentUser?.email)
+        const medicoUnico = soyDoctor ?? (doctores.length === 1 ? doctores[0] : undefined)
         return (
           <div style={{ marginBottom: 10 }}>
-            {soyDoctor ? (
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>Tu firma · {soyDoctor.nombre}</div>
+            {medicoUnico ? (
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>Tu firma · {medicoUnico.nombre}</div>
             ) : (<>
               <label style={{ fontSize: 11.5, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>Firma de:</label>
               <select value={medicoSel} onChange={(e) => setMedicoSel(e.target.value)}
@@ -3780,13 +3783,14 @@ function MembreteNotaSection({ form, clinicId, onLocalChange }: {
         </div>
       </div>
 
-      {/* Cada médico su propia hoja. Con TU cuenta editas la tuya (sin dropdown). */}
+      {/* Cada médico su propia hoja. Con TU cuenta o 1 médico: sin dropdown. */}
       {doctores.length > 0 && (() => {
         const soyDoctor = doctores.find(d => d.email && d.email === auth.currentUser?.email)
+        const medicoUnico = soyDoctor ?? (doctores.length === 1 ? doctores[0] : undefined)
         return (
           <div style={{ marginBottom: 10 }}>
-            {soyDoctor ? (
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>Tu hoja membretada · {soyDoctor.nombre}</div>
+            {medicoUnico ? (
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>Tu hoja membretada · {medicoUnico.nombre}</div>
             ) : (<>
               <label style={{ fontSize: 11.5, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>Hoja de:</label>
               <select value={medicoSel} onChange={(e) => setMedicoSel(e.target.value)}
