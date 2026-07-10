@@ -699,7 +699,9 @@ export default function ConsultaActivaPage() {
 
   // ── Red de seguridad LOCAL (anti-pérdida): respalda la nota en el navegador
   //    mientras escribes (instantáneo, sobrevive a crashes y a estar sin red). ──
-  const respaldoKey = `nx.consulta.bkp.${patientId}`
+  // Llave por paciente Y por episodio: así el borrador de una nota de
+  // HOSPITALIZACIÓN (mismo paciente) no pisa el de la consulta externa.
+  const respaldoKey = `nx.consulta.bkp.${patientId}${internamientoActivo ? '.h.' + internamientoActivo : ''}`
   useEffect(() => {
     if (firmada) return
     const hayContenido = resumen.trim() || secciones.some(s => s.value?.trim()) ||
