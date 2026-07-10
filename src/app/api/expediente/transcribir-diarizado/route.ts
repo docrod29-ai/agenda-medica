@@ -80,6 +80,7 @@ export async function POST(req: NextRequest) {
       headers: { authorization: key, 'content-type': 'application/json' },
       body: JSON.stringify({
         audio_url,
+        speech_model: 'best',   // máxima precisión (Universal) — calidad > velocidad
         speaker_labels: true,   // separa voces (Hablante A/B/C…)
         language_code: 'es',
         punctuate: true,

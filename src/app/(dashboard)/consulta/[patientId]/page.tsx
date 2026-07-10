@@ -112,6 +112,9 @@ export default function ConsultaActivaPage() {
   const [medicamentos, setMedicamentos] = useState<Medicamento[]>([])
   const [resumen, setResumen] = useState('')
   const [procesando, setProcesando] = useState(false)
+  // Rol auto-asignado a cada voz diarizada (Hablante A/B → Médico/Paciente/Acompañante).
+  // Lo llena Claude al terminar la diarización; editable en el diálogo.
+  const [rolesHablante, setRolesHablante] = useState<Record<string, string>>({})
   // ── Chat de corrección por IA ──
   const [chatCorr, setChatCorr] = useState<{ rol: 'user' | 'ia'; texto: string }[]>([])
   const [instruccionCorr, setInstruccionCorr] = useState('')
@@ -222,7 +225,7 @@ export default function ConsultaActivaPage() {
     // Si hubo diarización, mandamos el diálogo etiquetado por hablante para que la
     // IA atribuya bien quién dijo qué (médico/paciente). Si no, el texto plano.
     const transcripcionParaIA = audio.utterances.length > 0
-      ? audio.utterances.map(u => `Hablante ${u.speaker}: ${u.text}`).join('\n')
+      ? audio.utterances.map(u => `${rolesHablante[u.speaker] || `Hablante ${u.speaker}`}: ${u.text}`).join('\n')
       : voz.transcripcion
     if (enVivo) { vivoRef.current = true; setEstructurandoVivo(true) } else setProcesando(true)
     try {
@@ -332,7 +335,7 @@ export default function ConsultaActivaPage() {
       if (enVivo) { vivoRef.current = false; setEstructurandoVivo(false) }
       else setProcesando(false)
     }
-  }, [voz.transcripcion, audio.utterances, tipo, patient, toast, especialidadEfectiva])
+  }, [voz.transcripcion, audio.utterances, rolesHablante, tipo, patient, toast, especialidadEfectiva])
 
   // Auto-procesa UNA vez cuando llega la transcripción final (flujo "Conversación
   // completa"): graba → detén → la nota se estructura sola, sin un toque extra.
@@ -342,6 +345,29 @@ export default function ConsultaActivaPage() {
       procesarIA()
     }
   }, [voz.transcripcion, procesando, firmada, procesarIA])
+
+  // Auto-atribución de roles: al terminar la diarización, Claude decide quién es
+  // Médico/Paciente/Acompañante desde el contexto clínico → el diálogo sale
+  // etiquetado solo (editable). Si falla, queda el etiquetado manual.
+  const rolesPedidosRef = useRef('')
+  useEffect(() => {
+    const utts = audio.utterances
+    if (utts.length === 0 || voz.grabando) return
+    const firma = utts.map(u => u.speaker).join('') + ':' + utts.length
+    if (rolesPedidosRef.current === firma) return  // ya se pidió para estos turnos
+    rolesPedidosRef.current = firma
+    ;(async () => {
+      try {
+        const res = await fetchAutenticado('/api/expediente/atribuir-roles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ utterances: utts.map(u => ({ speaker: u.speaker, text: u.text })) }),
+        })
+        const data = await res.json().catch(() => null)
+        if (data?.ok && data.roles && Object.keys(data.roles).length > 0) setRolesHablante(data.roles)
+      } catch { /* silencioso: el médico puede etiquetar a mano */ }
+    })()
+  }, [audio.utterances, voz.grabando])
 
   // ── NOTA EN TIEMPO REAL ────────────────────────────────────────
   // Mientras grabas, cada ~30s re-estructura la nota con lo dicho hasta ese
@@ -1064,7 +1090,7 @@ export default function ConsultaActivaPage() {
               )}
               {(voz.grabando || verFuente) && (
                 audio.utterances.length > 0 && !voz.grabando ? (
-                  <DialogoDiarizado utterances={audio.utterances} />
+                  <DialogoDiarizado utterances={audio.utterances} rolesIniciales={rolesHablante} />
                 ) : (
                   <textarea
                     value={voz.transcripcion + (voz.interim ? ` ${voz.interim}` : '')}
@@ -1510,14 +1536,26 @@ function colorHablante(speaker: string): string {
 
 /** Diálogo separado por voz (diarización). El médico puede etiquetar cada voz
  *  (Médico/Paciente/Acompañante) de un toque; es material de origen. */
-function DialogoDiarizado({ utterances }: { utterances: { speaker: string; text: string }[] }) {
+function DialogoDiarizado({ utterances, rolesIniciales }: { utterances: { speaker: string; text: string }[]; rolesIniciales?: Record<string, string> }) {
   const [roles, setRoles] = useState<Record<string, string>>({})
+  const [tocado, setTocado] = useState(false)  // el médico ya corrigió a mano → no pisar
+  // Siembra los roles que asignó la IA en cuanto llegan (sin pisar correcciones manuales).
+  useEffect(() => {
+    if (tocado || !rolesIniciales || Object.keys(rolesIniciales).length === 0) return
+    setRoles(rolesIniciales)
+  }, [rolesIniciales, tocado])
   const hablantes = Array.from(new Set(utterances.map(u => u.speaker)))
   const ROLES = ['Médico', 'Paciente', 'Acompañante']
   const etiqueta = (s: string) => roles[s] || `Hablante ${s}`
+  const autoAsignado = !tocado && rolesIniciales && Object.keys(rolesIniciales).length > 0
 
   return (
     <div style={{ marginTop: 4 }}>
+      {autoAsignado && (
+        <div style={{ fontSize: 10.5, color: 'var(--teal)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
+          <Sparkles size={11} /> Médico y paciente asignados automáticamente · toca para corregir si hace falta
+        </div>
+      )}
       {/* Asignar quién es cada voz */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
         {hablantes.map(s => {
@@ -1531,7 +1569,7 @@ function DialogoDiarizado({ utterances }: { utterances: { speaker: string; text:
               {ROLES.map(r => {
                 const activo = roles[s] === r
                 return (
-                  <button key={r} type="button" onClick={() => setRoles(p => ({ ...p, [s]: r }))}
+                  <button key={r} type="button" onClick={() => { setTocado(true); setRoles(p => ({ ...p, [s]: r })) }}
                     style={{
                       fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 100, cursor: 'pointer',
                       border: '1px solid ' + (activo ? c : 'var(--border)'),

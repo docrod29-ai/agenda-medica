@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v258'  // Revertido v256+v257 (descuadraban/no ayudaban) — vuelta al estado estable v255 mientras diagnostico la hoja membretada con evidencia real
+const CACHE = 'nexusmed-v259'  // Médico-paciente automático: diarización AssemblyAI 'best' (máx calidad) + atribución de roles con Claude (Hablante A/B → Médico/Paciente auto, editable); la nota IA recibe el diálogo ya etiquetado
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
