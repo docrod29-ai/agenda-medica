@@ -19,27 +19,28 @@ export const LIMITE_PRUEBA = Number(process.env.LIMITE_PRUEBA_IA ?? '30')
 const docIA = (clinicId: string) => adminDb.doc(`clinics/${clinicId}/secretos/ia`)
 const mesActual = () => new Date().toISOString().slice(0, 7)
 
-export type PlanIA = 'pro' | 'premium'
+export type NivelIA = 'pro' | 'premium'
 
 /**
- * Plan del consultorio: 'pro' (económico — Sonnet 5, sin verificación automática)
- * o 'premium' (Opus 4.8 + thinking + segunda opinión GPT-5). Default 'pro' para
- * que el costo por consultorio sea sostenible al precio base. Se guarda en el
- * mismo doc de secretos (solo servidor).
+ * NIVEL DE IA del consultorio (distinto del `plan` de suscripción trial/básico/
+ * clínica que vive en el doc clinics/{id}): 'pro' (económico — Sonnet 5, 2ª
+ * opinión a demanda) o 'premium' (Opus 4.8 + thinking + 2ª opinión GPT-5
+ * automática). Default 'pro' para que el costo sea sostenible al precio base.
+ * Se guarda en el doc de secretos (solo servidor).
  */
-export async function planDe(clinicId: string | null): Promise<PlanIA> {
+export async function nivelIADe(clinicId: string | null): Promise<NivelIA> {
   if (!clinicId) return 'pro'
   try {
-    const p = (await docIA(clinicId).get()).data()?.plan
-    return p === 'premium' ? 'premium' : 'pro'
+    const n = (await docIA(clinicId).get()).data()?.nivelIA
+    return n === 'premium' ? 'premium' : 'pro'
   } catch {
     return 'pro'
   }
 }
 
-/** Fija el plan del consultorio (lo usa la consola del dueño / selector de plan). */
-export async function guardarPlan(clinicId: string, plan: PlanIA): Promise<void> {
-  await docIA(clinicId).set({ plan }, { merge: true })
+/** Fija el nivel de IA del consultorio (lo usa el selector de la consola del dueño). */
+export async function guardarNivelIA(clinicId: string, nivel: NivelIA): Promise<void> {
+  await docIA(clinicId).set({ nivelIA: nivel }, { merge: true })
 }
 
 async function clinicIdDe(uid: string): Promise<string | null> {

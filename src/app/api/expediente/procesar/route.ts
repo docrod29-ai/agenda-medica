@@ -16,7 +16,7 @@ import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
 import { parserClinicoComoRespuestaIA } from '@/lib/expediente/parser-clinico'
 import { safeLog, redactarString } from '@/lib/security/sanitize'
 import { verificarUsuario } from '@/lib/auth-server'
-import { resolverClaveIA, pruebaAgotada, registrarUso, planDe } from '@/lib/ai-keys'
+import { resolverClaveIA, pruebaAgotada, registrarUso, nivelIADe } from '@/lib/ai-keys'
 import type { TipoNota, PacienteContexto } from '@/types/expediente'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
@@ -184,8 +184,8 @@ export async function POST(req: NextRequest) {
   //  · en vivo → 'live' (Haiku, barato/veloz).
   //  · nota final → según el PLAN del consultorio: 'premium' (Opus 4.8 + thinking)
   //    o 'pro' (Sonnet 5, sin thinking — el plan económico $899).
-  const plan = await planDe(clinicId)
-  const perfil: Perfil = rapido ? 'live' : (plan === 'premium' ? 'premium' : 'pro')
+  const nivel = await nivelIADe(clinicId)
+  const perfil: Perfil = rapido ? 'live' : (nivel === 'premium' ? 'premium' : 'pro')
   const conThinking = perfil === 'premium'
 
   try {
@@ -272,13 +272,13 @@ export async function POST(req: NextRequest) {
     if (!validation.success) {
       console.warn('[procesar] Validación parcial:', validation.error.issues.slice(0, 3))
       void registrarUso(clinicId, fuente)
-      return NextResponse.json({ ok: true, ...parsed, _schemaWarning: true, _plan: plan })
+      return NextResponse.json({ ok: true, ...parsed, _schemaWarning: true, _plan: nivel })
     }
 
     void registrarUso(clinicId, fuente)
     // _plan: el cliente decide con esto si la 2ª opinión (GPT-5) es automática
     // (premium) o botón a demanda (pro).
-    return NextResponse.json({ ok: true, ...validation.data, _plan: plan })
+    return NextResponse.json({ ok: true, ...validation.data, _plan: nivel })
   } catch (err) {
     console.error('[expediente/procesar] Exception:', err)
     try {

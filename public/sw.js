@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v266'  // Tier Economia (plan Pro $899): nota final Sonnet 5 sin thinking + borrador en vivo con Haiku + 2a opinion GPT-5 a demanda (boton). Plan Premium (Opus+thinking+GPT-5 auto) por consultorio via planDe(). Default pro. Cost ~$0.20/consulta
+const CACHE = 'nexusmed-v267'  // Switch de nivel de IA por consultorio en /superadmin: Pro ($899, Sonnet 5) / Premium ($1,999, Opus+GPT-5). Campo nivelIA en secretos/ia (renombrado desde 'plan' para no chocar con la suscripcion)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

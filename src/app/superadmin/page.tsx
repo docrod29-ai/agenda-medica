@@ -11,7 +11,7 @@ import { fetchAutenticado } from '@/lib/auth-client'
 import { Modal, Button, Spinner } from '@/components/ui'
 import { MODULOS, MODULO_LABEL } from '@/lib/modulos'
 import { type ModeloPrecio, explicarPrecio } from '@/lib/pricing'
-import { ShieldCheck, Search, Gift, Ban, Play, CalendarPlus, StickyNote, Lock, RefreshCw, Package, Plus, Trash2, Boxes } from 'lucide-react'
+import { ShieldCheck, Search, Gift, Ban, Play, CalendarPlus, StickyNote, Lock, RefreshCw, Package, Plus, Trash2, Boxes, Sparkles } from 'lucide-react'
 
 interface Cliente {
   id: string; nombreClinica: string; nombreMedico: string
@@ -20,6 +20,7 @@ interface Cliente {
   cobranza: 'al_corriente' | 'debe' | 'cortesia' | 'prueba'
   mrr: number; totalPagado: number; tieneStripe: boolean; notasInternas: string
   modulos: string[] | null; paqueteId: string; paqueteNombre: string; createdAt: string | null
+  nivelIA: 'pro' | 'premium'
 }
 interface Paquete { id: string; nombre: string; precio: number; modulos: string[]; descripcion?: string; activo?: boolean; orden?: number; modeloPrecio?: ModeloPrecio; precioBase?: number; precioPorUnidad?: number }
 interface Totales { clinicas: number; activas: number; enPrueba: number; deben: number; cortesia: number; mrr: number; ingresoTotal: number; ingresoMes: number }
@@ -226,6 +227,7 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
   const [mods, setMods] = useState<string[]>(cliente.modulos == null ? MODULOS.map(m => m.key) : cliente.modulos)
   const [paqNombre, setPaqNombre] = useState(cliente.paqueteNombre || '')
   const [paqId, setPaqId] = useState(cliente.paqueteId || '')
+  const [nivelIA, setNivelIA] = useState<'pro' | 'premium'>(cliente.nivelIA ?? 'pro')
   const toggleMod = (k: string) => setMods(prev => prev.includes(k) ? prev.filter(x => x !== k) : [...prev, k])
   const aplicarPaquete = (p: Paquete) => { setMods(p.modulos); setPaqNombre(p.nombre); setPaqId(p.id) }
 
@@ -277,6 +279,31 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
             onClick={() => accion('asignar_modulos', { modulos: mods, paqueteId: paqId, paqueteNombre: paqNombre })}>
             Guardar acceso {mods.length === MODULOS.length ? '(todo)' : `(${mods.length})`}
           </Button>
+        </Seccion>
+
+        {/* Nivel de IA (Pro económico / Premium Opus+GPT-5) */}
+        <Seccion icono={<Sparkles size={16} color="#3d5afe" />} titulo="Nivel de IA">
+          <div style={{ display: 'flex', gap: 8 }}>
+            {(['pro', 'premium'] as const).map(n => {
+              const activo = nivelIA === n
+              const label = n === 'pro' ? 'Pro ($899) · Sonnet 5' : 'Premium ($1,999) · Opus 4.8 + GPT-5'
+              return (
+                <button key={n} disabled={busy === 'set_nivel_ia'}
+                  onClick={() => { setNivelIA(n); accion('set_nivel_ia', { nivelIA: n }) }}
+                  style={{
+                    flex: 1, padding: '10px 12px', borderRadius: 10, cursor: 'pointer', fontSize: 12.5, fontWeight: 600,
+                    border: '1px solid ' + (activo ? '#3d5afe' : 'var(--border)'),
+                    background: activo ? 'rgba(61,90,254,0.12)' : 'transparent',
+                    color: activo ? '#3d5afe' : 'var(--text3)',
+                  }}>
+                  {activo ? '✓ ' : ''}{label}
+                </button>
+              )
+            })}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>
+            Pro: nota con Sonnet 5, 2ª opinión a botón. Premium: Opus 4.8 + razonamiento + 2ª opinión GPT-5 automática.
+          </div>
         </Seccion>
 
         {/* Pase libre */}

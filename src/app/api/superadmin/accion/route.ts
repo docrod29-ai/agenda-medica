@@ -18,6 +18,7 @@ import { adminDb } from '@/lib/firebase-admin'
 import { verificarSuperadmin } from '@/lib/superadmin'
 import { TODOS_LOS_MODULOS } from '@/lib/modulos'
 import { calcularPrecioPaquete } from '@/lib/pricing'
+import { guardarNivelIA } from '@/lib/ai-keys'
 
 type Any = Record<string, unknown>
 
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
   const acc = await verificarSuperadmin(req)
   if (!acc.ok) return acc.response
 
-  let body: { clinicId?: string; accion?: string; motivo?: string; dias?: number; notas?: string; modulos?: unknown[]; paqueteId?: string; paqueteNombre?: string }
+  let body: { clinicId?: string; accion?: string; motivo?: string; dias?: number; notas?: string; modulos?: unknown[]; paqueteId?: string; paqueteNombre?: string; nivelIA?: string }
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }
   const { clinicId, accion } = body
   if (!clinicId || !accion) return NextResponse.json({ ok: false, error: 'clinicId y accion requeridos' }, { status: 400 })
@@ -99,6 +100,17 @@ export async function POST(req: NextRequest) {
       }
       patch = { modulos, paqueteId: body.paqueteId ?? '', paqueteNombre: body.paqueteNombre ?? '', paquetePrecio, modeloPrecio, precioBase, precioPorUnidad }
       break
+    }
+    case 'set_nivel_ia': {
+      // Nivel de IA (Pro económico / Premium Opus+GPT-5). Vive en el doc de
+      // secretos (secretos/ia.nivelIA), no en el doc de la clínica → se escribe
+      // aparte y se retorna aquí mismo.
+      const nivel = body.nivelIA === 'premium' ? 'premium' : 'pro'
+      await guardarNivelIA(clinicId, nivel)
+      await adminDb.collection('platform_admin_log').add({
+        clinicId, accion, por: acc.email, detalle: { nivelIA: nivel }, fecha: now,
+      })
+      return NextResponse.json({ ok: true, nivelIA: nivel })
     }
     default:
       return NextResponse.json({ ok: false, error: 'Acción desconocida' }, { status: 400 })

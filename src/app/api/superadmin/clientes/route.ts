@@ -76,8 +76,15 @@ export async function GET(req: NextRequest) {
         )
       }
       const mrr = cob === 'al_corriente' ? (precioPaquete > 0 ? precioPaquete : (PRECIO_PLAN_MXN[plan] ?? 0)) : 0
+      // Nivel de IA (Pro económico / Premium Opus+GPT-5) — vive en secretos/ia.
+      let nivelIA: 'pro' | 'premium' = 'pro'
+      try {
+        const ia = (await adminDb.doc(`clinics/${cid}/secretos/ia`).get()).data()
+        if (ia?.nivelIA === 'premium') nivelIA = 'premium'
+      } catch { /* default pro */ }
       return {
         id: cid,
+        nivelIA,
         nombreClinica: c.nombreClinica ?? '',
         nombreMedico: c.nombreMedico ?? '',
         plan,
