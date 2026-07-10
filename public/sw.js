@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v272'  // Consultor conectado al expediente: boton en consulta 'Preguntar a la evidencia sobre este paciente' abre /consultor?paciente=ID con su contexto (edad/sexo/alergias); respuesta personalizada al caso
+const CACHE = 'nexusmed-v273'  // Fix Consultor 'no encontre evidencia': quitado filtro humans[MeSH] (mataba busquedas validas) + fallback progresivo + traduccion ES->EN robusta con cascada de modelos (finerenona->finerenone 0->8 resultados)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

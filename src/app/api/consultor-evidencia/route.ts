@@ -54,17 +54,29 @@ export async function POST(req: NextRequest) {
   const contexto = (body.historial ?? []).slice(-4).map(h => `${h.rol === 'user' ? 'Médico' : 'Asistente'}: ${h.texto}`).join('\n')
 
   try {
-    // 1) Pregunta (ES) → búsqueda PubMed (EN). Modelo rápido y barato.
+    // 1) Pregunta (ES) → búsqueda PubMed (EN). CRÍTICO: buscar en español da casi
+    //    cero (ej. "finerenona" 6 vs "finerenone" 1136). Se traduce con una CASCADA
+    //    de modelos (si uno no está en la cuenta, prueba el siguiente).
     let query = pregunta
-    try {
-      const rq = await claude(key, 'claude-3-5-haiku-latest',
-        'Convierte la pregunta clínica en una consulta de búsqueda de PubMed en INGLÉS, concisa (términos clave y sinónimos con OR), sin explicación. Responde SOLO la consulta.',
-        `${paciente ? 'Paciente: ' + paciente + '\n' : ''}${contexto ? contexto + '\n' : ''}Pregunta: ${pregunta}`, 200)
-      if (rq.ok) { const t = textoDe(await rq.json()).trim(); if (t) query = t.replace(/^["']|["']$/g, '').slice(0, 300) }
-    } catch { /* usa la pregunta tal cual */ }
+    const MODELOS_TRAD = ['claude-3-5-haiku-latest', 'claude-haiku-4-5-20251001', 'claude-sonnet-5', 'claude-3-5-sonnet-latest']
+    const sysTrad = 'Traduce la pregunta clínica a una búsqueda de PubMed en INGLÉS. Devuelve SOLO 2-6 términos clave en inglés (nombres de fármacos/enfermedades en su forma en inglés, ej. "finerenona"→"finerenone", "diosmina"→"diosmin"), unidos con AND/OR si aplica. Sin comillas, sin explicación, sin field tags.'
+    const usrTrad = `${paciente ? 'Paciente: ' + paciente + '\n' : ''}${contexto ? contexto + '\n' : ''}Pregunta: ${pregunta}`
+    for (const m of MODELOS_TRAD) {
+      try {
+        const rq = await claude(key, m, sysTrad, usrTrad, 120)
+        if (rq.ok) {
+          const t = textoDe(await rq.json()).replace(/^["'\s]+|["'\s]+$/g, '').slice(0, 300)
+          if (t) { query = t; break }
+        }
+      } catch { /* prueba el siguiente modelo */ }
+    }
 
-    // 2) Buscar evidencia.
-    const articulos: ArticuloPubMed[] = await buscarEvidencia(query, { max: 8, aniosRecientes: 10 }).catch(() => [])
+    // 2) Buscar evidencia (con fallback progresivo interno). Si la traducción sirvió
+    //    y aún así no hay nada, reintenta con la pregunta cruda como último recurso.
+    let articulos: ArticuloPubMed[] = await buscarEvidencia(query, { max: 8, aniosRecientes: 10 }).catch(() => [])
+    if (articulos.length === 0 && query !== pregunta) {
+      articulos = await buscarEvidencia(pregunta, { max: 8 }).catch(() => [])
+    }
     if (articulos.length === 0) {
       return NextResponse.json({ ok: true, respuesta: 'No encontré evidencia en PubMed para esta pregunta. Prueba reformularla o con términos más específicos.', articulos: [] })
     }

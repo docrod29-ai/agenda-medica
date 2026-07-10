@@ -52,22 +52,32 @@ export async function buscarEvidencia(
   opts: { max?: number; aniosRecientes?: number; signal?: AbortSignal } = {},
 ): Promise<ArticuloPubMed[]> {
   const max = Math.min(Math.max(opts.max ?? 6, 1), 20)
-  let term = termino.trim()
+  const term = termino.trim()
   if (!term) return []
-  // Sesga a evidencia fuerte y humana.
-  const filtros = ['humans[MeSH Terms]']
-  if (opts.aniosRecientes) filtros.push(`"last ${opts.aniosRecientes} years"[PDat]`)
-  const termFull = `(${term}) AND ${filtros.join(' AND ')}`
 
-  // 1) esearch → PMIDs
-  const esearch = conKey(`${EUTILS}/esearch.fcgi?db=pubmed&retmode=json&sort=relevance&retmax=${max}&term=${encodeURIComponent(termFull)}`)
+  // Una búsqueda con un `term` dado → lista de PMIDs (ordenados por relevancia).
+  const buscarIds = async (t: string): Promise<string[]> => {
+    const url = conKey(`${EUTILS}/esearch.fcgi?db=pubmed&retmode=json&sort=relevance&retmax=${max}&term=${encodeURIComponent(t)}`)
+    try {
+      const r = await fetch(url, { signal: opts.signal })
+      if (!r.ok) return []
+      const d = await r.json()
+      return d?.esearchresult?.idlist ?? []
+    } catch { return [] }
+  }
+
+  // Cascada de menos → más amplia. Sin `humans[MeSH]` (excluía fármacos nuevos aún
+  // no indexados y mataba búsquedas válidas). Se prueba con ventana de años y, si
+  // no hay nada, se busca el término solo (así fármacos reales SIEMPRE salen).
+  const intentos = [
+    opts.aniosRecientes ? `(${term}) AND ("last ${opts.aniosRecientes} years"[PDat])` : term,
+    term,
+  ]
   let ids: string[] = []
-  try {
-    const r = await fetch(esearch, { signal: opts.signal })
-    if (!r.ok) return []
-    const d = await r.json()
-    ids = d?.esearchresult?.idlist ?? []
-  } catch { return [] }
+  for (const t of intentos) {
+    ids = await buscarIds(t)
+    if (ids.length > 0) break
+  }
   if (ids.length === 0) return []
 
   // 2) efetch → título, revista, año, abstract (XML)
