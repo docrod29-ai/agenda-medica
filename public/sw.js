@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v253'  // Modal de cita: selector de MEDICO (la asistente agenda a cada medico) + usa el horario propio de ese medico + guarda medicoId; navegacion entre agendas de los 4 medicos
+const CACHE = 'nexusmed-v254'  // Borrar medicos (boton en Medicos) + con TU cuenta editas SOLO tu config (receta/firma/hoja) sin selector de otros; el selector solo aparece para admin sin ficha de medico
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
