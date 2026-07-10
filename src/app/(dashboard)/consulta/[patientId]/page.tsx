@@ -703,7 +703,7 @@ export default function ConsultaActivaPage() {
   useEffect(() => {
     if (firmada) return
     const hayContenido = resumen.trim() || secciones.some(s => s.value?.trim()) ||
-      diagnosticos.length > 0 || medicamentos.length > 0
+      diagnosticos.length > 0 || medicamentos.length > 0 || voz.transcripcion.trim()
     if (!hayContenido) return
     const id = setTimeout(() => {
       try {
@@ -716,11 +716,64 @@ export default function ConsultaActivaPage() {
     return () => clearTimeout(id)
   }, [firmada, tipo, resumen, secciones, signos, diagnosticos, medicamentos, voz.transcripcion, respaldoKey])
 
-  // Al abrir: si hay respaldo local y el formulario está vacío, ofrécelo.
+  // Al abrir: si hay respaldo local, RESTÁURALO SOLO (sin que tengas que ver un
+  // banner) — salvo que estés abriendo otra nota (?nota=) o que el formulario ya
+  // tenga contenido. Así volver de la agenda nunca "pierde" lo que hacías.
+  const autoRestRef = useRef(false)
   useEffect(() => {
-    if (!patientId) return
-    try { if (localStorage.getItem(respaldoKey)) setRespaldoDisponible(true) } catch { /* */ }
-  }, [patientId, respaldoKey])
+    if (!patientId || autoRestRef.current) return
+    let raw: string | null = null
+    try { raw = localStorage.getItem(respaldoKey) } catch { /* */ }
+    if (!raw) return
+    setRespaldoDisponible(true)
+    const vacio = !resumen.trim() && !secciones.some(s => s.value?.trim()) &&
+      diagnosticos.length === 0 && medicamentos.length === 0 && !voz.transcripcion.trim()
+    if (notaIdParam || !vacio) return   // abriendo otra nota o ya hay contenido → no pisar
+    autoRestRef.current = true
+    try {
+      const b = JSON.parse(raw)
+      if (b.tipo) setTipo(b.tipo)
+      if (Array.isArray(b.secciones)) setSecciones(b.secciones)
+      if (typeof b.resumen === 'string') setResumen(b.resumen)
+      if (b.signos) setSignos(b.signos)
+      if (Array.isArray(b.diagnosticos)) setDiagnosticos(b.diagnosticos)
+      if (Array.isArray(b.medicamentos)) setMedicamentos(b.medicamentos)
+      if (b.transcripcion) voz.setTranscripcion(b.transcripcion)
+      setRespaldoDisponible(false)
+      toast('Recuperé tu nota sin guardar de este paciente ✓', 'success')
+    } catch { /* deja el banner como respaldo */ }
+  }, [patientId, respaldoKey, notaIdParam, resumen, secciones, diagnosticos, medicamentos, voz, toast])
+
+  // GUARDADO INMEDIATO al salir (anti-pérdida). El respaldo con debounce se
+  // cancelaba si salías rápido a la agenda (el desmonte mataba el timeout antes
+  // de guardar). Aquí guardamos SIN esperar: al desmontar (navegación dentro de
+  // la app), al ocultar la pestaña y al cerrar. Usa un ref con el estado vivo.
+  const estadoVivoRef = useRef({ tipo, resumen, secciones, signos, diagnosticos, medicamentos, transcripcion: voz.transcripcion, firmada })
+  useEffect(() => {
+    estadoVivoRef.current = { tipo, resumen, secciones, signos, diagnosticos, medicamentos, transcripcion: voz.transcripcion, firmada }
+  })
+  const flushRespaldo = useCallback(() => {
+    const e = estadoVivoRef.current
+    if (e.firmada) return
+    const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) || e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim()
+    if (!hay) return
+    try {
+      localStorage.setItem(respaldoKey, JSON.stringify({
+        tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos,
+        diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, transcripcion: e.transcripcion, ts: Date.now(),
+      }))
+    } catch { /* almacenamiento lleno */ }
+  }, [respaldoKey])
+  useEffect(() => {
+    const onHide = () => { if (document.visibilityState === 'hidden') flushRespaldo() }
+    window.addEventListener('pagehide', flushRespaldo)
+    document.addEventListener('visibilitychange', onHide)
+    return () => {
+      window.removeEventListener('pagehide', flushRespaldo)
+      document.removeEventListener('visibilitychange', onHide)
+      flushRespaldo()  // ← al desmontar (irte a la agenda u otra pantalla): guarda YA
+    }
+  }, [flushRespaldo])
 
   const restaurarRespaldo = () => {
     try {

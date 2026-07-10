@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v276'  // Formato bonito (MiniMarkdown: sin # ni ** crudos, titulos/negritas/vinetas con estilo) + boton en la consulta 'Analisis de evidencia -> agregar a la nota' (razona con PubMed y mete texto limpio + referencias a la nota)
+const CACHE = 'nexusmed-v277'  // Anti-perdida de la nota: guardado INMEDIATO al salir (desmonte/ocultar/cerrar) — antes el debounce de 1.5s se cancelaba al irte rapido a la agenda; + auto-restauracion al volver (nota vacia, sin ?nota) + respalda transcripcion dictada
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
