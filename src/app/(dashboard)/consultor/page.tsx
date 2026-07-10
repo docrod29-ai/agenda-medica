@@ -1,7 +1,9 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import { fetchAutenticado } from '@/lib/auth-client'
-import { Sparkles, Send, Loader2, FlaskConical, BookOpen } from 'lucide-react'
+import { useClinic } from '@/context/ClinicContext'
+import { getPatients } from '@/lib/firestore'
+import { Sparkles, Send, Loader2, FlaskConical, BookOpen, X, UserRound } from 'lucide-react'
 
 interface Articulo { pmid: string; titulo: string; revista: string; anio: string; url: string }
 interface Turno { pregunta: string; respuesta: string; articulos: Articulo[]; cargando?: boolean }
@@ -14,11 +16,29 @@ const EJEMPLOS = [
 ]
 
 export default function ConsultorPage() {
+  const { clinicId } = useClinic()
   const [pregunta, setPregunta] = useState('')
   const [turnos, setTurnos] = useState<Turno[]>([])
   const [cargando, setCargando] = useState(false)
+  // Contexto de paciente (cuando se abre desde un expediente con ?paciente=ID).
+  const [pacienteNombre, setPacienteNombre] = useState('')
+  const [pacienteCtx, setPacienteCtx] = useState('')
   const finRef = useRef<HTMLDivElement>(null)
   useEffect(() => { finRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [turnos])
+
+  // Al entrar, si la URL trae ?paciente=ID, carga sus datos como contexto.
+  useEffect(() => {
+    if (!clinicId) return
+    const id = new URLSearchParams(window.location.search).get('paciente')
+    if (!id) return
+    getPatients(clinicId).then(ps => {
+      const p = ps.find(x => x.id === id)
+      if (!p) return
+      const alergias = p.alergias?.trim() || 'no referidas'
+      setPacienteNombre(p.nombre)
+      setPacienteCtx(`${p.nombre}, ${p.edad ?? '?'} años, ${p.sexo ?? '?'}. Alergias: ${alergias}.`)
+    }).catch(() => {})
+  }, [clinicId])
 
   const preguntar = async (q: string) => {
     const texto = q.trim()
@@ -30,7 +50,7 @@ export default function ConsultorPage() {
     try {
       const res = await fetchAutenticado('/api/consultor-evidencia', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pregunta: texto, historial }),
+        body: JSON.stringify({ pregunta: texto, historial, contextoPaciente: pacienteCtx || undefined }),
       })
       const d = await res.json().catch(() => null)
       setTurnos(prev => {
@@ -57,6 +77,17 @@ export default function ConsultorPage() {
           <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Pregunta clínica → respuesta con citas reales de PubMed (NEJM · JAMA · Cochrane)</div>
         </div>
       </div>
+
+      {/* Chip de paciente en contexto */}
+      {pacienteNombre && (
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 12, padding: '6px 10px', borderRadius: 100, background: 'rgba(61,90,254,0.10)', border: '1px solid rgba(61,90,254,0.3)', fontSize: 12.5, color: 'var(--nexus, #3d5afe)', fontWeight: 600 }}>
+          <UserRound size={13} /> Sobre: {pacienteNombre}
+          <button onClick={() => { setPacienteNombre(''); setPacienteCtx('') }} title="Quitar contexto del paciente"
+            style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', display: 'flex', padding: 0, marginLeft: 2 }}>
+            <X size={13} />
+          </button>
+        </div>
+      )}
 
       {turnos.length === 0 && (
         <div style={{ marginTop: 22 }}>

@@ -1285,6 +1285,14 @@ export default function ConsultaActivaPage() {
         )
       )}
 
+      {/* Preguntar a la evidencia sobre ESTE paciente (abre el Consultor con contexto) */}
+      {(diagnosticos.length > 0 || medicamentos.length > 0 || resumen) && (
+        <button onClick={() => router.push(`/consultor?paciente=${patientId}`)}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, marginRight: 8, background: 'rgba(61,90,254,0.08)', color: 'var(--nexus, #3d5afe)', border: '1px solid rgba(61,90,254,0.30)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          <FlaskConical size={14} /> Preguntar a la evidencia sobre este paciente
+        </button>
+      )}
+
       {/* ── Análisis basado en evidencia (PubMed) ── */}
       {(diagnosticos.length > 0 || medicamentos.length > 0) && !evidencia && (
         <button onClick={analizarEvidencia} disabled={analizandoEv}

@@ -43,11 +43,14 @@ export async function POST(req: NextRequest) {
   const { key, fuente, clinicId } = await resolverClaveIA(acceso.uid, 'anthropic', process.env.ANTHROPIC_API_KEY ?? '')
   if (!key) return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada.' }, { status: 503 })
 
-  let body: { pregunta?: string; historial?: { rol: string; texto: string }[] }
+  let body: { pregunta?: string; historial?: { rol: string; texto: string }[]; contextoPaciente?: string }
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }
   const pregunta = String(body.pregunta ?? '').trim()
   if (!pregunta) return NextResponse.json({ ok: false, error: 'Escribe tu pregunta clínica' }, { status: 400 })
 
+  // Contexto del paciente (opcional): cuando se abre desde un expediente, la
+  // respuesta se personaliza a ESE paciente (edad, dx, alergias, tratamiento).
+  const paciente = String(body.contextoPaciente ?? '').trim().slice(0, 1500)
   const contexto = (body.historial ?? []).slice(-4).map(h => `${h.rol === 'user' ? 'Médico' : 'Asistente'}: ${h.texto}`).join('\n')
 
   try {
@@ -56,7 +59,7 @@ export async function POST(req: NextRequest) {
     try {
       const rq = await claude(key, 'claude-3-5-haiku-latest',
         'Convierte la pregunta clínica en una consulta de búsqueda de PubMed en INGLÉS, concisa (términos clave y sinónimos con OR), sin explicación. Responde SOLO la consulta.',
-        `${contexto ? contexto + '\n' : ''}Pregunta: ${pregunta}`, 200)
+        `${paciente ? 'Paciente: ' + paciente + '\n' : ''}${contexto ? contexto + '\n' : ''}Pregunta: ${pregunta}`, 200)
       if (rq.ok) { const t = textoDe(await rq.json()).trim(); if (t) query = t.replace(/^["']|["']$/g, '').slice(0, 300) }
     } catch { /* usa la pregunta tal cual */ }
 
@@ -70,8 +73,8 @@ export async function POST(req: NextRequest) {
     const nivel = await nivelIADe(clinicId)
     const model = nivel === 'premium' ? 'claude-opus-4-8' : 'claude-sonnet-5'
     const fuentes = articulos.map((a, i) => `[${i + 1}] ${a.revista} ${a.anio} · PMID ${a.pmid}\n${a.titulo}\n${a.resumen.slice(0, 700)}`).join('\n\n')
-    const system = 'Eres un asistente clínico de medicina basada en evidencia para médicos. Responde la pregunta con una síntesis clara y accionable, en español, CITANDO con [n] los artículos de la lista que respaldan cada afirmación. REGLAS: cita SOLO los artículos dados (por su [n]); NUNCA inventes estudios, cifras ni fuentes; si la evidencia es limitada o no concluyente, dilo; no des indicaciones absolutas, apoya la decisión del médico. Termina con una línea "Nivel de evidencia: alto/moderado/bajo" según lo hallado.'
-    const user = `${contexto ? 'Conversación previa:\n' + contexto + '\n\n' : ''}PREGUNTA: ${pregunta}\n\nEVIDENCIA (PubMed):\n${fuentes}\n\nResponde citando [n].`
+    const system = 'Eres un asistente clínico de medicina basada en evidencia para médicos. Responde la pregunta con una síntesis clara y accionable, en español, CITANDO con [n] los artículos de la lista que respaldan cada afirmación. Si se da contexto de un PACIENTE, personaliza la respuesta a ese caso (edad, comorbilidades, alergias, tratamiento actual) y advierte contraindicaciones o interacciones relevantes. REGLAS: cita SOLO los artículos dados (por su [n]); NUNCA inventes estudios, cifras ni fuentes; si la evidencia es limitada o no concluyente, dilo; no des indicaciones absolutas, apoya la decisión del médico. Termina con una línea "Nivel de evidencia: alto/moderado/bajo" según lo hallado.'
+    const user = `${paciente ? 'PACIENTE (contexto):\n' + paciente + '\n\n' : ''}${contexto ? 'Conversación previa:\n' + contexto + '\n\n' : ''}PREGUNTA: ${pregunta}\n\nEVIDENCIA (PubMed):\n${fuentes}\n\nResponde citando [n].`
 
     let res = await claude(key, model, system, user, 2000)
     if (res.status === 404 || res.status === 400) res = await claude(key, 'claude-sonnet-5', system, user, 2000)
