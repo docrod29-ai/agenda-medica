@@ -115,6 +115,10 @@ export default function ConsultaActivaPage() {
   // Rol auto-asignado a cada voz diarizada (Hablante A/B → Médico/Paciente/Acompañante).
   // Lo llena Claude al terminar la diarización; editable en el diálogo.
   const [rolesHablante, setRolesHablante] = useState<Record<string, string>>({})
+  // Segunda opinión: un 2º modelo top (GPT-5) revisa la nota de Opus 4.8.
+  type Hallazgo = { severidad: string; tema: string; problema: string; sugerencia: string }
+  const [verificacion, setVerificacion] = useState<{ modelo: string; hallazgos: Hallazgo[] } | null>(null)
+  const [verificando, setVerificando] = useState(false)
   // ── Chat de corrección por IA ──
   const [chatCorr, setChatCorr] = useState<{ rol: 'user' | 'ia'; texto: string }[]>([])
   const [instruccionCorr, setInstruccionCorr] = useState('')
@@ -215,6 +219,30 @@ export default function ConsultaActivaPage() {
   // ── Procesar transcripción con IA ──────────────────────────────
   // El dictado es la FUENTE DE VERDAD: se puede re-proyectar a cualquier
   // modalidad de nota pasando tipoOverride (lo usa cambiarTipo).
+  // Segunda opinión (verificación cruzada): manda la nota ya generada a un 2º
+  // modelo top (GPT-5) que la revisa por seguridad clínica. No bloquea; si falla,
+  // no pasa nada. Los hallazgos se muestran en un panel para que el médico decida.
+  const verificarNota = useCallback(async (
+    nota: { resumen?: string; secciones?: { titulo: string; contenido: string }[]; diagnosticos?: unknown[]; medicamentos?: unknown[]; signos?: unknown },
+    transcripcion: string,
+  ) => {
+    setVerificando(true)
+    try {
+      const res = await fetchAutenticado('/api/expediente/verificar-nota', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nota,
+          transcripcion,
+          contexto: { edad: patient?.edad, sexo: patient?.sexo, alergias: patient?.alergias },
+        }),
+      })
+      const data = await res.json().catch(() => null)
+      if (data?.ok) setVerificacion({ modelo: data.modelo ?? 'IA', hallazgos: data.hallazgos ?? [] })
+    } catch { /* silencioso: la segunda opinión es un extra, no bloquea */ }
+    finally { setVerificando(false) }
+  }, [patient?.edad, patient?.sexo, patient?.alergias])
+
   const procesarIA = useCallback(async (tipoOverride?: TipoNota, opts?: { enVivo?: boolean }) => {
     // enVivo = estructuración EN TIEMPO REAL mientras se graba (silenciosa, sin
     // toasts ni reset de aprobaciones; la nota se va armando sola).
@@ -227,7 +255,7 @@ export default function ConsultaActivaPage() {
     const transcripcionParaIA = audio.utterances.length > 0
       ? audio.utterances.map(u => `${rolesHablante[u.speaker] || `Hablante ${u.speaker}`}: ${u.text}`).join('\n')
       : voz.transcripcion
-    if (enVivo) { vivoRef.current = true; setEstructurandoVivo(true) } else setProcesando(true)
+    if (enVivo) { vivoRef.current = true; setEstructurandoVivo(true) } else { setProcesando(true); setVerificacion(null) }
     try {
       const res = await fetchAutenticado('/api/expediente/procesar', {
         method: 'POST',
@@ -328,6 +356,14 @@ export default function ConsultaActivaPage() {
         if (!enVivo) toast(data._aviso || 'La IA no estructuró la nota — se llenó lo básico, revisa todo', 'error')
       } else if (!enVivo) {
         toast('Nota estructurada por IA — revisa campo por campo', 'success')
+        // Segunda opinión: GPT-5 revisa la nota de Opus 4.8 por seguridad clínica.
+        const seccionesArr = data.secciones && typeof data.secciones === 'object'
+          ? Object.entries(data.secciones).map(([k, v]) => ({ titulo: k, contenido: String(v ?? '') }))
+          : []
+        void verificarNota(
+          { resumen: data.resumenEjecutivo, secciones: seccionesArr, diagnosticos: nuevosDx, medicamentos: nuevosMed, signos: data.signosVitales },
+          transcripcionParaIA,
+        )
       }
     } catch {
       if (!enVivo) toast('Error al conectar con la IA', 'error')
@@ -335,7 +371,7 @@ export default function ConsultaActivaPage() {
       if (enVivo) { vivoRef.current = false; setEstructurandoVivo(false) }
       else setProcesando(false)
     }
-  }, [voz.transcripcion, audio.utterances, rolesHablante, tipo, patient, toast, especialidadEfectiva])
+  }, [voz.transcripcion, audio.utterances, rolesHablante, tipo, patient, toast, especialidadEfectiva, verificarNota])
 
   // Auto-procesa UNA vez cuando llega la transcripción final (flujo "Conversación
   // completa"): graba → detén → la nota se estructura sola, sin un toque extra.
@@ -1158,6 +1194,35 @@ export default function ConsultaActivaPage() {
           <Sparkles size={14} color="var(--teal)" style={{ flexShrink: 0, marginTop: 2 }} />
           <span style={{ fontSize: 13, color: 'var(--text)', fontStyle: 'italic' }}>{resumen}</span>
         </div>
+      )}
+
+      {/* ── Segunda opinión (verificación cruzada por un 2º modelo top) ── */}
+      {verificando && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: 12.5, color: 'var(--text3)' }}>
+          <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Segunda opinión en curso — otro modelo de IA revisa la nota…
+        </div>
+      )}
+      {verificacion && !verificando && (
+        verificacion.hallazgos.length === 0 ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12, fontSize: 12.5, color: 'var(--teal)' }}>
+            <CheckCircle2 size={14} /> Segunda opinión ({verificacion.modelo}): sin observaciones de seguridad.
+          </div>
+        ) : (
+          <Alert tone="warning" icon={<AlertTriangle size={18} />} title={`Segunda opinión (${verificacion.modelo}) — ${verificacion.hallazgos.length} observación(es) a revisar`}>
+            {verificacion.hallazgos.map((h, i) => {
+              const col = h.severidad === 'alta' ? 'var(--red)' : h.severidad === 'media' ? 'var(--amber)' : 'var(--text3)'
+              return (
+                <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginTop: i ? 8 : 0 }}>
+                  <strong style={{ color: col }}>[{h.severidad.toUpperCase()}]</strong> {h.tema && <strong>{h.tema}: </strong>}{h.problema}
+                  {h.sugerencia && <div style={{ color: 'var(--text3)', marginTop: 2 }}>↳ {h.sugerencia}</div>}
+                </div>
+              )
+            })}
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8, fontStyle: 'italic' }}>
+              Son sugerencias de una IA revisora — tú decides. No modifican la nota automáticamente.
+            </div>
+          </Alert>
+        )
       )}
 
       {/* ── Alertas clínicas cruzadas (punto de atención) ── */}

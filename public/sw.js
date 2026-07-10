@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v261'  // Nota IA con razonamiento de primer nivel: Opus 4.8 preferido + extended thinking (la IA razona el caso antes de redactar); lee el bloque de texto tras el thinking; max_tokens 16k para no cortar
+const CACHE = 'nexusmed-v262'  // Ensamble multi-modelo: Opus 4.8 redacta + GPT-5 verifica la nota (dosis/dx/alergias/incongruencias) → panel 'Segunda opinión'; reusa OPENAI_API_KEY; no bloquea, solo sugiere
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
