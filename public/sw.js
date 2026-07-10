@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v279'  // La nota se queda IGUAL al navegar: almacen de borradores EN MEMORIA en el layout (sobrevive el cambio de pantalla, sin parpadeo ni 'restaurar'); localStorage queda como respaldo de recarga/crash
+const CACHE = 'nexusmed-v280'  // El Consultor sigue PENSANDO al cambiar de pantalla: conversacion + estado 'pensando' en almacen reactivo en memoria (TareasProvider en el layout); el resultado te espera al volver. Sigue: mismo trato para el procesamiento de la nota
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

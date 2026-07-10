@@ -5,6 +5,7 @@ import { useClinic } from '@/context/ClinicContext'
 import { getPatients } from '@/lib/firestore'
 import { Sparkles, Send, Loader2, FlaskConical, BookOpen, X, UserRound } from 'lucide-react'
 import { MiniMarkdown } from '@/components/MiniMarkdown'
+import { useTarea } from '@/context/TareasContext'
 
 interface Articulo { pmid: string; titulo: string; revista: string; anio: string; url: string }
 interface Turno { pregunta: string; respuesta: string; articulos: Articulo[]; cenetecUrl?: string; cargando?: boolean }
@@ -19,13 +20,17 @@ const EJEMPLOS = [
 export default function ConsultorPage() {
   const { clinicId } = useClinic()
   const [pregunta, setPregunta] = useState('')
-  const [turnos, setTurnos] = useState<Turno[]>([])
-  const [cargando, setCargando] = useState(false)
+  // Conversación + "pensando" viven en un almacén EN MEMORIA (por encima del
+  // navegador de pantallas): si te cambias de pantalla mientras la IA piensa, la
+  // petición sigue y el resultado te espera al volver — no se pierde.
+  const [estado, setEstado] = useTarea<{ turnos: Turno[]; cargando: boolean }>('consultor')
+  const turnos = estado?.turnos ?? []
+  const cargando = estado?.cargando ?? false
   // Contexto de paciente (cuando se abre desde un expediente con ?paciente=ID).
   const [pacienteNombre, setPacienteNombre] = useState('')
   const [pacienteCtx, setPacienteCtx] = useState('')
   const finRef = useRef<HTMLDivElement>(null)
-  useEffect(() => { finRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [turnos])
+  useEffect(() => { finRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [estado])
 
   // Al entrar, si la URL trae ?paciente=ID, carga sus datos como contexto.
   useEffect(() => {
@@ -45,26 +50,30 @@ export default function ConsultorPage() {
     const texto = q.trim()
     if (!texto || cargando) return
     setPregunta('')
-    setCargando(true)
     const historial = turnos.flatMap(t => [{ rol: 'user', texto: t.pregunta }, { rol: 'ia', texto: t.respuesta }])
-    setTurnos(prev => [...prev, { pregunta: texto, respuesta: '', articulos: [], cargando: true }])
+    // Escribe SIEMPRE al almacén (referencia estable): sobrevive a desmontar.
+    setEstado(prev => ({ turnos: [...(prev?.turnos ?? []), { pregunta: texto, respuesta: '', articulos: [], cargando: true }], cargando: true }))
     try {
       const res = await fetchAutenticado('/api/consultor-evidencia', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pregunta: texto, historial, contextoPaciente: pacienteCtx || undefined }),
       })
       const d = await res.json().catch(() => null)
-      setTurnos(prev => {
-        const copia = [...prev]
+      setEstado(prev => {
+        const copia = [...(prev?.turnos ?? [])]
         const i = copia.length - 1
-        copia[i] = d?.ok
+        if (i >= 0) copia[i] = d?.ok
           ? { pregunta: texto, respuesta: d.respuesta ?? '', articulos: d.articulos ?? [], cenetecUrl: d.cenetecUrl }
           : { pregunta: texto, respuesta: `⚠️ ${d?.error || 'No se pudo consultar.'}`, articulos: [] }
-        return copia
+        return { turnos: copia, cargando: false }
       })
     } catch {
-      setTurnos(prev => { const c = [...prev]; c[c.length - 1] = { pregunta: texto, respuesta: '⚠️ Sin conexión.', articulos: [] }; return c })
-    } finally { setCargando(false) }
+      setEstado(prev => {
+        const c = [...(prev?.turnos ?? [])]
+        if (c.length > 0) c[c.length - 1] = { pregunta: texto, respuesta: '⚠️ Sin conexión.', articulos: [] }
+        return { turnos: c, cargando: false }
+      })
+    }
   }
 
   return (

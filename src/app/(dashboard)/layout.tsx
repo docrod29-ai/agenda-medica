@@ -8,6 +8,7 @@ import { ToastProvider } from '@/context/ToastContext'
 import { ModeProvider } from '@/context/ModeContext'
 import { ClinicProvider } from '@/context/ClinicContext'
 import { BorradorProvider } from '@/context/BorradorContext'
+import { TareasProvider } from '@/context/TareasContext'
 import { Menu, Loader2, AlertTriangle, Headset } from 'lucide-react'
 import Link from 'next/link'
 import { OfflineBanner } from '@/components/OfflineBanner'
@@ -305,7 +306,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <ModeProvider>
         <ToastProvider>
           <BorradorProvider>
-            <DashboardInner>{children}</DashboardInner>
+            <TareasProvider>
+              <DashboardInner>{children}</DashboardInner>
+            </TareasProvider>
           </BorradorProvider>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </ToastProvider>
