@@ -70,23 +70,30 @@ export async function POST(req: NextRequest) {
 
   const userMsg = `NOTA ACTUAL (JSON):\n${JSON.stringify(body.nota)}\n\nCONTEXTO DEL PACIENTE (referencia, no lo metas a la nota salvo que se pida):\n${JSON.stringify(body.contexto ?? {})}\n\nINSTRUCCIÓN DE CORRECCIÓN DEL MÉDICO:\n"${instruccion}"\n\nDevuelve la nota corregida en JSON aplicando SOLO ese cambio.`
 
+  // Un intento con un modelo, con o sin thinking. Extraído para poder reintentar
+  // el MISMO modelo SIN thinking si el thinking (o max_tokens alto) da 400.
+  const intento = (model: string, conThinking: boolean) => {
+    const payload: Record<string, unknown> = {
+      model,
+      max_tokens: conThinking ? 16000 : 8000,
+      system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
+      messages: [{ role: 'user', content: userMsg }],
+    }
+    if (conThinking) payload.thinking = { type: 'enabled', budget_tokens: 4000 }
+    return fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST', headers: headers(API_KEY), body: JSON.stringify(payload),
+    })
+  }
+
   let ultimoDebug = ''
   for (const model of MODELOS) {
     try {
       const pienso = soportaThinking(model)
-      const payload: Record<string, unknown> = {
-        model,
-        max_tokens: pienso ? 16000 : 8000,
-        system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
-        messages: [{ role: 'user', content: userMsg }],
-      }
-      // Razonamiento extendido: aplica el cambio con coherencia (dosis en todos los
-      // campos, sin alucinar) igual que la generación de la nota.
-      if (pienso) payload.thinking = { type: 'enabled', budget_tokens: 4000 }
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST', headers: headers(API_KEY),
-        body: JSON.stringify(payload),
-      })
+      let res = await intento(model, pienso)
+      // MODO SEGURO: si el intento con thinking dio 400, reintenta el MISMO modelo
+      // sin thinking y con tokens normales (evita que un límite de la cuenta tumbe
+      // la corrección al parser). El razonamiento extendido es un plus, no un must.
+      if (res.status === 400 && pienso) res = await intento(model, false)
       if (!res.ok) {
         // 400/404/422 → ese modelo no existe en la cuenta o no acepta el payload;
         // 429/5xx → sobrecarga transitoria. En TODOS los casos probamos el

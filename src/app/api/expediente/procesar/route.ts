@@ -198,13 +198,28 @@ export async function POST(req: NextRequest) {
       res = await llamarClaudeConReintentos(API_KEY, model, system, userMsg, rapido)
     }
 
+    // MODO SEGURO: un 400 con "extended thinking" (o max_tokens alto) tumbaba la
+    // nota al parser local. Si el intento con thinking devolvió 400, reintentamos
+    // el MISMO modelo SIN thinking y con tokens normales (rapido=true) → la nota
+    // se genera igual, solo sin el razonamiento extra. Así un límite de la cuenta
+    // o del modelo no rompe la generación.
+    if (res.status === 400 && !rapido) {
+      const errTxt = await res.clone().text().catch(() => '')
+      safeLog.error('[expediente/procesar] 400 con thinking, reintento modo seguro:', redactarString(errTxt.slice(0, 300)))
+      res = await llamarClaudeConReintentos(API_KEY, model, system, userMsg, true)
+    }
+
     if (!res.ok) {
       const err = await res.text()
       safeLog.error('[expediente/procesar] Claude HTTP error:', res.status, redactarString(err.slice(0, 500)))
+      // Distingue saldo (credit balance) de otros 400 para no mandar al Dr a
+      // "revisar créditos" cuando en realidad es un parámetro.
+      const esSaldo = /credit|balance|quota|billing|insufficient/i.test(err)
       const pista = res.status === 401 ? ' — llave inválida'
         : res.status === 403 ? ' — llave sin permiso'
         : res.status === 429 ? ' — sin créditos o saturada (carga saldo en console.anthropic.com)'
-        : res.status === 400 ? ' — petición/saldo (revisa créditos en console.anthropic.com)'
+        : res.status === 400 && esSaldo ? ' — SIN SALDO: carga créditos en console.anthropic.com'
+        : res.status === 400 ? ` — ${err.slice(0, 120)}`
         : ''
       return fallbackVisible(
         transcripcion, tipo,

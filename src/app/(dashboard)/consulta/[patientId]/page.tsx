@@ -70,8 +70,10 @@ export default function ConsultaActivaPage() {
   const voz = useGrabacionVoz()
   const audio = useGrabacionAudio()
   // 'vivo' = Web Speech (Chrome/Edge desktop) — transcribe en tiempo real
-  // 'whisper' = MediaRecorder → /api/expediente/transcribir — funciona en TODOS los dispositivos
-  const [modoVoz, setModoVoz] = useState<'vivo' | 'whisper'>(voz.soportado ? 'vivo' : 'whisper')
+  // 'whisper' = MediaRecorder → /api/expediente/transcribir — funciona en TODOS los dispositivos.
+  // FORZADO a conversación completa (médico + paciente): es la única opción por
+  // decisión del Dr. No hay toggle a dictado en vivo. (Sin setter → sin var muerta.)
+  const [modoVoz] = useState<'vivo' | 'whisper'>('whisper')
 
   // Cuando termina Whisper, copia el texto a voz.setTranscripcion para reutilizar el flujo de IA
   // y marca para AUTO-PROCESAR (un toque menos: grabar → detener → nota lista).
@@ -934,23 +936,10 @@ export default function ConsultaActivaPage() {
       {/* ── Grabación ── */}
       {!firmada && (
         <div style={S.grabCard}>
-          {/* Un solo flujo claro: Dictado en vivo (recomendado). Si el médico quiere
-              grabar TAMBIÉN al paciente, un enlace chico cambia a conversación completa. */}
-          {voz.soportado && audio.soportado && !voz.grabando && audio.estado !== 'grabando' && (
+          {/* Única opción: Conversación completa (médico + paciente). Sin toggle. */}
+          {audio.soportado && audio.estado !== 'grabando' && (
             <div style={{ marginBottom: 10, fontSize: 12, color: 'var(--text3)' }}>
-              {modoVoz === 'vivo' ? (
-                <>Modo: <b style={{ color: 'var(--text2)' }}>Dictado en vivo</b> ·{' '}
-                  <button type="button" onClick={() => setModoVoz('whisper')}
-                    style={{ background: 'none', border: 'none', color: 'var(--teal)', cursor: 'pointer', fontWeight: 600, padding: 0, fontSize: 12 }}>
-                    ¿Grabar también al paciente?
-                  </button></>
-              ) : (
-                <>Modo: <b style={{ color: 'var(--text2)' }}>Conversación completa</b> (médico + paciente) ·{' '}
-                  <button type="button" onClick={() => setModoVoz('vivo')}
-                    style={{ background: 'none', border: 'none', color: 'var(--teal)', cursor: 'pointer', fontWeight: 600, padding: 0, fontSize: 12 }}>
-                    ← Volver a dictado rápido
-                  </button></>
-              )}
+              Modo: <b style={{ color: 'var(--text2)' }}>Conversación completa</b> (médico + paciente) — se graba y separa ambas voces
             </div>
           )}
 
