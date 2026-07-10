@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v270'  // Pagina de precios publica /precios (Basico $549 / Premium $1299) + medidor de consumo por consultorio en la consola del dueno + fix CSS globals (selector con coma antes de @media rompia dev)
+const CACHE = 'nexusmed-v271'  // Consultor de Evidencia (estilo OpenEvidence): pregunta clinica -> busca PubMed -> responde CITANDO (Opus/Sonnet segun nivel); pagina /consultor tipo chat + item en el menu 'Consultor IA'
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

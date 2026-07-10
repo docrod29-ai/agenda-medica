@@ -8,7 +8,7 @@ import { useConfig } from '@/hooks/useConfig'
 import {
   LayoutDashboard, CalendarDays, Calendar, Users, Clock,
   Settings, LogOut, Stethoscope, Shield, Bot, UserSquare2, FileText,
-  MessageCircle, TrendingUp, Star, ShieldCheck, Pill, BedDouble, BookOpen,
+  MessageCircle, TrendingUp, Star, ShieldCheck, Pill, BedDouble, BookOpen, FlaskConical,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
@@ -27,6 +27,7 @@ const NAV: { href: string; label: string; icon: typeof LayoutDashboard; modos: '
   { href: '/calendario',    label: 'Calendario',     icon: Calendar,        modos: 'ambos' },
   { href: '/pacientes',     label: 'Consulta',       icon: Users,           modos: 'ambos' },
   { href: '/hospitalizacion', label: 'Hospitalización', icon: BedDouble,     modos: 'ambos' },
+  { href: '/consultor',     label: 'Consultor IA',   icon: FlaskConical,    modos: 'medico' },
   { href: '/lista-espera',  label: 'Lista de espera',icon: Clock,           modos: 'ambos' },
   { href: '/crm',           label: 'CRM',            icon: TrendingUp,      modos: 'medico' },
   { href: '/resenas',       label: 'Reseñas',        icon: Star,            modos: 'medico' },
