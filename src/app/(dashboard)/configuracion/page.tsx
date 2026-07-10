@@ -1340,6 +1340,16 @@ function MedicosTab() {
             >
               {doc.activo ? 'Desactivar' : 'Activar'}
             </button>
+            <button
+              title="Borrar médico"
+              onClick={() => {
+                if (!window.confirm(`¿Borrar a ${doc.nombre}? Sus citas anteriores no se borran, pero ya no aparecerá para agendar.`)) return
+                deleteDoctor(clinicId!, doc.id).then(() => toast('Médico borrado', 'success')).catch(() => toast('No se pudo borrar', 'error'))
+              }}
+              style={{ background: 'none', border: '1px solid var(--border)', color: '#dc2626', fontSize: 12, borderRadius: 6, padding: '4px 8px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            >
+              <IconX size={12} /> Borrar
+            </button>
           </div>
         </div>
       ))}
@@ -2436,17 +2446,24 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
 
   if (!clinicId) return <div style={{ color: 'var(--text3)' }}>Cargando…</div>
 
+  // ¿La cuenta logueada ES un médico? Entonces edita SOLO la suya (sin selector).
+  const soyDoctor = doctores.find(d => d.email && d.email === auth.currentUser?.email)
+
   return (
     <div className="recetas-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 380px', gap: 20, alignItems: 'start' }}>
       {/* Editor */}
       <div style={{ display: 'grid', gap: 16, minWidth: 0 }}>
 
-        {/* PLANTILLA POR MÉDICO — cada quien tiene su propio papel impreso */}
+        {/* Cada médico su propia receta. Si entras con TU cuenta, editas la tuya
+            (sin dropdown de otros). Solo un admin sin ficha de médico ve el selector. */}
         {doctores.length > 0 && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
             padding: '10px 14px', background: 'var(--s2)', border: '1px solid var(--border2)', borderRadius: 10,
           }}>
+            {soyDoctor ? (
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text2)' }}>Tu receta · {soyDoctor.nombre}</span>
+            ) : (<>
             <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text2)' }}>Receta de:</span>
             <select
               value={medicoSel}
@@ -2457,6 +2474,7 @@ function RecetasTab({ clinicId }: { clinicId: string | null }) {
                 <option key={d.id} value={d.id}>{d.nombre}{config?.recetasPorMedico?.[d.id] ? ' · personalizada' : ''}</option>
               ))}
             </select>
+            </>)}
             <span style={{ fontSize: 11, color: 'var(--text3)', flexBasis: '100%' }}>
               Cada médico tiene su propia receta. Estos cambios aplican SOLO a las recetas y órdenes de este médico.
             </span>
@@ -3597,15 +3615,22 @@ function FirmaUploadSection({ form, clinicId, onLocalChange }: {
         </div>
       </div>
 
-      {doctores.length > 0 && (
-        <div style={{ marginBottom: 10 }}>
-          <label style={{ fontSize: 11.5, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>Firma de:</label>
-          <select value={medicoSel} onChange={(e) => setMedicoSel(e.target.value)}
-            style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 13 }}>
-            {doctores.map(d => <option key={d.id} value={d.id}>{d.nombre}{form.firmaPorMedico?.[d.id] ? ' · tiene la suya' : ''}</option>)}
-          </select>
-        </div>
-      )}
+      {doctores.length > 0 && (() => {
+        const soyDoctor = doctores.find(d => d.email && d.email === auth.currentUser?.email)
+        return (
+          <div style={{ marginBottom: 10 }}>
+            {soyDoctor ? (
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>Tu firma · {soyDoctor.nombre}</div>
+            ) : (<>
+              <label style={{ fontSize: 11.5, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>Firma de:</label>
+              <select value={medicoSel} onChange={(e) => setMedicoSel(e.target.value)}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 13 }}>
+                {doctores.map(d => <option key={d.id} value={d.id}>{d.nombre}{form.firmaPorMedico?.[d.id] ? ' · tiene la suya' : ''}</option>)}
+              </select>
+            </>)}
+          </div>
+        )
+      })()}
 
       {firmaDataUrl ? (
         <div style={{ position: 'relative', background: '#fff', borderRadius: 8, padding: 14, border: '1px solid var(--border)', textAlign: 'center' }}>
@@ -3755,16 +3780,23 @@ function MembreteNotaSection({ form, clinicId, onLocalChange }: {
         </div>
       </div>
 
-      {/* Cada médico tiene su propia hoja membretada */}
-      {doctores.length > 0 && (
-        <div style={{ marginBottom: 10 }}>
-          <label style={{ fontSize: 11.5, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>Hoja de:</label>
-          <select value={medicoSel} onChange={(e) => setMedicoSel(e.target.value)}
-            style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 13 }}>
-            {doctores.map(d => <option key={d.id} value={d.id}>{d.nombre}{form.notaMembretePorMedico?.[d.id]?.url ? ' · tiene la suya' : ''}</option>)}
-          </select>
-        </div>
-      )}
+      {/* Cada médico su propia hoja. Con TU cuenta editas la tuya (sin dropdown). */}
+      {doctores.length > 0 && (() => {
+        const soyDoctor = doctores.find(d => d.email && d.email === auth.currentUser?.email)
+        return (
+          <div style={{ marginBottom: 10 }}>
+            {soyDoctor ? (
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>Tu hoja membretada · {soyDoctor.nombre}</div>
+            ) : (<>
+              <label style={{ fontSize: 11.5, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>Hoja de:</label>
+              <select value={medicoSel} onChange={(e) => setMedicoSel(e.target.value)}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 13 }}>
+                {doctores.map(d => <option key={d.id} value={d.id}>{d.nombre}{form.notaMembretePorMedico?.[d.id]?.url ? ' · tiene la suya' : ''}</option>)}
+              </select>
+            </>)}
+          </div>
+        )
+      })()}
 
       {!membreteUrl ? (
         <label style={{ display: 'block', textAlign: 'center', padding: '20px 14px', border: '2px dashed rgba(20,184,166,0.4)', borderRadius: 10, background: 'rgba(20,184,166,0.04)', cursor: procesando ? 'wait' : 'pointer', color: 'var(--text2)' }}>
