@@ -86,11 +86,18 @@ export default function NotaImprimiblePage() {
   const establecimiento = nota.metadata.establecimiento || config?.nombreClinica || ''
   // Hoja membretada: la del MÉDICO de la nota si tiene una propia; si no, la
   // general del consultorio. Se ignora un valor vacío/roto (evita descuadrar).
-  const medMembrete = nota.metadata?.medicoId ? config?.notaMembretePorMedico?.[nota.metadata.medicoId] : undefined
+  const membMap = config?.notaMembretePorMedico ?? {}
+  const membIds = Object.keys(membMap)
+  const medMembrete = (nota.metadata?.medicoId && membMap[nota.metadata.medicoId])
+    || (membIds.length === 1 ? membMap[membIds[0]] : undefined)  // respaldo: 1 médico
   // Firma a mostrar: el snapshot de la nota (inmutable) o la firma del médico que
-  // la firmó (per-médico) o, en último caso, la general del consultorio.
+  // la firmó (per-médico, con respaldo a la única configurada si hay 1 médico) o
+  // la general del consultorio.
+  const firmaMap = config?.firmaPorMedico ?? {}
+  const firmaIds = Object.keys(firmaMap)
   const firmaMostrar = nota.firma?.imagenDataUrl
-    || (nota.metadata?.medicoId ? config?.firmaPorMedico?.[nota.metadata.medicoId] : undefined)
+    || (nota.metadata?.medicoId && firmaMap[nota.metadata.medicoId])
+    || (firmaIds.length === 1 ? firmaMap[firmaIds[0]] : undefined)
     || config?.firmaImagenDataUrl
   const mem = (medMembrete?.url ?? config?.notaMembreteDataUrl)?.trim()
   const membrete = (mem && /^(https?:|\/api\/|data:image)/.test(mem)) ? mem : undefined

@@ -117,8 +117,13 @@ export default function GeneradorRecetaPage() {
       mostrarDiagnostico: true,
       avisoLegal: 'Esta receta es personal e intransferible.',
     }
+    const recetasMap = config?.recetasPorMedico ?? {}
     const medicoId = nota?.metadata?.medicoId
-    const porMedico = medicoId ? config?.recetasPorMedico?.[medicoId] : undefined
+    const ids = Object.keys(recetasMap)
+    // Receta del médico de la nota; si la nota no trae medicoId (o no coincide) y
+    // solo hay UN médico con receta configurada, usa ESA (así tu diseño subido sí
+    // aparece aunque la nota sea vieja/sin médico).
+    const porMedico = (medicoId && recetasMap[medicoId]) || (ids.length === 1 ? recetasMap[ids[0]] : undefined)
     const merged = porMedico ? { ...base, ...porMedico } : base
     // Impresión SIEMPRE en hoja carta (tamaño estándar que Safari y la impresora
     // respetan): la receta se centra y agranda con márgenes. El modo "papel-real"
@@ -131,7 +136,9 @@ export default function GeneradorRecetaPage() {
   const configFirma = useMemo(() => {
     if (!config) return config
     const medicoId = nota?.metadata?.medicoId
-    const firma = (medicoId && config.firmaPorMedico?.[medicoId]) || config.firmaImagenDataUrl
+    const firmaMap = config.firmaPorMedico ?? {}
+    const fids = Object.keys(firmaMap)
+    const firma = (medicoId && firmaMap[medicoId]) || (fids.length === 1 ? firmaMap[fids[0]] : undefined) || config.firmaImagenDataUrl
     return { ...config, firmaImagenDataUrl: firma }
   }, [config, nota?.metadata?.medicoId])
 
