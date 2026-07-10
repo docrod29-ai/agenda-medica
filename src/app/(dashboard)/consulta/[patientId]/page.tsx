@@ -13,6 +13,7 @@ import {
 } from '@/lib/expediente/firestore'
 import { seccionesVacias, requiereSignosVitales, esPreoperatoria, esInmuno } from '@/lib/expediente/templates'
 import { sanitizarProsa } from '@/lib/expediente/sanitizar-prosa'
+import { limpiarMarkdown } from '@/lib/markdown'
 import { PreopAssessment } from '@/components/PreopAssessment'
 import ValoracionInmuno from '@/components/pacientes/ValoracionInmuno'
 import { RevisionPanel } from '@/components/RevisionPanel'
@@ -129,6 +130,7 @@ export default function ConsultaActivaPage() {
   const [analizandoEv, setAnalizandoEv] = useState(false)
   // Candado de gasto (soft): uso de consultas del mes vs el límite del plan.
   const [usoIA, setUsoIA] = useState<{ usadas: number; limite: number; restantes: number; porcentaje: number; alerta: 'ok' | 'cerca' | 'excedido' } | null>(null)
+  const [generandoAnalisis, setGenerandoAnalisis] = useState(false)
   // ── Chat de corrección por IA ──
   const [chatCorr, setChatCorr] = useState<{ rol: 'user' | 'ia'; texto: string }[]>([])
   const [instruccionCorr, setInstruccionCorr] = useState('')
@@ -286,6 +288,37 @@ export default function ConsultaActivaPage() {
     } catch { toast('Sin conexión con el motor de evidencia', 'error') }
     finally { setAnalizandoEv(false) }
   }, [diagnosticos, medicamentos, patient?.edad, patient?.sexo, patient?.alergias, toast])
+
+  // Genera un ANÁLISIS clínico basado en evidencia de ESTE paciente (razonando
+  // con PubMed vía el Consultor) y lo AGREGA a la nota como una sección de texto
+  // limpio (sin markdown), con sus referencias. Reemplaza el análisis previo.
+  const agregarAnalisisANota = useCallback(async () => {
+    if (diagnosticos.length === 0 && medicamentos.length === 0) { toast('Agrega diagnóstico o tratamiento primero', 'info'); return }
+    setGenerandoAnalisis(true)
+    try {
+      const dx = diagnosticos.map(d => d.descripcion).filter(Boolean).join('; ')
+      const meds = medicamentos.map(m => m.nombre).filter(Boolean).join('; ')
+      const pregunta = `Análisis clínico y plan basado en la MEJOR evidencia, conciso y sin relleno. Diagnóstico(s): ${dx || '—'}. Tratamiento actual: ${meds || '—'}. Evalúa si el tratamiento es el adecuado según la evidencia, señala alternativas si aplica, dosis y puntos de seguridad (interacciones/contraindicaciones). No repitas la historia clínica.`
+      const contextoPaciente = `${patient?.nombre ?? ''}, ${patient?.edad ?? '?'} años, ${patient?.sexo ?? '?'}. Alergias: ${patient?.alergias || 'no referidas'}.`
+      const res = await fetchAutenticado('/api/consultor-evidencia', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pregunta, contextoPaciente }),
+      })
+      const d = await res.json().catch(() => null)
+      if (!d?.ok || !d.respuesta) { toast(d?.error || 'No se pudo generar el análisis', 'error'); return }
+      let texto = limpiarMarkdown(d.respuesta)
+      if (Array.isArray(d.articulos) && d.articulos.length > 0) {
+        texto += '\n\nReferencias:\n' + d.articulos.map((a: { titulo: string; revista: string; anio: string; pmid: string }, i: number) =>
+          `[${i + 1}] ${a.titulo}. ${a.revista} ${a.anio}. PMID ${a.pmid}`).join('\n')
+      }
+      setSecciones(prev => {
+        const sin = prev.filter(s => s.key !== 'analisis_evidencia')
+        return [...sin, { key: 'analisis_evidencia', label: 'Análisis basado en evidencia', value: texto }]
+      })
+      toast('Análisis de evidencia agregado a la nota ✓', 'success')
+    } catch { toast('Sin conexión', 'error') }
+    finally { setGenerandoAnalisis(false) }
+  }, [diagnosticos, medicamentos, patient?.nombre, patient?.edad, patient?.sexo, patient?.alergias, toast])
 
   const procesarIA = useCallback(async (tipoOverride?: TipoNota, opts?: { enVivo?: boolean }) => {
     // enVivo = estructuración EN TIEMPO REAL mientras se graba (silenciosa, sin
@@ -1285,11 +1318,21 @@ export default function ConsultaActivaPage() {
         )
       )}
 
+      {/* Análisis de evidencia → SE AGREGA A LA NOTA (botón principal) */}
+      {(diagnosticos.length > 0 || medicamentos.length > 0) && (
+        <button onClick={agregarAnalisisANota} disabled={generandoAnalisis}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, marginRight: 8, background: generandoAnalisis ? 'var(--s3)' : 'var(--teal)', color: generandoAnalisis ? 'var(--text3)' : '#000', border: 'none', borderRadius: 10, padding: '9px 15px', fontSize: 13, fontWeight: 700, cursor: generandoAnalisis ? 'default' : 'pointer' }}>
+          {generandoAnalisis
+            ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Razonando con la evidencia…</>
+            : <><FlaskConical size={14} /> Análisis de evidencia → agregar a la nota</>}
+        </button>
+      )}
+
       {/* Preguntar a la evidencia sobre ESTE paciente (abre el Consultor con contexto) */}
       {(diagnosticos.length > 0 || medicamentos.length > 0 || resumen) && (
         <button onClick={() => router.push(`/consultor?paciente=${patientId}`)}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, marginRight: 8, background: 'rgba(61,90,254,0.08)', color: 'var(--nexus, #3d5afe)', border: '1px solid rgba(61,90,254,0.30)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-          <FlaskConical size={14} /> Preguntar a la evidencia sobre este paciente
+          <FlaskConical size={14} /> Preguntar a la evidencia (chat)
         </button>
       )}
 

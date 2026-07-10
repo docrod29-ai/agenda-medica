@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v275'  // Dosis oficial (openFDA, ficha tecnica) + guia mexicana: el Consultor detecta el farmaco, trae su dosis etiquetada autoritativa (no inventada) y da enlace a la GPC de CENETEC; seccion Dosis + Guia en Mexico en la respuesta
+const CACHE = 'nexusmed-v276'  // Formato bonito (MiniMarkdown: sin # ni ** crudos, titulos/negritas/vinetas con estilo) + boton en la consulta 'Analisis de evidencia -> agregar a la nota' (razona con PubMed y mete texto limpio + referencias a la nota)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

@@ -4,6 +4,7 @@ import { fetchAutenticado } from '@/lib/auth-client'
 import { useClinic } from '@/context/ClinicContext'
 import { getPatients } from '@/lib/firestore'
 import { Sparkles, Send, Loader2, FlaskConical, BookOpen, X, UserRound } from 'lucide-react'
+import { MiniMarkdown } from '@/components/MiniMarkdown'
 
 interface Articulo { pmid: string; titulo: string; revista: string; anio: string; url: string }
 interface Turno { pregunta: string; respuesta: string; articulos: Articulo[]; cenetecUrl?: string; cargando?: boolean }
@@ -121,7 +122,7 @@ export default function ConsultorPage() {
                   </div>
                 ) : (
                   <>
-                    <div style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{t.respuesta}</div>
+                    <MiniMarkdown texto={t.respuesta} />
                     {t.cenetecUrl && (
                       <a href={t.cenetecUrl} target="_blank" rel="noopener noreferrer"
                         style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 12, fontWeight: 600, color: 'var(--nexus, #3d5afe)', textDecoration: 'none', background: 'rgba(61,90,254,0.08)', border: '1px solid rgba(61,90,254,0.28)', borderRadius: 8, padding: '5px 10px' }}>
