@@ -21,6 +21,7 @@ interface Cliente {
   mrr: number; totalPagado: number; tieneStripe: boolean; notasInternas: string
   modulos: string[] | null; paqueteId: string; paqueteNombre: string; createdAt: string | null
   nivelIA: 'pro' | 'premium'
+  consultasMes: number; limiteConsultas: number
 }
 interface Paquete { id: string; nombre: string; precio: number; modulos: string[]; descripcion?: string; activo?: boolean; orden?: number; modeloPrecio?: ModeloPrecio; precioBase?: number; precioPorUnidad?: number }
 interface Totales { clinicas: number; activas: number; enPrueba: number; deben: number; cortesia: number; mrr: number; ingresoTotal: number; ingresoMes: number }
@@ -304,6 +305,24 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
           <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>
             Pro: nota con Sonnet 5, 2ª opinión a botón. Premium: Opus 4.8 + razonamiento + 2ª opinión GPT-5 automática.
           </div>
+          {/* Consumo del mes vs límite del plan */}
+          {(() => {
+            const usadas = cliente.consultasMes ?? 0
+            const lim = cliente.limiteConsultas || 1
+            const pct = Math.min(100, Math.round((usadas / lim) * 100))
+            const col = pct >= 100 ? '#dc2626' : pct >= 80 ? '#d97706' : '#16a34a'
+            return (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--text2)', marginBottom: 4 }}>
+                  <span>Consultas este mes</span>
+                  <strong style={{ color: col }}>{usadas} / {cliente.limiteConsultas}</strong>
+                </div>
+                <div style={{ height: 6, background: 'var(--s3)', borderRadius: 3, overflow: 'hidden' }}>
+                  <div style={{ width: `${pct}%`, height: '100%', background: col, transition: 'width .3s' }} />
+                </div>
+              </div>
+            )
+          })()}
         </Seccion>
 
         {/* Pase libre */}

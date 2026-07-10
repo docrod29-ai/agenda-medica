@@ -10,6 +10,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarSuperadmin, PRECIO_PLAN_MXN } from '@/lib/superadmin'
 import { calcularPrecioPaquete } from '@/lib/pricing'
+import { planDeNivel } from '@/lib/planes-ia'
+
+const mesActual = () => new Date().toISOString().slice(0, 7)
 
 type Any = Record<string, unknown>
 
@@ -76,15 +79,20 @@ export async function GET(req: NextRequest) {
         )
       }
       const mrr = cob === 'al_corriente' ? (precioPaquete > 0 ? precioPaquete : (PRECIO_PLAN_MXN[plan] ?? 0)) : 0
-      // Nivel de IA (Pro económico / Premium Opus+GPT-5) — vive en secretos/ia.
+      // Nivel de IA (Pro económico / Premium Opus+GPT-5) + consumo del mes — vive en secretos/ia.
       let nivelIA: 'pro' | 'premium' = 'pro'
+      let consultasMes = 0
       try {
         const ia = (await adminDb.doc(`clinics/${cid}/secretos/ia`).get()).data()
         if (ia?.nivelIA === 'premium') nivelIA = 'premium'
+        consultasMes = Number(ia?.uso?.[mesActual()]?.consultas ?? 0)
       } catch { /* default pro */ }
+      const limiteConsultas = planDeNivel(nivelIA).limiteConsultas
       return {
         id: cid,
         nivelIA,
+        consultasMes,
+        limiteConsultas,
         nombreClinica: c.nombreClinica ?? '',
         nombreMedico: c.nombreMedico ?? '',
         plan,

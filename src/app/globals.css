@@ -1076,7 +1076,10 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
 }
 
 /* ── Skeleton refinado para light mode ─────────────────────────── */
-:root[data-theme="light"] .skeleton,
+:root[data-theme="light"] .skeleton {
+  background: linear-gradient(90deg, var(--s2) 25%, var(--s3) 50%, var(--s2) 75%);
+  background-size: 200% 100%;
+}
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) .skeleton {
     background: linear-gradient(90deg, var(--s2) 25%, var(--s3) 50%, var(--s2) 75%);
