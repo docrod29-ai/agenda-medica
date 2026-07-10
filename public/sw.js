@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v273'  // Fix Consultor 'no encontre evidencia': quitado filtro humans[MeSH] (mataba busquedas validas) + fallback progresivo + traduccion ES->EN robusta con cascada de modelos (finerenona->finerenone 0->8 resultados)
+const CACHE = 'nexusmed-v274'  // Traductor medico DETERMINISTA ES->EN (sin IA) como red de seguridad: aunque la traduccion con IA falle, 'tratamiento enterococcus faecalis sensible penicilina' -> encuentra 8 resultados. Aplicado a consultor + evidencia
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

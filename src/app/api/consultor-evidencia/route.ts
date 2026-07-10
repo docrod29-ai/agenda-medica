@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verificarUsuario } from '@/lib/auth-server'
 import { resolverClaveIA, registrarUso, nivelIADe } from '@/lib/ai-keys'
 import { buscarEvidencia, type ArticuloPubMed } from '@/lib/evidencia/pubmed'
+import { traducirBasico } from '@/lib/evidencia/traducir-medico'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -71,9 +72,14 @@ export async function POST(req: NextRequest) {
       } catch { /* prueba el siguiente modelo */ }
     }
 
-    // 2) Buscar evidencia (con fallback progresivo interno). Si la traducción sirvió
-    //    y aún así no hay nada, reintenta con la pregunta cruda como último recurso.
-    let articulos: ArticuloPubMed[] = await buscarEvidencia(query, { max: 8, aniosRecientes: 10 }).catch(() => [])
+    // 2) Buscar evidencia. Tres redes de seguridad para que NUNCA salga "0" en un
+    //    tema real: (a) query de la IA; (b) traducción determinista ES→EN (sin IA);
+    //    (c) la pregunta cruda.
+    let articulos: ArticuloPubMed[] = await buscarEvidencia(query, { max: 8, aniosRecientes: 12 }).catch(() => [])
+    if (articulos.length === 0) {
+      const det = traducirBasico(pregunta)
+      if (det) articulos = await buscarEvidencia(det, { max: 8, aniosRecientes: 12 }).catch(() => [])
+    }
     if (articulos.length === 0 && query !== pregunta) {
       articulos = await buscarEvidencia(pregunta, { max: 8 }).catch(() => [])
     }

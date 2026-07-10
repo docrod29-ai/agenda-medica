@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verificarUsuario } from '@/lib/auth-server'
 import { resolverClaveIA, registrarUso, nivelIADe } from '@/lib/ai-keys'
 import { buscarEvidencia, type ArticuloPubMed } from '@/lib/evidencia/pubmed'
+import { traducirBasico } from '@/lib/evidencia/traducir-medico'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -49,7 +50,15 @@ export async function POST(req: NextRequest) {
   if (dx[1]) consultas.push(dx[1])
   if (meds.length >= 2) consultas.push(`${meds.slice(0, 4).join(' ')} drug interaction`)
 
-  const lotes = await Promise.all(consultas.map(c => buscarEvidencia(c, { max: 5, aniosRecientes: 8 }).catch(() => [])))
+  // Traduce cada consulta ES→EN de forma determinista (los dx/meds de la nota
+  // vienen en español; PubMed casi solo tiene inglés). Busca la traducida y, si
+  // no hay nada, la original.
+  const lotes = await Promise.all(consultas.map(async c => {
+    const en = traducirBasico(c)
+    let r = await buscarEvidencia(en || c, { max: 5, aniosRecientes: 10 }).catch(() => [])
+    if (r.length === 0 && en && en !== c) r = await buscarEvidencia(c, { max: 5 }).catch(() => [])
+    return r
+  }))
   // Dedup por PMID.
   const porPmid = new Map<string, ArticuloPubMed>()
   for (const lote of lotes) for (const a of lote) if (!porPmid.has(a.pmid)) porPmid.set(a.pmid, a)
