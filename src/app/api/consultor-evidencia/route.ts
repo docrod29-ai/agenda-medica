@@ -19,7 +19,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verificarUsuario } from '@/lib/auth-server'
 import { resolverClaveIA, registrarUso, nivelIADe } from '@/lib/ai-keys'
 import { buscarEvidencia, type ArticuloPubMed } from '@/lib/evidencia/pubmed'
-import { traducirBasico } from '@/lib/evidencia/traducir-medico'
+import { traducirBasico, farmacosDetectados } from '@/lib/evidencia/traducir-medico'
+import { dosisFDA } from '@/lib/evidencia/openfda'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -87,20 +88,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, respuesta: 'No encontré evidencia en PubMed para esta pregunta. Prueba reformularla o con términos más específicos.', articulos: [] })
     }
 
+    // 2b) DOSIS oficial (openFDA): si se detecta un fármaco, trae su dosis
+    //     etiquetada (autoritativa, no inventada). Y arma un enlace a la GPC de
+    //     CENETEC (no hay API mexicana; se ofrece búsqueda directa del catálogo).
+    const farmacos = farmacosDetectados(`${pregunta} ${query}`)
+    const dosis = farmacos[0] ? await dosisFDA(farmacos[0]).catch(() => null) : null
+    const cenetecUrl = `https://www.google.com/search?q=${encodeURIComponent(pregunta + ' guía de práctica clínica CENETEC GPC México')}`
+
     // 3) Responder citando.
     const nivel = await nivelIADe(clinicId)
     const model = nivel === 'premium' ? 'claude-opus-4-8' : 'claude-sonnet-5'
     const fuentes = articulos.map((a, i) => `[${i + 1}] ${a.revista} ${a.anio} · PMID ${a.pmid}\n${a.titulo}\n${a.resumen.slice(0, 700)}`).join('\n\n')
-    const system = 'Eres un asistente clínico de medicina basada en evidencia para médicos. Responde la pregunta con una síntesis clara y accionable, en español, CITANDO con [n] los artículos de la lista que respaldan cada afirmación. Si se da contexto de un PACIENTE, personaliza la respuesta a ese caso (edad, comorbilidades, alergias, tratamiento actual) y advierte contraindicaciones o interacciones relevantes. REGLAS: cita SOLO los artículos dados (por su [n]); NUNCA inventes estudios, cifras ni fuentes; si la evidencia es limitada o no concluyente, dilo; no des indicaciones absolutas, apoya la decisión del médico. Termina con una línea "Nivel de evidencia: alto/moderado/bajo" según lo hallado.'
-    const user = `${paciente ? 'PACIENTE (contexto):\n' + paciente + '\n\n' : ''}${contexto ? 'Conversación previa:\n' + contexto + '\n\n' : ''}PREGUNTA: ${pregunta}\n\nEVIDENCIA (PubMed):\n${fuentes}\n\nResponde citando [n].`
+    const dosisTxt = dosis ? `\n\nDOSIS OFICIAL (ficha técnica FDA, ${dosis.farmaco}):\n${dosis.dosis}` : ''
+    const system = 'Eres un asistente clínico de medicina basada en evidencia para médicos en MÉXICO. Responde con una síntesis clara y accionable, en español, CITANDO con [n] los artículos de la lista que respaldan cada afirmación. Si se da contexto de un PACIENTE, personaliza (edad, comorbilidades, alergias, tratamiento) y advierte contraindicaciones/interacciones. Si la pregunta es sobre un fármaco o tratamiento, incluye una sección **Dosis**: usa la "DOSIS OFICIAL (FDA)" que se te dé (indica que es de la etiqueta FDA y que debe ajustarse a función renal/hepática y peso, y verificarse con el Cuadro Básico); si no se te da, indica la dosis estándar de referencia y adviértelo. Cuando aplique, agrega una línea **Guía en México**: menciona la GPC de CENETEC o la NOM pertinente si la conoces (por su nombre), aclarando que debe consultarse el documento oficial. REGLAS: cita SOLO los artículos dados por su [n]; NUNCA inventes estudios, PMIDs ni cifras; si la evidencia es limitada, dilo; apoya la decisión del médico, no des órdenes absolutas. Termina con "Nivel de evidencia: alto/moderado/bajo".'
+    const user = `${paciente ? 'PACIENTE (contexto):\n' + paciente + '\n\n' : ''}${contexto ? 'Conversación previa:\n' + contexto + '\n\n' : ''}PREGUNTA: ${pregunta}\n\nEVIDENCIA (PubMed):\n${fuentes}${dosisTxt}\n\nResponde citando [n].`
 
-    let res = await claude(key, model, system, user, 2000)
-    if (res.status === 404 || res.status === 400) res = await claude(key, 'claude-sonnet-5', system, user, 2000)
-    if (!res.ok) return NextResponse.json({ ok: true, respuesta: `No pude sintetizar la respuesta (HTTP ${res.status}), pero aquí están los artículos relevantes.`, articulos })
+    let res = await claude(key, model, system, user, 2200)
+    if (res.status === 404 || res.status === 400) res = await claude(key, 'claude-sonnet-5', system, user, 2200)
+    if (!res.ok) return NextResponse.json({ ok: true, respuesta: `No pude sintetizar la respuesta (HTTP ${res.status}), pero aquí están los artículos relevantes.`, articulos, cenetecUrl })
 
     const respuesta = textoDe(await res.json()).trim() || 'Sin respuesta.'
     void registrarUso(clinicId, fuente)
-    return NextResponse.json({ ok: true, respuesta, articulos })
+    return NextResponse.json({ ok: true, respuesta, articulos, cenetecUrl, dosisFDA: dosis })
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })
   }

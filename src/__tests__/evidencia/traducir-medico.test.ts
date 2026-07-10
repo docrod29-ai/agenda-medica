@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { traducirBasico } from '@/lib/evidencia/traducir-medico'
+import { traducirBasico, farmacosDetectados } from '@/lib/evidencia/traducir-medico'
 
 describe('traducirBasico (ES→EN para PubMed)', () => {
   it('traduce términos clínicos y conserva nombres latinos, quitando relleno', () => {
@@ -28,5 +28,11 @@ describe('traducirBasico (ES→EN para PubMed)', () => {
 
   it('no rompe con texto vacío', () => {
     expect(traducirBasico('')).toBe('')
+  })
+
+  it('detecta fármacos en español para buscar su dosis', () => {
+    expect(farmacosDetectados('dosis de amoxicilina en niños')).toContain('amoxicillin')
+    expect(farmacosDetectados('utilidad de la finerenona')).toContain('finerenone')
+    expect(farmacosDetectados('cuánto dura la consulta')).toEqual([])
   })
 })

@@ -6,7 +6,7 @@ import { getPatients } from '@/lib/firestore'
 import { Sparkles, Send, Loader2, FlaskConical, BookOpen, X, UserRound } from 'lucide-react'
 
 interface Articulo { pmid: string; titulo: string; revista: string; anio: string; url: string }
-interface Turno { pregunta: string; respuesta: string; articulos: Articulo[]; cargando?: boolean }
+interface Turno { pregunta: string; respuesta: string; articulos: Articulo[]; cenetecUrl?: string; cargando?: boolean }
 
 const EJEMPLOS = [
   '¿Antibiótico de primera línea para neumonía adquirida en la comunidad en adulto sano?',
@@ -57,7 +57,7 @@ export default function ConsultorPage() {
         const copia = [...prev]
         const i = copia.length - 1
         copia[i] = d?.ok
-          ? { pregunta: texto, respuesta: d.respuesta ?? '', articulos: d.articulos ?? [] }
+          ? { pregunta: texto, respuesta: d.respuesta ?? '', articulos: d.articulos ?? [], cenetecUrl: d.cenetecUrl }
           : { pregunta: texto, respuesta: `⚠️ ${d?.error || 'No se pudo consultar.'}`, articulos: [] }
         return copia
       })
@@ -122,6 +122,12 @@ export default function ConsultorPage() {
                 ) : (
                   <>
                     <div style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{t.respuesta}</div>
+                    {t.cenetecUrl && (
+                      <a href={t.cenetecUrl} target="_blank" rel="noopener noreferrer"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 12, fontWeight: 600, color: 'var(--nexus, #3d5afe)', textDecoration: 'none', background: 'rgba(61,90,254,0.08)', border: '1px solid rgba(61,90,254,0.28)', borderRadius: 8, padding: '5px 10px' }}>
+                        <BookOpen size={12} /> Buscar la guía mexicana (GPC · CENETEC)
+                      </a>
+                    )}
                     {t.articulos.length > 0 && (
                       <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, color: 'var(--text3)', marginBottom: 6 }}>

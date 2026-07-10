@@ -60,6 +60,23 @@ const DIC: Record<string, string> = {
   atorvastatina: 'atorvastatin', prednisona: 'prednisone', dexametasona: 'dexamethasone',
 }
 
+// Nombres de fármacos en inglés (para detectar de qué fármaco se pregunta y
+// buscar su dosis en openFDA). Incluye los del diccionario + otros comunes que
+// se escriben igual o parecido en ambos idiomas.
+export const FARMACOS_EN = new Set<string>([
+  'penicillin', 'amoxicillin', 'ampicillin', 'ceftriaxone', 'cephalexin', 'vancomycin',
+  'gentamicin', 'clindamycin', 'azithromycin', 'ciprofloxacin', 'levofloxacin',
+  'metronidazole', 'meropenem', 'acetaminophen', 'ibuprofen', 'metformin', 'insulin',
+  'enalapril', 'losartan', 'omeprazole', 'heparin', 'warfarin', 'furosemide',
+  'finerenone', 'diosmin', 'spironolactone', 'atorvastatin', 'prednisone', 'dexamethasone',
+  // se escriben igual o casi igual en ES/EN:
+  'rivaroxaban', 'apixaban', 'dabigatran', 'empagliflozin', 'dapagliflozin', 'sitagliptin',
+  'linagliptin', 'sacubitril', 'valsartan', 'ezetimibe', 'rosuvastatin', 'clopidogrel',
+  'amlodipine', 'lisinopril', 'ceftazidime', 'cefepime', 'piperacillin', 'tazobactam',
+  'linezolid', 'daptomycin', 'fluconazole', 'oseltamivir', 'sertraline', 'gabapentin',
+  'pregabalin', 'tramadol', 'ketorolac', 'levothyroxine', 'hydrochlorothiazide',
+])
+
 /** Quita acentos para comparar contra el diccionario. */
 const sinAcentos = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '')
 
@@ -80,4 +97,12 @@ export function traducirBasico(preguntaEs: string): string {
     if (t && !out.includes(t)) out.push(t)
   }
   return out.join(' ').trim()
+}
+
+/** Detecta fármacos (en inglés) mencionados en una pregunta/nota en español. */
+export function farmacosDetectados(textoEs: string): string[] {
+  const tokens = traducirBasico(textoEs).split(' ')
+  const encontrados: string[] = []
+  for (const t of tokens) if (FARMACOS_EN.has(t) && !encontrados.includes(t)) encontrados.push(t)
+  return encontrados
 }

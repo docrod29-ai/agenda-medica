@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v274'  // Traductor medico DETERMINISTA ES->EN (sin IA) como red de seguridad: aunque la traduccion con IA falle, 'tratamiento enterococcus faecalis sensible penicilina' -> encuentra 8 resultados. Aplicado a consultor + evidencia
+const CACHE = 'nexusmed-v275'  // Dosis oficial (openFDA, ficha tecnica) + guia mexicana: el Consultor detecta el farmaco, trae su dosis etiquetada autoritativa (no inventada) y da enlace a la GPC de CENETEC; seccion Dosis + Guia en Mexico en la respuesta
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
