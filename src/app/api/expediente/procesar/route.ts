@@ -58,13 +58,26 @@ const headersAnthropic = (key: string) => ({
   'Content-Type': 'application/json',
 })
 
-/** Cachea el modelo resuelto entre invocaciones del runtime */
+// Modo RÁPIDO (nota en vivo, cada ~30s mientras se graba): Sonnet 5 sin thinking,
+// barato y veloz. La nota FINAL sí usa Opus 4.8 + thinking. Esto evita que la
+// estructuración en vivo (que corre muchas veces por consulta) dispare el costo.
+const MODELOS_RAPIDOS = [
+  'claude-sonnet-5',
+  'claude-sonnet-4-6',
+  'claude-sonnet-4-5',
+  'claude-3-5-sonnet-latest',
+]
+
+/** Cachea el modelo resuelto entre invocaciones del runtime (uno por perfil) */
 let modeloResuelto = ''
+let modeloResueltoRapido = ''
 
 /** Descubre un modelo válido para esta cuenta vía /v1/models */
-async function resolverModelo(key: string): Promise<string> {
-  if (MODELO_OVERRIDE_OK()) return MODEL_OVERRIDE
-  if (modeloResuelto) return modeloResuelto
+async function resolverModelo(key: string, rapido = false): Promise<string> {
+  if (!rapido && MODELO_OVERRIDE_OK()) return MODEL_OVERRIDE
+  const cache = rapido ? modeloResueltoRapido : modeloResuelto
+  if (cache) return cache
+  const candidatos = rapido ? MODELOS_RAPIDOS : MODELOS_CANDIDATOS
   try {
     const res = await fetch('https://api.anthropic.com/v1/models?limit=100', { headers: headersAnthropic(key) })
     if (res.ok) {
@@ -72,19 +85,19 @@ async function resolverModelo(key: string): Promise<string> {
       const ids: string[] = (data.data ?? []).map((m: { id: string }) => m.id)
       // Prefiere candidatos conocidos; si no, el primer "sonnet"; si no, el primero
       const elegido =
-        MODELOS_CANDIDATOS.find(c => ids.includes(c)) ??
+        candidatos.find(c => ids.includes(c)) ??
         ids.find(id => id.includes('sonnet')) ??
         ids[0]
-      if (elegido) { modeloResuelto = elegido; return elegido }
+      if (elegido) { if (rapido) modeloResueltoRapido = elegido; else modeloResuelto = elegido; return elegido }
     }
   } catch { /* cae al fallback */ }
-  return MODELOS_CANDIDATOS[0]
+  return candidatos[0]
 }
 
 function MODELO_OVERRIDE_OK() { return MODEL_OVERRIDE.length > 0 }
 
-async function llamarClaude(key: string, model: string, system: string, userMsg: string) {
-  const pienso = soportaThinking(model)
+async function llamarClaude(key: string, model: string, system: string, userMsg: string, rapido = false) {
+  const pienso = !rapido && soportaThinking(model)
   const body: Record<string, unknown> = {
     model,
     // Con "thinking" el máximo INCLUYE los tokens de razonamiento; se sube a 16000
@@ -113,11 +126,11 @@ async function llamarClaude(key: string, model: string, system: string, userMsg:
  * / 5xx) con backoff. Anthropic devuelve 529 cuando está saturado: un solo
  * intento hacía que la nota cayera al parser local "porque sí".
  */
-async function llamarClaudeConReintentos(key: string, model: string, system: string, userMsg: string) {
-  let res = await llamarClaude(key, model, system, userMsg)
+async function llamarClaudeConReintentos(key: string, model: string, system: string, userMsg: string, rapido = false) {
+  let res = await llamarClaude(key, model, system, userMsg, rapido)
   for (let intento = 1; intento <= 2 && STATUS_REINTENTABLE.has(res.status); intento++) {
     await sleep(intento * 700)
-    res = await llamarClaude(key, model, system, userMsg)
+    res = await llamarClaude(key, model, system, userMsg, rapido)
   }
   return res
 }
@@ -156,7 +169,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  let body: { transcripcion?: string; tipo?: TipoNota; contexto?: PacienteContexto }
+  let body: { transcripcion?: string; tipo?: TipoNota; contexto?: PacienteContexto; rapido?: boolean }
   try {
     body = await req.json()
   } catch {
@@ -164,6 +177,9 @@ export async function POST(req: NextRequest) {
   }
 
   const { transcripcion, tipo, contexto } = body
+  // Modo rápido: estructuración EN VIVO (cada ~30s). Usa Sonnet 5 sin thinking
+  // (barato/veloz). La nota FINAL (rapido=false) usa Opus 4.8 + thinking.
+  const rapido = body.rapido === true
   if (!transcripcion || !tipo || !contexto) {
     return NextResponse.json({ ok: false, error: 'Faltan transcripcion, tipo o contexto' }, { status: 400 })
   }
@@ -172,14 +188,14 @@ export async function POST(req: NextRequest) {
     const system  = buildSystemPrompt(tipo, contexto.especialidad, contexto.instruccionesIA)
     const userMsg = buildUserPrompt(transcripcion, contexto)
 
-    let model = await resolverModelo(API_KEY)
-    let res = await llamarClaudeConReintentos(API_KEY, model, system, userMsg)
+    let model = await resolverModelo(API_KEY, rapido)
+    let res = await llamarClaudeConReintentos(API_KEY, model, system, userMsg, rapido)
 
     // Si el modelo no existe (404), redescubre y reintenta una vez
     if (res.status === 404) {
-      modeloResuelto = ''
-      model = await resolverModelo(API_KEY)
-      res = await llamarClaudeConReintentos(API_KEY, model, system, userMsg)
+      if (rapido) modeloResueltoRapido = ''; else modeloResuelto = ''
+      model = await resolverModelo(API_KEY, rapido)
+      res = await llamarClaudeConReintentos(API_KEY, model, system, userMsg, rapido)
     }
 
     if (!res.ok) {

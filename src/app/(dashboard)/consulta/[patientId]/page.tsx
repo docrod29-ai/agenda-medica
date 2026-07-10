@@ -263,6 +263,7 @@ export default function ConsultaActivaPage() {
         body: JSON.stringify({
           transcripcion: transcripcionParaIA,
           tipo: tipoActivo,
+          rapido: enVivo,  // en vivo = modelo rápido/barato; nota final = Opus + thinking
           contexto: {
             nombre: patient?.nombre ?? '',
             edad: patient?.edad,

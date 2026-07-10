@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v263'  // Chat 'Corregir por chat' al mismo nivel: Opus 4.8 + extended thinking (aplica el cambio con coherencia sin alucinar); lee bloque de texto tras thinking
+const CACHE = 'nexusmed-v264'  // Control de costo: la nota EN VIVO (cada ~30s) usa modelo rápido/barato (Sonnet 5 sin thinking); Opus 4.8 + thinking SOLO en la nota final. Evita multiplicar el costo por consulta
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
