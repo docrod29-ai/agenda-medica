@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
+import { useBorrador } from '@/context/BorradorContext'
 import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
 import { auth } from '@/lib/firebase'
@@ -66,6 +67,7 @@ export default function ConsultaActivaPage() {
   const esNotaHospital = !!internamientoActivo
   const volverA = esNotaHospital ? `/hospitalizacion/${internamientoActivo}` : `/expediente/${patientId}`
   const { clinicId } = useClinic()
+  const borradorMem = useBorrador()  // almacén EN MEMORIA (sobrevive navegación, sin parpadeo)
   const { config } = useConfig()
   const { toast } = useToast()
   const voz = useGrabacionVoz()
@@ -724,27 +726,29 @@ export default function ConsultaActivaPage() {
   const autoRestRef = useRef(false)
   useEffect(() => {
     if (!patientId || autoRestRef.current) return
-    let raw: string | null = null
-    try { raw = localStorage.getItem(respaldoKey) } catch { /* */ }
-    if (!raw) return
-    setRespaldoDisponible(true)
+    // 1º MEMORIA (instantáneo, sin parpadeo ni aviso): si vienes de otra pantalla,
+    //   la nota estaba viva en memoria y se pone tal cual la dejaste.
+    // 2º localStorage: respaldo tras recarga/crash (con aviso).
+    const mem = borradorMem.leer(respaldoKey) as Record<string, unknown> | null
+    let b = mem
+    if (!b) {
+      try { const raw = localStorage.getItem(respaldoKey); if (raw) { b = JSON.parse(raw); setRespaldoDisponible(true) } } catch { /* */ }
+    }
+    if (!b) return
     const vacio = !resumen.trim() && !secciones.some(s => s.value?.trim()) &&
       diagnosticos.length === 0 && medicamentos.length === 0 && !voz.transcripcion.trim()
     if (notaIdParam || !vacio) return   // abriendo otra nota o ya hay contenido → no pisar
     autoRestRef.current = true
-    try {
-      const b = JSON.parse(raw)
-      if (b.tipo) setTipo(b.tipo)
-      if (Array.isArray(b.secciones)) setSecciones(b.secciones)
-      if (typeof b.resumen === 'string') setResumen(b.resumen)
-      if (b.signos) setSignos(b.signos)
-      if (Array.isArray(b.diagnosticos)) setDiagnosticos(b.diagnosticos)
-      if (Array.isArray(b.medicamentos)) setMedicamentos(b.medicamentos)
-      if (b.transcripcion) voz.setTranscripcion(b.transcripcion)
-      setRespaldoDisponible(false)
-      toast('Recuperé tu nota sin guardar de este paciente ✓', 'success')
-    } catch { /* deja el banner como respaldo */ }
-  }, [patientId, respaldoKey, notaIdParam, resumen, secciones, diagnosticos, medicamentos, voz, toast])
+    if (typeof b.tipo === 'string') setTipo(b.tipo as TipoNota)
+    if (Array.isArray(b.secciones)) setSecciones(b.secciones as NotaSeccion[])
+    if (typeof b.resumen === 'string') setResumen(b.resumen)
+    if (b.signos) setSignos(b.signos as SignosVitales)
+    if (Array.isArray(b.diagnosticos)) setDiagnosticos(b.diagnosticos as Diagnostico[])
+    if (Array.isArray(b.medicamentos)) setMedicamentos(b.medicamentos as Medicamento[])
+    if (typeof b.transcripcion === 'string') voz.setTranscripcion(b.transcripcion)
+    setRespaldoDisponible(false)
+    if (!mem) toast('Recuperé tu nota sin guardar de este paciente ✓', 'success')  // solo si vino de localStorage
+  }, [patientId, respaldoKey, notaIdParam, resumen, secciones, diagnosticos, medicamentos, voz, toast, borradorMem])
 
   // GUARDADO INMEDIATO al salir (anti-pérdida). El respaldo con debounce se
   // cancelaba si salías rápido a la agenda (el desmonte mataba el timeout antes
@@ -753,6 +757,12 @@ export default function ConsultaActivaPage() {
   const estadoVivoRef = useRef({ tipo, resumen, secciones, signos, diagnosticos, medicamentos, transcripcion: voz.transcripcion, firmada })
   useEffect(() => {
     estadoVivoRef.current = { tipo, resumen, secciones, signos, diagnosticos, medicamentos, transcripcion: voz.transcripcion, firmada }
+    // Espejo EN MEMORIA en cada cambio (barato, sin debounce): así al navegar y
+    // volver la nota está exactamente como la dejaste, al instante.
+    const e = estadoVivoRef.current
+    const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) || e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim()
+    if (e.firmada || !hay) borradorMem.borrar(respaldoKey)
+    else borradorMem.escribir(respaldoKey, { tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos, diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, transcripcion: e.transcripcion })
   })
   const flushRespaldo = useCallback(() => {
     const e = estadoVivoRef.current

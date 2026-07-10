@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v278'  // Anti-perdida tambien en hospital: las notas de hospital usan la misma pantalla de consulta (ya protegida v277); llave de respaldo por paciente Y episodio para que borrador de hospital y de consulta externa no se pisen
+const CACHE = 'nexusmed-v279'  // La nota se queda IGUAL al navegar: almacen de borradores EN MEMORIA en el layout (sobrevive el cambio de pantalla, sin parpadeo ni 'restaurar'); localStorage queda como respaldo de recarga/crash
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
