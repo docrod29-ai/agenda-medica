@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { ClinicConfig, DEFAULT_CONFIG, AppointmentType, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { saveConfig, saveConfigPartial, updateDoctor } from '@/lib/firestore'
-import { subirImagen as subirImagenServidor, guardarConfigCompactando } from '@/lib/subir-imagen'
+import { subirImagen as subirImagenServidor } from '@/lib/subir-imagen'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useConfig } from '@/hooks/useConfig'
 import { useDoctors } from '@/hooks/useDoctors'
@@ -3729,20 +3729,18 @@ function MembreteNotaSection({ form, clinicId, onLocalChange }: {
   // info entre médicos, aunque `form` esté desincronizado. La general va aparte.
   const persistir = (url: string | undefined, margenes: { top: number; right: number; bottom: number; left: number }) => {
     const medico = doctores.find(d => d.id === medicoSel)
-    const patch = medicoSel
-      ? { notaMembretePorMedico: { [medicoSel]: { url: url ?? '', margenes } } }
-      : { notaMembreteDataUrl: url ?? '', notaMembreteMargenes: margenes }
-    const ok = medicoSel
-      ? (url ? `Hoja de ${medico?.nombre ?? 'médico'} guardada` : 'Hoja del médico eliminada')
-      : (url ? 'Hoja GENERAL del consultorio guardada' : 'Hoja general eliminada')
-    // Optimista en local para que la vista previa cambie al instante.
-    if (medicoSel) onLocalChange({ notaMembretePorMedico: { ...(form.notaMembretePorMedico ?? {}), [medicoSel]: { url: url ?? '', margenes } } })
-    else onLocalChange({ notaMembreteDataUrl: url, notaMembreteMargenes: margenes })
-    if (!clinicId) return
-    // Guardado SERVIDOR + compactación: entra aunque el doc esté inflado (tope 1MB).
-    guardarConfigCompactando(clinicId, patch)
-      .then((r) => toast(r.migradas > 0 ? `${ok} · se liberó espacio (${r.migradas} img)` : ok, 'success'))
-      .catch((e) => toast(`No se pudo guardar: ${e instanceof Error ? e.message.slice(0, 90) : ''}`, 'error'))
+    if (medicoSel) {
+      const entry = { url: url ?? '', margenes }
+      onLocalChange({ notaMembretePorMedico: { ...(form.notaMembretePorMedico ?? {}), [medicoSel]: entry } })
+      if (clinicId) saveConfigPartial(clinicId, { notaMembretePorMedico: { [medicoSel]: entry } })
+        .then(() => toast(url ? `Hoja de ${medico?.nombre ?? 'médico'} guardada` : 'Hoja del médico eliminada', 'success'))
+        .catch((e) => toast(`No se pudo guardar: ${e instanceof Error ? e.message.slice(0, 80) : ''}`, 'error'))
+    } else {
+      onLocalChange({ notaMembreteDataUrl: url, notaMembreteMargenes: margenes })
+      if (clinicId) saveConfigPartial(clinicId, { notaMembreteDataUrl: url ?? '', notaMembreteMargenes: margenes })
+        .then(() => toast(url ? 'Hoja GENERAL del consultorio guardada' : 'Hoja general eliminada', 'success'))
+        .catch((e) => toast(`No se pudo guardar: ${e instanceof Error ? e.message.slice(0, 80) : ''}`, 'error'))
+    }
   }
 
   const subir = async (file: File) => {
