@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v280'  // El Consultor sigue PENSANDO al cambiar de pantalla: conversacion + estado 'pensando' en almacen reactivo en memoria (TareasProvider en el layout); el resultado te espera al volver. Sigue: mismo trato para el procesamiento de la nota
+const CACHE = 'nexusmed-v281'  // La NOTA tambien sigue procesando al navegar: 'Procesar con IA' vive en la tarea reactiva (por paciente+episodio); si te vas, la peticion sigue y el resultado se aplica al volver (efecto de recuperacion, sin duplicar); spinner persiste
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

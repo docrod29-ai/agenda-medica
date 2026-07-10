@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
 import { useBorrador } from '@/context/BorradorContext'
+import { useTarea } from '@/context/TareasContext'
 import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
 import { auth } from '@/lib/firebase'
@@ -68,6 +69,12 @@ export default function ConsultaActivaPage() {
   const volverA = esNotaHospital ? `/hospitalizacion/${internamientoActivo}` : `/expediente/${patientId}`
   const { clinicId } = useClinic()
   const borradorMem = useBorrador()  // almacén EN MEMORIA (sobrevive navegación, sin parpadeo)
+  // Tarea de "procesar nota con IA" en el almacén reactivo (sobrevive navegación):
+  // si te vas mientras procesa, la petición sigue y su resultado se aplica al
+  // volver (o en cuanto llega, si ya volviste). Clave por paciente+episodio.
+  const procKey = `procesar.${patientId}${internamientoParam ? '.h.' + internamientoParam : ''}`
+  const [tareaProc, setTareaProc] = useTarea<{ ejecutando: boolean; resultado?: { data: Record<string, unknown>; tipoActivo: TipoNota; tipoOverride: boolean; ts: number } }>(procKey)
+  const resultadoAplicadoRef = useRef(0)
   const { config } = useConfig()
   const { toast } = useToast()
   const voz = useGrabacionVoz()
@@ -334,7 +341,7 @@ export default function ConsultaActivaPage() {
     const transcripcionParaIA = audio.utterances.length > 0
       ? audio.utterances.map(u => `${rolesHablante[u.speaker] || `Hablante ${u.speaker}`}: ${u.text}`).join('\n')
       : voz.transcripcion
-    if (enVivo) { vivoRef.current = true; setEstructurandoVivo(true) } else { setProcesando(true); setVerificacion(null) }
+    if (enVivo) { vivoRef.current = true; setEstructurandoVivo(true) } else { setProcesando(true); setVerificacion(null); setTareaProc({ ejecutando: true }) }
     try {
       const res = await fetchAutenticado('/api/expediente/procesar', {
         method: 'POST',
@@ -355,13 +362,17 @@ export default function ConsultaActivaPage() {
         }),
       })
       const data = await res.json().catch(() => null)
-      if (!data) { if (!enVivo) toast('La IA no respondió correctamente. Tu nota NO se modificó; intenta de nuevo.', 'error'); return }
+      if (!data) { if (!enVivo) { toast('La IA no respondió correctamente. Tu nota NO se modificó; intenta de nuevo.', 'error'); setTareaProc({ ejecutando: false }) } return }
       if (!data.ok) {
-        if (!enVivo) toast(data.error === 'ANTHROPIC_API_KEY no configurada en el servidor'
-          ? 'Falta configurar la API key de Claude en Vercel'
-          : `Error de IA: ${data.error}`, 'error')
+        if (!enVivo) {
+          toast(data.error === 'ANTHROPIC_API_KEY no configurada en el servidor'
+            ? 'Falta configurar la API key de Claude en Vercel'
+            : `Error de IA: ${data.error}`, 'error')
+          setTareaProc({ ejecutando: false })
+        }
         return
       }
+      const ts = Date.now()  // marca de este resultado (para la recuperación tras navegar)
       // Mapear respuesta a estado.
       // REGLA ANTI-PÉRDIDA: en un "Procesar con IA" normal SOLO se sobreescribe lo
       // que la IA realmente devolvió; NUNCA se borra lo que ya había. Solo al
@@ -450,13 +461,56 @@ export default function ConsultaActivaPage() {
           )
         }
       }
+      // Guarda el resultado en la TAREA (sobrevive navegación): el mapeo de arriba
+      // ya lo aplicó si seguías aquí (marcamos ts como aplicado para no repetir);
+      // si te fuiste, el efecto de recuperación lo aplicará al volver.
+      if (!enVivo) {
+        resultadoAplicadoRef.current = ts
+        setTareaProc({ ejecutando: false, resultado: { data: data as Record<string, unknown>, tipoActivo, tipoOverride: !!tipoOverride, ts } })
+      }
     } catch {
-      if (!enVivo) toast('Error al conectar con la IA', 'error')
+      if (!enVivo) { toast('Error al conectar con la IA', 'error'); setTareaProc({ ejecutando: false }) }
     } finally {
       if (enVivo) { vivoRef.current = false; setEstructurandoVivo(false) }
       else setProcesando(false)
     }
-  }, [voz.transcripcion, audio.utterances, rolesHablante, tipo, patient, toast, especialidadEfectiva, verificarNota])
+  }, [voz.transcripcion, audio.utterances, rolesHablante, tipo, patient, toast, especialidadEfectiva, verificarNota, setTareaProc])
+
+  // RECUPERACIÓN tras navegar: si el "Procesar" terminó mientras estabas en otra
+  // pantalla (o termina justo al volver), aplica su resultado a la nota. No
+  // duplica: si el mapeo en línea ya lo aplicó (mismo ts), se salta.
+  useEffect(() => {
+    const r = tareaProc?.resultado
+    if (!r || r.ts <= resultadoAplicadoRef.current) return
+    resultadoAplicadoRef.current = r.ts
+    const data = r.data as Record<string, unknown> & {
+      resumenEjecutivo?: string; secciones?: Record<string, string>
+      diagnosticos?: Diagnostico[]; medicamentos?: Medicamento[]
+      signosVitales?: Partial<SignosVitales>; extraction?: unknown; safety?: unknown
+    }
+    const { tipoActivo, tipoOverride } = r
+    if (data.resumenEjecutivo?.trim()) setResumen(sanitizarProsa(data.resumenEjecutivo))
+    else if (tipoOverride) setResumen('')
+    setSecciones(prev => {
+      const base = tipoOverride ? seccionesVacias(tipoActivo) : prev
+      return base.map(s => {
+        const v = data.secciones?.[s.key]
+        return (typeof v === 'string' && v.trim()) ? { ...s, value: sanitizarProsa(v) } : s
+      })
+    })
+    const nuevosDx = Array.isArray(data.diagnosticos) ? data.diagnosticos.filter(d => d.descripcion) : []
+    if (nuevosDx.length > 0 || tipoOverride) setDiagnosticos(nuevosDx)
+    const nuevosMed = Array.isArray(data.medicamentos) ? data.medicamentos.filter(m => m.nombre) : []
+    if (nuevosMed.length > 0 || tipoOverride) setMedicamentos(nuevosMed)
+    if (data.signosVitales) {
+      const sv = data.signosVitales
+      setSignos(prev => ({ fc: sv.fc || prev.fc, fr: sv.fr || prev.fr, ta: sv.ta || prev.ta, temperatura: sv.temperatura || prev.temperatura, spo2: sv.spo2 || prev.spo2, peso: sv.peso || prev.peso, talla: sv.talla || prev.talla }))
+    }
+    if (data.extraction) setExtraction(data.extraction as typeof extraction)
+    if (data.safety) setSafety(data.safety as typeof safety)
+    setProcesando(false)
+    toast('Tu nota terminó de procesarse mientras navegabas ✓', 'success')
+  }, [tareaProc, toast])
 
   // Auto-procesa UNA vez cuando llega la transcripción final (flujo "Conversación
   // completa"): graba → detén → la nota se estructura sola, sin un toque extra.
@@ -1233,8 +1287,8 @@ export default function ConsultaActivaPage() {
                   </div>
                 )}
               </div>
-              <button onClick={() => procesarIA()} disabled={procesando || !voz.transcripcion.trim()} style={S.iaBtn(procesando || !voz.transcripcion.trim())}>
-                {procesando ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Claude estructurando…</> : <><Sparkles size={16} /> Procesar con IA</>}
+              <button onClick={() => procesarIA()} disabled={procesando || tareaProc?.ejecutando || !voz.transcripcion.trim()} style={S.iaBtn(procesando || tareaProc?.ejecutando || !voz.transcripcion.trim())}>
+                {(procesando || tareaProc?.ejecutando) ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Claude estructurando…</> : <><Sparkles size={16} /> Procesar con IA</>}
               </button>
             </div>
           )}
