@@ -28,7 +28,11 @@ const ANTHROPIC_VERSION = '2023-06-01'
 // respaldo cuando el descubrimiento no está disponible.
 // Orden de preferencia: el más NUEVO primero (Sonnet 5 es más rápido Y mejor que
 // Sonnet 4.x). resolverModelo() elige el primero disponible en la cuenta.
+// La nota clínica es la tarea que MÁS razonamiento exige → se prefiere Opus 4.8
+// (el mejor modelo de razonamiento actual). Sonnet 5 queda de respaldo rápido.
 const MODELOS_CANDIDATOS = [
+  'claude-opus-4-8',
+  'claude-opus-4-6',
   'claude-sonnet-5',
   'claude-sonnet-4-6',
   'claude-sonnet-4-5',
@@ -37,6 +41,11 @@ const MODELOS_CANDIDATOS = [
   'claude-3-7-sonnet-latest',
   'claude-3-5-sonnet-latest',
 ]
+
+/** Modelos que soportan "extended thinking" (razonamiento previo). 3.5 no. */
+function soportaThinking(model: string): boolean {
+  return /opus-4|sonnet-5|sonnet-4|3-7-sonnet/.test(model)
+}
 
 // Errores transitorios de Anthropic (sobrecarga / rate-limit / 5xx). Reintentamos
 // con backoff antes de caer al parser local — son la causa #1 de "sigue fallando".
@@ -75,20 +84,27 @@ async function resolverModelo(key: string): Promise<string> {
 function MODELO_OVERRIDE_OK() { return MODEL_OVERRIDE.length > 0 }
 
 async function llamarClaude(key: string, model: string, system: string, userMsg: string) {
+  const pienso = soportaThinking(model)
+  const body: Record<string, unknown> = {
+    model,
+    // Con "thinking" el máximo INCLUYE los tokens de razonamiento; se sube a 16000
+    // para que quepa el razonamiento + el JSON completo sin cortarse (consultas
+    // largas con muchas secciones). Sin thinking, 8000 basta.
+    max_tokens: pienso ? 16000 : 8000,
+    // Prompt caching: el system (instrucciones clínicas, grande y fijo) se
+    // cachea → desde la 2ª nota la IA lo reutiliza y responde más rápido y más
+    // barato, sin cambiar el resultado.
+    system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+    messages: [{ role: 'user', content: userMsg }],
+  }
+  // Razonamiento extendido: la IA "piensa" el caso clínico antes de redactar
+  // (mejor diagnóstico diferencial, dosis, coherencia). Solo en modelos que lo
+  // soportan; el JSON final sale igual, solo mejor razonado.
+  if (pienso) body.thinking = { type: 'enabled', budget_tokens: 6000 }
   return fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: headersAnthropic(key),
-    body: JSON.stringify({
-      model,
-      // 8000 evita que el JSON se corte a la mitad cuando hay muchas
-      // secciones + extraction + safety + preopInputs
-      max_tokens: 8000,
-      // Prompt caching: el system (instrucciones clínicas, grande y fijo) se
-      // cachea → desde la 2ª nota la IA lo reutiliza y responde más rápido y más
-      // barato, sin cambiar el resultado.
-      system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
-      messages: [{ role: 'user', content: userMsg }],
-    }),
+    body: JSON.stringify(body),
   })
 }
 
@@ -183,7 +199,11 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await res.json()
-    const text: string = data.content?.[0]?.text ?? ''
+    // Con "extended thinking" el content trae bloques {type:'thinking'} ANTES del
+    // {type:'text'}; tomamos el bloque de texto, no content[0] (que sería el
+    // razonamiento). Sin thinking, content[0] ya es el texto.
+    const bloques: { type?: string; text?: string }[] = Array.isArray(data.content) ? data.content : []
+    const text: string = bloques.find(b => b?.type === 'text')?.text ?? bloques[0]?.text ?? ''
     const stopReason: string = data.stop_reason ?? ''
 
     // Si Claude devolvió string vacío, es signo de bloqueo/timeout

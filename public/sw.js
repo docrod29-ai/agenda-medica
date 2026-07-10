@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v260'  // Captura premium: grabación real a 48kHz/128kbps (el codigo decia 48/128 pero corria a 16k/64k) + AudioContext a frecuencia nativa (evita cortes); mejor diarización y capta mejor la voz del paciente
+const CACHE = 'nexusmed-v261'  // Nota IA con razonamiento de primer nivel: Opus 4.8 preferido + extended thinking (la IA razona el caso antes de redactar); lee el bloque de texto tras el thinking; max_tokens 16k para no cortar
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
