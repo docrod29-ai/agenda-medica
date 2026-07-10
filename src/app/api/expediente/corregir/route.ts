@@ -16,7 +16,13 @@ import { resolverClaveIA } from '@/lib/ai-keys'
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL ?? ''
 const ANTHROPIC_VERSION = '2023-06-01'
-const MODELOS = [MODEL_OVERRIDE, 'claude-sonnet-5', 'claude-sonnet-4-6', 'claude-sonnet-4-5', 'claude-3-7-sonnet-latest', 'claude-3-5-sonnet-latest'].filter(Boolean)
+// Mismo nivel de razonamiento que la generación de la nota: Opus 4.8 primero.
+const MODELOS = [MODEL_OVERRIDE, 'claude-opus-4-8', 'claude-opus-4-6', 'claude-sonnet-5', 'claude-sonnet-4-6', 'claude-sonnet-4-5', 'claude-3-7-sonnet-latest', 'claude-3-5-sonnet-latest'].filter(Boolean)
+
+/** Modelos que soportan "extended thinking" (razonamiento previo). 3.5 no. */
+function soportaThinking(model: string): boolean {
+  return /opus-4|sonnet-5|sonnet-4|3-7-sonnet/.test(model)
+}
 
 function headers(key: string) {
   return { 'x-api-key': key, 'anthropic-version': ANTHROPIC_VERSION, 'content-type': 'application/json' }
@@ -67,9 +73,19 @@ export async function POST(req: NextRequest) {
   let ultimoDebug = ''
   for (const model of MODELOS) {
     try {
+      const pienso = soportaThinking(model)
+      const payload: Record<string, unknown> = {
+        model,
+        max_tokens: pienso ? 16000 : 8000,
+        system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
+        messages: [{ role: 'user', content: userMsg }],
+      }
+      // Razonamiento extendido: aplica el cambio con coherencia (dosis en todos los
+      // campos, sin alucinar) igual que la generación de la nota.
+      if (pienso) payload.thinking = { type: 'enabled', budget_tokens: 4000 }
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST', headers: headers(API_KEY),
-        body: JSON.stringify({ model, max_tokens: 8000, system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }], messages: [{ role: 'user', content: userMsg }] }),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) {
         // 400/404/422 → ese modelo no existe en la cuenta o no acepta el payload;
@@ -79,7 +95,9 @@ export async function POST(req: NextRequest) {
         continue
       }
       const data = await res.json()
-      const texto = (data?.content?.[0]?.text ?? '') as string
+      // Con thinking, el texto va en el bloque type==='text' (tras los de razonamiento).
+      const bloques: { type?: string; text?: string }[] = Array.isArray(data?.content) ? data.content : []
+      const texto = (bloques.find(b => b?.type === 'text')?.text ?? bloques[0]?.text ?? '') as string
       const nota = extraerJSON(texto)
       if (nota && typeof nota === 'object') return NextResponse.json({ ok: true, ...(nota as Record<string, unknown>) })
       // Respondió pero no fue JSON parseable → intenta con el siguiente modelo.

@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v262'  // Ensamble multi-modelo: Opus 4.8 redacta + GPT-5 verifica la nota (dosis/dx/alergias/incongruencias) → panel 'Segunda opinión'; reusa OPENAI_API_KEY; no bloquea, solo sugiere
+const CACHE = 'nexusmed-v263'  // Chat 'Corregir por chat' al mismo nivel: Opus 4.8 + extended thinking (aplica el cambio con coherencia sin alucinar); lee bloque de texto tras thinking
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
