@@ -242,6 +242,10 @@ async function intentarDiarizarLargo(
   }
 }
 
+// Guarda la causa REAL del último fallo de transcripción (para mostrarla en vez
+// de un error genérico: sin saldo, llave faltante, audio muy grande, timeout…).
+let motivoFalloTranscripcion = ''
+
 /**
  * Transcribe un blob vía OpenAI. NUNCA lanza: ante 413/500/HTML devuelve ''.
  * (Antes, res.json() sobre una página de error HTML tiraba SyntaxError.)
@@ -251,10 +255,22 @@ async function transcribirBlobSimple(blob: Blob, ext: string): Promise<string> {
     const fd = new FormData()
     fd.append('audio', blob, `audio.${ext}`)
     const res = await fetchAutenticado('/api/expediente/transcribir', { method: 'POST', body: fd })
-    if (!res.ok) return ''                          // 413 (límite Vercel) / 5xx / HTML → sin texto
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      motivoFalloTranscripcion =
+        res.status === 413 ? 'audio demasiado grande para el servidor'
+        : res.status === 401 ? 'llave de OpenAI inválida'
+        : /credit|balance|quota|insufficient|billing/i.test(body) ? 'SIN SALDO en OpenAI (carga créditos en platform.openai.com)'
+        : res.status === 503 ? 'OPENAI_API_KEY no configurada en Vercel'
+        : `OpenAI HTTP ${res.status}`
+      return ''                                     // 413 (límite Vercel) / 5xx / HTML → sin texto
+    }
     const data = await res.json().catch(() => null)
-    return data?.ok && data.text ? data.text : ''
-  } catch {
+    if (data?.ok && data.text) return data.text
+    motivoFalloTranscripcion = data?.error ? String(data.error).slice(0, 100) : 'OpenAI devolvió respuesta vacía'
+    return ''
+  } catch (e) {
+    motivoFalloTranscripcion = 'sin conexión / timeout: ' + String(e).slice(0, 50)
     return ''
   }
 }
@@ -641,6 +657,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       setEstado('listo')
     }
 
+    motivoFalloTranscripcion = ''  // limpia causa previa
     // El body de las funciones de Vercel está limitado a ~4.5MB.
     const GRANDE = blob.size > 3_600_000
 
@@ -674,7 +691,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       return
     }
 
-    setError('No se pudo transcribir el audio, pero quedó GUARDADO en este dispositivo. Reintenta con "Recuperar audio".')
+    setError(`No se pudo transcribir${motivoFalloTranscripcion ? ` (${motivoFalloTranscripcion})` : ''}. El audio quedó GUARDADO en este dispositivo — reintenta con "Recuperar audio".`)
     setEstado('error')
   }, [flushChunks])
 
@@ -694,6 +711,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     }
     const mime = chunks[0].type || 'audio/webm'
     const ext = mime.includes('mp4') ? 'm4a' : mime.includes('ogg') ? 'ogg' : 'webm'
+    motivoFalloTranscripcion = ''
 
     // 1) Mejor opción: audio COMPLETO vía Storage → AssemblyAI (diariza y evita el
     //    troceado frágil). Si Storage no está habilitado, devuelve null.
@@ -716,7 +734,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       await borrarChunks(recoveryKey)  // solo se borra si SÍ se transcribió
     } else {
       // No borramos el audio: sigue disponible para reintentar más tarde.
-      setError('No se pudo transcribir el audio recuperado. Sigue guardado en este dispositivo; reintenta más tarde.')
+      setError(`No se pudo transcribir el audio recuperado${motivoFalloTranscripcion ? ` (${motivoFalloTranscripcion})` : ''}. Sigue guardado en este dispositivo; reintenta más tarde.`)
       setEstado('error')
     }
   }, [])

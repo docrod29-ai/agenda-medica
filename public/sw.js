@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v281'  // La NOTA tambien sigue procesando al navegar: 'Procesar con IA' vive en la tarea reactiva (por paciente+episodio); si te vas, la peticion sigue y el resultado se aplica al volver (efecto de recuperacion, sin duplicar); spinner persiste
+const CACHE = 'nexusmed-v282'  // Diagnostico transcripcion: el error 'no se pudo transcribir' ahora muestra la CAUSA real (sin saldo OpenAI / llave faltante / audio muy grande / timeout / HTTP) en vez de un mensaje generico
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
