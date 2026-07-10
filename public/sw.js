@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v256'  // Fix: al imprimir usa TU diseno de receta/membrete/firma subido aunque la nota no traiga medicoId — respaldo al unico medico configurado (receta+orden+nota)
+const CACHE = 'nexusmed-v257'  // Fix hoja membretada no guardaba: guardado servidor /api/config/guardar que COMPACTA el doc (saca base64 viejo a Storage) — el save entra aunque el doc estuviera inflado (tope 1MB)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

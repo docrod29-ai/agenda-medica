@@ -23,3 +23,23 @@ export async function subirImagen(valor: string | undefined, key: string): Promi
   if (data?.ok && data.url) return data.url as string
   throw new Error(data?.error || 'No se pudo subir la imagen a Storage')
 }
+
+/**
+ * Guarda un parche de config DESDE EL SERVIDOR (Admin SDK) COMPACTANDO el
+ * documento (saca a Storage cualquier base64 pesado que lo esté inflando). Úsalo
+ * para guardados que fallaban con el tope de 1 MB (hoja membretada, receta,
+ * firma). Devuelve cuántas imágenes se migraron. LANZA con la causa real si falla.
+ */
+export async function guardarConfigCompactando(
+  clinicId: string,
+  patch: Record<string, unknown>,
+): Promise<{ migradas: number }> {
+  const res = await fetchAutenticado('/api/config/guardar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ clinicId, patch }),
+  })
+  const data = await res.json().catch(() => null)
+  if (data?.ok) return { migradas: Number(data.migradas ?? 0) }
+  throw new Error(data?.error || 'No se pudo guardar la configuración')
+}
