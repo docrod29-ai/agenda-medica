@@ -127,6 +127,8 @@ export default function ConsultaActivaPage() {
   type PuntoEv = { punto?: string; opcion?: string; dx?: string; sustento?: string; porque?: string; razon?: string; citas?: number[] }
   const [evidencia, setEvidencia] = useState<{ articulos: ArtEv[]; evaluacion: PuntoEv[]; alternativas: PuntoEv[]; diferencial: PuntoEv[]; aviso?: string } | null>(null)
   const [analizandoEv, setAnalizandoEv] = useState(false)
+  // Candado de gasto (soft): uso de consultas del mes vs el límite del plan.
+  const [usoIA, setUsoIA] = useState<{ usadas: number; limite: number; restantes: number; porcentaje: number; alerta: 'ok' | 'cerca' | 'excedido' } | null>(null)
   // ── Chat de corrección por IA ──
   const [chatCorr, setChatCorr] = useState<{ rol: 'user' | 'ia'; texto: string }[]>([])
   const [instruccionCorr, setInstruccionCorr] = useState('')
@@ -400,6 +402,7 @@ export default function ConsultaActivaPage() {
       } else if (!enVivo) {
         toast('Nota estructurada por IA — revisa campo por campo', 'success')
         setPlanActual(data._plan === 'premium' ? 'premium' : 'pro')
+        if (data._uso) setUsoIA(data._uso)
         // Segunda opinión (GPT-5): AUTOMÁTICA en plan Premium; en plan Pro es un
         // botón a demanda (controla el costo). En ambos revisa seguridad clínica.
         if (data._plan === 'premium') {
@@ -1219,6 +1222,21 @@ export default function ConsultaActivaPage() {
             error={nerError}
             onCerrar={() => { setEntidades(null); setNerError('') }}
           />
+        </div>
+      )}
+
+      {/* ── Candado de gasto (soft): aviso de límite de consultas del plan ── */}
+      {usoIA && usoIA.alerta !== 'ok' && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, padding: '9px 13px', borderRadius: 10, fontSize: 12.5,
+          border: '1px solid ' + (usoIA.alerta === 'excedido' ? 'var(--amber)' : 'var(--border)'),
+          background: usoIA.alerta === 'excedido' ? 'rgba(217,119,6,0.08)' : 'var(--s2)',
+          color: 'var(--text2)',
+        }}>
+          <AlertTriangle size={15} style={{ color: usoIA.alerta === 'excedido' ? 'var(--amber)' : 'var(--text3)', flexShrink: 0 }} />
+          {usoIA.alerta === 'excedido'
+            ? <span>Llegaste al límite de <strong>{usoIA.limite}</strong> consultas de tu plan este mes ({usoIA.usadas}). La nota se generó igual — considera subir de plan.</span>
+            : <span>Vas en <strong>{usoIA.usadas}/{usoIA.limite}</strong> consultas de tu plan este mes ({usoIA.porcentaje}%). Te quedan {usoIA.restantes}.</span>}
         </div>
       )}
 

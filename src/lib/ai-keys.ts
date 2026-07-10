@@ -43,6 +43,29 @@ export async function guardarNivelIA(clinicId: string, nivel: NivelIA): Promise<
   await docIA(clinicId).set({ nivelIA: nivel }, { merge: true })
 }
 
+/**
+ * Cuenta UNA consulta (nota FINAL de IA) del mes para el candado de gasto. El
+ * borrador en vivo NO cuenta (se llama solo con la nota final). No bloquea.
+ */
+export async function registrarConsulta(clinicId: string | null): Promise<void> {
+  if (!clinicId) return
+  try {
+    await docIA(clinicId).set({
+      uso: { [mesActual()]: { consultas: admin.firestore.FieldValue.increment(1) } },
+    }, { merge: true })
+  } catch { /* no-bloqueante */ }
+}
+
+/** Consultas (notas finales) usadas este mes por el consultorio. */
+export async function consultasDelMes(clinicId: string | null): Promise<number> {
+  if (!clinicId) return 0
+  try {
+    return (await docIA(clinicId).get()).data()?.uso?.[mesActual()]?.consultas ?? 0
+  } catch {
+    return 0
+  }
+}
+
 async function clinicIdDe(uid: string): Promise<string | null> {
   try {
     const snap = await adminDb.collection('clinic_members').doc(uid).get()

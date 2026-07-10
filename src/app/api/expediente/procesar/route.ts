@@ -16,7 +16,8 @@ import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
 import { parserClinicoComoRespuestaIA } from '@/lib/expediente/parser-clinico'
 import { safeLog, redactarString } from '@/lib/security/sanitize'
 import { verificarUsuario } from '@/lib/auth-server'
-import { resolverClaveIA, pruebaAgotada, registrarUso, nivelIADe } from '@/lib/ai-keys'
+import { resolverClaveIA, pruebaAgotada, registrarUso, nivelIADe, registrarConsulta, consultasDelMes } from '@/lib/ai-keys'
+import { planDeNivel, estadoUso } from '@/lib/planes-ia'
 import type { TipoNota, PacienteContexto } from '@/types/expediente'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
@@ -268,17 +269,26 @@ export async function POST(req: NextRequest) {
 
     // Validar con Zod. Si falla, devolvemos lo que sí se pudo parsear
     // (modo permisivo: el frontend prioriza los campos planos y muestra el extraction si llega).
+    // Candado de gasto (SOFT): cuenta la consulta SOLO si es nota final (no el
+    // borrador en vivo) y devuelve el uso vs el límite del plan. Nunca bloquea.
+    let uso: ReturnType<typeof estadoUso> | undefined
+    if (!rapido) {
+      const usadas = (await consultasDelMes(clinicId)) + 1
+      void registrarConsulta(clinicId)
+      uso = estadoUso(usadas, planDeNivel(nivel).limiteConsultas)
+    }
+
     const validation = RespuestaExtraccion.safeParse(parsed)
     if (!validation.success) {
       console.warn('[procesar] Validación parcial:', validation.error.issues.slice(0, 3))
       void registrarUso(clinicId, fuente)
-      return NextResponse.json({ ok: true, ...parsed, _schemaWarning: true, _plan: nivel })
+      return NextResponse.json({ ok: true, ...parsed, _schemaWarning: true, _plan: nivel, _uso: uso })
     }
 
     void registrarUso(clinicId, fuente)
     // _plan: el cliente decide con esto si la 2ª opinión (GPT-5) es automática
-    // (premium) o botón a demanda (pro).
-    return NextResponse.json({ ok: true, ...validation.data, _plan: nivel })
+    // (premium) o botón a demanda (pro). _uso: candado de gasto (soft).
+    return NextResponse.json({ ok: true, ...validation.data, _plan: nivel, _uso: uso })
   } catch (err) {
     console.error('[expediente/procesar] Exception:', err)
     try {
