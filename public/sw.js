@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v255'  // Sin dropdown de receta/firma/hoja cuando hay UN solo medico (o eres tu): sale 'Tu receta/firma/hoja · <nombre>'; el selector solo con 2+ medicos y admin
+const CACHE = 'nexusmed-v258'  // Revertido v256+v257 (descuadraban/no ayudaban) — vuelta al estado estable v255 mientras diagnostico la hoja membretada con evidencia real
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
