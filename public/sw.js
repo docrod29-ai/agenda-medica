@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v267'  // Switch de nivel de IA por consultorio en /superadmin: Pro ($899, Sonnet 5) / Premium ($1,999, Opus+GPT-5). Campo nivelIA en secretos/ia (renombrado desde 'plan' para no chocar con la suscripcion)
+const CACHE = 'nexusmed-v268'  // Análisis basado en evidencia: cruza dx+tratamiento contra PubMed (NEJM/JAMA/Cochrane, API gratis) y razona con CITAS reales (Opus/Sonnet segun nivel); boton en consulta + panel con fuentes enlazadas
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

@@ -122,6 +122,11 @@ export default function ConsultaActivaPage() {
   const [verificacion, setVerificacion] = useState<{ modelo: string; hallazgos: Hallazgo[] } | null>(null)
   const [verificando, setVerificando] = useState(false)
   const [planActual, setPlanActual] = useState<'pro' | 'premium' | null>(null)
+  // Análisis basado en evidencia (PubMed: NEJM/JAMA/Cochrane…) + citas reales.
+  type ArtEv = { pmid: string; titulo: string; revista: string; anio: string; url: string }
+  type PuntoEv = { punto?: string; opcion?: string; dx?: string; sustento?: string; porque?: string; razon?: string; citas?: number[] }
+  const [evidencia, setEvidencia] = useState<{ articulos: ArtEv[]; evaluacion: PuntoEv[]; alternativas: PuntoEv[]; diferencial: PuntoEv[]; aviso?: string } | null>(null)
+  const [analizandoEv, setAnalizandoEv] = useState(false)
   // ── Chat de corrección por IA ──
   const [chatCorr, setChatCorr] = useState<{ rol: 'user' | 'ia'; texto: string }[]>([])
   const [instruccionCorr, setInstruccionCorr] = useState('')
@@ -258,6 +263,27 @@ export default function ConsultaActivaPage() {
       voz.transcripcion,
     )
   }, [verificarNota, resumen, secciones, diagnosticos, medicamentos, signos, voz.transcripcion])
+
+  // Análisis basado en evidencia: cruza dx + tratamiento contra PubMed y razona
+  // con citas reales (NEJM/JAMA/Cochrane…). A demanda (botón).
+  const analizarEvidencia = useCallback(async () => {
+    if (diagnosticos.length === 0 && medicamentos.length === 0) { toast('Agrega al menos un diagnóstico o medicamento primero', 'info'); return }
+    setAnalizandoEv(true); setEvidencia(null)
+    try {
+      const res = await fetchAutenticado('/api/expediente/evidencia', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          diagnosticos: diagnosticos.map(d => ({ descripcion: d.descripcion })),
+          medicamentos: medicamentos.map(m => ({ nombre: m.nombre })),
+          contexto: { edad: patient?.edad, sexo: patient?.sexo, alergias: patient?.alergias },
+        }),
+      })
+      const data = await res.json().catch(() => null)
+      if (data?.ok) setEvidencia({ articulos: data.articulos ?? [], evaluacion: data.evaluacion ?? [], alternativas: data.alternativas ?? [], diferencial: data.diferencial ?? [], aviso: data._aviso })
+      else toast(data?.error || 'No se pudo analizar la evidencia', 'error')
+    } catch { toast('Sin conexión con el motor de evidencia', 'error') }
+    finally { setAnalizandoEv(false) }
+  }, [diagnosticos, medicamentos, patient?.edad, patient?.sexo, patient?.alergias, toast])
 
   const procesarIA = useCallback(async (tipoOverride?: TipoNota, opts?: { enVivo?: boolean }) => {
     // enVivo = estructuración EN TIEMPO REAL mientras se graba (silenciosa, sin
@@ -1240,6 +1266,59 @@ export default function ConsultaActivaPage() {
           </Alert>
         )
       )}
+
+      {/* ── Análisis basado en evidencia (PubMed) ── */}
+      {(diagnosticos.length > 0 || medicamentos.length > 0) && !evidencia && (
+        <button onClick={analizarEvidencia} disabled={analizandoEv}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, background: 'rgba(20,184,166,0.10)', color: 'var(--teal)', border: '1px solid rgba(20,184,166,0.35)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: analizandoEv ? 'default' : 'pointer' }}>
+          {analizandoEv
+            ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Cruzando con la literatura médica…</>
+            : <><FlaskConical size={14} /> Análisis basado en evidencia (NEJM · JAMA · Cochrane · PubMed)</>}
+        </button>
+      )}
+      {evidencia && (() => {
+        const arts = evidencia.articulos
+        const citas = (nums?: number[]) => (nums ?? []).filter(n => arts[n - 1]).map((n, k) => (
+          <a key={k} href={arts[n - 1].url} target="_blank" rel="noopener noreferrer"
+            title={`${arts[n - 1].titulo} — ${arts[n - 1].revista} ${arts[n - 1].anio}`}
+            style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none', verticalAlign: 'super', marginLeft: 2 }}>[{n}]</a>
+        ))
+        const bloque = (titulo: string, items: PuntoEv[], campoTitulo: keyof PuntoEv, campoTexto: keyof PuntoEv) => items.length > 0 && (
+          <div style={{ marginTop: 10 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>{titulo}</div>
+            {items.map((it, i) => (
+              <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginTop: 4 }}>
+                • <strong>{String(it[campoTitulo] ?? '')}</strong>{it[campoTexto] ? ` — ${String(it[campoTexto])}` : ''} {citas(it.citas)}
+              </div>
+            ))}
+          </div>
+        )
+        return (
+          <div style={{ marginBottom: 12, border: '1px solid rgba(20,184,166,0.35)', borderRadius: 12, padding: 14, background: 'rgba(20,184,166,0.05)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 700, color: 'var(--teal)' }}>
+              <FlaskConical size={15} /> Análisis basado en evidencia
+              <button onClick={analizarEvidencia} disabled={analizandoEv} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text3)', fontSize: 11, cursor: 'pointer' }}>↻ actualizar</button>
+            </div>
+            {evidencia.aviso && <div style={{ fontSize: 11.5, color: 'var(--amber)', marginTop: 6 }}>{evidencia.aviso}</div>}
+            {bloque('Evaluación del tratamiento', evidencia.evaluacion, 'punto', 'sustento')}
+            {bloque('Alternativas a considerar', evidencia.alternativas, 'opcion', 'porque')}
+            {bloque('Diagnóstico diferencial', evidencia.diferencial, 'dx', 'razon')}
+            {arts.length > 0 && (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text3)' }}>Fuentes ({arts.length})</div>
+                {arts.map((a, i) => (
+                  <div key={a.pmid} style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
+                    [{i + 1}] <a href={a.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>{a.titulo}</a> · {a.revista} {a.anio}
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 10, fontStyle: 'italic' }}>
+              Evidencia real de PubMed. Apoyo a la decisión — el juicio clínico es tuyo.
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ── Alertas clínicas cruzadas (punto de atención) ── */}
       {(() => {
