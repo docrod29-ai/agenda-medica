@@ -3,6 +3,8 @@ import { useState, useEffect, useMemo } from 'react'
 import { Appointment, AppointmentType, AppointmentStatus, AppointmentOrigin, APPOINTMENT_TYPE_CONFIG, DEFAULT_CONFIG } from '@/types'
 import { useConfig } from '@/hooks/useConfig'
 import { useAppointments } from '@/hooks/useAppointments'
+import { useDoctors } from '@/hooks/useDoctors'
+import { useFiltroMedico } from '@/components/DoctorFilter'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/context/ToastContext'
 import { updateAppointment } from '@/lib/firestore'
@@ -42,6 +44,8 @@ const STATUSES_EDIT: AppointmentStatus[] = [
 export function AppointmentModal({ open, onClose, appointment, defaultDate, defaultHour, onSaved }: Props) {
   const { config } = useConfig()
   const { appointments } = useAppointments()
+  const { activeDoctors } = useDoctors()
+  const [filtroMedico] = useFiltroMedico()
   const { user } = useAuth()
   const { clinicId } = useClinic()
   const { toast } = useToast()
@@ -64,6 +68,7 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
   const [saving, setSaving]       = useState(false)
   const [conflict, setConflict]   = useState(false)
   const [bloques, setBloques]     = useState<TimeBlock[]>([])
+  const [medicoId, setMedicoId]   = useState<string>('')  // médico al que se agenda la cita
 
   useEffect(() => {
     if (open && clinicId) listarBloques(clinicId).then(setBloques).catch(() => {})
@@ -84,33 +89,48 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
       setOrigen(appointment.origen)
       setEstado(appointment.estado)
       setConsent(appointment.consentimientoMensajes)
+      // Médico de la cita; si no tiene, cae al filtro activo o al primero.
+      setMedicoId(appointment.medicoId || filtroMedico || activeDoctors[0]?.id || '')
     } else {
       setNombre(''); setTelefono(''); setFecha(defaultDate ?? today)
       setHora(defaultHour ?? ''); setTipo('primera-vez'); setDuracion(60)
       setMotivo(''); setNotas(''); setOrigen('Manual')
       setEstado('pendiente-confirmar'); setConsent(true)
+      // Nueva cita: al médico que la asistente tiene filtrado, o al primero.
+      setMedicoId(filtroMedico || activeDoctors[0]?.id || '')
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, appointment, defaultDate, defaultHour, today])
 
-  // Auto-fill duration from type
+  // Médico seleccionado + su PROPIO horario/duraciones (cada médico agenda distinto).
+  const doctorSel = useMemo(() => activeDoctors.find(d => d.id === medicoId), [activeDoctors, medicoId])
+  const cfgAgenda = useMemo(() => doctorSel ? {
+    ...config,
+    horario: doctorSel.horario ?? config.horario,
+    duraciones: doctorSel.duraciones ?? config.duraciones,
+    intervaloMinutos: doctorSel.intervaloMinutos ?? config.intervaloMinutos,
+    zonaHoraria: doctorSel.zonaHoraria ?? config.zonaHoraria,
+  } : config, [doctorSel, config])
+
+  // Auto-fill duration from type (según el médico seleccionado)
   useEffect(() => {
     if (!isEdit) {
-      const d = config.duraciones?.[tipo] ?? APPOINTMENT_TYPE_CONFIG[tipo].defaultMinutes
+      const d = cfgAgenda.duraciones?.[tipo] ?? APPOINTMENT_TYPE_CONFIG[tipo].defaultMinutes
       setDuracion(d)
     }
-  }, [tipo, config.duraciones, isEdit])
+  }, [tipo, cfgAgenda.duraciones, isEdit])
 
-  // Available slots
+  // Available slots — con el horario del médico y solo SUS citas
   const slots = useMemo(() => {
     if (!fecha) return []
-    return getAvailableSlots(fecha, duracion, appointments, config, appointment?.id, bloques, appointment?.medicoId)
-  }, [fecha, duracion, appointments, config, appointment?.id, appointment?.medicoId, bloques])
+    return getAvailableSlots(fecha, duracion, appointments, cfgAgenda, appointment?.id, bloques, medicoId || undefined)
+  }, [fecha, duracion, appointments, cfgAgenda, appointment?.id, medicoId, bloques])
 
   // Conflict check (médico-aware + bloqueos, igual que los slots)
   useEffect(() => {
     if (!fecha || !hora) { setConflict(false); return }
-    setConflict(hasConflict(fecha, hora, duracion, appointments, appointment?.id, bloques, appointment?.medicoId))
-  }, [fecha, hora, duracion, appointments, appointment?.id, appointment?.medicoId, bloques])
+    setConflict(hasConflict(fecha, hora, duracion, appointments, appointment?.id, bloques, medicoId || undefined))
+  }, [fecha, hora, duracion, appointments, appointment?.id, medicoId, bloques])
 
   const handleSave = async () => {
     if (!nombre.trim()) { toast('Ingresa el nombre del paciente', 'error'); return }
@@ -129,10 +149,10 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
         motivo: motivo.trim(),
         estado,
         origen,
-        // Al EDITAR conserva el médico de la cita (no lo pisa con el del dueño);
-        // solo usa el principal al crear una cita nueva.
-        medicoNombre: appointment?.medicoNombre ?? config.nombreMedico ?? '',
-        // (medicoId NO se incluye: omitirlo preserva el existente; escribir undefined rompería updateDoc)
+        // Médico al que se agenda la cita (elegido en el selector). Se guardan id y
+        // nombre; el id se omite si está vacío (undefined rompería updateDoc).
+        medicoNombre: doctorSel?.nombre ?? appointment?.medicoNombre ?? config.nombreMedico ?? '',
+        ...(medicoId ? { medicoId } : {}),
         // No degradar un consentimiento previo ni "confirmar" solo por el estado:
         // eleva confirmadoPaciente si el estado lo implica, si no conserva el real.
         confirmadoPaciente: appointment?.confirmadoPaciente || ['confirmada', 'atendida', 'finalizada'].includes(estado),
@@ -286,6 +306,17 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
       )}
     >
           <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
+            {/* Médico — a quién se agenda la cita (para consultorios con varios médicos) */}
+            {activeDoctors.length > 1 && (
+              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                <label className="label">Médico *</label>
+                <select className="input" value={medicoId} onChange={e => { setMedicoId(e.target.value); setHora('') }}>
+                  {activeDoctors.map(d => <option key={d.id} value={d.id}>{d.nombre}</option>)}
+                </select>
+                <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>La cita se agenda en la agenda de este médico (con su horario).</div>
+              </div>
+            )}
+
             {/* Paciente */}
             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
               <label className="label">Nombre del paciente *</label>

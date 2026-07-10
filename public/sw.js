@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v252'  // Firma/sello POR MEDICO (individual como receta y hoja membretada): selector por medico + firmaPorMedico; receta/orden/nota usan la firma del medico que firma
+const CACHE = 'nexusmed-v253'  // Modal de cita: selector de MEDICO (la asistente agenda a cada medico) + usa el horario propio de ese medico + guarda medicoId; navegacion entre agendas de los 4 medicos
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
