@@ -1266,14 +1266,14 @@ export default function ConsultaActivaPage() {
                           : audio.nivelAudio < 0.05 ? 'Esperando voz…' : 'Captando bien'}
                       </span>
                       <span style={{ fontVariantNumeric: 'tabular-nums' }}>
-                        {(audio.bytesGrabados / 1024 / 1024).toFixed(1)} / 25 MB · 48kHz/128kbps
+                        {(audio.bytesGrabados / 1024 / 1024).toFixed(1)} / 25 MB · 16kHz/64kbps
                       </span>
                     </div>
                   </div>
                 )}
                 {audio.estado !== 'grabando' && (
                   <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>
-                    Capta a los dos · HIFI 48kHz · gpt-4o-transcribe · vocabulario médico ampliado
+                    Capta a los dos · voz 16kHz · gpt-4o-transcribe · vocabulario médico ampliado
                   </div>
                 )}
                 {audio.error && (

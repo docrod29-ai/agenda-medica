@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v283'  // Fix 'no se pudo transcribir': revertido audio a 16kHz/64kbps (el 48k/128k pesaba 2.5x y cruzaba el umbral de 'grande' -> en Safari mp4 el troceado se rompia). Ligero = rapido, sin timeout, sin romper transcripcion. 16kHz es lo que usa el ASR y AssemblyAI diariza igual
+const CACHE = 'nexusmed-v284'  // Etiqueta corregida a 16kHz (ya no dice 48kHz). Diagnostico confirmado: la transcripcion falla porque falta OPENAI_API_KEY en Vercel (config del dueno, no bug de codigo)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
