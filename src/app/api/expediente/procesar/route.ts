@@ -16,33 +16,42 @@ import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
 import { parserClinicoComoRespuestaIA } from '@/lib/expediente/parser-clinico'
 import { safeLog, redactarString } from '@/lib/security/sanitize'
 import { verificarUsuario } from '@/lib/auth-server'
-import { resolverClaveIA, pruebaAgotada, registrarUso } from '@/lib/ai-keys'
+import { resolverClaveIA, pruebaAgotada, registrarUso, planDe } from '@/lib/ai-keys'
 import type { TipoNota, PacienteContexto } from '@/types/expediente'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL ?? ''
 const ANTHROPIC_VERSION = '2023-06-01'
 
-// Modelos candidatos en orden de preferencia (el primero disponible se usa).
-// resolverModelo() descubre dinámicamente vía /v1/models; esta lista es el
-// respaldo cuando el descubrimiento no está disponible.
-// Orden de preferencia: el más NUEVO primero (Sonnet 5 es más rápido Y mejor que
-// Sonnet 4.x). resolverModelo() elige el primero disponible en la cuenta.
-// La nota clínica es la tarea que MÁS razonamiento exige → se prefiere Opus 4.8
-// (el mejor modelo de razonamiento actual). Sonnet 5 queda de respaldo rápido.
-const MODELOS_CANDIDATOS = [
+// Tres PERFILES de modelo, según plan del consultorio y momento:
+//  · 'live'    → borrador EN VIVO (cada ~30s): Haiku, baratísimo y veloz. Sin thinking.
+//  · 'pro'     → nota FINAL del plan Pro ($899): Sonnet 5, excelente, sin thinking.
+//  · 'premium' → nota FINAL del plan Premium ($1,999): Opus 4.8 + extended thinking.
+// resolverModelo() descubre el primero disponible en la cuenta vía /v1/models.
+const MODELOS_PREMIUM = [
   'claude-opus-4-8',
   'claude-opus-4-6',
   'claude-sonnet-5',
   'claude-sonnet-4-6',
   'claude-sonnet-4-5',
-  'claude-sonnet-4-5-20250929',
-  'claude-sonnet-4-20250514',
   'claude-3-7-sonnet-latest',
+]
+const MODELOS_PRO = [
+  'claude-sonnet-5',
+  'claude-sonnet-4-6',
+  'claude-sonnet-4-5',
   'claude-3-5-sonnet-latest',
 ]
+const MODELOS_LIVE = [
+  'claude-haiku-4-5-20251001',
+  'claude-haiku-4-5',
+  'claude-3-5-haiku-latest',
+  'claude-sonnet-5',   // respaldo si la cuenta no tiene Haiku
+]
+type Perfil = 'live' | 'pro' | 'premium'
+const CANDIDATOS: Record<Perfil, string[]> = { live: MODELOS_LIVE, pro: MODELOS_PRO, premium: MODELOS_PREMIUM }
 
-/** Modelos que soportan "extended thinking" (razonamiento previo). 3.5 no. */
+/** Modelos que soportan "extended thinking" (razonamiento previo). 3.5/haiku no. */
 function soportaThinking(model: string): boolean {
   return /opus-4|sonnet-5|sonnet-4|3-7-sonnet/.test(model)
 }
@@ -58,26 +67,15 @@ const headersAnthropic = (key: string) => ({
   'Content-Type': 'application/json',
 })
 
-// Modo RÁPIDO (nota en vivo, cada ~30s mientras se graba): Sonnet 5 sin thinking,
-// barato y veloz. La nota FINAL sí usa Opus 4.8 + thinking. Esto evita que la
-// estructuración en vivo (que corre muchas veces por consulta) dispare el costo.
-const MODELOS_RAPIDOS = [
-  'claude-sonnet-5',
-  'claude-sonnet-4-6',
-  'claude-sonnet-4-5',
-  'claude-3-5-sonnet-latest',
-]
-
 /** Cachea el modelo resuelto entre invocaciones del runtime (uno por perfil) */
-let modeloResuelto = ''
-let modeloResueltoRapido = ''
+const modeloResuelto: Record<Perfil, string> = { live: '', pro: '', premium: '' }
 
 /** Descubre un modelo válido para esta cuenta vía /v1/models */
-async function resolverModelo(key: string, rapido = false): Promise<string> {
-  if (!rapido && MODELO_OVERRIDE_OK()) return MODEL_OVERRIDE
-  const cache = rapido ? modeloResueltoRapido : modeloResuelto
-  if (cache) return cache
-  const candidatos = rapido ? MODELOS_RAPIDOS : MODELOS_CANDIDATOS
+async function resolverModelo(key: string, perfil: Perfil): Promise<string> {
+  // El override por env solo aplica al perfil premium (la nota "de máximo nivel").
+  if (perfil === 'premium' && MODELO_OVERRIDE_OK()) return MODEL_OVERRIDE
+  if (modeloResuelto[perfil]) return modeloResuelto[perfil]
+  const candidatos = CANDIDATOS[perfil]
   try {
     const res = await fetch('https://api.anthropic.com/v1/models?limit=100', { headers: headersAnthropic(key) })
     if (res.ok) {
@@ -88,7 +86,7 @@ async function resolverModelo(key: string, rapido = false): Promise<string> {
         candidatos.find(c => ids.includes(c)) ??
         ids.find(id => id.includes('sonnet')) ??
         ids[0]
-      if (elegido) { if (rapido) modeloResueltoRapido = elegido; else modeloResuelto = elegido; return elegido }
+      if (elegido) { modeloResuelto[perfil] = elegido; return elegido }
     }
   } catch { /* cae al fallback */ }
   return candidatos[0]
@@ -96,8 +94,8 @@ async function resolverModelo(key: string, rapido = false): Promise<string> {
 
 function MODELO_OVERRIDE_OK() { return MODEL_OVERRIDE.length > 0 }
 
-async function llamarClaude(key: string, model: string, system: string, userMsg: string, rapido = false) {
-  const pienso = !rapido && soportaThinking(model)
+async function llamarClaude(key: string, model: string, system: string, userMsg: string, conThinking = false) {
+  const pienso = conThinking && soportaThinking(model)
   const body: Record<string, unknown> = {
     model,
     // Con "thinking" el máximo INCLUYE los tokens de razonamiento; se sube a 16000
@@ -126,11 +124,11 @@ async function llamarClaude(key: string, model: string, system: string, userMsg:
  * / 5xx) con backoff. Anthropic devuelve 529 cuando está saturado: un solo
  * intento hacía que la nota cayera al parser local "porque sí".
  */
-async function llamarClaudeConReintentos(key: string, model: string, system: string, userMsg: string, rapido = false) {
-  let res = await llamarClaude(key, model, system, userMsg, rapido)
+async function llamarClaudeConReintentos(key: string, model: string, system: string, userMsg: string, conThinking = false) {
+  let res = await llamarClaude(key, model, system, userMsg, conThinking)
   for (let intento = 1; intento <= 2 && STATUS_REINTENTABLE.has(res.status); intento++) {
     await sleep(intento * 700)
-    res = await llamarClaude(key, model, system, userMsg, rapido)
+    res = await llamarClaude(key, model, system, userMsg, conThinking)
   }
   return res
 }
@@ -177,36 +175,42 @@ export async function POST(req: NextRequest) {
   }
 
   const { transcripcion, tipo, contexto } = body
-  // Modo rápido: estructuración EN VIVO (cada ~30s). Usa Sonnet 5 sin thinking
-  // (barato/veloz). La nota FINAL (rapido=false) usa Opus 4.8 + thinking.
   const rapido = body.rapido === true
   if (!transcripcion || !tipo || !contexto) {
     return NextResponse.json({ ok: false, error: 'Faltan transcripcion, tipo o contexto' }, { status: 400 })
   }
 
+  // Perfil de modelo:
+  //  · en vivo → 'live' (Haiku, barato/veloz).
+  //  · nota final → según el PLAN del consultorio: 'premium' (Opus 4.8 + thinking)
+  //    o 'pro' (Sonnet 5, sin thinking — el plan económico $899).
+  const plan = await planDe(clinicId)
+  const perfil: Perfil = rapido ? 'live' : (plan === 'premium' ? 'premium' : 'pro')
+  const conThinking = perfil === 'premium'
+
   try {
     const system  = buildSystemPrompt(tipo, contexto.especialidad, contexto.instruccionesIA)
     const userMsg = buildUserPrompt(transcripcion, contexto)
 
-    let model = await resolverModelo(API_KEY, rapido)
-    let res = await llamarClaudeConReintentos(API_KEY, model, system, userMsg, rapido)
+    let model = await resolverModelo(API_KEY, perfil)
+    let res = await llamarClaudeConReintentos(API_KEY, model, system, userMsg, conThinking)
 
     // Si el modelo no existe (404), redescubre y reintenta una vez
     if (res.status === 404) {
-      if (rapido) modeloResueltoRapido = ''; else modeloResuelto = ''
-      model = await resolverModelo(API_KEY, rapido)
-      res = await llamarClaudeConReintentos(API_KEY, model, system, userMsg, rapido)
+      modeloResuelto[perfil] = ''
+      model = await resolverModelo(API_KEY, perfil)
+      res = await llamarClaudeConReintentos(API_KEY, model, system, userMsg, conThinking)
     }
 
     // MODO SEGURO: un 400 con "extended thinking" (o max_tokens alto) tumbaba la
     // nota al parser local. Si el intento con thinking devolvió 400, reintentamos
-    // el MISMO modelo SIN thinking y con tokens normales (rapido=true) → la nota
-    // se genera igual, solo sin el razonamiento extra. Así un límite de la cuenta
-    // o del modelo no rompe la generación.
-    if (res.status === 400 && !rapido) {
+    // el MISMO modelo SIN thinking y con tokens normales → la nota se genera igual,
+    // solo sin el razonamiento extra. Así un límite de la cuenta o del modelo no
+    // rompe la generación. (Solo aplica si usamos thinking = plan premium.)
+    if (res.status === 400 && conThinking) {
       const errTxt = await res.clone().text().catch(() => '')
       safeLog.error('[expediente/procesar] 400 con thinking, reintento modo seguro:', redactarString(errTxt.slice(0, 300)))
-      res = await llamarClaudeConReintentos(API_KEY, model, system, userMsg, true)
+      res = await llamarClaudeConReintentos(API_KEY, model, system, userMsg, false)
     }
 
     if (!res.ok) {
@@ -268,11 +272,13 @@ export async function POST(req: NextRequest) {
     if (!validation.success) {
       console.warn('[procesar] Validación parcial:', validation.error.issues.slice(0, 3))
       void registrarUso(clinicId, fuente)
-      return NextResponse.json({ ok: true, ...parsed, _schemaWarning: true })
+      return NextResponse.json({ ok: true, ...parsed, _schemaWarning: true, _plan: plan })
     }
 
     void registrarUso(clinicId, fuente)
-    return NextResponse.json({ ok: true, ...validation.data })
+    // _plan: el cliente decide con esto si la 2ª opinión (GPT-5) es automática
+    // (premium) o botón a demanda (pro).
+    return NextResponse.json({ ok: true, ...validation.data, _plan: plan })
   } catch (err) {
     console.error('[expediente/procesar] Exception:', err)
     try {

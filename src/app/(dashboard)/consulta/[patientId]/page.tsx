@@ -121,6 +121,7 @@ export default function ConsultaActivaPage() {
   type Hallazgo = { severidad: string; tema: string; problema: string; sugerencia: string }
   const [verificacion, setVerificacion] = useState<{ modelo: string; hallazgos: Hallazgo[] } | null>(null)
   const [verificando, setVerificando] = useState(false)
+  const [planActual, setPlanActual] = useState<'pro' | 'premium' | null>(null)
   // ── Chat de corrección por IA ──
   const [chatCorr, setChatCorr] = useState<{ rol: 'user' | 'ia'; texto: string }[]>([])
   const [instruccionCorr, setInstruccionCorr] = useState('')
@@ -245,6 +246,19 @@ export default function ConsultaActivaPage() {
     finally { setVerificando(false) }
   }, [patient?.edad, patient?.sexo, patient?.alergias])
 
+  // Segunda opinión A DEMANDA (plan Pro): construye la nota desde el estado actual
+  // y la manda a verificar. En Premium ya corre sola tras generar.
+  const pedirSegundaOpinion = useCallback(() => {
+    void verificarNota(
+      {
+        resumen,
+        secciones: secciones.map(s => ({ titulo: s.label, contenido: s.value })),
+        diagnosticos, medicamentos, signos,
+      },
+      voz.transcripcion,
+    )
+  }, [verificarNota, resumen, secciones, diagnosticos, medicamentos, signos, voz.transcripcion])
+
   const procesarIA = useCallback(async (tipoOverride?: TipoNota, opts?: { enVivo?: boolean }) => {
     // enVivo = estructuración EN TIEMPO REAL mientras se graba (silenciosa, sin
     // toasts ni reset de aprobaciones; la nota se va armando sola).
@@ -359,14 +373,18 @@ export default function ConsultaActivaPage() {
         if (!enVivo) toast(data._aviso || 'La IA no estructuró la nota — se llenó lo básico, revisa todo', 'error')
       } else if (!enVivo) {
         toast('Nota estructurada por IA — revisa campo por campo', 'success')
-        // Segunda opinión: GPT-5 revisa la nota de Opus 4.8 por seguridad clínica.
-        const seccionesArr = data.secciones && typeof data.secciones === 'object'
-          ? Object.entries(data.secciones).map(([k, v]) => ({ titulo: k, contenido: String(v ?? '') }))
-          : []
-        void verificarNota(
-          { resumen: data.resumenEjecutivo, secciones: seccionesArr, diagnosticos: nuevosDx, medicamentos: nuevosMed, signos: data.signosVitales },
-          transcripcionParaIA,
-        )
+        setPlanActual(data._plan === 'premium' ? 'premium' : 'pro')
+        // Segunda opinión (GPT-5): AUTOMÁTICA en plan Premium; en plan Pro es un
+        // botón a demanda (controla el costo). En ambos revisa seguridad clínica.
+        if (data._plan === 'premium') {
+          const seccionesArr = data.secciones && typeof data.secciones === 'object'
+            ? Object.entries(data.secciones).map(([k, v]) => ({ titulo: k, contenido: String(v ?? '') }))
+            : []
+          void verificarNota(
+            { resumen: data.resumenEjecutivo, secciones: seccionesArr, diagnosticos: nuevosDx, medicamentos: nuevosMed, signos: data.signosVitales },
+            transcripcionParaIA,
+          )
+        }
       }
     } catch {
       if (!enVivo) toast('Error al conectar con la IA', 'error')
@@ -1184,6 +1202,14 @@ export default function ConsultaActivaPage() {
           <Sparkles size={14} color="var(--teal)" style={{ flexShrink: 0, marginTop: 2 }} />
           <span style={{ fontSize: 13, color: 'var(--text)', fontStyle: 'italic' }}>{resumen}</span>
         </div>
+      )}
+
+      {/* Botón de 2ª opinión a demanda (plan Pro): en Premium corre sola. */}
+      {planActual === 'pro' && !verificacion && !verificando && (resumen || diagnosticos.length > 0 || medicamentos.length > 0) && (
+        <button onClick={pedirSegundaOpinion}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, background: 'rgba(59,90,254,0.10)', color: 'var(--nexus, #3d5afe)', border: '1px solid rgba(59,90,254,0.35)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          <Sparkles size={14} /> Pedir segunda opinión (otra IA revisa la nota)
+        </button>
       )}
 
       {/* ── Segunda opinión (verificación cruzada por un 2º modelo top) ── */}

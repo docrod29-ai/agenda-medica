@@ -19,6 +19,29 @@ export const LIMITE_PRUEBA = Number(process.env.LIMITE_PRUEBA_IA ?? '30')
 const docIA = (clinicId: string) => adminDb.doc(`clinics/${clinicId}/secretos/ia`)
 const mesActual = () => new Date().toISOString().slice(0, 7)
 
+export type PlanIA = 'pro' | 'premium'
+
+/**
+ * Plan del consultorio: 'pro' (económico — Sonnet 5, sin verificación automática)
+ * o 'premium' (Opus 4.8 + thinking + segunda opinión GPT-5). Default 'pro' para
+ * que el costo por consultorio sea sostenible al precio base. Se guarda en el
+ * mismo doc de secretos (solo servidor).
+ */
+export async function planDe(clinicId: string | null): Promise<PlanIA> {
+  if (!clinicId) return 'pro'
+  try {
+    const p = (await docIA(clinicId).get()).data()?.plan
+    return p === 'premium' ? 'premium' : 'pro'
+  } catch {
+    return 'pro'
+  }
+}
+
+/** Fija el plan del consultorio (lo usa la consola del dueño / selector de plan). */
+export async function guardarPlan(clinicId: string, plan: PlanIA): Promise<void> {
+  await docIA(clinicId).set({ plan }, { merge: true })
+}
+
 async function clinicIdDe(uid: string): Promise<string | null> {
   try {
     const snap = await adminDb.collection('clinic_members').doc(uid).get()

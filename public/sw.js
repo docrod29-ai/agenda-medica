@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v265'  // Fix HTTP 400 (thinking/max_tokens tumbaba la nota al parser): reintento modo seguro sin thinking en procesar+corregir + error real (saldo vs parametro). Conversacion completa medico-paciente = UNICA opcion (sin toggle)
+const CACHE = 'nexusmed-v266'  // Tier Economia (plan Pro $899): nota final Sonnet 5 sin thinking + borrador en vivo con Haiku + 2a opinion GPT-5 a demanda (boton). Plan Premium (Opus+thinking+GPT-5 auto) por consultorio via planDe(). Default pro. Cost ~$0.20/consulta
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
