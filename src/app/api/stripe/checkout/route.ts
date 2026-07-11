@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe, STRIPE_PRICES, PlanKey } from '@/lib/stripe'
+import { stripe, priceIdDe, PlanKey, type Ciclo } from '@/lib/stripe'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarMiembro } from '@/lib/auth-server'
 
@@ -16,10 +16,11 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.ve
 
 export async function POST(req: NextRequest) {
   try {
-    const { clinicId, plan, email } = (await req.json()) as {
+    const { clinicId, plan, email, ciclo } = (await req.json()) as {
       clinicId: string
       plan: PlanKey
       email: string
+      ciclo?: Ciclo
     }
 
     if (!clinicId || !plan || !email) {
@@ -28,9 +29,10 @@ export async function POST(req: NextRequest) {
     const acceso = await verificarMiembro(req, clinicId)
     if (!acceso.ok) return acceso.response
 
-    const priceId = STRIPE_PRICES[plan]
+    const cicloEfectivo: Ciclo = ciclo === 'anual' ? 'anual' : 'mensual'
+    const priceId = priceIdDe(plan, cicloEfectivo)
     if (!priceId) {
-      return NextResponse.json({ error: `No price configured for plan: ${plan}` }, { status: 400 })
+      return NextResponse.json({ error: `No price configured for plan: ${plan} (${cicloEfectivo})` }, { status: 400 })
     }
 
     // Get or create Stripe customer for this clinic
@@ -62,15 +64,15 @@ export async function POST(req: NextRequest) {
         // Modelo B: la tarjeta se captura HOY pero el primer cargo es hasta el día 15.
         // Stripe gestiona el trial y el cobro automático; si falla → invoice.payment_failed.
         trial_period_days: 14,
-        metadata: { clinicId, plan },
+        metadata: { clinicId, plan, ciclo: cicloEfectivo },
       },
       // Requerir tarjeta aunque haya trial (sin esto Stripe podría omitirla).
       payment_method_collection: 'always',
       success_url: `${APP_URL}/dashboard?checkout=success&plan=${plan}`,
       cancel_url:  `${APP_URL}/dashboard?checkout=cancelled`,
-      allow_promotion_codes: true,
+      allow_promotion_codes: true,   // el médico puede meter el código FUNDADOR aquí
       billing_address_collection: 'auto',
-      metadata: { clinicId, plan },
+      metadata: { clinicId, plan, ciclo: cicloEfectivo },
     })
 
     return NextResponse.json({ url: session.url })

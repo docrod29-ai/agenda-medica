@@ -105,6 +105,7 @@ function ActivandoCuenta() {
 
 function AccesoGate({ estado, clinicId, esMedico, email }: { estado: 'sin_tarjeta' | 'vencido'; clinicId: string | null; esMedico: boolean; email: string }) {
   const [cargando, setCargando] = useState<string | null>(null)
+  const [ciclo, setCiclo] = useState<'mensual' | 'anual'>('mensual')
   const nuevo = estado === 'sin_tarjeta'
   const iniciar = async (plan: string) => {
     if (!clinicId) return
@@ -112,12 +113,18 @@ function AccesoGate({ estado, clinicId, esMedico, email }: { estado: 'sin_tarjet
     try {
       const res = await fetchAutenticado('/api/stripe/checkout', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clinicId, plan, email }),
+        body: JSON.stringify({ clinicId, plan, email, ciclo }),
       })
       const data = await res.json()
       if (data.url) { window.location.href = data.url; return }
       setCargando(null)
     } catch { setCargando(null) }
+  }
+  // Precio a mostrar según ciclo (anual = ×10 → "2 meses gratis").
+  const precioMostrar = (mensualStr: string) => {
+    if (ciclo === 'mensual') return { grande: mensualStr, chico: '/mes' }
+    const n = Number(mensualStr.replace(/[^0-9]/g, '')) * 10
+    return { grande: '$' + n.toLocaleString('es-MX'), chico: '/año' }
   }
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
@@ -133,15 +140,31 @@ function AccesoGate({ estado, clinicId, esMedico, email }: { estado: 'sin_tarjet
             : 'Pídele al médico responsable del consultorio que active el plan para reanudar el acceso.'}
         </p>
         {esMedico && (
+          <div style={{ display: 'inline-flex', gap: 4, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 100, padding: 4, marginBottom: 20 }}>
+            {(['mensual', 'anual'] as const).map(c => (
+              <button key={c} onClick={() => setCiclo(c)}
+                style={{
+                  border: 'none', cursor: 'pointer', borderRadius: 100, padding: '7px 16px', fontSize: 13, fontWeight: 700,
+                  background: ciclo === c ? 'var(--teal)' : 'transparent',
+                  color: ciclo === c ? '#000' : 'var(--text3)',
+                }}>
+                {c === 'mensual' ? 'Mensual' : 'Anual · 2 meses gratis'}
+              </button>
+            ))}
+          </div>
+        )}
+        {esMedico && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 14, maxWidth: 660, margin: '0 auto' }}>
-            {PLANES_GATE.map(p => (
+            {PLANES_GATE.map(p => {
+              const pr = precioMostrar(p.price)
+              return (
               <div key={p.key} style={{
                 background: 'var(--s1)', borderRadius: 14, padding: '22px 18px',
                 border: `1px solid ${p.destacado ? 'var(--teal)' : 'var(--border)'}`,
                 display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center',
               }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{p.label}</div>
-                <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>{p.price}<span style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 500 }}>/mes</span></div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>{pr.grande}<span style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 500 }}>{pr.chico}</span></div>
                 <div style={{ fontSize: 12, color: 'var(--text3)', minHeight: 32 }}>{p.nota}</div>
                 <button onClick={() => iniciar(p.key)} disabled={!!cargando}
                   style={{
@@ -153,11 +176,13 @@ function AccesoGate({ estado, clinicId, esMedico, email }: { estado: 'sin_tarjet
                   {cargando === p.key ? 'Abriendo…' : nuevo ? 'Empezar' : 'Elegir'}
                 </button>
               </div>
-            ))}
+            )})}
           </div>
         )}
         {esMedico && nuevo && (
-          <div style={{ marginTop: 14, fontSize: 11.5, color: 'var(--text3)' }}>Pago seguro con Stripe · Cancela cuando quieras</div>
+          <div style={{ marginTop: 14, fontSize: 11.5, color: 'var(--text3)' }}>
+            Pago seguro con Stripe · Cancela cuando quieras · ¿Tienes código <strong>FUNDADOR</strong>? Aplícalo en el pago.
+          </div>
         )}
         <button onClick={() => { import('@/lib/firebase').then(({ auth }) => auth.signOut()) }}
           style={{ marginTop: 22, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}>

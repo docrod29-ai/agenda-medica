@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { PLANES, RECARGA, MOTORES, type PlanCreditos } from '@/lib/planes-ia'
+import { PLANES, RECARGA, MOTORES, precioAnual, type PlanCreditos } from '@/lib/planes-ia'
 
 export const metadata = {
   title: 'Precios · NexusMED',
@@ -37,6 +37,9 @@ function Card({ plan }: { plan: PlanCreditos }) {
       </div>
       <div style={{ fontSize: 12, color: 'var(--text3, #64748b)', marginTop: 2, minHeight: 18 }}>
         {plan.creditos > 0 ? `${plan.creditos} créditos de IA al mes · por médico` : 'sin IA · por médico'}
+      </div>
+      <div style={{ fontSize: 11.5, color: '#14b8a6', fontWeight: 600, marginTop: 4 }}>
+        o ${precioAnual(plan).toLocaleString('es-MX')}/año · 2 meses gratis
       </div>
       <Link href="/registro" style={{
         display: 'block', textAlign: 'center', marginTop: 18, padding: '12px 0', borderRadius: 12,
@@ -117,9 +120,13 @@ export default function PreciosPage() {
         <Card plan={PLANES.hospital} />
       </div>
 
+      <div style={{ maxWidth: 560, margin: '20px auto 0', textAlign: 'center', fontSize: 13, color: 'var(--text2, #334155)', background: 'rgba(20,184,166,0.08)', border: '1px solid rgba(20,184,166,0.3)', borderRadius: 12, padding: '12px 16px' }}>
+        <strong>Precio fundador</strong> — los primeros 50 médicos congelan su tarifa de por vida. Aplica tu código <strong>FUNDADOR</strong> al pagar.
+      </div>
+
       <p style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--text3, #64748b)', marginTop: 24 }}>
-        Precios en pesos mexicanos, por médico. Cada nota gasta créditos según el motor de IA que elijas
-        (⚡ 1 · ⭐ 3 · 💎 10). Al agotar tus créditos sigues con ⚡ Rápida sin costo o recargas. Cancela cuando quieras.
+        Precios en pesos mexicanos, por médico. Paga <strong>anual y llévate 2 meses gratis</strong> (−17%). Cada nota gasta créditos
+        según el motor de IA que elijas (⚡ 1 · ⭐ 3 · 💎 10). Al agotar tus créditos sigues con ⚡ Rápida sin costo o recargas. Cancela cuando quieras.
       </p>
     </div>
   )

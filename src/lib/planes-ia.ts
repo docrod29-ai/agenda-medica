@@ -140,6 +140,12 @@ export const planPorNivel = (n: NivelIA): PlanCreditos => (n === 'premium' ? PLA
 /** Paquete de recarga de créditos (top-up) cuando se acaban. Te cuestan ~$150 → +$249 limpio. */
 export const RECARGA = { creditos: 100, precioMXN: 399 }
 
+/** Plan ANUAL: 12 meses al precio de 10 (2 gratis = −17%). Asegura flujo y baja la cancelación. */
+export const MESES_ANUAL = 10
+export const precioAnual = (p: PlanCreditos): number => p.precioMXN * MESES_ANUAL
+/** Ahorro anual vs pagar 12 meses sueltos. */
+export const ahorroAnual = (p: PlanCreditos): number => p.precioMXN * 12 - precioAnual(p)
+
 /** Estado de créditos para el tope de gasto. */
 export interface EstadoCreditos {
   usados: number

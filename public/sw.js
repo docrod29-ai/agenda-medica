@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v296'  // STRIPE completo: planes alineados (Agenda/Clinica/Premium/Hospital) en checkout+webhook+gate+configuracion; webhook activa nivelIA al suscribir; RECARGA de creditos (pago unico /api/stripe/recarga) → webhook agregarCreditosExtra idempotente; boton 'Comprar mas creditos' en consulta abre el checkout
+const CACHE = 'nexusmed-v297'  // Plan ANUAL (-17%, 2 meses gratis): checkout acepta ciclo mensual/anual (priceIdDe + STRIPE_PRICES_ANUAL), toggle en el paywall, linea anual en /precios; PRECIO FUNDADOR via codigo promocional Stripe (allow_promotion_codes) con nota en paywall+precios
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

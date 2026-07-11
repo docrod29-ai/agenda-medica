@@ -35,6 +35,22 @@ export const PLAN_NAMES: Record<PlanKey, string> = {
   hospital: 'Hospital',
 }
 
+/* ── Price IDs ANUALES (12 meses al precio de 10 = −17%). Opcionales. ── */
+export const STRIPE_PRICES_ANUAL = {
+  agenda:   process.env.STRIPE_PRICE_AGENDA_ANUAL   ?? '',
+  clinica:  process.env.STRIPE_PRICE_CLINICA_ANUAL  ?? '',
+  premium:  process.env.STRIPE_PRICE_PREMIUM_ANUAL  ?? '',
+  hospital: process.env.STRIPE_PRICE_HOSPITAL_ANUAL ?? '',
+} as const
+
+export type Ciclo = 'mensual' | 'anual'
+
+/** Price ID de suscripción según plan + ciclo (cae a mensual si no hay anual configurado). */
+export function priceIdDe(plan: PlanKey, ciclo: Ciclo): string {
+  if (ciclo === 'anual') return STRIPE_PRICES_ANUAL[plan] || STRIPE_PRICES[plan]
+  return STRIPE_PRICES[plan]
+}
+
 /** Price ID de la RECARGA de créditos (pago ÚNICO, no suscripción). */
 export const STRIPE_PRICE_RECARGA = process.env.STRIPE_PRICE_RECARGA ?? ''
 
