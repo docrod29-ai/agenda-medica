@@ -81,6 +81,18 @@ export default function PreciosPage() {
         ¿Se te acaban los créditos? Recarga <strong>{RECARGA.creditos} créditos</strong> por <strong>${RECARGA.precioMXN} MXN</strong> — cuando quieras, sin cambiar de plan.
       </div>
 
+      {/* ── Hospitalización: plan APARTE ── */}
+      <div style={{ maxWidth: 900, margin: '56px auto 0', textAlign: 'center' }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--nexus, #3d5afe)', letterSpacing: 0.5, textTransform: 'uppercase' }}>¿Manejas internamiento?</div>
+        <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text, #0f172a)', margin: '8px 0 0' }}>Módulo de Hospitalización — se contrata aparte</h2>
+        <p style={{ fontSize: 15, color: 'var(--text3, #64748b)', maxWidth: 560, margin: '10px auto 0', lineHeight: 1.5 }}>
+          Para clínicas y hospitales con pacientes internados. Se suma a tu plan de consultorio cuando lo necesites.
+        </p>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 26 }}>
+        <Card plan={PLANES.hospital} />
+      </div>
+
       <p style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--text3, #64748b)', marginTop: 24 }}>
         Precios en pesos mexicanos, por médico. 1 crédito ≈ 1 consulta con IA (una nota premium usa más).
         La evidencia proviene de PubMed (fuentes públicas). Cancela cuando quieras.

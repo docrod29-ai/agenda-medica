@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v285'  // Modelo de CREDITOS: 3 planes (Agenda $299 / Clinica $799 80cr / Premium $1699 150cr) + costo en creditos por accion + pagina de precios con los 3 planes y recarga. Compat con el modelo anterior. Falta: enforcement de tope duro + compra de creditos (Stripe) + ICD-11
+const CACHE = 'nexusmed-v286'  // Hospitalizacion como plan APARTE: los 3 de consultorio (Agenda $299 / Clinica $799 / Premium $1499) enfocados en consulta+expediente+agenda; Hospital $1999 separado. Pagina de precios con seccion de Hospital aparte
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

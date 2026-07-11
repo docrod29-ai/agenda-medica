@@ -17,7 +17,7 @@
  */
 import type { NivelIA } from './ai-keys'
 
-export type ClavePlan = 'agenda' | 'clinica' | 'premium'
+export type ClavePlan = 'agenda' | 'clinica' | 'premium' | 'hospital'
 
 export interface PlanCreditos {
   clave: ClavePlan
@@ -72,15 +72,28 @@ export const PLANES: Record<ClavePlan, PlanCreditos> = {
     ],
   },
   premium: {
-    clave: 'premium', nombre: 'Premium', precioMXN: 1699, creditos: 150, nivelIA: 'premium',
+    clave: 'premium', nombre: 'Premium', precioMXN: 1499, creditos: 150, nivelIA: 'premium',
     pacientesMax: null,
     incluye: [
       'Todo lo de Clínica',
       'IA de máximo razonamiento (Opus 4.8 + thinking)',
       'Segunda opinión GPT-5 AUTOMÁTICA en cada nota',
-      'Módulo de Hospitalización completo',
       '150 créditos al mes (≈50 consultas premium o 150 básicas)',
       'Soporte prioritario',
+    ],
+  },
+  // Plan APARTE: hospitalización. El producto estrella es el de consultorio
+  // (Clínica); Hospital es para quien maneja internamiento y se cobra por su lado.
+  hospital: {
+    clave: 'hospital', nombre: 'Hospital', precioMXN: 1999, creditos: 150, nivelIA: 'premium',
+    pacientesMax: null,
+    incluye: [
+      'Módulo de Hospitalización completo',
+      'Censo, tablero de camas y traslados',
+      'Indicaciones/MAR, signos y gráficas (NEWS2)',
+      'Notas de ingreso, evolución, egreso, postop y anestesia',
+      'Interconsultas y laboratorio',
+      'Nota con IA de máximo nivel (Opus) · 150 créditos/mes',
     ],
   },
 }
