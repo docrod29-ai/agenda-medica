@@ -11,7 +11,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarUsuario } from '@/lib/auth-server'
-import { resolverClaveIA } from '@/lib/ai-keys'
+import { resolverClaveIA, nivelIADe } from '@/lib/ai-keys'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL ?? ''
@@ -43,6 +43,31 @@ FORMATO DE SALIDA: responde EXCLUSIVAMENTE el JSON de la nota corregida, con la 
 { "resumenEjecutivo": "", "secciones": { ...mismas claves... }, "diagnosticos": [{"descripcion":"","codigoCIE10":"","tipo":"","estado":""}], "medicamentos": [{"nombre":"","dosis":"","via":"","frecuencia":"","duracion":"","indicacion":""}], "alergias": [{"alergeno":"","tipo":"","reaccion":"","severidad":"","confirmada":false}], "signosVitales": {"fc":null,"fr":null,"ta":"","temperatura":null,"spo2":null,"peso":null,"talla":null} }
 Sin markdown, sin backticks, sin texto antes o después. Primer carácter "{", último "}".`
 
+/**
+ * SEGUNDO CEREBRO (OpenAI): revisa la nota corregida por Claude contra la nota
+ * original + la instrucción, y verifica que se aplicó EXACTAMENTE el cambio
+ * pedido y NADA más (Claude a veces "arregla de más"). Devuelve el JSON final
+ * verificado o null (si algo falla, se queda la versión de Claude — nunca rompe).
+ */
+async function openaiVerificar(
+  key: string, model: string, notaOriginal: unknown, instruccion: string, notaCorregida: unknown,
+): Promise<Record<string, unknown> | null> {
+  try {
+    const sys = `Eres un SEGUNDO editor clínico de precisión que AUDITA el trabajo de otro modelo. Recibes: la NOTA ORIGINAL (JSON), una INSTRUCCIÓN de corrección del médico, y la NOTA CORREGIDA por el primer modelo. Verifica que la nota corregida aplique EXACTAMENTE la instrucción y NADA más. Si el primer modelo cambió algo que NO se pidió (revteó texto, agregó/quitó datos ajenos, "mejoró" redacción), REVIÉRTELO al original. Si NO aplicó bien el cambio pedido, corrígelo. NUNCA inventes datos nuevos. Conserva IDÉNTICA la estructura de campos. Responde EXCLUSIVAMENTE el JSON final de la nota, sin markdown ni texto extra. Primer carácter "{", último "}".`
+    const usr = `NOTA ORIGINAL:\n${JSON.stringify(notaOriginal)}\n\nINSTRUCCIÓN DEL MÉDICO:\n"${instruccion}"\n\nNOTA CORREGIDA (a auditar):\n${JSON.stringify(notaCorregida)}\n\nDevuelve el JSON final verificado.`
+    const r = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, messages: [{ role: 'system', content: sys }, { role: 'user', content: usr }], response_format: { type: 'json_object' }, max_completion_tokens: 4000 }),
+    })
+    if (!r.ok) return null
+    const d = await r.json()
+    const txt = String(d?.choices?.[0]?.message?.content ?? '')
+    const parsed = extraerJSON(txt)
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : null
+  } catch { return null }
+}
+
 function extraerJSON(txt: string): unknown | null {
   if (!txt) return null
   // Quita fences de markdown (```json … ```) que a veces mete el modelo.
@@ -65,7 +90,7 @@ export async function POST(req: NextRequest) {
   if (!instruccion) return NextResponse.json({ ok: false, error: 'Escribe qué corregir' }, { status: 400 })
   if (!body.nota) return NextResponse.json({ ok: false, error: 'Falta la nota' }, { status: 400 })
 
-  const { key: API_KEY } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
+  const { key: API_KEY, clinicId } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
   if (!API_KEY) return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada (Configuración → Llaves de IA).' }, { status: 503 })
 
   const userMsg = `NOTA ACTUAL (JSON):\n${JSON.stringify(body.nota)}\n\nCONTEXTO DEL PACIENTE (referencia, no lo metas a la nota salvo que se pida):\n${JSON.stringify(body.contexto ?? {})}\n\nINSTRUCCIÓN DE CORRECCIÓN DEL MÉDICO:\n"${instruccion}"\n\nDevuelve la nota corregida en JSON aplicando SOLO ese cambio.`
@@ -106,7 +131,22 @@ export async function POST(req: NextRequest) {
       const bloques: { type?: string; text?: string }[] = Array.isArray(data?.content) ? data.content : []
       const texto = (bloques.find(b => b?.type === 'text')?.text ?? bloques[0]?.text ?? '') as string
       const nota = extraerJSON(texto)
-      if (nota && typeof nota === 'object') return NextResponse.json({ ok: true, ...(nota as Record<string, unknown>) })
+      if (nota && typeof nota === 'object') {
+        const modelos: string[] = [/opus/.test(model) ? 'Claude Opus 4.8' : 'Claude']
+        let notaFinal = nota as Record<string, unknown>
+        // SEGUNDO CEREBRO (OpenAI): audita que se aplicó SOLO el cambio pedido.
+        // Premium usa GPT-5, Pro GPT-4o. Si no hay llave o falla, se queda Claude.
+        try {
+          const { key: openaiKey } = await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY ?? '')
+          if (openaiKey) {
+            const nivel = await nivelIADe(clinicId)
+            const modeloGPT = nivel === 'premium' ? 'gpt-5' : 'gpt-4o'
+            const verificada = await openaiVerificar(openaiKey, modeloGPT, body.nota, instruccion, notaFinal)
+            if (verificada) { notaFinal = verificada; modelos.push(nivel === 'premium' ? 'GPT-5' : 'GPT-4o') }
+          }
+        } catch { /* se queda la corrección de Claude */ }
+        return NextResponse.json({ ok: true, ...notaFinal, _modelos: modelos })
+      }
       // Respondió pero no fue JSON parseable → intenta con el siguiente modelo.
       ultimoDebug = 'parse-fail: ' + texto.slice(0, 150)
       continue

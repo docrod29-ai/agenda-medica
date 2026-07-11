@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v291'  // TODOS usan la llave del dueno (Vercel) sin configurar nada: se quito el tope viejo de '30 usos de prueba' que cortaba transcripcion/diarizacion/inmuno/receta; ahora el UNICO candado es el de CREDITOS del plan (creditosAgotados compartido); el cliente nunca pone llaves
+const CACHE = 'nexusmed-v292'  // 1) Fix 502 de transcripcion: cuando gpt-4o-transcribe falla ahora CAE a whisper-1 (estable) en vez de abortar; solo aborta con llave invalida (401). 2) 'Corregir por chat' con DOBLE CEREBRO: Claude corrige y GPT (5/4o) audita que se aplico SOLO el cambio pedido
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
