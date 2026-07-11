@@ -35,18 +35,43 @@ export interface PlanCreditos {
 }
 
 /**
- * COSTO EN CRÉDITOS. 1 CONSULTA con IA = 1 CRÉDITO — e incluye TODO (voz +
- * separación médico-paciente + nota + 2ª opinión). El Consultor de evidencia
- * (doble cerebro Claude+GPT) también gasta del MISMO bote, pero mucho menos: es
- * una acción ligera (sin voz ni transcripción). Cuesta según la IA del plan —
- * Pro (Sonnet+GPT-4o) ≈ ¼ de crédito, Premium (Opus+GPT-5) ≈ ½. Así el costo del
- * dueño queda cubierto por el plan y el tope duro también frena el Consultor.
- *   ⇒ 80 créditos = 80 consultas, o ~320 preguntas Pro / ~160 Premium, o una mezcla.
+ * MENÚ DE IA (modelo OpenAI/Anthropic): cada nota se genera con uno de 3 MOTORES,
+ * y cada motor QUEMA créditos distintos según su costo real. La clave del margen:
+ * los créditos son proporcionales al costo, así que 1 crédito te cuesta ~lo mismo
+ * (~$1.5 MXN) sin importar el motor → vendiéndolos a ~$5/crédito ganas ~70% en
+ * CADA nota, elija lo que elija el médico. Imposible perder.
+ *
+ *   ⚡ Rápida   (Haiku 4.5)                    → 1 crédito  · te cuesta ~$1.4 MXN
+ *   ⭐ Estándar (Sonnet 5 + separación voces)  → 3 créditos · ~$5.2 MXN
+ *   💎 Máxima   (Opus 4.8 + GPT-5 + 2ª opinión)→ 10 créditos· ~$15.3 MXN
+ */
+export type ClaveMotor = 'rapida' | 'estandar' | 'maxima'
+export interface Motor {
+  clave: ClaveMotor
+  nombre: string
+  emoji: string
+  modelos: string
+  /** Créditos que quema una nota con este motor. */
+  creditos: number
+  /** Perfil de modelo en procesar (live=Haiku, pro=Sonnet, premium=Opus). */
+  perfil: 'live' | 'pro' | 'premium'
+}
+export const MOTORES: Record<ClaveMotor, Motor> = {
+  rapida:   { clave: 'rapida',   nombre: 'Rápida',   emoji: '⚡', modelos: 'Haiku 4.5',                   creditos: 1,  perfil: 'live' },
+  estandar: { clave: 'estandar', nombre: 'Estándar', emoji: '⭐', modelos: 'Sonnet 5 + separación de voces', creditos: 3,  perfil: 'pro' },
+  maxima:   { clave: 'maxima',   nombre: 'Máxima',   emoji: '💎', modelos: 'Opus 4.8 + GPT-5 + 2ª opinión', creditos: 10, perfil: 'premium' },
+}
+export const motorPorClave = (c?: string): Motor => MOTORES[(c as ClaveMotor)] ?? MOTORES.estandar
+/** Motor por defecto según el nivel del plan: Pro/Premium → Máxima; Clínica → Estándar. */
+export const motorPorDefecto = (n: NivelIA): Motor => (n === 'premium' ? MOTORES.maxima : MOTORES.estandar)
+
+/**
+ * COSTO EN CRÉDITOS de acciones que NO son la nota. El Consultor de evidencia
+ * (doble cerebro Claude+GPT) es ligero; gasta del MISMO bote pero poco.
  */
 export const COSTO_CREDITOS = {
-  consulta: 1,            // dictar → nota (voz + separación + 2ª opinión) = 1 crédito
-  consultorPro: 0.25,     // pregunta al Consultor con IA Pro (Sonnet 5 + GPT-4o)
-  consultorPremium: 0.5,  // pregunta al Consultor con IA Premium (Opus 4.8 + GPT-5)
+  consultorPro: 0.5,     // pregunta al Consultor con IA Pro (Sonnet 5 + GPT-4o)
+  consultorPremium: 1,   // pregunta al Consultor con IA Premium (Opus 4.8 + GPT-5)
 } as const
 
 /** Cuántos créditos cuesta una pregunta al Consultor según el nivel de IA del plan. */
@@ -55,7 +80,7 @@ export const costoConsultor = (n: NivelIA): number =>
 
 export const PLANES: Record<ClavePlan, PlanCreditos> = {
   agenda: {
-    clave: 'agenda', nombre: 'Agenda', precioMXN: 299, creditos: 0, nivelIA: 'pro',
+    clave: 'agenda', nombre: 'Agenda', precioMXN: 349, creditos: 0, nivelIA: 'pro',
     pacientesMax: null,
     incluye: [
       'Agenda y citas ilimitadas',
@@ -66,36 +91,36 @@ export const PLANES: Record<ClavePlan, PlanCreditos> = {
     ],
   },
   clinica: {
-    clave: 'clinica', nombre: 'Clínica', precioMXN: 799, creditos: 40, nivelIA: 'pro',
+    clave: 'clinica', nombre: 'Clínica', precioMXN: 899, creditos: 160, nivelIA: 'pro',
     pacientesMax: null, destacado: true,
     incluye: [
       'Todo lo de Agenda',
       'Nota clínica con IA (voz → nota, NOM-004)',
       'Separación médico-paciente automática',
       'Recetas y órdenes',
-      'Consultor de evidencia (PubMed) con doble IA — cada pregunta ≈ ¼ de crédito',
-      'Segunda opinión de IA a demanda',
-      '40 consultas con IA al mes',
-      'Después NO se detiene: sigue con IA económica (Sonnet 5) o compra más',
+      'Consultor de evidencia (PubMed) con doble IA (Claude + GPT)',
+      'Menú de IA: elige ⚡ Rápida · ⭐ Estándar · 💎 Máxima por nota',
+      '160 créditos/mes (~50 notas Estándar)',
+      'Al agotarlos NO se detiene: sigue en ⚡ Rápida gratis o compra más',
     ],
   },
   premium: {
-    clave: 'premium', nombre: 'Premium', precioMXN: 1499, creditos: 40, nivelIA: 'premium',
+    clave: 'premium', nombre: 'Pro', precioMXN: 1899, creditos: 450, nivelIA: 'premium',
     pacientesMax: null,
     incluye: [
       'Todo lo de Clínica',
-      'IA de máximo razonamiento (Opus 4.8 + thinking)',
+      'IA de máximo razonamiento por defecto (💎 Opus 4.8 + GPT-5)',
       'Segunda opinión GPT-5 AUTOMÁTICA en cada nota',
-      'Consultor de evidencia con Opus 4.8 + GPT-5 (cada pregunta ≈ ½ crédito)',
-      '40 consultas con IA máxima al mes',
-      'Al agotarlas sigue con IA económica (Sonnet 5) — nunca te quedas sin IA',
+      'Consultor de evidencia con Opus 4.8 + GPT-5',
+      '450 créditos/mes (~45 notas Máxima o ~150 Estándar)',
+      'Al agotarlos sigue en ⚡ Rápida gratis — nunca te quedas sin IA',
       'Soporte prioritario',
     ],
   },
   // Plan APARTE: hospitalización. El producto estrella es el de consultorio
   // (Clínica); Hospital es para quien maneja internamiento y se cobra por su lado.
   hospital: {
-    clave: 'hospital', nombre: 'Hospital', precioMXN: 1999, creditos: 80, nivelIA: 'premium',
+    clave: 'hospital', nombre: 'Hospital', precioMXN: 2900, creditos: 400, nivelIA: 'premium',
     pacientesMax: null,
     incluye: [
       'Módulo de Hospitalización completo',
@@ -103,8 +128,8 @@ export const PLANES: Record<ClavePlan, PlanCreditos> = {
       'Indicaciones/MAR, signos y gráficas (NEWS2)',
       'Notas de ingreso, evolución, egreso, postop y anestesia',
       'Interconsultas y laboratorio',
-      'Nota con IA de máximo nivel (Opus) · 80 créditos/mes',
-      'Al agotarlos sigue con IA económica (Sonnet 5) — nunca se detiene',
+      'Menú de IA completo · 400 créditos/mes',
+      'Al agotarlos sigue en ⚡ Rápida gratis — nunca se detiene',
     ],
   },
 }
@@ -112,8 +137,8 @@ export const PLANES: Record<ClavePlan, PlanCreditos> = {
 export const planPorClave = (c: ClavePlan): PlanCreditos => PLANES[c] ?? PLANES.clinica
 export const planPorNivel = (n: NivelIA): PlanCreditos => (n === 'premium' ? PLANES.premium : PLANES.clinica)
 
-/** Paquete de recarga de créditos (top-up) cuando se acaban. */
-export const RECARGA = { creditos: 40, precioMXN: 399 }
+/** Paquete de recarga de créditos (top-up) cuando se acaban. Te cuestan ~$150 → +$249 limpio. */
+export const RECARGA = { creditos: 100, precioMXN: 399 }
 
 /** Estado de créditos para el tope de gasto. */
 export interface EstadoCreditos {

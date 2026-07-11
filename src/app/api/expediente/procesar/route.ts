@@ -16,8 +16,8 @@ import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
 import { parserClinicoComoRespuestaIA } from '@/lib/expediente/parser-clinico'
 import { safeLog, redactarString } from '@/lib/security/sanitize'
 import { verificarUsuario } from '@/lib/auth-server'
-import { resolverClaveIA, registrarUso, nivelIADe, registrarConsulta, registrarConsultaEconomica, creditosUsadosDelMes, creditosExtraDelMes } from '@/lib/ai-keys'
-import { planDeNivel, estadoUso } from '@/lib/planes-ia'
+import { resolverClaveIA, registrarUso, nivelIADe, registrarCreditos, registrarConsultaEconomica, creditosUsadosDelMes, creditosExtraDelMes } from '@/lib/ai-keys'
+import { planDeNivel, estadoUso, MOTORES, motorPorClave, motorPorDefecto } from '@/lib/planes-ia'
 import type { TipoNota, PacienteContexto } from '@/types/expediente'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
       { status: 503 },
     )
   }
-  let body: { transcripcion?: string; tipo?: TipoNota; contexto?: PacienteContexto; rapido?: boolean }
+  let body: { transcripcion?: string; tipo?: TipoNota; contexto?: PacienteContexto; rapido?: boolean; motor?: string }
   try {
     body = await req.json()
   } catch {
@@ -174,31 +174,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Faltan transcripcion, tipo o contexto' }, { status: 400 })
   }
 
-  // Perfil de modelo:
-  //  · en vivo → 'live' (Haiku, barato/veloz).
-  //  · nota final → según el PLAN del consultorio: 'premium' (Opus 4.8 + thinking)
-  //    o 'pro' (Sonnet 5, sin thinking — el plan económico $899).
   const nivel = await nivelIADe(clinicId)
 
-  // ── DEGRADACIÓN a MODO ECONÓMICO (en vez de tope duro) ──────────────────
-  // Cuando corre con las llaves del DUEÑO (fuente 'prueba') y es una nota FINAL,
-  // si el consultorio ya usó sus créditos premium del mes (plan + recargas), la
-  // IA NO se detiene: baja a 'pro' (Sonnet 5, sin thinking ni 2ª opinión GPT),
-  // que es muy buena y casi no cuesta. El médico nunca se queda sin IA; para
-  // recuperar la máxima (Opus/GPT-5) compra más créditos o sube de plan.
-  // Consultorio con su PROPIA llave: siempre usa el nivel de su plan (paga su uso).
+  // ── MENÚ DE IA ──────────────────────────────────────────────────────────
+  // El cliente pide un MOTOR (⚡ Rápida / ⭐ Estándar / 💎 Máxima) que define el
+  // modelo y cuántos créditos quema. Si no manda motor, se usa el default del
+  // plan (Pro→Máxima, Clínica→Estándar). El borrador en vivo siempre es Rápida.
+  const motorPedido = rapido ? MOTORES.rapida : (body.motor ? motorPorClave(body.motor) : motorPorDefecto(nivel))
+
+  // ── DEGRADACIÓN (nunca bloquea) ─────────────────────────────────────────
+  // Con la llave del DUEÑO ('prueba'), si el consultorio ya agotó sus créditos del
+  // mes (plan + recargas), la nota NO se detiene: baja a ⚡ Rápida (Haiku, casi
+  // gratis) y no gasta crédito premium. Para recuperar la IA máxima compra más.
+  // Consultorio con su PROPIA llave: nunca se degrada (paga su uso).
   let modoEconomico = false
   if (!rapido && fuente === 'prueba') {
-    const plan = planDeNivel(nivel)
-    const [usadas, extra] = await Promise.all([creditosUsadosDelMes(clinicId), creditosExtraDelMes(clinicId)])
-    const limite = plan.limiteConsultas + extra
-    if (usadas + 1 > limite) modoEconomico = true
+    const [usados, extra] = await Promise.all([creditosUsadosDelMes(clinicId), creditosExtraDelMes(clinicId)])
+    const limite = planDeNivel(nivel).limiteConsultas + extra
+    if (usados + motorPedido.creditos > limite) modoEconomico = true
   }
 
-  // Perfil final: en vivo → 'live'; nota económica (excedente) → 'pro'; si no,
-  // según el plan ('premium' = Opus+thinking, 'pro' = Sonnet).
-  const perfil: Perfil = rapido ? 'live' : (modoEconomico || nivel !== 'premium' ? 'pro' : 'premium')
+  const motor = modoEconomico ? MOTORES.rapida : motorPedido
+  const perfil: Perfil = motor.perfil
   const conThinking = perfil === 'premium'
+  // El cliente dispara la 2ª opinión GPT-5 automática solo si la nota fue Máxima (Opus).
+  const planDeRespuesta = perfil === 'premium' ? 'premium' : 'pro'
 
   try {
     const system  = buildSystemPrompt(tipo, contexto.especialidad, contexto.instruccionesIA)
@@ -286,14 +286,14 @@ export async function POST(req: NextRequest) {
     const limitePlan = planDeNivel(nivel).limiteConsultas
     if (!rapido) {
       if (modoEconomico) {
-        // Excedente: NO gasta crédito premium (corre en Sonnet barato). Se cuenta aparte.
+        // Excedente: corre en ⚡ Rápida (Haiku), NO gasta crédito premium. Se cuenta aparte.
         void registrarConsultaEconomica(clinicId)
-        uso = estadoUso(limitePlan, limitePlan)   // 100% del cupo premium usado
+        uso = estadoUso(limitePlan, limitePlan)   // 100% del cupo usado
       } else {
-        // Créditos totales del mes (notas + Consultor) + esta nota = 1 crédito.
-        const usadas = (await creditosUsadosDelMes(clinicId)) + 1
-        void registrarConsulta(clinicId)
-        uso = estadoUso(Math.round(usadas), limitePlan)
+        // Quema los créditos del MOTOR usado (Estándar=3, Máxima=10, Rápida=1).
+        const prev = await creditosUsadosDelMes(clinicId)
+        void registrarCreditos(clinicId, motor.creditos)
+        uso = estadoUso(Math.round(prev + motor.creditos), limitePlan)
       }
     }
 
@@ -301,15 +301,14 @@ export async function POST(req: NextRequest) {
     if (!validation.success) {
       console.warn('[procesar] Validación parcial:', validation.error.issues.slice(0, 3))
       void registrarUso(clinicId, fuente)
-      return NextResponse.json({ ok: true, ...parsed, _schemaWarning: true, _plan: modoEconomico ? 'pro' : nivel, _uso: uso, _modoEconomico: modoEconomico })
+      return NextResponse.json({ ok: true, ...parsed, _schemaWarning: true, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico })
     }
 
     void registrarUso(clinicId, fuente)
-    // _plan: el cliente decide con esto si la 2ª opinión (GPT-5) es automática
-    // (premium) o botón a demanda (pro). En modo económico va 'pro' para NO
-    // disparar GPT (excedente barato). _uso: candado de gasto (soft).
-    // _modoEconomico: el cliente muestra el aviso "se agotaron tus consultas máximas".
-    return NextResponse.json({ ok: true, ...validation.data, _plan: modoEconomico ? 'pro' : nivel, _uso: uso, _modoEconomico: modoEconomico })
+    // _plan: el cliente decide con esto si la 2ª opinión (GPT-5) es automática. Va
+    // 'premium' SOLO si la nota usó el motor 💎 Máxima (Opus). _motor: qué motor se
+    // usó (para la insignia). _modoEconomico: bajó a ⚡ Rápida por falta de créditos.
+    return NextResponse.json({ ok: true, ...validation.data, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico })
   } catch (err) {
     console.error('[expediente/procesar] Exception:', err)
     try {

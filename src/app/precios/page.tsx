@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { PLANES, RECARGA, type PlanCreditos } from '@/lib/planes-ia'
+import { PLANES, RECARGA, MOTORES, type PlanCreditos } from '@/lib/planes-ia'
 
 export const metadata = {
   title: 'Precios · NexusMED',
@@ -36,7 +36,7 @@ function Card({ plan }: { plan: PlanCreditos }) {
         <span style={{ fontSize: 15, color: 'var(--text3, #64748b)' }}>MXN/mes</span>
       </div>
       <div style={{ fontSize: 12, color: 'var(--text3, #64748b)', marginTop: 2, minHeight: 18 }}>
-        {plan.creditos > 0 ? `${plan.creditos} consultas con IA al mes · por médico` : 'sin IA · por médico'}
+        {plan.creditos > 0 ? `${plan.creditos} créditos de IA al mes · por médico` : 'sin IA · por médico'}
       </div>
       <Link href="/registro" style={{
         display: 'block', textAlign: 'center', marginTop: 18, padding: '12px 0', borderRadius: 12,
@@ -77,8 +77,32 @@ export default function PreciosPage() {
         <Card plan={PLANES.premium} />
       </div>
 
-      <div style={{ maxWidth: 520, margin: '30px auto 0', textAlign: 'center', fontSize: 13, color: 'var(--text2, #334155)', background: 'var(--s2, #f1f5f9)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 12, padding: '12px 16px' }}>
-        ¿Se te acaban las consultas del mes? Recarga <strong>{RECARGA.creditos} consultas más</strong> por <strong>${RECARGA.precioMXN} MXN</strong> — cuando quieras, sin cambiar de plan.
+      {/* ── Menú de IA: los 3 motores ── */}
+      <div style={{ maxWidth: 780, margin: '40px auto 0' }}>
+        <div style={{ textAlign: 'center', fontSize: 15, fontWeight: 700, color: 'var(--text, #0f172a)', marginBottom: 4 }}>
+          Elige el motor de IA en cada nota
+        </div>
+        <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text3, #64748b)', margin: '0 auto 16px', maxWidth: 560, lineHeight: 1.5 }}>
+          Cada nota gasta créditos según el motor que uses — paga poco por lo rutinario, mucho solo cuando lo necesitas.
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
+          {(['rapida', 'estandar', 'maxima'] as const).map(k => {
+            const m = MOTORES[k]
+            return (
+              <div key={k} style={{ flex: '1 1 210px', maxWidth: 250, background: 'var(--s1, #fff)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 14, padding: '16px 18px' }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text, #0f172a)' }}>{m.emoji} {m.nombre}</div>
+                <div style={{ fontSize: 12, color: 'var(--text3, #64748b)', marginTop: 3 }}>{m.modelos}</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--nexus, #3d5afe)', marginTop: 10 }}>
+                  {m.creditos} <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3, #64748b)' }}>{m.creditos === 1 ? 'crédito/nota' : 'créditos/nota'}</span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 560, margin: '22px auto 0', textAlign: 'center', fontSize: 13, color: 'var(--text2, #334155)', background: 'var(--s2, #f1f5f9)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 12, padding: '12px 16px' }}>
+        ¿Se te acaban los créditos del mes? Recarga <strong>{RECARGA.creditos} créditos</strong> por <strong>${RECARGA.precioMXN} MXN</strong> — o sigue con ⚡ Rápida sin costo. Nunca te quedas sin IA.
       </div>
 
       {/* ── Hospitalización: plan APARTE ── */}
@@ -94,8 +118,8 @@ export default function PreciosPage() {
       </div>
 
       <p style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--text3, #64748b)', marginTop: 24 }}>
-        Precios en pesos mexicanos, por médico. 1 consulta con IA = dictar → nota, con separación de voces
-        y todo incluido. Las preguntas al Consultor de evidencia no gastan consultas. Cancela cuando quieras.
+        Precios en pesos mexicanos, por médico. Cada nota gasta créditos según el motor de IA que elijas
+        (⚡ 1 · ⭐ 3 · 💎 10). Al agotar tus créditos sigues con ⚡ Rápida sin costo o recargas. Cancela cuando quieras.
       </p>
     </div>
   )

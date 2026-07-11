@@ -45,63 +45,29 @@ export async function guardarNivelIA(clinicId: string, nivel: NivelIA): Promise<
 }
 
 /**
- * Cuenta UNA consulta (nota FINAL de IA) del mes para el candado de gasto. El
- * borrador en vivo NO cuenta (se llama solo con la nota final). No bloquea.
+ * MENÚ DE IA: quema `n` créditos del mes (una nota Estándar = 3, Máxima = 10, una
+ * pregunta al Consultor = fracción). Es el ÚNICO contador de gasto: notas y
+ * Consultor caen todos en `uso.{mes}.creditos`. No bloquea.
  */
-export async function registrarConsulta(clinicId: string | null): Promise<void> {
-  if (!clinicId) return
+export async function registrarCreditos(clinicId: string | null, n: number): Promise<void> {
+  if (!clinicId || !(n > 0)) return
   try {
     await docIA(clinicId).set({
-      uso: { [mesActual()]: { consultas: admin.firestore.FieldValue.increment(1) } },
+      uso: { [mesActual()]: { creditos: admin.firestore.FieldValue.increment(n) } },
     }, { merge: true })
   } catch { /* no-bloqueante */ }
 }
 
-/** Consultas (notas finales) usadas este mes por el consultorio. */
-export async function consultasDelMes(clinicId: string | null): Promise<number> {
-  if (!clinicId) return 0
-  try {
-    return (await docIA(clinicId).get()).data()?.uso?.[mesActual()]?.consultas ?? 0
-  } catch {
-    return 0
-  }
-}
-
-/**
- * Suma créditos gastados por el Consultor de evidencia este mes (acción ligera,
- * cuesta una FRACCIÓN de crédito según el nivel de IA). Es un campo aparte para
- * que el conteo de CONSULTAS (nota final) quede entero y limpio, pero ambos
- * gastan del MISMO bote de créditos del plan (ver creditosUsadosDelMes).
- */
+/** El Consultor de evidencia quema créditos del MISMO bote (alias legible). */
 export async function registrarConsultor(clinicId: string | null, creditos: number): Promise<void> {
-  if (!clinicId || !(creditos > 0)) return
-  try {
-    await docIA(clinicId).set({
-      uso: { [mesActual()]: { consultor: admin.firestore.FieldValue.increment(creditos) } },
-    }, { merge: true })
-  } catch { /* no-bloqueante */ }
+  return registrarCreditos(clinicId, creditos)
 }
 
-/** Créditos gastados por el Consultor este mes (fracción acumulada). */
-export async function consultorCreditosDelMes(clinicId: string | null): Promise<number> {
-  if (!clinicId) return 0
-  try {
-    return (await docIA(clinicId).get()).data()?.uso?.[mesActual()]?.consultor ?? 0
-  } catch {
-    return 0
-  }
-}
-
-/**
- * CRÉDITOS TOTALES usados este mes = consultas (nota final, ×1) + lo gastado por
- * el Consultor. Es el número que se compara contra el límite del plan en el tope
- * duro. Una sola lectura del doc para no pagar dos gets.
- */
+/** Créditos TOTALES usados este mes (notas + Consultor). Contra esto se compara el límite del plan. */
 export async function creditosUsadosDelMes(clinicId: string | null): Promise<number> {
   if (!clinicId) return 0
   try {
-    const u = (await docIA(clinicId).get()).data()?.uso?.[mesActual()] ?? {}
-    return (u.consultas ?? 0) + (u.consultor ?? 0)
+    return (await docIA(clinicId).get()).data()?.uso?.[mesActual()]?.creditos ?? 0
   } catch {
     return 0
   }

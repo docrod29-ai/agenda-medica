@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v293'  // MODELO 40 creditos + DEGRADACION en vez de tope duro: al agotar las 40 consultas premium la IA NO se bloquea, baja sola a Sonnet 5 (barato, sin diarizacion ni GPT) y sale aviso ambar 'compra mas para IA maxima'; planes clinica/premium=40, hospital=80; recarga para recuperar Opus/GPT-5
+const CACHE = 'nexusmed-v294'  // PAQUETES DEFINITIVOS + MENU DE IA (1/3/10 creditos por motor Rapida/Estandar/Maxima): Agenda $349 / Clinica $899 160cr / Pro $1899 450cr / Hospital $2900 400cr; creditos unificados (uso.creditos), procesar acepta motor y quema creditos segun motor; degrada a Rapida gratis al agotar; recarga 100cr/$399; pagina de precios con menu de motores
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
