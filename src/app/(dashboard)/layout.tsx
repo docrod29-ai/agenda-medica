@@ -82,9 +82,9 @@ function estadoAcceso(clinic: { status?: string } | null): 'ok' | 'sin_tarjeta' 
 }
 
 const PLANES_GATE = [
-  { key: 'basico',  label: 'Básico',  price: '$699',   nota: '1 médico' },
-  { key: 'pro',     label: 'Pro',     price: '$999',   nota: '1 médico · WhatsApp 24/7', destacado: true },
-  { key: 'clinica', label: 'Clínica', price: '$1,799', nota: 'Hasta 5 médicos' },
+  { key: 'agenda',  label: 'Agenda',  price: '$349',   nota: 'Agenda + expediente · sin IA' },
+  { key: 'clinica', label: 'Clínica', price: '$899',   nota: '160 créditos de IA/mes', destacado: true },
+  { key: 'premium', label: 'Pro',     price: '$1,899', nota: '450 créditos · IA máxima (Opus + GPT-5)' },
 ]
 
 /** Tras pagar, el webhook tarda unos segundos. Clínica en vivo → el gate se quita

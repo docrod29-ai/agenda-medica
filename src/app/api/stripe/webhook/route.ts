@@ -9,8 +9,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe } from '@/lib/stripe'
+import { stripe, nivelDePlan } from '@/lib/stripe'
 import { adminDb } from '@/lib/firebase-admin'
+import { agregarCreditosExtra, guardarNivelIA } from '@/lib/ai-keys'
 import type { PlanKey } from '@/lib/stripe'
 
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET ?? ''
@@ -32,12 +33,22 @@ async function getClinicIdByCustomer(customerId: string): Promise<string | null>
   return snap.empty ? null : snap.docs[0].id
 }
 
-/* ── Stripe → our plan key mapping ────────────────────────── */
-function planFromInterval(interval: string, amount: number): PlanKey {
-  // Map by price amount (MXN cents): 29900=basico, 49900=pro, 99900=clinica
-  if (amount <= 30000) return 'basico'
-  if (amount <= 50000) return 'pro'
-  return 'clinica'
+/* ── Stripe → nuestro plan (por monto MXN, respaldo si no viene en metadata) ── */
+function planPorMonto(amount: number): PlanKey {
+  // Precios (centavos MXN): 34900 Agenda · 89900 Clínica · 189900 Pro · 290000 Hospital
+  if (amount <= 50000) return 'agenda'
+  if (amount <= 120000) return 'clinica'
+  if (amount <= 220000) return 'premium'
+  return 'hospital'
+}
+const ES_PLAN = (p: unknown): p is PlanKey => p === 'agenda' || p === 'clinica' || p === 'premium' || p === 'hospital'
+
+/** Activa el plan en el consultorio Y enciende su nivel de IA (Sonnet vs Opus + cupo). */
+async function activarPlan(clinicId: string, plan: PlanKey, extra: Record<string, unknown>) {
+  await updateClinic(clinicId, { plan, status: 'active', ...extra })
+  if (plan !== 'agenda') {
+    try { await guardarNivelIA(clinicId, nivelDePlan(plan)) } catch { /* no-bloqueante */ }
+  }
 }
 
 /* ── Route handler ─────────────────────────────────────────── */
@@ -58,19 +69,28 @@ export async function POST(req: NextRequest) {
   try {
     switch (event.type) {
 
-      /* ── Checkout completed → subscription created ─── */
+      /* ── Checkout completed → suscripción creada O recarga comprada ─── */
       case 'checkout.session.completed': {
         const session = event.data.object as import('stripe').Stripe.Checkout.Session
         const clinicId = (session.metadata?.clinicId ?? '') as string
-        const plan     = (session.metadata?.plan ?? 'pro') as PlanKey
-
         if (!clinicId) break
 
-        await updateClinic(clinicId, {
-          plan,
-          status: 'active',
-          stripeSubscriptionId: session.subscription ?? '',
-        })
+        // RECARGA (pago único): suma créditos extra al mes en curso. Idempotente
+        // por el id de la sesión (Stripe reintenta el webhook).
+        if (session.mode === 'payment' && session.metadata?.tipo === 'recarga') {
+          const n = Number(session.metadata?.creditos ?? 0)
+          const marca = adminDb.collection('recargas_procesadas').doc(session.id)
+          const yaHecha = (await marca.get()).exists
+          if (!yaHecha && n > 0) {
+            await agregarCreditosExtra(clinicId, n)
+            await marca.set({ clinicId, creditos: n, fecha: new Date().toISOString() })
+          }
+          break
+        }
+
+        // SUSCRIPCIÓN: activa el plan + enciende el nivel de IA.
+        const plan = ES_PLAN(session.metadata?.plan) ? session.metadata!.plan as PlanKey : 'clinica'
+        await activarPlan(clinicId, plan, { stripeSubscriptionId: session.subscription ?? '' })
         break
       }
 
@@ -82,23 +102,19 @@ export async function POST(req: NextRequest) {
 
         if (!clinicId) break
 
-        const item   = sub.items.data[0]
-        const plan   = planFromInterval(
-          item.price.recurring?.interval ?? 'month',
-          item.price.unit_amount ?? 0,
-        )
+        const item = sub.items.data[0]
+        const plan = ES_PLAN(sub.metadata?.plan) ? sub.metadata!.plan as PlanKey : planPorMonto(item.price.unit_amount ?? 0)
         const status = sub.status === 'active' || sub.status === 'trialing'
           ? 'active'
           : sub.status === 'canceled'
             ? 'cancelled'
             : 'suspended'
 
-        await updateClinic(clinicId, {
-          plan,
-          status,
-          stripeSubscriptionId: sub.id,
-          stripeSubscriptionStatus: sub.status,
-        })
+        if (status === 'active') {
+          await activarPlan(clinicId, plan, { stripeSubscriptionId: sub.id, stripeSubscriptionStatus: sub.status })
+        } else {
+          await updateClinic(clinicId, { plan, status, stripeSubscriptionId: sub.id, stripeSubscriptionStatus: sub.status })
+        }
         break
       }
 

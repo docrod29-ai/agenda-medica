@@ -5,7 +5,9 @@
 import type { LucideIcon } from 'lucide-react'
 import { UserPlus, RefreshCw, Siren, Microscope, Video, ClipboardCheck, Stethoscope, ClipboardList } from 'lucide-react'
 
-export type ClinicPlan = 'trial' | 'basico' | 'pro' | 'clinica' | 'cortesia'
+// Planes actuales: agenda · clinica · premium (Pro) · hospital. Se conservan
+// 'basico'/'pro' por compatibilidad con consultorios dados de alta antes del rebranding.
+export type ClinicPlan = 'trial' | 'agenda' | 'clinica' | 'premium' | 'hospital' | 'basico' | 'pro' | 'cortesia'
 export type ClinicStatus = 'active' | 'trial' | 'suspended' | 'cancelled'
 
 export interface ClinicWhatsApp {

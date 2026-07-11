@@ -1365,17 +1365,19 @@ function MedicosTab() {
 
 /* ── Suscripción Tab ─────────────────────────────────────────── */
 const PLAN_DISPLAY: Record<string, { label: string; color: string; price: string }> = {
-  trial:   { label: 'Prueba gratuita',  color: '#f59e0b', price: '$0 MXN/mes' },
-  basico:  { label: 'Plan Básico',      color: '#60a5fa', price: '$699 MXN/mes' },
-  pro:     { label: 'Plan Pro',         color: '#3D5AFE', price: '$999 MXN/mes' },
-  clinica: { label: 'Plan Clínica',     color: '#a78bfa', price: '$1,799 MXN/mes' },
+  trial:    { label: 'Prueba gratuita', color: '#f59e0b', price: '$0 MXN/mes' },
+  agenda:   { label: 'Plan Agenda',     color: '#60a5fa', price: '$349 MXN/mes' },
+  clinica:  { label: 'Plan Clínica',    color: '#3D5AFE', price: '$899 MXN/mes' },
+  premium:  { label: 'Plan Pro',        color: '#a78bfa', price: '$1,899 MXN/mes' },
+  hospital: { label: 'Plan Hospital',   color: '#7c5cd6', price: '$2,900 MXN/mes' },
 }
 
 const PLAN_FEATURES: Record<string, string[]> = {
-  trial:   ['14 días gratuitos', 'Todas las funciones Pro', 'Sin tarjeta de crédito'],
-  basico:  ['1 médico', 'Agenda y calendario', 'Recordatorios automáticos', 'Portal de secretaria'],
-  pro:     ['1 médico', 'Bot de WhatsApp 24/7', 'Lista de espera automática', 'Google Calendar sync', 'Todo el plan Básico'],
-  clinica: ['Hasta 5 médicos', 'Múltiples secretarias', 'Dashboard de métricas', 'Soporte prioritario', 'Todo el plan Pro'],
+  trial:    ['14 días gratuitos', 'Todas las funciones', 'Sin tarjeta de crédito'],
+  agenda:   ['Agenda y calendario', 'Recordatorios por WhatsApp', 'Expediente básico', 'Portal del paciente'],
+  clinica:  ['160 créditos de IA/mes', 'Nota por voz + separación de voces', 'Menú de IA (⚡/⭐/💎)', 'Consultor de evidencia', 'Todo el plan Agenda'],
+  premium:  ['450 créditos/mes', 'IA máxima por defecto (Opus 4.8 + GPT-5)', '2ª opinión automática', 'Soporte prioritario', 'Todo el plan Clínica'],
+  hospital: ['Módulo de Hospitalización', '400 créditos/mes', 'Censo, camas, MAR, NEWS2', 'Notas de ingreso/evolución/egreso'],
 }
 
 function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
@@ -1485,19 +1487,19 @@ function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
       </div>
 
       {/* Upgrade options */}
-      {plan !== 'clinica' && (
+      {plan !== 'premium' && plan !== 'hospital' && (
         <div>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 12 }}>
             {plan === 'trial' ? 'Activa tu plan antes de que termine la prueba:' : 'Opciones de actualización:'}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {(['basico', 'pro', 'clinica'] as const)
+            {(['agenda', 'clinica', 'premium', 'hospital'] as const)
               .filter(p => p !== plan)
               .map(p => {
                 const info = PLAN_DISPLAY[p]
                 return (
                   <div key={p} style={{
-                    background: 'var(--s1)', border: p === 'pro' ? '1px solid rgba(61,90,254,0.4)' : '1px solid var(--border)',
+                    background: 'var(--s1)', border: p === 'premium' ? '1px solid rgba(61,90,254,0.4)' : '1px solid var(--border)',
                     borderRadius: 10, padding: '16px 20px',
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
                   }}>
@@ -1509,9 +1511,9 @@ function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
                       onClick={() => startCheckout(p)}
                       disabled={checkoutLoading === p}
                       style={{
-                        background: p === 'pro' ? 'var(--teal)' : 'var(--s2)',
-                        color: p === 'pro' ? '#000' : 'var(--text)',
-                        border: p === 'pro' ? 'none' : '1px solid var(--border)',
+                        background: p === 'premium' ? 'var(--teal)' : 'var(--s2)',
+                        color: p === 'premium' ? '#000' : 'var(--text)',
+                        border: p === 'premium' ? 'none' : '1px solid var(--border)',
                         fontSize: 13, fontWeight: 700,
                         padding: '8px 16px', borderRadius: 8, cursor: 'pointer',
                         display: 'flex', alignItems: 'center', gap: 6,

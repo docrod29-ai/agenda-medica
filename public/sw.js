@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v295'  // Parte 2 MENU DE IA: selector de motor por nota (⚡/⭐/💎) en la pantalla de consulta + medidor de creditos restantes + insignia de motor usado; la nota manda body.motor a procesar (default del plan si no elige); GPT auto solo si motor=Maxima
+const CACHE = 'nexusmed-v296'  // STRIPE completo: planes alineados (Agenda/Clinica/Premium/Hospital) en checkout+webhook+gate+configuracion; webhook activa nivelIA al suscribir; RECARGA de creditos (pago unico /api/stripe/recarga) → webhook agregarCreditosExtra idempotente; boton 'Comprar mas creditos' en consulta abre el checkout
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

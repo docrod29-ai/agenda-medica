@@ -501,6 +501,27 @@ export default function ConsultaActivaPage() {
     }
   }, [voz.transcripcion, audio.utterances, rolesHablante, tipo, patient, toast, especialidadEfectiva, verificarNota, setTareaProc, motorEfectivo])
 
+  // Comprar recarga de créditos (Stripe pago único). Al pagar, el webhook suma los
+  // créditos al mes en curso (agregarCreditosExtra) y vuelve la IA máxima.
+  const [comprandoRecarga, setComprandoRecarga] = useState(false)
+  const comprarRecarga = useCallback(async () => {
+    if (!clinicId) { toast('Falta identificar el consultorio', 'error'); return }
+    setComprandoRecarga(true)
+    try {
+      const res = await fetchAutenticado('/api/stripe/recarga', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicId, email: auth.currentUser?.email ?? '' }),
+      })
+      const data = await res.json()
+      if (data.url) { window.location.href = data.url; return }
+      toast(data.error || 'No se pudo abrir la recarga', 'error')
+    } catch {
+      toast('Error al abrir la recarga', 'error')
+    } finally {
+      setComprandoRecarga(false)
+    }
+  }, [clinicId, toast])
+
   // RECUPERACIÓN tras navegar: si el "Procesar" terminó mientras estabas en otra
   // pantalla (o termina justo al volver), aplica su resultado a la nota. No
   // duplica: si el mapeo en línea ya lo aplicó (mismo ts), se salta.
@@ -1451,9 +1472,9 @@ export default function ConsultaActivaPage() {
             Para reactivarla, compra más consultas o sube de plan.
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-            <a href="/precios" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#000', textDecoration: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700 }}>
-              Comprar más consultas
-            </a>
+            <button onClick={comprarRecarga} disabled={comprandoRecarga} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#000', border: 'none', cursor: comprandoRecarga ? 'wait' : 'pointer', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700 }}>
+              {comprandoRecarga ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Abriendo…</> : 'Comprar más créditos'}
+            </button>
             <a href="/precios" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--nexus, #3d5afe)', textDecoration: 'none', border: '1px solid var(--nexus, #3d5afe)', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 600 }}>
               Ver planes
             </a>
@@ -1472,12 +1493,12 @@ export default function ConsultaActivaPage() {
           <div style={{ fontSize: 12.5, color: 'var(--text2)', marginTop: 6, lineHeight: 1.5 }}>
             Se agotaron tus consultas con IA máxima del mes. Esta nota corrió con IA económica
             (Sonnet 5 — muy buena) y sin separación de voces. <b>Nunca te quedas sin IA.</b> Para
-            recuperar la IA máxima (Opus 4.8 + GPT-5 + separación médico-paciente) compra más consultas.
+            recuperar la IA máxima (Opus 4.8 + GPT-5 + separación médico-paciente) compra más créditos.
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-            <a href="/precios" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#000', textDecoration: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700 }}>
-              Comprar más consultas
-            </a>
+            <button onClick={comprarRecarga} disabled={comprandoRecarga} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#000', border: 'none', cursor: comprandoRecarga ? 'wait' : 'pointer', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700 }}>
+              {comprandoRecarga ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Abriendo…</> : 'Comprar más créditos'}
+            </button>
             <a href="/precios" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--nexus, #3d5afe)', textDecoration: 'none', border: '1px solid var(--nexus, #3d5afe)', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 600 }}>
               Ver planes
             </a>
