@@ -8,7 +8,7 @@ import { MiniMarkdown } from '@/components/MiniMarkdown'
 import { useTarea } from '@/context/TareasContext'
 
 interface Articulo { pmid: string; titulo: string; revista: string; anio: string; url: string }
-interface Turno { pregunta: string; respuesta: string; articulos: Articulo[]; cenetecUrl?: string; cargando?: boolean }
+interface Turno { pregunta: string; respuesta: string; articulos: Articulo[]; cenetecUrl?: string; modelos?: string[]; cargando?: boolean }
 
 const EJEMPLOS = [
   '¿Antibiótico de primera línea para neumonía adquirida en la comunidad en adulto sano?',
@@ -63,7 +63,7 @@ export default function ConsultorPage() {
         const copia = [...(prev?.turnos ?? [])]
         const i = copia.length - 1
         if (i >= 0) copia[i] = d?.ok
-          ? { pregunta: texto, respuesta: d.respuesta ?? '', articulos: d.articulos ?? [], cenetecUrl: d.cenetecUrl }
+          ? { pregunta: texto, respuesta: d.respuesta ?? '', articulos: d.articulos ?? [], cenetecUrl: d.cenetecUrl, modelos: d.modelos }
           : { pregunta: texto, respuesta: `⚠️ ${d?.error || 'No se pudo consultar.'}`, articulos: [] }
         return { turnos: copia, cargando: false }
       })
@@ -132,6 +132,11 @@ export default function ConsultorPage() {
                 ) : (
                   <>
                     <MiniMarkdown texto={t.respuesta} />
+                    {t.modelos && t.modelos.length > 0 && (
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 11, fontWeight: 600, color: 'var(--text3)', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: '4px 9px' }}>
+                        <Sparkles size={12} style={{ color: 'var(--teal)' }} /> Razonado por {t.modelos.join(' + ')}
+                      </div>
+                    )}
                     {t.cenetecUrl && (
                       <a href={t.cenetecUrl} target="_blank" rel="noopener noreferrer"
                         style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 12, fontWeight: 600, color: 'var(--nexus, #3d5afe)', textDecoration: 'none', background: 'rgba(61,90,254,0.08)', border: '1px solid rgba(61,90,254,0.28)', borderRadius: 8, padding: '5px 10px' }}>

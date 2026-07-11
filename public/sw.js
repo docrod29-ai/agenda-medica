@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v288'  // TOPE DURO de creditos: cuando el consultorio usa sus consultas del mes (con llaves del dueno), la IA se PAUSA (402 sinCreditos) y sale aviso 'compra mas / sube de plan'; la nota manual sigue. Clinicas con su propia llave no se topan
+const CACHE = 'nexusmed-v289'  // Consultor de IA de DOBLE CEREBRO: Claude (Opus 4.8 premium / Sonnet 5 pro) redacta la respuesta con evidencia PubMed y OpenAI (GPT-5/GPT-4o) la revisa y mejora contra la misma evidencia; insignia 'Razonado por Claude + GPT' bajo la respuesta
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

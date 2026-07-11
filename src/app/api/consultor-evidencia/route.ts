@@ -39,6 +39,21 @@ function textoDe(data: unknown): string {
   return c.find(b => b?.type === 'text')?.text ?? c[0]?.text ?? ''
 }
 
+/** Llama a OpenAI (segundo cerebro) para refinar. Devuelve el texto o null. */
+async function openaiRefinar(key: string, model: string, system: string, user: string): Promise<string | null> {
+  try {
+    const r = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], max_completion_tokens: 2200 }),
+    })
+    if (!r.ok) return null
+    const d = await r.json()
+    const t = String(d?.choices?.[0]?.message?.content ?? '').trim()
+    return t || null
+  } catch { return null }
+}
+
 export async function POST(req: NextRequest) {
   const acceso = await verificarUsuario(req)
   if (!acceso.ok) return acceso.response
@@ -107,9 +122,27 @@ export async function POST(req: NextRequest) {
     if (res.status === 404 || res.status === 400) res = await claude(key, 'claude-sonnet-5', system, user, 2200)
     if (!res.ok) return NextResponse.json({ ok: true, respuesta: `No pude sintetizar la respuesta (HTTP ${res.status}), pero aquí están los artículos relevantes.`, articulos, cenetecUrl })
 
-    const respuesta = textoDe(await res.json()).trim() || 'Sin respuesta.'
+    let respuesta = textoDe(await res.json()).trim() || 'Sin respuesta.'
+    const modelos: string[] = [nivel === 'premium' ? 'Claude Opus 4.8' : 'Claude Sonnet 5']
+
+    // 4) SEGUNDO CEREBRO (OpenAI): revisa y MEJORA la respuesta de Claude contra la
+    //    misma evidencia — corrige, añade matices, quita lo no sustentado. Si no hay
+    //    llave de OpenAI, se queda la de Claude (nunca rompe).
+    if (respuesta && respuesta !== 'Sin respuesta.') {
+      try {
+        const { key: openaiKey } = await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY ?? '')
+        if (openaiKey) {
+          const modeloGPT = nivel === 'premium' ? 'gpt-5' : 'gpt-4o'
+          const sysR = 'Eres un SEGUNDO médico revisor de medicina basada en evidencia. Recibes una pregunta clínica, la evidencia (PubMed) y una respuesta preliminar de otro modelo de IA. MEJORA la respuesta FINAL: corrige errores, añade matices o puntos importantes que falten SEGÚN la evidencia dada, elimina afirmaciones no sustentadas, y verifica que las citas [n] sean correctas (NO inventes citas, PMIDs ni cifras). Conserva el español, el formato (secciones, Dosis, Guía en México, "Nivel de evidencia") y las citas. Devuelve SOLO la respuesta final mejorada, sin meta-comentarios sobre el proceso.'
+          const userR = `PREGUNTA: ${pregunta}\n\nEVIDENCIA (PubMed):\n${fuentes}${dosisTxt}\n\nRESPUESTA PRELIMINAR (de otro modelo, mejórala):\n${respuesta}\n\nDevuelve la respuesta final mejorada.`
+          const refinada = await openaiRefinar(openaiKey, modeloGPT, sysR, userR)
+          if (refinada) { respuesta = refinada; modelos.push(nivel === 'premium' ? 'GPT-5' : 'GPT-4o') }
+        }
+      } catch { /* se queda la respuesta de Claude */ }
+    }
+
     void registrarUso(clinicId, fuente)
-    return NextResponse.json({ ok: true, respuesta, articulos, cenetecUrl, dosisFDA: dosis })
+    return NextResponse.json({ ok: true, respuesta, articulos, cenetecUrl, dosisFDA: dosis, modelos })
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })
   }
