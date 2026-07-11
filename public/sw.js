@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v287'  // Creditos simplificados: 1 credito = 1 CONSULTA con IA (todo incluido: voz+separacion+nota+2a opinion). Clinica 80 consultas, Premium 80 (mejor IA). Etiquetas en 'consultas' no 'creditos'. Consultor de evidencia incluido
+const CACHE = 'nexusmed-v288'  // TOPE DURO de creditos: cuando el consultorio usa sus consultas del mes (con llaves del dueno), la IA se PAUSA (402 sinCreditos) y sale aviso 'compra mas / sube de plan'; la nota manual sigue. Clinicas con su propia llave no se topan
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

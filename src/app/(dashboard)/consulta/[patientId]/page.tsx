@@ -132,6 +132,8 @@ export default function ConsultaActivaPage() {
   const [verificacion, setVerificacion] = useState<{ modelo: string; hallazgos: Hallazgo[] } | null>(null)
   const [verificando, setVerificando] = useState(false)
   const [planActual, setPlanActual] = useState<'pro' | 'premium' | null>(null)
+  // Créditos agotados (tope duro): muestra aviso con comprar más / subir de plan.
+  const [sinCreditos, setSinCreditos] = useState<{ usadas: number; limite: number } | null>(null)
   // Análisis basado en evidencia (PubMed: NEJM/JAMA/Cochrane…) + citas reales.
   type ArtEv = { pmid: string; titulo: string; revista: string; anio: string; url: string }
   type PuntoEv = { punto?: string; opcion?: string; dx?: string; sustento?: string; porque?: string; razon?: string; citas?: number[] }
@@ -365,13 +367,19 @@ export default function ConsultaActivaPage() {
       if (!data) { if (!enVivo) { toast('La IA no respondió correctamente. Tu nota NO se modificó; intenta de nuevo.', 'error'); setTareaProc({ ejecutando: false }) } return }
       if (!data.ok) {
         if (!enVivo) {
-          toast(data.error === 'ANTHROPIC_API_KEY no configurada en el servidor'
-            ? 'Falta configurar la API key de Claude en Vercel'
-            : `Error de IA: ${data.error}`, 'error')
+          if (data.sinCreditos) {
+            setSinCreditos({ usadas: data.usadas ?? 0, limite: data.limite ?? 0 })
+            toast('Se acabaron tus consultas con IA del mes', 'error')
+          } else {
+            toast(data.error === 'ANTHROPIC_API_KEY no configurada en el servidor'
+              ? 'Falta configurar la API key de Claude en Vercel'
+              : `Error de IA: ${data.error}`, 'error')
+          }
           setTareaProc({ ejecutando: false })
         }
         return
       }
+      if (!enVivo) setSinCreditos(null)  // hubo éxito → limpia el aviso
       const ts = Date.now()  // marca de este resultado (para la recuperación tras navegar)
       // Mapear respuesta a estado.
       // REGLA ANTI-PÉRDIDA: en un "Procesar con IA" normal SOLO se sobreescribe lo
@@ -1374,6 +1382,30 @@ export default function ConsultaActivaPage() {
             error={nerError}
             onCerrar={() => { setEntidades(null); setNerError('') }}
           />
+        </div>
+      )}
+
+      {/* ── Créditos AGOTADOS (tope duro): la IA se pausó este mes ── */}
+      {sinCreditos && (
+        <div style={{
+          marginBottom: 14, padding: '13px 16px', borderRadius: 12,
+          border: '1px solid var(--red)', background: 'rgba(239,68,68,0.07)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--red)' }}>
+            <AlertTriangle size={17} /> Se acabaron tus consultas con IA del mes ({sinCreditos.usadas}/{sinCreditos.limite})
+          </div>
+          <div style={{ fontSize: 12.5, color: 'var(--text2)', marginTop: 6, lineHeight: 1.5 }}>
+            La IA se pausó para no generarte cargos extra. Puedes seguir escribiendo la nota a mano.
+            Para reactivarla, compra más consultas o sube de plan.
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+            <a href="/precios" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#000', textDecoration: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700 }}>
+              Comprar más consultas
+            </a>
+            <a href="/precios" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--nexus, #3d5afe)', textDecoration: 'none', border: '1px solid var(--nexus, #3d5afe)', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 600 }}>
+              Ver planes
+            </a>
+          </div>
         </div>
       )}
 

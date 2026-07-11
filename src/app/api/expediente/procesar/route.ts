@@ -16,7 +16,7 @@ import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
 import { parserClinicoComoRespuestaIA } from '@/lib/expediente/parser-clinico'
 import { safeLog, redactarString } from '@/lib/security/sanitize'
 import { verificarUsuario } from '@/lib/auth-server'
-import { resolverClaveIA, pruebaAgotada, registrarUso, nivelIADe, registrarConsulta, consultasDelMes } from '@/lib/ai-keys'
+import { resolverClaveIA, registrarUso, nivelIADe, registrarConsulta, consultasDelMes, creditosExtraDelMes } from '@/lib/ai-keys'
 import { planDeNivel, estadoUso } from '@/lib/planes-ia'
 import type { TipoNota, PacienteContexto } from '@/types/expediente'
 
@@ -161,13 +161,6 @@ export async function POST(req: NextRequest) {
       { status: 503 },
     )
   }
-  if (fuente === 'prueba' && await pruebaAgotada(clinicId)) {
-    return NextResponse.json(
-      { ok: false, error: 'Se agotó tu prueba gratis de IA. Configura tu propia API key en Configuración → Llaves de IA.' },
-      { status: 402 },
-    )
-  }
-
   let body: { transcripcion?: string; tipo?: TipoNota; contexto?: PacienteContexto; rapido?: boolean }
   try {
     body = await req.json()
@@ -188,6 +181,24 @@ export async function POST(req: NextRequest) {
   const nivel = await nivelIADe(clinicId)
   const perfil: Perfil = rapido ? 'live' : (nivel === 'premium' ? 'premium' : 'pro')
   const conThinking = perfil === 'premium'
+
+  // ── TOPE DURO de créditos ──────────────────────────────────────────────
+  // Cuando corre con las llaves del DUEÑO (fuente 'prueba') y es una nota FINAL
+  // (no el borrador en vivo), se PAUSA la IA si el consultorio ya usó todas sus
+  // consultas del mes (las de su plan + las recargas). Así el gasto del dueño
+  // nunca se dispara. El consultorio con su PROPIA llave NO se topa (paga su uso).
+  // El resto de la app (nota manual, agenda) sigue funcionando siempre.
+  if (!rapido && fuente === 'prueba') {
+    const plan = planDeNivel(nivel)
+    const [usadas, extra] = await Promise.all([consultasDelMes(clinicId), creditosExtraDelMes(clinicId)])
+    const limite = plan.limiteConsultas + extra
+    if (usadas >= limite) {
+      return NextResponse.json({
+        ok: false, sinCreditos: true, usadas, limite, plan: plan.clave,
+        error: `Se acabaron tus consultas con IA del mes (${usadas}/${limite}). Compra más o sube de plan.`,
+      }, { status: 402 })
+    }
+  }
 
   try {
     const system  = buildSystemPrompt(tipo, contexto.especialidad, contexto.instruccionesIA)

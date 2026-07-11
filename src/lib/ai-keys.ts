@@ -66,6 +66,25 @@ export async function consultasDelMes(clinicId: string | null): Promise<number> 
   }
 }
 
+/** Consultas EXTRA compradas (recarga/top-up) disponibles este mes. */
+export async function creditosExtraDelMes(clinicId: string | null): Promise<number> {
+  if (!clinicId) return 0
+  try {
+    return (await docIA(clinicId).get()).data()?.uso?.[mesActual()]?.extra ?? 0
+  } catch {
+    return 0
+  }
+}
+
+/** Suma consultas EXTRA al mes (lo llama el webhook de Stripe al comprar recarga). */
+export async function agregarCreditosExtra(clinicId: string, n: number): Promise<void> {
+  try {
+    await docIA(clinicId).set({
+      uso: { [mesActual()]: { extra: admin.firestore.FieldValue.increment(n) } },
+    }, { merge: true })
+  } catch { /* no-bloqueante */ }
+}
+
 async function clinicIdDe(uid: string): Promise<string | null> {
   try {
     const snap = await adminDb.collection('clinic_members').doc(uid).get()
