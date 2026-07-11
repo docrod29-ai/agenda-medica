@@ -17,7 +17,8 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarUsuario } from '@/lib/auth-server'
-import { resolverClaveIA, registrarUso, nivelIADe } from '@/lib/ai-keys'
+import { resolverClaveIA, registrarUso, nivelIADe, registrarConsultor, creditosUsadosDelMes, creditosExtraDelMes } from '@/lib/ai-keys'
+import { costoConsultor, planPorNivel } from '@/lib/planes-ia'
 import { buscarEvidencia, type ArticuloPubMed } from '@/lib/evidencia/pubmed'
 import { traducirBasico, farmacosDetectados } from '@/lib/evidencia/traducir-medico'
 import { dosisFDA } from '@/lib/evidencia/openfda'
@@ -112,6 +113,23 @@ export async function POST(req: NextRequest) {
 
     // 3) Responder citando.
     const nivel = await nivelIADe(clinicId)
+
+    // TOPE DURO de créditos: el Consultor gasta del MISMO bote que las notas, pero
+    // una FRACCIÓN por pregunta (según la IA del plan). Solo aplica con la llave del
+    // dueño ('prueba'); un consultorio con su propia llave paga su uso y no se topa.
+    // Si ya no alcanza, la IA se PAUSA (402) y el cliente ve "compra más / sube de plan".
+    const costo = costoConsultor(nivel)
+    if (fuente === 'prueba') {
+      const [usados, extra] = await Promise.all([creditosUsadosDelMes(clinicId), creditosExtraDelMes(clinicId)])
+      const limite = planPorNivel(nivel).creditos + extra
+      if (usados + costo > limite) {
+        return NextResponse.json({
+          ok: false, sinCreditos: true, usados, limite,
+          error: `Se acabaron tus créditos con IA del mes (${usados}/${limite}). Compra más o sube de plan.`,
+        }, { status: 402 })
+      }
+    }
+
     const model = nivel === 'premium' ? 'claude-opus-4-8' : 'claude-sonnet-5'
     const fuentes = articulos.map((a, i) => `[${i + 1}] ${a.revista} ${a.anio} · PMID ${a.pmid}\n${a.titulo}\n${a.resumen.slice(0, 700)}`).join('\n\n')
     const dosisTxt = dosis ? `\n\nDOSIS OFICIAL (ficha técnica FDA, ${dosis.farmaco}):\n${dosis.dosis}` : ''
@@ -142,6 +160,7 @@ export async function POST(req: NextRequest) {
     }
 
     void registrarUso(clinicId, fuente)
+    void registrarConsultor(clinicId, costo)  // descuenta la fracción de crédito del mes
     return NextResponse.json({ ok: true, respuesta, articulos, cenetecUrl, dosisFDA: dosis, modelos })
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })

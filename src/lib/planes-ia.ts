@@ -35,15 +35,23 @@ export interface PlanCreditos {
 }
 
 /**
- * COSTO EN CRÉDITOS. SIMPLE a propósito: 1 CONSULTA con IA = 1 CRÉDITO — e incluye
- * TODO (voz + separación médico-paciente + nota, y la 2ª opinión). El nivel de IA
- * (Sonnet o Opus) lo define el PLAN, no el crédito. Las preguntas al Consultor de
- * evidencia van incluidas (uso justo), no gastan créditos de consulta.
+ * COSTO EN CRÉDITOS. 1 CONSULTA con IA = 1 CRÉDITO — e incluye TODO (voz +
+ * separación médico-paciente + nota + 2ª opinión). El Consultor de evidencia
+ * (doble cerebro Claude+GPT) también gasta del MISMO bote, pero mucho menos: es
+ * una acción ligera (sin voz ni transcripción). Cuesta según la IA del plan —
+ * Pro (Sonnet+GPT-4o) ≈ ¼ de crédito, Premium (Opus+GPT-5) ≈ ½. Así el costo del
+ * dueño queda cubierto por el plan y el tope duro también frena el Consultor.
+ *   ⇒ 80 créditos = 80 consultas, o ~320 preguntas Pro / ~160 Premium, o una mezcla.
  */
 export const COSTO_CREDITOS = {
-  consulta: 1,   // dictar → nota (con separación de voces y 2ª opinión) = 1 crédito
-  evidencia: 0,  // preguntas al Consultor: incluidas
+  consulta: 1,            // dictar → nota (voz + separación + 2ª opinión) = 1 crédito
+  consultorPro: 0.25,     // pregunta al Consultor con IA Pro (Sonnet 5 + GPT-4o)
+  consultorPremium: 0.5,  // pregunta al Consultor con IA Premium (Opus 4.8 + GPT-5)
 } as const
+
+/** Cuántos créditos cuesta una pregunta al Consultor según el nivel de IA del plan. */
+export const costoConsultor = (n: NivelIA): number =>
+  n === 'premium' ? COSTO_CREDITOS.consultorPremium : COSTO_CREDITOS.consultorPro
 
 export const PLANES: Record<ClavePlan, PlanCreditos> = {
   agenda: {
@@ -65,7 +73,7 @@ export const PLANES: Record<ClavePlan, PlanCreditos> = {
       'Nota clínica con IA (voz → nota, NOM-004)',
       'Separación médico-paciente automática',
       'Recetas y órdenes',
-      'Consultor de evidencia (PubMed) y análisis con citas',
+      'Consultor de evidencia (PubMed) con doble IA — cada pregunta ≈ ¼ de crédito',
       'Segunda opinión de IA a demanda',
       '80 consultas con IA al mes',
     ],
@@ -77,6 +85,7 @@ export const PLANES: Record<ClavePlan, PlanCreditos> = {
       'Todo lo de Clínica',
       'IA de máximo razonamiento (Opus 4.8 + thinking)',
       'Segunda opinión GPT-5 AUTOMÁTICA en cada nota',
+      'Consultor de evidencia con Opus 4.8 + GPT-5 (cada pregunta ≈ ½ crédito)',
       '80 consultas con IA al mes (misma cantidad, IA superior)',
       'Soporte prioritario',
     ],

@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v289'  // Consultor de IA de DOBLE CEREBRO: Claude (Opus 4.8 premium / Sonnet 5 pro) redacta la respuesta con evidencia PubMed y OpenAI (GPT-5/GPT-4o) la revisa y mejora contra la misma evidencia; insignia 'Razonado por Claude + GPT' bajo la respuesta
+const CACHE = 'nexusmed-v290'  // Consultor entra al BOTE de creditos: cada pregunta gasta una fraccion (Pro 1/4, Premium 1/2) del MISMO cupo del plan; tope duro compartido con las notas (402 sinCreditos cuando se acaba); asi el costo del GPT queda cubierto por la suscripcion
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

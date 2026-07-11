@@ -66,6 +66,46 @@ export async function consultasDelMes(clinicId: string | null): Promise<number> 
   }
 }
 
+/**
+ * Suma créditos gastados por el Consultor de evidencia este mes (acción ligera,
+ * cuesta una FRACCIÓN de crédito según el nivel de IA). Es un campo aparte para
+ * que el conteo de CONSULTAS (nota final) quede entero y limpio, pero ambos
+ * gastan del MISMO bote de créditos del plan (ver creditosUsadosDelMes).
+ */
+export async function registrarConsultor(clinicId: string | null, creditos: number): Promise<void> {
+  if (!clinicId || !(creditos > 0)) return
+  try {
+    await docIA(clinicId).set({
+      uso: { [mesActual()]: { consultor: admin.firestore.FieldValue.increment(creditos) } },
+    }, { merge: true })
+  } catch { /* no-bloqueante */ }
+}
+
+/** Créditos gastados por el Consultor este mes (fracción acumulada). */
+export async function consultorCreditosDelMes(clinicId: string | null): Promise<number> {
+  if (!clinicId) return 0
+  try {
+    return (await docIA(clinicId).get()).data()?.uso?.[mesActual()]?.consultor ?? 0
+  } catch {
+    return 0
+  }
+}
+
+/**
+ * CRÉDITOS TOTALES usados este mes = consultas (nota final, ×1) + lo gastado por
+ * el Consultor. Es el número que se compara contra el límite del plan en el tope
+ * duro. Una sola lectura del doc para no pagar dos gets.
+ */
+export async function creditosUsadosDelMes(clinicId: string | null): Promise<number> {
+  if (!clinicId) return 0
+  try {
+    const u = (await docIA(clinicId).get()).data()?.uso?.[mesActual()] ?? {}
+    return (u.consultas ?? 0) + (u.consultor ?? 0)
+  } catch {
+    return 0
+  }
+}
+
 /** Consultas EXTRA compradas (recarga/top-up) disponibles este mes. */
 export async function creditosExtraDelMes(clinicId: string | null): Promise<number> {
   if (!clinicId) return 0

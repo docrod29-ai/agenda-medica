@@ -16,7 +16,7 @@ import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
 import { parserClinicoComoRespuestaIA } from '@/lib/expediente/parser-clinico'
 import { safeLog, redactarString } from '@/lib/security/sanitize'
 import { verificarUsuario } from '@/lib/auth-server'
-import { resolverClaveIA, registrarUso, nivelIADe, registrarConsulta, consultasDelMes, creditosExtraDelMes } from '@/lib/ai-keys'
+import { resolverClaveIA, registrarUso, nivelIADe, registrarConsulta, creditosUsadosDelMes, creditosExtraDelMes } from '@/lib/ai-keys'
 import { planDeNivel, estadoUso } from '@/lib/planes-ia'
 import type { TipoNota, PacienteContexto } from '@/types/expediente'
 
@@ -190,12 +190,13 @@ export async function POST(req: NextRequest) {
   // El resto de la app (nota manual, agenda) sigue funcionando siempre.
   if (!rapido && fuente === 'prueba') {
     const plan = planDeNivel(nivel)
-    const [usadas, extra] = await Promise.all([consultasDelMes(clinicId), creditosExtraDelMes(clinicId)])
+    // usadas = créditos totales del mes (notas + lo gastado por el Consultor); el bote es compartido.
+    const [usadas, extra] = await Promise.all([creditosUsadosDelMes(clinicId), creditosExtraDelMes(clinicId)])
     const limite = plan.limiteConsultas + extra
-    if (usadas >= limite) {
+    if (usadas + 1 > limite) {
       return NextResponse.json({
         ok: false, sinCreditos: true, usadas, limite, plan: plan.clave,
-        error: `Se acabaron tus consultas con IA del mes (${usadas}/${limite}). Compra más o sube de plan.`,
+        error: `Se acabaron tus créditos con IA del mes (${usadas}/${limite}). Compra más o sube de plan.`,
       }, { status: 402 })
     }
   }
@@ -284,9 +285,10 @@ export async function POST(req: NextRequest) {
     // borrador en vivo) y devuelve el uso vs el límite del plan. Nunca bloquea.
     let uso: ReturnType<typeof estadoUso> | undefined
     if (!rapido) {
-      const usadas = (await consultasDelMes(clinicId)) + 1
+      // Créditos totales del mes (notas + Consultor) + esta nota = 1 crédito.
+      const usadas = (await creditosUsadosDelMes(clinicId)) + 1
       void registrarConsulta(clinicId)
-      uso = estadoUso(usadas, planDeNivel(nivel).limiteConsultas)
+      uso = estadoUso(Math.round(usadas), planDeNivel(nivel).limiteConsultas)
     }
 
     const validation = RespuestaExtraccion.safeParse(parsed)
