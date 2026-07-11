@@ -16,6 +16,7 @@ import {
 import { seccionesVacias, requiereSignosVitales, esPreoperatoria, esInmuno } from '@/lib/expediente/templates'
 import { sanitizarProsa } from '@/lib/expediente/sanitizar-prosa'
 import { limpiarMarkdown } from '@/lib/markdown'
+import { MOTORES, type ClaveMotor } from '@/lib/planes-ia'
 import { PreopAssessment } from '@/components/PreopAssessment'
 import ValoracionInmuno from '@/components/pacientes/ValoracionInmuno'
 import { RevisionPanel } from '@/components/RevisionPanel'
@@ -42,6 +43,13 @@ import {
 } from 'lucide-react'
 
 const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'valoracion_preoperatoria', 'valoracion_inmuno', 'alta_consulta', 'ingreso', 'evolucion', 'egreso', 'nota_postoperatoria', 'nota_anestesia', 'consentimiento']
+
+// Menú de IA: motores que el médico elige por nota (⚡ barato → 💎 máximo).
+const MOTORES_UI: { clave: ClaveMotor; emoji: string; nombre: string; creditos: number; desc: string }[] = [
+  { clave: 'rapida',   emoji: '⚡', nombre: 'Rápida',   creditos: MOTORES.rapida.creditos,   desc: 'Haiku · seguimiento simple' },
+  { clave: 'estandar', emoji: '⭐', nombre: 'Estándar', creditos: MOTORES.estandar.creditos, desc: 'Sonnet + voces · el día a día' },
+  { clave: 'maxima',   emoji: '💎', nombre: 'Máxima',   creditos: MOTORES.maxima.creditos,   desc: 'Opus + GPT-5 · caso complejo' },
+]
 
 // Especialidades con plantilla de enfoque (deben contener la clave que detecta
 // guiaEspecialidad en prompts.ts: cardiolog, pediatr, ginec, interna, urgenc…).
@@ -132,6 +140,11 @@ export default function ConsultaActivaPage() {
   const [verificacion, setVerificacion] = useState<{ modelo: string; hallazgos: Hallazgo[] } | null>(null)
   const [verificando, setVerificando] = useState(false)
   const [planActual, setPlanActual] = useState<'pro' | 'premium' | null>(null)
+  // Menú de IA: motor elegido por el médico para esta nota. null = default del plan
+  // (Pro → 💎 Máxima, Clínica → ⭐ Estándar). El motor que usó la última nota.
+  const [motorSel, setMotorSel] = useState<ClaveMotor | null>(null)
+  const [motorUsado, setMotorUsado] = useState<ClaveMotor | null>(null)
+  const motorEfectivo: ClaveMotor = motorSel ?? (planActual === 'premium' ? 'maxima' : 'estandar')
   // Créditos agotados (tope duro): muestra aviso con comprar más / subir de plan.
   const [sinCreditos, setSinCreditos] = useState<{ usadas: number; limite: number } | null>(null)
   // Modo económico: se agotaron las consultas máximas del mes → esta nota corrió en
@@ -354,7 +367,8 @@ export default function ConsultaActivaPage() {
         body: JSON.stringify({
           transcripcion: transcripcionParaIA,
           tipo: tipoActivo,
-          rapido: enVivo,  // en vivo = modelo rápido/barato; nota final = Opus + thinking
+          rapido: enVivo,  // en vivo = modelo rápido/barato; nota final = motor elegido
+          motor: enVivo ? undefined : motorEfectivo,  // menú de IA: ⚡/⭐/💎 (o default del plan)
           contexto: {
             nombre: patient?.nombre ?? '',
             edad: patient?.edad,
@@ -382,7 +396,7 @@ export default function ConsultaActivaPage() {
         }
         return
       }
-      if (!enVivo) { setSinCreditos(null); setModoEco(!!data._modoEconomico) }  // éxito → limpia aviso; marca si fue modo económico
+      if (!enVivo) { setSinCreditos(null); setModoEco(!!data._modoEconomico); if (data._motor) setMotorUsado(data._motor as ClaveMotor) }  // éxito → limpia aviso; marca modo económico + motor usado
       const ts = Date.now()  // marca de este resultado (para la recuperación tras navegar)
       // Mapear respuesta a estado.
       // REGLA ANTI-PÉRDIDA: en un "Procesar con IA" normal SOLO se sobreescribe lo
@@ -485,7 +499,7 @@ export default function ConsultaActivaPage() {
       if (enVivo) { vivoRef.current = false; setEstructurandoVivo(false) }
       else setProcesando(false)
     }
-  }, [voz.transcripcion, audio.utterances, rolesHablante, tipo, patient, toast, especialidadEfectiva, verificarNota, setTareaProc])
+  }, [voz.transcripcion, audio.utterances, rolesHablante, tipo, patient, toast, especialidadEfectiva, verificarNota, setTareaProc, motorEfectivo])
 
   // RECUPERACIÓN tras navegar: si el "Procesar" terminó mientras estabas en otra
   // pantalla (o termina justo al volver), aplica su resultado a la nota. No
@@ -1301,6 +1315,41 @@ export default function ConsultaActivaPage() {
               <button onClick={() => procesarIA()} disabled={procesando || tareaProc?.ejecutando || !voz.transcripcion.trim()} style={S.iaBtn(procesando || tareaProc?.ejecutando || !voz.transcripcion.trim())}>
                 {(procesando || tareaProc?.ejecutando) ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Claude estructurando…</> : <><Sparkles size={16} /> Procesar con IA</>}
               </button>
+            </div>
+          )}
+
+          {/* ── MENÚ DE IA: motor por nota + medidor de créditos ── */}
+          {voz.transcripcion.trim() && !voz.grabando && (
+            <div style={{ marginTop: 12, padding: '12px 14px', border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s2)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)' }}>Motor de IA para esta nota</span>
+                {usoIA && (
+                  <span style={{ fontSize: 11.5, color: usoIA.alerta === 'excedido' ? 'var(--amber, #d97706)' : 'var(--text3)', fontVariantNumeric: 'tabular-nums' }}>
+                    {Math.max(0, usoIA.limite - usoIA.usadas)} de {usoIA.limite} créditos restantes
+                  </span>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {MOTORES_UI.map(m => {
+                  const on = motorEfectivo === m.clave
+                  return (
+                    <button key={m.clave} onClick={() => setMotorSel(m.clave)}
+                      style={{
+                        flex: '1 1 150px', textAlign: 'left', cursor: 'pointer', borderRadius: 10, padding: '9px 11px',
+                        border: '1px solid ' + (on ? 'var(--teal)' : 'var(--border)'),
+                        background: on ? 'rgba(13,148,136,0.08)' : 'var(--s1)', color: 'var(--text)',
+                      }}>
+                      <div style={{ fontSize: 13, fontWeight: 700 }}>{m.emoji} {m.nombre} <span style={{ fontWeight: 600, color: 'var(--text3)', fontSize: 11 }}>· {m.creditos} cr</span></div>
+                      <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 1 }}>{m.desc}</div>
+                    </button>
+                  )
+                })}
+              </div>
+              {motorUsado && (
+                <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8 }}>
+                  Última nota generada con {MOTORES_UI.find(m => m.clave === motorUsado)?.emoji} <b>{MOTORES_UI.find(m => m.clave === motorUsado)?.nombre}</b>
+                </div>
+              )}
             </div>
           )}
 
