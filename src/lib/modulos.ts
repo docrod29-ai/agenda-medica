@@ -74,24 +74,22 @@ export interface PaqueteDef {
   precioBase?: number       // 1er médico / base del hospital
   precioPorUnidad?: number  // por médico adicional / por cama
 }
+// Paquetes = los 4 PLANES de suscripción reales (alineados con planes-ia y con
+// los precios de Stripe). Sus `id` coinciden con la clave del plan para que la
+// consola del dueño concuerde con lo que se cobra. Cobro fijo por médico.
 export const PAQUETES_SUGERIDOS: PaqueteDef[] = [
-  { id: 'agenda',          nombre: 'Agenda',            precio: 399,  orden: 0, modulos: ['agenda'],
-    descripcion: 'Citas, calendario, recordatorios y lista de espera. Ideal para recepción.' },
-  // Consultorios: se cobran POR MÉDICO que usa el consultorio (1º = base, cada extra suma).
-  { id: 'consultorio',     nombre: 'Consultorio',       precio: 699,  orden: 1, modulos: ['agenda', 'expediente'],
-    modeloPrecio: 'por_medico', precioBase: 699, precioPorUnidad: 250,
-    descripcion: 'Agenda + expediente de consulta con recetas y órdenes. Se cobra por médico.' },
-  { id: 'consultorio-pro', nombre: 'Consultorio Pro',   precio: 999,  orden: 2, modulos: ['agenda', 'expediente', 'farmacia', 'crm', 'finanzas'],
-    modeloPrecio: 'por_medico', precioBase: 999, precioPorUnidad: 350,
-    descripcion: 'Consultorio completo: además farmacia, CRM/reseñas y finanzas. Se cobra por médico.' },
-  // Hospital: se cobra POR TAMAÑO (número de camas).
-  { id: 'hospitalario',    nombre: 'Hospitalario',      precio: 1299, orden: 3, modulos: ['agenda', 'expediente', 'hospitalizacion'],
-    modeloPrecio: 'por_cama', precioBase: 1299, precioPorUnidad: 40,
-    descripcion: 'Consulta + hospitalización (censo, indicaciones/MAR, camas). Se cobra por tamaño.' },
-  { id: 'institucion',     nombre: 'Institución (Todo)', precio: 1799, orden: 4, modulos: [...TODOS_LOS_MODULOS],
-    modeloPrecio: 'por_cama', precioBase: 1799, precioPorUnidad: 40,
-    descripcion: 'Acceso completo a toda la plataforma. Se cobra por tamaño del hospital.' },
+  { id: 'agenda',   nombre: 'Agenda',   precio: 349,  orden: 0, modulos: MODULOS_DE_PLAN.agenda,
+    descripcion: 'Agenda, calendario, recordatorios y portal del paciente. Sin IA de consulta.' },
+  { id: 'clinica',  nombre: 'Clínica',  precio: 899,  orden: 1, modulos: MODULOS_DE_PLAN.clinica,
+    descripcion: 'Consultorio completo con IA Estándar (Sonnet 5): nota por voz, recetas, consultor, farmacia, CRM y finanzas. 160 créditos/mes.' },
+  { id: 'premium',  nombre: 'Pro',      precio: 1899, orden: 2, modulos: MODULOS_DE_PLAN.premium,
+    descripcion: 'Todo lo de Clínica con IA Máxima (Opus 4.8 + GPT-5) por defecto, 2ª opinión automática y soporte prioritario. 450 créditos/mes.' },
+  { id: 'hospital', nombre: 'Hospital', precio: 2900, orden: 3, modulos: MODULOS_DE_PLAN.hospital,
+    descripcion: 'Todo lo de Pro + módulo de Hospitalización (censo, camas, MAR, NEWS2). 400 créditos/mes.' },
 ]
+
+/** Versión del catálogo de paquetes. Al subirla, el seed reemplaza los viejos. */
+export const PAQUETES_VERSION = 2
 
 type ClinicMod = { modulos?: string[] | null; plan?: string | null; paseLibre?: boolean | null }
 

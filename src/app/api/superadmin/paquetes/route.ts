@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarSuperadmin } from '@/lib/superadmin'
-import { TODOS_LOS_MODULOS, PAQUETES_SUGERIDOS } from '@/lib/modulos'
+import { TODOS_LOS_MODULOS, PAQUETES_SUGERIDOS, PAQUETES_VERSION } from '@/lib/modulos'
 import { randomUUID } from 'crypto'
 
 type Any = Record<string, unknown>
@@ -27,17 +27,27 @@ function limpiarModulos(m: unknown): string[] {
 async function sembrarSiHaceFalta(now: string) {
   const metaRef = adminDb.collection('platform_meta').doc('paquetes')
   const meta = await metaRef.get()
-  if (meta.exists && (meta.data() as Any).seeded) return
+  // Ya sembrado CON la versión actual → nada que hacer.
+  if (meta.exists && (meta.data() as Any).seedVersion === PAQUETES_VERSION) return
+
+  const idsNuevos = new Set(PAQUETES_SUGERIDOS.map(p => p.id))
   const batch = adminDb.batch()
+  // Alta/actualización de los paquetes actuales (ids = clave de plan).
   for (const p of PAQUETES_SUGERIDOS) {
     batch.set(adminDb.collection(COL).doc(p.id), {
       nombre: p.nombre, precio: p.precio, modulos: p.modulos, descripcion: p.descripcion,
       orden: p.orden, activo: true,
       modeloPrecio: p.modeloPrecio ?? 'fijo', precioBase: p.precioBase ?? p.precio, precioPorUnidad: p.precioPorUnidad ?? 0,
-      createdAt: now, updatedAt: now,
+      updatedAt: now, seededVersion: PAQUETES_VERSION,
     }, { merge: true })
   }
-  batch.set(metaRef, { seeded: true, seededAt: now })
+  // Desactiva paquetes VIEJOS del catálogo anterior (consultorio, hospitalario…)
+  // que ya no forman parte de los planes actuales — así la consola concuerda.
+  const snap = await adminDb.collection(COL).get()
+  snap.docs.forEach(d => {
+    if (!idsNuevos.has(d.id)) batch.set(d.ref, { activo: false, updatedAt: now }, { merge: true })
+  })
+  batch.set(metaRef, { seeded: true, seedVersion: PAQUETES_VERSION, seededAt: now }, { merge: true })
   await batch.commit()
 }
 

@@ -27,7 +27,7 @@ interface Paquete { id: string; nombre: string; precio: number; modulos: string[
 interface Totales { clinicas: number; activas: number; enPrueba: number; deben: number; cortesia: number; mrr: number; ingresoTotal: number; ingresoMes: number }
 
 const mxn = (n: number) => '$' + Math.round(n).toLocaleString('es-MX')
-const PLAN_LABEL: Record<string, string> = { trial: 'Prueba', cortesia: 'Pase libre', basico: 'Básico', pro: 'Pro', clinica: 'Clínica' }
+const PLAN_LABEL: Record<string, string> = { trial: 'Prueba', cortesia: 'Pase libre', agenda: 'Agenda', clinica: 'Clínica', premium: 'Pro', hospital: 'Hospital', basico: 'Básico (viejo)', pro: 'Pro (viejo)' }
 const COB: Record<Cliente['cobranza'], { label: string; color: string }> = {
   al_corriente: { label: 'Al corriente', color: '#0d9488' },
   debe: { label: 'Debe', color: '#dc2626' },
