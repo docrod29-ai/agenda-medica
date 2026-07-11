@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v284'  // Etiqueta corregida a 16kHz (ya no dice 48kHz). Diagnostico confirmado: la transcripcion falla porque falta OPENAI_API_KEY en Vercel (config del dueno, no bug de codigo)
+const CACHE = 'nexusmed-v285'  // Modelo de CREDITOS: 3 planes (Agenda $299 / Clinica $799 80cr / Premium $1699 150cr) + costo en creditos por accion + pagina de precios con los 3 planes y recarga. Compat con el modelo anterior. Falta: enforcement de tope duro + compra de creditos (Stripe) + ICD-11
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
