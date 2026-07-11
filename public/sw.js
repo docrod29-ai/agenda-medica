@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v297'  // Plan ANUAL (-17%, 2 meses gratis): checkout acepta ciclo mensual/anual (priceIdDe + STRIPE_PRICES_ANUAL), toggle en el paywall, linea anual en /precios; PRECIO FUNDADOR via codigo promocional Stripe (allow_promotion_codes) con nota en paywall+precios
+const CACHE = 'nexusmed-v298'  // Ocultar pantalla de 'Llaves de IA' a los clientes (solo el dueno la ve); el cliente no configura llaves porque el dueno las provee en Vercel
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

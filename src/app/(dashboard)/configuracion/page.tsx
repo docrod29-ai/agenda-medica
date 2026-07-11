@@ -440,8 +440,9 @@ export default function ConfiguracionPage() {
             />
           </div>
 
-          {/* 🔑 Llaves de IA por consultorio (multi-tenant) */}
-          {clinicId && (
+          {/* 🔑 Llaves de IA por consultorio — SOLO el dueño la ve. El cliente NO
+              configura llaves (el dueño las provee en Vercel); mostrarla confunde. */}
+          {clinicId && esSuperadminCliente(authUser?.email) && (
             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
               <LlavesIASection clinicId={clinicId} />
             </div>
