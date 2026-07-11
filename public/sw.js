@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v301'  // PANEL DE CONTABILIDAD del dueno (/superadmin/contabilidad): ingresos+IVA+costos(IA/Stripe/infra)+utilidad+margen, por mes/plan/cliente, export CSV para el contador; API /api/superadmin/contabilidad; fix consola lee uso.creditos (no .consultas)
+const CACHE = 'nexusmed-v302'  // FACTURACION CFDI on-demand (Facturama): el cliente pide factura de un pago solo si la quiere (captura RFC/regimen/uso/CP), se timbra CFDI 4.0 en el servidor y descarga PDF/XML; seccion Facturas en Mi suscripcion; requiere env FACTURAMA_USER/PASSWORD/CP en Vercel
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

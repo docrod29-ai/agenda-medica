@@ -16,6 +16,7 @@ import { copyToClipboard } from '@/lib/whatsapp'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { esSuperadminCliente } from '@/lib/superadmin-client'
+import FacturacionSection from '@/components/FacturacionSection'
 import { useMode } from '@/context/ModeContext'
 import {
   crearInvitacion, listarInvitaciones, revocarInvitacion,
@@ -1532,6 +1533,9 @@ function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
           </div>
         </div>
       )}
+
+      {/* Facturas (CFDI) — el cliente pide factura solo si la necesita */}
+      {clinicId && <FacturacionSection clinicId={clinicId} />}
     </div>
   )
 }
