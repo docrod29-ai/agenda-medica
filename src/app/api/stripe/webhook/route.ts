@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { stripe, nivelDePlan } from '@/lib/stripe'
 import { adminDb } from '@/lib/firebase-admin'
 import { agregarCreditosExtra, guardarNivelIA } from '@/lib/ai-keys'
+import { MODULOS_DE_PLAN } from '@/lib/modulos'
 import type { PlanKey } from '@/lib/stripe'
 
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET ?? ''
@@ -43,12 +44,32 @@ function planPorMonto(amount: number): PlanKey {
 }
 const ES_PLAN = (p: unknown): p is PlanKey => p === 'agenda' || p === 'clinica' || p === 'premium' || p === 'hospital'
 
-/** Activa el plan en el consultorio Y enciende su nivel de IA (Sonnet vs Opus + cupo). */
+/** Activa el plan en el consultorio: estado + MÓDULOS (solo lo que compró) + nivel de IA. */
 async function activarPlan(clinicId: string, plan: PlanKey, extra: Record<string, unknown>) {
-  await updateClinic(clinicId, { plan, status: 'active', ...extra })
+  // modulos = EXACTAMENTE los del plan (candado "solo lo que compró"). Al cambiar
+  // de plan se reescribe, así se agregan/quitan funciones según corresponda.
+  const modulos = MODULOS_DE_PLAN[plan] ?? MODULOS_DE_PLAN.clinica
+  await updateClinic(clinicId, { plan, status: 'active', modulos, ...extra })
   if (plan !== 'agenda') {
     try { await guardarNivelIA(clinicId, nivelDePlan(plan)) } catch { /* no-bloqueante */ }
   }
+}
+
+/**
+ * Evita EMPALME de suscripciones: cancela cualquier OTRA suscripción activa del
+ * mismo cliente, dejando solo la nueva. Así cambiar de plan no acumula cobros.
+ */
+async function cancelarOtrasSuscripciones(customerId: string, conservarSubId: string) {
+  try {
+    const subs = await stripe.subscriptions.list({ customer: customerId, status: 'active', limit: 20 })
+    const trials = await stripe.subscriptions.list({ customer: customerId, status: 'trialing', limit: 20 })
+    const todas = [...subs.data, ...trials.data]
+    for (const s of todas) {
+      if (s.id !== conservarSubId) {
+        await stripe.subscriptions.cancel(s.id).catch(() => { /* ya cancelada / carrera */ })
+      }
+    }
+  } catch { /* no-bloqueante: si falla, no rompe la activación */ }
 }
 
 /* ── Route handler ─────────────────────────────────────────── */
@@ -90,7 +111,12 @@ export async function POST(req: NextRequest) {
 
         // SUSCRIPCIÓN: activa el plan + enciende el nivel de IA.
         const plan = ES_PLAN(session.metadata?.plan) ? session.metadata!.plan as PlanKey : 'clinica'
-        await activarPlan(clinicId, plan, { stripeSubscriptionId: session.subscription ?? '' })
+        const nuevaSubId = String(session.subscription ?? '')
+        await activarPlan(clinicId, plan, { stripeSubscriptionId: nuevaSubId })
+        // Evita empalme: cancela cualquier otra suscripción activa del cliente.
+        if (session.customer && nuevaSubId) {
+          await cancelarOtrasSuscripciones(String(session.customer), nuevaSubId)
+        }
         break
       }
 

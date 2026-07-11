@@ -13,6 +13,26 @@
  */
 import type { ModeloPrecio } from './pricing'
 
+/**
+ * Qué MÓDULOS abre cada PLAN de suscripción (planes-ia). Es la fuente de verdad
+ * del "solo lo que compró": el webhook de Stripe guarda esto en clinic.modulos al
+ * activar/cambiar de plan. Decisión del dueño (opción 2): Clínica y Pro abren los
+ * MISMOS módulos (se distinguen por créditos + IA máxima + soporte), Hospital suma
+ * Hospitalización, Agenda es solo agenda (sin IA de consulta).
+ */
+const CONSULTORIO = ['agenda', 'expediente', 'farmacia', 'crm', 'finanzas', 'cumplimiento']
+export const MODULOS_DE_PLAN: Record<string, string[]> = {
+  agenda:   ['agenda'],
+  clinica:  CONSULTORIO,
+  premium:  CONSULTORIO,                         // "Pro": mismos módulos que Clínica
+  hospital: [...CONSULTORIO, 'hospitalizacion'],
+  // Legados / especiales
+  basico:   CONSULTORIO,
+  pro:      CONSULTORIO,
+  trial:    [...CONSULTORIO, 'hospitalizacion'], // en prueba puede ver todo
+  cortesia: [...CONSULTORIO, 'hospitalizacion'],
+}
+
 export interface ModuloDef {
   key: string
   label: string
@@ -29,7 +49,7 @@ export const RUTAS_CORE = ['/dashboard', '/configuracion', '/chat', '/pacientes'
 /** Catálogo de módulos vendibles. El dueño combina estos en paquetes. */
 export const MODULOS: ModuloDef[] = [
   { key: 'agenda',         label: 'Agenda y citas',          descripcion: 'Agendar, calendario, recordatorios, lista de espera', rutas: ['/asistente', '/citas', '/calendario', '/lista-espera', '/waitlist'] },
-  { key: 'expediente',     label: 'Expediente de consulta',  descripcion: 'Consulta ambulatoria: notas, recetas, órdenes, referencias', rutas: ['/consulta', '/expediente', '/expedientes', '/nota', '/orden', '/receta', '/referencia'] },
+  { key: 'expediente',     label: 'Expediente de consulta',  descripcion: 'Consulta ambulatoria: notas, recetas, órdenes, referencias, consultor', rutas: ['/consulta', '/expediente', '/expedientes', '/nota', '/orden', '/receta', '/referencia', '/consultor'] },
   { key: 'hospitalizacion', label: 'Hospitalización',        descripcion: 'Censo, internamientos, indicaciones/MAR, camas', rutas: ['/hospitalizacion'] },
   { key: 'farmacia',       label: 'Farmacia',                descripcion: 'Inventario y movimientos de farmacia', rutas: ['/farmacia'] },
   { key: 'crm',            label: 'CRM y reseñas',           descripcion: 'Seguimiento de pacientes, reputación', rutas: ['/crm', '/resenas'] },
@@ -73,15 +93,26 @@ export const PAQUETES_SUGERIDOS: PaqueteDef[] = [
     descripcion: 'Acceso completo a toda la plataforma. Se cobra por tamaño del hospital.' },
 ]
 
-/** Módulos efectivos de una clínica. undefined/null → TODOS (compatibilidad). */
-export function modulosDe(clinic: { modulos?: string[] | null } | null | undefined): string[] {
+type ClinicMod = { modulos?: string[] | null; plan?: string | null; paseLibre?: boolean | null }
+
+/**
+ * Módulos efectivos de una clínica (entitlements). Orden:
+ *  1) null → TODOS (contextos sin clínica, p.ej. carga inicial).
+ *  2) paseLibre (dueño/cortesía) → TODOS.
+ *  3) `modulos` explícito (lo que guardó el webhook) → eso, EXACTO.
+ *  4) sin modulos pero con `plan` → se deriva del plan (MODULOS_DE_PLAN).
+ *  5) sin nada (legado muy viejo) → TODOS (no encerrar a nadie).
+ */
+export function modulosDe(clinic: ClinicMod | null | undefined): string[] {
   if (!clinic) return TODOS_LOS_MODULOS
+  if (clinic.paseLibre) return TODOS_LOS_MODULOS
   const m = clinic.modulos
-  if (!Array.isArray(m) || m.length === 0) return TODOS_LOS_MODULOS
-  return m
+  if (Array.isArray(m) && m.length > 0) return m
+  if (clinic.plan && MODULOS_DE_PLAN[clinic.plan]) return MODULOS_DE_PLAN[clinic.plan]
+  return TODOS_LOS_MODULOS
 }
 
-export function tieneModulo(clinic: { modulos?: string[] | null } | null | undefined, key: string): boolean {
+export function tieneModulo(clinic: ClinicMod | null | undefined, key: string): boolean {
   return modulosDe(clinic).includes(key)
 }
 
@@ -90,7 +121,7 @@ export function tieneModulo(clinic: { modulos?: string[] | null } | null | undef
  * definición de módulo cubre la ruta (rutas nuevas/sueltas), NO se bloquea
  * (fail-open, conservador: preferimos no encerrar a nadie por una ruta no mapeada).
  */
-export function rutaPermitida(clinic: { modulos?: string[] | null } | null | undefined, pathname: string): boolean {
+export function rutaPermitida(clinic: ClinicMod | null | undefined, pathname: string): boolean {
   if (RUTAS_CORE.some(r => pathname === r || pathname.startsWith(r + '/'))) return true
   const activos = modulosDe(clinic)
   // ¿Qué módulos reclaman esta ruta?

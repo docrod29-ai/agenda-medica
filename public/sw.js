@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v298'  // Ocultar pantalla de 'Llaves de IA' a los clientes (solo el dueno la ve); el cliente no configura llaves porque el dueno las provee en Vercel
+const CACHE = 'nexusmed-v299'  // Candado de MODULOS por plan (solo lo que compro): webhook guarda clinic.modulos = MODULOS_DE_PLAN[plan]; Agenda=solo agenda, Clinica=Pro=consultorio completo, Hospital=+hospitalizacion; modulosDe deriva del plan y respeta paseLibre. NO EMPALME: al activar suscripcion se cancelan las otras del cliente
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
