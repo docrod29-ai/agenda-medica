@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v300'  // Consola del dueno CONCUERDA con los planes nuevos: PAQUETES_SUGERIDOS = 4 planes reales (Agenda 349, Clinica 899, Pro 1899, Hospital 2900) con sus modulos; seed por version (PAQUETES_VERSION) reemplaza los viejos y desactiva consultorio/hospitalario/institucion; PLAN_LABEL agrega agenda/premium/hospital
+const CACHE = 'nexusmed-v301'  // PANEL DE CONTABILIDAD del dueno (/superadmin/contabilidad): ingresos+IVA+costos(IA/Stripe/infra)+utilidad+margen, por mes/plan/cliente, export CSV para el contador; API /api/superadmin/contabilidad; fix consola lee uso.creditos (no .consultas)
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

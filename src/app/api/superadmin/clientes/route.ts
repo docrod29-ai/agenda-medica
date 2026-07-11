@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
       try {
         const ia = (await adminDb.doc(`clinics/${cid}/secretos/ia`).get()).data()
         if (ia?.nivelIA === 'premium') nivelIA = 'premium'
-        consultasMes = Number(ia?.uso?.[mesActual()]?.consultas ?? 0)
+        consultasMes = Number(ia?.uso?.[mesActual()]?.creditos ?? 0)
       } catch { /* default pro */ }
       const limiteConsultas = planDeNivel(nivelIA).limiteConsultas
       return {

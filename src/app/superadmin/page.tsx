@@ -11,7 +11,7 @@ import { fetchAutenticado } from '@/lib/auth-client'
 import { Modal, Button, Spinner } from '@/components/ui'
 import { MODULOS, MODULO_LABEL } from '@/lib/modulos'
 import { type ModeloPrecio, explicarPrecio } from '@/lib/pricing'
-import { ShieldCheck, Search, Gift, Ban, Play, CalendarPlus, StickyNote, Lock, RefreshCw, Package, Plus, Trash2, Boxes, Sparkles } from 'lucide-react'
+import { ShieldCheck, Search, Gift, Ban, Play, CalendarPlus, StickyNote, Lock, RefreshCw, Package, Plus, Trash2, Boxes, Sparkles, TrendingUp } from 'lucide-react'
 
 interface Cliente {
   id: string; nombreClinica: string; nombreMedico: string
@@ -92,7 +92,12 @@ export default function SuperadminPage() {
         <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text)', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
           <ShieldCheck size={24} style={{ color: '#7c3aed' }} /> Consola de suscripciones
         </h1>
-        <Button variant="secondary" size="sm" icon={<RefreshCw size={14} />} onClick={cargar}>Actualizar</Button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <a href="/superadmin/contabilidad" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#000', textDecoration: 'none', borderRadius: 8, padding: '7px 13px', fontSize: 13, fontWeight: 700 }}>
+            <TrendingUp size={14} /> Contabilidad
+          </a>
+          <Button variant="secondary" size="sm" icon={<RefreshCw size={14} />} onClick={cargar}>Actualizar</Button>
+        </div>
       </div>
       <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 16px' }}>Solo tú ves esto. Todos los consultorios, quién paga, cuánto entra, a quién le das pase libre y qué paquete tiene cada uno.</p>
 
