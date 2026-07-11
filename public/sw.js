@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v286'  // Hospitalizacion como plan APARTE: los 3 de consultorio (Agenda $299 / Clinica $799 / Premium $1499) enfocados en consulta+expediente+agenda; Hospital $1999 separado. Pagina de precios con seccion de Hospital aparte
+const CACHE = 'nexusmed-v287'  // Creditos simplificados: 1 credito = 1 CONSULTA con IA (todo incluido: voz+separacion+nota+2a opinion). Clinica 80 consultas, Premium 80 (mejor IA). Etiquetas en 'consultas' no 'creditos'. Consultor de evidencia incluido
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

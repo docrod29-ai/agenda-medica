@@ -36,7 +36,7 @@ function Card({ plan }: { plan: PlanCreditos }) {
         <span style={{ fontSize: 15, color: 'var(--text3, #64748b)' }}>MXN/mes</span>
       </div>
       <div style={{ fontSize: 12, color: 'var(--text3, #64748b)', marginTop: 2, minHeight: 18 }}>
-        {plan.creditos > 0 ? `${plan.creditos} créditos de IA al mes · por médico` : 'sin IA · por médico'}
+        {plan.creditos > 0 ? `${plan.creditos} consultas con IA al mes · por médico` : 'sin IA · por médico'}
       </div>
       <Link href="/registro" style={{
         display: 'block', textAlign: 'center', marginTop: 18, padding: '12px 0', borderRadius: 12,
@@ -78,7 +78,7 @@ export default function PreciosPage() {
       </div>
 
       <div style={{ maxWidth: 520, margin: '30px auto 0', textAlign: 'center', fontSize: 13, color: 'var(--text2, #334155)', background: 'var(--s2, #f1f5f9)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 12, padding: '12px 16px' }}>
-        ¿Se te acaban los créditos? Recarga <strong>{RECARGA.creditos} créditos</strong> por <strong>${RECARGA.precioMXN} MXN</strong> — cuando quieras, sin cambiar de plan.
+        ¿Se te acaban las consultas del mes? Recarga <strong>{RECARGA.creditos} consultas más</strong> por <strong>${RECARGA.precioMXN} MXN</strong> — cuando quieras, sin cambiar de plan.
       </div>
 
       {/* ── Hospitalización: plan APARTE ── */}
@@ -94,8 +94,8 @@ export default function PreciosPage() {
       </div>
 
       <p style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--text3, #64748b)', marginTop: 24 }}>
-        Precios en pesos mexicanos, por médico. 1 crédito ≈ 1 consulta con IA (una nota premium usa más).
-        La evidencia proviene de PubMed (fuentes públicas). Cancela cuando quieras.
+        Precios en pesos mexicanos, por médico. 1 consulta con IA = dictar → nota, con separación de voces
+        y todo incluido. Las preguntas al Consultor de evidencia no gastan consultas. Cancela cuando quieras.
       </p>
     </div>
   )

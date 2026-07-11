@@ -35,15 +35,14 @@ export interface PlanCreditos {
 }
 
 /**
- * COSTO EN CRÉDITOS por acción de IA. La "nota" incluye su transcripción de voz.
- * Ajusta si cambias precios/proveedores.
+ * COSTO EN CRÉDITOS. SIMPLE a propósito: 1 CONSULTA con IA = 1 CRÉDITO — e incluye
+ * TODO (voz + separación médico-paciente + nota, y la 2ª opinión). El nivel de IA
+ * (Sonnet o Opus) lo define el PLAN, no el crédito. Las preguntas al Consultor de
+ * evidencia van incluidas (uso justo), no gastan créditos de consulta.
  */
 export const COSTO_CREDITOS = {
-  notaPro: 1,          // nota con Sonnet 5
-  notaPremium: 3,      // nota con Opus 4.8 + thinking
-  diarizacion: 1,      // separar médico/paciente (AssemblyAI) — se suma a la nota
-  segundaOpinion: 1,   // verificación GPT-5
-  evidencia: 1,        // una pregunta al Consultor / análisis de evidencia
+  consulta: 1,   // dictar → nota (con separación de voces y 2ª opinión) = 1 crédito
+  evidencia: 0,  // preguntas al Consultor: incluidas
 } as const
 
 export const PLANES: Record<ClavePlan, PlanCreditos> = {
@@ -72,13 +71,13 @@ export const PLANES: Record<ClavePlan, PlanCreditos> = {
     ],
   },
   premium: {
-    clave: 'premium', nombre: 'Premium', precioMXN: 1499, creditos: 150, nivelIA: 'premium',
+    clave: 'premium', nombre: 'Premium', precioMXN: 1499, creditos: 80, nivelIA: 'premium',
     pacientesMax: null,
     incluye: [
       'Todo lo de Clínica',
       'IA de máximo razonamiento (Opus 4.8 + thinking)',
       'Segunda opinión GPT-5 AUTOMÁTICA en cada nota',
-      '150 créditos al mes (≈50 consultas premium o 150 básicas)',
+      '80 consultas con IA al mes (misma cantidad, IA superior)',
       'Soporte prioritario',
     ],
   },
