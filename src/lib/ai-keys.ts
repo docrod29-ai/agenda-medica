@@ -144,6 +144,20 @@ export async function agregarCreditosExtra(clinicId: string, n: number): Promise
   } catch { /* no-bloqueante */ }
 }
 
+/**
+ * Cuenta una nota generada en MODO ECONÓMICO (excedente tras agotar los créditos
+ * premium): corre en Sonnet 5, casi no cuesta y NO topa. Se guarda aparte para
+ * estadística/facturación; no cuenta contra el cupo premium del plan.
+ */
+export async function registrarConsultaEconomica(clinicId: string | null): Promise<void> {
+  if (!clinicId) return
+  try {
+    await docIA(clinicId).set({
+      uso: { [mesActual()]: { economicas: admin.firestore.FieldValue.increment(1) } },
+    }, { merge: true })
+  } catch { /* no-bloqueante */ }
+}
+
 async function clinicIdDe(uid: string): Promise<string | null> {
   try {
     const snap = await adminDb.collection('clinic_members').doc(uid).get()

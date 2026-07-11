@@ -134,6 +134,9 @@ export default function ConsultaActivaPage() {
   const [planActual, setPlanActual] = useState<'pro' | 'premium' | null>(null)
   // Créditos agotados (tope duro): muestra aviso con comprar más / subir de plan.
   const [sinCreditos, setSinCreditos] = useState<{ usadas: number; limite: number } | null>(null)
+  // Modo económico: se agotaron las consultas máximas del mes → esta nota corrió en
+  // IA económica (Sonnet 5, sin separación de voces ni 2ª opinión). No bloquea.
+  const [modoEco, setModoEco] = useState(false)
   // Análisis basado en evidencia (PubMed: NEJM/JAMA/Cochrane…) + citas reales.
   type ArtEv = { pmid: string; titulo: string; revista: string; anio: string; url: string }
   type PuntoEv = { punto?: string; opcion?: string; dx?: string; sustento?: string; porque?: string; razon?: string; citas?: number[] }
@@ -379,7 +382,7 @@ export default function ConsultaActivaPage() {
         }
         return
       }
-      if (!enVivo) setSinCreditos(null)  // hubo éxito → limpia el aviso
+      if (!enVivo) { setSinCreditos(null); setModoEco(!!data._modoEconomico) }  // éxito → limpia aviso; marca si fue modo económico
       const ts = Date.now()  // marca de este resultado (para la recuperación tras navegar)
       // Mapear respuesta a estado.
       // REGLA ANTI-PÉRDIDA: en un "Procesar con IA" normal SOLO se sobreescribe lo
@@ -1397,6 +1400,30 @@ export default function ConsultaActivaPage() {
           <div style={{ fontSize: 12.5, color: 'var(--text2)', marginTop: 6, lineHeight: 1.5 }}>
             La IA se pausó para no generarte cargos extra. Puedes seguir escribiendo la nota a mano.
             Para reactivarla, compra más consultas o sube de plan.
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+            <a href="/precios" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#000', textDecoration: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700 }}>
+              Comprar más consultas
+            </a>
+            <a href="/precios" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--nexus, #3d5afe)', textDecoration: 'none', border: '1px solid var(--nexus, #3d5afe)', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 600 }}>
+              Ver planes
+            </a>
+          </div>
+        </div>
+      )}
+
+      {modoEco && !sinCreditos && (
+        <div style={{
+          marginBottom: 14, padding: '13px 16px', borderRadius: 12,
+          border: '1px solid var(--amber, #d97706)', background: 'rgba(217,119,6,0.07)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--amber, #b45309)' }}>
+            <Sparkles size={16} /> Nota generada en modo económico
+          </div>
+          <div style={{ fontSize: 12.5, color: 'var(--text2)', marginTop: 6, lineHeight: 1.5 }}>
+            Se agotaron tus consultas con IA máxima del mes. Esta nota corrió con IA económica
+            (Sonnet 5 — muy buena) y sin separación de voces. <b>Nunca te quedas sin IA.</b> Para
+            recuperar la IA máxima (Opus 4.8 + GPT-5 + separación médico-paciente) compra más consultas.
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
             <a href="/precios" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#000', textDecoration: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700 }}>

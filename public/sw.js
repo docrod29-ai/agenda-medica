@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v292'  // 1) Fix 502 de transcripcion: cuando gpt-4o-transcribe falla ahora CAE a whisper-1 (estable) en vez de abortar; solo aborta con llave invalida (401). 2) 'Corregir por chat' con DOBLE CEREBRO: Claude corrige y GPT (5/4o) audita que se aplico SOLO el cambio pedido
+const CACHE = 'nexusmed-v293'  // MODELO 40 creditos + DEGRADACION en vez de tope duro: al agotar las 40 consultas premium la IA NO se bloquea, baja sola a Sonnet 5 (barato, sin diarizacion ni GPT) y sale aviso ambar 'compra mas para IA maxima'; planes clinica/premium=40, hospital=80; recarga para recuperar Opus/GPT-5
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

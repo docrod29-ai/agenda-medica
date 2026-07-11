@@ -16,7 +16,7 @@ import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
 import { parserClinicoComoRespuestaIA } from '@/lib/expediente/parser-clinico'
 import { safeLog, redactarString } from '@/lib/security/sanitize'
 import { verificarUsuario } from '@/lib/auth-server'
-import { resolverClaveIA, registrarUso, nivelIADe, registrarConsulta, creditosUsadosDelMes, creditosExtraDelMes } from '@/lib/ai-keys'
+import { resolverClaveIA, registrarUso, nivelIADe, registrarConsulta, registrarConsultaEconomica, creditosUsadosDelMes, creditosExtraDelMes } from '@/lib/ai-keys'
 import { planDeNivel, estadoUso } from '@/lib/planes-ia'
 import type { TipoNota, PacienteContexto } from '@/types/expediente'
 
@@ -179,27 +179,26 @@ export async function POST(req: NextRequest) {
   //  · nota final → según el PLAN del consultorio: 'premium' (Opus 4.8 + thinking)
   //    o 'pro' (Sonnet 5, sin thinking — el plan económico $899).
   const nivel = await nivelIADe(clinicId)
-  const perfil: Perfil = rapido ? 'live' : (nivel === 'premium' ? 'premium' : 'pro')
-  const conThinking = perfil === 'premium'
 
-  // ── TOPE DURO de créditos ──────────────────────────────────────────────
-  // Cuando corre con las llaves del DUEÑO (fuente 'prueba') y es una nota FINAL
-  // (no el borrador en vivo), se PAUSA la IA si el consultorio ya usó todas sus
-  // consultas del mes (las de su plan + las recargas). Así el gasto del dueño
-  // nunca se dispara. El consultorio con su PROPIA llave NO se topa (paga su uso).
-  // El resto de la app (nota manual, agenda) sigue funcionando siempre.
+  // ── DEGRADACIÓN a MODO ECONÓMICO (en vez de tope duro) ──────────────────
+  // Cuando corre con las llaves del DUEÑO (fuente 'prueba') y es una nota FINAL,
+  // si el consultorio ya usó sus créditos premium del mes (plan + recargas), la
+  // IA NO se detiene: baja a 'pro' (Sonnet 5, sin thinking ni 2ª opinión GPT),
+  // que es muy buena y casi no cuesta. El médico nunca se queda sin IA; para
+  // recuperar la máxima (Opus/GPT-5) compra más créditos o sube de plan.
+  // Consultorio con su PROPIA llave: siempre usa el nivel de su plan (paga su uso).
+  let modoEconomico = false
   if (!rapido && fuente === 'prueba') {
     const plan = planDeNivel(nivel)
-    // usadas = créditos totales del mes (notas + lo gastado por el Consultor); el bote es compartido.
     const [usadas, extra] = await Promise.all([creditosUsadosDelMes(clinicId), creditosExtraDelMes(clinicId)])
     const limite = plan.limiteConsultas + extra
-    if (usadas + 1 > limite) {
-      return NextResponse.json({
-        ok: false, sinCreditos: true, usadas, limite, plan: plan.clave,
-        error: `Se acabaron tus créditos con IA del mes (${usadas}/${limite}). Compra más o sube de plan.`,
-      }, { status: 402 })
-    }
+    if (usadas + 1 > limite) modoEconomico = true
   }
+
+  // Perfil final: en vivo → 'live'; nota económica (excedente) → 'pro'; si no,
+  // según el plan ('premium' = Opus+thinking, 'pro' = Sonnet).
+  const perfil: Perfil = rapido ? 'live' : (modoEconomico || nivel !== 'premium' ? 'pro' : 'premium')
+  const conThinking = perfil === 'premium'
 
   try {
     const system  = buildSystemPrompt(tipo, contexto.especialidad, contexto.instruccionesIA)
@@ -284,24 +283,33 @@ export async function POST(req: NextRequest) {
     // Candado de gasto (SOFT): cuenta la consulta SOLO si es nota final (no el
     // borrador en vivo) y devuelve el uso vs el límite del plan. Nunca bloquea.
     let uso: ReturnType<typeof estadoUso> | undefined
+    const limitePlan = planDeNivel(nivel).limiteConsultas
     if (!rapido) {
-      // Créditos totales del mes (notas + Consultor) + esta nota = 1 crédito.
-      const usadas = (await creditosUsadosDelMes(clinicId)) + 1
-      void registrarConsulta(clinicId)
-      uso = estadoUso(Math.round(usadas), planDeNivel(nivel).limiteConsultas)
+      if (modoEconomico) {
+        // Excedente: NO gasta crédito premium (corre en Sonnet barato). Se cuenta aparte.
+        void registrarConsultaEconomica(clinicId)
+        uso = estadoUso(limitePlan, limitePlan)   // 100% del cupo premium usado
+      } else {
+        // Créditos totales del mes (notas + Consultor) + esta nota = 1 crédito.
+        const usadas = (await creditosUsadosDelMes(clinicId)) + 1
+        void registrarConsulta(clinicId)
+        uso = estadoUso(Math.round(usadas), limitePlan)
+      }
     }
 
     const validation = RespuestaExtraccion.safeParse(parsed)
     if (!validation.success) {
       console.warn('[procesar] Validación parcial:', validation.error.issues.slice(0, 3))
       void registrarUso(clinicId, fuente)
-      return NextResponse.json({ ok: true, ...parsed, _schemaWarning: true, _plan: nivel, _uso: uso })
+      return NextResponse.json({ ok: true, ...parsed, _schemaWarning: true, _plan: modoEconomico ? 'pro' : nivel, _uso: uso, _modoEconomico: modoEconomico })
     }
 
     void registrarUso(clinicId, fuente)
     // _plan: el cliente decide con esto si la 2ª opinión (GPT-5) es automática
-    // (premium) o botón a demanda (pro). _uso: candado de gasto (soft).
-    return NextResponse.json({ ok: true, ...validation.data, _plan: nivel, _uso: uso })
+    // (premium) o botón a demanda (pro). En modo económico va 'pro' para NO
+    // disparar GPT (excedente barato). _uso: candado de gasto (soft).
+    // _modoEconomico: el cliente muestra el aviso "se agotaron tus consultas máximas".
+    return NextResponse.json({ ok: true, ...validation.data, _plan: modoEconomico ? 'pro' : nivel, _uso: uso, _modoEconomico: modoEconomico })
   } catch (err) {
     console.error('[expediente/procesar] Exception:', err)
     try {

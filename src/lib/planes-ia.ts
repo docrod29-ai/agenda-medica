@@ -1,12 +1,12 @@
 /**
  * PLANES por CRÉDITOS (modelo tipo Asclepius) — fuente ÚNICA de verdad.
  *
- * Idea: cada plan da N CRÉDITOS de IA al mes. Cada acción de IA cuesta créditos
- * según su costo real (una nota con Opus cuesta más que una con Sonnet; separar
- * voces cuesta extra). Cuando se acaban los créditos, la IA se PAUSA (tope duro,
- * para que el gasto del dueño nunca se dispare) — pero el médico puede COMPRAR
- * más créditos o subir de plan. El resto de la app (agenda, expediente manual)
- * sigue funcionando.
+ * Idea: cada plan da N CRÉDITOS de IA "máxima" al mes (nota Opus/GPT-5 +
+ * separación de voces). Cuando se acaban, la IA NO se detiene: baja sola a un
+ * modo ECONÓMICO (nota Sonnet 5 — excelente y baratísima, sin diarización ni 2ª
+ * opinión GPT) que casi no cuesta al dueño. El médico nunca se queda sin IA, y si
+ * quiere recuperar la máxima COMPRA más créditos o sube de plan. Así el gasto del
+ * dueño se controla sin bloquear al médico con el paciente enfrente.
  *
  * 1 crédito ≈ 1 consulta con IA "Pro" (voz + nota Sonnet). Cambia los números
  * aquí y se reflejan en toda la app (tope, gates, página de precios).
@@ -66,7 +66,7 @@ export const PLANES: Record<ClavePlan, PlanCreditos> = {
     ],
   },
   clinica: {
-    clave: 'clinica', nombre: 'Clínica', precioMXN: 799, creditos: 80, nivelIA: 'pro',
+    clave: 'clinica', nombre: 'Clínica', precioMXN: 799, creditos: 40, nivelIA: 'pro',
     pacientesMax: null, destacado: true,
     incluye: [
       'Todo lo de Agenda',
@@ -75,25 +75,27 @@ export const PLANES: Record<ClavePlan, PlanCreditos> = {
       'Recetas y órdenes',
       'Consultor de evidencia (PubMed) con doble IA — cada pregunta ≈ ¼ de crédito',
       'Segunda opinión de IA a demanda',
-      '80 consultas con IA al mes',
+      '40 consultas con IA al mes',
+      'Después NO se detiene: sigue con IA económica (Sonnet 5) o compra más',
     ],
   },
   premium: {
-    clave: 'premium', nombre: 'Premium', precioMXN: 1499, creditos: 80, nivelIA: 'premium',
+    clave: 'premium', nombre: 'Premium', precioMXN: 1499, creditos: 40, nivelIA: 'premium',
     pacientesMax: null,
     incluye: [
       'Todo lo de Clínica',
       'IA de máximo razonamiento (Opus 4.8 + thinking)',
       'Segunda opinión GPT-5 AUTOMÁTICA en cada nota',
       'Consultor de evidencia con Opus 4.8 + GPT-5 (cada pregunta ≈ ½ crédito)',
-      '80 consultas con IA al mes (misma cantidad, IA superior)',
+      '40 consultas con IA máxima al mes',
+      'Al agotarlas sigue con IA económica (Sonnet 5) — nunca te quedas sin IA',
       'Soporte prioritario',
     ],
   },
   // Plan APARTE: hospitalización. El producto estrella es el de consultorio
   // (Clínica); Hospital es para quien maneja internamiento y se cobra por su lado.
   hospital: {
-    clave: 'hospital', nombre: 'Hospital', precioMXN: 1999, creditos: 150, nivelIA: 'premium',
+    clave: 'hospital', nombre: 'Hospital', precioMXN: 1999, creditos: 80, nivelIA: 'premium',
     pacientesMax: null,
     incluye: [
       'Módulo de Hospitalización completo',
@@ -101,7 +103,8 @@ export const PLANES: Record<ClavePlan, PlanCreditos> = {
       'Indicaciones/MAR, signos y gráficas (NEWS2)',
       'Notas de ingreso, evolución, egreso, postop y anestesia',
       'Interconsultas y laboratorio',
-      'Nota con IA de máximo nivel (Opus) · 150 créditos/mes',
+      'Nota con IA de máximo nivel (Opus) · 80 créditos/mes',
+      'Al agotarlos sigue con IA económica (Sonnet 5) — nunca se detiene',
     ],
   },
 }

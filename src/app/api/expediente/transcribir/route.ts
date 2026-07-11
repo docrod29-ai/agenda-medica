@@ -15,7 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { WHISPER_PROMPT_MEDICO } from '@/lib/expediente/medical-vocabulary'
 import { verificarUsuario } from '@/lib/auth-server'
-import { resolverClaveIA, creditosAgotados, registrarUso } from '@/lib/ai-keys'
+import { resolverClaveIA, registrarUso } from '@/lib/ai-keys'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -32,12 +32,9 @@ export async function POST(req: NextRequest) {
       { status: 503 },
     )
   }
-  if (fuente === 'prueba' && await creditosAgotados(clinicId)) {
-    return NextResponse.json(
-      { ok: false, sinCreditos: true, error: 'Se acabaron tus créditos con IA del mes. Compra más o sube de plan para seguir grabando.' },
-      { status: 402 },
-    )
-  }
+  // NOTA: la transcripción plana (OpenAI) es el plan B BARATO del modo económico —
+  // corre SIEMPRE, no se topa por créditos. El excedente se controla en la NOTA
+  // (procesar baja a Sonnet) y en la diarización (que sí se salta al agotar créditos).
 
   let formData: FormData
   try {
