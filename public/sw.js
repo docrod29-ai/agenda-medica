@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v290'  // Consultor entra al BOTE de creditos: cada pregunta gasta una fraccion (Pro 1/4, Premium 1/2) del MISMO cupo del plan; tope duro compartido con las notas (402 sinCreditos cuando se acaba); asi el costo del GPT queda cubierto por la suscripcion
+const CACHE = 'nexusmed-v291'  // TODOS usan la llave del dueno (Vercel) sin configurar nada: se quito el tope viejo de '30 usos de prueba' que cortaba transcripcion/diarizacion/inmuno/receta; ahora el UNICO candado es el de CREDITOS del plan (creditosAgotados compartido); el cliente nunca pone llaves
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

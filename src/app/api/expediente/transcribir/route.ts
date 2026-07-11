@@ -15,7 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { WHISPER_PROMPT_MEDICO } from '@/lib/expediente/medical-vocabulary'
 import { verificarUsuario } from '@/lib/auth-server'
-import { resolverClaveIA, pruebaAgotada, registrarUso } from '@/lib/ai-keys'
+import { resolverClaveIA, creditosAgotados, registrarUso } from '@/lib/ai-keys'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -32,9 +32,9 @@ export async function POST(req: NextRequest) {
       { status: 503 },
     )
   }
-  if (fuente === 'prueba' && await pruebaAgotada(clinicId)) {
+  if (fuente === 'prueba' && await creditosAgotados(clinicId)) {
     return NextResponse.json(
-      { ok: false, error: 'Se agotó tu prueba gratis de IA. Configura tu propia API key en Configuración → Llaves de IA.' },
+      { ok: false, sinCreditos: true, error: 'Se acabaron tus créditos con IA del mes. Compra más o sube de plan para seguir grabando.' },
       { status: 402 },
     )
   }

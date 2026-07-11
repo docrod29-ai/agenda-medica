@@ -10,6 +10,7 @@
  * enmascarado "····1234"). Firestore niega ese path al cliente por defecto.
  */
 import admin, { adminDb } from './firebase-admin'
+import { planPorNivel } from './planes-ia'
 
 export type ProveedorIA = 'anthropic' | 'assemblyai' | 'openai'
 
@@ -113,6 +114,24 @@ export async function creditosExtraDelMes(clinicId: string | null): Promise<numb
     return (await docIA(clinicId).get()).data()?.uso?.[mesActual()]?.extra ?? 0
   } catch {
     return 0
+  }
+}
+
+/**
+ * TOPE DURO compartido: ¿el consultorio ya gastó TODOS sus créditos del mes
+ * (notas + Consultor) según su plan? Es el único candado de gasto ahora que todos
+ * corren con la llave del dueño. Ante un error de lectura devuelve false (NO
+ * bloquear al médico por un fallo de Firestore). El límite sale de planes-ia.
+ */
+export async function creditosAgotados(clinicId: string | null): Promise<boolean> {
+  if (!clinicId) return false
+  try {
+    const nivel = await nivelIADe(clinicId)
+    const [usados, extra] = await Promise.all([creditosUsadosDelMes(clinicId), creditosExtraDelMes(clinicId)])
+    const limite = planPorNivel(nivel).creditos + extra
+    return usados >= limite
+  } catch {
+    return false
   }
 }
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarUsuario } from '@/lib/auth-server'
-import { resolverClaveIA, pruebaAgotada } from '@/lib/ai-keys'
+import { resolverClaveIA, creditosAgotados } from '@/lib/ai-keys'
 
 /**
  * IA de visión: recibe la imagen del FORMATO de receta del médico y detecta dónde
@@ -44,8 +44,8 @@ export async function POST(req: NextRequest) {
 
   const { key, fuente, clinicId } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
   if (!key) return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada.' }, { status: 503 })
-  if (fuente === 'prueba' && await pruebaAgotada(clinicId)) {
-    return NextResponse.json({ ok: false, error: 'Se agotó tu prueba gratis de IA.' }, { status: 402 })
+  if (fuente === 'prueba' && await creditosAgotados(clinicId)) {
+    return NextResponse.json({ ok: false, sinCreditos: true, error: 'Se acabaron tus créditos con IA del mes. Compra más o sube de plan.' }, { status: 402 })
   }
 
   let body: { imagenBase64?: string; mediaType?: string }
