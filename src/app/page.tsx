@@ -154,12 +154,15 @@ function Hero() {
       textAlign: 'center', padding: '120px 24px 88px',
       position: 'relative', overflow: 'hidden',
     }}>
-      {/* Halo de marca discreto */}
+      {/* Fondo de marca: red clínica luminosa (Nano-Banana) + velo para legibilidad */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/brand/hero.jpg" alt="" aria-hidden="true" style={{
+        position: 'absolute', inset: 0, width: '100%', height: '100%',
+        objectFit: 'cover', objectPosition: 'center right', opacity: 0.85, pointerEvents: 'none',
+      }} />
       <div style={{
-        position: 'absolute', top: '20%', left: '50%', transform: 'translateX(-50%)',
-        width: 900, height: 900, borderRadius: '50%',
-        background: 'radial-gradient(circle, var(--nexus-soft) 0%, transparent 55%)',
-        pointerEvents: 'none', opacity: 0.5,
+        position: 'absolute', inset: 0, pointerEvents: 'none',
+        background: 'radial-gradient(120% 90% at 50% 30%, transparent 0%, var(--bg) 78%)',
       }} />
 
       <div style={{ position: 'relative' }}>
@@ -227,7 +230,7 @@ function Stats() {
           flex: '1 1 160px', padding: '32px 24px', textAlign: 'center',
           borderRight: i < items.length - 1 ? '1px solid var(--border)' : 'none',
         }}>
-          <div style={{ fontSize: 36, fontWeight: 800, color: 'var(--teal)' }}>{s.value}</div>
+          <div style={{ fontSize: 36, fontWeight: 600, color: 'var(--teal)' }}>{s.value}</div>
           <div style={{ fontSize: 14, color: 'var(--text3)', marginTop: 4 }}>{s.label}</div>
         </div>
       ))}
@@ -239,7 +242,7 @@ function Features() {
   return (
     <section style={{ padding: '96px 24px', maxWidth: 1100, margin: '0 auto' }}>
       <div style={{ textAlign: 'center', marginBottom: 64 }}>
-        <h2 style={{ fontSize: 40, fontWeight: 800, color: 'var(--text)', marginBottom: 16 }}>
+        <h2 style={{ fontSize: 40, fontWeight: 600, color: 'var(--text)', marginBottom: 16 }}>
           Todo lo que necesitas, nada de lo que no
         </h2>
         <p style={{ fontSize: 17, color: 'var(--text2)', maxWidth: 500, margin: '0 auto' }}>
@@ -289,9 +292,9 @@ function HowItWorks() {
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 64 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/red-nexo.svg" alt="Red clínica conectada de NexusMED"
-            style={{ width: '100%', maxWidth: 560, height: 'auto', margin: '0 auto 40px', display: 'block', borderRadius: 16, border: '1px solid var(--border)' }} />
-          <h2 style={{ fontSize: 40, fontWeight: 800, color: 'var(--text)', marginBottom: 16 }}>
+          <img src="/brand/workspace.jpg" alt="Espacio de trabajo clínico conectado de NexusMED"
+            style={{ width: '100%', maxWidth: 720, height: 'auto', margin: '0 auto 40px', display: 'block', borderRadius: 16, border: '1px solid var(--border)' }} />
+          <h2 style={{ fontSize: 40, fontWeight: 600, color: 'var(--text)', marginBottom: 16 }}>
             Listo en 5 minutos
           </h2>
           <p style={{ fontSize: 17, color: 'var(--text2)' }}>
@@ -388,7 +391,7 @@ function Pricing() {
   return (
     <section id="precios" style={{ padding: '96px 24px', maxWidth: 1100, margin: '0 auto' }}>
       <div style={{ textAlign: 'center', marginBottom: 64 }}>
-        <h2 style={{ fontSize: 40, fontWeight: 800, color: 'var(--text)', marginBottom: 16 }}>
+        <h2 style={{ fontSize: 40, fontWeight: 600, color: 'var(--text)', marginBottom: 16 }}>
           Precios simples y transparentes
         </h2>
         <p style={{ fontSize: 17, color: 'var(--text2)' }}>
@@ -415,7 +418,7 @@ function Pricing() {
             )}
 
             <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 4 }}>{p.desc}</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text)' }}>{p.name}</div>
+            <div style={{ fontSize: 28, fontWeight: 600, color: 'var(--text)' }}>{p.name}</div>
             <div style={{ marginTop: 16, marginBottom: 28 }}>
               <span style={{ fontSize: 48, fontWeight: 900, color: p.highlight ? 'var(--teal)' : 'var(--text)' }}>
                 ${p.price}
@@ -478,7 +481,7 @@ function FAQ() {
       padding: '96px 24px', maxWidth: 720, margin: '0 auto',
       borderTop: '1px solid var(--border)',
     }}>
-      <h2 style={{ fontSize: 40, fontWeight: 800, color: 'var(--text)', textAlign: 'center', marginBottom: 48 }}>
+      <h2 style={{ fontSize: 40, fontWeight: 600, color: 'var(--text)', textAlign: 'center', marginBottom: 48 }}>
         Preguntas frecuentes
       </h2>
 
@@ -525,7 +528,7 @@ function FinalCTA() {
       background: 'linear-gradient(135deg, rgba(61,90,254,0.06) 0%, rgba(61,90,254,0.04) 100%)',
       borderTop: '1px solid var(--border)', textAlign: 'center',
     }}>
-      <h2 style={{ fontSize: 40, fontWeight: 800, color: 'var(--text)', marginBottom: 16 }}>
+      <h2 style={{ fontSize: 40, fontWeight: 600, color: 'var(--text)', marginBottom: 16 }}>
         Recupera tu tiempo hoy
       </h2>
       <p style={{ fontSize: 17, color: 'var(--text2)', marginBottom: 40, maxWidth: 480, margin: '0 auto 40px' }}>

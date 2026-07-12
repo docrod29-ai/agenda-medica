@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v328'  // AUDITORIA (integridad datos): el Guardar global de Configuracion usaba saveConfig(form) SIN compactar base64 → si quedaba una firma/membrete en base64 inline, el doc de config podia pasar el tope de 1MB de Firestore y fallar TODO el guardado. Ahora handleSave compacta firmaImagenDataUrl y notaMembreteDataUrl (base64→Storage via subirImagen, que deja pasar las URLs sin tocar) ANTES de guardar; ademas el error muestra la causa real en vez de un generico
+const CACHE = 'nexusmed-v329'  // LANDING redisenada: hero con imagen de marca Nano-Banana (public/brand/hero.jpg, nodo luminoso+pulso) reemplazando el halo vacio; tipografia alineada al design system (fontWeight 800→600); imagen de paneles de vidrio (workspace.jpg) en Como funciona; imagenes optimizadas 150-300K. Generadas con Nano-Banana (Gemini, key del Dr)
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
