@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v306'  // FIX login colgado: ClinicContext y useAuth ahora tienen manejo de error + timeout de 8s en los onSnapshot/onAuthStateChanged; si Firestore/Firebase no responde (red/permiso), loading se libera y aparece login/setup en vez de spinner eterno
+const CACHE = 'nexusmed-v307'  // Flujo de entrada claro: el DUENO (superadmin) y cuentas paseLibre/cortesia NUNCA ven el paywall de paquetes (entran directo); landing con 'Iniciar sesion' como boton claro + '¿Ya tienes cuenta? Inicia sesion aqui' en el hero
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

@@ -137,10 +137,7 @@ function Nav() {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Link href="/login" style={{
-          fontSize: 13.5, color: 'var(--text2)', textDecoration: 'none',
-          padding: '8px 14px', borderRadius: 8, fontWeight: 500,
-        }}>
+        <Link href="/login" className="btn btn-secondary" style={{ textDecoration: 'none', height: 36, fontWeight: 600 }}>
           Iniciar sesión
         </Link>
         <Link href="/registro" className="btn btn-primary" style={{ textDecoration: 'none', height: 36 }}>
@@ -202,6 +199,10 @@ function Hero() {
           <a href="#como-funciona" className="btn btn-secondary btn-lg" style={{ textDecoration: 'none' }}>
             Ver demo
           </a>
+        </div>
+        <div style={{ marginTop: 16, fontSize: 14, color: 'var(--text2)' }}>
+          ¿Ya tienes cuenta?{' '}
+          <Link href="/login" style={{ color: 'var(--nexus)', fontWeight: 700, textDecoration: 'none' }}>Inicia sesión aquí →</Link>
         </div>
       </div>
     </section>

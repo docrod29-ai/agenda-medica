@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
+import { esSuperadminCliente } from '@/lib/superadmin-client'
 import { useClinic } from '@/context/ClinicContext'
 import { Sidebar } from '@/components/Sidebar'
 import { ToastProvider } from '@/context/ToastContext'
@@ -74,8 +75,9 @@ function TrialBanner() {
  * - 'sin_tarjeta': cuenta nueva sin suscripción → elegir plan + tarjeta.
  * Conservador: ante la duda (sin clínica) NO bloquea.
  */
-function estadoAcceso(clinic: { status?: string } | null): 'ok' | 'sin_tarjeta' | 'vencido' {
+function estadoAcceso(clinic: { status?: string; paseLibre?: boolean; plan?: string } | null): 'ok' | 'sin_tarjeta' | 'vencido' {
   if (!clinic) return 'ok'
+  if (clinic.paseLibre === true || clinic.plan === 'cortesia') return 'ok'   // dueño/cortesía: nunca paywall
   if (clinic.status === 'active') return 'ok'
   if (clinic.status === 'suspended' || clinic.status === 'cancelled' || clinic.status === 'canceled' || clinic.status === 'past_due') return 'vencido'
   return 'sin_tarjeta'   // 'trial' o cuenta nueva → necesita tarjeta para iniciar
@@ -244,8 +246,9 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
   // Modelo B: sin suscripción (cuenta nueva) o vencida → bloquea la app y muestra
   // elegir plan + tarjeta. Tras pagar (?checkout=success) muestra "Activando…" hasta
   // que el webhook active la clínica (en vivo → se desbloquea solo).
+  // El DUEÑO (superadmin) nunca ve el paywall — entra directo a la app.
   const acceso = estadoAcceso(clinic)
-  if (acceso !== 'ok') {
+  if (acceso !== 'ok' && !esSuperadminCliente(user?.email)) {
     const recienPago = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('checkout') === 'success'
     if (recienPago) return <ActivandoCuenta />
     return <AccesoGate estado={acceso} clinicId={clinicId} esMedico={esMedicoReal} email={user?.email ?? ''} />
