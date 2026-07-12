@@ -5,12 +5,12 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v307'  // Flujo de entrada claro: el DUENO (superadmin) y cuentas paseLibre/cortesia NUNCA ven el paywall de paquetes (entran directo); landing con 'Iniciar sesion' como boton claro + '¿Ya tienes cuenta? Inicia sesion aqui' en el hero
+const CACHE = 'nexusmed-v308'  // AUTO-ACTUALIZAR el service worker (skipWaiting en install) para que nadie se quede pegado en una version vieja sin poder entrar; se auto-sana en la siguiente carga
 
 self.addEventListener('install', (event) => {
-  // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque
-  // "Actualizar" (mensaje SKIP_WAITING). Así el aviso sale una vez por versión real
-  // y no genera churn ni se "traba" reapareciendo.
+  // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
+  // Evita que alguien se quede pegado en una versión vieja sin poder entrar.
+  self.skipWaiting()
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/']).catch(() => {})))
 })
 
