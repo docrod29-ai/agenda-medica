@@ -288,6 +288,9 @@ function HowItWorks() {
     }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 64 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/red-nexo.svg" alt="Red clínica conectada de NexusMED"
+            style={{ width: '100%', maxWidth: 560, height: 'auto', margin: '0 auto 40px', display: 'block', borderRadius: 16, border: '1px solid var(--border)' }} />
           <h2 style={{ fontSize: 40, fontWeight: 800, color: 'var(--text)', marginBottom: 16 }}>
             Listo en 5 minutos
           </h2>

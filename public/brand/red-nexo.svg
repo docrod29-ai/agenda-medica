@@ -1,0 +1,32 @@
+<svg width="680" height="300" viewBox="0 0 680 300" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Red de nodos conectados con un pulso cardiaco — marca NexusMED">
+<rect width="680" height="300" rx="16" fill="#0B0C0E"/>
+<g stroke="#3D5AFE" stroke-width="0.6" opacity="0.35">
+<line x1="70" y1="90" x2="180" y2="120"/>
+<line x1="180" y1="120" x2="140" y2="200"/>
+<line x1="180" y1="120" x2="320" y2="130"/>
+<line x1="210" y1="70" x2="320" y2="130"/>
+<line x1="320" y1="130" x2="270" y2="185"/>
+<line x1="320" y1="130" x2="410" y2="90"/>
+<line x1="320" y1="130" x2="450" y2="160"/>
+<line x1="410" y1="90" x2="500" y2="70"/>
+<line x1="450" y1="160" x2="540" y2="180"/>
+<line x1="540" y1="180" x2="610" y2="110"/>
+<line x1="540" y1="180" x2="600" y2="230"/>
+<line x1="450" y1="160" x2="410" y2="220"/>
+<line x1="270" y1="185" x2="350" y2="235"/>
+<line x1="140" y1="200" x2="270" y2="185"/>
+<line x1="500" y1="70" x2="610" y2="110"/>
+</g>
+<g fill="#3D5AFE" opacity="0.55">
+<circle cx="70" cy="90" r="2.5"/><circle cx="210" cy="70" r="2"/><circle cx="140" cy="200" r="3"/>
+<circle cx="270" cy="185" r="2.5"/><circle cx="410" cy="90" r="2.5"/><circle cx="500" cy="70" r="3"/>
+<circle cx="610" cy="110" r="2.5"/><circle cx="600" cy="230" r="2"/><circle cx="350" cy="235" r="2.5"/>
+<circle cx="410" cy="220" r="2"/><circle cx="180" cy="120" r="2.5"/>
+</g>
+<g fill="#7C93FF">
+<circle cx="320" cy="130" r="10" opacity="0.12"/><circle cx="320" cy="130" r="6" opacity="0.3"/><circle cx="320" cy="130" r="3.4"/>
+<circle cx="540" cy="180" r="9" opacity="0.12"/><circle cx="540" cy="180" r="5.5" opacity="0.3"/><circle cx="540" cy="180" r="3"/>
+<circle cx="450" cy="160" r="8" opacity="0.12"/><circle cx="450" cy="160" r="4.6" opacity="0.3"/><circle cx="450" cy="160" r="2.6"/>
+</g>
+<polyline points="40,155 150,155 185,155 205,120 225,190 245,155 300,155 320,155 335,96 352,214 368,155 430,155 470,150 640,150" fill="none" stroke="#5B78FF" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" opacity="0.9"/>
+</svg>

@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v326'  // ESTETICA A: imagen OG/Twitter 1200x630 on-brand generada con next/og (src/app/opengraph-image.tsx) — antes NO existia y el link se compartia como cuadro negro en WhatsApp/redes; ahora sale con marca (cobalto sobre ink), titular 'El consultorio, conectado' y capacidades. Se sirve auto como og:image + twitter:image
+const CACHE = 'nexusmed-v327'  // ESTETICA B: ilustracion de marca red-nexo (public/brand/red-nexo.svg) — constelacion de nodos + pulso cardiaco en cobalto sobre ink, hecha por codigo (nitida, ~1KB, sin IA ni llave), montada en la seccion Como funciona de la landing; refuerza el nombre Nexus. Nano-Banana (Gemini) queda pendiente de la key de Google del Dr
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
