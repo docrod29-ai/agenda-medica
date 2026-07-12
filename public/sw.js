@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v313'  // PRIVACIDAD: 'Entrar a este consultorio con mi cuenta' SOLO funciona en consultorios que el dueno creo (ownerId === su uid); server rechaza 403 los ajenos y la UI oculta el boton (esMio); el dueno ya NO puede meterse a cuentas de otros medicos
+const CACHE = 'nexusmed-v314'  // Contabilidad: reintento automatico (3 intentos, 1.2s) ante fallo transitorio de arranque en frio + maxDuration 30s; ya no sale 'Error de conexion' en la primera carga
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

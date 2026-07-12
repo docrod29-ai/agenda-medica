@@ -38,12 +38,26 @@ export default function ContabilidadPage() {
   const meses = useMemo(() => ultimos12(), [])
 
   useEffect(() => {
+    let cancelado = false
     setCargando(true); setError('')
-    fetchAutenticado(`/api/superadmin/contabilidad?mes=${mes}`)
-      .then(r => r.json())
-      .then(d => { if (d.ok) setData(d); else setError(d.error || 'No autorizado') })
-      .catch(() => setError('Error de conexión'))
-      .finally(() => setCargando(false))
+    // Reintenta ante fallos transitorios (arranque en frío del servidor): así ya
+    // no sale "Error de conexión" en la primera carga.
+    const intentar = async (restan: number): Promise<void> => {
+      try {
+        const r = await fetchAutenticado(`/api/superadmin/contabilidad?mes=${mes}`)
+        const d = await r.json()
+        if (cancelado) return
+        if (d.ok) { setData(d); setError('') }
+        else if (restan > 0) { await new Promise(s => setTimeout(s, 1200)); return intentar(restan - 1) }
+        else setError(d.error || 'No autorizado')
+      } catch {
+        if (cancelado) return
+        if (restan > 0) { await new Promise(s => setTimeout(s, 1200)); return intentar(restan - 1) }
+        setError('Error de conexión. Reintenta en un momento.')
+      }
+    }
+    intentar(2).finally(() => { if (!cancelado) setCargando(false) })
+    return () => { cancelado = true }
   }, [mes])
 
   const exportarCSV = () => {
