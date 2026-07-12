@@ -112,6 +112,19 @@ export async function POST(req: NextRequest) {
       })
       return NextResponse.json({ ok: true, nivelIA: nivel })
     }
+    case 'entrar_a_consultorio': {
+      // Reconecta la CUENTA DEL DUEÑO (quien llama) a este consultorio. Útil para
+      // recuperar acceso a un consultorio propio cuya membresía quedó apuntando a
+      // otro (p. ej. si se creó un consultorio nuevo por error). Solo cambia la
+      // membresía del superadmin; NO toca datos ni pacientes del consultorio.
+      await adminDb.collection('clinic_members').doc(acc.uid).set({
+        clinicId, role: 'admin', email: acc.email, updatedAt: now,
+      }, { merge: true })
+      await adminDb.collection('platform_admin_log').add({
+        clinicId, accion, por: acc.email, detalle: { uid: acc.uid }, fecha: now,
+      })
+      return NextResponse.json({ ok: true, entrarA: clinicId })
+    }
     default:
       return NextResponse.json({ ok: false, error: 'Acción desconocida' }, { status: 400 })
   }

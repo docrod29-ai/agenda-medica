@@ -11,7 +11,7 @@ import { fetchAutenticado } from '@/lib/auth-client'
 import { Modal, Button, Spinner } from '@/components/ui'
 import { MODULOS, MODULO_LABEL } from '@/lib/modulos'
 import { type ModeloPrecio, explicarPrecio } from '@/lib/pricing'
-import { ShieldCheck, Search, Gift, Ban, Play, CalendarPlus, StickyNote, Lock, RefreshCw, Package, Plus, Trash2, Boxes, Sparkles, TrendingUp } from 'lucide-react'
+import { ShieldCheck, Search, Gift, Ban, Play, CalendarPlus, StickyNote, Lock, RefreshCw, Package, Plus, Trash2, Boxes, Sparkles, TrendingUp, LogIn } from 'lucide-react'
 
 interface Cliente {
   id: string; nombreClinica: string; nombreMedico: string
@@ -256,6 +256,29 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
         <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>
           {cliente.nombreMedico} · Plan {PLAN_LABEL[cliente.plan] ?? cliente.plan} · <span style={{ color: COB[cliente.cobranza].color, fontWeight: 700 }}>{COB[cliente.cobranza].label}</span>
           {cliente.totalPagado > 0 && <> · Pagado {mxn(cliente.totalPagado)}</>}
+        </div>
+
+        {/* Reconectar MI cuenta a ESTE consultorio (recuperar acceso a un consultorio propio) */}
+        <div style={{ background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.3)', borderRadius: 10, padding: '12px 14px' }}>
+          <div style={{ fontSize: 12.5, color: 'var(--text2)', marginBottom: 8 }}>
+            ¿Este es TU consultorio y tu cuenta quedó en otro? Reconéctala aquí — entrarás a este consultorio (con sus pacientes).
+          </div>
+          <Button
+            loading={busy === 'entrar_a_consultorio'}
+            icon={<LogIn size={14} />}
+            onClick={async () => {
+              setBusy('entrar_a_consultorio')
+              try {
+                const res = await fetchAutenticado('/api/superadmin/accion', {
+                  method: 'POST', headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ clinicId: cliente.id, accion: 'entrar_a_consultorio' }),
+                })
+                const d = await res.json()
+                if (d.ok) { window.location.href = '/dashboard' } else { setBusy(null) }
+              } catch { setBusy(null) }
+            }}>
+            Entrar a este consultorio con mi cuenta
+          </Button>
         </div>
 
         {/* Paquete / acceso a módulos */}
