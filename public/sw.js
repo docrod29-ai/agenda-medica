@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v327'  // ESTETICA B: ilustracion de marca red-nexo (public/brand/red-nexo.svg) — constelacion de nodos + pulso cardiaco en cobalto sobre ink, hecha por codigo (nitida, ~1KB, sin IA ni llave), montada en la seccion Como funciona de la landing; refuerza el nombre Nexus. Nano-Banana (Gemini) queda pendiente de la key de Google del Dr
+const CACHE = 'nexusmed-v328'  // AUDITORIA (integridad datos): el Guardar global de Configuracion usaba saveConfig(form) SIN compactar base64 → si quedaba una firma/membrete en base64 inline, el doc de config podia pasar el tope de 1MB de Firestore y fallar TODO el guardado. Ahora handleSave compacta firmaImagenDataUrl y notaMembreteDataUrl (base64→Storage via subirImagen, que deja pasar las URLs sin tocar) ANTES de guardar; ademas el error muestra la causa real en vez de un generico
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

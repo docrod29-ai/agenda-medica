@@ -146,10 +146,20 @@ export default function ConfiguracionPage() {
   const handleSave = async () => {
     setSaving(true)
     try {
-      await saveConfig(clinicId!, form)
+      // Compacta las imágenes pesadas (base64 → Storage) ANTES de guardar. Si
+      // quedara base64 inline, el doc de config podía pasar el tope de 1MB de
+      // Firestore y hacer fallar TODO el guardado. subirImagen deja pasar las
+      // URLs sin tocarlas → en el caso normal no cambia nada.
+      const formCompacto: ClinicConfig = {
+        ...form,
+        firmaImagenDataUrl: await subirImagenServidor(form.firmaImagenDataUrl, 'firma'),
+        notaMembreteDataUrl: await subirImagenServidor(form.notaMembreteDataUrl, 'nota-membrete'),
+      }
+      await saveConfig(clinicId!, formCompacto)
+      setForm(formCompacto)  // refleja las URLs ya compactadas (no re-subir la próxima vez)
       toast('Configuración guardada', 'success')
-    } catch {
-      toast('Error al guardar', 'error')
+    } catch (e) {
+      toast(`Error al guardar: ${e instanceof Error ? e.message.slice(0, 80) : ''}`, 'error')
     } finally {
       setSaving(false)
     }
