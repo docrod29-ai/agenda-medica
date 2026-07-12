@@ -1,6 +1,7 @@
 import {
   collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc,
-  query, orderBy, where,
+  query, orderBy, where, writeBatch,
+  type DocumentReference,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import type { NotaMedica } from '@/types/expediente'
@@ -122,49 +123,54 @@ export async function deletePatientExpediente(
     }
   }
 
-  // 2. Borrar todos los borradores
-  for (const n of notas) {
-    await deleteDoc(notaDoc(clinicId, patientId, n.id))
-  }
-
-  // 3. Borrar TODAS las citas asociadas (por pacienteId y, si se dio, por nombre+tel)
-  //    Esto previene que la lógica de "huérfanos" reviva al paciente.
+  // Se ARMA todo primero (solo lecturas) y se borra en UN batch atómico al final:
+  // si algo falla, Firestore no aplica NADA → nunca queda un expediente a medias
+  // (paciente borrado con citas huérfanas, o notas borradas con paciente presente).
   const citasRef = collection(db, 'clinics', clinicId, 'appointments')
-  let citasBorradas = 0
+  const refsCitas: DocumentReference[] = []
+  const vistas = new Set<string>()
 
-  // 3a. Por pacienteId
+  // Citas por pacienteId
   try {
     const snap = await getDocs(query(citasRef, where('pacienteId', '==', patientId)))
-    for (const d of snap.docs) {
-      await deleteDoc(d.ref)
-      citasBorradas++
-    }
+    for (const d of snap.docs) { if (!vistas.has(d.id)) { vistas.add(d.id); refsCitas.push(d.ref) } }
   } catch { /* ignore */ }
 
-  // 3b. Coincidencia por nombre+teléfono (cubre citas con pacienteId vacío)
+  // Citas por nombre/teléfono (cubre citas con pacienteId vacío). Requiere leer la
+  // colección porque el match es normalizado (mayúsculas/formato de tel) y Firestore
+  // no puede filtrar por eso en la query.
   if (matchInfo?.nombre || matchInfo?.telefono) {
     const norm = (s: string) => s.toLowerCase().trim()
     const normTel = (s: string) => s.replace(/\D/g, '')
     try {
       const all = await getDocs(citasRef)
       for (const d of all.docs) {
-        const data = d.data() as { pacienteId?: string; pacienteNombre?: string; pacienteTelefono?: string }
-        // ya borradas en 3a
-        if (data.pacienteId === patientId) continue
-        const nombreMatch  = matchInfo.nombre   && data.pacienteNombre   && norm(data.pacienteNombre) === norm(matchInfo.nombre)
+        if (vistas.has(d.id)) continue
+        const data = d.data() as { pacienteNombre?: string; pacienteTelefono?: string }
+        const nombreMatch   = matchInfo.nombre   && data.pacienteNombre   && norm(data.pacienteNombre) === norm(matchInfo.nombre)
         const telefonoMatch = matchInfo.telefono && data.pacienteTelefono && normTel(data.pacienteTelefono) === normTel(matchInfo.telefono)
-        if (nombreMatch || telefonoMatch) {
-          await deleteDoc(d.ref)
-          citasBorradas++
-        }
+        if (nombreMatch || telefonoMatch) { vistas.add(d.id); refsCitas.push(d.ref) }
       }
     } catch { /* ignore */ }
   }
 
-  // 4. Borrar el documento del paciente
-  await deleteDoc(doc(db, 'clinics', clinicId, 'patients', patientId))
+  // Commit atómico en lotes de 450 (tope de Firestore = 500 ops por batch).
+  const todo = [
+    ...notas.map(n => notaDoc(clinicId, patientId, n.id)),
+    ...refsCitas,
+    doc(db, 'clinics', clinicId, 'patients', patientId),  // el paciente al final
+  ]
+  try {
+    for (let i = 0; i < todo.length; i += 450) {
+      const batch = writeBatch(db)
+      for (const ref of todo.slice(i, i + 450)) batch.delete(ref)
+      await batch.commit()
+    }
+  } catch (e) {
+    return { ok: false, motivo: `No se pudo completar el borrado: ${e instanceof Error ? e.message : 'error'}. No se eliminó nada parcial.` }
+  }
 
-  return { ok: true, borradas: { notas: notas.length, citas: citasBorradas } }
+  return { ok: true, borradas: { notas: notas.length, citas: refsCitas.length } }
 }
 
 /** Solo se permite actualizar borradores (NOM-024: las firmadas son inmutables) */

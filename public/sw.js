@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v322'  // AUDITORIA lote 1: (1) getUltimasNotasResumen ya no revienta con notas viejas sin diagnosticos (n.diagnosticos ?? []) → la IA no se quedaba sin historial en silencio; (2) useConfig/useDoctors onSnapshot con callback de error → se acabo el spinner eterno si falla reglas/red/token; (3) .catch en carga de paciente/contexto en consulta
+const CACHE = 'nexusmed-v323'  // AUDITORIA lote 2: borrado de paciente ATOMICO. deletePatientExpediente reunia refs y borraba en secuencia con deleteDoc sueltos (si fallaba a media → expediente a medias: paciente borrado con citas huerfanas, o notas borradas con paciente presente). Ahora arma todo (solo lecturas) y borra en UN writeBatch todo-o-nada (lotes de 450 por el tope de 500); si falla, no borra NADA parcial y devuelve error claro
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
