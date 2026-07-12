@@ -112,6 +112,22 @@ export async function POST(req: NextRequest) {
       })
       return NextResponse.json({ ok: true, nivelIA: nivel })
     }
+    case 'eliminar_consultorio': {
+      // BORRADO DEFINITIVO (irreversible): elimina el consultorio y TODOS sus
+      // datos (pacientes, notas, config, secretos, subcolecciones) + libera a los
+      // usuarios que le pertenecían (clinic_members). Solo el dueño (superadmin).
+      await adminDb.recursiveDelete(ref)
+      const miembros = await adminDb.collection('clinic_members').where('clinicId', '==', clinicId).get()
+      if (!miembros.empty) {
+        const batch = adminDb.batch()
+        miembros.docs.forEach(d => batch.delete(d.ref))
+        await batch.commit()
+      }
+      await adminDb.collection('platform_admin_log').add({
+        clinicId, accion, por: acc.email, detalle: { miembrosLiberados: miembros.size }, fecha: now,
+      })
+      return NextResponse.json({ ok: true, eliminado: clinicId })
+    }
     case 'entrar_a_consultorio': {
       // Reconecta la CUENTA DEL DUEÑO (quien llama) a este consultorio. Útil para
       // recuperar acceso a un consultorio propio cuya membresía quedó apuntando a

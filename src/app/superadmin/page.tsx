@@ -234,6 +234,7 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
   const [paqNombre, setPaqNombre] = useState(cliente.paqueteNombre || '')
   const [paqId, setPaqId] = useState(cliente.paqueteId || '')
   const [nivelIA, setNivelIA] = useState<'pro' | 'premium'>(cliente.nivelIA ?? 'pro')
+  const [confirmarBorrar, setConfirmarBorrar] = useState(false)
   const toggleMod = (k: string) => setMods(prev => prev.includes(k) ? prev.filter(x => x !== k) : [...prev, k])
   const aplicarPaquete = (p: Paquete) => { setMods(p.modulos); setPaqNombre(p.nombre); setPaqId(p.id) }
 
@@ -389,6 +390,22 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
           <textarea value={notas} onChange={e => setNotas(e.target.value)} rows={2} placeholder="Ej. Prometió pagar el 15, muy interesado en hospitalización…"
             style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 13, resize: 'vertical' }} />
           <Button variant="secondary" size="sm" loading={busy === 'guardar_notas'} onClick={() => accion('guardar_notas', { notas })}>Guardar notas</Button>
+        </Seccion>
+
+        {/* Zona peligrosa — eliminar consultorio (definitivo) */}
+        <Seccion icono={<Trash2 size={16} color="#dc2626" />} titulo="Eliminar consultorio (definitivo)">
+          <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 8 }}>
+            Borra el consultorio y <strong>TODOS sus datos</strong> (pacientes, notas, config). No se puede deshacer.
+          </div>
+          {!confirmarBorrar ? (
+            <Button variant="danger" size="sm" icon={<Trash2 size={14} />} onClick={() => setConfirmarBorrar(true)}>Eliminar consultorio</Button>
+          ) : (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12.5, color: '#dc2626', fontWeight: 700 }}>¿Seguro? Se borra TODO.</span>
+              <Button variant="danger" size="sm" loading={busy === 'eliminar_consultorio'} onClick={() => accion('eliminar_consultorio')}>Sí, borrar definitivamente</Button>
+              <Button variant="secondary" size="sm" onClick={() => setConfirmarBorrar(false)}>Cancelar</Button>
+            </div>
+          )}
         </Seccion>
       </div>
     </Modal>
