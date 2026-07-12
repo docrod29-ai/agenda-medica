@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v320'  // SEGURIDAD lote 2: pagina /terminos (Terminos y Condiciones para SaaS medico MX) + links del registro y footer conectados; App Check integrado en firebase.ts (se activa solo con NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY, no rompe nada mientras tanto); anti-plagio tecnico (poweredByHeader:false + productionBrowserSourceMaps:false); guias docs/RESPALDOS_Y_APPCHECK.md y docs/ANTI_PLAGIO.md con pasos exactos
+const CACHE = 'nexusmed-v321'  // FIX membrete/formato no se aplicaba: la nota/receta/orden se sellan con medicoId=uid de Firebase, pero Config guarda por id de la subcoleccion doctors (autogenerado) → nunca coincidian y caia al generico. lib/impreso-medico.ts (entradaPorMedico: match exacto → si no, la UNICA entrada valida = clinica de 1 medico; 2+ no adivina) aplicado a hoja membretada de notas, formato de receta/orden y firma por medico. 8 tests nuevos
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

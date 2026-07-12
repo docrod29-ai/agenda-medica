@@ -9,6 +9,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { imprimirElemento } from '@/lib/print-element'
+import { entradaPorMedico, overrideRecetaValido, firmaValida } from '@/lib/impreso-medico'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { getNota } from '@/lib/expediente/firestore'
@@ -350,7 +351,7 @@ export default function GeneradorOrdenPage() {
       mostrarDiagnostico: true,
     }
     const medicoId = nota?.metadata?.medicoId
-    const porMedico = medicoId ? config?.recetasPorMedico?.[medicoId] : undefined
+    const porMedico = entradaPorMedico(config?.recetasPorMedico, medicoId, overrideRecetaValido)
     const merged = porMedico ? { ...base, ...porMedico } : base
     // Impresión SIEMPRE en hoja carta centrada (ver receta): 'papel-real' se
     // recorta en A5 por una limitación de Safari.
@@ -361,7 +362,7 @@ export default function GeneradorOrdenPage() {
   const configFirma = useMemo(() => {
     if (!config) return config
     const medicoId = nota?.metadata?.medicoId
-    const firma = (medicoId && config.firmaPorMedico?.[medicoId]) || config.firmaImagenDataUrl
+    const firma = entradaPorMedico(config.firmaPorMedico, medicoId, firmaValida) || config.firmaImagenDataUrl
     return { ...config, firmaImagenDataUrl: firma }
   }, [config, nota?.metadata?.medicoId])
 

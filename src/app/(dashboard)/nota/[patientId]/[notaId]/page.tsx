@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { imprimirElemento } from '@/lib/print-element'
+import { entradaPorMedico, membreteValido, firmaValida } from '@/lib/impreso-medico'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { getNota } from '@/lib/expediente/firestore'
@@ -86,11 +87,11 @@ export default function NotaImprimiblePage() {
   const establecimiento = nota.metadata.establecimiento || config?.nombreClinica || ''
   // Hoja membretada: la del MÉDICO de la nota si tiene una propia; si no, la
   // general del consultorio. Se ignora un valor vacío/roto (evita descuadrar).
-  const medMembrete = nota.metadata?.medicoId ? config?.notaMembretePorMedico?.[nota.metadata.medicoId] : undefined
+  const medMembrete = entradaPorMedico(config?.notaMembretePorMedico, nota.metadata?.medicoId, membreteValido)
   // Firma a mostrar: el snapshot de la nota (inmutable) o la firma del médico que
   // la firmó (per-médico) o, en último caso, la general del consultorio.
   const firmaMostrar = nota.firma?.imagenDataUrl
-    || (nota.metadata?.medicoId ? config?.firmaPorMedico?.[nota.metadata.medicoId] : undefined)
+    || entradaPorMedico(config?.firmaPorMedico, nota.metadata?.medicoId, firmaValida)
     || config?.firmaImagenDataUrl
   const mem = (medMembrete?.url ?? config?.notaMembreteDataUrl)?.trim()
   const membrete = (mem && /^(https?:|\/api\/|data:image)/.test(mem)) ? mem : undefined

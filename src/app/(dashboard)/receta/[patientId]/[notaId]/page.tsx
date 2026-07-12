@@ -12,6 +12,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { imprimirElemento } from '@/lib/print-element'
+import { entradaPorMedico, overrideRecetaValido, firmaValida } from '@/lib/impreso-medico'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { getNota } from '@/lib/expediente/firestore'
@@ -118,7 +119,7 @@ export default function GeneradorRecetaPage() {
       avisoLegal: 'Esta receta es personal e intransferible.',
     }
     const medicoId = nota?.metadata?.medicoId
-    const porMedico = medicoId ? config?.recetasPorMedico?.[medicoId] : undefined
+    const porMedico = entradaPorMedico(config?.recetasPorMedico, medicoId, overrideRecetaValido)
     const merged = porMedico ? { ...base, ...porMedico } : base
     // Impresión SIEMPRE en hoja carta (tamaño estándar que Safari y la impresora
     // respetan): la receta se centra y agranda con márgenes. El modo "papel-real"
@@ -131,7 +132,7 @@ export default function GeneradorRecetaPage() {
   const configFirma = useMemo(() => {
     if (!config) return config
     const medicoId = nota?.metadata?.medicoId
-    const firma = (medicoId && config.firmaPorMedico?.[medicoId]) || config.firmaImagenDataUrl
+    const firma = entradaPorMedico(config.firmaPorMedico, medicoId, firmaValida) || config.firmaImagenDataUrl
     return { ...config, firmaImagenDataUrl: firma }
   }, [config, nota?.metadata?.medicoId])
 
