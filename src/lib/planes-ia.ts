@@ -102,6 +102,7 @@ export const PLANES: Record<ClavePlan, PlanCreditos> = {
       'Menú de IA: elige ⚡ Rápida · ⭐ Estándar · 💎 Máxima por nota',
       '160 créditos/mes (~50 notas Estándar)',
       'Al agotarlos NO se detiene: sigue en ⚡ Rápida gratis o compra más',
+      'Incluye 1 médico · +$499/mes por médico adicional',
     ],
   },
   premium: {
@@ -115,6 +116,7 @@ export const PLANES: Record<ClavePlan, PlanCreditos> = {
       '450 créditos/mes (~45 notas Máxima o ~150 Estándar)',
       'Al agotarlos sigue en ⚡ Rápida gratis — nunca te quedas sin IA',
       'Soporte prioritario',
+      'Incluye 1 médico · +$999/mes por médico adicional',
     ],
   },
   // Plan APARTE: hospitalización. El producto estrella es el de consultorio
@@ -149,6 +151,17 @@ export const RECARGA = { creditos: 100, precioMXN: 399 }
  */
 export const TOPE_ECONOMICO: Record<NivelIA, number> = { pro: 120, premium: 300 }
 export const topeEconomicoDe = (n: NivelIA): number => TOPE_ECONOMICO[n] ?? 120
+
+/**
+ * COBRO POR ASIENTO (por médico). El plan incluye 1 médico; cada médico ADICIONAL
+ * cuesta esto al mes y trae SU propia bolsa de créditos + tope económico. Así el
+ * ingreso sube junto con los médicos y el costo del dueño nunca se dispara.
+ * Se cobra ~2× el costo peor caso del médico → margen ~50% garantizado.
+ */
+export const MEDICO_EXTRA: Record<NivelIA, { precioMXN: number; creditos: number; economico: number }> = {
+  pro:     { precioMXN: 499, creditos: 80,  economico: 80 },   // Clínica
+  premium: { precioMXN: 999, creditos: 200, economico: 150 },  // Pro
+}
 
 /** Plan ANUAL: 12 meses al precio de 10 (2 gratis = −17%). Asegura flujo y baja la cancelación. */
 export const MESES_ANUAL = 10

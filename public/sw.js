@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v304'  // TOPE al modo economico (red de seguridad de costo): tras agotar creditos la IA gratis en Rapida es hasta TOPE_ECONOMICO notas/mes (pro 120, premium 300), luego pausa (402 sinCreditos) y pide recarga/subir; asi con varios medicos el costo del dueno queda ACOTADO
+const CACHE = 'nexusmed-v305'  // COBRO POR ASIENTO (por medico): cada medico extra (rol medico/admin en clinic_members) suma su bolsa de creditos+tope y se cobra +$499 Clinica/+$999 Pro; entitlementsDe escala cupo y tope economico con # medicos; endpoint /api/stripe/asientos ajusta la suscripcion (prorratea); seccion en Mi suscripcion; requiere STRIPE_PRICE_CLINICA_MEDICO/PREMIUM_MEDICO
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

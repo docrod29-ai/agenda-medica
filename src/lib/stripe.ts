@@ -54,6 +54,18 @@ export function priceIdDe(plan: PlanKey, ciclo: Ciclo): string {
 /** Price ID de la RECARGA de créditos (pago ÚNICO, no suscripción). */
 export const STRIPE_PRICE_RECARGA = process.env.STRIPE_PRICE_RECARGA ?? ''
 
+/** Price IDs del MÉDICO ADICIONAL (por asiento) — precio recurrente por médico extra. */
+export const STRIPE_PRICES_MEDICO: Record<'clinica' | 'premium', string> = {
+  clinica: process.env.STRIPE_PRICE_CLINICA_MEDICO ?? '',
+  premium: process.env.STRIPE_PRICE_PREMIUM_MEDICO ?? '',
+}
+/** Price del médico extra según el plan (solo Clínica/Pro tienen asientos). */
+export function priceMedicoDe(plan: PlanKey): string {
+  if (plan === 'premium') return STRIPE_PRICES_MEDICO.premium
+  if (plan === 'clinica') return STRIPE_PRICES_MEDICO.clinica
+  return ''
+}
+
 /** Nivel de IA que activa cada plan (define Sonnet vs Opus + cupo de créditos). */
 export function nivelDePlan(plan: PlanKey): 'pro' | 'premium' {
   return plan === 'premium' || plan === 'hospital' ? 'premium' : 'pro'

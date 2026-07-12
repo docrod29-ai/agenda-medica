@@ -10,7 +10,7 @@
  * enmascarado "····1234"). Firestore niega ese path al cliente por defecto.
  */
 import admin, { adminDb } from './firebase-admin'
-import { planPorNivel } from './planes-ia'
+import { planPorNivel, topeEconomicoDe, MEDICO_EXTRA } from './planes-ia'
 
 export type ProveedorIA = 'anthropic' | 'assemblyai' | 'openai'
 
@@ -131,6 +131,40 @@ export async function registrarConsultaEconomica(clinicId: string | null): Promi
       uso: { [mesActual()]: { economicas: admin.firestore.FieldValue.increment(1) } },
     }, { merge: true })
   } catch { /* no-bloqueante */ }
+}
+
+/**
+ * Cuenta los MÉDICOS (asientos) del consultorio en clinic_members (rol medico o
+ * admin; la secretaria NO cuenta). Mínimo 1. Es la base del cobro por asiento y
+ * del cupo de créditos (cada médico trae su propia bolsa).
+ */
+export async function contarMedicos(clinicId: string | null): Promise<number> {
+  if (!clinicId) return 1
+  try {
+    const snap = await adminDb.collection('clinic_members').where('clinicId', '==', clinicId).get()
+    const n = snap.docs.filter(d => { const r = d.data()?.role; return r === 'medico' || r === 'admin' }).length
+    return Math.max(1, n)
+  } catch {
+    return 1
+  }
+}
+
+export interface Entitlements { medicos: number; limiteCreditos: number; topeEconomico: number }
+
+/**
+ * Cupo EFECTIVO del consultorio, que ESCALA con el número de médicos: el plan
+ * incluye 1 médico; cada médico adicional suma su bolsa de créditos + tope
+ * económico. Así el gasto sigue al ingreso (cobro por asiento).
+ */
+export async function entitlementsDe(clinicId: string | null, nivel: NivelIA): Promise<Entitlements> {
+  const medicos = await contarMedicos(clinicId)
+  const extras = Math.max(0, medicos - 1)
+  const me = MEDICO_EXTRA[nivel] ?? MEDICO_EXTRA.pro
+  return {
+    medicos,
+    limiteCreditos: planPorNivel(nivel).creditos + extras * me.creditos,
+    topeEconomico: topeEconomicoDe(nivel) + extras * me.economico,
+  }
 }
 
 async function clinicIdDe(uid: string): Promise<string | null> {

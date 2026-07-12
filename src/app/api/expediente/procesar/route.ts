@@ -16,7 +16,7 @@ import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
 import { parserClinicoComoRespuestaIA } from '@/lib/expediente/parser-clinico'
 import { safeLog, redactarString } from '@/lib/security/sanitize'
 import { verificarUsuario } from '@/lib/auth-server'
-import { resolverClaveIA, registrarUso, nivelIADe, registrarCreditos, registrarConsultaEconomica, economicasDelMes, creditosUsadosDelMes, creditosExtraDelMes } from '@/lib/ai-keys'
+import { resolverClaveIA, registrarUso, nivelIADe, registrarCreditos, registrarConsultaEconomica, economicasDelMes, entitlementsDe, creditosUsadosDelMes, creditosExtraDelMes } from '@/lib/ai-keys'
 import { planDeNivel, estadoUso, MOTORES, motorPorClave, motorPorDefecto, topeEconomicoDe } from '@/lib/planes-ia'
 import type { TipoNota, PacienteContexto } from '@/types/expediente'
 
@@ -188,10 +188,15 @@ export async function POST(req: NextRequest) {
   // gratis) y no gasta crédito premium. Para recuperar la IA máxima compra más.
   // Consultorio con su PROPIA llave: nunca se degrada (paga su uso).
   let modoEconomico = false
+  // Cupo EFECTIVO: escala con el número de médicos (cobro por asiento). El plan
+  // incluye 1 médico; cada médico extra suma su bolsa de créditos + tope económico.
+  let limiteEfectivo = planDeNivel(nivel).limiteConsultas
+  let topeEco = topeEconomicoDe(nivel)
   if (!rapido && fuente === 'prueba') {
-    const [usados, extra] = await Promise.all([creditosUsadosDelMes(clinicId), creditosExtraDelMes(clinicId)])
-    const limite = planDeNivel(nivel).limiteConsultas + extra
-    if (usados + motorPedido.creditos > limite) modoEconomico = true
+    const [usados, extra, ent] = await Promise.all([creditosUsadosDelMes(clinicId), creditosExtraDelMes(clinicId), entitlementsDe(clinicId, nivel)])
+    limiteEfectivo = ent.limiteCreditos
+    topeEco = ent.topeEconomico
+    if (usados + motorPedido.creditos > ent.limiteCreditos + extra) modoEconomico = true
   }
 
   // ── TOPE del modo económico (red de seguridad de costo) ─────────────────
@@ -200,10 +205,9 @@ export async function POST(req: NextRequest) {
   // consultorio con varios médicos exprima la IA, el costo del dueño no se dispara.
   if (modoEconomico) {
     const econ = await economicasDelMes(clinicId)
-    const tope = topeEconomicoDe(nivel)
-    if (econ >= tope) {
+    if (econ >= topeEco) {
       return NextResponse.json({
-        ok: false, sinCreditos: true, tope, economicas: econ,
+        ok: false, sinCreditos: true, tope: topeEco, economicas: econ,
         error: `Se acabó tu IA del mes (incluye las notas económicas gratis). Compra más créditos o sube de plan para seguir.`,
       }, { status: 402 })
     }
@@ -298,7 +302,7 @@ export async function POST(req: NextRequest) {
     // Candado de gasto (SOFT): cuenta la consulta SOLO si es nota final (no el
     // borrador en vivo) y devuelve el uso vs el límite del plan. Nunca bloquea.
     let uso: ReturnType<typeof estadoUso> | undefined
-    const limitePlan = planDeNivel(nivel).limiteConsultas
+    const limitePlan = limiteEfectivo   // cupo escalado por # de médicos
     if (!rapido) {
       if (modoEconomico) {
         // Excedente: corre en ⚡ Rápida (Haiku), NO gasta crédito premium. Se cuenta aparte.
