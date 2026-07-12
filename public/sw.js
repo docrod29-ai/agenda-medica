@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v314'  // Contabilidad: reintento automatico (3 intentos, 1.2s) ante fallo transitorio de arranque en frio + maxDuration 30s; ya no sale 'Error de conexion' en la primera carga
+const CACHE = 'nexusmed-v315'  // SOPORTE: buzon de quejas/fallas/felicitaciones/dudas/sugerencias; usuarios envian desde Configuracion (SoporteSection→/api/soporte, server Admin SDK) y el dueno los lee en /superadmin/soporte (filtros, marcar visto/resuelto, responder por correo); coleccion soporte solo por servidor (clientes no leen)
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

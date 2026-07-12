@@ -18,6 +18,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { esSuperadminCliente } from '@/lib/superadmin-client'
 import FacturacionSection from '@/components/FacturacionSection'
 import AsientosSection from '@/components/AsientosSection'
+import SoporteSection from '@/components/SoporteSection'
 import { useMode } from '@/context/ModeContext'
 import {
   crearInvitacion, listarInvitaciones, revocarInvitacion,
@@ -1540,6 +1541,9 @@ function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
 
       {/* Facturas (CFDI) — el cliente pide factura solo si la necesita */}
       {clinicId && <FacturacionSection clinicId={clinicId} />}
+
+      {/* Soporte y sugerencias — abierto a todos */}
+      <SoporteSection clinicId={clinicId ?? undefined} />
     </div>
   )
 }
