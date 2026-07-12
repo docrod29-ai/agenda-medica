@@ -6,6 +6,7 @@ import { auth } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import { Stethoscope, Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
+import { MetaPixel, trackConversion } from '@/components/MetaPixel'
 
 const BENEFICIOS = [
   'Agenda y calendario inteligente',
@@ -45,7 +46,10 @@ function RegistroInner() {
 
   // Completa el registro con Google por REDIRECCIÓN (Safari) y muestra errores.
   useEffect(() => {
-    getRedirectResult(auth).catch((err: unknown) => {
+    getRedirectResult(auth).then((res) => {
+      // Solo devuelve usuario JUSTO tras un alta por Google → cuenta como conversión.
+      if (res?.user) trackConversion('CompleteRegistration')
+    }).catch((err: unknown) => {
       const code = (err as { code?: string }).code ?? ''
       if (code === 'auth/unauthorized-domain') setError('Este dominio no está autorizado en Firebase (Authentication → Configuración → Dominios autorizados).')
       else if (code) setError(`No se pudo registrar con Google: ${code}`)
@@ -60,6 +64,7 @@ function RegistroInner() {
     try {
       const cred = await createUserWithEmailAndPassword(auth, email.trim(), password)
       await updateProfile(cred.user, { displayName: nombre.trim() })
+      trackConversion('CompleteRegistration')  // conversión Meta: registro completado
       router.replace(destinoTrasRegistro)
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? ''
@@ -99,6 +104,7 @@ function RegistroInner() {
       minHeight: '100vh', background: 'var(--bg)',
       display: 'grid', gridTemplateColumns: '1fr 1fr',
     }} className="registro-layout">
+      <MetaPixel />
 
       {/* Left — benefits */}
       <div style={{

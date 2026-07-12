@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v330'  // LANDING: precios alineados a los planes reales (Agenda 349 / Clinica 899 popular / Pro 1899, con features reales de planes-ia.ts) reemplazando los desactualizados (699/999/1799); Meta Pixel (components/MetaPixel.tsx) SOLO en la landing publica (se activa con NEXT_PUBLIC_META_PIXEL_ID), NUNCA en el area autenticada para no filtrar IDs de paciente en URLs a Meta
+const CACHE = 'nexusmed-v331'  // MARKETING: evento de conversion Meta 'CompleteRegistration' al completar registro (email y Google) — MetaPixel montado tambien en /registro (publico); trackConversion reintenta hasta 3s por si el Pixel aun no carga; permite medir ventas/altas y optimizar campanas. Sigue gated por NEXT_PUBLIC_META_PIXEL_ID
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

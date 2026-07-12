@@ -10,6 +10,22 @@ import Script from 'next/script'
 
 const PIXEL = process.env.NEXT_PUBLIC_META_PIXEL_ID
 
+/**
+ * Dispara un evento de conversión de Meta (ej. registro completado). Reintenta
+ * brevemente por si el script del Pixel aún no terminó de cargar. No-op si no
+ * hay Pixel configurado.
+ */
+export function trackConversion(evento = 'CompleteRegistration') {
+  if (!PIXEL || typeof window === 'undefined') return
+  let intentos = 0
+  const fire = () => {
+    const fbq = (window as unknown as { fbq?: (...a: unknown[]) => void }).fbq
+    if (fbq) { fbq('track', evento); return }
+    if (intentos++ < 20) setTimeout(fire, 150)  // hasta ~3s esperando al Pixel
+  }
+  fire()
+}
+
 export function MetaPixel() {
   if (!PIXEL) return null
   return (
