@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v310'  // RECUPERAR CUENTA: boton en /superadmin (Gestionar) 'Entrar a este consultorio con mi cuenta' → accion entrar_a_consultorio reasigna clinic_members del dueno al consultorio elegido; sirve para volver a STARMEDICA (pacientes intactos, solo estaba apuntando a otro consultorio)
+const CACHE = 'nexusmed-v311'  // CANDADO anti-duplicado: createClinic ya NO crea un 2do consultorio si el usuario ya tiene uno (devuelve el existente); antes sobrescribia clinic_members y el usuario perdia su consultorio original. Evita empalmar/cambiar de cuenta sin querer
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

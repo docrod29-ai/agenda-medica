@@ -35,6 +35,17 @@ export async function createClinic(
   ownerId: string,
   data: { nombreClinica: string; nombreMedico: string }
 ): Promise<string> {
+  // ── CANDADO ANTI-DUPLICADO ──────────────────────────────────────────────
+  // Si este usuario YA pertenece a un consultorio, NO se crea otro: se devuelve
+  // el que ya tiene. Antes, crear un segundo consultorio SOBRESCRIBÍA la
+  // membresía (clinic_members/{uid}) y el usuario "perdía" su consultorio
+  // original (quedaba huérfano). Esto evita empalmar/cambiar de cuenta sin querer.
+  const yaMiembro = await getDoc(doc(db, 'clinic_members', ownerId))
+  if (yaMiembro.exists()) {
+    const cid = (yaMiembro.data() as ClinicMember).clinicId
+    if (cid) return cid
+  }
+
   const now = new Date().toISOString()
   const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
 
