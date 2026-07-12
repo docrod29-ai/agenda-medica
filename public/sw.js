@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v308'  // AUTO-ACTUALIZAR el service worker (skipWaiting en install) para que nadie se quede pegado en una version vieja sin poder entrar; se auto-sana en la siguiente carga
+const CACHE = 'nexusmed-v309'  // Login con selector de cuenta Google (prompt select_account): el medico elige su correo correcto, evita entrar con la cuenta equivocada y ver un consultorio vacio
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

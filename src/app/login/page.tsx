@@ -67,8 +67,12 @@ function LoginInner() {
     setError(''); setInfo(''); setSubmitting(true)
     // Redirección SIEMPRE (no popup): el popup de Firebase se cuelga en blanco en
     // Chrome y lo bloquea Safari. La redirección funciona en todos los navegadores.
+    // prompt:'select_account' → SIEMPRE muestra el selector de cuentas de Google,
+    // así el médico elige su correo correcto (evita entrar con la cuenta equivocada).
     try {
-      await signInWithRedirect(auth, new GoogleAuthProvider())
+      const provider = new GoogleAuthProvider()
+      provider.setCustomParameters({ prompt: 'select_account' })
+      await signInWithRedirect(auth, provider)
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? ''
       if (code === 'auth/unauthorized-domain') {
