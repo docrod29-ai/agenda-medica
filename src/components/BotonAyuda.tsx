@@ -57,11 +57,12 @@ export function BotonAyuda() {
         </div>
       )}
       <style>{`
-        .boton-ayuda-fab { bottom: 24px; }
-        .boton-ayuda-panel { bottom: 88px; }
+        /* Apilado ENCIMA del toggle de tema (que vive abajo-derecha) para no encimarse */
+        .boton-ayuda-fab { bottom: 64px; }
+        .boton-ayuda-panel { bottom: 126px; }
         @media (max-width: 768px) {
-          .boton-ayuda-fab { bottom: 78px; }
-          .boton-ayuda-panel { bottom: 140px; }
+          .boton-ayuda-fab { bottom: 120px; }
+          .boton-ayuda-panel { bottom: 182px; }
         }
       `}</style>
     </>

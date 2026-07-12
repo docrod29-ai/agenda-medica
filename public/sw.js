@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v317'  // BOTON FLOTANTE DE AYUDA en todas las pantallas: chat del bot extraido a AsistenteChat (reutilizable) + BotonAyuda (FAB abajo-derecha, libre del bottom-nav movil) montado en el layout; abre panel con el asistente + enlace a la Guia. Base: GUIA 100% desde lib/ayuda/conocimiento.ts + bot /api/ayuda-bot (Haiku, solo responde desde la guia, sin consejo clinico)
+const CACHE = 'nexusmed-v318'  // FIX: el boton flotante de ayuda se apila ENCIMA del toggle de tema (ambos abajo-derecha) para no encimarse; FAB bottom 64px desktop / 120px movil, panel abre arriba
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
