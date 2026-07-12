@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v329'  // LANDING redisenada: hero con imagen de marca Nano-Banana (public/brand/hero.jpg, nodo luminoso+pulso) reemplazando el halo vacio; tipografia alineada al design system (fontWeight 800→600); imagen de paneles de vidrio (workspace.jpg) en Como funciona; imagenes optimizadas 150-300K. Generadas con Nano-Banana (Gemini, key del Dr)
+const CACHE = 'nexusmed-v330'  // LANDING: precios alineados a los planes reales (Agenda 349 / Clinica 899 popular / Pro 1899, con features reales de planes-ia.ts) reemplazando los desactualizados (699/999/1799); Meta Pixel (components/MetaPixel.tsx) SOLO en la landing publica (se activa con NEXT_PUBLIC_META_PIXEL_ID), NUNCA en el area autenticada para no filtrar IDs de paciente en URLs a Meta
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Stethoscope, CheckCircle2, MessageCircle, Bell, Calendar, Users, Clock, BarChart3, ChevronDown, ArrowRight, Shield, MapPin, Zap } from 'lucide-react'
+import { MetaPixel } from '@/components/MetaPixel'
 
 /* ─── Data ─────────────────────────────────────────────── */
 const FEATURES = [
@@ -45,27 +46,27 @@ const STEPS = [
 
 const PLANS = [
   {
-    name: 'Básico',
-    price: '699',
-    desc: 'Para médicos que empiezan',
-    features: ['1 médico', 'Agenda y calendario', 'Recordatorios automáticos', 'Portal de secretaria', 'Soporte por email'],
+    name: 'Agenda',
+    price: '349',
+    desc: 'Para empezar a organizar tu consultorio',
+    features: ['Agenda y citas ilimitadas', 'Recordatorios por WhatsApp', 'Expediente básico de pacientes', 'Portal del paciente', 'Sin IA de notas (puedes subir de plan)'],
     cta: 'Empezar prueba gratis',
     highlight: false,
   },
   {
-    name: 'Pro',
-    price: '999',
+    name: 'Clínica',
+    price: '899',
     desc: 'El más popular',
-    features: ['1 médico', 'Todo lo del Básico', 'Bot de WhatsApp 24/7', 'Lista de espera automática', 'Google Calendar sync', 'Soporte prioritario'],
+    features: ['Todo lo de Agenda', 'Nota clínica con IA por voz (NOM-004)', 'Recetas y órdenes con tu membrete', 'Consultor de evidencia (PubMed)', '160 créditos/mes · menú de IA', 'Incluye 1 médico · +$499 por médico extra'],
     cta: 'Empezar prueba gratis',
     highlight: true,
   },
   {
-    name: 'Clínica',
-    price: '1,799',
-    desc: 'Para equipos médicos',
-    features: ['Hasta 5 médicos', 'Todo lo del Pro', 'Múltiples secretarias', 'Dashboard de métricas', 'Onboarding dedicado', 'Soporte WhatsApp directo'],
-    cta: 'Hablar con ventas',
+    name: 'Pro',
+    price: '1,899',
+    desc: 'Máxima inteligencia clínica',
+    features: ['Todo lo de Clínica', 'IA de máximo razonamiento (Opus 4.8 + GPT-5)', '2ª opinión automática en cada nota', '450 créditos/mes', 'Soporte prioritario', 'Incluye 1 médico · +$999 por médico extra'],
+    cta: 'Empezar prueba gratis',
     highlight: false,
   },
 ]
@@ -576,6 +577,7 @@ function Footer() {
 export default function LandingPage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+      <MetaPixel />
       <Nav />
       <Hero />
       <Stats />
