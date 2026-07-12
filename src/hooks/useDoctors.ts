@@ -14,10 +14,15 @@ export function useDoctors() {
     if (!clinicId) { setLoading(false); return }
 
     const q = query(collection(db, 'clinics', clinicId, 'doctors'), orderBy('nombre', 'asc'))
-    const unsub = onSnapshot(q, (snap) => {
-      setDoctors(snap.docs.map(d => ({ id: d.id, ...d.data() } as Doctor)))
-      setLoading(false)
-    })
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        setDoctors(snap.docs.map(d => ({ id: d.id, ...d.data() } as Doctor)))
+        setLoading(false)
+      },
+      // Igual que useConfig: un error sin callback dejaba loading=true → spinner eterno.
+      (err) => { console.error('useDoctors onSnapshot:', err); setLoading(false) },
+    )
     return () => unsub()
   }, [clinicId])
 

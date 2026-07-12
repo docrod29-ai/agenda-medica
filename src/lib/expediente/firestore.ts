@@ -227,6 +227,6 @@ export async function getUltimasNotasResumen(
     .slice(0, limit)
   if (notas.length === 0) return ''
   return notas
-    .map(n => `[${(n.fechaConsulta || '').slice(0, 10)}] ${n.resumenEjecutivo || n.diagnosticos.map(d => d.descripcion).join(', ')}`)
+    .map(n => `[${(n.fechaConsulta || '').slice(0, 10)}] ${n.resumenEjecutivo || (n.diagnosticos ?? []).map(d => d.descripcion).join(', ')}`)
     .join(' · ')
 }

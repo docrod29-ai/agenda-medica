@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v321'  // FIX membrete/formato no se aplicaba: la nota/receta/orden se sellan con medicoId=uid de Firebase, pero Config guarda por id de la subcoleccion doctors (autogenerado) → nunca coincidian y caia al generico. lib/impreso-medico.ts (entradaPorMedico: match exacto → si no, la UNICA entrada valida = clinica de 1 medico; 2+ no adivina) aplicado a hoja membretada de notas, formato de receta/orden y firma por medico. 8 tests nuevos
+const CACHE = 'nexusmed-v322'  // AUDITORIA lote 1: (1) getUltimasNotasResumen ya no revienta con notas viejas sin diagnosticos (n.diagnosticos ?? []) → la IA no se quedaba sin historial en silencio; (2) useConfig/useDoctors onSnapshot con callback de error → se acabo el spinner eterno si falla reglas/red/token; (3) .catch en carga de paciente/contexto en consulta
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

@@ -227,8 +227,10 @@ export default function ConsultaActivaPage() {
   // ── Cargar paciente + contexto IA ──────────────────────────────
   useEffect(() => {
     if (!clinicId || !patientId) return
-    getPatients(clinicId).then(ps => setPatient(ps.find(p => p.id === patientId) ?? null))
-    getUltimasNotasResumen(clinicId, patientId).then(r => { ultimasNotasRef.current = r; setContextoPrevio(r) })
+    getPatients(clinicId).then(ps => setPatient(ps.find(p => p.id === patientId) ?? null)).catch(e => console.error('cargar paciente:', e))
+    getUltimasNotasResumen(clinicId, patientId)
+      .then(r => { ultimasNotasRef.current = r; setContextoPrevio(r) })
+      .catch(e => console.error('contexto de visitas previas:', e))  // degrada sin romper la nota
   }, [clinicId, patientId])
 
   // ── Cargar nota existente (borrador) si viene ?nota= ───────────
