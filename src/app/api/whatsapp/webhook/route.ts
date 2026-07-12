@@ -465,8 +465,12 @@ export async function handleMessage(from: string, body: string, clinicId: string
       const bStart = bh * 60 + bm, bEnd = bStart + duracion
       let huboConflicto = false
       let nuevoFolio = ''
+      // Centinela por médico+día (igual que agenda interna y portal): serializa
+      // reservas simultáneas del mismo día para cerrar la carrera de inserción fantasma.
+      const diaRef = adminDb.collection('clinics').doc(clinicId).collection('slot_locks').doc(`${doctorId || 'sin'}_${datos.fecha}`)
       try {
         await adminDb.runTransaction(async (tx) => {
+          await tx.get(diaRef)  // read: fija la versión del día
           const snap = await tx.get(apptsCol.where('fechaHora', '>=', `${datos.fecha} 00:00`).where('fechaHora', '<=', `${datos.fecha} 23:59`))
           let conflicto = false
           snap.forEach(d => {
@@ -478,6 +482,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
             if (bStart < aE && bEnd > aS) conflicto = true
           })
           if (conflicto) throw new Error('CONFLICTO')
+          tx.set(diaRef, { ultimaReserva: now }, { merge: true })  // write: invalida la tx concurrente
           const nref = apptsCol.doc()
           nuevoFolio = nref.id
           tx.set(nref, {

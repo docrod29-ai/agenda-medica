@@ -124,8 +124,13 @@ export async function POST(req: NextRequest) {
     const end = start + duracion
     const CONFLICTO = Symbol('conflicto')
     let citaId = ''
+    // Centinela por médico+día (mismo mecanismo que la agenda interna): la tx lo
+    // lee y escribe → serializa reservas simultáneas del mismo día y cierra la
+    // carrera de inserción fantasma que una query dentro de la tx no bloquea.
+    const diaRef = clinicRef.collection('slot_locks').doc(`${medicoId || 'sin'}_${fecha}`)
     try {
       await adminDb.runTransaction(async (tx) => {
+        await tx.get(diaRef)  // read: fija la versión del día
         const snap = await tx.get(
           apptsCol.where('fechaHora', '>=', `${fecha} 00:00`).where('fechaHora', '<=', `${fecha} 23:59`)
         )
@@ -142,6 +147,7 @@ export async function POST(req: NextRequest) {
         })
         if (conflicto) throw CONFLICTO
 
+        tx.set(diaRef, { ultimaReserva: now }, { merge: true })  // write: invalida la tx concurrente
         const ref = apptsCol.doc()
         tx.set(ref, {
           pacienteId,

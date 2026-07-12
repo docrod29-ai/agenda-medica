@@ -42,7 +42,13 @@ export async function POST(req: NextRequest) {
   const CONFLICTO = Symbol('conflicto')
   let id = ''
   try {
+    // Centinela por médico+día: la transacción lo LEE y lo ESCRIBE, forzando a
+    // Firestore a serializar dos reservas simultáneas del mismo día (una query
+    // dentro de la tx NO bloquea inserciones fantasma por sí sola). El perdedor
+    // reintenta, re-consulta y ya ve la cita del ganador → detecta el conflicto.
+    const diaRef = adminDb.collection('clinics').doc(clinicId).collection('slot_locks').doc(`${medicoId || 'sin'}_${fecha}`)
     await adminDb.runTransaction(async (tx) => {
+      await tx.get(diaRef)  // read: fija la versión del día para la serialización
       const snap = await tx.get(
         apptsCol.where('fechaHora', '>=', `${fecha} 00:00`).where('fechaHora', '<=', `${fecha} 23:59`)
       )
@@ -58,6 +64,7 @@ export async function POST(req: NextRequest) {
       })
       if (conflicto) throw CONFLICTO
 
+      tx.set(diaRef, { ultimaReserva: now }, { merge: true })  // write: invalida la tx concurrente
       const ref = apptsCol.doc()
       tx.set(ref, { ...appointment, createdAt: now, updatedAt: now })
       id = ref.id

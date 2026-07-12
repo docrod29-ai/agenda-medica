@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v324'  // AUDITORIA lote 3: (1) creditosAgotados usa entitlementsDe (escala por medicos/asientos pagados) en vez de planPorNivel → ya no corta con 402 a consultorios multi-medico que pagaron asientos (afectaba transcribir-diarizado, inmuno, detectar-campos); (2) recarga Stripe idempotente ATOMICA con create() en vez de get()+set() → sin doble abono por entregas concurrentes del webhook
+const CACHE = 'nexusmed-v325'  // AUDITORIA lote 4 (ultimo bug): doble-agendamiento. Una query dentro de la tx de Firestore NO bloquea inserciones fantasma, asi que dos reservas simultaneas del mismo hueco (portal+bot+agenda) ambas confirmaban. Fix seguro sin tocar IDs ni ciclo de vida: doc centinela por medico+dia (slot_locks) que la tx LEE y ESCRIBE → serializa; el perdedor reintenta, re-consulta y ve la cita del ganador → conflicto. Aplicado a los 3 endpoints (appointments, public/booking, whatsapp)
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
