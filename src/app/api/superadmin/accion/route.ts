@@ -129,10 +129,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, eliminado: clinicId })
     }
     case 'entrar_a_consultorio': {
-      // Reconecta la CUENTA DEL DUEÑO (quien llama) a este consultorio. Útil para
-      // recuperar acceso a un consultorio propio cuya membresía quedó apuntando a
-      // otro (p. ej. si se creó un consultorio nuevo por error). Solo cambia la
-      // membresía del superadmin; NO toca datos ni pacientes del consultorio.
+      // Reconecta la CUENTA DEL DUEÑO (quien llama) a un consultorio PROPIO cuya
+      // membresía quedó apuntando a otro (p. ej. si se creó uno nuevo por error).
+      // CANDADO DE PRIVACIDAD: SOLO consultorios que ÉL creó (ownerId === su uid).
+      // Nunca puede entrar a la cuenta de otro médico ni ver sus pacientes.
+      const dueñoDoc = String(((await ref.get()).data() as Any)?.ownerId ?? '')
+      if (dueñoDoc !== acc.uid) {
+        return NextResponse.json({ ok: false, error: 'Solo puedes entrar a consultorios que TÚ creaste. No puedes acceder a la cuenta de otro médico.' }, { status: 403 })
+      }
       await adminDb.collection('clinic_members').doc(acc.uid).set({
         clinicId, role: 'admin', email: acc.email, updatedAt: now,
       }, { merge: true })

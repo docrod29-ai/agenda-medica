@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v312'  // Consola del dueno: ELIMINAR consultorio definitivo (accion eliminar_consultorio con recursiveDelete + libera clinic_members) con confirmacion de 2 pasos en Gestionar; para limpiar cuentas de prueba
+const CACHE = 'nexusmed-v313'  // PRIVACIDAD: 'Entrar a este consultorio con mi cuenta' SOLO funciona en consultorios que el dueno creo (ownerId === su uid); server rechaza 403 los ajenos y la UI oculta el boton (esMio); el dueno ya NO puede meterse a cuentas de otros medicos
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

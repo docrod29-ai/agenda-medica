@@ -14,7 +14,7 @@ import { type ModeloPrecio, explicarPrecio } from '@/lib/pricing'
 import { ShieldCheck, Search, Gift, Ban, Play, CalendarPlus, StickyNote, Lock, RefreshCw, Package, Plus, Trash2, Boxes, Sparkles, TrendingUp, LogIn } from 'lucide-react'
 
 interface Cliente {
-  id: string; nombreClinica: string; nombreMedico: string
+  id: string; esMio?: boolean; nombreClinica: string; nombreMedico: string
   plan: string; status: string; paseLibre: boolean; paseLibreMotivo: string
   trialEndsAt: string | null; diasPrueba: number | null; trialVencido: boolean
   cobranza: 'al_corriente' | 'debe' | 'cortesia' | 'prueba'
@@ -259,7 +259,8 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
           {cliente.totalPagado > 0 && <> · Pagado {mxn(cliente.totalPagado)}</>}
         </div>
 
-        {/* Reconectar MI cuenta a ESTE consultorio (recuperar acceso a un consultorio propio) */}
+        {/* Reconectar MI cuenta a ESTE consultorio — SOLO si es un consultorio que YO creé. */}
+        {cliente.esMio && (
         <div style={{ background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.3)', borderRadius: 10, padding: '12px 14px' }}>
           <div style={{ fontSize: 12.5, color: 'var(--text2)', marginBottom: 8 }}>
             ¿Este es TU consultorio y tu cuenta quedó en otro? Reconéctala aquí — entrarás a este consultorio (con sus pacientes).
@@ -281,6 +282,7 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
             Entrar a este consultorio con mi cuenta
           </Button>
         </div>
+        )}
 
         {/* Paquete / acceso a módulos */}
         <Seccion icono={<Package size={16} color="#2563eb" />} titulo="Paquete y acceso a módulos">

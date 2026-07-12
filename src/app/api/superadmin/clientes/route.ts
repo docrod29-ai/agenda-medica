@@ -90,6 +90,7 @@ export async function GET(req: NextRequest) {
       const limiteConsultas = planDeNivel(nivelIA).limiteConsultas
       return {
         id: cid,
+        esMio: String(c.ownerId ?? '') === acc.uid,   // ¿lo creó el propio dueño? (para el botón "Entrar con mi cuenta")
         nivelIA,
         consultasMes,
         limiteConsultas,
