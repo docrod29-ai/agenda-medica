@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarUsuario } from '@/lib/auth-server'
+import { limitarOResponder } from '@/lib/rate-limit'
 import { verificarSuperadmin } from '@/lib/superadmin'
 
 type Any = Record<string, unknown>
@@ -25,6 +26,10 @@ export async function POST(req: NextRequest) {
   const tipo = TIPOS.includes(String(body.tipo)) ? String(body.tipo) : 'duda'
   const mensaje = String(body.mensaje ?? '').trim().slice(0, 3000)
   if (!mensaje) return NextResponse.json({ ok: false, error: 'Escribe tu mensaje' }, { status: 400 })
+
+  // Anti-spam: máx. 8 mensajes de soporte cada 10 min por usuario.
+  const limite = await limitarOResponder(`soporte:${acceso.uid}`, 8, 600, 'Recibimos varios mensajes tuyos. Espera unos minutos antes de enviar otro.')
+  if (limite) return limite
 
   try {
     await adminDb.collection('soporte').add({

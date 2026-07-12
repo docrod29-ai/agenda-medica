@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { WHISPER_PROMPT_MEDICO } from '@/lib/expediente/medical-vocabulary'
 import { verificarUsuario } from '@/lib/auth-server'
+import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA, registrarUso } from '@/lib/ai-keys'
 
 export const runtime = 'nodejs'
@@ -23,6 +24,10 @@ export const maxDuration = 60
 export async function POST(req: NextRequest) {
   const acceso = await verificarUsuario(req)
   if (!acceso.ok) return acceso.response
+
+  // Tope de ráfaga: transcribir audio cuesta por llamada (OpenAI). 30/min por usuario.
+  const limite = await limitarOResponder(`transcribir:${acceso.uid}`, 30, 60)
+  if (limite) return limite
 
   // Llave del consultorio (o la del dueño en modo prueba).
   const { key: apiKey, fuente, clinicId } = await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY)

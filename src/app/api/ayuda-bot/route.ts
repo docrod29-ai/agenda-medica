@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verificarUsuario } from '@/lib/auth-server'
 import { resolverClaveIA } from '@/lib/ai-keys'
 import { conocimientoTexto } from '@/lib/ayuda/conocimiento'
+import { limitarOResponder } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -21,6 +22,10 @@ const MODELOS = ['claude-haiku-4-5-20251001', 'claude-3-5-haiku-latest', 'claude
 export async function POST(req: NextRequest) {
   const acceso = await verificarUsuario(req)
   if (!acceso.ok) return acceso.response
+
+  // Tope de ráfaga: el bot cuesta por llamada y no consume créditos. 20/min por usuario.
+  const limite = await limitarOResponder(`bot:${acceso.uid}`, 20, 60)
+  if (limite) return limite
 
   const { key } = await resolverClaveIA(acceso.uid, 'anthropic', process.env.ANTHROPIC_API_KEY ?? '')
   if (!key) return NextResponse.json({ ok: false, error: 'Asistente no disponible ahora.' }, { status: 503 })

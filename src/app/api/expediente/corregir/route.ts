@@ -11,6 +11,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarUsuario } from '@/lib/auth-server'
+import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA, nivelIADe } from '@/lib/ai-keys'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
@@ -83,6 +84,10 @@ function extraerJSON(txt: string): unknown | null {
 export async function POST(req: NextRequest) {
   const acceso = await verificarUsuario(req)
   if (!acceso.ok) return acceso.response
+
+  // Tope de ráfaga: corregir usa IA por llamada. 40/min por usuario.
+  const limite = await limitarOResponder(`corregir:${acceso.uid}`, 40, 60)
+  if (limite) return limite
 
   let body: { nota?: unknown; instruccion?: string; contexto?: unknown }
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }

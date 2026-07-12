@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v318'  // FIX: el boton flotante de ayuda se apila ENCIMA del toggle de tema (ambos abajo-derecha) para no encimarse; FAB bottom 64px desktop / 120px movil, panel abre arriba
+const CACHE = 'nexusmed-v319'  // SEGURIDAD: rate limiting propio (lib/rate-limit.ts, respaldado en Firestore, fail-open) en endpoints que cuestan dinero o se spamean: ayuda-bot 20/min, transcribir 30/min, corregir 40/min, procesar 40/min, inmuno 30/min, soporte 8/10min; protege contra cost-bombing ademas de los creditos. Ademas: npm audit fix parcho 3 vulnerabilidades HIGH (grpc-js, form-data, protobufjs)
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
