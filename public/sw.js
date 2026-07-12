@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v305'  // COBRO POR ASIENTO (por medico): cada medico extra (rol medico/admin en clinic_members) suma su bolsa de creditos+tope y se cobra +$499 Clinica/+$999 Pro; entitlementsDe escala cupo y tope economico con # medicos; endpoint /api/stripe/asientos ajusta la suscripcion (prorratea); seccion en Mi suscripcion; requiere STRIPE_PRICE_CLINICA_MEDICO/PREMIUM_MEDICO
+const CACHE = 'nexusmed-v306'  // FIX login colgado: ClinicContext y useAuth ahora tienen manejo de error + timeout de 8s en los onSnapshot/onAuthStateChanged; si Firestore/Firebase no responde (red/permiso), loading se libera y aparece login/setup en vez de spinner eterno
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

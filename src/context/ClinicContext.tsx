@@ -52,6 +52,12 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
 
     // Load clinic membership for this user
     let unsubClinic: (() => void) | null = null
+    let resuelto = false
+    const marcarListo = () => { resuelto = true; setLoading(false) }
+    // RED DE SEGURIDAD: si Firestore no responde (red/permiso/token), NUNCA dejes la
+    // app colgada en el spinner. A los 8s se libera (verás login/setup, no eterno).
+    const timeout = setTimeout(() => { if (!resuelto) setLoading(false) }, 8000)
+
     const memberRef = doc(db, 'clinic_members', user.uid)
     const unsub = onSnapshot(memberRef, (snap) => {
       // Limpiar el listener de la clínica anterior (cambio de membresía)
@@ -63,7 +69,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         setClinic(null)
         setRole(null)
         setNeedsSetup(true)
-        setLoading(false)
+        marcarListo()
         return
       }
 
@@ -78,11 +84,11 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         if (clinicSnap.exists()) {
           setClinic({ id: clinicSnap.id, ...clinicSnap.data() } as Clinic)
         }
-        setLoading(false)
-      })
-    })
+        marcarListo()
+      }, () => marcarListo())   // error leyendo la clínica → no colgar
+    }, () => marcarListo())     // error leyendo la membresía → no colgar
 
-    return () => { if (unsubClinic) unsubClinic(); unsub() }
+    return () => { clearTimeout(timeout); if (unsubClinic) unsubClinic(); unsub() }
   }, [user, authLoading])
 
   return (

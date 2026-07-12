@@ -8,11 +8,15 @@ export function useAuth() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Red de seguridad: si Firebase no resuelve el estado (red lenta), libera el
+    // spinner a los 8s para que la pantalla de login aparezca igual.
+    const timeout = setTimeout(() => setLoading(false), 8000)
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u)
       setLoading(false)
+      clearTimeout(timeout)
     })
-    return () => unsub()
+    return () => { clearTimeout(timeout); unsub() }
   }, [])
 
   return { user, loading }
