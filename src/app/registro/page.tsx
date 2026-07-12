@@ -322,9 +322,9 @@ function RegistroInner() {
 
             <p style={{ fontSize: 12, color: 'var(--text3)', textAlign: 'center', lineHeight: 1.6 }}>
               Al registrarte aceptas los{' '}
-              <a href="#" style={{ color: 'var(--teal)', textDecoration: 'none' }}>términos de servicio</a>
+              <a href="/terminos" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>términos de servicio</a>
               {' '}y la{' '}
-              <a href="#" style={{ color: 'var(--teal)', textDecoration: 'none' }}>política de privacidad</a>.
+              <a href="/privacidad" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>política de privacidad</a>.
             </p>
           </form>
         </div>

@@ -16,6 +16,12 @@ import type { NextConfig } from "next";
  * En su lugar protegemos los vectores más peligrosos individualmente.
  */
 const nextConfig: NextConfig = {
+  // Anti-plagio / privacidad: no exponer el header "X-Powered-By: Next.js"
+  // (no le regalamos el stack a quien escanee) ni los source maps del cliente en
+  // producción (evita que descarguen tu código fuente legible desde el navegador).
+  poweredByHeader: false,
+  productionBrowserSourceMaps: false,
+
   // Proxy del handler de autenticación de Firebase a NUESTRO dominio.
   // Permite usar authDomain = dominio propio (same-origin) → el login de Google
   // (popup/redirect) ya no se cuelga por el bloqueo de cookies entre dominios de

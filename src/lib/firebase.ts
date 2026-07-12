@@ -23,6 +23,31 @@ const firebaseConfig = {
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
 
+// ── App Check (anti-abuso) ──────────────────────────────────────────────
+// Verifica que las llamadas a Firestore/Storage vengan de TU app real y no de
+// un script/bot que robó tus claves NEXT_PUBLIC. Se activa SOLO si defines el
+// site key de reCAPTCHA v3 en NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY; mientras
+// no exista, no hace nada (no rompe la app). La enforcement se prende aparte en
+// Firebase Console → App Check, cuando ya verificaste que todo sigue funcionando.
+if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY) {
+  // Import dinámico: el SDK de App Check no se incluye si no lo usas.
+  import('firebase/app-check')
+    .then(({ initializeAppCheck, ReCaptchaV3Provider }) => {
+      try {
+        // Token de depuración en desarrollo (para no ser bloqueado en localhost).
+        if (process.env.NODE_ENV !== 'production') {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ;(self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true
+        }
+        initializeAppCheck(app, {
+          provider: new ReCaptchaV3Provider(process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY as string),
+          isTokenAutoRefreshEnabled: true,
+        })
+      } catch { /* App Check es defensa extra: nunca debe tronar la app */ }
+    })
+    .catch(() => { /* SDK no disponible: seguir sin App Check */ })
+}
+
 export const auth = getAuth(app)
 
 // Persistencia offline habilitada (multi-pestaña para uso en varias ventanas)

@@ -555,8 +555,8 @@ function Footer() {
         <span style={{ fontSize: 14, color: 'var(--text3)' }}>· Hecho en México 🇲🇽</span>
       </div>
       <div style={{ display: 'flex', gap: 24 }}>
-        <a href="#" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Términos</a>
-        <a href="#" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Privacidad</a>
+        <a href="/terminos" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Términos</a>
+        <a href="/privacidad" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Privacidad</a>
         <a href="mailto:soporte@agendamedica.mx" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Soporte</a>
       </div>
       <div style={{ fontSize: 13, color: 'var(--text3)' }}>

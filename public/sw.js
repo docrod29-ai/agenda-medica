@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v319'  // SEGURIDAD: rate limiting propio (lib/rate-limit.ts, respaldado en Firestore, fail-open) en endpoints que cuestan dinero o se spamean: ayuda-bot 20/min, transcribir 30/min, corregir 40/min, procesar 40/min, inmuno 30/min, soporte 8/10min; protege contra cost-bombing ademas de los creditos. Ademas: npm audit fix parcho 3 vulnerabilidades HIGH (grpc-js, form-data, protobufjs)
+const CACHE = 'nexusmed-v320'  // SEGURIDAD lote 2: pagina /terminos (Terminos y Condiciones para SaaS medico MX) + links del registro y footer conectados; App Check integrado en firebase.ts (se activa solo con NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY, no rompe nada mientras tanto); anti-plagio tecnico (poweredByHeader:false + productionBrowserSourceMaps:false); guias docs/RESPALDOS_Y_APPCHECK.md y docs/ANTI_PLAGIO.md con pasos exactos
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
