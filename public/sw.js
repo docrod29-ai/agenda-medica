@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v316'  // GUIA 100% + BOT DE AYUDA: guia reescrita desde lib/ayuda/conocimiento.ts (fuente unica: agenda, nota por voz, menu de IA Rapida/Estandar/Maxima y por que cuestan 1/3/10 creditos, corregir por chat, Consultor de evidencia, analisis, recetas, hospital, equipo, facturas CFDI, soporte, planes/cobro por medico); mismo conocimiento alimenta al bot /api/ayuda-bot (Haiku, responde SOLO desde la guia, no da consejo clinico); chat integrado arriba de /guia con sugerencias
+const CACHE = 'nexusmed-v317'  // BOTON FLOTANTE DE AYUDA en todas las pantallas: chat del bot extraido a AsistenteChat (reutilizable) + BotonAyuda (FAB abajo-derecha, libre del bottom-nav movil) montado en el layout; abre panel con el asistente + enlace a la Guia. Base: GUIA 100% desde lib/ayuda/conocimiento.ts + bot /api/ayuda-bot (Haiku, solo responde desde la guia, sin consejo clinico)
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

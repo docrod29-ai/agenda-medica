@@ -17,6 +17,7 @@ import { NotificacionesPushOptIn } from '@/components/NotificacionesPushOptIn'
 import { useMode } from '@/context/ModeContext'
 import { BottomNav } from '@/components/BottomNav'
 import { MobileBackButton } from '@/components/MobileBackButton'
+import { BotonAyuda } from '@/components/BotonAyuda'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { rutaPermitida } from '@/lib/modulos'
 
@@ -324,6 +325,9 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
           <BottomNav />
         </div>
       </div>
+
+      {/* Botón flotante de ayuda en todas las pantallas */}
+      <BotonAyuda />
     </div>
   )
 }
