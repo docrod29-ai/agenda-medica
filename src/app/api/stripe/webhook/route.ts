@@ -100,11 +100,17 @@ export async function POST(req: NextRequest) {
         // por el id de la sesión (Stripe reintenta el webhook).
         if (session.mode === 'payment' && session.metadata?.tipo === 'recarga') {
           const n = Number(session.metadata?.creditos ?? 0)
-          const marca = adminDb.collection('recargas_procesadas').doc(session.id)
-          const yaHecha = (await marca.get()).exists
-          if (!yaHecha && n > 0) {
+          if (n > 0) {
+            // Candado ATÓMICO: create() falla si el doc ya existe. Antes era
+            // get()+set() (no atómico) → dos entregas simultáneas del mismo
+            // session.id leían "no procesada" y ambas abonaban (doble crédito).
+            const marca = adminDb.collection('recargas_procesadas').doc(session.id)
+            try {
+              await marca.create({ clinicId, creditos: n, fecha: new Date().toISOString() })
+            } catch {
+              break  // ya procesada (o carrera perdida) → NO abonar de nuevo
+            }
             await agregarCreditosExtra(clinicId, n)
-            await marca.set({ clinicId, creditos: n, fecha: new Date().toISOString() })
           }
           break
         }

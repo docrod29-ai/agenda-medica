@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v323'  // AUDITORIA lote 2: borrado de paciente ATOMICO. deletePatientExpediente reunia refs y borraba en secuencia con deleteDoc sueltos (si fallaba a media → expediente a medias: paciente borrado con citas huerfanas, o notas borradas con paciente presente). Ahora arma todo (solo lecturas) y borra en UN writeBatch todo-o-nada (lotes de 450 por el tope de 500); si falla, no borra NADA parcial y devuelve error claro
+const CACHE = 'nexusmed-v324'  // AUDITORIA lote 3: (1) creditosAgotados usa entitlementsDe (escala por medicos/asientos pagados) en vez de planPorNivel → ya no corta con 402 a consultorios multi-medico que pagaron asientos (afectaba transcribir-diarizado, inmuno, detectar-campos); (2) recarga Stripe idempotente ATOMICA con create() en vez de get()+set() → sin doble abono por entregas concurrentes del webhook
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

@@ -93,8 +93,15 @@ export async function creditosAgotados(clinicId: string | null): Promise<boolean
   if (!clinicId) return false
   try {
     const nivel = await nivelIADe(clinicId)
-    const [usados, extra] = await Promise.all([creditosUsadosDelMes(clinicId), creditosExtraDelMes(clinicId)])
-    const limite = planPorNivel(nivel).creditos + extra
+    // Mismo cálculo que expediente/procesar: entitlementsDe ya escala el límite por
+    // # de médicos (asientos pagados). Antes usaba planPorNivel (bolsa de UN solo
+    // médico) y cortaba con 402 a consultorios multi-médico que YA pagaron asientos.
+    const [usados, extraRecarga, ent] = await Promise.all([
+      creditosUsadosDelMes(clinicId),
+      creditosExtraDelMes(clinicId),
+      entitlementsDe(clinicId, nivel),
+    ])
+    const limite = ent.limiteCreditos + extraRecarga
     return usados >= limite
   } catch {
     return false
