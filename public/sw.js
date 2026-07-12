@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v302'  // FACTURACION CFDI on-demand (Facturama): el cliente pide factura de un pago solo si la quiere (captura RFC/regimen/uso/CP), se timbra CFDI 4.0 en el servidor y descarga PDF/XML; seccion Facturas en Mi suscripcion; requiere env FACTURAMA_USER/PASSWORD/CP en Vercel
+const CACHE = 'nexusmed-v303'  // Quitar HOSPITAL de la venta por ahora (precios, selector config, paquetes superadmin con PAQUETES_VERSION=3 que lo desactiva); el modulo hospital sigue en codigo, solo no se ofrece hasta decidir cobro por medicos/camas
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

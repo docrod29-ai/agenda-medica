@@ -84,12 +84,11 @@ export const PAQUETES_SUGERIDOS: PaqueteDef[] = [
     descripcion: 'Consultorio completo con IA Estándar (Sonnet 5): nota por voz, recetas, consultor, farmacia, CRM y finanzas. 160 créditos/mes.' },
   { id: 'premium',  nombre: 'Pro',      precio: 1899, orden: 2, modulos: MODULOS_DE_PLAN.premium,
     descripcion: 'Todo lo de Clínica con IA Máxima (Opus 4.8 + GPT-5) por defecto, 2ª opinión automática y soporte prioritario. 450 créditos/mes.' },
-  { id: 'hospital', nombre: 'Hospital', precio: 2900, orden: 3, modulos: MODULOS_DE_PLAN.hospital,
-    descripcion: 'Todo lo de Pro + módulo de Hospitalización (censo, camas, MAR, NEWS2). 400 créditos/mes.' },
+  // Hospital pausado por ahora (el cobro por número de médicos/camas se decide después).
 ]
 
 /** Versión del catálogo de paquetes. Al subirla, el seed reemplaza los viejos. */
-export const PAQUETES_VERSION = 2
+export const PAQUETES_VERSION = 3
 
 type ClinicMod = { modulos?: string[] | null; plan?: string | null; paseLibre?: boolean | null }
 

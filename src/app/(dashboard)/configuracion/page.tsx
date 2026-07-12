@@ -1495,7 +1495,7 @@ function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
             {plan === 'trial' ? 'Activa tu plan antes de que termine la prueba:' : 'Opciones de actualización:'}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {(['agenda', 'clinica', 'premium', 'hospital'] as const)
+            {(['agenda', 'clinica', 'premium'] as const)
               .filter(p => p !== plan)
               .map(p => {
                 const info = PLAN_DISPLAY[p]

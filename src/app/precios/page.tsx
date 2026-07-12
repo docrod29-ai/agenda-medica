@@ -108,19 +108,7 @@ export default function PreciosPage() {
         ¿Se te acaban los créditos del mes? Recarga <strong>{RECARGA.creditos} créditos</strong> por <strong>${RECARGA.precioMXN} MXN</strong> — o sigue con ⚡ Rápida sin costo. Nunca te quedas sin IA.
       </div>
 
-      {/* ── Hospitalización: plan APARTE ── */}
-      <div style={{ maxWidth: 900, margin: '56px auto 0', textAlign: 'center' }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--nexus, #3d5afe)', letterSpacing: 0.5, textTransform: 'uppercase' }}>¿Manejas internamiento?</div>
-        <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text, #0f172a)', margin: '8px 0 0' }}>Módulo de Hospitalización — se contrata aparte</h2>
-        <p style={{ fontSize: 15, color: 'var(--text3, #64748b)', maxWidth: 560, margin: '10px auto 0', lineHeight: 1.5 }}>
-          Para clínicas y hospitales con pacientes internados. Se suma a tu plan de consultorio cuando lo necesites.
-        </p>
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 26 }}>
-        <Card plan={PLANES.hospital} />
-      </div>
-
-      <div style={{ maxWidth: 560, margin: '20px auto 0', textAlign: 'center', fontSize: 13, color: 'var(--text2, #334155)', background: 'rgba(20,184,166,0.08)', border: '1px solid rgba(20,184,166,0.3)', borderRadius: 12, padding: '12px 16px' }}>
+      <div style={{ maxWidth: 560, margin: '40px auto 0', textAlign: 'center', fontSize: 13, color: 'var(--text2, #334155)', background: 'rgba(20,184,166,0.08)', border: '1px solid rgba(20,184,166,0.3)', borderRadius: 12, padding: '12px 16px' }}>
         <strong>Precio fundador</strong> — los primeros 50 médicos congelan su tarifa de por vida. Aplica tu código <strong>FUNDADOR</strong> al pagar.
       </div>
 
