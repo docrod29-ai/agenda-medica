@@ -115,6 +115,15 @@ export async function agregarCreditosExtra(clinicId: string, n: number): Promise
  * premium): corre en Sonnet 5, casi no cuesta y NO topa. Se guarda aparte para
  * estadística/facturación; no cuenta contra el cupo premium del plan.
  */
+export async function economicasDelMes(clinicId: string | null): Promise<number> {
+  if (!clinicId) return 0
+  try {
+    return (await docIA(clinicId).get()).data()?.uso?.[mesActual()]?.economicas ?? 0
+  } catch {
+    return 0
+  }
+}
+
 export async function registrarConsultaEconomica(clinicId: string | null): Promise<void> {
   if (!clinicId) return
   try {

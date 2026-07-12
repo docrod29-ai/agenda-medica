@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v303'  // Quitar HOSPITAL de la venta por ahora (precios, selector config, paquetes superadmin con PAQUETES_VERSION=3 que lo desactiva); el modulo hospital sigue en codigo, solo no se ofrece hasta decidir cobro por medicos/camas
+const CACHE = 'nexusmed-v304'  // TOPE al modo economico (red de seguridad de costo): tras agotar creditos la IA gratis en Rapida es hasta TOPE_ECONOMICO notas/mes (pro 120, premium 300), luego pausa (402 sinCreditos) y pide recarga/subir; asi con varios medicos el costo del dueno queda ACOTADO
 
 self.addEventListener('install', (event) => {
   // NO skipWaiting automático: la versión nueva ESPERA hasta que el usuario toque

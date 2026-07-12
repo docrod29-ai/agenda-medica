@@ -140,6 +140,16 @@ export const planPorNivel = (n: NivelIA): PlanCreditos => (n === 'premium' ? PLA
 /** Paquete de recarga de créditos (top-up) cuando se acaban. Te cuestan ~$150 → +$249 limpio. */
 export const RECARGA = { creditos: 100, precioMXN: 399 }
 
+/**
+ * TOPE del MODO ECONÓMICO (red de seguridad de costo). Tras agotar los créditos
+ * premium, la IA sigue GRATIS en ⚡ Rápida (Haiku) pero SOLO hasta este número de
+ * notas al mes; pasado eso se PAUSA y pide recarga/subir de plan. Así, aunque un
+ * consultorio tenga varios médicos exprimiendo la IA, el costo del dueño queda
+ * ACOTADO (nunca se dispara). Números fáciles de cambiar.
+ */
+export const TOPE_ECONOMICO: Record<NivelIA, number> = { pro: 120, premium: 300 }
+export const topeEconomicoDe = (n: NivelIA): number => TOPE_ECONOMICO[n] ?? 120
+
 /** Plan ANUAL: 12 meses al precio de 10 (2 gratis = −17%). Asegura flujo y baja la cancelación. */
 export const MESES_ANUAL = 10
 export const precioAnual = (p: PlanCreditos): number => p.precioMXN * MESES_ANUAL

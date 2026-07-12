@@ -16,8 +16,8 @@ import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
 import { parserClinicoComoRespuestaIA } from '@/lib/expediente/parser-clinico'
 import { safeLog, redactarString } from '@/lib/security/sanitize'
 import { verificarUsuario } from '@/lib/auth-server'
-import { resolverClaveIA, registrarUso, nivelIADe, registrarCreditos, registrarConsultaEconomica, creditosUsadosDelMes, creditosExtraDelMes } from '@/lib/ai-keys'
-import { planDeNivel, estadoUso, MOTORES, motorPorClave, motorPorDefecto } from '@/lib/planes-ia'
+import { resolverClaveIA, registrarUso, nivelIADe, registrarCreditos, registrarConsultaEconomica, economicasDelMes, creditosUsadosDelMes, creditosExtraDelMes } from '@/lib/ai-keys'
+import { planDeNivel, estadoUso, MOTORES, motorPorClave, motorPorDefecto, topeEconomicoDe } from '@/lib/planes-ia'
 import type { TipoNota, PacienteContexto } from '@/types/expediente'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
@@ -192,6 +192,21 @@ export async function POST(req: NextRequest) {
     const [usados, extra] = await Promise.all([creditosUsadosDelMes(clinicId), creditosExtraDelMes(clinicId)])
     const limite = planDeNivel(nivel).limiteConsultas + extra
     if (usados + motorPedido.creditos > limite) modoEconomico = true
+  }
+
+  // ── TOPE del modo económico (red de seguridad de costo) ─────────────────
+  // El modo económico es GRATIS pero NO infinito: tras un número generoso de
+  // notas económicas al mes se PAUSA (recarga/subir de plan). Así, aunque un
+  // consultorio con varios médicos exprima la IA, el costo del dueño no se dispara.
+  if (modoEconomico) {
+    const econ = await economicasDelMes(clinicId)
+    const tope = topeEconomicoDe(nivel)
+    if (econ >= tope) {
+      return NextResponse.json({
+        ok: false, sinCreditos: true, tope, economicas: econ,
+        error: `Se acabó tu IA del mes (incluye las notas económicas gratis). Compra más créditos o sube de plan para seguir.`,
+      }, { status: 402 })
+    }
   }
 
   const motor = modoEconomico ? MOTORES.rapida : motorPedido
