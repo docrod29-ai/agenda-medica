@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v325'  // AUDITORIA lote 4 (ultimo bug): doble-agendamiento. Una query dentro de la tx de Firestore NO bloquea inserciones fantasma, asi que dos reservas simultaneas del mismo hueco (portal+bot+agenda) ambas confirmaban. Fix seguro sin tocar IDs ni ciclo de vida: doc centinela por medico+dia (slot_locks) que la tx LEE y ESCRIBE → serializa; el perdedor reintenta, re-consulta y ve la cita del ganador → conflicto. Aplicado a los 3 endpoints (appointments, public/booking, whatsapp)
+const CACHE = 'nexusmed-v326'  // ESTETICA A: imagen OG/Twitter 1200x630 on-brand generada con next/og (src/app/opengraph-image.tsx) — antes NO existia y el link se compartia como cuadro negro en WhatsApp/redes; ahora sale con marca (cobalto sobre ink), titular 'El consultorio, conectado' y capacidades. Se sirve auto como og:image + twitter:image
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
