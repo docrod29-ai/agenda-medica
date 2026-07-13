@@ -12,7 +12,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
 import type { NotaMedica, Adenda } from '@/types/expediente'
 import type { Patient } from '@/types'
-import { ArrowLeft, Printer, Loader2, Download, Pill, ClipboardList, AlertTriangle, Check, FileText, FilePlus2, X } from 'lucide-react'
+import { ArrowLeft, Printer, Loader2, Download, Pill, ClipboardList, AlertTriangle, Check, FileText, FilePlus2, X, Mic, ChevronDown } from 'lucide-react'
 import { Spinner, EmptyState } from '@/components/ui'
 import { descargarComoPDF } from '@/lib/pdf-download'
 
@@ -32,6 +32,7 @@ export default function NotaImprimiblePage() {
   const [textoAdenda, setTextoAdenda] = useState('')
   const [motivoAdenda, setMotivoAdenda] = useState('')
   const [guardandoAdenda, setGuardandoAdenda] = useState(false)
+  const [verTranscripcion, setVerTranscripcion] = useState(false)
   // null = sin verificar/no aplica · true = sello íntegro · false = ALTERADA
   const [integridad, setIntegridad] = useState<'verificada' | 'alterada' | 'legado' | 'sin-sello' | null>(null)
 
@@ -373,6 +374,49 @@ export default function NotaImprimiblePage() {
           </div>
         )}
       </div>
+
+      {/* Trazabilidad: lo que se DIJO vs lo redactado. Colapsable, NO se imprime.
+          Permite al médico verificar que la nota refleja el dictado. */}
+      {(nota.transcripcionCruda || (nota.dialogoDiarizado && nota.dialogoDiarizado.length > 0)) && (
+        <div className="no-print" style={{ maxWidth: 800, margin: '14px auto 0' }}>
+          <button
+            onClick={() => setVerTranscripcion(v => !v)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+              background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10,
+              padding: '11px 14px', fontSize: 13.5, fontWeight: 600, color: 'var(--text2)', cursor: 'pointer',
+            }}
+          >
+            <Mic size={15} style={{ color: 'var(--nexus)' }} />
+            Lo que se dijo (transcripción original)
+            <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'var(--text3)', fontWeight: 500 }}>
+              compara con la nota
+              <ChevronDown size={15} style={{ transform: verTranscripcion ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+            </span>
+          </button>
+          {verTranscripcion && (
+            <div style={{
+              background: 'var(--s2)', border: '1px solid var(--border)', borderTop: 'none',
+              borderRadius: '0 0 10px 10px', padding: 16, marginTop: -1,
+              fontSize: 13, color: 'var(--text2)', lineHeight: 1.6, maxHeight: 340, overflowY: 'auto',
+            }}>
+              {nota.dialogoDiarizado && nota.dialogoDiarizado.length > 0 ? (
+                nota.dialogoDiarizado.map((t, i) => (
+                  <div key={i} style={{ marginBottom: 8 }}>
+                    <span style={{ fontWeight: 700, color: 'var(--nexus)', fontSize: 11.5 }}>{t.speaker}: </span>
+                    <span style={{ whiteSpace: 'pre-wrap' }}>{t.text}</span>
+                  </div>
+                ))
+              ) : (
+                <div style={{ whiteSpace: 'pre-wrap' }}>{nota.transcripcionCruda}</div>
+              )}
+              <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed var(--border)', fontSize: 11, color: 'var(--text3)', fontStyle: 'italic' }}>
+                Material de apoyo — no forma parte del documento legal impreso. Sirve para verificar que la nota redactada por IA refleja lo dictado.
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Modal de adenda */}
       {modalAdenda && (

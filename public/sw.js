@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v361'  // DEUDA TECNICA: la landing deriva los planes de planes-ia.ts (fuente unica) en vez de duplicarlos hardcodeados; elimina la clase de errores de precio (Pro vs Premium, 7 vs 14 dias) que habia que corregir a mano. Misma forma de datos, render intacto
+const CACHE = 'nexusmed-v362'  // IA DEFENDIBLE (#4): en la nota firmada, panel colapsable 'Lo que se dijo' (transcripcion original o dialogo diarizado por voz) para verificar que la nota refleja el dictado; NO se imprime, solo aparece si hay datos crudos. Trazabilidad dicho-vs-redactado sin tocar el pipeline de generacion
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
