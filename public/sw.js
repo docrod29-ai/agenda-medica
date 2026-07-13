@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v362'  // IA DEFENDIBLE (#4): en la nota firmada, panel colapsable 'Lo que se dijo' (transcripcion original o dialogo diarizado por voz) para verificar que la nota refleja el dictado; NO se imprime, solo aparece si hay datos crudos. Trazabilidad dicho-vs-redactado sin tocar el pipeline de generacion
+const CACHE = 'nexusmed-v363'  // FIX: portal /privacidad/[clinicId] hacia DOS fetch identicos al mismo endpoint; fusionados en uno que alimenta clinic + config. -1 llamada de red en pagina publica del paciente
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

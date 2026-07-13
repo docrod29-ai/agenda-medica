@@ -39,26 +39,23 @@ export default function PortalPrivacidadPage() {
 
   useEffect(() => {
     if (!clinicId) return
-    fetch(`/api/public/clinic/${clinicId}`)
-      .then(r => r.json())
-      .then((d: ClinicInfo) => { if (d.ok) setClinic(d.clinic ?? null) })
-      .catch(() => {})
-    // Para el aviso de privacidad necesitamos config: pedimos al endpoint público
+    // Una sola petición alimenta tanto los datos públicos de la clínica como la
+    // config para el aviso (antes se llamaba DOS veces al mismo endpoint).
     fetch(`/api/public/clinic/${clinicId}`)
       .then(r => r.json())
       .then((d: ClinicInfo & { clinic?: { nombreMedico: string; especialidad?: string; direccion?: string; razonSocial?: string; responsablePrivacidad?: string; correoArco?: string } }) => {
-        if (d.ok && d.clinic) {
-          setConfig({
-            nombreClinica: d.clinic.nombre,
-            nombreMedico: d.clinic.nombreMedico,
-            direccion: d.clinic.direccion ?? '',
-            telefonoAdmin: d.clinic.telefono,
-            // RFC y domicilio fiscal NO llegan al portal público (protección de datos)
-            razonSocial: d.clinic.razonSocial || undefined,
-            responsablePrivacidad: d.clinic.responsablePrivacidad || undefined,
-            correoArco: d.clinic.correoArco || undefined,
-          } as ClinicConfig)
-        }
+        if (!d.ok || !d.clinic) return
+        setClinic(d.clinic)
+        setConfig({
+          nombreClinica: d.clinic.nombre,
+          nombreMedico: d.clinic.nombreMedico,
+          direccion: d.clinic.direccion ?? '',
+          telefonoAdmin: d.clinic.telefono,
+          // RFC y domicilio fiscal NO llegan al portal público (protección de datos)
+          razonSocial: d.clinic.razonSocial || undefined,
+          responsablePrivacidad: d.clinic.responsablePrivacidad || undefined,
+          correoArco: d.clinic.correoArco || undefined,
+        } as ClinicConfig)
       })
       .catch(() => {})
   }, [clinicId])
