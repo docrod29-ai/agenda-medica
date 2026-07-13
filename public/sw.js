@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v370'  // UX: paleta de busqueda global ⌘K/Ctrl+K (Linear/Raycast/Notion) — abre el expediente de cualquier paciente desde CUALQUIER pantalla; teclado primero (↑↓, Enter). Solo medico. Aditivo, no toca flujos existentes
+const CACHE = 'nexusmed-v371'  // UX: la paleta ⌘K ahora es un CENTRO DE COMANDOS — acciones rapidas (Nueva cita, Consultor, Corte de caja, Agenda, Finanzas, Configuracion) + pacientes, en una lista navegable con teclado. Reduce navegacion para todo
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

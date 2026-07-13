@@ -5,7 +5,17 @@ import { useClinic } from '@/context/ClinicContext'
 import { getPatients } from '@/lib/firestore'
 import { normalizarNombre } from '@/lib/csv-pacientes'
 import type { Patient } from '@/types'
-import { Search, User, CornerDownLeft } from 'lucide-react'
+import { Search, User, CornerDownLeft, CalendarPlus, FlaskConical, Calculator, CalendarDays, TrendingUp, Settings, type LucideIcon } from 'lucide-react'
+
+/** Acciones rápidas del centro de comandos (navegación teclado-primero). */
+const ACCIONES: { label: string; icon: LucideIcon; route: string }[] = [
+  { label: 'Nueva cita', icon: CalendarPlus, route: '/asistente' },
+  { label: 'Consultor de evidencia', icon: FlaskConical, route: '/consultor' },
+  { label: 'Corte de caja', icon: Calculator, route: '/corte-caja' },
+  { label: 'Agenda / Calendario', icon: CalendarDays, route: '/calendario' },
+  { label: 'Finanzas', icon: TrendingUp, route: '/finanzas' },
+  { label: 'Configuración', icon: Settings, route: '/configuracion' },
+]
 
 /**
  * Paleta de búsqueda global (⌘K / Ctrl+K): abre el expediente de cualquier
@@ -46,25 +56,34 @@ export function PaletteBusqueda({ enabled }: { enabled: boolean }) {
     else setQuery('')
   }, [open, clinicId, pacientes.length])
 
-  const resultados = useMemo(() => {
+  // Lista combinada: acciones rápidas + pacientes, filtradas por el texto, con un
+  // índice plano para navegar con teclado sobre ambas.
+  type Entrada = { kind: 'accion'; label: string; icon: LucideIcon; route: string } | { kind: 'paciente'; p: Patient }
+  const entradas = useMemo<Entrada[]>(() => {
     const q = normalizarNombre(query)
     const tel = query.replace(/\D/g, '')
-    if (q.length < 1 && tel.length < 3) return pacientes.slice(0, 8)
-    return pacientes.filter(p =>
-      (q.length >= 1 && normalizarNombre(p.nombre).includes(q)) ||
-      (tel.length >= 3 && (p.telefono || '').replace(/\D/g, '').includes(tel)),
-    ).slice(0, 8)
+    const acciones: Entrada[] = ACCIONES
+      .filter(a => q.length < 1 || normalizarNombre(a.label).includes(q))
+      .map(a => ({ kind: 'accion', ...a }))
+    const pac = (q.length < 1 && tel.length < 3
+      ? pacientes.slice(0, 6)
+      : pacientes.filter(p =>
+          (q.length >= 1 && normalizarNombre(p.nombre).includes(q)) ||
+          (tel.length >= 3 && (p.telefono || '').replace(/\D/g, '').includes(tel)),
+        ).slice(0, 6)
+    ).map<Entrada>(p => ({ kind: 'paciente', p }))
+    return [...acciones, ...pac]
   }, [query, pacientes])
 
-  const abrir = useCallback((p: Patient) => {
+  const ejecutar = useCallback((e: Entrada) => {
     setOpen(false)
-    router.push(`/expediente/${p.id}`)
+    router.push(e.kind === 'accion' ? e.route : `/expediente/${e.p.id}`)
   }, [router])
 
-  const onKeyNav = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown') { e.preventDefault(); setActivo(a => Math.min(a + 1, resultados.length - 1)) }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); setActivo(a => Math.max(a - 1, 0)) }
-    else if (e.key === 'Enter' && resultados[activo]) { e.preventDefault(); abrir(resultados[activo]) }
+  const onKeyNav = (ev: React.KeyboardEvent) => {
+    if (ev.key === 'ArrowDown') { ev.preventDefault(); setActivo(a => Math.min(a + 1, entradas.length - 1)) }
+    else if (ev.key === 'ArrowUp') { ev.preventDefault(); setActivo(a => Math.max(a - 1, 0)) }
+    else if (ev.key === 'Enter' && entradas[activo]) { ev.preventDefault(); ejecutar(entradas[activo]) }
   }
 
   if (!enabled || !open) return null
@@ -91,43 +110,52 @@ export function PaletteBusqueda({ enabled }: { enabled: boolean }) {
             value={query}
             onChange={e => { setQuery(e.target.value); setActivo(0) }}
             onKeyDown={onKeyNav}
-            placeholder="Buscar paciente por nombre o teléfono…"
+            placeholder="Buscar paciente o acción (nueva cita, corte de caja…)"
             style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 15, color: 'var(--text)' }}
           />
           <span style={{ fontSize: 11, color: 'var(--text3)', border: '1px solid var(--border)', borderRadius: 6, padding: '2px 6px' }}>Esc</span>
         </div>
 
-        <div style={{ maxHeight: 340, overflowY: 'auto' }}>
-          {resultados.length === 0 ? (
+        <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+          {entradas.length === 0 ? (
             <div style={{ padding: '22px 16px', fontSize: 13.5, color: 'var(--text3)', textAlign: 'center' }}>
-              {pacientes.length === 0 ? 'Cargando pacientes…' : 'Sin coincidencias.'}
+              {pacientes.length === 0 ? 'Cargando…' : 'Sin coincidencias.'}
             </div>
-          ) : resultados.map((p, i) => (
-            <button
-              key={p.id}
-              type="button"
-              onMouseEnter={() => setActivo(i)}
-              onClick={() => abrir(p)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left',
-                border: 'none', cursor: 'pointer', padding: '11px 16px',
-                background: i === activo ? 'var(--s2)' : 'transparent',
-              }}
-            >
-              <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--nexus-soft)', color: 'var(--nexus)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                <User size={15} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nombre}</div>
-                {p.telefono && <div style={{ fontSize: 12, color: 'var(--text3)' }}>{p.telefono}</div>}
-              </div>
-              {i === activo && <CornerDownLeft size={14} style={{ color: 'var(--text3)', flexShrink: 0 }} />}
-            </button>
-          ))}
+          ) : entradas.map((e, i) => {
+            const Icono = e.kind === 'accion' ? e.icon : User
+            const titulo = e.kind === 'accion' ? e.label : e.p.nombre
+            const sub = e.kind === 'paciente' ? e.p.telefono : undefined
+            return (
+              <button
+                key={e.kind === 'accion' ? `a-${e.route}` : `p-${e.p.id}`}
+                type="button"
+                onMouseEnter={() => setActivo(i)}
+                onClick={() => ejecutar(e)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left',
+                  border: 'none', cursor: 'pointer', padding: '11px 16px',
+                  background: i === activo ? 'var(--s2)' : 'transparent',
+                }}
+              >
+                <div style={{
+                  width: 30, height: 30, borderRadius: e.kind === 'paciente' ? '50%' : 8,
+                  background: 'var(--nexus-soft)', color: 'var(--nexus)', display: 'grid', placeItems: 'center', flexShrink: 0,
+                }}>
+                  <Icono size={15} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{titulo}</div>
+                  {sub && <div style={{ fontSize: 12, color: 'var(--text3)' }}>{sub}</div>}
+                </div>
+                <span style={{ fontSize: 10.5, color: 'var(--text3)', flexShrink: 0 }}>{e.kind === 'accion' ? 'Ir' : 'Expediente'}</span>
+                {i === activo && <CornerDownLeft size={14} style={{ color: 'var(--text3)', flexShrink: 0, marginLeft: 6 }} />}
+              </button>
+            )
+          })}
         </div>
 
         <div style={{ padding: '8px 16px', borderTop: '1px solid var(--border)', fontSize: 11, color: 'var(--text3)', display: 'flex', gap: 14 }}>
-          <span>↑↓ moverse</span><span>↵ abrir expediente</span><span>⌘K abrir/cerrar</span>
+          <span>↑↓ moverse</span><span>↵ abrir</span><span>⌘K abrir/cerrar</span>
         </div>
       </div>
     </div>
