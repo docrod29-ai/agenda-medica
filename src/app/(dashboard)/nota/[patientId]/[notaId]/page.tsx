@@ -7,7 +7,7 @@ import { entradaPorMedico, membreteValido, firmaValida } from '@/lib/impreso-med
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { getNota, agregarAdenda, getAdendas } from '@/lib/expediente/firestore'
-import { getPatients } from '@/lib/firestore'
+import { getPatient } from '@/lib/firestore'
 import { useAuth } from '@/hooks/useAuth'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
 import type { NotaMedica, Adenda } from '@/types/expediente'
@@ -80,10 +80,10 @@ export default function NotaImprimiblePage() {
     if (!clinicId || !patientId || !notaId) return
     Promise.all([
       getNota(clinicId, patientId, notaId),
-      getPatients(clinicId),
+      getPatient(clinicId, patientId),
     ]).then(async ([n, ps]) => {
       setNota(n)
-      setPatient(ps.find(p => p.id === patientId) ?? null)
+      setPatient(ps)
       setLoading(false)
       // Verificar el sello SHA-256 de las notas firmadas. Antes el sello se
       // MOSTRABA sin recomputarse — daba garantía de no-alteración que el

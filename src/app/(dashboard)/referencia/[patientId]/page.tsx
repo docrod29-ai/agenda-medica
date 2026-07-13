@@ -4,7 +4,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { getNotas } from '@/lib/expediente/firestore'
-import { getPatients } from '@/lib/firestore'
+import { getPatient } from '@/lib/firestore'
 import type { NotaMedica } from '@/types/expediente'
 import type { Patient } from '@/types'
 import { ArrowLeft, Printer, Loader2, Send, Download } from 'lucide-react'
@@ -57,8 +57,8 @@ export default function CartaReferenciaPage() {
 
   useEffect(() => {
     if (!clinicId || !patientId) return
-    Promise.all([getPatients(clinicId), getNotas(clinicId, patientId)]).then(([ps, notas]) => {
-      setPatient(ps.find(p => p.id === patientId) ?? null)
+    Promise.all([getPatient(clinicId, patientId), getNotas(clinicId, patientId)]).then(([ps, notas]) => {
+      setPatient(ps)
       // Prellenar con la última nota (preferir firmada; si viene ?nota= usar esa)
       const notaParam = searchParams.get('nota')
       const nota: NotaMedica | undefined =

@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { useClinic } from '@/context/ClinicContext'
 import { useExpediente } from '@/hooks/useExpediente'
-import { getPatients } from '@/lib/firestore'
+import { getPatient } from '@/lib/firestore'
 import { deleteNota } from '@/lib/expediente/firestore'
 import { useToast } from '@/context/ToastContext'
 import { useAuth } from '@/hooks/useAuth'
@@ -64,7 +64,7 @@ export default function ExpedientePage() {
 
   useEffect(() => {
     if (!clinicId || !patientId) return
-    getPatients(clinicId).then(ps => setPatient(ps.find(p => p.id === patientId) ?? null))
+    getPatient(clinicId, patientId).then(setPatient)
     // NOM-024 Art. 6.5: bitácora de accesos — registrar lectura del expediente
     import('@/lib/expediente/audit-log').then(({ logAudit }) => {
       logAudit({

@@ -139,6 +139,16 @@ export async function getPatients(clinicId: string): Promise<Patient[]> {
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as Patient))
 }
 
+/**
+ * Lee UN paciente por id (una sola lectura de documento). Para pantallas que solo
+ * necesitan un paciente (nota, receta, orden, expediente, referencia): evita
+ * descargar toda la colección solo para hacer .find() — más rápido y menos lecturas.
+ */
+export async function getPatient(clinicId: string, patientId: string): Promise<Patient | null> {
+  const snap = await getDoc(d(clinicId, COLLECTIONS.patients, patientId))
+  return snap.exists() ? ({ id: snap.id, ...snap.data() } as Patient) : null
+}
+
 export async function createPatient(clinicId: string, data: Omit<Patient, 'id'>): Promise<string> {
   // sinUndefined: Firestore RECHAZA campos undefined (p. ej. sin CURP) y tronaba el alta.
   const ref = await addDoc(col(clinicId, COLLECTIONS.patients),

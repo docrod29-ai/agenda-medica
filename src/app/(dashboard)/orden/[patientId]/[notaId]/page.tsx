@@ -13,7 +13,7 @@ import { entradaPorMedico, overrideRecetaValido, firmaValida } from '@/lib/impre
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { getNota } from '@/lib/expediente/firestore'
-import { getPatients } from '@/lib/firestore'
+import { getPatient } from '@/lib/firestore'
 import type { NotaMedica } from '@/types/expediente'
 import type { Patient } from '@/types'
 import { RecetaDocumento, dimensionesImpresion, contarPaginas } from '@/components/RecetaDocumento'
@@ -325,10 +325,10 @@ export default function GeneradorOrdenPage() {
     if (!clinicId || !patientId || !notaId) return
     Promise.all([
       getNota(clinicId, patientId, notaId),
-      getPatients(clinicId),
+      getPatient(clinicId, patientId),
     ]).then(([n, ps]) => {
       setNota(n)
-      setPatient(ps.find(p => p.id === patientId) ?? null)
+      setPatient(ps)
       if (n) {
         const dxs = n.diagnosticos ?? []
         const principal = dxs.find(d => d.tipo === 'definitivo') ?? dxs[0]

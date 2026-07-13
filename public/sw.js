@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v357'  // IA DEFENDIBLE (#4): sello de trazabilidad de IA en la nota firmada — declara que fue documentada con asistencia de IA (borrador) y REVISADA+VALIDADA por el medico responsable antes de firmar; usa el campo iaAuditoria existente; se imprime con la nota. Aditivo
+const CACHE = 'nexusmed-v358'  // PERFORMANCE: getPatient(clinicId, patientId) lee UN documento en vez de toda la coleccion; aplicado en nota/receta/orden/expediente/referencia. Abrir expediente/nota mucho mas rapido y menos lecturas de Firestore (costo). Dato identico, riesgo minimo
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
