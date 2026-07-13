@@ -10,6 +10,13 @@ import { useTarea } from '@/context/TareasContext'
 interface Articulo { pmid: string; titulo: string; revista: string; anio: string; url: string }
 interface Turno { pregunta: string; respuesta: string; articulos: Articulo[]; cenetecUrl?: string; modelos?: string[]; cargando?: boolean }
 
+/** Números de cita [n] presentes en el texto (para verificación determinista). */
+const citasEnTexto = (texto: string): number[] => {
+  const s = new Set<number>()
+  for (const m of texto.matchAll(/\[(\d{1,2})\]/g)) s.add(parseInt(m[1], 10))
+  return [...s].sort((a, b) => a - b)
+}
+
 const EJEMPLOS = [
   '¿Antibiótico de primera línea para neumonía adquirida en la comunidad en adulto sano?',
   '¿Metformina vs SGLT2 como inicio en diabetes tipo 2 con enfermedad renal?',
@@ -53,26 +60,46 @@ export default function ConsultorPage() {
     const historial = turnos.flatMap(t => [{ rol: 'user', texto: t.pregunta }, { rol: 'ia', texto: t.respuesta }])
     // Escribe SIEMPRE al almacén (referencia estable): sobrevive a desmontar.
     setEstado(prev => ({ turnos: [...(prev?.turnos ?? []), { pregunta: texto, respuesta: '', articulos: [], cargando: true }], cargando: true }))
+    // Parche del ÚLTIMO turno (el que se está transmitiendo). `fin=false` mantiene
+    // el input deshabilitado mientras llega el stream; `fin=true` lo libera.
+    const patch = (p: Partial<Turno>, fin = false) => setEstado(prev => {
+      const c = [...(prev?.turnos ?? [])]
+      const i = c.length - 1
+      if (i >= 0) c[i] = { ...c[i], ...p }
+      return { turnos: c, cargando: !fin }
+    })
     try {
       const res = await fetchAutenticado('/api/consultor-evidencia', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pregunta: texto, historial, contextoPaciente: pacienteCtx || undefined }),
       })
-      const d = await res.json().catch(() => null)
-      setEstado(prev => {
-        const copia = [...(prev?.turnos ?? [])]
-        const i = copia.length - 1
-        if (i >= 0) copia[i] = d?.ok
-          ? { pregunta: texto, respuesta: d.respuesta ?? '', articulos: d.articulos ?? [], cenetecUrl: d.cenetecUrl, modelos: d.modelos }
-          : { pregunta: texto, respuesta: `⚠️ ${d?.error || 'La consulta tardó demasiado. Vuelve a intentarlo (a veces el segundo intento sale de inmediato) o hazla un poco más corta.'}`, articulos: [] }
-        return { turnos: copia, cargando: false }
-      })
+      // Error (402 sin créditos, 503 sin llave, timeout no-stream): viene como JSON.
+      if (!res.ok || !res.body) {
+        const d = await res.json().catch(() => null)
+        patch({ respuesta: `⚠️ ${d?.error || 'La consulta tardó demasiado. Vuelve a intentarlo o hazla más corta.'}`, cargando: false }, true)
+        return
+      }
+      // STREAM (NDJSON): 1ª línea meta (fuentes), luego deltas de texto en vivo.
+      const reader = res.body.getReader()
+      const dec = new TextDecoder()
+      let buf = '', acc = ''
+      for (;;) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buf += dec.decode(value, { stream: true })
+        const lineas = buf.split('\n'); buf = lineas.pop() ?? ''
+        for (const linea of lineas) {
+          const s = linea.trim(); if (!s) continue
+          let ev: { type?: string; text?: string; error?: string; articulos?: Articulo[]; cenetecUrl?: string; modelos?: string[] }
+          try { ev = JSON.parse(s) } catch { continue }
+          if (ev.type === 'meta') patch({ articulos: ev.articulos ?? [], cenetecUrl: ev.cenetecUrl, modelos: ev.modelos, cargando: false })
+          else if (ev.type === 'delta') { acc += ev.text ?? ''; patch({ respuesta: acc, cargando: false }) }
+          else if (ev.type === 'error') { acc = acc || `⚠️ ${ev.error}`; patch({ respuesta: acc, cargando: false }) }
+        }
+      }
+      patch({ respuesta: acc || 'Sin respuesta.' }, true)
     } catch {
-      setEstado(prev => {
-        const c = [...(prev?.turnos ?? [])]
-        if (c.length > 0) c[c.length - 1] = { pregunta: texto, respuesta: '⚠️ Sin conexión.', articulos: [] }
-        return { turnos: c, cargando: false }
-      })
+      patch({ respuesta: '⚠️ Sin conexión.', cargando: false }, true)
     }
   }
 
@@ -132,6 +159,17 @@ export default function ConsultorPage() {
                 ) : (
                   <>
                     <MiniMarkdown texto={t.respuesta} />
+                    {t.articulos.length > 0 && !t.cargando && t.respuesta && (() => {
+                      const citadas = citasEnTexto(t.respuesta)
+                      if (citadas.length === 0) return null
+                      const fuera = citadas.filter(n => n < 1 || n > t.articulos.length)
+                      const ok = fuera.length === 0
+                      return (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, marginRight: 6, fontSize: 11, fontWeight: 600, borderRadius: 8, padding: '4px 9px', color: ok ? '#16a34a' : '#b45309', background: ok ? 'rgba(22,163,74,0.10)' : 'rgba(180,83,9,0.10)', border: `1px solid ${ok ? 'rgba(22,163,74,0.3)' : 'rgba(180,83,9,0.3)'}` }}>
+                          {ok ? `✓ ${citadas.length} cita${citadas.length === 1 ? '' : 's'} verificada${citadas.length === 1 ? '' : 's'} contra las fuentes` : `⚠ ${fuera.length} cita${fuera.length === 1 ? '' : 's'} fuera de rango`}
+                        </div>
+                      )
+                    })()}
                     {t.modelos && t.modelos.length > 0 && (
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 11, fontWeight: 600, color: 'var(--text3)', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: '4px 9px' }}>
                         <Sparkles size={12} style={{ color: 'var(--teal)' }} /> Razonado por {t.modelos.join(' + ')}
@@ -148,11 +186,14 @@ export default function ConsultorPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, color: 'var(--text3)', marginBottom: 6 }}>
                           <BookOpen size={13} /> Fuentes ({t.articulos.length})
                         </div>
-                        {t.articulos.map((a, k) => (
+                        {t.articulos.map((a, k) => {
+                          const citada = citasEnTexto(t.respuesta).includes(k + 1)
+                          return (
                           <div key={a.pmid} style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 3, lineHeight: 1.4 }}>
                             [{k + 1}] <a href={a.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>{a.titulo}</a> · <span style={{ fontStyle: 'italic' }}>{a.revista}</span> {a.anio}
+                            {citada && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: '#16a34a', background: 'rgba(22,163,74,0.12)', borderRadius: 5, padding: '1px 6px' }}>✓ citado</span>}
                           </div>
-                        ))}
+                        )})}
                       </div>
                     )}
                   </>

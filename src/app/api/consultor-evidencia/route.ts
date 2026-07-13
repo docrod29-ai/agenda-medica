@@ -60,20 +60,63 @@ async function extraerAprendizajes(key: string, pregunta: string, respuesta: str
   } catch { return [] }
 }
 
-/** Llama a OpenAI (segundo cerebro) para refinar. Devuelve el texto o null. */
-async function openaiRefinar(key: string, model: string, system: string, user: string): Promise<string | null> {
-  try {
-    const r = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], max_completion_tokens: 2600 }),
-      signal: AbortSignal.timeout(28000),  // 2º cerebro es un extra: si tarda, se queda la respuesta de Claude
-    })
-    if (!r.ok) return null
-    const d = await r.json()
-    const t = String(d?.choices?.[0]?.message?.content ?? '').trim()
-    return t || null
-  } catch { return null }
+// ── Streaming: SSE de Anthropic → NDJSON al cliente ───────────────
+async function* anthropicStream(key: string, model: string, system: string, user: string, maxTokens: number): AsyncGenerator<string> {
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'x-api-key': key, 'anthropic-version': AV, 'content-type': 'application/json' },
+    body: JSON.stringify({ model, max_tokens: maxTokens, system, stream: true, messages: [{ role: 'user', content: user }] }),
+    signal: AbortSignal.timeout(120000),
+  })
+  if (!r.ok || !r.body) throw new Error(`anthropic stream HTTP ${r.status}`)
+  const reader = r.body.getReader()
+  const dec = new TextDecoder()
+  let buf = ''
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buf += dec.decode(value, { stream: true })
+    const lineas = buf.split('\n')
+    buf = lineas.pop() ?? ''
+    for (const linea of lineas) {
+      const s = linea.trim()
+      if (!s.startsWith('data:')) continue
+      const payload = s.slice(5).trim()
+      if (payload === '[DONE]') return
+      try {
+        const j = JSON.parse(payload)
+        if (j.type === 'content_block_delta' && j.delta?.type === 'text_delta') yield j.delta.text as string
+      } catch { /* keepalive / evento sin texto */ }
+    }
+  }
+}
+
+interface MetaStream { articulos: unknown[]; cenetecUrl?: string; modelos: string[]; sinCitas?: boolean; dosisFDA?: unknown }
+/** Devuelve una respuesta STREAM (NDJSON): 1ª línea meta (fuentes), luego deltas de texto. */
+function responderStream(opts: { key: string; model: string; system: string; user: string; maxTokens: number; meta: MetaStream; onDone: (texto: string) => void }): Response {
+  const enc = new TextEncoder()
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (o: unknown) => controller.enqueue(enc.encode(JSON.stringify(o) + '\n'))
+      send({ type: 'meta', ...opts.meta })
+      let full = ''
+      try {
+        for await (const t of anthropicStream(opts.key, opts.model, opts.system, opts.user, opts.maxTokens)) { full += t; send({ type: 'delta', text: t }) }
+        if (!full.trim()) throw new Error('vacío')
+      } catch {
+        try {
+          let r = await claude(opts.key, opts.model, opts.system, opts.user, opts.maxTokens)
+          if (r.status === 404 || r.status === 400) r = await claude(opts.key, 'claude-sonnet-5', opts.system, opts.user, opts.maxTokens)
+          const txt = r.ok ? textoDe(await r.json()).trim() : ''
+          if (txt) { full = txt; send({ type: 'delta', text: txt }) } else send({ type: 'error', error: 'No pude responder ahora; intenta de nuevo.' })
+        } catch { send({ type: 'error', error: 'No pude responder ahora; intenta de nuevo.' }) }
+      }
+      send({ type: 'done' })
+      controller.close()
+      try { opts.onDone(full) } catch { /* no-op */ }
+    },
+  })
+  return new Response(stream, { headers: { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-cache, no-transform' } })
 }
 
 export async function POST(req: NextRequest) {
@@ -150,14 +193,15 @@ export async function POST(req: NextRequest) {
     if (articulos.length === 0) {
       const sysSC = 'Eres un consultor clínico experto (nivel especialista) para médicos en MÉXICO. No se encontró evidencia NUEVA en PubMed para esta pregunta específica — es normal en preguntas de SEGUIMIENTO o muy puntuales. Responde IGUAL, con criterio clínico: apóyate en tu conocimiento, el consenso/guías y sobre todo en la CONVERSACIÓN PREVIA (continúa el hilo, no empieces de cero). En español, claro y accionable. Empieza con una línea honesta: "Sin citas nuevas de PubMed para esto; respondo con base en conocimiento clínico y lo que ya vimos." NO inventes estudios, PMIDs ni cifras exactas; si algo es incierto, dilo. Si hay contexto de paciente, personaliza (edad, comorbilidades, alergias). Cuando aplique, menciona la GPC de CENETEC/NOM pertinente por su nombre (aclarando verificar el documento oficial). Cierra con "Nivel de evidencia: alto/moderado/bajo" según tu juicio. Apoyas la decisión del médico, no das órdenes absolutas.'
       const usrSC = `${memTxt ? 'PERFIL DEL MÉDICO (memoria):\n' + memTxt + '\n\n' : ''}${paciente ? 'PACIENTE (contexto):\n' + paciente + '\n\n' : ''}${contexto ? 'Conversación previa:\n' + contexto + '\n\n' : ''}PREGUNTA: ${pregunta}`
-      let resSC = await claude(key, model, sysSC, usrSC, 2600)
-      if (resSC.status === 404 || resSC.status === 400) resSC = await claude(key, 'claude-sonnet-5', sysSC, usrSC, 2600)
-      const respSC = resSC.ok ? (textoDe(await resSC.json()).trim() || 'Sin respuesta.') : 'No pude responder ahora; intenta de nuevo en un momento.'
-      void registrarUso(clinicId, fuente)
-      void registrarConsultor(clinicId, costo)
-      // Aprendizaje NO bloqueante: nunca retrasa ni tumba la respuesta.
-      void extraerAprendizajes(key, pregunta, respSC).then(f => aprenderDeMedico(clinicId, acceso.uid, f))
-      return NextResponse.json({ ok: true, respuesta: respSC, articulos: [], sinCitas: true, cenetecUrl, modelos: [nivel === 'premium' ? 'Claude Opus 4.8' : 'Claude Sonnet 5'] })
+      return responderStream({
+        key, model, system: sysSC, user: usrSC, maxTokens: 2600,
+        meta: { articulos: [], sinCitas: true, cenetecUrl, modelos: [nivel === 'premium' ? 'Claude Opus 4.8' : 'Claude Sonnet 5'] },
+        onDone: (txt) => {
+          void registrarUso(clinicId, fuente)
+          void registrarConsultor(clinicId, costo)
+          void extraerAprendizajes(key, pregunta, txt).then(f => aprenderDeMedico(clinicId, acceso.uid, f))
+        },
+      })
     }
 
     // 2b) DOSIS oficial (openFDA): si se detecta un fármaco, trae su dosis
@@ -174,33 +218,19 @@ export async function POST(req: NextRequest) {
     const system = 'Eres el mejor consultor clínico basado en evidencia para médicos en MÉXICO — al nivel de OpenEvidence: razonas a fondo, resuelves casos COMPLEJOS y das respuestas COMPLETAS y accionables, no superficiales. Responde en español CITANDO con [n] los artículos que respaldan cada afirmación. Estructura útil: síntesis directa arriba, luego el porqué (mecanismo/razonamiento clínico), abordaje escalonado, y advertencias. RAZONA como especialista: sopesa alternativas, menciona cuándo NO aplica, banderas rojas, poblaciones especiales, interacciones. Si hay contexto de PACIENTE, personaliza (edad, comorbilidades, alergias, tratamiento) y advierte contraindicaciones. Si es sobre un fármaco/tratamiento, incluye **Dosis**: usa la "DOSIS OFICIAL (FDA)" dada (ajústala a función renal/hepática y peso, y a verificar con el Cuadro Básico); si no se da, indica la dosis estándar de referencia y adviértelo. Cuando aplique, agrega **Guía en México**: GPC de CENETEC o NOM pertinente por su nombre (a verificar el documento oficial). SEGURIDAD DE DOSIS (crítico): NUNCA emitas una CIFRA de dosis (mg, mg/kg, intervalo) sin respaldo. Si tienes la "DOSIS OFICIAL (FDA)" para ese fármaco, úsala y cítala como tal. Si NO la tienes, di "verificar dosis en el Cuadro Básico / ficha técnica" SIN inventar el número; jamás adivines una cifra. Recuerda ajustar por función renal/hepática, peso y edad, y en pediatría/embarazo/lactancia extrema la precaución. REGLAS DE RIGOR: cita SOLO los artículos dados por su [n]; NUNCA inventes estudios, PMIDs ni cifras; si la evidencia es limitada, dilo con honestidad y complementa con razonamiento clínico y consenso (aclarando qué es evidencia y qué es criterio); apoya la decisión del médico, no des órdenes absolutas. Termina con "Nivel de evidencia: alto/moderado/bajo".'
     const user = `${memTxt ? 'PERFIL DEL MÉDICO (memoria):\n' + memTxt + '\n\n' : ''}${paciente ? 'PACIENTE (contexto):\n' + paciente + '\n\n' : ''}${contexto ? 'Conversación previa:\n' + contexto + '\n\n' : ''}PREGUNTA: ${pregunta}\n\nEVIDENCIA (PubMed):\n${fuentes}${dosisTxt}\n\nResponde citando [n].`
 
-    let res = await claude(key, model, system, user, 3200)
-    if (res.status === 404 || res.status === 400) res = await claude(key, 'claude-sonnet-5', system, user, 3200)
-    if (!res.ok) return NextResponse.json({ ok: true, respuesta: `No pude sintetizar la respuesta (HTTP ${res.status}), pero aquí están los artículos relevantes.`, articulos, cenetecUrl })
-
-    let respuesta = textoDe(await res.json()).trim() || 'Sin respuesta.'
-    const modelos: string[] = [nivel === 'premium' ? 'Claude Opus 4.8' : 'Claude Sonnet 5']
-
-    // 4) SEGUNDO CEREBRO (OpenAI) como VERIFICADOR (no reescritor): su trabajo es
-    //    QUITAR lo no sustentado y corregir citas — NO añadir contenido nuevo. Así
-    //    el 2º modelo sube la CONFIANZA (menos alucinación), no mete ideas sueltas.
-    if (respuesta && respuesta !== 'Sin respuesta.') {
-      try {
-        const { key: openaiKey } = await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY ?? '')
-        if (openaiKey) {
-          const modeloGPT = nivel === 'premium' ? 'gpt-5' : 'gpt-4o'
-          const sysR = 'Eres un VERIFICADOR clínico basado en evidencia (segundo revisor). Recibes una pregunta, la evidencia (PubMed) y una respuesta preliminar de otro modelo. Tu ÚNICA tarea es hacerla más CONFIABLE, NO más larga: (1) ELIMINA o corrige toda afirmación que la evidencia dada NO sustente; (2) verifica que cada cita [n] apunte al artículo correcto y quita las citas que no correspondan; (3) elimina cualquier CIFRA de dosis que no venga de la "DOSIS OFICIAL (FDA)" dada, sustituyéndola por "verificar en Cuadro Básico/ficha técnica". NO agregues afirmaciones, estudios, PMIDs ni cifras nuevas. Conserva el español, el formato (secciones, Dosis, Guía en México, "Nivel de evidencia") y las citas correctas. Devuelve SOLO la respuesta final verificada, sin meta-comentarios.'
-          const userR = `PREGUNTA: ${pregunta}\n\nEVIDENCIA (PubMed):\n${fuentes}${dosisTxt}\n\nRESPUESTA PRELIMINAR (de otro modelo, mejórala):\n${respuesta}\n\nDevuelve la respuesta final mejorada.`
-          const refinada = await openaiRefinar(openaiKey, modeloGPT, sysR, userR)
-          if (refinada) { respuesta = refinada; modelos.push(nivel === 'premium' ? 'GPT-5' : 'GPT-4o') }
-        }
-      } catch { /* se queda la respuesta de Claude */ }
-    }
-
-    void registrarUso(clinicId, fuente)
-    void registrarConsultor(clinicId, costo)  // descuenta la fracción de crédito del mes
-    void extraerAprendizajes(key, pregunta, respuesta).then(f => aprenderDeMedico(clinicId, acceso.uid, f))  // no bloquea
-    return NextResponse.json({ ok: true, respuesta, articulos, cenetecUrl, dosisFDA: dosis, modelos })
+    // Respuesta en STREAMING (token a token). Las fuentes van en el meta (se pintan
+    // de inmediato) y el texto llega en vivo. La verificación de citas es
+    // DETERMINISTA en el cliente (cada [n] contra el rango de fuentes).
+    const articulosMin = articulos.map(a => ({ pmid: a.pmid, titulo: a.titulo, revista: a.revista, anio: a.anio, url: a.url }))
+    return responderStream({
+      key, model, system, user, maxTokens: 3200,
+      meta: { articulos: articulosMin, cenetecUrl, dosisFDA: dosis, sinCitas: false, modelos: [nivel === 'premium' ? 'Claude Opus 4.8' : 'Claude Sonnet 5'] },
+      onDone: (txt) => {
+        void registrarUso(clinicId, fuente)
+        void registrarConsultor(clinicId, costo)
+        void extraerAprendizajes(key, pregunta, txt).then(f => aprenderDeMedico(clinicId, acceso.uid, f))
+      },
+    })
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })
   }
