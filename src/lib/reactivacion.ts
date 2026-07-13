@@ -70,6 +70,19 @@ export function msgReactivacion(nombrePaciente: string, nombreMedico?: string): 
   ].join('\n')
 }
 
+/** Mensaje de seguimiento posconsulta (check-in cálido tras una visita reciente). */
+export function msgSeguimiento(nombrePaciente: string, nombreMedico?: string): string {
+  const hola = primerNombre(nombrePaciente)
+  const firma = nombreMedico ? `\n\n— ${nombreMedico}` : ''
+  return [
+    `Hola ${hola} 👋`,
+    ``,
+    `Le escribimos para saber cómo ha seguido tras su consulta. ¿Ha notado mejoría? ¿Alguna duda con su tratamiento?`,
+    ``,
+    `Estamos al pendiente; responda por aquí si necesita algo.${firma}`,
+  ].join('\n')
+}
+
 /** Mensaje para que un paciente refiera al consultorio (comparte el enlace de reserva). */
 export function msgReferido(nombreMedico: string | undefined, urlReserva: string): string {
   return [

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { diasEntre, pacientesParaReactivar, msgReactivacion, msgReferido } from '@/lib/reactivacion'
+import { diasEntre, pacientesParaReactivar, msgReactivacion, msgReferido, msgSeguimiento } from '@/lib/reactivacion'
 import type { Patient } from '@/types'
 
 const px = (o: Partial<Patient>): Patient => ({
@@ -51,5 +51,8 @@ describe('mensajes', () => {
   })
   it('referido incluye el enlace de reserva', () => {
     expect(msgReferido('Dr. Pérez', 'https://x.mx/reservar/abc')).toContain('https://x.mx/reservar/abc')
+  })
+  it('seguimiento saluda por primer nombre', () => {
+    expect(msgSeguimiento('Juan Pérez', 'Dr. Ruiz')).toContain('Hola Juan')
   })
 })

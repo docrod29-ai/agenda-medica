@@ -5,11 +5,12 @@ import { AgendaVacia } from '@/components/brand/EmptyArt'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
-import { getPatients } from '@/lib/firestore'
-import type { Patient } from '@/types'
-import { pacientesParaReactivar, msgReactivacion, msgReferido, type CandidatoReactivacion } from '@/lib/reactivacion'
+import { getPatients, getAppointments } from '@/lib/firestore'
+import { where } from 'firebase/firestore'
+import type { Patient, Appointment } from '@/types'
+import { pacientesParaReactivar, msgReactivacion, msgReferido, msgSeguimiento, diasEntre, type CandidatoReactivacion } from '@/lib/reactivacion'
 import { openWhatsApp, copyToClipboard } from '@/lib/whatsapp'
-import { MessageSquare, Copy, Share2, HeartHandshake, Clock } from 'lucide-react'
+import { MessageSquare, Copy, Share2, HeartHandshake, Clock, Stethoscope } from 'lucide-react'
 
 const hoyISO = () => {
   const d = new Date()
@@ -27,12 +28,27 @@ export default function ReactivacionPage() {
   const { config } = useConfig()
   const { toast } = useToast()
   const [pacientes, setPacientes] = useState<Patient[]>([])
+  const [seguimiento, setSeguimiento] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
   const [umbral, setUmbral] = useState(90)
 
   useEffect(() => {
     if (!clinicId) return
-    getPatients(clinicId).then(setPacientes).finally(() => setLoading(false))
+    // Atendidas de los últimos 10 días → candidatas a seguimiento posconsulta.
+    const desde = (() => { const d = new Date(); d.setDate(d.getDate() - 10); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
+    Promise.all([
+      getPatients(clinicId),
+      getAppointments(clinicId, [where('fechaHora', '>=', desde + ' 00:00')]),
+    ]).then(([ps, cits]) => {
+      setPacientes(ps)
+      const atendidas = cits.filter(c => c.estado === 'atendida' || c.estado === 'finalizada' || c.estado === 'pagada')
+      // una por paciente (la más reciente)
+      const porPac = new Map<string, Appointment>()
+      for (const c of atendidas.sort((a, b) => b.fechaHora.localeCompare(a.fechaHora))) {
+        if (!porPac.has(c.pacienteId)) porPac.set(c.pacienteId, c)
+      }
+      setSeguimiento(Array.from(porPac.values()))
+    }).finally(() => setLoading(false))
   }, [clinicId])
 
   const candidatos = useMemo(
@@ -51,6 +67,13 @@ export default function ReactivacionPage() {
   const copiar = async (c: CandidatoReactivacion) => {
     try { await copyToClipboard(msgReactivacion(c.paciente.nombre, nombreMedico)); toast('Mensaje copiado', 'success') }
     catch { toast('No se pudo copiar', 'error') }
+  }
+
+  const hoy = hoyISO()
+  const seguir = (c: Appointment) => {
+    const p = pacientes.find(x => x.id === c.pacienteId)
+    const tel = p?.whatsapp || p?.telefono || c.pacienteTelefono
+    openWhatsApp(tel, msgSeguimiento(c.pacienteNombre, nombreMedico))
   }
 
   const compartirReferido = () => {
@@ -87,6 +110,32 @@ export default function ReactivacionPage() {
           </div>
         </div>
       </div>
+
+      {/* Seguimiento posconsulta */}
+      {!loading && seguimiento.length > 0 && (
+        <div className="card" style={{ padding: 0, marginBottom: 20 }}>
+          <div style={{ padding: '14px 16px 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Stethoscope size={16} style={{ color: 'var(--nexus)' }} />
+            <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Seguimiento posconsulta</span>
+            <span style={{ fontSize: 12.5, color: 'var(--text3)' }}>· atendidos hace ≤10 días</span>
+          </div>
+          {seguimiento.slice(0, 30).map((c, i) => {
+            const dias = diasEntre(c.fechaHora.slice(0, 10), hoy)
+            return (
+              <div key={c.id} style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px',
+                borderTop: '1px solid var(--border)',
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.pacienteNombre}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)' }}>{dias === 0 ? 'Hoy' : `Hace ${dias} día${dias !== 1 ? 's' : ''}`}</div>
+                </div>
+                <Button variant="secondary" onClick={() => seguir(c)} icon={<MessageSquare size={15} />}>Seguimiento</Button>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {/* Reactivación */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
