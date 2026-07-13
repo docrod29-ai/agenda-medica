@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v335'  // MEMORIA DEL MEDICO: el Consultor de IA aprende de cada medico (como ChatGPT/Claude). lib/memoria-medico.ts guarda preferencias/practica (NUNCA datos de paciente) en clinics/{id}/memoria_medico/{uid} (server-only); se inyecta al prompt para personalizar y tras cada consulta extrae 0-2 hechos durables con Haiku y los acumula (dedupe, tope 40). Aplica en ambos caminos (con y sin evidencia)
+const CACHE = 'nexusmed-v336'  // CONSULTOR robusto + mas potente: fix 'No se pudo consultar' (era timeout de la cadena de modelos) → maxDuration 300, timeouts por llamada (Claude 55s, GPT 28s→se queda Claude si tarda, traduccion 15s), APRENDIZAJE ya NO bloquea la respuesta (fire-and-forget). Respuestas mas abundantes (2200→3200 tokens) + prompt de razonamiento nivel OpenEvidence (casos complejos, mecanismo, banderas rojas). Mensaje de error del cliente mas claro
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

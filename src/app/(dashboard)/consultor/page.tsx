@@ -64,7 +64,7 @@ export default function ConsultorPage() {
         const i = copia.length - 1
         if (i >= 0) copia[i] = d?.ok
           ? { pregunta: texto, respuesta: d.respuesta ?? '', articulos: d.articulos ?? [], cenetecUrl: d.cenetecUrl, modelos: d.modelos }
-          : { pregunta: texto, respuesta: `⚠️ ${d?.error || 'No se pudo consultar.'}`, articulos: [] }
+          : { pregunta: texto, respuesta: `⚠️ ${d?.error || 'La consulta tardó demasiado. Vuelve a intentarlo (a veces el segundo intento sale de inmediato) o hazla un poco más corta.'}`, articulos: [] }
         return { turnos: copia, cargando: false }
       })
     } catch {

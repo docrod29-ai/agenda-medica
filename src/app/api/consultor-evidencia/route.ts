@@ -25,14 +25,15 @@ import { dosisFDA } from '@/lib/evidencia/openfda'
 import { leerMemoriaMedico, textoMemoria, aprenderDeMedico } from '@/lib/memoria-medico'
 
 export const runtime = 'nodejs'
-export const maxDuration = 60
+export const maxDuration = 300  // el Consultor encadena varios modelos; margen amplio (se topa al plan de Vercel)
 const AV = '2023-06-01'
 
-async function claude(key: string, model: string, system: string, user: string, maxTokens: number) {
+async function claude(key: string, model: string, system: string, user: string, maxTokens: number, timeoutMs = 55000) {
   return fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': key, 'anthropic-version': AV, 'Content-Type': 'application/json' },
     body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: 'user', content: user }] }),
+    signal: AbortSignal.timeout(timeoutMs),  // no colgar indefinido → aborta y el caller degrada
   })
 }
 function textoDe(data: unknown): string {
@@ -65,7 +66,8 @@ async function openaiRefinar(key: string, model: string, system: string, user: s
     const r = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], max_completion_tokens: 2200 }),
+      body: JSON.stringify({ model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], max_completion_tokens: 2600 }),
+      signal: AbortSignal.timeout(28000),  // 2º cerebro es un extra: si tarda, se queda la respuesta de Claude
     })
     if (!r.ok) return null
     const d = await r.json()
@@ -100,7 +102,7 @@ export async function POST(req: NextRequest) {
     const usrTrad = `${paciente ? 'Paciente: ' + paciente + '\n' : ''}${contexto ? contexto + '\n' : ''}Pregunta: ${pregunta}`
     for (const m of MODELOS_TRAD) {
       try {
-        const rq = await claude(key, m, sysTrad, usrTrad, 120)
+        const rq = await claude(key, m, sysTrad, usrTrad, 120, 15000)
         if (rq.ok) {
           const t = textoDe(await rq.json()).replace(/^["'\s]+|["'\s]+$/g, '').slice(0, 300)
           if (t) { query = t; break }
@@ -148,12 +150,13 @@ export async function POST(req: NextRequest) {
     if (articulos.length === 0) {
       const sysSC = 'Eres un consultor clínico experto (nivel especialista) para médicos en MÉXICO. No se encontró evidencia NUEVA en PubMed para esta pregunta específica — es normal en preguntas de SEGUIMIENTO o muy puntuales. Responde IGUAL, con criterio clínico: apóyate en tu conocimiento, el consenso/guías y sobre todo en la CONVERSACIÓN PREVIA (continúa el hilo, no empieces de cero). En español, claro y accionable. Empieza con una línea honesta: "Sin citas nuevas de PubMed para esto; respondo con base en conocimiento clínico y lo que ya vimos." NO inventes estudios, PMIDs ni cifras exactas; si algo es incierto, dilo. Si hay contexto de paciente, personaliza (edad, comorbilidades, alergias). Cuando aplique, menciona la GPC de CENETEC/NOM pertinente por su nombre (aclarando verificar el documento oficial). Cierra con "Nivel de evidencia: alto/moderado/bajo" según tu juicio. Apoyas la decisión del médico, no das órdenes absolutas.'
       const usrSC = `${memTxt ? 'PERFIL DEL MÉDICO (memoria):\n' + memTxt + '\n\n' : ''}${paciente ? 'PACIENTE (contexto):\n' + paciente + '\n\n' : ''}${contexto ? 'Conversación previa:\n' + contexto + '\n\n' : ''}PREGUNTA: ${pregunta}`
-      let resSC = await claude(key, model, sysSC, usrSC, 1800)
-      if (resSC.status === 404 || resSC.status === 400) resSC = await claude(key, 'claude-sonnet-5', sysSC, usrSC, 1800)
+      let resSC = await claude(key, model, sysSC, usrSC, 2600)
+      if (resSC.status === 404 || resSC.status === 400) resSC = await claude(key, 'claude-sonnet-5', sysSC, usrSC, 2600)
       const respSC = resSC.ok ? (textoDe(await resSC.json()).trim() || 'Sin respuesta.') : 'No pude responder ahora; intenta de nuevo en un momento.'
       void registrarUso(clinicId, fuente)
       void registrarConsultor(clinicId, costo)
-      await aprenderDeMedico(clinicId, acceso.uid, await extraerAprendizajes(key, pregunta, respSC))
+      // Aprendizaje NO bloqueante: nunca retrasa ni tumba la respuesta.
+      void extraerAprendizajes(key, pregunta, respSC).then(f => aprenderDeMedico(clinicId, acceso.uid, f))
       return NextResponse.json({ ok: true, respuesta: respSC, articulos: [], sinCitas: true, cenetecUrl, modelos: [nivel === 'premium' ? 'Claude Opus 4.8' : 'Claude Sonnet 5'] })
     }
 
@@ -163,11 +166,11 @@ export async function POST(req: NextRequest) {
     const dosis = farmacos[0] ? await dosisFDA(farmacos[0]).catch(() => null) : null
     const fuentes = articulos.map((a, i) => `[${i + 1}] ${a.revista} ${a.anio} · PMID ${a.pmid}\n${a.titulo}\n${a.resumen.slice(0, 700)}`).join('\n\n')
     const dosisTxt = dosis ? `\n\nDOSIS OFICIAL (ficha técnica FDA, ${dosis.farmaco}):\n${dosis.dosis}` : ''
-    const system = 'Eres un asistente clínico de medicina basada en evidencia para médicos en MÉXICO. Responde con una síntesis clara y accionable, en español, CITANDO con [n] los artículos de la lista que respaldan cada afirmación. Si se da contexto de un PACIENTE, personaliza (edad, comorbilidades, alergias, tratamiento) y advierte contraindicaciones/interacciones. Si la pregunta es sobre un fármaco o tratamiento, incluye una sección **Dosis**: usa la "DOSIS OFICIAL (FDA)" que se te dé (indica que es de la etiqueta FDA y que debe ajustarse a función renal/hepática y peso, y verificarse con el Cuadro Básico); si no se te da, indica la dosis estándar de referencia y adviértelo. Cuando aplique, agrega una línea **Guía en México**: menciona la GPC de CENETEC o la NOM pertinente si la conoces (por su nombre), aclarando que debe consultarse el documento oficial. REGLAS: cita SOLO los artículos dados por su [n]; NUNCA inventes estudios, PMIDs ni cifras; si la evidencia es limitada, dilo; apoya la decisión del médico, no des órdenes absolutas. Termina con "Nivel de evidencia: alto/moderado/bajo".'
+    const system = 'Eres el mejor consultor clínico basado en evidencia para médicos en MÉXICO — al nivel de OpenEvidence: razonas a fondo, resuelves casos COMPLEJOS y das respuestas COMPLETAS y accionables, no superficiales. Responde en español CITANDO con [n] los artículos que respaldan cada afirmación. Estructura útil: síntesis directa arriba, luego el porqué (mecanismo/razonamiento clínico), abordaje escalonado, y advertencias. RAZONA como especialista: sopesa alternativas, menciona cuándo NO aplica, banderas rojas, poblaciones especiales, interacciones. Si hay contexto de PACIENTE, personaliza (edad, comorbilidades, alergias, tratamiento) y advierte contraindicaciones. Si es sobre un fármaco/tratamiento, incluye **Dosis**: usa la "DOSIS OFICIAL (FDA)" dada (ajústala a función renal/hepática y peso, y a verificar con el Cuadro Básico); si no se da, indica la dosis estándar de referencia y adviértelo. Cuando aplique, agrega **Guía en México**: GPC de CENETEC o NOM pertinente por su nombre (a verificar el documento oficial). REGLAS DE RIGOR: cita SOLO los artículos dados por su [n]; NUNCA inventes estudios, PMIDs ni cifras; si la evidencia es limitada, dilo con honestidad y complementa con razonamiento clínico y consenso (aclarando qué es evidencia y qué es criterio); apoya la decisión del médico, no des órdenes absolutas. Termina con "Nivel de evidencia: alto/moderado/bajo".'
     const user = `${memTxt ? 'PERFIL DEL MÉDICO (memoria):\n' + memTxt + '\n\n' : ''}${paciente ? 'PACIENTE (contexto):\n' + paciente + '\n\n' : ''}${contexto ? 'Conversación previa:\n' + contexto + '\n\n' : ''}PREGUNTA: ${pregunta}\n\nEVIDENCIA (PubMed):\n${fuentes}${dosisTxt}\n\nResponde citando [n].`
 
-    let res = await claude(key, model, system, user, 2200)
-    if (res.status === 404 || res.status === 400) res = await claude(key, 'claude-sonnet-5', system, user, 2200)
+    let res = await claude(key, model, system, user, 3200)
+    if (res.status === 404 || res.status === 400) res = await claude(key, 'claude-sonnet-5', system, user, 3200)
     if (!res.ok) return NextResponse.json({ ok: true, respuesta: `No pude sintetizar la respuesta (HTTP ${res.status}), pero aquí están los artículos relevantes.`, articulos, cenetecUrl })
 
     let respuesta = textoDe(await res.json()).trim() || 'Sin respuesta.'
@@ -191,7 +194,7 @@ export async function POST(req: NextRequest) {
 
     void registrarUso(clinicId, fuente)
     void registrarConsultor(clinicId, costo)  // descuenta la fracción de crédito del mes
-    await aprenderDeMedico(clinicId, acceso.uid, await extraerAprendizajes(key, pregunta, respuesta))
+    void extraerAprendizajes(key, pregunta, respuesta).then(f => aprenderDeMedico(clinicId, acceso.uid, f))  // no bloquea
     return NextResponse.json({ ok: true, respuesta, articulos, cenetecUrl, dosisFDA: dosis, modelos })
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })
