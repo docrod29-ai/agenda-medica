@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v354'  // PROTECCION datos fiscales: RFC y domicilio fiscal ya NO se sirven por el endpoint publico ni salen en el aviso (documento publico); solo en el contrato de encargo (privado, tras login). El aviso usa el domicilio del consultorio. Datos solo en la config del consultorio (Firestore restringido), nunca en repo/codigo/memoria
+const CACHE = 'nexusmed-v355'  // SEGURIDAD: cierre automatico de sesion por inactividad (30 min, aviso 60s con 'seguir conectado', borradores a salvo); pagina seguridad refleja el control como Activo + RPO/RTO objetivo. Aditivo, no toca el flujo clinico
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

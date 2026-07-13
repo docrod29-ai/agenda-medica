@@ -20,6 +20,7 @@ import { MobileBackButton } from '@/components/MobileBackButton'
 import { BotonAyuda } from '@/components/BotonAyuda'
 import { RastreoErrores } from '@/components/RastreoErrores'
 import { OnboardingTour } from '@/components/OnboardingTour'
+import { AutoLogout } from '@/components/AutoLogout'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { rutaPermitida } from '@/lib/modulos'
 
@@ -332,6 +333,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
       <BotonAyuda />
       <RastreoErrores />
       <OnboardingTour enabled={esMedicoReal} />
+      <AutoLogout />
     </div>
   )
 }
