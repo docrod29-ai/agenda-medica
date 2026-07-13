@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v358'  // PERFORMANCE: getPatient(clinicId, patientId) lee UN documento en vez de toda la coleccion; aplicado en nota/receta/orden/expediente/referencia. Abrir expediente/nota mucho mas rapido y menos lecturas de Firestore (costo). Dato identico, riesgo minimo
+const CACHE = 'nexusmed-v359'  // PERFORMANCE: cache en memoria de la lista de pacientes por clinica (TTL 30s) con invalidacion en createPatient/updatePatient; navegar entre pantallas de lista deja de recargar la coleccion completa. getPatients(clinicId, {force}) retrocompatible. getPatient (un doc) sigue siempre fresco
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

@@ -134,9 +134,31 @@ export async function deleteAppointment(clinicId: string, id: string): Promise<v
 
 // ── Patients ──────────────────────────────────────────────────
 
-export async function getPatients(clinicId: string): Promise<Patient[]> {
+/**
+ * Caché en memoria de la lista de pacientes (por clínica), con TTL corto.
+ * Motivo: ~12 pantallas de lista (pacientes, CRM, citas, reactivación, corte de
+ * caja, migración, consultor…) descargaban la colección COMPLETA en cada visita.
+ * Con caché, navegar entre ellas no vuelve a leer Firestore hasta que expira el
+ * TTL o hay una escritura (createPatient/updatePatient invalidan). Se puede
+ * forzar refresco con { force: true }. Staleness máx = TTL (aceptable para una
+ * lista); las escrituras locales invalidan de inmediato.
+ */
+const TTL_PACIENTES_MS = 30_000
+const _cachePacientes = new Map<string, { data: Patient[]; ts: number }>()
+
+/** Invalida la caché de pacientes (de una clínica o de todas). */
+export function invalidarCachePacientes(clinicId?: string): void {
+  if (clinicId) _cachePacientes.delete(clinicId)
+  else _cachePacientes.clear()
+}
+
+export async function getPatients(clinicId: string, opts?: { force?: boolean }): Promise<Patient[]> {
+  const hit = _cachePacientes.get(clinicId)
+  if (!opts?.force && hit && Date.now() - hit.ts < TTL_PACIENTES_MS) return hit.data
   const snap = await getDocs(query(col(clinicId, COLLECTIONS.patients), orderBy('nombre', 'asc')))
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Patient))
+  const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as Patient))
+  _cachePacientes.set(clinicId, { data, ts: Date.now() })
+  return data
 }
 
 /**
@@ -154,11 +176,13 @@ export async function createPatient(clinicId: string, data: Omit<Patient, 'id'>)
   const ref = await addDoc(col(clinicId, COLLECTIONS.patients),
     sinUndefined({ ...data, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }),
   )
+  invalidarCachePacientes(clinicId)   // el nuevo paciente debe verse de inmediato
   return ref.id
 }
 
 export async function updatePatient(clinicId: string, id: string, data: Partial<Patient>): Promise<void> {
   await updateDoc(d(clinicId, COLLECTIONS.patients, id), sinUndefined({ ...data, updatedAt: new Date().toISOString() }))
+  invalidarCachePacientes(clinicId)   // el cambio debe reflejarse de inmediato
 }
 
 // ── Waitlist ──────────────────────────────────────────────────
