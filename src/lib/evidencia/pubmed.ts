@@ -113,6 +113,38 @@ export async function buscarEvidencia(
   return efetchArts(ids, opts.signal)
 }
 
+/**
+ * Texto completo de PMC (solo artículos de ACCESO ABIERTO — legal). Para los
+ * PMIDs dados, mapea a PMCID (elink) y trae el full-text XML (efetch db=pmc);
+ * extrae los párrafos CUANTITATIVOS (con IC95%/HR/RR/OR/p/NNT/%) para razonar
+ * sobre cifras reales, no solo el resumen. Devuelve { pmid: extracto }. Los que
+ * no están en OA (paywall) simplemente no aparecen — nunca lanza.
+ */
+export async function textoCompletoPMC(
+  pmids: string[],
+  opts: { signal?: AbortSignal } = {},
+): Promise<Record<string, string>> {
+  const out: Record<string, string> = {}
+  await Promise.all(pmids.slice(0, 3).map(async pmid => {
+    try {
+      const el = await fetch(conKey(`${EUTILS}/elink.fcgi?dbfrom=pubmed&db=pmc&retmode=json&id=${pmid}`), { signal: opts.signal })
+      if (!el.ok) return
+      const ej = await el.json()
+      const dbs = ej?.linksets?.[0]?.linksetdbs ?? []
+      const pmcid = dbs.flatMap((l: { links?: string[] }) => l.links ?? [])[0]
+      if (!pmcid) return
+      const fx = await fetch(conKey(`${EUTILS}/efetch.fcgi?db=pmc&id=${pmcid}&rettype=xml`), { signal: opts.signal })
+      if (!fx.ok) return
+      const xml = await fx.text()
+      const parrafos = [...xml.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)].map(m => desescapar(m[1])).filter(Boolean)
+      const cuant = parrafos.filter(p => /(\d{1,3}(\.\d+)?\s*%|\bCI\b|95%|\bHR\b|\bRR\b|\bOR\b|\bp\s*[=<]|\bNNT\b|hazard|confidence interval)/i.test(p))
+      const texto = (cuant.length ? cuant : parrafos).join(' ').replace(/\s+/g, ' ').slice(0, 1600)
+      if (texto.trim().length > 120) out[pmid] = texto
+    } catch { /* no OA / timeout: se queda con el resumen */ }
+  }))
+  return out
+}
+
 // Filtro de evidencia de ALTA calidad (meta-análisis, revisiones sistemáticas, ECA, guías).
 const FILTRO_HQ = '(systematic[sb] OR "meta-analysis"[pt] OR "randomized controlled trial"[pt] OR "practice guideline"[pt] OR guideline[pt])'
 

@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v343'  // RASTREO DE ERRORES (mini-Sentry propio): captura global de errores no atrapados del cliente (window.onerror + unhandledrejection, dedup, nunca rompe) → /api/errores (Admin SDK, coleccion errores server-only, rate-limit) → el dueno los ve en /superadmin/errores (lista, stack, marcar visto). Error boundaries tambien reportan. Sin datos de paciente. Para ver fallas en produccion sin depender de que avisen
+const CACHE = 'nexusmed-v344'  // CONSULTOR: TEXTO COMPLETO de PMC (acceso abierto). textoCompletoPMC en pubmed.ts (elink PMID→PMCID + efetch db=pmc) extrae los parrafos CUANTITATIVOS (IC95%/HR/RR/OR/p/NNT/%) de los 3 top articulos OA; se inyecta al prompt para razonar sobre cifras reales, no solo resumen. Prompt instruido a citar NNT/IC95%/HR con su [n]. Timeout 8s, los de paywall se quedan con resumen
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
