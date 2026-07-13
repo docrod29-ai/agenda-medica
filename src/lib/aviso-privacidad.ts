@@ -21,9 +21,11 @@ export interface AvisoPrivacidadData {
 /** Genera el TEXTO completo del aviso de privacidad para una clínica específica. */
 export function generarAvisoPrivacidad(config: ClinicConfig | null): string {
   const responsable = config?.razonSocial || config?.nombreClinica || config?.nombreMedico || '[Nombre o razón social del responsable]'
-  const domicilio = config?.domicilioFiscal || config?.direccion || '[Domicilio]'
+  // PROTECCIÓN: el aviso es un documento público (se entrega al paciente). Usa el
+  // domicilio del CONSULTORIO, nunca el domicilio fiscal, y NO incluye el RFC —
+  // ese dato solo aparece en el contrato de encargo (privado, detrás del login).
+  const domicilio = config?.direccion || '[Domicilio del consultorio]'
   const contacto = config?.correoArco || config?.telefonoAdmin || config?.whatsappConsultorio || '[Contacto]'
-  const rfc = config?.rfc
   const respPriv = config?.responsablePrivacidad
 
   return `AVISO DE PRIVACIDAD INTEGRAL — ${responsable}
@@ -31,7 +33,7 @@ export function generarAvisoPrivacidad(config: ClinicConfig | null): string {
 Versión: ${VERSION_AVISO}
 
 1. IDENTIDAD Y DOMICILIO DEL RESPONSABLE
-${responsable}${rfc ? ` (RFC: ${rfc})` : ''}, con domicilio en ${domicilio}, es el responsable del tratamiento de sus datos personales.${respPriv ? `\nResponsable de privacidad: ${respPriv}.` : ''}
+${responsable}, con domicilio en ${domicilio}, es el responsable del tratamiento de sus datos personales.${respPriv ? `\nResponsable de privacidad: ${respPriv}.` : ''}
 El responsable se apoya en NexusMED como encargado del tratamiento (proveedor de software) y en los subencargados tecnológicos necesarios para operar el servicio (nube, mensajería, procesamiento de pagos e inteligencia artificial), cada uno bajo su propio acuerdo de tratamiento de datos.
 
 2. DATOS PERSONALES QUE SE RECABAN

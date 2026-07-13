@@ -69,10 +69,10 @@ export async function GET(
         direccion: config.direccion ?? '',
         telefono: config.telefonoAdmin ?? config.whatsappConsultorio ?? '',
         googleMapsUrl: config.googleMapsUrl ?? '',
-        // Identidad fiscal/privacidad → para el aviso por consultorio en el portal público
+        // Para el aviso público solo se exponen los datos que un aviso de privacidad
+        // debe contener. RFC y domicilio FISCAL NO se sirven aquí (quedan privados,
+        // solo en el contrato de encargo tras el login del médico).
         razonSocial: config.razonSocial ?? '',
-        rfc: config.rfc ?? '',
-        domicilioFiscal: config.domicilioFiscal ?? '',
         responsablePrivacidad: config.responsablePrivacidad ?? '',
         correoArco: config.correoArco ?? '',
         avisoPrivacidad: config.avisoPrivacidad ?? '',

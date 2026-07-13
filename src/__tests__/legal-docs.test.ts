@@ -11,18 +11,24 @@ const cfg = (o: Partial<ClinicConfig>): ClinicConfig => ({
 } as ClinicConfig)
 
 describe('generarAvisoPrivacidad', () => {
-  it('usa razón social y RFC cuando están presentes', () => {
+  it('usa razón social, ARCO y responsable, pero NUNCA el RFC (protección)', () => {
     const t = generarAvisoPrivacidad(cfg({ razonSocial: 'Servicios Médicos SA de CV', rfc: 'SME010101AAA', correoArco: 'arco@sme.mx', responsablePrivacidad: 'Lic. Ana' }))
     expect(t).toContain('Servicios Médicos SA de CV')
-    expect(t).toContain('RFC: SME010101AAA')
+    expect(t).not.toContain('SME010101AAA')   // el RFC no debe aparecer en el aviso público
+    expect(t).not.toContain('RFC')
     expect(t).toContain('arco@sme.mx')
     expect(t).toContain('Lic. Ana')
     expect(t).toContain('CONSERVACIÓN, BLOQUEO Y ELIMINACIÓN')
   })
-  it('cae a nombreClinica y placeholders sin datos fiscales', () => {
+  it('usa el domicilio del CONSULTORIO, nunca el domicilio fiscal', () => {
+    const t = generarAvisoPrivacidad(cfg({ direccion: 'Consultorio 123', domicilioFiscal: 'Casa Fiscal 999' }))
+    expect(t).toContain('Consultorio 123')
+    expect(t).not.toContain('Casa Fiscal 999')
+  })
+  it('cae a nombreClinica sin datos fiscales', () => {
     const t = generarAvisoPrivacidad(cfg({}))
     expect(t).toContain('Clínica Prueba')
-    expect(t).not.toContain('RFC:')
+    expect(t).not.toContain('RFC')
   })
 })
 
