@@ -342,6 +342,18 @@ export default function NotaImprimiblePage() {
           <br />Conforme a NOM-004-SSA3-2012 y NOM-024-SSA3-2012.
         </div>
 
+        {/* Trazabilidad de IA (transparencia): qué documentó la IA y que el médico
+            lo revisó y validó. Solo aparece si la nota se procesó con IA. */}
+        {nota.estado === 'firmada' && nota.iaAuditoria?.procesadoEn && (
+          <div style={{ marginTop: 10, fontSize: 9.5, color: '#666', textAlign: 'center', fontStyle: 'italic' }}>
+            Documentada con asistencia de inteligencia artificial (borrador) el{' '}
+            {new Date(nota.iaAuditoria.procesadoEn).toLocaleDateString('es-MX')}; contenido
+            revisado, corregido y <strong>validado por el médico responsable</strong>
+            {nota.iaAuditoria.aprobadoPor ? ` (${nota.iaAuditoria.aprobadoPor})` : ''} antes de firmar.
+            La IA es una herramienta de apoyo; la decisión clínica es del médico.
+          </div>
+        )}
+
         {/* Adendas: correcciones/aclaraciones posteriores a la firma (NOM-004).
             No alteran la nota original; se muestran e imprimen debajo. */}
         {adendas.length > 0 && (

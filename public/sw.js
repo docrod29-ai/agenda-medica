@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v356'  // EXPEDIENTE (#3): ADENDA post-firma (NOM-004) — corregir/aclarar una nota firmada SIN alterar el original; subcoleccion inmutable notas/{id}/adendas; boton+modal en la vista de nota; se muestran e imprimen bajo la nota. Requiere: firebase deploy --only firestore:rules. La nota firmada nunca se modifica
+const CACHE = 'nexusmed-v357'  // IA DEFENDIBLE (#4): sello de trazabilidad de IA en la nota firmada — declara que fue documentada con asistencia de IA (borrador) y REVISADA+VALIDADA por el medico responsable antes de firmar; usa el campo iaAuditoria existente; se imprime con la nota. Aditivo
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
