@@ -18,7 +18,7 @@ export function EmptyState({ icon, illustration, title, description, action }: E
   return (
     <div className="empty-state">
       {illustration
-        ? <div style={{ marginBottom: 6, opacity: 0.95 }}>{illustration}</div>
+        ? <div className="empty-illus" style={{ marginBottom: 6, opacity: 0.95 }}>{illustration}</div>
         : icon && <div className="empty-state-icon">{icon}</div>}
       <div className="empty-state-title">{title}</div>
       {description && <div className="empty-state-desc">{description}</div>}

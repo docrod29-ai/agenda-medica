@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v344'  // CONSULTOR: TEXTO COMPLETO de PMC (acceso abierto). textoCompletoPMC en pubmed.ts (elink PMID→PMCID + efetch db=pmc) extrae los parrafos CUANTITATIVOS (IC95%/HR/RR/OR/p/NNT/%) de los 3 top articulos OA; se inyecta al prompt para razonar sobre cifras reales, no solo resumen. Prompt instruido a citar NNT/IC95%/HR con su [n]. Timeout 8s, los de paywall se quedan con resumen
+const CACHE = 'nexusmed-v345'  // ESTETICA: mas pantallas vacias con arte de marca (pacientes→ExpedienteVacio, lista-espera→AgendaVacia) + entrada suave (clase .empty-illus con nx-rise, respeta reduce-motion). Micro-interacciones: el design system ya tenia focus-visible/reduced-motion/lift/keyframes, no se agrego CSS redundante
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

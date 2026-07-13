@@ -1292,3 +1292,7 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
 
 /* Sparkline del hero */
 .nx-spark { display: block; }
+
+/* Entrada suave de las ilustraciones de estado vacío (respeta reduce-motion) */
+.empty-illus { animation: nx-rise 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@media (prefers-reduced-motion: reduce) { .empty-illus { animation: none; } }

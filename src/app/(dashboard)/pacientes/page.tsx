@@ -12,6 +12,7 @@ import { Plus, Search, X, Users, Phone, AlertCircle, FileText, Calendar, Pencil,
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { PageHeader, Button, EmptyState, Spinner, Modal } from '@/components/ui'
+import { ExpedienteVacio } from '@/components/brand/EmptyArt'
 import { avatarColor } from '@/lib/avatar-color'
 
 export default function PacientesPage() {
@@ -189,7 +190,7 @@ export default function PacientesPage() {
           <Spinner center label="Cargando pacientes…" />
         ) : patients.length === 0 ? (
           <EmptyState
-            icon={<Users size={22} />}
+            illustration={<ExpedienteVacio />}
             title="No hay pacientes registrados"
             description="Registra tu primer paciente o agéndalo directamente desde el asistente."
             action={mode === 'medico'

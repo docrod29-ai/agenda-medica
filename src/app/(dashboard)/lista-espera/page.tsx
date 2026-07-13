@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { WaitlistEntry, AppointmentType, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { PageHeader, Button, EmptyState, Spinner, Modal, Input, Select, Textarea } from '@/components/ui'
+import { AgendaVacia } from '@/components/brand/EmptyArt'
 import { getWaitlist, createWaitlistEntry, updateWaitlistEntry } from '@/lib/firestore'
 import { useToast } from '@/context/ToastContext'
 import { useConfig } from '@/hooks/useConfig'
@@ -72,7 +73,7 @@ export default function ListaEsperaPage() {
           <Spinner center label="Cargando lista de espera…" />
         ) : entries.length === 0 ? (
           <EmptyState
-            icon={<Clock size={22} />}
+            illustration={<AgendaVacia />}
             title="La lista de espera está vacía"
             description="Agrega pacientes que esperan un hueco; te avisamos cuando se libere una cita."
             action={<Button icon={<Plus size={16} />} onClick={() => setModalOpen(true)}>Agregar</Button>}
