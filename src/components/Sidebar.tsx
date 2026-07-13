@@ -8,7 +8,7 @@ import { useConfig } from '@/hooks/useConfig'
 import {
   LayoutDashboard, CalendarDays, Calendar, Users, Clock,
   Settings, LogOut, Stethoscope, Shield, Bot, UserSquare2, FileText,
-  MessageCircle, TrendingUp, Star, ShieldCheck, Pill, BedDouble, BookOpen, FlaskConical,
+  MessageCircle, TrendingUp, Star, ShieldCheck, Pill, BedDouble, BookOpen, FlaskConical, ArrowLeftRight,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
@@ -35,6 +35,7 @@ const NAV: { href: string; label: string; icon: typeof LayoutDashboard; modos: '
   { href: '/farmacia',      label: 'Farmacia',       icon: Pill,            modos: 'ambos' },
   { href: '/finanzas',      label: 'Finanzas',       icon: TrendingUp,      modos: 'medico' },
   { href: '/cumplimiento',  label: 'Cumplimiento',   icon: ShieldCheck,     modos: 'medico' },
+  { href: '/migracion',     label: 'Migración',      icon: ArrowLeftRight,  modos: 'medico' },
 ]
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {

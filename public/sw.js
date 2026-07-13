@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v348'  // LOTE 1 confianza/comercial: copy honesto en landing (no-shows con matiz+asterisco, sin nombres de modelo, '2a opinion'→'revision de consistencia y seguridad clinica'), FAQ ampliada (credito, IVA, exportacion, seguridad), 'Ver demo' funcional→/demo, nueva pagina /seguridad (controles con estado activo/en proceso + subencargados + manejo IA), /demo (recorrido visual), NOM-045 removida de terminos + NOM-004/024 redaccion, trial 7→14 en precios, email footer→nexusmed.mx
+const CACHE = 'nexusmed-v349'  // LOTE 8 migracion: pagina /migracion — exportar pacientes a CSV (cumple la promesa 'llevate tu informacion' publicada en landing) + importacion asistida desde CSV/Excel/Google Contactos con auto-mapeo de columnas y DEDUPLICACION por telefono + reporte. Nucleo puro src/lib/csv-pacientes.ts con 9 tests. No toca el flujo clinico
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
