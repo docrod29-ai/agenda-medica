@@ -1244,6 +1244,10 @@ export default function ConsultaActivaPage() {
                     onClick={async () => { await audio.recuperarAudio(`consulta-${patientId}`); setOfreceRecovery(false) }}>
                     Recuperar
                   </button>
+                  <button className="btn btn-sm btn-ghost" title="Guarda el audio como archivo en tu dispositivo (nunca lo pierdes)"
+                    onClick={async () => { const ok = await audio.descargarAudioGuardado(`consulta-${patientId}`); if (!ok) alert('No se encontró audio guardado.') }}>
+                    Descargar audio
+                  </button>
                   <button className="btn btn-sm btn-ghost" onClick={() => { audio.reset(); setOfreceRecovery(false) }}>
                     Descartar
                   </button>
@@ -1329,6 +1333,11 @@ export default function ConsultaActivaPage() {
                     <span style={{ fontSize: 11.5, color: '#f59e0b', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                       <AlertTriangle size={12} className="ds-icon" /> {audio.error}
                     </span>
+                    <button className="btn btn-sm" style={{ background: 'var(--amber)', color: '#000', border: 'none', fontWeight: 600 }}
+                      title="Guarda el audio como archivo en tu dispositivo (nunca lo pierdes)"
+                      onClick={async () => { const ok = await audio.descargarAudioGuardado(`consulta-${patientId}`); if (!ok) alert('No se encontró audio guardado.') }}>
+                      Descargar audio
+                    </button>
                     <button className="btn btn-sm btn-ghost" onClick={() => { audio.reset(); setOfreceRecovery(false) }}>
                       Descartar audio guardado
                     </button>

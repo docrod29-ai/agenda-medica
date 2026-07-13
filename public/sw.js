@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v332'  // FIX diagnostico transcripcion: cuando OpenAI falla, el cliente mostraba solo 'OpenAI HTTP 502' ocultando la causa real; ahora surface el mensaje descriptivo del servidor (llave invalida/expirada, sin saldo, HTTP X del modelo) para que el medico sepa que arreglar. El audio recuperado NUNCA se borra si falla
+const CACHE = 'nexusmed-v333'  // RED DE SEGURIDAD audio: boton 'Descargar audio' en la banda de recuperacion y en el estado de error → guarda el audio guardado como archivo al dispositivo para que la consulta NUNCA se pierda aunque la transcripcion falle (descargarAudioGuardado lee IndexedDB, no borra nada). Junto al fix v332 que muestra la causa real del fallo
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

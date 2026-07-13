@@ -88,6 +88,7 @@ export interface UseGrabacionAudio {
   hayRecovery: (recoveryKey: string) => Promise<boolean>
   /** Recupera el audio huérfano y lo manda a transcribir. */
   recuperarAudio: (recoveryKey: string) => Promise<void>
+  descargarAudioGuardado: (recoveryKey: string) => Promise<boolean>
 }
 
 const SILENCIO_MS = 15_000
@@ -745,10 +746,27 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     }
   }, [])
 
+  // Escape hatch: descarga el audio guardado como ARCHIVO al dispositivo, para que
+  // la consulta NUNCA se pierda aunque la transcripción falle. No borra nada.
+  const descargarAudioGuardado = useCallback(async (recoveryKey: string): Promise<boolean> => {
+    const chunks = await leerChunks(recoveryKey)
+    if (chunks.length === 0) return false
+    const mime = chunks[0].type || 'audio/webm'
+    const ext = mime.includes('mp4') ? 'm4a' : mime.includes('ogg') ? 'ogg' : 'webm'
+    const blob = new Blob(chunks, { type: mime })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `consulta-audio-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.${ext}`
+    document.body.appendChild(a); a.click(); a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 4000)
+    return true
+  }, [])
+
   return {
     soportado, estado, duracion, transcripcion, utterances, transcripcionParcial, error,
     nivelAudio, silencioProlongado, bytesGrabados, chunksTranscritos, correcciones,
     iniciar, detener, pausar, reanudar, reset, setTranscripcion,
-    hayRecovery, recuperarAudio,
+    hayRecovery, recuperarAudio, descargarAudioGuardado,
   }
 }
