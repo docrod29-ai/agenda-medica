@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v364'  // BITACORA: la adenda ahora se registra en la bitacora inalterable (evento nota_adenda + etiqueta en cumplimiento); /seguridad corregido a 'Activo' (la bitacora YA es append-only por reglas allow update,delete:false + cobertura completa). Reglas Firestore ya desplegadas: adenda operativa
+const CACHE = 'nexusmed-v365'  // PERF/COSTO: el CRM cargaba TODO el historico de citas pero solo usa <=90 dias; acotado a 120 dias (margen). Metricas identicas (invariante: ventana metricas <= ventana carga), lecturas de Firestore de crecimiento ilimitado a constante (~89% menos en consultorio de 3 anos)
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useClinic } from '@/context/ClinicContext'
 import { getAppointments, getPatients } from '@/lib/firestore'
+import { where } from 'firebase/firestore'
 import type { Appointment, Patient } from '@/types'
 import {
   TrendingUp, TrendingDown, Users, CalendarCheck2, UserX,
@@ -31,7 +32,14 @@ export default function CRMPage() {
 
   useEffect(() => {
     if (!clinicId) return
-    Promise.all([getAppointments(clinicId), getPatients(clinicId)]).then(([a, p]) => {
+    // PERF: el CRM solo usa citas de los últimos ≤90 días (ver `enPeriodo`). Cargar
+    // TODO el histórico era una lectura sin cota que crece sin límite. Acotamos a
+    // 120 días (margen sobre los 90) → métricas idénticas, muchas menos lecturas.
+    const ventana = isoDaysAgo(120) + ' 00:00'
+    Promise.all([
+      getAppointments(clinicId, [where('fechaHora', '>=', ventana)]),
+      getPatients(clinicId),
+    ]).then(([a, p]) => {
       setAppts(a)
       setPacientes(p)
       setLoading(false)
