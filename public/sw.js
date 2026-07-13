@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v338'  // CONFIABILIDAD lote 1 (panel clase mundial): 4 rutas de IA sin maxDuration se cortaban a 60s en Vercel (504) — la NOTA (procesar) era la peor por correr Opus con razonamiento. Agregado maxDuration=300 a procesar, corregir, inmuno/redactar y receta/detectar-campos (toma efecto en Vercel Pro). Es la causa raiz del 504 mas doloroso en consulta
+const CACHE = 'nexusmed-v339'  // CONFIABILIDAD lote 2: error boundaries. Antes un throw a media consulta pintaba PANTALLA BLANCA total. Ahora: consulta/[patientId]/error.tsx ('tu audio y nota estan guardados' + Reintentar), (dashboard)/error.tsx (todas las pantallas) y global-error.tsx (raiz). Cero mas pantallas blancas
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
