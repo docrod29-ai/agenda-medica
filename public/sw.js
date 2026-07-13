@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v367'  // FIX corte de caja: usaba dia LOCAL para consultar cobros que se guardan en dia UTC -> cerca de medianoche silenciaba cobros de la tarde. Alineado a UTC (igual que Finanzas y como se almacena cobro.dia) -> el efectivo reconcilia
+const CACHE = 'nexusmed-v368'  // DEMO: el /demo tenia solo un placeholder 'Video proximamente'; ahora incrusta un video real del producto (reel de la nota por voz, 9:16) desde /videos/demo-nota.mp4. El SW no cachea mp4 (no infla caché)
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

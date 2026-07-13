@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
-import { Calendar, Mic, FileText, MessageCircle, Headset, Smartphone, ArrowRight, ArrowLeft, PlayCircle, CheckCircle2 } from 'lucide-react'
+import { Calendar, Mic, FileText, MessageCircle, Headset, Smartphone, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'Ver demo · NexusMED',
@@ -168,15 +168,20 @@ export default function DemoPage() {
           </p>
         </div>
 
-        {/* Espacio del video de 90s */}
-        <div style={{
-          borderRadius: 18, border: '1px dashed var(--border2)', background: 'var(--s1)',
-          aspectRatio: '16 / 9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          gap: 12, marginBottom: 52, color: 'var(--text3)', textAlign: 'center', padding: 24,
-        }}>
-          <PlayCircle size={44} style={{ color: 'var(--nexus)', opacity: 0.85 }} />
-          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text2)' }}>Video de 90 segundos</div>
-          <div style={{ fontSize: 13, maxWidth: 340 }}>Próximamente aquí: el recorrido completo en video. Mientras tanto, desplázate para ver cada módulo.</div>
+        {/* Video del producto (reel vertical 9:16) */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 52 }}>
+          <video
+            controls
+            playsInline
+            preload="metadata"
+            style={{
+              width: '100%', maxWidth: 340, aspectRatio: '9 / 16', borderRadius: 20,
+              background: '#000', border: '1px solid var(--border)', boxShadow: '0 20px 50px rgba(0,0,0,0.35)',
+            }}
+          >
+            <source src="/videos/demo-nota.mp4" type="video/mp4" />
+            Tu navegador no puede reproducir el video.
+          </video>
         </div>
 
         {/* Flujos */}
