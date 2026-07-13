@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v333'  // RED DE SEGURIDAD audio: boton 'Descargar audio' en la banda de recuperacion y en el estado de error → guarda el audio guardado como archivo al dispositivo para que la consulta NUNCA se pierda aunque la transcripcion falle (descargarAudioGuardado lee IndexedDB, no borra nada). Junto al fix v332 que muestra la causa real del fallo
+const CACHE = 'nexusmed-v334'  // CONSULTOR IA conversacional: cuando PubMed no encuentra articulos ya NO corta con 'No encontre evidencia' — la IA (Opus/Sonnet) responde IGUAL razonando con conocimiento clinico + la CONVERSACION previa (continua el hilo, ideal para preguntas de seguimiento tipo 'y cual es la mejor cepa'), marcando claro que es sin citas nuevas (sinCitas). Respeta el tope de creditos en ambos caminos
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

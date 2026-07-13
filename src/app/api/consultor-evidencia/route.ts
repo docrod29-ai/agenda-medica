@@ -100,24 +100,11 @@ export async function POST(req: NextRequest) {
     if (articulos.length === 0 && query !== pregunta) {
       articulos = await buscarEvidencia(pregunta, { max: 8 }).catch(() => [])
     }
-    if (articulos.length === 0) {
-      return NextResponse.json({ ok: true, respuesta: 'No encontré evidencia en PubMed para esta pregunta. Prueba reformularla o con términos más específicos.', articulos: [] })
-    }
-
-    // 2b) DOSIS oficial (openFDA): si se detecta un fármaco, trae su dosis
-    //     etiquetada (autoritativa, no inventada). Y arma un enlace a la GPC de
-    //     CENETEC (no hay API mexicana; se ofrece búsqueda directa del catálogo).
-    const farmacos = farmacosDetectados(`${pregunta} ${query}`)
-    const dosis = farmacos[0] ? await dosisFDA(farmacos[0]).catch(() => null) : null
     const cenetecUrl = `https://www.google.com/search?q=${encodeURIComponent(pregunta + ' guía de práctica clínica CENETEC GPC México')}`
 
-    // 3) Responder citando.
+    // Nivel + TOPE DURO de créditos (aplica HAYA o NO evidencia — ambos gastan IA).
+    // Solo con la llave del dueño ('prueba'); con llave propia paga su uso y no se topa.
     const nivel = await nivelIADe(clinicId)
-
-    // TOPE DURO de créditos: el Consultor gasta del MISMO bote que las notas, pero
-    // una FRACCIÓN por pregunta (según la IA del plan). Solo aplica con la llave del
-    // dueño ('prueba'); un consultorio con su propia llave paga su uso y no se topa.
-    // Si ya no alcanza, la IA se PAUSA (402) y el cliente ve "compra más / sube de plan".
     const costo = costoConsultor(nivel)
     if (fuente === 'prueba') {
       const [usados, extra] = await Promise.all([creditosUsadosDelMes(clinicId), creditosExtraDelMes(clinicId)])
@@ -129,8 +116,27 @@ export async function POST(req: NextRequest) {
         }, { status: 402 })
       }
     }
-
     const model = nivel === 'premium' ? 'claude-opus-4-8' : 'claude-sonnet-5'
+
+    // SIN evidencia nueva en PubMed → NO cortamos en seco. La IA responde IGUAL,
+    // razonando con conocimiento clínico + la CONVERSACIÓN previa (típico en
+    // preguntas de seguimiento como "¿y cuál es la mejor opción?"). Se marca claro
+    // que se apoya en conocimiento/consenso, no en citas nuevas.
+    if (articulos.length === 0) {
+      const sysSC = 'Eres un consultor clínico experto (nivel especialista) para médicos en MÉXICO. No se encontró evidencia NUEVA en PubMed para esta pregunta específica — es normal en preguntas de SEGUIMIENTO o muy puntuales. Responde IGUAL, con criterio clínico: apóyate en tu conocimiento, el consenso/guías y sobre todo en la CONVERSACIÓN PREVIA (continúa el hilo, no empieces de cero). En español, claro y accionable. Empieza con una línea honesta: "Sin citas nuevas de PubMed para esto; respondo con base en conocimiento clínico y lo que ya vimos." NO inventes estudios, PMIDs ni cifras exactas; si algo es incierto, dilo. Si hay contexto de paciente, personaliza (edad, comorbilidades, alergias). Cuando aplique, menciona la GPC de CENETEC/NOM pertinente por su nombre (aclarando verificar el documento oficial). Cierra con "Nivel de evidencia: alto/moderado/bajo" según tu juicio. Apoyas la decisión del médico, no das órdenes absolutas.'
+      const usrSC = `${paciente ? 'PACIENTE (contexto):\n' + paciente + '\n\n' : ''}${contexto ? 'Conversación previa:\n' + contexto + '\n\n' : ''}PREGUNTA: ${pregunta}`
+      let resSC = await claude(key, model, sysSC, usrSC, 1800)
+      if (resSC.status === 404 || resSC.status === 400) resSC = await claude(key, 'claude-sonnet-5', sysSC, usrSC, 1800)
+      const respSC = resSC.ok ? (textoDe(await resSC.json()).trim() || 'Sin respuesta.') : 'No pude responder ahora; intenta de nuevo en un momento.'
+      void registrarUso(clinicId, fuente)
+      void registrarConsultor(clinicId, costo)
+      return NextResponse.json({ ok: true, respuesta: respSC, articulos: [], sinCitas: true, cenetecUrl, modelos: [nivel === 'premium' ? 'Claude Opus 4.8' : 'Claude Sonnet 5'] })
+    }
+
+    // 2b) DOSIS oficial (openFDA): si se detecta un fármaco, trae su dosis
+    //     etiquetada (autoritativa, no inventada).
+    const farmacos = farmacosDetectados(`${pregunta} ${query}`)
+    const dosis = farmacos[0] ? await dosisFDA(farmacos[0]).catch(() => null) : null
     const fuentes = articulos.map((a, i) => `[${i + 1}] ${a.revista} ${a.anio} · PMID ${a.pmid}\n${a.titulo}\n${a.resumen.slice(0, 700)}`).join('\n\n')
     const dosisTxt = dosis ? `\n\nDOSIS OFICIAL (ficha técnica FDA, ${dosis.farmaco}):\n${dosis.dosis}` : ''
     const system = 'Eres un asistente clínico de medicina basada en evidencia para médicos en MÉXICO. Responde con una síntesis clara y accionable, en español, CITANDO con [n] los artículos de la lista que respaldan cada afirmación. Si se da contexto de un PACIENTE, personaliza (edad, comorbilidades, alergias, tratamiento) y advierte contraindicaciones/interacciones. Si la pregunta es sobre un fármaco o tratamiento, incluye una sección **Dosis**: usa la "DOSIS OFICIAL (FDA)" que se te dé (indica que es de la etiqueta FDA y que debe ajustarse a función renal/hepática y peso, y verificarse con el Cuadro Básico); si no se te da, indica la dosis estándar de referencia y adviértelo. Cuando aplique, agrega una línea **Guía en México**: menciona la GPC de CENETEC o la NOM pertinente si la conoces (por su nombre), aclarando que debe consultarse el documento oficial. REGLAS: cita SOLO los artículos dados por su [n]; NUNCA inventes estudios, PMIDs ni cifras; si la evidencia es limitada, dilo; apoya la decisión del médico, no des órdenes absolutas. Termina con "Nivel de evidencia: alto/moderado/bajo".'
