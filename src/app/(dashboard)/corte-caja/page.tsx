@@ -10,10 +10,11 @@ import type { Appointment } from '@/types'
 import { corteDeCaja, embudoCobro, cuentasPorCobrar } from '@/lib/corte-caja'
 import { Printer, Wallet, TrendingDown, Users, AlertCircle, Calendar } from 'lucide-react'
 
-const hoyISO = () => {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
+// IMPORTANTE: cobro.dia se ALMACENA como día UTC (toISOString().slice(0,10)),
+// igual que Finanzas. El corte usa la MISMA convención para que el efectivo
+// reconcilie con lo guardado; usar día LOCAL silenciaba los cobros de la
+// tarde/noche (cuando la fecha UTC ya avanzó), justo al cerrar caja.
+const hoyISO = () => new Date().toISOString().slice(0, 10)
 
 export default function CorteCajaPage() {
   const { clinicId } = useClinic()

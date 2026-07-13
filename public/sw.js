@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v366'  // CONVERSION/CONFIANZA: la seccion de confianza de la landing ahora enlaza a /seguridad (antes solo footer); exhibe la inversion en seguridad como argumento de venta (tema #1 del revisor)
+const CACHE = 'nexusmed-v367'  // FIX corte de caja: usaba dia LOCAL para consultar cobros que se guardan en dia UTC -> cerca de medianoche silenciaba cobros de la tarde. Alineado a UTC (igual que Finanzas y como se almacena cobro.dia) -> el efectivo reconcilia
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
