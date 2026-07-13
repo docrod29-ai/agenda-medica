@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v368'  // DEMO: el /demo tenia solo un placeholder 'Video proximamente'; ahora incrusta un video real del producto (reel de la nota por voz, 9:16) desde /videos/demo-nota.mp4. El SW no cachea mp4 (no infla caché)
+const CACHE = 'nexusmed-v369'  // UX agendar: typeahead de paciente en /asistente — al escribir sugiere pacientes existentes y autollena nombre+telefono (reconocer>recordar). Paciente que regresa: ~3 teclas + 1 clic vs ~25 teclas. Aditivo: paciente nuevo = escribir completo como antes
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

@@ -13,6 +13,8 @@ import { useFiltroMedico, colorMedico } from '@/components/DoctorFilter'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { useToast } from '@/context/ToastContext'
 import { getPatients, createPatient } from '@/lib/firestore'
+import { normalizarNombre } from '@/lib/csv-pacientes'
+import type { Patient } from '@/types'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { getAvailableSlots } from '@/lib/availability'
 import { listarBloques, type TimeBlock } from '@/lib/time-blocks'
@@ -70,6 +72,10 @@ function AsistenteInner() {
   const [nombre, setNombre] = useState('')
   const [telefono, setTelefono] = useState('')
   const [consiente, setConsiente] = useState(true)   // consentimiento de mensajes (visible/toggleable)
+  // Typeahead de paciente: sugiere pacientes existentes al escribir (reconocer >
+  // recordar) → autollena nombre+teléfono, menos tecleo y menos errores/duplicados.
+  const [pacientesDir, setPacientesDir] = useState<Patient[]>([])
+  const [mostrarSug, setMostrarSug] = useState(false)
   const [doctorId, setDoctorId] = useState('')
   const [tipo, setTipo] = useState<AppointmentType>('primera-vez')
   const [fecha, setFecha] = useState(fechaParam || todayStr())
@@ -95,6 +101,27 @@ function AsistenteInner() {
   useEffect(() => {
     if (clinicId) listarBloques(clinicId).then(setBloques).catch(() => {})
   }, [clinicId])
+
+  // Directorio de pacientes para el typeahead (getPatients está cacheado).
+  useEffect(() => {
+    if (clinicId) getPatients(clinicId).then(setPacientesDir).catch(() => {})
+  }, [clinicId])
+
+  const sugerencias = useMemo(() => {
+    const q = normalizarNombre(nombre)
+    const tel = nombre.replace(/\D/g, '')
+    if (q.length < 2 && tel.length < 3) return []
+    return pacientesDir.filter(p =>
+      (q.length >= 2 && normalizarNombre(p.nombre).includes(q)) ||
+      (tel.length >= 3 && (p.telefono || '').replace(/\D/g, '').includes(tel)),
+    ).slice(0, 6)
+  }, [nombre, pacientesDir])
+
+  const elegirPaciente = (p: Patient) => {
+    setNombre(p.nombre)
+    setTelefono(p.telefono || '')
+    setMostrarSug(false)
+  }
 
   // Get effective config (doctor's config if available)
   const efectiveConfig = useMemo(() => {
@@ -257,23 +284,51 @@ function AsistenteInner() {
           </h2>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Nombre */}
-            <div>
+            {/* Nombre — con typeahead de pacientes existentes */}
+            <div style={{ position: 'relative' }}>
               <label style={{ fontSize: 12, color: 'var(--text2)', display: 'block', marginBottom: 6 }}>
                 Nombre completo *
               </label>
               <input
                 value={nombre}
-                onChange={e => setNombre(e.target.value)}
-                placeholder="Nombre del paciente"
+                onChange={e => { setNombre(e.target.value); setMostrarSug(true) }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'var(--teal)'; setMostrarSug(true) }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; setTimeout(() => setMostrarSug(false), 150) }}
+                placeholder="Escribe para buscar o crear paciente"
+                autoComplete="off"
                 style={{
                   width: '100%', background: 'var(--s2)', border: '1px solid var(--border)',
                   borderRadius: 10, padding: '10px 14px', fontSize: 14, color: 'var(--text)',
                   outline: 'none',
                 }}
-                onFocus={e => e.currentTarget.style.borderColor = 'var(--teal)'}
-                onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'}
               />
+              {mostrarSug && sugerencias.length > 0 && (
+                <div style={{
+                  position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20, marginTop: 4,
+                  background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10,
+                  boxShadow: '0 12px 30px rgba(0,0,0,0.25)', overflow: 'hidden',
+                }}>
+                  {sugerencias.map((p, i) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onMouseDown={e => { e.preventDefault(); elegirPaciente(p) }}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+                        width: '100%', textAlign: 'left', background: 'none', border: 'none',
+                        borderTop: i === 0 ? 'none' : '1px solid var(--border)', cursor: 'pointer',
+                        padding: '10px 14px',
+                      }}
+                    >
+                      <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>{p.nombre}</span>
+                      <span style={{ fontSize: 12, color: 'var(--text3)' }}>{p.telefono || 'sin tel.'}</span>
+                    </button>
+                  ))}
+                  <div style={{ padding: '7px 14px', fontSize: 11, color: 'var(--text3)', borderTop: '1px solid var(--border)', background: 'var(--s2)' }}>
+                    ¿Nuevo? Sigue escribiendo el nombre completo.
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Teléfono */}
