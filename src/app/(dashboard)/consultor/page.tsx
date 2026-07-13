@@ -7,7 +7,7 @@ import { Sparkles, Send, Loader2, FlaskConical, BookOpen, X, UserRound } from 'l
 import { MiniMarkdown } from '@/components/MiniMarkdown'
 import { useTarea } from '@/context/TareasContext'
 
-interface Articulo { pmid: string; titulo: string; revista: string; anio: string; url: string }
+interface Articulo { pmid: string; titulo: string; revista: string; anio: string; url: string; tipo?: string }
 interface Turno { pregunta: string; respuesta: string; articulos: Articulo[]; cenetecUrl?: string; modelos?: string[]; cargando?: boolean }
 
 /** Números de cita [n] presentes en el texto (para verificación determinista). */
@@ -190,7 +190,7 @@ export default function ConsultorPage() {
                           const citada = citasEnTexto(t.respuesta).includes(k + 1)
                           return (
                           <div key={a.pmid} style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 3, lineHeight: 1.4 }}>
-                            [{k + 1}] <a href={a.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>{a.titulo}</a> · <span style={{ fontStyle: 'italic' }}>{a.revista}</span> {a.anio}
+                            [{k + 1}] {a.tipo && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', background: 'rgba(20,184,166,0.12)', borderRadius: 5, padding: '1px 6px', marginRight: 4 }}>{a.tipo}</span>}<a href={a.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>{a.titulo}</a> · <span style={{ fontStyle: 'italic' }}>{a.revista}</span> {a.anio}
                             {citada && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: '#16a34a', background: 'rgba(22,163,74,0.12)', borderRadius: 5, padding: '1px 6px' }}>✓ citado</span>}
                           </div>
                         )})}

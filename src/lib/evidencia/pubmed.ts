@@ -21,9 +21,22 @@ export interface ArticuloPubMed {
   anio: string
   resumen: string
   url: string
+  /** Tipo de estudio para jerarquía de evidencia: 'Meta-análisis' | 'Guía' | 'ECA' | 'Revisión' | '' */
+  tipo?: string
 }
 
 const conKey = (u: string) => (API_KEY ? `${u}&api_key=${API_KEY}` : u)
+
+// Jerarquía de evidencia: menor rank = mayor peso (flota arriba en los resultados).
+const RANK: Record<string, number> = { 'Meta-análisis': 0, 'Guía': 1, 'ECA': 2, 'Revisión': 3, '': 4 }
+function tipoDeEstudio(bloque: string): string {
+  const tipos = [...bloque.matchAll(/<PublicationType[^>]*>([\s\S]*?)<\/PublicationType>/gi)].map(m => desescapar(m[1]).toLowerCase())
+  if (tipos.some(t => t.includes('meta-analysis') || t.includes('systematic review'))) return 'Meta-análisis'
+  if (tipos.some(t => t.includes('guideline'))) return 'Guía'
+  if (tipos.some(t => t.includes('randomized controlled trial') || t.includes('clinical trial'))) return 'ECA'
+  if (tipos.some(t => t.includes('review'))) return 'Revisión'
+  return ''
+}
 
 /** Decodifica entidades XML/HTML básicas de los textos de PubMed. */
 function desescapar(s: string): string {
@@ -47,49 +60,27 @@ function extraerTag(bloque: string, tag: string): string {
  * @param opts.max Máximo de artículos (default 6)
  * @param opts.aniosRecientes Si se da, filtra a los últimos N años.
  */
-export async function buscarEvidencia(
-  termino: string,
-  opts: { max?: number; aniosRecientes?: number; signal?: AbortSignal } = {},
-): Promise<ArticuloPubMed[]> {
-  const max = Math.min(Math.max(opts.max ?? 6, 1), 20)
-  const term = termino.trim()
-  if (!term) return []
+/** esearch: un término → lista de PMIDs (por relevancia). */
+async function esearch(term: string, max: number, signal?: AbortSignal): Promise<string[]> {
+  const url = conKey(`${EUTILS}/esearch.fcgi?db=pubmed&retmode=json&sort=relevance&retmax=${max}&term=${encodeURIComponent(term)}`)
+  try {
+    const r = await fetch(url, { signal })
+    if (!r.ok) return []
+    const d = await r.json()
+    return d?.esearchresult?.idlist ?? []
+  } catch { return [] }
+}
 
-  // Una búsqueda con un `term` dado → lista de PMIDs (ordenados por relevancia).
-  const buscarIds = async (t: string): Promise<string[]> => {
-    const url = conKey(`${EUTILS}/esearch.fcgi?db=pubmed&retmode=json&sort=relevance&retmax=${max}&term=${encodeURIComponent(t)}`)
-    try {
-      const r = await fetch(url, { signal: opts.signal })
-      if (!r.ok) return []
-      const d = await r.json()
-      return d?.esearchresult?.idlist ?? []
-    } catch { return [] }
-  }
-
-  // Cascada de menos → más amplia. Sin `humans[MeSH]` (excluía fármacos nuevos aún
-  // no indexados y mataba búsquedas válidas). Se prueba con ventana de años y, si
-  // no hay nada, se busca el término solo (así fármacos reales SIEMPRE salen).
-  const intentos = [
-    opts.aniosRecientes ? `(${term}) AND ("last ${opts.aniosRecientes} years"[PDat])` : term,
-    term,
-  ]
-  let ids: string[] = []
-  for (const t of intentos) {
-    ids = await buscarIds(t)
-    if (ids.length > 0) break
-  }
+/** efetch: PMIDs → artículos con abstract y tipo de estudio. */
+async function efetchArts(ids: string[], signal?: AbortSignal): Promise<ArticuloPubMed[]> {
   if (ids.length === 0) return []
-
-  // 2) efetch → título, revista, año, abstract (XML)
   const efetch = conKey(`${EUTILS}/efetch.fcgi?db=pubmed&retmode=xml&rettype=abstract&id=${ids.join(',')}`)
   let xml = ''
   try {
-    const r = await fetch(efetch, { signal: opts.signal })
+    const r = await fetch(efetch, { signal })
     if (!r.ok) return []
     xml = await r.text()
   } catch { return [] }
-
-  // Un artículo por bloque <PubmedArticle>…</PubmedArticle>
   const bloques = xml.split('<PubmedArticle>').slice(1)
   const arts: ArticuloPubMed[] = []
   for (const b of bloques) {
@@ -97,12 +88,68 @@ export async function buscarEvidencia(
     const titulo = extraerTag(b, 'ArticleTitle')
     const revista = extraerTag(b, 'Title') || extraerTag(b, 'ISOAbbreviation')
     const anio = extraerTag(b, 'Year')
-    // El abstract puede venir en varios <AbstractText> (Background/Methods/…)
     const partes = [...b.matchAll(/<AbstractText[^>]*>([\s\S]*?)<\/AbstractText>/gi)].map(m => desescapar(m[1]))
     const resumen = partes.join(' ').slice(0, 1200)
-    if (pmid && titulo) {
-      arts.push({ pmid, titulo, revista, anio, resumen, url: `https://pubmed.ncbi.nlm.nih.gov/${pmid}/` })
+    if (pmid && titulo) arts.push({ pmid, titulo, revista, anio, resumen, tipo: tipoDeEstudio(b), url: `https://pubmed.ncbi.nlm.nih.gov/${pmid}/` })
+  }
+  // Reordena por jerarquía de evidencia (meta-análisis/guías arriba), conservando
+  // el orden de relevancia de PubMed dentro de cada nivel.
+  return arts.map((a, i) => ({ a, i })).sort((x, y) => (RANK[x.a.tipo ?? ''] - RANK[y.a.tipo ?? '']) || (x.i - y.i)).map(o => o.a)
+}
+
+export async function buscarEvidencia(
+  termino: string,
+  opts: { max?: number; aniosRecientes?: number; signal?: AbortSignal } = {},
+): Promise<ArticuloPubMed[]> {
+  const max = Math.min(Math.max(opts.max ?? 6, 1), 20)
+  const term = termino.trim()
+  if (!term) return []
+  const intentos = [
+    opts.aniosRecientes ? `(${term}) AND ("last ${opts.aniosRecientes} years"[PDat])` : term,
+    term,
+  ]
+  let ids: string[] = []
+  for (const t of intentos) { ids = await esearch(t, max, opts.signal); if (ids.length > 0) break }
+  return efetchArts(ids, opts.signal)
+}
+
+// Filtro de evidencia de ALTA calidad (meta-análisis, revisiones sistemáticas, ECA, guías).
+const FILTRO_HQ = '(systematic[sb] OR "meta-analysis"[pt] OR "randomized controlled trial"[pt] OR "practice guideline"[pt] OR guideline[pt])'
+
+/**
+ * Búsqueda multi-consulta (varias sub-preguntas en PARALELO). Por cada sub-query
+ * corre DOS esearch en paralelo: una sesgada a alta calidad (meta-análisis/ECA/
+ * guías) y otra general — así prioriza lo mejor sin perder cobertura. Une, dedup
+ * por PMID y trae los mejores con abstract completo y tipo de estudio.
+ */
+export async function buscarEvidenciaMulti(
+  queries: string[],
+  opts: { max?: number; aniosRecientes?: number; signal?: AbortSignal } = {},
+): Promise<ArticuloPubMed[]> {
+  const qs = [...new Set(queries.map(q => q.trim()).filter(Boolean))].slice(0, 4)
+  if (qs.length === 0) return []
+  const max = Math.min(Math.max(opts.max ?? 8, 1), 20)
+  const ventana = opts.aniosRecientes ? ` AND ("last ${opts.aniosRecientes} years"[PDat])` : ''
+
+  // Por sub-query: alta calidad primero, luego general (ambas en paralelo).
+  const porQuery = await Promise.all(qs.map(async q => {
+    const [hq, gen, landmark] = await Promise.all([
+      esearch(`(${q}) AND ${FILTRO_HQ}${ventana}`, 5, opts.signal),
+      esearch(`(${q})${ventana}`, 5, opts.signal),
+      esearch(`(${q}) AND ${FILTRO_HQ}`, 3, opts.signal), // SIN ventana: no perder landmark trials viejos
+    ])
+    return [...hq, ...gen, ...landmark]
+  }))
+
+  // Une en round-robin por sub-query (equilibra cobertura entre las sub-preguntas) + dedup.
+  const seen = new Set<string>()
+  const orden: string[] = []
+  const maxLen = Math.max(...porQuery.map(l => l.length), 0)
+  for (let i = 0; i < maxLen; i++) {
+    for (const lista of porQuery) {
+      const id = lista[i]
+      if (id && !seen.has(id)) { seen.add(id); orden.push(id) }
     }
   }
-  return arts
+  return efetchArts(orden.slice(0, max), opts.signal)
 }

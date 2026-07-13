@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v341'  // CONSULTOR clase mundial (aislado del flujo de nota): STREAMING token a token (SSE de Anthropic → NDJSON; fuentes se pintan de inmediato, texto en vivo, adios spinner de 30-90s) + VERIFICACION DETERMINISTA DE CITAS en el cliente (cada [n] contra el rango de fuentes → badge 'X citas verificadas' + marca 'citado' en cada fuente usada). Fallback sin streaming si falla. Segundo cerebro reescritor removido (incompatible con streaming; la confianza ahora viene de citas verificadas + prompt fuerte)
+const CACHE = 'nexusmed-v342'  // CONSULTOR retrieval mejorado (rumbo OpenEvidence, solo Consultor): (1) la pregunta se descompone en 1-3 SUB-BUSQUEDAS PICO en PARALELO (eficacia/seguridad/comparacion) → mejor cobertura; (2) PRIORIZA meta-analisis/ECA/guias (filtro HQ + landmark sin ventana de anios + reordena por jerarquia de evidencia); (3) etiqueta el TIPO de estudio (Meta-analisis/Guia/ECA/Revision) en el prompt y en cada fuente. pubmed.ts refactor con esearch/efetchArts/buscarEvidenciaMulti. PMC full-text queda para despues
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
