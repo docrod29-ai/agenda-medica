@@ -163,10 +163,15 @@ export async function POST(req: NextRequest) {
     // 2b) DOSIS oficial (openFDA): si se detecta un fármaco, trae su dosis
     //     etiquetada (autoritativa, no inventada).
     const farmacos = farmacosDetectados(`${pregunta} ${query}`)
-    const dosis = farmacos[0] ? await dosisFDA(farmacos[0]).catch(() => null) : null
-    const fuentes = articulos.map((a, i) => `[${i + 1}] ${a.revista} ${a.anio} · PMID ${a.pmid}\n${a.titulo}\n${a.resumen.slice(0, 700)}`).join('\n\n')
-    const dosisTxt = dosis ? `\n\nDOSIS OFICIAL (ficha técnica FDA, ${dosis.farmaco}):\n${dosis.dosis}` : ''
-    const system = 'Eres el mejor consultor clínico basado en evidencia para médicos en MÉXICO — al nivel de OpenEvidence: razonas a fondo, resuelves casos COMPLEJOS y das respuestas COMPLETAS y accionables, no superficiales. Responde en español CITANDO con [n] los artículos que respaldan cada afirmación. Estructura útil: síntesis directa arriba, luego el porqué (mecanismo/razonamiento clínico), abordaje escalonado, y advertencias. RAZONA como especialista: sopesa alternativas, menciona cuándo NO aplica, banderas rojas, poblaciones especiales, interacciones. Si hay contexto de PACIENTE, personaliza (edad, comorbilidades, alergias, tratamiento) y advierte contraindicaciones. Si es sobre un fármaco/tratamiento, incluye **Dosis**: usa la "DOSIS OFICIAL (FDA)" dada (ajústala a función renal/hepática y peso, y a verificar con el Cuadro Básico); si no se da, indica la dosis estándar de referencia y adviértelo. Cuando aplique, agrega **Guía en México**: GPC de CENETEC o NOM pertinente por su nombre (a verificar el documento oficial). REGLAS DE RIGOR: cita SOLO los artículos dados por su [n]; NUNCA inventes estudios, PMIDs ni cifras; si la evidencia es limitada, dilo con honestidad y complementa con razonamiento clínico y consenso (aclarando qué es evidencia y qué es criterio); apoya la decisión del médico, no des órdenes absolutas. Termina con "Nivel de evidencia: alto/moderado/bajo".'
+    // Dosis oficial de TODOS los fármacos detectados (antes solo el primero → el
+    // 2º quedaba sin fuente y el modelo podía inventar su dosis).
+    const dosisList = (await Promise.all(farmacos.slice(0, 3).map(f => dosisFDA(f).catch(() => null))))
+      .filter((d): d is NonNullable<typeof d> => !!d)
+    const dosis = dosisList[0] ?? null
+    // Abstract completo (1200 vs 700): más contexto = mejor razonamiento (pubmed.ts ya trae 1200).
+    const fuentes = articulos.map((a, i) => `[${i + 1}] ${a.revista} ${a.anio} · PMID ${a.pmid}\n${a.titulo}\n${a.resumen.slice(0, 1200)}`).join('\n\n')
+    const dosisTxt = dosisList.length ? '\n\nDOSIS OFICIAL (ficha técnica FDA):\n' + dosisList.map(d => `• ${d.farmaco}: ${d.dosis}`).join('\n') : ''
+    const system = 'Eres el mejor consultor clínico basado en evidencia para médicos en MÉXICO — al nivel de OpenEvidence: razonas a fondo, resuelves casos COMPLEJOS y das respuestas COMPLETAS y accionables, no superficiales. Responde en español CITANDO con [n] los artículos que respaldan cada afirmación. Estructura útil: síntesis directa arriba, luego el porqué (mecanismo/razonamiento clínico), abordaje escalonado, y advertencias. RAZONA como especialista: sopesa alternativas, menciona cuándo NO aplica, banderas rojas, poblaciones especiales, interacciones. Si hay contexto de PACIENTE, personaliza (edad, comorbilidades, alergias, tratamiento) y advierte contraindicaciones. Si es sobre un fármaco/tratamiento, incluye **Dosis**: usa la "DOSIS OFICIAL (FDA)" dada (ajústala a función renal/hepática y peso, y a verificar con el Cuadro Básico); si no se da, indica la dosis estándar de referencia y adviértelo. Cuando aplique, agrega **Guía en México**: GPC de CENETEC o NOM pertinente por su nombre (a verificar el documento oficial). SEGURIDAD DE DOSIS (crítico): NUNCA emitas una CIFRA de dosis (mg, mg/kg, intervalo) sin respaldo. Si tienes la "DOSIS OFICIAL (FDA)" para ese fármaco, úsala y cítala como tal. Si NO la tienes, di "verificar dosis en el Cuadro Básico / ficha técnica" SIN inventar el número; jamás adivines una cifra. Recuerda ajustar por función renal/hepática, peso y edad, y en pediatría/embarazo/lactancia extrema la precaución. REGLAS DE RIGOR: cita SOLO los artículos dados por su [n]; NUNCA inventes estudios, PMIDs ni cifras; si la evidencia es limitada, dilo con honestidad y complementa con razonamiento clínico y consenso (aclarando qué es evidencia y qué es criterio); apoya la decisión del médico, no des órdenes absolutas. Termina con "Nivel de evidencia: alto/moderado/bajo".'
     const user = `${memTxt ? 'PERFIL DEL MÉDICO (memoria):\n' + memTxt + '\n\n' : ''}${paciente ? 'PACIENTE (contexto):\n' + paciente + '\n\n' : ''}${contexto ? 'Conversación previa:\n' + contexto + '\n\n' : ''}PREGUNTA: ${pregunta}\n\nEVIDENCIA (PubMed):\n${fuentes}${dosisTxt}\n\nResponde citando [n].`
 
     let res = await claude(key, model, system, user, 3200)
@@ -176,15 +181,15 @@ export async function POST(req: NextRequest) {
     let respuesta = textoDe(await res.json()).trim() || 'Sin respuesta.'
     const modelos: string[] = [nivel === 'premium' ? 'Claude Opus 4.8' : 'Claude Sonnet 5']
 
-    // 4) SEGUNDO CEREBRO (OpenAI): revisa y MEJORA la respuesta de Claude contra la
-    //    misma evidencia — corrige, añade matices, quita lo no sustentado. Si no hay
-    //    llave de OpenAI, se queda la de Claude (nunca rompe).
+    // 4) SEGUNDO CEREBRO (OpenAI) como VERIFICADOR (no reescritor): su trabajo es
+    //    QUITAR lo no sustentado y corregir citas — NO añadir contenido nuevo. Así
+    //    el 2º modelo sube la CONFIANZA (menos alucinación), no mete ideas sueltas.
     if (respuesta && respuesta !== 'Sin respuesta.') {
       try {
         const { key: openaiKey } = await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY ?? '')
         if (openaiKey) {
           const modeloGPT = nivel === 'premium' ? 'gpt-5' : 'gpt-4o'
-          const sysR = 'Eres un SEGUNDO médico revisor de medicina basada en evidencia. Recibes una pregunta clínica, la evidencia (PubMed) y una respuesta preliminar de otro modelo de IA. MEJORA la respuesta FINAL: corrige errores, añade matices o puntos importantes que falten SEGÚN la evidencia dada, elimina afirmaciones no sustentadas, y verifica que las citas [n] sean correctas (NO inventes citas, PMIDs ni cifras). Conserva el español, el formato (secciones, Dosis, Guía en México, "Nivel de evidencia") y las citas. Devuelve SOLO la respuesta final mejorada, sin meta-comentarios sobre el proceso.'
+          const sysR = 'Eres un VERIFICADOR clínico basado en evidencia (segundo revisor). Recibes una pregunta, la evidencia (PubMed) y una respuesta preliminar de otro modelo. Tu ÚNICA tarea es hacerla más CONFIABLE, NO más larga: (1) ELIMINA o corrige toda afirmación que la evidencia dada NO sustente; (2) verifica que cada cita [n] apunte al artículo correcto y quita las citas que no correspondan; (3) elimina cualquier CIFRA de dosis que no venga de la "DOSIS OFICIAL (FDA)" dada, sustituyéndola por "verificar en Cuadro Básico/ficha técnica". NO agregues afirmaciones, estudios, PMIDs ni cifras nuevas. Conserva el español, el formato (secciones, Dosis, Guía en México, "Nivel de evidencia") y las citas correctas. Devuelve SOLO la respuesta final verificada, sin meta-comentarios.'
           const userR = `PREGUNTA: ${pregunta}\n\nEVIDENCIA (PubMed):\n${fuentes}${dosisTxt}\n\nRESPUESTA PRELIMINAR (de otro modelo, mejórala):\n${respuesta}\n\nDevuelve la respuesta final mejorada.`
           const refinada = await openaiRefinar(openaiKey, modeloGPT, sysR, userR)
           if (refinada) { respuesta = refinada; modelos.push(nivel === 'premium' ? 'GPT-5' : 'GPT-4o') }

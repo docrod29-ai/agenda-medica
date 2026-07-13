@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v339'  // CONFIABILIDAD lote 2: error boundaries. Antes un throw a media consulta pintaba PANTALLA BLANCA total. Ahora: consulta/[patientId]/error.tsx ('tu audio y nota estan guardados' + Reintentar), (dashboard)/error.tsx (todas las pantallas) y global-error.tsx (raiz). Cero mas pantallas blancas
+const CACHE = 'nexusmed-v340'  // CONSULTOR mas potente y seguro (panel clase mundial): (1) evidencia con abstract completo 1200 (era 700) → mejor razonamiento; (2) dosis oficial FDA de TODOS los farmacos detectados (era solo el 1o); (3) regla de seguridad: la IA NUNCA emite cifra de dosis sin fuente oficial; (4) segundo cerebro GPT convertido de reescritor a VERIFICADOR (solo quita lo no sustentado y corrige citas, no anade contenido) → menos alucinacion, mas confianza estilo OpenEvidence
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
