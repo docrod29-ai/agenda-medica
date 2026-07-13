@@ -7,7 +7,7 @@ import { useMode } from '@/context/ModeContext'
 import { useConfig } from '@/hooks/useConfig'
 import {
   LayoutDashboard, CalendarDays, Calendar, Users, Clock,
-  Settings, LogOut, Stethoscope, Shield, Bot, UserSquare2, FileText,
+  Settings, LogOut, Stethoscope, Shield, Bot, UserSquare2, FileText, Search,
   MessageCircle, TrendingUp, Star, ShieldCheck, Pill, BedDouble, BookOpen, FlaskConical, ArrowLeftRight, Calculator, HeartHandshake,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
@@ -116,6 +116,23 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           </div>
         </div>
       </div>
+
+      {/* Buscador global (abre la paleta ⌘K). Visible = descubrible, y en móvil
+          es la única forma de abrirla (no hay atajo de teclado). Solo médico. */}
+      {esMedicoReal && (
+        <button
+          onClick={() => { onClose?.(); window.dispatchEvent(new Event('nexus:open-palette')) }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+            background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10,
+            padding: '8px 12px', margin: '4px 0 10px', cursor: 'pointer', color: 'var(--text3)',
+          }}
+        >
+          <Search size={15} />
+          <span style={{ fontSize: 13, flex: 1, textAlign: 'left' }}>Buscar…</span>
+          <span style={{ fontSize: 10.5, border: '1px solid var(--border)', borderRadius: 5, padding: '1px 5px' }}>⌘K</span>
+        </button>
+      )}
 
       {/* Nav */}
       <nav className="sidebar-nav">

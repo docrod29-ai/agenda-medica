@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v371'  // UX: la paleta ⌘K ahora es un CENTRO DE COMANDOS — acciones rapidas (Nueva cita, Consultor, Corte de caja, Agenda, Finanzas, Configuracion) + pacientes, en una lista navegable con teclado. Reduce navegacion para todo
+const CACHE = 'nexusmed-v372'  // UX: la paleta ⌘K ahora es DESCUBRIBLE — boton 'Buscar… ⌘K' visible en el sidebar (solo medico) que la abre; en movil es la unica forma de abrirla (no hay atajo de teclado). Sin esto, la funcion era invisible (ROI cero)
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

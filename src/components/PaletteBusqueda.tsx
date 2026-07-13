@@ -32,7 +32,9 @@ export function PaletteBusqueda({ enabled }: { enabled: boolean }) {
   const [activo, setActivo] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Atajo global ⌘K / Ctrl+K para abrir; Escape para cerrar.
+  // Atajo global ⌘K / Ctrl+K para abrir; Escape para cerrar. También se abre por
+  // un evento (`nexus:open-palette`) que dispara el botón visible del sidebar —
+  // así funciona en móvil, donde no hay ⌘K.
   useEffect(() => {
     if (!enabled) return
     const onKey = (e: KeyboardEvent) => {
@@ -43,8 +45,13 @@ export function PaletteBusqueda({ enabled }: { enabled: boolean }) {
         setOpen(false)
       }
     }
+    const onAbrir = () => setOpen(true)
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    window.addEventListener('nexus:open-palette', onAbrir)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('nexus:open-palette', onAbrir)
+    }
   }, [enabled])
 
   // Carga perezosa del directorio al abrir (getPatients está cacheado).
