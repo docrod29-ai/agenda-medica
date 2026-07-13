@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v360'  // CALIDAD MEDICA (#4): Consultor de Evidencia mas verificable — cada cita muestra PMID, DOI (link doi.org), nivel de evidencia por diseno del estudio, y la fecha de busqueda en PubMed. Motor extrae DOI del XML. Sin inventar referencias
+const CACHE = 'nexusmed-v361'  // DEUDA TECNICA: la landing deriva los planes de planes-ia.ts (fuente unica) en vez de duplicarlos hardcodeados; elimina la clase de errores de precio (Pro vs Premium, 7 vs 14 dias) que habia que corregir a mano. Misma forma de datos, render intacto
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

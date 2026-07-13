@@ -3,6 +3,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Stethoscope, CheckCircle2, MessageCircle, Bell, Calendar, Users, Clock, BarChart3, ChevronDown, ArrowRight, Shield, MapPin, Zap } from 'lucide-react'
 import { MetaPixel } from '@/components/MetaPixel'
+import { PLANES } from '@/lib/planes-ia'
 
 /* ─── Data ─────────────────────────────────────────────── */
 const FEATURES = [
@@ -44,32 +45,25 @@ const STEPS = [
   { n: '03', title: 'Comparte tu número', desc: 'Da a tus pacientes el número de WhatsApp. Ellos agendan solos.' },
 ]
 
-const PLANS = [
-  {
-    name: 'Agenda',
-    price: '349',
-    desc: 'Para empezar a organizar tu consultorio',
-    features: ['Agenda y citas ilimitadas', 'Recordatorios por WhatsApp', 'Expediente básico de pacientes', 'Portal del paciente', 'Sin IA de notas (puedes subir de plan)'],
+// FUENTE ÚNICA DE VERDAD: los planes se derivan de src/lib/planes-ia.ts para que
+// la landing nunca se desincronice de los precios/features reales (antes estaban
+// duplicados y causaban inconsistencias de precio: Pro vs Premium, etc.).
+const TAGLINE_PLAN: Record<string, string> = {
+  agenda: 'Para empezar a organizar tu consultorio',
+  clinica: 'El más popular',
+  premium: 'Máxima inteligencia clínica',
+}
+const PLANS = (['agenda', 'clinica', 'premium'] as const).map(k => {
+  const p = PLANES[k]
+  return {
+    name: p.nombre,
+    price: p.precioMXN.toLocaleString('es-MX'),
+    desc: TAGLINE_PLAN[k],
+    features: p.incluye,
     cta: 'Empezar prueba gratis',
-    highlight: false,
-  },
-  {
-    name: 'Clínica',
-    price: '899',
-    desc: 'El más popular',
-    features: ['Todo lo de Agenda', 'Nota clínica con IA por voz — plantillas alineadas a los requisitos aplicables de la NOM-004', 'Recetas y órdenes con tu membrete', 'Consultor de evidencia con citas de PubMed', '160 créditos de IA/mes (ver "¿qué es un crédito?")', 'Incluye 1 médico · +$499 por médico extra'],
-    cta: 'Empezar prueba gratis',
-    highlight: true,
-  },
-  {
-    name: 'Pro',
-    price: '1,899',
-    desc: 'Máxima inteligencia clínica',
-    features: ['Todo lo de Clínica', 'IA de máximo razonamiento clínico', 'Revisión de consistencia y seguridad clínica en cada nota', '450 créditos de IA/mes', 'Soporte prioritario', 'Incluye 1 médico · +$999 por médico extra'],
-    cta: 'Empezar prueba gratis',
-    highlight: false,
-  },
-]
+    highlight: !!p.destacado,
+  }
+})
 
 const FAQS = [
   {
