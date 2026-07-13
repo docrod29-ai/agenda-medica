@@ -23,6 +23,16 @@ export interface ArticuloPubMed {
   url: string
   /** Tipo de estudio para jerarquía de evidencia: 'Meta-análisis' | 'Guía' | 'ECA' | 'Revisión' | '' */
   tipo?: string
+  /** DOI del artículo (si PubMed lo reporta), para citarlo/verificarlo. */
+  doi?: string
+}
+
+/** Extrae el DOI del bloque XML de un artículo (ELocationID o ArticleId). */
+function extraerDoi(b: string): string | undefined {
+  const m = b.match(/<ELocationID[^>]*EIdType="doi"[^>]*>([\s\S]*?)<\/ELocationID>/i)
+    || b.match(/<ArticleId[^>]*IdType="doi"[^>]*>([\s\S]*?)<\/ArticleId>/i)
+  const doi = m ? desescapar(m[1]).trim() : ''
+  return doi && /^10\./.test(doi) ? doi : undefined
 }
 
 const conKey = (u: string) => (API_KEY ? `${u}&api_key=${API_KEY}` : u)
@@ -90,7 +100,7 @@ async function efetchArts(ids: string[], signal?: AbortSignal): Promise<Articulo
     const anio = extraerTag(b, 'Year')
     const partes = [...b.matchAll(/<AbstractText[^>]*>([\s\S]*?)<\/AbstractText>/gi)].map(m => desescapar(m[1]))
     const resumen = partes.join(' ').slice(0, 1200)
-    if (pmid && titulo) arts.push({ pmid, titulo, revista, anio, resumen, tipo: tipoDeEstudio(b), url: `https://pubmed.ncbi.nlm.nih.gov/${pmid}/` })
+    if (pmid && titulo) arts.push({ pmid, titulo, revista, anio, resumen, tipo: tipoDeEstudio(b), doi: extraerDoi(b), url: `https://pubmed.ncbi.nlm.nih.gov/${pmid}/` })
   }
   // Reordena por jerarquía de evidencia (meta-análisis/guías arriba), conservando
   // el orden de relevancia de PubMed dentro de cada nivel.

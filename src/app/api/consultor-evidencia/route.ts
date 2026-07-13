@@ -91,7 +91,7 @@ async function* anthropicStream(key: string, model: string, system: string, user
   }
 }
 
-interface MetaStream { articulos: unknown[]; cenetecUrl?: string; modelos: string[]; sinCitas?: boolean; dosisFDA?: unknown }
+interface MetaStream { articulos: unknown[]; cenetecUrl?: string; modelos: string[]; sinCitas?: boolean; dosisFDA?: unknown; fechaBusqueda?: string }
 /** Devuelve una respuesta STREAM (NDJSON): 1ª línea meta (fuentes), luego deltas de texto. */
 function responderStream(opts: { key: string; model: string; system: string; user: string; maxTokens: number; meta: MetaStream; onDone: (texto: string) => void }): Response {
   const enc = new TextEncoder()
@@ -231,10 +231,10 @@ export async function POST(req: NextRequest) {
     // Respuesta en STREAMING (token a token). Las fuentes van en el meta (se pintan
     // de inmediato) y el texto llega en vivo. La verificación de citas es
     // DETERMINISTA en el cliente (cada [n] contra el rango de fuentes).
-    const articulosMin = articulos.map(a => ({ pmid: a.pmid, titulo: a.titulo, revista: a.revista, anio: a.anio, url: a.url, tipo: a.tipo }))
+    const articulosMin = articulos.map(a => ({ pmid: a.pmid, titulo: a.titulo, revista: a.revista, anio: a.anio, url: a.url, tipo: a.tipo, doi: a.doi }))
     return responderStream({
       key, model, system, user, maxTokens: 3200,
-      meta: { articulos: articulosMin, cenetecUrl, dosisFDA: dosis, sinCitas: false, modelos: [nivel === 'premium' ? 'Claude Opus 4.8' : 'Claude Sonnet 5'] },
+      meta: { articulos: articulosMin, cenetecUrl, dosisFDA: dosis, sinCitas: false, fechaBusqueda: new Date().toISOString().slice(0, 10), modelos: [nivel === 'premium' ? 'Claude Opus 4.8' : 'Claude Sonnet 5'] },
       onDone: (txt) => {
         void registrarUso(clinicId, fuente)
         void registrarConsultor(clinicId, costo)

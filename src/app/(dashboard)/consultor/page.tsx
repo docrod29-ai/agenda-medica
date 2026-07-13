@@ -7,8 +7,19 @@ import { Sparkles, Send, Loader2, FlaskConical, BookOpen, X, UserRound } from 'l
 import { MiniMarkdown } from '@/components/MiniMarkdown'
 import { useTarea } from '@/context/TareasContext'
 
-interface Articulo { pmid: string; titulo: string; revista: string; anio: string; url: string; tipo?: string }
-interface Turno { pregunta: string; respuesta: string; articulos: Articulo[]; cenetecUrl?: string; modelos?: string[]; cargando?: boolean }
+interface Articulo { pmid: string; titulo: string; revista: string; anio: string; url: string; tipo?: string; doi?: string }
+interface Turno { pregunta: string; respuesta: string; articulos: Articulo[]; cenetecUrl?: string; modelos?: string[]; fechaBusqueda?: string; cargando?: boolean }
+
+/** Nivel de evidencia orientativo por DISEÑO del estudio (proxy tipo GRADE, no un grado GRADE formal). */
+function nivelEvidencia(tipo?: string): { label: string; color: string } | null {
+  switch (tipo) {
+    case 'Meta-análisis': return { label: 'Evidencia alta', color: '#16a34a' }
+    case 'Guía': return { label: 'Guía de práctica', color: '#16a34a' }
+    case 'ECA': return { label: 'Evidencia alta', color: '#16a34a' }
+    case 'Revisión': return { label: 'Evidencia moderada', color: '#d97706' }
+    default: return null
+  }
+}
 
 /** Números de cita [n] presentes en el texto (para verificación determinista). */
 const citasEnTexto = (texto: string): number[] => {
@@ -90,9 +101,9 @@ export default function ConsultorPage() {
         const lineas = buf.split('\n'); buf = lineas.pop() ?? ''
         for (const linea of lineas) {
           const s = linea.trim(); if (!s) continue
-          let ev: { type?: string; text?: string; error?: string; articulos?: Articulo[]; cenetecUrl?: string; modelos?: string[] }
+          let ev: { type?: string; text?: string; error?: string; articulos?: Articulo[]; cenetecUrl?: string; modelos?: string[]; fechaBusqueda?: string }
           try { ev = JSON.parse(s) } catch { continue }
-          if (ev.type === 'meta') patch({ articulos: ev.articulos ?? [], cenetecUrl: ev.cenetecUrl, modelos: ev.modelos, cargando: false })
+          if (ev.type === 'meta') patch({ articulos: ev.articulos ?? [], cenetecUrl: ev.cenetecUrl, modelos: ev.modelos, fechaBusqueda: ev.fechaBusqueda, cargando: false })
           else if (ev.type === 'delta') { acc += ev.text ?? ''; patch({ respuesta: acc, cargando: false }) }
           else if (ev.type === 'error') { acc = acc || `⚠️ ${ev.error}`; patch({ respuesta: acc, cargando: false }) }
         }
@@ -183,15 +194,24 @@ export default function ConsultorPage() {
                     )}
                     {t.articulos.length > 0 && (
                       <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, color: 'var(--text3)', marginBottom: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, color: 'var(--text3)', marginBottom: 6, flexWrap: 'wrap' }}>
                           <BookOpen size={13} /> Fuentes ({t.articulos.length})
+                          {t.fechaBusqueda && <span style={{ fontWeight: 500 }}>· PubMed, búsqueda del {t.fechaBusqueda}</span>}
                         </div>
                         {t.articulos.map((a, k) => {
                           const citada = citasEnTexto(t.respuesta).includes(k + 1)
+                          const nivel = nivelEvidencia(a.tipo)
                           return (
-                          <div key={a.pmid} style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 3, lineHeight: 1.4 }}>
-                            [{k + 1}] {a.tipo && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', background: 'rgba(20,184,166,0.12)', borderRadius: 5, padding: '1px 6px', marginRight: 4 }}>{a.tipo}</span>}<a href={a.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>{a.titulo}</a> · <span style={{ fontStyle: 'italic' }}>{a.revista}</span> {a.anio}
-                            {citada && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: '#16a34a', background: 'rgba(22,163,74,0.12)', borderRadius: 5, padding: '1px 6px' }}>✓ citado</span>}
+                          <div key={a.pmid} style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 5, lineHeight: 1.45 }}>
+                            <div>
+                              [{k + 1}] {a.tipo && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', background: 'rgba(20,184,166,0.12)', borderRadius: 5, padding: '1px 6px', marginRight: 4 }}>{a.tipo}</span>}<a href={a.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>{a.titulo}</a> · <span style={{ fontStyle: 'italic' }}>{a.revista}</span> {a.anio}
+                              {citada && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: '#16a34a', background: 'rgba(22,163,74,0.12)', borderRadius: 5, padding: '1px 6px' }}>✓ citado</span>}
+                            </div>
+                            <div style={{ fontSize: 10.5, color: 'var(--text3)', opacity: 0.85, marginTop: 1, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                              {nivel && <span style={{ fontWeight: 700, color: nivel.color }}>{nivel.label}</span>}
+                              <span>PMID {a.pmid}</span>
+                              {a.doi && <a href={`https://doi.org/${a.doi}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>DOI: {a.doi}</a>}
+                            </div>
                           </div>
                         )})}
                       </div>

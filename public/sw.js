@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v359'  // PERFORMANCE: cache en memoria de la lista de pacientes por clinica (TTL 30s) con invalidacion en createPatient/updatePatient; navegar entre pantallas de lista deja de recargar la coleccion completa. getPatients(clinicId, {force}) retrocompatible. getPatient (un doc) sigue siempre fresco
+const CACHE = 'nexusmed-v360'  // CALIDAD MEDICA (#4): Consultor de Evidencia mas verificable — cada cita muestra PMID, DOI (link doi.org), nivel de evidencia por diseno del estudio, y la fecha de busqueda en PubMed. Motor extrae DOI del XML. Sin inventar referencias
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
