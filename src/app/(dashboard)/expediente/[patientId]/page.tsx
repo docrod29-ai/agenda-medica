@@ -17,6 +17,7 @@ import {
   Stethoscope, Activity, LogIn, LogOut, UserPlus, ClipboardCheck, ShieldPlus, type LucideIcon,
 } from 'lucide-react'
 import { Button, EmptyState, Spinner, Badge } from '@/components/ui'
+import { ExpedienteVacio } from '@/components/brand/EmptyArt'
 import { avatarColor } from '@/lib/avatar-color'
 
 /** Icono lineal por tipo de nota — nodo del timeline clínico. */
@@ -185,7 +186,7 @@ export default function ExpedientePage() {
           />
         ) : (
         <EmptyState
-          icon={<FileText size={22} />}
+          illustration={<ExpedienteVacio />}
           title="Sin notas todavía"
           description="Inicia una consulta para crear la primera nota clínica de este paciente."
           action={<Button icon={<Plus size={16} />} onClick={() => router.push(`/consulta/${patientId}`)}>Crear primera nota</Button>}

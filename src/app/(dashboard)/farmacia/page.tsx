@@ -23,6 +23,7 @@ import {
   Package, ArrowUpCircle, ArrowDownCircle, MapPin,
 } from 'lucide-react'
 import { Button, EmptyState, Spinner, Modal } from '@/components/ui'
+import { SinResultados } from '@/components/brand/EmptyArt'
 
 export default function FarmaciaPage() {
   const { clinicId } = useClinic()
@@ -134,7 +135,7 @@ export default function FarmaciaPage() {
             action={<Button icon={<Plus size={14} />} onClick={() => setCreando(true)}>Agregar</Button>}
           />
         ) : (
-          <EmptyState icon={<Package size={22} />} title="Sin resultados con esos filtros" />
+          <EmptyState illustration={<SinResultados />} title="Sin resultados con esos filtros" />
         )
       ) : (
         <div style={{ display: 'grid', gap: 8 }}>

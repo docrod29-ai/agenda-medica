@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v336'  // CONSULTOR robusto + mas potente: fix 'No se pudo consultar' (era timeout de la cadena de modelos) → maxDuration 300, timeouts por llamada (Claude 55s, GPT 28s→se queda Claude si tarda, traduccion 15s), APRENDIZAJE ya NO bloquea la respuesta (fire-and-forget). Respuestas mas abundantes (2200→3200 tokens) + prompt de razonamiento nivel OpenEvidence (casos complejos, mecanismo, banderas rojas). Mensaje de error del cliente mas claro
+const CACHE = 'nexusmed-v337'  // ESTETICA: ilustraciones de marca en estados vacios (components/brand/EmptyArt.tsx, SVG cobalto line-art con el pulso que las une, tema-aware claro/oscuro, transparentes). EmptyState acepta prop illustration; montadas en citas (AgendaVacia), expediente sin notas (ExpedienteVacio), censo/hospital (CensoVacio), farmacia sin resultados (SinResultados). Da personalidad sin ensuciar las pantallas de trabajo
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

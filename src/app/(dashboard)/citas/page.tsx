@@ -27,6 +27,7 @@ import { es } from 'date-fns/locale'
 import { hoyISO, sumarDiasISO } from '@/lib/timezone'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { Button, EmptyState, Spinner } from '@/components/ui'
+import { AgendaVacia } from '@/components/brand/EmptyArt'
 
 const STATUS_FILTERS: { label: string; value: AppointmentStatus | 'todas' }[] = [
   { label: 'Todas', value: 'todas' },
@@ -240,6 +241,7 @@ export default function CitasPage() {
           <Spinner center label="Cargando citas…" />
         ) : filtered.length === 0 ? (
           <EmptyState
+            illustration={<AgendaVacia />}
             icon={<CalendarDays size={22} />}
             title="No hay citas para este filtro"
             description="Cambia de fecha o de médico, o agenda una nueva cita."

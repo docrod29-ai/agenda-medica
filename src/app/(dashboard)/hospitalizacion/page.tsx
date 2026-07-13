@@ -15,6 +15,7 @@ import { logAudit } from '@/lib/expediente/audit-log'
 import { SERVICIOS_HOSPITAL, diasEstancia, type Internamiento } from '@/types/hospital'
 import type { Patient } from '@/types'
 import { Modal, Button, Spinner, EmptyState } from '@/components/ui'
+import { CensoVacio } from '@/components/brand/EmptyArt'
 import { Cie10Autocomplete } from '@/components/Cie10Autocomplete'
 import { BedDouble, Plus, Stethoscope, Clock, Search, Bell } from 'lucide-react'
 
@@ -140,7 +141,7 @@ export default function CensoPage() {
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}><Spinner /></div>
       ) : censo.length === 0 ? (
-        <EmptyState icon={<BedDouble size={28} />} title="Sin pacientes internados" description="Cuando registres un ingreso, aparecerá aquí el censo." />
+        <EmptyState illustration={<CensoVacio />} title="Sin pacientes internados" description="Cuando registres un ingreso, aparecerá aquí el censo." />
       ) : (
         <div style={{ display: 'grid', gap: 10 }}>
           {censo.map(i => (
