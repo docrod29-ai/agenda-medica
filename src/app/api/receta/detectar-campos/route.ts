@@ -9,6 +9,7 @@ import { resolverClaveIA, creditosAgotados } from '@/lib/ai-keys'
  * "La IA se adapta a tu formato, no tú a ella."
  */
 export const runtime = 'nodejs'
+export const maxDuration = 300  // visión IA; sin esto se cortaba a 60s en Vercel
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL ?? ''

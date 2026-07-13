@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v337'  // ESTETICA: ilustraciones de marca en estados vacios (components/brand/EmptyArt.tsx, SVG cobalto line-art con el pulso que las une, tema-aware claro/oscuro, transparentes). EmptyState acepta prop illustration; montadas en citas (AgendaVacia), expediente sin notas (ExpedienteVacio), censo/hospital (CensoVacio), farmacia sin resultados (SinResultados). Da personalidad sin ensuciar las pantallas de trabajo
+const CACHE = 'nexusmed-v338'  // CONFIABILIDAD lote 1 (panel clase mundial): 4 rutas de IA sin maxDuration se cortaban a 60s en Vercel (504) — la NOTA (procesar) era la peor por correr Opus con razonamiento. Agregado maxDuration=300 a procesar, corregir, inmuno/redactar y receta/detectar-campos (toma efecto en Vercel Pro). Es la causa raiz del 504 mas doloroso en consulta
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

@@ -37,6 +37,8 @@ ESTRUCTURA (prosa con encabezados en MAYÚSCULAS, sin viñetas con emojis; usa l
 
 Devuelve solo la nota, sin preámbulos.`
 
+export const maxDuration = 300  // redacción con IA; sin esto se cortaba a 60s en Vercel
+
 export async function POST(req: NextRequest) {
   const acceso = await verificarUsuario(req)
   if (!acceso.ok) return acceso.response

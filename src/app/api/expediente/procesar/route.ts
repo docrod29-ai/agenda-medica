@@ -148,6 +148,10 @@ function fallbackVisible(transcripcion: string, tipo: TipoNota, aviso: string, c
   return NextResponse.json({ ...fallback, _aviso: aviso, _causaFallback: causa, _detalleDebug: debug })
 }
 
+// La nota corre Opus 4.8 con razonamiento: sin esto Vercel la cortaba a 60s (504,
+// el fallo más doloroso en consulta). En Vercel Pro sube a 300s.
+export const maxDuration = 300
+
 export async function POST(req: NextRequest) {
   // Seguridad: solo usuarios autenticados. Procesa PHI y consume la API key
   // de Anthropic — sin esto cualquiera con la URL la quemaba.

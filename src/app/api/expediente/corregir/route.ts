@@ -164,3 +164,4 @@ export async function POST(req: NextRequest) {
 }
 
 export const runtime = 'nodejs'
+export const maxDuration = 300  // corre IA; sin esto se cortaba a 60s en Vercel
