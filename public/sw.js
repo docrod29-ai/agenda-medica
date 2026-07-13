@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v353'  // LOTE 4 legal: campos fiscales en ClinicConfig (razonSocial/rfc/domicilioFiscal/responsablePrivacidad/correoArco) + formulario en config; aviso de privacidad enriquecido (identidad+RFC+ARCO+conservacion/bloqueo/eliminacion+brechas+subencargados); generador de CONTRATO DE ENCARGO nuevo; pagina /legal (ver/copiar/descargar/imprimir aviso+contrato) marcada 'borrador, revisar abogado'; portal publico del paciente ya recibe los datos fiscales. No toca el flujo clinico
+const CACHE = 'nexusmed-v354'  // PROTECCION datos fiscales: RFC y domicilio fiscal ya NO se sirven por el endpoint publico ni salen en el aviso (documento publico); solo en el contrato de encargo (privado, tras login). El aviso usa el domicilio del consultorio. Datos solo en la config del consultorio (Firestore restringido), nunca en repo/codigo/memoria
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
