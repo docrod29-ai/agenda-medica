@@ -18,6 +18,7 @@ export type AuditEvento =
   | 'ia_campo_rechazado'         // médico rechazó un campo
   | 'nota_borrador_guardado'     // guardó borrador
   | 'nota_firmada'               // firmó (queda inmutable)
+  | 'nota_adenda'                // agregó una adenda a una nota firmada (NOM-004)
   | 'nota_borrada'               // borró un borrador
   | 'consentimiento_grabacion'   // confirmó el consentimiento del paciente
   // === NUEVOS para cumplimiento NOM-024 Art. 6.5 (bitácora completa) ===

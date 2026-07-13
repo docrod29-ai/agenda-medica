@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v363'  // FIX: portal /privacidad/[clinicId] hacia DOS fetch identicos al mismo endpoint; fusionados en uno que alimenta clinic + config. -1 llamada de red en pagina publica del paciente
+const CACHE = 'nexusmed-v364'  // BITACORA: la adenda ahora se registra en la bitacora inalterable (evento nota_adenda + etiqueta en cumplimiento); /seguridad corregido a 'Activo' (la bitacora YA es append-only por reglas allow update,delete:false + cobertura completa). Reglas Firestore ya desplegadas: adenda operativa
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

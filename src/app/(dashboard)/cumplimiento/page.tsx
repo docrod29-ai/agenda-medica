@@ -39,6 +39,7 @@ const EVENTO_LABEL: Record<string, string> = {
   nota_lectura: 'Vio nota',
   nota_impresion: 'Imprimió nota',
   nota_firmada: 'Firmó nota',
+  nota_adenda: 'Agregó adenda',
   nota_borrador_guardado: 'Guardó borrador',
   nota_borrada: 'Borró borrador',
   receta_generada: 'Generó receta',

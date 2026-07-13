@@ -70,6 +70,11 @@ export default function NotaImprimiblePage() {
       })
       setAdendas(prev => [...prev, nueva])
       setTextoAdenda(''); setMotivoAdenda(''); setModalAdenda(false)
+      // NOM-004: la enmienda a una nota firmada queda en la bitácora inalterable.
+      try {
+        const { logAudit } = await import('@/lib/expediente/audit-log')
+        await logAudit({ evento: 'nota_adenda', clinicId, patientId, notaId })
+      } catch { /* nunca romper la operación clínica */ }
     } catch {
       alert('No se pudo agregar la adenda. Intenta de nuevo.')
     } finally {
