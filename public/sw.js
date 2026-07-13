@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v355'  // SEGURIDAD: cierre automatico de sesion por inactividad (30 min, aviso 60s con 'seguir conectado', borradores a salvo); pagina seguridad refleja el control como Activo + RPO/RTO objetivo. Aditivo, no toca el flujo clinico
+const CACHE = 'nexusmed-v356'  // EXPEDIENTE (#3): ADENDA post-firma (NOM-004) — corregir/aclarar una nota firmada SIN alterar el original; subcoleccion inmutable notas/{id}/adendas; boton+modal en la vista de nota; se muestran e imprimen bajo la nota. Requiere: firebase deploy --only firestore:rules. La nota firmada nunca se modifica
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

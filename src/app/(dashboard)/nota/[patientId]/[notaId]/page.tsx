@@ -6,12 +6,13 @@ import { imprimirElemento } from '@/lib/print-element'
 import { entradaPorMedico, membreteValido, firmaValida } from '@/lib/impreso-medico'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
-import { getNota } from '@/lib/expediente/firestore'
+import { getNota, agregarAdenda, getAdendas } from '@/lib/expediente/firestore'
 import { getPatients } from '@/lib/firestore'
+import { useAuth } from '@/hooks/useAuth'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
-import type { NotaMedica } from '@/types/expediente'
+import type { NotaMedica, Adenda } from '@/types/expediente'
 import type { Patient } from '@/types'
-import { ArrowLeft, Printer, Loader2, Download, Pill, ClipboardList, AlertTriangle, Check, FileText } from 'lucide-react'
+import { ArrowLeft, Printer, Loader2, Download, Pill, ClipboardList, AlertTriangle, Check, FileText, FilePlus2, X } from 'lucide-react'
 import { Spinner, EmptyState } from '@/components/ui'
 import { descargarComoPDF } from '@/lib/pdf-download'
 
@@ -21,10 +22,16 @@ export default function NotaImprimiblePage() {
   const volver = useSmartBack(`/expediente/${patientId}`)
   const { clinicId } = useClinic()
   const { config } = useConfig()
+  const { user } = useAuth()
   const [nota, setNota] = useState<NotaMedica | null>(null)
   const [patient, setPatient] = useState<Patient | null>(null)
   const [loading, setLoading] = useState(true)
   const [descargando, setDescargando] = useState(false)
+  const [adendas, setAdendas] = useState<Adenda[]>([])
+  const [modalAdenda, setModalAdenda] = useState(false)
+  const [textoAdenda, setTextoAdenda] = useState('')
+  const [motivoAdenda, setMotivoAdenda] = useState('')
+  const [guardandoAdenda, setGuardandoAdenda] = useState(false)
   // null = sin verificar/no aplica · true = sello íntegro · false = ALTERADA
   const [integridad, setIntegridad] = useState<'verificada' | 'alterada' | 'legado' | 'sin-sello' | null>(null)
 
@@ -49,6 +56,26 @@ export default function NotaImprimiblePage() {
     }
   }
 
+  const guardarAdenda = async () => {
+    if (!clinicId || !textoAdenda.trim()) return
+    setGuardandoAdenda(true)
+    try {
+      const nueva = await agregarAdenda(clinicId, patientId, notaId, {
+        texto: textoAdenda.trim(),
+        motivo: motivoAdenda.trim() || undefined,
+        autorNombre: config?.nombreMedico || user?.email || 'Médico',
+        autorEmail: user?.email || '',
+        autorCedula: config?.cedulaProfesional || undefined,
+      })
+      setAdendas(prev => [...prev, nueva])
+      setTextoAdenda(''); setMotivoAdenda(''); setModalAdenda(false)
+    } catch {
+      alert('No se pudo agregar la adenda. Intenta de nuevo.')
+    } finally {
+      setGuardandoAdenda(false)
+    }
+  }
+
   useEffect(() => {
     if (!clinicId || !patientId || !notaId) return
     Promise.all([
@@ -66,6 +93,7 @@ export default function NotaImprimiblePage() {
           const { verificarIntegridadEstado } = await import('@/lib/expediente/integrity')
           setIntegridad(await verificarIntegridadEstado(n))
         } catch { setIntegridad(null) }
+        try { setAdendas(await getAdendas(clinicId, patientId, notaId)) } catch { /* noop */ }
       }
     })
     // NOM-024 Art. 6.5: registrar lectura de nota clínica
@@ -121,6 +149,9 @@ export default function NotaImprimiblePage() {
               </button>
               <button onClick={() => router.push(`/orden/${patientId}/${notaId}`)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(167,139,250,0.12)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.4)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
                 <ClipboardList size={16} /> Orden
+              </button>
+              <button onClick={() => setModalAdenda(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }} title="Corregir o aclarar sin alterar la nota firmada">
+                <FilePlus2 size={16} /> Adenda
               </button>
             </>
           )}
@@ -310,7 +341,61 @@ export default function NotaImprimiblePage() {
           )}
           <br />Conforme a NOM-004-SSA3-2012 y NOM-024-SSA3-2012.
         </div>
+
+        {/* Adendas: correcciones/aclaraciones posteriores a la firma (NOM-004).
+            No alteran la nota original; se muestran e imprimen debajo. */}
+        {adendas.length > 0 && (
+          <div style={{ marginTop: 24, paddingTop: 12, borderTop: '2px solid #1a1a1a' }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.3 }}>
+              Adendas (correcciones posteriores a la firma)
+            </div>
+            {adendas.map((a, i) => (
+              <div key={a.id} style={{ marginBottom: 10, paddingBottom: 10, borderBottom: i === adendas.length - 1 ? 'none' : '1px dashed #999' }}>
+                <div style={{ fontSize: 11, color: '#555', marginBottom: 3 }}>
+                  {new Date(a.createdAt).toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' })}
+                  {a.motivo ? ` · ${a.motivo}` : ''} · {a.autorNombre}{a.autorCedula ? ` (Céd. ${a.autorCedula})` : ''}
+                </div>
+                <div style={{ fontSize: 12.5, whiteSpace: 'pre-wrap' }}>{a.texto}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* Modal de adenda */}
+      {modalAdenda && (
+        <div className="no-print" onClick={() => !guardandoAdenda && setModalAdenda(false)} style={{
+          position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(3px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            width: '100%', maxWidth: 460, background: 'var(--s1)', border: '1px solid var(--border)',
+            borderRadius: 16, padding: 24, position: 'relative',
+          }}>
+            <button onClick={() => setModalAdenda(false)} style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', padding: 4, lineHeight: 0 }}>
+              <X size={18} />
+            </button>
+            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Agregar adenda</div>
+            <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.5, margin: '0 0 16px' }}>
+              Corrige o aclara esta nota <strong>sin alterar el documento firmado</strong>. La adenda queda fechada,
+              con tu nombre, y no se puede editar ni borrar (NOM-004).
+            </p>
+            <label className="label" style={{ fontSize: 12.5 }}>Motivo (opcional)</label>
+            <input className="input" value={motivoAdenda} onChange={e => setMotivoAdenda(e.target.value)}
+              placeholder="Ej. Corrección de dosis, dato omitido" style={{ marginBottom: 12 }} />
+            <label className="label" style={{ fontSize: 12.5 }}>Corrección o aclaración</label>
+            <textarea value={textoAdenda} onChange={e => setTextoAdenda(e.target.value)} rows={5}
+              placeholder="Describe la corrección o aclaración…"
+              style={{ width: '100%', padding: 12, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 13.5, resize: 'vertical', fontFamily: 'inherit' }} />
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
+              <button onClick={() => setModalAdenda(false)} disabled={guardandoAdenda} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 10, padding: '10px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
+              <button onClick={guardarAdenda} disabled={guardandoAdenda || !textoAdenda.trim()} className="lift" style={{ background: 'var(--nexus)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: guardandoAdenda || !textoAdenda.trim() ? 'default' : 'pointer', opacity: !textoAdenda.trim() ? 0.6 : 1 }}>
+                {guardandoAdenda ? 'Guardando…' : 'Agregar adenda'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Estilos de impresión: solo el documento, en blanco y negro legible */}
       <style>{`

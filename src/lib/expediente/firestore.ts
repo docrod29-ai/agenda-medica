@@ -4,7 +4,7 @@ import {
   type DocumentReference,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import type { NotaMedica } from '@/types/expediente'
+import type { NotaMedica, Adenda } from '@/types/expediente'
 
 /**
  * Notas clínicas viven en:
@@ -201,6 +201,36 @@ export async function updateNota(
     ...sinId,
     updatedAt: new Date().toISOString(),
   }))
+}
+
+/**
+ * Agrega una ADENDA a una nota firmada (NOM-004): corrección/aclaración que NO
+ * altera el documento original. Se guarda en la subcolección inmutable `adendas`.
+ * Devuelve la adenda creada (con su id).
+ */
+export async function agregarAdenda(
+  clinicId: string,
+  patientId: string,
+  notaId: string,
+  data: Omit<Adenda, 'id' | 'createdAt'>,
+): Promise<Adenda> {
+  const createdAt = new Date().toISOString()
+  const ref = await addDoc(
+    collection(db, 'clinics', clinicId, 'patients', patientId, 'notas', notaId, 'adendas'),
+    stripUndefined({ ...data, createdAt }),
+  )
+  return { ...data, id: ref.id, createdAt }
+}
+
+/** Lee las adendas de una nota, más antiguas primero (orden cronológico legal). */
+export async function getAdendas(clinicId: string, patientId: string, notaId: string): Promise<Adenda[]> {
+  const snap = await getDocs(
+    query(
+      collection(db, 'clinics', clinicId, 'patients', patientId, 'notas', notaId, 'adendas'),
+      orderBy('createdAt', 'asc'),
+    ),
+  )
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Adenda))
 }
 
 /** Lee el historial de versiones de un borrador. NOM-024 trazabilidad. */

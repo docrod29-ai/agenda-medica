@@ -213,6 +213,25 @@ export interface NotaMedica {
   creadoPor: string
 }
 
+// ── Adenda (corrección a una nota firmada, NOM-004) ────────────
+/**
+ * Nota de corrección o aclaración a una nota YA FIRMADA. No modifica el
+ * documento original (que es inmutable): se agrega, fechada y firmada por su
+ * autor, y se muestra junto a la nota. Nunca se edita ni se borra.
+ */
+export interface Adenda {
+  id: string
+  /** Texto de la corrección/aclaración. */
+  texto: string
+  /** Motivo breve (ej. "Corrección de dosis", "Dato omitido"). */
+  motivo?: string
+  autorNombre: string
+  autorEmail: string
+  /** Cédula profesional del autor al momento de la adenda (trazabilidad). */
+  autorCedula?: string
+  createdAt: string   // ISO
+}
+
 // ── Resultado de validación NOM-004 ────────────────────────────
 
 export interface ValidationResult {

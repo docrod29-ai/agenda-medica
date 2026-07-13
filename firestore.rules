@@ -83,6 +83,14 @@ service cloud.firestore {
             allow create: if isMedico(clinicId);
             allow update, delete: if false;
           }
+
+          // Adendas: corrección/aclaración a una nota YA FIRMADA sin alterar el
+          // original (NOM-004). Se agregan pero NUNCA se editan ni se borran.
+          match /adendas/{adendaId} {
+            allow read: if isMedico(clinicId);
+            allow create: if isMedico(clinicId);
+            allow update, delete: if false;
+          }
         }
       }
       match /waitlist/{docId} {
