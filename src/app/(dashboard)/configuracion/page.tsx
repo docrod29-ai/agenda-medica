@@ -418,6 +418,35 @@ export default function ConfiguracionPage() {
             <label className="label">WhatsApp consultorio</label>
             <input className="input" type="tel" value={form.whatsappConsultorio} onChange={upd('whatsappConsultorio')} placeholder="6641234567" />
           </div>
+
+          {/* ── Identidad fiscal y de privacidad (alimenta el aviso y el contrato de encargo) ── */}
+          <div style={{ gridColumn: '1 / -1', marginTop: 8, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Datos fiscales y de privacidad</div>
+            <div style={{ fontSize: 12.5, color: 'var(--text3)', marginTop: 3 }}>
+              Con estos datos generamos tu aviso de privacidad y tu contrato de encargo personalizados (menú <strong>Documentos legales</strong>).
+            </div>
+          </div>
+          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+            <label className="label">Razón social o nombre completo del responsable</label>
+            <input className="input" value={form.razonSocial ?? ''} onChange={upd('razonSocial')} placeholder="Servicios Médicos del Norte, S.C. / Dr. Juan Pérez López" />
+          </div>
+          <div className="form-group">
+            <label className="label">RFC</label>
+            <input className="input" value={form.rfc ?? ''} onChange={upd('rfc')} placeholder="XAXX010101000" />
+          </div>
+          <div className="form-group">
+            <label className="label">Correo de contacto ARCO</label>
+            <input className="input" type="email" value={form.correoArco ?? ''} onChange={upd('correoArco')} placeholder="privacidad@tuconsultorio.mx" />
+          </div>
+          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+            <label className="label">Domicilio fiscal (si difiere del domicilio del consultorio)</label>
+            <input className="input" value={form.domicilioFiscal ?? ''} onChange={upd('domicilioFiscal')} placeholder="Av. Fiscal 100, Col. Centro, C.P. 22000, Tijuana, B.C." />
+          </div>
+          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+            <label className="label">Responsable de privacidad (persona)</label>
+            <input className="input" value={form.responsablePrivacidad ?? ''} onChange={upd('responsablePrivacidad')} placeholder="Nombre de quien atiende solicitudes de datos personales" />
+          </div>
+
           <div className="form-group">
             <label className="label">Intervalo de agenda (min)</label>
             <select className="input" value={form.intervaloMinutos} onChange={upd('intervaloMinutos')}>

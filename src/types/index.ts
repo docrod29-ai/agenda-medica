@@ -289,6 +289,17 @@ export interface ClinicConfig {
   googleMapsUrl: string
   telefonoAdmin: string
   whatsappConsultorio: string
+  // === Identidad fiscal y de privacidad (LFPDPPP / aviso + contrato de encargo) ===
+  /** Razón social o nombre completo del responsable del tratamiento. */
+  razonSocial?: string
+  /** RFC del responsable (persona física o moral). */
+  rfc?: string
+  /** Domicilio fiscal, si difiere del domicilio del consultorio. */
+  domicilioFiscal?: string
+  /** Persona designada como responsable de privacidad / datos personales. */
+  responsablePrivacidad?: string
+  /** Correo de contacto para derechos ARCO y avisos de privacidad. */
+  correoArco?: string
   zonaHoraria: string
   horario: {
     lunes: DaySchedule

@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v352'  // LOTE 11 cierre: seguimiento posconsulta en /reactivacion — lista pacientes atendidos en los ultimos 10 dias (uno por paciente, el mas reciente) con WhatsApp de 1 clic de check-in (msgSeguimiento). Util para postoperados/control. Aditivo, no toca el flujo clinico
+const CACHE = 'nexusmed-v353'  // LOTE 4 legal: campos fiscales en ClinicConfig (razonSocial/rfc/domicilioFiscal/responsablePrivacidad/correoArco) + formulario en config; aviso de privacidad enriquecido (identidad+RFC+ARCO+conservacion/bloqueo/eliminacion+brechas+subencargados); generador de CONTRATO DE ENCARGO nuevo; pagina /legal (ver/copiar/descargar/imprimir aviso+contrato) marcada 'borrador, revisar abogado'; portal publico del paciente ya recibe los datos fiscales. No toca el flujo clinico
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

@@ -46,13 +46,18 @@ export default function PortalPrivacidadPage() {
     // Para el aviso de privacidad necesitamos config: pedimos al endpoint público
     fetch(`/api/public/clinic/${clinicId}`)
       .then(r => r.json())
-      .then((d: ClinicInfo & { clinic?: { nombreMedico: string; especialidad?: string; direccion?: string } }) => {
+      .then((d: ClinicInfo & { clinic?: { nombreMedico: string; especialidad?: string; direccion?: string; razonSocial?: string; rfc?: string; domicilioFiscal?: string; responsablePrivacidad?: string; correoArco?: string } }) => {
         if (d.ok && d.clinic) {
           setConfig({
             nombreClinica: d.clinic.nombre,
             nombreMedico: d.clinic.nombreMedico,
             direccion: d.clinic.direccion ?? '',
             telefonoAdmin: d.clinic.telefono,
+            razonSocial: d.clinic.razonSocial || undefined,
+            rfc: d.clinic.rfc || undefined,
+            domicilioFiscal: d.clinic.domicilioFiscal || undefined,
+            responsablePrivacidad: d.clinic.responsablePrivacidad || undefined,
+            correoArco: d.clinic.correoArco || undefined,
           } as ClinicConfig)
         }
       })

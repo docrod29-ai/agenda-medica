@@ -20,16 +20,19 @@ export interface AvisoPrivacidadData {
 
 /** Genera el TEXTO completo del aviso de privacidad para una clínica específica. */
 export function generarAvisoPrivacidad(config: ClinicConfig | null): string {
-  const responsable = config?.nombreClinica || config?.nombreMedico || '[Nombre del responsable]'
-  const domicilio = config?.direccion || '[Domicilio]'
-  const contacto = config?.telefonoAdmin || config?.whatsappConsultorio || '[Contacto]'
+  const responsable = config?.razonSocial || config?.nombreClinica || config?.nombreMedico || '[Nombre o razón social del responsable]'
+  const domicilio = config?.domicilioFiscal || config?.direccion || '[Domicilio]'
+  const contacto = config?.correoArco || config?.telefonoAdmin || config?.whatsappConsultorio || '[Contacto]'
+  const rfc = config?.rfc
+  const respPriv = config?.responsablePrivacidad
 
   return `AVISO DE PRIVACIDAD INTEGRAL — ${responsable}
 
 Versión: ${VERSION_AVISO}
 
 1. IDENTIDAD Y DOMICILIO DEL RESPONSABLE
-${responsable}, con domicilio en ${domicilio}, es el responsable del tratamiento de sus datos personales.
+${responsable}${rfc ? ` (RFC: ${rfc})` : ''}, con domicilio en ${domicilio}, es el responsable del tratamiento de sus datos personales.${respPriv ? `\nResponsable de privacidad: ${respPriv}.` : ''}
+El responsable se apoya en NexusMED como encargado del tratamiento (proveedor de software) y en los subencargados tecnológicos necesarios para operar el servicio (nube, mensajería, procesamiento de pagos e inteligencia artificial), cada uno bajo su propio acuerdo de tratamiento de datos.
 
 2. DATOS PERSONALES QUE SE RECABAN
 Recabamos los siguientes datos personales:
@@ -79,12 +82,14 @@ Usted tiene derecho a:
  • OPONERSE al tratamiento para fines específicos
  • REVOCAR el consentimiento otorgado
 
-Para ejercerlos, puede contactarnos en: ${contacto}
+Para ejercerlos, puede dirigir su solicitud${respPriv ? ` al responsable de privacidad (${respPriv})` : ''} en: ${contacto}
 Plazo de respuesta: 20 días hábiles conforme a Art. 32 LFPDPPP.
 
-7. CONSERVACIÓN
+7. CONSERVACIÓN, BLOQUEO Y ELIMINACIÓN
 Su expediente clínico se conservará por un mínimo de 5 años desde la última anotación,
-conforme al numeral 5.7 de la NOM-004-SSA3-2012.
+conforme al numeral 5.7 de la NOM-004-SSA3-2012. Concluido el periodo de conservación y
+las finalidades del tratamiento, los datos se bloquean (se conservan solo para atender
+posibles responsabilidades) y posteriormente se eliminan de forma segura.
 
 8. MEDIDAS DE SEGURIDAD
 Sus datos se protegen mediante:
@@ -96,9 +101,12 @@ Sus datos se protegen mediante:
  • Firmas electrónicas con SHA-256 (NOM-024)
  • Inmutabilidad de notas firmadas
 
+En caso de una vulneración de seguridad que afecte de forma significativa sus derechos
+patrimoniales o morales, se le informará sin demora para que pueda tomar medidas.
+
 9. CAMBIOS AL AVISO
 Cualquier modificación a este aviso será publicada y notificada a usted con
-30 días de anticipación.
+30 días de anticipación${contacto && contacto[0] !== '[' ? ` a través de ${contacto}` : ''}.
 
 10. CONSENTIMIENTO
 Al firmar este documento (o aceptar electrónicamente), usted manifiesta:

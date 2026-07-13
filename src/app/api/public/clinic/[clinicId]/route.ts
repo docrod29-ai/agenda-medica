@@ -69,6 +69,12 @@ export async function GET(
         direccion: config.direccion ?? '',
         telefono: config.telefonoAdmin ?? config.whatsappConsultorio ?? '',
         googleMapsUrl: config.googleMapsUrl ?? '',
+        // Identidad fiscal/privacidad → para el aviso por consultorio en el portal público
+        razonSocial: config.razonSocial ?? '',
+        rfc: config.rfc ?? '',
+        domicilioFiscal: config.domicilioFiscal ?? '',
+        responsablePrivacidad: config.responsablePrivacidad ?? '',
+        correoArco: config.correoArco ?? '',
         avisoPrivacidad: config.avisoPrivacidad ?? '',
         publicBookingEnabled: config.publicBookingEnabled !== false,
       },

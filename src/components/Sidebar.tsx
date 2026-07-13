@@ -37,6 +37,7 @@ const NAV: { href: string; label: string; icon: typeof LayoutDashboard; modos: '
   { href: '/finanzas',      label: 'Finanzas',       icon: TrendingUp,      modos: 'medico' },
   { href: '/corte-caja',    label: 'Corte de caja',  icon: Calculator,      modos: 'ambos' },
   { href: '/cumplimiento',  label: 'Cumplimiento',   icon: ShieldCheck,     modos: 'medico' },
+  { href: '/legal',         label: 'Documentos legales', icon: FileText,    modos: 'medico' },
   { href: '/migracion',     label: 'Migración',      icon: ArrowLeftRight,  modos: 'medico' },
 ]
 
