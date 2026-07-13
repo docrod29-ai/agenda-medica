@@ -21,6 +21,7 @@ import { BotonAyuda } from '@/components/BotonAyuda'
 import { RastreoErrores } from '@/components/RastreoErrores'
 import { OnboardingTour } from '@/components/OnboardingTour'
 import { AutoLogout } from '@/components/AutoLogout'
+import { PaletteBusqueda } from '@/components/PaletteBusqueda'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { rutaPermitida } from '@/lib/modulos'
 
@@ -334,6 +335,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
       <RastreoErrores />
       <OnboardingTour enabled={esMedicoReal} />
       <AutoLogout />
+      <PaletteBusqueda enabled={esMedicoReal} />
     </div>
   )
 }

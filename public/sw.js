@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v369'  // UX agendar: typeahead de paciente en /asistente — al escribir sugiere pacientes existentes y autollena nombre+telefono (reconocer>recordar). Paciente que regresa: ~3 teclas + 1 clic vs ~25 teclas. Aditivo: paciente nuevo = escribir completo como antes
+const CACHE = 'nexusmed-v370'  // UX: paleta de busqueda global ⌘K/Ctrl+K (Linear/Raycast/Notion) — abre el expediente de cualquier paciente desde CUALQUIER pantalla; teclado primero (↑↓, Enter). Solo medico. Aditivo, no toca flujos existentes
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
