@@ -19,6 +19,7 @@ import { BottomNav } from '@/components/BottomNav'
 import { MobileBackButton } from '@/components/MobileBackButton'
 import { BotonAyuda } from '@/components/BotonAyuda'
 import { RastreoErrores } from '@/components/RastreoErrores'
+import { OnboardingTour } from '@/components/OnboardingTour'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { rutaPermitida } from '@/lib/modulos'
 
@@ -330,6 +331,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
       {/* Botón flotante de ayuda en todas las pantallas */}
       <BotonAyuda />
       <RastreoErrores />
+      <OnboardingTour enabled={esMedicoReal} />
     </div>
   )
 }

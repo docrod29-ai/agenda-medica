@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v346'  // ESTETICA: visual de marca en login+registro (componente MarcaAuth: red/nexo + pulso, cobalto via currentColor → sirve en claro y oscuro, muy tenue detras del formulario). Additive, no toca el flujo grabar→transcribir→nota→imprimir
+const CACHE = 'nexusmed-v347'  // ONBOARDING: tour de bienvenida de 4 pasos (Agenda→Consulta→Dictado→Receta) al primer ingreso del medico; se puede saltar (Escape/X/Saltar), se marca visto por medico en localStorage, tarjetas centradas theme-aware. Aditivo, no toca el flujo clinico
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
