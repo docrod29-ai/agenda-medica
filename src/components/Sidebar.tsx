@@ -8,7 +8,7 @@ import { useConfig } from '@/hooks/useConfig'
 import {
   LayoutDashboard, CalendarDays, Calendar, Users, Clock,
   Settings, LogOut, Stethoscope, Shield, Bot, UserSquare2, FileText,
-  MessageCircle, TrendingUp, Star, ShieldCheck, Pill, BedDouble, BookOpen, FlaskConical, ArrowLeftRight, Calculator,
+  MessageCircle, TrendingUp, Star, ShieldCheck, Pill, BedDouble, BookOpen, FlaskConical, ArrowLeftRight, Calculator, HeartHandshake,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
@@ -31,6 +31,7 @@ const NAV: { href: string; label: string; icon: typeof LayoutDashboard; modos: '
   { href: '/lista-espera',  label: 'Lista de espera',icon: Clock,           modos: 'ambos' },
   { href: '/crm',           label: 'CRM',            icon: TrendingUp,      modos: 'medico' },
   { href: '/resenas',       label: 'Reseñas',        icon: Star,            modos: 'medico' },
+  { href: '/reactivacion',  label: 'Reactivación',   icon: HeartHandshake,  modos: 'medico' },
   { href: '/chat',          label: 'Chat',           icon: MessageCircle,   modos: 'ambos' },
   { href: '/farmacia',      label: 'Farmacia',       icon: Pill,            modos: 'ambos' },
   { href: '/finanzas',      label: 'Finanzas',       icon: TrendingUp,      modos: 'medico' },

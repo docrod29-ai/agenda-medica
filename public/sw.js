@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v350'  // LOTE 7 operacion economica: pagina /corte-caja — cierre del dia (neto, efectivo en caja, reembolsos, desglose por forma de pago), embudo agendadas→atendidas→cobradas con tasas, y CUENTAS POR COBRAR (atendidas sin cobro). Imprimible. Nucleo puro src/lib/corte-caja.ts con tests. No toca el flujo clinico
+const CACHE = 'nexusmed-v351'  // LOTE 11 crecimiento: pagina /reactivacion — recupera pacientes sin volver (umbral 3/6/12 meses) con WhatsApp de 1 clic (texto listo, NO auto-envia) + pedir referido compartiendo el enlace de reserva. Nucleo puro src/lib/reactivacion.ts con 7 tests. No toca el flujo clinico
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
