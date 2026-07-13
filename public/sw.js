@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v334'  // CONSULTOR IA conversacional: cuando PubMed no encuentra articulos ya NO corta con 'No encontre evidencia' — la IA (Opus/Sonnet) responde IGUAL razonando con conocimiento clinico + la CONVERSACION previa (continua el hilo, ideal para preguntas de seguimiento tipo 'y cual es la mejor cepa'), marcando claro que es sin citas nuevas (sinCitas). Respeta el tope de creditos en ambos caminos
+const CACHE = 'nexusmed-v335'  // MEMORIA DEL MEDICO: el Consultor de IA aprende de cada medico (como ChatGPT/Claude). lib/memoria-medico.ts guarda preferencias/practica (NUNCA datos de paciente) en clinics/{id}/memoria_medico/{uid} (server-only); se inyecta al prompt para personalizar y tras cada consulta extrae 0-2 hechos durables con Haiku y los acumula (dedupe, tope 40). Aplica en ambos caminos (con y sin evidencia)
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
