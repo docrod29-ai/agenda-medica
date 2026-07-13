@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v347'  // ONBOARDING: tour de bienvenida de 4 pasos (Agenda→Consulta→Dictado→Receta) al primer ingreso del medico; se puede saltar (Escape/X/Saltar), se marca visto por medico en localStorage, tarjetas centradas theme-aware. Aditivo, no toca el flujo clinico
+const CACHE = 'nexusmed-v348'  // LOTE 1 confianza/comercial: copy honesto en landing (no-shows con matiz+asterisco, sin nombres de modelo, '2a opinion'→'revision de consistencia y seguridad clinica'), FAQ ampliada (credito, IVA, exportacion, seguridad), 'Ver demo' funcional→/demo, nueva pagina /seguridad (controles con estado activo/en proceso + subencargados + manejo IA), /demo (recorrido visual), NOM-045 removida de terminos + NOM-004/024 redaccion, trial 7→14 en precios, email footer→nexusmed.mx
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

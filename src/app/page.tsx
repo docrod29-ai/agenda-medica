@@ -19,7 +19,7 @@ const FEATURES = [
   {
     icon: Bell,
     title: 'Recordatorios automáticos',
-    desc: 'SMS y WhatsApp 24h antes. Reduce hasta 40% los no-shows sin levantar un dedo.',
+    desc: 'WhatsApp 24h antes, automático. Los recordatorios pueden reducir hasta 40% las inasistencias según estudios publicados; los resultados varían por consultorio.',
   },
   {
     icon: Users,
@@ -57,7 +57,7 @@ const PLANS = [
     name: 'Clínica',
     price: '899',
     desc: 'El más popular',
-    features: ['Todo lo de Agenda', 'Nota clínica con IA por voz (NOM-004)', 'Recetas y órdenes con tu membrete', 'Consultor de evidencia (PubMed)', '160 créditos/mes · menú de IA', 'Incluye 1 médico · +$499 por médico extra'],
+    features: ['Todo lo de Agenda', 'Nota clínica con IA por voz — plantillas alineadas a los requisitos aplicables de la NOM-004', 'Recetas y órdenes con tu membrete', 'Consultor de evidencia con citas de PubMed', '160 créditos de IA/mes (ver "¿qué es un crédito?")', 'Incluye 1 médico · +$499 por médico extra'],
     cta: 'Empezar prueba gratis',
     highlight: true,
   },
@@ -65,7 +65,7 @@ const PLANS = [
     name: 'Pro',
     price: '1,899',
     desc: 'Máxima inteligencia clínica',
-    features: ['Todo lo de Clínica', 'IA de máximo razonamiento (Opus 4.8 + GPT-5)', '2ª opinión automática en cada nota', '450 créditos/mes', 'Soporte prioritario', 'Incluye 1 médico · +$999 por médico extra'],
+    features: ['Todo lo de Clínica', 'IA de máximo razonamiento clínico', 'Revisión de consistencia y seguridad clínica en cada nota', '450 créditos de IA/mes', 'Soporte prioritario', 'Incluye 1 médico · +$999 por médico extra'],
     cta: 'Empezar prueba gratis',
     highlight: false,
   },
@@ -82,11 +82,23 @@ const FAQS = [
   },
   {
     q: '¿Mis datos están seguros?',
-    a: 'Sí. Usamos Firebase (Google Cloud) con cifrado en reposo y en tránsito. Tus datos y los de tus pacientes nunca se comparten.',
+    a: 'Sí. Corren sobre Google Cloud (Firebase) con cifrado en tránsito y en reposo, acceso por roles, aislamiento por consultorio y respaldos con recuperación a un punto en el tiempo. Los detalles y la lista de proveedores están en nuestra página de Seguridad y confianza (/seguridad).',
+  },
+  {
+    q: '¿Qué es un "crédito de IA" y cuántas notas alcanzo?',
+    a: 'Un crédito es una unidad de uso de inteligencia artificial. Las funciones consumen créditos según su costo real de cómputo (una nota por voz consume más que una corrección corta). En tu panel ves el consumo en tiempo real y te avisamos antes de agotarlos; puedes recargar o subir de plan. Estamos migrando la comunicación a "notas incluidas por mes" para que sea más claro.',
+  },
+  {
+    q: '¿Los precios incluyen IVA?',
+    a: 'Los precios se muestran antes de IVA; al momento del pago ves el desglose con impuestos. Si necesitas comprobante fiscal de tu suscripción, escríbenos y lo gestionamos.',
+  },
+  {
+    q: '¿Puedo llevarme mi información?',
+    a: 'Sí. La información es tuya, sin secuestro de datos. Al cancelar te entregamos una exportación completa de tus pacientes y expedientes. Estamos habilitando además la exportación con un clic desde tu panel.',
   },
   {
     q: '¿Puedo cancelar cuando quiera?',
-    a: 'Sí, sin penalizaciones ni contratos. Cancela desde tu panel en cualquier momento.',
+    a: 'Sí, sin penalizaciones ni permanencia mínima. Cancela desde tu panel en cualquier momento; tus datos quedan disponibles para exportar.',
   },
   {
     q: '¿Funciona con cualquier especialidad médica?',
@@ -200,9 +212,9 @@ function Hero() {
           <Link href="/registro" className="btn btn-primary btn-lg" style={{ textDecoration: 'none' }}>
             Comenzar prueba gratis <ArrowRight size={17} />
           </Link>
-          <a href="#como-funciona" className="btn btn-secondary btn-lg" style={{ textDecoration: 'none' }}>
+          <Link href="/demo" className="btn btn-secondary btn-lg" style={{ textDecoration: 'none' }}>
             Ver demo
-          </a>
+          </Link>
         </div>
         <div style={{ marginTop: 16, fontSize: 14, color: 'var(--text2)' }}>
           ¿Ya tienes cuenta?{' '}
@@ -215,8 +227,8 @@ function Hero() {
 
 function Stats() {
   const items = [
-    { value: '40%', label: 'menos no-shows' },
-    { value: '3 hrs', label: 'ahorradas por semana' },
+    { value: 'hasta 40%', label: 'menos inasistencias con recordatorios*' },
+    { value: 'menos', label: 'tiempo escribiendo notas' },
     { value: '$0', label: 'los primeros 14 días' },
     { value: '5 min', label: 'para estar listo' },
   ]
@@ -235,6 +247,9 @@ function Stats() {
           <div style={{ fontSize: 14, color: 'var(--text3)', marginTop: 4 }}>{s.label}</div>
         </div>
       ))}
+      <div style={{ flexBasis: '100%', textAlign: 'center', padding: '0 24px 16px', fontSize: 11.5, color: 'var(--text3)' }}>
+        * Según estudios publicados sobre recordatorios de citas; la reducción real varía por especialidad, población y consultorio.
+      </div>
     </section>
   )
 }
@@ -562,9 +577,10 @@ function Footer() {
         <span style={{ fontSize: 14, color: 'var(--text3)' }}>· Hecho en México 🇲🇽</span>
       </div>
       <div style={{ display: 'flex', gap: 24 }}>
+        <a href="/seguridad" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Seguridad</a>
         <a href="/terminos" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Términos</a>
         <a href="/privacidad" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Privacidad</a>
-        <a href="mailto:soporte@agendamedica.mx" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Soporte</a>
+        <a href="mailto:soporte@nexusmed.mx" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Soporte</a>
       </div>
       <div style={{ fontSize: 13, color: 'var(--text3)' }}>
         © {new Date().getFullYear()} NexusMED. Todos los derechos reservados.

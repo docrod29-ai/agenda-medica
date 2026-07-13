@@ -59,7 +59,7 @@ export interface Motor {
 export const MOTORES: Record<ClaveMotor, Motor> = {
   rapida:   { clave: 'rapida',   nombre: 'Rápida',   emoji: '⚡', modelos: 'Haiku 4.5',                   creditos: 1,  perfil: 'live' },
   estandar: { clave: 'estandar', nombre: 'Estándar', emoji: '⭐', modelos: 'Sonnet 5 + separación de voces', creditos: 3,  perfil: 'pro' },
-  maxima:   { clave: 'maxima',   nombre: 'Máxima',   emoji: '💎', modelos: 'Opus 4.8 + GPT-5 + 2ª opinión', creditos: 10, perfil: 'premium' },
+  maxima:   { clave: 'maxima',   nombre: 'Máxima',   emoji: '💎', modelos: 'Máximo razonamiento + revisión de seguridad', creditos: 10, perfil: 'premium' },
 }
 export const motorPorClave = (c?: string): Motor => MOTORES[(c as ClaveMotor)] ?? MOTORES.estandar
 /** Motor por defecto según el nivel del plan: Pro/Premium → Máxima; Clínica → Estándar. */
@@ -110,9 +110,9 @@ export const PLANES: Record<ClavePlan, PlanCreditos> = {
     pacientesMax: null,
     incluye: [
       'Todo lo de Clínica',
-      'IA de máximo razonamiento por defecto (💎 Opus 4.8 + GPT-5)',
-      'Segunda opinión GPT-5 AUTOMÁTICA en cada nota',
-      'Consultor de evidencia con Opus 4.8 + GPT-5',
+      'IA de máximo razonamiento clínico por defecto 💎',
+      'Revisión de consistencia y seguridad clínica automática en cada nota',
+      'Consultor de evidencia con IA de máximo nivel',
       '450 créditos/mes (~45 notas Máxima o ~150 Estándar)',
       'Al agotarlos sigue en ⚡ Rápida gratis — nunca te quedas sin IA',
       'Soporte prioritario',

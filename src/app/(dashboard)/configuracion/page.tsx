@@ -1390,7 +1390,7 @@ const PLAN_FEATURES: Record<string, string[]> = {
   trial:    ['14 días gratuitos', 'Todas las funciones', 'Sin tarjeta de crédito'],
   agenda:   ['Agenda y calendario', 'Recordatorios por WhatsApp', 'Expediente básico', 'Portal del paciente'],
   clinica:  ['160 créditos de IA/mes', 'Nota por voz + separación de voces', 'Menú de IA (⚡/⭐/💎)', 'Consultor de evidencia', 'Todo el plan Agenda'],
-  premium:  ['450 créditos/mes', 'IA máxima por defecto (Opus 4.8 + GPT-5)', '2ª opinión automática', 'Soporte prioritario', 'Todo el plan Clínica'],
+  premium:  ['450 créditos/mes', 'IA de máximo razonamiento clínico por defecto', 'Revisión de seguridad clínica automática', 'Soporte prioritario', 'Todo el plan Clínica'],
   hospital: ['Módulo de Hospitalización', '400 créditos/mes', 'Censo, camas, MAR, NEWS2', 'Notas de ingreso/evolución/egreso'],
 }
 

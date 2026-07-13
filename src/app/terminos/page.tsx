@@ -50,11 +50,11 @@ export default function TerminosPage() {
       </Section>
 
       <Section titulo="4. Cumplimiento normativo">
-        El Servicio está diseñado para apoyar el cumplimiento de la normativa mexicana aplicable, incluyendo la
-        <strong> NOM-004-SSA3-2012</strong> (expediente clínico), la <strong>NOM-024-SSA3-2012</strong> (sistemas de información
-        de registro electrónico) y la <strong>NOM-045</strong> según aplique. El uso correcto y el cumplimiento en cada
-        consultorio son responsabilidad del profesional de la salud. NexusMED provee las herramientas; no garantiza el
-        cumplimiento por sí solo, que depende del uso que le dé cada usuario.
+        El Servicio ofrece plantillas y elementos documentales <strong>alineados con los requisitos aplicables de la
+        NOM-004-SSA3-2012</strong> (expediente clínico) y considera los principios de la <strong>NOM-024-SSA3-2012</strong>
+        (sistemas de información de registro electrónico) en lo que resulta aplicable. El uso correcto y el cumplimiento
+        normativo en cada consultorio son responsabilidad del profesional de la salud. NexusMED provee las herramientas;
+        no garantiza por sí solo el cumplimiento, que depende del uso que le dé cada usuario.
       </Section>
 
       <Section titulo="5. Planes, pagos y créditos">

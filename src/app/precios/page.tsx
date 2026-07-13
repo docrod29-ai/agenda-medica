@@ -3,7 +3,7 @@ import { PLANES, RECARGA, MOTORES, precioAnual, type PlanCreditos } from '@/lib/
 
 export const metadata = {
   title: 'Precios · NexusMED',
-  description: 'Planes de NexusMED por créditos: agenda, notas clínicas con IA, evidencia con citas y segunda opinión. Precios en pesos.',
+  description: 'Planes de NexusMED por créditos: agenda, notas clínicas con IA, evidencia con citas y revisión de seguridad clínica. Precios en pesos.',
 }
 
 function Check() {
@@ -47,7 +47,7 @@ function Card({ plan }: { plan: PlanCreditos }) {
         background: destacado ? 'var(--nexus, #3d5afe)' : 'transparent',
         color: destacado ? '#fff' : 'var(--nexus, #3d5afe)',
         border: '1px solid var(--nexus, #3d5afe)',
-      }}>Prueba gratis 7 días</Link>
+      }}>Prueba gratis 14 días</Link>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20 }}>
         {plan.incluye.map((b, i) => (
           <div key={i} style={{ display: 'flex', gap: 9, fontSize: 13.5, color: 'var(--text2, #334155)', lineHeight: 1.45 }}>
@@ -69,8 +69,8 @@ export default function PreciosPage() {
         </h1>
         <p style={{ fontSize: 16, color: 'var(--text3, #64748b)', maxWidth: 640, margin: '14px auto 0', lineHeight: 1.5 }}>
           Cada plan incluye créditos de IA al mes. Documentas por voz, la nota se arma sola, con separación
-          médico-paciente, evidencia con citas y segunda opinión. Si se acaban, compras más o subes de plan —
-          nunca te cobran de sorpresa.
+          médico-paciente, evidencia con citas y revisión de consistencia y seguridad clínica. Si se acaban,
+          compras más o subes de plan — nunca te cobran de sorpresa.
         </p>
       </div>
 
