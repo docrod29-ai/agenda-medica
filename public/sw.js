@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v349'  // LOTE 8 migracion: pagina /migracion — exportar pacientes a CSV (cumple la promesa 'llevate tu informacion' publicada en landing) + importacion asistida desde CSV/Excel/Google Contactos con auto-mapeo de columnas y DEDUPLICACION por telefono + reporte. Nucleo puro src/lib/csv-pacientes.ts con 9 tests. No toca el flujo clinico
+const CACHE = 'nexusmed-v350'  // LOTE 7 operacion economica: pagina /corte-caja — cierre del dia (neto, efectivo en caja, reembolsos, desglose por forma de pago), embudo agendadas→atendidas→cobradas con tasas, y CUENTAS POR COBRAR (atendidas sin cobro). Imprimible. Nucleo puro src/lib/corte-caja.ts con tests. No toca el flujo clinico
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
