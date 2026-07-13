@@ -472,14 +472,25 @@ function Trust() {
   return (
     <section style={{
       borderTop: '1px solid var(--border)', padding: '48px 24px',
-      display: 'flex', justifyContent: 'center', gap: 48, flexWrap: 'wrap',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20,
     }}>
-      {items.map(t => (
-        <div key={t.text} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <t.icon size={18} color="var(--teal)" />
-          <span style={{ fontSize: 14, color: 'var(--text2)' }}>{t.text}</span>
-        </div>
-      ))}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 48, flexWrap: 'wrap' }}>
+        {items.map(t => (
+          <div key={t.text} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <t.icon size={18} color="var(--teal)" />
+            <span style={{ fontSize: 14, color: 'var(--text2)' }}>{t.text}</span>
+          </div>
+        ))}
+      </div>
+      {/* Punto de entrada a la página de seguridad: exhibe la inversión en
+          confianza como argumento de venta (antes solo estaba en el footer). */}
+      <Link href="/seguridad" style={{
+        display: 'inline-flex', alignItems: 'center', gap: 7, textDecoration: 'none',
+        fontSize: 13.5, fontWeight: 700, color: 'var(--nexus)',
+        border: '1px solid var(--border2)', borderRadius: 100, padding: '8px 18px',
+      }}>
+        <Shield size={15} /> Cómo protegemos la información clínica <ArrowRight size={14} />
+      </Link>
     </section>
   )
 }
