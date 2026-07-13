@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v331'  // MARKETING: evento de conversion Meta 'CompleteRegistration' al completar registro (email y Google) — MetaPixel montado tambien en /registro (publico); trackConversion reintenta hasta 3s por si el Pixel aun no carga; permite medir ventas/altas y optimizar campanas. Sigue gated por NEXT_PUBLIC_META_PIXEL_ID
+const CACHE = 'nexusmed-v332'  // FIX diagnostico transcripcion: cuando OpenAI falla, el cliente mostraba solo 'OpenAI HTTP 502' ocultando la causa real; ahora surface el mensaje descriptivo del servidor (llave invalida/expirada, sin saldo, HTTP X del modelo) para que el medico sepa que arreglar. El audio recuperado NUNCA se borra si falla
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
