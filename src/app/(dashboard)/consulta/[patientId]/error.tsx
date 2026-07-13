@@ -7,9 +7,10 @@
  */
 import { useEffect } from 'react'
 import { AlertTriangle, RotateCcw } from 'lucide-react'
+import { reportarError } from '@/lib/reportar-error'
 
 export default function ConsultaError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
-  useEffect(() => { console.error('Consulta error boundary:', error) }, [error])
+  useEffect(() => { console.error('Consulta error boundary:', error); reportarError(error.message, { stack: error.stack, origen: 'boundary:consulta' }) }, [error])
   return (
     <div style={{ maxWidth: 520, margin: '0 auto', padding: '80px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
       <div style={{ width: 56, height: 56, borderRadius: 16, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

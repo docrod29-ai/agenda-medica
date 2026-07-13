@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v342'  // CONSULTOR retrieval mejorado (rumbo OpenEvidence, solo Consultor): (1) la pregunta se descompone en 1-3 SUB-BUSQUEDAS PICO en PARALELO (eficacia/seguridad/comparacion) → mejor cobertura; (2) PRIORIZA meta-analisis/ECA/guias (filtro HQ + landmark sin ventana de anios + reordena por jerarquia de evidencia); (3) etiqueta el TIPO de estudio (Meta-analisis/Guia/ECA/Revision) en el prompt y en cada fuente. pubmed.ts refactor con esearch/efetchArts/buscarEvidenciaMulti. PMC full-text queda para despues
+const CACHE = 'nexusmed-v343'  // RASTREO DE ERRORES (mini-Sentry propio): captura global de errores no atrapados del cliente (window.onerror + unhandledrejection, dedup, nunca rompe) → /api/errores (Admin SDK, coleccion errores server-only, rate-limit) → el dueno los ve en /superadmin/errores (lista, stack, marcar visto). Error boundaries tambien reportan. Sin datos de paciente. Para ver fallas en produccion sin depender de que avisen
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
