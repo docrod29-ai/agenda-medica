@@ -5,6 +5,7 @@ import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, sign
 import { auth } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import { Stethoscope, Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react'
+import { MarcaAuth } from '@/components/brand/MarcaAuth'
 import Link from 'next/link'
 import { MetaPixel, trackConversion } from '@/components/MetaPixel'
 
@@ -119,6 +120,8 @@ function RegistroInner() {
           background: 'radial-gradient(circle, var(--nexus-soft) 0%, transparent 65%)',
           pointerEvents: 'none', opacity: 0.6,
         }} />
+        {/* Motivo de red/nexo de marca — muy tenue, detrás del panel de beneficios */}
+        <MarcaAuth style={{ bottom: '-4%', left: '50%', transform: 'translateX(-50%)', width: 'min(640px, 110%)', opacity: 0.13 }} />
 
         <div style={{ position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 48 }}>

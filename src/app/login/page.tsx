@@ -6,6 +6,7 @@ import { auth } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import Link from 'next/link'
 import { Stethoscope, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { MarcaAuth } from '@/components/brand/MarcaAuth'
 
 export default function LoginPage() {
   return (
@@ -126,6 +127,8 @@ function LoginInner() {
         background: 'radial-gradient(circle, var(--nexus-soft) 0%, transparent 65%)',
         pointerEvents: 'none', opacity: 0.6,
       }} />
+      {/* Motivo de red/nexo de marca — muy tenue, detrás del formulario */}
+      <MarcaAuth style={{ top: '4%', left: '50%', transform: 'translateX(-50%)', width: 'min(760px, 120vw)', opacity: 0.14 }} />
 
       <div style={{ width: '100%', maxWidth: 420, position: 'relative' }}>
         {/* Hero brand block */}

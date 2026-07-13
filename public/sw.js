@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v345'  // ESTETICA: mas pantallas vacias con arte de marca (pacientes→ExpedienteVacio, lista-espera→AgendaVacia) + entrada suave (clase .empty-illus con nx-rise, respeta reduce-motion). Micro-interacciones: el design system ya tenia focus-visible/reduced-motion/lift/keyframes, no se agrego CSS redundante
+const CACHE = 'nexusmed-v346'  // ESTETICA: visual de marca en login+registro (componente MarcaAuth: red/nexo + pulso, cobalto via currentColor → sirve en claro y oscuro, muy tenue detras del formulario). Additive, no toca el flujo grabar→transcribir→nota→imprimir
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
