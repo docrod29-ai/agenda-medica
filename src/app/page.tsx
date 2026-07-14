@@ -11,7 +11,7 @@ const FEATURES = [
   {
     icon: Calendar,
     title: 'Agenda inteligente',
-    desc: 'Calendario visual por día/semana. CRUD completo de citas con validación de horarios y conflictos.',
+    desc: 'Calendario por día y semana. Crea, mueve y cancela citas con validación de horarios y sin empalmes.',
   },
   {
     icon: MessageCircle,
