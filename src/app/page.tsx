@@ -607,7 +607,7 @@ function Footer() {
         <a href="/seguridad" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Seguridad</a>
         <a href="/terminos" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Términos</a>
         <a href="/privacidad" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Privacidad</a>
-        <a href="mailto:soporte@nexusmed.mx" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Soporte</a>
+        <a href="/contacto" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Soporte</a>
       </div>
       <div style={{ fontSize: 13, color: 'var(--text3)' }}>
         © {new Date().getFullYear()} NexusMED. Todos los derechos reservados.
