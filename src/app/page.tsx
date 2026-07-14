@@ -249,7 +249,9 @@ function Stats() {
         </div>
       ))}
       <div style={{ flexBasis: '100%', textAlign: 'center', padding: '0 24px 16px', fontSize: 11.5, color: 'var(--text3)' }}>
-        * Según estudios publicados sobre recordatorios de citas; la reducción real varía por especialidad, población y consultorio.
+        * De revisiones sistemáticas publicadas: reducción relativa ~34% en promedio (hasta ~39% con recordatorio telefónico). La reducción real
+        varía por especialidad, población y consultorio.{' '}
+        <Link href="/evidencia" style={{ color: 'var(--nexus)', fontWeight: 600, textDecoration: 'none' }}>Ver fuentes →</Link>
       </div>
     </section>
   )
@@ -491,13 +493,26 @@ function Trust() {
       </div>
       {/* Punto de entrada a la página de seguridad: exhibe la inversión en
           confianza como argumento de venta (antes solo estaba en el footer). */}
-      <Link href="/seguridad" style={{
-        display: 'inline-flex', alignItems: 'center', gap: 7, textDecoration: 'none',
-        fontSize: 13.5, fontWeight: 700, color: 'var(--nexus)',
-        border: '1px solid var(--border2)', borderRadius: 100, padding: '8px 18px',
-      }}>
-        <Shield size={15} /> Cómo protegemos la información clínica <ArrowRight size={14} />
-      </Link>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+        <Link href="/seguridad" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 7, textDecoration: 'none',
+          fontSize: 13.5, fontWeight: 700, color: 'var(--nexus)',
+          border: '1px solid var(--border2)', borderRadius: 100, padding: '8px 18px',
+        }}>
+          <Shield size={15} /> Cómo protegemos la información clínica <ArrowRight size={14} />
+        </Link>
+        <Link href="/evidencia" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 7, textDecoration: 'none',
+          fontSize: 13.5, fontWeight: 700, color: 'var(--text2)',
+          border: '1px solid var(--border2)', borderRadius: 100, padding: '8px 18px',
+        }}>
+          <BarChart3 size={15} /> Evidencia y transparencia <ArrowRight size={14} />
+        </Link>
+      </div>
+      <p style={{ fontSize: 12.5, color: 'var(--text3)', maxWidth: 520, textAlign: 'center', margin: 0, lineHeight: 1.6 }}>
+        NexusMED es nuevo: no inflamos cifras de usuarios ni inventamos testimonios. Lo que mostramos está respaldado por
+        evidencia publicada o es una oferta real.
+      </p>
     </section>
   )
 }
