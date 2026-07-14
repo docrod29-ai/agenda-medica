@@ -54,6 +54,10 @@ export default function GeneradorRecetaPage() {
   // Folio único (timestamp corto)
   const folio = useMemo(() => `RX-${Date.now().toString(36).toUpperCase().slice(-7)}`, [])
 
+  // URL de verificación firmada (destino del QR): /verificar/<token HMAC>. Se pide
+  // más abajo (después de calcular recetaConfig) para respetar el orden de hooks.
+  const [verificacionUrl, setVerificacionUrl] = useState<string | undefined>(undefined)
+
   // SEGURIDAD CLÍNICA: cruce alergia↔medicamento EN LA RECETA — el artefacto
   // que se dispensa. Reactivo a cada cambio de medicamento. Antes solo se
   // chequeaba en la consulta; aquí se podía agregar un fármaco peligroso sin alerta.
@@ -127,6 +131,26 @@ export default function GeneradorRecetaPage() {
     // A5 y recorta el diseño.
     return { ...merged, imprimirEn: 'carta' as const }
   }, [config, nota?.metadata?.medicoId])
+
+  // Pide al servidor la URL de verificación firmada (secreto HMAC no accesible en
+  // cliente). Sin datos del paciente. Si falla, el QR cae al folio.
+  useEffect(() => {
+    if (!clinicId || !notaId || !folio || !recetaConfig.mostrarQR) return
+    let vivo = true
+    fetch('/api/receta/verificacion-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clinicId, notaId, folio,
+        doctorNombre: config?.nombreMedico ?? '',
+        cedula: config?.cedulaProfesional ?? '',
+      }),
+    })
+      .then(r => (r.ok ? r.json() : null))
+      .then(j => { if (vivo && j?.url) setVerificacionUrl(j.url) })
+      .catch(() => { /* fallback al folio */ })
+    return () => { vivo = false }
+  }, [clinicId, notaId, folio, recetaConfig.mostrarQR, config?.nombreMedico, config?.cedulaProfesional])
 
   // Config con la firma del MÉDICO de esta nota (per-médico), si tiene la suya.
   const configFirma = useMemo(() => {
@@ -419,6 +443,7 @@ export default function GeneradorRecetaPage() {
               medicamentos,
               indicaciones,
               notaParaPaciente,
+              verificacionUrl,
             }
             const host = dimensionesImpresion(recetaConfig)
             const numPages = contarPaginas(dataPreview, config, recetaConfig)

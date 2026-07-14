@@ -47,6 +47,12 @@ export interface RecetaData {
   indicaciones?: string
   /** Aviso al paciente */
   notaParaPaciente?: string
+  /**
+   * URL de verificación (destino del QR). La arma el servidor con
+   * linkVerificacionReceta() (token HMAC, sin datos del paciente). Si no se
+   * provee, el QR codifica solo el folio (comportamiento previo).
+   */
+  verificacionUrl?: string
 }
 
 export interface RecetaDocumentoProps {
@@ -59,6 +65,33 @@ export interface RecetaDocumentoProps {
 
 /** Carta física: 216 × 279 mm */
 const CARTA = { widthMm: 216, heightMm: 279 }
+
+/**
+ * QR generado LOCALMENTE (data URI) — sin depender de api.qrserver.com.
+ * Ventajas vs. el servicio externo: no filtra el folio/URL a un tercero, funciona
+ * offline y el data URI ya está embebido cuando html2pdf captura (no hay carrera
+ * de carga de imagen remota). Codifica `contenido` (URL de verificación o folio).
+ */
+function QrLocal({ contenido, tamMm }: { contenido: string; tamMm: number }) {
+  const [dataUrl, setDataUrl] = useState<string>('')
+  useEffect(() => {
+    let vivo = true
+    import('qrcode')
+      .then((QR) => QR.toDataURL(contenido, { margin: 1, width: 320, errorCorrectionLevel: 'M' }))
+      .then((url) => { if (vivo) setDataUrl(url) })
+      .catch(() => { /* si falla, no rompe la impresión: simplemente no hay QR */ })
+    return () => { vivo = false }
+  }, [contenido])
+  if (!dataUrl) return null
+  // eslint-disable-next-line @next/next/no-img-element
+  return (
+    <img
+      src={dataUrl}
+      alt="QR de verificación"
+      style={{ width: `${tamMm}mm`, height: `${tamMm}mm`, background: 'rgba(255,255,255,0.9)', padding: 2, borderRadius: 2 }}
+    />
+  )
+}
 
 /** Formatea la fecha de nacimiento (YYYY-MM-DD) como "15/ene/1985". */
 function fmtFechaNac(fecha: string): string {
@@ -552,12 +585,7 @@ function HojaCustom({
         <div style={campos?.qr
           ? { position: 'absolute', left: `${campos.qr.x}%`, top: `${campos.qr.y}%`, transform: 'translate(-50%, -50%)', textAlign: 'center' }
           : { position: 'absolute', bottom: `${Math.max(2, margenes.bottom - 16)}mm`, right: `${margenes.right}mm`, textAlign: 'center' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(`Folio:${data.folio}`)}&size=160x160&margin=2`}
-            alt="QR"
-            style={{ width: `${tamQr}mm`, height: `${tamQr}mm`, background: 'rgba(255,255,255,0.8)', padding: 2, borderRadius: 2 }}
-          />
+          <QrLocal contenido={data.verificacionUrl || `Folio:${data.folio}`} tamMm={tamQr} />
         </div>
       )}
 
@@ -775,12 +803,7 @@ function HojaGenerada({
 
           {recetaConfig.mostrarQR && (
             <div style={{ position: 'absolute', bottom: '8mm', right: '10mm', textAlign: 'center' }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(`Folio:${data.folio}`)}&size=80x80&margin=2`}
-                alt="QR de verificación"
-                style={{ width: '14mm', height: '14mm' }}
-              />
+              <QrLocal contenido={data.verificacionUrl || `Folio:${data.folio}`} tamMm={14} />
               <div style={{ fontSize: 7, color: '#999', marginTop: 1 }}>Verificación</div>
             </div>
           )}

@@ -64,7 +64,7 @@ const nextConfig: NextConfig = {
       // referer (el token va en la URL → evitar que se filtre a terceros o a
       // buscadores). Aplica a /mi/[token] y /resena/[token].
       {
-        source: "/(mi|resena)/:path*",
+        source: "/(mi|resena|verificar)/:path*",
         headers: [
           { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive, nosnippet" },
           { key: "Referrer-Policy", value: "no-referrer" },
