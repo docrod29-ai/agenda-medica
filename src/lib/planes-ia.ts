@@ -95,7 +95,7 @@ export const PLANES: Record<ClavePlan, PlanCreditos> = {
     pacientesMax: null, destacado: true,
     incluye: [
       'Todo lo de Agenda',
-      'Nota clínica con IA (voz → nota, NOM-004)',
+      'Nota clínica con IA (voz → nota, orientada a los requisitos de la NOM-004)',
       'Separación médico-paciente automática',
       'Recetas y órdenes',
       'Consultor de evidencia (PubMed) con doble IA (Claude + GPT)',

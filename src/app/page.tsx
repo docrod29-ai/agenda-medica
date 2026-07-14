@@ -77,7 +77,7 @@ const FAQS = [
   },
   {
     q: '¿Mis datos están seguros?',
-    a: 'Sí. Corren sobre Google Cloud (Firebase) con cifrado en tránsito y en reposo, acceso por roles, aislamiento por consultorio y respaldos con recuperación a un punto en el tiempo. Los detalles y la lista de proveedores están en nuestra página de Seguridad y confianza (/seguridad).',
+    a: 'Corren sobre Google Cloud (Firebase) con cifrado en tránsito y en reposo, acceso por roles y aislamiento por consultorio (todo verificado). Estamos activando respaldos con recuperación a un punto en el tiempo; no lo declaramos como listo hasta probar una restauración. Los detalles, el estado de cada control y la lista de proveedores están en nuestra página de Seguridad y confianza (/seguridad).',
   },
   {
     q: '¿Qué es un "crédito de IA" y cuántas notas alcanzo?',
@@ -575,7 +575,7 @@ function FinalCTA() {
         Recupera tu tiempo hoy
       </h2>
       <p style={{ fontSize: 17, color: 'var(--text2)', marginBottom: 40, maxWidth: 480, margin: '0 auto 40px' }}>
-        Únete a médicos que ya automatizaron su consultorio. 14 días gratis, sin compromisos.
+        Reúne agenda, expediente, recetas y cobros en una sola herramienta. 14 días gratis, sin compromisos.
       </p>
       <Link href="/registro" style={{
         display: 'inline-flex', alignItems: 'center', gap: 8,
