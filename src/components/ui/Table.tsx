@@ -16,15 +16,26 @@ interface TableProps<T> {
   onRowClick?: (row: T) => void
   /** Contenido a mostrar cuando no hay filas */
   empty?: ReactNode
+  /**
+   * En móvil (≤640px) cada fila se muestra como TARJETA "Encabezado: valor"
+   * (evita tablas ilegibles en teléfono). Default true. Poner false para
+   * tablas que se leen mejor con scroll horizontal. Solo afecta ≤640px.
+   */
+  mobileCards?: boolean
+}
+
+/** Etiqueta para el modo tarjeta móvil: solo si el encabezado es texto. */
+function labelDe(header: ReactNode): string | undefined {
+  return typeof header === 'string' ? header : undefined
 }
 
 /** Tabla densa. Wrapper sobre `.table-wrap` + estilos `table` del design system. */
-export function Table<T>({ columns, rows, rowKey, onRowClick, empty }: TableProps<T>) {
+export function Table<T>({ columns, rows, rowKey, onRowClick, empty, mobileCards = true }: TableProps<T>) {
   if (rows.length === 0 && empty) {
     return <>{empty}</>
   }
   return (
-    <div className="table-wrap">
+    <div className={mobileCards ? 'table-wrap rwd' : 'table-wrap'}>
       <table>
         <thead>
           <tr>
@@ -43,7 +54,7 @@ export function Table<T>({ columns, rows, rowKey, onRowClick, empty }: TableProp
               style={onRowClick ? { cursor: 'pointer' } : undefined}
             >
               {columns.map(c => (
-                <td key={c.key} style={{ textAlign: c.align ?? 'left' }}>
+                <td key={c.key} data-label={labelDe(c.header) ?? ''} style={{ textAlign: c.align ?? 'left' }}>
                   {c.render(row)}
                 </td>
               ))}

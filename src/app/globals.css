@@ -65,6 +65,7 @@ html, body {
   color: var(--text);
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
   min-height: 100vh;
+  min-height: 100dvh; /* móvil: altura real del viewport (evita saltos por la barra del navegador) */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   /* Tipografía base premium: ligero negative letter-spacing y leading cómodo */
@@ -319,6 +320,7 @@ tbody tr:last-child { border-bottom: none; }
   border-right: 1px solid var(--border);
   width: 224px;
   min-height: 100vh;
+  min-height: 100dvh; /* móvil: altura real del viewport (evita saltos por la barra del navegador) */
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -426,6 +428,7 @@ tbody tr:last-child { border-bottom: none; }
   width: 100%;
   max-width: 560px;
   max-height: 92vh;
+  max-height: 92dvh;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -1301,4 +1304,65 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
 @media (max-width: 640px) {
   .nx-pw-body { grid-template-columns: 1fr !important; }
   .nx-pw-side { display: none !important; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * FOUNDATION RESPONSIVE (Iteración 2 · Mobile Excellence)
+ * Breakpoints canónicos (usar estos, no anchos arbitrarios):
+ *   Compact  ≤ 640px   → teléfono
+ *   Medium   641–1024  → teléfono grande / tablet vertical
+ *   Expanded ≥ 1025px  → tablet horizontal / escritorio
+ * Reglas: los overrides móviles viven SOLO dentro de max-width → el
+ * escritorio queda intacto por construcción.
+ * ════════════════════════════════════════════════════════════════════ */
+
+/* Grid de tarjetas de estadística: preserva 3 columnas en escritorio y colapsa
+ * SOLO en móvil (no altera el layout de escritorio por construcción). */
+.nx-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+@media (max-width: 560px) { .nx-stat-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 360px) { .nx-stat-grid { grid-template-columns: 1fr; } }
+
+/* Tabla compartida (ui/Table con clase .rwd): en Compact se vuelve TARJETAS.
+ * Cada celda muestra "Encabezado: valor" usando data-label. Escritorio intacto. */
+@media (max-width: 640px) {
+  .table-wrap.rwd table,
+  .table-wrap.rwd thead,
+  .table-wrap.rwd tbody,
+  .table-wrap.rwd tr,
+  .table-wrap.rwd td { display: block; width: 100%; }
+  .table-wrap.rwd thead { position: absolute; left: -9999px; } /* oculta encabezados, sin romper lectores */
+  .table-wrap.rwd tr {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 10px;
+    padding: 6px 12px;
+    background: var(--s1);
+  }
+  .table-wrap.rwd td {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 14px;
+    padding: 8px 0;
+    text-align: right !important;
+    border-bottom: 1px solid var(--border);
+  }
+  .table-wrap.rwd tr td:last-child { border-bottom: none; }
+  .table-wrap.rwd td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--text3);
+    text-align: left;
+    flex-shrink: 0;
+  }
+  .table-wrap.rwd td[data-label=""]::before { content: none; } /* sin etiqueta: ocupa todo */
+}
+
+/* Modal en Compact: refuerza el agarre visual del bottom-sheet (ya cae abajo). */
+@media (max-width: 640px) {
+  .modal { max-height: 90dvh; }
 }
