@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { Shield, Lock, Users, FileClock, DatabaseBackup, Server, Bug, Bell, Brain, ArrowLeft } from 'lucide-react'
+import { SECURITY_CONTROLS, ESTADO_LABEL, esActivo, type SecurityState } from '@/config/security-controls'
 
 export const metadata: Metadata = {
   title: 'Seguridad y confianza · NexusMED',
@@ -15,31 +16,13 @@ export const metadata: Metadata = {
  * RFC, responsable de privacidad) los completa el Dr. — ver marcadores PENDIENTE.
  */
 
-type Estado = 'activo' | 'proceso'
-const CONTROLES: { icon: typeof Lock; titulo: string; detalle: string; estado: Estado }[] = [
-  { icon: Lock, titulo: 'Cifrado en tránsito y en reposo', estado: 'activo',
-    detalle: 'Todo el tráfico viaja por HTTPS/TLS. La información se almacena en Google Cloud (Firestore y Storage), que cifra los datos en reposo de forma predeterminada.' },
-  { icon: Users, titulo: 'Control de acceso por roles', estado: 'activo',
-    detalle: 'Permisos por rol (médico, administración, enfermería, recepción, auditor). El rol vive en el servidor y no puede alterarse desde el navegador. La asistente nunca ve datos clínicos sensibles.' },
-  { icon: Server, titulo: 'Aislamiento entre consultorios', estado: 'activo',
-    detalle: 'Cada consultorio es un espacio de datos independiente. Las reglas de seguridad impiden que un consultorio acceda a la información de otro.' },
-  { icon: Shield, titulo: 'Protección de abuso y App Check', estado: 'activo',
-    detalle: 'Límites de tasa en los endpoints sensibles y verificación de origen de la app (App Check) para bloquear tráfico automatizado.' },
-  { icon: Lock, titulo: 'Cierre automático de sesión por inactividad', estado: 'activo',
-    detalle: 'La sesión se cierra sola tras un periodo de inactividad, con aviso previo; evita accesos indebidos si el equipo queda desatendido. Los borradores clínicos se conservan.' },
-  { icon: FileClock, titulo: 'Registro de accesos y cambios', estado: 'activo',
-    detalle: 'Se registran creación y modificación de notas y accesos a información clínica, con sello de integridad de los documentos.' },
-  { icon: FileClock, titulo: 'Bitácora inalterable (append-only)', estado: 'activo',
-    detalle: 'Registro append-only de quién consultó, creó, firmó, corrigió (adenda), imprimió o exportó cada dato clínico. Las entradas no se pueden editar ni borrar (regladas a nivel de base de datos).' },
-  { icon: DatabaseBackup, titulo: 'Respaldos con recuperación a un punto en el tiempo', estado: 'proceso',
-    detalle: 'Respaldos automáticos y recuperación a un punto en el tiempo (PITR) en activación. Objetivos: punto de recuperación (RPO) ≤ 24 h y tiempo de recuperación (RTO) ≤ 4 h; se consolidan al concluir la activación.' },
-  { icon: Lock, titulo: 'Autenticación de dos factores (MFA)', estado: 'proceso',
-    detalle: 'MFA opcional para las cuentas médicas, en implementación.' },
-  { icon: Bug, titulo: 'Prueba de penetración externa anual', estado: 'proceso',
-    detalle: 'Programando la primera evaluación de seguridad por un tercero independiente.' },
-  { icon: Bell, titulo: 'Procedimiento de respuesta a incidentes', estado: 'proceso',
-    detalle: 'Protocolo documentado de notificación de brechas a los consultorios afectados, con tiempos definidos.' },
-]
+// Los controles y su estado provienen de una config VERIFICABLE (fuente única);
+// la página no afirma "Activo" por su cuenta. Ver src/config/security-controls.ts.
+const ICONO: Record<string, typeof Lock> = {
+  encryption: Lock, rbac: Users, 'tenant-isolation': Server, 'audit-log': FileClock,
+  'session-timeout': Lock, 'rate-limit': Shield, 'app-check': Shield, 'incident-response': Bell,
+  'backups-pitr': DatabaseBackup, mfa: Lock, pentest: Bug,
+}
 
 const SUBENCARGADOS = [
   { nombre: 'Google Cloud / Firebase', uso: 'Base de datos, almacenamiento y autenticación', region: 'Estados Unidos', pol: 'https://cloud.google.com/terms/data-processing-addendum' },
@@ -50,8 +33,8 @@ const SUBENCARGADOS = [
   { nombre: 'Vercel', uso: 'Hospedaje de la aplicación web', region: 'Estados Unidos', pol: 'https://vercel.com/legal/privacy-policy' },
 ]
 
-function Badge({ estado }: { estado: Estado }) {
-  const activo = estado === 'activo'
+function Badge({ estado }: { estado: SecurityState }) {
+  const activo = esActivo(estado)
   return (
     <span style={{
       fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 100, whiteSpace: 'nowrap',
@@ -59,7 +42,7 @@ function Badge({ estado }: { estado: Estado }) {
       color: activo ? '#16a34a' : '#d97706',
       border: `1px solid ${activo ? 'rgba(22,163,74,0.3)' : 'rgba(245,158,11,0.3)'}`,
     }}>
-      {activo ? 'Activo' : 'En proceso'}
+      {ESTADO_LABEL[estado]}
     </span>
   )
 }
@@ -87,10 +70,10 @@ export default function SeguridadPage() {
         {/* Controles */}
         <h2 style={{ fontSize: 20, fontWeight: 600, margin: '44px 0 16px' }}>Medidas de protección</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {CONTROLES.map((c, i) => {
-            const Icono = c.icon
+          {SECURITY_CONTROLS.map((c) => {
+            const Icono = ICONO[c.id] ?? Shield
             return (
-              <div key={i} style={{ display: 'flex', gap: 14, padding: 16, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12 }}>
+              <div key={c.id} style={{ display: 'flex', gap: 14, padding: 16, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12 }}>
                 <div style={{ color: 'var(--nexus)', flexShrink: 0, paddingTop: 2 }}><Icono size={20} /></div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
