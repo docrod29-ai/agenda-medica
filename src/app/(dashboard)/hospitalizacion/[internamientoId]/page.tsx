@@ -61,7 +61,7 @@ export default function EpisodioPage() {
   const rolReal: RolHospital = memberRole === 'enfermeria' ? 'enfermeria' : memberRole === 'farmacia' ? 'farmacia' : memberRole === 'laboratorio' ? 'laboratorio' : memberRole === 'admin' ? 'admin' : 'medico'
   const puedeCambiarRol = memberRole === 'medico' || memberRole === 'admin'
   const { config } = useConfig()
-  const { toast } = useToast()
+  const { toast, confirm } = useToast()
 
   const [inter, setInter] = useState<Internamiento | null>(null)
   const [notas, setNotas] = useState<NotaMedica[]>([])
@@ -411,7 +411,7 @@ export default function EpisodioPage() {
                     {puedeEnfermeria && ind.activa && ind.tipo === 'medicamento' && <Button size="sm" variant="secondary" icon={<Syringe size={13} />} onClick={() => { setCorrectos({ paciente: false, medicamento: false, dosis: false, via: false, hora: false }); setAdministrando(ind.id) }}>Administrar</Button>}
                     {/* Editar/Borrar SOLO si nunca se administró (borrador). Una vez con MAR, solo suspender. */}
                     {esMedico && ind.administraciones.length === 0 && !egresado && <button title="Editar" onClick={() => { setIndEditId(ind.id); setIndForm({ tipo: ind.tipo, descripcion: ind.descripcion, dosis: '', via: '', frecuencia: ind.frecuencia ?? '' }); setMedQuery(''); setModalInd(true) }} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 8px', cursor: 'pointer', color: 'var(--text3)' }}><Pencil size={13} /></button>}
-                    {esMedico && ind.administraciones.length === 0 && !egresado && <button title="Borrar" onClick={async () => { if (!clinicId || !window.confirm('¿Borrar esta indicación?')) return; try { await borrarIndicacion(clinicId, internamientoId, ind.id); toast('Indicación borrada', 'success'); cargar() } catch (e) { toast(e instanceof Error ? e.message : 'No se pudo borrar', 'error') } }} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 8px', cursor: 'pointer', color: 'var(--text3)' }}><Trash2 size={13} /></button>}
+                    {esMedico && ind.administraciones.length === 0 && !egresado && <button title="Borrar" onClick={async () => { if (!clinicId || !(await confirm('¿Borrar esta indicación?', { peligro: true, confirmar: 'Borrar' }))) return; try { await borrarIndicacion(clinicId, internamientoId, ind.id); toast('Indicación borrada', 'success'); cargar() } catch (e) { toast(e instanceof Error ? e.message : 'No se pudo borrar', 'error') } }} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 8px', cursor: 'pointer', color: 'var(--text3)' }}><Trash2 size={13} /></button>}
                     {esMedico && <button title={ind.activa ? 'Suspender' : 'Reactivar'} onClick={async () => { if (!clinicId) return; await suspenderIndicacion(clinicId, internamientoId, ind.id, !ind.activa); cargar() }} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 8px', cursor: 'pointer', color: 'var(--text3)' }}><Ban size={13} /></button>}
                   </div>
                 </div>
@@ -483,7 +483,7 @@ export default function EpisodioPage() {
                     <td style={{ padding: '7px 10px', color: (s.spo2 && s.spo2 < 92) ? '#dc2626' : undefined }}>{s.spo2 ?? '—'}</td>
                     <td style={{ padding: '7px 10px' }}>{s.glucosa ?? '—'}</td>
                     <td style={{ padding: '7px 10px' }}>{s.dolor != null ? `${s.dolor}/10` : '—'}</td>
-                    {puedeEnfermeria && !egresado && <td style={{ padding: '7px 10px', textAlign: 'right' }}><button title="Borrar registro mal capturado" onClick={async () => { if (!clinicId || !window.confirm('¿Borrar este registro de signos?')) return; try { await borrarSignos(clinicId, internamientoId, s.id); toast('Registro borrado', 'success'); cargar() } catch { toast('No se pudo borrar', 'error') } }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)' }}><Trash2 size={13} /></button></td>}
+                    {puedeEnfermeria && !egresado && <td style={{ padding: '7px 10px', textAlign: 'right' }}><button title="Borrar registro mal capturado" onClick={async () => { if (!clinicId || !(await confirm('¿Borrar este registro de signos?', { peligro: true, confirmar: 'Borrar' }))) return; try { await borrarSignos(clinicId, internamientoId, s.id); toast('Registro borrado', 'success'); cargar() } catch { toast('No se pudo borrar', 'error') } }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)' }}><Trash2 size={13} /></button></td>}
                   </tr>
                 ))}
               </tbody>
@@ -526,7 +526,7 @@ export default function EpisodioPage() {
                   <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {(rol === 'laboratorio' || rol === 'medico') && <Button size="sm" variant="secondary" onClick={() => { setResForm(l.estudios.map(e => ({ estudio: e, valor: '', unidad: '', critico: false }))); setCargandoRes(l) }}>Cargar resultados</Button>}
                     {/* Cancelar SOLO mientras esté 'solicitada' (aún no la procesa el laboratorio). */}
-                    {esMedico && l.estado === 'solicitada' && !egresado && <Button size="sm" variant="secondary" icon={<Trash2 size={13} />} onClick={async () => { if (!clinicId || !window.confirm('¿Cancelar esta orden de laboratorio?')) return; try { await borrarSolicitudLab(clinicId, l.id); toast('Orden cancelada', 'success'); cargar() } catch (e) { toast(e instanceof Error ? e.message : 'No se pudo cancelar', 'error') } }}>Cancelar orden</Button>}
+                    {esMedico && l.estado === 'solicitada' && !egresado && <Button size="sm" variant="secondary" icon={<Trash2 size={13} />} onClick={async () => { if (!clinicId || !(await confirm('¿Cancelar esta orden de laboratorio?', { peligro: true, confirmar: 'Cancelar orden' }))) return; try { await borrarSolicitudLab(clinicId, l.id); toast('Orden cancelada', 'success'); cargar() } catch (e) { toast(e instanceof Error ? e.message : 'No se pudo cancelar', 'error') } }}>Cancelar orden</Button>}
                   </div>
                 ) : null}
               </div>
@@ -565,7 +565,7 @@ export default function EpisodioPage() {
                     {ic.especialidad === 'Infectología' && <Button size="sm" variant="secondary" icon={<Activity size={13} />} onClick={() => nuevaNota('valoracion_inmuno')}>Valoración inmuno</Button>}
                     {/* Borrador (aún sin responder): editable y borrable. */}
                     <Button size="sm" variant="secondary" icon={<Pencil size={13} />} onClick={() => { setIcEditId(ic.id); setIcForm({ especialidad: ic.especialidad, motivo: ic.motivo, medicoSolicitadoId: ic.medicoSolicitadoId ?? '' }); setModalIC(true) }}>Editar</Button>
-                    <Button size="sm" variant="secondary" icon={<Trash2 size={13} />} onClick={async () => { if (!clinicId || !window.confirm('¿Borrar esta interconsulta?')) return; try { await borrarInterconsulta(clinicId, internamientoId, ic.id); toast('Interconsulta borrada', 'success'); cargar() } catch (e) { toast(e instanceof Error ? e.message : 'No se pudo borrar', 'error') } }}>Borrar</Button>
+                    <Button size="sm" variant="secondary" icon={<Trash2 size={13} />} onClick={async () => { if (!clinicId || !(await confirm('¿Borrar esta interconsulta?', { peligro: true, confirmar: 'Borrar' }))) return; try { await borrarInterconsulta(clinicId, internamientoId, ic.id); toast('Interconsulta borrada', 'success'); cargar() } catch (e) { toast(e instanceof Error ? e.message : 'No se pudo borrar', 'error') } }}>Borrar</Button>
                   </div>
                 )}
               </div>

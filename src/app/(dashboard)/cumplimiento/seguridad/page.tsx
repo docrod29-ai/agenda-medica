@@ -19,7 +19,7 @@ type Paso = 'estado' | 'instrucciones' | 'qr' | 'verificar' | 'completado'
 export default function SeguridadPage() {
   const router = useRouter()
   const { user } = useAuth()
-  const { toast } = useToast()
+  const { toast, confirm } = useToast()
   const [paso, setPaso] = useState<Paso>('estado')
   const [tieneTotp, setTieneTotp] = useState(false)
   const [factorId, setFactorId] = useState<string | null>(null)
@@ -84,7 +84,7 @@ export default function SeguridadPage() {
 
   const desactivar = async () => {
     if (!user || !factorId) return
-    if (!window.confirm('¿Seguro que quieres desactivar 2FA? Tu cuenta quedará protegida solo por contraseña.')) return
+    if (!(await confirm('¿Seguro que quieres desactivar 2FA? Tu cuenta quedará protegida solo por contraseña.', { peligro: true, confirmar: 'Desactivar 2FA' }))) return
     setCargando(true)
     try {
       const mfaUser = multiFactor(user)

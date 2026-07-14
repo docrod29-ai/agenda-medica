@@ -84,7 +84,7 @@ export default function ConsultaActivaPage() {
   const [tareaProc, setTareaProc] = useTarea<{ ejecutando: boolean; resultado?: { data: Record<string, unknown>; tipoActivo: TipoNota; tipoOverride: boolean; ts: number } }>(procKey)
   const resultadoAplicadoRef = useRef(0)
   const { config } = useConfig()
-  const { toast } = useToast()
+  const { toast, confirm } = useToast()
   const voz = useGrabacionVoz()
   const audio = useGrabacionAudio()
   // 'vivo' = Web Speech (Chrome/Edge desktop) — transcribe en tiempo real
@@ -630,17 +630,17 @@ export default function ConsultaActivaPage() {
   // Si hay dictado, la nota se RE-PROYECTA desde esa fuente hacia la nueva
   // modalidad (primera vez → historia clínica → preop, etc.). El dictado es la
   // fuente de verdad; cada modalidad es una vista estructurada distinta de ella.
-  const cambiarTipo = (t: TipoNota) => {
+  const cambiarTipo = async (t: TipoNota) => {
     if (firmada || t === tipo) return
     const hayDictado = voz.transcripcion.trim().length > 0
     const hayContenido = secciones.some(s => s.value?.trim()) ||
       diagnosticos.length > 0 || medicamentos.length > 0 || resumen.trim().length > 0
     // SIEMPRE confirma si hay algo escrito — cambiar de modalidad vacía las secciones.
-    if (hayContenido && !window.confirm(
+    if (hayContenido && !(await confirm(
       hayDictado
         ? `Se reestructurará la nota como "${TIPO_NOTA_LABEL[t]}" desde el dictado. El contenido actual se reemplazará. ¿Continuar?`
         : `Cambiar a "${TIPO_NOTA_LABEL[t]}" vaciará las secciones actuales. ¿Continuar?`
-    )) return
+    ))) return
     setTipo(t)
     setSecciones(seccionesVacias(t))
     if (hayDictado) {
@@ -777,7 +777,7 @@ export default function ConsultaActivaPage() {
   // ── Descartar borrador ─────────────────────────────────────────
   const descartar = useCallback(async () => {
     if (firmada) return
-    const confirmar = window.confirm('¿Descartar esta consulta? Se eliminará y no podrás recuperarla.')
+    const confirmar = await confirm('¿Descartar esta consulta? Se eliminará y no podrás recuperarla.', { peligro: true, confirmar: 'Descartar' })
     if (!confirmar) return
     setGuardando(true)
     try {
@@ -792,7 +792,7 @@ export default function ConsultaActivaPage() {
       toast('Error al descartar', 'error')
       setGuardando(false)
     }
-  }, [firmada, clinicId, notaId, patientId, router, toast])
+  }, [firmada, clinicId, notaId, patientId, router, toast, confirm])
 
   // ── Autoguardado cada 30s ──────────────────────────────────────
   useEffect(() => {

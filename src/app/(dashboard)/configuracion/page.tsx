@@ -1264,7 +1264,7 @@ function MedicosTab() {
   const { doctors, loading } = useDoctors()
   const { config } = useConfig()
   const { clinicId } = useClinic()
-  const { toast } = useToast()
+  const { toast, confirm } = useToast()
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
@@ -1385,8 +1385,8 @@ function MedicosTab() {
             </button>
             <button
               title="Borrar médico"
-              onClick={() => {
-                if (!window.confirm(`¿Borrar a ${doc.nombre}? Sus citas anteriores no se borran, pero ya no aparecerá para agendar.`)) return
+              onClick={async () => {
+                if (!(await confirm(`¿Borrar a ${doc.nombre}? Sus citas anteriores no se borran, pero ya no aparecerá para agendar.`, { peligro: true, confirmar: 'Borrar' }))) return
                 deleteDoctor(clinicId!, doc.id).then(() => toast('Médico borrado', 'success')).catch(() => toast('No se pudo borrar', 'error'))
               }}
               style={{ background: 'none', border: '1px solid var(--border)', color: '#dc2626', fontSize: 12, borderRadius: 6, padding: '4px 8px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
@@ -1617,7 +1617,7 @@ const OPCIONES_ROL_FLAT = GRUPOS_ROL.flatMap(g => g.opciones)
 /* ── Equipo (invitar asistente / colaboradores) ──────────── */
 function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinicNombre: string }) {
   const { user } = useAuth()
-  const { toast } = useToast()
+  const { toast, confirm } = useToast()
 
   const [invitaciones, setInvitaciones] = useState<Invitacion[]>([])
   const [loading, setLoading] = useState(true)
@@ -1670,7 +1670,7 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
     window.open(`https://wa.me/?text=${msg}`, '_blank')
   }
   const revocar = async (code: string) => {
-    if (!window.confirm('¿Revocar esta invitación? El enlace dejará de funcionar.')) return
+    if (!(await confirm('¿Revocar esta invitación? El enlace dejará de funcionar.', { peligro: true, confirmar: 'Revocar' }))) return
     try { await revocarInvitacion(code); recargar(); toast('Invitación revocada', 'info') }
     catch { toast('Error al revocar', 'error') }
   }
@@ -1804,7 +1804,7 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
 /* ── Bloqueos de horario ─────────────────────────────────── */
 function BloqueosTab({ clinicId }: { clinicId: string | null }) {
   const { user } = useAuth()
-  const { toast } = useToast()
+  const { toast, confirm } = useToast()
   const [bloques, setBloques] = useState<TimeBlock[]>([])
   const [loading, setLoading] = useState(true)
   const [desde, setDesde] = useState("")
@@ -1841,7 +1841,7 @@ function BloqueosTab({ clinicId }: { clinicId: string | null }) {
 
   const borrar = async (id: string) => {
     if (!clinicId) return
-    if (!window.confirm("¿Eliminar este bloqueo? Los slots volverán a estar disponibles.")) return
+    if (!(await confirm("¿Eliminar este bloqueo? Los slots volverán a estar disponibles.", { peligro: true, confirmar: 'Eliminar' }))) return
     try { await borrarBloque(clinicId, id); await cargar(); toast("Bloqueo eliminado", "info") }
     catch { toast("Error al eliminar", "error") }
   }
@@ -3902,7 +3902,7 @@ function MembreteNotaSection({ form, clinicId, onLocalChange }: {
 import { listarMiembros, removerMiembro, cambiarRolMiembro, type MiembroActivo } from '@/lib/miembros'
 
 function MiembrosActivos({ clinicId, miUid }: { clinicId: string | null; miUid?: string }) {
-  const { toast } = useToast()
+  const { toast, confirm } = useToast()
   const [miembros, setMiembros] = useState<MiembroActivo[]>([])
   const [cargando, setCargando] = useState(true)
 
@@ -3923,7 +3923,7 @@ function MiembrosActivos({ clinicId, miUid }: { clinicId: string | null; miUid?:
   const remover = async (m: MiembroActivo) => {
     if (m.uid === miUid) { toast('No puedes removerte a ti misma/o', 'error'); return }
     if (m.role === 'admin' && soloUnAdmin()) { toast('No puedes dejar la clínica sin administrador. Nombra otro admin primero.', 'error'); return }
-    if (!window.confirm(`¿Remover a ${m.email} del equipo? Perderá acceso inmediatamente.`)) return
+    if (!(await confirm(`¿Remover a ${m.email} del equipo? Perderá acceso inmediatamente.`, { peligro: true, confirmar: 'Remover' }))) return
     try {
       await removerMiembro(m.uid)
       toast('Miembro removido', 'info')

@@ -28,7 +28,7 @@ import { SinResultados } from '@/components/brand/EmptyArt'
 export default function FarmaciaPage() {
   const { clinicId } = useClinic()
   const { user } = useAuth()
-  const { toast } = useToast()
+  const { toast, confirm } = useToast()
   const [items, setItems] = useState<FarmaciaItem[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -148,7 +148,7 @@ export default function FarmaciaPage() {
               onSalida={() => setMoviendo({ item, tipo: 'salida' })}
               onBorrar={async () => {
                 if (!clinicId || !item.id) return
-                if (!window.confirm(`¿Eliminar "${item.nombre}"?`)) return
+                if (!(await confirm(`¿Eliminar "${item.nombre}"?`, { peligro: true, confirmar: 'Eliminar' }))) return
                 await borrarItem(clinicId, item.id)
                 toast('Ítem eliminado', 'info')
                 recargar()
@@ -419,12 +419,13 @@ function ModalMovimiento({ item, tipo, onClose, onConfirmar }: {
   const [cantidad, setCantidad] = useState('1')
   const [motivo, setMotivo] = useState('')
   const [saving, setSaving] = useState(false)
+  const { toast, confirm } = useToast()
 
   const confirmar = async () => {
     const n = parseInt(cantidad)
-    if (!n || n <= 0) { alert('Cantidad inválida'); return }
+    if (!n || n <= 0) { toast('Cantidad inválida', 'error'); return }
     if (tipo === 'salida' && n > item.cantidad) {
-      if (!window.confirm(`Estás sacando ${n} pero solo tienes ${item.cantidad}. ¿Continuar?`)) return
+      if (!(await confirm(`Estás sacando ${n} pero solo tienes ${item.cantidad}. ¿Continuar?`))) return
     }
     setSaving(true)
     try { await onConfirmar(n, motivo.trim() || undefined) } finally { setSaving(false) }

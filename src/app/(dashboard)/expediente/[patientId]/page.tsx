@@ -42,7 +42,7 @@ export default function ExpedientePage() {
   const volver = useSmartBack('/pacientes')
   const { clinicId } = useClinic()
   const { user } = useAuth()
-  const { toast } = useToast()
+  const { toast, confirm } = useToast()
   const { notas, loading, reload } = useExpediente(patientId)
   const [patient, setPatient] = useState<Patient | null>(null)
   // Por defecto muestra las notas de CONSULTORIO (no mezclar con hospital). Las
@@ -52,7 +52,7 @@ export default function ExpedientePage() {
 
   const borrarNota = async (notaId: string) => {
     if (!clinicId) return
-    if (!window.confirm('¿Eliminar este borrador? No podrás recuperarlo.')) return
+    if (!(await confirm('¿Eliminar este borrador? No podrás recuperarlo.', { peligro: true, confirmar: 'Eliminar' }))) return
     try {
       await deleteNota(clinicId, patientId, notaId)
       toast('Borrador eliminado', 'info')

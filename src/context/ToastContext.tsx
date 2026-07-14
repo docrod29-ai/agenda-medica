@@ -1,5 +1,5 @@
 'use client'
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react'
 
 type ToastType = 'success' | 'error' | 'info'
 
@@ -9,11 +9,30 @@ interface Toast {
   type: ToastType
 }
 
-interface ToastCtx {
-  toast: (msg: string, type?: ToastType) => void
+export interface ConfirmOpts {
+  titulo?: string
+  confirmar?: string
+  cancelar?: string
+  /** Estilo peligroso (rojo) para acciones destructivas. */
+  peligro?: boolean
 }
 
-const Ctx = createContext<ToastCtx>({ toast: () => {} })
+interface PendingConfirm {
+  mensaje: string
+  opts: ConfirmOpts
+  resolve: (v: boolean) => void
+}
+
+interface ToastCtx {
+  toast: (msg: string, type?: ToastType) => void
+  /**
+   * Confirmación IN-APP (no usa window.confirm, que se ignora en silencio en
+   * apps instaladas / algunos WebViews). Devuelve una promesa: true = aceptar.
+   */
+  confirm: (mensaje: string, opts?: ConfirmOpts) => Promise<boolean>
+}
+
+const Ctx = createContext<ToastCtx>({ toast: () => {}, confirm: async () => false })
 
 const ICONS: Record<ToastType, string> = {
   success: '✓',
@@ -29,6 +48,7 @@ const COLORS: Record<ToastType, string> = {
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
+  const [pending, setPending] = useState<PendingConfirm | null>(null)
 
   const toast = useCallback((message: string, type: ToastType = 'info') => {
     const id = Date.now()
@@ -36,9 +56,29 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500)
   }, [])
 
+  const confirm = useCallback((mensaje: string, opts: ConfirmOpts = {}) => {
+    return new Promise<boolean>(resolve => setPending({ mensaje, opts, resolve }))
+  }, [])
+
+  const cerrar = useCallback((valor: boolean) => {
+    setPending(prev => { prev?.resolve(valor); return null })
+  }, [])
+
+  // Teclado: Esc = cancelar, Enter = aceptar
+  useEffect(() => {
+    if (!pending) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.preventDefault(); cerrar(false) }
+      else if (e.key === 'Enter') { e.preventDefault(); cerrar(true) }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [pending, cerrar])
+
   return (
-    <Ctx.Provider value={{ toast }}>
+    <Ctx.Provider value={{ toast, confirm }}>
       {children}
+
       <div className="toast-container">
         {toasts.map(t => (
           <div key={t.id} className={`toast ${t.type}`} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
@@ -47,6 +87,55 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           </div>
         ))}
       </div>
+
+      {pending && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => cerrar(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.55)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: 400, background: 'var(--s1, #16181c)', color: 'var(--text, #e9edef)',
+              border: '1px solid var(--border, #2a2d33)', borderRadius: 16, padding: 22,
+              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+            }}
+          >
+            {pending.opts.titulo && (
+              <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{pending.opts.titulo}</div>
+            )}
+            <div style={{ fontSize: 14, color: 'var(--text2, #a8acae)', lineHeight: 1.55, whiteSpace: 'pre-line' }}>
+              {pending.mensaje}
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+              <button
+                onClick={() => cerrar(false)}
+                style={{
+                  padding: '9px 16px', borderRadius: 9, fontSize: 13.5, fontWeight: 600, cursor: 'pointer',
+                  background: 'transparent', color: 'var(--text2, #a8acae)', border: '1px solid var(--border2, #2a2d33)',
+                }}
+              >
+                {pending.opts.cancelar || 'Cancelar'}
+              </button>
+              <button
+                autoFocus
+                onClick={() => cerrar(true)}
+                style={{
+                  padding: '9px 16px', borderRadius: 9, fontSize: 13.5, fontWeight: 700, cursor: 'pointer', border: 'none',
+                  background: pending.opts.peligro ? '#dc2626' : 'var(--nexus, #3D5AFE)', color: '#fff',
+                }}
+              >
+                {pending.opts.confirmar || 'Aceptar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Ctx.Provider>
   )
 }
