@@ -60,6 +60,17 @@ const nextConfig: NextConfig = {
         ],
       },
 
+      // ── Rutas con TOKEN del paciente (magic link): NO indexar, NO enviar
+      // referer (el token va en la URL → evitar que se filtre a terceros o a
+      // buscadores). Aplica a /mi/[token] y /resena/[token].
+      {
+        source: "/(mi|resena)/:path*",
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive, nosnippet" },
+          { key: "Referrer-Policy", value: "no-referrer" },
+        ],
+      },
+
       // ── Zona autenticada: anti-clickjacking ─────────────────────
       // Bloquea que cualquier sitio embeba la app en iframe
       // (clickjacking sobre /consulta, /agenda, etc.)
