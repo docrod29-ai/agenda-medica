@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { useToast } from '@/context/ToastContext'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
@@ -22,6 +23,7 @@ export default function CartaReferenciaPage() {
   const volver = useSmartBack(`/expediente/${patientId}`)
   const { clinicId } = useClinic()
   const { config } = useConfig()
+  const { toast } = useToast()
 
   const [patient, setPatient] = useState<Patient | null>(null)
   const [loading, setLoading] = useState(true)
@@ -49,7 +51,7 @@ export default function CartaReferenciaPage() {
       await descargarComoPDF(el, { filename: `${tag}_${nombre}_${fechaCorta}` })
     } catch (e) {
       console.error('PDF error:', e)
-      alert('No se pudo generar el PDF. Intenta con Imprimir → Guardar como PDF.')
+      toast('No se pudo generar el PDF. Intenta con Imprimir → Guardar como PDF.', 'error')
     } finally {
       setDescargando(false)
     }

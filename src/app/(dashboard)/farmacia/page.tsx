@@ -335,9 +335,10 @@ function ModalItem({ item, onClose, onGuardar }: {
     controlado: item?.controlado ?? false,
   })
   const [saving, setSaving] = useState(false)
+  const { toast } = useToast()
 
   const guardar = async () => {
-    if (!f.nombre.trim()) { alert('El nombre es requerido'); return }
+    if (!f.nombre.trim()) { toast('El nombre es requerido', 'error'); return }
     setSaving(true)
     try {
       await onGuardar({

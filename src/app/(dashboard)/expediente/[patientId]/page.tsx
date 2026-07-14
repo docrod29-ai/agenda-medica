@@ -217,14 +217,14 @@ export default function ExpedientePage() {
                 const pid = n.pacienteId || patientId || (typeof window !== 'undefined' ? window.location.pathname.split('/').filter(Boolean)[1] : '')
                 if (pid && n.id) router.push(`/consulta/${pid}?nota=${n.id}`)
                 else if (n.id) router.push(`/nota/${n.id}`)  // rescate buscará el paciente
-                else alert('No se pudo abrir la nota.')
+                else toast('No se pudo abrir la nota.', 'error')
               }}
               onImprimir={() => {
                 const pidParam = patientId
                 const pidNota = n.pacienteId
                 const pidPath = typeof window !== 'undefined' ? window.location.pathname.split('/').filter(Boolean)[1] : ''
                 const pid = pidNota || pidParam || pidPath
-                if (!n.id) { alert('Esta nota no tiene ID. Recarga el expediente.'); return }
+                if (!n.id) { toast('Esta nota no tiene ID. Recarga el expediente.', 'error'); return }
                 // Si no tenemos pid de ninguna fuente, vamos a la ruta de rescate (busca en la clínica)
                 if (!pid) { router.push(`/nota/${n.id}`); return }
                 router.push(`/nota/${pid}/${n.id}`)

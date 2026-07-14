@@ -6,6 +6,7 @@
  * según el contenido de la nota (signos vitales anormales, diagnósticos, etc.).
  */
 import { useState, useEffect, useMemo } from 'react'
+import { useToast } from '@/context/ToastContext'
 import { useParams, useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { imprimirElemento } from '@/lib/print-element'
@@ -309,6 +310,7 @@ export default function GeneradorOrdenPage() {
   const volver = useSmartBack(`/expediente/${patientId}`)
   const { clinicId } = useClinic()
   const { config } = useConfig()
+  const { toast } = useToast()
 
   const [nota, setNota] = useState<NotaMedica | null>(null)
   const [patient, setPatient] = useState<Patient | null>(null)
@@ -401,7 +403,7 @@ export default function GeneradorOrdenPage() {
       })
     } catch (e) {
       console.error('PDF error:', e)
-      alert('No se pudo generar el PDF. Intenta con Imprimir → Guardar como PDF.')
+      toast('No se pudo generar el PDF. Intenta con Imprimir → Guardar como PDF.', 'error')
     } finally {
       setDescargando(false)
     }
