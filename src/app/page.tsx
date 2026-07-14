@@ -3,6 +3,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Stethoscope, CheckCircle2, MessageCircle, Bell, Calendar, Users, Clock, BarChart3, ChevronDown, ArrowRight, Shield, MapPin, Zap } from 'lucide-react'
 import { MetaPixel } from '@/components/MetaPixel'
+import { ProductWindow } from '@/components/ProductWindow'
 import { PLANES } from '@/lib/planes-ia'
 
 /* ─── Data ─────────────────────────────────────────────── */
@@ -213,6 +214,12 @@ function Hero() {
         <div style={{ marginTop: 16, fontSize: 14, color: 'var(--text2)' }}>
           ¿Ya tienes cuenta?{' '}
           <Link href="/login" style={{ color: 'var(--nexus)', fontWeight: 700, textDecoration: 'none' }}>Inicia sesión aquí →</Link>
+        </div>
+
+        {/* Hero shot del producto: UI real (tokens del design system) con datos ficticios */}
+        <div style={{ maxWidth: 860, margin: '64px auto 0' }}>
+          <ProductWindow />
+          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 10 }}>Interfaz de ejemplo · datos ficticios</div>
         </div>
       </div>
     </section>

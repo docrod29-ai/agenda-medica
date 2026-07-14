@@ -1296,3 +1296,9 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
 /* Entrada suave de las ilustraciones de estado vacío (respeta reduce-motion) */
 .empty-illus { animation: nx-rise 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
 @media (prefers-reduced-motion: reduce) { .empty-illus { animation: none; } }
+
+/* ProductWindow (hero shot del producto): en móvil colapsa el sidebar */
+@media (max-width: 640px) {
+  .nx-pw-body { grid-template-columns: 1fr !important; }
+  .nx-pw-side { display: none !important; }
+}
