@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v372'  // UX: la paleta ⌘K ahora es DESCUBRIBLE — boton 'Buscar… ⌘K' visible en el sidebar (solo medico) que la abre; en movil es la unica forma de abrirla (no hay atajo de teclado). Sin esto, la funcion era invisible (ROI cero)
+const CACHE = 'nexusmed-v373'  // Madurez pública (Grupo 1): demo interactiva /demo/interactivo, QR verificable /verificar, ProductWindow en landing, /evidencia (PubMed), /contacto (soporte sin mailto que cierra la app), copy honesto (créditos↔gate, PITR en activación, sin adopción implícita), y diálogo de confirmación in-app (arregla 'Eliminar borrador no hacía nada' en apps instaladas). SIN clinical-ai ni /demo/clinico.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
