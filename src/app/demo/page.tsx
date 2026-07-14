@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
-import { Calendar, Mic, FileText, MessageCircle, Headset, Smartphone, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { Calendar, Mic, FileText, MessageCircle, Headset, Smartphone, ArrowRight, ArrowLeft, CheckCircle2, MousePointerClick } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'Ver demo · NexusMED',
@@ -10,8 +10,8 @@ export const metadata: Metadata = {
 /**
  * Página /demo — recorrido visual del producto (problema comercial nº1: que el
  * médico entienda la app antes de registrarse). Maquetas fieles al estilo real
- * de la app, honestas (no capturas falsas). El sandbox 100% navegable y el video
- * de 90s se integran en las siguientes iteraciones (ver ROADMAP).
+ * de la app, honestas (no capturas falsas). El sandbox 100% navegable vive en
+ * /demo/interactivo (datos ficticios, sin red ni IA) y se enlaza desde el hero.
  */
 
 const FLUJOS = [
@@ -163,9 +163,13 @@ export default function DemoPage() {
           <h1 className="nx-display" style={{ fontSize: 'clamp(30px, 5vw, 48px)', fontWeight: 600, margin: '0 0 12px', letterSpacing: '-0.03em' }}>
             NexusMED en 2 minutos
           </h1>
-          <p style={{ fontSize: 17, color: 'var(--text2)', maxWidth: 560, margin: '0 auto', lineHeight: 1.6 }}>
+          <p style={{ fontSize: 17, color: 'var(--text2)', maxWidth: 560, margin: '0 auto 20px', lineHeight: 1.6 }}>
             Todo lo que tu consultorio necesita, en un solo lugar. Mira cómo se ve cada parte antes de crear tu cuenta.
           </p>
+          <Link href="/demo/interactivo" className="btn btn-primary btn-lg" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <MousePointerClick size={18} /> Probar el sandbox interactivo
+          </Link>
+          <div style={{ fontSize: 12.5, color: 'var(--text3)', marginTop: 10 }}>Sin registro · datos ficticios · lo conduces tú</div>
         </div>
 
         {/* Video del producto (reel vertical 9:16) */}
