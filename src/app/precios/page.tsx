@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { PLANES, RECARGA, MOTORES, precioAnual, type PlanCreditos } from '@/lib/planes-ia'
+import { PLANES, RECARGA, MOTORES, TOPE_ECONOMICO, precioAnual, type PlanCreditos } from '@/lib/planes-ia'
 
 export const metadata = {
   title: 'Precios · NexusMED',
@@ -105,7 +105,8 @@ export default function PreciosPage() {
       </div>
 
       <div style={{ maxWidth: 560, margin: '22px auto 0', textAlign: 'center', fontSize: 13, color: 'var(--text2, #334155)', background: 'var(--s2, #f1f5f9)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 12, padding: '12px 16px' }}>
-        ¿Se te acaban los créditos del mes? Recarga <strong>{RECARGA.creditos} créditos</strong> por <strong>${RECARGA.precioMXN} MXN</strong> — o sigue con ⚡ Rápida sin costo. Nunca te quedas sin IA.
+        ¿Se te acaban los créditos del mes? Recarga <strong>{RECARGA.creditos} créditos</strong> por <strong>${RECARGA.precioMXN} MXN</strong> — o sigue con ⚡ Rápida sin costo
+        hasta un tope mensual (<strong>{TOPE_ECONOMICO.pro} notas</strong> en Clínica, <strong>{TOPE_ECONOMICO.premium}</strong> en Pro). Pasado ese punto la IA se pausa y recargas o subes de plan.
       </div>
 
       <div style={{ maxWidth: 560, margin: '40px auto 0', textAlign: 'center', fontSize: 13, color: 'var(--text2, #334155)', background: 'rgba(20,184,166,0.08)', border: '1px solid rgba(20,184,166,0.3)', borderRadius: 12, padding: '12px 16px' }}>
@@ -114,7 +115,8 @@ export default function PreciosPage() {
 
       <p style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--text3, #64748b)', marginTop: 24 }}>
         Precios en pesos mexicanos, por médico. Paga <strong>anual y llévate 2 meses gratis</strong> (−17%). Cada nota gasta créditos
-        según el motor de IA que elijas (⚡ 1 · ⭐ 3 · 💎 10). Al agotar tus créditos sigues con ⚡ Rápida sin costo o recargas. Cancela cuando quieras.
+        según el motor de IA que elijas (⚡ 1 · ⭐ 3 · 💎 10). Al agotar tus créditos sigues con ⚡ Rápida sin costo hasta un tope mensual; pasado ese punto la IA se pausa
+        y recargas o subes de plan. Nunca hay cobros de sorpresa. Cancela cuando quieras.
       </p>
     </div>
   )
