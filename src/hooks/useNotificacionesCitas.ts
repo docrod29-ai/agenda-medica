@@ -8,6 +8,7 @@
 import { useEffect, useRef } from 'react'
 import { useAppointments } from './useAppointments'
 import { programarNotificacion, obtenerPermisoPush } from '@/lib/push-notifications'
+import { notificacionCitaSegura } from '@/lib/mobile/notif-privacidad'
 import { hoyISO, sumarDiasISO } from '@/lib/timezone'
 
 export function useNotificacionesCitas() {
@@ -38,20 +39,23 @@ export function useNotificacionesCitas() {
     for (const cita of citasProximas) {
       const fechaHoraMs = new Date(cita.fechaHora.replace(' ', 'T')).getTime()
 
-      // Aviso 30 minutos antes
+      // Aviso 30 minutos antes — SIN PHI en pantalla bloqueada (§8.6): ni nombre
+      // ni motivo; el médico ve el detalle al abrir /citas.
       const cuando30 = new Date(fechaHoraMs - 30 * 60 * 1000)
-      const t30 = programarNotificacion(cuando30, `Cita en 30 min — ${cita.pacienteNombre}`, {
-        body: `${cita.fechaHora.slice(11, 16)} · ${cita.motivo || 'Consulta'}`,
+      const seg30 = notificacionCitaSegura('cita_proxima', { minutos: 30 })
+      const t30 = programarNotificacion(cuando30, seg30.titulo, {
+        body: seg30.body,
         tag: `cita-30-${cita.id}`,
         url: '/citas',
       })
       if (t30) timeoutsRef.current.push(t30)
 
-      // Para teleconsulta: aviso adicional 5 minutos antes
+      // Para teleconsulta: aviso adicional 5 minutos antes (también sin PHI).
       if (cita.tipo === 'teleconsulta') {
         const cuando5 = new Date(fechaHoraMs - 5 * 60 * 1000)
-        const t5 = programarNotificacion(cuando5, `🎥 Teleconsulta en 5 min`, {
-          body: `${cita.pacienteNombre} · prepara tu cámara`,
+        const seg5 = notificacionCitaSegura('teleconsulta_pronto', { minutos: 5 })
+        const t5 = programarNotificacion(cuando5, seg5.titulo, {
+          body: seg5.body,
           tag: `tele-5-${cita.id}`,
           url: `/teleconsulta/${cita.id}`,
           requireInteraction: true,
