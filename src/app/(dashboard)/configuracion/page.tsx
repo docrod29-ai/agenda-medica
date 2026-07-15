@@ -9,7 +9,7 @@ import { useDoctors } from '@/hooks/useDoctors'
 import { useToast } from '@/context/ToastContext'
 import { useClinic } from '@/context/ClinicContext'
 import { auth, storage } from '@/lib/firebase'
-import { Loader2, Save, Copy, Calendar, CheckCircle2, XCircle, Link, Bot, CreditCard, ExternalLink, MessageCircle, Smartphone, AlertTriangle, UserRound, QrCode, Code, Lightbulb, Star, Ruler, KeyRound, Lock, PenLine, Sparkles, ShieldCheck, BedDouble } from 'lucide-react'
+import { Loader2, Save, Copy, Calendar, CheckCircle2, XCircle, Link, Bot, CreditCard, ExternalLink, MessageCircle, Smartphone, AlertTriangle, UserRound, QrCode, Code, Lightbulb, Star, Ruler, KeyRound, Lock, PenLine, Sparkles, ShieldCheck, BedDouble, Trash2 } from 'lucide-react'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { msgConfirmacion, msgRecordatorio24h, msgRecordatorioDia } from '@/lib/whatsapp'
 import { copyToClipboard } from '@/lib/whatsapp'
@@ -1991,6 +1991,9 @@ function PortalTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
 
   return (
     <div style={{ display: 'grid', gap: 18 }}>
+      {/* Perfil público /dr (foto, bio, cédula, precios) */}
+      <PerfilPublicoSection clinicId={clinicId} />
+
       {/* Estado */}
       <div style={{ padding: 16, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
@@ -4159,6 +4162,123 @@ function TarjetaMetrica({ etiqueta, valor, sub, color }: { etiqueta: string; val
       <div className="t-caption" style={{ color: 'var(--text3)', marginBottom: 4 }}>{etiqueta}</div>
       <div style={{ fontSize: 26, fontWeight: 700, color: color || 'var(--text1)', lineHeight: 1 }}>{valor}</div>
       {sub && <div className="t-caption" style={{ color: 'var(--text3)', marginTop: 4 }}>{sub}</div>}
+    </div>
+  )
+}
+
+// ── Perfil público /dr: foto, biografía, cédula y precios (captación/SEO) ──────
+
+function PerfilPublicoSection({ clinicId }: { clinicId: string | null }) {
+  const { config } = useConfig()
+  const { toast } = useToast()
+  const [foto, setFoto] = useState('')
+  const [bio, setBio] = useState('')
+  const [cedula, setCedula] = useState('')
+  const [precios, setPrecios] = useState<{ servicio: string; precio: number }[]>([])
+  const [saving, setSaving] = useState(false)
+  const [subiendo, setSubiendo] = useState(false)
+  const initRef = useRef(false)
+
+  useEffect(() => {
+    if (config && !initRef.current) {
+      setFoto(config.fotoMedicoUrl ?? '')
+      setBio(config.bioPublica ?? '')
+      setCedula(config.cedulaProfesional ?? '')
+      setPrecios(Array.isArray(config.preciosPublicos) ? config.preciosPublicos : [])
+      initRef.current = true
+    }
+  }, [config])
+
+  const subirFoto = async (file: File | undefined) => {
+    if (!file) return
+    setSubiendo(true)
+    try {
+      const dataUrl = await new Promise<string>((res, rej) => {
+        const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(file)
+      })
+      const url = await subirImagenServidor(dataUrl, 'foto-medico')
+      setFoto(url || '')
+    } catch {
+      toast('No se pudo subir la foto', 'error')
+    } finally {
+      setSubiendo(false)
+    }
+  }
+
+  const guardar = async () => {
+    if (!clinicId) return
+    setSaving(true)
+    try {
+      const limpios = precios
+        .map(p => ({ servicio: p.servicio.trim(), precio: Number(p.precio) || 0 }))
+        .filter(p => p.servicio && p.precio > 0)
+      await saveConfigPartial(clinicId, {
+        fotoMedicoUrl: foto || undefined,
+        bioPublica: bio.trim() || undefined,
+        cedulaProfesional: cedula.trim() || undefined,
+        preciosPublicos: limpios,
+      })
+      toast('Perfil público actualizado', 'success')
+    } catch {
+      toast('No se pudo guardar el perfil', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div style={{ padding: 16, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>Tu perfil público</div>
+        <div style={{ fontSize: 12.5, color: 'var(--text3)', marginTop: 4 }}>
+          Lo que ven los pacientes en tu página <code>/dr</code> (y lo que Google indexa). Un perfil completo convierte mejor.
+        </div>
+      </div>
+
+      {/* Foto */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+        {foto
+          ? <img src={foto} alt="Foto del médico" width={72} height={72} style={{ width: 72, height: 72, borderRadius: 14, objectFit: 'cover', border: '1px solid var(--border)' }} />
+          : <div style={{ width: 72, height: 72, borderRadius: 14, background: 'var(--s3)', display: 'grid', placeItems: 'center', color: 'var(--text3)' }}><UserRound size={26} /></div>}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <label className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>
+            {subiendo ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <UserRound size={14} />} {foto ? 'Cambiar foto' : 'Subir foto'}
+            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => subirFoto(e.target.files?.[0])} />
+          </label>
+          {foto && <button className="btn btn-ghost btn-sm" onClick={() => setFoto('')} style={{ color: 'var(--text3)' }}>Quitar</button>}
+        </div>
+      </div>
+
+      {/* Cédula + Bio */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <label className="t-caption" style={{ color: 'var(--text3)' }}>Cédula profesional</label>
+        <input className="input" value={cedula} onChange={e => setCedula(e.target.value)} placeholder="Ej. 1234567" style={{ maxWidth: 220 }} />
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <label className="t-caption" style={{ color: 'var(--text3)' }}>Biografía / presentación</label>
+        <textarea className="input" value={bio} onChange={e => setBio(e.target.value)} rows={4}
+          placeholder="Experiencia, formación, enfoque de atención… (lo que le da confianza al paciente)" />
+      </div>
+
+      {/* Precios */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <label className="t-caption" style={{ color: 'var(--text3)' }}>Precios por servicio</label>
+        {precios.map((p, i) => (
+          <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input className="input" value={p.servicio} placeholder="Servicio (ej. Consulta)" style={{ flex: 1 }}
+              onChange={e => setPrecios(ps => ps.map((x, j) => j === i ? { ...x, servicio: e.target.value } : x))} />
+            <input className="input" type="number" min={0} value={p.precio || ''} placeholder="$ MXN" style={{ width: 120 }}
+              onChange={e => setPrecios(ps => ps.map((x, j) => j === i ? { ...x, precio: Number(e.target.value) } : x))} />
+            <button className="btn btn-ghost btn-sm" onClick={() => setPrecios(ps => ps.filter((_, j) => j !== i))} title="Quitar"><Trash2 size={14} /></button>
+          </div>
+        ))}
+        <button className="btn btn-ghost btn-sm" style={{ alignSelf: 'flex-start' }}
+          onClick={() => setPrecios(ps => [...ps, { servicio: '', precio: 0 }])}>+ Agregar precio</button>
+      </div>
+
+      <button className="btn btn-primary" onClick={guardar} disabled={saving || subiendo} style={{ alignSelf: 'flex-start' }}>
+        {saving ? <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Guardando…</> : <><Save size={15} /> Guardar perfil</>}
+      </button>
     </div>
   )
 }

@@ -18,6 +18,10 @@ interface Perfil {
   nombre: string
   medico: string
   especialidad: string
+  cedula: string
+  fotoUrl: string
+  bio: string
+  precios: { servicio: string; precio: number }[]
   direccion: string
   telefono: string
   mapsUrl: string
@@ -54,10 +58,21 @@ const getPerfil = cache(async (clinicId: string): Promise<Perfil | null> => {
     const primerMedico = doctorsSnap.docs[0]?.data()
     const servicios = Object.keys(cfg.duraciones ?? {}).map(k => TIPO_LABEL[k] || k)
 
+    const precios = Array.isArray(cfg.preciosPublicos)
+      ? cfg.preciosPublicos
+          .filter((x: unknown): x is { servicio: string; precio: number } =>
+            !!x && typeof (x as { servicio?: unknown }).servicio === 'string' && typeof (x as { precio?: unknown }).precio === 'number')
+          .map((x: { servicio: string; precio: number }) => ({ servicio: String(x.servicio), precio: Number(x.precio) }))
+      : []
+
     return {
       nombre: cfg.nombreClinica || cfg.nombreMedico || 'Consultorio',
       medico: cfg.nombreMedico || primerMedico?.nombre || '',
       especialidad: cfg.especialidad || primerMedico?.especialidad || '',
+      cedula: cfg.cedulaProfesional || '',
+      fotoUrl: cfg.fotoMedicoUrl || '',
+      bio: cfg.bioPublica || '',
+      precios,
       direccion: cfg.direccion || '',
       telefono: cfg.telefonoAdmin || cfg.whatsappConsultorio || '',
       mapsUrl: cfg.googleMapsUrl || '',
@@ -91,14 +106,27 @@ export default async function PerfilPublico({ params }: { params: Promise<{ clin
   const p = await getPerfil(clinicId)
   if (!p) notFound()
 
+  const preciosNum = p.precios.map(x => x.precio).filter(n => n > 0)
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Physician',
     name: p.medico || p.nombre,
+    ...(p.fotoUrl ? { image: p.fotoUrl } : {}),
+    ...(p.bio ? { description: p.bio } : {}),
     ...(p.especialidad ? { medicalSpecialty: p.especialidad } : {}),
     ...(p.telefono ? { telephone: p.telefono } : {}),
     ...(p.direccion ? { address: { '@type': 'PostalAddress', streetAddress: p.direccion, addressCountry: 'MX' } } : {}),
+    ...(preciosNum.length ? { priceRange: `$${Math.min(...preciosNum)}–$${Math.max(...preciosNum)} MXN` } : {}),
     ...(p.ratingN > 0 ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: p.ratingProm, reviewCount: p.ratingN } } : {}),
+    // Reseñas INDIVIDUALES (schema Review) → rich snippets más fuertes que solo el agregado
+    ...(p.reviews.length ? {
+      review: p.reviews.slice(0, 8).map(r => ({
+        '@type': 'Review',
+        reviewRating: { '@type': 'Rating', ratingValue: r.rating, bestRating: 5 },
+        ...(r.pacienteNombre ? { author: { '@type': 'Person', name: r.pacienteNombre } } : {}),
+        ...(r.texto ? { reviewBody: r.texto } : {}),
+      })),
+    } : {}),
   }
 
   return (
@@ -108,12 +136,19 @@ export default async function PerfilPublico({ params }: { params: Promise<{ clin
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 16px 64px' }}>
         {/* Hero */}
         <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          <div style={{ width: 64, height: 64, borderRadius: 16, background: 'var(--nexus-soft)', color: 'var(--nexus)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Stethoscope size={30} />
-          </div>
+          {p.fotoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={p.fotoUrl} alt={`Foto de ${p.medico || p.nombre}`} width={84} height={84}
+              style={{ width: 84, height: 84, borderRadius: 18, objectFit: 'cover', flexShrink: 0, border: '1px solid var(--border)' }} />
+          ) : (
+            <div style={{ width: 64, height: 64, borderRadius: 16, background: 'var(--nexus-soft)', color: 'var(--nexus)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Stethoscope size={30} />
+            </div>
+          )}
           <div style={{ flex: 1, minWidth: 240 }}>
             <h1 className="t-display" style={{ margin: 0 }}>{p.medico || p.nombre}</h1>
             {p.especialidad && <div style={{ fontSize: 15, color: 'var(--nexus)', fontWeight: 600, marginTop: 4 }}>{p.especialidad}</div>}
+            {p.cedula && <div style={{ fontSize: 12.5, color: 'var(--text3)', marginTop: 3 }}>Cédula profesional {p.cedula}</div>}
             {p.ratingN > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: 14, color: 'var(--text2)' }}>
                 <Star size={15} fill="var(--amber)" color="var(--amber)" />
@@ -133,6 +168,14 @@ export default async function PerfilPublico({ params }: { params: Promise<{ clin
           </Link>
         )}
 
+        {/* Biografía / presentación */}
+        {p.bio && (
+          <section style={{ marginTop: 32 }}>
+            <h2 className="t-h2" style={{ marginBottom: 12 }}>Acerca del médico</h2>
+            <p style={{ fontSize: 14.5, color: 'var(--text2)', lineHeight: 1.65, whiteSpace: 'pre-line', margin: 0 }}>{p.bio}</p>
+          </section>
+        )}
+
         {/* Servicios */}
         {p.servicios.length > 0 && (
           <section style={{ marginTop: 32 }}>
@@ -142,6 +185,22 @@ export default async function PerfilPublico({ params }: { params: Promise<{ clin
                 <span key={s} className="badge badge-neutral" style={{ padding: '6px 12px', fontSize: 13 }}>{s}</span>
               ))}
             </div>
+          </section>
+        )}
+
+        {/* Precios */}
+        {p.precios.length > 0 && (
+          <section style={{ marginTop: 32 }}>
+            <h2 className="t-h2" style={{ marginBottom: 12 }}>Precios</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {p.precios.map((x, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '10px 14px', background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 14 }}>
+                  <span style={{ color: 'var(--text2)' }}>{x.servicio}</span>
+                  <strong className="t-num" style={{ color: 'var(--text)' }}>${x.precio.toLocaleString('es-MX')}</strong>
+                </div>
+              ))}
+            </div>
+            <p style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 8 }}>Precios informativos en pesos mexicanos; pueden variar según el caso.</p>
           </section>
         )}
 

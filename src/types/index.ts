@@ -350,6 +350,14 @@ export interface ClinicConfig {
    *  propio papel; si no, cae a la general (notaMembreteDataUrl). */
   notaMembretePorMedico?: Record<string, { url: string; margenes?: { top: number; right: number; bottom: number; left: number } }>
 
+  // === Perfil público /dr (captación / SEO — convierte como Doctoralia) ===
+  /** Foto del médico para el perfil público (URL de Storage). */
+  fotoMedicoUrl?: string
+  /** Biografía / presentación pública del médico. */
+  bioPublica?: string
+  /** Lista de precios por servicio, visible en el perfil público. */
+  preciosPublicos?: { servicio: string; precio: number }[]
+
   // Receta y órdenes médicas
   recetaConfig?: RecetaConfig
   /**
