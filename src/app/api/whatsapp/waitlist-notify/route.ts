@@ -14,13 +14,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarMiembro } from '@/lib/auth-server'
 import { ClinicConfig, WaitlistEntry } from '@/types'
-import { sendWhatsApp } from '@/lib/whatsapp-send'
-
-async function send(to: string, body: string, clinicId: string): Promise<boolean> {
-  // Aviso de lista de espera = mensaje proactivo → respeta opt-out + pie BAJA.
-  const { ok } = await sendWhatsApp(clinicId, to, body, { proactivo: true })
-  return ok
-}
+import { enviarProactivo } from '@/lib/whatsapp/proactivo'
 
 function formatDate(fecha: string): string {
   const d = new Date(fecha + 'T12:00:00')
@@ -47,6 +41,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'no config' }, { status: 500 })
     }
     const config = configSnap.data() as ClinicConfig
+    // Config de plantillas HSM de la clínica (para envío fuera de ventana 24 h).
+    const clinicSnap = await clinicRef.get()
+    const waConfig = clinicSnap.data()?.whatsapp as { plantillas?: Record<string, { name?: string; lang?: string }> } | undefined
 
     // Candidatos activos ordenados por prioridad (1 = MAYOR prioridad → asc).
     // Antes era 'desc', que ofrecía el slot al paciente MENOS prioritario.
@@ -92,8 +89,21 @@ export async function POST(req: NextRequest) {
         `Si ya no está interesado, responda *NO* y le quitamos de la lista.`,
       ].join('\n')
 
-      const ok = await send(entry.pacienteTelefono, msg, clinicId)
-      if (ok) {
+      // Proactivo: dentro de ventana → texto; fuera → plantilla lista_espera si
+      // la clínica la tiene aprobada; si no, se omite (no marca contactado).
+      const { resultado } = await enviarProactivo(clinicId, entry.pacienteTelefono, {
+        clave: 'listaEspera',
+        datos: {
+          paciente: entry.pacienteNombre.split(' ')[0],
+          medico: config.nombreMedico || 'el médico',
+          fecha: formatDate(fecha),
+          hora,
+        },
+        textoLibre: msg,
+        waConfig,
+        ahoraMs: Date.now(),
+      })
+      if (resultado === 'enviado') {
         notified++
 
         const sessionData = {

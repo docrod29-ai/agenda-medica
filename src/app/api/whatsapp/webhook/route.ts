@@ -28,6 +28,7 @@ import {
   esPalabraBaja, esPalabraAlta, registrarBaja, registrarAlta,
   MENSAJE_BAJA_OK, MENSAJE_ALTA_OK,
 } from '@/lib/whatsapp/consent'
+import { registrarEntrante } from '@/lib/whatsapp/contacts'
 import { hoyISO, sumarDiasISO } from '@/lib/timezone'
 
 // Sin fallback público: si no está configurado, la verificación GET fallará
@@ -289,6 +290,9 @@ export async function handleMessage(from: string, body: string, clinicId: string
 
   const clinicName = config?.nombreClinica || config?.nombreMedico || 'el consultorio'
   const adminPhone = config?.telefonoAdmin || config?.whatsappConsultorio || ''
+
+  // Registrar el entrante: abre/renueva la ventana de servicio de 24 h (WA-1).
+  await registrarEntrante(clinicId, from)
 
   // ── Opt-out / opt-in ANTES que nada (WA-2) ───────────────────
   // Palabras dedicadas (BAJA / STOP · ALTA) para no chocar con "cancelar" (cita)

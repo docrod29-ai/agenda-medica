@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { adminDb } from '@/lib/firebase-admin'
 import { Appointment, ClinicConfig } from '@/types'
 import { sendWhatsApp as sendWA } from '@/lib/whatsapp-send'
+import { enviarProactivo } from '@/lib/whatsapp/proactivo'
 import { instanteMX, hoyISO, sumarDiasISO } from '@/lib/timezone'
 
 const CRON_SECRET = process.env.CRON_SECRET
@@ -92,6 +93,10 @@ export async function GET(req: NextRequest) {
         const config = configSnap.data() as ClinicConfig
         if (!config.recordatorio24h && !config.recordatorioMismoDia && !config.resenaAutomatica) continue
 
+        // Config de plantillas HSM de la clínica (whatsapp.plantillas) para la
+        // decisión texto vs. plantilla fuera de la ventana de 24 h (WA-1).
+        const waConfig = clinicDoc.data()?.whatsapp as { plantillas?: Record<string, { name?: string; lang?: string }> } | undefined
+
         // ── Get appointments for this clinic ─────────────────
         const snap = await adminDb
           .collection('clinics').doc(clinicId)
@@ -130,9 +135,11 @@ export async function GET(req: NextRequest) {
 
           // 24h reminder (window: 23–26h before)
           if (config.recordatorio24h && !appt.recordatorio24hEnviado && diffHours >= 23 && diffHours <= 26) {
-            const msg = buildWhatsAppMessage(template24h, msgData)
-            const ok = await sendWhatsApp(phone, msg, config, clinicId)
-            if (ok) {
+            const { resultado } = await enviarProactivo(clinicId, phone, {
+              clave: 'recordatorio24h', datos: msgData, ahoraMs: now.getTime(), waConfig,
+              textoLibre: buildWhatsAppMessage(template24h, msgData),
+            })
+            if (resultado === 'enviado') {
               await adminDb.collection('clinics').doc(clinicId)
                 .collection('appointments').doc(appt.id).update({
                   recordatorio24hEnviado: true,
@@ -140,22 +147,26 @@ export async function GET(req: NextRequest) {
                   updatedAt: now.toISOString(),
                 })
               totals.sent++
-            } else { totals.failed++ }
+            } else if (resultado === 'fallo') { totals.failed++ }
+            else { totals.skipped++ } // omitido (sin plantilla fuera de ventana) / optout
             continue
           }
 
           // Same-day reminder (window: 1–4h before)
           if (config.recordatorioMismoDia && !appt.recordatorioMismoDiaEnviado && diffHours >= 1 && diffHours <= 4) {
-            const msg = buildWhatsAppMessage(templateSameDay, msgData)
-            const ok = await sendWhatsApp(phone, msg, config, clinicId)
-            if (ok) {
+            const { resultado } = await enviarProactivo(clinicId, phone, {
+              clave: 'recordatorioMismoDia', datos: msgData, ahoraMs: now.getTime(), waConfig,
+              textoLibre: buildWhatsAppMessage(templateSameDay, msgData),
+            })
+            if (resultado === 'enviado') {
               await adminDb.collection('clinics').doc(clinicId)
                 .collection('appointments').doc(appt.id).update({
                   recordatorioMismoDiaEnviado: true,
                   updatedAt: now.toISOString(),
                 })
               totals.sent++
-            } else { totals.failed++ }
+            } else if (resultado === 'fallo') { totals.failed++ }
+            else { totals.skipped++ }
           }
         }
 

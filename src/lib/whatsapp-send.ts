@@ -179,6 +179,109 @@ export async function sendWhatsApp(
   return { ok: false, error: 'No WhatsApp provider configured' }
 }
 
+// ── Plantillas HSM (mensajes proactivos fuera de la ventana de 24 h) ───────────
+
+export interface TemplatePayload {
+  /** Nombre de la plantilla aprobada en Meta/360dialog. */
+  name: string
+  /** Código de idioma aprobado (p. ej. es_MX). */
+  lang: string
+  /** Parámetros del BODY en orden {{1}}..{{n}}. */
+  bodyParams: string[]
+}
+
+function componentesPlantilla(bodyParams: string[]) {
+  return bodyParams.length
+    ? [{ type: 'body', parameters: bodyParams.map(text => ({ type: 'text', text })) }]
+    : []
+}
+
+async function sendVia360dialogTemplate(apiKey: string, to: string, t: TemplatePayload): Promise<SendResult> {
+  try {
+    const res = await fetch('https://waba.360dialog.io/v1/messages', {
+      method: 'POST',
+      headers: { 'D360-API-KEY': apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to,
+        type: 'template',
+        template: { name: t.name, language: { code: t.lang }, components: componentesPlantilla(t.bodyParams) },
+      }),
+    })
+    if (!res.ok) return { ok: false, error: `360dialog ${res.status}: ${await res.text()}` }
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: String(e) }
+  }
+}
+
+async function sendViaMetaTemplate(token: string, phoneNumberId: string, to: string, t: TemplatePayload): Promise<SendResult> {
+  try {
+    const res = await fetch(`https://graph.facebook.com/v19.0/${phoneNumberId}/messages`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to,
+        type: 'template',
+        template: { name: t.name, language: { code: t.lang }, components: componentesPlantilla(t.bodyParams) },
+      }),
+    })
+    if (!res.ok) return { ok: false, error: `Meta ${res.status}: ${await res.text()}` }
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: String(e) }
+  }
+}
+
+/**
+ * Envía una PLANTILLA HSM aprobada (para mensajes proactivos fuera de la ventana
+ * de 24 h). Respeta el opt-out. Resolución de credenciales espejo de sendWhatsApp.
+ * Twilio (formato de contenido distinto) no se soporta por esta vía.
+ */
+export async function sendWhatsAppTemplate(
+  clinicId: string,
+  to: string,
+  t: TemplatePayload,
+  opts: SendOpts = {},
+): Promise<SendResult> {
+  const phone = normalisePhone(to)
+
+  if (opts.proactivo && (await estaDadoDeBaja(clinicId, phone))) {
+    return { ok: false, optout: true, error: 'contacto dado de baja (opt-out)' }
+  }
+
+  let waConfig: ClinicWhatsApp | undefined
+  try {
+    const clinicSnap = await adminDb.collection('clinics').doc(clinicId).get()
+    waConfig = clinicSnap.data()?.whatsapp as ClinicWhatsApp | undefined
+  } catch {
+    // Firestore no disponible — cae a env vars
+  }
+
+  if (waConfig?.connected) {
+    if (waConfig.provider === '360dialog' && waConfig.apiKey) {
+      const result = await sendVia360dialogTemplate(waConfig.apiKey, phone, t)
+      if (!result.ok) console.error(`[WhatsApp] 360dialog plantilla error clínica ${clinicId}:`, result.error)
+      return result
+    }
+    if (waConfig.provider === 'meta' && waConfig.apiKey && waConfig.phoneNumberId) {
+      return sendViaMetaTemplate(waConfig.apiKey, waConfig.phoneNumberId, phone, t)
+    }
+  }
+
+  const provider = process.env.WHATSAPP_PROVIDER || 'meta'
+  if (provider === 'meta') {
+    const token = process.env.WHATSAPP_API_TOKEN
+    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID
+    if (!token || !phoneNumberId) return { ok: false, error: 'WhatsApp not configured for this clinic' }
+    return sendViaMetaTemplate(token, phoneNumberId, phone, t)
+  }
+
+  return { ok: false, error: 'Plantillas no soportadas para el proveedor actual' }
+}
+
 /**
  * Quick lookup: find clinicId from a 360dialog api_key.
  * Uses the whatsapp_channels index collection for O(1) lookup.
