@@ -9,6 +9,7 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { Appointment, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { getWeekDates } from '@/lib/availability'
+import { hoyISO, fechaISOLocal } from '@/lib/timezone'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -109,7 +110,7 @@ export default function CalendarioPage() {
         </button>
         <button className="btn btn-ghost btn-icon btn-sm" onClick={() => navigate(1)}><ChevronRight size={16} /></button>
 
-        <button className="btn btn-primary btn-sm" onClick={() => openNew(new Date().toISOString().slice(0, 10), '')}>
+        <button className="btn btn-primary btn-sm" onClick={() => openNew(hoyISO(), '')}>
           <Plus size={15} /> Nueva cita
         </button>
       </div>
@@ -129,7 +130,7 @@ export default function CalendarioPage() {
           <DayView
             date={baseDate}
             appointments={appointments}
-            onCellClick={(h) => openNew(baseDate.toISOString().slice(0, 10), h)}
+            onCellClick={(h) => openNew(fechaISOLocal(baseDate), h)}
             onApptClick={openEdit}
             loading={loading}
           />
@@ -164,7 +165,7 @@ function WeekView({ weekDates, appointments, onCellClick, onApptClick, loading }
   onApptClick: (a: Appointment) => void
   loading: boolean
 }) {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = hoyISO()
   const DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
   return (
@@ -173,7 +174,7 @@ function WeekView({ weekDates, appointments, onCellClick, onApptClick, loading }
       <div style={{ display: 'grid', gridTemplateColumns: '56px repeat(7, 1fr)', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, zIndex: 10, background: 'var(--s2)' }}>
         <div />
         {weekDates.map((d, i) => {
-          const ds = d.toISOString().slice(0, 10)
+          const ds = fechaISOLocal(d)
           const isToday = ds === today
           return (
             <div key={i} style={{ padding: '10px 6px', textAlign: 'center', borderLeft: '1px solid var(--border)' }}>
@@ -199,7 +200,7 @@ function WeekView({ weekDates, appointments, onCellClick, onApptClick, loading }
             {String(h).padStart(2, '0')}:00
           </div>
           {weekDates.map((d, di) => {
-            const ds = d.toISOString().slice(0, 10)
+            const ds = fechaISOLocal(d)
             const hourStr = `${String(h).padStart(2, '0')}:00`
             const cellAppts = appointments.filter(a =>
               a.fechaHora.startsWith(ds) && parseInt(a.fechaHora.slice(11, 13)) === h
@@ -255,7 +256,7 @@ function DayView({ date, appointments, onCellClick, onApptClick, loading }: {
   onApptClick: (a: Appointment) => void
   loading: boolean
 }) {
-  const ds = date.toISOString().slice(0, 10)
+  const ds = fechaISOLocal(date)
   const dayAppts = appointments.filter(a => a.fechaHora.startsWith(ds)).sort((a, b) => a.fechaHora.localeCompare(b.fechaHora))
 
   return (
@@ -306,7 +307,7 @@ function MonthView({ date, appointments, onDayClick, onApptClick, loading }: {
   onApptClick: (a: Appointment) => void
   loading: boolean
 }) {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = hoyISO()
   const year = date.getFullYear()
   const month = date.getMonth()
   const firstDay = new Date(year, month, 1)
@@ -343,7 +344,7 @@ function MonthView({ date, appointments, onDayClick, onApptClick, loading }: {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', height: 'calc(100% - 37px)', overflow: 'auto' }}>
         {days.map((d, i) => {
           if (!d) return <div key={i} style={{ borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)', background: 'var(--bg)', opacity: 0.3 }} />
-          const ds = d.toISOString().slice(0, 10)
+          const ds = fechaISOLocal(d)
           const isToday = ds === today
           const dayAppts = appointments.filter(a => a.fechaHora.startsWith(ds))
           return (

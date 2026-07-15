@@ -299,14 +299,20 @@ export async function handleMessage(from: string, body: string, clinicId: string
   // Palabras dedicadas (BAJA / STOP · ALTA) para no chocar con "cancelar" (cita)
   // ni "salir" (menú). Se confirma y se corta el flujo.
   if (esPalabraBaja(text)) {
-    await registrarBaja(clinicId, from)
+    // Solo confirmamos "no le enviaremos más" si REALMENTE se persistió la baja;
+    // si no, no mentimos (seguiría recibiendo → violación LFPDPPP/Meta).
+    const bajaOk = await registrarBaja(clinicId, from)
     await clearSession(clinicId, from)
-    await send(from, MENSAJE_BAJA_OK)
+    await send(from, bajaOk
+      ? MENSAJE_BAJA_OK
+      : 'No pudimos procesar su baja en este momento. Por favor responda *BAJA* de nuevo en un minuto.')
     return
   }
   if (esPalabraAlta(text)) {
-    await registrarAlta(clinicId, from)
-    await send(from, MENSAJE_ALTA_OK)
+    const altaOk = await registrarAlta(clinicId, from)
+    await send(from, altaOk
+      ? MENSAJE_ALTA_OK
+      : 'No pudimos reactivar sus mensajes ahora. Responda *ALTA* de nuevo en un minuto.')
     // sigue el flujo normal tras reactivar
   }
 
@@ -631,9 +637,15 @@ export async function handleMessage(from: string, body: string, clinicId: string
         updatedPor: 'bot',
       })
 
-      // Mark waitlist entry as converted
+      // Marcar la entrada de lista de espera como convertida. Ruta CORRECTA
+      // (clinics/{id}/waitlist, no top-level) y en try/catch: un fallo del marcado
+      // NUNCA debe impedir la confirmación al paciente ni el cierre de sesión.
       if (waitlistId) {
-        await adminDb.collection('waitlist').doc(waitlistId).update({ estado: 'convertido' })
+        try {
+          await adminDb.collection('clinics').doc(clinicId).collection('waitlist').doc(waitlistId).update({ estado: 'convertido' })
+        } catch (e) {
+          console.warn(`[bot] no se pudo marcar waitlist ${waitlistId} como convertido:`, String(e))
+        }
       }
 
       await send(from, `✅ ¡Cita agendada!\n\n📅 ${formatDate(slotFecha)} a las ${slotHora} hrs\n🏥 ${clinicName}\n${config?.direccion || ''}\n\nLe enviaremos un recordatorio. ¡Hasta pronto! 😊`)

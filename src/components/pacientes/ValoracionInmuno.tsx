@@ -136,11 +136,19 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
   async function guardarHist() {
     const texto = snapshotText()
     if (!texto) { setStatus('Captura la valoración primero'); return }
+    if (!clinicId) { setStatus('No se pudo guardar: falta la clínica. Reintenta.'); return }
     const entry: HistEntry = { fecha: new Date().toISOString(), modo, huesped, texto }
+    const prev = hist
     const next = [...hist, entry].slice(-50)
-    setHist(next)
-    setStatus('Valoración guardada al historial')
-    if (clinicId) await updateDoc(doc(db, 'clinics', clinicId, 'patients', patient.id), { txValoracionHist: next }).catch(() => {})
+    setHist(next)                 // optimista
+    setStatus('Guardando…')
+    try {
+      await updateDoc(doc(db, 'clinics', clinicId, 'patients', patient.id), { txValoracionHist: next })
+      setStatus('Valoración guardada al historial')   // éxito SOLO tras persistir
+    } catch {
+      setHist(prev)              // revertir el optimista si falló
+      setStatus('No se pudo guardar. Reintenta.')
+    }
   }
 
   function descargarWord(texto?: string) {

@@ -26,6 +26,17 @@ export function hoyISO(tz: string = TZ_DEFAULT): string {
   }).format(new Date())
 }
 
+/**
+ * Fecha de un Date ARBITRARIO en la zona dada, formato YYYY-MM-DD.
+ * Usar en lugar de `date.toISOString().slice(0,10)`, que da el día en UTC y
+ * corre las fechas un día por las tardes en México (UTC-6).
+ */
+export function fechaISOLocal(date: Date, tz: string = TZ_DEFAULT): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(date)
+}
+
 /** Hora actual en la zona dada como minutos desde medianoche (0-1439). */
 export function ahoraMinutosDelDia(tz: string = TZ_DEFAULT): number {
   const partes = new Intl.DateTimeFormat('en-US', {

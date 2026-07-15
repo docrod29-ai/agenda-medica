@@ -21,6 +21,10 @@ export function AutoLogout() {
   const [restante, setRestante] = useState(AVISO_SEG)
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const countdown = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Espejo de `avisando` para leerlo en los listeners SIN re-montar el efecto
+  // (antes `avisando` estaba en las deps y desmontaba el efecto al aparecer el
+  // aviso, matando el countdown → el cierre por inactividad nunca ocurría).
+  const avisandoRef = useRef(false)
 
   const cerrarSesion = useCallback(() => {
     limpiarBorradoresLocales() // no dejar residuo clínico en dispositivo compartido
@@ -36,6 +40,7 @@ export function AutoLogout() {
 
   const iniciarAviso = useCallback(() => {
     setAvisando(true)
+    avisandoRef.current = true
     setRestante(AVISO_SEG)
     countdown.current = setInterval(() => {
       setRestante(r => {
@@ -48,6 +53,7 @@ export function AutoLogout() {
   const reiniciar = useCallback(() => {
     limpiar()
     setAvisando(false)
+    avisandoRef.current = false
     idleTimer.current = setTimeout(iniciarAviso, INACTIVIDAD_MIN * MS)
   }, [iniciarAviso])
 
@@ -55,7 +61,7 @@ export function AutoLogout() {
     // Throttle: no reiniciar en cada pixel de mousemove.
     let ultimo = 0
     const onActividad = () => {
-      if (avisando) return                     // durante el aviso, solo el botón reactiva
+      if (avisandoRef.current) return          // durante el aviso, solo el botón reactiva
       const ahora = Date.now()
       if (ahora - ultimo < 5000) return
       ultimo = ahora
@@ -68,8 +74,8 @@ export function AutoLogout() {
       eventos.forEach(e => window.removeEventListener(e, onActividad))
       limpiar()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [avisando, reiniciar])
+    // El efecto ya NO depende de `avisando` → no se re-monta al aparecer el aviso.
+  }, [reiniciar])
 
   if (!avisando) return null
 

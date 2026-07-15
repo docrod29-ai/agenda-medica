@@ -10,9 +10,14 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
+import { limitarOResponder } from '@/lib/rate-limit'
 
 const DAILY_API_KEY = process.env.DAILY_API_KEY ?? ''
 const DAILY_DOMAIN = process.env.DAILY_DOMAIN ?? ''   // ej "miclínica.daily.co"
+
+// Ventana de creación de sala: 30 min antes hasta 2 h después de la cita.
+const ANTES_MS = 30 * 60_000
+const DESPUES_MS = 2 * 60 * 60_000
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,6 +25,11 @@ export async function POST(req: NextRequest) {
     if (!citaId || !clinicId) {
       return NextResponse.json({ ok: false, error: 'Faltan citaId o clinicId' }, { status: 400 })
     }
+
+    // Rate-limit por cita: frena la creación masiva de salas de pago (abuso Daily).
+    const limite = await limitarOResponder(`telesalud:${clinicId}:${citaId}`, 12, 600,
+      'Demasiados intentos de conexión. Espera un momento e inténtalo de nuevo.')
+    if (limite) return limite
 
     const citaRef = adminDb.collection('clinics').doc(clinicId).collection('appointments').doc(citaId)
     const snap = await citaRef.get()
@@ -29,6 +39,16 @@ export async function POST(req: NextRequest) {
     // Si ya hay sala guardada, devolverla
     if (cita.telesaludUrl && cita.telesaludExpiresAt && cita.telesaludExpiresAt > Date.now() / 1000) {
       return NextResponse.json({ ok: true, url: cita.telesaludUrl, name: cita.telesaludNombre, expiresAt: cita.telesaludExpiresAt })
+    }
+
+    // Solo se CREA una sala nueva dentro de la ventana de la cita: fuera de ella
+    // no hay motivo legítimo → reduce el abuso de crear salas anónimas.
+    const inicioCita = new Date((cita.fechaHora as string).replace(' ', 'T')).getTime()
+    if (!Number.isNaN(inicioCita)) {
+      const ahora = Date.now()
+      if (ahora < inicioCita - ANTES_MS || ahora > inicioCita + DESPUES_MS) {
+        return NextResponse.json({ ok: false, error: 'La sala está disponible 30 min antes y hasta 2 h después de la cita.' }, { status: 403 })
+      }
     }
 
     if (!DAILY_API_KEY) {

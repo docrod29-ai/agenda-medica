@@ -103,26 +103,30 @@ export async function estaDadoDeBaja(clinicId: string, telefono: string): Promis
   }
 }
 
-/** Marca la baja del contacto. Idempotente. */
-export async function registrarBaja(clinicId: string, telefono: string, via = 'whatsapp_inbound'): Promise<void> {
+/** Marca la baja del contacto. Idempotente. Devuelve true si PERSISTIÓ. */
+export async function registrarBaja(clinicId: string, telefono: string, via = 'whatsapp_inbound'): Promise<boolean> {
   try {
     await optoutRef(clinicId, telefono).set(
       { baja: true, telefono: normalizarTelefonoWa(telefono), via, updatedAt: new Date().toISOString() },
       { merge: true },
     )
+    return true
   } catch (e) {
     console.error('[whatsapp/consent] no se pudo registrar la baja:', String(e))
+    return false
   }
 }
 
-/** Reactiva al contacto (baja=false). No borra el historial. */
-export async function registrarAlta(clinicId: string, telefono: string, via = 'whatsapp_inbound'): Promise<void> {
+/** Reactiva al contacto (baja=false). No borra el historial. Devuelve true si PERSISTIÓ. */
+export async function registrarAlta(clinicId: string, telefono: string, via = 'whatsapp_inbound'): Promise<boolean> {
   try {
     await optoutRef(clinicId, telefono).set(
       { baja: false, telefono: normalizarTelefonoWa(telefono), via, updatedAt: new Date().toISOString() },
       { merge: true },
     )
+    return true
   } catch (e) {
     console.error('[whatsapp/consent] no se pudo registrar el alta:', String(e))
+    return false
   }
 }
