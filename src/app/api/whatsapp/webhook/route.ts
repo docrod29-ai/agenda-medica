@@ -23,6 +23,7 @@ import { adminDb } from '@/lib/firebase-admin'
 import { ClinicConfig, Doctor, Appointment, AppointmentType } from '@/types'
 import { sendWhatsApp } from '@/lib/whatsapp-send'
 import { marcarProcesado, telefonoRedactado } from '@/lib/whatsapp/dedup'
+import { permiteFallbackUnicoTenant } from '@/lib/whatsapp/tenant'
 import { hoyISO, sumarDiasISO } from '@/lib/timezone'
 
 // Sin fallback público: si no está configurado, la verificación GET fallará
@@ -188,9 +189,14 @@ async function findClinicByPhoneNumberId(phoneNumberId: string): Promise<string 
     }
   }
 
-  // 3. Fallback: single clinic + env var match
-  const envPhoneId = process.env.WHATSAPP_PHONE_NUMBER_ID
-  if (clinicsSnap.size === 1 && (!envPhoneId || envPhoneId === phoneNumberId)) {
+  // 3. Fallback catch-all SOLO para instalación single-tenant (regla pura,
+  //    testeable). En multi-tenant un phoneNumberId desconocido → null (cero
+  //    acceso cruzado). Ver src/lib/whatsapp/tenant.ts.
+  if (permiteFallbackUnicoTenant({
+    numClinicas: clinicsSnap.size,
+    phoneNumberId,
+    envPhoneId: process.env.WHATSAPP_PHONE_NUMBER_ID,
+  })) {
     return clinicsSnap.docs[0].id
   }
 
