@@ -12,8 +12,9 @@ import {
   resolverPlantillaClinica, type ClavePlantilla, type DatosProactivos, type ConfigPlantillasClinica,
 } from '@/lib/whatsapp/templates'
 import { ultimoEntranteAt } from '@/lib/whatsapp/contacts'
+import { resolverSilencio, enHorarioPermitido, type ConfigSilencio } from '@/lib/whatsapp/horario'
 
-export type ResultadoProactivo = 'enviado' | 'omitido' | 'fallo' | 'optout'
+export type ResultadoProactivo = 'enviado' | 'omitido' | 'fallo' | 'optout' | 'silencio'
 
 /**
  * Envía un mensaje proactivo por el canal correcto:
@@ -29,10 +30,21 @@ export async function enviarProactivo(
     clave: ClavePlantilla
     datos: DatosProactivos
     textoLibre: string
-    waConfig?: ConfigPlantillasClinica | null
+    waConfig?: (ConfigPlantillasClinica & ConfigSilencio) | null
     ahoraMs: number
+    /** ahoraMinutosDelDia() en MX. Si se da, se respetan las horas de silencio. */
+    minutosDelDiaMx?: number
   },
 ): Promise<{ resultado: ResultadoProactivo; via: 'texto' | 'plantilla' | 'ninguno' }> {
+  // Horas de silencio: no enviar proactivos de madrugada. El recordatorio no se
+  // marca enviado → el siguiente ciclo del cron lo reintenta cuando pase el silencio.
+  if (opts.minutosDelDiaMx != null) {
+    const silencio = resolverSilencio(opts.waConfig)
+    if (!enHorarioPermitido(opts.minutosDelDiaMx, silencio)) {
+      return { resultado: 'silencio', via: 'ninguno' }
+    }
+  }
+
   const last = await ultimoEntranteAt(clinicId, to)
   const abierta = ventanaAbierta(last, opts.ahoraMs)
   const plantilla = resolverPlantillaClinica(opts.waConfig, opts.clave)

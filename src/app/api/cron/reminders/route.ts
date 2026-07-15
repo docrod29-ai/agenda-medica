@@ -4,7 +4,7 @@ import { adminDb } from '@/lib/firebase-admin'
 import { Appointment, ClinicConfig } from '@/types'
 import { sendWhatsApp as sendWA } from '@/lib/whatsapp-send'
 import { enviarProactivo } from '@/lib/whatsapp/proactivo'
-import { instanteMX, hoyISO, sumarDiasISO } from '@/lib/timezone'
+import { instanteMX, hoyISO, sumarDiasISO, ahoraMinutosDelDia } from '@/lib/timezone'
 
 const CRON_SECRET = process.env.CRON_SECRET
 
@@ -72,6 +72,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const now = new Date()
+    const minMx = ahoraMinutosDelDia() // hora de pared MX → horas de silencio (WA-8)
     const totals = { sent: 0, failed: 0, skipped: 0, clinics: 0 }
 
     // ── Get all active clinics ────────────────────────────────
@@ -95,7 +96,10 @@ export async function GET(req: NextRequest) {
 
         // Config de plantillas HSM de la clínica (whatsapp.plantillas) para la
         // decisión texto vs. plantilla fuera de la ventana de 24 h (WA-1).
-        const waConfig = clinicDoc.data()?.whatsapp as { plantillas?: Record<string, { name?: string; lang?: string }> } | undefined
+        const waConfig = clinicDoc.data()?.whatsapp as {
+          plantillas?: Record<string, { name?: string; lang?: string }>
+          silencio?: { activo?: boolean; inicio?: string; fin?: string }
+        } | undefined
 
         // ── Get appointments for this clinic ─────────────────
         const snap = await adminDb
@@ -136,7 +140,7 @@ export async function GET(req: NextRequest) {
           // 24h reminder (window: 23–26h before)
           if (config.recordatorio24h && !appt.recordatorio24hEnviado && diffHours >= 23 && diffHours <= 26) {
             const { resultado } = await enviarProactivo(clinicId, phone, {
-              clave: 'recordatorio24h', datos: msgData, ahoraMs: now.getTime(), waConfig,
+              clave: 'recordatorio24h', datos: msgData, ahoraMs: now.getTime(), waConfig, minutosDelDiaMx: minMx,
               textoLibre: buildWhatsAppMessage(template24h, msgData),
             })
             if (resultado === 'enviado') {
@@ -155,7 +159,7 @@ export async function GET(req: NextRequest) {
           // Same-day reminder (window: 1–4h before)
           if (config.recordatorioMismoDia && !appt.recordatorioMismoDiaEnviado && diffHours >= 1 && diffHours <= 4) {
             const { resultado } = await enviarProactivo(clinicId, phone, {
-              clave: 'recordatorioMismoDia', datos: msgData, ahoraMs: now.getTime(), waConfig,
+              clave: 'recordatorioMismoDia', datos: msgData, ahoraMs: now.getTime(), waConfig, minutosDelDiaMx: minMx,
               textoLibre: buildWhatsAppMessage(templateSameDay, msgData),
             })
             if (resultado === 'enviado') {
