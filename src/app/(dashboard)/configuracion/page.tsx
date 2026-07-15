@@ -32,7 +32,7 @@ import {
 const DIAS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'] as const
 const DIAS_LABELS = { lunes: 'Lunes', martes: 'Martes', miercoles: 'Miércoles', jueves: 'Jueves', viernes: 'Viernes', sabado: 'Sábado', domingo: 'Domingo' }
 
-type Tab = 'general' | 'horario' | 'duraciones' | 'bloqueos' | 'notificaciones' | 'integraciones' | 'plantillas' | 'portal' | 'recetas' | 'seguridad' | 'bot' | 'medicos' | 'equipo' | 'suscripcion'
+type Tab = 'general' | 'horario' | 'duraciones' | 'bloqueos' | 'notificaciones' | 'integraciones' | 'plantillas' | 'portal' | 'recetas' | 'seguridad' | 'bot' | 'medicos' | 'equipo' | 'suscripcion' | 'entregas'
 
 export default function ConfiguracionPage() {
   const { config, loading } = useConfig()
@@ -211,6 +211,7 @@ export default function ConfiguracionPage() {
       tabs: [
         { key: 'notificaciones', label: 'Notificaciones' },
         { key: 'plantillas', label: 'Mensajes de WhatsApp' },
+        { key: 'entregas', label: 'Entregas de WhatsApp' },
         { key: 'portal', label: 'Portal de auto-agenda' },
         { key: 'bot', label: 'Bot de preguntas frecuentes', modoMin: 'medico' },
       ],
@@ -257,7 +258,7 @@ export default function ConfiguracionPage() {
     <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
         <h1 className="t-h1" style={{ margin: 0 }}>Configuración</h1>
-        {tab !== 'integraciones' && tab !== 'recetas' && tab !== 'portal' && tab !== 'seguridad' && tab !== 'equipo' && tab !== 'medicos' && tab !== 'bloqueos' && tab !== 'suscripcion' && tab !== 'bot' && (
+        {tab !== 'integraciones' && tab !== 'recetas' && tab !== 'portal' && tab !== 'seguridad' && tab !== 'equipo' && tab !== 'medicos' && tab !== 'bloqueos' && tab !== 'suscripcion' && tab !== 'bot' && tab !== 'entregas' && (
           <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
             {saving ? <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Guardando…</> : <><Save size={15} /> Guardar</>}
           </button>
@@ -781,6 +782,9 @@ export default function ConfiguracionPage() {
 
       {/* Suscripción */}
       {tab === 'suscripcion' && <SuscripcionTab clinicId={clinicId} />}
+
+      {/* Entregas de WhatsApp (Iter. 7) */}
+      {tab === 'entregas' && <EntregasWhatsAppTab clinicId={clinicId} />}
         </div>
       </div>
 
@@ -4027,6 +4031,116 @@ function MiembrosActivos({ clinicId, miUid }: { clinicId: string | null; miUid?:
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Entregas de WhatsApp (Iter. 7 · DELIVERY_DASHBOARD) ───────────────────────
+
+interface ResumenEntregasUI {
+  total: number
+  entregados: number
+  leidos: number
+  fallidos: number
+  fallosPermanentes: number
+  tasaEntrega: number
+  tasaLectura: number
+  porEstado: Record<string, number>
+  fallosPorCodigo: { codigo: number; titulo?: string; cuenta: number }[]
+}
+
+function EntregasWhatsAppTab({ clinicId }: { clinicId: string | null }) {
+  const [dias, setDias] = useState(14)
+  const [data, setData] = useState<ResumenEntregasUI | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!clinicId) return
+    let vivo = true
+    setLoading(true); setError(null)
+    fetchAutenticado(`/api/whatsapp/entregas?clinicId=${clinicId}&dias=${dias}`)
+      .then(async r => {
+        const j = await r.json()
+        if (!r.ok) throw new Error(j?.error || 'Error')
+        if (vivo) setData(j.resumen as ResumenEntregasUI)
+      })
+      .catch(e => { if (vivo) setError(String(e.message || e)) })
+      .finally(() => { if (vivo) setLoading(false) })
+    return () => { vivo = false }
+  }, [clinicId, dias])
+
+  const pct = (x: number) => `${Math.round(x * 100)}%`
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div>
+        <p className="t-body" style={{ color: 'var(--text2)', margin: '0 0 4px' }}>
+          Cuántos recordatorios y avisos de WhatsApp se entregaron, se leyeron o fallaron.
+          Se puebla automáticamente con los reportes de entrega de WhatsApp.
+        </p>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
+          <label className="t-caption" style={{ color: 'var(--text3)' }}>Periodo:</label>
+          {[7, 14, 30].map(d => (
+            <button key={d} onClick={() => setDias(d)}
+              className="btn" style={{
+                padding: '4px 12px', fontSize: 13,
+                background: dias === d ? 'var(--nexus-soft)' : 'transparent',
+                color: dias === d ? 'var(--nexus)' : 'var(--text2)',
+                border: `1px solid ${dias === d ? 'rgba(61,90,254,0.3)' : 'var(--border)'}`,
+              }}>{d} días</button>
+          ))}
+        </div>
+      </div>
+
+      {loading && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text3)' }}>
+          <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Cargando…
+        </div>
+      )}
+      {error && <div className="t-body" style={{ color: 'var(--danger)' }}>No se pudo cargar: {error}</div>}
+
+      {data && !loading && data.total === 0 && (
+        <div style={{ padding: 20, border: '1px dashed var(--border)', borderRadius: 12, color: 'var(--text3)' }}>
+          Aún no hay reportes de entrega en este periodo. Aparecerán aquí cuando se envíen
+          recordatorios por WhatsApp.
+        </div>
+      )}
+
+      {data && !loading && data.total > 0 && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
+            <TarjetaMetrica etiqueta="Enviados" valor={data.total} />
+            <TarjetaMetrica etiqueta="Entregados" valor={data.entregados} sub={pct(data.tasaEntrega)} color="var(--nexus)" />
+            <TarjetaMetrica etiqueta="Leídos" valor={data.leidos} sub={pct(data.tasaLectura) + ' de entregados'} color="var(--success, #16a34a)" />
+            <TarjetaMetrica etiqueta="Fallidos" valor={data.fallidos} sub={data.fallosPermanentes ? `${data.fallosPermanentes} permanentes` : undefined} color={data.fallidos ? 'var(--danger)' : 'var(--text2)'} />
+          </div>
+
+          {data.fallosPorCodigo.length > 0 && (
+            <div>
+              <h3 className="t-h3" style={{ margin: '4px 0 8px' }}>Motivos de fallo</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {data.fallosPorCodigo.map(f => (
+                  <div key={f.codigo} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8 }}>
+                    <span className="t-body">{f.titulo || `Código ${f.codigo}`} <span style={{ color: 'var(--text3)' }}>({f.codigo})</span></span>
+                    <strong>{f.cuenta}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+function TarjetaMetrica({ etiqueta, valor, sub, color }: { etiqueta: string; valor: number; sub?: string; color?: string }) {
+  return (
+    <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 12, background: 'var(--surface, transparent)' }}>
+      <div className="t-caption" style={{ color: 'var(--text3)', marginBottom: 4 }}>{etiqueta}</div>
+      <div style={{ fontSize: 26, fontWeight: 700, color: color || 'var(--text1)', lineHeight: 1 }}>{valor}</div>
+      {sub && <div className="t-caption" style={{ color: 'var(--text3)', marginTop: 4 }}>{sub}</div>}
     </div>
   )
 }
