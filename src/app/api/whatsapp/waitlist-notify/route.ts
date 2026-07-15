@@ -15,6 +15,7 @@ import { adminDb } from '@/lib/firebase-admin'
 import { verificarMiembro } from '@/lib/auth-server'
 import { ClinicConfig, WaitlistEntry } from '@/types'
 import { enviarProactivo } from '@/lib/whatsapp/proactivo'
+import { encolarReintento } from '@/lib/whatsapp/outbox'
 import { hoyISO } from '@/lib/timezone'
 
 function formatDate(fecha: string): string {
@@ -134,6 +135,14 @@ export async function POST(req: NextRequest) {
 
         // Mark waitlist entry as contactado
         await clinicRef.collection('waitlist').doc(entry.id).update({ estado: 'contactado' })
+      } else if (resultado === 'fallo') {
+        // Aviso de un solo disparo: si falla por error transitorio, encolar para
+        // reintento con backoff (lo drena el cron de recordatorios).
+        await encolarReintento(clinicId, {
+          to: entry.pacienteTelefono, clave: 'listaEspera',
+          datos: { paciente: entry.pacienteNombre.split(' ')[0], medico: config.nombreMedico || 'el médico', fecha: formatDate(fecha), hora },
+          textoLibre: msg,
+        }, Date.now())
       }
     }
 

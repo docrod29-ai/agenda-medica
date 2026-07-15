@@ -4,6 +4,7 @@ import { adminDb } from '@/lib/firebase-admin'
 import { Appointment, ClinicConfig } from '@/types'
 import { sendWhatsApp as sendWA } from '@/lib/whatsapp-send'
 import { enviarProactivo } from '@/lib/whatsapp/proactivo'
+import { entradasVencidas, resolverEntrada, reprogramarEntrada } from '@/lib/whatsapp/outbox'
 import { instanteMX, hoyISO, sumarDiasISO, ahoraMinutosDelDia } from '@/lib/timezone'
 
 const CRON_SECRET = process.env.CRON_SECRET
@@ -206,6 +207,21 @@ export async function GET(req: NextRequest) {
               if (ok) totals.sent++; else totals.failed++
             } catch { totals.failed++ }
           }
+        }
+
+        // ── Drenar la cola de reintentos (outbox/DLQ) de esta clínica ──
+        for (const e of await entradasVencidas(clinicId, now.getTime())) {
+          const { resultado } = await enviarProactivo(clinicId, e.to, {
+            clave: e.clave, datos: e.datos, textoLibre: e.textoLibre,
+            waConfig, ahoraMs: now.getTime(), minutosDelDiaMx: minMx, fechaHoyMx: hoyISO(),
+          })
+          if (resultado === 'enviado' || resultado === 'optout' || resultado === 'omitido') {
+            await resolverEntrada(clinicId, e.id) // resuelto o inalcanzable por config → sacar de la cola
+            if (resultado === 'enviado') totals.sent++
+          } else if (resultado === 'fallo') {
+            await reprogramarEntrada(clinicId, e, now.getTime()) // backoff o dead-letter
+          }
+          // 'silencio' / 'tope': dejar en la cola, se reintenta en el próximo ciclo
         }
       } catch (clinicErr) {
         console.error(`[Cron] Error for clinic ${clinicId}:`, clinicErr)
