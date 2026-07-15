@@ -21,6 +21,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { findClinicByDialog360ApiKey } from '@/lib/whatsapp-send'
 import { marcarProcesado, telefonoRedactado } from '@/lib/whatsapp/dedup'
+import { parsearStatuses, registrarStatus } from '@/lib/whatsapp/status'
 
 // We import the core bot handler from the main webhook so we don't duplicate logic.
 // The main webhook exports handleMessage for reuse.
@@ -42,16 +43,24 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Parse payload ────────────────────────────────────────────
-  let payload: { messages?: { id?: string; from: string; type: string; text?: { body: string } }[] }
+  let payload: {
+    messages?: { id?: string; from: string; type: string; text?: { body: string } }[]
+    statuses?: { id?: string; status?: string; recipient_id?: string; timestamp?: string; errors?: { code?: number; title?: string }[] }[]
+  }
   try {
     payload = await req.json()
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
+  // Estados de entrega (sent/delivered/read/failed) → visibilidad + opt-out Meta
+  if (Array.isArray(payload.statuses) && payload.statuses.length > 0) {
+    for (const s of parsearStatuses(payload)) await registrarStatus(clinicId, s)
+  }
+
   const messages = payload.messages ?? []
   if (messages.length === 0) {
-    return NextResponse.json({ ok: true }) // status update, not a message
+    return NextResponse.json({ ok: true }) // solo estados, sin mensaje entrante
   }
 
   // ── Process each message ─────────────────────────────────────

@@ -29,6 +29,7 @@ import {
   MENSAJE_BAJA_OK, MENSAJE_ALTA_OK,
 } from '@/lib/whatsapp/consent'
 import { registrarEntrante } from '@/lib/whatsapp/contacts'
+import { parsearStatuses, registrarStatus } from '@/lib/whatsapp/status'
 import { hoyISO, sumarDiasISO } from '@/lib/timezone'
 
 // Sin fallback público: si no está configurado, la verificación GET fallará
@@ -748,8 +749,11 @@ export async function POST(req: NextRequest) {
     const changes = entry?.changes?.[0]
     const value = changes?.value
     const messages = value?.messages
+    const statuses = value?.statuses
 
-    if (!messages || messages.length === 0) {
+    const hayMensajes = Array.isArray(messages) && messages.length > 0
+    const hayStatuses = Array.isArray(statuses) && statuses.length > 0
+    if (!hayMensajes && !hayStatuses) {
       return NextResponse.json({ ok: true })
     }
 
@@ -761,6 +765,13 @@ export async function POST(req: NextRequest) {
       console.warn('[Bot] No clinic found for phoneNumberId:', phoneNumberId)
       return NextResponse.json({ ok: true })
     }
+
+    // Estados de entrega (sent/delivered/read/failed) → visibilidad + opt-out Meta
+    if (hayStatuses) {
+      for (const s of parsearStatuses(value)) await registrarStatus(clinicId, s)
+    }
+
+    if (!hayMensajes) return NextResponse.json({ ok: true })
 
     for (const msg of messages) {
       if (msg.type !== 'text') continue
