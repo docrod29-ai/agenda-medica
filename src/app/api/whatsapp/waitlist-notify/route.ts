@@ -17,7 +17,8 @@ import { ClinicConfig, WaitlistEntry } from '@/types'
 import { sendWhatsApp } from '@/lib/whatsapp-send'
 
 async function send(to: string, body: string, clinicId: string): Promise<boolean> {
-  const { ok } = await sendWhatsApp(clinicId, to, body)
+  // Aviso de lista de espera = mensaje proactivo → respeta opt-out + pie BAJA.
+  const { ok } = await sendWhatsApp(clinicId, to, body, { proactivo: true })
   return ok
 }
 

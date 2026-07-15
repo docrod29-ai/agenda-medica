@@ -56,9 +56,10 @@ function formatDateES(dateStr: string): string {
   return d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
-/** Thin wrapper — uses per-clinic credentials from whatsapp-send.ts */
+/** Thin wrapper — uses per-clinic credentials from whatsapp-send.ts.
+ *  proactivo:true → respeta el opt-out del contacto y agrega el pie "Responda BAJA…". */
 async function sendWhatsApp(phone: string, message: string, _config: ClinicConfig, clinicId: string): Promise<boolean> {
-  const { ok } = await sendWA(clinicId, phone, message)
+  const { ok } = await sendWA(clinicId, phone, message, { proactivo: true })
   return ok
 }
 

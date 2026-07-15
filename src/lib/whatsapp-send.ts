@@ -8,10 +8,22 @@
 
 import { adminDb } from '@/lib/firebase-admin'
 import type { ClinicWhatsApp } from '@/types'
+import { estaDadoDeBaja, conPieOptout } from '@/lib/whatsapp/consent'
 
 interface SendResult {
   ok: boolean
   error?: string
+  /** true si no se envió por baja del contacto (opt-out). No es un fallo. */
+  optout?: boolean
+}
+
+interface SendOpts {
+  /**
+   * Mensaje PROACTIVO iniciado por el consultorio (recordatorio, aviso de lista
+   * de espera). Se respeta el opt-out y se agrega el pie "Responda BAJA…".
+   * Las respuestas REACTIVAS del bot (que el paciente inició) omiten esto.
+   */
+  proactivo?: boolean
 }
 
 /** Normalise a Mexican phone number to E.164 without '+' (WhatsApp format) */
@@ -112,8 +124,18 @@ export async function sendWhatsApp(
   clinicId: string,
   to: string,
   body: string,
+  opts: SendOpts = {},
 ): Promise<SendResult> {
   const phone = normalisePhone(to)
+
+  // ── 0. Opt-out: los mensajes PROACTIVOS respetan la baja del contacto ──
+  let outgoing = body
+  if (opts.proactivo) {
+    if (await estaDadoDeBaja(clinicId, phone)) {
+      return { ok: false, optout: true, error: 'contacto dado de baja (opt-out)' }
+    }
+    outgoing = conPieOptout(body) // pie "Responda BAJA…" visible
+  }
 
   // ── 1. Load clinic WhatsApp config from Firestore ─────────────
   let waConfig: ClinicWhatsApp | undefined
@@ -127,13 +149,13 @@ export async function sendWhatsApp(
   // ── 2. Use clinic-specific credentials ─────────────────────────
   if (waConfig?.connected) {
     if (waConfig.provider === '360dialog' && waConfig.apiKey) {
-      const result = await sendVia360dialog(waConfig.apiKey, phone, body)
+      const result = await sendVia360dialog(waConfig.apiKey, phone, outgoing)
       if (!result.ok) console.error(`[WhatsApp] 360dialog error for clinic ${clinicId}:`, result.error)
       return result
     }
 
     if (waConfig.provider === 'meta' && waConfig.apiKey && waConfig.phoneNumberId) {
-      return sendViaMeta(waConfig.apiKey, waConfig.phoneNumberId, phone, body)
+      return sendViaMeta(waConfig.apiKey, waConfig.phoneNumberId, phone, outgoing)
     }
   }
 
@@ -147,11 +169,11 @@ export async function sendWhatsApp(
       console.warn(`[WhatsApp] No credentials for clinic ${clinicId} and no global env vars set.`)
       return { ok: false, error: 'WhatsApp not configured for this clinic' }
     }
-    return sendViaMeta(token, phoneNumberId, phone, body)
+    return sendViaMeta(token, phoneNumberId, phone, outgoing)
   }
 
   if (provider === 'twilio') {
-    return sendViaTwilio(phone, body)
+    return sendViaTwilio(phone, outgoing)
   }
 
   return { ok: false, error: 'No WhatsApp provider configured' }

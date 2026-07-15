@@ -24,6 +24,10 @@ import { ClinicConfig, Doctor, Appointment, AppointmentType } from '@/types'
 import { sendWhatsApp } from '@/lib/whatsapp-send'
 import { marcarProcesado, telefonoRedactado } from '@/lib/whatsapp/dedup'
 import { permiteFallbackUnicoTenant } from '@/lib/whatsapp/tenant'
+import {
+  esPalabraBaja, esPalabraAlta, registrarBaja, registrarAlta,
+  MENSAJE_BAJA_OK, MENSAJE_ALTA_OK,
+} from '@/lib/whatsapp/consent'
 import { hoyISO, sumarDiasISO } from '@/lib/timezone'
 
 // Sin fallback público: si no está configurado, la verificación GET fallará
@@ -285,6 +289,21 @@ export async function handleMessage(from: string, body: string, clinicId: string
 
   const clinicName = config?.nombreClinica || config?.nombreMedico || 'el consultorio'
   const adminPhone = config?.telefonoAdmin || config?.whatsappConsultorio || ''
+
+  // ── Opt-out / opt-in ANTES que nada (WA-2) ───────────────────
+  // Palabras dedicadas (BAJA / STOP · ALTA) para no chocar con "cancelar" (cita)
+  // ni "salir" (menú). Se confirma y se corta el flujo.
+  if (esPalabraBaja(text)) {
+    await registrarBaja(clinicId, from)
+    await clearSession(clinicId, from)
+    await send(from, MENSAJE_BAJA_OK)
+    return
+  }
+  if (esPalabraAlta(text)) {
+    await registrarAlta(clinicId, from)
+    await send(from, MENSAJE_ALTA_OK)
+    // sigue el flujo normal tras reactivar
+  }
 
   const session = await getSession(clinicId, from)
   const estado = session?.estado || 'inicio'
