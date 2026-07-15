@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v374'  // Mobile Excellence (verificable, iter. 1-7): 10 alert() nativos → toast in-app (ya no fallan en silencio en apps instaladas), navegación móvil con acción central contextual (Consulta/Nueva cita), base responsive (100dvh, breakpoints, tablas→tarjetas), limpieza de PHI del borrador local al cerrar sesión, y limpieza de dep muerta. Escritorio intacto por construcción. (Pendiente de probar en dispositivo: apariencia de la barra móvil.)
+const CACHE = 'nexusmed-v375'  // Mobile Excellence iter 8-11 (aún en rama): notificaciones sin PHI (§8.6), logs sin material de secretos (§9.5), guards de accesibilidad/zoom, y PWA: shortcuts en el manifest + NO cachear el HTML de rutas clínicas (defensa en profundidad §11.2). Escritorio intacto.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
@@ -67,13 +67,18 @@ self.addEventListener('fetch', (event) => {
   // /__/firebase/*) — debe ir SIEMPRE a la red sin caché, o el login de Google se rompe.
   if (url.pathname.startsWith('/__/')) return
 
+  // Rutas CLÍNICAS: aunque hoy el HTML es un shell (los datos del paciente cargan
+  // después desde Firestore), por defensa en profundidad (§11.2) NO cacheamos su
+  // HTML — así ningún dato clínico puede quedar en la caché del navegador.
+  const esRutaClinica = /^\/(expediente|consulta|nota|receta|orden|referencia|hospitalizacion|valoracion)(\/|$)/.test(url.pathname)
+
   // Navegaciones de página: network-first
   if (req.mode === 'navigate') {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          // No cachear respuestas de error (404/500) — evita 404 "fantasmas"
-          if (res && res.ok && res.status === 200) {
+          // No cachear respuestas de error (404/500) ni rutas clínicas.
+          if (res && res.ok && res.status === 200 && !esRutaClinica) {
             const copy = res.clone()
             caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {})
           }
