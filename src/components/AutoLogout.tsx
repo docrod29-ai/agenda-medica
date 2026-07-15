@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { limpiarBorradoresLocales } from '@/lib/mobile/local-drafts'
 
 /**
  * Cierre automático de sesión por inactividad (control de seguridad LFPDPPP /
@@ -22,6 +23,7 @@ export function AutoLogout() {
   const countdown = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const cerrarSesion = useCallback(() => {
+    limpiarBorradoresLocales() // no dejar residuo clínico en dispositivo compartido
     import('@/lib/firebase').then(({ auth }) => auth.signOut()).finally(() => {
       window.location.href = '/login?motivo=inactividad'
     })

@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
 import { rutaPermitida } from '@/lib/modulos'
 import { suscribirMensajes, suscribirLectura, contarNoLeidos, type ChatMessage } from '@/lib/chat'
+import { limpiarBorradoresLocales } from '@/lib/mobile/local-drafts'
 
 // Cada item declara en qué modos aparece:
 //   medico       → solo cuando el usuario está en modo Médico
@@ -74,6 +75,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   )
 
   const handleLogout = async () => {
+    limpiarBorradoresLocales() // no dejar residuo clínico en dispositivo compartido
     await signOut(auth)
     router.replace('/login')
   }

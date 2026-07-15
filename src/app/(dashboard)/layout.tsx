@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { esSuperadminCliente } from '@/lib/superadmin-client'
+import { limpiarBorradoresLocales } from '@/lib/mobile/local-drafts'
 import { useClinic } from '@/context/ClinicContext'
 import { Sidebar } from '@/components/Sidebar'
 import { ToastProvider } from '@/context/ToastContext'
@@ -191,7 +192,7 @@ function AccesoGate({ estado, clinicId, esMedico, email }: { estado: 'sin_tarjet
             Pago seguro con Stripe · Cancela cuando quieras · ¿Tienes código <strong>FUNDADOR</strong>? Aplícalo en el pago.
           </div>
         )}
-        <button onClick={() => { import('@/lib/firebase').then(({ auth }) => auth.signOut()) }}
+        <button onClick={() => { limpiarBorradoresLocales(); import('@/lib/firebase').then(({ auth }) => auth.signOut()) }}
           style={{ marginTop: 22, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}>
           Cerrar sesión
         </button>
