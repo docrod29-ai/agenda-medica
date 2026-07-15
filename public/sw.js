@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v373'  // Madurez pública (Grupo 1): demo interactiva /demo/interactivo, QR verificable /verificar, ProductWindow en landing, /evidencia (PubMed), /contacto (soporte sin mailto que cierra la app), copy honesto (créditos↔gate, PITR en activación, sin adopción implícita), y diálogo de confirmación in-app (arregla 'Eliminar borrador no hacía nada' en apps instaladas). SIN clinical-ai ni /demo/clinico.
+const CACHE = 'nexusmed-v374'  // Mobile Excellence (verificable, iter. 1-7): 10 alert() nativos → toast in-app (ya no fallan en silencio en apps instaladas), navegación móvil con acción central contextual (Consulta/Nueva cita), base responsive (100dvh, breakpoints, tablas→tarjetas), limpieza de PHI del borrador local al cerrar sesión, y limpieza de dep muerta. Escritorio intacto por construcción. (Pendiente de probar en dispositivo: apariencia de la barra móvil.)
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
