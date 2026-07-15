@@ -38,6 +38,17 @@ export async function POST(req: NextRequest) {
     if (currentApiKey) await adminDb.collection('whatsapp_channels').doc(currentApiKey).delete().catch(() => {})
     if (currentPhoneNumberId) await adminDb.collection('whatsapp_channels').doc(currentPhoneNumberId).delete().catch(() => {})
 
+    // Auditoría: conserva el registro de la desconexión (sin datos de secreto).
+    // Nunca rompe la desconexión si el log falla.
+    try {
+      await adminDb.collection('clinics').doc(clinicId).collection('whatsapp_events').add({
+        tipo: 'disconnect',
+        por: acceso.uid ?? null,
+        tenia: { apiKey: !!currentApiKey, phoneNumberId: !!currentPhoneNumberId },
+        at: new Date().toISOString(),
+      })
+    } catch { /* no bloquear la desconexión por el log */ }
+
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('[whatsapp-disconnect]', err)
