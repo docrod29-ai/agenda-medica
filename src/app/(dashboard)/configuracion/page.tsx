@@ -136,9 +136,14 @@ export default function ConfiguracionPage() {
   // listener en vivo — eso PISABA lo que el usuario editaba sin guardar (el bug de
   // "cambio de ventana y se me borra"). Los guardados ya persisten a Firestore.
   const formInitRef = useRef(false)
+  // Snapshot de la config con la que se inicializó `form`. Guardar hace un DIFF
+  // contra esto y persiste SOLO las claves que el usuario cambió (merge), para no
+  // reescribir un snapshot completo que revierte lo guardado por otras pestañas.
+  const configBaseRef = useRef<ClinicConfig | null>(null)
   useEffect(() => {
     if (!loading && !formInitRef.current) {
       setForm({ ...config })
+      configBaseRef.current = { ...config }
       formInitRef.current = true
     }
   }, [config, loading])
@@ -155,8 +160,19 @@ export default function ConfiguracionPage() {
         firmaImagenDataUrl: await subirImagenServidor(form.firmaImagenDataUrl, 'firma'),
         notaMembreteDataUrl: await subirImagenServidor(form.notaMembreteDataUrl, 'nota-membrete'),
       }
-      await saveConfig(clinicId!, formCompacto)
-      setForm(formCompacto)  // refleja las URLs ya compactadas (no re-subir la próxima vez)
+      // DIFF contra el snapshot base: solo las claves de nivel superior que
+      // cambiaron. Así el guardado NO pisa campos que otra pestaña persistió en
+      // esta sesión (Recetas, Portal, etc.).
+      const base = configBaseRef.current ?? config
+      const parcial: Partial<ClinicConfig> = {}
+      for (const k of Object.keys(formCompacto) as (keyof ClinicConfig)[]) {
+        if (formCompacto[k] !== base[k]) (parcial as Record<string, unknown>)[k] = formCompacto[k]
+      }
+      if (Object.keys(parcial).length > 0) {
+        await saveConfigPartial(clinicId!, parcial)   // merge: solo lo cambiado
+      }
+      setForm(formCompacto)              // refleja las URLs ya compactadas
+      configBaseRef.current = formCompacto  // avanza la base para el siguiente diff
       toast('Configuración guardada', 'success')
     } catch (e) {
       toast(`Error al guardar: ${e instanceof Error ? e.message.slice(0, 80) : ''}`, 'error')
