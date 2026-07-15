@@ -99,6 +99,7 @@ export async function GET(req: NextRequest) {
         const waConfig = clinicDoc.data()?.whatsapp as {
           plantillas?: Record<string, { name?: string; lang?: string }>
           silencio?: { activo?: boolean; inicio?: string; fin?: string }
+          topeDiarioProactivo?: number
         } | undefined
 
         // ── Get appointments for this clinic ─────────────────
@@ -140,7 +141,7 @@ export async function GET(req: NextRequest) {
           // 24h reminder (window: 23–26h before)
           if (config.recordatorio24h && !appt.recordatorio24hEnviado && diffHours >= 23 && diffHours <= 26) {
             const { resultado } = await enviarProactivo(clinicId, phone, {
-              clave: 'recordatorio24h', datos: msgData, ahoraMs: now.getTime(), waConfig, minutosDelDiaMx: minMx,
+              clave: 'recordatorio24h', datos: msgData, ahoraMs: now.getTime(), waConfig, minutosDelDiaMx: minMx, fechaHoyMx: hoyISO(),
               textoLibre: buildWhatsAppMessage(template24h, msgData),
             })
             if (resultado === 'enviado') {
@@ -159,7 +160,7 @@ export async function GET(req: NextRequest) {
           // Same-day reminder (window: 1–4h before)
           if (config.recordatorioMismoDia && !appt.recordatorioMismoDiaEnviado && diffHours >= 1 && diffHours <= 4) {
             const { resultado } = await enviarProactivo(clinicId, phone, {
-              clave: 'recordatorioMismoDia', datos: msgData, ahoraMs: now.getTime(), waConfig, minutosDelDiaMx: minMx,
+              clave: 'recordatorioMismoDia', datos: msgData, ahoraMs: now.getTime(), waConfig, minutosDelDiaMx: minMx, fechaHoyMx: hoyISO(),
               textoLibre: buildWhatsAppMessage(templateSameDay, msgData),
             })
             if (resultado === 'enviado') {

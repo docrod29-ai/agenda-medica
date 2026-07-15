@@ -15,6 +15,7 @@ import { adminDb } from '@/lib/firebase-admin'
 import { verificarMiembro } from '@/lib/auth-server'
 import { ClinicConfig, WaitlistEntry } from '@/types'
 import { enviarProactivo } from '@/lib/whatsapp/proactivo'
+import { hoyISO } from '@/lib/timezone'
 
 function formatDate(fecha: string): string {
   const d = new Date(fecha + 'T12:00:00')
@@ -102,6 +103,7 @@ export async function POST(req: NextRequest) {
         textoLibre: msg,
         waConfig,
         ahoraMs: Date.now(),
+        fechaHoyMx: hoyISO(),
       })
       if (resultado === 'enviado') {
         notified++

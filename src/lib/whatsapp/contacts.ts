@@ -10,6 +10,7 @@
 
 import { adminDb } from '@/lib/firebase-admin'
 import { normalizarTelefonoWa } from '@/lib/whatsapp/consent'
+import { conteoDeHoy, siguienteConteo } from '@/lib/whatsapp/frecuencia'
 
 function contactRef(clinicId: string, telefono: string) {
   return adminDb
@@ -37,5 +38,30 @@ export async function ultimoEntranteAt(clinicId: string, telefono: string): Prom
   } catch (e) {
     console.warn('[whatsapp/contacts] no se pudo leer último entrante (null):', String(e))
     return null
+  }
+}
+
+/** Nº de mensajes proactivos ya enviados hoy a este contacto. Ante error → 0 (fail-open). */
+export async function enviosProactivosHoy(clinicId: string, telefono: string, fechaHoy: string): Promise<number> {
+  try {
+    const snap = await contactRef(clinicId, telefono).get()
+    return conteoDeHoy(snap.data()?.proactivo, fechaHoy)
+  } catch (e) {
+    console.warn('[whatsapp/contacts] no se pudo leer conteo proactivo (0):', String(e))
+    return 0
+  }
+}
+
+/** Suma 1 al conteo proactivo del día (reinicia en día nuevo). A prueba de fallos. */
+export async function registrarEnvioProactivo(clinicId: string, telefono: string, fechaHoy: string): Promise<void> {
+  try {
+    const ref = contactRef(clinicId, telefono)
+    await adminDb.runTransaction(async tx => {
+      const snap = await tx.get(ref)
+      const proactivo = siguienteConteo(snap.data()?.proactivo, fechaHoy)
+      tx.set(ref, { telefono: normalizarTelefonoWa(telefono), proactivo }, { merge: true })
+    })
+  } catch (e) {
+    console.warn('[whatsapp/contacts] no se pudo registrar envío proactivo (ignorado):', String(e))
   }
 }
