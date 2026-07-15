@@ -35,7 +35,8 @@ export async function POST(req: NextRequest) {
 
   const clinicId = await findClinicByDialog360ApiKey(apiKey)
   if (!clinicId) {
-    console.warn('[360dialog webhook] Unknown api_key:', apiKey.slice(0, 8) + '...')
+    // §9.5: no registrar material de la llave. Solo el evento (llave desconocida).
+    console.warn('[360dialog webhook] api_key desconocida — no coincide con ningún canal')
     return NextResponse.json({ error: 'Unknown channel' }, { status: 404 })
   }
 
