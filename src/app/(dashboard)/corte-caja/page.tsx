@@ -17,6 +17,12 @@ import { Printer, Wallet, TrendingDown, Users, AlertCircle, Calendar } from 'luc
 const hoyISO = () => new Date().toISOString().slice(0, 10)
 
 export default function CorteCajaPage() {
+  return <CorteCajaContenido />
+}
+
+/** Contenido del corte de caja. `embedded` lo usa la pestaña dentro de Finanzas
+ * (sin su propio header/padding, para no duplicar el marco). */
+export function CorteCajaContenido({ embedded = false }: { embedded?: boolean }) {
   const { clinicId } = useClinic()
   const [dia, setDia] = useState(hoyISO())
   const [cobros, setCobros] = useState<Cobro[]>([])
@@ -47,14 +53,16 @@ export default function CorteCajaPage() {
   const porCobrar = useMemo(() => cuentasPorCobrar(citas, cobros), [citas, cobros])
 
   return (
-    <div style={{ padding: 24, maxWidth: 920, margin: '0 auto' }}>
-      <PageHeader
-        title="Corte de caja"
-        subtitle="Cierra el día: cuánto entró, en qué forma de pago, y quién quedó pendiente de cobro."
-        actions={
-          <Button variant="secondary" icon={<Printer size={16} />} onClick={() => window.print()}>Imprimir</Button>
-        }
-      />
+    <div style={{ padding: embedded ? 0 : 24, maxWidth: 920, margin: '0 auto' }}>
+      {!embedded && (
+        <PageHeader
+          title="Corte de caja"
+          subtitle="Cierra el día: cuánto entró, en qué forma de pago, y quién quedó pendiente de cobro."
+          actions={
+            <Button variant="secondary" icon={<Printer size={16} />} onClick={() => window.print()}>Imprimir</Button>
+          }
+        />
+      )}
 
       {/* Selector de día */}
       <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>

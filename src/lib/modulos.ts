@@ -29,9 +29,16 @@ export const MODULOS_DE_PLAN: Record<string, string[]> = {
   // Legados / especiales
   basico:   CONSULTORIO,
   pro:      CONSULTORIO,
-  trial:    [...CONSULTORIO, 'hospitalizacion'], // en prueba puede ver todo
-  cortesia: [...CONSULTORIO, 'hospitalizacion'],
+  trial:    CONSULTORIO,   // Hospitalización es un producto APARTE: no se muestra en prueba
+  cortesia: CONSULTORIO,
 }
+
+/**
+ * Módulos OPT-IN: productos separados que NO se muestran por los "atajos" (pase
+ * libre del dueño, clínica sin plan, prueba). Solo aparecen si el plan Hospital o
+ * un módulo explícito los incluye. Así Hospitalización no estorba en un consultorio.
+ */
+export const MODULOS_OPT_IN = ['hospitalizacion']
 
 export interface ModuloDef {
   key: string
@@ -59,6 +66,8 @@ export const MODULOS: ModuloDef[] = [
 
 export const MODULO_LABEL: Record<string, string> = Object.fromEntries(MODULOS.map(m => [m.key, m.label]))
 export const TODOS_LOS_MODULOS = MODULOS.map(m => m.key)
+/** Todos MENOS los opt-in (lo que ve un consultorio por defecto, sin Hospital). */
+export const MODULOS_BASE = TODOS_LOS_MODULOS.filter(k => !MODULOS_OPT_IN.includes(k))
 
 /**
  * Catálogo de PAQUETES por defecto (los que se ofrecen al vender). Se siembran
@@ -101,12 +110,15 @@ type ClinicMod = { modulos?: string[] | null; plan?: string | null; paseLibre?: 
  *  5) sin nada (legado muy viejo) → TODOS (no encerrar a nadie).
  */
 export function modulosDe(clinic: ClinicMod | null | undefined): string[] {
-  if (!clinic) return TODOS_LOS_MODULOS
-  if (clinic.paseLibre) return TODOS_LOS_MODULOS
+  // Los "atajos" (sin clínica, pase libre del dueño, sin plan) dan el consultorio
+  // BASE — NO los módulos opt-in (Hospitalización). Esos requieren plan/módulo
+  // explícito para no estorbar en un consultorio normal.
+  if (!clinic) return MODULOS_BASE
+  if (clinic.paseLibre) return MODULOS_BASE
   const m = clinic.modulos
-  if (Array.isArray(m) && m.length > 0) return m
+  if (Array.isArray(m) && m.length > 0) return m   // módulos explícitos (pueden incluir Hospital si se contrató)
   if (clinic.plan && MODULOS_DE_PLAN[clinic.plan]) return MODULOS_DE_PLAN[clinic.plan]
-  return TODOS_LOS_MODULOS
+  return MODULOS_BASE
 }
 
 export function tieneModulo(clinic: ClinicMod | null | undefined, key: string): boolean {

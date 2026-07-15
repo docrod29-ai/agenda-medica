@@ -24,6 +24,8 @@ import {
   type Cobro, type MetodoPago, type ConceptoCobro, type ResumenMes,
 } from '@/lib/cobros'
 import { CobrarModal } from '@/components/CobrarModal'
+import { useSearchParams } from 'next/navigation'
+import { CorteCajaContenido } from '../corte-caja/page'
 import {
   TrendingUp, Download, Plus, ChevronLeft, ChevronRight, Loader2,
   DollarSign, Receipt, Activity, Users, Banknote, Landmark, CreditCard,
@@ -118,6 +120,8 @@ export default function FinanzasPage() {
   const [resumenAnterior, setResumenAnterior] = useState<ResumenMes | null>(null)
   const [loading, setLoading] = useState(true)
   const [creando, setCreando] = useState(false)
+  const sp = useSearchParams()
+  const [tab, setTab] = useState<'reportes' | 'corte'>(sp.get('tab') === 'corte' ? 'corte' : 'reportes')
 
   const { desde, hasta } = useMemo(() => rangoDe(periodo, ancla), [periodo, ancla])
 
@@ -196,6 +200,24 @@ export default function FinanzasPage() {
         </div>
       </div>
 
+      {/* Pestañas: Reportes · Corte de caja (antes eran 2 entradas de menú) */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 18, borderBottom: '1px solid var(--border)' }}>
+        {([['reportes', 'Reportes'], ['corte', 'Corte de caja']] as const).map(([k, label]) => {
+          const activo = tab === k
+          return (
+            <button key={k} onClick={() => setTab(k)} style={{
+              padding: '8px 14px', fontSize: 13.5, fontWeight: activo ? 700 : 500, cursor: 'pointer',
+              background: 'none', border: 'none', borderBottom: '2px solid ' + (activo ? 'var(--nexus)' : 'transparent'),
+              color: activo ? 'var(--nexus)' : 'var(--text2)', marginBottom: -1,
+            }}>{label}</button>
+          )
+        })}
+      </div>
+
+      {tab === 'corte' ? (
+        <CorteCajaContenido embedded />
+      ) : (
+      <>
       {/* Selector de periodo (Hoy · Semana · Mes) */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 12 }}>
         {(['dia', 'semana', 'mes'] as Periodo[]).map(p => {
@@ -442,6 +464,9 @@ export default function FinanzasPage() {
             </div>
           </div>
         </>
+      )}
+
+      </>
       )}
 
       {creando && clinicId && user && (
