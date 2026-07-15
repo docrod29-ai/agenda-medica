@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
+    "@picovoice/porcupine-web": "^4.0.1",
+    "@picovoice/web-voice-processor": "^4.0.10",
     "@stripe/stripe-js": "^9.6.0",
     "date-fns": "^4.2.1",
     "firebase": "^12.13.0",

@@ -12,6 +12,7 @@ import { useGrabacionVoz } from '@/hooks/useGrabacionVoz'
 import { useGrabacionAudio } from '@/hooks/useGrabacionAudio'
 import { useComandoVoz } from '@/hooks/useComandoVoz'
 import { ofuscar, desofuscar } from '@/lib/seguridad/ofuscar-local'
+import { usePorcupineComando, type PicovoiceConfig } from '@/hooks/usePorcupineComando'
 import {
   createNota, updateNota, getNota, deleteNota, getUltimasNotasResumen,
 } from '@/lib/expediente/firestore'
@@ -244,7 +245,25 @@ export default function ConsultaActivaPage() {
     else if (voz.grabando) voz.detener()
     // La nota se llena sola cuando la transcripción queda lista (efecto auto-procesar).
   }
-  const cmdVoz = useComandoVoz({ activo: manosLibres, onIniciar: iniciarPorVoz, onCerrar: cerrarPorVoz })
+
+  // Config del motor 100% en el dispositivo (Picovoice), si el consultorio lo tiene.
+  const [picoConfig, setPicoConfig] = useState<PicovoiceConfig | null>(null)
+  useEffect(() => {
+    if (!clinicId) return
+    let vivo = true
+    fetchAutenticado(`/api/voz/comandos-config?clinicId=${clinicId}`)
+      .then(async r => { if (!r.ok) return; const j = await r.json(); const p = j.picovoice
+        if (vivo && p?.accessKey && p?.keywordIniciarUrl && p?.keywordCerrarUrl) setPicoConfig(p) })
+      .catch(() => { /* sin config → modo estándar */ })
+    return () => { vivo = false }
+  }, [clinicId])
+
+  // On-device tiene prioridad cuando está configurado; si no, Web Speech (nube).
+  const onDevice = usePorcupineComando({ activo: manosLibres && !!picoConfig, config: picoConfig, onIniciar: iniciarPorVoz, onCerrar: cerrarPorVoz })
+  const cmdVoz = useComandoVoz({ activo: manosLibres && !picoConfig, onIniciar: iniciarPorVoz, onCerrar: cerrarPorVoz })
+  const escuchaActiva = picoConfig ? onDevice.escuchando : cmdVoz.escuchando
+  const comandoError = picoConfig ? onDevice.error : cmdVoz.error
+  const soportaComandos = picoConfig ? onDevice.disponible : cmdVoz.soportado
 
   // ── Cargar paciente + contexto IA ──────────────────────────────
   useEffect(() => {
@@ -1303,7 +1322,7 @@ export default function ConsultaActivaPage() {
                 </div>
               )}
               {/* Modo manos libres: activar/desactivar la escucha de comandos de voz */}
-              {cmdVoz.soportado && (
+              {soportaComandos && (
                 <button
                   onClick={() => setManosLibres(m => !m)}
                   title={manosLibres ? 'Desactivar comandos de voz' : 'Activar manos libres: di "iniciar consulta" para grabar'}
@@ -1362,15 +1381,19 @@ export default function ConsultaActivaPage() {
                 </div>
                 {/* Manos libres: aviso de escucha activa + comandos */}
                 {manosLibres && (
-                  <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: cmdVoz.error ? '#ef4444' : 'var(--teal)' }}>
+                  <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: comandoError ? '#ef4444' : 'var(--teal)' }}>
                     <span style={{
                       width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                      background: cmdVoz.error ? '#ef4444' : 'var(--teal)',
-                      animation: cmdVoz.escuchando && !cmdVoz.error ? 'pulse 1.5s infinite' : 'none',
+                      background: comandoError ? '#ef4444' : 'var(--teal)',
+                      animation: escuchaActiva && !comandoError ? 'pulse 1.5s infinite' : 'none',
                     }} />
-                    {cmdVoz.error
-                      ? cmdVoz.error
-                      : <>Escuchando comandos — di <strong>“iniciar consulta”</strong> o <strong>“cerrar consulta”</strong></>}
+                    {comandoError
+                      ? comandoError
+                      : <>Escuchando comandos — di <strong>“iniciar consulta”</strong> o <strong>“cerrar consulta”</strong>
+                        {picoConfig
+                          ? <span style={{ marginLeft: 6, fontSize: 11, opacity: .8 }}>· 🔒 en el dispositivo</span>
+                          : <span style={{ marginLeft: 6, fontSize: 11, opacity: .8 }}>· en la nube</span>}
+                      </>}
                   </div>
                 )}
                 {/* Medidor de nivel de audio EN VIVO — confirma visualmente que captura voz */}

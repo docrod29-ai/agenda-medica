@@ -23,6 +23,30 @@ cerrar/cierra/terminar/finalizar/detener/guardar **consulta**.
 - `consulta/[patientId]/page.tsx` — toggle + aviso visible + callbacks cableados al
   grabador real (`arrancarSegunModo` / `audio.detener`).
 
+## Modo 100% en el dispositivo (Picovoice) — rama `feat/comandos-on-device`
+
+Para que el audio de la escucha de comandos **nunca salga del equipo**, hay un
+segundo motor (Picovoice Porcupine, WebAssembly). Está **cableado y con respaldo
+automático** al modo Web Speech: si no hay configuración, la consulta usa el modo
+estándar (sin cambios). **No desplegado a producción** hasta verificarlo con la clave.
+
+- `src/hooks/usePorcupineComando.ts` — carga Porcupine por import dinámico (solo
+  cliente), todo protegido; ante cualquier fallo no arranca y se cae al modo estándar.
+- `src/app/api/voz/comandos-config/route.ts` — guarda `clinic.voz.picovoice`
+  (AccessKey + URLs de las palabras clave), solo médico/admin.
+- La consulta elige motor: **on-device si hay config**, si no Web Speech. El aviso
+  indica “🔒 en el dispositivo” vs “en la nube”.
+
+### Paso externo del Dr. (una sola vez)
+1. Cuenta gratis en console.picovoice.ai → **AccessKey**.
+2. Entrenar 2 palabras clave en español (“iniciar consulta”, “cerrar consulta”),
+   plataforma Web (WASM) → 2 archivos `.ppn`.
+3. Colocar los `.ppn` + `porcupine_params_es.pv` en `public/porcupine/`
+   (ver `public/porcupine/LEEME.txt`).
+4. Guardar el AccessKey en la app (o pasármelo y lo dejo puesto).
+
+Hasta entonces, el modo estándar (Web Speech) sigue funcionando en producción.
+
 ## Límites honestos (v1)
 - **Privacidad:** la Web Speech API de Chrome procesa el audio en servidores del
   navegador mientras escucha. Por eso es **opt-in**, solo en la pantalla de consulta,

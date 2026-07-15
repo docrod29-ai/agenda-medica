@@ -1,0 +1,20 @@
+Aquí van los archivos del reconocimiento de comandos de voz 100% en el dispositivo
+(Picovoice Porcupine). NO se sube ninguno automáticamente — los genera el médico.
+
+Archivos esperados:
+  porcupine_params_es.pv        Modelo de español (público, de Picovoice).
+  iniciar_consulta.ppn          Palabra clave "iniciar consulta" (entrenada por el Dr.).
+  cerrar_consulta.ppn           Palabra clave "cerrar consulta" (entrenada por el Dr.).
+
+Cómo obtenerlos:
+  1. Crea una cuenta gratis en https://console.picovoice.ai  → copia tu AccessKey.
+  2. Modelo de español: descárgalo del repo público de Picovoice
+     (porcupine → lib/common/porcupine_params_es.pv) y colócalo aquí.
+  3. Palabras clave: en la consola, sección "Porcupine", idioma Español (es),
+     escribe "iniciar consulta" y "cerrar consulta", plataforma "Web (WASM)",
+     descarga los dos .ppn y colócalos aquí con los nombres de arriba.
+  4. En la app, guarda tu AccessKey y las rutas en la configuración de comandos de voz
+     (o pásamelos y yo dejo la config puesta).
+
+Mientras estos archivos no estén, la app usa el modo estándar (Web Speech), que ya
+funciona. El modo on-device solo se activa cuando hay AccessKey + estos archivos.
