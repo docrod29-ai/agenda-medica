@@ -20,6 +20,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { findClinicByDialog360ApiKey } from '@/lib/whatsapp-send'
+import { marcarProcesado, telefonoRedactado } from '@/lib/whatsapp/dedup'
 
 // We import the core bot handler from the main webhook so we don't duplicate logic.
 // The main webhook exports handleMessage for reuse.
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Parse payload ────────────────────────────────────────────
-  let payload: { messages?: { from: string; type: string; text?: { body: string } }[] }
+  let payload: { messages?: { id?: string; from: string; type: string; text?: { body: string } }[] }
   try {
     payload = await req.json()
   } catch {
@@ -59,10 +60,14 @@ export async function POST(req: NextRequest) {
     const from = msg.from  // already E.164 without '+', e.g. "521234567890"
     const body = msg.text.body.trim()
 
+    // Idempotencia: 360dialog puede reentregar el mismo wamid. Fail-open.
+    const { nuevo } = await marcarProcesado(msg.id)
+    if (!nuevo) continue
+
     try {
       await handleMessage(from, body, clinicId)
     } catch (err) {
-      console.error(`[360dialog webhook] handleMessage error for ${from}:`, err)
+      console.error(`[360dialog webhook] handleMessage error for ${telefonoRedactado(from)}:`, err)
     }
   }
 

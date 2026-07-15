@@ -22,6 +22,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 import { adminDb } from '@/lib/firebase-admin'
 import { ClinicConfig, Doctor, Appointment, AppointmentType } from '@/types'
 import { sendWhatsApp } from '@/lib/whatsapp-send'
+import { marcarProcesado, telefonoRedactado } from '@/lib/whatsapp/dedup'
 import { hoyISO, sumarDiasISO } from '@/lib/timezone'
 
 // Sin fallback público: si no está configurado, la verificación GET fallará
@@ -738,9 +739,14 @@ export async function POST(req: NextRequest) {
       const text: string = msg.text?.body || ''
       if (!from || !text) continue
 
+      // Idempotencia: si Meta reentrega el mismo wamid, no re-procesar (evita
+      // doble respuesta / doble acción). Fail-open: si el dedup falla, procesa.
+      const { nuevo } = await marcarProcesado(msg.id)
+      if (!nuevo) continue
+
       // Handle async, don't block webhook response
       handleMessage(from, text, clinicId).catch(err => {
-        console.error(`[Bot] Error handling message from ${from}:`, err)
+        console.error(`[Bot] Error handling message from ${telefonoRedactado(from)}:`, err)
       })
     }
 
