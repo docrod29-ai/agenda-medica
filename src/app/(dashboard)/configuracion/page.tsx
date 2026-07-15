@@ -756,6 +756,8 @@ export default function ConfiguracionPage() {
               </pre>
             </div>
           ))}
+
+          <PlantillasHsmSection clinicId={clinicId} />
         </div>
       )}
 
@@ -4141,6 +4143,194 @@ function TarjetaMetrica({ etiqueta, valor, sub, color }: { etiqueta: string; val
       <div className="t-caption" style={{ color: 'var(--text3)', marginBottom: 4 }}>{etiqueta}</div>
       <div style={{ fontSize: 26, fontWeight: 700, color: color || 'var(--text1)', lineHeight: 1 }}>{valor}</div>
       {sub && <div className="t-caption" style={{ color: 'var(--text3)', marginTop: 4 }}>{sub}</div>}
+    </div>
+  )
+}
+
+// ── Plantillas HSM: alta de recordatorios fuera de la ventana de 24 h ─────────
+
+const HSM_PLANTILLAS = [
+  {
+    clave: 'recordatorio24h',
+    titulo: 'Recordatorio 24 horas antes',
+    nombreSugerido: 'recordatorio_cita_24h',
+    vars: '{{1}} paciente · {{2}} médico · {{3}} fecha · {{4}} hora · {{5}} clínica',
+    texto: 'Hola {{1}} 👋 Le recordamos su cita de mañana con {{2}}. 📅 {{3}} 🕐 {{4}} 📍 {{5}}. Responda SÍ para confirmar o NO para cancelar. Responda BAJA para dejar de recibir estos mensajes.',
+  },
+  {
+    clave: 'recordatorioMismoDia',
+    titulo: 'Recordatorio el mismo día',
+    nombreSugerido: 'recordatorio_cita_dia',
+    vars: '{{1}} paciente · {{2}} médico · {{3}} hora · {{4}} clínica',
+    texto: 'Buenos días {{1}} ☀️ Hoy tiene su cita con {{2}} a las {{3}} en {{4}}. Le esperamos. Responda BAJA para dejar de recibir estos mensajes.',
+  },
+  {
+    clave: 'listaEspera',
+    titulo: 'Aviso de lugar disponible (lista de espera)',
+    nombreSugerido: 'lista_espera_espacio',
+    vars: '{{1}} paciente · {{2}} médico · {{3}} fecha · {{4}} hora',
+    texto: 'Hola {{1}}, se liberó un espacio con {{2}} el {{3}} a las {{4}}. ¿Le interesa? Responda SÍ para tomarlo o NO para quitarse de la lista.',
+  },
+] as const
+
+interface HsmConfig {
+  plantillas: Record<string, { name?: string; lang?: string }>
+  silencio: { activo?: boolean; inicio?: string; fin?: string }
+  topeDiarioProactivo: number
+}
+
+function PlantillasHsmSection({ clinicId }: { clinicId: string | null }) {
+  const { toast } = useToast()
+  const [cfg, setCfg] = useState<HsmConfig | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [copiado, setCopiado] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!clinicId) return
+    let vivo = true
+    setLoading(true)
+    fetchAutenticado(`/api/whatsapp/plantillas-config?clinicId=${clinicId}`)
+      .then(async r => {
+        const j = await r.json()
+        if (!r.ok) throw new Error(j?.error || 'Error')
+        if (vivo) setCfg({
+          plantillas: j.plantillas || {},
+          silencio: j.silencio || { activo: true, inicio: '21:00', fin: '08:00' },
+          topeDiarioProactivo: j.topeDiarioProactivo ?? 3,
+        })
+      })
+      .catch(() => { if (vivo) toast('No se pudo cargar la configuración de plantillas', 'error') })
+      .finally(() => { if (vivo) setLoading(false) })
+    return () => { vivo = false }
+  }, [clinicId, toast])
+
+  const copiar = async (texto: string, id: string) => {
+    try {
+      await copyToClipboard(texto)
+      setCopiado(id); setTimeout(() => setCopiado(null), 1600)
+    } catch {
+      toast('No se pudo copiar', 'error')
+    }
+  }
+
+  const setNombre = (clave: string, name: string) =>
+    setCfg(c => c && ({ ...c, plantillas: { ...c.plantillas, [clave]: { ...c.plantillas[clave], name } } }))
+  const setLang = (clave: string, lang: string) =>
+    setCfg(c => c && ({ ...c, plantillas: { ...c.plantillas, [clave]: { ...c.plantillas[clave], lang } } }))
+
+  const guardar = async () => {
+    if (!clinicId || !cfg) return
+    setSaving(true)
+    try {
+      const r = await fetchAutenticado('/api/whatsapp/plantillas-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicId, plantillas: cfg.plantillas, silencio: cfg.silencio, topeDiarioProactivo: cfg.topeDiarioProactivo }),
+      })
+      const j = await r.json()
+      if (!r.ok) throw new Error(j?.error || 'Error al guardar')
+      toast('Configuración guardada. Los recordatorios fuera de la ventana ya usarán tus plantillas.', 'success')
+    } catch (e) {
+      toast(String((e as Error).message || e), 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const registradas = cfg ? HSM_PLANTILLAS.filter(p => (cfg.plantillas[p.clave]?.name || '').trim()).length : 0
+
+  return (
+    <div style={{ marginTop: 8, border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+      <div style={{ padding: '16px 18px', background: 'var(--s1)', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <QrCode size={18} style={{ color: 'var(--nexus)' }} />
+          <h3 className="t-h3" style={{ margin: 0 }}>Recordatorios fuera de la ventana de 24 h (plantillas)</h3>
+          <span style={{
+            marginLeft: 'auto', fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 999,
+            background: registradas === 3 ? 'rgba(22,163,74,.12)' : 'var(--nexus-soft)',
+            color: registradas === 3 ? '#16a34a' : 'var(--nexus)',
+          }}>{registradas}/3 registradas</span>
+        </div>
+        <p className="t-body" style={{ color: 'var(--text2)', margin: '8px 0 0' }}>
+          WhatsApp solo permite texto libre si el paciente escribió en las últimas 24 h. Para los demás casos
+          hay que usar <strong>plantillas aprobadas por Meta</strong>. <strong>Paso 1:</strong> copia cada texto
+          y créalas en tu WhatsApp Manager (categoría <em>Utility</em>, idioma es_MX). <strong>Paso 2:</strong>
+          cuando Meta las apruebe, escribe aquí el nombre exacto y guarda.
+        </p>
+      </div>
+
+      {loading && (
+        <div style={{ padding: 18, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text3)' }}>
+          <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Cargando…
+        </div>
+      )}
+
+      {cfg && (
+        <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {HSM_PLANTILLAS.map(p => {
+            const configurada = (cfg.plantillas[p.clave]?.name || '').trim().length > 0
+            return (
+              <div key={p.clave} style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+                <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--border)' }}>
+                  {configurada ? <CheckCircle2 size={15} style={{ color: '#16a34a' }} /> : <AlertTriangle size={15} style={{ color: 'var(--text3)' }} />}
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>{p.titulo}</span>
+                  <button className="btn btn-ghost btn-sm" onClick={() => copiar(p.texto, p.clave)}
+                    style={{ marginLeft: 'auto', color: copiado === p.clave ? 'var(--teal)' : 'var(--text3)' }}>
+                    <Copy size={13} /> {copiado === p.clave ? 'Copiado' : 'Copiar texto'}
+                  </button>
+                </div>
+                <pre style={{ padding: '12px 14px', fontSize: 12.5, color: 'var(--text2)', margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.55, fontFamily: 'inherit' }}>{p.texto}</pre>
+                <div style={{ padding: '4px 14px 10px', fontSize: 11.5, color: 'var(--text3)' }}>{p.vars}</div>
+                <div style={{ padding: '10px 14px', background: 'var(--s1)', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                  <div style={{ flex: '1 1 220px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <label className="t-caption" style={{ color: 'var(--text3)' }}>Nombre aprobado en Meta</label>
+                    <input value={cfg.plantillas[p.clave]?.name || ''} onChange={e => setNombre(p.clave, e.target.value)}
+                      placeholder={p.nombreSugerido} className="input"
+                      style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13 }} />
+                  </div>
+                  <div style={{ width: 110, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <label className="t-caption" style={{ color: 'var(--text3)' }}>Idioma</label>
+                    <input value={cfg.plantillas[p.clave]?.lang || 'es_MX'} onChange={e => setLang(p.clave, e.target.value)}
+                      placeholder="es_MX" className="input" style={{ fontSize: 13 }} />
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+
+          {/* Opciones de envío */}
+          <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <span style={{ fontSize: 13, fontWeight: 600 }}>Opciones de envío</span>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+              <input type="checkbox" checked={cfg.silencio.activo !== false}
+                onChange={e => setCfg(c => c && ({ ...c, silencio: { ...c.silencio, activo: e.target.checked } }))} />
+              No enviar recordatorios en horas de silencio
+            </label>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', opacity: cfg.silencio.activo !== false ? 1 : .5 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <label className="t-caption" style={{ color: 'var(--text3)' }}>Desde</label>
+                <input type="time" value={cfg.silencio.inicio || '21:00'} disabled={cfg.silencio.activo === false}
+                  onChange={e => setCfg(c => c && ({ ...c, silencio: { ...c.silencio, inicio: e.target.value } }))} className="input" style={{ fontSize: 13 }} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <label className="t-caption" style={{ color: 'var(--text3)' }}>Hasta</label>
+                <input type="time" value={cfg.silencio.fin || '08:00'} disabled={cfg.silencio.activo === false}
+                  onChange={e => setCfg(c => c && ({ ...c, silencio: { ...c.silencio, fin: e.target.value } }))} className="input" style={{ fontSize: 13 }} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <label className="t-caption" style={{ color: 'var(--text3)' }}>Máx. mensajes/día por paciente</label>
+                <input type="number" min={1} max={20} value={cfg.topeDiarioProactivo}
+                  onChange={e => setCfg(c => c && ({ ...c, topeDiarioProactivo: Number(e.target.value) }))} className="input" style={{ width: 90, fontSize: 13 }} />
+              </div>
+            </div>
+          </div>
+
+          <button className="btn btn-primary" onClick={guardar} disabled={saving} style={{ alignSelf: 'flex-start' }}>
+            {saving ? <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Guardando…</> : <><Save size={15} /> Guardar configuración</>}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
