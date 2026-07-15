@@ -81,8 +81,25 @@ export const DEMO_ESCENARIOS: DemoEscenario[] = [
 ]
 
 /** Pasos del sandbox, en orden. */
-export const DEMO_PASOS = ['agenda', 'dictado', 'nota', 'receta'] as const
+export const DEMO_PASOS = ['agenda', 'dictado', 'nota', 'receta', 'modulos'] as const
 export type DemoPaso = typeof DEMO_PASOS[number]
+
+/** Guion del bot de WhatsApp para el explorador interactivo (ficticio). */
+export interface TurnoBot {
+  /** Opción que toca el visitante para llegar aquí (vacío = inicio). */
+  eligio?: string
+  /** Lo que responde el bot. */
+  bot: string
+  /** Opciones que se le ofrecen al visitante. */
+  opciones: string[]
+}
+export const DEMO_WHATSAPP: Record<string, TurnoBot> = {
+  inicio: { bot: '¡Hola! Soy el asistente del Dr. ¿Qué deseas hacer?', opciones: ['Agendar cita', 'Ver mis citas'] },
+  'Agendar cita': { eligio: 'Agendar cita', bot: '¡Claro! Tengo estos horarios el martes:', opciones: ['10:00', '12:30'] },
+  '10:00': { eligio: '10:00', bot: '✅ Listo, tu cita quedó el martes 10:00. Te recuerdo un día antes. ¿Algo más?', opciones: ['Reiniciar'] },
+  '12:30': { eligio: '12:30', bot: '✅ Listo, tu cita quedó el martes 12:30. Te recuerdo un día antes. ¿Algo más?', opciones: ['Reiniciar'] },
+  'Ver mis citas': { eligio: 'Ver mis citas', bot: 'Tienes 1 cita: martes 10:00 con el Dr. ¿Deseas algo más?', opciones: ['Agendar cita', 'Reiniciar'] },
+}
 
 /** Devuelve el siguiente paso, o el mismo si ya es el último. */
 export function siguientePaso(paso: DemoPaso): DemoPaso {

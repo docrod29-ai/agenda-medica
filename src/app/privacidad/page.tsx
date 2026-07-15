@@ -35,48 +35,60 @@ export default function PrivacidadGeneralPage() {
         software y resguarda la información por cuenta del consultorio, siguiendo sus instrucciones.
       </Section>
 
-      <Section titulo="3. Datos que se recaban">
+      <Section titulo="3. Datos de los médicos y personal suscriptor">
+        Respecto de los datos de sus <strong>suscriptores</strong> (médicos y su personal), NexusMED actúa como
+        <strong> responsable</strong>. Se tratan: <strong>datos de la cuenta</strong> (nombre, correo, teléfono, cédula
+        profesional, especialidad y datos del consultorio), <strong>datos de suscripción y facturación</strong> (plan,
+        pagos y datos fiscales para el CFDI, procesados por el proveedor de pagos y el emisor de facturas) y
+        <strong> datos de soporte</strong> (los mensajes y adjuntos que envías al pedir ayuda). Finalidades: crear y operar
+        tu cuenta, cobrar la suscripción, emitir comprobantes fiscales, brindar soporte y cumplir obligaciones legales y
+        fiscales. La base del tratamiento es la <strong>relación contractual</strong> contigo. Los datos de pago los procesan
+        el proveedor de pagos y el PAC de facturación como encargados; NexusMED no almacena los datos completos de la tarjeta.
+        Puedes ejercer tus derechos ARCO escribiendo a <strong>privacidad@nexusmed.mx</strong>.
+      </Section>
+
+      <Section titulo="4. Datos que se recaban (de pacientes)">
         Según el uso, pueden tratarse: nombre, teléfono, correo, fecha de nacimiento, sexo, y datos de la atención médica
         (motivo de consulta, diagnósticos, recetas, notas clínicas, signos vitales). Los datos de salud son
         <strong> datos personales sensibles</strong> y reciben protección reforzada.
       </Section>
 
-      <Section titulo="4. Finalidades">
+      <Section titulo="5. Finalidades">
         Los datos se usan para: agendar y administrar citas; integrar el expediente clínico; emitir recetas y órdenes;
         y <strong>enviar mensajes por WhatsApp</strong> (confirmaciones de cita, recordatorios y, si el paciente lo autoriza,
         invitaciones a dejar una reseña). Los recordatorios por WhatsApp solo se envían a pacientes que otorgaron su
         consentimiento.
       </Section>
 
-      <Section titulo="5. WhatsApp Business y Meta">
+      <Section titulo="6. WhatsApp Business y Meta">
         Para el envío de mensajes, NexusMED utiliza la <strong>API de WhatsApp Business de Meta Platforms, Inc.</strong> El
         número de teléfono y el contenido del mensaje se procesan a través de la infraestructura de Meta con el único fin de
         entregar la comunicación al paciente. El tratamiento por parte de Meta se rige por sus propias políticas. No se
         comparten datos con Meta para publicidad ni para fines distintos al envío del mensaje solicitado.
       </Section>
 
-      <Section titulo="6. Transferencias">
+      <Section titulo="7. Transferencias">
         No se venden ni comercializan datos personales. Solo se comparten con los proveedores estrictamente necesarios para
         operar el servicio (por ejemplo, infraestructura en la nube y la mensajería de WhatsApp), quienes actúan como
         encargados y están obligados a la confidencialidad.
       </Section>
 
-      <Section titulo="7. Seguridad">
+      <Section titulo="8. Seguridad">
         Se aplican medidas de seguridad administrativas, técnicas y físicas razonables (cifrado en tránsito, control de
         acceso por roles y registro de accesos) para proteger la información contra pérdida, uso o acceso no autorizado.
       </Section>
 
-      <Section titulo="8. Derechos ARCO">
+      <Section titulo="9. Derechos ARCO">
         Todo paciente puede <strong>Acceder, Rectificar, Cancelar u Oponerse</strong> al tratamiento de sus datos, así como
         revocar su consentimiento. Para ejercerlos, contacte directamente a su consultorio, o utilice el portal de solicitudes
         que su consultorio pone a disposición en NexusMED.
       </Section>
 
-      <Section titulo="9. Cambios a este aviso">
+      <Section titulo="10. Cambios a este aviso">
         Este aviso puede actualizarse. La versión vigente estará siempre disponible en esta página.
       </Section>
 
-      <Section titulo="10. Contacto">
+      <Section titulo="11. Contacto">
         Dudas sobre este aviso o sobre el tratamiento de datos: <strong>privacidad@nexusmed.mx</strong>.
       </Section>
 

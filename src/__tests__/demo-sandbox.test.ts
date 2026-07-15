@@ -24,11 +24,12 @@ describe('demo-sandbox (motor del sandbox interactivo)', () => {
     expect(siguientePaso('agenda')).toBe('dictado')
     expect(siguientePaso('dictado')).toBe('nota')
     expect(siguientePaso('nota')).toBe('receta')
-    expect(siguientePaso('receta')).toBe('receta') // no desborda
+    expect(siguientePaso('receta')).toBe('modulos')
+    expect(siguientePaso('modulos')).toBe('modulos') // no desborda
   })
 
   it('DEMO_PASOS mantiene el orden esperado', () => {
-    expect(DEMO_PASOS).toEqual(['agenda', 'dictado', 'nota', 'receta'])
+    expect(DEMO_PASOS).toEqual(['agenda', 'dictado', 'nota', 'receta', 'modulos'])
   })
 
   it('dictadoHasta revela incrementalmente y se satura en los límites', () => {

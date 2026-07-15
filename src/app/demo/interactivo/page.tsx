@@ -12,10 +12,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
   ArrowLeft, ArrowRight, Calendar, Mic, FileText, ShieldCheck, CheckCircle2,
-  RotateCcw, Square, Info,
+  RotateCcw, Square, Info, MessageCircle, Headset, Smartphone, Lock,
 } from 'lucide-react'
 import {
-  DEMO_ESCENARIOS, dictadoHasta, dictadoCompleto,
+  DEMO_ESCENARIOS, dictadoHasta, dictadoCompleto, DEMO_WHATSAPP,
   type DemoPaso, type DemoEscenario,
 } from '@/lib/demo-sandbox'
 
@@ -55,7 +55,10 @@ export default function SandboxPage() {
           <Nota escenario={escenario} onGenerarReceta={() => setPaso('receta')} onReiniciar={() => reiniciar()} />
         )}
         {paso === 'receta' && (
-          <Receta escenario={escenario} onReiniciar={() => reiniciar()} onOtro={() => reiniciar(idx === 0 ? 1 : 0)} />
+          <Receta escenario={escenario} onReiniciar={() => reiniciar()} onOtro={() => reiniciar(idx === 0 ? 1 : 0)} onExplorar={() => setPaso('modulos')} />
+        )}
+        {paso === 'modulos' && (
+          <ExploradorModulos onReiniciar={() => reiniciar()} />
         )}
       </div>
 
@@ -83,6 +86,7 @@ function Pasos({ paso }: { paso: DemoPaso }) {
     { k: 'dictado', label: 'Dictado' },
     { k: 'nota', label: 'Nota' },
     { k: 'receta', label: 'Receta' },
+    { k: 'modulos', label: 'Módulos' },
   ]
   const orden = items.map(i => i.k)
   const actualI = orden.indexOf(paso)
@@ -253,7 +257,7 @@ function Nota({ escenario, onGenerarReceta, onReiniciar }: { escenario: DemoEsce
 }
 
 /* ─────────────────────────────── Receta ────────────────────────────────── */
-function Receta({ escenario, onReiniciar, onOtro }: { escenario: DemoEscenario; onReiniciar: () => void; onOtro: () => void }) {
+function Receta({ escenario, onReiniciar, onOtro, onExplorar }: { escenario: DemoEscenario; onReiniciar: () => void; onOtro: () => void; onExplorar: () => void }) {
   const [verificado, setVerificado] = useState(false)
   return (
     <div>
@@ -308,14 +312,14 @@ function Receta({ escenario, onReiniciar, onOtro }: { escenario: DemoEscenario; 
         </div>
       </div>
 
-      {/* Cierre */}
+      {/* Siguiente: explorar los otros módulos interactivos */}
       <div style={{ ...card, marginTop: 20, textAlign: 'center' }}>
-        <h3 style={{ fontSize: 20, fontWeight: 600, margin: '0 0 8px' }}>Así de rápido, con tus propios pacientes</h3>
-        <p style={{ fontSize: 14, color: 'var(--text2)', margin: '0 auto 18px', maxWidth: 460 }}>14 días gratis, sin tarjeta.</p>
+        <h3 style={{ fontSize: 19, fontWeight: 600, margin: '0 0 8px' }}>Explora los otros módulos</h3>
+        <p style={{ fontSize: 14, color: 'var(--text2)', margin: '0 auto 16px', maxWidth: 460 }}>WhatsApp, portal de secretaria y portal del paciente — también los pruebas tú.</p>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link href="/registro" className="btn btn-primary btn-lg" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-            Comenzar prueba gratis <ArrowRight size={16} />
-          </Link>
+          <button onClick={onExplorar} className="btn btn-primary btn-lg" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+            Explorar módulos <ArrowRight size={16} />
+          </button>
           <button onClick={onOtro} className="btn btn-secondary btn-lg" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
             <RotateCcw size={15} /> Probar otro caso
           </button>
@@ -327,6 +331,134 @@ function Receta({ escenario, onReiniciar, onOtro }: { escenario: DemoEscenario; 
     </div>
   )
 }
+
+/* ─────────────────────── Explorador de módulos ─────────────────────────── */
+type ModTab = 'whatsapp' | 'secretaria' | 'portal'
+
+function ExploradorModulos({ onReiniciar }: { onReiniciar: () => void }) {
+  const [tab, setTab] = useState<ModTab>('whatsapp')
+  const tabs: { k: ModTab; label: string; icon: typeof MessageCircle }[] = [
+    { k: 'whatsapp', label: 'WhatsApp', icon: MessageCircle },
+    { k: 'secretaria', label: 'Secretaria', icon: Headset },
+    { k: 'portal', label: 'Portal del paciente', icon: Smartphone },
+  ]
+  return (
+    <div>
+      <Encabezado icono={MessageCircle} titulo="Otros módulos" sub="Pruébalos tú mismo. Todo es ficticio; no se envían mensajes ni se conecta a nada." />
+      <div style={{ display: 'flex', gap: 8, margin: '16px 0', flexWrap: 'wrap' }}>
+        {tabs.map(t => {
+          const activo = tab === t.k
+          return (
+            <button key={t.k} onClick={() => setTab(t.k)} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              padding: '8px 14px', borderRadius: 100,
+              border: '1px solid ' + (activo ? 'var(--nexus)' : 'var(--border)'),
+              background: activo ? 'var(--nexus-soft)' : 'var(--s2)', color: activo ? 'var(--nexus)' : 'var(--text2)',
+            }}><t.icon size={15} /> {t.label}</button>
+          )
+        })}
+      </div>
+
+      {tab === 'whatsapp' && <ModWhatsApp />}
+      {tab === 'secretaria' && <ModSecretaria />}
+      {tab === 'portal' && <ModPortal />}
+
+      <div style={{ ...card, marginTop: 20, textAlign: 'center' }}>
+        <h3 style={{ fontSize: 19, fontWeight: 600, margin: '0 0 8px' }}>Pruébalo con tus propios pacientes</h3>
+        <p style={{ fontSize: 14, color: 'var(--text2)', margin: '0 auto 16px', maxWidth: 460 }}>14 días gratis, sin tarjeta.</p>
+        <Link href="/registro" className="btn btn-primary btn-lg" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+          Comenzar prueba gratis <ArrowRight size={16} />
+        </Link>
+        <button onClick={onReiniciar} style={{ display: 'block', margin: '14px auto 0', background: 'none', border: 'none', color: 'var(--text3)', fontSize: 12.5, cursor: 'pointer', textDecoration: 'underline' }}>
+          Volver a la agenda
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/** WhatsApp: chat con el bot, el visitante toca las opciones (guion ficticio). */
+function ModWhatsApp() {
+  const [turnos, setTurnos] = useState<{ de: 'bot' | 'yo'; texto: string }[]>([{ de: 'bot', texto: DEMO_WHATSAPP.inicio.bot }])
+  const [opciones, setOpciones] = useState<string[]>(DEMO_WHATSAPP.inicio.opciones)
+
+  const elegir = (op: string) => {
+    if (op === 'Reiniciar') {
+      setTurnos([{ de: 'bot', texto: DEMO_WHATSAPP.inicio.bot }])
+      setOpciones(DEMO_WHATSAPP.inicio.opciones)
+      return
+    }
+    const sig = DEMO_WHATSAPP[op]
+    if (!sig) return
+    setTurnos(t => [...t, { de: 'yo', texto: op }, { de: 'bot', texto: sig.bot }])
+    setOpciones(sig.opciones)
+  }
+
+  return (
+    <div style={{ ...card, background: '#0b141a', maxWidth: 420 }}>
+      <div style={{ fontSize: 12, color: '#8aa', marginBottom: 10 }}>Asistente del Dr. · WhatsApp (demo)</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 12, minHeight: 120 }}>
+        {turnos.map((m, i) => (
+          <div key={i} style={{ display: 'flex', justifyContent: m.de === 'yo' ? 'flex-end' : 'flex-start' }}>
+            <span style={{ maxWidth: '82%', fontSize: 12.5, lineHeight: 1.4, padding: '7px 10px', borderRadius: 10, color: '#e9edef', background: m.de === 'yo' ? '#005c4b' : '#1f2c34' }}>{m.texto}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+        {opciones.map(op => (
+          <button key={op} onClick={() => elegir(op)} style={{
+            fontSize: 12.5, fontWeight: 600, cursor: 'pointer', padding: '7px 12px', borderRadius: 100,
+            border: '1px solid #2a3942', background: '#111b21', color: '#8fd3c4',
+          }}>{op === 'Reiniciar' ? '↺ Reiniciar' : op}</button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/** Secretaria: la misma agenda pero SIN acceso a lo clínico (permisos por rol). */
+function ModSecretaria() {
+  return (
+    <div style={{ ...card }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 700, color: '#60a5fa', background: 'rgba(59,130,246,0.12)', padding: '4px 10px', borderRadius: 100, marginBottom: 12 }}>
+        <Headset size={13} /> Vista de secretaria
+      </div>
+      <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 12 }}>Ve la agenda y datos de contacto; <strong>no</strong> ve notas, diagnósticos ni configuración.</div>
+      {[['09:00', 'Paciente M. F.', true], ['10:30', 'Paciente J. R.', true], ['Expediente clínico', '', false], ['Configuración', '', false]].map((r, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', borderRadius: 9, background: 'var(--s2)', marginBottom: 7, opacity: r[2] ? 1 : 0.55 }}>
+          {r[2] ? <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', width: 42 }}>{r[0]}</span> : <Lock size={14} style={{ color: 'var(--text3)' }} />}
+          <span style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{r[2] ? r[1] : r[0]}</span>
+          {!r[2] && <span style={{ fontSize: 11, color: 'var(--text3)' }}>sin acceso</span>}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** Portal del paciente: lo que ve el paciente con su enlace (clickeable). */
+function ModPortal() {
+  const [msg, setMsg] = useState('')
+  return (
+    <div style={{ ...card, maxWidth: 420 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Hola, M. F. 👋</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Tu próxima cita</div>
+      <div style={{ padding: 12, borderRadius: 10, background: 'var(--nexus-soft)', border: '1px solid var(--border2)', marginBottom: 12 }}>
+        <div style={{ fontSize: 13, fontWeight: 700 }}>Martes 15 de julio · 10:00</div>
+        <div style={{ fontSize: 11.5, color: 'var(--text2)' }}>Dr. Nombre Apellido · Medicina General</div>
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button onClick={() => setMsg('Te enviamos opciones para reagendar (demo).')} style={portalBtn(true)}>Reagendar</button>
+        <button onClick={() => setMsg('Aquí verías tu receta con el QR de verificación (demo).')} style={portalBtn(false)}>Mi receta</button>
+      </div>
+      {msg && <div className="nx-fade" style={{ marginTop: 12, fontSize: 12.5, color: 'var(--text2)', background: 'var(--s2)', borderRadius: 9, padding: '10px 12px' }}>{msg}</div>}
+    </div>
+  )
+}
+const portalBtn = (primario: boolean): React.CSSProperties => ({
+  flex: 1, textAlign: 'center', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', padding: '9px 0', borderRadius: 8,
+  color: primario ? 'var(--nexus)' : 'var(--text3)',
+  border: '1px solid ' + (primario ? 'var(--border2)' : 'var(--border)'), background: 'var(--s2)',
+})
 
 /* ─────────────────────────────── Utilidades ────────────────────────────── */
 function Encabezado({ icono: Icono, titulo, sub }: { icono: React.ComponentType<{ size?: number }>; titulo: string; sub: string }) {
