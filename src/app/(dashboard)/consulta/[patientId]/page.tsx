@@ -10,6 +10,7 @@ import { auth } from '@/lib/firebase'
 import { getPatients, updatePatient } from '@/lib/firestore'
 import { useGrabacionVoz } from '@/hooks/useGrabacionVoz'
 import { useGrabacionAudio } from '@/hooks/useGrabacionAudio'
+import { useComandoVoz } from '@/hooks/useComandoVoz'
 import {
   createNota, updateNota, getNota, deleteNota, getUltimasNotasResumen,
 } from '@/lib/expediente/firestore'
@@ -38,7 +39,7 @@ import { Cie10Autocomplete } from '@/components/Cie10Autocomplete'
 import { CobrarModal } from '@/components/CobrarModal'
 import {
   ArrowLeft, Mic, Square, Sparkles, Loader2, AlertTriangle, CheckCircle2,
-  Trash2, Plus, ShieldCheck, Pill, Stethoscope, FileSignature,
+  Trash2, Plus, ShieldCheck, Pill, Stethoscope, FileSignature, Headphones,
   Lock, Bug, FlaskConical, Lightbulb, FileText, ChevronDown, ChevronUp, Volume2, BedDouble,
 } from 'lucide-react'
 
@@ -223,6 +224,23 @@ export default function ConsultaActivaPage() {
     setModalConsentimiento(false)
     arrancarSegunModo()
   }
+
+  // ── Modo manos libres: "iniciar consulta" / "cerrar consulta" ──────────
+  // Pensado para usar el consultorio con las manos ocupadas (o unos lentes con
+  // micrófono Bluetooth). Opt-in, con aviso visible mientras escucha.
+  const [manosLibres, setManosLibres] = useState(false)
+  const grabandoAhora = () => audio.estado === 'grabando' || audio.estado === 'pausado' || voz.grabando
+  const iniciarPorVoz = () => {
+    if (grabandoAhora()) return               // ya grabando: ignorar
+    if (consentimiento) arrancarSegunModo()   // consentimiento ya dado → arranca solo
+    else setModalConsentimiento(true)         // 1ª vez de la sesión: un toque de consentimiento (obligatorio)
+  }
+  const cerrarPorVoz = () => {
+    if (audio.estado === 'grabando' || audio.estado === 'pausado') audio.detener()
+    else if (voz.grabando) voz.detener()
+    // La nota se llena sola cuando la transcripción queda lista (efecto auto-procesar).
+  }
+  const cmdVoz = useComandoVoz({ activo: manosLibres, onIniciar: iniciarPorVoz, onCerrar: cerrarPorVoz })
 
   // ── Cargar paciente + contexto IA ──────────────────────────────
   useEffect(() => {
@@ -1253,6 +1271,21 @@ export default function ConsultaActivaPage() {
                   </button>
                 </div>
               )}
+              {/* Modo manos libres: activar/desactivar la escucha de comandos de voz */}
+              {cmdVoz.soportado && (
+                <button
+                  onClick={() => setManosLibres(m => !m)}
+                  title={manosLibres ? 'Desactivar comandos de voz' : 'Activar manos libres: di "iniciar consulta" para grabar'}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 10,
+                    border: `1px solid ${manosLibres ? 'var(--teal)' : 'var(--border2)'}`, cursor: 'pointer', flexShrink: 0,
+                    background: manosLibres ? 'color-mix(in srgb, var(--teal) 14%, transparent)' : 'var(--s2)',
+                    color: manosLibres ? 'var(--teal)' : 'var(--text2)', fontSize: 13, fontWeight: 600,
+                  }}
+                >
+                  <Headphones size={16} /> Manos libres {manosLibres ? 'ON' : 'OFF'}
+                </button>
+              )}
               <button
                 onClick={async () => {
                   if (audio.estado === 'grabando') await audio.detener()
@@ -1296,6 +1329,19 @@ export default function ConsultaActivaPage() {
                     : audio.estado === 'listo' ? 'Transcripción lista'
                     : 'Grabar la conversación completa (médico + paciente)'}
                 </div>
+                {/* Manos libres: aviso de escucha activa + comandos */}
+                {manosLibres && (
+                  <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: cmdVoz.error ? '#ef4444' : 'var(--teal)' }}>
+                    <span style={{
+                      width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                      background: cmdVoz.error ? '#ef4444' : 'var(--teal)',
+                      animation: cmdVoz.escuchando && !cmdVoz.error ? 'pulse 1.5s infinite' : 'none',
+                    }} />
+                    {cmdVoz.error
+                      ? cmdVoz.error
+                      : <>Escuchando comandos — di <strong>“iniciar consulta”</strong> o <strong>“cerrar consulta”</strong></>}
+                  </div>
+                )}
                 {/* Medidor de nivel de audio EN VIVO — confirma visualmente que captura voz */}
                 {audio.estado === 'grabando' && (
                   <div style={{ marginTop: 6 }}>
