@@ -1,4 +1,9 @@
 import type { NextConfig } from "next";
+import bundleAnalyzer from "@next/bundle-analyzer";
+
+// Medición del bundle (opt-in): `ANALYZE=true npm run build` abre el reporte.
+// Sin la variable, es un passthrough → el build normal/producción no cambia.
+const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env.ANALYZE === "true" });
 
 /**
  * Headers de seguridad — ISO 27001 / NOM-024 / LFPDPPP
@@ -124,4 +129,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);
