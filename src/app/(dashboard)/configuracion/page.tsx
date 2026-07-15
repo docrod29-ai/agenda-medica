@@ -107,9 +107,9 @@ export default function ConfiguracionPage() {
   const handleConnectGcal = async () => {
     setGcalLoading(true)
     try {
-      const uid = auth.currentUser?.uid
-      if (!uid) { toast('Sesión expirada, inicia sesión nuevamente', 'error'); return }
-      const res = await fetch(`/api/calendar/connect?uid=${uid}`)
+      if (!auth.currentUser) { toast('Sesión expirada, inicia sesión nuevamente', 'error'); return }
+      // Autenticado: el uid lo deriva el servidor del token (no del query).
+      const res = await fetchAutenticado(`/api/calendar/connect`)
       const data = res.ok ? await res.json().catch(() => null) : null
       if (!data?.url) { toast('No se pudo iniciar la conexión con Google', 'error'); return }
       window.location.href = data.url
