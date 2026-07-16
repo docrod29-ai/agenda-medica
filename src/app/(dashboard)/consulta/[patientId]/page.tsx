@@ -145,6 +145,8 @@ export default function ConsultaActivaPage() {
   // (Pro → 💎 Máxima, Clínica → ⭐ Estándar). El motor que usó la última nota.
   const [motorSel, setMotorSel] = useState<ClaveMotor | null>(null)
   const [motorUsado, setMotorUsado] = useState<ClaveMotor | null>(null)
+  // Provenance de IA para trazabilidad medicolegal (se persiste en la nota).
+  const [provenanceIA, setProvenanceIA] = useState<{ modelo?: string; promptVersion?: string; apiVersion?: string; generadoEn?: string } | null>(null)
   const motorEfectivo: ClaveMotor = motorSel ?? (planActual === 'premium' ? 'maxima' : 'estandar')
   // Créditos agotados (tope duro): muestra aviso con comprar más / subir de plan.
   const [sinCreditos, setSinCreditos] = useState<{ usadas: number; limite: number } | null>(null)
@@ -268,6 +270,7 @@ export default function ConsultaActivaPage() {
         if (n.iaAuditoria.extraction) setExtraction(n.iaAuditoria.extraction)
         if (n.iaAuditoria.safety) setSafety(n.iaAuditoria.safety)
         if (Array.isArray(n.iaAuditoria.aprobadosPorMedico)) setAprobados(new Set(n.iaAuditoria.aprobadosPorMedico))
+        if (n.iaAuditoria.provenance) setProvenanceIA(n.iaAuditoria.provenance)  // conservar al re-guardar
       }
       if (n.transcripcionCruda) voz.setTranscripcion(n.transcripcionCruda)
       if (n.internamientoId) setNotaInternamientoId(n.internamientoId)  // adopta el episodio
@@ -416,7 +419,10 @@ export default function ConsultaActivaPage() {
         }
         return
       }
-      if (!enVivo) { setSinCreditos(null); setModoEco(!!data._modoEconomico); if (data._motor) setMotorUsado(data._motor as ClaveMotor) }  // éxito → limpia aviso; marca modo económico + motor usado
+      if (!enVivo) {
+        setSinCreditos(null); setModoEco(!!data._modoEconomico); if (data._motor) setMotorUsado(data._motor as ClaveMotor)
+        if (data._modelo) setProvenanceIA({ modelo: data._modelo as string, promptVersion: data._promptVersion as string, apiVersion: data._apiVersion as string, generadoEn: new Date().toISOString() })
+      }  // éxito → limpia aviso; marca modo económico + motor usado + provenance
       const ts = Date.now()  // marca de este resultado (para la recuperación tras navegar)
       // Mapear respuesta a estado.
       // REGLA ANTI-PÉRDIDA: en un "Procesar con IA" normal SOLO se sobreescribe lo
@@ -746,6 +752,15 @@ export default function ConsultaActivaPage() {
         aprobadosPorMedico: Array.from(aprobados),
         procesadoEn: now,
         aprobadoPor: estado === 'firmada' ? (auth.currentUser?.email ?? '') : undefined,
+        // Provenance inmutable: con qué modelo/prompt se generó + revisión humana
+        provenance: provenanceIA ? {
+          modelo: provenanceIA.modelo,
+          motor: motorUsado ?? undefined,
+          promptVersion: provenanceIA.promptVersion,
+          apiVersion: provenanceIA.apiVersion,
+          generadoEn: provenanceIA.generadoEn,
+          revisadoPorHumano: aprobados.size > 0 || estado === 'firmada',
+        } : undefined,
       } : undefined,
       transcripcionCruda: voz.transcripcion || undefined,
       dialogoDiarizado: audio.utterances.length > 0 ? audio.utterances : undefined,

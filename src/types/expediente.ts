@@ -195,6 +195,20 @@ export interface NotaMedica {
     aprobadosPorMedico?: string[]          // ids de campos aprobados explícitamente
     procesadoEn?: string                   // ISO timestamp del último procesamiento
     aprobadoPor?: string                   // email del médico que aprobó al firmar
+    /**
+     * Provenance INMUTABLE de la IA (trazabilidad medicolegal / SaMD): con qué
+     * modelo, versión de prompt y motor se generó la nota, y su revisión humana.
+     * Requisito de auditoría regulatoria y de IA clínica defendible.
+     */
+    provenance?: {
+      modelo?: string          // modelo exacto (ej. claude-opus-4-8)
+      motor?: string           // perfil/motor (estándar/máxima/rápida)
+      promptVersion?: string   // versión del prompt/pipeline
+      apiVersion?: string      // versión de la API del proveedor
+      generadoEn?: string      // ISO timestamp de la generación
+      revisadoPorHumano?: boolean  // el médico editó/aprobó antes de firmar
+      pmids?: string[]         // identificadores de evidencia citada (si aplica)
+    }
   }
 
   // Trazabilidad: transcripción cruda de voz junto a la nota procesada

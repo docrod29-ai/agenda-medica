@@ -24,6 +24,9 @@ import type { TipoNota, PacienteContexto } from '@/types/expediente'
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL ?? ''
 const ANTHROPIC_VERSION = '2023-06-01'
+// Versión del prompt/pipeline de la nota. Súbela al cambiar el prompt maestro:
+// queda registrada en el provenance inmutable de cada nota (trazabilidad SaMD).
+const PROMPT_VERSION = 'nota-2026-07'
 
 // Tres PERFILES de modelo, según plan del consultorio y momento:
 //  · 'live'    → borrador EN VIVO (cada ~30s): Haiku, baratísimo y veloz. Sin thinking.
@@ -329,14 +332,14 @@ export async function POST(req: NextRequest) {
     if (!validation.success) {
       console.warn('[procesar] Validación parcial:', validation.error.issues.slice(0, 3))
       void registrarUso(clinicId, fuente)
-      return NextResponse.json({ ok: true, ...parsed, _schemaWarning: true, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico })
+      return NextResponse.json({ ok: true, ...parsed, _schemaWarning: true, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION })
     }
 
     void registrarUso(clinicId, fuente)
     // _plan: el cliente decide con esto si la 2ª opinión (GPT-5) es automática. Va
     // 'premium' SOLO si la nota usó el motor 💎 Máxima (Opus). _motor: qué motor se
     // usó (para la insignia). _modoEconomico: bajó a ⚡ Rápida por falta de créditos.
-    return NextResponse.json({ ok: true, ...validation.data, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico })
+    return NextResponse.json({ ok: true, ...validation.data, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION })
   } catch (err) {
     console.error('[expediente/procesar] Exception:', err)
     try {
