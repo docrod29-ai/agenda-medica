@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v396'  // Refactor monolito config #4: LlavesIA + Firma + Membrete + MiembrosActivos (~578 líneas) -> secciones-cuenta.tsx. configuracion/page.tsx 4472 -> 2258 (-50% en 4 extracciones). Sin cambio de comportamiento; tsc + 490 tests + next build OK.
+const CACHE = 'nexusmed-v397'  // Refactor monolito consulta #1 (movimiento PURO, presentacional): DialogoDiarizado + Section + estilos S -> consulta-ui.tsx. consulta/page.tsx 2192 -> 2079. Voz ya estaba en hooks. Núcleo stateful (nota/IA/borrador) INTACTO. tsc + 490 tests + next build OK.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
