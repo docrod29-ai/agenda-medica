@@ -16,7 +16,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verificarUsuario } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA, registrarUso, nivelIADe } from '@/lib/ai-keys'
-import { buscarEvidencia, type ArticuloPubMed } from '@/lib/evidencia/pubmed'
+import { buscarEvidenciaMulti, type ArticuloPubMed } from '@/lib/evidencia/pubmed'
 import { traducirBasico } from '@/lib/evidencia/traducir-medico'
 
 export const runtime = 'nodejs'
@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
   let body: {
     diagnosticos?: { descripcion?: string }[]
     medicamentos?: { nombre?: string }[]
+    motivo?: string
     resumen?: string
     contexto?: { edad?: number; sexo?: string; alergias?: unknown }
   }
@@ -53,25 +54,24 @@ export async function POST(req: NextRequest) {
 
   const dx = (body.diagnosticos ?? []).map(d => d?.descripcion).filter(Boolean) as string[]
   const meds = (body.medicamentos ?? []).map(m => m?.nombre).filter(Boolean) as string[]
+  const motivo = (body.motivo ?? '').trim()   // MOTIVO DE CONSULTA = problema activo que se atiende HOY
   const resumen = (body.resumen ?? '').trim()
-  // La IA razona con lo que haya: dx/meds estructurados O el resumen/texto de la nota.
-  if (dx.length === 0 && meds.length === 0 && resumen.length < 8) {
+  if (dx.length === 0 && meds.length === 0 && resumen.length < 8 && motivo.length < 4) {
     return NextResponse.json({ ok: false, error: 'La nota no tiene diagnóstico, tratamiento ni resumen para analizar todavía.' }, { status: 400 })
   }
 
-  // 1) CONSULTAS DE PUBMED. Respaldo determinista (sin "management" genérico que
-  //    traía artículos administrativos irrelevantes) + un constructor con IA
-  //    (1 sola llamada, con timeout de 12s → NO cuelga la función; era la suma de
-  //    4 llamadas lo que daba 504, no esta).
+  // 1) CONSULTAS DE PUBMED — priorizan el MOTIVO DE CONSULTA (el problema activo),
+  //    NO las comorbilidades. La búsqueda usa el filtro de ALTA CALIDAD (revisiones
+  //    sistemáticas, meta-análisis, RCT, guías internacionales) y reciente.
   const consultasDet: string[] = []
-  if (dx.length) consultasDet.push([dx[0], ...meds.slice(0, 3), 'treatment'].join(' '))
+  if (motivo) consultasDet.push(motivo)                            // lo primero: el motivo
+  if (dx.length) consultasDet.push([dx[0], ...meds.slice(0, 2)].join(' '))
   if (dx[1]) consultasDet.push(dx[1])
-  if (meds.length >= 2) consultasDet.push(`${meds.slice(0, 4).join(' ')} drug interaction`)
 
   async function consultasIA(): Promise<string[]> {
     try {
-      const sys = 'Convierte diagnósticos/tratamientos clínicos en español de México (abreviaturas: IVU/ITU=infección de vías urinarias, DM2=diabetes tipo 2, HAS/HTA=hipertensión, ERC=enfermedad renal crónica, EPOC, IAM, ICC, EVC, TVP, TEP) en 1 a 3 consultas CORTAS en INGLÉS para PubMed con términos MeSH. Ignora paréntesis y datos del paciente. Devuelve SOLO un arreglo JSON de strings. Ej: ["recurrent urinary tract infection management adults"]'
-      const user = `Diagnósticos: ${dx.join('; ') || '—'}\nTratamiento: ${meds.join('; ') || '—'}${resumen ? `\nResumen: ${resumen.slice(0, 800)}` : ''}`
+      const sys = 'Eres un experto en búsqueda bibliográfica médica. Genera de 1 a 3 consultas CORTAS en INGLÉS para PubMed (términos MeSH) para responder el caso, PRIORIZANDO el MOTIVO DE CONSULTA (el problema activo que se atiende HOY) — las comorbilidades solo si son DIRECTAMENTE relevantes al problema principal. Traduce abreviaturas MX (IVU/ITU=urinary tract infection, DM2=type 2 diabetes, HAS/HTA=hypertension, ERC=chronic kidney disease). Enfócate en manejo/tratamiento/prevención basados en evidencia de alto nivel. Ignora paréntesis y datos del paciente. Devuelve SOLO un arreglo JSON de strings, la 1ª sobre el motivo principal. Ej motivo "IVU recurrente": ["recurrent urinary tract infection management prevention adults","recurrent UTI antibiotic prophylaxis"]'
+      const user = `MOTIVO DE CONSULTA (principal): ${motivo || dx[0] || '—'}\nDiagnósticos/comorbilidades: ${dx.join('; ') || '—'}\nTratamiento: ${meds.join('; ') || '—'}`
       const r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': key as string, 'anthropic-version': ANTHROPIC_VERSION, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: MODELOS_PRO[0], max_tokens: 300, system: sys, messages: [{ role: 'user', content: user }] }), signal: AbortSignal.timeout(12000) })
       if (!r.ok) return []
       const d = await r.json()
@@ -82,25 +82,13 @@ export async function POST(req: NextRequest) {
     } catch { return [] }
   }
 
-  async function buscarLote(queries: string[]): Promise<ArticuloPubMed[]> {
-    const lotes = await Promise.all(queries.slice(0, 3).map(async c => {
-      const en = traducirBasico(c) || c
-      let r = await buscarEvidencia(en, { max: 5, aniosRecientes: 10 }).catch(() => [])
-      if (r.length === 0) r = await buscarEvidencia(en, { max: 5 }).catch(() => [])
-      return r
-    }))
-    const porPmid = new Map<string, ArticuloPubMed>()
-    for (const lote of lotes) for (const a of lote) if (!porPmid.has(a.pmid)) porPmid.set(a.pmid, a)
-    return [...porPmid.values()]
-  }
-
-  // Búsqueda protegida: consulta con IA (mejor calidad) y si no, la determinista.
+  // Búsqueda protegida con ALTA CALIDAD (buscarEvidenciaMulti: HQ primero — meta-análisis/
+  // RCT/guías —, reciente con ventana + landmark). Traduce cada query ES→EN.
   let articulos: ArticuloPubMed[] = []
   try {
-    const consultasEN = await consultasIA()
-    articulos = await buscarLote(consultasEN.length ? consultasEN : consultasDet)
-    if (articulos.length === 0 && consultasEN.length) articulos = await buscarLote(consultasDet)
-    articulos = articulos.slice(0, 12)
+    const consultasEN = (await consultasIA())
+    const queries = (consultasEN.length ? consultasEN : consultasDet).map(c => traducirBasico(c) || c).filter(Boolean)
+    articulos = (await buscarEvidenciaMulti(queries, { max: 12, aniosRecientes: 7 }).catch(() => [])).slice(0, 12)
   } catch { articulos = [] }
 
   // 2) RAZONAMIENTO CLÍNICO — SIEMPRE corre, haya o no artículos de PubMed.
@@ -123,13 +111,14 @@ export async function POST(req: NextRequest) {
     : '(PubMed no devolvió artículos para estos términos — razona con tu conocimiento clínico, guías y consenso, y decláralo.)'
 
   const system = [
-    'Eres un CONSULTOR CLÍNICO de altísimo nivel (subespecialista) para un médico experto en México.',
+    'Eres un CONSULTOR CLÍNICO de altísimo nivel (subespecialista).',
     'Tu trabajo: ENTENDER el caso, PROCESARLO, ANALIZARLO y RAZONARLO a fondo — SIEMPRE das un análisis útil y accionable, tengas o no artículos de PubMed.',
-    'Se te da el caso (diagnósticos + tratamiento + resumen + paciente) y, si existen, una lista NUMERADA de artículos reales de PubMed con su resumen.',
+    `PRIORIDAD ABSOLUTA: el análisis debe girar en torno al MOTIVO DE CONSULTA / problema activo que se atiende HOY${motivo ? ` (= "${motivo.slice(0, 160)}")` : ''}. Empieza y enfócate en ESE problema; las comorbilidades solo se mencionan si son directamente relevantes a él, y AL FINAL.`,
+    'Se te da el caso y, si existen, una lista NUMERADA de artículos reales de PubMed (priorizados por ALTO nivel de evidencia: revisiones sistemáticas, meta-análisis, RCT, guías internacionales, recientes).',
     'REGLAS:',
-    '(1) Cuando cites un artículo de la lista, hazlo por su número [n]; NUNCA inventes estudios, PMIDs, autores ni cifras. Si un dato no está en la lista, NO lo atribuyas a una cita.',
-    '(2) Si NO hay artículos (o no alcanzan), razona igual con tu conocimiento clínico, guías (IDSA/GPC-CENETEC/NOM cuando aplique) y consenso — sin citas [n], y siendo honesto sobre el nivel de certeza.',
-    '(3) Piensa como subespecialista: evalúa la idoneidad del tratamiento (fármaco/dosis/vía/duración), interacciones y contraindicaciones (considera alergias/edad/función orgánica), alternativas mejores, y el diagnóstico diferencial relevante.',
+    '(1) Cuando cites un artículo de la lista, hazlo por su número [n]; NUNCA inventes estudios, PMIDs, autores ni cifras. Si un artículo de la lista NO es del tema del motivo, NO lo fuerces.',
+    '(2) Apóyate en evidencia INTERNACIONAL de alto nivel (Cochrane, meta-análisis, RCT, guías IDSA/ESCMID/AUA/EAU/ADA según el tema). NO cites GPC de CENETEC ni NOM mexicanas. Si no hay artículos, razona con tu conocimiento del consenso internacional, siendo honesto sobre el nivel de certeza.',
+    '(3) Piensa como subespecialista: evalúa la idoneidad del tratamiento (fármaco/dosis/vía/duración), interacciones y contraindicaciones (alergias/edad/función orgánica), alternativas mejores, y el diagnóstico diferencial — todo centrado en el MOTIVO principal.',
     '(4) Concreto y clínico, sin relleno.',
     'Responde SOLO JSON válido: {"evaluacion":[{"punto":"...","sustento":"...","citas":[n]}],"alternativas":[{"opcion":"...","porque":"...","citas":[n]}],"diferencial":[{"dx":"...","razon":"...","citas":[n]}]}. "citas" es un arreglo (posiblemente vacío) de números [n] de la lista. Da al menos 2-3 puntos de evaluación y, cuando aplique, alternativas y diferenciales.',
   ].join('\n')

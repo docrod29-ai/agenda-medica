@@ -325,7 +325,9 @@ export default function ConsultaActivaPage() {
   const analizarEvidencia = useCallback(async () => {
     // Razona con lo que haya: dx/meds estructurados O el resumen de la nota.
     const resumenTexto = (resumen || secciones.map(s => s.value).filter(Boolean).join('. ')).trim()
-    if (diagnosticos.length === 0 && medicamentos.length === 0 && resumenTexto.length < 8) {
+    // MOTIVO DE CONSULTA = el problema activo que se atiende HOY → prioriza la búsqueda/análisis.
+    const motivo = (secciones.find(s => /motivo/i.test(s.label) || /motivo/i.test(s.key))?.value || '').trim()
+    if (diagnosticos.length === 0 && medicamentos.length === 0 && resumenTexto.length < 8 && motivo.length < 4) {
       toast('Primero dicta/estructura la nota (diagnóstico, tratamiento o resumen)', 'info'); return
     }
     setAnalizandoEv(true); setEvidencia(null)
@@ -335,6 +337,7 @@ export default function ConsultaActivaPage() {
         body: JSON.stringify({
           diagnosticos: diagnosticos.map(d => ({ descripcion: d.descripcion })),
           medicamentos: medicamentos.map(m => ({ nombre: m.nombre })),
+          motivo: motivo.slice(0, 400),
           resumen: resumenTexto.slice(0, 2000),
           contexto: { edad: patient?.edad, sexo: patient?.sexo, alergias: patient?.alergias },
         }),
