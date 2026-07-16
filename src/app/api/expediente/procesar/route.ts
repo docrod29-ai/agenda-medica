@@ -143,6 +143,29 @@ async function llamarClaudeConReintentos(key: string, model: string, system: str
   return res
 }
 
+// ENSAMBLE de la nota (💎 Máxima): GPT redacta su versión del MISMO caso con el
+// mismo prompt, para que Claude luego fusione lo mejor de ambos. Devuelve el JSON
+// crudo del modelo o null (a prueba de fallos: si algo falla, se ignora).
+const MODELOS_OPENAI_NOTA = ['gpt-5', 'gpt-4o']
+async function generarNotaOpenAI(keyOAI: string, system: string, userMsg: string): Promise<Record<string, unknown> | null> {
+  async function llamar(model: string) {
+    return fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${keyOAI}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, messages: [{ role: 'system', content: system }, { role: 'user', content: userMsg }], response_format: { type: 'json_object' }, max_completion_tokens: 8000 }),
+    })
+  }
+  try {
+    let res = await llamar(MODELOS_OPENAI_NOTA[0])
+    for (let i = 1; i < MODELOS_OPENAI_NOTA.length && (res.status === 404 || res.status === 400); i++) res = await llamar(MODELOS_OPENAI_NOTA[i])
+    if (!res.ok) return null
+    const data = await res.json()
+    const t: string = data.choices?.[0]?.message?.content ?? ''
+    const mm = t.match(/\{[\s\S]*\}/)
+    try { return mm ? JSON.parse(mm[0]) : null } catch { return null }
+  } catch { return null }
+}
+
 /**
  * Devuelve el fallback del parser local PERO con la causa REAL visible en el
  * panel (safety.missing_critical_fields), no solo en un toast que desaparece.
@@ -358,10 +381,38 @@ export async function POST(req: NextRequest) {
     }
 
     void registrarUso(clinicId, fuente)
+
+    // ── ENSAMBLE MULTI-MODELO DE LA NOTA (solo 💎 Máxima) ──────────────
+    // "No escatimar": GPT redacta su versión del MISMO caso y Claude FUSIONA lo
+    // mejor de ambos borradores. A PRUEBA DE FALLOS: la nota de Claude ya es la
+    // base garantizada; cualquier fallo del ensamble → se queda esa (sin regresión).
+    let notaFinal: Record<string, unknown> = validation.data
+    const modelosNota: string[] = [model]
+    if (perfil === 'premium' && !modoEconomico && !rapido) {
+      try {
+        const oai = await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY ?? '').catch(() => ({ key: '' as string }))
+        if (oai.key) {
+          const notaGPT = await generarNotaOpenAI(oai.key as string, system, userMsg)
+          if (notaGPT) {
+            const sysS = `${system}\n\n[MODO SÍNTESIS] Recibes además DOS borradores de esta nota (A=Claude, B=GPT) del MISMO caso. Combínalos en la MEJOR nota ÚNICA con EXACTAMENTE el mismo esquema JSON: toma lo más correcto y completo de cada uno, agrega lo que uno haya omitido, NO inventes nada que no esté en la transcripción, y prioriza la seguridad clínica (dosis, interacciones, alergias). Devuelve SOLO el JSON del esquema.`
+            const usrS = `${userMsg}\n\n=== BORRADOR A (Claude) ===\n${JSON.stringify(validation.data).slice(0, 20000)}\n\n=== BORRADOR B (GPT) ===\n${JSON.stringify(notaGPT).slice(0, 20000)}\n\nFusiona A y B en la mejor nota. Devuelve solo el JSON del esquema.`
+            const resS = await llamarClaudeConReintentos(API_KEY, model, sysS, usrS, false, 32000)
+            if (resS.ok) {
+              const dS = await resS.json()
+              const bS: { type?: string; text?: string }[] = Array.isArray(dS.content) ? dS.content : []
+              const pS = parseJSON(bS.find(b => b?.type === 'text')?.text ?? bS[0]?.text ?? '')
+              const vS = pS ? RespuestaExtraccion.safeParse(pS) : null
+              if (vS && vS.success) { notaFinal = vS.data; modelosNota.push('GPT', 'síntesis') }
+            }
+          }
+        }
+      } catch { /* se queda la nota de Claude (sin regresión) */ }
+    }
+
     // _plan: el cliente decide con esto si la 2ª opinión (GPT-5) es automática. Va
     // 'premium' SOLO si la nota usó el motor 💎 Máxima (Opus). _motor: qué motor se
     // usó (para la insignia). _modoEconomico: bajó a ⚡ Rápida por falta de créditos.
-    return NextResponse.json({ ok: true, ...validation.data, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION })
+    return NextResponse.json({ ok: true, ...notaFinal, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION, _modelosNota: modelosNota })
   } catch (err) {
     console.error('[expediente/procesar] Exception:', err)
     try {

@@ -30,8 +30,14 @@ export async function POST(req: NextRequest) {
   if (!acceso.ok) return acceso.response
   const _rl = await limitarOResponder(`evidencia:${acceso.uid}`, 30, 60)
   if (_rl) return _rl
-  const { key, fuente, clinicId } = await resolverClaveIA(acceso.uid, 'anthropic', process.env.ANTHROPIC_API_KEY ?? '')
-  if (!key) return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada.' }, { status: 503 })
+  let key = ''
+  let fuente: 'clinica' | 'prueba' | 'ninguna' = 'ninguna'
+  let clinicId = ''
+  try {
+    const r = await resolverClaveIA(acceso.uid, 'anthropic', process.env.ANTHROPIC_API_KEY ?? '')
+    key = (r.key as string) ?? ''; fuente = r.fuente; clinicId = r.clinicId ?? ''
+  } catch { /* key queda vacía → mensaje claro abajo, nunca 500 */ }
+  if (!key) return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada (revisa Configuración → Llaves de IA).' }, { status: 503 })
 
   let body: {
     diagnosticos?: { descripcion?: string }[]
@@ -90,10 +96,15 @@ export async function POST(req: NextRequest) {
   }
 
   // Intenta con las consultas de la IA; si no hay nada, cae a las deterministas.
-  const consultasEN = await consultasIA()
-  let articulos = await buscarLote(consultasEN.length ? consultasEN : consultasDet)
-  if (articulos.length === 0 && consultasEN.length) articulos = await buscarLote(consultasDet)
-  articulos = articulos.slice(0, 12)
+  // TODO el bloque de búsqueda va protegido: si PubMed o la traducción fallan,
+  // articulos = [] y el razonamiento corre IGUAL (nunca un 500 tumba el análisis).
+  let articulos: ArticuloPubMed[] = []
+  try {
+    const consultasEN = await consultasIA()
+    articulos = await buscarLote(consultasEN.length ? consultasEN : consultasDet)
+    if (articulos.length === 0 && consultasEN.length) articulos = await buscarLote(consultasDet)
+    articulos = articulos.slice(0, 12)
+  } catch { articulos = [] }
 
   // 2) RAZONAMIENTO CLÍNICO — SIEMPRE corre, haya o no artículos de PubMed.
   //    Opus/Sonnet razonan el caso a fondo (nivel subespecialista); las citas de
