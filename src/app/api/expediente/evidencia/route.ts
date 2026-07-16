@@ -46,29 +46,54 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Se necesita al menos un diagnóstico o medicamento en la nota.' }, { status: 400 })
   }
 
-  // 1) Buscar evidencia en PubMed. Una búsqueda por diagnóstico principal (+ meds
-  //    para el tratamiento) y una de interacciones si hay ≥2 fármacos.
-  const consultas: string[] = []
-  if (dx.length) consultas.push([dx[0], ...meds.slice(0, 3), 'treatment OR management OR guideline'].join(' '))
-  if (dx[1]) consultas.push(dx[1])
-  if (meds.length >= 2) consultas.push(`${meds.slice(0, 4).join(' ')} drug interaction`)
+  // 1) CONSTRUIR LAS CONSULTAS DE PUBMED.
+  //    Primario: la IA convierte los dx/meds en español (con abreviaturas MX como
+  //    IVU, DM2, HAS…) a consultas en inglés/MeSH — robusto ante cualquier término.
+  //    Respaldo: construcción determinista + diccionario (traducirBasico).
+  async function consultasIA(): Promise<string[]> {
+    try {
+      const sys = 'Convierte diagnósticos y tratamientos clínicos en español de México (con abreviaturas frecuentes: IVU/ITU=infección de vías urinarias, DM2=diabetes tipo 2, HAS/HTA=hipertensión, ERC=enfermedad renal crónica, EPOC, IAM, ICC, EVC, TVP, TEP) en 1 a 3 consultas CORTAS en INGLÉS para PubMed, con términos MeSH. Ignora paréntesis y datos del paciente. Devuelve SOLO un arreglo JSON de strings. Ej: ["recurrent urinary tract infection management adults","nitrofurantoin prophylaxis recurrent uti"]'
+      const user = `Diagnósticos: ${dx.join('; ') || '—'}\nTratamiento: ${meds.join('; ') || '—'}`
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'x-api-key': key as string, 'anthropic-version': ANTHROPIC_VERSION, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: MODELOS_PRO[0], max_tokens: 300, system: sys, messages: [{ role: 'user', content: user }] }),
+      })
+      if (!r.ok) return []
+      const d = await r.json()
+      const t: string = (Array.isArray(d.content) ? d.content : []).find((b: { type?: string }) => b?.type === 'text')?.text ?? ''
+      const mm = t.match(/\[[\s\S]*\]/)
+      const arr = mm ? JSON.parse(mm[0]) : []
+      return Array.isArray(arr) ? arr.filter((x: unknown) => typeof x === 'string' && (x as string).trim()).slice(0, 3) : []
+    } catch { return [] }
+  }
 
-  // Traduce cada consulta ES→EN de forma determinista (los dx/meds de la nota
-  // vienen en español; PubMed casi solo tiene inglés). Busca la traducida y, si
-  // no hay nada, la original.
-  const lotes = await Promise.all(consultas.map(async c => {
-    const en = traducirBasico(c)
-    let r = await buscarEvidencia(en || c, { max: 5, aniosRecientes: 10 }).catch(() => [])
-    if (r.length === 0 && en && en !== c) r = await buscarEvidencia(c, { max: 5 }).catch(() => [])
-    return r
-  }))
-  // Dedup por PMID.
-  const porPmid = new Map<string, ArticuloPubMed>()
-  for (const lote of lotes) for (const a of lote) if (!porPmid.has(a.pmid)) porPmid.set(a.pmid, a)
-  const articulos = [...porPmid.values()].slice(0, 12)
+  const consultasDet: string[] = []
+  if (dx.length) consultasDet.push([dx[0], ...meds.slice(0, 3), 'treatment OR management OR guideline'].join(' '))
+  if (dx[1]) consultasDet.push(dx[1])
+  if (meds.length >= 2) consultasDet.push(`${meds.slice(0, 4).join(' ')} drug interaction`)
+
+  async function buscarLote(queries: string[]): Promise<ArticuloPubMed[]> {
+    const lotes = await Promise.all(queries.map(async c => {
+      const en = traducirBasico(c) || c
+      // con filtro de años primero; si no hay, sin filtro (evidencia clásica).
+      let r = await buscarEvidencia(en, { max: 5, aniosRecientes: 10 }).catch(() => [])
+      if (r.length === 0) r = await buscarEvidencia(en, { max: 5 }).catch(() => [])
+      return r
+    }))
+    const porPmid = new Map<string, ArticuloPubMed>()
+    for (const lote of lotes) for (const a of lote) if (!porPmid.has(a.pmid)) porPmid.set(a.pmid, a)
+    return [...porPmid.values()]
+  }
+
+  // Intenta con las consultas de la IA; si no hay nada, cae a las deterministas.
+  const consultasEN = await consultasIA()
+  let articulos = await buscarLote(consultasEN.length ? consultasEN : consultasDet)
+  if (articulos.length === 0 && consultasEN.length) articulos = await buscarLote(consultasDet)
+  articulos = articulos.slice(0, 12)
 
   if (articulos.length === 0) {
-    return NextResponse.json({ ok: true, articulos: [], evaluacion: [], alternativas: [], diferencial: [], _aviso: 'No se encontró evidencia en PubMed para este caso.' })
+    return NextResponse.json({ ok: true, articulos: [], evaluacion: [], alternativas: [], diferencial: [], _aviso: 'PubMed no devolvió artículos para esta combinación exacta de términos. Prueba dejando solo el diagnóstico principal, o usa "Preguntar a la evidencia" para responder con criterio clínico.' })
   }
 
   // 2) Razonamiento clínico sobre la evidencia.
