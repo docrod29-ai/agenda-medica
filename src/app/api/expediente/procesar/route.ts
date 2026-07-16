@@ -101,12 +101,16 @@ function MODELO_OVERRIDE_OK() { return MODEL_OVERRIDE.length > 0 }
 
 async function llamarClaude(key: string, model: string, system: string, userMsg: string, conThinking = false) {
   const pienso = conThinking && soportaThinking(model)
+  const esHaiku = /haiku/i.test(model)   // Haiku topa el output en ~8k
   const body: Record<string, unknown> = {
     model,
-    // Con "thinking" el máximo INCLUYE los tokens de razonamiento; se sube a 16000
-    // para que quepa el razonamiento + el JSON completo sin cortarse (consultas
-    // largas con muchas secciones). Sin thinking, 8000 basta.
-    max_tokens: pienso ? 16000 : 8000,
+    // BUG 2026-07 (JSON cortado): con "thinking" el max INCLUYE el razonamiento,
+    // así que 16000 dejaba solo ~10000 para el JSON y en notas complejas
+    // (1ª vez, infectología, muchas secciones) se truncaba. Se sube el techo con
+    // amplio margen para el JSON: 24000 con thinking (razonamiento 6000 + ~18000
+    // de JSON) y 16000 sin thinking en modelos grandes (Sonnet/Opus). Haiku se
+    // mantiene en 8000 (su límite real de salida).
+    max_tokens: pienso ? 24000 : (esHaiku ? 8000 : 16000),
     // Prompt caching: el system (instrucciones clínicas, grande y fijo) se
     // cachea → desde la 2ª nota la IA lo reutiliza y responde más rápido y más
     // barato, sin cambiar el resultado.

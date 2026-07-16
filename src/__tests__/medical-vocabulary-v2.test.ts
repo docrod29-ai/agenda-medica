@@ -66,8 +66,10 @@ describe('Corrector de n-gramas — palabras PARTIDAS por Whisper', () => {
     const r = corregirNGramas('cambio a dapa gliflozina por la falla cardiaca')
     expect(r.corregido).toContain('dapagliflozina')
   })
-  it('une "leve tiracetam" → levetiracetam', () => {
-    const r = corregirNGramas('continuar leve tiracetam 500 mg cada 12 horas')
+  it('"leve tiracetam" → levetiracetam vía diccionario curado (no n-gramas, porque "leve" es palabra real)', () => {
+    // Diseño seguro (bug 2026-07): el n-gramas NO fusiona si alguna palabra es
+    // común ("leve"); esta corrección la hace el diccionario CURADO en el pipeline.
+    const r = corregirTranscripcion('continuar leve tiracetam 500 mg cada 12 horas')
     expect(r.corregido).toContain('levetiracetam')
   })
   it('NO toca frases comunes del español', () => {

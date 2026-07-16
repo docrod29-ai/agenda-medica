@@ -701,6 +701,22 @@ const PALABRAS_COMUNES = new Set([
   'ninguna','ningunos','ningunas','encuentra','realiza','observa','presenta','refiere',
   'tienen','tiene','tener','dice','dicen','dijo','dijeron','tomar','tomando','toma',
   'hace','dias','días','meses','años','semanas','aumenta','disminuye','mejora','empeora',
+  // Ampliación (bug 2026-07): palabras correctas que el corrector destrozaba.
+  'masculino','masculina','femenino','femenina','propia','propio','propias','propios',
+  'servicio','servicios','tabaquismo','alcoholismo','toxicomanias','toxicomanías',
+  'arterial','arteriales','hipertension','hipertensión','hipotension','hipotensión',
+  'hipertenso','hipertensa','normal','anormal','izquierdo','izquierda','derecho','derecha',
+  'abdominal','toracico','torácico','cardiaco','cardíaco','respiratorio','respiratoria',
+  'cronico','crónico','cronica','crónica','agudo','aguda','severo','severa','leve','moderado',
+  'moderada','bilateral','positivo','positiva','negativo','negativa','presente','ausente',
+  'general','regional','local','sistemico','sistémico','vascular','neurologico','neurológico',
+  'digestivo','urinario','articular','muscular','cutaneo','cutáneo','ocular','auditivo',
+  'materno','paterno','conyuge','cónyuge','hermano','hermana','madre','padre','hijo','hija',
+  'trabajo','casa','ciudad','estado','colonia','calle','numero','número','edad','sexo',
+  // Conectores/monosílabos: el n-gramas NUNCA debe fusionarlos con un fármaco
+  // (antes se comía el "de" en "de sefriaxona").
+  'de','y','o','a','en','con','sin','por','el','la','los','las','un','una','unos','unas',
+  'del','al','se','su','sus','le','lo','que','es','ya','no','si','sí','mg','ml','gr','gramo','gramos',
 ])
 
 /* ════════════════════════════════════════════════════════════════
@@ -728,36 +744,22 @@ function distAceptable(distancia: number, longitud: number): boolean {
   return distancia <= 3
 }
 
-/** Busca la mejor coincidencia médica para una palabra. */
+/** Busca la mejor coincidencia médica para una palabra.
+ *
+ * ⚠️ SEGURIDAD CLÍNICA (bug 2026-07): las capas FONÉTICA y LEVENSHTEIN se
+ * DESACTIVARON. Corregían español correcto contra un vocabulario contaminado
+ * con marcas/inglés, con resultados peligrosos y absurdos:
+ *   "hipertensión arterial" → "hypotension bacterial"  (¡significado opuesto!)
+ *   "propia" → "Prolia", "servicios" → "cervifix", "tabaquismo" → "Tabacism",
+ *   "masculino" → "masculinize"
+ * En un documento clínico eso es inaceptable. La corrección de fármacos mal
+ * transcritos se hace SOLO con el diccionario CURADO (aplicarConfusionesConocidas)
+ * y con las siglas que ya venían en mayúsculas. Nada de adivinar por sonido. */
 function mejorCandidato(palabra: string): { term: string; motivo: CambioTranscripcion['motivo'] } | null {
-  const limpia = palabra.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-  if (PALABRAS_COMUNES.has(limpia)) return null
-  if (limpia.length < 5) return null
-
-  // 1. Abreviatura literal (mayúsculas)
+  // Normaliza únicamente SIGLAS que YA venían en mayúsculas (no toca palabras normales).
   const upper = palabra.toUpperCase()
-  if (ABREVIATURAS[upper]) {
-    return { term: upper, motivo: 'abreviatura' }   // mantiene la sigla, no la expande
-  }
-
-  // 2. Coincidencia fonética exacta
-  const fon = fonetEs(palabra)
-  const matchFon = INDICE_FONETICO.get(fon)
-  if (matchFon && fonetEs(matchFon) === fon && matchFon.toLowerCase() !== limpia) {
-    return { term: matchFon, motivo: 'fonético' }
-  }
-
-  // 3. Levenshtein contra términos de longitud parecida
-  let mejor: { term: string; dist: number } | null = null
-  for (const { term, fonet } of TERMINOS_LEV) {
-    if (Math.abs(fonet.length - fon.length) > 3) continue
-    const d = levenshtein(fonet, fon)
-    if (!distAceptable(d, Math.max(fonet.length, fon.length))) continue
-    if (!mejor || d < mejor.dist) mejor = { term, dist: d }
-    if (mejor.dist === 0) break
-  }
-  if (mejor && mejor.term.toLowerCase() !== limpia) {
-    return { term: mejor.term, motivo: 'levenshtein' }
+  if (palabra === upper && ABREVIATURAS[upper]) {
+    return { term: upper, motivo: 'abreviatura' }
   }
   return null
 }
@@ -810,6 +812,16 @@ export const CONFUSIONES_CONOCIDAS: Record<string, string> = {
   'leve tiracetam': 'levetiracetam',
   'keto rolaco': 'ketorolaco',
   'pantopra sol': 'pantoprazol',
+  // ── Typos de una palabra de fármacos (curados; antes los atrapaba el fuzzy,
+  //    ahora desactivado por seguridad — bug 2026-07). Solo mapeos EXACTOS. ──
+  'sefriaxona': 'ceftriaxona',
+  'seftriaxona': 'ceftriaxona',
+  'ertapanem': 'ertapenem',
+  'imipinem': 'imipenem',
+  'benetoclax': 'venetoclax',
+  'sofosbubir': 'sofosbuvir',
+  'lebetirasetam': 'levetiracetam',
+  'atorbastatina': 'atorvastatina',
 }
 
 /** Índice normalizado (sin acentos) para matching robusto */
@@ -908,11 +920,14 @@ export function corregirNGramas(texto: string): ResultadoCorreccion {
       // si la unión es muy corta no vale la pena
       const unida = palabras.join('')
       if (unida.length < 8) continue
-      // si TODAS son palabras comunes del español, no intentar
-      const todasComunes = palabras.every(p =>
+      // Si ALGUNA palabra es común en español, no fusionar (endurecido, bug 2026-07):
+      // los fármacos partidos por Whisper son fragmentos sin sentido ("em","pagli",
+      // "flozina"), nunca palabras reales. Así no convertimos una frase normal en un
+      // término médico. (Antes solo saltaba si TODAS eran comunes.)
+      const algunaComun = palabras.some(p =>
         PALABRAS_COMUNES.has(p.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''))
       )
-      if (todasComunes) continue
+      if (algunaComun) continue
 
       // a) unidas sin espacio → término de una palabra
       // b) unidas con espacio → término multipalabra ("ácido fólico")
@@ -950,13 +965,16 @@ export function corregirNGramas(texto: string): ResultadoCorreccion {
  *   2. Palabra por palabra: fonético exacto → Levenshtein acotado
  */
 export function corregirTranscripcion(texto: string): ResultadoCorreccion {
-  // Pase 0 — confusiones conocidas (lo más certero primero)
+  // Pase 0 — confusiones CONOCIDAS (diccionario curado, lo más certero).
   const pase0 = aplicarConfusionesConocidas(texto)
-  // Pase 1 — n-gramas (palabras partidas)
+  // Pase 1 — n-gramas: une SOLO fármacos que Whisper partió ("em pagli flozina").
+  // Endurecido (bug 2026-07): no toca una ventana si ALGUNA palabra es común en
+  // español, así nunca fusiona frases normales en un término médico.
   const pase1 = corregirNGramas(pase0.corregido)
   const cambios: CambioTranscripcion[] = [...pase0.cambios, ...pase1.cambios]
 
-  // Pase 2 — palabra por palabra
+  // Pase 2 — palabra por palabra: fonético/levenshtein DESACTIVADOS (corrompían
+  // español correcto: "hipertensión arterial"→"hypotension bacterial"). Solo siglas.
   const corregido = pase1.corregido.replace(REGEX_PALABRA, (palabra) => {
     const cand = mejorCandidato(palabra)
     if (!cand) return palabra

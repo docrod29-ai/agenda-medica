@@ -76,3 +76,39 @@ describe('Corrector aplica vocabulario médico al transcribir', () => {
     expect(r.corregido).toMatch(/ceftriaxona/i)
   })
 })
+
+// ════════════════════════════════════════════════════════════════
+// REGRESIÓN — bug 2026-07: el corrector fuzzy destrozaba español correcto.
+// Estos términos JAMÁS deben cambiar (seguridad clínica).
+// ════════════════════════════════════════════════════════════════
+describe('Seguridad del corrector: NO corromper español correcto (bug 2026-07)', () => {
+  const NO_TOCAR = [
+    'hipertensión arterial',      // se volvía "hypotension bacterial" (¡opuesto!)
+    'hipotensión arterial',
+    'tabaquismo',                 // se volvía "Tabacism"
+    'sexo masculino',             // "masculino" → "masculinize"
+    'refiere servicios propios',  // "servicios"→"cervifix", "propios"~"Prolia"
+    'antecedentes heredofamiliares negados',
+    'exploración física normal',
+    'dolor abdominal difuso',
+    'paciente femenina de 45 años',
+  ]
+  for (const frase of NO_TOCAR) {
+    it(`no toca: "${frase}"`, () => {
+      const r = corregirTranscripcion(frase)
+      expect(r.corregido).toBe(frase)
+    })
+  }
+
+  it('NUNCA cambia "hipertensión" por "hipotensión" ni al inglés', () => {
+    const r = corregirTranscripcion('diagnóstico de hipertensión arterial sistémica')
+    expect(r.corregido).toContain('hipertensión')
+    expect(r.corregido.toLowerCase()).not.toContain('hypotension')
+    expect(r.corregido.toLowerCase()).not.toContain('hipotension')
+  })
+
+  it('sigue corrigiendo fármacos legítimos vía diccionario curado', () => {
+    expect(corregirTranscripcion('dosis de sefriaxona').corregido).toContain('ceftriaxona')
+    expect(corregirTranscripcion('toma em pagli flozina').corregido).toContain('empagliflozina')
+  })
+})
