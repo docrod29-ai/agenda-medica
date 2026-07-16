@@ -1,5 +1,6 @@
 import type { NotaMedica, ValidationResult } from '@/types/expediente'
 import { requiereSignosVitales } from './templates'
+import { validarAlergiasVsMedicamentos } from './medical-dictionary'
 
 /**
  * Validación NOM-004-SSA3-2012.
@@ -54,6 +55,19 @@ export function validarNOM004(nota: NotaMedica): ValidationResult {
           med.nombre.toLowerCase().includes(token)) {
         errores.push(`⚠️ Posible alergia: se prescribe "${med.nombre}" y el paciente refiere alergia a "${al.alergeno}"`)
       }
+    }
+  }
+  // Reactividad CRUZADA por familias (betalactámicos, sulfas, AINE, macrólidos…):
+  // el matcher inteligente ahora es parte de la COMPUERTA que bloquea la firma,
+  // no solo un aviso. Antes esta lógica fuerte no gateaba (seguridad invertida):
+  // p. ej. alergia a penicilina + prescripción de cefalexina NO se detectaba con
+  // el match por subcadena de arriba, pero sí aquí.
+  for (const alerta of validarAlergiasVsMedicamentos(nota.alergias, nota.medicamentos)) {
+    if (alerta.severidad === 'critica') {
+      // Evita duplicar si el match exacto de arriba ya lo reportó.
+      if (!errores.some(e => e.includes(alerta.mensaje))) errores.push(`⚠️ ${alerta.mensaje}`)
+    } else if (alerta.severidad === 'advertencia') {
+      advertencias.push(alerta.mensaje)
     }
   }
   // Diagnóstico de infección sin antibiótico (alerta blanda)

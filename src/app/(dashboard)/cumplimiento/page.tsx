@@ -117,9 +117,13 @@ export default function CumplimientoPage() {
         <ShieldCheck size={22} color="var(--teal)" />
         <h1 className="t-h1" style={{ margin: 0 }}>Cumplimiento normativo</h1>
       </div>
-      <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 20 }}>
+      <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 10 }}>
         Panel de auditoría para NOM-024-SSA3-2012 y LFPDPPP. Aquí encuentras la bitácora
         de accesos, solicitudes ARCO de tus pacientes, y el estado de cumplimiento.
+      </p>
+      <p style={{ fontSize: 11.5, color: 'var(--text3)', marginBottom: 20, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', lineHeight: 1.5 }}>
+        <strong>Autoevaluación interna</strong> del apego a la norma — <strong>no constituye una certificación</strong>
+        emitida por un organismo acreditado. La certificación formal NOM-024 la realiza un tercero autorizado.
       </p>
 
       <div style={{ marginBottom: 20 }}>

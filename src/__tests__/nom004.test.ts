@@ -80,6 +80,16 @@ describe('validarNOM004 — cruce alergia↔medicamento (regresión del bug de a
     expect(r.valida).toBe(false)
   })
 
+  it('SEGURIDAD CRUZADA: alergia a penicilina + cefalosporina bloquea la firma (antes se escapaba)', () => {
+    const r = validarNOM004(nota({
+      medicamentos: [{ nombre: 'Cefalexina', dosis: '500 mg', via: 'oral', frecuencia: 'c/8h', duracion: '7 días' } as any],
+      alergias: [{ alergeno: 'Penicilina', tipo: 'medicamento', reaccion: 'urticaria', severidad: 'moderada', confirmada: true }],
+    }))
+    // El match por subcadena NO ve "penicilina" en "cefalexina"; el matcher por familias sí.
+    expect(r.valida).toBe(false)
+    expect(r.errores.some(e => /cruzada|beta-?lact/i.test(e))).toBe(true)
+  })
+
   it('un alérgeno de una o dos letras no dispara falsos positivos', () => {
     const r = validarNOM004(nota({
       medicamentos: [{ nombre: 'Amoxicilina', dosis: '500 mg', via: 'oral', frecuencia: 'c/8h', duracion: '7 días' } as any],
