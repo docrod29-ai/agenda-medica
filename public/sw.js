@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v393'  // Mobile Excellence iter 8-11 (aún en rama): notificaciones sin PHI (§8.6), logs sin material de secretos (§9.5), guards de accesibilidad/zoom, y PWA: shortcuts en el manifest + NO cachear el HTML de rutas clínicas (defensa en profundidad §11.2). Escritorio intacto.
+const CACHE = 'nexusmed-v394'  // Refactor monolito config: SeguridadTab (MFA/2FA) extraído a secciones-seguridad.tsx + estilos compartidos (cfgInput/cfgLabel) a estilos.ts. Sin cambio de comportamiento; verificado tsc + 490 tests + next build.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
