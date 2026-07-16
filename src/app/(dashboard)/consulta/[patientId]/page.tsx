@@ -11,6 +11,7 @@ import { getPatients, updatePatient } from '@/lib/firestore'
 import { useGrabacionVoz } from '@/hooks/useGrabacionVoz'
 import { useGrabacionAudio } from '@/hooks/useGrabacionAudio'
 import { useComandoVoz } from '@/hooks/useComandoVoz'
+import { ofuscar, desofuscar } from '@/lib/seguridad/ofuscar-local'
 import {
   createNota, updateNota, getNota, deleteNota, getUltimasNotasResumen,
 } from '@/lib/expediente/firestore'
@@ -846,10 +847,10 @@ export default function ConsultaActivaPage() {
     if (!hayContenido) return
     const id = setTimeout(() => {
       try {
-        localStorage.setItem(respaldoKey, JSON.stringify({
+        localStorage.setItem(respaldoKey, ofuscar(JSON.stringify({
           tipo, resumen, secciones, signos, diagnosticos, medicamentos,
           transcripcion: voz.transcripcion, ts: Date.now(),
-        }))
+        }), auth.currentUser?.uid ?? 'nx'))
       } catch { /* almacenamiento lleno: no es crítico */ }
     }, 1500)
     return () => clearTimeout(id)
@@ -867,7 +868,7 @@ export default function ConsultaActivaPage() {
     const mem = borradorMem.leer(respaldoKey) as Record<string, unknown> | null
     let b = mem
     if (!b) {
-      try { const raw = localStorage.getItem(respaldoKey); if (raw) { b = JSON.parse(raw); setRespaldoDisponible(true) } } catch { /* */ }
+      try { const raw = localStorage.getItem(respaldoKey); if (raw) { b = JSON.parse(desofuscar(raw, auth.currentUser?.uid ?? 'nx') ?? raw); setRespaldoDisponible(true) } } catch { /* */ }
     }
     if (!b) return
     const vacio = !resumen.trim() && !secciones.some(s => s.value?.trim()) &&
@@ -905,10 +906,10 @@ export default function ConsultaActivaPage() {
     const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) || e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim()
     if (!hay) return
     try {
-      localStorage.setItem(respaldoKey, JSON.stringify({
+      localStorage.setItem(respaldoKey, ofuscar(JSON.stringify({
         tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos,
         diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, transcripcion: e.transcripcion, ts: Date.now(),
-      }))
+      }), auth.currentUser?.uid ?? 'nx'))
     } catch { /* almacenamiento lleno */ }
   }, [respaldoKey])
   useEffect(() => {
@@ -926,7 +927,7 @@ export default function ConsultaActivaPage() {
     try {
       const raw = localStorage.getItem(respaldoKey)
       if (!raw) { setRespaldoDisponible(false); return }
-      const b = JSON.parse(raw)
+      const b = JSON.parse(desofuscar(raw, auth.currentUser?.uid ?? 'nx') ?? raw)
       if (b.tipo) setTipo(b.tipo)
       if (Array.isArray(b.secciones)) setSecciones(b.secciones)
       if (typeof b.resumen === 'string') setResumen(b.resumen)
