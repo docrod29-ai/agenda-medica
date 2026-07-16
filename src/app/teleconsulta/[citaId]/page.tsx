@@ -24,7 +24,7 @@ export default function TeleconsultaPage() {
     fetch('/api/telesalud/sala', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ citaId, clinicId }),
+      body: JSON.stringify({ citaId, clinicId, token: search.get('t') ?? undefined }),
     }).then(r => r.json()).then(data => {
       if (data.ok) {
         setUrl(data.url)

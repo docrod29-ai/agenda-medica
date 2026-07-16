@@ -453,7 +453,20 @@ function AppointmentRowFull({
         {/* Botón Unirse a videollamada para teleconsulta */}
         {appt.tipo === 'teleconsulta' && (
           <button
-            onClick={() => window.open(`/teleconsulta/${appt.id}?c=${rowClinicId ?? ''}&p=${appt.pacienteId}&dr=1`, '_blank', 'noopener')}
+            onClick={async () => {
+              // Enlace con token HMAC (camino seguro de la sala). Si el token falla,
+              // abre igual (el endpoint mantiene el respaldo endurecido).
+              let t = ''
+              try {
+                const r = await fetchAutenticado('/api/telesalud/token', {
+                  method: 'POST', headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ clinicId: rowClinicId, patientId: appt.pacienteId }),
+                })
+                if (r.ok) t = (await r.json()).token || ''
+              } catch { /* sin token → respaldo endurecido */ }
+              const tq = t ? `&t=${encodeURIComponent(t)}` : ''
+              window.open(`/teleconsulta/${appt.id}?c=${rowClinicId ?? ''}&p=${appt.pacienteId}&dr=1${tq}`, '_blank', 'noopener')
+            }}
             title="Unirse a videollamada"
             style={{
               background: 'rgba(167,139,250,0.15)', color: '#a78bfa',
