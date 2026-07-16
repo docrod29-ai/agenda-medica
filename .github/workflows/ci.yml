@@ -1,0 +1,25 @@
+name: CI
+
+# Puerta de calidad: en cada push y cada Pull Request corre typecheck + pruebas.
+# Bloquea que se mezcle código que rompe tipos o pruebas (hallazgo de auditoría:
+# "sin CI, nada impide un merge que rompe el camino clínico").
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Typecheck (tsc --noEmit)
+        run: npx tsc --noEmit
+      - name: Pruebas (vitest)
+        run: npx vitest run
