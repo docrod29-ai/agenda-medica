@@ -59,37 +59,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'La nota no tiene diagnóstico, tratamiento ni resumen para analizar todavía.' }, { status: 400 })
   }
 
-  // 1) CONSTRUIR LAS CONSULTAS DE PUBMED.
-  //    Primario: la IA convierte los dx/meds en español (con abreviaturas MX como
-  //    IVU, DM2, HAS…) a consultas en inglés/MeSH — robusto ante cualquier término.
-  //    Respaldo: construcción determinista + diccionario (traducirBasico).
-  async function consultasIA(): Promise<string[]> {
-    try {
-      const sys = 'Convierte diagnósticos y tratamientos clínicos en español de México (con abreviaturas frecuentes: IVU/ITU=infección de vías urinarias, DM2=diabetes tipo 2, HAS/HTA=hipertensión, ERC=enfermedad renal crónica, EPOC, IAM, ICC, EVC, TVP, TEP) en 1 a 3 consultas CORTAS en INGLÉS para PubMed, con términos MeSH. Ignora paréntesis y datos del paciente. Devuelve SOLO un arreglo JSON de strings. Ej: ["recurrent urinary tract infection management adults","nitrofurantoin prophylaxis recurrent uti"]'
-      const user = `Diagnósticos: ${dx.join('; ') || '—'}\nTratamiento: ${meds.join('; ') || '—'}${resumen ? `\nResumen clínico: ${resumen.slice(0, 800)}` : ''}`
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'x-api-key': key as string, 'anthropic-version': ANTHROPIC_VERSION, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: MODELOS_PRO[0], max_tokens: 300, system: sys, messages: [{ role: 'user', content: user }] }),
-      })
-      if (!r.ok) return []
-      const d = await r.json()
-      const t: string = (Array.isArray(d.content) ? d.content : []).find((b: { type?: string }) => b?.type === 'text')?.text ?? ''
-      const mm = t.match(/\[[\s\S]*\]/)
-      const arr = mm ? JSON.parse(mm[0]) : []
-      return Array.isArray(arr) ? arr.filter((x: unknown) => typeof x === 'string' && (x as string).trim()).slice(0, 3) : []
-    } catch { return [] }
-  }
-
+  // 1) CONSULTAS DE PUBMED — DETERMINISTAS (rápidas; sin llamada extra a la IA
+  //    para construir la query → esa llamada de más contribuía al TIMEOUT 504).
+  //    traducirBasico ya convierte IVU/DM2/HAS/etc. al inglés.
   const consultasDet: string[] = []
-  if (dx.length) consultasDet.push([dx[0], ...meds.slice(0, 3), 'treatment OR management OR guideline'].join(' '))
+  if (dx.length) consultasDet.push([dx[0], ...meds.slice(0, 3), 'treatment OR management'].join(' '))
   if (dx[1]) consultasDet.push(dx[1])
+  if (!dx.length && resumen) consultasDet.push(resumen.slice(0, 140))  // solo-resumen: úsalo
   if (meds.length >= 2) consultasDet.push(`${meds.slice(0, 4).join(' ')} drug interaction`)
 
   async function buscarLote(queries: string[]): Promise<ArticuloPubMed[]> {
-    const lotes = await Promise.all(queries.map(async c => {
+    const lotes = await Promise.all(queries.slice(0, 3).map(async c => {
       const en = traducirBasico(c) || c
-      // con filtro de años primero; si no hay, sin filtro (evidencia clásica).
       let r = await buscarEvidencia(en, { max: 5, aniosRecientes: 10 }).catch(() => [])
       if (r.length === 0) r = await buscarEvidencia(en, { max: 5 }).catch(() => [])
       return r
@@ -99,16 +80,9 @@ export async function POST(req: NextRequest) {
     return [...porPmid.values()]
   }
 
-  // Intenta con las consultas de la IA; si no hay nada, cae a las deterministas.
-  // TODO el bloque de búsqueda va protegido: si PubMed o la traducción fallan,
-  // articulos = [] y el razonamiento corre IGUAL (nunca un 500 tumba el análisis).
+  // Búsqueda protegida: un fallo de PubMed nunca tumba el análisis (articulos=[]).
   let articulos: ArticuloPubMed[] = []
-  try {
-    const consultasEN = await consultasIA()
-    articulos = await buscarLote(consultasEN.length ? consultasEN : consultasDet)
-    if (articulos.length === 0 && consultasEN.length) articulos = await buscarLote(consultasDet)
-    articulos = articulos.slice(0, 12)
-  } catch { articulos = [] }
+  try { articulos = (await buscarLote(consultasDet)).slice(0, 12) } catch { articulos = [] }
 
   // 2) RAZONAMIENTO CLÍNICO — SIEMPRE corre, haya o no artículos de PubMed.
   //    Opus/Sonnet razonan el caso a fondo (nivel subespecialista); las citas de
@@ -183,29 +157,37 @@ export async function POST(req: NextRequest) {
     } catch { return null }
   }
 
+  // Límite de tiempo por modelo: uno lento devuelve null y NO cuelga la función (evita 504).
+  const conTimeout = (p: Promise<Parsed | null>, ms: number): Promise<Parsed | null> =>
+    Promise.race([p, new Promise<Parsed | null>(r => setTimeout(() => r(null), ms))])
+  // Fusión PROGRAMÁTICA de dos análisis (sin 3ª llamada de síntesis → sin latencia extra).
+  const dedup = (arr: unknown[], k: string) => {
+    const out: unknown[] = []; const vistos = new Set<string>()
+    for (const it of arr) { const kv = String((it as Record<string, unknown>)?.[k] ?? '').toLowerCase().trim(); if (kv && !vistos.has(kv)) { vistos.add(kv); out.push(it) } }
+    return out
+  }
+  const fusionar = (a: ReturnType<typeof norm>, b: ReturnType<typeof norm>) => ({
+    evaluacion: dedup([...a.evaluacion, ...b.evaluacion], 'punto'),
+    alternativas: dedup([...a.alternativas, ...b.alternativas], 'opcion'),
+    diferencial: dedup([...a.diferencial, ...b.diferencial], 'dx'),
+  })
+
   try {
-    // ENSAMBLE MULTI-MODELO: Claude y GPT analizan el MISMO caso en paralelo; si
-    // ambos responden, Claude FUSIONA en la mejor respuesta única (consenso = alta
-    // confianza; discrepancia = reconcilia). Sin llave OpenAI → solo Claude (sin regresión).
+    // ENSAMBLE: Claude y GPT en PARALELO (misma latencia que una sola llamada) y se
+    // FUSIONAN programáticamente — sin la 3ª llamada de síntesis que causaba el 504.
+    // Sin llave OpenAI → solo Claude (sin regresión).
     const oai = await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY ?? '').catch(() => ({ key: '' as string }))
     const [ra, rb] = await Promise.all([
-      analizarClaude(system, userMsg),
-      oai.key ? analizarOpenAI(oai.key as string, system, userMsg) : Promise.resolve<Parsed | null>(null),
+      conTimeout(analizarClaude(system, userMsg), 45000),
+      oai.key ? conTimeout(analizarOpenAI(oai.key as string, system, userMsg), 40000) : Promise.resolve<Parsed | null>(null),
     ])
 
     const modelosUsados: string[] = []
     if (ra) modelosUsados.push('Claude')
     if (rb) modelosUsados.push('GPT')
-    let final = ra ? norm(ra) : (rb ? norm(rb) : null)
+    const final = ra && rb ? fusionar(norm(ra), norm(rb)) : (ra ? norm(ra) : (rb ? norm(rb) : null))
 
-    if (ra && rb) {
-      const sysS = 'Eres el editor clínico SENIOR. Recibes DOS análisis independientes (A y B) del MISMO caso, hechos por dos IAs expertas distintas, más la misma evidencia. Combínalos en el MEJOR análisis ÚNICO: donde A y B COINCIDEN es alta confianza (priorízalo); donde DIFIEREN, usa criterio clínico y quédate con lo más correcto y seguro (si la discrepancia es clínicamente relevante, dilo en el sustento). No pierdas ningún hallazgo valioso. NUNCA inventes PMIDs. Devuelve SOLO el mismo esquema JSON: {"evaluacion":[{"punto","sustento","citas":[n]}],"alternativas":[{"opcion","porque","citas":[n]}],"diferencial":[{"dx","razon","citas":[n]}]}.'
-      const usrS = `${userMsg}\n\n=== ANÁLISIS A (Claude) ===\n${JSON.stringify(norm(ra))}\n\n=== ANÁLISIS B (GPT) ===\n${JSON.stringify(norm(rb))}\n\nFusiona A y B en el mejor análisis único. Devuelve solo el JSON.`
-      const s = await analizarClaude(sysS, usrS)
-      if (s) { final = norm(s); modelosUsados.push('síntesis') }
-    }
-
-    if (!final) return NextResponse.json({ ok: true, articulos, evaluacion: [], alternativas: [], diferencial: [], _aviso: 'La IA no pudo analizar en este momento. Muestro los artículos encontrados.' })
+    if (!final) return NextResponse.json({ ok: true, articulos, evaluacion: [], alternativas: [], diferencial: [], _aviso: 'La IA tardó demasiado o no respondió. Intenta de nuevo; si persiste, revisa tu llave/créditos en Configuración.' })
 
     void registrarUso(clinicId, fuente)
     const avisos: string[] = []

@@ -389,24 +389,25 @@ export async function POST(req: NextRequest) {
     let notaFinal: Record<string, unknown> = validation.data
     const modelosNota: string[] = [model]
     if (perfil === 'premium' && !modoEconomico && !rapido) {
-      try {
+      // Presupuesto de tiempo: si el ensamble (GPT + síntesis) no termina en 25s,
+      // se usa la nota de Claude — así NUNCA provoca un 504 en la generación.
+      const ensamble = (async (): Promise<Record<string, unknown> | null> => {
         const oai = await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY ?? '').catch(() => ({ key: '' as string }))
-        if (oai.key) {
-          const notaGPT = await generarNotaOpenAI(oai.key as string, system, userMsg)
-          if (notaGPT) {
-            const sysS = `${system}\n\n[MODO SÍNTESIS] Recibes además DOS borradores de esta nota (A=Claude, B=GPT) del MISMO caso. Combínalos en la MEJOR nota ÚNICA con EXACTAMENTE el mismo esquema JSON: toma lo más correcto y completo de cada uno, agrega lo que uno haya omitido, NO inventes nada que no esté en la transcripción, y prioriza la seguridad clínica (dosis, interacciones, alergias). Devuelve SOLO el JSON del esquema.`
-            const usrS = `${userMsg}\n\n=== BORRADOR A (Claude) ===\n${JSON.stringify(validation.data).slice(0, 20000)}\n\n=== BORRADOR B (GPT) ===\n${JSON.stringify(notaGPT).slice(0, 20000)}\n\nFusiona A y B en la mejor nota. Devuelve solo el JSON del esquema.`
-            const resS = await llamarClaudeConReintentos(API_KEY, model, sysS, usrS, false, 32000)
-            if (resS.ok) {
-              const dS = await resS.json()
-              const bS: { type?: string; text?: string }[] = Array.isArray(dS.content) ? dS.content : []
-              const pS = parseJSON(bS.find(b => b?.type === 'text')?.text ?? bS[0]?.text ?? '')
-              const vS = pS ? RespuestaExtraccion.safeParse(pS) : null
-              if (vS && vS.success) { notaFinal = vS.data; modelosNota.push('GPT', 'síntesis') }
-            }
-          }
-        }
-      } catch { /* se queda la nota de Claude (sin regresión) */ }
+        if (!oai.key) return null
+        const notaGPT = await generarNotaOpenAI(oai.key as string, system, userMsg)
+        if (!notaGPT) return null
+        const sysS = `${system}\n\n[MODO SÍNTESIS] Recibes además DOS borradores de esta nota (A=Claude, B=GPT) del MISMO caso. Combínalos en la MEJOR nota ÚNICA con EXACTAMENTE el mismo esquema JSON: toma lo más correcto y completo de cada uno, agrega lo que uno haya omitido, NO inventes nada que no esté en la transcripción, y prioriza la seguridad clínica (dosis, interacciones, alergias). Devuelve SOLO el JSON del esquema.`
+        const usrS = `${userMsg}\n\n=== BORRADOR A (Claude) ===\n${JSON.stringify(validation.data).slice(0, 20000)}\n\n=== BORRADOR B (GPT) ===\n${JSON.stringify(notaGPT).slice(0, 20000)}\n\nFusiona A y B en la mejor nota. Devuelve solo el JSON del esquema.`
+        const resS = await llamarClaudeConReintentos(API_KEY, model, sysS, usrS, false, 32000)
+        if (!resS.ok) return null
+        const dS = await resS.json()
+        const bS: { type?: string; text?: string }[] = Array.isArray(dS.content) ? dS.content : []
+        const pS = parseJSON(bS.find(b => b?.type === 'text')?.text ?? bS[0]?.text ?? '')
+        const vS = pS ? RespuestaExtraccion.safeParse(pS) : null
+        return vS && vS.success ? (vS.data as Record<string, unknown>) : null
+      })().catch(() => null)
+      const merged = await Promise.race([ensamble, new Promise<null>(r => setTimeout(() => r(null), 25000))])
+      if (merged) { notaFinal = merged; modelosNota.push('GPT', 'síntesis') }
     }
 
     // _plan: el cliente decide con esto si la 2ª opinión (GPT-5) es automática. Va
