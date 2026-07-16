@@ -123,41 +123,79 @@ export async function POST(req: NextRequest) {
   const userMsg = `PACIENTE: edad ${ctx.edad ?? '?'}, sexo ${ctx.sexo ?? '?'}, alergias: ${alergias}.\nDIAGNÓSTICOS: ${dx.join('; ') || '—'}\nTRATAMIENTO: ${meds.join('; ') || '—'}${resumen ? `\nRESUMEN CLÍNICO: ${resumen.slice(0, 1500)}` : ''}\n\nEVIDENCIA (PubMed):\n${fuentesTxt}\n\nAnaliza y razona el caso. Devuelve solo el JSON.`
 
   const conThinking = nivel === 'premium'
-  async function llamar(model: string) {
-    const payload: Record<string, unknown> = {
-      model, max_tokens: conThinking ? 16000 : 8000,
-      system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
-      messages: [{ role: 'user', content: userMsg }],
+  const MODELOS_OPENAI = ['gpt-5', 'gpt-4o']
+  type Parsed = Record<string, unknown>
+  const soloJSON = (t: string): Parsed | null => { const mm = t.match(/\{[\s\S]*\}/); try { return mm ? JSON.parse(mm[0]) : null } catch { return null } }
+  const norm = (p: Parsed | null) => ({
+    evaluacion: Array.isArray(p?.evaluacion) ? p!.evaluacion : [],
+    alternativas: Array.isArray(p?.alternativas) ? p!.alternativas : [],
+    diferencial: Array.isArray(p?.diferencial) ? p!.diferencial : [],
+  })
+
+  // Análisis con Claude (Opus premium / Sonnet pro) — con razonamiento si premium.
+  async function analizarClaude(sys: string, usr: string): Promise<Parsed | null> {
+    async function llamar(model: string) {
+      const payload: Record<string, unknown> = {
+        model, max_tokens: conThinking ? 16000 : 8000,
+        system: [{ type: 'text', text: sys, cache_control: { type: 'ephemeral' } }],
+        messages: [{ role: 'user', content: usr }],
+      }
+      if (conThinking && /opus-4|sonnet-5|sonnet-4/.test(model)) payload.thinking = { type: 'enabled', budget_tokens: 5000 }
+      return fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': key as string, 'anthropic-version': ANTHROPIC_VERSION, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
     }
-    if (conThinking && /opus-4|sonnet-5|sonnet-4/.test(model)) payload.thinking = { type: 'enabled', budget_tokens: 5000 }
-    return fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': key as string, 'anthropic-version': ANTHROPIC_VERSION, 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
+    try {
+      let res = await llamar(modelos[0])
+      for (let i = 1; i < modelos.length && (res.status === 404 || res.status === 400); i++) res = await llamar(modelos[i])
+      if (!res.ok) return null
+      const data = await res.json()
+      const bloques: { type?: string; text?: string }[] = Array.isArray(data.content) ? data.content : []
+      return soloJSON(bloques.find(b => b?.type === 'text')?.text ?? bloques[0]?.text ?? '')
+    } catch { return null }
+  }
+
+  // Análisis con GPT (OpenAI) — el otro "cerebro" del ensamble.
+  async function analizarOpenAI(keyOAI: string, sys: string, usr: string): Promise<Parsed | null> {
+    async function llamar(model: string) {
+      return fetch('https://api.openai.com/v1/chat/completions', { method: 'POST', headers: { Authorization: `Bearer ${keyOAI}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, messages: [{ role: 'system', content: sys }, { role: 'user', content: usr }], response_format: { type: 'json_object' }, max_completion_tokens: 4000 }) })
+    }
+    try {
+      let res = await llamar(MODELOS_OPENAI[0])
+      for (let i = 1; i < MODELOS_OPENAI.length && (res.status === 404 || res.status === 400); i++) res = await llamar(MODELOS_OPENAI[i])
+      if (!res.ok) return null
+      const data = await res.json()
+      return soloJSON(data.choices?.[0]?.message?.content ?? '')
+    } catch { return null }
   }
 
   try {
-    let res = await llamar(modelos[0])
-    for (let i = 1; i < modelos.length && (res.status === 404 || res.status === 400); i++) res = await llamar(modelos[i])
-    if (!res.ok) return NextResponse.json({ ok: true, articulos, evaluacion: [], alternativas: [], diferencial: [], _aviso: `La IA de evidencia respondió HTTP ${res.status}. Muestro los artículos encontrados.` })
+    // ENSAMBLE MULTI-MODELO: Claude y GPT analizan el MISMO caso en paralelo; si
+    // ambos responden, Claude FUSIONA en la mejor respuesta única (consenso = alta
+    // confianza; discrepancia = reconcilia). Sin llave OpenAI → solo Claude (sin regresión).
+    const oai = await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY ?? '').catch(() => ({ key: '' as string }))
+    const [ra, rb] = await Promise.all([
+      analizarClaude(system, userMsg),
+      oai.key ? analizarOpenAI(oai.key as string, system, userMsg) : Promise.resolve<Parsed | null>(null),
+    ])
 
-    const data = await res.json()
-    const bloques: { type?: string; text?: string }[] = Array.isArray(data.content) ? data.content : []
-    const text = bloques.find(b => b?.type === 'text')?.text ?? bloques[0]?.text ?? ''
-    const m = text.match(/\{[\s\S]*\}/)
-    const parsed = m ? JSON.parse(m[0]) : {}
+    const modelosUsados: string[] = []
+    if (ra) modelosUsados.push('Claude')
+    if (rb) modelosUsados.push('GPT')
+    let final = ra ? norm(ra) : (rb ? norm(rb) : null)
+
+    if (ra && rb) {
+      const sysS = 'Eres el editor clínico SENIOR. Recibes DOS análisis independientes (A y B) del MISMO caso, hechos por dos IAs expertas distintas, más la misma evidencia. Combínalos en el MEJOR análisis ÚNICO: donde A y B COINCIDEN es alta confianza (priorízalo); donde DIFIEREN, usa criterio clínico y quédate con lo más correcto y seguro (si la discrepancia es clínicamente relevante, dilo en el sustento). No pierdas ningún hallazgo valioso. NUNCA inventes PMIDs. Devuelve SOLO el mismo esquema JSON: {"evaluacion":[{"punto","sustento","citas":[n]}],"alternativas":[{"opcion","porque","citas":[n]}],"diferencial":[{"dx","razon","citas":[n]}]}.'
+      const usrS = `${userMsg}\n\n=== ANÁLISIS A (Claude) ===\n${JSON.stringify(norm(ra))}\n\n=== ANÁLISIS B (GPT) ===\n${JSON.stringify(norm(rb))}\n\nFusiona A y B en el mejor análisis único. Devuelve solo el JSON.`
+      const s = await analizarClaude(sysS, usrS)
+      if (s) { final = norm(s); modelosUsados.push('síntesis') }
+    }
+
+    if (!final) return NextResponse.json({ ok: true, articulos, evaluacion: [], alternativas: [], diferencial: [], _aviso: 'La IA no pudo analizar en este momento. Muestro los artículos encontrados.' })
 
     void registrarUso(clinicId, fuente)
-    return NextResponse.json({
-      ok: true,
-      articulos,
-      evaluacion: Array.isArray(parsed.evaluacion) ? parsed.evaluacion : [],
-      alternativas: Array.isArray(parsed.alternativas) ? parsed.alternativas : [],
-      diferencial: Array.isArray(parsed.diferencial) ? parsed.diferencial : [],
-      nivel,
-      _aviso: hayEvidencia ? undefined : 'Razonado con conocimiento clínico y guías (PubMed no devolvió citas nuevas para estos términos exactos).',
-    })
+    const avisos: string[] = []
+    if (!hayEvidencia) avisos.push('Razonado con conocimiento clínico y guías (PubMed no devolvió citas nuevas para estos términos exactos).')
+    if (modelosUsados.filter(x => x !== 'síntesis').length > 1) avisos.push(`Respuesta combinada de ${modelosUsados.filter(x => x !== 'síntesis').join(' + ')} (ensamble multi-modelo).`)
+    return NextResponse.json({ ok: true, articulos, ...final, nivel, _modelos: modelosUsados, _aviso: avisos.length ? avisos.join(' ') : undefined })
   } catch (e) {
     return NextResponse.json({ ok: true, articulos, evaluacion: [], alternativas: [], diferencial: [], _aviso: `No se pudo analizar (${String(e).slice(0, 80)}). Muestro los artículos encontrados.` })
   }
