@@ -1,6 +1,7 @@
 import type { NotaMedica, ValidationResult } from '@/types/expediente'
 import { requiereSignosVitales } from './templates'
 import { validarAlergiasVsMedicamentos } from './medical-dictionary'
+import { validarFormatoCie10 } from '../cie10'
 
 /**
  * Validación NOM-004-SSA3-2012.
@@ -76,6 +77,13 @@ export function validarNOM004(nota: NotaMedica): ValidationResult {
   if (dxInfeccion && nota.medicamentos.length === 0 &&
       ['primera_vez', 'ingreso', 'historia_clinica'].includes(nota.tipo)) {
     advertencias.push('Diagnóstico infeccioso sin tratamiento antimicrobiano en el plan')
+  }
+  // Código CIE-10 con formato inválido = probable alucinación de la IA (el prompt
+  // le prohíbe fabricarlos). Advertencia para que el médico lo verifique/corrija.
+  for (const dx of nota.diagnosticos) {
+    if (dx.codigoCIE10 && dx.codigoCIE10.trim() && !validarFormatoCie10(dx.codigoCIE10)) {
+      advertencias.push(`Código CIE-10 con formato inválido: "${dx.codigoCIE10}" en "${dx.descripcion}" — verificar`)
+    }
   }
 
   return {

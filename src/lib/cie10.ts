@@ -271,3 +271,26 @@ export function buscarCie10(termino: string, limit = 12): Cie10Entry[] {
 export function totalCodigos(): number {
   return CATALOG_EXTENDIDO?.length ?? CIE10_CATALOG.length
 }
+
+// ─────────────────────────────────────────────────────────────────
+// Validación de códigos CIE-10 (anti-alucinación de la IA).
+// El prompt le prohíbe fabricar códigos; esta compuerta lo verifica.
+// ─────────────────────────────────────────────────────────────────
+
+/** Formato ICD-10/CIE-10: letra + 2 dígitos + (opcional) "." + 1-3 alfanuméricos.
+ *  Ej. válidos: A00, A04.9, B18.2, U07.1, S06.0X. */
+export const RE_CIE10 = /^[A-Z][0-9]{2}(\.[0-9A-Za-z]{1,3})?$/
+
+/** ¿El código tiene forma de CIE-10 válida? (no confirma que exista, solo el formato). */
+export function validarFormatoCie10(codigo: string | undefined | null): boolean {
+  return RE_CIE10.test((codigo ?? '').trim().toUpperCase())
+}
+
+const CIE10_BASE_SET = new Set(CIE10_CATALOG.map(e => e.codigo.toUpperCase()))
+
+/** ¿El código está en el catálogo base conocido? (subconjunto curado; el
+ *  extendido se lazy-carga en el cliente, así que esto es una verificación
+ *  conservadora — un false NO implica que el código no exista). */
+export function cie10EnCatalogoBase(codigo: string | undefined | null): boolean {
+  return CIE10_BASE_SET.has((codigo ?? '').trim().toUpperCase())
+}
