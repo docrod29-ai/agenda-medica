@@ -42,6 +42,10 @@ describe('Mapeo FHIR R4', () => {
     expect(fc).toBeTruthy()
     const bp = obs.find(o => (o.code as { coding: { code: string }[] }).coding[0].code === '85354-9')
     expect((bp!.component as unknown[]).length).toBe(2)
+    // SpO2 debe usar LOINC 2708-6 (canónico de signos vitales), consistente con
+    // el mapper de export — no 59408-5 (evita el conflicto entre los dos mappers).
+    const spo2 = obs.find(o => (o.code as { coding: { code: string }[] }).coding[0].code === '2708-6')
+    expect(spo2).toBeTruthy()
   })
 
   it('bundlePaciente arma un Bundle collection con todo', () => {

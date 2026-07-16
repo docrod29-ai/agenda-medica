@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v400'  // Herramienta de Antibiograma (/antibiograma): motor determinista PROA validado por el Dr (MRSA+vancoMIC>2, VRE, carbapenemasa+clase por CZA, AmpC por cefoxitina R incl. plasmídicos, BLEE, PK/PD, notificación NOM-045). 561 tests, tsc + next build OK. Motor separado — no toca la consulta.
+const CACHE = 'nexusmed-v401'  // Loop de mejora (panel 4.93/10) iter 1: FIX pérdida de datos hospital (balance/escala/SBAR se truncaban con .slice -> ahora registro DURABLE append-only en subcolección `registros`, NOM-004) + LOINC SpO2 unificado (2708-6) entre los 2 mappers FHIR. 565 tests. // Herramienta de Antibiograma (/antibiograma): motor determinista PROA validado por el Dr (MRSA+vancoMIC>2, VRE, carbapenemasa+clase por CZA, AmpC por cefoxitina R incl. plasmídicos, BLEE, PK/PD, notificación NOM-045). 561 tests, tsc + next build OK. Motor separado — no toca la consulta.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

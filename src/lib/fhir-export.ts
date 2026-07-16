@@ -229,7 +229,9 @@ export function exportarPacienteAFhir({
       if (sv.fc) obs.push({ codigo: '8867-4', display: 'Frecuencia cardiaca', valor: sv.fc, unidad: '/min' })
       if (sv.fr) obs.push({ codigo: '9279-1', display: 'Frecuencia respiratoria', valor: sv.fr, unidad: '/min' })
       if (sv.temperatura) obs.push({ codigo: '8310-5', display: 'Temperatura corporal', valor: sv.temperatura, unidad: 'Cel' })
-      if (sv.spo2) obs.push({ codigo: '59408-5', display: 'SpO2', valor: sv.spo2, unidad: '%' })
+      // SpO2 unificado con la API FHIR (fhir/recursos.ts): LOINC 2708-6 canónico
+      // de signos vitales (antes 59408-5 aquí → conflicto de código entre mappers).
+      if (sv.spo2) obs.push({ codigo: '2708-6', display: 'Saturación de oxígeno', valor: sv.spo2, unidad: '%' })
       if (sv.peso) obs.push({ codigo: '29463-7', display: 'Peso', valor: sv.peso, unidad: 'kg' })
       if (sv.talla) obs.push({ codigo: '8302-2', display: 'Talla', valor: sv.talla, unidad: 'cm' })
 
@@ -372,7 +374,7 @@ export function exportarInternamientoAFhir({
     fc: { codigo: '8867-4', display: 'Frecuencia cardiaca', unidad: '/min' },
     fr: { codigo: '9279-1', display: 'Frecuencia respiratoria', unidad: '/min' },
     temp: { codigo: '8310-5', display: 'Temperatura corporal', unidad: 'Cel' },
-    spo2: { codigo: '59408-5', display: 'SpO2', unidad: '%' },
+    spo2: { codigo: '2708-6', display: 'Saturación de oxígeno', unidad: '%' },
     glucosa: { codigo: '2339-0', display: 'Glucosa', unidad: 'mg/dL' },
   }
   ;(signos ?? []).forEach((s, si) => {

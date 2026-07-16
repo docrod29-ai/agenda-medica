@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarMiembro } from '@/lib/auth-server'
 import { adminDb } from '@/lib/firebase-admin'
+import { registroDurable } from '@/lib/hospital/registro-durable'
 import { randomUUID } from 'crypto'
 
 // Qué rol puede ejecutar cada acción.
@@ -88,6 +89,11 @@ function patch(accion: string, inter: Any, p: Any, now: string): Any {
     }
     case 'conciliar':
       return { medicamentosCasa: p.meds, conciliadoAl: now }
+    // NOTA: los arrays balanceHidrico/escalas/sbar en el DOC se limitan por
+    // tamaño (tope de 1 MB por documento Firestore) y son solo CACHÉ DE DISPLAY.
+    // El registro clínico-legal COMPLETO (sin truncar) se persiste en la
+    // subcolección append-only `registros` — ver registroDurable() y la
+    // transacción de POST. Así ningún registro se pierde (NOM-004).
     case 'balance':
       return { balanceHidrico: [...arr('balanceHidrico'), { fecha: now, ingresos: p.ingresos, egresos: p.egresos, por: p.por }].slice(-100) }
     case 'escala':
@@ -141,6 +147,10 @@ export async function POST(req: NextRequest) {
       if (!snap.exists) throw new Error('no-existe')
       const inter = { id: snap.id, ...(snap.data() as Any) }
       tx.update(ref, { ...patch(accion, inter, payload, now), updatedAt: now })
+      // Además del array-caché en el doc, persiste el registro clínico COMPLETO
+      // a la subcolección append-only (sin truncar) → no se pierde nada (NOM-004).
+      const durable = registroDurable(accion, payload, now)
+      if (durable) tx.set(ref.collection('registros').doc(), durable)
     })
     return NextResponse.json({ ok: true })
   } catch (e) {
