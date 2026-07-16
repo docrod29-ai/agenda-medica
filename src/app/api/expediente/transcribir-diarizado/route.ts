@@ -15,6 +15,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarUsuario } from '@/lib/auth-server'
+import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA, creditosAgotados, registrarUso } from '@/lib/ai-keys'
 import { WORD_BOOST_MEDICO } from '@/lib/expediente/medical-vocabulary'
 
@@ -28,6 +29,8 @@ interface UtteranceAAI { speaker: string; text: string }
 export async function POST(req: NextRequest) {
   const acceso = await verificarUsuario(req)
   if (!acceso.ok) return acceso.response
+  const _rl = await limitarOResponder(`transcribir-diarizado:${acceso.uid}`, 20, 60)
+  if (_rl) return _rl
 
   const { key, fuente, clinicId } = await resolverClaveIA(acceso.uid, 'assemblyai', process.env.ASSEMBLYAI_API_KEY)
   if (!key) {
@@ -101,6 +104,8 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const acceso = await verificarUsuario(req)
   if (!acceso.ok) return acceso.response
+  const _rl = await limitarOResponder(`transcribir-diarizado:${acceso.uid}`, 20, 60)
+  if (_rl) return _rl
 
   // Debe poller con la MISMA llave que envió el job (la del consultorio).
   const { key } = await resolverClaveIA(acceso.uid, 'assemblyai', process.env.ASSEMBLYAI_API_KEY)

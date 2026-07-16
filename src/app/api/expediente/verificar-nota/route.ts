@@ -16,6 +16,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarUsuario } from '@/lib/auth-server'
+import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA, registrarUso } from '@/lib/ai-keys'
 
 export const runtime = 'nodejs'
@@ -35,6 +36,8 @@ interface NotaEntrada {
 export async function POST(req: NextRequest) {
   const acceso = await verificarUsuario(req)
   if (!acceso.ok) return acceso.response
+  const _rl = await limitarOResponder(`verificar-nota:${acceso.uid}`, 20, 60)
+  if (_rl) return _rl
 
   const { key, fuente, clinicId } = await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY)
   if (!key) return NextResponse.json({ ok: false, error: 'OPENAI_API_KEY no configurada' }, { status: 503 })

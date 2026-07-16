@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarUsuario } from '@/lib/auth-server'
+import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA, creditosAgotados } from '@/lib/ai-keys'
 
 /**
@@ -42,6 +43,8 @@ const CLAVES_VALIDAS = ['nombre', 'edad', 'sexo', 'fecha', 'folio']
 export async function POST(req: NextRequest) {
   const acceso = await verificarUsuario(req)
   if (!acceso.ok) return acceso.response
+  const _rl = await limitarOResponder(`detectar-campos:${acceso.uid}`, 20, 60)
+  if (_rl) return _rl
 
   const { key, fuente, clinicId } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
   if (!key) return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada.' }, { status: 503 })

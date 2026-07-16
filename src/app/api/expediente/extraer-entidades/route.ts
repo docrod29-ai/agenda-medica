@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { NER_SYSTEM_PROMPT, buildNerUserPrompt, EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { safeLog } from '@/lib/security/sanitize'
 import { verificarUsuario } from '@/lib/auth-server'
+import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA } from '@/lib/ai-keys'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
@@ -73,6 +74,8 @@ function parseJSON(text: string): Record<string, unknown> | null {
 export async function POST(req: NextRequest) {
   const acceso = await verificarUsuario(req)
   if (!acceso.ok) return acceso.response
+  const _rl = await limitarOResponder(`extraer-entidades:${acceso.uid}`, 40, 60)
+  if (_rl) return _rl
 
   const { key: API_KEY } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
   if (!API_KEY) {

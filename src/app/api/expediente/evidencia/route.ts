@@ -14,6 +14,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarUsuario } from '@/lib/auth-server'
+import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA, registrarUso, nivelIADe } from '@/lib/ai-keys'
 import { buscarEvidencia, type ArticuloPubMed } from '@/lib/evidencia/pubmed'
 import { traducirBasico } from '@/lib/evidencia/traducir-medico'
@@ -27,6 +28,8 @@ const MODELOS_PRO = ['claude-sonnet-5', 'claude-sonnet-4-6', 'claude-3-5-sonnet-
 export async function POST(req: NextRequest) {
   const acceso = await verificarUsuario(req)
   if (!acceso.ok) return acceso.response
+  const _rl = await limitarOResponder(`evidencia:${acceso.uid}`, 30, 60)
+  if (_rl) return _rl
   const { key, fuente, clinicId } = await resolverClaveIA(acceso.uid, 'anthropic', process.env.ANTHROPIC_API_KEY ?? '')
   if (!key) return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada.' }, { status: 503 })
 

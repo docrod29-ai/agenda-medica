@@ -16,6 +16,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarUsuario } from '@/lib/auth-server'
+import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA } from '@/lib/ai-keys'
 
 export const runtime = 'nodejs'
@@ -28,6 +29,8 @@ const ROLES_VALIDOS = new Set(['Médico', 'Paciente', 'Acompañante'])
 export async function POST(req: NextRequest) {
   const acceso = await verificarUsuario(req)
   if (!acceso.ok) return acceso.response
+  const _rl = await limitarOResponder(`atribuir-roles:${acceso.uid}`, 40, 60)
+  if (_rl) return _rl
 
   const { key } = await resolverClaveIA(acceso.uid, 'anthropic', process.env.ANTHROPIC_API_KEY ?? '')
   if (!key) return NextResponse.json({ ok: false, error: 'sin llave' }, { status: 503 })

@@ -67,7 +67,14 @@ async function sendWhatsApp(phone: string, message: string, _config: ClinicConfi
 
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('authorization')
-  if (CRON_SECRET && auth !== `Bearer ${CRON_SECRET}`) {
+  // Fail-CLOSED: en producción SIN CRON_SECRET configurado el endpoint NO corre
+  // (antes era fail-open: sin secreto, cualquiera podía disparar el cron). El Dr.
+  // debe setear CRON_SECRET en Vercel (Vercel lo manda como Bearer al cron).
+  if (!CRON_SECRET) {
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json({ error: 'CRON_SECRET no configurado (fail-closed)' }, { status: 503 })
+    }
+  } else if (auth !== `Bearer ${CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
