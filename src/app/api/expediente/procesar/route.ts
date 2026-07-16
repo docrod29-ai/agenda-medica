@@ -99,7 +99,7 @@ async function resolverModelo(key: string, perfil: Perfil): Promise<string> {
 
 function MODELO_OVERRIDE_OK() { return MODEL_OVERRIDE.length > 0 }
 
-async function llamarClaude(key: string, model: string, system: string, userMsg: string, conThinking = false) {
+async function llamarClaude(key: string, model: string, system: string, userMsg: string, conThinking = false, maxOverride?: number) {
   const pienso = conThinking && soportaThinking(model)
   const esHaiku = /haiku/i.test(model)   // Haiku topa el output en ~8k
   const body: Record<string, unknown> = {
@@ -109,8 +109,9 @@ async function llamarClaude(key: string, model: string, system: string, userMsg:
     // (1ª vez, infectología, muchas secciones) se truncaba. Se sube el techo con
     // amplio margen para el JSON: 24000 con thinking (razonamiento 6000 + ~18000
     // de JSON) y 16000 sin thinking en modelos grandes (Sonnet/Opus). Haiku se
-    // mantiene en 8000 (su límite real de salida).
-    max_tokens: pienso ? 24000 : (esHaiku ? 8000 : 16000),
+    // mantiene en 8000 (su límite real de salida). maxOverride: para el
+    // auto-reintento cuando aun así se corta (todo el presupuesto al JSON).
+    max_tokens: maxOverride ?? (esHaiku ? 8000 : 24000),
     // Prompt caching: el system (instrucciones clínicas, grande y fijo) se
     // cachea → desde la 2ª nota la IA lo reutiliza y responde más rápido y más
     // barato, sin cambiar el resultado.
@@ -133,11 +134,11 @@ async function llamarClaude(key: string, model: string, system: string, userMsg:
  * / 5xx) con backoff. Anthropic devuelve 529 cuando está saturado: un solo
  * intento hacía que la nota cayera al parser local "porque sí".
  */
-async function llamarClaudeConReintentos(key: string, model: string, system: string, userMsg: string, conThinking = false) {
-  let res = await llamarClaude(key, model, system, userMsg, conThinking)
+async function llamarClaudeConReintentos(key: string, model: string, system: string, userMsg: string, conThinking = false, maxOverride?: number) {
+  let res = await llamarClaude(key, model, system, userMsg, conThinking, maxOverride)
   for (let intento = 1; intento <= 2 && STATUS_REINTENTABLE.has(res.status); intento++) {
     await sleep(intento * 700)
-    res = await llamarClaude(key, model, system, userMsg, conThinking)
+    res = await llamarClaude(key, model, system, userMsg, conThinking, maxOverride)
   }
   return res
 }
@@ -299,7 +300,24 @@ export async function POST(req: NextRequest) {
     }
 
     // Parsear el JSON (robusto ante markdown accidental y comentarios)
-    const parsed = parseJSON(text)
+    let parsed = parseJSON(text)
+
+    // AUTO-REPARACIÓN (bug 2026-07): si el JSON se cortó por límite de tokens,
+    // reintenta UNA vez SIN thinking y con el máximo de salida (32000). Al no
+    // gastar presupuesto en razonamiento, TODO va al JSON → cabe completo.
+    // (Solo modelos grandes; Haiku ya topa en 8k y no se sube.)
+    if (!parsed && stopReason === 'max_tokens' && !/haiku/i.test(model)) {
+      safeLog.error('[expediente/procesar] JSON truncado por max_tokens; reintento 32000 sin thinking')
+      const res2 = await llamarClaudeConReintentos(API_KEY, model, system, userMsg, false, 32000)
+      if (res2.ok) {
+        const data2 = await res2.json().catch(() => null)
+        const b2: { type?: string; text?: string }[] = Array.isArray(data2?.content) ? data2.content : []
+        const t2: string = b2.find(x => x?.type === 'text')?.text ?? b2[0]?.text ?? ''
+        const p2 = parseJSON(t2)
+        if (p2) parsed = p2
+      }
+    }
+
     if (!parsed) {
       console.warn('[procesar] JSON no parseable. stop_reason=', stopReason, 'primeros 300 chars:', text.slice(0, 300))
       const fueCortado = stopReason === 'max_tokens'
