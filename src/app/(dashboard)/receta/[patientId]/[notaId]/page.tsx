@@ -27,6 +27,7 @@ import { descargarComoPDF } from '@/lib/pdf-download'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
 import { detectarInteracciones, detectarControlados } from '@/lib/expediente/farmacovigilancia'
 import { alergiasDe } from '@/lib/seguridad/alergias'
+import { revisarDosis, extraerMg, extraerTomasDia, type AlertaDosis } from '@/lib/seguridad/dosis'
 import { evaluarFuncionRenal, ajusteRenalFarmacos } from '@/lib/expediente/funcion-renal'
 import { descargarRecetaWord } from '@/lib/receta-word'
 import {
@@ -78,6 +79,22 @@ export default function GeneradorRecetaPage() {
   const meds = useMemo(() => medicamentos.filter(m => m.nombre?.trim()).map(m => ({ nombre: m.nombre })), [medicamentos])
   const interacciones = useMemo(() => detectarInteracciones(meds), [meds])
   const controlados = useMemo(() => detectarControlados(meds), [meds])
+
+  // SEGURIDAD CLÍNICA: verificación DETERMINISTA de dosis (error de decimal 50→500,
+  // sobre-máximo, sobre-mg/kg pediátrico). Ausencia de alerta ≠ dosis segura.
+  const alertasDosis = useMemo(() => {
+    const out: { med: string; alertas: AlertaDosis[] }[] = []
+    for (const m of medicamentos) {
+      if (!m.nombre?.trim() || !m.dosis?.trim()) continue
+      const mg = extraerMg(m.dosis)
+      if (mg == null) continue
+      const tomas = extraerTomasDia(m.frecuencia || '') ?? undefined
+      const al = revisarDosis({ farmaco: m.nombre, dosisMg: mg, tomasDia: tomas })
+        .filter(a => a.codigo !== 'sin_referencia') // no saturar la receta con avisos informativos
+      if (al.length) out.push({ med: m.nombre, alertas: al })
+    }
+    return out
+  }, [medicamentos])
 
   // Función renal — opcional: el médico teclea creatinina (y peso opcional)
   // y se calcula TFG + ajuste de antimicrobianos por depuración (PROA).
@@ -297,6 +314,28 @@ export default function GeneradorRecetaPage() {
               ))}
               <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 4 }}>
                 Paciente alérgico a: <strong>{patient?.alergias}</strong>. Si decides continuar, es bajo tu criterio clínico.
+              </div>
+            </div>
+          )}
+
+          {/* ⚠️ Verificación determinista de DOSIS (error de decimal, sobre-máximo, pediátrico) */}
+          {alertasDosis.length > 0 && (
+            <div style={{
+              padding: '10px 14px', borderRadius: 8,
+              background: 'rgba(220,38,38,0.10)', border: '2px solid #b91c1c',
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#b91c1c', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <AlertTriangle size={15} className="ds-icon" /> Revisa la dosis antes de imprimir
+              </div>
+              {alertasDosis.map((d, i) => (
+                <div key={i} style={{ marginBottom: 3 }}>
+                  {d.alertas.map((a, j) => (
+                    <div key={j} style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.45 }}>• {a.mensaje}</div>
+                  ))}
+                </div>
+              ))}
+              <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 4 }}>
+                Verificación automática de apoyo. <strong>No sustituye tu criterio</strong>; la ausencia de alerta no garantiza que la dosis sea correcta.
               </div>
             </div>
           )}

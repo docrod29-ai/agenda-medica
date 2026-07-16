@@ -136,6 +136,40 @@ export function revisarDosis(e: EntradaDosis): AlertaDosis[] {
   return alertas
 }
 
+/**
+ * Extrae la dosis en mg de un texto libre ("500 mg", "1 g", "250mcg"). Devuelve
+ * null si no hay una cantidad clara. Convierte g→mg (×1000) y mcg/µg→mg (÷1000).
+ * Puro.
+ */
+export function extraerMg(texto: string): number | null {
+  const t = normaliza(texto)
+  // primer número (admite coma o punto decimal) seguido opcionalmente de unidad
+  const m = t.match(/(\d+(?:[.,]\d+)?)\s*(mcg|µg|ug|mg|g|gr|gramos?)?/)
+  if (!m) return null
+  const val = parseFloat(m[1].replace(',', '.'))
+  if (!Number.isFinite(val)) return null
+  const u = m[2] || 'mg'
+  if (u.startsWith('mcg') || u === 'µg' || u === 'ug') return val / 1000
+  if (u === 'g' || u === 'gr' || u.startsWith('gramo')) return val * 1000
+  return val // mg por defecto
+}
+
+/**
+ * Estima cuántas TOMAS al día implica una frecuencia en texto libre ("cada 8
+ * horas", "c/12h", "3 veces al día", "cada 24 h"). Devuelve null si no se entiende.
+ * Puro.
+ */
+export function extraerTomasDia(frecuencia: string): number | null {
+  const t = normaliza(frecuencia)
+  if (!t) return null
+  let m = t.match(/cada\s*(\d+)\s*(h|hrs?|horas?)/) || t.match(/c\/?\s*(\d+)\s*h/)
+  if (m) { const h = parseInt(m[1], 10); return h > 0 ? Math.round(24 / h) : null }
+  m = t.match(/(\d+)\s*(veces|vez|x)\b/)
+  if (m) return parseInt(m[1], 10)
+  if (/una vez|1 vez|diaria|al dia|cada 24/.test(t)) return 1
+  return null
+}
+
 /** Peor severidad de un conjunto de alertas (para el color del aviso). */
 export function peorSeveridad(alertas: AlertaDosis[]): Severidad | null {
   if (alertas.some(a => a.severidad === 'critica')) return 'critica'

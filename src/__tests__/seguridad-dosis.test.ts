@@ -1,5 +1,22 @@
 import { describe, it, expect } from 'vitest'
-import { revisarDosis, buscarFarmaco, peorSeveridad } from '@/lib/seguridad/dosis'
+import { revisarDosis, buscarFarmaco, peorSeveridad, extraerMg, extraerTomasDia } from '@/lib/seguridad/dosis'
+
+describe('Parsers de dosis y frecuencia', () => {
+  it('extraerMg convierte unidades', () => {
+    expect(extraerMg('500 mg')).toBe(500)
+    expect(extraerMg('1 g')).toBe(1000)
+    expect(extraerMg('250 mcg')).toBe(0.25)
+    expect(extraerMg('0.5 g')).toBe(500)
+    expect(extraerMg('sin numero')).toBe(null)
+  })
+  it('extraerTomasDia interpreta frecuencias', () => {
+    expect(extraerTomasDia('cada 8 horas')).toBe(3)
+    expect(extraerTomasDia('c/12h')).toBe(2)
+    expect(extraerTomasDia('3 veces al día')).toBe(3)
+    expect(extraerTomasDia('una vez al día')).toBe(1)
+    expect(extraerTomasDia('lo que sea')).toBe(null)
+  })
+})
 
 describe('Verificación de dosis — error de decimal (el caso que mata)', () => {
   it('detecta 50 mg → 500 mg como posible error de decimal (crítico)', () => {
