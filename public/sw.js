@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v398'  // Endurecimiento de motores clínicos: FIX bug NOM-004 (alérgeno vacío -> includes('') siempre true -> falsa alergia en TODO medicamento, bloqueaba firma). +38 tests a 4 motores sin cobertura (proa/nom004/medical-ner/sanitizar-prosa). 528 tests, tsc + next build OK.
+const CACHE = 'nexusmed-v399'  // +9 tests a limpiarMarkdown (texto plano de la nota clínica: sin #/**/backticks/links, viñetas -> •). Auditados farmacovigilancia/medical-dictionary/funcion-renal: correctos, sin bug. 537 tests, tsc + next build OK.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
