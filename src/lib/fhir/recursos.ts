@@ -8,12 +8,14 @@
  * PURO (sin red/DB) → testeable. No inventa datos: solo mapea lo que existe.
  */
 
-import type { Patient } from '@/types'
+import type { Patient, AlergiaEstructurada } from '@/types'
 import type { NotaMedica, Medicamento, Diagnostico, SignosVitales } from '@/types/expediente'
+import { alergiasDe } from '@/lib/seguridad/alergias'
 
 type Recurso = Record<string, unknown>
 
 const GENDER: Record<string, string> = { Masculino: 'male', Femenino: 'female', Otro: 'other' }
+const CATEGORIA_FHIR: Record<string, string> = { medicamento: 'medication', alimento: 'food', ambiental: 'environment', otro: 'biologic' }
 
 /** Patient FHIR. */
 export function pacienteAFHIR(p: Patient): Recurso {
@@ -33,15 +35,17 @@ export function pacienteAFHIR(p: Patient): Recurso {
   }
 }
 
-/** AllergyIntolerance[] a partir del texto libre de alergias (coma/;). */
-export function alergiasAFHIR(patientId: string, alergias?: string): Recurso[] {
-  if (!alergias?.trim()) return []
-  return alergias.split(/[,;]+/).map(a => a.trim()).filter(Boolean).map((alergeno, i) => ({
+/** AllergyIntolerance[] a partir de las alergias ESTRUCTURADAS del paciente. */
+export function alergiasAFHIR(patientId: string, lista: AlergiaEstructurada[]): Recurso[] {
+  return lista.filter(a => a?.alergeno?.trim()).map((a, i) => ({
     resourceType: 'AllergyIntolerance',
     id: `${patientId}-alg-${i}`,
     clinicalStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical', code: 'active' }] },
+    ...(a.tipo ? { category: [CATEGORIA_FHIR[a.tipo] ?? 'biologic'] } : {}),
+    ...(a.severidad === 'grave' ? { criticality: 'high' } : a.severidad === 'moderada' ? { criticality: 'low' } : {}),
     patient: { reference: `Patient/${patientId}` },
-    code: { text: alergeno },
+    code: { text: a.alergeno },
+    ...(a.reaccion ? { reaction: [{ manifestation: [{ text: a.reaccion }] }] } : {}),
   }))
 }
 
@@ -132,7 +136,7 @@ export function notaAFHIR(patientId: string, nota: NotaMedica): Recurso[] {
 export function bundlePaciente(p: Patient, notas: NotaMedica[]): Recurso {
   const recursos: Recurso[] = [
     pacienteAFHIR(p),
-    ...alergiasAFHIR(p.id, p.alergias),
+    ...alergiasAFHIR(p.id, alergiasDe(p)),
     ...notas.flatMap(n => notaAFHIR(p.id, n)),
   ]
   return {

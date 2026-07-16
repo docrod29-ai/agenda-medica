@@ -163,6 +163,13 @@ export interface Branch {
   createdAt: string
 }
 
+export interface AlergiaEstructurada {
+  alergeno: string
+  tipo?: 'medicamento' | 'alimento' | 'ambiental' | 'otro'
+  severidad?: 'leve' | 'moderada' | 'grave'
+  reaccion?: string
+}
+
 export interface Patient {
   id: string
   nombre: string
@@ -173,7 +180,10 @@ export interface Patient {
   edad?: number
   sexo?: 'Masculino' | 'Femenino' | 'Otro'
   seguroMedico?: string
+  /** Alergias en texto libre (compatibilidad; sigue siendo la entrada rápida). */
   alergias?: string
+  /** Alergias ESTRUCTURADAS (opcional) — cruce de seguridad más fiable + FHIR rico. */
+  alergiasEstructuradas?: AlergiaEstructurada[]
   notas?: string
   tags?: PatientTag[]
   ultimaCita?: string

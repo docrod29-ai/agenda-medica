@@ -26,6 +26,7 @@ import { PAPER_SIZES } from '@/lib/receta-template'
 import { descargarComoPDF } from '@/lib/pdf-download'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
 import { detectarInteracciones, detectarControlados } from '@/lib/expediente/farmacovigilancia'
+import { alergiasDe } from '@/lib/seguridad/alergias'
 import { evaluarFuncionRenal, ajusteRenalFarmacos } from '@/lib/expediente/funcion-renal'
 import { descargarRecetaWord } from '@/lib/receta-word'
 import {
@@ -64,13 +65,14 @@ export default function GeneradorRecetaPage() {
   // que se dispensa. Reactivo a cada cambio de medicamento. Antes solo se
   // chequeaba en la consulta; aquí se podía agregar un fármaco peligroso sin alerta.
   const alertasAlergia = useMemo(() => {
-    if (!patient?.alergias?.trim()) return []
-    const alergiasArr = patient.alergias.split(/[,;]+/).map(a => ({ alergeno: a.trim() })).filter(a => a.alergeno)
+    if (!patient) return []
+    const alergiasArr = alergiasDe(patient).map(a => ({ alergeno: a.alergeno }))
+    if (!alergiasArr.length) return []
     return validarAlergiasVsMedicamentos(
       alergiasArr,
       medicamentos.filter(m => m.nombre?.trim()).map(m => ({ nombre: m.nombre })),
     )
-  }, [patient?.alergias, medicamentos])
+  }, [patient, medicamentos])
 
   // Interacciones fármaco-fármaco + controlados COFEPRIS (apoyo decisional)
   const meds = useMemo(() => medicamentos.filter(m => m.nombre?.trim()).map(m => ({ nombre: m.nombre })), [medicamentos])

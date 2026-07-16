@@ -19,13 +19,15 @@ describe('Mapeo FHIR R4', () => {
     expect((r.telecom as { system: string }[]).some(t => t.system === 'phone')).toBe(true)
   })
 
-  it('alergias de texto libre → AllergyIntolerance[]', () => {
-    const a = alergiasAFHIR('p1', 'Penicilina, Sulfas')
+  it('alergias estructuradas → AllergyIntolerance[] (con categoría/criticidad)', () => {
+    const a = alergiasAFHIR('p1', [{ alergeno: 'Penicilina', tipo: 'medicamento', severidad: 'grave', reaccion: 'anafilaxia' }, { alergeno: 'Sulfas' }])
     expect(a).toHaveLength(2)
     expect(a[0].resourceType).toBe('AllergyIntolerance')
     expect((a[0].code as { text: string }).text).toBe('Penicilina')
+    expect((a[0].category as string[])[0]).toBe('medication')
+    expect(a[0].criticality).toBe('high')
     expect((a[1].patient as { reference: string }).reference).toBe('Patient/p1')
-    expect(alergiasAFHIR('p1', '')).toEqual([])
+    expect(alergiasAFHIR('p1', [])).toEqual([])
   })
 
   it('Medicamento → MedicationRequest con dosis', () => {
