@@ -1640,16 +1640,6 @@ export default function ConsultaActivaPage() {
         )
       )}
 
-      {/* Análisis de evidencia → SE AGREGA A LA NOTA (botón principal) */}
-      {(diagnosticos.length > 0 || medicamentos.length > 0) && (
-        <button onClick={agregarAnalisisANota} disabled={generandoAnalisis}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, marginRight: 8, background: generandoAnalisis ? 'var(--s3)' : 'var(--teal)', color: generandoAnalisis ? 'var(--text3)' : '#000', border: 'none', borderRadius: 10, padding: '9px 15px', fontSize: 13, fontWeight: 700, cursor: generandoAnalisis ? 'default' : 'pointer' }}>
-          {generandoAnalisis
-            ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Razonando con la evidencia…</>
-            : <><FlaskConical size={14} /> Análisis de evidencia → agregar a la nota</>}
-        </button>
-      )}
-
       {/* Preguntar a la evidencia sobre ESTE paciente (abre el Consultor con contexto) */}
       {(diagnosticos.length > 0 || medicamentos.length > 0 || resumen) && (
         <button onClick={() => router.push(`/consultor?paciente=${patientId}`)}
@@ -1688,7 +1678,10 @@ export default function ConsultaActivaPage() {
           <div style={{ marginBottom: 12, border: '1px solid rgba(20,184,166,0.35)', borderRadius: 12, padding: 14, background: 'rgba(20,184,166,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 700, color: 'var(--teal)' }}>
               <FlaskConical size={15} /> Análisis basado en evidencia
-              <button onClick={analizarEvidencia} disabled={analizandoEv} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text3)', fontSize: 11, cursor: 'pointer' }}>↻ actualizar</button>
+              <button onClick={agregarAnalisisANota} disabled={generandoAnalisis} style={{ marginLeft: 'auto', background: generandoAnalisis ? 'var(--s3)' : 'var(--teal)', color: generandoAnalisis ? 'var(--text3)' : '#000', border: 'none', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: generandoAnalisis ? 'default' : 'pointer' }}>
+                {generandoAnalisis ? 'Agregando…' : '→ Agregar a la nota'}
+              </button>
+              <button onClick={analizarEvidencia} disabled={analizandoEv} style={{ background: 'none', border: 'none', color: 'var(--text3)', fontSize: 11, cursor: 'pointer' }}>↻ actualizar</button>
             </div>
             {evidencia.aviso && <div style={{ fontSize: 11.5, color: 'var(--amber)', marginTop: 6 }}>{evidencia.aviso}</div>}
             {bloque('Evaluación del tratamiento', evidencia.evaluacion, 'punto', 'sustento')}
