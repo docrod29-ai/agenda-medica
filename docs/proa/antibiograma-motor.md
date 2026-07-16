@@ -1,7 +1,14 @@
 # Motor determinista de antibiogramas — para validación del Dr.
 
-**Estado:** construido + con tests, en rama `feat/proa-motor`. **NO en producción.**
+**Estado:** construido + con tests (24), en rama `feat/proa-motor`. **NO en producción.**
 Requiere tu visto bueno clínico antes de conducir prescripción.
+
+**Validado por el Dr. (ronda 1) e incorporado:**
+- MRSA, VRE, carbapenemasa ✓
+- **Vanco CMI >2 en S. aureus → alerta de eficacia reducida** (VISA/hVISA/MIC creep)
+- **AmpC ahora se marca por cefoxitina R** (capta plasmídicos + desreprimidos, no solo ESCPM); recomienda cefepime si S, carbapenémico si grave
+- **BLEE** = 3G R + aztreonam R + cefoxitina S; advertencia de evitar 3G/aztreonam/cefepime
+- **Carbapenemasa** infiere clase por ceftazidima-avibactam (S→serina KPC/OXA-48; R→MBL NDM/VIM → cefiderocol/combinación)
 
 ## Patrón
 "La IA extrae, el motor decide." Un LLM (visión) lee la placa/reporte → pares

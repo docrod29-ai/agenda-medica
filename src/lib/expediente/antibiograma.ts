@@ -91,6 +91,15 @@ function estado(resultados: ResultadoAntibiograma[], sinonimos: string[]): SIR |
   return null
 }
 
+/** Busca la CMI (mg/L) de un antibiótico por sinónimo (o null si no se reportó). */
+function cmiDe(resultados: ResultadoAntibiograma[], sinonimos: string[]): number | null {
+  for (const r of resultados) {
+    const a = norm(r.antibiotico)
+    if (sinonimos.some(s => a.includes(norm(s))) && typeof r.cmi === 'number') return r.cmi
+  }
+  return null
+}
+
 const ES_R = (v: SIR | null) => v === 'R'
 const ES_S = (v: SIR | null) => v === 'S'
 
@@ -133,6 +142,12 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
       notificacion = true
       aislamiento = 'Precauciones de contacto (MRSA).'
     }
+    // Vancomicina CMI > 2 en S. aureus: eficacia reducida (VISA/hVISA o "MIC creep").
+    const vancoCmi = cmiDe(resultados, ['vancomicina'])
+    if (vancoCmi !== null && vancoCmi > 2) {
+      alertas.push({ nivel: 'alta', mensaje: `Vancomicina CMI ${vancoCmi} (>2) en S. aureus: eficacia reducida (VISA/hVISA o MIC creep). Considerar daptomicina (no en neumonía) u otra alternativa según el sitio; no confiar en vancomicina.` })
+      advertencias.push('Vancomicina CMI >2 en S. aureus: mayor probabilidad de falla clínica; preferir alternativa aunque el reporte diga "S".')
+    }
   }
 
   // ── VRE: Enterococcus + vancomicina R ─────────────────────────────
@@ -147,40 +162,65 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
     }
   }
 
-  // ── Carbapenemasa (probable, fenotípico): Gram-negativo + carbapenem R ─
+  // Marcadores β-lactámicos compartidos por AmpC/BLEE.
+  const cefoxitinaR = ES_R(estado(resultados, ['cefoxitina']))
+  const any3gR = CEF3G.some(c => ES_R(estado(resultados, [c])))
+  const carbaS = CARBAPENEM.some(c => ES_S(estado(resultados, [c])))
+  const aztreonamR = ES_R(estado(resultados, ['aztreonam']))
+  // AmpC fenotípico: cefoxitina R + 3G R capta AmpC PLASMÍDICA y cromosómica desreprimida.
+  const ampcFenotipico = esEntero && cefoxitinaR && any3gR
+
+  // ── Carbapenemasa (probable): Gram-negativo + carbapenem R ────────
+  //    Infiere CLASE por ceftazidima-avibactam cuando esté disponible.
   if (esEntero || esPseudomonas || esAcinetobacter) {
     const anyCarbapenemR = CARBAPENEM.some(c => ES_R(estado(resultados, [c])))
     if (anyCarbapenemR) {
+      const cza = estado(resultados, ['ceftazidima-avibactam', 'ceftazidima/avibactam', 'ceftazidima avibactam', 'avibactam'])
+      let claseBase = 'Requiere confirmación de clase (KPC/NDM/OXA-48/VIM) por método fenotípico/molecular.'
+      let sugerencia = 'Infectología obligada; la elección depende de la CLASE de carbapenemasa — confirmarla.'
+      if (cza === 'S') {
+        claseBase = 'Ceftazidima-avibactam S → sugiere carbapenemasa de SERINA (KPC u OXA-48), no metalo-β-lactamasa.'
+        sugerencia = 'Ceftazidima-avibactam es opción dirigida (meropenem-vaborbactam para KPC). Confirmar clase molecular.'
+      } else if (cza === 'R') {
+        claseBase = 'Ceftazidima-avibactam R → sugiere metalo-β-lactamasa (NDM/VIM/IMP) o co-resistencia.'
+        sugerencia = 'Sospecha de MBL: cefiderocol, o aztreonam + ceftazidima-avibactam en combinación. Infectología + microbiología.'
+      }
       fenotipos.push({ clave: 'carbapenemasa', nombre: 'Resistencia a carbapenémicos (posible carbapenemasa)', confianza: 'probable',
-        base: 'Carbapenémico R en Gram-negativo (CLSI M100). Requiere confirmación de clase (KPC/NDM/OXA-48/VIM) por método fenotípico/molecular.' })
-      alertas.push({ nivel: 'critica', mensaje: 'Carbapenem-R: infectología obligada. La elección (ceftazidima-avibactam, meropenem-vaborbactam, cefiderocol, combinaciones) depende de la CLASE de carbapenemasa — confirmarla.' })
-      advertencias.push('No asumir sensibilidad a β-lactámicos de nueva generación sin conocer la clase de carbapenemasa (p. ej. NDM inactiva avibactam).')
+        base: `Carbapenémico R en Gram-negativo (CLSI M100). ${claseBase}` })
+      alertas.push({ nivel: 'critica', mensaje: `Carbapenem-R: ${sugerencia}` })
+      advertencias.push('No asumir sensibilidad a β-lactámicos de nueva generación sin conocer la clase (p. ej. NDM inactiva avibactam).')
       notificacion = true
       aislamiento = 'Precauciones de contacto (organismo productor de carbapenemasa).'
     }
   }
 
-  // ── AmpC intrínseco (grupo ESCPM): riesgo de desrepresión ─────────
-  if (esAmpCintrinseco) {
-    const cef3S = CEF3G.some(c => ES_S(estado(resultados, [c])))
-    fenotipos.push({ clave: 'AmpC', nombre: 'AmpC cromosómica inducible (grupo ESCPM)', confianza: 'confirmado',
-      base: 'Especie con AmpC inducible intrínseca (EUCAST intrinsic resistance). Riesgo de desrepresión y falla clínica bajo cefalosporinas de 3G aunque el antibiograma las reporte S.' })
-    if (cef3S) {
-      advertencias.push('AmpC: NO usar cefalosporinas de 3ª generación (ceftriaxona/cefotaxima/ceftazidima) en monoterapia AUNQUE el antibiograma las reporte S — riesgo de desrepresión durante el tratamiento. Preferir cefepime o carbapenémico.')
-      alertas.push({ nivel: 'alta', mensaje: 'Grupo ESCPM (Enterobacter/Serratia/Citrobacter/Morganella/Providencia): usar cefepime o carbapenémico, no 3G.' })
-    }
+  // ── AmpC: intrínseco (grupo ESCPM) o fenotípico (cefoxitina R + 3G R) ─
+  //    La cefoxitina R capta AmpC PLASMÍDICA además de la cromosómica desreprimida.
+  if (esAmpCintrinseco || ampcFenotipico) {
+    const cefepimeS = ES_S(estado(resultados, ['cefepime']))
+    const confianza: FenotipoDetectado['confianza'] = esAmpCintrinseco ? 'confirmado' : 'probable'
+    const nombre = esAmpCintrinseco
+      ? 'AmpC cromosómica inducible (grupo ESCPM)'
+      : 'AmpC (plasmídica o desreprimida — cefoxitina R + 3G R)'
+    const base = esAmpCintrinseco
+      ? 'Especie del grupo ESCPM con AmpC cromosómica inducible (EUCAST intrinsic resistance). Riesgo de desrepresión bajo cefalosporinas de 3G.'
+      : 'Cefoxitina R + cefalosporina de 3G R en Enterobacterales: AmpC plasmídica o cromosómica desreprimida (no inhibida por clavulanato).'
+    fenotipos.push({ clave: 'AmpC', nombre, confianza, base })
+    advertencias.push('AmpC: NO usar cefalosporinas de 3ª generación aunque el antibiograma las reporte S (desrepresión/hidrólisis). Cefepime (si S) es más estable a AmpC; carbapenémico en infección grave.')
+    alertas.push({ nivel: 'alta', mensaje: cefepimeS
+      ? 'AmpC: cefepime (S) es opción por su estabilidad relativa a AmpC; carbapenémico si es grave o de alto inóculo.'
+      : 'AmpC: usar carbapenémico (cefepime no disponible o no sensible).' })
   }
 
-  // ── BLEE (probable): Enterobacterales + 3G R + carbapenem S ────────
-  if (esEntero && !esAmpCintrinseco) {
-    const any3gR = CEF3G.some(c => ES_R(estado(resultados, [c])))
-    const carbaS = CARBAPENEM.some(c => ES_S(estado(resultados, [c])))
-    if (any3gR && carbaS) {
-      fenotipos.push({ clave: 'BLEE', nombre: 'β-lactamasa de espectro extendido (BLEE, probable)', confianza: 'probable',
-        base: 'Cefalosporina de 3G R + carbapenémico S en Enterobacterales (CLSI M100). Idealmente confirmar con sinergia a clavulanato.' })
-      advertencias.push('BLEE: evitar cefalosporinas y aztreonam aunque alguna reporte S. En infección grave/bacteriemia, carbapenémico es el estándar; piperacilina-tazobactam solo en escenarios seleccionados.')
-      alertas.push({ nivel: 'alta', mensaje: 'BLEE probable: carbapenémico como terapia dirigida en infección seria; considerar desescalada guiada por foco y evolución.' })
-    }
+  // ── BLEE (probable): 3G R + carbapenem S + cefoxitina NO R ────────
+  //    Cefoxitina S distingue BLEE de AmpC; aztreonam R lo refuerza.
+  if (esEntero && !esAmpCintrinseco && !ampcFenotipico && any3gR && carbaS && !cefoxitinaR) {
+    const base = aztreonamR
+      ? 'Cefalosporina de 3G R + aztreonam R + cefoxitina no-R + carbapenémico S en Enterobacterales: patrón de BLEE (inhibida por clavulanato).'
+      : 'Cefalosporina de 3G R + carbapenémico S + cefoxitina no-R en Enterobacterales: BLEE probable (idealmente confirmar sinergia con clavulanato).'
+    fenotipos.push({ clave: 'BLEE', nombre: 'β-lactamasa de espectro extendido (BLEE, probable)', confianza: 'probable', base })
+    advertencias.push('BLEE: evitar cefalosporinas de 3G, aztreonam y también cefepime (poco confiable a alto inóculo/bacteriemia) aunque reporten S. Carbapenémico es el estándar en infección seria.')
+    alertas.push({ nivel: 'alta', mensaje: 'BLEE probable: carbapenémico dirigido en infección seria; desescalar según foco y evolución.' })
   }
 
   // ── Fluoroquinolona-R ─────────────────────────────────────────────

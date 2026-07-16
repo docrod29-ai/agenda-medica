@@ -112,6 +112,61 @@ describe('MDR (aproximado) y PK/PD', () => {
   })
 })
 
+describe('Vancomicina CMI >2 (validación del Dr.)', () => {
+  it('S. aureus con vanco CMI >2 → alerta de eficacia reducida', () => {
+    const r = interpretarAntibiograma({
+      organismo: 'Staphylococcus aureus',
+      resultados: [{ antibiotico: 'Oxacilina', interpretacion: 'R' }, { antibiotico: 'Vancomicina', interpretacion: 'S', cmi: 4 }],
+    })
+    expect(r.alertas.some(a => /vancomicina cmi 4|eficacia reducida|VISA/i.test(a.mensaje))).toBe(true)
+    expect(r.advertencias.some(a => /CMI >2/i.test(a))).toBe(true)
+  })
+  it('vanco CMI 1 (≤2) → sin alerta de CMI', () => {
+    const r = interpretarAntibiograma({
+      organismo: 'S. aureus',
+      resultados: [{ antibiotico: 'Oxacilina', interpretacion: 'R' }, { antibiotico: 'Vancomicina', interpretacion: 'S', cmi: 1 }],
+    })
+    expect(r.alertas.some(a => /CMI/.test(a.mensaje) && /vancomicina/i.test(a.mensaje))).toBe(false)
+  })
+})
+
+describe('AmpC por cefoxitina R (plasmídico) — validación del Dr.', () => {
+  it('E. coli + cefoxitina R + 3G R → AmpC (probable, plasmídica/desreprimida), NO BLEE', () => {
+    const r = interpretarAntibiograma(ab('Escherichia coli', [['Cefoxitina', 'R'], ['Ceftriaxona', 'R'], ['Meropenem', 'S']]))
+    expect(claves(r)).toContain('AmpC')
+    expect(r.fenotipos.find(f => f.clave === 'AmpC')?.confianza).toBe('probable')
+    expect(claves(r)).not.toContain('BLEE')
+  })
+  it('AmpC con cefepime S → sugiere cefepime como opción', () => {
+    const r = interpretarAntibiograma(ab('Enterobacter cloacae', [['Ceftriaxona', 'S'], ['Cefepime', 'S']]))
+    expect(r.alertas.some(a => /cefepime/i.test(a.mensaje))).toBe(true)
+  })
+})
+
+describe('BLEE distinguido de AmpC por cefoxitina — validación del Dr.', () => {
+  it('E. coli + 3G R + aztreonam R + cefoxitina S + carbapenem S → BLEE (base menciona aztreonam)', () => {
+    const r = interpretarAntibiograma(ab('Escherichia coli', [['Ceftriaxona', 'R'], ['Aztreonam', 'R'], ['Cefoxitina', 'S'], ['Meropenem', 'S']]))
+    expect(claves(r)).toContain('BLEE')
+    expect(r.fenotipos.find(f => f.clave === 'BLEE')?.base).toMatch(/aztreonam/i)
+    expect(r.advertencias.join(' ')).toMatch(/cefepime/i)
+  })
+})
+
+describe('Carbapenemasa — inferencia de clase por ceftazidima-avibactam (validación del Dr.)', () => {
+  it('CZA S → clase serina (KPC/OXA-48), sugiere ceftazidima-avibactam', () => {
+    const r = interpretarAntibiograma(ab('Klebsiella pneumoniae', [['Meropenem', 'R'], ['Ceftazidima-avibactam', 'S']]))
+    const carb = r.fenotipos.find(f => f.clave === 'carbapenemasa')
+    expect(carb?.base).toMatch(/serina|KPC|OXA-48/i)
+    expect(r.alertas.some(a => /ceftazidima-avibactam|meropenem-vaborbactam/i.test(a.mensaje))).toBe(true)
+  })
+  it('CZA R → sospecha de metalo-β-lactamasa, sugiere cefiderocol/combinación', () => {
+    const r = interpretarAntibiograma(ab('Klebsiella pneumoniae', [['Meropenem', 'R'], ['Ceftazidima-avibactam', 'R']]))
+    const carb = r.fenotipos.find(f => f.clave === 'carbapenemasa')
+    expect(carb?.base).toMatch(/metalo|NDM|VIM/i)
+    expect(r.alertas.some(a => /cefiderocol|aztreonam/i.test(a.mensaje))).toBe(true)
+  })
+})
+
 describe('robustez', () => {
   it('sin resultados → sin fenotipos, sin notificación', () => {
     const r = interpretarAntibiograma(ab('Escherichia coli', []))
