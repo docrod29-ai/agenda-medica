@@ -108,11 +108,10 @@ export async function POST(req: NextRequest) {
   //    y lo declara honestamente. Nunca devuelve vacío.
   let nivel: string = 'pro'
   try { nivel = await nivelIADe(clinicId) } catch { nivel = 'pro' }
-  // El análisis de evidencia usa SIEMPRE Sonnet (rápido y confiable), NO Opus:
-  // Opus + razonamiento extendido tardaba >40s y se abortaba por timeout. El
-  // apoyo de evidencia no requiere el motor máximo. (MODELOS_PREMIUM queda para otros usos.)
-  void MODELOS_PREMIUM
-  const modelos = MODELOS_PRO
+  // RESPETA EL PLAN: Premium → OPUS (el modelo máximo que el Dr. eligió), Pro → Sonnet.
+  // CLAVE de velocidad: NO usamos "razonamiento extendido" aquí (era eso, no Opus, lo
+  // que tardaba >40s y se abortaba). Opus SIN thinking es rápido (~15-25s) y de máximo nivel.
+  const modelos = nivel === 'premium' ? MODELOS_PREMIUM : MODELOS_PRO
   const ctx = body.contexto ?? {}
   const alergias = Array.isArray(ctx.alergias) ? (ctx.alergias as string[]).join(', ') : (ctx.alergias ?? 'no referidas')
 
