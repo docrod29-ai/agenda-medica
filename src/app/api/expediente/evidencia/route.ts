@@ -30,6 +30,10 @@ export async function POST(req: NextRequest) {
   if (!acceso.ok) return acceso.response
   const _rl = await limitarOResponder(`evidencia:${acceso.uid}`, 30, 60)
   if (_rl) return _rl
+
+  // RED DE SEGURIDAD TOTAL: nada dentro puede tumbar el endpoint con un 500;
+  // si algo falla, devolvemos el ERROR REAL (no un toast mudo). Ver bug 2026-07.
+  try {
   let key = ''
   let fuente: 'clinica' | 'prueba' | 'ninguna' = 'ninguna'
   let clinicId = ''
@@ -110,7 +114,8 @@ export async function POST(req: NextRequest) {
   //    Opus/Sonnet razonan el caso a fondo (nivel subespecialista); las citas de
   //    PubMed REFUERZAN, no condicionan. Sin artículos → razona con su conocimiento
   //    y lo declara honestamente. Nunca devuelve vacío.
-  const nivel = await nivelIADe(clinicId)
+  let nivel: string = 'pro'
+  try { nivel = await nivelIADe(clinicId) } catch { nivel = 'pro' }
   const modelos = nivel === 'premium' ? MODELOS_PREMIUM : MODELOS_PRO
   const ctx = body.contexto ?? {}
   const alergias = Array.isArray(ctx.alergias) ? (ctx.alergias as string[]).join(', ') : (ctx.alergias ?? 'no referidas')
@@ -209,5 +214,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, articulos, ...final, nivel, _modelos: modelosUsados, _aviso: avisos.length ? avisos.join(' ') : undefined })
   } catch (e) {
     return NextResponse.json({ ok: true, articulos, evaluacion: [], alternativas: [], diferencial: [], _aviso: `No se pudo analizar (${String(e).slice(0, 80)}). Muestro los artículos encontrados.` })
+  }
+
+  } catch (fatal) {
+    // Cualquier excepción no prevista: NUNCA un 500 mudo. Devolvemos el error real
+    // (status 200 para que el cliente lo parsee y lo muestre en vez del toast genérico).
+    console.error('[evidencia] fallo no controlado:', fatal)
+    const msg = fatal instanceof Error ? fatal.message : String(fatal)
+    return NextResponse.json({ ok: false, error: `Fallo al analizar la evidencia: ${msg.slice(0, 160)}` }, { status: 200 })
   }
 }

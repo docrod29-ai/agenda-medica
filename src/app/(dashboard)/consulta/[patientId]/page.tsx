@@ -341,8 +341,12 @@ export default function ConsultaActivaPage() {
       })
       const data = await res.json().catch(() => null)
       if (data?.ok) setEvidencia({ articulos: data.articulos ?? [], evaluacion: data.evaluacion ?? [], alternativas: data.alternativas ?? [], diferencial: data.diferencial ?? [], aviso: data._aviso })
-      else toast(data?.error || 'No se pudo analizar la evidencia', 'error')
-    } catch { toast('Sin conexión con el motor de evidencia', 'error') }
+      else {
+        // Muestra el MOTIVO real (no un toast mudo) y lo deja en consola para diagnóstico.
+        console.error('[evidencia] fallo', res.status, data)
+        toast(data?.error || `No se pudo analizar (HTTP ${res.status})`, 'error')
+      }
+    } catch (e) { console.error('[evidencia] excepción', e); toast(`Error de red al analizar (${String(e).slice(0, 60)})`, 'error') }
     finally { setAnalizandoEv(false) }
   }, [diagnosticos, medicamentos, resumen, secciones, patient?.edad, patient?.sexo, patient?.alergias, toast])
 
