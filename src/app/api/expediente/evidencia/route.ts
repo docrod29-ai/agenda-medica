@@ -68,11 +68,18 @@ export async function POST(req: NextRequest) {
   if (dx.length) consultasDet.push([dx[0], ...meds.slice(0, 2)].join(' '))
   if (dx[1]) consultasDet.push(dx[1])
 
+  // Constructor de consulta con HAIKU (tarea trivial → rápido, ~2-3s en vez de ~12s
+  // con Sonnet). Fallback de modelos por si la cuenta no tiene ese id.
+  const MODELOS_HAIKU = ['claude-haiku-4-5-20251001', 'claude-3-5-haiku-latest']
   async function consultasIA(): Promise<string[]> {
+    const sys = 'Eres experto en búsqueda bibliográfica médica. Genera 1 a 3 consultas CORTAS en INGLÉS para PubMed (términos MeSH), PRIORIZANDO el MOTIVO DE CONSULTA (problema activo de HOY) — comorbilidades solo si son DIRECTAMENTE relevantes. Traduce abreviaturas MX (IVU/ITU=urinary tract infection, DM2=type 2 diabetes, HAS/HTA=hypertension, ERC=chronic kidney disease). Devuelve SOLO un arreglo JSON de strings, la 1ª sobre el motivo. Ej "IVU recurrente": ["recurrent urinary tract infection management prevention adults","recurrent UTI antibiotic prophylaxis"]'
+    const user = `MOTIVO (principal): ${motivo || dx[0] || '—'}\nComorbilidades: ${dx.join('; ') || '—'}\nTratamiento: ${meds.join('; ') || '—'}`
+    async function llamar(model: string) {
+      return fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': key as string, 'anthropic-version': ANTHROPIC_VERSION, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, max_tokens: 250, system: sys, messages: [{ role: 'user', content: user }] }), signal: AbortSignal.timeout(9000) })
+    }
     try {
-      const sys = 'Eres un experto en búsqueda bibliográfica médica. Genera de 1 a 3 consultas CORTAS en INGLÉS para PubMed (términos MeSH) para responder el caso, PRIORIZANDO el MOTIVO DE CONSULTA (el problema activo que se atiende HOY) — las comorbilidades solo si son DIRECTAMENTE relevantes al problema principal. Traduce abreviaturas MX (IVU/ITU=urinary tract infection, DM2=type 2 diabetes, HAS/HTA=hypertension, ERC=chronic kidney disease). Enfócate en manejo/tratamiento/prevención basados en evidencia de alto nivel. Ignora paréntesis y datos del paciente. Devuelve SOLO un arreglo JSON de strings, la 1ª sobre el motivo principal. Ej motivo "IVU recurrente": ["recurrent urinary tract infection management prevention adults","recurrent UTI antibiotic prophylaxis"]'
-      const user = `MOTIVO DE CONSULTA (principal): ${motivo || dx[0] || '—'}\nDiagnósticos/comorbilidades: ${dx.join('; ') || '—'}\nTratamiento: ${meds.join('; ') || '—'}`
-      const r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': key as string, 'anthropic-version': ANTHROPIC_VERSION, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: MODELOS_PRO[0], max_tokens: 300, system: sys, messages: [{ role: 'user', content: user }] }), signal: AbortSignal.timeout(12000) })
+      let r = await llamar(MODELOS_HAIKU[0])
+      if (r.status === 404 || r.status === 400) r = await llamar(MODELOS_HAIKU[1])
       if (!r.ok) return []
       const d = await r.json()
       const t: string = (Array.isArray(d.content) ? d.content : []).find((b: { type?: string }) => b?.type === 'text')?.text ?? ''
@@ -82,13 +89,17 @@ export async function POST(req: NextRequest) {
     } catch { return [] }
   }
 
-  // Búsqueda protegida con ALTA CALIDAD (buscarEvidenciaMulti: HQ primero — meta-análisis/
-  // RCT/guías —, reciente con ventana + landmark). Traduce cada query ES→EN.
+  // VELOCIDAD: lanzamos la búsqueda determinista YA y el constructor IA EN PARALELO.
+  // Si la IA devuelve buenas queries, refinamos; si no (o tarda), usamos la determinista
+  // que ya corrió — nunca esperamos SOLO al constructor. Búsqueda de ALTA CALIDAD.
   let articulos: ArticuloPubMed[] = []
   try {
-    const consultasEN = (await consultasIA())
-    const queries = (consultasEN.length ? consultasEN : consultasDet).map(c => traducirBasico(c) || c).filter(Boolean)
-    articulos = (await buscarEvidenciaMulti(queries, { max: 12, aniosRecientes: 7 }).catch(() => [])).slice(0, 12)
+    const detP = buscarEvidenciaMulti(consultasDet.map(c => traducirBasico(c) || c).filter(Boolean), { max: 12, aniosRecientes: 7 }).catch(() => [] as ArticuloPubMed[])
+    const consultasEN = await consultasIA()
+    if (consultasEN.length) {
+      articulos = (await buscarEvidenciaMulti(consultasEN.map(c => traducirBasico(c) || c).filter(Boolean), { max: 12, aniosRecientes: 7 }).catch(() => [])).slice(0, 12)
+    }
+    if (articulos.length === 0) articulos = (await detP).slice(0, 12)
   } catch { articulos = [] }
 
   // 2) RAZONAMIENTO CLÍNICO — SIEMPRE corre, haya o no artículos de PubMed.
