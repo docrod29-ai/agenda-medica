@@ -109,7 +109,11 @@ export async function POST(req: NextRequest) {
   //    y lo declara honestamente. Nunca devuelve vacío.
   let nivel: string = 'pro'
   try { nivel = await nivelIADe(clinicId) } catch { nivel = 'pro' }
-  const modelos = nivel === 'premium' ? MODELOS_PREMIUM : MODELOS_PRO
+  // El análisis de evidencia usa SIEMPRE Sonnet (rápido y confiable), NO Opus:
+  // Opus + razonamiento extendido tardaba >40s y se abortaba por timeout. El
+  // apoyo de evidencia no requiere el motor máximo. (MODELOS_PREMIUM queda para otros usos.)
+  void MODELOS_PREMIUM
+  const modelos = MODELOS_PRO
   const ctx = body.contexto ?? {}
   const alergias = Array.isArray(ctx.alergias) ? (ctx.alergias as string[]).join(', ') : (ctx.alergias ?? 'no referidas')
 
@@ -131,8 +135,8 @@ export async function POST(req: NextRequest) {
   ].join('\n')
   const userMsg = `PACIENTE: edad ${ctx.edad ?? '?'}, sexo ${ctx.sexo ?? '?'}, alergias: ${alergias}.\nDIAGNÓSTICOS: ${dx.join('; ') || '—'}\nTRATAMIENTO: ${meds.join('; ') || '—'}${resumen ? `\nRESUMEN CLÍNICO: ${resumen.slice(0, 1500)}` : ''}\n\nEVIDENCIA (PubMed):\n${fuentesTxt}\n\nAnaliza y razona el caso. Devuelve solo el JSON.`
 
-  const conThinking = nivel === 'premium'
-  const MODELOS_OPENAI = ['gpt-5', 'gpt-4o']
+  const conThinking = false   // NUNCA razonamiento extendido aquí (causaba timeouts de 40s)
+  const MODELOS_OPENAI = ['gpt-4o', 'gpt-5']   // gpt-4o primero: más rápido y estable
   type Parsed = Record<string, unknown>
   const soloJSON = (t: string): Parsed | null => { const mm = t.match(/\{[\s\S]*\}/); try { return mm ? JSON.parse(mm[0]) : null } catch { return null } }
   const norm = (p: Parsed | null) => ({
@@ -148,7 +152,7 @@ export async function POST(req: NextRequest) {
   async function analizarClaude(sys: string, usr: string): Promise<Parsed | null> {
     async function llamar(model: string) {
       const payload: Record<string, unknown> = {
-        model, max_tokens: conThinking ? 16000 : 8000,
+        model, max_tokens: 4000,   // el JSON del análisis es pequeño; menos = más rápido
         system: [{ type: 'text', text: sys, cache_control: { type: 'ephemeral' } }],
         messages: [{ role: 'user', content: usr }],
       }
