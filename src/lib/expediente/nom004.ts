@@ -46,8 +46,12 @@ export function validarNOM004(nota: NotaMedica): ValidationResult {
   // Medicamento al que el paciente es alérgico
   for (const med of nota.medicamentos) {
     for (const al of nota.alergias) {
-      if (al.tipo === 'medicamento' &&
-          med.nombre.toLowerCase().includes(al.alergeno.toLowerCase().split(' ')[0])) {
+      // Token del alérgeno (primera palabra). Guardamos contra vacío/trivial:
+      // sin este piso, `''.split(' ')[0]` = '' y `nombre.includes('')` === true
+      // marcaría FALSA alergia en TODO medicamento y bloquearía la firma.
+      const token = al.alergeno.toLowerCase().trim().split(/\s+/)[0]
+      if (al.tipo === 'medicamento' && token.length >= 3 &&
+          med.nombre.toLowerCase().includes(token)) {
         errores.push(`⚠️ Posible alergia: se prescribe "${med.nombre}" y el paciente refiere alergia a "${al.alergeno}"`)
       }
     }
