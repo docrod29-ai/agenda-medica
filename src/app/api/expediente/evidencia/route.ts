@@ -102,6 +102,13 @@ export async function POST(req: NextRequest) {
       articulos = (await buscarEvidenciaMulti(consultasEN.map(c => traducirBasico(c) || c).filter(Boolean), { max: 12, aniosRecientes: 7 }).catch(() => [])).slice(0, 12)
     }
     if (articulos.length === 0) articulos = (await detP).slice(0, 12)
+    // RESPALDO AMPLIO (para que SIEMPRE haya citas): si el filtro estricto + ventana
+    // de 7 años no devolvió nada, busca SIN ventana de años (evidencia clásica también),
+    // priorizando el motivo. Así casi siempre aparecen fuentes con PMID.
+    if (articulos.length === 0) {
+      const amplias = [motivo, ...consultasEN, ...consultasDet].filter(Boolean).map(c => traducirBasico(c) || c).filter(Boolean)
+      articulos = (await buscarEvidenciaMulti(amplias, { max: 12 }).catch(() => [])).slice(0, 12)
+    }
   } catch { articulos = [] }
 
   // 2) RAZONAMIENTO CLÍNICO — SIEMPRE corre, haya o no artículos de PubMed.

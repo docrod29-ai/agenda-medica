@@ -37,6 +37,7 @@ async function resolverModelo(key: string): Promise<string> {
   try {
     const res = await fetch('https://api.anthropic.com/v1/models?limit=100', {
       headers: { 'x-api-key': key, 'anthropic-version': ANTHROPIC_VERSION },
+      signal: AbortSignal.timeout(8000),   // no colgar el NER si la lista de modelos tarda
     })
     if (res.ok) {
       const data = await res.json()
@@ -113,6 +114,7 @@ export async function POST(req: NextRequest) {
         system: NER_SYSTEM_PROMPT,
         messages: [{ role: 'user', content: buildNerUserPrompt(texto) }],
       }),
+      signal: AbortSignal.timeout(45000),   // aborta limpio si tarda, sin "error de red" ambiguo
     })
 
     if (!res.ok) {
