@@ -59,14 +59,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'La nota no tiene diagnóstico, tratamiento ni resumen para analizar todavía.' }, { status: 400 })
   }
 
-  // 1) CONSULTAS DE PUBMED — DETERMINISTAS (rápidas; sin llamada extra a la IA
-  //    para construir la query → esa llamada de más contribuía al TIMEOUT 504).
-  //    traducirBasico ya convierte IVU/DM2/HAS/etc. al inglés.
+  // 1) CONSULTAS DE PUBMED. Respaldo determinista (sin "management" genérico que
+  //    traía artículos administrativos irrelevantes) + un constructor con IA
+  //    (1 sola llamada, con timeout de 12s → NO cuelga la función; era la suma de
+  //    4 llamadas lo que daba 504, no esta).
   const consultasDet: string[] = []
-  if (dx.length) consultasDet.push([dx[0], ...meds.slice(0, 3), 'treatment OR management'].join(' '))
+  if (dx.length) consultasDet.push([dx[0], ...meds.slice(0, 3), 'treatment'].join(' '))
   if (dx[1]) consultasDet.push(dx[1])
-  if (!dx.length && resumen) consultasDet.push(resumen.slice(0, 140))  // solo-resumen: úsalo
   if (meds.length >= 2) consultasDet.push(`${meds.slice(0, 4).join(' ')} drug interaction`)
+
+  async function consultasIA(): Promise<string[]> {
+    try {
+      const sys = 'Convierte diagnósticos/tratamientos clínicos en español de México (abreviaturas: IVU/ITU=infección de vías urinarias, DM2=diabetes tipo 2, HAS/HTA=hipertensión, ERC=enfermedad renal crónica, EPOC, IAM, ICC, EVC, TVP, TEP) en 1 a 3 consultas CORTAS en INGLÉS para PubMed con términos MeSH. Ignora paréntesis y datos del paciente. Devuelve SOLO un arreglo JSON de strings. Ej: ["recurrent urinary tract infection management adults"]'
+      const user = `Diagnósticos: ${dx.join('; ') || '—'}\nTratamiento: ${meds.join('; ') || '—'}${resumen ? `\nResumen: ${resumen.slice(0, 800)}` : ''}`
+      const r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': key as string, 'anthropic-version': ANTHROPIC_VERSION, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: MODELOS_PRO[0], max_tokens: 300, system: sys, messages: [{ role: 'user', content: user }] }), signal: AbortSignal.timeout(12000) })
+      if (!r.ok) return []
+      const d = await r.json()
+      const t: string = (Array.isArray(d.content) ? d.content : []).find((b: { type?: string }) => b?.type === 'text')?.text ?? ''
+      const mm = t.match(/\[[\s\S]*\]/)
+      const arr = mm ? JSON.parse(mm[0]) : []
+      return Array.isArray(arr) ? arr.filter((x: unknown) => typeof x === 'string' && (x as string).trim()).slice(0, 3) : []
+    } catch { return [] }
+  }
 
   async function buscarLote(queries: string[]): Promise<ArticuloPubMed[]> {
     const lotes = await Promise.all(queries.slice(0, 3).map(async c => {
@@ -80,9 +94,14 @@ export async function POST(req: NextRequest) {
     return [...porPmid.values()]
   }
 
-  // Búsqueda protegida: un fallo de PubMed nunca tumba el análisis (articulos=[]).
+  // Búsqueda protegida: consulta con IA (mejor calidad) y si no, la determinista.
   let articulos: ArticuloPubMed[] = []
-  try { articulos = (await buscarLote(consultasDet)).slice(0, 12) } catch { articulos = [] }
+  try {
+    const consultasEN = await consultasIA()
+    articulos = await buscarLote(consultasEN.length ? consultasEN : consultasDet)
+    if (articulos.length === 0 && consultasEN.length) articulos = await buscarLote(consultasDet)
+    articulos = articulos.slice(0, 12)
+  } catch { articulos = [] }
 
   // 2) RAZONAMIENTO CLÍNICO — SIEMPRE corre, haya o no artículos de PubMed.
   //    Opus/Sonnet razonan el caso a fondo (nivel subespecialista); las citas de
@@ -122,6 +141,9 @@ export async function POST(req: NextRequest) {
     diferencial: Array.isArray(p?.diferencial) ? p!.diferencial : [],
   })
 
+  const diag: string[] = []   // motivos de fallo de cada modelo (para que el aviso sea claro)
+  const pista = (s: number) => s === 401 ? 'llave inválida' : s === 403 ? 'llave sin permiso' : s === 429 ? 'sin créditos o saturada' : s === 404 ? 'modelo no disponible' : `HTTP ${s}`
+
   // Análisis con Claude (Opus premium / Sonnet pro) — con razonamiento si premium.
   async function analizarClaude(sys: string, usr: string): Promise<Parsed | null> {
     async function llamar(model: string) {
@@ -131,30 +153,30 @@ export async function POST(req: NextRequest) {
         messages: [{ role: 'user', content: usr }],
       }
       if (conThinking && /opus-4|sonnet-5|sonnet-4/.test(model)) payload.thinking = { type: 'enabled', budget_tokens: 5000 }
-      return fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': key as string, 'anthropic-version': ANTHROPIC_VERSION, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      return fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': key as string, 'anthropic-version': ANTHROPIC_VERSION, 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: AbortSignal.timeout(40000) })
     }
     try {
       let res = await llamar(modelos[0])
       for (let i = 1; i < modelos.length && (res.status === 404 || res.status === 400); i++) res = await llamar(modelos[i])
-      if (!res.ok) return null
+      if (!res.ok) { diag.push(`Claude: ${pista(res.status)}`); return null }
       const data = await res.json()
       const bloques: { type?: string; text?: string }[] = Array.isArray(data.content) ? data.content : []
       return soloJSON(bloques.find(b => b?.type === 'text')?.text ?? bloques[0]?.text ?? '')
-    } catch { return null }
+    } catch (e) { diag.push(`Claude: ${String(e instanceof Error ? e.message : e).slice(0, 40)}`); return null }
   }
 
   // Análisis con GPT (OpenAI) — el otro "cerebro" del ensamble.
   async function analizarOpenAI(keyOAI: string, sys: string, usr: string): Promise<Parsed | null> {
     async function llamar(model: string) {
-      return fetch('https://api.openai.com/v1/chat/completions', { method: 'POST', headers: { Authorization: `Bearer ${keyOAI}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, messages: [{ role: 'system', content: sys }, { role: 'user', content: usr }], response_format: { type: 'json_object' }, max_completion_tokens: 4000 }) })
+      return fetch('https://api.openai.com/v1/chat/completions', { method: 'POST', headers: { Authorization: `Bearer ${keyOAI}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, messages: [{ role: 'system', content: sys }, { role: 'user', content: usr }], response_format: { type: 'json_object' }, max_completion_tokens: 4000 }), signal: AbortSignal.timeout(38000) })
     }
     try {
       let res = await llamar(MODELOS_OPENAI[0])
       for (let i = 1; i < MODELOS_OPENAI.length && (res.status === 404 || res.status === 400); i++) res = await llamar(MODELOS_OPENAI[i])
-      if (!res.ok) return null
+      if (!res.ok) { diag.push(`GPT: ${pista(res.status)}`); return null }
       const data = await res.json()
       return soloJSON(data.choices?.[0]?.message?.content ?? '')
-    } catch { return null }
+    } catch (e) { diag.push(`GPT: ${String(e instanceof Error ? e.message : e).slice(0, 40)}`); return null }
   }
 
   // Límite de tiempo por modelo: uno lento devuelve null y NO cuelga la función (evita 504).
@@ -187,7 +209,10 @@ export async function POST(req: NextRequest) {
     if (rb) modelosUsados.push('GPT')
     const final = ra && rb ? fusionar(norm(ra), norm(rb)) : (ra ? norm(ra) : (rb ? norm(rb) : null))
 
-    if (!final) return NextResponse.json({ ok: true, articulos, evaluacion: [], alternativas: [], diferencial: [], _aviso: 'La IA tardó demasiado o no respondió. Intenta de nuevo; si persiste, revisa tu llave/créditos en Configuración.' })
+    if (!final) {
+      const motivo = diag.length ? diag.join(' · ') : 'la IA tardó demasiado (timeout)'
+      return NextResponse.json({ ok: true, articulos, evaluacion: [], alternativas: [], diferencial: [], _aviso: `No se obtuvo el razonamiento — ${motivo}. Revisa tu llave/créditos en Configuración → Llaves de IA.` })
+    }
 
     void registrarUso(clinicId, fuente)
     const avisos: string[] = []
