@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
   // con Sonnet). Fallback de modelos por si la cuenta no tiene ese id.
   const MODELOS_HAIKU = ['claude-haiku-4-5-20251001', 'claude-3-5-haiku-latest']
   async function consultasIA(): Promise<string[]> {
-    const sys = 'Eres experto en búsqueda bibliográfica médica. Genera 1 a 3 consultas CORTAS en INGLÉS para PubMed (términos MeSH), PRIORIZANDO el MOTIVO DE CONSULTA (problema activo de HOY) — comorbilidades solo si son DIRECTAMENTE relevantes. Traduce abreviaturas MX (IVU/ITU=urinary tract infection, DM2=type 2 diabetes, HAS/HTA=hypertension, ERC=chronic kidney disease). Devuelve SOLO un arreglo JSON de strings, la 1ª sobre el motivo. Ej "IVU recurrente": ["recurrent urinary tract infection management prevention adults","recurrent UTI antibiotic prophylaxis"]'
+    const sys = 'Eres experto en búsqueda en PubMed. Genera 2 o 3 consultas MUY CORTAS en INGLÉS (2 a 4 palabras clave / términos MeSH cada una — NO frases largas, que traen 0 resultados), PRIORIZANDO el MOTIVO DE CONSULTA (problema activo de HOY); comorbilidades solo si son directamente relevantes. Traduce abreviaturas MX (IVU/ITU=urinary tract infection, DM2=type 2 diabetes, HAS/HTA=hypertension, ERC=chronic kidney disease). Devuelve SOLO un arreglo JSON de strings, la 1ª del motivo. Ej "IVU recurrente": ["recurrent urinary tract infection","recurrent UTI prophylaxis","recurrent UTI diabetes"]'
     const user = `MOTIVO (principal): ${motivo || dx[0] || '—'}\nComorbilidades: ${dx.join('; ') || '—'}\nTratamiento: ${meds.join('; ') || '—'}`
     async function llamar(model: string) {
       return fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': key as string, 'anthropic-version': ANTHROPIC_VERSION, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, max_tokens: 250, system: sys, messages: [{ role: 'user', content: user }] }), signal: AbortSignal.timeout(9000) })
@@ -96,15 +96,16 @@ export async function POST(req: NextRequest) {
   // que ya corrió — nunca esperamos SOLO al constructor. Búsqueda de ALTA CALIDAD.
   let articulos: ArticuloPubMed[] = []
   try {
-    const detP = buscarEvidenciaMulti(consultasDet.map(c => traducirBasico(c) || c).filter(Boolean), { max: 12, aniosRecientes: 7 }).catch(() => [] as ArticuloPubMed[])
+    // NADA de ventana rígida de años en el primario: probado en vivo, (query + filtro
+    // HQ + "últimos 7 años") devolvía 0 para IVU recurrente, pero SIN la ventana da 9.
+    // buscarEvidenciaMulti YA prioriza alta calidad (revisiones/meta/RCT/guías) + landmark.
+    const detP = buscarEvidenciaMulti(consultasDet.map(c => traducirBasico(c) || c).filter(Boolean), { max: 12 }).catch(() => [] as ArticuloPubMed[])
     const consultasEN = await consultasIA()
     if (consultasEN.length) {
-      articulos = (await buscarEvidenciaMulti(consultasEN.map(c => traducirBasico(c) || c).filter(Boolean), { max: 12, aniosRecientes: 7 }).catch(() => [])).slice(0, 12)
+      articulos = (await buscarEvidenciaMulti(consultasEN.map(c => traducirBasico(c) || c).filter(Boolean), { max: 12 }).catch(() => [])).slice(0, 12)
     }
     if (articulos.length === 0) articulos = (await detP).slice(0, 12)
-    // RESPALDO AMPLIO (para que SIEMPRE haya citas): si el filtro estricto + ventana
-    // de 7 años no devolvió nada, busca SIN ventana de años (evidencia clásica también),
-    // priorizando el motivo. Así casi siempre aparecen fuentes con PMID.
+    // Último respaldo: el motivo + términos amplios (por si las queries salieron raras).
     if (articulos.length === 0) {
       const amplias = [motivo, ...consultasEN, ...consultasDet].filter(Boolean).map(c => traducirBasico(c) || c).filter(Boolean)
       articulos = (await buscarEvidenciaMulti(amplias, { max: 12 }).catch(() => [])).slice(0, 12)
