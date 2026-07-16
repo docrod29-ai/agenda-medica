@@ -152,7 +152,6 @@ export async function POST(req: NextRequest) {
   const userMsg = `PACIENTE: edad ${ctx.edad ?? '?'}, sexo ${ctx.sexo ?? '?'}, alergias: ${alergias}.\nDIAGNÓSTICOS: ${dx.join('; ') || '—'}\nTRATAMIENTO: ${meds.join('; ') || '—'}${resumen ? `\nRESUMEN CLÍNICO: ${resumen.slice(0, 1500)}` : ''}\n\nEVIDENCIA (PubMed):\n${fuentesTxt}\n\nAnaliza y razona el caso. Devuelve solo el JSON.`
 
   const conThinking = false   // NUNCA razonamiento extendido aquí (causaba timeouts de 40s)
-  const MODELOS_OPENAI = ['gpt-4o', 'gpt-5']   // gpt-4o primero: más rápido y estable
   type Parsed = Record<string, unknown>
   const soloJSON = (t: string): Parsed | null => { const mm = t.match(/\{[\s\S]*\}/); try { return mm ? JSON.parse(mm[0]) : null } catch { return null } }
   const norm = (p: Parsed | null) => ({
@@ -185,52 +184,15 @@ export async function POST(req: NextRequest) {
     } catch (e) { diag.push(`Claude: ${String(e instanceof Error ? e.message : e).slice(0, 40)}`); return null }
   }
 
-  // Análisis con GPT (OpenAI) — el otro "cerebro" del ensamble.
-  async function analizarOpenAI(keyOAI: string, sys: string, usr: string): Promise<Parsed | null> {
-    async function llamar(model: string) {
-      return fetch('https://api.openai.com/v1/chat/completions', { method: 'POST', headers: { Authorization: `Bearer ${keyOAI}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, messages: [{ role: 'system', content: sys }, { role: 'user', content: usr }], response_format: { type: 'json_object' }, max_completion_tokens: 4000 }), signal: AbortSignal.timeout(38000) })
-    }
-    try {
-      let res = await llamar(MODELOS_OPENAI[0])
-      for (let i = 1; i < MODELOS_OPENAI.length && (res.status === 404 || res.status === 400); i++) res = await llamar(MODELOS_OPENAI[i])
-      if (!res.ok) { diag.push(`GPT: ${pista(res.status)}`); return null }
-      const data = await res.json()
-      return soloJSON(data.choices?.[0]?.message?.content ?? '')
-    } catch (e) { diag.push(`GPT: ${String(e instanceof Error ? e.message : e).slice(0, 40)}`); return null }
-  }
-
-  // Límite de tiempo por modelo: uno lento devuelve null y NO cuelga la función (evita 504).
-  const conTimeout = (p: Promise<Parsed | null>, ms: number): Promise<Parsed | null> =>
-    Promise.race([p, new Promise<Parsed | null>(r => setTimeout(() => r(null), ms))])
-  // Fusión PROGRAMÁTICA de dos análisis (sin 3ª llamada de síntesis → sin latencia extra).
-  const dedup = (arr: unknown[], k: string) => {
-    const out: unknown[] = []; const vistos = new Set<string>()
-    for (const it of arr) { const kv = String((it as Record<string, unknown>)?.[k] ?? '').toLowerCase().trim(); if (kv && !vistos.has(kv)) { vistos.add(kv); out.push(it) } }
-    return out
-  }
-  const fusionar = (a: ReturnType<typeof norm>, b: ReturnType<typeof norm>) => ({
-    evaluacion: dedup([...a.evaluacion, ...b.evaluacion], 'punto'),
-    alternativas: dedup([...a.alternativas, ...b.alternativas], 'opcion'),
-    diferencial: dedup([...a.diferencial, ...b.diferencial], 'dx'),
-  })
-
   try {
-    // ENSAMBLE: Claude y GPT en PARALELO (misma latencia que una sola llamada) y se
-    // FUSIONAN programáticamente — sin la 3ª llamada de síntesis que causaba el 504.
-    // Sin llave OpenAI → solo Claude (sin regresión).
-    // Nombre visible del modelo Claude según el motor (para que VEAS la diferencia).
+    // COHERENCIA DE NIVELES: UN SOLO modelo por motor, monotónico y limpio —
+    // Rápida=Haiku  <  Estándar=Sonnet  <  Máxima=Opus. Sin mezclas raras (el ensamble
+    // con GPT fusionado ensuciaba Estándar y lo hacía ver PEOR que Rápida → incoherente).
+    // Una respuesta limpia, reproducible; el modelo ya está fijado en `modelos`.
     const tierClaude = usaOpus ? 'Opus' : usaHaiku ? 'Haiku' : 'Sonnet'
-    // En Rápida (Haiku) NO ensamblamos con GPT → lo más veloz (seguimiento simple).
-    const oai = usaHaiku ? { key: '' } : await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY ?? '').catch(() => ({ key: '' as string }))
-    const [ra, rb] = await Promise.all([
-      conTimeout(analizarClaude(system, userMsg), 45000),
-      oai.key ? conTimeout(analizarOpenAI(oai.key as string, system, userMsg), 40000) : Promise.resolve<Parsed | null>(null),
-    ])
-
-    const modelosUsados: string[] = []
-    if (ra) modelosUsados.push(tierClaude)
-    if (rb) modelosUsados.push('GPT')
-    const final = ra && rb ? fusionar(norm(ra), norm(rb)) : (ra ? norm(ra) : (rb ? norm(rb) : null))
+    const ra = await analizarClaude(system, userMsg)
+    const modelosUsados = ra ? [tierClaude] : []
+    const final = ra ? norm(ra) : null
 
     if (!final) {
       const motivo = diag.length ? diag.join(' · ') : 'la IA tardó demasiado (timeout)'
