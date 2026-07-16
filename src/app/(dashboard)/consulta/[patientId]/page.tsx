@@ -323,7 +323,11 @@ export default function ConsultaActivaPage() {
   // Análisis basado en evidencia: cruza dx + tratamiento contra PubMed y razona
   // con citas reales (NEJM/JAMA/Cochrane…). A demanda (botón).
   const analizarEvidencia = useCallback(async () => {
-    if (diagnosticos.length === 0 && medicamentos.length === 0) { toast('Agrega al menos un diagnóstico o medicamento primero', 'info'); return }
+    // Razona con lo que haya: dx/meds estructurados O el resumen de la nota.
+    const resumenTexto = (resumen || secciones.map(s => s.value).filter(Boolean).join('. ')).trim()
+    if (diagnosticos.length === 0 && medicamentos.length === 0 && resumenTexto.length < 8) {
+      toast('Primero dicta/estructura la nota (diagnóstico, tratamiento o resumen)', 'info'); return
+    }
     setAnalizandoEv(true); setEvidencia(null)
     try {
       const res = await fetchAutenticado('/api/expediente/evidencia', {
@@ -331,6 +335,7 @@ export default function ConsultaActivaPage() {
         body: JSON.stringify({
           diagnosticos: diagnosticos.map(d => ({ descripcion: d.descripcion })),
           medicamentos: medicamentos.map(m => ({ nombre: m.nombre })),
+          resumen: resumenTexto.slice(0, 2000),
           contexto: { edad: patient?.edad, sexo: patient?.sexo, alergias: patient?.alergias },
         }),
       })
@@ -339,18 +344,19 @@ export default function ConsultaActivaPage() {
       else toast(data?.error || 'No se pudo analizar la evidencia', 'error')
     } catch { toast('Sin conexión con el motor de evidencia', 'error') }
     finally { setAnalizandoEv(false) }
-  }, [diagnosticos, medicamentos, patient?.edad, patient?.sexo, patient?.alergias, toast])
+  }, [diagnosticos, medicamentos, resumen, secciones, patient?.edad, patient?.sexo, patient?.alergias, toast])
 
   // Genera un ANÁLISIS clínico basado en evidencia de ESTE paciente (razonando
   // con PubMed vía el Consultor) y lo AGREGA a la nota como una sección de texto
   // limpio (sin markdown), con sus referencias. Reemplaza el análisis previo.
   const agregarAnalisisANota = useCallback(async () => {
-    if (diagnosticos.length === 0 && medicamentos.length === 0) { toast('Agrega diagnóstico o tratamiento primero', 'info'); return }
+    const resumenTexto = (resumen || secciones.map(s => s.value).filter(Boolean).join('. ')).trim()
+    if (diagnosticos.length === 0 && medicamentos.length === 0 && resumenTexto.length < 8) { toast('Primero dicta/estructura la nota', 'info'); return }
     setGenerandoAnalisis(true)
     try {
       const dx = diagnosticos.map(d => d.descripcion).filter(Boolean).join('; ')
       const meds = medicamentos.map(m => m.nombre).filter(Boolean).join('; ')
-      const pregunta = `Análisis clínico y plan basado en la MEJOR evidencia, conciso y sin relleno. Diagnóstico(s): ${dx || '—'}. Tratamiento actual: ${meds || '—'}. Evalúa si el tratamiento es el adecuado según la evidencia, señala alternativas si aplica, dosis y puntos de seguridad (interacciones/contraindicaciones). No repitas la historia clínica.`
+      const pregunta = `Análisis clínico y plan basado en la MEJOR evidencia, a nivel subespecialista, conciso y sin relleno. Diagnóstico(s): ${dx || '—'}. Tratamiento actual: ${meds || '—'}.${resumenTexto ? ` Resumen del caso: ${resumenTexto.slice(0, 1200)}.` : ''} Evalúa si el tratamiento es el adecuado según la evidencia, señala alternativas si aplica, dosis y puntos de seguridad (interacciones/contraindicaciones). No repitas la historia clínica.`
       const contextoPaciente = `${patient?.nombre ?? ''}, ${patient?.edad ?? '?'} años, ${patient?.sexo ?? '?'}. Alergias: ${patient?.alergias || 'no referidas'}.`
       const res = await fetchAutenticado('/api/consultor-evidencia', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1649,7 +1655,7 @@ export default function ConsultaActivaPage() {
       )}
 
       {/* ── Análisis basado en evidencia (PubMed) ── */}
-      {(diagnosticos.length > 0 || medicamentos.length > 0) && !evidencia && (
+      {(diagnosticos.length > 0 || medicamentos.length > 0 || resumen) && !evidencia && (
         <button onClick={analizarEvidencia} disabled={analizandoEv}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, background: 'rgba(20,184,166,0.10)', color: 'var(--teal)', border: '1px solid rgba(20,184,166,0.35)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: analizandoEv ? 'default' : 'pointer' }}>
           {analizandoEv

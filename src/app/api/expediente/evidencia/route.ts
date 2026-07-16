@@ -36,14 +36,17 @@ export async function POST(req: NextRequest) {
   let body: {
     diagnosticos?: { descripcion?: string }[]
     medicamentos?: { nombre?: string }[]
+    resumen?: string
     contexto?: { edad?: number; sexo?: string; alergias?: unknown }
   }
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }
 
   const dx = (body.diagnosticos ?? []).map(d => d?.descripcion).filter(Boolean) as string[]
   const meds = (body.medicamentos ?? []).map(m => m?.nombre).filter(Boolean) as string[]
-  if (dx.length === 0 && meds.length === 0) {
-    return NextResponse.json({ ok: false, error: 'Se necesita al menos un diagnóstico o medicamento en la nota.' }, { status: 400 })
+  const resumen = (body.resumen ?? '').trim()
+  // La IA razona con lo que haya: dx/meds estructurados O el resumen/texto de la nota.
+  if (dx.length === 0 && meds.length === 0 && resumen.length < 8) {
+    return NextResponse.json({ ok: false, error: 'La nota no tiene diagnóstico, tratamiento ni resumen para analizar todavía.' }, { status: 400 })
   }
 
   // 1) CONSTRUIR LAS CONSULTAS DE PUBMED.
@@ -53,7 +56,7 @@ export async function POST(req: NextRequest) {
   async function consultasIA(): Promise<string[]> {
     try {
       const sys = 'Convierte diagnósticos y tratamientos clínicos en español de México (con abreviaturas frecuentes: IVU/ITU=infección de vías urinarias, DM2=diabetes tipo 2, HAS/HTA=hipertensión, ERC=enfermedad renal crónica, EPOC, IAM, ICC, EVC, TVP, TEP) en 1 a 3 consultas CORTAS en INGLÉS para PubMed, con términos MeSH. Ignora paréntesis y datos del paciente. Devuelve SOLO un arreglo JSON de strings. Ej: ["recurrent urinary tract infection management adults","nitrofurantoin prophylaxis recurrent uti"]'
-      const user = `Diagnósticos: ${dx.join('; ') || '—'}\nTratamiento: ${meds.join('; ') || '—'}`
+      const user = `Diagnósticos: ${dx.join('; ') || '—'}\nTratamiento: ${meds.join('; ') || '—'}${resumen ? `\nResumen clínico: ${resumen.slice(0, 800)}` : ''}`
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'x-api-key': key as string, 'anthropic-version': ANTHROPIC_VERSION, 'Content-Type': 'application/json' },
@@ -92,27 +95,37 @@ export async function POST(req: NextRequest) {
   if (articulos.length === 0 && consultasEN.length) articulos = await buscarLote(consultasDet)
   articulos = articulos.slice(0, 12)
 
-  if (articulos.length === 0) {
-    return NextResponse.json({ ok: true, articulos: [], evaluacion: [], alternativas: [], diferencial: [], _aviso: 'PubMed no devolvió artículos para esta combinación exacta de términos. Prueba dejando solo el diagnóstico principal, o usa "Preguntar a la evidencia" para responder con criterio clínico.' })
-  }
-
-  // 2) Razonamiento clínico sobre la evidencia.
+  // 2) RAZONAMIENTO CLÍNICO — SIEMPRE corre, haya o no artículos de PubMed.
+  //    Opus/Sonnet razonan el caso a fondo (nivel subespecialista); las citas de
+  //    PubMed REFUERZAN, no condicionan. Sin artículos → razona con su conocimiento
+  //    y lo declara honestamente. Nunca devuelve vacío.
   const nivel = await nivelIADe(clinicId)
   const modelos = nivel === 'premium' ? MODELOS_PREMIUM : MODELOS_PRO
   const ctx = body.contexto ?? {}
   const alergias = Array.isArray(ctx.alergias) ? (ctx.alergias as string[]).join(', ') : (ctx.alergias ?? 'no referidas')
 
-  const fuentesTxt = articulos.map((a, i) =>
-    `[${i + 1}] PMID ${a.pmid} · ${a.revista} ${a.anio}\n${a.titulo}\n${a.resumen.slice(0, 700)}`,
-  ).join('\n\n')
+  const hayEvidencia = articulos.length > 0
+  const fuentesTxt = hayEvidencia
+    ? articulos.map((a, i) => `[${i + 1}] PMID ${a.pmid} · ${a.revista} ${a.anio}\n${a.titulo}\n${a.resumen.slice(0, 700)}`).join('\n\n')
+    : '(PubMed no devolvió artículos para estos términos — razona con tu conocimiento clínico, guías y consenso, y decláralo.)'
 
-  const system = 'Eres un médico experto en medicina basada en evidencia. Se te da el caso (dx + tratamiento + paciente) y una lista NUMERADA de artículos reales de PubMed (con su resumen). Analiza el tratamiento propuesto CONTRA esa evidencia. REGLAS: (1) Cita SOLO los artículos de la lista, por su número [n] y PMID; NUNCA inventes estudios ni datos. (2) Si la evidencia no alcanza para una afirmación, dilo. (3) Sé conciso y clínico. Responde SOLO JSON: {"evaluacion":[{"punto":"...","sustento":"...","citas":[n]}],"alternativas":[{"opcion":"...","porque":"...","citas":[n]}],"diferencial":[{"dx":"...","razon":"...","citas":[n]}]}. citas es un arreglo de números [n] de la lista.'
-  const userMsg = `PACIENTE: edad ${ctx.edad ?? '?'}, sexo ${ctx.sexo ?? '?'}, alergias: ${alergias}.\nDIAGNÓSTICOS: ${dx.join('; ') || '—'}\nTRATAMIENTO: ${meds.join('; ') || '—'}\n\nEVIDENCIA (PubMed):\n${fuentesTxt}\n\nDevuelve solo el JSON.`
+  const system = [
+    'Eres un CONSULTOR CLÍNICO de altísimo nivel (subespecialista) para un médico experto en México.',
+    'Tu trabajo: ENTENDER el caso, PROCESARLO, ANALIZARLO y RAZONARLO a fondo — SIEMPRE das un análisis útil y accionable, tengas o no artículos de PubMed.',
+    'Se te da el caso (diagnósticos + tratamiento + resumen + paciente) y, si existen, una lista NUMERADA de artículos reales de PubMed con su resumen.',
+    'REGLAS:',
+    '(1) Cuando cites un artículo de la lista, hazlo por su número [n]; NUNCA inventes estudios, PMIDs, autores ni cifras. Si un dato no está en la lista, NO lo atribuyas a una cita.',
+    '(2) Si NO hay artículos (o no alcanzan), razona igual con tu conocimiento clínico, guías (IDSA/GPC-CENETEC/NOM cuando aplique) y consenso — sin citas [n], y siendo honesto sobre el nivel de certeza.',
+    '(3) Piensa como subespecialista: evalúa la idoneidad del tratamiento (fármaco/dosis/vía/duración), interacciones y contraindicaciones (considera alergias/edad/función orgánica), alternativas mejores, y el diagnóstico diferencial relevante.',
+    '(4) Concreto y clínico, sin relleno.',
+    'Responde SOLO JSON válido: {"evaluacion":[{"punto":"...","sustento":"...","citas":[n]}],"alternativas":[{"opcion":"...","porque":"...","citas":[n]}],"diferencial":[{"dx":"...","razon":"...","citas":[n]}]}. "citas" es un arreglo (posiblemente vacío) de números [n] de la lista. Da al menos 2-3 puntos de evaluación y, cuando aplique, alternativas y diferenciales.',
+  ].join('\n')
+  const userMsg = `PACIENTE: edad ${ctx.edad ?? '?'}, sexo ${ctx.sexo ?? '?'}, alergias: ${alergias}.\nDIAGNÓSTICOS: ${dx.join('; ') || '—'}\nTRATAMIENTO: ${meds.join('; ') || '—'}${resumen ? `\nRESUMEN CLÍNICO: ${resumen.slice(0, 1500)}` : ''}\n\nEVIDENCIA (PubMed):\n${fuentesTxt}\n\nAnaliza y razona el caso. Devuelve solo el JSON.`
 
   const conThinking = nivel === 'premium'
   async function llamar(model: string) {
     const payload: Record<string, unknown> = {
-      model, max_tokens: conThinking ? 12000 : 4000,
+      model, max_tokens: conThinking ? 16000 : 8000,
       system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
       messages: [{ role: 'user', content: userMsg }],
     }
@@ -143,6 +156,7 @@ export async function POST(req: NextRequest) {
       alternativas: Array.isArray(parsed.alternativas) ? parsed.alternativas : [],
       diferencial: Array.isArray(parsed.diferencial) ? parsed.diferencial : [],
       nivel,
+      _aviso: hayEvidencia ? undefined : 'Razonado con conocimiento clínico y guías (PubMed no devolvió citas nuevas para estos términos exactos).',
     })
   } catch (e) {
     return NextResponse.json({ ok: true, articulos, evaluacion: [], alternativas: [], diferencial: [], _aviso: `No se pudo analizar (${String(e).slice(0, 80)}). Muestro los artículos encontrados.` })
