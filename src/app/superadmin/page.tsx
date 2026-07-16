@@ -203,7 +203,7 @@ export default function SuperadminPage() {
       </>
       )}
 
-      {sel && <ModalGestion cliente={sel} paquetes={paquetes} onClose={() => setSel(null)} onHecho={() => { setSel(null); cargar() }} />}
+      {sel && <ModalGestion cliente={sel} paquetes={paquetes} onClose={() => setSel(null)} onHecho={cargar} />}
     </div>
   )
 }
@@ -244,15 +244,21 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
   const toggleMod = (k: string) => setMods(prev => prev.includes(k) ? prev.filter(x => x !== k) : [...prev, k])
   const aplicarPaquete = (p: Paquete) => { setMods(p.modulos); setPaqNombre(p.nombre); setPaqId(p.id) }
 
+  const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
   const accion = async (accion: string, extra: Record<string, unknown> = {}) => {
-    setBusy(accion)
+    setBusy(accion); setMsg(null)
     try {
       const res = await fetchAutenticado('/api/superadmin/accion', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clinicId: cliente.id, accion, ...extra }),
       })
-      const d = await res.json()
-      if (d.ok) onHecho()
+      const d = await res.json().catch(() => null)
+      // El modal NO se cierra: refresca la lista y confirma para que puedas seguir
+      // editando (nivel + módulos) sin perder cambios.
+      if (d?.ok) { setMsg({ ok: true, texto: 'Guardado ✓' }); onHecho() }
+      else setMsg({ ok: false, texto: d?.error || `No se pudo guardar (HTTP ${res.status})` })
+    } catch (e) {
+      setMsg({ ok: false, texto: `Error de red: ${String(e).slice(0, 60)}` })
     } finally { setBusy(null) }
   }
 
@@ -264,6 +270,14 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
           {cliente.nombreMedico} · Plan {PLAN_LABEL[cliente.plan] ?? cliente.plan} · <span style={{ color: COB[cliente.cobranza].color, fontWeight: 700 }}>{COB[cliente.cobranza].label}</span>
           {cliente.totalPagado > 0 && <> · Pagado {mxn(cliente.totalPagado)}</>}
         </div>
+        {msg && (
+          <div style={{ fontSize: 13, fontWeight: 600, padding: '9px 12px', borderRadius: 8,
+            background: msg.ok ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
+            border: `1px solid ${msg.ok ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'}`,
+            color: msg.ok ? '#10b981' : '#f87171' }}>
+            {msg.texto}
+          </div>
+        )}
 
         {/* Reconectar MI cuenta a ESTE consultorio — SOLO si es un consultorio que YO creé. */}
         {cliente.esMio && (
