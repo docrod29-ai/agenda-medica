@@ -24,6 +24,7 @@ export const maxDuration = 60
 const ANTHROPIC_VERSION = '2023-06-01'
 const MODELOS_PREMIUM = ['claude-opus-4-8', 'claude-sonnet-5', 'claude-sonnet-4-6']
 const MODELOS_PRO = ['claude-sonnet-5', 'claude-sonnet-4-6', 'claude-3-5-sonnet-latest']
+const MODELOS_HAIKU_ANALISIS = ['claude-haiku-4-5-20251001', 'claude-3-5-haiku-latest']
 
 export async function POST(req: NextRequest) {
   const acceso = await verificarUsuario(req)
@@ -48,6 +49,7 @@ export async function POST(req: NextRequest) {
     medicamentos?: { nombre?: string }[]
     motivo?: string
     resumen?: string
+    motor?: string   // 'rapida' | 'estandar' | 'maxima' — el motor que el médico eligió para la nota
     contexto?: { edad?: number; sexo?: string; alergias?: unknown }
   }
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }
@@ -108,10 +110,17 @@ export async function POST(req: NextRequest) {
   //    y lo declara honestamente. Nunca devuelve vacío.
   let nivel: string = 'pro'
   try { nivel = await nivelIADe(clinicId) } catch { nivel = 'pro' }
-  // RESPETA EL PLAN: Premium → OPUS (el modelo máximo que el Dr. eligió), Pro → Sonnet.
-  // CLAVE de velocidad: NO usamos "razonamiento extendido" aquí (era eso, no Opus, lo
-  // que tardaba >40s y se abortaba). Opus SIN thinking es rápido (~15-25s) y de máximo nivel.
-  const modelos = nivel === 'premium' ? MODELOS_PREMIUM : MODELOS_PRO
+  // RESPETA EL MOTOR QUE ELEGISTE PARA LA NOTA: Rápida→Haiku, Estándar→Sonnet,
+  // Máxima→Opus. Así cambiar de motor SÍ cambia el análisis (antes usaba solo el
+  // plan → daba igual). Sin motor → por plan. NUNCA razonamiento extendido aquí
+  // (eso, no Opus, era lo que tardaba >40s); Opus sin thinking es rápido y máximo nivel.
+  const motorSel = String(body.motor ?? '')
+  const usaOpus = motorSel === 'maxima'
+  const usaHaiku = motorSel === 'rapida'
+  const modelos = usaOpus ? MODELOS_PREMIUM
+    : usaHaiku ? MODELOS_HAIKU_ANALISIS
+    : motorSel === 'estandar' ? MODELOS_PRO
+    : (nivel === 'premium' ? MODELOS_PREMIUM : MODELOS_PRO)
   const ctx = body.contexto ?? {}
   const alergias = Array.isArray(ctx.alergias) ? (ctx.alergias as string[]).join(', ') : (ctx.alergias ?? 'no referidas')
 
@@ -201,14 +210,17 @@ export async function POST(req: NextRequest) {
     // ENSAMBLE: Claude y GPT en PARALELO (misma latencia que una sola llamada) y se
     // FUSIONAN programáticamente — sin la 3ª llamada de síntesis que causaba el 504.
     // Sin llave OpenAI → solo Claude (sin regresión).
-    const oai = await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY ?? '').catch(() => ({ key: '' as string }))
+    // Nombre visible del modelo Claude según el motor (para que VEAS la diferencia).
+    const tierClaude = usaOpus ? 'Opus' : usaHaiku ? 'Haiku' : 'Sonnet'
+    // En Rápida (Haiku) NO ensamblamos con GPT → lo más veloz (seguimiento simple).
+    const oai = usaHaiku ? { key: '' } : await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY ?? '').catch(() => ({ key: '' as string }))
     const [ra, rb] = await Promise.all([
       conTimeout(analizarClaude(system, userMsg), 45000),
       oai.key ? conTimeout(analizarOpenAI(oai.key as string, system, userMsg), 40000) : Promise.resolve<Parsed | null>(null),
     ])
 
     const modelosUsados: string[] = []
-    if (ra) modelosUsados.push('Claude')
+    if (ra) modelosUsados.push(tierClaude)
     if (rb) modelosUsados.push('GPT')
     const final = ra && rb ? fusionar(norm(ra), norm(rb)) : (ra ? norm(ra) : (rb ? norm(rb) : null))
 
@@ -220,8 +232,8 @@ export async function POST(req: NextRequest) {
     void registrarUso(clinicId, fuente)
     const avisos: string[] = []
     if (!hayEvidencia) avisos.push('Razonado con conocimiento clínico y guías (PubMed no devolvió citas nuevas para estos términos exactos).')
-    if (modelosUsados.filter(x => x !== 'síntesis').length > 1) avisos.push(`Respuesta combinada de ${modelosUsados.filter(x => x !== 'síntesis').join(' + ')} (ensamble multi-modelo).`)
-    return NextResponse.json({ ok: true, articulos, ...final, nivel, _modelos: modelosUsados, _aviso: avisos.length ? avisos.join(' ') : undefined })
+    avisos.push(modelosUsados.length > 1 ? `Análisis combinado: ${modelosUsados.join(' + ')}.` : `Análisis con ${modelosUsados[0] ?? tierClaude}.`)
+    return NextResponse.json({ ok: true, articulos, ...final, nivel, _modelos: modelosUsados, _aviso: avisos.join(' ') })
   } catch (e) {
     return NextResponse.json({ ok: true, articulos, evaluacion: [], alternativas: [], diferencial: [], _aviso: `No se pudo analizar (${String(e).slice(0, 80)}). Muestro los artículos encontrados.` })
   }

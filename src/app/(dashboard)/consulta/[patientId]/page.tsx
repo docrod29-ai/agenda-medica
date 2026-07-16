@@ -338,6 +338,7 @@ export default function ConsultaActivaPage() {
           diagnosticos: diagnosticos.map(d => ({ descripcion: d.descripcion })),
           medicamentos: medicamentos.map(m => ({ nombre: m.nombre })),
           motivo: motivo.slice(0, 400),
+          motor: motorEfectivo,   // Rápida→Haiku, Estándar→Sonnet, Máxima→Opus (el análisis respeta tu elección)
           resumen: resumenTexto.slice(0, 2000),
           contexto: { edad: patient?.edad, sexo: patient?.sexo, alergias: patient?.alergias },
         }),
@@ -351,7 +352,7 @@ export default function ConsultaActivaPage() {
       }
     } catch (e) { console.error('[evidencia] excepción', e); toast(`Error de red al analizar (${String(e).slice(0, 60)})`, 'error') }
     finally { setAnalizandoEv(false) }
-  }, [diagnosticos, medicamentos, resumen, secciones, patient?.edad, patient?.sexo, patient?.alergias, toast])
+  }, [diagnosticos, medicamentos, resumen, secciones, motorEfectivo, patient?.edad, patient?.sexo, patient?.alergias, toast])
 
   // Genera un ANÁLISIS clínico basado en evidencia de ESTE paciente (razonando
   // con PubMed vía el Consultor) y lo AGREGA a la nota como una sección de texto
