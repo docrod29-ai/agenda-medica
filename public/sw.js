@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v394'  // Refactor monolito config: SeguridadTab (MFA/2FA) extraído a secciones-seguridad.tsx + estilos compartidos (cfgInput/cfgLabel) a estilos.ts. Sin cambio de comportamiento; verificado tsc + 490 tests + next build.
+const CACHE = 'nexusmed-v395'  // Refactor monolito config #3: RecetasTab + PreviewReceta + CalibradorReceta + subcontroles (~1058 líneas) -> secciones-recetas.tsx. configuracion/page.tsx 3894 -> 2836. Sin cambio de comportamiento; tsc + 490 tests + next build OK.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
