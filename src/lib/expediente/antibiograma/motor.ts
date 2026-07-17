@@ -115,11 +115,13 @@ function transversales(r: ResultadoAntibiograma[]): AporteModulo {
   const out = aporteVacio()
 
   if (FLUOROQUINOLONA.some(f => ES_R(estado(r, [f])))) {
-    out.fenotipos.push({ clave: 'FQ-R', nombre: 'Resistencia a fluoroquinolonas', confianza: 'confirmado', base: `Fluoroquinolona R (mutaciones en gyrA/parC ± bombas de expulsión). ${REF.CLSI}` })
+    out.fenotipos.push({ clave: 'FQ-R', nombre: 'Resistencia a fluoroquinolonas', confianza: 'confirmado', base: `Fluoroquinolona R. ${REF.CLSI}` })
+    out.mecanismos.push({ categoria: 'diana', nombre: 'Mutaciones en la topoisomerasa (gyrA/parC, QRDR)', confianza: 'probable', explicacion: 'Mutaciones en la región determinante de resistencia a quinolonas de la ADN-girasa (gyrA) y topoisomerasa IV (parC), ± bombas de expulsión (AcrAB-TolC) ± genes plasmídicos qnr. La R a la FQ más activa implica R a toda la clase.', referencia: REF.CLSI })
   }
 
   if (ES_R(estado(r, COLISTINA))) {
-    out.fenotipos.push({ clave: 'colistin-R', nombre: 'Resistencia a colistina/polimixina', confianza: 'confirmado', base: `Colistina R: última línea comprometida (mcr plasmídico o mutación cromosómica). ${REF.CLSI}` })
+    out.fenotipos.push({ clave: 'colistin-R', nombre: 'Resistencia a colistina/polimixina', confianza: 'confirmado', base: `Colistina R: última línea comprometida. ${REF.CLSI}` })
+    out.mecanismos.push({ categoria: 'permeabilidad', nombre: 'Modificación del lípido A (mcr / pmrAB-mgrB)', confianza: 'probable', explicacion: 'Adición de fosfoetanolamina o 4-amino-arabinosa al lípido A del LPS → reduce la carga negativa y la unión de la polimixina. Por mcr-1 plasmídico (transferible) o mutación cromosómica (pmrAB/phoPQ; mgrB en Klebsiella).', referencia: REF.CLSI })
     out.alertas.push({ nivel: 'critica', mensaje: 'Colistina-R: opciones muy limitadas. Infectología + microbiología para terapia combinada guiada por CMI.' })
   }
 

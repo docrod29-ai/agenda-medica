@@ -93,19 +93,32 @@ function staph(organismo: string, r: ResultadoAntibiograma[], out: AporteModulo)
     })
   }
 
-  // VISA / MIC creep de vancomicina. Toda CMI >2 en S. aureus advierte falla probable.
+  // ── Glucopéptidos en S. aureus: VRSA (≥16/R) > VISA (4-8) > hVISA/MIC creep (>2 y en CMI 2 con MRSA) ──
+  //    CLSI M100: S ≤2, I 4-8 (VISA), R ≥16 (VRSA).
   const vancoCmi = cmiDe(r, VANCOMICINA)
-  if (esAureus && vancoCmi !== null && vancoCmi > 2) {
+  const vancoSir = estado(r, VANCOMICINA)
+  if (esAureus && (ES_R(vancoSir) || (vancoCmi !== null && vancoCmi >= 16))) {
+    // VRSA — excepcional y gravísimo (operón vanA transferido del enterococo).
+    out.fenotipos.push({ clave: 'VRSA', nombre: 'S. aureus RESISTENTE a vancomicina (VRSA)', confianza: 'confirmado', base: `Vancomicina R${vancoCmi !== null ? ` (CMI ${vancoCmi} ≥16)` : ''}: adquisición del operón vanA. EXCEPCIONAL y notificable. ${REF.GRAM_POS}` })
+    out.mecanismos.push({ categoria: 'diana', nombre: 'Ligasa VanA (precursor D-Ala-D-Lac)', confianza: 'confirmado', explicacion: 'Reemplaza el D-Ala-D-Ala terminal del peptidoglicano por D-Ala-D-Lac → la vancomicina pierde su sitio de unión. Operón vanA transferido desde Enterococcus (Tn1546). La vancomicina y teicoplanina NO sirven.', referencia: REF.GRAM_POS })
+    out.alertas.push({ nivel: 'critica', mensaje: 'VRSA: fenotipo EXCEPCIONAL y grave → confirmar ID/AST y NOTIFICAR de inmediato a laboratorio de referencia/epidemiología. NO usar vancomicina; linezolid, daptomicina (no en neumonía) o ceftarolina según el sitio.' })
+    out.advertencias.push('VRSA: ignorar cualquier glucopéptido reportado S. Aislamiento de contacto estricto.')
+    out.terapiaDirigida.push({ linea: 'dirigida', agente: 'Linezolid / daptomicina / ceftarolina', razon: 'VRSA — los glucopéptidos son inactivos.', referencia: REF.GRAM_POS })
+    out.notificacion = true
+    out.aislamiento = 'Precauciones de contacto estrictas (VRSA).'
+  } else if (esAureus && vancoCmi !== null && vancoCmi >= 4) {
+    // VISA/GISA (CMI 4-8).
+    out.advertencias.push('Vancomicina CMI >2 en S. aureus: preferir alternativa aunque el reporte diga «S» (aquí ya es intermedia, VISA).')
+    out.fenotipos.push({ clave: 'VISA', nombre: 'S. aureus con sensibilidad intermedia a glucopéptidos (VISA/GISA)', confianza: 'probable', base: `Vancomicina CMI ${vancoCmi} mg/L (4-8): engrosamiento de la pared celular que secuestra el glucopéptido. ${REF.GRAM_POS}` })
+    out.mecanismos.push({ categoria: 'permeabilidad', nombre: 'Engrosamiento de pared celular (VISA)', confianza: 'probable', explicacion: 'Acúmulo de dianas señuelo (D-Ala-D-Ala) en una pared engrosada que atrapa la vancomicina antes de llegar a la membrana. NO es vanA. Reduce la eficacia de glucopéptidos.', referencia: REF.GRAM_POS })
+    out.alertas.push({ nivel: 'alta', mensaje: `Vancomicina CMI ${vancoCmi} (VISA/GISA): poco fiable. Considerar daptomicina (no en neumonía), linezolid o ceftarolina.` })
+  } else if (esAureus && vancoCmi !== null && vancoCmi > 2) {
     out.advertencias.push('Vancomicina CMI >2 en S. aureus: mayor probabilidad de falla clínica; preferir alternativa aunque el reporte diga «S».')
-    if (vancoCmi >= 4) {
-      out.fenotipos.push({
-        clave: 'VISA', nombre: 'S. aureus con sensibilidad intermedia a glucopéptidos (VISA/GISA)', confianza: 'probable',
-        base: `Vancomicina CMI ${vancoCmi} mg/L (4-8): engrosamiento de pared/secuestro del glucopéptido. ${REF.GRAM_POS}`,
-      })
-      out.alertas.push({ nivel: 'alta', mensaje: `Vancomicina CMI ${vancoCmi} (VISA/GISA): la vancomicina es poco fiable. Considerar daptomicina (no en neumonía), linezolid o ceftarolina.` })
-    } else {
-      out.alertas.push({ nivel: 'alta', mensaje: `Vancomicina CMI ${vancoCmi} (>2) en S. aureus: eficacia reducida (MIC creep/hVISA). Preferir alternativa aunque el reporte diga «S».` })
-    }
+    out.alertas.push({ nivel: 'alta', mensaje: `Vancomicina CMI ${vancoCmi} (>2) en S. aureus: eficacia reducida (MIC creep). Preferir alternativa.` })
+  } else if (esAureus && vancoCmi === 2 && meticilinaR) {
+    // CMI 2 = S, pero en MRSA con CMI en el límite alto: sospechar hVISA (heterorresistencia).
+    out.fenotipos.push({ clave: 'hVISA', nombre: 'Sospecha de hVISA (heterorresistencia a vancomicina)', confianza: 'sospecha', base: `MRSA con vancomicina CMI 2 (límite alto de S): posible subpoblación hVISA, sobre todo si hay falla clínica/bacteriemia persistente. Confirmar con PAP-AUC. ${REF.GRAM_POS}` })
+    out.advertencias.push('hVISA: si hay falla clínica o bacteriemia persistente con CMI 2, sospechar heterorresistencia y considerar cambio a daptomicina/ceftarolina + confirmación (PAP-AUC).')
   }
   void LINEZOLID; void DAPTOMICINA
 }

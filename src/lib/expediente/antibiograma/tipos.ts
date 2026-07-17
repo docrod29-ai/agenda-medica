@@ -70,7 +70,7 @@ export type SitioInfeccion =
   | 'intraabdominal' | 'hueso-articulacion' | 'otro'
 
 export type FenotipoClave =
-  | 'MRSA' | 'BORSA' | 'VISA' | 'MLSb-inducible' | 'MLSb-constitutivo'
+  | 'MRSA' | 'BORSA' | 'VISA' | 'hVISA' | 'VRSA' | 'MLSb-inducible' | 'MLSb-constitutivo'
   | 'penicilinasa-estafilococica' | 'HLAR' | 'VRE' | 'ampicilina-R-enterococo'
   | 'neumococo-PNS' | 'carbapenemasa' | 'BLEE' | 'AmpC' | 'IRT'
   | 'porina-perdida' | 'bomba-expulsion' | 'FQ-R' | 'colistin-R'

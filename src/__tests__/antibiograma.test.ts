@@ -474,6 +474,37 @@ describe('Pruebas microbiológicas CLSI sugeridas', () => {
   })
 })
 
+describe('Glucopéptidos en S. aureus: VRSA / VISA / hVISA + mecanismos', () => {
+  it('vanco R → VRSA + mecanismo vanA + crítica + notificación', () => {
+    const r = interpretarAntibiograma({ organismo: 'Staphylococcus aureus', resultados: [{ antibiotico: 'Vancomicina', interpretacion: 'R', cmi: 32 }] })
+    expect(claves(r)).toContain('VRSA')
+    expect(r.mecanismos.some(m => /vanA|D-Lac/i.test(m.nombre))).toBe(true)
+    expect(r.alertas.some(a => a.nivel === 'critica' && /VRSA/i.test(a.mensaje))).toBe(true)
+    expect(r.notificacionObligatoria).toBe(true)
+  })
+  it('vanco CMI 6 → VISA + mecanismo de engrosamiento de pared', () => {
+    const r = interpretarAntibiograma({ organismo: 'Staphylococcus aureus', resultados: [{ antibiotico: 'Vancomicina', interpretacion: 'S', cmi: 6 }] })
+    expect(claves(r)).toContain('VISA')
+    expect(claves(r)).not.toContain('VRSA')
+    expect(r.mecanismos.some(m => /engrosamiento|pared/i.test(m.nombre))).toBe(true)
+  })
+  it('MRSA + vanco CMI 2 → sospecha hVISA', () => {
+    const r = interpretarAntibiograma({ organismo: 'Staphylococcus aureus', resultados: [{ antibiotico: 'Cefoxitina', interpretacion: 'R' }, { antibiotico: 'Vancomicina', interpretacion: 'S', cmi: 2 }] })
+    expect(claves(r)).toContain('hVISA')
+  })
+})
+
+describe('Mecanismos moleculares en fenotipos transversales', () => {
+  it('colistina R → mecanismo mcr/lípido A', () => {
+    const r = interpretarAntibiograma(ab('Klebsiella pneumoniae', [['Colistina', 'R']]))
+    expect(r.mecanismos.some(m => /mcr|lípido A|lipido A/i.test(m.nombre))).toBe(true)
+  })
+  it('ciprofloxacino R → mecanismo gyrA/parC', () => {
+    const r = interpretarAntibiograma(ab('Escherichia coli', [['Ciprofloxacino', 'R']]))
+    expect(r.mecanismos.some(m => /gyrA|parC|topoisomerasa/i.test(m.nombre))).toBe(true)
+  })
+})
+
 describe('Pruebas confirmatorias del reporte (input)', () => {
   it('D-test POS → clindamicina R confirmada aunque el disco no esté', () => {
     const r = interpretarAntibiograma({ organismo: 'Staphylococcus aureus', resultados: [{ antibiotico: 'Eritromicina', interpretacion: 'R' }], pruebas: { dTest: 'pos' } })
