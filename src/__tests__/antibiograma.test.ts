@@ -307,3 +307,79 @@ describe('Neumococo — penicilina por sitio', () => {
     expect(claves(r)).toContain('neumococo-PNS')
   })
 })
+
+// ─── Paridad con StewardMX: EUCAST safety + epidemiología MX + CRE avanzada ───
+
+describe('Fenotipos excepcionales (EUCAST T5-7)', () => {
+  it('S. aureus linezolid R → alerta excepcional', () => {
+    const r = interpretarAntibiograma(ab('Staphylococcus aureus', [['Linezolid', 'R']]))
+    expect(r.alertas.some(a => /excepcional/i.test(a.mensaje))).toBe(true)
+  })
+  it('E. faecalis ampicilina R → sospechar E. faecium', () => {
+    const r = interpretarAntibiograma(ab('Enterococcus faecalis', [['Ampicilina', 'R']]))
+    expect(r.alertas.some(a => /faecium|identificaci/i.test(a.mensaje))).toBe(true)
+  })
+  it('P. aeruginosa colistina R → excepcional/emergente', () => {
+    const r = interpretarAntibiograma(ab('Pseudomonas aeruginosa', [['Colistina', 'R']]))
+    expect(r.alertas.some(a => /excepcional|emergente/i.test(a.mensaje))).toBe(true)
+  })
+})
+
+describe('Cross-resistencia de fluoroquinolonas (EUCAST T13)', () => {
+  it('GN cipro R + levo S → edición interpretativa levo S→R', () => {
+    const r = interpretarAntibiograma(ab('Escherichia coli', [['Ciprofloxacino', 'R'], ['Levofloxacino', 'S']]))
+    expect(r.edicionesInterpretativas.some(e => /levofloxacino/i.test(e.antibiotico) && e.a === 'R')).toBe(true)
+  })
+  it('Staph cipro R + levo/moxi S → aviso mutación de primer paso (sin editar)', () => {
+    const r = interpretarAntibiograma(ab('Staphylococcus aureus', [['Ciprofloxacino', 'R'], ['Levofloxacino', 'S']]))
+    expect(r.advertencias.join(' ')).toMatch(/primer paso/i)
+  })
+})
+
+describe('Resistencia intrínseca Gram+ (EUCAST T4)', () => {
+  it('Enterococo + aztreonam S → conflicto', () => {
+    const r = interpretarAntibiograma(ab('Enterococcus faecium', [['Aztreonam', 'S']]))
+    expect(r.resistenciaIntrinseca.some(n => n.tipo === 'conflicto' && /aztreonam/i.test(n.antibiotico))).toBe(true)
+  })
+  it('S. aureus + colistina S → conflicto (Gram+ R intrínseco a colistina)', () => {
+    const r = interpretarAntibiograma(ab('Staphylococcus aureus', [['Colistina', 'S']]))
+    expect(r.resistenciaIntrinseca.some(n => n.tipo === 'conflicto' && /colistina/i.test(n.mensaje))).toBe(true)
+  })
+})
+
+describe('CRE — epidemiología mexicana y discriminador CAZ-AVI (INVIFAR)', () => {
+  it('Klebsiella mero R sin CAZ-AVI → alerta de epidemiología local (NDM/MBL primero)', () => {
+    const r = interpretarAntibiograma(ab('Klebsiella pneumoniae', [['Meropenem', 'R'], ['Ceftriaxona', 'R']]))
+    expect(r.alertas.some(a => /INVIFAR|NDM|metalo|MBL/i.test(a.mensaje))).toBe(true)
+  })
+  it('CAZ-AVI R → MBL + aviso de acceso México (sin aztreonam/cefiderocol) + esquema local', () => {
+    const r = interpretarAntibiograma(ab('Klebsiella pneumoniae', [['Meropenem', 'R'], ['Ceftazidima-avibactam', 'R']]))
+    expect(r.alertas.some(a => /no hay aztreonam ni cefiderocol/i.test(a.mensaje))).toBe(true)
+    expect(r.terapiaDirigida.some(t => /colistina|amikacina|fosfomicina/i.test(t.agente))).toBe(true)
+  })
+  it('aztreonam S conservado con carbapenémico R (sin CAZ-AVI) → firma de MBL', () => {
+    const r = interpretarAntibiograma(ab('Klebsiella pneumoniae', [['Meropenem', 'R'], ['Aztreonam', 'S']]))
+    const carb = r.fenotipos.find(f => f.clave === 'carbapenemasa')
+    expect(carb?.base).toMatch(/metalo|MBL|monobact/i)
+  })
+})
+
+describe('CRE — patrón ertapenem-aislado (porina/OXA-48) y Proteae', () => {
+  it('E. coli ert R + imi S + mer S → porina-perdida, NO carbapenemasa de alto nivel', () => {
+    const r = interpretarAntibiograma(ab('Escherichia coli', [['Ertapenem', 'R'], ['Imipenem', 'S'], ['Meropenem', 'S'], ['Ceftriaxona', 'R']]))
+    expect(claves(r)).toContain('porina-perdida')
+    expect(claves(r)).not.toContain('carbapenemasa')
+    expect(r.advertencias.join(' ')).toMatch(/OXA-48|molecular/i)
+  })
+  it('Morganella imipenem R (intrínseco) con ert/mer S → NO se marca carbapenemasa', () => {
+    const r = interpretarAntibiograma(ab('Morganella morganii', [['Imipenem', 'R'], ['Ertapenem', 'S'], ['Meropenem', 'S']]))
+    expect(claves(r)).not.toContain('carbapenemasa')
+  })
+})
+
+describe('AmpC — pip-tazo no fiable (Meini)', () => {
+  it('Enterobacter + pip-tazo S → advertencia de pip-tazo no fiable', () => {
+    const r = interpretarAntibiograma(ab('Enterobacter cloacae', [['Ceftriaxona', 'S'], ['Piperacilina/Tazobactam', 'S']]))
+    expect(r.advertencias.join(' ')).toMatch(/piperacilina-tazobactam|efecto in[óo]culo/i)
+  })
+})

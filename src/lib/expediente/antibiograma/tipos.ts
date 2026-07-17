@@ -102,6 +102,15 @@ export interface BloqueDidactico {
   referencia: string
 }
 
+/** Edición interpretativa: un fármaco reportado «S» que debe leerse R por inferencia (EUCAST T13). */
+export interface EdicionInterpretativa {
+  antibiotico: string
+  de: 'S'
+  a: 'R'
+  razon: string
+  referencia: string
+}
+
 /** Aporte parcial de un módulo de órgano-específico; el motor los fusiona. */
 export interface AporteModulo {
   fenotipos: FenotipoDetectado[]
@@ -145,6 +154,8 @@ export interface InterpretacionAntibiograma {
   terapiaDirigida: OpcionTerapeutica[]
   /** Explicación didáctica del razonamiento. */
   didactica: BloqueDidactico[]
+  /** Ediciones interpretativas (EUCAST): «S» que debe leerse R por inferencia. */
+  edicionesInterpretativas: EdicionInterpretativa[]
   /** Fuentes citadas en esta interpretación. */
   referencias: string[]
 }

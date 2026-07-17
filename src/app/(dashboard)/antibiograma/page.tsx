@@ -13,7 +13,7 @@ import {
 } from '@/lib/expediente/antibiograma'
 import {
   FlaskConical, Plus, Trash2, AlertTriangle, ShieldAlert, Activity, Info, Bug,
-  Dna, Target, BookOpen, Microscope,
+  Dna, Target, BookOpen, Microscope, Pencil,
 } from 'lucide-react'
 
 const ANTIBIOTICOS_COMUNES = [
@@ -209,6 +209,19 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {res.alertas.map((a, i) => (
               <div key={i} style={{ ...box, ...alertaEstilo(a.nivel) }}>{a.mensaje}</div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {res.edicionesInterpretativas.length > 0 && (
+        <div>
+          <SecTitle icon={<Pencil size={15} />} t="Ediciones interpretativas (EUCAST)" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {res.edicionesInterpretativas.map((e, i) => (
+              <div key={i} style={{ ...box, borderColor: 'rgba(245,158,11,.4)', background: 'rgba(245,158,11,.06)', color: 'var(--text2)' }}>
+                <span><b>{e.antibiotico}: {e.de} → {e.a}</b> — {e.razon}</span>
+              </div>
             ))}
           </div>
         </div>

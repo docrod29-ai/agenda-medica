@@ -17,7 +17,7 @@ import { REF } from './referencias'
 import {
   organismoEs, estado, ES_S,
   AMPICILINA, AMOXI_CLAV, CEF1G, CEFOXITINA, COLISTINA, NITROFURANTOINA,
-  TETRACICLINA, CARBAPENEM, AZTREONAM, COTRIMOXAZOL, CEF3G,
+  TETRACICLINA, TIGECICLINA, CARBAPENEM, AZTREONAM, COTRIMOXAZOL, CEF3G, CEFEPIME,
 } from './util'
 
 interface ReglaIntrinseca {
@@ -39,8 +39,9 @@ const REGLAS: ReglaIntrinseca[] = [
     claves: ['proteus mirabilis'],
     resistentes: [
       { agente: COLISTINA, nota: 'Proteus mirabilis es intrínsecamente R a colistina/polimixina (lipopolisacárido modificado).' },
+      { agente: TIGECICLINA, nota: 'Proteae (Proteus/Providencia/Morganella) intrínsecamente R a tigeciclina.' },
       { agente: NITROFURANTOINA, nota: 'Proteus es intrínsecamente R a nitrofurantoína.' },
-      { agente: TETRACICLINA, nota: 'Proteus es intrínsecamente R a tetraciclina.' },
+      { agente: TETRACICLINA, nota: 'Proteus es intrínsecamente R a tetraciclina/minociclina.' },
     ],
     ref: REF.ENTEROBACT,
   },
@@ -130,8 +131,19 @@ const REGLAS: ReglaIntrinseca[] = [
     claves: ['enterococcus', 'enterococo', 'faecium', 'faecalis'],
     resistentes: [
       { agente: CEF3G, nota: 'Enterococcus es intrínsecamente R a TODAS las cefalosporinas (no las use aunque el reporte diga S).' },
+      { agente: CEFEPIME, nota: 'Enterococcus: cefepime (y toda cefalosporina) R intrínseco.' },
+      { agente: AZTREONAM, nota: 'Enterococcus (Gram+): aztreonam R intrínseco (los monobactámicos no cubren Gram+).' },
+      { agente: COLISTINA, nota: 'Enterococcus (Gram+): colistina/polimixina R intrínseco.' },
       { agente: COTRIMOXAZOL, nota: 'Enterococcus: cotrimoxazol R in vivo (puede aparecer S in vitro — no fiable).' },
       { agente: ['clindamicina'], nota: 'Enterococcus: clindamicina R intrínseco.' },
+    ],
+    ref: REF.GRAM_POS,
+  },
+  {
+    claves: ['staphylococc', 'aureus', 'streptococc', 'neumococo', 'pneumococ', 'pyogenes', 'agalactiae'],
+    resistentes: [
+      { agente: AZTREONAM, nota: 'Gram positivos: aztreonam R intrínseco (los monobactámicos solo cubren Gram-negativos aerobios).' },
+      { agente: COLISTINA, nota: 'Gram positivos: colistina/polimixina R intrínseco.' },
     ],
     ref: REF.GRAM_POS,
   },

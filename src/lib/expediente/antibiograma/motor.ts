@@ -18,6 +18,7 @@ import { analizarGramPositivos } from './grampositivos'
 import { analizarEnterobacterales } from './enterobacterales'
 import { analizarNoFermentadores } from './nofermentadores'
 import { evaluarIntrinseca } from './intrinseca'
+import { analizarSeguridad } from './seguridad'
 
 function fusionar(a: AporteModulo, b: AporteModulo): AporteModulo {
   return {
@@ -45,12 +46,20 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
 
   const resistenciaIntrinseca = evaluarIntrinseca(organismo, r)
 
+  // Capa de seguridad EUCAST: fenotipos excepcionales + cross-resistencia FQ.
+  const seg = analizarSeguridad(organismo, r)
+  const alertas = [...seg.excepcionales, ...ap.alertas]
+  const advertencias = [...ap.advertencias, ...seg.avisos]
+  const edicionesInterpretativas = seg.edicionesFQ
+
   // Referencias efectivamente usadas.
   const refs = new Set<string>()
   ap.mecanismos.forEach(m => refs.add(m.referencia))
   ap.terapiaDirigida.forEach(t => refs.add(t.referencia))
   ap.didactica.forEach(d => refs.add(d.referencia))
   resistenciaIntrinseca.forEach(n => refs.add(n.referencia))
+  edicionesInterpretativas.forEach(e => refs.add(e.referencia))
+  seg.excepcionales.forEach(() => refs.add('EUCAST Expert Rules (Leclercq/Cantón, Clin Microbiol Infect 2013;19:141-160)'))
   if (ap.notificacion) refs.add(REF.NOM045)
   if (ap.fenotipos.length) refs.add(REF.CLSI)
 
@@ -59,14 +68,15 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
     organismoNormalizado: reconocer(organismo),
     fenotipos: dedupFenotipos(ap.fenotipos),
     mecanismos: ap.mecanismos,
-    alertas: ap.alertas,
+    alertas,
     notificacionObligatoria: ap.notificacion,
     aislamiento: ap.aislamiento,
     optimizacionPKPD: [...new Set(ap.optimizacionPKPD)],
-    advertencias: [...new Set(ap.advertencias)],
+    advertencias: [...new Set(advertencias)],
     resistenciaIntrinseca,
     terapiaDirigida: ap.terapiaDirigida,
     didactica: ap.didactica,
+    edicionesInterpretativas,
     referencias: [...refs],
   }
 }
