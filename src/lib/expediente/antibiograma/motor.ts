@@ -17,6 +17,7 @@ import {
 import { analizarGramPositivos } from './grampositivos'
 import { analizarEnterobacterales } from './enterobacterales'
 import { analizarNoFermentadores } from './nofermentadores'
+import { analizarConfirmatorias } from './confirmatorias'
 import { evaluarIntrinseca } from './intrinseca'
 import { analizarSeguridad } from './seguridad'
 import { pruebasRecomendadas } from './clsi-pruebas'
@@ -45,6 +46,7 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
   ap = fusionar(ap, analizarGramPositivos(organismo, r, entrada.sitio))
   ap = fusionar(ap, analizarEnterobacterales(organismo, r))
   ap = fusionar(ap, analizarNoFermentadores(organismo, r))
+  ap = fusionar(ap, analizarConfirmatorias(entrada.pruebas, organismo))
   ap = fusionar(ap, transversales(r))
 
   const resistenciaIntrinseca = evaluarIntrinseca(organismo, r)

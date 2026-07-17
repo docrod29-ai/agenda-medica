@@ -34,11 +34,35 @@ export interface ResultadoAntibiograma {
   cmi?: number
 }
 
+/** Resultado de una prueba confirmatoria (como la reportan los sistemas automatizados). */
+export type ResultadoPrueba = 'pos' | 'neg'
+
+/** Pruebas confirmatorias/fenotípicas que traen los reportes automatizados (Vitek/Phoenix/MicroScan)
+ *  o el laboratorio manual. Cuando se capturan, CONFIRMAN el fenotipo (mayor confianza que inferirlo del S/I/R). */
+export interface PruebasConfirmatorias {
+  /** Tamiz de cefoxitina/oxacilina (detección de MRSA / mecA). */
+  cefoxitinaScreen?: ResultadoPrueba
+  /** D-test / D-zone: resistencia INDUCIBLE a clindamicina (MLSb inducible). */
+  dTest?: ResultadoPrueba
+  /** Confirmación de BLEE (sinergia con clavulanato). */
+  esbl?: ResultadoPrueba
+  /** Carbapenemasa (mCIM/eCIM, Carba NP o molecular). */
+  carbapenemasa?: ResultadoPrueba
+  /** Clase de carbapenemasa si se determinó (molecular/eCIM). */
+  claseCarbapenemasa?: 'KPC' | 'OXA-48' | 'NDM' | 'VIM' | 'IMP' | 'MBL' | 'indeterminada'
+  /** β-lactamasa por nitrocefina (estafilococo/enterococo/Haemophilus/gonococo). */
+  betaLactamasa?: ResultadoPrueba
+  /** Resistencia de ALTO nivel a aminoglucósidos (enterococo, screen gentamicina/estreptomicina). */
+  hlar?: ResultadoPrueba
+}
+
 export interface EntradaAntibiograma {
   organismo: string
   resultados: ResultadoAntibiograma[]
   /** Contexto opcional que afina las recomendaciones (no altera la inferencia de mecanismo). */
   sitio?: SitioInfeccion
+  /** Resultados de pruebas confirmatorias capturados del reporte (opcional). */
+  pruebas?: PruebasConfirmatorias
 }
 
 export type SitioInfeccion =

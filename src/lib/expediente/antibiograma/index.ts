@@ -31,5 +31,7 @@ export type {
   EdicionInterpretativa,
   PruebaCLSI,
   CategoriaCMI,
+  PruebasConfirmatorias,
+  ResultadoPrueba,
   InterpretacionAntibiograma,
 } from './tipos'

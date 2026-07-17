@@ -474,6 +474,39 @@ describe('Pruebas microbiológicas CLSI sugeridas', () => {
   })
 })
 
+describe('Pruebas confirmatorias del reporte (input)', () => {
+  it('D-test POS → clindamicina R confirmada aunque el disco no esté', () => {
+    const r = interpretarAntibiograma({ organismo: 'Staphylococcus aureus', resultados: [{ antibiotico: 'Eritromicina', interpretacion: 'R' }], pruebas: { dTest: 'pos' } })
+    expect(r.fenotipos.some(f => f.clave === 'MLSb-inducible' && f.confianza === 'confirmado')).toBe(true)
+    expect(r.advertencias.join(' ')).toMatch(/clindamicina resistente/i)
+  })
+  it('tamiz cefoxitina POS → MRSA confirmado + notificación', () => {
+    const r = interpretarAntibiograma({ organismo: 'Staphylococcus aureus', resultados: [], pruebas: { cefoxitinaScreen: 'pos' } })
+    expect(r.fenotipos.some(f => f.clave === 'MRSA' && f.confianza === 'confirmado')).toBe(true)
+    expect(r.notificacionObligatoria).toBe(true)
+  })
+  it('BLEE POS → BLEE confirmada + carbapenémico dirigido', () => {
+    const r = interpretarAntibiograma({ organismo: 'Escherichia coli', resultados: [], pruebas: { esbl: 'pos' } })
+    expect(r.fenotipos.some(f => f.clave === 'BLEE' && f.confianza === 'confirmado')).toBe(true)
+    expect(r.terapiaDirigida.some(t => /carbapen/i.test(t.agente))).toBe(true)
+  })
+  it('carbapenemasa POS con clase NDM → MBL confirmada + aviso acceso MX', () => {
+    const r = interpretarAntibiograma({ organismo: 'Klebsiella pneumoniae', resultados: [], pruebas: { carbapenemasa: 'pos', claseCarbapenemasa: 'NDM' } })
+    const c = r.fenotipos.find(f => f.clave === 'carbapenemasa')
+    expect(c?.confianza).toBe('confirmado')
+    expect(r.mecanismos.some(m => m.ambler === 'B')).toBe(true)
+    expect(r.alertas.some(a => /no hay aztreonam ni cefiderocol/i.test(a.mensaje))).toBe(true)
+  })
+  it('nitrocefina POS en S. aureus → penicilinasa confirmada (penicilina R)', () => {
+    const r = interpretarAntibiograma({ organismo: 'Staphylococcus aureus', resultados: [], pruebas: { betaLactamasa: 'pos' } })
+    expect(r.fenotipos.some(f => f.clave === 'penicilinasa-estafilococica')).toBe(true)
+  })
+  it('sin pruebas → no cambia el comportamiento base', () => {
+    const r = interpretarAntibiograma({ organismo: 'Escherichia coli', resultados: [['Ceftriaxona', 'S'] as [string, 'S']].map(([a, i]) => ({ antibiotico: a, interpretacion: i as 'S' })) })
+    expect(r.fenotipos).toHaveLength(0)
+  })
+})
+
 describe('Visión → motor (perfilAEntrada)', () => {
   it('convierte el perfil extraído en entrada del motor y filtra celdas sin S/I/R', () => {
     const perfil = {

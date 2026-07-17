@@ -10,8 +10,19 @@
 import { useState, useRef } from 'react'
 import {
   interpretarAntibiograma, type SIR, type SitioInfeccion, type InterpretacionAntibiograma,
+  type PruebasConfirmatorias, type ResultadoPrueba,
 } from '@/lib/expediente/antibiograma'
 import { fetchAutenticado } from '@/lib/auth-client'
+
+// Pruebas confirmatorias que traen los reportes automatizados / el laboratorio.
+const PRUEBAS_CONF: { k: keyof PruebasConfirmatorias; t: string; hint: string }[] = [
+  { k: 'cefoxitinaScreen', t: 'Tamiz cefoxitina (MRSA)', hint: 'mecA — pos = MRSA' },
+  { k: 'dTest', t: 'D-test (clindamicina inducible)', hint: 'pos = clindamicina R' },
+  { k: 'esbl', t: 'BLEE (confirmatoria)', hint: 'sinergia con clavulanato' },
+  { k: 'carbapenemasa', t: 'Carbapenemasa (mCIM/Carba NP)', hint: 'pos = productor' },
+  { k: 'betaLactamasa', t: 'β-lactamasa (nitrocefina)', hint: 'pos = penicilina R' },
+  { k: 'hlar', t: 'HLAR (alto nivel aminoglucósidos)', hint: 'pierde sinergia' },
+]
 import {
   FlaskConical, Plus, Trash2, AlertTriangle, ShieldAlert, Activity, Info, Bug,
   Dna, Target, BookOpen, Microscope, Pencil, Camera, Loader2, TestTube,
@@ -41,9 +52,13 @@ export default function AntibiogramaPage() {
   const [sitio, setSitio] = useState<SitioInfeccion>('otro')
   const [filas, setFilas] = useState<Fila[]>([nuevaFila('Ceftriaxona'), nuevaFila('Meropenem')])
   const [res, setRes] = useState<InterpretacionAntibiograma | null>(null)
+  const [pruebas, setPruebas] = useState<PruebasConfirmatorias>({})
   const [cargandoFoto, setCargandoFoto] = useState(false)
   const [avisoFoto, setAvisoFoto] = useState<string[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
+
+  const setPrueba = (k: keyof PruebasConfirmatorias, v: ResultadoPrueba | undefined) =>
+    setPruebas(p => { const n = { ...p }; if (v) (n[k] as ResultadoPrueba | undefined) = v; else delete n[k]; return n })
 
   const setFila = (i: number, patch: Partial<Fila>) =>
     setFilas(fs => fs.map((f, j) => (j === i ? { ...f, ...patch } : f)))
@@ -97,7 +112,7 @@ export default function AntibiogramaPage() {
         interpretacion: f.interpretacion,
         ...(f.cmi.trim() && !isNaN(Number(f.cmi)) ? { cmi: Number(f.cmi) } : {}),
       }))
-    setRes(interpretarAntibiograma({ organismo: organismo.trim(), resultados, sitio }))
+    setRes(interpretarAntibiograma({ organismo: organismo.trim(), resultados, sitio, pruebas }))
   }
 
   return (
@@ -174,6 +189,32 @@ export default function AntibiogramaPage() {
         <button type="button" onClick={() => agregar()} style={addBtn}><Plus size={14} /> Fila</button>
         {ANTIBIOTICOS_COMUNES.slice(0, 8).map(a => (
           <button key={a} type="button" onClick={() => agregar(a)} style={chip}>{a}</button>
+        ))}
+      </div>
+
+      {/* Pruebas confirmatorias del reporte automatizado (opcionales) */}
+      <label style={{ ...label, marginTop: 20 }}>Pruebas confirmatorias del reporte (opcional)</label>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
+        {PRUEBAS_CONF.map(p => (
+          <div key={p.k} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12.5, color: 'var(--text2)' }}>{p.t}</div>
+              <div style={{ fontSize: 10.5, color: 'var(--text3)' }}>{p.hint}</div>
+            </div>
+            <div style={{ display: 'flex', gap: 3 }}>
+              {(['pos', 'neg'] as ResultadoPrueba[]).map(v => {
+                const on = pruebas[p.k] === v
+                const color = v === 'pos' ? '#f87171' : '#10b981'
+                return (
+                  <button key={v} type="button" onClick={() => setPrueba(p.k, on ? undefined : v)}
+                    style={{ minWidth: 44, height: 30, borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
+                      border: '1px solid ' + (on ? color : 'var(--border)'), background: on ? color : 'var(--s2)', color: on ? '#fff' : 'var(--text3)' }}>
+                    {v === 'pos' ? 'POS' : 'NEG'}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
         ))}
       </div>
 
