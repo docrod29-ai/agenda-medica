@@ -431,6 +431,21 @@ describe('Puntos de corte CLSI M100 (CMI → S/I/R)', () => {
     expect(r.categoriasCMI.find(x => /ampicilina/i.test(x.antibiotico))?.categoriaCLSI).toBe('S')
     expect(r.categoriasCMI.find(x => /vancomicina/i.test(x.antibiotico))?.categoriaCLSI).toBe('R')
   })
+  it('Neumococo penicilina CMI 1: S no-meníngeo (≤2) pero R meníngeo (≥0.12)', () => {
+    const noMen = interpretarAntibiograma({ organismo: 'Streptococcus pneumoniae', sitio: 'respiratorio', resultados: [{ antibiotico: 'Penicilina', interpretacion: 'S', cmi: 1 }] })
+    expect(noMen.categoriasCMI.find(x => /penicilina/i.test(x.antibiotico))?.categoriaCLSI).toBe('S')
+    const men = interpretarAntibiograma({ organismo: 'Streptococcus pneumoniae', sitio: 'snc', resultados: [{ antibiotico: 'Penicilina', interpretacion: 'R', cmi: 1 }] })
+    expect(men.categoriasCMI.find(x => /penicilina/i.test(x.antibiotico))?.categoriaCLSI).toBe('R')
+  })
+  it('Neumococo ceftriaxona CMI 1: S no-meníngeo, I meníngeo', () => {
+    const men = interpretarAntibiograma({ organismo: 'Streptococcus pneumoniae', sitio: 'snc', resultados: [{ antibiotico: 'Ceftriaxona', interpretacion: 'I', cmi: 1 }] })
+    expect(men.categoriasCMI.find(x => /ceftriaxona/i.test(x.antibiotico))?.categoriaCLSI).toBe('I') // meníngeo: ≤0.5 S, 1 I, ≥2 R
+  })
+  it('Klebsiella pneumoniae NO se confunde con neumococo (usa breakpoints de enterobacterias)', () => {
+    const r = interpretarAntibiograma({ organismo: 'Klebsiella pneumoniae', resultados: [{ antibiotico: 'Ceftriaxona', interpretacion: 'S', cmi: 1 }] })
+    // en enterobacterales ceftriaxona ≤1 = S; el punto clave es que NO aplicó la tabla de neumococo
+    expect(r.categoriasCMI.find(x => /ceftriaxona/i.test(x.antibiotico))?.referencia).toMatch(/Enterobacterales/)
+  })
 })
 
 describe('Pruebas microbiológicas CLSI sugeridas', () => {

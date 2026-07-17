@@ -74,7 +74,7 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
   const categoriasCMI: CategoriaCMI[] = []
   for (const x of r) {
     if (typeof x.cmi !== 'number') continue
-    const cat = interpretarCMI(organismo, x.antibiotico, x.cmi)
+    const cat = interpretarCMI(organismo, x.antibiotico, x.cmi, entrada.sitio)
     if (!cat) continue
     categoriasCMI.push({
       antibiotico: x.antibiotico,

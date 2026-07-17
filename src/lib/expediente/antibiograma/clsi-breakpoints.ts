@@ -12,7 +12,7 @@
  */
 import { norm } from './util'
 
-export type GrupoCLSI = 'enterobacterales' | 'pseudomonas' | 'acinetobacter' | 'staphylococcus' | 'enterococcus'
+export type GrupoCLSI = 'enterobacterales' | 'pseudomonas' | 'acinetobacter' | 'staphylococcus' | 'enterococcus' | 'pneumococcus'
 
 export interface Corte {
   /** CMI ≤ sMax → S (µg/mL). */
@@ -23,6 +23,8 @@ export interface Corte {
   uti?: boolean
   /** Sin categoría "S" (p. ej. colistina: solo I/R). */
   sinS?: boolean
+  /** Variante MENÍNGEA (S. pneumoniae): se usa cuando el sitio es SNC. */
+  snc?: { sMax: number; rMin: number }
 }
 
 /** Sinónimos → clave canónica de fármaco. */
@@ -39,6 +41,7 @@ const FARMACO_ALIAS: Record<string, string[]> = {
   'sulbactam-durlobactam': ['sulbactam-durlobactam', 'sulbactam/durlobactam', 'durlobactam'],
   netilmicina: ['netilmicina'],
   penicilina: ['penicilina', 'bencilpenicilina'],
+  amoxicilina: ['amoxicilina'],
   oxacilina: ['oxacilina', 'meticilina', 'dicloxacilina'],
   vancomicina: ['vancomicina'],
   teicoplanina: ['teicoplanina'],
@@ -209,12 +212,35 @@ const ENTEROCOCCUS: Record<string, Corte> = {
   nitrofurantoina: { sMax: 32, rMin: 128, uti: true },
 }
 
+/** Tabla 2G — Streptococcus pneumoniae (CLSI M100-Ed35, 2025). CMI en µg/mL.
+ *  Los β-lactámicos tienen corte por SITIO: `snc` = meníngeo; el default = no-meníngeo (parenteral). */
+const PNEUMOCOCCUS: Record<string, Corte> = {
+  penicilina: { sMax: 2, rMin: 8, snc: { sMax: 0.06, rMin: 0.12 } },   // parenteral no-meníngeo / meníngeo
+  amoxicilina: { sMax: 2, rMin: 8 },                                   // no-meníngeo
+  'amoxicilina-clavulanato': { sMax: 2, rMin: 8 },
+  cefepime: { sMax: 1, rMin: 4, snc: { sMax: 0.5, rMin: 2 } },
+  cefotaxima: { sMax: 1, rMin: 4, snc: { sMax: 0.5, rMin: 2 } },
+  ceftriaxona: { sMax: 1, rMin: 4, snc: { sMax: 0.5, rMin: 2 } },
+  meropenem: { sMax: 0.25, rMin: 1 },
+  ertapenem: { sMax: 1, rMin: 4 },
+  imipenem: { sMax: 0.12, rMin: 1 },
+  eritromicina: { sMax: 0.25, rMin: 1 },
+  clindamicina: { sMax: 0.25, rMin: 1 },
+  tetraciclina: { sMax: 1, rMin: 4 },
+  doxiciclina: { sMax: 0.25, rMin: 1 },
+  levofloxacino: { sMax: 2, rMin: 8 },
+  moxifloxacino: { sMax: 1, rMin: 4 },
+  cotrimoxazol: { sMax: 0.5, rMin: 4 },
+  cloranfenicol: { sMax: 4, rMin: 8 },
+}
+
 const TABLAS: Record<GrupoCLSI, Record<string, Corte>> = {
   enterobacterales: ENTEROBACTERALES,
   pseudomonas: PSEUDOMONAS,
   acinetobacter: ACINETOBACTER,
   staphylococcus: STAPHYLOCOCCUS,
   enterococcus: ENTEROCOCCUS,
+  pneumococcus: PNEUMOCOCCUS,
 }
 
 const REF_TABLA: Record<GrupoCLSI, string> = {
@@ -223,6 +249,7 @@ const REF_TABLA: Record<GrupoCLSI, string> = {
   acinetobacter: 'CLSI M100-Ed35 (2025), Tabla 2B-2 (Acinetobacter)',
   staphylococcus: 'CLSI M100-Ed35 (2025), Tabla 2C (Staphylococcus)',
   enterococcus: 'CLSI M100-Ed35 (2025), Tabla 2D (Enterococcus)',
+  pneumococcus: 'CLSI M100-Ed35 (2025), Tabla 2G (S. pneumoniae)',
 }
 
 const ENTEROBACTERALES_CLAVES = [
@@ -233,6 +260,8 @@ const ENTEROBACTERALES_CLAVES = [
 
 export function grupoDe(organismo: string): GrupoCLSI | null {
   const o = norm(organismo)
+  // Neumococo: exigir contexto de Streptococcus/neumococo — NO /pneumoniae/ suelto (colisiona con Klebsiella).
+  if (/neumococo|pneumococ|streptococc.*pneumon|s\.?\s*pneumoniae/.test(o) && !/klebsiella/.test(o)) return 'pneumococcus'
   if (/pseudomonas|aeruginosa/.test(o)) return 'pseudomonas'
   if (/acinetobacter|baumannii/.test(o)) return 'acinetobacter'
   if (/staphylo|aureus|epidermidis|lugdunensis/.test(o)) return 'staphylococcus'
@@ -258,14 +287,17 @@ export interface CategoriaCLSI {
   soloUTI: boolean
 }
 
-/** Interpreta una CMI (µg/mL) según el punto de corte CLSI del grupo/fármaco. */
-export function interpretarCMI(organismo: string, antibiotico: string, cmi: number): CategoriaCLSI | null {
+/** Interpreta una CMI (µg/mL) según el punto de corte CLSI del grupo/fármaco.
+ *  `sitio`='snc' aplica la variante MENÍNGEA (neumococo) cuando existe. */
+export function interpretarCMI(organismo: string, antibiotico: string, cmi: number, sitio?: string): CategoriaCLSI | null {
   const grupo = grupoDe(organismo)
   if (!grupo || !(cmi >= 0)) return null
   const clave = claveFarmaco(antibiotico)
   if (!clave) return null
-  const corte = TABLAS[grupo][clave]
-  if (!corte) return null
+  const base = TABLAS[grupo][clave]
+  if (!base) return null
+  // Variante meníngea del neumococo cuando el sitio es SNC.
+  const corte: Corte = sitio === 'snc' && base.snc ? { ...base, sMax: base.snc.sMax, rMin: base.snc.rMin } : base
   let categoria: 'S' | 'I' | 'R'
   if (cmi >= corte.rMin) categoria = 'R'
   else if (corte.sinS) categoria = 'I'            // colistina: ≤2 = I, ≥4 = R
