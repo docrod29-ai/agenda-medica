@@ -111,6 +111,17 @@ export interface EdicionInterpretativa {
   referencia: string
 }
 
+/** Prueba microbiológica confirmatoria/fenotípica del CLSI M100 (cuándo, método, interpretación). */
+export interface PruebaCLSI {
+  id: string
+  nombre: string
+  cuando: string
+  organismos: string
+  metodo: string
+  interpretacion: string
+  referencia: string
+}
+
 /** Aporte parcial de un módulo de órgano-específico; el motor los fusiona. */
 export interface AporteModulo {
   fenotipos: FenotipoDetectado[]
@@ -156,6 +167,8 @@ export interface InterpretacionAntibiograma {
   didactica: BloqueDidactico[]
   /** Ediciones interpretativas (EUCAST): «S» que debe leerse R por inferencia. */
   edicionesInterpretativas: EdicionInterpretativa[]
+  /** Pruebas microbiológicas del CLSI recomendadas según el fenotipo (cuándo/método/interpretación). */
+  pruebasSugeridas: PruebaCLSI[]
   /** Fuentes citadas en esta interpretación. */
   referencias: string[]
 }

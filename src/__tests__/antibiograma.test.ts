@@ -384,6 +384,32 @@ describe('AmpC — pip-tazo no fiable (Meini)', () => {
   })
 })
 
+describe('Pruebas microbiológicas CLSI sugeridas', () => {
+  it('BLEE → sugiere prueba confirmatoria de ESBL (Tabla 3A)', () => {
+    const r = interpretarAntibiograma(ab('Escherichia coli', [['Ceftriaxona', 'R'], ['Meropenem', 'S']]))
+    expect(r.pruebasSugeridas.some(p => /ESBL|BLEE/i.test(p.nombre) && /3A/.test(p.referencia))).toBe(true)
+  })
+  it('carbapenemasa → sugiere Carba NP + mCIM/eCIM + molecular', () => {
+    const r = interpretarAntibiograma(ab('Klebsiella pneumoniae', [['Meropenem', 'R'], ['Ceftriaxona', 'R']]))
+    const ids = r.pruebasSugeridas.map(p => p.id)
+    expect(ids).toContain('CARBA_NP')
+    expect(ids).toContain('mCIM_eCIM')
+    expect(ids).toContain('MOLECULAR')
+  })
+  it('MRSA → sugiere tamiz de cefoxitina', () => {
+    const r = interpretarAntibiograma(ab('Staphylococcus aureus', [['Cefoxitina', 'R']]))
+    expect(r.pruebasSugeridas.some(p => p.id === 'CEFOXITINA_MRSA')).toBe(true)
+  })
+  it('MLSb inducible → sugiere D-zone test', () => {
+    const r = interpretarAntibiograma(ab('Staphylococcus aureus', [['Eritromicina', 'R'], ['Clindamicina', 'S']]))
+    expect(r.pruebasSugeridas.some(p => p.id === 'D_ZONE')).toBe(true)
+  })
+  it('aislamiento sensible → sin pruebas confirmatorias', () => {
+    const r = interpretarAntibiograma(ab('Escherichia coli', [['Ceftriaxona', 'S'], ['Meropenem', 'S']]))
+    expect(r.pruebasSugeridas).toHaveLength(0)
+  })
+})
+
 describe('Visión → motor (perfilAEntrada)', () => {
   it('convierte el perfil extraído en entrada del motor y filtra celdas sin S/I/R', () => {
     const perfil = {

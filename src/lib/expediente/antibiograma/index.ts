@@ -13,6 +13,7 @@ export { CLASES, COBERTURA, terapiaPorClase, type ClaseEnzima } from './betalact
 export { REF } from './referencias'
 export { PRIOR_MEXICO, REF_INVIFAR, REF_GLASS } from './epidemiologia'
 export { PerfilExtraido, perfilAEntrada, VISION_SYSTEM_PROMPT, buildVisionUserPrompt } from './vision'
+export { PRUEBAS, pruebasRecomendadas } from './clsi-pruebas'
 export type {
   SIR,
   ResultadoAntibiograma,
@@ -27,5 +28,6 @@ export type {
   OpcionTerapeutica,
   BloqueDidactico,
   EdicionInterpretativa,
+  PruebaCLSI,
   InterpretacionAntibiograma,
 } from './tipos'

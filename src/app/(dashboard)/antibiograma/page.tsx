@@ -13,7 +13,7 @@ import {
 } from '@/lib/expediente/antibiograma'
 import {
   FlaskConical, Plus, Trash2, AlertTriangle, ShieldAlert, Activity, Info, Bug,
-  Dna, Target, BookOpen, Microscope, Pencil, Camera, Loader2,
+  Dna, Target, BookOpen, Microscope, Pencil, Camera, Loader2, TestTube,
 } from 'lucide-react'
 
 interface CeldaVision { antibiotico?: string; interpretacion?: string | null; cmi?: number | null; conf?: string; needs_review?: boolean }
@@ -262,6 +262,23 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
             {res.terapiaDirigida.map((t, i) => (
               <div key={i} style={{ ...box, ...terapiaEstilo(t.linea) }}>
                 <span><b>{etiquetaLinea(t.linea)} · {t.agente}</b> — {t.razon}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {res.pruebasSugeridas.length > 0 && (
+        <div>
+          <SecTitle icon={<TestTube size={15} />} t="Pruebas microbiológicas sugeridas (CLSI M100)" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {res.pruebasSugeridas.map((p, i) => (
+              <div key={i} style={card}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>{p.nombre}</div>
+                <p style={{ fontSize: 11.5, color: 'var(--text3)', margin: '0 0 4px', lineHeight: 1.5 }}><b>Cuándo:</b> {p.cuando}</p>
+                <p style={{ fontSize: 11.5, color: 'var(--text3)', margin: '0 0 4px', lineHeight: 1.5 }}><b>Método:</b> {p.metodo}</p>
+                <p style={{ fontSize: 11.5, color: 'var(--text2)', margin: '0 0 5px', lineHeight: 1.5 }}><b>Interpretación:</b> {p.interpretacion}</p>
+                <p style={{ fontSize: 10.5, color: 'var(--text3)', margin: 0, fontStyle: 'italic' }}>{p.referencia}</p>
               </div>
             ))}
           </div>

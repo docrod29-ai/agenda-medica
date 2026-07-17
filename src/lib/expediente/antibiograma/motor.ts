@@ -19,6 +19,7 @@ import { analizarEnterobacterales } from './enterobacterales'
 import { analizarNoFermentadores } from './nofermentadores'
 import { evaluarIntrinseca } from './intrinseca'
 import { analizarSeguridad } from './seguridad'
+import { pruebasRecomendadas } from './clsi-pruebas'
 
 function fusionar(a: AporteModulo, b: AporteModulo): AporteModulo {
   return {
@@ -63,10 +64,14 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
   if (ap.notificacion) refs.add(REF.NOM045)
   if (ap.fenotipos.length) refs.add(REF.CLSI)
 
+  const fenotipos = dedupFenotipos(ap.fenotipos)
+  const pruebasSugeridas = pruebasRecomendadas(organismo, fenotipos.map(f => f.clave))
+  pruebasSugeridas.forEach(p => refs.add(p.referencia))
+
   return {
     organismo,
     organismoNormalizado: reconocer(organismo),
-    fenotipos: dedupFenotipos(ap.fenotipos),
+    fenotipos,
     mecanismos: ap.mecanismos,
     alertas,
     notificacionObligatoria: ap.notificacion,
@@ -77,6 +82,7 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
     terapiaDirigida: ap.terapiaDirigida,
     didactica: ap.didactica,
     edicionesInterpretativas,
+    pruebasSugeridas,
     referencias: [...refs],
   }
 }
