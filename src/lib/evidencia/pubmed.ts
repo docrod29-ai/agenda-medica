@@ -37,6 +37,25 @@ function extraerDoi(b: string): string | undefined {
 
 const conKey = (u: string) => (API_KEY ? `${u}&api_key=${API_KEY}` : u)
 
+// ── Regulador de velocidad (throttle) para NCBI E-utilities ──────────────────
+// Sin API key PubMed permite ~3 req/s; con key ~10/s. La búsqueda multi dispara
+// muchas esearch en paralelo → sin throttle, PubMed devuelve 429 y la mitad de
+// las búsquedas volvían VACÍAS de forma intermitente (bug de "a veces no hay citas").
+// Serializamos las llamadas con un espaciado mínimo para nunca exceder el límite.
+const MIN_GAP_MS = API_KEY ? 120 : 340
+let _ultima = 0
+let _cola: Promise<unknown> = Promise.resolve()
+function ncbiFetch(url: string, signal?: AbortSignal): Promise<Response> {
+  const p = _cola.then(async () => {
+    const espera = Math.max(0, MIN_GAP_MS - (Date.now() - _ultima))
+    if (espera) await new Promise(r => setTimeout(r, espera))
+    _ultima = Date.now()
+    return fetch(url, { signal })
+  })
+  _cola = p.then(() => undefined, () => undefined)   // la cola nunca se rompe por un error
+  return p
+}
+
 // Jerarquía de evidencia: menor rank = mayor peso (flota arriba en los resultados).
 const RANK: Record<string, number> = { 'Meta-análisis': 0, 'Guía': 1, 'ECA': 2, 'Revisión': 3, '': 4 }
 function tipoDeEstudio(bloque: string): string {
@@ -74,7 +93,7 @@ function extraerTag(bloque: string, tag: string): string {
 async function esearch(term: string, max: number, signal?: AbortSignal): Promise<string[]> {
   const url = conKey(`${EUTILS}/esearch.fcgi?db=pubmed&retmode=json&sort=relevance&retmax=${max}&term=${encodeURIComponent(term)}`)
   try {
-    const r = await fetch(url, { signal })
+    const r = await ncbiFetch(url, signal)
     if (!r.ok) return []
     const d = await r.json()
     return d?.esearchresult?.idlist ?? []
@@ -87,7 +106,7 @@ async function efetchArts(ids: string[], signal?: AbortSignal): Promise<Articulo
   const efetch = conKey(`${EUTILS}/efetch.fcgi?db=pubmed&retmode=xml&rettype=abstract&id=${ids.join(',')}`)
   let xml = ''
   try {
-    const r = await fetch(efetch, { signal })
+    const r = await ncbiFetch(efetch, signal)
     if (!r.ok) return []
     xml = await r.text()
   } catch { return [] }
@@ -137,13 +156,13 @@ export async function textoCompletoPMC(
   const out: Record<string, string> = {}
   await Promise.all(pmids.slice(0, 3).map(async pmid => {
     try {
-      const el = await fetch(conKey(`${EUTILS}/elink.fcgi?dbfrom=pubmed&db=pmc&retmode=json&id=${pmid}`), { signal: opts.signal })
+      const el = await ncbiFetch(conKey(`${EUTILS}/elink.fcgi?dbfrom=pubmed&db=pmc&retmode=json&id=${pmid}`), opts.signal)
       if (!el.ok) return
       const ej = await el.json()
       const dbs = ej?.linksets?.[0]?.linksetdbs ?? []
       const pmcid = dbs.flatMap((l: { links?: string[] }) => l.links ?? [])[0]
       if (!pmcid) return
-      const fx = await fetch(conKey(`${EUTILS}/efetch.fcgi?db=pmc&id=${pmcid}&rettype=xml`), { signal: opts.signal })
+      const fx = await ncbiFetch(conKey(`${EUTILS}/efetch.fcgi?db=pmc&id=${pmcid}&rettype=xml`), opts.signal)
       if (!fx.ok) return
       const xml = await fx.text()
       const parrafos = [...xml.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)].map(m => desescapar(m[1])).filter(Boolean)
@@ -173,13 +192,14 @@ export async function buscarEvidenciaMulti(
   const max = Math.min(Math.max(opts.max ?? 8, 1), 20)
   const ventana = opts.aniosRecientes ? ` AND ("last ${opts.aniosRecientes} years"[PDat])` : ''
 
-  // Por sub-query: alta calidad primero, luego general (ambas en paralelo).
+  // Por sub-query: alta calidad primero, luego general. El throttle (ncbiFetch) las
+  // espacia para no exceder el límite de PubMed → ya no vuelven vacías por 429.
   const porQuery = await Promise.all(qs.map(async q => {
-    const [hq, gen, landmark] = await Promise.all([
-      esearch(`(${q}) AND ${FILTRO_HQ}${ventana}`, 5, opts.signal),
-      esearch(`(${q})${ventana}`, 5, opts.signal),
-      esearch(`(${q}) AND ${FILTRO_HQ}`, 3, opts.signal), // SIN ventana: no perder landmark trials viejos
-    ])
+    const hq = await esearch(`(${q}) AND ${FILTRO_HQ}${ventana}`, 5, opts.signal)
+    const gen = await esearch(`(${q})${ventana}`, 5, opts.signal)
+    // "landmark" (alta calidad SIN ventana) sólo aporta algo cuando SÍ hay ventana;
+    // sin ventana es idéntica a hq → se omite para no gastar una llamada.
+    const landmark = ventana ? await esearch(`(${q}) AND ${FILTRO_HQ}`, 3, opts.signal) : []
     return [...hq, ...gen, ...landmark]
   }))
 
