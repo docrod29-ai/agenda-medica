@@ -111,11 +111,12 @@ export interface EdicionInterpretativa {
   referencia: string
 }
 
-/** Categoría S/I/R derivada de una CMI con los puntos de corte del CLSI M100. */
+/** Categoría S/SDD/I/R derivada de una CMI con los puntos de corte del CLSI M100.
+ *  SDD = susceptible dosis-dependiente (requiere el esquema de dosis alto). */
 export interface CategoriaCMI {
   antibiotico: string
   cmi: number
-  categoriaCLSI: SIR
+  categoriaCLSI: 'S' | 'SDD' | 'I' | 'R'
   /** Categoría que reportó el laboratorio (si se capturó). */
   categoriaReportada?: SIR
   /** true concuerda, false discrepa, null no reportada. */

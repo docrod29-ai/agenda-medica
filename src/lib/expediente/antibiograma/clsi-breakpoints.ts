@@ -17,12 +17,15 @@ export type GrupoCLSI = 'enterobacterales' | 'pseudomonas' | 'acinetobacter' | '
 export interface Corte {
   /** CMI ≤ sMax → S (µg/mL). */
   sMax: number
-  /** CMI ≥ rMin → R (µg/mL). Entre sMax y rMin = I/SDD. */
+  /** CMI ≥ rMin → R (µg/mL). Entre sMax y rMin = I (o SDD si sdd=true). */
   rMin: number
   /** Punto de corte sólo válido para IVU no complicada. */
   uti?: boolean
   /** Sin categoría "S" (p. ej. colistina: solo I/R). */
   sinS?: boolean
+  /** La banda intermedia es SDD (susceptible dosis-dependiente), no "I".
+   *  P. ej. cefepime en Enterobacterales: S ≤2, SDD 4-8, R ≥16 (CLSI M100-Ed35). */
+  sdd?: boolean
   /** Variante MENÍNGEA (S. pneumoniae): se usa cuando el sitio es SNC. */
   snc?: { sMax: number; rMin: number }
 }
@@ -95,7 +98,7 @@ const ENTEROBACTERALES: Record<string, Corte> = {
   ceftriaxona: { sMax: 1, rMin: 4 },
   cefotaxima: { sMax: 1, rMin: 4 },
   ceftazidima: { sMax: 4, rMin: 16 },
-  cefepime: { sMax: 2, rMin: 16 },                  // 4-8 = SDD (dosis alta)
+  cefepime: { sMax: 2, rMin: 16, sdd: true },       // S ≤2, SDD 4-8 (dosis alta), R ≥16
   cefuroxima: { sMax: 8, rMin: 32 },                // parenteral
   cefoxitina: { sMax: 8, rMin: 32 },
   cefotetan: { sMax: 16, rMin: 64 },
@@ -280,8 +283,10 @@ function claveFarmaco(antibiotico: string): string | null {
   return null
 }
 
+export type CategoriaSIR = 'S' | 'SDD' | 'I' | 'R'
+
 export interface CategoriaCLSI {
-  categoria: 'S' | 'I' | 'R'
+  categoria: CategoriaSIR
   corte: Corte
   referencia: string
   soloUTI: boolean
@@ -298,10 +303,10 @@ export function interpretarCMI(organismo: string, antibiotico: string, cmi: numb
   if (!base) return null
   // Variante meníngea del neumococo cuando el sitio es SNC.
   const corte: Corte = sitio === 'snc' && base.snc ? { ...base, sMax: base.snc.sMax, rMin: base.snc.rMin } : base
-  let categoria: 'S' | 'I' | 'R'
+  let categoria: CategoriaSIR
   if (cmi >= corte.rMin) categoria = 'R'
   else if (corte.sinS) categoria = 'I'            // colistina: ≤2 = I, ≥4 = R
   else if (cmi <= corte.sMax) categoria = 'S'
-  else categoria = 'I'
+  else categoria = corte.sdd ? 'SDD' : 'I'        // banda intermedia: SDD (dosis-dependiente) o I
   return { categoria, corte, referencia: REF_TABLA[grupo], soloUTI: !!corte.uti }
 }
