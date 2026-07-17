@@ -1,27 +1,41 @@
 'use client'
 /**
- * Herramienta de antibiograma — apoyo decisional PROA.
- * El médico captura organismo + panel S/I/R; el motor DETERMINISTA
- * (interpretarAntibiograma) infiere fenotipos, alertas y PK/PD.
+ * Herramienta de antibiograma inteligente — apoyo decisional PROA.
+ * El médico captura organismo + sitio + panel S/I/R (con CMI opcional);
+ * el motor DETERMINISTA infiere fenotipos, MECANISMO molecular
+ * (β-lactamasas/porinas/bombas/carbapenemasas), terapia dirigida por clase,
+ * conflictos de resistencia intrínseca y una explicación didáctica citada.
  * Superficie independiente: no toca el flujo de la nota/consulta.
  */
 import { useState } from 'react'
-import { interpretarAntibiograma, type SIR, type InterpretacionAntibiograma } from '@/lib/expediente/antibiograma'
-import { FlaskConical, Plus, Trash2, AlertTriangle, ShieldAlert, Activity, Info, Bug } from 'lucide-react'
+import {
+  interpretarAntibiograma, type SIR, type SitioInfeccion, type InterpretacionAntibiograma,
+} from '@/lib/expediente/antibiograma'
+import {
+  FlaskConical, Plus, Trash2, AlertTriangle, ShieldAlert, Activity, Info, Bug,
+  Dna, Target, BookOpen, Microscope,
+} from 'lucide-react'
 
 const ANTIBIOTICOS_COMUNES = [
-  'Oxacilina', 'Cefoxitina', 'Vancomicina', 'Ceftriaxona', 'Ceftazidima', 'Cefepime',
+  'Oxacilina', 'Cefoxitina', 'Penicilina', 'Ampicilina', 'Vancomicina', 'Ceftriaxona', 'Ceftazidima', 'Cefepime',
   'Aztreonam', 'Meropenem', 'Imipenem', 'Ertapenem', 'Piperacilina/Tazobactam',
   'Ciprofloxacino', 'Levofloxacino', 'Gentamicina', 'Amikacina', 'Colistina',
-  'Ceftazidima-avibactam', 'Trimetoprim/Sulfametoxazol', 'Linezolid',
+  'Ceftazidima-avibactam', 'Trimetoprim/Sulfametoxazol', 'Linezolid', 'Eritromicina', 'Clindamicina',
+]
+
+const SITIOS: { v: SitioInfeccion; t: string }[] = [
+  { v: 'otro', t: 'General' }, { v: 'sangre', t: 'Sangre' }, { v: 'orina', t: 'Orina' },
+  { v: 'respiratorio', t: 'Respiratorio' }, { v: 'snc', t: 'SNC/meningitis' },
+  { v: 'piel-partes-blandas', t: 'Piel/partes blandas' }, { v: 'intraabdominal', t: 'Intraabdominal' },
+  { v: 'hueso-articulacion', t: 'Hueso/articulación' },
 ]
 
 interface Fila { antibiotico: string; interpretacion: SIR; cmi: string }
-
 const nuevaFila = (antibiotico = ''): Fila => ({ antibiotico, interpretacion: 'S', cmi: '' })
 
 export default function AntibiogramaPage() {
   const [organismo, setOrganismo] = useState('')
+  const [sitio, setSitio] = useState<SitioInfeccion>('otro')
   const [filas, setFilas] = useState<Fila[]>([nuevaFila('Ceftriaxona'), nuevaFila('Meropenem')])
   const [res, setRes] = useState<InterpretacionAntibiograma | null>(null)
 
@@ -38,25 +52,36 @@ export default function AntibiogramaPage() {
         interpretacion: f.interpretacion,
         ...(f.cmi.trim() && !isNaN(Number(f.cmi)) ? { cmi: Number(f.cmi) } : {}),
       }))
-    setRes(interpretarAntibiograma({ organismo: organismo.trim(), resultados }))
+    setRes(interpretarAntibiograma({ organismo: organismo.trim(), resultados, sitio }))
   }
 
   return (
     <div style={{ maxWidth: 860, margin: '0 auto', padding: '20px 16px 60px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
         <FlaskConical size={22} color="var(--teal)" />
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Antibiograma — apoyo PROA</h1>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Antibiograma inteligente — PROA</h1>
       </div>
       <p style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 20, lineHeight: 1.5 }}>
-        Captura el organismo y el panel S/I/R. El motor infiere fenotipos de resistencia,
-        notificación NOM-045 y optimización PK/PD. <b>Apoyo decisional — no sustituye el juicio clínico.</b>
+        Captura organismo, sitio y panel S/I/R (con CMI si la tienes). El motor infiere fenotipos,
+        <b> mecanismo molecular</b>, terapia dirigida y notificación NOM-045, con explicación citada.
+        <b> Apoyo decisional — no sustituye el juicio clínico.</b>
       </p>
 
-      {/* Organismo */}
+      {/* Organismo + sitio */}
       <label style={label}>Organismo</label>
       <input value={organismo} onChange={e => setOrganismo(e.target.value)}
-        placeholder="p. ej. Escherichia coli, Klebsiella pneumoniae, Staphylococcus aureus"
-        style={{ ...input, marginBottom: 18 }} />
+        placeholder="p. ej. Escherichia coli, Klebsiella pneumoniae, Pseudomonas aeruginosa, S. aureus"
+        style={{ ...input, marginBottom: 14 }} />
+
+      <label style={label}>Sitio de infección (afina la lectura, p. ej. neumococo meníngeo)</label>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 18 }}>
+        {SITIOS.map(s => (
+          <button key={s.v} type="button" onClick={() => setSitio(s.v)}
+            style={{ ...chip, ...(sitio === s.v ? { background: 'var(--teal)', color: '#fff', borderColor: 'var(--teal)' } : {}) }}>
+            {s.t}
+          </button>
+        ))}
+      </div>
 
       {/* Panel */}
       <label style={label}>Panel de sensibilidad</label>
@@ -101,12 +126,27 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
     : c === 'probable' ? { bg: 'rgba(245,158,11,.15)', fg: '#f59e0b' }
     : { bg: 'rgba(148,163,184,.15)', fg: 'var(--text3)' }
 
+  const conflictos = res.resistenciaIntrinseca.filter(n => n.tipo === 'conflicto')
+
   return (
     <div style={{ marginTop: 26, display: 'flex', flexDirection: 'column', gap: 16 }}>
       {res.notificacionObligatoria && (
         <div style={{ ...box, borderColor: 'rgba(239,68,68,.4)', background: 'rgba(239,68,68,.08)', color: '#f87171' }}>
           <ShieldAlert size={16} /> <b>Notificación epidemiológica obligatoria (NOM-045).</b>
           {res.aislamiento && <span style={{ color: 'var(--text2)' }}> · {res.aislamiento}</span>}
+        </div>
+      )}
+
+      {conflictos.length > 0 && (
+        <div>
+          <SecTitle icon={<AlertTriangle size={15} />} t="Conflicto con resistencia intrínseca" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {conflictos.map((n, i) => (
+              <div key={i} style={{ ...box, borderColor: 'rgba(245,158,11,.4)', background: 'rgba(245,158,11,.08)', color: '#f59e0b' }}>
+                <span><b>{n.antibiotico}:</b> {n.mensaje}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -120,7 +160,7 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
                 const b = badge(f.confianza)
                 return (
                   <div key={i} style={card}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>{f.nombre}</span>
                       <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 100, background: b.bg, color: b.fg }}>{f.confianza}</span>
                     </div>
@@ -131,6 +171,37 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
             </div>
           </div>
         )}
+
+      {res.mecanismos.length > 0 && (
+        <div>
+          <SecTitle icon={<Dna size={15} />} t="Mecanismo molecular inferido" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {res.mecanismos.map((m, i) => (
+              <div key={i} style={card}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{m.nombre}</span>
+                  <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 6, background: 'var(--s2)', color: 'var(--text3)' }}>{m.categoria}{m.ambler ? ` · clase ${m.ambler}` : ''}</span>
+                </div>
+                <p style={{ fontSize: 12, color: 'var(--text3)', margin: '0 0 5px', lineHeight: 1.5 }}>{m.explicacion}</p>
+                <p style={{ fontSize: 10.5, color: 'var(--text4, var(--text3))', margin: 0, fontStyle: 'italic' }}>{m.referencia}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {res.terapiaDirigida.length > 0 && (
+        <div>
+          <SecTitle icon={<Target size={15} />} t="Terapia dirigida por mecanismo" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {res.terapiaDirigida.map((t, i) => (
+              <div key={i} style={{ ...box, ...terapiaEstilo(t.linea) }}>
+                <span><b>{etiquetaLinea(t.linea)} · {t.agente}</b> — {t.razon}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {res.alertas.length > 0 && (
         <div>
@@ -152,6 +223,21 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
         </div>
       )}
 
+      {res.didactica.length > 0 && (
+        <div>
+          <SecTitle icon={<BookOpen size={15} />} t="Aprende: por qué este patrón" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {res.didactica.map((d, i) => (
+              <div key={i} style={card}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)', marginBottom: 3 }}>{d.titulo}</div>
+                <p style={{ fontSize: 12, color: 'var(--text3)', margin: '0 0 5px', lineHeight: 1.5 }}>{d.texto}</p>
+                <p style={{ fontSize: 10.5, color: 'var(--text3)', margin: 0, fontStyle: 'italic' }}>{d.referencia}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {res.optimizacionPKPD.length > 0 && (
         <div>
           <SecTitle icon={<Activity size={15} />} t="Optimización PK/PD" />
@@ -161,8 +247,19 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
         </div>
       )}
 
+      {res.referencias.length > 0 && (
+        <div>
+          <SecTitle icon={<Microscope size={15} />} t="Referencias" />
+          <ol style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {res.referencias.map((r, i) => <li key={i} style={{ fontSize: 11, color: 'var(--text3)', lineHeight: 1.5 }}>{r}</li>)}
+          </ol>
+        </div>
+      )}
+
       <p style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4, lineHeight: 1.5 }}>
-        Motor determinista basado en CLSI M100 / EUCAST expert rules. Herramienta en validación clínica; confirmar mecanismo por método molecular cuando aplique.
+        Motor determinista basado en lectura interpretada del antibiograma (CLSI M100 / EUCAST /
+        literatura citada). Herramienta en validación clínica; confirmar mecanismo por método
+        fenotípico/molecular cuando aplique.
       </p>
     </div>
   )
@@ -180,6 +277,15 @@ function alertaEstilo(n: 'critica' | 'alta' | 'info'): React.CSSProperties {
   if (n === 'critica') return { borderColor: 'rgba(239,68,68,.4)', background: 'rgba(239,68,68,.08)', color: '#f87171' }
   if (n === 'alta') return { borderColor: 'rgba(245,158,11,.4)', background: 'rgba(245,158,11,.08)', color: '#f59e0b' }
   return { color: 'var(--text2)' }
+}
+
+function terapiaEstilo(l: 'dirigida' | 'alternativa' | 'evitar'): React.CSSProperties {
+  if (l === 'dirigida') return { borderColor: 'rgba(16,185,129,.4)', background: 'rgba(16,185,129,.08)', color: 'var(--text2)' }
+  if (l === 'evitar') return { borderColor: 'rgba(239,68,68,.4)', background: 'rgba(239,68,68,.06)', color: 'var(--text2)' }
+  return { color: 'var(--text2)' }
+}
+function etiquetaLinea(l: 'dirigida' | 'alternativa' | 'evitar'): string {
+  return l === 'dirigida' ? '✓ Dirigida' : l === 'evitar' ? '✕ Evitar' : '○ Alternativa'
 }
 
 const label: React.CSSProperties = { display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--text2)', marginBottom: 4 }

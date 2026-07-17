@@ -179,3 +179,131 @@ describe('robustez', () => {
     expect(claves(r)).toContain('BLEE')
   })
 })
+
+// ─── Capacidades nuevas del motor de clase mundial ───────────────────────────
+
+describe('Resistencia intrínseca — conflictos (error de lab)', () => {
+  it('Klebsiella + ampicilina S → conflicto (β-lactamasa natural)', () => {
+    const r = interpretarAntibiograma(ab('Klebsiella pneumoniae', [['Ampicilina', 'S'], ['Meropenem', 'S']]))
+    const c = r.resistenciaIntrinseca.filter(n => n.tipo === 'conflicto')
+    expect(c.some(n => /ampicilina/i.test(n.antibiotico))).toBe(true)
+  })
+  it('Proteus mirabilis + colistina S → conflicto (R intrínseco a colistina)', () => {
+    const r = interpretarAntibiograma(ab('Proteus mirabilis', [['Colistina', 'S']]))
+    expect(r.resistenciaIntrinseca.some(n => n.tipo === 'conflicto' && /colistina/i.test(n.mensaje))).toBe(true)
+  })
+  it('S. maltophilia + meropenem S → conflicto (R intrínseco por L1)', () => {
+    const r = interpretarAntibiograma(ab('Stenotrophomonas maltophilia', [['Meropenem', 'S']]))
+    expect(r.resistenciaIntrinseca.some(n => n.tipo === 'conflicto' && /carbapen/i.test(n.mensaje))).toBe(true)
+  })
+})
+
+describe('Inferencia de mecanismo molecular', () => {
+  it('MRSA → mecanismo PBP2a (mecA)', () => {
+    const r = interpretarAntibiograma(ab('Staphylococcus aureus', [['Cefoxitina', 'R']]))
+    expect(r.mecanismos.some(m => /PBP2a|mecA/i.test(m.nombre))).toBe(true)
+  })
+  it('carbapenemasa → mecanismo con clase Ambler', () => {
+    const r = interpretarAntibiograma(ab('Klebsiella pneumoniae', [['Meropenem', 'R'], ['Ceftazidima-avibactam', 'R']]))
+    const m = r.mecanismos.find(x => /metalo/i.test(x.nombre))
+    expect(m?.ambler).toBe('B')
+  })
+  it('cada mecanismo trae referencia citada', () => {
+    const r = interpretarAntibiograma(ab('Escherichia coli', [['Ceftriaxona', 'R'], ['Meropenem', 'S']]))
+    expect(r.mecanismos.length).toBeGreaterThan(0)
+    expect(r.mecanismos.every(m => m.referencia && m.referencia.length > 10)).toBe(true)
+    expect(r.referencias.length).toBeGreaterThan(0)
+  })
+})
+
+describe('Terapia dirigida por clase de enzima', () => {
+  it('KPC-like (CZA S) → ceftazidima-avibactam como dirigida', () => {
+    const r = interpretarAntibiograma(ab('Klebsiella pneumoniae', [['Meropenem', 'R'], ['Ceftazidima-avibactam', 'S']]))
+    expect(r.terapiaDirigida.some(t => t.linea === 'dirigida' && /avibactam/i.test(t.agente))).toBe(true)
+  })
+  it('MBL (CZA R) → aztreonam-avibactam/cefiderocol y evitar avibactam sola', () => {
+    const r = interpretarAntibiograma(ab('Klebsiella pneumoniae', [['Meropenem', 'R'], ['Ceftazidima-avibactam', 'R']]))
+    expect(r.terapiaDirigida.some(t => /aztreonam-avibactam|cefiderocol/i.test(t.agente))).toBe(true)
+    expect(r.terapiaDirigida.some(t => t.linea === 'evitar')).toBe(true)
+  })
+})
+
+describe('Pseudomonas — OprD vs carbapenemasa', () => {
+  it('imipenem R aislado + meropenem S → pérdida de OprD, NO carbapenemasa', () => {
+    const r = interpretarAntibiograma(ab('Pseudomonas aeruginosa', [['Imipenem', 'R'], ['Meropenem', 'S'], ['Ceftazidima', 'S']]))
+    expect(claves(r)).toContain('porina-perdida')
+    expect(claves(r)).not.toContain('carbapenemasa')
+    expect(r.advertencias.join(' ')).toMatch(/OprD|carbapenemasa/i)
+  })
+  it('carbapenémicos R + otros β-lactámicos R → carbapenemasa/mecanismos combinados', () => {
+    const r = interpretarAntibiograma(ab('Pseudomonas aeruginosa', [['Meropenem', 'R'], ['Imipenem', 'R'], ['Ceftazidima', 'R']]))
+    expect(claves(r)).toContain('carbapenemasa')
+    expect(r.notificacionObligatoria).toBe(true)
+  })
+})
+
+describe('S. maltophilia — intrínseca + cotrimoxazol', () => {
+  it('siempre marca R intrínseca a carbapenémicos y propone cotrimoxazol', () => {
+    const r = interpretarAntibiograma(ab('Stenotrophomonas maltophilia', [['Trimetoprim/Sulfametoxazol', 'S']]))
+    expect(claves(r)).toContain('S-maltophilia-intrinseca')
+    expect(r.terapiaDirigida.some(t => /cotrimoxazol|sulfametoxazol/i.test(t.agente))).toBe(true)
+  })
+})
+
+describe('A. baumannii carbapenem-R → OXA + sulbactam', () => {
+  it('meropenem R → carbapenemasa OXA (clase D) y sugiere ampicilina-sulbactam/cefiderocol', () => {
+    const r = interpretarAntibiograma(ab('Acinetobacter baumannii', [['Meropenem', 'R']]))
+    expect(claves(r)).toContain('carbapenemasa')
+    expect(r.mecanismos.some(m => m.ambler === 'D')).toBe(true)
+    expect(r.terapiaDirigida.some(t => /sulbactam|cefiderocol/i.test(t.agente))).toBe(true)
+  })
+})
+
+describe('Staph MLSb inducible (D-test)', () => {
+  it('ERY R + CLI S → MLSb inducible + advertencia D-test', () => {
+    const r = interpretarAntibiograma(ab('Staphylococcus aureus', [['Eritromicina', 'R'], ['Clindamicina', 'S']]))
+    expect(claves(r)).toContain('MLSb-inducible')
+    expect(r.advertencias.join(' ')).toMatch(/D-test|clindamicina/i)
+  })
+  it('ERY R + CLI R → MLSb constitutivo', () => {
+    const r = interpretarAntibiograma(ab('S. aureus', [['Eritromicina', 'R'], ['Clindamicina', 'R']]))
+    expect(claves(r)).toContain('MLSb-constitutivo')
+  })
+})
+
+describe('Penicilinasa estafilocócica', () => {
+  it('PEN R + OXA S → penicilinasa, terapia con oxacilina/cefazolina', () => {
+    const r = interpretarAntibiograma(ab('Staphylococcus aureus', [['Penicilina', 'R'], ['Oxacilina', 'S']]))
+    expect(claves(r)).toContain('penicilinasa-estafilococica')
+    expect(r.terapiaDirigida.some(t => /oxacilina|cefazolina/i.test(t.agente))).toBe(true)
+  })
+})
+
+describe('Enterococo HLAR', () => {
+  it('gentamicina CMI >500 → HLAR + advertencia de pérdida de sinergia', () => {
+    const r = interpretarAntibiograma({
+      organismo: 'Enterococcus faecalis',
+      resultados: [{ antibiotico: 'Gentamicina', interpretacion: 'R', cmi: 1024 }],
+    })
+    expect(claves(r)).toContain('HLAR')
+    expect(r.advertencias.join(' ')).toMatch(/sinergia/i)
+  })
+})
+
+describe('Neumococo — penicilina por sitio', () => {
+  it('CMI 1 no meníngea → tratable con penicilina (sin fenotipo PNS)', () => {
+    const r = interpretarAntibiograma({
+      organismo: 'Streptococcus pneumoniae', sitio: 'respiratorio',
+      resultados: [{ antibiotico: 'Penicilina', interpretacion: 'S', cmi: 1 }],
+    })
+    expect(claves(r)).not.toContain('neumococo-PNS')
+    expect(r.didactica.some(d => /no meníngeo/i.test(d.titulo))).toBe(true)
+  })
+  it('CMI 1 meníngea → no sensible por criterio meníngeo (PNS)', () => {
+    const r = interpretarAntibiograma({
+      organismo: 'Streptococcus pneumoniae', sitio: 'snc',
+      resultados: [{ antibiotico: 'Penicilina', interpretacion: 'S', cmi: 1 }],
+    })
+    expect(claves(r)).toContain('neumococo-PNS')
+  })
+})
