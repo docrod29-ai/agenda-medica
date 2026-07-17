@@ -411,9 +411,25 @@ describe('Puntos de corte CLSI M100 (CMI → S/I/R)', () => {
     const r = interpretarAntibiograma({ organismo: 'Escherichia coli', resultados: [{ antibiotico: 'Fosfomicina', interpretacion: 'S', cmi: 32 }] })
     expect(r.categoriasCMI.find(x => /fosfomicina/i.test(x.antibiotico))?.soloUTI).toBe(true)
   })
-  it('no aplica breakpoints de Enterobacterales a Gram+', () => {
-    const r = interpretarAntibiograma({ organismo: 'Staphylococcus aureus', resultados: [{ antibiotico: 'Meropenem', interpretacion: 'S', cmi: 0.5 }] })
-    expect(r.categoriasCMI).toHaveLength(0)
+  it('Pseudomonas meropenem CMI 8 → R (≥8); Enterobacterales sería R desde ≥4', () => {
+    const pae = interpretarAntibiograma({ organismo: 'Pseudomonas aeruginosa', resultados: [{ antibiotico: 'Meropenem', interpretacion: 'R', cmi: 8 }] })
+    expect(pae.categoriasCMI.find(x => /meropenem/i.test(x.antibiotico))?.categoriaCLSI).toBe('R')
+    const pae4 = interpretarAntibiograma({ organismo: 'Pseudomonas aeruginosa', resultados: [{ antibiotico: 'Meropenem', interpretacion: 'I', cmi: 4 }] })
+    expect(pae4.categoriasCMI.find(x => /meropenem/i.test(x.antibiotico))?.categoriaCLSI).toBe('I') // ≤2 S, 4 I, ≥8 R en Pseudomonas
+  })
+  it('Acinetobacter ampicilina-sulbactam CMI 8 → S (≤8/4)', () => {
+    const r = interpretarAntibiograma({ organismo: 'Acinetobacter baumannii', resultados: [{ antibiotico: 'Ampicilina-sulbactam', interpretacion: 'S', cmi: 8 }] })
+    expect(r.categoriasCMI.find(x => /sulbactam/i.test(x.antibiotico))?.categoriaCLSI).toBe('S')
+  })
+  it('Staph oxacilina CMI 4 → R (≥4); vancomicina CMI 2 → S', () => {
+    const r = interpretarAntibiograma({ organismo: 'Staphylococcus aureus', resultados: [{ antibiotico: 'Oxacilina', interpretacion: 'R', cmi: 4 }, { antibiotico: 'Vancomicina', interpretacion: 'S', cmi: 2 }] })
+    expect(r.categoriasCMI.find(x => /oxacilina/i.test(x.antibiotico))?.categoriaCLSI).toBe('R')
+    expect(r.categoriasCMI.find(x => /vancomicina/i.test(x.antibiotico))?.categoriaCLSI).toBe('S')
+  })
+  it('Enterococo ampicilina CMI 8 → S (≤8, distinto de enterobacterias); vancomicina CMI 32 → R', () => {
+    const r = interpretarAntibiograma({ organismo: 'Enterococcus faecium', resultados: [{ antibiotico: 'Ampicilina', interpretacion: 'S', cmi: 8 }, { antibiotico: 'Vancomicina', interpretacion: 'R', cmi: 32 }] })
+    expect(r.categoriasCMI.find(x => /ampicilina/i.test(x.antibiotico))?.categoriaCLSI).toBe('S')
+    expect(r.categoriasCMI.find(x => /vancomicina/i.test(x.antibiotico))?.categoriaCLSI).toBe('R')
   })
 })
 
