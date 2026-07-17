@@ -11,6 +11,7 @@ import { useState, useRef } from 'react'
 import {
   interpretarAntibiograma, type SIR, type SitioInfeccion, type InterpretacionAntibiograma,
 } from '@/lib/expediente/antibiograma'
+import { fetchAutenticado } from '@/lib/auth-client'
 import {
   FlaskConical, Plus, Trash2, AlertTriangle, ShieldAlert, Activity, Info, Bug,
   Dna, Target, BookOpen, Microscope, Pencil, Camera, Loader2, TestTube,
@@ -57,7 +58,7 @@ export default function AntibiogramaPage() {
         fr.onload = () => resolve(String(fr.result)); fr.onerror = () => reject(new Error('lectura'))
         fr.readAsDataURL(file)
       })
-      const resp = await fetch('/api/expediente/antibiograma-vision', {
+      const resp = await fetchAutenticado('/api/expediente/antibiograma-vision', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imagen: dataUrl, sitio }),
       })
