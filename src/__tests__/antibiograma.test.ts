@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { interpretarAntibiograma, type EntradaAntibiograma, type FenotipoClave } from '@/lib/expediente/antibiograma'
+import { interpretarAntibiograma, perfilAEntrada, type EntradaAntibiograma, type FenotipoClave } from '@/lib/expediente/antibiograma'
 
 const claves = (r: ReturnType<typeof interpretarAntibiograma>): FenotipoClave[] => r.fenotipos.map(f => f.clave)
 
@@ -381,5 +381,26 @@ describe('AmpC — pip-tazo no fiable (Meini)', () => {
   it('Enterobacter + pip-tazo S → advertencia de pip-tazo no fiable', () => {
     const r = interpretarAntibiograma(ab('Enterobacter cloacae', [['Ceftriaxona', 'S'], ['Piperacilina/Tazobactam', 'S']]))
     expect(r.advertencias.join(' ')).toMatch(/piperacilina-tazobactam|efecto in[óo]culo/i)
+  })
+})
+
+describe('Visión → motor (perfilAEntrada)', () => {
+  it('convierte el perfil extraído en entrada del motor y filtra celdas sin S/I/R', () => {
+    const perfil = {
+      organismo: 'Klebsiella pneumoniae',
+      resultados: [
+        { antibiotico: 'Meropenem', interpretacion: 'R' as const, cmi: 16 },
+        { antibiotico: 'Ceftriaxona', interpretacion: 'R' as const },
+        { antibiotico: 'Colistina', interpretacion: null, cmi: null }, // sin categoría → se descarta
+      ],
+    }
+    const entrada = perfilAEntrada(perfil, 'sangre')
+    expect(entrada.organismo).toBe('Klebsiella pneumoniae')
+    expect(entrada.sitio).toBe('sangre')
+    expect(entrada.resultados).toHaveLength(2)
+    expect(entrada.resultados.find(r => /meropenem/i.test(r.antibiotico))?.cmi).toBe(16)
+    // y el motor razona sobre el perfil extraído (extremo a extremo)
+    const r = interpretarAntibiograma(entrada)
+    expect(r.fenotipos.some(f => f.clave === 'carbapenemasa')).toBe(true)
   })
 })

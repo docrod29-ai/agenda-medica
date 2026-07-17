@@ -7,14 +7,16 @@
  * conflictos de resistencia intrínseca y una explicación didáctica citada.
  * Superficie independiente: no toca el flujo de la nota/consulta.
  */
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import {
   interpretarAntibiograma, type SIR, type SitioInfeccion, type InterpretacionAntibiograma,
 } from '@/lib/expediente/antibiograma'
 import {
   FlaskConical, Plus, Trash2, AlertTriangle, ShieldAlert, Activity, Info, Bug,
-  Dna, Target, BookOpen, Microscope, Pencil,
+  Dna, Target, BookOpen, Microscope, Pencil, Camera, Loader2,
 } from 'lucide-react'
+
+interface CeldaVision { antibiotico?: string; interpretacion?: string | null; cmi?: number | null; conf?: string; needs_review?: boolean }
 
 const ANTIBIOTICOS_COMUNES = [
   'Oxacilina', 'Cefoxitina', 'Penicilina', 'Ampicilina', 'Vancomicina', 'Ceftriaxona', 'Ceftazidima', 'Cefepime',
@@ -38,11 +40,53 @@ export default function AntibiogramaPage() {
   const [sitio, setSitio] = useState<SitioInfeccion>('otro')
   const [filas, setFilas] = useState<Fila[]>([nuevaFila('Ceftriaxona'), nuevaFila('Meropenem')])
   const [res, setRes] = useState<InterpretacionAntibiograma | null>(null)
+  const [cargandoFoto, setCargandoFoto] = useState(false)
+  const [avisoFoto, setAvisoFoto] = useState<string[]>([])
+  const fileRef = useRef<HTMLInputElement>(null)
 
   const setFila = (i: number, patch: Partial<Fila>) =>
     setFilas(fs => fs.map((f, j) => (j === i ? { ...f, ...patch } : f)))
   const quitar = (i: number) => setFilas(fs => fs.filter((_, j) => j !== i))
   const agregar = (nombre = '') => setFilas(fs => [...fs, nuevaFila(nombre)])
+
+  const onFoto = async (file: File) => {
+    setCargandoFoto(true); setAvisoFoto([]); setRes(null)
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const fr = new FileReader()
+        fr.onload = () => resolve(String(fr.result)); fr.onerror = () => reject(new Error('lectura'))
+        fr.readAsDataURL(file)
+      })
+      const resp = await fetch('/api/expediente/antibiograma-vision', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imagen: dataUrl, sitio }),
+      })
+      const data = await resp.json()
+      if (!data.ok) { setAvisoFoto([data.error || `No se pudo leer la foto (HTTP ${resp.status})`]); return }
+      const perfil = data.perfil || {}
+      if (perfil.organismo) setOrganismo(String(perfil.organismo))
+      const celdas: CeldaVision[] = Array.isArray(perfil.resultados) ? perfil.resultados : []
+      const nuevas: Fila[] = celdas
+        .filter(c => c.antibiotico)
+        .map(c => ({
+          antibiotico: String(c.antibiotico),
+          interpretacion: (c.interpretacion === 'S' || c.interpretacion === 'I' || c.interpretacion === 'R') ? c.interpretacion : 'S',
+          cmi: c.cmi != null ? String(c.cmi) : '',
+        }))
+      if (nuevas.length) setFilas(nuevas)
+      const avisos: string[] = []
+      if (data._schemaWarning) avisos.push('La lectura no cumplió del todo el formato esperado; revisa y corrige las filas.')
+      if (Array.isArray(perfil.avisos)) perfil.avisos.forEach((a: string) => avisos.push(a))
+      const rev = celdas.filter(c => c.needs_review || c.conf === 'baja').map(c => c.antibiotico).filter(Boolean)
+      if (rev.length) avisos.push('⚠ Lectura dudosa (revisa a mano): ' + rev.join(', '))
+      avisos.push('La IA solo TRANSCRIBE. Verifica organismo y S/I/R antes de interpretar — tú confirmas.')
+      setAvisoFoto(avisos)
+    } catch (e) {
+      setAvisoFoto(['Error al leer la foto: ' + (e instanceof Error ? e.message : String(e))])
+    } finally {
+      setCargandoFoto(false)
+    }
+  }
 
   const interpretar = () => {
     const resultados = filas
@@ -57,6 +101,7 @@ export default function AntibiogramaPage() {
 
   return (
     <div style={{ maxWidth: 860, margin: '0 auto', padding: '20px 16px 60px' }}>
+      <style>{'.spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}'}</style>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
         <FlaskConical size={22} color="var(--teal)" />
         <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Antibiograma inteligente — PROA</h1>
@@ -66,6 +111,26 @@ export default function AntibiogramaPage() {
         <b> mecanismo molecular</b>, terapia dirigida y notificación NOM-045, con explicación citada.
         <b> Apoyo decisional — no sustituye el juicio clínico.</b>
       </p>
+
+      {/* Modo FOTO: la IA transcribe el perfil, el motor razona */}
+      <div style={{ border: '1px dashed var(--border)', borderRadius: 12, padding: '14px 16px', marginBottom: 18, background: 'var(--s1)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <Camera size={16} color="var(--teal)" />
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Leer desde una foto</span>
+          <span style={{ fontSize: 10.5, color: 'var(--text3)' }}>(la IA transcribe el S/I/R; tú confirmas y el motor razona)</span>
+        </div>
+        <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+          onChange={e => { const f = e.target.files?.[0]; if (f) onFoto(f); e.target.value = '' }} />
+        <button type="button" onClick={() => fileRef.current?.click()} disabled={cargandoFoto}
+          style={{ ...cta, marginTop: 0, opacity: cargandoFoto ? 0.6 : 1, cursor: cargandoFoto ? 'wait' : 'pointer', background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)' }}>
+          {cargandoFoto ? <><Loader2 size={16} className="spin" /> Leyendo la foto…</> : <><Camera size={16} /> Subir / tomar foto del antibiograma</>}
+        </button>
+        {avisoFoto.length > 0 && (
+          <ul style={{ margin: '10px 0 0', paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {avisoFoto.map((a, i) => <li key={i} style={{ fontSize: 11.5, color: 'var(--text2)', lineHeight: 1.5 }}>{a}</li>)}
+          </ul>
+        )}
+      </div>
 
       {/* Organismo + sitio */}
       <label style={label}>Organismo</label>

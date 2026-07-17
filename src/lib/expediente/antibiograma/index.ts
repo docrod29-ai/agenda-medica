@@ -12,6 +12,7 @@ export { interpretarAntibiograma } from './motor'
 export { CLASES, COBERTURA, terapiaPorClase, type ClaseEnzima } from './betalactamasas'
 export { REF } from './referencias'
 export { PRIOR_MEXICO, REF_INVIFAR, REF_GLASS } from './epidemiologia'
+export { PerfilExtraido, perfilAEntrada, VISION_SYSTEM_PROMPT, buildVisionUserPrompt } from './vision'
 export type {
   SIR,
   ResultadoAntibiograma,
