@@ -14,6 +14,7 @@ export { REF } from './referencias'
 export { PRIOR_MEXICO, REF_INVIFAR, REF_GLASS } from './epidemiologia'
 export { PerfilExtraido, perfilAEntrada, VISION_SYSTEM_PROMPT, buildVisionUserPrompt } from './vision'
 export { PRUEBAS, pruebasRecomendadas } from './clsi-pruebas'
+export { interpretarCMI, grupoDe } from './clsi-breakpoints'
 export type {
   SIR,
   ResultadoAntibiograma,
@@ -29,5 +30,6 @@ export type {
   BloqueDidactico,
   EdicionInterpretativa,
   PruebaCLSI,
+  CategoriaCMI,
   InterpretacionAntibiograma,
 } from './tipos'

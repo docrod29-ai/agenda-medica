@@ -1,0 +1,157 @@
+/**
+ * Puntos de corte de CMI del CLSI M100-Ed35 (2025) → interpreta una CMI (µg/mL)
+ * en categoría S/I/R, o CONFIRMA/discrepa con la categoría reportada por el lab.
+ *
+ * Fuente: CLSI M100-Ed35 (2025), Tabla 2A-1 (Enterobacterales, excl. Salmonella/Shigella).
+ * Valores transcritos literalmente de la tabla leída. Convención:
+ *   S = CMI ≤ sMax ; R = CMI ≥ rMin ; I/SDD = valores intermedios.
+ * Combinaciones con inhibidor: el umbral se expresa por el componente activo (µg/mL).
+ *
+ * ⚠ Sólo se incluyen combinaciones bug-fármaco con punto de corte VIGENTE y no
+ *    condicionadas a foco (las de "solo IVU no complicada" se marcan uti:true).
+ */
+import { norm } from './util'
+
+export type GrupoCLSI = 'enterobacterales'
+
+export interface Corte {
+  /** CMI ≤ sMax → S (µg/mL). */
+  sMax: number
+  /** CMI ≥ rMin → R (µg/mL). Entre sMax y rMin = I/SDD. */
+  rMin: number
+  /** Punto de corte sólo válido para IVU no complicada. */
+  uti?: boolean
+  /** Sin categoría "S" (p. ej. colistina: solo I/R). */
+  sinS?: boolean
+}
+
+/** Sinónimos → clave canónica de fármaco. */
+const FARMACO_ALIAS: Record<string, string[]> = {
+  ampicilina: ['ampicilina'],
+  'amoxicilina-clavulanato': ['amoxicilina-clavulanico', 'amoxicilina/clavulanico', 'amoxicilina-clavulanato', 'co-amoxiclav'],
+  'ampicilina-sulbactam': ['ampicilina-sulbactam', 'ampicilina/sulbactam', 'unasyn'],
+  'piperacilina-tazobactam': ['piperacilina-tazobactam', 'piperacilina/tazobactam', 'tazocin'],
+  'ceftolozano-tazobactam': ['ceftolozano-tazobactam', 'ceftolozano/tazobactam', 'zerbaxa'],
+  'ceftazidima-avibactam': ['ceftazidima-avibactam', 'ceftazidima/avibactam', 'avibactam'],
+  'imipenem-relebactam': ['imipenem-relebactam', 'imipenem/relebactam', 'relebactam'],
+  'meropenem-vaborbactam': ['meropenem-vaborbactam', 'meropenem/vaborbactam', 'vaborbactam'],
+  cefazolina: ['cefazolina'],
+  ceftriaxona: ['ceftriaxona'],
+  cefotaxima: ['cefotaxima'],
+  ceftazidima: ['ceftazidima'],
+  cefepime: ['cefepime', 'cefepima'],
+  cefuroxima: ['cefuroxima'],
+  cefoxitina: ['cefoxitina'],
+  cefotetan: ['cefotetan'],
+  aztreonam: ['aztreonam'],
+  cefiderocol: ['cefiderocol'],
+  ertapenem: ['ertapenem'],
+  doripenem: ['doripenem'],
+  imipenem: ['imipenem'],
+  meropenem: ['meropenem'],
+  colistina: ['colistina', 'colistimetato', 'polimixina'],
+  gentamicina: ['gentamicina'],
+  tobramicina: ['tobramicina'],
+  amikacina: ['amikacina'],
+  plazomicina: ['plazomicina'],
+  tetraciclina: ['tetraciclina'],
+  doxiciclina: ['doxiciclina'],
+  minociclina: ['minociclina'],
+  ciprofloxacino: ['ciprofloxacino'],
+  levofloxacino: ['levofloxacino'],
+  cotrimoxazol: ['trimetoprim-sulfametoxazol', 'trimetoprim/sulfametoxazol', 'cotrimoxazol', 'tmp-smx', 'tmp/smx'],
+  cloranfenicol: ['cloranfenicol'],
+  fosfomicina: ['fosfomicina'],
+  nitrofurantoina: ['nitrofurantoina'],
+}
+
+/** Tabla 2A-1 — Enterobacterales (CLSI M100-Ed35, 2025). CMI en µg/mL. */
+const ENTEROBACTERALES: Record<string, Corte> = {
+  ampicilina: { sMax: 8, rMin: 32 },
+  'amoxicilina-clavulanato': { sMax: 8, rMin: 32 },
+  'ampicilina-sulbactam': { sMax: 8, rMin: 32 },
+  'piperacilina-tazobactam': { sMax: 8, rMin: 32 },
+  'ceftolozano-tazobactam': { sMax: 2, rMin: 8 },
+  'ceftazidima-avibactam': { sMax: 8, rMin: 16 },
+  'imipenem-relebactam': { sMax: 1, rMin: 4 },
+  'meropenem-vaborbactam': { sMax: 4, rMin: 16 },
+  cefazolina: { sMax: 2, rMin: 8 },                 // sistémico (surrogate IVU: ≤16/≥32)
+  ceftriaxona: { sMax: 1, rMin: 4 },
+  cefotaxima: { sMax: 1, rMin: 4 },
+  ceftazidima: { sMax: 4, rMin: 16 },
+  cefepime: { sMax: 2, rMin: 16 },                  // 4-8 = SDD (dosis alta)
+  cefuroxima: { sMax: 8, rMin: 32 },                // parenteral
+  cefoxitina: { sMax: 8, rMin: 32 },
+  cefotetan: { sMax: 16, rMin: 64 },
+  aztreonam: { sMax: 4, rMin: 16 },
+  cefiderocol: { sMax: 4, rMin: 16 },
+  ertapenem: { sMax: 0.5, rMin: 2 },
+  doripenem: { sMax: 1, rMin: 4 },
+  imipenem: { sMax: 1, rMin: 4 },
+  meropenem: { sMax: 1, rMin: 4 },
+  colistina: { sMax: 0, rMin: 4, sinS: true },      // I ≤2, R ≥4 (sin categoría S)
+  gentamicina: { sMax: 2, rMin: 8 },
+  tobramicina: { sMax: 2, rMin: 8 },
+  amikacina: { sMax: 4, rMin: 16 },
+  plazomicina: { sMax: 2, rMin: 8 },
+  tetraciclina: { sMax: 4, rMin: 16 },
+  doxiciclina: { sMax: 4, rMin: 16 },
+  minociclina: { sMax: 4, rMin: 16 },
+  ciprofloxacino: { sMax: 0.25, rMin: 1 },
+  levofloxacino: { sMax: 0.5, rMin: 2 },
+  cotrimoxazol: { sMax: 2, rMin: 4 },
+  cloranfenicol: { sMax: 8, rMin: 32 },
+  fosfomicina: { sMax: 64, rMin: 256, uti: true },  // solo E. coli IVU
+  nitrofurantoina: { sMax: 32, rMin: 128, uti: true },
+}
+
+const TABLAS: Record<GrupoCLSI, Record<string, Corte>> = {
+  enterobacterales: ENTEROBACTERALES,
+}
+
+const REF_2A1 = 'CLSI M100-Ed35 (2025), Tabla 2A-1 (Enterobacterales)'
+
+const ENTEROBACTERALES_CLAVES = [
+  'escherichia', 'e. coli', 'e.coli', 'coli', 'klebsiella', 'enterobacter',
+  'serratia', 'citrobacter', 'proteus', 'morganella', 'providencia',
+  'hafnia', 'raoultella', 'pantoea', 'kluyvera', 'aerogenes', 'cloacae', 'freundii',
+]
+
+export function grupoDe(organismo: string): GrupoCLSI | null {
+  const o = norm(organismo)
+  if (ENTEROBACTERALES_CLAVES.some(k => o.includes(norm(k)))) return 'enterobacterales'
+  return null
+}
+
+function claveFarmaco(antibiotico: string): string | null {
+  const a = norm(antibiotico)
+  // más específico primero (combinaciones antes que el componente suelto)
+  const orden = Object.keys(FARMACO_ALIAS).sort((x, y) => y.length - x.length)
+  for (const clave of orden) {
+    if (FARMACO_ALIAS[clave].some(s => a.includes(norm(s)))) return clave
+  }
+  return null
+}
+
+export interface CategoriaCLSI {
+  categoria: 'S' | 'I' | 'R'
+  corte: Corte
+  referencia: string
+  soloUTI: boolean
+}
+
+/** Interpreta una CMI (µg/mL) según el punto de corte CLSI del grupo/fármaco. */
+export function interpretarCMI(organismo: string, antibiotico: string, cmi: number): CategoriaCLSI | null {
+  const grupo = grupoDe(organismo)
+  if (!grupo || !(cmi >= 0)) return null
+  const clave = claveFarmaco(antibiotico)
+  if (!clave) return null
+  const corte = TABLAS[grupo][clave]
+  if (!corte) return null
+  let categoria: 'S' | 'I' | 'R'
+  if (cmi >= corte.rMin) categoria = 'R'
+  else if (corte.sinS) categoria = 'I'            // colistina: ≤2 = I, ≥4 = R
+  else if (cmi <= corte.sMax) categoria = 'S'
+  else categoria = 'I'
+  return { categoria, corte, referencia: REF_2A1, soloUTI: !!corte.uti }
+}

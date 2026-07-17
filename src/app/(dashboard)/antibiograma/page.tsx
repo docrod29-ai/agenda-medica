@@ -268,6 +268,26 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
         </div>
       )}
 
+      {res.categoriasCMI.length > 0 && (
+        <div>
+          <SecTitle icon={<Microscope size={15} />} t="Interpretación de CMI (puntos de corte CLSI M100)" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {res.categoriasCMI.map((c, i) => {
+              const col = c.categoriaCLSI === 'S' ? '#10b981' : c.categoriaCLSI === 'I' ? '#f59e0b' : '#f87171'
+              return (
+                <div key={i} style={{ ...box, ...(c.concuerda === false ? { borderColor: 'rgba(245,158,11,.5)', background: 'rgba(245,158,11,.08)' } : {}) }}>
+                  <span style={{ color: 'var(--text2)' }}>
+                    <b>{c.antibiotico}</b> · CMI {c.cmi} µg/mL → <b style={{ color: col }}>{c.categoriaCLSI}</b> (CLSI)
+                    {c.soloUTI && <span style={{ color: 'var(--text3)' }}> · solo IVU no complicada</span>}
+                    {c.concuerda === false && <span style={{ color: '#f59e0b' }}> · ⚠ discrepa del reporte ({c.categoriaReportada})</span>}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {res.pruebasSugeridas.length > 0 && (
         <div>
           <SecTitle icon={<TestTube size={15} />} t="Pruebas microbiológicas sugeridas (CLSI M100)" />

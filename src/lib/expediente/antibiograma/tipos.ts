@@ -111,6 +111,20 @@ export interface EdicionInterpretativa {
   referencia: string
 }
 
+/** Categoría S/I/R derivada de una CMI con los puntos de corte del CLSI M100. */
+export interface CategoriaCMI {
+  antibiotico: string
+  cmi: number
+  categoriaCLSI: SIR
+  /** Categoría que reportó el laboratorio (si se capturó). */
+  categoriaReportada?: SIR
+  /** true concuerda, false discrepa, null no reportada. */
+  concuerda: boolean | null
+  /** El punto de corte aplica solo a IVU no complicada. */
+  soloUTI: boolean
+  referencia: string
+}
+
 /** Prueba microbiológica confirmatoria/fenotípica del CLSI M100 (cuándo, método, interpretación). */
 export interface PruebaCLSI {
   id: string
@@ -169,6 +183,8 @@ export interface InterpretacionAntibiograma {
   edicionesInterpretativas: EdicionInterpretativa[]
   /** Pruebas microbiológicas del CLSI recomendadas según el fenotipo (cuándo/método/interpretación). */
   pruebasSugeridas: PruebaCLSI[]
+  /** Categorías S/I/R derivadas de las CMI capturadas con los puntos de corte del CLSI M100. */
+  categoriasCMI: CategoriaCMI[]
   /** Fuentes citadas en esta interpretación. */
   referencias: string[]
 }

@@ -20,6 +20,8 @@ import { analizarNoFermentadores } from './nofermentadores'
 import { evaluarIntrinseca } from './intrinseca'
 import { analizarSeguridad } from './seguridad'
 import { pruebasRecomendadas } from './clsi-pruebas'
+import { interpretarCMI } from './clsi-breakpoints'
+import type { CategoriaCMI } from './tipos'
 
 function fusionar(a: AporteModulo, b: AporteModulo): AporteModulo {
   return {
@@ -68,6 +70,24 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
   const pruebasSugeridas = pruebasRecomendadas(organismo, fenotipos.map(f => f.clave))
   pruebasSugeridas.forEach(p => refs.add(p.referencia))
 
+  // Interpretación de CMI con puntos de corte del CLSI M100 (donde haya CMI numérica).
+  const categoriasCMI: CategoriaCMI[] = []
+  for (const x of r) {
+    if (typeof x.cmi !== 'number') continue
+    const cat = interpretarCMI(organismo, x.antibiotico, x.cmi)
+    if (!cat) continue
+    categoriasCMI.push({
+      antibiotico: x.antibiotico,
+      cmi: x.cmi,
+      categoriaCLSI: cat.categoria,
+      categoriaReportada: x.interpretacion,
+      concuerda: x.interpretacion ? x.interpretacion === cat.categoria : null,
+      soloUTI: cat.soloUTI,
+      referencia: cat.referencia,
+    })
+    refs.add(cat.referencia)
+  }
+
   return {
     organismo,
     organismoNormalizado: reconocer(organismo),
@@ -83,6 +103,7 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
     didactica: ap.didactica,
     edicionesInterpretativas,
     pruebasSugeridas,
+    categoriasCMI,
     referencias: [...refs],
   }
 }

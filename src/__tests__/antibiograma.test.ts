@@ -384,6 +384,39 @@ describe('AmpC — pip-tazo no fiable (Meini)', () => {
   })
 })
 
+describe('Puntos de corte CLSI M100 (CMI → S/I/R)', () => {
+  it('meropenem CMI 0.5 en Enterobacterales → S (≤1)', () => {
+    const r = interpretarAntibiograma({ organismo: 'Klebsiella pneumoniae', resultados: [{ antibiotico: 'Meropenem', interpretacion: 'S', cmi: 0.5 }] })
+    const c = r.categoriasCMI.find(x => /meropenem/i.test(x.antibiotico))
+    expect(c?.categoriaCLSI).toBe('S')
+    expect(c?.concuerda).toBe(true)
+  })
+  it('meropenem CMI 4 → R (≥4) y discrepa si reportaron S', () => {
+    const r = interpretarAntibiograma({ organismo: 'Escherichia coli', resultados: [{ antibiotico: 'Meropenem', interpretacion: 'S', cmi: 4 }] })
+    const c = r.categoriasCMI.find(x => /meropenem/i.test(x.antibiotico))
+    expect(c?.categoriaCLSI).toBe('R')
+    expect(c?.concuerda).toBe(false)
+  })
+  it('ceftriaxona CMI 2 → I (entre ≤1 y ≥4)', () => {
+    const r = interpretarAntibiograma({ organismo: 'Escherichia coli', resultados: [{ antibiotico: 'Ceftriaxona', interpretacion: 'I', cmi: 2 }] })
+    expect(r.categoriasCMI.find(x => /ceftriaxona/i.test(x.antibiotico))?.categoriaCLSI).toBe('I')
+  })
+  it('colistina CMI 2 → I (sin categoría S); CMI 4 → R', () => {
+    const r2 = interpretarAntibiograma({ organismo: 'Klebsiella pneumoniae', resultados: [{ antibiotico: 'Colistina', interpretacion: 'I', cmi: 2 }] })
+    expect(r2.categoriasCMI.find(x => /colistina/i.test(x.antibiotico))?.categoriaCLSI).toBe('I')
+    const r4 = interpretarAntibiograma({ organismo: 'Klebsiella pneumoniae', resultados: [{ antibiotico: 'Colistina', interpretacion: 'R', cmi: 4 }] })
+    expect(r4.categoriasCMI.find(x => /colistina/i.test(x.antibiotico))?.categoriaCLSI).toBe('R')
+  })
+  it('fosfomicina marca soloUTI', () => {
+    const r = interpretarAntibiograma({ organismo: 'Escherichia coli', resultados: [{ antibiotico: 'Fosfomicina', interpretacion: 'S', cmi: 32 }] })
+    expect(r.categoriasCMI.find(x => /fosfomicina/i.test(x.antibiotico))?.soloUTI).toBe(true)
+  })
+  it('no aplica breakpoints de Enterobacterales a Gram+', () => {
+    const r = interpretarAntibiograma({ organismo: 'Staphylococcus aureus', resultados: [{ antibiotico: 'Meropenem', interpretacion: 'S', cmi: 0.5 }] })
+    expect(r.categoriasCMI).toHaveLength(0)
+  })
+})
+
 describe('Pruebas microbiológicas CLSI sugeridas', () => {
   it('BLEE → sugiere prueba confirmatoria de ESBL (Tabla 3A)', () => {
     const r = interpretarAntibiograma(ab('Escherichia coli', [['Ceftriaxona', 'R'], ['Meropenem', 'S']]))
