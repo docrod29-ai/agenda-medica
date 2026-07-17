@@ -25,7 +25,7 @@ const PRUEBAS_CONF: { k: keyof PruebasConfirmatorias; t: string; hint: string }[
 ]
 import {
   FlaskConical, Plus, Trash2, AlertTriangle, ShieldAlert, Activity, Info, Bug,
-  Dna, Target, BookOpen, Microscope, Pencil, Camera, Loader2, TestTube,
+  Dna, Target, BookOpen, Microscope, Pencil, Camera, Loader2, TestTube, Brain,
 } from 'lucide-react'
 
 interface CeldaVision { antibiotico?: string; interpretacion?: string | null; cmi?: number | null; conf?: string; needs_review?: boolean }
@@ -97,6 +97,32 @@ export default function AntibiogramaPage() {
 
   const setPrueba = (k: keyof PruebasConfirmatorias, v: ResultadoPrueba | undefined) =>
     setPruebas(p => { const n = { ...p }; if (v) (n[k] as ResultadoPrueba | undefined) = v; else delete n[k]; return n })
+
+  // Razonamiento con IA sobre el motor determinista.
+  const [razonando, setRazonando] = useState(false)
+  const [razonamiento, setRazonamiento] = useState<{ texto: string; segunda?: string } | null>(null)
+  const [errorRaz, setErrorRaz] = useState('')
+
+  const razonarIA = async () => {
+    setRazonando(true); setErrorRaz(''); setRazonamiento(null)
+    try {
+      const resultados = filas.filter(f => f.antibiotico.trim()).map(f => {
+        const cmi = parseCMI(f.cmi)
+        return { antibiotico: f.antibiotico.trim(), interpretacion: f.interpretacion, ...(cmi != null ? { cmi } : {}) }
+      })
+      const resp = await fetchAutenticado('/api/expediente/antibiograma-razonar', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ organismo: organismo.trim(), resultados, sitio, pruebas, motor: 'maxima' }),
+      })
+      const data = await resp.json().catch(() => null)
+      if (!data?.ok) { setErrorRaz(data?.error || `No se pudo razonar (HTTP ${resp.status})`); return }
+      setRazonamiento({ texto: data.razonamiento, segunda: data.segundaOpinion })
+    } catch (e) {
+      setErrorRaz('Error de red: ' + (e instanceof Error ? e.message : String(e)))
+    } finally {
+      setRazonando(false)
+    }
+  }
 
   const setFila = (i: number, patch: Partial<Fila>) =>
     setFilas(fs => fs.map((f, j) => (j === i ? { ...f, ...patch } : f)))
@@ -254,6 +280,36 @@ export default function AntibiogramaPage() {
       </div>
 
       {res && <Resultado res={res} />}
+
+      {/* Razonamiento con IA sobre el motor (infectólogo IA — Claude + GPT) */}
+      {res && (res.fenotipos.length > 0 || res.categoriasCMI.length > 0 || organismo.trim()) && (
+        <div style={{ marginTop: 18 }}>
+          <button type="button" onClick={razonarIA} disabled={razonando}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: 'var(--nexus)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 13.5, fontWeight: 700, cursor: razonando ? 'wait' : 'pointer', opacity: razonando ? 0.7 : 1 }}>
+            {razonando ? <><Loader2 size={16} className="spin" /> Razonando el caso…</> : <><Brain size={16} /> Razonar con IA (infectólogo — Claude + GPT)</>}
+          </button>
+          {errorRaz && <div style={{ ...box, marginTop: 8, borderColor: 'rgba(239,68,68,.4)', background: 'rgba(239,68,68,.08)', color: '#f87171' }}>{errorRaz}</div>}
+          {razonamiento && (
+            <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={card}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, color: 'var(--teal)' }}>
+                  <Brain size={15} /><span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.03em', textTransform: 'uppercase' }}>Razonamiento clínico (IA sobre el motor)</span>
+                </div>
+                <p style={{ fontSize: 12.5, color: 'var(--text2)', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{razonamiento.texto}</p>
+              </div>
+              {razonamiento.segunda && (
+                <div style={card}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.03em' }}>Segunda opinión (GPT-5)</div>
+                  <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{razonamiento.segunda}</p>
+                </div>
+              )}
+              <p style={{ fontSize: 10.5, color: 'var(--text3)', margin: 0, fontStyle: 'italic' }}>
+                La IA razona sobre los hechos del motor determinista (no inventa puntos de corte). Apoyo a la decisión — el juicio clínico es tuyo.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
