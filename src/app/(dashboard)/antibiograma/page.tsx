@@ -7,7 +7,7 @@
  * conflictos de resistencia intrínseca y una explicación didáctica citada.
  * Superficie independiente: no toca el flujo de la nota/consulta.
  */
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
 import {
   interpretarAntibiograma, type SIR, type SitioInfeccion, type InterpretacionAntibiograma,
   type PruebasConfirmatorias, type ResultadoPrueba,
@@ -47,15 +47,53 @@ const SITIOS: { v: SitioInfeccion; t: string }[] = [
 interface Fila { antibiotico: string; interpretacion: SIR; cmi: string }
 const nuevaFila = (antibiotico = ''): Fila => ({ antibiotico, interpretacion: 'S', cmi: '' })
 
+/**
+ * Interpreta la CMI tal como la reporta el antibiograma, con TODOS los símbolos:
+ *   "≤0.5", "< 0.5", ">16", "≥ 16", "2/38" (TMP-SMX: toma el componente activo),
+ *   "0,5" (coma), etc. Devuelve el número para comparar contra el punto de corte.
+ */
+function parseCMI(s: string): number | null {
+  if (!s) return null
+  const t = s.trim().replace(',', '.')
+  // Razón X/Y (p. ej. TMP-SMX "≤2/38") → primer número = componente activo (el del punto de corte).
+  const ratio = t.match(/^[<≤>≥=]?\s*([\d.]+)\s*\/\s*[\d.]+/)
+  if (ratio) { const n = Number(ratio[1]); return isNaN(n) ? null : n }
+  // Cualquier número, con o sin símbolo de desigualdad.
+  const m = t.match(/[<≤>≥=]?\s*([\d.]+)/)
+  if (!m) return null
+  const n = Number(m[1])
+  return isNaN(n) ? null : n
+}
+
 export default function AntibiogramaPage() {
   const [organismo, setOrganismo] = useState('')
   const [sitio, setSitio] = useState<SitioInfeccion>('otro')
   const [filas, setFilas] = useState<Fila[]>([nuevaFila('Ceftriaxona'), nuevaFila('Meropenem')])
-  const [res, setRes] = useState<InterpretacionAntibiograma | null>(null)
   const [pruebas, setPruebas] = useState<PruebasConfirmatorias>({})
   const [cargandoFoto, setCargandoFoto] = useState(false)
   const [avisoFoto, setAvisoFoto] = useState<string[]>([])
+  const [version, setVersion] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
+
+  // Versión viva (la expone el service worker) para confirmar el despliegue.
+  useEffect(() => {
+    const v = (window as unknown as { __NEXUSMED_VERSION?: string }).__NEXUSMED_VERSION
+    if (v) setVersion(v)
+    else { const t = setTimeout(() => setVersion((window as unknown as { __NEXUSMED_VERSION?: string }).__NEXUSMED_VERSION || ''), 1500); return () => clearTimeout(t) }
+  }, [])
+
+  // REACTIVO: se recalcula SOLO al cambiar organismo, panel, sitio o pruebas.
+  // Ya no hace falta volver a picar "Interpretar" — es dinámico.
+  const res: InterpretacionAntibiograma | null = useMemo(() => {
+    if (!organismo.trim()) return null
+    const resultados = filas
+      .filter(f => f.antibiotico.trim())
+      .map(f => {
+        const cmi = parseCMI(f.cmi)
+        return { antibiotico: f.antibiotico.trim(), interpretacion: f.interpretacion, ...(cmi != null ? { cmi } : {}) }
+      })
+    return interpretarAntibiograma({ organismo: organismo.trim(), resultados, sitio, pruebas })
+  }, [organismo, filas, sitio, pruebas])
 
   const setPrueba = (k: keyof PruebasConfirmatorias, v: ResultadoPrueba | undefined) =>
     setPruebas(p => { const n = { ...p }; if (v) (n[k] as ResultadoPrueba | undefined) = v; else delete n[k]; return n })
@@ -66,7 +104,7 @@ export default function AntibiogramaPage() {
   const agregar = (nombre = '') => setFilas(fs => [...fs, nuevaFila(nombre)])
 
   const onFoto = async (file: File) => {
-    setCargandoFoto(true); setAvisoFoto([]); setRes(null)
+    setCargandoFoto(true); setAvisoFoto([])
     try {
       const dataUrl = await new Promise<string>((resolve, reject) => {
         const fr = new FileReader()
@@ -104,23 +142,13 @@ export default function AntibiogramaPage() {
     }
   }
 
-  const interpretar = () => {
-    const resultados = filas
-      .filter(f => f.antibiotico.trim())
-      .map(f => ({
-        antibiotico: f.antibiotico.trim(),
-        interpretacion: f.interpretacion,
-        ...(f.cmi.trim() && !isNaN(Number(f.cmi)) ? { cmi: Number(f.cmi) } : {}),
-      }))
-    setRes(interpretarAntibiograma({ organismo: organismo.trim(), resultados, sitio, pruebas }))
-  }
-
   return (
     <div style={{ maxWidth: 860, margin: '0 auto', padding: '20px 16px 60px' }}>
       <style>{'.spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}'}</style>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
         <FlaskConical size={22} color="var(--teal)" />
         <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Antibiograma inteligente — PROA</h1>
+        {version && <span title="Versión desplegada" style={{ marginLeft: 'auto', fontSize: 10.5, fontWeight: 700, color: 'var(--teal)', background: 'rgba(20,184,166,.12)', border: '1px solid rgba(20,184,166,.3)', borderRadius: 100, padding: '2px 9px' }}>{version.replace('nexusmed-', '')}</span>}
       </div>
       <p style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 20, lineHeight: 1.5 }}>
         Captura organismo, sitio y panel S/I/R (con CMI si la tienes). El motor infiere fenotipos,
@@ -218,10 +246,12 @@ export default function AntibiogramaPage() {
         ))}
       </div>
 
-      <button type="button" onClick={interpretar} disabled={!organismo.trim()}
-        style={{ ...cta, opacity: organismo.trim() ? 1 : 0.5, cursor: organismo.trim() ? 'pointer' : 'default' }}>
-        <FlaskConical size={16} /> Interpretar
-      </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 18, padding: '10px 14px', borderRadius: 10, background: 'rgba(20,184,166,.08)', border: '1px solid rgba(20,184,166,.25)', color: 'var(--teal)', fontSize: 12.5, fontWeight: 600 }}>
+        <FlaskConical size={15} />
+        {organismo.trim()
+          ? 'Interpretación en vivo — se actualiza sola al cambiar organismo, S/I/R, CMI o pruebas.'
+          : 'Escribe el organismo para interpretar (en vivo).'}
+      </div>
 
       {res && <Resultado res={res} />}
     </div>
