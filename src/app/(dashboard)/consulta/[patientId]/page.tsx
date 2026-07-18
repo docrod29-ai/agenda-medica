@@ -29,6 +29,7 @@ import { Alert, Modal, Button } from '@/components/ui'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { CalculadorasClinicas } from '@/components/CalculadorasClinicas'
 import { PanelPediatria } from '@/components/PanelPediatria'
+import { PanelGineco } from '@/components/PanelGineco'
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
 import { detectarInteracciones, detectarControlados } from '@/lib/expediente/farmacovigilancia'
@@ -1686,6 +1687,21 @@ export default function ConsultaActivaPage() {
           <FlaskConical size={14} /> Preguntar a la evidencia (chat)
         </button>
       )}
+
+      {/* ── Gineco-obstetricia: gestación, preeclampsia, Bishop, citología ── */}
+      <PanelGineco
+        sexo={patient?.sexo}
+        edadAnios={patient?.edad}
+        onAgregarANota={texto => {
+          setSecciones(prev => {
+            const i = prev.findIndex(s => s.key === 'gineco')
+            const valor = i >= 0 ? `${prev[i].value}\n${texto}` : texto
+            const sin = prev.filter(s => s.key !== 'gineco')
+            return [...sin, { key: 'gineco', label: 'Gineco-obstetricia', value: valor }]
+          })
+          toast('Agregado a la nota ✓', 'success')
+        }}
+      />
 
       {/* ── Pediatría: dosis por peso con tope de adulto + esquema de vacunación ── */}
       <PanelPediatria
