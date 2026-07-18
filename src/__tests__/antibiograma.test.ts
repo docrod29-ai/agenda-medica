@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { interpretarAntibiograma, perfilAEntrada, type EntradaAntibiograma, type FenotipoClave } from '@/lib/expediente/antibiograma'
+import {
+  interpretarAntibiograma, perfilAEntrada, sitioDesdeMuestra, pruebasDesdeReporte,
+  type EntradaAntibiograma, type FenotipoClave,
+} from '@/lib/expediente/antibiograma'
 
 const claves = (r: ReturnType<typeof interpretarAntibiograma>): FenotipoClave[] => r.fenotipos.map(f => f.clave)
 
@@ -709,6 +712,49 @@ describe('Pruebas confirmatorias del reporte (input)', () => {
   it('sin pruebas → no cambia el comportamiento base', () => {
     const r = interpretarAntibiograma({ organismo: 'Escherichia coli', resultados: [['Ceftriaxona', 'S'] as [string, 'S']].map(([a, i]) => ({ antibiotico: a, interpretacion: i as 'S' })) })
     expect(r.fenotipos).toHaveLength(0)
+  })
+})
+
+describe('Foto → reporte COMPLETO (muestra, pruebas impresas, sitio automático)', () => {
+  it('la muestra define el sitio (LCR → snc, urocultivo → orina, hemocultivo → sangre)', () => {
+    expect(sitioDesdeMuestra('LCR')).toBe('snc')
+    expect(sitioDesdeMuestra('Líquido cefalorraquídeo')).toBe('snc')
+    expect(sitioDesdeMuestra('Urocultivo')).toBe('orina')
+    expect(sitioDesdeMuestra('Hemocultivo periférico')).toBe('sangre')
+    expect(sitioDesdeMuestra('Esputo inducido')).toBe('respiratorio')
+    expect(sitioDesdeMuestra('Secreción de herida quirúrgica')).toBe('piel-partes-blandas')
+    expect(sitioDesdeMuestra('Líquido peritoneal')).toBe('intraabdominal')
+    expect(sitioDesdeMuestra(undefined)).toBeUndefined()
+  })
+  it('las pruebas IMPRESAS del reporte se convierten en confirmatorias', () => {
+    const p = pruebasDesdeReporte([
+      { nombre: 'BLEE', resultado: 'Positivo' },
+      { nombre: 'D-test (clindamicina inducible)', resultado: 'Negativo' },
+      { nombre: 'Carbapenemasa (PCR)', resultado: 'Positivo - NDM' },
+      { nombre: 'HLAR', resultado: 'positivo' },
+    ])
+    expect(p.esbl).toBe('pos')
+    expect(p.dTest).toBe('neg')
+    expect(p.carbapenemasa).toBe('pos')
+    expect(p.claseCarbapenemasa).toBe('NDM')
+    expect(p.hlar).toBe('pos')
+  })
+  it('"no detectado" se lee como negativo (no positivo)', () => {
+    const p = pruebasDesdeReporte([{ nombre: 'Carbapenemasa', resultado: 'No detectado' }])
+    expect(p.carbapenemasa).toBe('neg')
+  })
+  it('perfil completo → entrada con sitio y pruebas auto (neumococo meníngeo)', () => {
+    const entrada = perfilAEntrada({
+      organismo: 'Streptococcus pneumoniae',
+      muestra: 'LCR',
+      resultados: [{ antibiotico: 'Penicilina', interpretacion: 'S' as const, cmi: 1 }],
+      pruebasReportadas: [{ nombre: 'BLEE', resultado: 'negativo' }],
+    })
+    expect(entrada.sitio).toBe('snc')
+    expect(entrada.pruebas?.esbl).toBe('neg')
+    // Y el motor aplica el punto de corte MENÍNGEO por venir de LCR:
+    const r = interpretarAntibiograma(entrada)
+    expect(r.categoriasCMI.find(c => /penicilina/i.test(c.antibiotico))?.categoriaCLSI).toBe('R')
   })
 })
 

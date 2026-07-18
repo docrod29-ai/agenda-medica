@@ -9,7 +9,8 @@
  */
 import { useState, useRef, useMemo, useEffect } from 'react'
 import {
-  interpretarAntibiograma, type SIR, type SitioInfeccion, type InterpretacionAntibiograma,
+  interpretarAntibiograma, sitioDesdeMuestra, pruebasDesdeReporte,
+  type SIR, type SitioInfeccion, type InterpretacionAntibiograma,
   type PruebasConfirmatorias, type ResultadoPrueba,
 } from '@/lib/expediente/antibiograma'
 import { fetchAutenticado } from '@/lib/auth-client'
@@ -28,7 +29,12 @@ import {
   Dna, Target, BookOpen, Microscope, Pencil, Camera, Loader2, TestTube, Brain,
 } from 'lucide-react'
 
-interface CeldaVision { antibiotico?: string; interpretacion?: string | null; cmi?: number | null; conf?: string; needs_review?: boolean }
+interface CeldaVision { antibiotico?: string; interpretacion?: string | null; cmi?: number | null; cmi_texto?: string | null; conf?: string; needs_review?: boolean }
+/** Metadatos del reporte extraídos de la foto (muestra, método, sistema…). */
+interface MetaReporte {
+  muestra?: string; recuento?: string; fecha?: string; metodo?: string
+  sistema?: string; gram?: string; otros?: string[]; observaciones?: string
+}
 
 const ANTIBIOTICOS_COMUNES = [
   'Oxacilina', 'Cefoxitina', 'Penicilina', 'Ampicilina', 'Vancomicina', 'Ceftriaxona', 'Ceftazidima', 'Cefepime',
@@ -72,6 +78,7 @@ export default function AntibiogramaPage() {
   const [pruebas, setPruebas] = useState<PruebasConfirmatorias>({})
   const [cargandoFoto, setCargandoFoto] = useState(false)
   const [avisoFoto, setAvisoFoto] = useState<string[]>([])
+  const [meta, setMeta] = useState<MetaReporte | null>(null)
   const [version, setVersion] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -145,21 +152,43 @@ export default function AntibiogramaPage() {
       if (!data.ok) { setAvisoFoto([data.error || `No se pudo leer la foto (HTTP ${resp.status})`]); return }
       const perfil = data.perfil || {}
       if (perfil.organismo) setOrganismo(String(perfil.organismo))
+
+      // Panel S/I/R — conserva la CMI TAL CUAL (con su símbolo: "≤0.5", ">16", "2/38").
       const celdas: CeldaVision[] = Array.isArray(perfil.resultados) ? perfil.resultados : []
       const nuevas: Fila[] = celdas
         .filter(c => c.antibiotico)
         .map(c => ({
           antibiotico: String(c.antibiotico),
           interpretacion: (c.interpretacion === 'S' || c.interpretacion === 'I' || c.interpretacion === 'R') ? c.interpretacion : 'S',
-          cmi: c.cmi != null ? String(c.cmi) : '',
+          cmi: c.cmi_texto ? String(c.cmi_texto) : c.cmi != null ? String(c.cmi) : '',
         }))
       if (nuevas.length) setFilas(nuevas)
+
+      // AUTO-LLENADO: la MUESTRA define el sitio (cambia breakpoints, p. ej. neumococo meníngeo).
+      const sitioAuto = sitioDesdeMuestra(perfil.muestra)
+      if (sitioAuto) setSitio(sitioAuto)
+      // AUTO-LLENADO: pruebas confirmatorias YA IMPRESAS en el reporte.
+      const pruebasAuto = pruebasDesdeReporte(perfil.pruebasReportadas)
+      if (Object.keys(pruebasAuto).length) setPruebas(p => ({ ...p, ...pruebasAuto }))
+      // Metadatos del reporte para mostrarlos.
+      setMeta({
+        muestra: perfil.muestra, recuento: perfil.recuento, fecha: perfil.fecha,
+        metodo: perfil.metodo, sistema: perfil.sistema, gram: perfil.gram,
+        otros: Array.isArray(perfil.organismosAdicionales) ? perfil.organismosAdicionales : undefined,
+        observaciones: perfil.observaciones,
+      })
+
       const avisos: string[] = []
       if (data._schemaWarning) avisos.push('La lectura no cumplió del todo el formato esperado; revisa y corrige las filas.')
       if (Array.isArray(perfil.avisos)) perfil.avisos.forEach((a: string) => avisos.push(a))
       const rev = celdas.filter(c => c.needs_review || c.conf === 'baja').map(c => c.antibiotico).filter(Boolean)
       if (rev.length) avisos.push('⚠ Lectura dudosa (revisa a mano): ' + rev.join(', '))
-      avisos.push('La IA solo TRANSCRIBE. Verifica organismo y S/I/R antes de interpretar — tú confirmas.')
+      if (sitioAuto) avisos.push(`Sitio ajustado automáticamente a «${sitioAuto}» por la muestra reportada.`)
+      if (Object.keys(pruebasAuto).length) avisos.push(`Pruebas confirmatorias tomadas del reporte: ${Object.keys(pruebasAuto).join(', ')}.`)
+      if (Array.isArray(perfil.organismosAdicionales) && perfil.organismosAdicionales.length) {
+        avisos.push(`⚠ Cultivo POLIMICROBIANO: también se reportó ${perfil.organismosAdicionales.join(', ')}. Interpreta un aislamiento a la vez.`)
+      }
+      avisos.push('La IA solo TRANSCRIBE. Verifica organismo, muestra y S/I/R antes de interpretar — tú confirmas.')
       setAvisoFoto(avisos)
     } catch (e) {
       setAvisoFoto(['Error al leer la foto: ' + (e instanceof Error ? e.message : String(e))])
@@ -195,6 +224,21 @@ export default function AntibiogramaPage() {
           style={{ ...cta, marginTop: 0, opacity: cargandoFoto ? 0.6 : 1, cursor: cargandoFoto ? 'wait' : 'pointer', background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)' }}>
           {cargandoFoto ? <><Loader2 size={16} className="spin" /> Leyendo la foto…</> : <><Camera size={16} /> Subir / tomar foto del antibiograma</>}
         </button>
+        {meta && (meta.muestra || meta.metodo || meta.sistema || meta.recuento || meta.fecha || meta.gram) && (
+          <div style={{ marginTop: 10, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {meta.muestra && <span style={metaChip}><b>Muestra:</b> {meta.muestra}</span>}
+            {meta.recuento && <span style={metaChip}><b>Recuento:</b> {meta.recuento}</span>}
+            {meta.metodo && <span style={metaChip}><b>Método:</b> {meta.metodo}</span>}
+            {meta.sistema && <span style={metaChip}><b>Sistema:</b> {meta.sistema}</span>}
+            {meta.gram && <span style={metaChip}><b>Gram:</b> {meta.gram}</span>}
+            {meta.fecha && <span style={metaChip}><b>Fecha:</b> {meta.fecha}</span>}
+          </div>
+        )}
+        {meta?.observaciones && (
+          <div style={{ marginTop: 8, fontSize: 11.5, color: 'var(--text2)', lineHeight: 1.5 }}>
+            <b>Observaciones del laboratorio:</b> {meta.observaciones}
+          </div>
+        )}
         {avisoFoto.length > 0 && (
           <ul style={{ margin: '10px 0 0', paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
             {avisoFoto.map((a, i) => <li key={i} style={{ fontSize: 11.5, color: 'var(--text2)', lineHeight: 1.5 }}>{a}</li>)}
@@ -561,6 +605,7 @@ const input: React.CSSProperties = { background: 'var(--s2)', border: '1px solid
 const delBtn: React.CSSProperties = { background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: 6, flexShrink: 0 }
 const addBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 5, background: 'var(--s2)', border: '1px dashed var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, cursor: 'pointer' }
 const chip: React.CSSProperties = { background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text3)', borderRadius: 100, padding: '5px 11px', fontSize: 11.5, cursor: 'pointer' }
+const metaChip: React.CSSProperties = { background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '4px 9px', fontSize: 11 }
 const cta: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'var(--nexus)', color: '#fff', border: 'none', borderRadius: 10, padding: '12px 18px', fontSize: 14, fontWeight: 600, marginTop: 20, width: '100%' }
 const box: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', border: '1px solid var(--border)', borderRadius: 8, padding: '11px 13px', fontSize: 12.5, lineHeight: 1.5 }
 const card: React.CSSProperties = { background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }
