@@ -34,6 +34,7 @@ import { vacunasSegunEdad } from '@/lib/expediente/pediatria'
 import { PanelGineco } from '@/components/PanelGineco'
 import { PanelCirugia } from '@/components/PanelCirugia'
 import { PanelCardiometabolico } from '@/components/PanelCardiometabolico'
+import { PanelPreventivo } from '@/components/PanelPreventivo'
 import { Herramientas } from '@/components/Herramientas'
 import { FotosClinicas } from '@/components/FotosClinicas'
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
@@ -1781,6 +1782,12 @@ export default function ConsultaActivaPage() {
           para: 'Lípidos · obesidad · hígado graso · hoja para el paciente',
           contenido: <PanelCardiometabolico embebido nombre={patient?.nombre} edad={patient?.edad} sexo={patient?.sexo}
             onAgregarANota={agregarASeccion('cardiometabolico', 'Valoración cardiometabólica')} />,
+        },
+        {
+          id: 'preventivo', nombre: 'Preventivo y tendencias', color: '#38bdf8', icono: <ShieldCheck size={14} />,
+          para: 'Tamizajes por edad y sexo · tendencia de laboratorios',
+          contenido: <PanelPreventivo embebido edad={patient?.edad} sexo={patient?.sexo}
+            onAgregarANota={agregarASeccion('preventivo', 'Medicina preventiva')} />,
         },
         {
           id: 'fotos', nombre: 'Fotografía clínica', color: 'var(--teal)', icono: <Camera size={14} />,
