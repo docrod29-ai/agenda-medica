@@ -33,6 +33,7 @@ import { PanelPediatria } from '@/components/PanelPediatria'
 import { vacunasSegunEdad } from '@/lib/expediente/pediatria'
 import { PanelGineco } from '@/components/PanelGineco'
 import { PanelCirugia } from '@/components/PanelCirugia'
+import { PanelCardiometabolico } from '@/components/PanelCardiometabolico'
 import { Herramientas } from '@/components/Herramientas'
 import { FotosClinicas } from '@/components/FotosClinicas'
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
@@ -52,7 +53,7 @@ import {
   ArrowLeft, Mic, Square, Sparkles, Loader2, AlertTriangle, CheckCircle2,
   Trash2, Plus, ShieldCheck, Pill, Stethoscope, FileSignature, Headphones,
   Lock, Bug, FlaskConical, Lightbulb, FileText, ChevronDown, ChevronUp, Volume2, BedDouble,
-  Scissors, Baby, Calculator, Camera,
+  Scissors, Baby, Calculator, Camera, HeartPulse,
 } from 'lucide-react'
 
 const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'valoracion_preoperatoria', 'valoracion_inmuno', 'alta_consulta', 'ingreso', 'evolucion', 'egreso', 'nota_postoperatoria', 'nota_anestesia', 'consentimiento']
@@ -1775,6 +1776,12 @@ export default function ConsultaActivaPage() {
           contenido: <CalculadorasClinicas embebido contexto={contextoCalc}
             onAgregarANota={agregarASeccion('escalas_clinicas', 'Escalas y calculadoras clínicas')} />,
         }] : []),
+        {
+          id: 'cardiometabolico', nombre: 'Cardiometabólico', color: '#22c55e', icono: <HeartPulse size={14} />,
+          para: 'Lípidos · obesidad · hígado graso · hoja para el paciente',
+          contenido: <PanelCardiometabolico embebido nombre={patient?.nombre} edad={patient?.edad} sexo={patient?.sexo}
+            onAgregarANota={agregarASeccion('cardiometabolico', 'Valoración cardiometabólica')} />,
+        },
         {
           id: 'fotos', nombre: 'Fotografía clínica', color: 'var(--teal)', icono: <Camera size={14} />,
           para: 'Tomar foto de esta consulta (la serie está en el expediente)',
