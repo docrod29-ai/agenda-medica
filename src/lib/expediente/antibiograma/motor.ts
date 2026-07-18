@@ -18,6 +18,8 @@ import { analizarGramPositivos } from './grampositivos'
 import { analizarEnterobacterales } from './enterobacterales'
 import { analizarNoFermentadores } from './nofermentadores'
 import { analizarConfirmatorias } from './confirmatorias'
+import { analizarAminoglucosidos } from './aminoglucosidos'
+import { analizarMDR, analizarDTR } from './mdr'
 import { evaluarIntrinseca } from './intrinseca'
 import { analizarSeguridad } from './seguridad'
 import { pruebasRecomendadas } from './clsi-pruebas'
@@ -46,7 +48,13 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
   ap = fusionar(ap, analizarGramPositivos(organismo, r, entrada.sitio))
   ap = fusionar(ap, analizarEnterobacterales(organismo, r))
   ap = fusionar(ap, analizarNoFermentadores(organismo, r))
+  ap = fusionar(ap, analizarAminoglucosidos(organismo, r))
   ap = fusionar(ap, analizarConfirmatorias(entrada.pruebas, organismo))
+  // MDR/XDR/PDR formal (Magiorakos) + DTR ANTES que el conteo aproximado: por dedup de
+  // clave, la clasificación FORMAL gana; el conteo de transversales queda solo como
+  // respaldo para organismos no cubiertos por Magiorakos (Gram+, etc.).
+  ap = fusionar(ap, analizarDTR(organismo, r))
+  ap = fusionar(ap, analizarMDR(organismo, r))
   ap = fusionar(ap, transversales(r))
 
   const resistenciaIntrinseca = evaluarIntrinseca(organismo, r)

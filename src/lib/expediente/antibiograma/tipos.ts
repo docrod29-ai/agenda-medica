@@ -74,7 +74,8 @@ export type FenotipoClave =
   | 'penicilinasa-estafilococica' | 'HLAR' | 'VRE' | 'ampicilina-R-enterococo'
   | 'neumococo-PNS' | 'carbapenemasa' | 'BLEE' | 'AmpC' | 'IRT'
   | 'porina-perdida' | 'bomba-expulsion' | 'FQ-R' | 'colistin-R'
-  | 'S-maltophilia-intrinseca' | 'MDR' | 'XDR'
+  | 'S-maltophilia-intrinseca' | 'MDR' | 'XDR' | 'PDR'
+  | '16S-RMTasa' | 'AME' | 'DTR' | 'linezolid-R' | 'tigeciclina-R'
 
 /** Nivel de confianza de la inferencia. */
 export type Confianza = 'confirmado' | 'probable' | 'sospecha'

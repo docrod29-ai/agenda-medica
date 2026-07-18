@@ -119,7 +119,7 @@ export function analizarEnterobacterales(organismo: string, r: ResultadoAntibiog
         ? `Especie del grupo con AmpC cromosómica inducible. Riesgo de DESREPRESIÓN y fallo bajo C3G. ${REF.ENTEROBACT}`
         : `Cefoxitina R + C3G R: AmpC (no inhibida por clavulanato). ${REF.ENTEROBACT}`,
     })
-    out.mecanismos.push({ categoria: 'β-lactamasa', nombre: CLASES.AmpC.nombre, ambler: 'C', confianza: esAmpCintrinseco ? 'confirmado' : 'probable', explicacion: CLASES.AmpC.didactica, referencia: REF.ENTEROBACT })
+    out.mecanismos.push({ categoria: 'β-lactamasa', nombre: esAmpCintrinseco ? CLASES.AmpC.nombre : 'AmpC plasmídica — probable CMY-2', ambler: 'C', confianza: esAmpCintrinseco ? 'confirmado' : 'probable', explicacion: `${CLASES.AmpC.didactica}${esAmpCintrinseco ? '' : ' La AmpC plasmídica más frecuente es CMY-2 (también DHA, ACT/MIR, FOX, ACC).'}`, referencia: REF.ENTEROBACT })
     out.advertencias.push('AmpC: NO usar cefalosporinas de 3ª generación aunque el antibiograma las reporte S (desrepresión/hidrólisis durante el tratamiento).')
     if (ES_S(estado(r, PIP_TAZO))) {
       out.advertencias.push('AmpC: piperacilina-tazobactam «S» NO es fiable (piperacilina es sustrato de AmpC; el tazobactam es inductor débil → efecto inóculo). Meini S, Infection 2019;47:363-75.')
@@ -147,7 +147,11 @@ export function analizarEnterobacterales(organismo: string, r: ResultadoAntibiog
         ? `C3G R + aztreonam R + cefoxitina NO-R + carbapenémico S: patrón de BLEE (inhibida por clavulanato). ${REF.ENTEROBACT}`
         : `C3G R + carbapenémico S + cefoxitina NO-R: BLEE probable; confirmar sinergia con clavulanato. ${REF.ENTEROBACT}`,
     })
-    out.mecanismos.push({ categoria: 'β-lactamasa', nombre: CLASES.ESBL.nombre, ambler: 'A', confianza: 'probable', explicacion: CLASES.ESBL.didactica, referencia: REF.ENTEROBACT })
+    // FAMILIA de BLEE por fenotipo: CTX-M (la dominante mundial) hidroliza cefotaxima ≫ ceftazidima.
+    const ctxR = ES_R(estado(r, ['cefotaxima'])) || ES_R(estado(r, ['ceftriaxona']))
+    const cazR = ES_R(estado(r, ['ceftazidima']))
+    const familia = ctxR && !cazR ? 'CTX-M' : cazR && !ctxR ? 'TEM/SHV (ceftazidimasa)' : 'CTX-M o TEM/SHV'
+    out.mecanismos.push({ categoria: 'β-lactamasa', nombre: `BLEE clase A — probable ${familia}`, ambler: 'A', confianza: 'probable', explicacion: `${CLASES.ESBL.didactica} Por el fenotipo, la familia más probable es ${familia}${familia === 'CTX-M' ? ' (cefotaxima/ceftriaxona ≫ ceftazidima; es la BLEE más frecuente en el mundo)' : ''}.`, referencia: REF.ENTEROBACT })
     out.advertencias.push('BLEE: evitar C3G, aztreonam y cefepime (poco fiable a alto inóculo/bacteriemia) aunque reporten S. Carbapenémico es el estándar en infección seria.')
     for (const t of terapiaPorClase('ESBL')) out.terapiaDirigida.push(t)
     out.alertas.push({ nivel: 'alta', mensaje: 'BLEE probable: carbapenémico dirigido en infección seria; desescalar según foco y evolución.' })

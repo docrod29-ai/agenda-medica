@@ -98,7 +98,8 @@ describe('MDR (aproximado) y PK/PD', () => {
       ['Ceftriaxona', 'R'], ['Ciprofloxacino', 'R'], ['Trimetoprim/Sulfametoxazol', 'R'], ['Meropenem', 'S'],
     ]))
     expect(claves(r)).toContain('MDR')
-    expect(r.fenotipos.find(f => f.clave === 'MDR')?.confianza).toBe('sospecha')
+    // Clasificación FORMAL de Magiorakos (por categorías) → confianza 'confirmado'.
+    expect(r.fenotipos.find(f => f.clave === 'MDR')?.confianza).toBe('confirmado')
   })
 
   it('β-lactámico S → sugerencia de infusión extendida', () => {
@@ -445,6 +446,58 @@ describe('Puntos de corte CLSI M100 (CMI → S/I/R)', () => {
     const r = interpretarAntibiograma({ organismo: 'Klebsiella pneumoniae', resultados: [{ antibiotico: 'Ceftriaxona', interpretacion: 'S', cmi: 1 }] })
     // en enterobacterales ceftriaxona ≤1 = S; el punto clave es que NO aplicó la tabla de neumococo
     expect(r.categoriasCMI.find(x => /ceftriaxona/i.test(x.antibiotico))?.referencia).toMatch(/Enterobacterales/)
+  })
+})
+
+describe('16S rRNA metiltransferasa y AME', () => {
+  it('genta+tobra+amika TODAS R → 16S-RMTasa + alerta de buscar NDM', () => {
+    const r = interpretarAntibiograma(ab('Klebsiella pneumoniae', [['Gentamicina', 'R'], ['Tobramicina', 'R'], ['Amikacina', 'R']]))
+    expect(claves(r)).toContain('16S-RMTasa')
+    expect(r.alertas.some(a => /NDM|metalo|carbapenemasa/i.test(a.mensaje))).toBe(true)
+  })
+  it('tobra+amika R con genta S → AME AAC(6′) (gentamicina útil)', () => {
+    const r = interpretarAntibiograma(ab('Escherichia coli', [['Gentamicina', 'S'], ['Tobramicina', 'R'], ['Amikacina', 'R']]))
+    expect(claves(r)).toContain('AME')
+    expect(r.advertencias.join(' ')).toMatch(/gentamicina.*útil|respetada/i)
+  })
+  it('genta+tobra R con amika S → AME (amikacina útil)', () => {
+    const r = interpretarAntibiograma(ab('Escherichia coli', [['Gentamicina', 'R'], ['Tobramicina', 'R'], ['Amikacina', 'S']]))
+    expect(claves(r)).toContain('AME')
+    expect(r.advertencias.join(' ')).toMatch(/amikacina.*útil/i)
+  })
+})
+
+describe('DTR y MDR/XDR/PDR formal (Magiorakos)', () => {
+  it('P. aeruginosa no-S a todos los de 1ª línea → DTR', () => {
+    const r = interpretarAntibiograma(ab('Pseudomonas aeruginosa', [
+      ['Piperacilina/Tazobactam', 'R'], ['Ceftazidima', 'R'], ['Cefepime', 'R'], ['Aztreonam', 'R'],
+      ['Meropenem', 'R'], ['Imipenem', 'R'], ['Ciprofloxacino', 'R'], ['Levofloxacino', 'R'],
+    ]))
+    expect(claves(r)).toContain('DTR')
+    expect(r.terapiaDirigida.some(t => /ceftolozano|cefiderocol|avibactam|relebactam/i.test(t.agente))).toBe(true)
+  })
+  it('E. coli no-S en ≥3 categorías → MDR formal', () => {
+    const r = interpretarAntibiograma(ab('Escherichia coli', [
+      ['Ampicilina', 'R'], ['Ceftriaxona', 'R'], ['Ciprofloxacino', 'R'], ['Meropenem', 'S'], ['Amikacina', 'S'],
+    ]))
+    const mdr = r.fenotipos.find(f => f.clave === 'MDR')
+    expect(mdr).toBeDefined()
+    expect(mdr?.nombre).toMatch(/categorías/i)
+  })
+  it('sensible (todo S) → no MDR', () => {
+    const r = interpretarAntibiograma(ab('Escherichia coli', [['Ceftriaxona', 'S'], ['Meropenem', 'S'], ['Ciprofloxacino', 'S']]))
+    expect(claves(r)).not.toContain('MDR')
+  })
+})
+
+describe('Familia de β-lactamasa por fenotipo', () => {
+  it('BLEE con cefotaxima R + ceftazidima S → probable CTX-M', () => {
+    const r = interpretarAntibiograma(ab('Escherichia coli', [['Cefotaxima', 'R'], ['Ceftazidima', 'S'], ['Meropenem', 'S']]))
+    expect(r.mecanismos.some(m => /CTX-M/i.test(m.nombre))).toBe(true)
+  })
+  it('AmpC plasmídica → menciona CMY-2', () => {
+    const r = interpretarAntibiograma(ab('Escherichia coli', [['Cefoxitina', 'R'], ['Ceftriaxona', 'R'], ['Meropenem', 'S']]))
+    expect(r.mecanismos.some(m => /CMY-2/i.test(m.nombre + m.explicacion))).toBe(true)
   })
 })
 
