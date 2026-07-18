@@ -8,11 +8,18 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
-import { verificarMiembro } from '@/lib/auth-server'
+import { verificarMedico } from '@/lib/auth-server'
 import { bundlePaciente } from '@/lib/fhir/recursos'
 import type { Patient } from '@/types'
 import type { NotaMedica } from '@/types/expediente'
 
+/**
+ * Exporta el expediente en formato FHIR. Va con verificarMEDICO, no
+ * verificarMiembro: lee la subcolección de notas con el Admin SDK, que ignora
+ * las reglas de Firestore, y esas reglas reservan las notas al médico por
+ * secreto médico (NOM-004). Con verificarMiembro, una cuenta de asistente podía
+ * bajar diagnósticos, medicamentos y alergias de cualquier paciente por aquí.
+ */
 export async function GET(req: NextRequest, { params }: { params: Promise<{ patientId: string }> }) {
   const { patientId } = await params
   const clinicId = req.nextUrl.searchParams.get('clinicId')
@@ -20,7 +27,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ pati
     return NextResponse.json({ error: 'clinicId y patientId requeridos' }, { status: 400 })
   }
 
-  const acc = await verificarMiembro(req, clinicId)
+  const acc = await verificarMedico(req, clinicId)
   if (!acc.ok) return acc.response
 
   try {

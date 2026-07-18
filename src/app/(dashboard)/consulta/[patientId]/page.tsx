@@ -1185,7 +1185,7 @@ export default function ConsultaActivaPage() {
   const mmss = `${String(Math.floor(voz.duracion / 60)).padStart(2, '0')}:${String(voz.duracion % 60).padStart(2, '0')}`
 
   return (
-    <div style={{ padding: 24, maxWidth: 980, margin: '0 auto' }}>
+    <div className="page-pad" style={{ maxWidth: 980, margin: '0 auto' }}>
       <button onClick={() => router.push(volverA)} style={S.back}>
         <ArrowLeft size={15} /> {esNotaHospital ? 'Volver al episodio' : 'Expediente'}
       </button>
@@ -1939,6 +1939,10 @@ export default function ConsultaActivaPage() {
                 <input
                   value={(signos[k] as string | number | undefined) ?? ''}
                   onChange={e => setSignos(s => ({ ...s, [k]: k === 'ta' ? e.target.value : (e.target.value ? Number(e.target.value) : undefined) }))}
+                // Teclado numérico en el teléfono: sin esto salía el QWERTY completo
+                // para capturar FC, peso o talla. La TA lleva 'numeric' y no 'decimal'
+                // porque necesita la diagonal de "120/80".
+                inputMode={k === 'ta' ? 'numeric' : ['temperatura', 'peso', 'talla'].includes(k) ? 'decimal' : 'numeric'}
                   placeholder={ph} disabled={firmada} style={S.miniInput}
                 />
               </div>
@@ -2190,7 +2194,7 @@ export default function ConsultaActivaPage() {
       {/* Control flotante de grabación — visible desde cualquier parte (manos libres / celular) */}
       {(voz.grabando || audio.estado === 'grabando') && (
         <div style={{
-          position: 'fixed', left: '50%', bottom: 18, transform: 'translateX(-50%)', zIndex: 200,
+          position: 'fixed', left: '50%', bottom: 'calc(84px + env(safe-area-inset-bottom))', transform: 'translateX(-50%)', zIndex: 200,
           display: 'flex', alignItems: 'center', gap: 12, maxWidth: 'calc(100vw - 24px)',
           background: 'var(--s1)', border: '1px solid var(--border2, var(--border))',
           borderRadius: 999, padding: '8px 8px 8px 16px', boxShadow: '0 12px 32px rgba(0,0,0,0.4)',

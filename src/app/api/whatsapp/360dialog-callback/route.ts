@@ -28,13 +28,33 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const clientId  = searchParams.get('client')
   const channelsRaw = searchParams.get('channels')
-  const clinicId  = searchParams.get('clinicId')
+  const nonce     = searchParams.get('state')
 
   // ── Validate ──────────────────────────────────────────────────
-  if (!clientId || !channelsRaw || !clinicId) {
-    console.error('[360dialog callback] Missing params:', { clientId, channelsRaw, clinicId })
+  if (!clientId || !channelsRaw || !nonce) {
+    console.error('[360dialog callback] Missing params:', { clientId, channelsRaw, nonce: !!nonce })
     return NextResponse.redirect(`${APP_URL}/configuracion?tab=integraciones&wa=error&reason=missing_params`)
   }
+
+  // El clinicId NUNCA sale de la URL. Se recupera del nonce de un solo uso que
+  // emitió /api/whatsapp/360dialog-connect contra un usuario ya verificado como
+  // miembro. Antes venía por query string sin autenticación: cualquiera podía
+  // apuntar SU canal de WhatsApp al consultorio de otro y, con eso, leer y
+  // responder los mensajes de sus pacientes y su agenda.
+  const estadoRef = adminDb.collection('oauthStates').doc(nonce)
+  const estadoSnap = await estadoRef.get()
+  const estado = estadoSnap.data()
+  if (!estadoSnap.exists || estado?.proveedor !== 'whatsapp-360dialog' || !estado?.clinicId) {
+    console.error('[360dialog callback] Nonce inválido o de otro proveedor')
+    return NextResponse.redirect(`${APP_URL}/configuracion?tab=integraciones&wa=error&reason=estado_invalido`)
+  }
+  if (typeof estado.exp !== 'number' || estado.exp < Date.now()) {
+    await estadoRef.delete().catch(() => {})
+    return NextResponse.redirect(`${APP_URL}/configuracion?tab=integraciones&wa=error&reason=estado_expirado`)
+  }
+  const clinicId: string = estado.clinicId
+  // De un solo uso: se consume aquí para que no pueda repetirse.
+  await estadoRef.delete().catch(() => {})
 
   if (!PARTNER_ID || !PARTNER_TOKEN) {
     console.error('[360dialog callback] Partner credentials not set in env vars')

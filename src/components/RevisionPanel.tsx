@@ -108,22 +108,22 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
   const requierenRevision = items.filter(i => i.campo.needs_review || i.critico)
   const seguros = items.filter(i => !i.campo.needs_review && !i.critico)
 
-  // AUTOMATIZADO: en cuanto la IA procesa, se AUTO-ACEPTAN los campos SEGUROS
-  // (alta confianza, no críticos) para ahorrar clics. Solo quedan pendientes de
-  // un vistazo los delicados (alergias, medicamentos, dosis dudosas, Dx definitivo).
-  // Corre una vez por extracción (dep = items, que cambia con cada procesamiento).
+  // TODO ENTRA POR DEFECTO. El trabajo del médico es QUITAR lo que no corresponda,
+  // no confirmar uno por uno lo que sí.
+  //
+  // Por qué: aprobar campo por campo NO condicionaba nada — ni la firma ni la
+  // trazabilidad, porque firmar ya marca la nota como revisada por humano. Eran
+  // clics que costaban tiempo frente al paciente sin comprar ninguna garantía.
+  // Lo que sí protege al paciente es que los datos delicados se VEAN, y para eso
+  // van resaltados arriba.
   useEffect(() => {
-    const nuevos = items.filter(i => !i.campo.needs_review && !i.critico && !aprobados.has(i.id))
+    const nuevos = items.filter(i => !aprobados.has(i.id))
     nuevos.forEach(it => onAprobar(it.id))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items])
 
   if (items.length === 0 && conflictos.length === 0 && faltantesCriticos.length === 0) {
     return null
-  }
-
-  const aprobarTodosSeguros = () => {
-    seguros.forEach(it => { if (!aprobados.has(it.id)) onAprobar(it.id) })
   }
 
   // Render de un campo (se reutiliza para críticos y seguros)
@@ -133,13 +133,14 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
     const isCrit = critico || campo.needs_review
     return (
       <div key={id} style={{
-        background: aprobado ? 'rgba(74,222,128,0.05)' : 'var(--s2)',
-        border: `1px solid ${aprobado ? 'rgba(74,222,128,0.3)' : isCrit ? 'rgba(245,158,11,0.25)' : 'var(--border)'}`,
+        background: aprobado ? (isCrit ? 'rgba(245,158,11,0.06)' : 'var(--s2)') : 'rgba(239,68,68,0.05)',
+        border: `1px solid ${!aprobado ? 'rgba(239,68,68,0.3)' : isCrit ? 'rgba(245,158,11,0.35)' : 'var(--border)'}`,
+        opacity: aprobado ? 1 : 0.6,
         borderRadius: 8, padding: '8px 12px',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: CONF_COLOR[conf], flexShrink: 0 }} title={`Confianza: ${conf}`} />
-          <span style={{ fontSize: 12.5, color: 'var(--text)', flex: 1, minWidth: 120 }}>
+          <span style={{ fontSize: 12.5, color: 'var(--text)', flex: 1, minWidth: 120, textDecoration: aprobado ? 'none' : 'line-through' }}>
             <strong>{label}:</strong> {String(campo.value ?? '—') || '—'}
           </span>
           <span style={{ fontSize: 10, color: 'var(--text3)', background: 'var(--s3)', padding: '2px 6px', borderRadius: 4 }}>
@@ -147,18 +148,18 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
           </span>
           {critico && <span style={{ fontSize: 10, color: '#f59e0b', fontWeight: 700 }}>CRÍTICO</span>}
           <button onClick={() => setVerFuente(verFuente === id ? null : id)}
-            style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', display: 'flex', padding: 2 }} title="Ver fuente">
+            style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 8, minHeight: 32, minWidth: 32, justifyContent: 'center' }} title="Ver la frase del dictado de donde salió">
             {verFuente === id ? <EyeOff size={13} /> : <Eye size={13} />}
           </button>
           {aprobado ? (
-            <button onClick={() => onRechazar(id)}
-              style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', borderRadius: 6, padding: '3px 8px', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
-              <X size={11} /> Quitar
+            <button onClick={() => onRechazar(id)} title="Quitar de la nota"
+              style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', borderRadius: 6, padding: '6px 10px', fontSize: 11.5, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, minHeight: 32 }}>
+              <X size={12} /> Quitar
             </button>
           ) : (
-            <button onClick={() => onAprobar(id)}
-              style={{ background: 'var(--teal)', border: 'none', color: '#000', borderRadius: 6, padding: '3px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
-              <Check size={11} /> Aprobar
+            <button onClick={() => onAprobar(id)} title="Volver a incluir en la nota"
+              style={{ background: 'var(--teal)', border: 'none', color: '#000', borderRadius: 6, padding: '6px 12px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, minHeight: 32 }}>
+              <Check size={12} /> Regresar
             </button>
           )}
         </div>
@@ -179,16 +180,17 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
         <Sparkles size={16} color="#60a5fa" />
-        <strong style={{ fontSize: 14, color: 'var(--text)' }}>Revisión IA — revisa y aprueba</strong>
-        <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text3)' }}>
-          {aprobados.size}/{items.length} aprobados
+        <strong style={{ fontSize: 14, color: 'var(--text)' }}>Extraído de tu dictado</strong>
+        <span style={{ marginLeft: 'auto', fontSize: 12, color: '#4ade80', fontWeight: 600 }}>
+          {aprobados.size} en la nota
         </span>
       </div>
-      {/* Foco: solo lo que requiere atención del médico */}
-      <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>
-        {requierenRevision.length > 0
-          ? <>Solo <strong style={{ color: '#f59e0b' }}>{requierenRevision.length}</strong> requieren tu atención · el resto es seguro.</>
-          : <>Todo se ve seguro — aprueba de un toque.</>}
+      {/* Nada que aprobar: todo entra. El médico solo quita lo que sobre. */}
+      <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12, lineHeight: 1.5 }}>
+        Todo esto ya está en la nota. <strong style={{ color: 'var(--text2)' }}>No tienes que aprobar nada</strong> — solo quita lo que no corresponda.
+        {requierenRevision.length > 0 && (
+          <> Los <strong style={{ color: '#f59e0b' }}>{requierenRevision.length}</strong> datos delicados van arriba para que les des un vistazo.</>
+        )}
       </div>
 
       {/* Conflictos detectados */}
@@ -218,19 +220,16 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
         </div>
       )}
 
-      {/* 2) Campos seguros — colapsados; se aprueban de un toque */}
+      {/* 2) El resto: entra solo, colapsado. Se abre si el médico quiere revisarlo. */}
       {seguros.length > 0 && (
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-            <button onClick={aprobarTodosSeguros}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.35)', color: '#4ade80', fontSize: 12.5, fontWeight: 700, padding: '7px 14px', borderRadius: 8, cursor: 'pointer' }}>
-              <ShieldCheck size={14} /> Aprobar los {seguros.length} campos seguros
-            </button>
-            <button onClick={() => setVerSeguros(v => !v)}
-              style={{ background: 'none', border: 'none', color: 'var(--text3)', fontSize: 12, cursor: 'pointer' }}>
-              {verSeguros ? 'ocultar' : 'ver detalle'}
-            </button>
-          </div>
+          <button onClick={() => setVerSeguros(v => !v)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 12, cursor: 'pointer', padding: '8px 0', minHeight: 44 }}>
+            <ShieldCheck size={14} color="#4ade80" />
+            {verSeguros
+              ? `Ocultar los otros ${seguros.length} datos`
+              : `Otros ${seguros.length} datos incluidos — ver por si algo sobra`}
+          </button>
           {verSeguros && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {seguros.map(renderItem)}

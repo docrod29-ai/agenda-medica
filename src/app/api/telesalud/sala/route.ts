@@ -32,7 +32,11 @@ export async function POST(req: NextRequest) {
     // Los enlaces YA enviados sin token siguen funcionando por el camino endurecido
     // (ventana + rate-limit + tipo). El log marca los accesos legacy para migrarlos.
     const tk = verificarTokenPaciente(token)
-    const autorizadoPorToken = !!tk && tk.clinicId === clinicId
+    // La titularidad se comprueba MÁS ADELANTE contra el paciente de la cita:
+    // que el token sea de esta clínica no basta. Sin esa segunda comprobación,
+    // un paciente con su enlace legítimo podía pedir la sala de la teleconsulta
+    // de CUALQUIER otro paciente del mismo consultorio cambiando el citaId.
+    const tokenDeEstaClinica = !!tk && tk.clinicId === clinicId
 
     // Rate-limit por cita: frena la creación masiva de salas de pago (abuso Daily).
     const limite = await limitarOResponder(`telesalud:${clinicId}:${citaId}`, 12, 600,
@@ -43,6 +47,15 @@ export async function POST(req: NextRequest) {
     const snap = await citaRef.get()
     if (!snap.exists) return NextResponse.json({ ok: false, error: 'Cita no encontrada' }, { status: 404 })
     const cita = snap.data()!
+
+    // Titularidad: el token tiene que ser del paciente DE ESTA cita.
+    const autorizadoPorToken = tokenDeEstaClinica && !!tk?.patientId && tk.patientId === cita.pacienteId
+    if (tokenDeEstaClinica && !autorizadoPorToken) {
+      // Token válido pero de otro paciente: se responde igual que si la cita no
+      // existiera, para no confirmar que ese citaId es real.
+      console.warn('[telesalud/sala] token de otro paciente para la cita solicitada')
+      return NextResponse.json({ ok: false, error: 'Cita no encontrada' }, { status: 404 })
+    }
 
     // Si ya hay sala guardada, devolverla
     if (cita.telesaludUrl && cita.telesaludExpiresAt && cita.telesaludExpiresAt > Date.now() / 1000) {

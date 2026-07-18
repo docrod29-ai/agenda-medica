@@ -107,7 +107,7 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
           <div>
             <label style={lbl}>Monto MXN *</label>
             <input
-              type="number" step="0.01" min="0"
+              type="number" inputMode="decimal" step="0.01" min="0"
               value={monto} onChange={(e) => setMonto(e.target.value)}
               autoFocus placeholder="0.00"
               style={{
@@ -119,7 +119,7 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
               <label style={lbl}>Concepto</label>
               <select value={concepto} onChange={(e) => setConcepto(e.target.value as ConceptoCobro)} style={inp}>

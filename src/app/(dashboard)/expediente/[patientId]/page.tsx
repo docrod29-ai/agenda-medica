@@ -87,7 +87,7 @@ export default function ExpedientePage() {
   })
 
   return (
-    <div style={{ padding: 24, maxWidth: 880, margin: '0 auto' }}>
+    <div className="page-pad" style={{ maxWidth: 880, margin: '0 auto' }}>
       {/* Back */}
       <button onClick={volver} style={backBtn}>
         <ArrowLeft size={15} /> Atrás

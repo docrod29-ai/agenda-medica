@@ -1366,3 +1366,13 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
 @media (max-width: 640px) {
   .modal { max-height: 90dvh; }
 }
+
+
+/* Área táctil mínima en teléfono (WCAG ~44px). Los botones pequeños del
+   expediente y de los paneles clínicos medían 22-30 px: en consulta, con el
+   paciente enfrente, eso se traduce en toques fallidos. No toca el escritorio. */
+@media (max-width: 768px) {
+  .btn-sm { min-height: 44px !important; }
+  .btn, .btn-icon { min-height: 44px !important; }
+  .btn-icon { min-width: 44px !important; }
+}
