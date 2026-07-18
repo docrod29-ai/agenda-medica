@@ -196,3 +196,24 @@ describe('Intervalos de tamizaje cervical', () => {
     expect(tamizajeRutina(70)).toMatch(/suspender/i)
   })
 })
+
+describe('Regresión: Bishop no puntúa lo que no se ha explorado', () => {
+  it('sin contestar nada NO dice "cuello desfavorable"', () => {
+    const r = bishop({})
+    expect(r.completo).toBe(false)
+    expect(r.categoria).toBe('Incompleto')
+    expect(r.faltantes).toHaveLength(5)
+  })
+  it('a medio contestar sigue incompleto y nombra lo que falta', () => {
+    const r = bishop({ dilatacion: 3, borramiento: 3 })
+    expect(r.completo).toBe(false)
+    expect(r.faltantes).toContain('altura de la presentación')
+    expect(r.interpretacion).toMatch(/cinco componentes/i)
+  })
+  it('con los cinco componentes, aunque sean cero, sí califica', () => {
+    const r = bishop({ dilatacion: 0, borramiento: 0, altura: 0, consistencia: 0, posicion: 0 })
+    expect(r.completo).toBe(true)
+    expect(r.puntaje).toBe(0)
+    expect(r.categoria).toMatch(/desfavorable/i)
+  })
+})

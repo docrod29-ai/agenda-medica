@@ -190,10 +190,17 @@ export function PanelGineco({ sexo, edadAnios, onAgregarANota, embebido }: Props
             <Sel label="Consistencia del cuello" k="consistencia" bs={bs} setBs={setBs} ops={[['Firme', 0], ['Media', 1], ['Blanda', 2]]} />
             <Sel label="Posición del cuello" k="posicion" bs={bs} setBs={setBs} ops={[['Posterior', 0], ['Media', 1], ['Anterior', 2]]} />
           </div>
-          <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 9, border: '1px solid rgba(236,72,153,.35)', background: 'rgba(236,72,153,.08)' }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#f472b6' }}>Bishop {bish.puntaje}/13 — {bish.categoria}</div>
+          <div style={{
+            marginTop: 10, padding: '10px 12px', borderRadius: 9,
+            border: `1px solid ${bish.completo ? 'rgba(236,72,153,.35)' : 'var(--border)'}`,
+            background: bish.completo ? 'rgba(236,72,153,.08)' : 'var(--s1)',
+          }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: bish.completo ? '#f472b6' : 'var(--text3)' }}>
+              {bish.completo ? `Bishop ${bish.puntaje}/13 — ${bish.categoria}` : 'Bishop: exploración incompleta'}
+            </div>
             <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4, lineHeight: 1.5 }}>{bish.interpretacion}</div>
-            {onAgregarANota && (
+            {/* Sin los cinco componentes el puntaje subestima: no se deja pegar a la nota. */}
+            {onAgregarANota && bish.completo && (
               <button type="button" style={{ ...btnMini, marginTop: 8 }} onClick={() => onAgregarANota(
                 `Índice de Bishop ${bish.puntaje}/13 — ${bish.categoria}. ${bish.interpretacion}`
               )}><Plus size={12} /> Agregar a la nota</button>

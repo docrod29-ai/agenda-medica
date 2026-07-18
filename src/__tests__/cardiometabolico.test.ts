@@ -314,3 +314,14 @@ describe('Nutrición, ejercicio y recuperación de peso', () => {
     expect(RECUPERACION_PESO.siSeReinicia).toMatch(/REINICIAR a dosis baja/i)
   })
 })
+
+describe('Regresión: MetALD exige criterio cardiometabólico', () => {
+  it('30 g/día SIN ningún criterio metabólico es ALD, no MetALD', () => {
+    const r = categoriaPorAlcohol(30, true, 0)
+    expect(r.categoria).toBe('ALD')
+    expect(r.explicacion).toMatch(/no a MASLD ni a MetALD/i)
+  })
+  it('el mismo consumo CON un criterio sí es MetALD', () => {
+    expect(categoriaPorAlcohol(30, true, 1).categoria).toBe('MetALD')
+  })
+})

@@ -184,3 +184,18 @@ describe('Alertas por cambio clínicamente relevante', () => {
     for (const r of CAMBIOS_RELEVANTES) expect(r.regla, r.analito).toMatch(/\d/)
   })
 })
+
+describe('Regresión: analito vacío no dispara alertas', () => {
+  const t = analizarTendencia([
+    { fecha: '2026-01-01', valor: 100 },
+    { fecha: '2026-06-01', valor: 40 },
+  ])!
+  it('cadena vacía o de una letra no produce alerta', () => {
+    expect(alertaDeTendencia('', t)).toBeNull()
+    expect(alertaDeTendencia('P', t)).toBeNull()
+    expect(alertaDeTendencia('  ', t)).toBeNull()
+  })
+  it('un nombre real sigue funcionando', () => {
+    expect(alertaDeTendencia('LDL', t)).not.toBeNull()
+  })
+})

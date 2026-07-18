@@ -7,7 +7,7 @@
  * ninguno. Ahora son renglones delgados que se abren solo cuando se necesitan;
  * el aviso (badge) es lo que hace que una herramienta pida atención sola.
  */
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, ChevronRight, Wrench } from 'lucide-react'
 
 export interface Herramienta {
@@ -29,6 +29,19 @@ export function Herramientas({ items }: { items: Herramienta[] }) {
   const [abierta, setAbierta] = useState<string | null>(
     () => items.find(i => i.abrirPorDefecto)?.id ?? null,
   )
+  const tocadoPorElUsuario = useRef(false)
+
+  /**
+   * El paciente se carga DESPUÉS del primer render, así que en ese momento las
+   * herramientas que dependen de sus datos todavía no existen y el inicializador
+   * del useState no las veía: la apertura automática por vacunas atrasadas nunca
+   * llegaba a dispararse. Se sincroniza cuando aparecen, salvo que el usuario ya
+   * haya abierto o cerrado algo por su cuenta.
+   */
+  const idPorDefecto = items.find(i => i.abrirPorDefecto)?.id ?? null
+  useEffect(() => {
+    if (idPorDefecto && !tocadoPorElUsuario.current) setAbierta(idPorDefecto)
+  }, [idPorDefecto])
 
   if (items.length === 0) return null
 
@@ -46,7 +59,7 @@ export function Herramientas({ items }: { items: Herramienta[] }) {
           <div key={h.id} style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border)' }}>
             <button
               type="button"
-              onClick={() => setAbierta(a => (a === h.id ? null : h.id))}
+              onClick={() => { tocadoPorElUsuario.current = true; setAbierta(a => (a === h.id ? null : h.id)) }}
               aria-expanded={abierto}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 9,

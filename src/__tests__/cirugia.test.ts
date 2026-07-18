@@ -116,7 +116,7 @@ describe('Profilaxis antibiótica: re-dosificación intraoperatoria', () => {
   })
 
   it('los que no se re-dosifican lo dicen explícitamente', () => {
-    expect(planProfilaxis(ab('Vancomicina'), 10).redosis).toMatch(/no requiere re-dosis/i)
+    expect(planProfilaxis(ab('Vancomicina'), 10).redosis).toMatch(/verificar el protocolo institucional/i)
     expect(planProfilaxis(ab('Gentamicina'), 10).momentosRedosis).toEqual([])
     expect(planProfilaxis(ab('Metronidazol'), 10).momentosRedosis).toEqual([])
   })

@@ -48,9 +48,20 @@ export function categoriaPorAlcohol(
   gramosDia: number, esMujer: boolean, criteriosMetabolicos: number,
 ): { categoria: CategoriaSLD; explicacion: string } {
   const [limMASLD, limALD] = esMujer ? [20, 50] : [30, 60]
-  if (criteriosMetabolicos < 1 && gramosDia < limMASLD) return {
-    categoria: 'otra',
-    explicacion: 'Esteatosis sin criterios cardiometabólicos y sin consumo significativo de alcohol: buscar otras causas (fármacos como corticosteroides, metotrexato, tamoxifeno o amiodarona; hepatitis C genotipo 3; sobrecarga de hierro; enfermedad celíaca; VIH; enfermedad de Wilson; hipobetalipoproteinemia).',
+
+  // Sin criterio cardiometabólico NO puede haber MASLD, y por tanto tampoco
+  // MetALD (que es MASLD más alcohol aumentado). Antes, 30 g/día sin ningún
+  // criterio se etiquetaba MetALD y desviaba el manejo hacia lo metabólico
+  // cuando el caso es puramente alcohólico.
+  if (criteriosMetabolicos < 1) {
+    if (gramosDia >= limMASLD) return {
+      categoria: 'ALD',
+      explicacion: `Consumo de alcohol de ${gramosDia} g/día sin ningún criterio cardiometabólico: corresponde a enfermedad hepática por alcohol, no a MASLD ni a MetALD. La intervención central es sobre el consumo.`,
+    }
+    return {
+      categoria: 'otra',
+      explicacion: 'Esteatosis sin criterios cardiometabólicos y sin consumo significativo de alcohol: buscar otras causas (fármacos como corticosteroides, metotrexato, tamoxifeno o amiodarona; hepatitis C genotipo 3; sobrecarga de hierro; enfermedad celíaca; VIH; enfermedad de Wilson; hipobetalipoproteinemia).',
+    }
   }
   if (gramosDia > limALD) return {
     categoria: 'ALD',

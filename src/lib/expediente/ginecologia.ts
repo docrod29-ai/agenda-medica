@@ -175,21 +175,48 @@ export interface BishopEntrada {
   posicion: number     // 0-2
 }
 
-export interface ResultadoBishop { puntaje: number; categoria: string; interpretacion: string }
+export interface ResultadoBishop {
+  puntaje: number
+  categoria: string
+  interpretacion: string
+  /** false mientras falte contestar algún componente. */
+  completo: boolean
+  /** Componentes que faltan por contestar. */
+  faltantes: string[]
+}
 
-/** Evalúa qué tan favorable está el cuello para inducir el trabajo de parto (máximo 13). */
+const COMPONENTES_BISHOP: (keyof BishopEntrada)[] = ['dilatacion', 'borramiento', 'altura', 'consistencia', 'posicion']
+const ETIQUETA_BISHOP: Record<keyof BishopEntrada, string> = {
+  dilatacion: 'dilatación', borramiento: 'borramiento', altura: 'altura de la presentación',
+  consistencia: 'consistencia', posicion: 'posición',
+}
+
+/**
+ * Evalúa qué tan favorable está el cuello para inducir el trabajo de parto (máximo 13).
+ *
+ * Un componente sin contestar NO vale cero: cero es también la opción más baja
+ * legítima de cada campo, así que sin distinguirlos un cuello a medio explorar
+ * se reportaba como desfavorable. Mientras falte algo, `completo` es false y la
+ * interfaz no debe mostrar categoría ni dejar pegarlo a la nota.
+ */
 export function bishop(e: Partial<BishopEntrada>): ResultadoBishop {
+  const faltantes = COMPONENTES_BISHOP.filter(k => e[k] == null).map(k => ETIQUETA_BISHOP[k])
   const p = (e.dilatacion ?? 0) + (e.borramiento ?? 0) + (e.altura ?? 0) + (e.consistencia ?? 0) + (e.posicion ?? 0)
+  if (faltantes.length > 0) return {
+    puntaje: p, completo: false, faltantes,
+    categoria: 'Incompleto',
+    interpretacion: `Falta explorar: ${faltantes.join(', ')}. El índice de Bishop solo es interpretable con sus cinco componentes.`,
+  }
   if (p >= 8) return {
-    puntaje: p, categoria: 'Cuello favorable',
+    puntaje: p, completo: true, faltantes: [], categoria: 'Cuello favorable',
     interpretacion: 'Probabilidad de parto vaginal comparable a la del trabajo de parto espontáneo. La inducción con oxitocina es razonable.',
   }
   if (p >= 6) return {
-    puntaje: p, categoria: 'Intermedio',
+    puntaje: p, completo: true, faltantes: [], categoria: 'Intermedio',
     interpretacion: 'Valorar maduración cervical antes de la inducción según el contexto clínico.',
   }
   return {
-    puntaje: p, categoria: 'Cuello desfavorable',
+    puntaje: p, completo: true, faltantes: [], categoria: 'Cuello desfavorable',
     interpretacion: 'Mayor riesgo de inducción fallida y de cesárea. Se recomienda maduración cervical previa (prostaglandinas o método mecánico).',
   }
 }

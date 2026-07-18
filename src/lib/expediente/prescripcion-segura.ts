@@ -173,7 +173,11 @@ export function revisarListaRenal(nombres: string[], tfg: number): AjusteResulta
   const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
   const salida: AjusteResultado[] = []
   for (const n of nombres) {
-    const q = norm(n)
+    const q = norm(n).trim()
+    // Una cadena vacía o de una letra hacía match por subcadena con el primer
+    // fármaco del catálogo: una línea en blanco al partir un textarea inventaba
+    // una contraindicación de metformina en quien no la toma.
+    if (q.length < 3) continue
     const f = AJUSTE_RENAL.find(x => q.includes(norm(x.nombre)) || norm(x.nombre).includes(q))
     if (!f) continue
     const a = ajustePorTFG(f, tfg)
@@ -253,7 +257,8 @@ export function revisarFarmaco(nombre: string): {
   gestacional?: RiesgoGestacional
 } {
   const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-  const q = norm(nombre)
+  const q = norm(nombre).trim()
+  if (q.length < 3) return {}
   const coincide = (n: string) => q.includes(norm(n)) || norm(n).includes(q)
   return {
     renal: AJUSTE_RENAL.find(x => coincide(x.nombre)),

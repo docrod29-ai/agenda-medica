@@ -6,21 +6,24 @@
  * Apoyo a la decisión: la dosis final la ajusta el médico.
  */
 import { useMemo, useState } from 'react'
-import { Baby, Syringe, Pill, Plus, AlertTriangle } from 'lucide-react'
+import { Baby, Syringe, Pill, Plus, AlertTriangle, TrendingUp } from 'lucide-react'
 import {
-  FARMACOS_PED, calcularDosisPediatrica, vacunasSegunEdad, imc,
+  FARMACOS_PED, calcularDosisPediatrica, vacunasSegunEdad, imc, evaluarTodo,
 } from '@/lib/expediente/pediatria'
 
 interface Props {
   /** Edad del paciente en años (si es ≥ 18 el panel no se muestra). */
   edadAnios?: number
+  /** Sexo del paciente: la referencia de la OMS es distinta por sexo. */
+  sexo?: string
   onAgregarANota?: (texto: string) => void
   /** Dentro de la barra de herramientas: sin marco ni título propios. */
   embebido?: boolean
 }
 
-export function PanelPediatria({ edadAnios, onAgregarANota, embebido }: Props) {
-  const [tab, setTab] = useState<'dosis' | 'vacunas'>('dosis')
+export function PanelPediatria({ edadAnios, sexo, onAgregarANota, embebido }: Props) {
+  const [tab, setTab] = useState<'dosis' | 'vacunas' | 'crecimiento'>('dosis')
+  const [perimetro, setPerimetro] = useState('')
   const [peso, setPeso] = useState('')
   const [talla, setTalla] = useState('')
   const [meses, setMeses] = useState(edadAnios != null ? String(Math.round(edadAnios * 12)) : '')
@@ -45,6 +48,17 @@ export function PanelPediatria({ edadAnios, onAgregarANota, embebido }: Props) {
   const atrasadas = vacunas.filter(v => v.estado === 'atrasada')
   const indice = useMemo(() => (pesoKg > 0 && Number(talla) > 0 ? imc(pesoKg, Number(talla)) : null), [pesoKg, talla])
 
+  // La referencia de la OMS solo cubre 0 a 60 meses; fuera de ahí no se evalúa.
+  const esNina = !!sexo && /^f/i.test(sexo)
+  const crecimiento = useMemo(() => {
+    if (meses === '' || edadMeses < 0 || edadMeses > 60) return []
+    return evaluarTodo(edadMeses, esNina, {
+      pesoKg: pesoKg > 0 ? pesoKg : undefined,
+      tallaCm: Number(talla) > 0 ? Number(talla) : undefined,
+      perimetroCm: Number(perimetro) > 0 ? Number(perimetro) : undefined,
+    })
+  }, [meses, edadMeses, esNina, pesoKg, talla, perimetro])
+
   if (edadAnios != null && edadAnios >= 18) return null
 
   return (
@@ -66,6 +80,7 @@ export function PanelPediatria({ edadAnios, onAgregarANota, embebido }: Props) {
         <Campo label="Peso (kg)" valor={peso} set={setPeso} />
         <Campo label="Talla (cm)" valor={talla} set={setTalla} />
         <Campo label="Edad (meses)" valor={meses} set={setMeses} />
+        <Campo label="P. cefálico (cm)" valor={perimetro} set={setPerimetro} />
         {indice != null && Number.isFinite(indice) && (
           <div style={{ alignSelf: 'flex-end', fontSize: 11.5, color: 'var(--text2)', paddingBottom: 6 }}>
             IMC <b style={{ color: 'var(--text)' }}>{indice}</b>
@@ -78,6 +93,7 @@ export function PanelPediatria({ edadAnios, onAgregarANota, embebido }: Props) {
       <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
         <Tab activo={tab === 'dosis'} onClick={() => setTab('dosis')} icono={<Pill size={13} />} texto="Dosis por peso" />
         <Tab activo={tab === 'vacunas'} onClick={() => setTab('vacunas')} icono={<Syringe size={13} />} texto="Vacunación" />
+        <Tab activo={tab === 'crecimiento'} onClick={() => setTab('crecimiento')} icono={<TrendingUp size={13} />} texto="Crecimiento" />
       </div>
 
       {tab === 'dosis' && (
@@ -116,6 +132,51 @@ export function PanelPediatria({ edadAnios, onAgregarANota, embebido }: Props) {
                 {dosis.length === 0 && <p style={{ fontSize: 12, color: 'var(--text3)' }}>Sin coincidencias.</p>}
               </div>
             </>
+          )}
+        </div>
+      )}
+
+      {tab === 'crecimiento' && (
+        <div>
+          {meses === '' ? (
+            <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0 }}>Captura la edad en meses.</p>
+          ) : edadMeses > 60 ? (
+            <p style={{ fontSize: 12, color: '#f59e0b', margin: 0, lineHeight: 1.5 }}>
+              Los estándares de crecimiento de la OMS que trae la app cubren de 0 a 60 meses (5 años).
+              Para mayores de 5 años se usan otras referencias, que no están cargadas aquí.
+            </p>
+          ) : crecimiento.length === 0 ? (
+            <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0 }}>Captura peso, talla o perímetro cefálico.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {crecimiento.map(r => (
+                <div key={r.indicador} style={{
+                  border: '1px solid ' + (r.nivel === 'normal' ? 'var(--border)' : r.nivel === 'bajo' ? 'rgba(239,68,68,.35)' : 'rgba(245,158,11,.35)'),
+                  background: r.nivel === 'normal' ? 'var(--s1)' : r.nivel === 'bajo' ? 'rgba(239,68,68,.08)' : 'rgba(245,158,11,.08)',
+                  borderRadius: 9, padding: '9px 11px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)' }}>{r.indicador}</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 800, color: r.nivel === 'normal' ? '#22c55e' : r.nivel === 'bajo' ? '#f87171' : '#f59e0b' }}>
+                      z {r.z > 0 ? '+' : ''}{r.z} · percentil {r.percentil}
+                    </span>
+                    <span style={{ fontSize: 11, color: 'var(--text3)' }}>
+                      {r.valor} {r.unidad} · mediana esperada {r.mediana} {r.unidad}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text2)', marginTop: 3 }}>{r.clasificacion}</div>
+                </div>
+              ))}
+              {onAgregarANota && (
+                <button type="button" style={{ ...btnMini, alignSelf: 'flex-start', marginTop: 4 }} onClick={() => onAgregarANota(
+                  crecimiento.map(r => `${r.indicador}: ${r.valor} ${r.unidad} (z ${r.z > 0 ? '+' : ''}${r.z}, percentil ${r.percentil}) — ${r.clasificacion}`).join('. ')
+                  + `. Referencia: ${crecimiento[0].fuente}.`
+                )}><Plus size={12} /> Agregar a la nota</button>
+              )}
+              <div style={{ fontSize: 10, color: 'var(--text3)', fontStyle: 'italic', marginTop: 2 }}>
+                {crecimiento[0].fuente}
+              </div>
+            </div>
           )}
         </div>
       )}

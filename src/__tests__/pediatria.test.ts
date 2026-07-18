@@ -149,3 +149,158 @@ describe('IMC pediátrico', () => {
     expect(imc(20, 0)).toBeNaN()
   })
 })
+
+// ── Curvas de crecimiento de la OMS (tabla oficial descargada de cdn.who.int) ──
+import { evaluarCrecimiento, evaluarTodo } from '@/lib/expediente/pediatria'
+import { PESO_EDAD_NINO, PESO_EDAD_NINA, TALLA_EDAD_NINO, PC_EDAD_NINO } from '@/lib/expediente/oms-crecimiento'
+
+describe('Tabla de la OMS', () => {
+  it('cubre 0 a 60 meses en los cuatro indicadores', () => {
+    expect(PESO_EDAD_NINO).toHaveLength(61)
+    expect(PESO_EDAD_NINA).toHaveLength(61)
+    expect(TALLA_EDAD_NINO).toHaveLength(61)
+    expect(PC_EDAD_NINO).toHaveLength(61)
+  })
+
+  it('las medianas al nacer coinciden con los valores publicados por la OMS', () => {
+    expect(PESO_EDAD_NINO[0][1]).toBeCloseTo(3.3464, 3)   // 3.35 kg niños
+    expect(PESO_EDAD_NINA[0][1]).toBeCloseTo(3.2322, 3)   // 3.23 kg niñas
+    expect(TALLA_EDAD_NINO[0][1]).toBeCloseTo(49.8842, 3) // 49.9 cm
+    expect(PC_EDAD_NINO[0][1]).toBeCloseTo(34.4618, 3)    // 34.5 cm
+  })
+
+  it('las medianas crecen de forma monótona con la edad', () => {
+    for (let m = 1; m <= 60; m++) {
+      expect(PESO_EDAD_NINO[m][1], `peso mes ${m}`).toBeGreaterThan(PESO_EDAD_NINO[m - 1][1])
+      expect(TALLA_EDAD_NINO[m][1], `talla mes ${m}`).toBeGreaterThan(TALLA_EDAD_NINO[m - 1][1])
+    }
+  })
+
+  it('en talla y perímetro cefálico la OMS usa L = 1 (distribución normal)', () => {
+    for (let m = 0; m <= 60; m++) {
+      expect(TALLA_EDAD_NINO[m][0]).toBe(1)
+      expect(PC_EDAD_NINO[m][0]).toBe(1)
+    }
+  })
+})
+
+describe('Evaluación del crecimiento contra la OMS', () => {
+  it('un niño en la mediana cae en el percentil 50', () => {
+    const r = evaluarCrecimiento('peso', PESO_EDAD_NINO[24][1], 24, false)!
+    expect(r.z).toBe(0)
+    expect(r.percentil).toBe(50)
+    expect(r.nivel).toBe('normal')
+  })
+
+  it('caso real: niño de 12 meses con 7.5 kg está por debajo de −2 z', () => {
+    const r = evaluarCrecimiento('peso', 7.5, 12, false)!
+    expect(r.z).toBeLessThan(-2)
+    expect(r.nivel).toBe('bajo')
+    expect(r.clasificacion).toMatch(/desnutrición/i)
+  })
+
+  it('caso real: niña de 36 meses con 14 kg está en rango normal', () => {
+    const r = evaluarCrecimiento('peso', 14, 36, true)!
+    expect(r.z).toBeGreaterThan(-1)
+    expect(r.z).toBeLessThan(1)
+    expect(r.nivel).toBe('normal')
+  })
+
+  it('el mismo peso da distinto z en niño que en niña', () => {
+    const nino = evaluarCrecimiento('peso', 12, 24, false)!
+    const nina = evaluarCrecimiento('peso', 12, 24, true)!
+    expect(nino.z).not.toBe(nina.z)
+    expect(nina.z).toBeGreaterThan(nino.z)   // la mediana de las niñas es menor
+  })
+
+  it('la talla baja se llama talla baja, no desnutrición', () => {
+    const r = evaluarCrecimiento('talla', 78, 36, false)!
+    expect(r.clasificacion).toMatch(/talla baja/i)
+    expect(r.clasificacion).not.toMatch(/desnutrición/i)
+  })
+
+  it('el perímetro cefálico distingue microcefalia y macrocefalia', () => {
+    expect(evaluarCrecimiento('perimetro-cefalico', 40, 12, false)!.clasificacion).toMatch(/microcefalia/i)
+    expect(evaluarCrecimiento('perimetro-cefalico', 52, 12, false)!.clasificacion).toMatch(/macrocefalia/i)
+    expect(evaluarCrecimiento('perimetro-cefalico', 46, 12, false)!.nivel).toBe('normal')
+  })
+
+  it('NO extrapola más allá de los 60 meses: devuelve null en vez de inventar', () => {
+    expect(evaluarCrecimiento('peso', 20, 61, false)).toBeNull()
+    expect(evaluarCrecimiento('peso', 20, 120, false)).toBeNull()
+  })
+
+  it('rechaza valores inválidos', () => {
+    expect(evaluarCrecimiento('peso', 0, 24, false)).toBeNull()
+    expect(evaluarCrecimiento('peso', -3, 24, false)).toBeNull()
+    expect(evaluarCrecimiento('peso', 12, -1, false)).toBeNull()
+  })
+
+  it('siempre devuelve la mediana esperada y cita la fuente', () => {
+    const r = evaluarCrecimiento('peso', 12, 24, false)!
+    expect(r.mediana).toBeCloseTo(12.1482, 3)
+    expect(r.fuente).toMatch(/OMS/)
+  })
+
+  it('evaluarTodo calcula también el IMC cuando hay peso y talla', () => {
+    const rs = evaluarTodo(24, false, { pesoKg: 12, tallaCm: 87, perimetroCm: 48 })
+    const indicadores = rs.map(r => r.indicador)
+    expect(indicadores).toContain('Peso para la edad')
+    expect(indicadores).toContain('Talla para la edad')
+    expect(indicadores).toContain('IMC para la edad')
+    expect(indicadores).toContain('Perímetro cefálico para la edad')
+  })
+
+  it('evaluarTodo solo devuelve lo que puede calcular', () => {
+    expect(evaluarTodo(24, false, { pesoKg: 12 })).toHaveLength(1)
+    expect(evaluarTodo(24, false, {})).toHaveLength(0)
+  })
+})
+
+// ── Regresión: hallazgos de la revisión adversarial ──
+describe('Regresión: el tope diario debe recortar también la dosis POR TOMA', () => {
+  it('CRÍTICO: ceftriaxona en 50 kg no puede recetar 3750 mg por toma con tope de 2 g/día', () => {
+    const d = calcularDosisPediatrica(f('Ceftriaxona'), 50)!
+    expect(d.porToma.max).toBe(2000)     // antes daba 3750 y eso era lo que iba a la receta
+    expect(d.porDia.max).toBe(2000)
+  })
+
+  it('amoxicilina en 50 kg reparte el tope entre las dos tomas', () => {
+    const d = calcularDosisPediatrica(f('Amoxicilina'), 50)!
+    expect(d.porToma.max).toBe(1500)     // 3000 mg/día ÷ 2 tomas
+    expect(d.porDia.max).toBe(3000)
+  })
+
+  it('INVARIANTE: en todo el catálogo, dosis por toma × tomas al día nunca rebasa el tope diario', () => {
+    const tomas = (i: string) => {
+      const min = i.match(/c\/(\d+)\s*min/i)
+      if (min) return Math.max(1, Math.round(1440 / Number(min[1])))
+      const h = i.match(/c\/(\d+)/)
+      return h ? Math.max(1, Math.round(24 / Number(h[1]))) : 1
+    }
+    for (const x of FARMACOS_PED) {
+      if (x.topeDia == null) continue
+      for (const kg of [5, 15, 30, 50, 80, 120]) {
+        const d = calcularDosisPediatrica(x, kg)!
+        const n = x.mgKgDosis ? tomas(x.intervalo) : (x.tomas ?? 1)
+        expect(d.porToma.max * n, `${x.nombre} @ ${kg} kg`).toBeLessThanOrEqual(x.topeDia + 0.5)
+      }
+    }
+  })
+
+  it('salbutamol respeta el piso de 2.5 mg que dice su propia nota', () => {
+    const d = calcularDosisPediatrica(f('Salbutamol nebulizado'), 10)!
+    expect(d.porToma.min).toBe(2.5)      // antes daba 1.5: infradosis en crisis asmática
+    expect(f('Salbutamol nebulizado').nota).toMatch(/2\.5 mg/)
+  })
+
+  it('"c/20 min" se lee como minutos, no como 20 horas', () => {
+    const d = calcularDosisPediatrica(f('Salbutamol nebulizado'), 10)!
+    expect(d.porDia.max).toBeGreaterThan(d.porToma.max)   // antes eran iguales
+  })
+
+  it('"dosis única" cuenta como una sola toma al día', () => {
+    const d = calcularDosisPediatrica(f('Dexametasona (croup)'), 10)!
+    expect(d.porDia.max).toBe(d.porToma.max)
+  })
+})

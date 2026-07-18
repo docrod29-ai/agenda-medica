@@ -181,7 +181,7 @@ export const ANTIBIOTICOS_PROFILAXIS: AntibioticoProfilaxis[] = [
   { nombre: 'Ampicilina-sulbactam', dosis: '3 g IV', redosisHoras: 2, minutosAntes: 60 },
   { nombre: 'Clindamicina', dosis: '900 mg IV', redosisHoras: 6, minutosAntes: 60 },
   { nombre: 'Metronidazol', dosis: '500 mg IV', redosisHoras: null, minutosAntes: 60, nota: 'Su vida media larga hace innecesaria la re-dosis en la mayoría de las cirugías.' },
-  { nombre: 'Vancomicina', dosis: '15 mg/kg IV', redosisHoras: null, minutosAntes: 120, nota: 'Se infunde en 60 a 120 minutos para evitar el síndrome del hombre rojo. Solo si hay alergia grave a betalactámicos o colonización por SARM.' },
+  { nombre: 'Vancomicina', dosis: '15 mg/kg IV', redosisHoras: null, minutosAntes: 120, nota: 'Se infunde en 60 a 120 minutos para evitar el síndrome del hombre rojo. Solo si hay alergia grave a betalactámicos o colonización por SARM. VERIFICAR CONTRA EL PROTOCOLO INSTITUCIONAL: no se consultó aquí un documento fuente sobre su re-dosificación intraoperatoria, y algunos protocolos sí la contemplan en cirugías prolongadas.' },
   { nombre: 'Gentamicina', dosis: '5 mg/kg IV', redosisHoras: null, minutosAntes: 60, nota: 'Dosis única basada en el peso; no se re-dosifica en el transoperatorio.' },
   { nombre: 'Ciprofloxacino', dosis: '400 mg IV', redosisHoras: 8, minutosAntes: 120, nota: 'Se infunde en 60 minutos.' },
 ]
@@ -227,7 +227,7 @@ export function planProfilaxis(ab: AntibioticoProfilaxis, duracionHoras: number)
     dosis: ab.dosis,
     inicio: `Iniciar la infusión dentro de los ${ab.minutosAntes} minutos previos a la incisión.`,
     redosis: ab.redosisHoras == null
-      ? 'No requiere re-dosis intraoperatoria.'
+      ? 'Sin intervalo de re-dosis intraoperatoria cargado en la herramienta; verificar el protocolo institucional en cirugías prolongadas.'
       : momentos.length === 0
         ? `Re-dosis cada ${ab.redosisHoras} h; con la duración estimada no se alcanza el primer intervalo.`
         : `Re-dosis cada ${ab.redosisHoras} h: a las ${momentos.join(' h, a las ')} h de la incisión. También re-dosificar si la pérdida sanguínea supera 1 500 mL.`,

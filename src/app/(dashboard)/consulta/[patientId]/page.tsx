@@ -1767,7 +1767,7 @@ export default function ConsultaActivaPage() {
             ? { texto: `${vacunasAtrasadas} vacuna${vacunasAtrasadas > 1 ? 's' : ''} atrasada${vacunasAtrasadas > 1 ? 's' : ''}`, urgente: true }
             : undefined,
           abrirPorDefecto: vacunasAtrasadas > 0,
-          contenido: <PanelPediatria embebido edadAnios={patient?.edad}
+          contenido: <PanelPediatria embebido edadAnios={patient?.edad} sexo={patient?.sexo}
             onAgregarANota={agregarASeccion('pediatria', 'Pediatría')} />,
         }] : []),
         ...(calcSugeridas.length > 0 ? [{

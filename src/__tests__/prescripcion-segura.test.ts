@@ -164,3 +164,19 @@ describe('Revisión integral de un fármaco', () => {
     expect(r.gestacional).toBeUndefined()
   })
 })
+
+describe('Regresión: no inventar coincidencias con cadenas vacías', () => {
+  it('una línea en blanco NO inventa una contraindicación de metformina', () => {
+    expect(revisarListaRenal([''], 20)).toHaveLength(0)
+    expect(revisarListaRenal(['', '  ', 'a'], 20)).toHaveLength(0)
+  })
+  it('revisarFarmaco con texto vacío no devuelve nada', () => {
+    const r = revisarFarmaco('')
+    expect(r.renal).toBeUndefined()
+    expect(r.hepatico).toBeUndefined()
+    expect(r.gestacional).toBeUndefined()
+  })
+  it('un nombre real sigue funcionando', () => {
+    expect(revisarListaRenal(['metformina'], 20)).toHaveLength(1)
+  })
+})

@@ -26,6 +26,8 @@ export interface FarmacoPed {
   /** Tope por DÍA. */
   topeDia?: number
   unidad: string
+  /** Piso por toma: hay fármacos que no se dan por debajo de cierta dosis. */
+  dosisMinima?: number
   nota?: string
 }
 
@@ -48,7 +50,7 @@ export const FARMACOS_PED: FarmacoPed[] = [
   { nombre: 'Meropenem', mgKgDia: [60, 60], tomas: 3, intervalo: 'c/8 h', topeDia: 3000, unidad: 'mg', nota: 'Meningitis: 120 mg/kg/día (tope 6 g).' },
   { nombre: 'Prednisona', mgKgDia: [1, 2], tomas: 1, intervalo: 'c/24 h', topeDia: 60, unidad: 'mg' },
   { nombre: 'Dexametasona (croup)', mgKgDosis: [0.15, 0.6], intervalo: 'dosis única', topeDosis: 16, unidad: 'mg' },
-  { nombre: 'Salbutamol nebulizado', mgKgDosis: [0.15, 0.15], intervalo: 'c/20 min (crisis)', topeDosis: 5, unidad: 'mg', nota: 'Mínimo 2.5 mg por nebulización aunque el peso calcule menos.' },
+  { nombre: 'Salbutamol nebulizado', mgKgDosis: [0.15, 0.15], intervalo: 'c/20 min (crisis)', topeDosis: 5, dosisMinima: 2.5, unidad: 'mg', nota: 'Mínimo 2.5 mg por nebulización aunque el peso calcule menos.' },
   { nombre: 'Ondansetrón', mgKgDosis: [0.15, 0.15], intervalo: 'c/8 h', topeDosis: 8, unidad: 'mg' },
   { nombre: 'Difenhidramina', mgKgDosis: [1, 1], intervalo: 'c/6 h', topeDosis: 50, unidad: 'mg' },
   { nombre: 'Aciclovir', mgKgDosis: [20, 20], intervalo: 'c/6 h', topeDosis: 800, unidad: 'mg' },
@@ -69,31 +71,56 @@ export interface DosisCalculada {
   nota?: string
 }
 
-/** Calcula la dosis pediátrica por peso APLICANDO el tope de adulto. */
+/**
+ * Calcula la dosis pediátrica por peso APLICANDO el tope de adulto.
+ *
+ * El tope diario se propaga DE REGRESO a la dosis por toma. Sin eso, un fármaco
+ * de una sola toma al día mostraba la dosis cruda por peso (ceftriaxona en 50 kg
+ * daba 3750 mg por toma) mientras el total diario decía 2000 mg: la receta se
+ * escribe con la dosis POR TOMA, así que el tope no servía de nada.
+ */
 export function calcularDosisPediatrica(f: FarmacoPed, pesoKg: number): DosisCalculada | null {
   if (!(pesoKg > 0)) return null
-  let minToma: number, maxToma: number, tomas: number
+
+  /** Cuántas veces al día se administra realmente. */
+  const tomasDia = f.mgKgDosis ? tomasPorIntervalo(f.intervalo) : (f.tomas ?? 1)
+
+  let minToma: number, maxToma: number
   if (f.mgKgDosis) {
-    tomas = f.tomas ?? 1
     minToma = f.mgKgDosis[0] * pesoKg
     maxToma = f.mgKgDosis[1] * pesoKg
   } else if (f.mgKgDia) {
-    tomas = f.tomas ?? 1
-    minToma = (f.mgKgDia[0] * pesoKg) / tomas
-    maxToma = (f.mgKgDia[1] * pesoKg) / tomas
+    const porDia = f.tomas ?? 1
+    minToma = (f.mgKgDia[0] * pesoKg) / porDia
+    maxToma = (f.mgKgDia[1] * pesoKg) / porDia
   } else return null
+
+  // Piso por toma (p. ej. salbutamol nebulizado nunca por debajo de 2.5 mg).
+  if (f.dosisMinima != null) {
+    minToma = Math.max(minToma, f.dosisMinima)
+    maxToma = Math.max(maxToma, f.dosisMinima)
+  }
 
   let topeAplicado = false
   if (f.topeDosis != null) {
     if (maxToma > f.topeDosis) { maxToma = f.topeDosis; topeAplicado = true }
     if (minToma > f.topeDosis) { minToma = f.topeDosis; topeAplicado = true }
   }
-  let minDia = minToma * (f.mgKgDosis ? tomasPorIntervalo(f.intervalo) : tomas)
-  let maxDia = maxToma * (f.mgKgDosis ? tomasPorIntervalo(f.intervalo) : tomas)
+
+  // El tope DIARIO limita también lo que puede darse en cada toma.
+  if (f.topeDia != null && tomasDia > 0) {
+    const maxPorTomaSegunDia = f.topeDia / tomasDia
+    if (maxToma > maxPorTomaSegunDia) { maxToma = maxPorTomaSegunDia; topeAplicado = true }
+    if (minToma > maxPorTomaSegunDia) { minToma = maxPorTomaSegunDia; topeAplicado = true }
+  }
+
+  let minDia = minToma * tomasDia
+  let maxDia = maxToma * tomasDia
   if (f.topeDia != null) {
     if (maxDia > f.topeDia) { maxDia = f.topeDia; topeAplicado = true }
     if (minDia > f.topeDia) { minDia = f.topeDia; topeAplicado = true }
   }
+
   const r = (x: number) => Math.round(x * 10) / 10
   return {
     farmaco: f.nombre, intervalo: f.intervalo, unidad: f.unidad, topeAplicado, nota: f.nota,
@@ -102,11 +129,17 @@ export function calcularDosisPediatrica(f: FarmacoPed, pesoKg: number): DosisCal
   }
 }
 
-/** Tomas/día implícitas en el texto del intervalo (para los que se dosifican por toma). */
+/**
+ * Tomas al día implícitas en el texto del intervalo. Distingue la unidad: sin
+ * esto, "c/20 min (crisis)" se leía como cada 20 HORAS y devolvía una toma al
+ * día para un broncodilatador que se repite cada 20 minutos.
+ */
 function tomasPorIntervalo(intervalo: string): number {
-  const m = intervalo.match(/c\/(\d+)/)
-  if (m) return Math.max(1, Math.round(24 / Number(m[1])))
-  return 1
+  const min = intervalo.match(/c\/(\d+)\s*min/i)
+  if (min) return Math.max(1, Math.round(1440 / Number(min[1])))
+  const h = intervalo.match(/c\/(\d+)/)
+  if (h) return Math.max(1, Math.round(24 / Number(h[1])))
+  return 1   // "dosis única" y similares
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -216,4 +249,105 @@ export function imc(pesoKg: number, tallaCm: number): number {
   if (!(pesoKg > 0) || !(tallaCm > 0)) return NaN
   const m = tallaCm / 100
   return Math.round((pesoKg / (m * m)) * 10) / 10
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 4. CURVAS DE CRECIMIENTO DE LA OMS (0 a 60 meses)
+// ═══════════════════════════════════════════════════════════════════════════
+
+import {
+  PESO_EDAD_NINO, PESO_EDAD_NINA,
+  TALLA_EDAD_NINO, TALLA_EDAD_NINA,
+  IMC_EDAD_NINO, IMC_EDAD_NINA,
+  PC_EDAD_NINO, PC_EDAD_NINA,
+  type LMS,
+} from './oms-crecimiento'
+
+export type Indicador = 'peso' | 'talla' | 'imc' | 'perimetro-cefalico'
+
+const TABLAS: Record<Indicador, { nino: readonly LMS[]; nina: readonly LMS[]; unidad: string; nombre: string }> = {
+  'peso': { nino: PESO_EDAD_NINO, nina: PESO_EDAD_NINA, unidad: 'kg', nombre: 'Peso para la edad' },
+  'talla': { nino: TALLA_EDAD_NINO, nina: TALLA_EDAD_NINA, unidad: 'cm', nombre: 'Talla para la edad' },
+  'imc': { nino: IMC_EDAD_NINO, nina: IMC_EDAD_NINA, unidad: 'kg/m²', nombre: 'IMC para la edad' },
+  'perimetro-cefalico': { nino: PC_EDAD_NINO, nina: PC_EDAD_NINA, unidad: 'cm', nombre: 'Perímetro cefálico para la edad' },
+}
+
+export interface ResultadoCrecimiento {
+  indicador: string
+  valor: number
+  unidad: string
+  z: number
+  percentil: number
+  /** Mediana de la OMS para esa edad y sexo: el "esperado". */
+  mediana: number
+  clasificacion: string
+  nivel: 'bajo' | 'normal' | 'alto'
+  fuente: string
+}
+
+/**
+ * Calcula el z-score y el percentil de un niño contra el estándar de la OMS.
+ *
+ * Devuelve null si la edad queda fuera de 0 a 60 meses: estos estándares NO
+ * cubren más allá de los 5 años, y extrapolar daría un percentil inventado.
+ */
+export function evaluarCrecimiento(
+  indicador: Indicador, valor: number, edadMeses: number, esNina: boolean,
+): ResultadoCrecimiento | null {
+  const t = TABLAS[indicador]
+  if (!t || !(valor > 0)) return null
+  const m = Math.round(edadMeses)
+  if (!(m >= 0) || m > 60) return null
+
+  const tabla = esNina ? t.nina : t.nino
+  const fila = tabla[m]
+  if (!fila) return null
+  const [L, M, S] = fila
+
+  const z = zScoreLMS(valor, L, M, S)
+  if (!isFinite(z)) return null
+  const c = indicador === 'talla'
+    ? clasificarTalla(z)
+    : indicador === 'perimetro-cefalico'
+      ? clasificarPerimetro(z)
+      : clasificarZ(z)
+
+  return {
+    indicador: t.nombre, valor, unidad: t.unidad,
+    z, percentil: percentilDeZ(z), mediana: M,
+    clasificacion: c.etiqueta, nivel: c.nivel,
+    fuente: 'Estándares de crecimiento infantil de la OMS (tablas ampliadas de puntuación z, 0 a 60 meses)',
+  }
+}
+
+/** La talla baja se llama "talla baja", no "desnutrición": es otro desenlace. */
+function clasificarTalla(z: number): { etiqueta: string; nivel: 'bajo' | 'normal' | 'alto' } {
+  if (z < -3) return { etiqueta: 'Talla baja severa (z < −3)', nivel: 'bajo' }
+  if (z < -2) return { etiqueta: 'Talla baja (z −3 a −2)', nivel: 'bajo' }
+  if (z <= 3) return { etiqueta: 'Talla normal para la edad', nivel: 'normal' }
+  return { etiqueta: 'Talla alta (z > +3): valorar causa endocrina si es desproporcionada', nivel: 'alto' }
+}
+
+/** El perímetro cefálico tiene significado propio: micro y macrocefalia. */
+function clasificarPerimetro(z: number): { etiqueta: string; nivel: 'bajo' | 'normal' | 'alto' } {
+  if (z < -2) return { etiqueta: 'Microcefalia (z < −2): valorar causa y neurodesarrollo', nivel: 'bajo' }
+  if (z <= 2) return { etiqueta: 'Perímetro cefálico normal', nivel: 'normal' }
+  return { etiqueta: 'Macrocefalia (z > +2): valorar causa y velocidad de crecimiento', nivel: 'alto' }
+}
+
+/** Evalúa de una vez todo lo que se pueda con los datos capturados. */
+export function evaluarTodo(
+  edadMeses: number, esNina: boolean,
+  datos: { pesoKg?: number; tallaCm?: number; perimetroCm?: number },
+): ResultadoCrecimiento[] {
+  const out: ResultadoCrecimiento[] = []
+  const push = (r: ResultadoCrecimiento | null) => { if (r) out.push(r) }
+  if (datos.pesoKg) push(evaluarCrecimiento('peso', datos.pesoKg, edadMeses, esNina))
+  if (datos.tallaCm) push(evaluarCrecimiento('talla', datos.tallaCm, edadMeses, esNina))
+  if (datos.perimetroCm) push(evaluarCrecimiento('perimetro-cefalico', datos.perimetroCm, edadMeses, esNina))
+  if (datos.pesoKg && datos.tallaCm) {
+    const i = imc(datos.pesoKg, datos.tallaCm)
+    if (Number.isFinite(i)) push(evaluarCrecimiento('imc', i, edadMeses, esNina))
+  }
+  return out
 }

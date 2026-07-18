@@ -297,7 +297,10 @@ export const CAMBIOS_RELEVANTES: UmbralRelevante[] = [
  */
 export function alertaDeTendencia(analito: string, t: Tendencia): string | null {
   const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-  const q = norm(analito)
+  const q = norm(analito).trim()
+  // Sin nombre (o con una o dos letras) no se adivina: el campo es texto libre y
+  // al vaciarlo cualquier subcadena hacía match con la primera regla.
+  if (q.length < 3) return null
   // 1) Coincidencia exacta.
   const exacta = CAMBIOS_RELEVANTES.find(r => norm(r.analito) === q)
   if (exacta) return exacta.evaluar(t)
