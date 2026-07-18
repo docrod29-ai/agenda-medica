@@ -10,6 +10,7 @@
 import { useState, useRef, useMemo, useEffect } from 'react'
 import {
   interpretarAntibiograma, sitioDesdeMuestra, pruebasDesdeReporte,
+  CATALOGO_ATB, ATB_FRECUENTES,
   type SIR, type SitioInfeccion, type InterpretacionAntibiograma,
   type PruebasConfirmatorias, type ResultadoPrueba,
 } from '@/lib/expediente/antibiograma'
@@ -36,12 +37,7 @@ interface MetaReporte {
   sistema?: string; gram?: string; otros?: string[]; observaciones?: string
 }
 
-const ANTIBIOTICOS_COMUNES = [
-  'Oxacilina', 'Cefoxitina', 'Penicilina', 'Ampicilina', 'Vancomicina', 'Ceftriaxona', 'Ceftazidima', 'Cefepime',
-  'Aztreonam', 'Meropenem', 'Imipenem', 'Ertapenem', 'Piperacilina/Tazobactam',
-  'Ciprofloxacino', 'Levofloxacino', 'Gentamicina', 'Amikacina', 'Colistina',
-  'Ceftazidima-avibactam', 'Trimetoprim/Sulfametoxazol', 'Linezolid', 'Eritromicina', 'Clindamicina',
-]
+// Catálogo COMPLETO (clásicos → aprobados 2026) agrupado por clase; los frecuentes van de atajo.
 
 const SITIOS: { v: SitioInfeccion; t: string }[] = [
   { v: 'otro', t: 'General' }, { v: 'sangre', t: 'Sangre' }, { v: 'orina', t: 'Orina' },
@@ -281,11 +277,14 @@ export default function AntibiogramaPage() {
           </div>
         ))}
       </div>
-      <datalist id="ab-comunes">{ANTIBIOTICOS_COMUNES.map(a => <option key={a} value={a} />)}</datalist>
+      {/* Autocompletado con el catálogo COMPLETO, etiquetado por clase */}
+      <datalist id="ab-comunes">
+        {CATALOGO_ATB.map(g => g.agentes.map(a => <option key={`${g.clase}-${a}`} value={a} label={g.clase} />))}
+      </datalist>
 
       <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
         <button type="button" onClick={() => agregar()} style={addBtn}><Plus size={14} /> Fila</button>
-        {ANTIBIOTICOS_COMUNES.slice(0, 8).map(a => (
+        {ATB_FRECUENTES.slice(0, 12).map(a => (
           <button key={a} type="button" onClick={() => agregar(a)} style={chip}>{a}</button>
         ))}
       </div>

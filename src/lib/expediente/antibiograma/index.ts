@@ -17,6 +17,7 @@ export {
   VISION_SYSTEM_PROMPT, buildVisionUserPrompt,
 } from './vision'
 export { PRUEBAS, pruebasRecomendadas } from './clsi-pruebas'
+export { CATALOGO_ATB, TODOS_ATB, ATB_FRECUENTES, type GrupoATB } from './catalogo-antibioticos'
 export { interpretarCMI, grupoDe } from './clsi-breakpoints'
 export type {
   SIR,
