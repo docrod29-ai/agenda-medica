@@ -448,6 +448,64 @@ describe('Puntos de corte CLSI M100 (CMI → S/I/R)', () => {
   })
 })
 
+describe('Glucopéptidos en S. aureus: VRSA / VISA / hVISA', () => {
+  it('vanco R → VRSA confirmado + mecanismo vanA + crítica + notificación', () => {
+    const r = interpretarAntibiograma(ab('Staphylococcus aureus', [['Vancomicina', 'R']]))
+    expect(claves(r)).toContain('VRSA')
+    expect(r.mecanismos.some(m => /vanA/i.test(m.nombre))).toBe(true)
+    expect(r.notificacionObligatoria).toBe(true)
+    expect(r.alertas.some(a => a.nivel === 'critica' && /VRSA/i.test(a.mensaje))).toBe(true)
+  })
+  it('vanco CMI 16 → VRSA (aunque el reporte no diga R)', () => {
+    const r = interpretarAntibiograma({ organismo: 'S. aureus', resultados: [{ antibiotico: 'Vancomicina', interpretacion: 'S', cmi: 16 }] })
+    expect(claves(r)).toContain('VRSA')
+  })
+  it('vanco CMI 6 → VISA con mecanismo de engrosamiento de pared', () => {
+    const r = interpretarAntibiograma({ organismo: 'S. aureus', resultados: [{ antibiotico: 'Vancomicina', interpretacion: 'S', cmi: 6 }] })
+    expect(claves(r)).toContain('VISA')
+    expect(r.mecanismos.some(m => /pared/i.test(m.nombre))).toBe(true)
+  })
+  it('MRSA con vanco CMI 2 → sospecha de hVISA', () => {
+    const r = interpretarAntibiograma({ organismo: 'S. aureus', resultados: [{ antibiotico: 'Cefoxitina', interpretacion: 'R' }, { antibiotico: 'Vancomicina', interpretacion: 'S', cmi: 2 }] })
+    expect(claves(r)).toContain('hVISA')
+  })
+})
+
+describe('Mecanismos completos (colistina, FQ)', () => {
+  it('colistina R → mecanismo de modificación del lípido A (mcr/mgrB)', () => {
+    const r = interpretarAntibiograma(ab('Klebsiella pneumoniae', [['Colistina', 'R']]))
+    expect(r.mecanismos.some(m => /lípido A|mcr|pmr/i.test(m.nombre + m.explicacion))).toBe(true)
+  })
+  it('FQ R → mecanismo gyrA/parC', () => {
+    const r = interpretarAntibiograma(ab('Escherichia coli', [['Ciprofloxacino', 'R']]))
+    expect(r.mecanismos.some(m => /gyrA|parC|topoisomerasa/i.test(m.nombre))).toBe(true)
+  })
+})
+
+describe('Métodos de laboratorio validados sugeridos', () => {
+  it('AmpC → sugiere confirmación de AmpC + doble productor', () => {
+    const r = interpretarAntibiograma(ab('Enterobacter cloacae', [['Ceftriaxona', 'S'], ['Cefepime', 'S']]))
+    const ids = r.pruebasSugeridas.map(p => p.id)
+    expect(ids).toContain('AMPC_CONFIRM')
+    expect(ids).toContain('DOBLE_PRODUCTOR')
+  })
+  it('carbapenemasa → sinergia por inhibidores (borónico/EDTA) + inmunocromatografía', () => {
+    const r = interpretarAntibiograma(ab('Klebsiella pneumoniae', [['Meropenem', 'R'], ['Ceftriaxona', 'R']]))
+    const ids = r.pruebasSugeridas.map(p => p.id)
+    expect(ids).toContain('SINERGIA_CARBAPENEMASA')
+    expect(ids).toContain('INMUNOCROMATOGRAFIA')
+  })
+  it('BLEE → sugiere sinergia de doble disco (DDST)', () => {
+    const r = interpretarAntibiograma(ab('Escherichia coli', [['Ceftriaxona', 'R'], ['Meropenem', 'S']]))
+    expect(r.pruebasSugeridas.some(p => p.id === 'SINERGIA_ESBL_DDST')).toBe(true)
+  })
+  it('colistina válida menciona CBDE/BMD (no disco)', () => {
+    const r = interpretarAntibiograma(ab('Acinetobacter baumannii', [['Meropenem', 'R'], ['Colistina', 'R']]))
+    const col = r.pruebasSugeridas.find(p => p.id === 'COLISTINA')
+    expect(col?.metodo).toMatch(/CBDE|BMD|microdiluci/i)
+  })
+})
+
 describe('Pruebas microbiológicas CLSI sugeridas', () => {
   it('BLEE → sugiere prueba confirmatoria de ESBL (Tabla 3A)', () => {
     const r = interpretarAntibiograma(ab('Escherichia coli', [['Ceftriaxona', 'R'], ['Meropenem', 'S']]))

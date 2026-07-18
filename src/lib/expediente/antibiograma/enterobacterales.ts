@@ -126,6 +126,12 @@ export function analizarEnterobacterales(organismo: string, r: ResultadoAntibiog
     }
     for (const t of terapiaPorClase('AmpC')) out.terapiaDirigida.push(t)
     out.alertas.push({ nivel: 'alta', mensaje: cefepimeS ? 'AmpC: cefepime (S) por su estabilidad relativa a AmpC; carbapenémico si es grave/alto inóculo.' : 'AmpC: usar carbapenémico (cefepime no S/no disponible).' })
+    // DOBLE PRODUCTOR: la cefoxitina R (AmpC) puede ENMASCARAR una BLEE coproducida — la sinergia
+    // con clavulanato queda oculta porque la AmpC no se inhibe. Aztreonam R lo hace más probable.
+    if (aztreonamR || any3gR) {
+      out.advertencias.push('Posible DOBLE productor (AmpC + BLEE): la cefoxitina R puede ocultar una BLEE coproducida. Confirmar con prueba de AmpC + cloxacilina (destapa la BLEE) o molecular.')
+      out.didactica.push({ titulo: 'AmpC que enmascara una BLEE (doble productor)', texto: 'Cuando hay AmpC (cefoxitina R), la sinergia con clavulanato de una BLEE coproducida NO se ve (la AmpC no se inhibe con clavulanato). Se destapa inhibiendo la AmpC con cloxacilina/ác. borónico. Definir ambas enzimas cambia el esquema.', referencia: REF.ENTEROBACT })
+    }
     // ESAC: si además ceftazidima y cefepime R, es AmpC de espectro ampliado.
     if (any3gR && !cefepimeS && ES_R(estado(r, CEFEPIME))) {
       out.didactica.push({ titulo: 'AmpC de espectro ampliado (ESAC)', texto: 'AmpC + cefepime R sugiere ESAC (AmpC de espectro ampliado): sensibilidad disminuida a todas las cefalosporinas incluida cefepime; su diferenciación de una carbapenemasa requiere confirmación.', referencia: REF.ENTEROBACT })

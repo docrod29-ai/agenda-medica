@@ -91,12 +91,57 @@ export const PRUEBAS: Record<string, PruebaCLSI> = {
   },
   COLISTINA: {
     id: 'COLISTINA',
-    nombre: 'Prueba de sensibilidad a colistina (microdilución en caldo)',
-    cuando: 'Cuando se considere colistina/polimixina (la difusión en disco NO es fiable).',
+    nombre: 'Sensibilidad a colistina — métodos VALIDADOS',
+    cuando: 'Cuando se considere colistina/polimixina B (última línea). La difusión en disco y el gradiente (E-test) NO son válidos y subestiman la R.',
     organismos: 'Enterobacterales, P. aeruginosa, Acinetobacter (Tabla 3E).',
-    metodo: 'Microdilución en caldo (BMD) — método de referencia; la difusión en disco y el gradiente NO son válidos para colistina.',
-    interpretacion: 'Interpretar la CMI según la Tabla 3E del CLSI M100-Ed35 (categoría "intermedio"/"resistente"; no hay categoría "susceptible" para colistina). Un halo por difusión NO es interpretable.',
+    metodo: 'Métodos ACEPTADOS: (1) Microdilución en caldo BMD con colistina sulfato en poliestireno sin polisorbato-80 (REFERENCIA); (2) CBDE — Colistin Broth Disk Elution (elución de discos de 10 µg en 4 tubos de caldo → 0/1/2/4 µg/mL), validado y de bajo costo; (3) CAT — Colistin Agar Test (cribado). NO válidos: disco, gradiente/E-test, automatizados sin verificar.',
+    interpretacion: 'Interpretar la CMI por BMD/CBDE según la Tabla 3E: solo hay categorías "Intermedio" (CMI ≤2) y "Resistente" (≥4) — NO existe "Sensible". Confirmar la R de colistina (mcr/mgrB) siempre por un método válido; considerar terapia combinada guiada por CMI.',
     referencia: `${M100} Tabla 3E`,
+  },
+  AMPC_CONFIRM: {
+    id: 'AMPC_CONFIRM',
+    nombre: 'Confirmación de AmpC (inhibición con cloxacilina / ác. borónico)',
+    cuando: 'Cefoxitina R + C3G no-S en Enterobacterales, para distinguir AmpC de BLEE/carbapenemasa y desenmascarar una BLEE coproducida.',
+    organismos: 'Enterobacterales (E. coli, Klebsiella, grupo ESCPM).',
+    metodo: 'Disco combinado cefotetán/cefoxitina ± inhibidor de AmpC (cloxacilina o ác. 3-aminofenilborónico, APB). En medio CON cloxacilina se inhibe la AmpC y se "destapa" la BLEE (sinergia con clavulanato que antes quedaba oculta).',
+    interpretacion: 'Aumento del halo con el inhibidor de AmpC (cloxacilina/APB) = AmpC confirmada. Si al inhibir la AmpC aparece sinergia con clavulanato → DOBLE productor AmpC + BLEE. La cefoxitina R por sí sola no distingue AmpC de pérdida de porina.',
+    referencia: `${M100} Tablas 3A-3C + AmpC (Tamma/Doi/Bonomo, CID 2019)`,
+  },
+  SINERGIA_ESBL_DDST: {
+    id: 'SINERGIA_ESBL_DDST',
+    nombre: 'Sinergia de doble disco (DDST) para BLEE',
+    cuando: 'Tamiz de BLEE positivo, para confirmar por sinergia con clavulanato.',
+    organismos: 'Enterobacterales (Tabla 3A).',
+    metodo: 'Discos de cefotaxima y ceftazidima colocados a 20 mm (borde a borde) de un disco de amoxicilina-clavulanato; o disco combinado C3G ± clavulanato.',
+    interpretacion: 'Ampliación del halo de la cefalosporina HACIA el clavulanato ("tapón de champán"/zona en huso) = BLEE. En disco combinado: ≥5 mm de aumento con clavulanato = BLEE.',
+    referencia: `${M100} Tabla 3A`,
+  },
+  SINERGIA_CARBAPENEMASA: {
+    id: 'SINERGIA_CARBAPENEMASA',
+    nombre: 'Doble detección de carbapenemasa por inhibidores (clase serina vs metalo)',
+    cuando: 'Carbapenemasa confirmada/sospechada, para DIFERENCIAR la clase por inhibición (complementa mCIM/eCIM y molecular).',
+    organismos: 'Enterobacterales, P. aeruginosa, Acinetobacter.',
+    metodo: 'Disco combinado de meropenem ± inhibidores: ác. FENILBORÓNICO (APB, inhibe SERINA-carbapenemasas tipo KPC), EDTA o ác. dipicolínico (DPA, inhibe METALO-β-lactamasas NDM/VIM/IMP), y cloxacilina (AmpC). El eCIM (mCIM + EDTA) hace la misma distinción serina/metalo.',
+    interpretacion: 'Sinergia SOLO con APB → KPC (serina). Sinergia SOLO con EDTA/DPA → MBL. Sinergia con AMBOS → doble carbapenemasa (KPC + MBL). Sin sinergia con ninguno pero mCIM+ → sospechar OXA-48-like (clase D, no se inhibe con APB ni EDTA). Confirmar con inmunocromatografía/molecular.',
+    referencia: `${M100} Tablas 3B-3C + Simner/Pitout CMR 2024`,
+  },
+  INMUNOCROMATOGRAFIA: {
+    id: 'INMUNOCROMATOGRAFIA',
+    nombre: 'Inmunocromatografía de carbapenemasa (Carba-5 / RESIST-5)',
+    cuando: 'Carbapenemasa positiva: identifica el TIPO en ~15 min (dirige el inhibidor).',
+    organismos: 'Enterobacterales, P. aeruginosa, Acinetobacter.',
+    metodo: 'Flujo lateral que detecta las 5 carbapenemasas más frecuentes: KPC, OXA-48-like, NDM, VIM, IMP, directo de la colonia.',
+    interpretacion: 'Banda positiva identifica el gen → KPC/OXA-48 (serina) → ceftazidima-avibactam (KPC también mero-vaborbactam/imipenem-relebactam; OXA-48 solo avibactam/cefiderocol); NDM/VIM/IMP (metalo) → aztreonam-avibactam o cefiderocol. Falso negativo si la carbapenemasa no está en el panel de 5.',
+    referencia: `${M100} Intro Tablas 3B-3C`,
+  },
+  DOBLE_PRODUCTOR: {
+    id: 'DOBLE_PRODUCTOR',
+    nombre: 'Sospecha de DOBLE productor de β-lactamasas',
+    cuando: 'Patrón que sugiere ≥2 enzimas (p. ej. AmpC/BLEE + carbapenemasa, o carbapenemasa serina + metalo).',
+    organismos: 'Enterobacterales, no fermentadores.',
+    metodo: 'Combinación de pruebas: cloxacilina (destapa BLEE bajo AmpC), APB + EDTA (serina + metalo), aztreonam (respetado por MBL pero hidrolizado por serina coproducida). El molecular resuelve.',
+    interpretacion: 'Ej.: "CAZ-AVI no-S + aztreonam no-S" en CRE = MBL + serina coproducida ("no es una carbapenemasa, son dos"). Cefoxitina R que enmascara una BLEE = AmpC + BLEE. Definir TODAS las enzimas cambia el esquema (p. ej. aztreonam-avibactam para MBL+serina).',
+    referencia: `${M100} + Bush & Bradford 2019; Simner/Pitout CMR 2024`,
   },
 }
 
@@ -105,16 +150,18 @@ export function pruebasRecomendadas(organismo: string, fenotipos: FenotipoClave[
   const set = new Set<string>()
   const has = (...cs: FenotipoClave[]) => cs.some(c => fenotipos.includes(c))
 
-  if (has('BLEE')) set.add('ESBL')
-  if (has('carbapenemasa')) { set.add('CARBA_NP'); set.add('mCIM_eCIM'); set.add('MOLECULAR') }
+  if (has('BLEE')) { set.add('ESBL'); set.add('SINERGIA_ESBL_DDST') }
+  if (has('AmpC')) { set.add('AMPC_CONFIRM'); set.add('DOBLE_PRODUCTOR') } // cefoxitina R puede enmascarar BLEE
+  if (has('carbapenemasa')) {
+    set.add('CARBA_NP'); set.add('mCIM_eCIM'); set.add('SINERGIA_CARBAPENEMASA')
+    set.add('INMUNOCROMATOGRAFIA'); set.add('MOLECULAR'); set.add('DOBLE_PRODUCTOR')
+  }
   if (has('porina-perdida')) { set.add('mCIM_eCIM'); set.add('MOLECULAR') } // patrón ertapenem-aislado: descartar OXA-48
   if (has('MRSA', 'BORSA')) set.add('CEFOXITINA_MRSA')
   if (has('MLSb-inducible')) set.add('D_ZONE')
   if (has('HLAR')) set.add('HLAR')
   if (has('penicilinasa-estafilococica')) set.add('BETALACTAMASA_NITROCEFIN')
-  if (has('colistin-R') || /pseudomonas|acinetobacter|klebsiella|coli/i.test(organismo)) {
-    // sugerir método correcto de colistina solo si el fenotipo es MDR/carbapenemasa (contexto de última línea)
-    if (has('carbapenemasa', 'colistin-R', 'MDR', 'XDR')) set.add('COLISTINA')
-  }
+  // Colistina: método VÁLIDO cuando es la línea de rescate (última línea comprometida).
+  if (has('carbapenemasa', 'colistin-R', 'MDR', 'XDR')) set.add('COLISTINA')
   return [...set].map(id => PRUEBAS[id]).filter(Boolean)
 }
