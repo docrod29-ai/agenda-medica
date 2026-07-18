@@ -55,7 +55,7 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
   // respaldo para organismos no cubiertos por Magiorakos (Gram+, etc.).
   ap = fusionar(ap, analizarDTR(organismo, r))
   ap = fusionar(ap, analizarMDR(organismo, r))
-  ap = fusionar(ap, transversales(r))
+  ap = fusionar(ap, transversales(organismo, r))
 
   const resistenciaIntrinseca = evaluarIntrinseca(organismo, r)
 
@@ -119,8 +119,15 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
 }
 
 /** Reglas transversales independientes de organismo: FQ-R, colistina-R, MDR + PK/PD. */
-function transversales(r: ResultadoAntibiograma[]): AporteModulo {
+function transversales(organismo: string, r: ResultadoAntibiograma[]): AporteModulo {
   const out = aporteVacio()
+
+  // fosfomicina: fosA cromosómica INTRÍNSECA en Klebsiella/Enterobacter/Serratia/Citrobacter →
+  // la fosfomicina es menos fiable (la S in vitro no siempre predice éxito); solo E. coli tiene
+  // punto de corte validado para IVU. Aviso cuando se reporta fosfomicina en estas especies.
+  if (/klebsiella|enterobacter|serratia|citrobacter/.test(norm(organismo)) && estado(r, ['fosfomicina']) !== null) {
+    out.advertencias.push('Fosfomicina: estas especies (Klebsiella/Enterobacter/Serratia/Citrobacter) portan fosA cromosómica intrínseca → la fosfomicina es MENOS fiable; el punto de corte validado es para E. coli en IVU. No extrapolar una «S».')
+  }
 
   if (FLUOROQUINOLONA.some(f => ES_R(estado(r, [f])))) {
     out.fenotipos.push({ clave: 'FQ-R', nombre: 'Resistencia a fluoroquinolonas', confianza: 'confirmado', base: `Fluoroquinolona R. ${REF.CLSI}` })

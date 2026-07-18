@@ -7,7 +7,7 @@ import { REF } from './referencias'
 import {
   organismoEs, estado, cmiDe, ES_R, ES_S,
   OXACILINA, CEFOXITINA, PENICILINA, VANCOMICINA, ERITROMICINA, CLINDAMICINA,
-  GENTAMICINA, AMPICILINA, LINEZOLID, DAPTOMICINA,
+  GENTAMICINA, AMPICILINA, LINEZOLID, DAPTOMICINA, TIGECICLINA,
 } from './util'
 
 export function analizarGramPositivos(
@@ -29,7 +29,30 @@ export function analizarGramPositivos(
   if (organismoEs(organismo, ['enterococcus', 'enterococo', 'faecium', 'faecalis'])) {
     enterococo(organismo, r, out)
   }
+  // Resistencias EMERGENTes de última línea (staph + enterococo): linezolid, daptomicina, tigeciclina.
+  if (organismoEs(organismo, ['staphylo', 'aureus', 'epidermidis', 'lugdunensis', 'enterococ', 'faecium', 'faecalis'])) {
+    ultimaLineaGramPos(r, out)
+  }
   return out
+}
+
+/** R a agentes de rescate en Gram+: linezolid (cfr/optrA/G2576T), daptomicina (mprF/LiaFSR), tigeciclina (tet(X)/eflujo). */
+function ultimaLineaGramPos(r: ResultadoAntibiograma[], out: AporteModulo) {
+  if (ES_R(estado(r, LINEZOLID))) {
+    out.fenotipos.push({ clave: 'linezolid-R', nombre: 'Resistencia a linezolid', confianza: 'confirmado', base: `Linezolid R: mutación 23S rRNA (G2576T) o genes transferibles cfr/optrA/poxtA (cfr también da R a fenicoles/lincosamidas/pleuromutilinas). ${REF.GRAM_POS}` })
+    out.mecanismos.push({ categoria: 'diana', nombre: 'Metilasa cfr / oxazolidinona optrA·poxtA / mutación 23S (G2576T)', confianza: 'probable', explicacion: 'Altera el sitio de unión del linezolid en el ribosoma (23S rRNA / proteína L3-L4) o lo protege (optrA/poxtA, ABC-F). cfr es transferible y confiere fenotipo PhLOPSA. Opciones: tedizolol (probar), daptomicina, glucopéptidos según CMI.', referencia: REF.GRAM_POS })
+    out.alertas.push({ nivel: 'critica', mensaje: 'Linezolid-R: agente de rescate comprometido → infectología; confirmar y valorar tedizolid/daptomicina/glucopéptido según especie y sitio.' })
+  }
+  const dapCmi = cmiDe(r, DAPTOMICINA)
+  if (ES_R(estado(r, DAPTOMICINA)) || (dapCmi !== null && dapCmi > 1)) {
+    out.fenotipos.push({ clave: 'daptomicina-R', nombre: 'Sensibilidad reducida / R a daptomicina', confianza: dapCmi !== null ? 'probable' : 'confirmado', base: `Daptomicina no-S${dapCmi !== null ? ` (CMI ${dapCmi})` : ''}: mutaciones en mprF (carga de la membrana) o el sistema LiaFSR (respuesta de envoltura). ${REF.GRAM_POS}` })
+    out.mecanismos.push({ categoria: 'diana', nombre: 'mprF / LiaFSR (remodelación de la membrana)', confianza: 'probable', explicacion: 'Aumento de la carga positiva de la membrana (mprF) o respuesta de estrés de envoltura (LiaFSR) → repele el complejo daptomicina-Ca²⁺. Frecuente tras exposición prolongada a daptomicina o vancomicina. No usar daptomicina; valorar dosis alta + combinación (β-lactámico) o cambio de clase.', referencia: REF.GRAM_POS })
+    out.alertas.push({ nivel: 'alta', mensaje: 'Daptomicina no-S (mprF/LiaFSR): frecuente tras terapia previa. Considerar daptomicina dosis alta + β-lactámico (efecto "see-saw") o cambio de clase; infectología.' })
+  }
+  if (ES_R(estado(r, TIGECICLINA))) {
+    out.fenotipos.push({ clave: 'tigeciclina-R', nombre: 'Resistencia a tigeciclina', confianza: 'confirmado', base: `Tigeciclina R: bombas de expulsión (RND) o inactivación por tet(X)/monooxigenasa. ${REF.GRAM_POS}` })
+    out.mecanismos.push({ categoria: 'bomba de expulsión', nombre: 'Sobreexpresión de bombas RND / tet(X)', confianza: 'probable', explicacion: 'Expulsión activa (AcrAB/MexXY según especie) o inactivación enzimática por tet(X)/tet(X4). Las alternativas dependen del resto del perfil.', referencia: REF.GRAM_POS })
+  }
 }
 
 // ── Staphylococcus ──────────────────────────────────────────────────────────

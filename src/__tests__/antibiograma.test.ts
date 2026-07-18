@@ -449,6 +449,34 @@ describe('Puntos de corte CLSI M100 (CMI → S/I/R)', () => {
   })
 })
 
+describe('Resistencias de última línea en Gram+ (Tier 2)', () => {
+  it('linezolid R → linezolid-R + mecanismo cfr/optrA/23S', () => {
+    const r = interpretarAntibiograma(ab('Enterococcus faecium', [['Linezolid', 'R']]))
+    expect(claves(r)).toContain('linezolid-R')
+    expect(r.mecanismos.some(m => /cfr|optrA|23S/i.test(m.nombre))).toBe(true)
+  })
+  it('daptomicina R → daptomicina-R + mecanismo mprF/LiaFSR', () => {
+    const r = interpretarAntibiograma(ab('Staphylococcus aureus', [['Daptomicina', 'R']]))
+    expect(claves(r)).toContain('daptomicina-R')
+    expect(r.mecanismos.some(m => /mprF|LiaFSR/i.test(m.nombre))).toBe(true)
+  })
+  it('tigeciclina R → tigeciclina-R', () => {
+    const r = interpretarAntibiograma(ab('Enterococcus faecium', [['Tigeciclina', 'R']]))
+    expect(claves(r)).toContain('tigeciclina-R')
+  })
+})
+
+describe('fosfomicina fosA intrínseca y CAZ-AVI-R en KPC (Tier 2)', () => {
+  it('Klebsiella + fosfomicina S → aviso de fosA intrínseca', () => {
+    const r = interpretarAntibiograma(ab('Klebsiella pneumoniae', [['Fosfomicina', 'S'], ['Ceftriaxona', 'S']]))
+    expect(r.advertencias.join(' ')).toMatch(/fosA|menos fiable/i)
+  })
+  it('carbapenemasa KPC confirmada → didáctica de R emergente a CAZ-AVI', () => {
+    const r = interpretarAntibiograma({ organismo: 'Klebsiella pneumoniae', resultados: [], pruebas: { carbapenemasa: 'pos', claseCarbapenemasa: 'KPC' } })
+    expect(r.didactica.some(d => /variante|vaborbactam|blaKPC/i.test(d.texto))).toBe(true)
+  })
+})
+
 describe('16S rRNA metiltransferasa y AME', () => {
   it('genta+tobra+amika TODAS R → 16S-RMTasa + alerta de buscar NDM', () => {
     const r = interpretarAntibiograma(ab('Klebsiella pneumoniae', [['Gentamicina', 'R'], ['Tobramicina', 'R'], ['Amikacina', 'R']]))

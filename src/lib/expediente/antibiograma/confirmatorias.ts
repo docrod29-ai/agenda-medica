@@ -63,6 +63,9 @@ export function analizarConfirmatorias(pruebas: PruebasConfirmatorias | undefine
     out.alertas.push({ nivel: 'critica', mensaje: `Carbapenemasa confirmada (${clase}): infectología OBLIGADA. ${claseAlerta(clase)}` })
     for (const t of terapiaPorClase(clase)) out.terapiaDirigida.push(t)
     if (clase === 'MBL') out.alertas.push({ nivel: 'alta', mensaje: AVISO_ACCESO_MEXICO })
+    if (clase === 'KPC') {
+      out.didactica.push({ titulo: 'R emergente a ceftazidima-avibactam en KPC', texto: 'Si una KPC confirmada resulta ceftazidima-avibactam R, sospechar una VARIANTE de blaKPC (p. ej. KPC-3 mutada) seleccionada bajo presión de CAZ-AVI → usar meropenem-vaborbactam o imipenem-relebactam (suelen conservar actividad) y confirmar por secuenciación.', referencia: REF.BLI })
+    }
     out.notificacion = true
     out.aislamiento = 'Precauciones de contacto (productor de carbapenemasa).'
   }
