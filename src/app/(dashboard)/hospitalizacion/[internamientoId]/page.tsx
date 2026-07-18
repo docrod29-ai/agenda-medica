@@ -408,11 +408,23 @@ export default function EpisodioPage() {
                   </div>
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                     {puedeFarmacia && ind.activa && ind.tipo === 'medicamento' && !ind.verificadaFarmacia && <Button size="sm" variant="secondary" icon={<ShieldCheck size={13} />} onClick={async () => { if (!clinicId) return; await verificarIndicacionFarmacia(clinicId, internamientoId, ind.id, config?.nombreMedico ?? ROL_HOSPITAL_LABEL[rol]); toast('Indicación verificada por farmacia', 'success'); cargar() }}>Verificar</Button>}
-                    {puedeEnfermeria && ind.activa && ind.tipo === 'medicamento' && <Button size="sm" variant="secondary" icon={<Syringe size={13} />} onClick={() => { setCorrectos({ paciente: false, medicamento: false, dosis: false, via: false, hora: false }); setAdministrando(ind.id) }}>Administrar</Button>}
+                    {puedeEnfermeria && ind.activa && ind.tipo === 'medicamento' && <Button size="sm" variant="secondary" icon={<Syringe size={13} />} onClick={() => { setCorrectos({ paciente: false, medicamento: false, dosis: false, via: false, hora: false }); setAdmNota(''); setFolioScan(''); setAdministrando(ind.id) }}>Administrar</Button>}
                     {/* Editar/Borrar SOLO si nunca se administró (borrador). Una vez con MAR, solo suspender. */}
                     {esMedico && ind.administraciones.length === 0 && !egresado && <button title="Editar" onClick={() => { setIndEditId(ind.id); setIndForm({ tipo: ind.tipo, descripcion: ind.descripcion, dosis: '', via: '', frecuencia: ind.frecuencia ?? '' }); setMedQuery(''); setModalInd(true) }} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 8px', cursor: 'pointer', color: 'var(--text3)' }}><Pencil size={13} /></button>}
                     {esMedico && ind.administraciones.length === 0 && !egresado && <button title="Borrar" onClick={async () => { if (!clinicId || !(await confirm('¿Borrar esta indicación?', { peligro: true, confirmar: 'Borrar' }))) return; try { await borrarIndicacion(clinicId, internamientoId, ind.id); toast('Indicación borrada', 'success'); cargar() } catch (e) { toast(e instanceof Error ? e.message : 'No se pudo borrar', 'error') } }} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 8px', cursor: 'pointer', color: 'var(--text3)' }}><Trash2 size={13} /></button>}
-                    {esMedico && <button title={ind.activa ? 'Suspender' : 'Reactivar'} onClick={async () => { if (!clinicId) return; await suspenderIndicacion(clinicId, internamientoId, ind.id, !ind.activa); cargar() }} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 8px', cursor: 'pointer', color: 'var(--text3)' }}><Ban size={13} /></button>}
+                    {esMedico && <button title={ind.activa ? 'Suspender' : 'Reactivar'} onClick={async () => {
+                      if (!clinicId) return
+                      // Sin este catch, si la escritura fallaba el médico veía la
+                      // tarjeta igual y creía haber suspendido el fármaco, mientras
+                      // enfermería lo seguía administrando desde el MAR.
+                      try {
+                        await suspenderIndicacion(clinicId, internamientoId, ind.id, !ind.activa)
+                        toast(ind.activa ? 'Indicación suspendida' : 'Indicación reactivada', 'success')
+                        cargar()
+                      } catch (e) {
+                        toast(e instanceof Error ? e.message : 'NO se pudo suspender: sigue activa', 'error')
+                      }
+                    }} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 8px', cursor: 'pointer', color: 'var(--text3)' }}><Ban size={13} /></button>}
                   </div>
                 </div>
                 {ind.administraciones.length > 0 && (
@@ -764,8 +776,8 @@ export default function EpisodioPage() {
           </button>
         )
         return (
-          <Modal open={!!administrando} onClose={() => { setAdministrando(null); setFolioScan('') }} title="Administrar medicamento"
-            footer={<><Button variant="secondary" onClick={() => { setAdministrando(null); setFolioScan('') }}>Cancelar</Button>
+          <Modal open={!!administrando} onClose={() => { setAdministrando(null); setFolioScan(''); setAdmNota('') }} title="Administrar medicamento"
+            footer={<><Button variant="secondary" onClick={() => { setAdministrando(null); setFolioScan(''); setAdmNota('') }}>Cancelar</Button>
               <Button variant="secondary" loading={busy} onClick={() => registrar('omitido', false, false)}><Ban size={14} /> Omitido</Button>
               {/* NO se deshabilita en silencio: si faltan correctos, avisa cuáles (antes "no pasaba nada"). */}
               <Button loading={busy} onClick={() => { if (!todos) { toast(`Confirma antes de administrar: ${faltan.join(', ')}`, 'error'); return } registrar('administrado', true, pacienteOk) }}><Check size={14} /> Administrar</Button></>}>

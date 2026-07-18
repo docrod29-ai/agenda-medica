@@ -151,13 +151,19 @@ export default function AntibiogramaPage() {
 
       // Panel S/I/R — conserva la CMI TAL CUAL (con su símbolo: "≤0.5", ">16", "2/38").
       const celdas: CeldaVision[] = Array.isArray(perfil.resultados) ? perfil.resultados : []
-      const nuevas: Fila[] = celdas
-        .filter(c => c.antibiotico)
-        .map(c => ({
-          antibiotico: String(c.antibiotico),
-          interpretacion: (c.interpretacion === 'S' || c.interpretacion === 'I' || c.interpretacion === 'R') ? c.interpretacion : 'S',
-          cmi: c.cmi_texto ? String(c.cmi_texto) : c.cmi != null ? String(c.cmi) : '',
-        }))
+      // SEGURIDAD DEL PACIENTE: una celda que la IA no pudo leer (null, vacío, "ND")
+      // NO se asume Sensible. Antes caía por defecto en 'S', se pintaba en verde
+      // igual que una lectura real y el motor la consumía como sensible: podía
+      // recomendarse un antibiótico al que el organismo es resistente.
+      const esValida = (x: unknown): x is 'S' | 'I' | 'R' => x === 'S' || x === 'I' || x === 'R'
+      const legibles = celdas.filter(c => c.antibiotico && esValida(c.interpretacion))
+      const ilegibles = celdas.filter(c => c.antibiotico && !esValida(c.interpretacion))
+                             .map(c => String(c.antibiotico))
+      const nuevas: Fila[] = legibles.map(c => ({
+        antibiotico: String(c.antibiotico),
+        interpretacion: c.interpretacion as 'S' | 'I' | 'R',
+        cmi: c.cmi_texto ? String(c.cmi_texto) : c.cmi != null ? String(c.cmi) : '',
+      }))
       if (nuevas.length) setFilas(nuevas)
 
       // AUTO-LLENADO: la MUESTRA define el sitio (cambia breakpoints, p. ej. neumococo meníngeo).
@@ -177,6 +183,10 @@ export default function AntibiogramaPage() {
       const avisos: string[] = []
       if (data._schemaWarning) avisos.push('La lectura no cumplió del todo el formato esperado; revisa y corrige las filas.')
       if (Array.isArray(perfil.avisos)) perfil.avisos.forEach((a: string) => avisos.push(a))
+      if (ilegibles.length) {
+        avisos.push('⚠ NO se pudo leer la interpretación de: ' + ilegibles.join(', ') +
+          '. Se dejaron FUERA del panel a propósito, para no darlos por sensibles. Captúralos a mano si los necesitas.')
+      }
       const rev = celdas.filter(c => c.needs_review || c.conf === 'baja').map(c => c.antibiotico).filter(Boolean)
       if (rev.length) avisos.push('⚠ Lectura dudosa (revisa a mano): ' + rev.join(', '))
       if (sitioAuto) avisos.push(`Sitio ajustado automáticamente a «${sitioAuto}» por la muestra reportada.`)

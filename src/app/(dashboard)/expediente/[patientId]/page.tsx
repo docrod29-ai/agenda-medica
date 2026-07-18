@@ -47,6 +47,7 @@ export default function ExpedientePage() {
   const { user } = useAuth()
   const { toast, confirm } = useToast()
   const { notas, loading, reload } = useExpediente(patientId)
+  const [errorPaciente, setErrorPaciente] = useState('')
   const [patient, setPatient] = useState<Patient | null>(null)
   // Por defecto muestra las notas de CONSULTORIO (no mezclar con hospital). Las
   // notas de hospital viven en su episodio; aquí quedan bajo la pestaña "Hospital".
@@ -67,7 +68,12 @@ export default function ExpedientePage() {
 
   useEffect(() => {
     if (!clinicId || !patientId) return
-    getPatient(clinicId, patientId).then(setPatient)
+    getPatient(clinicId, patientId).then(setPatient).catch((e) => {
+      // La ausencia del banner rojo de alergias se lee como "no tiene alergias".
+      // Si no se pudo LEER al paciente hay que decirlo, no callar.
+      console.error('[expediente] no se pudo leer el paciente', e)
+      setErrorPaciente('No se pudieron cargar los datos del paciente (incluidas sus ALERGIAS). Recarga antes de prescribir.')
+    })
     // NOM-024 Art. 6.5: bitácora de accesos — registrar lectura del expediente
     import('@/lib/expediente/audit-log').then(({ logAudit }) => {
       logAudit({
@@ -94,6 +100,13 @@ export default function ExpedientePage() {
       </button>
 
       {/* Alergias banner — SIEMPRE rojo y visible */}
+      {/* Si la lectura falló, decirlo AQUÍ: donde iría el banner de alergias. */}
+      {errorPaciente && (
+        <div style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: '#b45309', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span>⚠ {errorPaciente}</span>
+          <button className="btn btn-sm" onClick={() => window.location.reload()}>Reintentar</button>
+        </div>
+      )}
       {patient?.alergias && (
         <div style={alergiaBanner}>
           <AlertTriangle size={16} />

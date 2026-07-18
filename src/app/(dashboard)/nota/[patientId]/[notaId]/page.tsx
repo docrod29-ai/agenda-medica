@@ -28,6 +28,7 @@ export default function NotaImprimiblePage() {
   const [nota, setNota] = useState<NotaMedica | null>(null)
   const [patient, setPatient] = useState<Patient | null>(null)
   const [loading, setLoading] = useState(true)
+  const [errorCarga, setErrorCarga] = useState('')
   const [descargando, setDescargando] = useState(false)
   const [adendas, setAdendas] = useState<Adenda[]>([])
   const [modalAdenda, setModalAdenda] = useState(false)
@@ -103,6 +104,13 @@ export default function NotaImprimiblePage() {
         } catch { setIntegridad(null) }
         try { setAdendas(await getAdendas(clinicId, patientId, notaId)) } catch { /* noop */ }
       }
+    }).catch((e) => {
+      // Sin este catch, un fallo de lectura dejaba "Cargando documento…" para
+      // siempre y el médico no podía imprimir la receta del paciente que tenía
+      // enfrente, sin saber por qué.
+      console.error('[nota] no se pudo cargar', e)
+      setErrorCarga('No se pudo cargar el documento. Revisa tu conexión y vuelve a intentar.')
+      setLoading(false)
     })
     // NOM-024 Art. 6.5: registrar lectura de nota clínica
     import('@/lib/expediente/audit-log').then(({ logAudit }) => {
@@ -112,6 +120,15 @@ export default function NotaImprimiblePage() {
 
   if (loading) {
     return <Spinner center label="Cargando documento…" />
+  }
+
+  if (errorCarga) {
+    return (
+      <div style={{ maxWidth: 520, margin: '80px auto', padding: 24, textAlign: 'center' }}>
+        <p style={{ fontSize: 14, color: 'var(--text2)', marginBottom: 16, lineHeight: 1.6 }}>{errorCarga}</p>
+        <button className="btn" onClick={() => window.location.reload()}>Reintentar</button>
+      </div>
+    )
   }
   if (!nota) return <EmptyState icon={<FileText size={22} />} title="Nota no encontrada" />
 
@@ -221,7 +238,12 @@ export default function NotaImprimiblePage() {
           border: '1.5px solid #b91c1c', color: '#b91c1c', borderRadius: 4,
           padding: '6px 10px', fontSize: 12.5, fontWeight: 700, marginBottom: 14,
         }}>
-          ALERGIAS: {patient?.alergias || 'Negadas / no referidas'}
+          {/* Tres estados, no dos: si el paciente NO se pudo leer, la nota NO puede
+                  afirmar que las alergias se interrogaron y se negaron. Es un
+                  documento legal (NOM-004) y eso sería un dato inventado. */}
+              ALERGIAS: {patient
+              ? (patient.alergias || 'Negadas / no referidas')
+              : 'NO DISPONIBLE — verificar con el paciente'}
         </div>
 
         {/* Resumen ejecutivo */}

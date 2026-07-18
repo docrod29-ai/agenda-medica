@@ -6,7 +6,7 @@
 // estudios); a la derecha, PEGADO, el plan de Infectología que se actualiza EN VIVO con
 // citas de guías. Redacción por IA (api/inmuno/redactar), historial fechado y Word.
 // ════════════════════════════════════════════════════════════════════
-import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useMemo, useRef, useState, type ReactNode, useEffect} from 'react'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useClinic } from '@/context/ClinicContext'
@@ -74,14 +74,36 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
   const [iaTexto, setIaTexto] = useState('')
   const [iaLoading, setIaLoading] = useState(false)
   const [status, setStatus] = useState('')
+  // Espejo del estado para poder guardar lo pendiente desde el cleanup del efecto,
+  // donde `v` estaría capturado en una versión vieja.
+  const vRef = useRef(v)
+  useEffect(() => { vRef.current = v }, [v])
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const persist = useCallback((next: V) => {
-    if (!clinicId) return
+    if (!clinicId) { setStatus('No se pudo guardar: falta la clínica.'); return }
     if (saveTimer.current) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(() => {
-      updateDoc(doc(db, 'clinics', clinicId, 'patients', patient.id), { txValoracion: next, txValoracionAt: new Date().toISOString() }).catch(() => {})
+      // El fallo NO puede quedarse callado: era la única escritura de txValoracion
+      // y el error se descartaba, así que la pantalla seguía mostrando todo
+      // capturado (huésped, CD4, ALERGIAS a antimicrobianos, serologías) mientras
+      // en Firestore no había nada. Al volver a entrar, el paciente aparecía vacío.
+      updateDoc(doc(db, 'clinics', clinicId, 'patients', patient.id), { txValoracion: next, txValoracionAt: new Date().toISOString() })
+        .then(() => setStatus(''))
+        .catch(() => setStatus('⚠ NO se guardó la valoración. Revisa tu conexión y vuelve a escribir algo para reintentar.'))
     }, 900)
+  }, [clinicId, patient.id])
+
+  // El debounce de 900 ms se perdía al desmontar: escribir y cerrar de inmediato
+  // tiraba lo último capturado. Se fuerza el guardado pendiente al salir.
+  useEffect(() => () => {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current)
+      if (clinicId) {
+        updateDoc(doc(db, 'clinics', clinicId, 'patients', patient.id),
+          { txValoracion: vRef.current, txValoracionAt: new Date().toISOString() }).catch(() => {})
+      }
+    }
   }, [clinicId, patient.id])
 
   const set = useCallback((id: string, val: string) => setV((prev) => { const next = { ...prev, [id]: val }; persist(next); return next }), [persist])

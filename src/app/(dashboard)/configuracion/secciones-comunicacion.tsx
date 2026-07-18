@@ -126,7 +126,7 @@ function TarjetaMetrica({ etiqueta, valor, sub, color }: { etiqueta: string; val
 // ── Perfil público /dr: foto, biografía, cédula y precios (captación/SEO) ──────
 
 export function PerfilPublicoSection({ clinicId }: { clinicId: string | null }) {
-  const { config } = useConfig()
+  const { config, loading: cargandoConfig } = useConfig()
   const { toast } = useToast()
   const [foto, setFoto] = useState('')
   const [bio, setBio] = useState('')
@@ -137,14 +137,19 @@ export function PerfilPublicoSection({ clinicId }: { clinicId: string | null }) 
   const initRef = useRef(false)
 
   useEffect(() => {
-    if (config && !initRef.current) {
-      setFoto(config.fotoMedicoUrl ?? '')
-      setBio(config.bioPublica ?? '')
-      setCedula(config.cedulaProfesional ?? '')
-      setPrecios(Array.isArray(config.preciosPublicos) ? config.preciosPublicos : [])
-      initRef.current = true
-    }
-  }, [config])
+    // Hay que esperar a que la config REAL llegue. useConfig devuelve
+    // DEFAULT_CONFIG desde el primer render, así que `config` ya es truthy antes
+    // de que Firestore conteste: sin la guarda de `cargandoConfig`, initRef se
+    // trababa con los valores por defecto (precios = []) y el snapshot real se
+    // ignoraba para siempre. Al pulsar "Guardar perfil" se escribía esa lista
+    // vacía y se BORRABAN los precios públicos del médico.
+    if (cargandoConfig || initRef.current) return
+    setFoto(config.fotoMedicoUrl ?? '')
+    setBio(config.bioPublica ?? '')
+    setCedula(config.cedulaProfesional ?? '')
+    setPrecios(Array.isArray(config.preciosPublicos) ? config.preciosPublicos : [])
+    initRef.current = true
+  }, [config, cargandoConfig])
 
   const subirFoto = async (file: File | undefined) => {
     if (!file) return

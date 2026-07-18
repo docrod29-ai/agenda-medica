@@ -23,6 +23,7 @@ export default function PacientesPage() {
   const router = useRouter()
   const [patients, setPatients] = useState<Patient[]>([])
   const [loading, setLoading] = useState(true)
+  const [errorCarga, setErrorCarga] = useState('')
   const [exportando, setExportando] = useState(false)
   const [search, setSearch] = useState('')
   const [filtro, setFiltro] = useState<'recientes' | 'todos' | 'alerta'>('recientes')
@@ -37,6 +38,11 @@ export default function PacientesPage() {
       const data = await getPatients(clinicId)
       setPatients(data)
       getCenso(clinicId).then(c => setInternados(new Set(c.map(i => i.pacienteId)))).catch(() => {})
+    } catch (e) {
+      // Un fallo de lectura NO puede verse igual que una lista vacía: para un
+      // médico con cientos de registros, eso se lee como pérdida total de datos.
+      console.error('[pacientes] no se pudo cargar', e)
+      setErrorCarga('No se pudo cargar la información. Revisa tu conexión y reintenta.')
     } finally {
       setLoading(false)
     }
@@ -188,6 +194,12 @@ export default function PacientesPage() {
       <div className="card" style={{ padding: 0 }}>
         {loading ? (
           <Spinner center label="Cargando pacientes…" />
+        ) : errorCarga ? (
+          <EmptyState
+            title="No se pudo cargar"
+            description={errorCarga}
+            action={<Button onClick={() => window.location.reload()}>Reintentar</Button>}
+          />
         ) : patients.length === 0 ? (
           <EmptyState
             illustration={<ExpedienteVacio />}

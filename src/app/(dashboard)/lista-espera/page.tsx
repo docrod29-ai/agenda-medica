@@ -19,6 +19,7 @@ export default function ListaEsperaPage() {
   const { clinicId } = useClinic()
   const [entries, setEntries] = useState<WaitlistEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [errorCarga, setErrorCarga] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
 
   const load = async () => {
@@ -26,6 +27,11 @@ export default function ListaEsperaPage() {
     try {
       const data = await getWaitlist(clinicId)
       setEntries(data)
+    } catch (e) {
+      // Un fallo de lectura NO puede verse igual que una lista vacía: para un
+      // médico con cientos de registros, eso se lee como pérdida total de datos.
+      console.error('[lista de espera] no se pudo cargar', e)
+      setErrorCarga('No se pudo cargar la información. Revisa tu conexión y reintenta.')
     } finally {
       setLoading(false)
     }
@@ -71,6 +77,12 @@ export default function ListaEsperaPage() {
       <div className="card" style={{ padding: 0 }}>
         {loading ? (
           <Spinner center label="Cargando lista de espera…" />
+        ) : errorCarga ? (
+          <EmptyState
+            title="No se pudo cargar"
+            description={errorCarga}
+            action={<Button onClick={() => window.location.reload()}>Reintentar</Button>}
+          />
         ) : entries.length === 0 ? (
           <EmptyState
             illustration={<AgendaVacia />}
