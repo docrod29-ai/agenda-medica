@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
 import { useBorrador } from '@/context/BorradorContext'
@@ -30,6 +30,7 @@ import { fetchAutenticado } from '@/lib/auth-client'
 import { CalculadorasClinicas } from '@/components/CalculadorasClinicas'
 import { PanelPediatria } from '@/components/PanelPediatria'
 import { PanelGineco } from '@/components/PanelGineco'
+import { PanelCirugia } from '@/components/PanelCirugia'
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
 import { detectarInteracciones, detectarControlados } from '@/lib/expediente/farmacovigilancia'
@@ -142,6 +143,16 @@ export default function ConsultaActivaPage() {
   const [secciones, setSecciones] = useState<NotaSeccion[]>(seccionesVacias(tipoInicial))
   const [signos, setSignos] = useState<SignosVitales>({})
   const [diagnosticos, setDiagnosticos] = useState<Diagnostico[]>([])
+
+  // El panel perioperatorio solo estorba en una consulta que no es quirúrgica:
+  // se muestra si la nota es de una especialidad quirúrgica, si el tipo de nota
+  // lo es (postoperatoria, preanestésica), o si el diagnóstico habla de cirugía.
+  const esCasoQuirurgico = useMemo(() => {
+    const esp = /cirug|ortopedia|ginecolog|urolog|neurocirug|otorrino|oftalmolog|anestesi/i.test(especialidadEfectiva)
+    const tip = /postop|preop|quirurg|anestes|consentimiento/i.test(tipo)
+    const dx = diagnosticos.some(d => /cirug|quir[úu]rgic|postoperator|preoperator|hernia|apendic|colecistect|fractura/i.test(d.descripcion))
+    return esp || tip || dx
+  }, [especialidadEfectiva, tipo, diagnosticos])
   const [medicamentos, setMedicamentos] = useState<Medicamento[]>([])
   const [resumen, setResumen] = useState('')
   const [procesando, setProcesando] = useState(false)
@@ -1696,6 +1707,21 @@ export default function ConsultaActivaPage() {
           style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, marginRight: 8, background: 'rgba(61,90,254,0.08)', color: 'var(--nexus, #3d5afe)', border: '1px solid rgba(61,90,254,0.30)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
           <FlaskConical size={14} /> Preguntar a la evidencia (chat)
         </button>
+      )}
+
+      {/* ── Cirugía: solo si la nota es quirúrgica o el caso lo es (perioperatorio) ── */}
+      {esCasoQuirurgico && (
+        <PanelCirugia
+          onAgregarANota={texto => {
+            setSecciones(prev => {
+              const i = prev.findIndex(s => s.key === 'perioperatorio')
+              const valor = i >= 0 ? `${prev[i].value}\n${texto}` : texto
+              const sin = prev.filter(s => s.key !== 'perioperatorio')
+              return [...sin, { key: 'perioperatorio', label: 'Valoración perioperatoria', value: valor }]
+            })
+            toast('Agregado a la nota ✓', 'success')
+          }}
+        />
       )}
 
       {/* ── Gineco-obstetricia: gestación, preeclampsia, Bishop, citología ── */}
