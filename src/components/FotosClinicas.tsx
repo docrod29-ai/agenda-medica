@@ -10,7 +10,7 @@ import { Camera, Loader2, Trash2, GitCompare, X } from 'lucide-react'
 import { subirImagen } from '@/lib/subir-imagen'
 import {
   crearFoto, getFotos, deleteFoto, agruparPorRegion, parAntesDespues, diasEntre,
-  REGIONES, type FotoClinica,
+  REGIONES, REGIONES_AGRUPADAS, type FotoClinica,
 } from '@/lib/expediente/fotos-clinicas'
 
 interface Props {
@@ -80,13 +80,24 @@ export function FotosClinicas({ clinicId, patientId, notaId }: Props) {
 
       {/* Captura */}
       <div style={{ border: '1px dashed var(--border)', borderRadius: 12, padding: 14, background: 'var(--s1)' }}>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
-          <select value={region} onChange={e => setRegion(e.target.value)} style={input}>
-            {REGIONES.map(r => <option key={r} value={r}>{r}</option>)}
-          </select>
-          <input value={descripcion} onChange={e => setDescripcion(e.target.value)}
-            placeholder="Hallazgo (opcional): p. ej. placa eritematosa 3 cm"
-            style={{ ...input, flex: 1, minWidth: 220 }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginBottom: 10 }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={rotulo}>1 · Zona anatómica</span>
+            <select value={region} onChange={e => setRegion(e.target.value)} style={{ ...input, width: '100%' }}>
+              {REGIONES_AGRUPADAS.map(g => (
+                <optgroup key={g.grupo} label={g.grupo}>
+                  {g.regiones.map(r => <option key={r} value={r}>{r}</option>)}
+                </optgroup>
+              ))}
+            </select>
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={rotulo}>2 · Hallazgo <span style={{ fontWeight: 400 }}>(opcional)</span></span>
+            <input value={descripcion} onChange={e => setDescripcion(e.target.value)}
+              placeholder="p. ej. placa eritematosa de 3 cm"
+              style={{ ...input, width: '100%' }} />
+          </label>
+          <span style={rotulo}>3 · Captura</span>
         </div>
         <label style={{ ...cta, opacity: subiendo ? 0.6 : 1, cursor: subiendo ? 'wait' : 'pointer' }}>
           {subiendo ? <><Loader2 size={16} className="spin" /> Guardando…</> : <><Camera size={16} /> Tomar / subir foto</>}
@@ -171,5 +182,6 @@ export function FotosClinicas({ clinicId, patientId, notaId }: Props) {
 }
 
 const input: React.CSSProperties = { background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 12.5, color: 'var(--text)', outline: 'none' }
+const rotulo: React.CSSProperties = { fontSize: 10.5, fontWeight: 700, color: 'var(--text3)', letterSpacing: 0.3 }
 const cta: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'var(--nexus)', color: '#fff', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600 }
 const caja: React.CSSProperties = { border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 12.5, lineHeight: 1.5 }

@@ -92,6 +92,14 @@ service cloud.firestore {
             allow update, delete: if false;
           }
         }
+
+        // Fotografía clínica seriada (dermatología, heridas, seguimiento).
+        // Dato personal SENSIBLE: mismo secreto médico que las notas — la
+        // asistente nunca tiene acceso. Se permite borrar (una toma mal hecha
+        // o sin consentimiento debe poder eliminarse).
+        match /fotos/{fotoId} {
+          allow read, create, update, delete: if isMedico(clinicId);
+        }
       }
       match /waitlist/{docId} {
         allow read, write: if isMember(clinicId);

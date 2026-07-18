@@ -33,14 +33,21 @@ export interface FotoClinica {
 }
 
 /** Regiones anatómicas para etiquetar (comparar SIEMPRE la misma zona). */
-export const REGIONES: string[] = [
-  'Cara', 'Cuero cabelludo', 'Cuello', 'Tórax anterior', 'Tórax posterior', 'Abdomen',
-  'Espalda', 'Glúteos', 'Hombro derecho', 'Hombro izquierdo',
-  'Brazo derecho', 'Brazo izquierdo', 'Antebrazo derecho', 'Antebrazo izquierdo',
-  'Mano derecha', 'Mano izquierda', 'Muslo derecho', 'Muslo izquierdo',
-  'Pierna derecha', 'Pierna izquierda', 'Pie derecho', 'Pie izquierdo',
-  'Región inguinal', 'Región perianal', 'Herida quirúrgica', 'Úlcera', 'Otra',
+/**
+ * Regiones agrupadas por zona anatómica: en una lista plana de 27 opciones hay
+ * que leerlas todas para encontrar una; agrupadas se escoge de un vistazo.
+ */
+export const REGIONES_AGRUPADAS: { grupo: string; regiones: string[] }[] = [
+  { grupo: 'Cabeza y cuello', regiones: ['Cara', 'Cuero cabelludo', 'Cuello'] },
+  { grupo: 'Tronco', regiones: ['Tórax anterior', 'Tórax posterior', 'Abdomen', 'Espalda', 'Glúteos'] },
+  { grupo: 'Extremidad superior', regiones: ['Hombro derecho', 'Hombro izquierdo', 'Brazo derecho', 'Brazo izquierdo', 'Antebrazo derecho', 'Antebrazo izquierdo', 'Mano derecha', 'Mano izquierda'] },
+  { grupo: 'Extremidad inferior', regiones: ['Muslo derecho', 'Muslo izquierdo', 'Pierna derecha', 'Pierna izquierda', 'Pie derecho', 'Pie izquierdo'] },
+  { grupo: 'Genital y perianal', regiones: ['Región inguinal', 'Región perianal'] },
+  { grupo: 'Por tipo de lesión', regiones: ['Herida quirúrgica', 'Úlcera', 'Otra'] },
 ]
+
+/** Lista plana (el orden y el contenido no cambian: se derivan de los grupos). */
+export const REGIONES: string[] = REGIONES_AGRUPADAS.flatMap(g => g.regiones)
 
 function fotosCol(clinicId: string, patientId: string) {
   return collection(db, 'clinics', clinicId, 'patients', patientId, 'fotos')

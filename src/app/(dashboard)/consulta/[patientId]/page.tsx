@@ -60,11 +60,17 @@ const MOTORES_UI: { clave: ClaveMotor; emoji: string; nombre: string; creditos: 
 
 // Especialidades con plantilla de enfoque (deben contener la clave que detecta
 // guiaEspecialidad en prompts.ts: cardiolog, pediatr, ginec, interna, urgenc…).
-const ESPECIALIDADES = [
-  'Cardiología', 'Pediatría', 'Ginecología y Obstetricia', 'Medicina Interna',
-  'Urgencias', 'Infectología', 'Cirugía General', 'Psiquiatría', 'Dermatología',
-  'Ortopedia y Traumatología', 'Endocrinología', 'Neurología', 'Neumología',
-  'Gastroenterología', 'Nefrología', 'Oncología',
+// Agrupadas por tipo de práctica y en orden alfabético dentro de cada grupo:
+// en una lista plana hay que recorrerla entera para encontrar la especialidad.
+const ESPECIALIDADES_POR_GRUPO: { grupo: string; items: string[] }[] = [
+  { grupo: 'Primer contacto', items: ['Medicina Interna', 'Pediatría', 'Urgencias'] },
+  { grupo: 'Especialidades médicas', items: [
+    'Cardiología', 'Dermatología', 'Endocrinología', 'Gastroenterología', 'Infectología',
+    'Nefrología', 'Neumología', 'Neurología', 'Oncología', 'Psiquiatría',
+  ] },
+  { grupo: 'Especialidades quirúrgicas', items: [
+    'Cirugía General', 'Ginecología y Obstetricia', 'Ortopedia y Traumatología',
+  ] },
 ]
 
 export default function ConsultaActivaPage() {
@@ -1232,7 +1238,11 @@ export default function ConsultaActivaPage() {
             style={{ background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 8, padding: '6px 10px', fontSize: 13, cursor: 'pointer' }}
           >
             <option value="">General / Otra</option>
-            {ESPECIALIDADES.map(e => <option key={e} value={e}>{e}</option>)}
+            {ESPECIALIDADES_POR_GRUPO.map(g => (
+              <optgroup key={g.grupo} label={g.grupo}>
+                {g.items.map(e => <option key={e} value={e}>{e}</option>)}
+              </optgroup>
+            ))}
           </select>
           <span style={{ fontSize: 11, color: 'var(--text3)' }}>· la IA la redacta como esa especialidad</span>
 
