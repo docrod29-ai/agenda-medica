@@ -33,5 +33,6 @@ export type {
   CategoriaCMI,
   PruebasConfirmatorias,
   ResultadoPrueba,
+  PasoAlgoritmo,
   InterpretacionAntibiograma,
 } from './tipos'

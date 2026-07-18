@@ -396,6 +396,27 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
         </div>
       )}
 
+      {res.algoritmo.length > 0 && (
+        <div>
+          <SecTitle icon={<Target size={15} />} t="Algoritmo de diagnóstico de resistencia" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {res.algoritmo.map(p => {
+              const c = p.estado === 'hecho' ? '#10b981' : p.estado === 'pendiente' ? '#f59e0b' : 'var(--text3)'
+              const et = p.estado === 'hecho' ? '✓' : p.estado === 'pendiente' ? '→' : '·'
+              return (
+                <div key={p.n} style={{ ...box, alignItems: 'flex-start', opacity: p.estado === 'na' ? 0.6 : 1 }}>
+                  <span style={{ color: c, fontWeight: 800, minWidth: 34 }}>{et} {p.n}</span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <b style={{ color: 'var(--text)' }}>{p.titulo}</b>
+                    <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2, lineHeight: 1.5 }}>{p.detalle}</div>
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {res.categoriasCMI.length > 0 && (
         <div>
           <SecTitle icon={<Microscope size={15} />} t="Interpretación de CMI (puntos de corte CLSI M100)" />

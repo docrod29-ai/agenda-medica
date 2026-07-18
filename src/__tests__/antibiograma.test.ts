@@ -449,6 +449,41 @@ describe('Puntos de corte CLSI M100 (CMI → S/I/R)', () => {
   })
 })
 
+describe('Organismos fastidiosos y reglas especiales (Tier 3)', () => {
+  it('H. influenzae ampi R + amox-clav S → β-lactamasa +', () => {
+    const r = interpretarAntibiograma(ab('Haemophilus influenzae', [['Ampicilina', 'R'], ['Amoxicilina-clavulanico', 'S']]))
+    expect(r.fenotipos.some(f => /β-lactamasa/i.test(f.nombre))).toBe(true)
+  })
+  it('H. influenzae ampi R + amox-clav R → BLNAR (clavulanato no ayuda)', () => {
+    const r = interpretarAntibiograma(ab('Haemophilus influenzae', [['Ampicilina', 'R'], ['Amoxicilina-clavulanico', 'R']]))
+    expect(r.fenotipos.some(f => /BLNAR/i.test(f.nombre))).toBe(true)
+    expect(r.mecanismos.some(m => /PBP3|ftsI/i.test(m.nombre))).toBe(true)
+  })
+  it('Salmonella nalidíxico R con cipro S → no usar fluoroquinolonas', () => {
+    const r = interpretarAntibiograma(ab('Salmonella enterica', [['Acido nalidixico', 'R'], ['Ciprofloxacino', 'S']]))
+    expect(r.advertencias.join(' ')).toMatch(/no usar fluoroquinolonas|ceftriaxona|azitromicina/i)
+  })
+})
+
+describe('Algoritmo de diagnóstico de resistencia', () => {
+  it('genera pasos numerados y adaptados al caso', () => {
+    const r = interpretarAntibiograma(ab('Klebsiella pneumoniae', [['Meropenem', 'R'], ['Ceftriaxona', 'R']]))
+    expect(r.algoritmo.length).toBeGreaterThan(3)
+    expect(r.algoritmo[0].n).toBe(1)
+    // Debe incluir el paso de confirmar carbapenemasa y el de determinar la clase.
+    expect(r.algoritmo.some(p => /carbapenemasa/i.test(p.titulo))).toBe(true)
+    expect(r.algoritmo.some(p => /CLASE/i.test(p.titulo))).toBe(true)
+  })
+  it('en MSSA el algoritmo dice que el β-lactámico es de elección', () => {
+    const r = interpretarAntibiograma(ab('Staphylococcus aureus', [['Cefoxitina', 'S']]))
+    expect(r.algoritmo.some(p => /MSSA|β-lactámico/i.test(p.detalle))).toBe(true)
+  })
+  it('16S-RMTasa agrega el paso de buscar MBL', () => {
+    const r = interpretarAntibiograma(ab('Klebsiella pneumoniae', [['Gentamicina', 'R'], ['Tobramicina', 'R'], ['Amikacina', 'R']]))
+    expect(r.algoritmo.some(p => /MBL|metalo/i.test(p.titulo + p.detalle))).toBe(true)
+  })
+})
+
 describe('Resistencias de última línea en Gram+ (Tier 2)', () => {
   it('linezolid R → linezolid-R + mecanismo cfr/optrA/23S', () => {
     const r = interpretarAntibiograma(ab('Enterococcus faecium', [['Linezolid', 'R']]))

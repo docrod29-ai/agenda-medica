@@ -151,6 +151,15 @@ export interface CategoriaCMI {
   referencia: string
 }
 
+/** Paso del ALGORITMO de diagnóstico de resistencia (árbol de decisión del caso). */
+export interface PasoAlgoritmo {
+  n: number
+  titulo: string
+  detalle: string
+  /** hecho = el dato ya está; pendiente = falta hacerlo; na = no aplica a este caso. */
+  estado: 'hecho' | 'pendiente' | 'na'
+}
+
 /** Prueba microbiológica confirmatoria/fenotípica del CLSI M100 (cuándo, método, interpretación). */
 export interface PruebaCLSI {
   id: string
@@ -209,6 +218,8 @@ export interface InterpretacionAntibiograma {
   edicionesInterpretativas: EdicionInterpretativa[]
   /** Pruebas microbiológicas del CLSI recomendadas según el fenotipo (cuándo/método/interpretación). */
   pruebasSugeridas: PruebaCLSI[]
+  /** Algoritmo de diagnóstico de resistencia: el árbol de decisión de ESTE caso, paso a paso. */
+  algoritmo: PasoAlgoritmo[]
   /** Categorías S/I/R derivadas de las CMI capturadas con los puntos de corte del CLSI M100. */
   categoriasCMI: CategoriaCMI[]
   /** Fuentes citadas en esta interpretación. */

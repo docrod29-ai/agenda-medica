@@ -19,7 +19,9 @@ import { analizarEnterobacterales } from './enterobacterales'
 import { analizarNoFermentadores } from './nofermentadores'
 import { analizarConfirmatorias } from './confirmatorias'
 import { analizarAminoglucosidos } from './aminoglucosidos'
+import { analizarFastidiosos } from './fastidiosos'
 import { analizarMDR, analizarDTR } from './mdr'
+import { construirAlgoritmo } from './algoritmo'
 import { evaluarIntrinseca } from './intrinseca'
 import { analizarSeguridad } from './seguridad'
 import { pruebasRecomendadas } from './clsi-pruebas'
@@ -49,6 +51,7 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
   ap = fusionar(ap, analizarEnterobacterales(organismo, r))
   ap = fusionar(ap, analizarNoFermentadores(organismo, r))
   ap = fusionar(ap, analizarAminoglucosidos(organismo, r))
+  ap = fusionar(ap, analizarFastidiosos(organismo, r))
   ap = fusionar(ap, analizarConfirmatorias(entrada.pruebas, organismo))
   // MDR/XDR/PDR formal (Magiorakos) + DTR ANTES que el conteo aproximado: por dedup de
   // clave, la clasificación FORMAL gana; el conteo de transversales queda solo como
@@ -98,7 +101,7 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
     refs.add(cat.referencia)
   }
 
-  return {
+  const resultado: InterpretacionAntibiograma = {
     organismo,
     organismoNormalizado: reconocer(organismo),
     fenotipos,
@@ -114,8 +117,12 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
     edicionesInterpretativas,
     pruebasSugeridas,
     categoriasCMI,
+    algoritmo: [],
     referencias: [...refs],
   }
+  // El algoritmo se arma AL FINAL: necesita la interpretación completa del caso.
+  resultado.algoritmo = construirAlgoritmo(entrada, resultado)
+  return resultado
 }
 
 /** Reglas transversales independientes de organismo: FQ-R, colistina-R, MDR + PK/PD. */
