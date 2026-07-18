@@ -18,9 +18,18 @@ interface Props {
   patientId: string
   /** Si se toma durante una consulta, liga la foto a esa nota. */
   notaId?: string
+  /**
+   * 'captura'  → en la CONSULTA: tomar la foto (que es cuando tienes al paciente
+   *              enfrente) y ver las últimas tomas como referencia.
+   * 'completo' → en el EXPEDIENTE: la serie agrupada por región con el
+   *              antes/después y los días de evolución.
+   */
+  modo?: 'captura' | 'completo'
+  /** Dentro de la barra de herramientas: sin título propio. */
+  embebido?: boolean
 }
 
-export function FotosClinicas({ clinicId, patientId, notaId }: Props) {
+export function FotosClinicas({ clinicId, patientId, notaId, modo = 'completo', embebido }: Props) {
   const [fotos, setFotos] = useState<FotoClinica[]>([])
   const [cargando, setCargando] = useState(true)
   const [subiendo, setSubiendo] = useState(false)
@@ -72,11 +81,13 @@ export function FotosClinicas({ clinicId, patientId, notaId }: Props) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Camera size={17} color="var(--teal)" />
-        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>Fotografía clínica seriada</span>
-        <span style={{ fontSize: 11, color: 'var(--text3)' }}>({fotos.length})</span>
-      </div>
+      {!embebido && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Camera size={17} color="var(--teal)" />
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>Fotografía clínica seriada</span>
+          <span style={{ fontSize: 11, color: 'var(--text3)' }}>({fotos.length})</span>
+        </div>
+      )}
 
       {/* Captura */}
       <div style={{ border: '1px dashed var(--border)', borderRadius: 12, padding: 14, background: 'var(--s1)' }}>
@@ -116,8 +127,29 @@ export function FotosClinicas({ clinicId, patientId, notaId }: Props) {
         <div style={{ ...caja, color: 'var(--text3)' }}>Sin fotos aún. La primera toma es la línea base del seguimiento.</div>
       )}
 
-      {/* Galería agrupada por región */}
-      {grupos.map(g => {
+      {/* En la CONSULTA basta una tira de las últimas tomas como referencia para
+          encuadrar igual; la serie completa vive en el expediente. */}
+      {modo === 'captura' && fotos.length > 0 && (
+        <div>
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 6 }}>
+            Últimas tomas — la serie completa y el antes/después están en el expediente
+          </div>
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+            {fotos.slice(0, 6).map(f => (
+              <div key={f.id} style={{ minWidth: 96, maxWidth: 96 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={f.url} alt={`${f.region} ${fechaCorta(f.fecha)}`}
+                  style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 9, border: '1px solid var(--border)', display: 'block' }} />
+                <div style={{ fontSize: 10, color: 'var(--text2)', marginTop: 3 }}>{f.region}</div>
+                <div style={{ fontSize: 9.5, color: 'var(--text3)' }}>{fechaCorta(f.fecha)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Galería agrupada por región (expediente) */}
+      {modo === 'completo' && grupos.map(g => {
         const par = parAntesDespues(g.fotos)
         return (
           <div key={g.region}>
@@ -153,7 +185,7 @@ export function FotosClinicas({ clinicId, patientId, notaId }: Props) {
       })}
 
       {/* Comparación lado a lado */}
-      {comparar && (
+      {modo === 'completo' && comparar && (
         <div style={{ border: '1px solid rgba(20,184,166,.35)', borderRadius: 12, padding: 14, background: 'rgba(20,184,166,.05)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <GitCompare size={15} color="var(--teal)" />

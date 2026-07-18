@@ -15,9 +15,11 @@ interface Props {
   /** Edad del paciente en años (si es ≥ 18 el panel no se muestra). */
   edadAnios?: number
   onAgregarANota?: (texto: string) => void
+  /** Dentro de la barra de herramientas: sin marco ni título propios. */
+  embebido?: boolean
 }
 
-export function PanelPediatria({ edadAnios, onAgregarANota }: Props) {
+export function PanelPediatria({ edadAnios, onAgregarANota, embebido }: Props) {
   const [tab, setTab] = useState<'dosis' | 'vacunas'>('dosis')
   const [peso, setPeso] = useState('')
   const [talla, setTalla] = useState('')
@@ -46,16 +48,18 @@ export function PanelPediatria({ edadAnios, onAgregarANota }: Props) {
   if (edadAnios != null && edadAnios >= 18) return null
 
   return (
-    <div style={{ border: '1px solid rgba(139,92,246,.3)', borderRadius: 12, background: 'rgba(139,92,246,.05)', padding: 14, marginBottom: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
-        <Baby size={15} color="#a78bfa" />
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#a78bfa' }}>Pediatría</span>
-        {atrasadas.length > 0 && (
-          <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 100, background: 'rgba(239,68,68,.15)', color: '#f87171' }}>
-            {atrasadas.length} vacuna{atrasadas.length > 1 ? 's' : ''} atrasada{atrasadas.length > 1 ? 's' : ''}
-          </span>
-        )}
-      </div>
+    <div style={embebido ? {} : { border: '1px solid rgba(139,92,246,.3)', borderRadius: 12, background: 'rgba(139,92,246,.05)', padding: 14, marginBottom: 12 }}>
+      {!embebido && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
+          <Baby size={15} color="#a78bfa" />
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#a78bfa' }}>Pediatría</span>
+          {atrasadas.length > 0 && (
+            <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 100, background: 'rgba(239,68,68,.15)', color: '#f87171' }}>
+              {atrasadas.length} vacuna{atrasadas.length > 1 ? 's' : ''} atrasada{atrasadas.length > 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Datos base */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>

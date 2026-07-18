@@ -20,11 +20,13 @@ interface Props {
   sexo?: string
   edadAnios?: number
   onAgregarANota?: (texto: string) => void
+  /** Dentro de la barra de herramientas: sin marco ni título propios. */
+  embebido?: boolean
 }
 
 type Tab = 'gestacion' | 'preeclampsia' | 'bishop' | 'citologia'
 
-export function PanelGineco({ sexo, edadAnios, onAgregarANota }: Props) {
+export function PanelGineco({ sexo, edadAnios, onAgregarANota, embebido }: Props) {
   const [tab, setTab] = useState<Tab>('gestacion')
   const hoy = useMemo(() => new Date().toISOString().slice(0, 10), [])
 
@@ -64,16 +66,18 @@ export function PanelGineco({ sexo, edadAnios, onAgregarANota }: Props) {
   }
 
   return (
-    <div style={{ border: '1px solid rgba(236,72,153,.3)', borderRadius: 12, background: 'rgba(236,72,153,.05)', padding: 14, marginBottom: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
-        <Stethoscope size={15} color="#f472b6" />
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#f472b6' }}>Ginecología y obstetricia</span>
-        {gest && (
-          <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 100, background: 'rgba(236,72,153,.15)', color: '#f472b6' }}>
-            {gest.texto} semanas · {gest.trimestre}º trimestre
-          </span>
-        )}
-      </div>
+    <div style={embebido ? {} : { border: '1px solid rgba(236,72,153,.3)', borderRadius: 12, background: 'rgba(236,72,153,.05)', padding: 14, marginBottom: 12 }}>
+      {!embebido && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
+          <Stethoscope size={15} color="#f472b6" />
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#f472b6' }}>Ginecología y obstetricia</span>
+          {gest && (
+            <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 100, background: 'rgba(236,72,153,.15)', color: '#f472b6' }}>
+              {gest.texto} semanas · {gest.trimestre}º trimestre
+            </span>
+          )}
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 11, flexWrap: 'wrap' }}>
         <Tb a={tab === 'gestacion'} on={() => setTab('gestacion')} i={<Baby size={13} />} t="Gestación" />

@@ -1,0 +1,78 @@
+'use client'
+/**
+ * BARRA DE HERRAMIENTAS CLÍNICAS — un solo bloque plegado.
+ *
+ * Antes cada herramienta era una caja siempre abierta apilada en la consulta:
+ * cinco bloques ocupando pantalla aunque la mayoría de las consultas no use
+ * ninguno. Ahora son renglones delgados que se abren solo cuando se necesitan;
+ * el aviso (badge) es lo que hace que una herramienta pida atención sola.
+ */
+import { useState } from 'react'
+import { ChevronDown, ChevronRight, Wrench } from 'lucide-react'
+
+export interface Herramienta {
+  id: string
+  nombre: string
+  icono: React.ReactNode
+  /** Color de acento de la herramienta. */
+  color: string
+  /** Una línea de para qué sirve. */
+  para: string
+  /** Aviso que se muestra sin abrir: "3 vacunas atrasadas", "2 fotos". */
+  aviso?: { texto: string; urgente?: boolean }
+  /** Se abre sola la primera vez (para lo que no se puede pasar por alto). */
+  abrirPorDefecto?: boolean
+  contenido: React.ReactNode
+}
+
+export function Herramientas({ items }: { items: Herramienta[] }) {
+  const [abierta, setAbierta] = useState<string | null>(
+    () => items.find(i => i.abrirPorDefecto)?.id ?? null,
+  )
+
+  if (items.length === 0) return null
+
+  return (
+    <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', marginBottom: 14, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 13px', borderBottom: '1px solid var(--border)' }}>
+        <Wrench size={13} color="var(--text3)" />
+        <span style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--text3)', letterSpacing: 0.3 }}>HERRAMIENTAS CLÍNICAS</span>
+        <span style={{ fontSize: 11, color: 'var(--text3)' }}>({items.length})</span>
+      </div>
+
+      {items.map((h, i) => {
+        const abierto = abierta === h.id
+        return (
+          <div key={h.id} style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border)' }}>
+            <button
+              type="button"
+              onClick={() => setAbierta(a => (a === h.id ? null : h.id))}
+              aria-expanded={abierto}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 9,
+                padding: '10px 13px', background: abierto ? 'var(--s2)' : 'none',
+                border: 'none', cursor: 'pointer', textAlign: 'left',
+              }}
+            >
+              {abierto ? <ChevronDown size={14} color="var(--text3)" /> : <ChevronRight size={14} color="var(--text3)" />}
+              <span style={{ display: 'flex', alignItems: 'center', color: h.color }}>{h.icono}</span>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)' }}>{h.nombre}</span>
+              <span style={{ flex: 1, minWidth: 0, fontSize: 11, color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {h.para}
+              </span>
+              {h.aviso && (
+                <span style={{
+                  flexShrink: 0, fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 100,
+                  background: h.aviso.urgente ? 'rgba(239,68,68,.15)' : 'var(--s2)',
+                  color: h.aviso.urgente ? '#f87171' : 'var(--text3)',
+                  border: h.aviso.urgente ? '1px solid rgba(239,68,68,.3)' : '1px solid var(--border)',
+                }}>{h.aviso.texto}</span>
+              )}
+            </button>
+            {abierto && <div style={{ padding: '2px 13px 13px' }}>{h.contenido}</div>}
+          </div>
+        )
+      })}
+    </div>
+  )
+}

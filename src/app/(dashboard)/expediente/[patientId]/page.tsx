@@ -15,9 +15,11 @@ import {
   ArrowLeft, Mic, FileText, Loader2, AlertTriangle, CheckCircle2,
   Clock, ChevronDown, ChevronUp, Plus, Printer, Trash2, Send, Pill, ClipboardList, Pencil, Upload,
   Stethoscope, Activity, LogIn, LogOut, UserPlus, ClipboardCheck, ShieldPlus, type LucideIcon,
+  Camera,
 } from 'lucide-react'
 import { Button, EmptyState, Spinner, Badge } from '@/components/ui'
 import { FotosClinicas } from '@/components/FotosClinicas'
+import { Herramientas } from '@/components/Herramientas'
 import { ExpedienteVacio } from '@/components/brand/EmptyArt'
 import { avatarColor } from '@/lib/avatar-color'
 
@@ -157,11 +159,15 @@ export default function ExpedientePage() {
       {/* Datos del paciente — vista unificada (antes estaba en "Pacientes") */}
       <DatosPaciente patient={patient} onEditar={() => router.push('/pacientes')} />
 
-      {/* Fotografía clínica seriada: seguimiento visual (derm, heridas, úlceras) */}
+      {/* Fotografía clínica seriada: la SERIE completa con el antes/después vive
+          aquí (es donde se revisa evolución); la captura está en la consulta.
+          Plegada para no ocupar pantalla en los expedientes que no la usan. */}
       {clinicId && patientId && (
-        <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', padding: 16, marginBottom: 16 }}>
-          <FotosClinicas clinicId={clinicId} patientId={patientId} />
-        </div>
+        <Herramientas items={[{
+          id: 'fotos', nombre: 'Fotografía clínica seriada', color: 'var(--teal)', icono: <Camera size={14} />,
+          para: 'Serie por región · comparación antes/después con días de evolución',
+          contenido: <FotosClinicas embebido modo="completo" clinicId={clinicId} patientId={patientId} />,
+        }]} />
       )}
 
       {/* La valoración del inmunocomprometido vive ahora como TIPO DE NOTA en la

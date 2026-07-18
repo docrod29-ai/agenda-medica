@@ -16,11 +16,15 @@ import {
   CHECKLIST_OMS,
 } from '@/lib/expediente/cirugia'
 
-interface Props { onAgregarANota?: (texto: string) => void }
+interface Props {
+  onAgregarANota?: (texto: string) => void
+  /** Dentro de la barra de herramientas: sin marco ni título propios. */
+  embebido?: boolean
+}
 
 type Tab = 'riesgo' | 'profilaxis' | 'checklist'
 
-export function PanelCirugia({ onAgregarANota }: Props) {
+export function PanelCirugia({ onAgregarANota, embebido }: Props) {
   const [tab, setTab] = useState<Tab>('riesgo')
 
   // Riesgo
@@ -52,10 +56,12 @@ export function PanelCirugia({ onAgregarANota }: Props) {
   const capPuntos = sumarCaprini([...cap])
 
   return (
-    <div style={{ border: '1px solid rgba(59,130,246,.3)', borderRadius: 12, background: 'rgba(59,130,246,.05)', padding: 14, marginBottom: 12 }}>
+    <div style={embebido ? {} : { border: '1px solid rgba(59,130,246,.3)', borderRadius: 12, background: 'rgba(59,130,246,.05)', padding: 14, marginBottom: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10, flexWrap: 'wrap' }}>
-        <Scissors size={15} color="#60a5fa" />
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#60a5fa' }}>Valoración perioperatoria</span>
+        {!embebido && <>
+          <Scissors size={15} color="#60a5fa" />
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#60a5fa' }}>Valoración perioperatoria</span>
+        </>}
         <span style={pill('#60a5fa', 'rgba(59,130,246,.15)')}>{asaTexto(clase, urgencia)}</span>
         {rc.size > 0 && <span style={pill(col(rRcri.nivel), bg(rRcri.nivel))}>RCRI {rRcri.puntaje}</span>}
         {capPuntos > 0 && <span style={pill(col(rCap.nivel), bg(rCap.nivel))}>Caprini {capPuntos}</span>}

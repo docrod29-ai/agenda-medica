@@ -28,9 +28,13 @@ import { CorreccionesPanel } from '@/components/CorreccionesPanel'
 import { Alert, Modal, Button } from '@/components/ui'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { CalculadorasClinicas } from '@/components/CalculadorasClinicas'
+import { calculadorasSugeridas } from '@/lib/expediente/calculadoras'
 import { PanelPediatria } from '@/components/PanelPediatria'
+import { vacunasSegunEdad } from '@/lib/expediente/pediatria'
 import { PanelGineco } from '@/components/PanelGineco'
 import { PanelCirugia } from '@/components/PanelCirugia'
+import { Herramientas } from '@/components/Herramientas'
+import { FotosClinicas } from '@/components/FotosClinicas'
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
 import { detectarInteracciones, detectarControlados } from '@/lib/expediente/farmacovigilancia'
@@ -48,6 +52,7 @@ import {
   ArrowLeft, Mic, Square, Sparkles, Loader2, AlertTriangle, CheckCircle2,
   Trash2, Plus, ShieldCheck, Pill, Stethoscope, FileSignature, Headphones,
   Lock, Bug, FlaskConical, Lightbulb, FileText, ChevronDown, ChevronUp, Volume2, BedDouble,
+  Scissors, Baby, Calculator, Camera,
 } from 'lucide-react'
 
 const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'valoracion_preoperatoria', 'valoracion_inmuno', 'alta_consulta', 'ingreso', 'evolucion', 'egreso', 'nota_postoperatoria', 'nota_anestesia', 'consentimiento']
@@ -147,12 +152,41 @@ export default function ConsultaActivaPage() {
   // El panel perioperatorio solo estorba en una consulta que no es quirúrgica:
   // se muestra si la nota es de una especialidad quirúrgica, si el tipo de nota
   // lo es (postoperatoria, preanestésica), o si el diagnóstico habla de cirugía.
+  // Una herramienta que no aplica al paciente no debe ni aparecer en la barra.
+  const esPediatrico = patient?.edad != null && patient.edad < 18
+  const esGineco = !patient?.sexo || /^f/i.test(patient.sexo)
+
+  /** Pega un texto en su sección de la nota (crea la sección si no existía). */
+  const agregarASeccion = useCallback((key: string, label: string) => (texto: string) => {
+    setSecciones(prev => {
+      const i = prev.findIndex(s => s.key === key)
+      const valor = i >= 0 ? `${prev[i].value}\n${texto}` : texto
+      return [...prev.filter(s => s.key !== key), { key, label, value: valor }]
+    })
+    toast('Agregado a la nota ✓', 'success')
+  }, [toast])
+
   const esCasoQuirurgico = useMemo(() => {
     const esp = /cirug|ortopedia|ginecolog|urolog|neurocirug|otorrino|oftalmolog|anestesi/i.test(especialidadEfectiva)
     const tip = /postop|preop|quirurg|anestes|consentimiento/i.test(tipo)
     const dx = diagnosticos.some(d => /cirug|quir[úu]rgic|postoperator|preoperator|hernia|apendic|colecistect|fractura/i.test(d.descripcion))
     return esp || tip || dx
   }, [especialidadEfectiva, tipo, diagnosticos])
+
+  // Contexto y escalas sugeridas: se calculan aquí para poder mostrar en la barra
+  // cuántas hay SIN abrir la herramienta.
+  const contextoCalc = useMemo(() => [
+    ...diagnosticos.map(d => d.descripcion),
+    secciones.find(s => /motivo/i.test(s.label) || /motivo/i.test(s.key))?.value ?? '',
+  ].filter(Boolean).join(' · '), [diagnosticos, secciones])
+  const calcSugeridas = useMemo(() => calculadorasSugeridas(contextoCalc), [contextoCalc])
+
+  // Vacunas atrasadas para la edad: se calcula aquí para que la barra lo avise
+  // SIN tener que abrir la herramienta (es lo que no se debe pasar por alto).
+  const vacunasAtrasadas = useMemo(() => {
+    if (!esPediatrico || patient?.edad == null) return 0
+    return vacunasSegunEdad(Math.round(patient.edad * 12)).filter(v => v.estado === 'atrasada').length
+  }, [esPediatrico, patient?.edad])
   const [medicamentos, setMedicamentos] = useState<Medicamento[]>([])
   const [resumen, setResumen] = useState('')
   const [procesando, setProcesando] = useState(false)
@@ -1709,66 +1743,46 @@ export default function ConsultaActivaPage() {
         </button>
       )}
 
-      {/* ── Cirugía: solo si la nota es quirúrgica o el caso lo es (perioperatorio) ── */}
-      {esCasoQuirurgico && (
-        <PanelCirugia
-          onAgregarANota={texto => {
-            setSecciones(prev => {
-              const i = prev.findIndex(s => s.key === 'perioperatorio')
-              const valor = i >= 0 ? `${prev[i].value}\n${texto}` : texto
-              const sin = prev.filter(s => s.key !== 'perioperatorio')
-              return [...sin, { key: 'perioperatorio', label: 'Valoración perioperatoria', value: valor }]
-            })
-            toast('Agregado a la nota ✓', 'success')
-          }}
-        />
-      )}
-
-      {/* ── Gineco-obstetricia: gestación, preeclampsia, Bishop, citología ── */}
-      <PanelGineco
-        sexo={patient?.sexo}
-        edadAnios={patient?.edad}
-        onAgregarANota={texto => {
-          setSecciones(prev => {
-            const i = prev.findIndex(s => s.key === 'gineco')
-            const valor = i >= 0 ? `${prev[i].value}\n${texto}` : texto
-            const sin = prev.filter(s => s.key !== 'gineco')
-            return [...sin, { key: 'gineco', label: 'Gineco-obstetricia', value: valor }]
-          })
-          toast('Agregado a la nota ✓', 'success')
-        }}
-      />
-
-      {/* ── Pediatría: dosis por peso con tope de adulto + esquema de vacunación ── */}
-      <PanelPediatria
-        edadAnios={patient?.edad}
-        onAgregarANota={texto => {
-          setSecciones(prev => {
-            const i = prev.findIndex(s => s.key === 'pediatria')
-            const valor = i >= 0 ? `${prev[i].value}\n${texto}` : texto
-            const sin = prev.filter(s => s.key !== 'pediatria')
-            return [...sin, { key: 'pediatria', label: 'Pediatría', value: valor }]
-          })
-          toast('Agregado a la nota ✓', 'success')
-        }}
-      />
-
-      {/* ── Calculadoras clínicas sugeridas por el diagnóstico ── */}
-      <CalculadorasClinicas
-        contexto={[
-          ...diagnosticos.map(d => d.descripcion),
-          secciones.find(s => /motivo/i.test(s.label) || /motivo/i.test(s.key))?.value ?? '',
-        ].filter(Boolean).join(' · ')}
-        onAgregarANota={texto => {
-          setSecciones(prev => {
-            const i = prev.findIndex(s => s.key === 'escalas_clinicas')
-            const valor = i >= 0 ? `${prev[i].value}\n${texto}` : texto
-            const sin = prev.filter(s => s.key !== 'escalas_clinicas')
-            return [...sin, { key: 'escalas_clinicas', label: 'Escalas y calculadoras clínicas', value: valor }]
-          })
-          toast('Resultado agregado a la nota ✓', 'success')
-        }}
-      />
+      {/* ── Herramientas clínicas: un solo bloque plegado. Antes eran cinco cajas
+             siempre abiertas apiladas aquí; la mayoría de las consultas no usa
+             ninguna, así que ahora se abren solo cuando se necesitan. ── */}
+      <Herramientas items={[
+        ...(esCasoQuirurgico ? [{
+          id: 'cirugia', nombre: 'Cirugía', color: '#60a5fa', icono: <Scissors size={14} />,
+          para: 'ASA · RCRI · Caprini · Apfel · profilaxis con re-dosis · checklist OMS',
+          contenido: <PanelCirugia embebido onAgregarANota={agregarASeccion('perioperatorio', 'Valoración perioperatoria')} />,
+        }] : []),
+        ...(esGineco ? [{
+          id: 'gineco', nombre: 'Gineco-obstetricia', color: '#f472b6', icono: <Stethoscope size={14} />,
+          para: 'Gestación · control prenatal · preeclampsia · Bishop · citología',
+          contenido: <PanelGineco embebido sexo={patient?.sexo} edadAnios={patient?.edad}
+            onAgregarANota={agregarASeccion('gineco', 'Gineco-obstetricia')} />,
+        }] : []),
+        ...(esPediatrico ? [{
+          id: 'pediatria', nombre: 'Pediatría', color: '#a78bfa', icono: <Baby size={14} />,
+          para: 'Dosis por peso con tope de adulto · vacunación',
+          aviso: vacunasAtrasadas > 0
+            ? { texto: `${vacunasAtrasadas} vacuna${vacunasAtrasadas > 1 ? 's' : ''} atrasada${vacunasAtrasadas > 1 ? 's' : ''}`, urgente: true }
+            : undefined,
+          abrirPorDefecto: vacunasAtrasadas > 0,
+          contenido: <PanelPediatria embebido edadAnios={patient?.edad}
+            onAgregarANota={agregarASeccion('pediatria', 'Pediatría')} />,
+        }] : []),
+        ...(calcSugeridas.length > 0 ? [{
+          id: 'calculadoras', nombre: 'Calculadoras', color: 'var(--teal)', icono: <Calculator size={14} />,
+          para: 'Escalas sugeridas por el diagnóstico',
+          aviso: { texto: `${calcSugeridas.length} sugerida${calcSugeridas.length > 1 ? 's' : ''}` },
+          contenido: <CalculadorasClinicas embebido contexto={contextoCalc}
+            onAgregarANota={agregarASeccion('escalas_clinicas', 'Escalas y calculadoras clínicas')} />,
+        }] : []),
+        {
+          id: 'fotos', nombre: 'Fotografía clínica', color: 'var(--teal)', icono: <Camera size={14} />,
+          para: 'Tomar foto de esta consulta (la serie está en el expediente)',
+          contenido: clinicId
+            ? <FotosClinicas embebido modo="captura" clinicId={clinicId} patientId={patientId} notaId={notaId ?? undefined} />
+            : <p style={{ fontSize: 12, color: 'var(--text3)' }}>Cargando…</p>,
+        },
+      ]} />
 
       {/* ── Análisis basado en evidencia (PubMed) ── */}
       {(diagnosticos.length > 0 || medicamentos.length > 0 || resumen) && !evidencia && (

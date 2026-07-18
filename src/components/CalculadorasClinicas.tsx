@@ -13,9 +13,11 @@ interface Props {
   contexto: string
   /** Si se pasa, aparece el botón para pegar el resultado en la nota. */
   onAgregarANota?: (texto: string) => void
+  /** Dentro de la barra de herramientas: sin marco ni título propios. */
+  embebido?: boolean
 }
 
-export function CalculadorasClinicas({ contexto, onAgregarANota }: Props) {
+export function CalculadorasClinicas({ contexto, onAgregarANota, embebido }: Props) {
   const sugeridas = useMemo(() => calculadorasSugeridas(contexto), [contexto])
   const [abierta, setAbierta] = useState<string | null>(null)
   const [valores, setValores] = useState<Record<string, Record<string, number>>>({})
@@ -26,14 +28,16 @@ export function CalculadorasClinicas({ contexto, onAgregarANota }: Props) {
     setValores(v => ({ ...v, [calcId]: { ...(v[calcId] ?? {}), [key]: valor } }))
 
   return (
-    <div style={{ border: '1px solid rgba(20,184,166,.3)', borderRadius: 12, background: 'rgba(20,184,166,.05)', padding: 14, marginBottom: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
-        <Calculator size={15} color="var(--teal)" />
-        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--teal)' }}>
-          Calculadoras sugeridas por el diagnóstico
-        </span>
-        <span style={{ fontSize: 11, color: 'var(--text3)' }}>({sugeridas.length})</span>
-      </div>
+    <div style={embebido ? {} : { border: '1px solid rgba(20,184,166,.3)', borderRadius: 12, background: 'rgba(20,184,166,.05)', padding: 14, marginBottom: 12 }}>
+      {!embebido && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
+          <Calculator size={15} color="var(--teal)" />
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--teal)' }}>
+            Calculadoras sugeridas por el diagnóstico
+          </span>
+          <span style={{ fontSize: 11, color: 'var(--text3)' }}>({sugeridas.length})</span>
+        </div>
+      )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {sugeridas.map(c => {
