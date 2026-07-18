@@ -27,6 +27,7 @@ import { NerPanel } from '@/components/NerPanel'
 import { CorreccionesPanel } from '@/components/CorreccionesPanel'
 import { Alert, Modal, Button } from '@/components/ui'
 import { fetchAutenticado } from '@/lib/auth-client'
+import { CalculadorasClinicas } from '@/components/CalculadorasClinicas'
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
 import { detectarInteracciones, detectarControlados } from '@/lib/expediente/farmacovigilancia'
@@ -1684,6 +1685,23 @@ export default function ConsultaActivaPage() {
           <FlaskConical size={14} /> Preguntar a la evidencia (chat)
         </button>
       )}
+
+      {/* ── Calculadoras clínicas sugeridas por el diagnóstico ── */}
+      <CalculadorasClinicas
+        contexto={[
+          ...diagnosticos.map(d => d.descripcion),
+          secciones.find(s => /motivo/i.test(s.label) || /motivo/i.test(s.key))?.value ?? '',
+        ].filter(Boolean).join(' · ')}
+        onAgregarANota={texto => {
+          setSecciones(prev => {
+            const i = prev.findIndex(s => s.key === 'escalas_clinicas')
+            const valor = i >= 0 ? `${prev[i].value}\n${texto}` : texto
+            const sin = prev.filter(s => s.key !== 'escalas_clinicas')
+            return [...sin, { key: 'escalas_clinicas', label: 'Escalas y calculadoras clínicas', value: valor }]
+          })
+          toast('Resultado agregado a la nota ✓', 'success')
+        }}
+      />
 
       {/* ── Análisis basado en evidencia (PubMed) ── */}
       {(diagnosticos.length > 0 || medicamentos.length > 0 || resumen) && !evidencia && (
