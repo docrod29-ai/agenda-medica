@@ -17,6 +17,7 @@ import {
   Stethoscope, Activity, LogIn, LogOut, UserPlus, ClipboardCheck, ShieldPlus, type LucideIcon,
 } from 'lucide-react'
 import { Button, EmptyState, Spinner, Badge } from '@/components/ui'
+import { FotosClinicas } from '@/components/FotosClinicas'
 import { ExpedienteVacio } from '@/components/brand/EmptyArt'
 import { avatarColor } from '@/lib/avatar-color'
 
@@ -155,6 +156,13 @@ export default function ExpedientePage() {
 
       {/* Datos del paciente — vista unificada (antes estaba en "Pacientes") */}
       <DatosPaciente patient={patient} onEditar={() => router.push('/pacientes')} />
+
+      {/* Fotografía clínica seriada: seguimiento visual (derm, heridas, úlceras) */}
+      {clinicId && patientId && (
+        <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', padding: 16, marginBottom: 16 }}>
+          <FotosClinicas clinicId={clinicId} patientId={patientId} />
+        </div>
+      )}
 
       {/* La valoración del inmunocomprometido vive ahora como TIPO DE NOTA en la
           consulta ("Valoración Inmunocomprometido"), no como sección aquí. */}
