@@ -35,6 +35,7 @@ import { PanelGineco } from '@/components/PanelGineco'
 import { PanelCirugia } from '@/components/PanelCirugia'
 import { PanelCardiometabolico } from '@/components/PanelCardiometabolico'
 import { PanelPreventivo } from '@/components/PanelPreventivo'
+import { Copiloto } from '@/components/Copiloto'
 import { Herramientas } from '@/components/Herramientas'
 import { FotosClinicas } from '@/components/FotosClinicas'
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
@@ -1744,6 +1745,24 @@ export default function ConsultaActivaPage() {
           <FlaskConical size={14} /> Preguntar a la evidencia (chat)
         </button>
       )}
+
+      {/* ── Copiloto: lo que aplica a ESTE paciente, calculado con lo ya capturado.
+             Si no hay nada que decir, no se pinta. ── */}
+      <Copiloto
+        entrada={{
+          edad: patient?.edad,
+          sexo: patient?.sexo,
+          alergias: patient?.alergias,
+          diagnosticos: diagnosticos.map(d => ({ descripcion: d.descripcion })),
+          medicamentos: medicamentos.map(m => ({ nombre: m.nombre, dosis: m.dosis })),
+          signos: {
+            ta: signos.ta, fc: signos.fc, fr: signos.fr,
+            temperatura: signos.temperatura, spo2: signos.spo2,
+            peso: signos.peso, talla: signos.talla,
+          },
+        }}
+        onAgregarANota={agregarASeccion('copiloto', 'Valoración asistida')}
+      />
 
       {/* ── Herramientas clínicas: un solo bloque plegado. Antes eran cinco cajas
              siempre abiertas apiladas aquí; la mayoría de las consultas no usa
