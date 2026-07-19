@@ -19,7 +19,17 @@ function colorHablante(speaker: string): string {
 
 /** Diálogo separado por voz (diarización). El médico puede etiquetar cada voz
  *  (Médico/Paciente/Acompañante) de un toque; es material de origen. */
-export function DialogoDiarizado({ utterances, rolesIniciales }: { utterances: { speaker: string; text: string }[]; rolesIniciales?: Record<string, string> }) {
+export function DialogoDiarizado({ utterances, rolesIniciales, onRolesChange }: {
+  utterances: { speaker: string; text: string }[]
+  rolesIniciales?: Record<string, string>
+  /**
+   * Sin esto la corrección se quedaba encerrada aquí: cambiaba los colores y
+   * nada más. La nota se arma con los roles que vive la PÁGINA, así que si la
+   * IA invirtió médico y paciente y el médico lo corregía, al reprocesar la nota
+   * salía igual de invertida.
+   */
+  onRolesChange?: (roles: Record<string, string>) => void
+}) {
   const [roles, setRoles] = useState<Record<string, string>>({})
   const [tocado, setTocado] = useState(false)  // el médico ya corrigió a mano → no pisar
   // Siembra los roles que asignó la IA en cuanto llegan (sin pisar correcciones manuales).
@@ -52,7 +62,14 @@ export function DialogoDiarizado({ utterances, rolesIniciales }: { utterances: {
               {ROLES.map(r => {
                 const activo = roles[s] === r
                 return (
-                  <button key={r} type="button" onClick={() => { setTocado(true); setRoles(p => ({ ...p, [s]: r })) }}
+                  <button key={r} type="button" onClick={() => {
+                      setTocado(true)
+                      setRoles(p => {
+                        const next = { ...p, [s]: r }
+                        onRolesChange?.(next)   // que llegue a la nota, no solo al color
+                        return next
+                      })
+                    }}
                     style={{
                       fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 100, cursor: 'pointer',
                       border: '1px solid ' + (activo ? c : 'var(--border)'),

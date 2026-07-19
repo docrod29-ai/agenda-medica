@@ -1129,16 +1129,41 @@ export default function ConsultaActivaPage() {
   }, [clinicId, patientId, notaId, config, construirNota, router, toast])
 
   // ── Atajos de teclado ──────────────────────────────────────────
+  //
+  // Tres problemas que tenía este bloque:
+  //  1. Secuestraba Cmd/Ctrl+R y Cmd/Ctrl+P en TODA la pantalla: recargar e
+  //     imprimir quedaban inutilizados. Ahora usan Shift, que no choca con nada.
+  //  2. No miraba dónde estaba el foco: escribir en un campo y pulsar Cmd+R
+  //     arrancaba a grabar, y Cmd+Enter FIRMABA la nota. La firma es
+  //     irreversible (NOM-024), así que ese era el peor de los tres.
+  //  3. Cmd+Enter firmaba de golpe. Ahora pide confirmación explícita.
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
+    const enCampoDeTexto = (t: EventTarget | null) => {
+      const el = t as HTMLElement | null
+      if (!el) return false
+      const tag = el.tagName
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable
+    }
+
+    const handler = async (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey)) return
-      if (e.key === 'r') { e.preventDefault(); voz.grabando ? voz.detener() : iniciarGrabacion() }
-      if (e.key === 'p') { e.preventDefault(); procesarIA() }
-      if (e.key === 'Enter') { e.preventDefault(); firmar() }
+      if (enCampoDeTexto(e.target)) return
+
+      if (e.shiftKey && (e.key === 'R' || e.key === 'r')) {
+        e.preventDefault(); voz.grabando ? voz.detener() : iniciarGrabacion(); return
+      }
+      if (e.shiftKey && (e.key === 'D' || e.key === 'd')) {
+        e.preventDefault(); procesarIA(); return
+      }
+      // Firmar es IRREVERSIBLE: nunca por un atajo suelto.
+      if (e.shiftKey && e.key === 'Enter') {
+        e.preventDefault()
+        if (await confirm('¿Firmar y cerrar la nota? Una vez firmada ya no se puede editar.', { confirmar: 'Firmar' })) firmar()
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [voz, procesarIA, firmar])
+  }, [voz, procesarIA, firmar, iniciarGrabacion, confirm])
 
   // Corrige la nota por chat: manda la nota actual + la instrucción; aplica SOLO
   // el cambio pedido. Guarda un snapshot para poder deshacer.
@@ -1568,7 +1593,7 @@ export default function ConsultaActivaPage() {
               )}
               {(voz.grabando || verFuente) && (
                 audio.utterances.length > 0 && !voz.grabando ? (
-                  <DialogoDiarizado utterances={audio.utterances} rolesIniciales={rolesHablante} />
+                  <DialogoDiarizado utterances={audio.utterances} rolesIniciales={rolesHablante} onRolesChange={setRolesHablante} />
                 ) : (
                   <textarea
                     value={voz.transcripcion + (voz.interim ? ` ${voz.interim}` : '')}

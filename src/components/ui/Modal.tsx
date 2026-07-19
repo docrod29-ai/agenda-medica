@@ -30,9 +30,23 @@ export function Modal({ open, onClose, title, size = 'md', footer, closeOnOverla
 
   if (!open) return null
 
+  /**
+   * Cerrar en mouseDown y solo si el gesto EMPEZÓ en el fondo.
+   *
+   * Con onClick en el overlay, seleccionar texto dentro del modal y soltar el
+   * botón fuera cerraba el modal: el click se despacha en el ancestro común. En
+   * un formulario largo (una cita, una nota) eso tiraba todo lo capturado por
+   * intentar copiar una línea.
+   */
+  const cerrarSiEsElFondo = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!closeOnOverlay) return
+    if (e.target !== e.currentTarget) return
+    onClose()
+  }
+
   return (
-    <div className="modal-overlay" onClick={closeOnOverlay ? onClose : undefined}>
-      <div className={['modal', SIZE_CLASS[size]].filter(Boolean).join(' ')} onClick={e => e.stopPropagation()}>
+    <div className="modal-overlay" onMouseDown={cerrarSiEsElFondo}>
+      <div className={['modal', SIZE_CLASS[size]].filter(Boolean).join(' ')} onMouseDown={e => e.stopPropagation()}>
         {title && (
           <div className="modal-header">
             <div className="t-h2">{title}</div>
