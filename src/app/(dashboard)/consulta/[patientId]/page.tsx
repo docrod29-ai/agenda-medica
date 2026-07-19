@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
 import { useBorrador } from '@/context/BorradorContext'
@@ -27,17 +28,17 @@ import { NerPanel } from '@/components/NerPanel'
 import { CorreccionesPanel } from '@/components/CorreccionesPanel'
 import { Alert, Modal, Button } from '@/components/ui'
 import { fetchAutenticado } from '@/lib/auth-client'
-import { CalculadorasClinicas } from '@/components/CalculadorasClinicas'
+
 import { calculadorasSugeridas } from '@/lib/expediente/calculadoras'
-import { PanelPediatria } from '@/components/PanelPediatria'
+
 import { vacunasSegunEdad } from '@/lib/expediente/pediatria'
-import { PanelGineco } from '@/components/PanelGineco'
-import { PanelCirugia } from '@/components/PanelCirugia'
-import { PanelCardiometabolico } from '@/components/PanelCardiometabolico'
-import { PanelPreventivo } from '@/components/PanelPreventivo'
+
+
+
+
 import { Copiloto } from '@/components/Copiloto'
 import { Herramientas } from '@/components/Herramientas'
-import { FotosClinicas } from '@/components/FotosClinicas'
+
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
 import { detectarInteracciones, detectarControlados } from '@/lib/expediente/farmacovigilancia'
@@ -52,11 +53,29 @@ import { Cie10Autocomplete } from '@/components/Cie10Autocomplete'
 import { CobrarModal } from '@/components/CobrarModal'
 import { DialogoDiarizado, Section, S } from './consulta-ui'
 import {
+
   ArrowLeft, Mic, Square, Sparkles, Loader2, AlertTriangle, CheckCircle2,
   Trash2, Plus, ShieldCheck, Pill, Stethoscope, FileSignature, Headphones,
   Lock, Bug, FlaskConical, Lightbulb, FileText, ChevronDown, ChevronUp, Volume2, BedDouble,
   Scissors, Baby, Calculator, Camera, HeartPulse,
 } from 'lucide-react'
+
+/**
+ * Los paneles clínicos se cargan SOLO cuando el médico los abre.
+ *
+ * Estaban importados de forma estática, así que su peso entero (catálogos de
+ * fármacos, tablas de la OMS, coeficientes de PREVENT, escalas quirúrgicas)
+ * viajaba en el bundle inicial de la consulta aunque la mayoría de las consultas
+ * no abra ninguno. Viven detrás de un acordeón: no hay razón para pagarlos por
+ * adelantado.
+ */
+const PanelPediatria = dynamic(() => import('@/components/PanelPediatria').then(m => m.PanelPediatria), { ssr: false })
+const PanelGineco = dynamic(() => import('@/components/PanelGineco').then(m => m.PanelGineco), { ssr: false })
+const PanelCirugia = dynamic(() => import('@/components/PanelCirugia').then(m => m.PanelCirugia), { ssr: false })
+const PanelCardiometabolico = dynamic(() => import('@/components/PanelCardiometabolico').then(m => m.PanelCardiometabolico), { ssr: false })
+const PanelPreventivo = dynamic(() => import('@/components/PanelPreventivo').then(m => m.PanelPreventivo), { ssr: false })
+const CalculadorasClinicas = dynamic(() => import('@/components/CalculadorasClinicas').then(m => m.CalculadorasClinicas), { ssr: false })
+const FotosClinicas = dynamic(() => import('@/components/FotosClinicas').then(m => m.FotosClinicas), { ssr: false })
 
 const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'valoracion_preoperatoria', 'valoracion_inmuno', 'alta_consulta', 'ingreso', 'evolucion', 'egreso', 'nota_postoperatoria', 'nota_anestesia', 'consentimiento']
 
@@ -184,6 +203,7 @@ export default function ConsultaActivaPage() {
   ].filter(Boolean).join(' · '), [diagnosticos, secciones])
   const calcSugeridas = useMemo(() => calculadorasSugeridas(contextoCalc), [contextoCalc])
 
+
   // Vacunas atrasadas para la edad: se calcula aquí para que la barra lo avise
   // SIN tener que abrir la herramienta (es lo que no se debe pasar por alto).
   const vacunasAtrasadas = useMemo(() => {
@@ -191,6 +211,24 @@ export default function ConsultaActivaPage() {
     return vacunasSegunEdad(Math.round(patient.edad * 12)).filter(v => v.estado === 'atrasada').length
   }, [esPediatrico, patient?.edad])
   const [medicamentos, setMedicamentos] = useState<Medicamento[]>([])
+
+  /**
+   * Se memoriza aquí y no dentro del componente: al pasarlo como objeto literal
+   * en el JSX se creaba uno nuevo en CADA render, el useMemo del Copiloto nunca
+   * acertaba y el motor se recalculaba en cada tecla del dictado.
+   */
+  const entradaCopiloto = useMemo(() => ({
+    edad: patient?.edad,
+    sexo: patient?.sexo,
+    alergias: patient?.alergias,
+    diagnosticos: diagnosticos.map(d => ({ descripcion: d.descripcion })),
+    medicamentos: medicamentos.map(m => ({ nombre: m.nombre, dosis: m.dosis })),
+    signos: {
+      ta: signos.ta, fc: signos.fc, fr: signos.fr,
+      temperatura: signos.temperatura, spo2: signos.spo2,
+      peso: signos.peso, talla: signos.talla,
+    },
+  }), [patient?.edad, patient?.sexo, patient?.alergias, diagnosticos, medicamentos, signos])
   const [resumen, setResumen] = useState('')
   const [procesando, setProcesando] = useState(false)
   // Rol auto-asignado a cada voz diarizada (Hablante A/B → Médico/Paciente/Acompañante).
@@ -1792,18 +1830,7 @@ export default function ConsultaActivaPage() {
       {/* ── Copiloto: lo que aplica a ESTE paciente, calculado con lo ya capturado.
              Si no hay nada que decir, no se pinta. ── */}
       <Copiloto
-        entrada={{
-          edad: patient?.edad,
-          sexo: patient?.sexo,
-          alergias: patient?.alergias,
-          diagnosticos: diagnosticos.map(d => ({ descripcion: d.descripcion })),
-          medicamentos: medicamentos.map(m => ({ nombre: m.nombre, dosis: m.dosis })),
-          signos: {
-            ta: signos.ta, fc: signos.fc, fr: signos.fr,
-            temperatura: signos.temperatura, spo2: signos.spo2,
-            peso: signos.peso, talla: signos.talla,
-          },
-        }}
+        entrada={entradaCopiloto}
         onAgregarANota={agregarASeccion('copiloto', 'Valoración asistida')}
       />
 
