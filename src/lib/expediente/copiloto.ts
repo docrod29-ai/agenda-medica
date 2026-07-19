@@ -20,6 +20,7 @@ import { ckdEpi2021 } from './calculadoras'
 import { metaLipidica } from './cardiometabolico/dislipidemia'
 import { clasificarIMC } from './cardiometabolico/obesidad'
 import { fib4, interpretarFib4 } from './cardiometabolico/masld'
+import { prevent, motivoSinPrevent } from './prevent'
 
 export type NivelSugerencia = 'critico' | 'accion' | 'info'
 
@@ -439,6 +440,68 @@ function metasPorDiagnostico(e: EntradaCopiloto): Sugerencia[] {
   return out
 }
 
+// ── 8. RIESGO CARDIOVASCULAR (PREVENT) ──────────────────────────────────────
+
+/**
+ * La guía ACC/AHA 2026 pide estimar el riesgo con PREVENT en prevención
+ * primaria de 30 a 79 años. No se le pregunta nada al médico: si los datos ya
+ * están en la nota se calcula, y si falta alguno se dice cuál en una línea.
+ */
+function riesgoCardiovascular(e: EntradaCopiloto): Sugerencia[] {
+  const dx = norm((e.diagnosticos ?? []).map(d => d.descripcion).join(' · '))
+  // En prevención SECUNDARIA no aplica: ahí la meta ya la fija el evento previo.
+  if (/infarto|cardiopatia isquemica|angina|evc|isquemi|arteriopat|revasculariza/.test(dx)) return []
+  if (e.edad == null || e.edad < 30 || e.edad > 79) return []
+
+  const tfg = e.labs?.tfg ?? (e.labs?.creatinina && e.edad
+    ? ckdEpi2021(e.labs.creatinina, e.edad, !!e.sexo && /^f/i.test(e.sexo))
+    : undefined)
+
+  const entrada = {
+    edad: e.edad,
+    esMujer: !!e.sexo && /^f/i.test(e.sexo),
+    tas: sistolica(e.signos?.ta) ?? 0,
+    colesterolTotal: e.labs?.colesterolTotal ?? 0,
+    hdl: e.labs?.hdl ?? 0,
+    tfg: tfg ?? 0,
+    diabetes: /diabetes|dm2|dm 2|dm1/.test(dx),
+    fuma: /tabaquismo|fumador|fuma/.test(dx),
+    tomaAntihipertensivo: (e.medicamentos ?? []).some(m =>
+      /losartan|telmisartan|valsartan|enalapril|lisinopril|amlodipino|metoprolol|hidroclorotiazida|clortalidona/
+        .test(norm(m.nombre ?? ''))),
+    tomaEstatina: (e.medicamentos ?? []).some(m =>
+      /atorvastatina|rosuvastatina|simvastatina|pravastatina|pitavastatina|lovastatina|fluvastatina/
+        .test(norm(m.nombre ?? ''))),
+  }
+
+  const r = prevent(entrada)
+  if (!r) {
+    // No se pide en cualquier consulta: en una faringitis, pedir colesterol y
+    // TFG para estimar riesgo cardiovascular es justo el ruido que hace que las
+    // alertas dejen de leerse. Solo cuando el propio caso ya lo justifica.
+    const pertinente = /diabetes|dm2|dm 2|hipertension|hta|dislipidemia|colesterol|obesidad|sobrepeso|tabaquismo|fumador|sindrome metabolico|renal cronica/.test(dx)
+    if (!pertinente) return []
+    const falta = motivoSinPrevent(entrada)
+    if (!falta) return []
+    return [{
+      id: 'prevent:falta',
+      nivel: 'info',
+      titulo: 'Se puede estimar el riesgo cardiovascular a 10 años',
+      detalle: `La guía 2026 lo pide en prevención primaria de 30 a 79 años. Con ${falta} lo calculo y te digo la meta de LDL que le corresponde.`,
+      textoNota: '',
+      pide: falta,
+    }]
+  }
+
+  return [{
+    id: 'prevent:riesgo',
+    nivel: r.categoria === 'alto' ? 'accion' : 'info',
+    titulo: `PREVENT-ASCVD a 10 años: ${r.riesgo10}% — ${r.etiqueta.replace(/ \(.*/, '')}`,
+    detalle: r.conducta + (r.riesgo30 != null ? ` Riesgo a 30 años: ${r.riesgo30}%.` : ''),
+    textoNota: `Riesgo de ASCVD a 10 años por las ecuaciones PREVENT: ${r.riesgo10}% (${r.etiqueta.replace(/ \(.*/, '').toLowerCase()})${r.riesgo30 != null ? `, y ${r.riesgo30}% a 30 años` : ''}. ${r.conducta} Fuente: ${r.fuente}.`,
+  }]
+}
+
 // ── ORQUESTADOR ─────────────────────────────────────────────────────────────
 
 const ORDEN: Record<NivelSugerencia, number> = { critico: 0, accion: 1, info: 2 }
@@ -456,6 +519,7 @@ export function copiloto(e: EntradaCopiloto): Sugerencia[] {
     ...signosDeAlarma(e),
     ...calculosAutomaticos(e),
     ...metasPorDiagnostico(e),
+    ...riesgoCardiovascular(e),
   ]
   // Sin duplicados por id, y lo grave primero.
   const vistos = new Set<string>()

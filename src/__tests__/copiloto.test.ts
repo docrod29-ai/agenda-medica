@@ -217,3 +217,62 @@ describe('Utilidades', () => {
     expect(mgDeTexto('una cucharada')).toBeUndefined()
   })
 })
+
+describe('Riesgo cardiovascular con PREVENT', () => {
+  const paciente = {
+    edad: 50, sexo: 'Femenino',
+    diagnosticos: [{ descripcion: 'Diabetes mellitus tipo 2, hipertensión arterial' }],
+    medicamentos: [{ nombre: 'Losartán', dosis: '50 mg' }],
+    signos: { ta: '160/95' },
+    labs: { colesterolTotal: 200, hdl: 45, tfg: 90 },
+  }
+
+  it('calcula el riesgo con lo que ya está en la nota, sin pedir nada', () => {
+    const r = copiloto(paciente).find(x => x.id === 'prevent:riesgo')!
+    expect(r.titulo).toMatch(/9\.2%/)          // el caso de referencia validado
+    expect(r.textoNota).toMatch(/PREVENT/)
+  })
+
+  it('si falta un laboratorio dice CUÁL en una línea, sin formulario', () => {
+    const r = copiloto({ ...paciente, labs: { colesterolTotal: 200 } }).find(x => x.id === 'prevent:falta')!
+    expect(r.pide).toMatch(/HDL/)
+    expect(r.textoNota).toBe('')
+  })
+
+  it('NO aplica en prevención secundaria: ahí la meta la fija el evento previo', () => {
+    const r = copiloto({ ...paciente, diagnosticos: [{ descripcion: 'Infarto agudo de miocardio previo' }] })
+    expect(r.some(x => x.id.startsWith('prevent:'))).toBe(false)
+  })
+
+  it('fuera de 30 a 79 años no se menciona siquiera', () => {
+    expect(copiloto({ ...paciente, edad: 25 }).some(x => x.id.startsWith('prevent:'))).toBe(false)
+    expect(copiloto({ ...paciente, edad: 85 }).some(x => x.id.startsWith('prevent:'))).toBe(false)
+  })
+
+  it('detecta el antihipertensivo y la estatina de la propia receta', () => {
+    const sinEstatina = copiloto(paciente).find(x => x.id === 'prevent:riesgo')!
+    const conEstatina = copiloto({ ...paciente, medicamentos: [...paciente.medicamentos, { nombre: 'Atorvastatina', dosis: '40 mg' }] })
+      .find(x => x.id === 'prevent:riesgo')!
+    expect(conEstatina.titulo).not.toBe(sinEstatina.titulo)
+  })
+})
+
+describe('Regresión: PREVENT no rompe el silencio por defecto', () => {
+  it('en una faringitis NO pide laboratorios de riesgo cardiovascular', () => {
+    expect(copiloto({
+      edad: 34, sexo: 'Masculino', alergias: 'Ninguna',
+      diagnosticos: [{ descripcion: 'Faringitis aguda' }],
+      medicamentos: [{ nombre: 'Paracetamol', dosis: '500 mg' }],
+      signos: { ta: '118/76', fc: 78, temperatura: 37.2 },
+    })).toHaveLength(0)
+  })
+
+  it('en un paciente con hipertensión SÍ los pide, porque ahí sí viene al caso', () => {
+    const r = copiloto({
+      edad: 55, sexo: 'Masculino',
+      diagnosticos: [{ descripcion: 'Hipertensión arterial sistémica' }],
+      signos: { ta: '150/92' },
+    })
+    expect(r.some(x => x.id === 'prevent:falta')).toBe(true)
+  })
+})
