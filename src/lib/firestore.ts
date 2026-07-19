@@ -4,6 +4,7 @@ import {
   Timestamp, QueryConstraint,
 } from 'firebase/firestore'
 import { db } from './firebase'
+import { logAudit } from '@/lib/expediente/audit-log'
 import {
   Appointment, Patient, WaitlistEntry, ClinicConfig, AuditLog, Doctor,
   DEFAULT_CONFIG, Clinic, ClinicMember,
@@ -177,12 +178,17 @@ export async function createPatient(clinicId: string, data: Omit<Patient, 'id'>)
     sinUndefined({ ...data, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }),
   )
   invalidarCachePacientes(clinicId)   // el nuevo paciente debe verse de inmediato
+  // Bitácora: el alta de un paciente es de los eventos que la trazabilidad exige
+  // y no se registraba en absoluto. No se bloquea el alta si el registro falla.
+  logAudit({ evento: 'paciente_creado', clinicId, patientId: ref.id }).catch(() => {})
   return ref.id
 }
 
 export async function updatePatient(clinicId: string, id: string, data: Partial<Patient>): Promise<void> {
   await updateDoc(d(clinicId, COLLECTIONS.patients, id), sinUndefined({ ...data, updatedAt: new Date().toISOString() }))
   invalidarCachePacientes(clinicId)   // el cambio debe reflejarse de inmediato
+  // Qué campos se tocaron, NO sus valores: la bitácora no es sitio para PHI.
+  logAudit({ evento: 'paciente_modificado', clinicId, patientId: id, meta: { campos: Object.keys(data) } }).catch(() => {})
 }
 
 // ── Waitlist ──────────────────────────────────────────────────
@@ -327,9 +333,9 @@ export async function deleteBotSession(clinicId: string, telefono: string): Prom
 }
 
 // ── Audit ─────────────────────────────────────────────────────
-
-export async function createAuditLog(clinicId: string, data: Omit<AuditLog, 'id'>): Promise<void> {
-  try {
-    await addDoc(col(clinicId, COLLECTIONS.audit), data)
-  } catch { /* audit failures are silent */ }
-}
+//
+// Aquí vivía `createAuditLog`, que escribía a la bitácora desde el cliente con un
+// `catch {}` vacío. Se eliminó por dos razones: no tenía UN SOLO llamador en todo
+// el repo —era código muerto que sugería una cobertura inexistente— y la escritura
+// de bitácora ahora va por `logAudit` → /api/auditoria/registrar, donde la
+// identidad sale del ID-token y la hora del servidor.

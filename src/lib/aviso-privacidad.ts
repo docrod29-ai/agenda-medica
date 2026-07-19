@@ -97,9 +97,10 @@ posibles responsabilidades) y posteriormente se eliminan de forma segura.
 Sus datos se protegen mediante:
  • Cifrado en tránsito (HTTPS/TLS 1.3)
  • Cifrado en reposo (Google Firestore, AES-256)
- • Control de acceso multi-factor
- • Aislamiento por clínica (multi-tenant)
- • Auditoría de accesos
+ • Control de acceso por rol (el personal administrativo no accede a sus notas clínicas)
+ • Aislamiento por consultorio
+ • Registro de accesos a su expediente
+ • Cierre automático de sesión por inactividad
  • Firmas electrónicas con SHA-256 (NOM-024)
  • Inmutabilidad de notas firmadas
 

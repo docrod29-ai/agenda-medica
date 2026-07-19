@@ -1,5 +1,6 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { logAudit } from '@/lib/expediente/audit-log'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { esSuperadminCliente } from '@/lib/superadmin-client'
@@ -204,6 +205,25 @@ function AccesoGate({ estado, clinicId, esMedico, email }: { estado: 'sin_tarjet
 function DashboardInner({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth()
   const { clinicId, loading: clinicLoading, needsSetup, role, clinic, error: clinicError } = useClinic()
+
+  /**
+   * Bitácora: inicio de sesión. NO se registraba en ninguna parte — no había forma
+   * de saber quién entró al sistema ni cuándo, que es de lo primero que se pide en
+   * una revisión de trazabilidad.
+   *
+   * Se emite aquí y no en /login porque en /login todavía no se sabe a qué
+   * consultorio pertenece el usuario, y la bitácora cuelga del consultorio. Una
+   * ref evita repetirlo en cada navegación: el layout no se re-monta, pero el
+   * efecto sí correría si cambian sus dependencias.
+   */
+  const loginRegistradoRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!user || !clinicId) return
+    const marca = `${user.uid}:${clinicId}`
+    if (loginRegistradoRef.current === marca) return
+    loginRegistradoRef.current = marca
+    logAudit({ evento: 'login_exitoso', clinicId, meta: { rol: role ?? null } }).catch(() => {})
+  }, [user, clinicId, role])
   const { mode } = useMode()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)

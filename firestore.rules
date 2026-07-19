@@ -187,10 +187,18 @@ service cloud.firestore {
       match /secretos/{docId} {
         allow read, write: if false; // Admin SDK only
       }
+      // Bitácora de auditoría. Ya NO se escribe desde el cliente: pasa por
+      // /api/auditoria/registrar, que toma la identidad del ID-token verificado y
+      // la hora del servidor. Con `create: if isMember` y sin validar campos,
+      // cualquier miembro podía insertar entradas con el correo y la fecha que
+      // quisiera, o atribuirle un acceso a otro médico — una bitácora forjable por
+      // el propio auditado no acredita nada.
+      //
+      // La lectura baja a isMedico: no contiene notas, pero sí patientId, notaId y
+      // metadatos que revelan a quién se atendió y cuándo.
       match /audit_log/{docId} {
-        allow read: if isMember(clinicId);
-        allow create: if isMember(clinicId);
-        allow update, delete: if false;
+        allow read: if isMedico(clinicId);
+        allow create, update, delete: if false;   // solo Admin SDK
       }
       // Solicitudes ARCO (LFPDPPP) — los pacientes pueden CREAR (vía API pública),
       // los miembros de la clínica pueden leer/actualizar para resolver.

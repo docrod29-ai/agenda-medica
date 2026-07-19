@@ -6,6 +6,7 @@
  * según el contenido de la nota (signos vitales anormales, diagnósticos, etc.).
  */
 import { useState, useEffect, useMemo } from 'react'
+import { logAudit } from '@/lib/expediente/audit-log'
 import { useToast } from '@/context/ToastContext'
 import { useParams, useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
@@ -450,7 +451,7 @@ export default function GeneradorOrdenPage() {
           <button onClick={() => router.push('/configuracion?tab=recetas')} className="btn btn-secondary">
             <Settings size={14} /> Template
           </button>
-          <button onClick={() => { if (configError) return; const h = dimensionesImpresion(recetaConfig); imprimirElemento(document.getElementById('receta-doc'), 'Orden', { anchoMm: h.widthMm, altoMm: h.heightMm }) }} className="btn btn-secondary">
+          <button onClick={() => { if (configError) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId }).catch(() => {}); const h = dimensionesImpresion(recetaConfig); imprimirElemento(document.getElementById('receta-doc'), 'Orden', { anchoMm: h.widthMm, altoMm: h.heightMm }) }} className="btn btn-secondary">
             <Printer size={14} /> Imprimir
           </button>
           <button onClick={() => { if (configError) return; descargarWord() }} className="btn btn-secondary" title="Documento editable para tu membrete">

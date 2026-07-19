@@ -28,8 +28,24 @@ describe('firestore.rules — invariantes de seguridad', () => {
     expect(ocurrencias).toBeGreaterThanOrEqual(2) // al menos en update y delete
   })
 
-  it('audit_log es append-only (no update ni delete)', () => {
-    expect(sinComentarios).toMatch(/audit_log\/\{docId\}\s*\{[\s\S]{0,160}allow update, delete: if false;/)
+  it('audit_log NO se escribe desde el cliente (solo Admin SDK) y es inmutable', () => {
+    // Antes bastaba con que update y delete estuvieran cerrados. Ahora también el
+    // create: la bitácora se escribe por /api/auditoria/registrar, que pone la
+    // identidad desde el ID-token y la hora del servidor. Con `create: if isMember`
+    // cualquier miembro podía fabricar entradas a nombre de otro médico.
+    expect(sinComentarios).toMatch(/audit_log\/\{docId\}\s*\{[\s\S]{0,160}allow create, update, delete: if false;/)
+  })
+
+  it('audit_log solo lo lee personal clínico', () => {
+    // No contiene notas, pero sí patientId/notaId: revela a quién se atendió.
+    expect(sinComentarios).toMatch(/audit_log\/\{docId\}\s*\{\s*allow read: if isMedico\(clinicId\);/)
+  })
+
+  it('REGRESIÓN: la excepción por campo de config exige pertenecer a la clínica', () => {
+    // Al bloquear la firma por campo, la segunda rama del || quedó sin isMember y
+    // CUALQUIER usuario autenticado podía sobrescribir la config de cualquier
+    // consultorio. El paréntesis importa.
+    expect(sinComentarios).toMatch(/allow update: if isMedico\(clinicId\)\s*\|\|\s*\(isMember\(clinicId\)/)
   })
 
   it('secretos solo Admin SDK (nada del cliente)', () => {

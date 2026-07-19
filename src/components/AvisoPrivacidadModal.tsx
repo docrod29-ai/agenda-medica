@@ -100,11 +100,23 @@ export function AvisoPrivacidadModal({ config, onAceptar, onCancelar, medioInici
           )}
 
           <div style={{ marginTop: 16, padding: 12, background: 'rgba(255,200,0,0.06)', border: '1px solid rgba(255,200,0,0.2)', borderRadius: 8 }}>
-            <div style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 600, marginBottom: 8 }}>
+            <div style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 600, marginBottom: 4 }}>
               ¿Cómo se está aceptando este aviso?
             </div>
+            {/*
+              Se retiró la opción "Verbal". Los datos de salud son datos SENSIBLES
+              y el Art. 9 de la LFPDPPP pide consentimiento expreso y POR ESCRITO:
+              firma autógrafa, firma electrónica o algún mecanismo de autenticación
+              del titular. El propio aviso que genera el sistema cita ese artículo
+              y termina con un bloque de firma; ofrecer "verbal" contradecía en el
+              formulario lo que el documento promete.
+            */}
+            <div style={{ fontSize: 11.5, color: 'var(--text3)', lineHeight: 1.5, marginBottom: 9 }}>
+              Los datos de salud son datos sensibles: el consentimiento debe quedar por escrito
+              (Art. 9 LFPDPPP). Un &ldquo;sí&rdquo; de palabra no basta.
+            </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {(['presencial', 'verbal', 'whatsapp', 'portal'] as const).map(m => (
+              {(['presencial', 'whatsapp', 'portal'] as const).map(m => (
                 <button
                   key={m}
                   onClick={() => setMedio(m)}
@@ -116,7 +128,7 @@ export function AvisoPrivacidadModal({ config, onAceptar, onCancelar, medioInici
                     border: medio === m ? '1px solid var(--teal)' : '1px solid var(--border)',
                   }}
                 >
-                  {m === 'presencial' ? 'En consultorio' : m === 'verbal' ? 'Verbal' : m === 'whatsapp' ? 'Por WhatsApp' : 'Portal web'}
+                  {m === 'presencial' ? 'Firmado en papel' : m === 'whatsapp' ? 'Aceptado por WhatsApp' : 'Aceptado en el portal'}
                 </button>
               ))}
             </div>

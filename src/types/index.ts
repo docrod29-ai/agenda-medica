@@ -198,6 +198,8 @@ export interface Patient {
     aceptado: boolean
     fechaAceptacion: string        // ISO
     versionAviso: string           // ej "2026-06"
+    /** 'verbal' se retiró del formulario (Art. 9 LFPDPPP exige por escrito);
+     *  se mantiene en el tipo para no romper los registros ya guardados. */
     medioAceptacion: 'presencial' | 'portal' | 'whatsapp' | 'verbal'
   }
   // === Valoración infectológica del inmunocomprometido (módulo portado de StewardMX) ===

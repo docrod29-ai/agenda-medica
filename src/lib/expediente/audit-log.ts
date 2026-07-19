@@ -7,9 +7,16 @@
  *
  * Es resiliente: si falla la escritura del log NUNCA debe romper la operación
  * principal (la persistencia clínica tiene prioridad).
+ *
+ * SE ESCRIBE POR SERVIDOR, no directo a Firestore. Antes esto hacía `addDoc`
+ * desde el navegador con `new Date()` del navegador, y la regla lo permitía con
+ * `create: if isMember` sin validar un campo: cualquier miembro podía insertar
+ * entradas con el correo y la hora que quisiera, o atribuirle un acceso a otro
+ * médico. Una bitácora que el auditado puede escribir a discreción no acredita
+ * nada, que es justo lo contrario de para lo que existe. Ahora la identidad sale
+ * del ID-token y la hora es `serverTimestamp()`.
  */
-import { collection, addDoc } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { fetchAutenticado } from '@/lib/auth-client'
 
 export type AuditEvento =
   // === Eventos clínicos (ya existentes) ===
@@ -21,7 +28,8 @@ export type AuditEvento =
   | 'nota_adenda'                // agregó una adenda a una nota firmada (NOM-004)
   | 'nota_borrada'               // borró un borrador
   | 'consentimiento_grabacion'   // confirmó el consentimiento del paciente
-  // === NUEVOS para cumplimiento NOM-024 Art. 6.5 (bitácora completa) ===
+  // === Bitácora completa (requisito de trazabilidad de NOM-024; el numeral
+  //     exacto NO está verificado contra el DOF — no citarlo en documentos) ===
   | 'expediente_lectura'         // alguien abrió un expediente
   | 'nota_lectura'               // alguien abrió una nota específica
   | 'nota_impresion'             // alguien imprimió/descargó PDF de nota
@@ -57,15 +65,20 @@ export interface AuditPayload {
 }
 
 export async function logAudit(p: AuditPayload): Promise<void> {
+  if (!p.clinicId) return
   try {
-    // Capturar contexto del cliente si está disponible (best effort, no rompe si falla)
-    const contexto = typeof window !== 'undefined'
-      ? { userAgent: navigator.userAgent.slice(0, 200), locale: navigator.language }
-      : undefined
-    await addDoc(collection(db, 'clinics', p.clinicId, 'audit_log'), {
-      ...p,
-      contexto: p.contexto ?? contexto,
-      timestamp: new Date().toISOString(),
+    await fetchAutenticado('/api/auditoria/registrar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      // medicoUid/medicoEmail NO se mandan: los pone el servidor desde el token.
+      body: JSON.stringify({
+        evento: p.evento,
+        clinicId: p.clinicId,
+        patientId: p.patientId,
+        notaId: p.notaId,
+        meta: p.meta,
+        timestampCliente: new Date().toISOString(),
+      }),
     })
   } catch {
     // silencioso: nunca debe romper la operación clínica
