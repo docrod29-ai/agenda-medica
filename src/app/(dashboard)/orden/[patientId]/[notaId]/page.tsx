@@ -26,6 +26,7 @@ import {
   ArrowLeft, Download, Loader2, Plus, Trash2, Printer, Settings, AlertCircle, ChevronDown, FileText, Check, Scissors,
 } from 'lucide-react'
 import { Spinner } from '@/components/ui'
+import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
 
 /** Sugerencias de estudios agrupadas por categoría (catálogo amplio por especialidad) */
 const SUGERENCIAS: Record<string, string[]> = {
@@ -309,7 +310,7 @@ export default function GeneradorOrdenPage() {
   const router = useRouter()
   const volver = useSmartBack(`/expediente/${patientId}`)
   const { clinicId } = useClinic()
-  const { config } = useConfig()
+  const { config, error: configError } = useConfig()
   const { toast } = useToast()
 
   const [nota, setNota] = useState<NotaMedica | null>(null)
@@ -439,6 +440,7 @@ export default function GeneradorOrdenPage() {
 
   return (
     <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
+      <AvisoConfigNoCargada error={configError} />
       <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
         <button onClick={volver} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}>
           <ArrowLeft size={15} /> Atrás
@@ -448,13 +450,13 @@ export default function GeneradorOrdenPage() {
           <button onClick={() => router.push('/configuracion?tab=recetas')} className="btn btn-secondary">
             <Settings size={14} /> Template
           </button>
-          <button onClick={() => { const h = dimensionesImpresion(recetaConfig); imprimirElemento(document.getElementById('receta-doc'), 'Orden', { anchoMm: h.widthMm, altoMm: h.heightMm }) }} className="btn btn-secondary">
+          <button onClick={() => { if (configError) return; const h = dimensionesImpresion(recetaConfig); imprimirElemento(document.getElementById('receta-doc'), 'Orden', { anchoMm: h.widthMm, altoMm: h.heightMm }) }} className="btn btn-secondary">
             <Printer size={14} /> Imprimir
           </button>
-          <button onClick={descargarWord} className="btn btn-secondary" title="Documento editable para tu membrete">
+          <button onClick={() => { if (configError) return; descargarWord() }} className="btn btn-secondary" title="Documento editable para tu membrete">
             <FileText size={14} /> Word
           </button>
-          <button onClick={descargarPDF} disabled={descargando} className="btn btn-primary">
+          <button onClick={() => { if (configError) return; descargarPDF() }} disabled={descargando || !!configError} className="btn btn-primary">
             {descargando
               ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</>
               : <><Download size={14} /> Descargar PDF</>}

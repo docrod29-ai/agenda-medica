@@ -16,13 +16,14 @@ import type { Patient } from '@/types'
 import { ArrowLeft, Printer, Loader2, Download, Pill, ClipboardList, AlertTriangle, Check, FileText, FilePlus2, X, Mic, ChevronDown } from 'lucide-react'
 import { Spinner, EmptyState } from '@/components/ui'
 import { descargarComoPDF } from '@/lib/pdf-download'
+import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
 
 export default function NotaImprimiblePage() {
   const { patientId, notaId } = useParams<{ patientId: string; notaId: string }>()
   const router = useRouter()
   const volver = useSmartBack(`/expediente/${patientId}`)
   const { clinicId } = useClinic()
-  const { config } = useConfig()
+  const { config, error: configError } = useConfig()
   const { toast } = useToast()
   const { user } = useAuth()
   const [nota, setNota] = useState<NotaMedica | null>(null)
@@ -160,18 +161,19 @@ export default function NotaImprimiblePage() {
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh', padding: 24 }}>
+      <div style={{ maxWidth: 800, margin: '0 auto' }}><AvisoConfigNoCargada error={configError} /></div>
       {/* Barra de acciones (no se imprime) */}
       <div className="no-print" style={{ maxWidth: 800, margin: '0 auto 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <button onClick={volver} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}>
           <ArrowLeft size={15} /> Atrás
         </button>
         <div className="actions-row">
-          <button onClick={descargarPDF} disabled={descargando} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--teal)', color: '#000', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: descargando ? 'default' : 'pointer' }}>
+          <button onClick={() => { if (configError) return; descargarPDF() }} disabled={descargando || !!configError} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--teal)', color: '#000', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: descargando ? 'default' : 'pointer' }}>
             {descargando
               ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</>
               : <><Download size={16} /> Descargar PDF</>}
           </button>
-          <button onClick={() => imprimirElemento(document.getElementById('doc'), 'Nota médica', { formato: membrete ? 'membrete' : 'carta' })} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => { if (configError) return; imprimirElemento(document.getElementById('doc'), 'Nota médica', { formato: membrete ? 'membrete' : 'carta' }) }} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
             <Printer size={16} /> Imprimir
           </button>
           {/* Generar receta y orden — solo cuando la nota está firmada */}

@@ -203,7 +203,7 @@ function AccesoGate({ estado, clinicId, esMedico, email }: { estado: 'sin_tarjet
 
 function DashboardInner({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth()
-  const { clinicId, loading: clinicLoading, needsSetup, role, clinic } = useClinic()
+  const { clinicId, loading: clinicLoading, needsSetup, role, clinic, error: clinicError } = useClinic()
   const { mode } = useMode()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -247,7 +247,57 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
     )
   }
 
-  if (!user || (!clinicId && !needsSetup)) return null
+  /**
+   * NUNCA una pantalla en blanco sin salida.
+   *
+   * Esto era `return null`: si Firestore no respondía (red caída, permisos, token
+   * vencido), el estado quedaba en user≠null / clinicId=null / needsSetup=false y
+   * la app pintaba NADA. Ni spinner, ni error, ni forma de cerrar sesión — y
+   * recargar volvía a caer igual. Era indistinguible de "no tengo consultorio".
+   *
+   * Si hay usuario pero no se pudo resolver el consultorio, se explica y se dan
+   * las dos salidas: reintentar o cerrar sesión.
+   */
+  if (user && !clinicId && !needsSetup) {
+    return (
+      <div style={{
+        minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center',
+        justifyContent: 'center', padding: 24,
+      }}>
+        <div style={{
+          maxWidth: 420, width: '100%', background: 'var(--s1)', border: '1px solid var(--border)',
+          borderRadius: 16, padding: 30, textAlign: 'center',
+        }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 10 }}>
+            No pudimos cargar tu consultorio
+          </div>
+          <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.6, margin: '0 0 8px' }}>
+            {clinicError ?? 'La conexión con el servidor no respondió.'}
+          </p>
+          <p style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.6, margin: '0 0 22px' }}>
+            Tus datos están a salvo en el servidor. Esto es un problema de conexión, no de tu información.
+          </p>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button onClick={() => window.location.reload()} className="lift" style={{
+              background: 'var(--nexus)', color: '#fff', border: 'none', borderRadius: 10,
+              padding: '11px 22px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+            }}>
+              Reintentar
+            </button>
+            <button
+              onClick={() => { limpiarBorradoresLocales(); import('@/lib/firebase').then(({ auth }) => auth.signOut()).finally(() => { window.location.href = '/login' }) }}
+              style={{
+                background: 'none', border: '1px solid var(--border)', color: 'var(--text2)',
+                borderRadius: 10, padding: '11px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+              }}>
+              Cerrar sesión
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+  if (!user) return null
 
   // Modelo B: sin suscripción (cuenta nueva) o vencida → bloquea la app y muestra
   // elegir plan + tarjeta. Tras pagar (?checkout=success) muestra "Activando…" hasta

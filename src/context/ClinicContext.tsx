@@ -21,6 +21,17 @@ interface ClinicCtx {
   loading: boolean
   /** true = user is authenticated but has no clinic → show /setup */
   needsSetup: boolean
+  /**
+   * Motivo por el que NO se pudo resolver el consultorio (red caída, permisos,
+   * token vencido, o los 8s de espera agotados).
+   *
+   * Antes los callbacks de error hacían `() => marcarListo()` y tiraban el error
+   * a la basura, así que "falló Firestore" y "este usuario no tiene consultorio"
+   * terminaban en el MISMO estado (clinicId=null, needsSetup=false). El layout
+   * hacía `return null` y el médico veía una pantalla en blanco sin spinner, sin
+   * error y sin forma de salir salvo recargar — y al recargar, lo mismo.
+   */
+  error: string | null
 }
 
 const Ctx = createContext<ClinicCtx>({
@@ -29,6 +40,7 @@ const Ctx = createContext<ClinicCtx>({
   role: null,
   loading: true,
   needsSetup: false,
+  error: null,
 })
 
 export function ClinicProvider({ children }: { children: ReactNode }) {
@@ -38,6 +50,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<ClinicMember['role'] | null>(null)
   const [loading, setLoading] = useState(true)
   const [needsSetup, setNeedsSetup] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (authLoading) return
@@ -47,8 +60,10 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       setRole(null)
       setLoading(false)
       setNeedsSetup(false)
+      setError(null)
       return
     }
+    setError(null)
 
     // Load clinic membership for this user
     let unsubClinic: (() => void) | null = null
@@ -56,7 +71,11 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     const marcarListo = () => { resuelto = true; setLoading(false) }
     // RED DE SEGURIDAD: si Firestore no responde (red/permiso/token), NUNCA dejes la
     // app colgada en el spinner. A los 8s se libera (verás login/setup, no eterno).
-    const timeout = setTimeout(() => { if (!resuelto) setLoading(false) }, 8000)
+    const timeout = setTimeout(() => {
+      if (resuelto) return
+      setError('Tu consultorio tardó demasiado en responder. Puede ser la conexión.')
+      setLoading(false)
+    }, 8000)
 
     const memberRef = doc(db, 'clinic_members', user.uid)
     const unsub = onSnapshot(memberRef, (snap) => {
@@ -85,14 +104,14 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           setClinic({ id: clinicSnap.id, ...clinicSnap.data() } as Clinic)
         }
         marcarListo()
-      }, () => marcarListo())   // error leyendo la clínica → no colgar
-    }, () => marcarListo())     // error leyendo la membresía → no colgar
+      }, (err) => { setError(`No pudimos leer los datos de tu consultorio (${err.code}).`); marcarListo() })
+    }, (err) => { setError(`No pudimos verificar a qué consultorio perteneces (${err.code}).`); marcarListo() })
 
     return () => { clearTimeout(timeout); if (unsubClinic) unsubClinic(); unsub() }
   }, [user, authLoading])
 
   return (
-    <Ctx.Provider value={{ clinicId, clinic, role, loading, needsSetup }}>
+    <Ctx.Provider value={{ clinicId, clinic, role, loading, needsSetup, error }}>
       {children}
     </Ctx.Provider>
   )
