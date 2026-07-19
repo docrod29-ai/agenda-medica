@@ -1,6 +1,7 @@
 'use client'
 // Panel de enfermería: balance hídrico + escalas (Braden/Morse) + entrega de turno (SBAR).
 import { useState } from 'react'
+import { useToast } from '@/context/ToastContext'
 import { Button } from '@/components/ui'
 import { agregarBalance, agregarEscala, agregarSbar } from '@/lib/hospital/firestore'
 import { calcBraden, calcMorse, BRADEN_ITEMS, MORSE_ITEMS, type BradenInput, type MorseInput } from '@/lib/hospital/escalas'
@@ -12,6 +13,7 @@ const inputCls = 'w-full rounded-md border px-2.5 py-2 text-sm bg-transparent'
 export function PanelEnfermeria({ clinicId, internamiento, por, puedeEditar, onSaved }: {
   clinicId: string; internamiento: Internamiento; por: string; puedeEditar: boolean; onSaved: () => void
 }) {
+  const { toast } = useToast()
   const iid = internamiento.id
   const [ing, setIng] = useState(''); const [egr, setEgr] = useState('')
   const [braden, setBraden] = useState<BradenInput>({ percepcion: 4, humedad: 4, actividad: 4, movilidad: 4, nutricion: 4, friccion: 3 })
@@ -33,9 +35,9 @@ export function PanelEnfermeria({ clinicId, internamiento, por, puedeEditar, onS
         <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}><Droplets size={15} style={{ color: '#0ea5e9' }} /> Balance hídrico</div>
         {puedeEditar && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 10 }}>
-            <div><label style={{ fontSize: 11, color: 'var(--text3)' }}>Ingresos (mL)</label><input className={inputCls} style={{ width: 110 }} value={ing} onChange={e => setIng(e.target.value)} /></div>
-            <div><label style={{ fontSize: 11, color: 'var(--text3)' }}>Egresos (mL)</label><input className={inputCls} style={{ width: 110 }} value={egr} onChange={e => setEgr(e.target.value)} /></div>
-            <Button size="sm" loading={busy === 'bal'} disabled={!ing && !egr} onClick={async () => { setBusy('bal'); try { await agregarBalance(clinicId, iid, { ingresos: Number(ing) || 0, egresos: Number(egr) || 0, por }); setIng(''); setEgr(''); onSaved() } finally { setBusy('') } }}>Agregar</Button>
+            <div><label style={{ fontSize: 11, color: 'var(--text3)' }}>Ingresos (mL)</label><input className={inputCls} type="number" inputMode="decimal" min="0" style={{ width: 110 }} value={ing} onChange={e => setIng(e.target.value)} /></div>
+            <div><label style={{ fontSize: 11, color: 'var(--text3)' }}>Egresos (mL)</label><input className={inputCls} type="number" inputMode="decimal" min="0" style={{ width: 110 }} value={egr} onChange={e => setEgr(e.target.value)} /></div>
+            <Button size="sm" loading={busy === 'bal'} disabled={!ing && !egr} onClick={async () => { setBusy('bal'); try { await agregarBalance(clinicId, iid, { ingresos: Number(ing) || 0, egresos: Number(egr) || 0, por }); setIng(''); setEgr(''); onSaved(); toast('Balance registrado', 'success') } catch (e) { toast(e instanceof Error ? e.message : 'NO se registró el balance hídrico', 'error') } finally { setBusy('') } }}>Agregar</Button>
           </div>
         )}
         {balances.length > 0 && (
@@ -67,7 +69,7 @@ export function PanelEnfermeria({ clinicId, internamiento, por, puedeEditar, onS
             ))}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
               <span style={{ fontSize: 15, fontWeight: 700, color: rB.color }}>{rB.score} · {rB.riesgo}</span>
-              <Button size="sm" variant="secondary" loading={busy === 'braden'} onClick={async () => { setBusy('braden'); try { await agregarEscala(clinicId, iid, { tipo: 'braden', score: rB.score, riesgo: rB.riesgo, por }); onSaved() } finally { setBusy('') } }}>Guardar</Button>
+              <Button size="sm" variant="secondary" loading={busy === 'braden'} onClick={async () => { setBusy('braden'); try { await agregarEscala(clinicId, iid, { tipo: 'braden', score: rB.score, riesgo: rB.riesgo, por }); onSaved(); toast('Braden registrada', 'success') } catch (e) { toast(e instanceof Error ? e.message : 'NO se registró la escala de Braden', 'error') } finally { setBusy('') } }}>Guardar</Button>
             </div>
           </>)}
         </div>
@@ -86,7 +88,7 @@ export function PanelEnfermeria({ clinicId, internamiento, por, puedeEditar, onS
             ))}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
               <span style={{ fontSize: 15, fontWeight: 700, color: rM.color }}>{rM.score} · {rM.riesgo}</span>
-              <Button size="sm" variant="secondary" loading={busy === 'morse'} onClick={async () => { setBusy('morse'); try { await agregarEscala(clinicId, iid, { tipo: 'morse', score: rM.score, riesgo: rM.riesgo, por }); onSaved() } finally { setBusy('') } }}>Guardar</Button>
+              <Button size="sm" variant="secondary" loading={busy === 'morse'} onClick={async () => { setBusy('morse'); try { await agregarEscala(clinicId, iid, { tipo: 'morse', score: rM.score, riesgo: rM.riesgo, por }); onSaved(); toast('Morse registrada', 'success') } catch (e) { toast(e instanceof Error ? e.message : 'NO se registró la escala de Morse', 'error') } finally { setBusy('') } }}>Guardar</Button>
             </div>
           </>)}
         </div>
@@ -97,7 +99,7 @@ export function PanelEnfermeria({ clinicId, internamiento, por, puedeEditar, onS
         <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}><ClipboardList size={15} style={{ color: '#0d9488' }} /> Entrega de turno (SBAR)</div>
         {puedeEditar && (<>
           <textarea className={inputCls} rows={3} placeholder="Situación · Antecedentes · Evaluación · Recomendación" value={sbar} onChange={e => setSbar(e.target.value)} />
-          <div style={{ marginTop: 6 }}><Button size="sm" loading={busy === 'sbar'} disabled={!sbar.trim()} onClick={async () => { setBusy('sbar'); try { await agregarSbar(clinicId, iid, { texto: sbar.trim(), por }); setSbar(''); onSaved() } finally { setBusy('') } }}>Guardar entrega</Button></div>
+          <div style={{ marginTop: 6 }}><Button size="sm" loading={busy === 'sbar'} disabled={!sbar.trim()} onClick={async () => { setBusy('sbar'); try { await agregarSbar(clinicId, iid, { texto: sbar.trim(), por }); setSbar(''); onSaved(); toast('Entrega de turno registrada', 'success') } catch (e) { toast(e instanceof Error ? e.message : 'NO se guardó la entrega de turno. NO cierres: el texto sigue aquí, reintenta.', 'error') } finally { setBusy('') } }}>Guardar entrega</Button></div>
         </>)}
         {sbars.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>

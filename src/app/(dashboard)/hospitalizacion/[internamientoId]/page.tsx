@@ -668,6 +668,11 @@ export default function EpisodioPage() {
             )
             toast('Interconsulta respondida', 'success'); setRespondiendo(null); setRespTxt(''); cargar()
           }
+          catch (e) {
+            // El texto NO se limpia si falló: se conserva para reintentar, y así
+            // tampoco se arrastra a la siguiente interconsulta.
+            toast(e instanceof Error ? e.message : 'NO se guardó la respuesta. El texto sigue aquí, reintenta.', 'error')
+          }
           finally { setBusy(false) }
         }}>Guardar respuesta</Button></>}>
         <textarea className={inputCls} rows={5} placeholder="Impresión y recomendaciones" value={respTxt} onChange={e => setRespTxt(e.target.value)} />
@@ -820,6 +825,7 @@ export default function EpisodioPage() {
           if (!clinicId) return; setBusy(true)
           const meds = medsCasa.split('\n').map(s => s.trim()).filter(Boolean)
           try { await guardarMedicamentosCasa(clinicId, internamientoId, meds); toast('Conciliación guardada', 'success'); setModalConcil(false); cargar() }
+          catch (e) { toast(e instanceof Error ? e.message : 'NO se guardó la conciliación de medicamentos. Reintenta.', 'error') }
           finally { setBusy(false) }
         }}>Guardar</Button></>}>
         <label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Medicamentos que el paciente tomaba en casa (uno por línea)</label>
@@ -839,6 +845,10 @@ export default function EpisodioPage() {
             // Se vacía el id → las alertas caen al teléfono general de la clínica (seguro).
             if (trForm.tratante.trim() && trForm.tratante.trim() !== inter.medicoTratanteNombre) await cambiarTratante(clinicId, internamientoId, { medicoTratanteId: '', medicoTratanteNombre: trForm.tratante.trim(), por })
             toast('Movimiento registrado', 'success'); setModalTraslado(false); cargar()
+          } catch (e) {
+            // Sin catch, el modal quedaba abierto y sin mensaje: parecía que no pasó
+            // nada y el dato clínico simplemente no se guardaba.
+            toast(e instanceof Error ? e.message : 'NO se registró el traslado ni el cambio de tratante. Reintenta.', 'error')
           } finally { setBusy(false) }
         }}>Guardar</Button></>}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -860,6 +870,7 @@ export default function EpisodioPage() {
           if (!clinicId || !inter) return; setBusy(true)
           const estudios = [...labSel, ...labExtra.split(/[,\n]/).map(s => s.trim()).filter(Boolean)]
           try { await crearSolicitudLab(clinicId, { clinicId, internamientoId, pacienteId: inter.pacienteId, pacienteNombre: inter.pacienteNombre, estudios, prioridad: labPrioridad, solicitadaPor: config?.nombreMedico ?? '', fecha: new Date().toISOString() }); toast('Laboratorio solicitado', 'success'); setModalLab(false); cargar() }
+          catch (e) { toast(e instanceof Error ? e.message : 'NO se envió la solicitud de laboratorio. Reintenta.', 'error') }
           finally { setBusy(false) }
         }}>Solicitar</Button></>}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -890,6 +901,10 @@ export default function EpisodioPage() {
             if (criticos.length) await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'lab_critico', titulo: 'Valor de laboratorio CRÍTICO', detalle: criticos.map(c => `${c.estudio}: ${c.valor} ${c.unidad ?? ''}`).join('; ') })
             else await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'resultado', titulo: 'Resultado de laboratorio listo', detalle: cargandoRes.estudios.join(', ') })
             toast('Resultados cargados', 'success'); setCargandoRes(null); cargar()
+          } catch (e) {
+            // Sin catch, el modal quedaba abierto y sin mensaje: parecía que no pasó
+            // nada y el dato clínico simplemente no se guardaba.
+            toast(e instanceof Error ? e.message : 'NO se guardaron los resultados de laboratorio. Reintenta.', 'error')
           } finally { setBusy(false) }
         }}>Guardar resultados</Button></>}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -932,6 +947,10 @@ export default function EpisodioPage() {
             const n2 = calcularNews2({ ta: sg.ta, fc: num(sg.fc), fr: num(sg.fr), temp: num(sg.temp), spo2: num(sg.spo2), conciencia: sg.conciencia, oxigeno: sg.oxigeno })
             if (n2 && (n2.riesgo === 'alto' || n2.parametroRojo) && inter) await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'news2', titulo: `Deterioro clínico — NEWS2 ${n2.total} (${n2.riesgo})`, detalle: n2.recomendacion })
             toast('Signos registrados', 'success'); setModalSignos(false); setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'alerta', oxigeno: false }); cargar()
+          } catch (e) {
+            // Sin catch, el modal quedaba abierto y sin mensaje: parecía que no pasó
+            // nada y el dato clínico simplemente no se guardaba.
+            toast(e instanceof Error ? e.message : 'NO se guardaron los signos vitales. Reintenta.', 'error')
           } finally { setBusy(false) }
         }}>Guardar</Button></>}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
