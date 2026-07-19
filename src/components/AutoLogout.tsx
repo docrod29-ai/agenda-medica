@@ -8,9 +8,22 @@ import { limpiarBorradoresLocales } from '@/lib/mobile/local-drafts'
  * avisa AVISO_SEG segundos antes y luego cierra la sesión.
  *
  * Diseño anti-interrupción: cualquier actividad reinicia el contador; el aviso
- * permite "Seguir conectado" antes de cerrar. Los borradores clínicos se
- * conservan (recuperación por IndexedDB) aunque se cierre la sesión.
+ * permite "Seguir conectado" antes de cerrar.
+ *
+ * ANTES DE CERRAR SE GUARDA LA NOTA EN EL SERVIDOR. El escenario que rompía esto
+ * es el normal en consulta: el médico DICTA, y dictar no genera mousemove ni
+ * teclas, así que a los 30 min se cerraba la sesión; se purgaban los borradores
+ * locales (correcto: dispositivo compartido) y la consulta dictada desaparecía,
+ * porque solo vivía en el respaldo del navegador. El aviso decía, mientras tanto,
+ * "Tus borradores están a salvo".
+ *
+ * La purga local se mantiene —es el control de PHI en dispositivo compartido—,
+ * pero primero se emite `nx:guardar-todo` y se le da un momento a la pantalla
+ * abierta para persistir en Firestore, que es la fuente de verdad.
  */
+
+/** Evento que pide a la pantalla activa que persista lo que tenga, ya. */
+export const EVENTO_GUARDAR_TODO = 'nx:guardar-todo'
 
 const INACTIVIDAD_MIN = 30           // minutos sin actividad
 const AVISO_SEG = 60                 // segundos de aviso antes de cerrar
@@ -27,10 +40,15 @@ export function AutoLogout() {
   const avisandoRef = useRef(false)
 
   const cerrarSesion = useCallback(() => {
-    limpiarBorradoresLocales() // no dejar residuo clínico en dispositivo compartido
-    import('@/lib/firebase').then(({ auth }) => auth.signOut()).finally(() => {
-      window.location.href = '/login?motivo=inactividad'
-    })
+    // 1º pedir a la consulta abierta que guarde en el servidor…
+    window.dispatchEvent(new CustomEvent(EVENTO_GUARDAR_TODO))
+    // …2º dejarle un momento, y solo entonces purgar lo local y salir.
+    setTimeout(() => {
+      limpiarBorradoresLocales() // no dejar residuo clínico en dispositivo compartido
+      import('@/lib/firebase').then(({ auth }) => auth.signOut()).finally(() => {
+        window.location.href = '/login?motivo=inactividad'
+      })
+    }, 1200)
   }, [])
 
   const limpiar = () => {
@@ -91,7 +109,7 @@ export function AutoLogout() {
         <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>¿Sigues ahí?</div>
         <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.55, margin: '0 0 20px' }}>
           Por seguridad, cerraremos tu sesión en <strong style={{ color: 'var(--nexus)' }}>{restante}s</strong> por
-          inactividad. Tus borradores están a salvo.
+          inactividad. Guardaremos tu nota en el servidor antes de cerrar.
         </p>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
           <button onClick={reiniciar} className="lift" style={{

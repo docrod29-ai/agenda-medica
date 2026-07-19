@@ -102,6 +102,11 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       unsubClinic = onSnapshot(doc(db, 'clinics', member.clinicId), (clinicSnap) => {
         if (clinicSnap.exists()) {
           setClinic({ id: clinicSnap.id, ...clinicSnap.data() } as Clinic)
+        } else {
+          // Sin este `else`, al cambiar de consultorio se quedaba en pantalla el
+          // nombre, el plan y los módulos del ANTERIOR mientras clinicId ya
+          // apuntaba al nuevo: se podía operar creyendo estar en otro sitio.
+          setClinic(null)
         }
         marcarListo()
       }, (err) => { setError(`No pudimos leer los datos de tu consultorio (${err.code}).`); marcarListo() })

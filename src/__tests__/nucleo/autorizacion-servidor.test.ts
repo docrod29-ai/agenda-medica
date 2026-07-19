@@ -183,3 +183,22 @@ describe('superadmin — la consola del dueño', () => {
     expect((await verificarSuperadmin(req())).ok).toBe(false)
   })
 })
+
+describe('permisosPorRol — mínimo privilegio ante datos ausentes', () => {
+  it('REGRESIÓN: rol nulo NO concede permisos de admin', async () => {
+    const { permisosPorRol } = await import('@/lib/permissions')
+    // Es el valor que tiene `role` mientras ClinicContext carga, o si falla.
+    expect(permisosPorRol(null).verExpediente).toBe(false)
+    expect(permisosPorRol(undefined).verExpediente).toBe(false)
+  })
+
+  it('un rol desconocido tampoco escala', async () => {
+    const { permisosPorRol } = await import('@/lib/permissions')
+    expect(permisosPorRol('director-general').verExpediente).toBe(false)
+  })
+
+  it('el médico sí ve el expediente', async () => {
+    const { permisosPorRol } = await import('@/lib/permissions')
+    expect(permisosPorRol('medico').verExpediente).toBe(true)
+  })
+})

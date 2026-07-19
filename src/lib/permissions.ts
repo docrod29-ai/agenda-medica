@@ -91,9 +91,19 @@ const PERMS: Record<Rol, Permisos> = {
   enfermeria: CLINICO_HOSPITAL, farmacia: CLINICO_HOSPITAL, laboratorio: CLINICO_HOSPITAL,
 }
 
-/** Devuelve los permisos correspondientes al rol. Defaults seguros si rol desconocido. */
+/**
+ * Devuelve los permisos correspondientes al rol, con default de MÍNIMO privilegio.
+ *
+ * Decía "defaults seguros" y hacía lo contrario: el `?? 'admin'` se aplicaba
+ * cuando el rol era null/undefined — justo el valor que tiene mientras
+ * ClinicContext carga o si falla — y concedía permisos de ADMIN. Un rol
+ * desconocido-pero-presente sí caía a RECEPCION, lo que muestra cuál era la
+ * intención. Hoy no hay ningún llamador fuera de los tests, así que no se
+ * disparaba; se corrige antes de que alguien lo use.
+ */
 export function permisosPorRol(rol: string | null | undefined): Permisos {
-  return PERMS[(rol as Rol) ?? 'admin'] ?? RECEPCION
+  if (!rol) return RECEPCION
+  return PERMS[rol as Rol] ?? RECEPCION
 }
 
 /** Helper: ¿el rol puede ejecutar esta acción? */

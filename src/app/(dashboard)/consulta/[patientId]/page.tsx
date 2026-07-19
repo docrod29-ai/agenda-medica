@@ -14,6 +14,7 @@ import { useGrabacionAudio } from '@/hooks/useGrabacionAudio'
 import { useComandoVoz } from '@/hooks/useComandoVoz'
 import { ofuscar, desofuscar, secretoLocal } from '@/lib/seguridad/ofuscar-local'
 import { borradoresBloqueados } from '@/lib/mobile/local-drafts'
+import { EVENTO_GUARDAR_TODO } from '@/components/AutoLogout'
 import { usePorcupineComando, type PicovoiceConfig } from '@/hooks/usePorcupineComando'
 import {
   createNota, updateNota, getNota, deleteNota, getUltimasNotasResumen,
@@ -979,9 +980,18 @@ export default function ConsultaActivaPage() {
   // ── Autoguardado cada 30s ──────────────────────────────────────
   useEffect(() => {
     if (firmada) return
-    const t = setInterval(() => { if (resumen || secciones.some(s => s.value)) guardarBorrador(true) }, 30000)
+    // La condición miraba SOLO `resumen` y las secciones. Mientras el médico
+    // DICTA —que es el flujo normal— nada de eso tiene contenido todavía: la
+    // consulta vive en la transcripción, los diagnósticos y los medicamentos.
+    // Resultado: el autoguardado al servidor NUNCA disparaba durante el dictado y
+    // la consulta existía únicamente en el respaldo del navegador. Se usa el mismo
+    // criterio de "hay contenido" que el respaldo local, que sí los miraba.
+    const hayContenido = () =>
+      !!(resumen.trim() || secciones.some(s => s.value?.trim()) ||
+         diagnosticos.length || medicamentos.length || voz.transcripcion.trim())
+    const t = setInterval(() => { if (hayContenido()) guardarBorrador(true) }, 30000)
     return () => clearInterval(t)
-  }, [firmada, resumen, secciones, guardarBorrador])
+  }, [firmada, resumen, secciones, diagnosticos, medicamentos, voz.transcripcion, guardarBorrador])
 
   // ── Red de seguridad LOCAL (anti-pérdida): respalda la nota en el navegador
   //    mientras escribes (instantáneo, sobrevive a crashes y a estar sin red). ──
@@ -1074,6 +1084,21 @@ export default function ConsultaActivaPage() {
       flushRespaldo()  // ← al desmontar (irte a la agenda u otra pantalla): guarda YA
     }
   }, [flushRespaldo])
+
+  // Cerrar sesión (por inactividad o a mano) avisa antes de purgar lo local.
+  // Aquí se aprovecha para dejar la nota en el servidor, que es lo único que
+  // sobrevive al cierre. Sin esto, una consulta dictada y no guardada se perdía.
+  useEffect(() => {
+    const alGuardarTodo = () => {
+      const e = estadoVivoRef.current
+      if (e.firmada) return
+      const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) ||
+        e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim()
+      if (hay) guardarBorrador(true)
+    }
+    window.addEventListener(EVENTO_GUARDAR_TODO, alGuardarTodo)
+    return () => window.removeEventListener(EVENTO_GUARDAR_TODO, alGuardarTodo)
+  }, [guardarBorrador])
 
   const restaurarRespaldo = () => {
     try {

@@ -160,9 +160,16 @@ service cloud.firestore {
       match /config/{docId} {
         allow read: if isMember(clinicId);
         allow create: if isMedico(clinicId);
+        // OJO con el paréntesis: el `isMember` va DENTRO de la segunda rama. Al
+        // introducir este bloqueo por campo se escribió la condición sin él, y la
+        // segunda rama del `||` quedó abierta a CUALQUIER usuario autenticado del
+        // mundo: bastaba sacar el clinicId de la URL pública de reservas y escribir
+        // la config de un consultorio ajeno sin tocar los campos de identidad.
+        // Cerrar un hueco abrió otro más grande; por eso está anotado aquí.
         allow update: if isMedico(clinicId)
-          || !request.resource.data.diff(resource.data).affectedKeys()
-               .hasAny(camposDeIdentidadMedica());
+          || (isMember(clinicId)
+              && !request.resource.data.diff(resource.data).affectedKeys()
+                   .hasAny(camposDeIdentidadMedica()));
         allow delete: if isMedico(clinicId);
       }
       // Alta/baja de médicos y su cédula: solo médico/admin. `doctors` se publica

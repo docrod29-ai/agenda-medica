@@ -16,6 +16,7 @@ import { useClinic } from '@/context/ClinicContext'
 import { rutaPermitida } from '@/lib/modulos'
 import { suscribirMensajes, suscribirLectura, contarNoLeidos, type ChatMessage } from '@/lib/chat'
 import { limpiarBorradoresLocales } from '@/lib/mobile/local-drafts'
+import { EVENTO_GUARDAR_TODO } from '@/components/AutoLogout'
 
 // Cada item declara en qué modos aparece:
 //   medico       → solo cuando el usuario está en modo Médico
@@ -77,6 +78,10 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   )
 
   const handleLogout = async () => {
+    // Pide a la pantalla abierta que persista antes de purgar lo local: si el
+    // médico cierra sesión con una consulta dictada sin guardar, se guarda.
+    window.dispatchEvent(new CustomEvent(EVENTO_GUARDAR_TODO))
+    await new Promise(r => setTimeout(r, 1200))
     limpiarBorradoresLocales() // no dejar residuo clínico en dispositivo compartido
     await signOut(auth)
     router.replace('/login')
