@@ -247,6 +247,7 @@ export default function ConsultaActivaPage() {
   // autoguardados creen notas DUPLICADAS (setNotaId es asíncrono).
   const notaIdRef = useRef<string | null>(notaIdParam)
   useEffect(() => { notaIdRef.current = notaId }, [notaId])
+  const fallosGuardadoRef = useRef(0)
   const cadenaGuardadoRef = useRef<Promise<unknown>>(Promise.resolve())
   const [preop, setPreop] = useState<{ inputs: Record<string, unknown>; resultados: Record<string, unknown> } | undefined>(undefined)
   // Estudios a solicitar (valoración inmuno → pre-pobla la Orden médica)
@@ -887,10 +888,23 @@ export default function ConsultaActivaPage() {
           notaIdRef.current = id   // marca síncrona ANTES de re-render
           setNotaId(id)
         }
+        fallosGuardadoRef.current = 0
         if (!silencioso) toast('Borrador guardado', 'success')
       } catch (e) {
         console.error('[consulta] error guardando borrador:', e)
-        if (!silencioso) toast('Error al guardar el borrador', 'error')
+        // El autoguardado siempre iba en silencio. Si fallaba una y otra vez, el
+        // médico dictaba una consulta entera creyendo que se estaba guardando y
+        // solo quedaba el respaldo local. A partir del tercer fallo seguido se
+        // avisa, aunque sea el guardado automático.
+        fallosGuardadoRef.current += 1
+        if (!silencioso || fallosGuardadoRef.current >= 3) {
+          toast(
+            fallosGuardadoRef.current >= 3
+              ? 'La nota NO se está guardando en el servidor. Hay un respaldo local en este dispositivo: no cierres la pestaña y revisa tu conexión.'
+              : 'Error al guardar el borrador',
+            'error',
+          )
+        }
       } finally {
         setGuardando(false)
       }
@@ -906,8 +920,12 @@ export default function ConsultaActivaPage() {
     if (!confirmar) return
     setGuardando(true)
     try {
-      if (clinicId && notaId) {
-        await deleteNota(clinicId, patientId, notaId)
+      // notaIdRef y NO el estado: si un autoguardado acaba de crear la nota, el
+      // estado todavía no se re-renderizó y se saltaba el borrado, dejando una
+      // nota huérfana en el expediente. firmar() ya usaba la ref por esto mismo.
+      const idReal = notaIdRef.current ?? notaId
+      if (clinicId && idReal) {
+        await deleteNota(clinicId, patientId, idReal)
       }
       try { localStorage.removeItem(respaldoKey) } catch { /* */ }
       toast('Consulta descartada', 'info')

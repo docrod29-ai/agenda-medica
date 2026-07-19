@@ -11,7 +11,7 @@
  * Colapsado por defecto (no estorba); el médico lo abre si quiere auditar.
  */
 
-import { useState } from 'react'
+import { useState, useEffect} from 'react'
 import { ChevronDown, ChevronRight, RotateCcw, Wand2 } from 'lucide-react'
 import type { CambioTranscripcion } from '@/lib/expediente/medical-vocabulary'
 
@@ -31,6 +31,13 @@ interface CorreccionesPanelProps {
 export function CorreccionesPanel({ correcciones, onRevertir }: CorreccionesPanelProps) {
   const [abierto, setAbierto] = useState(false)
   const [revertidas, setRevertidas] = useState<Set<number>>(new Set())
+
+  // `revertidas` guarda ÍNDICES, así que tras un segundo dictado la posición 2
+  // ya es otra corrección: quedaba marcada como revertida, en gris y sin botón
+  // de deshacer. Si Whisper había cambiado mal el nombre de un fármaco, esa
+  // corrección se volvía imposible de revertir con un clic. Se reinicia cuando
+  // cambia la lista.
+  useEffect(() => { setRevertidas(new Set()) }, [correcciones])
 
   if (correcciones.length === 0) return null
   const activas = correcciones.length - revertidas.size

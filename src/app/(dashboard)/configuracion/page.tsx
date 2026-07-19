@@ -122,6 +122,10 @@ export default function ConfiguracionPage() {
       window.location.href = data.url
     } catch {
       toast('Error al conectar con Google', 'error')
+    } finally {
+      // Los dos `return` tempranos salían SIN reponer el estado y no había
+      // finally: tras un 401 o un 500 el botón quedaba en "Conectando…" y
+      // deshabilitado para siempre, hasta recargar la página.
       setGcalLoading(false)
     }
   }
@@ -1949,11 +1953,17 @@ function PortalTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
   const [saving, setSaving] = useState(false)
   const [copied, setCopied] = useState(false)
 
+  // Se siembra UNA sola vez. Sin la guarda, este efecto corría con cada emisión
+  // del listener en vivo de la config: cualquier escritura al documento (otra
+  // pestaña, el autoguardado de otra sección) BORRABA lo que el médico estaba
+  // escribiendo en la nota del portal. El mismo archivo ya lo resuelve así con
+  // formInitRef y rxKeyRef.
+  const portalInitRef = useRef(false)
   useEffect(() => {
-    if (config) {
-      setEnabled(config.publicBookingEnabled !== false)
-      setNote(config.publicBookingNote ?? '')
-    }
+    if (portalInitRef.current || !config) return
+    setEnabled(config.publicBookingEnabled !== false)
+    setNote(config.publicBookingNote ?? '')
+    portalInitRef.current = true
   }, [config])
 
   // URL pública del portal. No expone clinicId más allá de lo necesario (es el id real, pero el endpoint público filtra qué datos devuelve).
