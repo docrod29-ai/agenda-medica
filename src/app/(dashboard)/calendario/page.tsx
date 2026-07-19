@@ -20,7 +20,15 @@ const HOURS = Array.from({ length: 13 }, (_, i) => i + 7) // 7am–7pm
 
 export default function CalendarioPage() {
   const router = useRouter()
-  const { appointments: allAppointments, loading } = useAppointments()
+  const [baseDate, setBaseDate] = useState(new Date())
+  // La ventana de citas se pide desde un mes ANTES de lo que estás viendo, para
+  // que navegar hacia atrás traiga esas citas en vez de mostrar el mes vacío.
+  const desdeVentana = useMemo(() => {
+    const d = new Date(baseDate)
+    d.setMonth(d.getMonth() - 1)
+    return `${d.toISOString().slice(0, 10)} 00:00`
+  }, [baseDate])
+  const { appointments: allAppointments, loading } = useAppointments(desdeVentana)
   const { config } = useConfig()
   const [medicoFiltro, setMedicoFiltro] = useFiltroMedico()
   // Aplicar filtro de médico antes de pasar a las vistas
@@ -29,7 +37,6 @@ export default function CalendarioPage() {
     return allAppointments.filter(a => a.medicoId === medicoFiltro)
   }, [allAppointments, medicoFiltro])
   const [view, setView] = useState<View>('semana')
-  const [baseDate, setBaseDate] = useState(new Date())
   const [modalOpen, setModalOpen] = useState(false)
   const [editAppt, setEditAppt] = useState<Appointment | null>(null)
   const [defaultDate, setDefaultDate] = useState('')

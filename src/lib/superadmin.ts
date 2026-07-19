@@ -40,6 +40,18 @@ export async function verificarSuperadmin(req: NextRequest): Promise<SuperadminA
   }
   try {
     const decoded = await admin.auth().verifyIdToken(header.slice(7).trim())
+    // El correo NO basta: hay que haber demostrado que es tuyo.
+    //
+    // Hallazgo de la auditoría: el alta es autoservicio con contraseña y no exige
+    // verificar el correo. Hoy no es explotable porque el único superadmin ya tiene
+    // cuenta y Firebase no deja registrar un correo existente. Pero en cuanto se
+    // añada un correo NUEVO a SUPERADMIN_EMAILS (p. ej. soporte@), cualquiera puede
+    // ir a /registro, darse de alta con esa dirección y quedarse con la consola de
+    // la plataforma entera sin recibir un solo correo. Es una trampa armada
+    // esperando un cambio de configuración rutinario.
+    if (!decoded.email_verified) {
+      return { ok: false, response: NextResponse.json({ ok: false, error: 'Verifica tu correo antes de entrar a la consola del dueño' }, { status: 403 }) }
+    }
     if (!esSuperadmin(decoded.email)) {
       return { ok: false, response: NextResponse.json({ ok: false, error: 'Acceso restringido al dueño de la plataforma' }, { status: 403 }) }
     }

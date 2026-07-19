@@ -15,6 +15,35 @@
 /** Prefijo exacto de las claves de borrador clínico. */
 export const PREFIJO_BORRADOR = 'nx.consulta.bkp.'
 
+/**
+ * PESTILLO ANTI-RESURRECCIÓN (bug encontrado en la auditoría del Núcleo).
+ *
+ * Al cerrar sesión el orden real de los hechos era: (1) se borran los borradores,
+ * (2) auth.signOut(), (3) window.location → la navegación DESMONTA la consulta y
+ * dispara su flush anti-pérdida, que VOLVÍA A ESCRIBIR el borrador. Y lo escribía
+ * con `auth.currentUser?.uid ?? 'nx'`, que a esas alturas ya es null → se guardaba
+ * con la clave 'nx' y al volver a entrar se leía con el uid real: bytes distintos,
+ * JSON.parse reventaba, y el catch vacío lo descartaba en silencio.
+ *
+ * Lo peor de los dos mundos: el PHI seguía en el disco Y era irrecuperable, con el
+ * modal diciendo "Tus borradores están a salvo".
+ *
+ * El pestillo cierra la ventana: una vez que se limpió por cierre de sesión, ningún
+ * flush tardío puede volver a escribir. La nota sigue protegida por su guardado
+ * en Firestore, que es la fuente de verdad; localStorage es solo la red de crash.
+ */
+let sesionCerrada = false
+
+/** ¿Se cerró sesión y por tanto está prohibido volver a escribir borradores? */
+export function borradoresBloqueados(): boolean {
+  return sesionCerrada
+}
+
+/** Reabre la escritura de borradores (al montar una sesión nueva). */
+export function permitirBorradores(): void {
+  sesionCerrada = false
+}
+
 /** ¿Es una clave de borrador clínico (a limpiar al cerrar sesión)? */
 export function esClaveBorrador(clave: string): boolean {
   return clave.startsWith(PREFIJO_BORRADOR)
@@ -30,6 +59,7 @@ export function clavesABorrar(claves: readonly string[]): string[] {
  * (SSR) y solo toca claves de borrador. Devuelve cuántas borró.
  */
 export function limpiarBorradoresLocales(): number {
+  sesionCerrada = true   // ← cierra la ventana a los flush tardíos del desmonte
   if (typeof window === 'undefined' || !window.localStorage) return 0
   try {
     const todas: string[] = []

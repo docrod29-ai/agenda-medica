@@ -65,3 +65,19 @@ export function desofuscar(dato: string, secreto: string): string | null {
 export function estaOfuscado(dato: string): boolean {
   return typeof dato === 'string' && dato.startsWith(MARCA)
 }
+
+/**
+ * SECRETO PEGAJOSO. `ofuscar`/`desofuscar` son puras; esto no, y por eso vive
+ * aparte.
+ *
+ * El llamador usaba `auth.currentUser?.uid ?? 'nx'`. Si el uid es null por un
+ * instante (cierre de sesión, refresco de token), se escribía con la clave 'nx'
+ * y se leía después con el uid real → bytes distintos, JSON ilegible, borrador
+ * perdido en silencio. Recordar el último uid visto hace que la clave no cambie
+ * a media vida de la sesión.
+ */
+let ultimoSecreto = 'nx'
+export function secretoLocal(uidVivo?: string | null): string {
+  if (uidVivo) ultimoSecreto = uidVivo
+  return ultimoSecreto
+}

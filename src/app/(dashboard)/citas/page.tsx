@@ -50,7 +50,10 @@ function nextDay(d: string) { return sumarDiasISO(d, 1) }
 export default function CitasPage() {
   const params = useSearchParams()
   const router = useRouter()
-  const { appointments, loading } = useAppointments()
+  const [selectedDate, setSelectedDate] = useState(todayStr())
+  // Pide la ventana desde el día que estás viendo: retroceder de día en día
+  // sigue trayendo las citas de esas fechas en vez de mostrar el día vacío.
+  const { appointments, loading } = useAppointments(`${selectedDate} 00:00`)
   const { config } = useConfig()
   const { user } = useAuth()
   const [medicoFiltro, setMedicoFiltro] = useFiltroMedico()
@@ -64,7 +67,6 @@ export default function CitasPage() {
     getPatients(clinicId).then(setPacientes).catch(() => { /* ignore */ })
   }, [clinicId])
 
-  const [selectedDate, setSelectedDate] = useState(todayStr())
   const [statusFilter, setStatusFilter] = useState<AppointmentStatus | 'todas'>('todas')
   const [search, setSearch] = useState('')
   const [modalOpen, setModalOpen] = useState(false)

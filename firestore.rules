@@ -140,11 +140,37 @@ service cloud.firestore {
         allow read: if isClinicoHospital(clinicId);
         allow write: if isMedico(clinicId);
       }
-      match /config/{docId} {
-        allow read, write: if isMember(clinicId);
+      // Configuración del consultorio. La asistente SÍ la necesita para agendar
+      // (horarios, duraciones, sucursales), pero NO debe poder tocar la firma.
+      //
+      // Hallazgo de la auditoría del Núcleo: `config/main` guarda la firma y sello
+      // del médico y su cédula profesional en el MISMO documento que los horarios.
+      // Con `write: if isMember` cualquier recepción podía (a) leerse la firma y
+      // (b), mucho peor, SUSTITUIRLA — y a partir de ahí toda receta impresa sale
+      // con la firma que ella puso, a nombre del médico. En México eso alcanza para
+      // recetar controlados. El repudio va en la dirección equivocada.
+      //
+      // Se bloquean por campo en vez de por documento para no romper el trabajo
+      // diario de la asistente: puede seguir guardando la config, pero si el
+      // guardado CAMBIA alguno de los campos de identidad profesional, se rechaza.
+      // Si los reenvía sin cambios, diff() no los marca y pasa igual.
+      function camposDeIdentidadMedica() {
+        return ['firmaImagenDataUrl', 'firmaPorMedico', 'cedulaProfesional', 'especialidad'];
       }
+      match /config/{docId} {
+        allow read: if isMember(clinicId);
+        allow create: if isMedico(clinicId);
+        allow update: if isMedico(clinicId)
+          || !request.resource.data.diff(resource.data).affectedKeys()
+               .hasAny(camposDeIdentidadMedica());
+        allow delete: if isMedico(clinicId);
+      }
+      // Alta/baja de médicos y su cédula: solo médico/admin. `doctors` se publica
+      // en el perfil público (/api/public/clinic), así que con write de isMember
+      // la recepción podía dar de alta un médico inexistente de cara al paciente.
       match /doctors/{docId} {
-        allow read, write: if isMember(clinicId);
+        allow read: if isMember(clinicId);
+        allow write: if isMedico(clinicId);
       }
       match /bot_sessions/{docId} {
         allow read, write: if false; // Admin SDK only
