@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef} from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useAppointments } from '@/hooks/useAppointments'
 import { useConfig } from '@/hooks/useConfig'
@@ -72,14 +72,22 @@ export default function CitasPage() {
   const [menuId, setMenuId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  // Solo abrir modal cuando es para EDITAR (ya no auto-abre para crear)
+  // Solo abrir modal cuando es para EDITAR (ya no auto-abre para crear).
+  //
+  // El `?id=` se quita de la URL en cuanto se abre. Sin eso el modal se reabría
+  // solo: `appointments` viene de un onSnapshot en vivo, así que cada cambio
+  // volvía a disparar este efecto y el médico no podía cerrarlo.
+  const idAbierto = useRef<string | null>(null)
   useEffect(() => {
     const id = params.get('id')
-    if (id) {
-      const found = appointments.find(a => a.id === id)
-      if (found) { setEditAppt(found); setModalOpen(true) }
-    }
-  }, [params, appointments])
+    if (!id || idAbierto.current === id) return
+    const found = appointments.find(a => a.id === id)
+    if (!found) return
+    idAbierto.current = id
+    setEditAppt(found)
+    setModalOpen(true)
+    router.replace('/citas', { scroll: false })
+  }, [params, appointments, router])
 
   const filtered = useMemo(() => {
     return appointments.filter(a => {
@@ -130,7 +138,12 @@ export default function CitasPage() {
             tipo: appt.tipo,
             medicoId: appt.medicoId,   // ofrecer el hueco solo a quien espera con ESE médico
           }),
-        }).catch((e) => { console.warn('[waitlist-notify] no se pudo avisar a la lista de espera', e) })
+        }).then(res => {
+          if (!res.ok) toast('La cita se actualizó, pero NO se pudo avisar a la lista de espera del hueco libre.', 'error')
+        }).catch((e) => {
+          console.warn('[waitlist-notify] no se pudo avisar a la lista de espera', e)
+          toast('La cita se actualizó, pero NO se pudo avisar a la lista de espera del hueco libre.', 'error')
+        })
       }
     } catch {
       toast('Error al actualizar', 'error')
@@ -143,13 +156,26 @@ export default function CitasPage() {
     const apptBorrada = appointments.find(a => a.id === id)   // capturar antes de borrar (trae el eventId de Google)
     try {
       await deleteAppointment(clinicId!, id)
-      toast('Cita eliminada', 'info')
-      // Borrar también el evento en Google Calendar (antes quedaba huérfano).
+      // Borrar también el evento en Google Calendar.
+      //
+      // Antes esto iba con .catch(() => {}) y sin mirar res.ok, y el toast decía
+      // "Cita eliminada" pasara lo que pasara: si la sincronización fallaba, el
+      // evento seguía vivo en el calendario del PACIENTE, que lo veía en su
+      // teléfono y se presentaba al consultorio. Ahora el aviso dice la verdad.
+      let calendarioLimpio = true
       if (apptBorrada?.googleCalendarEventId) {
-        fetchAutenticado('/api/calendar/sync', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'delete', appointment: apptBorrada, clinicId }),
-        }).catch(() => {})
+        try {
+          const res = await fetchAutenticado('/api/calendar/sync', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'delete', appointment: apptBorrada, clinicId }),
+          })
+          if (!res.ok) calendarioLimpio = false
+        } catch { calendarioLimpio = false }
+      }
+      if (calendarioLimpio) {
+        toast('Cita eliminada', 'info')
+      } else {
+        toast('Cita eliminada aquí, pero NO se pudo borrar de Google Calendar: el paciente la sigue viendo. Bórrala a mano o avísale.', 'error')
       }
     } catch {
       toast('Error al eliminar', 'error')

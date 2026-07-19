@@ -205,7 +205,10 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
                 <option value="nmol/L">nmol/L</option><option value="mg/dL">mg/dL</option>
               </select>
             </div>
-            {resLpa && <p style={{ ...txt, marginTop: 8, color: resLpa.nivel === 'normal' ? 'var(--text2)' : '#f59e0b' }}>{resLpa.texto}</p>}
+            {resLpa && <>
+              <p style={{ ...txt, marginTop: 8, color: resLpa.nivel === 'normal' ? 'var(--text2)' : '#f59e0b' }}>{resLpa.texto}</p>
+              <Nota onAgregarANota={onAgregarANota} texto={resLpa.texto} />
+            </>}
           </Bloque>
 
           <Bloque t="Intensidad de estatina">
@@ -287,6 +290,7 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
               <div style={{ marginTop: 8 }}>
                 <p style={{ ...txt, fontWeight: 700, color: respuesta.categoria === 'incompleta' ? '#f87171' : respuesta.categoria === 'buena' ? '#f59e0b' : '#22c55e' }}>{respuesta.etiqueta}</p>
                 <p style={txt}>{respuesta.conducta}</p>
+                <Nota onAgregarANota={onAgregarANota} texto={`${respuesta.etiqueta}. ${respuesta.conducta}`} />
               </div>
             )}
             <p style={{ ...txt, color: 'var(--text3)', marginTop: 6 }}>{REGLA_3_MESES}</p>
@@ -342,6 +346,7 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
               <div style={{ marginTop: 8 }}>
                 <p style={{ ...txt, fontWeight: 700, color: resElasto.referir ? '#f87171' : '#22c55e' }}>{resElasto.interpretacion}</p>
                 <p style={txt}>{resElasto.conducta}</p>
+                <Nota onAgregarANota={onAgregarANota} texto={`${resElasto.interpretacion} ${resElasto.conducta}`} />
               </div>
             )}
           </Bloque>
