@@ -50,8 +50,11 @@ export async function POST(req: NextRequest) {
       // El webhook lee esto para saber CUÁNTOS créditos sumar y a qué consultorio.
       metadata: { clinicId, tipo: 'recarga', creditos: String(RECARGA.creditos) },
       payment_intent_data: { metadata: { clinicId, tipo: 'recarga', creditos: String(RECARGA.creditos) } },
-      success_url: `${APP_URL}/consulta?recarga=success`,
-      cancel_url:  `${APP_URL}/consulta?recarga=cancelled`,
+      // /consulta sin paciente NO existe (solo /consulta/[patientId]): al volver
+      // de pagar la recarga se caía en un 404. Se manda al panel, que es donde
+      // se ven los créditos ya sumados por el webhook.
+      success_url: `${APP_URL}/?recarga=success`,
+      cancel_url:  `${APP_URL}/?recarga=cancelled`,
     })
 
     return NextResponse.json({ url: session.url })

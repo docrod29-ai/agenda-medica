@@ -34,7 +34,10 @@ export async function POST(req: NextRequest) {
 
     const session = await stripe.billingPortal.sessions.create({
       customer: stripeCustomerId,
-      return_url: `${APP_URL}/dashboard/configuracion`,
+      // (dashboard) es un route GROUP de Next: NO aparece en la URL. Con
+      // /dashboard/configuracion el usuario aterrizaba en un 404 al volver del
+      // portal de facturación de Stripe. La ruta real es /configuracion.
+      return_url: `${APP_URL}/configuracion`,
     })
 
     return NextResponse.json({ url: session.url })
