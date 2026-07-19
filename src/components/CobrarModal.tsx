@@ -64,10 +64,23 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
         creadoPor,
       })
       // Marca la cita con el cobro para EVITAR DOBLE COBRO (el botón se oculta si ya tiene cobroId).
+      let marcadaLaCita = true
       if (prefill?.citaId) {
-        try { await updateAppointment(clinicId, prefill.citaId, { cobroId: id, cobradoEn: new Date().toISOString() }) } catch { /* el cobro ya quedó; no bloquea */ }
+        try {
+          await updateAppointment(clinicId, prefill.citaId, { cobroId: id, cobradoEn: new Date().toISOString() })
+        } catch {
+          // El cobro YA quedó registrado, pero la cita no se marcó. Como el botón
+          // "Cobrar" se oculta justo con ese cobroId, callarlo hacía que el botón
+          // siguiera visible y se cobrara dos veces al mismo paciente.
+          marcadaLaCita = false
+        }
       }
-      toast(`Cobro registrado: ${new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n)}`, 'success')
+      const monto = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n)
+      if (marcadaLaCita) {
+        toast(`Cobro registrado: ${monto}`, 'success')
+      } else {
+        toast(`Cobro de ${monto} registrado, pero NO se pudo marcar la cita. El botón de cobrar seguirá visible: verifica en Finanzas antes de volver a cobrar.`, 'error')
+      }
       onCobrado?.(id)
       onClose()
     } catch (e) {

@@ -21,6 +21,7 @@ export default function ListaEsperaPage() {
   const [loading, setLoading] = useState(true)
   const [errorCarga, setErrorCarga] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
+  const [notificando, setNotificando] = useState<{ entry: WaitlistEntry; fecha: string; hora: string } | null>(null)
 
   const load = async () => {
     if (!clinicId) return
@@ -49,11 +50,37 @@ export default function ListaEsperaPage() {
     }
   }
 
+  /**
+   * Avisar de un hueco libre.
+   *
+   * Antes mandaba SIEMPRE "hoy a las 10:00", quemado en el código: el paciente
+   * recibía por WhatsApp una cita que podía no existir, confirmaba y se
+   * presentaba. Ahora el médico dice qué espacio se liberó, y al enviar se marca
+   * como contactado para no volver a avisarle una y otra vez.
+   */
   const handleNotify = (entry: WaitlistEntry) => {
-    const fecha = new Date().toISOString().slice(0, 10)
-    const hora = '10:00'
-    const msg = msgListaEsperaAviso(entry, config, fecha, hora)
-    openWhatsApp(entry.pacienteTelefono, msg)
+    const ahora = new Date()
+    setNotificando({
+      entry,
+      fecha: ahora.toISOString().slice(0, 10),
+      hora: `${String(ahora.getHours() + 1).padStart(2, '0')}:00`,
+    })
+  }
+
+  const enviarAviso = async () => {
+    if (!notificando) return
+    const { entry, fecha, hora } = notificando
+    openWhatsApp(entry.pacienteTelefono, msgListaEsperaAviso(entry, config, fecha, hora))
+    setNotificando(null)
+    // Marcar contactado: sin esto se le avisaba indefinidamente en cada revisión.
+    try {
+      if (clinicId) {
+        await updateWaitlistEntry(clinicId, entry.id, { estado: 'contactado' })
+        load()
+      }
+    } catch {
+      toast('Se abrió WhatsApp, pero no se pudo marcar como contactado.', 'error')
+    }
   }
 
   const handleConverted = async (id: string) => {
@@ -153,6 +180,28 @@ export default function ListaEsperaPage() {
           </div>
         )}
       </div>
+
+      {/* Qué espacio se liberó: lo dice el médico, no se inventa. */}
+      <Modal
+        open={!!notificando}
+        onClose={() => setNotificando(null)}
+        title="¿Qué espacio se liberó?"
+        footer={<>
+          <Button variant="secondary" onClick={() => setNotificando(null)}>Cancelar</Button>
+          <Button onClick={enviarAviso}>Avisar por WhatsApp</Button>
+        </>}
+      >
+        <p style={{ fontSize: 13, color: 'var(--text2)', marginTop: 0, lineHeight: 1.6 }}>
+          Se le va a mandar a <strong>{notificando?.entry.pacienteNombre}</strong> la fecha y hora exactas
+          que pongas aquí, y va a confirmar sobre eso. Verifica que el hueco de verdad esté libre.
+        </p>
+        <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <Input type="date" label="Fecha" value={notificando?.fecha ?? ''}
+            onChange={e => setNotificando(n => n && { ...n, fecha: e.target.value })} />
+          <Input type="time" label="Hora" value={notificando?.hora ?? ''}
+            onChange={e => setNotificando(n => n && { ...n, hora: e.target.value })} />
+        </div>
+      </Modal>
 
       {modalOpen && (
         <AddWaitlistModal

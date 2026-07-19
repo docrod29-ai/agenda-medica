@@ -110,18 +110,46 @@ export function PreopAssessment({ edadPaciente, disabled, onAplicar, initialInpu
     return generarRecomendaciones(contexto)
   }, [rcri, ctx, rcriRes.elevado])
 
+  /**
+   * ¿Se capturó algo de esta escala?
+   *
+   * Antes se documentaban SIEMPRE las cinco, así que un panel intacto escribía
+   * en la nota "ARISCAT: 0 puntos — Bajo", "STOP-BANG: 0/8 — riesgo bajo" y
+   * "Caprini: 0 — riesgo bajo". Eso es afirmar en un documento clínico que se
+   * evaluó un riesgo que nunca se evaluó, y además lo declara BAJO.
+   *
+   * `prellenados` son campos que la app rellena sola (la edad viene del
+   * expediente) y por tanto no prueban que el médico haya contestado nada.
+   */
+  const capturado = (obj: Record<string, unknown>, prellenados: string[] = []) =>
+    Object.entries(obj).some(([k, v]) =>
+      !prellenados.includes(k) && v !== false && v !== 0 && v !== '' && v != null)
+
   const aplicar = () => {
-    const lineas = [
-      `Riesgo cardiaco RCRI (Lee): ${rcriRes.puntos} punto(s) — Clase ${rcriRes.clase} (MACE 30 d ${rcriRes.riesgoEstimadoLee}, Lee 1999). ${rcriRes.interpretacion}`,
-      `Capacidad funcional DASI: ${dasiRes.score} puntos ≈ ${dasiRes.mets} METs. ${dasiRes.interpretacion}`,
-      `Riesgo pulmonar ARISCAT: ${ariscatRes.puntos} puntos — ${ariscatRes.nivel} (complicaciones pulmonares ${ariscatRes.riesgoEstimado}). Conducta: ${ariscatRes.conducta}`,
-      `Apnea del sueño STOP-BANG: ${stopbangRes.puntos}/8 — riesgo ${stopbangRes.nivel}. ${stopbangRes.interpretacion}`,
-      `Riesgo de TEV (Caprini): ${capriniRes.puntos} puntos — ${capriniRes.nivel}. ${capriniRes.profilaxisSugerida}`,
-    ]
+    const lineas: string[] = []
+    if (capturado(rcri as unknown as Record<string, unknown>)) {
+      lineas.push(`Riesgo cardiaco RCRI (Lee): ${rcriRes.puntos} punto(s) — Clase ${rcriRes.clase} (MACE 30 d ${rcriRes.riesgoEstimadoLee}, Lee 1999). ${rcriRes.interpretacion}`)
+    }
+    if (capturado(dasi)) {
+      lineas.push(`Capacidad funcional DASI: ${dasiRes.score} puntos ≈ ${dasiRes.mets} METs. ${dasiRes.interpretacion}`)
+    }
+    if (capturado(ariscat as unknown as Record<string, unknown>, ['edad'])) {
+      lineas.push(`Riesgo pulmonar ARISCAT: ${ariscatRes.puntos} puntos — ${ariscatRes.nivel} (complicaciones pulmonares ${ariscatRes.riesgoEstimado}). Conducta: ${ariscatRes.conducta}`)
+    }
+    if (capturado(stopbang)) {
+      lineas.push(`Apnea del sueño STOP-BANG: ${stopbangRes.puntos}/8 — riesgo ${stopbangRes.nivel}. ${stopbangRes.interpretacion}`)
+    }
+    if (capturado(caprini)) {
+      lineas.push(`Riesgo de TEV (Caprini): ${capriniRes.puntos} puntos — ${capriniRes.nivel}. ${capriniRes.profilaxisSugerida}`)
+    }
     // CHA2DS2-VASc / HAS-BLED solo si se capturó algo (relevantes en FA/anticoagulación)
     if (chadsvascRes.puntos > 0 || ctx.tomaAnticoagulante) {
       lineas.push(`CHA₂DS₂-VASc: ${chadsvascRes.puntos} puntos. ${chadsvascRes.interpretacion}`)
       lineas.push(`HAS-BLED: ${hasbledRes.puntos} puntos — riesgo ${hasbledRes.nivel}. ${hasbledRes.interpretacion}`)
+    }
+    if (lineas.length === 0) {
+      onAplicar('', '', { inputs: {}, resultados: {} })
+      return
     }
     const conclusion = lineas.join('\n\n')
 
