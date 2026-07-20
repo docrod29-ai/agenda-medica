@@ -204,10 +204,31 @@ export async function updateNota(
     }
   } catch { /* nunca romper la operación clínica */ }
 
-  await updateDoc(notaDoc(clinicId, patientId, notaId), stripUndefined({
-    ...sinId,
-    updatedAt: new Date().toISOString(),
-  }))
+  const payload = stripUndefined({ ...sinId, updatedAt: new Date().toISOString() })
+
+  /**
+   * TOPE DE 1 MB POR DOCUMENTO DE FIRESTORE.
+   *
+   * La nota lleva dentro `transcripcionCruda` y `dialogoDiarizado` —el dictado
+   * completo de la consulta, con separación de voces— más el bloque `extraction`
+   * con una cita textual por campo. En una consulta larga eso crece rápido, y al
+   * pasar el tope `updateDoc` falla: el autoguardado empieza a reventar y el
+   * médico solo ve "no se está guardando", sin saber por qué.
+   *
+   * Se comprueba ANTES de escribir para poder decirlo con nombre y apellido. No
+   * se trunca nada: truncar sería perder material clínico de origen en silencio,
+   * que es peor que fallar. El médico tiene su respaldo local y puede firmar; la
+   * solución de fondo es mover la transcripción a su propia subcolección.
+   */
+  const bytes = new TextEncoder().encode(JSON.stringify(payload)).length
+  if (bytes > 950_000) {
+    throw Object.assign(
+      new Error(`La nota pesa ${(bytes / 1024).toFixed(0)} KB y Firestore admite hasta 1 MB por documento. Suele deberse a una transcripción muy larga. No se perdió nada: hay respaldo local y puedes firmar la nota.`),
+      { code: 'nota-demasiado-grande' },
+    )
+  }
+
+  await updateDoc(notaDoc(clinicId, patientId, notaId), payload)
 }
 
 /**

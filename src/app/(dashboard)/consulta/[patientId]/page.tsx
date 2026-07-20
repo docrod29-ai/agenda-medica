@@ -1150,6 +1150,22 @@ export default function ConsultaActivaPage() {
         if (!silencioso) toast('Borrador guardado', 'success')
       } catch (e) {
         console.error('[consulta] error guardando borrador:', e)
+        /**
+         * EL AVISO TIENE QUE DECIR LA CAUSA, NO SUPONERLA.
+         *
+         * Decía "revisa tu conexión" pasara lo que pasara. Si el fallo es de
+         * permisos, de tamaño del documento o de token vencido, ese texto manda al
+         * médico a mirar su wifi mientras el problema está en otro lado — y
+         * mientras tanto sigue dictando creyendo que se guarda.
+         */
+        const codigo = (e as { code?: string })?.code ?? ''
+        const detalle =
+          codigo === 'permission-denied' ? 'el servidor rechazó el permiso (reglas o sesión vencida)'
+          : codigo === 'unauthenticated' ? 'tu sesión expiró: vuelve a iniciar sesión'
+          : /too large|invalid-argument|exceeds/i.test(String((e as Error)?.message ?? '')) ? 'la nota superó el tamaño máximo de un documento'
+          : codigo === 'nota-demasiado-grande' ? String((e as Error).message)
+          : codigo === 'unavailable' || codigo === 'deadline-exceeded' ? 'no hay conexión con el servidor'
+          : codigo || String((e as Error)?.message ?? 'error desconocido').slice(0, 80)
         // El autoguardado siempre iba en silencio. Si fallaba una y otra vez, el
         // médico dictaba una consulta entera creyendo que se estaba guardando y
         // solo quedaba el respaldo local. A partir del tercer fallo seguido se
@@ -1158,8 +1174,8 @@ export default function ConsultaActivaPage() {
         if (!silencioso || fallosGuardadoRef.current >= 3) {
           toast(
             fallosGuardadoRef.current >= 3
-              ? 'La nota NO se está guardando en el servidor. Hay un respaldo local en este dispositivo: no cierres la pestaña y revisa tu conexión.'
-              : 'Error al guardar el borrador',
+              ? `La nota NO se está guardando en el servidor (${detalle}). Hay un respaldo local en este dispositivo: no cierres la pestaña.`
+              : `Error al guardar el borrador: ${detalle}`,
             'error',
           )
         }
