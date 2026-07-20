@@ -22,6 +22,7 @@ import {
   Plus, Search, Filter, Trash2, Edit2, MessageSquare,
   ChevronLeft, ChevronRight, CalendarDays, MoreVertical,
   Phone, AlertTriangle, DollarSign, Video, BellRing,
+  Stethoscope,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -60,7 +61,7 @@ export default function CitasPage() {
   const [medicoFiltro, setMedicoFiltro] = useFiltroMedico()
   const [cobrarAppt, setCobrarAppt] = useState<Appointment | null>(null)
   const { clinicId } = useClinic()
-  const { toast } = useToast()
+  const { toast, confirm } = useToast()
   const [pacientes, setPacientes] = useState<Patient[]>([])
 
   useEffect(() => {
@@ -209,7 +210,15 @@ export default function CitasPage() {
       setMenuId(null)
       return
     }
-    if (!confirm('¿Eliminar esta cita permanentemente?')) return
+    /**
+     * `confirm` IN-APP, no el nativo.
+     *
+     * `window.confirm` se ignora EN SILENCIO en una PWA instalada: devuelve false
+     * y el borrado simplemente no ocurría, sin ningún mensaje. El médico pulsaba
+     * Eliminar y no pasaba nada. El ToastContext ya documenta este motivo y otras
+     * pantallas ya usan el confirm propio.
+     */
+    if (!(await confirm('¿Eliminar esta cita permanentemente?', { peligro: true, confirmar: 'Eliminar' }))) return
     setDeletingId(id)
     const apptBorrada = appointments.find(a => a.id === id)   // capturar antes de borrar (trae el eventId de Google)
     try {
@@ -336,6 +345,7 @@ export default function CitasPage() {
             {filtered.map((appt, i) => (
               <div key={appt.id} className="nx-reveal" style={{ animationDelay: `${Math.min(i, 12) * 28}ms` }}>
               <AppointmentRowFull
+                onConsulta={pid => router.push(`/consulta/${pid}`)}
                 appt={appt}
                 paciente={pacientes.find(p => p.id === appt.pacienteId) ?? null}
                 config={config}
@@ -400,8 +410,10 @@ function DiaChip({ color, value, label }: { color: string; value: number; label:
 }
 
 function AppointmentRowFull({
-  appt, paciente, config, isLast, menuOpen, onMenuToggle, onEdit, onDelete, onStatusChange, onCobrar, deleting,
+  appt, paciente, config, isLast, menuOpen, onMenuToggle, onEdit, onDelete, onStatusChange, onCobrar, deleting, onConsulta,
 }: {
+  /** Abre la consulta del paciente. Se recibe del padre para no montar otro router. */
+  onConsulta: (pacienteId: string) => void
   appt: Appointment
   paciente: Patient | null
   config: ReturnType<typeof useConfig>['config']
@@ -517,6 +529,30 @@ function AppointmentRowFull({
             }}
           >
             <DollarSign size={13} className="ds-icon" /> Cobrar
+          </button>
+        )}
+        {/*
+          INICIAR CONSULTA desde la fila de la agenda.
+          
+          /citas es la pantalla donde el médico ve quién llegó, y NINGUNO de sus
+          botones abría el expediente ni la consulta. Para el segundo paciente del
+          día y los siguientes había que ir a Pacientes, teclear el nombre, abrir
+          el expediente y pulsar "Nueva consulta": 3 clics, 4 pantallas y tecleo,
+          por paciente. El atajo de 1 clic solo existía en el dashboard y solo para
+          la PRÓXIMA cita.
+        */}
+        {appt.pacienteId && !['cancelada', 'no-asistio'].includes(appt.estado) && (
+          <button
+            onClick={e => { e.stopPropagation(); onConsulta(appt.pacienteId) }}
+            className="btn btn-sm"
+            title="Abrir la consulta de este paciente"
+            style={{
+              background: 'var(--nexus)', color: '#fff', border: 'none', borderRadius: 6,
+              fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+            }}
+          >
+            <Stethoscope size={13} className="ds-icon" /> Consulta
           </button>
         )}
         {/* Botón Recordar — manda por WhatsApp "mañana tiene su cita" (1 clic) */}

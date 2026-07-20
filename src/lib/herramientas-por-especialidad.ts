@@ -110,8 +110,18 @@ const POR_TRONCO: Record<Tronco, HerramientaId[]> = {
   // Apfel, profilaxis con re-dosis. Trauma comparte tronco por lo mismo.
   'cirugia': ['copiloto', 'cirugia', 'calculadoras', 'antibiograma', 'fotos'],
 
-  // Ven de todo: se les deja el juego amplio.
-  'primer-contacto': ['copiloto', 'preventivo', 'cardiometabolico', 'pediatria', 'gineco', 'calculadoras', 'fotos'],
+  /**
+   * PRIMER CONTACTO VE TODO. Indicación explícita del médico.
+   *
+   * Y es lo correcto: el médico general o familiar atiende al niño, a la
+   * embarazada, al adulto con diabetes y al que llega con una herida, muchas veces
+   * el mismo día. Filtrarle herramientas no le ahorra tiempo — se lo quita,
+   * porque la que necesita siempre está en el buscador y no en pantalla.
+   *
+   * El filtrado tiene sentido para el subespecialista, cuyo día es predecible. No
+   * para quien ve de todo.
+   */
+  'primer-contacto': ['copiloto', 'cirugia', 'gineco', 'pediatria', 'calculadoras', 'cardiometabolico', 'preventivo', 'antibiograma', 'fotos'],
 
   // Sin especialidad reconocida NO se adivina: se muestra todo, como hasta ahora.
   // Esconderle herramientas a alguien de quien no sabemos qué hace es peor que

@@ -6,6 +6,7 @@
  * heridas quirúrgicas / úlceras.
  */
 import { useState, useEffect, useCallback } from 'react'
+import { useToast } from '@/context/ToastContext'
 import { Camera, Loader2, Trash2, GitCompare, X } from 'lucide-react'
 import { subirImagen } from '@/lib/subir-imagen'
 import {
@@ -30,6 +31,7 @@ interface Props {
 }
 
 export function FotosClinicas({ clinicId, patientId, notaId, modo = 'completo', embebido }: Props) {
+  const { confirm } = useToast()
   const [fotos, setFotos] = useState<FotoClinica[]>([])
   const [cargando, setCargando] = useState(true)
   const [subiendo, setSubiendo] = useState(false)
@@ -71,7 +73,8 @@ export function FotosClinicas({ clinicId, patientId, notaId, modo = 'completo', 
   }
 
   const borrar = async (f: FotoClinica) => {
-    if (!confirm('¿Eliminar esta foto del expediente?')) return
+    // confirm in-app: el nativo se ignora en silencio en la PWA instalada.
+    if (!(await confirm('¿Eliminar esta foto del expediente?', { peligro: true, confirmar: 'Eliminar' }))) return
     try { await deleteFoto(clinicId, patientId, f.id); await cargar() }
     catch (e) { setError('No se pudo eliminar: ' + (e instanceof Error ? e.message : String(e))) }
   }

@@ -11,7 +11,7 @@ import { useTarea } from '@/context/TareasContext'
 import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
 import { auth } from '@/lib/firebase'
-import { getPatients, updatePatient } from '@/lib/firestore'
+import { getPatient, getPatients, updatePatient } from '@/lib/firestore'
 import { useGrabacionVoz } from '@/hooks/useGrabacionVoz'
 import { useGrabacionAudio } from '@/hooks/useGrabacionAudio'
 import { useComandoVoz } from '@/hooks/useComandoVoz'
@@ -242,7 +242,15 @@ export default function ConsultaActivaPage() {
   // lo es (postoperatoria, preanestésica), o si el diagnóstico habla de cirugía.
   // Una herramienta que no aplica al paciente no debe ni aparecer en la barra.
   const esPediatrico = patient?.edad != null && patient.edad < 18
-  const esGineco = !patient?.sexo || /^f/i.test(patient.sexo)
+  /**
+   * El panel de gineco es de gestación, control prenatal, preeclampsia y Bishop.
+   *
+   * Antes bastaba con que la paciente fuera mujer —o con que el sexo estuviera
+   * VACÍO— así que a una paciente de 78 años el internista le veía "Gestación ·
+   * control prenatal · Bishop". Se acota a edad fértil y se exige que el sexo esté
+   * capturado: sin dato no se asume.
+   */
+  const esGineco = /^f/i.test(patient?.sexo ?? '') && (patient?.edad ?? 0) >= 10 && (patient?.edad ?? 0) <= 60
 
   /** Pega un texto en su sección de la nota (crea la sección si no existía). */
   /**
@@ -457,7 +465,13 @@ export default function ConsultaActivaPage() {
   // ── Cargar paciente + contexto IA ──────────────────────────────
   useEffect(() => {
     if (!clinicId || !patientId) return
-    getPatients(clinicId).then(ps => setPatient(ps.find(p => p.id === patientId) ?? null)).catch(e => console.error('cargar paciente:', e))
+    /**
+     * `getPatient`, no `getPatients`. Se bajaba la colección COMPLETA de pacientes
+     * para quedarse con uno — y el comentario de `getPatient` nombra literalmente
+     * a la consulta entre las pantallas que deben usarla. El expediente ya lo
+     * hacía bien; esta pantalla se había quedado atrás.
+     */
+    getPatient(clinicId, patientId).then(setPatient).catch((e: unknown) => console.error('cargar paciente:', e))
     getUltimasNotasResumen(clinicId, patientId)
       .then(r => { ultimasNotasRef.current = r; setContextoPrevio(r) })
       .catch(e => console.error('contexto de visitas previas:', e))  // degrada sin romper la nota
@@ -2532,6 +2546,26 @@ export default function ConsultaActivaPage() {
             <input value={m.dosis} disabled={firmada} placeholder="Dosis"
               onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, dosis: e.target.value } : x))}
               style={{ ...S.input, flex: 1, minWidth: 70 }} />
+            {/*
+              VÍA: no existía control para cambiarla y se creaba fija en 'oral'.
+              La receta SÍ la imprime, así que una ceftriaxona IV salía impresa
+              como "oral". La plantilla de la nota pide explícitamente
+              "fármaco · dosis · VÍA · intervalo · duración": el sistema sabía que
+              importa, pero no dejaba capturarla.
+            */}
+            <select value={m.via ?? 'oral'} disabled={firmada}
+              onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, via: e.target.value as Medicamento['via'] } : x))}
+              style={{ ...S.input, flex: 1, minWidth: 92 }}>
+              <option value="oral">Oral</option>
+              <option value="iv">IV</option>
+              <option value="im">IM</option>
+              <option value="sc">SC</option>
+              <option value="sublingual">Sublingual</option>
+              <option value="inhalatoria">Inhalada</option>
+              <option value="topica">Tópica</option>
+              <option value="rectal">Rectal</option>
+              <option value="otra">Otra</option>
+            </select>
             <input value={m.frecuencia} disabled={firmada} placeholder="Frecuencia"
               onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, frecuencia: e.target.value } : x))}
               style={{ ...S.input, flex: 1, minWidth: 90 }} />

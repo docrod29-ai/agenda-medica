@@ -88,6 +88,19 @@ describe('qué herramientas ve cada quien', () => {
     expect(h).toContain('cardiometabolico')
   })
 
+  it('medicina general y familiar ven TODAS: su día no es predecible', () => {
+    // Atienden al niño, a la embarazada y al adulto con diabetes el mismo día.
+    // Filtrarles herramientas no ahorra tiempo, lo quita.
+    for (const e of ['Medicina General', 'Medicina Familiar', 'Medicina de Urgencias']) {
+      const h = herramientasDe(e)
+      expect(h).toContain('pediatria')
+      expect(h).toContain('gineco')
+      expect(h).toContain('cirugia')
+      expect(h).toContain('antibiograma')
+      expect(h).toContain('cardiometabolico')
+    }
+  })
+
   it('ninguna especialidad del catálogo se queda sin herramientas', () => {
     for (const e of ESPECIALIDADES_MEDICAS) {
       expect(herramientasDe(e).length).toBeGreaterThan(2)

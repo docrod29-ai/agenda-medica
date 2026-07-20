@@ -13,7 +13,7 @@ import { cfgInput } from './estilos'
 
 export function SeguridadTab() {
   const { user } = useAuth()
-  const { toast } = useToast()
+  const { toast, confirm } = useToast()
   const [factores, setFactores] = useState<{ uid: string; displayName?: string | null; enrollmentTime?: string; factorId?: string }[]>([])
   const [paso, setPaso] = useState<'idle' | 'enrolando' | 'verificando'>('idle')
   const [secret, setSecret] = useState<TotpSecret | null>(null)
@@ -62,7 +62,8 @@ export function SeguridadTab() {
   }
 
   const remover = async (uid: string) => {
-    if (!confirm('¿Quitar este factor 2FA?')) return
+    // confirm in-app: el nativo se ignora en silencio en la PWA instalada.
+    if (!(await confirm('¿Quitar este factor 2FA?', { peligro: true, confirmar: 'Quitar' }))) return
     try {
       await desactivarFactor(uid)
       toast('Factor eliminado', 'success')

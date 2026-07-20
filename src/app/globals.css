@@ -869,7 +869,12 @@ tbody tr:last-child { border-bottom: none; }
   /* Texto ink (alto contraste pero sin negro puro — más sofisticado) */
   --text:      #0B0C0E;
   --text2:     #565A60;
-  --text3:     #8A8E94;
+  /* AA sobre --bg y sobre --s3. El valor anterior (#8A8E94) daba 3.15:1 sobre el
+     fondo y 2.74:1 sobre --s3: NO cumplía. El modo oscuro ya se había corregido y
+     este lado se quedó sin aplicar — y el claro es el que sale por defecto con
+     luz de consultorio. --text3 lleva TODOS los placeholders, las pistas CIE-10 y
+     el texto de ayuda. */
+  --text3:     #6B6F75;
 
   /* Semánticas — versiones light-mode (contraste AA) */
   --blue:      #2057C5;
@@ -898,7 +903,7 @@ tbody tr:last-child { border-bottom: none; }
     --teal-glow:    var(--nexus-soft);
     --text:      #0B0C0E;
     --text2:     #565A60;
-    --text3:     #8A8E94;
+    --text3:     #6B6F75;   /* AA — ver nota arriba */
     --blue:      #2057C5;
     --blue-dim:  #1A4AA8;
     --amber:     #B45309;
