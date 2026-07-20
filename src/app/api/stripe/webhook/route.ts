@@ -115,7 +115,70 @@ export async function POST(req: NextRequest) {
           break
         }
 
-        // SUSCRIPCIÓN: activa el plan + enciende el nivel de IA.
+        /**
+         * ANTICIPO DEL PACIENTE (pago único desde el portal).
+         *
+         * Antes NO tenía rama propia, y como el desvío de arriba solo mira
+         * `tipo === 'recarga'`, caía en la rama de SUSCRIPCIÓN de abajo. El daño
+         * era doble y silencioso:
+         *
+         *  1. `activarPlan(clinicId, 'clinica')` reescribía el plan del
+         *     consultorio. Una clínica en plan Hospital perdía los módulos que
+         *     paga, y `stripeSubscriptionId` quedaba en '' porque un pago único no
+         *     trae suscripción — rompiendo el vínculo con la suscripción real que
+         *     Stripe sigue cobrando. En el otro sentido, una cuenta de prueba se
+         *     quedaba con plan Clínica activo para siempre por el importe de un
+         *     anticipo.
+         *  2. El dinero del paciente no generaba NINGÚN cobro, así que no existía
+         *     en Finanzas ni en el corte de caja: la cita salía en "cuentas por
+         *     cobrar" ya pagada y la asistente la cobraba otra vez en ventanilla.
+         *
+         * Se registra el cobro con candado atómico por `session.id` —el mismo
+         * patrón que ya usaba la recarga— porque Stripe reintenta el webhook.
+         */
+        if (session.mode === 'payment' && session.metadata?.tipo === 'paciente_anticipo') {
+          const citaId = String(session.metadata?.citaId ?? '')
+          const marca = adminDb.collection('anticipos_procesados').doc(session.id)
+          try {
+            await marca.create({ clinicId, citaId, fecha: new Date().toISOString() })
+          } catch {
+            break  // ya procesado (o carrera perdida) → NO registrar de nuevo
+          }
+          const ahora = new Date()
+          const iso = ahora.toISOString()
+          const dia = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'America/Mexico_City', year: 'numeric', month: '2-digit', day: '2-digit',
+          }).format(ahora)
+          const monto = (session.amount_total ?? 0) / 100
+          const citaRef = citaId ? adminDb.collection('clinics').doc(clinicId).collection('appointments').doc(citaId) : null
+          const cita = citaRef ? (await citaRef.get()).data() as Record<string, unknown> | undefined : undefined
+          await adminDb.collection('clinics').doc(clinicId).collection('cobros').add({
+            fecha: iso, dia, mes: dia.slice(0, 7),
+            monto, metodo: 'tarjeta', concepto: 'consulta',
+            descripcion: 'Anticipo pagado en línea por el paciente',
+            citaId: citaId || undefined,
+            patientId: (cita?.pacienteId as string) || undefined,
+            patientNombre: (cita?.pacienteNombre as string) || undefined,
+            medicoId: (cita?.medicoId as string) || undefined,
+            medicoNombre: (cita?.medicoNombre as string) || undefined,
+            folio: `CB-${session.id.slice(-7).toUpperCase()}`,
+            referenciaExterna: session.id,
+            createdAt: iso, creadoPor: 'stripe:anticipo', cancelado: false,
+          })
+          // La cita deja de estar 'pendiente-pago': ya se pagó.
+          if (citaRef) await citaRef.update({ estado: 'pagada', pagadoEn: iso, updatedAt: iso })
+          break
+        }
+
+        /**
+         * SUSCRIPCIÓN: activa el plan + enciende el nivel de IA.
+         *
+         * La guarda por `mode` es deliberada: cualquier pago único FUTURO que se
+         * añada al portal y no tenga rama propia arriba se descartaría aquí en vez
+         * de reescribir el plan del consultorio, que es lo que pasó con el
+         * anticipo del paciente.
+         */
+        if (session.mode !== 'subscription') break
         const plan = ES_PLAN(session.metadata?.plan) ? session.metadata!.plan as PlanKey : 'clinica'
         const nuevaSubId = String(session.subscription ?? '')
         await activarPlan(clinicId, plan, { stripeSubscriptionId: nuevaSubId })

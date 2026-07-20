@@ -10,9 +10,10 @@ import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
 import { auth } from '@/lib/firebase'
 import { getPatients } from '@/lib/firestore'
-import { suscribirCenso, crearInternamiento, getTelefonoAlertas, setTelefonoAlertas } from '@/lib/hospital/firestore'
+import { suscribirCenso, crearInternamiento, getTelefonoAlertas, setTelefonoAlertas, getCamas } from '@/lib/hospital/firestore'
+import { normalizarCama } from '@/lib/hospital/cama'
 import { logAudit } from '@/lib/expediente/audit-log'
-import { SERVICIOS_HOSPITAL, diasEstancia, type Internamiento } from '@/types/hospital'
+import { SERVICIOS_HOSPITAL, ESTADO_CAMA_LABEL, diasEstancia, type Internamiento, type Cama } from '@/types/hospital'
 import type { Patient } from '@/types'
 import { Modal, Button, Spinner, EmptyState } from '@/components/ui'
 import { CensoVacio } from '@/components/brand/EmptyArt'
@@ -37,6 +38,13 @@ export default function CensoPage() {
   const [buscar, setBuscar] = useState('')
   const [pac, setPac] = useState<Patient | null>(null)
   const [servicio, setServicio] = useState(SERVICIOS_HOSPITAL[0])
+  const [camasInventario, setCamasInventario] = useState<Cama[]>([])
+  const camasDelServicio = useMemo(() => camasInventario.filter(c => c.servicio === servicio), [camasInventario, servicio])
+  /** Camas del servicio ya ocupadas por alguien del censo, en forma canónica. */
+  const ocupadas = useMemo(
+    () => new Set(censo.filter(i => i.servicio === servicio).map(i => normalizarCama(i.cama)).filter(Boolean)),
+    [censo, servicio],
+  )
   const [cama, setCama] = useState('')
   const [dxIngreso, setDxIngreso] = useState('')
   const [cie10, setCie10] = useState('')
@@ -51,6 +59,8 @@ export default function CensoPage() {
     if (!clinicId) return
     // Censo EN VIVO: ingresos/egresos/traslados de cualquier usuario aparecen solos.
     const unsub = suscribirCenso(clinicId, c => { setCenso(c); setLoading(false) })
+    // Inventario de camas para ofrecer las reales al ingresar (ver el campo Cama).
+    getCamas(clinicId).then(setCamasInventario).catch(() => { /* el campo sigue siendo libre */ })
     return unsub
   }, [clinicId])
 
@@ -218,7 +228,30 @@ export default function CensoPage() {
             </div>
             <div>
               <label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Cama</label>
-              <input className={inputCls} placeholder="ej. 302-A" value={cama} onChange={e => setCama(e.target.value)} />
+              {/*
+                LA RAÍZ del desajuste entre el censo y el tablero de camas: esto era
+                un campo de texto libre. Escribir "302 A" en vez de "302-A" dejaba la
+                cama pintada como LIBRE con el paciente dentro. Ahora se ofrecen las
+                camas reales del servicio —con aviso de cuáles están ocupadas— pero
+                sigue siendo `datalist` y no `select`: si el inventario está
+                incompleto o llega un ingreso a una cama que aún no se dio de alta,
+                obligar a elegir de la lista bloquearía el ingreso de un paciente, y
+                eso nunca puede pasar en un hospital.
+              */}
+              <input
+                className={inputCls}
+                list="camas-del-servicio"
+                placeholder={camasDelServicio.length ? 'Elige o escribe' : 'ej. 302-A'}
+                value={cama}
+                onChange={e => setCama(e.target.value)}
+              />
+              <datalist id="camas-del-servicio">
+                {camasDelServicio.map(c => (
+                  <option key={c.id} value={c.etiqueta}>
+                    {ocupadas.has(normalizarCama(c.etiqueta)) ? 'ocupada' : c.estado === 'libre' ? 'libre' : ESTADO_CAMA_LABEL[c.estado]}
+                  </option>
+                ))}
+              </datalist>
             </div>
           </div>
 

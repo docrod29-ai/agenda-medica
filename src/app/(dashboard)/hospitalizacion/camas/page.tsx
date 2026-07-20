@@ -10,7 +10,8 @@ import { useClinic } from '@/context/ClinicContext'
 import { getCenso, getCamas, crearCama, actualizarCamaEstado, borrarCama } from '@/lib/hospital/firestore'
 import { SERVICIOS_HOSPITAL, ESTADO_CAMA_LABEL, type Internamiento, type Cama, type EstadoCama } from '@/types/hospital'
 import { Modal, Button, Spinner } from '@/components/ui'
-import { ArrowLeft, BedDouble, Plus, Trash2 } from 'lucide-react'
+import { mismaCama } from '@/lib/hospital/cama'
+import { ArrowLeft, BedDouble, Plus, Trash2, AlertTriangle } from 'lucide-react'
 
 const COLOR: Record<EstadoCama, string> = { libre: '#0d9488', ocupada: '#3d5afe', bloqueada: '#dc2626', limpieza: '#d97706' }
 const inputCls = 'w-full rounded-md border px-2.5 py-2 text-sm bg-transparent'
@@ -33,8 +34,28 @@ export default function CamasPage() {
   }
   useEffect(cargar, [clinicId])
 
-  // ¿La cama está ocupada por un internamiento activo?
-  const ocupante = (cama: Cama) => censo.find(i => i.servicio === cama.servicio && (i.cama || '').trim() === cama.etiqueta.trim())
+  /**
+   * ¿La cama está ocupada por un internamiento activo?
+   *
+   * El cruce se hacía con `===` exacto sobre texto libre: bastaba que enfermería
+   * escribiera "302 A" en vez de "302-A" para que la cama saliera LIBRE con el
+   * paciente dentro. Ver `mismaCama`, que normaliza solo lo que varía al teclear.
+   */
+  const ocupante = (cama: Cama) => censo.find(i => i.servicio === cama.servicio && mismaCama(i.cama, cama.etiqueta))
+
+  /**
+   * Internamientos activos que NO casan con ninguna cama del inventario.
+   *
+   * Es el hallazgo que hay que enseñar, no esconder: cada uno de estos pacientes
+   * está ocupando una cama real que el tablero cuenta como DISPONIBLE. Quien mira
+   * la ocupación para decidir si acepta un ingreso está viendo capacidad que no
+   * existe. Normalizar reduce los casos; enseñarlos cierra el resto (cama sin
+   * capturar, cama que no está dada de alta en el inventario, servicio mal puesto).
+   */
+  const sinCamaEnInventario = useMemo(
+    () => censo.filter(i => !camas.some(c => c.servicio === i.servicio && mismaCama(i.cama, c.etiqueta))),
+    [censo, camas],
+  )
 
   const porServicio = useMemo(() => {
     const m = new Map<string, Cama[]>()
@@ -57,6 +78,28 @@ export default function CamasPage() {
       <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 10 }}>
         <BedDouble size={22} style={{ color: 'var(--nexus,#3d5afe)' }} /> Tablero de camas
       </h1>
+      {sinCamaEnInventario.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 10,
+          background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.35)',
+          borderRadius: 12, padding: '13px 15px', margin: '0 0 16px',
+        }}>
+          <AlertTriangle size={17} style={{ color: '#dc2626', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 13.5, lineHeight: 1.6, color: 'var(--text)' }}>
+            <strong>{sinCamaEnInventario.length} paciente{sinCamaEnInventario.length !== 1 ? 's' : ''} internado{sinCamaEnInventario.length !== 1 ? 's' : ''} sin cama del inventario.</strong>{' '}
+            Ocupan una cama real que este tablero está contando como disponible. Revisa la cama
+            capturada en el episodio o da de alta la cama en el inventario.
+            <div style={{ marginTop: 7, fontSize: 12.5, color: 'var(--text2)' }}>
+              {sinCamaEnInventario.map(i => (
+                <div key={i.id}>
+                  {i.pacienteNombre} · {i.servicio}{i.cama ? ` · cama capturada: "${i.cama}"` : ' · sin cama capturada'}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {totalCamas > 0 && <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 20px' }}>Ocupación global: <strong style={{ color: pctGlobal >= 85 ? '#dc2626' : 'var(--text)' }}>{pctGlobal}%</strong> · {totalOcupadas}/{totalCamas} camas · {totalCamas - totalOcupadas} libres</p>}
 
       {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}><Spinner /></div>

@@ -29,7 +29,38 @@ async function leerCitasPaciente(clinicId: string, patientId: string): Promise<A
     .collection('appointments')
     .where('pacienteId', '==', patientId)
     .get()
-  return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Appointment, 'id'>) }))
+  /**
+   * LISTA BLANCA, no `...spread` del documento.
+   *
+   * Se devolvía la cita CRUDA al paciente. Entre sus campos viaja
+   * `notasInternas`, que el propio tipo describe como "notas del dueño sobre este
+   * cliente (no visibles al cliente)": ahí es donde el consultorio anota que
+   * alguien es moroso o conflictivo, o una sospecha clínica todavía no
+   * comunicada. La interfaz del portal solo pintaba un subconjunto, así que no
+   * se veía — pero estaba en el JSON, a un DevTools de distancia.
+   *
+   * También se iban `cobroId`, `cobradoEn`, `googleCalendarEventId` y quién creó
+   * o modificó la cita, que son datos internos del consultorio.
+   *
+   * Se enumera lo que el paciente SÍ puede ver. Con `spread`, cualquier campo
+   * nuevo que se añada a la cita mañana se filtraría solo.
+   */
+  return snap.docs.map(d => {
+    const a = d.data() as Appointment
+    return {
+      id: d.id,
+      fechaHora: a.fechaHora,
+      duracion: a.duracion,
+      tipo: a.tipo,
+      motivo: a.motivo,
+      estado: a.estado,
+      medicoId: a.medicoId,
+      medicoNombre: a.medicoNombre,
+      pacienteId: a.pacienteId,
+      pacienteNombre: a.pacienteNombre,
+      confirmadoPaciente: a.confirmadoPaciente,
+    } as Appointment
+  })
 }
 
 async function leerConfig(clinicId: string): Promise<ClinicConfig | null> {

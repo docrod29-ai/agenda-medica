@@ -971,9 +971,34 @@ export default function EpisodioPage() {
         footer={<><Button variant="secondary" onClick={() => setModalImport(false)}>Cancelar</Button><Button loading={busy} disabled={!importTxt.trim()} onClick={async () => {
           if (!clinicId || !inter) return; setBusy(true)
           try {
-            const { parsearLabsFhir } = await import('@/lib/hospital/fhir-import')
+            const { parsearLabsFhir, sujetosDelBundle, verificaSujeto } = await import('@/lib/hospital/fhir-import')
             const resultados = parsearLabsFhir(importTxt)
             if (!resultados.length) { toast('No se encontraron Observations en el FHIR', 'error'); return }
+            /**
+             * ¿DE QUIÉN son estos resultados?
+             *
+             * Antes no se preguntaba: se archivaban en el paciente del episodio
+             * abierto, y el `subject` del Bundle se descartaba. Pegar el Bundle de
+             * otro paciente por tener la pestaña equivocada metía sus laboratorios
+             * en este expediente, con mensaje de éxito y sin ningún aviso.
+             *
+             * No coincide → se BLOQUEA, no se advierte. Sobre resultados de
+             * laboratorio se transfunde y se ajusta insulina; un aviso que se
+             * puede aceptar de un clic no es una salvaguarda.
+             */
+            const veredicto = verificaSujeto(sujetosDelBundle(importTxt), { id: inter.pacienteId, nombre: inter.pacienteNombre })
+            if (veredicto.veredicto === 'no-coincide') {
+              toast(`BLOQUEADO: estos resultados son de ${veredicto.detalle}, no de ${inter.pacienteNombre}. Ábrelos en el episodio correcto.`, 'error')
+              return
+            }
+            /**
+             * Sin identificar NO es coincidencia: el Bundle simplemente no dice de
+             * quién es. Aquí sí decide una persona, pero viendo el nombre a quien
+             * se le van a archivar — que es justo lo que faltaba.
+             */
+            if (veredicto.veredicto === 'sin-identificar' && !(await confirm(
+              `Este archivo no identifica al paciente. Los ${resultados.length} resultados se archivarán en el expediente de ${inter.pacienteNombre}. ¿Es correcto?`
+            ))) return
             await crearSolicitudLab(clinicId, { clinicId, internamientoId, pacienteId: inter.pacienteId, pacienteNombre: inter.pacienteNombre, estudios: resultados.map(r => r.estudio), prioridad: 'rutina', solicitadaPor: 'Importación FHIR', fecha: new Date().toISOString() })
               .then(async (id) => { await cargarResultadosLab(clinicId, id, resultados, 'FHIR'); const crit = resultados.filter(r => r.critico); if (crit.length) await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'lab_critico', titulo: 'Valor de laboratorio CRÍTICO (FHIR)', detalle: crit.map(c => `${c.estudio}: ${c.valor} ${c.unidad ?? ''}`).join('; ') }) })
             toast(`Importados ${resultados.length} resultados`, 'success'); setModalImport(false); cargar()

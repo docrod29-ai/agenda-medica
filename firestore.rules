@@ -245,8 +245,21 @@ service cloud.firestore {
       }
       // Reseñas: read publicadas o miembros leen todo; create solo desde servidor
       match /reviews/{reviewId} {
-        allow read: if true;  // permite mostrar publicadas en página pública
-        allow create: if isAuth();   // creación protegida adicional en route /api
+        /**
+         * Solo lo PUBLICADO es público. Con `read: if true` se exponían también
+         * las reseñas pendientes y las RECHAZADAS de cualquier clínica: justo lo
+         * que un médico modera para que no se vea.
+         */
+        allow read: if isMember(clinicId) || resource.data.estado == 'publicada';
+        /**
+         * Crear solo desde el servidor. El comentario anterior daba por hecho que
+         * bastaba con proteger la ruta /api, pero la regla no obliga a pasar por
+         * ella: con `isAuth()`, cualquier cuenta —incluida la de prueba de otro
+         * consultorio— podía escribir reseñas en la clínica que quisiera usando el
+         * SDK cliente, sin token y sin cita. Quedaban en moderación, pero llenaban
+         * la cola de otro.
+         */
+        allow create: if false;   // solo Admin SDK (/api/public/resena)
         allow update, delete: if isMember(clinicId);
       }
       // Chat interno (médico ↔ asistente)
@@ -262,7 +275,22 @@ service cloud.firestore {
 
     // Solicitudes de reseña (top-level — el paciente las lee con el token)
     match /clinic_review_requests/{token} {
-      allow read: if true;        // token funciona como autorización
+      /**
+       * GET público, LIST bloqueado — la misma distinción que ya se hace en
+       * `clinic_invitations` aquí abajo, y por la misma razón.
+       *
+       * `read` cubre `get` Y `list`. Como esta colección es de primer nivel, con
+       * `read: if true` cualquiera sin autenticarse podía pedir la colección
+       * ENTERA y recibir, de todas las clínicas: nombre del paciente, nombre del
+       * médico, clinicId y el token de reseña. Nombre de paciente asociado a un
+       * médico y su especialidad es un dato de salud inferido (LFPDPPP), y encima
+       * entregaba los tokens para suplantar reseñas.
+       *
+       * El token sigue funcionando como autorización, que era la intención: lo
+       * que se quita es la enumeración, no el acceso por id.
+       */
+      allow get: if true;
+      allow list: if false;
       allow create: if isAuth();  // el médico genera la solicitud
       // El paciente SOLO puede marcarla usada (false→true); no puede quemarla sin
       // enviar ni alterar otros campos (antes `if true` dejaba corromperla).
