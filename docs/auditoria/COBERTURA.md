@@ -9,7 +9,7 @@ Estados: **CERRADO** · **EN CURSO** · **PENDIENTE**
 |---|---|---|---|
 | 0 | Núcleo (layout, contextos, sesión, reglas, alta de consultorio) | **CERRADO** v460–v465 | Bugs, Seguridad, Rendimiento, Normativa, Integridad |
 | 1 | Consulta y Expediente Clínico (dictado, IA, firma, adendas) | **CERRADO** v466–v468 | IA clínica, Bugs, Seguridad, Integridad |
-| 2 | Agenda y citas | PENDIENTE | — |
+| 2 | Agenda y citas | **CERRADO** v470–v471 | Bugs, Integridad |
 | 3 | Recetas, órdenes y referencias (impresión, formatos) | PENDIENTE | — |
 | 4 | Hospitalización (censo, episodio, MAR, signos) | PENDIENTE | — |
 | 5 | Antibiograma y motor PROA | PENDIENTE | — |

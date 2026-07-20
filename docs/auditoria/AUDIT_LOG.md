@@ -148,3 +148,71 @@ propio o quitarlo. No se puede firmar con la marca puesta.
 **Nada de este módulo se ha probado dictando una consulta real.** Lo pendiente más
 importante: comprobar que el modelo no marque de más — si marca lo que sí se dictó, el
 aviso se vuelve ruido y se deja de leer.
+
+---
+
+## Módulo 2 — Agenda y citas · CERRADO 2026-07-20
+
+Superficie: agenda, calendario, asistente, modal de citas, disponibilidad, portal
+público de reservas y el bot de WhatsApp.
+
+Agentes: Bugs · Integridad de datos.
+
+### Veredicto sobre la ventana de 120 días (introducida en v461)
+
+**LIMPIA.** Se rastrearon todos los consumidores de `useAppointments`: ninguna pantalla de
+métricas lo usa. Corte de caja, CRM y reactivación consultan su propia ventana, siempre
+≥ al periodo que reportan. No hay ningún total calculado sobre datos parciales. La ventana
+solo tiene cota inferior, así que ninguna cita futura puede quedar oculta.
+
+Sí dejó dos defectos propios, corregidos en v470: al ampliarse no volvía a "cargando"
+(pintaba "No hay citas" hasta que respondiera Firestore) y el modal usaba su propia
+ventana, así que al editar una cita de hace más de 120 días veía ese día vacío y ofrecía
+como libre el horario de la cita de al lado.
+
+### Empalmes — el peor resultado de una agenda es un paciente sin atención
+
+| Ver | Hallazgo |
+|---|---|
+| v470 | Se podía agendar en **domingo, en festivo y fuera del horario**: cuando no hay huecos el modal cambia el desplegable por un campo de hora libre, y ni el cliente ni `POST /api/appointments` validaban día ni horario. Solo lo hacía el portal público. |
+| v470 | **Reagendar no pasaba por ninguna transacción**: iba por `updateDoc` directo desde el navegador, así que mover una cita encima de otra ni siquiera competía con las altas nuevas. |
+| v470 | El hueco liberado se ofrece a **3 pacientes de la lista de espera** y los 3 podían agendarlo: esa rama del bot creaba la cita con un `.add()` pelón. La otra rama ya era transaccional. |
+| v470 | Esa cita nacía **sin `medicoId`**: invisible al filtrar por médico y contando como ocupada para todos. Una cita que existe, que nadie ve, y que estorba. |
+| v470 | El **centinela de serialización** se partía por médico+día cuando la lógica dice que una cita sin médico choca contra todas: dos transacciones que debían competir no se veían. |
+
+### Datos y visibilidad
+
+| Ver | Hallazgo |
+|---|---|
+| v470 | `noShowCount`, `cancelacionCount` y `ultimaCita` se leían en **cuatro pantallas y nunca se escribían**. El motor de riesgo de no-show documenta el historial como "la señal más fuerte" y esa señal valía 0 siempre. En el CRM todos los pacientes contaban como inactivos; la retención NOM-004 se evaluaba con una fecha vacía. |
+| v470 | El **calendario se corría un día completo** en zonas al este de CDMX (Cancún es UTC-5 todo el año y es mercado real de turismo médico). |
+| v471 | **Cancelar desde el menú rápido no borraba el evento de Google Calendar** — el paciente lo seguía viendo y se presentaba. |
+| v471 | El **filtro de médico se quedaba pegado** si ese médico se daba de baja: agenda vacía todos los días, sin control en pantalla para quitarlo. |
+| v471 | Guardar en el modal reescribía las banderas de recordatorio con el valor congelado al abrirlo → el paciente **recibía el aviso dos veces**. |
+| v471 | Borrar una cita cobrada dejaba el **cobro huérfano** y descuadraba el corte de caja. |
+| v471 | La cita **sin expediente ligado** se creaba en silencio, con toast verde. |
+| v471 | `/api/public/availability` leía la **colección completa** de citas en cada clic del portal, sin autenticación. |
+
+### Herramienta nueva
+
+`POST /api/mantenimiento/backfill-contadores` reconstruye los contadores históricos desde
+las citas existentes. Idempotente por diseño: recalcula y escribe el total, no incrementa —
+un backfill que incrementa no se puede repetir si se corta a la mitad. Admite `?simular=1`.
+
+### Pendiente en este módulo
+
+- Reagenda desde el portal: se marca la cita como desincronizada de Google Calendar en vez
+  de sincronizarla, porque el token está guardado por usuario y no se puede saber cuál de
+  los médicos conectó ese calendario. Falta el control en el panel para re-sincronizar.
+- `bot_sessions` tiene dos convenciones de id conviviendo (`waitlist-notify` usa `where` +
+  `add`; `lib/firestore` usa id determinista): puede duplicar sesiones y perder la oferta
+  de un hueco en silencio.
+- `public/booking` interpreta la fecha en la zona del servidor (UTC en Vercel). Hoy no
+  explota porque el portal solo ofrece de mañana en adelante; se rompe el día que se
+  habilite reserva el mismo día.
+- Enlace `?id=` a una cita fuera de la ventana no abre nada y no avisa.
+
+### No verificado
+
+El backfill **no se ha ejecutado**. Conviene correrlo primero con `?simular=1` y mirar los
+números antes de escribir.
