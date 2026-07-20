@@ -15,10 +15,11 @@ import {
   ArrowLeft, Mic, FileText, Loader2, AlertTriangle, CheckCircle2,
   Clock, ChevronDown, ChevronUp, Plus, Printer, Trash2, Send, Pill, ClipboardList, Pencil, Upload,
   Stethoscope, Activity, LogIn, LogOut, UserPlus, ClipboardCheck, ShieldPlus, type LucideIcon,
-  Camera,
+  Camera, FlaskConical,
 } from 'lucide-react'
 import { Button, EmptyState, Spinner, Badge } from '@/components/ui'
 import { FotosClinicas } from '@/components/FotosClinicas'
+import { PanelLaboratorios } from '@/components/laboratorio/PanelLaboratorios'
 import { Herramientas } from '@/components/Herramientas'
 import { ExpedienteVacio } from '@/components/brand/EmptyArt'
 import { avatarColor } from '@/lib/avatar-color'
@@ -180,6 +181,16 @@ export default function ExpedientePage() {
           id: 'fotos', nombre: 'Fotografía clínica seriada', color: 'var(--teal)', icono: <Camera size={14} />,
           para: 'Serie por región · comparación antes/después con días de evolución',
           contenido: <FotosClinicas embebido modo="completo" clinicId={clinicId} patientId={patientId} />,
+        }]} />
+      )}
+
+      {/* Laboratorios con IA: adjuntar PDF/foto → interpretar → gráficas de
+          evolución. Plegado como las fotos, para no saturar el expediente. */}
+      {clinicId && patientId && (
+        <Herramientas items={[{
+          id: 'laboratorios', nombre: 'Laboratorios', color: 'var(--teal)', icono: <FlaskConical size={14} />,
+          para: 'Adjunta PDF o foto → la IA los interpreta → gráficas de tendencia por analito',
+          contenido: <PanelLaboratorios clinicId={clinicId} patientId={patientId} />,
         }]} />
       )}
 

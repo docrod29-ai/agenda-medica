@@ -1,0 +1,88 @@
+import { describe, it, expect } from 'vitest'
+import { aNumero, fechaValida, validarPanel, seriesDesdeHistorial } from '@/lib/expediente/laboratorio/extraccion'
+import { analitoDe, valorPlausible } from '@/lib/expediente/laboratorio/analitos'
+
+describe('lectura de números de laboratorio', () => {
+  it('acepta coma decimal y desigualdades', () => {
+    expect(aNumero('1,2')).toBe(1.2)
+    expect(aNumero('<5')).toBe(5)
+    expect(aNumero(92)).toBe(92)
+  })
+  it('rechaza lo ambiguo', () => {
+    expect(aNumero('120/80')).toBeNull()
+    expect(aNumero('positivo')).toBeNull()
+    expect(aNumero('')).toBeNull()
+  })
+})
+
+describe('fecha del estudio', () => {
+  it('acepta YYYY-MM-DD razonable', () => {
+    expect(fechaValida('2026-07-20')).toBe('2026-07-20')
+  })
+  it('rechaza formatos raros o años absurdos', () => {
+    expect(fechaValida('20/07/2026')).toBe('')
+    expect(fechaValida('1850-01-01')).toBe('')
+    expect(fechaValida(undefined)).toBe('')
+  })
+})
+
+describe('reconocimiento de analitos', () => {
+  it('agrupa sinónimos en la misma clave', () => {
+    expect(analitoDe('Glucosa')?.clave).toBe('glucosa')
+    expect(analitoDe('Glu')?.clave).toBe('glucosa')
+    expect(analitoDe('glicemia')?.clave).toBe('glucosa')
+  })
+  it('NO confunde hemoglobina glucosilada con hemoglobina', () => {
+    expect(analitoDe('Hemoglobina glucosilada')?.clave).toBe('hba1c')
+    expect(analitoDe('Hemoglobina')?.clave).toBe('hemoglobina')
+  })
+  it('NO confunde creatinina en orina con la sérica', () => {
+    expect(analitoDe('Creatinina en orina')).toBeNull()
+    expect(analitoDe('Creatinina')?.clave).toBe('creatinina')
+  })
+  it('descarta valores fuera de rango (otra unidad)', () => {
+    expect(valorPlausible('creatinina', 1.1)).toBe(true)
+    expect(valorPlausible('creatinina', 80)).toBe(false) // µmol/L, no mg/dL
+  })
+})
+
+describe('validación del panel completo', () => {
+  it('estructura, marca crítico y separa lo no reconocido', () => {
+    const r = validarPanel({
+      fecha: '2026-07-20',
+      filas: [
+        { estudio: 'Glucosa', valor: '92', unidad: 'mg/dL' },
+        { estudio: 'Potasio', valor: '7.2', unidad: 'mEq/L' }, // crítico
+        { estudio: 'Creatinina', valor: '80', unidad: 'umol/L' }, // fuera de rango → no graficable
+        { estudio: 'Anticuerpo raro', valor: 'positivo' }, // no reconocido
+      ],
+    })
+    expect(r.fecha).toBe('2026-07-20')
+    const glu = r.resultados.find(x => x.clave === 'glucosa')
+    expect(glu?.valor).toBe(92)
+    expect(glu?.critico).toBe(false)
+    expect(r.resultados.find(x => x.clave === 'potasio')?.critico).toBe(true)
+    // creatinina en µmol/L y el anticuerpo caen en no reconocidas
+    expect(r.noReconocidas.some(x => x.estudio === 'Creatinina')).toBe(true)
+    expect(r.noReconocidas.some(x => x.estudio === 'Anticuerpo raro')).toBe(true)
+  })
+
+  it('NO conserva identificadores del paciente aunque vinieran', () => {
+    // La función solo procesa `filas`; cualquier nombre/CURP que la IA metiera
+    // en otro campo simplemente no se lee.
+    const r = validarPanel({ fecha: '2026-07-20', filas: [{ estudio: 'Glucosa', valor: '92' }] })
+    expect(JSON.stringify(r)).not.toMatch(/curp|nombre|paciente/i)
+  })
+})
+
+describe('series temporales para las gráficas', () => {
+  it('agrupa por analito y ordena por fecha', () => {
+    const series = seriesDesdeHistorial([
+      { fecha: '2026-07-20', resultados: [{ clave: 'glucosa', etiqueta: 'Glucosa', valor: 92, unidad: 'mg/dL', critico: false, graficable: true }] },
+      { fecha: '2026-01-10', resultados: [{ clave: 'glucosa', etiqueta: 'Glucosa', valor: 180, unidad: 'mg/dL', critico: false, graficable: true }] },
+    ])
+    const glu = series.find(s => s.clave === 'glucosa')
+    expect(glu?.puntos.map(p => p.fecha)).toEqual(['2026-01-10', '2026-07-20'])
+    expect(glu?.puntos.map(p => p.valor)).toEqual([180, 92])
+  })
+})

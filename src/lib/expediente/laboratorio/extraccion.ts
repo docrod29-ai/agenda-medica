@@ -1,0 +1,144 @@
+import { analitoDe, valorPlausible, type Analito } from './analitos'
+import { evaluarCriticoLab } from '@/lib/hospital/lab-criticos'
+
+/**
+ * VALIDACIÓN DE LO QUE LA IA EXTRAE DE UN PDF/FOTO DE LABORATORIO.
+ *
+ * La IA de visión solo TRANSCRIBE lo legible (mismo foso que el antibiograma): no
+ * interpreta ni inventa. Aquí, en código determinista, se limpia y estructura lo
+ * que devolvió, se agrupa por analito canónico y se marca la criticidad con el
+ * motor ya auditado. Nada de esto confía en la IA para decidir criticidad.
+ *
+ * PRIVACIDAD: esta función NO conserva identificadores del paciente aunque la IA
+ * los devolviera. El registro se guarda bajo el patientId; el nombre/folio/CURP
+ * que aparezca en la hoja se descarta a propósito (constraint del proyecto: la
+ * extracción por foto no captura identificadores del paciente).
+ *
+ * Puro y determinista → testeable.
+ */
+
+/** Una fila cruda como la devuelve la IA de visión. */
+export interface FilaCruda {
+  estudio?: string
+  valor?: string | number
+  unidad?: string
+  referencia?: string
+}
+
+/** Un resultado ya validado y listo para graficar. */
+export interface ResultadoValidado {
+  clave: string
+  etiqueta: string
+  valor: number
+  unidad: string
+  referencia?: string
+  critico: boolean
+  /** Se puso en una serie temporal (analito reconocido y valor plausible). */
+  graficable: boolean
+}
+
+/** El panel completo tras validar. */
+export interface PanelValidado {
+  /** Fecha del estudio (YYYY-MM-DD) tal como la extrajo la IA, o '' si no la halló. */
+  fecha: string
+  resultados: ResultadoValidado[]
+  /** Filas que la IA leyó pero no se reconocieron: se conservan como texto, sin graficar. */
+  noReconocidas: { estudio: string; valor: string; unidad?: string }[]
+}
+
+/** Lee un número aceptando coma decimal y signos de desigualdad; null si ambiguo. */
+export function aNumero(v: string | number | undefined | null): number | null {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null
+  if (!v) return null
+  const limpio = String(v).replace(',', '.').replace(/[<>≤≥~]/g, '').trim()
+  // Rechaza cadenas con más de un número (p. ej. "120/80"): no se sabe cuál es.
+  const nums = limpio.match(/-?\d+(\.\d+)?/g)
+  if (!nums || nums.length !== 1) return null
+  const n = parseFloat(nums[0])
+  return Number.isFinite(n) ? n : null
+}
+
+/** Fecha en formato YYYY-MM-DD si es válida y razonable; '' si no. */
+export function fechaValida(f: string | undefined | null): string {
+  if (!f) return ''
+  const m = String(f).trim().match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!m) return ''
+  const [, y, mo, d] = m
+  const año = Number(y)
+  // Un laboratorio no es del año 1900 ni del 2100: rango sano.
+  if (año < 1990 || año > 2100) return ''
+  if (Number(mo) < 1 || Number(mo) > 12 || Number(d) < 1 || Number(d) > 31) return ''
+  return `${y}-${mo}-${d}`
+}
+
+/**
+ * Valida y estructura el resultado crudo de la IA.
+ *
+ * @param crudo  lo que devolvió la IA de visión (sin confiar en su criticidad)
+ */
+export function validarPanel(crudo: { fecha?: string; filas?: FilaCruda[] }): PanelValidado {
+  const resultados: ResultadoValidado[] = []
+  const noReconocidas: PanelValidado['noReconocidas'] = []
+  const vistos = new Set<string>()
+
+  for (const fila of crudo.filas ?? []) {
+    const estudio = (fila.estudio ?? '').trim()
+    const num = aNumero(fila.valor)
+    if (!estudio) continue
+
+    const a: Analito | null = analitoDe(estudio)
+    if (!a || num === null || !valorPlausible(a.clave, num)) {
+      // Reconocible como texto pero no graficable: se conserva sin inventar serie.
+      noReconocidas.push({ estudio, valor: String(fila.valor ?? ''), unidad: fila.unidad?.trim() || undefined })
+      continue
+    }
+    // Un mismo analito repetido en la hoja: se queda el primero (evita duplicar el punto).
+    if (vistos.has(a.clave)) continue
+    vistos.add(a.clave)
+
+    const unidad = fila.unidad?.trim() || a.unidad
+    const critico = evaluarCriticoLab(a.clave, num, unidad).critico
+    resultados.push({
+      clave: a.clave, etiqueta: a.etiqueta, valor: num, unidad,
+      referencia: fila.referencia?.trim() || undefined, critico, graficable: true,
+    })
+  }
+
+  return { fecha: fechaValida(crudo.fecha), resultados, noReconocidas }
+}
+
+/**
+ * Construye las SERIES temporales a partir de varios paneles (para las gráficas).
+ * Cada serie = un analito con sus puntos {fecha, valor} ordenados en el tiempo.
+ */
+export interface SerieAnalito {
+  clave: string
+  etiqueta: string
+  unidad: string
+  grupo: string
+  refMin?: number
+  refMax?: number
+  puntos: { fecha: string; valor: number; critico: boolean }[]
+}
+
+export function seriesDesdeHistorial(
+  paneles: { fecha: string; resultados: ResultadoValidado[] }[],
+): SerieAnalito[] {
+  const porClave = new Map<string, SerieAnalito>()
+  // Paneles ordenados por fecha ascendente para que la línea vaya en el tiempo.
+  const ordenados = [...paneles].filter(p => p.fecha).sort((a, b) => a.fecha.localeCompare(b.fecha))
+  for (const panel of ordenados) {
+    for (const r of panel.resultados) {
+      if (!r.graficable) continue
+      let s = porClave.get(r.clave)
+      if (!s) {
+        const meta = analitoDe(r.etiqueta)
+        s = { clave: r.clave, etiqueta: r.etiqueta, unidad: r.unidad, grupo: meta?.grupo ?? 'otro', refMin: meta?.refMin, refMax: meta?.refMax, puntos: [] }
+        porClave.set(r.clave, s)
+      }
+      s.puntos.push({ fecha: panel.fecha, valor: r.valor, critico: r.critico })
+    }
+  }
+  // Solo series con ≥1 punto (las de ≥2 se dibujan como línea; 1 punto = marcador).
+  return [...porClave.values()]
+}

@@ -134,6 +134,17 @@ service cloud.firestore {
           }
         }
 
+        /**
+         * Historial de LABORATORIOS del paciente (valores extraídos de PDF/foto).
+         * Secreto médico, igual que las notas: solo médico/admin. Cada doc es un
+         * panel con su fecha; nunca se editan (se borra y se re-sube si hay error).
+         */
+        match /laboratorios/{labId} {
+          allow read: if isMedico(clinicId);
+          allow create, delete: if isMedico(clinicId);
+          allow update: if false;
+        }
+
         // Fotografía clínica seriada (dermatología, heridas, seguimiento).
         // Dato personal SENSIBLE: mismo secreto médico que las notas — la
         // asistente nunca tiene acceso. Se permite borrar (una toma mal hecha
