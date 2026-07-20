@@ -6,6 +6,7 @@
  * Todo el contenido sale de módulos respaldados por guía; nada se inventa.
  */
 import { useMemo, useState } from 'react'
+import { evaluarPanelLipidico } from '@/lib/expediente/cardiometabolico/biomarcadores-lipidos'
 import { Activity, Droplet, FileText, Plus, Printer, Scale, Waves } from 'lucide-react'
 import {
   metaLipidica, planTrigliceridos, interpretarLpa, categorizarPrevent,
@@ -43,6 +44,11 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
   const [tg, setTg] = useState('')
   const [lpa, setLpa] = useState('')
   const [unidadLpa, setUnidadLpa] = useState<'nmol/L' | 'mg/dL'>('nmol/L')
+  // Biomarcadores más allá del LDL-C: el perfil ya trae total y HDL, así que
+  // no-HDL y remanente salen sin pedir ningún estudio extra.
+  const [ct, setCt] = useState('')
+  const [hdl, setHdl] = useState('')
+  const [apoB, setApoB] = useState('')
   const [prevent, setPrevent] = useState('')
   const [ascvd, setAscvd] = useState(false)
   const [eventos, setEventos] = useState('0')
@@ -64,6 +70,24 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
   const planTG = useMemo(() => (tg ? planTrigliceridos(Number(tg)) : null), [tg])
   const resLpa = useMemo(() => (lpa ? interpretarLpa(Number(lpa), unidadLpa) : null), [lpa, unidadLpa])
   const catPrevent = useMemo(() => (prevent ? categorizarPrevent(Number(prevent)) : null), [prevent])
+
+  /**
+   * Panel lipídico avanzado. Se calcula con lo que haya: no-HDL y remanente salen
+   * del perfil habitual (total y HDL), así que aparecen sin pedir ningún estudio
+   * extra, y `faltantes` dice qué conviene solicitar.
+   */
+  const panelAvanzado = useMemo(() => evaluarPanelLipidico({
+    colesterolTotal: ct ? Number(ct) : undefined,
+    hdl: hdl ? Number(hdl) : undefined,
+    ldl: ldl ? Number(ldl) : undefined,
+    trigliceridos: tg ? Number(tg) : undefined,
+    apoB: apoB ? Number(apoB) : undefined,
+    lpa: lpa ? Number(lpa) : undefined,
+    lpaUnidad: unidadLpa,
+  }, {
+    categoria: meta.ldl <= 55 ? 'muy-alto' : meta.ldl <= 70 ? 'alto' : 'intermedio',
+    metaNoHDL: meta.noHDL,
+  }), [ct, hdl, ldl, tg, apoB, lpa, unidadLpa, meta.ldl, meta.noHDL])
 
   // Peso
   const [peso, setPeso] = useState('')
@@ -198,6 +222,47 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
               <Nota onAgregarANota={onAgregarANota} texto={`${planTG.categoria}. Azúcares añadidos ${planTG.azucares}. Grasa total ${planTG.grasaTotal}. Alcohol: ${planTG.alcohol}. ${planTG.peso}`} />
             </Res>
           )}
+
+          <Bloque t="Más allá del LDL-C — apoB, no-HDL y colesterol remanente">
+            <p style={{ ...txt, color: 'var(--text3)', marginTop: 0 }}>
+              El LDL-C se <em>calcula</em> y estima el colesterol que llevan las partículas, no
+              cuántas hay. Con triglicéridos altos, diabetes o síndrome metabólico se queda corto —
+              y ese es el perfil más frecuente en consulta.
+            </p>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <Campo l="Colesterol total" v={ct} s={setCt} w={110} />
+              <Campo l="HDL" v={hdl} s={setHdl} w={90} />
+              <Campo l="apoB (mg/dL)" v={apoB} s={setApoB} w={110} />
+            </div>
+
+            {panelAvanzado.lecturas.map((l, i) => (
+              <Res key={i} color={l.nivel === 'optimo' ? '#22c55e' : l.nivel === 'limitrofe' ? '#f59e0b' : '#f87171'} titulo={l.nombre}>
+                <p style={{ ...txt, fontWeight: 600 }}>{l.interpretacion}</p>
+                <p style={{ ...txt, color: 'var(--text3)' }}>{l.fundamento}</p>
+                <ul style={lista}>{l.recomendaciones.map((r, k) => <li key={k}>{r}</li>)}</ul>
+                <p style={{ ...txt, color: 'var(--text3)' }}>{l.referencia}</p>
+                <Nota onAgregarANota={onAgregarANota}
+                  texto={`${l.nombre}: ${l.interpretacion} ${l.recomendaciones.join(' ')} (${l.referencia})`} />
+              </Res>
+            ))}
+
+            {panelAvanzado.discordancias.length > 0 && (
+              <Res color="#f87171" titulo="Discordancia entre marcadores">
+                <ul style={lista}>{panelAvanzado.discordancias.map((d, i) => <li key={i}>{d}</li>)}</ul>
+                <Nota onAgregarANota={onAgregarANota}
+                  texto={`Discordancia lipídica: ${panelAvanzado.discordancias.join(' ')}`} />
+              </Res>
+            )}
+
+            {panelAvanzado.faltantes.length > 0 && (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text3)' }}>Conviene solicitar</div>
+                <ul style={lista}>{panelAvanzado.faltantes.map((f, i) => <li key={i}>{f}</li>)}</ul>
+                <Nota onAgregarANota={onAgregarANota}
+                  texto={`Se solicitan para completar el perfil lipídico: ${panelAvanzado.faltantes.join(' ')}`} />
+              </div>
+            )}
+          </Bloque>
 
           <Bloque t="Lp(a) — la guía 2026 la pide al menos UNA VEZ en todo adulto">
             <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>

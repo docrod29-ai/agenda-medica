@@ -8,10 +8,11 @@
  * Superficie independiente: no toca el flujo de la nota/consulta.
  */
 import { useState, useRef, useMemo, useEffect } from 'react'
+import { resumenParaNota } from '@/lib/expediente/antibiograma/resumen-nota'
 import {
   interpretarAntibiograma, sitioDesdeMuestra, pruebasDesdeReporte,
   CATALOGO_ATB, ATB_FRECUENTES,
-  type SIR, type SitioInfeccion, type InterpretacionAntibiograma,
+  type SIR, type SitioInfeccion, type InterpretacionAntibiograma, type EntradaAntibiograma,
   type PruebasConfirmatorias, type ResultadoPrueba,
 } from '@/lib/expediente/antibiograma'
 import { fetchAutenticado } from '@/lib/auth-client'
@@ -80,7 +81,17 @@ function parseCMI(s: string): { valor: number; censurada?: '>' | '<' } | null {
   return isNaN(n) ? null : { valor: n, censurada: simbolo }
 }
 
-export default function AntibiogramaPage() {
+/**
+ * Herramienta de antibiograma.
+ *
+ * Se exporta como COMPONENTE además de como página para poder embeberla en la
+ * consulta: era la herramienta principal del médico y su conclusión había que
+ * reescribirla a mano en la nota, porque vivía en una pantalla aparte.
+ */
+export function AntibiogramaTool({ embebido, onAgregarANota }: {
+  embebido?: boolean
+  onAgregarANota?: (texto: string) => void
+} = {}) {
   const [organismo, setOrganismo] = useState('')
   const [sitio, setSitio] = useState<SitioInfeccion>('otro')
   const [filas, setFilas] = useState<Fila[]>([nuevaFila('Ceftriaxona'), nuevaFila('Meropenem')])
@@ -113,6 +124,24 @@ export default function AntibiogramaPage() {
         }
       })
     return interpretarAntibiograma({ organismo: organismo.trim(), resultados, sitio, pruebas })
+  }, [organismo, filas, sitio, pruebas])
+
+  /** La misma entrada que consumió el motor, para poder resumirla a la nota. */
+  const entradaActual: EntradaAntibiograma | null = useMemo(() => {
+    if (!organismo.trim()) return null
+    return {
+      organismo: organismo.trim(),
+      sitio,
+      pruebas,
+      resultados: filas.filter(f => f.antibiotico.trim()).map(f => {
+        const cmi = parseCMI(f.cmi)
+        return {
+          antibiotico: f.antibiotico.trim(),
+          interpretacion: f.interpretacion,
+          ...(cmi != null ? { cmi: cmi.valor, ...(cmi.censurada ? { cmiCensurada: cmi.censurada } : {}) } : {}),
+        }
+      }),
+    }
   }, [organismo, filas, sitio, pruebas])
 
   const setPrueba = (k: keyof PruebasConfirmatorias, v: ResultadoPrueba | undefined) =>
@@ -404,8 +433,30 @@ export default function AntibiogramaPage() {
           )}
         </div>
       )}
+
+      {/*
+        La conclusión del antibiograma se lleva a la nota de un clic. Antes había
+        que reescribirla a mano: la herramienta vivía en su propia pantalla, fuera
+        de la consulta.
+      */}
+      {onAgregarANota && res && entradaActual && (
+        <button
+          type="button"
+          onClick={() => onAgregarANota(resumenParaNota(entradaActual, res))}
+          className="lift"
+          style={{
+            marginTop: 16, background: 'var(--nexus)', color: '#fff', border: 'none',
+            borderRadius: 10, padding: '10px 18px', fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
+          }}>
+          → Agregar el antibiograma a la nota
+        </button>
+      )}
     </div>
   )
+}
+
+export default function AntibiogramaPage() {
+  return <AntibiogramaTool />
 }
 
 function Resultado({ res }: { res: InterpretacionAntibiograma }) {

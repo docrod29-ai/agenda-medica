@@ -78,6 +78,16 @@ const PanelGineco = dynamic(() => import('@/components/PanelGineco').then(m => m
 const PanelCirugia = dynamic(() => import('@/components/PanelCirugia').then(m => m.PanelCirugia), { ssr: false })
 const PanelCardiometabolico = dynamic(() => import('@/components/PanelCardiometabolico').then(m => m.PanelCardiometabolico), { ssr: false })
 const PanelPreventivo = dynamic(() => import('@/components/PanelPreventivo').then(m => m.PanelPreventivo), { ssr: false })
+/**
+ * Antibiograma dentro de la consulta.
+ *
+ * Era una pantalla aparte, así que su conclusión —fenotipo, mecanismo, terapia
+ * dirigida, aislamiento— había que reescribirla a mano en la nota. Para un
+ * infectólogo es la herramienta cuyo resultado más veces tiene que quedar en el
+ * expediente. Va con `dynamic` porque arrastra el motor completo y no se necesita
+ * en la mayoría de las consultas.
+ */
+const AntibiogramaTool = dynamic(() => import('@/app/(dashboard)/antibiograma/page').then(m => m.AntibiogramaTool), { ssr: false })
 const CalculadorasClinicas = dynamic(() => import('@/components/CalculadorasClinicas').then(m => m.CalculadorasClinicas), { ssr: false })
 const FotosClinicas = dynamic(() => import('@/components/FotosClinicas').then(m => m.FotosClinicas), { ssr: false })
 
@@ -2138,6 +2148,11 @@ export default function ConsultaActivaPage() {
           para: 'Tamizajes por edad y sexo · tendencia de laboratorios',
           contenido: <PanelPreventivo embebido edad={patient?.edad} sexo={patient?.sexo}
             onAgregarANota={agregarASeccion('preventivo', 'Medicina preventiva')} />,
+        },
+        {
+          id: 'antibiograma', nombre: 'Antibiograma', color: '#f59e0b', icono: <FlaskConical size={14} />,
+          para: 'Interpretar un cultivo: fenotipo, mecanismo de resistencia y terapia dirigida',
+          contenido: <AntibiogramaTool embebido onAgregarANota={agregarASeccion('antibiograma', 'Antibiograma e interpretación')} />,
         },
         {
           id: 'fotos', nombre: 'Fotografía clínica', color: 'var(--teal)', icono: <Camera size={14} />,
