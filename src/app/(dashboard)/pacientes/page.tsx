@@ -354,7 +354,7 @@ function PatientModal({ patient, onClose, onSaved, userEmail }: {
   onSaved: () => void
   userEmail: string
 }) {
-  const { toast } = useToast()
+  const { toast, confirm } = useToast()
   const { clinicId } = useClinic()
   const { mode } = useMode()
   const [saving, setSaving] = useState(false)
@@ -402,6 +402,34 @@ function PatientModal({ patient, onClose, onSaved, userEmail }: {
         await updatePatient(clinicId!, patient.id, payload)
         toast('Paciente actualizado', 'success')
       } else {
+        /**
+         * GUARDIA ANTI-DUPLICADO.
+         *
+         * La lista de pacientes se cachea 30 s en memoria, y esa caché solo la
+         * invalida la pestaña que escribe. Secuencia real de consultorio: la
+         * asistente da de alta a "María López" en la tablet; en la laptop del
+         * médico la caché es de hace 20 s, así que al buscarla NO aparece y se
+         * crea otra vez. Resultado: dos expedientes del mismo paciente con el
+         * historial clínico partido en dos. No se ve como un error — se ve como
+         * un paciente nuevo, que es lo que lo hace peligroso.
+         *
+         * Antes de crear se relee SIN caché y se compara por teléfono (o por
+         * nombre si no hay teléfono). No se bloquea: se pregunta, porque dos
+         * personas pueden llamarse igual de verdad.
+         */
+        const frescos = await getPatients(clinicId!, { force: true })
+        const telNuevo = payload.telefono
+        const posible = frescos.find(p =>
+          (telNuevo && p.telefono?.replace(/\D/g, '') === telNuevo) ||
+          (!telNuevo && p.nombre?.trim().toLowerCase() === payload.nombre.toLowerCase()),
+        )
+        if (posible) {
+          const seguir = await confirm(
+            `Ya existe "${posible.nombre}" con esos datos. Si lo creas otra vez, su historial quedará partido en dos expedientes. ¿Crearlo de todas formas?`,
+            { peligro: true, confirmar: 'Crear de todas formas' },
+          )
+          if (!seguir) { setSaving(false); return }
+        }
         await createPatient(clinicId!, payload)
         toast('Paciente registrado', 'success')
       }

@@ -8,7 +8,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
-import { createClinic } from '@/lib/firestore'
+import { fetchAutenticado } from '@/lib/auth-client'
 import { Stethoscope, Loader2, ArrowRight } from 'lucide-react'
 
 export default function SetupPage() {
@@ -16,6 +16,7 @@ export default function SetupPage() {
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
   const [form, setForm] = useState({
     nombreMedico: '',
     nombreClinica: '',
@@ -34,15 +35,33 @@ export default function SetupPage() {
 
   const handleCreate = async () => {
     if (!form.nombreMedico.trim() || !form.nombreClinica.trim()) return
+    if (!user) { setError('Tu sesión expiró. Vuelve a iniciar sesión.'); return }
     setSaving(true)
+    setError('')
     try {
-      await createClinic(user!.uid, {
-        nombreClinica: form.nombreClinica.trim(),
-        nombreMedico: form.nombreMedico.trim(),
+      // Vía servidor y en UNA transacción. Antes eran cuatro escrituras sueltas
+      // desde el navegador: con dos pestañas abiertas se creaban dos consultorios
+      // y el segundo pisaba la membresía del primero, dejando uno huérfano y
+      // facturable al que ya no se podía entrar.
+      const res = await fetchAutenticado('/api/clinic/crear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombreClinica: form.nombreClinica.trim(),
+          nombreMedico: form.nombreMedico.trim(),
+          especialidad: form.especialidad.trim(),
+          telefono: form.telefono.trim(),
+        }),
       })
+      const r = await res.json().catch(() => ({}))
+      if (!res.ok || !r?.ok) throw new Error(r?.error || 'No se pudo crear tu consultorio')
       router.replace('/dashboard')
     } catch (err) {
+      // El catch solo hacía console.error y quitaba el spinner: el médico veía el
+      // botón volver a la normalidad sin saber si había funcionado, y pulsaba otra
+      // vez — alimentando justo el duplicado que la transacción ahora impide.
       console.error(err)
+      setError(err instanceof Error ? err.message : 'No se pudo crear tu consultorio. Revisa tu conexión.')
       setSaving(false)
     }
   }
@@ -127,6 +146,16 @@ export default function SetupPage() {
               onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'}
             />
           </div>
+
+          {error && (
+            <div style={{
+              background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)',
+              borderRadius: 10, padding: '11px 14px', marginTop: 14,
+              fontSize: 13.5, lineHeight: 1.5, color: 'var(--text)',
+            }}>
+              {error}
+            </div>
+          )}
 
           <button
             onClick={handleCreate}

@@ -32,53 +32,11 @@ const COLLECTIONS = {
 
 // ── Clinic CRUD (root level) ──────────────────────────────────
 
-export async function createClinic(
-  ownerId: string,
-  data: { nombreClinica: string; nombreMedico: string }
-): Promise<string> {
-  // ── CANDADO ANTI-DUPLICADO ──────────────────────────────────────────────
-  // Si este usuario YA pertenece a un consultorio, NO se crea otro: se devuelve
-  // el que ya tiene. Antes, crear un segundo consultorio SOBRESCRIBÍA la
-  // membresía (clinic_members/{uid}) y el usuario "perdía" su consultorio
-  // original (quedaba huérfano). Esto evita empalmar/cambiar de cuenta sin querer.
-  const yaMiembro = await getDoc(doc(db, 'clinic_members', ownerId))
-  if (yaMiembro.exists()) {
-    const cid = (yaMiembro.data() as ClinicMember).clinicId
-    if (cid) return cid
-  }
-
-  const now = new Date().toISOString()
-  const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
-
-  // Create clinic doc with auto-ID
-  const ref = await addDoc(collection(db, 'clinics'), {
-    ...data,
-    plan: 'trial',
-    status: 'trial',
-    ownerId,
-    trialEndsAt,
-    createdAt: now,
-    updatedAt: now,
-  })
-
-  // Create membership for owner
-  await setDoc(doc(db, 'clinic_members', ownerId), {
-    clinicId: ref.id,
-    role: 'admin',
-    createdAt: now,
-  })
-
-  // Create default config
-  await setDoc(doc(db, 'clinics', ref.id, 'config', 'main'), {
-    ...DEFAULT_CONFIG,
-    nombreClinica: data.nombreClinica,
-    nombreMedico: data.nombreMedico,
-    createdAt: now,
-    updatedAt: now,
-  })
-
-  return ref.id
-}
+// El alta del consultorio se movió a POST /api/clinic/crear, donde ocurre dentro
+// de UNA transacción del Admin SDK. Aquí eran cuatro escrituras sueltas con un
+// "candado anti-duplicado" de leer-y-luego-escribir que no es atómico: dos
+// pestañas en /setup creaban dos consultorios y la segunda pisaba la membresía de
+// la primera, dejando uno huérfano —y facturable— al que ya no se podía entrar.
 
 export async function getClinic(clinicId: string): Promise<Clinic | null> {
   const snap = await getDoc(doc(db, 'clinics', clinicId))
@@ -305,31 +263,53 @@ export interface BotSession {
   createdAt: string
 }
 
+/**
+ * ID de documento DERIVADO del teléfono, en vez de uno aleatorio.
+ *
+ * El patrón anterior era leer-y-luego-escribir: `getBotSession` (consulta por
+ * teléfono) y, si no había nada, `addDoc`. Cuando el paciente manda dos mensajes
+ * seguidos —"Hola" y "quiero cita" con un segundo de diferencia— los dos webhooks
+ * corren en paralelo, ambos ven que no existe sesión y ambos crean una. A partir
+ * de ahí `getBotSession` devolvía `snap.docs[0]` sin `orderBy`, es decir un
+ * documento u otro sin orden garantizado, y la conversación saltaba entre los dos
+ * perdiendo lo ya capturado (nombre, fecha). `deleteBotSession` borraba solo uno
+ * y el otro seguía contaminando.
+ *
+ * Con un id determinista el duplicado es imposible: las dos escrituras van al
+ * mismo documento. Se elimina la consulta, la carrera y el duplicado de una vez.
+ */
+function idSesionBot(telefono: string): string {
+  const limpio = (telefono || '').replace(/\D/g, '').slice(-15)
+  return limpio || 'sin-telefono'
+}
+
 export async function getBotSession(clinicId: string, telefono: string): Promise<BotSession | null> {
-  const snap = await getDocs(query(
-    col(clinicId, COLLECTIONS.botSessions),
-    where('telefono', '==', telefono)
-  ))
-  if (snap.empty) return null
-  const docSnap = snap.docs[0]
+  const ref = d(clinicId, COLLECTIONS.botSessions, idSesionBot(telefono))
+  const snap = await getDoc(ref)
+  if (snap.exists()) return { id: snap.id, ...snap.data() } as BotSession
+  // Compatibilidad: sesiones creadas antes con id aleatorio. Son conversaciones
+  // en curso; no se abandonan a mitad del flujo por cambiar el esquema de ids.
+  const viejas = await getDocs(query(col(clinicId, COLLECTIONS.botSessions), where('telefono', '==', telefono)))
+  if (viejas.empty) return null
+  const docSnap = viejas.docs[0]
   return { id: docSnap.id, ...docSnap.data() } as BotSession
 }
 
 export async function upsertBotSession(clinicId: string, telefono: string, data: Partial<BotSession>): Promise<void> {
-  const existing = await getBotSession(clinicId, telefono)
   const now = new Date().toISOString()
-  if (existing) {
-    await updateDoc(d(clinicId, COLLECTIONS.botSessions, existing.id), { ...data, lastMessageAt: now })
-  } else {
-    await addDoc(col(clinicId, COLLECTIONS.botSessions), {
-      telefono, estado: 'inicio', datos: {}, lastMessageAt: now, createdAt: now, ...data,
-    })
-  }
+  // setDoc con merge sobre id determinista: sin lectura previa, sin carrera.
+  await setDoc(
+    d(clinicId, COLLECTIONS.botSessions, idSesionBot(telefono)),
+    sinUndefined({ telefono, estado: 'inicio', datos: {}, createdAt: now, ...data, lastMessageAt: now }),
+    { merge: true },
+  )
 }
 
 export async function deleteBotSession(clinicId: string, telefono: string): Promise<void> {
-  const existing = await getBotSession(clinicId, telefono)
-  if (existing) await deleteDoc(d(clinicId, COLLECTIONS.botSessions, existing.id))
+  await deleteDoc(d(clinicId, COLLECTIONS.botSessions, idSesionBot(telefono))).catch(() => {})
+  // Barre también el duplicado heredado, si quedó alguno del esquema viejo.
+  const viejas = await getDocs(query(col(clinicId, COLLECTIONS.botSessions), where('telefono', '==', telefono)))
+  await Promise.all(viejas.docs.map(v => deleteDoc(d(clinicId, COLLECTIONS.botSessions, v.id)).catch(() => {})))
 }
 
 // ── Audit ─────────────────────────────────────────────────────
