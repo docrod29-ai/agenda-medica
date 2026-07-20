@@ -1,6 +1,7 @@
 'use client'
 /**
- * PANEL CARDIOMETABÓLICO — dislipidemia, obesidad, hígado graso y su hoja para
+ * PANEL CARDIOMETABÓLICO — dislipidemia, obesidad, MASLD (esteatosis hepática
+ * metabólica) y su hoja para
  * el paciente, en un solo lugar porque en la consulta real vienen juntos.
  * Todo el contenido sale de módulos respaldados por guía; nada se inventa.
  */

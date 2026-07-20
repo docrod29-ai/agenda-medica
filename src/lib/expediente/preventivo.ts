@@ -94,7 +94,7 @@ export const TAMIZAJES: Tamizaje[] = [
     condicion: 'Sobrepeso u obesidad. Con factores de riesgo adicionales se inicia antes',
   },
   {
-    prueba: 'FIB-4 para hígado graso', desde: 18, hasta: null, sexo: 'ambos',
+    prueba: 'FIB-4 para esteatosis hepática metabólica (MASLD)', desde: 18, hasta: null, sexo: 'ambos',
     frecuencia: 'En la visita inicial y anualmente',
     organismo: 'ADA, Standards of Care 2026',
     condicion: 'Diabetes tipo 2, prediabetes, u obesidad con al menos un factor de riesgo cardiovascular',

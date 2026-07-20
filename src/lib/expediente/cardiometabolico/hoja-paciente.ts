@@ -83,7 +83,7 @@ export function generarHoja(d: DatosPaciente): HojaPaciente {
       acciones.push(`Para ${m.complicacion.toLowerCase()}: bajar ${m.beneficio} de su peso ya produce un beneficio real.`)
     }
     if (acciones.length === 0) {
-      acciones.push(`Bajar entre 5% y 10% de su peso (${cinco} a ${diez} kg) mejora la presión arterial, el azúcar, el colesterol y el hígado graso.`)
+      acciones.push(`Bajar entre 5% y 10% de su peso (${cinco} a ${diez} kg) mejora la presión arterial, el azúcar, el colesterol y la grasa en el hígado.`)
     }
     acciones.push('Perder peso poco a poco protege su músculo y su hueso; bajarlo muy rápido no.')
 
@@ -143,7 +143,12 @@ export function generarHoja(d: DatosPaciente): HojaPaciente {
     const r = interpretarFib4(d.fib4, d.edad)
     if (r) {
       const parrafos = [
-        'El hígado graso es la acumulación de grasa dentro del hígado. Es muy frecuente en México y casi nunca da síntomas.',
+        /**
+       * Al paciente se le habla en su idioma. Se conserva «grasa en el hígado»
+       * —que es lo que entiende— y se le enseña el nombre nuevo, porque es el que
+       * va a leer en sus estudios y en el resumen de su consulta.
+       */
+      'La grasa en el hígado (su nombre médico actual es esteatosis hepática metabólica, o MASLD) es la acumulación de grasa dentro del hígado. Es muy frecuente en México y casi nunca da síntomas.',
       ]
       if (r.zona === 'bajo') {
         parrafos.push('Sus estudios indican que es poco probable que tenga cicatrización importante del hígado. Es una buena noticia, y el objetivo ahora es que siga así.')
@@ -158,7 +163,7 @@ export function generarHoja(d: DatosPaciente): HojaPaciente {
         parrafos,
         acciones: [
           'Bajar 5% de su peso quita grasa del hígado. Bajar 10% o más es lo que mejora la cicatrización.',
-          'Nada de alcohol. En hígado graso el alcohol acelera el daño y reduce las probabilidades de mejorar.',
+          'Nada de alcohol. Con grasa en el hígado, el alcohol acelera el daño y reduce las probabilidades de mejorar.',
           'Evitar bebidas azucaradas. La fructosa de los refrescos y jugos se relaciona con más cicatrización del hígado incluso sin comer de más.',
           'Caminar o hacer ejercicio al menos 150 minutos por semana; el ejercicio mejora el hígado aunque el peso no baje mucho.',
         ],

@@ -21,7 +21,10 @@ export interface News2Result {
   total: number
   riesgo: 'bajo' | 'medio' | 'alto'
   color: string
+  /** Falta al menos un parámetro del score: el total SUBESTIMA el riesgo. */
   parcial: boolean
+  /** Cuáles faltan, para poder decirlo en pantalla. */
+  faltantes: string[]
   parametroRojo: boolean   // algún parámetro individual = 3 (criterio de escalamiento NEWS2)
   detalle: News2Param[]
   recomendacion: string
@@ -83,6 +86,33 @@ export function calcularNews2(s: SignosNews2): News2Result | null {
         ? 'Revisión por médico y aumento de la frecuencia de monitoreo.'
         : 'Continuar monitoreo de rutina.'
 
-  const parcial = s.conciencia === undefined || s.oxigeno === undefined
-  return { total, riesgo, color: COLOR[riesgo], parcial, parametroRojo: algun3, detalle: det, recomendacion }
+  /**
+   * `parcial` = FALTA ALGÚN PARÁMETRO DEL SCORE, no solo conciencia y oxígeno.
+   *
+   * Un parámetro ausente no suma puntos, así que un NEWS2 construido sobre 1 de 7
+   * parámetros da un total BAJO y se presentaba con la misma autoridad visual que
+   * uno completo: badge verde, "continuar monitoreo de rutina", ninguna alerta.
+   *
+   * El caso real: enfermería registra solo FC y conciencia —el formulario no exige
+   * ningún campo— y el paciente puede estar en insuficiencia respiratoria sin FR
+   * ni SpO₂. El score decía 0 y `parcial` decía false, porque solo miraba
+   * conciencia y oxígeno.
+   *
+   * Es exactamente la subestimación del deterioro que el score existe para evitar.
+   */
+  const faltantes: string[] = []
+  if (typeof s.fr !== 'number') faltantes.push('FR')
+  if (typeof s.spo2 !== 'number') faltantes.push('SpO₂')
+  if (typeof s.temp !== 'number') faltantes.push('T°')
+  if (typeof sys !== 'number') faltantes.push('TA sistólica')
+  if (typeof s.fc !== 'number') faltantes.push('FC')
+  if (s.conciencia === undefined) faltantes.push('conciencia')
+  if (s.oxigeno === undefined) faltantes.push('O₂ suplementario')
+
+  const parcial = faltantes.length > 0
+  const recomendacionFinal = parcial
+    ? `${recomendacion} ⚠️ SCORE INCOMPLETO: falta ${faltantes.join(', ')}. Un parámetro ausente NO suma puntos, así que este total SUBESTIMA el riesgo — complétalo antes de decidir.`
+    : recomendacion
+
+  return { total, riesgo, color: COLOR[riesgo], parcial, faltantes, parametroRojo: algun3, detalle: det, recomendacion: recomendacionFinal }
 }

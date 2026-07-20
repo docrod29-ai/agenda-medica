@@ -40,7 +40,10 @@ const GATES: Record<string, string[]> = {
 type Any = Record<string, unknown>
 
 // Calcula el patch para el doc de internamiento según la acción (mismo comportamiento que la lib cliente).
-function patch(accion: string, inter: Any, p: Any, now: string): Any {
+/** Identidad sellada por el servidor: quién ejecuta la acción, de verdad. */
+interface Actor { uid: string; nombre: string }
+
+function patch(accion: string, inter: Any, p: Any, now: string, actor: Actor): Any {
   const arr = (k: string) => (Array.isArray(inter[k]) ? (inter[k] as Any[]) : [])
   switch (accion) {
     case 'egresar':
@@ -67,8 +70,44 @@ function patch(accion: string, inter: Any, p: Any, now: string): Any {
       if (ind && Array.isArray(ind.administraciones) && ind.administraciones.length > 0) throw new Error('BLOQUEADO: la indicación ya se administró; suspéndela en vez de borrarla')
       return { indicaciones: arr('indicaciones').filter(x => (x as Any).id !== p.indId) }
     }
-    case 'administrar':
-      return { indicaciones: arr('indicaciones').map(x => (x as Any).id === p.indId ? { ...x, administraciones: [...((x as Any).administraciones as Any[] ?? []), p.adm] } : x) }
+    case 'administrar': {
+      /**
+       * TRES INVARIANTES QUE ANTES SOLO VIVÍAN EN LA INTERFAZ.
+       *
+       * 1. EPISODIO ACTIVO. El botón "Administrar" era la única acción del MAR sin
+       *    la guarda de egresado, y `egresar` no cierra las indicaciones: quedaban
+       *    `activa: true` para siempre. Se podía abrir el episodio de un paciente
+       *    YA EGRESADO por URL directa o desde el tablero de camas y registrar una
+       *    dosis. El servidor la aceptaba.
+       *
+       * 2. INDICACIÓN ACTIVA. El servidor no comprobaba `activa`. Carrera real:
+       *    enfermería abre el modal de administración, el médico suspende el
+       *    fármaco desde otra sesión, el modal sigue abierto y no se revalida →
+       *    se registra una dosis de un fármaco suspendido.
+       *
+       * 3. AUTOR Y HORA LOS PONE EL SERVIDOR. El cliente enviaba `por` con
+       *    `config.nombreMedico` —un documento COMPARTIDO por toda la clínica, no
+       *    el usuario en sesión—, así que la enfermera que administró quedaba
+       *    registrada con el nombre del médico titular. Y la `fecha` venía del
+       *    reloj de la tablet, que puede estar desajustado y además es
+       *    manipulable. La hora de administración es dato clínico duro.
+       */
+      if (inter.estado !== 'activo') {
+        throw new Error('BLOQUEADO: el paciente ya fue egresado; no se puede registrar una administración.')
+      }
+      const indAdm = arr('indicaciones').find(x => (x as Any).id === p.indId) as Any | undefined
+      if (!indAdm) throw new Error('BLOQUEADO: la indicación no existe')
+      if (indAdm.activa === false) {
+        throw new Error('BLOQUEADO: la indicación está suspendida; no se puede administrar.')
+      }
+      const adm = {
+        ...(p.adm ?? {}),
+        por: actor.nombre,          // quien lo hizo DE VERDAD, no el titular del consultorio
+        porUid: actor.uid,
+        fecha: now,                 // reloj del servidor, no el de la tablet
+      }
+      return { indicaciones: arr('indicaciones').map(x => (x as Any).id === p.indId ? { ...x, administraciones: [...((x as Any).administraciones as Any[] ?? []), adm] } : x) }
+    }
     case 'verificar_farmacia':
       return { indicaciones: arr('indicaciones').map(x => (x as Any).id === p.indId ? { ...x, verificadaFarmacia: true, verificadaPor: p.por, fechaVerificacion: now } : x) }
     case 'interconsulta_agregar':
@@ -146,7 +185,12 @@ export async function POST(req: NextRequest) {
       const snap = await tx.get(ref)
       if (!snap.exists) throw new Error('no-existe')
       const inter = { id: snap.id, ...(snap.data() as Any) }
-      tx.update(ref, { ...patch(accion, inter, payload, now), updatedAt: now })
+      const actor: Actor = {
+        uid: acc.uid,
+        // El correo verificado identifica a la PERSONA. El rol solo lo acompaña.
+        nombre: acc.email ? `${acc.email} (${acc.role ?? 'clínico'})` : String(acc.role ?? 'clínico'),
+      }
+      tx.update(ref, { ...patch(accion, inter, payload, now, actor), updatedAt: now })
       // Además del array-caché en el doc, persiste el registro clínico COMPLETO
       // a la subcolección append-only (sin truncar) → no se pierde nada (NOM-004).
       const durable = registroDurable(accion, payload, now)

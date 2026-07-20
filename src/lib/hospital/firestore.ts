@@ -8,7 +8,7 @@ import {
   collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, onSnapshot,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import { setDoc, orderBy } from 'firebase/firestore'
+import { setDoc, orderBy, limit } from 'firebase/firestore'
 import { fetchAutenticado } from '@/lib/auth-client'
 import type {
   Internamiento, TipoEgreso, Interconsulta, Indicacion, TipoIndicacion, Administracion, RegistroSignos, RolHospital,
@@ -75,9 +75,14 @@ export function suscribirInternamiento(clinicId: string, id: string, cb: (inter:
 }
 
 /** Signos vitales seriados en VIVO (subcolección). */
-export function suscribirSignos(clinicId: string, iid: string, cb: (signos: RegistroSignos[]) => void): () => void {
-  return onSnapshot(signosCol(clinicId, iid), snap => {
-    cb(snap.docs.map(d => ({ ...d.data(), id: d.id } as RegistroSignos)).sort((a, b) => (a.fecha < b.fecha ? -1 : 1)))
+/**
+ * Suscripción a los últimos signos. También iba SIN cota: mantenía en vivo la
+ * subcolección entera y, al abrirse a la vez que `getSignos`, la ficha bajaba dos
+ * veces todos los registros de la estancia.
+ */
+export function suscribirSignos(clinicId: string, iid: string, cb: (signos: RegistroSignos[]) => void, tope = TOPE_SIGNOS): () => void {
+  return onSnapshot(query(signosCol(clinicId, iid), orderBy('fecha', 'desc'), limit(tope)), snap => {
+    cb(snap.docs.map(d => ({ ...d.data(), id: d.id } as RegistroSignos)).reverse())
   }, () => { /* error: se conserva el último estado */ })
 }
 
@@ -187,11 +192,26 @@ function signosCol(clinicId: string, iid: string) {
 export async function agregarSignos(clinicId: string, iid: string, s: Omit<RegistroSignos, 'id'>): Promise<void> {
   await addDoc(signosCol(clinicId, iid), limpiar(s as object))
 }
-export async function getSignos(clinicId: string, iid: string): Promise<RegistroSignos[]> {
-  const snap = await getDocs(signosCol(clinicId, iid))
+/**
+ * Últimos N registros de signos. ANTES SE BAJABA LA SUBCOLECCIÓN COMPLETA.
+ *
+ * Es la misma raíz que resultó ser la causa real de la lentitud en la agenda: una
+ * consulta sin `limit` sobre una colección que crece toda la estancia. Un paciente
+ * de UCI con signos horarios durante 20 días son ~480 documentos, y esta función se
+ * llamaba después de CADA acción de la ficha — cada administración, cada nota, cada
+ * interconsulta.
+ *
+ * Ni la gráfica ni el NEWS2 necesitan más que los últimos: se ordena descendente en
+ * Firestore, se corta, y se invierte en memoria para que la gráfica los reciba
+ * ascendentes como antes.
+ */
+const TOPE_SIGNOS = 200
+
+export async function getSignos(clinicId: string, iid: string, tope = TOPE_SIGNOS): Promise<RegistroSignos[]> {
+  const snap = await getDocs(query(signosCol(clinicId, iid), orderBy('fecha', 'desc'), limit(tope)))
   return snap.docs
     .map(d => ({ ...d.data(), id: d.id } as RegistroSignos))
-    .sort((a, b) => (a.fecha < b.fecha ? -1 : 1))  // ascendente para la gráfica
+    .reverse()   // ascendente para la gráfica
 }
 export async function borrarSignos(clinicId: string, iid: string, sid: string): Promise<void> {
   await deleteDoc(doc(db, 'clinics', clinicId, 'internamientos', iid, 'signos', sid))

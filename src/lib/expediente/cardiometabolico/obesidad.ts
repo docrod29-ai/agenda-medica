@@ -87,7 +87,7 @@ export const COMPLICACIONES_OBESIDAD = [
   'Incontinencia urinaria de esfuerzo',
   'Enfermedad por reflujo gastroesofágico',
   'Prediabetes y síndrome metabólico',
-  'MASLD (hígado graso metabólico)',
+  'MASLD — esteatosis hepática asociada a disfunción metabólica',
   'Glomerulopatía de la obesidad o enfermedad renal crónica',
   'Insuficiencia cardiaca con fracción de expulsión preservada',
   'Enfermedad cardiovascular aterosclerótica',

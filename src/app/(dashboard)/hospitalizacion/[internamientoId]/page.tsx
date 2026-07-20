@@ -211,8 +211,44 @@ export default function EpisodioPage() {
     const destinatarioUid = target?.destinatarioUid ?? inter?.medicoTratanteId
     const destinatarioNombre = target?.destinatarioNombre ?? inter?.medicoTratanteNombre
     const conDest: Omit<AlertaHospital, 'id' | 'leida' | 'fecha'> = { ...a, destinatarioUid, destinatarioNombre }
-    try { await crearAlerta(clinicId, conDest) } catch { /* */ }
-    fetchAutenticado('/api/hospital/alerta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clinicId, destinatarioUid, doctorId: target?.doctorId, mensaje: `🏥 ${a.titulo}\n${a.detalle}\nPaciente: ${a.pacienteNombre}` }) }).catch(() => {})
+    /**
+     * UNA ALERTA CRÍTICA QUE NO SALE TIENE QUE DECIRLO.
+     *
+     * Antes: `catch { }` vacío al registrarla, y `.catch(() => {})` descartando la
+     * respuesta ENTERA del envío. El endpoint contesta `{ ok:true, enviado:false,
+     * motivo:'sin-telefono' }` cuando nadie tiene teléfono registrado —que es el
+     * estado por defecto de una clínica recién configurada— y la pantalla mostraba
+     * igual su toast verde de éxito.
+     *
+     * Traducido: laboratorio carga un potasio de 7.2, se marca crítico, sale
+     * "Resultados cargados" en verde, no se manda ningún WhatsApp y el médico
+     * tratante nunca se entera. El fallo del canal de alertas es justo el que no
+     * puede ser silencioso.
+     */
+    try {
+      await crearAlerta(clinicId, conDest)
+    } catch (e) {
+      console.error('[hospital] no se pudo registrar la alerta:', e)
+      toast('La alerta NO se pudo registrar en el expediente. Avisa al médico tratante por otra vía.', 'error')
+    }
+    try {
+      const res = await fetchAutenticado('/api/hospital/alerta', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicId, destinatarioUid, doctorId: target?.doctorId, mensaje: `🏥 ${a.titulo}\n${a.detalle}\nPaciente: ${a.pacienteNombre}` }),
+      })
+      const j = await res.json().catch(() => null)
+      if (!res.ok || j?.enviado === false) {
+        const motivo = j?.motivo === 'sin-telefono'
+          ? 'nadie tiene teléfono registrado para recibirlas'
+          : j?.motivo === 'whatsapp-no-disponible'
+            ? 'WhatsApp no está configurado en el consultorio'
+            : (j?.motivo ?? 'error de envío')
+        toast(`Alerta registrada, pero NO se envió el aviso: ${motivo}. Avisa al médico por otra vía.`, 'error')
+      }
+    } catch (e) {
+      console.error('[hospital] no se pudo enviar la alerta:', e)
+      toast('No se pudo enviar el aviso de la alerta. Avisa al médico tratante por otra vía.', 'error')
+    }
   }
 
   // Imprimir brazalete con código de barras (BCMA)
@@ -785,7 +821,18 @@ export default function EpisodioPage() {
             footer={<><Button variant="secondary" onClick={() => { setAdministrando(null); setFolioScan(''); setAdmNota('') }}>Cancelar</Button>
               <Button variant="secondary" loading={busy} onClick={() => registrar('omitido', false, false)}><Ban size={14} /> Omitido</Button>
               {/* NO se deshabilita en silencio: si faltan correctos, avisa cuáles (antes "no pasaba nada"). */}
-              <Button loading={busy} onClick={() => { if (!todos) { toast(`Confirma antes de administrar: ${faltan.join(', ')}`, 'error'); return } registrar('administrado', true, pacienteOk) }}><Check size={14} /> Administrar</Button></>}>
+              <Button loading={busy} onClick={() => { if (!todos) { toast(`Confirma antes de administrar: ${faltan.join(', ')}`, 'error'); return } /**
+                    * Se pasa `identidadOk` y los cinco correctos REALES.
+                    *
+                    * Antes iba `pacienteOk` —que es true con solo tildar la casilla
+                    * "Paciente correcto"— en el campo que el expediente documenta
+                    * como "se escaneó/confirmó el brazalete". Bastaba una casilla
+                    * para que el registro afirmara una verificación de identidad
+                    * que nunca ocurrió, justo en el dato que existe para demostrar
+                    * que no hubo error de paciente. Y los cinco correctos se
+                    * mandaban como literal `true`.
+                    */
+                   registrar('administrado', todos, identidadOk) }}><Check size={14} /> Administrar</Button></>}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {indAct && <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{indAct.descripcion}{indAct.frecuencia ? ` · ${indAct.frecuencia}` : ''}</div>}
               {indAct && !indAct.verificadaFarmacia && (

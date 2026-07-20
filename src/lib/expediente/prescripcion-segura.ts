@@ -213,7 +213,7 @@ export const RIESGO_HEPATICO: RiesgoHepatico[] = [
   { farmaco: 'Paracetamol', riesgo: 'ajustar', motivo: 'Sigue siendo el analgésico de elección en hepatopatía, pero limitado a 2 g al día en cirrosis. No usar si hay consumo activo de alcohol.' },
   { farmaco: 'Benzodiacepinas', riesgo: 'evitar', motivo: 'Precipitan encefalopatía hepática. Si son indispensables, preferir las de vida media corta sin metabolismo oxidativo (lorazepam, oxazepam).' },
   { farmaco: 'Opioides', riesgo: 'ajustar', motivo: 'Vida media prolongada; reducir dosis y espaciar. Precipitan encefalopatía y estreñimiento.' },
-  { farmaco: 'Estatinas', riesgo: 'vigilar', motivo: 'NO están contraindicadas en hepatopatía crónica estable ni en hígado graso; se evitan en falla hepática descompensada. La elevación leve de transaminasas no obliga a suspender.' },
+  { farmaco: 'Estatinas', riesgo: 'vigilar', motivo: 'NO están contraindicadas en hepatopatía crónica estable ni en esteatosis hepática metabólica (MASLD); se evitan en falla hepática descompensada. La elevación leve de transaminasas no obliga a suspender.' },
   { farmaco: 'Metformina', riesgo: 'vigilar', motivo: 'Puede usarse en hepatopatía crónica estable; se evita en falla hepática descompensada por riesgo de acidosis láctica.' },
   { farmaco: 'Amiodarona', riesgo: 'evitar', motivo: 'Hepatotoxicidad y depósito hepático.' },
   { farmaco: 'Metotrexato', riesgo: 'evitar', motivo: 'Fibrosis hepática con el uso acumulado.' },

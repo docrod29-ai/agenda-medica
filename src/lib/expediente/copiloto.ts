@@ -425,12 +425,13 @@ function metasPorDiagnostico(e: EntradaCopiloto): Sugerencia[] {
     })
   }
 
-  // Hígado graso: el tamizaje con FIB-4 se hace aunque las enzimas estén normales
+  // MASLD (antes «hígado graso no alcohólico»): el tamizaje con FIB-4 se hace
+  // aunque las enzimas estén normales.
   if ((tieneDiabetes || /obesidad|sobrepeso|higado graso|esteatosis/.test(dx)) && !(e.labs?.ast && e.labs?.alt && e.labs?.plaquetas)) {
     out.push({
       id: 'meta:fib4-tamizaje',
       nivel: 'info',
-      titulo: 'Corresponde tamizar hígado graso con FIB-4',
+      titulo: 'Corresponde tamizar esteatosis hepática metabólica (MASLD) con FIB-4',
       detalle: 'La ADA lo indica anual en diabetes tipo 2, prediabetes u obesidad con factor cardiovascular, AUNQUE las enzimas hepáticas estén normales: la mayoría de quienes tienen fibrosis significativa las tiene normales.',
       textoNota: 'Se solicita AST, ALT y plaquetas para calcular FIB-4 como tamizaje de fibrosis hepática (ADA, Standards of Care 2026).',
       pide: 'AST, ALT y plaquetas',
