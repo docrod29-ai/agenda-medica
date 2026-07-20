@@ -28,7 +28,7 @@ import { useSearchParams } from 'next/navigation'
 import { CorteCajaContenido } from '../corte-caja/page'
 import {
   TrendingUp, Download, Plus, ChevronLeft, ChevronRight, Loader2,
-  DollarSign, Receipt, Activity, Users, Banknote, Landmark, CreditCard,
+  DollarSign, Receipt, Activity, Users, Banknote, Landmark, CreditCard, AlertTriangle,
 } from 'lucide-react'
 
 import { hoyISO } from '@/lib/timezone'
@@ -137,12 +137,18 @@ export default function FinanzasPage() {
     Promise.all([
       listarCobros(clinicId, desde, hasta),
       listarCobros(clinicId, pDesde, pHasta),
-    ]).then(([actual, anterior]) => {
+      // Incluye cancelados SOLO para poder mostrarlos: antes un cobro anulado era
+      // invisible en toda la app, que es justo lo que lo hacía útil para ocultar
+      // una sustracción. Se filtra a los cancelados para la tarjeta de auditoría.
+      listarCobros(clinicId, desde, hasta, true),
+    ]).then(([actual, anterior, conCancelados]) => {
       setCobros(actual)
       setResumenAnterior(agregarResumen(anterior))
+      setCancelados(conCancelados.filter(c => c.cancelado))
     }).finally(() => setLoading(false))
   }, [clinicId, periodo, ancla, desde, hasta])
 
+  const [cancelados, setCancelados] = useState<Cobro[]>([])
   const resumen = useMemo(() => agregarResumen(cobros), [cobros])
   const cambio = resumenAnterior
     ? ((resumen.totalIngresos - resumenAnterior.totalIngresos) / Math.max(1, resumenAnterior.totalIngresos)) * 100
@@ -471,6 +477,42 @@ export default function FinanzasPage() {
       )}
 
       </>
+      )}
+
+      {cancelados.length > 0 && (
+        <div style={{
+          border: '1px solid rgba(220,38,38,0.3)', borderRadius: 14,
+          background: 'rgba(220,38,38,0.05)', padding: 16, marginTop: 20,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <AlertTriangle size={15} style={{ color: '#dc2626' }} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+              Cobros anulados en este periodo · {cancelados.length}
+            </span>
+          </div>
+          <p style={{ fontSize: 11.5, color: 'var(--text3)', margin: '0 0 12px' }}>
+            No cuentan en los totales. Se listan para que toda anulación quede a la vista, con quién la hizo y por qué.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {cancelados.map(c => (
+              <div key={c.id} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12,
+                fontSize: 12.5, paddingBottom: 8, borderBottom: '1px solid var(--border)',
+              }}>
+                <div>
+                  <div style={{ color: 'var(--text2)', textDecoration: 'line-through' }}>
+                    {fmtMXN(c.monto)} · {CONCEPTO_LABEL[c.concepto] ?? c.concepto}{c.patientNombre ? ` · ${c.patientNombre}` : ''}
+                  </div>
+                  <div style={{ color: 'var(--text3)', fontSize: 11.5, marginTop: 2 }}>
+                    Motivo: {c.motivoCancelacion || '— sin motivo —'}
+                    {c.canceladoEn ? ` · ${new Date(c.canceladoEn).toLocaleDateString('es-MX')}` : ''}
+                  </div>
+                </div>
+                <span style={{ fontSize: 11, color: '#dc2626', fontWeight: 600, flexShrink: 0 }}>ANULADO</span>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {creando && clinicId && user && (

@@ -235,12 +235,43 @@ service cloud.firestore {
       // Solo se permite crear y leer; cancelar = update con cancelado=true (no delete).
       match /cobros/{cobroId} {
         allow read, create: if isMember(clinicId);
-        // Update solo para marcar cancelado o vincular factura (no para editar montos)
+        /**
+         * Un cobro es un registro contable: no se edita ni se borra, solo se
+         * ANULA, y anular debe dejar huella. La regla anterior congelaba el monto
+         * pero dejaba `cancelado` libre: cualquier miembro —de cualquier rol—
+         * podía poner `cancelado:true` desde la consola, sin motivo ni autor, y el
+         * cobro desaparecía de todos los cortes sin dejar rastro. En un archivo
+         * que se describe a sí mismo como anti-fraude, eso era sustracción de
+         * efectivo indetectable.
+         *
+         * Ahora una anulación SOLO es válida si:
+         *  - el cobro no estaba ya cancelado (no se "re-anula" para pisar el autor)
+         *  - se sella quién (== su propio uid, no se puede culpar a otro) y cuándo
+         *  - se da un motivo no vacío
+         *  - no se toca nada más del cobro (monto, método, concepto, fecha, y los
+         *    vínculos con la cita y el paciente)
+         * La otra rama permite vincular una factura sin cambiar nada más.
+         */
         allow update: if isMember(clinicId)
           && request.resource.data.monto == resource.data.monto
           && request.resource.data.metodo == resource.data.metodo
           && request.resource.data.concepto == resource.data.concepto
-          && request.resource.data.fecha == resource.data.fecha;
+          && request.resource.data.fecha == resource.data.fecha
+          && request.resource.data.citaId == resource.data.citaId
+          && request.resource.data.patientId == resource.data.patientId
+          && request.resource.data.creadoPor == resource.data.creadoPor
+          && (
+            // (a) ANULAR: false/ausente → true, con autor, fecha y motivo.
+            (resource.data.cancelado != true
+              && request.resource.data.cancelado == true
+              && request.resource.data.canceladoPor == request.auth.uid
+              && request.resource.data.canceladoEn is string
+              && request.resource.data.motivoCancelacion is string
+              && request.resource.data.motivoCancelacion.size() > 0)
+            // (b) VINCULAR FACTURA: sin tocar el estado de cancelación.
+            || (request.resource.data.get('cancelado', false) == resource.data.get('cancelado', false)
+              && request.resource.data.facturaUuid is string)
+          );
         allow delete: if false;
       }
       // Reseñas: read publicadas o miembros leen todo; create solo desde servidor

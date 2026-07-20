@@ -44,6 +44,34 @@ function planPorMonto(amount: number): PlanKey {
 }
 const ES_PLAN = (p: unknown): p is PlanKey => p === 'agenda' || p === 'clinica' || p === 'premium' || p === 'hospital'
 
+/**
+ * Estado interno del consultorio a partir del estado de la suscripción de Stripe.
+ *
+ * La clave está en `past_due`: Stripe emite ese estado —y un
+ * `invoice.payment_failed`— en el PRIMER intento fallido del ciclo, no al agotar
+ * los reintentos (reintenta a los 3, 5 y 7 días). El manejo anterior suspendía la
+ * clínica en ese instante, así que un rechazo transitorio de tarjeta le quitaba
+ * al médico el acceso a TODOS los expedientes de sus pacientes el mismo día,
+ * aunque el cobro se recuperara 48 h después. Ese es el caso "pierde acceso
+ * pagando".
+ *
+ * Durante el dunning se mantiene el acceso (estado 'active'); solo se corta
+ * cuando Stripe da el cobro por definitivamente perdido (`unpaid`) o cancela la
+ * suscripción (`canceled`).
+ */
+function estadoDeSuscripcion(status: string): 'active' | 'suspended' | 'cancelled' {
+  switch (status) {
+    case 'active':
+    case 'trialing':
+    case 'past_due':      // en reintentos: NO cortar todavía
+      return 'active'
+    case 'canceled':
+      return 'cancelled'
+    default:              // unpaid, incomplete_expired, incomplete → sin acceso
+      return 'suspended'
+  }
+}
+
 /** Activa el plan en el consultorio: estado + MÓDULOS (solo lo que compró) + nivel de IA. */
 async function activarPlan(clinicId: string, plan: PlanKey, extra: Record<string, unknown>) {
   // modulos = EXACTAMENTE los del plan (candado "solo lo que compró"). Al cambiar
@@ -199,11 +227,7 @@ export async function POST(req: NextRequest) {
 
         const item = sub.items.data[0]
         const plan = ES_PLAN(sub.metadata?.plan) ? sub.metadata!.plan as PlanKey : planPorMonto(item.price.unit_amount ?? 0)
-        const status = sub.status === 'active' || sub.status === 'trialing'
-          ? 'active'
-          : sub.status === 'canceled'
-            ? 'cancelled'
-            : 'suspended'
+        const status = estadoDeSuscripcion(sub.status)
 
         if (status === 'active') {
           await activarPlan(clinicId, plan, { stripeSubscriptionId: sub.id, stripeSubscriptionStatus: sub.status })
@@ -247,6 +271,22 @@ export async function POST(req: NextRequest) {
           descripcion: invoice.lines?.data?.[0]?.description ?? 'Suscripción',
           createdAt: new Date().toISOString(),
         }, { merge: true })
+        /**
+         * Se RESTAURA el acceso al cobrar. Antes `invoice.paid` no tocaba el
+         * estado, así que si la clínica había quedado suspendida por un fallo
+         * previo, recuperarse del cobro no la reactivaba: el médico se quedaba
+         * fuera hasta que llegara —si llegaba— un `subscription.updated`. Solo se
+         * sube a 'active' desde un estado de impago, para no pisar una cancelación
+         * en curso.
+         */
+        if (clinicId) {
+          try {
+            const snap = await adminDb.collection('clinics').doc(clinicId).get()
+            if (snap.get('status') === 'suspended') {
+              await updateClinic(clinicId, { status: 'active', pagoVencido: false })
+            }
+          } catch { /* no-bloqueante: el pago ya quedó registrado */ }
+        }
         break
       }
 
@@ -256,7 +296,15 @@ export async function POST(req: NextRequest) {
         const clinicId = await getClinicIdByCustomer(invoice.customer as string)
         if (!clinicId) break
 
-        await updateClinic(clinicId, { status: 'suspended' })
+        /**
+         * NO se suspende aquí. Stripe emite este evento en el primer intento
+         * fallido del ciclo y sigue reintentando durante días; suspender ya
+         * cortaba el acceso por un rechazo transitorio de tarjeta. Se marca el
+         * pago como vencido —para poder avisarle al médico— y la suspensión real
+         * queda en manos de `subscription.updated` (cuando pase a `unpaid`) o de
+         * `subscription.deleted`, que son los estados terminales del dunning.
+         */
+        await updateClinic(clinicId, { pagoVencido: true })
         break
       }
 

@@ -53,6 +53,14 @@ describe('embudoCobro', () => {
     expect(r.tasaAsistencia).toBeCloseTo(0.5)
     expect(r.tasaCobro).toBeCloseTo(0.5)
   })
+
+  it('un abono parcial NO da por saldada la consulta, pero su dinero SÍ entra a caja', () => {
+    const citas = [cita({ id: 'a', estado: 'atendida' })]
+    const cobros = [cobro({ monto: 200, citaId: 'a', concepto: 'abono' })]
+    const r = embudoCobro(citas, cobros)
+    expect(r.cobradas).toBe(0)      // sigue pendiente: quedó saldo
+    expect(r.montoCobrado).toBe(200) // pero los $200 sí entraron
+  })
 })
 
 describe('cuentasPorCobrar', () => {

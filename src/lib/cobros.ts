@@ -112,6 +112,9 @@ export interface Cobro {
   /** ¿Está cancelado? (no se borra, solo se marca) */
   cancelado?: boolean
   motivoCancelacion?: string
+  /** Quién y cuándo anuló — obligatorio al cancelar (auditoría anti-fraude). */
+  canceladoPor?: string
+  canceladoEn?: string
   /** Notas */
   notas?: string
   createdAt: string
@@ -152,15 +155,27 @@ export async function registrarCobro(
   return ref.id
 }
 
-/** Cancelar un cobro (no se borra, solo se marca) — registra motivo */
+/**
+ * Anular un cobro. No se borra: se marca, con QUIÉN y CUÁNDO.
+ *
+ * El autor y la fecha no son opcionales — las Firestore Rules ahora los exigen,
+ * y con razón: sin ellos una anulación es dinero que se esfuma del corte sin
+ * nadie a quien preguntar. El motivo tampoco puede ir vacío.
+ */
 export async function cancelarCobro(
   clinicId: string,
   cobroId: string,
   motivo: string,
+  autorUid: string,
 ): Promise<void> {
+  const m = (motivo || '').trim()
+  if (!m) throw new Error('La anulación de un cobro requiere un motivo.')
+  if (!autorUid) throw new Error('No se pudo identificar quién anula el cobro.')
   await updateDoc(doc(COL(clinicId), cobroId), {
     cancelado: true,
-    motivoCancelacion: motivo,
+    motivoCancelacion: m,
+    canceladoPor: autorUid,
+    canceladoEn: new Date().toISOString(),
   })
 }
 
