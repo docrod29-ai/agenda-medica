@@ -151,10 +151,21 @@ function calcularPaginas(data: RecetaData, config: ClinicConfig | null, recetaCo
     ? (recetaConfig.disenoMargenes ?? { top: 35, right: 12, bottom: 30, left: 12 })
     : { top: 10, right: 12, bottom: 10, left: 12 }
   const fontSize = custom ? (recetaConfig.disenoFontSize ?? 11) : 11
-  // Plantilla auto-generada: membrete + banda + paciente + alergias ≈ 52 mm en hoja 1
-  const headerPrimeraMm = custom ? undefined : 52
+  /**
+   * Reserva de la hoja 1 en plantilla auto-generada.
+   *
+   * Eran 52 mm fijos, pero con membrete SUBIDO la imagen sola llega a 40 mm y
+   * encima van la banda de tipo (~6), el bloque de paciente (~10), la caja de
+   * alergias (~7) y el diagnóstico (~6): unos 69 mm reales contra 52 reservados.
+   * Ese déficit de ~17 mm es el que empuja el contenido —y con él la firma— fuera
+   * de la hoja.
+   */
+  const headerPrimeraMm = custom ? undefined : (recetaConfig.membreteDataUrl ? 70 : 52)
 
   return paginarParaDocumento({
+    // En formato propio cada hoja se firma y se entrega: la reserva de la firma
+    // aplica a todas, no solo a la última.
+    firmaEnTodasLasHojas: custom,
     medicamentos: data.tipo === 'receta' ? data.medicamentos : [],
     estudios: data.tipo === 'orden' ? data.estudios : [],
     indicaciones: data.indicaciones,
@@ -568,9 +579,10 @@ function HojaCustom({
         )}
       </div>
 
-      {/* Firma — SOLO en la última hoja. Si el médico calibró su posición
-          (disenoCampos.firma), se coloca ahí; si no, sobre el margen inferior. */}
-      {/* Firma en TODAS las hojas (cada hoja es una receta que se firma y entrega) */}
+      {/* Firma en TODAS las hojas: sobre un formato propio, cada hoja es una
+          receta que se firma y se entrega. (El comentario anterior decía "solo en
+          la última" y contradecía tanto a este código como a la reserva de la
+          paginación; se eliminó para no confundir al siguiente que lo lea.) */}
       {config?.firmaImagenDataUrl && (
         <div style={campos?.firma
           ? {
@@ -787,7 +799,12 @@ function HojaGenerada({
             }}>
               <strong>{medico}</strong><br />
               {especialidad && <>{especialidad}<br /></>}
-              Cédula Prof. {cedula}
+              {/* Sin cédula NO se calla: la cédula es requisito del impreso
+                  (NOM-004). Antes imprimía "Cédula Prof. —", que parece un guion
+                  de maquetación y no la ausencia de un dato obligatorio. */}
+              {cedula !== '—'
+                ? <>Cédula Prof. {cedula}</>
+                : <span style={{ color: '#b91c1c' }}>[FALTA CÉDULA PROFESIONAL]</span>}
               {recetaConfig.registroDGP && <><br />Reg. DGP/SSA {recetaConfig.registroDGP}</>}
             </div>
           </div>

@@ -53,6 +53,8 @@ export interface OpcionesPaginacion {
   headerContinuacionMm: number
   /** mm reservados para la firma (solo última hoja) */
   firmaMm: number
+  /** El formato propio firma cada hoja, no solo la última. */
+  firmaEnTodasLasHojas?: boolean
   /** Estudios en checklist de 2 columnas (recomendado si > 6) */
   estudiosDosColumnas?: boolean
 }
@@ -111,6 +113,7 @@ export function paginarReceta(opts: OpcionesPaginacion): PaginaReceta[] {
     fontSizePx, areaAltoMm, areaAnchoMm,
     headerPrimeraMm, headerContinuacionMm, firmaMm,
     estudiosDosColumnas = false,
+    firmaEnTodasLasHojas = false,
   } = opts
 
   const disponiblePrimera = Math.max(20, areaAltoMm - headerPrimeraMm)
@@ -148,7 +151,16 @@ export function paginarReceta(opts: OpcionesPaginacion): PaginaReceta[] {
   const paginas: Array<{ meds: Medicamento[]; ests: string[] }> = [{ meds: [], ests: [] }]
   let usado = 0
 
-  const capacidadDe = (idx: number) => idx === 0 ? disponiblePrimera : disponibleContinuacion
+  /**
+   * Si la firma va en TODAS las hojas —el caso de un formato propio, donde cada
+   * hoja es una receta que se firma y se entrega— hay que descontarla también en
+   * las de continuación. Solo se reservaba para la última, así que en las
+   * intermedias el contenido se metía en el espacio de la firma y, con
+   * `overflow: hidden`, lo que sobraba desaparecía.
+   */
+  const reservaFirmaContinuacion = firmaEnTodasLasHojas ? firmaMm : 0
+  const capacidadDe = (idx: number) =>
+    idx === 0 ? disponiblePrimera : disponibleContinuacion - reservaFirmaContinuacion
 
   for (const b of bloques) {
     const idx = paginas.length - 1
@@ -197,8 +209,10 @@ export function paginarParaDocumento(opts: {
   fontSizePx: number
   soloRx?: boolean
   tieneFirmaImagen?: boolean
-  /** Override del espacio reservado en hoja 1 (ej. plantilla auto-generada con membrete ≈ 52mm) */
+  /** Override del espacio reservado en hoja 1 (ej. plantilla auto-generada con membrete) */
   headerPrimeraMm?: number
+  /** Formato propio: cada hoja se firma y se entrega, así que la firma se reserva en todas. */
+  firmaEnTodasLasHojas?: boolean
 }): PaginaReceta[] {
   /**
    * Estos `Math.max` son un CLAMP, y un clamp aquí es una mentira.
@@ -228,8 +242,20 @@ export function paginarParaDocumento(opts: {
     // Hoja 1: folio+paciente+dx+alergias ≈ 24 mm (≈2 si el papel ya los trae impresos)
     headerPrimeraMm: opts.headerPrimeraMm ?? (opts.soloRx ? 2 : 24),
     headerContinuacionMm: 8,
-    // Firma con imagen ocupa más que solo la línea
-    firmaMm: opts.tieneFirmaImagen ? 26 : 14,
+    /**
+     * Reservas al alza tras medir el render real.
+     *
+     * Con firma imagen el pie NO son 26 mm: son la imagen (hasta 18) + la línea +
+     * tres renglones (médico / especialidad / cédula) ≈ 30, MÁS el aviso legal o
+     * el pie configurable, hasta 15 más. Nada de eso entraba en el cálculo.
+     *
+     * Quedarse corto aquí no produce una hoja fea: produce una hoja donde el
+     * bloque de firma —que se coloca con `marginTop:auto`— se queda sin espacio
+     * libre que repartir y termina FUERA del área visible. Es decir, una receta
+     * impresa sin firma ni cédula. Reservar de más solo cuesta una hoja extra.
+     */
+    firmaMm: opts.tieneFirmaImagen ? 34 : 20,
+    firmaEnTodasLasHojas: opts.firmaEnTodasLasHojas,
     estudiosDosColumnas: estudios.length > 6,
   })
 }

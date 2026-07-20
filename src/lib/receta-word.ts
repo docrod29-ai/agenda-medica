@@ -58,13 +58,29 @@ export function construirRecetaHTML(
   const fechaTxt = data.fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })
   const titulo = data.tipo === 'receta' ? 'RECETA MÉDICA' : 'ORDEN MÉDICA'
 
+  /**
+   * URL ABSOLUTA para el membrete.
+   *
+   * Tras migrar las imágenes a Storage, `membreteDataUrl` puede ser una ruta
+   * RELATIVA (`/api/receta/diseno?path=…`). Word abre el .doc desde el disco, así
+   * que una ruta relativa no resuelve contra nada: la imagen sale rota. Solo se
+   * absolutiza cuando ya no es un data URI ni una URL completa.
+   */
+  const membreteSrc = (() => {
+    const u = recetaConfig.membreteDataUrl
+    if (!u) return ''
+    if (/^(data:|https?:)/i.test(u)) return u
+    if (typeof window === 'undefined') return u
+    return new URL(u, window.location.origin).href
+  })()
+
   // Encabezado: membrete subido (imagen) o datos del médico generados
-  const encabezado = recetaConfig.membreteDataUrl
-    ? `<img src="${recetaConfig.membreteDataUrl}" style="max-width:100%;max-height:140px;display:block;margin:0 auto 8pt;" />`
+  const encabezado = membreteSrc
+    ? `<img src="${membreteSrc}" style="max-width:100%;max-height:140px;display:block;margin:0 auto 8pt;" />`
     : `
       <div style="text-align:center;border-bottom:2px solid ${accent};padding-bottom:6pt;margin-bottom:8pt;">
         <div style="font-size:16pt;font-weight:bold;color:${accent};">${esc(medico)}</div>
-        <div style="font-size:10pt;">${esc(especialidad)}${especialidad && cedula ? ' · ' : ''}${cedula ? 'Cédula Prof. ' + esc(cedula) : ''}</div>
+        <div style="font-size:10pt;">${esc(especialidad)}${especialidad && cedula ? ' · ' : ''}${cedula ? 'Cédula Prof. ' + esc(cedula) : '<span style="color:#b91c1c;">[FALTA CÉDULA PROFESIONAL]</span>'}</div>
         ${clinica ? `<div style="font-size:10pt;color:#444;">${esc(clinica)}</div>` : ''}
         ${direccion ? `<div style="font-size:9pt;color:#666;">${esc(direccion)}</div>` : ''}
         ${telefono ? `<div style="font-size:9pt;color:#666;">Tel. ${esc(telefono)}</div>` : ''}

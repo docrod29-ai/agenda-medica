@@ -72,7 +72,22 @@ export default function GeneradorRecetaPage() {
   const [descargando, setDescargando] = useState(false)
 
   // Folio único (timestamp corto)
-  const folio = useMemo(() => `RX-${Date.now().toString(36).toUpperCase().slice(-7)}`, [])
+  /**
+   * FOLIO ESTABLE, derivado de la nota.
+   *
+   * Era `Date.now()` en un `useMemo(..., [])`, así que se reinventaba en cada
+   * carga de la página: reimprimir la misma receta producía OTRO folio, y dos
+   * papeles del mismo acto médico circulaban con identificadores distintos. El QR
+   * firma ese folio, de modo que tampoco había forma de verificar cuál era el
+   * bueno.
+   *
+   * Ahora sale del `notaId`, que es único y no cambia. Sin nota (caso raro) se cae
+   * al reloj, que es mejor que nada.
+   */
+  const folio = useMemo(() => {
+    const base = (notaId ?? '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
+    return `RX-${base ? base.slice(-7) : Date.now().toString(36).toUpperCase().slice(-7)}`
+  }, [notaId])
 
   // URL de verificación firmada (destino del QR): /verificar/<token HMAC>. Se pide
   // más abajo (después de calcular recetaConfig) para respetar el orden de hooks.
@@ -217,6 +232,8 @@ export default function GeneradorRecetaPage() {
    * si el médico se entera ANTES de entregarle el papel al paciente.
    */
   const sinFirmaResoluble = !!config && !configFirma?.firmaImagenDataUrl
+  /** La cédula es requisito del impreso; sin ella el documento no es válido. */
+  const sinCedula = !!config && !config.cedulaProfesional?.trim()
 
   // Descarga un Word (.doc) editable — para el médico que prefiere ajustar
   // a su propio formato/membrete en lugar de la plantilla generada.
@@ -301,6 +318,20 @@ export default function GeneradorRecetaPage() {
     <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
       <AvisoConfigNoCargada error={configError} />
 
+      {sinCedula && (
+        <div className="no-print" style={{
+          display: 'flex', alignItems: 'flex-start', gap: 10,
+          background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)',
+          borderRadius: 12, padding: '13px 15px', marginBottom: 14,
+        }}>
+          <AlertTriangle size={17} style={{ color: '#ef4444', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--text)' }}>
+            <strong>Falta tu cédula profesional.</strong> El documento saldrá marcándolo en rojo,
+            porque la cédula es requisito del impreso (NOM-004). Agrégala en Configuración → General.
+          </div>
+        </div>
+      )}
+
       {sinFirmaResoluble && (
         <div className="no-print" style={{
           display: 'flex', alignItems: 'flex-start', gap: 10,
@@ -326,13 +357,13 @@ export default function GeneradorRecetaPage() {
           <button onClick={() => router.push('/configuracion?tab=recetas')} className="btn btn-secondary" title="Configurar template">
             <Settings size={14} /> Template
           </button>
-          <button onClick={() => { if (configError) return; logAudit({ evento: 'receta_generada', clinicId: clinicId ?? '', patientId, notaId }).catch(() => {}); const h = dimensionesImpresion(recetaConfig); imprimirElemento(document.getElementById('receta-doc'), 'Receta', { anchoMm: h.widthMm, altoMm: h.heightMm }) }} className="btn btn-secondary">
+          <button onClick={() => { if (configError || descargando) return; logAudit({ evento: 'receta_generada', clinicId: clinicId ?? '', patientId, notaId }).catch(() => {}); const h = dimensionesImpresion(recetaConfig); imprimirElemento(document.getElementById('receta-doc'), 'Receta', { anchoMm: h.widthMm, altoMm: h.heightMm }) }} className="btn btn-secondary">
             <Printer size={14} /> Imprimir
           </button>
-          <button onClick={() => { if (configError) return; descargarWord() }} className="btn btn-secondary" title="Documento editable para tu membrete">
+          <button onClick={() => { if (configError || descargando) return; descargarWord() }} className="btn btn-secondary" title="Documento editable para tu membrete">
             <FileText size={14} /> Word
           </button>
-          <button onClick={() => { if (configError) return; logAudit({ evento: 'receta_descargada', clinicId: clinicId ?? '', patientId, notaId }).catch(() => {}); descargarPDF() }} disabled={descargando || !!configError} className="btn btn-primary">
+          <button onClick={() => { if (configError || descargando) return; logAudit({ evento: 'receta_descargada', clinicId: clinicId ?? '', patientId, notaId }).catch(() => {}); descargarPDF() }} disabled={descargando || !!configError} className="btn btn-primary">
             {descargando
               ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</>
               : <><Download size={14} /> Descargar PDF</>}

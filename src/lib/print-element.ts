@@ -24,10 +24,27 @@ export function imprimirElemento(
   opts?: { formato?: 'sangre' | 'carta' | 'membrete'; anchoMm?: number; altoMm?: number },
 ): void {
   if (typeof window === 'undefined') return
-  if (!el) { window.print(); return }
+
+  /**
+   * EL RESPALDO `window.print()` IMPRIMÍA BASURA.
+   *
+   * Cuando la ventana emergente está bloqueada —o no se encuentra el elemento— se
+   * caía a imprimir la página actual. Pero el documento vive dentro de la vista
+   * previa, que le aplica `transform: scale(0.42)` y `overflow: hidden`: la receta
+   * salía al ~40 % del tamaño, pegada a una esquina y recortada. Y el médico ya
+   * había pulsado Imprimir, así que el papel salía igual.
+   *
+   * Es mejor decirle que desbloquee las ventanas emergentes que entregarle una
+   * receta ilegible al paciente.
+   */
+  const avisar = (motivo: string) => {
+    // eslint-disable-next-line no-alert
+    window.alert(`No se pudo abrir la ventana de impresión (${motivo}).\n\nPermite las ventanas emergentes de este sitio y vuelve a intentarlo. No se imprimió nada.`)
+  }
+  if (!el) { avisar('no se encontró el documento'); return }
 
   const win = window.open('', '_blank', 'width=900,height=1000')
-  if (!win) { window.print(); return } // ventana emergente bloqueada → respaldo
+  if (!win) { avisar('el navegador la bloqueó'); return }
 
   // Copiamos SOLO las hojas de estilo globales (<link>), NO los <style> de página:
   // esas páginas inyectan su propio "@media print { #doc{…}; @page{margin} }" del
@@ -93,6 +110,6 @@ export function imprimirElemento(
       if (img.complete) listo()
       else { img.addEventListener('load', listo); img.addEventListener('error', listo) }
     })
-    setTimeout(imprimir, 2500) // respaldo si una imagen se atora
+    setTimeout(imprimir, 8000) // respaldo si una imagen se atora
   }
 }
