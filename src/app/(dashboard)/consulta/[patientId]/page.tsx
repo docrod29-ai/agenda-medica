@@ -56,6 +56,7 @@ import { logAudit } from '@/lib/expediente/audit-log'
 import { validarNOM004 } from '@/lib/expediente/nom004'
 import { generarHashIntegridad, generarHashFirma, HASH_VERSION } from '@/lib/expediente/integrity'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
+import { tiposVisibles } from '@/lib/expediente/tipos-visibles'
 import type { TipoNota, NotaMedica, NotaSeccion, Diagnostico, Medicamento, SignosVitales } from '@/types/expediente'
 import type { Patient } from '@/types'
 import { Cie10Autocomplete } from '@/components/Cie10Autocomplete'
@@ -1812,10 +1813,11 @@ export default function ConsultaActivaPage() {
         </div>
       )}
 
-      {/* Selector tipo de nota */}
+      {/* Selector tipo de nota — solo los que aplican al contexto (consultorio
+          vs internamiento), para no apilar filas de opciones que ahí no van. */}
       {!firmada && (
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-          {TIPOS.map(t => (
+          {tiposVisibles(esNotaHospital, tipo).map(t => (
             <button key={t} onClick={() => cambiarTipo(t)} style={S.chip(tipo === t)}>{TIPO_NOTA_LABEL[t]}</button>
           ))}
         </div>

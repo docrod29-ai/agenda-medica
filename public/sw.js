@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v500'  // LEGIBILIDAD (cont.): los dias 'Sin lugar' en Agendar rapido tenian opacity 0.4 ENCIMA de --text3 (texto ya atenuado): doble apagon, casi invisibles en modo claro. Un dia sin cupo debe verse apagado pero legible → opacity 0.6. Cierra el segundo punto que se veia flojo en las capturas del Dr, tras el fix de placeholders (v499).
+const CACHE = 'nexusmed-v501'  // MENOS SATURACION EN LA CONSULTA: el selector de tipo de nota mostraba los DOCE tipos siempre, incluidos los hospitalarios (Ingreso, Evolucion, Egreso) en una consulta de consultorio — dos filas de chips con opciones que ahi no aplican. Ahora se filtran por contexto: en consultorio salen los ambulatorios, dentro de un internamiento salen los hospitalarios. El tipo activo (p.ej. abierto por enlace) siempre se conserva aunque no sea del contexto, para que no desaparezca la seleccion. Helper puro con 4 pruebas.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
