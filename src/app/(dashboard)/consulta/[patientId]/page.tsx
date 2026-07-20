@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { filtrarHerramientas } from '@/lib/herramientas-por-especialidad'
 import { HistorialVersiones } from '@/components/HistorialVersiones'
 import { sugerenciasPendientes, resolverSugerencias } from '@/lib/expediente/sugerencias-ia'
 import dynamic from 'next/dynamic'
@@ -2108,7 +2109,8 @@ export default function ConsultaActivaPage() {
       {/* ── Herramientas clínicas: un solo bloque plegado. Antes eran cinco cajas
              siempre abiertas apiladas aquí; la mayoría de las consultas no usa
              ninguna, así que ahora se abren solo cuando se necesitan. ── */}
-      <Herramientas items={[
+      <Herramientas {...(() => {
+        const TODAS = [
         ...(esCasoQuirurgico ? [{
           id: 'cirugia', nombre: 'Cirugía', color: '#60a5fa', icono: <Scissors size={14} />,
           para: 'ASA · RCRI · Caprini · Apfel · profilaxis con re-dosis · checklist OMS',
@@ -2161,7 +2163,32 @@ export default function ConsultaActivaPage() {
             ? <FotosClinicas embebido modo="captura" clinicId={clinicId} patientId={patientId} notaId={notaId ?? undefined} />
             : <p style={{ fontSize: 12, color: 'var(--text3)' }}>Cargando…</p>,
         },
-      ]} />
+        ]
+
+        /**
+         * FILTRADO POR ESPECIALIDAD.
+         *
+         * Un internista no atiende partos ni calcula dosis por peso pediátrico,
+         * pero tenía esas herramientas ocupando espacio en cada consulta: hay que
+         * leerlas para descartarlas, en cada paciente. Ahora se muestran las de su
+         * especialidad y el resto queda en el buscador — no desaparece ninguna.
+         *
+         * Solo `esCasoQuirurgico` se fuerza, y a propósito: es una señal CLÍNICA
+         * —el diagnóstico dictado es una hernia, o el tipo de nota es
+         * preoperatoria— así que el panel de cirugía aparece aunque el médico sea
+         * internista. El contexto del paciente pesa más que la configuración.
+         *
+         * `esGineco` NO se fuerza: solo comprueba que la paciente sea mujer, que
+         * es un filtro de pertinencia, no una señal de que haga falta la
+         * herramienta. Si se forzara, un internista volvería a ver el panel de
+         * gineco en cada paciente mujer — justo lo que se quiere evitar. Sigue
+         * disponible en el buscador.
+         */
+        const forzadas = esCasoQuirurgico ? ['cirugia'] : []
+        const visibles = filtrarHerramientas(TODAS, especialidadEfectiva, forzadas)
+        const idsVisibles = new Set(visibles.map(h => h.id))
+        return { items: visibles, ocultas: TODAS.filter(h => !idsVisibles.has(h.id)) }
+      })()} />
 
       {/* ── Análisis basado en evidencia (PubMed) ── */}
       {(diagnosticos.length > 0 || medicamentos.length > 0 || resumen) && !evidencia && (

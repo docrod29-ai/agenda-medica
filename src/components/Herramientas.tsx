@@ -8,7 +8,7 @@
  * el aviso (badge) es lo que hace que una herramienta pida atención sola.
  */
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown, ChevronRight, Wrench } from 'lucide-react'
+import { ChevronDown, ChevronRight, Search, Wrench } from 'lucide-react'
 
 export interface Herramienta {
   id: string
@@ -25,7 +25,15 @@ export interface Herramienta {
   contenido: React.ReactNode
 }
 
-export function Herramientas({ items }: { items: Herramienta[] }) {
+export function Herramientas({ items, ocultas = [] }: {
+  items: Herramienta[]
+  /**
+   * Herramientas que NO son de la especialidad del médico. No desaparecen: se
+   * llega a ellas por el buscador. Filtrar no es quitar — una herramienta que no
+   * se puede encontrar es una herramienta que no existe.
+   */
+  ocultas?: Herramienta[]
+}) {
   const [abierta, setAbierta] = useState<string | null>(
     () => items.find(i => i.abrirPorDefecto)?.id ?? null,
   )
@@ -43,7 +51,22 @@ export function Herramientas({ items }: { items: Herramienta[] }) {
     if (idPorDefecto && !tocadoPorElUsuario.current) setAbierta(idPorDefecto)
   }, [idPorDefecto])
 
-  if (items.length === 0) return null
+  /**
+   * BUSCADOR. Con la lista filtrada por especialidad hace falta una vía para
+   * llegar al resto — y de paso resuelve el problema de siempre: con nueve
+   * herramientas, encontrar la que se busca cuesta leerlas todas.
+   */
+  const [q, setQ] = useState('')
+  const [buscando, setBuscando] = useState(false)
+  const norm = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  const coincide = (h: Herramienta) => {
+    const t = norm(q.trim())
+    return !t || norm(h.nombre).includes(t) || norm(h.para).includes(t)
+  }
+  const visibles = q.trim() ? [...items, ...ocultas].filter(coincide) : items
+  const encontradasFueraDeEspecialidad = q.trim() ? ocultas.filter(coincide).length : 0
+
+  if (items.length === 0 && ocultas.length === 0) return null
 
   return (
     <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', marginBottom: 14, overflow: 'hidden' }}>
@@ -51,9 +74,45 @@ export function Herramientas({ items }: { items: Herramienta[] }) {
         <Wrench size={13} color="var(--text3)" />
         <span style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--text3)', letterSpacing: 0.3 }}>HERRAMIENTAS CLÍNICAS</span>
         <span style={{ fontSize: 11, color: 'var(--text3)' }}>({items.length})</span>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+          {buscando ? (
+            <input
+              autoFocus
+              value={q}
+              onChange={e => setQ(e.target.value)}
+              onBlur={() => { if (!q.trim()) setBuscando(false) }}
+              placeholder="Buscar herramienta…"
+              style={{
+                background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8,
+                padding: '5px 9px', fontSize: 12, color: 'var(--text)', width: 190, outline: 'none',
+              }}
+            />
+          ) : (
+            <button type="button" onClick={() => setBuscando(true)} title="Buscar entre todas las herramientas"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 11.5, padding: 2 }}>
+              <Search size={13} /> Buscar
+            </button>
+          )}
+          {q.trim() && (
+            <button type="button" onClick={() => { setQ(''); setBuscando(false) }}
+              style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 11.5 }}>
+              limpiar
+            </button>
+          )}
+        </div>
       </div>
 
-      {items.map((h, i) => {
+      {q.trim() && (
+        <div style={{ padding: '7px 13px', fontSize: 11.5, color: 'var(--text3)', borderBottom: '1px solid var(--border)' }}>
+          {visibles.length === 0
+            ? 'Ninguna herramienta coincide.'
+            : encontradasFueraDeEspecialidad > 0
+              ? `${visibles.length} resultado(s) — incluye ${encontradasFueraDeEspecialidad} fuera de tu especialidad.`
+              : `${visibles.length} resultado(s).`}
+        </div>
+      )}
+
+      {visibles.map((h, i) => {
         const abierto = abierta === h.id
         return (
           <div key={h.id} style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border)' }}>
