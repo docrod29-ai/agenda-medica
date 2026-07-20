@@ -125,7 +125,7 @@ export default function ConsultaActivaPage() {
   // si te vas mientras procesa, la petición sigue y su resultado se aplica al
   // volver (o en cuanto llega, si ya volviste). Clave por paciente+episodio.
   const procKey = `procesar.${patientId}${internamientoParam ? '.h.' + internamientoParam : ''}`
-  const [tareaProc, setTareaProc] = useTarea<{ ejecutando: boolean; resultado?: { data: Record<string, unknown>; tipoActivo: TipoNota; tipoOverride: boolean; ts: number } }>(procKey)
+  const [tareaProc, setTareaProc] = useTarea<{ ejecutando: boolean; resultado?: { data: Record<string, unknown>; tipoActivo: TipoNota; tipoOverride: boolean; ts: number; notaId: string | null } }>(procKey)
   const resultadoAplicadoRef = useRef(0)
   const { config } = useConfig()
   const { toast, confirm } = useToast()
@@ -356,6 +356,10 @@ export default function ConsultaActivaPage() {
   const [nerError, setNerError] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [firmada, setFirmada] = useState(false)
+  const [errorCargaNota, setErrorCargaNota] = useState('')
+  /** Id estable mientras la nota aún no existe en Firestore. Ver construirNota. */
+  const uuidRespaldoRef = useRef<string>('')
+  if (!uuidRespaldoRef.current) uuidRespaldoRef.current = crypto.randomUUID()
   useEffect(() => { firmadaRef.current = firmada }, [firmada])
   const [notaId, setNotaId] = useState<string | null>(notaIdParam)
   // Ref síncrona del notaId + cadena de guardados serializada: evita que dos
@@ -451,7 +455,21 @@ export default function ConsultaActivaPage() {
   useEffect(() => {
     if (!clinicId || !patientId || !notaIdParam) return
     getNota(clinicId, patientId, notaIdParam).then(n => {
-      if (!n) return
+      /**
+       * SI NO SE PUDO LEER LA NOTA, NO SE ESCRIBE ENCIMA DE ELLA.
+       *
+       * `notaIdRef` ya apunta a `notaIdParam` antes de esta lectura, así que el
+       * guardado sabe a qué documento escribir aunque nunca lo haya leído. Abrir
+       * un borrador de 5 secciones con la red intermitente dejaba la pantalla con
+       * la plantilla VACÍA y sin ningún error visible; el médico tecleaba una
+       * línea y a los 30 s el autoguardado reducía la nota a esa línea.
+       */
+      if (!n) {
+        setErrorCargaNota('Esa nota ya no existe o no se pudo leer. No se guardará nada encima hasta recargar.')
+        notaIdRef.current = null   // que un guardado accidental no pise el documento
+        return
+      }
+      setErrorCargaNota('')
       setTipo(n.tipo)
       setSecciones(n.secciones)
       setSignos(n.signosVitales ?? {})
@@ -468,6 +486,10 @@ export default function ConsultaActivaPage() {
       }
       if (n.transcripcionCruda) voz.setTranscripcion(n.transcripcionCruda)
       if (n.internamientoId) setNotaInternamientoId(n.internamientoId)  // adopta el episodio
+    }).catch(e => {
+      console.error('[consulta] no se pudo cargar la nota:', e)
+      setErrorCargaNota('No pudimos cargar esta nota. Revisa tu conexión y recarga — no se guardará nada encima mientras tanto.')
+      notaIdRef.current = null
     })
   }, [clinicId, patientId, notaIdParam]) // eslint-disable-line
 
@@ -646,19 +668,45 @@ export default function ConsultaActivaPage() {
       if (data.resumenEjecutivo?.trim()) setResumen(sanitizarProsa(data.resumenEjecutivo))
       else if (tipoOverride) setResumen('')
 
+      /**
+       * EL PASE EN VIVO NO PISA LO QUE EL MÉDICO ESCRIBIÓ A MANO.
+       *
+       * Mientras se graba, cada ~18 palabras nuevas se re-estructura la nota. Con
+       * el mapeo de antes eso REEMPLAZABA: la sección que el médico estaba
+       * tecleando se sustituía, y `setDiagnosticos(nuevosDx)` borraba el arreglo
+       * completo — incluido el diagnóstico que acababa de agregar a mano con su
+       * CIE-10. Sin ningún aviso, porque en vivo los toasts están suprimidos.
+       *
+       * En vivo la IA solo RELLENA huecos. En el "Procesar" normal (que el médico
+       * pidió a propósito) sigue mandando la IA, como hasta ahora.
+       */
       // La transcripción cruda NUNCA se vuelca dentro de la nota (es material de origen).
       setSecciones(prev => {
         const base = tipoOverride ? seccionesVacias(tipoActivo) : prev
         return base.map(s => {
           const valorIA = data.secciones?.[s.key]
-          return (typeof valorIA === 'string' && valorIA.trim()) ? { ...s, value: sanitizarProsa(valorIA) } : s
+          if (typeof valorIA !== 'string' || !valorIA.trim()) return s
+          if (enVivo && s.value?.trim()) return s      // ya escrito a mano: no se toca
+          return { ...s, value: sanitizarProsa(valorIA) }
         })
       })
 
       const nuevosDx = Array.isArray(data.diagnosticos) ? data.diagnosticos.filter((d: Diagnostico) => d.descripcion) : []
-      if (nuevosDx.length > 0 || tipoOverride) setDiagnosticos(nuevosDx)
+      if (enVivo) {
+        // Fusiona por descripción: añade los que la IA detectó y respeta los del médico.
+        if (nuevosDx.length > 0) setDiagnosticos(prev => {
+          const vistos = new Set(prev.map(d => d.descripcion.trim().toLowerCase()))
+          return [...prev, ...nuevosDx.filter((d: Diagnostico) => !vistos.has(d.descripcion.trim().toLowerCase()))]
+        })
+      } else if (nuevosDx.length > 0 || tipoOverride) setDiagnosticos(nuevosDx)
+
       const nuevosMed = Array.isArray(data.medicamentos) ? data.medicamentos.filter((m: Medicamento) => m.nombre) : []
-      if (nuevosMed.length > 0 || tipoOverride) setMedicamentos(nuevosMed)
+      if (enVivo) {
+        if (nuevosMed.length > 0) setMedicamentos(prev => {
+          const vistos = new Set(prev.map(m => m.nombre.trim().toLowerCase()))
+          return [...prev, ...nuevosMed.filter((m: Medicamento) => !vistos.has(m.nombre.trim().toLowerCase()))]
+        })
+      } else if (nuevosMed.length > 0 || tipoOverride) setMedicamentos(nuevosMed)
 
       if (data.signosVitales) {
         const sv = data.signosVitales
@@ -730,7 +778,7 @@ export default function ConsultaActivaPage() {
       // si te fuiste, el efecto de recuperación lo aplicará al volver.
       if (!enVivo) {
         resultadoAplicadoRef.current = ts
-        setTareaProc({ ejecutando: false, resultado: { data: data as Record<string, unknown>, tipoActivo, tipoOverride: !!tipoOverride, ts } })
+        setTareaProc({ ejecutando: false, resultado: { data: data as Record<string, unknown>, tipoActivo, tipoOverride: !!tipoOverride, ts, notaId: notaIdRef.current } })
       }
     } catch {
       if (!enVivo) { toast('Error al conectar con la IA', 'error'); setTareaProc({ ejecutando: false }) }
@@ -767,6 +815,27 @@ export default function ConsultaActivaPage() {
   useEffect(() => {
     const r = tareaProc?.resultado
     if (!r || r.ts <= resultadoAplicadoRef.current) return
+
+    /**
+     * EL RESULTADO SOLO SE APLICA A LA NOTA QUE LO PIDIÓ.
+     *
+     * `tareaProc` vive en el provider del layout y nunca se limpiaba, mientras que
+     * `resultadoAplicadoRef` vuelve a 0 en cada montaje. Así que cualquier montaje
+     * posterior de la consulta de ese paciente volvía a aplicar un resultado ya
+     * aplicado:
+     *
+     *   molesto → volver de la Agenda mostraba otra vez "Tu nota terminó de
+     *     procesarse mientras navegabas ✓", siendo mentira, una y otra vez.
+     *   GRAVE  → firmar la nota y abrir una SEGUNDA consulta del mismo paciente
+     *     en la misma sesión volcaba el resumen, las secciones, los diagnósticos y
+     *     los medicamentos de la consulta ANTERIOR dentro de la nota nueva y
+     *     vacía. Sin más aviso que un toast que sonaba a buena noticia.
+     */
+    if (firmadaRef.current) return
+    if ((r.notaId ?? null) !== (notaIdRef.current ?? null)) {
+      setTareaProc({ ejecutando: false })   // era de otra nota: se descarta
+      return
+    }
     resultadoAplicadoRef.current = r.ts
     const data = r.data as Record<string, unknown> & {
       resumenEjecutivo?: string; secciones?: Record<string, string>
@@ -794,6 +863,8 @@ export default function ConsultaActivaPage() {
     if (data.extraction) setExtraction(data.extraction as typeof extraction)
     if (data.safety) setSafety(data.safety as typeof safety)
     setProcesando(false)
+    // Consumido: se limpia para que no se re-aplique en el siguiente montaje.
+    setTareaProc({ ejecutando: false })
     toast('Tu nota terminó de procesarse mientras navegabas ✓', 'success')
   }, [tareaProc, toast])
 
@@ -934,7 +1005,17 @@ export default function ConsultaActivaPage() {
       pacienteNombre: patient?.nombre ?? '',
       tipo,
       metadata: {
-        id: notaId ?? crypto.randomUUID(),
+        /**
+         * El UUID de respaldo se genera UNA vez, no en cada render.
+         *
+         * `construirNota` corre en cada render (la validación NOM-004 de abajo la
+         * llama), así que `crypto.randomUUID()` devolvía un id distinto cada vez.
+         * Si se firmaba antes de que existiera `notaId`, el hash de la firma se
+         * calculaba sobre un identificador aleatorio que ni era el id del
+         * documento en Firestore ni coincidía con el de milisegundos antes: el
+         * sello de integridad dejaba de poder verificarse.
+         */
+        id: notaId ?? notaIdRef.current ?? uuidRespaldoRef.current,
         tipoNota: tipo,
         clinicId: clinicId!,
         pacienteId: patientId,
@@ -1007,6 +1088,9 @@ export default function ConsultaActivaPage() {
   // silencioso=true para el autoguardado (no muestra toast)
   const guardarBorrador = useCallback((silencioso = false): Promise<void> => {
     if (!clinicId || firmada) return Promise.resolve()
+    // Nota que no se pudo leer: escribir sería sustituirla por lo que haya en
+    // pantalla, que es la plantilla vacía. Se bloquea hasta recargar.
+    if (errorCargaNota) return Promise.resolve()
     // Serializa: cada guardado espera al anterior. Así dos autoguardados no
     // crean la nota dos veces (usa notaIdRef, que es síncrona).
     const tarea = cadenaGuardadoRef.current.then(async () => {
@@ -1049,7 +1133,7 @@ export default function ConsultaActivaPage() {
     })
     cadenaGuardadoRef.current = tarea.catch(() => {})
     return tarea
-  }, [clinicId, patientId, firmada, construirNota, toast])
+  }, [errorCargaNota, clinicId, patientId, firmada, construirNota, toast])
 
   // ── Descartar borrador ─────────────────────────────────────────
   const descartar = useCallback(async () => {
@@ -1428,7 +1512,8 @@ export default function ConsultaActivaPage() {
     setChatCorr(c => [...c, { rol: 'ia', texto: '↩ Deshecho, volví la nota a como estaba.' }])
   }
 
-  const validacion = validarNOM004(construirNota('borrador'))
+  // useMemo: construirNota no es barato y esto corría en CADA render.
+  const validacion = useMemo(() => validarNOM004(construirNota('borrador')), [construirNota])
   const mmss = `${String(Math.floor(voz.duracion / 60)).padStart(2, '0')}:${String(voz.duracion % 60).padStart(2, '0')}`
 
   return (
@@ -2181,6 +2266,19 @@ export default function ConsultaActivaPage() {
           onAprobar={id => setAprobados(prev => new Set(prev).add(id))}
           onRechazar={id => setAprobados(prev => { const n = new Set(prev); n.delete(id); return n })}
         />
+      )}
+
+      {errorCargaNota && (
+        <div className="no-print" style={{
+          display: 'flex', alignItems: 'flex-start', gap: 10,
+          background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)',
+          borderRadius: 12, padding: '13px 15px', marginBottom: 14,
+        }}>
+          <AlertTriangle size={17} style={{ color: '#ef4444', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--text)' }}>
+            <strong>No se pudo abrir esta nota.</strong> {errorCargaNota}
+          </div>
+        </div>
       )}
 
       {/* ── Sugerencias de la IA pendientes de que el médico las avale ── */}

@@ -397,7 +397,25 @@ export async function POST(req: NextRequest) {
         const notaGPT = await generarNotaOpenAI(oai.key as string, system, userMsg)
         if (!notaGPT) return null
         const sysS = `${system}\n\n[MODO SÍNTESIS] Recibes además DOS borradores de esta nota (A=Claude, B=GPT) del MISMO caso. Combínalos en la MEJOR nota ÚNICA con EXACTAMENTE el mismo esquema JSON: toma lo más correcto y completo de cada uno, agrega lo que uno haya omitido, NO inventes nada que no esté en la transcripción, y prioriza la seguridad clínica (dosis, interacciones, alergias). Devuelve SOLO el JSON del esquema.`
-        const usrS = `${userMsg}\n\n=== BORRADOR A (Claude) ===\n${JSON.stringify(validation.data).slice(0, 20000)}\n\n=== BORRADOR B (GPT) ===\n${JSON.stringify(notaGPT).slice(0, 20000)}\n\nFusiona A y B en la mejor nota. Devuelve solo el JSON del esquema.`
+        /**
+         * NO SE TRUNCA LA NOTA BUENA PARA FUSIONARLA.
+         *
+         * Los dos borradores se recortaban a 20 000 caracteres cada uno con un
+         * `.slice()`, lo que entrega al sintetizador un JSON PARTIDO A LA MITAD.
+         * Todo lo que quedaba tras el corte se reescribía desde el otro borrador o
+         * desaparecía — y la síntesis reemplaza la nota entera. En una historia
+         * clínica de primera vez con el bloque `extraction` poblado (que lleva una
+         * cita textual por campo), pasar de 20k es lo normal, no el caso raro.
+         *
+         * Ahora, si los borradores no caben, NO se fusiona: se conserva la nota de
+         * Claude íntegra. Perder la segunda opinión es un downgrade de calidad;
+         * fusionar sobre un JSON mutilado es perder contenido clínico.
+         */
+        const TOPE_FUSION = 60000
+        const jsonA = JSON.stringify(validation.data)
+        const jsonB = JSON.stringify(notaGPT)
+        if (jsonA.length + jsonB.length > TOPE_FUSION) return null
+        const usrS = `${userMsg}\n\n=== BORRADOR A (Claude) ===\n${jsonA}\n\n=== BORRADOR B (GPT) ===\n${jsonB}\n\nFusiona A y B en la mejor nota. Devuelve solo el JSON del esquema.`
         const resS = await llamarClaudeConReintentos(API_KEY, model, sysS, usrS, false, 32000)
         if (!resS.ok) return null
         const dS = await resS.json()
