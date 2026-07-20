@@ -8,13 +8,23 @@ import { where } from 'firebase/firestore'
 import type { Cobro } from '@/lib/cobros'
 import type { Appointment } from '@/types'
 import { corteDeCaja, embudoCobro, cuentasPorCobrar } from '@/lib/corte-caja'
+import { hoyISO } from '@/lib/timezone'
 import { Printer, Wallet, TrendingDown, Users, AlertCircle, Calendar } from 'lucide-react'
 
-// IMPORTANTE: cobro.dia se ALMACENA como día UTC (toISOString().slice(0,10)),
-// igual que Finanzas. El corte usa la MISMA convención para que el efectivo
-// reconcilie con lo guardado; usar día LOCAL silenciaba los cobros de la
-// tarde/noche (cuando la fecha UTC ya avanzó), justo al cerrar caja.
-const hoyISO = () => new Date().toISOString().slice(0, 10)
+/**
+ * DÍA LOCAL DEL CONSULTORIO.
+ *
+ * El comentario anterior aquí decía que usar el día UTC era lo correcto "para
+ * que reconcilie con lo guardado". Reconciliaba con la etiqueta, no con la
+ * realidad: cerrando caja a las 19:00 del lunes, el día UTC ya es martes, así
+ * que el corte abría en MARTES —vacío— mientras el dinero del lunes seguía en
+ * el cajón. Y las citas de esta misma pantalla siempre se consultaron por hora
+ * local, de modo que se comparaban dos días distintos y las consultas de la
+ * tarde salían como "atendida y no cobrada".
+ *
+ * Ahora los cobros se consultan por instante (`limitesDelDia` en lib/cobros),
+ * que es correcto también para lo ya guardado, y el día es el del consultorio.
+ */
 
 export default function CorteCajaPage() {
   return <CorteCajaContenido />

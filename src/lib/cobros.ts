@@ -13,6 +13,28 @@ import {
   collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { instanteMX, sumarDiasISO, fechaISOLocal } from '@/lib/timezone'
+
+/**
+ * Límites de un día LOCAL del consultorio, en instantes UTC.
+ *
+ * EL BUG QUE CIERRA: `dia` se guardaba como día UTC. En México (UTC-6) eso
+ * significa que un cobro de las 19:00 del lunes quedaba archivado como MARTES.
+ * Al cerrar la caja el lunes por la noche —que es cuando se cierra— los cobros
+ * de la tarde ya no aparecían: el dinero estaba en el cajón pero no en el corte.
+ * Y las citas sí se consultan por hora local, así que el corte comparaba dos
+ * días distintos y las consultas de la tarde salían como "atendida y no cobrada".
+ *
+ * Se filtra por `fecha` (el instante completo) y no por `dia`, y eso arregla
+ * también LO YA GUARDADO: el instante siempre fue correcto, lo que estaba mal
+ * era la etiqueta derivada. Sin migración y sin tocar un solo cobro histórico.
+ */
+function limitesDelDia(desde: string, hasta: string): { ini: string; fin: string } {
+  return {
+    ini: instanteMX(desde, '00:00').toISOString(),
+    fin: instanteMX(sumarDiasISO(hasta, 1), '00:00').toISOString(),
+  }
+}
 
 export type MetodoPago =
   | 'efectivo'
@@ -109,8 +131,14 @@ export async function registrarCobro(
 ): Promise<string> {
   const fecha = new Date()
   const isoFecha = fecha.toISOString()
-  const dia = isoFecha.slice(0, 10)
-  const mes = isoFecha.slice(0, 7)
+  /**
+   * `dia`/`mes` en hora LOCAL del consultorio, no UTC: un cobro de las 19:00 del
+   * lunes es del LUNES. Ya nadie filtra por estos campos —las consultas van por
+   * `fecha`, ver `limitesDelDia`— pero se guardan bien porque se leen a ojo en
+   * la ficha del cobro y en los exports.
+   */
+  const dia = fechaISOLocal(fecha)
+  const mes = dia.slice(0, 7)
   const payload: Omit<Cobro, 'id'> = {
     ...data,
     fecha: isoFecha,
@@ -155,11 +183,12 @@ export async function listarCobros(
   hasta: string,
   incluirCancelados = false,
 ): Promise<Cobro[]> {
+  const { ini, fin } = limitesDelDia(desde, hasta)
   const q = query(
     COL(clinicId),
-    where('dia', '>=', desde),
-    where('dia', '<=', hasta),
-    orderBy('dia', 'desc'),
+    where('fecha', '>=', ini),
+    where('fecha', '<', fin),
+    orderBy('fecha', 'desc'),
   )
   const snap = await getDocs(q)
   return snap.docs
@@ -167,9 +196,22 @@ export async function listarCobros(
     .filter(c => incluirCancelados || !c.cancelado)
 }
 
+/** Último día de un mes YYYY-MM, en formato YYYY-MM-DD. */
+function ultimoDiaDelMes(mes: string): string {
+  const [y, m] = mes.split('-').map(Number)
+  return `${mes}-${String(new Date(Date.UTC(y, m, 0)).getUTCDate()).padStart(2, '0')}`
+}
+
 /** Cobros de un mes completo (YYYY-MM) */
 export async function cobrosDelMes(clinicId: string, mes: string): Promise<Cobro[]> {
-  const q = query(COL(clinicId), where('mes', '==', mes), orderBy('fecha', 'desc'))
+  // Por instante, no por la etiqueta `mes` (misma razón que `limitesDelDia`).
+  const { ini, fin } = limitesDelDia(`${mes}-01`, ultimoDiaDelMes(mes))
+  const q = query(
+    COL(clinicId),
+    where('fecha', '>=', ini),
+    where('fecha', '<', fin),
+    orderBy('fecha', 'desc'),
+  )
   const snap = await getDocs(q)
   return snap.docs
     .map(d => ({ ...d.data(), id: d.id } as Cobro))
@@ -226,10 +268,17 @@ export function agregarResumen(cobros: Cobro[]): ResumenMes {
       inicial.porMedico[c.medicoId].n += 1
     }
 
-    const dia = porDiaMap.get(c.dia) ?? { monto: 0, n: 0 }
+    /**
+     * El día del bucket se DERIVA del instante, no se lee de la etiqueta `c.dia`.
+     * Los cobros anteriores a este cambio la tienen en UTC y los nuevos en hora
+     * del consultorio; mezclarlas partiría en dos la gráfica por día justo en la
+     * frontera de las 18:00. El instante es el mismo dato en ambos casos.
+     */
+    const clave = fechaISOLocal(new Date(c.fecha))
+    const dia = porDiaMap.get(clave) ?? { monto: 0, n: 0 }
     dia.monto += c.monto
     dia.n += 1
-    porDiaMap.set(c.dia, dia)
+    porDiaMap.set(clave, dia)
 
     if (c.patientId && c.patientNombre) {
       const p = porPacienteMap.get(c.patientId) ?? { nombre: c.patientNombre, monto: 0, n: 0 }

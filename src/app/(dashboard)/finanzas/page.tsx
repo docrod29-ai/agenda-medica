@@ -31,12 +31,16 @@ import {
   DollarSign, Receipt, Activity, Users, Banknote, Landmark, CreditCard,
 } from 'lucide-react'
 
+import { hoyISO } from '@/lib/timezone'
+
 type Periodo = 'dia' | 'semana' | 'mes'
 
-// ───────────── Helpers de fechas (UTC, para casar con cobro.dia) ─────────────
-// cobro.dia se guarda como toISOString().slice(0,10) (día UTC); todo el cálculo
-// de rangos se hace en UTC para que los buckets coincidan exactamente.
-function hoyISO(): string { return new Date().toISOString().slice(0, 10) }
+// ───────────── Helpers de fechas ─────────────
+// La aritmética de calendario sobre cadenas YYYY-MM-DD sí va en UTC: sumar días
+// o buscar el lunes de la semana no depende de zona horaria. Lo que SÍ dependía
+// —y estaba mal— era "hoy": con el día UTC, cualquier consulta a partir de las
+// 18:00 hora de México caía en el día siguiente y Finanzas abría en mañana,
+// vacío. Ese es el mismo defecto que vaciaba el corte de caja al cerrar.
 
 function addDias(iso: string, n: number): string {
   const d = new Date(iso + 'T00:00:00Z')

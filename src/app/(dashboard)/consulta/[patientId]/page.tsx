@@ -10,6 +10,9 @@ import { useClinic } from '@/context/ClinicContext'
 import { useBorrador } from '@/context/BorradorContext'
 import { useTarea } from '@/context/TareasContext'
 import { useConfig } from '@/hooks/useConfig'
+import { usePatientAppointments } from '@/hooks/useAppointments'
+import { hoyISO } from '@/lib/timezone'
+import type { Appointment } from '@/types'
 import { useToast } from '@/context/ToastContext'
 import { auth } from '@/lib/firebase'
 import { getPatient, getPatients, updatePatient } from '@/lib/firestore'
@@ -306,6 +309,31 @@ export default function ConsultaActivaPage() {
     return vacunasSegunEdad(Math.round(patient.edad * 12)).filter(v => v.estado === 'atrasada').length
   }, [esPediatrico, patient?.edad])
   const [medicamentos, setMedicamentos] = useState<Medicamento[]>([])
+
+  /**
+   * LA CITA DE HOY DE ESTE PACIENTE.
+   *
+   * La consulta no sabía a qué cita pertenecía, así que el modal de cobro no
+   * recibía `citaId` — y sin él nunca se marcaba `cobroId`. Consecuencia: el
+   * botón "Cobrar" seguía visible en la agenda (su guarda es justamente
+   * `!cobroId`), con riesgo de cobrar dos veces al mismo paciente, y la cita
+   * aparecía en "cuentas por cobrar" del corte estando ya cobrada.
+   */
+  const { appointments: citasDelPaciente } = usePatientAppointments(patientId)
+  const citaDeHoy = useMemo(() => {
+    const hoy = hoyISO()
+    return citasDelPaciente
+      .filter((c: Appointment) => c.fechaHora.slice(0, 10) === hoy && !['cancelada', 'reagendada'].includes(c.estado))
+      .sort((a: Appointment, b: Appointment) => a.fechaHora.localeCompare(b.fechaHora))[0] ?? null
+  }, [citasDelPaciente])
+
+  const montoSugerido = useMemo(() => {
+    const precios = config?.preciosPublicos ?? []
+    if (!precios.length) return undefined
+    const tipoCita = (citaDeHoy?.tipo ?? '').toLowerCase()
+    const coincide = precios.find(p => tipoCita && p.servicio.toLowerCase().includes(tipoCita.split('-')[0]))
+    return (coincide ?? precios[0])?.precio
+  }, [config?.preciosPublicos, citaDeHoy?.tipo])
 
   /**
    * Se declara aquí, antes del memo del copiloto, porque el copiloto consume los
@@ -2725,6 +2753,15 @@ export default function ConsultaActivaPage() {
             medicoId: auth.currentUser?.uid,
             medicoNombre: config?.nombreMedico,
             concepto: 'consulta',
+            citaId: citaDeHoy?.id,
+            estadoActual: citaDeHoy?.estado,
+            /**
+             * MONTO SUGERIDO. El campo arrancaba vacío y había que teclearlo en
+             * cada consulta, aunque el sistema conoce el precio: se lo dice al
+             * paciente por WhatsApp y lo publica en internet. Se sugiere el
+             * servicio que coincida con el tipo de cita, o el primero de la lista.
+             */
+            monto: montoSugerido,
           }}
           onClose={() => {
             setCobrar(false)

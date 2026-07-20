@@ -18,6 +18,8 @@ export interface CobrarModalProps {
   creadoPor: string
   prefill?: {
     citaId?: string
+    /** Estado actual de la cita: para no retroceder uno más avanzado al cobrar. */
+    estadoActual?: string
     patientId?: string
     patientNombre?: string
     medicoId?: string
@@ -67,7 +69,29 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
       let marcadaLaCita = true
       if (prefill?.citaId) {
         try {
-          await updateAppointment(clinicId, prefill.citaId, { cobroId: id, cobradoEn: new Date().toISOString() })
+          /**
+           * COBRAR CIERRA LA CONSULTA.
+           *
+           * Antes solo se marcaba el `cobroId`. El estado de la cita había que
+           * cambiarlo a mano después, en OTRA pantalla: ir a Citas, abrir el menú
+           * ⋮ y elegir "atendida" de una lista sin traducir. Dos clics por
+           * paciente, y en el lado contrario al que te lleva el flujo tras firmar.
+           *
+           * Y de `atendida` dependen SIETE cosas: el embudo del corte de caja,
+           * cuentas por cobrar, el CRM, la campaña de reactivación, los
+           * recordatorios post-visita y las reseñas. Si se olvida, todas se
+           * degradan en silencio.
+           *
+           * Cobrar es la señal inequívoca de que el paciente fue atendido, así que
+           * es el momento correcto para marcarlo. No se pisa un estado más
+           * avanzado (finalizada, pagada) si ya lo tenía.
+           */
+          const avanzados = ['atendida', 'finalizada', 'pagada']
+          await updateAppointment(clinicId, prefill.citaId, {
+            cobroId: id,
+            cobradoEn: new Date().toISOString(),
+            ...(prefill.estadoActual && avanzados.includes(prefill.estadoActual) ? {} : { estado: 'atendida' as const }),
+          })
         } catch {
           // El cobro YA quedó registrado, pero la cita no se marcó. Como el botón
           // "Cobrar" se oculta justo con ese cobroId, callarlo hacía que el botón
