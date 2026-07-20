@@ -18,6 +18,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
+import { guardarSecretoCanal } from '@/lib/whatsapp/secreto-canal'
 
 const PARTNER_ID    = process.env.DIALOG360_PARTNER_ID ?? ''
 const PARTNER_TOKEN = process.env.DIALOG360_PARTNER_TOKEN ?? ''
@@ -135,9 +136,9 @@ export async function GET(req: NextRequest) {
 
     // ── Step 4: Save to Firestore ─────────────────────────────────
     const now = new Date().toISOString()
+    await guardarSecretoCanal(clinicId, apiKey)
     const whatsapp = {
       provider: '360dialog',
-      apiKey,
       phoneNumberId,
       phoneNumber: phoneNumber || `+${channelId}`,
       connected: true,

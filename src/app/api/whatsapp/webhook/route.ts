@@ -51,8 +51,20 @@ const META_APP_SECRET = process.env.META_APP_SECRET || ''
  */
 function firmaValida(rawBody: string, signatureHeader: string | null): boolean {
   if (!META_APP_SECRET) {
-    console.warn('[Bot] META_APP_SECRET no configurado — firma del webhook NO verificada')
-    return true
+    /**
+     * FAIL-CLOSED. Antes esto devolvía `true` "para no tumbar un bot en
+     * producción durante la migración", pero el efecto real era que, sin el
+     * secreto configurado, CUALQUIERA que conociera un phone_number_id podía
+     * inyectar mensajes falsos: agendar citas espurias y disparar WhatsApp a
+     * costa de la clínica. Un webhook público sin verificar la firma no es una
+     * migración, es una puerta abierta.
+     *
+     * Ahora se rechaza. Requiere que META_APP_SECRET esté en el entorno (Meta →
+     * App Dashboard → Configuración → Básica → Clave secreta de la app). Es el
+     * mismo criterio fail-closed que ya usa el cron (CRON_SECRET).
+     */
+    console.error('[Bot] META_APP_SECRET no configurado — se RECHAZA el webhook (fail-closed)')
+    return false
   }
   if (!signatureHeader || !signatureHeader.startsWith('sha256=')) return false
   const esperado = 'sha256=' + createHmac('sha256', META_APP_SECRET).update(rawBody).digest('hex')

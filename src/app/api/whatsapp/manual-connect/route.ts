@@ -10,6 +10,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
+import { guardarSecretoCanal } from '@/lib/whatsapp/secreto-canal'
 import { verificarMiembro } from '@/lib/auth-server'
 
 const GRAPH = 'https://graph.facebook.com/v20.0'
@@ -43,9 +44,9 @@ export async function POST(req: NextRequest) {
 
     // 2. Guardar en la clínica
     const now = new Date().toISOString()
+    await guardarSecretoCanal(clinicId, token)
     const whatsapp = {
       provider: 'meta',
-      apiKey: token,
       phoneNumberId,
       phoneNumber,
       connected: true,

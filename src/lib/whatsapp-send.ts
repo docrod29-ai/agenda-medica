@@ -9,6 +9,7 @@
 import { adminDb } from '@/lib/firebase-admin'
 import type { ClinicWhatsApp } from '@/types'
 import { estaDadoDeBaja, conPieOptout, normalizarTelefonoWa } from '@/lib/whatsapp/consent'
+import { conSecretoCanal } from '@/lib/whatsapp/secreto-canal'
 
 interface SendResult {
   ok: boolean
@@ -145,7 +146,9 @@ export async function sendWhatsApp(
   let waConfig: ClinicWhatsApp | undefined
   try {
     const clinicSnap = await adminDb.collection('clinics').doc(clinicId).get()
-    waConfig = clinicSnap.data()?.whatsapp as ClinicWhatsApp | undefined
+    const publico = clinicSnap.data()?.whatsapp as ClinicWhatsApp | undefined
+    // El token NO viene en el doc raíz: se resuelve desde el gestor de secretos.
+    waConfig = await conSecretoCanal(clinicId, publico)
   } catch {
     // Firestore unavailable — fall through to env vars
   }
@@ -259,7 +262,7 @@ export async function sendWhatsAppTemplate(
   let waConfig: ClinicWhatsApp | undefined
   try {
     const clinicSnap = await adminDb.collection('clinics').doc(clinicId).get()
-    waConfig = clinicSnap.data()?.whatsapp as ClinicWhatsApp | undefined
+    waConfig = await conSecretoCanal(clinicId, clinicSnap.data()?.whatsapp as ClinicWhatsApp | undefined)
   } catch {
     // Firestore no disponible — cae a env vars
   }

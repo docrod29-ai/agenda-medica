@@ -19,6 +19,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
+import { guardarSecretoCanal } from '@/lib/whatsapp/secreto-canal'
 import { verificarMiembro } from '@/lib/auth-server'
 
 const APP_ID     = process.env.META_APP_ID ?? ''
@@ -167,9 +168,10 @@ export async function POST(req: NextRequest) {
 
     // 5. Save to Firestore
     const now = new Date().toISOString()
+    // El token va al gestor de secretos, NUNCA al doc raíz (legible por miembros).
+    await guardarSecretoCanal(clinicId, longToken)
     const whatsapp = {
       provider: 'meta',
-      apiKey: longToken,           // The access token
       phoneNumberId: info.phoneNumberId,
       phoneNumber: info.phoneNumber,
       wabaId: info.wabaId,
