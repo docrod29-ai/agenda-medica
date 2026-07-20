@@ -221,7 +221,20 @@ export interface NotaMedica {
       promptVersion?: string   // versión del prompt/pipeline
       apiVersion?: string      // versión de la API del proveedor
       generadoEn?: string      // ISO timestamp de la generación
-      revisadoPorHumano?: boolean  // el médico editó/aprobó antes de firmar
+      /**
+       * ¿El médico revisó de verdad lo que generó la IA antes de firmar?
+       *
+       * Antes se calculaba como `aprobados.size > 0 || estado === 'firmada'`, es
+       * decir: FIRMAR era lo que lo ponía en true. Firma y revisión eran la misma
+       * acción, así que el campo siempre decía "sí" — incluso en el flujo
+       * dictar → procesar → firmar sin leer nada. Un registro que nunca puede
+       * decir "firmada sin revisar" no sirve para auditar exactamente eso.
+       *
+       * Ahora es true SOLO si el médico aceptó campos en el panel de revisión.
+       */
+      revisadoPorHumano?: boolean
+      /** Cuántos campos aceptó explícitamente. 0 = firmó sin revisar en detalle. */
+      camposAprobados?: number
       pmids?: string[]         // identificadores de evidencia citada (si aplica)
     }
   }

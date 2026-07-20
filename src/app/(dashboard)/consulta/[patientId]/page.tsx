@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { sugerenciasPendientes, resolverSugerencias } from '@/lib/expediente/sugerencias-ia'
 import dynamic from 'next/dynamic'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
@@ -985,7 +986,11 @@ export default function ConsultaActivaPage() {
           promptVersion: provenanceIA.promptVersion,
           apiVersion: provenanceIA.apiVersion,
           generadoEn: provenanceIA.generadoEn,
-          revisadoPorHumano: aprobados.size > 0 || estado === 'firmada',
+          // La verdad, no una tautología: firmar ya NO cuenta como revisar.
+          // No se bloquea firmar sin revisar — a veces la nota está bien y no hay
+          // nada que aceptar — pero el expediente registra lo que de verdad pasó.
+          revisadoPorHumano: aprobados.size > 0,
+          camposAprobados: aprobados.size,
         } : undefined,
       } : undefined,
       transcripcionCruda: voz.transcripcion || undefined,
@@ -1247,6 +1252,31 @@ export default function ConsultaActivaPage() {
   // ── Firmar nota (NOM-004 + NOM-024) ────────────────────────────
   const firmar = useCallback(async () => {
     if (!clinicId) return
+
+    /**
+     * COMPUERTA DE SUGERENCIAS. Nada que la IA haya añadido por su cuenta entra a
+     * una nota firmada sin que el médico lo haya visto.
+     *
+     * El modelo sigue completando el plan (ahorra dictado y suele acertar), pero
+     * marca lo que no salió de la voz del médico. Aquí, antes de firmar, hay que
+     * resolverlo: o las acepta como suyas desde el aviso de la nota, o se van.
+     * Firmar con la marca puesta significaría firmar conducta clínica que él no
+     * indicó, con su cédula.
+     */
+    const pendientes = sugerenciasPendientes(secciones)
+    if (pendientes > 0) {
+      const quitar = await confirm(
+        `La IA añadió ${pendientes} ${pendientes === 1 ? 'línea que no dictaste' : 'líneas que no dictaste'} (dosis, duraciones, signos de alarma…). ` +
+        'Si firmas, saldrían con tu cédula como indicación tuya.\n\n' +
+        '“Quitarlas y firmar” las elimina de la nota. “Revisar” te devuelve para leerlas y aceptarlas.',
+        { peligro: true, confirmar: 'Quitarlas y firmar', cancelar: 'Revisar' },
+      )
+      if (!quitar) return
+      setSecciones(prev => resolverSugerencias(prev, 'quitar'))
+      toast(`Se quitaron ${pendientes} ${pendientes === 1 ? 'sugerencia' : 'sugerencias'}. Revisa y vuelve a firmar.`, 'info')
+      return   // se re-renderiza sin ellas; el médico confirma la nota final
+    }
+
     const notaParaValidar = construirNota('firmada')
     const val = validarNOM004(notaParaValidar)
     if (!val.valida) {
@@ -2152,6 +2182,39 @@ export default function ConsultaActivaPage() {
           onRechazar={id => setAprobados(prev => { const n = new Set(prev); n.delete(id); return n })}
         />
       )}
+
+      {/* ── Sugerencias de la IA pendientes de que el médico las avale ── */}
+      {!firmada && sugerenciasPendientes(secciones) > 0 && (() => {
+        const n = sugerenciasPendientes(secciones)
+        return (
+          <div style={{
+            display: 'flex', alignItems: 'flex-start', gap: 11, flexWrap: 'wrap',
+            background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.35)',
+            borderRadius: 12, padding: '13px 15px', marginBottom: 14,
+          }}>
+            <AlertTriangle size={17} style={{ color: '#f59e0b', flexShrink: 0, marginTop: 1 }} />
+            <div style={{ flex: 1, minWidth: 220, fontSize: 13.5, lineHeight: 1.55, color: 'var(--text)' }}>
+              <strong>{n} {n === 1 ? 'línea la propuso la IA' : 'líneas las propuso la IA'}, no tú.</strong>{' '}
+              Están marcadas con <code style={{ fontSize: 12 }}>[IA — no dictado]</code> dentro de la nota —
+              suelen ser dosis, duraciones o signos de alarma. Léelas: si las avalas pasan a ser tuyas;
+              si no, quítalas. No se puede firmar con la marca puesta.
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => { setSecciones(prev => resolverSugerencias(prev, 'aceptar')); toast(`Aceptaste ${n} ${n === 1 ? 'sugerencia' : 'sugerencias'} como tuyas`, 'success') }}
+                className="lift"
+                style={{ background: 'var(--nexus)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 15px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                Las acepto
+              </button>
+              <button
+                onClick={() => { setSecciones(prev => resolverSugerencias(prev, 'quitar')); toast('Sugerencias quitadas de la nota', 'info') }}
+                style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 9, padding: '9px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                Quitarlas
+              </button>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ── Signos vitales ── */}
       {requiereSignosVitales(tipo) && (

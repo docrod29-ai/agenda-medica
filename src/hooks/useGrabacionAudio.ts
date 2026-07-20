@@ -346,6 +346,23 @@ async function transcribirEnPartes(chunks: Blob[], mime: string, ext: string): P
   return { texto: textos.join(' '), lotesFallidos }
 }
 
+
+/**
+ * Aplica el diccionario de correcciones de fármacos a CADA TURNO diarizado.
+ *
+ * Bug encontrado en la auditoría: el corrector solo se aplicaba al texto corrido.
+ * Pero cuando hay separación de voces, lo que se le manda a la IA para redactar la
+ * nota son los TURNOS, no el texto corrido — y los turnos iban sin corregir.
+ *
+ * Resultado: el médico veía "ceftriaxona" en pantalla (texto corrido, corregido) y
+ * el modelo recibía "sefriaxona" (turno, crudo). El desajuste era invisible, y
+ * ocurría justo en el camino que el médico considera el bueno. En el modo simple sí
+ * se corregía.
+ */
+function corregirUtterances(us: Utterance[]): Utterance[] {
+  return us.map(u => ({ ...u, text: corregirTranscripcion(u.text).corregido }))
+}
+
 // ─────────────────────────────────────────────────────────────────
 // Hook principal
 // ─────────────────────────────────────────────────────────────────
@@ -697,7 +714,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       ? await intentarDiarizarLargo(blob, ext, recoveryKeyRef.current)
       : await intentarDiarizar(blob, ext)
     if (diar && diar.text.trim()) {
-      setUtterances(diar.utterances)
+      setUtterances(corregirUtterances(diar.utterances))
       aplicar(diar.text)
       if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current)
       return
@@ -752,7 +769,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     const diar = await intentarDiarizarLargo(blob, ext, recoveryKey)
     let texto = ''
     if (diar && diar.text.trim()) {
-      setUtterances(diar.utterances)
+      setUtterances(corregirUtterances(diar.utterances))
       texto = diar.text
     } else {
       // 2) Fallback: transcribir EN PARTES (OpenAI o AssemblyAI por trozo). Nunca lanza.
