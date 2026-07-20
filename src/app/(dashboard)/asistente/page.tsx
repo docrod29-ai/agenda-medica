@@ -183,6 +183,7 @@ function AsistenteInner() {
       const tel = telefono.replace(/\D/g, '')
       const nombreLimpio = nombre.trim()
       let pacienteId = ''
+      let avisoSinExpediente = false
       try {
         const pacientes = await getPatients(clinicId!)
         // Prioriza el TELÉFONO. Solo funde por nombre si NO hay teléfono en
@@ -208,8 +209,20 @@ function AsistenteInner() {
             creadoPor: user?.email || 'asistente',
           })
         }
-      } catch {
-        // si falla la búsqueda/creación, continuamos con la cita de todos modos
+      } catch (e) {
+        /**
+         * La cita se crea igual —vale más una cita agendada que ninguna— pero YA
+         * NO en silencio.
+         *
+         * Con `pacienteId` vacío la cita queda desligada del expediente: no sale
+         * en el historial del paciente, ni en su portal, ni en la campaña de
+         * reactivación (todas las huérfanas colapsan bajo la clave vacía). Antes
+         * el catch se lo tragaba y el toast decía "Cita agendada" en verde, así
+         * que nadie se enteraba nunca.
+         */
+        console.error('[asistente] no se pudo ligar la cita al expediente:', e)
+        pacienteId = ''
+        avisoSinExpediente = true
       }
 
       const res = await fetchAutenticado('/api/appointments', {
@@ -244,7 +257,11 @@ function AsistenteInner() {
       const data = await res.json().catch(() => ({}))
       if (!res.ok || !data.id) { toast(data.error || 'No se pudo agendar la cita', 'error'); return }
 
-      toast(`Cita agendada para ${nombre.split(' ')[0]}`, 'success')
+      if (avisoSinExpediente) {
+        toast(`Cita agendada para ${nombre.split(' ')[0]}, pero NO se pudo ligar al expediente. Revísala en Pacientes.`, 'error')
+      } else {
+        toast(`Cita agendada para ${nombre.split(' ')[0]}`, 'success')
+      }
       setSuccess(true)
       setTimeout(() => {
         setSuccess(false)

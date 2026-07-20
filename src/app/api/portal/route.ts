@@ -161,13 +161,19 @@ export async function POST(req: NextRequest) {
         // Transacción: re-leer el día y escribir de forma atómica (sin carrera check-then-write)
         const CONFLICTO = Symbol('conflicto')
         try {
+          // Centinela por día, igual que /api/appointments, el booking público y
+          // el bot. Sin él esta transacción no se serializaba contra ninguno de los
+          // otros tres caminos, que dependen justo de ese documento.
+          const diaRef = adminDb.collection('clinics').doc(clinicId).collection('slot_locks').doc(fecha)
           await adminDb.runTransaction(async (tx) => {
+            await tx.get(diaRef)
             const snapDia = await tx.get(dayQuery)
             const citasDia = snapDia.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Appointment, 'id'>) }))
             if (config) {
               const libres = getAvailableSlots(fecha, cita.duracion || 30, citasDia, config, cita.id, [], cita.medicoId)
               if (!libres.includes(hhmm)) throw CONFLICTO
             }
+            tx.set(diaRef, { ultimaReserva: new Date().toISOString() }, { merge: true })
             tx.update(citaRef, {
               fechaHora: nuevaFechaHora,
               estado: 'pendiente-confirmar',
@@ -181,6 +187,25 @@ export async function POST(req: NextRequest) {
         } catch (e) {
           if (e === CONFLICTO) return NextResponse.json({ error: 'Ese horario ya no está disponible' }, { status: 409 })
           throw e
+        }
+        /**
+         * Google Calendar: la cita vieja se quedaba viva y nadie se enteraba.
+         *
+         * El paciente reagenda de martes a jueves desde su enlace: Nexus dice
+         * jueves y el calendario del consultorio —y el del paciente, si está
+         * invitado— sigue diciendo martes.
+         *
+         * NO se sincroniza desde aquí a propósito. El token de Google está guardado
+         * POR USUARIO (`googleTokens/{uid}`), y quien reagenda es el paciente: no
+         * hay forma de saber cuál de los médicos conectó ese calendario, y escribir
+         * en el equivocado sería peor que no escribir. Adivinar con el dueño de la
+         * clínica funcionaría solo si fue él quien lo conectó.
+         *
+         * Se marca como DESINCRONIZADA, que es la verdad, para que el panel pueda
+         * mostrarlo y el médico lo arregle con un clic desde su sesión.
+         */
+        if (cita.googleCalendarEventId) {
+          await citaRef.update({ googleCalendarSyncStatus: 'desincronizado' }).catch(() => {})
         }
         return NextResponse.json({ ok: true })
       }

@@ -17,12 +17,34 @@ const STORAGE_KEY = 'agenda-medica:filtroMedico'
 /** Devuelve el médicoId actualmente filtrado (o null = todos) */
 export function useFiltroMedico(): [string | null, (id: string | null) => void] {
   const [medicoId, setMedicoId] = useState<string | null>(null)
+  const { activeDoctors, loading } = useDoctors()
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored && stored !== 'null') setMedicoId(stored)
   }, [])
+
+  /**
+   * UN FILTRO A UN MÉDICO QUE YA NO EXISTE DEJA LA AGENDA VACÍA PARA SIEMPRE.
+   *
+   * El id se leía SIEMPRE de localStorage, pero el selector solo se DIBUJA si hay
+   * 2 o más médicos activos. Secuencia real: la asistente filtra por la Dra. B →
+   * la Dra. B se da de baja → queda un solo médico activo → el selector deja de
+   * renderizarse, pero el filtro sigue aplicándose contra un médico que ya no
+   * está. Cero citas, todos los días, y ningún control en pantalla para quitarlo:
+   * la única salida era borrar el almacenamiento del navegador.
+   *
+   * Se espera a que `useDoctors` termine de cargar para no invalidar durante el
+   * arranque, cuando la lista aún está vacía por motivos legítimos.
+   */
+  useEffect(() => {
+    if (loading || !medicoId) return
+    if (!activeDoctors.some(d => d.id === medicoId)) {
+      setMedicoId(null)
+      if (typeof window !== 'undefined') localStorage.removeItem(STORAGE_KEY)
+    }
+  }, [loading, activeDoctors, medicoId])
 
   const updateMedicoId = (id: string | null) => {
     setMedicoId(id)
@@ -46,7 +68,9 @@ export function DoctorFilter({
   const { activeDoctors } = useDoctors()
   const [open, setOpen] = useState(false)
 
-  if (activeDoctors.length <= 1) return null
+  // Con un filtro activo el selector SIEMPRE se pinta, aunque quede un solo
+  // médico: si no, no habría forma de quitarlo desde la pantalla.
+  if (activeDoctors.length <= 1 && !medicoId) return null
 
   const seleccionado = activeDoctors.find(d => d.id === medicoId)
 

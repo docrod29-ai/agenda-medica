@@ -69,7 +69,18 @@ export async function GET(
     const { startMin, endMin } = validacion
 
     // 3. Citas existentes ese día
-    const apptsSnap = await adminDb.collection('clinics').doc(clinicId).collection('appointments').get()
+    /**
+     * SOLO EL DÍA CONSULTADO.
+     *
+     * Esto leía la colección COMPLETA de citas y filtraba el día en memoria. Es un
+     * endpoint PÚBLICO, sin autenticación, y el portal lo dispara en cada cambio
+     * de fecha: con 15 000 citas eran 15 000 documentos leídos por clic. La
+     * transacción de `booking` ya acotaba por rango; aquí se había quedado sin.
+     */
+    const apptsSnap = await adminDb.collection('clinics').doc(clinicId).collection('appointments')
+      .where('fechaHora', '>=', `${fecha} 00:00`)
+      .where('fechaHora', '<=', `${fecha} 23:59`)
+      .get()
     const dayAppts: { start: number; end: number }[] = []
     apptsSnap.forEach(doc => {
       const a = doc.data()

@@ -133,6 +133,28 @@ export default function CitasPage() {
       // dejaban el hueco sin ofrecer.
       const liberado = ['cancelada', 'reagendada', 'no-asistio'].includes(newStatus) &&
         !['cancelada', 'reagendada', 'no-asistio'].includes(appt.estado)
+
+      /**
+       * CANCELAR TAMBIÉN BORRA EL EVENTO DE GOOGLE CALENDAR.
+       *
+       * El borrado y el modal ya lo hacían; el menú rápido no. Cancelabas desde
+       * el "⋮", veías "Estado actualizado" — y en el calendario del paciente la
+       * cita seguía viva, sin ninguna marca. Se presentaba al consultorio. Es
+       * exactamente el escenario que el comentario de handleDelete dice haber
+       * cerrado, y que aquí seguía abierto.
+       */
+      if (newStatus === 'cancelada' && appt.googleCalendarEventId) {
+        try {
+          const res = await fetchAutenticado('/api/calendar/sync', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'delete', appointment: appt, clinicId }),
+          })
+          if (!res.ok) throw new Error('sync')
+        } catch {
+          toast('La cita se canceló, pero NO se pudo quitar de Google Calendar. El paciente aún la ve: bórrala a mano.', 'error')
+        }
+      }
+
       if (liberado) {
         fetchAutenticado('/api/whatsapp/waitlist-notify', {
           method: 'POST',
@@ -157,6 +179,21 @@ export default function CitasPage() {
   }
 
   const handleDelete = async (id: string) => {
+    /**
+     * Una cita COBRADA no se borra: se cancela.
+     *
+     * `deleteAppointment` borra el documento y ya. El cobro vive en otra colección
+     * con un `citaId` que quedaba apuntando a la nada, y el corte de caja cruza
+     * citas × cobros para armar el embudo del día: ese dinero seguía en Finanzas
+     * pero su cita ya no existía, así que el corte dejaba de cuadrar sin ninguna
+     * explicación visible.
+     */
+    const aBorrar = appointments.find(a => a.id === id)
+    if (aBorrar?.cobroId) {
+      toast('Esta cita tiene un cobro registrado. Cámbiala a "cancelada" en vez de borrarla, o el corte de caja no cuadrará.', 'error')
+      setMenuId(null)
+      return
+    }
     if (!confirm('¿Eliminar esta cita permanentemente?')) return
     setDeletingId(id)
     const apptBorrada = appointments.find(a => a.id === id)   // capturar antes de borrar (trae el eventId de Google)

@@ -171,8 +171,18 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
         // No degradar un consentimiento previo ni "confirmar" solo por el estado:
         // eleva confirmadoPaciente si el estado lo implica, si no conserva el real.
         confirmadoPaciente: appointment?.confirmadoPaciente || ['confirmada', 'atendida', 'finalizada'].includes(estado),
-        recordatorio24hEnviado: appointment?.recordatorio24hEnviado ?? false,
-        recordatorioMismoDiaEnviado: appointment?.recordatorioMismoDiaEnviado ?? false,
+        /**
+         * NO se reenvían los marcadores de recordatorio.
+         *
+         * El modal congela la cita al abrirse y reescribía estos campos con el
+         * valor que tenían entonces. Secuencia sin necesidad de un segundo
+         * dispositivo: modal abierto a las 10:00 → el cron manda el recordatorio de
+         * 24 h y pone la bandera en true → el médico guarda a las 10:10 y la
+         * bandera vuelve a FALSE → el siguiente ciclo del cron manda el recordatorio
+         * OTRA VEZ. El paciente lo recibe dos veces.
+         *
+         * Omitirlos deja que `updateDoc` los conserve intactos: es merge por campo.
+         */
         notasInternas: notas.trim(),
         consentimientoMensajes: consent,
         creadoPor: user?.email ?? '',
@@ -228,7 +238,12 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
         const res = await fetchAutenticado('/api/appointments', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ clinicId, appointment: payload }),
+          // En un alta SÍ hay que sembrar las banderas de recordatorio (el update
+          // las omite a propósito para no pisar lo que haya puesto el cron).
+          body: JSON.stringify({
+            clinicId,
+            appointment: { ...payload, recordatorio24hEnviado: false, recordatorioMismoDiaEnviado: false },
+          }),
         })
         const data = await res.json().catch(() => ({}))
         if (!res.ok || !data.id) { toast(data.error || 'No se pudo agendar la cita', 'error'); return }
