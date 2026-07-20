@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v498'  // INICIAR CONSULTA DESDE LA AGENDA DEL DIA (menos tiempo en la computadora, objetivo del Dr). En el dashboard cada paciente de la agenda de hoy tenia una fila que solo abria la cita; para atenderlo habia que ir a Citas -> abrir la cita -> Expediente -> Nueva consulta: cuatro saltos cada manana, por paciente. Ahora cada fila trae un boton 'Consulta' que arranca la nota directo con ese paciente. Solo aparece para el medico, cuando la cita tiene paciente y no se ha atendido. Se reestructuro la fila para no anidar el boton dentro del enlace (HTML valido). Verificado en el navegador: sin errores nuevos de consola.
+const CACHE = 'nexusmed-v499'  // LEGIBILIDAD (el Dr: 'no se ven las letras' en modo claro). Los campos de la consulta usan estilos inline, no la clase .input, asi que sus placeholders NO recibian color y caian al gris clarisimo del navegador (~2:1 de contraste) sobre el fondo crema: los textos guia de Motivo, Padecimiento, Plan, los signos (lpm/rpm/C), etc. se veian lavados. Ahora hay una regla GLOBAL de placeholder (input y textarea, no solo .input) con opacity:1 para neutralizar el atenuado de Firefox, y en modo claro un tono mas oscuro (#5A5F66). Verificado midiendo contraste real en el navegador: modo claro 5.8:1, modo oscuro 5.18:1, ambos por encima de AA. El texto ya tecleado siempre fue oscuro; el problema eran solo los placeholders.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

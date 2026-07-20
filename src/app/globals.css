@@ -235,7 +235,19 @@ html, body {
               background 120ms cubic-bezier(0.16, 1, 0.3, 1);
   outline: none;
 }
-.input::placeholder { color: var(--text3); }
+/* PLACEHOLDERS LEGIBLES EN TODAS PARTES.
+   `.input::placeholder` solo alcanzaba a los campos con esa clase, pero muchos
+   campos de la consulta usan estilos inline y su placeholder caía al gris
+   clarísimo del navegador (~2:1 de contraste) — "no se ven las letras". Esta
+   regla global los cubre; `opacity: 1` neutraliza el atenuado que Firefox aplica
+   por defecto. En modo claro se usa un tono más oscuro para que se lea sobre el
+   fondo crema de los campos. */
+.input::placeholder,
+input::placeholder,
+textarea::placeholder {
+  color: var(--text3);
+  opacity: 1;
+}
 .input:hover:not(:focus):not(:disabled) {
   border-color: var(--border2);
 }
@@ -895,6 +907,14 @@ tbody tr:last-child { border-bottom: none; }
   --purple:    #6D28D9;
 }
 
+/* Placeholder más oscuro en claro: #5A5F66 da ~5.3:1 sobre el crema de los
+   campos (--s2 #F5F3EE), claramente legible. #6B6F75 quedaba en el filo de AA. */
+:root[data-theme="light"] .input::placeholder,
+:root[data-theme="light"] input::placeholder,
+:root[data-theme="light"] textarea::placeholder {
+  color: #5A5F66;
+}
+
 /* ── Auto-light si el OS prefiere claro y no hay override manual ── */
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]):not([data-theme="light"]) {
@@ -920,6 +940,12 @@ tbody tr:last-child { border-bottom: none; }
     --red:       #B91C1C;
     --green:     #14532D;
     --purple:    #6D28D9;
+  }
+  /* Mismo placeholder oscuro para el auto-claro del OS. */
+  :root:not([data-theme="dark"]):not([data-theme="light"]) .input::placeholder,
+  :root:not([data-theme="dark"]):not([data-theme="light"]) input::placeholder,
+  :root:not([data-theme="dark"]):not([data-theme="light"]) textarea::placeholder {
+    color: #5A5F66;
   }
 }
 
