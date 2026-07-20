@@ -270,13 +270,24 @@ service cloud.firestore {
       match /time_blocks/{blockId} {
         allow read, write: if isMember(clinicId);
       }
-      // Inventario de farmacia interna
+      // Inventario de farmacia interna. LEE/ESCRIBE solo staff clínico: el manejo
+      // de medicamentos —incluidos controlados— no es de recepción/facturación.
+      // Antes `isMember` dejaba a cualquier rol tocar el inventario. Además el
+      // stock nunca puede quedar negativo (la aritmética que lo evitaba vivía
+      // solo en el cliente; una escritura directa con cantidad<0 pasaba).
       match /farmacia/{itemId} {
-        allow read, write: if isMember(clinicId);
+        allow read: if isClinicoHospital(clinicId);
+        allow write: if isClinicoHospital(clinicId)
+          && (request.resource.data.get('cantidad', 0) is number)
+          && request.resource.data.get('cantidad', 0) >= 0;
       }
-      // Movimientos de farmacia (entradas, salidas, ajustes)
+      // Movimientos de farmacia (entradas, salidas, ajustes). Inmutables, y el
+      // autor lo sella el servidor: antes se podía crear un movimiento a nombre
+      // de otro (el registro de controlados debe acreditar QUIÉN dispensó).
       match /farmacia_movimientos/{movId} {
-        allow read, create: if isMember(clinicId);
+        allow read: if isClinicoHospital(clinicId);
+        allow create: if isClinicoHospital(clinicId)
+          && request.resource.data.realizadoPor == request.auth.uid;
         allow update, delete: if false;  // movimientos inmutables — registro contable
       }
       // Cobros (registro contable)

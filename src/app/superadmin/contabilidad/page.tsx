@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { fetchAutenticado } from '@/lib/auth-client'
+import { filaCSV } from '@/lib/csv-seguro'
 import { ArrowLeft, Download, Loader2, TrendingUp } from 'lucide-react'
 
 const mxn = (n: number) => '$' + Math.round(n).toLocaleString('es-MX')
@@ -78,8 +79,11 @@ export default function ContabilidadPage() {
     lineas.push(`Margen %,${r.margen}`)
     lineas.push('')
     lineas.push('POR CLIENTE,Plan,Activa,MRR,Ingreso histórico,Créditos mes,Costo IA,Margen %')
+    // filaCSV neutraliza inyección de fórmulas: el nombre del consultorio lo
+    // escribe OTRO tenant, y un "=HYPERLINK(...)" se ejecutaría en la máquina del
+    // dueño al abrir el CSV.
     data.clientes.forEach(c => lineas.push(
-      `"${c.nombre.replace(/"/g, "'")}",${c.planLabel},${c.activa ? 'Sí' : 'No'},${c.mrr},${c.ingresoTotal},${c.creditos},${c.costoIA},${c.margen ?? ''}`,
+      filaCSV([c.nombre, c.planLabel, c.activa ? 'Sí' : 'No', c.mrr, c.ingresoTotal, c.creditos, c.costoIA, c.margen ?? '']),
     ))
     const blob = new Blob(['﻿' + lineas.join('\n')], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)

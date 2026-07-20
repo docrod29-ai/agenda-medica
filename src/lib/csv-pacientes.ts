@@ -17,10 +17,14 @@ export function normalizarNombre(n?: string): string {
     .toLowerCase().replace(/\s+/g, ' ').trim()
 }
 
-/** Escapa un campo para CSV (comillas dobles + envoltura si hace falta). */
+/**
+ * Escapa un campo para CSV. Delega en `celdaSegura`, que además de las comillas
+ * neutraliza la inyección de fórmulas (un paciente llamado "=cmd|..." ejecutaba
+ * la fórmula al abrir el export en Excel).
+ */
+import { celdaSegura } from '@/lib/csv-seguro'
 function celda(v: unknown): string {
-  const s = v == null ? '' : String(v)
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+  return celdaSegura(v)
 }
 
 export const COLUMNAS_EXPORT: { key: keyof Patient; label: string }[] = [

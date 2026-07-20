@@ -89,7 +89,22 @@ export async function crearItem(clinicId: string, data: Omit<FarmaciaItem, 'id'>
 }
 
 export async function actualizarItem(clinicId: string, itemId: string, data: Partial<FarmaciaItem>): Promise<void> {
-  await updateDoc(doc(COL(clinicId), itemId), { ...data, updatedAt: new Date().toISOString() })
+  /**
+   * EDITAR METADATOS NUNCA TOCA EXISTENCIAS.
+   *
+   * El modal de edición precargaba `cantidad` con el valor que el ítem tenía AL
+   * ABRIRSE y lo reescribía con un updateDoc plano, fuera del ledger transaccional.
+   * Corregir el proveedor de un ítem revertía en silencio cualquier dispensación
+   * hecha entre que se abrió el modal y se guardó: el stock "reaparecía" y el
+   * movimiento quedaba huérfano. Es pérdida de dato de inventario, grave con
+   * controlados.
+   *
+   * Las existencias SOLO se mueven por `registrarMovimiento` (transacción que
+   * relee el stock real). Aquí se descarta `cantidad` aunque el caller la mande.
+   */
+  const { cantidad: _ignora, ...metadatos } = data
+  void _ignora
+  await updateDoc(doc(COL(clinicId), itemId), { ...metadatos, updatedAt: new Date().toISOString() })
 }
 
 export async function borrarItem(clinicId: string, itemId: string): Promise<void> {

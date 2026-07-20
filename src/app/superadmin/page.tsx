@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { Modal, Button, Spinner } from '@/components/ui'
 import { MODULOS, MODULO_LABEL } from '@/lib/modulos'
+import { PLANES } from '@/lib/planes-ia'
 import { type ModeloPrecio, explicarPrecio } from '@/lib/pricing'
 import { ShieldCheck, Search, Gift, Ban, Play, CalendarPlus, StickyNote, Lock, RefreshCw, Package, Plus, Trash2, Boxes, Sparkles, TrendingUp, LogIn, LifeBuoy, Bug } from 'lucide-react'
 
@@ -338,7 +339,11 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
           <div style={{ display: 'flex', gap: 8 }}>
             {(['pro', 'premium'] as const).map(n => {
               const activo = nivelIA === n
-              const label = n === 'pro' ? 'Pro ($899) · Sonnet 5' : 'Premium ($1,999) · Opus 4.8 + GPT-5'
+              // Derivado de PLANES (fuente única): el literal estaba desincronizado
+              // — decía Premium $1,999 cuando el plan es "Pro" a $1,899.
+              const label = n === 'pro'
+                ? `${PLANES.clinica.nombre} ($${PLANES.clinica.precioMXN.toLocaleString('es-MX')}) · Sonnet 5`
+                : `${PLANES.premium.nombre} ($${PLANES.premium.precioMXN.toLocaleString('es-MX')}) · Opus 4.8 + GPT-5`
               return (
                 <button key={n} disabled={busy === 'set_nivel_ia'}
                   onClick={() => { setNivelIA(n); accion('set_nivel_ia', { nivelIA: n }) }}

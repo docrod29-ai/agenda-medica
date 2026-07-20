@@ -8,7 +8,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
-import { verificarSuperadmin, PRECIO_PLAN_MXN } from '@/lib/superadmin'
+import { verificarSuperadmin, precioPlanMXN } from '@/lib/superadmin'
 import { calcularPrecioPaquete } from '@/lib/pricing'
 import { planDeNivel } from '@/lib/planes-ia'
 
@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
           { medicos, camas },
         )
       }
-      const mrr = cob === 'al_corriente' ? (precioPaquete > 0 ? precioPaquete : (PRECIO_PLAN_MXN[plan] ?? 0)) : 0
+      const mrr = cob === 'al_corriente' ? (precioPaquete > 0 ? precioPaquete : precioPlanMXN(plan)) : 0
       // Nivel de IA (Pro económico / Premium Opus+GPT-5) + consumo del mes — vive en secretos/ia.
       let nivelIA: 'pro' | 'premium' = 'pro'
       let consultasMes = 0

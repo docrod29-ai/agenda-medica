@@ -36,7 +36,7 @@ const NAV: { href: string; label: string; icon: typeof LayoutDashboard; modos: '
   { href: '/resenas',       label: 'Reseñas',        icon: Star,            modos: 'medico' },
   { href: '/reactivacion',  label: 'Reactivación',   icon: HeartHandshake,  modos: 'medico' },
   { href: '/chat',          label: 'Chat',           icon: MessageCircle,   modos: 'ambos' },
-  { href: '/farmacia',      label: 'Farmacia',       icon: Pill,            modos: 'ambos' },
+  { href: '/farmacia',      label: 'Farmacia',       icon: Pill,            modos: 'medico' },
   { href: '/finanzas',      label: 'Finanzas',       icon: TrendingUp,      modos: 'medico' },
   // 'Corte de caja' ahora es una PESTAÑA dentro de Finanzas (era una 2ª entrada
   // que confundía). La ruta /corte-caja sigue viva por si hay marcadores.

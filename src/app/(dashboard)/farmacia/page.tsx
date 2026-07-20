@@ -385,7 +385,18 @@ function ModalItem({ item, onClose, onGuardar }: {
             <Field label="Presentación" value={f.presentacion} onChange={(v) => setF({ ...f, presentacion: v })} placeholder="Caja con 12" />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-            <Field label="Cantidad" value={f.cantidad} onChange={(v) => setF({ ...f, cantidad: v })} type="number" />
+            {item ? (
+              // En EDICIÓN las existencias no se teclean: se cambian con + / − (que
+              // pasan por el ledger). Teclearlas aquí revertía dispensaciones.
+              <div>
+                <label style={lbl}>Existencias</label>
+                <div style={{ ...inp, display: 'flex', alignItems: 'center', color: 'var(--text3)' }} title="Usa las flechas + / − de la lista para mover existencias">
+                  {item.cantidad} · usa + / −
+                </div>
+              </div>
+            ) : (
+              <Field label="Cantidad inicial" value={f.cantidad} onChange={(v) => setF({ ...f, cantidad: v })} type="number" />
+            )}
             <Field label="Mínimo" value={f.cantidadMinima} onChange={(v) => setF({ ...f, cantidadMinima: v })} type="number" placeholder="3" />
             <Field label="Unidad" value={f.unidadMedida} onChange={(v) => setF({ ...f, unidadMedida: v })} placeholder="caja" />
           </div>
@@ -427,6 +438,11 @@ function ModalMovimiento({ item, tipo, onClose, onConfirmar }: {
     if (!n || n <= 0) { toast('Cantidad inválida', 'error'); return }
     if (tipo === 'salida' && n > item.cantidad) {
       if (!(await confirm(`Estás sacando ${n} pero solo tienes ${item.cantidad}. ¿Continuar?`))) return
+    }
+    // Dispensar un lote CADUCADO no se hacía notar en ninguna parte — solo un
+    // badge en la lista. Aquí, en el acto de la salida, se exige confirmación.
+    if (tipo === 'salida' && estaCaducado(item)) {
+      if (!(await confirm(`⚠ Este lote está CADUCADO${item.caducidad ? ` (venció ${new Date(item.caducidad).toLocaleDateString('es-MX')})` : ''}. Dispensar medicamento caducado es un riesgo. ¿Continuar de todos modos?`))) return
     }
     setSaving(true)
     try { await onConfirmar(n, motivo.trim() || undefined) } finally { setSaving(false) }

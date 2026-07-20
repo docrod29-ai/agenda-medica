@@ -13,6 +13,7 @@ import {
   collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { celdaSegura } from '@/lib/csv-seguro'
 import { instanteMX, sumarDiasISO, fechaISOLocal } from '@/lib/timezone'
 
 /**
@@ -339,11 +340,10 @@ export function cobrosACSV(cobros: Cobro[]): string {
   return [header, ...rows].join('\n')
 }
 
+// Delega en celdaSegura: además de comillas, neutraliza inyección de fórmulas
+// (un paciente/médico llamado "=cmd|..." ejecutaba la fórmula al abrir el CSV).
 function csv(s: string): string {
-  if (s.includes(',') || s.includes('"') || s.includes('\n')) {
-    return `"${s.replace(/"/g, '""')}"`
-  }
-  return s
+  return celdaSegura(s)
 }
 
 /** Format MXN (sin localStorage dependency para SSR safety) */
