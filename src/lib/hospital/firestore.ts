@@ -171,8 +171,10 @@ export async function verificarIndicacionFarmacia(clinicId: string, iid: string,
 }
 
 /** Guarda los medicamentos que el paciente tomaba en casa (para conciliar). */
-export async function guardarMedicamentosCasa(clinicId: string, iid: string, meds: string[]): Promise<void> {
-  await mutar(clinicId, iid, 'conciliar', { meds })
+export async function guardarMedicamentosCasa(clinicId: string, iid: string, meds: string[], baseConciliadoAl?: string | null): Promise<void> {
+  // `baseConciliadoAl` = el sello que se vio al abrir la conciliación; el servidor
+  // lo usa para rechazar si alguien más guardó en medio (ver 'conciliar' en mutar).
+  await mutar(clinicId, iid, 'conciliar', { meds, baseConciliadoAl: baseConciliadoAl ?? null })
 }
 
 /** Traslado de servicio/cama con registro en el historial de movimientos. */

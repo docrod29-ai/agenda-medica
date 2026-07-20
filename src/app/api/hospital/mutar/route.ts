@@ -126,8 +126,26 @@ function patch(accion: string, inter: Any, p: Any, now: string, actor: Actor): A
       if (ic && ic.estado === 'respondida') throw new Error('BLOQUEADO: una interconsulta ya respondida no se borra')
       return { interconsultas: arr('interconsultas').filter(x => (x as Any).id !== p.icId) }
     }
-    case 'conciliar':
+    case 'conciliar': {
+      /**
+       * BLOQUEO OPTIMISTA. La conciliación reemplaza la lista ENTERA con lo que
+       * manda el cliente, no la fusiona. Sin control, dos dispositivos que abren
+       * la conciliación, editan por separado y guardan producen un lost-update:
+       * gana el último y borra en silencio los medicamentos que agregó el otro —
+       * en una lista de la que dependen decisiones de prescripción.
+       *
+       * El cliente envía el `conciliadoAl` que vio al cargar. Si ya no coincide,
+       * alguien más guardó en medio: se rechaza y se le pide recargar, en vez de
+       * pisar su trabajo. `undefined` del cliente contra `undefined` en el doc
+       * (primera conciliación) sí coincide, que es lo correcto.
+       */
+      const baseVista = (p as Any).baseConciliadoAl ?? null
+      const actual = (inter as Any).conciliadoAl ?? null
+      if (baseVista !== actual) {
+        throw new Error('BLOQUEADO: otra persona actualizó la conciliación mientras la editabas. Recárgala y vuelve a aplicar tus cambios.')
+      }
       return { medicamentosCasa: p.meds, conciliadoAl: now }
+    }
     // NOTA: los arrays balanceHidrico/escalas/sbar en el DOC se limitan por
     // tamaño (tope de 1 MB por documento Firestore) y son solo CACHÉ DE DISPLAY.
     // El registro clínico-legal COMPLETO (sin truncar) se persiste en la

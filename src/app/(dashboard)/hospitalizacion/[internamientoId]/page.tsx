@@ -102,6 +102,9 @@ export default function EpisodioPage() {
   const [importTxt, setImportTxt] = useState('')
   const [modalConcil, setModalConcil] = useState(false)
   const [medsCasa, setMedsCasa] = useState('')
+  // Sello de la conciliación tal como se cargó: se manda al guardar para que el
+  // servidor rechace si alguien más la actualizó en medio (bloqueo optimista).
+  const [conciliadoAlVisto, setConciliadoAlVisto] = useState<string | null>(null)
   const [modalTraslado, setModalTraslado] = useState(false)
   const [trForm, setTrForm] = useState({ servicio: '', cama: '', tratante: '' })
   const [correctos, setCorrectos] = useState({ paciente: false, medicamento: false, dosis: false, via: false, hora: false })
@@ -123,6 +126,7 @@ export default function EpisodioPage() {
       setSignos(sgs)
       setPatient(pacientes.find(p => p.id === i.pacienteId) ?? null)
       setMedsCasa((i.medicamentosCasa ?? []).join('\n'))
+      setConciliadoAlVisto(i.conciliadoAl ?? null)
     }
     setLoading(false)
   }
@@ -892,7 +896,7 @@ export default function EpisodioPage() {
         footer={<><Button variant="secondary" onClick={() => setModalConcil(false)}>Cancelar</Button><Button loading={busy} onClick={async () => {
           if (!clinicId) return; setBusy(true)
           const meds = medsCasa.split('\n').map(s => s.trim()).filter(Boolean)
-          try { await guardarMedicamentosCasa(clinicId, internamientoId, meds); toast('Conciliación guardada', 'success'); setModalConcil(false); cargar() }
+          try { await guardarMedicamentosCasa(clinicId, internamientoId, meds, conciliadoAlVisto); toast('Conciliación guardada', 'success'); setModalConcil(false); cargar() }
           catch (e) { toast(e instanceof Error ? e.message : 'NO se guardó la conciliación de medicamentos. Reintenta.', 'error') }
           finally { setBusy(false) }
         }}>Guardar</Button></>}>
