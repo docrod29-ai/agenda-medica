@@ -1,70 +1,39 @@
 /**
- * Versionado de borradores de notas (NOM-024 Art. 6.4).
+ * Historial de versiones de un borrador (trazabilidad pre-firma, NOM-024).
  *
- * Mientras una nota está en estado 'borrador', cada vez que se guarda
- * se escribe un snapshot a la subcolección:
+ * Cada vez que `updateNota` sobrescribe un borrador, guarda ANTES una copia del
+ * documento que va a pisar en:
  *   clinics/{clinicId}/patients/{patientId}/notas/{notaId}/versions/{vId}
  *
- * Esto permite:
- *  - Ver la evolución del borrador (qué cambió en cada versión)
- *  - Restaurar una versión previa accidentalmente borrada
- *  - Cumplir con la trazabilidad pre-firma requerida por NOM-024
+ * Es la ÚNICA vía de rescate cuando dos pestañas —o el teléfono y la
+ * computadora— se pisan la misma nota. Al firmar deja de versionarse: la nota
+ * firmada es inmutable.
  *
- * Al firmar la nota, ya no se versionan nuevos cambios (queda inmutable).
+ * NOTA HISTÓRICA (para que no se repita): aquí vivía además `guardarVersion`,
+ * que escribía una SEGUNDA copia completa en cada autoguardado —doblando el costo
+ * a ~80 documentos por consulta de 20 min— con el estado NUEVO, pese a que su
+ * comentario afirmaba guardar el anterior, y bajo el campo `timestamp` en vez de
+ * `versionadoEn`. Como cada lector ordenaba por el campo que el otro no escribía,
+ * Firestore excluía en silencio la mitad del historial. Se eliminó: versiona
+ * `updateNota`, y solo él.
  */
-import {
-  collection, addDoc, getDocs, query, orderBy, limit as fbLimit,
-  doc, getDoc,
-} from 'firebase/firestore'
+import { collection, getDocs, query, orderBy, limit as fbLimit, doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import type { NotaMedica } from '@/types/expediente'
 
-export interface NotaVersion {
+/**
+ * Una versión es el documento de la nota tal como estaba, más quién y cuándo
+ * provocó que quedara atrás. No lleva `snapshot` anidado: los campos de la nota
+ * están al mismo nivel, que es como los escribe `updateNota`.
+ */
+export type NotaVersion = Omit<NotaMedica, 'id'> & {
   id?: string
-  /** Cuándo se guardó esta versión */
-  timestamp: string
-  /** UID del usuario que la guardó */
-  guardadoPor: string
-  /** Email del usuario */
-  guardadoEmail?: string
-  /** Snapshot de la nota en ese momento (sin id) */
-  snapshot: Omit<NotaMedica, 'id'>
-  /** Tamaño del snapshot en chars para detectar cambios significativos */
-  size: number
+  versionadoEn: string
+  versionadoPor?: string | null
+  versionadoEmail?: string | null
 }
 
-/**
- * Crea una nueva versión del borrador.
- * Se llama ANTES de updateNota cuando el estado sigue siendo 'borrador'.
- */
-export async function guardarVersion(
-  clinicId: string,
-  patientId: string,
-  notaId: string,
-  snapshot: Omit<NotaMedica, 'id'>,
-  guardadoPor: string,
-  guardadoEmail?: string,
-): Promise<void> {
-  // Solo versionar borradores. Si ya está firmada, NO se versiona (queda inmutable).
-  if (snapshot.estado === 'firmada') return
-  try {
-    const ref = collection(db, 'clinics', clinicId, 'patients', patientId, 'notas', notaId, 'versions')
-    const version: NotaVersion = {
-      timestamp: new Date().toISOString(),
-      guardadoPor,
-      guardadoEmail,
-      snapshot,
-      size: JSON.stringify(snapshot).length,
-    }
-    await addDoc(ref, version)
-  } catch {
-    /* no-op: no debe romper la operación clínica */
-  }
-}
-
-/**
- * Lista las últimas N versiones de una nota.
- */
+/** Historial de una nota, de la más reciente a la más antigua. */
 export async function listarVersiones(
   clinicId: string,
   patientId: string,
@@ -72,14 +41,12 @@ export async function listarVersiones(
   limite = 20,
 ): Promise<NotaVersion[]> {
   const ref = collection(db, 'clinics', clinicId, 'patients', patientId, 'notas', notaId, 'versions')
-  const q = query(ref, orderBy('timestamp', 'desc'), fbLimit(limite))
+  const q = query(ref, orderBy('versionadoEn', 'desc'), fbLimit(limite))
   const snap = await getDocs(q)
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as NotaVersion))
 }
 
-/**
- * Obtiene una versión específica (para restaurarla).
- */
+/** Una versión concreta, para restaurarla. */
 export async function obtenerVersion(
   clinicId: string,
   patientId: string,
@@ -91,4 +58,21 @@ export async function obtenerVersion(
   )
   if (!snap.exists()) return null
   return { id: snap.id, ...snap.data() } as NotaVersion
+}
+
+/**
+ * Resumen legible de una versión para listarla sin abrirla: cuánto contenido
+ * tenía, para que el médico distinga de un vistazo la versión "completa" de la
+ * que quedó a medias. Puro y determinista → testeable.
+ */
+export function resumirVersion(v: Pick<NotaVersion, 'secciones' | 'diagnosticos' | 'medicamentos' | 'resumenEjecutivo'>): string {
+  const partes: string[] = []
+  const seccionesConTexto = (v.secciones ?? []).filter(s => s.value?.trim()).length
+  if (seccionesConTexto) partes.push(`${seccionesConTexto} ${seccionesConTexto === 1 ? 'sección' : 'secciones'}`)
+  const dx = v.diagnosticos?.length ?? 0
+  if (dx) partes.push(`${dx} ${dx === 1 ? 'diagnóstico' : 'diagnósticos'}`)
+  const meds = v.medicamentos?.length ?? 0
+  if (meds) partes.push(`${meds} ${meds === 1 ? 'medicamento' : 'medicamentos'}`)
+  if (!partes.length) return v.resumenEjecutivo?.trim() ? 'solo resumen' : 'vacía'
+  return partes.join(' · ')
 }

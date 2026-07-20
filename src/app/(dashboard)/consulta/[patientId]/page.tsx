@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { HistorialVersiones } from '@/components/HistorialVersiones'
 import { sugerenciasPendientes, resolverSugerencias } from '@/lib/expediente/sugerencias-ia'
 import dynamic from 'next/dynamic'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
@@ -1099,11 +1100,21 @@ export default function ConsultaActivaPage() {
         const nota = construirNota('borrador')
         const idActual = notaIdRef.current
         if (idActual) {
-          // NOM-024 Art. 6.4: snapshot ANTES de sobrescribir para preservar el historial
-          const { guardarVersion } = await import('@/lib/expediente/versioning')
-          const { id: _ignore, ...sinId } = nota
-          void _ignore
-          guardarVersion(clinicId, patientId, idActual, sinId, auth.currentUser?.uid ?? '', auth.currentUser?.email ?? undefined).catch(() => {})
+          /**
+           * El versionado lo hace `updateNota`, y solo él.
+           *
+           * Aquí había una segunda llamada a `guardarVersion`. Entre las dos se
+           * escribían DOS copias completas de la nota (con transcripción incluida)
+           * en cada autoguardado de 30 s — una consulta de 20 min dejaba ~80
+           * documentos. Y eran incompatibles: esta guardaba el estado NUEVO bajo el
+           * campo `timestamp` (pese a que el comentario decía "snapshot ANTES de
+           * sobrescribir", que era justo lo que NO hacía), y `updateNota` guarda el
+           * documento PREVIO bajo `versionadoEn`. Como cada lector ordenaba por el
+           * campo que el otro no tenía, Firestore excluía la mitad del historial.
+           *
+           * Se queda la de `updateNota`, que es la correcta: preserva lo que se va
+           * a pisar, que es el sentido de una versión histórica.
+           */
           await updateNota(clinicId, patientId, idActual, nota)
         } else {
           const id = await createNota(clinicId, patientId, nota)
@@ -2265,6 +2276,24 @@ export default function ConsultaActivaPage() {
           aprobados={aprobados}
           onAprobar={id => setAprobados(prev => new Set(prev).add(id))}
           onRechazar={id => setAprobados(prev => { const n = new Set(prev); n.delete(id); return n })}
+        />
+      )}
+
+      {/* Historial de versiones: la vía de rescate si dos pestañas se pisaron. */}
+      {!firmada && clinicId && (
+        <HistorialVersiones
+          clinicId={clinicId}
+          patientId={patientId}
+          notaId={notaIdRef.current ?? notaId}
+          onRestaurar={v => {
+            if (v.tipo) setTipo(v.tipo)
+            if (Array.isArray(v.secciones)) setSecciones(v.secciones)
+            if (typeof v.resumenEjecutivo === 'string') setResumen(v.resumenEjecutivo)
+            if (v.signosVitales) setSignos(v.signosVitales)
+            if (Array.isArray(v.diagnosticos)) setDiagnosticos(v.diagnosticos)
+            if (Array.isArray(v.medicamentos)) setMedicamentos(v.medicamentos)
+            if (typeof v.transcripcionCruda === 'string') voz.setTranscripcion(v.transcripcionCruda)
+          }}
         />
       )}
 

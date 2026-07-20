@@ -3,7 +3,7 @@ import {
   query, orderBy, where, writeBatch,
   type DocumentReference,
 } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { db, auth } from '@/lib/firebase'
 import type { NotaMedica, Adenda } from '@/types/expediente'
 
 /**
@@ -192,7 +192,14 @@ export async function updateNota(
     if (prev.exists() && prev.data().estado !== 'firmada') {
       await addDoc(
         collection(db, 'clinics', clinicId, 'patients', patientId, 'notas', notaId, 'versions'),
-        { ...prev.data(), versionadoEn: new Date().toISOString() },
+        {
+          ...prev.data(),
+          versionadoEn: new Date().toISOString(),
+          // Quién provocó que esta versión quedara atrás. Sin esto, el historial
+          // dice QUÉ había pero no ante quién responder.
+          versionadoPor: auth.currentUser?.uid ?? null,
+          versionadoEmail: auth.currentUser?.email ?? null,
+        },
       )
     }
   } catch { /* nunca romper la operación clínica */ }
