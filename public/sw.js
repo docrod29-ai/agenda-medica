@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v499'  // LEGIBILIDAD (el Dr: 'no se ven las letras' en modo claro). Los campos de la consulta usan estilos inline, no la clase .input, asi que sus placeholders NO recibian color y caian al gris clarisimo del navegador (~2:1 de contraste) sobre el fondo crema: los textos guia de Motivo, Padecimiento, Plan, los signos (lpm/rpm/C), etc. se veian lavados. Ahora hay una regla GLOBAL de placeholder (input y textarea, no solo .input) con opacity:1 para neutralizar el atenuado de Firefox, y en modo claro un tono mas oscuro (#5A5F66). Verificado midiendo contraste real en el navegador: modo claro 5.8:1, modo oscuro 5.18:1, ambos por encima de AA. El texto ya tecleado siempre fue oscuro; el problema eran solo los placeholders.
+const CACHE = 'nexusmed-v500'  // LEGIBILIDAD (cont.): los dias 'Sin lugar' en Agendar rapido tenian opacity 0.4 ENCIMA de --text3 (texto ya atenuado): doble apagon, casi invisibles en modo claro. Un dia sin cupo debe verse apagado pero legible → opacity 0.6. Cierra el segundo punto que se veia flojo en las capturas del Dr, tras el fix de placeholders (v499).
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

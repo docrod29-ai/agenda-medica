@@ -514,7 +514,9 @@ function AsistenteInner() {
                       background: isSelected ? 'rgba(61,90,254,0.1)' : 'var(--s2)',
                       color: daySlots.length === 0 ? 'var(--text3)' : isSelected ? 'var(--teal)' : 'var(--text)',
                       cursor: daySlots.length === 0 ? 'default' : 'pointer',
-                      opacity: daySlots.length === 0 ? 0.4 : 1,
+                      // Un día sin cupo va apagado, pero LEGIBLE: con 0.4 sobre un
+                      // texto ya atenuado (--text3) quedaba casi invisible en claro.
+                      opacity: daySlots.length === 0 ? 0.6 : 1,
                       transition: 'all 0.15s',
                     }}
                   >
