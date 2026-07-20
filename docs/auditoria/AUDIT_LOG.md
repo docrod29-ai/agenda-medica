@@ -216,3 +216,75 @@ un backfill que incrementa no se puede repetir si se corta a la mitad. Admite `?
 
 El backfill **no se ha ejecutado**. Conviene correrlo primero con `?simular=1` y mirar los
 números antes de escribir.
+
+---
+
+## Módulo 3 — Recetas, órdenes y referencias · CERRADO 2026-07-20
+
+Superficie: lo que sale IMPRESO y FIRMADO del consultorio — receta, orden médica, carta de
+referencia, vista previa, PDF, Word, calibrador visual del formato.
+
+Agentes: seguridad clínica de la prescripción · Bugs.
+
+Los dos agentes, trabajando por separado, señalaron el mismo hallazgo como el peor.
+
+### Suplantación
+
+| Ver | Hallazgo |
+|---|---|
+| v473 | **La receta de un médico podía salir con la firma escaneada de otro.** `entradaPorMedico` decía ser "segura para clínicas de varios médicos" y no lo era: como el propio archivo documenta, el match exacto casi siempre falla (las notas se sellan con el uid de Firebase y la config guarda por id de `doctors`), así que la regla de respaldo "si hay UNA sola entrada válida, úsala" no era la excepción — era el camino normal. Y sin ninguna entrada se caía a la firma global de la clínica, la del dueño. Ahora la regla exige un solo médico, no se cae a la global, y se avisa antes de imprimir: **una firma ausente se nota; una firma ajena no**. |
+
+### El papel contradecía a la pantalla
+
+| Ver | Hallazgo |
+|---|---|
+| v473 | El **.doc de la orden afirmaba "ALERGIAS: Negadas"** para un paciente alérgico —no mandaba el campo— mientras el PDF de esa misma orden imprimía la alergia real. Peligroso en estudios con contraste. Además "Negadas" ya no se afirma desde un campo vacío: no es lo mismo que el paciente niegue a que nadie pregunte. |
+| v473 | El **QR de verificación nunca funcionó**: la llamada iba con `fetch` plano contra una ruta que exige token → 401 siempre, con dos catches tragándoselo. El QR impreso codificaba el folio en texto plano en vez de la URL firmada. |
+| v474 | El **folio se reinventaba en cada carga**: reimprimir daba otro folio, y el QR firma ese folio. |
+
+### Pérdida de contenido en el papel
+
+| Ver | Hallazgo |
+|---|---|
+| v473 | Arrastrar el **folio al pie del formato borraba los medicamentos**: el margen superior se deriva del campo más bajo, el área de contenido colapsaba y `overflow: hidden` hacía el resto. |
+| v474 | **Reservas de paginación cortas** → el bloque de firma, colocado con `marginTop:auto`, se quedaba sin espacio y terminaba fuera de la hoja. No es una hoja fea: es una receta sin firma ni cédula. Hoja 1 con membrete: 52 mm reservados contra ~69 reales; pie: 26 contra ~30 más el aviso legal. Y el formato propio firma cada hoja, pero solo se reservaba en la última. |
+| v473 | Un **medicamento vacío** se imprimía como viñeta numerada en blanco, consumiendo altura y pudiendo empujar otro fármaco fuera. |
+| v474 | Con la ventana emergente bloqueada, el respaldo imprimía la receta **al 40 % y recortada** (el documento vive dentro de la vista previa escalada). Ahora se avisa y no se imprime nada. |
+
+### Otros
+
+- v473: la carta de referencia se quedaba en "Cargando…" para siempre (sin `catch`).
+- v474: sin cédula se imprimía "Cédula Prof. —", que parece maquetación y no la ausencia de un
+  dato obligatorio.
+- v474: el membrete del Word con URL relativa salía roto (Word abre el .doc desde disco).
+- v473: el contador de hojas usaba distinta config que el documento ("1 hoja", PDF con 2).
+
+### Limpio (confirmado por los agentes)
+
+- **No hay mezcla entre pacientes.** `getNota` está anclado a la ruta del paciente; un notaId
+  ajeno devuelve `null`.
+- El escapado del Word no altera el texto médico; los saltos de página van inline y sobreviven
+  a la copia y a la captura; el QR se genera local, sin fuga a terceros.
+- `receta-token.ts`: HMAC con `timingSafeEqual` y caducidad, sin PHI en el payload.
+- El anti-SSRF de `/api/receta/diseno` (reparado en el Módulo 0) resiste la revisión.
+
+### Pendiente en este módulo
+
+- **Lo impreso no queda en el expediente.** El médico puede editar, agregar o borrar
+  medicamentos en la pantalla de receta y nada de eso se guarda: el papel entregado puede
+  diferir de la nota, sin rastro. El QR acredita que alguien emitió un token, no que el papel
+  diga lo que dice.
+- El Word ignora `disenoCompletoDataUrl`: quien usa su formato escaneado obtiene un
+  encabezado auto-generado distinto al que aprobó en pantalla.
+- Los márgenes en mm del calibrador se ignoran cuando hay campos colocados, y la guía cian
+  del editor dibuja los valores que el documento ya descartó.
+- **Sustancias controladas**: se detectan y se muestran en pantalla, pero nada de eso llega al
+  papel — ni marca, ni fracción, ni advertencia de que la receta de la app no sustituye al
+  recetario oficial de COFEPRIS.
+
+### No verificado — y es lo más importante de este módulo
+
+**Nada se ha impreso.** El motor de paginación estima alturas con una heurística de
+caracteres y el render real usa otro ancho; los tests comparan el estimador consigo mismo, no
+con el papel. Las reservas se subieron con margen, pero el invariante "la firma siempre cabe"
+solo se puede comprobar imprimiendo una receta de 8–10 medicamentos con nombres largos.
