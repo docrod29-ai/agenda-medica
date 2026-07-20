@@ -648,6 +648,16 @@ tbody tr:last-child { border-bottom: none; }
   .grid-2 { grid-template-columns: 1fr !important; }
 }
 
+/* ── Objetivos táctiles ≥44px en dispositivos de dedo ──────────
+   En desktop (puntero fino) los botones de 36px están bien y mantienen la
+   densidad; en pantallas táctiles el dedo necesita ≥44px (WCAG 2.5.5). Se
+   aplica SOLO a puntero grueso para no engordar la interfaz de escritorio.
+   Los íconos-botón sueltos también reciben un área mínima. */
+@media (pointer: coarse) {
+  .btn, button.btn, .btn-sm { min-height: 44px; }
+  select, .input, input[type="date"], input[type="number"], input[type="text"], input[type="tel"], input[type="email"] { min-height: 44px; }
+}
+
 /* Áreas seguras (notch / home indicator de iPhone) */
 @supports (padding: max(0px)) {
   .topbar {

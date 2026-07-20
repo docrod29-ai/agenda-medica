@@ -1765,6 +1765,28 @@ export default function ConsultaActivaPage() {
           <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>
             {patient?.edad ? `${patient.edad} años` : ''}{patient?.sexo ? ` · ${patient.sexo}` : ''} · {TIPO_NOTA_LABEL[tipo]}
           </div>
+          {/*
+            ALERGIAS SIEMPRE A LA VISTA durante la consulta.
+            Antes solo aparecían al desplegar los datos del paciente, pero es
+            justo mientras se dicta y se prescribe cuando hay que tenerlas
+            enfrente. Rojo si el paciente tiene alergias; discreto si no.
+          */}
+          {(() => {
+            const a = (patient?.alergias ?? '').trim()
+            const sin = /^(ninguna|niega|no|sin|nkda)\b/i.test(a)
+            if (!a) return null
+            return (
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8,
+                background: sin ? 'var(--s2)' : 'rgba(220,38,38,0.10)',
+                border: `1px solid ${sin ? 'var(--border)' : 'rgba(220,38,38,0.4)'}`,
+                borderRadius: 999, padding: '4px 12px', fontSize: 12.5,
+                color: sin ? 'var(--text2)' : '#dc2626', fontWeight: 600,
+              }}>
+                <AlertTriangle size={13} /> Alergias: <span style={{ fontWeight: 700 }}>{a}</span>
+              </div>
+            )
+          })()}
         </div>
         {firmada && <span style={S.firmadaBadge}><CheckCircle2 size={14} /> Nota firmada</span>}
       </div>

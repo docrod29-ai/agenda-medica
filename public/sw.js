@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v496'  // REDISENO (track 2, tras Huli): tarjeta de RESUMEN DEL PACIENTE en el expediente. Lo que un medico quiere de un vistazo al abrir un expediente estaba disperso y plegado. Ahora, arriba de todo: alergias DESTACADAS (rojo si tiene, a todo lo ancho), los ultimos signos vitales tomados, los diagnosticos activos como chips, y actividad (num de consultas + ultima visita). Es justo la pantalla 'todo en un solo lugar' que Huli ensena como su fuerte, pero la info YA existia — se deriva de la ultima nota real, no se captura de nuevo. Verificado: el landing publico renderizado confirma que la identidad ya es elegante (Fraunces + cobalto); lo rustico era la densidad de las pantallas internas, que es lo que este resumen empieza a ordenar.
+const CACHE = 'nexusmed-v497'  // REDISENO + ACCESIBILIDAD (track 2, tras Huli). (1) ALERGIAS SIEMPRE A LA VISTA en la consulta: antes solo salian al desplegar los datos del paciente, pero es justo mientras se dicta y se PRESCRIBE cuando hay que tenerlas enfrente. Ahora un chip en el encabezado, rojo si el paciente tiene alergias. Es seguridad, no cosmetica. (2) OBJETIVOS TACTILES >=44px (WCAG 2.5.5) en dispositivos de dedo (@media pointer:coarse): botones e inputs crecen a 44px SOLO en pantallas tactiles; en desktop con mouse siguen en 36px para no engordar la densidad. Verificado en el navegador que el minimo aplica. El Dr pidio accesibilidad explicitamente.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
