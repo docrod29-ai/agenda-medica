@@ -5,7 +5,7 @@
 // paciente y se vinculan por `internamientoId`.
 // ══════════════════════════════════════════════════════════════
 import {
-  collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, onSnapshot,
+  collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, onSnapshot, runTransaction,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { setDoc, orderBy, limit } from 'firebase/firestore'
@@ -262,10 +262,33 @@ export async function borrarSolicitudLab(clinicId: string, ordenId: string): Pro
   }
   await deleteDoc(ref)
 }
+/**
+ * Carga resultados en una orden CONSERVANDO los anteriores.
+ *
+ * Antes hacía un `updateDoc` que reemplazaba el arreglo `resultados`: una segunda
+ * carga borraba la primera sin dejar rastro — pérdida de dato clínico y de
+ * trazabilidad (NOM-004). Ahora, en una transacción (por si dos dispositivos
+ * cargan a la vez), lo que ya había se empuja a `historialResultados` antes de
+ * escribir la nueva versión. Nada se pierde; `resultados` sigue siendo la última.
+ */
 export async function cargarResultadosLab(clinicId: string, ordenId: string, resultados: ResultadoLab[], por: string): Promise<void> {
-  await updateDoc(doc(db, 'clinics', clinicId, 'laboratorio', ordenId), limpiar({
-    resultados, estado: 'resultado', procesadaPor: por, fechaResultado: new Date().toISOString(), updatedAt: new Date().toISOString(),
-  }))
+  const ref = doc(db, 'clinics', clinicId, 'laboratorio', ordenId)
+  const ahora = new Date().toISOString()
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref)
+    const data = snap.data() ?? {}
+    const previos = (data.resultados as ResultadoLab[] | undefined) ?? []
+    const historial = (data.historialResultados as unknown[] | undefined) ?? []
+    // Solo se archiva si ya había una carga real (no re-guardar un arreglo vacío).
+    const nuevoHistorial = previos.length > 0
+      ? [...historial, { resultados: previos, procesadaPor: data.procesadaPor ?? '—', fechaResultado: data.fechaResultado ?? data.updatedAt ?? ahora }]
+      : historial
+    tx.update(ref, limpiar({
+      resultados, estado: 'resultado', procesadaPor: por,
+      fechaResultado: ahora, updatedAt: ahora,
+      historialResultados: nuevoHistorial,
+    }))
+  })
 }
 
 // ── F5 · Alertas hospitalarias (lab crítico, NEWS2, interconsulta/resultado) ──

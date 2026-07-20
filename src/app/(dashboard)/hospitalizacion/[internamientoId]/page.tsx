@@ -570,6 +570,27 @@ export default function EpisodioPage() {
                     ))}
                   </div>
                 )}
+                {l.historialResultados && l.historialResultados.length > 0 && (
+                  <details style={{ marginTop: 8 }}>
+                    <summary style={{ fontSize: 11.5, color: 'var(--text3)', cursor: 'pointer' }}>
+                      {l.historialResultados.length} carga{l.historialResultados.length !== 1 ? 's' : ''} anterior{l.historialResultados.length !== 1 ? 'es' : ''} (corregidas)
+                    </summary>
+                    <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {l.historialResultados.slice().reverse().map((h, hi) => (
+                        <div key={hi} style={{ borderLeft: '2px solid var(--border)', paddingLeft: 8 }}>
+                          <div style={{ fontSize: 10.5, color: 'var(--text3)' }}>
+                            {h.procesadaPor} · {new Date(h.fechaResultado).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                          {h.resultados.map((r, i) => (
+                            <div key={i} style={{ fontSize: 11.5, display: 'flex', justifyContent: 'space-between', gap: 8, color: 'var(--text3)', textDecoration: 'line-through' }}>
+                              <span>{r.estudio}</span><span>{r.valor} {r.unidad ?? ''}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
                 {((rol === 'laboratorio' || rol === 'medico') && l.estado !== 'resultado') || (esMedico && l.estado === 'solicitada' && !egresado) ? (
                   <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {(rol === 'laboratorio' || rol === 'medico') && <Button size="sm" variant="secondary" onClick={() => { setResForm(l.estudios.map(e => ({ estudio: e, valor: '', unidad: '', critico: false }))); setCargandoRes(l) }}>Cargar resultados</Button>}

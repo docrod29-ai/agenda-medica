@@ -39,6 +39,15 @@ service cloud.firestore {
         get(/databases/$(database)/documents/clinic_members/$(request.auth.uid)).data.role in ['medico', 'admin', 'enfermeria', 'farmacia', 'laboratorio'];
     }
 
+    // Quién EMITE resultados de laboratorio: el laboratorio y el médico. NO
+    // enfermería ni farmacia, que no producen el resultado. La lectura sigue
+    // abierta a todo el staff clínico (necesitan ver los resultados).
+    function isLabStaff(clinicId) {
+      return isAuth() &&
+        get(/databases/$(database)/documents/clinic_members/$(request.auth.uid)).data.clinicId == clinicId &&
+        get(/databases/$(database)/documents/clinic_members/$(request.auth.uid)).data.role in ['medico', 'admin', 'laboratorio'];
+    }
+
     // Clinic metadata (root)
     match /clinics/{clinicId} {
       allow read: if isMember(clinicId);
@@ -125,9 +134,16 @@ service cloud.firestore {
       match /hospital_roles/{uid} {
         allow read, write: if isClinicoHospital(clinicId);
       }
-      // Módulo de laboratorio — solicitudes y resultados (datos clínicos)
+      // Módulo de laboratorio — solicitudes y resultados (datos clínicos).
+      // LEE todo el staff clínico. SOLICITA cualquiera de ellos (un médico o
+      // enfermería puede pedir un estudio). Pero CARGAR o CORREGIR un resultado y
+      // BORRAR una orden queda para quien lo emite: laboratorio o médico. Antes
+      // enfermería y farmacia podían sobrescribir o borrar resultados que no
+      // producen, sin bitácora — RBAC que era solo de vista.
       match /laboratorio/{ordenId} {
-        allow read, write: if isClinicoHospital(clinicId);
+        allow read: if isClinicoHospital(clinicId);
+        allow create: if isClinicoHospital(clinicId);
+        allow update, delete: if isLabStaff(clinicId);
       }
       // Alertas hospitalarias (lab crítico, NEWS2, interconsulta)
       match /hospital_alertas/{alertaId} {

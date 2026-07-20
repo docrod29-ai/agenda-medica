@@ -185,8 +185,20 @@ export interface SolicitudLab {
   resultados?: ResultadoLab[]
   procesadaPor?: string
   fechaResultado?: string
+  /**
+   * Cargas ANTERIORES de resultados, en orden. Nunca se borra: cada nueva carga
+   * empuja aquí lo que había antes de sobrescribir `resultados`. Antes una
+   * segunda carga reemplazaba la primera sin rastro — pérdida de dato clínico y
+   * de trazabilidad (NOM-004). Vacío o ausente = solo hubo una carga.
+   */
+  historialResultados?: CargaResultadoLab[]
   createdAt: string
   updatedAt: string
+}
+export interface CargaResultadoLab {
+  resultados: ResultadoLab[]
+  procesadaPor: string
+  fechaResultado: string
 }
 export const ESTUDIOS_LAB_RAPIDOS = [
   'Biometría hemática', 'Química sanguínea', 'Electrolitos séricos', 'Pruebas de función hepática',
