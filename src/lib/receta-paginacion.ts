@@ -200,8 +200,22 @@ export function paginarParaDocumento(opts: {
   /** Override del espacio reservado en hoja 1 (ej. plantilla auto-generada con membrete ≈ 52mm) */
   headerPrimeraMm?: number
 }): PaginaReceta[] {
-  const areaAnchoMm = Math.max(40, opts.paperWidthMm - opts.margenes.left - opts.margenes.right)
-  const areaAltoMm = Math.max(40, opts.paperHeightMm - opts.margenes.top - opts.margenes.bottom)
+  /**
+   * Estos `Math.max` son un CLAMP, y un clamp aquí es una mentira.
+   *
+   * Si los márgenes suman más que la hoja, el área real es negativa; al forzarla a
+   * 40 mm el estimador concluye que todo cabe y devuelve una sola página. Pero el
+   * render usa el margen real y cada hoja tiene `overflow: hidden`, así que los
+   * medicamentos se recortan sin dejar rastro.
+   *
+   * Se conserva el clamp —el estimador debe seguir devolviendo algo utilizable—
+   * pero `areaImpracticable` deja constancia para que la pantalla lo diga en vez
+   * de imprimir una receta incompleta en silencio.
+   */
+  const anchoCrudo = opts.paperWidthMm - opts.margenes.left - opts.margenes.right
+  const altoCrudo = opts.paperHeightMm - opts.margenes.top - opts.margenes.bottom
+  const areaAnchoMm = Math.max(40, anchoCrudo)
+  const areaAltoMm = Math.max(40, altoCrudo)
   const estudios = opts.estudios ?? []
   return paginarReceta({
     medicamentos: opts.medicamentos ?? [],
@@ -218,4 +232,22 @@ export function paginarParaDocumento(opts: {
     firmaMm: opts.tieneFirmaImagen ? 26 : 14,
     estudiosDosColumnas: estudios.length > 6,
   })
+}
+
+/**
+ * ¿Los márgenes configurados dejan un área de contenido utilizable?
+ *
+ * Se expone aparte de `paginarParaDocumento` para que la pantalla de
+ * configuración pueda avisar ANTES de que el médico imprima una receta sin
+ * medicamentos. Puro y determinista.
+ */
+export function areaImpracticable(
+  paperWidthMm: number,
+  paperHeightMm: number,
+  margenes: { top: number; right: number; bottom: number; left: number },
+  minMm = 25,
+): boolean {
+  const ancho = paperWidthMm - margenes.left - margenes.right
+  const alto = paperHeightMm - margenes.top - margenes.bottom
+  return ancho < minMm || alto < minMm
 }

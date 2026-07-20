@@ -200,9 +200,24 @@ export function RecetaDocumento({ data, config, recetaConfig, containerId = 'rec
       const ys = (['nombre', 'edad', 'sexo', 'fecha', 'folio'] as const)
         .map(k => c[k]?.y).filter((v): v is number => typeof v === 'number')
       if (ys.length) {
+        /**
+         * EL MARGEN NO PUEDE COMERSE LA HOJA.
+         *
+         * `top` se deriva del campo colocado más BAJO. En las recetas mexicanas es
+         * muy común poner el folio o la fecha al pie del formato: arrastrarlos ahí
+         * hacía que `top` superara el alto de la hoja, el área de contenido
+         * colapsaba, y como cada hoja tiene `overflow: hidden` LOS MEDICAMENTOS
+         * DESAPARECÍAN sin ningún aviso. El médico calibraba su formato y su receta
+         * salía en blanco.
+         *
+         * Se deja siempre al menos `MIN_CONTENIDO_MM` de área útil.
+         */
+        const MIN_CONTENIDO_MM = 25
+        const bottom = Math.round(0.14 * h)
+        const topDeseado = Math.round(((Math.max(...ys) + 6) / 100) * h)
         margenes = {
-          top: Math.round(((Math.max(...ys) + 6) / 100) * h),  // debajo del campo más bajo
-          bottom: Math.round(0.14 * h),                          // arriba del pie
+          top: Math.min(topDeseado, Math.max(0, h - bottom - MIN_CONTENIDO_MM)),
+          bottom,
           right: 12, left: 12,
         }
       }
@@ -283,6 +298,7 @@ function CuerpoRx({ medicamentos, fontSize, startIndex, variant = 'plano', accen
   variant?: 'limpio' | 'plano'
   accent?: string
 }) {
+
   if (medicamentos.length === 0) return null
 
   if (variant === 'plano') {

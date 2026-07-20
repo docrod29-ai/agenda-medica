@@ -83,9 +83,23 @@ export function construirRecetaHTML(
       <ol style="margin:0;padding-left:18pt;">` + data.estudios.map(e => `<li style="margin-bottom:3pt;">${esc(e)}</li>`).join('') + `</ol>`
   }
 
+  /**
+   * NO SE AFIRMA "NEGADAS" A PARTIR DE UN CAMPO VACÍO.
+   *
+   * Esto ponía `data.alergias || 'Negadas / no referidas'`. La orden médica NO
+   * mandaba el campo `alergias` en su payload, así que su .doc imprimía la
+   * negación de alergias para un paciente alérgico — mientras el PDF de esa misma
+   * orden sí imprimía la alergia real. Dos documentos del mismo acto médico
+   * contradiciéndose, y el peligroso es el que va a un estudio con contraste.
+   *
+   * "Negadas" es una afirmación clínica: significa que se preguntó y el paciente
+   * negó. Un campo vacío significa que no se preguntó. No son lo mismo y el papel
+   * no puede confundirlos.
+   */
+  const alergiaTexto = (data.alergias ?? '').trim()
   const alergias = recetaConfig.mostrarAlergias !== false
     ? `<div style="border:1pt solid #b91c1c;color:#b91c1c;padding:3pt 8pt;font-size:10pt;font-weight:bold;margin:6pt 0;">
-        ALERGIAS: ${esc(data.alergias || 'Negadas / no referidas')}</div>`
+        ALERGIAS: ${esc(alergiaTexto || 'Sin registro en el expediente')}</div>`
     : ''
 
   const dx = (recetaConfig.mostrarDiagnostico !== false && data.diagnostico)

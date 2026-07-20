@@ -10,22 +10,41 @@
  * Por eso el match exacto por médico casi siempre fallaba y el impreso caía al
  * diseño genérico aunque el médico SÍ hubiera subido su hoja/formato.
  *
- * Estrategia (segura para clínicas de 1 y de varios médicos):
+ * Estrategia:
  *   1. Coincidencia EXACTA por `medicoId` → se usa.
- *   2. Si no hay exacta pero existe UNA sola entrada válida (clínica de un solo
- *      médico, el caso típico) → se usa esa.
- *   3. Si hay 2+ entradas válidas y ninguna coincide → `undefined` (no adivina
- *      para no poner la hoja de un médico en la nota de otro; el llamador cae a
- *      su valor general).
+ *   2. Si no hay exacta pero existe UNA sola entrada válida **Y el consultorio
+ *      tiene un solo médico** → se usa esa.
+ *   3. En cualquier otro caso → `undefined` (el llamador decide).
+ *
+ * POR QUÉ LA REGLA 2 EXIGE AHORA `unicoMedico` (hallazgo de auditoría):
+ *
+ * Decía ser "segura para clínicas de varios médicos" y no lo era. Como este mismo
+ * archivo documenta arriba, el match exacto CASI SIEMPRE FALLA por el desajuste
+ * uid ↔ id de `doctors`: la regla 2 no era la excepción, era el camino normal.
+ *
+ * Consultorio con los doctores A y B; solo A subió su firma → una sola entrada
+ * válida → B genera una receta y sale estampada con LA FIRMA ESCANEADA DE A. Eso
+ * no es un defecto de formato: es suplantación en un documento que el paciente
+ * lleva a la farmacia.
+ *
+ * Con varios médicos se prefiere NO estampar firma: una firma ausente se nota y
+ * se corrige; una firma ajena no se nota nunca.
  */
 export function entradaPorMedico<T>(
   mapa: Record<string, T> | undefined | null,
   medicoId: string | undefined | null,
   esValida: (v: T) => boolean,
+  /**
+   * ¿El consultorio tiene un solo médico? Solo entonces se acepta la única
+   * entrada válida sin coincidencia exacta. Por defecto `false`: ante la duda no
+   * se adivina, porque el error posible es poner la firma de otro.
+   */
+  unicoMedico = false,
 ): T | undefined {
   const map = mapa ?? {}
   const exacta = medicoId ? map[medicoId] : undefined
   if (exacta !== undefined && esValida(exacta)) return exacta
+  if (!unicoMedico) return undefined
   const validas = Object.values(map).filter((v): v is T => v !== undefined && v !== null && esValida(v))
   return validas.length === 1 ? validas[0] : undefined
 }

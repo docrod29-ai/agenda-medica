@@ -44,3 +44,31 @@ export function alergiasDe(p: { alergias?: string; alergiasEstructuradas?: Alerg
 export function tieneAlergiaGrave(p: { alergias?: string; alergiasEstructuradas?: AlergiaEstructurada[] }): boolean {
   return alergiasDe(p).some(a => a.severidad === 'grave')
 }
+
+/**
+ * Texto de alergias para los IMPRESOS (receta, orden, referencia, Word).
+ *
+ * Por qué existe este helper y por qué debe usarse en TODOS los caminos de
+ * impresión: la verificación en pantalla usa `alergiasDe`, que prefiere
+ * `alergiasEstructuradas` sobre el texto libre. Los impresos leían solo
+ * `patient.alergias`. Un paciente con la alergia únicamente en el campo
+ * estructurado veía una alerta roja en pantalla y un papel que decía "Negadas".
+ *
+ * Hoy ninguna ruta de escritura llena `alergiasEstructuradas`, así que la
+ * divergencia no está activa — pero cualquier importación o mapeo desde otro
+ * sistema la activa el mismo día. La pantalla y el papel tienen que leer de la
+ * misma fuente.
+ *
+ * Devuelve cadena vacía cuando no hay dato: el impreso decide cómo redactarlo.
+ * Lo que NUNCA debe hacer el impreso es afirmar "Negadas" a partir de un campo
+ * que simplemente no se llenó — no es lo mismo "el paciente negó alergias" que
+ * "nadie preguntó".
+ */
+export function alergiasParaImpreso(
+  p: { alergias?: string; alergiasEstructuradas?: AlergiaEstructurada[] } | null | undefined,
+): string {
+  if (!p) return ''
+  const lista = alergiasDe(p)
+  if (!lista.length) return (p.alergias ?? '').trim()
+  return lista.map(a => a.alergeno).join(', ')
+}

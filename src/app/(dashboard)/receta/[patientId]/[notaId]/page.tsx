@@ -9,6 +9,8 @@
  * El médico configura el template (membrete, tamaño, estilo) en Configuración → Recetas.
  */
 import { useState, useEffect, useMemo } from 'react'
+import { fetchAutenticado } from '@/lib/auth-client'
+import { useDoctors } from '@/hooks/useDoctors'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { useToast } from '@/context/ToastContext'
 import { useParams, useRouter } from 'next/navigation'
@@ -46,6 +48,18 @@ export default function GeneradorRecetaPage() {
   const volver = useSmartBack(`/expediente/${patientId}`)
   const { clinicId } = useClinic()
   const { config, error: configError } = useConfig()
+
+  /**
+   * ¿Este consultorio tiene un solo médico?
+   *
+   * De esto depende que se pueda usar "la única firma configurada" cuando el
+   * identificador de la nota no coincide con el de la configuración — que es lo
+   * habitual por un desajuste histórico de ids. Con varios médicos, adivinar
+   * significa estampar la firma de otro.
+   */
+  const { activeDoctors } = useDoctors()
+  const unicoMedico = activeDoctors.length <= 1
+
   const { toast } = useToast()
 
   const [nota, setNota] = useState<NotaMedica | null>(null)
@@ -146,7 +160,7 @@ export default function GeneradorRecetaPage() {
       avisoLegal: 'Esta receta es personal e intransferible.',
     }
     const medicoId = nota?.metadata?.medicoId
-    const porMedico = entradaPorMedico(config?.recetasPorMedico, medicoId, overrideRecetaValido)
+    const porMedico = entradaPorMedico(config?.recetasPorMedico, medicoId, overrideRecetaValido, unicoMedico)
     const merged = porMedico ? { ...base, ...porMedico } : base
     // Impresión SIEMPRE en hoja carta (tamaño estándar que Safari y la impresora
     // respetan): la receta se centra y agranda con márgenes. El modo "papel-real"
@@ -160,7 +174,12 @@ export default function GeneradorRecetaPage() {
   useEffect(() => {
     if (!clinicId || !notaId || !folio || !recetaConfig.mostrarQR) return
     let vivo = true
-    fetch('/api/receta/verificacion-url', {
+    // fetchAutenticado, no fetch: la ruta exige `verificarMiembro`, que lee la
+    // cabecera Authorization. Con `fetch` plano respondía 401 SIEMPRE, y los dos
+    // catches se lo tragaban: el QR impreso codificaba el folio en texto plano en
+    // vez de la URL firmada. La verificación de recetas llevaba muerta desde el
+    // primer día y nadie podía notarlo.
+    fetchAutenticado('/api/receta/verificacion-url', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -169,9 +188,12 @@ export default function GeneradorRecetaPage() {
         cedula: config?.cedulaProfesional ?? '',
       }),
     })
-      .then(r => (r.ok ? r.json() : null))
+      .then(async r => {
+        if (!r.ok) { console.warn('[receta] verificacion-url respondió', r.status); return null }
+        return r.json()
+      })
       .then(j => { if (vivo && j?.url) setVerificacionUrl(j.url) })
-      .catch(() => { /* fallback al folio */ })
+      .catch(e => { console.warn('[receta] no se pudo firmar el QR:', e) })
     return () => { vivo = false }
   }, [clinicId, notaId, folio, recetaConfig.mostrarQR, config?.nombreMedico, config?.cedulaProfesional])
 
@@ -179,9 +201,22 @@ export default function GeneradorRecetaPage() {
   const configFirma = useMemo(() => {
     if (!config) return config
     const medicoId = nota?.metadata?.medicoId
-    const firma = entradaPorMedico(config.firmaPorMedico, medicoId, firmaValida) || config.firmaImagenDataUrl
+    const firma = entradaPorMedico(config.firmaPorMedico, medicoId, firmaValida, unicoMedico)
+      // Con VARIOS médicos tampoco se cae a la firma global (típicamente la del
+      // dueño): sería la firma de otro. Mejor sin firma, que sí se nota.
+      || (unicoMedico ? config.firmaImagenDataUrl : undefined)
     return { ...config, firmaImagenDataUrl: firma }
-  }, [config, nota?.metadata?.medicoId])
+  }, [config, nota?.metadata?.medicoId, unicoMedico])
+
+  /**
+   * Sin firma resoluble no se imprime en silencio.
+   *
+   * Antes, si no había coincidencia por médico se estampaba "la única que
+   * hubiera" o la firma global de la clínica — la de otro médico. Ahora, con
+   * varios médicos, se prefiere no estampar ninguna; pero eso solo es más seguro
+   * si el médico se entera ANTES de entregarle el papel al paciente.
+   */
+  const sinFirmaResoluble = !!config && !configFirma?.firmaImagenDataUrl
 
   // Descarga un Word (.doc) editable — para el médico que prefiere ajustar
   // a su propio formato/membrete en lugar de la plantilla generada.
@@ -197,7 +232,7 @@ export default function GeneradorRecetaPage() {
         pacienteFechaNac: patient?.fechaNacimiento,
         alergias: patient?.alergias,
         diagnostico: diagnostico || undefined,
-        medicamentos,
+        medicamentos: medicamentos.filter(m => m.nombre?.trim()),
         indicaciones,
         notaParaPaciente,
       },
@@ -265,6 +300,22 @@ export default function GeneradorRecetaPage() {
   return (
     <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
       <AvisoConfigNoCargada error={configError} />
+
+      {sinFirmaResoluble && (
+        <div className="no-print" style={{
+          display: 'flex', alignItems: 'flex-start', gap: 10,
+          background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.35)',
+          borderRadius: 12, padding: '13px 15px', marginBottom: 14,
+        }}>
+          <AlertTriangle size={17} style={{ color: '#f59e0b', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--text)' }}>
+            <strong>Este documento saldrá sin firma ni sello.</strong> No encontramos la firma
+            registrada para el médico de esta nota. Como el consultorio tiene varios médicos, no se
+            estampa ninguna otra: sería la firma de alguien más. Súbela en Configuración → Recetas
+            o fírmalo a mano.
+          </div>
+        </div>
+      )}
       {/* Barra superior */}
       <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
         <button onClick={volver} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}>
@@ -486,13 +537,20 @@ export default function GeneradorRecetaPage() {
               fecha: new Date(),
               paciente: patient,
               diagnostico: diagnostico || undefined,
-              medicamentos,
+              // Sin nombre no se imprime: el botón "Agregar" crea la fila vacía y,
+              // si el médico no la llena, salía una viñeta numerada EN BLANCO en un
+              // documento legal — que además consumía altura y podía empujar otro
+              // fármaco fuera de la hoja. Las alertas de alergia y dosis ya
+              // filtraban por nombre; el impreso no.
+              medicamentos: medicamentos.filter(m => m.nombre?.trim()),
               indicaciones,
               notaParaPaciente,
               verificacionUrl,
             }
             const host = dimensionesImpresion(recetaConfig)
-            const numPages = contarPaginas(dataPreview, config, recetaConfig)
+            // configFirma, no config: el conteo debe usar la MISMA config que el
+            // documento, o el contador dice "1 hoja" y el PDF sale con 2.
+            const numPages = contarPaginas(dataPreview, configFirma, recetaConfig)
             return (
               <>
                 <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', marginBottom: 8 }}>

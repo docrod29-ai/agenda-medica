@@ -28,6 +28,7 @@ export default function CartaReferenciaPage() {
 
   const [patient, setPatient] = useState<Patient | null>(null)
   const [loading, setLoading] = useState(true)
+  const [errorCarga, setErrorCarga] = useState('')
 
   // Campos de la carta
   const [tipo, setTipo] = useState<Tipo>('referencia')
@@ -74,6 +75,16 @@ export default function CartaReferenciaPage() {
         setTratamiento(nota.medicamentos.map(m => [`${m.nombre}${m.dosis ? ` ${m.dosis}` : ''}`.trim(), m.via, m.frecuencia, m.duracion].filter(Boolean).join(' · ')).join('\n'))
       }
       setLoading(false)
+    }).catch(e => {
+      /**
+       * Sin este catch, `setLoading(false)` vivía SOLO dentro del `then`: con la
+       * red caída o sin permisos, la carta de referencia se quedaba en "Cargando…"
+       * para siempre — sin botón, sin mensaje, sin salida. Receta y orden sí lo
+       * tenían; esta pantalla se había quedado fuera.
+       */
+      console.error('[referencia] no se pudo cargar:', e)
+      setErrorCarga('No pudimos cargar los datos del paciente. Revisa tu conexión y recarga.')
+      setLoading(false)
     })
   }, [clinicId, patientId, searchParams])
 
@@ -98,7 +109,10 @@ export default function CartaReferenciaPage() {
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh', padding: 24 }}>
-      <div style={{ maxWidth: 800, margin: '0 auto' }}><AvisoConfigNoCargada error={configError} /></div>
+      <div style={{ maxWidth: 800, margin: '0 auto' }}>
+        <AvisoConfigNoCargada error={configError} />
+        <AvisoConfigNoCargada error={errorCarga || null} />
+      </div>
       {/* Acciones */}
       <div className="no-print" style={{ maxWidth: 800, margin: '0 auto 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <button onClick={volver} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}>

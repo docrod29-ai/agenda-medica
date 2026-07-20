@@ -6,6 +6,9 @@
  * según el contenido de la nota (signos vitales anormales, diagnósticos, etc.).
  */
 import { useState, useEffect, useMemo } from 'react'
+import { fetchAutenticado } from '@/lib/auth-client'
+import { useDoctors } from '@/hooks/useDoctors'
+import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { useToast } from '@/context/ToastContext'
 import { useParams, useRouter } from 'next/navigation'
@@ -25,6 +28,7 @@ import { descargarComoPDF } from '@/lib/pdf-download'
 import { descargarRecetaWord } from '@/lib/receta-word'
 import {
   ArrowLeft, Download, Loader2, Plus, Trash2, Printer, Settings, AlertCircle, ChevronDown, FileText, Check, Scissors,
+  AlertTriangle,
 } from 'lucide-react'
 import { Spinner } from '@/components/ui'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
@@ -312,6 +316,18 @@ export default function GeneradorOrdenPage() {
   const volver = useSmartBack(`/expediente/${patientId}`)
   const { clinicId } = useClinic()
   const { config, error: configError } = useConfig()
+
+  /**
+   * ¿Este consultorio tiene un solo médico?
+   *
+   * De esto depende que se pueda usar "la única firma configurada" cuando el
+   * identificador de la nota no coincide con el de la configuración — que es lo
+   * habitual por un desajuste histórico de ids. Con varios médicos, adivinar
+   * significa estampar la firma de otro.
+   */
+  const { activeDoctors } = useDoctors()
+  const unicoMedico = activeDoctors.length <= 1
+
   const { toast } = useToast()
 
   const [nota, setNota] = useState<NotaMedica | null>(null)
@@ -355,7 +371,7 @@ export default function GeneradorOrdenPage() {
       mostrarDiagnostico: true,
     }
     const medicoId = nota?.metadata?.medicoId
-    const porMedico = entradaPorMedico(config?.recetasPorMedico, medicoId, overrideRecetaValido)
+    const porMedico = entradaPorMedico(config?.recetasPorMedico, medicoId, overrideRecetaValido, unicoMedico)
     const merged = porMedico ? { ...base, ...porMedico } : base
     // Impresión SIEMPRE en hoja carta centrada (ver receta): 'papel-real' se
     // recorta en A5 por una limitación de Safari.
@@ -366,9 +382,22 @@ export default function GeneradorOrdenPage() {
   const configFirma = useMemo(() => {
     if (!config) return config
     const medicoId = nota?.metadata?.medicoId
-    const firma = entradaPorMedico(config.firmaPorMedico, medicoId, firmaValida) || config.firmaImagenDataUrl
+    const firma = entradaPorMedico(config.firmaPorMedico, medicoId, firmaValida, unicoMedico)
+      // Con VARIOS médicos tampoco se cae a la firma global (típicamente la del
+      // dueño): sería la firma de otro. Mejor sin firma, que sí se nota.
+      || (unicoMedico ? config.firmaImagenDataUrl : undefined)
     return { ...config, firmaImagenDataUrl: firma }
-  }, [config, nota?.metadata?.medicoId])
+  }, [config, nota?.metadata?.medicoId, unicoMedico])
+
+  /**
+   * Sin firma resoluble no se imprime en silencio.
+   *
+   * Antes, si no había coincidencia por médico se estampaba "la única que
+   * hubiera" o la firma global de la clínica — la de otro médico. Ahora, con
+   * varios médicos, se prefiere no estampar ninguna; pero eso solo es más seguro
+   * si el médico se entera ANTES de entregarle el papel al paciente.
+   */
+  const sinFirmaResoluble = !!config && !configFirma?.firmaImagenDataUrl
 
   const descargarWord = () => {
     descargarRecetaWord(
@@ -380,6 +409,9 @@ export default function GeneradorOrdenPage() {
         pacienteEdad: patient?.edad,
         pacienteSexo: patient?.sexo,
         pacienteFechaNac: patient?.fechaNacimiento,
+        // FALTABA: sin esto el .doc de la orden afirmaba "Negadas / no referidas"
+        // para un paciente alérgico, mientras su PDF imprimía la alergia real.
+        alergias: alergiasParaImpreso(patient),
         diagnostico: diagnostico || undefined,
         estudios,
         indicaciones,
@@ -442,6 +474,22 @@ export default function GeneradorOrdenPage() {
   return (
     <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
       <AvisoConfigNoCargada error={configError} />
+
+      {sinFirmaResoluble && (
+        <div className="no-print" style={{
+          display: 'flex', alignItems: 'flex-start', gap: 10,
+          background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.35)',
+          borderRadius: 12, padding: '13px 15px', marginBottom: 14,
+        }}>
+          <AlertTriangle size={17} style={{ color: '#f59e0b', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--text)' }}>
+            <strong>Este documento saldrá sin firma ni sello.</strong> No encontramos la firma
+            registrada para el médico de esta nota. Como el consultorio tiene varios médicos, no se
+            estampa ninguna otra: sería la firma de alguien más. Súbela en Configuración → Recetas
+            o fírmalo a mano.
+          </div>
+        </div>
+      )}
       <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
         <button onClick={volver} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}>
           <ArrowLeft size={15} /> Atrás
@@ -575,7 +623,7 @@ export default function GeneradorOrdenPage() {
               indicaciones,
             }
             const host = dimensionesImpresion(recetaConfig)
-            const numPages = contarPaginas(dataPreview, config, recetaConfig)
+            const numPages = contarPaginas(dataPreview, configFirma, recetaConfig)   // misma config que el documento
             return (
               <>
                 <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', marginBottom: 8 }}>

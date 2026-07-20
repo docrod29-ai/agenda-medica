@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { useDoctors } from '@/hooks/useDoctors'
 import { useToast } from '@/context/ToastContext'
 import { useParams, useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
@@ -24,6 +25,18 @@ export default function NotaImprimiblePage() {
   const volver = useSmartBack(`/expediente/${patientId}`)
   const { clinicId } = useClinic()
   const { config, error: configError } = useConfig()
+
+  /**
+   * ¿Este consultorio tiene un solo médico?
+   *
+   * De esto depende que se pueda usar "la única firma configurada" cuando el
+   * identificador de la nota no coincide con el de la configuración — que es lo
+   * habitual por un desajuste histórico de ids. Con varios médicos, adivinar
+   * significa estampar la firma de otro.
+   */
+  const { activeDoctors } = useDoctors()
+  const unicoMedico = activeDoctors.length <= 1
+
   const { toast } = useToast()
   const { user } = useAuth()
   const [nota, setNota] = useState<NotaMedica | null>(null)
@@ -149,11 +162,11 @@ export default function NotaImprimiblePage() {
   const establecimiento = nota.metadata.establecimiento || config?.nombreClinica || ''
   // Hoja membretada: la del MÉDICO de la nota si tiene una propia; si no, la
   // general del consultorio. Se ignora un valor vacío/roto (evita descuadrar).
-  const medMembrete = entradaPorMedico(config?.notaMembretePorMedico, nota.metadata?.medicoId, membreteValido)
+  const medMembrete = entradaPorMedico(config?.notaMembretePorMedico, nota.metadata?.medicoId, membreteValido, unicoMedico)
   // Firma a mostrar: el snapshot de la nota (inmutable) o la firma del médico que
   // la firmó (per-médico) o, en último caso, la general del consultorio.
   const firmaMostrar = nota.firma?.imagenDataUrl
-    || entradaPorMedico(config?.firmaPorMedico, nota.metadata?.medicoId, firmaValida)
+    || entradaPorMedico(config?.firmaPorMedico, nota.metadata?.medicoId, firmaValida, unicoMedico)
     || config?.firmaImagenDataUrl
   const mem = (medMembrete?.url ?? config?.notaMembreteDataUrl)?.trim()
   const membrete = (mem && /^(https?:|\/api\/|data:image)/.test(mem)) ? mem : undefined
