@@ -317,6 +317,12 @@ export function extraerStopBang(textoOriginal: string): Record<string, boolean> 
   return flags
 }
 
+/** Marca el flag solo si el término aparece Y no viene negado. */
+function marcarSiNoNegado(texto: string, re: RegExp, flags: Record<string, boolean>, clave: string): void {
+  const m = texto.match(re)
+  if (m && m.index !== undefined && !estaNegado(texto, m.index)) flags[clave] = true
+}
+
 export function extraerCaprini(texto: string, preopFlags: Record<string, boolean>): Record<string, boolean> {
   const flags: Record<string, boolean> = {}
   if (/\b(?:tvp|trombosis\s+venosa)\b/i.test(texto)) {
@@ -325,9 +331,18 @@ export function extraerCaprini(texto: string, preopFlags: Record<string, boolean
       flags.antecedenteTVP = true
     }
   }
-  if (/\bvarices\b/i.test(texto)) flags.varices = true
-  if (/\bfractura\s+(?:de\s+)?cadera\b/i.test(texto)) flags.fracturaCadera = true
-  if (/\bartroplastia\b/i.test(texto)) flags.artroplastiaElectiva = true
+  /**
+   * NEGACIÓN. Estos tres se marcaban con solo MENCIONAR la palabra, sin mirar si
+   * venía negada — mientras la línea de arriba, para TVP, sí llama a estaNegado().
+   *
+   * El médico dicta "niega várices, niega fractura de cadera" y el parser marcaba
+   * AMBAS como presentes: ~+6 puntos de Caprini y una recomendación de
+   * tromboprofilaxis en un paciente que negó justo esos factores. Es un dato
+   * inventado que alimenta una escala determinista y termina en una conducta.
+   */
+  marcarSiNoNegado(texto, /\bvarices\b/i, flags, 'varices')
+  marcarSiNoNegado(texto, /\bfractura\s+(?:de\s+)?cadera\b/i, flags, 'fracturaCadera')
+  marcarSiNoNegado(texto, /\bartroplastia\b/i, flags, 'artroplastiaElectiva')
   if (preopFlags.epoc) flags.epoc = true
   if (preopFlags.iamReciente) flags.iamReciente = true
   return flags

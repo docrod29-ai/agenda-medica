@@ -301,8 +301,10 @@ async function transcribirParte(blob: Blob, ext: string): Promise<string> {
  * los fragmentos WebM posteriores no traen cabecera, antepone el primer chunk
  * (que SÍ la tiene) a cada lote para que el decodificador lo entienda.
  */
-async function transcribirEnPartes(chunks: Blob[], mime: string, ext: string): Promise<string> {
-  if (chunks.length === 0) return ''
+export interface ResultadoPorPartes { texto: string; lotesFallidos: number }
+
+async function transcribirEnPartes(chunks: Blob[], mime: string, ext: string): Promise<ResultadoPorPartes> {
+  if (chunks.length === 0) return { texto: '', lotesFallidos: 0 }
   const header = chunks[0]
   const LIMITE = 3_600_000
   const lotes: Blob[][] = []
@@ -314,13 +316,34 @@ async function transcribirEnPartes(chunks: Blob[], mime: string, ext: string): P
   }
   if (actual.length) lotes.push(actual)
 
+  /**
+   * UN LOTE QUE FALLA YA NO DESAPARECE SIN DEJAR RASTRO.
+   *
+   * Antes era `if (t) textos.push(t)`: si el lote 2 de 4 fallaba (un 429 o un 500
+   * de OpenAI, o la red), su texto se descartaba, los otros tres se pegaban, y
+   * como el resultado global no venía vacío el llamador borraba el audio de
+   * IndexedDB — la única copia. El médico veía una transcripción fluida a la que
+   * le faltaba el centro de la consulta, sin ninguna señal de que faltara algo.
+   *
+   * Toda grabación de más de ~7,5 min entra por aquí, así que no es un caso raro:
+   * es cualquier consulta larga con la red inestable.
+   *
+   * Ahora se deja un marcador VISIBLE en la posición exacta del hueco y se cuenta
+   * cuántos lotes fallaron, para que el llamador NO borre el audio.
+   */
   const textos: string[] = []
+  let lotesFallidos = 0
   for (let b = 0; b < lotes.length; b++) {
     const parts = b === 0 ? lotes[b] : [header, ...lotes[b]]
     const t = await transcribirParte(new Blob(parts, { type: mime }), ext)
-    if (t) textos.push(t)
+    if (t) {
+      textos.push(t)
+    } else {
+      lotesFallidos++
+      textos.push(`\n[⚠ FALTA UN TRAMO DE LA GRABACIÓN — no se pudo transcribir. El audio se conservó para reintentar.]\n`)
+    }
   }
-  return textos.join(' ')
+  return { texto: textos.join(' '), lotesFallidos }
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -681,13 +704,16 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     }
 
     // 2) Transcripción robusta (en partes si es grande). Nunca lanza.
-    const texto = GRANDE
+    const porPartes = GRANDE
       ? await transcribirEnPartes(allChunks, rec.mimeType, ext)
-      : await transcribirBlobSimple(blob, ext)
+      : { texto: await transcribirBlobSimple(blob, ext), lotesFallidos: 0 }
+    const texto = porPartes.texto
 
     if (texto.trim()) {
       aplicar(texto)
-      if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current)
+      // Solo se borra el audio si NO faltó ningún tramo. Si algo se perdió, el
+      // audio es lo único que permite recuperarlo: se conserva.
+      if (recoveryKeyRef.current && porPartes.lotesFallidos === 0) await borrarChunks(recoveryKeyRef.current)
       return
     }
 
@@ -730,7 +756,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       texto = diar.text
     } else {
       // 2) Fallback: transcribir EN PARTES (OpenAI o AssemblyAI por trozo). Nunca lanza.
-      texto = await transcribirEnPartes(chunks, mime, ext)
+      texto = (await transcribirEnPartes(chunks, mime, ext)).texto
     }
 
     if (texto.trim()) {

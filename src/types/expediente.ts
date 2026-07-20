@@ -58,12 +58,27 @@ export interface Medicamento {
   instruccionesEspeciales?: string
 }
 
+/**
+ * Alergia registrada en la nota.
+ *
+ * Todo salvo el alérgeno es OPCIONAL, y eso es deliberado: cuando los campos eran
+ * obligatorios, el código que construía la nota tenía que rellenarlos con algo, y
+ * lo que rellenaba era `severidad:'moderada'`, `confirmada:true`, `tipo:'medicamento'`
+ * y `reaccion:'Ver expediente'` a partir de un campo de texto libre. Nadie había
+ * dicho "moderada" y nadie había confirmado nada: una anafilaxia dictada quedaba
+ * registrada como moderada, y la nota firmada afirmaba una confirmación
+ * inexistente.
+ *
+ * Un tipo que obliga a rellenar es un tipo que obliga a inventar. "No se sabe" es
+ * un estado clínico real y aquí se representa como campo ausente.
+ */
 export interface Alergia {
   alergeno: string
-  tipo: 'medicamento' | 'alimento' | 'ambiental' | 'otro'
-  reaccion: string
-  severidad: 'leve' | 'moderada' | 'grave' | 'anafilaxia'
-  confirmada: boolean
+  tipo?: 'medicamento' | 'alimento' | 'ambiental' | 'otro'
+  reaccion?: string
+  severidad?: 'leve' | 'moderada' | 'grave' | 'anafilaxia'
+  /** Solo true si alguien la confirmó de verdad. Ausente = no se sabe. */
+  confirmada?: boolean
 }
 
 export interface SignosVitales {

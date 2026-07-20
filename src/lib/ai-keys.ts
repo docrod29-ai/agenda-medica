@@ -197,12 +197,34 @@ export async function resolverClaveIA(
   uid: string, proveedor: ProveedorIA, envFallback?: string,
 ): Promise<ClaveResuelta> {
   const clinicId = await clinicIdDe(uid)
-  if (clinicId) {
-    try {
-      const k = (await docIA(clinicId).get()).data()?.[proveedor]
-      if (typeof k === 'string' && k.trim()) return { key: k.trim(), fuente: 'clinica', clinicId }
-    } catch { /* cae al env */ }
-  }
+
+  /**
+   * SIN CONSULTORIO NO HAY LLAVE. Ni siquiera la de prueba.
+   *
+   * `/registro` es autoservicio y público. Una cuenta recién creada todavía no
+   * tiene documento en `clinic_members`, así que `clinicId` es null — y con null
+   * TODA la contabilidad se caía sola, cada pieza por su cuenta:
+   *
+   *   registrarCreditos(null, n)   → return, nunca incrementa
+   *   creditosUsadosDelMes(null)   → 0, siempre (el contador no sube porque nadie escribe)
+   *   pruebaAgotada(null)          → false, siempre
+   *   registrarUso(null, …)        → return, cero telemetría
+   *
+   * Es decir: registrarse bastaba para tener Opus 4.8 con extended thinking,
+   * ilimitado, contra la API key del dueño y sin aparecer en ningún medidor. Lo
+   * único que se interponía era el rate-limit POR UID —que con N cuentas es N×40
+   * por minuto— y que además es fail-open por diseño.
+   *
+   * Un usuario sin consultorio no tiene ninguna razón legítima para generar notas:
+   * todavía está en /setup. Se corta aquí.
+   */
+  if (!clinicId) return { key: '', fuente: 'ninguna', clinicId: null }
+
+  try {
+    const k = (await docIA(clinicId).get()).data()?.[proveedor]
+    if (typeof k === 'string' && k.trim()) return { key: k.trim(), fuente: 'clinica', clinicId }
+  } catch { /* cae al env */ }
+
   if (envFallback && envFallback.trim()) return { key: envFallback.trim(), fuente: 'prueba', clinicId }
   return { key: '', fuente: 'ninguna', clinicId }
 }

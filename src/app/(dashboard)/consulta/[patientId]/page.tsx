@@ -139,20 +139,54 @@ export default function ConsultaActivaPage() {
   // Cuando termina Whisper, copia el texto a voz.setTranscripcion para reutilizar el flujo de IA
   // y marca para AUTO-PROCESAR (un toque menos: grabar → detener → nota lista).
   const autoProcRef = useRef(false)
+
+  /**
+   * LO YA DICTADO NO SE PIERDE AL VOLVER A GRABAR.
+   *
+   * Los dos efectos de abajo hacían `setTranscripcion(...)` a secas, que
+   * REEMPLAZA. `detener()` deja en `audio.transcripcion` solo el ÚLTIMO tramo, así
+   * que la segunda grabación borraba la primera:
+   *
+   *   grabar 5 min → Detener → el paciente añade algo → grabar 30 s → Detener
+   *   ⇒ la transcripción pasaba a ser solo esos 30 s, se re-procesaba la nota con
+   *     la mitad de la información, y el autoguardado escribía en Firestore una
+   *     `transcripcionCruda` sin la primera parte de la consulta.
+   *
+   * Se pierde el material de origen, que es justo lo que da respaldo legal a la
+   * nota. Aquí se guarda lo que había ANTES de empezar a grabar y se antepone.
+   */
+  const baseTranscripcionRef = useRef('')
+  const grabandoPrevioRef = useRef(false)
+  useEffect(() => {
+    const grabando = audio.estado === 'grabando'
+    if (grabando && !grabandoPrevioRef.current) {
+      // Flanco de subida: arranca una grabación. Se congela lo que ya había.
+      baseTranscripcionRef.current = voz.transcripcion.trim()
+    }
+    grabandoPrevioRef.current = grabando
+  }, [audio.estado, voz.transcripcion])
+
+  /** Antepone lo previo, salvo que el tramo nuevo ya lo contenga. */
+  const conBase = useCallback((nuevo: string) => {
+    const base = baseTranscripcionRef.current
+    if (!base || nuevo.startsWith(base)) return nuevo
+    return `${base}\n${nuevo}`
+  }, [])
+
   useEffect(() => {
     if (audio.estado === 'listo' && audio.transcripcion) {
-      voz.setTranscripcion(audio.transcripcion)
+      voz.setTranscripcion(conBase(audio.transcripcion))
       autoProcRef.current = true
     }
-  }, [audio.estado, audio.transcripcion]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [audio.estado, audio.transcripcion, conBase]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Texto en vivo del streaming (mientras graba) también va al editor — el médico
   // ve la transcripción aparecer sin esperar al final.
   useEffect(() => {
     if (audio.estado === 'grabando' && audio.transcripcionParcial) {
-      voz.setTranscripcion(audio.transcripcionParcial)
+      voz.setTranscripcion(conBase(audio.transcripcionParcial))
     }
-  }, [audio.estado, audio.transcripcionParcial]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [audio.estado, audio.transcripcionParcial, conBase]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Detección de audio huérfano de sesión previa (crash recovery)
   const [ofreceRecovery, setOfreceRecovery] = useState(false)
@@ -171,6 +205,23 @@ export default function ConsultaActivaPage() {
   const especialidadEfectiva = especialidadNota || config?.especialidad || ''
   const [secciones, setSecciones] = useState<NotaSeccion[]>(seccionesVacias(tipoInicial))
   const [signos, setSignos] = useState<SignosVitales>({})
+
+  /**
+   * Los campos numéricos se editan como TEXTO para poder teclear el punto decimal
+   * (ver el onChange de signos vitales). Aquí se normalizan a número antes de que
+   * salgan de la pantalla: a la nota, a Firestore y al copiloto. Un "70.5" que
+   * llegara como cadena rompería el IMC y las alertas por umbral.
+   */
+  const signosNum = useMemo<SignosVitales>(() => {
+    const out: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(signos)) {
+      if (k === 'ta') { out[k] = v; continue }
+      if (v === '' || v === undefined || v === null) continue
+      const n = typeof v === 'number' ? v : Number(String(v).replace(',', '.'))
+      out[k] = Number.isFinite(n) ? n : undefined
+    }
+    return out as SignosVitales
+  }, [signos])
   const [diagnosticos, setDiagnosticos] = useState<Diagnostico[]>([])
 
   // El panel perioperatorio solo estorba en una consulta que no es quirúrgica:
@@ -181,7 +232,27 @@ export default function ConsultaActivaPage() {
   const esGineco = !patient?.sexo || /^f/i.test(patient.sexo)
 
   /** Pega un texto en su sección de la nota (crea la sección si no existía). */
+  /**
+   * Ref de `firmada` porque este callback se crea ANTES de que exista el estado, y
+   * lo consumen el Copiloto y todos los paneles de Herramientas.
+   */
+  const firmadaRef = useRef(false)
   const agregarASeccion = useCallback((key: string, label: string) => (texto: string) => {
+    /**
+     * UNA NOTA FIRMADA NO SE ENMIENDA POR AQUÍ.
+     *
+     * El Copiloto y Herramientas se renderizan también con la nota firmada, así
+     * que "Agregar a la nota" modificaba `secciones` en pantalla y mostraba
+     * "Agregado a la nota ✓" — pero `guardarBorrador` sale temprano si está
+     * firmada, así que NADA se guardaba y no se creaba adenda. El médico se
+     * quedaba creyendo que había enmendado una nota firmada. Es un engaño
+     * medicolegal, no un bug cosmético: la vía legal para corregir una nota
+     * firmada es la adenda (NOM-004), y sigue disponible en la pantalla de la nota.
+     */
+    if (firmadaRef.current) {
+      toast('Esta nota ya está firmada. Para corregirla, usa una adenda desde la nota.', 'info')
+      return
+    }
     setSecciones(prev => {
       const i = prev.findIndex(s => s.key === key)
       const valor = i >= 0 ? `${prev[i].value}\n${texto}` : texto
@@ -225,12 +296,14 @@ export default function ConsultaActivaPage() {
     alergias: patient?.alergias,
     diagnosticos: diagnosticos.map(d => ({ descripcion: d.descripcion })),
     medicamentos: medicamentos.map(m => ({ nombre: m.nombre, dosis: m.dosis })),
+    // signosNum, no signos: el copiloto compara contra umbrales y calcula IMC.
+    // Con el valor en crudo, un "70.5" en texto rompería ambas cosas.
     signos: {
-      ta: signos.ta, fc: signos.fc, fr: signos.fr,
-      temperatura: signos.temperatura, spo2: signos.spo2,
-      peso: signos.peso, talla: signos.talla,
+      ta: signosNum.ta, fc: signosNum.fc, fr: signosNum.fr,
+      temperatura: signosNum.temperatura, spo2: signosNum.spo2,
+      peso: signosNum.peso, talla: signosNum.talla,
     },
-  }), [patient?.edad, patient?.sexo, patient?.alergias, diagnosticos, medicamentos, signos])
+  }), [patient?.edad, patient?.sexo, patient?.alergias, diagnosticos, medicamentos, signosNum])
   const [resumen, setResumen] = useState('')
   const [procesando, setProcesando] = useState(false)
   // Rol auto-asignado a cada voz diarizada (Hablante A/B → Médico/Paciente/Acompañante).
@@ -282,6 +355,7 @@ export default function ConsultaActivaPage() {
   const [nerError, setNerError] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [firmada, setFirmada] = useState(false)
+  useEffect(() => { firmadaRef.current = firmada }, [firmada])
   const [notaId, setNotaId] = useState<string | null>(notaIdParam)
   // Ref síncrona del notaId + cadena de guardados serializada: evita que dos
   // autoguardados creen notas DUPLICADAS (setNotaId es asíncrono).
@@ -431,7 +505,7 @@ export default function ConsultaActivaPage() {
       {
         resumen,
         secciones: secciones.map(s => ({ titulo: s.label, contenido: s.value })),
-        diagnosticos, medicamentos, signos,
+        diagnosticos, medicamentos, signos: signosNum,
       },
       voz.transcripcion,
     )
@@ -504,6 +578,10 @@ export default function ConsultaActivaPage() {
   }, [diagnosticos, medicamentos, patient?.nombre, patient?.edad, patient?.sexo, patient?.alergias, toast])
 
   const procesarIA = useCallback(async (tipoOverride?: TipoNota, opts?: { enVivo?: boolean }) => {
+    // Una nota firmada es inmutable. El atajo de teclado no comprobaba esto y
+    // reescribía en pantalla el contenido de una nota ya firmada: lo que se veía
+    // dejaba de coincidir con lo almacenado y con lo que se entregó al paciente.
+    if (firmadaRef.current) return
     // enVivo = estructuración EN TIEMPO REAL mientras se graba (silenciosa, sin
     // toasts ni reset de aprobaciones; la nota se va armando sola).
     const enVivo = opts?.enVivo === true
@@ -526,7 +604,8 @@ export default function ConsultaActivaPage() {
           rapido: enVivo,  // en vivo = modelo rápido/barato; nota final = motor elegido
           motor: enVivo ? undefined : motorEfectivo,  // menú de IA: ⚡/⭐/💎 (o default del plan)
           contexto: {
-            nombre: patient?.nombre ?? '',
+            // Sin nombre: no aporta nada a estructurar la nota e identifica al
+            // titular ante un tercero en el extranjero. Ver buildUserPrompt.
             edad: patient?.edad,
             sexo: patient?.sexo,
             alergias: patient?.alergias,
@@ -871,11 +950,25 @@ export default function ConsultaActivaPage() {
       },
       resumenEjecutivo: resumen,
       secciones,
-      signosVitales: signos,
+      signosVitales: signosNum,
       diagnosticos,
       medicamentos,
-      alergias: patient?.alergias
-        ? [{ alergeno: patient.alergias, tipo: 'medicamento', reaccion: 'Ver expediente', severidad: 'moderada', confirmada: true }]
+      /**
+       * NO SE INVENTA LO QUE NADIE DIJO.
+       *
+       * Esto rellenaba `severidad:'moderada'` y `confirmada:true` a partir de un
+       * campo de texto libre del expediente. Nadie dijo "moderada" y nadie
+       * confirmó nada: una anafilaxia dictada quedaba registrada como moderada, y
+       * la nota firmada afirmaba una confirmación que nunca ocurrió. `tipo` se
+       * forzaba a 'medicamento', así que "alergia a mariscos" salía tipada como
+       * fármaco, y `reaccion` llevaba el texto de plantilla "Ver expediente"
+       * dentro de un campo clínico.
+       *
+       * Se registra el alérgeno tal como está escrito y nada más. Los campos que
+       * no se saben quedan ausentes, que es la única representación honesta.
+       */
+      alergias: patient?.alergias?.trim()
+        ? [{ alergeno: patient.alergias.trim() }]
         : [],
       estudiosOrden: estudiosOrden.length ? estudiosOrden : undefined,
       internamientoId: internamientoActivo,
@@ -968,6 +1061,10 @@ export default function ConsultaActivaPage() {
         await deleteNota(clinicId, patientId, idReal)
       }
       try { localStorage.removeItem(respaldoKey) } catch { /* */ }
+      // El espejo EN MEMORIA también: sin esto, la consulta descartada reaparecía
+      // completa al abrir "Nueva consulta" del mismo paciente y se recreaba sola
+      // en Firestore al autoguardarse.
+      borradorMem.borrar(respaldoKey)
       toast('Consulta descartada', 'info')
       router.push(volverA)
     } catch (e) {
@@ -1008,6 +1105,9 @@ export default function ConsultaActivaPage() {
       try {
         localStorage.setItem(respaldoKey, ofuscar(JSON.stringify({
           tipo, resumen, secciones, signos, diagnosticos, medicamentos,
+          // notaId: sin él, restaurar el respaldo dejaba notaIdRef en null y el
+          // siguiente autoguardado CREABA una segunda nota con el mismo contenido.
+          notaId: notaIdRef.current,
           transcripcion: voz.transcripcion, ts: Date.now(),
         }), secretoLocal(auth.currentUser?.uid)))
       } catch { /* almacenamiento lleno: no es crítico */ }
@@ -1034,6 +1134,9 @@ export default function ConsultaActivaPage() {
       diagnosticos.length === 0 && medicamentos.length === 0 && !voz.transcripcion.trim()
     if (notaIdParam || !vacio) return   // abriendo otra nota o ya hay contenido → no pisar
     autoRestRef.current = true
+    // Recuperar la nota a la que pertenecía el respaldo: sin esto se creaba una
+    // gemela en el expediente y, al firmar una, la otra quedaba huérfana.
+    if (typeof b.notaId === 'string' && b.notaId) { notaIdRef.current = b.notaId; setNotaId(b.notaId) }
     if (typeof b.tipo === 'string') setTipo(b.tipo as TipoNota)
     if (Array.isArray(b.secciones)) setSecciones(b.secciones as NotaSeccion[])
     if (typeof b.resumen === 'string') setResumen(b.resumen)
@@ -1057,7 +1160,7 @@ export default function ConsultaActivaPage() {
     const e = estadoVivoRef.current
     const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) || e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim()
     if (e.firmada || !hay) borradorMem.borrar(respaldoKey)
-    else borradorMem.escribir(respaldoKey, { tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos, diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, transcripcion: e.transcripcion })
+    else borradorMem.escribir(respaldoKey, { tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos, diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, transcripcion: e.transcripcion, notaId: notaIdRef.current })
   })
   const flushRespaldo = useCallback(() => {
     const e = estadoVivoRef.current
@@ -1070,7 +1173,8 @@ export default function ConsultaActivaPage() {
     try {
       localStorage.setItem(respaldoKey, ofuscar(JSON.stringify({
         tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos,
-        diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, transcripcion: e.transcripcion, ts: Date.now(),
+        diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, notaId: notaIdRef.current,
+        transcripcion: e.transcripcion, ts: Date.now(),
       }), secretoLocal(auth.currentUser?.uid)))
     } catch { /* almacenamiento lleno */ }
   }, [respaldoKey])
@@ -1264,11 +1368,12 @@ export default function ConsultaActivaPage() {
       const nota = {
         resumenEjecutivo: resumen,
         secciones: Object.fromEntries(secciones.map(s => [s.key, s.value])),
-        diagnosticos, medicamentos, alergias: [], signosVitales: signos,
+        diagnosticos, medicamentos, alergias: [], signosVitales: signosNum,
       }
       const res = await fetchAutenticado('/api/expediente/corregir', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nota, instruccion: instr, contexto: { nombre: patient?.nombre, edad: patient?.edad, sexo: patient?.sexo } }),
+        // Sin nombre en el contexto: minimización de PHI ante el tercero.
+        body: JSON.stringify({ nota, instruccion: instr, contexto: { edad: patient?.edad, sexo: patient?.sexo } }),
       })
       const data = await res.json().catch(() => null)
       if (!data?.ok) { setChatCorr(c => [...c, { rol: 'ia', texto: data?.error || 'No pude aplicar el cambio. Reformúlalo.' }]); setSnapshotUndo(null); return }
@@ -2057,7 +2162,24 @@ export default function ConsultaActivaPage() {
                 <label style={S.miniLabel}>{label}</label>
                 <input
                   value={(signos[k] as string | number | undefined) ?? ''}
-                  onChange={e => setSignos(s => ({ ...s, [k]: k === 'ta' ? e.target.value : (e.target.value ? Number(e.target.value) : undefined) }))}
+                  /**
+                   * DECIMALES. Esto hacía `Number(e.target.value)` en cada tecla:
+                   * al escribir "70." el valor pasaba a 70, el input controlado se
+                   * repintaba como "70" y EL PUNTO SE PERDÍA. Era imposible teclear
+                   * 70.5 de peso o 36.7 de temperatura — quedaba 705 y 367. Con
+                   * coma ("36,5") daba NaN y el campo mostraba literalmente "NaN".
+                   *
+                   * Ahora se conserva el texto tal cual mientras sea un número en
+                   * construcción (se acepta la coma y se normaliza a punto), y la
+                   * conversión a número ocurre al construir la nota.
+                   */
+                  onChange={e => setSignos(s => {
+                    if (k === 'ta') return { ...s, [k]: e.target.value }
+                    const v = e.target.value.replace(',', '.')
+                    if (v === '') return { ...s, [k]: undefined }
+                    if (!/^\d*\.?\d*$/.test(v)) return s      // ignora la tecla inválida
+                    return { ...s, [k]: v }
+                  })}
                 // Teclado numérico en el teléfono: sin esto salía el QWERTY completo
                 // para capturar FC, peso o talla. La TA lleva 'numeric' y no 'decimal'
                 // porque necesita la diagonal de "120/80".

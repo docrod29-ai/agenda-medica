@@ -15,6 +15,7 @@
  * Resp: { ok, modelo, hallazgos: [{ severidad, tema, problema, sugerencia }] }
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { GUARDA_INYECCION, delimitar } from '@/lib/expediente/prompts'
 import { verificarUsuario } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA, registrarUso } from '@/lib/ai-keys'
@@ -60,8 +61,8 @@ export async function POST(req: NextRequest) {
   const ctx = body.contexto ?? {}
   const alergias = Array.isArray(ctx.alergias) ? (ctx.alergias as string[]).join(', ') : (ctx.alergias ?? 'no referidas')
 
-  const system = 'Eres un médico revisor experto en seguridad del paciente. Revisas una nota clínica ya redactada contra la transcripción de la consulta y los datos del paciente. Señala SOLO problemas de seguridad o congruencia REALES: dosis peligrosas o fuera de rango, interacciones farmacológicas, fármaco recetado contra una alergia del paciente, contradicciones entre la nota y lo dicho, diagnósticos sin sustento en la transcripción, o datos críticos faltantes. NO reescribas la nota. NO inventes problemas si no los hay. Responde SOLO un objeto JSON: {"hallazgos":[{"severidad":"alta|media|baja","tema":"...","problema":"...","sugerencia":"..."}]}. Si todo está correcto, devuelve {"hallazgos":[]}.'
-  const userMsg = `PACIENTE: edad ${ctx.edad ?? '?'}, sexo ${ctx.sexo ?? '?'}, alergias: ${alergias}.\n\nTRANSCRIPCIÓN DE LA CONSULTA:\n${(body.transcripcion ?? '').slice(0, 12000)}\n\nNOTA GENERADA A REVISAR:\n${notaTexto.slice(0, 12000)}\n\nDevuelve solo el JSON de hallazgos.`
+  const system = GUARDA_INYECCION + '\n\n' + 'Eres un médico revisor experto en seguridad del paciente. Revisas una nota clínica ya redactada contra la transcripción de la consulta y los datos del paciente. Señala SOLO problemas de seguridad o congruencia REALES: dosis peligrosas o fuera de rango, interacciones farmacológicas, fármaco recetado contra una alergia del paciente, contradicciones entre la nota y lo dicho, diagnósticos sin sustento en la transcripción, o datos críticos faltantes. NO reescribas la nota. NO inventes problemas si no los hay. Responde SOLO un objeto JSON: {"hallazgos":[{"severidad":"alta|media|baja","tema":"...","problema":"...","sugerencia":"..."}]}. Si todo está correcto, devuelve {"hallazgos":[]}.'
+  const userMsg = `PACIENTE: edad ${ctx.edad ?? '?'}, sexo ${ctx.sexo ?? '?'}, alergias: ${alergias}.\n\nTRANSCRIPCIÓN DE LA CONSULTA:\n${delimitar((body.transcripcion ?? '').slice(0, 12000))}\n\nNOTA GENERADA A REVISAR:\n${notaTexto.slice(0, 12000)}\n\nDevuelve solo el JSON de hallazgos.`
 
   async function llamar(model: string) {
     return fetch('https://api.openai.com/v1/chat/completions', {

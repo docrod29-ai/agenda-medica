@@ -46,7 +46,7 @@ export default function ExpedientePage() {
   const { clinicId } = useClinic()
   const { user } = useAuth()
   const { toast, confirm } = useToast()
-  const { notas, loading, reload } = useExpediente(patientId)
+  const { notas, loading, error: errorNotas, reload } = useExpediente(patientId)
   const [errorPaciente, setErrorPaciente] = useState('')
   const [patient, setPatient] = useState<Patient | null>(null)
   // Por defecto muestra las notas de CONSULTORIO (no mezclar con hospital). Las
@@ -210,6 +210,22 @@ export default function ExpedientePage() {
             title="Sin notas de consultorio"
             description="Este paciente solo tiene notas de hospitalización. Cambia a la pestaña “Hospital” para verlas."
             action={<Button variant="secondary" onClick={() => setFiltro('hospital')}>Ver notas de Hospital</Button>}
+          />
+        ) : errorNotas ? (
+          /**
+           * NO CONFUNDIR "falló la lectura" CON "no hay notas".
+           *
+           * El hook exponía `error` y la pantalla no lo consumía: ante cualquier
+           * fallo de getNotas se hacía setNotas([]) y aquí se pintaba "Sin notas
+           * todavía · Crear primera nota". Un paciente con años de historia se veía
+           * como paciente nuevo con la red caída o el token vencido — exactamente
+           * el patrón que ya provocó un susto de pérdida de datos con el censo.
+           */
+          <EmptyState
+            illustration={<ExpedienteVacio />}
+            title="No pudimos cargar el expediente"
+            description="Las notas de este paciente están guardadas en el servidor; esto es un problema de conexión, no de tus datos."
+            action={<Button onClick={() => reload()}>Reintentar</Button>}
           />
         ) : (
         <EmptyState
