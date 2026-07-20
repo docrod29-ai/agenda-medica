@@ -48,6 +48,30 @@ service cloud.firestore {
         get(/databases/$(database)/documents/clinic_members/$(request.auth.uid)).data.role in ['medico', 'admin', 'laboratorio'];
     }
 
+    /**
+     * ¿La clínica puede CAPTURAR datos nuevos? Puerta del paywall en las reglas.
+     *
+     * El bloqueo de suscripción vencida vivía SOLO en React (`AccesoGate`), así
+     * que saltándose ese componente desde la consola se seguía escribiendo. Esto
+     * lo cierra en el servidor — pero con dos decisiones deliberadas:
+     *
+     *  - Solo bloquea ESCRITURA de datos nuevos, no la LECTURA. El expediente
+     *    debe poder leerse aunque el pago falle (NOM-004: el médico tratante tiene
+     *    derecho de acceso al registro). Cortar la lectura sería ilegal, no solo
+     *    hostil.
+     *  - FALLA-ABIERTO. Si el doc de la clínica no tiene `status` (documentos
+     *    viejos, o el campo aún no escrito), NO se bloquea: atrapar a una clínica
+     *    legítima por un campo ausente es peor que dejar pasar una escritura de
+     *    una vencida. Solo se bloquea ante un estado terminal EXPLÍCITO.
+     *
+     * `paseLibre` (cuentas del dueño / cortesía) siempre puede escribir.
+     */
+    function clinicaPuedeEscribir(clinicId) {
+      let c = get(/databases/$(database)/documents/clinics/$(clinicId)).data;
+      return c.get('paseLibre', false) == true
+        || !(c.get('status', 'active') in ['cancelled', 'canceled', 'suspended']);
+    }
+
     // Clinic metadata (root)
     match /clinics/{clinicId} {
       allow read: if isMember(clinicId);
@@ -70,17 +94,25 @@ service cloud.firestore {
       allow delete: if false;
 
       match /appointments/{docId} {
-        allow read, write: if isMember(clinicId);
+        allow read: if isMember(clinicId);
+        // Captura nueva sujeta al paywall; leer/actualizar/borrar lo existente no.
+        allow update, delete: if isMember(clinicId);
+        allow create: if isMember(clinicId) && clinicaPuedeEscribir(clinicId);
       }
       match /patients/{docId} {
-        allow read, write: if isMember(clinicId);
+        allow read: if isMember(clinicId);
+        allow update, delete: if isMember(clinicId);
+        allow create: if isMember(clinicId) && clinicaPuedeEscribir(clinicId);
 
         // Expediente Clínico Electrónico — notas del paciente
         // SECRETO MÉDICO: solo médicos/admin pueden leer o escribir notas clínicas.
         // La asistente NUNCA tiene acceso (NOM-004 + LFPDPPP datos sensibles).
         match /notas/{notaId} {
           allow read: if isMedico(clinicId);
-          allow create: if isMedico(clinicId);
+          // Abrir una nota nueva = capturar dato nuevo → sujeto al paywall.
+          // Firmar/editar un borrador YA abierto no, para no dejar una consulta
+          // a medias sin poder cerrarla por un corte de pago a mitad del día.
+          allow create: if isMedico(clinicId) && clinicaPuedeEscribir(clinicId);
           // Solo se pueden editar/borrar borradores; las firmadas son inmutables (NOM-024)
           allow update: if isMedico(clinicId) && resource.data.estado != 'firmada';
           allow delete: if isMedico(clinicId) && resource.data.estado != 'firmada';
