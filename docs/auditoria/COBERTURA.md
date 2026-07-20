@@ -12,7 +12,7 @@ Estados: **CERRADO** · **EN CURSO** · **PENDIENTE**
 | 2 | Agenda y citas | **CERRADO** v470–v471 | Bugs, Integridad |
 | 3 | Recetas, órdenes y referencias (impresión, formatos) | **CERRADO** v473–v474 | Seguridad clínica, Bugs |
 | 4 | Hospitalización (censo, episodio, MAR, signos) | PENDIENTE | — |
-| 5 | Antibiograma y motor PROA | PENDIENTE | — |
+| 5 | Antibiograma y motor PROA | **CERRADO** v476–v478 | Microbiología clínica, Bugs |
 | 6 | Módulos cardiometabólicos (obesidad, dislipidemia, MASLD, PREVENT) | PENDIENTE | — |
 | 7 | Portal del paciente y perfil público | PENDIENTE | — |
 | 8 | WhatsApp y mensajería | PENDIENTE | — |

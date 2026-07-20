@@ -288,3 +288,80 @@ Los dos agentes, trabajando por separado, señalaron el mismo hallazgo como el p
 caracteres y el render real usa otro ancho; los tests comparan el estimador consigo mismo, no
 con el papel. Las reservas se subieron con margen, pero el invariante "la firma siempre cabe"
 solo se puede comprobar imprimiendo una receta de 8–10 medicamentos con nombres largos.
+
+---
+
+## Módulo 5 — Antibiograma y motor PROA · CERRADO 2026-07-20
+
+Superficie: `lib/expediente/antibiograma/**` completo, las rutas de razonamiento y de visión,
+y la pantalla del antibiograma.
+
+Agentes: microbiología clínica y PROA · Bugs. Ambos verificaron sus hallazgos EJECUTANDO el
+motor, no solo leyéndolo.
+
+### Veredicto de los agentes, que conviene no perder
+
+**El contenido microbiológico está bien.** Los puntos de corte del CLSI M100 bien
+transcritos, la matriz de β-lactamasas de Bush & Bradford correcta, la lógica
+CAZ-AVI/aztreonam para metalo-β-lactamasas es la buena, y la frontera IA↔motor está bien
+concebida a nivel de arquitectura. **Los P0 eran de plomería**: una función de seis líneas y
+un dedup de ocho rompían conclusiones clínicas correctas.
+
+### Los tres P0 (v476)
+
+| Hallazgo | Consecuencia |
+|---|---|
+| **Emparejamiento por subcadena.** Los β-lactámicos nuevos son COMBINACIONES cuyo nombre contiene el del agente suelto. | `Meropenem-vaborbactam S` hacía que la clase CARBAPENEM viera una S: una **K. pneumoniae pan-carbapenem-R salía como "pérdida de porina"**, sin alerta crítica, sin terapia dirigida, sin notificación NOM-045 y sin aislamiento. El alias `avibactam` casaba "Aztreonam-avibactam" y el motor concluía carbapenemasa **de serina** — al revés. Y `ampicilina` casaba "Amoxicilina-clavulanato": una Klebsiella S a amox-clav, lo NORMAL, disparaba alarma de resistencia intrínseca. |
+| **Lo confirmado perdía contra lo inferido.** El dedup conservaba el primero y la inferencia se fusiona antes. | Una **KPC confirmada por PCR** salía como "clase no determinada [probable]", y la terapia **prescribía y prohibía CAZ-AVI en la misma lista**. |
+| **Los conflictos intrínsecos miraban solo la primera fila.** | "Meropenem R, Imipenem S" en *S. maltophilia* no reportaba conflicto: la fila biológicamente imposible —la señal de error de identificación— ni se miraba. |
+
+### Correcciones clínicas indicadas por el médico (v477)
+
+- **MDR ya no cuenta la resistencia INTRÍNSECA** (Magiorakos lo exige). Un *Proteus mirabilis*
+  completamente sensible salía `MDR[confirmado]` porque el panel reporta sus cuatro
+  resistencias naturales. Aplica a toda especie con patrón intrínseco, no solo Proteus.
+- ***P. aeruginosa* carbapenem-R con cefalosporinas S** ya no pasa en silencio (no disparaba
+  NADA): se atribuye a porina OprD + bombas MexAB-OprM, y explícitamente **no** a
+  carbapenemasa — una carbapenemasa arrastraría también las cefalosporinas.
+- **Carbapenemasas**: KPC y OXA-48 → CAZ-AVI; IMP/NDM/VIM → aztreonam, casi siempre con
+  serina coproducida, de ahí la combinación con avibactam. Se suavizó el "EXCLUYE".
+
+### Los cuatro puntos de corte que el agente marcó SIN proponer cifras
+
+Hizo bien en no inventarlos. Se verificaron contra fuentes primarias:
+
+| Valor | Veredicto |
+|---|---|
+| Pip-tazo / *P. aeruginosa* | **Ya estaba correcto.** S ≤16 / R ≥64 = revisión CLSI enero 2023 (antes R ≥128). |
+| Minociclina / *Acinetobacter* | **Ya estaba correcto y en la edición más nueva.** S ≤1 / R ≥4 = CLSI M100-Ed35 (2025). El agente recordaba los de Ed34. |
+| Oxacilina / coagulasa-negativo | **Estaba mal.** Se aplicaba el corte de *S. aureus*: un *S. epidermidis* con CMI 1 salía SENSIBLE. Corregido a S ≤0.25 / R ≥0.5, que es el que detecta mecA (~80 % de los CoNS lo portan). *S. lugdunensis* conserva el de *S. aureus*. |
+| Daptomicina / *E. faecium* | **Estaba mal.** Se usaba el corte de estafilococo. CLSI no define S: solo SDD ≤4 (8-12 mg/kg/día) y R ≥8. El motor además se contradecía consigo mismo en un VRE. |
+
+### Cierre (v478)
+
+- **HLAR falso**: se declaraba con una gentamicina R de panel rutinario, pero el enterococo es
+  intrínsecamente R de bajo nivel — esa R es lo esperado. Se abandonaba la sinergia en
+  endocarditis sin fundamento. Ahora exige el tamiz de alto nivel.
+- **CMI censurada**: `parseCMI` tiraba el símbolo, así que «>500» se leía como 500 exacto
+  contra un umbral estricto `>500` — daba falso y apagaba el HLAR.
+- **Frontera IA**: las alertas críticas del motor no llegaban al prompt (el modelo razonaba
+  sin ellas), y la regla anti-contradicción era solo texto. Se añadió validación posterior que
+  **anota** —no censura— cuando el texto recomienda algo reportado R, marcado "evitar" o
+  intrínsecamente resistente.
+
+### Pendiente en este módulo
+
+- `perfilAEntrada` descarta las celdas `'SDD'` (el tipo `SIR` no la contempla): un cefepime SDD
+  desaparece del panel y empuja a escalar a carbapenémico.
+- La rama BLEE exige un carbapenémico probado y S; en panel básico —frecuente en México— el
+  fenotipo más común del país no se detecta.
+- `nofermentadores` recomienda amp-sulbactam en *Acinetobacter* sin consultar su S/I/R
+  reportado, y cotrimoxazol en *S. maltophilia* cuando no se probó.
+- Las ediciones interpretativas EUCAST se emiten pero no se aplican al array que consumen los
+  demás módulos.
+
+### No verificado
+
+Ninguna interpretación se ha contrastado contra un antibiograma real del laboratorio del
+médico. Los agentes ejecutaron el motor con casos construidos; eso valida la lógica, no la
+correspondencia con lo que imprime su lab.
