@@ -9,6 +9,7 @@
  * El médico configura el template (membrete, tamaño, estilo) en Configuración → Recetas.
  */
 import { useState, useEffect, useMemo } from 'react'
+import { huellaImpreso } from '@/lib/expediente/huella-impreso'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useDoctors } from '@/hooks/useDoctors'
 import { logAudit } from '@/lib/expediente/audit-log'
@@ -357,13 +358,13 @@ export default function GeneradorRecetaPage() {
           <button onClick={() => router.push('/configuracion?tab=recetas')} className="btn btn-secondary" title="Configurar template">
             <Settings size={14} /> Template
           </button>
-          <button onClick={() => { if (configError || descargando) return; logAudit({ evento: 'receta_generada', clinicId: clinicId ?? '', patientId, notaId }).catch(() => {}); const h = dimensionesImpresion(recetaConfig); imprimirElemento(document.getElementById('receta-doc'), 'Receta', { anchoMm: h.widthMm, altoMm: h.heightMm }) }} className="btn btn-secondary">
+          <button onClick={() => { if (configError || descargando) return; logAudit({ evento: 'receta_generada', clinicId: clinicId ?? '', patientId, notaId, meta: huellaImpreso(medicamentos, { folio, indicaciones, diagnostico }) }).catch(() => {}); const h = dimensionesImpresion(recetaConfig); imprimirElemento(document.getElementById('receta-doc'), 'Receta', { anchoMm: h.widthMm, altoMm: h.heightMm }) }} className="btn btn-secondary">
             <Printer size={14} /> Imprimir
           </button>
           <button onClick={() => { if (configError || descargando) return; descargarWord() }} className="btn btn-secondary" title="Documento editable para tu membrete">
             <FileText size={14} /> Word
           </button>
-          <button onClick={() => { if (configError || descargando) return; logAudit({ evento: 'receta_descargada', clinicId: clinicId ?? '', patientId, notaId }).catch(() => {}); descargarPDF() }} disabled={descargando || !!configError} className="btn btn-primary">
+          <button onClick={() => { if (configError || descargando) return; logAudit({ evento: 'receta_descargada', clinicId: clinicId ?? '', patientId, notaId, meta: huellaImpreso(medicamentos, { folio, indicaciones, diagnostico }) }).catch(() => {}); descargarPDF() }} disabled={descargando || !!configError} className="btn btn-primary">
             {descargando
               ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</>
               : <><Download size={14} /> Descargar PDF</>}

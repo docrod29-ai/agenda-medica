@@ -15,7 +15,7 @@
 import type { NotaIntrinseca, ResultadoAntibiograma } from './tipos'
 import { REF } from './referencias'
 import {
-  organismoEs, estado, ES_S,
+  organismoEs, ES_S, todosLosEstados,
   AMPICILINA, AMOXI_CLAV, CEF1G, CEFOXITINA, COLISTINA, NITROFURANTOINA,
   TETRACICLINA, TIGECICLINA, CARBAPENEM, AZTREONAM, COTRIMOXAZOL, CEF3G, CEFEPIME,
 } from './util'
@@ -162,15 +162,21 @@ export function evaluarIntrinseca(
     if (!organismoEs(organismo, regla.claves)) continue
     for (const { agente, nota } of regla.resistentes) {
       if (!agente.length) continue
-      const s = estado(resultados, agente)
-      if (s === null) {
-        // no se probó: nota esperada (contexto), sin saturar — solo la primera vez por regla
-        continue
-      }
-      if (ES_S(s)) {
+      /**
+       * TODAS las filas que correspondan, no solo la primera.
+       *
+       * `estado()` devuelve la primera coincidencia, así que un panel con
+       * "Meropenem R, Imipenem S" en Stenotrophomonas —o "Ceftriaxona R,
+       * Ceftazidima S" en Enterococcus faecium— no reportaba conflicto: la
+       * segunda fila, la biológicamente imposible, ni se miraba. Y esa es
+       * justamente la señal de un error de identificación del aislamiento, que es
+       * para lo que existe este módulo.
+       */
+      for (const fila of todosLosEstados(resultados, agente)) {
+        if (!ES_S(fila.interpretacion)) continue
         notas.push({
           tipo: 'conflicto',
-          antibiotico: nombreLegible(agente),
+          antibiotico: fila.antibiotico || nombreLegible(agente),
           mensaje: `⚠️ Reporte «S» para un agente de resistencia intrínseca. ${nota} Reconfirmar identificación de especie y la prueba.`,
           referencia: regla.ref,
         })

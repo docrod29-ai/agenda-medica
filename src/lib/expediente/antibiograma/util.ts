@@ -13,11 +13,72 @@ export function organismoEs(org: string, claves: string[]): boolean {
   return claves.some(k => o.includes(norm(k)))
 }
 
+
+/**
+ * ¿Este nombre de antibiótico corresponde a este sinónimo?
+ *
+ * ANTES ERA `a.includes(sinonimo)`, Y ESO ROMPÍA CUATRO COSAS A LA VEZ. La causa
+ * es que los β-lactámicos nuevos son combinaciones cuyo nombre CONTIENE el del
+ * agente suelto:
+ *
+ *  1. "Meropenem-vaborbactam S" hacía que `CARBAPENEM` viera una S y la rama de
+ *     CARBAPENEMASA nunca entrara: se perdía la alerta crítica, la notificación
+ *     obligatoria y el aislamiento de contacto. Con meropenem R al lado.
+ *  2. El alias suelto 'avibactam' casaba "Aztreonam-avibactam", y el motor
+ *     concluía "carbapenemasa de SERINA" — justo al revés, porque
+ *     aztreonam-avibactam es el fármaco de las metalo-β-lactamasas.
+ *  3. `AMPICILINA` casaba "Amoxicilina-clavulanato", así que una Klebsiella S a
+ *     amox-clav —lo NORMAL— disparaba la alarma de resistencia intrínseca y le
+ *     pedía al laboratorio reconfirmar la especie.
+ *  4. 'ofloxacino' es subcadena de "levofloxacino": la edición interpretativa de
+ *     fluoroquinolonas aparecía o no según el ORDEN de las filas del panel.
+ *
+ * Dos reglas:
+ *
+ *  a) Frontera de token: el sinónimo tiene que empezar y terminar en un límite de
+ *     palabra, no en mitad de otra. Eso resuelve (4).
+ *  b) Un agente SUELTO no casa una combinación con inhibidor. Si el sinónimo que
+ *     se busca no menciona inhibidor, el nombre del antibiótico tampoco puede
+ *     mencionarlo. Eso resuelve (1), (2) y (3). Cuando el sinónimo SÍ es la
+ *     combinación (p. ej. 'piperacilina-tazobactam'), la regla no aplica.
+ */
+const INHIBIDORES = /(avibactam|vaborbactam|relebactam|durlobactam|taniborbactam|enmetazobactam|tazobactam|clavulan|sulbactam)/
+
+export function coincideAntibiotico(antibiotico: string, sinonimo: string): boolean {
+  const a = norm(antibiotico)
+  const s = norm(sinonimo)
+  if (!a || !s) return false
+
+  // (b) agente suelto vs combinación con inhibidor
+  if (!INHIBIDORES.test(s) && INHIBIDORES.test(a)) return false
+
+  // (a) frontera de token — el separador puede ser espacio, guion, barra o punto
+  const esc = s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`(^|[^a-z0-9])${esc}([^a-z0-9]|$)`).test(a)
+}
+
+/** ¿Alguno de los sinónimos corresponde a este antibiótico? */
+export function casaAlguno(antibiotico: string, sinonimos: string[]): boolean {
+  return sinonimos.some(s => coincideAntibiotico(antibiotico, s))
+}
+
+/**
+ * TODAS las filas del panel que correspondan a estos sinónimos.
+ *
+ * `estado()` devuelve solo la PRIMERA, y eso ocultaba los conflictos que el módulo
+ * promete detectar: con "Meropenem R, Imipenem S" en Stenotrophomonas, o
+ * "Ceftriaxona R, Ceftazidima S" en Enterococcus faecium, la segunda fila —la
+ * biológicamente imposible, que es la señal de un error de identificación— ni
+ * siquiera se miraba.
+ */
+export function todosLosEstados(resultados: ResultadoAntibiograma[], sinonimos: string[]): ResultadoAntibiograma[] {
+  return resultados.filter(r => casaAlguno(r.antibiotico, sinonimos))
+}
+
 /** Estado S/I/R del primer antibiótico que coincida con algún sinónimo (o null). */
 export function estado(resultados: ResultadoAntibiograma[], sinonimos: string[]): SIR | null {
   for (const r of resultados) {
-    const a = norm(r.antibiotico)
-    if (sinonimos.some(s => a.includes(norm(s)))) return r.interpretacion
+    if (casaAlguno(r.antibiotico, sinonimos)) return r.interpretacion
   }
   return null
 }
@@ -25,15 +86,14 @@ export function estado(resultados: ResultadoAntibiograma[], sinonimos: string[])
 /** CMI (mg/L) del primer antibiótico que coincida con algún sinónimo y traiga CMI numérica. */
 export function cmiDe(resultados: ResultadoAntibiograma[], sinonimos: string[]): number | null {
   for (const r of resultados) {
-    const a = norm(r.antibiotico)
-    if (sinonimos.some(s => a.includes(norm(s))) && typeof r.cmi === 'number') return r.cmi
+    if (casaAlguno(r.antibiotico, sinonimos) && typeof r.cmi === 'number') return r.cmi
   }
   return null
 }
 
 /** ¿Está el antibiótico presente en el panel (independiente de su S/I/R)? */
 export function presente(resultados: ResultadoAntibiograma[], sinonimos: string[]): boolean {
-  return resultados.some(r => sinonimos.some(s => norm(r.antibiotico).includes(norm(s))))
+  return resultados.some(r => casaAlguno(r.antibiotico, sinonimos))
 }
 
 export const ES_R = (v: SIR | null) => v === 'R'

@@ -5,7 +5,7 @@
  */
 import {
   type EntradaAntibiograma, type InterpretacionAntibiograma, type AporteModulo,
-  type FenotipoDetectado, type ResultadoAntibiograma, aporteVacio,
+  type FenotipoDetectado, type ResultadoAntibiograma, type Confianza, aporteVacio,
 } from './tipos'
 import { REF } from './referencias'
 import {
@@ -186,15 +186,35 @@ function contarClasesResistentes(r: ResultadoAntibiograma[]): number {
   return n
 }
 
+const RANGO_CONFIANZA: Record<Confianza, number> = { confirmado: 3, probable: 2, sospecha: 1 }
+
+/**
+ * Ante dos fenotipos con la misma clave, gana el de MAYOR CONFIANZA — no el que
+ * llegó primero.
+ *
+ * Se conservaba la primera ocurrencia, y como la inferencia por patrón S/I/R se
+ * fusiona ANTES que las pruebas confirmatorias, **la inferencia siempre le ganaba
+ * al dato del laboratorio**. Eso contradice literalmente el encabezado de
+ * `confirmatorias.ts`, que dice que confirmar es mejor que inferir.
+ *
+ * El caso real: Klebsiella con carbapenémicos R, CAZ-AVI R y PCR positiva para
+ * KPC. El motor mostraba "carbapenemasa de clase no determinada [probable]" —el
+ * inferido, que apunta a metalo-β-lactamasa— en vez de la KPC confirmada, y la
+ * terapia mezclaba las recomendaciones de ambos mecanismos: prescribía y prohibía
+ * ceftazidima-avibactam en la misma lista.
+ *
+ * Ordenar por confianza es más robusto que reordenar las fusiones: no depende de
+ * en qué línea del motor se añada un módulo nuevo.
+ */
 function dedupFenotipos(fs: FenotipoDetectado[]): FenotipoDetectado[] {
-  const seen = new Set<string>()
-  const out: FenotipoDetectado[] = []
+  const mejor = new Map<string, FenotipoDetectado>()
+  const orden: string[] = []
   for (const f of fs) {
-    if (seen.has(f.clave)) continue
-    seen.add(f.clave)
-    out.push(f)
+    const previo = mejor.get(f.clave)
+    if (!previo) { mejor.set(f.clave, f); orden.push(f.clave); continue }
+    if (RANGO_CONFIANZA[f.confianza] > RANGO_CONFIANZA[previo.confianza]) mejor.set(f.clave, f)
   }
-  return out
+  return orden.map(c => mejor.get(c)!).filter(Boolean)
 }
 
 function reconocer(organismo: string): string {

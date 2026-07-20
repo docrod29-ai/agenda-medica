@@ -530,7 +530,7 @@ export default function GeneradorOrdenPage() {
           <button onClick={() => router.push('/configuracion?tab=recetas')} className="btn btn-secondary">
             <Settings size={14} /> Template
           </button>
-          <button onClick={() => { if (configError || descargando) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId }).catch(() => {}); const h = dimensionesImpresion(recetaConfig); imprimirElemento(document.getElementById('receta-doc'), 'Orden', { anchoMm: h.widthMm, altoMm: h.heightMm }) }} className="btn btn-secondary">
+          <button onClick={() => { if (configError || descargando) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length } }).catch(() => {}); const h = dimensionesImpresion(recetaConfig); imprimirElemento(document.getElementById('receta-doc'), 'Orden', { anchoMm: h.widthMm, altoMm: h.heightMm }) }} className="btn btn-secondary">
             <Printer size={14} /> Imprimir
           </button>
           <button onClick={() => { if (configError || descargando) return; descargarWord() }} className="btn btn-secondary" title="Documento editable para tu membrete">
