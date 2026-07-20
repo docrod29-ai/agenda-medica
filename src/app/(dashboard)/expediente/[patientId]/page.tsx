@@ -20,6 +20,7 @@ import {
 import { Button, EmptyState, Spinner, Badge } from '@/components/ui'
 import { FotosClinicas } from '@/components/FotosClinicas'
 import { PanelLaboratorios } from '@/components/laboratorio/PanelLaboratorios'
+import { ResumenPaciente } from '@/components/expediente/ResumenPaciente'
 import { Herramientas } from '@/components/Herramientas'
 import { ExpedienteVacio } from '@/components/brand/EmptyArt'
 import { avatarColor } from '@/lib/avatar-color'
@@ -170,7 +171,12 @@ export default function ExpedientePage() {
         </div>
       </div>
 
-      {/* Datos del paciente — vista unificada (antes estaba en "Pacientes") */}
+      {/* Resumen del paciente: alergias, últimos signos, diagnósticos activos y
+          actividad — todo de un vistazo (lo que la competencia enseña como fuerte,
+          pero aquí la info ya existía, solo estaba dispersa). */}
+      <ResumenPaciente patient={patient} notas={notas} />
+
+      {/* Datos del paciente (contacto) — plegado, para editar cuando haga falta. */}
       <DatosPaciente patient={patient} onEditar={() => router.push('/pacientes')} />
 
       {/* Fotografía clínica seriada: la SERIE completa con el antes/después vive
