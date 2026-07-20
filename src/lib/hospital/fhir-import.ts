@@ -139,13 +139,18 @@ export function parsearLabsFhir(json: string): ResultadoLab[] {
   else if ((d as FhirObs)?.resourceType === 'Observation') obs.push(d as FhirObs)
 
   // crítico = flag del LIS (HH/LL/AA/panic) O rango numérico crítico (respaldo determinista)
-  const critOf = (o: FhirObs, est: string, val: string) => esCriticoFlag(o) || esCriticoLab(est, val)
+  /**
+   * La unidad SÍ llega del LIS (`valueQuantity.unit`) y sí se guardaba, pero no
+   * se le pasaba al motor: los umbrales se comparaban a ciegas contra un valor
+   * que podía venir en mmol/L o µmol/L. Ver `evaluarCriticoLab`.
+   */
+  const critOf = (o: FhirObs, est: string, val: string, unidad?: string) => esCriticoFlag(o) || esCriticoLab(est, val, unidad)
   const out: ResultadoLab[] = []
   for (const o of obs) {
-    if (o.valueQuantity) { const est = nombre(o), val = String(o.valueQuantity.value ?? ''); out.push({ estudio: est, valor: val, unidad: o.valueQuantity.unit, referencia: rango(o), critico: critOf(o, est, val) }) }
+    if (o.valueQuantity) { const est = nombre(o), val = String(o.valueQuantity.value ?? ''); out.push({ estudio: est, valor: val, unidad: o.valueQuantity.unit, referencia: rango(o), critico: critOf(o, est, val, o.valueQuantity.unit) }) }
     else if (o.valueString) out.push({ estudio: nombre(o), valor: o.valueString, referencia: rango(o), critico: esCriticoFlag(o) })
     for (const c of o.component ?? []) {
-      if (c.valueQuantity) { const est = nombre(c, nombre(o)), val = String(c.valueQuantity.value ?? ''); out.push({ estudio: est, valor: val, unidad: c.valueQuantity.unit, referencia: rango(c), critico: critOf(c, est, val) }) }
+      if (c.valueQuantity) { const est = nombre(c, nombre(o)), val = String(c.valueQuantity.value ?? ''); out.push({ estudio: est, valor: val, unidad: c.valueQuantity.unit, referencia: rango(c), critico: critOf(c, est, val, c.valueQuantity.unit) }) }
     }
   }
   return out

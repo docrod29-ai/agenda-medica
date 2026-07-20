@@ -8,7 +8,7 @@
 
 import { adminDb } from '@/lib/firebase-admin'
 import type { ClinicWhatsApp } from '@/types'
-import { estaDadoDeBaja, conPieOptout } from '@/lib/whatsapp/consent'
+import { estaDadoDeBaja, conPieOptout, normalizarTelefonoWa } from '@/lib/whatsapp/consent'
 
 interface SendResult {
   ok: boolean
@@ -26,11 +26,15 @@ interface SendOpts {
   proactivo?: boolean
 }
 
-/** Normalise a Mexican phone number to E.164 without '+' (WhatsApp format) */
+/**
+ * Normaliza un teléfono mexicano a la forma canónica de WhatsApp.
+ *
+ * Reexporta la MISMA función que usan el opt-out y la ventana de 24 h: distintas y una dejaba el "1" de móvil que la otra quitaba, de
+ * modo que el mensaje se enviaba con una clave y la baja se había guardado con
+ * otra. Una sola definición cierra ese desajuste de raíz.
+ */
 function normalisePhone(raw: string): string {
-  const digits = raw.replace(/\D/g, '')
-  // If already has country code (52XXXXXXXXXX) keep it; otherwise prepend 52
-  return digits.startsWith('52') && digits.length >= 12 ? digits : `52${digits}`
+  return normalizarTelefonoWa(raw)
 }
 
 // ── 360dialog ────────────────────────────────────────────────────────────────

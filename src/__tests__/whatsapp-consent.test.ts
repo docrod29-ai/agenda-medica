@@ -45,8 +45,11 @@ describe('Pie de opt-out y normalización', () => {
   })
 
   it('normalizarTelefonoWa produce una clave estable con lada 52', () => {
-    expect(normalizarTelefonoWa('5215512345678')).toBe('5215512345678')
-    expect(normalizarTelefonoWa('+52 155 1234 5678')).toBe('5215512345678')
+    // El "1" de móvil que antepone WhatsApp se elimina, para que el número como
+    // lo manda WhatsApp y como lo captura recepción converjan en la MISMA clave
+    // (si no, la baja se guardaba con una y el envío buscaba con la otra).
+    expect(normalizarTelefonoWa('5215512345678')).toBe('525512345678')
+    expect(normalizarTelefonoWa('+52 155 1234 5678')).toBe('525512345678')
     expect(normalizarTelefonoWa('5512345678')).toBe('525512345678')
   })
 })

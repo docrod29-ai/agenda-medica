@@ -17,10 +17,26 @@ import { adminDb } from '@/lib/firebase-admin'
 
 // ── Puro: normalización de teléfono (misma clave en registro y verificación) ──
 
-/** Normaliza a solo dígitos con lada 52 (MX). Clave estable del registro. */
+/**
+ * Forma CANÓNICA de un teléfono mexicano para WhatsApp: `52` + 10 dígitos.
+ *
+ * EL DEFECTO QUE CIERRA: WhatsApp entrega el remitente de un móvil como
+ * `52 1 XXXXXXXXXX` (13 dígitos, con el "1" de móvil), pero recepción captura el
+ * teléfono como 10 dígitos y esto lo dejaba en `52XXXXXXXXXX` (12). Eran DOS
+ * claves distintas para el mismo número. Consecuencia: el paciente escribía
+ * "BAJA", se guardaba bajo `521…`, y el recordatorio —que buscaba bajo `52…`— no
+ * encontraba la baja y se enviaba igual. El mismo desajuste rompía la ventana de
+ * 24 h (`whatsapp_contacts`), que nunca encontraba al contacto.
+ *
+ * Se quita ese "1" para que el registro y la consulta usen SIEMPRE la misma
+ * clave, sin importar por cuál de los dos caminos llegó el número.
+ */
 export function normalizarTelefonoWa(raw: string): string {
-  const d = (raw || '').replace(/\D/g, '')
-  return d.startsWith('52') && d.length >= 12 ? d : `52${d}`
+  let d = (raw || '').replace(/\D/g, '')
+  if (!d.startsWith('52')) d = `52${d}`
+  // 52 + 1 + 10 dígitos (móvil como lo manda WhatsApp) → 52 + 10 dígitos.
+  if (d.length === 13 && d[2] === '1') d = `52${d.slice(3)}`
+  return d
 }
 
 // ── Puro: detección de intención de baja / alta ──────────────────────────────

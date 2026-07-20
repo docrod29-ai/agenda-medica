@@ -941,7 +941,7 @@ export default function EpisodioPage() {
         footer={<><Button variant="secondary" onClick={() => setCargandoRes(null)}>Cancelar</Button><Button loading={busy} onClick={async () => {
           if (!clinicId || !cargandoRes || !inter) return; setBusy(true)
           // Respaldo determinista: marca crítico por rango aunque no se haya marcado a mano.
-          const resultados = resForm.filter(r => r.valor.trim()).map(r => ({ ...r, critico: r.critico || esCriticoLab(r.estudio, r.valor) }))
+          const resultados = resForm.filter(r => r.valor.trim()).map(r => ({ ...r, critico: r.critico || esCriticoLab(r.estudio, r.valor, r.unidad) }))
           try {
             await cargarResultadosLab(clinicId, cargandoRes.id, resultados, ROL_HOSPITAL_LABEL[rol])
             const criticos = resultados.filter(r => r.critico)
