@@ -168,10 +168,32 @@ export function hasConflict(
   excludeId?: string,
   bloques: TimeBlock[] = [],
   medicoId?: string,
+  /** Config del consultorio. Sin ella NO se puede validar día ni horario. */
+  config?: ClinicConfig,
 ): boolean {
   const [h, m] = hora.split(':').map(Number)
   const startMin = h * 60 + m
   const endMin = startMin + duracionMin
+
+  /**
+   * DÍA Y HORARIO, no solo solapes.
+   *
+   * Esto solo miraba si la cita chocaba con otra. Nadie validaba que el día
+   * estuviera activo, que no fuera festivo, ni que la cita cupiera dentro del
+   * horario — ni aquí, ni en POST /api/appointments. El único que sí lo hacía era
+   * el booking público.
+   *
+   * Por ahí se colaban dos cosas del uso diario: agendar en domingo o en festivo
+   * (cuando no hay huecos, el desplegable de horas se sustituye por un campo
+   * libre, sin ninguna advertencia), y subir la duración después de elegir la
+   * hora, que dejaba la cita terminando después del cierre.
+   */
+  if (config) {
+    const schedule = getDaySchedule(fecha, config)
+    if (!schedule) return true                      // día inactivo o festivo
+    const vh = validarHorarioDia(schedule.inicio, schedule.fin)
+    if (!vh.valido || startMin < vh.startMin || endMin > vh.endMin) return true
+  }
 
   // Bloqueo (vacaciones/ausencia) del médico o de toda la clínica.
   if (bloques.length > 0 && estaBloqueado(`${fecha} ${hora}`, bloques, medicoId)) return true
@@ -190,16 +212,26 @@ export function hasConflict(
   })
 }
 
+/**
+ * Los 7 días de la semana de `date`, ANCLADOS A MEDIODÍA.
+ *
+ * Se construían a medianoche local del navegador y luego se formateaban con la
+ * zona del consultorio (America/Mexico_City). En un navegador al ESTE de CDMX esa
+ * medianoche cae en el día anterior visto desde México: en Cancún (UTC-5, todo el
+ * año, y mercado real de turismo médico) `new Date(2026,6,15)` formateado en CDMX
+ * da 2026-07-14. Toda la cuadrícula del calendario se corría un día, y el médico
+ * veía la agenda de la fecha equivocada.
+ *
+ * A mediodía sobran 12 horas de margen: ninguna diferencia horaria realista
+ * cambia el día.
+ */
 export function getWeekDates(date: Date): Date[] {
   const day = date.getDay()
   const diff = day === 0 ? -6 : 1 - day
-  const monday = new Date(date)
-  monday.setDate(date.getDate() + diff)
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(monday)
-    d.setDate(monday.getDate() + i)
-    return d
-  })
+  const monday = new Date(date.getFullYear(), date.getMonth(), date.getDate() + diff, 12)
+  return Array.from({ length: 7 }, (_, i) =>
+    new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i, 12),
+  )
 }
 
 export function formatDateMX(date: Date | string, opts?: Intl.DateTimeFormatOptions): string {

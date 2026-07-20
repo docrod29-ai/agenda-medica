@@ -7,7 +7,6 @@ import { useDoctors } from '@/hooks/useDoctors'
 import { useFiltroMedico } from '@/components/DoctorFilter'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/context/ToastContext'
-import { updateAppointment } from '@/lib/firestore'
 import { getAvailableSlots, hasConflict } from '@/lib/availability'
 import { listarBloques, type TimeBlock } from '@/lib/time-blocks'
 import { hoyISO } from '@/lib/timezone'
@@ -43,7 +42,6 @@ const STATUSES_EDIT: AppointmentStatus[] = [
 
 export function AppointmentModal({ open, onClose, appointment, defaultDate, defaultHour, onSaved }: Props) {
   const { config } = useConfig()
-  const { appointments } = useAppointments()
   const { activeDoctors } = useDoctors()
   const [filtroMedico] = useFiltroMedico()
   const { user } = useAuth()
@@ -58,6 +56,16 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
   const [telefono, setTelefono]   = useState('')
   const [fecha, setFecha]         = useState(defaultDate ?? today)
   const [hora, setHora]           = useState(defaultHour ?? '')
+
+  /**
+   * La ventana la manda el padre. Cada llamada al hook tiene estado propio, así
+   * que un `useAppointments()` sin argumento NO heredaba la ventana ampliada de la
+   * pantalla que abre el modal: al editar una cita de hace más de 120 días, para
+   * el modal ese día estaba VACÍO — ofrecía como libres todos los horarios,
+   * incluido el de la cita de al lado, y el chequeo de conflicto decía que no
+   * había ninguno. Se podía mover una cita encima de otra sin advertencia.
+   */
+  const { appointments } = useAppointments(fecha ? `${fecha} 00:00` : undefined)
   const [tipo, setTipo]           = useState<AppointmentType>('primera-vez')
   const [duracion, setDuracion]   = useState(60)
   const [motivo, setMotivo]       = useState('')
@@ -129,7 +137,14 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
   // Conflict check (médico-aware + bloqueos, igual que los slots)
   useEffect(() => {
     if (!fecha || !hora) { setConflict(false); return }
-    setConflict(hasConflict(fecha, hora, duracion, appointments, appointment?.id, bloques, medicoId || undefined))
+    setConflict(hasConflict(fecha, hora, duracion, appointments, appointment?.id, bloques, medicoId || undefined, config))
+    /**
+     * Si se sube la duración DESPUÉS de elegir la hora, esa hora puede dejar de
+     * caber. El desplegable se quedaba visualmente en blanco pero el estado seguía
+     * con la hora vieja, así que se guardaba una cita que terminaba después del
+     * cierre. Se limpia para obligar a elegir de nuevo entre las que sí caben.
+     */
+    if (hora && slots.length > 0 && !slots.includes(hora)) setHora('')
   }, [fecha, hora, duracion, appointments, appointment?.id, medicoId, bloques])
 
   const handleSave = async () => {
@@ -166,7 +181,20 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
 
       let id: string
       if (isEdit && appointment) {
-        await updateAppointment(clinicId!, appointment.id, payload)
+        // Vía transaccional también al editar: el servidor re-chequea el conflicto
+        // excluyendo esta misma cita y toca el centinela del día, así que compite
+        // de verdad con las altas simultáneas.
+        const res = await fetchAutenticado('/api/appointments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clinicId, appointment: payload, reagendarId: appointment.id }),
+        })
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}))
+          toast(j?.error || 'No se pudo actualizar la cita', 'error')
+          setSaving(false)
+          return
+        }
         id = appointment.id
         toast('Cita actualizada', 'success')
         // Sync with Google Calendar in background

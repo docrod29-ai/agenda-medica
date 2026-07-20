@@ -26,7 +26,8 @@ export default function CalendarioPage() {
   const desdeVentana = useMemo(() => {
     const d = new Date(baseDate)
     d.setMonth(d.getMonth() - 1)
-    return `${d.toISOString().slice(0, 10)} 00:00`
+    // fechaISOLocal, no toISOString: este último convierte a UTC y corre el día.
+    return `${fechaISOLocal(d)} 00:00`
   }, [baseDate])
   const { appointments: allAppointments, loading } = useAppointments(desdeVentana)
   const { config } = useConfig()
@@ -330,7 +331,7 @@ function MonthView({ date, appointments, onDayClick, onApptClick, loading }: {
     if (dayNum < 1 || dayNum > lastDay.getDate()) {
       days.push(null)
     } else {
-      days.push(new Date(year, month, dayNum))
+      days.push(new Date(year, month, dayNum, 12))   // mediodía: ver getWeekDates
     }
   }
 

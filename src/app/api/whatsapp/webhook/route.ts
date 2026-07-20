@@ -504,7 +504,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
       let nuevoFolio = ''
       // Centinela por médico+día (igual que agenda interna y portal): serializa
       // reservas simultáneas del mismo día para cerrar la carrera de inserción fantasma.
-      const diaRef = adminDb.collection('clinics').doc(clinicId).collection('slot_locks').doc(`${doctorId || 'sin'}_${datos.fecha}`)
+      const diaRef = adminDb.collection('clinics').doc(clinicId).collection('slot_locks').doc(datos.fecha)  // un centinela por DÍA
       try {
         await adminDb.runTransaction(async (tx) => {
           await tx.get(diaRef)  // read: fija la versión del día
@@ -611,31 +611,78 @@ export async function handleMessage(from: string, body: string, clinicId: string
       const { slotFecha, slotHora, waitlistId } = datos
       await send(from, `Perfecto, le estamos agendando en el horario disponible...\n\n📅 ${formatDate(slotFecha)} a las ${slotHora} hrs`)
 
-      // Create appointment
+      /**
+       * ATÓMICO, como la otra rama del bot.
+       *
+       * Esto era un `.add()` pelón: sin re-chequeo de conflicto, sin transacción y
+       * sin tocar el centinela del día. Y el hueco libre se ofrece a TRES pacientes
+       * de la lista de espera a la vez, así que los tres podían contestar "SÍ" y a
+       * los tres se les confirmaba `✅ ¡Cita agendada!` para el mismo horario.
+       *
+       * Además escribía `doctorId` pero NO `medicoId`, y de eso dependen dos cosas:
+       * la cita DESAPARECE en cuanto se filtra por médico en la agenda, y al no
+       * tener médico cuenta como ocupada para TODOS — tapaba el hueco a los demás.
+       * Una cita que existe, que nadie ve, y que estorba.
+       */
       const duracion = 30
       const now = new Date().toISOString()
-      await adminDb.collection('clinics').doc(clinicId).collection('appointments').add({
-        pacienteId: datos.pacienteId || '',
-        pacienteNombre: datos.nombre,
-        pacienteTelefono: from,
-        fechaHora: `${slotFecha} ${slotHora}`,
-        duracion,
-        tipo: (datos.tipo || 'seguimiento') as AppointmentType,
-        estado: 'solicitada',
-        origen: 'WhatsApp',
-        medicoNombre: doctor?.nombre || config?.nombreMedico || 'Dr.',
-        doctorId: doctor?.id || '',
-        confirmadoPaciente: true,
-        fechaConfirmacion: now,
-        recordatorio24hEnviado: false,
-        recordatorioMismoDiaEnviado: false,
-        consentimientoMensajes: true,
-        notasInternas: 'Agendada desde lista de espera vía bot',
-        createdAt: now,
-        updatedAt: now,
-        creadoPor: 'bot',
-        updatedPor: 'bot',
-      })
+      const medicoIdBot = doctor?.id || ''
+      const apptsColLE = adminDb.collection('clinics').doc(clinicId).collection('appointments')
+      const [sh, sm] = slotHora.split(':').map(Number)
+      const sStart = sh * 60 + sm, sEnd = sStart + duracion
+      const diaRefLE = adminDb.collection('clinics').doc(clinicId).collection('slot_locks').doc(slotFecha)
+      let ocupadoLE = false
+      try {
+        await adminDb.runTransaction(async (tx) => {
+          await tx.get(diaRefLE)
+          const snap = await tx.get(apptsColLE.where('fechaHora', '>=', `${slotFecha} 00:00`).where('fechaHora', '<=', `${slotFecha} 23:59`))
+          let conflicto = false
+          snap.forEach(d => {
+            const a = d.data()
+            if (['cancelada', 'reagendada', 'no-asistio'].includes(a.estado)) return
+            if (medicoIdBot && a.medicoId && a.medicoId !== medicoIdBot) return
+            const [ah, am] = (a.fechaHora?.slice(11, 16) || '00:00').split(':').map(Number)
+            const aS = ah * 60 + am, aE = aS + (a.duracion ?? 30)
+            if (sStart < aE && sEnd > aS) conflicto = true
+          })
+          if (conflicto) throw new Error('CONFLICTO')
+          tx.set(diaRefLE, { ultimaReserva: now }, { merge: true })
+          tx.set(apptsColLE.doc(), {
+            pacienteId: datos.pacienteId || '',
+            pacienteNombre: datos.nombre,
+            pacienteTelefono: from,
+            fechaHora: `${slotFecha} ${slotHora}`,
+            duracion,
+            tipo: (datos.tipo || 'seguimiento') as AppointmentType,
+            estado: 'solicitada',
+            origen: 'WhatsApp',
+            medicoNombre: doctor?.nombre || config?.nombreMedico || 'Dr.',
+            medicoId: medicoIdBot,     // ← faltaba: sin esto la cita es invisible
+            doctorId: medicoIdBot,
+            confirmadoPaciente: true,
+            fechaConfirmacion: now,
+            recordatorio24hEnviado: false,
+            recordatorioMismoDiaEnviado: false,
+            consentimientoMensajes: true,
+            notasInternas: 'Agendada desde lista de espera vía bot',
+            createdAt: now,
+            updatedAt: now,
+            creadoPor: 'bot',
+            updatedPor: 'bot',
+          })
+        })
+      } catch (e) {
+        if (e instanceof Error && e.message === 'CONFLICTO') ocupadoLE = true
+        else throw e
+      }
+
+      if (ocupadoLE) {
+        // Otro paciente de la lista contestó primero. Se le dice la verdad en vez
+        // de confirmarle una cita que no existe.
+        await send(from, `Lo sentimos, ese horario acaba de ocuparse — otra persona de la lista respondió primero. Le mantenemos en la lista de espera para el siguiente hueco. 🙏`)
+        await saveSession(clinicId, from, { estado: 'menu' })
+        return
+      }
 
       // Marcar la entrada de lista de espera como convertida. Ruta CORRECTA
       // (clinics/{id}/waitlist, no top-level) y en try/catch: un fallo del marcado

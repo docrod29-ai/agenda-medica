@@ -14,13 +14,13 @@ import type { Appointment } from '@/types'
  * cada path conserva su comportamiento actual, solo que ahora es atómico.
  */
 export async function POST(req: NextRequest) {
-  let body: { clinicId?: string; appointment?: Omit<Appointment, 'id'> }
+  let body: { clinicId?: string; appointment?: Omit<Appointment, 'id'>; reagendarId?: string }
   try {
     body = await req.json()
   } catch {
     return NextResponse.json({ error: 'Petición inválida' }, { status: 400 })
   }
-  const { clinicId, appointment } = body
+  const { clinicId, appointment, reagendarId } = body
   if (!clinicId || !appointment?.fechaHora) {
     return NextResponse.json({ error: 'Faltan datos de la cita' }, { status: 400 })
   }
@@ -39,6 +39,28 @@ export async function POST(req: NextRequest) {
   const start = h * 60 + m
   const end = start + duracion
 
+  /**
+   * DÍA Y HORARIO: se valida en el SERVIDOR, como ya hacía el booking público.
+   *
+   * Aquí no se validaba nada de esto, así que desde el panel se podía agendar en
+   * domingo, en festivo o fuera del horario — el modal sustituye el desplegable de
+   * horas por un campo libre justo cuando no hay huecos, que es exactamente el
+   * caso de un día no laborable.
+   */
+  const cfgSnap = await adminDb.collection('clinics').doc(clinicId).collection('config').doc('main').get()
+  const cfg = cfgSnap.data()
+  if (cfg) {
+    const { getDaySchedule, validarHorarioDia } = await import('@/lib/availability')
+    const schedule = getDaySchedule(fecha, cfg as unknown as import('@/types').ClinicConfig)
+    if (!schedule) {
+      return NextResponse.json({ error: 'Ese día el consultorio no da servicio' }, { status: 409 })
+    }
+    const vh = validarHorarioDia(schedule.inicio, schedule.fin)
+    if (!vh.valido || start < vh.startMin || end > vh.endMin) {
+      return NextResponse.json({ error: `Fuera del horario de ese día (${schedule.inicio}–${schedule.fin})` }, { status: 409 })
+    }
+  }
+
   const CONFLICTO = Symbol('conflicto')
   let id = ''
   try {
@@ -46,7 +68,21 @@ export async function POST(req: NextRequest) {
     // Firestore a serializar dos reservas simultáneas del mismo día (una query
     // dentro de la tx NO bloquea inserciones fantasma por sí sola). El perdedor
     // reintenta, re-consulta y ya ve la cita del ganador → detecta el conflicto.
-    const diaRef = adminDb.collection('clinics').doc(clinicId).collection('slot_locks').doc(`${medicoId || 'sin'}_${fecha}`)
+    /**
+     * UN CENTINELA POR DÍA, no por médico+día.
+     *
+     * La llave era `{medicoId || 'sin'}_{fecha}`, pero la lógica de conflicto dice
+     * que una cita SIN medicoId choca contra las de TODOS los médicos. Es decir:
+     * la reserva "sin médico" quería serializarse contra todos y sin embargo
+     * tomaba un documento centinela distinto al de cada uno — dos transacciones
+     * que debían competir no se veían entre sí.
+     *
+     * Con un centinela por día se serializa de más (dos reservas del mismo día
+     * para médicos distintos se ponen en fila), pero es CORRECTO. Dos reservas
+     * simultáneas del mismo día son raras; un empalme deja a un paciente sin
+     * atención.
+     */
+    const diaRef = adminDb.collection('clinics').doc(clinicId).collection('slot_locks').doc(fecha)
     await adminDb.runTransaction(async (tx) => {
       await tx.get(diaRef)  // read: fija la versión del día para la serialización
       const snap = await tx.get(
@@ -56,6 +92,7 @@ export async function POST(req: NextRequest) {
       snap.forEach(d => {
         const a = d.data()
         if (['cancelada', 'reagendada', 'no-asistio'].includes(a.estado)) return
+        if (d.id === reagendarId) return   // la propia cita que se está moviendo
         if (medicoId && a.medicoId && a.medicoId !== medicoId) return
         const [ah, am] = (a.fechaHora?.slice(11, 16) || '00:00').split(':').map(Number)
         const aStart = ah * 60 + am
@@ -65,9 +102,20 @@ export async function POST(req: NextRequest) {
       if (conflicto) throw CONFLICTO
 
       tx.set(diaRef, { ultimaReserva: now }, { merge: true })  // write: invalida la tx concurrente
-      const ref = apptsCol.doc()
-      tx.set(ref, { ...appointment, createdAt: now, updatedAt: now })
-      id = ref.id
+      if (reagendarId) {
+        // REAGENDAR por la misma vía transaccional. Antes la edición iba por
+        // `updateAppointment` directo desde el navegador: sin transacción, sin
+        // re-chequeo en servidor y sin tocar el centinela, así que mover una cita
+        // encima de otra no competía siquiera con las altas nuevas. Dos personas
+        // podían dejar dos pacientes en el mismo horario sin ningún aviso.
+        const ref = apptsCol.doc(reagendarId)
+        tx.set(ref, { ...appointment, updatedAt: now }, { merge: true })
+        id = reagendarId
+      } else {
+        const ref = apptsCol.doc()
+        tx.set(ref, { ...appointment, createdAt: now, updatedAt: now })
+        id = ref.id
+      }
     })
   } catch (e) {
     if (e === CONFLICTO) {

@@ -50,6 +50,16 @@ export function useAppointments(desdeISO?: string) {
 
   useEffect(() => {
     if (!clinicId) { setLoading(false); return }
+    /**
+     * Al AMPLIAR la ventana hay que volver a "cargando".
+     *
+     * Sin esto, al saltar a una fecha vieja se creaba la suscripción nueva pero
+     * `loading` seguía en false y `appointments` conservaba el array anterior: la
+     * pantalla pintaba "No hay citas para este filtro" y "0 citas" hasta que
+     * respondiera Firestore. Para este consultorio en particular, esa pantalla es
+     * indistinguible de una pérdida de datos.
+     */
+    setLoading(true)
 
     const q = query(collection(db, 'clinics', clinicId, 'appointments'), where('fechaHora', '>=', desde))
     const unsub = onSnapshot(q,

@@ -127,7 +127,7 @@ export async function POST(req: NextRequest) {
     // Centinela por médico+día (mismo mecanismo que la agenda interna): la tx lo
     // lee y escribe → serializa reservas simultáneas del mismo día y cierra la
     // carrera de inserción fantasma que una query dentro de la tx no bloquea.
-    const diaRef = clinicRef.collection('slot_locks').doc(`${medicoId || 'sin'}_${fecha}`)
+    const diaRef = clinicRef.collection('slot_locks').doc(fecha)  // un centinela por DÍA: ver /api/appointments
     try {
       await adminDb.runTransaction(async (tx) => {
         await tx.get(diaRef)  // read: fija la versión del día

@@ -1,5 +1,6 @@
 'use client'
 import { useState, useMemo, useEffect, useRef} from 'react'
+import { actualizarContadoresPaciente } from '@/lib/agenda/contadores-paciente'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useAppointments } from '@/hooks/useAppointments'
 import { useConfig } from '@/hooks/useConfig'
@@ -122,6 +123,9 @@ export default function CitasPage() {
   const handleStatusChange = async (appt: Appointment, newStatus: AppointmentStatus) => {
     try {
       await updateAppointment(clinicId!, appt.id, { estado: newStatus })
+      // Contadores del paciente: sin esto, marcar "no asistió" no dejaba rastro y
+      // el motor de riesgo de no-show operaba con su señal principal en cero.
+      actualizarContadoresPaciente(clinicId!, appt.pacienteId, appt.estado, newStatus, appt.fechaHora)
       toast(`Estado actualizado: ${newStatus}`, 'success')
       setMenuId(null)
       // Si se liberó el slot (cancelar/no-asistió), avisar a la lista de espera.
