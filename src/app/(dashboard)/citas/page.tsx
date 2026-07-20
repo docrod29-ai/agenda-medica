@@ -69,7 +69,15 @@ export default function CitasPage() {
     getPatients(clinicId).then(setPacientes).catch(() => { /* ignore */ })
   }, [clinicId])
 
-  const [statusFilter, setStatusFilter] = useState<AppointmentStatus | 'todas'>('todas')
+  /**
+   * "por-cobrar" no es un estado de la cita: es una VISTA. El cobro no lo hace el
+   * médico —lo registra la asistente cuando el paciente sale y paga— y hasta ahora
+   * no tenía forma de saber a quién le tocaba. Veía la lista completa del día con
+   * botón "Cobrar" en todas, incluidas las que ni siquiera habían pasado, y tenía
+   * que acordarse de quién ya salió. Esta vista responde su única pregunta:
+   * atendidos y todavía sin cobrar.
+   */
+  const [statusFilter, setStatusFilter] = useState<AppointmentStatus | 'todas' | 'por-cobrar'>('todas')
   const [search, setSearch] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editAppt, setEditAppt] = useState<Appointment | null>(null)
@@ -111,7 +119,9 @@ export default function CitasPage() {
   const filtered = useMemo(() => {
     return appointments.filter(a => {
       if (a.fechaHora.slice(0, 10) !== selectedDate) return false
-      if (statusFilter !== 'todas' && a.estado !== statusFilter) return false
+      if (statusFilter === 'por-cobrar') {
+        if (!['atendida', 'finalizada'].includes(a.estado) || a.cobroId) return false
+      } else if (statusFilter !== 'todas' && a.estado !== statusFilter) return false
       if (search && !a.pacienteNombre.toLowerCase().includes(search.toLowerCase())) return false
       // Filtro multi-doctor: si hay médico seleccionado, solo sus citas
       if (medicoFiltro && a.medicoId !== medicoFiltro) return false
@@ -124,7 +134,8 @@ export default function CitasPage() {
     const day = appointments.filter(a => a.fechaHora.slice(0, 10) === selectedDate && (!medicoFiltro || a.medicoId === medicoFiltro))
     const conf = day.filter(a => ['confirmada', 'en-sala', 'en-consulta', 'atendida', 'finalizada'].includes(a.estado)).length
     const pend = day.filter(a => ['solicitada', 'pendiente-confirmar', 'pendiente-datos', 'recordatorio-enviado'].includes(a.estado)).length
-    return { total: day.length, conf, pend }
+    const porCobrar = day.filter(a => ['atendida', 'finalizada'].includes(a.estado) && !a.cobroId).length
+    return { total: day.length, conf, pend, porCobrar }
   }, [appointments, selectedDate, medicoFiltro])
 
   const dateLabel = useMemo(() => {
@@ -306,6 +317,29 @@ export default function CitasPage() {
           />
         </div>
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+          {/*
+            Va PRIMERO y con su propio contador porque es la única pregunta que la
+            asistente se hace todo el día. Si no hay nadie pendiente de cobro no se
+            muestra: un cero permanente enseña a ignorar el aviso.
+          */}
+          {daySummary.porCobrar > 0 && (
+            <button
+              onClick={() => setStatusFilter(statusFilter === 'por-cobrar' ? 'todas' : 'por-cobrar')}
+              className="btn btn-sm"
+              style={{
+                background: statusFilter === 'por-cobrar' ? 'var(--teal-glow)' : 'var(--s2)',
+                color: statusFilter === 'por-cobrar' ? 'var(--teal)' : 'var(--text2)',
+                border: `1px solid ${statusFilter === 'por-cobrar' ? 'rgba(61,90,254,0.3)' : 'var(--border)'}`,
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}
+            >
+              <DollarSign size={13} className="ds-icon" /> Por cobrar
+              <span style={{
+                background: 'var(--teal)', color: '#fff', borderRadius: 999,
+                padding: '1px 6px', fontSize: 11, fontWeight: 600, fontVariantNumeric: 'tabular-nums',
+              }}>{daySummary.porCobrar}</span>
+            </button>
+          )}
           {STATUS_FILTERS.map(f => (
             <button
               key={f.value}

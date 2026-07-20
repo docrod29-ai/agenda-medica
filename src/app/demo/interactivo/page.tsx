@@ -315,7 +315,7 @@ function Receta({ escenario, onReiniciar, onOtro, onExplorar }: { escenario: Dem
       {/* Siguiente: explorar los otros módulos interactivos */}
       <div style={{ ...card, marginTop: 20, textAlign: 'center' }}>
         <h3 style={{ fontSize: 19, fontWeight: 600, margin: '0 0 8px' }}>Explora los otros módulos</h3>
-        <p style={{ fontSize: 14, color: 'var(--text2)', margin: '0 auto 16px', maxWidth: 460 }}>WhatsApp, portal de secretaria y portal del paciente — también los pruebas tú.</p>
+        <p style={{ fontSize: 14, color: 'var(--text2)', margin: '0 auto 16px', maxWidth: 460 }}>WhatsApp, portal de asistente y portal del paciente — también los pruebas tú.</p>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
           <button onClick={onExplorar} className="btn btn-primary btn-lg" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
             Explorar módulos <ArrowRight size={16} />
@@ -421,7 +421,7 @@ function ModSecretaria() {
   return (
     <div style={{ ...card }}>
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 700, color: '#60a5fa', background: 'rgba(59,130,246,0.12)', padding: '4px 10px', borderRadius: 100, marginBottom: 12 }}>
-        <Headset size={13} /> Vista de secretaria
+        <Headset size={13} /> Vista de asistente
       </div>
       <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 12 }}>Ve la agenda y datos de contacto; <strong>no</strong> ve notas, diagnósticos ni configuración.</div>
       {[['09:00', 'Paciente M. F.', true], ['10:30', 'Paciente J. R.', true], ['Expediente clínico', '', false], ['Configuración', '', false]].map((r, i) => (

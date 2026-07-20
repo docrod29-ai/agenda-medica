@@ -4,7 +4,7 @@ import { Calendar, Mic, FileText, MessageCircle, Headset, Smartphone, ArrowRight
 
 export const metadata: Metadata = {
   title: 'Ver demo · NexusMED',
-  description: 'Recorrido de 2 minutos por NexusMED: agenda, nota por voz, receta, bot de WhatsApp, panel de secretaria y portal del paciente.',
+  description: 'Recorrido de 2 minutos por NexusMED: agenda, nota por voz, receta, bot de WhatsApp, panel de asistente y portal del paciente.',
 }
 
 /**
@@ -46,8 +46,8 @@ const FLUJOS = [
   {
     icon: Headset,
     paso: '05',
-    titulo: 'Tu secretaria ve solo lo que necesita',
-    texto: 'El modo secretaria muestra agenda y datos de contacto, sin acceso a la información clínica sensible ni a la configuración. Permisos por rol reales.',
+    titulo: 'Tu asistente ve solo lo que necesita',
+    texto: 'El modo asistente muestra agenda y datos de contacto, sin acceso a la información clínica sensible ni a la configuración. Permisos por rol reales.',
     mock: 'secretaria',
   },
   {
@@ -122,7 +122,7 @@ function Mock({ tipo }: { tipo: string }) {
     return (
       <div style={base}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 11.5, fontWeight: 700, color: '#60a5fa', background: 'rgba(59,130,246,0.12)', padding: '4px 10px', borderRadius: 100, marginBottom: 12 }}>
-          <Headset size={12} /> Modo secretaria
+          <Headset size={12} /> Modo asistente
         </div>
         {[['María López', '09:00', true], ['Juan Pérez', '10:30', true], ['Expediente clínico', '', false]].map((r, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, background: 'var(--s2)', marginBottom: 7, opacity: r[2] ? 1 : 0.5 }}>

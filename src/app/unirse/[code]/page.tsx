@@ -7,7 +7,7 @@ import { obtenerInvitacion, esValida, aceptarInvitacion, type Invitacion, type R
 import { Stethoscope, Loader2, CheckCircle2, AlertTriangle, UserPlus } from 'lucide-react'
 
 const ROL_LABEL: Record<RolInvitacion, string> = {
-  secretaria: 'asistente / secretaria',
+  secretaria: 'asistente',
   medico: 'médico',
   admin: 'administrador',
   enfermeria: 'enfermería',

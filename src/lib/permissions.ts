@@ -11,7 +11,7 @@ export type Rol = 'admin' | 'medico' | 'secretaria' | 'recepcion' | 'facturacion
 export const ROL_LABEL: Record<Rol, string> = {
   admin:       'Administrador',
   medico:      'Médico',
-  secretaria:  'Asistente / Secretaria',
+  secretaria:  'Asistente',
   recepcion:   'Recepción',
   facturacion: 'Facturación',
   enfermeria:  'Enfermería',

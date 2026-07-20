@@ -16,7 +16,7 @@ const FEATURES = [
   {
     icon: MessageCircle,
     title: 'Bot de WhatsApp',
-    desc: 'Tus pacientes agendan solos por WhatsApp 24/7. Sin llamadas, sin secretaria disponible.',
+    desc: 'Tus pacientes agendan solos por WhatsApp 24/7. Sin llamadas, sin depender de que alguien conteste.',
   },
   {
     icon: Bell,
@@ -30,7 +30,7 @@ const FEATURES = [
   },
   {
     icon: Clock,
-    title: 'Portal de secretaria',
+    title: 'Portal de asistente',
     desc: 'Vista simplificada para tu asistente. Solo ve lo que necesita, sin acceso a configuración.',
   },
   {

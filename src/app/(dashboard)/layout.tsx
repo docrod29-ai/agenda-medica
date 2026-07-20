@@ -37,7 +37,7 @@ function ModeBanner() {
       padding: '5px 12px',
       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
     }}>
-      <Headset size={13} className="ds-icon" /> Modo Secretaria · vista enfocada en agenda y atención al paciente
+      <Headset size={13} className="ds-icon" /> Modo Asistente · vista enfocada en agenda y atención al paciente
     </div>
   )
 }

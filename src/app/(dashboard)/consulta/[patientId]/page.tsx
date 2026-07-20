@@ -15,7 +15,7 @@ import { hoyISO } from '@/lib/timezone'
 import type { Appointment } from '@/types'
 import { useToast } from '@/context/ToastContext'
 import { auth } from '@/lib/firebase'
-import { getPatient, getPatients, updatePatient } from '@/lib/firestore'
+import { getPatient, getPatients, updatePatient, updateAppointment } from '@/lib/firestore'
 import { useGrabacionVoz } from '@/hooks/useGrabacionVoz'
 import { useGrabacionAudio } from '@/hooks/useGrabacionAudio'
 import { useComandoVoz } from '@/hooks/useComandoVoz'
@@ -1517,8 +1517,36 @@ export default function ConsultaActivaPage() {
         medicoUid: auth.currentUser?.uid, medicoEmail: auth.currentUser?.email ?? undefined,
         meta: { tipo, aprobadosIA: aprobados.size, diagnosticos: diagnosticos.length, medicamentos: medicamentos.length },
       })
+      /**
+       * FIRMAR MARCA LA CITA COMO ATENDIDA.
+       *
+       * El cobro NO es trabajo del médico —lo registra la asistente cuando el
+       * paciente sale y paga— pero para eso la asistente necesita saber a QUIÉN
+       * cobrar. Hasta ahora firmar no marcaba nada: la cita se quedaba en el
+       * estado en que estuviera, así que la asistente veía la lista entera del día
+       * con botón "Cobrar" en todas, incluidas las que aún no habían pasado, y
+       * quien terminaba marcando "atendida" a mano era el propio médico, en otra
+       * pantalla y con un menú sin traducir.
+       *
+       * Firmar la nota es la señal inequívoca y ya existente de que el paciente
+       * fue atendido. Marcar aquí le cuesta CERO clics al médico y es lo que
+       * alimenta la cola de cobro de la asistente.
+       *
+       * Se hace después de guardar la nota y aparte del try principal: si esto
+       * fallara, la nota YA está firmada y sellada, y perder el estado de la cita
+       * no puede invalidar eso. Se avisa en vez de callar, porque el efecto
+       * visible es que la asistente no verá al paciente en su cola.
+       */
+      if (citaDeHoy && !['atendida', 'finalizada', 'pagada'].includes(citaDeHoy.estado)) {
+        try {
+          await updateAppointment(clinicId, citaDeHoy.id, { estado: 'atendida' })
+        } catch {
+          toast('La nota quedó firmada, pero la cita no se marcó como atendida: no le aparecerá a tu asistente para cobrar.', 'error')
+        }
+      }
+
       // Cobro OPCIONAL. Por defecto el MÉDICO NO cobra al firmar: el cobro lo
-      // registra la secretaria desde Citas cuando el paciente se va (y cae en las
+      // registra la ASISTENTE desde Citas cuando el paciente se va (y cae en las
       // Finanzas del médico). Solo si la clínica lo enciende (pedirCobroAlCerrar
       // === true) se le pide el cobro al médico aquí.
       if (config?.pedirCobroAlCerrar === true) {
@@ -1532,7 +1560,7 @@ export default function ConsultaActivaPage() {
     } finally {
       setGuardando(false)
     }
-  }, [clinicId, patientId, notaId, config, construirNota, router, toast])
+  }, [clinicId, patientId, notaId, config, construirNota, router, toast, citaDeHoy])
 
   // ── Atajos de teclado ──────────────────────────────────────────
   //
