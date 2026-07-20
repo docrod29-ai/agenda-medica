@@ -124,6 +124,19 @@ export const MOXIFLOXACINO = ['moxifloxacino']
 export const COLISTINA = ['colistina', 'colistimetato', 'polimixina']
 export const AMINOGLUCOSIDO = ['gentamicina', 'amikacina', 'tobramicina', 'netilmicina']
 export const GENTAMICINA = ['gentamicina']
+/**
+ * Tamiz de gentamicina de ALTO NIVEL (sinergia en enterococo).
+ *
+ * Es una prueba DISTINTA de la gentamicina del panel rutinario, y hay que
+ * distinguirlas: el enterococo es intrínsecamente resistente de bajo nivel a
+ * aminoglucósidos, así que una gentamicina "R" de rutina es lo ESPERADO y no
+ * establece HLAR. Solo el tamiz de alto nivel (500 µg/mL) lo hace.
+ */
+export const GENTAMICINA_ALTO_NIVEL = [
+  'gentamicina alto nivel', 'gentamicina-alto-nivel', 'gentamicina 500',
+  'gentamicina sinergia', 'sinergia gentamicina', 'high level gentamicin',
+  'gentamicina hln', 'hlar',
+]
 export const AMIKACINA = ['amikacina']
 export const VANCOMICINA = ['vancomicina']
 export const TEICOPLANINA = ['teicoplanina']

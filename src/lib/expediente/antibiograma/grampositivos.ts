@@ -7,7 +7,7 @@ import { REF } from './referencias'
 import {
   organismoEs, estado, cmiDe, ES_R, ES_S,
   OXACILINA, CEFOXITINA, PENICILINA, VANCOMICINA, ERITROMICINA, CLINDAMICINA,
-  GENTAMICINA, AMPICILINA, LINEZOLID, DAPTOMICINA, TIGECICLINA,
+  GENTAMICINA, GENTAMICINA_ALTO_NIVEL, todosLosEstados, AMPICILINA, LINEZOLID, DAPTOMICINA, TIGECICLINA,
 } from './util'
 
 export function analizarGramPositivos(
@@ -236,7 +236,32 @@ function enterococo(organismo: string, r: ResultadoAntibiograma[], out: AporteMo
   // HLAR: resistencia de alto nivel a aminoglucósidos → se pierde la sinergia con β-lactámico.
   const gentaCmi = cmiDe(r, GENTAMICINA)
   const gentaSir = estado(r, GENTAMICINA)
-  const hlar = (gentaCmi !== null && gentaCmi > 500) || (gentaSir === 'R')
+  /**
+   * EL HLAR EXIGE EL TAMIZ DE ALTO NIVEL. Una gentamicina R de rutina no basta.
+   *
+   * La condición incluía `gentaSir === 'R'`, y eso es incorrecto: el enterococo es
+   * INTRÍNSECAMENTE resistente de bajo nivel a los aminoglucósidos, de modo que
+   * una gentamicina "R" en un panel rutinario es lo esperado, no un hallazgo. Se
+   * declaraba HLAR en la mayoría de los enterococos y se abandonaba la sinergia
+   * β-lactámico + aminoglucósido en endocarditis sin ningún fundamento.
+   *
+   * El umbral de 500 µg/mL pertenece SOLO al tamiz de alto nivel. Además pasa a
+   * ser `>=` y considera la CMI censurada: un reporte de «>500» significa que el
+   * valor real está por encima del rango probado, y antes se leía como 500 exacto
+   * contra un `>` estricto — daba falso y apagaba el HLAR.
+   */
+  const filaAltoNivel = todosLosEstados(r, GENTAMICINA_ALTO_NIVEL)[0]
+  const cmiAltoNivel = filaAltoNivel?.cmi ?? (gentaCmi !== null && gentaCmi >= 500 ? gentaCmi : null)
+  const censurada = filaAltoNivel?.cmiCensurada
+  const hlarPorTamiz = !!filaAltoNivel && ES_R(filaAltoNivel.interpretacion)
+  const hlarPorCmi = cmiAltoNivel !== null && (cmiAltoNivel >= 500 || (censurada === '>' && cmiAltoNivel >= 500))
+  const hlar = hlarPorTamiz || hlarPorCmi
+
+  // Gentamicina R de rutina SIN tamiz de alto nivel: no es HLAR, y hay que pedirlo.
+  if (!hlar && gentaSir === 'R' && !filaAltoNivel) {
+    out.advertencias.push('Gentamicina R en panel rutinario: en enterococo es la resistencia INTRÍNSECA de bajo nivel y NO establece HLAR. Para decidir si se conserva la sinergia β-lactámico + aminoglucósido (endocarditis), pedir el tamiz de ALTO NIVEL (gentamicina 500 µg/mL).')
+  }
+
   if (hlar) {
     out.fenotipos.push({ clave: 'HLAR', nombre: 'Resistencia de alto nivel a aminoglucósidos (HLAR)', confianza: gentaCmi !== null ? 'confirmado' : 'probable', base: `Gentamicina de alto nivel R (CMI >500 mg/L): se PIERDE el sinergismo β-lactámico + aminoglucósido. ${REF.GRAM_POS}` })
     out.advertencias.push('HLAR: no esperar sinergia β-lactámico + aminoglucósido en endocarditis; el aminoglucósido NO aporta a bajas dosis. Estreptomicina de alto nivel es un mecanismo independiente (probar por separado).')

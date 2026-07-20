@@ -54,17 +54,30 @@ const nuevaFila = (antibiotico = ''): Fila => ({ antibiotico, interpretacion: 'S
  *   "≤0.5", "< 0.5", ">16", "≥ 16", "2/38" (TMP-SMX: toma el componente activo),
  *   "0,5" (coma), etc. Devuelve el número para comparar contra el punto de corte.
  */
-function parseCMI(s: string): number | null {
+/**
+ * Lee la CMI del reporte CONSERVANDO el símbolo de desigualdad.
+ *
+ * Antes se tiraba el `<`/`>`/`≤`/`≥` y solo se devolvía el número. Eso hacía que
+ * «>500» en el tamiz de gentamicina de alto nivel se comparara como 500 contra un
+ * umbral estricto `> 500`: daba falso y el HLAR no se declaraba, imprimiendo en su
+ * lugar la didáctica de que el aminoglucósido "aporta por sinergia" — el consejo
+ * contrario al correcto en endocarditis.
+ *
+ * El símbolo es información clínica, no adorno: «>16» significa que el valor real
+ * está por encima del rango probado.
+ */
+function parseCMI(s: string): { valor: number; censurada?: '>' | '<' } | null {
   if (!s) return null
   const t = s.trim().replace(',', '.')
+  const simbolo = /^[>≥]/.test(t) ? '>' as const : /^[<≤]/.test(t) ? '<' as const : undefined
   // Razón X/Y (p. ej. TMP-SMX "≤2/38") → primer número = componente activo (el del punto de corte).
   const ratio = t.match(/^[<≤>≥=]?\s*([\d.]+)\s*\/\s*[\d.]+/)
-  if (ratio) { const n = Number(ratio[1]); return isNaN(n) ? null : n }
+  if (ratio) { const n = Number(ratio[1]); return isNaN(n) ? null : { valor: n, censurada: simbolo } }
   // Cualquier número, con o sin símbolo de desigualdad.
   const m = t.match(/[<≤>≥=]?\s*([\d.]+)/)
   if (!m) return null
   const n = Number(m[1])
-  return isNaN(n) ? null : n
+  return isNaN(n) ? null : { valor: n, censurada: simbolo }
 }
 
 export default function AntibiogramaPage() {
@@ -93,7 +106,11 @@ export default function AntibiogramaPage() {
       .filter(f => f.antibiotico.trim())
       .map(f => {
         const cmi = parseCMI(f.cmi)
-        return { antibiotico: f.antibiotico.trim(), interpretacion: f.interpretacion, ...(cmi != null ? { cmi } : {}) }
+        return {
+          antibiotico: f.antibiotico.trim(),
+          interpretacion: f.interpretacion,
+          ...(cmi != null ? { cmi: cmi.valor, ...(cmi.censurada ? { cmiCensurada: cmi.censurada } : {}) } : {}),
+        }
       })
     return interpretarAntibiograma({ organismo: organismo.trim(), resultados, sitio, pruebas })
   }, [organismo, filas, sitio, pruebas])
@@ -103,7 +120,7 @@ export default function AntibiogramaPage() {
 
   // Razonamiento con IA sobre el motor determinista.
   const [razonando, setRazonando] = useState(false)
-  const [razonamiento, setRazonamiento] = useState<{ texto: string; segunda?: string } | null>(null)
+  const [razonamiento, setRazonamiento] = useState<{ texto: string; segunda?: string; contradicciones?: { agente: string; motivo: string }[] } | null>(null)
   const [errorRaz, setErrorRaz] = useState('')
 
   const razonarIA = async () => {
@@ -119,7 +136,7 @@ export default function AntibiogramaPage() {
       })
       const data = await resp.json().catch(() => null)
       if (!data?.ok) { setErrorRaz(data?.error || `No se pudo razonar (HTTP ${resp.status})`); return }
-      setRazonamiento({ texto: data.razonamiento, segunda: data.segundaOpinion })
+      setRazonamiento({ texto: data.razonamiento, segunda: data.segundaOpinion, contradicciones: data.contradicciones })
     } catch (e) {
       setErrorRaz('Error de red: ' + (e instanceof Error ? e.message : String(e)))
     } finally {
@@ -348,6 +365,30 @@ export default function AntibiogramaPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, color: 'var(--teal)' }}>
                   <Brain size={15} /><span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.03em', textTransform: 'uppercase' }}>Razonamiento clínico (IA sobre el motor)</span>
                 </div>
+                {/*
+                  El motor es la autoridad sobre los HECHOS. Si el texto de la IA
+                  recomienda algo que el panel reporta R, que el motor marcó como
+                  "evitar" o a lo que la especie es intrínsecamente resistente, se
+                  anota AQUÍ en vez de censurar el razonamiento: quitar el texto
+                  entero por una frase le costaría al médico el resto del análisis.
+                */}
+                {!!razonamiento.contradicciones?.length && (
+                  <div style={{
+                    background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)',
+                    borderRadius: 10, padding: '11px 13px', marginBottom: 12,
+                    fontSize: 12.5, lineHeight: 1.55, color: 'var(--text)',
+                  }}>
+                    <strong>Ojo: el texto de abajo contradice al motor.</strong>
+                    <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+                      {razonamiento.contradicciones.map((c, i) => (
+                        <li key={i}><strong>{c.agente}</strong> — {c.motivo}.</li>
+                      ))}
+                    </ul>
+                    <div style={{ color: 'var(--text3)', marginTop: 6, fontSize: 12 }}>
+                      Los puntos de corte y el fenotipo los calcula el motor determinista; la IA solo razona sobre ellos.
+                    </div>
+                  </div>
+                )}
                 <p style={{ fontSize: 12.5, color: 'var(--text2)', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{razonamiento.texto}</p>
               </div>
               {razonamiento.segunda && (

@@ -32,6 +32,15 @@ export interface ResultadoAntibiograma {
   interpretacion: SIR
   /** CMI en mg/L (µg/mL) si se reportó. */
   cmi?: number
+  /**
+   * La CMI venía censurada en el reporte: «>16», «≤0.25».
+   *
+   * Importa porque `>500` no es lo mismo que `500`: el laboratorio está diciendo
+   * que el valor real está POR ENCIMA del rango probado. Al descartar el símbolo,
+   * un tamiz de gentamicina de alto nivel reportado «>500» se comparaba contra un
+   * umbral estricto `> 500` y daba falso, apagando el HLAR.
+   */
+  cmiCensurada?: '>' | '<'
 }
 
 /** Resultado de una prueba confirmatoria (como la reportan los sistemas automatizados). */

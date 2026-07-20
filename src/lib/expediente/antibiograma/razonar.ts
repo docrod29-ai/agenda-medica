@@ -21,6 +21,18 @@ export function resumenDeterminista(entrada: EntradaAntibiograma, r: Interpretac
   if (r.resistenciaIntrinseca.filter(n => n.tipo === 'conflicto').length) L.push(`Conflictos intrínsecos: ${r.resistenciaIntrinseca.filter(n => n.tipo === 'conflicto').map(n => n.antibiotico).join(', ')}`)
   if (r.terapiaDirigida.length) L.push(`Terapia por clase (motor): ${r.terapiaDirigida.map(t => `[${t.linea}] ${t.agente}`).join('; ')}`)
   if (r.advertencias.length) L.push(`Advertencias: ${r.advertencias.join(' | ')}`)
+  /**
+   * LAS ALERTAS CRÍTICAS TAMBIÉN VAN AL PROMPT.
+   *
+   * Se omitían `alertas`, `aislamiento` y `notificacionObligatoria`, que es donde
+   * vive el contenido más accionable: «carbapenemasa → infectología OBLIGADA», la
+   * precaución de contacto, la notificación NOM-045. El modelo razonaba sin las
+   * alertas de su propio motor y podía redactar una recomendación que no las
+   * mencionara — no por contradecirlas, sino por no haberlas visto nunca.
+   */
+  if (r.alertas.length) L.push(`ALERTAS del motor (críticas primero): ${r.alertas.map(a => `[${a.nivel}] ${a.mensaje}`).join(' | ')}`)
+  if (r.aislamiento) L.push(`Precaución de aislamiento indicada por el motor: ${r.aislamiento}`)
+  if (r.notificacionObligatoria) L.push('NOTIFICACIÓN OBLIGATORIA: este aislamiento es de notificación epidemiológica.')
   if (r.pruebasSugeridas.length) L.push(`Pruebas sugeridas: ${r.pruebasSugeridas.map(p => p.nombre).join('; ')}`)
   return L.join('\n')
 }
@@ -33,6 +45,14 @@ REGLAS ESTRICTAS (anti-alucinación):
 3. Razona SOBRE los hechos: intégralos, prioriza, explica el porqué.
 4. México: frecuentemente NO hay aztreonam ni cefiderocol — si el motor lo indicó, respeta esa realidad de acceso.
 5. Sé conciso, denso y accionable (nivel subespecialista). Español.
+6. Si el motor emitió ALERTAS críticas, una precaución de aislamiento o una
+   notificación obligatoria, tu respuesta DEBE recogerlas explícitamente. No las
+   omitas ni las suavices: son las consecuencias accionables del fenotipo.
+7. NUNCA recomiendes como primera línea un fármaco que el panel reporta R, que el
+   motor marcó en su lista de "evitar", o al que la especie sea intrínsecamente
+   resistente. Si crees que hay una excepción razonada (p. ej. sulbactam a dosis
+   altas en Acinetobacter por encima del punto de corte), dilo EXPLÍCITAMENTE como
+   excepción y con su justificación — nunca en silencio.
 
 Responde en estas secciones cortas (sin markdown pesado):
 LECTURA DEL CASO: 2-3 frases integrando organismo + mecanismo + gravedad esperada.

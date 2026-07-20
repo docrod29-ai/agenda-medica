@@ -10,6 +10,7 @@
  * Output: { ok, razonamiento, segundaOpinion?, modelos } | { ok:false, error }
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { validarRazonamiento } from '@/lib/expediente/antibiograma/validar-razonamiento'
 import { verificarUsuario } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA } from '@/lib/ai-keys'
@@ -108,7 +109,31 @@ export async function POST(req: NextRequest) {
     if ('error' in rc) {
       return NextResponse.json({ ok: false, error: `IA: ${rc.error}. Revisa tu llave/créditos en Configuración → Llaves de IA.` }, { status: 502 })
     }
-    return NextResponse.json({ ok: true, razonamiento: rc.texto, segundaOpinion: gptTexto ?? undefined, modelos: [rc.modelo, ...(gptTexto ? ['gpt'] : [])] })
+    /**
+     * VALIDACIÓN POSTERIOR: la regla anti-contradicción deja de ser solo prompt.
+     *
+     * El texto del modelo se devolvía tal cual. "NO contradigas al motor" era una
+     * instrucción, no una comprobación: nada impedía que recomendara un fármaco
+     * que el panel reporta R, que el motor marcó como "evitar" o al que la especie
+     * es intrínsecamente resistente.
+     *
+     * No se censura ni se reescribe el texto —eso sería poner al validador a hacer
+     * clínica, y el médico perdería un razonamiento entero por una frase—: se
+     * ANOTAN las contradicciones para mostrarlas junto al razonamiento. El motor es
+     * la autoridad sobre los hechos; el modelo aporta juicio; el médico decide con
+     * ambos a la vista.
+     */
+    const contradicciones = validarRazonamiento(rc.texto, interp, entrada)
+    const contradiccionesGPT = gptTexto ? validarRazonamiento(gptTexto, interp, entrada) : []
+
+    return NextResponse.json({
+      ok: true,
+      razonamiento: rc.texto,
+      segundaOpinion: gptTexto ?? undefined,
+      modelos: [rc.modelo, ...(gptTexto ? ['gpt'] : [])],
+      ...(contradicciones.length ? { contradicciones } : {}),
+      ...(contradiccionesGPT.length ? { contradiccionesSegundaOpinion: contradiccionesGPT } : {}),
+    })
   } catch (err) {
     safeLog.error('[antibiograma-razonar] Exception:', err)
     return NextResponse.json({ ok: false, error: `Error al razonar: ${String(err).slice(0, 120)}` }, { status: 500 })
