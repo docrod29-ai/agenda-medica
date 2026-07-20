@@ -172,6 +172,29 @@ export default function ConsultaActivaPage() {
    * Se pierde el material de origen, que es justo lo que da respaldo legal a la
    * nota. Aquí se guarda lo que había ANTES de empezar a grabar y se antepone.
    */
+  /**
+   * NOTA PRELIMINAR MIENTRAS SE SEPARAN LAS VOCES.
+   *
+   * Al detener el dictado el médico se quedaba mirando una pantalla vacía durante
+   * toda la cadena: subir el audio completo → transcribirlo OTRA VEZ con
+   * separación de voces (que en una consulta larga no es rápido) → recién
+   * entonces estructurar la nota con la IA. Dos esperas en serie, y la primera
+   * ni siquiera hacía falta para empezar: el texto del streaming en vivo YA
+   * estaba en pantalla.
+   *
+   * Ahora se arranca a estructurar en cuanto se detiene, con lo que hay. La nota
+   * aparece mientras la diarización sigue su curso, y cuando llega el texto bueno
+   * —con Médico/Paciente separados, que es mejor material— se re-proyecta.
+   *
+   * `edicionManualRef` es la salvaguarda: si el médico ya empezó a escribir sobre
+   * la nota preliminar, la re-proyección NO lo pisa en silencio, pregunta. Antes
+   * este riesgo no existía porque no había nada que editar todavía; al adelantar
+   * la nota, lo creamos, y hay que cerrarlo en el mismo cambio.
+   */
+  const preliminarRef = useRef(false)
+  const [ofreceReproyectar, setOfreceReproyectar] = useState(false)
+  const edicionManualRef = useRef(false)
+
   const baseTranscripcionRef = useRef('')
   const grabandoPrevioRef = useRef(false)
   useEffect(() => {
@@ -179,6 +202,10 @@ export default function ConsultaActivaPage() {
     if (grabando && !grabandoPrevioRef.current) {
       // Flanco de subida: arranca una grabación. Se congela lo que ya había.
       baseTranscripcionRef.current = voz.transcripcion.trim()
+      // Y se rearma el adelanto de la nota: en una consulta puede grabarse más de
+      // una vez, y sin esto solo la primera se estructuraría por adelantado.
+      preliminarRef.current = false
+      setOfreceReproyectar(false)
     }
     grabandoPrevioRef.current = grabando
   }, [audio.estado, voz.transcripcion])
@@ -193,7 +220,17 @@ export default function ConsultaActivaPage() {
   useEffect(() => {
     if (audio.estado === 'listo' && audio.transcripcion) {
       voz.setTranscripcion(conBase(audio.transcripcion))
-      autoProcRef.current = true
+      /**
+       * Llegó el texto con las voces separadas. Es MEJOR material que el del
+       * streaming, así que vale re-proyectar la nota — pero solo si el médico no
+       * ha escrito encima. Si ya escribió, se le ofrece y decide él: pisarle
+       * texto propio sin avisar es justo lo que no se puede hacer.
+       */
+      if (preliminarRef.current && edicionManualRef.current) {
+        setOfreceReproyectar(true)
+      } else {
+        autoProcRef.current = true
+      }
     }
   }, [audio.estado, audio.transcripcion, conBase]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -676,7 +713,7 @@ export default function ConsultaActivaPage() {
     finally { setGenerandoAnalisis(false) }
   }, [diagnosticos, medicamentos, patient?.nombre, patient?.edad, patient?.sexo, patient?.alergias, toast])
 
-  const procesarIA = useCallback(async (tipoOverride?: TipoNota, opts?: { enVivo?: boolean }) => {
+  const procesarIA = useCallback(async (tipoOverride?: TipoNota, opts?: { enVivo?: boolean; preliminar?: boolean }) => {
     // Una nota firmada es inmutable. El atajo de teclado no comprobaba esto y
     // reescribía en pantalla el contenido de una nota ya firmada: lo que se veía
     // dejaba de coincidir con lo almacenado y con lo que se entregó al paciente.
@@ -684,6 +721,14 @@ export default function ConsultaActivaPage() {
     // enVivo = estructuración EN TIEMPO REAL mientras se graba (silenciosa, sin
     // toasts ni reset de aprobaciones; la nota se va armando sola).
     const enVivo = opts?.enVivo === true
+    /**
+     * `preliminar` = esta nota se armó con el texto del streaming mientras la
+     * diarización sigue corriendo, y va a re-proyectarse en cuanto llegue el
+     * texto bueno. No se pide segunda opinión sobre ella: se pagaría dos veces
+     * por revisar una nota que está por reemplazarse, y peor aún, el médico
+     * vería hallazgos de una versión que ya no existe.
+     */
+    const preliminar = opts?.preliminar === true
     if (!voz.transcripcion.trim()) { if (!enVivo) toast('No hay transcripción que procesar', 'info'); return }
     if (enVivo && vivoRef.current) return  // ya hay una estructuración en vivo en curso
     const tipoActivo = tipoOverride ?? tipo
@@ -839,7 +884,7 @@ export default function ConsultaActivaPage() {
         if (data._uso) setUsoIA(data._uso)
         // Segunda opinión (GPT-5): AUTOMÁTICA en plan Premium; en plan Pro es un
         // botón a demanda (controla el costo). En ambos revisa seguridad clínica.
-        if (data._plan === 'premium') {
+        if (data._plan === 'premium' && !preliminar) {
           const seccionesArr = data.secciones && typeof data.secciones === 'object'
             ? Object.entries(data.secciones).map(([k, v]) => ({ titulo: k, contenido: String(v ?? '') }))
             : []
@@ -1009,6 +1054,24 @@ export default function ConsultaActivaPage() {
       procesarIARef.current()
     }
   }, [voz.grabando, modoVoz, firmada, procesando, voz.transcripcion])
+
+  /**
+   * En cuanto se DETIENE (estado 'subiendo'), se estructura ya con el texto del
+   * streaming en vez de esperar a la diarización. Ver `preliminarRef`.
+   *
+   * Se exige un mínimo de palabras: con cuatro frases sueltas la IA no produce
+   * una nota útil y solo se gastaría una llamada.
+   */
+  useEffect(() => {
+    if (audio.estado !== 'subiendo' || firmada || procesando) return
+    if (preliminarRef.current) return
+    const palabras = voz.transcripcion.trim().split(/\s+/).filter(Boolean).length
+    if (palabras < 40) return
+    preliminarRef.current = true
+    edicionManualRef.current = false
+    procesarIARef.current(undefined, { preliminar: true })
+  }, [audio.estado, firmada, procesando, voz.transcripcion])
+
 
   // ── Cambiar la modalidad de nota ───────────────────────────────
   // Si hay dictado, la nota se RE-PROYECTA desde esa fuente hacia la nueva
@@ -2460,6 +2523,33 @@ export default function ConsultaActivaPage() {
         </div>
       )}
 
+      {/* ── Ya está el texto con las voces separadas, pero el médico ya escribió ── */}
+      {ofreceReproyectar && !firmada && (
+        <div className="no-print" style={{
+          display: 'flex', alignItems: 'flex-start', gap: 11, flexWrap: 'wrap',
+          background: 'rgba(61,90,254,0.07)', border: '1px solid rgba(61,90,254,0.3)',
+          borderRadius: 12, padding: '13px 15px', marginBottom: 14,
+        }}>
+          <Sparkles size={17} style={{ color: 'var(--teal)', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ flex: '1 1 300px', fontSize: 13.5, lineHeight: 1.55, color: 'var(--text)' }}>
+            <strong>Ya quedó la transcripción con las voces separadas.</strong> Es mejor material que
+            el del dictado en vivo con el que se armó esta nota. Puedes re-estructurarla desde ahí,
+            pero <strong>se reemplaza lo que escribiste</strong>.
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              className="btn btn-sm btn-primary"
+              onClick={() => { setOfreceReproyectar(false); edicionManualRef.current = false; procesarIA() }}
+            >
+              Re-estructurar
+            </button>
+            <button className="btn btn-sm" onClick={() => setOfreceReproyectar(false)}>
+              Dejar mi versión
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Sugerencias de la IA pendientes de que el médico las avale ── */}
       {!firmada && sugerenciasPendientes(secciones) > 0 && (() => {
         const n = sugerenciasPendientes(secciones)
@@ -2581,7 +2671,12 @@ export default function ConsultaActivaPage() {
         <Section key={s.key} title={s.label} obligatorio={s.obligatorio}>
           <textarea
             value={s.value}
-            onChange={e => setSecciones(prev => prev.map((x, j) => j === i ? { ...x, value: e.target.value } : x))}
+            onChange={e => {
+              // Se anota que el médico ESCRIBIÓ. Lo usa la re-proyección con voces
+              // separadas para no pisar su texto sin preguntar (ver `edicionManualRef`).
+              edicionManualRef.current = true
+              setSecciones(prev => prev.map((x, j) => j === i ? { ...x, value: e.target.value } : x))
+            }}
             placeholder={s.placeholder ?? ''}
             disabled={firmada}
             style={S.textarea}
