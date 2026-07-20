@@ -14,7 +14,7 @@ import { Appointment, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { formatDateMX } from '@/lib/availability'
 import { Plus, CalendarCheck2, Clock, UserX, ChevronRight, CalendarDays, Users, Settings, Hourglass, Mic } from 'lucide-react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { hoyISO, sumarDiasISO } from '@/lib/timezone'
 
 function todayStr() {
@@ -197,7 +197,7 @@ export default function DashboardPage() {
           ) : (
             <div>
               {todayAppts.map((a, i) => (
-                <AppointmentRow key={a.id} appt={a} isLast={i === todayAppts.length - 1} />
+                <AppointmentRow key={a.id} appt={a} isLast={i === todayAppts.length - 1} puedeConsultar={isDoctor} />
               ))}
             </div>
           )}
@@ -272,29 +272,31 @@ function Sparkline({ data, color = 'var(--nexus)' }: { data: number[]; color?: s
   )
 }
 
-function AppointmentRow({ appt, isLast }: { appt: Appointment; isLast: boolean }) {
+function AppointmentRow({ appt, isLast, puedeConsultar }: { appt: Appointment; isLast: boolean; puedeConsultar: boolean }) {
+  const router = useRouter()
   const hora = appt.fechaHora.slice(11, 16)
   const typeCfg = APPOINTMENT_TYPE_CONFIG[appt.tipo]
   const isPast = ['finalizada', 'atendida', 'cancelada', 'no-asistio'].includes(appt.estado)
+  // Se puede arrancar la consulta directo desde la agenda si eres médico, la cita
+  // tiene paciente y aún no se atendió. Antes había que ir a Citas → abrir la
+  // cita → Expediente → Nueva consulta: cuatro saltos cada mañana, por paciente.
+  const puedeIniciar = puedeConsultar && !isPast && !!appt.pacienteId
 
   return (
-    <Link href={`/citas?id=${appt.id}`} style={{ textDecoration: 'none' }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px',
-        borderBottom: isLast ? 'none' : '1px solid var(--border)',
-        cursor: 'pointer', opacity: isPast ? 0.6 : 1,
-        transition: 'background 0.1s',
-      }}
-        onMouseEnter={e => (e.currentTarget.style.background = 'var(--s2)')}
-        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-      >
-        {/* Time */}
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px',
+      borderBottom: isLast ? 'none' : '1px solid var(--border)',
+      opacity: isPast ? 0.6 : 1, transition: 'background 0.1s',
+    }}
+      onMouseEnter={e => (e.currentTarget.style.background = 'var(--s2)')}
+      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+    >
+      {/* Área principal: abre la cita */}
+      <Link href={`/citas?id=${appt.id}`} style={{ textDecoration: 'none', flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
         <div style={{ width: 44, textAlign: 'center', flexShrink: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>{hora}</div>
           <div style={{ fontSize: 10, color: 'var(--text3)' }}>{appt.duracion}min</div>
         </div>
-
-        {/* Avatar */}
         <div style={{
           width: 36, height: 36, borderRadius: '50%',
           background: avatarColor(appt.pacienteNombre).bg, color: avatarColor(appt.pacienteNombre).fg,
@@ -303,8 +305,6 @@ function AppointmentRow({ appt, isLast }: { appt: Appointment; isLast: boolean }
         }}>
           {appt.pacienteNombre.charAt(0).toUpperCase()}
         </div>
-
-        {/* Info */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {appt.pacienteNombre}
@@ -314,11 +314,21 @@ function AppointmentRow({ appt, isLast }: { appt: Appointment; isLast: boolean }
             {appt.motivo ? ` · ${appt.motivo}` : ''}
           </div>
         </div>
+      </Link>
 
-        {/* Status */}
-        <StatusBadge status={appt.estado} size="sm" />
-      </div>
-    </Link>
+      <StatusBadge status={appt.estado} size="sm" />
+
+      {puedeIniciar && (
+        <button
+          title="Iniciar consulta con este paciente"
+          onClick={() => router.push(`/consulta/${appt.pacienteId}`)}
+          className="btn btn-primary btn-sm"
+          style={{ flexShrink: 0, gap: 6 }}
+        >
+          <Mic size={14} /> Consulta
+        </button>
+      )}
+    </div>
   )
 }
 

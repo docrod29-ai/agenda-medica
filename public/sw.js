@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v497'  // REDISENO + ACCESIBILIDAD (track 2, tras Huli). (1) ALERGIAS SIEMPRE A LA VISTA en la consulta: antes solo salian al desplegar los datos del paciente, pero es justo mientras se dicta y se PRESCRIBE cuando hay que tenerlas enfrente. Ahora un chip en el encabezado, rojo si el paciente tiene alergias. Es seguridad, no cosmetica. (2) OBJETIVOS TACTILES >=44px (WCAG 2.5.5) en dispositivos de dedo (@media pointer:coarse): botones e inputs crecen a 44px SOLO en pantallas tactiles; en desktop con mouse siguen en 36px para no engordar la densidad. Verificado en el navegador que el minimo aplica. El Dr pidio accesibilidad explicitamente.
+const CACHE = 'nexusmed-v498'  // INICIAR CONSULTA DESDE LA AGENDA DEL DIA (menos tiempo en la computadora, objetivo del Dr). En el dashboard cada paciente de la agenda de hoy tenia una fila que solo abria la cita; para atenderlo habia que ir a Citas -> abrir la cita -> Expediente -> Nueva consulta: cuatro saltos cada manana, por paciente. Ahora cada fila trae un boton 'Consulta' que arranca la nota directo con ese paciente. Solo aparece para el medico, cuando la cita tiene paciente y no se ha atendido. Se reestructuro la fila para no anidar el boton dentro del enlace (HTML valido). Verificado en el navegador: sin errores nuevos de consola.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
