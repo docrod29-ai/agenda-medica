@@ -124,14 +124,24 @@ export async function POST(req: NextRequest) {
           createdAt: new Date().toISOString(),
         }
 
-        // Upsert bot session (clinic-scoped)
-        const sessionSnap = await clinicRef.collection('bot_sessions')
-          .where('telefono', '==', entry.pacienteTelefono).limit(1).get()
-        if (!sessionSnap.empty) {
-          await clinicRef.collection('bot_sessions').doc(sessionSnap.docs[0].id).set(sessionData)
-        } else {
-          await clinicRef.collection('bot_sessions').add(sessionData)
-        }
+        /**
+         * UNA SOLA CONVENCIÓN DE ID PARA LAS SESIONES DEL BOT.
+         *
+         * Aquí se buscaba por `where('telefono')` y se creaba con `add()` (id
+         * automático), mientras el resto del sistema usa un id DERIVADO del
+         * teléfono. Dos escritores con dos convenciones sobre la misma colección
+         * dejan sesiones duplicadas para el mismo número, y el `limit(1)` puede
+         * devolver la que no es.
+         *
+         * Consecuencia concreta: si el paciente contesta "SÍ" contra la sesión
+         * equivocada, su estado no es `esperando_lista`, cae al menú por defecto y
+         * LA OFERTA DEL HUECO SE PIERDE EN SILENCIO — nadie ocupa el horario y
+         * nadie se entera.
+         *
+         * Se usa el mismo id determinista, con merge para no pisar lo que ya haya.
+         */
+        const idSesion = (entry.pacienteTelefono || '').replace(/\D/g, '').slice(-15) || 'sin-telefono'
+        await clinicRef.collection('bot_sessions').doc(idSesion).set(sessionData, { merge: true })
 
         // Mark waitlist entry as contactado
         await clinicRef.collection('waitlist').doc(entry.id).update({ estado: 'contactado' })

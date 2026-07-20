@@ -8,6 +8,7 @@
  * - Estado inicial: 'solicitada' (no confirmada hasta que el médico/asistente lo haga).
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { instanteMX } from '@/lib/timezone'
 import { adminDb } from '@/lib/firebase-admin'
 import { getDaySchedule, validarHorarioDia } from '@/lib/availability'
 import { estaBloqueado } from '@/lib/time-blocks'
@@ -48,8 +49,19 @@ export async function POST(req: NextRequest) {
     if (paciente.telefono.replace(/\D/g, '').length < 7) return NextResponse.json({ ok: false, error: 'Teléfono inválido' }, { status: 400 })
     if (paciente.email && paciente.email.length > 200) return NextResponse.json({ ok: false, error: 'Correo demasiado largo' }, { status: 400 })
     if (paciente.motivo && paciente.motivo.length > 500) return NextResponse.json({ ok: false, error: 'Motivo demasiado largo' }, { status: 400 })
-    // Fecha futura — no permitir agendar en pasado
-    const fechaHoraDt = new Date(`${fecha}T${hora}:00`)
+    /**
+     * Fecha futura — interpretada en la zona de MÉXICO, no en la del servidor.
+     *
+     * `new Date('2026-07-20T10:00:00')` sin offset se lee en la zona del proceso,
+     * que en Vercel es UTC: seis horas antes del instante real. Hoy no explota
+     * porque el portal solo ofrece de mañana en adelante, pero es una bomba de
+     * tiempo: el día que se habilite reservar el mismo día, toda la tarde
+     * empezaría a rechazarse con "No se puede agendar en el pasado".
+     *
+     * `instanteMX` ya existe justo para esto — el cron de recordatorios tuvo el
+     * mismo bug y así se resolvió.
+     */
+    const fechaHoraDt = instanteMX(fecha, hora)
     if (isNaN(fechaHoraDt.getTime()) || fechaHoraDt.getTime() < Date.now()) {
       return NextResponse.json({ ok: false, error: 'No se puede agendar en el pasado' }, { status: 400 })
     }

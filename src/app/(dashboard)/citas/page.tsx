@@ -85,12 +85,27 @@ export default function CitasPage() {
     const id = params.get('id')
     if (!id || idAbierto.current === id) return
     const found = appointments.find(a => a.id === id)
-    if (!found) return
+    if (!found) {
+      /**
+       * Un enlace a una cita FUERA de la ventana no abría nada y no decía nada.
+       *
+       * La ventana arranca 120 días atrás, así que cualquier enlace a una cita más
+       * antigua caía aquí: la pantalla se quedaba en el día de hoy y el enlace
+       * parecía roto. Ahora, una vez cargado, se dice la verdad en vez de
+       * quedarse callado.
+       */
+      if (!loading) {
+        idAbierto.current = id
+        toast('No encontramos esa cita. Puede ser muy antigua: búscala por fecha.', 'error')
+        router.replace('/citas', { scroll: false })
+      }
+      return
+    }
     idAbierto.current = id
     setEditAppt(found)
     setModalOpen(true)
     router.replace('/citas', { scroll: false })
-  }, [params, appointments, router])
+  }, [params, appointments, router, loading, toast])
 
   const filtered = useMemo(() => {
     return appointments.filter(a => {
