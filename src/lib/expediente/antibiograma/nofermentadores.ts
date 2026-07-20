@@ -43,6 +43,38 @@ function pseudomonas(r: ResultadoAntibiograma[], out: AporteModulo) {
     return out
   }
 
+  /**
+   * Patrón 1b: AMBOS carbapenémicos R con las cefalosporinas antipseudomónicas
+   * CONSERVADAS.
+   *
+   * Antes este caso no disparaba NADA: ningún fenotipo, ninguna alerta, ninguna
+   * precaución. El patrón 1 exige meropenem S o I, el 2 exige otros β-lactámicos
+   * R y el 3 exige cefepime R — un imipenem-R + meropenem-R con ceftazidima,
+   * pip-tazo y cefepime S se caía por el hueco entre los tres.
+   *
+   * Indicación clínica del médico: en P. aeruginosa ese perfil es característico
+   * de la COMBINACIÓN de pérdida de porina (OprD) con sobreexpresión de bombas de
+   * expulsión (MexAB-OprM), no de una carbapenemasa — precisamente porque una
+   * carbapenemasa arrastraría también a las cefalosporinas.
+   */
+  if (carbaR && !otrosBetaR) {
+    out.fenotipos.push({
+      clave: 'porina-perdida',
+      nombre: 'Carbapenémicos R con cefalosporinas conservadas (porina + bomba de expulsión)',
+      confianza: 'probable',
+      base: `Imipenem y meropenem no-S con ceftazidima/cefepime/piperacilina-tazobactam conservados. En P. aeruginosa este perfil sugiere la combinación de pérdida de porina OprD con sobreexpresión de bombas de expulsión (MexAB-OprM), NO una carbapenemasa: una carbapenemasa arrastraría también a las cefalosporinas. ${REF.NO_FERM}`,
+    })
+    out.mecanismos.push({
+      categoria: 'porina',
+      nombre: 'Pérdida de OprD + sobreexpresión de bombas de expulsión (MexAB-OprM)',
+      confianza: 'probable',
+      explicacion: 'La pérdida de OprD cierra la vía de entrada de los carbapenémicos y la sobreexpresión de bombas expulsa lo que entra. El efecto se concentra en los carbapenémicos y respeta las cefalosporinas antipseudomónicas, que es lo que distingue este patrón de una carbapenemasa.',
+      referencia: REF.NO_FERM,
+    })
+    out.advertencias.push('Carbapenémicos R con cefalosporinas S: valorar ceftazidima o cefepime a dosis optimizada (infusión extendida) guiado por CMI, en vez de escalar a un β-lactámico nuevo. Confirmar con prueba de carbapenemasa si el contexto epidemiológico lo justifica.')
+    return out
+  }
+
   // Patrón 2: carbapenémicos R + otros β-lactámicos R → carbapenemasa probable (MBL frecuente).
   if (carbaR && otrosBetaR) {
     const esMBL = cza === 'R'

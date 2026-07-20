@@ -7,6 +7,7 @@
  *    los β-lactámicos de 1ª línea Y fluoroquinolonas → obliga a β-lactámicos nuevos.
  */
 import { type AporteModulo, aporteVacio, type ResultadoAntibiograma } from './tipos'
+import { esIntrinsecamenteResistente } from './intrinseca'
 import { REF } from './referencias'
 import {
   norm, estado, NO_S, ES_S,
@@ -45,11 +46,35 @@ export function analizarMDR(organismo: string, r: ResultadoAntibiograma[]): Apor
   // Por ahora, clasificación formal para Enterobacterales (categorías bien definidas).
   if (!esEnterobacterales(organismo) && !esPseudomonas(organismo)) return out
 
+  /**
+   * LA RESISTENCIA INTRÍNSECA NO CUENTA. Magiorakos lo exige explícitamente, y es
+   * la indicación del médico: un organismo no es multirresistente por ser lo que
+   * es — solo si desarrolla resistencia FUERA de su patrón natural.
+   *
+   * Sin esta exclusión, un Proteus mirabilis COMPLETAMENTE SENSIBLE salía
+   * `MDR[confirmado]`, porque el panel reporta sus cuatro resistencias naturales
+   * (nitrofurantoína, tetraciclina, colistina, tigeciclina) y el conteo las sumaba
+   * como adquiridas. Igual una Pseudomonas salvaje con ampicilina, cefazolina y
+   * cotrimoxazol R, que en ella son intrínsecas.
+   *
+   * Marcar como multirresistente a un aislamiento sensible dispara aislamiento de
+   * contacto y escalada a antibióticos de reserva que el paciente no necesita.
+   *
+   * Se aplica a TODA especie con patrón intrínseco conocido, no solo a Proteus.
+   */
   const cats = CATEGORIAS_ENTERO
   let probadas = 0, conR = 0, conS = 0
   const rNombres: string[] = []
+  const intrinsecasIgnoradas: string[] = []
   for (const c of cats) {
-    const agsProbados = c.ag.map(a => estado(r, [a])).filter(x => x !== null)
+    // Se descartan los agentes a los que la especie es intrínsecamente resistente.
+    const agentesValorables = c.ag.filter(a => {
+      if (!esIntrinsecamenteResistente(organismo, a)) return true
+      intrinsecasIgnoradas.push(a)
+      return false
+    })
+    if (!agentesValorables.length) continue      // categoría enteramente intrínseca
+    const agsProbados = agentesValorables.map(a => estado(r, [a])).filter(x => x !== null)
     if (agsProbados.length === 0) continue
     probadas++
     const hayR = agsProbados.some(x => NO_S(x))
@@ -66,7 +91,7 @@ export function analizarMDR(organismo: string, r: ResultadoAntibiograma[]): Apor
     out.fenotipos.push({ clave: 'XDR', nombre: `Extensamente resistente (XDR, aproximado — sensible solo a ${conS} categoría(s))`, confianza: 'probable', base: `No-S en ${conR}/${probadas} categorías; sensibilidad conservada en ≤2. ${REF.MAGIORAKOS}` })
     out.alertas.push({ nivel: 'critica', mensaje: 'XDR: opciones muy limitadas → infectología, agentes nuevos según susceptibilidad, terapia combinada.' })
   } else if (conR >= 3) {
-    out.fenotipos.push({ clave: 'MDR', nombre: `Multidrogorresistente (MDR — no-S en ${conR} categorías)`, confianza: 'confirmado', base: `No-sensible a ≥1 agente en ${conR} categorías antimicrobianas (${rNombres.slice(0, 4).join(', ')}${rNombres.length > 4 ? '…' : ''}). ${REF.MAGIORAKOS}` })
+    out.fenotipos.push({ clave: 'MDR', nombre: `Multidrogorresistente (MDR — no-S en ${conR} categorías)`, confianza: 'confirmado', base: `No-sensible a ≥1 agente en ${conR} categorías antimicrobianas ADQUIRIDAS (${rNombres.slice(0, 4).join(', ')}${rNombres.length > 4 ? '…' : ''}). Se excluyó la resistencia intrínseca de la especie${intrinsecasIgnoradas.length ? ` (${[...new Set(intrinsecasIgnoradas)].slice(0, 5).join(', ')})` : ''}. ${REF.MAGIORAKOS}` })
   }
   return out
 }

@@ -12,7 +12,13 @@
  */
 import { norm } from './util'
 
-export type GrupoCLSI = 'enterobacterales' | 'pseudomonas' | 'acinetobacter' | 'staphylococcus' | 'enterococcus' | 'pneumococcus'
+export type GrupoCLSI =
+  | 'enterobacterales' | 'pseudomonas' | 'acinetobacter'
+  | 'staphylococcus'          // S. aureus y S. lugdunensis
+  | 'staphylococcus_cons'     // coagulasa-negativos ≠ lugdunensis (oxacilina con corte propio)
+  | 'enterococcus'            // enterococos ≠ E. faecium
+  | 'enterococcus_faecium'    // daptomicina solo SDD
+  | 'pneumococcus'
 
 export interface Corte {
   /** CMI ≤ sMax → S (µg/mL). */
@@ -23,6 +29,9 @@ export interface Corte {
   uti?: boolean
   /** Sin categoría "S" (p. ej. colistina: solo I/R). */
   sinS?: boolean
+  /** Sin categoría S: todo lo que no es R se informa como SDD (dosis dependiente).
+   *  Caso real: daptomicina en E. faecium — CLSI no define S, solo SDD ≤4. */
+  soloSDD?: boolean
   /** La banda intermedia es SDD (susceptible dosis-dependiente), no "I".
    *  P. ej. cefepime en Enterobacterales: S ≤2, SDD 4-8, R ≥16 (CLSI M100-Ed35). */
   sdd?: boolean
@@ -237,12 +246,58 @@ const PNEUMOCOCCUS: Record<string, Corte> = {
   cloranfenicol: { sMax: 4, rMin: 8 },
 }
 
+
+/**
+ * Tabla 2C — ESTAFILOCOCOS COAGULASA-NEGATIVOS distintos de S. lugdunensis.
+ *
+ * Idéntica a la de S. aureus SALVO oxacilina, y esa excepción importa mucho.
+ *
+ * El corte de S. aureus (S ≤2 / R ≥4) se estaba aplicando a TODOS los
+ * estafilococos, así que un S. epidermidis con CMI 1 salía SENSIBLE a oxacilina.
+ * En la práctica clínica del médico, alrededor del 80 % de los coagulasa-negativos
+ * portan mecA, de modo que ese "S" es casi siempre un falso sensible — y en una
+ * bacteriemia asociada a catéter lleva a tratar con un β-lactámico antiestafilocócico
+ * que va a fallar.
+ *
+ * El CLSI bajó el corte de ≥4 a ≥0,5 mg/L precisamente porque el anterior no
+ * detectaba la resistencia mediada por mecA en coagulasa-negativos.
+ *
+ * S. lugdunensis se comporta como S. aureus (más virulento, mecA infrecuente) y
+ * por eso conserva el corte de aquel.
+ */
+const STAPHYLOCOCCUS_CONS: Record<string, Corte> = {
+  ...STAPHYLOCOCCUS,
+  oxacilina: { sMax: 0.25, rMin: 0.5 },
+}
+
+/**
+ * Tabla 2D — ENTEROCOCCUS FAECIUM.
+ *
+ * Difiere de los demás enterococos SOLO en daptomicina, y de forma cualitativa:
+ * el CLSI **no define categoría S** para esta combinación. Solo existe SDD ≤4
+ * (dosis dependiente, 8-12 mg/kg/día) y R ≥8.
+ *
+ * Antes se aplicaba el corte de estafilococo (S ≤1), así que en un VRE —donde
+ * daptomicina es una de las dos opciones reales— el motor la descartaba con el
+ * punto de corte de otra especie, y encima se contradecía: una tabla decía "S" y
+ * el módulo de Gram positivos emitía "no usar daptomicina" para la misma CMI.
+ *
+ * Informarla como SDD y no como S es lo correcto y además lo honesto: obliga a
+ * decidir la dosis alta de forma explícita, que es justo lo que el CLSI pretende.
+ */
+const ENTEROCOCCUS_FAECIUM: Record<string, Corte> = {
+  ...ENTEROCOCCUS,
+  daptomicina: { sMax: 4, rMin: 8, soloSDD: true },
+}
+
 const TABLAS: Record<GrupoCLSI, Record<string, Corte>> = {
   enterobacterales: ENTEROBACTERALES,
   pseudomonas: PSEUDOMONAS,
   acinetobacter: ACINETOBACTER,
   staphylococcus: STAPHYLOCOCCUS,
+  staphylococcus_cons: STAPHYLOCOCCUS_CONS,
   enterococcus: ENTEROCOCCUS,
+  enterococcus_faecium: ENTEROCOCCUS_FAECIUM,
   pneumococcus: PNEUMOCOCCUS,
 }
 
@@ -250,8 +305,10 @@ const REF_TABLA: Record<GrupoCLSI, string> = {
   enterobacterales: 'CLSI M100-Ed35 (2025), Tabla 2A-1 (Enterobacterales)',
   pseudomonas: 'CLSI M100-Ed35 (2025), Tabla 2B-1 (P. aeruginosa)',
   acinetobacter: 'CLSI M100-Ed35 (2025), Tabla 2B-2 (Acinetobacter)',
-  staphylococcus: 'CLSI M100-Ed35 (2025), Tabla 2C (Staphylococcus)',
-  enterococcus: 'CLSI M100-Ed35 (2025), Tabla 2D (Enterococcus)',
+  staphylococcus: 'CLSI M100-Ed35 (2025), Tabla 2C (S. aureus / S. lugdunensis)',
+  staphylococcus_cons: 'CLSI M100-Ed35 (2025), Tabla 2C (estafilococo coagulasa-negativo: oxacilina ≤0.25/≥0.5)',
+  enterococcus: 'CLSI M100-Ed35 (2025), Tabla 2D (Enterococcus ≠ faecium)',
+  enterococcus_faecium: 'CLSI M100-Ed35 (2025), Tabla 2D (E. faecium: daptomicina solo SDD ≤4, dosis 8-12 mg/kg/día)',
   pneumococcus: 'CLSI M100-Ed35 (2025), Tabla 2G (S. pneumoniae)',
 }
 
@@ -267,8 +324,15 @@ export function grupoDe(organismo: string): GrupoCLSI | null {
   if (/neumococo|pneumococ|streptococc.*pneumon|s\.?\s*pneumoniae/.test(o) && !/klebsiella/.test(o)) return 'pneumococcus'
   if (/pseudomonas|aeruginosa/.test(o)) return 'pseudomonas'
   if (/acinetobacter|baumannii/.test(o)) return 'acinetobacter'
-  if (/staphylo|aureus|epidermidis|lugdunensis/.test(o)) return 'staphylococcus'
-  if (/enterococ|faecium|faecalis/.test(o)) return 'enterococcus'
+  if (/staphylo|aureus|epidermidis|lugdunensis|haemolyticus|hominis|capitis|warneri|saprophyticus|schleiferi|coagulasa/.test(o)) {
+    // S. aureus y S. lugdunensis conservan su corte de oxacilina; el resto de los
+    // coagulasa-negativos usa el corte bajo, que es el que detecta mecA.
+    const esAureusOLugdunensis = /aureus|lugdunensis/.test(o) && !/coagulasa\s*negativ/.test(o)
+    return esAureusOLugdunensis ? 'staphylococcus' : 'staphylococcus_cons'
+  }
+  if (/enterococ|faecium|faecalis/.test(o)) {
+    return /faecium/.test(o) ? 'enterococcus_faecium' : 'enterococcus'
+  }
   if (ENTEROBACTERALES_CLAVES.some(k => o.includes(norm(k)))) return 'enterobacterales'
   return null
 }
@@ -305,6 +369,7 @@ export function interpretarCMI(organismo: string, antibiotico: string, cmi: numb
   const corte: Corte = sitio === 'snc' && base.snc ? { ...base, sMax: base.snc.sMax, rMin: base.snc.rMin } : base
   let categoria: CategoriaSIR
   if (cmi >= corte.rMin) categoria = 'R'
+  else if (corte.soloSDD) categoria = 'SDD'       // daptomicina/E. faecium: no existe S
   else if (corte.sinS) categoria = 'I'            // colistina: ≤2 = I, ≥4 = R
   else if (cmi <= corte.sMax) categoria = 'S'
   else categoria = corte.sdd ? 'SDD' : 'I'        // banda intermedia: SDD (dosis-dependiente) o I

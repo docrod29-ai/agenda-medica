@@ -31,20 +31,38 @@ export function analizarGramPositivos(
   }
   // Resistencias EMERGENTes de última línea (staph + enterococo): linezolid, daptomicina, tigeciclina.
   if (organismoEs(organismo, ['staphylo', 'aureus', 'epidermidis', 'lugdunensis', 'enterococ', 'faecium', 'faecalis'])) {
-    ultimaLineaGramPos(r, out)
+    ultimaLineaGramPos(r, out, organismo)
   }
   return out
 }
 
 /** R a agentes de rescate en Gram+: linezolid (cfr/optrA/G2576T), daptomicina (mprF/LiaFSR), tigeciclina (tet(X)/eflujo). */
-function ultimaLineaGramPos(r: ResultadoAntibiograma[], out: AporteModulo) {
+function ultimaLineaGramPos(r: ResultadoAntibiograma[], out: AporteModulo, organismo: string) {
   if (ES_R(estado(r, LINEZOLID))) {
     out.fenotipos.push({ clave: 'linezolid-R', nombre: 'Resistencia a linezolid', confianza: 'confirmado', base: `Linezolid R: mutación 23S rRNA (G2576T) o genes transferibles cfr/optrA/poxtA (cfr también da R a fenicoles/lincosamidas/pleuromutilinas). ${REF.GRAM_POS}` })
     out.mecanismos.push({ categoria: 'diana', nombre: 'Metilasa cfr / oxazolidinona optrA·poxtA / mutación 23S (G2576T)', confianza: 'probable', explicacion: 'Altera el sitio de unión del linezolid en el ribosoma (23S rRNA / proteína L3-L4) o lo protege (optrA/poxtA, ABC-F). cfr es transferible y confiere fenotipo PhLOPSA. Opciones: tedizolol (probar), daptomicina, glucopéptidos según CMI.', referencia: REF.GRAM_POS })
     out.alertas.push({ nivel: 'critica', mensaje: 'Linezolid-R: agente de rescate comprometido → infectología; confirmar y valorar tedizolid/daptomicina/glucopéptido según especie y sitio.' })
   }
+  /**
+   * DAPTOMICINA: el umbral de CMI depende de la especie.
+   *
+   * Se aplicaba `dapCmi > 1` —el corte de ESTAFILOCOCO— a todos los Gram
+   * positivos, incluidos los enterococos. En un E. faecium, donde daptomicina es
+   * una de las dos opciones reales, el motor la descartaba con el punto de corte
+   * de otra especie: una CMI de 2, que en E. faecium es dosis dependiente y
+   * perfectamente usable a 8-12 mg/kg/día, salía como "no usar daptomicina".
+   *
+   * Peor aún, el motor se contradecía consigo mismo: la tabla CLSI devolvía una
+   * categoría y este módulo emitía la alerta opuesta para la misma CMI.
+   *
+   * CLSI no define categoría S para daptomicina en E. faecium: solo SDD ≤4 y R ≥8.
+   * Para el resto de enterococos, S ≤2 / R ≥8. Para estafilococo, S ≤1.
+   */
+  const esFaecium = /faecium/i.test(organismo)
+  const esEnterococo = /enterococ|faecalis|faecium/i.test(organismo)
+  const umbralDapNoS = esFaecium ? 8 : esEnterococo ? 8 : 1
   const dapCmi = cmiDe(r, DAPTOMICINA)
-  if (ES_R(estado(r, DAPTOMICINA)) || (dapCmi !== null && dapCmi > 1)) {
+  if (ES_R(estado(r, DAPTOMICINA)) || (dapCmi !== null && dapCmi >= umbralDapNoS)) {
     out.fenotipos.push({ clave: 'daptomicina-R', nombre: 'Sensibilidad reducida / R a daptomicina', confianza: dapCmi !== null ? 'probable' : 'confirmado', base: `Daptomicina no-S${dapCmi !== null ? ` (CMI ${dapCmi})` : ''}: mutaciones en mprF (carga de la membrana) o el sistema LiaFSR (respuesta de envoltura). ${REF.GRAM_POS}` })
     out.mecanismos.push({ categoria: 'diana', nombre: 'mprF / LiaFSR (remodelación de la membrana)', confianza: 'probable', explicacion: 'Aumento de la carga positiva de la membrana (mprF) o respuesta de estrés de envoltura (LiaFSR) → repele el complejo daptomicina-Ca²⁺. Frecuente tras exposición prolongada a daptomicina o vancomicina. No usar daptomicina; valorar dosis alta + combinación (β-lactámico) o cambio de clase.', referencia: REF.GRAM_POS })
     out.alertas.push({ nivel: 'alta', mensaje: 'Daptomicina no-S (mprF/LiaFSR): frecuente tras terapia previa. Considerar daptomicina dosis alta + β-lactámico (efecto "see-saw") o cambio de clase; infectología.' })

@@ -15,7 +15,7 @@
 import type { NotaIntrinseca, ResultadoAntibiograma } from './tipos'
 import { REF } from './referencias'
 import {
-  organismoEs, ES_S, todosLosEstados,
+  organismoEs, ES_S, todosLosEstados, casaAlguno,
   AMPICILINA, AMOXI_CLAV, CEF1G, CEFOXITINA, COLISTINA, NITROFURANTOINA,
   TETRACICLINA, TIGECICLINA, CARBAPENEM, AZTREONAM, COTRIMOXAZOL, CEF3G, CEFEPIME,
 } from './util'
@@ -194,4 +194,30 @@ function nombreLegible(sinonimos: string[]): string {
 /** ¿La especie es intrínsecamente R a carbapenémicos? (S. maltophilia). Útil para el motor. */
 export function carbapenemIntrinsecoR(organismo: string): boolean {
   return organismoEs(organismo, ['stenotrophomonas', 'maltophilia'])
+}
+
+/**
+ * ¿Este organismo es INTRÍNSECAMENTE resistente a este antibiótico?
+ *
+ * Se expone para que la clasificación MDR/XDR/PDR pueda EXCLUIR lo intrínseco
+ * antes de contar categorías, que es lo que exige Magiorakos explícitamente.
+ *
+ * Sin esto, un Proteus mirabilis COMPLETAMENTE SENSIBLE salía clasificado como
+ * MDR, porque el panel reporta sus cuatro resistencias naturales (nitrofurantoína,
+ * tetraciclina, colistina, tigeciclina) y el conteo las sumaba como si fueran
+ * adquiridas. Lo mismo con una Pseudomonas salvaje y sus resistencias naturales a
+ * ampicilina, cefazolina, cotrimoxazol y demás.
+ *
+ * Marcar como multirresistente a un aislamiento sensible no es un error cosmético:
+ * dispara aislamiento de contacto y escalada a antibióticos de reserva que ese
+ * paciente no necesita.
+ */
+export function esIntrinsecamenteResistente(organismo: string, antibiotico: string): boolean {
+  for (const regla of REGLAS) {
+    if (!organismoEs(organismo, regla.claves)) continue
+    for (const { agente } of regla.resistentes) {
+      if (agente.length && casaAlguno(antibiotico, agente)) return true
+    }
+  }
+  return false
 }

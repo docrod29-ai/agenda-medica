@@ -172,7 +172,9 @@ export function analizarEnterobacterales(organismo: string, r: ResultadoAntibiog
 }
 
 function inferirClaseCarbapenemasa(cza: string | null, aztreonamS: boolean): ClaseEnzima {
-  if (cza === 'R' || cza === 'I') return 'MBL'          // CAZ-AVI no-S excluye KPC/OXA-48 → metalo
+  // CAZ-AVI no-S ORIENTA a metalo. No lo "excluye": existen variantes de KPC
+  // seleccionadas bajo tratamiento con avibactam, y OXA-48 con pérdida de porina.
+  if (cza === 'R' || cza === 'I') return 'MBL'
   if (cza === 'S') return 'carbapenemasa-indeterminada' // serina (KPC/OXA-48) — clase exacta necesita molecular
   if (aztreonamS) return 'MBL'                          // aztreonam conservado + carbapenémico no-S = firma MBL
   return 'carbapenemasa-indeterminada'
@@ -180,7 +182,7 @@ function inferirClaseCarbapenemasa(cza: string | null, aztreonamS: boolean): Cla
 
 function claseBase(clase: ClaseEnzima, cza: string | null, aztreonamS: boolean): string {
   if (clase === 'MBL') {
-    if (cza === 'R' || cza === 'I') return 'Ceftazidima-avibactam no-S → EXCLUYE KPC y OXA-48 → metalo-β-lactamasa (NDM/VIM/IMP); respeta aztreonam. Si aztreonam también no-S: serino-β-lactamasa coproducida ("son dos").'
+    if (cza === 'R' || cza === 'I') return 'Ceftazidima-avibactam no-S → ORIENTA FUERTEMENTE a metalo-β-lactamasa (NDM/VIM/IMP), que respeta aztreonam. No lo excluye por completo: hay variantes de KPC seleccionadas bajo tratamiento con avibactam y OXA-48 con pérdida de porina. OJO A LA COPRODUCCIÓN: si el aztreonam también sale no-S, hay una serino-β-lactamasa acompañante — de ahí que el aztreonam se combine con avibactam, que neutraliza la serina mientras el aztreonam resiste a la metalo.'
     if (aztreonamS) return 'Aztreonam conservado (S) con carbapenémico no-S → firma de metalo-β-lactamasa (NDM/VIM/IMP): hidrolizan todo salvo monobactámicos.'
     return 'Sugiere metalo-β-lactamasa.'
   }
@@ -189,6 +191,6 @@ function claseBase(clase: ClaseEnzima, cza: string | null, aztreonamS: boolean):
 }
 
 function claseAlerta(clase: ClaseEnzima): string {
-  if (clase === 'MBL') return 'Sospecha de MBL: aztreonam-avibactam o cefiderocol DONDE estén disponibles. La ceftazidima-avibactam SOLA es INACTIVA contra MBL.'
-  return 'Ceftazidima-avibactam / meropenem-vaborbactam / imipenem-relebactam según clase (KPC) u OXA-48 (sólo avibactam/cefiderocol).'
+  if (clase === 'MBL') return 'Sospecha de MBL (IMP/NDM/VIM): el aztreonam resiste la hidrólisis metalo, pero casi siempre hay una serino-β-lactamasa coproducida que sí lo destruye — por eso se combina con avibactam (aztreonam-avibactam, o aztreonam + ceftazidima-avibactam donde no exista la combinación fija). Cefiderocol es alternativa. La ceftazidima-avibactam SOLA es INACTIVA contra MBL.'
+  return 'KPC y OXA-48: ceftazidima-avibactam es la opción de elección en ambas. Para KPC también sirven meropenem-vaborbactam e imipenem-relebactam; contra OXA-48 esos dos NO son activos (solo avibactam o cefiderocol).'
 }
