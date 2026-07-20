@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { labsDesdeEstudios } from '@/lib/expediente/labs-desde-texto'
 import { filtrarHerramientas } from '@/lib/herramientas-por-especialidad'
 import { HistorialVersiones } from '@/components/HistorialVersiones'
 import { sugerenciasPendientes, resolverSugerencias } from '@/lib/expediente/sugerencias-ia'
@@ -307,6 +308,12 @@ export default function ConsultaActivaPage() {
   const [medicamentos, setMedicamentos] = useState<Medicamento[]>([])
 
   /**
+   * Se declara aquí, antes del memo del copiloto, porque el copiloto consume los
+   * estudios que salen de esta extracción para calcular TFG, FIB-4 y PREVENT.
+   */
+  const [extraction, setExtraction] = useState<Record<string, unknown> | undefined>(undefined)
+
+  /**
    * Se memoriza aquí y no dentro del componente: al pasarlo como objeto literal
    * en el JSX se creaba uno nuevo en CADA render, el useMemo del Copiloto nunca
    * acertaba y el motor se recalculaba en cada tecla del dictado.
@@ -324,7 +331,23 @@ export default function ConsultaActivaPage() {
       temperatura: signosNum.temperatura, spo2: signosNum.spo2,
       peso: signosNum.peso, talla: signosNum.talla,
     },
-  }), [patient?.edad, patient?.sexo, patient?.alergias, diagnosticos, medicamentos, signosNum])
+    /**
+     * LABORATORIOS — esto es lo que enciende el motor.
+     *
+     * El copiloto ya sabía calcular TFG por CKD-EPI 2021, FIB-4, ajuste renal de
+     * fármacos, PREVENT y metas lipídicas, todo escrito y con pruebas. Pero esta
+     * pantalla NUNCA le pasaba `labs`, así que todo eso estaba muerto: el único
+     * cálculo automático vivo era el IMC. El médico no veía la TFG de su paciente
+     * y encima acababa tecleando a mano escalas que el sistema ya sabía calcular.
+     *
+     * Los estudios salen del dictado a través del NER, que ya los extrae con su
+     * valor y unidad. El mapeo es conservador a propósito: ante la duda no mapea,
+     * porque estos números alimentan fórmulas que producen conducta.
+     */
+    labs: labsDesdeEstudios(
+      (extraction as { tests?: { texto: string; valor?: string; unidad?: string }[] } | undefined)?.tests,
+    ),
+  }), [patient?.edad, patient?.sexo, patient?.alergias, diagnosticos, medicamentos, signosNum, extraction])
   const [resumen, setResumen] = useState('')
   const [procesando, setProcesando] = useState(false)
   // Rol auto-asignado a cada voz diarizada (Hablante A/B → Médico/Paciente/Acompañante).
@@ -392,7 +415,6 @@ export default function ConsultaActivaPage() {
   // Estudios a solicitar (valoración inmuno → pre-pobla la Orden médica)
   const [estudiosOrden, setEstudiosOrden] = useState<string[]>([])
   // Fase B: bloque auditable de la IA + aprobaciones por campo
-  const [extraction, setExtraction] = useState<Record<string, unknown> | undefined>(undefined)
   const [safety, setSafety] = useState<Record<string, unknown> | undefined>(undefined)
   const [aprobados, setAprobados] = useState<Set<string>>(new Set())
   // Fase C: consentimiento del paciente antes de iniciar grabación
