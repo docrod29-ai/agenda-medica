@@ -67,9 +67,84 @@ abrió un paciente ni se imprimió una receta.
 
 ---
 
-## Módulo 1 — Consulta y Expediente Clínico · EN CURSO
+## Módulo 1 — Consulta y Expediente Clínico · CERRADO 2026-07-19
 
 Superficie: dictado, generación de la nota por IA, firma, adendas, versiones, las 11 rutas
 de `api/expediente`.
 
-Agentes lanzados: IA clínica · Bugs · Seguridad · Integridad de datos.
+Agentes: IA clínica · Bugs · Seguridad · Integridad de datos.
+
+Es el peor módulo del loop hasta ahora, y era predecible: es donde vive lo clínico.
+
+### Los dos que podían dañar a un paciente
+
+| Ver | Hallazgo |
+|---|---|
+| v466 | **La nota inventaba la alergia.** Rellenaba `severidad:'moderada'` y `confirmada:true` desde un campo de texto libre. Una **anafilaxia** dictada quedaba registrada como moderada, y la nota firmada afirmaba una confirmación inexistente. Causa de fondo: el TIPO exigía los cinco campos, así que el código no tenía más remedio que inventar los que no sabía. Un tipo que obliga a rellenar obliga a inventar. |
+| v466 | **Caprini ignoraba la negación.** "Niega várices, niega fractura de cadera" marcaba **ambas presentes**: ~+6 puntos y tromboprofilaxis en quien las negó. La línea de arriba, para TVP, sí comprobaba negación. |
+
+### Pérdida de la consulta
+
+| Ver | Hallazgo |
+|---|---|
+| v466 | Un lote de transcripción que fallaba se descartaba en silencio **y se borraba el audio** que lo respaldaba. Cualquier consulta de más de ~7,5 min con la red inestable. |
+| v466 | Grabar por segunda vez **borraba** el dictado anterior. |
+| v468 | Si fallaba la carga de un borrador, el autoguardado lo **vaciaba** a los 30 s. |
+| v468 | El contenido de la consulta **anterior** se volcaba en una nota nueva y vacía. |
+| v468 | El pase en vivo borraba los diagnósticos escritos a mano. |
+| v466 | Notas duplicadas (el respaldo no guardaba el `notaId`) y consultas descartadas que resucitaban. |
+
+### Integridad del documento firmado
+
+| Ver | Hallazgo |
+|---|---|
+| v466 | Una nota firmada decía "Agregado a la nota ✓" sin guardar nada: engaño medicolegal, no cosmético. |
+| v467 | `revisadoPorHumano` era una tautología — **firmar** era lo que lo ponía en true, así que el registro nunca podía decir "firmada sin revisar", que es justo el evento auditable. |
+| v468 | El sello de integridad se calculaba sobre un UUID que cambiaba en cada render. |
+| v468 | El ensamble truncaba la nota a 20k y fusionaba sobre un JSON partido. |
+
+### La decisión de fondo: cuánto completa la IA (v467)
+
+El prompt ordenaba literalmente *"si el médico solo dictó parte, complétalo con lo que
+aplique al cuadro clínico"*, y el plan era obligatorio para firmar: el sistema empujaba
+estructuralmente al modelo a rellenar. El médico dictaba "faringitis, le doy amoxicilina" y
+firmaba 500 mg cada 8 h por 7 días con signos de alarma, **con su cédula**.
+
+Se le presentaron tres opciones y eligió la intermedia: **la IA sigue completando, pero
+marca lo que no se dictó** con `[IA — no dictado]`. Antes de firmar hay que aceptarlo como
+propio o quitarlo. No se puede firmar con la marca puesta.
+
+### Seguridad (v466)
+
+- Cualquiera que se registrara usaba la **API key del dueño sin medidor**: con `clinicId`
+  nulo, las cuatro funciones de contabilidad retornaban temprano. Opus 4.8 ilimitado.
+- El **nombre del paciente** viajaba a Anthropic sin aportar nada a estructurar la nota.
+- Se podía **silenciar al verificador de seguridad hablando en voz alta**: recibía la
+  transcripción cruda sin guarda, y su prompt termina pidiendo `{"hallazgos":[]}`.
+
+### Limpio (confirmado por los agentes)
+
+- **Citas y evidencia**: no hay ningún camino por el que se muestre un PMID o DOI no
+  verificado contra PubMed. El modelo nunca emite PMIDs, solo índices, y los fuera de rango
+  se descartan antes de pintar.
+- **Sin IDOR** en las 11 rutas: el `clinicId` siempre se deriva del servidor.
+- **Signos vitales inventados**: no existe tal camino. Ni exploración física "normal" por
+  defecto.
+- El **motor de antibiograma** determinista no está invadido por el LLM.
+- **Inmutabilidad de lo firmado** y atomicidad de la firma: correctas.
+
+### Pendiente en este módulo
+
+- Dos pestañas sobre la misma nota se pisan en silencio (last-write-wins) y el historial de
+  versiones se escribe pero **no lo lee ninguna pantalla** — además con dos formas
+  incompatibles, así que cada lector ve la mitad.
+- Carrera en la atribución de roles: la primera nota se redacta antes de que lleguen.
+- `_schemaWarning` se emite y nadie lo lee; `sanitizarProsa` borra los avisos de
+  incertidumbre que el modelo escribió a propósito.
+- Al borrar una nota, sus `versions` y `adendas` quedan huérfanas con PHI completo.
+
+### No verificado
+
+**Nada de este módulo se ha probado dictando una consulta real.** Lo pendiente más
+importante: comprobar que el modelo no marque de más — si marca lo que sí se dictó, el
+aviso se vuelve ruido y se deja de leer.
