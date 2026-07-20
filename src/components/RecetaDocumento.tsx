@@ -205,9 +205,23 @@ export function RecetaDocumento({ data, config, recetaConfig, containerId = 'rec
     // Área de MEDICAMENTOS automática: debajo del campo más bajo (nombre/edad/fecha)
     // y con un margen inferior sano para no tapar el pie. Así el médico SOLO coloca
     // los campos y los medicamentos se acomodan solos — nada de calibrar mm.
+    /**
+     * LO QUE EL MÉDICO CALIBRÓ MANDA.
+     *
+     * `margenes` arrancaba en `disenoMargenes` y se sobrescribía ENTERO en cuanto
+     * hubiera un campo colocado, forzando además left/right a 12. Resultado: el
+     * médico movía "Arriba/Abajo" en el calibrador, veía moverse el recuadro cian
+     * —que se dibuja con `disenoMargenes`— guardaba, y el impreso no cambiaba.
+     * Es la receta perfecta para dejar de confiar en la app.
+     *
+     * El autocálculo desde los campos sigue existiendo, porque es lo que permite
+     * "solo coloca los campos y los medicamentos se acomodan solos". Pero es un
+     * VALOR POR DEFECTO: si el médico calibró los márgenes a mano, ganan los suyos.
+     */
+    const calibradoAMano = !!recetaConfig.disenoMargenes
     let margenes = recetaConfig.disenoMargenes
     const c = recetaConfig.disenoCampos
-    if (c) {
+    if (c && !calibradoAMano) {
       const ys = (['nombre', 'edad', 'sexo', 'fecha', 'folio'] as const)
         .map(k => c[k]?.y).filter((v): v is number => typeof v === 'number')
       if (ys.length) {

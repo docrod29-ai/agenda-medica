@@ -5,6 +5,7 @@
  * Sin cambio de comportamiento respecto al monolito original.
  */
 import { useState, useEffect, useRef } from 'react'
+import { areaImpracticable } from '@/lib/receta-paginacion'
 import { RecetaDocumento, type RecetaData } from '@/components/RecetaDocumento'
 import { resizeImageFile, formatBytes } from '@/lib/image-utils'
 import { PAPER_SIZES, ESTILOS_RECETA, detectarPaperSize } from '@/lib/receta-template'
@@ -463,6 +464,30 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
                 <MargenInput label="Izquierda" value={rx.disenoMargenes?.left ?? 12} onChange={(v) => setRx({ ...rx, disenoMargenes: { ...defaultMargenes(rx), left: v } })} />
                 <MargenInput label="Derecha" value={rx.disenoMargenes?.right ?? 12} onChange={(v) => setRx({ ...rx, disenoMargenes: { ...defaultMargenes(rx), right: v } })} />
               </div>
+
+              {/*
+                Aviso ANTES de imprimir. Con márgenes que suman más que la hoja, el
+                área de contenido colapsa y —como cada hoja tiene overflow:hidden—
+                los medicamentos desaparecen del papel sin ningún error. El médico
+                se enteraba al entregarle una receta en blanco al paciente.
+              */}
+              {(() => {
+                const m = rx.disenoMargenes ?? defaultMargenes(rx)
+                const w = rx.disenoWidthMm ?? 140
+                const h = rx.disenoHeightMm ?? 190
+                if (!areaImpracticable(w, h, m)) return null
+                return (
+                  <div style={{
+                    marginTop: 10, background: 'rgba(239,68,68,0.08)',
+                    border: '1px solid rgba(239,68,68,0.35)', borderRadius: 10,
+                    padding: '10px 12px', fontSize: 12.5, lineHeight: 1.5, color: 'var(--text)',
+                  }}>
+                    <strong>Estos márgenes no dejan espacio para los medicamentos.</strong>{' '}
+                    Suman más que la hoja ({w}×{h} mm), así que la receta saldría sin el
+                    tratamiento. Reduce Arriba o Abajo.
+                  </div>
+                )
+              })()}
               <div style={{ marginTop: 10 }}>
                 <label style={cfgLabel}>Tamaño de letra del contenido (px)</label>
                 <input
