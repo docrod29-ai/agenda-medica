@@ -66,6 +66,7 @@ export type ConceptoCobro =
   | 'medicamento'
   | 'material'
   | 'paquete'
+  | 'membresia'  // cuota de una membresía recurrente del paciente
   | 'abono'      // pago parcial de un saldo
   | 'reembolso'  // monto negativo
   | 'otro'
@@ -78,6 +79,7 @@ export const CONCEPTO_LABEL: Record<ConceptoCobro, string> = {
   medicamento: 'Medicamento',
   material: 'Material',
   paquete: 'Paquete',
+  membresia: 'Membresía',
   abono: 'Abono a saldo',
   reembolso: 'Reembolso',
   otro: 'Otro',

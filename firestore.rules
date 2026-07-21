@@ -325,6 +325,15 @@ service cloud.firestore {
           && (request.resource.data.get('cantidad', 0) is number)
           && request.resource.data.get('cantidad', 0) >= 0;
       }
+      // Membresías de pacientes: catálogo de planes + asignaciones. Cualquier
+      // miembro del consultorio (incl. asistente) las gestiona; el cobro real pasa
+      // por la colección `cobros` (con sus propias reglas anti-fraude).
+      match /membership_plans/{planId} {
+        allow read, write: if isMember(clinicId);
+      }
+      match /memberships/{membershipId} {
+        allow read, write: if isMember(clinicId);
+      }
       // Movimientos de farmacia (entradas, salidas, ajustes). Inmutables, y el
       // autor lo sella el servidor: antes se podía crear un movimiento a nombre
       // de otro (el registro de controlados debe acreditar QUIÉN dispensó).

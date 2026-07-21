@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v536'  // TRACK 1 fase 2: DEMOSTRACION PUBLICA del razonamiento en /demo/razonamiento. Caso clinico sembrado (mujer 68a, DM2+ERC+FA, polifarmacia con triple whammy AINE+IECA+ERC) que enciende los motores DETERMINISTAS de verdad (TFG por CKD-EPI, ajuste renal metformina, alergia penicilina<->amoxicilina, crisis HT, metas LDL, FIB-4) y muestra los 12 pasos + el copiloto en vivo, client-side, sin IA ni PubMed en vivo, sin PHI. Responde directo a 'el copiloto es la promesa menos demostrada'. Enlazado desde /demo.
+const CACHE = 'nexusmed-v537'  // FASE 2 build 1: MEMBRESIAS DE PACIENTES (paridad Nimbo/AgendaPro). Modelo pragmatico v1 sin Stripe Connect: el consultorio define PLANES (nombre/precio/periodicidad/beneficios), asigna pacientes, y el sistema controla el CICLO (proximoCobro). Worklist 'por cobrar' con vencidas primero; 'Cobrar' registra un cobro real (concepto 'membresia') y avanza el ciclo un periodo. Nueva lib membresias.ts (+2 tests), pagina /membresias en el sidebar, reglas Firestore (membership_plans + memberships = miembros), concepto 'membresia' en cobros. El cobro automatico con tarjeta se puede anadir despues sobre esta base.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
