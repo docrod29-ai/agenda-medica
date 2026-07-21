@@ -10,7 +10,7 @@
  * Para corregir un error → registrar un cobro negativo (refund/ajuste).
  */
 import {
-  collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc, runTransaction,
+  collection, addDoc, getDocs, getDoc, query, where, orderBy, doc, updateDoc, runTransaction,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { celdaSegura } from '@/lib/csv-seguro'
@@ -200,12 +200,27 @@ export async function cancelarCobro(
   const m = (motivo || '').trim()
   if (!m) throw new Error('La anulación de un cobro requiere un motivo.')
   if (!autorUid) throw new Error('No se pudo identificar quién anula el cobro.')
-  await updateDoc(doc(COL(clinicId), cobroId), {
+  const cobroRef = doc(COL(clinicId), cobroId)
+  // Leemos la cita ligada ANTES de anular, para liberarla también.
+  const snap = await getDoc(cobroRef)
+  const citaId = snap.exists() ? (snap.data()?.citaId as string | undefined) : undefined
+  await updateDoc(cobroRef, {
     cancelado: true,
     motivoCancelacion: m,
     canceladoPor: autorUid,
     canceladoEn: new Date().toISOString(),
   })
+  /**
+   * Liberar la CITA: sin esto, el `cobroId` seguía puesto y el botón "Cobrar"
+   * (que se oculta cuando la cita tiene cobroId) NUNCA reaparecía, así que una
+   * consulta anulada por captura equivocada no se podía volver a cobrar y encima
+   * `cuentasPorCobrar` la mostraba pendiente → dos pantallas se contradecían.
+   */
+  if (citaId) {
+    await updateDoc(doc(db, 'clinics', clinicId, 'appointments', citaId), {
+      cobroId: '', cobradoEn: '',
+    }).catch(() => { /* la cita pudo borrarse; la anulación del cobro ya quedó */ })
+  }
 }
 
 /** Marcar cobro con factura SAT */

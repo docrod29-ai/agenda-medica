@@ -19,7 +19,7 @@ import { useClinic } from '@/context/ClinicContext'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/context/ToastContext'
 import {
-  listarCobros, agregarResumen, cobrosACSV, fmtMXN,
+  listarCobros, agregarResumen, cobrosACSV, fmtMXN, cancelarCobro,
   METODO_LABEL, CONCEPTO_LABEL,
   type Cobro, type MetodoPago, type ConceptoCobro, type ResumenMes,
 } from '@/lib/cobros'
@@ -149,6 +149,10 @@ export default function FinanzasPage() {
   }, [clinicId, periodo, ancla, desde, hasta])
 
   const [cancelados, setCancelados] = useState<Cobro[]>([])
+  // Anulación de un cobro (captura equivocada): modal con motivo obligatorio.
+  const [anulando, setAnulando] = useState<Cobro | null>(null)
+  const [motivoAnul, setMotivoAnul] = useState('')
+  const [anulaGuardando, setAnulaGuardando] = useState(false)
   const resumen = useMemo(() => agregarResumen(cobros), [cobros])
   const cambio = resumenAnterior
     ? ((resumen.totalIngresos - resumenAnterior.totalIngresos) / Math.max(1, resumenAnterior.totalIngresos)) * 100
@@ -468,6 +472,11 @@ export default function FinanzasPage() {
                     <div style={{ fontSize: 14, fontWeight: 700, color: c.monto >= 0 ? '#10b981' : '#ef4444', textAlign: 'right' }}>
                       {fmtMXN(c.monto)}
                     </div>
+                    <button
+                      onClick={() => { setAnulando(c); setMotivoAnul('') }}
+                      title="Anular este cobro (captura equivocada)"
+                      style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text3)', fontSize: 11, padding: '4px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    >Anular</button>
                   </div>
                 ))
               )}
@@ -522,6 +531,47 @@ export default function FinanzasPage() {
           onClose={() => setCreando(false)}
           onCobrado={() => { recargar() }}
         />
+      )}
+
+      {anulando && (
+        <div
+          onClick={() => !anulaGuardando && setAnulando(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 16, padding: 22, width: '100%', maxWidth: 420 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Anular cobro</div>
+            <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 14 }}>
+              {anulando.patientNombre ?? 'Sin paciente'} · {fmtMXN(anulando.monto)} · {anulando.folio}
+              <br />No se borra: queda registrado como anulado (con motivo, quién y cuándo). Si estaba ligado a una cita, podrás volver a cobrarla.
+            </div>
+            <textarea
+              value={motivoAnul}
+              onChange={e => setMotivoAnul(e.target.value)}
+              placeholder="Motivo de la anulación (obligatorio). Ej. monto capturado por error."
+              rows={3}
+              style={{ width: '100%', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', fontSize: 13, color: 'var(--text)', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }}
+            />
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16 }}>
+              <button disabled={anulaGuardando} onClick={() => setAnulando(null)} style={{ background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
+              <button
+                disabled={anulaGuardando || !motivoAnul.trim() || !clinicId || !user}
+                onClick={async () => {
+                  if (!clinicId || !user || !anulando?.id) return
+                  setAnulaGuardando(true)
+                  try {
+                    await cancelarCobro(clinicId, anulando.id, motivoAnul.trim(), user.uid)
+                    toast('Cobro anulado', 'info')
+                    setAnulando(null)
+                    await recargar()
+                  } catch (e) {
+                    toast(e instanceof Error ? e.message : 'No se pudo anular', 'error')
+                  } finally { setAnulaGuardando(false) }
+                }}
+                style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: (anulaGuardando || !motivoAnul.trim()) ? 'default' : 'pointer', opacity: (anulaGuardando || !motivoAnul.trim()) ? 0.6 : 1 }}
+              >{anulaGuardando ? 'Anulando…' : 'Anular cobro'}</button>
+            </div>
+          </div>
+        </div>
       )}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

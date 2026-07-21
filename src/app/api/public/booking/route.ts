@@ -12,6 +12,7 @@ import { instanteMX } from '@/lib/timezone'
 import { adminDb } from '@/lib/firebase-admin'
 import { getDaySchedule, validarHorarioDia } from '@/lib/availability'
 import { estaBloqueado } from '@/lib/time-blocks'
+import { limitarOResponder } from '@/lib/rate-limit'
 
 interface Body {
   clinicId: string
@@ -42,6 +43,22 @@ export async function POST(req: NextRequest) {
     if (!consentimientos?.avisoPrivacidad || !consentimientos?.informado) {
       return NextResponse.json({ ok: false, error: 'Se requieren los consentimientos' }, { status: 400 })
     }
+
+    /**
+     * RATE-LIMIT (endpoint público sin auth). Sin esto, un script podía crear
+     * pacientes y citas 'solicitada' en masa y disparar WhatsApp a números
+     * arbitrarios (spam/costo). Dos ventanas: por IP (freno general) y por
+     * teléfono+clínica (evita reservas repetidas del mismo número). Es a prueba de
+     * fallos: si Firestore falla, `limitar` deja pasar (no bloquea reservas
+     * legítimas por un problema de infraestructura).
+     */
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'sin-ip'
+    const telClave = (paciente.telefono || '').replace(/\D/g, '').slice(-10)
+    const limIp = await limitarOResponder(`booking:ip:${ip}`, 8, 3600, 'Demasiadas solicitudes. Intenta más tarde.')
+    if (limIp) return limIp
+    const limTel = await limitarOResponder(`booking:tel:${clinicId}:${telClave}`, 4, 86400, 'Ya tienes varias solicitudes recientes. Te contactaremos pronto.')
+    if (limTel) return limTel
+
     // Validaciones de forma (defensa contra abuso de endpoint público)
     if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return NextResponse.json({ ok: false, error: 'Fecha inválida' }, { status: 400 })
     if (!/^\d{2}:\d{2}$/.test(hora)) return NextResponse.json({ ok: false, error: 'Hora inválida' }, { status: 400 })
