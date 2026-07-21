@@ -196,7 +196,9 @@ export default function CartaReferenciaPage() {
           {(config?.telefonoAdmin || config?.whatsappConsultorio) && <div style={{ fontSize: 11, color: '#555' }}>Tel. {config.telefonoAdmin || config.whatsappConsultorio}</div>}
         </div>
 
-        <div style={{ textAlign: 'right', fontSize: 12.5, marginBottom: 14 }}>{config?.direccion?.split(',').pop()?.trim() || 'Chihuahua, Chih.'}, a {fecha}</div>
+        {/* Lugar: último segmento de la dirección del consultorio si lo hay; NUNCA
+            una ciudad fija (antes decía "Chihuahua, Chih." para cualquier clínica). */}
+        <div style={{ textAlign: 'right', fontSize: 12.5, marginBottom: 14 }}>{(() => { const lugar = config?.direccion?.split(',').pop()?.trim(); return lugar ? `${lugar}, a ${fecha}` : `A ${fecha}` })()}</div>
 
         <div style={{ textAlign: 'center', fontSize: 15, fontWeight: 700, marginBottom: 14 }}>
           {titulo}

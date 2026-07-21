@@ -137,7 +137,7 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
   // Conflict check (médico-aware + bloqueos, igual que los slots)
   useEffect(() => {
     if (!fecha || !hora) { setConflict(false); return }
-    setConflict(hasConflict(fecha, hora, duracion, appointments, appointment?.id, bloques, medicoId || undefined, config))
+    setConflict(hasConflict(fecha, hora, duracion, appointments, appointment?.id, bloques, medicoId || undefined, cfgAgenda))
     /**
      * Si se sube la duración DESPUÉS de elegir la hora, esa hora puede dejar de
      * caber. El desplegable se quedaba visualmente en blanco pero el estado seguía

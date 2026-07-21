@@ -17,6 +17,7 @@ import { ClinicConfig, WaitlistEntry } from '@/types'
 import { enviarProactivo } from '@/lib/whatsapp/proactivo'
 import { encolarReintento } from '@/lib/whatsapp/outbox'
 import { hoyISO } from '@/lib/timezone'
+import { normalizarTelefonoWa } from '@/lib/whatsapp/consent'
 
 function formatDate(fecha: string): string {
   const d = new Date(fecha + 'T12:00:00')
@@ -109,8 +110,13 @@ export async function POST(req: NextRequest) {
       if (resultado === 'enviado') {
         notified++
 
+        // MISMA clave canónica que el webhook (normalizarTelefonoWa → 52 + 10
+        // dígitos). Antes se guardaba el teléfono crudo y el webhook buscaba por
+        // el wa_id de Meta (formato 521…): no coincidían y la respuesta "SÍ" del
+        // paciente caía al menú por defecto → el hueco se perdía en silencio.
+        const telNorm = normalizarTelefonoWa(entry.pacienteTelefono || '')
         const sessionData = {
-          telefono: entry.pacienteTelefono,
+          telefono: telNorm,
           estado: 'esperando_lista',
           datos: {
             nombre: entry.pacienteNombre,
@@ -140,7 +146,7 @@ export async function POST(req: NextRequest) {
          *
          * Se usa el mismo id determinista, con merge para no pisar lo que ya haya.
          */
-        const idSesion = (entry.pacienteTelefono || '').replace(/\D/g, '').slice(-15) || 'sin-telefono'
+        const idSesion = telNorm || 'sin-telefono'
         await clinicRef.collection('bot_sessions').doc(idSesion).set(sessionData, { merge: true })
 
         // Mark waitlist entry as contactado

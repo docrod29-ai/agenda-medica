@@ -131,7 +131,7 @@ export function construirRecetaHTML(
       <div style="border-top:1pt solid #000;width:240pt;margin:0 auto;padding-top:4pt;font-size:10pt;">
         <b>${esc(medico)}</b><br/>
         ${especialidad ? esc(especialidad) + '<br/>' : ''}
-        Cédula Prof. ${esc(cedula)}
+        ${cedula ? 'Cédula Prof. ' + esc(cedula) : '[FALTA CÉDULA PROFESIONAL]'}
         ${recetaConfig.registroDGP ? '<br/>Reg. DGP/SSA ' + esc(recetaConfig.registroDGP) : ''}
       </div>
     </div>`

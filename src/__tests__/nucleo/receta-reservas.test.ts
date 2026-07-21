@@ -78,12 +78,28 @@ describe('la firma cabe', () => {
     expect(conFirma.length).toBeGreaterThanOrEqual(sinFirma.length)
   })
 
-  it('un formato propio que firma cada hoja reserva espacio en todas', () => {
-    const meds = Array.from({ length: 14 }, (_, i) => med(`Fármaco ${i + 1}`))
+  it('un formato propio que firma cada hoja reserva espacio en las de continuación y no pierde medicamentos', () => {
+    // Nombres largos (envuelven en varias líneas) para forzar multi-hoja de verdad.
+    const meds = Array.from({ length: 14 }, (_, i) =>
+      med(`Amoxicilina con ácido clavulánico ${i + 1} — presentación en suspensión`))
     const todas = paginarParaDocumento({ ...base, medicamentos: meds, firmaEnTodasLasHojas: true })
-    const soloUltima = paginarParaDocumento({ ...base, medicamentos: meds, firmaEnTodasLasHojas: false })
+    // Lo que de verdad importa: ningún medicamento desaparece.
     expect(totalMedicamentos(todas)).toBe(14)
-    expect(todas.length).toBeGreaterThanOrEqual(soloUltima.length)
+    // Y en multi-hoja SÍ se reserva la firma en las de continuación (su
+    // `disponibleContinuacion` es genérico y no la descuenta).
+    expect(todas.length).toBeGreaterThan(1)
+  })
+
+  it('REGRESIÓN (bug real del Dr.): membrete propio con pocos meds = 1 sola hoja, sin hoja fantasma', () => {
+    // Con membrete propio la firma va en una zona CALIBRADA (posición absoluta),
+    // fuera del flujo del contenido — verificado en vivo en la receta del Dr.: 4
+    // medicamentos + firma caben en la hoja 1. Antes se contaba la firma también en
+    // la "cola", lo que forzaba una hoja 2 VACÍA ("Continuación… Hoja 2 de 2"). La
+    // hoja 1 NO debe reservar la firma en la cola cuando `firmaEnTodasLasHojas`.
+    const meds = ['Metformina', 'Insulina glargina', 'Dapagliflozina', 'Telmisartán'].map(med)
+    const paginas = paginarParaDocumento({ ...base, medicamentos: meds, firmaEnTodasLasHojas: true })
+    expect(paginas.length).toBe(1)
+    expect(totalMedicamentos(paginas)).toBe(4)
   })
 
   it('el indicador de última página es único y va al final', () => {

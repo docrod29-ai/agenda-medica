@@ -26,7 +26,7 @@ import { marcarProcesado, telefonoRedactado } from '@/lib/whatsapp/dedup'
 import { permiteFallbackUnicoTenant } from '@/lib/whatsapp/tenant'
 import {
   esPalabraBaja, esPalabraAlta, registrarBaja, registrarAlta,
-  MENSAJE_BAJA_OK, MENSAJE_ALTA_OK,
+  MENSAJE_BAJA_OK, MENSAJE_ALTA_OK, normalizarTelefonoWa,
 } from '@/lib/whatsapp/consent'
 import { registrarEntrante } from '@/lib/whatsapp/contacts'
 import { parsearStatuses, registrarStatus } from '@/lib/whatsapp/status'
@@ -153,28 +153,41 @@ function clinicSessions(clinicId: string) {
   return adminDb.collection('clinics').doc(clinicId).collection('bot_sessions')
 }
 
+/**
+ * CLAVE CANÓNICA DE SESIÓN — el mismo teléfono debe mapear SIEMPRE al mismo doc.
+ *
+ * Antes había dos convenciones sobre `bot_sessions`: el webhook buscaba por el
+ * CAMPO `telefono` (con el wa_id crudo de Meta, formato `521…`) y creaba con
+ * `.add()` (id aleatorio), mientras `waitlist-notify` guardaba con un id derivado
+ * de `pacienteTelefono` (dígitos sin lada, `55…`). Las dos claves NO coincidían:
+ * el paciente respondía "SÍ" a una oferta de lista de espera, el webhook no
+ * encontraba la sesión `esperando_lista`, caía al menú por defecto y el hueco se
+ * perdía en silencio. Ahora todo se indexa por el teléfono NORMALIZADO
+ * (`normalizarTelefonoWa` → `52` + 10 dígitos), igual que opt-out y la ventana de
+ * 24 h, usándolo como ID del documento para que no puedan existir duplicados.
+ */
+function claveSesion(telefono: string): string {
+  return normalizarTelefonoWa(telefono)
+}
+
 async function getSession(clinicId: string, telefono: string): Promise<(Session & { id: string }) | null> {
-  const snap = await clinicSessions(clinicId).where('telefono', '==', telefono).limit(1).get()
-  if (snap.empty) return null
-  const d = snap.docs[0]
+  const id = claveSesion(telefono)
+  const d = await clinicSessions(clinicId).doc(id).get()
+  if (!d.exists) return null
   return { id: d.id, ...(d.data() as Session) }
 }
 
 async function saveSession(clinicId: string, telefono: string, update: Partial<Session>): Promise<void> {
   const now = new Date().toISOString()
-  const existing = await getSession(clinicId, telefono)
-  if (existing) {
-    await clinicSessions(clinicId).doc(existing.id).update({ ...update, lastMessageAt: now })
-  } else {
-    await clinicSessions(clinicId).add({
-      telefono, estado: 'inicio', datos: {}, lastMessageAt: now, createdAt: now, ...update,
-    })
-  }
+  const id = claveSesion(telefono)
+  await clinicSessions(clinicId).doc(id).set(
+    { telefono: id, estado: 'inicio', datos: {}, createdAt: now, ...update, lastMessageAt: now },
+    { merge: true },
+  )
 }
 
 async function clearSession(clinicId: string, telefono: string): Promise<void> {
-  const existing = await getSession(clinicId, telefono)
-  if (existing) await clinicSessions(clinicId).doc(existing.id).delete()
+  await clinicSessions(clinicId).doc(claveSesion(telefono)).delete().catch(() => {})
 }
 
 // ── Find clinic by WhatsApp phoneNumberId ─────────────────────

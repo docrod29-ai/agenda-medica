@@ -183,7 +183,10 @@ export default function GeneradorRecetaPage() {
     // (media carta exacta) NO funciona en la práctica porque Safari lo redondea a
     // A5 y recorta el diseño.
     return { ...merged, imprimirEn: 'carta' as const }
-  }, [config, nota?.metadata?.medicoId])
+    // `unicoMedico` y `overrideRecetaValido` SÍ entran en el cálculo (entradaPorMedico):
+    // `unicoMedico` llega tarde desde useDoctors, así que sin él en deps la plantilla
+    // podía quedarse con el valor inicial y desalinearse de la firma (que sí lo escucha).
+  }, [config, nota?.metadata?.medicoId, unicoMedico, overrideRecetaValido])
 
   // Pide al servidor la URL de verificación firmada (secreto HMAC no accesible en
   // cliente). Sin datos del paciente. Si falla, el QR cae al folio.

@@ -50,8 +50,32 @@ export async function POST(req: NextRequest) {
   const cfgSnap = await adminDb.collection('clinics').doc(clinicId).collection('config').doc('main').get()
   const cfg = cfgSnap.data()
   if (cfg) {
+    /**
+     * HORARIO POR MÉDICO, no solo el de la clínica.
+     *
+     * Cada médico puede tener su propio horario/duraciones (subcolección
+     * `doctors`). El modal genera los huecos con ESE horario, pero aquí se validaba
+     * solo contra `config/main`: si el doctor trabaja un día que la clínica marca
+     * inactivo (o más tarde que ella), el servidor rechazaba con 409 una cita que
+     * el modal sí ofrecía. Se carga el doc del médico y sus campos pisan a los de
+     * la clínica (fallback a `main` si el médico no define alguno).
+     */
+    let cfgEfectiva = cfg as unknown as import('@/types').ClinicConfig
+    if (medicoId) {
+      const docSnap = await adminDb.collection('clinics').doc(clinicId).collection('doctors').doc(medicoId).get()
+      const doc = docSnap.data()
+      if (doc) {
+        cfgEfectiva = {
+          ...cfgEfectiva,
+          horario: doc.horario ?? cfgEfectiva.horario,
+          duraciones: doc.duraciones ?? cfgEfectiva.duraciones,
+          intervaloMinutos: doc.intervaloMinutos ?? cfgEfectiva.intervaloMinutos,
+          zonaHoraria: doc.zonaHoraria ?? cfgEfectiva.zonaHoraria,
+        }
+      }
+    }
     const { getDaySchedule, validarHorarioDia } = await import('@/lib/availability')
-    const schedule = getDaySchedule(fecha, cfg as unknown as import('@/types').ClinicConfig)
+    const schedule = getDaySchedule(fecha, cfgEfectiva)
     if (!schedule) {
       return NextResponse.json({ error: 'Ese día el consultorio no da servicio' }, { status: 409 })
     }

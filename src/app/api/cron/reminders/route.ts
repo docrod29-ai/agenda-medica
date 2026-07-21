@@ -114,7 +114,10 @@ export async function GET(req: NextRequest) {
         const snap = await adminDb
           .collection('clinics').doc(clinicId)
           .collection('appointments')
-          .where('estado', 'in', ['confirmada', 'pendiente-confirmar', 'solicitada'])
+          // 'recordatorio-enviado' DEBE incluirse: al mandar el aviso de 24 h una
+          // cita 'confirmada' pasa a ese estado; sin él, salía de la query y nunca
+          // recibía el recordatorio de mismo día.
+          .where('estado', 'in', ['confirmada', 'pendiente-confirmar', 'solicitada', 'recordatorio-enviado'])
           .get()
 
         const appointments = snap.docs.map(d => ({ id: d.id, ...d.data() } as Appointment))
