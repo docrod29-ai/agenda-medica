@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v520'  // Lote seguridad+finanzas: (1) /api/public/booking ahora con RATE-LIMIT (por IP 8/h y por telefono+clinica 4/dia) — antes un script creaba pacientes/citas en masa y disparaba WhatsApp a numeros arbitrarios. (2) Timbrado CFDI (facturacion/solicitar): el check de cfdiUuid y la escritura no eran atomicos -> dos solicitudes concurrentes timbraban DOS CFDI (problema fiscal); ahora reserva atomica con lock de 60s por transaccion, con liberacion si falla Facturama. (3) ANULAR COBRO: cancelarCobro ahora tambien limpia el cobroId de la cita (antes el boton 'Cobrar' no reaparecia y cuentas por cobrar se contradecia) + NUEVO boton 'Anular' con modal de motivo obligatorio en Finanzas (antes solo se podia anular por consola).
+const CACHE = 'nexusmed-v521'  // Lista de espera: el prefill de 'avisar hueco' usaba fecha UTC (saltaba a manana pasadas las 18:00 MX) y getHours()+1 podia dar '24:00' invalido; ahora usa hoyISO()+ahoraMinutosDelDia() de MX con wrap %24.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

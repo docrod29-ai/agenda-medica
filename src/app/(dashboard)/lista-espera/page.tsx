@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { WaitlistEntry, AppointmentType, APPOINTMENT_TYPE_CONFIG } from '@/types'
+import { hoyISO, ahoraMinutosDelDia } from '@/lib/timezone'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { PageHeader, Button, EmptyState, Spinner, Modal, Input, Select, Textarea } from '@/components/ui'
 import { AgendaVacia } from '@/components/brand/EmptyArt'
@@ -59,11 +60,14 @@ export default function ListaEsperaPage() {
    * como contactado para no volver a avisarle una y otra vez.
    */
   const handleNotify = (entry: WaitlistEntry) => {
-    const ahora = new Date()
+    // Prefill en hora de MÉXICO, no UTC ni la del navegador: `toISOString().slice(0,10)`
+    // saltaba a mañana pasadas las 18:00 MX, y `getHours()+1` a las 23:00 producía
+    // "24:00" (hora inválida). Es solo un prefill editable, pero conviene que sea válido.
+    const proxHora = (Math.floor(ahoraMinutosDelDia() / 60) + 1) % 24
     setNotificando({
       entry,
-      fecha: ahora.toISOString().slice(0, 10),
-      hora: `${String(ahora.getHours() + 1).padStart(2, '0')}:00`,
+      fecha: hoyISO(),
+      hora: `${String(proxHora).padStart(2, '0')}:00`,
     })
   }
 
