@@ -1,20 +1,36 @@
 import { AppointmentStatus } from '@/types'
 
-const STATUS_STYLES: Record<AppointmentStatus, { label: string; bg: string; text: string; dot: string }> = {
-  'solicitada':           { label: 'Solicitada',           bg: 'rgba(251,191,36,0.12)',  text: '#fbbf24', dot: '#fbbf24' },
-  'pendiente-datos':      { label: 'Pendiente de datos',   bg: 'rgba(251,191,36,0.12)',  text: '#fbbf24', dot: '#fbbf24' },
-  'pendiente-confirmar':  { label: 'Pendiente confirmar',  bg: 'rgba(251,191,36,0.12)',  text: '#fb923c', dot: '#fb923c' },
-  'confirmada':           { label: 'Confirmada',           bg: 'rgba(61,90,254,0.12)',   text: '#3D5AFE', dot: '#3D5AFE' },
-  'recordatorio-enviado': { label: 'Recordatorio enviado', bg: 'rgba(59,130,246,0.12)',  text: '#60a5fa', dot: '#60a5fa' },
-  'en-sala':              { label: 'En sala de espera',    bg: 'rgba(59,130,246,0.18)',  text: '#93c5fd', dot: '#93c5fd' },
-  'en-consulta':          { label: 'En consulta',          bg: 'rgba(168,85,247,0.18)',  text: '#c084fc', dot: '#c084fc' },
-  'atendida':             { label: 'Atendida',             bg: 'rgba(61,90,254,0.12)',   text: '#34d399', dot: '#34d399' },
-  'finalizada':           { label: 'Finalizada',           bg: 'rgba(148,163,184,0.1)',  text: '#94a3b8', dot: '#94a3b8' },
-  'cancelada':            { label: 'Cancelada',            bg: 'rgba(239,68,68,0.12)',   text: '#f87171', dot: '#f87171' },
-  'reagendada':           { label: 'Reagendada',           bg: 'rgba(251,146,60,0.12)',  text: '#fb923c', dot: '#fb923c' },
-  'no-asistio':           { label: 'No asistió',           bg: 'rgba(239,68,68,0.12)',   text: '#ef4444', dot: '#ef4444' },
-  'pendiente-pago':       { label: 'Pendiente de pago',    bg: 'rgba(249,115,22,0.15)',  text: '#fb923c', dot: '#fb923c' },
-  'pagada':               { label: 'Pagada',               bg: 'rgba(34,197,94,0.12)',   text: '#4ade80', dot: '#4ade80' },
+/**
+ * ESTADOS DE CITA — con color por TEMA, no fijo.
+ *
+ * Antes cada estado llevaba un color claro cableado (verde/azul pastel: #34d399,
+ * #93c5fd, #4ade80…) pensado para texto claro sobre fondo oscuro. En MODO CLARO
+ * esos pasteles caían sobre un fondo translúcido casi blanco y desaparecían — el
+ * médico no distinguía "Atendida" de "Pagada". Los badges no se adaptaban al tema.
+ *
+ * Ahora cada estado se mapea a un TONO semántico (blue/amber/red/green/purple/
+ * gris) y el color sale de las variables `--blue/--amber/...`, que globals.css ya
+ * define con contraste AA POR TEMA. El fondo es una tinta translúcida del mismo
+ * tono con `color-mix`. Resultado: legible en claro y oscuro sin duplicar tablas.
+ */
+
+type Tono = 'blue' | 'amber' | 'red' | 'green' | 'purple' | 'gris'
+
+const STATUS: Record<AppointmentStatus, { label: string; tono: Tono }> = {
+  'solicitada':           { label: 'Solicitada',           tono: 'amber' },
+  'pendiente-datos':      { label: 'Pendiente de datos',   tono: 'amber' },
+  'pendiente-confirmar':  { label: 'Pendiente confirmar',  tono: 'amber' },
+  'confirmada':           { label: 'Confirmada',           tono: 'blue' },
+  'recordatorio-enviado': { label: 'Recordatorio enviado', tono: 'blue' },
+  'en-sala':              { label: 'En sala de espera',    tono: 'blue' },
+  'en-consulta':          { label: 'En consulta',          tono: 'purple' },
+  'atendida':             { label: 'Atendida',             tono: 'green' },
+  'finalizada':           { label: 'Finalizada',           tono: 'gris' },
+  'cancelada':            { label: 'Cancelada',            tono: 'red' },
+  'reagendada':           { label: 'Reagendada',           tono: 'amber' },
+  'no-asistio':           { label: 'No asistió',           tono: 'red' },
+  'pendiente-pago':       { label: 'Pendiente de pago',    tono: 'amber' },
+  'pagada':               { label: 'Pagada',               tono: 'green' },
 }
 
 interface Props {
@@ -23,20 +39,24 @@ interface Props {
 }
 
 export function StatusBadge({ status, size = 'md' }: Props) {
-  const s = STATUS_STYLES[status]
+  const s = STATUS[status]
   if (!s) return null
+  // Paleta de badge dedicada (globals.css), tuneada AA por tema. El texto NO se
+  // tinta contra su propio color: fondo claro-neutro + texto oscuro del tono.
+  const texto = `var(--badge-${s.tono}-t)`
+  const fondo = `var(--badge-${s.tono}-b)`
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 5,
       padding: size === 'sm' ? '2px 8px' : '3px 10px',
       borderRadius: 9999,
-      background: s.bg,
-      color: s.text,
+      background: fondo,
+      color: texto,
       fontSize: size === 'sm' ? 11 : 12,
-      fontWeight: 500,
+      fontWeight: 600,
       whiteSpace: 'nowrap',
     }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.dot, flexShrink: 0 }} />
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: texto, flexShrink: 0 }} />
       {s.label}
     </span>
   )

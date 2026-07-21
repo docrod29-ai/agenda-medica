@@ -39,6 +39,15 @@
   --green:     #15803D;
   --purple:    #7C3AED;
 
+  /* Badges de estado (texto sobre fondo) — DARK. Texto claro sobre tinte oscuro
+     translúcido; verificado con buen contraste en modo oscuro. */
+  --badge-green-t:  #4ade80; --badge-green-b:  rgba(34,197,94,0.16);
+  --badge-blue-t:   #7aa2ff; --badge-blue-b:   rgba(61,90,254,0.18);
+  --badge-amber-t:  #fbbf24; --badge-amber-b:  rgba(251,191,36,0.16);
+  --badge-red-t:    #f87171; --badge-red-b:    rgba(239,68,68,0.16);
+  --badge-purple-t: #c084fc; --badge-purple-b: rgba(168,85,247,0.18);
+  --badge-gris-t:   #A8ACAE; --badge-gris-b:   rgba(148,163,184,0.14);
+
   /* Texto bone — warm, sofisticado, no slate-frío */
   --text:      #F2EFE9;
   --text2:     #A8ACAE;
@@ -905,6 +914,17 @@ tbody tr:last-child { border-bottom: none; }
   --red:       #B91C1C;
   --green:     #14532D;
   --purple:    #6D28D9;
+
+  /* Badges de estado — LIGHT. Texto OSCURO sobre fondo MUY claro del mismo tono;
+     medido ≥4.6:1. Tintar el fondo con el mismo tono del texto (lo que se hacía
+     antes con color-mix) hundía el contraste a ~2.3:1: los pasteles de modo
+     oscuro desaparecían sobre el crema. */
+  --badge-green-t:  #0F5C2E; --badge-green-b:  #E1F0E7;
+  --badge-blue-t:   #1B3FA8; --badge-blue-b:   #E4EAFB;
+  --badge-amber-t:  #92400E; --badge-amber-b:  #FBEEDD;
+  --badge-red-t:    #991B1B; --badge-red-b:    #FBE6E6;
+  --badge-purple-t: #5B21B6; --badge-purple-b: #EEE6FB;
+  --badge-gris-t:   #565A60; --badge-gris-b:   #ECEAE3;
 }
 
 /* Placeholder más oscuro en claro: #5A5F66 da ~5.3:1 sobre el crema de los
@@ -940,6 +960,12 @@ tbody tr:last-child { border-bottom: none; }
     --red:       #B91C1C;
     --green:     #14532D;
     --purple:    #6D28D9;
+    --badge-green-t:  #0F5C2E; --badge-green-b:  #E1F0E7;
+    --badge-blue-t:   #1B3FA8; --badge-blue-b:   #E4EAFB;
+    --badge-amber-t:  #92400E; --badge-amber-b:  #FBEEDD;
+    --badge-red-t:    #991B1B; --badge-red-b:    #FBE6E6;
+    --badge-purple-t: #5B21B6; --badge-purple-b: #EEE6FB;
+    --badge-gris-t:   #565A60; --badge-gris-b:   #ECEAE3;
   }
   /* Mismo placeholder oscuro para el auto-claro del OS. */
   :root:not([data-theme="dark"]):not([data-theme="light"]) .input::placeholder,

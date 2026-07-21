@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v502'  // LABORATORIOS TAMBIEN EN LA CONSULTA. El modulo de laboratorios con IA (adjuntar PDF/foto -> interpretar -> graficas de tendencia, v495) vivia solo en el expediente. Ahora tambien es una herramienta clinica en la consulta: durante la nota el medico puede subir un lab y ver la evolucion sin salir de la pantalla. Es universal (toda especialidad revisa labs), asi que aparece siempre como el copiloto y las fotos; el resto de herramientas sigue filtrado por especialidad.
+const CACHE = 'nexusmed-v503'  // BADGES DE ESTADO LEGIBLES EN MODO CLARO. Los StatusBadge (Confirmada, Atendida, Pagada, Cancelada... que salen por toda la app) usaban colores FIJOS de modo oscuro: pasteles claros (verde/azul #34d399/#93c5fd) sobre fondo translucido. En modo claro esos pasteles caian sobre el crema y casi desaparecian (~2.3:1): el medico no distinguia Atendida de Pagada. Ahora cada estado se mapea a un TONO y usa una paleta de badge DEDICADA por tema (texto oscuro sobre fondo muy claro en modo claro; los colores probados de modo oscuro via variables). Medido en el navegador en ambos temas: claro 6.2-7.5:1, oscuro 6.1-8.8:1, todos muy por encima de AA.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
