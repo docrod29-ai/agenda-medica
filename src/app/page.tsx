@@ -195,9 +195,14 @@ function Hero() {
         </h1>
 
         <p style={{
-          fontSize: 'clamp(16px, 1.6vw, 19px)', color: 'var(--text2)',
+          // --text (no --text2): el subtítulo caía sobre la parte BRILLANTE de la
+          // imagen del hero y con el gris medio se lavaba. La sombra del color de
+          // fondo lo despega de la imagen sin cambiar el tono en ninguno de los
+          // dos temas.
+          fontSize: 'clamp(16px, 1.6vw, 19px)', color: 'var(--text)',
           maxWidth: 580, margin: '0 auto 44px', lineHeight: 1.6,
-          letterSpacing: '-0.005em',
+          letterSpacing: '-0.005em', fontWeight: 500,
+          textShadow: '0 1px 16px var(--bg), 0 0 2px var(--bg)',
         }}>
           Agenda, expediente, recetas y cobros en una sola herramienta.
           Sin saltar de app en app.

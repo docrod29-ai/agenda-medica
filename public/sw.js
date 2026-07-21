@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v506'  // ENCONTRADO: por que empezaba a grabar solo al ACTUALIZAR. NO era manos libres. Era un ATAJO DE TECLADO: grabar estaba mapeado a Cmd/Ctrl+Shift+R, que es justo el HARD-REFRESH (actualizar forzado) del navegador. Al actualizar con teclado, la app interceptaba esa combinacion (con preventDefault, ni siquiera recargaba) y arrancaba a grabar pidiendo microfono. El fix viejo habia cambiado Cmd+R -> Cmd+Shift+R 'para no chocar con recargar', pero cambio un choque por otro peor. Ahora grabar es Cmd/Ctrl+Shift+G (Grabar), que no colisiona con recargar/imprimir/nueva pestana. Cmd+Shift+R vuelve a recargar normal.
+const CACHE = 'nexusmed-v507'  // LANDING: subtitulo del hero legible. El Dr vio la pagina publica (sin sesion) y con razon: el subtitulo 'Agenda, expediente, recetas y cobros... Sin saltar de app en app' usaba --text2 (gris medio) sobre la parte BRILLANTE de la imagen del hero y se lavaba, sobre todo en modo claro. Ahora usa --text (contraste pleno) + sombra del color de fondo para despegarlo de la imagen; verificado visualmente en claro y oscuro. NOTA: los arreglos previos de legibilidad (placeholders v499, badges v503) viven DENTRO de la app (tras iniciar sesion), por eso no se ven en la landing publica.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
