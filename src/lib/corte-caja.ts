@@ -106,7 +106,8 @@ export interface CuentaPorCobrar {
 export function cuentasPorCobrar(citas: Appointment[], cobros: Cobro[]): CuentaPorCobrar[] {
   const conCobro = citasConCobro(cobros)
   return citas
-    .filter(c => ATENDIDAS.includes(c.estado) && !conCobro.has(c.id))
+    // Excluye las EXENTAS (cortesía): el médico decidió no cobrarlas, no son deuda.
+    .filter(c => ATENDIDAS.includes(c.estado) && !conCobro.has(c.id) && !c.cobroExento)
     .map(c => ({
       citaId: c.id,
       paciente: c.pacienteNombre,

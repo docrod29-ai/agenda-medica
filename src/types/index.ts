@@ -239,6 +239,15 @@ export interface Appointment {
   googleCalendarSyncStatus?: 'pending' | 'synced' | 'error'
   cobroId?: string             // cobro ya registrado para esta cita (evita doble cobro)
   cobradoEn?: string
+  // Exención de cobro (cortesía): el médico/asistente decide NO cobrar esta cita.
+  // Es una decisión DELIBERADA y AUDITADA (quién, cuándo, por qué), no un olvido:
+  // oculta el botón "Cobrar" y saca la cita de cuentas por cobrar, sin registrar un
+  // cobro de $0 que ensucie el corte de caja. Reversible (con auditoría).
+  cobroExento?: boolean
+  exentoMotivo?: string
+  exentoPor?: string           // uid de quien marcó la cortesía
+  exentoPorNombre?: string
+  exentoEn?: string
   createdAt: string
   updatedAt: string
   creadoPor: string

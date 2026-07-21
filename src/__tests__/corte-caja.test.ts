@@ -75,4 +75,14 @@ describe('cuentasPorCobrar', () => {
     expect(r).toHaveLength(1)
     expect(r[0].paciente).toBe('Beto')
   })
+
+  it('EXCLUYE las citas marcadas como cortesía (exentas): no son deuda', () => {
+    const citas = [
+      cita({ id: 'a', estado: 'atendida', pacienteNombre: 'Ana' }),
+      cita({ id: 'b', estado: 'atendida', pacienteNombre: 'Beto', cobroExento: true }), // cortesía
+    ]
+    const r = cuentasPorCobrar(citas, [])
+    expect(r).toHaveLength(1)
+    expect(r[0].paciente).toBe('Ana')
+  })
 })

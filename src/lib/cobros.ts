@@ -185,6 +185,56 @@ export async function registrarCobro(
 }
 
 /**
+ * EXENTAR de cobro (cortesía): el médico/asistente decide NO cobrar esta cita.
+ *
+ * Es una decisión deliberada y AUDITADA (quién, cuándo, por qué), no un cobro de
+ * $0 que ensucie el corte de caja. Idempotente y a prueba de carreras:
+ *  - Si la cita YA tiene un cobro real, NO se puede marcar cortesía (primero anula).
+ *  - Si ya está exenta, no hace nada.
+ * Marca la cita atendida (si no está en un estado más avanzado), oculta el botón
+ * "Cobrar" y la saca de cuentas por cobrar. Reversible con `quitarExencion`.
+ */
+export async function exentarCobro(
+  clinicId: string,
+  citaId: string,
+  motivo: string,
+  autorUid: string,
+  autorNombre: string,
+): Promise<void> {
+  const m = (motivo || '').trim()
+  if (!m) throw new Error('La cortesía (no cobrar) requiere un motivo.')
+  if (!autorUid) throw new Error('No se pudo identificar quién autoriza la cortesía.')
+  const citaRef = doc(db, 'clinics', clinicId, 'appointments', citaId)
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(citaRef)
+    if (!snap.exists()) throw new Error('La cita no existe.')
+    const c = snap.data() as { cobroId?: string; cobroExento?: boolean; estado?: string }
+    if (c.cobroId) throw new Error('Esta cita ya tiene un cobro. Anúlalo antes de marcarla como cortesía.')
+    if (c.cobroExento) return // ya exenta → idempotente
+    const avanzados = ['atendida', 'finalizada', 'pagada']
+    tx.update(citaRef, {
+      cobroExento: true,
+      exentoMotivo: m,
+      exentoPor: autorUid,
+      exentoPorNombre: autorNombre || '',
+      exentoEn: new Date().toISOString(),
+      ...(c.estado && avanzados.includes(c.estado) ? {} : { estado: 'atendida' }),
+    })
+  })
+}
+
+/** Revertir la cortesía (vuelve a aparecer el botón "Cobrar"). Auditable. */
+export async function quitarExencion(clinicId: string, citaId: string): Promise<void> {
+  await updateDoc(doc(db, 'clinics', clinicId, 'appointments', citaId), {
+    cobroExento: false,
+    exentoMotivo: '',
+    exentoPor: '',
+    exentoPorNombre: '',
+    exentoEn: '',
+  })
+}
+
+/**
  * Anular un cobro. No se borra: se marca, con QUIÉN y CUÁNDO.
  *
  * El autor y la fecha no son opcionales — las Firestore Rules ahora los exigen,

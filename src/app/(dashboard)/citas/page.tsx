@@ -120,7 +120,7 @@ export default function CitasPage() {
     return appointments.filter(a => {
       if (a.fechaHora.slice(0, 10) !== selectedDate) return false
       if (statusFilter === 'por-cobrar') {
-        if (!['atendida', 'finalizada'].includes(a.estado) || a.cobroId) return false
+        if (!['atendida', 'finalizada'].includes(a.estado) || a.cobroId || a.cobroExento) return false
       } else if (statusFilter !== 'todas' && a.estado !== statusFilter) return false
       if (search && !a.pacienteNombre.toLowerCase().includes(search.toLowerCase())) return false
       // Filtro multi-doctor: si hay médico seleccionado, solo sus citas
@@ -134,7 +134,7 @@ export default function CitasPage() {
     const day = appointments.filter(a => a.fechaHora.slice(0, 10) === selectedDate && (!medicoFiltro || a.medicoId === medicoFiltro))
     const conf = day.filter(a => ['confirmada', 'en-sala', 'en-consulta', 'atendida', 'finalizada'].includes(a.estado)).length
     const pend = day.filter(a => ['solicitada', 'pendiente-confirmar', 'pendiente-datos', 'recordatorio-enviado'].includes(a.estado)).length
-    const porCobrar = day.filter(a => ['atendida', 'finalizada'].includes(a.estado) && !a.cobroId).length
+    const porCobrar = day.filter(a => ['atendida', 'finalizada'].includes(a.estado) && !a.cobroId && !a.cobroExento).length
     return { total: day.length, conf, pend, porCobrar }
   }, [appointments, selectedDate, medicoFiltro])
 
@@ -551,7 +551,7 @@ function AppointmentRowFull({
       {/* Actions */}
       <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
         {/* Botón Cobrar — no cancelada/no-asistió/reagendada Y sin cobro previo (anti doble cobro) */}
-        {appt.estado !== 'cancelada' && appt.estado !== 'no-asistio' && appt.estado !== 'reagendada' && !appt.cobroId && onCobrar && (
+        {appt.estado !== 'cancelada' && appt.estado !== 'no-asistio' && appt.estado !== 'reagendada' && !appt.cobroId && !appt.cobroExento && onCobrar && (
           <button
             onClick={() => onCobrar(appt)}
             title="Registrar cobro"
@@ -564,6 +564,20 @@ function AppointmentRowFull({
           >
             <DollarSign size={13} className="ds-icon" /> Cobrar
           </button>
+        )}
+        {/* Distintivo de cortesía: el médico decidió no cobrar esta cita. */}
+        {appt.cobroExento && (
+          <span
+            title={appt.exentoMotivo ? `Cortesía: ${appt.exentoMotivo}` : 'Cortesía (no se cobra)'}
+            style={{
+              background: 'rgba(168,85,247,0.12)', color: '#a855f7',
+              border: '1px solid rgba(168,85,247,0.4)', borderRadius: 6,
+              padding: '5px 10px', fontSize: 12, fontWeight: 700,
+              display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
+            }}
+          >
+            Cortesía
+          </span>
         )}
         {/*
           INICIAR CONSULTA desde la fila de la agenda.

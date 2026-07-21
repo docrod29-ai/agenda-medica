@@ -5,11 +5,12 @@
  */
 import { useState } from 'react'
 import {
-  registrarCobro, METODO_LABEL, CONCEPTO_LABEL,
+  registrarCobro, exentarCobro, METODO_LABEL, CONCEPTO_LABEL,
   type MetodoPago, type ConceptoCobro,
 } from '@/lib/cobros'
 import { updateAppointment } from '@/lib/firestore'
-import { DollarSign } from 'lucide-react'
+import { logAudit } from '@/lib/expediente/audit-log'
+import { DollarSign, HeartHandshake } from 'lucide-react'
 import { Modal, Button } from '@/components/ui'
 import { useToast } from '@/context/ToastContext'
 
@@ -40,6 +41,31 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
   const [referencia, setReferencia] = useState('')
   const [notas, setNotas] = useState('')
   const [guardando, setGuardando] = useState(false)
+  // Modo cortesía (no cobrar): decisión deliberada y auditada.
+  const [modoCortesia, setModoCortesia] = useState(false)
+  const [motivoCortesia, setMotivoCortesia] = useState('')
+
+  const confirmarCortesia = async () => {
+    if (!prefill?.citaId) { toast('La cortesía se marca sobre una cita', 'error'); return }
+    const m = motivoCortesia.trim()
+    if (!m) { toast('Escribe el motivo de la cortesía', 'error'); return }
+    setGuardando(true)
+    try {
+      await exentarCobro(clinicId, prefill.citaId, m, creadoPor, prefill.medicoNombre || '')
+      // Bitácora inmutable (best-effort): quién autorizó no cobrar y por qué.
+      logAudit({
+        evento: 'cobro_exento', clinicId, patientId: prefill.patientId,
+        meta: { citaId: prefill.citaId, paciente: prefill.patientNombre ?? '', motivo: m },
+      }).catch(() => {})
+      toast('Marcada como cortesía (no se cobra)', 'success')
+      onCobrado?.('')
+      onClose()
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'No se pudo marcar la cortesía', 'error')
+    } finally {
+      setGuardando(false)
+    }
+  }
 
   const guardar = async () => {
     const n = parseFloat(monto)
@@ -119,14 +145,45 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
     <Modal
       open
       onClose={onClose}
-      title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><DollarSign size={18} color="var(--teal)" /> Registrar cobro</span>}
-      footer={(
+      title={modoCortesia
+        ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><HeartHandshake size={18} color="#a855f7" /> No cobrar (cortesía)</span>
+        : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><DollarSign size={18} color="var(--teal)" /> Registrar cobro</span>}
+      footer={modoCortesia ? (
+        <>
+          <Button variant="secondary" onClick={() => setModoCortesia(false)}>Volver</Button>
+          <Button onClick={confirmarCortesia} loading={guardando}>Confirmar cortesía</Button>
+        </>
+      ) : (
         <>
           <Button variant="secondary" onClick={onClose}>Cancelar</Button>
           <Button onClick={guardar} loading={guardando}>Registrar cobro</Button>
         </>
       )}
     >
+      {modoCortesia ? (
+        <div style={{ display: 'grid', gap: 12 }}>
+          {prefill?.patientNombre && (
+            <div style={{ padding: 10, background: 'var(--s)', borderRadius: 8, fontSize: 13 }}>
+              <div style={{ color: 'var(--text3)', fontSize: 11, marginBottom: 2 }}>Paciente</div>
+              <div style={{ fontWeight: 700, color: 'var(--text)' }}>{prefill.patientNombre}</div>
+            </div>
+          )}
+          <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+            Vas a marcar esta consulta como <strong>cortesía</strong>: no se cobra, se saca de cuentas
+            por cobrar y no aparece en el corte de caja. Queda registrado <strong>quién lo autoriza,
+            cuándo y por qué</strong>. Se puede revertir después.
+          </div>
+          <div>
+            <label style={lbl}>Motivo de la cortesía *</label>
+            <textarea
+              value={motivoCortesia} onChange={e => setMotivoCortesia(e.target.value)}
+              autoFocus rows={3} placeholder="Ej. familiar, cortesía profesional, paciente sin recursos…"
+              style={{ ...inp, resize: 'vertical' }}
+            />
+          </div>
+        </div>
+      ) : (
+        <>
         {prefill?.patientNombre && (
           <div style={{ padding: 10, background: 'var(--s)', borderRadius: 8, marginBottom: 14, fontSize: 13 }}>
             <div style={{ color: 'var(--text3)', fontSize: 11, marginBottom: 2 }}>Paciente</div>
@@ -201,7 +258,25 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
             <label style={lbl}>Notas (opcional)</label>
             <input value={notas} onChange={(e) => setNotas(e.target.value)} style={inp} />
           </div>
+
+          {/* No cobrar (cortesía): solo cuando se cobra sobre una cita concreta. */}
+          {prefill?.citaId && (
+            <button
+              type="button"
+              onClick={() => setModoCortesia(true)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                background: 'rgba(168,85,247,0.10)', border: '1px solid rgba(168,85,247,0.35)',
+                color: '#a855f7', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600,
+                cursor: 'pointer', marginTop: 2,
+              }}
+            >
+              <HeartHandshake size={15} /> No cobrar a este paciente (cortesía)
+            </button>
+          )}
         </div>
+        </>
+      )}
     </Modal>
   )
 }
