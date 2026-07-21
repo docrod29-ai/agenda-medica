@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v533'  // TRACK 1 del plan: CLINICAL REASONING ENGINE VISIBLE (el diferenciador). Nuevo lib razonamiento.ts que ORQUESTA lo que el copiloto ya calcula (escalas deterministas, dosis, ajuste renal, alergias, alarmas) y lo presenta como los 12 PASOS del razonamiento clinico, cada uno con su FUENTE (regla con codigo/IA/PubMed) = provenance y su CONFIANZA = incertidumbre expuesta. Nuevo PanelRazonamiento (colapsable 'Como razone este caso') en la consulta. No inventa: refleja calculos reales; la evidencia PubMed se marca PENDIENTE (no se finge). 5 tests. La caja negra deja de serlo.
+const CACHE = 'nexusmed-v534'  // TRACK 3 (fase 1): pagina publica /arquitectura que NOMBRA Y DEMUESTRA los motores con estado REAL (Activo/En expansion/Roadmap), sin humo: Clinical Reasoning, Dosing&Safety, Evidence(PubMed/PMID), Voice, Specialty Packages, Interoperability(HL7/FHIR), Finance&Ops, Messaging(WhatsApp), + Workflow Orchestrator y Learning Engine marcados Roadmap honestamente. Cierra el vacio 'no demuestra que existan los motores'. Principio de honestidad explicito (no inventar datos clinicos).
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
