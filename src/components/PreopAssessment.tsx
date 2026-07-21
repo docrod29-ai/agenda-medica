@@ -13,6 +13,8 @@ interface Props {
   disabled?: boolean
   /** Empuja el texto generado a las secciones de la nota + guarda datos crudos */
   onAplicar: (conclusion: string, recomendaciones: string, preopData: { inputs: Record<string, unknown>; resultados: Record<string, unknown> }) => void
+  /** Se llama si se pulsa "Aplicar" sin ninguna escala capturada (para avisar sin borrar la nota). */
+  onSinDatos?: () => void
   initialInputs?: Record<string, unknown>
 }
 
@@ -21,7 +23,7 @@ const CAT_COLOR: Record<CategoriaRec, string> = {
   Pruebas: '#a78bfa', Tromboprofilaxis: '#f87171', General: '#94a3b8',
 }
 
-export function PreopAssessment({ edadPaciente, disabled, onAplicar, initialInputs }: Props) {
+export function PreopAssessment({ edadPaciente, disabled, onAplicar, onSinDatos, initialInputs }: Props) {
   const init = (initialInputs ?? {}) as Record<string, unknown>
   const b = (k: string) => init[k] === true
   const n = (k: string) => (typeof init[k] === 'number' ? (init[k] as number) : undefined)
@@ -148,7 +150,10 @@ export function PreopAssessment({ edadPaciente, disabled, onAplicar, initialInpu
       lineas.push(`HAS-BLED: ${hasbledRes.puntos} puntos — riesgo ${hasbledRes.nivel}. ${hasbledRes.interpretacion}`)
     }
     if (lineas.length === 0) {
-      onAplicar('', '', { inputs: {}, resultados: {} })
+      // NO llamar onAplicar con cadenas vacías: reemplazaría por vacío la conclusión
+      // y las recomendaciones que el médico ya tecleó a mano (pérdida de datos con
+      // toast de éxito). Si no hay ninguna escala capturada, no se toca la nota.
+      onSinDatos?.()
       return
     }
     const conclusion = lineas.join('\n\n')

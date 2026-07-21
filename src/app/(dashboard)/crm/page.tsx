@@ -46,8 +46,11 @@ export default function CRMPage() {
     ]).then(([a, p]) => {
       setAppts(a)
       setPacientes(p)
-      setLoading(false)
-    })
+    }).catch(e => {
+      // Sin esto, un error de lectura (permiso/offline/token) dejaba el spinner
+      // "Cargando datos…" para siempre, sin error ni reintento.
+      console.error('[crm] error al cargar:', e)
+    }).finally(() => setLoading(false))
   }, [clinicId])
 
   const desde = useMemo(() => {

@@ -2810,6 +2810,7 @@ export default function ConsultaActivaPage() {
             }))
             toast('Escalas aplicadas a la nota', 'success')
           }}
+          onSinDatos={() => toast('Captura al menos una escala antes de aplicar (no se tocó la nota).', 'info')}
         />
       )}
 

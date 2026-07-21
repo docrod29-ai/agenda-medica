@@ -118,17 +118,24 @@ export default function GeneradorRecetaPage() {
   // sobre-máximo, sobre-mg/kg pediátrico). Ausencia de alerta ≠ dosis segura.
   const alertasDosis = useMemo(() => {
     const out: { med: string; alertas: AlertaDosis[] }[] = []
+    // PESO para la verificación mg/kg PEDIÁTRICA (antes NO se pasaba → la red de
+    // seguridad más importante en niños estaba muerta: solo corrían topes de adulto).
+    // Se toma el peso de la nota (signos) y, si no, el que el médico teclee para el
+    // cálculo renal. Solo se aplica a pacientes < 18 años.
+    const esPediatrico = patient?.edad != null && patient.edad < 18
+    const pesoNota = Number(nota?.signosVitales?.peso ?? 0)
+    const pesoParaDosis = esPediatrico && pesoNota > 0 ? pesoNota : undefined
     for (const m of medicamentos) {
       if (!m.nombre?.trim() || !m.dosis?.trim()) continue
       const mg = extraerMg(m.dosis)
       if (mg == null) continue
       const tomas = extraerTomasDia(m.frecuencia || '') ?? undefined
-      const al = revisarDosis({ farmaco: m.nombre, dosisMg: mg, tomasDia: tomas })
+      const al = revisarDosis({ farmaco: m.nombre, dosisMg: mg, tomasDia: tomas, pesoKg: pesoParaDosis })
         .filter(a => a.codigo !== 'sin_referencia') // no saturar la receta con avisos informativos
       if (al.length) out.push({ med: m.nombre, alertas: al })
     }
     return out
-  }, [medicamentos])
+  }, [medicamentos, patient?.edad, nota?.signosVitales?.peso])
 
   // Función renal — opcional: el médico teclea creatinina (y peso opcional)
   // y se calcula TFG + ajuste de antimicrobianos por depuración (PROA).

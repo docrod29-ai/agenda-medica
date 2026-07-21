@@ -126,7 +126,9 @@ export function CorteCajaContenido({ embedded = false }: { embedded?: boolean })
           {/* Cuentas por cobrar */}
           <Panel titulo={`Cuentas por cobrar (${porCobrar.length})`}>
             {porCobrar.length === 0
-              ? <Vacio texto="Todas las consultas atendidas de este día están cobradas. 🎉" />
+              ? <Vacio texto={embudo.atendidas === 0
+                  ? 'Sin consultas atendidas este día.'
+                  : 'Todas las consultas atendidas de este día están cobradas. 🎉'} />
               : (
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#d97706', marginBottom: 10 }}>

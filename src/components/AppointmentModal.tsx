@@ -219,9 +219,14 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
             }),
           }).catch(() => {/* non-critical */})
         }
-        // If appointment cancelled → notify waitlist
-        const wasCancelled = ['cancelada', 'reagendada', 'no-asistio'].includes(estado) &&
+        // Si se LIBERA un hueco FUTURO → avisar a la lista de espera.
+        // 'no-asistio' NO libera nada (es un evento ya pasado); y cancelar/reagendar
+        // una cita PASADA tampoco ofrece un hueco agendable. Solo se avisa si el
+        // horario liberado es futuro, para no mandar "se liberó un horario [ayer]".
+        const liberaHueco = ['cancelada', 'reagendada'].includes(estado) &&
           !['cancelada', 'reagendada', 'no-asistio'].includes(appointment.estado)
+        const esFuturo = new Date(appointment.fechaHora.replace(' ', 'T')).getTime() > Date.now()
+        const wasCancelled = liberaHueco && esFuturo
         if (wasCancelled) {
           fetchAutenticado('/api/whatsapp/waitlist-notify', {
             method: 'POST',

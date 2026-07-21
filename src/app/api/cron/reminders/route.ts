@@ -143,7 +143,8 @@ export async function GET(req: NextRequest) {
             paciente: appt.pacienteNombre,
             fecha: formatDateES(apptDate),
             hora: apptHour,
-            medico: config.nombreMedico || 'el médico',
+            // El médico de LA CITA, no el titular de la clínica (multi-médico).
+            medico: appt.medicoNombre || config.nombreMedico || 'el médico',
             clinica: config.nombreClinica,
             direccion: config.direccion || '',
             telefono: config.whatsappConsultorio || config.telefonoAdmin,
