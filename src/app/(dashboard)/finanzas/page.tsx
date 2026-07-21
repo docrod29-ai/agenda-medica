@@ -24,6 +24,7 @@ import {
   type Cobro, type MetodoPago, type ConceptoCobro, type ResumenMes,
 } from '@/lib/cobros'
 import { CobrarModal } from '@/components/CobrarModal'
+import { PanelComisiones } from '@/components/PanelComisiones'
 import { useSearchParams } from 'next/navigation'
 import { CorteCajaContenido } from '../corte-caja/page'
 import {
@@ -125,7 +126,9 @@ export default function FinanzasPage() {
   const [loading, setLoading] = useState(true)
   const [creando, setCreando] = useState(false)
   const sp = useSearchParams()
-  const [tab, setTab] = useState<'reportes' | 'corte'>(sp.get('tab') === 'corte' ? 'corte' : 'reportes')
+  const [tab, setTab] = useState<'reportes' | 'corte' | 'comisiones'>(
+    sp.get('tab') === 'corte' ? 'corte' : sp.get('tab') === 'comisiones' ? 'comisiones' : 'reportes',
+  )
 
   const { desde, hasta } = useMemo(() => rangoDe(periodo, ancla), [periodo, ancla])
 
@@ -216,7 +219,7 @@ export default function FinanzasPage() {
 
       {/* Pestañas: Reportes · Corte de caja (antes eran 2 entradas de menú) */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 18, borderBottom: '1px solid var(--border)' }}>
-        {([['reportes', 'Reportes'], ['corte', 'Corte de caja']] as const).map(([k, label]) => {
+        {([['reportes', 'Reportes'], ['corte', 'Corte de caja'], ['comisiones', 'Comisiones']] as const).map(([k, label]) => {
           const activo = tab === k
           return (
             <button key={k} onClick={() => setTab(k)} style={{
@@ -230,6 +233,8 @@ export default function FinanzasPage() {
 
       {tab === 'corte' ? (
         <CorteCajaContenido embedded />
+      ) : tab === 'comisiones' ? (
+        <PanelComisiones clinicId={clinicId} cobros={cobros} />
       ) : (
       <>
       {/* Selector de periodo (Hoy · Semana · Mes) */}
