@@ -227,7 +227,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
       })
 
       const avisos: string[] = []
-      if (data._schemaWarning) avisos.push('La lectura no cumplió del todo el formato esperado; revisa y corrige las filas.')
+      if (data._schemaWarning) avisos.push('Parte del reporte no se pudo estructurar por completo; revisa las filas y complétalas a mano donde falte.')
       if (Array.isArray(perfil.avisos)) perfil.avisos.forEach((a: string) => avisos.push(a))
       if (ilegibles.length) {
         avisos.push('⚠ NO se pudo leer la interpretación de: ' + ilegibles.join(', ') +
@@ -235,8 +235,11 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
       }
       const rev = celdas.filter(c => c.needs_review || c.conf === 'baja').map(c => c.antibiotico).filter(Boolean)
       if (rev.length) avisos.push('⚠ Lectura dudosa (revisa a mano): ' + rev.join(', '))
-      if (sitioAuto) avisos.push(`Sitio ajustado automáticamente a «${sitioAuto}» por la muestra reportada.`)
-      if (Object.keys(pruebasAuto).length) avisos.push(`Pruebas confirmatorias tomadas del reporte: ${Object.keys(pruebasAuto).join(', ')}.`)
+      if (sitioAuto) avisos.push(`Sitio ajustado automáticamente a «${SITIOS.find(s => s.v === sitioAuto)?.t ?? sitioAuto}» por la muestra reportada.`)
+      const etiquetasPruebas = Object.keys(pruebasAuto)
+        .map(k => PRUEBAS_CONF.find(p => p.k === k)?.t)   // nombre legible, no la clave interna
+        .filter((t): t is string => Boolean(t))
+      if (etiquetasPruebas.length) avisos.push(`Pruebas confirmatorias tomadas del reporte: ${etiquetasPruebas.join(', ')}.`)
       if (Array.isArray(perfil.organismosAdicionales) && perfil.organismosAdicionales.length) {
         avisos.push(`⚠ Cultivo POLIMICROBIANO: también se reportó ${perfil.organismosAdicionales.join(', ')}. Interpreta un aislamiento a la vez.`)
       }
