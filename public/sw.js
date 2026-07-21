@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v532'  // TRACK 2 del plan Medical OS: TRANSPARENCIA DE IA POR NIVEL. MOTORES (planes-ia) ahora lleva usoRecomendado + incluye[] (que cambia CLINICAMENTE en cada nivel) + latencia; nuevo componente TablaNivelesIA (lee la fuente unica) mostrado en /precios: Rapida=estructuracion+resumen; Estandar=+separacion voces+omisiones+seguridad basica+escalas; Maxima=+2o verificador+evidencia PubMed/PMID+revision farmacologica. Honestidad comercial que ademas vende Maxima.
+const CACHE = 'nexusmed-v533'  // TRACK 1 del plan: CLINICAL REASONING ENGINE VISIBLE (el diferenciador). Nuevo lib razonamiento.ts que ORQUESTA lo que el copiloto ya calcula (escalas deterministas, dosis, ajuste renal, alergias, alarmas) y lo presenta como los 12 PASOS del razonamiento clinico, cada uno con su FUENTE (regla con codigo/IA/PubMed) = provenance y su CONFIANZA = incertidumbre expuesta. Nuevo PanelRazonamiento (colapsable 'Como razone este caso') en la consulta. No inventa: refleja calculos reales; la evidencia PubMed se marca PENDIENTE (no se finge). 5 tests. La caja negra deja de serlo.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

@@ -62,13 +62,14 @@ import type { TipoNota, NotaMedica, NotaSeccion, Diagnostico, Medicamento, Signo
 import type { Patient } from '@/types'
 import { Cie10Autocomplete } from '@/components/Cie10Autocomplete'
 import { CobrarModal } from '@/components/CobrarModal'
+import { PanelRazonamiento } from '@/components/PanelRazonamiento'
 import { DialogoDiarizado, Section, S } from './consulta-ui'
 import {
 
   ArrowLeft, Mic, Square, Sparkles, Loader2, AlertTriangle, CheckCircle2,
   Trash2, Plus, ShieldCheck, Pill, Stethoscope, FileSignature, Headphones,
   Lock, Bug, FlaskConical, Lightbulb, FileText, ChevronDown, ChevronUp, Volume2, BedDouble,
-  Scissors, Baby, Calculator, Camera, HeartPulse,
+  Scissors, Baby, Calculator, Camera, HeartPulse, Brain,
 } from 'lucide-react'
 
 /**
@@ -2441,6 +2442,20 @@ export default function ConsultaActivaPage() {
         entrada={entradaCopiloto}
         onAgregarANota={agregarASeccion('copiloto', 'Valoración asistida')}
       />
+
+      {/* Clinical Reasoning Engine VISIBLE: cómo llegó el copiloto a sus sugerencias
+          — los 12 pasos, cada uno con su ORIGEN (regla/IA/PubMed) y su CONFIANZA.
+          Es el diferenciador: el razonamiento deja de ser una caja negra. */}
+      {(diagnosticos.length > 0 || medicamentos.length > 0 || resumen || Object.keys(signosNum).length > 0) && (
+        <details style={{ marginTop: 8, border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1, rgba(127,127,127,0.04))' }}>
+          <summary style={{ cursor: 'pointer', padding: '11px 14px', fontSize: 13, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8, listStyle: 'none' }}>
+            <Brain size={15} style={{ color: 'var(--nexus, #3d5afe)' }} /> Cómo razoné este caso · 12 pasos con fuente y confianza
+          </summary>
+          <div style={{ padding: '0 14px 14px' }}>
+            <PanelRazonamiento entrada={entradaCopiloto} embebido />
+          </div>
+        </details>
+      )}
 
       {/* ── Herramientas clínicas: un solo bloque plegado. Antes eran cinco cajas
              siempre abiertas apiladas aquí; la mayoría de las consultas no usa
