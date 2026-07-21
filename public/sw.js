@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v535'  // TRACK 4 (fase 1): pagina publica /operacion que MUESTRA las finanzas que YA existen (corte de caja, cuentas por cobrar, cobros anti-doble, inventario farmacia, paquetes, CFDI/SAT) con estado real, y marca honestamente el roadmap (membresias de pacientes, TPV, multi-sucursal, comisiones/reportes en expansion). Cierra el vacio 'finanzas basicas frente a Nimbo/AgendaPro' mostrando lo mucho que ya hay. Los builds reales (membresias, TPV, orchestrator, learning) quedan como fase 2 del plan.
+const CACHE = 'nexusmed-v536'  // TRACK 1 fase 2: DEMOSTRACION PUBLICA del razonamiento en /demo/razonamiento. Caso clinico sembrado (mujer 68a, DM2+ERC+FA, polifarmacia con triple whammy AINE+IECA+ERC) que enciende los motores DETERMINISTAS de verdad (TFG por CKD-EPI, ajuste renal metformina, alergia penicilina<->amoxicilina, crisis HT, metas LDL, FIB-4) y muestra los 12 pasos + el copiloto en vivo, client-side, sin IA ni PubMed en vivo, sin PHI. Responde directo a 'el copiloto es la promesa menos demostrada'. Enlazado desde /demo.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

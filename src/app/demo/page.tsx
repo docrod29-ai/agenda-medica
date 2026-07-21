@@ -166,9 +166,14 @@ export default function DemoPage() {
           <p style={{ fontSize: 17, color: 'var(--text2)', maxWidth: 560, margin: '0 auto 20px', lineHeight: 1.6 }}>
             Todo lo que tu consultorio necesita, en un solo lugar. Mira cómo se ve cada parte antes de crear tu cuenta.
           </p>
-          <Link href="/demo/interactivo" className="btn btn-primary btn-lg" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <MousePointerClick size={18} /> Probar el sandbox interactivo
-          </Link>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <Link href="/demo/interactivo" className="btn btn-primary btn-lg" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <MousePointerClick size={18} /> Probar el sandbox interactivo
+            </Link>
+            <Link href="/demo/razonamiento" className="btn btn-secondary btn-lg" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              Ver cómo razona el copiloto
+            </Link>
+          </div>
           <div style={{ fontSize: 12.5, color: 'var(--text3)', marginTop: 10 }}>Sin registro · datos ficticios · lo conduces tú</div>
         </div>
 
