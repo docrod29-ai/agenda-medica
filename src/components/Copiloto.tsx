@@ -15,10 +15,15 @@ import {
   copiloto, textoParaNota,
   type EntradaCopiloto, type Sugerencia, type NivelSugerencia,
 } from '@/lib/expediente/copiloto'
+import { ordenarPorPreferencia, categoriaDe, type Preferencias } from '@/lib/learning'
 
 interface Props {
   entrada: EntradaCopiloto
   onAgregarANota?: (texto: string) => boolean | void
+  /** Learning Engine: frecuencias por categoría de ESTE médico (reordena no-críticas). */
+  prefs?: Preferencias
+  /** Se llama cuando el médico ACEPTA una sugerencia (para aprender su estilo). */
+  onAceptar?: (categoria: string) => void
 }
 
 const COLOR: Record<NivelSugerencia, { fg: string; bg: string; bd: string }> = {
@@ -27,8 +32,10 @@ const COLOR: Record<NivelSugerencia, { fg: string; bg: string; bd: string }> = {
   info:    { fg: 'var(--text2)', bg: 'var(--s1)', bd: 'var(--border)' },
 }
 
-export function Copiloto({ entrada, onAgregarANota }: Props) {
-  const sugerencias = useMemo(() => copiloto(entrada), [entrada])
+export function Copiloto({ entrada, onAgregarANota, prefs, onAceptar }: Props) {
+  // Learning Engine: reordena las NO críticas por lo que este médico suele usar
+  // (las críticas quedan pinneadas arriba por seguridad).
+  const sugerencias = useMemo(() => ordenarPorPreferencia(copiloto(entrada), prefs ?? {}), [entrada, prefs])
   const [puestas, setPuestas] = useState<Set<string>>(new Set())
   const [abierto, setAbierto] = useState<string | null>(null)
 
@@ -43,12 +50,16 @@ export function Copiloto({ entrada, onAgregarANota }: Props) {
     // Solo se marca como "puesta" si REALMENTE se agregó. Con la nota firmada,
     // onAgregarANota devuelve false (no se puede enmendar sin adenda) y antes el
     // Copiloto igual pintaba el check verde: un falso éxito medicolegal.
-    if (onAgregarANota(s.textoNota) !== false) setPuestas(p => new Set(p).add(s.id))
+    if (onAgregarANota(s.textoNota) !== false) {
+      setPuestas(p => new Set(p).add(s.id))
+      onAceptar?.(categoriaDe(s.id))   // aprende del estilo del médico
+    }
   }
   const ponerTodo = () => {
     if (!onAgregarANota || documentables.length === 0) return
     if (onAgregarANota(textoParaNota(documentables)) !== false) {
       setPuestas(p => { const n = new Set(p); documentables.forEach(s => n.add(s.id)); return n })
+      documentables.forEach(s => onAceptar?.(categoriaDe(s.id)))
     }
   }
 

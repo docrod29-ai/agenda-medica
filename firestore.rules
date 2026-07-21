@@ -334,6 +334,12 @@ service cloud.firestore {
       match /memberships/{membershipId} {
         allow read, write: if isMember(clinicId);
       }
+      // Learning Engine: preferencias de sugerencias POR MÉDICO (frecuencias por
+      // categoría). Cada médico solo lee/escribe las suyas (uid == su propio uid);
+      // no son datos del paciente, pero se aíslan por autor de todos modos.
+      match /learning/{uid} {
+        allow read, write: if isMember(clinicId) && request.auth.uid == uid;
+      }
       // Movimientos de farmacia (entradas, salidas, ajustes). Inmutables, y el
       // autor lo sella el servidor: antes se podía crear un movimiento a nombre
       // de otro (el registro de controlados debe acreditar QUIÉN dispensó).

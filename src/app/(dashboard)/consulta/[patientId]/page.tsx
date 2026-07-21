@@ -46,6 +46,7 @@ import { vacunasSegunEdad } from '@/lib/expediente/pediatria'
 
 
 import { Copiloto } from '@/components/Copiloto'
+import { cargarPreferencias, registrarAceptacion, type Preferencias } from '@/lib/learning'
 import { Herramientas } from '@/components/Herramientas'
 import { PanelLaboratorios } from '@/components/laboratorio/PanelLaboratorios'
 
@@ -393,6 +394,18 @@ export default function ConsultaActivaPage() {
    * estudios que salen de esta extracción para calcular TFG, FIB-4 y PREVENT.
    */
   const [extraction, setExtraction] = useState<Record<string, unknown> | undefined>(undefined)
+
+  /**
+   * LEARNING ENGINE — frecuencias por categoría de sugerencia de ESTE médico.
+   * Se cargan una vez y sirven para reordenar (no críticas) lo que suele usar.
+   * Fail-safe: si no hay datos o falla, queda {} y el orden es el de siempre.
+   */
+  const [prefsIA, setPrefsIA] = useState<Preferencias>({})
+  useEffect(() => {
+    const uid = auth.currentUser?.uid
+    if (!clinicId || !uid) return
+    cargarPreferencias(clinicId, uid).then(setPrefsIA).catch(() => {})
+  }, [clinicId])
 
   /**
    * Se memoriza aquí y no dentro del componente: al pasarlo como objeto literal
@@ -2441,6 +2454,13 @@ export default function ConsultaActivaPage() {
       <Copiloto
         entrada={entradaCopiloto}
         onAgregarANota={agregarASeccion('copiloto', 'Valoración asistida')}
+        prefs={prefsIA}
+        onAceptar={(cat) => {
+          const uid = auth.currentUser?.uid
+          if (clinicId && uid) registrarAceptacion(clinicId, uid, cat)
+          // eco optimista: reordena en caliente sin re-leer Firestore
+          setPrefsIA(p => ({ ...p, [cat]: (p[cat] ?? 0) + 1 }))
+        }}
       />
 
       {/* Clinical Reasoning Engine VISIBLE: cómo llegó el copiloto a sus sugerencias
