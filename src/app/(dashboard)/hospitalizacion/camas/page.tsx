@@ -57,6 +57,19 @@ export default function CamasPage() {
     [censo, camas],
   )
 
+  /**
+   * Camas con MÁS DE UN ocupante activo. El tablero usaba `find` (primer match) y
+   * escondía al segundo paciente. El alta del servidor ya impide crear estas
+   * colisiones; esto muestra las que pudieran haber quedado de antes en vez de
+   * ocultarlas.
+   */
+  const conflictos = useMemo(
+    () => camas
+      .map(c => ({ cama: c, ocupantes: censo.filter(i => i.servicio === c.servicio && mismaCama(i.cama, c.etiqueta)) }))
+      .filter(x => x.ocupantes.length > 1),
+    [camas, censo],
+  )
+
   const porServicio = useMemo(() => {
     const m = new Map<string, Cama[]>()
     for (const c of camas) { if (!m.has(c.servicio)) m.set(c.servicio, []); m.get(c.servicio)!.push(c) }
@@ -93,6 +106,26 @@ export default function CamasPage() {
               {sinCamaEnInventario.map(i => (
                 <div key={i.id}>
                   {i.pacienteNombre} · {i.servicio}{i.cama ? ` · cama capturada: "${i.cama}"` : ' · sin cama capturada'}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      {conflictos.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 10,
+          background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.35)',
+          borderRadius: 12, padding: '13px 15px', margin: '0 0 16px',
+        }}>
+          <AlertTriangle size={17} style={{ color: '#dc2626', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 13.5, lineHeight: 1.6, color: 'var(--text)' }}>
+            <strong>{conflictos.length} cama{conflictos.length !== 1 ? 's' : ''} con más de un paciente.</strong>{' '}
+            Dos internamientos activos comparten la misma cama. Traslada a uno a otra cama.
+            <div style={{ marginTop: 7, fontSize: 12.5, color: 'var(--text2)' }}>
+              {conflictos.map(({ cama, ocupantes }) => (
+                <div key={cama.id}>
+                  {cama.servicio} · {cama.etiqueta}: {ocupantes.map(o => o.pacienteNombre).join(', ')}
                 </div>
               ))}
             </div>

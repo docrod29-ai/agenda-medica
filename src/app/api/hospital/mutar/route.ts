@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verificarMiembro } from '@/lib/auth-server'
 import { adminDb } from '@/lib/firebase-admin'
 import { registroDurable } from '@/lib/hospital/registro-durable'
+import { mismaCama } from '@/lib/hospital/cama'
 import { randomUUID } from 'crypto'
 
 // Qué rol puede ejecutar cada acción.
@@ -47,7 +48,15 @@ function patch(accion: string, inter: Any, p: Any, now: string, actor: Actor): A
   const arr = (k: string) => (Array.isArray(inter[k]) ? (inter[k] as Any[]) : [])
   switch (accion) {
     case 'egresar':
-      return { estado: 'egresado', fechaEgreso: now, tipoEgreso: p.tipoEgreso, resumenEgreso: p.resumenEgreso }
+      // Al egresar se cierran TODAS las indicaciones activas: si no, quedaban
+      // `activa: true` en un paciente ya dado de alta → la ficha seguía contando
+      // "Indicaciones · MAR (N)", la conciliación las marcaba "continuado" y el
+      // export FHIR las veía vigentes. (La administración ya estaba bloqueada por la
+      // guarda de episodio, así que esto es consistencia de estado, no de dosis.)
+      return {
+        estado: 'egresado', fechaEgreso: now, tipoEgreso: p.tipoEgreso, resumenEgreso: p.resumenEgreso,
+        indicaciones: arr('indicaciones').map(x => (x as Any).activa ? { ...x, activa: false, suspendidaPor: 'Cierre por egreso', fechaSuspension: now } : x),
+      }
     case 'trasladar': {
       const detalle = `${inter.servicio}${inter.cama ? ' · Cama ' + inter.cama : ''} → ${p.servicio}${p.cama ? ' · Cama ' + p.cama : ''}`
       return { servicio: p.servicio, cama: p.cama, movimientos: [...arr('movimientos'), { fecha: now, tipo: 'traslado', detalle, por: p.por }] }
@@ -186,6 +195,16 @@ export async function POST(req: NextRequest) {
         const id = await adminDb.runTransaction(async (tx) => {
           const snap = await tx.get(col.where('pacienteId', '==', payload.pacienteId))
           if (snap.docs.some(d => d.data().estado === 'activo')) throw new Error('DUPLICADO')
+          // Colisión de CAMA: si se asignó cama, rechazar si otro internamiento
+          // ACTIVO ya la ocupa (mismo servicio). Sin esto se metían dos pacientes en
+          // la misma cama y el segundo quedaba invisible en el tablero. Se compara
+          // por servicio (query, sin índice compuesto) y se normaliza la etiqueta.
+          if (payload.cama) {
+            const ocup = await tx.get(col.where('servicio', '==', payload.servicio ?? ''))
+            if (ocup.docs.some(d => { const x = d.data(); return x.estado === 'activo' && mismaCama(x.cama as string, payload.cama as string) })) {
+              throw new Error('CAMA_OCUPADA')
+            }
+          }
           const nref = col.doc()
           tx.set(nref, { ...payload, clinicId, estado: 'activo', createdAt: now, updatedAt: now })
           return nref.id
@@ -193,6 +212,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true, id })
       } catch (e) {
         if (e instanceof Error && e.message === 'DUPLICADO') return NextResponse.json({ ok: false, error: 'DUPLICADO: el paciente ya tiene un internamiento activo.' }, { status: 409 })
+        if (e instanceof Error && e.message === 'CAMA_OCUPADA') return NextResponse.json({ ok: false, error: 'Esa cama ya está ocupada por otro paciente activo.' }, { status: 409 })
         throw e
       }
     }
@@ -203,6 +223,14 @@ export async function POST(req: NextRequest) {
       const snap = await tx.get(ref)
       if (!snap.exists) throw new Error('no-existe')
       const inter = { id: snap.id, ...(snap.data() as Any) }
+      // Traslado a una cama ya ocupada por OTRO internamiento activo → rechazar.
+      // (Lectura antes de la escritura, como exige la transacción.)
+      if (accion === 'trasladar' && payload.cama) {
+        const ocup = await tx.get(col.where('servicio', '==', payload.servicio ?? ''))
+        if (ocup.docs.some(d => { const x = d.data(); return d.id !== internamientoId && x.estado === 'activo' && mismaCama(x.cama as string, payload.cama as string) })) {
+          throw new Error('CAMA_OCUPADA')
+        }
+      }
       const actor: Actor = {
         uid: acc.uid,
         // El correo verificado identifica a la PERSONA. El rol solo lo acompaña.
@@ -218,6 +246,7 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'error'
     if (msg === 'no-existe') return NextResponse.json({ ok: false, error: 'El internamiento no existe' }, { status: 404 })
+    if (msg === 'CAMA_OCUPADA') return NextResponse.json({ ok: false, error: 'Esa cama ya está ocupada por otro paciente activo.' }, { status: 409 })
     if (msg.startsWith('BLOQUEADO:')) return NextResponse.json({ ok: false, error: msg.replace('BLOQUEADO: ', '') }, { status: 409 })
     return NextResponse.json({ ok: false, error: msg }, { status: 500 })
   }

@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v522'  // 3a OLA (teleconsulta/portal + CRM/reactivacion). FIXES: (1) PRIVACIDAD: la resena 'anonima' publicaba el NOMBRE COMPLETO del paciente en el perfil publico /dr/[id] y en el JSON-LD que indexa Google, pese a prometer anonimato; ahora se anonimiza en el render ('Juan G.'). (2) P0 CUMPLIMIENTO: la campana de reactivacion y el seguimiento posconsulta ofrecian mensaje a pacientes que pidieron BAJA (opt-out); ahora se excluyen (nueva regla lee whatsapp_optout para miembros + normalizador movido a modulo puro client-safe). (3) reactivacion ya NO incluye a quien tiene cita FUTURA agendada. (4) CRM: recien registrados ya no cuentan como 'inactivos'; aritmetica de dias en hora de Mexico (no UTC) para tasas correctas.
+const CACHE = 'nexusmed-v523'  // HOSPITAL: (1) DOBLE OCUPACION DE CAMA: no habia invariante de unicidad — se metian dos pacientes en la misma cama y el 2o quedaba invisible en el tablero (find del primero) inflando la capacidad. Ahora el gateway /api/hospital/mutar RECHAZA (409) en 'crear' y 'trasladar' si otra estancia activa ocupa la misma cama del mismo servicio (transaccional, comparando con mismaCama normalizada), y el tablero muestra un aviso rojo si quedaran conflictos de antes. (2) EGRESO: al dar de alta no se desactivaban las indicaciones -> seguian activa:true en un paciente egresado (ficha, conciliacion 'continuado', FHIR); ahora el egreso las cierra (activa:false, motivo 'Cierre por egreso').
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
