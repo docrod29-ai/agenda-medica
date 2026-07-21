@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v531'  // Auditoria multi-especialidad lote 3: (1) TABLERO DE CAMAS reactivo: el censo ahora se suscribe en vivo (suscribirCenso) -> un ingreso/egreso/traslado de otra sesion se refleja al instante (antes lectura unica -> capacidad desfasada). (2) ALERTA DE EMBARAZO: el texto ya no dice 'descarta embarazo' aunque haya embarazo documentado; ahora es correcto en ambos casos (si embarazada suspender; si no, descartar). (3) PORTAL PUBLICO + disponibilidad: ahora respetan el HORARIO POR MEDICO (antes solo el de la clinica -> incoherente con el panel: rechazaba o permitia dias segun la clinica, no el medico). Tests 1275.
+const CACHE = 'nexusmed-v532'  // TRACK 2 del plan Medical OS: TRANSPARENCIA DE IA POR NIVEL. MOTORES (planes-ia) ahora lleva usoRecomendado + incluye[] (que cambia CLINICAMENTE en cada nivel) + latencia; nuevo componente TablaNivelesIA (lee la fuente unica) mostrado en /precios: Rapida=estructuracion+resumen; Estandar=+separacion voces+omisiones+seguridad basica+escalas; Maxima=+2o verificador+evidencia PubMed/PMID+revision farmacologica. Honestidad comercial que ademas vende Maxima.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

@@ -55,11 +55,30 @@ export interface Motor {
   creditos: number
   /** Perfil de modelo en procesar (live=Haiku, pro=Sonnet, premium=Opus). */
   perfil: 'live' | 'pro' | 'premium'
+  /** Uso clínico recomendado (transparencia: qué caso conviene con cada nivel). */
+  usoRecomendado: string
+  /**
+   * QUÉ CAMBIA CLÍNICAMENTE en cada nivel (no solo el precio). El usuario merece
+   * saber qué gana con "Máxima": no es "más caro", es 2º verificador + evidencia +
+   * revisión de seguridad. Esto se muestra en /precios y en el selector de nota.
+   */
+  incluye: string[]
+  /** Latencia relativa (para gestionar expectativa). */
+  latencia: string
 }
 export const MOTORES: Record<ClaveMotor, Motor> = {
-  rapida:   { clave: 'rapida',   nombre: 'Rápida',   emoji: '⚡', modelos: 'Haiku 4.5',                   creditos: 1,  perfil: 'live' },
-  estandar: { clave: 'estandar', nombre: 'Estándar', emoji: '⭐', modelos: 'Sonnet 5 + separación de voces', creditos: 3,  perfil: 'pro' },
-  maxima:   { clave: 'maxima',   nombre: 'Máxima',   emoji: '💎', modelos: 'Máximo razonamiento + revisión de seguridad', creditos: 10, perfil: 'premium' },
+  rapida:   { clave: 'rapida',   nombre: 'Rápida',   emoji: '⚡', modelos: 'Haiku 4.5',                   creditos: 1,  perfil: 'live',
+    usoRecomendado: 'Nota rutinaria / seguimiento simple',
+    incluye: ['Estructuración de la nota', 'Resumen del caso', 'Modelo veloz (baja latencia)'],
+    latencia: 'Mínima' },
+  estandar: { clave: 'estandar', nombre: 'Estándar', emoji: '⭐', modelos: 'Sonnet 5 + separación de voces', creditos: 3,  perfil: 'pro',
+    usoRecomendado: 'Consulta compleja',
+    incluye: ['Todo lo de Rápida', 'Separación de voces (médico/paciente)', 'Detección de omisiones', 'Revisión básica de seguridad', 'Escalas clínicas con código'],
+    latencia: 'Media' },
+  maxima:   { clave: 'maxima',   nombre: 'Máxima',   emoji: '💎', modelos: 'Opus 4.8 + GPT-5 + 2ª opinión', creditos: 10, perfil: 'premium',
+    usoRecomendado: 'Caso clínico difícil',
+    incluye: ['Todo lo de Estándar', 'Modelo de máximo razonamiento', 'Segundo verificador (2ª opinión)', 'Evidencia PubMed con PMID verificado', 'Revisión farmacológica (dosis · interacciones · función renal)', 'Mayor contexto clínico'],
+    latencia: 'Mayor (razonamiento profundo)' },
 }
 export const motorPorClave = (c?: string): Motor => MOTORES[(c as ClaveMotor)] ?? MOTORES.estandar
 /** Motor por defecto según el nivel del plan: Pro/Premium → Máxima; Clínica → Estándar. */
