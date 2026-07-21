@@ -158,6 +158,19 @@ export async function POST(req: NextRequest) {
           to: entry.pacienteTelefono, clave: 'listaEspera',
           datos: { paciente: entry.pacienteNombre.split(' ')[0], medico: config.nombreMedico || 'el médico', fecha: formatDate(fecha), hora },
           textoLibre: msg,
+          // Para que, si el cron reenvía esta oferta, cree la sesión esperando_lista
+          // y el "SÍ" del paciente sí agende el hueco (mismo efecto que el envío inline).
+          meta: {
+            sesionListaEspera: {
+              telefono: normalizarTelefonoWa(entry.pacienteTelefono || ''),
+              nombre: entry.pacienteNombre,
+              slotFecha: fecha,
+              slotHora: hora,
+              tipo: entry.tipo || 'seguimiento',
+              waitlistId: entry.id,
+              pacienteId: entry.pacienteId || '',
+            },
+          },
         }, Date.now())
       }
     }

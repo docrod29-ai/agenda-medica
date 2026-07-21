@@ -226,6 +226,28 @@ export async function GET(req: NextRequest) {
             waConfig, ahoraMs: now.getTime(), minutosDelDiaMx: minMx, fechaHoyMx: hoyISO(),
           })
           if (resultado === 'enviado' || resultado === 'optout' || resultado === 'omitido') {
+            // Si la oferta de lista de espera se reenvió con éxito, recrear la sesión
+            // `esperando_lista` (el handler inline la crea, pero el drenado no): sin
+            // ella el "SÍ" del paciente cae al menú y el hueco se pierde.
+            const sesion = resultado === 'enviado' && e.clave === 'listaEspera'
+              ? (e.meta?.sesionListaEspera as { telefono?: string; nombre?: string; slotFecha?: string; slotHora?: string; tipo?: string; waitlistId?: string; pacienteId?: string } | undefined)
+              : undefined
+            if (sesion?.telefono) {
+              const nowIso = now.toISOString()
+              await adminDb.collection('clinics').doc(clinicId).collection('bot_sessions').doc(sesion.telefono).set({
+                telefono: sesion.telefono,
+                estado: 'esperando_lista',
+                datos: {
+                  nombre: sesion.nombre || '', slotFecha: sesion.slotFecha || '', slotHora: sesion.slotHora || '',
+                  tipo: sesion.tipo || 'seguimiento', waitlistId: sesion.waitlistId || '', pacienteId: sesion.pacienteId || '',
+                },
+                lastMessageAt: nowIso, createdAt: nowIso,
+              }, { merge: true }).catch(() => {})
+              if (sesion.waitlistId) {
+                await adminDb.collection('clinics').doc(clinicId).collection('waitlist').doc(sesion.waitlistId)
+                  .update({ estado: 'contactado' }).catch(() => {})
+              }
+            }
             await resolverEntrada(clinicId, e.id) // resuelto o inalcanzable por config → sacar de la cola
             if (resultado === 'enviado') totals.sent++
           } else if (resultado === 'fallo') {
