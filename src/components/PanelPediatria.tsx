@@ -8,12 +8,18 @@
 import { useMemo, useState } from 'react'
 import { Baby, Syringe, Pill, Plus, AlertTriangle, TrendingUp } from 'lucide-react'
 import {
-  FARMACOS_PED, calcularDosisPediatrica, vacunasSegunEdad, imc, evaluarTodo,
+  FARMACOS_PED, calcularDosisPediatrica, vacunasSegunEdad, imc, evaluarTodo, edadEnMeses,
 } from '@/lib/expediente/pediatria'
 
 interface Props {
   /** Edad del paciente en años (si es ≥ 18 el panel no se muestra). */
   edadAnios?: number
+  /** Fecha de nacimiento (ISO): si está, la edad en MESES se calcula exacta —
+      crítico en lactantes, donde `edad*12` colapsa a 0 (percentil y vacunas mal). */
+  fechaNacimiento?: string
+  /** Peso ya capturado en signos: siembra el campo para no re-teclearlo (y evitar
+      dos pesos discrepantes en la misma consulta). */
+  pesoInicial?: number
   /** Sexo del paciente: la referencia de la OMS es distinta por sexo. */
   sexo?: string
   onAgregarANota?: (texto: string) => void
@@ -21,12 +27,15 @@ interface Props {
   embebido?: boolean
 }
 
-export function PanelPediatria({ edadAnios, sexo, onAgregarANota, embebido }: Props) {
+export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, onAgregarANota, embebido }: Props) {
   const [tab, setTab] = useState<'dosis' | 'vacunas' | 'crecimiento'>('dosis')
   const [perimetro, setPerimetro] = useState('')
-  const [peso, setPeso] = useState('')
+  const [peso, setPeso] = useState(pesoInicial && pesoInicial > 0 ? String(pesoInicial) : '')
   const [talla, setTalla] = useState('')
-  const [meses, setMeses] = useState(edadAnios != null ? String(Math.round(edadAnios * 12)) : '')
+  const mesesIniciales = fechaNacimiento
+    ? String(edadEnMeses(fechaNacimiento, new Date().toISOString().slice(0, 10)))
+    : (edadAnios != null ? String(Math.round(edadAnios * 12)) : '')
+  const [meses, setMeses] = useState(mesesIniciales)
   const [busca, setBusca] = useState('')
 
   const pesoKg = Number(peso)
@@ -49,15 +58,18 @@ export function PanelPediatria({ edadAnios, sexo, onAgregarANota, embebido }: Pr
   const indice = useMemo(() => (pesoKg > 0 && Number(talla) > 0 ? imc(pesoKg, Number(talla)) : null), [pesoKg, talla])
 
   // La referencia de la OMS solo cubre 0 a 60 meses; fuera de ahí no se evalúa.
+  // Y es DISTINTA por sexo: si no se conoce el sexo (undefined/'Otro'), NO se evalúa
+  // con la tabla de niño por defecto (antes lo hacía en silencio → z-score erróneo).
+  const sexoConocido = !!sexo && /^(f|m)/i.test(sexo)
   const esNina = !!sexo && /^f/i.test(sexo)
   const crecimiento = useMemo(() => {
-    if (meses === '' || edadMeses < 0 || edadMeses > 60) return []
+    if (!sexoConocido || meses === '' || edadMeses < 0 || edadMeses > 60) return []
     return evaluarTodo(edadMeses, esNina, {
       pesoKg: pesoKg > 0 ? pesoKg : undefined,
       tallaCm: Number(talla) > 0 ? Number(talla) : undefined,
       perimetroCm: Number(perimetro) > 0 ? Number(perimetro) : undefined,
     })
-  }, [meses, edadMeses, esNina, pesoKg, talla, perimetro])
+  }, [sexoConocido, meses, edadMeses, esNina, pesoKg, talla, perimetro])
 
   if (edadAnios != null && edadAnios >= 18) return null
 

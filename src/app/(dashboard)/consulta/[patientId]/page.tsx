@@ -2466,6 +2466,7 @@ export default function ConsultaActivaPage() {
             : undefined,
           abrirPorDefecto: vacunasAtrasadas > 0,
           contenido: <PanelPediatria embebido edadAnios={patient?.edad} sexo={patient?.sexo}
+            fechaNacimiento={patient?.fechaNacimiento} pesoInicial={signosNum.peso}
             onAgregarANota={agregarASeccion('pediatria', 'Pediatría')} />,
         }] : []),
         ...(calcSugeridas.length > 0 ? [{

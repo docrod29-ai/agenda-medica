@@ -160,12 +160,16 @@ function patch(accion: string, inter: Any, p: Any, now: string, actor: Actor): A
     // El registro clínico-legal COMPLETO (sin truncar) se persiste en la
     // subcolección append-only `registros` — ver registroDurable() y la
     // transacción de POST. Así ningún registro se pierde (NOM-004).
+    // `por: actor.nombre` — el AUTOR REAL (usuario en sesión), no el `p.por` que
+    // manda el cliente (que traía config.nombreMedico = el titular de la clínica).
+    // Igual que el MAR: la enfermera que registra queda registrada como ella, no
+    // como el médico. Es dato clínico-legal (quién hizo qué).
     case 'balance':
-      return { balanceHidrico: [...arr('balanceHidrico'), { fecha: now, ingresos: p.ingresos, egresos: p.egresos, por: p.por }].slice(-100) }
+      return { balanceHidrico: [...arr('balanceHidrico'), { fecha: now, ingresos: p.ingresos, egresos: p.egresos, por: actor.nombre }].slice(-100) }
     case 'escala':
-      return { escalas: [...arr('escalas'), { fecha: now, tipo: p.tipo, score: p.score, riesgo: p.riesgo, por: p.por }].slice(-100) }
+      return { escalas: [...arr('escalas'), { fecha: now, tipo: p.tipo, score: p.score, riesgo: p.riesgo, por: actor.nombre }].slice(-100) }
     case 'sbar':
-      return { sbar: [...arr('sbar'), { fecha: now, texto: p.texto, por: p.por }].slice(-50) }
+      return { sbar: [...arr('sbar'), { fecha: now, texto: p.texto, por: actor.nombre }].slice(-50) }
     default:
       return {}
   }

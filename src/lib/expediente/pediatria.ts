@@ -202,6 +202,17 @@ export function edadEnMeses(fechaNacimientoISO: string, hoyISO: string): number 
   return Math.max(0, meses)
 }
 
+/** Edad en años cumplidos a partir de la fecha de nacimiento (ISO). null si inválida. */
+export function edadEnAnios(fechaNacimientoISO: string | undefined | null, hoyISO?: string): number | null {
+  if (!fechaNacimientoISO) return null
+  const n = new Date(fechaNacimientoISO)
+  const h = hoyISO ? new Date(hoyISO) : new Date()
+  if (isNaN(n.getTime()) || isNaN(h.getTime())) return null
+  let a = h.getFullYear() - n.getFullYear()
+  if (h.getMonth() < n.getMonth() || (h.getMonth() === n.getMonth() && h.getDate() < n.getDate())) a--
+  return a >= 0 && a < 130 ? a : null
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // 3. PERCENTILES / Z-SCORE (método LMS de la OMS)
 // ═══════════════════════════════════════════════════════════════════════════
