@@ -18,7 +18,7 @@ import {
 
 interface Props {
   entrada: EntradaCopiloto
-  onAgregarANota?: (texto: string) => void
+  onAgregarANota?: (texto: string) => boolean | void
 }
 
 const COLOR: Record<NivelSugerencia, { fg: string; bg: string; bd: string }> = {
@@ -40,13 +40,16 @@ export function Copiloto({ entrada, onAgregarANota }: Props) {
 
   const poner = (s: Sugerencia) => {
     if (!onAgregarANota || !s.textoNota) return
-    onAgregarANota(s.textoNota)
-    setPuestas(p => new Set(p).add(s.id))
+    // Solo se marca como "puesta" si REALMENTE se agregó. Con la nota firmada,
+    // onAgregarANota devuelve false (no se puede enmendar sin adenda) y antes el
+    // Copiloto igual pintaba el check verde: un falso éxito medicolegal.
+    if (onAgregarANota(s.textoNota) !== false) setPuestas(p => new Set(p).add(s.id))
   }
   const ponerTodo = () => {
     if (!onAgregarANota || documentables.length === 0) return
-    onAgregarANota(textoParaNota(documentables))
-    setPuestas(p => { const n = new Set(p); documentables.forEach(s => n.add(s.id)); return n })
+    if (onAgregarANota(textoParaNota(documentables)) !== false) {
+      setPuestas(p => { const n = new Set(p); documentables.forEach(s => n.add(s.id)); return n })
+    }
   }
 
   return (

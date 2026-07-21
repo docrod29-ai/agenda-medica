@@ -20,7 +20,12 @@ const GRUPO_LABEL: Record<string, string> = {
  * médico REVISA lo extraído (nada se guarda sin su visto bueno) → se guarda como
  * un panel fechado → las gráficas se recalculan sobre todo el historial.
  */
-export function PanelLaboratorios({ clinicId, patientId }: { clinicId: string; patientId: string }) {
+export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
+  clinicId: string
+  patientId: string
+  /** Si viene (consulta), muestra "Agregar a la nota" con un resumen del último estudio. */
+  onAgregarANota?: (texto: string) => void
+}) {
   const { toast, confirm } = useToast()
   const [paneles, setPaneles] = useState<PanelLaboratorio[]>([])
   const [cargando, setCargando] = useState(true)
@@ -84,10 +89,31 @@ export function PanelLaboratorios({ clinicId, patientId }: { clinicId: string; p
         </div>
         <input ref={fileRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }}
           onChange={e => { const f = e.target.files?.[0]; if (f) onArchivo(f) }} />
-        <button className="btn btn-primary btn-sm" disabled={subiendo} onClick={() => fileRef.current?.click()}
-          style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {subiendo ? <><Loader2 size={14} className="spin" /> Interpretando…</> : <><Upload size={14} /> Adjuntar PDF o foto</>}
-        </button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {onAgregarANota && paneles.length > 0 && (
+            <button
+              className="btn btn-sm"
+              onClick={() => {
+                // Resumen del estudio MÁS RECIENTE para la nota. El médico decide
+                // agregarlo — es opt-in, como el resto de las herramientas.
+                const ult = paneles[0]
+                const linea = ult.resultados.map(r => `${r.etiqueta} ${r.valor} ${r.unidad}${r.critico ? ' ⚠' : ''}`).join(' · ')
+                const criticos = ult.resultados.filter(r => r.critico)
+                const texto = `Laboratorios (${ult.fecha || 'sin fecha'}): ${linea}.` +
+                  (criticos.length ? ` Valores críticos: ${criticos.map(c => c.etiqueta).join(', ')}.` : '')
+                onAgregarANota(texto)
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              title="Agrega el último laboratorio a la nota clínica"
+            >
+              <Check size={14} /> Agregar a la nota
+            </button>
+          )}
+          <button className="btn btn-primary btn-sm" disabled={subiendo} onClick={() => fileRef.current?.click()}
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {subiendo ? <><Loader2 size={14} className="spin" /> Interpretando…</> : <><Upload size={14} /> Adjuntar PDF o foto</>}
+          </button>
+        </div>
       </div>
       <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0 }}>
         Sube el PDF o una foto del reporte. La IA lee los valores, tú los revisas y se grafican en el tiempo.

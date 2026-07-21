@@ -122,6 +122,11 @@ const ESPECIALIDADES_POR_GRUPO: { grupo: string; items: string[] }[] = [
   ] },
 ]
 
+/** ¿Hay algún signo vital capturado? Objeto de signos con algún valor no vacío. */
+function signosConValor(sv: SignosVitales | undefined | null): boolean {
+  return !!sv && Object.values(sv as Record<string, unknown>).some(v => v != null && String(v).trim() !== '')
+}
+
 export default function ConsultaActivaPage() {
   const { patientId } = useParams<{ patientId: string }>()
   const router = useRouter()
@@ -315,14 +320,22 @@ export default function ConsultaActivaPage() {
      */
     if (firmadaRef.current) {
       toast('Esta nota ya está firmada. Para corregirla, usa una adenda desde la nota.', 'info')
-      return
+      return false
     }
+    const t = texto.trim()
+    if (!t) return false
+    let duplicado = false
     setSecciones(prev => {
       const i = prev.findIndex(s => s.key === key)
-      const valor = i >= 0 ? `${prev[i].value}\n${texto}` : texto
+      // DEDUP: si la sección ya contiene EXACTAMENTE este texto, no lo anexa otra
+      // vez. Antes cada clic concatenaba, así que reaplicar una escala o recalcular
+      // dejaba líneas idénticas repetidas en la nota (ruido medicolegal).
+      if (i >= 0 && prev[i].value.includes(t)) { duplicado = true; return prev }
+      const valor = i >= 0 ? `${prev[i].value}\n${t}` : t
       return [...prev.filter(s => s.key !== key), { key, label, value: valor }]
     })
-    toast('Agregado a la nota ✓', 'success')
+    toast(duplicado ? 'Eso ya estaba en la nota' : 'Agregado a la nota ✓', duplicado ? 'info' : 'success')
+    return true
   }, [toast])
 
   const esCasoQuirurgico = useMemo(() => {
@@ -507,7 +520,11 @@ export default function ConsultaActivaPage() {
   }
 
   const iniciarGrabacion = () => {
-    if (consentimiento) { voz.iniciar(); return }
+    // arrancarSegunModo, NO voz.iniciar directo: `modoVoz` está en 'whisper', así
+    // que el grabador real es `audio`. Llamar voz.iniciar() arrancaba un SEGUNDO
+    // grabador (Web Speech) en paralelo al de Whisper — dos motores escribiendo la
+    // misma transcripción. El atajo de teclado disparaba justo este camino.
+    if (consentimiento) { arrancarSegunModo(); return }
     setModalConsentimiento(true)
   }
   const confirmarConsentimiento = () => {
@@ -747,8 +764,12 @@ export default function ConsultaActivaPage() {
         body: JSON.stringify({
           transcripcion: transcripcionParaIA,
           tipo: tipoActivo,
-          rapido: enVivo,  // en vivo = modelo rápido/barato; nota final = motor elegido
-          motor: enVivo ? undefined : motorEfectivo,  // menú de IA: ⚡/⭐/💎 (o default del plan)
+          // La preliminar TAMBIÉN va en modelo rápido (Haiku): es un borrador que
+          // se re-proyecta en cuanto llega la diarización. Antes corría el motor
+          // completo (Opus + razonamiento, ~40s) y el médico igual esperaba
+          // mirando la pantalla — el propósito de la nota "instantánea" se perdía.
+          rapido: enVivo || preliminar,
+          motor: (enVivo || preliminar) ? undefined : motorEfectivo,  // menú de IA: ⚡/⭐/💎 (o default del plan)
           contexto: {
             // Sin nombre: no aporta nada a estructurar la nota e identifica al
             // titular ante un tercero en el extranjero. Ver buildUserPrompt.
@@ -1341,7 +1362,8 @@ export default function ConsultaActivaPage() {
     // criterio de "hay contenido" que el respaldo local, que sí los miraba.
     const hayContenido = () =>
       !!(resumen.trim() || secciones.some(s => s.value?.trim()) ||
-         diagnosticos.length || medicamentos.length || voz.transcripcion.trim())
+         diagnosticos.length || medicamentos.length || voz.transcripcion.trim() ||
+         signosConValor(signos) || estudiosOrden.length || preop)
     const t = setInterval(() => { if (hayContenido()) guardarBorrador(true) }, 30000)
     return () => clearInterval(t)
   }, [firmada, resumen, secciones, diagnosticos, medicamentos, voz.transcripcion, guardarBorrador])
@@ -1354,13 +1376,14 @@ export default function ConsultaActivaPage() {
   useEffect(() => {
     if (firmada) return
     const hayContenido = resumen.trim() || secciones.some(s => s.value?.trim()) ||
-      diagnosticos.length > 0 || medicamentos.length > 0 || voz.transcripcion.trim()
+      diagnosticos.length > 0 || medicamentos.length > 0 || voz.transcripcion.trim() ||
+      signosConValor(signos) || estudiosOrden.length > 0 || !!preop
     if (!hayContenido) return
     const id = setTimeout(() => {
       if (borradoresBloqueados()) return   // sesión cerrada: no resucitar PHI
       try {
         localStorage.setItem(respaldoKey, ofuscar(JSON.stringify({
-          tipo, resumen, secciones, signos, diagnosticos, medicamentos,
+          tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop,
           // notaId: sin él, restaurar el respaldo dejaba notaIdRef en null y el
           // siguiente autoguardado CREABA una segunda nota con el mismo contenido.
           notaId: notaIdRef.current,
@@ -1399,6 +1422,8 @@ export default function ConsultaActivaPage() {
     if (b.signos) setSignos(b.signos as SignosVitales)
     if (Array.isArray(b.diagnosticos)) setDiagnosticos(b.diagnosticos as Diagnostico[])
     if (Array.isArray(b.medicamentos)) setMedicamentos(b.medicamentos as Medicamento[])
+    if (Array.isArray(b.estudiosOrden)) setEstudiosOrden(b.estudiosOrden as string[])
+    if (b.preop) setPreop(b.preop as typeof preop)
     if (typeof b.transcripcion === 'string') voz.setTranscripcion(b.transcripcion)
     setRespaldoDisponible(false)
     if (!mem) toast('Recuperé tu nota sin guardar de este paciente ✓', 'success')  // solo si vino de localStorage
@@ -1408,13 +1433,13 @@ export default function ConsultaActivaPage() {
   // cancelaba si salías rápido a la agenda (el desmonte mataba el timeout antes
   // de guardar). Aquí guardamos SIN esperar: al desmontar (navegación dentro de
   // la app), al ocultar la pestaña y al cerrar. Usa un ref con el estado vivo.
-  const estadoVivoRef = useRef({ tipo, resumen, secciones, signos, diagnosticos, medicamentos, transcripcion: voz.transcripcion, firmada })
+  const estadoVivoRef = useRef({ tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, transcripcion: voz.transcripcion, firmada })
   useEffect(() => {
-    estadoVivoRef.current = { tipo, resumen, secciones, signos, diagnosticos, medicamentos, transcripcion: voz.transcripcion, firmada }
+    estadoVivoRef.current = { tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, transcripcion: voz.transcripcion, firmada }
     // Espejo EN MEMORIA en cada cambio (barato, sin debounce): así al navegar y
     // volver la nota está exactamente como la dejaste, al instante.
     const e = estadoVivoRef.current
-    const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) || e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim()
+    const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) || e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim() || signosConValor(e.signos) || (e.estudiosOrden?.length ?? 0) > 0 || !!e.preop
     /**
      * NUNCA se borra el respaldo por verse VACÍO — esa era la fuente del
      * "a veces se borra y tengo que empezar otra vez".
@@ -1431,7 +1456,7 @@ export default function ConsultaActivaPage() {
      * contenido se escribe; si está vacío y sin firmar, se deja como está.
      */
     if (e.firmada) borradorMem.borrar(respaldoKey)
-    else if (hay) borradorMem.escribir(respaldoKey, { tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos, diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, transcripcion: e.transcripcion, notaId: notaIdRef.current })
+    else if (hay) borradorMem.escribir(respaldoKey, { tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos, diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, estudiosOrden: e.estudiosOrden, preop: e.preop, transcripcion: e.transcripcion, notaId: notaIdRef.current })
   })
   /**
    * RESTAURAR LA POSICIÓN al volver a la nota.
@@ -1467,12 +1492,12 @@ export default function ConsultaActivaPage() {
     // Tras cerrar sesión, el desmonte dispara este flush. Escribir aquí resucitaba
     // el borrador que se acababa de purgar, y encima con la clave equivocada.
     if (borradoresBloqueados()) return
-    const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) || e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim()
+    const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) || e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim() || signosConValor(e.signos) || (e.estudiosOrden?.length ?? 0) > 0 || !!e.preop
     if (!hay) return
     try {
       localStorage.setItem(respaldoKey, ofuscar(JSON.stringify({
         tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos,
-        diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, notaId: notaIdRef.current,
+        diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, estudiosOrden: e.estudiosOrden, preop: e.preop, notaId: notaIdRef.current,
         transcripcion: e.transcripcion, ts: Date.now(),
       }), secretoLocal(auth.currentUser?.uid)))
     } catch { /* almacenamiento lleno */ }
@@ -1496,7 +1521,8 @@ export default function ConsultaActivaPage() {
       const e = estadoVivoRef.current
       if (e.firmada) return
       const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) ||
-        e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim()
+        e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim() ||
+        signosConValor(e.signos) || (e.estudiosOrden?.length ?? 0) > 0 || !!e.preop
       if (hay) guardarBorrador(true)
     }
     window.addEventListener(EVENTO_GUARDAR_TODO, alGuardarTodo)
@@ -1512,6 +1538,8 @@ export default function ConsultaActivaPage() {
       if (Array.isArray(b.secciones)) setSecciones(b.secciones)
       if (typeof b.resumen === 'string') setResumen(b.resumen)
       if (b.signos) setSignos(b.signos)
+      if (Array.isArray(b.estudiosOrden)) setEstudiosOrden(b.estudiosOrden)
+      if (b.preop) setPreop(b.preop)
       if (Array.isArray(b.diagnosticos)) setDiagnosticos(b.diagnosticos)
       if (Array.isArray(b.medicamentos)) setMedicamentos(b.medicamentos)
       if (b.transcripcion) voz.setTranscripcion(b.transcripcion)
@@ -1661,7 +1689,15 @@ export default function ConsultaActivaPage() {
         setCobrar(true)
       } else {
         const nid = notaIdRef.current
-        router.push(internamientoActivo ? `/hospitalizacion/${internamientoActivo}` : medicamentos.length > 0 && nid ? `/receta/${patientId}/${nid}` : `/expediente/${patientId}`)
+        router.push(
+          internamientoActivo ? `/hospitalizacion/${internamientoActivo}`
+          // Con medicamentos → receta. Sin medicamentos pero CON estudios → orden
+          // médica (antes solo ramificaba a receta y la orden se quedaba en el
+          // tintero; el paciente salía sin su solicitud de estudios). Si no hay
+          // ni lo uno ni lo otro → expediente.
+          : (medicamentos.length > 0 && nid) ? `/receta/${patientId}/${nid}`
+          : (estudiosOrden.length > 0 && nid) ? `/orden/${patientId}/${nid}`
+          : `/expediente/${patientId}`)
       }
     } catch (e) {
       toast('Error al firmar', 'error')
@@ -1697,7 +1733,14 @@ export default function ConsultaActivaPage() {
       // GRABAR: Cmd/Ctrl+Shift+G. NO se usa R: Cmd/Ctrl+Shift+R es el hard-refresh
       // del navegador y la app terminaba grabando al actualizar forzado.
       if (e.shiftKey && (e.key === 'G' || e.key === 'g')) {
-        e.preventDefault(); voz.grabando ? voz.detener() : iniciarGrabacion(); return
+        e.preventDefault()
+        // Detener el grabador ACTIVO (audio en modo whisper); si no graba, iniciar.
+        // Antes miraba voz.grabando, que en el flujo real es SIEMPRE false → el
+        // atajo ni detenía ni evitaba arrancar un grabador paralelo.
+        if (audio.estado === 'grabando' || audio.estado === 'pausado') audio.detener()
+        else if (voz.grabando) voz.detener()
+        else iniciarGrabacion()
+        return
       }
       if (e.shiftKey && (e.key === 'D' || e.key === 'd')) {
         e.preventDefault(); procesarIA(); return
@@ -2434,7 +2477,8 @@ export default function ConsultaActivaPage() {
           id: 'laboratorios', nombre: 'Laboratorios', color: 'var(--teal)', icono: <FlaskConical size={14} />,
           para: 'Adjunta un PDF o foto → la IA lo interpreta → gráficas de tendencia',
           contenido: clinicId
-            ? <PanelLaboratorios clinicId={clinicId} patientId={patientId} />
+            ? <PanelLaboratorios clinicId={clinicId} patientId={patientId}
+                onAgregarANota={agregarASeccion('laboratorios', 'Laboratorios')} />
             : <p style={{ fontSize: 12, color: 'var(--text3)' }}>Cargando…</p>,
         },
         ]
@@ -2994,7 +3038,15 @@ export default function ConsultaActivaPage() {
             // Fluidez: si la consulta dejó medicamentos, encadena directo a la
             // RECETA (acabas de prescribir → imprímela); si no, al expediente.
             const nid = notaId || notaIdRef.current
-            router.push(internamientoActivo ? `/hospitalizacion/${internamientoActivo}` : medicamentos.length > 0 && nid ? `/receta/${patientId}/${nid}` : `/expediente/${patientId}`)
+            router.push(
+          internamientoActivo ? `/hospitalizacion/${internamientoActivo}`
+          // Con medicamentos → receta. Sin medicamentos pero CON estudios → orden
+          // médica (antes solo ramificaba a receta y la orden se quedaba en el
+          // tintero; el paciente salía sin su solicitud de estudios). Si no hay
+          // ni lo uno ni lo otro → expediente.
+          : (medicamentos.length > 0 && nid) ? `/receta/${patientId}/${nid}`
+          : (estudiosOrden.length > 0 && nid) ? `/orden/${patientId}/${nid}`
+          : `/expediente/${patientId}`)
           }}
         />
       )}
