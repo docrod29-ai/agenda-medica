@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v530'  // Auditoria multi-especialidad lote 2: (1) ENFERMERIA: los registros de balance/escala(Braden-Morse)/SBAR se atribuian al MEDICO TITULAR, no a quien los capturaba; el gateway ahora sella el AUTOR REAL (igual que el MAR). (2) IMPORTACION CSV: no derivaba la EDAD de la fecha de nacimiento -> ninos importados no mostraban herramientas pediatricas; ahora se deriva (edadEnAnios). (3) PANEL PEDIATRIA: edad en MESES exacta desde la fecha de nacimiento (antes edad*12 colapsaba a 0 en lactantes -> percentil y vacunas mal); siembra el peso de los signos (no re-teclear); y NO usa la tabla de crecimiento de nino con sexo desconocido (antes lo hacia en silencio). Tests 1275.
+const CACHE = 'nexusmed-v531'  // Auditoria multi-especialidad lote 3: (1) TABLERO DE CAMAS reactivo: el censo ahora se suscribe en vivo (suscribirCenso) -> un ingreso/egreso/traslado de otra sesion se refleja al instante (antes lectura unica -> capacidad desfasada). (2) ALERTA DE EMBARAZO: el texto ya no dice 'descarta embarazo' aunque haya embarazo documentado; ahora es correcto en ambos casos (si embarazada suspender; si no, descartar). (3) PORTAL PUBLICO + disponibilidad: ahora respetan el HORARIO POR MEDICO (antes solo el de la clinica -> incoherente con el panel: rechazaba o permitia dias segun la clinica, no el medico). Tests 1275.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

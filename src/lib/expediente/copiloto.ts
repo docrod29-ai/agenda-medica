@@ -253,7 +253,9 @@ function riesgoGestacional(e: EntradaCopiloto): Sugerencia[] {
       id: `gesta:${m.nombre}`,
       nivel: 'critico',
       titulo: `${m.nombre} está contraindicado en el embarazo`,
-      detalle: `${g.motivo}${g.alternativa ? ` Alternativa: ${g.alternativa}` : ''} La paciente está en edad fértil: descarta embarazo y comenta anticoncepción.`,
+      // Correcto en ambos casos (el motor aún no sabe con certeza si hay embarazo):
+      // si está embarazada → suspender; si no → descartar antes de prescribir.
+      detalle: `${g.motivo}${g.alternativa ? ` Alternativa: ${g.alternativa}` : ''} Si la paciente está o pudiera estar embarazada, suspender de inmediato; si no, descarta embarazo antes de prescribir y comenta planeación/anticoncepción.`,
       textoNota: `Se comentó con la paciente que ${m.nombre} está contraindicado en el embarazo. ${g.motivo}`,
     })
   }

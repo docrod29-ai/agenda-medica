@@ -42,7 +42,14 @@ export async function GET(
     // 1. Configuración
     const configSnap = await adminDb.collection('clinics').doc(clinicId).collection('config').doc('main').get()
     if (!configSnap.exists) return NextResponse.json({ ok: true, slots: [] })
-    const cfg = configSnap.data()!
+    let cfg = configSnap.data()!
+    // Horario POR MÉDICO: si se pide disponibilidad de un médico concreto, sus
+    // horario/duraciones/intervalo pisan a los de la clínica (coherente con el panel).
+    if (medicoId) {
+      const docSnap = await adminDb.collection('clinics').doc(clinicId).collection('doctors').doc(medicoId).get()
+      const doc = docSnap.data()
+      if (doc) cfg = { ...cfg, horario: doc.horario ?? cfg.horario, duraciones: doc.duraciones ?? cfg.duraciones, intervaloMinutos: doc.intervaloMinutos ?? cfg.intervaloMinutos }
+    }
 
     // 2. Horario del día
     const d = new Date(fecha + 'T12:00:00')

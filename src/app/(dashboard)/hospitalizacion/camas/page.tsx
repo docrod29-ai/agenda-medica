@@ -7,7 +7,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { useClinic } from '@/context/ClinicContext'
-import { getCenso, getCamas, crearCama, actualizarCamaEstado, borrarCama } from '@/lib/hospital/firestore'
+import { suscribirCenso, getCamas, crearCama, actualizarCamaEstado, borrarCama } from '@/lib/hospital/firestore'
 import { SERVICIOS_HOSPITAL, ESTADO_CAMA_LABEL, type Internamiento, type Cama, type EstadoCama } from '@/types/hospital'
 import { Modal, Button, Spinner } from '@/components/ui'
 import { mismaCama } from '@/lib/hospital/cama'
@@ -28,11 +28,16 @@ export default function CamasPage() {
   const [form, setForm] = useState({ servicio: SERVICIOS_HOSPITAL[0], etiqueta: '', tipo: '' })
   const [busy, setBusy] = useState(false)
 
-  const cargar = () => {
+  // Censo EN VIVO: un ingreso/egreso/traslado desde otra sesión se refleja al
+  // instante en la ocupación del tablero (antes era una lectura única al montar →
+  // la "capacidad disponible" quedaba desfasada, justo el dato para aceptar un ingreso).
+  const recargarCamas = () => { if (clinicId) getCamas(clinicId).then(setCamas).catch(() => {}) }
+  useEffect(() => {
     if (!clinicId) return
-    Promise.all([getCenso(clinicId), getCamas(clinicId)]).then(([c, cm]) => { setCenso(c); setCamas(cm) }).catch(() => {}).finally(() => setLoading(false))
-  }
-  useEffect(cargar, [clinicId])
+    getCamas(clinicId).then(setCamas).catch(() => {})
+    const unsub = suscribirCenso(clinicId, (c) => { setCenso(c); setLoading(false) })
+    return unsub
+  }, [clinicId])
 
   /**
    * ¿La cama está ocupada por un internamiento activo?
@@ -166,10 +171,10 @@ export default function CamasPage() {
                             : <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>{c.tipo || 'General'}</div>}
                           {esAdmin && !oc && (
                             <div style={{ display: 'flex', gap: 4, marginTop: 6, alignItems: 'center' }}>
-                              <select value={c.estado} onChange={async e => { if (!clinicId) return; await actualizarCamaEstado(clinicId, c.id, e.target.value as EstadoCama); cargar() }} style={{ fontSize: 10.5, padding: '2px 4px', borderRadius: 5, background: 'var(--s2)', color: 'var(--text2)', border: '1px solid var(--border)' }} onClick={ev => ev.stopPropagation()}>
+                              <select value={c.estado} onChange={async e => { if (!clinicId) return; await actualizarCamaEstado(clinicId, c.id, e.target.value as EstadoCama); recargarCamas() }} style={{ fontSize: 10.5, padding: '2px 4px', borderRadius: 5, background: 'var(--s2)', color: 'var(--text2)', border: '1px solid var(--border)' }} onClick={ev => ev.stopPropagation()}>
                                 {(['libre', 'bloqueada', 'limpieza'] as EstadoCama[]).map(s => <option key={s} value={s}>{ESTADO_CAMA_LABEL[s]}</option>)}
                               </select>
-                              <button title="Eliminar cama" onClick={async ev => { ev.stopPropagation(); if (!clinicId) return; await borrarCama(clinicId, c.id); cargar() }} style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', padding: 2 }}><Trash2 size={12} /></button>
+                              <button title="Eliminar cama" onClick={async ev => { ev.stopPropagation(); if (!clinicId) return; await borrarCama(clinicId, c.id); recargarCamas() }} style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', padding: 2 }}><Trash2 size={12} /></button>
                             </div>
                           )}
                         </div>
@@ -186,7 +191,7 @@ export default function CamasPage() {
       <Modal open={modal} onClose={() => setModal(false)} title="Agregar cama"
         footer={<><Button variant="secondary" onClick={() => setModal(false)}>Cancelar</Button><Button loading={busy} disabled={!form.etiqueta.trim()} onClick={async () => {
           if (!clinicId) return; setBusy(true)
-          try { await crearCama(clinicId, { servicio: form.servicio, etiqueta: form.etiqueta.trim(), tipo: form.tipo.trim() || undefined }); setModal(false); cargar() } finally { setBusy(false) }
+          try { await crearCama(clinicId, { servicio: form.servicio, etiqueta: form.etiqueta.trim(), tipo: form.tipo.trim() || undefined }); setModal(false); recargarCamas() } finally { setBusy(false) }
         }}>Agregar</Button></>}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Servicio</label>

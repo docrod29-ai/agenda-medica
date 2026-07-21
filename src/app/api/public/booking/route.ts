@@ -98,9 +98,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Clínica no activa' }, { status: 403 })
     }
 
-    const cfg = configSnap.data() ?? {}
-    if (cfg.publicBookingEnabled === false) {
+    const cfgBase = configSnap.data() ?? {}
+    if (cfgBase.publicBookingEnabled === false) {
       return NextResponse.json({ ok: false, error: 'Esta clínica no acepta reservas en línea' }, { status: 403 })
+    }
+    // HORARIO POR MÉDICO: si la reserva es para un médico concreto, su horario/
+    // duraciones pisan a los de la clínica (igual que el panel y /api/appointments).
+    // Sin esto, el portal rechazaba o permitía días según el horario de la clínica,
+    // incoherente con lo que el médico realmente atiende.
+    let cfg = cfgBase
+    if (medicoId) {
+      const docSnap = await clinicRef.collection('doctors').doc(medicoId).get()
+      const doc = docSnap.data()
+      if (doc) cfg = { ...cfgBase, horario: doc.horario ?? cfgBase.horario, duraciones: doc.duraciones ?? cfgBase.duraciones, intervaloMinutos: doc.intervaloMinutos ?? cfgBase.intervaloMinutos }
     }
     const duracion = Number((cfg.duraciones ?? {})[tipo] ?? 30)
 

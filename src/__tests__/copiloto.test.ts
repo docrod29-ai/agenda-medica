@@ -100,7 +100,9 @@ describe('Riesgo gestacional', () => {
     const r = copiloto({ edad: 24, sexo: 'Femenino', medicamentos: [{ nombre: 'Isotretinoína' }] })
     const g = r.find(x => x.id.startsWith('gesta:'))!
     expect(g.nivel).toBe('critico')
-    expect(g.detalle).toMatch(/edad fértil/i)
+    // El detalle debe orientar sobre el embarazo (texto correcto en ambos casos:
+    // suspender si embarazada / descartar si no).
+    expect(g.detalle).toMatch(/embaraz/i)
   })
   it('no aplica a hombres ni fuera de la edad fértil', () => {
     expect(copiloto({ edad: 24, sexo: 'Masculino', medicamentos: [{ nombre: 'Isotretinoína' }] })
