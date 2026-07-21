@@ -87,7 +87,19 @@ export async function createNota(
   // sobreescribe el doc.id al leer con spread y rompe la navegación.
   const { id: _ignorado, ...sinId } = data as NotaMedica
   void _ignorado
-  const ref = await addDoc(notasCol(clinicId, patientId), stripUndefined(sinId))
+  const payload = stripUndefined(sinId)
+  // Guardián de 1 MB TAMBIÉN al crear (antes solo estaba en updateNota): una nota
+  // ya grande en su PRIMERA escritura —dictado largo con transcripción cruda +
+  // diálogo diarizado + entidades— fallaba con el error crudo de Firestore. Aquí
+  // se avisa con un mensaje claro; el respaldo local conserva el contenido.
+  const bytes = new TextEncoder().encode(JSON.stringify(payload)).length
+  if (bytes > 950_000) {
+    throw Object.assign(
+      new Error(`La nota pesa ${(bytes / 1024).toFixed(0)} KB y Firestore admite hasta 1 MB por documento. Suele deberse a una transcripción muy larga. No se perdió nada: hay respaldo local.`),
+      { code: 'nota-demasiado-grande' },
+    )
+  }
+  const ref = await addDoc(notasCol(clinicId, patientId), payload)
   return ref.id
 }
 
