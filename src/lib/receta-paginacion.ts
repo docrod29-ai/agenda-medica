@@ -161,17 +161,21 @@ export function paginarReceta(opts: OpcionesPaginacion): PaginaReceta[] {
    * `overflow: hidden`, lo que sobraba desaparecía.
    */
   /**
-   * Cuando la firma va en TODAS las hojas (formato propio: cada hoja es una
-   * receta que se firma y se entrega), la firma se reserva en CADA página —
-   * incluida la primera. Antes solo se descontaba en las de continuación, y la
-   * primera no la reservaba; pero la "cola" (más abajo) SÍ sumaba la firma. Ese
-   * doble conteo hacía que, aunque todos los medicamentos cupieran en la hoja 1,
-   * se generara una hoja 2 VACÍA con solo "Continuación… Hoja 2 de 2". El Dr. lo
-   * vio: 4 medicamentos que caben en una hoja salían en dos.
+   * La firma se reserva SOLO en las hojas de continuación cuando va en todas
+   * (formato propio: cada hoja se firma y se entrega). NO se resta en la hoja 1
+   * porque `disponiblePrimera` ya es un estimado conservador que en el render
+   * real absorbe la firma —verificado en vivo: los 4 medicamentos del Dr. caben
+   * con firma en la hoja 1—. Restarla también aquí encogía la hoja 1 tanto que
+   * salía UN medicamento por hoja (5 hojas para 4 fármacos). En las hojas de
+   * continuación sí hay que reservarla: su `disponibleContinuacion` es generoso
+   * (header de solo 8 mm) y sin la reserva el contenido se metía bajo la firma y,
+   * con `overflow: hidden`, lo que sobraba desaparecía. La firma tampoco se suma
+   * en la "cola" (arriba) cuando va en todas: eso la contaba dos veces y forzaba
+   * una hoja 2 VACÍA ("Continuación… Hoja 2 de 2") aunque todo cupiera en la 1.
    */
-  const reservaFirmaPorHoja = firmaEnTodasLasHojas ? firmaMm : 0
+  const reservaFirmaContinuacion = firmaEnTodasLasHojas ? firmaMm : 0
   const capacidadDe = (idx: number) =>
-    (idx === 0 ? disponiblePrimera : disponibleContinuacion) - reservaFirmaPorHoja
+    idx === 0 ? disponiblePrimera : disponibleContinuacion - reservaFirmaContinuacion
 
   for (const b of bloques) {
     const idx = paginas.length - 1

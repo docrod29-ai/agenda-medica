@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v513'  // RECETA: hoja vacia de mas (diagnosticado en vivo con el DOM). Con membrete propio la firma va en TODAS las hojas, pero la paginacion la contaba DOS veces (reservada por hoja + sumada en la cola que debe caber en la ultima), asi que 4 medicamentos que caben en una hoja salian en DOS, con la 2a vacia ('Continuacion... Hoja 2 de 2'). Ahora la firma se reserva una vez por hoja y NO se suma en la cola: cabe todo en una hoja. Test de regresion agregado. El membrete, el QR y el formato estaban bien; el defecto era solo la hoja fantasma.
+const CACHE = 'nexusmed-v514'  // RECETA (fix del fix): v513 rompio la paginacion — al reservar la firma tambien en la hoja 1 la encogia tanto que salia UN medicamento por hoja (5 hojas para 4 farmacos, verificado en vivo). La hoja 1 NO debe restar la firma: su disponiblePrimera ya es conservador y en el render real absorbe la firma. La firma se reserva SOLO en hojas de continuacion (ahi disponibleContinuacion es generoso y sin reserva el contenido se metia bajo la firma) y NO se suma en la cola cuando va en todas (ese era el doble conteo que generaba la hoja vacia). Neto: 4 medicamentos con membrete propio = 1 sola hoja, sin hoja fantasma.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
