@@ -12,6 +12,7 @@ import type { Patient } from '@/types'
 import { AppointmentModal } from '@/components/AppointmentModal'
 import { DoctorFilter, useFiltroMedico, colorMedico } from '@/components/DoctorFilter'
 import { CobrarModal } from '@/components/CobrarModal'
+import { quitarExencion } from '@/lib/cobros'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { useAuth } from '@/hooks/useAuth'
 import { Appointment, AppointmentStatus, APPOINTMENT_TYPE_CONFIG } from '@/types'
@@ -390,6 +391,13 @@ export default function CitasPage() {
                 onDelete={() => { handleDelete(appt.id); setMenuId(null) }}
                 onStatusChange={s => handleStatusChange(appt, s)}
                 onCobrar={(a) => setCobrarAppt(a)}
+                onQuitarCortesia={async (a) => {
+                  if (!clinicId) return
+                  const ok = await confirm(`¿Quitar la cortesía de ${a.pacienteNombre}? Volverá a aparecer para cobro.`, { confirmar: 'Quitar cortesía' })
+                  if (!ok) return
+                  try { await quitarExencion(clinicId, a.id); toast('Cortesía quitada; la cita vuelve a cobro', 'info') }
+                  catch { toast('No se pudo quitar la cortesía', 'error') }
+                }}
                 deleting={deletingId === appt.id}
               />
               </div>
@@ -412,6 +420,9 @@ export default function CitasPage() {
           creadoPor={user.uid}
           prefill={{
             citaId: cobrarAppt.id,
+            // estadoActual: para NO retroceder un estado más avanzado (finalizada/
+            // pagada) a 'atendida' al cobrar. La consulta ya lo pasaba; Citas no.
+            estadoActual: cobrarAppt.estado,
             patientId: cobrarAppt.pacienteId,
             patientNombre: cobrarAppt.pacienteNombre,
             medicoId: cobrarAppt.medicoId,
@@ -419,6 +430,7 @@ export default function CitasPage() {
             concepto: cobrarAppt.tipo === 'teleconsulta' ? 'teleconsulta' : 'consulta',
           }}
           onClose={() => setCobrarAppt(null)}
+          onCobrado={() => setCobrarAppt(null)}
         />
       )}
 
@@ -444,7 +456,7 @@ function DiaChip({ color, value, label }: { color: string; value: number; label:
 }
 
 function AppointmentRowFull({
-  appt, paciente, config, isLast, menuOpen, onMenuToggle, onEdit, onDelete, onStatusChange, onCobrar, deleting, onConsulta,
+  appt, paciente, config, isLast, menuOpen, onMenuToggle, onEdit, onDelete, onStatusChange, onCobrar, onQuitarCortesia, deleting, onConsulta,
 }: {
   /** Abre la consulta del paciente. Se recibe del padre para no montar otro router. */
   onConsulta: (pacienteId: string) => void
@@ -458,6 +470,7 @@ function AppointmentRowFull({
   onDelete: () => void
   onStatusChange: (s: AppointmentStatus) => void
   onCobrar?: (appt: Appointment) => void
+  onQuitarCortesia?: (appt: Appointment) => void
   deleting: boolean
 }) {
   const { clinicId: rowClinicId } = useClinic()
@@ -565,19 +578,21 @@ function AppointmentRowFull({
             <DollarSign size={13} className="ds-icon" /> Cobrar
           </button>
         )}
-        {/* Distintivo de cortesía: el médico decidió no cobrar esta cita. */}
+        {/* Distintivo de cortesía: el médico decidió no cobrar esta cita. Clic para
+            quitarla (vuelve a cobro). Reversible, como promete el modal. */}
         {appt.cobroExento && (
-          <span
-            title={appt.exentoMotivo ? `Cortesía: ${appt.exentoMotivo}` : 'Cortesía (no se cobra)'}
+          <button
+            onClick={() => onQuitarCortesia?.(appt)}
+            title={`${appt.exentoMotivo ? `Cortesía: ${appt.exentoMotivo}` : 'Cortesía (no se cobra)'} · clic para quitar`}
             style={{
               background: 'rgba(168,85,247,0.12)', color: '#a855f7',
               border: '1px solid rgba(168,85,247,0.4)', borderRadius: 6,
-              padding: '5px 10px', fontSize: 12, fontWeight: 700,
+              padding: '5px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
             }}
           >
-            Cortesía
-          </span>
+            Cortesía ✕
+          </button>
         )}
         {/*
           INICIAR CONSULTA desde la fila de la agenda.

@@ -10,7 +10,7 @@
  * Para corregir un error → registrar un cobro negativo (refund/ajuste).
  */
 import {
-  collection, addDoc, getDocs, getDoc, query, where, orderBy, doc, updateDoc, runTransaction,
+  collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc, runTransaction,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { celdaSegura } from '@/lib/csv-seguro'
@@ -169,12 +169,21 @@ export async function registrarCobro(
   if (data.citaId) {
     const citaRef = doc(db, 'clinics', clinicId, 'appointments', data.citaId)
     const cobroRef = doc(COL(clinicId))  // id pre-generado para usarlo en la tx
+    const esAbono = data.concepto === 'abono'
     const idFinal = await runTransaction(db, async (tx) => {
       const citaSnap = await tx.get(citaRef)
-      const yaCobrada = citaSnap.exists() ? (citaSnap.data()?.cobroId as string | undefined) : undefined
-      if (yaCobrada) return yaCobrada           // ya hay cobro para esta cita → idempotente
+      const cita = citaSnap.exists() ? (citaSnap.data() as { cobroId?: string; cobroExento?: boolean }) : undefined
+      // No se cobra una cita marcada como CORTESÍA: primero hay que quitar la cortesía.
+      if (cita?.cobroExento) throw new Error('Esta cita está marcada como cortesía. Quita la cortesía antes de cobrar.')
+      // ABONO (pago parcial): NO marca la cita como saldada ni bloquea — puede haber
+      // varios abonos y la cita sigue "por cobrar" hasta el pago de cierre. Antes el
+      // abono ponía cobroId y la cita desaparecía del worklist con saldo pendiente.
+      if (!esAbono && cita?.cobroId) return cita.cobroId   // ya hay cobro de cierre → idempotente
       tx.set(cobroRef, payload)
-      tx.update(citaRef, { cobroId: cobroRef.id, cobradoEn: isoFecha })
+      // Solo se marca la cita si EXISTE: si se borró entre abrir el modal y cobrar,
+      // `tx.update` sobre un doc inexistente lanza NOT_FOUND y abortaría la tx →
+      // el cobro se perdería. Mejor registrar el cobro aunque la cita ya no esté.
+      if (!esAbono && citaSnap.exists()) tx.update(citaRef, { cobroId: cobroRef.id, cobradoEn: isoFecha })
       return cobroRef.id
     })
     return idFinal
@@ -251,26 +260,27 @@ export async function cancelarCobro(
   if (!m) throw new Error('La anulación de un cobro requiere un motivo.')
   if (!autorUid) throw new Error('No se pudo identificar quién anula el cobro.')
   const cobroRef = doc(COL(clinicId), cobroId)
-  // Leemos la cita ligada ANTES de anular, para liberarla también.
-  const snap = await getDoc(cobroRef)
-  const citaId = snap.exists() ? (snap.data()?.citaId as string | undefined) : undefined
-  await updateDoc(cobroRef, {
-    cancelado: true,
-    motivoCancelacion: m,
-    canceladoPor: autorUid,
-    canceladoEn: new Date().toISOString(),
-  })
   /**
-   * Liberar la CITA: sin esto, el `cobroId` seguía puesto y el botón "Cobrar"
-   * (que se oculta cuando la cita tiene cobroId) NUNCA reaparecía, así que una
-   * consulta anulada por captura equivocada no se podía volver a cobrar y encima
-   * `cuentasPorCobrar` la mostraba pendiente → dos pantallas se contradecían.
+   * ATÓMICO: anular el cobro y LIBERAR la cita van en la misma transacción. Antes
+   * eran dos writes sueltos con `.catch` en el segundo: si el 2º fallaba, el cobro
+   * quedaba anulado pero `cita.cobroId` seguía puesto → el botón "Cobrar" oculto y
+   * fuera de "Por cobrar", mientras el corte la mostraba pendiente. Silencioso.
    */
-  if (citaId) {
-    await updateDoc(doc(db, 'clinics', clinicId, 'appointments', citaId), {
-      cobroId: '', cobradoEn: '',
-    }).catch(() => { /* la cita pudo borrarse; la anulación del cobro ya quedó */ })
-  }
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(cobroRef)
+    if (!snap.exists()) throw new Error('El cobro no existe.')
+    const citaId = snap.data()?.citaId as string | undefined
+    tx.update(cobroRef, {
+      cancelado: true,
+      motivoCancelacion: m,
+      canceladoPor: autorUid,
+      canceladoEn: new Date().toISOString(),
+    })
+    if (citaId) {
+      // Liberar la cita: reaparece el botón "Cobrar" y sale de "Por cobrar".
+      tx.update(doc(db, 'clinics', clinicId, 'appointments', citaId), { cobroId: '', cobradoEn: '' })
+    }
+  })
 }
 
 /** Marcar cobro con factura SAT */

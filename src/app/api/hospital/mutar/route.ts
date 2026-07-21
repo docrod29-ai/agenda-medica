@@ -226,7 +226,12 @@ export async function POST(req: NextRequest) {
       // Traslado a una cama ya ocupada por OTRO internamiento activo → rechazar.
       // (Lectura antes de la escritura, como exige la transacción.)
       if (accion === 'trasladar' && payload.cama) {
-        const ocup = await tx.get(col.where('servicio', '==', payload.servicio ?? ''))
+        // Servicio DESTINO: si el traslado solo cambia la cama dentro del mismo
+        // servicio, el payload puede no reenviar `servicio` → se usa el actual del
+        // internamiento. Sin este fallback la query miraba servicio='' y no detectaba
+        // al ocupante real (permitiendo la doble ocupación que se quiere evitar).
+        const servicioDestino = (payload.servicio as string) ?? ((inter as Any).servicio as string) ?? ''
+        const ocup = await tx.get(col.where('servicio', '==', servicioDestino))
         if (ocup.docs.some(d => { const x = d.data(); return d.id !== internamientoId && x.estado === 'activo' && mismaCama(x.cama as string, payload.cama as string) })) {
           throw new Error('CAMA_OCUPADA')
         }

@@ -107,8 +107,21 @@ service cloud.firestore {
 
       match /appointments/{docId} {
         allow read: if isMember(clinicId);
+        allow delete: if isMember(clinicId);
         // Captura nueva sujeta al paywall; leer/actualizar/borrar lo existente no.
-        allow update, delete: if isMember(clinicId);
+        // ANTI-FRAUDE DE CORTESÍA: marcar una cita como exenta (no cobrar) oculta una
+        // deuda; por eso, al pasar `cobroExento` de false→true, se EXIGE que quede el
+        // autor real (exentoPor == uid) y un motivo, igual que la anulación de cobros
+        // (la validación del cliente en exentarCobro no basta: las rules son el borde).
+        // Los demás updates (reagendar, etc.) no se ven afectados.
+        allow update: if isMember(clinicId) && (
+          !(resource.data.get('cobroExento', false) == false && request.resource.data.get('cobroExento', false) == true)
+          || (
+            request.resource.data.get('exentoPor', '') == request.auth.uid
+            && request.resource.data.get('exentoMotivo', '') is string
+            && request.resource.data.get('exentoMotivo', '').size() > 0
+          )
+        );
         allow create: if isMember(clinicId) && clinicaPuedeEscribir(clinicId);
       }
       match /patients/{docId} {

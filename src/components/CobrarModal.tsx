@@ -135,7 +135,7 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
       onClose()
     } catch (e) {
       console.error(e)
-      toast('Error al registrar cobro', 'error')
+      toast(e instanceof Error && e.message ? e.message : 'Error al registrar cobro', 'error')
     } finally {
       setGuardando(false)
     }
