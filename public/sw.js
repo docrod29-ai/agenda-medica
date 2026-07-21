@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v507'  // LANDING: subtitulo del hero legible. El Dr vio la pagina publica (sin sesion) y con razon: el subtitulo 'Agenda, expediente, recetas y cobros... Sin saltar de app en app' usaba --text2 (gris medio) sobre la parte BRILLANTE de la imagen del hero y se lavaba, sobre todo en modo claro. Ahora usa --text (contraste pleno) + sombra del color de fondo para despegarlo de la imagen; verificado visualmente en claro y oscuro. NOTA: los arreglos previos de legibilidad (placeholders v499, badges v503) viven DENTRO de la app (tras iniciar sesion), por eso no se ven en la landing publica.
+const CACHE = 'nexusmed-v508'  // NAVEGACION MAS FLUIDA entre pantallas (peticion del Dr: ir de la nota al Consultor IA y volver, o a citas y volver, se sentia estatico, un corte seco). Se agrego un template en (dashboard) que reproduce un fundido de entrada (crossfade 200ms) en CADA navegacion, asi cambiar de pantalla se siente continuo en vez de un salto. Es SOLO opacidad a proposito: un transform en ese contenedor crearia bloque contenedor y descolocaria los modales/toasts position:fixed que se abren dentro de las pantallas (no salen por portal). Respeta prefers-reduced-motion. Verificado en el navegador: .page-transition aplica pageFadeIn 0.2s.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

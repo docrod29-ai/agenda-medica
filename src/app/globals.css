@@ -637,6 +637,12 @@ tbody tr:last-child { border-bottom: none; }
   50%       { opacity: 0.5; }
 }
 .animate-fade-in { animation: fadeIn 0.2s ease; }
+
+/* Transición de entrada al cambiar de pantalla (ver (dashboard)/template.tsx).
+   Solo opacidad: sin transform, para no romper modales/toasts position:fixed. */
+@keyframes pageFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.page-transition { animation: pageFadeIn 200ms ease both; }
+@media (prefers-reduced-motion: reduce) { .page-transition { animation: none; } }
 .animate-pulse-slow { animation: pulse 2s ease-in-out infinite; }
 
 /* ── Teal glow effect ─────────────────────────────────────── */
