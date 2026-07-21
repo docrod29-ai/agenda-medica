@@ -1415,9 +1415,52 @@ export default function ConsultaActivaPage() {
     // volver la nota está exactamente como la dejaste, al instante.
     const e = estadoVivoRef.current
     const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) || e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim()
-    if (e.firmada || !hay) borradorMem.borrar(respaldoKey)
-    else borradorMem.escribir(respaldoKey, { tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos, diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, transcripcion: e.transcripcion, notaId: notaIdRef.current })
+    /**
+     * NUNCA se borra el respaldo por verse VACÍO — esa era la fuente del
+     * "a veces se borra y tengo que empezar otra vez".
+     *
+     * Este efecto corre en CADA render. Al volver a la nota desde otra pantalla,
+     * el formulario arranca vacío un instante ANTES de que la restauración
+     * escriba el contenido; en ese instante, la condición `!hay` borraba el
+     * respaldo en memoria. Si la restauración no ganaba la carrera, la nota se
+     * perdía. Un formulario vacío al montar es el estado por defecto, no una
+     * orden de tirar el trabajo guardado.
+     *
+     * Ahora el respaldo SOLO se borra al FIRMAR (nota inmutable, ya está en el
+     * servidor) o al descartar explícito (`descartar()` lo limpia aparte). Si hay
+     * contenido se escribe; si está vacío y sin firmar, se deja como está.
+     */
+    if (e.firmada) borradorMem.borrar(respaldoKey)
+    else if (hay) borradorMem.escribir(respaldoKey, { tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos, diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, transcripcion: e.transcripcion, notaId: notaIdRef.current })
   })
+  /**
+   * RESTAURAR LA POSICIÓN al volver a la nota.
+   *
+   * Al salir a otra pantalla y regresar, Next.js REMONTA la consulta y el scroll
+   * saltaba hasta arriba: había que buscar de nuevo dónde ibas. Se guarda la
+   * posición por paciente en sessionStorage (sobrevive la navegación, se limpia
+   * al cerrar la pestaña) y se restaura tras montar, cuando el contenido ya se
+   * repuso desde el respaldo en memoria.
+   */
+  const scrollKey = `nx.consulta.scroll.${patientId}${internamientoActivo ? '.h.' + internamientoActivo : ''}`
+  useEffect(() => {
+    // Restaurar: dos frames para que el contenido restaurado ya esté pintado.
+    let raf2 = 0
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        const y = Number(sessionStorage.getItem(scrollKey) || 0)
+        if (y > 0) window.scrollTo(0, y)
+      })
+    })
+    const guardarScroll = () => { try { sessionStorage.setItem(scrollKey, String(window.scrollY)) } catch { /* */ } }
+    window.addEventListener('scroll', guardarScroll, { passive: true })
+    return () => {
+      cancelAnimationFrame(raf1); cancelAnimationFrame(raf2)
+      window.removeEventListener('scroll', guardarScroll)
+      guardarScroll()  // al desmontar (irte): recuerda dónde ibas
+    }
+  }, [scrollKey])
+
   const flushRespaldo = useCallback(() => {
     const e = estadoVivoRef.current
     if (e.firmada) return

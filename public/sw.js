@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v508'  // NAVEGACION MAS FLUIDA entre pantallas (peticion del Dr: ir de la nota al Consultor IA y volver, o a citas y volver, se sentia estatico, un corte seco). Se agrego un template en (dashboard) que reproduce un fundido de entrada (crossfade 200ms) en CADA navegacion, asi cambiar de pantalla se siente continuo en vez de un salto. Es SOLO opacidad a proposito: un transform en ese contenedor crearia bloque contenedor y descolocaria los modales/toasts position:fixed que se abren dentro de las pantallas (no salen por portal). Respeta prefers-reduced-motion. Verificado en el navegador: .page-transition aplica pageFadeIn 0.2s.
+const CACHE = 'nexusmed-v509'  // LO GRAVE: 'a veces se borra la nota y tengo que empezar otra vez'. RAIZ: el espejo en memoria de la nota corre en CADA render y borraba el respaldo cuando el formulario se veia VACIO. Al volver a la nota desde otra pantalla, el form arranca vacio un INSTANTE antes de restaurarse; en ese instante se borraba el respaldo, y si la restauracion no ganaba la carrera, la nota se perdia. Un form vacio al montar es el estado por defecto, NO una orden de tirar el trabajo. Ahora el respaldo SOLO se borra al FIRMAR o al descartar explicito (ambos ya lo limpian aparte), nunca por verse vacio. Ademas: RESTAURACION DE SCROLL — al volver a la nota caes justo donde ibas, no hasta arriba (se guarda la posicion por paciente en sessionStorage). Peticion del Dr.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
