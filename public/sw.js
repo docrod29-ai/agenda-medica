@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v512'  // PRUEBA EN VIVO (sesion del Dr en Chrome) + arreglo. En el EXPEDIENTE habia DOS bloques separados de 'Herramientas clinicas' (uno Fotografia, otro Laboratorios), cada uno con su propio encabezado, se veian duplicados. Unificados en UN solo bloque con ambas. Verificado en vivo que funcionan en produccion: una sola alerta de alergias, tarjeta de resumen, tipos de nota filtrados (solo ambulatorios en consultorio), chip de alergias, Laboratorios como herramienta opt-in, placeholders legibles, autoguardado (mi texto de prueba quedo como borrador), receta con membrete real y QR. Marcados para revisar: insulina sale con via 'oral' (es subcutanea) en la receta; receta de 4 medicamentos usa 2 hojas (verificar si el area util del membrete lo justifica).
+const CACHE = 'nexusmed-v513'  // RECETA: hoja vacia de mas (diagnosticado en vivo con el DOM). Con membrete propio la firma va en TODAS las hojas, pero la paginacion la contaba DOS veces (reservada por hoja + sumada en la cola que debe caber en la ultima), asi que 4 medicamentos que caben en una hoja salian en DOS, con la 2a vacia ('Continuacion... Hoja 2 de 2'). Ahora la firma se reserva una vez por hoja y NO se suma en la cola: cabe todo en una hoja. Test de regresion agregado. El membrete, el QR y el formato estaban bien; el defecto era solo la hoja fantasma.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

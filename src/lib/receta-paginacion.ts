@@ -145,7 +145,9 @@ export function paginarReceta(opts: OpcionesPaginacion): PaginaReceta[] {
   const alturaNota = notaParaPaciente?.trim()
     ? alturaLineasMm(lineasDeTexto(notaParaPaciente, areaAnchoMm - 4, fontSizePx - 0.5) + 0.5, fontSizePx) + 3
     : 0
-  const colaFinalMm = alturaIndic + alturaNota + firmaMm
+  // La firma NO entra en la cola cuando ya se reserva en cada hoja (formato
+  // propio): contarla aquí además la duplicaba y forzaba una hoja de más.
+  const colaFinalMm = alturaIndic + alturaNota + (firmaEnTodasLasHojas ? 0 : firmaMm)
 
   // ── 2. Greedy fill ─────────────────────────────────────────────
   const paginas: Array<{ meds: Medicamento[]; ests: string[] }> = [{ meds: [], ests: [] }]
@@ -158,9 +160,18 @@ export function paginarReceta(opts: OpcionesPaginacion): PaginaReceta[] {
    * intermedias el contenido se metía en el espacio de la firma y, con
    * `overflow: hidden`, lo que sobraba desaparecía.
    */
-  const reservaFirmaContinuacion = firmaEnTodasLasHojas ? firmaMm : 0
+  /**
+   * Cuando la firma va en TODAS las hojas (formato propio: cada hoja es una
+   * receta que se firma y se entrega), la firma se reserva en CADA página —
+   * incluida la primera. Antes solo se descontaba en las de continuación, y la
+   * primera no la reservaba; pero la "cola" (más abajo) SÍ sumaba la firma. Ese
+   * doble conteo hacía que, aunque todos los medicamentos cupieran en la hoja 1,
+   * se generara una hoja 2 VACÍA con solo "Continuación… Hoja 2 de 2". El Dr. lo
+   * vio: 4 medicamentos que caben en una hoja salían en dos.
+   */
+  const reservaFirmaPorHoja = firmaEnTodasLasHojas ? firmaMm : 0
   const capacidadDe = (idx: number) =>
-    idx === 0 ? disponiblePrimera : disponibleContinuacion - reservaFirmaContinuacion
+    (idx === 0 ? disponiblePrimera : disponibleContinuacion) - reservaFirmaPorHoja
 
   for (const b of bloques) {
     const idx = paginas.length - 1
