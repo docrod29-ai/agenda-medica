@@ -682,7 +682,11 @@ tbody tr:last-child { border-bottom: none; }
    Los íconos-botón sueltos también reciben un área mínima. */
 @media (pointer: coarse) {
   .btn, button.btn, .btn-sm { min-height: 44px; }
-  select, .input, input[type="date"], input[type="number"], input[type="text"], input[type="tel"], input[type="email"] { min-height: 44px; }
+  select, .input, input[type="date"], input[type="number"], input[type="text"], input[type="tel"], input[type="email"], textarea { min-height: 44px; }
+  /* Objetivo táctil mínimo (WCAG 2.5.5) para TODOS los botones, no solo los .btn.
+     La mayoría de los paneles clínicos y calculadoras usan <button style={...}>
+     inline (22-30px) y no recibían el mínimo. Se excluyen los que ya lo traen. */
+  button:not(.btn):not(.btn-sm):not(.btn-icon):not(.mobile-topbar-btn) { min-height: 44px; }
 }
 
 /* Áreas seguras (notch / home indicator de iPhone) */
@@ -739,8 +743,8 @@ tbody tr:last-child { border-bottom: none; }
   .mobile-topbar { display: none; }
 }
 .mobile-topbar-btn {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   background: none;
   border: none;
