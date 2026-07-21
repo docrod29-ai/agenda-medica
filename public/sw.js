@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v534'  // TRACK 3 (fase 1): pagina publica /arquitectura que NOMBRA Y DEMUESTRA los motores con estado REAL (Activo/En expansion/Roadmap), sin humo: Clinical Reasoning, Dosing&Safety, Evidence(PubMed/PMID), Voice, Specialty Packages, Interoperability(HL7/FHIR), Finance&Ops, Messaging(WhatsApp), + Workflow Orchestrator y Learning Engine marcados Roadmap honestamente. Cierra el vacio 'no demuestra que existan los motores'. Principio de honestidad explicito (no inventar datos clinicos).
+const CACHE = 'nexusmed-v535'  // TRACK 4 (fase 1): pagina publica /operacion que MUESTRA las finanzas que YA existen (corte de caja, cuentas por cobrar, cobros anti-doble, inventario farmacia, paquetes, CFDI/SAT) con estado real, y marca honestamente el roadmap (membresias de pacientes, TPV, multi-sucursal, comisiones/reportes en expansion). Cierra el vacio 'finanzas basicas frente a Nimbo/AgendaPro' mostrando lo mucho que ya hay. Los builds reales (membresias, TPV, orchestrator, learning) quedan como fase 2 del plan.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
