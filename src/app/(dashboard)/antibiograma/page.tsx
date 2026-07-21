@@ -203,7 +203,11 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
       // recomendarse un antibiótico al que el organismo es resistente.
       const esValida = (x: unknown): x is 'S' | 'I' | 'R' => x === 'S' || x === 'I' || x === 'R'
       const legibles = celdas.filter(c => c.antibiotico && esValida(c.interpretacion))
-      const ilegibles = celdas.filter(c => c.antibiotico && !esValida(c.interpretacion))
+      // SDD (sensible dosis-dependiente, p. ej. cefepime CMI 4-8): SÍ se leyó, pero el
+      // panel trabaja en S/I/R. NO es "ilegible" — se separa para no dar un aviso falso
+      // de "no se pudo leer" sobre algo que el laboratorio sí reportó.
+      const sdd = celdas.filter(c => c.antibiotico && c.interpretacion === 'SDD').map(c => String(c.antibiotico))
+      const ilegibles = celdas.filter(c => c.antibiotico && !esValida(c.interpretacion) && c.interpretacion !== 'SDD')
                              .map(c => String(c.antibiotico))
       const nuevas: Fila[] = legibles.map(c => ({
         antibiotico: String(c.antibiotico),
@@ -229,6 +233,10 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
       const avisos: string[] = []
       if (data._schemaWarning) avisos.push('Parte del reporte no se pudo estructurar por completo; revisa las filas y complétalas a mano donde falte.')
       if (Array.isArray(perfil.avisos)) perfil.avisos.forEach((a: string) => avisos.push(a))
+      if (sdd.length) {
+        avisos.push('ℹ Reportados como SDD (sensible dosis-dependiente): ' + sdd.join(', ') +
+          '. El panel usa S/I/R; captúralos a mano según el punto de corte de DOSIS ALTA (p. ej. cefepime CMI 4-8).')
+      }
       if (ilegibles.length) {
         avisos.push('⚠ NO se pudo leer la interpretación de: ' + ilegibles.join(', ') +
           '. Se dejaron FUERA del panel a propósito, para no darlos por sensibles. Captúralos a mano si los necesitas.')
