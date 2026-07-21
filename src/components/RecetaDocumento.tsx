@@ -25,7 +25,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import type { ClinicConfig, Patient, RecetaConfig } from '@/types'
 import { PAPER_SIZES } from '@/lib/receta-template'
-import { paginarParaDocumento, type PaginaReceta } from '@/lib/receta-paginacion'
+import { paginarParaDocumento, etiquetaVia, type PaginaReceta } from '@/lib/receta-paginacion'
 import type { Medicamento } from '@/types/expediente'
 
 export interface RecetaData {
@@ -332,7 +332,7 @@ function CuerpoRx({ medicamentos, fontSize, startIndex, variant = 'plano', accen
         {medicamentos.map((m, i) => (
           <li key={i} style={{ marginBottom: 4, breakInside: 'avoid' }}>
             <strong>{m.nombre}{m.dosis ? ` ${m.dosis}` : ''}</strong>
-            {m.via && <span> · {m.via}</span>}
+            {m.via && <span> · {etiquetaVia(m.via)}</span>}
             <br />
             <span style={{ fontSize: fontSize - 0.5 }}>
               {[m.frecuencia, m.duracion && `por ${m.duracion}`, m.indicacion].filter(Boolean).join(' · ')}
@@ -357,7 +357,7 @@ function CuerpoRx({ medicamentos, fontSize, startIndex, variant = 'plano', accen
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: fontSize + 0.5, fontWeight: 700, color: '#111', lineHeight: 1.25 }}>
               {m.nombre}{m.dosis ? ` ${m.dosis}` : ''}
-              {m.via && <span style={{ fontWeight: 500, color: '#666', fontSize: fontSize - 1 }}> · {m.via}</span>}
+              {m.via && <span style={{ fontWeight: 500, color: '#666', fontSize: fontSize - 1 }}> · {etiquetaVia(m.via)}</span>}
             </div>
             <div style={{ fontSize: fontSize - 0.5, color: '#444', lineHeight: 1.4, marginTop: 1 }}>
               {[m.frecuencia, m.duracion && `por ${m.duracion}`, m.indicacion].filter(Boolean).join(' · ')}

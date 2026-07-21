@@ -21,6 +21,8 @@ import { entradaPorMedico, overrideRecetaValido, firmaValida } from '@/lib/impre
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { getNota } from '@/lib/expediente/firestore'
+import { corregirViaParenteral } from '@/lib/expediente/via-parenteral'
+import { etiquetaVia } from '@/lib/receta-paginacion'
 import { getPatient } from '@/lib/firestore'
 import type { NotaMedica, Medicamento } from '@/types/expediente'
 import type { Patient } from '@/types'
@@ -152,7 +154,11 @@ export default function GeneradorRecetaPage() {
       setNota(n)
       setPatient(ps)
       if (n) {
-        setMedicamentos(n.medicamentos ?? [])
+        // Corrige la vía de fármacos parenterales puros (insulina, HBPM, GLP-1
+        // inyectables) que la extracción pudo dejar en 'oral' por defecto — así no
+        // se imprime "insulina · oral". Conservador: solo toca vía oral/vacía y
+        // fármacos sin forma oral; el médico lo ve y puede editarlo antes de imprimir.
+        setMedicamentos((n.medicamentos ?? []).map(m => ({ ...m, via: corregirViaParenteral(m.nombre, m.via) as Medicamento['via'] })))
         // Diagnóstico principal: primero activo de tipo definitivo, o el primero
         const dxs = n.diagnosticos ?? []
         const principal = dxs.find(d => d.tipo === 'definitivo') ?? dxs[0]
@@ -676,7 +682,7 @@ function MedRow({
           onChange={(e) => onChange('via', e.target.value)}
           style={inputStyle}
         >
-          {VIAS.map(v => <option key={v} value={v}>{v}</option>)}
+          {VIAS.map(v => <option key={v} value={v}>{etiquetaVia(v)}</option>)}
         </select>
         <input
           value={med.frecuencia}

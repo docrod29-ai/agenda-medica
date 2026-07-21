@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v517'  // WHATSAPP lista de espera (2o P1): cuando el 1er envio de la oferta fallaba y se reenviaba desde el outbox/DLQ, el cron mandaba el 'responda SI' pero NO creaba la sesion esperando_lista (esa logica solo vivia en el handler inline de waitlist-notify) -> el 'SI' del paciente caia al menu y el hueco se perdia igual. Fix: la entrada del outbox ahora lleva meta.sesionListaEspera (telefono normalizado, nombre, slotFecha/Hora, tipo, waitlistId, pacienteId); al reenviarse con exito, el cron recrea la sesion esperando_lista y marca la entrada de waitlist como contactado. Complementa el fix de claves de telefono de v515.
+const CACHE = 'nexusmed-v518'  // SEGURIDAD RECETA + legibilidad: (1) VIA de fармacos parenterales puros (insulina, HBPM, GLP-1 inyectables como liraglutida/dulaglutida/tirzepatida) que la extraccion dejaba en 'oral' por defecto ahora se corrige a subcutanea al cargar la receta -> ya no se imprime 'insulina · oral' (error de seguridad que vio el Dr). Conservador: solo toca via oral/vacia y farmacos SIN forma oral; semaglutida EXCLUIDA (existe Rybelsus oral); el medico lo ve y puede editar. Helper determinista con 7 tests. (2) La via se imprime LEGIBLE ('Subcutanea','Oral','Intramuscular') en vez del codigo ('sc','oral'), en la receta y el selector. NO muta datos guardados ni toca lo que el medico agrega a mano.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

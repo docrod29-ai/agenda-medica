@@ -78,9 +78,29 @@ function lineasDeTexto(texto: string, anchoMm: number, fontSizePx: number): numb
   return texto.split('\n').reduce((acc, linea) => acc + Math.max(1, Math.ceil(linea.length / cpl)), 0)
 }
 
+/**
+ * Etiqueta legible de la vía para el impreso. La vía se guarda como código
+ * ('oral','sc','iv','im'…) pero imprimir "· sc" en una receta es poco claro; se
+ * traduce a texto. Cualquier valor no reconocido (p.ej. una cadena libre de la
+ * extracción) pasa tal cual.
+ */
+const VIA_LABEL: Record<string, string> = {
+  oral: 'Oral', vo: 'Oral',
+  sc: 'Subcutánea', subcutanea: 'Subcutánea',
+  iv: 'Intravenosa', im: 'Intramuscular',
+  topica: 'Tópica', inhalatoria: 'Inhalada', inhalada: 'Inhalada',
+  sublingual: 'Sublingual', rectal: 'Rectal', oftalmica: 'Oftálmica',
+  otica: 'Ótica', nasal: 'Nasal', otra: 'Otra',
+}
+export function etiquetaVia(via: string | undefined | null): string {
+  const v = (via ?? '').trim()
+  if (!v) return ''
+  return VIA_LABEL[v.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')] ?? v
+}
+
 /** Altura estimada de UN medicamento (nombre + posología, con wrapping). */
 export function alturaMedicamentoMm(m: Medicamento, anchoMm: number, fontSizePx: number): number {
-  const linea1 = `${m.nombre}${m.dosis ? ` ${m.dosis}` : ''}${m.via ? ` · ${m.via}` : ''}`
+  const linea1 = `${m.nombre}${m.dosis ? ` ${m.dosis}` : ''}${m.via ? ` · ${etiquetaVia(m.via)}` : ''}`
   const linea2 = [m.frecuencia, m.duracion && `por ${m.duracion}`, m.indicacion && `— ${m.indicacion}`]
     .filter(Boolean).join(' ')
   const lineas = lineasDeTexto(linea1, anchoMm - 6, fontSizePx) + lineasDeTexto(linea2, anchoMm - 6, fontSizePx - 0.5)
