@@ -186,7 +186,7 @@ export default function NotaImprimiblePage() {
               ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</>
               : <><Download size={16} /> Descargar PDF</>}
           </button>
-          <button onClick={() => { if (configError) return; imprimirElemento(document.getElementById('doc'), 'Nota médica', { formato: membrete ? 'membrete' : 'carta' }) }} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => { if (configError) return; imprimirElemento(document.getElementById('doc'), 'Nota médica', { formato: membrete ? 'membrete' : 'carta', margenesMembrete: mMemb }) }} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
             <Printer size={16} /> Imprimir
           </button>
           {/* Generar receta y orden — solo cuando la nota está firmada */}

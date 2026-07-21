@@ -21,7 +21,11 @@
 export function imprimirElemento(
   el: HTMLElement | null,
   titulo = 'Documento',
-  opts?: { formato?: 'sangre' | 'carta' | 'membrete'; anchoMm?: number; altoMm?: number },
+  opts?: {
+    formato?: 'sangre' | 'carta' | 'membrete'; anchoMm?: number; altoMm?: number
+    /** Zona segura del membrete (mm) que debe respetarse en TODAS las hojas. */
+    margenesMembrete?: { top: number; right: number; bottom: number; left: number }
+  },
 ): void {
   if (typeof window === 'undefined') return
 
@@ -61,14 +65,30 @@ export function imprimirElemento(
   // HOJA a ese tamaño exacto → la receta cae 1:1, centrada y sin partirse por no
   // coincidir con el papel del diálogo (A5/carta/etc.).
   const tamano = (opts?.anchoMm && opts?.altoMm) ? `${opts.anchoMm}mm ${opts.altoMm}mm` : 'auto'
+  // Zona segura del membrete (mm): el texto NO debe entrar aquí en NINGUNA hoja.
+  const mm = opts?.margenesMembrete ?? { top: 42, right: 22, bottom: 28, left: 22 }
   const pageCss = opts?.formato === 'membrete'
-    // Hoja membretada: página carta completa (sin margen; el membrete ocupa toda la
-    // hoja). El fondo del membrete se fija (position:fixed) para REPETIRSE en cada
-    // página impresa; el texto lleva sus propios márgenes internos.
+    /**
+     * Hoja membretada MULTIPÁGINA. El membrete de fondo (position:fixed) ya se
+     * repetía bien en cada hoja, PERO el texto solo respetaba el margen superior
+     * en la hoja 1 (era padding del #doc): en la hoja 2+ arrancaba pegado arriba y
+     * se ENCIMABA con el encabezado membretado repetido.
+     *
+     * Solución robusta y sin re-paginar (cero riesgo de perder texto): el
+     * contenido se envuelve en una tabla con `thead`/`tfoot` espaciadores. Los
+     * navegadores REPITEN thead/tfoot en cada página impresa, así que reservan la
+     * banda superior e inferior del membrete en TODAS las hojas, no solo en la 1ª.
+     * El padding del #doc se anula (lo sustituye la tabla). La página va a sangre
+     * (margin:0) para que el membrete de fondo cubra la hoja completa.
+     */
     ? `@page{size:letter;margin:0}
        html,body{margin:0;padding:0;background:#fff}
-       ${sel}{max-width:none!important;width:auto!important;margin:0!important;box-shadow:none!important;border-radius:0!important;aspect-ratio:auto!important}
-       .membrete-bg{position:fixed!important;inset:0!important;width:100%!important;height:100%!important;z-index:-1!important}`
+       ${sel}{max-width:none!important;width:auto!important;margin:0!important;padding:0!important;box-shadow:none!important;border-radius:0!important;aspect-ratio:auto!important}
+       .membrete-bg{position:fixed!important;inset:0!important;width:100%!important;height:100%!important;object-fit:fill!important;z-index:-1!important}
+       .print-frame{width:100%;border-collapse:collapse}
+       .print-frame > tbody > tr > td{padding:0 ${mm.right}mm 0 ${mm.left}mm}
+       .print-frame .espaciador-top{height:${mm.top}mm}
+       .print-frame .espaciador-bottom{height:${mm.bottom}mm}`
     : opts?.formato === 'carta'
     ? `@page{size:letter;margin:18mm}
        html,body{margin:0;padding:0;background:#fff}
@@ -76,6 +96,16 @@ export function imprimirElemento(
     : `@page{size:${tamano};margin:0}
        html,body{margin:0;padding:0;background:#fff}
        ${sel}{margin:0 auto!important;box-shadow:none!important;border-radius:0!important}`
+
+  // En membrete el contenido se envuelve en la tabla espaciadora (thead/tfoot que
+  // se repiten por página y reservan la banda del membrete en TODAS las hojas).
+  const cuerpo = opts?.formato === 'membrete'
+    ? `<table class="print-frame">`
+      + `<thead><tr><td><div class="espaciador-top"></div></td></tr></thead>`
+      + `<tfoot><tr><td><div class="espaciador-bottom"></div></td></tr></tfoot>`
+      + `<tbody><tr><td>${el.outerHTML}</td></tr></tbody>`
+      + `</table>`
+    : el.outerHTML
 
   win.document.open()
   win.document.write(
@@ -87,7 +117,7 @@ export function imprimirElemento(
     `<title>${titulo}</title>` +
     estilos +
     `<style>${pageCss}</style>` +
-    `</head><body>${el.outerHTML}</body></html>`,
+    `</head><body>${cuerpo}</body></html>`,
   )
   win.document.close()
 
