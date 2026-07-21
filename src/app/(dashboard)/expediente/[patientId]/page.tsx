@@ -109,12 +109,26 @@ export default function ExpedientePage() {
           <button className="btn btn-sm" onClick={() => window.location.reload()}>Reintentar</button>
         </div>
       )}
-      {patient?.alergias && (
-        <div style={alergiaBanner}>
-          <AlertTriangle size={16} />
-          <strong>ALERGIAS:</strong> {patient.alergias}
-        </div>
-      )}
+      {/* Banner de alergias — ÚNICO en el expediente (antes había otro en la
+          tarjeta de resumen: dos avisos para lo mismo). Se muestra siempre; rojo
+          solo cuando hay alergias REALES, neutro si están negadas (rojo cuando
+          no hay alergias es "gritar lobo" y desgasta la señal). */}
+      {(() => {
+        const a = (patient?.alergias ?? '').trim()
+        const sin = !a || /^(ninguna|niega|no|sin|nkda|negad)/i.test(a)
+        return (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8, borderRadius: 8,
+            padding: '10px 14px', fontSize: 13, marginBottom: 16,
+            background: sin ? 'var(--s2)' : 'rgba(239,68,68,0.12)',
+            border: `1px solid ${sin ? 'var(--border)' : 'rgba(239,68,68,0.35)'}`,
+            color: sin ? 'var(--text2)' : 'var(--red)',
+          }}>
+            <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+            <span><strong>Alergias:</strong> {a || 'no registradas'}</span>
+          </div>
+        )
+      })()}
 
       {/* Patient header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>

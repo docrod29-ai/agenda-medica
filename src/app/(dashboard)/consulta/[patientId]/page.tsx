@@ -1926,7 +1926,7 @@ export default function ConsultaActivaPage() {
                     onClick={async () => { const ok = await audio.descargarAudioGuardado(`consulta-${patientId}`); if (!ok) toast('No se encontró audio guardado.', 'info') }}>
                     Descargar audio
                   </button>
-                  <button className="btn btn-sm btn-ghost" onClick={() => { audio.reset(); setOfreceRecovery(false) }}>
+                  <button className="btn btn-sm btn-ghost" onClick={async () => { await audio.descartarRecovery(`consulta-${patientId}`); audio.reset(); setOfreceRecovery(false); toast('Audio guardado descartado', 'info') }}>
                     Descartar
                   </button>
                 </div>
@@ -2048,7 +2048,7 @@ export default function ConsultaActivaPage() {
                       onClick={async () => { const ok = await audio.descargarAudioGuardado(`consulta-${patientId}`); if (!ok) toast('No se encontró audio guardado.', 'info') }}>
                       Descargar audio
                     </button>
-                    <button className="btn btn-sm btn-ghost" onClick={() => { audio.reset(); setOfreceRecovery(false) }}>
+                    <button className="btn btn-sm btn-ghost" onClick={async () => { await audio.descartarRecovery(`consulta-${patientId}`); audio.reset(); setOfreceRecovery(false); toast('Audio guardado descartado', 'info') }}>
                       Descartar audio guardado
                     </button>
                   </div>

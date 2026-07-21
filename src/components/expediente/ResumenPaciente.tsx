@@ -2,7 +2,7 @@
 import { useMemo } from 'react'
 import type { Patient } from '@/types'
 import type { NotaMedica } from '@/types/expediente'
-import { AlertTriangle, Activity, CalendarClock, Stethoscope } from 'lucide-react'
+import { Activity, CalendarClock, Stethoscope } from 'lucide-react'
 
 /**
  * RESUMEN DEL PACIENTE — "todo en un solo lugar".
@@ -42,8 +42,6 @@ export function ResumenPaciente({ patient, notas }: { patient: Patient | null; n
     return out
   }, [orden])
 
-  const alergia = (patient?.alergias ?? '').trim()
-  const sinAlergia = /^(ninguna|niega|no|sin|nkda)\b/i.test(alergia)
   const ultimaFecha = ultima?.fechaConsulta || ultima?.createdAt
   const fmt = (iso?: string) => { if (!iso) return null; try { return new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) } catch { return null } }
 
@@ -61,19 +59,6 @@ export function ResumenPaciente({ patient, notas }: { patient: Patient | null; n
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 16 }}>
-      <div style={{
-        gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 10,
-        background: alergia && !sinAlergia ? 'rgba(220,38,38,0.09)' : 'var(--s1)',
-        border: `1px solid ${alergia && !sinAlergia ? 'rgba(220,38,38,0.35)' : 'var(--border)'}`,
-        borderRadius: 12, padding: '11px 15px',
-      }}>
-        <AlertTriangle size={16} style={{ color: alergia && !sinAlergia ? '#dc2626' : 'var(--text3)', flexShrink: 0 }} />
-        <div style={{ fontSize: 13.5, color: 'var(--text)', minWidth: 0 }}>
-          <span style={{ fontWeight: 700 }}>Alergias:</span>{' '}
-          <span style={{ color: alergia ? 'var(--text)' : 'var(--text3)' }}>{alergia || 'no registradas'}</span>
-        </div>
-      </div>
-
       <div style={tarjeta}>
         <div style={encabezado}><Activity size={13} /> Últimos signos</div>
         {vitales.length > 0 ? (

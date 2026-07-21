@@ -89,6 +89,8 @@ export interface UseGrabacionAudio {
   /** Recupera el audio huérfano y lo manda a transcribir. */
   recuperarAudio: (recoveryKey: string) => Promise<void>
   descargarAudioGuardado: (recoveryKey: string) => Promise<boolean>
+  /** BORRA de IndexedDB el audio guardado de una clave (descartar recuperación). */
+  descartarRecovery: (recoveryKey: string) => Promise<void>
 }
 
 const SILENCIO_MS = 15_000
@@ -751,6 +753,20 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     return chunks.length > 0
   }, [])
 
+  /**
+   * Descarta el audio de recuperación BORRÁNDOLO de IndexedDB.
+   *
+   * EL BUG QUE CIERRA: el botón "Descartar audio guardado" llamaba a `reset()`,
+   * que solo borra de IndexedDB la clave de la sesión ACTUAL
+   * (`recoveryKeyRef.current`). Pero al recargar la página y encontrar audio
+   * huérfano, esa ref está vacía —no se ha grabado nada en esta sesión— así que
+   * no se borraba nada y el audio reaparecía en cada recarga. Aquí se borra por
+   * clave explícita, que es la que sí apunta al audio guardado.
+   */
+  const descartarRecovery = useCallback(async (recoveryKey: string) => {
+    await borrarChunks(recoveryKey)
+  }, [])
+
   const recuperarAudio = useCallback(async (recoveryKey: string) => {
     setEstado('subiendo')
     const chunks = await leerChunks(recoveryKey)
@@ -810,6 +826,6 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     soportado, estado, duracion, transcripcion, utterances, transcripcionParcial, error,
     nivelAudio, silencioProlongado, bytesGrabados, chunksTranscritos, correcciones,
     iniciar, detener, pausar, reanudar, reset, setTranscripcion,
-    hayRecovery, recuperarAudio, descargarAudioGuardado,
+    hayRecovery, recuperarAudio, descargarAudioGuardado, descartarRecovery,
   }
 }
