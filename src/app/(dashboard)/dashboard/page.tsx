@@ -1,5 +1,6 @@
 'use client'
 import { useMemo, useState, useEffect } from 'react'
+import { PanelPendientes } from '@/components/PanelPendientes'
 import { useAppointments } from '@/hooks/useAppointments'
 import { useConfig } from '@/hooks/useConfig'
 import { useAuth } from '@/hooks/useAuth'
@@ -137,6 +138,10 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* Workflow Orchestrator: "siguiente acción" — lo que necesita atención hoy,
+          unificado (cobros pendientes, membresías vencidas, citas por confirmar). */}
+      <PanelPendientes />
 
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 28 }}>

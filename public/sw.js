@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v537'  // FASE 2 build 1: MEMBRESIAS DE PACIENTES (paridad Nimbo/AgendaPro). Modelo pragmatico v1 sin Stripe Connect: el consultorio define PLANES (nombre/precio/periodicidad/beneficios), asigna pacientes, y el sistema controla el CICLO (proximoCobro). Worklist 'por cobrar' con vencidas primero; 'Cobrar' registra un cobro real (concepto 'membresia') y avanza el ciclo un periodo. Nueva lib membresias.ts (+2 tests), pagina /membresias en el sidebar, reglas Firestore (membership_plans + memberships = miembros), concepto 'membresia' en cobros. El cobro automatico con tarjeta se puede anadir despues sobre esta base.
+const CACHE = 'nexusmed-v538'  // FASE 2 build 2: WORKFLOW ORCHESTRATOR v1. Nueva lib workflow.ts (pura, +2 tests) que UNIFICA los flujos sueltos en una sola lista priorizada de 'siguiente accion': consultas atendidas hoy sin cobro, membresias vencidas, citas de hoy sin confirmar. Nuevo PanelPendientes en el dashboard ('Siguiente accion' con badge de urgentes) — auto-carga citas/cobros/membresias. Deterministico, no inventa: cada accion sale de un estado real. Se amplia por especialidad en fases siguientes.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
