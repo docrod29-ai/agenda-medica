@@ -6,10 +6,12 @@ import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
 import { getPatients, getAppointments } from '@/lib/firestore'
-import { where } from 'firebase/firestore'
+import { where, getDocs, collection } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import type { Patient, Appointment } from '@/types'
 import { pacientesParaReactivar, msgReactivacion, msgReferido, msgSeguimiento, diasEntre, type CandidatoReactivacion } from '@/lib/reactivacion'
 import { openWhatsApp, copyToClipboard } from '@/lib/whatsapp'
+import { normalizarTelefonoWa } from '@/lib/whatsapp/telefono'
 import { MessageSquare, Copy, Share2, HeartHandshake, Clock, Stethoscope } from 'lucide-react'
 
 const hoyISO = () => {
@@ -31,29 +33,52 @@ export default function ReactivacionPage() {
   const [seguimiento, setSeguimiento] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
   const [umbral, setUmbral] = useState(90)
+  // Exclusiones: quien pidió BAJA (opt-out) y quien YA tiene cita futura.
+  const [optOut, setOptOut] = useState<Set<string>>(new Set())
+  const [conCitaFutura, setConCitaFutura] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (!clinicId) return
     // Atendidas de los últimos 10 días → candidatas a seguimiento posconsulta.
     const desde = (() => { const d = new Date(); d.setDate(d.getDate() - 10); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
+    const hoyStr = hoyISO()
     Promise.all([
       getPatients(clinicId),
       getAppointments(clinicId, [where('fechaHora', '>=', desde + ' 00:00')]),
-    ]).then(([ps, cits]) => {
+      // Bajas de WhatsApp: NO reactivar a quien pidió BAJA (cumplimiento).
+      getDocs(collection(db, 'clinics', clinicId, 'whatsapp_optout')).catch(() => null),
+      // Citas FUTURAS: no ofrecer "¿desea agendar?" a quien ya tiene lugar reservado.
+      getAppointments(clinicId, [where('fechaHora', '>=', hoyStr + ' 00:00')]).catch(() => [] as Appointment[]),
+    ]).then(([ps, cits, optSnap, futuras]) => {
       setPacientes(ps)
+      // El id del doc de opt-out ya es el teléfono normalizado.
+      const bajas = new Set((optSnap?.docs ?? []).map(d => d.id))
+      setOptOut(bajas)
       const atendidas = cits.filter(c => c.estado === 'atendida' || c.estado === 'finalizada' || c.estado === 'pagada')
-      // una por paciente (la más reciente)
+      // una por paciente (la más reciente), EXCLUYENDO a quien pidió BAJA.
       const porPac = new Map<string, Appointment>()
       for (const c of atendidas.sort((a, b) => b.fechaHora.localeCompare(a.fechaHora))) {
+        const tel = normalizarTelefonoWa(c.pacienteTelefono || '')
+        if (tel && bajas.has(tel)) continue
         if (!porPac.has(c.pacienteId)) porPac.set(c.pacienteId, c)
       }
       setSeguimiento(Array.from(porPac.values()))
+      // Solo citas realmente por venir y aún vigentes (no canceladas/atendidas).
+      const activasFuturas = ['solicitada', 'pendiente-confirmar', 'confirmada', 'recordatorio-enviado']
+      setConCitaFutura(new Set(
+        (futuras as Appointment[])
+          .filter(c => activasFuturas.includes(c.estado))
+          .map(c => c.pacienteId),
+      ))
     }).finally(() => setLoading(false))
   }, [clinicId])
 
   const candidatos = useMemo(
-    () => pacientesParaReactivar(pacientes, hoyISO(), umbral),
-    [pacientes, umbral],
+    () => pacientesParaReactivar(pacientes, hoyISO(), umbral, (p) => {
+      const tel = normalizarTelefonoWa(p.whatsapp || p.telefono || '')
+      return (!!tel && optOut.has(tel)) || conCitaFutura.has(p.id)
+    }),
+    [pacientes, umbral, optOut, conCitaFutura],
   )
 
   const nombreMedico = config?.nombreMedico || undefined

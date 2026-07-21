@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { adminDb } from '@/lib/firebase-admin'
 import { MapPin, Phone, Star, CalendarPlus, Stethoscope, ShieldCheck } from 'lucide-react'
+import { nombreAnonimizado } from '@/lib/reviews'
 
 /**
  * Perfil público del médico/clínica — Server Component (SSR) optimizado para SEO.
@@ -123,7 +124,7 @@ export default async function PerfilPublico({ params }: { params: Promise<{ clin
       review: p.reviews.slice(0, 8).map(r => ({
         '@type': 'Review',
         reviewRating: { '@type': 'Rating', ratingValue: r.rating, bestRating: 5 },
-        ...(r.pacienteNombre ? { author: { '@type': 'Person', name: r.pacienteNombre } } : {}),
+        ...(r.pacienteNombre ? { author: { '@type': 'Person', name: nombreAnonimizado(r.pacienteNombre) } } : {}),
         ...(r.texto ? { reviewBody: r.texto } : {}),
       })),
     } : {}),
@@ -232,7 +233,7 @@ export default async function PerfilPublico({ params }: { params: Promise<{ clin
                     ))}
                   </div>
                   {r.texto && <p style={{ fontSize: 13.5, color: 'var(--text2)', lineHeight: 1.6, margin: '0 0 6px' }}>“{r.texto}”</p>}
-                  <div style={{ fontSize: 12, color: 'var(--text3)' }}>— {r.pacienteNombre || 'Paciente'}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)' }}>— {r.pacienteNombre ? nombreAnonimizado(r.pacienteNombre) : 'Paciente'}</div>
                 </div>
               ))}
             </div>

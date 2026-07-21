@@ -253,6 +253,14 @@ service cloud.firestore {
       match /bot_sessions/{docId} {
         allow read, write: if false; // Admin SDK only
       }
+      // Bajas (opt-out) de WhatsApp. La ESCRITURA es solo del servidor (el paciente
+      // se da de baja por el bot). La LECTURA la habilita el equipo de la clínica
+      // para NO ofrecer campañas de reactivación a quien pidió BAJA (cumplimiento).
+      // El id del doc es el teléfono normalizado (52 + 10 dígitos).
+      match /whatsapp_optout/{telefono} {
+        allow read: if isMember(clinicId);
+        allow write: if false; // Admin SDK (bot) only
+      }
       // API keys de IA del consultorio + medidor de uso. NUNCA accesibles desde
       // el cliente: solo el servidor (Admin SDK) las lee/escribe.
       match /secretos/{docId} {

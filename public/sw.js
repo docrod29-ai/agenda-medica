@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v521'  // Lista de espera: el prefill de 'avisar hueco' usaba fecha UTC (saltaba a manana pasadas las 18:00 MX) y getHours()+1 podia dar '24:00' invalido; ahora usa hoyISO()+ahoraMinutosDelDia() de MX con wrap %24.
+const CACHE = 'nexusmed-v522'  // 3a OLA (teleconsulta/portal + CRM/reactivacion). FIXES: (1) PRIVACIDAD: la resena 'anonima' publicaba el NOMBRE COMPLETO del paciente en el perfil publico /dr/[id] y en el JSON-LD que indexa Google, pese a prometer anonimato; ahora se anonimiza en el render ('Juan G.'). (2) P0 CUMPLIMIENTO: la campana de reactivacion y el seguimiento posconsulta ofrecian mensaje a pacientes que pidieron BAJA (opt-out); ahora se excluyen (nueva regla lee whatsapp_optout para miembros + normalizador movido a modulo puro client-safe). (3) reactivacion ya NO incluye a quien tiene cita FUTURA agendada. (4) CRM: recien registrados ya no cuentan como 'inactivos'; aritmetica de dias en hora de Mexico (no UTC) para tasas correctas.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

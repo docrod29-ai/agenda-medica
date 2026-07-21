@@ -33,10 +33,22 @@ export interface CandidatoReactivacion {
  * alta hace más de `umbralDias` sin ninguna cita. Ordenados por más tiempo sin
  * volver. Excluye a quien no tenga teléfono (no se puede contactar).
  */
-export function pacientesParaReactivar(pacientes: Patient[], hoy: string, umbralDias = 90): CandidatoReactivacion[] {
+export function pacientesParaReactivar(
+  pacientes: Patient[],
+  hoy: string,
+  umbralDias = 90,
+  /**
+   * Predicado de EXCLUSIÓN (se mantiene puro: el llamador decide la política).
+   * Se usa para no molestar a quien pidió BAJA (opt-out de WhatsApp) ni a quien
+   * YA tiene una cita futura agendada — a ese no se le dice "notamos que ha pasado
+   * un tiempo, ¿desea agendar?" cuando ya tiene lugar reservado.
+   */
+  excluir?: (p: Patient) => boolean,
+): CandidatoReactivacion[] {
   const out: CandidatoReactivacion[] = []
   for (const p of pacientes) {
     if (!(p.telefono || p.whatsapp)) continue
+    if (excluir?.(p)) continue
     const ult = soloDia(p.ultimaCita)
     if (ult) {
       const dias = diasEntre(ult, hoy)

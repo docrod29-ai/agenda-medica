@@ -16,11 +16,15 @@ import {
   DollarSign, ArrowUpRight, Loader2, Lightbulb,
 } from 'lucide-react'
 import { PageHeader, Spinner, Select } from '@/components/ui'
+import { hoyISO, sumarDiasISO } from '@/lib/timezone'
 
 type Periodo = 'hoy' | 'semana' | 'mes' | '3meses'
 
+// Días atrás en hora de MÉXICO (no UTC): con `toISOString` el borde del día saltaba
+// ~un día pasadas las 18:00 MX, corriendo "hoy" y las tasas del CRM. Finanzas y el
+// dashboard ya usan estos helpers; el CRM se había quedado con la aritmética UTC.
 function isoDaysAgo(d: number): string {
-  return new Date(Date.now() - d * 86400_000).toISOString().slice(0, 10)
+  return sumarDiasISO(hoyISO(), -d)
 }
 
 export default function CRMPage() {
@@ -73,8 +77,15 @@ export default function CRMPage() {
   const tasaAtencion = total > 0 ? (atendidas / total) * 100 : 0
 
   // Retención
-  const pacientesActivos = pacientes.filter(p => p.ultimaCita && p.ultimaCita >= isoDaysAgo(90)).length
-  const pacientesInactivos = pacientes.filter(p => !p.ultimaCita || p.ultimaCita < isoDaysAgo(90)).length
+  const corte90 = isoDaysAgo(90)
+  const pacientesActivos = pacientes.filter(p => p.ultimaCita && p.ultimaCita >= corte90).length
+  // "Inactivo" = tuvo cita y no vuelve, O nunca tuvo cita PERO se registró hace ya
+  // más de 90 días (tuvo oportunidad de volver). No se cuenta a un paciente recién
+  // dado de alta que aún no ha tenido su primera cita: no es "inactivo", es nuevo.
+  const pacientesInactivos = pacientes.filter(p => {
+    if (p.ultimaCita) return p.ultimaCita < corte90
+    return p.createdAt ? p.createdAt.slice(0, 10) < corte90 : false
+  }).length
   const requierenSeguimiento = pacientes.filter(p => p.proximoSeguimiento && p.proximoSeguimiento <= isoDaysAgo(0)).length
   const enRiesgoNoShow = pacientes.filter(p => p.noShowCount >= 2).length
 
