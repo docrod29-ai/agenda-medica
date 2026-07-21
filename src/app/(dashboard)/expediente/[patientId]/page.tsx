@@ -193,25 +193,22 @@ export default function ExpedientePage() {
       {/* Datos del paciente (contacto) — plegado, para editar cuando haga falta. */}
       <DatosPaciente patient={patient} onEditar={() => router.push('/pacientes')} />
 
-      {/* Fotografía clínica seriada: la SERIE completa con el antes/después vive
-          aquí (es donde se revisa evolución); la captura está en la consulta.
-          Plegada para no ocupar pantalla en los expedientes que no la usan. */}
+      {/* Herramientas del expediente en UN SOLO bloque (antes eran dos cajas
+          separadas, cada una con su encabezado "Herramientas clínicas" — se veían
+          duplicadas). Laboratorios y la fotografía seriada, ambas plegadas. */}
       {clinicId && patientId && (
-        <Herramientas items={[{
-          id: 'fotos', nombre: 'Fotografía clínica seriada', color: 'var(--teal)', icono: <Camera size={14} />,
-          para: 'Serie por región · comparación antes/después con días de evolución',
-          contenido: <FotosClinicas embebido modo="completo" clinicId={clinicId} patientId={patientId} />,
-        }]} />
-      )}
-
-      {/* Laboratorios con IA: adjuntar PDF/foto → interpretar → gráficas de
-          evolución. Plegado como las fotos, para no saturar el expediente. */}
-      {clinicId && patientId && (
-        <Herramientas items={[{
-          id: 'laboratorios', nombre: 'Laboratorios', color: 'var(--teal)', icono: <FlaskConical size={14} />,
-          para: 'Adjunta PDF o foto → la IA los interpreta → gráficas de tendencia por analito',
-          contenido: <PanelLaboratorios clinicId={clinicId} patientId={patientId} />,
-        }]} />
+        <Herramientas items={[
+          {
+            id: 'laboratorios', nombre: 'Laboratorios', color: 'var(--teal)', icono: <FlaskConical size={14} />,
+            para: 'Adjunta PDF o foto → la IA los interpreta → gráficas de tendencia por analito',
+            contenido: <PanelLaboratorios clinicId={clinicId} patientId={patientId} />,
+          },
+          {
+            id: 'fotos', nombre: 'Fotografía clínica seriada', color: 'var(--teal)', icono: <Camera size={14} />,
+            para: 'Serie por región · comparación antes/después con días de evolución',
+            contenido: <FotosClinicas embebido modo="completo" clinicId={clinicId} patientId={patientId} />,
+          },
+        ]} />
       )}
 
       {/* La valoración del inmunocomprometido vive ahora como TIPO DE NOTA en la
