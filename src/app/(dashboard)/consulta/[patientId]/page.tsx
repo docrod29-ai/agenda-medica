@@ -1981,6 +1981,29 @@ export default function ConsultaActivaPage() {
                   {audio.estado === 'grabando' ? '⏸' : '▶'}
                 </button>
               )}
+              {(audio.estado === 'grabando' || audio.estado === 'pausado') && (
+                <button
+                  onClick={async () => {
+                    // PARAR Y BORRAR AL INSTANTE (grabación por error). Corta el
+                    // micrófono, NO transcribe y borra el audio guardado; con una
+                    // confirmación ligera para no tirar una grabación real de un
+                    // roce accidental.
+                    if (!(await confirm('¿Cancelar y borrar esta grabación? No se transcribirá ni se guardará.', { peligro: true, confirmar: 'Cancelar y borrar' }))) return
+                    audio.reset()
+                    await audio.descartarRecovery(`consulta-${patientId}`)
+                    setOfreceRecovery(false)
+                    toast('Grabación cancelada y borrada', 'info')
+                  }}
+                  style={{
+                    width: 48, height: 48, borderRadius: '50%', border: '1px solid rgba(220,38,38,0.4)',
+                    background: 'rgba(220,38,38,0.10)', color: 'var(--red)', cursor: 'pointer', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                  title="Cancelar y borrar esta grabación (no se transcribe)"
+                >
+                  <Trash2 size={18} />
+                </button>
+              )}
               <div style={{ flex: 1, minWidth: 200 }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>
                   {audio.estado === 'grabando' ? `Grabando · ${String(Math.floor(audio.duracion / 60)).padStart(2,'0')}:${String(audio.duracion % 60).padStart(2,'0')}${audio.chunksTranscritos > 0 ? ` · ${audio.chunksTranscritos} chunks transcritos` : ''}`
