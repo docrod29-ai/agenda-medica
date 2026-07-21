@@ -2422,11 +2422,16 @@ export default function ConsultaActivaPage() {
         )
       )}
 
-      {/* Preguntar a la evidencia sobre ESTE paciente (abre el Consultor con contexto) */}
+      {/* Preguntar a la evidencia sobre ESTE paciente (abre el Consultor con contexto).
+          Se abre en OTRA PESTAÑA a propósito: así la consulta NO se desmonta y la nota
+          en progreso queda intacta; el médico va y viene entre la consulta y el
+          consultor sin perder nada ni tener que empezar de nuevo. */}
       {(diagnosticos.length > 0 || medicamentos.length > 0 || resumen) && (
-        <button onClick={() => router.push(`/consultor?paciente=${patientId}`)}
+        <button
+          onClick={() => window.open(`/consultor?paciente=${patientId}`, '_blank', 'noopener')}
+          title="Se abre en otra pestaña para que no pierdas tu nota en progreso"
           style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, marginRight: 8, background: 'rgba(61,90,254,0.08)', color: 'var(--nexus, #3d5afe)', border: '1px solid rgba(61,90,254,0.30)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-          <FlaskConical size={14} /> Preguntar a la evidencia (chat)
+          <FlaskConical size={14} /> Preguntar a la evidencia (chat) ↗
         </button>
       )}
 

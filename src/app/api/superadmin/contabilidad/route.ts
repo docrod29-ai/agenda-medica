@@ -57,6 +57,7 @@ export async function GET(req: NextRequest) {
     let ingresoTotalHist = 0
     paysSnap.docs.forEach(d => {
       const p = d.data() as Any
+      if (p.livemode !== true) return  // solo ingresos REALES (excluye pagos de prueba)
       const monto = Number(p.monto ?? 0)
       if (!(monto > 0)) return
       const mes = mesDe(String(p.fecha ?? p.createdAt ?? ''))
@@ -71,6 +72,7 @@ export async function GET(req: NextRequest) {
     const pagadoPorClinica = new Map<string, number>()
     paysSnap.docs.forEach(d => {
       const p = d.data() as Any
+      if (p.livemode !== true) return  // solo pagos REALES confirmados (Stripe en prueba → livemode:false o ausente → no es ingreso real)
       pagadoPorClinica.set(String(p.clinicId ?? ''), (pagadoPorClinica.get(String(p.clinicId ?? '')) ?? 0) + Number(p.monto ?? 0))
     })
 

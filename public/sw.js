@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v527'  // ACCESIBILIDAD tactil (WCAG 2.5.5): en puntero coarse (movil/tablet) TODOS los botones reciben min-height 44px, no solo los .btn — los paneles clinicos y calculadoras usan <button style={...}> inline de 22-30px que no lo recibian; + textarea al minimo; + .mobile-topbar-btn subido de 40 a 44px.
+const CACHE = 'nexusmed-v528'  // NAVEGACION: el boton 'Preguntar a la evidencia' de la consulta hacia router.push a /consultor y DESMONTABA la consulta -> al volver se perdia la nota en progreso y habia que empezar de nuevo. Ahora abre en OTRA PESTANA (window.open _blank): la consulta con la nota queda intacta y el Dr va y viene entre pestanas sin perder nada. SUPERADMIN/DINERO: el webhook de Stripe ahora guarda livemode en platform_payments, y la consola cuenta como ingreso REAL solo pagos con livemode===true -> los pagos de PRUEBA (Stripe en modo test, como el $699 de star medica) ya NO se muestran como dinero cobrado. La opcion de 'regalar suscripcion' ya existia = Pase libre (accion pase_libre en /api/superadmin/accion), y Samuel ya lo tiene.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

@@ -269,6 +269,9 @@ export async function POST(req: NextRequest) {
           moneda: (invoice.currency ?? 'mxn').toUpperCase(),
           fecha: new Date((invoice.created ?? Math.floor(Date.now() / 1000)) * 1000).toISOString(),
           descripcion: invoice.lines?.data?.[0]?.description ?? 'Suscripción',
+          // livemode: distingue un pago REAL de uno de PRUEBA (Stripe en modo test).
+          // Sin esto la consola contaba el dinero de prueba como ingreso real.
+          livemode: event.livemode === true,
           createdAt: new Date().toISOString(),
         }, { merge: true })
         /**

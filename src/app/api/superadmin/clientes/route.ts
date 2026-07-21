@@ -48,6 +48,10 @@ export async function GET(req: NextRequest) {
     let ingresoMes = 0
     paysSnap.docs.forEach(d => {
       const p = d.data() as Any
+      // Solo se cuentan pagos REALES confirmados (livemode === true). Los de PRUEBA
+      // (Stripe en modo test: livemode false o ausente en registros viejos) NO son
+      // ingreso real y se excluyen, para que la consola no muestre dinero no cobrado.
+      if (p.livemode !== true) return
       const monto = Number(p.monto ?? 0)
       const cid = String(p.clinicId ?? '')
       pagadoPorClinica.set(cid, (pagadoPorClinica.get(cid) ?? 0) + monto)
