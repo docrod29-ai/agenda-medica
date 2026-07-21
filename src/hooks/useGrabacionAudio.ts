@@ -509,6 +509,12 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       todosChunksRef.current = []
       chunkIdxRef.current = 0
       textosChunksRef.current = []
+      // Limpia la diarización del tramo anterior: la separación de voces es POR
+      // blob y el blob nuevo solo trae este tramo. Si no se limpia, quedaban los
+      // turnos del tramo 1 y, al no diarizar el tramo 2, la nota se armaba con el
+      // tramo viejo ignorando el nuevo. (El texto completo multi-tramo se conserva
+      // aparte en la transcripción; ver conBase/baseTranscripcionRef.)
+      setUtterances([])
 
       // AnalyserNode → medidor de nivel + detección de silencio
       try {

@@ -10,7 +10,7 @@
  * Para corregir un error → registrar un cobro negativo (refund/ajuste).
  */
 import {
-  collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc,
+  collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc, runTransaction,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { celdaSegura } from '@/lib/csv-seguro'
@@ -152,6 +152,34 @@ export async function registrarCobro(
     createdAt: isoFecha,
     cancelado: false,
   }
+
+  /**
+   * IDEMPOTENCIA POR CITA (anti-doble-cobro).
+   *
+   * El único candado previo era ocultar el botón "Cobrar" cuando la cita ya tenía
+   * `cobroId`. Pero ese id se escribía DESPUÉS de crear el cobro, así que dos
+   * actores sobre la misma cita (asistente en Citas + médico en Consulta, dos
+   * pestañas, o doble clic antes del re-render) creaban DOS cobros; el corte de
+   * caja los sumaba ambos y el neto del día no cuadraba contra la caja física.
+   *
+   * Con cita, la creación del cobro y la reserva del `cobroId` en la cita ocurren
+   * en UNA transacción: si la cita ya tiene cobro, se aborta y se devuelve el id
+   * existente (no se crea otro). Sin cita (cobro suelto) se mantiene el addDoc.
+   */
+  if (data.citaId) {
+    const citaRef = doc(db, 'clinics', clinicId, 'appointments', data.citaId)
+    const cobroRef = doc(COL(clinicId))  // id pre-generado para usarlo en la tx
+    const idFinal = await runTransaction(db, async (tx) => {
+      const citaSnap = await tx.get(citaRef)
+      const yaCobrada = citaSnap.exists() ? (citaSnap.data()?.cobroId as string | undefined) : undefined
+      if (yaCobrada) return yaCobrada           // ya hay cobro para esta cita → idempotente
+      tx.set(cobroRef, payload)
+      tx.update(citaRef, { cobroId: cobroRef.id, cobradoEn: isoFecha })
+      return cobroRef.id
+    })
+    return idFinal
+  }
+
   const ref = await addDoc(COL(clinicId), payload)
   return ref.id
 }

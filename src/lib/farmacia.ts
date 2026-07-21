@@ -125,7 +125,7 @@ export async function registrarMovimiento(
   clinicId: string,
   itemActual: FarmaciaItem,
   mov: Omit<MovimientoFarmacia, 'id' | 'fecha'>,
-): Promise<void> {
+): Promise<number> {   // devuelve la cantidad REALMENTE aplicada (puede ser < la solicitada por clamp)
   if (!itemActual.id) throw new Error('Item sin id')
   const fecha = new Date().toISOString()
   const itemRef = doc(COL(clinicId), itemActual.id)
@@ -133,7 +133,7 @@ export async function registrarMovimiento(
   // TRANSACCIÓN: lee la existencia ACTUAL del doc (no la que trae el caller, que
   // puede estar vieja) y calcula desde ahí. Antes, dos salidas concurrentes
   // partían del mismo valor viejo → last-write-wins descuadraba el stock.
-  await runTransaction(db, async (tx) => {
+  return await runTransaction(db, async (tx) => {
     const snap = await tx.get(itemRef)
     const disponible = snap.exists() ? Number((snap.data() as { cantidad?: number }).cantidad ?? 0) : itemActual.cantidad
     let nuevaCantidad = disponible
@@ -153,6 +153,7 @@ export async function registrarMovimiento(
     // Movimiento con la cantidad REAL aplicada (libros cuadran) + stock resultante.
     tx.set(doc(COL_MOV(clinicId)), { ...mov, cantidad: cantidadAplicada, motivo: (mov.motivo ?? '') + notaAjuste, fecha })
     tx.update(itemRef, { cantidad: nuevaCantidad, updatedAt: fecha })
+    return cantidadAplicada
   })
 }
 

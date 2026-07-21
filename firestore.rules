@@ -75,7 +75,19 @@ service cloud.firestore {
     // Clinic metadata (root)
     match /clinics/{clinicId} {
       allow read: if isMember(clinicId);
-      allow create: if isAuth();
+      // CREATE blindado: el alta legítima pasa por /api/clinic/crear (Admin SDK, que
+      // ignora estas reglas), así que aquí solo llega el SDK cliente. Sin este
+      // candado, cualquier cuenta autenticada podía crear su propia clínica con
+      // `paseLibre:true`, `status:'active'`, todos los `modulos`, etc. — auto-
+      // activándose sin pasar por Stripe (bypass de paywall/entitlements). Se exige
+      // ser el dueño y se PROHÍBEN los campos de facturación/entitlement (solo los
+      // asigna el servidor), igual que ya hace el `update`.
+      allow create: if isAuth()
+        && request.resource.data.get('ownerId', '') == request.auth.uid
+        && request.resource.data.get('paseLibre', false) == false
+        && !request.resource.data.keys().hasAny(
+             ['modulos', 'paqueteId', 'status', 'plan', 'stripeCustomerId', 'stripeSubscriptionId', 'trialEndsAt']
+           );
       // El admin de la clínica puede editar metadatos del doc raíz, PERO NUNCA los
       // campos de FACTURACIÓN/ENTITLEMENTS (plan, estado, prueba, Stripe, pase
       // libre, módulos/paquete). Esos SOLO los cambia el servidor (webhook Stripe
@@ -392,7 +404,10 @@ service cloud.firestore {
        */
       allow get: if true;
       allow list: if false;
-      allow create: if isAuth();  // el médico genera la solicitud
+      // El creador debe ser MIEMBRO de la clínica que dice en el doc: con `isAuth()`
+      // a secas, cualquier cuenta podía crear solicitudes con un `clinicId` ajeno
+      // (spam cross-tenant en la cola de reseñas de otra clínica).
+      allow create: if isMember(request.resource.data.clinicId);
       // El paciente SOLO puede marcarla usada (false→true); no puede quemarla sin
       // enviar ni alterar otros campos (antes `if true` dejaba corromperla).
       allow update: if resource.data.used == false

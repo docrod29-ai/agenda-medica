@@ -753,7 +753,14 @@ export default function ConsultaActivaPage() {
     const tipoActivo = tipoOverride ?? tipo
     // Si hubo diarización, mandamos el diálogo etiquetado por hablante para que la
     // IA atribuya bien quién dijo qué (médico/paciente). Si no, el texto plano.
-    const transcripcionParaIA = audio.utterances.length > 0
+    //
+    // PERO la diarización es POR blob y solo cubre el ÚLTIMO tramo grabado. Cuando
+    // la grabación fue multi-tramo (baseTranscripcionRef trae lo previo), usar las
+    // utterances mandaría a la IA SOLO el último tramo y la nota final perdería la
+    // primera parte clínica. En ese caso se usa la transcripción completa (texto
+    // plano rec1+rec2): se sacrifican las etiquetas de voz, nunca el contenido.
+    const multiTramo = baseTranscripcionRef.current.trim().length > 0
+    const transcripcionParaIA = (audio.utterances.length > 0 && !multiTramo)
       ? audio.utterances.map(u => `${rolesHablante[u.speaker] || `Hablante ${u.speaker}`}: ${u.text}`).join('\n')
       : voz.transcripcion
     if (enVivo) { vivoRef.current = true; setEstructurandoVivo(true) } else { setProcesando(true); setVerificacion(null); setTareaProc({ ejecutando: true }) }
@@ -1342,6 +1349,10 @@ export default function ConsultaActivaPage() {
       // completa al abrir "Nueva consulta" del mismo paciente y se recreaba sola
       // en Firestore al autoguardarse.
       borradorMem.borrar(respaldoKey)
+      // Y el audio de recuperación en IndexedDB: sin esto quedaba PHI guardada y al
+      // reabrir la consulta salía el banner "hay audio de una sesión anterior"
+      // ofreciendo resucitar el audio de la consulta YA descartada.
+      try { await audio.descartarRecovery(`consulta-${patientId}`) } catch { /* */ }
       toast('Consulta descartada', 'info')
       router.push(volverA)
     } catch (e) {
@@ -1784,7 +1795,17 @@ export default function ConsultaActivaPage() {
       }
       if (Array.isArray(data.diagnosticos)) setDiagnosticos(data.diagnosticos.filter((d: Diagnostico) => d.descripcion))
       if (Array.isArray(data.medicamentos)) setMedicamentos(data.medicamentos.filter((m: Medicamento) => m.nombre))
-      if (data.signosVitales && typeof data.signosVitales === 'object') setSignos(data.signosVitales)
+      if (data.signosVitales && typeof data.signosVitales === 'object') {
+        // MERGE por campo, no reemplazo: si la IA devuelve el bloque de signos
+        // parcial (o vacío) al corregir algo ajeno a signos, un reemplazo total
+        // borraba los signos capturados a mano. Solo se pisan los campos que la IA
+        // devuelve con valor.
+        const soloPresentes = Object.fromEntries(
+          Object.entries(data.signosVitales as Record<string, unknown>)
+            .filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== ''),
+        )
+        setSignos(prev => ({ ...prev, ...soloPresentes }))
+      }
       setChatCorr(c => [...c, { rol: 'ia', texto: '✓ Listo, apliqué el cambio. Revisa la nota (puedes deshacer).' }])
     } catch {
       setChatCorr(c => [...c, { rol: 'ia', texto: 'Sin conexión. Intenta de nuevo.' }]); setSnapshotUndo(null)

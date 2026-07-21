@@ -195,14 +195,21 @@ export default function FarmaciaPage() {
           onConfirmar={async (cantidad, motivo) => {
             if (!clinicId) return
             try {
-              await registrarMovimiento(clinicId, moviendo.item, {
+              const aplicada = await registrarMovimiento(clinicId, moviendo.item, {
                 itemId: moviendo.item.id!,
                 tipo: moviendo.tipo,
                 cantidad,
                 motivo,
                 realizadoPor: user?.uid ?? '',
               })
-              toast(`${moviendo.tipo === 'entrada' ? '+' : '-'}${cantidad} registrado`, 'success')
+              // Refleja la cantidad REALMENTE aplicada (puede ser menor por falta de
+              // stock): antes decía "-10" aunque solo salieran 3 → engañaba la
+              // trazabilidad, crítico en controlados.
+              const ajustado = aplicada < cantidad
+              toast(
+                `${moviendo.tipo === 'entrada' ? '+' : '-'}${aplicada} registrado${ajustado ? ` (se solicitaron ${cantidad}, solo había ${aplicada})` : ''}`,
+                ajustado ? 'info' : 'success',
+              )
               setMoviendo(null)
               recargar()
             } catch { toast('Error al registrar', 'error') }
