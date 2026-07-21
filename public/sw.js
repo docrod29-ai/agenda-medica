@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v501'  // MENOS SATURACION EN LA CONSULTA: el selector de tipo de nota mostraba los DOCE tipos siempre, incluidos los hospitalarios (Ingreso, Evolucion, Egreso) en una consulta de consultorio — dos filas de chips con opciones que ahi no aplican. Ahora se filtran por contexto: en consultorio salen los ambulatorios, dentro de un internamiento salen los hospitalarios. El tipo activo (p.ej. abierto por enlace) siempre se conserva aunque no sea del contexto, para que no desaparezca la seleccion. Helper puro con 4 pruebas.
+const CACHE = 'nexusmed-v502'  // LABORATORIOS TAMBIEN EN LA CONSULTA. El modulo de laboratorios con IA (adjuntar PDF/foto -> interpretar -> graficas de tendencia, v495) vivia solo en el expediente. Ahora tambien es una herramienta clinica en la consulta: durante la nota el medico puede subir un lab y ver la evolucion sin salir de la pantalla. Es universal (toda especialidad revisa labs), asi que aparece siempre como el copiloto y las fotos; el resto de herramientas sigue filtrado por especialidad.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

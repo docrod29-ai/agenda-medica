@@ -47,6 +47,7 @@ import { vacunasSegunEdad } from '@/lib/expediente/pediatria'
 
 import { Copiloto } from '@/components/Copiloto'
 import { Herramientas } from '@/components/Herramientas'
+import { PanelLaboratorios } from '@/components/laboratorio/PanelLaboratorios'
 
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
@@ -2356,6 +2357,13 @@ export default function ConsultaActivaPage() {
           para: 'Tomar foto de esta consulta (la serie está en el expediente)',
           contenido: clinicId
             ? <FotosClinicas embebido modo="captura" clinicId={clinicId} patientId={patientId} notaId={notaId ?? undefined} />
+            : <p style={{ fontSize: 12, color: 'var(--text3)' }}>Cargando…</p>,
+        },
+        {
+          id: 'laboratorios', nombre: 'Laboratorios', color: 'var(--teal)', icono: <FlaskConical size={14} />,
+          para: 'Adjunta un PDF o foto → la IA lo interpreta → gráficas de tendencia',
+          contenido: clinicId
+            ? <PanelLaboratorios clinicId={clinicId} patientId={patientId} />
             : <p style={{ fontSize: 12, color: 'var(--text3)' }}>Cargando…</p>,
         },
         ]
