@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { ArrowLeft, Info, Stethoscope } from 'lucide-react'
 import { PanelRazonamiento } from '@/components/PanelRazonamiento'
 import { Copiloto } from '@/components/Copiloto'
+import { SelloProcedencia } from '@/components/SelloProcedencia'
 import type { EntradaCopiloto } from '@/lib/expediente/razonamiento'
 
 // Caso sembrado: mujer 68a con DM2 + ERC + FA y polifarmacia con una "triple
@@ -37,6 +38,35 @@ const CASO: EntradaCopiloto = {
   ],
   signos: { ta: '168/96', fc: 112, fr: 18, temperatura: 36.8, spo2: 96, peso: 74, talla: 158 },
   labs: { creatinina: 2.1, ast: 42, alt: 48, plaquetas: 135, ldl: 162 },
+}
+
+// Extracción auditada SEMBRADA (ficticia) solo para demostrar el sello de
+// procedencia: algunos datos traen cita del "dictado", otros son inferencia de IA
+// (sin cita), y los que NO aparecen aquí se marcan como capturados a mano.
+const EXTRACCION_DEMO = {
+  diagnosticos: [
+    { descripcion: 'Diabetes mellitus tipo 2', source_quote: 'es diabética desde hace doce años', confidence: 'alta' as const },
+    { descripcion: 'Enfermedad renal crónica', source_quote: 'la creatinina le salió en dos punto uno', confidence: 'alta' as const },
+    { descripcion: 'Fibrilación auricular', confidence: 'media' as const }, // sin cita → IA
+    // Dislipidemia NO está aquí → capturado a mano
+  ],
+  medicamentos: [
+    { nombre: 'Metformina', source_quote: 'sigue con su metformina de ochocientos cincuenta', confidence: 'alta' as const },
+    { nombre: 'Enalapril', source_quote: 'toma enalapril de diez', confidence: 'alta' as const },
+    { nombre: 'Ibuprofeno', confidence: 'baja' as const }, // sin cita → IA
+    { nombre: 'Warfarina', source_quote: 'está anticoagulada con warfarina', confidence: 'alta' as const },
+    // Amoxicilina NO está aquí → capturado a mano
+  ],
+  signosVitales: {
+    ta: { value: '168/96', source_quote: 'la presión ciento sesenta y ocho sobre noventa y seis', confidence: 'alta' as const },
+  },
+}
+
+const FINAL_DEMO = {
+  diagnosticos: CASO.diagnosticos,
+  medicamentos: CASO.medicamentos,
+  alergias: ['penicilina'],
+  signosVitales: { ta: '168/96', fc: 112, peso: 74, talla: 158 },
 }
 
 export default function DemoRazonamientoPage() {
@@ -81,6 +111,14 @@ export default function DemoRazonamientoPage() {
 
         <h2 style={{ fontSize: 17, fontWeight: 700, margin: '26px 0 8px' }}>Y lo que el copiloto sugiere (calculado, no inventado)</h2>
         <Copiloto entrada={CASO} />
+
+        <h2 style={{ fontSize: 17, fontWeight: 700, margin: '26px 0 8px' }}>De dónde salió cada dato de la nota</h2>
+        <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.55, margin: '0 0 8px', maxWidth: '66ch' }}>
+          Trazabilidad medicolegal por campo: lo que la IA sacó <strong>del dictado</strong> conserva la frase exacta;
+          lo que fue <strong>inferencia de IA</strong> se marca aparte; lo que capturó el médico <strong>a mano</strong>,
+          también. Despliega para ver la cita textual de cada dato.
+        </p>
+        <SelloProcedencia final={FINAL_DEMO} extraction={EXTRACCION_DEMO} />
 
         <div style={{ marginTop: 26, padding: '16px 18px', border: '1px solid var(--border)', borderLeft: '3px solid var(--teal)', borderRadius: 12, background: 'var(--s1, rgba(127,127,127,.04))', fontSize: 13.5, color: 'var(--text2)', lineHeight: 1.6 }}>
           <strong style={{ color: 'var(--text)' }}>Fíjate:</strong> la TFG por CKD-EPI 2021, el ajuste renal de la metformina, la alerta

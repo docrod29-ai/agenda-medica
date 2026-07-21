@@ -211,6 +211,12 @@ export interface NotaMedica {
     procesadoEn?: string                   // ISO timestamp del último procesamiento
     aprobadoPor?: string                   // email del médico que aprobó al firmar
     /**
+     * Sello de procedencia: cuántos datos estructurados de la nota vinieron del
+     * dictado (con cita), de inferencia de IA (sin cita) o capturados a mano.
+     * Derivado (no inventado), aditivo; refuerza la trazabilidad medicolegal.
+     */
+    procedencia?: { dictado: number; ia: number; manual: number; total: number }
+    /**
      * Provenance INMUTABLE de la IA (trazabilidad medicolegal / SaMD): con qué
      * modelo, versión de prompt y motor se generó la nota, y su revisión humana.
      * Requisito de auditoría regulatoria y de IA clínica defendible.

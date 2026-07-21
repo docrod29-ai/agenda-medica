@@ -33,6 +33,14 @@ import { MOTORES, type ClaveMotor } from '@/lib/planes-ia'
 import { PreopAssessment } from '@/components/PreopAssessment'
 import ValoracionInmuno from '@/components/pacientes/ValoracionInmuno'
 import { RevisionPanel } from '@/components/RevisionPanel'
+import { SelloProcedencia } from '@/components/SelloProcedencia'
+import { construirManifiesto } from '@/lib/expediente/procedencia'
+
+/** Alergias del paciente (texto libre) → lista para el sello de procedencia. */
+function alergiasArray(alergias?: string): string[] {
+  if (!alergias) return []
+  return alergias.split(/[,;\n]/).map(s => s.trim()).filter(Boolean)
+}
 import { NerPanel } from '@/components/NerPanel'
 import { CorreccionesPanel } from '@/components/CorreccionesPanel'
 import { Alert, Modal, Button } from '@/components/ui'
@@ -1241,6 +1249,12 @@ export default function ConsultaActivaPage() {
       iaAuditoria: extraction || safety ? {
         extraction, safety,
         aprobadosPorMedico: Array.from(aprobados),
+        // Sello de procedencia: cuántos datos vinieron del dictado / IA / a mano.
+        // Aditivo y derivado (no inventa); queda en el registro medicolegal.
+        procedencia: construirManifiesto(
+          { diagnosticos, medicamentos, alergias: alergiasArray(patient?.alergias), signosVitales: signosNum as unknown as Record<string, unknown> },
+          extraction as never,
+        ).resumen,
         procesadoEn: now,
         aprobadoPor: estado === 'firmada' ? (auth.currentUser?.email ?? '') : undefined,
         // Provenance inmutable: con qué modelo/prompt se generó + revisión humana
@@ -2698,6 +2712,16 @@ export default function ConsultaActivaPage() {
           aprobados={aprobados}
           onAprobar={id => setAprobados(prev => new Set(prev).add(id))}
           onRechazar={id => setAprobados(prev => { const n = new Set(prev); n.delete(id); return n })}
+        />
+      )}
+
+      {/* Sello de procedencia: de dónde salió CADA dato de la nota (dictado con
+          cita / inferencia de IA / a mano). Medicolegal, solo lectura. Se muestra
+          también en la nota firmada — es parte del registro. */}
+      {(diagnosticos.length > 0 || medicamentos.length > 0) && (
+        <SelloProcedencia
+          final={{ diagnosticos, medicamentos, alergias: alergiasArray(patient?.alergias), signosVitales: signosNum as unknown as Record<string, unknown> }}
+          extraction={extraction}
         />
       )}
 
