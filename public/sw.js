@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v505'  // PARAR Y BORRAR UNA GRABACION AL INSTANTE (peticion del Dr: 'si le pica uno al audio por error debe haber manera de pararlo y borrarlo rapido'). Durante la grabacion solo estaba Detener —que TRANSCRIBE (gasta IA y crea datos)— y pausa. Ahora hay un boton rojo de bote de basura junto a los controles: corta el microfono al instante, NO transcribe y borra el audio guardado de IndexedDB, con una confirmacion ligera para no tirar una grabacion real por un roce. Pendiente de reproducir con el Dr: reporta que al 'actualizar' le pide permiso de microfono y empieza a grabar solo; manos libres no persiste y nada auto-graba al montar, el sospechoso es el reconocimiento de voz de manos libres (Web Speech con auto-reinicio) que puede falso-disparar la palabra clave — hay que reproducir antes de tocar esa logica.
+const CACHE = 'nexusmed-v506'  // ENCONTRADO: por que empezaba a grabar solo al ACTUALIZAR. NO era manos libres. Era un ATAJO DE TECLADO: grabar estaba mapeado a Cmd/Ctrl+Shift+R, que es justo el HARD-REFRESH (actualizar forzado) del navegador. Al actualizar con teclado, la app interceptaba esa combinacion (con preventDefault, ni siquiera recargaba) y arrancaba a grabar pidiendo microfono. El fix viejo habia cambiado Cmd+R -> Cmd+Shift+R 'para no chocar con recargar', pero cambio un choque por otro peor. Ahora grabar es Cmd/Ctrl+Shift+G (Grabar), que no colisiona con recargar/imprimir/nueva pestana. Cmd+Shift+R vuelve a recargar normal.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

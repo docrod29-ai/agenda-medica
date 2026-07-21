@@ -1629,13 +1629,16 @@ export default function ConsultaActivaPage() {
 
   // ── Atajos de teclado ──────────────────────────────────────────
   //
-  // Tres problemas que tenía este bloque:
-  //  1. Secuestraba Cmd/Ctrl+R y Cmd/Ctrl+P en TODA la pantalla: recargar e
-  //     imprimir quedaban inutilizados. Ahora usan Shift, que no choca con nada.
-  //  2. No miraba dónde estaba el foco: escribir en un campo y pulsar Cmd+R
-  //     arrancaba a grabar, y Cmd+Enter FIRMABA la nota. La firma es
-  //     irreversible (NOM-024), así que ese era el peor de los tres.
-  //  3. Cmd+Enter firmaba de golpe. Ahora pide confirmación explícita.
+  // Historia de este bloque:
+  //  1. Antes secuestraba Cmd/Ctrl+R (recargar) para grabar. Se cambió a
+  //     Cmd/Ctrl+SHIFT+R "para no chocar"... pero ESO ES EL HARD-REFRESH del
+  //     navegador: al actualizar forzado, la app arrancaba a grabar en vez de
+  //     recargar (con preventDefault, ni siquiera recargaba). El Dr. lo reportó.
+  //     Ahora GRABAR es Cmd/Ctrl+Shift+G (Grabar), que no colisiona con recargar,
+  //     imprimir, nueva pestaña, etc.
+  //  2. No miraba dónde estaba el foco: escribir en un campo y pulsar el atajo
+  //     arrancaba a grabar. Ahora se ignora si el foco está en un campo de texto.
+  //  3. Firmar es IRREVERSIBLE (NOM-024): nunca por un atajo suelto → confirma.
   useEffect(() => {
     const enCampoDeTexto = (t: EventTarget | null) => {
       const el = t as HTMLElement | null
@@ -1648,7 +1651,9 @@ export default function ConsultaActivaPage() {
       if (!(e.metaKey || e.ctrlKey)) return
       if (enCampoDeTexto(e.target)) return
 
-      if (e.shiftKey && (e.key === 'R' || e.key === 'r')) {
+      // GRABAR: Cmd/Ctrl+Shift+G. NO se usa R: Cmd/Ctrl+Shift+R es el hard-refresh
+      // del navegador y la app terminaba grabando al actualizar forzado.
+      if (e.shiftKey && (e.key === 'G' || e.key === 'g')) {
         e.preventDefault(); voz.grabando ? voz.detener() : iniciarGrabacion(); return
       }
       if (e.shiftKey && (e.key === 'D' || e.key === 'd')) {
@@ -1896,7 +1901,7 @@ export default function ConsultaActivaPage() {
                 <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>
                   {voz.grabando
                     ? 'La nota se arma sola; al detener se finaliza automáticamente.'
-                    : 'Dicta la consulta. Al detener, la nota se estructura sola. · Ctrl/Cmd+R'}
+                    : 'Dicta la consulta. Al detener, la nota se estructura sola. · Ctrl/Cmd+Shift+G'}
                 </div>
               </div>
               {/* Respaldo manual: normalmente NO hace falta (se procesa solo al detener). */}
