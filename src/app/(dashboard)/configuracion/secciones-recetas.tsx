@@ -620,7 +620,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
               <img src={rx.membreteDataUrl} alt="Membrete" style={{ maxWidth: '100%', maxHeight: 120, display: 'block', margin: '0 auto', background: '#fff' }} />
               <button
                 onClick={() => setRx({ ...rx, membreteDataUrl: '' })}
-                style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 6, padding: '3px 6px', fontSize: 11, cursor: 'pointer' }}
+                style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(239,68,68,0.15)', color: 'var(--red)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 6, padding: '3px 6px', fontSize: 11, cursor: 'pointer' }}
               >
                 <IconX size={11} /> Quitar
               </button>
@@ -652,7 +652,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
               <img src={rx.pieDataUrl} alt="Pie" style={{ maxWidth: '100%', maxHeight: 60, display: 'block', margin: '0 auto', background: '#fff' }} />
               <button
                 onClick={() => setRx({ ...rx, pieDataUrl: '' })}
-                style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 6, padding: '3px 6px', fontSize: 11, cursor: 'pointer' }}
+                style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(239,68,68,0.15)', color: 'var(--red)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 6, padding: '3px 6px', fontSize: 11, cursor: 'pointer' }}
               >
                 <IconX size={11} /> Quitar
               </button>

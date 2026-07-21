@@ -266,17 +266,17 @@ function ItemRow({
             </span>
           )}
           {caducado && (
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 100, background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 100, background: 'rgba(239,68,68,0.15)', color: 'var(--red)' }}>
               CADUCADO
             </span>
           )}
           {!caducado && pronto && dias !== null && (
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 100, background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 100, background: 'rgba(245,158,11,0.15)', color: 'var(--amber)' }}>
               Caduca en {dias}d
             </span>
           )}
           {bajo && (
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 100, background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 100, background: 'rgba(245,158,11,0.15)', color: 'var(--amber)' }}>
               Bajo stock
             </span>
           )}

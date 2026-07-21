@@ -124,7 +124,7 @@ export function FotosClinicas({ clinicId, patientId, notaId, modo = 'completo', 
         </p>
       </div>
 
-      {error && <div style={{ ...caja, borderColor: 'rgba(239,68,68,.4)', background: 'rgba(239,68,68,.08)', color: '#f87171' }}>{error}</div>}
+      {error && <div style={{ ...caja, borderColor: 'rgba(239,68,68,.4)', background: 'rgba(239,68,68,.08)', color: 'var(--red)' }}>{error}</div>}
       {cargando && <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Cargando fotos…</div>}
       {!cargando && fotos.length === 0 && (
         <div style={{ ...caja, color: 'var(--text3)' }}>Sin fotos aún. La primera toma es la línea base del seguimiento.</div>
@@ -175,7 +175,7 @@ export function FotosClinicas({ clinicId, patientId, notaId, modo = 'completo', 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
                     <span style={{ fontSize: 10.5, color: 'var(--text2)', flex: 1 }}>{fechaCorta(f.fecha)}</span>
                     <button type="button" onClick={() => borrar(f)} aria-label="Eliminar"
-                      style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: 2 }}>
+                      style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: 2 }}>
                       <Trash2 size={13} />
                     </button>
                   </div>

@@ -705,7 +705,7 @@ function AppointmentRowFull({
             style={{
               display: 'flex', alignItems: 'center', gap: 6, width: '100%', textAlign: 'left',
               padding: '7px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
-              fontSize: 13, color: '#f87171', background: 'transparent',
+              fontSize: 13, color: 'var(--red)', background: 'transparent',
             }}
           >
             <Trash2 size={13} /> Eliminar cita

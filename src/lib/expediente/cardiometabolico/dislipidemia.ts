@@ -495,7 +495,7 @@ export const NO_ESTATINAS_LDL: NoEstatina[] = [
 ]
 
 export const NO_ESTATINAS_TG: NoEstatina[] = [
-  { nombre: 'Icosapento de etilo', dosis: '4 g dos veces al día con alimentos', via: 'Oral', efecto: 'Reduce triglicéridos; en REDUCE-IT redujo 25% el desenlace primario.', nota: 'Contiene SOLO EPA. Vigilar fibrilación auricular (3.1% frente a 2.1%) y sangrado. No confundir con los aceites de pescado de venta libre.' },
+  { nombre: 'Icosapento de etilo', dosis: '2 g dos veces al día con alimentos (4 g/día en total)', via: 'Oral', efecto: 'Reduce triglicéridos; en REDUCE-IT redujo 25% el desenlace primario.', nota: 'Contiene SOLO EPA. Dosis de la etiqueta/REDUCE-IT = 2 g c/12 h (4 g/día). Vigilar fibrilación auricular (3.1% frente a 2.1%) y sangrado. No confundir con los aceites de pescado de venta libre.' },
   { nombre: 'Fenofibrato', dosis: '40 a 200 mg una vez al día', via: 'Oral', efecto: 'Baja los triglicéridos 30% a 50%.', nota: 'Primera línea en hipertrigliceridemia severa. Los ensayos NO muestran reducción de eventos al agregarlo a estatina.' },
   { nombre: 'Gemfibrozilo', dosis: '600 mg dos veces al día', via: 'Oral', efecto: 'Baja los triglicéridos 30% a 50%.', nota: 'NO debe combinarse con estatina: la interacción es seria.' },
   { nombre: 'Olezarsén', dosis: '80 mg una vez al mes', via: 'Subcutánea', efecto: 'Bajó los triglicéridos 43.5% a 6 meses y redujo los episodios de pancreatitis.', nota: 'Aprobado ÚNICAMENTE para síndrome de quilomicronemia familiar. Vigilar trombocitopenia.' },

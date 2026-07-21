@@ -104,7 +104,7 @@ export function SeguridadTab() {
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{f.displayName || 'Llave sin nombre'}</div>
                   {f.enrollmentTime && <div style={{ fontSize: 11, color: 'var(--text3)' }}>Agregada {new Date(f.enrollmentTime).toLocaleDateString('es-MX')}</div>}
                 </div>
-                <button onClick={() => remover(f.uid)} style={{ background: 'transparent', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', borderRadius: 6, padding: '4px 10px', fontSize: 11.5, cursor: 'pointer' }}>
+                <button onClick={() => remover(f.uid)} style={{ background: 'transparent', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--red)', borderRadius: 6, padding: '4px 10px', fontSize: 11.5, cursor: 'pointer' }}>
                   Quitar
                 </button>
               </div>

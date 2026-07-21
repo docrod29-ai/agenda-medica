@@ -395,7 +395,7 @@ export default function ConfiguracionPage() {
             <input className="input" value={form.nombreClinica} onChange={upd('nombreClinica')} placeholder="Consultorio Médico García" />
           </div>
           <div className="form-group">
-            <label className="label">Cédula profesional <span style={{ color: '#f87171' }}>*</span></label>
+            <label className="label">Cédula profesional <span style={{ color: 'var(--red)' }}>*</span></label>
             <input className="input" value={form.cedulaProfesional ?? ''} onChange={upd('cedulaProfesional')} placeholder="12345678 (requerida para firmar expedientes)" />
           </div>
           <div className="form-group">
@@ -695,7 +695,7 @@ export default function ConfiguracionPage() {
                   <button
                     className="btn btn-ghost btn-sm"
                     onClick={handleDisconnectGcal}
-                    style={{ color: '#f87171' }}
+                    style={{ color: 'var(--red)' }}
                   >
                     <XCircle size={14} /> Desconectar
                   </button>
@@ -865,7 +865,7 @@ function AutoAgendaLink({ configNumero, onCopy, copied }: {
       </div>
 
       {!numero ? (
-        <div style={{ fontSize: 13, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ fontSize: 13, color: 'var(--amber)', display: 'flex', alignItems: 'center', gap: 8 }}>
           <XCircle size={15} /> Conecta tu WhatsApp o escribe el número del consultorio (pestaña General) para generar el enlace.
         </div>
       ) : (
@@ -1097,7 +1097,7 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 background: 'none', border: '1px solid rgba(239,68,68,0.3)',
-                color: '#f87171', fontSize: 13, padding: '8px 14px',
+                color: 'var(--red)', fontSize: 13, padding: '8px 14px',
                 borderRadius: 8, cursor: 'pointer',
               }}
             >
@@ -1441,7 +1441,7 @@ function MedicosTab() {
 
 /* ── Suscripción Tab ─────────────────────────────────────────── */
 const PLAN_DISPLAY: Record<string, { label: string; color: string; price: string }> = {
-  trial:    { label: 'Prueba gratuita', color: '#f59e0b', price: '$0 MXN/mes' },
+  trial:    { label: 'Prueba gratuita', color: 'var(--amber)', price: '$0 MXN/mes' },
   agenda:   { label: 'Plan Agenda',     color: '#60a5fa', price: '$349 MXN/mes' },
   clinica:  { label: 'Plan Clínica',    color: '#3D5AFE', price: '$899 MXN/mes' },
   premium:  { label: 'Plan Pro',        color: '#a78bfa', price: '$1,899 MXN/mes' },
@@ -1804,7 +1804,7 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
                 <button onClick={() => compartirWhatsApp(inv)} style={{ background: '#25D366', border: 'none', color: '#fff', borderRadius: 6, padding: '5px 10px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
                   WhatsApp
                 </button>
-                <button onClick={() => revocar(inv.code)} style={{ background: 'none', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', borderRadius: 6, padding: '5px 10px', fontSize: 11.5, cursor: 'pointer' }}>
+                <button onClick={() => revocar(inv.code)} style={{ background: 'none', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--red)', borderRadius: 6, padding: '5px 10px', fontSize: 11.5, cursor: 'pointer' }}>
                   Revocar
                 </button>
               </div>

@@ -339,7 +339,7 @@ export default function GeneradorRecetaPage() {
           background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)',
           borderRadius: 12, padding: '13px 15px', marginBottom: 14,
         }}>
-          <AlertTriangle size={17} style={{ color: '#ef4444', flexShrink: 0, marginTop: 1 }} />
+          <AlertTriangle size={17} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--text)' }}>
             <strong>Falta tu cédula profesional.</strong> El documento saldrá marcándolo en rojo,
             porque la cédula es requisito del impreso (NOM-004). Agrégala en Configuración → General.
@@ -353,7 +353,7 @@ export default function GeneradorRecetaPage() {
           background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.35)',
           borderRadius: 12, padding: '13px 15px', marginBottom: 14,
         }}>
-          <AlertTriangle size={17} style={{ color: '#f59e0b', flexShrink: 0, marginTop: 1 }} />
+          <AlertTriangle size={17} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--text)' }}>
             <strong>Este documento saldrá sin firma ni sello.</strong> No encontramos la firma
             registrada para el médico de esta nota. Como el consultorio tiene varios médicos, no se
@@ -671,7 +671,7 @@ function MedRow({
         />
         <button onClick={onEliminar} title="Quitar" style={{
           background: 'transparent', border: '1px solid rgba(239,68,68,0.3)',
-          color: '#f87171', borderRadius: 6, padding: '4px 8px', cursor: 'pointer',
+          color: 'var(--red)', borderRadius: 6, padding: '4px 8px', cursor: 'pointer',
         }}>
           <Trash2 size={12} />
         </button>

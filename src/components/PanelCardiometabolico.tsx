@@ -201,7 +201,7 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
             <p style={txt}>{meta.poblacion}</p>
             {meta.opcional && <p style={{ ...txt, color: 'var(--text3)' }}>{meta.opcional}</p>}
             {ldl && Number(ldl) > meta.ldl && (
-              <p style={{ ...txt, fontWeight: 700, color: '#f59e0b' }}>
+              <p style={{ ...txt, fontWeight: 700, color: 'var(--amber)' }}>
                 Faltan {Math.round(Number(ldl) - meta.ldl)} mg/dL para la meta.
               </p>
             )}
@@ -211,7 +211,7 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
 
           {planTG && Number(tg) >= 150 && (
             <Res color={planTG.riesgoPancreatitis ? '#f87171' : '#f59e0b'} titulo={planTG.categoria}>
-              {planTG.riesgoPancreatitis && <p style={{ ...txt, fontWeight: 700, color: '#f87171' }}>Riesgo de pancreatitis.</p>}
+              {planTG.riesgoPancreatitis && <p style={{ ...txt, fontWeight: 700, color: 'var(--red)' }}>Riesgo de pancreatitis.</p>}
               <ul style={lista}>
                 <li>Azúcares añadidos: {planTG.azucares}</li>
                 <li>Grasa total: {planTG.grasaTotal}</li>
@@ -280,7 +280,7 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
           <Bloque t="Intensidad de estatina">
             {INTENSIDAD_ESTATINAS.map(n => (
               <div key={n.intensidad} style={{ marginBottom: 7 }}>
-                <div style={{ fontSize: 11.5, fontWeight: 800, color: '#f87171', textTransform: 'capitalize' }}>{n.intensidad} — {n.reduccionLDL}</div>
+                <div style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--red)', textTransform: 'capitalize' }}>{n.intensidad} — {n.reduccionLDL}</div>
                 <div style={{ fontSize: 11.5, color: 'var(--text2)' }}>
                   {[...n.preferidas, ...n.otras].map(e => `${e.nombre} ${e.dosis}`).join(' · ') || '—'}
                 </div>
@@ -377,7 +377,7 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
                 </div>
               </details>
             ))}
-            <p style={{ ...txt, color: '#f59e0b', marginTop: 6 }}>{RECUPERACION_PESO.cuanto}</p>
+            <p style={{ ...txt, color: 'var(--amber)', marginTop: 6 }}>{RECUPERACION_PESO.cuanto}</p>
           </Bloque>
         </div>
       )}
@@ -391,7 +391,7 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
               <Campo l="ALT (U/L)" v={alt} s={setAlt} w={92} />
               <Campo l="Plaquetas (×10⁹/L)" v={plaq} s={setPlaq} w={130} />
             </div>
-            {!edad && <p style={{ ...txt, color: '#f59e0b', marginTop: 6 }}>Falta la edad del paciente en el expediente para calcular el FIB-4.</p>}
+            {!edad && <p style={{ ...txt, color: 'var(--amber)', marginTop: 6 }}>Falta la edad del paciente en el expediente para calcular el FIB-4.</p>}
           </Bloque>
 
           {resFib4 && (
@@ -400,7 +400,7 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
               <p style={{ ...txt, fontWeight: 700 }}>{resFib4.conducta}</p>
               <p style={{ ...txt, color: 'var(--text3)' }}>{resFib4.seguimiento}</p>
               {resFib4.advertencias.map((a, i) => (
-                <p key={i} style={{ ...txt, color: '#f59e0b', fontSize: 11 }}>{a}</p>
+                <p key={i} style={{ ...txt, color: 'var(--amber)', fontSize: 11 }}>{a}</p>
               ))}
               <Nota onAgregarANota={onAgregarANota} texto={`FIB-4 ${resFib4.valor}: ${resFib4.interpretacion} ${resFib4.conducta} (${FUENTE_MASLD}).`} />
             </Res>
@@ -433,7 +433,7 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
                   <div><b>Obesidad:</b> {t.obesidad}</div>
                   <div><b>Diabetes:</b> {t.diabetes}</div>
                   <div><b>MASH:</b> {t.mash}</div>
-                  {t.advertencia && <div style={{ color: '#f59e0b' }}>{t.advertencia}</div>}
+                  {t.advertencia && <div style={{ color: 'var(--amber)' }}>{t.advertencia}</div>}
                 </div>
               </details>
             ))}
@@ -479,7 +479,7 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
         {tab === 'hoja' && 'Contenido derivado de las guías citadas en cada pestaña. Apoyo a la decisión: no sustituye el juicio clínico.'}
       </div>
       {tab === 'lipidos' && (
-        <div style={{ fontSize: 10.5, color: '#f59e0b', marginTop: 6, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 10.5, color: 'var(--amber)', marginTop: 6, lineHeight: 1.5 }}>
           {SUPLEMENTOS_SIN_BENEFICIO.recomendacion} {DIETA_LDL[0].intervencion}: {DIETA_LDL[0].efecto.toLowerCase()}.
         </div>
       )}

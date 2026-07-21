@@ -84,7 +84,7 @@ export function HistorialVersiones({
             </div>
           )}
 
-          {error && <div style={{ padding: 14, fontSize: 13, color: '#ef4444' }}>{error}</div>}
+          {error && <div style={{ padding: 14, fontSize: 13, color: 'var(--red)' }}>{error}</div>}
 
           {!cargando && !error && versiones?.length === 0 && (
             <div style={{ padding: 14, fontSize: 13, color: 'var(--text3)', lineHeight: 1.5 }}>

@@ -68,7 +68,7 @@ export function PanelPediatria({ edadAnios, sexo, onAgregarANota, embebido }: Pr
           <Baby size={15} color="#a78bfa" />
           <span style={{ fontSize: 13, fontWeight: 700, color: '#a78bfa' }}>Pediatría</span>
           {atrasadas.length > 0 && (
-            <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 100, background: 'rgba(239,68,68,.15)', color: '#f87171' }}>
+            <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 100, background: 'rgba(239,68,68,.15)', color: 'var(--red)' }}>
               {atrasadas.length} vacuna{atrasadas.length > 1 ? 's' : ''} atrasada{atrasadas.length > 1 ? 's' : ''}
             </span>
           )}
@@ -116,7 +116,7 @@ export function PanelPediatria({ edadAnios, sexo, onAgregarANota, embebido }: Pr
                         (total {d.porDia.min === d.porDia.max ? d.porDia.max : `${d.porDia.min}–${d.porDia.max}`} {d.unidad}/día)
                       </span>
                       {d.topeAplicado && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 800, padding: '2px 8px', borderRadius: 100, background: 'rgba(245,158,11,.15)', color: '#f59e0b' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 800, padding: '2px 8px', borderRadius: 100, background: 'rgba(245,158,11,.15)', color: 'var(--amber)' }}>
                           <AlertTriangle size={11} /> tope de adulto
                         </span>
                       )}
@@ -141,7 +141,7 @@ export function PanelPediatria({ edadAnios, sexo, onAgregarANota, embebido }: Pr
           {meses === '' ? (
             <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0 }}>Captura la edad en meses.</p>
           ) : edadMeses > 60 ? (
-            <p style={{ fontSize: 12, color: '#f59e0b', margin: 0, lineHeight: 1.5 }}>
+            <p style={{ fontSize: 12, color: 'var(--amber)', margin: 0, lineHeight: 1.5 }}>
               Los estándares de crecimiento de la OMS que trae la app cubren de 0 a 60 meses (5 años).
               Para mayores de 5 años se usan otras referencias, que no están cargadas aquí.
             </p>
@@ -199,7 +199,7 @@ export function PanelPediatria({ edadAnios, sexo, onAgregarANota, embebido }: Pr
                       {v.vacuna.mes === 0 ? 'al nacer' : v.vacuna.mes < 24 ? `${v.vacuna.mes} meses` : `${v.vacuna.mes / 12} años`}
                     </span>
                     {v.estado === 'atrasada' && (
-                      <span style={{ fontSize: 10.5, fontWeight: 800, padding: '2px 8px', borderRadius: 100, background: 'rgba(239,68,68,.15)', color: '#f87171' }}>ATRASADA</span>
+                      <span style={{ fontSize: 10.5, fontWeight: 800, padding: '2px 8px', borderRadius: 100, background: 'rgba(239,68,68,.15)', color: 'var(--red)' }}>ATRASADA</span>
                     )}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3, lineHeight: 1.45 }}>{v.vacuna.detalle}</div>

@@ -175,7 +175,7 @@ export default function ListaEsperaPage() {
                   <button className="btn btn-ghost btn-icon btn-sm" onClick={() => handleConverted(entry.id)} title="Marcar como convertido" style={{ color: '#4ade80' }}>
                     <CheckCircle2 size={15} />
                   </button>
-                  <button className="btn btn-ghost btn-icon btn-sm" onClick={() => handleRemove(entry.id)} title="Eliminar" style={{ color: '#f87171' }}>
+                  <button className="btn btn-ghost btn-icon btn-sm" onClick={() => handleRemove(entry.id)} title="Eliminar" style={{ color: 'var(--red)' }}>
                     <X size={15} />
                   </button>
                 </div>

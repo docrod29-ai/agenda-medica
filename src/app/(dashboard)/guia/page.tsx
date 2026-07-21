@@ -115,7 +115,7 @@ export default function GuiaPage() {
                   ))}
                   {s.ojo?.map((o, i) => (
                     <div key={i} style={{ display: 'flex', gap: 8, marginTop: 8, fontSize: 12.5, color: 'var(--text2)', background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 8, padding: '9px 11px' }}>
-                      <AlertTriangle size={14} style={{ color: '#f59e0b', flexShrink: 0, marginTop: 1 }} /> {o}
+                      <AlertTriangle size={14} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} /> {o}
                     </div>
                   ))}
                 </div>

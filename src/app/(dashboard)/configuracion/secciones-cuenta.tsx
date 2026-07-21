@@ -87,7 +87,7 @@ export function LlavesIASection({ clinicId }: { clinicId: string }) {
       {u && (
         <div style={{ fontSize: 12, color: 'var(--text2)', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', marginBottom: 14 }}>
           Uso este mes: <strong>{u.total}</strong> · Prueba gratis: <strong>{u.prueba}/{u.limitePrueba}</strong>
-          {u.prueba >= u.limitePrueba && <span style={{ color: '#f59e0b', fontWeight: 700 }}> · prueba agotada, pon tu llave</span>}
+          {u.prueba >= u.limitePrueba && <span style={{ color: 'var(--amber)', fontWeight: 700 }}> · prueba agotada, pon tu llave</span>}
         </div>
       )}
 
@@ -575,7 +575,7 @@ export function MiembrosActivos({ clinicId, miUid }: { clinicId: string | null; 
                   onClick={() => remover(m)}
                   title="Quitar del equipo"
                   style={{
-                    background: 'rgba(239,68,68,0.1)', color: '#ef4444',
+                    background: 'rgba(239,68,68,0.1)', color: 'var(--red)',
                     border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6,
                     padding: '5px 8px', fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
                   }}

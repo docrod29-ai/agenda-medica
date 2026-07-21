@@ -146,14 +146,14 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
           <span style={{ fontSize: 10, color: 'var(--text3)', background: 'var(--s3)', padding: '2px 6px', borderRadius: 4 }}>
             {HABLANTE_LABEL[campo.speaker ?? 'desconocido']}
           </span>
-          {critico && <span style={{ fontSize: 10, color: '#f59e0b', fontWeight: 700 }}>CRÍTICO</span>}
+          {critico && <span style={{ fontSize: 10, color: 'var(--amber)', fontWeight: 700 }}>CRÍTICO</span>}
           <button onClick={() => setVerFuente(verFuente === id ? null : id)}
             style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 8, minHeight: 32, minWidth: 32, justifyContent: 'center' }} title="Ver la frase del dictado de donde salió">
             {verFuente === id ? <EyeOff size={13} /> : <Eye size={13} />}
           </button>
           {aprobado ? (
             <button onClick={() => onRechazar(id)} title="Quitar de la nota"
-              style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', borderRadius: 6, padding: '6px 10px', fontSize: 11.5, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, minHeight: 32 }}>
+              style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--red)', borderRadius: 6, padding: '6px 10px', fontSize: 11.5, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, minHeight: 32 }}>
               <X size={12} /> Quitar
             </button>
           ) : (
@@ -166,7 +166,7 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
         {verFuente === id && (
           <div style={{ marginTop: 6, padding: '6px 10px', background: 'var(--s3)', borderRadius: 6, fontSize: 11.5, color: 'var(--text2)', fontStyle: 'italic' }}>
             {campo.source_quote ? `"${campo.source_quote}"` : '(sin cita textual)'}
-            {campo.reason && <div style={{ marginTop: 4, fontSize: 11, color: '#f59e0b', fontStyle: 'normal', display: 'flex', alignItems: 'center', gap: 4 }}><AlertTriangle size={11} className="ds-icon" /> {campo.reason}</div>}
+            {campo.reason && <div style={{ marginTop: 4, fontSize: 11, color: 'var(--amber)', fontStyle: 'normal', display: 'flex', alignItems: 'center', gap: 4 }}><AlertTriangle size={11} className="ds-icon" /> {campo.reason}</div>}
           </div>
         )}
       </div>
@@ -189,14 +189,14 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
       <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12, lineHeight: 1.5 }}>
         Todo esto ya está en la nota. <strong style={{ color: 'var(--text2)' }}>No tienes que aprobar nada</strong> — solo quita lo que no corresponda.
         {requierenRevision.length > 0 && (
-          <> Los <strong style={{ color: '#f59e0b' }}>{requierenRevision.length}</strong> datos delicados van arriba para que les des un vistazo.</>
+          <> Los <strong style={{ color: 'var(--amber)' }}>{requierenRevision.length}</strong> datos delicados van arriba para que les des un vistazo.</>
         )}
       </div>
 
       {/* Conflictos detectados */}
       {conflictos.length > 0 && (
         <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: 10, marginBottom: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#f87171', fontWeight: 600, marginBottom: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--red)', fontWeight: 600, marginBottom: 4 }}>
             <ShieldAlert size={14} /> Conflictos detectados
           </div>
           {conflictos.map((c, i) => <div key={i} style={{ fontSize: 12, color: 'var(--text2)' }}>• {c}</div>)}
@@ -206,7 +206,7 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
       {/* Faltantes críticos */}
       {faltantesCriticos.length > 0 && (
         <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 8, padding: 10, marginBottom: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#f59e0b', fontWeight: 600, marginBottom: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--amber)', fontWeight: 600, marginBottom: 4 }}>
             <AlertTriangle size={14} /> Datos críticos no documentados
           </div>
           {faltantesCriticos.map((c, i) => <div key={i} style={{ fontSize: 12, color: 'var(--text2)' }}>• {c}</div>)}

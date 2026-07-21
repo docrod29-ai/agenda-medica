@@ -242,7 +242,12 @@ function riesgoGestacional(e: EntradaCopiloto): Sugerencia[] {
     if (!nm) continue
     const g = EMBARAZO_LACTANCIA.find(x =>
       x.embarazo === 'contraindicado' &&
-      (nm.includes(norm(x.farmaco)) || norm(x.farmaco).split(/[ ,]/).some(w => w.length > 5 && nm.includes(w))))
+      // Sinónimos (principios activos) PRIMERO: el nombre de clase ('Inhibidores de
+      // la enzima…') nunca casa con "enalapril"/"losartan"; sin esto, un IECA/ARA-II
+      // o un anticoagulante directo en embarazo NO disparaba la alerta crítica.
+      ((x.sinonimos ?? []).some(s => nm.includes(norm(s))) ||
+       nm.includes(norm(x.farmaco)) ||
+       norm(x.farmaco).split(/[ ,]/).some(w => w.length > 5 && nm.includes(w))))
     if (!g) continue
     out.push({
       id: `gesta:${m.nombre}`,

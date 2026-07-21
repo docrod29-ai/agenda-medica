@@ -387,7 +387,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: 'var(--nexus)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 13.5, fontWeight: 700, cursor: razonando ? 'wait' : 'pointer', opacity: razonando ? 0.7 : 1 }}>
             {razonando ? <><Loader2 size={16} className="spin" /> Razonando el caso…</> : <><Brain size={16} /> Razonar con IA (infectólogo — Claude + GPT)</>}
           </button>
-          {errorRaz && <div style={{ ...box, marginTop: 8, borderColor: 'rgba(239,68,68,.4)', background: 'rgba(239,68,68,.08)', color: '#f87171' }}>{errorRaz}</div>}
+          {errorRaz && <div style={{ ...box, marginTop: 8, borderColor: 'rgba(239,68,68,.4)', background: 'rgba(239,68,68,.08)', color: 'var(--red)' }}>{errorRaz}</div>}
           {razonamiento && (
             <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={card}>
@@ -469,7 +469,7 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
   return (
     <div style={{ marginTop: 26, display: 'flex', flexDirection: 'column', gap: 16 }}>
       {res.notificacionObligatoria && (
-        <div style={{ ...box, borderColor: 'rgba(239,68,68,.4)', background: 'rgba(239,68,68,.08)', color: '#f87171' }}>
+        <div style={{ ...box, borderColor: 'rgba(239,68,68,.4)', background: 'rgba(239,68,68,.08)', color: 'var(--red)' }}>
           <ShieldAlert size={16} /> <b>Notificación epidemiológica obligatoria (NOM-045).</b>
           {res.aislamiento && <span style={{ color: 'var(--text2)' }}> · {res.aislamiento}</span>}
         </div>
@@ -480,7 +480,7 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
           <SecTitle icon={<AlertTriangle size={15} />} t="Conflicto con resistencia intrínseca" />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {conflictos.map((n, i) => (
-              <div key={i} style={{ ...box, borderColor: 'rgba(245,158,11,.4)', background: 'rgba(245,158,11,.08)', color: '#f59e0b' }}>
+              <div key={i} style={{ ...box, borderColor: 'rgba(245,158,11,.4)', background: 'rgba(245,158,11,.08)', color: 'var(--amber)' }}>
                 <span><b>{n.antibiotico}:</b> {n.mensaje}</span>
               </div>
             ))}
@@ -577,7 +577,7 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
                     <b>{c.antibiotico}</b> · CMI {c.cmi} µg/mL → <b style={{ color: col }}>{etiqueta}</b> (CLSI)
                     {c.categoriaCLSI === 'SDD' && <span style={{ color: 'var(--text3)' }}> · usa el esquema de dosis alto (no la dosis estándar)</span>}
                     {c.soloUTI && <span style={{ color: 'var(--text3)' }}> · solo IVU no complicada</span>}
-                    {c.concuerda === false && <span style={{ color: '#f59e0b' }}> · ⚠ discrepa del reporte ({c.categoriaReportada})</span>}
+                    {c.concuerda === false && <span style={{ color: 'var(--amber)' }}> · ⚠ discrepa del reporte ({c.categoriaReportada})</span>}
                   </span>
                 </div>
               )
@@ -687,8 +687,8 @@ function SecTitle({ icon, t }: { icon: React.ReactNode; t: string }) {
 }
 
 function alertaEstilo(n: 'critica' | 'alta' | 'info'): React.CSSProperties {
-  if (n === 'critica') return { borderColor: 'rgba(239,68,68,.4)', background: 'rgba(239,68,68,.08)', color: '#f87171' }
-  if (n === 'alta') return { borderColor: 'rgba(245,158,11,.4)', background: 'rgba(245,158,11,.08)', color: '#f59e0b' }
+  if (n === 'critica') return { borderColor: 'rgba(239,68,68,.4)', background: 'rgba(239,68,68,.08)', color: 'var(--red)' }
+  if (n === 'alta') return { borderColor: 'rgba(245,158,11,.4)', background: 'rgba(245,158,11,.08)', color: 'var(--amber)' }
   return { color: 'var(--text2)' }
 }
 
@@ -703,7 +703,7 @@ function etiquetaLinea(l: 'dirigida' | 'alternativa' | 'evitar'): string {
 
 const label: React.CSSProperties = { display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--text2)', marginBottom: 4 }
 const input: React.CSSProperties = { background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 11px', fontSize: 13, color: 'var(--text)', outline: 'none', width: '100%', boxSizing: 'border-box' }
-const delBtn: React.CSSProperties = { background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: 6, flexShrink: 0 }
+const delBtn: React.CSSProperties = { background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: 6, flexShrink: 0 }
 const addBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 5, background: 'var(--s2)', border: '1px dashed var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, cursor: 'pointer' }
 const chip: React.CSSProperties = { background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text3)', borderRadius: 100, padding: '5px 11px', fontSize: 11.5, cursor: 'pointer' }
 const metaChip: React.CSSProperties = { background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '4px 9px', fontSize: 11 }

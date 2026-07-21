@@ -105,7 +105,7 @@ export function Copiloto({ entrada, onAgregarANota }: Props) {
                 <div style={{ padding: '0 12px 12px' }}>
                   <p style={{ fontSize: 12, color: 'var(--text2)', margin: 0, lineHeight: 1.55 }}>{s.detalle}</p>
                   {s.pide && (
-                    <p style={{ fontSize: 11.5, color: '#f59e0b', margin: '6px 0 0' }}>
+                    <p style={{ fontSize: 11.5, color: 'var(--amber)', margin: '6px 0 0' }}>
                       Captura {s.pide} arriba y esto se calcula solo.
                     </p>
                   )}

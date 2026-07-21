@@ -226,6 +226,13 @@ export const RIESGO_HEPATICO: RiesgoHepatico[] = [
 
 export interface RiesgoGestacional {
   farmaco: string
+  /**
+   * Principios activos que pertenecen a esta clase. IMPRESCINDIBLE cuando `farmaco`
+   * es un nombre de CLASE ('Inhibidores de la enzima…'): sin esto, el match por
+   * palabras de la clase NUNCA coincide con "enalapril"/"losartan" y la alerta
+   * crítica (p. ej. IECA/ARA-II en embarazo, teratógeno frecuente) no se dispara.
+   */
+  sinonimos?: string[]
   embarazo: 'contraindicado' | 'evitar' | 'seguro-conocido'
   lactancia: 'compatible' | 'evitar' | 'precaucion'
   motivo: string
@@ -233,21 +240,21 @@ export interface RiesgoGestacional {
 }
 
 export const EMBARAZO_LACTANCIA: RiesgoGestacional[] = [
-  { farmaco: 'Inhibidores de la enzima convertidora y ARA II', embarazo: 'contraindicado', lactancia: 'precaucion', motivo: 'Fetopatía: oligohidramnios, hipoplasia pulmonar, falla renal y muerte fetal. Suspender en cuanto se confirma el embarazo.', alternativa: 'Labetalol, nifedipino de acción prolongada o metildopa.' },
-  { farmaco: 'Estatinas', embarazo: 'evitar', lactancia: 'evitar', motivo: 'Se suspenden durante el embarazo y la lactancia; el colesterol es necesario para el desarrollo fetal.', alternativa: 'Manejo con dieta; en hipertrigliceridemia severa la guía permite fibratos después del primer trimestre u omega-3 a dosis alta.' },
+  { farmaco: 'Inhibidores de la enzima convertidora y ARA II', sinonimos: ['enalapril','lisinopril','captopril','ramipril','perindopril','benazepril','quinapril','fosinopril','losartan','losartán','valsartan','valsartán','telmisartan','telmisartán','irbesartan','candesartan','olmesartan','azilsartan'], embarazo: 'contraindicado', lactancia: 'precaucion', motivo: 'Fetopatía: oligohidramnios, hipoplasia pulmonar, falla renal y muerte fetal. Suspender en cuanto se confirma el embarazo.', alternativa: 'Labetalol, nifedipino de acción prolongada o metildopa.' },
+  { farmaco: 'Estatinas', sinonimos: ['atorvastatina','rosuvastatina','simvastatina','pravastatina','lovastatina','pitavastatina','fluvastatina'], embarazo: 'evitar', lactancia: 'evitar', motivo: 'Se suspenden durante el embarazo y la lactancia; el colesterol es necesario para el desarrollo fetal.', alternativa: 'Manejo con dieta; en hipertrigliceridemia severa la guía permite fibratos después del primer trimestre u omega-3 a dosis alta.' },
   { farmaco: 'Warfarina', embarazo: 'contraindicado', lactancia: 'compatible', motivo: 'Embriopatía warfarínica, sobre todo entre las semanas 6 y 12. En lactancia sí es compatible.', alternativa: 'Heparina de bajo peso molecular, que no cruza la placenta.' },
-  { farmaco: 'Anticoagulantes orales directos', embarazo: 'contraindicado', lactancia: 'evitar', motivo: 'Datos insuficientes y paso placentario.', alternativa: 'Heparina de bajo peso molecular.' },
+  { farmaco: 'Anticoagulantes orales directos', sinonimos: ['rivaroxaban','rivaroxabán','apixaban','apixabán','dabigatran','dabigatrán','edoxaban','edoxabán'], embarazo: 'contraindicado', lactancia: 'evitar', motivo: 'Datos insuficientes y paso placentario.', alternativa: 'Heparina de bajo peso molecular.' },
   { farmaco: 'Isotretinoína', embarazo: 'contraindicado', lactancia: 'evitar', motivo: 'Teratógeno mayor. Requiere anticoncepción eficaz y prueba de embarazo antes, durante y después.' },
   { farmaco: 'Ácido valproico', embarazo: 'contraindicado', lactancia: 'precaucion', motivo: 'Defectos del tubo neural y afectación del neurodesarrollo. Evitar en toda mujer en edad fértil sin anticoncepción.', alternativa: 'Lamotrigina o levetiracetam, según la indicación.' },
   { farmaco: 'Metotrexato', embarazo: 'contraindicado', lactancia: 'evitar', motivo: 'Abortivo y teratógeno. Suspender al menos 3 meses antes de buscar embarazo.' },
-  { farmaco: 'Tetraciclinas y doxiciclina', embarazo: 'evitar', lactancia: 'precaucion', motivo: 'Después de la semana 15 se depositan en dientes y hueso fetal.', alternativa: 'Amoxicilina o azitromicina según el germen.' },
-  { farmaco: 'Quinolonas', embarazo: 'evitar', lactancia: 'precaucion', motivo: 'Efecto sobre el cartílago en estudios animales; se prefieren alternativas.', alternativa: 'Betalactámicos o nitrofurantoína (esta última no al término).' },
+  { farmaco: 'Tetraciclinas y doxiciclina', sinonimos: ['doxiciclina','tetraciclina','minociclina','tigeciclina'], embarazo: 'evitar', lactancia: 'precaucion', motivo: 'Después de la semana 15 se depositan en dientes y hueso fetal.', alternativa: 'Amoxicilina o azitromicina según el germen.' },
+  { farmaco: 'Quinolonas', sinonimos: ['ciprofloxacino','levofloxacino','moxifloxacino','ofloxacino','norfloxacino','gemifloxacino'], embarazo: 'evitar', lactancia: 'precaucion', motivo: 'Efecto sobre el cartílago en estudios animales; se prefieren alternativas.', alternativa: 'Betalactámicos o nitrofurantoína (esta última no al término).' },
   { farmaco: 'Penicilinas y cefalosporinas', embarazo: 'seguro-conocido', lactancia: 'compatible', motivo: 'Amplia experiencia de uso seguro; son los antibióticos de elección en el embarazo.' },
   { farmaco: 'Paracetamol', embarazo: 'seguro-conocido', lactancia: 'compatible', motivo: 'Analgésico y antipirético de elección en el embarazo, a la dosis eficaz más baja y por el menor tiempo.' },
-  { farmaco: 'Antiinflamatorios no esteroideos', embarazo: 'evitar', lactancia: 'compatible', motivo: 'Desde la semana 20 se asocian a oligohidramnios y desde la 30 a cierre prematuro del conducto arterioso.', alternativa: 'Paracetamol.' },
+  { farmaco: 'Antiinflamatorios no esteroideos', sinonimos: ['ibuprofeno','naproxeno','diclofenaco','ketorolaco','indometacina','meloxicam','celecoxib','piroxicam','ketoprofeno'], embarazo: 'evitar', lactancia: 'compatible', motivo: 'Desde la semana 20 se asocian a oligohidramnios y desde la 30 a cierre prematuro del conducto arterioso.', alternativa: 'Paracetamol.' },
   { farmaco: 'Insulina', embarazo: 'seguro-conocido', lactancia: 'compatible', motivo: 'Tratamiento de elección de la diabetes en el embarazo; no cruza la placenta.' },
   { farmaco: 'Levotiroxina', embarazo: 'seguro-conocido', lactancia: 'compatible', motivo: 'Debe continuarse; el requerimiento suele AUMENTAR durante el embarazo y necesita ajuste con perfil tiroideo.' },
-  { farmaco: 'Agonistas del receptor de GLP-1', embarazo: 'contraindicado', lactancia: 'evitar', motivo: 'Se suspenden antes de un embarazo planeado; la pérdida de peso no es deseable en la gestación.' },
+  { farmaco: 'Agonistas del receptor de GLP-1', sinonimos: ['semaglutida','liraglutida','dulaglutida','exenatida','lixisenatida','tirzepatida'], embarazo: 'contraindicado', lactancia: 'evitar', motivo: 'Se suspenden antes de un embarazo planeado; la pérdida de peso no es deseable en la gestación.' },
 ]
 
 /** Busca en las tres listas por nombre y devuelve todo lo que aplique. */
@@ -260,9 +267,13 @@ export function revisarFarmaco(nombre: string): {
   const q = norm(nombre).trim()
   if (q.length < 3) return {}
   const coincide = (n: string) => q.includes(norm(n)) || norm(n).includes(q)
+  // Para clases (IECA/ARA-II, DOAC, GLP-1…) el nombre de clase no casa con el
+  // principio activo; se consultan también los sinónimos (principios activos).
+  const coincideGesta = (x: RiesgoGestacional) =>
+    coincide(x.farmaco) || (x.sinonimos ?? []).some(s => coincide(s))
   return {
     renal: AJUSTE_RENAL.find(x => coincide(x.nombre)),
     hepatico: RIESGO_HEPATICO.find(x => coincide(x.farmaco)),
-    gestacional: EMBARAZO_LACTANCIA.find(x => coincide(x.farmaco)),
+    gestacional: EMBARAZO_LACTANCIA.find(coincideGesta),
   }
 }

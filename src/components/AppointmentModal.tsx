@@ -422,7 +422,7 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
                 <input className="input" type="time" value={hora} onChange={e => setHora(e.target.value)} />
               )}
               {conflict && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#f87171', marginTop: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--red)', marginTop: 4 }}>
                   <AlertCircle size={13} /> Conflicto con otra cita
                 </div>
               )}

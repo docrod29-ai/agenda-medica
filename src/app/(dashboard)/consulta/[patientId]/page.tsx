@@ -1982,7 +1982,7 @@ export default function ConsultaActivaPage() {
 
           {/* Mensaje útil cuando NO hay opción de voz */}
           {!voz.soportado && !audio.soportado && (
-            <div style={{ fontSize: 13, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ fontSize: 13, color: 'var(--amber)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <AlertTriangle size={15} /> Tu navegador no soporta dictado por voz. Escribe la nota manualmente abajo.
             </div>
           )}
@@ -2175,7 +2175,7 @@ export default function ConsultaActivaPage() {
                 )}
                 {audio.error && (
                   <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 11.5, color: '#f59e0b', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ fontSize: 11.5, color: 'var(--amber)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                       <AlertTriangle size={12} className="ds-icon" /> {audio.error}
                     </span>
                     <button className="btn btn-sm" style={{ background: 'var(--amber)', color: '#000', border: 'none', fontWeight: 600 }}
@@ -2483,7 +2483,7 @@ export default function ConsultaActivaPage() {
             onAgregarANota={agregarASeccion('preventivo', 'Medicina preventiva')} />,
         },
         {
-          id: 'antibiograma', nombre: 'Antibiograma', color: '#f59e0b', icono: <FlaskConical size={14} />,
+          id: 'antibiograma', nombre: 'Antibiograma', color: 'var(--amber)', icono: <FlaskConical size={14} />,
           para: 'Interpretar un cultivo: fenotipo, mecanismo de resistencia y terapia dirigida',
           contenido: <AntibiogramaTool embebido onAgregarANota={agregarASeccion('antibiograma', 'Antibiograma e interpretación')} />,
         },
@@ -2684,7 +2684,7 @@ export default function ConsultaActivaPage() {
           background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)',
           borderRadius: 12, padding: '13px 15px', marginBottom: 14,
         }}>
-          <AlertTriangle size={17} style={{ color: '#ef4444', flexShrink: 0, marginTop: 1 }} />
+          <AlertTriangle size={17} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--text)' }}>
             <strong>No se pudo abrir esta nota.</strong> {errorCargaNota}
           </div>
@@ -2727,7 +2727,7 @@ export default function ConsultaActivaPage() {
             background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.35)',
             borderRadius: 12, padding: '13px 15px', marginBottom: 14,
           }}>
-            <AlertTriangle size={17} style={{ color: '#f59e0b', flexShrink: 0, marginTop: 1 }} />
+            <AlertTriangle size={17} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
             <div style={{ flex: 1, minWidth: 220, fontSize: 13.5, lineHeight: 1.55, color: 'var(--text)' }}>
               <strong>{n} {n === 1 ? 'línea la propuso la IA' : 'líneas las propuso la IA'}, no tú.</strong>{' '}
               Están marcadas con <code style={{ fontSize: 12 }}>[IA — no dictado]</code> dentro de la nota —

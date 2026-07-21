@@ -468,7 +468,7 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
                 </>
               )}
               {!firmada && (
-                <button onClick={onBorrar} style={{ ...ghostBtn, color: '#f87171', borderColor: 'rgba(239,68,68,0.3)' }}>
+                <button onClick={onBorrar} style={{ ...ghostBtn, color: 'var(--red)', borderColor: 'rgba(239,68,68,0.3)' }}>
                   <Trash2 size={13} /> Eliminar borrador
                 </button>
               )}
@@ -487,7 +487,7 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
 }
 
 const backBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer', marginBottom: 16, padding: 0 }
-const alergiaBanner: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 }
+const alergiaBanner: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', color: 'var(--red)', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 }
 const primaryBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, background: 'var(--teal)', color: '#000', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }
 const ghostBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 5, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, cursor: 'pointer' }
 const chip = (active: boolean): React.CSSProperties => ({ background: active ? 'var(--teal)' : 'var(--s2)', color: active ? '#000' : 'var(--text2)', border: '1px solid var(--border)', borderRadius: 100, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' })

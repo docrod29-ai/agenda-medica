@@ -163,6 +163,21 @@ describe('Revisión integral de un fármaco', () => {
     expect(r.hepatico).toBeUndefined()
     expect(r.gestacional).toBeUndefined()
   })
+  it('detecta IECA/ARA-II en embarazo por PRINCIPIO ACTIVO (no solo por clase)', () => {
+    // El nombre de clase no casa con estos; la alerta crítica dependía de ello.
+    for (const f of ['enalapril', 'Losartán', 'telmisartan', 'captopril', 'valsartan']) {
+      const r = revisarFarmaco(f)
+      expect(r.gestacional, `${f} debería marcar riesgo gestacional`).toBeDefined()
+      expect(r.gestacional?.embarazo).toBe('contraindicado')
+    }
+  })
+  it('detecta anticoagulantes orales directos y GLP-1 inyectables en embarazo', () => {
+    for (const f of ['rivaroxaban', 'apixabán', 'dabigatran', 'liraglutida', 'dulaglutida']) {
+      const r = revisarFarmaco(f)
+      expect(r.gestacional, `${f} debería marcar riesgo gestacional`).toBeDefined()
+      expect(r.gestacional?.embarazo).toBe('contraindicado')
+    }
+  })
 })
 
 describe('Regresión: no inventar coincidencias con cadenas vacías', () => {
