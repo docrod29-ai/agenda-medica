@@ -31,6 +31,15 @@ import {
 import { registrarEntrante } from '@/lib/whatsapp/contacts'
 import { parsearStatuses, registrarStatus } from '@/lib/whatsapp/status'
 import { hoyISO, sumarDiasISO } from '@/lib/timezone'
+import { estaBloqueado, type TimeBlock } from '@/lib/time-blocks'
+
+/** Carga los bloqueos (vacaciones/ausencias) de la clínica para el bot. */
+async function cargarBloques(clinicId: string): Promise<TimeBlock[]> {
+  try {
+    const snap = await adminDb.collection('clinics').doc(clinicId).collection('time_blocks').get()
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }) as TimeBlock)
+  } catch { return [] }
+}
 
 // Sin fallback público: si no está configurado, la verificación GET fallará
 // (mejor que aceptar un token por defecto que está en el repo).
@@ -102,6 +111,8 @@ function getAvailableSlotsForDate(
   duracion: number,
   config: ClinicConfig,
   appointments: Appointment[],
+  bloques: TimeBlock[] = [],
+  medicoId?: string,
 ): string[] {
   const d = new Date(fecha + 'T12:00:00')
   const dayKey = DAY_KEYS[d.getDay()]
@@ -131,9 +142,13 @@ function getAvailableSlotsForDate(
       const aEnd = aStart + a.duracion
       return m < aEnd && slotEnd > aStart
     })
-    if (!conflict) {
-      slots.push(`${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`)
-    }
+    if (conflict) continue
+    // BLOQUEOS (vacaciones/ausencias): el bot ignoraba time_blocks y ofrecía huecos
+    // en días bloqueados (el panel y el booking público sí los respetan). Se excluye
+    // el slot si cae dentro de un bloqueo del médico (o de toda la clínica).
+    const hhmm = `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
+    if (bloques.length && estaBloqueado(`${fecha} ${hhmm}`, bloques, medicoId)) continue
+    slots.push(hhmm)
   }
   return slots
 }
@@ -460,8 +475,9 @@ export async function handleMessage(from: string, body: string, clinicId: string
       .where('fechaHora', '<=', fecha + ' 23:59')
       .get()
     const appts = apptSnap.docs.map(d => ({ id: d.id, ...d.data() } as Appointment))
+    const bloques = await cargarBloques(clinicId)
 
-    const slots = getAvailableSlotsForDate(fecha, duracion, config!, appts)
+    const slots = getAvailableSlotsForDate(fecha, duracion, config!, appts, bloques, doctor?.id)
 
     if (slots.length === 0) {
       await send(from, `No hay horarios disponibles ese día. Por favor elija otro día.`)
@@ -651,7 +667,10 @@ export async function handleMessage(from: string, body: string, clinicId: string
        */
       const duracion = 30
       const now = new Date().toISOString()
-      const medicoIdBot = doctor?.id || ''
+      // El médico del HUECO liberado (guardado en la sesión por waitlist-notify), no
+      // el primer doctor activo. Antes se agendaba con el médico equivocado → la cita
+      // desaparecía al filtrar por médico y tapaba el hueco a los demás.
+      const medicoIdBot = datos.medicoId || doctor?.id || ''
       const apptsColLE = adminDb.collection('clinics').doc(clinicId).collection('appointments')
       const [sh, sm] = slotHora.split(':').map(Number)
       const sStart = sh * 60 + sm, sEnd = sStart + duracion
@@ -754,13 +773,14 @@ async function getAvailableDays(clinicId: string, duracionStr: string, config: C
     .where('fechaHora', '<=', endDate + ' 23:59')
     .get()
   const appts = snap.docs.map(d => ({ id: d.id, ...d.data() } as Appointment))
+  const bloques = await cargarBloques(clinicId)
 
   for (let i = 0; i < 14 && days.length < 5; i++) {
     const fecha = addDays(cursor, i === 0 ? 1 : 0) // start tomorrow
     if (i === 0) cursor = fecha
     else cursor = addDays(cursor, 1)
 
-    const slots = getAvailableSlotsForDate(cursor, duracion, config, appts)
+    const slots = getAvailableSlotsForDate(cursor, duracion, config, appts, bloques, doctor?.id)
     if (slots.length > 0) days.push(cursor)
   }
 

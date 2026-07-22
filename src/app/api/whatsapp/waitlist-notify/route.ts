@@ -26,7 +26,7 @@ function formatDate(fecha: string): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const { fecha, hora, clinicId, tipo: slotTipo } = await req.json()
+    const { fecha, hora, clinicId, tipo: slotTipo, medicoId: slotMedicoId } = await req.json()
     if (!fecha || !hora || !clinicId) {
       return NextResponse.json({ error: 'fecha, hora y clinicId requeridos' }, { status: 400 })
     }
@@ -125,6 +125,9 @@ export async function POST(req: NextRequest) {
             tipo: entry.tipo || 'seguimiento',
             waitlistId: entry.id,
             pacienteId: entry.pacienteId || '',
+            // medicoId del hueco liberado: sin esto el bot agendaba con el primer
+            // doctor activo, no con el médico al que pertenecía el hueco.
+            medicoId: slotMedicoId || '',
           },
           lastMessageAt: new Date().toISOString(),
           createdAt: new Date().toISOString(),
@@ -169,6 +172,7 @@ export async function POST(req: NextRequest) {
               tipo: entry.tipo || 'seguimiento',
               waitlistId: entry.id,
               pacienteId: entry.pacienteId || '',
+              medicoId: slotMedicoId || '',
             },
           },
         }, Date.now())
