@@ -9,6 +9,7 @@ import {
   type MetodoPago, type ConceptoCobro,
 } from '@/lib/cobros'
 import { updateAppointment } from '@/lib/firestore'
+import { auth } from '@/lib/firebase'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { DollarSign, HeartHandshake } from 'lucide-react'
 import { Modal, Button } from '@/components/ui'
@@ -51,7 +52,11 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
     if (!m) { toast('Escribe el motivo de la cortesía', 'error'); return }
     setGuardando(true)
     try {
-      await exentarCobro(clinicId, prefill.citaId, m, creadoPor, prefill.medicoNombre || '')
+      // Quien AUTORIZA la cortesía es el operador logueado, NO el médico de la cita
+      // (antes se guardaba prefill.medicoNombre → bitácora anti-fraude mal atribuida
+      // cuando la asistente exentaba). El uid (creadoPor) ya era correcto.
+      const autorNombre = auth.currentUser?.displayName || auth.currentUser?.email || ''
+      await exentarCobro(clinicId, prefill.citaId, m, creadoPor, autorNombre)
       // Bitácora inmutable (best-effort): quién autorizó no cobrar y por qué.
       logAudit({
         evento: 'cobro_exento', clinicId, patientId: prefill.patientId,
@@ -113,9 +118,17 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
            * avanzado (finalizada, pagada) si ya lo tenía.
            */
           const avanzados = ['atendida', 'finalizada', 'pagada']
+          /**
+           * Un ABONO (pago parcial) o un REEMBOLSO NO saldan la cita. `registrarCobro`
+           * a propósito NO reserva `cita.cobroId` en un abono, para que la cita SIGA
+           * "por cobrar" por el saldo restante. Si aquí escribiéramos `cobroId`, el
+           * botón "Cobrar" desaparecería (se oculta con `cobroId`) y el saldo quedaría
+           * imposible de cobrar — ingreso perdido en silencio y corte de caja que sigue
+           * marcándola pendiente. Solo un cobro que SALDA cierra la cita.
+           */
+          const salda = concepto !== 'abono' && concepto !== 'reembolso'
           await updateAppointment(clinicId, prefill.citaId, {
-            cobroId: id,
-            cobradoEn: new Date().toISOString(),
+            ...(salda ? { cobroId: id, cobradoEn: new Date().toISOString() } : {}),
             ...(prefill.estadoActual && avanzados.includes(prefill.estadoActual) ? {} : { estado: 'atendida' as const }),
           })
         } catch {

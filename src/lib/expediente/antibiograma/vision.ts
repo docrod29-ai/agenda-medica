@@ -168,9 +168,14 @@ export function sitioDesdeMuestra(muestra?: string): SitioInfeccion | undefined 
 export function pruebasDesdeReporte(reportadas?: { nombre: string; resultado: string }[]): PruebasConfirmatorias {
   const out: PruebasConfirmatorias = {}
   if (!reportadas?.length) return out
-  const esPos = (v: string) => /posit|detect|\+|present/i.test(v) && !/no detect|negat/i.test(v)
-  const esNeg = (v: string) => /negat|no detect|ausen|\bneg\b|-$/i.test(v)
-  const val = (v: string): ResultadoPrueba | undefined => (esPos(v) ? 'pos' : esNeg(v) ? 'neg' : undefined)
+  // SEGURIDAD DEL PACIENTE: el NEGATIVO siempre gana y debe atrapar el fraseo real
+  // del laboratorio en México — "No se detecta", "No detectó", "No detectada",
+  // "No productor". Antes el guard era solo /no detect/ (exigía "no" pegado a
+  // "detect"), así que "No se detecta carbapenemasa" casaba /detect/ → se marcaba
+  // POSITIVO e inventaba una carbapenemasa/BLEE/MRSA a partir de un reporte NEGATIVO.
+  const esNeg = (v: string) => /negativ|ausen|\bneg\b|-\s*$|no\s+(?:se\s+)?(?:detect|observ|aisl|reactiv|product|evidenci)/i.test(v)
+  const esPos = (v: string) => !esNeg(v) && /positiv|detectad|detecta\b|\bdetecto\b|\+|present|reactiv|product/i.test(v)
+  const val = (v: string): ResultadoPrueba | undefined => (esNeg(v) ? 'neg' : esPos(v) ? 'pos' : undefined)
 
   for (const p of reportadas) {
     const n = (p.nombre || '').toLowerCase()

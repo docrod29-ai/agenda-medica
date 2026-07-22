@@ -30,6 +30,8 @@ export default function MembresiasPage() {
   const [loading, setLoading] = useState(true)
   const [modalPlan, setModalPlan] = useState(false)
   const [asignar, setAsignar] = useState(false)
+  // Evita el doble cobro por doble clic / reintento: se bloquea la fila en curso.
+  const [cobrandoId, setCobrandoId] = useState<string | null>(null)
 
   const recargar = async () => {
     if (!clinicId) return
@@ -47,14 +49,16 @@ export default function MembresiasPage() {
   const worklist = useMemo(() => porCobrar(membs, hoyISO()), [membs])
 
   const cobrar = async (m: Membresia) => {
-    if (!clinicId || !user) return
+    if (!clinicId || !user || cobrandoId) return   // ya hay un cobro en curso
     const ok = await confirm(`¿Registrar el cobro de ${fmtMXN(m.precio)} de la membresía de ${m.pacienteNombre}?`, { confirmar: 'Cobrar' })
     if (!ok) return
+    setCobrandoId(m.id ?? null)
     try {
       await cobrarMembresia(clinicId, m, { metodo: 'efectivo', creadoPor: user.uid })
       toast('Cuota cobrada y ciclo avanzado', 'success')
       await recargar()
     } catch { toast('No se pudo cobrar', 'error') }
+    finally { setCobrandoId(null) }
   }
 
   if (loading) return <div style={{ padding: 40 }}><Spinner center label="Cargando membresías…" /></div>
@@ -88,7 +92,9 @@ export default function MembresiasPage() {
                   {w.vencida ? `vencida ${-w.diasRestantes}d` : `en ${w.diasRestantes}d`}
                 </span>
                 <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: 14 }}>{fmtMXN(w.membresia.precio)}</div>
-                <Button size="sm" onClick={() => cobrar(w.membresia)}>Cobrar</Button>
+                <Button size="sm" onClick={() => cobrar(w.membresia)} disabled={cobrandoId === w.membresia.id}>
+                  {cobrandoId === w.membresia.id ? 'Cobrando…' : 'Cobrar'}
+                </Button>
               </div>
             ))}
           </div>

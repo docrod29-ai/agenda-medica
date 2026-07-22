@@ -16,11 +16,32 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { registrarCobro } from '@/lib/cobros'
-import { sumarDiasISO, hoyISO } from '@/lib/timezone'
+import { hoyISO } from '@/lib/timezone'
 
 export type Periodicidad = 'mensual' | 'trimestral' | 'anual'
-export const PERIODICIDAD_DIAS: Record<Periodicidad, number> = { mensual: 30, trimestral: 91, anual: 365 }
+/**
+ * Se avanza por MES DE CALENDARIO, no por días fijos. Con 30 días, un plan "mensual"
+ * caía en 12.17 ciclos/año (sobrefacturación ~1.4% y la fecha de cobro se recorría
+ * mes a mes); "anual: 365" ignoraba bisiestos. En meses = cobros exactos (12/4/1 por
+ * año) y el día del mes se conserva.
+ */
+export const PERIODICIDAD_MESES: Record<Periodicidad, number> = { mensual: 1, trimestral: 3, anual: 12 }
 export const PERIODICIDAD_LABEL: Record<Periodicidad, string> = { mensual: 'Mensual', trimestral: 'Trimestral', anual: 'Anual' }
+
+/**
+ * Suma meses de calendario a una fecha ISO (YYYY-MM-DD). Si el día no existe en el
+ * mes destino (31 ene + 1 mes), cae al último día de ese mes (28/29 feb). Puro.
+ */
+export function sumarMesesISO(iso: string, meses: number): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  if (!y || !m || !d) return iso
+  const total = (m - 1) + meses
+  const ny = y + Math.floor(total / 12)
+  const nm = ((total % 12) + 12) % 12 // 0-11
+  const ultimoDia = new Date(Date.UTC(ny, nm + 1, 0)).getUTCDate()
+  const nd = Math.min(d, ultimoDia)
+  return `${ny}-${String(nm + 1).padStart(2, '0')}-${String(nd).padStart(2, '0')}`
+}
 
 export interface PlanMembresia {
   id?: string
@@ -122,7 +143,7 @@ export async function cobrarMembresia(
     creadoPor: opts.creadoPor,
   })
   const base = m.proximoCobro && m.proximoCobro >= '2000-01-01' ? m.proximoCobro : hoyISO()
-  const siguiente = sumarDiasISO(base, PERIODICIDAD_DIAS[m.periodicidad])
+  const siguiente = sumarMesesISO(base, PERIODICIDAD_MESES[m.periodicidad])
   await updateDoc(doc(MEMB_COL(clinicId), m.id!), {
     proximoCobro: siguiente,
     ultimoCobroEn: new Date().toISOString(),

@@ -116,7 +116,10 @@ export const CARBAPENEM = ['meropenem', 'imipenem', 'ertapenem', 'doripenem']
 export const IMIPENEM = ['imipenem']
 export const MEROPENEM = ['meropenem']
 export const ERTAPENEM = ['ertapenem']
-export const PIP_TAZO = ['piperacilina-tazobactam', 'piperacilina/tazobactam', 'piperacilina', 'tazobactam']
+// OJO: sin el alias suelto 'tazobactam' — como es "inhibidor", el matcher lo casaba
+// por frontera de token dentro de 'ceftolozano-tazobactam', leyendo esa fila como si
+// fuera pip-tazo (contaminaba DTR/MDR y la advertencia AmpC citaba el fármaco equivocado).
+export const PIP_TAZO = ['piperacilina-tazobactam', 'piperacilina/tazobactam', 'piperacilina']
 export const FLUOROQUINOLONA = ['ciprofloxacino', 'levofloxacino', 'moxifloxacino', 'ofloxacino', 'norfloxacino']
 export const CIPROFLOXACINO = ['ciprofloxacino', 'ofloxacino']
 export const LEVOFLOXACINO = ['levofloxacino']

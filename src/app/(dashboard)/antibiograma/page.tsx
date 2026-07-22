@@ -157,7 +157,13 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
     try {
       const resultados = filas.filter(f => f.antibiotico.trim()).map(f => {
         const cmi = parseCMI(f.cmi)
-        return { antibiotico: f.antibiotico.trim(), interpretacion: f.interpretacion, ...(cmi != null ? { cmi } : {}) }
+        // La CMI va como NÚMERO (cmi.valor), no como el objeto {valor,censurada}: el
+        // motor del servidor exige typeof === 'number' o descarta TODA la lógica de CMI
+        // (VRSA/VISA/HLAR-por-CMI/SDD) y la IA premium razonaría sobre un panel mutilado.
+        return {
+          antibiotico: f.antibiotico.trim(), interpretacion: f.interpretacion,
+          ...(cmi != null ? { cmi: cmi.valor, ...(cmi.censurada ? { cmiCensurada: cmi.censurada } : {}) } : {}),
+        }
       })
       const resp = await fetchAutenticado('/api/expediente/antibiograma-razonar', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
