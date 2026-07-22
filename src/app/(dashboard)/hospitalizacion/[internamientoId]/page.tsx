@@ -489,7 +489,7 @@ export default function EpisodioPage() {
       {tab === 'signos' && (<>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
           <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Registro seriado de signos vitales.</div>
-          {puedeEnfermeria && !egresado && <Button size="sm" icon={<Plus size={14} />} onClick={() => setModalSignos(true)}>Registrar signos</Button>}
+          {puedeEnfermeria && !egresado && <Button size="sm" icon={<Plus size={14} />} onClick={() => { setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'alerta', oxigeno: false }); setModalSignos(true) }}>Registrar signos</Button>}
         </div>
         {signos.length === 0 ? (
           <div style={{ fontSize: 13, color: 'var(--text3)', padding: 16, textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 12 }}>Sin registros de signos vitales.</div>

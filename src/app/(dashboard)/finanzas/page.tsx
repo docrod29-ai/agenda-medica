@@ -181,8 +181,14 @@ export default function FinanzasPage() {
 
   const recargar = async () => {
     if (!clinicId) return
-    const c = await listarCobros(clinicId, desde, hasta)
+    // Recarga TAMBIÉN los cancelados: al anular, la tarjeta roja "Cobros anulados"
+    // se poblaba solo en el useEffect inicial y quedaba rezagada de la acción.
+    const [c, conCancelados] = await Promise.all([
+      listarCobros(clinicId, desde, hasta),
+      listarCobros(clinicId, desde, hasta, true),
+    ])
     setCobros(c)
+    setCancelados(conCancelados.filter(x => x.cancelado))
   }
 
   // Desglose Efectivo vs Transferencia (lo que el médico más consulta)

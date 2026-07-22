@@ -143,6 +143,13 @@ export default function CitasPage() {
     return { total: day.length, conf, pend, porCobrar }
   }, [appointments, selectedDate, medicoFiltro])
 
+  // Si el filtro está en "por-cobrar" y ya no queda ninguno (se cobró el último), el
+  // chip desaparece pero el filtro se quedaba atascado mostrando "sin citas". Se
+  // regresa a "todas" para no dejar la lista vacía con citas que sí existen ese día.
+  useEffect(() => {
+    if (statusFilter === 'por-cobrar' && daySummary.porCobrar === 0) setStatusFilter('todas')
+  }, [statusFilter, daySummary.porCobrar])
+
   const dateLabel = useMemo(() => {
     const d = new Date(selectedDate + 'T12:00')
     const today = todayStr()

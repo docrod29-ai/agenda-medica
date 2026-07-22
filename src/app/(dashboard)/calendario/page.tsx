@@ -354,7 +354,11 @@ function MonthView({ date, appointments, onDayClick, onApptClick, loading }: {
           if (!d) return <div key={i} style={{ borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)', background: 'var(--bg)', opacity: 0.3 }} />
           const ds = fechaISOLocal(d)
           const isToday = ds === today
+          // Ordenado por hora ANTES del slice(0,3): sin esto, el orden del snapshot
+          // (no garantizado cronológico) podía ocultar la cita más temprana del día
+          // en la vista previa del mes.
           const dayAppts = appointments.filter(a => a.fechaHora.startsWith(ds))
+            .sort((a, b) => a.fechaHora.localeCompare(b.fechaHora))
           return (
             <div
               key={i}
