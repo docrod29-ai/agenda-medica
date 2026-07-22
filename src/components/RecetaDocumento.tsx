@@ -247,7 +247,23 @@ export function RecetaDocumento({ data, config, recetaConfig, containerId = 'rec
         }
       }
     }
-    return { ...recetaConfig, disenoWidthMm: w, disenoHeightMm: h, disenoMargenes: margenes }
+    /**
+     * CLAMP FINAL — el área de contenido NUNCA puede colapsar.
+     *
+     * El cuerpo se dibuja en un recuadro absoluto `top:Xmm … bottom:Ymm` dentro de
+     * una hoja con `overflow:hidden`. Si los márgenes (calibrados A MANO, o el default
+     * 35/30) suman MÁS que la altura real `h` —muy común con un membrete APAISADO,
+     * donde `h = w / aspecto` sale baja— el recuadro se invierte y los MEDICAMENTOS
+     * desaparecen sin aviso. La protección MIN_CONTENIDO de arriba solo cubría el
+     * caso auto; aquí se aplica a TODOS (incluido el calibrado a mano y el default),
+     * y a los mismos márgenes que usa la paginación → render y conteo coinciden.
+     */
+    const MIN_CONTENIDO_MM = 22
+    const baseM = margenes ?? { top: 35, right: 12, bottom: 30, left: 12 }
+    const bottomC = Math.min(baseM.bottom, Math.max(0, h - MIN_CONTENIDO_MM))
+    const topC = Math.min(baseM.top, Math.max(0, h - bottomC - MIN_CONTENIDO_MM))
+    const margenesSeguros = { ...baseM, top: topC, bottom: bottomC }
+    return { ...recetaConfig, disenoWidthMm: w, disenoHeightMm: h, disenoMargenes: margenesSeguros }
   }, [custom, recetaConfig, imgAspect])
 
   const paper = paperEfectivo(cfg)
