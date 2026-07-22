@@ -200,8 +200,22 @@ export function RecetaDocumento({ data, config, recetaConfig, containerId = 'rec
   // caben, la paginación reparte en varias hojas (cada una repite el membrete).
   const cfg: RecetaConfig = useMemo(() => {
     if (!custom) return recetaConfig
-    const w = recetaConfig.disenoWidthMm ?? 140
-    const h = imgAspect ? Math.max(60, Math.round(w / imgAspect)) : (recetaConfig.disenoHeightMm ?? 190)
+    /**
+     * TAMAÑO DE HOJA = el del papel configurado, ORIENTADO según el membrete.
+     *
+     * Antes se fijaba el ancho en 140 mm y el alto salía del aspecto de la imagen. Un
+     * membrete APAISADO (media carta horizontal, 215×140) tiene aspecto ~1.54, así que
+     * el alto salía 140/1.54 ≈ 90 mm: la hoja quedaba achatada, el área de medicamentos
+     * mínima, y por eso se partía en 4 hojas / se encimaba el QR. Ahora la hoja toma las
+     * medidas reales del papel (media carta 140×215) puestas a lo largo o a lo alto según
+     * si el membrete es apaisado o vertical; la imagen la llena con object-fit:contain.
+     */
+    const pp = PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta']
+    const corto = Math.min(pp.widthMm, pp.heightMm)   // 140
+    const largo = Math.max(pp.widthMm, pp.heightMm)    // 215
+    const apaisado = imgAspect != null ? imgAspect > 1 : false
+    const w = apaisado ? largo : corto
+    const h = apaisado ? corto : largo
     // Área de MEDICAMENTOS automática: debajo del campo más bajo (nombre/edad/fecha)
     // y con un margen inferior sano para no tapar el pie. Así el médico SOLO coloca
     // los campos y los medicamentos se acomodan solos — nada de calibrar mm.
@@ -218,8 +232,13 @@ export function RecetaDocumento({ data, config, recetaConfig, containerId = 'rec
      * "solo coloca los campos y los medicamentos se acomodan solos". Pero es un
      * VALOR POR DEFECTO: si el médico calibró los márgenes a mano, ganan los suyos.
      */
-    const calibradoAMano = !!recetaConfig.disenoMargenes
-    let margenes = recetaConfig.disenoMargenes
+    // Se respetan los márgenes calibrados A MANO SOLO si de verdad caben en la hoja
+    // (dejan ≥ 40 mm de contenido). Una calibración vieja hecha cuando la hoja se
+    // detectaba con otro alto puede tener un margen superior enorme (que achataba todo);
+    // en ese caso se descarta y se recalcula desde los campos.
+    const hm = recetaConfig.disenoMargenes
+    const calibradoAMano = !!hm && (hm.top + hm.bottom) < h - 40
+    let margenes = calibradoAMano ? hm : undefined
     const c = recetaConfig.disenoCampos
     if (c && !calibradoAMano) {
       const ys = (['nombre', 'edad', 'sexo', 'fecha', 'folio'] as const)
