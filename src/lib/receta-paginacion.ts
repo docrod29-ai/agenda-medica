@@ -264,12 +264,7 @@ export function paginarParaDocumento(opts: {
   const anchoCrudo = opts.paperWidthMm - opts.margenes.left - opts.margenes.right
   const altoCrudo = opts.paperHeightMm - opts.margenes.top - opts.margenes.bottom
   const areaAnchoMm = Math.max(40, anchoCrudo)
-  // Piso BAJO en el alto: los márgenes que llegan aquí YA vienen acotados por el
-  // render (≥ MIN_CONTENIDO), así que `altoCrudo` es el área REAL. Con el piso de 40
-  // la paginación creía que cabían más medicamentos de los que el recuadro real
-  // aguanta y estos se desbordaban sobre el QR/firma en un membrete corto. Con 20 se
-  // reparte lo que de verdad cabe → 2 por hoja (repitiendo el membrete) sin encimarse.
-  const areaAltoMm = Math.max(20, altoCrudo)
+  const areaAltoMm = Math.max(40, altoCrudo)
   const estudios = opts.estudios ?? []
   return paginarReceta({
     medicamentos: opts.medicamentos ?? [],

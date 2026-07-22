@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v557'  // FIX RECETA (cont.): tras hacer visibles los medicamentos (v556), la PAGINACION seguia usando un piso artificial de 40mm mientras el recuadro real era ~22mm, asi que metia los 4 medicamentos en una hoja y se DESBORDABAN sobre el QR/firma en membrete corto. Ahora el piso del alto baja a 20mm: como los margenes ya vienen acotados por el render, la paginacion usa el area REAL y reparte lo que de verdad cabe (2 por hoja, repitiendo el membrete) sin encimarse con el QR. v556: FIX RECETA medicamentos
+const CACHE = 'nexusmed-v558'  // REVERT del piso de paginacion (v557 se paso: repartia demasiado, ~8 hojas para 4 medicamentos). Vuelve al estado v556: medicamentos VISIBLES (clamp de margenes) sin explosion. El empalme con el QR en el membrete corto del Dr es por su calibracion vieja (margen superior ~100mm sobre hoja de ~87mm); se resuelve recalibrando o con un fix de reserva-de-firma pendiente de verificar en vivo.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).
