@@ -68,8 +68,18 @@ service cloud.firestore {
      */
     function clinicaPuedeEscribir(clinicId) {
       let c = get(/databases/$(database)/documents/clinics/$(clinicId)).data;
+      let status = c.get('status', 'active');
+      // Paywall del servidor: una PRUEBA vencida (status 'trial') deja de escribir tras
+      // 1 día de gracia. Solo aplica a 'trial' — quien PAGA o tiene Stripe-trialing
+      // queda en status 'active' (el webhook mapea trialing→active), así que NUNCA se
+      // bloquea a un cliente al día. FALLA-ABIERTO: sin `trialEndsAtMs` (clínicas
+      // viejas) no se bloquea; atrapar a una legítima por un campo ausente es peor.
+      // El reloj se compara en epoch-ms (trialEndsAtMs) porque las reglas no parsean ISO.
+      let trialMs = c.get('trialEndsAtMs', 0);
+      let pruebaVencida = status == 'trial' && trialMs > 0
+        && (trialMs + 86400000) < request.time.toMillis();   // +1 día de gracia
       return c.get('paseLibre', false) == true
-        || !(c.get('status', 'active') in ['cancelled', 'canceled', 'suspended']);
+        || (!(status in ['cancelled', 'canceled', 'suspended']) && !pruebaVencida);
     }
 
     // Clinic metadata (root)
@@ -82,11 +92,18 @@ service cloud.firestore {
       // activándose sin pasar por Stripe (bypass de paywall/entitlements). Se exige
       // ser el dueño y se PROHÍBEN los campos de facturación/entitlement (solo los
       // asigna el servidor), igual que ya hace el `update`.
+      // El alta legítima pasa por Admin SDK (ignora estas reglas). Este create SOLO lo
+      // usaría el SDK cliente: se exige que arranque como PRUEBA con un reloj real y
+      // ACOTADO (≤15 días), para cerrar el hueco de crearse una clínica sin reloj de
+      // prueba que quedaba escribible para siempre (status ausente → 'active').
       allow create: if isAuth()
         && request.resource.data.get('ownerId', '') == request.auth.uid
         && request.resource.data.get('paseLibre', false) == false
+        && request.resource.data.get('status', '') == 'trial'
+        && request.resource.data.get('trialEndsAtMs', 0) > 0
+        && request.resource.data.get('trialEndsAtMs', 0) <= request.time.toMillis() + 15 * 86400000
         && !request.resource.data.keys().hasAny(
-             ['modulos', 'paqueteId', 'status', 'plan', 'stripeCustomerId', 'stripeSubscriptionId', 'trialEndsAt']
+             ['modulos', 'paqueteId', 'stripeCustomerId', 'stripeSubscriptionId']
            );
       // El admin de la clínica puede editar metadatos del doc raíz, PERO NUNCA los
       // campos de FACTURACIÓN/ENTITLEMENTS (plan, estado, prueba, Stripe, pase

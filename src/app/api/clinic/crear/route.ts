@@ -44,7 +44,10 @@ export async function POST(req: NextRequest) {
 
   const uid = acceso.uid
   const ahora = new Date().toISOString()
-  const finPrueba = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+  // Fin de prueba en DOS formas: ISO (lo lee la UI) y epoch-ms (lo compara la regla
+  // Firestore, que no sabe parsear ISO). El paywall del servidor usa trialEndsAtMs.
+  const finPruebaMs = Date.now() + 14 * 24 * 60 * 60 * 1000
+  const finPrueba = new Date(finPruebaMs).toISOString()
 
   try {
     const clinicId = await adminDb.runTransaction(async (tx) => {
@@ -63,7 +66,7 @@ export async function POST(req: NextRequest) {
       tx.set(clinicaRef, {
         nombreClinica, nombreMedico,
         plan: 'trial', status: 'trial', ownerId: uid,
-        trialEndsAt: finPrueba, createdAt: ahora, updatedAt: ahora,
+        trialEndsAt: finPrueba, trialEndsAtMs: finPruebaMs, createdAt: ahora, updatedAt: ahora,
       })
       tx.set(miembroRef, { clinicId: clinicaRef.id, role: 'admin', createdAt: ahora })
       tx.set(clinicaRef.collection('config').doc('main'), {

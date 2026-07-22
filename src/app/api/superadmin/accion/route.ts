@@ -46,7 +46,10 @@ export async function POST(req: NextRequest) {
       break
     case 'quitar_pase_libre':
       // Da 14 días de gracia (con fecha), si no el gate la bloquea al instante.
-      patch = { plan: 'trial', status: 'trial', paseLibre: false, paseLibreMotivo: '', paseLibrePor: '', trialEndsAt: new Date(Date.now() + 14 * 86400000).toISOString() }
+      {
+        const finMs = Date.now() + 14 * 86400000
+        patch = { plan: 'trial', status: 'trial', paseLibre: false, paseLibreMotivo: '', paseLibrePor: '', trialEndsAt: new Date(finMs).toISOString(), trialEndsAtMs: finMs }
+      }
       break
     case 'suspender':
       patch = { status: 'suspended' }
@@ -60,11 +63,15 @@ export async function POST(req: NextRequest) {
       const d = snap.exists ? (snap.data() as Any) : {}
       const actual = String(d.trialEndsAt ?? '')
       const base = actual && new Date(actual).getTime() > Date.now() ? new Date(actual).getTime() : Date.now()
-      const nuevaFecha = new Date(base + dias * 86400000).toISOString()
+      const nuevaMs = base + dias * 86400000
+      const nuevaFecha = new Date(nuevaMs).toISOString()
       // NO degradar una clínica ACTIVA / de PAGO / con pase libre: solo empujar la
       // fecha. Poner status/plan='trial' aquí bloqueaba a clientes que ya pagaban.
       const esActivaOPago = d.status === 'active' || d.paseLibre === true || d.plan === 'cortesia'
-      patch = esActivaOPago ? { trialEndsAt: nuevaFecha } : { status: 'trial', plan: 'trial', trialEndsAt: nuevaFecha }
+      // trialEndsAtMs (número) en paralelo: es lo que compara la regla del paywall.
+      patch = esActivaOPago
+        ? { trialEndsAt: nuevaFecha, trialEndsAtMs: nuevaMs }
+        : { status: 'trial', plan: 'trial', trialEndsAt: nuevaFecha, trialEndsAtMs: nuevaMs }
       break
     }
     case 'guardar_notas':
