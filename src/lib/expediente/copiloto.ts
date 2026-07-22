@@ -81,18 +81,25 @@ export function diastolica(ta?: string): number | undefined {
  * también debe saltar. Comparar solo por nombre exacto dejaría pasar justo el
  * caso peligroso.
  */
-const FAMILIAS_ALERGIA: { familia: string; dispara: string[]; miembros: string[] }[] = [
+const FAMILIAS_ALERGIA: { familia: string; dispara: string[]; miembros: string[]; precaucion?: string[] }[] = [
   {
     familia: 'betalactámicos',
     dispara: ['penicilina', 'amoxicilina', 'ampicilina', 'betalactam', 'cefalosporina', 'peni'],
     miembros: ['penicilina', 'amoxicilina', 'ampicilina', 'dicloxacilina', 'piperacilina',
       'cefalexina', 'cefuroxima', 'ceftriaxona', 'cefotaxima', 'cefepime', 'cefazolina',
-      'cefixima', 'ceftazidima', 'meropenem', 'imipenem', 'ertapenem'],
+      'cefixima', 'ceftazidima'],
+    // Carbapenémicos: reactividad cruzada REAL con penicilina ~1% (dependiente de
+    // cadena lateral). Se avisa como PRECAUCIÓN, no como choque crítico, para no
+    // empujar a evitar el tratamiento de 1ª línea (p. ej. meropenem en meningitis).
+    precaucion: ['meropenem', 'imipenem', 'ertapenem', 'doripenem'],
   },
   {
     familia: 'sulfas',
     dispara: ['sulfa', 'sulfonamida', 'trimetoprim', 'tmp', 'bactrim'],
-    miembros: ['trimetoprim', 'sulfametoxazol', 'sulfadiazina', 'furosemida', 'hidroclorotiazida'],
+    // SIN furosemida/hidroclorotiazida: la evidencia no sustenta reactividad cruzada
+    // relevante entre sulfonamidas antibióticas y no-antibióticas (diuréticos). Marcarlas
+    // podía llevar a retirar un diurético necesario. (El validador de impresión ya las excluía.)
+    miembros: ['trimetoprim', 'sulfametoxazol', 'sulfadiazina'],
   },
   {
     familia: 'antiinflamatorios no esteroideos',
@@ -135,14 +142,28 @@ function alergiaVsReceta(e: EntradaCopiloto): Sugerencia[] {
       const nm = norm(m.nombre ?? '')
       if (!nm) continue
       const choca = fam.miembros.find(x => nm.includes(x))
-      if (!choca) continue
-      out.push({
-        id: `alergia:${fam.familia}:${choca}`,
-        nivel: 'critico',
-        titulo: `${m.nombre} choca con una alergia registrada`,
-        detalle: `El paciente tiene registrada alergia a ${fam.familia}, y ${m.nombre} pertenece a esa familia. Confirma la reacción previa antes de recetarlo o cambia de familia.`,
-        textoNota: `Se identificó que ${m.nombre} pertenece a la familia de ${fam.familia}, a la que el paciente refiere alergia. Se verificó con el paciente antes de prescribir.`,
-      })
+      if (choca) {
+        out.push({
+          id: `alergia:${fam.familia}:${choca}`,
+          nivel: 'critico',
+          titulo: `${m.nombre} choca con una alergia registrada`,
+          detalle: `El paciente tiene registrada alergia a ${fam.familia}, y ${m.nombre} pertenece a esa familia. Confirma la reacción previa antes de recetarlo o cambia de familia.`,
+          textoNota: `Se identificó que ${m.nombre} pertenece a la familia de ${fam.familia}, a la que el paciente refiere alergia. Se verificó con el paciente antes de prescribir.`,
+        })
+        continue
+      }
+      // Reactividad cruzada BAJA (p. ej. carbapenémicos ante alergia a penicilina, ~1%):
+      // aviso de PRECAUCIÓN, no choque crítico, para no descartar 1ª línea de golpe.
+      const precaucion = fam.precaucion?.find(x => nm.includes(x))
+      if (precaucion) {
+        out.push({
+          id: `alergia:precaucion:${fam.familia}:${precaucion}`,
+          nivel: 'accion',
+          titulo: `${m.nombre}: precaución por alergia a ${fam.familia}`,
+          detalle: `${m.nombre} tiene reactividad cruzada BAJA con ${fam.familia} (≈1%, según la cadena lateral). No está contraindicado: valora la gravedad de la reacción previa; si fue leve/no-anafiláctica suele poder usarse con vigilancia.`,
+          textoNota: `${m.nombre}: reactividad cruzada baja con la alergia a ${fam.familia} referida. Se valoró el antecedente y se decidió su uso con vigilancia.`,
+        })
+      }
     }
   }
   return out
@@ -243,29 +264,46 @@ function riesgoGestacional(e: EntradaCopiloto): Sugerencia[] {
   const esMujer = !!e.sexo && /^f/i.test(e.sexo)
   const edad = e.edad
   if (!esMujer || edad == null || edad < 12 || edad > 50) return []
+  // ¿El Dx/nota indican embarazo CONFIRMADO? Solo entonces se avisa de los
+  // teratógenos categoría 'evitar' (estatinas/tetraciclinas/quinolonas/AINE): sin
+  // esto se metería ruido en toda mujer en edad fértil. Los 'contraindicado' sí
+  // avisan siempre (el riesgo de un embarazo no detectado pesa más).
+  const embarazoConfirmado = (e.diagnosticos ?? []).some(d =>
+    /embaraz|gestaci|gr[aá]vid|obst[eé]tric|prenatal|puerper/i.test(d.descripcion ?? ''))
+  const coincide = (x: { farmaco: string; sinonimos?: string[] }, nm: string) =>
+    (x.sinonimos ?? []).some(s => nm.includes(norm(s))) ||
+    nm.includes(norm(x.farmaco)) ||
+    norm(x.farmaco).split(/[ ,]/).some(w => w.length > 5 && nm.includes(w))
+
   const meds = e.medicamentos ?? []
   const out: Sugerencia[] = []
   for (const m of meds) {
     const nm = norm(m.nombre ?? '')
     if (!nm) continue
     const g = EMBARAZO_LACTANCIA.find(x =>
-      x.embarazo === 'contraindicado' &&
-      // Sinónimos (principios activos) PRIMERO: el nombre de clase ('Inhibidores de
-      // la enzima…') nunca casa con "enalapril"/"losartan"; sin esto, un IECA/ARA-II
-      // o un anticoagulante directo en embarazo NO disparaba la alerta crítica.
-      ((x.sinonimos ?? []).some(s => nm.includes(norm(s))) ||
-       nm.includes(norm(x.farmaco)) ||
-       norm(x.farmaco).split(/[ ,]/).some(w => w.length > 5 && nm.includes(w))))
+      (x.embarazo === 'contraindicado' || (x.embarazo === 'evitar' && embarazoConfirmado)) &&
+      coincide(x, nm))
     if (!g) continue
-    out.push({
-      id: `gesta:${m.nombre}`,
-      nivel: 'critico',
-      titulo: `${m.nombre} está contraindicado en el embarazo`,
-      // Correcto en ambos casos (el motor aún no sabe con certeza si hay embarazo):
-      // si está embarazada → suspender; si no → descartar antes de prescribir.
-      detalle: `${g.motivo}${g.alternativa ? ` Alternativa: ${g.alternativa}` : ''} Si la paciente está o pudiera estar embarazada, suspender de inmediato; si no, descarta embarazo antes de prescribir y comenta planeación/anticoncepción.`,
-      textoNota: `Se comentó con la paciente que ${m.nombre} está contraindicado en el embarazo. ${g.motivo}`,
-    })
+    if (g.embarazo === 'contraindicado') {
+      out.push({
+        id: `gesta:${m.nombre}`,
+        nivel: 'critico',
+        titulo: `${m.nombre} está contraindicado en el embarazo`,
+        // Correcto en ambos casos (el motor aún no sabe con certeza si hay embarazo):
+        // si está embarazada → suspender; si no → descartar antes de prescribir.
+        detalle: `${g.motivo}${g.alternativa ? ` Alternativa: ${g.alternativa}` : ''} Si la paciente está o pudiera estar embarazada, suspender de inmediato; si no, descarta embarazo antes de prescribir y comenta planeación/anticoncepción.`,
+        textoNota: `Se comentó con la paciente que ${m.nombre} está contraindicado en el embarazo. ${g.motivo}`,
+      })
+    } else {
+      // 'evitar' + embarazo confirmado: aviso de acción (cambiar), no crítico.
+      out.push({
+        id: `gesta:evitar:${m.nombre}`,
+        nivel: 'accion',
+        titulo: `${m.nombre}: evítalo en el embarazo`,
+        detalle: `La paciente cursa embarazo. ${g.motivo}${g.alternativa ? ` Alternativa: ${g.alternativa}` : ''}`,
+        textoNota: `${m.nombre} debe evitarse en el embarazo; se comentó y se valoró una alternativa. ${g.motivo}`,
+      })
+    }
   }
   return out
 }
