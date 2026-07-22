@@ -865,21 +865,29 @@ export default function ConsultaActivaPage() {
       })
 
       const nuevosDx = Array.isArray(data.diagnosticos) ? data.diagnosticos.filter((d: Diagnostico) => d.descripcion) : []
-      if (enVivo) {
-        // Fusiona por descripción: añade los que la IA detectó y respeta los del médico.
-        if (nuevosDx.length > 0) setDiagnosticos(prev => {
+      if (tipoOverride) {
+        // RE-PROYECCIÓN a otra modalidad de nota: se parte de plantilla limpia a propósito.
+        setDiagnosticos(nuevosDx)
+      } else if (nuevosDx.length > 0) {
+        // FUSIÓN: tanto el pase en vivo como "Procesar de nuevo" AÑADEN lo que la IA
+        // detectó pero NUNCA borran lo que el médico agregó a mano. Antes, reprocesar
+        // hacía setDiagnosticos(nuevosDx) y borraba en silencio el Dx con su CIE-10 que
+        // el médico había capturado (la IA nunca lo supo). Pérdida de datos clínicos.
+        setDiagnosticos(prev => {
           const vistos = new Set(prev.map(d => d.descripcion.trim().toLowerCase()))
           return [...prev, ...nuevosDx.filter((d: Diagnostico) => !vistos.has(d.descripcion.trim().toLowerCase()))]
         })
-      } else if (nuevosDx.length > 0 || tipoOverride) setDiagnosticos(nuevosDx)
+      }
 
       const nuevosMed = Array.isArray(data.medicamentos) ? data.medicamentos.filter((m: Medicamento) => m.nombre) : []
-      if (enVivo) {
-        if (nuevosMed.length > 0) setMedicamentos(prev => {
+      if (tipoOverride) {
+        setMedicamentos(nuevosMed)
+      } else if (nuevosMed.length > 0) {
+        setMedicamentos(prev => {
           const vistos = new Set(prev.map(m => m.nombre.trim().toLowerCase()))
           return [...prev, ...nuevosMed.filter((m: Medicamento) => !vistos.has(m.nombre.trim().toLowerCase()))]
         })
-      } else if (nuevosMed.length > 0 || tipoOverride) setMedicamentos(nuevosMed)
+      }
 
       if (data.signosVitales) {
         const sv = data.signosVitales
@@ -1026,9 +1034,18 @@ export default function ConsultaActivaPage() {
       })
     })
     const nuevosDx = Array.isArray(data.diagnosticos) ? data.diagnosticos.filter(d => d.descripcion) : []
-    if (nuevosDx.length > 0 || tipoOverride) setDiagnosticos(nuevosDx)
+    if (tipoOverride) setDiagnosticos(nuevosDx)   // re-proyección: plantilla limpia
+    else if (nuevosDx.length > 0) setDiagnosticos(prev => {
+      // FUSIÓN anti-pérdida: no borra lo que el médico agregó a mano mientras la IA corría.
+      const vistos = new Set(prev.map(d => d.descripcion.trim().toLowerCase()))
+      return [...prev, ...nuevosDx.filter(d => !vistos.has(d.descripcion.trim().toLowerCase()))]
+    })
     const nuevosMed = Array.isArray(data.medicamentos) ? data.medicamentos.filter(m => m.nombre) : []
-    if (nuevosMed.length > 0 || tipoOverride) setMedicamentos(nuevosMed)
+    if (tipoOverride) setMedicamentos(nuevosMed)
+    else if (nuevosMed.length > 0) setMedicamentos(prev => {
+      const vistos = new Set(prev.map(m => m.nombre.trim().toLowerCase()))
+      return [...prev, ...nuevosMed.filter(m => !vistos.has(m.nombre.trim().toLowerCase()))]
+    })
     if (data.signosVitales) {
       const sv = data.signosVitales
       setSignos(prev => ({ fc: sv.fc || prev.fc, fr: sv.fr || prev.fr, ta: sv.ta || prev.ta, temperatura: sv.temperatura || prev.temperatura, spo2: sv.spo2 || prev.spo2, peso: sv.peso || prev.peso, talla: sv.talla || prev.talla }))
@@ -1391,21 +1408,26 @@ export default function ConsultaActivaPage() {
   }, [firmada, clinicId, notaId, patientId, router, toast, confirm])
 
   // ── Autoguardado cada 30s ──────────────────────────────────────
+  // La función real se guarda en un ref que se refresca en CADA render con los
+  // valores más nuevos. El intervalo se arma UNA sola vez y lee el ref. Antes las
+  // deps (resumen, transcripción, Dx, medicamentos…) cambiaban en cada palabra del
+  // dictado, así que el setInterval(30s) se limpiaba y recreaba antes de cumplirse:
+  // dictando sin pausas, el guardado al servidor NUNCA disparaba.
+  const autoguardarRef = useRef<() => void>(() => {})
   useEffect(() => {
-    if (firmada) return
-    // La condición miraba SOLO `resumen` y las secciones. Mientras el médico
-    // DICTA —que es el flujo normal— nada de eso tiene contenido todavía: la
-    // consulta vive en la transcripción, los diagnósticos y los medicamentos.
-    // Resultado: el autoguardado al servidor NUNCA disparaba durante el dictado y
-    // la consulta existía únicamente en el respaldo del navegador. Se usa el mismo
-    // criterio de "hay contenido" que el respaldo local, que sí los miraba.
-    const hayContenido = () =>
-      !!(resumen.trim() || secciones.some(s => s.value?.trim()) ||
-         diagnosticos.length || medicamentos.length || voz.transcripcion.trim() ||
-         signosConValor(signos) || estudiosOrden.length || preop)
-    const t = setInterval(() => { if (hayContenido()) guardarBorrador(true) }, 30000)
+    autoguardarRef.current = () => {
+      if (firmada) return
+      const hayContenido =
+        !!(resumen.trim() || secciones.some(s => s.value?.trim()) ||
+           diagnosticos.length || medicamentos.length || voz.transcripcion.trim() ||
+           signosConValor(signos) || estudiosOrden.length || preop)
+      if (hayContenido) guardarBorrador(true)
+    }
+  })
+  useEffect(() => {
+    const t = setInterval(() => autoguardarRef.current(), 30000)
     return () => clearInterval(t)
-  }, [firmada, resumen, secciones, diagnosticos, medicamentos, voz.transcripcion, guardarBorrador])
+  }, [])
 
   // ── Red de seguridad LOCAL (anti-pérdida): respalda la nota en el navegador
   //    mientras escribes (instantáneo, sobrevive a crashes y a estar sin red). ──
