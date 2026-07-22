@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v559'  // FIX RECETA (raiz real): un membrete APAISADO (media carta horizontal, imagen 2200x1424 aspecto ~1.54) se dimensionaba con ancho fijo 140mm -> alto 90mm -> hoja achatada -> area de medicamentos minima -> se partia en 4 hojas y el QR se iba a la ultima. Ahora la hoja toma el tamano del papel (media carta 140x215) ORIENTADO segun el membrete (apaisado=215x140), y si los margenes guardados no caben se recalculan desde los campos. Asi caben ~6 medicamentos + QR en UNA hoja.
+const CACHE = 'nexusmed-v560'  // Receta: TOPE de 6 medicamentos por receta (peticion del Dr). El boton Agregar se deshabilita al llegar a 6 (con aviso), y agregarMed lo bloquea con toast. Si necesita mas, se hace una segunda receta.
 
 self.addEventListener('install', (event) => {
   // AUTO-ACTUALIZAR: la versión nueva toma control de inmediato (skipWaiting).

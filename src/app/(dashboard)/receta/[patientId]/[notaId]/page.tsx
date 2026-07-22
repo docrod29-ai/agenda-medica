@@ -299,7 +299,14 @@ export default function GeneradorRecetaPage() {
     }
   }
 
+  // Tope de 6 medicamentos por receta (petición del Dr): más de eso no cabe bien y la
+  // norma recomienda no saturar una receta. Si necesita más, se hace una segunda.
+  const MAX_MEDS = 6
   const agregarMed = () => {
+    if (medicamentos.length >= MAX_MEDS) {
+      toast(`Máximo ${MAX_MEDS} medicamentos por receta. Genera otra receta si necesitas más.`, 'error')
+      return
+    }
     setMedicamentos([...medicamentos, {
       nombre: '', dosis: '', via: 'oral', frecuencia: '', duracion: '',
     }])
@@ -530,8 +537,9 @@ export default function GeneradorRecetaPage() {
           {/* Medicamentos */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <label style={{ ...labelStyle, margin: 0 }}>Medicamentos</label>
-              <button onClick={agregarMed} className="btn btn-secondary btn-sm">
+              <label style={{ ...labelStyle, margin: 0 }}>Medicamentos {medicamentos.length >= MAX_MEDS && <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text3)' }}>· máx. {MAX_MEDS}</span>}</label>
+              <button onClick={agregarMed} className="btn btn-secondary btn-sm" disabled={medicamentos.length >= MAX_MEDS}
+                title={medicamentos.length >= MAX_MEDS ? `Máximo ${MAX_MEDS} medicamentos por receta` : undefined}>
                 <Plus size={12} /> Agregar
               </button>
             </div>
