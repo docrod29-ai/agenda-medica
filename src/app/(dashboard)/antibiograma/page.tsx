@@ -482,6 +482,7 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
     : { bg: 'rgba(148,163,184,.15)', fg: 'var(--text3)' }
 
   const conflictos = res.resistenciaIntrinseca.filter(n => n.tipo === 'conflicto')
+  const alertasClinicas = res.resistenciaIntrinseca.filter(n => n.tipo === 'alerta_clinica')
 
   return (
     <div style={{ marginTop: 26, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -498,6 +499,19 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {conflictos.map((n, i) => (
               <div key={i} style={{ ...box, borderColor: 'rgba(245,158,11,.4)', background: 'rgba(245,158,11,.08)', color: 'var(--amber)' }}>
+                <span><b>{n.antibiotico}:</b> {n.mensaje}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {alertasClinicas.length > 0 && (
+        <div>
+          <SecTitle icon={<AlertTriangle size={15} />} t="Alerta clínica — no reportar como utilizable" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {alertasClinicas.map((n, i) => (
+              <div key={i} style={{ ...box, borderColor: 'rgba(239,68,68,.4)', background: 'rgba(239,68,68,.08)', color: 'var(--red)' }}>
                 <span><b>{n.antibiotico}:</b> {n.mensaje}</span>
               </div>
             ))}
@@ -584,6 +598,18 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
           <SecTitle icon={<Microscope size={15} />} t="Interpretación de CMI (puntos de corte CLSI M100)" />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {res.categoriasCMI.map((c, i) => {
+              // NO APLICABLE: no se pinta la categoría en verde/color. Gris + motivo.
+              // Evita que una «S» se lea como utilizable fuera de su indicación validada.
+              if (c.noAplicable) {
+                return (
+                  <div key={i} style={{ ...box, color: 'var(--text3)' }}>
+                    <span>
+                      <b style={{ color: 'var(--text2)' }}>{c.antibiotico}</b> · CMI {c.cmi} µg/mL → <b style={{ color: 'var(--text3)' }}>No aplicable</b>
+                      {c.motivoNoAplicable && <span> · {c.motivoNoAplicable}</span>}
+                    </span>
+                  </div>
+                )
+              }
               const col = c.categoriaCLSI === 'S' ? '#10b981'
                 : c.categoriaCLSI === 'SDD' ? '#3b82f6'
                 : c.categoriaCLSI === 'I' ? '#f59e0b' : '#f87171'

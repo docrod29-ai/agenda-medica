@@ -94,8 +94,11 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
       cmi: x.cmi,
       categoriaCLSI: cat.categoria,
       categoriaReportada: x.interpretacion,
-      concuerda: x.interpretacion ? x.interpretacion === cat.categoria : null,
+      // Si el corte NO aplica (foco/organismo), no tiene sentido marcar discordancia.
+      concuerda: cat.noAplicable ? null : (x.interpretacion ? x.interpretacion === cat.categoria : null),
       soloUTI: cat.soloUTI,
+      noAplicable: cat.noAplicable,
+      motivoNoAplicable: cat.motivoNoAplicable,
       referencia: cat.referencia,
     })
     refs.add(cat.referencia)

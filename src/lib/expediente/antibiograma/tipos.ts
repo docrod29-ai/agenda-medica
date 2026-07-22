@@ -115,7 +115,14 @@ export interface AlertaAntibiograma {
 
 /** Conflicto/nota de resistencia intrínseca (una «S» reportada que es biológicamente imposible → error de lab). */
 export interface NotaIntrinseca {
-  tipo: 'conflicto' | 'esperado'
+  /**
+   * 'conflicto'      = «S» biológicamente imposible → sospechar error de ID/AST.
+   * 'esperado'       = R intrínseca ya reportada como R (informativo).
+   * 'alerta_clinica' = fenómeno CONOCIDO (no un error): la «S» in vitro no predice
+   *                    eficacia clínica (p. ej. TMP-SMX en Enterococcus). No se debe
+   *                    reportar como susceptible utilizable ni como error de especie.
+   */
+  tipo: 'conflicto' | 'esperado' | 'alerta_clinica'
   antibiotico: string
   mensaje: string
   referencia: string
@@ -157,6 +164,9 @@ export interface CategoriaCMI {
   concuerda: boolean | null
   /** El punto de corte aplica solo a IVU no complicada. */
   soloUTI: boolean
+  /** true si el corte NO aplica a este caso (foco no urinario o especie sin breakpoint válido). */
+  noAplicable?: boolean
+  motivoNoAplicable?: string
   referencia: string
 }
 

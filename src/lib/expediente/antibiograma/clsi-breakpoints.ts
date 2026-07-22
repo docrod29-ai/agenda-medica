@@ -354,6 +354,14 @@ export interface CategoriaCLSI {
   corte: Corte
   referencia: string
   soloUTI: boolean
+  /**
+   * true cuando el punto de corte NO aplica a este caso (foco no urinario, o
+   * fosfomicina en Enterobacterales que no sean E. coli): la categoría NO debe
+   * mostrarse como susceptible utilizable. Se prefiere perder sensibilidad a
+   * inducir un error terapéutico.
+   */
+  noAplicable?: boolean
+  motivoNoAplicable?: string
 }
 
 /** Interpreta una CMI (µg/mL) según el punto de corte CLSI del grupo/fármaco.
@@ -373,5 +381,25 @@ export function interpretarCMI(organismo: string, antibiotico: string, cmi: numb
   else if (corte.sinS) categoria = 'I'            // colistina: ≤2 = I, ≥4 = R
   else if (cmi <= corte.sMax) categoria = 'S'
   else categoria = corte.sdd ? 'SDD' : 'I'        // banda intermedia: SDD (dosis-dependiente) o I
+
+  // GATING DE FOCO/ORGANISMO para fármacos SOLO-IVU (nitrofurantoína, fosfomicina).
+  // Decisión clínica del Dr: la celda NO debe verse "S/verde" fuera de su indicación
+  // validada — un falso «susceptible» es más peligroso que un falso «no utilizable».
+  if (corte.uti) {
+    const esUrinario = sitio === 'orina'
+    const esEcoli = /escherichia|e\.?\s*coli|\bcoli\b/.test(norm(organismo))
+    let motivo = ''
+    if (!esUrinario) {
+      motivo = 'Solo aplicable en IVU. Si es urocultivo, marca el sitio «Orina»; en cualquier otro foco (sangre, hueso, abdomen, próstata…) no uses este resultado.'
+    } else if (clave === 'fosfomicina' && grupo === 'enterobacterales' && !esEcoli) {
+      // El punto de corte de fosfomicina CLSI está validado SOLO en E. coli urinaria;
+      // no se extrapola a Klebsiella/Enterobacter/Citrobacter/Serratia/Proteus/Morganella.
+      motivo = 'Fosfomicina: punto de corte CLSI validado solo en E. coli urinaria. No aplicable a esta especie (fosA cromosómica; la «S» in vitro no predice eficacia).'
+    }
+    if (motivo) {
+      return { categoria, corte, referencia: REF_TABLA[grupo], soloUTI: true, noAplicable: true, motivoNoAplicable: motivo }
+    }
+  }
+
   return { categoria, corte, referencia: REF_TABLA[grupo], soloUTI: !!corte.uti }
 }
