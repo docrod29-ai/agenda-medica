@@ -107,7 +107,9 @@ export default function PacientesPage() {
   const conAlerta = useMemo(() =>
     [...patients]
       .filter(p => (p.noShowCount ?? 0) > 0 || (p.cancelacionCount ?? 0) > 0)
-      .sort((a, b) => (b.noShowCount + b.cancelacionCount) - (a.noShowCount + a.cancelacionCount)),
+      // ?? 0 en el comparador también: sin él, un contador undefined daba NaN y el
+      // orden quedaba inestable, así que los pacientes con más faltas no subían.
+      .sort((a, b) => ((b.noShowCount ?? 0) + (b.cancelacionCount ?? 0)) - ((a.noShowCount ?? 0) + (a.cancelacionCount ?? 0))),
     [patients]
   )
 

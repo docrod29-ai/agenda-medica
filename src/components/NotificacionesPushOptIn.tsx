@@ -16,16 +16,28 @@ import { useNotificacionesCitas } from '@/hooks/useNotificacionesCitas'
 
 const DISMISS_KEY = 'agenda-medica:push-dismissed'
 
-export function NotificacionesPushOptIn() {
-  // Conecta el hook que programa avisos de citas (corre siempre, no daña)
+/**
+ * Programa los avisos de citas. Aislado en su propio componente para que el
+ * listener de citas (useAppointments, ventana de 120 días) SOLO se monte cuando
+ * el usuario ya concedió permiso de push. Antes se llamaba el hook a nivel del
+ * layout "siempre" — abría el listener en TODAS las pantallas aunque nadie hubiera
+ * aceptado notificaciones, reintroduciendo justo el gasto que useAppointments evita.
+ */
+function ProgramadorNotificaciones() {
   useNotificacionesCitas()
+  return null
+}
+
+export function NotificacionesPushOptIn() {
   const [visible, setVisible] = useState(false)
   const [solicitando, setSolicitando] = useState(false)
+  const [concedido, setConcedido] = useState(false)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (!('Notification' in window)) return
     const p = obtenerPermisoPush()
+    setConcedido(p.granted)   // solo entonces montamos el programador (y su listener)
     if (!p.default) return  // ya decidió antes
     if (localStorage.getItem(DISMISS_KEY)) return
     // Esperamos 3 segundos para no molestar al cargar
@@ -39,6 +51,7 @@ export function NotificacionesPushOptIn() {
     setSolicitando(false)
     setVisible(false)
     if (ok) {
+      setConcedido(true)
       // Notificación de bienvenida
       const { mostrarNotificacion } = await import('@/lib/push-notifications')
       mostrarNotificacion('Recordatorios activados', {
@@ -53,9 +66,13 @@ export function NotificacionesPushOptIn() {
     setVisible(false)
   }
 
-  if (!visible) return null
+  // El programador se monta apenas hay permiso (aunque el banner no se muestre);
+  // el banner solo aparece cuando corresponde pedirlo.
+  if (!visible) return concedido ? <ProgramadorNotificaciones /> : null
 
   return (
+    <>
+    {concedido && <ProgramadorNotificaciones />}
     <div style={{
       position: 'fixed', bottom: 16, right: 16, zIndex: 1000,
       maxWidth: 360, background: 'var(--s1)',
@@ -112,5 +129,6 @@ export function NotificacionesPushOptIn() {
         <X size={14} />
       </button>
     </div>
+    </>
   )
 }

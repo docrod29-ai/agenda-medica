@@ -117,6 +117,10 @@ export default function CitasPage() {
     router.replace('/citas', { scroll: false })
   }, [params, appointments, router, loading, toast])
 
+  // Índice O(1) por id: antes cada fila hacía pacientes.find() lineal → O(filas ×
+  // pacientes) en cada tecla del buscador y cada toggle de menú (jank con miles de pacientes).
+  const patientById = useMemo(() => new Map(pacientes.map(p => [p.id, p])), [pacientes])
+
   const filtered = useMemo(() => {
     return appointments.filter(a => {
       if (a.fechaHora.slice(0, 10) !== selectedDate) return false
@@ -382,7 +386,7 @@ export default function CitasPage() {
               <AppointmentRowFull
                 onConsulta={pid => router.push(`/consulta/${pid}`)}
                 appt={appt}
-                paciente={pacientes.find(p => p.id === appt.pacienteId) ?? null}
+                paciente={patientById.get(appt.pacienteId) ?? null}
                 config={config}
                 isLast={i === filtered.length - 1}
                 menuOpen={menuId === appt.id}

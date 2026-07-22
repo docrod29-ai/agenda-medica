@@ -24,7 +24,7 @@ import {
 import { ESTUDIOS_LAB_RAPIDOS, SERVICIOS_HOSPITAL, type SolicitudLab, type ResultadoLab } from '@/types/hospital'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { getNotas } from '@/lib/expediente/firestore'
-import { getPatients, getDoctors } from '@/lib/firestore'
+import { getPatient, getDoctors } from '@/lib/firestore'
 import { cdsMedicamento, type AlertaCDS } from '@/lib/hospital/cds'
 import { code39Svg } from '@/lib/hospital/barcode'
 import { buscarMed } from '@/lib/hospital/medicamentos-catalogo'
@@ -115,16 +115,18 @@ export default function EpisodioPage() {
     const i = await getInternamiento(clinicId, internamientoId)
     setInter(i)
     if (i) {
-      const [todas, sgs, pacientes, labsE] = await Promise.all([
+      // getPatient (una lectura) en vez de getPatients (colección entera) solo para
+      // resolver el nombre del paciente internado — mismo anti-patrón que la consulta corrigió.
+      const [todas, sgs, pac, labsE] = await Promise.all([
         getNotas(clinicId, i.pacienteId).catch(() => [] as NotaMedica[]),
         getSignos(clinicId, internamientoId).catch(() => [] as RegistroSignos[]),
-        getPatients(clinicId).catch(() => [] as Patient[]),
+        getPatient(clinicId, i.pacienteId).catch(() => null),
         getSolicitudesLabDeEpisodio(clinicId, internamientoId).catch(() => [] as SolicitudLab[]),
       ])
       setLabs(labsE)
       setNotas(todas.filter(n => n.internamientoId === internamientoId))
       setSignos(sgs)
-      setPatient(pacientes.find(p => p.id === i.pacienteId) ?? null)
+      setPatient(pac ?? null)
       setMedsCasa((i.medicamentosCasa ?? []).join('\n'))
       setConciliadoAlVisto(i.conciliadoAl ?? null)
     }
