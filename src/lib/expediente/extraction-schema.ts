@@ -49,7 +49,7 @@ export type DiagnosticoAuditado = z.infer<typeof DiagnosticoAuditado>
 export const MedicamentoAuditado = z.object({
   nombre:               z.string(),
   dosis:                z.string().optional().default(''),
-  via:                  z.string().optional().default('oral'),
+  via:                  z.string().optional().default(''),
   frecuencia:           z.string().optional().default(''),
   duracion:             z.string().optional().default(''),
   indicacion:           z.string().optional().default(''),
@@ -66,7 +66,10 @@ export const AlergiaAuditada = z.object({
   alergeno:     z.string(),
   tipo:         z.enum(['medicamento', 'alimento', 'ambiental', 'otro']).optional().default('otro'),
   reaccion:     z.string().optional().default(''),
-  severidad:    z.enum(['leve', 'moderada', 'grave', 'anafilaxia']).optional().default('moderada'),
+  // 'desconocida' por defecto (no 'moderada'): un valor plausible-pero-falso es peor
+  // que un hueco. Si el LLM no capturó la severidad, no se debe degradar una posible
+  // anafilaxia a "moderada" en silencio; queda como desconocida para que se revise.
+  severidad:    z.enum(['leve', 'moderada', 'grave', 'anafilaxia', 'desconocida']).optional().default('desconocida'),
   confirmada:   z.boolean().optional().default(false),
   confidence:   Confianza.optional().default('baja'),
   source_quote: z.string().optional().default(''),
@@ -99,7 +102,7 @@ export const RespuestaExtraccion = z.object({
   medicamentos: z.array(z.object({
     nombre:      z.string(),
     dosis:       z.string().optional().default(''),
-    via:         z.string().optional().default('oral'),
+    via:         z.string().optional().default(''),
     frecuencia:  z.string().optional().default(''),
     duracion:    z.string().optional().default(''),
     indicacion:  z.string().optional().default(''),
@@ -108,7 +111,7 @@ export const RespuestaExtraccion = z.object({
     alergeno:   z.string(),
     tipo:       z.string().optional().default('medicamento'),
     reaccion:   z.string().optional().default(''),
-    severidad:  z.string().optional().default('moderada'),
+    severidad:  z.string().optional().default('desconocida'),
     confirmada: z.boolean().optional().default(false),
   })).optional().default([]),
   signosVitales: z.object({

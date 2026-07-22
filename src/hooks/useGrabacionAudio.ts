@@ -400,6 +400,10 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   const chunkIdxRef = useRef<number>(0)
   const textosChunksRef = useRef<string[]>([])
   const recoveryKeyRef = useRef<string>('')
+  // Anti-pérdida: desde qué índice persistir en IndexedDB. Si ya hay audio de una
+  // transcripción que FALLÓ bajo la misma llave, los chunks nuevos se guardan
+  // DESPUÉS (no encima), para no borrar el audio que se prometió a salvo.
+  const recoveryBaseRef = useRef<number>(0)
   const streamingActivoRef = useRef<boolean>(true)
   const mimeRef = useRef<string>('')
 
@@ -492,6 +496,13 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     if (!soportado) { setError('Tu navegador no soporta grabación de audio'); setEstado('error'); return }
     streamingActivoRef.current = opts?.streaming !== false
     recoveryKeyRef.current = opts?.recoveryKey ?? ''
+    // Si ya hay chunks bajo esta llave (p. ej. audio de una transcripción que
+    // falló y NO se ha recuperado), NO los pises: continúa el índice DESPUÉS de
+    // ellos. En éxito, borrarChunks limpia todo y la próxima grabación arranca en 0.
+    recoveryBaseRef.current = 0
+    if (recoveryKeyRef.current) {
+      try { recoveryBaseRef.current = (await leerChunks(recoveryKeyRef.current)).length } catch { recoveryBaseRef.current = 0 }
+    }
     const intervaloMs = opts?.intervaloChunkMs ?? INTERVALO_CHUNK_DEFAULT_MS
 
     try {
@@ -578,7 +589,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
           setBytesGrabados(prev => prev + e.data.size)
           // Persistir en IndexedDB para crash recovery
           if (recoveryKeyRef.current) {
-            const localIdx = todosChunksRef.current.length - 1
+            const localIdx = recoveryBaseRef.current + todosChunksRef.current.length - 1
             guardarChunk(recoveryKeyRef.current, localIdx, e.data)
           }
         }

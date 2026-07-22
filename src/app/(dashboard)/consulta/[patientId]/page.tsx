@@ -733,7 +733,9 @@ export default function ConsultaActivaPage() {
       const dx = diagnosticos.map(d => d.descripcion).filter(Boolean).join('; ')
       const meds = medicamentos.map(m => m.nombre).filter(Boolean).join('; ')
       const pregunta = `Análisis clínico y plan basado en la MEJOR evidencia, a nivel subespecialista, conciso y sin relleno. Diagnóstico(s): ${dx || '—'}. Tratamiento actual: ${meds || '—'}.${resumenTexto ? ` Resumen del caso: ${resumenTexto.slice(0, 1200)}.` : ''} Evalúa si el tratamiento es el adecuado según la evidencia, señala alternativas si aplica, dosis y puntos de seguridad (interacciones/contraindicaciones). No repitas la historia clínica.`
-      const contextoPaciente = `${patient?.nombre ?? ''}, ${patient?.edad ?? '?'} años, ${patient?.sexo ?? '?'}. Alergias: ${patient?.alergias || 'no referidas'}.`
+      // Sin el NOMBRE del paciente: no aporta nada clínico y evita transferir PII a un
+      // tercero en el extranjero (minimización, igual que buildUserPrompt del prompt maestro).
+      const contextoPaciente = `${patient?.edad ?? '?'} años, ${patient?.sexo ?? '?'}. Alergias: ${patient?.alergias || 'no referidas'}.`
       const res = await fetchAutenticado('/api/consultor-evidencia', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pregunta, contextoPaciente }),

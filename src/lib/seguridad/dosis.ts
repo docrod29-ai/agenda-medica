@@ -143,15 +143,25 @@ export function revisarDosis(e: EntradaDosis): AlertaDosis[] {
  */
 export function extraerMg(texto: string): number | null {
   const t = normaliza(texto)
-  // primer número (admite coma o punto decimal) seguido opcionalmente de unidad
-  const m = t.match(/(\d+(?:[.,]\d+)?)\s*(mcg|µg|ug|mg|g|gr|gramos?)?/)
-  if (!m) return null
-  const val = parseFloat(m[1].replace(',', '.'))
-  if (!Number.isFinite(val)) return null
-  const u = m[2] || 'mg'
-  if (u.startsWith('mcg') || u === 'µg' || u === 'ug') return val / 1000
-  if (u === 'g' || u === 'gr' || u.startsWith('gramo')) return val * 1000
-  return val // mg por defecto
+  // 1) Cantidad con unidad de MASA explícita (mg/g/mcg) — la que de verdad importa.
+  const masa = t.match(/(\d+(?:[.,]\d+)?)\s*(mcg|µg|ug|mg|g|gr|gramos?)\b/)
+  if (masa) {
+    const val = parseFloat(masa[1].replace(',', '.'))
+    if (!Number.isFinite(val)) return null
+    const u = masa[2]
+    if (u.startsWith('mcg') || u === 'µg' || u === 'ug') return val / 1000
+    if (u === 'g' || u === 'gr' || u.startsWith('gramo')) return val * 1000
+    return val
+  }
+  // 2) Sin masa pero en VOLUMEN (mL/cc): NO se puede validar en mg sin la
+  //    concentración → null. Antes "5 mL" se leía como 5 mg y silenciaba la red de
+  //    seguridad (el clásico error de jarabes quedaba fuera).
+  if (/\d+(?:[.,]\d+)?\s*(ml|mililitros?|c\.?\s?c\.?|cc)\b/.test(t)) return null
+  // 3) Número sin unidad: se asume mg (comportamiento previo para "500").
+  const bare = t.match(/(\d+(?:[.,]\d+)?)/)
+  if (!bare) return null
+  const val = parseFloat(bare[1].replace(',', '.'))
+  return Number.isFinite(val) ? val : null
 }
 
 /**
@@ -166,7 +176,17 @@ export function extraerTomasDia(frecuencia: string): number | null {
   if (m) { const h = parseInt(m[1], 10); return h > 0 ? Math.round(24 / h) : null }
   m = t.match(/(\d+)\s*(veces|vez|x)\b/)
   if (m) return parseInt(m[1], 10)
-  if (/una vez|1 vez|diaria|al dia|cada 24/.test(t)) return 1
+  // Números ESCRITOS CON LETRA — muy común en dictado ("tres veces al día",
+  // "cada ocho horas"). Antes no se parseaban → tomasDia caía a 1 y el techo DIARIO
+  // no se comprobaba (ibuprofeno 800 mg "tres veces al día" = 2400 mg se leía 800).
+  const NUM: Record<string, number> = {
+    una: 1, uno: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, ocho: 8, doce: 12, veinticuatro: 24,
+  }
+  const mp = t.match(/(una?|dos|tres|cuatro|cinco|seis)\s*(veces|vez)\b/)
+  if (mp && NUM[mp[1]]) return NUM[mp[1]]
+  const mh = t.match(/cada\s*(una?|dos|tres|cuatro|seis|ocho|doce|veinticuatro)\s*(h|hrs?|horas?)/)
+  if (mh && NUM[mh[1]]) { const h = NUM[mh[1]]; return h > 0 ? Math.round(24 / h) : null }
+  if (/una vez|1 vez|diaria|al dia|cada 24|cada veinticuatro/.test(t)) return 1
   return null
 }
 

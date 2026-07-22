@@ -116,7 +116,15 @@ const FAMILIAS_ALERGIA: { familia: string; dispara: string[]; miembros: string[]
 
 function alergiaVsReceta(e: EntradaCopiloto): Sugerencia[] {
   const alergias = norm(e.alergias ?? '')
-  if (!alergias || /ning|nega|no refier|sin alerg/.test(alergias)) return []
+  // Suprime SOLO si el campo es una NEGACIÓN PURA (sin alérgeno escrito). Antes,
+  // una negación referida a OTRAS alergias ("sulfas; no refiere otras" — fraseo muy
+  // común en México) hacía match con /no refier/ y apagaba TODO el chequeo, dejando
+  // pasar la sulfa. Ahora se limpian las palabras de negación/relleno y, si queda un
+  // alérgeno real escrito, la verificación sigue viva.
+  const restante = alergias
+    .replace(/ning\w*|niega\w*|no\s+refiere|sin\s+alergias?|conocid\w*|otr\w*|previ\w*|alergi\w*|medicament\w*|aliment\w*|ambient\w*|nkda|ska|negad\w*/g, ' ')
+    .replace(/[^a-z]+/g, ' ').trim()
+  if (!alergias || !restante) return []
   const meds = e.medicamentos ?? []
   if (meds.length === 0) return []
 
