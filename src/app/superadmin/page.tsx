@@ -460,22 +460,30 @@ function PaquetesManager({ paquetes, onCambio }: { paquetes: Paquete[]; onCambio
     if (!editar || !editar.nombre.trim() || editar.modulos.length === 0) return
     setBusy(true)
     try {
-      await fetchAutenticado('/api/superadmin/paquetes', {
+      // Verifica res.ok: antes un fallo del servidor cerraba el modal como si hubiera
+      // guardado. Ahora se mantiene abierto y avisa.
+      const r = await fetchAutenticado('/api/superadmin/paquetes', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accion: editar.id ? 'editar' : 'crear', id: editar.id, paquete: editar }),
       })
+      if (!r.ok) { alert('No se pudo guardar el paquete. Reintenta.'); return }
       setEditar(null); onCambio()
-    } finally { setBusy(false) }
+    } catch { alert('No se pudo guardar el paquete (revisa tu conexión).') }
+    finally { setBusy(false) }
   }
   const borrar = async (id: string) => {
+    // Confirmación en una acción destructiva (los otros borrados de la app sí confirman).
+    if (!window.confirm('¿Eliminar este paquete? No se puede deshacer.')) return
     setBusy(true)
     try {
-      await fetchAutenticado('/api/superadmin/paquetes', {
+      const r = await fetchAutenticado('/api/superadmin/paquetes', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accion: 'borrar', id }),
       })
+      if (!r.ok) { alert('No se pudo eliminar el paquete.'); return }
       onCambio()
-    } finally { setBusy(false) }
+    } catch { alert('No se pudo eliminar el paquete (revisa tu conexión).') }
+    finally { setBusy(false) }
   }
   const toggle = (k: string) => setEditar(e => e ? { ...e, modulos: e.modulos.includes(k) ? e.modulos.filter(x => x !== k) : [...e.modulos, k] } : e)
 

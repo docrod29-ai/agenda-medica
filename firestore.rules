@@ -449,7 +449,10 @@ service cloud.firestore {
       allow update: if resource.data.used == false
         && request.resource.data.used == true
         && request.resource.data.clinicId == resource.data.clinicId;
-      allow delete: if isAuth();
+      // Solo un miembro de la clínica DUEÑA puede borrarla. Antes `if isAuth()`
+      // dejaba a cualquier usuario logueado (de otra clínica) borrar la solicitud de
+      // reseña ajena si conocía/observaba el token.
+      allow delete: if isMember(resource.data.clinicId);
     }
 
     // Invitaciones de clínica (top-level — el invitado las lee con el code)

@@ -128,9 +128,9 @@ export default function MembresiasPage() {
                 </div>
                 <span style={{ fontSize: 11, color: m.estado === 'activa' ? 'var(--teal)' : 'var(--text3)' }}>{m.estado}</span>
                 {m.estado === 'activa'
-                  ? <button onClick={() => cambiarEstadoMembresia(clinicId!, m.id!, 'pausada').then(recargar)} style={linkBtn}>Pausar</button>
+                  ? <button onClick={() => cambiarEstadoMembresia(clinicId!, m.id!, 'pausada').then(recargar).catch(() => toast('No se pudo pausar', 'error'))} style={linkBtn}>Pausar</button>
                   : m.estado === 'pausada'
-                  ? <button onClick={() => cambiarEstadoMembresia(clinicId!, m.id!, 'activa').then(recargar)} style={linkBtn}>Reactivar</button>
+                  ? <button onClick={() => cambiarEstadoMembresia(clinicId!, m.id!, 'activa').then(recargar).catch(() => toast('No se pudo reactivar', 'error'))} style={linkBtn}>Reactivar</button>
                   : null}
               </div>
             ))}
@@ -138,9 +138,17 @@ export default function MembresiasPage() {
         )}
       </Section>
 
-      {modalPlan && <ModalPlan onClose={() => setModalPlan(false)} onCrear={async (p) => { await crearPlan(clinicId!, p); toast('Plan creado', 'success'); setModalPlan(false); recargar() }} />}
+      {modalPlan && <ModalPlan onClose={() => setModalPlan(false)} onCrear={async (p) => {
+        // try/catch: sin él, un fallo (offline/permiso) dejaba el modal abierto sin
+        // aviso (unhandled rejection) y parecía que no había pasado nada.
+        try { await crearPlan(clinicId!, p); toast('Plan creado', 'success'); setModalPlan(false); recargar() }
+        catch { toast('No se pudo crear el plan', 'error') }
+      }} />}
       {asignar && <ModalAsignar planes={planes} pacientes={pacientes} onClose={() => setAsignar(false)}
-        onAsignar={async (pac, plan) => { await asignarMembresia(clinicId!, { pacienteId: pac.id!, pacienteNombre: pac.nombre, plan, creadoPor: user!.uid }); toast('Membresía asignada', 'success'); setAsignar(false); recargar() }} />}
+        onAsignar={async (pac, plan) => {
+          try { await asignarMembresia(clinicId!, { pacienteId: pac.id!, pacienteNombre: pac.nombre, plan, creadoPor: user!.uid }); toast('Membresía asignada', 'success'); setAsignar(false); recargar() }
+          catch { toast('No se pudo asignar la membresía', 'error') }
+        }} />}
     </div>
   )
 }
