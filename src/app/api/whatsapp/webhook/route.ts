@@ -41,6 +41,35 @@ async function cargarBloques(clinicId: string): Promise<TimeBlock[]> {
   } catch { return [] }
 }
 
+/**
+ * Vincula la cita del bot a un EXPEDIENTE: busca al paciente por teléfono (varios
+ * formatos, para no depender de cómo se guardó) y lo crea si no existe — igual que
+ * el booking público. Antes el bot dejaba `pacienteId: ''`: cita huérfana, no-show
+ * nunca contabilizado y el motor de riesgo ciego para ese paciente.
+ * Devuelve el id del paciente, o '' si algo falla (nunca rompe el agendado).
+ */
+async function resolverPacienteBot(clinicId: string, telefonoRaw: string, nombre: string, now: string): Promise<string> {
+  try {
+    const canonico = normalizarTelefonoWa(telefonoRaw)   // 52 + 10 dígitos
+    const diez = canonico.length >= 10 ? canonico.slice(-10) : canonico
+    // Candidatos exactos (Firestore no hace "termina en"): cubre lo que guarda el
+    // panel (10 dígitos), el booking (dígitos crudos) y la forma canónica/móvil.
+    const candidatos = Array.from(new Set(
+      [diez, canonico, `521${diez}`, telefonoRaw.replace(/\D/g, '')].filter(Boolean),
+    )).slice(0, 10)
+    const pRef = adminDb.collection('clinics').doc(clinicId).collection('patients')
+    const snap = await pRef.where('telefono', 'in', candidatos).limit(1).get()
+    if (!snap.empty) return snap.docs[0].id
+    const np = await pRef.add({
+      nombre: (nombre || '').trim(),
+      telefono: diez,   // se guarda en 10 dígitos (como el panel), para futuros matches
+      noShowCount: 0, cancelacionCount: 0,
+      createdAt: now, updatedAt: now, creadoPor: 'bot-whatsapp',
+    })
+    return np.id
+  } catch { return '' }
+}
+
 // Sin fallback público: si no está configurado, la verificación GET fallará
 // (mejor que aceptar un token por defecto que está en el repo).
 // Acepta CUALQUIERA de los dos nombres (había un desajuste: el conector usaba
@@ -535,6 +564,8 @@ export async function handleMessage(from: string, body: string, clinicId: string
       const fechaHora = `${datos.fecha} ${datos.hora}`
       const medicoNombre = doctor?.nombre || config?.nombreMedico || 'Dr.'
       const doctorId = doctor?.id
+      // Vincula al expediente (fuera de la transacción de la cita, como el booking).
+      const pacienteIdBot = await resolverPacienteBot(clinicId, from, datos.nombre, now)
 
       // Crear ATÓMICO: re-chequea conflicto dentro de la transacción → dos pacientes
       // no pueden confirmar el mismo horario a la vez (antes era un .add() directo).
@@ -564,7 +595,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
           const nref = apptsCol.doc()
           nuevoFolio = nref.id
           tx.set(nref, {
-            pacienteId: '', pacienteNombre: datos.nombre, pacienteTelefono: from,
+            pacienteId: pacienteIdBot, pacienteNombre: datos.nombre, pacienteTelefono: from,
             fechaHora, duracion, tipo: datos.tipo as AppointmentType, motivo: '',
             estado: 'solicitada', origen: 'WhatsApp', medicoNombre,
             medicoId: doctorId || '', doctorId: doctorId || '', lugar: clinicName,
@@ -671,6 +702,9 @@ export async function handleMessage(from: string, body: string, clinicId: string
       // el primer doctor activo. Antes se agendaba con el médico equivocado → la cita
       // desaparecía al filtrar por médico y tapaba el hueco a los demás.
       const medicoIdBot = datos.medicoId || doctor?.id || ''
+      // Vincula al expediente: usa el de la sesión de lista de espera si vino, y si no
+      // lo resuelve por teléfono (crea si hace falta) para no dejar la cita huérfana.
+      const pacienteIdLE = datos.pacienteId || await resolverPacienteBot(clinicId, from, datos.nombre, now)
       const apptsColLE = adminDb.collection('clinics').doc(clinicId).collection('appointments')
       const [sh, sm] = slotHora.split(':').map(Number)
       const sStart = sh * 60 + sm, sEnd = sStart + duracion
@@ -692,7 +726,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
           if (conflicto) throw new Error('CONFLICTO')
           tx.set(diaRefLE, { ultimaReserva: now }, { merge: true })
           tx.set(apptsColLE.doc(), {
-            pacienteId: datos.pacienteId || '',
+            pacienteId: pacienteIdLE,
             pacienteNombre: datos.nombre,
             pacienteTelefono: from,
             fechaHora: `${slotFecha} ${slotHora}`,

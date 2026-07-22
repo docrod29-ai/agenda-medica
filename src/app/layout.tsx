@@ -35,8 +35,16 @@ export const metadata: Metadata = {
     title: "NexusMED",
   },
   icons: {
-    icon: "/icon.svg",
-    apple: "/icon.svg",
+    // SVG para navegadores que lo soportan + PNG de respaldo (Safari/Android no
+    // pintan bien el SVG como ícono de app instalada).
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    // apple-touch DEBE ser PNG opaco: iOS no soporta SVG y con transparencia lo
+    // pinta en negro → ícono en blanco al "Agregar a inicio". Ahora sale la marca.
+    apple: "/apple-icon.png",
   },
   openGraph: {
     title: "NexusMED",
