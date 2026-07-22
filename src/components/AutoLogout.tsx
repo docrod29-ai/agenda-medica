@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { limpiarBorradoresLocales } from '@/lib/mobile/local-drafts'
+import { limpiarBorradoresLocales, limpiarAudioLocal } from '@/lib/mobile/local-drafts'
 
 /**
  * Cierre automático de sesión por inactividad (control de seguridad LFPDPPP /
@@ -44,10 +44,15 @@ export function AutoLogout() {
     window.dispatchEvent(new CustomEvent(EVENTO_GUARDAR_TODO))
     // …2º dejarle un momento, y solo entonces purgar lo local y salir.
     setTimeout(() => {
-      limpiarBorradoresLocales() // no dejar residuo clínico en dispositivo compartido
-      import('@/lib/firebase').then(({ auth }) => auth.signOut()).finally(() => {
-        window.location.href = '/login?motivo=inactividad'
-      })
+      limpiarBorradoresLocales() // localStorage + pestillo anti-resurrección
+      import('@/lib/firebase').then(async ({ auth, limpiarCacheFirestore }) => {
+        try { await auth.signOut() } finally {
+          // Grueso del PHI en disco: audio crudo + caché offline de Firestore (IndexedDB).
+          limpiarAudioLocal()
+          await limpiarCacheFirestore()
+          window.location.href = '/login?motivo=inactividad'
+        }
+      }).catch(() => { window.location.href = '/login?motivo=inactividad' })
     }, 1200)
   }, [])
 

@@ -58,6 +58,17 @@ export function clavesABorrar(claves: readonly string[]): string[] {
  * Borra los borradores clínicos locales. Segura: no lanza si no hay localStorage
  * (SSR) y solo toca claves de borrador. Devuelve cuántas borró.
  */
+/**
+ * Borra la base IndexedDB con el AUDIO crudo de las consultas (`nexusmed-recovery`)
+ * al cerrar sesión. El audio se conservaba tras una transcripción fallida (o una
+ * grabación interrumpida) y quedaba en disco de un dispositivo compartido — es PHI.
+ * Best-effort y gateada a que exista IndexedDB (SSR / navegadores viejos).
+ */
+export function limpiarAudioLocal(): void {
+  if (typeof window === 'undefined' || !window.indexedDB) return
+  try { window.indexedDB.deleteDatabase('nexusmed-recovery') } catch { /* best-effort */ }
+}
+
 export function limpiarBorradoresLocales(): number {
   sesionCerrada = true   // ← cierra la ventana a los flush tardíos del desmonte
   if (typeof window === 'undefined' || !window.localStorage) return 0

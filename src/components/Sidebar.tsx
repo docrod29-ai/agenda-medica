@@ -15,7 +15,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
 import { rutaPermitida } from '@/lib/modulos'
 import { suscribirMensajes, suscribirLectura, contarNoLeidos, type ChatMessage } from '@/lib/chat'
-import { limpiarBorradoresLocales } from '@/lib/mobile/local-drafts'
+import { limpiarBorradoresLocales, limpiarAudioLocal } from '@/lib/mobile/local-drafts'
+import { limpiarCacheFirestore } from '@/lib/firebase'
 import { EVENTO_GUARDAR_TODO } from '@/components/AutoLogout'
 
 // Cada item declara en qué modos aparece:
@@ -83,8 +84,12 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
     // médico cierra sesión con una consulta dictada sin guardar, se guarda.
     window.dispatchEvent(new CustomEvent(EVENTO_GUARDAR_TODO))
     await new Promise(r => setTimeout(r, 1200))
-    limpiarBorradoresLocales() // no dejar residuo clínico en dispositivo compartido
+    limpiarBorradoresLocales() // borradores en localStorage (+ pestillo anti-resurrección)
     await signOut(auth)
+    // Limpia el grueso del PHI en disco (dispositivo compartido): audio crudo y la
+    // caché offline de Firestore en IndexedDB. Antes solo se borraba localStorage.
+    limpiarAudioLocal()
+    await limpiarCacheFirestore()
     router.replace('/login')
   }
 
