@@ -1,5 +1,5 @@
 'use client'
-import { useEffect } from 'react'
+import { useEffect, useId } from 'react'
 import type { ReactNode } from 'react'
 import { X } from 'lucide-react'
 
@@ -28,6 +28,8 @@ export function Modal({ open, onClose, title, size = 'md', footer, closeOnOverla
     return () => document.removeEventListener('keydown', onKey)
   }, [open, onClose])
 
+  const titleId = useId()
+
   if (!open) return null
 
   /**
@@ -46,10 +48,16 @@ export function Modal({ open, onClose, title, size = 'md', footer, closeOnOverla
 
   return (
     <div className="modal-overlay" onMouseDown={cerrarSiEsElFondo}>
-      <div className={['modal', SIZE_CLASS[size]].filter(Boolean).join(' ')} onMouseDown={e => e.stopPropagation()}>
+      <div
+        className={['modal', SIZE_CLASS[size]].filter(Boolean).join(' ')}
+        onMouseDown={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
+      >
         {title && (
           <div className="modal-header">
-            <div className="t-h2">{title}</div>
+            <div className="t-h2" id={titleId}>{title}</div>
             <button className="btn btn-ghost btn-icon" onClick={onClose} aria-label="Cerrar">
               <X size={16} />
             </button>

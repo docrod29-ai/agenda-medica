@@ -7,12 +7,29 @@ import { AppointmentModal } from '@/components/AppointmentModal'
 import { DoctorFilter, useFiltroMedico, colorMedico } from '@/components/DoctorFilter'
 import { StatusBadge } from '@/components/StatusBadge'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
-import { Appointment, APPOINTMENT_TYPE_CONFIG } from '@/types'
+import { Appointment, APPOINTMENT_TYPE_CONFIG, AppointmentStatus } from '@/types'
 import { getWeekDates } from '@/lib/availability'
 import { hoyISO, fechaISOLocal } from '@/lib/timezone'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+
+/**
+ * Semántica VISUAL del estado en la rejilla del calendario.
+ *
+ * Antes las citas se coloreaban SOLO por médico: una cita cancelada, un "no
+ * asistió" y una confirmada se veían idénticas, así que el estado solo era
+ * legible abriendo la cita. Ahora el estilo del bloque refleja el estado:
+ *  - cancelada / no-asistió → tenue + texto tachado (visualmente "muerta")
+ *  - tentativas (solicitada, pendiente-*) → borde punteado
+ *  - el resto → sólido (confirmada / atendida / pagada…)
+ * La TINTE (hue) sigue siendo la del médico, útil en multi-doctor.
+ */
+function estiloEstadoCita(estado: AppointmentStatus): { opacity: number; borderStyle: 'solid' | 'dashed'; tachado: boolean } {
+  if (estado === 'cancelada' || estado === 'no-asistio') return { opacity: 0.45, borderStyle: 'dashed', tachado: true }
+  if (estado === 'solicitada' || estado === 'pendiente-confirmar' || estado === 'pendiente-datos' || estado === 'reagendada') return { opacity: 0.85, borderStyle: 'dashed', tachado: false }
+  return { opacity: 1, borderStyle: 'solid', tachado: false }
+}
 
 type View = 'semana' | 'mes' | 'dia'
 
@@ -227,20 +244,23 @@ function WeekView({ weekDates, appointments, onCellClick, onApptClick, loading }
                   const heightPct = Math.min((a.duracion / 60) * 100, 200)
                   // Multi-doctor: colorea según el médico; un solo médico → cobalto de marca
                   const color = a.medicoId ? colorMedico(a.medicoId) : '#3D5AFE'
+                  const est = estiloEstadoCita(a.estado)
                   return (
                     <div
                       key={a.id}
                       onClick={e => { e.stopPropagation(); onApptClick(a) }}
-                      title={`${a.pacienteNombre} — ${a.fechaHora.slice(11, 16)}${a.medicoNombre ? ` · ${a.medicoNombre}` : ''}`}
+                      title={`${a.pacienteNombre} — ${a.fechaHora.slice(11, 16)}${a.medicoNombre ? ` · ${a.medicoNombre}` : ''} · ${a.estado}`}
                       style={{
                         position: 'absolute', left: 2, right: 2,
                         top: `${(minOffset / 60) * 100}%`,
                         minHeight: 20, height: `${heightPct}%`,
                         background: `${color}22`,
-                        border: `1px solid ${color}66`,
-                        borderLeft: `3px solid ${color}`,
+                        border: `1px ${est.borderStyle} ${color}66`,
+                        borderLeft: `3px ${est.borderStyle} ${color}`,
                         borderRadius: 4, padding: '2px 5px',
                         fontSize: 11, color, fontWeight: 500,
+                        opacity: est.opacity,
+                        textDecoration: est.tachado ? 'line-through' : 'none',
                         overflow: 'hidden', zIndex: 2, cursor: 'pointer',
                       }}
                     >
@@ -282,24 +302,28 @@ function DayView({ date, appointments, onCellClick, onApptClick, loading }: {
               {hourStr}
             </div>
             <div style={{ flex: 1, padding: '4px 8px', display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {cellAppts.map(a => (
+              {cellAppts.map(a => {
+                const est = estiloEstadoCita(a.estado)
+                return (
                 <div
                   key={a.id}
                   onClick={e => { e.stopPropagation(); onApptClick(a) }}
                   style={{
-                    background: 'rgba(61,90,254,0.1)', border: '1px solid rgba(61,90,254,0.3)',
-                    borderLeft: '3px solid var(--teal)', borderRadius: 6, padding: '6px 10px',
-                    cursor: 'pointer',
+                    background: 'rgba(61,90,254,0.1)', border: `1px ${est.borderStyle} rgba(61,90,254,0.3)`,
+                    borderLeft: `3px ${est.borderStyle} var(--teal)`, borderRadius: 6, padding: '6px 10px',
+                    cursor: 'pointer', opacity: est.opacity,
                   }}
                 >
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
-                    {a.fechaHora.slice(11, 16)} — {a.pacienteNombre}
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', textDecoration: est.tachado ? 'line-through' : 'none' }}>
+                    <span>{a.fechaHora.slice(11, 16)} — {a.pacienteNombre}</span>
+                    <StatusBadge status={a.estado} size="sm" />
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 5 }}>
                     <TipoCitaIcon tipo={a.tipo} size={12} /> {APPOINTMENT_TYPE_CONFIG[a.tipo]?.label} · {a.duracion}min
                   </div>
                 </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )
