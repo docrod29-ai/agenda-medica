@@ -22,6 +22,13 @@
   --border:    rgba(242,239,233,0.08);
   --border2:   rgba(242,239,233,0.14);
 
+  /* Alias de superficie para páginas que usan var(--panel/--panel2):
+     sin esto caían al fallback CLARO (#fff/#f8fafc) y en modo oscuro las
+     tarjetas de /arquitectura y /operacion salían blancas sobre el canvas
+     oscuro. Mapeados a las superficies temáticas para que sigan al tema. */
+  --panel:     var(--s1);
+  --panel2:    var(--s2);
+
   /* Acento de marca: cobalto NexusMED
      (los nombres --teal se mantienen por back-compat — son ahora cobalto) */
   --nexus:        #3D5AFE;

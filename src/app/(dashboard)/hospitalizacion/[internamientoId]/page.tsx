@@ -348,6 +348,33 @@ export default function EpisodioPage() {
         </div>
       </div>
 
+      {/* Banner de ALERGIAS — visible en TODO momento del internamiento (seguridad
+          del paciente). Antes las alergias solo entraban al CDS al PRESCRIBIR; el
+          resto del equipo (enfermería que administra, quien prescribe a mano) no
+          las veía. Rojo si hay; ámbar si no hay registro (no asumir "sin alergias"). */}
+      {(() => {
+        const raw = patient?.alergias
+        const lista = Array.isArray(raw)
+          ? raw.map(a => String(a).trim()).filter(Boolean)
+          : (raw ? String(raw).split(/[,;\n]+/).map(s => s.trim()).filter(Boolean) : [])
+        const negadas = lista.length === 1 && /^(no|niega|ninguna|sin)\b/i.test(lista[0])
+        if (lista.length && !negadas) {
+          return (
+            <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(220,38,38,.45)', background: 'rgba(220,38,38,.12)', color: '#dc2626' }}>
+              <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: 13.5, fontWeight: 700 }}>ALERGIAS:</span>
+              <span style={{ fontSize: 13.5, fontWeight: 600 }}>{lista.join(' · ')}</span>
+            </div>
+          )
+        }
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '8px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text3)' }}>
+            <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: 12.5 }}>{negadas ? 'Alergias negadas por el paciente.' : 'Sin alergias registradas — verifícalo antes de prescribir.'}</span>
+          </div>
+        )
+      })()}
+
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap', borderBottom: '1px solid var(--border)' }}>
         {([['resumen', 'Resumen / Notas'], ['indicaciones', `Indicaciones · MAR${indicaciones.filter(i => i.activa).length ? ' (' + indicaciones.filter(i => i.activa).length + ')' : ''}`], ['signos', 'Signos vitales'], ['laboratorio', `Laboratorio${labs.length ? ' (' + labs.length + ')' : ''}`], ['enfermeria', 'Enfermería'], ['interconsultas', `Interconsultas${interconsultas.length ? ' (' + interconsultas.length + ')' : ''}`]] as [Tab, string][]).map(([t, label]) => (

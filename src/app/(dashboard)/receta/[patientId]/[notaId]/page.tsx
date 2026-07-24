@@ -455,9 +455,11 @@ export default function GeneradorRecetaPage() {
           {alertasAlergia.length > 0 && (
             <div style={{
               padding: '10px 14px', borderRadius: 8,
-              background: 'rgba(220,38,38,0.10)', border: '2px solid #b91c1c',
+              // Tokens de badge rojo por tema: el título #b91c1c fijo era ilegible
+              // sobre el canvas oscuro (rojo oscuro sobre fondo oscuro).
+              background: 'var(--badge-red-b, rgba(220,38,38,0.10))', border: '2px solid var(--badge-red-t, #b91c1c)',
             }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#b91c1c', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--badge-red-t, #b91c1c)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <AlertTriangle size={15} className="ds-icon" /> Alerta de alergia — revisa antes de imprimir
               </div>
               {alertasAlergia.map((a, i) => (

@@ -79,10 +79,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <Ctx.Provider value={{ toast, confirm }}>
       {children}
 
-      <div className="toast-container">
+      {/* Región viva persistente: los lectores de pantalla anuncian cada toast.
+          Los errores usan role="alert" (asertivo); el resto role="status". */}
+      <div className="toast-container" aria-live="polite" aria-atomic="false">
         {toasts.map(t => (
-          <div key={t.id} className={`toast ${t.type}`} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-            <span style={{ color: COLORS[t.type], fontWeight: 600, flexShrink: 0 }}>{ICONS[t.type]}</span>
+          <div
+            key={t.id}
+            className={`toast ${t.type}`}
+            role={t.type === 'error' ? 'alert' : 'status'}
+            style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}
+          >
+            <span style={{ color: COLORS[t.type], fontWeight: 600, flexShrink: 0 }} aria-hidden="true">{ICONS[t.type]}</span>
             <span>{t.message}</span>
           </div>
         ))}
@@ -92,6 +99,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         <div
           role="dialog"
           aria-modal="true"
+          aria-labelledby={pending.opts.titulo ? 'nx-confirm-title' : undefined}
+          aria-describedby="nx-confirm-desc"
           onClick={() => cerrar(false)}
           style={{
             position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.55)',
@@ -107,9 +116,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             }}
           >
             {pending.opts.titulo && (
-              <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{pending.opts.titulo}</div>
+              <div id="nx-confirm-title" style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{pending.opts.titulo}</div>
             )}
-            <div style={{ fontSize: 14, color: 'var(--text2, #a8acae)', lineHeight: 1.55, whiteSpace: 'pre-line' }}>
+            <div id="nx-confirm-desc" style={{ fontSize: 14, color: 'var(--text2, #a8acae)', lineHeight: 1.55, whiteSpace: 'pre-line' }}>
               {pending.mensaje}
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
