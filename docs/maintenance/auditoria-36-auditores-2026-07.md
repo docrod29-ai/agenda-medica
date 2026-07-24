@@ -895,3 +895,47 @@ Reparado y desplegado: v568→v586 (ver public/sw.js). Muchos infecto/antibiogra
 - `src/app/(dashboard)/layout.tsx:337` · Ingeniero de performance
 - Impacto: Duplica de forma permanente el tráfico en vivo del chat y de la configuración por usuario y por pantalla, y duplica el trabajo de render del menú en cada mensaje. Es coste constante que paga el 100% de las sesiones.
 - Arreglo: Extraer el badge de no-leídos a un contexto/hook único montado una sola vez en el layout (o a un provider) y que ambas instancias del Sidebar lo consuman; alternativamente, montar el sidebar móvil solo cuando sidebarOpen es true, o unificar en una sola instancia posicionada por CSS.
+---
+
+## Estado de reparación — corrida "arregla todo" (2026-07-24, v589–v591)
+
+Lotes de ingeniería/diseño/accesibilidad desplegados tras cerrar la parte
+clínica e infecto (v568–v588). Todos con typecheck limpio y 1507 tests.
+
+**v589 — ingeniería 3 (4× P1 seguridad/pérdida de datos):**
+- Segunda opinión (verificar-nota) falsamente "sin observaciones" cuando el 2º
+  modelo no devolvía JSON parseable → ahora `{ok:false, incompleto:true}` + toast
+  de error en el cliente (no pinta el verde de "revisado y limpio").
+- Cross-check de alergias no recibía las del EXPEDIENTE (solo las dictadas) →
+  el cliente ahora envía `patient.alergias` y `buildNerUserPrompt` las incrusta.
+- `descartar()` borraba el respaldo del episodio equivocado (respaldoKey fuera de
+  las deps) → declarado arriba (evita TDZ) + deps completas.
+- Editar una cita cuya hora ya pasó bloqueaba el guardado (el modal limpiaba la
+  hora) → la hora original es siempre seleccionable y no se borra.
+
+**v590 — diseño/accesibilidad (4× P1):**
+- Alergias invisibles en la ficha de hospitalización → banner rojo persistente
+  con `role="alert"` (ámbar "sin registro" si no hay; no asume "sin alergias").
+- Dark mode roto en /arquitectura y /operacion (var(--panel/--panel2) inexistentes
+  → fallback claro) → alias temáticos a --s1/--s2 en globals.css.
+- Título de alerta de alergia ilegible en modo oscuro (receta) → tokens de badge
+  rojo por tema (AA en ambos).
+- Toasts sin `aria-live` → región viva `polite` (alert en errores); diálogo de
+  confirmación con aria-labelledby/aria-describedby.
+
+**v591 — diseño/accesibilidad 2 (P1 + a11y):**
+- Calendario sin estado de cita (semana/día coloreaban solo por médico) → estilo
+  por estado: cancelada/no-asistió tenue+tachada, tentativas punteadas; la vista
+  Día muestra StatusBadge explícito.
+- Modal genérico (ui/Modal) sin role="dialog"/aria-modal/aria-labelledby → agregados.
+
+### Pendientes que requieren DECISIÓN del Dr o son barridos mayores
+- Barrido de 224/226 labels de formulario (etiquetas/aria-label) — pasada
+  dedicada; hallazgos #175 y afines.
+- Navegación por teclado con flechas en la rejilla del calendario (los controles
+  ya son <button> accesibles; la nav tipo grid es una mejora mayor).
+- `AvisoPrivacidadModal` sin montar — falta que el Dr decida DÓNDE colocarlo.
+- Diferidos clínicos/negocio: monto de anticipo Stripe (modelo de precios), CMI
+  censurada ">X" en antibiograma (cambio de esquema + decisión clínica), reporte
+  selectivo Salmonella/Shigella, breakpoints meníngeos, vanco en estafilococo
+  coag-negativo (validación del Dr).
