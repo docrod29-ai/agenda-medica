@@ -244,10 +244,26 @@ export interface UmbralRelevante { analito: string; regla: string; evaluar: (t: 
 export const CAMBIOS_RELEVANTES: UmbralRelevante[] = [
   {
     analito: 'Creatinina',
-    regla: 'Un aumento de 0.3 mg/dL o de 50% define lesión renal aguda (KDIGO).',
-    evaluar: t => (t.cambio >= 0.3 || t.cambioPct >= 50)
-      ? `Aumento de ${t.cambio} mg/dL (${t.cambioPct}%): cumple criterio de lesión renal aguda por KDIGO. Revisar nefrotóxicos y estado de volumen.`
-      : null,
+    regla: 'LRA por KDIGO: aumento ≥0.3 mg/dL en 48 h, o ≥1.5× el basal en 7 días. Fuera de esa ventana es progresión de ERC, no LRA.',
+    /**
+     * VENTANA TEMPORAL — auditoría 2026-07, validado por el Dr. Antes la regla
+     * ignoraba `t.dias`: una progresión de ERC de AÑOS (creatinina que sube 50%
+     * en 2 años) se documentaba como "lesión renal aguda". Los dos criterios KDIGO
+     * tienen ventanas distintas: el delta absoluto es de 48 h y el relativo de 7 días.
+     */
+    evaluar: t => {
+      const ratio = t.primero.valor > 0 ? t.ultimo.valor / t.primero.valor : 0
+      const porDelta = t.cambio >= 0.3 && t.dias <= 2
+      const porRatio = ratio >= 1.5 && t.dias <= 7
+      if (porDelta || porRatio) {
+        return `Aumento de ${t.cambio} mg/dL (${t.cambioPct}%) en ${t.dias} día(s): cumple criterio de LESIÓN RENAL AGUDA por KDIGO. Revisar nefrotóxicos, estado de volumen y obstrucción.`
+      }
+      // Subió, pero fuera de la ventana aguda → progresión crónica.
+      if ((t.cambio >= 0.3 || ratio >= 1.5) && t.dias > 7) {
+        return `Aumento de ${t.cambio} mg/dL en ${t.dias} días: por la ventana de tiempo NO es lesión renal aguda (KDIGO), sino progresión de enfermedad renal crónica. Estadificar y buscar causa.`
+      }
+      return null
+    },
   },
   {
     analito: 'Hemoglobina',

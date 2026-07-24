@@ -90,7 +90,13 @@ export async function POST(req: NextRequest) {
     const data = await res.json()
     const text: string = data.choices?.[0]?.message?.content ?? ''
     const m = text.match(/\{[\s\S]*\}/)
-    if (!m) return NextResponse.json({ ok: true, modelo: usado, hallazgos: [] })
+    /**
+     * Auditoría 2026-07 (P1): si el modelo NO devolvió un JSON, antes se respondía
+     * `hallazgos: []` = «sin observaciones», que el médico lee como «la nota está
+     * revisada y limpia». Pero la revisión FALLÓ: no es lo mismo «revisado sin
+     * hallazgos» que «no se pudo revisar». Se devuelve un estado incompleto.
+     */
+    if (!m) return NextResponse.json({ ok: false, incompleto: true, modelo: usado, hallazgos: [], error: 'La segunda opinión no devolvió un resultado analizable. La nota NO fue verificada; reintenta.' }, { status: 200 })
 
     const parsed = JSON.parse(m[0]) as { hallazgos?: unknown }
     const SEV = new Set(['alta', 'media', 'baja'])

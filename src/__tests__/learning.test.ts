@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { categoriaDe, ordenarPorPreferencia, topCategorias } from '@/lib/learning'
+import { categoriaDe, ordenarPorPreferencia, topCategorias, normalizarNombreMed, topRecetados, type MedRecetado } from '@/lib/learning'
 import type { Sugerencia } from '@/lib/expediente/copiloto'
 
 const s = (id: string, nivel: Sugerencia['nivel']): Sugerencia => ({ id, nivel, titulo: id, detalle: '' } as Sugerencia)
@@ -27,5 +27,39 @@ describe('Learning Engine', () => {
 
   it('topCategorias descendente y sin ceros', () => {
     expect(topCategorias({ renal: 3, calc: 5, meta: 0 })).toEqual([{ categoria: 'calc', usos: 5 }, { categoria: 'renal', usos: 3 }])
+  })
+})
+
+describe('Recetas frecuentes', () => {
+  it('normalizarNombreMed agrupa variantes de escritura', () => {
+    expect(normalizarNombreMed('Amoxicilina')).toBe('amoxicilina')
+    expect(normalizarNombreMed('Amoxicilina/Clavulanato')).toBe('amoxicilina_clavulanato')
+    expect(normalizarNombreMed('  Ácido  Fólico ')).toBe('acido_folico')
+    expect(normalizarNombreMed('')).toBe('')
+  })
+
+  const m = (nombre: string, count: number, updatedAt: string): MedRecetado => ({
+    nombre, dosis: '500 mg', via: 'oral', frecuencia: 'cada 8 horas', duracion: '7 días', count, updatedAt,
+  })
+
+  it('topRecetados: desc por uso, luego más reciente, sin ceros', () => {
+    const meds = {
+      a: m('Paracetamol', 2, '2026-07-01'),
+      b: m('Amoxicilina', 5, '2026-07-10'),
+      c: m('Ibuprofeno', 0, '2026-07-11'),   // count 0 → fuera
+      d: m('Loratadina', 2, '2026-07-20'),   // empata con Paracetamol → gana el más reciente
+    }
+    const top = topRecetados(meds, 8).map(x => x.nombre)
+    expect(top).toEqual(['Amoxicilina', 'Loratadina', 'Paracetamol'])
+  })
+
+  it('topRecetados respeta el límite n', () => {
+    const meds: Record<string, MedRecetado> = {}
+    for (let i = 0; i < 12; i++) meds['k' + i] = m('Med ' + i, i + 1, '2026-07-01')
+    expect(topRecetados(meds, 6)).toHaveLength(6)
+  })
+
+  it('topRecetados tolera vacío', () => {
+    expect(topRecetados({}, 8)).toEqual([])
   })
 })

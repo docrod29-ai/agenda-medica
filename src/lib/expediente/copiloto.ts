@@ -15,9 +15,9 @@
  */
 
 import { FARMACOS_PED, calcularDosisPediatrica, imc as calcImc } from './pediatria'
-import { AJUSTE_RENAL, ajustePorTFG, EMBARAZO_LACTANCIA } from './prescripcion-segura'
+import { AJUSTE_RENAL, ajustePorTFG, EMBARAZO_LACTANCIA, coincideRenal, RIESGO_HEPATICO, coincideHepatico } from './prescripcion-segura'
 import { ckdEpi2021 } from './calculadoras'
-import { metaLipidica } from './cardiometabolico/dislipidemia'
+import { metaLipidica, recomendarEstatina } from './cardiometabolico/dislipidemia'
 import { clasificarIMC } from './cardiometabolico/obesidad'
 import { fib4, interpretarFib4 } from './cardiometabolico/masld'
 import { prevent, motivoSinPrevent } from './prevent'
@@ -103,7 +103,11 @@ const FAMILIAS_ALERGIA: { familia: string; dispara: string[]; miembros: string[]
   },
   {
     familia: 'antiinflamatorios no esteroideos',
-    dispara: ['aine', 'aspirina', 'acido acetilsalicilico', 'ibuprofeno', 'naproxeno', 'antiinflamatorio'],
+    // Auditoría 2026-07 (P1): `dispara` solo tenía 4 términos, así que una alergia
+    // registrada a un AINE CONCRETO (p. ej. «diclofenaco», «ketorolaco») no activaba
+    // la familia y no saltaba con otro AINE. Se igualan `dispara` y `miembros`.
+    dispara: ['aine', 'antiinflamatorio', 'ibuprofeno', 'naproxeno', 'diclofenaco', 'ketorolaco',
+      'indometacina', 'meloxicam', 'aspirina', 'acido acetilsalicilico', 'celecoxib'],
     miembros: ['ibuprofeno', 'naproxeno', 'diclofenaco', 'ketorolaco', 'indometacina',
       'meloxicam', 'aspirina', 'acido acetilsalicilico', 'celecoxib'],
   },
@@ -241,7 +245,17 @@ function ajusteRenal(e: EntradaCopiloto): Sugerencia[] {
   const out: Sugerencia[] = []
   for (const m of meds) {
     const nm = norm(m.nombre ?? '')
-    const f = AJUSTE_RENAL.find(x => nm.includes(norm(x.nombre)) || norm(x.nombre).includes(nm))
+    /**
+     * Guard de longitud — auditoría 2026-07 (P2). `revisarListaRenal` sí lo tenía
+     * y aquí faltaba: con el nombre vacío o a medio teclear, el match por subcadena
+     * casaba con el PRIMER fármaco del catálogo e inventaba una contraindicación de
+     * metformina en quien no la toma.
+     */
+    if (nm.length < 3) continue
+    // Casa también por PRINCIPIO ACTIVO: sin esto, «Ketorolaco» nunca encontraba la
+    // entrada de clase «Antiinflamatorios no esteroideos» y la contraindicación con
+    // TFG<30 era código muerto (auditoría 2026-07, P0).
+    const f = AJUSTE_RENAL.find(x => coincideRenal(x, nm))
     if (!f) continue
     const a = ajustePorTFG(f, tfg)
     if (!a) continue
@@ -415,8 +429,19 @@ function calculosAutomaticos(e: EntradaCopiloto): Sugerencia[] {
     }
   }
 
-  // Función renal
-  if (e.labs?.creatinina && edad != null) {
+  // Función renal — CKD-EPI 2021 es una fórmula de ADULTOS. Auditoría 2026-07 (P1):
+  // aplicarla a un niño/recién nacido daba una TFG falsamente normal y se ofrecía
+  // pegarla a la nota. En <18 años se avisa, no se calcula (la TFG pediátrica usa
+  // la fórmula de Schwartz con la TALLA, que no está en este flujo).
+  if (e.labs?.creatinina && edad != null && edad < 18) {
+    out.push({
+      id: 'renal:pediatrico-tfg',
+      nivel: 'info',
+      titulo: 'TFG en menores de 18 años requiere fórmula pediátrica',
+      detalle: 'CKD-EPI y Cockcroft-Gault son de adultos. En pediatría la estimación usa la fórmula de Schwartz con la talla; no se calcula aquí para no dar un valor engañoso.',
+      textoNota: '',
+    })
+  } else if (e.labs?.creatinina && edad != null) {
     const tfg = ckdEpi2021(e.labs.creatinina, edad, !!e.sexo && /^f/i.test(e.sexo))
     if (Number.isFinite(tfg)) {
       out.push({
@@ -431,10 +456,61 @@ function calculosAutomaticos(e: EntradaCopiloto): Sugerencia[] {
     }
   }
 
+  /**
+   * POTASIO y SODIO críticos del dictado — auditoría 2026-07 (P2). El copiloto los
+   * extraía (labsDesdeEstudios) y los TIRABA: ninguna alerta ambulatoria de hiper/
+   * hipokalemia ni de disnatremia. Se reutilizan los umbrales YA auditados en
+   * `lab-criticos.ts` (K 2.5–6.5 mEq/L, Na 120–160 mEq/L). No se inventan valores.
+   */
+  /**
+   * RIESGO HEPÁTICO de fármacos — auditoría 2026-07 (P2). La capa `RIESGO_HEPATICO`
+   * existía pero NO la consumía nadie. Se activa cuando el dx trae hepatopatía y
+   * un fármaco recetado está en 'evitar' (AINE/benzodiacepinas en cirrosis, etc.).
+   */
+  const dxHep = norm((e.diagnosticos ?? []).map(d => d.descripcion).join(' · '))
+  if (/cirrosis|hepatopat|insuficiencia hepatica|falla hepatica|encefalopat|hipertension portal|ascitis/.test(dxHep)) {
+    for (const m of e.medicamentos ?? []) {
+      const q = norm(m.nombre ?? '')
+      if (q.length < 3) continue
+      const h = RIESGO_HEPATICO.find(x => coincideHepatico(x, q))
+      if (h && h.riesgo === 'evitar') {
+        out.push({
+          id: `hepatico:${m.nombre}`,
+          nivel: 'accion',
+          titulo: `${m.nombre}: evitar en hepatopatía`,
+          detalle: h.motivo,
+          textoNota: `${m.nombre}: se desaconseja en hepatopatía. ${h.motivo}`,
+        })
+      }
+    }
+  }
+
+  const k = e.labs?.potasio
+  if (typeof k === 'number' && k > 0) {
+    if (k >= 6.5) out.push({ id: 'lab:k-alto', nivel: 'critico', titulo: `Potasio ${k} mEq/L: hiperkalemia crítica`, detalle: 'Riesgo de arritmia. ECG, suspender ahorradores de potasio/IECA-ARA-II y tratar según gravedad.', textoNota: `Potasio ${k} mEq/L (hiperkalemia crítica).` })
+    else if (k <= 2.5) out.push({ id: 'lab:k-bajo', nivel: 'critico', titulo: `Potasio ${k} mEq/L: hipokalemia crítica`, detalle: 'Riesgo de arritmia y debilidad. Reponer y buscar causa (pérdidas, diuréticos).', textoNota: `Potasio ${k} mEq/L (hipokalemia crítica).` })
+  }
+  const na = e.labs?.sodio
+  if (typeof na === 'number' && na > 0) {
+    if (na >= 160) out.push({ id: 'lab:na-alto', nivel: 'accion', titulo: `Sodio ${na} mEq/L: hipernatremia`, detalle: 'Evaluar estado de volumen y corregir el déficit de agua a ritmo seguro.', textoNota: `Sodio ${na} mEq/L (hipernatremia).` })
+    else if (na <= 120) out.push({ id: 'lab:na-bajo', nivel: 'accion', titulo: `Sodio ${na} mEq/L: hiponatremia`, detalle: 'Corrección a ritmo seguro (evitar >8–10 mEq/L en 24 h por riesgo de desmielinización). Definir volumen y osmolaridad.', textoNota: `Sodio ${na} mEq/L (hiponatremia).` })
+  }
+
   // FIB-4 cuando los laboratorios ya están
   const { ast, alt, plaquetas } = e.labs ?? {}
   if (ast && alt && plaquetas && edad != null) {
-    const v = fib4(edad, ast, plaquetas, alt)
+    /**
+     * UNIDADES — bug encontrado en la auditoría 2026-07 (P1).
+     *
+     * `fib4()` espera las plaquetas en ×10⁹/L (o sea, miles/µL: 150), que es lo que
+     * teclea el médico en el panel cardiometabólico («Plaquetas (×10⁹/L)»).
+     * Pero `labsDesdeEstudios` las normaliza a CONTEO ABSOLUTO por µL (150 000).
+     * Pasarlas crudas dividía el FIB-4 entre 1000 y SIEMPRE caía en «riesgo bajo»:
+     * 50 años, AST 40, plaq 150 000, ALT 25 → 0.0027 en vez de 2.67 (zona alta).
+     * Un paciente con fibrosis significativa quedaba tranquilizado por escrito.
+     */
+    const plaqEn10a9 = plaquetas / 1000
+    const v = fib4(edad, ast, plaqEn10a9, alt)
     const r = v != null ? interpretarFib4(v, edad) : null
     if (r) {
       out.push({
@@ -462,7 +538,33 @@ function metasPorDiagnostico(e: EntradaCopiloto): Sugerencia[] {
   const tieneDislip = /dislipidemia|hipercolesterolemia|hipertriglicerid|colesterol/.test(dx)
 
   if (tieneDiabetes || tieneASCVD || tieneDislip) {
-    const meta = metaLipidica({ diabetes: tieneDiabetes, ascvdClinica: tieneASCVD, tg: e.labs?.trigliceridos })
+    /**
+     * Auditoría 2026-07 (P1): antes se llamaba a metaLipidica SOLO con {diabetes,
+     * ascvdClinica, tg}. Nunca se le pasaba el PREVENT ni los factores de riesgo,
+     * así que la meta salía SIEMPRE la más laxa y la nota afirmaba «Diabetes SIN
+     * factores de riesgo» sin haberlos interrogado. Ahora:
+     *  - factoresRiesgo y erc se derivan del MISMO texto de diagnósticos.
+     *  - preventPct se calcula de verdad (mismo motor que la tarjeta de riesgo).
+     * Con esto la meta se ajusta al riesgo (ACC/AHA 2026, validado por el Dr):
+     * PREVENT <3% → <130 · 3-<10% → <100 · ≥10% → <70 · ASCVD → <55/<70.
+     */
+    const factoresRiesgo = /hipertension|hta|tabaquismo|fumador|obesidad|sobrepeso|renal cronica|erc\b|sindrome metabolico|antecedente familiar/.test(dx)
+    const erc = /renal cronica|erc\b|nefropat|insuficiencia renal/.test(dx)
+    const tfg = (e.labs?.creatinina && e.edad != null)
+      ? ckdEpi2021(e.labs.creatinina, e.edad, !!e.sexo && /^f/i.test(e.sexo)) : 0
+    const prev = prevent({
+      edad: e.edad ?? 0, esMujer: !!e.sexo && /^f/i.test(e.sexo),
+      tas: sistolica(e.signos?.ta) ?? 0,
+      colesterolTotal: e.labs?.colesterolTotal ?? 0, hdl: e.labs?.hdl ?? 0,
+      tfg: tfg || (e.labs?.tfg ?? 0),
+      diabetes: tieneDiabetes, fuma: /tabaquismo|fumador|fuma/.test(dx),
+      tomaAntihipertensivo: false, tomaEstatina: false,
+    })
+    const meta = metaLipidica({
+      diabetes: tieneDiabetes, ascvdClinica: tieneASCVD, tg: e.labs?.trigliceridos,
+      factoresRiesgo, erc, preventPct: prev?.riesgo10, edad: e.edad,
+      hipercolesterolemiaSevera: (e.labs?.ldl ?? 0) >= 190,
+    })
     const ldl = e.labs?.ldl
     out.push({
       id: 'meta:ldl',
@@ -476,6 +578,28 @@ function metasPorDiagnostico(e: EntradaCopiloto): Sugerencia[] {
       textoNota: `Meta de LDL-C menor de ${meta.ldl} mg/dL y no-HDL-C menor de ${meta.noHDL} mg/dL (${meta.poblacion}), según la guía ACC/AHA 2026.`,
       pide: ldl == null ? 'LDL' : undefined,
     })
+
+    /**
+     * ¿A quién indicar estatina? (guía ACC/AHA 2026, imagen validada por el Dr).
+     * Recomienda la INTENSIDAD por escenario, no solo la meta. Solo se muestra
+     * cuando ya está indicada de forma clara (no en «individualizar/no-de-rutina»,
+     * para no empujar estatina sin criterio).
+     */
+    const rec = recomendarEstatina({
+      edad: e.edad, ldl, preventPct: prev?.riesgo10, prevent30Pct: prev?.riesgo30 ?? undefined,
+      ascvdClinica: tieneASCVD, diabetes: tieneDiabetes, diabetesMultiplesFR: tieneDiabetes && factoresRiesgo,
+      ercEstadio3o4: erc, potenciadores: factoresRiesgo,
+    })
+    if (rec.indicar === 'alta' || rec.indicar === 'moderada' || rec.indicar === 'considerar-moderada') {
+      const alta = rec.indicar === 'alta'
+      out.push({
+        id: 'meta:estatina',
+        nivel: 'info',
+        titulo: alta ? 'Corresponde estatina de ALTA intensidad' : rec.indicar === 'moderada' ? 'Corresponde estatina de intensidad moderada' : 'Considerar estatina moderada',
+        detalle: `${rec.motivo}${alta ? ' Preferidas: atorvastatina 40–80 mg o rosuvastatina 20–40 mg (reducción de LDL-C ≥50%).' : rec.indicar === 'moderada' ? ' Preferidas: atorvastatina 10–20 mg o rosuvastatina 5–10 mg (reducción 30–49%).' : ''}`,
+        textoNota: `${rec.motivo} (guía ACC/AHA 2026).`,
+      })
+    }
   }
 
   // MASLD (antes «hígado graso no alcohólico»): el tamizaje con FIB-4 se hace
@@ -520,8 +644,24 @@ function riesgoCardiovascular(e: EntradaCopiloto): Sugerencia[] {
     tfg: tfg ?? 0,
     diabetes: /diabetes|dm2|dm 2|dm1/.test(dx),
     fuma: /tabaquismo|fumador|fuma/.test(dx),
+    /**
+     * Auditoría 2026-07 (P1): la lista sólo tenía 9 fármacos y dejaba fuera los más
+     * recetados en México. Un paciente con irbesartán, captopril, bisoprolol,
+     * carvedilol o nifedipino contaba como NO tratado y PREVENT SUBESTIMABA su
+     * riesgo cardiovascular. Se completa por CLASE (ARA-II, IECA, calcioantagonistas,
+     * betabloqueadores, diuréticos); es clasificación factual de fármacos, no un
+     * cambio de umbrales ni de la fórmula.
+     */
     tomaAntihipertensivo: (e.medicamentos ?? []).some(m =>
-      /losartan|telmisartan|valsartan|enalapril|lisinopril|amlodipino|metoprolol|hidroclorotiazida|clortalidona/
+      /losartan|telmisartan|valsartan|irbesartan|candesartan|olmesartan|azilsartan|eprosartan/
+        .test(norm(m.nombre ?? '')) ||
+      /enalapril|lisinopril|captopril|ramipril|perindopril|quinapril|benazepril|fosinopril|trandolapril/
+        .test(norm(m.nombre ?? '')) ||
+      /amlodipino|nifedipino|felodipino|nitrendipino|lercanidipino|verapamilo|diltiazem/
+        .test(norm(m.nombre ?? '')) ||
+      /metoprolol|bisoprolol|carvedilol|atenolol|nebivolol|propranolol|labetalol/
+        .test(norm(m.nombre ?? '')) ||
+      /hidroclorotiazida|clortalidona|indapamida|espironolactona|eplerenona|furosemida/
         .test(norm(m.nombre ?? ''))),
     tomaEstatina: (e.medicamentos ?? []).some(m =>
       /atorvastatina|rosuvastatina|simvastatina|pravastatina|pitavastatina|lovastatina|fluvastatina/

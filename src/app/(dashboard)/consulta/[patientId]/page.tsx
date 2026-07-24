@@ -152,6 +152,9 @@ export default function ConsultaActivaPage() {
   const internamientoActivo = internamientoParam || notaInternamientoId
   const esNotaHospital = !!internamientoActivo
   const volverA = esNotaHospital ? `/hospitalizacion/${internamientoActivo}` : `/expediente/${patientId}`
+  // Llave del respaldo local por paciente Y por episodio (declarada arriba para
+  // que `descartar()` pueda listarla en sus deps sin caer en TDZ).
+  const respaldoKey = `nx.consulta.bkp.${patientId}${internamientoActivo ? '.h.' + internamientoActivo : ''}`
   const { clinicId } = useClinic()
   const borradorMem = useBorrador()  // almacén EN MEMORIA (sobrevive navegación, sin parpadeo)
   // Tarea de "procesar nota con IA" en el almacén reactivo (sobrevive navegación):
@@ -502,6 +505,14 @@ export default function ConsultaActivaPage() {
   const [guardando, setGuardando] = useState(false)
   const [firmada, setFirmada] = useState(false)
   const [errorCargaNota, setErrorCargaNota] = useState('')
+  /**
+   * La lectura del PACIENTE falló — auditoría 2026-07 (P0). Sin este flag, si
+   * getPatient fallaba (red intermitente), `patient` quedaba null y el autoguardado
+   * escribía pacienteNombre='' y alergias='' → BORRABA el nombre y las alergias de
+   * la nota y apagaba el cross-check alergia↔fármaco. Bloquea el guardado, como ya
+   * se hace con la nota que no se pudo leer.
+   */
+  const [pacienteError, setPacienteError] = useState(false)
   /** Id estable mientras la nota aún no existe en Firestore. Ver construirNota. */
   const uuidRespaldoRef = useRef<string>('')
   if (!uuidRespaldoRef.current) uuidRespaldoRef.current = crypto.randomUUID()
@@ -599,7 +610,9 @@ export default function ConsultaActivaPage() {
      * a la consulta entre las pantallas que deben usarla. El expediente ya lo
      * hacía bien; esta pantalla se había quedado atrás.
      */
-    getPatient(clinicId, patientId).then(setPatient).catch((e: unknown) => console.error('cargar paciente:', e))
+    getPatient(clinicId, patientId)
+      .then(p => { setPatient(p); setPacienteError(!p) })
+      .catch((e: unknown) => { console.error('cargar paciente:', e); setPacienteError(true) })
     getUltimasNotasResumen(clinicId, patientId)
       .then(r => { ultimasNotasRef.current = r; setContextoPrevio(r) })
       .catch(e => console.error('contexto de visitas previas:', e))  // degrada sin romper la nota
@@ -671,9 +684,12 @@ export default function ConsultaActivaPage() {
       })
       const data = await res.json().catch(() => null)
       if (data?.ok) setVerificacion({ modelo: data.modelo ?? 'IA', hallazgos: data.hallazgos ?? [] })
+      // Auditoría 2026-07 (P1): NO mostrar «sin observaciones» si la revisión falló.
+      // La segunda opinión queda nula (no verde) y se avisa que no se verificó.
+      else if (data?.incompleto) toast(data.error ?? 'La segunda opinión no se pudo completar; la nota NO fue verificada.', 'error')
     } catch { /* silencioso: la segunda opinión es un extra, no bloquea */ }
     finally { setVerificando(false) }
-  }, [patient?.edad, patient?.sexo, patient?.alergias])
+  }, [patient?.edad, patient?.sexo, patient?.alergias, toast])
 
   // Segunda opinión A DEMANDA (plan Pro): construye la nota desde el estado actual
   // y la manda a verificar. En Premium ya corre sola tras generar.
@@ -1180,10 +1196,16 @@ export default function ConsultaActivaPage() {
     if (!textoFuente) { toast('No hay texto que analizar todavía', 'info'); return }
     setNerCargando(true); setNerError(''); setEntidades(null)
     try {
+      // Auditoría 2026-07 (P1): mandamos las alergias REGISTRADAS del expediente
+      // para que el cross-check alergia↔medicamento las considere, no solo las
+      // que se dictaron en esta consulta.
+      const alergiasRegistradas = Array.isArray(patient?.alergias)
+        ? patient.alergias
+        : (patient?.alergias ? String(patient.alergias).split(/[,;\n]+/).map(s => s.trim()).filter(Boolean) : [])
       const res = await fetchAutenticado('/api/expediente/extraer-entidades', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texto: textoFuente }),
+        body: JSON.stringify({ texto: textoFuente, alergiasRegistradas }),
       })
       const data = await res.json().catch(() => null)
       if (!data || !data.ok) {
@@ -1203,7 +1225,7 @@ export default function ConsultaActivaPage() {
     } finally {
       setNerCargando(false)
     }
-  }, [voz.transcripcion, secciones, toast])
+  }, [voz.transcripcion, secciones, toast, patient?.alergias])
 
   // ── Construir objeto NotaMedica ────────────────────────────────
   const construirNota = useCallback((estado: 'borrador' | 'firmada'): NotaMedica => {
@@ -1307,6 +1329,9 @@ export default function ConsultaActivaPage() {
     // Nota que no se pudo leer: escribir sería sustituirla por lo que haya en
     // pantalla, que es la plantilla vacía. Se bloquea hasta recargar.
     if (errorCargaNota) return Promise.resolve()
+    // Paciente que no se pudo leer: guardar escribiría nombre y alergias vacíos
+    // encima de la nota. Se bloquea hasta que la lectura del paciente tenga éxito.
+    if (pacienteError) return Promise.resolve()
     // Serializa: cada guardado espera al anterior. Así dos autoguardados no
     // crean la nota dos veces (usa notaIdRef, que es síncrona).
     const tarea = cadenaGuardadoRef.current.then(async () => {
@@ -1375,7 +1400,7 @@ export default function ConsultaActivaPage() {
     })
     cadenaGuardadoRef.current = tarea.catch(() => {})
     return tarea
-  }, [errorCargaNota, clinicId, patientId, firmada, construirNota, toast])
+  }, [errorCargaNota, pacienteError, clinicId, patientId, firmada, construirNota, toast])
 
   // ── Descartar borrador ─────────────────────────────────────────
   const descartar = useCallback(async () => {
@@ -1407,7 +1432,11 @@ export default function ConsultaActivaPage() {
       toast('Error al descartar', 'error')
       setGuardando(false)
     }
-  }, [firmada, clinicId, notaId, patientId, router, toast, confirm])
+    // Auditoría 2026-07 (P1): respaldoKey/borradorMem/audio/volverA en deps.
+    // respaldoKey depende del episodio (internamientoActivo); si se omitía, al
+    // cambiar de episodio el callback conservaba la llave VIEJA y borraba el
+    // respaldo del episodio equivocado (dejando el actual vivo, y viceversa).
+  }, [firmada, clinicId, notaId, patientId, router, toast, confirm, respaldoKey, borradorMem, audio, volverA])
 
   // ── Autoguardado cada 30s ──────────────────────────────────────
   // La función real se guarda en un ref que se refresca en CADA render con los
@@ -1433,9 +1462,8 @@ export default function ConsultaActivaPage() {
 
   // ── Red de seguridad LOCAL (anti-pérdida): respalda la nota en el navegador
   //    mientras escribes (instantáneo, sobrevive a crashes y a estar sin red). ──
-  // Llave por paciente Y por episodio: así el borrador de una nota de
-  // HOSPITALIZACIÓN (mismo paciente) no pisa el de la consulta externa.
-  const respaldoKey = `nx.consulta.bkp.${patientId}${internamientoActivo ? '.h.' + internamientoActivo : ''}`
+  // (respaldoKey se declara arriba, junto a internamientoActivo, para evitar TDZ
+  //  en las deps de descartar(); es por paciente Y por episodio.)
   useEffect(() => {
     if (firmada) return
     const hayContenido = resumen.trim() || secciones.some(s => s.value?.trim()) ||

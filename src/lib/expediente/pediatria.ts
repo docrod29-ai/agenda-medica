@@ -28,12 +28,31 @@ export interface FarmacoPed {
   unidad: string
   /** Piso por toma: hay fármacos que no se dan por debajo de cierta dosis. */
   dosisMinima?: number
+  /**
+   * Tope en mg/kg/DÍA. Para fármacos (aminoglucósidos) donde el límite de
+   * seguridad es por kilo y no hay un tope absoluto validado. Auditoría 2026-07.
+   */
+  topeMgKgDia?: number
+  /**
+   * Edad MÍNIMA en meses. Por debajo, el fármaco no debe ofrecerse a un clic:
+   * `calcularDosisPediatrica` devuelve un estado bloqueado. Codifica lo que ya
+   * decían las notas (ibuprofeno <6m, TMP-SMX <2m, nitrofurantoína <1m).
+   */
+  edadMinimaMeses?: number
+  /** Texto de la restricción por edad, para mostrarla al médico. */
+  restriccionEdad?: string
+  /**
+   * Fármaco de RESCATE/crisis (salbutamol nebulizado): se dosifica por episodio,
+   * no por día fijo. NO mostrar un «total/día» — el intervalo de crisis (c/20 min)
+   * multiplicaba a cifras absurdas (auditoría 2026-07, validado por el Dr).
+   */
+  esRescate?: boolean
   nota?: string
 }
 
 export const FARMACOS_PED: FarmacoPed[] = [
   { nombre: 'Paracetamol', mgKgDosis: [10, 15], intervalo: 'c/6 h', topeDosis: 1000, topeDia: 4000, unidad: 'mg', nota: 'Máx 75 mg/kg/día. Vigilar dosis acumulada si hay varias presentaciones.' },
-  { nombre: 'Ibuprofeno', mgKgDosis: [5, 10], intervalo: 'c/6-8 h', topeDosis: 600, topeDia: 2400, unidad: 'mg', nota: 'Máx 40 mg/kg/día. No en < 6 meses ni en deshidratación/lesión renal.' },
+  { nombre: 'Ibuprofeno', mgKgDosis: [5, 10], intervalo: 'c/6-8 h', topeDosis: 600, topeDia: 2400, unidad: 'mg', edadMinimaMeses: 6, restriccionEdad: 'No usar en menores de 6 meses; evitar también en deshidratación o lesión renal.', nota: 'Máx 40 mg/kg/día. No en < 6 meses ni en deshidratación/lesión renal.' },
   { nombre: 'Amoxicilina', mgKgDia: [45, 90], tomas: 2, intervalo: 'c/12 h', topeDia: 3000, unidad: 'mg', nota: 'Dosis ALTA (80-90) en otitis media y sospecha de neumococo con sensibilidad disminuida.' },
   { nombre: 'Amoxicilina-clavulanato', mgKgDia: [45, 90], tomas: 2, intervalo: 'c/12 h', topeDia: 3000, unidad: 'mg', nota: 'La dosis se calcula por el componente AMOXICILINA; usar formulación 14:1 para dosis alta.' },
   { nombre: 'Azitromicina', mgKgDia: [10, 10], tomas: 1, intervalo: 'c/24 h', topeDia: 500, unidad: 'mg', nota: 'Día 1: 10 mg/kg; días 2-5: 5 mg/kg (o 10 mg/kg/día × 3 días).' },
@@ -41,16 +60,22 @@ export const FARMACOS_PED: FarmacoPed[] = [
   { nombre: 'Ceftriaxona', mgKgDia: [50, 75], tomas: 1, intervalo: 'c/24 h', topeDia: 2000, unidad: 'mg', nota: 'Meningitis: 100 mg/kg/día (tope 4 g). No mezclar con calcio en neonatos.' },
   { nombre: 'Cefotaxima', mgKgDia: [100, 200], tomas: 4, intervalo: 'c/6 h', topeDia: 12000, unidad: 'mg' },
   { nombre: 'Clindamicina', mgKgDia: [20, 40], tomas: 3, intervalo: 'c/8 h', topeDia: 2700, unidad: 'mg' },
-  { nombre: 'Trimetoprim-sulfametoxazol', mgKgDia: [8, 12], tomas: 2, intervalo: 'c/12 h', topeDia: 320, unidad: 'mg de TMP', nota: 'La dosis se expresa en TRIMETOPRIM. No en < 2 meses.' },
-  { nombre: 'Nitrofurantoína', mgKgDia: [5, 7], tomas: 4, intervalo: 'c/6 h', topeDia: 400, unidad: 'mg', nota: 'Solo IVU baja. No en < 1 mes ni en insuficiencia renal.' },
+  { nombre: 'Trimetoprim-sulfametoxazol', mgKgDia: [8, 12], tomas: 2, intervalo: 'c/12 h', topeDia: 320, unidad: 'mg de TMP', edadMinimaMeses: 2, restriccionEdad: 'No usar en menores de 2 meses (riesgo de kernícterus).', nota: 'La dosis se expresa en TRIMETOPRIM. No en < 2 meses.' },
+  { nombre: 'Nitrofurantoína', mgKgDia: [5, 7], tomas: 4, intervalo: 'c/6 h', topeDia: 400, unidad: 'mg', edadMinimaMeses: 1, restriccionEdad: 'No usar en menores de 1 mes; contraindicada en insuficiencia renal.', nota: 'Solo IVU baja. No en < 1 mes ni en insuficiencia renal.' },
   { nombre: 'Metronidazol', mgKgDia: [30, 30], tomas: 3, intervalo: 'c/8 h', topeDia: 2000, unidad: 'mg' },
   { nombre: 'Vancomicina', mgKgDia: [40, 60], tomas: 4, intervalo: 'c/6 h', topeDia: 4000, unidad: 'mg', nota: 'Dosificar por AUC/CMI; monitorizar niveles y función renal.' },
-  { nombre: 'Gentamicina', mgKgDia: [5, 7.5], tomas: 1, intervalo: 'c/24 h', unidad: 'mg', nota: 'Dosis única diaria; monitorizar niveles y función renal.' },
-  { nombre: 'Amikacina', mgKgDia: [15, 22.5], tomas: 1, intervalo: 'c/24 h', unidad: 'mg', nota: 'Dosis única diaria; monitorizar niveles.' },
+  // Neonato ≤7 días: dosis reducida (validado por el Dr). Va ANTES para que el
+  // matcher por edad la prefiera; calcularDosisPediatrica elige por edadMeses.
+  { nombre: 'Gentamicina neonatal (≤7 días)', mgKgDia: [5, 5], tomas: 2, intervalo: 'c/12 h', topeMgKgDia: 5, unidad: 'mg', edadMinimaMeses: 0, nota: 'Recién nacido ≤7 días: 2.5 mg/kg c/12 h, máx 5 mg/kg/día. Monitorizar niveles y función renal.' },
+  // Tope 7.5 mg/kg/día (Dr, ficha técnica). NO hay tope absoluto en mg validado en
+  // pediatría → la protección real ante un PESO erróneo es la validación peso-edad.
+  { nombre: 'Gentamicina', mgKgDia: [5, 7.5], tomas: 1, intervalo: 'c/24 h', topeMgKgDia: 7.5, unidad: 'mg', nota: 'Dosis única diaria; monitorizar niveles y función renal. En ≤7 días usar la pauta neonatal.' },
+  // Tope 15 mg/kg/día y máximo ABSOLUTO 1500 mg/día (validado por el Dr).
+  { nombre: 'Amikacina', mgKgDia: [15, 22.5], tomas: 1, intervalo: 'c/24 h', topeMgKgDia: 15, topeDia: 1500, unidad: 'mg', nota: 'Dosis única diaria; monitorizar niveles. Máximo 1500 mg/día. Carga neonatal 10 mg/kg × 1.' },
   { nombre: 'Meropenem', mgKgDia: [60, 60], tomas: 3, intervalo: 'c/8 h', topeDia: 3000, unidad: 'mg', nota: 'Meningitis: 120 mg/kg/día (tope 6 g).' },
   { nombre: 'Prednisona', mgKgDia: [1, 2], tomas: 1, intervalo: 'c/24 h', topeDia: 60, unidad: 'mg' },
   { nombre: 'Dexametasona (croup)', mgKgDosis: [0.15, 0.6], intervalo: 'dosis única', topeDosis: 16, unidad: 'mg' },
-  { nombre: 'Salbutamol nebulizado', mgKgDosis: [0.15, 0.15], intervalo: 'c/20 min (crisis)', topeDosis: 5, dosisMinima: 2.5, unidad: 'mg', nota: 'Mínimo 2.5 mg por nebulización aunque el peso calcule menos.' },
+  { nombre: 'Salbutamol nebulizado', mgKgDosis: [0.15, 0.15], intervalo: 'c/20 min (crisis)', topeDosis: 5, dosisMinima: 2.5, unidad: 'mg', esRescate: true, nota: 'Crisis: 0.15 mg/kg/dosis (mín 2.5, máx 5 mg) c/20 min × 3, luego c/1-4 h según respuesta. Nebulización continua (0.5 mg/kg/h) es orden aparte y monitorizada. NO tiene un «máximo diario» único.' },
   { nombre: 'Ondansetrón', mgKgDosis: [0.15, 0.15], intervalo: 'c/8 h', topeDosis: 8, unidad: 'mg' },
   { nombre: 'Difenhidramina', mgKgDosis: [1, 1], intervalo: 'c/6 h', topeDosis: 50, unidad: 'mg' },
   { nombre: 'Aciclovir', mgKgDosis: [20, 20], intervalo: 'c/6 h', topeDosis: 800, unidad: 'mg' },
@@ -68,6 +93,12 @@ export interface DosisCalculada {
   unidad: string
   /** true si el tope de adulto recortó la dosis calculada. */
   topeAplicado: boolean
+  /** Fármaco de rescate/crisis: se dosifica por episodio, no por día. */
+  esRescate?: boolean
+  /** El fármaco NO corresponde a esta edad: la dosis NO debe usarse. */
+  contraindicadoPorEdad?: boolean
+  /** Por qué está contraindicado (para mostrarlo). */
+  motivoEdad?: string
   nota?: string
 }
 
@@ -79,8 +110,23 @@ export interface DosisCalculada {
  * daba 3750 mg por toma) mientras el total diario decía 2000 mg: la receta se
  * escribe con la dosis POR TOMA, así que el tope no servía de nada.
  */
-export function calcularDosisPediatrica(f: FarmacoPed, pesoKg: number): DosisCalculada | null {
+export function calcularDosisPediatrica(f: FarmacoPed, pesoKg: number, edadMeses?: number): DosisCalculada | null {
   if (!(pesoKg > 0)) return null
+
+  /**
+   * Bloqueo por EDAD — auditoría 2026-07 (P0). Si el fármaco tiene edad mínima y
+   * el paciente está por debajo, NO se devuelve una dosis usable: se devuelve un
+   * estado contraindicado. Antes el panel ofrecía cualquier fármaco a un clic sin
+   * mirar la edad, incluidos los contraindicados en el neonato.
+   */
+  if (f.edadMinimaMeses != null && edadMeses != null && edadMeses < f.edadMinimaMeses) {
+    return {
+      farmaco: f.nombre, intervalo: f.intervalo, unidad: f.unidad, topeAplicado: false,
+      contraindicadoPorEdad: true,
+      motivoEdad: f.restriccionEdad ?? `No indicado por debajo de ${f.edadMinimaMeses} mes(es).`,
+      porToma: { min: 0, max: 0 }, porDia: { min: 0, max: 0 }, nota: f.nota,
+    }
+  }
 
   /** Cuántas veces al día se administra realmente. */
   const tomasDia = f.mgKgDosis ? tomasPorIntervalo(f.intervalo) : (f.tomas ?? 1)
@@ -120,10 +166,18 @@ export function calcularDosisPediatrica(f: FarmacoPed, pesoKg: number): DosisCal
     if (maxDia > f.topeDia) { maxDia = f.topeDia; topeAplicado = true }
     if (minDia > f.topeDia) { minDia = f.topeDia; topeAplicado = true }
   }
+  // Tope por mg/kg/DÍA (aminoglucósidos): límite de seguridad por kilo cuando no
+  // hay tope absoluto en mg. Auditoría 2026-07 (P0).
+  if (f.topeMgKgDia != null) {
+    const maxSegunKg = f.topeMgKgDia * pesoKg
+    if (maxDia > maxSegunKg) { maxDia = maxSegunKg; topeAplicado = true }
+    if (minDia > maxSegunKg) { minDia = maxSegunKg; topeAplicado = true }
+  }
 
   const r = (x: number) => Math.round(x * 10) / 10
   return {
     farmaco: f.nombre, intervalo: f.intervalo, unidad: f.unidad, topeAplicado, nota: f.nota,
+    esRescate: f.esRescate,
     porToma: { min: r(minToma), max: r(maxToma) },
     porDia: { min: r(minDia), max: r(maxDia) },
   }
@@ -321,7 +375,9 @@ export function evaluarCrecimiento(
     ? clasificarTalla(z)
     : indicador === 'perimetro-cefalico'
       ? clasificarPerimetro(z)
-      : clasificarZ(z)
+      : indicador === 'peso'
+        ? clasificarPesoEdad(z)      // peso-para-edad NO usa cortes de IMC (Dr 2026-07)
+        : clasificarZ(z)             // IMC-para-edad conserva sobrepeso/obesidad
 
   return {
     indicador: t.nombre, valor, unidad: t.unidad,
@@ -337,6 +393,20 @@ function clasificarTalla(z: number): { etiqueta: string; nivel: 'bajo' | 'normal
   if (z < -2) return { etiqueta: 'Talla baja (z −3 a −2)', nivel: 'bajo' }
   if (z <= 3) return { etiqueta: 'Talla normal para la edad', nivel: 'normal' }
   return { etiqueta: 'Talla alta (z > +3): valorar causa endocrina si es desproporcionada', nivel: 'alto' }
+}
+
+/**
+ * PESO PARA LA EDAD — categorías OMS validadas por el Dr (auditoría 2026-07).
+ * El peso-para-la-edad NO diagnostica sobrepeso ni obesidad: por encima de +2 DE
+ * solo indica "peso alto, evaluar otro indicador" (peso-para-talla o IMC/edad).
+ * Antes reusaba clasificarZ (de IMC) y etiquetaba «Sobrepeso»/«Obesidad», que es
+ * incorrecto para este indicador.
+ */
+function clasificarPesoEdad(z: number): { etiqueta: string; nivel: 'bajo' | 'normal' | 'alto' } {
+  if (z < -3) return { etiqueta: 'Peso muy bajo para la edad / bajo peso grave (z < −3)', nivel: 'bajo' }
+  if (z < -2) return { etiqueta: 'Peso bajo para la edad (z −3 a −2)', nivel: 'bajo' }
+  if (z <= 2) return { etiqueta: 'Sin bajo peso para la edad', nivel: 'normal' }
+  return { etiqueta: 'Peso alto para la edad (z > +2): evaluar peso-para-talla o IMC-para-la-edad; peso-para-la-edad no diagnostica sobrepeso u obesidad', nivel: 'alto' }
 }
 
 /** El perímetro cefálico tiene significado propio: micro y macrocefalia. */

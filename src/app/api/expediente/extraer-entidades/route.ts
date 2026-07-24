@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  let body: { texto?: string }
+  let body: { texto?: string; alergiasRegistradas?: string[] }
   try { body = await req.json() } catch {
     return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 })
   }
@@ -98,6 +98,10 @@ export async function POST(req: NextRequest) {
   if (texto.length > 20000) {
     return NextResponse.json({ ok: false, error: 'Texto demasiado largo (>20k chars)' }, { status: 400 })
   }
+  // Auditoría 2026-07 (P1): alergias del expediente entran al cross-check.
+  const alergiasRegistradas = Array.isArray(body.alergiasRegistradas)
+    ? body.alergiasRegistradas.map(a => String(a)).filter(Boolean).slice(0, 40)
+    : []
 
   try {
     const model = await resolverModelo(API_KEY)
@@ -112,7 +116,7 @@ export async function POST(req: NextRequest) {
         model,
         max_tokens: 4000,
         system: NER_SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: buildNerUserPrompt(texto) }],
+        messages: [{ role: 'user', content: buildNerUserPrompt(texto, alergiasRegistradas) }],
       }),
       signal: AbortSignal.timeout(45000),   // aborta limpio si tarda, sin "error de red" ambiguo
     })

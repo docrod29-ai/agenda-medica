@@ -402,6 +402,18 @@ function HowItWorks() {
         </div>
       </div>
 
+      <div style={{ maxWidth: 1100, margin: '48px auto 0', display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
+        <Link href="/demo/razonamiento" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus, #3d5afe)', color: '#fff', textDecoration: 'none', borderRadius: 10, padding: '12px 20px', fontSize: 14.5, fontWeight: 700 }}>
+          Ver cómo razona la IA en vivo →
+        </Link>
+        <Link href="/arquitectura" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--text2)', textDecoration: 'none', borderRadius: 10, padding: '12px 20px', fontSize: 14.5, fontWeight: 600, border: '1px solid var(--border)' }}>
+          Ver los 10 motores
+        </Link>
+        <Link href="/paquetes" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--text2)', textDecoration: 'none', borderRadius: 10, padding: '12px 20px', fontSize: 14.5, fontWeight: 600, border: '1px solid var(--border)' }}>
+          Paquetes por especialidad
+        </Link>
+      </div>
+
       <style>{`
         @media (max-width: 768px) {
           #como-funciona .how-grid { grid-template-columns: 1fr !important; }
@@ -608,7 +620,11 @@ function Footer() {
         <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>NexusMED</span>
         <span style={{ fontSize: 14, color: 'var(--text3)' }}>· Hecho en México 🇲🇽</span>
       </div>
-      <div style={{ display: 'flex', gap: 24 }}>
+      <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+        <a href="/arquitectura" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Arquitectura</a>
+        <a href="/paquetes" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Paquetes por especialidad</a>
+        <a href="/demo/razonamiento" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Cómo razona la IA</a>
+        <a href="/operacion" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Operación</a>
         <a href="/seguridad" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Seguridad</a>
         <a href="/terminos" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Términos</a>
         <a href="/privacidad" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Privacidad</a>

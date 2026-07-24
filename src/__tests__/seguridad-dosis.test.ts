@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { revisarDosis, buscarFarmaco, peorSeveridad, extraerMg, extraerTomasDia } from '@/lib/seguridad/dosis'
+import { revisarDosis, buscarFarmaco, peorSeveridad, extraerMg, extraerTomasDia, esDosisPorKg } from '@/lib/seguridad/dosis'
 
 describe('Parsers de dosis y frecuencia', () => {
   it('extraerMg convierte unidades', () => {
@@ -71,5 +71,94 @@ describe('Honestidad: sin referencia NO calla', () => {
     expect(buscarFarmaco('advil')?.nombre).toBe('Ibuprofeno')
     expect(buscarFarmaco('tempra')?.nombre).toBe('Paracetamol')
     expect(buscarFarmaco('inexistente')).toBe(null)
+  })
+})
+
+/**
+ * REGRESIÓN auditoría 2026-07 (P0): la red de seguridad pediátrica estaba MUERTA
+ * cuando la dosis se escribe POR KILO, que es como se prescribe en pediatría.
+ * `extraerMg("50 mg/kg")` daba 50, y revisarDosis lo dividía OTRA VEZ entre el peso
+ * (50/20 = 2.5 mg/kg) → jamás superaba el techo → jamás alertaba.
+ */
+describe('Dosis escrita POR KILO', () => {
+  it('esDosisPorKg reconoce las formas reales del dictado y la receta', () => {
+    expect(esDosisPorKg('50 mg/kg')).toBe(true)
+    expect(esDosisPorKg('10 mg/kg/día')).toBe(true)
+    expect(esDosisPorKg('15 mg por kilo')).toBe(true)
+    expect(esDosisPorKg('500 mg')).toBe(false)
+    expect(esDosisPorKg('1 g')).toBe(false)
+  })
+
+  it('paracetamol 50 mg/kg por toma SÍ alerta (techo 15 mg/kg)', () => {
+    const a = revisarDosis({ farmaco: 'Paracetamol', dosisMg: 50, dosisPorKg: true, pesoKg: 20 })
+    expect(a.some(x => x.codigo === 'pediatrico_sobre_mgkg' && x.severidad === 'critica')).toBe(true)
+  })
+
+  it('EL BUG: sin marcar por-kg, ese mismo 50 mg/kg NO alertaba', () => {
+    const a = revisarDosis({ farmaco: 'Paracetamol', dosisMg: 50, pesoKg: 20 })  // 50/20 = 2.5 mg/kg
+    expect(a.some(x => x.codigo === 'pediatrico_sobre_mgkg')).toBe(false)
+  })
+
+  it('funciona aunque NO se haya capturado el peso (la dosis ya es por kilo)', () => {
+    const a = revisarDosis({ farmaco: 'Ibuprofeno', dosisMg: 30, dosisPorKg: true })
+    expect(a.some(x => x.codigo === 'pediatrico_sobre_mgkg')).toBe(true)
+  })
+
+  it('amoxicilina 30 mg/kg × 3 = 90 mg/kg/día está en el límite, 40 × 3 lo supera', () => {
+    expect(revisarDosis({ farmaco: 'Amoxicilina', dosisMg: 30, tomasDia: 3, dosisPorKg: true })
+      .some(x => x.codigo === 'pediatrico_sobre_mgkg')).toBe(false)
+    expect(revisarDosis({ farmaco: 'Amoxicilina', dosisMg: 40, tomasDia: 3, dosisPorKg: true })
+      .some(x => x.codigo === 'pediatrico_sobre_mgkg')).toBe(true)
+  })
+
+  it('una dosis normal por kilo NO alerta (sin falsos positivos)', () => {
+    expect(revisarDosis({ farmaco: 'Paracetamol', dosisMg: 12, tomasDia: 4, dosisPorKg: true })
+      .some(x => x.codigo === 'pediatrico_sobre_mgkg')).toBe(false)
+  })
+})
+
+/**
+ * REGRESIÓN auditoría 2026-07 (P2): frecuencias en RANGO apagaban el techo diario.
+ * «cada 4 a 6 horas» no casaba ningún patrón → null → el llamador asumía 1 toma/día.
+ */
+describe('Frecuencias en rango', () => {
+  it('«cada 4 a 6 horas» = 6 tomas (intervalo más corto = peor caso)', () => {
+    expect(extraerTomasDia('cada 4 a 6 horas')).toBe(6)
+  })
+  it('acepta guion y otras uniones', () => {
+    expect(extraerTomasDia('cada 6-8 h')).toBe(4)
+    expect(extraerTomasDia('cada 6 u 8 horas')).toBe(4)
+  })
+  it('el techo diario YA dispara con rango (paracetamol 1000 mg c/4-6h)', () => {
+    const tomas = extraerTomasDia('cada 4 a 6 horas')!
+    const a = revisarDosis({ farmaco: 'Paracetamol', dosisMg: 1000, tomasDia: tomas })
+    expect(a.some(x => x.codigo === 'sobre_maximo_diario')).toBe(true)
+  })
+  it('las frecuencias simples siguen igual', () => {
+    expect(extraerTomasDia('cada 8 horas')).toBe(3)
+    expect(extraerTomasDia('tres veces al día')).toBe(3)
+  })
+})
+
+/**
+ * REGRESIÓN auditoría 2026-07 (validado por el Dr): el verificador ignoraba la vía.
+ * Ketorolaco oral tiene tope 40 mg/día y no se aprueba VO en <17 años.
+ */
+describe('Ketorolaco por vía oral', () => {
+  it('30 mg VO × 3 (90 mg/día) SÍ supera el tope oral de 40 mg', () => {
+    const a = revisarDosis({ farmaco: 'Ketorolaco', dosisMg: 30, tomasDia: 3, via: 'oral' })
+    expect(a.some(x => x.codigo === 'sobre_maximo_diario' && /ORAL/.test(x.mensaje))).toBe(true)
+  })
+  it('la misma dosis parenteral (IM) no dispara el tope oral', () => {
+    const a = revisarDosis({ farmaco: 'Ketorolaco', dosisMg: 30, tomasDia: 3, via: 'im' })
+    expect(a.some(x => x.codigo === 'sobre_maximo_diario')).toBe(false)
+  })
+  it('VO en menor de 17 años → alerta crítica', () => {
+    const a = revisarDosis({ farmaco: 'Ketorolaco', dosisMg: 10, via: 'oral', edadAnios: 10 })
+    expect(a.some(x => x.codigo === 'via_edad_no_aprobada' && x.severidad === 'critica')).toBe(true)
+  })
+  it('VO en adulto no dispara la restricción de edad', () => {
+    const a = revisarDosis({ farmaco: 'Ketorolaco', dosisMg: 10, via: 'oral', edadAnios: 40 })
+    expect(a.some(x => x.codigo === 'via_edad_no_aprobada')).toBe(false)
   })
 })

@@ -132,7 +132,15 @@ export default async function PerfilPublico({ params }: { params: Promise<{ clin
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--bg)' }}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      {/* Auditoría 2026-07 (P0): XSS almacenado. jsonLd incluye datos del usuario
+          (reseñas, nombre del médico); si alguno traía «</script>» cerraba la etiqueta
+          e inyectaba JS en esta página PÚBLICA. Se escapan <, >, & y separadores de
+          línea a sus escapes unicode, que dentro de JSON son equivalentes y seguros. */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html:
+        JSON.stringify(jsonLd)
+          .replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')
+          .replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029')
+      }} />
 
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 16px 64px' }}>
         {/* Hero */}

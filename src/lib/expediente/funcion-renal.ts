@@ -23,6 +23,11 @@ export interface ResultadoRenal {
   estadioDesc: string
   /** Valor recomendado para dosificar (Cockcroft si hay peso; si no, CKD-EPI). */
   depuracionParaDosis: number
+  /**
+   * true en <18 años: CKD-EPI/Cockcroft son de adultos y NO aplican. El valor no
+   * debe usarse para ajustar dosis ni escribirse en la nota. Auditoría 2026-07.
+   */
+  noAplicablePorEdad?: boolean
 }
 
 /**
@@ -65,6 +70,14 @@ export function clasificarTFG(egfr: number): { estadio: string; desc: string } {
 export function evaluarFuncionRenal(
   creatinina: number, edad: number, sexo: Sexo, pesoKg?: number,
 ): ResultadoRenal {
+  // Reja de edad — CKD-EPI y Cockcroft son de adultos (auditoría 2026-07).
+  if (edad != null && edad < 18) {
+    return {
+      egfrCkdEpi: NaN, crClCockcroft: null,
+      estadio: '—', estadioDesc: 'En menores de 18 años la TFG se estima con la fórmula de Schwartz (usa la talla); CKD-EPI/Cockcroft no aplican.',
+      depuracionParaDosis: NaN, noAplicablePorEdad: true,
+    }
+  }
   const egfr = ckdEpi2021(creatinina, edad, sexo)
   const crcl = pesoKg && pesoKg > 0 ? cockcroftGault(creatinina, edad, sexo, pesoKg) : null
   const { estadio, desc } = clasificarTFG(egfr)
@@ -121,8 +134,11 @@ const REGLAS_RENALES: ReglaRenal[] = [
     mensaje: (c) => `Nitrofurantoína con CrCl ${c} (<30): EVITAR — ineficaz en orina y riesgo de toxicidad.` },
   { terminos: ['metformina'], umbral: 30, severidad: 'evitar',
     mensaje: (c) => `Metformina con CrCl ${c} (<30): contraindicada (acidosis láctica). 30-45: no iniciar, reducir si ya la toma.` },
+  // Auditoría 2026-07 (validado por el Dr): la regla solo daba la dosis de
+  // TRATAMIENTO. En PROFILAXIS con CrCl<30 NO se suspende: se reduce a 20 mg SC
+  // c/24h (Clexane MX). Se explicitan los dos escenarios.
   { terminos: ['enoxaparina'], umbral: 30, severidad: 'ajuste',
-    mensaje: (c) => `Enoxaparina con CrCl ${c} (<30): reducir a 1 mg/kg c/24h o usar HNF con anti-Xa.` },
+    mensaje: (c) => `Enoxaparina con CrCl ${c} (<30): tratamiento → reducir a 1 mg/kg c/24h; profilaxis → reducir a 20 mg SC c/24h (NO suspender). Alternativa: HNF con anti-Xa. Usa la depuración de creatinina, no la TFG indexada.` },
   { terminos: ['dabigatran', 'rivaroxaban', 'apixaban', 'edoxaban'], umbral: 30, severidad: 'ajuste',
     mensaje: (c) => `Anticoagulante oral directo con CrCl ${c}: ajustar o contraindicado según el fármaco. Revisar ficha técnica.` },
 ]

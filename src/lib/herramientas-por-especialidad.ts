@@ -135,6 +135,16 @@ export function herramientasDe(especialidad: string | undefined | null): Herrami
   return POR_TRONCO[troncoDe(especialidad)]
 }
 
+/**
+ * Herramientas de un tronco directamente (para catálogos/paquetes que se
+ * presentan por tronco y no por nombre de especialidad). Misma fuente de verdad
+ * que `herramientasDe`, así el catálogo público NO puede divergir de lo que la
+ * consulta realmente muestra.
+ */
+export function herramientasDeTronco(t: Tronco): HerramientaId[] {
+  return POR_TRONCO[t]
+}
+
 /** ¿Esta herramienta se muestra por defecto para esta especialidad? */
 export function muestraPorDefecto(especialidad: string | undefined | null, h: HerramientaId): boolean {
   return herramientasDe(especialidad).includes(h)

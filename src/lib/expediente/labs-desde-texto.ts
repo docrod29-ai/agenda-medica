@@ -41,7 +41,14 @@ const ANALITOS: { clave: string; patron: RegExp; min: number; max: number }[] = 
   { clave: 'alt', patron: /\b(alt|tgp|alanino)\b/i, min: 1, max: 5000 },
   { clave: 'plaquetas', patron: /\bplaquetas?\b/i, min: 1, max: 2_000_000 },
   { clave: 'colesterolTotal', patron: /\bcolesterol total\b/i, min: 50, max: 800 },
-  { clave: 'hdl', patron: /\b(hdl|colesterol hdl)\b/i, min: 5, max: 150 },
+  /**
+   * HDL — auditoría 2026-07 (P2). «colesterol no-HDL 140» casaba `\bhdl\b` (el
+   * guion es separador de palabra) y se guardaba como HDL. Un no-HDL de 140 se
+   * leía como un HDL excelente y PREVENT SUBESTIMABA el riesgo cardiovascular.
+   * Ahora el no-HDL simplemente no se captura: preferimos perder un dato a
+   * envenenar una fórmula que produce conducta.
+   */
+  { clave: 'hdl', patron: /(?<!\bno[\s-]?)\b(?:colesterol\s+)?hdl\b/i, min: 5, max: 150 },
   { clave: 'ldl', patron: /\b(ldl|colesterol ldl)\b/i, min: 10, max: 500 },
   { clave: 'trigliceridos', patron: /\btrigli(c|s)eridos\b/i, min: 20, max: 5000 },
   { clave: 'hba1c', patron: /\b(hba1c|hemoglobina glucosilada|hemoglobina glicada)\b/i, min: 3, max: 20 },

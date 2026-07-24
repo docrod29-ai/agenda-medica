@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Patient } from '@/types'
 import { getPatients, createPatient, updatePatient } from '@/lib/firestore'
 import { getNotas } from '@/lib/expediente/firestore'
+import { edadEnAnios } from '@/lib/expediente/pediatria'
 import { getCenso } from '@/lib/hospital/firestore'
 import { useToast } from '@/context/ToastContext'
 import { useAuth } from '@/hooks/useAuth'
@@ -377,6 +378,24 @@ function PatientModal({ patient, onClose, onSaved, userEmail }: {
   const upd = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setF(prev => ({ ...prev, [key]: e.target.value }))
 
+  /**
+   * La fecha de nacimiento CALCULA la edad — auditoría en vivo 2026-07.
+   *
+   * Eran dos campos independientes: había que teclear la edad aunque ya se hubiera
+   * dado la fecha, nada impedía guardar «nació 2019» con «edad 40», y la edad
+   * guardada envejecía mal (un niño registrado a los 6 seguía teniendo 6 al año
+   * siguiente). De esa edad comen la dosis pediátrica por peso/edad, los percentiles
+   * de la OMS, el esquema de vacunación y las escalas de riesgo cardiovascular.
+   * Sigue siendo editable a mano: hay pacientes que sólo saben su edad aproximada.
+   */
+  const setFechaNacimiento = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fecha = e.target.value
+    setF(prev => {
+      const edad = edadEnAnios(fecha)
+      return { ...prev, fechaNacimiento: fecha, edad: edad != null ? String(edad) : prev.edad }
+    })
+  }
+
   const handleSave = async () => {
     if (!f.nombre.trim()) { toast('El nombre es requerido', 'error'); return }
     if (!f.edad.trim()) { toast('La edad es requerida', 'error'); return }
@@ -475,11 +494,17 @@ function PatientModal({ patient, onClose, onSaved, userEmail }: {
             </div>
             <div className="form-group">
               <label className="label">Fecha de nacimiento</label>
-              <input className="input" type="date" value={f.fechaNacimiento} onChange={upd('fechaNacimiento')} />
+              <input className="input" type="date" value={f.fechaNacimiento} onChange={setFechaNacimiento} />
             </div>
             <div className="form-group">
               <label className="label">Edad *</label>
               <input className="input" type="number" value={f.edad} onChange={upd('edad')} min={0} max={130} />
+              {f.fechaNacimiento && (
+                <p style={{ fontSize: 11, color: 'var(--text3)', margin: '4px 0 0' }}>
+                  Calculada desde la fecha de nacimiento. La edad es la que usan la dosis pediátrica,
+                  los percentiles y las escalas de riesgo.
+                </p>
+              )}
             </div>
             <div className="form-group">
               <label className="label">Sexo</label>

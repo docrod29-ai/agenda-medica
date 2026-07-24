@@ -112,14 +112,32 @@ describe('Tendencias de laboratorio', () => {
 })
 
 describe('Alertas por cambio clínicamente relevante', () => {
-  it('creatinina: +0.3 mg/dL dispara criterio de lesión renal aguda', () => {
+  it('creatinina: +0.4 mg/dL EN 48 H dispara criterio de LRA (KDIGO)', () => {
     const t = analizarTendencia([
       { fecha: '2026-01-01', valor: 0.9 },
-      { fecha: '2026-02-01', valor: 1.3 },
+      { fecha: '2026-01-02', valor: 1.3 },   // 1 día → dentro de la ventana de 48 h
     ])!
     const a = alertaDeTendencia('Creatinina', t)!
     expect(a).toMatch(/lesión renal aguda/i)
     expect(a).toMatch(/KDIGO/)
+  })
+
+  it('KDIGO — el MISMO aumento en 2 años NO es LRA sino ERC (fix ventana temporal)', () => {
+    const t = analizarTendencia([
+      { fecha: '2024-01-01', valor: 0.9 },
+      { fecha: '2026-01-01', valor: 1.5 },   // +0.6 y >1.5×, pero en 730 días
+    ])!
+    const a = alertaDeTendencia('Creatinina', t)!
+    expect(a).toMatch(/NO es lesi[oó]n renal aguda/i)
+    expect(a).toMatch(/cr[oó]nica/i)
+  })
+
+  it('KDIGO — ≥1.5× el basal dentro de 7 días también es LRA', () => {
+    const t = analizarTendencia([
+      { fecha: '2026-01-01', valor: 1.0 },
+      { fecha: '2026-01-05', valor: 1.6 },   // 1.6× en 4 días
+    ])!
+    expect(alertaDeTendencia('Creatinina', t)!).toMatch(/aguda/i)
   })
 
   it('creatinina estable no dispara alerta', () => {

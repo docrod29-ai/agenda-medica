@@ -174,7 +174,7 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {revision.resultados.map((r, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-                  <span style={{ flex: 1, color: 'var(--text)' }}>{r.etiqueta}{r.critico && <span style={{ color: '#dc2626', fontWeight: 700 }}> ⚠ crítico</span>}</span>
+                  <span style={{ flex: 1, color: 'var(--text)' }}>{r.etiqueta}{r.critico && <span style={{ color: '#dc2626', fontWeight: 700 }}> ⚠ crítico</span>}{r.noEvaluable && <span title={r.motivoNoEvaluable} style={{ color: '#b45309', fontWeight: 700 }}> ⚠ verificar unidad</span>}</span>
                   <input className="input" value={r.valor} onChange={e => { const v = parseFloat(e.target.value); const rs = [...revision.resultados]; rs[i] = { ...r, valor: Number.isFinite(v) ? v : r.valor }; setRevision({ ...revision, resultados: rs }) }} style={{ width: 90, textAlign: 'right' }} type="number" step="any" />
                   <span style={{ width: 60, color: 'var(--text3)', fontSize: 12 }}>{r.unidad}</span>
                   <button title="Quitar" onClick={() => setRevision({ ...revision, resultados: revision.resultados.filter((_, j) => j !== i) })} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)' }}><Trash2 size={12} /></button>

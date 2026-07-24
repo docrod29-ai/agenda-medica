@@ -14,6 +14,30 @@ export interface SignosNews2 {
   fc?: number
   conciencia?: 'alerta' | 'alterada'   // ACVPU: alerta=0, cualquier alteración=3
   oxigeno?: boolean    // recibe O2 suplementario → +2
+  /**
+   * Escala de SpO₂ (validado por el Dr, auditoría 2026-07):
+   *  1 = por defecto.
+   *  2 = SOLO para insuficiencia respiratoria hipercápnica con objetivo prescrito
+   *      de 88–92%. NO se activa automáticamente por tener diagnóstico de EPOC;
+   *      es una indicación clínica explícita.
+   */
+  escalaSpo2?: 1 | 2
+}
+
+/**
+ * Puntos de SpO₂ en la Escala 2 (objetivo 88–92%). Tabla del Royal College,
+ * validada por el Dr. En ≥93% el puntaje depende de si respira aire u O₂.
+ */
+export function puntosSpo2Escala2(spo2: number, conOxigeno: boolean): number {
+  if (spo2 <= 83) return 3
+  if (spo2 <= 85) return 2
+  if (spo2 <= 87) return 1
+  if (spo2 <= 92) return 0
+  // ≥93%
+  if (!conOxigeno) return 0            // ≥93% en aire ambiente
+  if (spo2 <= 94) return 1
+  if (spo2 <= 96) return 2
+  return 3                              // ≥97% con O₂
 }
 
 export interface News2Param { param: string; valor: string; puntos: number }
@@ -56,7 +80,10 @@ export function calcularNews2(s: SignosNews2): News2Result | null {
   if (typeof s.spo2 === 'number') {
     algunSigno = true
     const v = s.spo2
-    add('SpO₂', `${v}%`, v >= 96 ? 0 : v >= 94 ? 1 : v >= 92 ? 2 : 3)
+    const pts = s.escalaSpo2 === 2
+      ? puntosSpo2Escala2(v, !!s.oxigeno)
+      : (v >= 96 ? 0 : v >= 94 ? 1 : v >= 92 ? 2 : 3)   // Escala 1 (por defecto)
+    add(`SpO₂${s.escalaSpo2 === 2 ? ' (escala 2)' : ''}`, `${v}%`, pts)
   }
   if (s.oxigeno) add('O₂ suplementario', 'sí', 2)
   if (typeof s.temp === 'number') {

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { DemoWorkflow } from '@/components/DemoWorkflow'
 
 export const metadata = {
   title: 'Operación y finanzas · NexusMED',
@@ -54,6 +55,16 @@ export default function OperacionPage() {
             <p style={{ fontSize: 13, color: 'var(--text2, #334155)', lineHeight: 1.5, margin: 0 }}>{m.desc}</p>
           </div>
         ))}
+      </div>
+
+      <div style={{ marginTop: 34 }}>
+        <div style={{ fontSize: 12, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--teal, #0d9488)', fontWeight: 700, marginBottom: 4 }}>
+          Workflow Orchestrator · en vivo
+        </div>
+        <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text, #0f172a)', margin: '2px 0 12px', letterSpacing: '-.01em' }}>
+          El sistema te dice qué atender primero
+        </h2>
+        <DemoWorkflow />
       </div>
 
       <div style={{ marginTop: 30, display: 'flex', gap: 12, flexWrap: 'wrap' }}>

@@ -33,6 +33,14 @@ export interface ResultadoValidado {
   unidad: string
   referencia?: string
   critico: boolean
+  /**
+   * NO se pudo juzgar la criticidad (unidad reportada distinta de la del umbral).
+   * Auditoría 2026-07 (P1): antes esto se guardaba como «no crítico» = normal, y un
+   * valor de pánico en una unidad rara (troponina en ng/L, lactato en mg/dL) pasaba
+   * como bueno. Ahora se marca para que la UI diga «verificar», no «normal».
+   */
+  noEvaluable?: boolean
+  motivoNoEvaluable?: string
   /** Se puso en una serie temporal (analito reconocido y valor plausible). */
   graficable: boolean
 }
@@ -97,10 +105,17 @@ export function validarPanel(crudo: { fecha?: string; filas?: FilaCruda[] }): Pa
     vistos.add(a.clave)
 
     const unidad = fila.unidad?.trim() || a.unidad
-    const critico = evaluarCriticoLab(a.clave, num, unidad).critico
+    // Se evalúa con la unidad TAL COMO la reportó el laboratorio (no la del analito):
+    // si difiere del umbral, evaluable=false y se marca «verificar» en vez de normal.
+    const ev = evaluarCriticoLab(a.clave, num, fila.unidad?.trim() || undefined)
+    const noEvaluable = !ev.evaluable && !!fila.unidad?.trim()
     resultados.push({
       clave: a.clave, etiqueta: a.etiqueta, valor: num, unidad,
-      referencia: fila.referencia?.trim() || undefined, critico, graficable: true,
+      referencia: fila.referencia?.trim() || undefined,
+      critico: ev.critico,
+      noEvaluable: noEvaluable || undefined,
+      motivoNoEvaluable: noEvaluable ? ev.motivo : undefined,
+      graficable: true,
     })
   }
 

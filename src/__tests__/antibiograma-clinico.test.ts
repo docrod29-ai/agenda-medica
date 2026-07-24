@@ -117,3 +117,40 @@ describe('puntos de corte verificados contra la literatura', () => {
     expect(interpretarCMI('Acinetobacter baumannii', 'Minociclina', 4)?.categoria).toBe('R')
   })
 })
+
+/**
+ * REGRESIÓN auditoría 2026-07 (P0): ertapenem R (intrínseco en no-fermentadores)
+ * disparaba falsa carbapenemasa + falsa notificación NOM-045 en Pseudomonas/Acinetobacter.
+ */
+describe('Ertapenem intrínseco no dispara falsa carbapenemasa (no-fermentadores)', () => {
+  it('Pseudomonas con SOLO ertapenem R (mero/imi S) NO se marca carbapenemasa', () => {
+    const res = interpretarAntibiograma({ organismo: 'Pseudomonas aeruginosa', resultados: [
+      { antibiotico: 'Ertapenem', interpretacion: 'R' },
+      { antibiotico: 'Meropenem', interpretacion: 'S' },
+      { antibiotico: 'Imipenem', interpretacion: 'S' },
+    ] })
+    // No hay fenotipo de carbapenemasa ni notificación (el texto didáctico puede
+    // mencionar la palabra al explicar por qué NO la hay; se revisan los campos).
+    expect(res.fenotipos.some(f => /carbapenemasa/i.test(f.nombre))).toBe(false)
+    expect(res.notificacionObligatoria).toBeFalsy()
+  })
+  it('Pseudomonas con meropenem R SÍ dispara el fenotipo', () => {
+    const res = interpretarAntibiograma({ organismo: 'Pseudomonas aeruginosa', resultados: [
+      { antibiotico: 'Meropenem', interpretacion: 'R' },
+    ] })
+    expect(res.fenotipos.some(f => /carbapen/i.test(f.nombre))).toBe(true)
+  })
+})
+
+/** REGRESIÓN (P1): daptomicina CMI 1 en S. aureus es SENSIBLE, no debe marcarse no-S. */
+describe('Daptomicina CMI 1 en S. aureus = sensible', () => {
+  const fen = (cmi: number) => interpretarAntibiograma({ organismo: 'Staphylococcus aureus', resultados: [
+    { antibiotico: 'Daptomicina', interpretacion: 'S', cmi },
+  ] }).fenotipos.some(f => /daptomicina/i.test(f.nombre))
+  it('CMI 1 (S) NO se marca no-S (era el bug: descartaba 1ª línea)', () => {
+    expect(fen(1)).toBe(false)
+  })
+  it('CMI 2 sí es no-S', () => {
+    expect(fen(2)).toBe(true)
+  })
+})

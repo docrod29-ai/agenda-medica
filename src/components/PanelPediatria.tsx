@@ -44,11 +44,12 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
   const dosis = useMemo(() => {
     if (!(pesoKg > 0)) return []
     const q = busca.trim().toLowerCase()
+    const edad = meses !== '' && edadMeses >= 0 ? edadMeses : undefined
     return FARMACOS_PED
       .filter(f => !q || f.nombre.toLowerCase().includes(q))
-      .map(f => calcularDosisPediatrica(f, pesoKg))
+      .map(f => calcularDosisPediatrica(f, pesoKg, edad))
       .filter(Boolean)
-  }, [pesoKg, busca])
+  }, [pesoKg, busca, meses, edadMeses])
 
   const vacunas = useMemo(
     () => (edadMeses >= 0 && meses !== '' ? vacunasSegunEdad(edadMeses) : []),
@@ -80,8 +81,8 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
           <Baby size={15} color="#a78bfa" />
           <span style={{ fontSize: 13, fontWeight: 700, color: '#a78bfa' }}>Pediatría</span>
           {atrasadas.length > 0 && (
-            <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 100, background: 'rgba(239,68,68,.15)', color: 'var(--red)' }}>
-              {atrasadas.length} vacuna{atrasadas.length > 1 ? 's' : ''} atrasada{atrasadas.length > 1 ? 's' : ''}
+            <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 100, background: 'rgba(245,158,11,.15)', color: 'var(--amber, #b45309)' }}>
+              verificar {atrasadas.length} vacuna{atrasadas.length > 1 ? 's' : ''}
             </span>
           )}
         </div>
@@ -118,15 +119,31 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
                 style={{ ...campoBase, width: '100%', marginBottom: 8 }} />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 340, overflowY: 'auto' }}>
                 {dosis.map(d => d && (
-                  <div key={d.farmaco} style={{ border: '1px solid var(--border)', borderRadius: 9, background: 'var(--s1)', padding: '9px 11px' }}>
+                  <div key={d.farmaco} style={{ border: '1px solid ' + (d.contraindicadoPorEdad ? 'rgba(239,68,68,.4)' : 'var(--border)'), borderRadius: 9, background: d.contraindicadoPorEdad ? 'rgba(239,68,68,.07)' : 'var(--s1)', padding: '9px 11px' }}>
+                    {d.contraindicadoPorEdad ? (
+                      /* Auditoría 2026-07 (P0): sin dosis ni botón de nota cuando el
+                         fármaco no corresponde a la edad; solo el porqué. */
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                        <AlertTriangle size={14} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 2 }} />
+                        <div>
+                          <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)' }}>{d.farmaco} · </span>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--red)' }}>NO CORRESPONDE A ESTA EDAD</span>
+                          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3, lineHeight: 1.45 }}>{d.motivoEdad}</div>
+                        </div>
+                      </div>
+                    ) : (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)' }}>{d.farmaco}</span>
                       <span style={{ fontSize: 12.5, color: '#a78bfa', fontWeight: 700 }}>
                         {d.porToma.min === d.porToma.max ? d.porToma.max : `${d.porToma.min}–${d.porToma.max}`} {d.unidad} {d.intervalo}
                       </span>
-                      <span style={{ fontSize: 11, color: 'var(--text3)' }}>
-                        (total {d.porDia.min === d.porDia.max ? d.porDia.max : `${d.porDia.min}–${d.porDia.max}`} {d.unidad}/día)
-                      </span>
+                      {d.esRescate ? (
+                        <span style={{ fontSize: 11, color: 'var(--text3)' }}>(rescate: por episodio, no dosis diaria fija)</span>
+                      ) : (
+                        <span style={{ fontSize: 11, color: 'var(--text3)' }}>
+                          (total {d.porDia.min === d.porDia.max ? d.porDia.max : `${d.porDia.min}–${d.porDia.max}`} {d.unidad}/día)
+                        </span>
+                      )}
                       {d.topeAplicado && (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 800, padding: '2px 8px', borderRadius: 100, background: 'rgba(245,158,11,.15)', color: 'var(--amber)' }}>
                           <AlertTriangle size={11} /> tope de adulto
@@ -138,7 +155,8 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
                         )} style={btnMini}><Plus size={12} /> Nota</button>
                       )}
                     </div>
-                    {d.nota && <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4, lineHeight: 1.45 }}>{d.nota}</div>}
+                    )}
+                    {!d.contraindicadoPorEdad && d.nota && <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4, lineHeight: 1.45 }}>{d.nota}</div>}
                   </div>
                 ))}
                 {dosis.length === 0 && <p style={{ fontSize: 12, color: 'var(--text3)' }}>Sin coincidencias.</p>}
@@ -199,6 +217,10 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
             <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0 }}>Captura la edad en meses para revisar el esquema.</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 340, overflowY: 'auto' }}>
+              <p style={{ fontSize: 11, color: 'var(--text3)', margin: '0 0 3px', lineHeight: 1.45 }}>
+                Esto es el <b>esquema que corresponde a la edad</b>, no el estado real del paciente:
+                el expediente no guarda qué vacunas se aplicaron. Verifica la cartilla.
+              </p>
               {vacunas.map((v, i) => (
                 <div key={i} style={{
                   border: '1px solid ' + (v.estado === 'atrasada' ? 'rgba(239,68,68,.35)' : 'var(--border)'),
@@ -211,17 +233,22 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
                       {v.vacuna.mes === 0 ? 'al nacer' : v.vacuna.mes < 24 ? `${v.vacuna.mes} meses` : `${v.vacuna.mes / 12} años`}
                     </span>
                     {v.estado === 'atrasada' && (
-                      <span style={{ fontSize: 10.5, fontWeight: 800, padding: '2px 8px', borderRadius: 100, background: 'rgba(239,68,68,.15)', color: 'var(--red)' }}>ATRASADA</span>
+                      <span style={{ fontSize: 10.5, fontWeight: 800, padding: '2px 8px', borderRadius: 100, background: 'rgba(245,158,11,.15)', color: 'var(--amber, #b45309)' }}>CORRESPONDE POR EDAD</span>
                     )}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3, lineHeight: 1.45 }}>{v.vacuna.detalle}</div>
                 </div>
               ))}
+              {/* Auditoría 2026-07 (P1): la app NO tiene registro de qué se aplicó
+                  (`vacunasSegunEdad` se llama sin `aplicadas`), así que TODA vacuna
+                  con fecha pasada salía "ATRASADA" en todo paciente pediátrico. Se
+                  dejó de afirmar un hecho clínico que nunca se verificó: ahora se
+                  informa qué CORRESPONDE por edad y se remite a la cartilla. */}
               {onAgregarANota && atrasadas.length > 0 && (
                 <button type="button" onClick={() => onAgregarANota(
-                  `Esquema de vacunación incompleto para la edad. Pendientes/atrasadas: ${atrasadas.map(a => `${a.vacuna.nombre} (${a.vacuna.mes} m)`).join(', ')}. Se indica regularización.`
+                  `Por edad corresponden las siguientes vacunas del esquema nacional: ${atrasadas.map(a => `${a.vacuna.nombre} (${a.vacuna.mes} m)`).join(', ')}. Se verifica cartilla de vacunación para confirmar aplicaciones previas y regularizar lo que falte.`
                 )} style={{ ...btnMini, alignSelf: 'flex-start', marginTop: 4 }}>
-                  <Plus size={12} /> Agregar atrasos a la nota
+                  <Plus size={12} /> Agregar a la nota
                 </button>
               )}
             </div>

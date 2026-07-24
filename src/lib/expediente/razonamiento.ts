@@ -98,12 +98,40 @@ export function construirTraza(e: EntradaCopiloto): PasoRazonamiento[] {
     hallazgos: resumen(metas),
   })
   // 7. Comprueba dosis
+  /**
+   * HONESTIDAD DEL PASO 7 — auditoría 2026-07 (P1).
+   *
+   * `dosisSugs` sólo agrupa `ped:dosis`, `renal:` y `gesta:`, y esos chequeos SÓLO
+   * pueden correr si hay (respectivamente) paciente pediátrico CON peso, creatinina
+   * capturada, o embarazo. En un adulto común no corre ninguno — pero el paso decía
+   * en verde «N fármacos revisados: sin exceso de dosis, ajuste renal ni riesgo
+   * gestacional detectado», o sea un «revisado y limpio» que nunca ocurrió.
+   * Un panel que dice haber revisado lo que no revisó destruye justo lo que este
+   * panel existe para dar. Ahora se declara QUÉ se pudo evaluar y qué NO, y el
+   * estado deja de ser 'ok' cuando no se evaluó nada.
+   */
+  const esPediatrico = e.edad != null && e.edad < 18
+  const pesoCapturado = Number(e.signos?.peso ?? 0) > 0
+  const hechos: string[] = []
+  const noHechos: string[] = []
+  if (labs.creatinina != null) hechos.push('ajuste renal')
+  else noHechos.push('ajuste renal (falta la creatinina)')
+  if (esPediatrico) {
+    if (pesoCapturado) hechos.push('dosis por peso')
+    else noHechos.push('dosis por peso (falta el peso)')
+  }
+  const seEvaluoAlgo = hechos.length > 0
   t.push({
-    n: 7, titulo: 'Comprueba dosis', fuente: 'determinista', confianza: 'alta',
-    estado: dosisSugs.some(s => s.nivel === 'critico') ? 'alerta' : (nMed > 0 ? 'ok' : 'na'),
+    n: 7, titulo: 'Comprueba dosis', fuente: 'determinista',
+    confianza: seEvaluoAlgo ? 'alta' : 'baja',
+    estado: dosisSugs.some(s => s.nivel === 'critico') ? 'alerta'
+      : nMed === 0 ? 'na'
+      : seEvaluoAlgo ? 'ok' : 'faltante',
     detalle: nMed === 0 ? 'Sin fármacos que verificar.'
       : dosisSugs.length > 0 ? dosisSugs.map(s => s.titulo).join(' · ')
-      : `${nMed} fármaco(s) revisados: sin exceso de dosis, ajuste renal ni riesgo gestacional detectado.`,
+      : seEvaluoAlgo
+        ? `${nMed} fármaco(s): ${hechos.join(' y ')} sin hallazgos.${noHechos.length ? ` NO se evaluó ${noHechos.join(' ni ')}.` : ''}`
+        : `${nMed} fármaco(s) capturados, pero con los datos de esta consulta NO se pudo verificar la dosis: ${noHechos.join(' ni ')}. El techo de dosis por fármaco se revisa al generar la receta.`,
     hallazgos: resumen(dosisSugs),
   })
   // 8. Recupera evidencia (PubMed) — asíncrono, vive en Máxima / Consultor

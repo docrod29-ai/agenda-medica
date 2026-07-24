@@ -37,3 +37,51 @@ describe('Clinical Reasoning Engine — traza', () => {
     expect(t.find(p => p.n === 9)!.estado).toBe('pendiente')
   })
 })
+
+/**
+ * REGRESIÓN auditoría 2026-07 (P1): el paso 7 afirmaba «N fármacos revisados: sin
+ * exceso de dosis...» en TODO adulto, aunque ninguno de sus chequeos (ped/renal/
+ * gestacional) pudiera correr. Un panel que dice haber revisado lo que no revisó
+ * destruye justo la confianza que este panel existe para dar.
+ */
+describe('Paso 7 «Comprueba dosis»: no afirma lo que no hizo', () => {
+  const paso7 = (e: Parameters<typeof construirTraza>[0]) =>
+    construirTraza(e).find(p => p.n === 7)!
+
+  it('adulto SIN creatinina: no dice "revisados", declara que no se pudo evaluar', () => {
+    const p = paso7({
+      edad: 45, sexo: 'Masculino',
+      diagnosticos: [{ descripcion: 'Faringitis' }],
+      medicamentos: [{ nombre: 'Amoxicilina', dosis: '500 mg' }],
+    })
+    expect(p.detalle).toMatch(/NO se pudo verificar/i)
+    expect(p.detalle).toMatch(/creatinina/i)
+    expect(p.estado).not.toBe('ok')          // ya no sale en verde
+    expect(p.confianza).toBe('baja')
+  })
+
+  it('adulto CON creatinina: sí declara que evaluó el ajuste renal', () => {
+    const p = paso7({
+      edad: 45, sexo: 'Masculino',
+      diagnosticos: [{ descripcion: 'Faringitis' }],
+      medicamentos: [{ nombre: 'Amoxicilina', dosis: '500 mg' }],
+      labs: { creatinina: 1.0 },
+    })
+    expect(p.detalle).toMatch(/ajuste renal/i)
+    expect(p.estado).toBe('ok')
+  })
+
+  it('pediátrico sin peso: lo dice en vez de callarlo', () => {
+    const p = paso7({
+      edad: 6, sexo: 'Femenino',
+      diagnosticos: [{ descripcion: 'Otitis' }],
+      medicamentos: [{ nombre: 'Amoxicilina', dosis: '250 mg' }],
+    })
+    expect(p.detalle).toMatch(/falta el peso/i)
+  })
+
+  it('sin fármacos sigue siendo "sin nada que verificar"', () => {
+    const p = paso7({ edad: 45, diagnosticos: [{ descripcion: 'Control' }], medicamentos: [] })
+    expect(p.estado).toBe('na')
+  })
+})

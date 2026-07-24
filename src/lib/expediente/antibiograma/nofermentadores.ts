@@ -12,7 +12,7 @@ import { REF } from './referencias'
 import {
   organismoEs, estado, ES_R, ES_S,
   IMIPENEM, MEROPENEM, CEFTAZIDIMA, CEFEPIME, PIP_TAZO, AZTREONAM,
-  CEFTAZIDIMA_AVIBACTAM, COTRIMOXAZOL, CARBAPENEM, algunoR, algunoS,
+  CEFTAZIDIMA_AVIBACTAM, COTRIMOXAZOL, CARBAPENEM_ANTIPSEUDOMONAS, algunoR, algunoS,
 } from './util'
 import { CLASES } from './betalactamasas'
 
@@ -32,7 +32,8 @@ function pseudomonas(r: ResultadoAntibiograma[], out: AporteModulo) {
   const fep = estado(r, CEFEPIME)
   const piptazo = estado(r, PIP_TAZO)
   const cza = estado(r, CEFTAZIDIMA_AVIBACTAM)
-  const carbaR = algunoR(r, CARBAPENEM)
+  // Sin ertapenem: es R intrínseco en no-fermentadores (auditoría 2026-07 P0).
+  const carbaR = algunoR(r, CARBAPENEM_ANTIPSEUDOMONAS)
   const otrosBetaR = ES_R(caz) || ES_R(piptazo) || ES_R(fep)
 
   // Patrón 1: imipenem R aislado (meropenem S y demás β-lactámicos S) → pérdida de OprD.
@@ -101,7 +102,8 @@ function pseudomonas(r: ResultadoAntibiograma[], out: AporteModulo) {
 
 // ── Acinetobacter baumannii ─────────────────────────────────────────────────
 function acinetobacter(r: ResultadoAntibiograma[], out: AporteModulo) {
-  const carbaR = algunoR(r, CARBAPENEM)
+  // Sin ertapenem: es R intrínseco en no-fermentadores (auditoría 2026-07 P0).
+  const carbaR = algunoR(r, CARBAPENEM_ANTIPSEUDOMONAS)
   if (carbaR) {
     out.fenotipos.push({ clave: 'carbapenemasa', nombre: 'A. baumannii resistente a carbapenémicos (oxacilinasa tipo OXA)', confianza: 'probable', base: `Carbapenémico R en A. baumannii: lo más frecuente es una oxacilinasa con actividad carbapenemasa (OXA-23/24/58) sobre la OXA-51 intrínseca, potenciada por ISAba1. ${REF.NO_FERM}` })
     out.mecanismos.push({ categoria: 'β-lactamasa', nombre: 'Carbapenemasa OXA (clase D)', ambler: 'D', confianza: 'probable', explicacion: 'Las OXA de A. baumannii no se inhiben con clavulanato; ISAba1 aporta el promotor que sobreexpresa la enzima. También pueden coexistir MBL (IMP/VIM/NDM) y AmpC (ADC).', referencia: REF.NO_FERM })

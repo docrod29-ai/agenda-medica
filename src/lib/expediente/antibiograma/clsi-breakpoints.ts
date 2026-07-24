@@ -10,7 +10,7 @@
  * ⚠ Sólo se incluyen combinaciones bug-fármaco con punto de corte VIGENTE y no
  *    condicionadas a foco (las de "solo IVU no complicada" se marcan uti:true).
  */
-import { norm } from './util'
+import { norm, coincideAntibiotico } from './util'
 
 export type GrupoCLSI =
   | 'enterobacterales' | 'pseudomonas' | 'acinetobacter'
@@ -46,7 +46,10 @@ const FARMACO_ALIAS: Record<string, string[]> = {
   'ampicilina-sulbactam': ['ampicilina-sulbactam', 'ampicilina/sulbactam', 'unasyn'],
   'piperacilina-tazobactam': ['piperacilina-tazobactam', 'piperacilina/tazobactam', 'tazocin'],
   'ceftolozano-tazobactam': ['ceftolozano-tazobactam', 'ceftolozano/tazobactam', 'zerbaxa'],
-  'ceftazidima-avibactam': ['ceftazidima-avibactam', 'ceftazidima/avibactam', 'avibactam'],
+  // Auditoría 2026-07 (P0): se quita el alias suelto 'avibactam' (casaba
+  // «aztreonam-avibactam»). Sin entrada propia, aztreonam-avibactam devuelve
+  // «sin punto de corte» —seguro— hasta que el Dr valide sus breakpoints.
+  'ceftazidima-avibactam': ['ceftazidima-avibactam', 'ceftazidima/avibactam', 'caz-avi'],
   'imipenem-relebactam': ['imipenem-relebactam', 'imipenem/relebactam', 'relebactam'],
   'meropenem-vaborbactam': ['meropenem-vaborbactam', 'meropenem/vaborbactam', 'vaborbactam'],
   'ticarcilina-clavulanato': ['ticarcilina-clavulanico', 'ticarcilina/clavulanico', 'ticarcilina-clavulanato'],
@@ -135,7 +138,7 @@ const ENTEROBACTERALES: Record<string, Corte> = {
 
 /** Tabla 2B-1 — Pseudomonas aeruginosa (CLSI M100-Ed35, 2025). CMI en µg/mL. */
 const PSEUDOMONAS: Record<string, Corte> = {
-  'piperacilina-tazobactam': { sMax: 16, rMin: 64 },
+  'piperacilina-tazobactam': { sMax: 16, rMin: 64 },   // Dr-validado M100-Ed35: S≤16/4, I=32/4, R≥64/4 (32 es I, NO SDD)
   'ceftazidima-avibactam': { sMax: 8, rMin: 16 },
   'ceftolozano-tazobactam': { sMax: 4, rMin: 16 },
   'imipenem-relebactam': { sMax: 2, rMin: 8 },
@@ -174,7 +177,7 @@ const ACINETOBACTER: Record<string, Corte> = {
   tobramicina: { sMax: 4, rMin: 16 },
   amikacina: { sMax: 16, rMin: 64 },
   netilmicina: { sMax: 8, rMin: 32 },
-  minociclina: { sMax: 1, rMin: 4 },
+  minociclina: { sMax: 1, rMin: 4 },   // Dr-validado M100-Ed35: S≤1, I=2, R≥4 (disco: si I, confirmar por CMI)
   ciprofloxacino: { sMax: 1, rMin: 4 },
   levofloxacino: { sMax: 2, rMin: 8 },
   cotrimoxazol: { sMax: 2, rMin: 4 },
@@ -342,7 +345,11 @@ function claveFarmaco(antibiotico: string): string | null {
   // más específico primero (combinaciones antes que el componente suelto)
   const orden = Object.keys(FARMACO_ALIAS).sort((x, y) => y.length - x.length)
   for (const clave of orden) {
-    if (FARMACO_ALIAS[clave].some(s => a.includes(norm(s)))) return clave
+    // Auditoría 2026-07 (P0/P1, muchos auditores): antes era `a.includes(s)` crudo,
+    // así que «Aztreonam-avibactam», «Cefepime-taniborbactam» y otros BL/BLI nuevos
+    // recibían los puntos de corte del componente suelto o de otra combinación. Se
+    // usa el matcher endurecido con límite de token y regla de inhibidores.
+    if (FARMACO_ALIAS[clave].some(s => coincideAntibiotico(a, s))) return clave
   }
   return null
 }

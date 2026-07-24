@@ -61,3 +61,66 @@ describe('detectarControlados', () => {
     expect(r).toHaveLength(1)
   })
 })
+
+/**
+ * REGRESIÓN auditoría 2026-07 (P1): la regla "Anticoagulante + AINE" sólo cubría
+ * antagonistas de vitamina K. Los anticoagulantes orales directos —los más
+ * prescritos hoy en fibrilación auricular— no disparaban ninguna alerta.
+ */
+describe('Anticoagulantes orales directos + AINE', () => {
+  const conAine = (anticoag: string) =>
+    detectarInteracciones([{ nombre: anticoag }, { nombre: 'Ibuprofeno' }])
+      .some(i => /anticoagulante/i.test(i.titulo))
+
+  it('apixabán + ibuprofeno alerta', () => expect(conAine('Apixabán')).toBe(true))
+  it('rivaroxabán + ibuprofeno alerta', () => expect(conAine('Rivaroxaban')).toBe(true))
+  it('dabigatrán + ibuprofeno alerta', () => expect(conAine('Dabigatrán')).toBe(true))
+  it('edoxabán + ibuprofeno alerta', () => expect(conAine('Edoxaban')).toBe(true))
+  it('por nombre comercial también (Eliquis, Xarelto)', () => {
+    expect(conAine('Eliquis')).toBe(true)
+    expect(conAine('Xarelto')).toBe(true)
+  })
+  it('warfarina sigue alertando (no se rompió lo que ya servía)', () => expect(conAine('Warfarina')).toBe(true))
+  it('sin AINE no hay alerta (sin falsos positivos)', () => {
+    expect(detectarInteracciones([{ nombre: 'Apixabán' }, { nombre: 'Paracetamol' }])
+      .some(i => /anticoagulante/i.test(i.titulo))).toBe(false)
+  })
+})
+
+/**
+ * REGRESIÓN auditoría 2026-07 (P2, hallado por TRES auditores): el término 'ara'
+ * (ARA-II) casaba dentro de «par-ara-cetamol» → falsa alerta de hiperkalemia.
+ */
+describe('Términos cortos no casan dentro de otra palabra', () => {
+  const hiperK = (meds: string[]) =>
+    detectarInteracciones(meds.map(nombre => ({ nombre })))
+      .some(i => /hiperkalemia|hiperpotasemia/i.test(i.detalle + i.titulo))
+
+  it('paracetamol + espironolactona NO alerta de hiperkalemia (era el falso positivo)', () => {
+    expect(hiperK(['Paracetamol 500 mg', 'Espironolactona 25 mg'])).toBe(false)
+  })
+
+  it('un ARA-II de verdad SÍ alerta', () => {
+    expect(hiperK(['Losartán 50 mg', 'Espironolactona 25 mg'])).toBe(true)
+  })
+
+  it('la abreviatura como palabra completa sigue funcionando', () => {
+    expect(hiperK(['ARA II', 'Espironolactona'])).toBe(true)
+    expect(hiperK(['IECA', 'Espironolactona'])).toBe(true)
+  })
+
+  it('las raíces largas conservan su sensibilidad por subcadena', () => {
+    // 'atorvastatina' está listada; el nombre viene con dosis pegada.
+    expect(detectarInteracciones([{ nombre: 'Claritromicina 500 mg' }, { nombre: 'Atorvastatina 40 mg' }]).length)
+      .toBeGreaterThan(0)
+  })
+})
+
+/** REGRESIÓN (P2): la regla anticoagulante+AINE ahora cubre HBPM y antiagregantes. */
+describe('Anticoagulante/antiagregante + AINE: HBPM y antiplaquetarios', () => {
+  const alerta = (a: string) => detectarInteracciones([{ nombre: a }, { nombre: 'Ketorolaco' }])
+    .some(i => /aine/i.test(i.titulo))
+  it('enoxaparina + ketorolaco alerta', () => expect(alerta('Enoxaparina 40 mg')).toBe(true))
+  it('clopidogrel + ketorolaco alerta', () => expect(alerta('Clopidogrel 75 mg')).toBe(true))
+  it('heparina + ketorolaco alerta', () => expect(alerta('Heparina')).toBe(true))
+})

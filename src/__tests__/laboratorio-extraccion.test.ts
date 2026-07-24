@@ -86,3 +86,27 @@ describe('series temporales para las gráficas', () => {
     expect(glu?.puntos.map(p => p.valor)).toEqual([180, 92])
   })
 })
+
+/**
+ * REGRESIÓN auditoría 2026-07 (P1): un valor de pánico reportado en una unidad NO
+ * reconocida se archivaba como normal. Ahora se marca noEvaluable (verificar).
+ */
+describe('Unidad no reconocida → noEvaluable, no "normal"', () => {
+  it('potasio 7.0 en una unidad rara NO se da por normal (se marca verificar)', () => {
+    const p = validarPanel({ fecha: '2026-01-01', filas: [
+      { estudio: 'Potasio', valor: '7.0', unidad: 'mmol-raro' },
+    ]})
+    const r = p.resultados.find(x => x.clave === 'potasio')
+    expect(r).toBeTruthy()
+    expect(r!.noEvaluable).toBe(true)
+    expect(r!.critico).toBe(false)   // no se afirma crítico, pero tampoco se calla
+  })
+  it('potasio 7.0 SIN unidad usa la convencional y SÍ marca crítico', () => {
+    const p = validarPanel({ fecha: '2026-01-01', filas: [
+      { estudio: 'Potasio', valor: '7.0' },
+    ]})
+    const r = p.resultados.find(x => x.clave === 'potasio')!
+    expect(r.noEvaluable).toBeFalsy()
+    expect(r.critico).toBe(true)
+  })
+})

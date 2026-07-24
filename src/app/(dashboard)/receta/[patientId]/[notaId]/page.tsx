@@ -33,9 +33,11 @@ import { descargarComoPDF } from '@/lib/pdf-download'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
 import { detectarInteracciones, detectarControlados } from '@/lib/expediente/farmacovigilancia'
 import { alergiasDe } from '@/lib/seguridad/alergias'
-import { revisarDosis, extraerMg, extraerTomasDia, type AlertaDosis } from '@/lib/seguridad/dosis'
+import { revisarDosis, extraerMg, extraerTomasDia, esDosisPorKg, type AlertaDosis } from '@/lib/seguridad/dosis'
 import { evaluarFuncionRenal, ajusteRenalFarmacos } from '@/lib/expediente/funcion-renal'
 import { descargarRecetaWord } from '@/lib/receta-word'
+import { auth } from '@/lib/firebase'
+import { registrarRecetados, cargarRecetasFrecuentes, type MedRecetado } from '@/lib/learning'
 import {
   ArrowLeft, Download, Loader2, Plus, Trash2, Printer, Settings, AlertCircle, FileText,
   AlertTriangle, Lock, Droplet, Ban, Scale, Lightbulb, Scissors,
@@ -73,6 +75,8 @@ export default function GeneradorRecetaPage() {
   const [notaParaPaciente, setNotaParaPaciente] = useState('')
   const [diagnostico, setDiagnostico] = useState('')
   const [descargando, setDescargando] = useState(false)
+  // Learning Engine: "tus más recetados" del propio médico (fail-safe).
+  const [frecuentes, setFrecuentes] = useState<MedRecetado[]>([])
 
   // Folio único (timestamp corto)
   /**
@@ -130,7 +134,10 @@ export default function GeneradorRecetaPage() {
       const mg = extraerMg(m.dosis)
       if (mg == null) continue
       const tomas = extraerTomasDia(m.frecuencia || '') ?? undefined
-      const al = revisarDosis({ farmaco: m.nombre, dosisMg: mg, tomasDia: tomas, pesoKg: pesoParaDosis })
+      // "50 mg/kg" NO son 50 mg absolutos: si no se marca, revisarDosis lo dividía
+      // otra vez entre el peso y la alerta pediátrica nunca disparaba.
+      const porKg = esDosisPorKg(m.dosis)
+      const al = revisarDosis({ farmaco: m.nombre, dosisMg: mg, tomasDia: tomas, pesoKg: pesoParaDosis, dosisPorKg: porKg, via: m.via, edadAnios: patient?.edad })
         .filter(a => a.codigo !== 'sin_referencia') // no saturar la receta con avisos informativos
       if (al.length) out.push({ med: m.nombre, alertas: al })
     }
@@ -148,7 +155,8 @@ export default function GeneradorRecetaPage() {
     return evaluarFuncionRenal(cr, patient.edad, patient.sexo, peso > 0 ? peso : undefined)
   }, [creatinina, pesoKg, patient?.edad, patient?.sexo])
   const alertasRenales = useMemo(() => {
-    if (!renal) return []
+    // En <18 años la depuración de adulto no aplica: no se ajusta por ese valor.
+    if (!renal || renal.noAplicablePorEdad) return []
     return ajusteRenalFarmacos(meds, renal.depuracionParaDosis)
   }, [renal, meds])
 
@@ -174,6 +182,13 @@ export default function GeneradorRecetaPage() {
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [clinicId, patientId, notaId])
+
+  // Learning Engine: carga "tus más recetados" del propio médico (fail-safe).
+  useEffect(() => {
+    const uid = auth.currentUser?.uid
+    if (!clinicId || !uid) return
+    cargarRecetasFrecuentes(clinicId, uid, 8).then(setFrecuentes).catch(() => {})
+  }, [clinicId])
 
   // Plantilla efectiva: la del MÉDICO de la nota (si tiene una propia)
   // sobre la general de la clínica. Cada médico ya tiene su papel impreso.
@@ -312,6 +327,28 @@ export default function GeneradorRecetaPage() {
     }])
   }
 
+  // Learning Engine: rellena una fila COMPLETA desde "tus más recetados" (1 toque).
+  // Evita duplicar un fármaco que ya está en la receta. Siempre editable después.
+  const agregarMedDesde = (r: MedRecetado) => {
+    if (medicamentos.length >= MAX_MEDS) {
+      toast(`Máximo ${MAX_MEDS} medicamentos por receta.`, 'error')
+      return
+    }
+    const yaEsta = medicamentos.some(m => (m.nombre ?? '').trim().toLowerCase() === r.nombre.trim().toLowerCase())
+    if (yaEsta) { toast(`${r.nombre} ya está en la receta.`, 'info'); return }
+    setMedicamentos([...medicamentos, {
+      nombre: r.nombre, dosis: r.dosis, via: (r.via as Medicamento['via']) || 'oral',
+      frecuencia: r.frecuencia, duracion: r.duracion,
+    }])
+  }
+
+  // Learning Engine: registra lo recetado al CONFIRMAR (imprimir/descargar). Fail-safe.
+  const aprenderDeReceta = () => {
+    const uid = auth.currentUser?.uid
+    if (!clinicId || !uid) return
+    registrarRecetados(clinicId, uid, medicamentos.filter(m => m.nombre?.trim())).catch(() => {})
+  }
+
   const actualizarMed = (i: number, campo: keyof Medicamento, valor: string) => {
     const nuevos = [...medicamentos]
     nuevos[i] = { ...nuevos[i], [campo]: valor }
@@ -386,13 +423,13 @@ export default function GeneradorRecetaPage() {
           <button onClick={() => router.push('/configuracion?tab=recetas')} className="btn btn-secondary" title="Configurar template">
             <Settings size={14} /> Template
           </button>
-          <button disabled={recetaVacia} onClick={() => { if (configError || descargando || recetaVacia) return; logAudit({ evento: 'receta_generada', clinicId: clinicId ?? '', patientId, notaId, meta: huellaImpreso(medicamentos, { folio, indicaciones, diagnostico }) }).catch(() => {}); const h = dimensionesImpresion(recetaConfig); imprimirElemento(document.getElementById('receta-doc'), 'Receta', { anchoMm: h.widthMm, altoMm: h.heightMm }) }} className="btn btn-secondary">
+          <button disabled={recetaVacia} onClick={() => { if (configError || descargando || recetaVacia) return; logAudit({ evento: 'receta_generada', clinicId: clinicId ?? '', patientId, notaId, meta: huellaImpreso(medicamentos, { folio, indicaciones, diagnostico }) }).catch(() => {}); aprenderDeReceta(); const h = dimensionesImpresion(recetaConfig); imprimirElemento(document.getElementById('receta-doc'), 'Receta', { anchoMm: h.widthMm, altoMm: h.heightMm }) }} className="btn btn-secondary">
             <Printer size={14} /> Imprimir
           </button>
           <button disabled={recetaVacia} onClick={() => { if (configError || descargando || recetaVacia) return; descargarWord() }} className="btn btn-secondary" title="Documento editable para tu membrete">
             <FileText size={14} /> Word
           </button>
-          <button onClick={() => { if (configError || descargando || recetaVacia) return; logAudit({ evento: 'receta_descargada', clinicId: clinicId ?? '', patientId, notaId, meta: huellaImpreso(medicamentos, { folio, indicaciones, diagnostico }) }).catch(() => {}); descargarPDF() }} disabled={descargando || !!configError || recetaVacia} className="btn btn-primary">
+          <button onClick={() => { if (configError || descargando || recetaVacia) return; logAudit({ evento: 'receta_descargada', clinicId: clinicId ?? '', patientId, notaId, meta: huellaImpreso(medicamentos, { folio, indicaciones, diagnostico }) }).catch(() => {}); aprenderDeReceta(); descargarPDF() }} disabled={descargando || !!configError || recetaVacia} className="btn btn-primary">
             {descargando
               ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</>
               : <><Download size={14} /> Descargar PDF</>}
@@ -543,6 +580,32 @@ export default function GeneradorRecetaPage() {
                 <Plus size={12} /> Agregar
               </button>
             </div>
+
+            {/* Learning Engine: "tus más recetados" — 1 toque llena la fila completa
+                con la posología que ESE médico suele usar. Aparece cuando ya hay
+                historial y todavía cabe otro fármaco. Todo editable después. */}
+            {frecuentes.length > 0 && medicamentos.length < MAX_MEDS && (
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'var(--text3)', marginBottom: 6 }}>
+                  <Lightbulb size={12} style={{ color: 'var(--nexus, #3d5afe)' }} /> Tus más recetados
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {frecuentes.map((r, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => agregarMedDesde(r)}
+                      title={`${r.nombre}${r.dosis ? ' · ' + r.dosis : ''}${r.frecuencia ? ' · ' + r.frecuencia : ''}${r.duracion ? ' · ' + r.duracion : ''}`}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', borderRadius: 100, padding: '5px 11px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      <Plus size={11} style={{ color: 'var(--nexus, #3d5afe)' }} />
+                      {r.nombre}{r.dosis ? <span style={{ color: 'var(--text3)', fontWeight: 500 }}> · {r.dosis}</span> : null}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {medicamentos.length === 0 && (
               <div style={{ padding: 14, background: 'var(--s2)', border: '1px dashed var(--border)', borderRadius: 8, color: 'var(--text3)', fontSize: 13, textAlign: 'center' }}>
                 Sin medicamentos. Agrega uno o usa "Solo indicaciones".

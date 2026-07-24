@@ -410,6 +410,16 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   const liberarRecursos = useCallback(() => {
     const rec = mediaRef.current
     if (rec && rec.state !== 'inactive') {
+      /**
+       * DESENGANCHAR el handler ANTES de parar — auditoría 2026-07 (P0). `stop()`
+       * dispara un `ondataavailable` FINAL de forma asíncrona, y justo abajo se
+       * resetea `todosChunksRef = []`. Ese último evento calculaba
+       * `localIdx = recoveryBaseRef - 1` y PISABA un chunk válido del respaldo en
+       * IndexedDB (o escribía en idx -1), corrompiendo el audio de recuperación al
+       * salir de la consulta grabando. Los chunks ya persistidos quedan intactos;
+       * solo se descarta el buffer final (~2 s), que es el intercambio correcto.
+       */
+      try { rec.ondataavailable = null } catch { /* */ }
       try { rec.stop() } catch { /* */ }
     }
     mediaRef.current = null

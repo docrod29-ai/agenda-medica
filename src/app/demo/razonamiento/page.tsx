@@ -13,6 +13,7 @@ import { ArrowLeft, Info, Stethoscope } from 'lucide-react'
 import { PanelRazonamiento } from '@/components/PanelRazonamiento'
 import { Copiloto } from '@/components/Copiloto'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
+import { EvidenciaEnVivo } from '@/components/EvidenciaEnVivo'
 import type { EntradaCopiloto } from '@/lib/expediente/razonamiento'
 
 // Caso sembrado: mujer 68a con DM2 + ERC + FA y polifarmacia con una "triple
@@ -74,7 +75,7 @@ export default function DemoRazonamientoPage() {
     <main style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--text)' }}>
       <div style={{ background: 'var(--nexus-soft, rgba(61,90,254,.08))', borderBottom: '1px solid var(--border)', padding: '8px 16px', textAlign: 'center', fontSize: 12.5, color: 'var(--text2)', display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center' }}>
         <Info size={14} style={{ color: 'var(--nexus, #3d5afe)', flexShrink: 0 }} />
-        <span><strong style={{ color: 'var(--text)' }}>Demostración</strong> · paciente ficticio · razonamiento 100% determinista (con código), sin IA real ni internet</span>
+        <span><strong style={{ color: 'var(--text)' }}>Demostración</strong> · paciente ficticio · los 12 pasos corren con código (sin IA de caja negra); la evidencia se recupera de PubMed en vivo</span>
       </div>
 
       <div style={{ maxWidth: 820, margin: '0 auto', padding: '22px 20px 80px' }}>
@@ -86,7 +87,7 @@ export default function DemoRazonamientoPage() {
           Así razona el copiloto — a la vista
         </h1>
         <p style={{ fontSize: 15.5, color: 'var(--text2)', lineHeight: 1.55, margin: '0 0 20px', maxWidth: '66ch' }}>
-          Este es un caso real de consultorio. Abajo verás <strong>los 12 pasos del razonamiento clínico</strong>, cada
+          Este es un <strong>caso sintético</strong> (paciente ficticio, sin datos reales) representativo de consultorio. Abajo verás <strong>los 12 pasos del razonamiento clínico</strong>, cada
           uno con su <strong>origen</strong> (regla con código, IA o evidencia) y su <strong>confianza</strong>. Nada es
           una caja negra: lo que dice “regla con código” lo calcula el sistema, con fórmula, aquí mismo.
         </p>
@@ -109,6 +110,9 @@ export default function DemoRazonamientoPage() {
         <h2 style={{ fontSize: 17, fontWeight: 700, margin: '10px 0 8px' }}>Los 12 pasos, con fuente y confianza</h2>
         <PanelRazonamiento entrada={CASO} embebido />
 
+        <h2 style={{ fontSize: 17, fontWeight: 700, margin: '26px 0 8px' }}>Evidencia real, recuperada al momento</h2>
+        <EvidenciaEnVivo />
+
         <h2 style={{ fontSize: 17, fontWeight: 700, margin: '26px 0 8px' }}>Y lo que el copiloto sugiere (calculado, no inventado)</h2>
         <Copiloto entrada={CASO} />
 
@@ -123,7 +127,8 @@ export default function DemoRazonamientoPage() {
         <div style={{ marginTop: 26, padding: '16px 18px', border: '1px solid var(--border)', borderLeft: '3px solid var(--teal)', borderRadius: 12, background: 'var(--s1, rgba(127,127,127,.04))', fontSize: 13.5, color: 'var(--text2)', lineHeight: 1.6 }}>
           <strong style={{ color: 'var(--text)' }}>Fíjate:</strong> la TFG por CKD-EPI 2021, el ajuste renal de la metformina, la alerta
           de alergia penicilina↔amoxicilina, la crisis hipertensiva y las metas de LDL salen de <em>reglas con código</em> —
-          no de un modelo de lenguaje. La evidencia PubMed (pasos 8-9) se recupera y verifica por PMID en el nivel 💎 Máxima.
+          no de un modelo de lenguaje. La evidencia PubMed (pasos 8-9) se recupera y verifica por PMID en vivo aquí
+          arriba; dentro de la consulta, el análisis que la razona corre en el nivel 💎 Máxima.
         </div>
 
         <div style={{ marginTop: 26, display: 'flex', gap: 12, flexWrap: 'wrap' }}>

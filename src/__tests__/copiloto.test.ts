@@ -278,3 +278,148 @@ describe('Regresión: PREVENT no rompe el silencio por defecto', () => {
     expect(r.some(x => x.id === 'prevent:falta')).toBe(true)
   })
 })
+
+/**
+ * REGRESIÓN auditoría 2026-07 (P1): el FIB-4 del copiloto salía 1000× más bajo.
+ * `labsDesdeEstudios` entrega las plaquetas en CONTEO ABSOLUTO por µL (150 000),
+ * pero `fib4()` las espera en ×10⁹/L (150). Sin convertir, todo paciente caía en
+ * «riesgo bajo de fibrosis», incluido el que sí tiene fibrosis significativa.
+ */
+describe('FIB-4: unidades de plaquetas', () => {
+  const caso = (plaquetas: number) => copiloto({
+    edad: 50, sexo: 'Masculino',
+    diagnosticos: [{ descripcion: 'Hígado graso' }],
+    medicamentos: [],
+    labs: { ast: 40, alt: 25, plaquetas },
+  }).find(s => s.id === 'calc:fib4')
+
+  it('plaquetas en absoluto/µL (150 000) → FIB-4 2.67, NO "riesgo bajo"', () => {
+    const s = caso(150_000)
+    expect(s).toBeTruthy()
+    expect(s!.titulo).toContain('2.67')
+    expect(s!.titulo).not.toMatch(/riesgo bajo/i)
+  })
+
+  it('el mismo paciente NO se informa como riesgo bajo (era el bug)', () => {
+    expect(caso(150_000)!.titulo).toMatch(/alto|indeterminada/i)
+  })
+
+  it('plaquetas altas (400 000) sí dan riesgo bajo de verdad', () => {
+    const s = caso(400_000)
+    expect(s!.titulo).toMatch(/riesgo bajo/i)
+  })
+})
+
+/**
+ * REGRESIÓN auditoría 2026-07 (P1): PREVENT infra-estimaba el riesgo porque la
+ * detección de antihipertensivo sólo cubría 9 fármacos. Un paciente tratado con
+ * irbesartán/captopril/bisoprolol contaba como NO tratado, y "toma antihipertensivo"
+ * es una ENTRADA de la ecuación: contarlo mal cambia el riesgo calculado.
+ */
+describe('PREVENT: detección de antihipertensivo por clase', () => {
+  const base = {
+    edad: 60, sexo: 'Masculino',
+    diagnosticos: [{ descripcion: 'Hipertensión arterial' }, { descripcion: 'Dislipidemia' }],
+    signos: { ta: '150/92' },
+    labs: { colesterolTotal: 220, hdl: 40, creatinina: 1.0 },
+  }
+  const riesgo = (nombre?: string) => {
+    const s = copiloto({ ...base, medicamentos: nombre ? [{ nombre, dosis: '1 tab' }] : [] })
+      .find(x => x.id === 'prevent:riesgo')
+    const m = s?.titulo.match(/([\d.]+)%/)
+    return m ? Number(m[1]) : null
+  }
+
+  const sinTratar = riesgo()
+  const conLosartan = riesgo('Losartán')
+
+  it('el caso de referencia calcula PREVENT y el tratamiento SÍ cambia el riesgo', () => {
+    expect(sinTratar).not.toBeNull()
+    expect(conLosartan).not.toBeNull()
+    expect(conLosartan).not.toBe(sinTratar)
+  })
+
+  for (const f of ['Irbesartán', 'Captopril', 'Ramipril', 'Bisoprolol', 'Carvedilol', 'Nifedipino', 'Indapamida']) {
+    it(`${f} cuenta como antihipertensivo, igual que losartán (antes contaba como NO tratado)`, () => {
+      expect(riesgo(f)).toBe(conLosartan)
+    })
+  }
+
+  it('un fármaco que NO es antihipertensivo no se cuenta como tal', () => {
+    expect(riesgo('Paracetamol')).toBe(sinTratar)
+  })
+})
+
+/**
+ * REGRESIÓN auditoría 2026-07 (P1): alergia a un AINE CONCRETO no disparaba con otro
+ * AINE porque `dispara` solo tenía 4 términos genéricos.
+ */
+describe('Alergia a un AINE concreto', () => {
+  const choca = (alergia: string, med: string) => copiloto({
+    alergias: alergia, medicamentos: [{ nombre: med, dosis: '1 tab' }],
+    diagnosticos: [{ descripcion: 'Dolor' }],
+  }).some(s => s.id?.startsWith('alergia:') && s.nivel === 'critico')
+
+  it('alérgico a diclofenaco + se receta ibuprofeno → alerta crítica', () => {
+    expect(choca('Diclofenaco', 'Ibuprofeno')).toBe(true)
+  })
+  it('alérgico a ketorolaco + naproxeno → alerta', () => {
+    expect(choca('Ketorolaco', 'Naproxeno')).toBe(true)
+  })
+  it('alérgico a un AINE + un antibiótico no relacionado → sin falso positivo', () => {
+    expect(choca('Diclofenaco', 'Amoxicilina')).toBe(false)
+  })
+})
+
+/** REGRESIÓN (P1): CKD-EPI de adulto NO debe aplicarse a menores de 18 años. */
+describe('TFG pediátrica: no CKD-EPI de adulto', () => {
+  const sugs = (edad: number) => copiloto({
+    edad, sexo: 'Masculino', diagnosticos: [{ descripcion: 'Control' }],
+    medicamentos: [], labs: { creatinina: 0.5 },
+  })
+  it('en un niño de 10 años avisa que requiere fórmula pediátrica, sin dar TFG', () => {
+    const s = sugs(10)
+    expect(s.some(x => x.id === 'renal:pediatrico-tfg')).toBe(true)
+    expect(s.some(x => x.id === 'calc:tfg')).toBe(false)
+  })
+  it('en un adulto sí calcula la TFG normal', () => {
+    expect(sugs(40).some(x => x.id === 'calc:tfg')).toBe(true)
+  })
+})
+
+/** REGRESIÓN (P2): K y Na del dictado ya generan alerta (antes se tiraban). */
+describe('Potasio y sodio críticos del dictado', () => {
+  const s = (labs: Record<string, number>) => copiloto({
+    edad: 60, sexo: 'Masculino', diagnosticos: [{ descripcion: 'Control' }], medicamentos: [], labs,
+  })
+  it('potasio 7.0 → alerta crítica de hiperkalemia', () => {
+    expect(s({ potasio: 7.0 }).some(x => x.id === 'lab:k-alto' && x.nivel === 'critico')).toBe(true)
+  })
+  it('potasio 2.2 → hipokalemia crítica', () => {
+    expect(s({ potasio: 2.2 }).some(x => x.id === 'lab:k-bajo')).toBe(true)
+  })
+  it('sodio 118 → hiponatremia', () => {
+    expect(s({ sodio: 118 }).some(x => x.id === 'lab:na-bajo')).toBe(true)
+  })
+  it('potasio normal (4.2) no dispara nada', () => {
+    expect(s({ potasio: 4.2 }).some(x => x.id?.startsWith('lab:k'))).toBe(false)
+  })
+})
+
+/** REGRESIÓN (P2): la capa de riesgo hepático ahora SÍ se consume. */
+describe('Riesgo hepático de fármacos en hepatopatía', () => {
+  const s = (dx: string, med: string) => copiloto({
+    edad: 60, sexo: 'Masculino', diagnosticos: [{ descripcion: dx }],
+    medicamentos: [{ nombre: med, dosis: '1 tab' }],
+  }).some(x => x.id?.startsWith('hepatico:'))
+
+  it('ibuprofeno en cirrosis → alerta de evitar', () => {
+    expect(s('Cirrosis hepática', 'Ibuprofeno')).toBe(true)
+  })
+  it('diazepam en cirrosis → evitar (por sinónimo de benzodiacepina)', () => {
+    expect(s('Cirrosis con ascitis', 'Diazepam')).toBe(true)
+  })
+  it('sin hepatopatía no dispara', () => {
+    expect(s('Faringitis', 'Ibuprofeno')).toBe(false)
+  })
+})

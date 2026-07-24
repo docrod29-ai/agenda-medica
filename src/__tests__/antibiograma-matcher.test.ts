@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { interpretarAntibiograma } from '@/lib/expediente/antibiograma'
-import { coincideAntibiotico } from '@/lib/expediente/antibiograma/util'
+import { interpretarCMI } from '@/lib/expediente/antibiograma/clsi-breakpoints'
+import { esEnterobacterales } from '@/lib/expediente/antibiograma/enterobacterales'
+import { coincideAntibiotico , casaAlguno, CEFTAZIDIMA_AVIBACTAM, AZTREONAM_AVIBACTAM } from '@/lib/expediente/antibiograma/util'
 
 /**
  * Regresiones del emparejamiento de nombres de antibiótico.
@@ -133,5 +135,46 @@ describe('lo confirmado por el laboratorio gana a lo inferido', () => {
     expect(carba.length).toBeGreaterThan(0)
     // Con PCR positiva la confianza tiene que ser la máxima, no "probable".
     expect(carba.some(f => f.confianza === 'confirmado')).toBe(true)
+  })
+})
+
+/**
+ * REGRESIÓN auditoría 2026-07 (P0, hallado por múltiples auditores): el alias suelto
+ * 'avibactam' hacía que «Aztreonam-avibactam» (fármaco de las metalo-β-lactamasas,
+ * NDM) se leyera como ceftazidima-avibactam.
+ */
+describe('Colisión avibactam: aztreonam-avibactam ≠ ceftazidima-avibactam', () => {
+  it('el matcher NO confunde aztreonam-avibactam con ceftazidima-avibactam', () => {
+    expect(casaAlguno('Aztreonam-avibactam', CEFTAZIDIMA_AVIBACTAM)).toBe(false)
+    expect(casaAlguno('Aztreonam-avibactam', AZTREONAM_AVIBACTAM)).toBe(true)
+  })
+  it('ceftazidima-avibactam sí casa su propio grupo', () => {
+    expect(casaAlguno('Ceftazidima-avibactam', CEFTAZIDIMA_AVIBACTAM)).toBe(true)
+    expect(casaAlguno('Ceftazidima/avibactam', CEFTAZIDIMA_AVIBACTAM)).toBe(true)
+  })
+  it('la tabla CLSI ya no interpreta aztreonam-avibactam con breakpoints de ceftazidima-avibactam', () => {
+    // Sin entrada propia, devuelve null (sin punto de corte) en vez de uno equivocado.
+    expect(interpretarCMI('Klebsiella pneumoniae', 'Aztreonam-avibactam', 8)).toBeNull()
+    // ceftazidima-avibactam sí se interpreta.
+    expect(interpretarCMI('Klebsiella pneumoniae', 'Ceftazidima-avibactam', 4)?.categoria).toBe('S')
+  })
+})
+
+/**
+ * REGRESIÓN auditoría 2026-07 (P0): un organismo con género ABREVIADO
+ * («K. pneumoniae», «E. cloacae») apagaba en silencio el motor de Enterobacterales.
+ */
+describe('Género abreviado activa Enterobacterales', () => {
+  it('«K. pneumoniae» se reconoce como Enterobacterales', () => {
+    expect(esEnterobacterales('K. pneumoniae')).toBe(true)
+    expect(esEnterobacterales('Klebsiella pneumoniae')).toBe(true)
+  })
+  it('«E. cloacae» y «S. marcescens» también', () => {
+    expect(esEnterobacterales('E. cloacae')).toBe(true)
+    expect(esEnterobacterales('S. marcescens')).toBe(true)
+  })
+  it('NO clasifica falsamente al neumococo ni al estafilococo como Enterobacterales', () => {
+    expect(esEnterobacterales('Streptococcus pneumoniae')).toBe(false)
+    expect(esEnterobacterales('Staphylococcus aureus')).toBe(false)
   })
 })

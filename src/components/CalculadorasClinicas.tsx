@@ -24,8 +24,19 @@ export function CalculadorasClinicas({ contexto, onAgregarANota, embebido }: Pro
 
   if (sugeridas.length === 0) return null
 
-  const setVal = (calcId: string, key: string, valor: number) =>
-    setValores(v => ({ ...v, [calcId]: { ...(v[calcId] ?? {}), [key]: valor } }))
+  /**
+   * `valor === undefined` BORRA el campo (el médico volvió a "—").
+   * Antes se guardaba Number('') = 0, indistinguible de una opción legítima de
+   * valor 0 (p. ej. troponina "Normal" en HEART), y el score se calculaba con
+   * campos sin responder. Ver `camposSinResponder` en calculadoras.ts.
+   */
+  const setVal = (calcId: string, key: string, valor: number | undefined) =>
+    setValores(v => {
+      const actual = { ...(v[calcId] ?? {}) }
+      if (valor === undefined) delete actual[key]
+      else actual[key] = valor
+      return { ...v, [calcId]: actual }
+    })
 
   return (
     <div style={embebido ? {} : { border: '1px solid rgba(20,184,166,.3)', borderRadius: 12, background: 'rgba(20,184,166,.05)', padding: 14, marginBottom: 12 }}>
@@ -51,7 +62,7 @@ export function CalculadorasClinicas({ contexto, onAgregarANota, embebido }: Pro
                 {abierto ? <ChevronUp size={15} color="var(--text3)" /> : <ChevronDown size={15} color="var(--text3)" />}
                 <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)' }}>{c.nombre}</span>
                 <span style={{ fontSize: 11, color: 'var(--text3)', flex: 1, minWidth: 0 }}>{c.para}</span>
-                {res && Object.keys(v).length > 0 && (
+                {res && !res.incompleto && Object.keys(v).length > 0 && (
                   <span style={{ ...badge(res.nivel), whiteSpace: 'nowrap' }}>{res.puntaje} · {res.categoria}</span>
                 )}
               </button>
@@ -67,7 +78,8 @@ export function CalculadorasClinicas({ contexto, onAgregarANota, embebido }: Pro
                             style={toggle(!!v[campo.key])}>{v[campo.key] ? 'Sí' : 'No'}</button>
                         )}
                         {campo.tipo === 'opciones' && (
-                          <select value={String(v[campo.key] ?? '')} onChange={e => setVal(c.id, campo.key, Number(e.target.value))}
+                          <select value={String(v[campo.key] ?? '')}
+                            onChange={e => setVal(c.id, campo.key, e.target.value === '' ? undefined : Number(e.target.value))}
                             style={select}>
                             <option value="">—</option>
                             {campo.opciones?.map(o => <option key={o.label} value={o.valor}>{o.label}</option>)}
@@ -82,7 +94,18 @@ export function CalculadorasClinicas({ contexto, onAgregarANota, embebido }: Pro
                     ))}
                   </div>
 
-                  {res && (
+                  {/* Score INCOMPLETO: se dice qué falta, sin puntaje ni botón de pegar.
+                      Un puntaje parcial subestima la gravedad (ver calculadoras.ts). */}
+                  {res?.incompleto && (
+                    <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 8, border: '1px dashed var(--border)', background: 'var(--s2)' }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text2)', marginBottom: 2 }}>
+                        {c.nombre}: {res.categoria}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: 'var(--text3)', lineHeight: 1.5 }}>{res.interpretacion}</div>
+                    </div>
+                  )}
+
+                  {res && !res.incompleto && (
                     <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 8, ...caja(res.nivel) }}>
                       <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 3 }}>
                         {c.nombre}: {res.puntaje} — {res.categoria}

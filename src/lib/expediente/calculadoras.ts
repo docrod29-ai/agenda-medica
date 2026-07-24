@@ -25,6 +25,10 @@ export interface ResultadoCalc {
   categoria: string
   interpretacion: string
   nivel: 'bajo' | 'medio' | 'alto'
+  /** El score NO está completo: el puntaje no es utilizable ni pegable a la nota. */
+  incompleto?: boolean
+  /** Cuántos campos faltan por responder. */
+  faltan?: number
 }
 
 export interface Calculadora {
@@ -41,6 +45,36 @@ export interface Calculadora {
 const n = (v: Record<string, number>, k: string) => Number(v[k] ?? 0)
 const suma = (v: Record<string, number>, campos: CampoCalc[]) =>
   campos.reduce((acc, c) => acc + (c.tipo === 'bool' ? (n(v, c.key) ? (c.puntos ?? 1) : 0) : n(v, c.key)), 0)
+
+/**
+ * Campos de tipo 'opciones' que el médico AÚN NO ha respondido.
+ *
+ * EL BUG QUE ESTO CIERRA (auditoría 2026-07): un desplegable sin elegir valía 0 al
+ * sumar, pero 0 NO es "sin responder" — en Child-Pugh y Glasgow ni siquiera es un
+ * valor posible (el mínimo por eje es 1). Con llenado parcial el puntaje caía por
+ * DEBAJO del mínimo real del score y la gravedad se subestimaba:
+ *   · Child-Pugh: ascitis moderada (3) + encefalopatía I-II (2) = 5 → "Clase A,
+ *     compensada, buen pronóstico quirúrgico" cuando el mínimo verdadero es 8 = Clase B.
+ *   · Glasgow: podía cruzar falsamente el umbral ≤8 = "Grave".
+ *   · HEART: la troponina sin elegir contaba como "Normal" → "Riesgo bajo" en un
+ *     dolor torácico.
+ * Y el resultado se pegaba al expediente con "Agregar a la nota". Un número falso
+ * escrito en la nota es peor que no tener la calculadora.
+ *
+ * Los campos 'bool' NO cuentan: ahí "no marcado" sí significa legítimamente ausencia.
+ */
+export function camposSinResponder(v: Record<string, number>, campos: CampoCalc[]): number {
+  return campos.filter(c => c.tipo === 'opciones' && v[c.key] == null).length
+}
+
+/** Resultado NO utilizable: faltan campos. Nunca debe pegarse a la nota. */
+function scoreIncompleto(faltan: number): ResultadoCalc {
+  return {
+    puntaje: 0, nivel: 'bajo', incompleto: true, faltan,
+    categoria: `Faltan ${faltan} campo${faltan === 1 ? '' : 's'}`,
+    interpretacion: 'Responde todos los campos para obtener el puntaje. Un score parcial SUBESTIMA la gravedad.',
+  }
+}
 
 // ── Definiciones ────────────────────────────────────────────────────────────
 
@@ -322,6 +356,8 @@ export const CALCULADORAS: Calculadora[] = [
     disparadores: ['dolor toracico', 'dolor torácico', 'angina', 'sindrome coronario', 'precordial'],
     campos: heart, referencia: 'Six AJ et al. Neth Heart J 2008',
     calcular: v => {
+      const faltan = camposSinResponder(v, heart)
+      if (faltan) return scoreIncompleto(faltan)
       const p = suma(v, heart)
       const nivel = p >= 7 ? 'alto' : p >= 4 ? 'medio' : 'bajo'
       return {
@@ -339,7 +375,9 @@ export const CALCULADORAS: Calculadora[] = [
     disparadores: ['tce', 'traumatismo craneo', 'alteracion del estado', 'coma', 'inconsciente', 'estado mental'],
     campos: glasgow, referencia: 'Teasdale G, Jennett B. Lancet 1974',
     calcular: v => {
-      const p = suma(v, glasgow) || 3
+      const faltan = camposSinResponder(v, glasgow)
+      if (faltan) return scoreIncompleto(faltan)
+      const p = suma(v, glasgow)
       const nivel = p <= 8 ? 'alto' : p <= 12 ? 'medio' : 'bajo'
       return {
         puntaje: p, nivel,
@@ -355,7 +393,9 @@ export const CALCULADORAS: Calculadora[] = [
     disparadores: ['cirrosis', 'hepatopatia', 'hepatopatía', 'hepatica cronica', 'ascitis'],
     campos: childPugh, referencia: 'Pugh RNH et al. Br J Surg 1973',
     calcular: v => {
-      const p = suma(v, childPugh) || 5
+      const faltan = camposSinResponder(v, childPugh)
+      if (faltan) return scoreIncompleto(faltan)
+      const p = suma(v, childPugh)
       const clase = p <= 6 ? 'A' : p <= 9 ? 'B' : 'C'
       const nivel = clase === 'C' ? 'alto' : clase === 'B' ? 'medio' : 'bajo'
       return {

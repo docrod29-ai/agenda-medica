@@ -112,6 +112,48 @@ describe('Centor, Alvarado, HEART, Glasgow, Child-Pugh', () => {
   })
 })
 
+/**
+ * REGRESIÓN de la auditoría 2026-07 (hallazgo P0).
+ * Un score con campos sin responder NO debe producir puntaje: al contarlos como 0
+ * subestimaba la gravedad y el texto se pegaba al expediente.
+ */
+describe('Scores incompletos: nunca dan puntaje', () => {
+  it('Child-Pugh con llenado PARCIAL no dice "Clase A" (el caso que casi se firma)', () => {
+    // Ascitis moderada (3) + encefalopatía I-II (2); faltan bilirrubina, albúmina, INR.
+    const r = calc('child-pugh').calcular({ ascitis: 3, encefalopatia: 2 })
+    expect(r.incompleto).toBe(true)
+    expect(r.faltan).toBe(3)
+    expect(r.categoria).not.toMatch(/Clase A/)
+    // Antes daba puntaje 5 → "Clase A · compensada". El mínimo verdadero era 8 = Clase B.
+    expect(r.categoria).toMatch(/Faltan 3 campos/)
+  })
+
+  it('Child-Pugh vacío no muestra un 5 ganado sin capturar nada', () => {
+    const r = calc('child-pugh').calcular({})
+    expect(r.incompleto).toBe(true)
+    expect(r.faltan).toBe(5)
+  })
+
+  it('Glasgow parcial no cruza falsamente el umbral de "Grave"', () => {
+    const r = calc('glasgow').calcular({ ocular: 1 })   // antes: 1 → ≤8 → "Grave"
+    expect(r.incompleto).toBe(true)
+    expect(r.categoria).not.toMatch(/Grave/)
+  })
+
+  it('HEART sin troponina no informa "Riesgo bajo" (0 legítimo ≠ sin responder)', () => {
+    const r = calc('heart').calcular({ historia: 0, ecg: 0, edad: 0, factores: 0 })
+    expect(r.incompleto).toBe(true)
+    expect(r.faltan).toBe(1)
+    expect(r.categoria).not.toMatch(/Riesgo bajo/)
+  })
+
+  it('completos siguen funcionando igual que siempre', () => {
+    expect(calc('heart').calcular({ historia: 0, ecg: 0, edad: 0, factores: 0, troponina: 0 }).incompleto).toBeFalsy()
+    expect(calc('glasgow').calcular({ ocular: 4, verbal: 5, motora: 6 }).puntaje).toBe(15)
+    expect(calc('child-pugh').calcular({ bili: 1, albumina: 1, inr: 1, ascitis: 1, encefalopatia: 1 }).puntaje).toBe(5)
+  })
+})
+
 describe('Fórmulas: CKD-EPI 2021 y MELD', () => {
   it('CKD-EPI: hombre 60 años, Cr 1.0 ≈ 89 mL/min/1.73m²', () => {
     const tfg = ckdEpi2021(1.0, 60, false)

@@ -128,11 +128,26 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
     }
   }, [tipo, cfgAgenda.duraciones, isEdit])
 
+  // Hora ORIGINAL de la cita en edición (HH:MM). getAvailableSlots solo devuelve
+  // horas FUTURAS, así que al editar una cita cuya hora ya pasó (marcar "atendida"
+  // /"no asistió", corregir notas) su hora no salía en la lista.
+  const horaOriginal = useMemo(
+    () => (isEdit && appointment ? appointment.fechaHora.slice(11, 16) : ''),
+    [isEdit, appointment],
+  )
+
   // Available slots — con el horario del médico y solo SUS citas
   const slots = useMemo(() => {
     if (!fecha) return []
-    return getAvailableSlots(fecha, duracion, appointments, cfgAgenda, appointment?.id, bloques, medicoId || undefined)
-  }, [fecha, duracion, appointments, cfgAgenda, appointment?.id, medicoId, bloques])
+    const base = getAvailableSlots(fecha, duracion, appointments, cfgAgenda, appointment?.id, bloques, medicoId || undefined)
+    // Auditoría 2026-07 (P1): garantiza que la hora original de la cita editada
+    // sea SIEMPRE seleccionable (misma fecha), aunque ya haya pasado, para no
+    // bloquear el guardado al editar una cita del pasado.
+    if (horaOriginal && appointment && fecha === appointment.fechaHora.slice(0, 10) && !base.includes(horaOriginal)) {
+      return [...base, horaOriginal].sort()
+    }
+    return base
+  }, [fecha, duracion, appointments, cfgAgenda, appointment?.id, medicoId, bloques, horaOriginal, appointment])
 
   // Conflict check (médico-aware + bloqueos, igual que los slots)
   useEffect(() => {
@@ -144,8 +159,10 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
      * con la hora vieja, así que se guardaba una cita que terminaba después del
      * cierre. Se limpia para obligar a elegir de nuevo entre las que sí caben.
      */
-    if (hora && slots.length > 0 && !slots.includes(hora)) setHora('')
-  }, [fecha, hora, duracion, appointments, appointment?.id, medicoId, bloques])
+    // No borres la hora ORIGINAL de una cita en edición: siempre es válida aunque
+    // ya haya pasado (slots la incluye). Antes se limpiaba y bloqueaba el guardado.
+    if (hora && hora !== horaOriginal && slots.length > 0 && !slots.includes(hora)) setHora('')
+  }, [fecha, hora, duracion, appointments, appointment?.id, medicoId, bloques, horaOriginal, slots])
 
   const handleSave = async () => {
     if (!nombre.trim()) { toast('Ingresa el nombre del paciente', 'error'); return }

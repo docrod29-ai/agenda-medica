@@ -80,3 +80,17 @@ describe('ajusteRenalFarmacos', () => {
     expect(r).toHaveLength(0)
   })
 })
+
+/** REGRESIÓN (P1): evaluarFuncionRenal no aplica en <18 años. */
+describe('evaluarFuncionRenal: reja de edad', () => {
+  it('en <18 años marca noAplicablePorEdad y NO devuelve un número usable', () => {
+    const r = evaluarFuncionRenal(0.5, 10, 'Masculino')
+    expect(r.noAplicablePorEdad).toBe(true)
+    expect(Number.isFinite(r.depuracionParaDosis)).toBe(false)
+  })
+  it('en adulto funciona normal', () => {
+    const r = evaluarFuncionRenal(1.0, 40, 'Masculino')
+    expect(r.noAplicablePorEdad).toBeFalsy()
+    expect(r.egfrCkdEpi).toBeGreaterThan(0)
+  })
+})

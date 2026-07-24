@@ -113,6 +113,14 @@ export const CEFTAZIDIMA = ['ceftazidima']
 export const CEFEPIME = ['cefepime', 'cefepima']
 export const AZTREONAM = ['aztreonam']
 export const CARBAPENEM = ['meropenem', 'imipenem', 'ertapenem', 'doripenem']
+/**
+ * Carbapenémicos con actividad ANTIPSEUDOMONAS (sin ertapenem). Auditoría 2026-07
+ * (P0): en Pseudomonas y Acinetobacter el ertapenem es intrínsecamente R, así que un
+ * ertapenem R en la placa NO indica carbapenemasa. Usar este set —no CARBAPENEM— para
+ * detectar resistencia a carbapenémicos en no-fermentadores evita la falsa
+ * carbapenemasa, la falsa notificación NOM-045 y el falso aislamiento.
+ */
+export const CARBAPENEM_ANTIPSEUDOMONAS = ['meropenem', 'imipenem', 'doripenem']
 export const IMIPENEM = ['imipenem']
 export const MEROPENEM = ['meropenem']
 export const ERTAPENEM = ['ertapenem']
@@ -151,7 +159,16 @@ export const COTRIMOXAZOL = ['trimetoprim', 'sulfametoxazol', 'cotrimoxazol', 't
 export const TETRACICLINA = ['tetraciclina', 'doxiciclina', 'minociclina']
 export const TIGECICLINA = ['tigeciclina']
 export const NITROFURANTOINA = ['nitrofurantoina']
-export const CEFTAZIDIMA_AVIBACTAM = ['ceftazidima-avibactam', 'ceftazidima/avibactam', 'ceftazidima avibactam', 'cef-avi', 'avibactam']
+/**
+ * Auditoría 2026-07 (P0, hallado por muchos auditores): el alias suelto 'avibactam'
+ * casaba «Aztreonam-avibactam» (avibactam es un TOKEN completo ahí, así que ni el
+ * límite de token ni la regla de inhibidores lo frenaban) y una metalo-β-lactamasa
+ * (NDM) —cuyo único fármaco ES aztreonam-avibactam— se interpretaba con los puntos
+ * de corte de ceftazidima-avibactam. Se quita el alias suelto y aztreonam-avibactam
+ * pasa a ser su propio fármaco.
+ */
+export const CEFTAZIDIMA_AVIBACTAM = ['ceftazidima-avibactam', 'ceftazidima/avibactam', 'ceftazidima avibactam', 'cef-avi', 'caz-avi']
+export const AZTREONAM_AVIBACTAM = ['aztreonam-avibactam', 'aztreonam/avibactam', 'aztreonam avibactam', 'azt-avi']
 export const CEFIDEROCOL = ['cefiderocol']
 
 /** Alguna(s) coincidencia(s) con estado R entre una lista de sinónimos-clase. */

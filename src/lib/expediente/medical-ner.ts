@@ -204,15 +204,29 @@ REGLAS:
 SCHEMA estricto — devuelve TODOS los campos del schema (vacíos si no hay datos).
 `
 
-export function buildNerUserPrompt(textoFuente: string): string {
+export function buildNerUserPrompt(textoFuente: string, alergiasRegistradas?: string[]): string {
+  // Auditoría 2026-07 (P1): las alergias del EXPEDIENTE (registradas por el
+  // médico fuera del texto dictado) deben entrar al cross-check. Antes solo se
+  // cruzaban las alergias mencionadas en la transcripción → un paciente con
+  // "penicilina" en su ficha, pero sin dictarla, no disparaba el bloqueo.
+  const alergias = (alergiasRegistradas ?? [])
+    .map(a => String(a).trim())
+    .filter(Boolean)
+  const bloqueAlergias = alergias.length
+    ? `\nALERGIAS YA REGISTRADAS EN EL EXPEDIENTE DEL PACIENTE (trátalas como confirmadas, inclúyelas en "allergies" y en el cross-check aunque NO aparezcan en el texto):
+"""
+${alergias.join(', ').slice(0, 2000)}
+"""
+`
+    : ''
   return `TEXTO CLÍNICO A ANALIZAR (transcripción o nota redactada):
 """
 ${textoFuente.slice(0, 12000)}
 """
-
+${bloqueAlergias}
 Extrae TODAS las entidades clínicas presentes y devuélvelas en el
 formato JSON especificado. Si una sección no tiene entidades, devuelve
 el array vacío []. Realiza el cross-check alergia↔medicamento y
-interacciones obligatoriamente.
+interacciones obligatoriamente${alergias.length ? ', cruzando TAMBIÉN las alergias registradas del expediente contra los medicamentos prescritos' : ''}.
 `
 }

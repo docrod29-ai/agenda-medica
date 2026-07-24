@@ -195,3 +195,53 @@ describe('Regresión: no inventar coincidencias con cadenas vacías', () => {
     expect(revisarListaRenal(['metformina'], 20)).toHaveLength(1)
   })
 })
+
+/**
+ * REGRESIÓN auditoría 2026-07 (P0 — lo hallaron CINCO especialistas por separado).
+ * El catálogo renal guardaba dos entradas con nombre de CLASE y sin sinónimos, así
+ * que ninguna receta real ("Ketorolaco 30 mg") casaba: la contraindicación de AINE
+ * con TFG<30 y la nota de la "triple whammy" eran CÓDIGO MUERTO.
+ */
+describe('AINE y aminoglucósidos SÍ casan por principio activo', () => {
+  const aine = ['Ibuprofeno 400 mg', 'Ketorolaco 30 mg', 'Naproxeno', 'Diclofenaco', 'Meloxicam', 'Celecoxib']
+  const amino = ['Gentamicina 240 mg', 'Amikacina', 'Tobramicina']
+
+  for (const n of aine) {
+    it(`${n} con TFG 24 → CONTRAINDICADO (antes: sin ninguna alerta)`, () => {
+      const r = revisarListaRenal([n], 24)
+      expect(r.length).toBeGreaterThan(0)
+      expect(r[0].contraindicado).toBe(true)
+    })
+  }
+
+  it('el AINE con TFG 45 avisa pero NO contraindica (la regla intermedia vive)', () => {
+    const r = revisarListaRenal(['Ibuprofeno 400 mg'], 45)
+    expect(r.length).toBeGreaterThan(0)
+    expect(r[0].contraindicado).toBeFalsy()
+  })
+
+  it('la nota de la "triple whammy" ya llega al médico', () => {
+    const r = revisarListaRenal(['Ketorolaco 30 mg'], 24)
+    expect(JSON.stringify(r)).toMatch(/triple whammy/i)
+  })
+
+  for (const n of amino) {
+    it(`${n} con TFG 40 sí encuentra su ajuste`, () => {
+      expect(revisarListaRenal([n], 40).length).toBeGreaterThan(0)
+    })
+  }
+
+  it('lo que ya funcionaba sigue igual (metformina)', () => {
+    const r = revisarListaRenal(['Metformina 850 mg'], 24)
+    expect(r[0].contraindicado).toBe(true)
+  })
+
+  it('un fármaco ajeno al catálogo no inventa nada', () => {
+    expect(revisarListaRenal(['Loratadina 10 mg'], 24)).toEqual([])
+  })
+
+  it('una fila vacía o a medio teclear NO inventa contraindicación', () => {
+    expect(revisarListaRenal([''], 24)).toEqual([])
+    expect(revisarListaRenal(['me'], 24)).toEqual([])
+  })
+})

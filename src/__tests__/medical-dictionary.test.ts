@@ -79,3 +79,23 @@ describe('esMedicamentoCritico', () => {
     expect(esMedicamentoCritico('paracetamol')).toBe(false)
   })
 })
+
+/**
+ * REGRESIÓN auditoría 2026-07 (P1): la alerta de alergia de la RECETA no reconocía
+ * cefazolina/ceftazidima/cefixima como betalactámicos (sí estaban en el copiloto).
+ * Un alérgico a penicilina podía recibir cefazolina (profilaxis quirúrgica) sin alerta.
+ */
+describe('Betalactámicos de la receta: cefazolina/ceftazidima/cefixima', () => {
+  const alerta = (med: string) => validarAlergiasVsMedicamentos(
+    [{ alergeno: 'Penicilina' }], [{ nombre: med }])
+  it('cefazolina en alérgico a penicilina SÍ alerta', () => {
+    expect(alerta('Cefazolina 2 g').length).toBeGreaterThan(0)
+  })
+  it('ceftazidima y cefixima también', () => {
+    expect(alerta('Ceftazidima').length).toBeGreaterThan(0)
+    expect(alerta('Cefixima 400 mg').length).toBeGreaterThan(0)
+  })
+  it('un no-betalactámico no dispara falso positivo', () => {
+    expect(alerta('Azitromicina 500 mg').length).toBe(0)
+  })
+})

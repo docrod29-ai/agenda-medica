@@ -145,15 +145,22 @@ export async function registrarCobro(
    */
   const dia = fechaISOLocal(fecha)
   const mes = dia.slice(0, 7)
-  const payload: Omit<Cobro, 'id'> = {
-    ...data,
+  /**
+   * Firestore RECHAZA los campos `undefined` (lanza «Unsupported field value:
+   * undefined»). Un cobro SUELTO desde Finanzas (sin cita, sin paciente) traía
+   * citaId/pacienteId/pacienteNombre en undefined → addDoc fallaba SIEMPRE.
+   * Auditoría 2026-07 (P1). Se limpian los undefined antes de escribir.
+   */
+  const limpio = Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined))
+  const payload = {
+    ...limpio,
     fecha: isoFecha,
     dia,
     mes,
     folio: generarFolio(),
     createdAt: isoFecha,
     cancelado: false,
-  }
+  } as Omit<Cobro, 'id'>
 
   /**
    * IDEMPOTENCIA POR CITA (anti-doble-cobro).

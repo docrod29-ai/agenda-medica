@@ -314,7 +314,18 @@ service cloud.firestore {
       // Nunca se pueden borrar (registro legal).
       match /arco_requests/{docId} {
         allow read: if isMember(clinicId);
-        allow create: if true;  // creación vía portal público (sin auth)
+        // Creación vía portal público (sin auth). Auditoría 2026-07 (P1): antes era
+        // `if true` → cualquiera podía crear docs ARCO INMUTABLES (no se borran) en
+        // CUALQUIER clínica, incluidas inexistentes, y spamear el registro legal. Se
+        // constriñe: la clínica debe EXISTIR, el estado inicial fijo, y los campos de
+        // texto acotados. No es rate-limit (eso va por API), pero corta el abuso masivo.
+        allow create: if exists(/databases/$(database)/documents/clinics/$(clinicId))
+          && request.resource.data.estado == 'recibida'
+          && request.resource.data.clinicId == clinicId
+          && request.resource.data.solicitante.nombre is string
+          && request.resource.data.solicitante.nombre.size() <= 200
+          && request.resource.data.descripcion is string
+          && request.resource.data.descripcion.size() <= 5000;
         allow update: if isMember(clinicId);
         allow delete: if false;
       }
@@ -480,10 +491,14 @@ service cloud.firestore {
       // - La info expuesta no es sensible (nombre clínica + rol + nombre invitado opcional)
       // - LIST está bloqueado: nadie puede enumerar invitaciones, solo leer por id exacto
       allow get: if true;
-      // LIST permitido solo a usuarios autenticados (el médico para ver sus
-      // invitaciones desde el panel). La query del cliente ya filtra por
-      // clinicId; aquí solo evitamos enumeración pública.
-      allow list: if isAuth();
+      // LIST CERRADO — auditoría 2026-07 (P0). Antes era `if isAuth()` confiando en
+      // que la query del cliente filtrara por clinicId, pero un cliente malicioso
+      // puede enumerar TODAS las invitaciones de TODAS las clínicas (nombre de
+      // clínica, invitado, rol y el código de invitación que permite UNIRSE a esa
+      // clínica) — fuga cross-tenant + posible toma de cuenta (LFPDPPP). El cliente
+      // no lista invitaciones en ninguna parte (el join usa Admin SDK por id exacto,
+      // /api/clinic/unirse), así que cerrar `list` no rompe nada. `get` por id sigue.
+      allow list: if false;
       // Crear: solo MÉDICO o ADMIN de la clínica destino (la secretaria/enfermería
       // ya NO puede invitar). Y para invitar con rol 'admin' hay que SER admin
       // (evita que un médico/secretaria fabrique un admin: escalada de privilegios).
@@ -524,7 +539,11 @@ service cloud.firestore {
           && get(/databases/$(database)/documents/clinics/$(request.resource.data.clinicId)).data.ownerId == request.auth.uid)
         || isAdmin(request.resource.data.clinicId)
       );
-      allow update: if isAdmin(resource.data.clinicId);
+      // Actualizar: solo el admin de la clínica ACTUAL, y el clinicId NO puede
+      // cambiar — auditoría 2026-07 (P0): sin fijarlo, un admin podía reapuntar su
+      // propia membresía (o la de otro) a OTRA clínica (escalada cross-tenant).
+      allow update: if isAdmin(resource.data.clinicId)
+        && request.resource.data.clinicId == resource.data.clinicId;
       // Eliminar = revocar acceso. Solo el admin de la clínica, y
       // nadie puede eliminar al admin original (creador) — esa restricción
       // se hace en UI por ahora.

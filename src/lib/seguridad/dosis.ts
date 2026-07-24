@@ -19,7 +19,7 @@ export type Severidad = 'critica' | 'alta' | 'info'
 export interface AlertaDosis {
   severidad: Severidad
   codigo: 'sobre_maximo_dosis' | 'sobre_maximo_diario' | 'posible_error_decimal'
-    | 'pediatrico_sobre_mgkg' | 'sin_referencia' | 'dosis_extrema'
+    | 'pediatrico_sobre_mgkg' | 'sin_referencia' | 'dosis_extrema' | 'via_edad_no_aprobada'
   mensaje: string
 }
 
@@ -34,6 +34,10 @@ export interface FarmacoRef {
   pedMaxMgKgToma?: number
   /** Máx mg/kg/día (pediátrico). */
   pedMaxMgKgDia?: number
+  /** Máx DIARIO específico por vía ORAL (mg). Ketorolaco: 40 mg/día VO. */
+  maxDiaOralMg?: number
+  /** Edad mínima (años) por vía ORAL. Ketorolaco: no aprobado VO en <17 años. */
+  edadMinimaOralAnios?: number
   nota?: string
 }
 
@@ -45,7 +49,7 @@ export const CATALOGO: FarmacoRef[] = [
   { nombre: 'Paracetamol', alias: ['acetaminofen', 'acetaminofén', 'tylenol', 'tempra'], maxTomaMg: 1000, maxDiaMg: 4000, pedMaxMgKgToma: 15, pedMaxMgKgDia: 75, nota: 'Hepatotóxico por sobredosis; vigilar dosis acumulada.' },
   { nombre: 'Ibuprofeno', alias: ['advil', 'motrin'], maxTomaMg: 800, maxDiaMg: 3200, pedMaxMgKgToma: 10, pedMaxMgKgDia: 40 },
   { nombre: 'Naproxeno', alias: ['flanax', 'aleve'], maxTomaMg: 750, maxDiaMg: 1500 },
-  { nombre: 'Ketorolaco', alias: ['dolac', 'toradol'], maxTomaMg: 30, maxDiaMg: 120, nota: 'Máx 5 días; oral máx 40 mg/día.' },
+  { nombre: 'Ketorolaco', alias: ['dolac', 'toradol'], maxTomaMg: 30, maxDiaMg: 120, maxDiaOralMg: 40, edadMinimaOralAnios: 17, nota: 'Máx 5 días (sumando IV/IM/oral); oral máx 40 mg/día; VO no aprobado en <17 años.' },
   { nombre: 'Metamizol', alias: ['dipirona', 'neomelubrina'], maxTomaMg: 1000, maxDiaMg: 4000 },
   { nombre: 'Amoxicilina', alias: ['amoxil'], maxTomaMg: 1000, maxDiaMg: 3000, pedMaxMgKgDia: 90 },
   { nombre: 'Tramadol', alias: [], maxTomaMg: 100, maxDiaMg: 400 },
@@ -77,6 +81,31 @@ export interface EntradaDosis {
   tomasDia?: number
   /** Paciente pediátrico: peso en kg (activa la verificación mg/kg). */
   pesoKg?: number
+  /**
+   * La dosis YA viene expresada POR KILO ("50 mg/kg"), no en mg absolutos.
+   * Cámbialo todo: sin esto se dividía otra vez entre el peso y la red de
+   * seguridad pediátrica quedaba muerta. Ver `esDosisPorKg`.
+   */
+  dosisPorKg?: boolean
+  /** Vía de administración (para topes específicos por vía, p. ej. ketorolaco VO). */
+  via?: string
+  /** Edad del paciente en años (para restricciones por vía y edad). */
+  edadAnios?: number
+}
+
+/**
+ * ¿La dosis está escrita POR KILO? ("50 mg/kg", "10 mg/kg/día", "15 mg por kilo").
+ *
+ * EL BUG QUE ESTO CIERRA (auditoría 2026-07, P0): en pediatría lo NORMAL es
+ * prescribir por kilo. `extraerMg("50 mg/kg")` devolvía 50, y `revisarDosis` lo
+ * trataba como 50 mg ABSOLUTOS y los dividía entre el peso: 50/20 kg = 2.5 mg/kg,
+ * muy por debajo de cualquier techo → NUNCA alertaba. Lo prescrito eran 50 mg/kg.
+ * La red de seguridad quedaba invertida justo en el paciente más frágil.
+ * Puro.
+ */
+export function esDosisPorKg(texto: string): boolean {
+  const t = normaliza(texto)
+  return /\/\s*kg|\bpor\s+kilo(gramo)?s?\b|\bx\s*kg\b|\bmg\s*kg\b/.test(t)
 }
 
 /**
@@ -111,22 +140,45 @@ export function revisarDosis(e: EntradaDosis): AlertaDosis[] {
     }
   }
 
-  // Techo diario (adulto)
+  // Vía ORAL — auditoría 2026-07 (validado por el Dr). El verificador ignoraba la
+  // vía: ketorolaco 30 mg VO c/8 h (90 mg/día) pasaba porque usaba el máximo
+  // PARENTERAL (120). La vía oral tiene su propio techo y su restricción de edad.
+  const via = normaliza(e.via ?? '')
+  const esOral = /oral|\bvo\b|\bpo\b|via oral|boca/.test(via)
+
+  // Techo diario (adulto). Si la vía es oral y hay un tope oral específico, ese manda.
   const tomas = Math.max(1, Math.floor(e.tomasDia ?? 1))
-  if (f.maxDiaMg && dosis * tomas > f.maxDiaMg) {
-    alertas.push({ severidad: 'alta', codigo: 'sobre_maximo_diario', mensaje: `${f.nombre}: ${dosis} mg × ${tomas}/día = ${dosis * tomas} mg supera el máximo diario de referencia (${f.maxDiaMg} mg).` })
+  const maxDia = (esOral && f.maxDiaOralMg != null) ? f.maxDiaOralMg : f.maxDiaMg
+  if (maxDia && dosis * tomas > maxDia) {
+    alertas.push({ severidad: 'alta', codigo: 'sobre_maximo_diario', mensaje: `${f.nombre}: ${dosis} mg × ${tomas}/día = ${dosis * tomas} mg supera el máximo diario${esOral && f.maxDiaOralMg != null ? ' POR VÍA ORAL' : ' de referencia'} (${maxDia} mg).` })
   }
 
-  // Pediátrico por peso (si hay peso y referencia mg/kg)
-  if (e.pesoKg && e.pesoKg > 0) {
-    if (f.pedMaxMgKgToma) {
-      const mgkg = dosis / e.pesoKg
+  // Restricción de edad por vía oral (ketorolaco: no aprobado VO en <17 años).
+  if (esOral && f.edadMinimaOralAnios != null && e.edadAnios != null && e.edadAnios < f.edadMinimaOralAnios) {
+    alertas.push({ severidad: 'critica', codigo: 'via_edad_no_aprobada', mensaje: `${f.nombre}: la vía oral no está aprobada en menores de ${f.edadMinimaOralAnios} años (paciente de ${e.edadAnios}).` })
+  }
+
+  /**
+   * Pediátrico por peso. Si la dosis YA viene por kilo ("50 mg/kg"), el valor ES
+   * los mg/kg y NO se divide entre el peso (dividir otra vez mataba la alerta).
+   * Con dosis por kilo la verificación funciona incluso sin peso capturado.
+   */
+  const porKg = !!e.dosisPorKg
+  if (porKg || (e.pesoKg && e.pesoKg > 0)) {
+    const pesoOk = !!(e.pesoKg && e.pesoKg > 0)
+    if (f.pedMaxMgKgToma && (porKg || pesoOk)) {
+      const mgkg = porKg ? dosis : dosis / e.pesoKg!
       if (mgkg > f.pedMaxMgKgToma) {
-        alertas.push({ severidad: 'critica', codigo: 'pediatrico_sobre_mgkg', mensaje: `${f.nombre}: ${dosis} mg en ${e.pesoKg} kg = ${mgkg.toFixed(1)} mg/kg por toma, supera ${f.pedMaxMgKgToma} mg/kg.` })
+        alertas.push({
+          severidad: 'critica', codigo: 'pediatrico_sobre_mgkg',
+          mensaje: porKg
+            ? `${f.nombre}: ${mgkg.toFixed(1)} mg/kg por toma supera ${f.pedMaxMgKgToma} mg/kg.`
+            : `${f.nombre}: ${dosis} mg en ${e.pesoKg} kg = ${mgkg.toFixed(1)} mg/kg por toma, supera ${f.pedMaxMgKgToma} mg/kg.`,
+        })
       }
     }
-    if (f.pedMaxMgKgDia) {
-      const mgkgDia = (dosis * tomas) / e.pesoKg
+    if (f.pedMaxMgKgDia && (porKg || pesoOk)) {
+      const mgkgDia = porKg ? dosis * tomas : (dosis * tomas) / e.pesoKg!
       if (mgkgDia > f.pedMaxMgKgDia) {
         alertas.push({ severidad: 'alta', codigo: 'pediatrico_sobre_mgkg', mensaje: `${f.nombre}: ${(mgkgDia).toFixed(1)} mg/kg/día supera ${f.pedMaxMgKgDia} mg/kg/día.` })
       }
@@ -172,7 +224,20 @@ export function extraerMg(texto: string): number | null {
 export function extraerTomasDia(frecuencia: string): number | null {
   const t = normaliza(frecuencia)
   if (!t) return null
-  let m = t.match(/cada\s*(\d+)\s*(h|hrs?|horas?)/) || t.match(/c\/?\s*(\d+)\s*h/)
+  /**
+   * RANGOS — auditoría 2026-07 (P2). «cada 4 a 6 horas» / «cada 6-8 h» no casaba
+   * ningún patrón (el número no queda pegado a la unidad) → devolvía null → el
+   * llamador asumía 1 toma/día y el TECHO DIARIO se apagaba en silencio:
+   * paracetamol 1000 mg «cada 4 a 6 horas» son hasta 6000 mg/día (techo 4000) y
+   * no alertaba. Se toma el intervalo MÁS CORTO = más tomas al día = peor caso,
+   * que es la lectura segura para un techo.
+   */
+  let m = t.match(/cada\s*(\d+)\s*(?:a|hasta|o|u|y|-|–)\s*(\d+)\s*(?:h|hrs?|horas?)\b/)
+  if (m) {
+    const h = Math.min(parseInt(m[1], 10), parseInt(m[2], 10))
+    return h > 0 ? Math.round(24 / h) : null
+  }
+  m = t.match(/cada\s*(\d+)\s*(h|hrs?|horas?)/) || t.match(/c\/?\s*(\d+)\s*h/)
   if (m) { const h = parseInt(m[1], 10); return h > 0 ? Math.round(24 / h) : null }
   m = t.match(/(\d+)\s*(veces|vez|x)\b/)
   if (m) return parseInt(m[1], 10)

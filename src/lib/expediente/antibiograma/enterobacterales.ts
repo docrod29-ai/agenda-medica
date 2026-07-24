@@ -16,14 +16,30 @@ import { PRIOR_MEXICO, AVISO_ACCESO_MEXICO, METODOS_CONFIRMACION, REF_INVIFAR } 
 
 /** Especies con AmpC cromosómica INDUCIBLE (grupo 3 de Navarro / ESCPM). */
 const GRUPO_AMPC_INDUCIBLE = [
-  'enterobacter', 'klebsiella aerogenes', 'serratia', 'citrobacter freundii',
-  'morganella', 'providencia', 'hafnia',
+  'enterobacter', 'e. cloacae', 'e.cloacae',
+  'klebsiella aerogenes', 'k. aerogenes',
+  'serratia', 's. marcescens',
+  'citrobacter freundii', 'c. freundii',
+  'morganella', 'm. morganii', 'providencia', 'hafnia',
 ]
 
 const ENTEROBACTERALES = [
   'escherichia', 'e. coli', 'e.coli', 'coli', 'klebsiella', 'enterobacter',
   'serratia', 'citrobacter', 'proteus', 'morganella', 'providencia', 'salmonella',
-  'shigella', 'hafnia', 'raoultella', 'pantoea', 'kluyvera', 'enterobacter',
+  'shigella', 'hafnia', 'raoultella', 'pantoea', 'kluyvera',
+  /**
+   * Formas ABREVIADAS con especie — auditoría 2026-07 (P0). Los reportes de
+   * laboratorio escriben «K. pneumoniae», «E. cloacae», no el género completo, y
+   * `organismoEs` (subcadena) no casaba ninguno → el motor de Enterobacterales se
+   * apagaba en silencio (sin BLEE, sin AmpC, sin carbapenemasa). Se usa el epíteto
+   * de especie, que desambigua (evita confundir «K. pneumoniae» con el neumococo).
+   */
+  'k. pneumoniae', 'k.pneumoniae', 'k. oxytoca', 'k. aerogenes', 'klebsiella aerogenes',
+  'e. cloacae', 'e.cloacae', 'e. aerogenes', 'enterobacter cloacae',
+  's. marcescens', 'serratia marcescens',
+  'c. freundii', 'c. koseri', 'citrobacter freundii',
+  'p. mirabilis', 'p. vulgaris', 'proteus mirabilis',
+  'm. morganii', 'morganella morganii',
 ]
 
 export function esEnterobacterales(organismo: string): boolean {

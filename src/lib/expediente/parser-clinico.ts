@@ -66,8 +66,43 @@ const PATRON_FC = /\b(?:fc|frecuencia\s+cardiaca|pulso|latidos?)\s*(?:de|en)?\s*
 const PATRON_FR = /\b(?:fr|frecuencia\s+respiratoria|respiraciones)\s*(?:de|en)?\s*(\d{1,2})(?:\s*(?:rpm|x\s*min))?\b/i
 const PATRON_TEMP = /\b(?:temp(?:eratura)?|fiebre\s+de|febril\s+a)\s*(?:de|en)?\s*(\d{2}(?:\.\d)?)\s*(?:grados?|°c)?\b/i
 const PATRON_SPO2 = /\b(?:spo2|saturaci[oó]n|sat(?:s|o2)?)\s*(?:de|en)?\s*(\d{2,3})\s*%?/i
-const PATRON_PESO = /\b(?:peso|pesa)\s*(?:de|en)?\s*(\d{2,3}(?:\.\d)?)\s*(?:kg|kilos?)?\b/i
-const PATRON_TALLA = /\b(?:talla|mide|estatura)\s*(?:de|en)?\s*(\d(?:\.\d{1,2})?)\s*(?:m|metros?)?\b/i
+/**
+ * PESO — auditoría 2026-07 (P1). Antes exigía `\d{2,3}`, así que el peso de un
+ * RECIÉN NACIDO en kilos ("pesa 3.5 kg") NUNCA se capturaba: 3.5 tiene un solo
+ * dígito entero. Ahora acepta 1-3 dígitos y también gramos ("3200 gramos"), que es
+ * como se dicta en neonatología, convirtiéndolos a kg.
+ */
+const PATRON_PESO = /\b(?:peso|pesa)\s*(?:de|en)?\s*(\d{1,4}(?:[.,]\d{1,3})?)\s*(kg|kilos?|kilogramos?|gr|gramos?|g)?\b/i
+
+/**
+ * TALLA — auditoría 2026-07 (P1). Se guarda en CENTÍMETROS (`types/expediente.ts`:
+ * `talla?: number // cm`) y así la consume `imc(pesoKg, tallaCm)`, que divide entre
+ * 100. Pero el patrón capturaba METROS y los escribía crudos en el campo de cm:
+ *   · adulto "talla 1.70 m" → 1.7 → IMC = 72/(1.7/100)² ≈ 249 134 (absurdo)
+ *   · recién nacido "talla 50 cm" → capturaba sólo el "5" → 5
+ * Ahora acepta 1-3 dígitos con unidad opcional y NORMALIZA SIEMPRE A CENTÍMETROS.
+ */
+const PATRON_TALLA = /\b(?:talla|mide|estatura|longitud)\s*(?:de|en)?\s*(\d{1,3}(?:[.,]\d{1,2})?)\s*(cm|cent[ií]metros?|m|metros?)?\b/i
+
+/** Peso a KILOS: convierte gramos y descarta lo implausible (0.3-400 kg). */
+function pesoAKg(valor: string, unidad: string | undefined): number | null {
+  const n = Number(valor.replace(',', '.'))
+  if (!Number.isFinite(n) || n <= 0) return null
+  const u = (unidad || '').toLowerCase()
+  const enGramos = /^(gr|g|gramos?)$/.test(u)
+  const kg = enGramos ? n / 1000 : n
+  return kg >= 0.3 && kg <= 400 ? kg : null
+}
+
+/** Talla a CENTÍMETROS: metros (explícitos o ≤3) × 100. Plausible 20-250 cm. */
+function tallaACm(valor: string, unidad: string | undefined): number | null {
+  const n = Number(valor.replace(',', '.'))
+  if (!Number.isFinite(n) || n <= 0) return null
+  const u = (unidad || '').toLowerCase()
+  const enMetros = /^(m|metros?)$/.test(u) || (!u && n <= 3)
+  const cm = enMetros ? n * 100 : n
+  return cm >= 20 && cm <= 250 ? Math.round(cm * 10) / 10 : null
+}
 
 export function extraerSignosVitales(texto: string): SignosVitalesExtraidos {
   const t = normalizar(texto)
@@ -85,8 +120,8 @@ export function extraerSignosVitales(texto: string): SignosVitalesExtraidos {
     ta: ta ? `${ta[1]}/${ta[2]}` : '',
     temperatura: temp ? Number(temp[1]) : null,
     spo2: spo2 ? Number(spo2[1]) : null,
-    peso: peso ? Number(peso[1]) : null,
-    talla: talla ? Number(talla[1]) : null,
+    peso: peso ? pesoAKg(peso[1], peso[2]) : null,
+    talla: talla ? tallaACm(talla[1], talla[2]) : null,
   }
 }
 

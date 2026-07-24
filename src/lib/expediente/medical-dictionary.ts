@@ -60,9 +60,17 @@ export const FARMACOS_CRITICOS = [
 ]
 
 /* Familias de antibióticos beta-lactámicos para validación cruzada con alergia */
+/**
+ * Betalactámicos para la alerta de alergia de la RECETA. Auditoría 2026-07 (P1):
+ * faltaban cefazolina, ceftazidima y cefixima —que SÍ están en el copiloto
+ * (FAMILIAS_ALERGIA)—, así que un alérgico a penicilina podía recibir cefazolina
+ * (la profilaxis quirúrgica más usada) sin alerta al imprimir. Se alinea con el
+ * copiloto para tener UNA sola fuente de verdad.
+ */
 export const FAMILIA_BETALACTAMICOS = [
   'penicilina', 'amoxicilina', 'ampicilina', 'dicloxacilina', 'oxacilina',
   'cefalexina', 'ceftriaxona', 'cefepime', 'cefuroxima', 'cefotaxima',
+  'cefazolina', 'ceftazidima', 'cefixima',
   'piperacilina', 'meropenem', 'imipenem', 'ertapenem',
 ]
 
