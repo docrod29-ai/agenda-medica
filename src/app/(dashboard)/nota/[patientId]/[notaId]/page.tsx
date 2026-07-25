@@ -635,14 +635,21 @@ function HojasNota({ membrete, mMemb, anchoMm, altoMm, bloques, firma }: {
     if (!c) return
     const medir = () => {
       const kids = Array.from(c.children) as HTMLElement[]
-      const hs = kids.map(k => k.getBoundingClientRect().height)
+      if (!kids.length) return
+      // Alturas EFECTIVAS con MÁRGENES: getBoundingClientRect excluye los márgenes
+      // entre bloques → subestimaba y metía demasiados bloques por hoja (el texto se
+      // derramaba al pie). offsetTop refleja la posición REAL ya con márgenes; la
+      // diferencia entre bloques = el espacio vertical que ocupa cada uno.
+      const tops = kids.map(k => k.offsetTop)
+      const totalH = c.scrollHeight
+      const hs = kids.map((k, i) => (i < kids.length - 1 ? tops[i + 1] - tops[i] : Math.max(0, totalH - tops[i])))
       const pages: number[][] = []
       let cur: number[] = []; let acc = 0
       hs.forEach((h, i) => {
         if (acc + h > contentH && cur.length) { pages.push(cur); cur = []; acc = 0 }
         cur.push(i); acc += h
       })
-      if (cur.length) pages.push(cur)   // ← la ÚLTIMA hoja (faltaba: se perdían bloques y solo salía 1 hoja)
+      if (cur.length) pages.push(cur)   // ← la ÚLTIMA hoja
       const final = pages.length ? pages : [Array.from({ length: kids.length }, (_, i) => i)]
       setPaginas(prev => (JSON.stringify(prev) === JSON.stringify(final) ? prev : final))
     }

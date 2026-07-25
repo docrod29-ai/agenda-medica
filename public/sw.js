@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v614'  // LOTE FLUJO 4: WORD con el DISENO/MEMBRETE del medico (antes salia plantilla de texto, incongruente con pantalla/Imprimir/PDF). receta-word ahora prioriza disenoCompletoDataUrl (diseno completo) sobre membreteDataUrl; nota-word usa la hoja membretada resuelta como encabezado. Nota honesta: Word no posiciona texto ABSOLUTO sobre fondo a pagina completa, asi que el diseno va como encabezado a ancho completo (muestra la marca); la copia fiel sigue siendo PDF/Imprimir.
+const CACHE = 'nexusmed-v615'  // FIX margenes de nota multipagina: media con getBoundingClientRect EXCLUIA los margenes entre bloques -> subestimaba -> metia demasiados bloques por hoja -> el texto se derramaba 18mm por debajo (empalme con el pie). Ahora mide con offsetTop (posicion real CON margenes) -> reparte correcto, el texto respeta la zona segura (top 42 / bottom 28 mm) en cada hoja.
 // (v601):
 
 self.addEventListener('install', (event) => {
