@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { useDoctors } from '@/hooks/useDoctors'
 import { useToast } from '@/context/ToastContext'
 import { useParams, useRouter } from 'next/navigation'
@@ -218,7 +218,12 @@ export default function NotaImprimiblePage() {
               ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</>
               : <><Download size={16} /> Descargar PDF</>}
           </button>
-          <button onClick={() => { if (configError) return; imprimirElemento(document.getElementById('doc'), 'Nota médica', { formato: membrete ? 'membrete' : 'carta', margenesMembrete: mMemb, onError: (m) => toast(m, 'error') }) }} disabled={!!configError} title={configError ? 'Espera a que cargue la configuración del consultorio' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: configError ? 'default' : 'pointer', opacity: configError ? 0.5 : 1 }}>
+          <button onClick={() => { if (configError) return; imprimirElemento(document.getElementById('doc'), 'Nota médica', membrete
+            // Con membrete la nota YA viene paginada en hojas carta (.nota-sheet con
+            // page-break y el membrete de fondo en cada una). Se imprime a sangre en
+            // carta (@page letter margin 0) para que cada hoja llene la página.
+            ? { anchoMm: 216, altoMm: 279, onError: (m) => toast(m, 'error') }
+            : { formato: 'carta', onError: (m) => toast(m, 'error') }) }} disabled={!!configError} title={configError ? 'Espera a que cargue la configuración del consultorio' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: configError ? 'default' : 'pointer', opacity: configError ? 0.5 : 1 }}>
             <Printer size={16} /> Imprimir
           </button>
           {/* Word editable — para ajustar la nota al membrete/formato propio (igual
@@ -243,37 +248,15 @@ export default function NotaImprimiblePage() {
         </div>
       </div>
 
-      {/* Documento (hoja blanca o hoja membretada del médico) */}
-      {/* Auditoría papelería 2026-07 (P0 real, reportado por el Dr): antes esta
-          hoja usaba `aspectRatio: 216/279`. Con el ancho fijo, eso le da a la caja
-          una ALTURA DEFINIDA de UNA página; cualquier nota más larga se DERRAMA
-          fuera del recuadro blanco (sobre el fondo oscuro) = el "texto fantasma"
-          que se veía. Ahora la hoja CRECE con el contenido (minHeight para que una
-          nota corta siga pareciendo una hoja carta) y la membretada se pinta como
-          FONDO que se repite por página (igual que al imprimir), así se ve el
-          membrete en cada hoja y el contenido nunca se sale del blanco. */}
-      <div id="doc" style={membrete ? {
-        maxWidth: 800, margin: '0 auto', background: '#fff', color: '#1a1a1a',
-        position: 'relative', borderRadius: 4, fontFamily: '"Times New Roman", Georgia, serif',
-        lineHeight: 1.4, fontSize: 13, minHeight: 'min(1035px, calc((100vw - 48px) * 279 / 216))',
-        // isolation:isolate crea un contexto de apilamiento en #doc para que la
-        // hoja membretada (img con z-index:-1) se pinte SOBRE el fondo blanco de
-        // #doc (y bajo el texto). Sin esto, el blanco tapaba el membrete y la nota
-        // salía con el encabezado de texto — el Dr reportó "no me pones el membrete".
-        isolation: 'isolate',
-        paddingTop: `${mMemb.top}mm`, paddingBottom: `${mMemb.bottom}mm`,
-        paddingLeft: `${mMemb.left}mm`, paddingRight: `${mMemb.right}mm`, boxSizing: 'border-box',
-      } : {
-        maxWidth: 800, margin: '0 auto', background: '#fff', color: '#1a1a1a', position: 'relative',
-        padding: '40px 48px', borderRadius: 4, fontFamily: '"Times New Roman", Georgia, serif',
-        lineHeight: 1.4, fontSize: 13, orphans: 3, widows: 3,
-      }}>
-        {/* Hoja membretada del médico como fondo (se repite en cada página al imprimir) */}
-        {membrete && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img className="membrete-bg" src={membrete} alt="" aria-hidden
-            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'auto', zIndex: -1, pointerEvents: 'none' }} />
-        )}
+      {/* Documento de la nota.
+          Auditoría flujo 2026-07 (el Dr reportó pie del membrete empalmado a media
+          hoja y página 2 sin membrete): con hoja membretada, el contenido se PAGINA
+          en hojas carta (HojasNota) con el membrete completo en cada una y el texto
+          en la zona segura. Sin membrete, render continuo normal. Los bloques
+          imprimibles se arman una sola vez y se reparten por hoja. */}
+      {(() => {
+        const printables = (
+          <>
         {/* Encabezado de texto — SOLO si NO hay hoja membretada (la membretada ya lo trae) */}
         {!membrete && (
         <div style={{ textAlign: 'center', borderBottom: '2px solid #1a1a1a', paddingBottom: 12, marginBottom: 16 }}>
@@ -480,7 +463,30 @@ export default function NotaImprimiblePage() {
             ))}
           </div>
         )}
-      </div>
+          </>
+        )
+        // Bloques imprimibles como arreglo (los conditionals falsy se filtran).
+        const bloques = (Array.isArray(printables.props.children) ? printables.props.children : [printables.props.children])
+          .flat().filter((b: React.ReactNode) => b !== false && b != null)
+        if (membrete) {
+          // Nota membretada → paginar en hojas carta con el membrete en cada una.
+          return (
+            <div id="doc" style={{ width: 'fit-content', maxWidth: '100%', margin: '0 auto', color: '#1a1a1a', fontFamily: '"Times New Roman", Georgia, serif' }}>
+              <HojasNota anchoMm={216} altoMm={279} mMemb={mMemb} membrete={membrete} bloques={bloques} />
+            </div>
+          )
+        }
+        // Sin membrete → hoja blanca continua (encabezado de texto incluido en los bloques).
+        return (
+          <div id="doc" style={{
+            maxWidth: 800, margin: '0 auto', background: '#fff', color: '#1a1a1a', position: 'relative',
+            padding: '40px 48px', borderRadius: 4, fontFamily: '"Times New Roman", Georgia, serif',
+            lineHeight: 1.4, fontSize: 13, orphans: 3, widows: 3,
+          }}>
+            {printables}
+          </div>
+        )
+      })()}
 
       {/* Trazabilidad: lo que se DIJO vs lo redactado. Colapsable, NO se imprime.
           Permite al médico verificar que la nota refleja el dictado. */}
@@ -581,5 +587,80 @@ function SecTitle({ children }: { children: React.ReactNode }) {
     <div style={{ fontSize: 12.5, fontWeight: 700, textTransform: 'uppercase', borderBottom: '0.5px solid #999', marginBottom: 3, letterSpacing: 0.3, breakAfter: 'avoid', pageBreakAfter: 'avoid' }}>
       {children}
     </div>
+  )
+}
+
+/**
+ * PAGINADOR de la NOTA MEMBRETADA — el Dr reportó que en notas de 2+ páginas el
+ * PIE de su membrete caía a media hoja y la página 2 salía sin membrete.
+ *
+ * Solución (modelo de la receta): la nota se parte en HOJAS carta discretas; cada
+ * hoja lleva el membrete COMPLETO de fondo (encabezado arriba, pie abajo) y el
+ * texto SOLO en la zona segura (entre los márgenes mMemb). Los bloques se miden
+ * en un medidor oculto y se reparten por hoja sin cortar un bloque a la mitad.
+ * Como el DOM queda paginado, PANTALLA, PDF (html2canvas) e IMPRIMIR (page-break
+ * inline) coinciden — congruente en las tres salidas.
+ */
+function HojasNota({ membrete, mMemb, anchoMm, altoMm, bloques }: {
+  membrete: string
+  mMemb: { top: number; right: number; bottom: number; left: number }
+  anchoMm: number; altoMm: number
+  bloques: React.ReactNode[]
+}) {
+  const PXMM = 96 / 25.4
+  const anchoPx = anchoMm * PXMM, altoPx = altoMm * PXMM
+  const topPx = mMemb.top * PXMM, botPx = mMemb.bottom * PXMM
+  const leftPx = mMemb.left * PXMM, rightPx = mMemb.right * PXMM
+  const contentW = Math.max(50, anchoPx - leftPx - rightPx)
+  const contentH = Math.max(80, altoPx - topPx - botPx)
+  const medRef = useRef<HTMLDivElement>(null)
+  const [paginas, setPaginas] = useState<number[][]>([bloques.map((_, i) => i)])
+
+  useLayoutEffect(() => {
+    const c = medRef.current
+    if (!c) return
+    const medir = () => {
+      const kids = Array.from(c.children) as HTMLElement[]
+      const hs = kids.map(k => k.getBoundingClientRect().height)
+      const pages: number[][] = []
+      let cur: number[] = []; let acc = 0
+      hs.forEach((h, i) => {
+        // Si el bloque no cabe en lo que resta de hoja, empieza hoja nueva
+        // (salvo que la hoja esté vacía: un bloque gigante ocupa su propia hoja).
+        if (acc + h > contentH && cur.length) { pages.push(cur); cur = []; acc = 0 }
+        cur.push(i); acc += h
+      })
+      if (cur.length) pages.push(cur)
+      setPaginas(pages.length ? pages : [bloques.map((_, i) => i)])
+    }
+    medir()
+    // Re-medir cuando el membrete/imágenes carguen (pueden cambiar alturas).
+    const imgs = Array.from(c.querySelectorAll('img'))
+    imgs.forEach(im => { if (!im.complete) im.addEventListener('load', medir, { once: true }) })
+  }, [bloques, contentH])
+
+  return (
+    <>
+      {/* Medidor oculto: mismos bloques al ancho de la zona de contenido */}
+      <div ref={medRef} aria-hidden style={{ position: 'absolute', left: -99999, top: 0, width: contentW, fontFamily: 'inherit', fontSize: 13, lineHeight: 1.4, visibility: 'hidden' }}>
+        {bloques.map((b, i) => <div key={i}>{b}</div>)}
+      </div>
+      {/* Hojas reales */}
+      {paginas.map((idxs, p) => (
+        <div key={p} className="nota-sheet" style={{
+          width: anchoPx, height: altoPx, position: 'relative', background: '#fff',
+          margin: p === 0 ? '0 auto' : '16px auto 0', overflow: 'hidden', isolation: 'isolate',
+          pageBreakAfter: p < paginas.length - 1 ? 'always' : 'auto',
+          breakAfter: p < paginas.length - 1 ? 'page' : 'auto',
+        }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="membrete-bg" src={membrete} alt="" aria-hidden
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'fill', zIndex: -1, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', top: topPx, left: leftPx, width: contentW }}>
+            {idxs.map(i => <div key={i}>{bloques[i]}</div>)}
+          </div>
+        </div>
+      ))}
+    </>
   )
 }

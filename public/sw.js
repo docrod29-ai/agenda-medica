@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v605'  // LOTE FLUJO 1 (tras auditoria de 6 expertos del flujo membrete/receta/orden/PDF/Word, 27 hallazgos): (1) PDF de receta/orden forzaba orientation:portrait -> un diseno APAISADO salia volteado; ahora sigue la orientacion real de la hoja (landscape si widthMm>heightMm). (2) nota-word inventaba "alergias Negadas" aunque no se leyera al paciente; ahora el llamador manda el texto de 3 estados (valor/Negadas/NO DISPONIBLE) y el exportador no inventa. PENDIENTE (siguiente lote): Word con diseno/membrete, nota multipagina (pie empalmado/pagina 2 sin membrete), firma calibrable en nota, referencia con membrete.
+const CACHE = 'nexusmed-v606'  // LOTE FLUJO 2: NOTA MEMBRETADA PAGINADA (el Dr reporto en vivo: pie del membrete empalmado a media hoja + pagina 2 sin membrete). Ahora, con hoja membretada, la nota se parte en HOJAS carta discretas (componente HojasNota): cada hoja lleva el membrete COMPLETO de fondo (encabezado arriba, pie abajo) y el texto SOLO en la zona segura (mMemb); los bloques se miden en un medidor oculto y se reparten por hoja sin cortar un bloque. El DOM queda paginado -> PANTALLA, PDF (html2canvas + page-break) e IMPRIMIR (a sangre carta, @page letter margin 0) coinciden. Sin membrete: render continuo normal.
 // (v601):
 
 self.addEventListener('install', (event) => {
