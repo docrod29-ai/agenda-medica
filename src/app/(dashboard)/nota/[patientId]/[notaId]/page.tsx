@@ -165,9 +165,18 @@ export default function NotaImprimiblePage() {
   const cedula = nota.firma?.cedulaProfesional || config?.cedulaProfesional || '—'
   const especialidad = nota.firma?.especialidad || config?.especialidad || ''
   const establecimiento = nota.metadata.establecimiento || config?.nombreClinica || ''
-  // Hoja membretada: la del MÉDICO de la nota si tiene una propia; si no, la
-  // general del consultorio. Se ignora un valor vacío/roto (evita descuadrar).
-  const medMembrete = entradaPorMedico(config?.notaMembretePorMedico, nota.metadata?.medicoId, membreteValido, unicoMedico)
+  // Hoja membretada de la nota. BUG que el Dr reportó (su membrete subido NO salía
+  // en la nota impresa): el match EXACTO por médico casi siempre falla porque la
+  // nota se sella con medicoId=uid y Config guarda por id de la subcolección
+  // `doctors` (ver impreso-medico.ts). A diferencia de la FIRMA, una hoja
+  // membretada es branding de la CLÍNICA (no hay riesgo de suplantación), así que
+  // se resuelve con tolerancia: exacto por médico → ÚNICA hoja disponible → general.
+  const medMembrete = (() => {
+    const exacta = entradaPorMedico(config?.notaMembretePorMedico, nota.metadata?.medicoId, membreteValido, unicoMedico)
+    if (exacta) return exacta
+    const validas = Object.values(config?.notaMembretePorMedico ?? {}).filter(v => membreteValido(v as { url?: string }))
+    return validas.length === 1 ? (validas[0] as { url?: string; margenes?: { top: number; right: number; bottom: number; left: number } }) : undefined
+  })()
   // Firma a mostrar: el snapshot de la nota (inmutable) o la firma del médico que
   // la firmó (per-médico) o, en último caso, la general del consultorio.
   // Auditoría papelería 2026-07 (P1): el último fallback a la firma GLOBAL solo es
