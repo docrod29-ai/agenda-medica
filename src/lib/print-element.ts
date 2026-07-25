@@ -84,7 +84,7 @@ export function imprimirElemento(
     ? `@page{size:letter;margin:0}
        html,body{margin:0;padding:0;background:#fff}
        ${sel}{max-width:none!important;width:auto!important;margin:0!important;padding:0!important;box-shadow:none!important;border-radius:0!important;aspect-ratio:auto!important}
-       .membrete-bg{position:fixed!important;inset:0!important;width:100%!important;height:100%!important;object-fit:fill!important;z-index:-1!important}
+       .membrete-bg{position:fixed!important;inset:0!important;width:100%!important;height:100%!important;object-fit:contain!important;object-position:center!important;z-index:-1!important}
        .print-frame{width:100%;border-collapse:collapse}
        .print-frame > tbody > tr > td{padding:0 ${mm.right}mm 0 ${mm.left}mm}
        .print-frame .espaciador-top{height:${mm.top}mm}
@@ -116,7 +116,11 @@ export function imprimirElemento(
     `<base href="${location.origin}/">` +
     `<title>${titulo}</title>` +
     estilos +
-    `<style>${pageCss}</style>` +
+    // Auditoría papelería 2026-07 (P2): en el popup, los <link> globales copian el
+    // CSS, pero .no-print vive en un @media print del bundle que no siempre aplica
+    // al documento clonado → los avisos marcados no-print (aclaraciones, banners)
+    // podían salir impresos. Se fuerza la regla aquí para las tres variantes.
+    `<style>.no-print{display:none!important}${pageCss}</style>` +
     `</head><body>${cuerpo}</body></html>`,
   )
   win.document.close()

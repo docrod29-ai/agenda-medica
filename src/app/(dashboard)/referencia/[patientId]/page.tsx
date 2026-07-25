@@ -239,8 +239,11 @@ export default function CartaReferenciaPage() {
         <div style={{ marginTop: 40, textAlign: 'center' }}>
           <div style={{ borderTop: '1px solid #1a1a1a', width: 280, margin: '0 auto', paddingTop: 4, fontSize: 12.5 }}>
             <strong>{medico}</strong><br />
-            {especialidad}<br />
-            Cédula Profesional {cedula}
+            {especialidad}{especialidad ? <br /> : null}
+            {/* Cédula = dato obligatorio: marcar su ausencia, no imprimir un guion. */}
+            {cedula !== '—'
+              ? <>Cédula Profesional {cedula}</>
+              : <span style={{ color: '#b91c1c', fontWeight: 700 }}>[FALTA CÉDULA PROFESIONAL]</span>}
           </div>
         </div>
       </div>

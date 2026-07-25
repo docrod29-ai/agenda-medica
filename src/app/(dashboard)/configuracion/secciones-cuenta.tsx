@@ -433,7 +433,7 @@ export function MembreteNotaSection({ form, clinicId, onLocalChange }: {
           {/* Vista previa con la ZONA de contenido marcada */}
           <div style={{ position: 'relative', width: 160, aspectRatio: `${CW} / ${CH}`, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={membreteUrl} alt="Hoja membretada" style={{ width: '100%', height: '100%', objectFit: 'fill' }} />
+            <img src={membreteUrl} alt="Hoja membretada" style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center' }} />
             <div style={{ position: 'absolute', top: `${m.top / CH * 100}%`, bottom: `${m.bottom / CH * 100}%`, left: `${m.left / CW * 100}%`, right: `${m.right / CW * 100}%`, border: '1.5px dashed #14b8a6', background: 'rgba(20,184,166,0.10)' }} />
           </div>
           <div>

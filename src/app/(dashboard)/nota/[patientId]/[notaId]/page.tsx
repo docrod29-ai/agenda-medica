@@ -165,9 +165,13 @@ export default function NotaImprimiblePage() {
   const medMembrete = entradaPorMedico(config?.notaMembretePorMedico, nota.metadata?.medicoId, membreteValido, unicoMedico)
   // Firma a mostrar: el snapshot de la nota (inmutable) o la firma del médico que
   // la firmó (per-médico) o, en último caso, la general del consultorio.
+  // Auditoría papelería 2026-07 (P1): el último fallback a la firma GLOBAL solo es
+  // seguro con UN médico. Con varios, estampar la firma del consultorio sobre la
+  // nota de otro médico es firmar por alguien más y NO se nota. Mejor sin firma
+  // (se ve y se corrige) que con la firma equivocada. Igual criterio que la orden.
   const firmaMostrar = nota.firma?.imagenDataUrl
     || entradaPorMedico(config?.firmaPorMedico, nota.metadata?.medicoId, firmaValida, unicoMedico)
-    || config?.firmaImagenDataUrl
+    || (unicoMedico ? config?.firmaImagenDataUrl : undefined)
   const mem = (medMembrete?.url ?? config?.notaMembreteDataUrl)?.trim()
   const membrete = (mem && /^(https?:|\/api\/|data:image)/.test(mem)) ? mem : undefined
   const mMemb = medMembrete?.margenes ?? config?.notaMembreteMargenes ?? { top: 42, right: 22, bottom: 28, left: 22 }
@@ -216,13 +220,13 @@ export default function NotaImprimiblePage() {
       } : {
         maxWidth: 800, margin: '0 auto', background: '#fff', color: '#1a1a1a', position: 'relative',
         padding: '40px 48px', borderRadius: 4, fontFamily: '"Times New Roman", Georgia, serif',
-        lineHeight: 1.4, fontSize: 13,
+        lineHeight: 1.4, fontSize: 13, orphans: 3, widows: 3,
       }}>
         {/* Hoja membretada del médico como fondo (se repite en cada página al imprimir) */}
         {membrete && (
           // eslint-disable-next-line @next/next/no-img-element
           <img className="membrete-bg" src={membrete} alt="" aria-hidden
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'fill', zIndex: -1, pointerEvents: 'none' }} />
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', zIndex: -1, pointerEvents: 'none' }} />
         )}
         {/* Encabezado de texto — SOLO si NO hay hoja membretada (la membretada ya lo trae) */}
         {!membrete && (
@@ -342,8 +346,13 @@ export default function NotaImprimiblePage() {
           )}
           <div style={{ borderTop: '1px solid #1a1a1a', width: 280, margin: '0 auto', paddingTop: 4, fontSize: 12.5 }}>
             <strong>{medico}</strong><br />
-            {especialidad}<br />
-            Cédula Profesional {cedula}
+            {especialidad}{especialidad ? <br /> : null}
+            {/* Auditoría papelería 2026-07 (P1 NOM): la cédula es dato obligatorio.
+                Antes se imprimía "Cédula Profesional —" (parece guion de maqueta);
+                ahora se marca la ausencia en rojo para que no pase inadvertida. */}
+            {cedula !== '—'
+              ? <>Cédula Profesional {cedula}</>
+              : <span style={{ color: '#b91c1c', fontWeight: 700 }}>[FALTA CÉDULA PROFESIONAL]</span>}
           </div>
           {nota.estado !== 'firmada' && (
             <div className="no-print" style={{ marginTop: 8, fontSize: 11.5, color: 'var(--text3)', fontStyle: 'italic' }}>
@@ -520,8 +529,10 @@ export default function NotaImprimiblePage() {
 }
 
 function SecTitle({ children }: { children: React.ReactNode }) {
+  // breakAfter:avoid → el título de sección nunca queda solo al pie de una hoja
+  // (se imprime junto a su contenido en notas de varias páginas).
   return (
-    <div style={{ fontSize: 12.5, fontWeight: 700, textTransform: 'uppercase', borderBottom: '0.5px solid #999', marginBottom: 3, letterSpacing: 0.3 }}>
+    <div style={{ fontSize: 12.5, fontWeight: 700, textTransform: 'uppercase', borderBottom: '0.5px solid #999', marginBottom: 3, letterSpacing: 0.3, breakAfter: 'avoid', pageBreakAfter: 'avoid' }}>
       {children}
     </div>
   )
