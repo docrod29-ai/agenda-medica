@@ -48,51 +48,51 @@ export async function descargarPaginasComoPDF(
   const pdf = new jsPDF({ unit: 'mm', format: [opts.anchoMm, opts.altoMm], orientation, compress: true })
 
   /**
-   * Render a ESCALA 1 fuera de pantalla.
+   * Render a ESCALA 1 neutralizando el `transform` de los ANCESTROS.
    *
    * POR QUÉ: la receta/orden viven dentro de una vista previa con
    * `transform: scale(0.42)`. html2canvas, al capturar un elemento bajo un
    * ancestro escalado, MIDE MAL el ancho de las letras y las ENCIMA (el texto
-   * salía como un borrón ilegible — bug real que el Dr detectó en el PDF). La
-   * nota no sufría esto porque se dibuja a tamaño real. Para blindar TODO, cada
-   * hoja se CLONA en un host fijo, fuera de pantalla, SIN transform → html2canvas
-   * la mide a tamaño natural y el texto sale nítido.
+   * salía ilegible — bug real que el Dr detectó en el PDF de la receta). La nota
+   * no sufría esto porque se dibuja a tamaño real.
+   *
+   * Se pone a 'none' el transform de los ancestros ESCALADOS (el elemento REAL,
+   * con sus imágenes ya cargadas — clonar colgaba html2canvas re-descargando el
+   * membrete), se rasteriza, y se restaura. Un tope de tiempo evita que se quede
+   * "Generando…" para siempre si html2canvas se atora.
    */
-  const host = document.createElement('div')
-  host.setAttribute('aria-hidden', 'true')
-  host.style.cssText = 'position:fixed;left:-100000px;top:0;margin:0;padding:0;background:#fff;transform:none;z-index:-1'
-  document.body.appendChild(host)
-
-  const esperarImagenes = async (el: HTMLElement) => {
-    const imgs = Array.from(el.querySelectorAll('img'))
-    await Promise.all(imgs.map(img => (img.complete && img.naturalWidth > 0)
-      ? Promise.resolve()
-      : new Promise<void>(res => { img.addEventListener('load', () => res(), { once: true }); img.addEventListener('error', () => res(), { once: true }); setTimeout(() => res(), 8000) })))
+  const restaurar: Array<() => void> = []
+  let n = paginas[0].parentElement
+  while (n && n !== document.body) {
+    const t = getComputedStyle(n).transform
+    if (t && t !== 'none') {
+      const el = n as HTMLElement
+      const prev = el.style.transform
+      el.style.transform = 'none'
+      restaurar.push(() => { el.style.transform = prev })
+    }
+    n = n.parentElement
   }
+
+  const conTope = <T,>(p: Promise<T>, ms: number): Promise<T> =>
+    Promise.race([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error('html2canvas timeout')), ms))])
 
   try {
     for (let i = 0; i < paginas.length; i++) {
-      const clone = paginas[i].cloneNode(true) as HTMLElement
-      clone.style.transform = 'none'
-      clone.style.margin = '0'
-      clone.style.boxShadow = 'none'
-      host.appendChild(clone)
-      await esperarImagenes(clone)
-      const canvas = await html2canvas(clone, {
+      const canvas = await conTope(html2canvas(paginas[i], {
         scale: 3,                    // nitidez de texto e imagen
         useCORS: true,
         backgroundColor: '#ffffff',
-        imageTimeout: 30000,         // espera al membrete/firma en alta resolución
+        imageTimeout: 12000,         // espera al membrete/firma (no 30s: colgaba)
         logging: false,
-      })
-      host.removeChild(clone)
+      }), 25000)
       const img = canvas.toDataURL('image/jpeg', 0.95)
       if (i > 0) pdf.addPage([opts.anchoMm, opts.altoMm], orientation)
       // A sangre: la hoja ya trae su propio margen/membrete; el PDF no añade ninguno.
       pdf.addImage(img, 'JPEG', 0, 0, opts.anchoMm, opts.altoMm, undefined, 'FAST')
     }
   } finally {
-    document.body.removeChild(host)
+    restaurar.forEach(f => f())
   }
 
   const filename = opts.filename.endsWith('.pdf') ? opts.filename : `${opts.filename}.pdf`

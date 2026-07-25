@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v621'  // FIX PDF RECETA/ORDEN ILEGIBLE: el texto salia deshecho/encimado porque la receta vive dentro del preview con transform:scale(0.42) y html2canvas mide mal las letras bajo un ancestro escalado. Ahora descargarPaginasComoPDF CLONA cada hoja en un host fijo fuera de pantalla SIN transform -> render a escala 1, texto nitido. La nota ya salia bien (se dibuja a tamano real). WORD de la nota: membrete como FONDO DE PAGINA nativo de Word (v:background + DisplayBackgroundShape, imagen data URI) con el texto en la zona segura (margenes @page); receta Word queda limpia (su diseno es un formulario, el texto no alinea sobre el).
+const CACHE = 'nexusmed-v622'  // FIX el PDF de receta se quedaba "Generando..." para siempre: clonar la hoja colgaba html2canvas (re-descargaba el membrete). Ahora se neutraliza el transform:scale del preview EN VIVO (elemento real, imagenes ya cargadas), se rasteriza a escala 1 (texto nitido) y se restaura; + TOPE de 25s por hoja (Promise.race) para que NUNCA se cuelgue -> si se atora, muestra error y libera el boton. imageTimeout 30s->12s.
 // (v601):
 
 self.addEventListener('install', (event) => {
