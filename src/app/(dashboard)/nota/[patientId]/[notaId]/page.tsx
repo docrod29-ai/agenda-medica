@@ -235,10 +235,18 @@ export default function NotaImprimiblePage() {
       </div>
 
       {/* Documento (hoja blanca o hoja membretada del médico) */}
+      {/* Auditoría papelería 2026-07 (P0 real, reportado por el Dr): antes esta
+          hoja usaba `aspectRatio: 216/279`. Con el ancho fijo, eso le da a la caja
+          una ALTURA DEFINIDA de UNA página; cualquier nota más larga se DERRAMA
+          fuera del recuadro blanco (sobre el fondo oscuro) = el "texto fantasma"
+          que se veía. Ahora la hoja CRECE con el contenido (minHeight para que una
+          nota corta siga pareciendo una hoja carta) y la membretada se pinta como
+          FONDO que se repite por página (igual que al imprimir), así se ve el
+          membrete en cada hoja y el contenido nunca se sale del blanco. */}
       <div id="doc" style={membrete ? {
         maxWidth: 800, margin: '0 auto', background: '#fff', color: '#1a1a1a',
         position: 'relative', borderRadius: 4, fontFamily: '"Times New Roman", Georgia, serif',
-        lineHeight: 1.4, fontSize: 13, aspectRatio: '216 / 279',  // proporción carta para la vista previa
+        lineHeight: 1.4, fontSize: 13, minHeight: 'min(1035px, calc((100vw - 48px) * 279 / 216))',
         paddingTop: `${mMemb.top}mm`, paddingBottom: `${mMemb.bottom}mm`,
         paddingLeft: `${mMemb.left}mm`, paddingRight: `${mMemb.right}mm`, boxSizing: 'border-box',
       } : {
@@ -250,7 +258,7 @@ export default function NotaImprimiblePage() {
         {membrete && (
           // eslint-disable-next-line @next/next/no-img-element
           <img className="membrete-bg" src={membrete} alt="" aria-hidden
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', zIndex: -1, pointerEvents: 'none' }} />
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'auto', zIndex: -1, pointerEvents: 'none' }} />
         )}
         {/* Encabezado de texto — SOLO si NO hay hoja membretada (la membretada ya lo trae) */}
         {!membrete && (
