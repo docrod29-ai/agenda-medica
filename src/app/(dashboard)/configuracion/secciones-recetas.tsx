@@ -748,15 +748,33 @@ function PreviewReceta({
   onMargenes: (m: { top: number; right: number; bottom: number; left: number }) => void
 }) {
   const { toast } = useToast()
-  // La vista previa debe usar el tamaño REAL con que se imprime: si hay diseño
-  // propio subido, sus dimensiones (disenoWidthMm/HeightMm), NO el paperSize. Antes
-  // usaba PAPER_SIZES[paperSize] (p.ej. A5) y un diseño CARTA salía "mocho"
-  // (recortado a la derecha) porque el marco era más angosto que el formato.
+  // BUG que el Dr cazó en vivo: RecetaDocumento ORIENTA la hoja al diseño subido
+  // (si la imagen es APAISADA, voltea el papel a horizontal: 148×210 → 210×148),
+  // pero el marco de esta vista previa usaba las medidas SIN orientar → marco
+  // vertical con hoja horizontal dentro = recortada a la derecha ("mocho"). Aquí
+  // se carga el aspecto real de la imagen y se orienta IGUAL que el documento.
   const paperEf = paperEfectivo(rx)
   const paper = PAPER_SIZES[rx.paperSize ?? 'media-carta']
+  const [imgAspect, setImgAspect] = useState<number | null>(null)
+  useEffect(() => {
+    const url = rx.disenoCompletoDataUrl
+    if (!url) { setImgAspect(null); return }
+    const im = new window.Image()
+    im.onload = () => { if (im.naturalWidth && im.naturalHeight) setImgAspect(im.naturalWidth / im.naturalHeight) }
+    im.onerror = () => setImgAspect(null)
+    im.src = url
+  }, [rx.disenoCompletoDataUrl])
+  // Dimensiones ORIENTADAS al diseño (mismo criterio que RecetaDocumento).
+  const paperOri = (() => {
+    if (!rx.disenoCompletoDataUrl || imgAspect == null) return { widthMm: paperEf.widthMm, heightMm: paperEf.heightMm }
+    const corto = Math.min(paperEf.widthMm, paperEf.heightMm)
+    const largo = Math.max(paperEf.widthMm, paperEf.heightMm)
+    const apaisado = imgAspect > 1
+    return { widthMm: apaisado ? largo : corto, heightMm: apaisado ? corto : largo }
+  })()
   // 96 DPI estándar web: 1mm ≈ 3.78 px
-  const paperWidthPx = (paperEf.widthMm * 96) / 25.4
-  const paperHeightPx = (paperEf.heightMm * 96) / 25.4
+  const paperWidthPx = (paperOri.widthMm * 96) / 25.4
+  const paperHeightPx = (paperOri.heightMm * 96) / 25.4
   // Ancho objetivo del contenedor sticky en el lado derecho
   const TARGET_WIDTH = 340
   const TARGET_MAX_HEIGHT = 520
@@ -791,7 +809,10 @@ function PreviewReceta({
   // un camino distinto y en otro tamaño, así que "se veía bien en la prueba" no
   // garantizaba nada del impreso real.
   const imprimirPrueba = () => {
-    const h = dimensionesImpresion(rx)
+    // Usa las dimensiones ORIENTADAS al diseño (mismo criterio que la hoja real),
+    // para que la prueba salga del tamaño/orientación correctos, no volteada.
+    const cfgOri = { ...rx, disenoWidthMm: paperOri.widthMm, disenoHeightMm: paperOri.heightMm }
+    const h = dimensionesImpresion(cfgOri)
     imprimirElemento(document.getElementById('zona-print-receta-inner'), 'Prueba de receta', {
       anchoMm: h.widthMm, altoMm: h.heightMm, onError: (m) => toast(m, 'error'),
     })
@@ -800,8 +821,8 @@ function PreviewReceta({
   return (
     <div style={{ position: 'sticky', top: 20 }}>
       <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', marginBottom: 8 }}>
-        Vista previa · {rx.disenoCompletoDataUrl && rx.disenoWidthMm && rx.disenoHeightMm
-          ? `tu formato (${Math.round(paperEf.widthMm)}×${Math.round(paperEf.heightMm)} mm)`
+        Vista previa · {rx.disenoCompletoDataUrl
+          ? `tu formato (${Math.round(paperOri.widthMm)}×${Math.round(paperOri.heightMm)} mm${imgAspect && imgAspect > 1 ? ', apaisado' : ''})`
           : paper.label.split(' ')[0]}
       </div>
       <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 10 }}>
@@ -871,8 +892,8 @@ function PreviewReceta({
           {usarGuia && (
             <ZonaContenidoEditable
               m={margenes}
-              paperWmm={paper.widthMm}
-              paperHmm={paper.heightMm}
+              paperWmm={paperOri.widthMm}
+              paperHmm={paperOri.heightMm}
               scale={scale}
               onChange={onMargenes}
             />
