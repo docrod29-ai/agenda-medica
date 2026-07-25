@@ -719,7 +719,9 @@ export default function GeneradorRecetaPage() {
             return (
               <>
                 <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', marginBottom: 8 }}>
-                  Vista previa · {PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta'].label.split(' ')[0]}
+                  Vista previa · {recetaConfig.disenoCompletoDataUrl && recetaConfig.disenoWidthMm && recetaConfig.disenoHeightMm
+                    ? `tu formato (${Math.round(host.widthMm)}×${Math.round(host.heightMm)} mm)`
+                    : PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta'].label.split(' ')[0]}
                   {numPages > 1 && <strong> · {numPages} hojas</strong>}
                   {host.esHostCarta && <> · impresa en carta <Scissors size={11} className="ds-icon" style={{ display: 'inline' }} /></>}
                 </div>

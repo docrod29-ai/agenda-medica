@@ -114,7 +114,7 @@ function fmtFechaNac(fecha: string): string {
  * "flotar" arriba por el letterbox de objectFit:contain. Si no hay dimensiones,
  * cae al tamaño de papel estándar.
  */
-function paperEfectivo(recetaConfig: RecetaConfig): { widthMm: number; heightMm: number; cssPage: string } {
+export function paperEfectivo(recetaConfig: RecetaConfig): { widthMm: number; heightMm: number; cssPage: string } {
   if (recetaConfig.disenoCompletoDataUrl && recetaConfig.disenoWidthMm && recetaConfig.disenoHeightMm) {
     const w = recetaConfig.disenoWidthMm, h = recetaConfig.disenoHeightMm
     return { widthMm: w, heightMm: h, cssPage: `${w}mm ${h}mm` }

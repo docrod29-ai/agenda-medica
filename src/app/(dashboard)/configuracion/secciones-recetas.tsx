@@ -6,7 +6,7 @@
  */
 import { useState, useEffect, useRef } from 'react'
 import { areaImpracticable } from '@/lib/receta-paginacion'
-import { RecetaDocumento, dimensionesImpresion, type RecetaData } from '@/components/RecetaDocumento'
+import { RecetaDocumento, dimensionesImpresion, paperEfectivo, type RecetaData } from '@/components/RecetaDocumento'
 import { imprimirElemento } from '@/lib/print-element'
 import { resizeImageFile, formatBytes } from '@/lib/image-utils'
 import { PAPER_SIZES, ESTILOS_RECETA, detectarPaperSize } from '@/lib/receta-template'
@@ -748,10 +748,15 @@ function PreviewReceta({
   onMargenes: (m: { top: number; right: number; bottom: number; left: number }) => void
 }) {
   const { toast } = useToast()
+  // La vista previa debe usar el tamaño REAL con que se imprime: si hay diseño
+  // propio subido, sus dimensiones (disenoWidthMm/HeightMm), NO el paperSize. Antes
+  // usaba PAPER_SIZES[paperSize] (p.ej. A5) y un diseño CARTA salía "mocho"
+  // (recortado a la derecha) porque el marco era más angosto que el formato.
+  const paperEf = paperEfectivo(rx)
   const paper = PAPER_SIZES[rx.paperSize ?? 'media-carta']
   // 96 DPI estándar web: 1mm ≈ 3.78 px
-  const paperWidthPx = (paper.widthMm * 96) / 25.4
-  const paperHeightPx = (paper.heightMm * 96) / 25.4
+  const paperWidthPx = (paperEf.widthMm * 96) / 25.4
+  const paperHeightPx = (paperEf.heightMm * 96) / 25.4
   // Ancho objetivo del contenedor sticky en el lado derecho
   const TARGET_WIDTH = 340
   const TARGET_MAX_HEIGHT = 520
@@ -795,7 +800,9 @@ function PreviewReceta({
   return (
     <div style={{ position: 'sticky', top: 20 }}>
       <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', marginBottom: 8 }}>
-        Vista previa · {paper.label.split(' ')[0]}
+        Vista previa · {rx.disenoCompletoDataUrl && rx.disenoWidthMm && rx.disenoHeightMm
+          ? `tu formato (${Math.round(paperEf.widthMm)}×${Math.round(paperEf.heightMm)} mm)`
+          : paper.label.split(' ')[0]}
       </div>
       <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 10 }}>
         <button
