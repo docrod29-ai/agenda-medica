@@ -77,7 +77,10 @@ function QrLocal({ contenido, tamMm }: { contenido: string; tamMm: number }) {
   useEffect(() => {
     let vivo = true
     import('qrcode')
-      .then((QR) => QR.toDataURL(contenido, { margin: 1, width: 320, errorCorrectionLevel: 'M' }))
+      // margin 2 = zona de silencio (quiet zone) suficiente para que el escáner lo
+      // aísle; width 640 = fuente de alta resolución para que aguante el reescalado
+      // de html2canvas/impresión sin difuminar los módulos.
+      .then((QR) => QR.toDataURL(contenido, { margin: 2, width: 640, errorCorrectionLevel: 'M' }))
       .then((url) => { if (vivo) setDataUrl(url) })
       .catch(() => { /* si falla, no rompe la impresión: simplemente no hay QR */ })
     return () => { vivo = false }
@@ -88,7 +91,10 @@ function QrLocal({ contenido, tamMm }: { contenido: string; tamMm: number }) {
     <img
       src={dataUrl}
       alt="QR de verificación"
-      style={{ width: `${tamMm}mm`, height: `${tamMm}mm`, background: 'rgba(255,255,255,0.9)', padding: 2, borderRadius: 2 }}
+      // Fondo BLANCO SÓLIDO (antes 0.9: la marca de agua del membrete se colaba y el
+      // escáner NO lo detectaba por falta de contraste). imageRendering:pixelated
+      // conserva los bordes de los módulos al reescalar (crítico para que se lea).
+      style={{ width: `${tamMm}mm`, height: `${tamMm}mm`, background: '#fff', padding: 3, borderRadius: 2, imageRendering: 'pixelated' }}
     />
   )
 }

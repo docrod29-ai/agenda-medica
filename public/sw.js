@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v623'  // PDF receta/orden nitido: se MUEVE la hoja real fuera del preview escalado (transform:scale rompia el render de texto en html2canvas) a un host fuera de pantalla, se rasteriza a escala 1 y se devuelve a su lugar con un marcador (para que React no pierda el nodo). Neutralizar el transform daba pagina en blanco; clonar colgaba; mover el nodo real (imagenes ya cargadas) es lo correcto. Tope 25s por hoja.
+const CACHE = 'nexusmed-v624'  // (1) TEXTO DESVAIDO en el PDF: en modo oscuro var(--text) es crema clara y el texto salia palido sobre el PDF blanco. Se fuerza data-theme=light en <html> durante el render y se restaura. (2) La NOTA se rasteriza EN SU SITIO (no se mueve: no esta escalada; moverla le cambiaba el contexto de estilo). Solo la receta/orden (preview con scale) se mueven fuera. (3) QR NO ESCANEABLE: fondo era rgba blanco 0.9 -> la marca de agua del membrete se colaba y bajaba el contraste; ahora #fff solido, imageRendering pixelated, fuente 640px y quiet zone (margin 2, padding 3).
 // (v601):
 
 self.addEventListener('install', (event) => {

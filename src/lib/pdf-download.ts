@@ -47,41 +47,61 @@ export async function descargarPaginasComoPDF(
   const orientation = opts.anchoMm > opts.altoMm ? 'landscape' : 'portrait'
   const pdf = new jsPDF({ unit: 'mm', format: [opts.anchoMm, opts.altoMm], orientation, compress: true })
 
+  const conTope = <T,>(p: Promise<T>, ms: number): Promise<T> =>
+    Promise.race([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error('html2canvas timeout')), ms))])
+
   /**
-   * Render a ESCALA 1 MOVIENDO la hoja fuera del preview escalado.
+   * TEMA CLARO FORZADO durante el render.
    *
-   * POR QUÉ: la receta/orden viven dentro de una vista previa con
-   * `transform: scale(0.42)`. html2canvas, bajo un ancestro escalado, MIDE MAL el
-   * ancho de las letras y las ENCIMA (el texto salía ilegible — bug real que el
-   * Dr detectó). La nota no sufría esto (se dibuja a tamaño real).
-   *
-   * Se MUEVE el nodo REAL (no un clon: clonar colgaba html2canvas re-descargando
-   * el membrete; el nodo real ya tiene sus imágenes cargadas) a un host fijo
-   * fuera de pantalla SIN transform, se rasteriza a tamaño natural (texto nítido)
-   * y se devuelve EXACTAMENTE a su lugar con un marcador. Un tope de tiempo evita
-   * que se quede "Generando…" para siempre si html2canvas se atora.
+   * POR QUÉ: los documentos usan `var(--text)` etc. En MODO OSCURO `--text` es
+   * crema claro (#F2EFE9) → el texto salía DESVAÍDO sobre el PDF blanco (el Dr:
+   * "porque salen las letras así"). Un documento impreso debe llevar texto oscuro
+   * SIEMPRE. Se fuerza `data-theme="light"` en <html> durante el render (todas las
+   * variables resuelven a claro) y se restaura al terminar.
+   */
+  const raiz = document.documentElement
+  const temaPrevio = raiz.getAttribute('data-theme')
+  raiz.setAttribute('data-theme', 'light')
+
+  /**
+   * Host fuera de pantalla SOLO para hojas dentro de un preview ESCALADO
+   * (receta/orden con `transform: scale`). html2canvas mide mal las letras bajo
+   * un ancestro escalado y las ENCIMA; se mueve el nodo REAL (imágenes ya
+   * cargadas — clonar colgaba) a un host sin transform, se rasteriza a escala 1 y
+   * se devuelve a su lugar con un marcador. La NOTA no está escalada → se
+   * rasteriza EN SU SITIO (moverla cambiaba su contexto de estilo).
    */
   const host = document.createElement('div')
   host.setAttribute('aria-hidden', 'true')
   host.style.cssText = 'position:fixed;left:-100000px;top:0;margin:0;padding:0;background:#fff;transform:none;z-index:-1'
   document.body.appendChild(host)
 
-  const conTope = <T,>(p: Promise<T>, ms: number): Promise<T> =>
-    Promise.race([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error('html2canvas timeout')), ms))])
+  const tieneAncestroEscalado = (el: HTMLElement): boolean => {
+    let n: HTMLElement | null = el.parentElement
+    while (n && n !== document.body) {
+      const t = getComputedStyle(n).transform
+      if (t && t !== 'none') return true
+      n = n.parentElement
+    }
+    return false
+  }
 
   try {
     for (let i = 0; i < paginas.length; i++) {
       const page = paginas[i]
+      const escalado = tieneAncestroEscalado(page)
       // Marcador para devolver el nodo a su POSICIÓN EXACTA (sin él, React perdería
       // el lugar y podría duplicar/borrar la hoja al re-renderizar).
       const marcador = document.createComment('pdf-page-placeholder')
       const padre = page.parentNode as Node
       const prevTransform = page.style.transform
       const prevMargin = page.style.margin
-      padre.replaceChild(marcador, page)
-      page.style.transform = 'none'
-      page.style.margin = '0'
-      host.appendChild(page)
+      if (escalado) {
+        padre.replaceChild(marcador, page)
+        page.style.transform = 'none'
+        page.style.margin = '0'
+        host.appendChild(page)
+      }
       try {
         const canvas = await conTope(html2canvas(page, {
           scale: 3,                    // nitidez de texto e imagen
@@ -95,14 +115,19 @@ export async function descargarPaginasComoPDF(
         // A sangre: la hoja ya trae su margen/membrete; el PDF no añade ninguno.
         pdf.addImage(img, 'JPEG', 0, 0, opts.anchoMm, opts.altoMm, undefined, 'FAST')
       } finally {
-        // Devolver el nodo a su lugar SIEMPRE (aunque html2canvas falle).
-        page.style.transform = prevTransform
-        page.style.margin = prevMargin
-        marcador.parentNode?.replaceChild(page, marcador)
+        // Devolver el nodo movido a su lugar SIEMPRE (aunque html2canvas falle).
+        if (escalado) {
+          page.style.transform = prevTransform
+          page.style.margin = prevMargin
+          marcador.parentNode?.replaceChild(page, marcador)
+        }
       }
     }
   } finally {
     document.body.removeChild(host)
+    // Restaurar el tema original de la app.
+    if (temaPrevio === null) raiz.removeAttribute('data-theme')
+    else raiz.setAttribute('data-theme', temaPrevio)
   }
 
   const filename = opts.filename.endsWith('.pdf') ? opts.filename : `${opts.filename}.pdf`
