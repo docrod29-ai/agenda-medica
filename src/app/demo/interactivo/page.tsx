@@ -13,6 +13,7 @@ import Link from 'next/link'
 import {
   ArrowLeft, ArrowRight, Calendar, Mic, FileText, ShieldCheck, CheckCircle2,
   RotateCcw, Square, Info, MessageCircle, Headset, Smartphone, Lock,
+  FlaskConical, Sparkles, Stethoscope, ClipboardList, Send, AlertTriangle,
 } from 'lucide-react'
 import {
   DEMO_ESCENARIOS, dictadoHasta, dictadoCompleto, DEMO_WHATSAPP,
@@ -85,8 +86,8 @@ function Pasos({ paso }: { paso: DemoPaso }) {
     { k: 'agenda', label: 'Agenda' },
     { k: 'dictado', label: 'Dictado' },
     { k: 'nota', label: 'Nota' },
-    { k: 'receta', label: 'Receta' },
-    { k: 'modulos', label: 'Módulos' },
+    { k: 'receta', label: 'Receta / Orden' },
+    { k: 'modulos', label: 'Herramientas' },
   ]
   const orden = items.map(i => i.k)
   const actualI = orden.indexOf(paso)
@@ -259,24 +260,46 @@ function Nota({ escenario, onGenerarReceta, onReiniciar }: { escenario: DemoEsce
 /* ─────────────────────────────── Receta ────────────────────────────────── */
 function Receta({ escenario, onReiniciar, onOtro, onExplorar }: { escenario: DemoEscenario; onReiniciar: () => void; onOtro: () => void; onExplorar: () => void }) {
   const [verificado, setVerificado] = useState(false)
+  const [doc, setDoc] = useState<'receta' | 'orden'>('receta')
+  const esReceta = doc === 'receta'
+  // Estudios ficticios para ilustrar la ORDEN médica (mismo flujo que la receta).
+  const estudios = ['Biometría hemática completa', 'Química sanguínea (glucosa, creatinina, PFH)', 'Examen general de orina', 'Proteína C reactiva']
   return (
     <div>
-      <Encabezado icono={FileText} titulo="Receta con tu membrete" sub="Sale con tu formato, firma y un QR que verifica la integridad del documento. (Receta ficticia)" />
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1fr)', gap: 16, marginTop: 16 }} className="nx-demo-receta">
-        {/* Receta */}
+      <Encabezado icono={FileText} titulo="Receta y orden médica" sub="Salen con tu formato, firma y un QR que verifica la integridad. Cambia entre receta y orden. (Documentos ficticios)" />
+      {/* Conmutador Receta / Orden */}
+      <div style={{ display: 'inline-flex', gap: 4, margin: '16px 0 0', padding: 4, background: 'var(--s2)', borderRadius: 100, border: '1px solid var(--border)' }}>
+        {([['receta', 'Receta', FileText], ['orden', 'Orden médica', ClipboardList]] as const).map(([k, label, Icono]) => (
+          <button key={k} onClick={() => setDoc(k)} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
+            padding: '6px 14px', borderRadius: 100, border: 'none',
+            background: doc === k ? 'var(--nexus)' : 'transparent', color: doc === k ? '#fff' : 'var(--text2)',
+          }}><Icono size={14} /> {label}</button>
+        ))}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1fr)', gap: 16, marginTop: 12 }} className="nx-demo-receta">
+        {/* Documento (receta u orden) */}
         <div style={{ ...card, background: '#fff', color: '#111' }}>
           <div style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: 10, marginBottom: 12 }}>
             <div style={{ fontSize: 15, fontWeight: 800 }}>Dr. Nombre Apellido <span style={{ fontSize: 11, fontWeight: 500, color: '#6b7280' }}>(ficticio)</span></div>
             <div style={{ fontSize: 11.5, color: '#6b7280' }}>Medicina General · Céd. Prof. 0000000</div>
           </div>
+          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.05em', color: '#3D5AFE', textTransform: 'uppercase', marginBottom: 8 }}>{esReceta ? 'Receta médica' : 'Orden de estudios'}</div>
           <div style={{ fontSize: 12, color: '#374151', marginBottom: 4 }}><strong>Paciente:</strong> {escenario.cita.iniciales} · {escenario.cita.sexo === 'F' ? 'F' : 'M'} {escenario.cita.edad} a · <strong>Folio:</strong> {escenario.folio}</div>
           <div style={{ fontSize: 12, color: '#374151', marginBottom: 12 }}><strong>Dx:</strong> {escenario.diagnostico}</div>
-          {escenario.medicamentos.map((m, i) => (
-            <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-              <CheckCircle2 size={15} style={{ color: '#3D5AFE', flexShrink: 0, marginTop: 1 }} />
-              <span style={{ fontSize: 12.5 }}><strong>{m.nombre}</strong> — {m.indicacion}</span>
-            </div>
-          ))}
+          {esReceta
+            ? escenario.medicamentos.map((m, i) => (
+                <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                  <CheckCircle2 size={15} style={{ color: '#3D5AFE', flexShrink: 0, marginTop: 1 }} />
+                  <span style={{ fontSize: 12.5 }}><strong>{m.nombre}</strong> — {m.indicacion}</span>
+                </div>
+              ))
+            : estudios.map((e, i) => (
+                <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                  <ClipboardList size={15} style={{ color: '#3D5AFE', flexShrink: 0, marginTop: 1 }} />
+                  <span style={{ fontSize: 12.5 }}>{e}</span>
+                </div>
+              ))}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
             <div style={{ width: 52, height: 52, borderRadius: 8, background: '#f3f4f6', display: 'grid', placeItems: 'center', fontSize: 9, color: '#6b7280', textAlign: 'center', lineHeight: 1.15, border: '1px solid #e5e7eb' }}>QR<br/>verif.</div>
           </div>
@@ -314,8 +337,8 @@ function Receta({ escenario, onReiniciar, onOtro, onExplorar }: { escenario: Dem
 
       {/* Siguiente: explorar los otros módulos interactivos */}
       <div style={{ ...card, marginTop: 20, textAlign: 'center' }}>
-        <h3 style={{ fontSize: 19, fontWeight: 600, margin: '0 0 8px' }}>Explora los otros módulos</h3>
-        <p style={{ fontSize: 14, color: 'var(--text2)', margin: '0 auto 16px', maxWidth: 460 }}>WhatsApp, portal de asistente y portal del paciente — también los pruebas tú.</p>
+        <h3 style={{ fontSize: 19, fontWeight: 600, margin: '0 0 8px' }}>Explora las herramientas clínicas</h3>
+        <p style={{ fontSize: 14, color: 'var(--text2)', margin: '0 auto 16px', maxWidth: 480 }}>Antibiograma inteligente, Consultor IA, calculadoras clínicas, WhatsApp y portal del paciente — todo lo pruebas tú.</p>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
           <button onClick={onExplorar} className="btn btn-primary btn-lg" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
             Explorar módulos <ArrowRight size={16} />
@@ -333,18 +356,21 @@ function Receta({ escenario, onReiniciar, onOtro, onExplorar }: { escenario: Dem
 }
 
 /* ─────────────────────── Explorador de módulos ─────────────────────────── */
-type ModTab = 'whatsapp' | 'secretaria' | 'portal'
+type ModTab = 'antibiograma' | 'ia' | 'herramientas' | 'whatsapp' | 'secretaria' | 'portal'
 
 function ExploradorModulos({ onReiniciar }: { onReiniciar: () => void }) {
-  const [tab, setTab] = useState<ModTab>('whatsapp')
+  const [tab, setTab] = useState<ModTab>('antibiograma')
   const tabs: { k: ModTab; label: string; icon: typeof MessageCircle }[] = [
+    { k: 'antibiograma', label: 'Antibiograma', icon: FlaskConical },
+    { k: 'ia', label: 'Consultor IA', icon: Sparkles },
+    { k: 'herramientas', label: 'Herramientas clínicas', icon: Stethoscope },
     { k: 'whatsapp', label: 'WhatsApp', icon: MessageCircle },
     { k: 'secretaria', label: 'Secretaria', icon: Headset },
     { k: 'portal', label: 'Portal del paciente', icon: Smartphone },
   ]
   return (
     <div>
-      <Encabezado icono={MessageCircle} titulo="Otros módulos" sub="Pruébalos tú mismo. Todo es ficticio; no se envían mensajes ni se conecta a nada." />
+      <Encabezado icono={Stethoscope} titulo="Herramientas clínicas y módulos" sub="Pruébalos tú mismo. Todo es ficticio; no se conecta a datos reales, IA ni internet." />
       <div style={{ display: 'flex', gap: 8, margin: '16px 0', flexWrap: 'wrap' }}>
         {tabs.map(t => {
           const activo = tab === t.k
@@ -359,6 +385,9 @@ function ExploradorModulos({ onReiniciar }: { onReiniciar: () => void }) {
         })}
       </div>
 
+      {tab === 'antibiograma' && <ModAntibiograma />}
+      {tab === 'ia' && <ModConsultorIA />}
+      {tab === 'herramientas' && <ModHerramientas />}
       {tab === 'whatsapp' && <ModWhatsApp />}
       {tab === 'secretaria' && <ModSecretaria />}
       {tab === 'portal' && <ModPortal />}
@@ -373,6 +402,107 @@ function ExploradorModulos({ onReiniciar }: { onReiniciar: () => void }) {
           Volver a la agenda
         </button>
       </div>
+    </div>
+  )
+}
+
+/** Antibiograma: el visitante "interpreta" un panel S/I/R ficticio y ve el
+ *  fenotipo, mecanismo y terapia dirigida que armaría el motor. */
+function ModAntibiograma() {
+  const [interpretado, setInterpretado] = useState(false)
+  const panel: [string, 'S' | 'I' | 'R'][] = [
+    ['Oxacilina', 'R'], ['Cefoxitina', 'R'], ['Vancomicina', 'S'],
+    ['Clindamicina', 'S'], ['TMP-SMX', 'S'], ['Ciprofloxacino', 'R'],
+  ]
+  const colorSIR = (v: string) => v === 'S' ? '#16a34a' : v === 'R' ? '#dc2626' : '#d97706'
+  return (
+    <div style={{ ...card }}>
+      <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 12 }}>
+        Organismo: <strong style={{ color: 'var(--text)' }}>Staphylococcus aureus</strong> · Sitio: <strong style={{ color: 'var(--text)' }}>piel y partes blandas</strong> · panel de sensibilidad de ejemplo.
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 8, marginBottom: 14 }}>
+        {panel.map(([ab, v]) => (
+          <div key={ab} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 11px', borderRadius: 9, background: 'var(--s2)', border: '1px solid var(--border)' }}>
+            <span style={{ fontSize: 12.5 }}>{ab}</span>
+            <span style={{ fontSize: 12, fontWeight: 800, color: colorSIR(v), width: 18, textAlign: 'center' }}>{v}</span>
+          </div>
+        ))}
+      </div>
+      {!interpretado ? (
+        <button onClick={() => setInterpretado(true)} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+          <FlaskConical size={15} /> Interpretar con el motor PROA
+        </button>
+      ) : (
+        <div className="nx-fade" style={{ display: 'grid', gap: 10 }}>
+          <div style={{ padding: 12, borderRadius: 11, background: 'var(--nexus-soft)', border: '1px solid var(--border2)' }}>
+            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--nexus)', marginBottom: 5 }}>Fenotipo y mecanismo</div>
+            <div style={{ fontSize: 13, lineHeight: 1.55 }}><strong>MRSA</strong> (oxacilina/cefoxitina R → mecA/PBP2a). β-lactámicos convencionales no útiles; sensible a vancomicina, clindamicina y TMP-SMX.</div>
+          </div>
+          <div style={{ padding: 12, borderRadius: 11, background: 'var(--s2)', border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text3)', marginBottom: 5 }}>Terapia dirigida sugerida</div>
+            <div style={{ fontSize: 13, lineHeight: 1.55 }}>Infección no grave de piel: <strong>TMP-SMX</strong> o <strong>clindamicina</strong> VO. Grave/sistémica: <strong>vancomicina</strong> IV. Clasificación AWaRe y notificación NOM-045 listas.</div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 11.5, color: 'var(--text3)' }}>
+            <AlertTriangle size={14} style={{ color: '#d97706', flexShrink: 0, marginTop: 1 }} />
+            <span>Ejemplo ilustrativo. En la app real tú confirmas el S/I/R y el motor razona con EUCAST/CLSI y cita la fuente. Apoyo decisional, no sustituye tu juicio.</span>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Consultor IA: chat clínico con respuestas ficticias pre-escritas. */
+function ModConsultorIA() {
+  const guion: Record<string, string> = {
+    'Ajuste de dosis por función renal': 'Para un paciente con TFG 30–50 mL/min, muchos antimicrobianos requieren ajuste. Ejemplo: cefepime, reduce el intervalo; nitrofurantoína, evítala por <60. Dime el fármaco y la TFG exacta y te doy la dosis.',
+    'Esquema empírico de neumonía': 'NAC que amerita hospitalización (no UCI): β-lactámico (ceftriaxona) + macrólido, o una fluoroquinolona respiratoria en monoterapia. Ajusta según factores de riesgo de resistencia y comorbilidades.',
+    'Interacciones de un fármaco': 'Dime el fármaco y los que ya toma el paciente; reviso interacciones relevantes (QT, CYP, nefrotoxicidad) y te propongo alternativas si hay conflicto.',
+  }
+  const [chat, setChat] = useState<{ de: 'yo' | 'ia'; texto: string }[]>([
+    { de: 'ia', texto: 'Soy tu Consultor IA. Pregúntame dosis, esquemas empíricos o interacciones. (Respuestas de ejemplo)' },
+  ])
+  const preguntar = (q: string) => setChat(c => [...c, { de: 'yo', texto: q }, { de: 'ia', texto: guion[q] }])
+  return (
+    <div style={{ ...card, maxWidth: 560 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12, minHeight: 90 }}>
+        {chat.map((m, i) => (
+          <div key={i} style={{ display: 'flex', justifyContent: m.de === 'yo' ? 'flex-end' : 'flex-start' }}>
+            <span style={{ maxWidth: '85%', fontSize: 12.5, lineHeight: 1.5, padding: '9px 12px', borderRadius: 12,
+              background: m.de === 'yo' ? 'var(--nexus)' : 'var(--s2)', color: m.de === 'yo' ? '#fff' : 'var(--text)',
+              border: m.de === 'yo' ? 'none' : '1px solid var(--border)' }}>{m.texto}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+        {Object.keys(guion).map(q => (
+          <button key={q} onClick={() => preguntar(q)} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            padding: '7px 12px', borderRadius: 100, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)',
+          }}><Send size={12} /> {q}</button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/** Herramientas clínicas: tarjetas de las calculadoras/paneles por especialidad. */
+function ModHerramientas() {
+  const items: { t: string; d: string; ej: string }[] = [
+    { t: 'Inmunocomprometido', d: 'Valoración de trasplante (SOT/TCMH), biológicos y profilaxis.', ej: 'Ej.: receptor de riñón en tacrolimús → profilaxis anti-Pneumocystis y CMV sugeridas.' },
+    { t: 'Cardiometabólico', d: 'Riesgo ACC/AHA, obesidad y MASLD con FIB-4.', ej: 'Ej.: FIB-4 1.9 → fibrosis indeterminada, sugiere elastografía.' },
+    { t: 'Pediatría', d: 'Dosis por peso y percentiles OMS por edad/sexo.', ej: 'Ej.: amoxicilina 45 mg/kg/día en niño de 14 kg = 630 mg/día.' },
+    { t: 'NEWS2 / signos', d: 'Score de deterioro a partir de los signos vitales.', ej: 'Ej.: FR 24, SpO₂ 92%, TA 100 → NEWS2 elevado, vigilar.' },
+  ]
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 10 }}>
+      {items.map(it => (
+        <div key={it.t} style={{ ...card, padding: 15 }}>
+          <div style={{ fontSize: 14.5, fontWeight: 700, marginBottom: 4 }}>{it.t}</div>
+          <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 9, lineHeight: 1.5 }}>{it.d}</div>
+          <div style={{ fontSize: 12, color: 'var(--text2)', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 9, padding: '8px 10px', lineHeight: 1.5 }}>{it.ej}</div>
+        </div>
+      ))}
     </div>
   )
 }

@@ -1,10 +1,10 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
-import { Calendar, Mic, FileText, MessageCircle, Headset, Smartphone, ArrowRight, ArrowLeft, CheckCircle2, MousePointerClick } from 'lucide-react'
+import { Calendar, Mic, FileText, MessageCircle, Headset, Smartphone, ArrowRight, ArrowLeft, CheckCircle2, MousePointerClick, FlaskConical, Sparkles, Stethoscope } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'Ver demo · NexusMED',
-  description: 'Recorrido de 2 minutos por NexusMED: agenda, nota por voz, receta, bot de WhatsApp, panel de asistente y portal del paciente.',
+  description: 'Recorrido por NexusMED: agenda, nota por voz e IA, receta y orden con QR, antibiograma inteligente (PROA), Consultor IA, herramientas clínicas, WhatsApp y portal del paciente.',
 }
 
 /**
@@ -37,22 +37,43 @@ const FLUJOS = [
     mock: 'receta',
   },
   {
-    icon: MessageCircle,
+    icon: FlaskConical,
     paso: '04',
+    titulo: 'Interpreta un antibiograma desde una foto',
+    texto: 'Subes la foto del reporte; la IA transcribe el patrón S/I/R y tú lo confirmas. El motor PROA infiere el fenotipo y mecanismo (MRSA, BLEE, carbapenemasa…), propone la terapia dirigida, clasifica AWaRe y arma la notificación NOM-045, con la explicación citada.',
+    mock: 'antibiograma',
+  },
+  {
+    icon: Sparkles,
+    paso: '05',
+    titulo: 'Un Consultor IA a tu lado',
+    texto: 'Pregúntale dosis por función renal, esquemas empíricos, diagnóstico diferencial o interacciones. Razona el caso a nivel subespecialista y respalda con evidencia real (PubMed). Apoyo decisional; tú decides.',
+    mock: 'ia',
+  },
+  {
+    icon: Stethoscope,
+    paso: '06',
+    titulo: 'Herramientas clínicas por especialidad',
+    texto: 'Calculadoras y paneles que razonan mientras atiendes: inmunocomprometido (trasplante, profilaxis), cardiometabólico (riesgo, FIB-4), pediatría (dosis por peso, percentiles OMS) y NEWS2. Todo se integra a la nota.',
+    mock: 'herramientas',
+  },
+  {
+    icon: MessageCircle,
+    paso: '07',
     titulo: 'El bot atiende tu WhatsApp 24/7',
     texto: 'Tus pacientes agendan, reagendan y reciben recordatorios automáticos. Cuando alguien cancela, la lista de espera recibe aviso al instante.',
     mock: 'whatsapp',
   },
   {
     icon: Headset,
-    paso: '05',
+    paso: '08',
     titulo: 'Tu asistente ve solo lo que necesita',
     texto: 'El modo asistente muestra agenda y datos de contacto, sin acceso a la información clínica sensible ni a la configuración. Permisos por rol reales.',
     mock: 'secretaria',
   },
   {
     icon: Smartphone,
-    paso: '06',
+    paso: '09',
     titulo: 'El paciente tiene su propio portal',
     texto: 'Con un enlace seguro (sin contraseña) el paciente ve sus próximas citas, sus recetas y puede reagendar. Refuerza tu reputación con reseñas.',
     mock: 'portal',
@@ -104,6 +125,47 @@ function Mock({ tipo }: { tipo: string }) {
         <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'flex-end', paddingTop: 10 }}>
           <div style={{ width: 44, height: 44, borderRadius: 8, background: 'var(--s2)', display: 'grid', placeItems: 'center', fontSize: 9, color: 'var(--text3)', textAlign: 'center', lineHeight: 1.1 }}>QR<br/>válido</div>
         </div>
+      </div>
+    )
+  }
+  if (tipo === 'antibiograma') {
+    return (
+      <div style={base}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text3)', marginBottom: 10 }}>S. aureus · piel</div>
+        {[['Oxacilina', 'R', '#dc2626'], ['Cefoxitina', 'R', '#dc2626'], ['Vancomicina', 'S', '#16a34a'], ['TMP-SMX', 'S', '#16a34a']].map((r, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderRadius: 8, background: 'var(--s2)', marginBottom: 6 }}>
+            <span style={{ flex: 1, fontSize: 12.5, color: 'var(--text)' }}>{r[0]}</span>
+            <span style={{ fontSize: 12, fontWeight: 800, color: r[2] }}>{r[1]}</span>
+          </div>
+        ))}
+        <div style={{ marginTop: 8, padding: '9px 11px', borderRadius: 9, background: 'var(--nexus-soft)', border: '1px solid var(--border2)', fontSize: 12, color: 'var(--text)' }}>
+          <strong>MRSA</strong> → terapia dirigida + NOM-045
+        </div>
+      </div>
+    )
+  }
+  if (tipo === 'ia') {
+    return (
+      <div style={base}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+          <span style={{ maxWidth: '80%', fontSize: 12, padding: '8px 11px', borderRadius: 12, background: 'var(--nexus)', color: '#fff' }}>¿Dosis de cefepime con TFG 35?</span>
+        </div>
+        <div style={{ display: 'flex', marginBottom: 8 }}>
+          <span style={{ maxWidth: '85%', fontSize: 12, padding: '8px 11px', borderRadius: 12, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', lineHeight: 1.5 }}>Con TFG 30–60 mL/min, ajusta el intervalo de cefepime. Dime indicación y peso y te doy la dosis exacta.</span>
+        </div>
+        <div style={{ fontSize: 10.5, color: 'var(--text3)' }}>Respaldado por evidencia · apoyo decisional</div>
+      </div>
+    )
+  }
+  if (tipo === 'herramientas') {
+    return (
+      <div style={base}>
+        {[['Inmunocomprometido', 'Trasplante · profilaxis'], ['Cardiometabólico', 'Riesgo ACC/AHA · FIB-4'], ['Pediatría', 'Dosis/peso · percentiles OMS'], ['NEWS2', 'Score de deterioro']].map((r, i) => (
+          <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 1, padding: '9px 11px', borderRadius: 9, background: 'var(--s2)', marginBottom: 7 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{r[0]}</span>
+            <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>{r[1]}</span>
+          </div>
+        ))}
       </div>
     )
   }

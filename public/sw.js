@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v624'  // (1) TEXTO DESVAIDO en el PDF: en modo oscuro var(--text) es crema clara y el texto salia palido sobre el PDF blanco. Se fuerza data-theme=light en <html> durante el render y se restaura. (2) La NOTA se rasteriza EN SU SITIO (no se mueve: no esta escalada; moverla le cambiaba el contexto de estilo). Solo la receta/orden (preview con scale) se mueven fuera. (3) QR NO ESCANEABLE: fondo era rgba blanco 0.9 -> la marca de agua del membrete se colaba y bajaba el contraste; ahora #fff solido, imageRendering pixelated, fuente 640px y quiet zone (margin 2, padding 3).
+const CACHE = 'nexusmed-v625'  // DEMO/SANDBOX ampliado para ofertar: en /demo/interactivo el paso Receta ahora conmuta Receta<->Orden medica, y el hub final suma Antibiograma (interpreta un panel S/I/R ficticio -> MRSA + terapia dirigida + NOM-045), Consultor IA (chat clinico de ejemplo) y Herramientas clinicas (inmuno/cardiometabolico/peds/NEWS2). El indice /demo suma 3 tarjetas nuevas con sus maquetas. + Capacitor listo para App Store/Play (config + scripts + docs).
 // (v601):
 
 self.addEventListener('install', (event) => {
