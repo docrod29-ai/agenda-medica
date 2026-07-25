@@ -643,9 +643,13 @@ function HojasNota({ membrete, mMemb, anchoMm, altoMm, bloques, firma }: {
         cur.push(i); acc += h
       })
       const final = pages.length ? pages : [Array.from({ length: kids.length }, (_, i) => i)]
+      if (typeof window !== 'undefined') (window as unknown as { __notaDbg?: unknown }).__notaDbg = { hs, total: hs.reduce((a, b) => a + b, 0), contentH, nPag: final.length }
       setPaginas(prev => (JSON.stringify(prev) === JSON.stringify(final) ? prev : final))
     }
     medir()
+    // Brute force acotado: re-medir varias veces por si las fuentes asientan tarde.
+    let n = 0
+    const iv = setInterval(() => { medir(); if (++n >= 6) clearInterval(iv) }, 200)
     // ResizeObserver: re-mide cuando las alturas cambian (al cargar la tipografía,
     // reflow, etc.). La primera medición corre antes de que asiente la fuente y
     // subestimaba alturas → salía 1 hoja con el texto cortado. El guard de
@@ -658,7 +662,7 @@ function HojasNota({ membrete, mMemb, anchoMm, altoMm, bloques, firma }: {
     }
     // Respaldo por si no hay ResizeObserver: re-medir tras cargar fuentes.
     if (typeof document !== 'undefined' && document.fonts?.ready) document.fonts.ready.then(() => medir())
-    return () => { ro?.disconnect() }
+    return () => { ro?.disconnect(); clearInterval(iv) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bloques.length, contentH])
 

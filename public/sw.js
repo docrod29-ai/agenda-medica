@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v610'  // FIX paginacion nota 1 hoja: medicion antes de asentar fuentes; ahora ResizeObserver re-mide al cambiar alturas (guard evita bucle). Da hojas correctas.
+const CACHE = 'nexusmed-v611'  // debug paginacion nota: brute-force re-medir por intervalo + window.__notaDbg
 // (v601):
 
 self.addEventListener('install', (event) => {
