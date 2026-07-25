@@ -18,6 +18,9 @@
  *   · 'carta'            → hoja tamaño carta con márgenes bien definidos (~16 mm);
  *                          para DOCUMENTOS de texto (notas, cartas de referencia).
  */
+// Marca de la última impresión disparada (anti-rebote de doble clic).
+let ultimaImpresion = 0
+
 export function imprimirElemento(
   el: HTMLElement | null,
   titulo = 'Documento',
@@ -28,6 +31,13 @@ export function imprimirElemento(
   },
 ): void {
   if (typeof window === 'undefined') return
+
+  // Auditoría papelería 2026-07 (P3): anti-rebote. Un doble clic (o el toque doble
+  // habitual en tablet) abría DOS ventanas de impresión y disparaba dos diálogos.
+  // Un candado de módulo con ventana corta ignora la segunda llamada.
+  const ahora = performance.now()
+  if (ahora - ultimaImpresion < 1200) return
+  ultimaImpresion = ahora
 
   /**
    * EL RESPALDO `window.print()` IMPRIMÍA BASURA.

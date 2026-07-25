@@ -45,8 +45,9 @@ export const ESTILOS_RECETA: Record<EstiloReceta, { label: string; descripcion: 
 
 /**
  * Dado un ancho × alto en mm, devuelve el PaperSize más cercano.
- * Tolerancia: ±3mm en cada dimensión (los PDFs a veces tienen 1-2mm de diferencia
- * por márgenes de impresora).
+ * Tolerancia: ±5mm en cada dimensión (los PDFs a veces tienen 1-2mm de diferencia
+ * por márgenes de impresora; media-carta 140 vs A5 148 distan 8mm, así que ±5 no
+ * los confunde). Si hay empate, gana el de menor diferencia total.
  */
 export function detectarPaperSize(widthMm: number, heightMm: number): PaperSize | null {
   // Normalizar: el PDF puede venir horizontal — usamos ancho ≤ alto siempre

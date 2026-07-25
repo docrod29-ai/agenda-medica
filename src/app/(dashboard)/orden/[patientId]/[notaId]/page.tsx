@@ -338,6 +338,9 @@ export default function GeneradorOrdenPage() {
   const [diagnostico, setDiagnostico] = useState('')
   const [descargando, setDescargando] = useState(false)
   const [categoriaAbierta, setCategoriaAbierta] = useState<string | null>('Laboratorio general')
+  // Estudio personalizado con input inline (antes prompt() nativo).
+  const [customEstudio, setCustomEstudio] = useState('')
+  const [mostrarCustom, setMostrarCustom] = useState(false)
 
   /**
    * FOLIO ESTABLE, derivado de la nota.
@@ -468,8 +471,10 @@ export default function GeneradorOrdenPage() {
   }
 
   const agregarCustom = () => {
-    const txt = prompt('Estudio personalizado:')
-    if (txt && txt.trim()) setEstudios([...estudios, txt.trim()])
+    const t = customEstudio.trim()
+    if (!t) return
+    if (!estudios.includes(t)) setEstudios([...estudios, t])
+    setCustomEstudio(''); setMostrarCustom(false)
   }
 
   if (loading) {
@@ -563,10 +568,27 @@ export default function GeneradorOrdenPage() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
               <label style={{ ...labelStyle, margin: 0 }}>Estudios solicitados ({estudios.length})</label>
-              <button onClick={agregarCustom} className="btn btn-secondary btn-sm">
+              <button onClick={() => setMostrarCustom(v => !v)} className="btn btn-secondary btn-sm">
                 <Plus size={12} /> Personalizado
               </button>
             </div>
+
+            {/* Input inline para estudio personalizado (reemplaza prompt() nativo) */}
+            {mostrarCustom && (
+              <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                <input
+                  autoFocus
+                  value={customEstudio}
+                  onChange={(e) => setCustomEstudio(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); agregarCustom() } else if (e.key === 'Escape') { setCustomEstudio(''); setMostrarCustom(false) } }}
+                  placeholder="Nombre del estudio personalizado…"
+                  style={{ ...inputStyle, flex: 1 }}
+                />
+                <button onClick={agregarCustom} disabled={!customEstudio.trim()} className="btn btn-primary btn-sm" style={{ opacity: customEstudio.trim() ? 1 : 0.5 }}>
+                  Agregar
+                </button>
+              </div>
+            )}
 
             {/* Estudios seleccionados (chips) */}
             {estudios.length > 0 && (

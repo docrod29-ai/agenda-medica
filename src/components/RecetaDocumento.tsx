@@ -464,7 +464,7 @@ function IndicadorHoja({ pagina }: { pagina: PaginaReceta }) {
   return (
     <div style={{
       position: 'absolute', bottom: '2mm', right: '4mm',
-      fontSize: 8, color: '#9ca3af', fontVariantNumeric: 'tabular-nums',
+      fontSize: 8, color: '#6b7280', fontVariantNumeric: 'tabular-nums',
     }}>
       Hoja {pagina.numero} de {pagina.total}
     </div>
@@ -763,14 +763,14 @@ function HojaGenerada({
             display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, flexWrap: 'wrap',
           }}>
             <div style={{ fontSize: 11.5 }}>
-              <span style={{ fontSize: 8.5, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5, display: 'block' }}>Paciente</span>
+              <span style={{ fontSize: 8.5, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5, display: 'block' }}>Paciente</span>
               <span style={{ fontWeight: 700, color: '#111' }}>{data.paciente?.nombre ?? '—'}</span>
             </div>
             <div style={{ fontSize: 10, color: '#555', textAlign: 'right' }}>
               {data.paciente?.edad ? <>{data.paciente.edad} años{data.paciente?.sexo ? ' · ' : ''}</> : ''}
               {data.paciente?.sexo || ''}
-              {data.paciente?.fechaNacimiento && <div style={{ fontSize: 9.5, color: '#888' }}>F. nac.: {fmtFechaNac(data.paciente.fechaNacimiento)}</div>}
-              {data.paciente?.telefono && <div style={{ fontSize: 9.5, color: '#888' }}>Tel. {data.paciente.telefono}</div>}
+              {data.paciente?.fechaNacimiento && <div style={{ fontSize: 9.5, color: '#555' }}>F. nac.: {fmtFechaNac(data.paciente.fechaNacimiento)}</div>}
+              {data.paciente?.telefono && <div style={{ fontSize: 9.5, color: '#555' }}>Tel. {data.paciente.telefono}</div>}
             </div>
           </div>
 
@@ -806,7 +806,7 @@ function HojaGenerada({
           {pagina.esPrimera && (
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 7 }}>
               <span style={{ fontSize: 24, fontWeight: 700, color: accent, fontFamily: 'Georgia, serif', lineHeight: 1 }}>℞</span>
-              <span style={{ fontSize: 10, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: 0.8 }}>Prescripción</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: '#555', textTransform: 'uppercase', letterSpacing: 0.8 }}>Prescripción</span>
             </div>
           )}
           <CuerpoRx medicamentos={pagina.medicamentos} fontSize={11} startIndex={startIndex} variant="limpio" accent={accent} />
@@ -886,7 +886,7 @@ function HojaGenerada({
           {recetaConfig.mostrarQR && (
             <div style={{ position: 'absolute', bottom: '8mm', right: '10mm', textAlign: 'center' }}>
               <QrLocal contenido={data.verificacionUrl || `Folio:${data.folio}`} tamMm={14} />
-              <div style={{ fontSize: 7, color: '#999', marginTop: 1 }}>Verificación</div>
+              <div style={{ fontSize: 7, color: '#666', marginTop: 1 }}>Verificación</div>
             </div>
           )}
         </>
@@ -961,7 +961,7 @@ function EncabezadoAuto({
         <div>
           <div style={{ fontSize: 16, fontWeight: 800, color: '#111', letterSpacing: -0.2, lineHeight: 1.1 }}>{medico}</div>
           {especialidad && <div style={{ fontSize: 10.5, color: accent, fontWeight: 600, marginTop: 1 }}>{especialidad}</div>}
-          {cedula !== '—' && <div style={{ fontSize: 9, color: '#888', marginTop: 1 }}>Cédula Prof. {cedula}</div>}
+          {cedula !== '—' && <div style={{ fontSize: 9, color: '#555', marginTop: 1 }}>Cédula Prof. {cedula}</div>}
         </div>
       </div>
       <div style={{ textAlign: 'right', fontSize: 9, color: '#666', lineHeight: 1.5, paddingTop: 2 }}>
