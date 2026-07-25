@@ -12,6 +12,7 @@
 import type { ClinicConfig } from '@/types'
 import type { NotaMedica } from '@/types/expediente'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
+import { fondoWord, imagenADataUri, WORD_HTML_NS } from '@/lib/word-membrete'
 
 function esc(s: string | undefined | null): string {
   return (s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -27,7 +28,7 @@ export interface NotaWordExtra {
   membrete?: string
 }
 
-export function construirNotaHTML(nota: NotaMedica, config: ClinicConfig | null, extra?: NotaWordExtra): string {
+export function construirNotaHTML(nota: NotaMedica, config: ClinicConfig | null, extra?: NotaWordExtra, membreteDataUri?: string): string {
   const medico = nota.firma?.nombreMedico || config?.nombreMedico || 'Médico'
   const cedula = nota.firma?.cedulaProfesional || config?.cedulaProfesional || nota.metadata.cedulaProfesional || ''
   const especialidad = nota.firma?.especialidad || config?.especialidad || nota.metadata.especialidad || ''
@@ -37,10 +38,13 @@ export function construirNotaHTML(nota: NotaMedica, config: ClinicConfig | null,
   const sec = (titulo: string, cuerpo: string) =>
     cuerpo ? `<div style="margin-bottom:8pt;"><div style="font-weight:bold;text-transform:uppercase;border-bottom:0.5pt solid #999;font-size:10.5pt;letter-spacing:0.3pt;margin-bottom:2pt;">${esc(titulo)}</div><div style="font-size:10.5pt;white-space:pre-wrap;">${cuerpo}</div></div>` : ''
 
-  // El Word es la versión LIMPIA y editable (encabezado de texto). El membrete a
-  // página completa no se reproduce bien en Word (sale "mocho"); va FIEL en
-  // Imprimir/PDF. Aquí siempre encabezado de texto.
-  const encabezado = `<div style="text-align:center;border-bottom:1.5pt solid #1a1a1a;padding-bottom:6pt;margin-bottom:10pt;">
+  // Con MEMBRETE (data URI) → va como FONDO DE PÁGINA de Word (v:background) y el
+  // texto fluye ENCIMA dentro de la zona segura (márgenes @page amplios), igual que
+  // Imprimir/PDF: el membrete ya trae el encabezado, así que NO se pone el de texto
+  // (evita duplicar). SIN membrete → encabezado de texto limpio de siempre.
+  const fondo = fondoWord(membreteDataUri || '')
+  const conMembrete = !!fondo.background
+  const encabezado = conMembrete ? '' : `<div style="text-align:center;border-bottom:1.5pt solid #1a1a1a;padding-bottom:6pt;margin-bottom:10pt;">
     <div style="font-size:15pt;font-weight:bold;">${esc(medico)}</div>
     <div style="font-size:10pt;">${esc(especialidad)}${especialidad && cedula ? ' · ' : ''}${cedula ? 'Cédula Prof. ' + esc(cedula) : '<span style="color:#b91c1c;font-weight:bold;">[FALTA CÉDULA PROFESIONAL]</span>'}</div>
     ${establecimiento ? `<div style="font-size:10pt;">${esc(establecimiento)}</div>` : ''}
@@ -80,10 +84,14 @@ export function construirNotaHTML(nota: NotaMedica, config: ClinicConfig | null,
   // DISPONIBLE" si no se pudo leer al paciente). Aquí solo se muestra tal cual.
   const alergias = `<div style="border:1pt solid #b91c1c;color:#b91c1c;font-weight:bold;font-size:10.5pt;padding:4pt 8pt;margin-bottom:8pt;">ALERGIAS: ${esc(extra?.alergias || 'No disponible')}</div>`
 
-  return `<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8">
-<style>@page WordSection1 { size:216mm 279mm; margin:18mm; } div.WordSection1 { page:WordSection1; }
+  // Con membrete: márgenes AMPLIOS = zona segura del membrete (arriba deja pasar el
+  // encabezado impreso, abajo el pie). Sin membrete: márgenes normales de carta.
+  const pageMargin = conMembrete ? '42mm 22mm 30mm 22mm' : '18mm'
+  return `<!DOCTYPE html><html ${WORD_HTML_NS}><head><meta charset="utf-8">
+${fondo.head}
+<style>@page WordSection1 { size:216mm 279mm; margin:${pageMargin}; } div.WordSection1 { page:WordSection1; }
 body { font-family:'Times New Roman', Georgia, serif; font-size:11pt; color:#1a1a1a; }</style></head>
-<body><div class="WordSection1">
+<body>${fondo.background}<div class="WordSection1">
   ${encabezado}
   <div style="text-align:center;font-size:13pt;font-weight:bold;text-transform:uppercase;margin-bottom:8pt;">${esc(TIPO_NOTA_LABEL[nota.tipo])}</div>
   <div style="font-size:10.5pt;margin-bottom:4pt;"><b>Paciente:</b> ${esc(nota.pacienteNombre)}${extra?.edad ? ' · Edad: ' + esc(String(extra.edad)) + ' años' : ''}${extra?.sexo ? ' · ' + esc(extra.sexo) : ''}${extra?.telefono ? ' · Tel: ' + esc(extra.telefono) : ''} &nbsp;&nbsp; <b>Fecha:</b> ${esc(fecha)}</div>
@@ -98,9 +106,11 @@ body { font-family:'Times New Roman', Georgia, serif; font-size:11pt; color:#1a1
 </div></body></html>`
 }
 
-/** Genera y descarga la nota como archivo .doc (editable en Word). */
-export function descargarNotaWord(nota: NotaMedica, config: ClinicConfig | null, extra?: NotaWordExtra): void {
-  const html = construirNotaHTML(nota, config, extra)
+/** Genera y descarga la nota como archivo .doc (editable en Word). ASÍNCRONA
+ *  porque, si hay hoja membretada, la descarga e incrusta como fondo de página. */
+export async function descargarNotaWord(nota: NotaMedica, config: ClinicConfig | null, extra?: NotaWordExtra): Promise<void> {
+  const membreteDataUri = extra?.membrete ? await imagenADataUri(extra.membrete) : ''
+  const html = construirNotaHTML(nota, config, extra, membreteDataUri)
   const blob = new Blob(['﻿', html], { type: 'application/msword' })
   const url = URL.createObjectURL(blob)
   const nombrePac = (nota.pacienteNombre || 'paciente').replace(/[^\w\sáéíóúñ-]/gi, '').replace(/\s+/g, '_')

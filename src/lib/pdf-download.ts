@@ -47,18 +47,52 @@ export async function descargarPaginasComoPDF(
   const orientation = opts.anchoMm > opts.altoMm ? 'landscape' : 'portrait'
   const pdf = new jsPDF({ unit: 'mm', format: [opts.anchoMm, opts.altoMm], orientation, compress: true })
 
-  for (let i = 0; i < paginas.length; i++) {
-    const canvas = await html2canvas(paginas[i], {
-      scale: 3,                    // nitidez de texto e imagen
-      useCORS: true,
-      backgroundColor: '#ffffff',
-      imageTimeout: 30000,         // espera al membrete/firma en alta resolución
-      logging: false,
-    })
-    const img = canvas.toDataURL('image/jpeg', 0.95)
-    if (i > 0) pdf.addPage([opts.anchoMm, opts.altoMm], orientation)
-    // A sangre: la hoja ya trae su propio margen/membrete; el PDF no añade ninguno.
-    pdf.addImage(img, 'JPEG', 0, 0, opts.anchoMm, opts.altoMm, undefined, 'FAST')
+  /**
+   * Render a ESCALA 1 fuera de pantalla.
+   *
+   * POR QUÉ: la receta/orden viven dentro de una vista previa con
+   * `transform: scale(0.42)`. html2canvas, al capturar un elemento bajo un
+   * ancestro escalado, MIDE MAL el ancho de las letras y las ENCIMA (el texto
+   * salía como un borrón ilegible — bug real que el Dr detectó en el PDF). La
+   * nota no sufría esto porque se dibuja a tamaño real. Para blindar TODO, cada
+   * hoja se CLONA en un host fijo, fuera de pantalla, SIN transform → html2canvas
+   * la mide a tamaño natural y el texto sale nítido.
+   */
+  const host = document.createElement('div')
+  host.setAttribute('aria-hidden', 'true')
+  host.style.cssText = 'position:fixed;left:-100000px;top:0;margin:0;padding:0;background:#fff;transform:none;z-index:-1'
+  document.body.appendChild(host)
+
+  const esperarImagenes = async (el: HTMLElement) => {
+    const imgs = Array.from(el.querySelectorAll('img'))
+    await Promise.all(imgs.map(img => (img.complete && img.naturalWidth > 0)
+      ? Promise.resolve()
+      : new Promise<void>(res => { img.addEventListener('load', () => res(), { once: true }); img.addEventListener('error', () => res(), { once: true }); setTimeout(() => res(), 8000) })))
+  }
+
+  try {
+    for (let i = 0; i < paginas.length; i++) {
+      const clone = paginas[i].cloneNode(true) as HTMLElement
+      clone.style.transform = 'none'
+      clone.style.margin = '0'
+      clone.style.boxShadow = 'none'
+      host.appendChild(clone)
+      await esperarImagenes(clone)
+      const canvas = await html2canvas(clone, {
+        scale: 3,                    // nitidez de texto e imagen
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        imageTimeout: 30000,         // espera al membrete/firma en alta resolución
+        logging: false,
+      })
+      host.removeChild(clone)
+      const img = canvas.toDataURL('image/jpeg', 0.95)
+      if (i > 0) pdf.addPage([opts.anchoMm, opts.altoMm], orientation)
+      // A sangre: la hoja ya trae su propio margen/membrete; el PDF no añade ninguno.
+      pdf.addImage(img, 'JPEG', 0, 0, opts.anchoMm, opts.altoMm, undefined, 'FAST')
+    }
+  } finally {
+    document.body.removeChild(host)
   }
 
   const filename = opts.filename.endsWith('.pdf') ? opts.filename : `${opts.filename}.pdf`

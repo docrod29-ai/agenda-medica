@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v620'  // PDF LIMPIO hoja-por-hoja (nota membretada + receta/orden con diseno): se revierte el v618 que enrutaba el PDF por el dialogo de impresion y estampaba "about:blank" + la fecha del navegador DENTRO del PDF (queja del Dr) y a veces una 2a hoja. Ahora descargarPaginasComoPDF rasteriza CADA hoja (html2canvas) y arma el PDF con jsPDF a sangre: nº de paginas EXACTO (una hoja=una pagina, cero blancos), membrete+firma incluidos, SIN encabezados del navegador. Membrete de nota a object-fit:contain (nunca deforma ningun membrete que suban). Firma en TODAS las hojas.
+const CACHE = 'nexusmed-v621'  // FIX PDF RECETA/ORDEN ILEGIBLE: el texto salia deshecho/encimado porque la receta vive dentro del preview con transform:scale(0.42) y html2canvas mide mal las letras bajo un ancestro escalado. Ahora descargarPaginasComoPDF CLONA cada hoja en un host fijo fuera de pantalla SIN transform -> render a escala 1, texto nitido. La nota ya salia bien (se dibuja a tamano real). WORD de la nota: membrete como FONDO DE PAGINA nativo de Word (v:background + DisplayBackgroundShape, imagen data URI) con el texto en la zona segura (margenes @page); receta Word queda limpia (su diseno es un formulario, el texto no alinea sobre el).
 // (v601):
 
 self.addEventListener('install', (event) => {
