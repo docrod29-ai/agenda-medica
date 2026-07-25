@@ -66,17 +66,24 @@ export function construirRecetaHTML(
    * que una ruta relativa no resuelve contra nada: la imagen sale rota. Solo se
    * absolutiza cuando ya no es un data URI ni una URL completa.
    */
+  // Auditoría flujo 2026-07 (P1 congruencia): el Word ignoraba el DISEÑO COMPLETO
+  // del médico (disenoCompletoDataUrl) que sí usan pantalla/Imprimir/PDF, y salía
+  // con plantilla de texto. Ahora prioriza el diseño completo; si no hay, el
+  // membrete chico; si no, el encabezado de texto default. (Word no posiciona bien
+  // el texto ABSOLUTO sobre un fondo a página completa, así que el diseño va como
+  // encabezado a ancho completo — muestra su marca; la copia fiel es el PDF/Imprimir.)
+  const esDiseno = !!recetaConfig.disenoCompletoDataUrl
   const membreteSrc = (() => {
-    const u = recetaConfig.membreteDataUrl
+    const u = recetaConfig.disenoCompletoDataUrl || recetaConfig.membreteDataUrl
     if (!u) return ''
     if (/^(data:|https?:)/i.test(u)) return u
     if (typeof window === 'undefined') return u
     return new URL(u, window.location.origin).href
   })()
 
-  // Encabezado: membrete subido (imagen) o datos del médico generados
+  // Encabezado: diseño/membrete subido (imagen) o datos del médico generados
   const encabezado = membreteSrc
-    ? `<img src="${membreteSrc}" style="max-width:100%;max-height:140px;display:block;margin:0 auto 8pt;" />`
+    ? `<img src="${membreteSrc}" style="max-width:100%;${esDiseno ? '' : 'max-height:140px;'}display:block;margin:0 auto 8pt;" />`
     : `
       <div style="text-align:center;border-bottom:2px solid ${accent};padding-bottom:6pt;margin-bottom:8pt;">
         <div style="font-size:16pt;font-weight:bold;color:${accent};">${esc(medico)}</div>

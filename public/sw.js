@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v613'  // NOTA MEMBRETADA PAGINADA - VERIFICADA EN VIVO (cuenta del Dr, nota de 2 paginas): la nota se parte en tantas hojas carta como haga falta, cada una con el membrete COMPLETO (encabezado arriba, pie abajo), el texto en la zona segura, y la firma+sello calibrados al fondo de la ultima hoja. Sin empalme, sin texto cortado, congruente en pantalla/PDF/impresion. (removido el diagnostico __notaDbg).
+const CACHE = 'nexusmed-v614'  // LOTE FLUJO 4: WORD con el DISENO/MEMBRETE del medico (antes salia plantilla de texto, incongruente con pantalla/Imprimir/PDF). receta-word ahora prioriza disenoCompletoDataUrl (diseno completo) sobre membreteDataUrl; nota-word usa la hoja membretada resuelta como encabezado. Nota honesta: Word no posiciona texto ABSOLUTO sobre fondo a pagina completa, asi que el diseno va como encabezado a ancho completo (muestra la marca); la copia fiel sigue siendo PDF/Imprimir.
 // (v601):
 
 self.addEventListener('install', (event) => {
