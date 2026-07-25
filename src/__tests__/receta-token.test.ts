@@ -68,4 +68,28 @@ describe('receta-token', () => {
     const token = url.split('/verificar/')[1]
     expect(verificarTokenReceta(token)!.folio).toBe('R-0001')
   })
+
+  // Auditoría papelería 2026-07 (#19): huella del contenido ligada al QR.
+  it('embebe la huella del contenido y la devuelve al verificar', () => {
+    const t = crearTokenReceta({ ...base, contenidoHash: 'deadbeef' })
+    const v = verificarTokenReceta(t)
+    expect(v).not.toBeNull()
+    expect(v!.contenidoHash).toBe('deadbeef')
+  })
+
+  it('sin contenidoHash el token sigue siendo válido (recetas viejas/sin meds)', () => {
+    const v = verificarTokenReceta(crearTokenReceta(base))
+    expect(v).not.toBeNull()
+    expect(v!.contenidoHash).toBeUndefined()
+  })
+
+  it('alterar la huella del contenido invalida la firma', () => {
+    const t = crearTokenReceta({ ...base, contenidoHash: 'aaaa1111' })
+    const [payloadB64, firma] = t.split('.')
+    const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'))
+    payload.h = 'bbbb2222' // manipular el contenido
+    const payloadAlterado = Buffer.from(JSON.stringify(payload)).toString('base64url')
+    // Con la firma vieja sobre el payload nuevo → inválido (no tiene el secreto).
+    expect(verificarTokenReceta(`${payloadAlterado}.${firma}`)).toBeNull()
+  })
 })

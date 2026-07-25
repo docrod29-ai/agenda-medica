@@ -45,12 +45,20 @@ export default async function VerificarPage({ params }: { params: Promise<{ toke
             <Fila k="Folio" v={r.folio} />
             <Fila k="Médico emisor" v={r.doctorNombre || '—'} />
             <Fila k="Cédula profesional (registrada en NexusMED)" v={r.cedula || '—'} />
+            {r.contenidoHash && <Fila k="Huella del contenido prescrito" v={r.contenidoHash} />}
             <Fila k="Emitido" v={r.emitido.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })} />
             <Fila k="Estado" v="Vigente (sin registro de cancelación)" />
             <p style={{ fontSize: 11.5, opacity: 0.6, marginTop: 12 }}>
               La cédula mostrada es la registrada por el médico en NexusMED; NexusMED <strong>no</strong> la valida ante la autoridad.
               La verificación confirma que el documento se generó en NexusMED y no fue alterado.
             </p>
+            {r.contenidoHash && (
+              <p style={{ fontSize: 11.5, opacity: 0.6, marginTop: 8 }}>
+                La <strong>huella del contenido</strong> queda firmada dentro del QR: liga esta verificación a los
+                medicamentos y dosis que se imprimieron. Nadie puede alterar la prescripción y conservar un QR
+                válido, porque re-firmar la huella exige el secreto del servidor.
+              </p>
+            )}
           </div>
         )}
 

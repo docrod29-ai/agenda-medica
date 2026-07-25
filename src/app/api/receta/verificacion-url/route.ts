@@ -8,7 +8,7 @@ import { linkVerificacionReceta } from '@/lib/receta-token'
  * impresa en la receta). Requiere ser MIEMBRO de la clínica. Devuelve { url }.
  */
 export async function POST(req: NextRequest) {
-  let body: { clinicId?: string; notaId?: string; folio?: string; doctorNombre?: string; cedula?: string }
+  let body: { clinicId?: string; notaId?: string; folio?: string; doctorNombre?: string; cedula?: string; contenidoHash?: string }
   try {
     body = await req.json()
   } catch {
@@ -28,6 +28,9 @@ export async function POST(req: NextRequest) {
     folio: body.folio,
     doctorNombre: body.doctorNombre || '',
     cedula: body.cedula || '',
+    // Huella del contenido prescrito (liga la firma al contenido). Se acota por si
+    // llega manipulada: es un hash FNV-1a de 8 hex.
+    contenidoHash: typeof body.contenidoHash === 'string' && /^[0-9a-f]{1,16}$/.test(body.contenidoHash) ? body.contenidoHash : undefined,
   })
   return NextResponse.json({ url })
 }

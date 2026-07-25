@@ -4,11 +4,15 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
  * Tokens firmados para VERIFICAR una receta dentro de NexusMED (QR).
  *
  * Formato: base64url(payload).base64url(hmacSHA256("receta:"+payload))
- * payload = { v, c, n, f, dn, dc, i, e }
+ * payload = { v, c, n, f, dn, dc, h, i, e }
  *   v  = versión de firma (rotación futura)
  *   c  = clinicId · n = notaId · f = folio
  *   dn = nombre del médico · dc = cédula (INFO PÚBLICA del prescriptor, ya
  *        impresa en la receta — NO son datos del paciente)
+ *   h  = huella (FNV-1a) del CONTENIDO prescrito (fármacos+dosis+dx). Liga la
+ *        firma al contenido: un tercero no puede alterar la dosis y conservar un
+ *        QR válido, porque no tiene el secreto para re-firmar la huella nueva.
+ *        NO es el contenido en claro (es un hash), así que no filtra datos.
  *   i  = emitido (epoch s) · e = expira (epoch s)
  *
  * NO contiene datos del PACIENTE (ni nombre, dx, medicamentos, CURP, teléfono).
@@ -20,7 +24,7 @@ const FIRMA_VERSION = 1
 const DIAS_DEFECTO = 730 // 2 años: la autenticidad del documento debe poder verificarse tiempo después
 
 interface PayloadReceta {
-  v: number; c: string; n: string; f: string; dn: string; dc: string; i: number; e: number
+  v: number; c: string; n: string; f: string; dn: string; dc: string; h?: string; i: number; e: number
 }
 
 function getSecret(): string {
@@ -33,13 +37,15 @@ const b64url = (buf: Buffer | string) => Buffer.from(buf).toString('base64url')
 const firmar = (payloadB64: string) => createHmac('sha256', getSecret()).update('receta:' + payloadB64).digest('base64url')
 
 export function crearTokenReceta(
-  args: { clinicId: string; notaId: string; folio: string; doctorNombre: string; cedula: string; ttlDias?: number },
+  args: { clinicId: string; notaId: string; folio: string; doctorNombre: string; cedula: string; contenidoHash?: string; ttlDias?: number },
 ): string {
   const now = Math.floor(Date.now() / 1000)
   const payload: PayloadReceta = {
     v: FIRMA_VERSION, c: args.clinicId, n: args.notaId, f: args.folio,
     dn: args.doctorNombre, dc: args.cedula, i: now, e: now + (args.ttlDias ?? DIAS_DEFECTO) * 86400,
   }
+  // Solo se incluye si viene (recetas viejas / sin medicamentos no lo llevan).
+  if (args.contenidoHash) payload.h = args.contenidoHash
   const payloadB64 = b64url(JSON.stringify(payload))
   return `${payloadB64}.${firmar(payloadB64)}`
 }
@@ -47,6 +53,8 @@ export function crearTokenReceta(
 export interface RecetaVerificada {
   clinicId: string; notaId: string; folio: string
   doctorNombre: string; cedula: string
+  /** Huella (FNV-1a) del contenido prescrito, si la receta la incluyó. */
+  contenidoHash?: string
   emitido: Date; expira: Date; firmaVersion: number
 }
 
@@ -65,10 +73,11 @@ export function verificarTokenReceta(token: string | undefined | null): RecetaVe
   if (Math.floor(Date.now() / 1000) > p.e) return null
   return {
     clinicId: p.c, notaId: p.n, folio: p.f, doctorNombre: p.dn || '', cedula: p.dc || '',
+    contenidoHash: p.h || undefined,
     emitido: new Date((p.i || 0) * 1000), expira: new Date(p.e * 1000), firmaVersion: p.v || 1,
   }
 }
 
-export function linkVerificacionReceta(baseUrl: string, args: { clinicId: string; notaId: string; folio: string; doctorNombre: string; cedula: string }): string {
+export function linkVerificacionReceta(baseUrl: string, args: { clinicId: string; notaId: string; folio: string; doctorNombre: string; cedula: string; contenidoHash?: string }): string {
   return `${baseUrl.replace(/\/$/, '')}/verificar/${crearTokenReceta(args)}`
 }

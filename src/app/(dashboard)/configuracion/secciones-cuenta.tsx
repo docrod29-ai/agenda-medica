@@ -365,12 +365,17 @@ export function MembreteNotaSection({ form, clinicId, onLocalChange }: {
     try {
       let dataUrl: string; let sizeBytes: number
       if (esPDF) {
+        // Auditoría papelería 2026-07 (P2): 300 DPI de imprenta (antes 200). Como
+        // la hoja SIEMPRE va a Storage (abajo), el peso ya no es problema.
         const { pdfFileToImageDataUrl } = await import('@/lib/pdf-to-image')
-        const r = await pdfFileToImageDataUrl(file, { dpi: 200, quality: 0.9, type: 'image/jpeg', timeoutMs: 60_000 })
+        const r = await pdfFileToImageDataUrl(file, { dpi: 300, quality: 0.92, type: 'image/jpeg', timeoutMs: 60_000 })
         dataUrl = r.dataUrl; sizeBytes = r.sizeBytes
       } else {
+        // Auditoría papelería 2026-07 (P2): resolución de imprenta ~300 DPI a carta
+        // (2550×3300) en vez de ~146 DPI (1240×1650). El logo y la tipografía del
+        // membrete se imprimen nítidos. Igual criterio que el diseño de receta.
         const esPNG = file.type === 'image/png'
-        const r = await resizeImageFile(file, { maxWidth: 1240, maxHeight: 1650, quality: 0.9, type: esPNG ? 'image/png' : 'image/jpeg' })
+        const r = await resizeImageFile(file, { maxWidth: 2550, maxHeight: 3300, quality: 0.95, type: esPNG ? 'image/png' : 'image/jpeg' })
         dataUrl = r.dataUrl; sizeBytes = r.sizeBytes
       }
       // Subir SIEMPRE a Storage vía el servidor (Admin SDK) — la hoja es página

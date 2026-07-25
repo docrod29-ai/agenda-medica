@@ -218,6 +218,13 @@ export default function GeneradorRecetaPage() {
 
   // Pide al servidor la URL de verificación firmada (secreto HMAC no accesible en
   // cliente). Sin datos del paciente. Si falla, el QR cae al folio.
+  // Huella del contenido prescrito para ligarla al QR (se re-firma si editas los
+  // medicamentos antes de imprimir). Mismo hash que ya se registra en bitácora.
+  const contenidoHash = useMemo(
+    () => huellaImpreso(medicamentos, { folio, indicaciones, diagnostico }).hash,
+    [medicamentos, folio, indicaciones, diagnostico],
+  )
+
   useEffect(() => {
     if (!clinicId || !notaId || !folio || !recetaConfig.mostrarQR) return
     let vivo = true
@@ -233,6 +240,7 @@ export default function GeneradorRecetaPage() {
         clinicId, notaId, folio,
         doctorNombre: config?.nombreMedico ?? '',
         cedula: config?.cedulaProfesional ?? '',
+        contenidoHash,
       }),
     })
       .then(async r => {
@@ -242,7 +250,7 @@ export default function GeneradorRecetaPage() {
       .then(j => { if (vivo && j?.url) setVerificacionUrl(j.url) })
       .catch(e => { console.warn('[receta] no se pudo firmar el QR:', e) })
     return () => { vivo = false }
-  }, [clinicId, notaId, folio, recetaConfig.mostrarQR, config?.nombreMedico, config?.cedulaProfesional])
+  }, [clinicId, notaId, folio, recetaConfig.mostrarQR, config?.nombreMedico, config?.cedulaProfesional, contenidoHash])
 
   // Config con la firma del MÉDICO de esta nota (per-médico), si tiene la suya.
   const configFirma = useMemo(() => {
