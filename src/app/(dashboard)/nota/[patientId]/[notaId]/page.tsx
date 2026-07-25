@@ -646,8 +646,18 @@ function HojasNota({ membrete, mMemb, anchoMm, altoMm, bloques, firma }: {
       setPaginas(prev => (JSON.stringify(prev) === JSON.stringify(final) ? prev : final))
     }
     medir()
+    // Re-medir cuando asienten las FUENTES y el layout: la primera medición corre
+    // antes de que la tipografía cargue, así que subestima alturas y no paginaba
+    // (salía 1 hoja con el texto cortado). El guard de setPaginas evita el bucle:
+    // cuando la medición ya no cambia, no re-renderiza.
+    const raf = requestAnimationFrame(() => requestAnimationFrame(medir))
+    let cancelado = false
+    if (typeof document !== 'undefined' && document.fonts?.ready) {
+      document.fonts.ready.then(() => { if (!cancelado) medir() })
+    }
     const imgs = Array.from(c.querySelectorAll('img'))
     imgs.forEach(im => { if (!im.complete) im.addEventListener('load', medir, { once: true }) })
+    return () => { cancelado = true; cancelAnimationFrame(raf) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bloques.length, contentH])
 

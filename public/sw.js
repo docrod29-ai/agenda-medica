@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v608'  // FIX bucle infinito del paginador de nota (congelaba la nota): HojasNota usaba useLayoutEffect con dep [bloques] (array recreado cada render) -> efecto en cada render -> setPaginas -> render -> bucle. Ahora dep estable [bloques.length, contentH] + setPaginas BAILA si el resultado no cambio (misma referencia -> React no re-renderiza). Converge en 2 pasadas.
+const CACHE = 'nexusmed-v609'  // FIX paginacion de nota daba 1 hoja (texto cortado + pie empalmado): la medicion corria ANTES de cargar la tipografia -> subestimaba alturas -> 1 hoja. Ahora re-mide en fonts.ready + doble rAF (con el guard que evita el bucle). Da el numero correcto de hojas. La firma+sello ya se colocan calibrados en la ultima hoja.
 // (v601):
 
 self.addEventListener('install', (event) => {
