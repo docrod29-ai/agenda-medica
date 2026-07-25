@@ -9,9 +9,21 @@
     "lint": "eslint",
     "test": "vitest run",
     "e2e": "playwright test",
-    "test:cobertura": "vitest run --coverage"
+    "test:cobertura": "vitest run --coverage",
+    "cap:add:ios": "npx cap add ios",
+    "cap:add:android": "npx cap add android",
+    "cap:sync": "npx cap sync",
+    "cap:open:ios": "npx cap open ios",
+    "cap:open:android": "npx cap open android",
+    "cap:assets": "npx @capacitor/assets generate --iconBackgroundColor \"#0B0C0E\" --splashBackgroundColor \"#0B0C0E\""
   },
   "dependencies": {
+    "@capacitor/android": "^8.4.2",
+    "@capacitor/camera": "^8.2.1",
+    "@capacitor/cli": "^8.4.2",
+    "@capacitor/core": "^8.4.2",
+    "@capacitor/ios": "^8.4.2",
+    "@capacitor/push-notifications": "^8.1.2",
     "@hookform/resolvers": "^5.2.2",
     "@picovoice/porcupine-web": "^4.0.1",
     "@picovoice/web-voice-processor": "^4.0.10",

@@ -45,3 +45,8 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /.playwright/
+
+# Capacitor: proyectos nativos generados en tu Mac (opcional versionarlos)
+# Descomenta si prefieres NO commitearlos:
+# /ios
+# /android
