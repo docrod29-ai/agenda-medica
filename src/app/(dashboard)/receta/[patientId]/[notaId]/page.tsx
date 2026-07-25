@@ -266,6 +266,14 @@ export default function GeneradorRecetaPage() {
   const sinFirmaResoluble = !!config && !configFirma?.firmaImagenDataUrl
   /** La cédula es requisito del impreso; sin ella el documento no es válido. */
   const sinCedula = !!config && !config.cedulaProfesional?.trim()
+  /**
+   * ¿El médico imprime sobre SU PROPIO diseño de receta (imagen completa subida)?
+   * Con diseño propio la app NO dibuja el pie: no puede "marcar en rojo" la cédula
+   * ni garantizar el domicilio; esos datos deben venir en el arte del médico.
+   */
+  const usaDisenoPropio = !!recetaConfig.disenoCompletoDataUrl
+  /** Domicilio del consultorio: requisito COFEPRIS del recetario (plantilla generada). */
+  const sinDireccion = !!config && !config.direccion?.trim() && !usaDisenoPropio
 
   // Descarga un Word (.doc) editable — para el médico que prefiere ajustar
   // a su propio formato/membrete en lugar de la plantilla generada.
@@ -392,8 +400,31 @@ export default function GeneradorRecetaPage() {
         }}>
           <AlertTriangle size={17} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--text)' }}>
-            <strong>Falta tu cédula profesional.</strong> El documento saldrá marcándolo en rojo,
-            porque la cédula es requisito del impreso (NOM-004). Agrégala en Configuración → General.
+            {/* Auditoría papelería 2026-07 (P2): con diseño propio la app no dibuja
+                el pie, así que NO puede "marcar en rojo" la cédula — el aviso sería
+                falso. Se ajusta el texto según el modo. */}
+            {usaDisenoPropio ? (
+              <><strong>Falta tu cédula profesional.</strong> Como imprimes sobre tu propio diseño,
+              verifica que tu formato ya la incluya: la app no puede marcarla sobre tu arte. La cédula
+              es requisito del impreso (NOM-004). Agrégala en Configuración → General.</>
+            ) : (
+              <><strong>Falta tu cédula profesional.</strong> El documento saldrá marcándolo en rojo,
+              porque la cédula es requisito del impreso (NOM-004). Agrégala en Configuración → General.</>
+            )}
+          </div>
+        </div>
+      )}
+
+      {sinDireccion && (
+        <div className="no-print" style={{
+          display: 'flex', alignItems: 'flex-start', gap: 10,
+          background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.35)',
+          borderRadius: 12, padding: '13px 15px', marginBottom: 14,
+        }}>
+          <AlertTriangle size={17} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--text)' }}>
+            <strong>Falta el domicilio del consultorio.</strong> El recetario debe incluir el domicilio
+            del prescriptor (requisito COFEPRIS). Agrégalo en Configuración → General.
           </div>
         </div>
       )}
