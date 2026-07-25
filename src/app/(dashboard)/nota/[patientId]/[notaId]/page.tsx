@@ -643,10 +643,13 @@ function HojasNota({ membrete, mMemb, anchoMm, altoMm, bloques, firma }: {
       const tops = kids.map(k => k.offsetTop)
       const totalH = c.scrollHeight
       const hs = kids.map((k, i) => (i < kids.length - 1 ? tops[i + 1] - tops[i] : Math.max(0, totalH - tops[i])))
+      // Colchón de seguridad (~10mm): el margen entre bloques colapsa distinto y no
+      // se quiere que la última línea de la hoja toque el pie del membrete.
+      const limite = contentH - 38
       const pages: number[][] = []
       let cur: number[] = []; let acc = 0
       hs.forEach((h, i) => {
-        if (acc + h > contentH && cur.length) { pages.push(cur); cur = []; acc = 0 }
+        if (acc + h > limite && cur.length) { pages.push(cur); cur = []; acc = 0 }
         cur.push(i); acc += h
       })
       if (cur.length) pages.push(cur)   // ← la ÚLTIMA hoja

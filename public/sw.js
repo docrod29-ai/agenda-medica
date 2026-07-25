@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v615'  // FIX margenes de nota multipagina: media con getBoundingClientRect EXCLUIA los margenes entre bloques -> subestimaba -> metia demasiados bloques por hoja -> el texto se derramaba 18mm por debajo (empalme con el pie). Ahora mide con offsetTop (posicion real CON margenes) -> reparte correcto, el texto respeta la zona segura (top 42 / bottom 28 mm) en cada hoja.
+const CACHE = 'nexusmed-v616'  // nota multipagina: colchon de seguridad de ~10mm en la paginacion para que la ultima linea nunca toque el pie del membrete.
 // (v601):
 
 self.addEventListener('install', (event) => {
