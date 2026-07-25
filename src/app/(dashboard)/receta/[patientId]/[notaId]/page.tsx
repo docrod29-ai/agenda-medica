@@ -26,7 +26,7 @@ import { etiquetaVia } from '@/lib/receta-paginacion'
 import { getPatient } from '@/lib/firestore'
 import type { NotaMedica, Medicamento } from '@/types/expediente'
 import type { Patient } from '@/types'
-import { RecetaDocumento, dimensionesImpresion, contarPaginas } from '@/components/RecetaDocumento'
+import { RecetaDocumento, dimensionesImpresion, contarPaginas, useRecetaPaperOrientado } from '@/components/RecetaDocumento'
 import { RecetaPreviewWrapper } from '@/components/RecetaPreviewWrapper'
 import { PAPER_SIZES } from '@/lib/receta-template'
 import { descargarComoPDF } from '@/lib/pdf-download'
@@ -216,6 +216,16 @@ export default function GeneradorRecetaPage() {
     // podía quedarse con el valor inicial y desalinearse de la firma (que sí lo escucha).
   }, [config, nota?.metadata?.medicoId, unicoMedico, overrideRecetaValido])
 
+  // Dimensiones ORIENTADAS al diseño (apaisado/vertical), para que el contenedor
+  // de la vista previa y el @page de impresión coincidan con la hoja renderizada
+  // (si no, un diseño apaisado sale recortado — "mocho"). El cfg orientado lleva
+  // las dims para que dimensionesImpresion las respete.
+  const paperOri = useRecetaPaperOrientado(recetaConfig)
+  const recetaConfigOri = useMemo(
+    () => ({ ...recetaConfig, disenoWidthMm: paperOri.widthMm, disenoHeightMm: paperOri.heightMm }),
+    [recetaConfig, paperOri.widthMm, paperOri.heightMm],
+  )
+
   // Pide al servidor la URL de verificación firmada (secreto HMAC no accesible en
   // cliente). Sin datos del paciente. Si falla, el QR cae al folio.
   // Huella del contenido prescrito para ligarla al QR (se re-firma si editas los
@@ -313,7 +323,7 @@ export default function GeneradorRecetaPage() {
     try {
       // El PDF usa el tamaño FÍSICO de la hoja que sale de la impresora
       // (carta si imprimirEn === 'carta', el papel de la receta si no)
-      const host = dimensionesImpresion(recetaConfig)
+      const host = dimensionesImpresion(recetaConfigOri)
       const nombre = (patient?.nombre ?? 'paciente').replace(/[^\w\sáéíóúñ-]/gi, '').replace(/\s+/g, '_')
       const fechaCorta = new Date().toISOString().slice(0, 10)
       await descargarComoPDF(el, {
@@ -462,7 +472,7 @@ export default function GeneradorRecetaPage() {
           <button onClick={() => router.push('/configuracion?tab=recetas')} className="btn btn-secondary" title="Configurar template">
             <Settings size={14} /> Template
           </button>
-          <button disabled={recetaVacia} onClick={() => { if (configError || descargando || recetaVacia) return; logAudit({ evento: 'receta_generada', clinicId: clinicId ?? '', patientId, notaId, meta: huellaImpreso(medicamentos, { folio, indicaciones, diagnostico }) }).catch(() => {}); aprenderDeReceta(); const h = dimensionesImpresion(recetaConfig); imprimirElemento(document.getElementById('receta-doc'), 'Receta', { anchoMm: h.widthMm, altoMm: h.heightMm, onError: (m) => toast(m, 'error') }) }} className="btn btn-secondary">
+          <button disabled={recetaVacia} onClick={() => { if (configError || descargando || recetaVacia) return; logAudit({ evento: 'receta_generada', clinicId: clinicId ?? '', patientId, notaId, meta: huellaImpreso(medicamentos, { folio, indicaciones, diagnostico }) }).catch(() => {}); aprenderDeReceta(); const h = dimensionesImpresion(recetaConfigOri); imprimirElemento(document.getElementById('receta-doc'), 'Receta', { anchoMm: h.widthMm, altoMm: h.heightMm, onError: (m) => toast(m, 'error') }) }} className="btn btn-secondary">
             <Printer size={14} /> Imprimir
           </button>
           <button disabled={recetaVacia} onClick={() => { if (configError || descargando || recetaVacia) return; descargarWord() }} className="btn btn-secondary" title="Documento editable para tu membrete">
@@ -712,7 +722,7 @@ export default function GeneradorRecetaPage() {
               notaParaPaciente,
               verificacionUrl,
             }
-            const host = dimensionesImpresion(recetaConfig)
+            const host = dimensionesImpresion(recetaConfigOri)
             // configFirma, no config: el conteo debe usar la MISMA config que el
             // documento, o el contador dice "1 hoja" y el PDF sale con 2.
             const numPages = contarPaginas(dataPreview, configFirma, recetaConfig)
@@ -756,7 +766,7 @@ export default function GeneradorRecetaPage() {
           }
           #receta-doc .receta-sheet { box-shadow: none !important; margin: 0 !important; }
           .no-print { display: none !important; }
-          @page { size: ${dimensionesImpresion(recetaConfig).cssPage}; margin: 0; }
+          @page { size: ${dimensionesImpresion(recetaConfigOri).cssPage}; margin: 0; }
         }
         @media (max-width: 1000px) {
           .receta-gen-grid {

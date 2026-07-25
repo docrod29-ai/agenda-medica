@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v602'  // FIX RECETA MOCHA (verificado en vivo con la cuenta del Dr): su diseno de receta es APAISADO (2200x1424). RecetaDocumento orienta la hoja al diseno (si imgAspect>1 voltea el papel a horizontal 210x148) pero el marco de la vista previa usaba las medidas SIN orientar (148x210 vertical) -> hoja horizontal en marco vertical = recortada a la derecha. FIX: la previa (PreviewReceta) ahora carga el aspecto real de la imagen y orienta paperOri IGUAL que el documento; la zona editable y la impresion de prueba usan las dims orientadas; la etiqueta dice el tamano real (+ apaisado). PENDIENTE mismo fix en la pagina de receta y la impresion real (siguiente).
+const CACHE = 'nexusmed-v603'  // FIX RECETA/ORDEN MOCHAS en la PAGINA REAL y la IMPRESION (no solo el preview de config): hook compartido useRecetaPaperOrientado carga el aspecto de la imagen y devuelve las medidas orientadas al diseno; las paginas de receta y orden ahora pasan un cfg orientado a dimensionesImpresion -> el contenedor de la vista previa, el @page de impresion y la impresion de prueba coinciden con la hoja renderizada (apaisada). Antes: hoja apaisada 210x148 dentro de marco/hoja vertical 148x210 = recortada a la derecha.
 // (v601):
 
 self.addEventListener('install', (event) => {

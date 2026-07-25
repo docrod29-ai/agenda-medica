@@ -21,7 +21,7 @@ import { getNota } from '@/lib/expediente/firestore'
 import { getPatient } from '@/lib/firestore'
 import type { NotaMedica } from '@/types/expediente'
 import type { Patient } from '@/types'
-import { RecetaDocumento, dimensionesImpresion, contarPaginas } from '@/components/RecetaDocumento'
+import { RecetaDocumento, dimensionesImpresion, contarPaginas, useRecetaPaperOrientado } from '@/components/RecetaDocumento'
 import { RecetaPreviewWrapper } from '@/components/RecetaPreviewWrapper'
 import { PAPER_SIZES } from '@/lib/receta-template'
 import { descargarComoPDF } from '@/lib/pdf-download'
@@ -396,6 +396,14 @@ export default function GeneradorOrdenPage() {
     return { ...merged, imprimirEn: 'carta' as const }
   }, [config, nota?.metadata?.medicoId])
 
+  // Dimensiones ORIENTADAS al diseño (apaisado/vertical) para que preview/print
+  // coincidan con la hoja renderizada (evita el "mocho" del diseño apaisado).
+  const paperOri = useRecetaPaperOrientado(recetaConfig)
+  const recetaConfigOri = useMemo(
+    () => ({ ...recetaConfig, disenoWidthMm: paperOri.widthMm, disenoHeightMm: paperOri.heightMm }),
+    [recetaConfig, paperOri.widthMm, paperOri.heightMm],
+  )
+
   // Config con la firma del MÉDICO de esta nota (per-médico), si tiene la suya.
   const configFirma = useMemo(() => {
     if (!config) return config
@@ -446,7 +454,7 @@ export default function GeneradorOrdenPage() {
     if (!el) return
     setDescargando(true)
     try {
-      const host = dimensionesImpresion(recetaConfig)
+      const host = dimensionesImpresion(recetaConfigOri)
       const nombre = (patient?.nombre ?? 'paciente').replace(/[^\w\sáéíóúñ-]/gi, '').replace(/\s+/g, '_')
       const fechaCorta = new Date().toISOString().slice(0, 10)
       await descargarComoPDF(el, {
@@ -539,7 +547,7 @@ export default function GeneradorOrdenPage() {
           <button onClick={() => router.push('/configuracion?tab=recetas')} className="btn btn-secondary">
             <Settings size={14} /> Template
           </button>
-          <button disabled={ordenVacia} onClick={() => { if (configError || descargando || ordenVacia) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length } }).catch(() => {}); const h = dimensionesImpresion(recetaConfig); imprimirElemento(document.getElementById('receta-doc'), 'Orden', { anchoMm: h.widthMm, altoMm: h.heightMm, onError: (m) => toast(m, 'error') }) }} className="btn btn-secondary">
+          <button disabled={ordenVacia} onClick={() => { if (configError || descargando || ordenVacia) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length } }).catch(() => {}); const h = dimensionesImpresion(recetaConfigOri); imprimirElemento(document.getElementById('receta-doc'), 'Orden', { anchoMm: h.widthMm, altoMm: h.heightMm, onError: (m) => toast(m, 'error') }) }} className="btn btn-secondary">
             <Printer size={14} /> Imprimir
           </button>
           <button disabled={ordenVacia} onClick={() => { if (configError || descargando || ordenVacia) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length, formato: 'word' } }).catch(() => {}); descargarWord() }} className="btn btn-secondary" title="Documento editable para tu membrete">
@@ -679,7 +687,7 @@ export default function GeneradorOrdenPage() {
               estudios,
               indicaciones,
             }
-            const host = dimensionesImpresion(recetaConfig)
+            const host = dimensionesImpresion(recetaConfigOri)
             const numPages = contarPaginas(dataPreview, configFirma, recetaConfig)   // misma config que el documento
             return (
               <>
@@ -718,7 +726,7 @@ export default function GeneradorOrdenPage() {
           }
           #receta-doc .receta-sheet { box-shadow: none !important; margin: 0 !important; }
           .no-print { display: none !important; }
-          @page { size: ${dimensionesImpresion(recetaConfig).cssPage}; margin: 0; }
+          @page { size: ${dimensionesImpresion(recetaConfigOri).cssPage}; margin: 0; }
         }
         @media (max-width: 1000px) {
           .orden-gen-grid {

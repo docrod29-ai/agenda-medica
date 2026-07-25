@@ -139,6 +139,34 @@ export function dimensionesImpresion(recetaConfig: RecetaConfig): { widthMm: num
   return { widthMm: paper.widthMm, heightMm: paper.heightMm, cssPage: paper.cssPage, esHostCarta: false }
 }
 
+/**
+ * Dimensiones del papel ORIENTADAS al diseño subido, IGUAL que HojaCustom.
+ *
+ * BUG que el Dr cazó en vivo: la hoja se orienta al diseño (si la imagen es
+ * apaisada, el papel se voltea a horizontal), pero los contenedores de vista
+ * previa y el @page de impresión usaban las medidas SIN orientar → hoja
+ * horizontal en marco vertical = recortada. Este hook carga el aspecto real de la
+ * imagen y devuelve las medidas ya orientadas, para que preview/print coincidan
+ * con la hoja renderizada. Sin diseño (o mientras carga), devuelve las de base.
+ */
+export function useRecetaPaperOrientado(recetaConfig: RecetaConfig): { widthMm: number; heightMm: number; apaisado: boolean } {
+  const url = recetaConfig.disenoCompletoDataUrl
+  const [imgAspect, setImgAspect] = useState<number | null>(null)
+  useEffect(() => {
+    if (!url) { setImgAspect(null); return }
+    const im = new window.Image()
+    im.onload = () => { if (im.naturalWidth && im.naturalHeight) setImgAspect(im.naturalWidth / im.naturalHeight) }
+    im.onerror = () => setImgAspect(null)
+    im.src = url
+  }, [url])
+  const base = paperEfectivo(recetaConfig)
+  if (!url || imgAspect == null) return { widthMm: base.widthMm, heightMm: base.heightMm, apaisado: base.widthMm > base.heightMm }
+  const corto = Math.min(base.widthMm, base.heightMm)
+  const largo = Math.max(base.widthMm, base.heightMm)
+  const apaisado = imgAspect > 1
+  return { widthMm: apaisado ? largo : corto, heightMm: apaisado ? corto : largo, apaisado }
+}
+
 /** Cuenta las hojas que generará el documento — para el preview wrapper del padre. */
 export function contarPaginas(data: RecetaData, config: ClinicConfig | null, recetaConfig: RecetaConfig): number {
   return calcularPaginas(data, config, recetaConfig).length
