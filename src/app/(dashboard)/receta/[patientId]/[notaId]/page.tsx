@@ -319,6 +319,15 @@ export default function GeneradorRecetaPage() {
   const descargarPDF = async () => {
     const el = document.getElementById('receta-doc')
     if (!el) return
+    // Con DISEÑO propio, el PDF fiel se hace con el motor de impresión (html2canvas
+    // deja hoja en blanco y recorta un poco el diseño). Abre el diálogo → "Guardar
+    // como PDF". Sin diseño (plantilla), html2canvas va bien.
+    if (recetaConfigOri.disenoCompletoDataUrl) {
+      const h = dimensionesImpresion(recetaConfigOri)
+      toast('Se abrirá la impresión — elige "Guardar como PDF" (así sale fiel a tu diseño).', 'info')
+      imprimirElemento(el, 'Receta', { anchoMm: h.widthMm, altoMm: h.heightMm, onError: (m) => toast(m, 'error') })
+      return
+    }
     setDescargando(true)
     try {
       // El PDF usa el tamaño FÍSICO de la hoja que sale de la impresora

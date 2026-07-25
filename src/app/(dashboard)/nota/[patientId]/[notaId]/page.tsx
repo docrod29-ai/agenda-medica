@@ -57,15 +57,20 @@ export default function NotaImprimiblePage() {
   const descargarPDF = async () => {
     const el = document.getElementById('doc')
     if (!el) return
+    // Con hoja membretada, el PDF FIEL se genera con el MOTOR DE IMPRESIÓN (no
+    // html2canvas, que perdía el membrete y metía hojas en blanco). Abre el diálogo
+    // → el médico elige "Guardar como PDF". Idéntico a Imprimir, sin quirks.
+    if (membrete) {
+      toast('Se abrirá la impresión — elige "Guardar como PDF" (así sale con tu membrete y sin hojas en blanco).', 'info')
+      imprimirElemento(el, 'Nota médica', { anchoMm: 216, altoMm: 279, onError: (m) => toast(m, 'error') })
+      return
+    }
     setDescargando(true)
     try {
       const nombre = (patient?.nombre ?? 'paciente').replace(/[^\w\sáéíóúñ-]/gi, '').replace(/\s+/g, '_')
       const fechaCorta = new Date(nota?.fechaConsulta ?? Date.now()).toISOString().slice(0, 10)
-      // Con hoja membretada el margen lo pone el padding del #doc (mMemb), NO el
-      // PDF: si además html2pdf mete su margen de 12mm, el membrete de fondo se
-      // encoge y deja borde blanco. margin:0 para membrete; el default para el
-      // formato de texto (que no lleva fondo a sangre).
-      await descargarComoPDF(el, { filename: `Nota_${nombre}_${fechaCorta}`, format: 'letter', ...(membrete ? { margin: 0 } : {}) })
+      // Nota SIN membrete (formato de texto): html2canvas va bien.
+      await descargarComoPDF(el, { filename: `Nota_${nombre}_${fechaCorta}`, format: 'letter' })
     } catch (e) {
       console.error('PDF error:', e)
       toast('No se pudo generar el PDF. Intenta con Imprimir → Guardar como PDF.', 'error')

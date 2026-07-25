@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v617'  // FIX nota PDF/hojas-blanco + Word limpio: (1) el PDF de la nota NO metia el membrete porque el img estaba en z-index:-1 (html2canvas no dibuja z-index negativo); ahora z-index:0 (membrete) + texto z-index:1 -> se captura en PDF y se imprime. (2) hojas en blanco: el margen de 16px ENTRE hojas empujaba el contenido al borde -> hoja fisica extra en blanco; ahora margen 0 (el page-break separa) + box-shadow solo para pantalla. (3) Word: revertido a LIMPIO (encabezado de texto) porque Word no reproduce bien un diseno a pagina completa (salia mocho); el diseno va fiel en Imprimir/PDF.
+const CACHE = 'nexusmed-v618'  // FIX RAIZ del PDF/Word (el Dr harto de parches): (1) PDF de nota-membretada y receta-con-diseno se generaba con html2canvas -> hojas en blanco + sin membrete + mocho. Ahora Descargar PDF de esos casos usa el MOTOR DE IMPRESION (imprimirElemento -> dialogo -> Guardar como PDF), identico a Imprimir, con el diseno/membrete fiel y sin hojas en blanco. Sin diseno (texto) sigue con html2canvas. (2) WORD: siempre LIMPIO (encabezado de texto) cuando hay diseno propio -> ya no mezcla la maqueta con el arte (salia mocho); el diseno va fiel en Imprimir/PDF.
 // (v601):
 
 self.addEventListener('install', (event) => {

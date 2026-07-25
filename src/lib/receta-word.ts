@@ -72,6 +72,10 @@ export function construirRecetaHTML(
   // pensada para pegar sobre tu papel o editar; el diseño completo va FIEL en
   // Imprimir/PDF. Solo se usa el membrete CHICO de plantilla si existe.
   const membreteSrc = (() => {
+    // Si el médico usa un DISEÑO a página completa, el Word NO lo reproduce bien
+    // (mezcla la maqueta con su arte = "mocho"). Con diseño → texto limpio; el arte
+    // va fiel en Imprimir/PDF. Solo se usa el membrete CHICO cuando NO hay diseño.
+    if (recetaConfig.disenoCompletoDataUrl) return ''
     const u = recetaConfig.membreteDataUrl
     if (!u) return ''
     if (/^(data:|https?:)/i.test(u)) return u
