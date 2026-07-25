@@ -15,7 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { NER_SYSTEM_PROMPT, buildNerUserPrompt, EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { safeLog } from '@/lib/security/sanitize'
-import { verificarUsuario } from '@/lib/auth-server'
+import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA } from '@/lib/ai-keys'
 
@@ -73,7 +73,7 @@ function parseJSON(text: string): Record<string, unknown> | null {
 }
 
 export async function POST(req: NextRequest) {
-  const acceso = await verificarUsuario(req)
+  const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
   const _rl = await limitarOResponder(`extraer-entidades:${acceso.uid}`, 40, 60)
   if (_rl) return _rl

@@ -15,7 +15,7 @@
  * nunca rompe el flujo.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { verificarUsuario } from '@/lib/auth-server'
+import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA } from '@/lib/ai-keys'
 
@@ -27,7 +27,7 @@ const MODELOS = ['claude-sonnet-5', 'claude-sonnet-4-6', 'claude-sonnet-4-5', 'c
 const ROLES_VALIDOS = new Set(['Médico', 'Paciente', 'Acompañante'])
 
 export async function POST(req: NextRequest) {
-  const acceso = await verificarUsuario(req)
+  const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
   const _rl = await limitarOResponder(`atribuir-roles:${acceso.uid}`, 40, 60)
   if (_rl) return _rl

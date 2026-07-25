@@ -15,7 +15,7 @@ import { buildSystemPrompt, buildUserPrompt } from '@/lib/expediente/prompts'
 import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
 import { parserClinicoComoRespuestaIA } from '@/lib/expediente/parser-clinico'
 import { safeLog, redactarString } from '@/lib/security/sanitize'
-import { verificarUsuario } from '@/lib/auth-server'
+import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA, registrarUso, nivelIADe, registrarCreditos, registrarConsultaEconomica, economicasDelMes, entitlementsDe, creditosUsadosDelMes, creditosExtraDelMes } from '@/lib/ai-keys'
 import { planDeNivel, estadoUso, MOTORES, motorPorClave, motorPorDefecto, topeEconomicoDe } from '@/lib/planes-ia'
@@ -186,7 +186,7 @@ export const maxDuration = 300
 export async function POST(req: NextRequest) {
   // Seguridad: solo usuarios autenticados. Procesa PHI y consume la API key
   // de Anthropic — sin esto cualquiera con la URL la quemaba.
-  const acceso = await verificarUsuario(req)
+  const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
 
   // Tope de ráfaga sobre el sistema de créditos: la generación de nota cuesta IA. 40/min por usuario.

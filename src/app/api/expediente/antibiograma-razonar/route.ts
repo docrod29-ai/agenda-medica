@@ -11,7 +11,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { validarRazonamiento } from '@/lib/expediente/antibiograma/validar-razonamiento'
-import { verificarUsuario } from '@/lib/auth-server'
+import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA } from '@/lib/ai-keys'
 import { safeLog } from '@/lib/security/sanitize'
@@ -68,7 +68,7 @@ async function gpt(key: string, system: string, user: string): Promise<string | 
 }
 
 export async function POST(req: NextRequest) {
-  const acceso = await verificarUsuario(req)
+  const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
   const _rl = await limitarOResponder(`antibiograma-razonar:${acceso.uid}`, 30, 60)
   if (_rl) return _rl

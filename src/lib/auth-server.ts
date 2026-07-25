@@ -21,6 +21,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import admin, { adminDb } from './firebase-admin'
+import { tieneModulo } from './modulos'
 
 export interface AccesoOk {
   ok: true
@@ -81,6 +82,35 @@ export async function verificarMiembro(req: NextRequest, clinicId: string): Prom
     return { ok: true, uid: u.uid, email: u.email, clinicId, role: data?.role }
   } catch {
     return err(500, 'Error verificando membresía')
+  }
+}
+
+/**
+ * Exige usuario autenticado Y que SU consultorio tenga el MÓDULO indicado
+ * (entitlement por plan). Cierra el hueco de que un plan `agenda` llame directo
+ * a las API de IA de consulta ("Pro") — el guard de rutas del navegador NO
+ * protege las API. Resuelve la clínica del UID y aplica `tieneModulo`.
+ *
+ * Fail-OPEN solo ante error transitorio de Firestore: preferimos no tumbar la IA
+ * a TODOS por un fallo de lectura puntual; el camino normal (clínica que carga
+ * bien) sí bloquea. Sin consultorio configurado → bloquea (aún está en /setup).
+ */
+export async function verificarModuloIA(req: NextRequest, modulo: string): Promise<Acceso> {
+  const u = await verificarToken(req)
+  if (!u) return err(401, 'No autenticado. Inicia sesión nuevamente.')
+  try {
+    const miembro = await adminDb.collection('clinic_members').doc(u.uid).get()
+    const clinicId = miembro.data()?.clinicId as string | undefined
+    if (!clinicId) return err(403, 'Aún no tienes un consultorio configurado.')
+    const clinicSnap = await adminDb.collection('clinics').doc(clinicId).get()
+    const clinic = clinicSnap.data() as { plan?: string; modulos?: string[]; paseLibre?: boolean } | undefined
+    if (!tieneModulo(clinic ?? null, modulo)) {
+      return err(403, 'Tu plan no incluye la IA de consulta. Mejora a Clínica o Pro para usar esta función.')
+    }
+    return { ok: true, uid: u.uid, email: u.email, clinicId, role: miembro.data()?.role }
+  } catch {
+    // Error transitorio de Firestore → no romper el servicio; el camino normal enforce.
+    return { ok: true, uid: u.uid, email: u.email }
   }
 }
 

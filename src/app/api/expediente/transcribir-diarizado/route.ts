@@ -14,7 +14,7 @@
  * Costo aproximado: ~$0.01–0.015 USD por minuto de audio.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { verificarUsuario } from '@/lib/auth-server'
+import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA, creditosAgotados, registrarUso } from '@/lib/ai-keys'
 import { WORD_BOOST_MEDICO } from '@/lib/expediente/medical-vocabulary'
@@ -27,7 +27,7 @@ const AAI = 'https://api.assemblyai.com/v2'
 interface UtteranceAAI { speaker: string; text: string }
 
 export async function POST(req: NextRequest) {
-  const acceso = await verificarUsuario(req)
+  const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
   const _rl = await limitarOResponder(`transcribir-diarizado:${acceso.uid}`, 20, 60)
   if (_rl) return _rl
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const acceso = await verificarUsuario(req)
+  const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
   const _rl = await limitarOResponder(`transcribir-diarizado:${acceso.uid}`, 20, 60)
   if (_rl) return _rl

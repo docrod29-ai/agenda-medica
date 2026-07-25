@@ -11,7 +11,7 @@
  * No expone API keys. Auth + rate limit + llave por consultorio, como el resto de la IA.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { verificarUsuario } from '@/lib/auth-server'
+import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA } from '@/lib/ai-keys'
 import { safeLog } from '@/lib/security/sanitize'
@@ -70,7 +70,7 @@ function parseJSON(text: string): Record<string, unknown> | null {
 }
 
 export async function POST(req: NextRequest) {
-  const acceso = await verificarUsuario(req)
+  const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
   const _rl = await limitarOResponder(`antibiograma-vision:${acceso.uid}`, 20, 60)
   if (_rl) return _rl

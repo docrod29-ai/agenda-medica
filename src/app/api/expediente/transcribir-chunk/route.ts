@@ -18,7 +18,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { WHISPER_PROMPT_MEDICO } from '@/lib/expediente/medical-vocabulary'
-import { verificarUsuario } from '@/lib/auth-server'
+import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA } from '@/lib/ai-keys'
 
@@ -26,7 +26,7 @@ export const runtime = 'nodejs'
 export const maxDuration = 30
 
 export async function POST(req: NextRequest) {
-  const acceso = await verificarUsuario(req)
+  const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
   const _rl = await limitarOResponder(`transcribir-chunk:${acceso.uid}`, 120, 60)
   if (_rl) return _rl

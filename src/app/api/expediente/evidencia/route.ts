@@ -13,7 +13,7 @@
  * Resp: { ok, articulos:[...], evaluacion:[...], alternativas:[...], diferencial:[...] }
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { verificarUsuario } from '@/lib/auth-server'
+import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA, registrarUso, nivelIADe } from '@/lib/ai-keys'
 import { buscarEvidenciaMulti, type ArticuloPubMed } from '@/lib/evidencia/pubmed'
@@ -27,7 +27,7 @@ const MODELOS_PRO = ['claude-sonnet-5', 'claude-sonnet-4-6', 'claude-3-5-sonnet-
 const MODELOS_HAIKU_ANALISIS = ['claude-haiku-4-5-20251001', 'claude-3-5-haiku-latest']
 
 export async function POST(req: NextRequest) {
-  const acceso = await verificarUsuario(req)
+  const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
   const _rl = await limitarOResponder(`evidencia:${acceso.uid}`, 30, 60)
   if (_rl) return _rl

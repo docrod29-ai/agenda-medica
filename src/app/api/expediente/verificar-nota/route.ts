@@ -16,7 +16,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { GUARDA_INYECCION, delimitar } from '@/lib/expediente/prompts'
-import { verificarUsuario } from '@/lib/auth-server'
+import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA, registrarUso } from '@/lib/ai-keys'
 
@@ -35,7 +35,7 @@ interface NotaEntrada {
 }
 
 export async function POST(req: NextRequest) {
-  const acceso = await verificarUsuario(req)
+  const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
   const _rl = await limitarOResponder(`verificar-nota:${acceso.uid}`, 20, 60)
   if (_rl) return _rl

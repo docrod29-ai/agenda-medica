@@ -16,7 +16,7 @@
  * Resp: { ok, respuesta, articulos:[{pmid,titulo,revista,anio,url}] }
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { verificarUsuario } from '@/lib/auth-server'
+import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA, registrarUso, nivelIADe, registrarConsultor, creditosUsadosDelMes, creditosExtraDelMes } from '@/lib/ai-keys'
 import { costoConsultor, planPorNivel } from '@/lib/planes-ia'
@@ -121,7 +121,7 @@ function responderStream(opts: { key: string; model: string; system: string; use
 }
 
 export async function POST(req: NextRequest) {
-  const acceso = await verificarUsuario(req)
+  const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
   const _rl = await limitarOResponder(`consultor-evidencia:${acceso.uid}`, 30, 60)
   if (_rl) return _rl

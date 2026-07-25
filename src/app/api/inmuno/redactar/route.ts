@@ -9,7 +9,7 @@
  * Body: { contexto: string }   Resp: { ok, texto } | { ok:false, error }
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { verificarUsuario } from '@/lib/auth-server'
+import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA, creditosAgotados, registrarUso } from '@/lib/ai-keys'
 
@@ -40,7 +40,7 @@ Devuelve solo la nota, sin preámbulos.`
 export const maxDuration = 300  // redacción con IA; sin esto se cortaba a 60s en Vercel
 
 export async function POST(req: NextRequest) {
-  const acceso = await verificarUsuario(req)
+  const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
 
   // Tope de ráfaga: redacción con IA por llamada. 30/min por usuario.

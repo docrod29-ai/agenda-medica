@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v625'  // DEMO/SANDBOX ampliado para ofertar: en /demo/interactivo el paso Receta ahora conmuta Receta<->Orden medica, y el hub final suma Antibiograma (interpreta un panel S/I/R ficticio -> MRSA + terapia dirigida + NOM-045), Consultor IA (chat clinico de ejemplo) y Herramientas clinicas (inmuno/cardiometabolico/peds/NEWS2). El indice /demo suma 3 tarjetas nuevas con sus maquetas. + Capacitor listo para App Store/Play (config + scripts + docs).
+const CACHE = 'nexusmed-v626'  // SEGURIDAD LANZAMIENTO: las 15 API de IA de consulta (expediente/*, consultor-evidencia, inmuno/redactar, receta/detectar-campos) ahora exigen el MODULO 'expediente' del plan del usuario (verificarModuloIA en auth-server) — antes solo pedian sesion, asi que un plan 'agenda' podia llamar la IA Pro directo por la API saltandose el bloqueo visual del navegador. Trial/Clinica/Pro/dueno siguen igual; solo se bloquea el plan agenda-only. ayuda-bot (soporte) queda para todos. + candado de regresion entitlements-planes.test.ts.
 // (v601):
 
 self.addEventListener('install', (event) => {
