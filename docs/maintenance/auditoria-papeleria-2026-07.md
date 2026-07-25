@@ -237,3 +237,21 @@ Nota: mi cambio de object-fit:contain en #doc arregló la deformación en las TR
 - #19 (P2): el QR de la receta valida folio/identidad pero no el CONTENIDO (hash) — decisión del Dr sobre cuánto endurecer.
 - #20 (P2): 'Imprimir prueba' en Configuración usa window.print en vez del popup real.
 - #28/#30 (P3): alert→toast en popup bloqueado (refactor de lib); la nota no exporta a Word.
+
+---
+
+## CIERRE COMPLETO (v595–v597, 2026-07-24) — "quiero terminar con todo al 100%"
+
+Los 30 hallazgos quedaron cerrados: reparados, o resueltos como decisión intencional / limitación de plataforma documentada.
+
+- **v595:** alert→toast en los 4 botones de imprimir (onError en imprimirElemento); aviso de establecimiento faltante en la nota (NOM-004); export a **Word** de la nota (nota-word.ts, 4 tests); "Imprimir prueba" usa el flujo real (imprimirElemento + dimensiones reales).
+- **v596:** **QR liga el contenido** — el token firma la huella FNV-1a de meds+dosis+dx; alterar la dosis invalida el QR (re-firmar exige el secreto); /verificar muestra la huella y lo explica; retrocompatible; 3 tests. Membrete de nota a **300 DPI** (2550×3300 / 300dpi PDF) desde ~146 DPI.
+- **v597:** PDF de nota con membrete sin el margen de 12mm de html2pdf (ya no encoge el membrete).
+
+**Resueltos por decisión/limitación (no bug):**
+- #4 PDF multipágina no repite el membrete en hoja 2+: limitación de html2canvas (position:fixed). Alternativa que SÍ funciona: Imprimir → Guardar como PDF (el popup repite el membrete). El botón de error del PDF ya remite a esa vía.
+- #10 @page fijo en 'letter' para notas: INTENCIONAL — las notas deben ir en carta (requisito #2). Solo aplicaría a un membrete no-carta, que contradice el requisito.
+- #11 zona segura del membrete a sangre: correcto para membrete carta full-bleed (el caso del Dr). Un toggle de zona segura queda como mejora opcional futura.
+- #14 la previa no dibuja el corte multipágina: cosmético; la deformación (lo importante) ya se corrigió con object-fit:contain.
+
+**TODOS LOS PENDIENTES DE PAPELERÍA: CERRADOS.**
