@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v609'  // FIX paginacion de nota daba 1 hoja (texto cortado + pie empalmado): la medicion corria ANTES de cargar la tipografia -> subestimaba alturas -> 1 hoja. Ahora re-mide en fonts.ready + doble rAF (con el guard que evita el bucle). Da el numero correcto de hojas. La firma+sello ya se colocan calibrados en la ultima hoja.
+const CACHE = 'nexusmed-v610'  // FIX paginacion nota 1 hoja: medicion antes de asentar fuentes; ahora ResizeObserver re-mide al cambiar alturas (guard evita bucle). Da hojas correctas.
 // (v601):
 
 self.addEventListener('install', (event) => {
