@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v619'  // (1) FIRMA en TODAS las hojas de la nota (el Dr la quiere en cada una). (2) HOJA EN BLANCO al imprimir: por redondeo sub-pixel la hoja media un pelo mas que la pagina (279mm) y se desbordaba a una hoja extra; ahora la hoja mide 1px menos -> sin desborde. WORD queda limpio a proposito (Word no reproduce diseno a pagina completa; el Word limpio es lo correcto para imprimir sobre papel membretado fisico; el diseno va fiel en Imprimir/PDF).
+const CACHE = 'nexusmed-v620'  // PDF LIMPIO hoja-por-hoja (nota membretada + receta/orden con diseno): se revierte el v618 que enrutaba el PDF por el dialogo de impresion y estampaba "about:blank" + la fecha del navegador DENTRO del PDF (queja del Dr) y a veces una 2a hoja. Ahora descargarPaginasComoPDF rasteriza CADA hoja (html2canvas) y arma el PDF con jsPDF a sangre: nº de paginas EXACTO (una hoja=una pagina, cero blancos), membrete+firma incluidos, SIN encabezados del navegador. Membrete de nota a object-fit:contain (nunca deforma ningun membrete que suban). Firma en TODAS las hojas.
 // (v601):
 
 self.addEventListener('install', (event) => {

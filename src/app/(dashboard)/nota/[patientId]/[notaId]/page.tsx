@@ -16,7 +16,7 @@ import type { NotaMedica, Adenda } from '@/types/expediente'
 import type { Patient } from '@/types'
 import { ArrowLeft, Printer, Loader2, Download, Pill, ClipboardList, AlertTriangle, Check, FileText, FilePlus2, X, Mic, ChevronDown } from 'lucide-react'
 import { Spinner, EmptyState } from '@/components/ui'
-import { descargarComoPDF } from '@/lib/pdf-download'
+import { descargarComoPDF, descargarPaginasComoPDF } from '@/lib/pdf-download'
 import { descargarNotaWord } from '@/lib/nota-word'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
 
@@ -57,20 +57,25 @@ export default function NotaImprimiblePage() {
   const descargarPDF = async () => {
     const el = document.getElementById('doc')
     if (!el) return
-    // Con hoja membretada, el PDF FIEL se genera con el MOTOR DE IMPRESIÓN (no
-    // html2canvas, que perdía el membrete y metía hojas en blanco). Abre el diálogo
-    // → el médico elige "Guardar como PDF". Idéntico a Imprimir, sin quirks.
-    if (membrete) {
-      toast('Se abrirá la impresión — elige "Guardar como PDF" (así sale con tu membrete y sin hojas en blanco).', 'info')
-      imprimirElemento(el, 'Nota médica', { anchoMm: 216, altoMm: 279, onError: (m) => toast(m, 'error') })
-      return
-    }
     setDescargando(true)
+    const nombre = (patient?.nombre ?? 'paciente').replace(/[^\w\sáéíóúñ-]/gi, '').replace(/\s+/g, '_')
+    const fechaCorta = new Date(nota?.fechaConsulta ?? Date.now()).toISOString().slice(0, 10)
     try {
-      const nombre = (patient?.nombre ?? 'paciente').replace(/[^\w\sáéíóúñ-]/gi, '').replace(/\s+/g, '_')
-      const fechaCorta = new Date(nota?.fechaConsulta ?? Date.now()).toISOString().slice(0, 10)
-      // Nota SIN membrete (formato de texto): html2canvas va bien.
-      await descargarComoPDF(el, { filename: `Nota_${nombre}_${fechaCorta}`, format: 'letter' })
+      if (membrete) {
+        // Nota membretada: PDF LIMPIO hoja-por-hoja (una .nota-sheet = una página
+        // carta a sangre). Incluye el membrete y la firma, SIN "about:blank" ni la
+        // fecha del navegador (eso pasaba al enrutar por el diálogo de impresión) y
+        // SIN hojas en blanco (una hoja = una página exacta).
+        const sheets = Array.from(el.querySelectorAll<HTMLElement>('.nota-sheet'))
+        if (sheets.length) {
+          await descargarPaginasComoPDF(sheets, { filename: `Nota_${nombre}_${fechaCorta}`, anchoMm: 216, altoMm: 279 })
+        } else {
+          await descargarComoPDF(el, { filename: `Nota_${nombre}_${fechaCorta}`, format: 'letter', margin: 0 })
+        }
+      } else {
+        // Nota SIN membrete (formato de texto): html2canvas va bien.
+        await descargarComoPDF(el, { filename: `Nota_${nombre}_${fechaCorta}`, format: 'letter' })
+      }
     } catch (e) {
       console.error('PDF error:', e)
       toast('No se pudo generar el PDF. Intenta con Imprimir → Guardar como PDF.', 'error')
@@ -624,9 +629,10 @@ function HojasNota({ membrete, mMemb, anchoMm, altoMm, bloques, firma }: {
 }) {
   const PXMM = 96 / 25.4
   const anchoPx = anchoMm * PXMM
-  // 1px MENOS de alto: por redondeo sub-píxel la hoja medía un pelo más que la
-  // página (279mm) y se desbordaba → salía una HOJA EN BLANCO extra al imprimir.
-  const altoPx = Math.floor(altoMm * PXMM) - 1
+  // Hoja carta EXACTA. El PDF se genera hoja-por-hoja (una .nota-sheet = una página
+  // a sangre, sin desbordes), así que no hace falta el -1px que se usaba para el
+  // desborde sub-píxel del diálogo de impresión.
+  const altoPx = Math.round(altoMm * PXMM)
   const topPx = mMemb.top * PXMM, botPx = mMemb.bottom * PXMM
   const leftPx = mMemb.left * PXMM, rightPx = mMemb.right * PXMM
   const contentW = Math.max(50, anchoPx - leftPx - rightPx)
@@ -707,7 +713,7 @@ function HojasNota({ membrete, mMemb, anchoMm, altoMm, bloques, firma }: {
               el <img> se captura en PDF y se imprime; el texto va encima en z-index:1. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="membrete-bg" src={membrete} alt="" aria-hidden
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'fill', zIndex: 0, pointerEvents: 'none' }} />
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', zIndex: 0, pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', top: topPx, left: leftPx, width: contentW, zIndex: 1 }}>
             {idxs.map(i => <div key={i}>{bloques[i]}</div>)}
           </div>

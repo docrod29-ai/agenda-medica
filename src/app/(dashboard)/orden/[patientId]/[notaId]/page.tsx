@@ -24,7 +24,7 @@ import type { Patient } from '@/types'
 import { RecetaDocumento, dimensionesImpresion, contarPaginas, useRecetaPaperOrientado } from '@/components/RecetaDocumento'
 import { RecetaPreviewWrapper } from '@/components/RecetaPreviewWrapper'
 import { PAPER_SIZES } from '@/lib/receta-template'
-import { descargarComoPDF } from '@/lib/pdf-download'
+import { descargarPaginasComoPDF } from '@/lib/pdf-download'
 import { descargarRecetaWord } from '@/lib/receta-word'
 import {
   ArrowLeft, Download, Loader2, Plus, Trash2, Printer, Settings, AlertCircle, ChevronDown, FileText, Check, Scissors,
@@ -457,11 +457,14 @@ export default function GeneradorOrdenPage() {
       const host = dimensionesImpresion(recetaConfigOri)
       const nombre = (patient?.nombre ?? 'paciente').replace(/[^\w\sáéíóúñ-]/gi, '').replace(/\s+/g, '_')
       const fechaCorta = new Date().toISOString().slice(0, 10)
-      await descargarComoPDF(el, {
+      // PDF LIMPIO hoja-por-hoja (misma corrección que receta): sin "about:blank" ni
+      // fecha del navegador, hoja física exacta, fiel al diseño.
+      const paginas = Array.from(el.querySelectorAll<HTMLElement>('.receta-sheet-wrap'))
+      const objetivo = paginas.length ? paginas : [el]
+      await descargarPaginasComoPDF(objetivo, {
         filename: `Orden_${nombre}_${fechaCorta}`,
-        format: [host.widthMm, host.heightMm],
-        orientation: host.widthMm > host.heightMm ? 'landscape' : 'portrait',
-        margin: 0,
+        anchoMm: host.widthMm,
+        altoMm: host.heightMm,
       })
     } catch (e) {
       console.error('PDF error:', e)

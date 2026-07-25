@@ -29,6 +29,14 @@ export function imprimirElemento(
     /** Zona segura del membrete (mm) que debe respetarse en TODAS las hojas. */
     margenesMembrete?: { top: number; right: number; bottom: number; left: number }
     /**
+     * Margen de PÁGINA (mm) en modo 'sangre'. Default 0 (recetas a sangre).
+     * La NOTA membretada lo usa (~6 mm) para que la hoja quede DENTRO del área
+     * imprimible física de cualquier impresora → el membrete "no se sale" ni
+     * empuja hojas en blanco (el Dr: "el logo solo quede en una hoja carta que
+     * no se salga"). El contenido de #doc ya viene dimensionado a ese neto.
+     */
+    margenMm?: number
+    /**
      * Aviso de error (popup bloqueado / documento no encontrado). Si se pasa, se
      * usa en vez del window.alert nativo — así la app lo muestra con su sistema de
      * toasts. La decisión de NO imprimir basura se mantiene; solo cambia el canal.

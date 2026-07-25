@@ -29,7 +29,7 @@ import type { Patient } from '@/types'
 import { RecetaDocumento, dimensionesImpresion, contarPaginas, useRecetaPaperOrientado } from '@/components/RecetaDocumento'
 import { RecetaPreviewWrapper } from '@/components/RecetaPreviewWrapper'
 import { PAPER_SIZES } from '@/lib/receta-template'
-import { descargarComoPDF } from '@/lib/pdf-download'
+import { descargarPaginasComoPDF } from '@/lib/pdf-download'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
 import { detectarInteracciones, detectarControlados } from '@/lib/expediente/farmacovigilancia'
 import { alergiasDe } from '@/lib/seguridad/alergias'
@@ -319,15 +319,6 @@ export default function GeneradorRecetaPage() {
   const descargarPDF = async () => {
     const el = document.getElementById('receta-doc')
     if (!el) return
-    // Con DISEÑO propio, el PDF fiel se hace con el motor de impresión (html2canvas
-    // deja hoja en blanco y recorta un poco el diseño). Abre el diálogo → "Guardar
-    // como PDF". Sin diseño (plantilla), html2canvas va bien.
-    if (recetaConfigOri.disenoCompletoDataUrl) {
-      const h = dimensionesImpresion(recetaConfigOri)
-      toast('Se abrirá la impresión — elige "Guardar como PDF" (así sale fiel a tu diseño).', 'info')
-      imprimirElemento(el, 'Receta', { anchoMm: h.widthMm, altoMm: h.heightMm, onError: (m) => toast(m, 'error') })
-      return
-    }
     setDescargando(true)
     try {
       // El PDF usa el tamaño FÍSICO de la hoja que sale de la impresora
@@ -335,13 +326,16 @@ export default function GeneradorRecetaPage() {
       const host = dimensionesImpresion(recetaConfigOri)
       const nombre = (patient?.nombre ?? 'paciente').replace(/[^\w\sáéíóúñ-]/gi, '').replace(/\s+/g, '_')
       const fechaCorta = new Date().toISOString().slice(0, 10)
-      await descargarComoPDF(el, {
+      // PDF LIMPIO hoja-por-hoja. Antes: con diseño se enrutaba por el diálogo de
+      // impresión y el navegador estampaba "about:blank" + la fecha DENTRO del PDF
+      // (queja del Dr) y a veces una 2ª hoja. Ahora se rasteriza cada hoja física y
+      // se arma el PDF a sangre: hoja exacta, fiel al diseño, sin encabezados.
+      const paginas = Array.from(el.querySelectorAll<HTMLElement>('.receta-sheet-wrap'))
+      const objetivo = paginas.length ? paginas : [el]
+      await descargarPaginasComoPDF(objetivo, {
         filename: `Receta_${nombre}_${fechaCorta}`,
-        format: [host.widthMm, host.heightMm],
-        // Orientación REAL de la hoja: un diseño apaisado (widthMm>heightMm) en PDF
-        // vertical salía volteado/recortado. Ahora sigue a la hoja efectiva.
-        orientation: host.widthMm > host.heightMm ? 'landscape' : 'portrait',
-        margin: 0, // el documento ya tiene su propio padding
+        anchoMm: host.widthMm,
+        altoMm: host.heightMm,
       })
     } catch (e) {
       console.error('PDF error:', e)
