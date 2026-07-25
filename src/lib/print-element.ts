@@ -28,6 +28,12 @@ export function imprimirElemento(
     formato?: 'sangre' | 'carta' | 'membrete'; anchoMm?: number; altoMm?: number
     /** Zona segura del membrete (mm) que debe respetarse en TODAS las hojas. */
     margenesMembrete?: { top: number; right: number; bottom: number; left: number }
+    /**
+     * Aviso de error (popup bloqueado / documento no encontrado). Si se pasa, se
+     * usa en vez del window.alert nativo — así la app lo muestra con su sistema de
+     * toasts. La decisión de NO imprimir basura se mantiene; solo cambia el canal.
+     */
+    onError?: (mensaje: string) => void
   },
 ): void {
   if (typeof window === 'undefined') return
@@ -52,8 +58,10 @@ export function imprimirElemento(
    * receta ilegible al paciente.
    */
   const avisar = (motivo: string) => {
+    const msg = `No se pudo abrir la ventana de impresión (${motivo}). Permite las ventanas emergentes de este sitio y vuelve a intentarlo, o usa "Descargar PDF". No se imprimió nada.`
+    if (opts?.onError) { opts.onError(msg); return }
     // eslint-disable-next-line no-alert
-    window.alert(`No se pudo abrir la ventana de impresión (${motivo}).\n\nPermite las ventanas emergentes de este sitio y vuelve a intentarlo. No se imprimió nada.`)
+    window.alert(msg)
   }
   if (!el) { avisar('no se encontró el documento'); return }
 

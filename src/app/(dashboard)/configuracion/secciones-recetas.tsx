@@ -6,7 +6,8 @@
  */
 import { useState, useEffect, useRef } from 'react'
 import { areaImpracticable } from '@/lib/receta-paginacion'
-import { RecetaDocumento, type RecetaData } from '@/components/RecetaDocumento'
+import { RecetaDocumento, dimensionesImpresion, type RecetaData } from '@/components/RecetaDocumento'
+import { imprimirElemento } from '@/lib/print-element'
 import { resizeImageFile, formatBytes } from '@/lib/image-utils'
 import { PAPER_SIZES, ESTILOS_RECETA, detectarPaperSize } from '@/lib/receta-template'
 import type { RecetaConfig, PaperSize as PaperSizeT, EstiloReceta as EstiloT, Patient, Doctor as DoctorT, ClinicConfig } from '@/types'
@@ -744,6 +745,7 @@ function PreviewReceta({
   rx: RecetaConfig
   config: ClinicConfig | null
 }) {
+  const { toast } = useToast()
   const paper = PAPER_SIZES[rx.paperSize ?? 'media-carta']
   // 96 DPI estándar web: 1mm ≈ 3.78 px
   const paperWidthPx = (paper.widthMm * 96) / 25.4
@@ -776,18 +778,16 @@ function PreviewReceta({
     notaParaPaciente: 'Si presenta fiebre >39°C, acudir a urgencias.',
   }
 
-  // Imprime SOLO la receta (a tamaño físico real), no toda la pantalla de config.
-  // Marca el <body> para que el CSS de impresión oculte todo menos #zona-print-receta.
+  // Auditoría papelería 2026-07 (P2): la prueba debe usar EXACTAMENTE el mismo
+  // flujo que la impresión que recibe el paciente (imprimirElemento + popup +
+  // dimensiones reales), no window.print sobre la pantalla de config. Antes probaba
+  // un camino distinto y en otro tamaño, así que "se veía bien en la prueba" no
+  // garantizaba nada del impreso real.
   const imprimirPrueba = () => {
-    const body = document.body
-    body.classList.add('print-solo-receta')
-    const limpiar = () => {
-      body.classList.remove('print-solo-receta')
-      window.removeEventListener('afterprint', limpiar)
-    }
-    window.addEventListener('afterprint', limpiar)
-    window.print()
-    setTimeout(limpiar, 1500) // respaldo por si el navegador no dispara afterprint
+    const h = dimensionesImpresion(rx)
+    imprimirElemento(document.getElementById('zona-print-receta-inner'), 'Prueba de receta', {
+      anchoMm: h.widthMm, altoMm: h.heightMm, onError: (m) => toast(m, 'error'),
+    })
   }
 
   return (
@@ -895,7 +895,7 @@ function PreviewReceta({
       {/* Receta a TAMAÑO FÍSICO REAL — oculta en pantalla, visible SOLO al imprimir
           (el CSS de impresión con body.print-solo-receta muestra únicamente esto). */}
       <div id="zona-print-receta" style={{ display: 'none' }}>
-        <div style={{ width: paperWidthPx, height: paperHeightPx, position: 'relative', background: '#fff' }}>
+        <div id="zona-print-receta-inner" style={{ width: paperWidthPx, height: paperHeightPx, position: 'relative', background: '#fff' }}>
           <RecetaDocumento data={demoData} config={config ?? null} recetaConfig={rx} />
         </div>
       </div>

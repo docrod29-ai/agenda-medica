@@ -17,6 +17,7 @@ import type { Patient } from '@/types'
 import { ArrowLeft, Printer, Loader2, Download, Pill, ClipboardList, AlertTriangle, Check, FileText, FilePlus2, X, Mic, ChevronDown } from 'lucide-react'
 import { Spinner, EmptyState } from '@/components/ui'
 import { descargarComoPDF } from '@/lib/pdf-download'
+import { descargarNotaWord } from '@/lib/nota-word'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
 
 export default function NotaImprimiblePage() {
@@ -179,6 +180,20 @@ export default function NotaImprimiblePage() {
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh', padding: 24 }}>
       <div style={{ maxWidth: 800, margin: '0 auto' }}><AvisoConfigNoCargada error={configError} /></div>
+
+      {/* Auditoría papelería 2026-07 (P2 NOM-004): avisos de datos obligatorios que
+          podrían salir vacíos en el papel. Solo cuando NO hay hoja membretada (esa
+          ya trae el encabezado con el establecimiento). No se imprimen. */}
+      {!membrete && !establecimiento && (
+        <div className="no-print" style={{ maxWidth: 800, margin: '0 auto 12px', display: 'flex', alignItems: 'flex-start', gap: 10, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.35)', borderRadius: 12, padding: '11px 14px' }}>
+          <AlertTriangle size={16} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--text)' }}>
+            <strong>Falta el nombre del establecimiento.</strong> Es dato obligatorio del expediente (NOM-004).
+            Agrégalo en Configuración → General (o usa tu hoja membretada, que ya lo incluye).
+          </div>
+        </div>
+      )}
+
       {/* Barra de acciones (no se imprime) */}
       <div className="no-print" style={{ maxWidth: 800, margin: '0 auto 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <button onClick={volver} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}>
@@ -190,8 +205,13 @@ export default function NotaImprimiblePage() {
               ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</>
               : <><Download size={16} /> Descargar PDF</>}
           </button>
-          <button onClick={() => { if (configError) return; imprimirElemento(document.getElementById('doc'), 'Nota médica', { formato: membrete ? 'membrete' : 'carta', margenesMembrete: mMemb }) }} disabled={!!configError} title={configError ? 'Espera a que cargue la configuración del consultorio' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: configError ? 'default' : 'pointer', opacity: configError ? 0.5 : 1 }}>
+          <button onClick={() => { if (configError) return; imprimirElemento(document.getElementById('doc'), 'Nota médica', { formato: membrete ? 'membrete' : 'carta', margenesMembrete: mMemb, onError: (m) => toast(m, 'error') }) }} disabled={!!configError} title={configError ? 'Espera a que cargue la configuración del consultorio' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: configError ? 'default' : 'pointer', opacity: configError ? 0.5 : 1 }}>
             <Printer size={16} /> Imprimir
+          </button>
+          {/* Word editable — para ajustar la nota al membrete/formato propio (igual
+              que receta y orden; capacidad consistente entre documentos). */}
+          <button onClick={() => { if (configError) return; try { descargarNotaWord(nota, config ?? null, { edad: patient?.edad, sexo: patient?.sexo, telefono: patient?.telefono, alergias: patient?.alergias }) } catch { toast('No se pudo generar el Word', 'error') } }} disabled={!!configError} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: configError ? 'default' : 'pointer', opacity: configError ? 0.5 : 1 }}>
+            <FileText size={16} /> Word
           </button>
           {/* Generar receta y orden — solo cuando la nota está firmada */}
           {nota.estado === 'firmada' && (
