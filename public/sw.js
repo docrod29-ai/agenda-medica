@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v603'  // FIX RECETA/ORDEN MOCHAS en la PAGINA REAL y la IMPRESION (no solo el preview de config): hook compartido useRecetaPaperOrientado carga el aspecto de la imagen y devuelve las medidas orientadas al diseno; las paginas de receta y orden ahora pasan un cfg orientado a dimensionesImpresion -> el contenedor de la vista previa, el @page de impresion y la impresion de prueba coinciden con la hoja renderizada (apaisada). Antes: hoja apaisada 210x148 dentro de marco/hoja vertical 148x210 = recortada a la derecha.
+const CACHE = 'nexusmed-v604'  // FIX EL MEMBRETE DE LA NOTA SI RESOLVIA (v601) PERO NO SE VEIA (verificado en vivo con la cuenta del Dr): #doc tiene fondo blanco opaco y con position:relative sin z-index NO crea contexto de apilamiento, asi que la img del membrete (z-index:-1) se pintaba DETRAS del blanco y la nota salia con el encabezado de TEXTO. FIX: isolation:isolate en #doc crea el contexto -> el membrete se pinta SOBRE el blanco y BAJO el texto. Ahora el membrete completo (logo, cedulas, marca de agua) aparece en la nota, verificado en vivo con el paciente Dilan.
 // (v601):
 
 self.addEventListener('install', (event) => {

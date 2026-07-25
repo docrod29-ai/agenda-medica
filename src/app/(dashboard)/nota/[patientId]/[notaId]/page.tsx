@@ -256,6 +256,11 @@ export default function NotaImprimiblePage() {
         maxWidth: 800, margin: '0 auto', background: '#fff', color: '#1a1a1a',
         position: 'relative', borderRadius: 4, fontFamily: '"Times New Roman", Georgia, serif',
         lineHeight: 1.4, fontSize: 13, minHeight: 'min(1035px, calc((100vw - 48px) * 279 / 216))',
+        // isolation:isolate crea un contexto de apilamiento en #doc para que la
+        // hoja membretada (img con z-index:-1) se pinte SOBRE el fondo blanco de
+        // #doc (y bajo el texto). Sin esto, el blanco tapaba el membrete y la nota
+        // salía con el encabezado de texto — el Dr reportó "no me pones el membrete".
+        isolation: 'isolate',
         paddingTop: `${mMemb.top}mm`, paddingBottom: `${mMemb.bottom}mm`,
         paddingLeft: `${mMemb.left}mm`, paddingRight: `${mMemb.right}mm`, boxSizing: 'border-box',
       } : {
