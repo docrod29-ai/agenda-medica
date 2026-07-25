@@ -454,10 +454,11 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
           {rx.disenoCompletoDataUrl && (
             <div style={{ marginTop: 12, padding: 12, background: 'rgba(0,0,0,0.15)', borderRadius: 8 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Ruler size={14} className="ds-icon" /> Calibrar área de contenido (mm)
+                <Ruler size={14} className="ds-icon" /> Ajuste fino del área de contenido (mm)
               </div>
               <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 10 }}>
-                Define dónde caen los datos del paciente y la receta. Mira la vista previa →
+                Lo más fácil: <strong>arrastra el recuadro</strong> de la vista previa y <strong>jala sus bordes</strong>.
+                Estos números son para afinar al milímetro si lo necesitas.
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
                 <MargenInput label="Arriba" value={rx.disenoMargenes?.top ?? 35} onChange={(v) => setRx({ ...rx, disenoMargenes: { ...defaultMargenes(rx), top: v } })} />
@@ -715,7 +716,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
       </div>
 
       {/* Preview en vivo — contenedor de ancho fijo, escala dinámica */}
-      <PreviewReceta tipoPreview={tipoPreview} setTipoPreview={setTipoPreview} rx={rx} config={config} />
+      <PreviewReceta tipoPreview={tipoPreview} setTipoPreview={setTipoPreview} rx={rx} config={config} onMargenes={(mg) => setRx({ ...rx, disenoMargenes: mg })} />
 
       {/* CSS responsive — colapsa preview en pantallas pequeñas */}
       <style>{`
@@ -738,12 +739,13 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
  * custom mostrando dónde caen los datos. Así el médico calibra sin adivinar.
  */
 function PreviewReceta({
-  tipoPreview, setTipoPreview, rx, config,
+  tipoPreview, setTipoPreview, rx, config, onMargenes,
 }: {
   tipoPreview: 'receta' | 'orden'
   setTipoPreview: (t: 'receta' | 'orden') => void
   rx: RecetaConfig
   config: ClinicConfig | null
+  onMargenes: (m: { top: number; right: number; bottom: number; left: number }) => void
 }) {
   const { toast } = useToast()
   const paper = PAPER_SIZES[rx.paperSize ?? 'media-carta']
@@ -856,28 +858,17 @@ function PreviewReceta({
             config={config ?? null}
             recetaConfig={rx}
           />
-          {/* GUÍA VISUAL: rectángulo cian translúcido sobre la zona de contenido
-              cuando se usa diseño custom. Le muestra al médico DÓNDE caen los datos. */}
+          {/* ZONA DE CONTENIDO INTERACTIVA: se ARRASTRA para mover y se JALA de los
+              bordes para estirar. Actualiza disenoMargenes (mm) en vivo — mucho más
+              fácil que teclear los 4 números. Solo con diseño propio subido. */}
           {usarGuia && (
-            <div style={{
-              position: 'absolute',
-              top: `${margenes.top}mm`,
-              right: `${margenes.right}mm`,
-              bottom: `${margenes.bottom}mm`,
-              left: `${margenes.left}mm`,
-              border: '2px dashed #14b8a6',
-              background: 'rgba(20,184,166,0.08)',
-              pointerEvents: 'none',
-              borderRadius: 2,
-            }}>
-              <div style={{
-                position: 'absolute', top: -22, left: 0,
-                background: '#14b8a6', color: '#000',
-                fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4,
-              }}>
-                ↓ Zona de contenido
-              </div>
-            </div>
+            <ZonaContenidoEditable
+              m={margenes}
+              paperWmm={paper.widthMm}
+              paperHmm={paper.heightMm}
+              scale={scale}
+              onChange={onMargenes}
+            />
           )}
         </div>
       </div>
@@ -924,6 +915,90 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
 
 function defaultMargenes(rx: RecetaConfig) {
   return rx.disenoMargenes ?? { top: 35, right: 12, bottom: 30, left: 12 }
+}
+
+/**
+ * Editor DIRECTO de la zona de contenido sobre la vista previa.
+ *
+ * En vez de teclear Arriba/Abajo/Izquierda/Derecha en mm, el médico ARRASTRA el
+ * recuadro para moverlo y JALA de los bordes/esquina para estirarlo. Los mm se
+ * calculan del desplazamiento en pantalla (px ÷ (px/mm × escala)) y se guardan en
+ * disenoMargenes. Todo con pointer events (funciona con mouse y con dedo).
+ */
+type Margenes = { top: number; right: number; bottom: number; left: number }
+type ModoZona = 'move' | 'top' | 'bottom' | 'left' | 'right' | 'corner'
+const PX_POR_MM = 96 / 25.4
+
+function ZonaContenidoEditable({ m, paperWmm, paperHmm, scale, onChange }: {
+  m: Margenes; paperWmm: number; paperHmm: number; scale: number; onChange: (m: Margenes) => void
+}) {
+  const drag = useRef<{ modo: ModoZona; x: number; y: number; m0: Margenes } | null>(null)
+  const MIN = 10 // mm: ancho/alto mínimo de la zona de contenido
+
+  const iniciar = (modo: ModoZona) => (e: React.PointerEvent) => {
+    e.preventDefault(); e.stopPropagation()
+    drag.current = { modo, x: e.clientX, y: e.clientY, m0: { ...m } }
+    const mover = (ev: PointerEvent) => {
+      const d = drag.current; if (!d) return
+      const dxMm = (ev.clientX - d.x) / (PX_POR_MM * scale)
+      const dyMm = (ev.clientY - d.y) / (PX_POR_MM * scale)
+      const { m0 } = d
+      const cl = (v: number) => Math.max(0, Math.round(v))
+      let n: Margenes = { ...m0 }
+      if (d.modo === 'move') {
+        // Mueve la caja SIN cambiar su tamaño: top+bottom y left+right se compensan.
+        // El desplazamiento se limita para que ningún margen quede negativo.
+        const nx = Math.max(-m0.left, Math.min(m0.right, dxMm))
+        const ny = Math.max(-m0.top, Math.min(m0.bottom, dyMm))
+        n = { top: cl(m0.top + ny), bottom: cl(m0.bottom - ny), left: cl(m0.left + nx), right: cl(m0.right - nx) }
+      } else {
+        if (d.modo === 'top') n.top = cl(m0.top + dyMm)
+        if (d.modo === 'bottom') n.bottom = cl(m0.bottom - dyMm)
+        if (d.modo === 'left') n.left = cl(m0.left + dxMm)
+        if (d.modo === 'right') n.right = cl(m0.right - dxMm)
+        if (d.modo === 'corner') { n.right = cl(m0.right - dxMm); n.bottom = cl(m0.bottom - dyMm) }
+      }
+      // No dejar que la zona se cierre por completo.
+      if (paperWmm - (n.left + n.right) < MIN) { n.left = m0.left; n.right = m0.right }
+      if (paperHmm - (n.top + n.bottom) < MIN) { n.top = m0.top; n.bottom = m0.bottom }
+      onChange(n)
+    }
+    const soltar = () => {
+      drag.current = null
+      window.removeEventListener('pointermove', mover)
+      window.removeEventListener('pointerup', soltar)
+    }
+    window.addEventListener('pointermove', mover)
+    window.addEventListener('pointerup', soltar)
+  }
+
+  const asa = (cursor: string, extra: React.CSSProperties): React.CSSProperties => ({
+    position: 'absolute', background: '#14b8a6', borderRadius: 3, touchAction: 'none',
+    cursor, zIndex: 2, ...extra,
+  })
+
+  return (
+    <div
+      onPointerDown={iniciar('move')}
+      style={{
+        position: 'absolute',
+        top: `${m.top}mm`, right: `${m.right}mm`, bottom: `${m.bottom}mm`, left: `${m.left}mm`,
+        border: '2px dashed #14b8a6', background: 'rgba(20,184,166,0.10)',
+        borderRadius: 2, cursor: 'move', touchAction: 'none',
+      }}
+    >
+      <div style={{ position: 'absolute', top: -22, left: 0, background: '#14b8a6', color: '#000', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+        ✥ arrastra · jala los bordes
+      </div>
+      {/* Asas de borde (centro de cada lado) */}
+      <div onPointerDown={iniciar('top')}    style={asa('ns-resize', { top: -5, left: '50%', width: 26, height: 10, transform: 'translateX(-50%)' })} />
+      <div onPointerDown={iniciar('bottom')} style={asa('ns-resize', { bottom: -5, left: '50%', width: 26, height: 10, transform: 'translateX(-50%)' })} />
+      <div onPointerDown={iniciar('left')}   style={asa('ew-resize', { left: -5, top: '50%', width: 10, height: 26, transform: 'translateY(-50%)' })} />
+      <div onPointerDown={iniciar('right')}  style={asa('ew-resize', { right: -5, top: '50%', width: 10, height: 26, transform: 'translateY(-50%)' })} />
+      {/* Esquina inferior derecha */}
+      <div onPointerDown={iniciar('corner')} style={asa('nwse-resize', { right: -6, bottom: -6, width: 14, height: 14, borderRadius: 4 })} />
+    </div>
+  )
 }
 
 /* ── Seguridad Tab (2FA) ─────────────────────────────────────── */
