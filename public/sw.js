@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v622'  // FIX el PDF de receta se quedaba "Generando..." para siempre: clonar la hoja colgaba html2canvas (re-descargaba el membrete). Ahora se neutraliza el transform:scale del preview EN VIVO (elemento real, imagenes ya cargadas), se rasteriza a escala 1 (texto nitido) y se restaura; + TOPE de 25s por hoja (Promise.race) para que NUNCA se cuelgue -> si se atora, muestra error y libera el boton. imageTimeout 30s->12s.
+const CACHE = 'nexusmed-v623'  // PDF receta/orden nitido: se MUEVE la hoja real fuera del preview escalado (transform:scale rompia el render de texto en html2canvas) a un host fuera de pantalla, se rasteriza a escala 1 y se devuelve a su lugar con un marcador (para que React no pierda el nodo). Neutralizar el transform daba pagina en blanco; clonar colgaba; mover el nodo real (imagenes ya cargadas) es lo correcto. Tope 25s por hoja.
 // (v601):
 
 self.addEventListener('install', (event) => {

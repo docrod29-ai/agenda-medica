@@ -48,51 +48,61 @@ export async function descargarPaginasComoPDF(
   const pdf = new jsPDF({ unit: 'mm', format: [opts.anchoMm, opts.altoMm], orientation, compress: true })
 
   /**
-   * Render a ESCALA 1 neutralizando el `transform` de los ANCESTROS.
+   * Render a ESCALA 1 MOVIENDO la hoja fuera del preview escalado.
    *
    * POR QUÉ: la receta/orden viven dentro de una vista previa con
-   * `transform: scale(0.42)`. html2canvas, al capturar un elemento bajo un
-   * ancestro escalado, MIDE MAL el ancho de las letras y las ENCIMA (el texto
-   * salía ilegible — bug real que el Dr detectó en el PDF de la receta). La nota
-   * no sufría esto porque se dibuja a tamaño real.
+   * `transform: scale(0.42)`. html2canvas, bajo un ancestro escalado, MIDE MAL el
+   * ancho de las letras y las ENCIMA (el texto salía ilegible — bug real que el
+   * Dr detectó). La nota no sufría esto (se dibuja a tamaño real).
    *
-   * Se pone a 'none' el transform de los ancestros ESCALADOS (el elemento REAL,
-   * con sus imágenes ya cargadas — clonar colgaba html2canvas re-descargando el
-   * membrete), se rasteriza, y se restaura. Un tope de tiempo evita que se quede
-   * "Generando…" para siempre si html2canvas se atora.
+   * Se MUEVE el nodo REAL (no un clon: clonar colgaba html2canvas re-descargando
+   * el membrete; el nodo real ya tiene sus imágenes cargadas) a un host fijo
+   * fuera de pantalla SIN transform, se rasteriza a tamaño natural (texto nítido)
+   * y se devuelve EXACTAMENTE a su lugar con un marcador. Un tope de tiempo evita
+   * que se quede "Generando…" para siempre si html2canvas se atora.
    */
-  const restaurar: Array<() => void> = []
-  let n = paginas[0].parentElement
-  while (n && n !== document.body) {
-    const t = getComputedStyle(n).transform
-    if (t && t !== 'none') {
-      const el = n as HTMLElement
-      const prev = el.style.transform
-      el.style.transform = 'none'
-      restaurar.push(() => { el.style.transform = prev })
-    }
-    n = n.parentElement
-  }
+  const host = document.createElement('div')
+  host.setAttribute('aria-hidden', 'true')
+  host.style.cssText = 'position:fixed;left:-100000px;top:0;margin:0;padding:0;background:#fff;transform:none;z-index:-1'
+  document.body.appendChild(host)
 
   const conTope = <T,>(p: Promise<T>, ms: number): Promise<T> =>
     Promise.race([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error('html2canvas timeout')), ms))])
 
   try {
     for (let i = 0; i < paginas.length; i++) {
-      const canvas = await conTope(html2canvas(paginas[i], {
-        scale: 3,                    // nitidez de texto e imagen
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        imageTimeout: 12000,         // espera al membrete/firma (no 30s: colgaba)
-        logging: false,
-      }), 25000)
-      const img = canvas.toDataURL('image/jpeg', 0.95)
-      if (i > 0) pdf.addPage([opts.anchoMm, opts.altoMm], orientation)
-      // A sangre: la hoja ya trae su propio margen/membrete; el PDF no añade ninguno.
-      pdf.addImage(img, 'JPEG', 0, 0, opts.anchoMm, opts.altoMm, undefined, 'FAST')
+      const page = paginas[i]
+      // Marcador para devolver el nodo a su POSICIÓN EXACTA (sin él, React perdería
+      // el lugar y podría duplicar/borrar la hoja al re-renderizar).
+      const marcador = document.createComment('pdf-page-placeholder')
+      const padre = page.parentNode as Node
+      const prevTransform = page.style.transform
+      const prevMargin = page.style.margin
+      padre.replaceChild(marcador, page)
+      page.style.transform = 'none'
+      page.style.margin = '0'
+      host.appendChild(page)
+      try {
+        const canvas = await conTope(html2canvas(page, {
+          scale: 3,                    // nitidez de texto e imagen
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          imageTimeout: 12000,         // espera al membrete/firma (no 30s: colgaba)
+          logging: false,
+        }), 25000)
+        const img = canvas.toDataURL('image/jpeg', 0.95)
+        if (i > 0) pdf.addPage([opts.anchoMm, opts.altoMm], orientation)
+        // A sangre: la hoja ya trae su margen/membrete; el PDF no añade ninguno.
+        pdf.addImage(img, 'JPEG', 0, 0, opts.anchoMm, opts.altoMm, undefined, 'FAST')
+      } finally {
+        // Devolver el nodo a su lugar SIEMPRE (aunque html2canvas falle).
+        page.style.transform = prevTransform
+        page.style.margin = prevMargin
+        marcador.parentNode?.replaceChild(page, marcador)
+      }
     }
   } finally {
-    restaurar.forEach(f => f())
+    document.body.removeChild(host)
   }
 
   const filename = opts.filename.endsWith('.pdf') ? opts.filename : `${opts.filename}.pdf`
