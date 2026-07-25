@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v612'  // FIX paginacion nota: faltaba empujar la ULTIMA hoja (if cur.length pages.push) al reescribir la medicion -> el corte se detectaba pero la 2a hoja nunca se agregaba y sus bloques se perdian -> siempre 1 hoja. Ahora pagina correcto: agrega tantas hojas carta como haga falta, cada una con el membrete, firma al fondo de la ultima.
+const CACHE = 'nexusmed-v613'  // NOTA MEMBRETADA PAGINADA - VERIFICADA EN VIVO (cuenta del Dr, nota de 2 paginas): la nota se parte en tantas hojas carta como haga falta, cada una con el membrete COMPLETO (encabezado arriba, pie abajo), el texto en la zona segura, y la firma+sello calibrados al fondo de la ultima hoja. Sin empalme, sin texto cortado, congruente en pantalla/PDF/impresion. (removido el diagnostico __notaDbg).
 // (v601):
 
 self.addEventListener('install', (event) => {

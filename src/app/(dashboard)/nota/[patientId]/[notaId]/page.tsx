@@ -644,7 +644,6 @@ function HojasNota({ membrete, mMemb, anchoMm, altoMm, bloques, firma }: {
       })
       if (cur.length) pages.push(cur)   // ← la ÚLTIMA hoja (faltaba: se perdían bloques y solo salía 1 hoja)
       const final = pages.length ? pages : [Array.from({ length: kids.length }, (_, i) => i)]
-      if (typeof window !== 'undefined') (window as unknown as { __notaDbg?: unknown }).__notaDbg = { hs, total: hs.reduce((a, b) => a + b, 0), contentH, nPag: final.length }
       setPaginas(prev => (JSON.stringify(prev) === JSON.stringify(final) ? prev : final))
     }
     medir()
