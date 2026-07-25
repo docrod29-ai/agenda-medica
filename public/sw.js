@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v611'  // debug paginacion nota: brute-force re-medir por intervalo + window.__notaDbg
+const CACHE = 'nexusmed-v612'  // FIX paginacion nota: faltaba empujar la ULTIMA hoja (if cur.length pages.push) al reescribir la medicion -> el corte se detectaba pero la 2a hoja nunca se agregaba y sus bloques se perdian -> siempre 1 hoja. Ahora pagina correcto: agrega tantas hojas carta como haga falta, cada una con el membrete, firma al fondo de la ultima.
 // (v601):
 
 self.addEventListener('install', (event) => {
