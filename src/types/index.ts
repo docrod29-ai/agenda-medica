@@ -367,9 +367,13 @@ export interface ClinicConfig {
   /** Zona de contenido de la nota sobre la hoja membretada (mm): márgenes para no
    *  encimar el encabezado ni el pie. Default: top 42, bottom 28, left 22, right 22. */
   notaMembreteMargenes?: { top: number; right: number; bottom: number; left: number }
+  /** Posición de la FIRMA sobre la hoja membretada de notas (% de la hoja; centro
+   *  de la firma). Se calibra arrastrando en Configuración → Cuenta. Si no está,
+   *  la firma cae a una posición razonable sobre el pie derecho. */
+  notaMembreteFirmaPos?: { x: number; y: number }
   /** Hoja membretada de notas POR MÉDICO (key = medicoId). Cada médico tiene su
    *  propio papel; si no, cae a la general (notaMembreteDataUrl). */
-  notaMembretePorMedico?: Record<string, { url: string; margenes?: { top: number; right: number; bottom: number; left: number } }>
+  notaMembretePorMedico?: Record<string, { url: string; margenes?: { top: number; right: number; bottom: number; left: number }; firmaPos?: { x: number; y: number } }>
 
   // === Perfil público /dr (captación / SEO — convierte como Doctoralia) ===
   /** Foto del médico para el perfil público (URL de Storage). */

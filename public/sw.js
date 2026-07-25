@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v606'  // LOTE FLUJO 2: NOTA MEMBRETADA PAGINADA (el Dr reporto en vivo: pie del membrete empalmado a media hoja + pagina 2 sin membrete). Ahora, con hoja membretada, la nota se parte en HOJAS carta discretas (componente HojasNota): cada hoja lleva el membrete COMPLETO de fondo (encabezado arriba, pie abajo) y el texto SOLO en la zona segura (mMemb); los bloques se miden en un medidor oculto y se reparten por hoja sin cortar un bloque. El DOM queda paginado -> PANTALLA, PDF (html2canvas + page-break) e IMPRIMIR (a sangre carta, @page letter margin 0) coinciden. Sin membrete: render continuo normal.
+const CACHE = 'nexusmed-v607'  // LOTE FLUJO 3: FIRMA en la NOTA MEMBRETADA (el Dr: la firma debe ir donde va en la hoja, como recetas, sin bloque duplicado). Ahora con membrete: (1) se OMITE el bloque de firma default (linea + nombre/cedula) que se duplicaba con el nombre impreso del pie del membrete; (2) la firma (imagen) se coloca CALIBRADA sobre la ultima hoja en una posicion x/y % (default 70,84 = sobre el pie derecho; guardable en config.notaMembreteFirmaPos / por-medico). Siguiente: calibrador arrastrable en Configuracion.
 // (v601):
 
 self.addEventListener('install', (event) => {

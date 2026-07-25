@@ -175,7 +175,7 @@ export default function NotaImprimiblePage() {
     const exacta = entradaPorMedico(config?.notaMembretePorMedico, nota.metadata?.medicoId, membreteValido, unicoMedico)
     if (exacta) return exacta
     const validas = Object.values(config?.notaMembretePorMedico ?? {}).filter(v => membreteValido(v as { url?: string }))
-    return validas.length === 1 ? (validas[0] as { url?: string; margenes?: { top: number; right: number; bottom: number; left: number } }) : undefined
+    return validas.length === 1 ? (validas[0] as { url?: string; margenes?: { top: number; right: number; bottom: number; left: number }; firmaPos?: { x: number; y: number } }) : undefined
   })()
   // Firma a mostrar: el snapshot de la nota (inmutable) o la firma del médico que
   // la firmó (per-médico) o, en último caso, la general del consultorio.
@@ -189,6 +189,9 @@ export default function NotaImprimiblePage() {
   const mem = (medMembrete?.url ?? config?.notaMembreteDataUrl)?.trim()
   const membrete = (mem && /^(https?:|\/api\/|data:image)/.test(mem)) ? mem : undefined
   const mMemb = medMembrete?.margenes ?? config?.notaMembreteMargenes ?? { top: 42, right: 22, bottom: 28, left: 22 }
+  // Posición de la firma sobre la hoja membretada (calibrada en Config). % de la
+  // hoja. Default: sobre el pie derecho, donde suele imprimirse el nombre.
+  const firmaPos = medMembrete?.firmaPos ?? config?.notaMembreteFirmaPos ?? { x: 70, y: 84 }
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh', padding: 24 }}>
@@ -355,7 +358,10 @@ export default function NotaImprimiblePage() {
           </div>
         )}
 
-        {/* Firma — solo si la nota está firmada */}
+        {/* Bloque de firma DEFAULT — solo SIN hoja membretada. Con membrete, la firma
+            se coloca CALIBRADA sobre la hoja (HojasNota) y el pie del membrete ya trae
+            el nombre impreso, así que este bloque duplicaría — se omite. */}
+        {!membrete && (
         <div style={{ marginTop: 40, textAlign: 'center' }}>
           {/* NOM-024: usar el SNAPSHOT de firma guardado en la nota (inmutable).
               Fallback al config actual solo si la nota es vieja y no tiene snapshot. */}
@@ -389,6 +395,7 @@ export default function NotaImprimiblePage() {
             </div>
           )}
         </div>
+        )}
 
         {/* Alerta ROJA solo si el sello estable NO coincide (posible alteración real) */}
         {integridad === 'alterada' && (
@@ -472,7 +479,8 @@ export default function NotaImprimiblePage() {
           // Nota membretada → paginar en hojas carta con el membrete en cada una.
           return (
             <div id="doc" style={{ width: 'fit-content', maxWidth: '100%', margin: '0 auto', color: '#1a1a1a', fontFamily: '"Times New Roman", Georgia, serif' }}>
-              <HojasNota anchoMm={216} altoMm={279} mMemb={mMemb} membrete={membrete} bloques={bloques} />
+              <HojasNota anchoMm={216} altoMm={279} mMemb={mMemb} membrete={membrete} bloques={bloques}
+                firma={nota.estado === 'firmada' && firmaMostrar ? { src: firmaMostrar, x: firmaPos.x, y: firmaPos.y } : undefined} />
             </div>
           )
         }
@@ -601,11 +609,13 @@ function SecTitle({ children }: { children: React.ReactNode }) {
  * Como el DOM queda paginado, PANTALLA, PDF (html2canvas) e IMPRIMIR (page-break
  * inline) coinciden — congruente en las tres salidas.
  */
-function HojasNota({ membrete, mMemb, anchoMm, altoMm, bloques }: {
+function HojasNota({ membrete, mMemb, anchoMm, altoMm, bloques, firma }: {
   membrete: string
   mMemb: { top: number; right: number; bottom: number; left: number }
   anchoMm: number; altoMm: number
   bloques: React.ReactNode[]
+  /** Firma a colocar (calibrada) sobre la ÚLTIMA hoja. x/y en % de la hoja. */
+  firma?: { src: string; x: number; y: number }
 }) {
   const PXMM = 96 / 25.4
   const anchoPx = anchoMm * PXMM, altoPx = altoMm * PXMM
@@ -659,6 +669,15 @@ function HojasNota({ membrete, mMemb, anchoMm, altoMm, bloques }: {
           <div style={{ position: 'absolute', top: topPx, left: leftPx, width: contentW }}>
             {idxs.map(i => <div key={i}>{bloques[i]}</div>)}
           </div>
+          {/* Firma CALIBRADA sobre la última hoja (centro en x/y %). */}
+          {firma && p === paginas.length - 1 && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={firma.src} alt="Firma del médico" style={{
+              position: 'absolute', left: `${firma.x}%`, top: `${firma.y}%`,
+              transform: 'translate(-50%, -50%)', maxWidth: '38%', maxHeight: '14%',
+              objectFit: 'contain', pointerEvents: 'none',
+            }} />
+          )}
         </div>
       ))}
     </>
