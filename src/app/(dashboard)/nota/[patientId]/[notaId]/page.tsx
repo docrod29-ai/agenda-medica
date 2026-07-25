@@ -61,7 +61,11 @@ export default function NotaImprimiblePage() {
     try {
       const nombre = (patient?.nombre ?? 'paciente').replace(/[^\w\sáéíóúñ-]/gi, '').replace(/\s+/g, '_')
       const fechaCorta = new Date(nota?.fechaConsulta ?? Date.now()).toISOString().slice(0, 10)
-      await descargarComoPDF(el, { filename: `Nota_${nombre}_${fechaCorta}` })
+      // Con hoja membretada el margen lo pone el padding del #doc (mMemb), NO el
+      // PDF: si además html2pdf mete su margen de 12mm, el membrete de fondo se
+      // encoge y deja borde blanco. margin:0 para membrete; el default para el
+      // formato de texto (que no lleva fondo a sangre).
+      await descargarComoPDF(el, { filename: `Nota_${nombre}_${fechaCorta}`, format: 'letter', ...(membrete ? { margin: 0 } : {}) })
     } catch (e) {
       console.error('PDF error:', e)
       toast('No se pudo generar el PDF. Intenta con Imprimir → Guardar como PDF.', 'error')
