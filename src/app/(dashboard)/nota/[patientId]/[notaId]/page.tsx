@@ -223,7 +223,7 @@ export default function NotaImprimiblePage() {
           </button>
           {/* Word editable — para ajustar la nota al membrete/formato propio (igual
               que receta y orden; capacidad consistente entre documentos). */}
-          <button onClick={() => { if (configError) return; try { descargarNotaWord(nota, config ?? null, { edad: patient?.edad, sexo: patient?.sexo, telefono: patient?.telefono, alergias: patient?.alergias }) } catch { toast('No se pudo generar el Word', 'error') } }} disabled={!!configError} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: configError ? 'default' : 'pointer', opacity: configError ? 0.5 : 1 }}>
+          <button onClick={() => { if (configError) return; try { descargarNotaWord(nota, config ?? null, { edad: patient?.edad, sexo: patient?.sexo, telefono: patient?.telefono, alergias: patient ? (patient.alergias || 'Negadas / no referidas') : 'NO DISPONIBLE — verificar con el paciente' }) } catch { toast('No se pudo generar el Word', 'error') } }} disabled={!!configError} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: configError ? 'default' : 'pointer', opacity: configError ? 0.5 : 1 }}>
             <FileText size={16} /> Word
           </button>
           {/* Generar receta y orden — solo cuando la nota está firmada */}

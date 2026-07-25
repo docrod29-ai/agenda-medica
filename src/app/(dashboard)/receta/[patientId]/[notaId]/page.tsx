@@ -329,7 +329,9 @@ export default function GeneradorRecetaPage() {
       await descargarComoPDF(el, {
         filename: `Receta_${nombre}_${fechaCorta}`,
         format: [host.widthMm, host.heightMm],
-        orientation: 'portrait',
+        // Orientación REAL de la hoja: un diseño apaisado (widthMm>heightMm) en PDF
+        // vertical salía volteado/recortado. Ahora sigue a la hoja efectiva.
+        orientation: host.widthMm > host.heightMm ? 'landscape' : 'portrait',
         margin: 0, // el documento ya tiene su propio padding
       })
     } catch (e) {

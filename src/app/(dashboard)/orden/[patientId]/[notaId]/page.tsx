@@ -460,7 +460,7 @@ export default function GeneradorOrdenPage() {
       await descargarComoPDF(el, {
         filename: `Orden_${nombre}_${fechaCorta}`,
         format: [host.widthMm, host.heightMm],
-        orientation: 'portrait',
+        orientation: host.widthMm > host.heightMm ? 'landscape' : 'portrait',
         margin: 0,
       })
     } catch (e) {

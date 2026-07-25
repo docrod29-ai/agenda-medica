@@ -69,7 +69,10 @@ export function construirNotaHTML(nota: NotaMedica, config: ClinicConfig | null,
     </div>
   </div>`
 
-  const alergias = `<div style="border:1pt solid #b91c1c;color:#b91c1c;font-weight:bold;font-size:10.5pt;padding:4pt 8pt;margin-bottom:8pt;">ALERGIAS: ${esc(extra?.alergias || 'Negadas / no referidas')}</div>`
+  // Auditoría flujo 2026-07 (P1): NO inventar "Negadas" — el llamador ya manda el
+  // texto correcto de 3 estados (valor real / "Negadas" si se interrogó / "NO
+  // DISPONIBLE" si no se pudo leer al paciente). Aquí solo se muestra tal cual.
+  const alergias = `<div style="border:1pt solid #b91c1c;color:#b91c1c;font-weight:bold;font-size:10.5pt;padding:4pt 8pt;margin-bottom:8pt;">ALERGIAS: ${esc(extra?.alergias || 'No disponible')}</div>`
 
   return `<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8">
 <style>@page WordSection1 { size:216mm 279mm; margin:18mm; } div.WordSection1 { page:WordSection1; }

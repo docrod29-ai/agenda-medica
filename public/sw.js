@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v604'  // FIX EL MEMBRETE DE LA NOTA SI RESOLVIA (v601) PERO NO SE VEIA (verificado en vivo con la cuenta del Dr): #doc tiene fondo blanco opaco y con position:relative sin z-index NO crea contexto de apilamiento, asi que la img del membrete (z-index:-1) se pintaba DETRAS del blanco y la nota salia con el encabezado de TEXTO. FIX: isolation:isolate en #doc crea el contexto -> el membrete se pinta SOBRE el blanco y BAJO el texto. Ahora el membrete completo (logo, cedulas, marca de agua) aparece en la nota, verificado en vivo con el paciente Dilan.
+const CACHE = 'nexusmed-v605'  // LOTE FLUJO 1 (tras auditoria de 6 expertos del flujo membrete/receta/orden/PDF/Word, 27 hallazgos): (1) PDF de receta/orden forzaba orientation:portrait -> un diseno APAISADO salia volteado; ahora sigue la orientacion real de la hoja (landscape si widthMm>heightMm). (2) nota-word inventaba "alergias Negadas" aunque no se leyera al paciente; ahora el llamador manda el texto de 3 estados (valor/Negadas/NO DISPONIBLE) y el exportador no inventa. PENDIENTE (siguiente lote): Word con diseno/membrete, nota multipagina (pie empalmado/pagina 2 sin membrete), firma calibrable en nota, referencia con membrete.
 // (v601):
 
 self.addEventListener('install', (event) => {
