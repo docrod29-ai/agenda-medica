@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v616'  // nota multipagina: colchon de seguridad de ~10mm en la paginacion para que la ultima linea nunca toque el pie del membrete.
+const CACHE = 'nexusmed-v617'  // FIX nota PDF/hojas-blanco + Word limpio: (1) el PDF de la nota NO metia el membrete porque el img estaba en z-index:-1 (html2canvas no dibuja z-index negativo); ahora z-index:0 (membrete) + texto z-index:1 -> se captura en PDF y se imprime. (2) hojas en blanco: el margen de 16px ENTRE hojas empujaba el contenido al borde -> hoja fisica extra en blanco; ahora margen 0 (el page-break separa) + box-shadow solo para pantalla. (3) Word: revertido a LIMPIO (encabezado de texto) porque Word no reproduce bien un diseno a pagina completa (salia mocho); el diseno va fiel en Imprimir/PDF.
 // (v601):
 
 self.addEventListener('install', (event) => {

@@ -686,14 +686,21 @@ function HojasNota({ membrete, mMemb, anchoMm, altoMm, bloques, firma }: {
       {paginas.map((idxs, p) => (
         <div key={p} className="nota-sheet" style={{
           width: anchoPx, height: altoPx, position: 'relative', background: '#fff',
-          margin: p === 0 ? '0 auto' : '16px auto 0', overflow: 'hidden', isolation: 'isolate',
+          // margin VERTICAL 0: un margen entre hojas empujaba el contenido más allá
+          // del borde de página al imprimir → salían HOJAS EN BLANCO extra. La
+          // separación en pantalla se da con box-shadow (no ocupa layout, no imprime).
+          margin: '0 auto', overflow: 'hidden', isolation: 'isolate',
+          boxShadow: p > 0 ? '0 -6px 0 -2px rgba(0,0,0,0.06)' : undefined,
           pageBreakAfter: p < paginas.length - 1 ? 'always' : 'auto',
           breakAfter: p < paginas.length - 1 ? 'page' : 'auto',
         }}>
+          {/* Membrete de fondo. z-index:0 (NO -1): html2canvas no dibuja bien los
+              elementos en z-index negativo (el PDF salía SIN membrete). Con z-index:0
+              el <img> se captura en PDF y se imprime; el texto va encima en z-index:1. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="membrete-bg" src={membrete} alt="" aria-hidden
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'fill', zIndex: -1, pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', top: topPx, left: leftPx, width: contentW }}>
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'fill', zIndex: 0, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', top: topPx, left: leftPx, width: contentW, zIndex: 1 }}>
             {idxs.map(i => <div key={i}>{bloques[i]}</div>)}
           </div>
           {/* Firma CALIBRADA sobre la última hoja (centro en x/y %). */}
@@ -702,7 +709,7 @@ function HojasNota({ membrete, mMemb, anchoMm, altoMm, bloques, firma }: {
             <img src={firma.src} alt="Firma del médico" style={{
               position: 'absolute', left: `${firma.x}%`, top: `${firma.y}%`,
               transform: 'translate(-50%, -50%)', maxWidth: '38%', maxHeight: '14%',
-              objectFit: 'contain', pointerEvents: 'none',
+              objectFit: 'contain', pointerEvents: 'none', zIndex: 2,
             }} />
           )}
         </div>

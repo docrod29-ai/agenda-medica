@@ -37,18 +37,10 @@ export function construirNotaHTML(nota: NotaMedica, config: ClinicConfig | null,
   const sec = (titulo: string, cuerpo: string) =>
     cuerpo ? `<div style="margin-bottom:8pt;"><div style="font-weight:bold;text-transform:uppercase;border-bottom:0.5pt solid #999;font-size:10.5pt;letter-spacing:0.3pt;margin-bottom:2pt;">${esc(titulo)}</div><div style="font-size:10.5pt;white-space:pre-wrap;">${cuerpo}</div></div>` : ''
 
-  // Congruencia (auditoría flujo 2026-07): si hay hoja membretada, se usa como
-  // encabezado (imagen) igual que pantalla/Imprimir/PDF, en vez del texto.
-  const membreteAbs = (() => {
-    const u = extra?.membrete
-    if (!u) return ''
-    if (/^(data:|https?:)/i.test(u)) return u
-    if (typeof window === 'undefined') return u
-    return new URL(u, window.location.origin).href
-  })()
-  const encabezado = membreteAbs
-    ? `<img src="${membreteAbs}" style="max-width:100%;display:block;margin:0 auto 8pt;" />`
-    : `<div style="text-align:center;border-bottom:1.5pt solid #1a1a1a;padding-bottom:6pt;margin-bottom:10pt;">
+  // El Word es la versión LIMPIA y editable (encabezado de texto). El membrete a
+  // página completa no se reproduce bien en Word (sale "mocho"); va FIEL en
+  // Imprimir/PDF. Aquí siempre encabezado de texto.
+  const encabezado = `<div style="text-align:center;border-bottom:1.5pt solid #1a1a1a;padding-bottom:6pt;margin-bottom:10pt;">
     <div style="font-size:15pt;font-weight:bold;">${esc(medico)}</div>
     <div style="font-size:10pt;">${esc(especialidad)}${especialidad && cedula ? ' · ' : ''}${cedula ? 'Cédula Prof. ' + esc(cedula) : '<span style="color:#b91c1c;font-weight:bold;">[FALTA CÉDULA PROFESIONAL]</span>'}</div>
     ${establecimiento ? `<div style="font-size:10pt;">${esc(establecimiento)}</div>` : ''}
