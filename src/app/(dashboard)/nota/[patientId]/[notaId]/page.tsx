@@ -623,7 +623,10 @@ function HojasNota({ membrete, mMemb, anchoMm, altoMm, bloques, firma }: {
   firma?: { src: string; x: number; y: number }
 }) {
   const PXMM = 96 / 25.4
-  const anchoPx = anchoMm * PXMM, altoPx = altoMm * PXMM
+  const anchoPx = anchoMm * PXMM
+  // 1px MENOS de alto: por redondeo sub-píxel la hoja medía un pelo más que la
+  // página (279mm) y se desbordaba → salía una HOJA EN BLANCO extra al imprimir.
+  const altoPx = Math.floor(altoMm * PXMM) - 1
   const topPx = mMemb.top * PXMM, botPx = mMemb.bottom * PXMM
   const leftPx = mMemb.left * PXMM, rightPx = mMemb.right * PXMM
   const contentW = Math.max(50, anchoPx - leftPx - rightPx)
@@ -708,8 +711,8 @@ function HojasNota({ membrete, mMemb, anchoMm, altoMm, bloques, firma }: {
           <div style={{ position: 'absolute', top: topPx, left: leftPx, width: contentW, zIndex: 1 }}>
             {idxs.map(i => <div key={i}>{bloques[i]}</div>)}
           </div>
-          {/* Firma CALIBRADA sobre la última hoja (centro en x/y %). */}
-          {firma && p === paginas.length - 1 && (
+          {/* Firma CALIBRADA en CADA hoja (el Dr la quiere en todas), centro en x/y %. */}
+          {firma && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={firma.src} alt="Firma del médico" style={{
               position: 'absolute', left: `${firma.x}%`, top: `${firma.y}%`,
