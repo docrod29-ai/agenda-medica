@@ -626,6 +626,10 @@ function HojasNota({ membrete, mMemb, anchoMm, altoMm, bloques, firma }: {
   const medRef = useRef<HTMLDivElement>(null)
   const [paginas, setPaginas] = useState<number[][]>([bloques.map((_, i) => i)])
 
+  // Dep ESTABLE: `bloques` se recrea en cada render (nuevo array), así que usarlo
+  // como dependencia dispara el efecto en cada render → setState → bucle infinito
+  // (congelaba la nota). Se depende de bloques.length + contentH, y setPaginas
+  // BAILA si el resultado no cambió (misma referencia → React no re-renderiza).
   useLayoutEffect(() => {
     const c = medRef.current
     if (!c) return
@@ -635,19 +639,17 @@ function HojasNota({ membrete, mMemb, anchoMm, altoMm, bloques, firma }: {
       const pages: number[][] = []
       let cur: number[] = []; let acc = 0
       hs.forEach((h, i) => {
-        // Si el bloque no cabe en lo que resta de hoja, empieza hoja nueva
-        // (salvo que la hoja esté vacía: un bloque gigante ocupa su propia hoja).
         if (acc + h > contentH && cur.length) { pages.push(cur); cur = []; acc = 0 }
         cur.push(i); acc += h
       })
-      if (cur.length) pages.push(cur)
-      setPaginas(pages.length ? pages : [bloques.map((_, i) => i)])
+      const final = pages.length ? pages : [Array.from({ length: kids.length }, (_, i) => i)]
+      setPaginas(prev => (JSON.stringify(prev) === JSON.stringify(final) ? prev : final))
     }
     medir()
-    // Re-medir cuando el membrete/imágenes carguen (pueden cambiar alturas).
     const imgs = Array.from(c.querySelectorAll('img'))
     imgs.forEach(im => { if (!im.complete) im.addEventListener('load', medir, { once: true }) })
-  }, [bloques, contentH])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bloques.length, contentH])
 
   return (
     <>

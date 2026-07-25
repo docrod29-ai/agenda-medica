@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v607'  // LOTE FLUJO 3: FIRMA en la NOTA MEMBRETADA (el Dr: la firma debe ir donde va en la hoja, como recetas, sin bloque duplicado). Ahora con membrete: (1) se OMITE el bloque de firma default (linea + nombre/cedula) que se duplicaba con el nombre impreso del pie del membrete; (2) la firma (imagen) se coloca CALIBRADA sobre la ultima hoja en una posicion x/y % (default 70,84 = sobre el pie derecho; guardable en config.notaMembreteFirmaPos / por-medico). Siguiente: calibrador arrastrable en Configuracion.
+const CACHE = 'nexusmed-v608'  // FIX bucle infinito del paginador de nota (congelaba la nota): HojasNota usaba useLayoutEffect con dep [bloques] (array recreado cada render) -> efecto en cada render -> setPaginas -> render -> bucle. Ahora dep estable [bloques.length, contentH] + setPaginas BAILA si el resultado no cambio (misma referencia -> React no re-renderiza). Converge en 2 pasadas.
 // (v601):
 
 self.addEventListener('install', (event) => {
