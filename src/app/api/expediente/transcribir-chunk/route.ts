@@ -20,7 +20,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { WHISPER_PROMPT_MEDICO } from '@/lib/expediente/medical-vocabulary'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { resolverClaveIA } from '@/lib/ai-keys'
+import { resolverClaveIA, registrarCreditos } from '@/lib/ai-keys'
+import { COSTO_CREDITOS } from '@/lib/planes-ia'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
 
   // Usa la llave del consultorio si la tiene. No cuenta ni aplica tope: es el
   // preview en vivo de UNA consulta que se cuenta al transcribir/procesar final.
-  const { key: apiKey } = await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY)
+  const { key: apiKey, clinicId } = await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY)
   if (!apiKey) {
     return NextResponse.json({ ok: false, error: 'OPENAI_API_KEY no configurada' }, { status: 503 })
   }
@@ -91,6 +92,7 @@ export async function POST(req: NextRequest) {
       const res = await llamarOpenAI(model)
       if (res.ok) {
         const data = await res.json()
+        void registrarCreditos(clinicId, COSTO_CREDITOS.transcribirChunk)
         return NextResponse.json({
           ok: true,
           text: data.text ?? '',

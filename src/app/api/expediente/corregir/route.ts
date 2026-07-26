@@ -12,7 +12,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { resolverClaveIA, nivelIADe } from '@/lib/ai-keys'
+import { resolverClaveIA, nivelIADe, registrarCreditos } from '@/lib/ai-keys'
+import { COSTO_CREDITOS } from '@/lib/planes-ia'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL ?? ''
@@ -150,6 +151,7 @@ export async function POST(req: NextRequest) {
             if (verificada) { notaFinal = verificada; modelos.push(nivel === 'premium' ? 'GPT-5' : 'GPT-4o') }
           }
         } catch { /* se queda la corrección de Claude */ }
+        void registrarCreditos(clinicId, COSTO_CREDITOS.correccionVoz)
         return NextResponse.json({ ok: true, ...notaFinal, _modelos: modelos })
       }
       // Respondió pero no fue JSON parseable → intenta con el siguiente modelo.

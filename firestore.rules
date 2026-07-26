@@ -143,7 +143,11 @@ service cloud.firestore {
       }
       match /patients/{docId} {
         allow read: if isMember(clinicId);
-        allow update, delete: if isMember(clinicId);
+        // La asistente puede EDITAR datos del paciente (contacto, demografía), pero
+        // BORRAR un expediente completo es irreversible y sensible a pérdida de datos
+        // (NOM-004): solo el Admin/dueño. Antes cualquier miembro podía eliminarlo.
+        allow update: if isMember(clinicId);
+        allow delete: if isAdmin(clinicId);
         allow create: if isMember(clinicId) && clinicaPuedeEscribir(clinicId);
 
         // Expediente Clínico Electrónico — notas del paciente

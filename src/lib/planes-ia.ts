@@ -94,6 +94,20 @@ export const COSTO_CREDITOS = {
   // El Copilot de UCI llama a Opus + GPT EN PARALELO por turno (dual-model, ~$10):
   // es la acción más cara del sistema. NO puede valer 0 créditos (era la mayor fuga).
   copilotUci: 7,
+  // ── Acciones de IA que antes valían 0 créditos (fuga de dinero icu-007) ──
+  // Cada llamada a un modelo/proveedor tiene costo real que corría con la llave del
+  // dueño sin cobrarse. Ahora cada acción quema créditos (passthrough del gasto).
+  correccionVoz: 0.2,        // corrector de dictado (LLM breve)
+  extraerEntidades: 0.3,     // NER clínico
+  atribuirRoles: 0.2,        // roles médico/paciente en diarización
+  verificarNota: 0.5,        // verificación anti-alucinación de la nota
+  laboratorioVision: 1,      // interpreta PDF/foto de laboratorio (visión)
+  antibiogramaVision: 1,     // lee foto de antibiograma (visión)
+  antibiogramaRazonar: 1,    // razona mecanismo de resistencia (LLM)
+  evidencia: 1,              // Consultor de evidencia (LLM + PubMed)
+  transcribir: 0.5,          // transcripción final (Whisper/gpt-4o-transcribe)
+  transcribirChunk: 0.05,    // parcial en vivo (barato, pero no es gratis)
+  transcribirDiarizado: 1,   // separación de voces (AssemblyAI)
 } as const
 
 /** Cuántos créditos cuesta una pregunta al Consultor según el nivel de IA del plan. */

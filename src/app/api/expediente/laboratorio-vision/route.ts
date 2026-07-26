@@ -15,7 +15,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { resolverClaveIA } from '@/lib/ai-keys'
+import { resolverClaveIA, registrarCreditos } from '@/lib/ai-keys'
+import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { safeLog } from '@/lib/security/sanitize'
 import { LAB_VISION_SYSTEM, buildLabVisionPrompt } from '@/lib/expediente/laboratorio/vision'
 import { validarPanel, type FilaCruda } from '@/lib/expediente/laboratorio/extraccion'
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest) {
   const _rl = await limitarOResponder(`laboratorio-vision:${acceso.uid}`, 20, 60)
   if (_rl) return _rl
 
-  const { key: API_KEY } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
+  const { key: API_KEY, clinicId } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
   if (!API_KEY) return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada. Agrégala en Configuración → Llaves de IA.' }, { status: 503 })
 
   let body: { archivo?: string }
@@ -110,6 +111,7 @@ export async function POST(req: NextRequest) {
     if (panel.resultados.length === 0 && panel.noReconocidas.length === 0) {
       return NextResponse.json({ ok: false, error: 'No se reconocieron valores de laboratorio en el documento.' }, { status: 422 })
     }
+    void registrarCreditos(clinicId, COSTO_CREDITOS.laboratorioVision)
     return NextResponse.json({ ok: true, panel, model })
   } catch (err) {
     safeLog.error('[laboratorio-vision] Exception:', err)

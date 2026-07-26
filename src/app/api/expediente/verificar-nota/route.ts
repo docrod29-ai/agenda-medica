@@ -18,7 +18,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { GUARDA_INYECCION, delimitar } from '@/lib/expediente/prompts'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { resolverClaveIA, registrarUso } from '@/lib/ai-keys'
+import { resolverClaveIA, registrarUso, registrarCreditos } from '@/lib/ai-keys'
+import { COSTO_CREDITOS } from '@/lib/planes-ia'
 
 export const runtime = 'nodejs'
 export const maxDuration = 45
@@ -111,6 +112,7 @@ export async function POST(req: NextRequest) {
       .filter(h => h.problema)
 
     void registrarUso(clinicId, fuente)
+    void registrarCreditos(clinicId, COSTO_CREDITOS.verificarNota)
     return NextResponse.json({ ok: true, modelo: usado, hallazgos })
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })

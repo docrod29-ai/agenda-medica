@@ -15,7 +15,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { resolverClaveIA, registrarUso, nivelIADe } from '@/lib/ai-keys'
+import { resolverClaveIA, registrarUso, nivelIADe, registrarCreditos } from '@/lib/ai-keys'
+import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { buscarEvidenciaMulti, type ArticuloPubMed } from '@/lib/evidencia/pubmed'
 import { traducirBasico } from '@/lib/evidencia/traducir-medico'
 
@@ -200,6 +201,7 @@ export async function POST(req: NextRequest) {
     }
 
     void registrarUso(clinicId, fuente)
+    void registrarCreditos(clinicId, COSTO_CREDITOS.evidencia)
     const avisos: string[] = []
     if (!hayEvidencia) avisos.push('Razonado con conocimiento clínico y guías (PubMed no devolvió citas nuevas para estos términos exactos).')
     avisos.push(modelosUsados.length > 1 ? `Análisis combinado: ${modelosUsados.join(' + ')}.` : `Análisis con ${modelosUsados[0] ?? tierClaude}.`)

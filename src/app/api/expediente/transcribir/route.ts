@@ -16,7 +16,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { WHISPER_PROMPT_MEDICO } from '@/lib/expediente/medical-vocabulary'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { resolverClaveIA, registrarUso } from '@/lib/ai-keys'
+import { resolverClaveIA, registrarUso, registrarCreditos } from '@/lib/ai-keys'
+import { COSTO_CREDITOS } from '@/lib/planes-ia'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -105,6 +106,7 @@ export async function POST(req: NextRequest) {
       if (res.ok) {
         const data = await res.json()
         void registrarUso(clinicId, fuente)
+        void registrarCreditos(clinicId, COSTO_CREDITOS.transcribir)
         return NextResponse.json({
           ok: true,
           text: data.text ?? '',

@@ -16,7 +16,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { resolverClaveIA, creditosAgotados, registrarUso } from '@/lib/ai-keys'
+import { resolverClaveIA, creditosAgotados, registrarUso, registrarCreditos } from '@/lib/ai-keys'
+import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { WORD_BOOST_MEDICO } from '@/lib/expediente/medical-vocabulary'
 
 export const runtime = 'nodejs'
@@ -95,6 +96,7 @@ export async function POST(req: NextRequest) {
     if (!sub.ok) return NextResponse.json({ ok: false, error: `AssemblyAI submit HTTP ${sub.status}` }, { status: 502 })
     const { id } = await sub.json()
     void registrarUso(clinicId, fuente)   // un job = un uso
+    void registrarCreditos(clinicId, COSTO_CREDITOS.transcribirDiarizado)
     return NextResponse.json({ ok: true, id })
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })

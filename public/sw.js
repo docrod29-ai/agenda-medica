@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v649'  // NEXUS-QUALITY-005+006. icu-005 (P0 seguridad): la extraccion de voz de UCI ahora valida PLAUSIBILIDAD fisiologica (potasio 50 no envenena SOFA/APACHE; se descarta y avisa) y ABRE el firewall de ambiguedad de decimales ("norepi punto uno" 0.1 vs 1 se confirma, ya no se descarta en silencio). icu-006 (coherencia clinica): GCS verbal NO valorable en intubado -> se usa RASS; motor neuro + panel + nota + sandbox coherentes. 1738 tests.
+const CACHE = 'nexusmed-v650'  // NEXUS-QUALITY-007+009. icu-007 (fuga de dinero): 11 rutas de IA (/api/expediente: corregir, extraer-entidades, atribuir-roles, verificar-nota, laboratorio-vision, antibiograma-vision, antibiograma-razonar, evidencia, transcribir x3) NUNCA cobraban creditos -> la IA corria gratis con la llave del dueno. Ahora cada accion quema creditos (COSTO_CREDITOS por accion, passthrough del gasto real). icu-009 (perdida de datos): firestore.rules permitia que CUALQUIER miembro (secretaria) BORRARA un expediente de paciente completo; ahora delete solo Admin. 1738 tests.
 // (v601):
 
 self.addEventListener('install', (event) => {

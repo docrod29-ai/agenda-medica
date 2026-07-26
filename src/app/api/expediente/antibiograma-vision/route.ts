@@ -13,7 +13,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { resolverClaveIA } from '@/lib/ai-keys'
+import { resolverClaveIA, registrarCreditos } from '@/lib/ai-keys'
+import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { safeLog } from '@/lib/security/sanitize'
 import { VISION_SYSTEM_PROMPT, buildVisionUserPrompt, PerfilExtraido } from '@/lib/expediente/antibiograma/vision'
 
@@ -75,7 +76,7 @@ export async function POST(req: NextRequest) {
   const _rl = await limitarOResponder(`antibiograma-vision:${acceso.uid}`, 20, 60)
   if (_rl) return _rl
 
-  const { key: API_KEY } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
+  const { key: API_KEY, clinicId } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
   if (!API_KEY) {
     return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada. Agrégala en Configuración → Llaves de IA.' }, { status: 503 })
   }
@@ -127,6 +128,7 @@ export async function POST(req: NextRequest) {
     if (!parsed) {
       return NextResponse.json({ ok: false, error: 'La IA no devolvió un perfil legible. Reintenta con una foto más nítida.', raw: text.slice(0, 200) }, { status: 502 })
     }
+    void registrarCreditos(clinicId, COSTO_CREDITOS.antibiogramaVision)
     const val = PerfilExtraido.safeParse(parsed)
     if (!val.success) {
       // Modo permisivo: devuelve lo que sí cumple para que el médico corrija a mano.

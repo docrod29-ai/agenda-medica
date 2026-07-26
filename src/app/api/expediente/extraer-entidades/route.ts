@@ -17,7 +17,8 @@ import { NER_SYSTEM_PROMPT, buildNerUserPrompt, EntidadesExtraidas } from '@/lib
 import { safeLog } from '@/lib/security/sanitize'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { resolverClaveIA } from '@/lib/ai-keys'
+import { resolverClaveIA, registrarCreditos } from '@/lib/ai-keys'
+import { COSTO_CREDITOS } from '@/lib/planes-ia'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const ANTHROPIC_VERSION = '2023-06-01'
@@ -78,7 +79,7 @@ export async function POST(req: NextRequest) {
   const _rl = await limitarOResponder(`extraer-entidades:${acceso.uid}`, 40, 60)
   if (_rl) return _rl
 
-  const { key: API_KEY } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
+  const { key: API_KEY, clinicId } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
   if (!API_KEY) {
     return NextResponse.json(
       { ok: false, error: 'No hay API key de Claude configurada. Agrégala en Configuración → Llaves de IA.' },
@@ -136,6 +137,9 @@ export async function POST(req: NextRequest) {
     if (!parsed) {
       return NextResponse.json({ ok: false, error: 'NER no parseable', raw: text.slice(0, 300) }, { status: 502 })
     }
+
+    // Cobro (icu-007): el NER es una llamada real a IA; quema créditos una vez.
+    void registrarCreditos(clinicId, COSTO_CREDITOS.extraerEntidades)
 
     const validation = EntidadesExtraidas.safeParse(parsed)
     if (!validation.success) {
