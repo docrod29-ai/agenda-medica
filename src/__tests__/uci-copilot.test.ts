@@ -26,6 +26,13 @@ describe('buildCopilotUser', () => {
     expect(COPILOT_SYSTEM).toMatch(/NO calculas/i)
     expect(COPILOT_SYSTEM).toMatch(/NO das órdenes/i)
   })
+  it('NEXUS-QUALITY-003: sin preferencias NO inyecta sección de preferencias (no fuga entre pacientes)', () => {
+    // La ruta ya NO pasa preferencias clínicas; por defecto el prompt no debe
+    // arrastrar el cuadro de otro paciente.
+    const u = buildCopilotUser({ a: 1 })
+    expect(u).not.toMatch(/PREFERENCIAS DE ESTE MÉDICO/i)
+    expect(u).toMatch(/SNAPSHOT DETERMINISTA/)
+  })
 })
 
 describe('parseSalidaCopilot', () => {

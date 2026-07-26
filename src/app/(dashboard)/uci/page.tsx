@@ -259,7 +259,9 @@ export default function UciPanelPage() {
     try {
       await fetchAutenticado('/api/uci/copilot', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'feedback', internamientoId, feedback: { rating, preferencia: rating === 'up' ? (copilot?.primario?.resumen || '') : '' } }),
+        // SEGURIDAD/PHI: se envía SOLO el rating. NUNCA el cuadro clínico del
+        // paciente — antes se mandaba el resumen y se reinyectaba en OTROS pacientes.
+        body: JSON.stringify({ action: 'feedback', internamientoId, feedback: { rating } }),
       })
     } catch { /* no-bloqueante */ }
   }
@@ -635,7 +637,7 @@ export default function UciPanelPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 2, fontSize: 11.5, color: 'var(--text3)' }}>
               <span>Modelos: {[copilot.modelos.primario, copilot.modelos.segunda].filter(Boolean).join(' + ') || '—'}</span>
               <span style={{ marginLeft: 'auto' }}>¿Útil?</span>
-              <button onClick={() => enviarFeedback('up')} disabled={!!feedbackDado} title="Útil (el Copilot lo aprende)" style={{ background: 'none', border: 'none', cursor: feedbackDado ? 'default' : 'pointer', color: feedbackDado === 'up' ? 'var(--nexus)' : 'var(--text3)' }}><ThumbsUp size={15} /></button>
+              <button onClick={() => enviarFeedback('up')} disabled={!!feedbackDado} title="Marcar como útil (solo señal; no guarda datos del paciente)" style={{ background: 'none', border: 'none', cursor: feedbackDado ? 'default' : 'pointer', color: feedbackDado === 'up' ? 'var(--nexus)' : 'var(--text3)' }}><ThumbsUp size={15} /></button>
               <button onClick={() => enviarFeedback('down')} disabled={!!feedbackDado} title="No útil" style={{ background: 'none', border: 'none', cursor: feedbackDado ? 'default' : 'pointer', color: feedbackDado === 'down' ? '#dc2626' : 'var(--text3)' }}><ThumbsDown size={15} /></button>
             </div>
           </div>

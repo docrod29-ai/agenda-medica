@@ -6,8 +6,8 @@
  * Claude (Opus/Sonnet) y a GPT en PARALELO con el mismo snapshot, y fusiona: el
  * primario manda y la 2ª opinión se muestra como divergencias. Nunca da órdenes.
  *
- * `action: 'feedback'`: guarda 👍/👎 + edición del médico → el Copilot "aprende"
- * (las preferencias aceptadas se reinyectan como estilo en futuras síntesis).
+ * `action: 'feedback'`: guarda SOLO el 👍/👎 (señal de telemetría). NO se guarda
+ * ni se reinyecta ningún cuadro clínico del paciente entre sesiones (ver abajo).
  *
  * Gateado por `verificarModuloIA` (mismo entitlement que la IA de consulta).
  * Las llaves viven server-side (llave del consultorio o env). El SNAPSHOT son solo
@@ -67,15 +67,6 @@ async function llamarOpenAI(key: string, user: string): Promise<{ texto: string;
   } catch { return null }
 }
 
-/** Preferencias aprendidas: últimas notas de feedback 👍 con corrección del médico. */
-async function preferenciasAprendidas(clinicId: string): Promise<string[]> {
-  try {
-    const snap = await adminDb.collection('clinics').doc(clinicId).collection('uci_copilot_feedback')
-      .where('rating', '==', 'up').orderBy('ts', 'desc').limit(5).get()
-    return snap.docs.map(d => d.data()?.preferencia as string).filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
-  } catch { return [] }
-}
-
 export async function POST(req: NextRequest) {
   const acceso = await verificarModuloIA(req, 'uci')
   if (!acceso.ok) return acceso.response
@@ -92,14 +83,17 @@ export async function POST(req: NextRequest) {
     feedback?: { rating?: 'up' | 'down'; preferencia?: string; snapshotHash?: string }
   }
 
-  // ── FEEDBACK: el Copilot aprende ──
+  // ── FEEDBACK: solo señal (rating) para telemetría ──
+  // SEGURIDAD/PHI: NO se guarda ningún resumen clínico del paciente. Antes se
+  // almacenaba el cuadro del paciente como 'preferencia' y se REINYECTABA en el
+  // razonamiento de OTROS pacientes (mezcla de PHI + aprender medicina de casos
+  // individuales, prohibido). El Copilot NO aprende medicina; a lo sumo, más
+  // adelante, estilo/formato bajo un pipeline supervisado y anonimizado.
   if (body.action === 'feedback') {
     if (!acceso.clinicId) return NextResponse.json({ error: 'Sin consultorio' }, { status: 403 })
     try {
       await adminDb.collection('clinics').doc(acceso.clinicId).collection('uci_copilot_feedback').add({
-        rating: body.feedback?.rating ?? 'up',
-        preferencia: (body.feedback?.preferencia ?? '').slice(0, 500),
-        snapshotHash: body.feedback?.snapshotHash ?? '',
+        rating: body.feedback?.rating === 'down' ? 'down' : 'up',
         internamientoId: body.internamientoId ?? '',
         medicoUid: acceso.uid, medicoEmail: acceso.email ?? '',
         ts: admin.firestore.FieldValue.serverTimestamp(),
@@ -112,10 +106,12 @@ export async function POST(req: NextRequest) {
   }
 
   // ── GENERAR ──
+  // NO se reinyecta ninguna "preferencia" clínica de feedback previo (evita cruzar
+  // el cuadro de un paciente al razonamiento de otro). El prompt lleva solo el
+  // snapshot determinista de ESTE paciente + su discusión/tendencias.
   const campos = body.campos ?? {}
   const snapshot = snapshotUCI(campos)
-  const preferencias = acceso.clinicId ? await preferenciasAprendidas(acceso.clinicId) : []
-  const user = buildCopilotUser(snapshot, { discusion: body.discusion, tendencias: body.tendencias, preferencias })
+  const user = buildCopilotUser(snapshot, { discusion: body.discusion, tendencias: body.tendencias })
 
   const anthropic = await resolverClaveIA(acceso.uid, 'anthropic', process.env.ANTHROPIC_API_KEY ?? '').catch(() => ({ key: '', fuente: 'ninguna' as const, clinicId: acceso.clinicId ?? null }))
   const openai = await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY ?? '').catch(() => ({ key: '', fuente: 'ninguna' as const }))

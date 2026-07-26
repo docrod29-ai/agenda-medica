@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v646'  // NEXUS-QUALITY-002 (P0 seguridad del paciente): FIX inversion de signo en compensacion de ALCALOSIS respiratoria (gasometria.ts): factor -2/-4 -> +2/+4 en ambas ramas + formula + comentario. Antes una alcalosis respiratoria BIEN compensada se marcaba MIXTA e inventaba una acidosis metabolica inexistente en la nota FIRMADA y el snapshot del Copilot. Reproducido y blindado con test de regresion (a compensada no MIXTA, b espejo acidosis OK, c mixto real SI detectado). 1721 tests.
+const CACHE = 'nexusmed-v647'  // NEXUS-QUALITY-003 (P0 seguridad+PHI): el 👍 del Copilot UCI guardaba el RESUMEN CLINICO del paciente A como 'preferencia' y preferenciasAprendidas lo REINYECTABA en el prompt del paciente B (mezcla de PHI + aprender medicina de casos individuales, prohibido por la constitucion). FIX: el feedback guarda SOLO el rating (telemetria), se elimino preferenciasAprendidas y la reinyeccion; el prompt lleva solo el snapshot determinista de ESE paciente. Tooltip corregido. Test de regresion (sin preferencias no hay seccion de preferencias). 1722 tests.
 // (v601):
 
 self.addEventListener('install', (event) => {
