@@ -155,24 +155,101 @@ export function obstruccionTSVI(gradienteMmHg?: number | string): HallazgoPOCUS 
   }
 }
 
-/* ── HUECOS DECLARADOS: no están en las guías provistas, no se inventan ── */
+/* ── VExUS-C (Beaubien-Souligny, Ultrasound J 2020;12:16) ── */
 
-/** VExUS: NO implementado (los grados 0–3 y cortes Doppler no están en los PDFs). */
-export function vexus(): HallazgoPOCUS {
+export type PatronVena = 'normal' | 'leve' | 'grave'
+
+/** Pulsatilidad de vena porta = (Vmax − Vmin)/Vmax × 100. Clasifica el patrón. */
+export function pulsatilidadPorta(vmax?: number | string, vmin?: number | string): { pf: number | null; patron: PatronVena | null } {
+  const mx = num(vmax), mn = num(vmin)
+  if (mx === null || mn === null || mx === 0) return { pf: null, patron: null }
+  const pf = Math.round((Math.abs(mx - mn) / Math.abs(mx)) * 100)
+  const patron: PatronVena = pf >= 50 ? 'grave' : pf >= 30 ? 'leve' : 'normal'
+  return { pf, patron }
+}
+
+/**
+ * VExUS-C (grado de congestión venosa sistémica). Beaubien-Souligny 2020.
+ *   0 = VCI < 2.0 cm
+ *   1 = VCI ≥ 2.0 cm + 0 patrones graves
+ *   2 = VCI ≥ 2.0 cm + 1 patrón grave
+ *   3 = VCI ≥ 2.0 cm + ≥2 patrones graves
+ * Patrones graves: hepática = inversión de S; porta = pulsatilidad ≥ 50%;
+ * renal = flujo venoso discontinuo SOLO diastólico.
+ */
+export function vexus(entrada?: { vciCm?: number | string; hepatica?: PatronVena; porta?: PatronVena; renal?: PatronVena }): HallazgoPOCUS {
+  const e = entrada ?? {}
+  const vci = num(e.vciCm)
+  if (vci === null) return bloq('Diámetro de VCI no medido', 'vexus2020', ['Requiere subcostal longitudinal'])
+  if (vci < 2.0) {
+    return { ok: true, valor: 0, hallazgo: 'VExUS grado 0', bloqueado: false, motivoBloqueo: null, interpretacion: `VCI ${vci} cm < 2.0: sin congestión (grado 0)`, limitaciones: [], fuenteId: 'vexus2020' }
+  }
+  // VCI ≥ 2.0 → contar patrones GRAVES entre las tres venas evaluadas.
+  const patrones = [e.hepatica, e.porta, e.renal]
+  const evaluadas = patrones.filter(p => p !== undefined).length
+  if (evaluadas === 0) return bloq('VCI dilatada pero no se evaluó ninguna vena (hepática/porta/renal)', 'vexus2020', ['El grado 1–3 requiere el Doppler venoso'])
+  const graves = patrones.filter(p => p === 'grave').length
+  const grado = graves >= 2 ? 3 : graves === 1 ? 2 : 1
   return {
-    ok: false, valor: null, hallazgo: null, bloqueado: true,
-    motivoBloqueo: 'La tabla de grados VExUS 0–3 y sus cortes Doppler (vena hepática/porta/renal) NO están en las guías provistas',
-    interpretacion: 'Requiere el consenso EACVI / Beaubien-Souligny para codificarse; no se estima con las fuentes actuales.',
-    limitaciones: [], fuenteId: 'esicm2025', requiereFuente: true,
+    ok: true, valor: grado, hallazgo: `VExUS grado ${grado}`, bloqueado: false, motivoBloqueo: null,
+    interpretacion: `VCI ${vci} cm ≥ 2.0 + ${graves} patrón(es) grave(s) → VExUS grado ${grado}. Grado 3 = congestión venosa grave (riesgo de LRA).`,
+    limitaciones: evaluadas < 3 ? [`Solo ${evaluadas}/3 venas evaluadas: el grado puede subestimarse`] : [],
+    fuenteId: 'vexus2020',
   }
 }
 
-/** % de VTI con PLR: NO implementado (el corte no está en los PDFs provistos). */
-export function respuestaPLR_VTI(): HallazgoPOCUS {
+/* ── Lung Ultrasound Aeration Score (Mongodi/ESICM-ESPNIC, ICM 2025) ── */
+
+/** Puntúa UNA región (0–3) del score de aireación. `consolidacionCm` para el 3. */
+export function scoreRegionLUS(r: { patronA?: boolean; lineasB?: number | string; pctPleuraAnormal?: number | string; consolidacionCm?: number | string }): number {
+  const cons = num(r.consolidacionCm)
+  // 3 = consolidación grande (tissue-like). Umbral conservador > 2.5 cm; el
+  // consenso lo expresa como > 2–2.5 cm (NO es un corte universal exacto).
+  if (cons !== null && cons > 2.5) return 3
+  const pct = num(r.pctPleuraAnormal)
+  if (pct !== null && pct > 50) return 2
+  const b = num(r.lineasB)
+  if (r.patronA === true || (b !== null && b < 3)) return 0
+  if ((b !== null && b >= 3) || (pct !== null && pct <= 50 && pct > 0)) return 1
+  return 0
+}
+
+/** LUS total de aireación adulto: 12 regiones × 0–3 = 0–36 (Mongodi 2025). */
+export function lusAeration(regiones: (number | string)[]): { total: number | null; regiones: number; bloqueado: boolean; motivo: string | null; interpretacion: string; fuenteId: string; limitaciones: string[] } {
+  const vals = (regiones ?? []).map(num)
+  const validas = vals.filter((x): x is number => x !== null && x >= 0 && x <= 3)
+  const lim = ['Consolidación (score 3): consenso da > 2–2.5 cm; se usa > 2.5 cm como criterio conservador, no un corte universal']
+  if (regiones.length !== 12) return { total: null, regiones: validas.length, bloqueado: true, motivo: `Se requieren 12 regiones (adulto), se recibieron ${regiones.length}`, interpretacion: '', fuenteId: 'lus2025', limitaciones: lim }
+  if (validas.length !== 12) return { total: null, regiones: validas.length, bloqueado: true, motivo: 'Cada región debe ser 0–3', interpretacion: '', fuenteId: 'lus2025', limitaciones: lim }
+  const total = validas.reduce((a, b) => a + b, 0)
+  return { total, regiones: 12, bloqueado: false, motivo: null, interpretacion: `LUS ${total}/36 (mayor = más pérdida de aireación)`, fuenteId: 'lus2025', limitaciones: lim }
+}
+
+/* ── PLR (Monnet 2016 ΔCO/SV; Vignon 2017 ΔLVOT-VTI) ── */
+
+export type ParametroPLR = 'CO' | 'SV' | 'LVOT_VTI' | 'PP'
+
+/**
+ * Respuesta a líquidos por PLR. El PARÁMETRO importa:
+ *   ΔCO / ΔSV ≥ 10% (Monnet 2016) · ΔLVOT-VTI ≥ 10% (Vignon 2017) → positivo.
+ *   Presión de pulso (PP): NO equivalente (sensibilidad mucho menor) → no se usa.
+ * PLR es fiable en FA y respiración espontánea.
+ */
+export function respuestaPLR(deltaPct?: number | string, parametro?: ParametroPLR): HallazgoPOCUS {
+  const d = num(deltaPct)
+  const fuenteId = parametro === 'LVOT_VTI' ? 'plrVignon2017' : 'plrMonnet2016'
+  if (parametro === 'PP') {
+    return { ok: false, valor: null, hallazgo: null, bloqueado: true, motivoBloqueo: 'La presión de pulso durante PLR NO es criterio válido (sensibilidad baja); mide gasto/VS/LVOT-VTI', interpretacion: '', limitaciones: [], fuenteId: 'plrMonnet2016' }
+  }
+  if (parametro === undefined) return { ok: false, valor: null, hallazgo: null, bloqueado: true, motivoBloqueo: 'Especifica el parámetro medido (CO, SV o LVOT-VTI)', interpretacion: '', limitaciones: [], fuenteId }
+  if (d === null) return { ok: false, valor: null, hallazgo: null, bloqueado: true, motivoBloqueo: 'Falta el % de cambio con PLR', interpretacion: '', limitaciones: [], fuenteId }
+  const respondedor = d >= 10
   return {
-    ok: false, valor: null, hallazgo: null, bloqueado: true,
-    motivoBloqueo: 'El % de cambio del VTI con PLR que define respuesta (~10–15%) no aparece en las fuentes provistas',
-    interpretacion: 'Requiere Monnet/Teboul; PLR es válido en FA y respiración espontánea, pero el corte numérico falta en estas guías.',
-    limitaciones: [], fuenteId: 'esicm2025', requiereFuente: true,
+    ok: true, valor: d, hallazgo: respondedor ? 'probable respondedor a líquidos' : 'probable no respondedor',
+    bloqueado: false, motivoBloqueo: null,
+    interpretacion: `Δ${parametro} ${d}% con PLR ${respondedor ? '≥ 10%: sugiere respuesta a líquidos' : '< 10%: no sugiere respuesta'}. PLR es fiable en FA y respiración espontánea.`,
+    limitaciones: ['Falsamente negativo en hipertensión intraabdominal'], fuenteId,
   }
 }
+/** Alias retrocompatible. */
+export const respuestaPLR_VTI = () => respuestaPLR(undefined, 'LVOT_VTI')

@@ -5,7 +5,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   disfuncionVD_TAPSE, sobrecargaVD_VDVI, signo6060, distensibilidadVCI,
-  presionesLlenado_Ee, lineasB, neumotorax, obstruccionTSVI, vexus, respuestaPLR_VTI,
+  presionesLlenado_Ee, lineasB, neumotorax, obstruccionTSVI,
+  vexus, pulsatilidadPorta, scoreRegionLUS, lusAeration, respuestaPLR,
 } from '@/lib/uci/pocus'
 
 describe('POCUS — corazón derecho', () => {
@@ -53,10 +54,44 @@ describe('POCUS — pulmón', () => {
   })
 })
 
-describe('POCUS — huecos honestos (no se inventan)', () => {
-  it('VExUS y % de PLR quedan marcados requiereFuente', () => {
-    expect(vexus().requiereFuente).toBe(true)
-    expect(vexus().bloqueado).toBe(true)
-    expect(respuestaPLR_VTI().requiereFuente).toBe(true)
+describe('VExUS-C (Beaubien-Souligny 2020)', () => {
+  it('grado por VCI y patrones graves', () => {
+    expect(vexus({ vciCm: 1.8 }).valor).toBe(0)                                   // VCI < 2
+    expect(vexus({ vciCm: 2.3, hepatica: 'leve', porta: 'normal', renal: 'normal' }).valor).toBe(1) // 0 graves
+    expect(vexus({ vciCm: 2.3, hepatica: 'grave', porta: 'leve', renal: 'normal' }).valor).toBe(2)  // 1 grave
+    expect(vexus({ vciCm: 2.3, hepatica: 'grave', porta: 'grave', renal: 'normal' }).valor).toBe(3) // 2 graves
+  })
+  it('bloquea si VCI dilatada pero sin Doppler', () => {
+    expect(vexus({ vciCm: 2.5 }).bloqueado).toBe(true)
+  })
+  it('pulsatilidad de porta clasifica el patrón', () => {
+    expect(pulsatilidadPorta(50, 20).patron).toBe('grave')   // PF 60% ≥ 50
+    expect(pulsatilidadPorta(50, 30).patron).toBe('leve')    // PF 40%
+    expect(pulsatilidadPorta(50, 40).patron).toBe('normal')  // PF 20%
+  })
+})
+
+describe('LUS aeration score (ESICM-ESPNIC 2025)', () => {
+  it('score por región y total 0–36', () => {
+    expect(scoreRegionLUS({ patronA: true })).toBe(0)
+    expect(scoreRegionLUS({ lineasB: 4 })).toBe(1)
+    expect(scoreRegionLUS({ pctPleuraAnormal: 70 })).toBe(2)
+    expect(scoreRegionLUS({ consolidacionCm: 3 })).toBe(3)
+    const total = lusAeration([0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3])
+    expect(total.total).toBe(18)
+  })
+  it('bloquea si no hay 12 regiones', () => {
+    expect(lusAeration([1, 2, 3]).bloqueado).toBe(true)
+  })
+})
+
+describe('PLR (Monnet 2016 / Vignon 2017)', () => {
+  it('ΔCO/SV ≥ 10% = respondedor; especifica parámetro', () => {
+    expect(respuestaPLR(12, 'CO').hallazgo).toMatch(/respondedor/)
+    expect(respuestaPLR(8, 'LVOT_VTI').hallazgo).toMatch(/no respondedor/)
+    expect(respuestaPLR(12, undefined).bloqueado).toBe(true)   // falta parámetro
+  })
+  it('presión de pulso NO es criterio válido', () => {
+    expect(respuestaPLR(15, 'PP').bloqueado).toBe(true)
   })
 })

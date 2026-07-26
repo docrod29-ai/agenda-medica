@@ -46,6 +46,10 @@ export const FUENTES: Record<string, FuenteEvidencia> = {
   pocusRowe2026: { id: 'pocusRowe2026', titulo: 'Ultrasound to guide critical decisions: What you need to know', revista: 'J Trauma Acute Care Surg', anio: 2026, doi: '10.1097/TA.0000000000004815', verified: true },
   pocusSoliman2026: { id: 'pocusSoliman2026', titulo: 'Cardiopulmonary point-of-care ultrasound for critical care', revista: 'Clinical Medicine (RCP)', anio: 2026, doi: '10.1016/j.clinme.2026.100624', verified: true },
   ccus2025: { id: 'ccus2025', titulo: 'SCCM Guidelines on Adult Critical Care Ultrasonography (CCUS)', organizacion: 'SCCM', revista: 'Critical Care Medicine', anio: 2025, verified: true },
+  vexus2020: { id: 'vexus2020', titulo: 'Quantifying systemic congestion with POCUS: development of the venous excess ultrasound (VExUS) grading system', revista: 'The Ultrasound Journal', anio: 2020, doi: '10.1186/s13089-020-00163-w', verified: true },
+  lus2025: { id: 'lus2025', titulo: 'ESICM–ESPNIC international expert consensus on quantitative lung ultrasound in intensive care', organizacion: 'ESICM/ESPNIC', revista: 'Intensive Care Medicine', anio: 2025, doi: '10.1007/s00134-025-07932-y', verified: true },
+  plrMonnet2016: { id: 'plrMonnet2016', titulo: 'Passive leg raising for predicting fluid responsiveness: a systematic review and meta-analysis', revista: 'Intensive Care Medicine', anio: 2016, doi: '10.1007/s00134-015-4134-1', verified: true },
+  plrVignon2017: { id: 'plrVignon2017', titulo: 'Comparison of Echocardiographic Indices Used to Predict Fluid Responsiveness in Ventilated Patients', revista: 'Am J Respir Crit Care Med', anio: 2017, doi: '10.1164/rccm.201604-0844OC', verified: true },
 }
 
 /** Reglas accionables ancladas a su fuente. */
@@ -82,7 +86,11 @@ export const REGLAS_UCI: ReglaEvidencia[] = [
   { ruleId: 'pocus.taponamiento', dominio: 'pocus', resumen: 'Taponamiento cardiaco', umbral: 'VCI dilatada < 50% variación + colapso diastólico VD/AD + IT +>40% / mitral −>25% en inspiración', fuenteId: 'pocusSoliman2026', limitaciones: [] },
   { ruleId: 'pocus.tsvi', dominio: 'pocus', resumen: 'Obstrucción dinámica del TSVI (bandera de seguridad)', umbral: 'gradiente pico > 30 mmHg; EMPEORA con inotrópicos', fuenteId: 'pocusSoliman2026', limitaciones: ['Alerta contra escalar inótropos si se detecta'] },
   { ruleId: 'pocus.neumotorax', dominio: 'pocus', resumen: 'Neumotórax', umbral: 'ausencia de deslizamiento + PUNTO PULMONAR (S~91%/E~98%)', fuenteId: 'pocusRowe2026', limitaciones: ['Sin punto pulmonar, "ausencia de sliding" NO es diagnóstica; ventana degradada por enfisema subcutáneo/obesidad/apósitos'] },
-  { ruleId: 'pocus.lineasb', dominio: 'pocus', resumen: 'Síndrome intersticial / edema pulmonar', umbral: '> 3 líneas B por espacio intercostal (edema S~94%/E~92%)', fuenteId: 'pocusRowe2026', limitaciones: ['El "Lung Ultrasound Score" numérico por zonas NO está en estas fuentes'] },
+  { ruleId: 'pocus.lineasb', dominio: 'pocus', resumen: 'Síndrome intersticial / edema pulmonar', umbral: '> 3 líneas B por espacio intercostal (edema S~94%/E~92%)', fuenteId: 'pocusRowe2026', limitaciones: [] },
+  { ruleId: 'pocus.vexus', dominio: 'pocus', resumen: 'VExUS-C (congestión venosa sistémica)', umbral: '0: VCI<2cm · 1: VCI≥2 sin grave · 2: 1 grave · 3: ≥2 graves. Graves: hepática inversión S, porta pulsatilidad ≥50%, renal solo diastólico', fuenteId: 'vexus2020', limitaciones: ['Desarrollado en cirugía cardiaca (n=145); VCI dilatada = ≥2 cm (no mezclar con >2 cm)'] },
+  { ruleId: 'pocus.lus', dominio: 'pocus', resumen: 'Lung Ultrasound Aeration Score (adulto)', umbral: '12 regiones × 0–3 = 0–36. 0 patrón A/<3 B · 1 ≥3 B o ≤50% pleura · 2 >50% pleura · 3 consolidación grande (>2–2.5 cm)', fuenteId: 'lus2025', limitaciones: ['Score 3: consenso da >2–2.5 cm, no un corte universal; se usa >2.5 cm conservador'] },
+  { ruleId: 'pocus.plr.co', dominio: 'pocus', resumen: 'PLR por gasto/volumen sistólico', umbral: 'ΔCO/ΔSV ≥ 10% = positivo (S 0.85 · E 0.91 · AUROC 0.95)', fuenteId: 'plrMonnet2016', limitaciones: ['Fiable en FA y respiración espontánea; falso negativo en HIA; NO usar presión de pulso'] },
+  { ruleId: 'pocus.plr.vti', dominio: 'pocus', resumen: 'PLR por LVOT-VTI', umbral: 'ΔLVOT-VTI ≥ 10% = positivo', fuenteId: 'plrVignon2017', limitaciones: ['Multicéntrico n=540; especificar SIEMPRE el parámetro medido'] },
 
   // ── Nutrición (McClave/ASPEN 2016; concuerda AHA CICU 2020) ────
   { ruleId: 'nut.inicioNE', dominio: 'nutricion', resumen: 'Inicio de nutrición enteral', umbral: '24–48 h del ingreso, si tracto GI funcional', fuenteId: 'mcclave2016', fuerza: 'consenso', calidad: 'muy baja', limitaciones: ['Retener si hipotenso (PAM < 50) o vasopresores en escalada'] },

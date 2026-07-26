@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v628'  // VOZ DEL PASE DE VISITA cableada al Panel UCI: boton 'Dictar pase de visita' (useGrabacionAudio) -> transcribe con diarizacion -> atribuye roles adscrito/residente/enfermeria (discusion.ts) -> extraerValoresUCI PRELLENA los campos del panel (el medico confirma) -> los motores calculan en vivo. Muestra la discusion etiquetada por rol y la transcripcion en streaming. + prompt del constructor de nota 'evolucion_uci' por aparatos y sistemas (integra la discusion multi-voz; NUNCA calcula escalas, esas van en panel aparte). Aditivo.
+const CACHE = 'nexusmed-v629'  // (1) FIX VISIBILIDAD Panel UCI: estaba gateado bajo 'hospitalizacion' (modulo opt-in que el dueno con paseLibre NO recibe) -> movido al modulo 'expediente' (consulta/Pro, que si tiene) -> ahora aparece en el menu. (2) VExUS-C real (Beaubien-Souligny 2020: grado 0-3 por VCI>=2cm + patrones graves hepatica/porta/renal, pulsatilidadPorta), LUS aeration score (Mongodi ESICM-ESPNIC 2025: 12 regiones 0-3 = 0-36; consolidacion >2.5cm conservador), PLR (Monnet 2016 dCO/SV>=10% / Vignon 2017 dLVOT-VTI>=10%; presion de pulso NO valida). Fuentes con DOIs reales en evidencia.ts. Ya no hay huecos requiereFuente.
 // (v601):
 
 self.addEventListener('install', (event) => {
