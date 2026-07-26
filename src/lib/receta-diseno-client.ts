@@ -14,10 +14,30 @@
  */
 
 const ES_PROXY_SIN_FIRMA = (src: string): boolean =>
-  src.includes('/api/receta/diseno?path=') && !src.includes('&sig=')
+  (src.includes('/api/receta/diseno?path=') || src.includes('/api/receta/diseno?u=')) && !src.includes('&sig=')
 
+/**
+ * Path del bucket detrás de una URL del proxy. Cubre las DOS formas:
+ *  · nueva:   /api/receta/diseno?path=receta-diseno%2F…
+ *  · LEGADA:  /api/receta/diseno?u=https://firebasestorage…/o/receta-diseno%252F…
+ *    (configs viejas guardan la URL de descarga completa; el object path viene
+ *    codificado dentro de `/o/…`). Si el objeto vive en receta-diseno/ se puede
+ *    MIGRAR AL VUELO a la forma firmable ?path=. Si no, se devuelve '' y esa
+ *    imagen se queda como está (el fallback de siempre).
+ */
 const pathDe = (src: string): string => {
-  try { return new URL(src, window.location.origin).searchParams.get('path') ?? '' } catch { return '' }
+  try {
+    const sp = new URL(src, window.location.origin).searchParams
+    const p = sp.get('path')
+    if (p) return p
+    const u = sp.get('u')
+    if (u) {
+      const m = new URL(u).pathname.match(/\/o\/(.+)$/)
+      const obj = m ? decodeURIComponent(m[1]) : ''
+      if (/^receta-diseno\//.test(obj)) return obj
+    }
+    return ''
+  } catch { return '' }
 }
 
 /** Espera a que una imagen (re)cargue, con tope. Nunca rechaza. */

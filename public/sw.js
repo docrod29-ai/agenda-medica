@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v659'  // redeploy para aplicar PORTAL_PACIENTE_SECRET (activa magic-link del Portal del Paciente + secreto del token de receta). Sin cambios de codigo.
+const CACHE = 'nexusmed-v660'  // 010: el firmador cliente tambien MIGRA AL VUELO las URLs LEGADAS ?u= (configs viejas guardan la URL de descarga de Firebase; se extrae el object path de /o/... y si vive en receta-diseno/ se firma como ?path=). Verificado en la receta real del Dr: su membrete usa ?u= y sin esto el candado lo rompia.
 // (v601):
 
 self.addEventListener('install', (event) => {
