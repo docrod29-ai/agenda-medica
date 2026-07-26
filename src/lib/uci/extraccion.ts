@@ -109,3 +109,57 @@ export function parsearValorClinico(texto: string): ValorClinico {
     ambiguo: empiezaPunto,
   }
 }
+
+/**
+ * Campos del Panel UCI y las frases que los nombran (para extraer de la voz del
+ * pase de visita). El nombre debe ir seguido del número dictado.
+ */
+const CAMPOS_UCI: { campo: string; alias: string[] }[] = [
+  { campo: 'fio2', alias: ['fio2', 'fi o dos', 'fio dos', 'fraccion inspirada de oxigeno'] },
+  { campo: 'peep', alias: ['peep', 'pip'] },
+  { campo: 'pplat', alias: ['plateau', 'presion plateau', 'presion meseta', 'pplat', 'presion plato'] },
+  { campo: 'vt', alias: ['volumen corriente', 'volumen tidal'] },
+  { campo: 'pao2', alias: ['pao2', 'pao dos', 'presion arterial de oxigeno'] },
+  { campo: 'paco2', alias: ['paco2', 'paco dos', 'pco2', 'pco dos'] },
+  { campo: 'hco3', alias: ['bicarbonato', 'hco3', 'hache ce o tres'] },
+  { campo: 'ph', alias: ['ph', 'pe hache'] },
+  { campo: 'lactato', alias: ['lactato'] },
+  { campo: 'pas', alias: ['presion sistolica', 'sistolica', 'tension sistolica'] },
+  { campo: 'pad', alias: ['presion diastolica', 'diastolica', 'tension diastolica'] },
+  { campo: 'norepi', alias: ['norepinefrina', 'noradrenalina', 'norepi'] },
+  { campo: 'glasgow', alias: ['glasgow', 'escala de coma'] },
+  { campo: 'creat', alias: ['creatinina'] },
+  { campo: 'k', alias: ['potasio'] },
+  { campo: 'na', alias: ['sodio'] },
+  { campo: 'glucosa', alias: ['glucosa', 'glucemia'] },
+  { campo: 'spo2', alias: ['saturacion de oxigeno', 'saturacion', 'spo2', 'sato dos'] },
+  { campo: 'plaquetas', alias: ['plaquetas'] },
+  { campo: 'bili', alias: ['bilirrubina'] },
+]
+
+const NUM_RE = 'cero|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinti\\w+|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien|ciento'
+
+/**
+ * Extrae de la transcripción del pase de visita los valores del Panel UCI. Para
+ * cada campo busca su nombre seguido de un número (dígitos o palabras, con
+ * "punto"). Devuelve solo lo que reconoce con seguridad — NO inventa. La UI
+ * prellena el panel y el médico confirma antes de calcular.
+ */
+export function extraerValoresUCI(texto: string): Record<string, string> {
+  const t = norm(texto)
+  const out: Record<string, string> = {}
+  for (const { campo, alias } of CAMPOS_UCI) {
+    for (const a of alias) {
+      const an = norm(a).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      // <alias> [de|a|en] <numero>  → primera coincidencia
+      const re = new RegExp(`\\b${an}\\b(?:\\s+(?:de|a|en|es|fue|esta en))?\\s+((?:\\d+(?:\\.\\d+)?)|(?:${NUM_RE})(?:\\s+(?:y|punto|${NUM_RE}))*)`, 'i')
+      const m = t.match(re)
+      if (m) {
+        const crudo = m[1]
+        const val = /^\d/.test(crudo) ? crudo : parsearNumeroEs(crudo)
+        if (val !== null && val !== '') { out[campo] = String(val); break }
+      }
+    }
+  }
+  return out
+}

@@ -8,13 +8,16 @@
  * panel SEPARADO de la nota. Ningún cálculo lo hace la IA. Si falta un dato, el
  * motor lo declara y no inventa. Gateado bajo el módulo de Hospitalización.
  */
-import { useMemo, useState } from 'react'
-import { Activity, Wind, Droplets, HeartPulse, ShieldAlert, Info } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Activity, Wind, Droplets, HeartPulse, ShieldAlert, Info, Mic, Square } from 'lucide-react'
 import { analizarVentilacion } from '@/lib/uci/ventilacion'
 import { analizarGasometria } from '@/lib/uci/gasometria'
 import { presionArterialMedia } from '@/lib/uci/hemodinamia'
 import { calcularSOFA } from '@/lib/uci/scores'
 import { analizarSeguridadUCI, type NivelAlerta } from '@/lib/uci/seguridad'
+import { extraerValoresUCI } from '@/lib/uci/extraccion'
+import { atribuirRolesDiscusion, formatearDiscusion } from '@/lib/uci/discusion'
+import { useGrabacionAudio } from '@/hooks/useGrabacionAudio'
 
 type Campos = Record<string, string>
 
@@ -63,6 +66,29 @@ export default function UciPanelPage() {
   const set = (k: string, val: string) => setV(prev => ({ ...prev, [k]: val }))
   const n = (k: string) => (v[k] === undefined || v[k] === '' ? undefined : v[k])
 
+  // ── Voz del pase de visita (multi-voz) → prellena el panel ──
+  const audio = useGrabacionAudio()
+  const [discusionTxt, setDiscusionTxt] = useState('')
+  const [detectados, setDetectados] = useState<string[]>([])
+  const procesadoRef = useRef('')
+  useEffect(() => {
+    const t = audio.transcripcion?.trim()
+    if (!t || t === procesadoRef.current) return
+    procesadoRef.current = t
+    // 1) Discusión etiquetada por rol (adscrito/residente/enfermería) si hubo diarización.
+    const turnos = (audio.utterances && audio.utterances.length)
+      ? audio.utterances.map(u => ({ hablante: u.speaker, texto: u.text }))
+      : [{ hablante: 'A', texto: t }]
+    setDiscusionTxt(formatearDiscusion(atribuirRolesDiscusion(turnos)))
+    // 2) Extrae los valores dictados y prellena el panel (el médico confirma).
+    const extraidos = extraerValoresUCI(t)
+    if (Object.keys(extraidos).length) {
+      setV(prev => ({ ...prev, ...extraidos }))
+      setDetectados(Object.keys(extraidos))
+    }
+  }, [audio.transcripcion, audio.utterances])
+  const grabando = audio.estado === 'grabando' || audio.estado === 'pausado'
+
   const vent = useMemo(() => analizarVentilacion({
     sexo: v.sexo === 'F' ? 'F' : v.sexo === 'M' ? 'M' : undefined, tallaCm: n('talla'), vtMl: n('vt'),
     fio2: n('fio2'), fio2Unidad: '%', pplat: n('pplat'), peep: n('peep'),
@@ -91,6 +117,35 @@ export default function UciPanelPage() {
       <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 16px', display: 'flex', gap: 6, alignItems: 'center' }}>
         <Info size={14} /> Apoyo decisional. El código calcula, el motor verifica; tú revisas y firmas. Si falta un dato, no se inventa.
       </p>
+
+      {/* Voz del pase de visita (adscritos + residentes) → prellena el panel */}
+      <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 14, marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          {audio.soportado ? (
+            <button onClick={() => (grabando ? audio.detener() : audio.iniciar({ recoveryKey: 'uci-panel' }))}
+              className={grabando ? 'btn' : 'btn btn-primary'}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, ...(grabando ? { background: '#dc2626', color: '#fff', border: 'none' } : {}) }}>
+              {grabando ? <Square size={15} /> : <Mic size={15} />}{grabando ? 'Detener' : 'Dictar pase de visita'}
+            </button>
+          ) : <span style={{ fontSize: 12.5, color: 'var(--text3)' }}>Este dispositivo no soporta grabación.</span>}
+          <span style={{ fontSize: 12.5, color: 'var(--text3)' }}>
+            {audio.estado === 'grabando' && <span className="nx-pulse" style={{ color: '#dc2626' }}>● Grabando… {Math.floor(audio.duracion)}s</span>}
+            {audio.estado === 'pausado' && 'En pausa'}
+            {audio.estado === 'subiendo' && 'Transcribiendo…'}
+            {audio.estado === 'listo' && detectados.length > 0 && <span style={{ color: 'var(--nexus)' }}>✓ {detectados.length} valores prellenados — revísalos</span>}
+          </span>
+        </div>
+        {audio.transcripcionParcial && grabando && (
+          <div style={{ marginTop: 10, fontSize: 12.5, color: 'var(--text2)', background: 'var(--s2)', borderRadius: 8, padding: '8px 10px', maxHeight: 80, overflow: 'auto' }}>{audio.transcripcionParcial}<span className="nx-caret">▍</span></div>
+        )}
+        {discusionTxt && (
+          <details style={{ marginTop: 10 }}>
+            <summary style={{ fontSize: 12.5, color: 'var(--text3)', cursor: 'pointer' }}>Ver la discusión etiquetada por rol</summary>
+            <pre style={{ marginTop: 8, fontSize: 12, color: 'var(--text2)', background: 'var(--s2)', borderRadius: 8, padding: '10px 12px', whiteSpace: 'pre-wrap', maxHeight: 200, overflow: 'auto' }}>{discusionTxt}</pre>
+          </details>
+        )}
+        {audio.error && <div style={{ marginTop: 8, fontSize: 12, color: '#dc2626' }}>{audio.error}</div>}
+      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.4fr) minmax(0,1fr)', gap: 16 }} className="nx-uci-grid">
         {/* Captura */}

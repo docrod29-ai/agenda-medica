@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v627'  // PANEL DE UCI (loop ICU Hands-Free Note Engine cableado a la UI): nueva pagina /uci (gateada bajo el modulo Hospitalizacion) donde el medico captura valores y ve EN VIVO los motores deterministas calcular (PaO2/FiO2, driving pressure, compliance, VT/PBW, PAM, gasometria acido-base, SOFA) + alertas jerarquizadas y CITADAS (guias reales: ESICM 2025, AHA-CICU 2020, McClave 2016, PADIS 2018), en un panel SEPARADO de la nota. La voz aporta datos, el codigo calcula, el motor verifica, el medico decide y firma. Si falta un dato NO se inventa. Escalas SOFA/RASS/CAM-ICU/APACHE II + evidencia + benchmark 1120 casos (100%). Entrada en el menu 'Panel UCI'.
+const CACHE = 'nexusmed-v628'  // VOZ DEL PASE DE VISITA cableada al Panel UCI: boton 'Dictar pase de visita' (useGrabacionAudio) -> transcribe con diarizacion -> atribuye roles adscrito/residente/enfermeria (discusion.ts) -> extraerValoresUCI PRELLENA los campos del panel (el medico confirma) -> los motores calculan en vivo. Muestra la discusion etiquetada por rol y la transcripcion en streaming. + prompt del constructor de nota 'evolucion_uci' por aparatos y sistemas (integra la discusion multi-voz; NUNCA calcula escalas, esas van en panel aparte). Aditivo.
 // (v601):
 
 self.addEventListener('install', (event) => {
