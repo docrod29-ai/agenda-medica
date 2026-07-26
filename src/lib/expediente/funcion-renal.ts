@@ -28,7 +28,22 @@ export interface ResultadoRenal {
    * debe usarse para ajustar dosis ni escribirse en la nota. Auditoría 2026-07.
    */
   noAplicablePorEdad?: boolean
+  /**
+   * true si la creatinina es implausible en mg/dL (≤0 o por encima del techo
+   * fisiológico) → probable error de UNIDAD (µmol/L: normal ~60–110) o de dedo.
+   * No se calcula una TFG falsa. Guarda de SOFTWARE (L4 auditoría maestra); no
+   * cambia la fórmula ni los umbrales clínicos.
+   */
+  datoImplausible?: boolean
 }
+
+/**
+ * Techo fisiológico de creatinina sérica en mg/dL. Falla renal severa llega a
+ * ~15–20; por encima de esto casi siempre es un valor en µmol/L (÷88.4) o un
+ * typo. Es una guarda de VALIDACIÓN DE UNIDAD, no un umbral clínico de decisión.
+ */
+export const CREAT_MGDL_MAX = 25
+export const CREAT_MGDL_MIN = 0.1
 
 /**
  * CKD-EPI 2021 (sin coeficiente de raza). Scr en mg/dL.
@@ -76,6 +91,15 @@ export function evaluarFuncionRenal(
       egfrCkdEpi: NaN, crClCockcroft: null,
       estadio: '—', estadioDesc: 'En menores de 18 años la TFG se estima con la fórmula de Schwartz (usa la talla); CKD-EPI/Cockcroft no aplican.',
       depuracionParaDosis: NaN, noAplicablePorEdad: true,
+    }
+  }
+  // Guarda de UNIDAD/plausibilidad (L4): una creatinina fuera de [0.1, 25] mg/dL
+  // no se calcula — daría una TFG absurda (un 80 en µmol/L → TFG ~0; un 0 → ∞).
+  if (!Number.isFinite(creatinina) || creatinina < CREAT_MGDL_MIN || creatinina > CREAT_MGDL_MAX) {
+    return {
+      egfrCkdEpi: NaN, crClCockcroft: null,
+      estadio: '—', estadioDesc: `Creatinina ${creatinina} fuera del rango posible en mg/dL (${CREAT_MGDL_MIN}–${CREAT_MGDL_MAX}); revisa la unidad (¿µmol/L?) o el valor antes de estimar la TFG.`,
+      depuracionParaDosis: NaN, datoImplausible: true,
     }
   }
   const egfr = ckdEpi2021(creatinina, edad, sexo)

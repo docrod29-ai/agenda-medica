@@ -155,8 +155,9 @@ export default function GeneradorRecetaPage() {
     return evaluarFuncionRenal(cr, patient.edad, patient.sexo, peso > 0 ? peso : undefined)
   }, [creatinina, pesoKg, patient?.edad, patient?.sexo])
   const alertasRenales = useMemo(() => {
-    // En <18 años la depuración de adulto no aplica: no se ajusta por ese valor.
-    if (!renal || renal.noAplicablePorEdad) return []
+    // En <18 años (adulto no aplica) o creatinina implausible (probable error de
+    // unidad): no se ajusta por ese valor — daría alertas renales falsas.
+    if (!renal || renal.noAplicablePorEdad || renal.datoImplausible) return []
     return ajusteRenalFarmacos(meds, renal.depuracionParaDosis)
   }, [renal, meds])
 
@@ -599,8 +600,10 @@ export default function GeneradorRecetaPage() {
                   inputMode="decimal" style={{ ...inputStyle, width: 90 }} />
               </div>
               {renal && (
-                <div style={{ fontSize: 11.5, color: 'var(--text2)', lineHeight: 1.4 }}>
-                  <div><strong>TFG (CKD-EPI):</strong> {renal.egfrCkdEpi} mL/min/1.73m² · <strong>{renal.estadio}</strong> ({renal.estadioDesc})</div>
+                <div style={{ fontSize: 11.5, color: renal.datoImplausible ? 'var(--amber)' : 'var(--text2)', lineHeight: 1.4 }}>
+                  {Number.isFinite(renal.egfrCkdEpi)
+                    ? <div><strong>TFG (CKD-EPI):</strong> {renal.egfrCkdEpi} mL/min/1.73m² · <strong>{renal.estadio}</strong> ({renal.estadioDesc})</div>
+                    : <div>{renal.estadioDesc}</div>}
                   {renal.crClCockcroft != null && <div><strong>CrCl (Cockcroft):</strong> {renal.crClCockcroft} mL/min</div>}
                 </div>
               )}
