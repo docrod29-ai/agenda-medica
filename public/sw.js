@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v650'  // NEXUS-QUALITY-007+009. icu-007 (fuga de dinero): 11 rutas de IA (/api/expediente: corregir, extraer-entidades, atribuir-roles, verificar-nota, laboratorio-vision, antibiograma-vision, antibiograma-razonar, evidencia, transcribir x3) NUNCA cobraban creditos -> la IA corria gratis con la llave del dueno. Ahora cada accion quema creditos (COSTO_CREDITOS por accion, passthrough del gasto real). icu-009 (perdida de datos): firestore.rules permitia que CUALQUIER miembro (secretaria) BORRARA un expediente de paciente completo; ahora delete solo Admin. 1738 tests.
+const CACHE = 'nexusmed-v651'  // NEXUS-QUALITY-011 (coherencia sedacion): el motor de seguridad de UCI RECIBIA rass y lo IGNORABA -> paciente agitado (riesgo de auto-retiro de dispositivos) o en sedacion profunda no generaba alerta; aptoMovilizacion asumia la conciencia. Ahora analizarSeguridadUCI alerta por RASS (>=+2 alta, <=-4 moderada) y aptoMovilizacion exige RASS -2..+1 si esta documentado. Panel + copilot pasan rass. 012 (infusiones) verificado correcto (vasopresina U/min fija, levosimendan/milrinona por peso). 1744 tests.
 // (v601):
 
 self.addEventListener('install', (event) => {

@@ -51,7 +51,7 @@ export function snapshotUCI(v: Campos) {
     pam: pam.ok ? pam.valor ?? undefined : undefined,
     pplat: n('pplat'), drivingPressure: vent.drivingPressure.ok ? vent.drivingPressure.valor ?? undefined : undefined,
     vtPorPbw: vent.vtPorPbw.ok ? vent.vtPorPbw.valor ?? undefined : undefined, spo2: n('spo2'), fio2: vent.fio2.valor ?? undefined,
-    lactato: n('lactato'),
+    lactato: n('lactato'), rass: n('rass'),
   })
   const pocus = {
     vexus: vexus({ vciCm: n('vci'), hepatica: patron(v, 'vHep'), porta: patron(v, 'vPor'), renal: patron(v, 'vRen') }),

@@ -190,7 +190,7 @@ export default function UciPanelPage() {
     ph: n('ph'), glucosa: n('glucosa'), potasio: n('k'), pam: pam.ok ? pam.valor ?? undefined : undefined,
     pplat: n('pplat'), drivingPressure: vent.drivingPressure.ok ? vent.drivingPressure.valor ?? undefined : undefined,
     vtPorPbw: vent.vtPorPbw.ok ? vent.vtPorPbw.valor ?? undefined : undefined, spo2: n('spo2'), fio2: vent.fio2.valor ?? undefined,
-    lactato: n('lactato'), sodio: n('na'),
+    lactato: n('lactato'), sodio: n('na'), rass: n('rass'),
   }), [v, vent, pam])
 
   // ── POCUS: congestión venosa (VExUS-C), respuesta a líquidos (PLR), corazón derecho ──

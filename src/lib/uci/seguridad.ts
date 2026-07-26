@@ -10,7 +10,7 @@
  * (tabla de movilización), Nates 2016 (pH < 7.20).
  */
 
-export const SEGURIDAD_UCI_VERSION = '1.0.0'
+export const SEGURIDAD_UCI_VERSION = '1.1.0'  // icu-011: usa RASS (antes lo recibía y lo ignoraba)
 
 export type NivelAlerta = 'critica' | 'alta' | 'moderada' | 'informativa'
 
@@ -122,6 +122,15 @@ export function analizarSeguridadUCI(e: EstadoUCI): AlertaUCI[] {
   const grv = num(e.residuoGastrico)
   if (grv !== null && grv >= 500) push('moderada', 'residuo gástrico', `Residuo gástrico ${grv} mL ≥ 500: valorar intolerancia antes de continuar NE.`, 'mcclave2016')
 
+  // Sedación (RASS, PADIS 2018) — antes se RECIBÍA y se IGNORABA. La agitación
+  // pone al paciente en riesgo de auto-retiro de dispositivos; la sedación profunda
+  // se asocia a más días de ventilación y delirium (meta ligera 0 a −2 salvo indicación).
+  const rass = num(e.rass)
+  if (rass !== null) {
+    if (rass >= 2) push('alta', 'RASS', `RASS +${rass}: agitación; riesgo de auto-retiro de dispositivos. Descartar dolor, delirium, hipoxia o abstinencia.`, 'padis2018')
+    else if (rass <= -4) push('moderada', 'RASS', `RASS ${rass}: sedación profunda; PADIS recomienda meta ligera (0 a −2) salvo indicación (HTIC, SDRA grave, estatus).`, 'padis2018')
+  }
+
   return a.sort((x, y) => ordenNivel[x.nivel] - ordenNivel[y.nivel])
 }
 
@@ -136,7 +145,7 @@ export interface AptoMovilizacion {
 }
 export function aptoMovilizacion(e: EstadoUCI): AptoMovilizacion {
   const faltan: string[] = []
-  const fc = num(e.fc), pas = num(e.pas), pam = num(e.pam), fr = num(e.fr), spo2 = num(e.spo2), fio2 = num(e.fio2), peep = num(e.peep)
+  const fc = num(e.fc), pas = num(e.pas), pam = num(e.pam), fr = num(e.fr), spo2 = num(e.spo2), fio2 = num(e.fio2), peep = num(e.peep), rass = num(e.rass)
   if (fc === null || fc < 60 || fc > 130) faltan.push('FC 60–130 lpm')
   if (pas === null || pas < 90 || pas > 180) faltan.push('PAS 90–180 mmHg')
   if (pam === null || pam < 60 || pam > 100) faltan.push('PAM 60–100 mmHg')
@@ -144,5 +153,9 @@ export function aptoMovilizacion(e: EstadoUCI): AptoMovilizacion {
   if (spo2 === null || spo2 < 88) faltan.push('SpO2 ≥ 88%')
   if (fio2 === null || fio2 >= 0.6) faltan.push('FiO2 < 0.6')
   if (peep === null || peep >= 10) faltan.push('PEEP < 10 cmH2O')
+  // Conciencia (Hodgson 2014 / PADIS): un paciente con RASS documentado fuera de
+  // −2 a +1 (sedación profunda o agitación) NO es candidato a movilización ACTIVA.
+  // Si no hay RASS (paciente despierto sin sedación), no se bloquea por este criterio.
+  if (rass !== null && (rass < -2 || rass > 1)) faltan.push('RASS −2 a +1 (consciente y colaborador)')
   return { apto: faltan.length === 0, faltan, fuenteId: 'padis2018' }
 }
