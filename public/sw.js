@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v647'  // NEXUS-QUALITY-003 (P0 seguridad+PHI): el 👍 del Copilot UCI guardaba el RESUMEN CLINICO del paciente A como 'preferencia' y preferenciasAprendidas lo REINYECTABA en el prompt del paciente B (mezcla de PHI + aprender medicina de casos individuales, prohibido por la constitucion). FIX: el feedback guarda SOLO el rating (telemetria), se elimino preferenciasAprendidas y la reinyeccion; el prompt lleva solo el snapshot determinista de ESE paciente. Tooltip corregido. Test de regresion (sin preferencias no hay seccion de preferencias). 1722 tests.
+const CACHE = 'nexusmed-v648'  // NEXUS-QUALITY-004 (P0 seguridad pediatrica): el copiloto (ajusteRenal) calculaba CKD-EPI 2021 en menores de 18 (formula validada solo en adultos) y emitia contraindicaciones renales con TFG adulta inaplicable. FIX: guarda pediatrica en el punto de uso -> en <18 emite nota de Schwartz (info), NO contraindicacion adulta. Adulto con TFG baja sin cambios. Test de regresion. 1724 tests.
 // (v601):
 
 self.addEventListener('install', (event) => {

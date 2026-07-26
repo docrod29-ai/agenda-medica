@@ -239,6 +239,20 @@ function ajusteRenal(e: EntradaCopiloto): Sugerencia[] {
   const meds = e.medicamentos ?? []
   if (!cr || !edad || meds.length === 0) return []
 
+  // GUARDA PEDIÁTRICA (NEXUS-QUALITY-004): CKD-EPI 2021 está validada SOLO en ≥18
+  // años. En menores NO se calcula una TFG "adulta" ni se emiten contraindicaciones
+  // basadas en ella (antes sí → una fórmula inaplicable contraindicaba fármacos en
+  // niños). Se deriva a la fórmula pediátrica (Schwartz).
+  if (edad < 18) {
+    return [{
+      id: 'renal:pediatrico',
+      nivel: 'info',
+      titulo: 'Ajuste renal pediátrico: CKD-EPI no aplica en < 18 años',
+      detalle: 'La TFG por CKD-EPI 2021 está validada solo en adultos. En menores usa la fórmula de Schwartz (0.413 × talla_cm ÷ creatinina) para estimar la TFG y ajustar dosis.',
+      textoNota: 'Ajuste renal en < 18 años: estimar TFG por Schwartz (no CKD-EPI).',
+    }]
+  }
+
   const tfg = ckdEpi2021(cr, edad, !!e.sexo && /^f/i.test(e.sexo))
   if (!Number.isFinite(tfg) || tfg >= 60) return []
 
