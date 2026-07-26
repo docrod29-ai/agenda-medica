@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v670'  // L5 zona horaria: instanteMX ahora es ZONA-CONSCIENTE (calcula el offset real de config.zonaHoraria via Intl, maneja DST de la franja fronteriza) en vez de -06:00 quemado -> Tijuana/Hermosillo dejan de estar corridas 1-2h. Propagado a cron de recordatorios, booking publico, whatsapp bot, estaBloqueado (bloqueos de vacaciones) y cobros (listarCobros/cobrosDelMes/limitesDelDia con tz). Default sigue CDMX (correcto para la mayoria). CDMX identico a antes (sin regresion).
+const CACHE = 'nexusmed-v671'  // P0 CLINICO (reporte externo): FIB-4 salia 3053.54 en vez de 3.05 (error de escala 1000x) en la demo publica. Raiz: copiloto dividia plaquetas/1000 ciegamente (correcto para conteo absoluto 135000, pero rompia la fuente que ya venia en x10^9/L: 135/1000=0.135). FIX: fib4() ahora normaliza plaquetas por MAGNITUD (>2000 = conteo absoluto -> /1000) blindando a TODOS los llamadores; se quito el /1000 del copiloto. Golden tests con el caso exacto + ambas unidades. La formula NO cambio.
 // (v601):
 
 self.addEventListener('install', (event) => {

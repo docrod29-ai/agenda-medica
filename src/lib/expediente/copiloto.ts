@@ -534,17 +534,13 @@ function calculosAutomaticos(e: EntradaCopiloto): Sugerencia[] {
   const { ast, alt, plaquetas } = e.labs ?? {}
   if (ast && alt && plaquetas && edad != null) {
     /**
-     * UNIDADES — bug encontrado en la auditoría 2026-07 (P1).
-     *
-     * `fib4()` espera las plaquetas en ×10⁹/L (o sea, miles/µL: 150), que es lo que
-     * teclea el médico en el panel cardiometabólico («Plaquetas (×10⁹/L)»).
-     * Pero `labsDesdeEstudios` las normaliza a CONTEO ABSOLUTO por µL (150 000).
-     * Pasarlas crudas dividía el FIB-4 entre 1000 y SIEMPRE caía en «riesgo bajo»:
-     * 50 años, AST 40, plaq 150 000, ALT 25 → 0.0027 en vez de 2.67 (zona alta).
-     * Un paciente con fibrosis significativa quedaba tranquilizado por escrito.
+     * UNIDADES: las plaquetas llegan en ×10⁹/L (panel: 135) o en conteo absoluto
+     * (parser de labs: 135 000) según la fuente. Antes aquí se dividía SIEMPRE /1000,
+     * lo que corregía la fuente absoluta pero ROMPÍA la que ya venía en ×10⁹/L
+     * (135/1000 → FIB-4 ×1000, 3053 en vez de 3.05). Ahora fib4() detecta la unidad
+     * por magnitud y normaliza sola — se pasan crudas. Auditoría maestra 2026-07 (P0).
      */
-    const plaqEn10a9 = plaquetas / 1000
-    const v = fib4(edad, ast, plaqEn10a9, alt)
+    const v = fib4(edad, ast, plaquetas, alt)
     const r = v != null ? interpretarFib4(v, edad) : null
     if (r) {
       out.push({
