@@ -75,7 +75,7 @@ async function preferenciasAprendidas(clinicId: string): Promise<string[]> {
 }
 
 export async function POST(req: NextRequest) {
-  const acceso = await verificarModuloIA(req, 'expediente')
+  const acceso = await verificarModuloIA(req, 'uci')
   if (!acceso.ok) return acceso.response
 
   const limite = await limitarOResponder(`uci-copilot:${acceso.uid}`, 20, 60, 'Demasiadas solicitudes al Copilot; espera un momento.')

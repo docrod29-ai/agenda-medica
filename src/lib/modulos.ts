@@ -24,21 +24,24 @@ const CONSULTORIO = ['agenda', 'expediente', 'farmacia', 'crm', 'finanzas', 'cum
 export const MODULOS_DE_PLAN: Record<string, string[]> = {
   agenda:   ['agenda'],
   clinica:  CONSULTORIO,
-  premium:  CONSULTORIO,                         // "Pro": mismos módulos que Clínica
-  hospital: [...CONSULTORIO, 'hospitalizacion'],
+  premium:  CONSULTORIO,                         // "Pro": mismos módulos + IA Máxima/2ª opinión/soporte
+  // Hospital = consultorio + hospitalización + el ICU OS (Panel UCI). El UCI OS
+  // también se vende como add-on suelto (paquete 'uci', por cama de terapia).
+  hospital: [...CONSULTORIO, 'hospitalizacion', 'uci'],
   // Legados / especiales
   basico:   CONSULTORIO,
   pro:      CONSULTORIO,
-  trial:    CONSULTORIO,   // Hospitalización es un producto APARTE: no se muestra en prueba
+  trial:    CONSULTORIO,   // Hospitalización/UCI son productos APARTE: no se muestran en prueba
   cortesia: CONSULTORIO,
 }
 
 /**
- * Módulos OPT-IN: productos separados que NO se muestran por los "atajos" (pase
- * libre del dueño, clínica sin plan, prueba). Solo aparecen si el plan Hospital o
- * un módulo explícito los incluye. Así Hospitalización no estorba en un consultorio.
+ * Módulos OPT-IN: productos separados que NO se muestran por los "atajos" (clínica
+ * sin plan, prueba). Solo aparecen si el plan Hospital o un módulo explícito los
+ * incluye. Así Hospitalización y el UCI OS no estorban en un consultorio normal.
+ * (El dueño con pase libre SÍ ve todo — ver modulosDe.)
  */
-export const MODULOS_OPT_IN = ['hospitalizacion']
+export const MODULOS_OPT_IN = ['hospitalizacion', 'uci']
 
 export interface ModuloDef {
   key: string
@@ -57,10 +60,11 @@ export const RUTAS_CORE = ['/dashboard', '/configuracion', '/chat', '/pacientes'
 export const MODULOS: ModuloDef[] = [
   { key: 'agenda',         label: 'Agenda y citas',          descripcion: 'Agendar, calendario, recordatorios, lista de espera', rutas: ['/asistente', '/citas', '/calendario', '/lista-espera', '/waitlist'] },
   { key: 'expediente',     label: 'Expediente de consulta',  descripcion: 'Consulta ambulatoria: notas, recetas, órdenes, referencias, consultor', rutas: ['/consulta', '/expediente', '/expedientes', '/nota', '/orden', '/receta', '/referencia', '/consultor'] },
-  // El Panel UCI (/uci) es una función de HOSPITALIZACIÓN (Hospital + UCI), no de
-  // consulta: se cobra con ese plan. Antes vivía bajo 'expediente' y un plan de
-  // consultorio ($899) tenía acceso técnico a lo que se cobra en el plan Hospital.
-  { key: 'hospitalizacion', label: 'Hospitalización',        descripcion: 'Censo, internamientos, indicaciones/MAR, camas (hospital y UCI), Panel UCI', rutas: ['/hospitalizacion', '/uci'] },
+  { key: 'hospitalizacion', label: 'Hospitalización',        descripcion: 'Censo, internamientos, indicaciones/MAR, camas (hospital y UCI)', rutas: ['/hospitalizacion'] },
+  // UCI OS = módulo/entitlement PROPIO (la joya sin competencia). Se incluye en el
+  // plan Hospital y se vende como add-on por cama de terapia. Gatearlo aparte evita
+  // que un plan de consultorio tenga acceso técnico al Panel UCI (motores + Copilot).
+  { key: 'uci',            label: 'UCI OS',                  descripcion: 'Panel UCI de cabecera: ventilación, gasometría, SOFA/APACHE, POCUS/VExUS, neurocrítico, CKRT/PRISMA, ECMO, Copilot IA y nota por 7 sistemas', rutas: ['/uci'] },
   { key: 'farmacia',       label: 'Farmacia',                descripcion: 'Inventario y movimientos de farmacia', rutas: ['/farmacia'] },
   { key: 'crm',            label: 'CRM y reseñas',           descripcion: 'Seguimiento de pacientes, reputación', rutas: ['/crm', '/resenas'] },
   { key: 'finanzas',       label: 'Finanzas',                descripcion: 'Cobros, ingresos, reportes', rutas: ['/finanzas'] },
@@ -98,11 +102,17 @@ export const PAQUETES_SUGERIDOS: PaqueteDef[] = [
     descripcion: 'Todo lo de Clínica con IA Máxima (Opus 4.8 + GPT-5) por defecto, 2ª opinión automática y soporte prioritario. 450 créditos/mes.' },
   { id: 'hospital', nombre: 'Hospital', precio: 3499, orden: 3, modulos: MODULOS_DE_PLAN.hospital,
     modeloPrecio: 'por_cama', precioBase: 3499, precioPorUnidad: 250,
-    descripcion: 'Todo lo de Pro + Hospitalización: censo, camas de hospital y de UCI, internamiento (indicaciones/MAR, signos, interconsultas, laboratorio), Panel UCI con motores deterministas (ventilación, gasometría, SOFA/APACHE, POCUS/VExUS, CKRT/PRISMA y ECMO) y nota de evolución UCI por sistemas.' },
+    descripcion: 'Todo lo de Pro + Hospitalización: censo, camas de hospital y de UCI, internamiento (indicaciones/MAR, signos, interconsultas, laboratorio). Incluye el UCI OS. Base + $250 por cama de piso.' },
+  // ADD-ON: UCI OS por CAMA DE TERAPIA. La joya sin competencia, desacoplada para
+  // venderse sobre Hospital (o a quien tenga camas de terapia). Cada cama de terapia
+  // genera muchísima más IA/día (Copilot, motores) → se cobra por cama, no fijo.
+  { id: 'uci', nombre: 'UCI OS (add-on)', precio: 700, orden: 4, modulos: ['uci'],
+    modeloPrecio: 'por_cama', precioBase: 700, precioPorUnidad: 700,
+    descripcion: 'Add-on por cama de terapia: Panel UCI de cabecera con motores deterministas (ventilación, gasometría/ácido-base, SOFA/APACHE, POCUS/VExUS/PLR, neurocrítico PPC/PIC, CKRT/PRISMA, ECMO), Copilot IA de UCI (Claude + GPT) que aprende, y nota de evolución por los 7 sistemas dictada manos libres. Cada cama de terapia trae su propia bolsa de créditos.' },
 ]
 
 /** Versión del catálogo de paquetes. Al subirla, el seed reemplaza los viejos. */
-export const PAQUETES_VERSION = 5
+export const PAQUETES_VERSION = 6
 
 type ClinicMod = { modulos?: string[] | null; plan?: string | null; paseLibre?: boolean | null }
 

@@ -132,8 +132,11 @@ export const PLANES: Record<ClavePlan, PlanCreditos> = {
     pacientesMax: null,
     incluye: [
       'Todo lo de Clínica',
-      'IA de máximo razonamiento clínico por defecto 💎',
-      'Revisión de consistencia y seguridad clínica automática en cada nota',
+      'IA de máximo razonamiento clínico (Opus 4.8 + GPT-5) por defecto 💎',
+      '2ª opinión automática (verificador GPT-5) en cada nota',
+      'Revisión farmacológica automática: dosis · interacciones · función renal',
+      'Interpretación de laboratorios por IA con tendencias por analito',
+      'Valoración del inmunocomprometido con IA de máximo nivel',
       'Consultor de evidencia con IA de máximo nivel',
       '450 créditos/mes (~45 notas Máxima o ~150 Estándar)',
       'Al agotarlos sigue en ⚡ Rápida sin costo hasta 150 notas más/mes; luego se pausa y recargas o subes de plan',

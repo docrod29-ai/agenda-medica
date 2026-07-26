@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v638'  // PRICING (equipo de auditores): CIERRA LA FUGA -> el Copilot UCI ahora se cobra (COSTO_CREDITOS.copilotUci=7; antes valia 0, dual-model Opus+GPT ~10USD/turno ilimitado). Consultor Premium 1->4 creditos (costo real ~7.5). Clinica 160->200 creditos. Pro 1899->1590 (gap 899->1899 mataba conversion). TOPE_ECONOMICO.premium 300->150 (dejaba de regalar ~480/mes de Haiku). /uci GATEADO bajo hospitalizacion (antes bajo expediente: un plan de 899 tenia acceso tecnico a lo de 3499; el dueno con paseLibre lo sigue viendo). Plan Hospital+UCI 3499/500 creditos con ICU OS.
+const CACHE = 'nexusmed-v639'  // PRICING estructural (4 puntos del auditor): (1) Pro con exclusivas REALES explicitas (IA Maxima Opus+GPT5, 2a opinion auto, revision farmacologica, labs-IA, inmuno). (2) UCI OS = MODULO propio 'uci' (antes bajo hospitalizacion): gateo /uci + API Copilot bajo 'uci'; incluido en plan Hospital; add-on por CAMA DE TERAPIA (paquete 'uci' 700/cama). (3) camas: Hospital por_cama 250/piso + UCI add-on 700/terapia. (4) nota Maxima ya acotada por max_tokens 24000 -> 10 creditos defendible. PAQUETES_VERSION=6. Dueno con paseLibre ve todo (uci en TODOS_LOS_MODULOS).
 // (v601):
 
 self.addEventListener('install', (event) => {
