@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v645'  // 2a AUDITORIA (10 bugs del codigo nuevo, verif adversarial). REPARADOS: (P1) tendencias relevancia sobre delta CRUDO no redondeado (norepi <0.05 se descartaba); (P1) nota firmada SOFA ahora pasa dopa/dobu/epi (subestimaba cardiovascular); (P1 FUGA) Copilot UCI con red de seguridad de costo: si corre sobre la llave del dueno (prueba) y hay creditos agotados/tope -> 402 (antes dual-model Opus+GPT ilimitado sin tope); (P2) verificarModuloIA falla CERRADO para modulos opt-in (uci/hospitalizacion) en error de Firestore; (P2) esModoEspontaneo bloquea driving pressure en PSV/CPAP/VNI en panel+nota+copilot; (P3) infusiones quita tipo sin usar, comentario PHI del copilot, ECMO VV->respiratorio, registrarUso por fuente real.
+const CACHE = 'nexusmed-v646'  // NEXUS-QUALITY-002 (P0 seguridad del paciente): FIX inversion de signo en compensacion de ALCALOSIS respiratoria (gasometria.ts): factor -2/-4 -> +2/+4 en ambas ramas + formula + comentario. Antes una alcalosis respiratoria BIEN compensada se marcaba MIXTA e inventaba una acidosis metabolica inexistente en la nota FIRMADA y el snapshot del Copilot. Reproducido y blindado con test de regresion (a compensada no MIXTA, b espejo acidosis OK, c mixto real SI detectado). 1721 tests.
 // (v601):
 
 self.addEventListener('install', (event) => {

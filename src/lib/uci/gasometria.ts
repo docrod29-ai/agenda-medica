@@ -8,8 +8,9 @@
  * Reglas (fisiología estándar):
  *   Winters (acidosis metabólica): PaCO2 esperado = 1.5·HCO3 + 8 (±2)
  *   Compensación alcalosis metab.: PaCO2 esperado = 0.7·HCO3 + 21 (±2)
- *   Resp. aguda:   ΔHCO3 = 1·(ΔPaCO2/10) ;  crónica: 3.5·(ΔPaCO2/10)
- *   Resp. alcalosis aguda: ΔHCO3 = −2·(ΔPaCO2/10) ; crónica: −4·(ΔPaCO2/10)
+ *   Resp. acidosis aguda: ΔHCO3 = 1·(ΔPaCO2/10) ; crónica: 3.5·(ΔPaCO2/10)
+ *   Resp. alcalosis aguda: ΔHCO3 = 2·(ΔPaCO2/10) ; crónica: 4·(ΔPaCO2/10)
+ *   (ΔPaCO2 es SIGNADO: en alcalosis es negativo, así el HCO3 esperado baja)
  *   Anion gap = Na − (Cl + HCO3) ; corregido = AG + 2.5·(4 − albúmina g/dL)
  *   Delta-delta = (AG − 12) / (24 − HCO3)
  *
@@ -128,8 +129,12 @@ export function analizarGasometria(e: EntradaGasometria): AnalisisGasometria {
   } else if (trastornoPrimario === 'acidosis_respiratoria' || trastornoPrimario === 'alcalosis_respiratoria') {
     const deltaCO2 = (paco2! - 40) / 10
     const esAcidosis = trastornoPrimario === 'acidosis_respiratoria'
-    const espAgudo = r1(24 + (esAcidosis ? 1 : -2) * deltaCO2)
-    const espCronico = r1(24 + (esAcidosis ? 3.5 : -4) * deltaCO2)
+    // El HCO3 esperado se mueve en la MISMA dirección que la PaCO2 (deltaCO2 ya es
+    // signado): en alcalosis respiratoria la PaCO2 baja → el HCO3 esperado BAJA. Por
+    // eso el factor es POSITIVO también aquí (antes era −2/−4, que hacía SUBIR el HCO3
+    // esperado e inventaba una acidosis metabólica al marcar MIXTO).
+    const espAgudo = r1(24 + (esAcidosis ? 1 : 2) * deltaCO2)
+    const espCronico = r1(24 + (esAcidosis ? 3.5 : 4) * deltaCO2)
     if (e.cronicidadRespiratoria === undefined) {
       // NO asumir cronicidad: un retenedor crónico de CO2 (EPOC) tiene un HCO3 alto
       // NORMAL para su compensación. Asumir "aguda" inventaba una alcalosis
@@ -145,11 +150,11 @@ export function analizarGasometria(e: EntradaGasometria): AnalisisGasometria {
         : `HCO3 ${hco3} fuera de ambos rangos (agudo ${espAgudo} / crónico ${espCronico}) → componente metabólico concomitante`
       advertencias.push('Cronicidad respiratoria no especificada: no se asume; se evalúan ambos rangos (agudo y crónico)')
     } else {
-      const factor = esAcidosis ? (cron === 'cronica' ? 3.5 : 1) : (cron === 'cronica' ? -4 : -2)
+      const factor = esAcidosis ? (cron === 'cronica' ? 3.5 : 1) : (cron === 'cronica' ? 4 : 2)
       const hco3Esperado = r1(24 + factor * deltaCO2)
       formulaComp = esAcidosis
         ? `HCO3 esperado = 24 + ${cron === 'cronica' ? '3.5' : '1'}·(ΔPaCO2/10)`
-        : `HCO3 esperado = 24 − ${cron === 'cronica' ? '4' : '2'}·(ΔPaCO2/10)`
+        : `HCO3 esperado = 24 + ${cron === 'cronica' ? '4' : '2'}·(ΔPaCO2/10)`
       compAdecuada = Math.abs(hco3! - hco3Esperado) <= 3
       comentarioComp = compAdecuada
         ? `Compensación metabólica ${cron} adecuada (HCO3 esperado ≈ ${hco3Esperado})`
