@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v626'  // SEGURIDAD LANZAMIENTO: las 15 API de IA de consulta (expediente/*, consultor-evidencia, inmuno/redactar, receta/detectar-campos) ahora exigen el MODULO 'expediente' del plan del usuario (verificarModuloIA en auth-server) — antes solo pedian sesion, asi que un plan 'agenda' podia llamar la IA Pro directo por la API saltandose el bloqueo visual del navegador. Trial/Clinica/Pro/dueno siguen igual; solo se bloquea el plan agenda-only. ayuda-bot (soporte) queda para todos. + candado de regresion entitlements-planes.test.ts.
+const CACHE = 'nexusmed-v627'  // PANEL DE UCI (loop ICU Hands-Free Note Engine cableado a la UI): nueva pagina /uci (gateada bajo el modulo Hospitalizacion) donde el medico captura valores y ve EN VIVO los motores deterministas calcular (PaO2/FiO2, driving pressure, compliance, VT/PBW, PAM, gasometria acido-base, SOFA) + alertas jerarquizadas y CITADAS (guias reales: ESICM 2025, AHA-CICU 2020, McClave 2016, PADIS 2018), en un panel SEPARADO de la nota. La voz aporta datos, el codigo calcula, el motor verifica, el medico decide y firma. Si falta un dato NO se inventa. Escalas SOFA/RASS/CAM-ICU/APACHE II + evidencia + benchmark 1120 casos (100%). Entrada en el menu 'Panel UCI'.
 // (v601):
 
 self.addEventListener('install', (event) => {
