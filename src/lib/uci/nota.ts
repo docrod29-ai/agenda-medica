@@ -7,7 +7,7 @@
  * una sección solo incluye una línea si su dato existe; el LLM no calcula nada.
  * El plan queda para el médico. El texto es un BORRADOR que el médico revisa y firma.
  */
-import { analizarVentilacion } from './ventilacion'
+import { analizarVentilacion, esModoEspontaneo } from './ventilacion'
 import { analizarGasometria } from './gasometria'
 import { presionArterialMedia } from './hemodinamia'
 import { calcularSOFA } from './scores'
@@ -48,14 +48,19 @@ export function construirSeccionesUCI(v: Campos, opts?: { dia?: string; discusio
   const vent = analizarVentilacion({
     sexo: v.sexo === 'F' ? 'F' : v.sexo === 'M' ? 'M' : undefined, tallaCm: n('talla'), vtMl: n('vt'),
     fio2: n('fio2'), fio2Unidad: '%', pplat: n('pplat'), peep: n('peep'), autoPeep: n('autoPeep'),
+    esfuerzoEspontaneo: esModoEspontaneo(v.modo),
     pao2: n('pao2'), muestraGasometria: (v.muestra as 'arterial' | 'venosa' | 'capilar') || undefined,
   })
   const gaso = analizarGasometria({ ph: n('ph'), paco2: n('paco2'), hco3: n('hco3'), na: n('na'), cl: n('cl'), albumina: n('alb') })
   const pam = presionArterialMedia(n('pas'), n('pad'))
   const sofa = calcularSOFA({
-    pafi: vent.indiceKirby.ok ? vent.indiceKirby.valor ?? undefined : undefined, soporteRespiratorio: v.soporte === 'si',
+    pafi: vent.indiceKirby.ok ? vent.indiceKirby.valor ?? undefined : undefined,
+    soporteRespiratorio: ['si', 'sí', 'true', '1'].includes((v.soporte || '').trim().toLowerCase()),
     plaquetas: n('plaquetas'), bilirrubina: n('bili'), pam: pam.ok ? pam.valor ?? undefined : undefined,
-    norepinefrina: n('norepi'), glasgow: n('glasgow'), creatinina: n('creat'),
+    // Los 4 vasopresores (igual que el panel y el Copilot): omitir dopa/dobu/epi
+    // subestimaba el subscore cardiovascular en la NOTA FIRMADA.
+    norepinefrina: n('norepi'), dopamina: n('dopa'), dobutamina: n('dobu'), epinefrina: n('epi'),
+    glasgow: n('glasgow'), creatinina: n('creat'),
   })
   const ckrt = analizarCKRT({
     modalidad: (v.ckrtMod as ModalidadCKRT) || undefined, pesoKg: n('ckrtPeso'), qbMlMin: n('ckrtQb'),
@@ -117,6 +122,7 @@ export function construirSeccionesUCI(v: Campos, opts?: { dia?: string; discusio
     gaso.ok ? `Gasometría: ${gaso.interpretacion.split('.')[0]}.` : null,
     // ECMO veno-venoso (soporte respiratorio) — si la config es VV.
     ecmo.config === 'VV' ? `ECMO VV${ecmo.oxigenador.ok ? ` · ΔP oxigenador ${ecmo.oxigenador.deltaP} mmHg` : ''}.` : null,
+    ...(ecmo.config === 'VV' ? ecmo.señales.map(s => `ECMO — ${s.mensaje}`) : []),
   ])
 
   // ── Hemodinámico (incluye POCUS cardiaco, VExUS/congestión y ECMO VA) ──
@@ -133,7 +139,8 @@ export function construirSeccionesUCI(v: Campos, opts?: { dia?: string; discusio
     n('vci') ? `VCI ${v.vci} cm.` : null,
     vex.ok ? `VExUS-C ${vex.hallazgo}: ${vex.interpretacion.split('.')[0]}.` : (vex.bloqueado && (n('vci') || patron(v, 'vHep') || patron(v, 'vPor') || patron(v, 'vRen')) ? `VExUS: ${vex.motivoBloqueo}.` : null),
     (ecmo.config === 'VA' || ecmo.config === 'VAV') ? `ECMO ${ecmo.config}${ecmo.oxigenador.ok ? ` · ΔP oxigenador ${ecmo.oxigenador.deltaP} mmHg` : ''}.` : null,
-    ...ecmo.señales.map(s => `ECMO — ${s.mensaje}`),
+    // ECMO VV es soporte respiratorio: sus señales van al sistema respiratorio (arriba).
+    ...(ecmo.config !== 'VV' ? ecmo.señales.map(s => `ECMO — ${s.mensaje}`) : []),
   ])
 
   // ── Abdominodigestivo (el médico completa; sin cálculo automático) ──

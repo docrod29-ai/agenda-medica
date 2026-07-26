@@ -24,7 +24,9 @@ const num = (v: unknown): number | null => {
 }
 const r = (x: number, d = 2) => { const f = 10 ** d; return Math.round(x * f) / f }
 
-export type UnidadDosis = 'µg/kg/min' | 'µg/min' | 'U/min' | 'µg/kg/h'
+// Unidades soportadas por la conversión (todas por-minuto). No se incluye 'µg/kg/h'
+// hasta que la conversión tenga la rama de tiempo por hora (ningún fármaco la usa).
+export type UnidadDosis = 'µg/kg/min' | 'µg/min' | 'U/min'
 
 export interface Dilucion { label: string; mgOU: number; mlBolsa: number; concentracion: number; unidadConc: 'µg/mL' | 'U/mL' }
 export interface Farmaco {

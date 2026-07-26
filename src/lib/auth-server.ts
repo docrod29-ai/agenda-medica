@@ -21,7 +21,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import admin, { adminDb } from './firebase-admin'
-import { tieneModulo } from './modulos'
+import { tieneModulo, MODULOS_OPT_IN } from './modulos'
 
 export interface AccesoOk {
   ok: true
@@ -109,7 +109,13 @@ export async function verificarModuloIA(req: NextRequest, modulo: string): Promi
     }
     return { ok: true, uid: u.uid, email: u.email, clinicId, role: miembro.data()?.role }
   } catch {
-    // Error transitorio de Firestore → no romper el servicio; el camino normal enforce.
+    // Error transitorio de Firestore. Para módulos de consulta (expediente) se es
+    // fail-OPEN: no tumbar la IA de todos por una lectura puntual. Pero para los
+    // módulos OPT-IN de pago (UCI/Hospitalización) se falla CERRADO: no dar acceso
+    // técnico a una función cara sin poder verificar el entitlement.
+    if (MODULOS_OPT_IN.includes(modulo)) {
+      return err(503, 'No se pudo verificar tu plan en este momento. Intenta de nuevo en unos segundos.')
+    }
     return { ok: true, uid: u.uid, email: u.email }
   }
 }

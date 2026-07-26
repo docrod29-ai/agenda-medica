@@ -19,7 +19,7 @@ import { getPatient } from '@/lib/firestore'
 import { construirSeccionesUCI } from '@/lib/uci/nota'
 import type { Internamiento } from '@/types/hospital'
 import type { Patient } from '@/types'
-import { analizarVentilacion } from '@/lib/uci/ventilacion'
+import { analizarVentilacion, esModoEspontaneo } from '@/lib/uci/ventilacion'
 import { analizarGasometria } from '@/lib/uci/gasometria'
 import { presionArterialMedia } from '@/lib/uci/hemodinamia'
 import { calcularSOFA } from '@/lib/uci/scores'
@@ -164,6 +164,7 @@ export default function UciPanelPage() {
   const vent = useMemo(() => analizarVentilacion({
     sexo: v.sexo === 'F' ? 'F' : v.sexo === 'M' ? 'M' : undefined, tallaCm: n('talla'), vtMl: n('vt'),
     fio2: n('fio2'), fio2Unidad: '%', pplat: n('pplat'), peep: n('peep'), autoPeep: n('autoPeep'),
+    esfuerzoEspontaneo: esModoEspontaneo(v.modo),
     pao2: n('pao2'), muestraGasometria: (v.muestra as 'arterial' | 'venosa' | 'capilar') || undefined,
   }), [v])
   const gaso = useMemo(() => analizarGasometria({ ph: n('ph'), paco2: n('paco2'), hco3: n('hco3'), na: n('na'), cl: n('cl'), albumina: n('alb') }), [v])

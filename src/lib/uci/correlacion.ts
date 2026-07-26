@@ -60,13 +60,17 @@ export function compararLecturas(previa: Record<string, number>, actual: Record<
   for (const key of Object.keys(actual)) {
     if (!(key in previa)) continue
     const de = previa[key], a = actual[key]
-    const delta = r1(a - de)
-    if (delta === 0) continue
+    // El descarte y la relevancia se juzgan sobre el delta CRUDO; el redondeo es
+    // SOLO para mostrar. Antes se redondeaba antes, y un cambio de norepi de 0.03
+    // (relevante, minDelta 0.02) se volvía 0 y se descartaba (rompía la titulación
+    // fina de vasopresor y la asociación corazón-pulmón).
+    const rawDelta = a - de
+    if (rawDelta === 0) continue
     const meta = META[key]
     cambios.push({
-      key, label: meta?.label ?? key, de, a, delta,
-      direccion: delta > 0 ? 'sube' : 'baja',
-      relevante: meta ? Math.abs(delta) >= meta.minDelta : true,
+      key, label: meta?.label ?? key, de, a, delta: r1(rawDelta),
+      direccion: rawDelta > 0 ? 'sube' : 'baja',
+      relevante: meta ? Math.abs(rawDelta) >= meta.minDelta : true,
       unidad: meta?.unidad,
     })
   }

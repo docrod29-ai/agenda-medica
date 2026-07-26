@@ -11,7 +11,7 @@
  * Este archivo es PURO y testeable: arma el snapshot y los prompts, y fusiona las
  * dos opiniones (Anthropic + OpenAI). La llamada a los modelos vive en la ruta.
  */
-import { analizarVentilacion } from './ventilacion'
+import { analizarVentilacion, esModoEspontaneo } from './ventilacion'
 import { analizarGasometria } from './gasometria'
 import { presionArterialMedia } from './hemodinamia'
 import { calcularSOFA } from './scores'
@@ -34,6 +34,7 @@ export function snapshotUCI(v: Campos) {
   const vent = analizarVentilacion({
     sexo: v.sexo === 'F' ? 'F' : v.sexo === 'M' ? 'M' : undefined, tallaCm: n('talla'), vtMl: n('vt'),
     fio2: n('fio2'), fio2Unidad: '%', pplat: n('pplat'), peep: n('peep'), autoPeep: n('autoPeep'),
+    esfuerzoEspontaneo: esModoEspontaneo(v.modo),
     pao2: n('pao2'), muestraGasometria: (v.muestra as 'arterial' | 'venosa' | 'capilar') || undefined,
   })
   const gaso = analizarGasometria({ ph: n('ph'), paco2: n('paco2'), hco3: n('hco3'), na: n('na'), cl: n('cl'), albumina: n('alb') })

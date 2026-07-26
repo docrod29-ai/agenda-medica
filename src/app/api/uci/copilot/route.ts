@@ -10,14 +10,16 @@
  * (las preferencias aceptadas se reinyectan como estilo en futuras síntesis).
  *
  * Gateado por `verificarModuloIA` (mismo entitlement que la IA de consulta).
- * Las llaves viven server-side (llave del consultorio o env). No exponen PHI: el
- * snapshot son solo números de motores.
+ * Las llaves viven server-side (llave del consultorio o env). El SNAPSHOT son solo
+ * números de motores (sin PHI); pero la `discusion` del pase y las `tendencias` son
+ * TEXTO LIBRE que podría contener identificadores si el médico los dicta — se envían
+ * al proveedor de IA. No escribir nombres/identificadores en el pase.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import admin, { adminDb } from '@/lib/firebase-admin'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { resolverClaveIA, registrarUso, registrarCreditos } from '@/lib/ai-keys'
+import { resolverClaveIA, registrarUso, registrarCreditos, creditosAgotados, pruebaAgotada } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { snapshotUCI, buildCopilotUser, COPILOT_SYSTEM, parseSalidaCopilot, fusionarCopilot, COPILOT_VERSION } from '@/lib/uci/copilot'
 import { safeLog } from '@/lib/security/sanitize'
@@ -121,6 +123,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No hay llave de IA configurada. Agrega tu llave de Anthropic u OpenAI en Configuración.' }, { status: 400 })
   }
 
+  // RED DE SEGURIDAD DE COSTO (anti-fuga): si el Copilot corre sobre la LLAVE DEL
+  // DUEÑO (fuente 'prueba' — el consultorio no configuró la suya), NO se permite
+  // quemar el dual-model premium (~$10/turno) sin límite. Se corta si ya se
+  // agotaron los créditos o el tope de prueba, igual que la nota. Con llave propia
+  // del consultorio ('clinica') no aplica: paga su propia API.
+  const sobreLlaveDelDueno = anthropic.fuente === 'prueba' || openai.fuente === 'prueba'
+  if (sobreLlaveDelDueno && acceso.clinicId) {
+    const [agotados, prueba] = await Promise.all([
+      creditosAgotados(acceso.clinicId).catch(() => false),
+      pruebaAgotada(acceso.clinicId).catch(() => false),
+    ])
+    if (agotados || prueba) {
+      return NextResponse.json({ error: 'Créditos de IA agotados este mes. Recarga créditos o configura tu propia llave de IA en Configuración para seguir usando el Copilot de UCI.' }, { status: 402 })
+    }
+  }
+
   const [rc, ro] = await Promise.all([
     anthropic.key ? llamarClaude(anthropic.key, user) : Promise.resolve(null),
     openai.key ? llamarOpenAI(openai.key, user) : Promise.resolve(null),
@@ -137,7 +155,9 @@ export async function POST(req: NextRequest) {
   // mayor fuga de dinero). Se cobra una vez por turno cuando respondió ≥1 modelo.
   if (acceso.clinicId && (rc || ro)) {
     registrarCreditos(acceso.clinicId, COSTO_CREDITOS.copilotUci).catch(() => {})
-    registrarUso(acceso.clinicId, anthropic.fuente).catch(() => {})
+    // Atribuir el uso a la fuente del modelo que REALMENTE respondió (si Anthropic
+    // no tenía llave pero OpenAI sí consumió la env del dueño, no marcarlo 'ninguna').
+    registrarUso(acceso.clinicId, rc ? anthropic.fuente : openai.fuente).catch(() => {})
   }
 
   // Si el primario (Anthropic) falló pero GPT respondió, GPT pasa a ser el primario.

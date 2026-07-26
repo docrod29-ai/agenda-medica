@@ -40,6 +40,15 @@ const num = (v: unknown): number | null => {
   const x = Number(v)
   return Number.isFinite(x) ? x : null
 }
+
+/**
+ * ¿El modo ventilatorio implica esfuerzo/respiración espontánea? En estos modos la
+ * Pplateau (y por tanto driving pressure/compliance) NO es interpretable, así que
+ * el motor debe bloquear esos cálculos. Modos controlados (A/C, SIMV, APRV) → false.
+ */
+export function esModoEspontaneo(modo?: string): boolean {
+  return ['PSV', 'CPAP', 'VNI', 'AFNC', 'aire'].includes((modo || '').trim())
+}
 const enRango = (x: number, [lo, hi]: readonly [number, number]) => x >= lo && x <= hi
 const r1 = (x: number) => Math.round(x * 10) / 10
 const r2 = (x: number) => Math.round(x * 100) / 100

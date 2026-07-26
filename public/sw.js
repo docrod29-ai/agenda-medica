@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v644'  // DEMO UCI enriquecido: selector de 3 ESCENARIOS (SDRA septico+LRA, choque cardiogenico+ECMO VA, TCE grave) que corren los MOTORES REALES (snapshotUCI dinamico: P/F, driving, SOFA, PAM, VExUS, PPC por caso) + nota por 7 sistemas + CALCULADORA DE INFUSION INTERACTIVA (elige farmaco/dosis/peso -> mL/h en vivo con dosisARate). Todo ficticio, calculos reales.
+const CACHE = 'nexusmed-v645'  // 2a AUDITORIA (10 bugs del codigo nuevo, verif adversarial). REPARADOS: (P1) tendencias relevancia sobre delta CRUDO no redondeado (norepi <0.05 se descartaba); (P1) nota firmada SOFA ahora pasa dopa/dobu/epi (subestimaba cardiovascular); (P1 FUGA) Copilot UCI con red de seguridad de costo: si corre sobre la llave del dueno (prueba) y hay creditos agotados/tope -> 402 (antes dual-model Opus+GPT ilimitado sin tope); (P2) verificarModuloIA falla CERRADO para modulos opt-in (uci/hospitalizacion) en error de Firestore; (P2) esModoEspontaneo bloquea driving pressure en PSV/CPAP/VNI en panel+nota+copilot; (P3) infusiones quita tipo sin usar, comentario PHI del copilot, ECMO VV->respiratorio, registrarUso por fuente real.
 // (v601):
 
 self.addEventListener('install', (event) => {
