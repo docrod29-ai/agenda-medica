@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v661'  // 010 CANDADO ACTIVADO (RECETA_DISENO_FIRMA=obligatoria en Vercel) + FirmadorDisenos global en el layout: la vista previa firma sus <img> del proxy al montar y ante cambios de DOM (sin el, con candado la preview en pantalla perdia el membrete; impresion y PDF ya firmaban solos). Probado con la receta real del Dr en v660.
+const CACHE = 'nexusmed-v662'  // L1 dinero (auditoria maestra): (a) TOPE de creditos en 8 rutas caras de IA (gateCreditos: 402 si corre con llave del dueno y agoto creditos; transcribir/chunk NO se topan por ser el fallback barato del modo economico). (b) RBAC facturacion: stripe/portal,checkout,recarga y asientos-POST pasan de verificarMiembro a verificarMedico (la secretaria ya no puede cancelar suscripcion ni comprar). 1761 tests.
 // (v601):
 
 self.addEventListener('install', (event) => {

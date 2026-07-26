@@ -1,0 +1,1163 @@
+{
+  "summary": "Auditoría multi-agente de TODO lo no-clínico: estructura, rendimiento, flujos, operatividad, UX, negocio",
+  "agentCount": 28,
+  "logs": [
+    "Confirmados P0/P1: 20 · Refutados: 0 · P2: 31"
+  ],
+  "result": {
+    "resumenPorArea": [
+      {
+        "area": "Arquitectura y estructura de código",
+        "resumen": "La arquitectura de capas está sorprendentemente sana: no hay imports circulares (lo verifiqué con un análisis de grafo sobre todo src/), lib/ nunca importa de hooks/context/components, el módulo whatsapp/ está bien modularizado (16 archivos pequeños con responsabilidad única) y la generación de PDF está centralizada en lib/pdf-download.ts. Los problemas reales son tres: dos páginas monolíticas (consulta con ~3,110 líneas en un solo componente y 58 useState; configuración con 8 tabs inline), duplicación de helpers con comportamiento divergente (ckdEpi2021 en dos archivos con redondeo distinto; el parseo de alergias con 4 regex diferentes), y un puñado de código muerto acotado."
+      },
+      {
+        "area": "Rendimiento",
+        "resumen": "El área está mucho mejor de lo que sugiere el historial: el bug de useAppointments quedó bien resuelto (ventana de 120 días documentada), todo el JS pesado (html2pdf, pdfjs-dist, qrcode, Porcupine) es import dinámico, y la mayoría de las queries están acotadas por fecha, estado o paciente. Lo que queda son \"hermanos\" del patrón original —descargas de colecciones completas que crecen con los años de uso— y dos detalles de re-render baratos de arreglar. Nada rompe hoy; el riesgo es de degradación gradual conforme crece el consultorio."
+      },
+      {
+        "area": "Flujos y UX (agenda→cita→consulta→cobro→recordatorio, alta de paciente, hospitalización, configuración inicial)",
+        "resumen": "El área está en muy buen estado: los flujos principales ya pasaron por varias olas de auditoría y se nota (estados de carga/vacío/error presentes, botones con loading/disabled, confirm in-app en vez del nativo, toasts en español que dicen la verdad cuando algo falla a medias). Lo que queda son fricciones puntuales: un prellenado roto en el paso calendario→asistente, textos de estado sin traducir en dos menús, y un par de mejoras menores de rendimiento y de callejones."
+      },
+      {
+        "area": "Operatividad y resiliencia (manejo de errores, offline, observabilidad, crons)",
+        "resumen": "El área está más madura de lo esperado: hay mini-Sentry propio para errores de cliente (reportar-error.ts montado en el layout), error boundaries que reportan, persistencia offline de Firestore con banner que avisa, outbox/DLQ con backoff para WhatsApp proactivo, cron fail-closed y las alertas hospitalarias ya avisan cuando NO salen. Los huecos reales están en el lado servidor (cero telemetría/alerting: 29 rutas API solo hacen console.error a logs de Vercel que nadie ve), en el DLQ que nadie puede leer, y en un caso de pérdida de datos: el logout borra la cola offline de Firestore con escrituras pendientes."
+      },
+      {
+        "area": "Móvil y Accesibilidad",
+        "resumen": "La base móvil está madura: touch targets ≥44px vía @media (pointer:coarse), tablas con overflow-x, safe-areas de iPhone, font-size 16 anti-zoom iOS, viewport sin user-scalable=no y tokens de contraste ya corregidos (--text3 #6B6F75 AA). Lo que SIGUE mal es puntual pero real: la vista semana del calendario es inusable a 375px y es la vista por defecto, la gestión de foco en modales/drawer nunca se implementó (solo se añadió aria en v568-591), los labels de los formularios principales no están asociados a sus inputs, y dos modales custom reintrodujeron el bug de \"seleccionar texto cierra el modal y pierde lo capturado\" que el Modal compartido ya había corregido."
+      },
+      {
+        "area": "Flujos de negocio (Stripe, créditos, cobros de citas, onboarding de pago)",
+        "resumen": "El núcleo está sorprendentemente sólido: webhook de Stripe con firma + idempotencia atómica + dunning bien pensado, cobros inmutables con transacciones anti-doble-cobro, corte de caja con la lección de timezone ya cerrada, y el bug abono→cita-cobrada correctamente reparado en el flujo de ventanilla. Los problemas reales que quedan son: el flujo de anticipo en línea del paciente reintroduce el bug de abono (y acepta monto del cliente), y tras el cobro por acción de v650 el médico gasta créditos casi a ciegas y 10 de 12 rutas cobradas no respetan el tope."
+      },
+      {
+        "area": "Consistencia de datos (transacciones, carreras, huérfanos, zonas horarias)",
+        "resumen": "Área en buen estado general: las escrituras críticas (alta/reagenda de citas, cobro↔cita, anulación de cobro, ingreso hospitalario, alta de consultorio, conversión de lista de espera vía bot) ya son transaccionales con centinela por día, y los borrados peligrosos conocidos (cita cobrada, notas firmadas) están bloqueados. Lo que queda real se concentra en dos frentes: (1) el manejo de zona horaria está anclado a UTC-6 y a la zona del runtime en dos puntos (bloqueos de agenda evaluados en el servidor y todo el motor instanteMX/hoyISO), lo que rompe a clínicas de Tijuana/Hermosillo que la propia UI ofrece y permite reservar dentro de vacaciones bloqueadas; (2) la pestaña Portal reescribe la config completa desde un snapshot que puede ser DEFAULT_CONFIG."
+      },
+      {
+        "area": "Mantenibilidad (tipos, tests, configuración, CI)",
+        "resumen": "La deuda de tipos es sorprendentemente baja (0 @ts-ignore, 1 `any` justificado con eslint-disable, ~40 `as unknown as` concentrados en glue de sanitización/Firestore) y hay 156 archivos de test con buena cobertura de WhatsApp, cobros y auth-server. Los huecos reales están en otra parte: el CI no corre lint ni e2e, la lógica pura de disponibilidad de la agenda pública y el webhook de Stripe tienen CERO tests, y hay valores mágicos de precios/zonahoraria duplicados que ya están desincronizados de la fuente de verdad."
+      }
+    ],
+    "confirmados": [
+      {
+        "titulo": "Cero tests para la lógica de disponibilidad de la agenda pública (availability.ts) pese a ser pura y alimentar el booking público",
+        "severidad": "P1",
+        "evidencia": "src/lib/availability.ts:1-240 — módulo puro con reglas no triviales (`MAX_SLOTS_POR_DIA = 24`, `DURACION_MIN_SEGURA = 5`, clamp de 24:00→23:59, `validarHorarioDia` con jornada ≤14h) importado por src/app/api/public/booking/route.ts:13. `grep -rln \"availability\" src/__tests__/` → 0 resultados; tampoco hay test para src/app/api/appointments/route.ts (la transacción anti-doble-booking) ni para las funciones puras del webhook Stripe (planPorMonto, estadoDeSuscripcion).",
+        "impacto": "El cálculo de slots es exactamente el tipo de código que ya causó bugs en producción ('aparecen 32 lugares', citas empalmadas) y cualquier refactor futuro lo puede romper sin que el CI lo detecte. Contrasta con WhatsApp (13 archivos de test) y cobros (4): las áreas de dinero/agenda pública quedaron sin red.",
+        "fix": "Un archivo src/__tests__/availability.test.ts con casos: horario válido/inválido, 24:00, config duración=0, tope de 24 slots, slots pasados hoy vs mañana. Otro para planPorMonto/estadoDeSuscripcion (son funciones puras exportables, 30 min de trabajo).",
+        "area": "Mantenibilidad (tipos, tests, configuración, CI)",
+        "verif": {
+          "confirmado": true,
+          "motivo": "Evidencia verificada línea por línea: availability.ts:13/16/56/62 contiene exactamente las constantes y reglas citadas (MAX_SLOTS_POR_DIA=24, DURACION_MIN_SEGURA=5, clamp 24:00→23:59, jornada ≤14h); el booking público lo importa en route.ts:13; grep repo-wide confirma 0 tests para availability, 0 para la transacción de appointments (route.ts:110) y 0 para planPorMonto/estadoDeSuscripcion (stripe/webhook/route.ts:38,62). El contraste con áreas cubiertas es real (11 tests de WhatsApp, no 13 como dice el hallazgo — detalle menor). P1 justo: los comentarios del propio módulo documentan bugs de producción previos en esta misma lógica (\"32 lugares\", slots fantasma, agendas cruzadas), y una regresión pasaría el CI en silencio afectando el agendamiento público.",
+          "severidadCorregida": "P1"
+        }
+      },
+      {
+        "titulo": "CI no corre lint ni e2e: existen los scripts pero nada los ejecuta como gate",
+        "severidad": "P1",
+        "evidencia": ".github/workflows/ci.yml (25 líneas) — el job `verificar` solo tiene `npx tsc --noEmit` y `npx vitest run`; no aparece `eslint` ni `playwright` en ningún paso. package.json define `\"lint\": \"eslint\"` y `\"e2e\": \"playwright test\"` (con playwright.config.ts y e2e/smoke-publico.spec.ts reales), pero ninguno está en el workflow.",
+        "impacto": "Reglas de eslint-config-next (hooks mal usados, img sin alt, deps de useEffect) pueden mergearse rotas sin que nadie lo note, y el único smoke e2e del flujo público nunca valida un deploy. El gate de calidad anunciado en el propio comentario del ci.yml ('bloquea que se mezcle código que rompe') está incompleto.",
+        "fix": "Agregar dos pasos al job existente: `npm run lint` (barato, ~segundos) y, como job separado tolerante a flakiness, `npx playwright test` con `npx playwright install --with-deps chromium`. Opcional: subir el reporte de cobertura que ya genera `test:cobertura`.",
+        "area": "Mantenibilidad (tipos, tests, configuración, CI)",
+        "verif": {
+          "confirmado": true,
+          "motivo": "Evidencia verificada literal: .github/workflows/ci.yml (25 líneas) solo ejecuta `npx tsc --noEmit` (línea 23) y `npx vitest run` (línea 25); no hay paso de eslint ni playwright, pese a que package.json define \"lint\": \"eslint\" (línea 9) y \"e2e\": \"playwright test\" (línea 11), y existen eslint.config.mjs, playwright.config.ts y e2e/smoke-publico.spec.ts. No hay gate compensatorio: next.config.ts no menciona eslint y Next.js 16 ya no corre ESLint en `next build`. El impacto no es hipotético: ejecuté `npx eslint .` hoy y falla con 127 errores + 130 warnings, de los cuales 106 son reglas react-hooks (set-state-in-effect: 73, refs: 16, preserve-manual-memoization: 7, purity: 5, immutability: 5) — exactamente la clase de defecto (\"hooks mal usados\") que el hallazgo advierte que se mergea sin detección. El propio comentario del ci.yml (líneas 3-5) anuncia ser la puerta de calidad, incompleta. P1 justo: el riesgo es real y ya materializado en deuda acumulada. Matiz al fix propuesto: agregar `npm run lint` al CI hoy rompería el pipeline de inmediato (127 errores existentes); requiere primero sanear o establecer una línea base.",
+          "severidadCorregida": "P1"
+        }
+      },
+      {
+        "titulo": "Webhook Stripe: umbrales de precio hardcodeados ya desincronizados de los precios reales; el fallback puede asignar plan equivocado",
+        "severidad": "P1",
+        "evidencia": "src/app/api/stripe/webhook/route.ts:38-44 — `function planPorMonto(amount) { // Precios (centavos MXN): 34900 Agenda · 89900 Clínica · 189900 Pro · 290000 Hospital ... if (amount <= 220000) return 'premium'; return 'hospital' }` y route.ts:229 — `planPorMonto(item.price.unit_amount ?? 0)` como respaldo cuando la suscripción no trae metadata. Los precios reales viven en src/lib/planes-ia.ts:145,164 (Pro=$1,590, Hospital=$3,499 — el comentario dice $1,899 y $2,900) y existen precios ANUALES = 10× el mensual (src/lib/stripe.ts STRIPE_PRICES_ANUAL).",
+        "impacto": "Una suscripción sin metadata.plan (creada a mano en el dashboard de Stripe, o modificada vía billing portal que no reescribe metadata) cae al fallback por monto. Con un precio ANUAL, Agenda anual = 349,000 centavos > 220,000 → activa plan 'hospital': el cliente más barato recibe todos los módulos del plan más caro. A la inversa, un cambio de plan por portal conserva metadata.plan viejo y la clínica nunca se actualiza. Es dinero y entitlements decididos por números mágicos ya obsoletos.",
+        "fix": "Derivar el plan del price ID (comparar item.price.id contra STRIPE_PRICES y STRIPE_PRICES_ANUAL, que ya existen en src/lib/stripe.ts) en vez de por monto; dejar planPorMonto solo como último recurso con log de alerta, y normalizar montos anuales (÷12) si se conserva. Actualizar el comentario de precios o eliminarlo.",
+        "area": "Mantenibilidad (tipos, tests, configuración, CI)",
+        "verif": {
+          "confirmado": true,
+          "motivo": "Evidencia verificada línea por línea: planPorMonto (webhook/route.ts:38-44) usa umbrales con comentario de precios obsoleto (dice Pro $1,899/Hospital $2,900; los reales en planes-ia.ts:145,164 son $1,590/$3,499) y se usa como fallback en subscription.updated (route.ts:229) cuando metadata.plan falta o es inválido. Matiz: los montos MENSUALES actuales aún clasifican bien (159000≤220000→premium; 349900>220000→hospital), pero el caso ANUAL es aritméticamente cierto: precios anuales = 10× mensual (planes-ia.ts:210, stripe.ts:39-44), Agenda anual = 349,000 centavos > 220,000 → asigna 'hospital' (módulos completos + IA premium vía activarPlan). Los caminos de disparo son reales: el billing portal existe (portal/route.ts:35) y un cambio de plan ahí conserva metadata.plan viejo (la clínica nunca se actualiza aunque ES_PLAN lo acepte), y una suscripción creada a mano en el dashboard (plausible con el modelo de códigos FUNDADOR) no trae metadata → cae al fallback. No reparado en auditorías previas. P1 justo: entitlements y dinero decididos por números mágicos con rutas reales de activación, pero el camino feliz (checkout/route.ts:67 sí pone subscription_data.metadata) lo cubre, no es P0.",
+          "severidadCorregida": "P1"
+        }
+      },
+      {
+        "titulo": "instanteMX/hoyISO ignoran config.zonaHoraria: recordatorios, corte de caja y validación de 'pasado' quedan corridos 1-2h para clínicas de Hermosillo (UTC-7) y Tijuana (UTC-8) que la UI sí ofrece",
+        "severidad": "P1",
+        "evidencia": "src/lib/timezone.ts:73-75 «export function instanteMX(fechaISO, horaHHMM) { return new Date(`${fechaISO}T${horaHHMM}:00-06:00`) }» (offset -06:00 quemado, sin parámetro tz) y hoyISO/ahoraMinutosDelDia con TZ_DEFAULT fijo; mientras src/app/(dashboard)/configuracion/page.tsx:490-491 ofrece «America/Hermosillo (UTC-7)» y «America/Tijuana (UTC-8)» y src/lib/availability.ts:115 sí respeta config.zonaHoraria. Consumidores: cron src/app/api/cron/reminders/route.ts:139 (ventanas 23-26h y 1-4h), src/app/api/public/booking/route.ts:81 (rechazo de 'pasado') y src/lib/cobros.ts:35-36 (límites del día del corte).",
+        "impacto": "Para una clínica configurada en Tijuana: el recordatorio de mismo día (ventana 1-4h) se dispara en realidad 3-6h antes de la cita; el portal público rechaza como 'en el pasado' slots que aún están hasta 2h en el futuro (si se habilita reservar mismo día); y el corte de caja parte el día 2h antes — un cobro de las 22:30 locales cae en el corte del día siguiente y el corte no cuadra, exactamente el bug que ya se reparó para UTC-6. La UI promete zonas que el motor no honra; con la venta multi-tenant esto es una bomba silenciosa por clínica fronteriza.",
+        "fix": "Hacer que instanteMX acepte tz (usar Intl para calcular el offset de la zona, o mapa fijo zona→offset dado que MX ya no tiene DST salvo franja fronteriza) y propagar config.zonaHoraria en los 3 consumidores: cron (ya carga config por clínica en la línea 102), public/booking (ya tiene cfg) y cobros (pasar clinicConfig.zonaHoraria a limitesDelDia).",
+        "area": "Consistencia de datos (transacciones, carreras, huérfanos, zonas horarias)",
+        "verif": {
+          "confirmado": true,
+          "motivo": "Toda la evidencia existe tal cual: instanteMX (src/lib/timezone.ts:73-75) quema el offset -06:00 sin parámetro tz, mientras la UI de configuración (configuracion/page.tsx:490-491) ofrece America/Hermosillo (UTC-7) y America/Tijuana (UTC-8), y availability.ts:115 sí honra config.zonaHoraria — la inconsistencia interna es real. Los 3 consumidores confirmados sin tz: cron reminders route.ts:139 (ventanas 23-26h/1-4h corridas 1-2h para clínicas fronterizas; además línea 83 usa ahoraMinutosDelDia() default para horas de silencio, también corrido), cobros.ts:35-36 (límites del corte anclados a medianoche CDMX = 22:00 local Tijuana, un cobro de 22:30 cae en el corte del día siguiente — impacto vivo en dinero), y booking route.ts:81 (impacto latente, el propio comentario del código lo admite como 'bomba de tiempo' si se habilita reserva mismo día). No hay reparación posterior: instanteMX no tiene ningún consumidor que pase zona. Severidad P1 justa: no afecta a clínicas UTC-6 (default y mayoría) ni destruye datos, pero para cualquier clínica que elija las zonas ofrecidas el corte no cuadra y los recordatorios disparan horas fuera — riesgo real multi-tenant, no P0 porque no bloquea ni pierde datos hoy.",
+          "severidadCorregida": "P1"
+        }
+      },
+      {
+        "titulo": "Pestaña Portal guarda la config COMPLETA desde useConfig sin gate de loading/error: puede sobreescribir toda la configuración con DEFAULT_CONFIG",
+        "severidad": "P1",
+        "evidencia": "src/app/(dashboard)/configuracion/page.tsx:1996 «await saveConfig(clinicId, { ...config, publicBookingEnabled: enabled, publicBookingNote: note })» con config de useConfig (src/hooks/useConfig.ts:10 «useState<ClinicConfig>({ ...DEFAULT_CONFIG })»); PortalTab (línea 1948-1952) no consulta loading ni error, y guardar solo valida «if (!clinicId || !config) return» (1993), que siempre pasa. saveConfig escribe todas las llaves con merge (src/lib/firestore.ts:198-204).",
+        "impacto": "Si el usuario pulsa Guardar en la pestaña Portal antes de que llegue el snapshot (clic rápido) o tras un error de lectura (red/reglas/token: useConfig deja config=DEFAULT_CONFIG y loading=false), se escribe DEFAULT_CONFIG entero sobre la config real: nombreClinica/nombreMedico en '', horario 9-18 genérico, duraciones, recetaConfig y zonaHoraria de fábrica. Pérdida de configuración del consultorio (el mismo doc que costó semanas calibrar: membrete, receta, horarios) sin forma de deshacer. Contrasta con handleSave del formulario principal (líneas 174-184), que sí guarda solo el diff.",
+        "fix": "En PortalTab: usar también { loading, error } de useConfig, deshabilitar Guardar mientras loading o error, y reemplazar saveConfig(config completo) por saveConfigPartial(clinicId, { publicBookingEnabled, publicBookingNote }) — solo las dos llaves que esta pestaña edita.",
+        "area": "Consistencia de datos (transacciones, carreras, huérfanos, zonas horarias)",
+        "verif": {
+          "confirmado": true,
+          "motivo": "Evidencia verificada línea por línea: page.tsx:1996 guarda con saveConfig el spread completo de config (useConfig arranca en DEFAULT_CONFIG, useConfig.ts:10, y su listener NO se restablece tras error, línea 37), el guard de la línea 1993 nunca bloquea porque config siempre es truthy, y saveConfig (firestore.ts:198-204) escribe todas las llaves; contrasta con handleSave (líneas 150-186) que sí hace diff justo para evitar \"reescribir un snapshot completo\". Matiz adversarial: el sub-escenario de \"clic rápido\" está debilitado — el padre bloquea el render con loading (línea 272) y el hook de PortalTab rehidrata de caché en ms, así que config suele ser real al hacer clic. PERO la verificación encontró que la falta de gate es peor de lo reportado en el camino feliz: el efecto de siembra (1962-1967) usa `!config` que nunca es false, siembra enabled/note desde DEFAULT_CONFIG en el primer flush (antes de que llegue el snapshot, que es asíncrono) y se bloquea con portalInitRef → la nota guardada nunca se muestra y CUALQUIER Guardar del Portal escribe publicBookingNote:'' sobre la real, sin necesidad de error. Además, el camino de error (listener muere en DEFAULT_CONFIG, guardado posterior exitoso tras recuperar auth) sí puede escribir DEFAULT_CONFIG entero porque la pestaña ignora `error`. Riesgo real de pérdida de configuración → P1 justa. Fix propuesto (gate loading/error + saveConfigPartial de solo 2 llaves) es correcto.",
+          "severidadCorregida": "P1"
+        }
+      },
+      {
+        "titulo": "Bloqueos de agenda (vacaciones/ausencias) se evalúan corridos ~6h en el servidor: el portal público y el bot ofrecen y aceptan citas dentro del bloqueo",
+        "severidad": "P1",
+        "evidencia": "src/lib/time-blocks.ts:57 «const t = new Date(fechaHora.replace(' ', 'T')).getTime()» (sin offset → se interpreta en la zona del RUNTIME, UTC en Vercel) vs src/app/(dashboard)/configuracion/page.tsx:1862 «desde: new Date(desde).toISOString()» (el bloque se guarda como instante UTC con Z, correcto). Consumido server-side en src/app/api/public/booking/route.ts:131 «if (estaBloqueado(fechaHora, bloques, medicoId))» y src/app/api/whatsapp/webhook/route.ts:179.",
+        "impacto": "El bloque se crea bien (instante real, p. ej. vacaciones 09:00–14:00 MX = 15:00Z–20:00Z), pero en el servidor el slot '10:00' se parsea como 10:00Z (04:00 MX) → cae FUERA del bloque: un paciente reserva por el portal o el bot durante las vacaciones del médico y se presenta a consultorio cerrado. Simétricamente, slots vespertinos válidos (16:00 MX) se rechazan como bloqueados. En el navegador del médico (zona MX) el mismo código parsea bien, así que el panel se ve correcto y el defecto es invisible para el Dr.",
+        "fix": "En estaBloqueado, convertir el slot a instante real con instanteMX(fecha, hora) (o la zona de la clínica) en lugar de new Date(string sin offset). Una línea: «const t = instanteMX(fechaHora.slice(0,10), fechaHora.slice(11,16)).getTime()». Ajustar el test de time-blocks para fijar bloques con Z y verificar en TZ=UTC.",
+        "area": "Consistencia de datos (transacciones, carreras, huérfanos, zonas horarias)",
+        "verif": {
+          "confirmado": true,
+          "motivo": "CONFIRMADO con evidencia verificada línea por línea. (1) src/lib/time-blocks.ts:57 dice exactamente «const t = new Date(fechaHora.replace(' ', 'T')).getTime()» — string sin offset, interpretado en la TZ del runtime (UTC en Vercel; no hay override: sin TZ en vercel.json/next.config ni process.env.TZ en src). (2) El bloque sí se guarda como instante UTC correcto: configuracion/page.tsx:1862-1863 «desde: new Date(desde).toISOString()» (datetime-local parseado en el navegador del médico, zona MX). (3) Consumo server-side real hoy: booking/route.ts:117+131 pasa `${fecha} ${hora}` naive a estaBloqueado, y whatsapp/webhook/route.ts:179 pasa `${fecha} ${hhmm}`. El desfase ~6h es real: bloque 09:00–14:00 MX = 15:00Z–20:00Z; el slot '10:00' se parsea como 10:00Z → fuera del bloque → la reserva pasa; y '16:00' MX se rechaza como bloqueado. Agravante que refuerza que NO está reparado: el mismo booking/route.ts:69-84 documenta y arregla esta misma clase de bug con instanteMX para la validación de \"pasado\", pero deja la llamada a estaBloqueado con el string naive. Además encontré el MISMO defecto duplicado de forma independiente en el endpoint que OFRECE los slots: src/app/api/public/availability/[clinicId]/route.ts:111-130 compara new Date(b.desde) (instante Z correcto) contra ts = new Date(fecha+'T00:00:00') (naive, UTC en servidor) → el portal ofrece slots dentro del bloqueo y luego el booking los acepta; defensa en profundidad rota en ambas capas. El test existente (src/__tests__/time-blocks-and-noshow.test.ts) usa strings naive en ambos lados, por eso pasa en cualquier TZ y no detecta el bug. Matiz de alcance: en vacaciones multi-día de día completo los días interiores siguen bloqueados (el desfase solo abre las mañanas del primer día); las ausencias parciales (p. ej. 09:00–14:00) fallan por completo. Severidad P1 justa: riesgo real (paciente reserva y acude a consultorio cerrado, invisible para el Dr porque su navegador en zona MX parsea bien), pero no hay pérdida de datos/dinero ni bloqueo total. Sugerencia al fix: cubrir también availability/[clinicId]/route.ts:118-119, no solo estaBloqueado.",
+          "severidadCorregida": "P1"
+        }
+      },
+      {
+        "titulo": "Precios y créditos contradictorios entre /precios (fuente de verdad) y el paywall/configuración: $1,590 vs $1,899 y 200 vs 160 créditos",
+        "severidad": "P1",
+        "evidencia": "src/lib/planes-ia.ts:145 «premium ... precioMXN: 1590» y :130 «clinica ... creditos: 200» (comentario línea 2: «fuente ÚNICA de verdad»; /precios renderiza de aquí) vs src/app/(dashboard)/layout.tsx:96-97 «'160 créditos de IA/mes'» y «Pro price: '$1,899'» (hardcodeado en el paywall que cobra), src/app/(dashboard)/configuracion/page.tsx:1447 «premium: ... price: '$1,899 MXN/mes'» y :1448 hospital '$2,900' (planes-ia dice $3,499), :1454 '160 créditos', y src/lib/ayuda/conocimiento.ts:165",
+        "impacto": "El médico compara en la página pública /precios ($1,590 Pro, 200 créditos Clínica) y al llegar al paywall dentro de la app se le ofrece '$1,899' — o al revés según cuál coincida con el price ID real de Stripe (env). O se anuncia un precio menor al que Stripe cobra (queja/chargeback/riesgo Profeco por publicidad de precio) o se espanta al prospecto con un precio mayor al real. Los créditos prometidos tampoco cuadran: el gate real usa PLANES.clinica.creditos=200 mientras la UI promete 160.",
+        "fix": "Eliminar los 3 diccionarios hardcodeados (PLANES_GATE en layout.tsx, PLAN_DISPLAY/PLAN_FEATURES en configuracion, textos de conocimiento.ts) y derivarlos de PLANES/planes-ia.ts como ya hace /precios; verificar contra los amounts reales de los price IDs de Stripe y ajustar planes-ia a lo que de verdad se cobra.",
+        "area": "Flujos de negocio (Stripe, créditos, cobros de citas, onboarding de pago)",
+        "verif": {
+          "confirmado": true,
+          "motivo": "Toda la evidencia existe tal cual: planes-ia.ts:2 se declara \"fuente ÚNICA de verdad\" con premium precioMXN:1590 (:145) y clinica creditos:200 (:130), y /precios (src/app/precios/page.tsx:2,79-81) y la landing (src/app/page.tsx:58) renderizan de ahí; pero el paywall que cobra (layout.tsx:96-97) hardcodea '160 créditos' y '$1,899', configuracion/page.tsx:1447-1448,1454,1456 hardcodea '$1,899', hospital '$2,900' (vs 3499) y hasta un tercer valor de créditos hospital ('400' vs 500), y conocimiento.ts:165 repite $1,899/160. El lado Stripe confirma que el precio real intencionado es $1,899 (stripe.ts:25 comentario y webhook/route.ts:39 mapeo por monto 189900→premium), o sea la página pública anuncia $1,590 y el checkout cobraría $1,899. El gate real de créditos sí usa PLANES (consultor-evidencia/route.ts:182), otorgando 200 mientras la UI promete 160. No está reparado. P1 justo: riesgo real de queja/chargeback/publicidad de precio y confusión de prospecto, sin llegar a pérdida de datos o bloqueo (no P0).",
+          "severidadCorregida": "P1"
+        }
+      },
+      {
+        "titulo": "10 de las 12 rutas que cobran créditos no verifican el tope: cliente sin créditos sigue quemando dinero del dueño",
+        "severidad": "P1",
+        "evidencia": "grep creditosAgotados: 0 coincidencias en src/app/api/expediente/{verificar-nota,antibiograma-razonar,laboratorio-vision,antibiograma-vision,extraer-entidades,atribuir-roles,corregir,transcribir,transcribir-chunk,evidencia}/route.ts (solo registran después: p.ej. transcribir/route.ts:109 «void registrarCreditos(clinicId, COSTO_CREDITOS.transcribir)»); el gate sí existe en transcribir-diarizado/route.ts:43, uci/copilot/route.ts:130-134, consultor-evidencia/route.ts:187 y procesar",
+        "impacto": "El 'tope duro' (creditosAgotados) solo frena la nota, el Consultor, el Copilot y la diarización. Un consultorio con 0 créditos puede seguir corriendo visión de laboratorios/antibiogramas, evidencia PubMed y verificación de nota sin límite — costo real del dueño (visión ~1 crédito ≈ $1.5 MXN c/u de costo) sin ingreso que lo respalde: la fuga icu-007 quedó medio cerrada (se CONTABILIZA el gasto pero no se ACOTA). El contador 'usados' rebasa el límite sin ofrecer recarga.",
+        "fix": "Añadir el mismo gate barato que ya usa transcribir-diarizado:43 («if (fuente === 'prueba' && await creditosAgotados(clinicId)) → 402 con mensaje de recarga») al menos en las rutas caras: laboratorio-vision, antibiograma-vision, antibiograma-razonar, evidencia y verificar-nota.",
+        "area": "Flujos de negocio (Stripe, créditos, cobros de citas, onboarding de pago)",
+        "verif": {
+          "confirmado": true,
+          "motivo": "Verificado en código: creditosAgotados solo se aplica en transcribir-diarizado/route.ts:43, uci/copilot/route.ts:130-134, consultor-evidencia (~l.180, 402 sinCreditos), procesar/route.ts:239-252, inmuno/redactar:54 y receta/detectar-campos:51. Las 10 rutas señaladas de src/app/api/expediente/* no contienen creditosAgotados, pruebaAgotada ni 402 alguno; solo registran el gasto después con «void registrarCreditos(...)» (p.ej. laboratorio-vision:114, verificar-nota:115, evidencia:204), y registrarCreditos es explícitamente no bloqueante («No bloquea», ai-keys.ts:50). resolverClaveIA (ai-keys.ts:196-230) no revisa créditos: con fuente 'prueba' entrega la llave del dueño igual. El comentario de ai-keys.ts:87-90 confirma que creditosAgotados es «el único candado de gasto», o sea el diseño espera ese gate y falta en la mayoría de las rutas que queman créditos. P1 justo: fuga de dinero del dueño acotada por llamada, sin pérdida de datos ni bloqueo.",
+          "severidadCorregida": "P1"
+        }
+      },
+      {
+        "titulo": "Tras el cobro por acción (v650) el médico gasta créditos a ciegas: no hay medidor fuera del retorno de una nota",
+        "severidad": "P1",
+        "evidencia": "src/lib/ai-keys.ts:270-281 estadoClavesIA (lo único que ve el cliente vía /api/clinic/ai-keys) devuelve solo «uso: { total, prueba, limitePrueba }» — NO el bote 'creditos' ni el límite efectivo; src/app/(dashboard)/consulta/[patientId]/page.tsx:962 «if (data._uso) setUsoIA(data._uso)» — el único medidor visible se actualiza SOLO al generar una nota en /procesar; en configuracion/page.tsx la pestaña Suscripción solo muestra features estáticas (líneas 1447-1456), sin consumo",
+        "impacto": "Desde v650, transcripción (0.5), diarización (1), verificación (0.5), visión de labs/antibiograma (1), evidencia (1), Copilot UCI (7), etc. queman créditos en silencio. El médico no tiene NINGÚN lugar donde consultar 'llevo X de Y créditos': solo ve el saldo como efecto colateral de generar una nota, y las quemas entre notas (una tarde de antibiogramas + Copilot puede ser >20 créditos) son invisibles hasta que un 402 lo sorprende con el paciente enfrente. Fricción directa contra la recarga: nadie recarga lo que no ve agotarse.",
+        "fix": "Extender estadoClavesIA / el GET de /api/clinic/ai-keys para devolver creditosUsadosDelMes + creditosExtraDelMes + entitlementsDe (limiteCreditos), y pintar un medidor permanente en Configuración→Suscripción con botón de recarga; opcionalmente devolver _uso también en las rutas cobradas caras (copilot, visión) para refrescar el badge de consulta.",
+        "area": "Flujos de negocio (Stripe, créditos, cobros de citas, onboarding de pago)",
+        "verif": {
+          "confirmado": true,
+          "motivo": "Evidencia verificada línea por línea: estadoClavesIA (ai-keys.ts:270-282) devuelve solo uso{total,prueba,limitePrueba} y omite el contador 'creditos' (que sí existe y es el único bote de gasto, líneas 52-74), las recargas 'extra' y el límite del plan; el único refresh del medidor cliente es consulta/page.tsx:962 vía _uso, que solo devuelve /api/expediente/procesar (route.ts:380,434). Las acciones cobradas (COSTO_CREDITOS en planes-ia.ts:91-111: transcribir 0.5, diarizado 1, verificarNota 0.5, visión 1, evidencia 1, copilotUci 7) queman con void registrarCreditos() sin devolver saldo, y uci/copilot/route.ts:130-134 corta con 402 sin aviso previo posible. Configuración→Suscripción solo tiene features estáticas (configuracion/page.tsx:1454-1456, no 1447 como citaba el hallazgo — discrepancia menor). No existe ningún endpoint ni pantalla donde el médico consulte su saldo fuera del efecto colateral de generar una nota. P1 justa: fricción y riesgo comercial reales, sin pérdida de datos ni bloqueo duro (creditosAgotados es fail-open).",
+          "severidadCorregida": "P1"
+        }
+      },
+      {
+        "titulo": "Anticipo en línea salda la cita completa y el monto lo decide el cliente (hermano del bug abono→cobrada)",
+        "severidad": "P1",
+        "evidencia": "src/app/api/payment/create-checkout/route.ts:29-30 «TODO(pago fase 2): el monto debe venir de la config del servidor, NO del cliente» + validación «montoMXN < 10»; src/app/api/stripe/webhook/route.ts:185 «monto, metodo: 'tarjeta', concepto: 'consulta'» y :197 «citaRef.update({ estado: 'pagada' ... })»; src/lib/corte-caja.ts:68 «c.concepto !== 'abono'» (cualquier concepto ≠ abono SALDA la cita)",
+        "impacto": "Un paciente con su token del portal puede POSTear montoMXN=10 sobre su cita de $800: el webhook registra un cobro concepto 'consulta' por $10, marca la cita 'pagada' y la saca de cuentas por cobrar — la asistente ve 'pagada' y los $790 se pierden en silencio. Incluso en uso legítimo, un anticipo PARCIAL (30%) salda la cita al 100%: es exactamente el bug abono→cita-cobrada que ya se reparó en ventanilla, reintroducido por la vía Stripe. El endpoint no tiene caller en la UI hoy (grep sin resultados fuera de /api), pero está vivo y alcanzable.",
+        "fix": "En create-checkout: leer el precio de la cita/config del servidor (cita.pagoMonto o tarifa del consultorio), ignorar montoMXN del body. En el webhook: registrar el cobro con concepto 'abono' salvo que amount_total cubra el precio esperado, y solo entonces poner estado 'pagada'; si es parcial, dejar la cita en cuentas por cobrar por el saldo.",
+        "area": "Flujos de negocio (Stripe, créditos, cobros de citas, onboarding de pago)",
+        "verif": {
+          "confirmado": true,
+          "motivo": "Evidencia verificada textual: create-checkout/route.ts:29-30 acepta montoMXN del cliente (TODO lo admite, única validación montoMXN<10) y el token del portal solo valida propiedad de la cita, no el monto; webhook/route.ts:185 registra el anticipo con concepto 'consulta' y :197 marca estado 'pagada' sin comparar amount_total contra precio esperado; corte-caja.ts:68 salda la cita con cualquier concepto !== 'abono', regla anti-abono que esta vía esquiva (el propio comentario en corte-caja.ts:57-63 documenta el bug hermano reparado en ventanilla). Confirmé además que no hay caller en UI (grep en src/ y public/), pero el endpoint está vivo y alcanzable con token de paciente: un POST con montoMXN=10 sobre una cita de $800 registra $10, la marca pagada y la saca de cuentas por cobrar en silencio. P1 justo: no es P0 porque ningún flujo de UI lo dispara hoy, pero el hueco de dinero es real y silencioso.",
+          "severidadCorregida": "P1"
+        }
+      },
+      {
+        "titulo": "Modales custom cierran al soltar una selección de texto fuera y pierden lo capturado (bug ya corregido en Modal compartido, reintroducido)",
+        "severidad": "P1",
+        "evidencia": "src/app/(dashboard)/finanzas/page.tsx:549 «onClick={() => !anulaGuardando && setAnulando(null)}» sobre el overlay del modal 'Anular cobro' (con textarea de motivo obligatorio); src/components/laboratorio/PanelLaboratorios.tsx:165 «onClick={() => setRevision(null)}» sobre el overlay de 'Revisa lo que leyó la IA'. El componente compartido documenta y corrige exactamente esto en src/components/ui/Modal.tsx:36-47 («Con onClick en el overlay, seleccionar texto dentro del modal y soltar el botón fuera cerraba el modal») usando onMouseDown + e.target===e.currentTarget.",
+        "impacto": "En 'Anular cobro': el usuario escribe el motivo, selecciona/corrige texto arrastrando y suelta fuera de la tarjeta → el modal se cierra y el motivo se pierde. En laboratorios es peor: el médico corrige a mano valores de analitos extraídos por la IA y una selección que termina fuera tira TODAS las correcciones sin confirmación. Además ninguno de los dos cierra con Escape ni declara role='dialog'/aria-modal.",
+        "fix": "Migrar ambos al componente <Modal> de src/components/ui/Modal.tsx (que ya resuelve mousedown-en-fondo, Escape y aria), o como mínimo replicar el patrón onMouseDown + comparación de target en ambos overlays.",
+        "area": "Móvil y Accesibilidad",
+        "verif": {
+          "confirmado": true,
+          "motivo": "Evidencia verificada línea por línea: finanzas/page.tsx:549 usa onClick en el overlay del modal 'Anular cobro' (con textarea obligatorio en :558, y :487 resetea motivoAnul al reabrir, así que el texto sí se pierde); PanelLaboratorios.tsx:165 usa onClick en el overlay de 'Revisa lo que leyó la IA', donde setRevision(null) tira todas las correcciones manuales de analitos y obliga a re-procesar el archivo con IA. El componente compartido src/components/ui/Modal.tsx:36-53 documenta y corrige exactamente este bug (onMouseDown + e.target===e.currentTarget) y añade role='dialog'/aria-modal/Escape — ninguno de los dos modales lo usa. La mecánica es real: mouseup fuera del card despacha click en el ancestro común (el overlay mismo), por lo que el stopPropagation interno no protege. P1 justo: pierde input tecleado y fuerza retrabajo (incluida una llamada IA repetida en labs), pero no destruye datos persistidos.",
+          "severidadCorregida": "P1"
+        }
+      },
+      {
+        "titulo": "Vista Semana del calendario inusable a 375px y es la vista por defecto",
+        "severidad": "P1",
+        "evidencia": "src/app/(dashboard)/calendario/page.tsx:57 «const [view, setView] = useState<View>('semana')» + :199 «gridTemplateColumns: '56px repeat(7, 1fr)'» y :223 (misma rejilla en filas de horas). No hay minWidth en la rejilla ni detección de móvil (cero resultados de innerWidth/matchMedia en el archivo).",
+        "impacto": "En un iPhone de 375px cada columna de día queda en ~38px (375 − 48 de padding − 56 de columna de horas ÷ 7). Los chips de cita («09:00 Juan», fontSize 11, page.tsx:261-267) quedan ilegibles/cortados, y las celdas para crear cita son objetivos táctiles de ~38px de ancho (<44px WCAG) en el flujo más usado del día. Como el grid usa 1fr sin min-width, tampoco hay scroll horizontal como escape: simplemente se aplasta.",
+        "fix": "En móvil (matchMedia '(max-width: 640px)') inicializar view='dia' por defecto, y darle a la rejilla de semana un minWidth (~700px) dentro del contenedor que ya tiene overflow:auto (línea 197) para que en móvil se pueda panear horizontalmente si el usuario elige Semana.",
+        "area": "Móvil y Accesibilidad",
+        "verif": {
+          "confirmado": true,
+          "motivo": "Evidencia verificada línea por línea: view por defecto 'semana' (page.tsx:57), rejilla '56px repeat(7, 1fr)' sin minWidth (199 y 223) dentro de contenedor overflow:auto (197) — con 1fr las columnas se aplastan a ~38px en 375px en vez de generar scroll horizontal. Cero matchMedia/innerWidth en el archivo y globals.css no tiene ninguna regla móvil para la rejilla del calendario (solo reduce padding vertical; el padding lateral inline de 24px persiste). Agrava: BottomNav.tsx:26 manda la pestaña 'Agenda' del nav móvil directo a /calendario, así que en teléfono se aterriza en la vista aplastada por defecto en cada visita (el view no se persiste). Los chips (fontSize 11, overflow:hidden, page.tsx:261-267) quedan truncados a 2-3 caracteres. P1 justo: fricción seria en flujo principal móvil, pero no bloquea (Día/Mes funcionan y se puede cambiar manualmente).",
+          "severidadCorregida": "P1"
+        }
+      },
+      {
+        "titulo": "Cron de recordatorios sin maxDuration y con query sin acotar: a escala, las clínicas al final del loop quedan sistemáticamente sin procesar",
+        "severidad": "P1",
+        "evidencia": "src/app/api/cron/reminders/route.ts — no existe `export const maxDuration` (grep en todo api/ lo confirma) mientras otras rutas documentan el corte: expediente/corregir/route.ts:169 «maxDuration = 300 // sin esto se cortaba a 60s en Vercel»; reminders/route.ts:114-121 — query de appointments por estado SIN filtro de fecha («.where('estado', 'in', ['confirmada', …]).get()»)",
+        "impacto": "El cron itera todas las clínicas secuencialmente (envíos WhatsApp uno a uno + reseñas + drenado de outbox) con el timeout por defecto (~60 s comprobado en este mismo repo). Al crecer clínicas/citas, la función se corta a la mitad: como clinicsSnap.docs llega en el mismo orden cada hora, las clínicas de la cola NUNCA se procesan (starvation determinista) — sus recordatorios y su outbox no se drenan, en silencio (ver hallazgo de observabilidad). La query sin cota de fecha agrava el tiempo: citas viejas en 'solicitada' se re-leen por siempre.",
+        "fix": "Agregar `export const maxDuration = 300` al route del cron; acotar la query de appointments por fechaHora (>= hoy-1, <= hoy+2, que cubre ambas ventanas); opcional: rotar el orden de clínicas (offset por hora) para que un corte no castigue siempre a las mismas.",
+        "area": "Operatividad y resiliencia (manejo de errores, offline, observabilidad, crons)",
+        "verif": {
+          "confirmado": true,
+          "motivo": "Evidencia verificada línea por línea: (1) reminders/route.ts NO exporta maxDuration mientras 17 rutas del repo sí, y tres documentan que sin él Vercel corta a 60s (expediente/corregir/route.ts:169, inmuno/redactar/route.ts:40, receta/detectar-campos/route.ts:13) — el default de 60s es empírico en este mismo proyecto, no especulación; vercel.json no tiene bloque functions que lo compense y el cron corre cada hora. (2) La query de appointments (líneas 114-121) filtra solo por estado sin cota de fechaHora, e incluye 'solicitada' y 'recordatorio-enviado', estados donde se acumulan citas terminales (solicitudes muertas, no-shows) releídas cada hora para siempre — crece sin límite aun con una sola clínica; la query de reseñas del MISMO archivo (195-199) sí acota por fecha, confirmando que el patrón correcto se conoce y esta query quedó fuera. (3) El loop de clínicas (línea 91) es secuencial con awaits de HTTP externo (WhatsApp) por cita + reseñas + drenado de outbox; el orden de clinicsSnap.docs es estable, por lo que un timeout corta siempre a las mismas clínicas de la cola (starvation determinista) y el try/catch por clínica no protege del timeout de función. Severidad P1 justa: no es rotura activa hoy (pocas clínicas caben en 60s), pero el modo de fallo es pérdida silenciosa de recordatorios (→ no-shows → dinero) con degradación garantizada por la query sin cota.",
+          "severidadCorregida": "P1"
+        }
+      },
+      {
+        "titulo": "Cero observabilidad del servidor: 29 rutas API y el cron fallan solo hacia console.error; el mini-Sentry únicamente captura cliente",
+        "severidad": "P1",
+        "evidencia": "src/app/api/errores/route.ts:16-17 — el POST exige verificarUsuario (solo clientes logueados reportan); src/app/api/cron/reminders/route.ts:260 «console.error(`[Cron] Error for clinic ${clinicId}:`, clinicErr)» y :266; 29 archivos de src/app/api solo con console.error (p.ej. public/booking/route.ts:244)",
+        "impacto": "Si el cron truena cada hora (índice de Firestore faltante, CRON_SECRET ausente → 503 fail-closed en reminders/route.ts:73-75, credenciales WhatsApp caducas), los recordatorios dejan de salir y nadie se entera: el inbox /superadmin/errores es pull-based y solo recibe errores de cliente; los del servidor mueren en logs de Vercel que el dueño no revisa. Los pacientes simplemente dejan de recibir avisos.",
+        "fix": "Reusar la colección `errores` desde el servidor: helper reportarErrorServidor(origen, mensaje) con Admin SDK (sin auth) llamado en los catch de cron y rutas críticas; en el cron, además escribir un doc `cron_runs/{fecha}` con totals y mostrar en /superadmin un semáforo «último cron OK hace X h» + aviso (WhatsApp/email al dueño) si pasa >2 h sin corrida exitosa.",
+        "area": "Operatividad y resiliencia (manejo de errores, offline, observabilidad, crons)",
+        "verif": {
+          "confirmado": true,
+          "motivo": "Evidencia verificada línea por línea: errores/route.ts:16-17 exige verificarUsuario (solo clientes logueados reportan), cron/reminders/route.ts:260 y :266 solo hacen console.error, :73-75 es fail-closed 503 si falta CRON_SECRET, y exactamente 29 archivos de src/app/api usan console.error. Grep confirma que NO existe reportarErrorServidor, cron_runs ni ningún otro mecanismo de captura de errores del servidor: el único escritor de la colección `errores` es el POST autenticado de cliente. El modo de falla es real y silencioso (el cron puede morir cada hora sin que nadie se entere). P1 justo: riesgo operativo serio pero sin pérdida activa de datos/dinero hoy.",
+          "severidadCorregida": "P1"
+        }
+      },
+      {
+        "titulo": "Logout (manual y por inactividad) destruye escrituras offline pendientes: nota queda 'guardada' y se pierde",
+        "severidad": "P1",
+        "evidencia": "src/components/Sidebar.tsx:87-93 — «await new Promise(r => setTimeout(r, 1200)) … await limpiarCacheFirestore()»; src/components/AutoLogout.tsx:46-53 (mismo patrón con setTimeout 1200); src/lib/firebase.ts:82-83 — «await terminate(db); await clearIndexedDbPersistence(db)»; src/components/OfflineBanner.tsx:24 promete «Los cambios se sincronizarán al reconectar»",
+        "impacto": "Sin red, EVENTO_GUARDAR_TODO encola los guardados en la cola offline de Firestore (IndexedDB) — los promises nunca resuelven offline. Tras 1200 ms fijos, limpiarCacheFirestore() borra IndexedDB incluyendo la cola de sincronización, y limpiarBorradoresLocales() borra el respaldo en localStorage. El médico ve el banner que promete sincronizar al reconectar, se cierra la sesión por inactividad y la nota dictada se pierde sin ningún aviso. También en línea: 1200 ms puede no bastar para un guardado grande en conexión lenta.",
+        "fix": "Antes de purgar: si !navigator.onLine o hay escrituras pendientes (waitForPendingWrites con timeout corto), NO limpiar IndexedDB y mostrar aviso bloqueante («Hay cambios sin sincronizar — reconecta antes de salir»); en AutoLogout, posponer la purga (solo signOut, dejando la cola) o reintentar la limpieza al reconectar.",
+        "area": "Operatividad y resiliencia (manejo de errores, offline, observabilidad, crons)",
+        "verif": {
+          "confirmado": true,
+          "motivo": "Verificado en código actual: los tres pasos del hallazgo existen tal cual. (1) Sidebar.tsx:86-94 y AutoLogout.tsx:44-56 esperan 1200 ms fijos tras EVENTO_GUARDAR_TODO y luego purgan; (2) el guardado real va por el SDK de Firestore con persistentLocalCache (consulta page.tsx:1641 guardarBorrador → createNota/updateNota con addDoc en lib/expediente/firestore.ts:102) — offline la escritura queda encolada en IndexedDB y el promise nunca resuelve en 1200 ms; (3) limpiarCacheFirestore (firebase.ts:82-83) hace terminate + clearIndexedDbPersistence, que borra la cola de escrituras pendientes (terminate NO las envía). Además limpiarBorradoresLocales borra el respaldo en localStorage y su pestillo sesionCerrada (local-drafts.ts:73 + page.tsx:1609) impide que el flush del desmonte lo re-escriba: pérdida total y silenciosa. No hay waitForPendingWrites ni chequeo navigator.onLine en ningún camino de logout (grep en todo src/ = 0 hits). OfflineBanner.tsx:24 promete sincronizar al reconectar, agravando la confianza. Severidad P1 justa: pérdida real de nota dictada pero condicionada a estar offline (o conexión lenta con escritura aún pendiente) justo al cerrar sesión; el caso online normal sí guarda. Caveat menor que no refuta: con otra pestaña abierta clearIndexedDbPersistence falla y el catch lo traga, salvando la cola por accidente — el caso común de una sola pestaña queda expuesto.",
+          "severidadCorregida": "P1"
+        }
+      },
+      {
+        "titulo": "El clic en un hueco del calendario pierde la hora al llegar al asistente (prellenado ?hora= muerto)",
+        "severidad": "P1",
+        "evidencia": "src/app/(dashboard)/calendario/page.tsx:66-71 `openNew` hace `router.push('/asistente?fecha=..&hora=..')`; src/app/(dashboard)/asistente/page.tsx:82 `useState(horaParam || '')` y :95-97 `useEffect(() => { setHoraSeleccionada('') }, [fecha, tipo, doctorId])` — este efecto corre al montar y otra vez cuando :87-92 asigna el doctor por defecto, borrando la hora prellenada siempre.",
+        "impacto": "La asistente hace clic en un hueco concreto del calendario para agendarlo, llega al Portal del Asistente y la hora que eligió ya no está seleccionada: tiene que volver a buscarla y elegirla a mano. Es un paso doble sistemático y un riesgo de agendar en otra hora sin darse cuenta. El parámetro `hora` que el calendario envía es funcionalmente letra muerta.",
+        "fix": "Saltar el primer disparo del efecto de reseteo (ref `montado` que ignore la corrida inicial) y no resetear cuando el cambio de doctorId es la asignación inicial automática; o validar que horaParam siga siendo un slot válido y conservarla en vez de vaciarla.",
+        "area": "Flujos y UX (agenda→cita→consulta→cobro→recordatorio, alta de paciente, hospitalización, configuración inicial)",
+        "verif": {
+          "confirmado": true,
+          "motivo": "Verificado en código real: calendario/page.tsx:66-71 envía ?hora= desde los clics de celda (líneas 240/299 pasan hourStr), y asistente/page.tsx:82 lo recibe como estado inicial, pero el efecto de las líneas 95-97 (setHoraSeleccionada('') con deps [fecha, tipo, doctorId]) corre incondicionalmente al montar y otra vez cuando el efecto 87-92 asigna doctorId, borrando la hora siempre. Grep confirma que horaParam solo se usa en la línea 82 — no hay re-aplicación posterior: el parámetro es letra muerta de forma determinista. fechaParam sí sobrevive; solo se pierde la hora. Impacto acotado (línea 177 impide agendar sin hora, así que no hay misbooking silencioso), pero es fricción sistemática en el flujo de agendado más frecuente: P1 justo, no P0.",
+          "severidadCorregida": "P1"
+        }
+      },
+      {
+        "titulo": "ckdEpi2021 duplicada en dos módulos con firma Y redondeo distintos",
+        "severidad": "P1",
+        "evidencia": "src/lib/expediente/funcion-renal.ts:37 `export function ckdEpi2021(creatinina, edad, sexo: Sexo)` con `return Math.round(egfr)` vs src/lib/expediente/calculadoras.ts:200 `export function ckdEpi2021(creatinina, edad, esMujer: boolean)` con `return Math.round(tfg * 10) / 10`; ambas vivas: receta usa funcion-renal (receta/[patientId]/[notaId]/page.tsx:37 importa evaluarFuncionRenal) y copiloto.ts:19 importa la de calculadoras",
+        "impacto": "El mismo paciente puede mostrar una TFG con decimales en el copiloto y otra redondeada a entero en el ajuste renal de la receta; peor: un fix futuro a una copia no llega a la otra (drift silencioso entre dos flujos clínicos). Nota: no evalúo la fórmula (fuera de alcance), solo la duplicación estructural.",
+        "fix": "Dejar UNA implementación (la de funcion-renal.ts, que tiene más contexto) y que calculadoras.ts la re-exporte con un adaptador de firma (esMujer → sexo). Cambio de ~10 líneas; los tests existentes (funcion-renal.test.ts, copiloto-ckdepi-pediatrico.test.ts) detectan cualquier divergencia de redondeo al unificar.",
+        "area": "Arquitectura y estructura de código",
+        "verif": {
+          "confirmado": true,
+          "motivo": "Evidencia verificada línea por línea: funcion-renal.ts:37 (firma con Sexo, Math.round entero) y calculadoras.ts:200 (firma con esMujer boolean, redondeo a 1 decimal, más un clamp Math.max(creatinina, 0.01) que la otra copia no tiene). Ambas vivas: receta/[patientId]/[notaId]/page.tsx:37 usa funcion-renal vía evaluarFuncionRenal; copiloto.ts:19 importa la de calculadoras y la llama en 5 sitios (256, 479, 588, 669). El riesgo de drift ya se materializó una vez: la guarda pediátrica <18 años se tuvo que implementar por separado en cada consumidor (funcion-renal.ts:30 noAplicablePorEdad vs copiloto.ts:242-256 guarda externa NEXUS-QUALITY-004), exactamente el modo de falla que describe el hallazgo. P1 justo: no rompe hoy (solo diferencia de decimales visible), pero es duplicación viva de un cálculo clínico con divergencias ya acumuladas en una app donde un fix futuro a una copia no llegaría a la otra.",
+          "severidadCorregida": "P1"
+        }
+      },
+      {
+        "titulo": "Página de consulta monolítica: un solo componente de ~3,110 líneas con 58 useState",
+        "severidad": "P1",
+        "evidencia": "src/app/(dashboard)/consulta/[patientId]/page.tsx:140 `export default function ConsultaActivaPage()` — el archivo tiene 3,249 líneas y el componente va de la 140 al final; 58 llamadas useState; procesarIA es un useCallback de ~340 líneas (líneas 775–1115, cierra en `const procesarIARef = useRef(procesarIA)`)",
+        "impacto": "Es la pantalla más crítica de la app (dictado + nota + IA) y la más difícil de tocar sin romper algo: cada fix (y ha habido muchos según el historial) se hace dentro de un solo closure gigante donde cualquier estado puede interactuar con cualquier otro. Re-renders amplios en cada tecla del dictado.",
+        "fix": "Extracción incremental de bajo riesgo, siguiendo el patrón que ya existe (consulta-ui.tsx): (1) mover las constantes TIPOS/MOTORES_UI/ESPECIALIDADES_POR_GRUPO (líneas 111-134) y alergiasArray (línea 40) a un módulo consulta-const.ts; (2) extraer procesarIA + procesarIARef a un hook useProcesarNota(deps) — es un useCallback autocontenido con dependencias explícitas; (3) extraer el bloque de guardado (guardarBorrador, línea 1327) a useBorradorNota. No tocar el JSX en la primera pasada.",
+        "area": "Arquitectura y estructura de código",
+        "verif": {
+          "confirmado": true,
+          "motivo": "Evidencia verificada línea por línea: page.tsx tiene 3,249 líneas, ConsultaActivaPage inicia en línea 140, procesarIA es un useCallback de ~333 líneas (775–1108) con procesarIARef en 1115, guardarBorrador en 1327, y las constantes TIPOS/MOTORES_UI/ESPECIALIDADES_POR_GRUPO en 111–134. Única imprecisión menor: son 55 useState, no 58 — no cambia la conclusión. El riesgo es real, no teórico: los comentarios del propio archivo documentan bugs previos causados por interacciones dentro de este closure (nota firmada reescrita por atajo, guardarBorrador con salida temprana), y el patrón de extracción propuesto ya existe (consulta-ui.tsx en el mismo directorio). P1 es la severidad justa para el área de arquitectura.",
+          "severidadCorregida": "P1"
+        }
+      },
+      {
+        "titulo": "getPatients descarga la colección COMPLETA de pacientes en 15 pantallas, sin límite ni paginación",
+        "severidad": "P2",
+        "evidencia": "src/lib/firestore.ts:117 — `const snap = await getDocs(query(col(clinicId, COLLECTIONS.patients), orderBy('nombre', 'asc')))` con caché de solo 30s (línea 105: `TTL_PACIENTES_MS = 30_000`). 15 call sites: pacientes, citas (línea 70), asistente (líneas 107 y 188), crm, reactivacion, consultor, migracion, membresias, hospitalizacion, cumplimiento, PaletteBusqueda…",
+        "impacto": "Es exactamente el mismo patrón que causó 'la aplicación está muy lenta' con las citas: cada sesión descarga y parsea TODOS los pacientes históricos en el hilo principal, y el TTL de 30s hace que navegando entre pantallas se re-descargue varias veces por sesión. Con 3,000-5,000 pacientes acumulados son varios MB por fetch en las pantallas más usadas (citas, agendar rápido, ⌘K). Hoy funciona; en 2-3 años de uso repite la queja original.",
+        "fix": "Dos opciones acotadas: (a) subir el TTL a 5-10 min (los call sites que escriben ya invalidan con invalidarCachePacientes, así que el riesgo de dato viejo es mínimo), y (b) para el typeahead/paleta, traer solo los campos necesarios o un límite (p. ej. últimos N modificados + búsqueda por prefijo con where('nombre','>=',q)). Empezar por (a): una línea, elimina el grueso de los re-fetch.",
+        "area": "Rendimiento",
+        "verif": {
+          "confirmado": true,
+          "motivo": "Evidencia exacta: firestore.ts:117 hace getDocs de la colección completa sin limit ni proyección, TTL_PACIENTES_MS=30_000 en línea 105, y las 15 llamadas en 12 pantallas existen tal cual. PERO el propio código (comentario líneas 96-104) muestra que una auditoría previa ya mitigó lo agudo: caché por clínica con invalidación en escrituras + getPatient() para pantallas de un solo paciente. Con la caché, una sesión descarga la colección a lo más una vez por ventana de 30s, no por pantalla. No hay ruptura ni fricción seria HOY (el hallazgo mismo dice 'Hoy funciona'); lo que queda es riesgo de escalamiento futuro con precedente real (useAppointments). Eso es mejora clara con riesgo prospectivo = P2, no P1. El fix propuesto (subir TTL + límite/proyección en typeahead) es correcto y barato.",
+          "severidadCorregida": "P2"
+        }
+      },
+      {
+        "titulo": "Parseo de alergias (texto libre → lista) implementado 4 veces con separadores distintos",
+        "severidad": "P2",
+        "evidencia": "src/app/(dashboard)/consulta/[patientId]/page.tsx:42 `split(/[,;\\n]/)` y :1204 `split(/[,;\\n]+/)`; src/lib/seguridad/alergias.ts:18 `split(/[,;/]+|\\ny\\b/)`; src/lib/hospital/cds.ts:39 `split(/[,;]/)`",
+        "impacto": "Una alergia capturada como \"penicilina/sulfas\" se separa en dos alérgenos en el módulo de seguridad pero queda como un solo string en consulta y en el CDS hospitalario; \"penicilina y sulfas\" solo se separa en seguridad. Como estas listas alimentan los cross-checks de alergia-vs-medicamento, el mismo dato del paciente produce listas distintas según la pantalla. Es un bug de consistencia de código (no de criterio clínico).",
+        "fix": "Exportar un único `parseAlergias(texto): string[]` desde src/lib/seguridad/alergias.ts (usando su regex, que es la más completa) y reemplazar las 3 copias inline. ~15 líneas de cambio, sin tocar lógica clínica.",
+        "area": "Arquitectura y estructura de código",
+        "verif": {
+          "confirmado": true,
+          "motivo": "Evidencia verificada exacta en los 4 sitios (consulta page.tsx:42 y :1204, seguridad/alergias.ts:18, hospital/cds.ts:39): sí hay 4 parsers de alergias con separadores distintos. Pero el impacto está sobredimensionado: el matcher downstream validarAlergiasVsMedicamentos (medical-dictionary.ts:135) usa substring matching (a.includes('sulfa'), regexes), por lo que \"penicilina/sulfas\" sin separar SIGUE disparando las alertas de betalactámicos y sulfas; el path de consulta:1204 alimenta un prompt de LLM donde la granularidad del split es irrelevante; y consulta:42 solo alimenta el sello de procedencia, no un cross-check. Además \"penicilina y sulfas\" tampoco se separa en seguridad (el regex \\ny\\b exige salto de línea antes de la \"y\", no espacio). Queda como duplicación real de código que conviene consolidar (mantenibilidad, riesgo futuro si algún consumidor pasa a matching exacto), pero sin escenario concreto de alerta perdida hoy: P2, no P1.",
+          "severidadCorregida": "P2"
+        }
+      }
+    ],
+    "p2": [
+      {
+        "titulo": "Página de configuración con 8 componentes de tab inline (2,268 líneas)",
+        "severidad": "P2",
+        "evidencia": "src/app/(dashboard)/configuracion/page.tsx: WhatsAppConnectCard:944, BotFAQTab:1179, MedicosTab:1296, SuscripcionTab:1459, EquipoTab:1651, BloqueosTab:1838, PortalTab:1948, EmbedSnippets:2152 — todos en el mismo archivo pese a que ya existe el patrón secciones-*.tsx (`import { RecetasTab } from './secciones-recetas'`, línea 9)",
+        "impacto": "Fricción de mantenimiento: cada tab es independiente (props propias, cero estado compartido con la página) pero editar cualquiera obliga a navegar un archivo de 2,268 líneas. El bundle de /configuracion carga los 8 tabs aunque el usuario abra uno.",
+        "fix": "Extracción mecánica de riesgo casi nulo: mover cada función tal cual a secciones-whatsapp.tsx, secciones-equipo.tsx, etc. (el patrón y el archivo estilos.ts compartido ya existen). Son componentes con props explícitas — cortar y pegar + imports.",
+        "area": "Arquitectura y estructura de código"
+      },
+      {
+        "titulo": "Página importa a otra página: consulta hace dynamic import de antibiograma/page",
+        "severidad": "P2",
+        "evidencia": "src/app/(dashboard)/consulta/[patientId]/page.tsx:107 `dynamic(() => import('@/app/(dashboard)/antibiograma/page').then(m => m.AntibiogramaTool))`; el componente vive como export nombrado en src/app/(dashboard)/antibiograma/page.tsx:91",
+        "impacto": "Acoplamiento entre rutas: la página de consulta depende de la estructura interna de otra página. Cualquier refactor de la ruta /antibiograma (mover, renombrar, convertir a server component) rompe consulta; además el chunk de consulta arrastra todo el módulo de página de antibiograma.",
+        "fix": "Mover AntibiogramaTool a src/components/AntibiogramaTool.tsx; antibiograma/page.tsx queda como un wrapper de 5 líneas (`return <AntibiogramaTool />`, hoy línea 476) y consulta importa desde components/. Cambio mecánico.",
+        "area": "Arquitectura y estructura de código"
+      },
+      {
+        "titulo": "Código muerto: 2 componentes y 2 módulos de lib sin ningún importador",
+        "severidad": "P2",
+        "evidencia": "src/components/DoctorOnboarding.tsx (169 líneas, 0 importadores en todo src/); src/components/AvisoPrivacidadModal.tsx (153 líneas, 0 importadores — coincide con el pendiente conocido de conectarlo); src/lib/branches.ts (42 líneas, 0 importadores, ni siquiera tests); src/lib/i18n.ts (110 líneas, solo lo importa su propio test permissions-i18n-branches.test.ts:3). Además hay 7 directorios vacíos: src/components/{agenda,citas,dashboard,settings,waitlist} y src/app/(dashboard)/{agenda,waitlist}",
+        "impacto": "Ruido al navegar y falsa señal de funcionalidad existente (branches.ts sugiere multi-sede operativa; i18n.ts sugiere i18n activo — ambos son scaffolds). AvisoPrivacidadModal es el caso delicado: parece implementado pero ningún flujo lo muestra, es decir, el aviso de privacidad NO se está presentando (pendiente ya conocido del Dr, no lo borraría — lo conectaría).",
+        "fix": "Borrar DoctorOnboarding.tsx y branches.ts (o mover a docs/ si son referencia futura); decidir i18n.ts junto con su test; conectar (no borrar) AvisoPrivacidadModal; eliminar los directorios vacíos. Todo reversible vía git.",
+        "area": "Arquitectura y estructura de código"
+      },
+      {
+        "titulo": "descargarPDF casi idéntico copiado entre receta y orden",
+        "severidad": "P2",
+        "evidencia": "src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx:319 y src/app/(dashboard)/orden/[patientId]/[notaId]/page.tsx:452 — mismos ~25 líneas (mismo `dimensionesImpresion(recetaConfigOri)`, mismo saneo de nombre `replace(/[^\\w\\sáéíóúñ-]/gi, '')`, mismo selector `.receta-sheet-wrap`, mismo toast de error), solo cambia el prefijo del filename",
+        "impacto": "El pipeline de PDF ya se reparó varias veces (about:blank, hojas blancas); con la lógica duplicada, el próximo fix de impresión tiene que aplicarse dos veces o una de las dos pantallas queda con el bug viejo.",
+        "fix": "Extraer a src/lib/pdf-download.ts un helper `descargarDocReceta(el, recetaConfigOri, prefijo, nombrePaciente)` y llamar desde ambas páginas. El núcleo (descargarPaginasComoPDF) ya está centralizado ahí — es completar la extracción.",
+        "area": "Arquitectura y estructura de código"
+      },
+      {
+        "titulo": "Página de episodio hospitalario: un componente de ~1,060 líneas con 41 useState",
+        "severidad": "P2",
+        "evidencia": "src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx:54 `export default function EpisodioPage()` — única función del archivo (1,116 líneas) junto a un helper de 1 línea (rolNombre:1116); 41 useState",
+        "impacto": "Mismo patrón que consulta a menor escala: la ficha de internamiento (Notas·MAR·Signos·Interconsultas) concentra todos los tabs y su estado en un closure; los re-renders cruzan tabs y cada cambio toca el archivo completo.",
+        "fix": "Extraer cada tab a src/components/hospital/ (el directorio ya existe y tiene componentes) con props explícitas, dejando en la página solo la carga del episodio y el tab activo. Menos urgente que consulta porque el archivo aún es manejable.",
+        "area": "Arquitectura y estructura de código"
+      },
+      {
+        "titulo": "Micro-duplicación difusa: normalizador NFD y componente Section repetidos",
+        "severidad": "P2",
+        "evidencia": "`normalize('NFD')` inline en 15+ archivos (p.ej. src/lib/expediente/medical-vocabulary.ts, src/lib/voz/comandos.ts, src/lib/hospital/cama.ts, src/app/(dashboard)/pacientes/page.tsx:92 `const qDig = search.replace(/\\D/g, '')`); `function Section` definido 6 veces (terminos/page.tsx:132, privacidad/page.tsx:102, crm/page.tsx:193, configuracion/secciones-recetas.tsx:925, membresias/page.tsx:208, consulta-ui.tsx:109)",
+        "impacto": "Bajo pero acumulativo: búsquedas que quitan acentos con reglas ligeramente distintas entre pantallas, y 6 variantes visuales de la misma sección colapsable. No rompe nada hoy.",
+        "fix": "Crear src/lib/texto.ts con `sinAcentos()` y `soloDigitos()` y adoptarlos oportunistamente (al tocar cada archivo, no en un big-bang); unificar Section en components/ui solo si se emprende el track de rediseño visual ya planeado.",
+        "area": "Arquitectura y estructura de código"
+      },
+      {
+        "titulo": "Borrar un paciente descarga TODAS las citas de la clínica para hacer match por nombre/teléfono",
+        "severidad": "P2",
+        "evidencia": "src/lib/expediente/firestore.ts:158 — `const all = await getDocs(citasRef)` dentro de deletePatientExpediente cuando hay matchInfo (nombre o teléfono, o sea casi siempre).",
+        "impacto": "Cada borrado de paciente lee la colección completa de citas (~15,000 docs, varios MB) para filtrar en el cliente. El borrado se siente colgado varios segundos en datos reales y cuesta miles de lecturas de Firestore por operación. Es acción infrecuente, por eso P2 y no P1.",
+        "fix": "Acotar el escaneo: consultar solo citas con `where('pacienteId', '==', '')` si ese campo existe vacío, o guardar pacienteTelefono normalizado al crear la cita y filtrar con where por ese campo. Como mínimo, acotar por fecha (citas de los últimos 2 años) — las huérfanas viejas no reaparecen en el censo activo.",
+        "area": "Rendimiento"
+      },
+      {
+        "titulo": "findNotaByIdInClinic hace N+1 SECUENCIAL: un getDoc por paciente en un for-await",
+        "severidad": "P2",
+        "evidencia": "src/lib/expediente/firestore.ts:55-57 — `const patientsSnap = await getDocs(collection(...'patients'))` seguido de `for (const p of patientsSnap.docs) { const ns = await getDoc(notaDoc(clinicId, p.id, notaId)) ... }`. Se invoca desde src/app/(dashboard)/nota/[patientId]/page.tsx:28.",
+        "impacto": "Es la ruta de rescate para URLs malformadas de nota: con 1,000 pacientes son 1,000 round-trips en serie (~100-150ms cada uno) = minutos de espera con la pantalla colgada antes de rendirse. El usuario percibe la app rota justo cuando ya venía de un enlace roto.",
+        "fix": "Paralelizar en lotes (Promise.all de 20-50 getDoc a la vez) reduce a segundos con 3 líneas. Mejor aún: una collectionGroup query sobre 'notas' con where(documentId()...) o guardar notaId→patientId en un índice ligero al crear la nota.",
+        "area": "Rendimiento"
+      },
+      {
+        "titulo": "Indicadores de hospitalización cargan TODO el histórico de internamientos, sin cota ni límite",
+        "severidad": "P2",
+        "evidencia": "src/lib/hospital/firestore.ts:91 — `const snap = await getDocs(internamientosCol(clinicId))` (getInternamientos, sin where ni limit), llamado en src/app/(dashboard)/hospitalizacion/indicadores/page.tsx:33 al montar.",
+        "impacto": "La colección crece para siempre (activos + egresados de todos los años); cada visita a Indicadores descarga el histórico completo y ordena en JS. Hoy son decenas de docs; en unos años la pantalla de indicadores será la más lenta del módulo hospitalario, sin que nadie sepa por qué.",
+        "fix": "Acotar por defecto a una ventana (p. ej. `where('fechaIngreso', '>=', hace12Meses)`) con opción explícita de 'ver todo el histórico', o al menos limit(500) + orderBy en la query en vez de ordenar en cliente.",
+        "area": "Rendimiento"
+      },
+      {
+        "titulo": "Sidebar montado DOS veces (desktop + drawer móvil siempre en DOM) duplica listeners de chat, lectura y config",
+        "severidad": "P2",
+        "evidencia": "src/app/(dashboard)/layout.tsx:338 y :373 renderizan `<Sidebar />` ambos siempre (el móvil solo se oculta con transform, no se desmonta). Cada instancia monta 3 onSnapshot: Sidebar.tsx:64 `suscribirMensajes(clinicId, setMensajes, 50)`, :69 `suscribirLectura(...)` y useConfig (línea 55).",
+        "impacto": "Cada mensaje de chat nuevo dispara parseo y setState en dos árboles de Sidebar en todas las pantallas del panel, todo el tiempo. El SDK de Firestore comparte el stream de red entre queries idénticas, así que el costo es CPU/memoria y renders duplicados, no lecturas dobles — real pero moderado.",
+        "fix": "Subir la suscripción de chat/lectura a un componente único por encima de ambos Sidebar (o a un context ligero) y pasar `noLeidos` como prop; o desmontar el drawer móvil cuando sidebarOpen es false en viewport desktop.",
+        "area": "Rendimiento"
+      },
+      {
+        "titulo": "ToastProvider crea el objeto value en cada render: todos los consumidores de useToast re-renderizan con cada toast",
+        "severidad": "P2",
+        "evidencia": "src/context/ToastContext.tsx:79 — `<Ctx.Provider value={{ toast, confirm }}>`: aunque toast y confirm están en useCallback, el objeto literal es nuevo en cada render del provider (que re-renderiza al aparecer/expirar cada toast, líneas 55-56).",
+        "impacto": "Cada toast (aparece + expira a los 3.5s = 2 renders) fuerza re-render de TODOS los componentes montados que llaman useToast — que son la mayoría de las pantallas. En pantallas pesadas (consulta con dictado, calendario) es trabajo inútil en momentos donde ya hay carga.",
+        "fix": "Una línea: `const value = useMemo(() => ({ toast, confirm }), [toast, confirm])`. Como ambos callbacks son estables, los consumidores dejan de re-renderizar por completo.",
+        "area": "Rendimiento"
+      },
+      {
+        "titulo": "Imagen de 315 KB debajo del pliegue en la landing sin loading=\"lazy\"",
+        "severidad": "P2",
+        "evidencia": "src/app/page.tsx:319 — `<img src=\"/brand/workspace.jpg\" ...>` (public/brand/workspace.jpg = 315,567 bytes) sin atributo loading; está en la sección 'Listo en 5 minutos', muy por debajo del hero.",
+        "impacto": "La landing pública (primera impresión de un médico prospecto, a menudo en móvil/4G) descarga 315 KB extra durante la carga inicial compitiendo con el hero (171 KB) y el JS de hidratación. Afecta LCP/ancho de banda de la página que vende el producto.",
+        "fix": "Añadir loading=\"lazy\" decoding=\"async\" a workspace.jpg (y a cualquier <img> bajo el pliegue), y opcionalmente recomprimir los JPG de /brand a ~100-150 KB (calidad 75-80) o WebP.",
+        "area": "Rendimiento"
+      },
+      {
+        "titulo": "Estados de cita mostrados como slugs crudos (en-sala, no-asistio) en el menú rápido, el toast y el select de edición",
+        "severidad": "P2",
+        "evidencia": "src/app/(dashboard)/citas/page.tsx:710 el menú «Cambiar estado» pinta `{s}` directo (p. ej. 'no-asistio', 'en-sala'); :168 `toast(`Estado actualizado: ${newStatus}`)` muestra el slug; src/components/AppointmentModal.tsx:458 `<option key={s} value={s}>{s}</option>`. El mapa de etiquetas ya existe en src/components/StatusBadge.tsx:20-35 pero no está exportado.",
+        "impacto": "La asistente ve «no-asistio» y «pendiente-confirmar» en vez de «No asistió» / «Pendiente confirmar» en tres puntos del flujo diario. El propio código de CobrarModal ya llama a esta lista «una lista sin traducir» (CobrarModal.tsx:109). Se ve descuidado y cuesta un segundo de interpretación en cada cambio de estado.",
+        "fix": "Exportar el mapa STATUS (o solo las labels) desde StatusBadge.tsx y usarlo en el menú de citas/page.tsx:710, en el toast de :168 y en el select de AppointmentModal.tsx:458.",
+        "area": "Flujos y UX (agenda→cita→consulta→cobro→recordatorio, alta de paciente, hospitalización, configuración inicial)"
+      },
+      {
+        "titulo": "El asistente recalcula la disponibilidad de todo el mes en cada tecla",
+        "severidad": "P2",
+        "evidencia": "src/app/(dashboard)/asistente/page.tsx:501-502 dentro del JSX: `{diasDelMes.map(d => { const daySlots = getAvailableSlots(d, duracion, appointments, efectiveConfig, undefined, bloques, doctorId || undefined) ... }` — sin memo, se ejecuta para ~30 días en cada render.",
+        "impacto": "Cada tecla en «Nombre» o «Teléfono» re-renderiza y vuelve a correr getAvailableSlots para todos los días del mes contra la ventana completa de citas (120 días + futuro, en vivo por onSnapshot). En un consultorio con miles de citas es jank perceptible al teclear, justo en la pantalla que más usa la asistente.",
+        "fix": "Mover el cálculo a un `useMemo` que produzca `Map<fecha, nSlots>` con deps [diasDelMes, duracion, appointments, efectiveConfig, bloques, doctorId], y leer del mapa en el render.",
+        "area": "Flujos y UX (agenda→cita→consulta→cobro→recordatorio, alta de paciente, hospitalización, configuración inicial)"
+      },
+      {
+        "titulo": "Reembolso exige monto negativo pero el input tiene min=\"0\"",
+        "severidad": "P2",
+        "evidencia": "src/components/CobrarModal.tsx:217 `type=\"number\" ... min=\"0\"` vs :81 `if (concepto === 'reembolso' && n > 0) { toast('Un reembolso debe ser negativo (ej. -500)', 'error') }`.",
+        "impacto": "Para registrar un reembolso hay que teclear un número negativo en un campo declarado min=0: las flechas del stepper no bajan de 0, el campo queda :invalid en algunos navegadores y en teclados móviles numéricos (inputMode=\"decimal\") el signo menos puede no estar disponible — el flujo de reembolso se vuelve torpe o imposible en móvil.",
+        "fix": "Quitar `min=\"0\"` (o ajustarlo dinámicamente cuando concepto === 'reembolso'), y de preferencia dejar que el usuario capture el monto en positivo y negarlo automáticamente cuando el concepto es reembolso.",
+        "area": "Flujos y UX (agenda→cita→consulta→cobro→recordatorio, alta de paciente, hospitalización, configuración inicial)"
+      },
+      {
+        "titulo": "Callejón en el ingreso hospitalario: si el paciente no existe, hay que abandonar el modal e irse a otra pantalla",
+        "severidad": "P2",
+        "evidencia": "src/app/(dashboard)/hospitalizacion/page.tsx:217 `{pacientesFiltrados.length === 0 && <div ...>Sin coincidencias. Registra al paciente primero en «Pacientes».</div>}` — texto plano, sin enlace ni acción.",
+        "impacto": "Un ingreso hospitalario es un momento de prisa. Si el paciente aún no está en el directorio, el modal solo dice que vayas a «Pacientes»: hay que cerrar el modal, navegar, abrir otro modal, llenar el alta, volver a Hospitalización, reabrir «Nuevo ingreso» y volver a llenar servicio/cama/diagnóstico (el modal no conserva lo capturado). Son ~6 pasos extra en el peor momento.",
+        "fix": "Añadir en ese estado vacío un botón «Registrar paciente nuevo» que cree el paciente mínimo (nombre ya tecleado en el buscador + teléfono opcional) inline dentro del propio modal de ingreso, sin salir del flujo.",
+        "area": "Flujos y UX (agenda→cita→consulta→cobro→recordatorio, alta de paciente, hospitalización, configuración inicial)"
+      },
+      {
+        "titulo": "Dead-letter queue de WhatsApp invisible: los mensajes 'muertos' no los lee nadie (y el drenado depende de un índice compuesto no versionado que falla en silencio)",
+        "severidad": "P2",
+        "evidencia": "src/lib/whatsapp/outbox.ts:86 — pasa a «estado: 'muerto' … para inspección»; el ÚNICO lector es entradasVencidas (outbox.ts:63-64, «.where('estado','==','pendiente').where('proximoIntentoAt','<=',…)» — filtra los muertos); grep de `whatsapp_outbox` en src/app devuelve 0 UIs/APIs. Además firebase.json no declara firestore.indexes.json y esa query equality+range exige índice compuesto; si falta, outbox.ts:68-70 atrapa y devuelve [] con solo console.warn",
+        "impacto": "Un recordatorio u oferta de lista de espera que agotó reintentos desaparece para siempre sin que la clínica lo sepa — el 'para inspección' del comentario no tiene inspector. Peor: si el índice compuesto no existe en el proyecto de Firestore (no está versionado en el repo), entradasVencidas devuelve [] cada hora y TODA la cola de reintentos es un no-op silencioso: nada se reintenta ni llega a 'muerto'.",
+        "fix": "1) Crear firestore.indexes.json con el índice (estado ASC, proximoIntentoAt ASC) y referenciarlo en firebase.json; 2) exponer los 'muertos' en el tablero de entregas que ya existe (secciones-comunicacion.tsx consume /api/whatsapp/entregas — añadir conteo de outbox muertos/pendientes a esa respuesta) con botón reintentar/descartar.",
+        "area": "Operatividad y resiliencia (manejo de errores, offline, observabilidad, crons)"
+      },
+      {
+        "titulo": "Confirmación WhatsApp del booking público se traga el fallo sin outbox ni log, a diferencia del resto de flujos proactivos",
+        "severidad": "P2",
+        "evidencia": "src/app/api/public/booking/route.ts:237 — «await sendWhatsApp(clinicId, tel, msg).catch(() => {})»; contraste: waitlist-notify/route.ts:160 sí usa «encolarReintento» tras fallo transitorio",
+        "impacto": "El paciente que agenda desde el portal no recibe el acuse «Recibimos tu solicitud» si el envío falla (token caduco, rate-limit de Meta) y no queda rastro: ni reintento, ni log, ni métrica. La cita sí existe, pero el paciente queda con la duda de si su solicitud entró — más no-shows y llamadas al consultorio.",
+        "fix": "Sustituir el catch vacío por el mismo patrón del waitlist: en fallo, encolarReintento(clinicId, {clave:'ackBooking', …}) para que el cron lo drene; mínimo, console.error con contexto para que aparezca en logs.",
+        "area": "Operatividad y resiliencia (manejo de errores, offline, observabilidad, crons)"
+      },
+      {
+        "titulo": "Las páginas de monitoreo del superadmin tragan su propio error de carga y muestran «todo limpio»",
+        "severidad": "P2",
+        "evidencia": "src/app/superadmin/errores/page.tsx:23-25 — «fetchAutenticado('/api/errores')… .catch(() => {}).finally(() => setCargando(false))»; mismo patrón en superadmin/soporte/page.tsx:32",
+        "impacto": "Si el fetch del inbox de errores falla (red, 500, sesión), la página termina de cargar con lista vacía: el dueño lee «0 errores nuevos» cuando en realidad no pudo consultar. En la única herramienta de monitoreo que existe, un fallo se disfraza de estado saludable.",
+        "fix": "En el catch, setear un estado de error y renderizar «No se pudo cargar el inbox — Reintentar» en lugar de la lista vacía (el botón Refrescar ya existe en errores/page.tsx:55).",
+        "area": "Operatividad y resiliencia (manejo de errores, offline, observabilidad, crons)"
+      },
+      {
+        "titulo": "Chat interno del equipo: si el envío falla, solo console.error — el usuario no sabe que su mensaje no salió",
+        "severidad": "P2",
+        "evidencia": "src/app/(dashboard)/chat/page.tsx:103-104 — «} catch (e) { console.error(e) }» en enviar()",
+        "impacto": "En un chat clínico entre médico y secretaria (avisos de pacientes, cambios de cita), un rechazo de Firestore (reglas, sesión caducada) deja el texto en el input sin toast ni marca de error; el usuario asume que se envió y el destinatario nunca lo recibe. El texto al menos se conserva (setTexto('') solo corre en éxito).",
+        "fix": "En el catch, toast('No se pudo enviar el mensaje. Intenta de nuevo.', 'error') — el hook useToast ya está disponible en el layout del dashboard.",
+        "area": "Operatividad y resiliencia (manejo de errores, offline, observabilidad, crons)"
+      },
+      {
+        "titulo": "Modal compartido sin gestión de foco: ni foco inicial, ni focus trap, ni restauración al cerrar",
+        "severidad": "P2",
+        "evidencia": "src/components/ui/Modal.tsx:23-70 — el único useEffect maneja Escape (:24-29); no hay ningún ref, .focus(), ni manejo de Tab en todo el archivo. Solo se añadió aria-modal/aria-labelledby (:54-56) en el barrido v568-591.",
+        "impacto": "Al abrir cualquier modal (Nueva cita, cobros, egresos…) el foco se queda en el botón que lo abrió, detrás del overlay: el siguiente Tab recorre el contenido de fondo invisible; un lector de pantalla puede no anunciar el diálogo; al cerrar, el foco no vuelve al disparador. aria-modal='true' sin confinamiento real de foco es una promesa incumplida para AT.",
+        "fix": "En el useEffect de apertura: guardar document.activeElement, mover foco al contenedor del modal (tabIndex={-1}) o al primer control, atrapar Tab/Shift+Tab dentro del .modal, y restaurar el foco guardado al cerrar. ~25 líneas en un solo archivo que beneficia a todos los modales que ya lo usan.",
+        "area": "Móvil y Accesibilidad"
+      },
+      {
+        "titulo": "45 labels de formularios principales sin asociar a su input (sin htmlFor/id)",
+        "severidad": "P2",
+        "evidencia": "grep 'className=\"label\"' → 45 ocurrencias y solo 7 htmlFor en todo src (5 de ellos dentro de ui/Field.tsx). Ej.: src/components/AppointmentModal.tsx:387-388 «<label className=\"label\">Nombre del paciente *</label><input className=\"input\" value={nombre}…» — sin id ni aria-label; igual Teléfono (:392-393), Fecha (:421), Hora (:435-444). Existe el componente con asociación correcta en src/components/ui/Field.tsx:16-61 pero AppointmentModal no lo usa.",
+        "impacto": "Los inputs del formulario de captura más importante (alta/edición de cita) no tienen nombre accesible: VoiceOver/TalkBack anuncian 'campo de texto' sin decir cuál; tocar el label en móvil tampoco enfoca el input (área táctil efectiva menor). Aplica igual en los demás formularios que copian el patrón label+input suelto.",
+        "fix": "Reemplazar los pares label+input de AppointmentModal (y de los formularios que usan className=\"label\" a secas) por los componentes Input/Select/Textarea de ui/Field.tsx pasando id, que ya hacen la asociación; o añadir htmlFor/id manualmente. Empezar por AppointmentModal y pacientes (los de mayor tráfico).",
+        "area": "Móvil y Accesibilidad"
+      },
+      {
+        "titulo": "Drawer móvil cerrado permanece enfocable en el DOM (translateX sin inert) y sin Escape ni foco al abrir",
+        "severidad": "P2",
+        "evidencia": "src/app/(dashboard)/layout.tsx:353-374 — el drawer role='dialog' se oculta solo con «transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)'» (:362); el aria-hidden={!sidebarOpen} está en el BACKDROP (:344), no en el drawer. En móvil el CSS lo fuerza visible: globals.css:797-805 «.mobile-sidebar-wrap … display: flex !important». No hay inert, ni manejo de Escape, ni movimiento de foco al abrir.",
+        "impacto": "Con el menú cerrado en móvil, un usuario de teclado/switch/lector de pantalla tabula por TODOS los enlaces del Sidebar fuera de pantalla antes de llegar al contenido (decenas de paradas invisibles, y activar una navega 'a ciegas'). Abierto, el foco no entra al menú y Escape no lo cierra.",
+        "fix": "Poner inert={!sidebarOpen} (o aria-hidden + visibility:hidden tras la transición) en el div del drawer (:353), mover el foco al primer enlace al abrir, devolverlo al botón hamburguesa al cerrar, y añadir listener de Escape mientras esté abierto.",
+        "area": "Móvil y Accesibilidad"
+      },
+      {
+        "titulo": "Calendario totalmente inoperable por teclado: celdas y citas son divs con onClick",
+        "severidad": "P2",
+        "evidencia": "src/app/(dashboard)/calendario/page.tsx:234-241 (celda de hora: «<div … cursor: 'pointer' … onClick={() => onCellClick(ds, hourStr)}>») y :249-251 (chip de cita: «<div onClick={e => { e.stopPropagation(); onApptClick(a) }}»). Cero tabIndex, role u onKeyDown en todo el archivo (grep vacío). Aplica también a DayView (:296-299) y MonthView.",
+        "impacto": "Crear una cita desde una celda o abrir/editar una cita existente es imposible sin mouse/touch: los elementos no reciben foco ni responden a Enter/Espacio. El estado de la cita además solo se comunica por estilo visual (opacidad/tachado, :28-31) sin equivalente textual para AT — el title del chip (:252) ayuda en hover pero no es alcanzable por teclado.",
+        "fix": "Convertir el chip de cita en <button> (o div con role='button', tabIndex={0} y onKeyDown Enter/Espacio) con aria-label «{hora} {paciente} — {estado}»; en las celdas, añadir el mismo tratamiento con aria-label «Agendar {día} a las {hora}». Alternativa pragmática: garantizar que la lista /citas (que sí usa buttons) cubra el flujo completo por teclado y documentarlo.",
+        "area": "Móvil y Accesibilidad"
+      },
+      {
+        "titulo": "El webhook escribe metodo 'tarjeta' (valor inexistente en MetodoPago) → el export CSV de Finanzas truena",
+        "severidad": "P2",
+        "evidencia": "src/app/api/stripe/webhook/route.ts:185 «metodo: 'tarjeta'» vs src/lib/cobros.ts:40-48 (el union MetodoPago no incluye 'tarjeta') y src/lib/cobros.ts:445 «METODO_LABEL[c.metodo].replace(...)» — undefined.replace lanza TypeError; usado en src/app/(dashboard)/finanzas/page.tsx:171",
+        "impacto": "En cuanto exista UN cobro de anticipo en línea, descargar el CSV del mes en Finanzas lanza excepción y el export completo falla (el médico no puede sacar su contabilidad); en corte de caja y Finanzas la fila sale con label undefined. Hoy latente porque el endpoint de anticipo no tiene UI, pero detona al conectarlo.",
+        "fix": "Cambiar 'tarjeta' por 'stripe' (ya existe en el union) en el webhook, y hacer defensivo el lookup: (METODO_LABEL[c.metodo] ?? c.metodo) en cobros.ts:445, corte-caja.ts:35 y finanzas/page.tsx:412,475.",
+        "area": "Flujos de negocio (Stripe, créditos, cobros de citas, onboarding de pago)"
+      },
+      {
+        "titulo": "Borrar médico no verifica citas FUTURAS: quedan citas activas apuntando a un médico inexistente y el paciente sigue recibiendo recordatorios",
+        "severidad": "P2",
+        "evidencia": "src/app/(dashboard)/configuracion/page.tsx:1421-1423 «¿Borrar a ${doc.nombre}? Sus citas anteriores no se borran…» → deleteDoctor directo; src/lib/firestore.ts:250-252 «deleteDoctor … await deleteDoc(d(clinicId, COLLECTIONS.doctors, id))» (hard delete sin chequeo).",
+        "impacto": "Las citas futuras conservan medicoId/medicoNombre denormalizados de un doctor borrado: el cron sigue mandando recordatorios y el paciente se presenta con un médico que ya no existe; el filtro por médico de la agenda ya no lista a ese doctor, así que esas citas solo se ven en la vista general; y en el chequeo de conflicto («if (medicoId && a.medicoId && a.medicoId !== medicoId) return», api/appointments/route.ts:120) siguen ocupando el hueco de un médico fantasma. El confirm avisa de las citas ANTERIORES pero calla sobre las futuras.",
+        "fix": "Antes de borrar, consultar citas futuras activas del médico (where medicoId==id, fechaHora >= hoy, estado no cancelada); si hay, bloquear con mensaje 'tiene N citas futuras: reagéndalas o cancélalas primero' (o preferir soft-delete: activo:false + oculto, que la UI ya soporta).",
+        "area": "Consistencia de datos (transacciones, carreras, huérfanos, zonas horarias)"
+      },
+      {
+        "titulo": "Booking público: alta de paciente check-then-create fuera de la transacción — duplicados por carrera y paciente huérfano si el slot ya se ocupó",
+        "severidad": "P2",
+        "evidencia": "src/app/api/public/booking/route.ts:137-153 «const pacientesSnap = await clinicRef.collection('patients').where('telefono','==',tel).limit(1).get(); … } else { const newP = await clinicRef.collection('patients').add({…}) }» — comentario propio: «(fuera de la transacción de la cita)»; la tx de la cita viene después (líneas 170-217) y puede abortar con CONFLICTO.",
+        "impacto": "Dos reservas simultáneas del mismo teléfono nuevo (paciente reintenta en dos pestañas, o familia compartiendo teléfono) crean DOS documentos de paciente — el mismo tipo de duplicado que ya obligó a construir deduplicación en el censo. Y si la tx de la cita aborta por conflicto de horario, el paciente recién creado queda huérfano sin cita (ruido en la lista de pacientes y en CRM/reactivación).",
+        "fix": "Mover buscar/crear paciente DENTRO de la transacción de la cita (Admin SDK lo permite: tx.get(query) + tx.create), o al menos crear el paciente después de que la tx de la cita haya tenido éxito, usando un id determinista por teléfono (doc(tel) con tx.set merge) para que la carrera colapse en un solo doc.",
+        "area": "Consistencia de datos (transacciones, carreras, huérfanos, zonas horarias)"
+      },
+      {
+        "titulo": "Borrar cama es un solo clic sin confirmación (único delete de la app sin confirm)",
+        "severidad": "P2",
+        "evidencia": "src/app/(dashboard)/hospitalizacion/camas/page.tsx:177 «onClick={async ev => { ev.stopPropagation(); if (!clinicId) return; await borrarCama(clinicId, c.id); recargarCamas() }}» — deleteDoc directo (src/lib/hospital/firestore.ts:336-338) sin diálogo.",
+        "impacto": "Un toque accidental en el icono de basura (12px, dentro de una tarjeta clickeable) elimina la cama del catálogo sin preguntar ni poder deshacer. No corrompe internamientos (la ocupación se deriva de internamientos, no de este doc), pero es el único borrado de la app que no pasa por el confirm in-app que el resto de pantallas ya adoptó, y en un tablero táctil de hospital el mis-tap es lo esperable.",
+        "fix": "Envolver en el confirm propio ya existente («¿Eliminar la cama X? Los pacientes internados no se afectan», peligro:true), igual que citas/page.tsx:244.",
+        "area": "Consistencia de datos (transacciones, carreras, huérfanos, zonas horarias)"
+      },
+      {
+        "titulo": "Zona horaria 'America/Mexico_City' hardcodeada en 8 archivos ignorando el override por clínica que el propio código documenta",
+        "severidad": "P2",
+        "evidencia": "src/lib/timezone.ts:14-19 — 'Acepta override por si una clínica está en otra zona (config.zonaHoraria)' y `export const TZ_DEFAULT`. Pero src/app/api/stripe/webhook/route.ts:178 (`timeZone: 'America/Mexico_City'` para calcular el día del cobro del anticipo), src/app/mi/[token]/page.tsx:60,61,296 (portal del paciente) y src/lib/agenda/prompts.ts repiten el literal en vez de usar TZ_DEFAULT o la zona de la clínica.",
+        "impacto": "Una clínica en Tijuana o Cancún (UTC-8/UTC-5) verá anticipos registrados en el día equivocado del corte de caja alrededor de medianoche, y el portal del paciente mostrará 'hoy' desfasado. Además, si algún día cambia la zona default, hay 13 ocurrencias en 8 archivos que corregir en vez de 1.",
+        "fix": "Reemplazar los literales por `TZ_DEFAULT` (import de src/lib/timezone.ts) como mínimo, y donde haya clinicId disponible (webhook, portal) pasar `config.zonaHoraria` que ya existe en el modelo (src/app/api/clinic/unirse/route.ts:38 la lee).",
+        "area": "Mantenibilidad (tipos, tests, configuración, CI)"
+      },
+      {
+        "titulo": "Correo del dueño duplicado como default en dos archivos",
+        "severidad": "P2",
+        "evidencia": "src/lib/superadmin.ts:16 `const DEFAULT_OWNER = 'docrod29@gmail.com'` y src/lib/superadmin-client.ts:8 el mismo literal. La separación server/cliente es deliberada (el cliente no puede importar firebase-admin), pero el literal está copiado, no compartido.",
+        "impacto": "Si el dueño cambia de correo (o vende la plataforma) hay que recordar tocar dos archivos y dos envs (SUPERADMIN_EMAILS y NEXT_PUBLIC_SUPERADMIN_EMAILS); olvidar el del cliente deja el enlace /superadmin invisible para el dueño nuevo, olvidar el del server se lo deja abierto al viejo si las envs no están configuradas.",
+        "fix": "Extraer `DEFAULT_OWNER` a un módulo compartido sin dependencias de admin (p. ej. src/lib/superadmin-const.ts) e importarlo desde ambos.",
+        "area": "Mantenibilidad (tipos, tests, configuración, CI)"
+      },
+      {
+        "titulo": "Cobertura de tests se mide pero no gatea ni se publica",
+        "severidad": "P2",
+        "evidencia": "vitest.config.ts:14-21 — bloque coverage con comentario explícito: 'Sin umbrales que rompan el build — el objetivo es poder mirar el número'. El CI (ci.yml) corre `vitest run` sin `--coverage`, así que el número solo existe si alguien corre `npm run test:cobertura` a mano.",
+        "impacto": "La cobertura puede degradarse silenciosamente: nadie la ve en PRs y no hay línea base registrada. Con 156 archivos de test ya escritos, el costo de visibilizarla es casi cero.",
+        "fix": "En CI cambiar a `npx vitest run --coverage` y publicar el text-summary en el log (sin umbrales todavía, fiel a la filosofía actual); cuando el número se estabilice, fijar `thresholds.lines` unos puntos por debajo como piso anti-regresión.",
+        "area": "Mantenibilidad (tipos, tests, configuración, CI)"
+      }
+    ],
+    "refutados": []
+  },
+  "workflowProgress": [
+    {
+      "type": "workflow_phase",
+      "index": 1,
+      "title": "Hallazgos"
+    },
+    {
+      "type": "workflow_phase",
+      "index": 2,
+      "title": "Verificar"
+    },
+    {
+      "type": "workflow_phase",
+      "index": 3,
+      "title": "Síntesis"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 1,
+      "label": "audit:estructura",
+      "phaseIndex": 1,
+      "phaseTitle": "Hallazgos",
+      "agentId": "acba33692d4390199",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105371885,
+      "queuedAt": 1785105371878,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Arquitectura y estructura de código",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105648437,
+      "tokens": 86143,
+      "toolCalls": 47,
+      "durationMs": 276552,
+      "resultPreview": "{\"area\":\"Arquitectura y estructura de código\",\"resumen\":\"La arquitectura de capas está sorprendentemente sana: no hay imports circulares (lo verifiqué con un análisis de grafo sobre todo src/), lib/ nunca importa de hooks/context/components, el módulo whatsapp/ está bien modularizado (16 archivos pequeños con responsabilidad única) y la generación de PDF está centralizada en lib/pdf-download.ts. L…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 2,
+      "label": "audit:rendimiento",
+      "phaseIndex": 1,
+      "phaseTitle": "Hallazgos",
+      "agentId": "ad860d3fe9331d454",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105371886,
+      "queuedAt": 1785105371878,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Rendimiento",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105626822,
+      "tokens": 114540,
+      "toolCalls": 36,
+      "durationMs": 254936,
+      "resultPreview": "{\"area\":\"Rendimiento\",\"resumen\":\"El área está mucho mejor de lo que sugiere el historial: el bug de useAppointments quedó bien resuelto (ventana de 120 días documentada), todo el JS pesado (html2pdf, pdfjs-dist, qrcode, Porcupine) es import dinámico, y la mayoría de las queries están acotadas por fecha, estado o paciente. Lo que queda son \\\"hermanos\\\" del patrón original —descargas de colecciones …"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 3,
+      "label": "audit:flujos-ux",
+      "phaseIndex": 1,
+      "phaseTitle": "Hallazgos",
+      "agentId": "aee8a9f9616fbfb81",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105371886,
+      "queuedAt": 1785105371878,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Flujos y UX (agenda→cita→consulta→cobro→recordatorio, alta …",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105580128,
+      "tokens": 137338,
+      "toolCalls": 25,
+      "durationMs": 208242,
+      "resultPreview": "{\"area\":\"Flujos y UX (agenda→cita→consulta→cobro→recordatorio, alta de paciente, hospitalización, configuración inicial)\",\"resumen\":\"El área está en muy buen estado: los flujos principales ya pasaron por varias olas de auditoría y se nota (estados de carga/vacío/error presentes, botones con loading/disabled, confirm in-app en vez del nativo, toasts en español que dicen la verdad cuando algo falla …"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 4,
+      "label": "audit:operatividad",
+      "phaseIndex": 1,
+      "phaseTitle": "Hallazgos",
+      "agentId": "abd5ad38398efd76a",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105371887,
+      "queuedAt": 1785105371878,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Operatividad y resiliencia (manejo de errores, offline, obs…",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105729693,
+      "tokens": 105118,
+      "toolCalls": 43,
+      "durationMs": 357806,
+      "resultPreview": "{\"area\":\"Operatividad y resiliencia (manejo de errores, offline, observabilidad, crons)\",\"resumen\":\"El área está más madura de lo esperado: hay mini-Sentry propio para errores de cliente (reportar-error.ts montado en el layout), error boundaries que reportan, persistencia offline de Firestore con banner que avisa, outbox/DLQ con backoff para WhatsApp proactivo, cron fail-closed y las alertas hospi…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 5,
+      "label": "audit:movil-a11y",
+      "phaseIndex": 1,
+      "phaseTitle": "Hallazgos",
+      "agentId": "ae84c58a26fa4076b",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105371887,
+      "queuedAt": 1785105371878,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Móvil y Accesibilidad",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105723870,
+      "tokens": 123051,
+      "toolCalls": 45,
+      "durationMs": 351982,
+      "resultPreview": "{\"area\":\"Móvil y Accesibilidad\",\"resumen\":\"La base móvil está madura: touch targets ≥44px vía @media (pointer:coarse), tablas con overflow-x, safe-areas de iPhone, font-size 16 anti-zoom iOS, viewport sin user-scalable=no y tokens de contraste ya corregidos (--text3 #6B6F75 AA). Lo que SIGUE mal es puntual pero real: la vista semana del calendario es inusable a 375px y es la vista por defecto, la …"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 6,
+      "label": "audit:negocio",
+      "phaseIndex": 1,
+      "phaseTitle": "Hallazgos",
+      "agentId": "a73d99703ad4bd774",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105371887,
+      "queuedAt": 1785105371878,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Flujos de negocio (Stripe, créditos, cobros de citas, onboa…",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105679974,
+      "tokens": 126785,
+      "toolCalls": 42,
+      "durationMs": 308087,
+      "resultPreview": "{\"area\":\"Flujos de negocio (Stripe, créditos, cobros de citas, onboarding de pago)\",\"resumen\":\"El núcleo está sorprendentemente sólido: webhook de Stripe con firma + idempotencia atómica + dunning bien pensado, cobros inmutables con transacciones anti-doble-cobro, corte de caja con la lección de timezone ya cerrada, y el bug abono→cita-cobrada correctamente reparado en el flujo de ventanilla. Los …"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 7,
+      "label": "audit:datos-consistencia",
+      "phaseIndex": 1,
+      "phaseTitle": "Hallazgos",
+      "agentId": "ad20f3eaab055bd2a",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105371887,
+      "queuedAt": 1785105371878,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Consistencia de datos (transacciones, carreras, huérfanos, …",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105748583,
+      "tokens": 131384,
+      "toolCalls": 47,
+      "durationMs": 376696,
+      "resultPreview": "{\"area\":\"Consistencia de datos (transacciones, carreras, huérfanos, zonas horarias)\",\"resumen\":\"Área en buen estado general: las escrituras críticas (alta/reagenda de citas, cobro↔cita, anulación de cobro, ingreso hospitalario, alta de consultorio, conversión de lista de espera vía bot) ya son transaccionales con centinela por día, y los borrados peligrosos conocidos (cita cobrada, notas firmadas)…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 8,
+      "label": "audit:devex-mantenimiento",
+      "phaseIndex": 1,
+      "phaseTitle": "Hallazgos",
+      "agentId": "abb9e6aab86dbfb30",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105371887,
+      "queuedAt": 1785105371878,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Mantenibilidad (tipos, tests, configuración, CI)",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105571832,
+      "tokens": 78210,
+      "toolCalls": 30,
+      "durationMs": 199945,
+      "resultPreview": "{\"area\":\"Mantenibilidad (tipos, tests, configuración, CI)\",\"resumen\":\"La deuda de tipos es sorprendentemente baja (0 @ts-ignore, 1 `any` justificado con eslint-disable, ~40 `as unknown as` concentrados en glue de sanitización/Firestore) y hay 156 archivos de test con buena cobertura de WhatsApp, cobros y auth-server. Los huecos reales están en otra parte: el CI no corre lint ni e2e, la lógica pura…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 9,
+      "label": "verif:devex-mantenimiento",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "a9b7de0874e8813c4",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105571839,
+      "queuedAt": 1785105571834,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Evidencia verificada línea por línea: planPorMonto (webhook…",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105640901,
+      "tokens": 61991,
+      "toolCalls": 7,
+      "durationMs": 69062,
+      "resultPreview": "{\"confirmado\":true,\"motivo\":\"Evidencia verificada línea por línea: planPorMonto (webhook/route.ts:38-44) usa umbrales con comentario de precios obsoleto (dice Pro $1,899/Hospital $2,900; los reales en planes-ia.ts:145,164 son $1,590/$3,499) y se usa como fallback en subscription.updated (route.ts:229) cuando metadata.plan falta o es inválido. Matiz: los montos MENSUALES actuales aún clasifican bie…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 10,
+      "label": "verif:devex-mantenimiento",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "a07e53bd36368e054",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105580129,
+      "queuedAt": 1785105571834,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Evidencia verificada literal: .github/workflows/ci.yml (25 …",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105688600,
+      "tokens": 51740,
+      "toolCalls": 9,
+      "durationMs": 108471,
+      "resultPreview": "{\"confirmado\":true,\"motivo\":\"Evidencia verificada literal: .github/workflows/ci.yml (25 líneas) solo ejecuta `npx tsc --noEmit` (línea 23) y `npx vitest run` (línea 25); no hay paso de eslint ni playwright, pese a que package.json define \\\"lint\\\": \\\"eslint\\\" (línea 9) y \\\"e2e\\\": \\\"playwright test\\\" (línea 11), y existen eslint.config.mjs, playwright.config.ts y e2e/smoke-publico.spec.ts. No hay ga…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 11,
+      "label": "verif:devex-mantenimiento",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "a49940ae3e2723d27",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105626823,
+      "queuedAt": 1785105571834,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Evidencia verificada línea por línea: availability.ts:13/16…",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105686273,
+      "tokens": 56331,
+      "toolCalls": 6,
+      "durationMs": 59450,
+      "resultPreview": "{\"confirmado\":true,\"motivo\":\"Evidencia verificada línea por línea: availability.ts:13/16/56/62 contiene exactamente las constantes y reglas citadas (MAX_SLOTS_POR_DIA=24, DURACION_MIN_SEGURA=5, clamp 24:00→23:59, jornada ≤14h); el booking público lo importa en route.ts:13; grep repo-wide confirma 0 tests para availability, 0 para la transacción de appointments (route.ts:110) y 0 para planPorMonto/…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 12,
+      "label": "verif:flujos-ux",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "a4232d25a4c37f1b5",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105640901,
+      "queuedAt": 1785105580136,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Verificado en código real: calendario/page.tsx:66-71 envía …",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105691612,
+      "tokens": 54666,
+      "toolCalls": 6,
+      "durationMs": 50711,
+      "resultPreview": "{\"confirmado\":true,\"motivo\":\"Verificado en código real: calendario/page.tsx:66-71 envía ?hora= desde los clics de celda (líneas 240/299 pasan hourStr), y asistente/page.tsx:82 lo recibe como estado inicial, pero el efecto de las líneas 95-97 (setHoraSeleccionada('') con deps [fecha, tipo, doctorId]) corre incondicionalmente al montar y otra vez cuando el efecto 87-92 asigna doctorId, borrando la h…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 13,
+      "label": "verif:rendimiento",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "a183251b44e56d662",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105648439,
+      "queuedAt": 1785105626830,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Evidencia exacta: firestore.ts:117 hace getDocs de la colec…",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105686041,
+      "tokens": 50348,
+      "toolCalls": 3,
+      "durationMs": 37602,
+      "resultPreview": "{\"confirmado\":true,\"motivo\":\"Evidencia exacta: firestore.ts:117 hace getDocs de la colección completa sin limit ni proyección, TTL_PACIENTES_MS=30_000 en línea 105, y las 15 llamadas en 12 pantallas existen tal cual. PERO el propio código (comentario líneas 96-104) muestra que una auditoría previa ya mitigó lo agudo: caché por clínica con invalidación en escrituras + getPatient() para pantallas de…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 14,
+      "label": "verif:estructura",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "a0a4bfbdba07a0f1f",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105679975,
+      "queuedAt": 1785105648444,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Evidencia verificada línea por línea: page.tsx tiene 3,249 …",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105728753,
+      "tokens": 51307,
+      "toolCalls": 6,
+      "durationMs": 48778,
+      "resultPreview": "{\"confirmado\":true,\"motivo\":\"Evidencia verificada línea por línea: page.tsx tiene 3,249 líneas, ConsultaActivaPage inicia en línea 140, procesarIA es un useCallback de ~333 líneas (775–1108) con procesarIARef en 1115, guardarBorrador en 1327, y las constantes TIPOS/MOTORES_UI/ESPECIALIDADES_POR_GRUPO en 111–134. Única imprecisión menor: son 55 useState, no 58 — no cambia la conclusión. El riesgo e…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 15,
+      "label": "verif:estructura",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "ac0ae83b47345ba4c",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105686042,
+      "queuedAt": 1785105648444,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Evidencia verificada línea por línea: funcion-renal.ts:37 (…",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105739634,
+      "tokens": 53577,
+      "toolCalls": 5,
+      "durationMs": 53592,
+      "resultPreview": "{\"confirmado\":true,\"motivo\":\"Evidencia verificada línea por línea: funcion-renal.ts:37 (firma con Sexo, Math.round entero) y calculadoras.ts:200 (firma con esMujer boolean, redondeo a 1 decimal, más un clamp Math.max(creatinina, 0.01) que la otra copia no tiene). Ambas vivas: receta/[patientId]/[notaId]/page.tsx:37 usa funcion-renal vía evaluarFuncionRenal; copiloto.ts:19 importa la de calculadora…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 16,
+      "label": "verif:estructura",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "abb21b85205cd01be",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105686274,
+      "queuedAt": 1785105648444,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Evidencia verificada exacta en los 4 sitios (consulta page.…",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105748257,
+      "tokens": 53638,
+      "toolCalls": 6,
+      "durationMs": 61983,
+      "resultPreview": "{\"confirmado\":true,\"motivo\":\"Evidencia verificada exacta en los 4 sitios (consulta page.tsx:42 y :1204, seguridad/alergias.ts:18, hospital/cds.ts:39): sí hay 4 parsers de alergias con separadores distintos. Pero el impacto está sobredimensionado: el matcher downstream validarAlergiasVsMedicamentos (medical-dictionary.ts:135) usa substring matching (a.includes('sulfa'), regexes), por lo que \\\"penic…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 17,
+      "label": "verif:negocio",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "a1696954e3b52d354",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105688601,
+      "queuedAt": 1785105679984,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Evidencia verificada textual: create-checkout/route.ts:29-3…",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105744344,
+      "tokens": 54067,
+      "toolCalls": 7,
+      "durationMs": 55743,
+      "resultPreview": "{\"confirmado\":true,\"motivo\":\"Evidencia verificada textual: create-checkout/route.ts:29-30 acepta montoMXN del cliente (TODO lo admite, única validación montoMXN<10) y el token del portal solo valida propiedad de la cita, no el monto; webhook/route.ts:185 registra el anticipo con concepto 'consulta' y :197 marca estado 'pagada' sin comparar amount_total contra precio esperado; corte-caja.ts:68 sald…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 18,
+      "label": "verif:negocio",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "a6c05b9fecebf28fd",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105691613,
+      "queuedAt": 1785105679984,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Evidencia verificada línea por línea: estadoClavesIA (ai-ke…",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105784741,
+      "tokens": 60604,
+      "toolCalls": 15,
+      "durationMs": 93128,
+      "resultPreview": "{\"confirmado\":true,\"motivo\":\"Evidencia verificada línea por línea: estadoClavesIA (ai-keys.ts:270-282) devuelve solo uso{total,prueba,limitePrueba} y omite el contador 'creditos' (que sí existe y es el único bote de gasto, líneas 52-74), las recargas 'extra' y el límite del plan; el único refresh del medidor cliente es consulta/page.tsx:962 vía _uso, que solo devuelve /api/expediente/procesar (rou…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 19,
+      "label": "verif:negocio",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "acf53af55f6669072",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105723870,
+      "queuedAt": 1785105679984,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Verificado en código: creditosAgotados solo se aplica en tr…",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105786748,
+      "tokens": 58962,
+      "toolCalls": 9,
+      "durationMs": 62878,
+      "resultPreview": "{\"confirmado\":true,\"motivo\":\"Verificado en código: creditosAgotados solo se aplica en transcribir-diarizado/route.ts:43, uci/copilot/route.ts:130-134, consultor-evidencia (~l.180, 402 sinCreditos), procesar/route.ts:239-252, inmuno/redactar:54 y receta/detectar-campos:51. Las 10 rutas señaladas de src/app/api/expediente/* no contienen creditosAgotados, pruebaAgotada ni 402 alguno; solo registran e…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 20,
+      "label": "verif:negocio",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "a3dcb1d73fcefba75",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105728754,
+      "queuedAt": 1785105679984,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Toda la evidencia existe tal cual: planes-ia.ts:2 se declar…",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105788324,
+      "tokens": 61780,
+      "toolCalls": 8,
+      "durationMs": 59570,
+      "resultPreview": "{\"confirmado\":true,\"motivo\":\"Toda la evidencia existe tal cual: planes-ia.ts:2 se declara \\\"fuente ÚNICA de verdad\\\" con premium precioMXN:1590 (:145) y clinica creditos:200 (:130), y /precios (src/app/precios/page.tsx:2,79-81) y la landing (src/app/page.tsx:58) renderizan de ahí; pero el paywall que cobra (layout.tsx:96-97) hardcodea '160 créditos' y '$1,899', configuracion/page.tsx:1447-1448,145…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 21,
+      "label": "verif:movil-a11y",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "a53663358587367e6",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105729694,
+      "queuedAt": 1785105723876,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Evidencia verificada línea por línea: view por defecto 'sem…",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105779525,
+      "tokens": 58470,
+      "toolCalls": 6,
+      "durationMs": 49831,
+      "resultPreview": "{\"confirmado\":true,\"motivo\":\"Evidencia verificada línea por línea: view por defecto 'semana' (page.tsx:57), rejilla '56px repeat(7, 1fr)' sin minWidth (199 y 223) dentro de contenedor overflow:auto (197) — con 1fr las columnas se aplastan a ~38px en 375px en vez de generar scroll horizontal. Cero matchMedia/innerWidth en el archivo y globals.css no tiene ninguna regla móvil para la rejilla del cal…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 22,
+      "label": "verif:movil-a11y",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "a5842cce0f00c3163",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105739635,
+      "queuedAt": 1785105723876,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Evidencia verificada línea por línea: finanzas/page.tsx:549…",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105776164,
+      "tokens": 53419,
+      "toolCalls": 5,
+      "durationMs": 36529,
+      "resultPreview": "{\"confirmado\":true,\"motivo\":\"Evidencia verificada línea por línea: finanzas/page.tsx:549 usa onClick en el overlay del modal 'Anular cobro' (con textarea obligatorio en :558, y :487 resetea motivoAnul al reabrir, así que el texto sí se pierde); PanelLaboratorios.tsx:165 usa onClick en el overlay de 'Revisa lo que leyó la IA', donde setRevision(null) tira todas las correcciones manuales de analitos…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 23,
+      "label": "verif:operatividad",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "aad240f5f15cf8d19",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105744345,
+      "queuedAt": 1785105729700,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Verificado en código actual: los tres pasos del hallazgo ex…",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105832681,
+      "tokens": 64797,
+      "toolCalls": 13,
+      "durationMs": 88335,
+      "resultPreview": "{\"confirmado\":true,\"motivo\":\"Verificado en código actual: los tres pasos del hallazgo existen tal cual. (1) Sidebar.tsx:86-94 y AutoLogout.tsx:44-56 esperan 1200 ms fijos tras EVENTO_GUARDAR_TODO y luego purgan; (2) el guardado real va por el SDK de Firestore con persistentLocalCache (consulta page.tsx:1641 guardarBorrador → createNota/updateNota con addDoc en lib/expediente/firestore.ts:102) — of…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 24,
+      "label": "verif:operatividad",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "a8297f76dbb4ce29f",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105748258,
+      "queuedAt": 1785105729704,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Evidencia verificada línea por línea: errores/route.ts:16-1…",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105787030,
+      "tokens": 51878,
+      "toolCalls": 6,
+      "durationMs": 38772,
+      "resultPreview": "{\"confirmado\":true,\"motivo\":\"Evidencia verificada línea por línea: errores/route.ts:16-17 exige verificarUsuario (solo clientes logueados reportan), cron/reminders/route.ts:260 y :266 solo hacen console.error, :73-75 es fail-closed 503 si falta CRON_SECRET, y exactamente 29 archivos de src/app/api usan console.error. Grep confirma que NO existe reportarErrorServidor, cron_runs ni ningún otro mecan…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 25,
+      "label": "verif:operatividad",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "a1787e42470cf2426",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105748583,
+      "queuedAt": 1785105729704,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Evidencia verificada línea por línea: (1) reminders/route.t…",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105806544,
+      "tokens": 56956,
+      "toolCalls": 4,
+      "durationMs": 57961,
+      "resultPreview": "{\"confirmado\":true,\"motivo\":\"Evidencia verificada línea por línea: (1) reminders/route.ts NO exporta maxDuration mientras 17 rutas del repo sí, y tres documentan que sin él Vercel corta a 60s (expediente/corregir/route.ts:169, inmuno/redactar/route.ts:40, receta/detectar-campos/route.ts:13) — el default de 60s es empírico en este mismo proyecto, no especulación; vercel.json no tiene bloque functio…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 26,
+      "label": "verif:datos-consistencia",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "ae384c44a29ed2fb1",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105776165,
+      "queuedAt": 1785105748590,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "CONFIRMADO con evidencia verificada línea por línea. (1) sr…",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105844207,
+      "tokens": 59760,
+      "toolCalls": 10,
+      "durationMs": 68040,
+      "resultPreview": "{\"confirmado\":true,\"motivo\":\"CONFIRMADO con evidencia verificada línea por línea. (1) src/lib/time-blocks.ts:57 dice exactamente «const t = new Date(fechaHora.replace(' ', 'T')).getTime()» — string sin offset, interpretado en la TZ del runtime (UTC en Vercel; no hay override: sin TZ en vercel.json/next.config ni process.env.TZ en src). (2) El bloque sí se guarda como instante UTC correcto: configu…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 27,
+      "label": "verif:datos-consistencia",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "af12fead0346abaff",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105779526,
+      "queuedAt": 1785105748590,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Evidencia verificada línea por línea: page.tsx:1996 guarda …",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105903224,
+      "tokens": 56746,
+      "toolCalls": 7,
+      "durationMs": 123698,
+      "resultPreview": "{\"confirmado\":true,\"motivo\":\"Evidencia verificada línea por línea: page.tsx:1996 guarda con saveConfig el spread completo de config (useConfig arranca en DEFAULT_CONFIG, useConfig.ts:10, y su listener NO se restablece tras error, línea 37), el guard de la línea 1993 nunca bloquea porque config siempre es truthy, y saveConfig (firestore.ts:198-204) escribe todas las llaves; contrasta con handleSave…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 28,
+      "label": "verif:datos-consistencia",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "a181bd88d94b54383",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105784741,
+      "queuedAt": 1785105748590,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Toda la evidencia existe tal cual: instanteMX (src/lib/time…",
+      "promptPreview": "REGLAS DURAS:\n- SOLO LECTURA. No edites, no escribas, no corras builds ni deploys. Solo Read/Grep/Glob/Bash(read-only).\n- Repo: /Users/davidrdz/Desktop/agenda-medica (Next.js 16 App Router, React 19, TS, Firestore, Vercel). La app se llama NexusMED.\n- FUERA DE ALCANCE (clínico, NO reportar): fórmulas/umbrales médicos, motores deterministas (src/lib/uci/*, calculadoras, scores, dosis, antibiograma,…",
+      "lastProgressAt": 1785105851988,
+      "tokens": 59017,
+      "toolCalls": 9,
+      "durationMs": 67247,
+      "resultPreview": "{\"confirmado\":true,\"motivo\":\"Toda la evidencia existe tal cual: instanteMX (src/lib/timezone.ts:73-75) quema el offset -06:00 sin parámetro tz, mientras la UI de configuración (configuracion/page.tsx:490-491) ofrece America/Hermosillo (UTC-7) y America/Tijuana (UTC-8), y availability.ts:115 sí honra config.zonaHoraria — la inconsistencia interna es real. Los 3 consumidores confirmados sin tz: cron…"
+    }
+  ],
+  "totalTokens": 2032623,
+  "totalToolCalls": 462
+}

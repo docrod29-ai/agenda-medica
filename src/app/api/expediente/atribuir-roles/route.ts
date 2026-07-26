@@ -17,7 +17,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { resolverClaveIA, registrarCreditos } from '@/lib/ai-keys'
+import { gateCreditos, resolverClaveIA, registrarCreditos } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
 
 export const runtime = 'nodejs'
@@ -33,7 +33,8 @@ export async function POST(req: NextRequest) {
   const _rl = await limitarOResponder(`atribuir-roles:${acceso.uid}`, 40, 60)
   if (_rl) return _rl
 
-  const { key, clinicId } = await resolverClaveIA(acceso.uid, 'anthropic', process.env.ANTHROPIC_API_KEY ?? '')
+  const { key, clinicId, fuente } = await resolverClaveIA(acceso.uid, 'anthropic', process.env.ANTHROPIC_API_KEY ?? '')
+  const _corte = await gateCreditos(clinicId, fuente); if (_corte) return _corte
   if (!key) return NextResponse.json({ ok: false, error: 'sin llave' }, { status: 503 })
 
   let body: { utterances?: { speaker?: string; text?: string }[] }

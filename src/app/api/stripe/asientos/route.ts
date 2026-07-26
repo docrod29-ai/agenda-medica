@@ -9,7 +9,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
-import { verificarMiembro } from '@/lib/auth-server'
+import { verificarMiembro, verificarMedico } from '@/lib/auth-server'
 import { stripe, priceMedicoDe, nivelDePlan, type PlanKey } from '@/lib/stripe'
 import { contarMedicos } from '@/lib/ai-keys'
 import { MEDICO_EXTRA, planPorNivel } from '@/lib/planes-ia'
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }
   const clinicId = body.clinicId ?? ''
   if (!clinicId) return NextResponse.json({ ok: false, error: 'Falta clinicId' }, { status: 400 })
-  const acceso = await verificarMiembro(req, clinicId)
+  const acceso = await verificarMedico(req, clinicId)
   if (!acceso.ok) return acceso.response
 
   try {

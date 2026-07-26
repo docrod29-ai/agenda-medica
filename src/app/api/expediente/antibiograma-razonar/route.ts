@@ -13,7 +13,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { validarRazonamiento } from '@/lib/expediente/antibiograma/validar-razonamiento'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { resolverClaveIA, registrarCreditos } from '@/lib/ai-keys'
+import { gateCreditos, resolverClaveIA, registrarCreditos } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { safeLog } from '@/lib/security/sanitize'
 import { interpretarAntibiograma, type EntradaAntibiograma } from '@/lib/expediente/antibiograma'
@@ -74,7 +74,8 @@ export async function POST(req: NextRequest) {
   const _rl = await limitarOResponder(`antibiograma-razonar:${acceso.uid}`, 30, 60)
   if (_rl) return _rl
 
-  const { key: API_KEY, clinicId } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
+  const { key: API_KEY, clinicId, fuente } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
+  const _corte = await gateCreditos(clinicId, fuente); if (_corte) return _corte
   if (!API_KEY) return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada (Configuración → Llaves de IA).' }, { status: 503 })
 
   let body: { organismo?: string; resultados?: EntradaAntibiograma['resultados']; sitio?: EntradaAntibiograma['sitio']; pruebas?: EntradaAntibiograma['pruebas']; motor?: string }

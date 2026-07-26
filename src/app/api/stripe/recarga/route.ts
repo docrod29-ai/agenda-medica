@@ -12,7 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { stripe, STRIPE_PRICE_RECARGA } from '@/lib/stripe'
 import { RECARGA } from '@/lib/planes-ia'
 import { adminDb } from '@/lib/firebase-admin'
-import { verificarMiembro } from '@/lib/auth-server'
+import { verificarMedico } from '@/lib/auth-server'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.vercel.app'
 
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     const { clinicId, email } = (await req.json()) as { clinicId: string; email?: string }
     if (!clinicId) return NextResponse.json({ error: 'Falta clinicId' }, { status: 400 })
 
-    const acceso = await verificarMiembro(req, clinicId)
+    const acceso = await verificarMedico(req, clinicId)
     if (!acceso.ok) return acceso.response
 
     if (!STRIPE_PRICE_RECARGA) {

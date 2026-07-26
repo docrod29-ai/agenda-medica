@@ -13,7 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { resolverClaveIA, registrarCreditos } from '@/lib/ai-keys'
+import { gateCreditos, resolverClaveIA, registrarCreditos } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { safeLog } from '@/lib/security/sanitize'
 import { VISION_SYSTEM_PROMPT, buildVisionUserPrompt, PerfilExtraido } from '@/lib/expediente/antibiograma/vision'
@@ -76,7 +76,8 @@ export async function POST(req: NextRequest) {
   const _rl = await limitarOResponder(`antibiograma-vision:${acceso.uid}`, 20, 60)
   if (_rl) return _rl
 
-  const { key: API_KEY, clinicId } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
+  const { key: API_KEY, clinicId, fuente } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
+  const _corte = await gateCreditos(clinicId, fuente); if (_corte) return _corte
   if (!API_KEY) {
     return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada. Agrégala en Configuración → Llaves de IA.' }, { status: 503 })
   }

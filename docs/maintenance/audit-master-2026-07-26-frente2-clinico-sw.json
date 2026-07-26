@@ -1,0 +1,718 @@
+{
+  "summary": "Auditoría de módulos clínicos como dominios de software: tipos, unidades, fixtures, exactitud, capas — sin decisiones médicas",
+  "agentCount": 16,
+  "logs": [
+    "Confirmados P0/P1: 9 · P2: 16 · NEEDS_CLINICAL_REVIEW: 3 · Refutados: 1"
+  ],
+  "result": {
+    "resumenPorArea": [
+      {
+        "area": "Exactitud contra fixtures — motores deterministas UCI + expediente (golden tests, tests débiles, disciplina de versión)",
+        "resumen": "Cobertura golden en general buena (ventilación, gasometría, SOFA/APACHE, infusiones, POCUS, pediatría tienen valores fijados a mano). Huecos que siguen: (1) CKD-EPI 2021 está DUPLICADA en dos módulos con redondeo y clamping distintos, y NINGUNA de las dos tiene test de valor exacto ni test de consistencia entre sí, pese a que su salida dispara alertas de ajuste renal de fármacos; (2) MELD solo se prueba con cotas/monotonía; (3) la fracción de filtración CKRT solo se checa con >25; (4) seis motores UCI cambiaron lógica (incluido el fix P0 de signo en gasometría) sin subir su constante *_VERSION, mientras neuro/scores/seguridad/extraccion sí la subieron — y COPILOT_VERSION se devuelve en la API como procedencia con valor obsoleto; (5) el benchmark re-implementa las fórmulas inline (semi-tautológico por diseño, mitigado por los golden unitarios); (6) zScoreLMS solo tiene goldens en el caso trivial valor=M."
+      },
+      {
+        "area": "Validación de unidades en fronteras clínicas (motores UCI y expediente)",
+        "resumen": "Los motores deterministas están bien construidos y varios (ventilación, PAM) sí validan rango internamente. Pero la validación de unidades/plausibilidad NO es uniforme entre fronteras: (1) la calculadora de función renal de la receta acepta creatinina sin tope superior ni chequeo de unidad, así que un valor en µmol/L o un typo produce una TFG absurda que dispara ajuste renal de antimicrobianos; (2) las guardas RANGOS_UCI viven SOLO en la ruta de voz (extraccion.ts) — el mismo panel es editable a mano y esos valores llegan crudos a SOFA y a la gasometría, que casi no validan rango; (3) el saneo del número difiere entre módulos: labs-desde-texto convierte la coma decimal mexicana pero el panel UCI y la receta no, perdiendo \"12,5\" en silencio. Además hay doble implementación de CKD-EPI con redondeo distinto y la dosificación pediátrica no valida plausibilidad de peso (kg vs lb). Todo lo reportado tiene evidencia archivo:línea. No se opina de umbrales clínicos."
+      },
+      {
+        "area": "Tipado y modelado — motores clínicos (src/lib/uci, src/lib/expediente)",
+        "resumen": "El módulo UCI está mejor tipado que el promedio del repo: NO hay `any`, `@ts-ignore` ni `as never` en src/lib/uci (0 ocurrencias); los únicos casts inseguros son 3 `as unknown as` en expediente/firestore.ts. Lo que SIGUE mal es de modelado, no de sintaxis. (1) P1 real: el helper `num()` está DUPLICADO idéntico en 12 motores y coerce mal el patrón `number|string`: un string solo-espacios (' ') → `Number(' ')===0` (inyecta un 0 clínico donde el propio contrato dice 'un campo vacío NO es normal/0'), y el decimal con coma es-MX ('7,35') → NaN → null (el dato dictado/tecleado se PIERDE en silencio y la escala queda PARCIAL o el cálculo se bloquea). Verificado por ejecución. (2-3) P2: el modo ventilatorio es `string` libre y su conjunto de literales ('AC-VC'|'AC-PC'|'SIMV'|'APRV'|'PSV'|'CPAP'|'VNI'|'AFNC'|'aire') se repite como strings mágicos en 5 archivos sin una unión cerrada; las dos funciones `esModoEspontaneo`/`esModoInvasivo` clasifican con arrays literales que el compilador no verifica (un typo mal-dirige GCS/RASS/driving-pressure). Y `UnidadDosis` está definido DOS veces con vocabularios distintos (hemodinamia 'mcg_kg_min' vs infusiones 'µg/kg/min'). (4) P2: las salidas de motor usan `ok:boolean` + `valor:number|null` (unión NO discriminada) que permite el estado imposible `ok:true,valor:null`; los consumidores lo compensan con ~30 guardas `?? undefined`. (5) P2: `findNotaByIdInClinic` devuelve `as NotaMedica` saltándose los defaults de arrays de `normNota`, sobre-prometiendo el tipo. Nada de esto exige criterio médico; todo es reparación de software."
+      },
+      {
+        "area": "Separación de capas (determinista · UI · almacenamiento · IA)",
+        "resumen": "La arquitectura base es sana: los motores UCI/expediente son puros (sin React/Firestore/browser APIs), los adaptadores de Firestore están separados, y las rutas de IA (Copilot UCI, procesar, verificar-nota) tienen contrato explícito de \"el LLM nunca calcula\" con snapshot determinista armado server-side. Lo que sigue mal: (1) los outputs de motores se PERSISTEN sin la versión del motor — los motores UCI están versionados pero la nota firmada evolucion_uci descarta las versiones, y los motores no-UCI (preop, escalas Braden/Morse, NEWS2, pediatría, dosis, calculadoras) ni siquiera tienen constante de versión; (2) las lecturas seriadas de UCI (SOFA, lactato, vasopresores por internamiento) viven solo en localStorage con una clave que el contrato de limpieza PHI al logout NO cubre; (3) el mapeo campo→motor de UCI está triplicado (página, nota, copilot) sin builder compartido ni test de paridad, y ese drift ya causó un bug documentado; (4) umbrales de signos vitales codificados a mano en la UI divergen del motor NEWS2 en la misma pantalla; (5) dos cálculos clínicos inline en componentes UI que duplican o parsean con fragilidad lo que debería hacer el motor."
+      },
+      {
+        "area": "test",
+        "resumen": "test"
+      },
+      {
+        "area": "Persistencia, historial y tendencias de datos clínicos (UCI + signos hospitalarios + notas firmadas + export FHIR)",
+        "resumen": "La inmutabilidad de notas firmadas es sólida (rules + cliente + no hay escritura server-side Admin SDK que las toque; deleteNota/deletePatienteExpediente bloquean firmadas; versioning.ts documenta bien la trampa histórica de doble-versionado ya reparada). Las lecturas seriadas de signos hospitalarios están bien ordenadas por fecha (getSignos/suscribirSignos ordenan desc y revierten a asc) y NEWS2 maneja correctamente parámetros faltantes. Lo que SIGUE mal se concentra en tres puntos: (1) la serie temporal de UCI que alimenta tendencias/correlación se persiste SOLO en localStorage y NO se limpia al cerrar sesión ni se guarda en Firestore -> residuo de PHI en dispositivo compartido + pérdida silenciosa del historial al cambiar de dispositivo/limpiar caché; (2) esas lecturas no llevan versión de esquema ni unidad por lectura, y compararLecturas descarta en silencio cualquier clave que no exista en ambas lecturas -> un renombrado de métrica rompe la continuidad de tendencia sin aviso; (3) el export FHIR pierde campos clínicos en el round-trip (dolor/EVA, conciencia/ACVPU, O2 suplementario en signos seriados; glucometria, glasgow, escalaDolor en signos de nota). Ninguno corrompe un número ya calculado, pero (1) es pérdida/residuo de datos real y (2)(3) son huecos de robustez/round-trip."
+      }
+    ],
+    "confirmados": [
+      {
+        "titulo": "Serie temporal de UCI (tendencias/correlación) vive solo en localStorage y NO se limpia al cerrar sesión: residuo de PHI + pérdida silenciosa del historial",
+        "severidad": "P1",
+        "archivos": "src/app/(dashboard)/uci/page.tsx:250 `const claveLecturas = \\`nx.uci.lecturas${internamientoId ? '.' + internamientoId : ''}\\``; :253 carga desde localStorage; :266-269 `guardarLectura` -> `localStorage.setItem(claveLecturas, JSON.stringify(arr))` (arr = .slice(-24)); src/lib/mobile/local-drafts.ts:16 `PREFIJO_BORRADOR = 'nx.consulta.bkp.'`; :48-55 `esClaveBorrador`/`clavesABorrar` solo matchean ese prefijo; :72-89 `limpiarBorradoresLocales` borra únicamente esas claves",
+        "causaRaiz": "Las lecturas seriadas que alimentan compararLecturas/correlacionTemporal (PAM, lactato, norepinefrina, PaO2/FiO2, SOFA, etc. — valores clínicos = PHI) son la ÚNICA copia del historial de tendencia y se guardan en localStorage bajo `nx.uci.lecturas.<internamientoId>`. La rutina de limpieza de PHI al cerrar sesión (cuyo propósito declarado es '§7.2/§9.2 limpiar caché sensible al cerrar sesión') solo borra claves con prefijo `nx.consulta.bkp.`, así que esta clave sobrevive el logout en un dispositivo compartido. Además, al no persistirse en Firestore, el historial desaparece en silencio al cambiar de dispositivo/navegador o limpiar caché. En modo calculadora (sin internamientoId) la clave queda sin sufijo (`nx.uci.lecturas`), acumulando lecturas de sesiones distintas bajo la misma clave.",
+        "pruebasNecesarias": "Test unitario que confirme que `clavesABorrar(['nx.uci.lecturas.INT1','nx.consulta.bkp.x'])` incluye la clave de UCI (hoy la excluye). Test de integración: guardar 3 lecturas, invocar limpieza de logout, verificar que la clave de UCI ya no existe. Si se migra a Firestore: test round-trip guardar->leer->comparar preserva las N lecturas.",
+        "reparacion": "Software: (a) incluir el prefijo `nx.uci.lecturas` en el clasificador de claves a borrar al cerrar sesión (esClaveBorrador/clavesABorrar en local-drafts.ts) para eliminar el residuo de PHI; y (b) persistir las lecturas seriadas en una subcolección de Firestore por internamiento (misma capa que signos: clinics/{c}/internamientos/{i}/...) con las mismas reglas de secreto médico, para que el historial de tendencia no se pierda al cambiar de dispositivo. No requiere decisión clínica.",
+        "needsClinicalReview": false,
+        "area": "Persistencia, historial y tendencias de datos clínicos (UCI + signos hospitalarios + notas firmadas + export FHIR)",
+        "verif": {
+          "confirmado": true,
+          "motivo": "Evidencia verificada línea por línea: uci/page.tsx:250 crea la clave `nx.uci.lecturas[.internamientoId]`, :253 la lee y :266-269 la escribe en localStorage (slice(-24)); local-drafts.ts solo clasifica/borra claves con prefijo `nx.consulta.bkp.` (líneas 16, 48-55, 72-89) más el IndexedDB de audio. Grep confirma que `nx.uci.lecturas` no aparece en ningún otro archivo: ninguna ruta de limpieza al logout ni persistencia en Firestore/API. Sigue vigente tras v641-v654 (el fix PHI v647 fue del feedback del copilot, no de las lecturas). P1 es justo: la serie clínica sobrevive el logout contradiciendo la especificación propia del módulo de limpieza (§7.2/§9.2) y es la única copia del historial (pérdida silenciosa al cambiar de dispositivo), pero no hay número incorrecto ni corrupción de la fuente de verdad, por lo que no alcanza P0. El detalle de la clave sin sufijo en modo calculadora también se verifica en la línea 250.",
+          "severidadCorregida": "P1"
+        }
+      },
+      {
+        "titulo": "Lecturas seriadas de UCI (PHI clínico por internamiento) persisten en localStorage fuera del contrato de limpieza al cerrar sesión",
+        "severidad": "P1",
+        "archivos": "src/app/(dashboard)/uci/page.tsx:250 ('const claveLecturas = `nx.uci.lecturas${internamientoId ? \".\" + internamientoId : \"\"}`') y 266-270 (guardarLectura → localStorage.setItem con hasta 24 lecturas: glasgow, lactato, dosis de vasopresores, SOFA, PAFI computados); src/lib/mobile/local-drafts.ts:16 ('export const PREFIJO_BORRADOR = \"nx.consulta.bkp.\"') y 48-55 (esClaveBorrador/clavesABorrar filtran SOLO ese prefijo — nx.uci.lecturas.* nunca se borra al logout)",
+        "causaRaiz": "El módulo de limpieza PHI al cerrar sesión (Iteración 7 · 'P0 de PHI') se diseñó cuando el único residuo clínico local era el respaldo de consulta, y quedó acoplado a un prefijo único. El módulo UCI (posterior) introdujo una nueva familia de claves localStorage con datos clínicos ligados a un internamientoId sin registrarse en ese contrato. Además, al ser almacenamiento por-dispositivo sin espejo en Firestore, las tendencias/correlación temporal (correlacionTemporal consume solo lo local) se pierden al cambiar de dispositivo o limpiar el navegador — datos que el médico cree registrados.",
+        "needsClinicalReview": false,
+        "pruebasNecesarias": "Extender el test existente de local-drafts (src/__tests__/local-drafts.test.ts) con claves sintéticas 'nx.uci.lecturas.abc123' y afirmar que clavesABorrar las incluye; test de que un logout simulado deja localStorage sin ninguna clave con datos clínicos (lista de prefijos PHI centralizada).",
+        "reparacion": "Centralizar los prefijos de claves PHI en local-drafts.ts (p. ej. PREFIJOS_PHI = ['nx.consulta.bkp.', 'nx.uci.lecturas']) y usar esa lista en clavesABorrar; opcionalmente migrar las lecturas a la subcolección del internamiento en Firestore (como ya se hace con signos/escalas) para continuidad multi-dispositivo, dejando localStorage solo como caché.",
+        "area": "Separación de capas (determinista · UI · almacenamiento · IA)",
+        "verif": {
+          "confirmado": true,
+          "motivo": "Evidencia verificada literal: uci/page.tsx:250 crea la clave nx.uci.lecturas.<internamientoId> y guardarLectura (líneas ~265-269) persiste hasta 24 lecturas clínicas (campos del formulario + SOFA/PAFI/driving/PAM/VExUS/PPC computados) en localStorage. local-drafts.ts:16,48-55 filtra SOLO el prefijo 'nx.consulta.bkp.', y los únicos puntos de limpieza al cerrar sesión (layout.tsx:197,309; AutoLogout.tsx:47; Sidebar.tsx:88) llaman limpiarBorradoresLocales/limpiarAudioLocal — ningún código del repo borra nx.uci.lecturas* (verificado por grep; no hay localStorage.clear). Sigue vigente tras v646-v661. El propio contrato del módulo (local-drafts.ts:2-10, §7.2/§9.2 'limpiar caché sensible al cerrar sesión') queda violado por omisión. No es P0 (no hay número incorrecto ni pérdida/corrupción causada por el software; es residuo que persiste de más + continuidad local-only), así que P1 es la severidad justa según la carta. Matiz menor: la escritura es solo bajo acción explícita del usuario (botón guardar lectura), lo que acota pero no invalida el hallazgo.",
+          "severidadCorregida": "P1"
+        }
+      },
+      {
+        "titulo": "num() coerce mal el patrón number|string: espacios→0 (viola 'vacío≠0') y coma decimal→dato perdido; duplicado en 12 motores",
+        "severidad": "P1",
+        "archivos": "src/lib/uci/scores.ts:19-23, hemodinamia.ts:23-27, gasometria.ts:23-27, ventilacion.ts:38-42, ecmo.ts:14, pocus.ts:17, infusiones.ts:20, ckrt.ts:24, seguridad.ts:24, neuro.ts:17, correlacion.ts:17, tendencias.ts:32 — todos: `if (v===null||v===undefined||v==='') return null; const x=Number(v); return Number.isFinite(x)?x:null`. Entrada manual: src/app/(dashboard)/uci/page.tsx:98 `n = (k) => (v[k]===undefined||v[k]==='' ? undefined : v[k])` (solo filtra '' exacto). Contrato violado: src/types/uci.ts:17 'un campo vacío NO es \"normal\"' y scores.ts:12 'NO se asume 0'.",
+        "causaRaiz": "`Number()` de JS coerce el whitespace a 0 (`Number(' ')===0`, `Number('  ')===0`) y rechaza la coma decimal (`Number('7,35')===NaN`). Como los inputs del grid son `<input inputMode=\"decimal\">` de tipo string (Campos=Record<string,string>, page.tsx:38) y `n()` solo descarta la cadena vacía exacta, un valor con solo espacios llega a `num()` y produce 0 (número clínico INCORRECTO que fluye a SOFA/APACHE/gasometría como si fuera una medición real), y un decimal con coma (teclado es-MX) produce NaN→null (el valor tecleado se descarta en silencio → escala PARCIAL o cálculo bloqueado sin avisar que hubo un dato). El patrón `number|string` en las firmas de todos los motores es lo que deja pasar el string sin normalizar.",
+        "pruebasNecesarias": "Tests de la función de coerción con fixtures sintéticos: `num(' ')` y `num('  ')` DEBEN dar null (hoy dan 0); `num('7,35')` y `num('5,8')` DEBEN dar 7.35/5.8 (hoy dan null). Test de integración por motor: EntradaSOFA con potasio=' ' no debe sumar el subscore como 0; EntradaGasometria con hco3=' ' debe quedar bloqueada, no calcular con HCO3=0. Test del pipeline page.n()→motor con string ' ' y '7,35'.",
+        "reparacion": "Extraer UN helper compartido (p.ej. src/lib/uci/_num.ts) y reemplazar los 12 duplicados. En él: (a) `if (typeof v==='string'){ const t=v.trim(); if(t==='') return null; v = t.replace(',', '.') }` antes de `Number()`, para que solo-espacios→null y coma decimal es-MX se normalice; (b) mantener `Number.isFinite`. Alternativa mínima sin tocar los 12: normalizar en `page.tsx:98` (`n()` con `.trim()` y reemplazo de coma) — pero el helper compartido cierra también la vía de voz/otros callers. No cambia ningún umbral clínico; solo corrige la coerción numérica.",
+        "needsClinicalReview": false,
+        "area": "Tipado y modelado — motores clínicos (src/lib/uci, src/lib/expediente)",
+        "verif": {
+          "confirmado": true,
+          "motivo": "Evidencia verificada al 100% en el código actual: los 12 duplicados de num() existen con el cuerpo exacto citado (scores.ts:19, hemodinamia.ts:23, gasometria.ts:23, ventilacion.ts:38, ecmo.ts:14, pocus.ts:17, infusiones.ts:20, ckrt.ts:24, seguridad.ts:24, neuro.ts:17, correlacion.ts:17, tendencias.ts:32), ninguno hace trim() ni normaliza coma decimal, y sigue vigente tras los fixes v645-v651 (no tocaron num() ni existe helper compartido). La ruta de entrada manual lo permite: page.tsx:38 Campos=Record<string,string>, input de texto libre inputMode=\"decimal\" (línea 49), y n() en :98 solo filtra '' exacto, así que ' ' llega a Number(' ')===0 (0 fantasma que fluye a SOFA/gasometría como medición real) y '7,35' llega a Number('7,35')=NaN→null (dato tecleado descartado en silencio). El contrato violado es textual: types/uci.ts:17 «un campo vacío NO es \"normal\"» y scores.ts:11-12 «NO se asume 0». Severidad P1 justa por la carta: hueco de validación de inputs con riesgo real de número incorrecto; no P0 porque requiere input degenerado (solo espacios) y no está demostrado en el flujo por defecto. Reparación propuesta es de software puro (normalización de string), no toca umbrales clínicos.",
+          "severidadCorregida": "P1"
+        }
+      },
+      {
+        "titulo": "Saneo de número inconsistente: la coma decimal mexicana '12,5' se pierde en silencio en el panel UCI y en la receta",
+        "severidad": "P1",
+        "archivos": "src/app/(dashboard)/uci/page.tsx:49 (<input> de texto, inputMode='decimal', sin saneo) y :97-98 (set/n guardan y devuelven el string crudo); src/app/(dashboard)/receta/.../page.tsx:152 `parseFloat(creatinina)`; motores num()/Number() (p.ej. uci/scores.ts:19-23, ventilacion.ts:38-42); CONTRASTE: src/lib/expediente/labs-desde-texto.ts:69 `valorNumerico` sí hace `.replace(',', '.')`.",
+        "causaRaiz": "Number('12,5')=NaN → num() devuelve null → el campo se descarta sin aviso. En móvil con teclado es-MX el separador decimal suele ser coma. Cada módulo tiene distinta política de saneo (labs sí normaliza coma, el panel y la receta no), lo que hace el comportamiento impredecible por frontera.",
+        "pruebasNecesarias": "Test por frontera: entrada '1,5' en creat/peso/fio2 del panel y en creatinina de la receta debe interpretarse como 1.5 o marcarse, no perderse. Property test de saneo (coma, espacios, '1.2.3').",
+        "reparacion": "Un saneador compartido (coma→punto, trim, rechazo explícito de multi-punto) aplicado en TODAS las fronteras numéricas antes de Number(). Software.",
+        "needsClinicalReview": false,
+        "area": "Validación de unidades en fronteras clínicas (motores UCI y expediente)",
+        "verif": {
+          "confirmado": true,
+          "severidadCorregida": "P1",
+          "motivo": "Evidencia verificada tal cual y vigente tras v646-v661. (1) uci/page.tsx:49 el input de Campo guarda el string crudo (set(k,e.target.value), inputMode='decimal', sin saneo); lineas 97-98 set escribe crudo y n(k) devuelve el crudo. (2) scores.ts:19-23 y ventilacion.ts:38-42 definen num con Number(v) sin manejo de coma: Number('12,5')=NaN -> null -> el campo se descarta en silencio y el calculo se bloquea. (3) receta .../page.tsx:152 usa parseFloat(creatinina); parseFloat('12,5')=12 (no NaN), o sea la coma/decimal se pierde silenciosamente -> TFG mal calculada, misma clase de bug. (4) Contraste real: labs-desde-texto.ts:69 valorNumerico si hace .replace(',', '.'). No existe saneador compartido (grep de replace-coma en rutas UCI y de saneaNumero/parseDecimal no arroja nada). La politica de saneo difiere por frontera (labs normaliza, panel y receta no), comportamiento impredecible por frontera. Severidad P1 justa segun la carta: hueco real de validacion de unidades/inputs en fronteras clinicas con teclado es-MX, sin corromper aun un dato persistido de forma silenciosa masiva (requiere que el usuario teclee coma), por lo que no es P0."
+        }
+      },
+      {
+        "titulo": "RANGOS_UCI solo protege la ruta de VOZ; SOFA y la gasometría (electrolitos/PaCO2) no validan rango, y el panel es editable a mano",
+        "severidad": "P1",
+        "archivos": "src/lib/uci/extraccion.ts:242-257 (RANGOS_UCI) y :278-335 (se aplican SOLO dentro de extraerValoresUCIConAvisos); src/app/(dashboard)/uci/page.tsx:49 `<input ... onChange={e => set(k, e.target.value)}>` (edición manual sin re-validar) y :98 `const n = (k) => (v[k]===''? undefined : v[k])` (devuelve el string crudo); src/lib/uci/scores.ts:105-127 `calcularSOFA` usa num() sin rango; src/lib/uci/gasometria.ts:87-88 solo acota pH (6.5-8.0), paco2/hco3/na/cl van sin rango.",
+        "causaRaiz": "La plausibilidad se aplica al TEXTO dictado, no a los motores ni a la entrada consolidada `v`. Un campo tecleado/editado a mano (o el pafi/plaquetas/creat) llega directo al motor: 'creat'=50 da subscore renal 4 e infla SOFA; un hco3 o paco2 imposible envenena el anion gap. La guarda es evadible por la ruta manual, que es un uso normal del panel.",
+        "pruebasNecesarias": "Test: calcularSOFA({creatinina:'50', glasgow:'98', plaquetas:'-5'}) hoy puntúa sin marcar implausible. analizarGasometria con paco2=300/na=1000 no bloquea. Falta test que verifique rechazo/marcado de fuera-de-rango en los motores mismos, independiente de la voz.",
+        "reparacion": "Aplicar la tabla RANGOS_UCI (o equivalente por motor) en la capa que arma la entrada a los motores sobre TODO `v` (no solo sobre extracción), o duplicar la guarda dentro de calcularSOFA/analizarGasometria. Software; la tabla de rangos ya está definida en el repo.",
+        "needsClinicalReview": false,
+        "area": "Validación de unidades en fronteras clínicas (motores UCI y expediente)",
+        "verif": {
+          "confirmado": true,
+          "severidadCorregida": "P1",
+          "motivo": "Evidencia verificada al pie de la letra y vigente. grep -rn RANGOS_UCI src/ solo arroja hits en extraccion.ts (definicion :242 y unico uso :295 DENTRO de extraerValoresUCIConAvisos); no aparece en scores.ts, gasometria.ts ni page.tsx, confirmando que la guarda de plausibilidad cubre SOLO la ruta de extraccion de voz/texto. page.tsx:49 escribe el string crudo sin validar (onChange={e => set(k, e.target.value)}) y n() (:98) devuelve v[k] crudo a los motores (la cita del hallazgo esta simplificada pero es correcta en sustancia). scores.ts:19-23 num() solo coacciona a numero finito sin rango; calcularSOFA (:105-112) lo pasa directo a renal() donde creat>=5 => 4 puntos, por lo que un creat=50 tecleado infla SOFA sin gate de plausibilidad. gasometria.ts:88 solo acota pH (6.5-8.0); paco2/hco3/na/cl van sin rango al anion gap/compensacion. El helper rango() en scores.ts:201 es mapeo valor->puntos de APACHE, no validacion. Severidad P1 justa: los motores producen salida correcta respecto a sus propios umbrales (no P0), pero falta la validacion de plausibilidad de inputs en la capa manual y en los motores que la ruta de voz ya tiene — hueco de validacion de inputs, P1 por la carta. Reparacion es de software (aplicar RANGOS_UCI ya definida sobre v antes de los motores o duplicarla en ellos), sin tocar umbrales clinicos."
+        }
+      },
+      {
+        "titulo": "Calculadora renal de la receta: creatinina sin guarda de rango ni de unidad (µmol/L o typo → TFG falsa que ajusta antibióticos)",
+        "severidad": "P1",
+        "archivos": "src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx:152-155 `const cr = parseFloat(creatinina); if (!cr || cr <= 0 || !patient?.edad) return null; ... evaluarFuncionRenal(cr, ...)` y campo :592-593 `Creatinina (mg/dL)` <input> plano; src/lib/expediente/funcion-renal.ts:37-58 `ckdEpi2021`/`cockcroftGault` documentan 'Scr en mg/dL' pero NO validan rango.",
+        "causaRaiz": "El único filtro es cr<=0. No hay tope superior ni verificación de unidad. Un reporte en µmol/L (p.ej. 88 µmol/L ≈ 1.0 mg/dL) o un error de tecleo pasa tal cual: eGFR/CrCl caen a ~0-1 mL/min, se clasifica G5 y ajusteRenalFarmacos (líneas 157-161) emite alertas de reducir/evitar fármacos. Las fronteras hermanas sí acotan (labs-desde-texto.ts:38 min0.1 max25; extraccion.ts:253 creat[0.1,25]); esta es la única sin guarda.",
+        "pruebasNecesarias": "Test unitario: evaluarFuncionRenal(88,60,'Masculino',70) y creatinina='115' deben marcarse implausibles/no calcular en vez de devolver eGFR≈1. Test de frontera de plausibilidad de creatinina en la ruta de receta.",
+        "reparacion": "Acotar la creatinina a un rango plausible en mg/dL antes de calcular (misma tabla que labs-desde-texto/RANGOS_UCI); si cae fuera, NO calcular y avisar '¿el valor está en µmol/L?'. Reparación de software; el rango numérico ya existe en el propio repo, no se inventa regla clínica.",
+        "needsClinicalReview": false,
+        "area": "Validación de unidades en fronteras clínicas (motores UCI y expediente)",
+        "verif": {
+          "confirmado": true,
+          "severidadCorregida": "P1",
+          "motivo": "Evidencia verificada tal cual y vigente. page.tsx:152-155 sólo filtra `!cr || cr <= 0`: no hay tope superior ni verificación de unidad antes de llamar a evaluarFuncionRenal(cr,...). El input (page.tsx:592-594) es texto plano \"Creatinina (mg/dL)\" sin atributo max ni validación. funcion-renal.ts:37-58 documenta \"Scr en mg/dL\" pero no valida rango. Tracé el mecanismo end-to-end: un valor en µmol/L (p.ej. 88) o un typo produce eGFR≈0-1 mL/min, se clasifica G5 (clasificarTFG) y ajusteRenalFarmacos (líneas 104-144) emite alertas de reducir/evitar antimicrobianos. Es la única frontera de esta magnitud sin guarda: labs-desde-texto.ts:38 acota [0.1,25] y extraccion.ts:253 acota creat [0.1,25]. Severidad P1 justa según la carta = hueco de validación de unidades/inputs con riesgo real de estado/número incorrecto; no es P0 porque es apoyo decisional con el médico viendo el resultado en pantalla, sin corrupción/pérdida de datos, y una entrada válida en mg/dL sí produce el número correcto por spec. La reparación reutiliza el rango que ya existe en el propio repo, sin inventar regla clínica."
+        }
+      },
+      {
+        "titulo": "CKD-EPI 2021 duplicada en dos módulos, con redondeo/clamping distintos y CERO golden tests",
+        "severidad": "P1",
+        "archivos": "src/lib/expediente/funcion-renal.ts:37-48 (`return Math.round(egfr)` — entero, SIN clamp de creatinina) vs src/lib/expediente/calculadoras.ts:200-207 (`const scr = Math.max(creatinina, 0.01)` ... `return Math.round(tfg * 10) / 10` — 1 decimal, con clamp). Tests: src/__tests__/funcion-renal.test.ts:8 `expect(ckdEpi2021(1.0, 40, 'Masculino')).toBeGreaterThanOrEqual(90)` y :16 `toBeLessThan(30)` — solo rangos; src/__tests__/calculadoras.test.ts:159-161 `expect(tfg).toBeGreaterThan(85); expect(tfg).toBeLessThan(95)` — solo rangos. Consumidores divergentes: src/lib/expediente/copiloto.ts:256,479,588,669 usa la de calculadoras; src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx:155 usa la de funcion-renal vía evaluarFuncionRenal, cuyo resultado alimenta ajusteRenalFarmacos (umbrales duros: crcl < r.umbral, funcion-renal.ts:165)",
+        "causaRaiz": "La fórmula se implementó dos veces de forma independiente (una para el copiloto, otra para la receta/PROA) y ninguna suite fija un valor esperado exacto. Un cambio accidental de coeficiente (p.ej. 0.9938→0.993, o −0.241→−0.24) pasaría los tests actuales de rango/monotonía sin fallar, y las dos copias pueden divergir en silencio. El mismo paciente puede recibir TFG distinta según la pantalla (redondeo entero vs 1 decimal) justo alrededor de los umbrales KDIGO (G2/G3a en 60, alertas de fármaco en 30/50).",
+        "pruebasNecesarias": "Golden tests con fixtures sintéticos: 4-6 tuplas (creatinina, edad, sexo) con el eGFR esperado fijado a mano con toBeCloseTo (p.ej. Cr 1.0/60a/hombre, Cr 0.7/40a/mujer, Cr 3.0/70a, y un caso pegado al umbral 30 y otro al 60). Además un test de CONSISTENCIA que corra ambas implementaciones sobre los mismos fixtures y exija |a−b| ≤ 0.5 (la tolerancia del redondeo declarado). Casos frontera: creatinina 0 y negativa en la versión de funcion-renal (hoy devuelve Infinity).",
+        "reparacion": "Software: unificar en UNA sola implementación (funcion-renal.ts reexportada o consumida por calculadoras.ts) con el clamp de creatinina y política de redondeo única documentada; añadir los golden tests y el test de consistencia. Los valores esperados de los fixtures se derivan de la fórmula ya documentada en el propio código (comentario funcion-renal.ts:33-36); si el Dr quiere validarlos contra una calculadora de referencia, mejor, pero no se cambia ningún umbral clínico.",
+        "needsClinicalReview": false,
+        "area": "Exactitud contra fixtures — motores deterministas UCI + expediente (golden tests, tests débiles, disciplina de versión)",
+        "verif": {
+          "confirmado": true,
+          "severidadCorregida": "P1",
+          "motivo": "Evidencia verificada tal cual y vigente. Existen DOS implementaciones independientes de ckdEpi2021: funcion-renal.ts:37-48 devuelve Math.round(egfr) (entero) SIN clamp de creatinina y firma (creatinina,edad,sexo:Sexo); calculadoras.ts:200-207 hace const scr=Math.max(creatinina,0.01) y return Math.round(tfg*10)/10 (1 decimal) con firma (creatinina,edad,esMujer:boolean). Los tests solo fijan rangos/monotonía: funcion-renal.test.ts:8 .toBeGreaterThanOrEqual(90) y :16 .toBeLessThan(30); calculadoras.test.ts:159-161 .toBeGreaterThan(85)/.toBeLessThan(95). Ninguna suite fija un valor exacto de CKD-EPI, por lo que un cambio de coeficiente pasaría inadvertido. Consumidores divergentes confirmados: copiloto.ts:256,479,588,669 usa la de calculadoras (1 decimal, con clamp), mientras receta/[patientId]/[notaId]/page.tsx:155 usa evaluarFuncionRenal (funcion-renal, entero, sin clamp) que alimenta ajusteRenalFarmacos con umbral duro crcl<r.umbral (funcion-renal.ts:165); el redondeo entero vs 1-decimal y el clamp ausente pueden divergir alrededor de umbrales KDIGO/fármaco. P1 se sostiene: no es P0 porque ninguna copia produce un número incorrecto contra su propia fórmula documentada, pero es un hueco de validación de input (clamp de creatinina ausente en funcion-renal) más duplicación con divergencia silenciosa y cero golden tests, que es exactamente la definicion P1 de la carta."
+        }
+      },
+      {
+        "titulo": "Outputs de motores deterministas persistidos SIN versión del motor (nota UCI firmada, preop, escalas de enfermería)",
+        "severidad": "P2",
+        "archivos": "src/lib/uci/nota.ts:19-21 y 180-191 (UCI_NOTA_VERSION existe pero SeccionNota={key,label,value} no la lleva; los resultados de motores con campo `version` se reducen a texto); src/app/(dashboard)/uci/page.tsx:317-320 (sessionStorage `nx.uci.seed.*` = solo secciones, sin versiones ni campos crudos); src/app/(dashboard)/consulta/[patientId]/page.tsx:1496-1512 (la semilla se siembra en la nota tal cual); src/types/expediente.ts:226-231 (provenance de la nota solo cubre IA: 'modelo… promptVersion… apiVersion' — no hay campo para versión de motor determinista pese al comentario 'con qué modelo, versión de prompt y motor se generó la nota… Requisito de auditoría regulatoria'); src/types/expediente.ts:203-206 (preop.resultados persistidos sin versión); src/lib/hospital/firestore.ts:344 ('agregarEscala… { tipo, score, riesgo, por }' — sin inputs ni versión); sin constante de versión: src/lib/expediente/preop.ts, src/lib/expediente/calculadoras.ts, src/lib/expediente/pediatria.ts, src/lib/hospital/news2.ts, src/lib/hospital/escalas.ts, src/lib/seguridad/dosis.ts (verificado por grep: cero 'VERSION')",
+        "causaRaiz": "La disciplina de versionado se implementó solo en src/lib/uci/* (icu-002: GASOMETRIA_ENGINE_VERSION, SCORES_UCI_VERSION 1.1.0, NEURO 1.1.0, etc.) pero la capa de persistencia nunca adoptó el contrato: el constructor de nota reduce los resultados versionados a prosa, el handoff UCI→consulta pasa solo texto, y el tipo NotaMedica solo modela provenance de LLM. Los motores fuera de UCI se escribieron antes de esa disciplina y nunca se retro-versionaron. Resultado: una nota firmada o una escala Braden guardada no puede decir con qué versión de qué motor se calcularon sus números, aunque scores.ts y neuro.ts ya van en 1.1.0 (es decir, los números YA cambiaron entre versiones).",
+        "needsClinicalReview": false,
+        "pruebasNecesarias": "Test que construya una nota evolucion_uci desde fixtures sintéticos y afirme que el documento persistido contiene UCI_NOTA_VERSION + versiones de cada motor invocado; test de agregarEscala que exija inputs+versión en el payload; test de tipo (compile-time) que NotaMedica.iaAuditoria.provenance admita motoresDeterministas: Record<string,string>; test de que preop.resultados incluya versión.",
+        "reparacion": "SOFTWARE, sin tocar lógica clínica: (1) hacer que construirSeccionesUCI devuelva además un bloque de metadatos { notaVersion, motores: {gasometria: '1.0.0', sofa: '1.1.0', …} } recogiendo los campos `version` que los motores YA devuelven; incluirlo en la semilla y persistirlo en la nota (campo aditivo, p. ej. iaAuditoria.motoresDeterministas o un campo hermano); (2) añadir constantes de versión exportadas a preop/escalas/news2/pediatria/dosis/calculadoras (arranque en '1.0.0', sin cambiar ningún número) y persistirlas junto a cada resultado guardado; (3) en agregarEscala, guardar también los inputs (BradenInput/MorseInput) para que el score sea re-verificable.",
+        "area": "Separación de capas (determinista · UI · almacenamiento · IA)",
+        "verif": {
+          "confirmado": true,
+          "motivo": "Toda la evidencia existe tal cual y sigue vigente tras v646-v661: SeccionNota={key,label,value} sin versión (nota.ts:21, 180-191) y UCI_NOTA_VERSION solo se define, nadie la consume (grep: 1 hit); la semilla sessionStorage es solo JSON de secciones (uci/page.tsx:319) y se siembra tal cual (consulta page:1503-1507); provenance de NotaMedica solo modela IA — su campo `motor` es el perfil IA, no motor determinista (expediente.ts:226-231); preop.resultados sin versión (203-206); agregarEscala persiste {tipo,score,riesgo,por} sin inputs ni versión (hospital/firestore.ts:344); cero constantes VERSION en preop/calculadoras/pediatria/news2/escalas/dosis (grep verificado); y la premisa de deriva es real (SCORES_UCI_VERSION y NEURO_ENGINE_VERSION ya en 1.1.0). Ningún commit reciente (v651-661: receta/UCI UI) lo reparó. SEVERIDAD: se baja a P2 según la carta — no produce números incorrectos, no pierde ni corrompe datos, y no es hueco de validación de unidades/inputs; es deuda de trazabilidad/re-verificabilidad (los outputs persistidos no pueden atarse a la versión del motor y las escalas no son recomputables), que la carta clasifica como P2. La reparación propuesta es puramente de software y aditiva, correcta.",
+          "severidadCorregida": "P2"
+        }
+      },
+      {
+        "titulo": "MELD exportado sin ningún test de valor exacto (solo cotas y monotonía)",
+        "severidad": "P2",
+        "archivos": "src/lib/expediente/calculadoras.ts:210-215 (`3.78·ln(b) + 11.2·ln(i) + 9.57·ln(c) + 6.43`, topes 6-40, Cr topada en 4). Test: src/__tests__/calculadoras.test.ts:169-176 — `expect(meld(1,1,1)).toBeGreaterThanOrEqual(6)`, `toBeLessThanOrEqual(40)`, `meld(10,2.5,3) > meld(1.2,1.1,1)`, y `meld(2,1.5,4).toBe(meld(2,1.5,8))` (solo el tope de Cr)",
+        "causaRaiz": "Ningún fixture fija el puntaje de un caso concreto. Cualquier alteración de un coeficiente (11.2→11.02) o del orden de clamps produciría puntajes MELD distintos sin que la suite lo detecte, porque las cotas 6-40 y la monotonía se conservarían.",
+        "pruebasNecesarias": "3-4 golden tests con entradas sintéticas y puntaje entero esperado fijado a mano (p.ej. bili 2.0 / INR 1.5 / Cr 1.8 → valor calculado una vez y congelado en el test), incluyendo un caso en cada tope (≤6 y ≥40) con el valor exacto 6 y 40.",
+        "reparacion": "Añadir los golden tests al bloque existente de calculadoras.test.ts:157-177. Es fijar en fixture lo que la fórmula del propio código ya produce hoy — no se toca lógica.",
+        "needsClinicalReview": false,
+        "area": "Exactitud contra fixtures — motores deterministas UCI + expediente (golden tests, tests débiles, disciplina de versión)",
+        "verif": {
+          "confirmado": true,
+          "motivo": "Evidencia verificada línea por línea: calculadoras.ts:210-215 tiene la fórmula citada y calculadoras.test.ts:169-176 solo prueba cotas, monotonía y tope de Cr; grep confirma que no existe ningún golden test de valor exacto para meld() en todo src/ y que sigue vigente tras v646-v661. Sin embargo, la severidad P1 no se sostiene por la carta: el software hoy NO produce un número incorrecto ni hay hueco de validación de unidades/inputs (los clamps existen y están probados); es una debilidad de la suite para detectar regresiones futuras, es decir deuda de pruebas → P2.",
+          "severidadCorregida": "P2"
+        }
+      }
+    ],
+    "p2": [
+      {
+        "titulo": "Seis motores UCI cambiaron lógica sin subir su *_VERSION (incluido el fix P0 de gasometría); COPILOT_VERSION obsoleta se devuelve como procedencia en la API",
+        "severidad": "P2",
+        "archivos": "src/lib/uci/gasometria.ts:21 `GASOMETRIA_ENGINE_VERSION = '1.0.0'` pese al fix P0 de signo en compensación de alcalosis respiratoria (commit b9d4cc8: `const espAgudo = r1(24 + (esAcidosis ? 1 : 2) * deltaCO2)` — antes −2/−4, cambió el resultado numérico). src/lib/uci/ventilacion.ts:22 '1.0.0' pese a añadir esModoEspontaneo que BLOQUEA driving pressure/compliance en PSV/CPAP/VNI (commit a0576a6). src/lib/uci/correlacion.ts:15 '1.0.0' pese a cambiar descarte/relevancia del delta redondeado al crudo (a0576a6). src/lib/uci/nota.ts:19 '1.0.0' pese a que calcularSOFA ahora recibe dopamina/dobutamina/epinefrina (a0576a6; además UCI_NOTA_VERSION no se referencia en ningún otro archivo — constante muerta). src/lib/uci/copilot.ts:24 '1.0.0' pese a pasar rass al motor de seguridad (6f24f82), y esa versión SÍ se emite como procedencia: src/app/api/uci/copilot/route.ts:164 `return NextResponse.json({ ok: true, version: COPILOT_VERSION, ...fusion })`. src/lib/uci/pocus.ts:15 '1.0.0' tras c545bcb ('VExUS/LUS/PLR reales') y c435ce0. Contraste: la convención SÍ existe y se aplicó en neuro.ts:15, scores.ts:15, seguridad.ts:13 y extraccion.ts:12 (todas 1.1.0 con comentario del cambio)",
+        "causaRaiz": "La disciplina de versionado por motor se aplica de forma inconsistente: los fixes de las auditorías v631-v651 subieron la versión en 4 motores y la dejaron intacta en 6, incluyendo un cambio P0 que altera el resultado numérico (gasometría) y una versión que sale por API como metadato de procedencia (copilot). Quien compare resultados etiquetados '1.0.0' antes y después del fix de alcalosis obtiene números distintos bajo la misma versión declarada.",
+        "pruebasNecesarias": "Test de guardia mecánico: un test que fije en fixture el valor actual de cada *_VERSION junto a un hash/lista de los exports del motor, de modo que tocar el archivo del motor sin tocar el fixture haga fallar CI y obligue a decidir el bump conscientemente (mismo patrón que ya se usa en los guard-tests del repo, p.ej. firestore-rules-guard).",
+        "reparacion": "Subir de una vez las 6 constantes a 1.1.0 (o 1.0.1 según el criterio semver del repo) reflejando los cambios ya desplegados, eliminar o conectar la constante muerta UCI_NOTA_VERSION, y añadir el guard-test. Cero cambios de lógica clínica.",
+        "needsClinicalReview": false,
+        "area": "Exactitud contra fixtures — motores deterministas UCI + expediente (golden tests, tests débiles, disciplina de versión)"
+      },
+      {
+        "titulo": "ckdEpi2021 de funcion-renal.ts sin defensa de entrada: creatinina ≤ 0 devuelve Infinity y clasifica G1 'Normal'",
+        "severidad": "P2",
+        "archivos": "src/lib/expediente/funcion-renal.ts:37-48 — sin clamp: con creatinina=0, `r = 0/k = 0` y `Math.pow(0, -0.241) = Infinity` → egfr Infinity → clasificarTFG(Infinity) = 'G1 Normal' (funcion-renal.ts:62) y depuracionParaDosis = Infinity → cero alertas renales. La copia de calculadoras.ts:201 sí se defiende (`Math.max(creatinina, 0.01)`). El único caller hoy filtra (`if (!cr || cr <= 0 ...) return null`, src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx:153), pero la función pura exportada no, y ningún test lo cubre (funcion-renal.test.ts no tiene caso cr≤0)",
+        "causaRaiz": "Validación de entrada delegada al caller de UI en una función pura exportada de una librería compartida; cualquier caller futuro (otro panel, la API, el copiloto) que la use sin repetir el guard obtiene Infinity silencioso que además apaga las alertas de ajuste de fármacos.",
+        "pruebasNecesarias": "Tests unitarios: ckdEpi2021(0, ...), ckdEpi2021(-1, ...) y evaluarFuncionRenal con cr=0 → el contrato esperado (NaN/null/bloqueo explícito, consistente con el patrón noAplicablePorEdad que ya existe en el mismo archivo, funcion-renal.ts:74-80).",
+        "reparacion": "Guardia dentro de la función (retornar NaN o un resultado bloqueado ante cr ≤ 0, igual que hace la rama de edad < 18) + los tests. Se resuelve de paso al unificar con la copia de calculadoras (hallazgo 1).",
+        "needsClinicalReview": false,
+        "area": "Exactitud contra fixtures — motores deterministas UCI + expediente (golden tests, tests débiles, disciplina de versión)"
+      },
+      {
+        "titulo": "Fracción de filtración CKRT sin golden test (solo toBeGreaterThan(25))",
+        "severidad": "P2",
+        "archivos": "src/__tests__/uci-soportes.test.ts:28-29 — `expect(r.fraccionFiltracionPct).not.toBeNull(); expect(r.fraccionFiltracionPct!).toBeGreaterThan(25)` — único test de la FF; el resto del motor CKRT sí tiene goldens (efluente 2150, dosis 30.7/16.1, ratio citrato 2.7). Cálculo en src/lib/uci/ckrt.ts (~línea 110, rama de fracción de filtración con Qb y hematocrito)",
+        "causaRaiz": "El valor numérico exacto de la FF nunca se fija: un error de unidades en la conversión Qb mL/min → flujo plasmático por hora, o en el uso del hematocrito, podría mover la FF varios puntos y el test seguiría pasando mientras el resultado quede por encima de 25.",
+        "pruebasNecesarias": "Un golden con entradas sintéticas completas (Qb, hematocrito, pre/post/UF) y la FF% esperada calculada a mano y congelada con toBeCloseTo(x, 1), más un caso por debajo del umbral de advertencia con su valor exacto.",
+        "reparacion": "Añadir los 2 asserts de valor exacto al test existente. La fórmula no se toca.",
+        "needsClinicalReview": false,
+        "area": "Exactitud contra fixtures — motores deterministas UCI + expediente (golden tests, tests débiles, disciplina de versión)"
+      },
+      {
+        "titulo": "benchmark.ts valida los motores re-implementando la misma fórmula inline (semi-tautológico por diseño)",
+        "severidad": "P2",
+        "archivos": "src/lib/uci/benchmark.ts:48 `const espDP = r1(pplat - peep)`, :51 `const espComp = Math.round(vt / espDP)`, :64, :72, :87 `const esperado = Math.round((pas + 2 * pad) / 3)` — el 'cómputo independiente' anunciado en el header (benchmark.ts:6) vive en el mismo repo y duplica la aritmética del motor; src/__tests__/uci-benchmark.test.ts:16 `expect(rep.exactitud).toBe(100)`",
+        "causaRaiz": "El benchmark detecta drift entre motor y su copia inline, pero si un cambio de especificación se aplica coherentemente en ambos lados (mismo autor, mismo commit) la exactitud sigue en 100 sin señal. Mitigado: los tests unitarios (uci-ventilacion, uci-hemodinamia, uci-gasometria) sí fijan goldens a mano, así que el riesgo real es bajo; se reporta como límite conocido del arnés, no como defecto activo.",
+        "pruebasNecesarias": "Ninguna nueva imprescindible; opcional, mover los valores esperados del benchmark a una tabla de fixtures literal (const CASOS = [{pplat:20, peep:5, dpEsperado:15}, ...]) para que el esperado sea un dato congelado y no una fórmula viva.",
+        "reparacion": "Refactor opcional del arnés a tabla de fixtures; documentar en el header que la red principal de goldens son los tests unitarios.",
+        "needsClinicalReview": false,
+        "area": "Exactitud contra fixtures — motores deterministas UCI + expediente (golden tests, tests débiles, disciplina de versión)"
+      },
+      {
+        "titulo": "zScoreLMS solo tiene golden en el caso trivial (valor = M → z=0); el caso L≠0 no trivial solo se prueba direccionalmente",
+        "severidad": "P2",
+        "archivos": "src/__tests__/pediatria.test.ts:103 `expect(zScoreLMS(10, -0.3, 10, 0.12)).toBe(0)`, :107 (L=0, también valor=M → 0), :110-112 `const z = zScoreLMS(8, -0.3, 10, 0.12); ... expect(percentilDeZ(z)).toBeLessThan(50)` — solo el signo. Fórmula en src/lib/expediente/pediatria.ts:279-285",
+        "causaRaiz": "La rama interesante de la fórmula LMS (((valor/M)^L − 1)/(L·S) con L≠0 y valor≠M) nunca fija un z exacto; un error en el exponente o en el denominador que conserve el signo pasaría la suite. percentilDeZ sí tiene goldens (±2 → 2.3/97.7), pero recibe el z ya calculado.",
+        "pruebasNecesarias": "2 goldens con toBeCloseTo(z, 2) para (valor≠M, L≠0) y (valor≠M, L=0 — rama logarítmica), valores calculados a mano una vez y congelados; encadenar con el percentil esperado.",
+        "reparacion": "Añadir los asserts al bloque existente de pediatria.test.ts:100-121. Sin cambios de lógica.",
+        "needsClinicalReview": false,
+        "area": "Exactitud contra fixtures — motores deterministas UCI + expediente (golden tests, tests débiles, disciplina de versión)"
+      },
+      {
+        "titulo": "Doble implementación de CKD-EPI 2021 con redondeo y piso de creatinina distintos (riesgo de divergencia)",
+        "severidad": "P2",
+        "archivos": "src/lib/expediente/funcion-renal.ts:37-48 (`ckdEpi2021`, Math.round a entero, sin piso de creatinina) vs src/lib/expediente/calculadoras.ts:200-207 (`ckdEpi2021`, redondeo a 1 decimal y `Math.max(creatinina, 0.01)`).",
+        "causaRaiz": "Misma fórmula copiada en dos módulos con dos comportamientos: una acota la creatinina mínima y otra no, y redondean distinto. Ante creatinina 0 o valores límite dan resultados diferentes, y un cambio futuro en una no se refleja en la otra.",
+        "pruebasNecesarias": "Test de equivalencia entre ambas implementaciones sobre un set de entradas (incluyendo creatinina→0 y mujer/hombre); debe fallar hoy por el piso y el redondeo.",
+        "reparacion": "Unificar en una sola función exportada y reusarla en ambos sitios. Software.",
+        "needsClinicalReview": false,
+        "area": "Validación de unidades en fronteras clínicas (motores UCI y expediente)"
+      },
+      {
+        "titulo": "Dosificación pediátrica sin guarda de plausibilidad de peso (kg vs lb); el comentario dice que la protección es 'validación peso-edad' que no está implementada",
+        "severidad": "P2",
+        "archivos": "src/lib/expediente/pediatria.ts:113-114 `if (!(pesoKg > 0)) return null` (único chequeo de peso); :71 comentario '...la protección real ante un PESO erróneo es la validación peso-edad' — no existe tal cross-check en calcularDosisPediatrica.",
+        "causaRaiz": "Un peso capturado en libras (p.ej. 66 lb de un niño de 30 kg) produce ~2.2× la dosis mg/kg. Los topes en mg (topeDosis/topeDia) solo recortan a nivel adulto, no detectan un 'kg' inflado dentro del rango pediátrico. No hay validación de plausibilidad de peso ni cruce peso/edad.",
+        "pruebasNecesarias": "Test: peso claramente fuera del rango biológico para la edad (o peso implausible) debe bloquear/avisar antes de calcular dosis. Test de frontera lb→kg.",
+        "reparacion": "Añadir guarda de plausibilidad de peso que marque/no calcule cuando el peso sea implausible. El UMBRAL peso-por-edad requiere una tabla/regla clínica (percentiles OMS ya presentes en oms-crecimiento.ts) → definir el corte es NEEDS_CLINICAL_REVIEW; el mecanismo de software (marcar y bloquear) es implementable de inmediato.",
+        "needsClinicalReview": true,
+        "area": "Validación de unidades en fronteras clínicas (motores UCI y expediente)"
+      },
+      {
+        "titulo": "Modo ventilatorio es `string` libre: unión cerrada ausente y literales mágicos repetidos en 5 archivos; predicados de clasificación no verificados por el compilador",
+        "severidad": "P2",
+        "archivos": "src/lib/uci/ventilacion.ts:49-59 `esModoEspontaneo(modo?: string)` con array ['PSV','CPAP','VNI','AFNC','aire'] y `esModoInvasivo(modo?: string)` con ['AC-VC','AC-PC','SIMV','APRV','PSV']; extraccion.ts:187-195 asigna out.modo = 'APRV'|'SIMV'|... a un Record<string,string>; nota.ts:24-29 MODO_LABEL; app/(dashboard)/uci/page.tsx:458-466 dropdown; app/demo/interactivo/page.tsx. NO existe `type ModoVentilatorio` (grep sin resultados en src/lib/uci y src/types).",
+        "causaRaiz": "El conjunto de modos es cerrado y conocido pero está modelado como `string` en todas las firmas y como literales sueltos repetidos. El compilador no cruza el productor (extraccion.ts) con los predicados (ventilacion.ts) ni con el dropdown (page.tsx): un typo ('APVR', 'AC_VC') o un modo nuevo agregado en un solo lugar no genera error de tipo, y como `esModoInvasivo`/`esModoEspontaneo` deciden si se bloquea el driving pressure y si el GCS verbal/RASS es valorable (nota.ts:94, page.tsx:193/208), un desalineamiento silencioso mal-clasifica esos cálculos.",
+        "pruebasNecesarias": "Ninguna prueba nueva de runtime; es correctitud estática. Test opcional de exhaustividad: para cada valor de la unión `ModoVentilatorio`, `esModoEspontaneo` XOR clasificación esperada; assert de que todo modo del catálogo cae en exactamente una categoría. `tsc --noEmit` debe fallar si el dropdown/extractor emite un literal fuera de la unión.",
+        "reparacion": "Declarar en src/types/uci.ts `export const MODOS_VENT = ['AC-VC','AC-PC','SIMV','APRV','PSV','CPAP','VNI','AFNC','aire'] as const; export type ModoVentilatorio = typeof MODOS_VENT[number]`. Cambiar las firmas `modo?: string`→`modo?: ModoVentilatorio`, tipar el retorno de extraerCategoricosUCI y las opciones del dropdown contra la unión, y derivar las opciones/labels de una sola tabla. No cambia comportamiento: los mismos strings, ahora verificados por el compilador.",
+        "needsClinicalReview": false,
+        "area": "Tipado y modelado — motores clínicos (src/lib/uci, src/lib/expediente)"
+      },
+      {
+        "titulo": "`UnidadDosis` definido dos veces con vocabularios incompatibles para el mismo concepto (unidades de vasopresor)",
+        "severidad": "P2",
+        "archivos": "src/lib/uci/hemodinamia.ts:78 `export type UnidadDosis = 'mcg_kg_min' | 'mcg_min' | 'units_min' | 'units_hour'` vs src/lib/uci/infusiones.ts:29 `export type UnidadDosis = 'µg/kg/min' | 'µg/min' | 'U/min'`.",
+        "causaRaiz": "Dos motores que operan sobre dosis de vasopresor declaran un tipo con el MISMO nombre pero literales distintos (snake_case ASCII vs símbolos µ y '/'). No hay una fuente única de verdad de unidades. Si en el futuro se conecta la salida/entrada de un motor al otro (p.ej. alimentar equivalenteNorepinefrina desde el catálogo de infusiones), los tipos son mutuamente incompatibles y obligan a un mapeo manual propenso a error; hoy además confunde al importar (dos símbolos homónimos).",
+        "pruebasNecesarias": "Sin runtime nuevo. Verificación: importar ambos módulos y comprobar en un test de tipos que un puente entre ellos requiere conversión explícita. `tsc --noEmit` tras unificar debe seguir compilando.",
+        "reparacion": "Elegir UN vocabulario canónico (o dos tipos con nombres distintos: `UnidadDosisVaso` en hemodinamia y `UnidadInfusion` en infusiones) en src/types/uci.ts, y una tabla de mapeo explícita si ambos deben coexistir. Renombrar para eliminar el homónimo. Sin cambio de comportamiento.",
+        "needsClinicalReview": false,
+        "area": "Tipado y modelado — motores clínicos (src/lib/uci, src/lib/expediente)"
+      },
+      {
+        "titulo": "Salidas de motor con `ok:boolean` + `valor:number|null` (unión NO discriminada): permite el estado imposible ok:true/valor:null y obliga a ~30 guardas `?? undefined`",
+        "severidad": "P2",
+        "archivos": "src/lib/uci/ventilacion.ts:68-77 `interface CalculoNum { ok:boolean; valor:number|null; ... }`; hemodinamia.ts:30-39 `CalculoHemo` y 94-101 `ResultadoNEE { valorTotal:number|null }`; infusiones.ts:74-85 `ResultadoInfusion { ok; bloqueado; dosis:number|null }`. Consumidores que compensan: nota.ts:57-59,96,122-170 y copilot.ts:43-77 (`X.ok ? X.valor ?? undefined : undefined`, patrón repetido ~30 veces).",
+        "causaRaiz": "El resultado se modela como producto (ok + todos los campos siempre presentes, algunos null) en vez de suma discriminada. A nivel de tipos nada impide `{ ok:true, valor:null }` ni `{ ok:false, valor:5 }`; el invariante 'ok===true ⇒ valor es number' vive solo en la convención del código, por eso cada consumidor tiene que re-verificar con `?? undefined`. No es un bug vivo (los motores respetan el invariante y los callers guardan), pero es deuda de modelado que hace posible el estado imposible y ensucia cada call site.",
+        "pruebasNecesarias": "Sin runtime nuevo. Tras refactor, `tsc --noEmit` debe: (a) permitir leer `.valor` como `number` sin `?? undefined` cuando `ok===true`; (b) marcar error si se lee `.valor` sin estrechar por `ok`. Los tests existentes de cada motor deben seguir verdes sin cambio de valores.",
+        "reparacion": "Modelar como unión discriminada: `type Calculo = { ok:true; valor:number; unidad:string; formula:string; advertencias:string[]; interpretacion?:string } | { ok:false; valor:null; motivoBloqueo:string; faltantes:string[]; formula:string }`. Los helpers `bloq`/`bloqueado` ya producen el brazo ok:false; solo hay que tipar el retorno. Elimina las ~30 guardas `?? undefined` en nota.ts/copilot.ts. Comportamiento idéntico.",
+        "needsClinicalReview": false,
+        "area": "Tipado y modelado — motores clínicos (src/lib/uci, src/lib/expediente)"
+      },
+      {
+        "titulo": "findNotaByIdInClinic devuelve `as NotaMedica` saltándose los defaults de arrays de normNota: el tipo sobre-promete una nota bien formada",
+        "severidad": "P2",
+        "archivos": "src/lib/expediente/firestore.ts:53-63 `return { patientId: p.id, nota: { ...ns.data(), id: ns.id } as NotaMedica }` — sin pasar por normNota (definido 23-33) que rellena diagnosticos/medicamentos/alergias/secciones a []. Contrasta con getNota:44 y getNotas:37 que SÍ normalizan. Consumidor actual: src/app/(dashboard)/nota/[patientId]/page.tsx:28-33 solo lee `resultado.patientId`.",
+        "causaRaiz": "El cast `as NotaMedica` afirma un contrato (arrays presentes) que el dato crudo de Firestore no garantiza para notas legacy. Hoy es inocuo porque el único consumidor descarta la nota y usa solo patientId (redirige y re-lee por la vía normalizada). Pero el tipo de retorno `{ patientId; nota: NotaMedica }` invita a leer `.nota.diagnosticos.map(...)`, que reintroduciría el crash sobre undefined que normNota fue escrito para prevenir (comentario firestore.ts:21-22).",
+        "pruebasNecesarias": "Fixture sintético de nota legacy SIN los campos array; assert de que findNotaByIdInClinic devuelve una nota con diagnosticos/medicamentos/alergias/secciones === [] (hoy devolvería undefined). Test de que `.map`/`.length` sobre la nota devuelta no lanza.",
+        "reparacion": "Reemplazar el cast por la misma normalización: `return { patientId: p.id, nota: normNota(ns.data() as Record<string,unknown>, ns.id) }`. Un solo cambio de línea que alinea el valor con el tipo declarado. No cambia comportamiento del consumidor actual (solo usa patientId) y blinda a futuros.",
+        "needsClinicalReview": false,
+        "area": "Tipado y modelado — motores clínicos (src/lib/uci, src/lib/expediente)"
+      },
+      {
+        "titulo": "Mapeo campo→motor de UCI triplicado (página, constructor de nota, snapshot del Copilot) sin builder compartido ni test de paridad",
+        "severidad": "P2",
+        "archivos": "src/app/(dashboard)/uci/page.tsx:190-240 (re-cablea analizarVentilacion/Gasometria/SOFA/Neuro/Seguridad/CKRT/ECMO desde los mismos campos v); src/lib/uci/nota.ts:45-99 (mismo cableado); src/lib/uci/copilot.ts:32-81 (snapshotUCI, mismo cableado por tercera vez); evidencia de drift ya ocurrido: src/lib/uci/nota.ts:60-62 ('omitir dopa/dobu/epi subestimaba el subscore cardiovascular en la NOTA FIRMADA' — la nota y el panel divergieron hasta que se parchó a mano)",
+        "causaRaiz": "No existe una función única construirEntradasMotores(campos) → {vent, gaso, sofa, …}; cada consumidor repite a mano la traducción de ~40 claves de campo ('norepi', 'ckrtQb', 'ecmoSpD'…) a los inputs tipados de cada motor. Hoy las tres copias están sincronizadas (verificado campo por campo), pero el comentario en nota.ts documenta que ya divergieron una vez produciendo un número distinto en la nota firmada vs el panel — exactamente el modo de falla que la triplicación garantiza que se repita al añadir el próximo campo.",
+        "needsClinicalReview": false,
+        "pruebasNecesarias": "Test de paridad con fixtures sintéticos: para un mismo Record<string,string> de campos, afirmar que snapshotUCI y construirSeccionesUCI alimentan cada motor con inputs idénticos (hoy imposible de testear en la página por estar inline en el componente).",
+        "reparacion": "Extraer a src/lib/uci (p. ej. entradas.ts) una única función pura que mapee campos→inputs de motores; hacer que nota.ts, copilot.ts y la página la consuman. Cero cambio de números: es mover código idéntico a un solo lugar.",
+        "area": "Separación de capas (determinista · UI · almacenamiento · IA)"
+      },
+      {
+        "titulo": "Umbrales de signos vitales codificados a mano en la UI, divergentes del motor NEWS2 mostrado en la misma pantalla",
+        "severidad": "P2",
+        "archivos": "src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx:562 ('color: (s.fc && (s.fc > 100 || s.fc < 50)) ? \"#dc2626\"'), :564 ('s.temp >= 38'), :565 ('s.spo2 < 92') — vs el motor en src/lib/hospital/news2.ts:31-39 (SpO₂ escala: puntúa desde ≤92/≤94/≤96) y :101 (FC: puntúa desde ≥91, ≤50, 3 puntos en ≤40) que alimenta el badge NEWS2 de la misma tabla (page.tsx:189-191, 525-535)",
+        "causaRaiz": "La tabla de signos define su propio criterio inline de 'valor en rojo' en el JSX en lugar de derivarlo de un motor; el mismo tab muestra el NEWS2 calculado por lib/hospital/news2.ts con bandas distintas, de modo que una FC de 95 suma puntos al NEWS2 pero se pinta normal en la tabla (dos fuentes de verdad de 'anormal' en una pantalla). Nota adicional de software: el guard `s.fc &&` es falsy-check, no null-check (un 0 capturado por error jamás se resalta).",
+        "needsClinicalReview": true,
+        "pruebasNecesarias": "Test unitario del criterio de resaltado extraído a lib (hoy intesteable por vivir en el JSX): fixtures sintéticos de signos → flags esperados; test que asegure que el criterio de la tabla y el del motor provienen del mismo módulo.",
+        "reparacion": "SOFTWARE: extraer el criterio de resaltado a un módulo en src/lib/hospital (una sola fuente de verdad, consumida por la tabla) y corregir el guard falsy por typeof === 'number'. QUÉ umbrales debe usar ese módulo (los actuales de la tabla vs las bandas del motor NEWS2) es decisión clínica → NEEDS_CLINICAL_REVIEW.",
+        "area": "Separación de capas (determinista · UI · almacenamiento · IA)"
+      },
+      {
+        "titulo": "Cálculo clínico inline en componentes de UI: kg aproximados desde prosa con parseFloat, y concentración de infusión duplicando dilucion() del motor",
+        "severidad": "P2",
+        "archivos": "src/components/PanelCardiometabolico.tsx:346 ('aprox. {Math.round(Number(peso) * parseFloat(m.beneficio) / 100)} kg' — m.beneficio es prosa como '7% a 10%' según src/lib/expediente/cardiometabolico/obesidad.ts:159-171, así que parseFloat toma SOLO el límite inferior del rango y '10% o más' colapsa a 10); src/app/(dashboard)/uci/page.tsx:302-305 ('customConc = … unidadConc === \"U/mL\" ? cant / ml : (cant * 1000) / ml' — reimplementa la fórmula de src/lib/uci/infusiones.ts:45 'const concentracion = esU ? r(mgOU / mlBolsa, 4) : r((mgOU * 1000) / mlBolsa, 2)' pero SIN el redondeo del motor)",
+        "causaRaiz": "Dos componentes calculan en la capa de UI lo que el motor ya sabe hacer o debería exponer: (a) el panel cardiometabólico deriva un número clínico-facing (kg a bajar) parseando una cadena de prosa — frágil ante cualquier reformulación del texto ('más de 10%' → parseFloat=NaN silencioso, rango '7% a 10%' → solo 7) y muestra un rango como un único número sin etiquetarlo como cota inferior; (b) la página UCI duplica la fórmula de concentración de dilucion() en vez de pasar {mgOU, mlBolsa} al motor, con resultado sin redondear que puede diferir en decimales del que el propio catálogo del motor mostraría.",
+        "needsClinicalReview": false,
+        "pruebasNecesarias": "(a) Test de una función del motor kgPorMeta(pesoKg, meta) sobre METAS_POR_COMPLICACION con fixtures ('7% a 10%' → rango {min,max} y no un escalar; 'más de 10%'/'investigación' → sin número); (b) test de paridad: concentración custom vía motor === dilucion(label, cant, ml).concentracion para valores sintéticos.",
+        "reparacion": "(a) Añadir porcentajes estructurados a MetaPorComplicacion (p. ej. pctMin/pctMax numéricos junto a la prosa existente, sin cambiar los valores) y una función pura en obesidad.ts que devuelva el rango en kg; la UI solo formatea. (b) Exponer en infusiones.ts una función concentracionCustom(cantidad, mlBolsa, unidadConc) (reutilizando dilucion) y llamarla desde la página, eliminando la fórmula inline.",
+        "area": "Separación de capas (determinista · UI · almacenamiento · IA)"
+      },
+      {
+        "titulo": "Lecturas de UCI sin versión de esquema ni unidad por lectura: renombrar una métrica rompe la continuidad de tendencia en silencio",
+        "severidad": "P2",
+        "archivos": "src/lib/uci/correlacion.ts:43 `export interface Lectura { t: number; m: Record<string, number> }` (sin versión ni unidad); :48-55 `aplanarLectura` mete números crudos de campos[k]/computados sin unidad; :60-61 `compararLecturas`: `for (const key of Object.keys(actual)) { if (!(key in previa)) continue }`; src/app/(dashboard)/uci/page.tsx:267 se serializa `{ t, m }` a localStorage sin campo de versión; src/lib/uci/correlacion.ts:24-40 `METRICAS_UCI` define las claves ('norepi','lactato',...)",
+        "causaRaiz": "La lectura persistida es un mapa clave->número plano, sin `schemaVersion` ni unidad por métrica. Si una clave de METRICAS_UCI se renombra en una versión futura (p.ej. 'norepi'->'norepinefrina'), las lecturas viejas conservan la clave antigua y compararLecturas hace `continue` para toda clave que no exista en AMBAS lecturas -> la métrica desaparece de la comparación y la cronología sin ningún aviso (no hay migración ni detección de esquema desconocido). Igualmente, como no se guarda unidad por lectura, un cambio de unidad de un campo entre versiones del panel se compararía como si fueran la misma escala.",
+        "pruebasNecesarias": "Test que compare una lectura vieja `{norepi:0.05}` contra una nueva `{norepinefrina:0.15}` y verifique el comportamiento esperado tras una migración (hoy: se pierde silenciosamente, sin marca). Test que serialice/deserialice una lectura con `schemaVersion` y rechace/migre una sin versión conocida.",
+        "reparacion": "Software: añadir `schemaVersion` (y opcionalmente `engine: TREND_ENGINE_VERSION/CORRELACION_VERSION`) al objeto de lectura persistido y una función de migración de claves conocidas al leer; y/o llevar la unidad por métrica en la lectura (reutilizando METRICAS_UCI[].unidad) para que un cambio de unidad se detecte en vez de compararse a ciegas. No cambia ningún umbral clínico.",
+        "needsClinicalReview": false,
+        "area": "Persistencia, historial y tendencias de datos clínicos (UCI + signos hospitalarios + notas firmadas + export FHIR)"
+      },
+      {
+        "titulo": "Export FHIR pierde campos de signos en el round-trip (dolor/EVA, conciencia/ACVPU, O2 suplementario en signos seriados; glucometria, glasgow, escalaDolor en signos de nota)",
+        "severidad": "P2",
+        "archivos": "src/lib/fhir-export.ts:385 `for (const k of ['fc', 'fr', 'temp', 'spo2', 'glucosa'] as const)` — el loop de signos seriados solo mapea esas 5 + TA; src/types/hospital.ts:155-157 `RegistroSignos` incluye además `dolor?` (EVA 0-10), `conciencia?` (ACVPU) y `oxigeno?` (O2 supl.) que no se exportan; src/lib/fhir-export.ts:229-236 el loop de signos de nota solo exporta fc/fr/temperatura/spo2/peso/talla; src/types/expediente.ts:95-97 `SignosVitales` incluye `glucometria`, `glasgow`, `escalaDolor` que no se exportan",
+        "causaRaiz": "Ambos mapeadores FHIR enumeran una lista fija de campos y omiten el resto sin registrar la omisión. En signos seriados de internamiento se pierden dolor, conciencia y oxígeno suplementario (estos dos últimos alimentan NEWS2); en signos de nota se pierden glucometria, glasgow y escalaDolor. Un consumidor externo que reciba el Bundle no puede reconstruir esos parámetros — pérdida silenciosa en round-trip. (Adicional menor: el loop de nota usa truthiness `if (sv.fc)` en vez de `!= null`, por lo que un valor legítimo de 0 se descartaría; el loop seriado sí usa `val == null`.)",
+        "pruebasNecesarias": "Test de export que construya un RegistroSignos con dolor/conciencia/oxigeno y verifique que el Bundle contiene Observations correspondientes (hoy no las hay). Test equivalente para SignosVitales de nota con glucometria/glasgow/escalaDolor. Test de que un valor 0 en un campo de nota no se pierda por truthiness.",
+        "reparacion": "Software: añadir las Observations faltantes con sus códigos LOINC correspondientes (o, si no se dispone de código validado, marcar NEEDS_CLINICAL_REVIEW para asignar el código) y cambiar la guarda de truthiness a `!= null` en el loop de signos de nota. La elección del código LOINC para dolor/conciencia/O2 conviene validarla clínicamente -> NEEDS_CLINICAL_REVIEW para el mapeo de códigos, no para el hecho de que se pierden.",
+        "needsClinicalReview": true,
+        "area": "Persistencia, historial y tendencias de datos clínicos (UCI + signos hospitalarios + notas firmadas + export FHIR)"
+      }
+    ],
+    "needsClinicalReview": [
+      {
+        "area": "Validación de unidades en fronteras clínicas (motores UCI y expediente)",
+        "titulo": "Dosificación pediátrica sin guarda de plausibilidad de peso (kg vs lb); el comentario dice que la protección es 'validación peso-edad' que no está implementada"
+      },
+      {
+        "area": "Separación de capas (determinista · UI · almacenamiento · IA)",
+        "titulo": "Umbrales de signos vitales codificados a mano en la UI, divergentes del motor NEWS2 mostrado en la misma pantalla"
+      },
+      {
+        "area": "Persistencia, historial y tendencias de datos clínicos (UCI + signos hospitalarios + notas firmadas + export FHIR)",
+        "titulo": "Export FHIR pierde campos de signos en el round-trip (dolor/EVA, conciencia/ACVPU, O2 suplementario en signos seriados; glucometria, glasgow, escalaDolor en signos de nota)"
+      }
+    ],
+    "refutados": [
+      {
+        "area": "test",
+        "titulo": "t",
+        "motivo": "Hallazgo placeholder sin contenido verificable: el archivo citado (\"a\", línea 1) no existe en /Users/davidrdz/Desktop/agenda-medica, y título/causa/reparación son literales de una letra (\"t\"/\"c\"/\"r\") sin describir defecto alguno. La carta exige evidencia real archivo:línea; sin evidencia = no se reporta. Confirmado=false."
+      }
+    ]
+  },
+  "workflowProgress": [
+    {
+      "type": "workflow_phase",
+      "index": 1,
+      "title": "Hallazgos"
+    },
+    {
+      "type": "workflow_phase",
+      "index": 2,
+      "title": "Verificar"
+    },
+    {
+      "type": "workflow_phase",
+      "index": 3,
+      "title": "Síntesis"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 1,
+      "label": "sw:fixtures-exactitud",
+      "phaseIndex": 1,
+      "phaseTitle": "Hallazgos",
+      "agentId": "ab7a4ecdd0ab4c24f",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105516900,
+      "queuedAt": 1785105516893,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Exactitud contra fixtures — motores deterministas UCI + exp…",
+      "promptPreview": "CARTA OPERATIVA (obligatoria):\n- SOLO LECTURA en esta fase. Solo datos sintéticos/fixtures/casos ficticios.\n- Los módulos clínicos (src/lib/uci/*, src/lib/expediente/* clínico, pediatría, farmacología) se auditan como DOMINIOS DE DATOS DE SOFTWARE: tipos, validación de unidades, exactitud contra fixtures, persistencia, separación de capas, tests.\n- PROHIBIDO: inventar reglas médicas, proponer camb…",
+      "lastProgressAt": 1785105839866,
+      "tokens": 96727,
+      "toolCalls": 30,
+      "durationMs": 322965,
+      "resultPreview": "{\"area\":\"Exactitud contra fixtures — motores deterministas UCI + expediente (golden tests, tests débiles, disciplina de versión)\",\"resumen\":\"Cobertura golden en general buena (ventilación, gasometría, SOFA/APACHE, infusiones, POCUS, pediatría tienen valores fijados a mano). Huecos que siguen: (1) CKD-EPI 2021 está DUPLICADA en dos módulos con redondeo y clamping distintos, y NINGUNA de las dos tie…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 2,
+      "label": "sw:unidades",
+      "phaseIndex": 1,
+      "phaseTitle": "Hallazgos",
+      "agentId": "a63d6691fbd423c3f",
+      "model": "claude-fable-5",
+      "fallbackModel": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1785105516901,
+      "queuedAt": 1785105516893,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Validación de unidades en fronteras clínicas (motores UCI y…",
+      "promptPreview": "CARTA OPERATIVA (obligatoria):\n- SOLO LECTURA en esta fase. Solo datos sintéticos/fixtures/casos ficticios.\n- Los módulos clínicos (src/lib/uci/*, src/lib/expediente/* clínico, pediatría, farmacología) se auditan como DOMINIOS DE DATOS DE SOFTWARE: tipos, validación de unidades, exactitud contra fixtures, persistencia, separación de capas, tests.\n- PROHIBIDO: inventar reglas médicas, proponer camb…",
+      "lastProgressAt": 1785105823107,
+      "tokens": 139187,
+      "toolCalls": 27,
+      "durationMs": 306206,
+      "resultPreview": "{\"area\":\"Validación de unidades en fronteras clínicas (motores UCI y expediente)\",\"resumen\":\"Los motores deterministas están bien construidos y varios (ventilación, PAM) sí validan rango internamente. Pero la validación de unidades/plausibilidad NO es uniforme entre fronteras: (1) la calculadora de función renal de la receta acepta creatinina sin tope superior ni chequeo de unidad, así que un valo…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 3,
+      "label": "sw:tipado-modelado",
+      "phaseIndex": 1,
+      "phaseTitle": "Hallazgos",
+      "agentId": "a197280b20affc87a",
+      "model": "claude-fable-5",
+      "fallbackModel": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1785105516902,
+      "queuedAt": 1785105516893,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Tipado y modelado — motores clínicos (src/lib/uci, src/lib/…",
+      "promptPreview": "CARTA OPERATIVA (obligatoria):\n- SOLO LECTURA en esta fase. Solo datos sintéticos/fixtures/casos ficticios.\n- Los módulos clínicos (src/lib/uci/*, src/lib/expediente/* clínico, pediatría, farmacología) se auditan como DOMINIOS DE DATOS DE SOFTWARE: tipos, validación de unidades, exactitud contra fixtures, persistencia, separación de capas, tests.\n- PROHIBIDO: inventar reglas médicas, proponer camb…",
+      "lastProgressAt": 1785105859437,
+      "tokens": 107288,
+      "toolCalls": 32,
+      "durationMs": 342535,
+      "resultPreview": "{\"area\":\"Tipado y modelado — motores clínicos (src/lib/uci, src/lib/expediente)\",\"resumen\":\"El módulo UCI está mejor tipado que el promedio del repo: NO hay `any`, `@ts-ignore` ni `as never` en src/lib/uci (0 ocurrencias); los únicos casts inseguros son 3 `as unknown as` en expediente/firestore.ts. Lo que SIGUE mal es de modelado, no de sintaxis. (1) P1 real: el helper `num()` está DUPLICADO idént…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 4,
+      "label": "sw:capas",
+      "phaseIndex": 1,
+      "phaseTitle": "Hallazgos",
+      "agentId": "a5bcc8d58c6a852c8",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105516902,
+      "queuedAt": 1785105516893,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Separación de capas (determinista · UI · almacenamiento · I…",
+      "promptPreview": "CARTA OPERATIVA (obligatoria):\n- SOLO LECTURA en esta fase. Solo datos sintéticos/fixtures/casos ficticios.\n- Los módulos clínicos (src/lib/uci/*, src/lib/expediente/* clínico, pediatría, farmacología) se auditan como DOMINIOS DE DATOS DE SOFTWARE: tipos, validación de unidades, exactitud contra fixtures, persistencia, separación de capas, tests.\n- PROHIBIDO: inventar reglas médicas, proponer camb…",
+      "lastProgressAt": 1785105982701,
+      "tokens": 122129,
+      "toolCalls": 71,
+      "durationMs": 465799,
+      "resultPreview": "{\"area\":\"Separación de capas (determinista · UI · almacenamiento · IA)\",\"resumen\":\"La arquitectura base es sana: los motores UCI/expediente son puros (sin React/Firestore/browser APIs), los adaptadores de Firestore están separados, y las rutas de IA (Copilot UCI, procesar, verificar-nota) tienen contrato explícito de \\\"el LLM nunca calcula\\\" con snapshot determinista armado server-side. Lo que sig…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 5,
+      "label": "sw:inputs-extremos",
+      "phaseIndex": 1,
+      "phaseTitle": "Hallazgos",
+      "agentId": "a71a221aa2f28ea96",
+      "model": "claude-fable-5",
+      "fallbackModel": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1785105516902,
+      "queuedAt": 1785105516893,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "test",
+      "promptPreview": "CARTA OPERATIVA (obligatoria):\n- SOLO LECTURA en esta fase. Solo datos sintéticos/fixtures/casos ficticios.\n- Los módulos clínicos (src/lib/uci/*, src/lib/expediente/* clínico, pediatría, farmacología) se auditan como DOMINIOS DE DATOS DE SOFTWARE: tipos, validación de unidades, exactitud contra fixtures, persistencia, separación de capas, tests.\n- PROHIBIDO: inventar reglas médicas, proponer camb…",
+      "lastProgressAt": 1785105872942,
+      "tokens": 147999,
+      "toolCalls": 23,
+      "durationMs": 356040,
+      "resultPreview": "{\"area\":\"test\",\"resumen\":\"test\",\"hallazgos\":[{\"titulo\":\"t\",\"severidad\":\"P1\",\"archivos\":\"a:1\",\"causaRaiz\":\"c\",\"pruebasNecesarias\":\"p\",\"reparacion\":\"r\"}]}"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 6,
+      "label": "sw:persistencia-historial",
+      "phaseIndex": 1,
+      "phaseTitle": "Hallazgos",
+      "agentId": "ae8493c6c9b32a5f2",
+      "model": "claude-fable-5",
+      "fallbackModel": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1785105516902,
+      "queuedAt": 1785105516893,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Persistencia, historial y tendencias de datos clínicos (UCI…",
+      "promptPreview": "CARTA OPERATIVA (obligatoria):\n- SOLO LECTURA en esta fase. Solo datos sintéticos/fixtures/casos ficticios.\n- Los módulos clínicos (src/lib/uci/*, src/lib/expediente/* clínico, pediatría, farmacología) se auditan como DOMINIOS DE DATOS DE SOFTWARE: tipos, validación de unidades, exactitud contra fixtures, persistencia, separación de capas, tests.\n- PROHIBIDO: inventar reglas médicas, proponer camb…",
+      "lastProgressAt": 1785105804136,
+      "tokens": 106325,
+      "toolCalls": 37,
+      "durationMs": 287234,
+      "resultPreview": "{\"area\":\"Persistencia, historial y tendencias de datos clínicos (UCI + signos hospitalarios + notas firmadas + export FHIR)\",\"resumen\":\"La inmutabilidad de notas firmadas es sólida (rules + cliente + no hay escritura server-side Admin SDK que las toque; deleteNota/deletePatienteExpediente bloquean firmadas; versioning.ts documenta bien la trampa histórica de doble-versionado ya reparada). Las lect…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 7,
+      "label": "verif:persistencia-historial",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "ac810683c74f6ea35",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105804144,
+      "queuedAt": 1785105804138,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Evidencia verificada línea por línea: uci/page.tsx:250 crea…",
+      "promptPreview": "CARTA OPERATIVA (obligatoria):\n- SOLO LECTURA en esta fase. Solo datos sintéticos/fixtures/casos ficticios.\n- Los módulos clínicos (src/lib/uci/*, src/lib/expediente/* clínico, pediatría, farmacología) se auditan como DOMINIOS DE DATOS DE SOFTWARE: tipos, validación de unidades, exactitud contra fixtures, persistencia, separación de capas, tests.\n- PROHIBIDO: inventar reglas médicas, proponer camb…",
+      "lastProgressAt": 1785105858707,
+      "tokens": 54453,
+      "toolCalls": 5,
+      "durationMs": 54563,
+      "resultPreview": "{\"confirmado\":true,\"motivo\":\"Evidencia verificada línea por línea: uci/page.tsx:250 crea la clave `nx.uci.lecturas[.internamientoId]`, :253 la lee y :266-269 la escribe en localStorage (slice(-24)); local-drafts.ts solo clasifica/borra claves con prefijo `nx.consulta.bkp.` (líneas 16, 48-55, 72-89) más el IndexedDB de audio. Grep confirma que `nx.uci.lecturas` no aparece en ningún otro archivo: ni…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 8,
+      "label": "verif:unidades",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "a1859db09e024f756",
+      "model": "claude-fable-5",
+      "fallbackModel": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1785105823109,
+      "queuedAt": 1785105823108,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "P1",
+      "promptPreview": "CARTA OPERATIVA (obligatoria):\n- SOLO LECTURA en esta fase. Solo datos sintéticos/fixtures/casos ficticios.\n- Los módulos clínicos (src/lib/uci/*, src/lib/expediente/* clínico, pediatría, farmacología) se auditan como DOMINIOS DE DATOS DE SOFTWARE: tipos, validación de unidades, exactitud contra fixtures, persistencia, separación de capas, tests.\n- PROHIBIDO: inventar reglas médicas, proponer camb…",
+      "lastProgressAt": 1785105888550,
+      "tokens": 55942,
+      "toolCalls": 6,
+      "durationMs": 65441,
+      "resultPreview": "{\"confirmado\":true,\"severidadCorregida\":\"P1\",\"motivo\":\"Evidencia verificada tal cual y vigente. page.tsx:152-155 sólo filtra `!cr || cr <= 0`: no hay tope superior ni verificación de unidad antes de llamar a evaluarFuncionRenal(cr,...). El input (page.tsx:592-594) es texto plano \\\"Creatinina (mg/dL)\\\" sin atributo max ni validación. funcion-renal.ts:37-58 documenta \\\"Scr en mg/dL\\\" pero no valida …"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 9,
+      "label": "verif:unidades",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "a81948dc16bc71bfe",
+      "model": "claude-fable-5",
+      "fallbackModel": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1785105823109,
+      "queuedAt": 1785105823108,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "P1",
+      "promptPreview": "CARTA OPERATIVA (obligatoria):\n- SOLO LECTURA en esta fase. Solo datos sintéticos/fixtures/casos ficticios.\n- Los módulos clínicos (src/lib/uci/*, src/lib/expediente/* clínico, pediatría, farmacología) se auditan como DOMINIOS DE DATOS DE SOFTWARE: tipos, validación de unidades, exactitud contra fixtures, persistencia, separación de capas, tests.\n- PROHIBIDO: inventar reglas médicas, proponer camb…",
+      "lastProgressAt": 1785105912577,
+      "tokens": 81449,
+      "toolCalls": 7,
+      "durationMs": 89468,
+      "resultPreview": "{\"confirmado\":true,\"severidadCorregida\":\"P1\",\"motivo\":\"Evidencia verificada al pie de la letra y vigente. grep -rn RANGOS_UCI src/ solo arroja hits en extraccion.ts (definicion :242 y unico uso :295 DENTRO de extraerValoresUCIConAvisos); no aparece en scores.ts, gasometria.ts ni page.tsx, confirmando que la guarda de plausibilidad cubre SOLO la ruta de extraccion de voz/texto. page.tsx:49 escribe …"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 10,
+      "label": "verif:unidades",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "a9869d9c9445602c0",
+      "model": "claude-fable-5",
+      "fallbackModel": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1785105823109,
+      "queuedAt": 1785105823108,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "P1",
+      "promptPreview": "CARTA OPERATIVA (obligatoria):\n- SOLO LECTURA en esta fase. Solo datos sintéticos/fixtures/casos ficticios.\n- Los módulos clínicos (src/lib/uci/*, src/lib/expediente/* clínico, pediatría, farmacología) se auditan como DOMINIOS DE DATOS DE SOFTWARE: tipos, validación de unidades, exactitud contra fixtures, persistencia, separación de capas, tests.\n- PROHIBIDO: inventar reglas médicas, proponer camb…",
+      "lastProgressAt": 1785105903150,
+      "tokens": 57445,
+      "toolCalls": 10,
+      "durationMs": 80041,
+      "resultPreview": "{\"confirmado\":true,\"severidadCorregida\":\"P1\",\"motivo\":\"Evidencia verificada tal cual y vigente tras v646-v661. (1) uci/page.tsx:49 el input de Campo guarda el string crudo (set(k,e.target.value), inputMode='decimal', sin saneo); lineas 97-98 set escribe crudo y n(k) devuelve el crudo. (2) scores.ts:19-23 y ventilacion.ts:38-42 definen num con Number(v) sin manejo de coma: Number('12,5')=NaN -> nul…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 11,
+      "label": "verif:fixtures-exactitud",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "a5551c74eacde7c5b",
+      "model": "claude-fable-5",
+      "fallbackModel": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1785105839868,
+      "queuedAt": 1785105839867,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "P1",
+      "promptPreview": "CARTA OPERATIVA (obligatoria):\n- SOLO LECTURA en esta fase. Solo datos sintéticos/fixtures/casos ficticios.\n- Los módulos clínicos (src/lib/uci/*, src/lib/expediente/* clínico, pediatría, farmacología) se auditan como DOMINIOS DE DATOS DE SOFTWARE: tipos, validación de unidades, exactitud contra fixtures, persistencia, separación de capas, tests.\n- PROHIBIDO: inventar reglas médicas, proponer camb…",
+      "lastProgressAt": 1785105926330,
+      "tokens": 55005,
+      "toolCalls": 7,
+      "durationMs": 86462,
+      "resultPreview": "{\"confirmado\":true,\"severidadCorregida\":\"P1\",\"motivo\":\"Evidencia verificada tal cual y vigente. Existen DOS implementaciones independientes de ckdEpi2021: funcion-renal.ts:37-48 devuelve Math.round(egfr) (entero) SIN clamp de creatinina y firma (creatinina,edad,sexo:Sexo); calculadoras.ts:200-207 hace const scr=Math.max(creatinina,0.01) y return Math.round(tfg*10)/10 (1 decimal) con firma (creatin…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 12,
+      "label": "verif:fixtures-exactitud",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "a4bb2d6f354c3313a",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105858708,
+      "queuedAt": 1785105839867,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Evidencia verificada línea por línea: calculadoras.ts:210-2…",
+      "promptPreview": "CARTA OPERATIVA (obligatoria):\n- SOLO LECTURA en esta fase. Solo datos sintéticos/fixtures/casos ficticios.\n- Los módulos clínicos (src/lib/uci/*, src/lib/expediente/* clínico, pediatría, farmacología) se auditan como DOMINIOS DE DATOS DE SOFTWARE: tipos, validación de unidades, exactitud contra fixtures, persistencia, separación de capas, tests.\n- PROHIBIDO: inventar reglas médicas, proponer camb…",
+      "lastProgressAt": 1785105915286,
+      "tokens": 52159,
+      "toolCalls": 6,
+      "durationMs": 56578,
+      "resultPreview": "{\"confirmado\":true,\"motivo\":\"Evidencia verificada línea por línea: calculadoras.ts:210-215 tiene la fórmula citada y calculadoras.test.ts:169-176 solo prueba cotas, monotonía y tope de Cr; grep confirma que no existe ningún golden test de valor exacto para meld() en todo src/ y que sigue vigente tras v646-v661. Sin embargo, la severidad P1 no se sostiene por la carta: el software hoy NO produce un…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 13,
+      "label": "verif:tipado-modelado",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "a2c832ecfd70fe4ef",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105859441,
+      "queuedAt": 1785105859440,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Evidencia verificada al 100% en el código actual: los 12 du…",
+      "promptPreview": "CARTA OPERATIVA (obligatoria):\n- SOLO LECTURA en esta fase. Solo datos sintéticos/fixtures/casos ficticios.\n- Los módulos clínicos (src/lib/uci/*, src/lib/expediente/* clínico, pediatría, farmacología) se auditan como DOMINIOS DE DATOS DE SOFTWARE: tipos, validación de unidades, exactitud contra fixtures, persistencia, separación de capas, tests.\n- PROHIBIDO: inventar reglas médicas, proponer camb…",
+      "lastProgressAt": 1785105916106,
+      "tokens": 56297,
+      "toolCalls": 7,
+      "durationMs": 56665,
+      "resultPreview": "{\"confirmado\":true,\"motivo\":\"Evidencia verificada al 100% en el código actual: los 12 duplicados de num() existen con el cuerpo exacto citado (scores.ts:19, hemodinamia.ts:23, gasometria.ts:23, ventilacion.ts:38, ecmo.ts:14, pocus.ts:17, infusiones.ts:20, ckrt.ts:24, seguridad.ts:24, neuro.ts:17, correlacion.ts:17, tendencias.ts:32), ninguno hace trim() ni normaliza coma decimal, y sigue vigente t…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 14,
+      "label": "verif:inputs-extremos",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "a56f4f6ae7cc157b9",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105872944,
+      "queuedAt": 1785105872943,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Hallazgo placeholder sin contenido verificable: el archivo …",
+      "promptPreview": "CARTA OPERATIVA (obligatoria):\n- SOLO LECTURA en esta fase. Solo datos sintéticos/fixtures/casos ficticios.\n- Los módulos clínicos (src/lib/uci/*, src/lib/expediente/* clínico, pediatría, farmacología) se auditan como DOMINIOS DE DATOS DE SOFTWARE: tipos, validación de unidades, exactitud contra fixtures, persistencia, separación de capas, tests.\n- PROHIBIDO: inventar reglas médicas, proponer camb…",
+      "lastProgressAt": 1785105886964,
+      "tokens": 47280,
+      "toolCalls": 2,
+      "durationMs": 14020,
+      "resultPreview": "{\"confirmado\":false,\"motivo\":\"Hallazgo placeholder sin contenido verificable: el archivo citado (\\\"a\\\", línea 1) no existe en /Users/davidrdz/Desktop/agenda-medica, y título/causa/reparación son literales de una letra (\\\"t\\\"/\\\"c\\\"/\\\"r\\\") sin describir defecto alguno. La carta exige evidencia real archivo:línea; sin evidencia = no se reporta. Confirmado=false.\",\"severidadCorregida\":\"P2\"}"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 15,
+      "label": "verif:capas",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "a34f742918387082b",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105982705,
+      "queuedAt": 1785105982704,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Toda la evidencia existe tal cual y sigue vigente tras v646…",
+      "promptPreview": "CARTA OPERATIVA (obligatoria):\n- SOLO LECTURA en esta fase. Solo datos sintéticos/fixtures/casos ficticios.\n- Los módulos clínicos (src/lib/uci/*, src/lib/expediente/* clínico, pediatría, farmacología) se auditan como DOMINIOS DE DATOS DE SOFTWARE: tipos, validación de unidades, exactitud contra fixtures, persistencia, separación de capas, tests.\n- PROHIBIDO: inventar reglas médicas, proponer camb…",
+      "lastProgressAt": 1785106055280,
+      "tokens": 58867,
+      "toolCalls": 10,
+      "durationMs": 72575,
+      "resultPreview": "{\"confirmado\":true,\"motivo\":\"Toda la evidencia existe tal cual y sigue vigente tras v646-v661: SeccionNota={key,label,value} sin versión (nota.ts:21, 180-191) y UCI_NOTA_VERSION solo se define, nadie la consume (grep: 1 hit); la semilla sessionStorage es solo JSON de secciones (uci/page.tsx:319) y se siembra tal cual (consulta page:1503-1507); provenance de NotaMedica solo modela IA — su campo `mo…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 16,
+      "label": "verif:capas",
+      "phaseIndex": 2,
+      "phaseTitle": "Verificar",
+      "agentId": "aa42b7a43b08bdc6b",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1785105982706,
+      "queuedAt": 1785105982704,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Evidencia verificada literal: uci/page.tsx:250 crea la clav…",
+      "promptPreview": "CARTA OPERATIVA (obligatoria):\n- SOLO LECTURA en esta fase. Solo datos sintéticos/fixtures/casos ficticios.\n- Los módulos clínicos (src/lib/uci/*, src/lib/expediente/* clínico, pediatría, farmacología) se auditan como DOMINIOS DE DATOS DE SOFTWARE: tipos, validación de unidades, exactitud contra fixtures, persistencia, separación de capas, tests.\n- PROHIBIDO: inventar reglas médicas, proponer camb…",
+      "lastProgressAt": 1785106028472,
+      "tokens": 53531,
+      "toolCalls": 4,
+      "durationMs": 45766,
+      "resultPreview": "{\"confirmado\":true,\"motivo\":\"Evidencia verificada literal: uci/page.tsx:250 crea la clave nx.uci.lecturas.<internamientoId> y guardarLectura (líneas ~265-269) persiste hasta 24 lecturas clínicas (campos del formulario + SOFA/PAFI/driving/PAM/VExUS/PPC computados) en localStorage. local-drafts.ts:16,48-55 filtra SOLO el prefijo 'nx.consulta.bkp.', y los únicos puntos de limpieza al cerrar sesión (l…"
+    }
+  ],
+  "totalTokens": 1292083,
+  "totalToolCalls": 284
+}

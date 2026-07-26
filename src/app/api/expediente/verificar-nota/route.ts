@@ -18,7 +18,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { GUARDA_INYECCION, delimitar } from '@/lib/expediente/prompts'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { resolverClaveIA, registrarUso, registrarCreditos } from '@/lib/ai-keys'
+import { gateCreditos, resolverClaveIA, registrarUso, registrarCreditos } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
 
 export const runtime = 'nodejs'
@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
   if (_rl) return _rl
 
   const { key, fuente, clinicId } = await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY)
+  const _corte = await gateCreditos(clinicId, fuente); if (_corte) return _corte
   if (!key) return NextResponse.json({ ok: false, error: 'OPENAI_API_KEY no configurada' }, { status: 503 })
 
   let body: { nota?: NotaEntrada; transcripcion?: string; contexto?: Record<string, unknown> }

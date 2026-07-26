@@ -15,7 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { resolverClaveIA, registrarUso, nivelIADe, registrarCreditos } from '@/lib/ai-keys'
+import { gateCreditos, resolverClaveIA, registrarUso, nivelIADe, registrarCreditos } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { buscarEvidenciaMulti, type ArticuloPubMed } from '@/lib/evidencia/pubmed'
 import { traducirBasico } from '@/lib/evidencia/traducir-medico'
@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
     const r = await resolverClaveIA(acceso.uid, 'anthropic', process.env.ANTHROPIC_API_KEY ?? '')
     key = (r.key as string) ?? ''; fuente = r.fuente; clinicId = r.clinicId ?? ''
   } catch { /* key queda vacía → mensaje claro abajo, nunca 500 */ }
+  const _corte = await gateCreditos(clinicId, fuente); if (_corte) return _corte
   if (!key) return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada (revisa Configuración → Llaves de IA).' }, { status: 503 })
 
   let body: {

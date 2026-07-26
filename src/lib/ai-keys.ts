@@ -9,6 +9,7 @@
  * el servidor vía Admin SDK. El cliente nunca las recibe (solo un estado
  * enmascarado "····1234"). Firestore niega ese path al cliente por defecto.
  */
+import { NextResponse } from 'next/server'
 import admin, { adminDb } from './firebase-admin'
 import { planPorNivel, topeEconomicoDe, MEDICO_EXTRA } from './planes-ia'
 
@@ -106,6 +107,31 @@ export async function creditosAgotados(clinicId: string | null): Promise<boolean
   } catch {
     return false
   }
+}
+
+/**
+ * GATE DE CRÉDITOS compartido (auditoría maestra 2026-07, L1 dinero). Devuelve una
+ * respuesta 402 lista para `return` si el consultorio corre con la llave del DUEÑO
+ * (fuente 'prueba') y ya agotó sus créditos del mes; si no, devuelve null y la ruta
+ * sigue. Antes 10 rutas de IA MEDÍAN el gasto (registrarCreditos) pero no lo
+ * CORTABAN: un consultorio agotado seguía quemando la API key del dueño.
+ * Con llave propia del consultorio (fuente 'clinica') nunca corta: paga su API.
+ */
+/** Decisión PURA del gate (testeable sin Firestore): solo corta con la llave del
+ *  dueño ('prueba'), con clinicId, y si ya está agotado. */
+export function debeCortarCreditos(fuente: ClaveResuelta['fuente'], clinicId: string | null, agotado: boolean): boolean {
+  return fuente === 'prueba' && !!clinicId && agotado
+}
+
+export async function gateCreditos(clinicId: string | null, fuente: ClaveResuelta['fuente']): Promise<NextResponse | null> {
+  if (fuente !== 'prueba' || !clinicId) return null
+  if (debeCortarCreditos(fuente, clinicId, await creditosAgotados(clinicId))) {
+    return NextResponse.json(
+      { ok: false, sinCreditos: true, error: 'Se acabaron tus créditos de IA del mes. Recarga créditos o configura tu propia llave de IA en Configuración para seguir.' },
+      { status: 402 },
+    )
+  }
+  return null
 }
 
 /** Suma consultas EXTRA al mes (lo llama el webhook de Stripe al comprar recarga). */
