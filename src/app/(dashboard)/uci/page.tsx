@@ -238,11 +238,14 @@ export default function UciPanelPage() {
     } catch { /* no-bloqueante */ }
   }
 
-  // ── Pasar los valores del panel a una NOTA de evolución UCI del paciente ──
+  // ── La nota se ARMA en vivo mientras dictas/capturas (por sistemas) ──
+  const notaSecciones = useMemo(() => construirSeccionesUCI(v, { discusion: discusionTxt || undefined }), [v, discusionTxt])
+  const notaLlenas = notaSecciones.filter(s => s.value.trim() !== '')
+
+  // ── Pasar la nota YA generada al expediente para revisar y FIRMAR ──
   const pasarANota = () => {
     if (!inter || !internamientoId) return
-    const secciones = construirSeccionesUCI(v, { discusion: discusionTxt || undefined })
-    try { sessionStorage.setItem(`nx.uci.seed.${internamientoId}`, JSON.stringify(secciones)) } catch { /* */ }
+    try { sessionStorage.setItem(`nx.uci.seed.${internamientoId}`, JSON.stringify(notaSecciones)) } catch { /* */ }
     router.push(`/consulta/${inter.pacienteId}?tipo=evolucion_uci&internamiento=${internamientoId}&fuente=uci`)
   }
 
@@ -267,8 +270,8 @@ export default function UciPanelPage() {
                 <span>{inter.diagnosticoIngreso}</span>
               </div>
             </div>
-            <button onClick={pasarANota} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-              <FileText size={15} /> Pasar a nota de evolución UCI
+            <button onClick={pasarANota} disabled={notaLlenas.length === 0} title={notaLlenas.length === 0 ? 'Primero dicta o captura datos; la nota se arma sola' : 'Abre la nota ya generada para revisarla y firmarla'} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, opacity: notaLlenas.length === 0 ? 0.55 : 1 }}>
+              <FileText size={15} /> Revisar y firmar la nota
             </button>
           </div>
           {alergias.lista.length > 0 && !alergias.negadas && (
@@ -316,6 +319,25 @@ export default function UciPanelPage() {
         )}
         {audio.error && <div style={{ marginTop: 8, fontSize: 12, color: '#dc2626' }}>{audio.error}</div>}
       </div>
+
+      {/* NOTA EN VIVO: se ARMA sola con lo que dictas/capturas. "Pasar a nota" solo
+          la abre en el expediente para revisar y firmar (no es un segundo dictado). */}
+      {notaLlenas.length > 0 && (
+        <details open style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: '4px 16px 14px', marginBottom: 16 }}>
+          <summary style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0', fontWeight: 600, fontSize: 14 }}>
+            <FileText size={16} style={{ color: 'var(--nexus)' }} /> Nota de evolución UCI — se genera al dictar ({notaLlenas.length} secciones)
+            {inter && <span style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--text3)', fontWeight: 400 }}>Revísala y pulsa “Pasar a nota” para firmarla</span>}
+          </summary>
+          <div style={{ display: 'grid', gap: 10, marginTop: 6 }}>
+            {notaLlenas.map(s => (
+              <div key={s.key}>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--text3)', marginBottom: 3 }}>{s.label}</div>
+                <div style={{ fontSize: 13, color: 'var(--text2)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{s.value}</div>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.4fr) minmax(0,1fr)', gap: 16 }} className="nx-uci-grid">
         {/* Captura */}

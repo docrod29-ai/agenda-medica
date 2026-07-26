@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v635'  // MANOS LIBRES: la voz del pase ahora llena TODO el panel. extraerValoresUCI ampliado (vasopresores dopa/dobu/epi, neuro pic/temp/osm, POCUS vci/tapse/vdvi/lineasB/plr, metabolico cl/alb, talla) + extraerCategoricosUCI NUEVO que llena los SELECTORES por voz (modo ventilatorio, soporte, muestra gaso, pupilas, parametro PLR, VExUS hepatica/porta/renal grave-leve-normal, modalidad CKRT, config ECMO) con frases conservadoras (muestra arterial no se confunde con presion arterial). El medico dicta, el panel se llena y revisa, calcula y arma la nota por sistemas.
+const CACHE = 'nexusmed-v636'  // COHERENCIA DEL FLUJO DE NOTA: los dos botones ya no confunden. Ahora al dictar/capturar se muestra una VISTA PREVIA EN VIVO de la nota de evolucion UCI (se arma sola por sistemas, construirSeccionesUCI reactivo). El boton de arriba se renombro 'Revisar y firmar la nota' (deshabilitado hasta que haya datos) y solo ABRE la nota ya generada en el expediente para firmarla. Dictar=arma la nota (visible); boton=firmarla. Nada de segundo dictado.
 // (v601):
 
 self.addEventListener('install', (event) => {
