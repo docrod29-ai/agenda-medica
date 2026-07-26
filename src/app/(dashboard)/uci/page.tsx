@@ -78,7 +78,9 @@ function Bloque({ icon: Icon, titulo, children }: { icon: typeof Wind; titulo: s
   )
 }
 
-function Resultado({ label, r }: { label: string; r: { ok: boolean; valor: number | null; unidad?: string; motivoBloqueo?: string | null; interpretacion?: string } }) {
+function Resultado({ label, r, ocultar }: { label: string; r: { ok: boolean; valor: number | null; unidad?: string; motivoBloqueo?: string | null; interpretacion?: string }; ocultar?: boolean }) {
+  // En modo simple no se muestran los cálculos bloqueados (solo lo que se dictó).
+  if (ocultar && !r.ok) return null
   return (
     <div style={{ padding: '8px 10px', borderRadius: 9, background: 'var(--s2)', border: '1px solid var(--border)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
@@ -132,18 +134,21 @@ export default function UciPanelPage() {
   const [discusionTxt, setDiscusionTxt] = useState('')
   const [detectados, setDetectados] = useState<string[]>([])
   const [avisosVoz, setAvisosVoz] = useState<AvisoExtraccionUCI[]>([])
+  const [paseTexto, setPaseTexto] = useState('')       // cuadro de texto editable del pase
+  const [modoAvanzado, setModoAvanzado] = useState(false) // false = simple (dictado + nota); true = grid de campos
   const procesadoRef = useRef('')
-  useEffect(() => {
-    const t = audio.transcripcion?.trim()
-    if (!t || t === procesadoRef.current) return
-    procesadoRef.current = t
-    // 1) Discusión etiquetada por rol (adscrito/residente/enfermería) si hubo diarización.
-    const turnos = (audio.utterances && audio.utterances.length)
-      ? audio.utterances.map(u => ({ hablante: u.speaker, texto: u.text }))
-      : [{ hablante: 'A', texto: t }]
+
+  // Procesa el texto del pase (dictado o escrito): arma la discusión por roles y
+  // extrae los valores hacia el panel/nota. Reutilizado por la voz y por el botón
+  // "Generar nota" del cuadro de texto.
+  const aplicarPase = (t: string, utterances?: { speaker: string; text: string }[]) => {
+    const txt = (t ?? '').trim()
+    if (!txt) return
+    const turnos = (utterances && utterances.length)
+      ? utterances.map(u => ({ hablante: u.speaker, texto: u.text }))
+      : [{ hablante: 'A', texto: txt }]
     setDiscusionTxt(formatearDiscusion(atribuirRolesDiscusion(turnos)))
-    // 2) Extrae los valores dictados y prellena el panel (el médico confirma).
-    const { valores: extraidos, avisos } = extraerValoresUCIConAvisos(t)
+    const { valores: extraidos, avisos } = extraerValoresUCIConAvisos(txt)
     if (Object.keys(extraidos).length) {
       setV(prev => ({ ...prev, ...extraidos }))
       setDetectados(Object.keys(extraidos))
@@ -151,6 +156,15 @@ export default function UciPanelPage() {
     // icu-005: valores imposibles (error de dictado) o decimales ambiguos NO se
     // prellenan; se muestran para que el médico los redicte/confirme (no se inventan).
     setAvisosVoz(avisos)
+  }
+
+  useEffect(() => {
+    const t = audio.transcripcion?.trim()
+    if (!t || t === procesadoRef.current) return
+    procesadoRef.current = t
+    setPaseTexto(t)                       // refleja el dictado en el cuadro editable
+    aplicarPase(t, audio.utterances)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audio.transcripcion, audio.utterances])
 
   // SEGURIDAD: al cambiar de paciente (otra cama) se LIMPIA todo el panel. Sin esto,
@@ -361,6 +375,26 @@ export default function UciPanelPage() {
         {audio.transcripcionParcial && grabando && (
           <div style={{ marginTop: 10, fontSize: 12.5, color: 'var(--text2)', background: 'var(--s2)', borderRadius: 8, padding: '8px 10px', maxHeight: 80, overflow: 'auto' }}>{audio.transcripcionParcial}<span className="nx-caret">▍</span></div>
         )}
+        {/* Cuadro de texto del pase: se llena con el dictado, y también se puede
+            escribir/pegar/corregir. "Generar nota" procesa el texto → nota + cálculos. */}
+        {!grabando && (
+          <div style={{ marginTop: 12 }}>
+            <textarea
+              value={paseTexto}
+              onChange={e => setPaseTexto(e.target.value)}
+              placeholder="Dicta con el botón de arriba, o escribe/pega aquí el pase de visita… (p. ej.: «asistido controlado por volumen, FiO₂ 60, PEEP 10, plateau 26, PaO₂ 78 arterial, norepinefrina 0.2, RASS menos 2…»)"
+              rows={4}
+              style={{ width: '100%', resize: 'vertical', minHeight: 92, fontSize: 13.5, lineHeight: 1.5, padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontFamily: 'inherit' }}
+            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
+              <button onClick={() => aplicarPase(paseTexto)} disabled={!paseTexto.trim()} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, opacity: paseTexto.trim() ? 1 : 0.5 }}>
+                <FileText size={15} /> Generar nota
+              </button>
+              {paseTexto.trim() && <button onClick={() => { setPaseTexto(''); procesadoRef.current = '' }} className="btn" style={{ fontSize: 12.5 }}>Limpiar</button>}
+              <span style={{ fontSize: 12, color: 'var(--text3)' }}>La nota y los cálculos aparecen abajo. Solo se reporta lo que dictaste/escribiste.</span>
+            </div>
+          </div>
+        )}
         {avisosVoz.length > 0 && (
           <div style={{ marginTop: 10, display: 'grid', gap: 6 }}>
             {avisosVoz.map((a, i) => (
@@ -399,8 +433,17 @@ export default function UciPanelPage() {
         </details>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.4fr) minmax(0,1fr)', gap: 16 }} className="nx-uci-grid">
-        {/* Captura */}
+      {/* Toggle modo simple ⇄ avanzado: por defecto SIMPLE (solo dictado + nota +
+          lo calculado). El grid de ~40 campos manuales queda tras el modo avanzado. */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+        <button onClick={() => setModoAvanzado(a => !a)} className="btn" style={{ fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          {modoAvanzado ? '← Modo simple (dictado)' : '✎ Editar campos manualmente'}
+        </button>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: modoAvanzado ? 'minmax(0,1.4fr) minmax(0,1fr)' : '1fr', gap: 16 }} className="nx-uci-grid">
+        {/* Captura — solo en modo avanzado (el muro de campos manuales) */}
+        {modoAvanzado && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <Bloque icon={Wind} titulo="Respiratorio / ventilación">
             <Selector label="Modo ventilatorio" k="modo" v={v} set={set} w={168} opciones={[
@@ -480,17 +523,18 @@ export default function UciPanelPage() {
             <Campo label="Líneas B/esp." k="lineasB" v={v} set={set} w={100} />
           </Bloque>
         </div>
+        )}
 
         {/* Cálculos + alertas (SEPARADOS de la nota) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
             <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 10 }}>Cálculos deterministas</div>
             <div style={{ display: 'grid', gap: 8 }}>
-              <Resultado label="PaO₂/FiO₂ (Kirby)" r={vent.indiceKirby} />
-              <Resultado label="Driving pressure" r={vent.drivingPressure} />
-              <Resultado label="Compliance estática" r={vent.complianceEstatica} />
-              <Resultado label="VT/PBW" r={vent.vtPorPbw} />
-              <Resultado label="PAM" r={pam} />
+              <Resultado label="PaO₂/FiO₂ (Kirby)" r={vent.indiceKirby} ocultar={!modoAvanzado} />
+              <Resultado label="Driving pressure" r={vent.drivingPressure} ocultar={!modoAvanzado} />
+              <Resultado label="Compliance estática" r={vent.complianceEstatica} ocultar={!modoAvanzado} />
+              <Resultado label="VT/PBW" r={vent.vtPorPbw} ocultar={!modoAvanzado} />
+              <Resultado label="PAM" r={pam} ocultar={!modoAvanzado} />
               <div style={{ padding: '8px 10px', borderRadius: 9, background: 'var(--s2)', border: '1px solid var(--border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                   <span style={{ color: 'var(--text3)' }}>Gasometría</span>
@@ -507,21 +551,23 @@ export default function UciPanelPage() {
             </div>
           </div>
 
+          {(modoAvanzado || vex.ok || plr.ok || tapse.ok || vdvi.ok || lb.ok) && (
           <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 14, marginBottom: 10 }}>
               <Waves size={16} style={{ color: 'var(--nexus)' }} /> POCUS
             </div>
             <div style={{ display: 'grid', gap: 8 }}>
-              <Resultado label="VExUS-C (congestión)" r={{ ...vex, unidad: vex.ok ? 'grado' : undefined }} />
-              <Resultado label="PLR (respuesta a líquidos)" r={{ ...plr, unidad: '%' }} />
-              <Resultado label="TAPSE (VD)" r={{ ...tapse, unidad: 'mm' }} />
-              <Resultado label="VD/VI" r={vdvi} />
-              <Resultado label="Líneas B" r={lb} />
+              <Resultado label="VExUS-C (congestión)" r={{ ...vex, unidad: vex.ok ? 'grado' : undefined }} ocultar={!modoAvanzado} />
+              <Resultado label="PLR (respuesta a líquidos)" r={{ ...plr, unidad: '%' }} ocultar={!modoAvanzado} />
+              <Resultado label="TAPSE (VD)" r={{ ...tapse, unidad: 'mm' }} ocultar={!modoAvanzado} />
+              <Resultado label="VD/VI" r={vdvi} ocultar={!modoAvanzado} />
+              <Resultado label="Líneas B" r={lb} ocultar={!modoAvanzado} />
             </div>
-            <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 8, lineHeight: 1.4 }}>
+            {modoAvanzado && <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 8, lineHeight: 1.4 }}>
               VExUS-C requiere VCI ≥ 2.0 cm + Doppler venoso. PLR: ≥10 % en gasto/VS/LVOT-VTI = respondedor (la presión de pulso no es criterio válido). Ninguna medida aislada decide conducta.
-            </div>
+            </div>}
           </div>
+          )}
 
           {(neuro.ppc.ok || neuro.picEstado || neuro.rass.ok || !neuro.gcsValorable || neuro.banderas.length > 0) && (
             <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>

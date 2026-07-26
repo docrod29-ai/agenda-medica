@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v652'  // NEXUS-QUALITY-013+014 (coherencia por edad/estado, hermanos del bug GCS). 013: 'puerperio' (posparto) estaba en el trigger de 'embarazo confirmado' -> a una puerpera le salia aviso de teratogeno 'evita en el embarazo' pese a que el feto ya nacio; se quita puerper. 014: signosDeAlarma aplicaba umbrales de ADULTO (FC>=120, TAS<90, qSOFA, 140/90) a ninos -> falsas alarmas; en <12a emite nota pediatrica (PALS), la SpO2<90 y fiebre siguen. 1749 tests.
+const CACHE = 'nexusmed-v653'  // UX Panel UCI: modo SIMPLE por defecto. Antes = muro de ~40 campos manuales + columna de calculos 'bloqueado' (confuso). Ahora = cuadro de texto (dicta o escribe/pega el pase) + boton Generar nota; se muestra SOLO la nota por sistemas y los calculos que SI se dictaron (los bloqueados se ocultan). Toggle 'Editar campos manualmente' devuelve el grid completo (modo avanzado). aplicarPase() reutilizado por voz y texto.
 // (v601):
 
 self.addEventListener('install', (event) => {
