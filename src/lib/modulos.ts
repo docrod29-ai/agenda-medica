@@ -26,7 +26,7 @@ export const MODULOS_DE_PLAN: Record<string, string[]> = {
   clinica:  CONSULTORIO,
   premium:  CONSULTORIO,                         // "Pro": mismos módulos + IA Máxima/2ª opinión/soporte
   // Hospital = consultorio + hospitalización + el ICU OS (Panel UCI). El UCI OS
-  // también se vende como add-on suelto (paquete 'uci', por cama de terapia).
+  // también se vende como add-on suelto (paquete 'uci', por médico).
   hospital: [...CONSULTORIO, 'hospitalizacion', 'uci'],
   // Legados / especiales
   basico:   CONSULTORIO,
@@ -62,8 +62,8 @@ export const MODULOS: ModuloDef[] = [
   { key: 'expediente',     label: 'Expediente de consulta',  descripcion: 'Consulta ambulatoria: notas, recetas, órdenes, referencias, consultor', rutas: ['/consulta', '/expediente', '/expedientes', '/nota', '/orden', '/receta', '/referencia', '/consultor'] },
   { key: 'hospitalizacion', label: 'Hospitalización',        descripcion: 'Censo, internamientos, indicaciones/MAR, camas (hospital y UCI)', rutas: ['/hospitalizacion'] },
   // UCI OS = módulo/entitlement PROPIO (la joya sin competencia). Se incluye en el
-  // plan Hospital y se vende como add-on por cama de terapia. Gatearlo aparte evita
-  // que un plan de consultorio tenga acceso técnico al Panel UCI (motores + Copilot).
+  // plan Hospital y se vende como add-on por médico. Gatearlo aparte evita que un
+  // plan de consultorio tenga acceso técnico al Panel UCI (motores + Copilot).
   { key: 'uci',            label: 'UCI OS',                  descripcion: 'Panel UCI de cabecera: ventilación, gasometría, SOFA/APACHE, POCUS/VExUS, neurocrítico, CKRT/PRISMA, ECMO, Copilot IA y nota por 7 sistemas', rutas: ['/uci'] },
   { key: 'farmacia',       label: 'Farmacia',                descripcion: 'Inventario y movimientos de farmacia', rutas: ['/farmacia'] },
   { key: 'crm',            label: 'CRM y reseñas',           descripcion: 'Seguimiento de pacientes, reputación', rutas: ['/crm', '/resenas'] },
@@ -101,18 +101,18 @@ export const PAQUETES_SUGERIDOS: PaqueteDef[] = [
   { id: 'premium',  nombre: 'Pro',      precio: 1590, orden: 2, modulos: MODULOS_DE_PLAN.premium,
     descripcion: 'Todo lo de Clínica con IA Máxima (Opus 4.8 + GPT-5) por defecto, 2ª opinión automática y soporte prioritario. 450 créditos/mes.' },
   { id: 'hospital', nombre: 'Hospital', precio: 3499, orden: 3, modulos: MODULOS_DE_PLAN.hospital,
-    modeloPrecio: 'por_cama', precioBase: 3499, precioPorUnidad: 250,
-    descripcion: 'Todo lo de Pro + Hospitalización: censo, camas de hospital y de UCI, internamiento (indicaciones/MAR, signos, interconsultas, laboratorio). Incluye el UCI OS. Base + $250 por cama de piso.' },
-  // ADD-ON: UCI OS por CAMA DE TERAPIA. La joya sin competencia, desacoplada para
-  // venderse sobre Hospital (o a quien tenga camas de terapia). Cada cama de terapia
-  // genera muchísima más IA/día (Copilot, motores) → se cobra por cama, no fijo.
+    modeloPrecio: 'por_medico', precioBase: 3499, precioPorUnidad: 999,
+    descripcion: 'Todo lo de Pro + Hospitalización: censo, camas de hospital y de UCI, internamiento (indicaciones/MAR, signos, interconsultas, laboratorio). Incluye el UCI OS. Incluye 1 médico · +$999/mes por médico adicional.' },
+  // ADD-ON: UCI OS. La joya sin competencia, desacoplada para venderse sobre
+  // Hospital (o a quien haga terapia intensiva). Se cobra POR MÉDICO, igual que el
+  // resto de la plataforma (cada médico que la usa quema su propia IA).
   { id: 'uci', nombre: 'UCI OS (add-on)', precio: 700, orden: 4, modulos: ['uci'],
-    modeloPrecio: 'por_cama', precioBase: 700, precioPorUnidad: 700,
-    descripcion: 'Add-on por cama de terapia: Panel UCI de cabecera con motores deterministas (ventilación, gasometría/ácido-base, SOFA/APACHE, POCUS/VExUS/PLR, neurocrítico PPC/PIC, CKRT/PRISMA, ECMO), Copilot IA de UCI (Claude + GPT) que aprende, y nota de evolución por los 7 sistemas dictada manos libres. Cada cama de terapia trae su propia bolsa de créditos.' },
+    modeloPrecio: 'por_medico', precioBase: 700, precioPorUnidad: 700,
+    descripcion: 'Add-on por médico: Panel UCI de cabecera con motores deterministas (ventilación, gasometría/ácido-base, SOFA/APACHE, POCUS/VExUS/PLR, neurocrítico PPC/PIC, CKRT/PRISMA, ECMO), Copilot IA de UCI (Claude + GPT) que aprende, y nota de evolución por los 7 sistemas dictada manos libres. $700/mes por médico.' },
 ]
 
 /** Versión del catálogo de paquetes. Al subirla, el seed reemplaza los viejos. */
-export const PAQUETES_VERSION = 6
+export const PAQUETES_VERSION = 7
 
 type ClinicMod = { modulos?: string[] | null; plan?: string | null; paseLibre?: boolean | null }
 

@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v639'  // PRICING estructural (4 puntos del auditor): (1) Pro con exclusivas REALES explicitas (IA Maxima Opus+GPT5, 2a opinion auto, revision farmacologica, labs-IA, inmuno). (2) UCI OS = MODULO propio 'uci' (antes bajo hospitalizacion): gateo /uci + API Copilot bajo 'uci'; incluido en plan Hospital; add-on por CAMA DE TERAPIA (paquete 'uci' 700/cama). (3) camas: Hospital por_cama 250/piso + UCI add-on 700/terapia. (4) nota Maxima ya acotada por max_tokens 24000 -> 10 creditos defendible. PAQUETES_VERSION=6. Dueno con paseLibre ve todo (uci en TODOS_LOS_MODULOS).
+const CACHE = 'nexusmed-v640'  // COBRO POR MEDICO (no por cama): Hospital por_medico (base 3499 + 999/medico adicional) y UCI OS add-on por_medico (700/medico). MAS 'lo que gaste' en IA = creditos por uso (base incluye N creditos + recarga cuando se acaba + toda accion de IA medida, incl Copilot UCI=7). PAQUETES_VERSION=7.
 // (v601):
 
 self.addEventListener('install', (event) => {
