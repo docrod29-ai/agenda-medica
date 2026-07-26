@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v634'  // ICU OS: motor NEUROCRITICO (Brain ICU, BTF 2016): PPC=PAM-PIC meta 60-70, PIC>22 tratar, pupilas/herniacion, PaCO2 30-45, Na>160, osmolaridad>320, Glasgow<=8 -> bloque + tarjeta de resultados en el panel + en snapshot del Copilot + en la nota (neurologico). BOTON '¿Por que?' (evidencia citada de FUENTES) en cada alerta. COHERENCIA UI: 'Muestra gaso.' y 'Soporte VM/CPAP' pasan de texto libre a SELECTOR (mas usable, sin errores de string). Sin campos duplicados.
+const CACHE = 'nexusmed-v635'  // MANOS LIBRES: la voz del pase ahora llena TODO el panel. extraerValoresUCI ampliado (vasopresores dopa/dobu/epi, neuro pic/temp/osm, POCUS vci/tapse/vdvi/lineasB/plr, metabolico cl/alb, talla) + extraerCategoricosUCI NUEVO que llena los SELECTORES por voz (modo ventilatorio, soporte, muestra gaso, pupilas, parametro PLR, VExUS hepatica/porta/renal grave-leve-normal, modalidad CKRT, config ECMO) con frases conservadoras (muestra arterial no se confunde con presion arterial). El medico dicta, el panel se llena y revisa, calcula y arma la nota por sistemas.
 // (v601):
 
 self.addEventListener('install', (event) => {

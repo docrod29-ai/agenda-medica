@@ -133,14 +133,30 @@ const CAMPOS_UCI: { campo: string; alias: string[] }[] = [
   { campo: 'pas', alias: ['presion sistolica', 'sistolica', 'tension sistolica'] },
   { campo: 'pad', alias: ['presion diastolica', 'diastolica', 'tension diastolica'] },
   { campo: 'norepi', alias: ['norepinefrina', 'noradrenalina', 'norepi'] },
+  { campo: 'dopa', alias: ['dopamina'] },
+  { campo: 'dobu', alias: ['dobutamina'] },
+  { campo: 'epi', alias: ['epinefrina', 'adrenalina'] },
   { campo: 'glasgow', alias: ['glasgow', 'escala de coma'] },
   { campo: 'creat', alias: ['creatinina'] },
   { campo: 'k', alias: ['potasio'] },
   { campo: 'na', alias: ['sodio'] },
+  { campo: 'cl', alias: ['cloro'] },
+  { campo: 'alb', alias: ['albumina', 'albúmina'] },
   { campo: 'glucosa', alias: ['glucosa', 'glucemia'] },
   { campo: 'spo2', alias: ['saturacion de oxigeno', 'saturacion', 'spo2', 'sato dos'] },
   { campo: 'plaquetas', alias: ['plaquetas'] },
   { campo: 'bili', alias: ['bilirrubina'] },
+  { campo: 'talla', alias: ['talla', 'estatura'] },
+  // Neurocrítico
+  { campo: 'pic', alias: ['presion intracraneal', 'presión intracraneana', 'presion intracraneana', 'pic'] },
+  { campo: 'temp', alias: ['temperatura'] },
+  { campo: 'osm', alias: ['osmolaridad', 'osmolalidad'] },
+  // POCUS (numéricos)
+  { campo: 'vci', alias: ['vena cava inferior', 'cava inferior', 'vci', 'vena cava'] },
+  { campo: 'tapse', alias: ['tapse'] },
+  { campo: 'vdvi', alias: ['relacion vd vi', 'vd vi', 've de ve i'] },
+  { campo: 'lineasB', alias: ['lineas b', 'líneas b', 'lineas be'] },
+  { campo: 'plrDelta', alias: ['elevacion de piernas', 'plr', 'pierna recta'] },
 ]
 
 const NUM_RE = 'cero|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinti\\w+|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien|ciento'
@@ -151,9 +167,67 @@ const NUM_RE = 'cero|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|on
  * "punto"). Devuelve solo lo que reconoce con seguridad — NO inventa. La UI
  * prellena el panel y el médico confirma antes de calcular.
  */
-export function extraerValoresUCI(texto: string): Record<string, string> {
+/**
+ * Extrae los campos CATEGÓRICOS (selectores) del pase dictado: modo ventilatorio,
+ * tipo de muestra, soporte, pupilas, parámetro de PLR, patrones venosos de VExUS,
+ * modalidad de CKRT y configuración de ECMO. Conservador: solo mapea frases claras
+ * (el panel muestra lo prellenado para que el médico lo revise). No inventa.
+ */
+export function extraerCategoricosUCI(texto: string): Record<string, string> {
   const t = norm(texto)
   const out: Record<string, string> = {}
+  const tiene = (re: RegExp) => re.test(t)
+
+  // Muestra gasométrica (exigir "arterial/venosa/capilar" junto a gaso/muestra)
+  if (tiene(/\bgaso\w*\s+arterial\b/) || tiene(/\bmuestra\s+arterial\b/)) out.muestra = 'arterial'
+  else if (tiene(/\bgaso\w*\s+venosa\b/) || tiene(/\bmuestra\s+venosa\b/)) out.muestra = 'venosa'
+  else if (tiene(/\bgaso\w*\s+capilar\b/) || tiene(/\bmuestra\s+capilar\b/)) out.muestra = 'capilar'
+
+  // Modo ventilatorio + soporte
+  if (tiene(/\baprv\b|bivent/)) out.modo = 'APRV'
+  else if (tiene(/\bsimv\b/)) out.modo = 'SIMV'
+  else if (tiene(/presion control|control por presion|a\/?c\s+presion|asistido controlado por presion/)) out.modo = 'AC-PC'
+  else if (tiene(/volumen control|control por volumen|a\/?c\s+volumen|asistido controlado por volumen/)) out.modo = 'AC-VC'
+  else if (tiene(/presion soporte|ventilacion espontanea|\bpsv\b|\bp's\b/)) out.modo = 'PSV'
+  else if (tiene(/\bcpap\b/)) out.modo = 'CPAP'
+  else if (tiene(/no invasiva|\bvni\b|\bbipap\b/)) out.modo = 'VNI'
+  else if (tiene(/alto flujo|canula nasal de alto flujo|\bafnc\b/)) out.modo = 'AFNC'
+  else if (tiene(/aire ambiente|puntas nasales|mascarilla|oxigeno suplementario/)) out.modo = 'aire'
+  if (tiene(/ventilacion mecanica|ventilad[oa]|intubad[oa]|en ventilador|asistido controlado|volumen control|presion control|\bsimv\b|\bcpap\b|\baprv\b/)) out.soporte = 'si'
+
+  // Pupilas
+  if (tiene(/pupilas?\s+fijas|midriasis fija|pupilas? arreactivas/)) out.pupilas = 'fijas'
+  else if (tiene(/anisocor/)) out.pupilas = 'anisocoria'
+  else if (tiene(/isocor|pupilas iguales|pupilas normales/)) out.pupilas = 'isocoricas'
+
+  // Parámetro de PLR
+  if (tiene(/lvot|\bvti\b|integral velocidad tiempo/)) out.plrParam = 'LVOT_VTI'
+  else if (tiene(/volumen sistolico/)) out.plrParam = 'SV'
+  else if (tiene(/gasto cardiaco|\bgasto\b/)) out.plrParam = 'CO'
+
+  // VExUS: vena hepática / porta / renal → grave|leve|normal
+  const sev = (m: string): string | null => /grav|sever/.test(m) ? 'grave' : /lev|moderad/.test(m) ? 'leve' : /normal/.test(m) ? 'normal' : null
+  for (const [campo, nombre] of [['vHep', 'hepatic'], ['vPor', 'port'], ['vRen', 'renal']] as const) {
+    const m = t.match(new RegExp(`${nombre}\\w*[^.]{0,30}?(grav\\w*|sever\\w*|lev\\w*|moderad\\w*|normal)`))
+    if (m) { const s = sev(m[1]); if (s) out[campo] = s }
+  }
+
+  // Modalidad de CKRT
+  if (tiene(/cvvhdf/)) out.ckrtMod = 'CVVHDF'
+  else if (tiene(/cvvhd/)) out.ckrtMod = 'CVVHD'
+  else if (tiene(/cvvh/)) out.ckrtMod = 'CVVH'
+  else if (tiene(/\bscuf\b/)) out.ckrtMod = 'SCUF'
+
+  // Configuración de ECMO
+  if (tiene(/veno[\s-]?arterial|\becmo v\s?a\b|\bv\s?a\s?v\b/)) out.ecmoConf = tiene(/\bv\s?a\s?v\b/) ? 'VAV' : 'VA'
+  else if (tiene(/veno[\s-]?venos|\becmo v\s?v\b/)) out.ecmoConf = 'VV'
+
+  return out
+}
+
+export function extraerValoresUCI(texto: string): Record<string, string> {
+  const t = norm(texto)
+  const out: Record<string, string> = { ...extraerCategoricosUCI(texto) }
   for (const { campo, alias } of CAMPOS_UCI) {
     for (const a of alias) {
       const an = norm(a).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
