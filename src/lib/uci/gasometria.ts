@@ -120,26 +120,42 @@ export function analizarGasometria(e: EntradaGasometria): AnalisisGasometria {
       : 'PaCO2 menor a lo esperado → alcalosis respiratoria concomitante'
   } else if (trastornoPrimario === 'alcalosis_metabolica') {
     esperadoPaCO2 = r1(0.7 * hco3! + 21)
-    formulaComp = '0.7·HCO3 + 21 (±2)'
+    formulaComp = '0.7·HCO3 + 21 (±5)'
     compAdecuada = Math.abs(paco2! - esperadoPaCO2) <= 5
     comentarioComp = compAdecuada ? 'Compensación respiratoria adecuada'
       : paco2! < esperadoPaCO2 - 5 ? 'PaCO2 menor a lo esperado → alcalosis respiratoria concomitante'
       : 'PaCO2 mayor a lo esperado → acidosis respiratoria concomitante'
   } else if (trastornoPrimario === 'acidosis_respiratoria' || trastornoPrimario === 'alcalosis_respiratoria') {
     const deltaCO2 = (paco2! - 40) / 10
-    const factor = trastornoPrimario === 'acidosis_respiratoria' ? (cron === 'cronica' ? 3.5 : 1) : (cron === 'cronica' ? -4 : -2)
-    const hco3Esperado = r1(24 + factor * deltaCO2)
-    formulaComp = trastornoPrimario === 'acidosis_respiratoria'
-      ? `HCO3 esperado = 24 + ${cron === 'cronica' ? '3.5' : '1'}·(ΔPaCO2/10)`
-      : `HCO3 esperado = 24 − ${cron === 'cronica' ? '4' : '2'}·(ΔPaCO2/10)`
-    compAdecuada = Math.abs(hco3! - hco3Esperado) <= 3
-    comentarioComp = compAdecuada
-      ? `Compensación metabólica ${cron} adecuada (HCO3 esperado ≈ ${hco3Esperado})`
-      : `HCO3 (${hco3}) difiere del esperado (${hco3Esperado}) → componente metabólico concomitante`
-    if (e.cronicidadRespiratoria === undefined) advertencias.push('Cronicidad respiratoria no especificada: se asumió aguda')
+    const esAcidosis = trastornoPrimario === 'acidosis_respiratoria'
+    const espAgudo = r1(24 + (esAcidosis ? 1 : -2) * deltaCO2)
+    const espCronico = r1(24 + (esAcidosis ? 3.5 : -4) * deltaCO2)
+    if (e.cronicidadRespiratoria === undefined) {
+      // NO asumir cronicidad: un retenedor crónico de CO2 (EPOC) tiene un HCO3 alto
+      // NORMAL para su compensación. Asumir "aguda" inventaba una alcalosis
+      // metabólica superpuesta. Se muestran AMBOS rangos y NO se declara mixto.
+      formulaComp = `HCO3 esperado: agudo ≈ ${espAgudo}, crónico ≈ ${espCronico} (especifica cronicidad)`
+      // Adecuada si el HCO3 encaja en AGUDO o CRÓNICO. Solo si queda fuera de AMBOS
+      // hay verdadero componente metabólico. Así un retenedor crónico (EPOC) con HCO3
+      // alto NO se marca como alcalosis metabólica superpuesta inventada.
+      const compatibleAlguno = Math.abs(hco3! - espAgudo) <= 3 || Math.abs(hco3! - espCronico) <= 3
+      compAdecuada = compatibleAlguno
+      comentarioComp = compatibleAlguno
+        ? `HCO3 ${hco3} compatible con compensación ${Math.abs(hco3! - espCronico) <= Math.abs(hco3! - espAgudo) ? 'crónica' : 'aguda'}; especifica cronicidad para afinar`
+        : `HCO3 ${hco3} fuera de ambos rangos (agudo ${espAgudo} / crónico ${espCronico}) → componente metabólico concomitante`
+      advertencias.push('Cronicidad respiratoria no especificada: no se asume; se evalúan ambos rangos (agudo y crónico)')
+    } else {
+      const factor = esAcidosis ? (cron === 'cronica' ? 3.5 : 1) : (cron === 'cronica' ? -4 : -2)
+      const hco3Esperado = r1(24 + factor * deltaCO2)
+      formulaComp = esAcidosis
+        ? `HCO3 esperado = 24 + ${cron === 'cronica' ? '3.5' : '1'}·(ΔPaCO2/10)`
+        : `HCO3 esperado = 24 − ${cron === 'cronica' ? '4' : '2'}·(ΔPaCO2/10)`
+      compAdecuada = Math.abs(hco3! - hco3Esperado) <= 3
+      comentarioComp = compAdecuada
+        ? `Compensación metabólica ${cron} adecuada (HCO3 esperado ≈ ${hco3Esperado})`
+        : `HCO3 (${hco3}) difiere del esperado (${hco3Esperado}) → componente metabólico concomitante`
+    }
   }
-
-  const mixto = compAdecuada === false
 
   // 4) Anion gap
   let ag: number | null = null, agCorr: number | null = null, agElevado: boolean | null = null
@@ -152,18 +168,36 @@ export function analizarGasometria(e: EntradaGasometria): AnalisisGasometria {
     advertencias.push('Faltan Na y/o Cl: no se calculó el anion gap')
   }
 
-  // 5) Delta-delta (solo si AG elevado)
+  // 5) Delta-delta y detección de trastorno MIXTO por anion gap. Independiente del
+  //    primario: un AG elevado con HCO3 normal/alto delata un proceso oculto (clásico
+  //    AG↑ + alcalosis metabólica) que la sola compensación del primario no ve.
   let dd: number | null = null, ddInterp: string | null = null
+  let mixtoPorAG = false
   const agUsar = agCorr ?? ag
   if (agUsar !== null && agElevado) {
-    const denom = 24 - hco3!
-    if (denom !== 0) {
-      dd = r1((agUsar - 12) / denom)
-      ddInterp = dd < 0.4 ? 'ΔΔ < 0.4: sugiere acidosis metabólica sin AG concomitante (hiperclorémica)'
-        : dd <= 2 ? 'ΔΔ 0.4–2: acidosis con AG elevado pura'
-        : 'ΔΔ > 2: sugiere alcalosis metabólica o acidosis respiratoria crónica concomitante'
+    const deltaHCO3 = 24 - hco3!
+    if (Math.abs(deltaHCO3) < 1) {
+      // AG elevado pero HCO3 ≈ normal: la caída esperada de HCO3 no ocurrió → algo
+      // lo sostiene (típicamente alcalosis metabólica concomitante).
+      ddInterp = 'AG elevado con HCO3 ≈ normal: la caída esperada de HCO3 no ocurrió → sospecha de alcalosis metabólica concomitante (MIXTO)'
+      mixtoPorAG = true
+    } else {
+      dd = r1((agUsar - 12) / deltaHCO3)
+      // Corte clásico en ~1 (antes 0.4, que dejaba pasar la acidosis hiperclorémica
+      // concomitante cuando la caída de HCO3 excedía el aumento del AG).
+      if (dd < 1) {
+        ddInterp = 'ΔΔ < 1: la caída de HCO3 excede el aumento del AG → acidosis metabólica sin AG (hiperclorémica) concomitante'
+        mixtoPorAG = true
+      } else if (dd <= 2) {
+        ddInterp = 'ΔΔ 1–2: acidosis con AG elevado pura'
+      } else {
+        ddInterp = 'ΔΔ > 2: HCO3 mayor a lo esperado → alcalosis metabólica o acidosis respiratoria crónica concomitante'
+        mixtoPorAG = true
+      }
     }
   }
+
+  const mixto = compAdecuada === false || mixtoPorAG
 
   const partes: string[] = []
   partes.push(acidemia === 'normal' ? 'pH normal' : acidemia === 'acidemia' ? 'Acidemia' : 'Alcalemia')

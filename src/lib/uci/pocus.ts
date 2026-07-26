@@ -96,14 +96,26 @@ export function distensibilidadVCI(vciMaxMm?: number | string, vciMinMm?: number
 }
 
 /** Presiones de llenado del VI por E/e′ (< 8 normal, > 14 elevado). */
-export function presionesLlenado_Ee(ee?: number | string): HallazgoPOCUS {
+export function presionesLlenado_Ee(ee?: number | string, opts?: { fa?: boolean; valvulopatiaMitral?: boolean; protesisMitral?: boolean; marcapasos?: boolean }): HallazgoPOCUS {
   const v = num(ee)
   if (v === null) return bloq('E/e′ no medido', 'pocusSoliman2026')
+  // BLOQUEO por condición que invalida la estimación (contrato del módulo): en FA,
+  // valvulopatía/prótesis mitral o ritmo de marcapasos, E/e′ NO estima de forma
+  // fiable las presiones de llenado (ASE) → no se emite interpretación.
+  const invalidantes = [
+    opts?.fa && 'fibrilación auricular',
+    opts?.valvulopatiaMitral && 'valvulopatía mitral',
+    opts?.protesisMitral && 'prótesis mitral',
+    opts?.marcapasos && 'ritmo de marcapasos',
+  ].filter(Boolean) as string[]
+  if (invalidantes.length) {
+    return bloq(`E/e′ no es fiable con ${invalidantes.join(', ')} (validar con guía ASE)`, 'pocusSoliman2026', ['E/e′ inválido en FA, valvulopatía/prótesis mitral o marcapasos'])
+  }
   const interp = v < 8 ? 'presiones de llenado normales' : v > 14 ? 'presiones de llenado elevadas' : 'indeterminado (8–14): no clasificar solo con esto'
   return {
     ok: true, valor: v, hallazgo: interp, bloqueado: false, motivoBloqueo: null,
     interpretacion: `E/e′ ${v}: ${interp}`,
-    limitaciones: ['Invalidantes (valvulopatía mitral, prótesis, marcapasos, FA) no enumerados por la fuente: validar con guía ASE'],
+    limitaciones: ['Invalidantes (valvulopatía mitral, prótesis, marcapasos, FA): confirmar que no estén presentes'],
     fuenteId: 'pocusSoliman2026',
   }
 }
@@ -112,11 +124,13 @@ export function presionesLlenado_Ee(ee?: number | string): HallazgoPOCUS {
 export function lineasB(porEspacio?: number | string): HallazgoPOCUS {
   const b = num(porEspacio)
   if (b === null) return bloq('Nº de líneas B no reportado', 'pocusRowe2026')
-  const anormal = b > 3
+  // Consenso: ≥3 líneas B/espacio = región POSITIVA (síndrome intersticial). Antes
+  // usaba > 3, dejando pasar el caso frontera de 3 y contradiciendo scoreRegionLUS.
+  const anormal = b >= 3
   return {
     ok: true, valor: b, hallazgo: anormal ? 'síndrome intersticial' : 'sin síndrome intersticial',
     bloqueado: false, motivoBloqueo: null,
-    interpretacion: anormal ? `${b} líneas B/espacio > 3: síndrome intersticial (edema)` : `${b} líneas B/espacio: dentro de lo normal`,
+    interpretacion: anormal ? `${b} líneas B/espacio ≥ 3: síndrome intersticial (edema)` : `${b} líneas B/espacio: dentro de lo normal`,
     limitaciones: ['El "Lung Ultrasound Score" numérico por zonas no está en las fuentes provistas'],
     fuenteId: 'pocusRowe2026',
   }
@@ -146,11 +160,13 @@ export function neumotorax(deslizamientoPresente?: boolean, puntoPulmonar?: bool
 export function obstruccionTSVI(gradienteMmHg?: number | string): HallazgoPOCUS {
   const g = num(gradienteMmHg)
   if (g === null) return bloq('Gradiente del TSVI no medido', 'pocusSoliman2026')
-  const obstruccion = g > 30
+  // ≥30 mmHg en reposo YA define obstrucción dinámica (antes usaba > 30, dejando
+  // pasar el corte exacto).
+  const obstruccion = g >= 30
   return {
     ok: true, valor: g, hallazgo: obstruccion ? 'obstrucción dinámica del TSVI' : 'sin obstrucción significativa',
     bloqueado: false, motivoBloqueo: null,
-    interpretacion: obstruccion ? `Gradiente TSVI ${g} > 30 mmHg: obstrucción dinámica — NO escalar inotrópicos (los empeora)` : `Gradiente TSVI ${g} mmHg: sin obstrucción significativa`,
+    interpretacion: obstruccion ? `Gradiente TSVI ${g} ≥ 30 mmHg: obstrucción dinámica — NO escalar inotrópicos (los empeora)` : `Gradiente TSVI ${g} mmHg: sin obstrucción significativa`,
     limitaciones: [], fuenteId: 'pocusSoliman2026',
   }
 }

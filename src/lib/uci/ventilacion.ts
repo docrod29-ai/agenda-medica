@@ -114,22 +114,30 @@ export function vtPorPBW(vtMl?: number | string, pbwKg?: number | null): Calculo
  */
 export function indiceKirby(pao2Raw?: number | string, fio2Decimal?: number | null, muestra?: Muestra): CalculoNum {
   const formula = 'PaO2 / FiO2'
-  if (muestra && muestra !== 'arterial') {
-    return bloqueado('', formula, `Muestra ${muestra}: NO se usa una gasometría ${muestra} para oxigenación arterial`)
+  // La muestra llega como texto libre ('Arterial', 'art', 'gaso arterial'…). Se
+  // normaliza: arterial = empieza por 'art'. Vacío/undefined = no especificada.
+  const mCrudo = typeof muestra === 'string' ? muestra.trim() : muestra
+  const mNorm = mCrudo ? String(mCrudo).toLowerCase() : undefined
+  const esArterial = mNorm ? mNorm.startsWith('art') : undefined
+  if (mNorm && esArterial === false) {
+    return bloqueado('', formula, `Muestra ${mCrudo}: NO se usa una gasometría ${mCrudo} para oxigenación arterial`)
   }
   const pao2 = num(pao2Raw), fio2 = num(fio2Decimal)
   const faltantes: string[] = []
-  if (muestra === undefined) faltantes.push('tipo de muestra (debe ser arterial)')
+  if (mNorm === undefined) faltantes.push('tipo de muestra (debe ser arterial)')
   if (pao2 === null) faltantes.push('PaO2')
   if (fio2 === null) faltantes.push('FiO2 normalizada')
   if (faltantes.length) return bloqueado('', formula, 'Datos insuficientes', faltantes)
   if (!enRango(pao2!, RANGOS.pao2_mmHg)) return bloqueado('', formula, `PaO2 fuera de rango (${pao2} mmHg)`)
   if (!enRango(fio2!, RANGOS.fio2)) return bloqueado('', formula, `FiO2 no normalizada o fuera de rango (${fio2})`)
   const val = Math.round(pao2! / fio2!)
-  const berlin = val >= 300 ? 'Sin criterio de oxigenación de SDRA (P/F ≥ 300)'
-    : val >= 200 ? 'SDRA leve por oxigenación (200–300)'
-    : val >= 100 ? 'SDRA moderado por oxigenación (100–200)'
-    : 'SDRA grave por oxigenación (< 100)'
+  // Cortes de Berlin (límite superior inclusivo): leve 200<P/F≤300, moderado
+  // 100<P/F≤200, grave ≤100. Antes usaba '≥', que infra-clasificaba los valores
+  // frontera exactos (100→moderado en vez de grave, 200→leve en vez de moderado).
+  const berlin = val > 300 ? 'Sin criterio de oxigenación de SDRA (P/F > 300)'
+    : val > 200 ? 'SDRA leve por oxigenación (200–300)'
+    : val > 100 ? 'SDRA moderado por oxigenación (100–200)'
+    : 'SDRA grave por oxigenación (≤ 100)'
   return {
     ok: true, valor: val, unidad: 'mmHg', formula, faltantes: [], motivoBloqueo: null,
     advertencias: val < 100 ? ['Hipoxemia grave (P/F < 100)'] : [],

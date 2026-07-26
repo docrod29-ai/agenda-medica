@@ -9,7 +9,14 @@
  * motor lo declara y no inventa. Gateado bajo el módulo de Expediente (consulta).
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Activity, Wind, Droplets, HeartPulse, ShieldAlert, Info, Mic, Square, Waves } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Activity, Wind, Droplets, HeartPulse, ShieldAlert, Info, Mic, Square, Waves, BedDouble, AlertTriangle, FileText, Calculator } from 'lucide-react'
+import { useClinic } from '@/context/ClinicContext'
+import { getInternamiento } from '@/lib/hospital/firestore'
+import { getPatient } from '@/lib/firestore'
+import { construirSeccionesUCI } from '@/lib/uci/nota'
+import type { Internamiento } from '@/types/hospital'
+import type { Patient } from '@/types'
 import { analizarVentilacion } from '@/lib/uci/ventilacion'
 import { analizarGasometria } from '@/lib/uci/gasometria'
 import { presionArterialMedia } from '@/lib/uci/hemodinamia'
@@ -80,6 +87,38 @@ export default function UciPanelPage() {
   const set = (k: string, val: string) => setV(prev => ({ ...prev, [k]: val }))
   const n = (k: string) => (v[k] === undefined || v[k] === '' ? undefined : v[k])
 
+  // ── Paciente INGRESADO (si el panel se abrió desde un internamiento) ──
+  const router = useRouter()
+  const params = useSearchParams()
+  const internamientoId = params.get('internamiento') || undefined
+  const { clinicId } = useClinic()
+  const [inter, setInter] = useState<Internamiento | null>(null)
+  const [paciente, setPaciente] = useState<Patient | null>(null)
+  useEffect(() => {
+    if (!clinicId || !internamientoId) { setInter(null); setPaciente(null); return }
+    let vivo = true
+    getInternamiento(clinicId, internamientoId).then(async i => {
+      if (!vivo) return
+      setInter(i)
+      if (i) {
+        // prefill sexo desde el expediente si no se ha capturado
+        const p = await getPatient(clinicId, i.pacienteId).catch(() => null)
+        if (!vivo) return
+        setPaciente(p)
+        if (p?.sexo) setV(prev => (prev.sexo ? prev : { ...prev, sexo: /^f/i.test(p.sexo!) ? 'F' : 'M' }))
+      }
+    }).catch(() => {})
+    return () => { vivo = false }
+  }, [clinicId, internamientoId])
+
+  const alergias = (() => {
+    const raw = paciente?.alergias
+    const lista = Array.isArray(raw) ? raw.map(a => String(a).trim()).filter(Boolean)
+      : (raw ? String(raw).split(/[,;\n]+/).map(s => s.trim()).filter(Boolean) : [])
+    const negadas = lista.length === 1 && /^(no|niega|ninguna|sin)\b/i.test(lista[0])
+    return { lista, negadas }
+  })()
+
   // ── Voz del pase de visita (multi-voz) → prellena el panel ──
   const audio = useGrabacionAudio()
   const [discusionTxt, setDiscusionTxt] = useState('')
@@ -101,25 +140,38 @@ export default function UciPanelPage() {
       setDetectados(Object.keys(extraidos))
     }
   }, [audio.transcripcion, audio.utterances])
+
+  // SEGURIDAD: al cambiar de paciente (otra cama) se LIMPIA todo el panel. Sin esto,
+  // los valores del paciente anterior (p. ej. plaquetas) quedaban pegados y
+  // contaminaban el SOFA/alertas del siguiente si el pase no los volvía a mencionar.
+  useEffect(() => {
+    if (!internamientoId) return
+    setV({})
+    setDetectados([])
+    setDiscusionTxt('')
+    procesadoRef.current = ''
+  }, [internamientoId])
   const grabando = audio.estado === 'grabando' || audio.estado === 'pausado'
 
   const vent = useMemo(() => analizarVentilacion({
     sexo: v.sexo === 'F' ? 'F' : v.sexo === 'M' ? 'M' : undefined, tallaCm: n('talla'), vtMl: n('vt'),
-    fio2: n('fio2'), fio2Unidad: '%', pplat: n('pplat'), peep: n('peep'),
+    fio2: n('fio2'), fio2Unidad: '%', pplat: n('pplat'), peep: n('peep'), autoPeep: n('autoPeep'),
     pao2: n('pao2'), muestraGasometria: (v.muestra as 'arterial' | 'venosa' | 'capilar') || undefined,
   }), [v])
   const gaso = useMemo(() => analizarGasometria({ ph: n('ph'), paco2: n('paco2'), hco3: n('hco3'), na: n('na'), cl: n('cl'), albumina: n('alb') }), [v])
   const pam = useMemo(() => presionArterialMedia(n('pas'), n('pad')), [v])
   const sofa = useMemo(() => calcularSOFA({
-    pafi: vent.indiceKirby.ok ? vent.indiceKirby.valor ?? undefined : undefined, soporteRespiratorio: v.soporte === 'si',
-    plaquetas: n('plaquetas'), bilirrubina: n('bili'), pam: pam.ok ? pam.valor ?? undefined : n('pas') ? undefined : undefined,
-    norepinefrina: n('norepi'), glasgow: n('glasgow'), creatinina: n('creat'),
+    pafi: vent.indiceKirby.ok ? vent.indiceKirby.valor ?? undefined : undefined,
+    soporteRespiratorio: ['si', 'sí', 'true', '1'].includes((v.soporte || '').trim().toLowerCase()),
+    plaquetas: n('plaquetas'), bilirrubina: n('bili'), pam: pam.ok ? pam.valor ?? undefined : undefined,
+    norepinefrina: n('norepi'), dopamina: n('dopa'), dobutamina: n('dobu'), epinefrina: n('epi'),
+    glasgow: n('glasgow'), creatinina: n('creat'),
   }), [v, vent, pam])
   const alertas = useMemo(() => analizarSeguridadUCI({
     ph: n('ph'), glucosa: n('glucosa'), potasio: n('k'), pam: pam.ok ? pam.valor ?? undefined : undefined,
     pplat: n('pplat'), drivingPressure: vent.drivingPressure.ok ? vent.drivingPressure.valor ?? undefined : undefined,
     vtPorPbw: vent.vtPorPbw.ok ? vent.vtPorPbw.valor ?? undefined : undefined, spo2: n('spo2'), fio2: vent.fio2.valor ?? undefined,
-    lactato: n('lactato'),
+    lactato: n('lactato'), sodio: n('na'),
   }), [v, vent, pam])
 
   // ── POCUS: congestión venosa (VExUS-C), respuesta a líquidos (PLR), corazón derecho ──
@@ -129,6 +181,14 @@ export default function UciPanelPage() {
   const tapse = useMemo(() => disfuncionVD_TAPSE(n('tapse')), [v])
   const vdvi = useMemo(() => sobrecargaVD_VDVI(n('vdvi')), [v])
   const lb = useMemo(() => lineasBPocus(n('lineasB')), [v])
+
+  // ── Pasar los valores del panel a una NOTA de evolución UCI del paciente ──
+  const pasarANota = () => {
+    if (!inter || !internamientoId) return
+    const secciones = construirSeccionesUCI(v, { discusion: discusionTxt || undefined })
+    try { sessionStorage.setItem(`nx.uci.seed.${internamientoId}`, JSON.stringify(secciones)) } catch { /* */ }
+    router.push(`/consulta/${inter.pacienteId}?tipo=evolucion_uci&internamiento=${internamientoId}&fuente=uci`)
+  }
 
   return (
     <main style={{ maxWidth: 1180, margin: '0 auto', padding: '20px 20px 80px', color: 'var(--text)' }}>
@@ -140,11 +200,43 @@ export default function UciPanelPage() {
         <Info size={14} /> Apoyo decisional. El código calcula, el motor verifica; tú revisas y firmas. Si falta un dato, no se inventa.
       </p>
 
+      {/* Paciente ingresado (o aviso de modo calculadora) */}
+      {inter ? (
+        <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: '12px 16px', marginBottom: 14 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 700 }}>{inter.pacienteNombre}</div>
+              <div style={{ fontSize: 12.5, color: 'var(--text3)', display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 2 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><BedDouble size={13} /> {inter.servicio}{inter.cama ? ` · Cama ${inter.cama}` : ''}</span>
+                <span>{inter.diagnosticoIngreso}</span>
+              </div>
+            </div>
+            <button onClick={pasarANota} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+              <FileText size={15} /> Pasar a nota de evolución UCI
+            </button>
+          </div>
+          {alergias.lista.length > 0 && !alergias.negadas && (
+            <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 10, padding: '7px 11px', borderRadius: 9, border: '1px solid rgba(220,38,38,.45)', background: 'rgba(220,38,38,.12)', color: '#dc2626' }}>
+              <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: 12.5, fontWeight: 700 }}>ALERGIAS:</span>
+              <span style={{ fontSize: 12.5, fontWeight: 600 }}>{alergias.lista.join(' · ')}</span>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '10px 14px', borderRadius: 10, border: '1px dashed var(--border)', background: 'var(--s2)', color: 'var(--text3)' }}>
+          <Calculator size={15} style={{ flexShrink: 0 }} />
+          <span style={{ fontSize: 12.5 }}>
+            Modo calculadora (sin paciente). Para <strong>guardar la nota en el expediente</strong>, abre el panel desde un paciente <button onClick={() => router.push('/hospitalizacion')} style={{ background: 'none', border: 'none', color: 'var(--nexus)', cursor: 'pointer', padding: 0, font: 'inherit', textDecoration: 'underline' }}>internado en Hospitalización</button>.
+          </span>
+        </div>
+      )}
+
       {/* Voz del pase de visita (adscritos + residentes) → prellena el panel */}
       <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 14, marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           {audio.soportado ? (
-            <button onClick={() => (grabando ? audio.detener() : audio.iniciar({ recoveryKey: 'uci-panel' }))}
+            <button onClick={() => (grabando ? audio.detener() : audio.iniciar({ recoveryKey: `uci-panel${internamientoId ? '.' + internamientoId : ''}` }))}
               className={grabando ? 'btn' : 'btn btn-primary'}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 7, ...(grabando ? { background: '#dc2626', color: '#fff', border: 'none' } : {}) }}>
               {grabando ? <Square size={15} /> : <Mic size={15} />}{grabando ? 'Detener' : 'Dictar pase de visita'}
@@ -173,12 +265,29 @@ export default function UciPanelPage() {
         {/* Captura */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <Bloque icon={Wind} titulo="Respiratorio / ventilación">
+            <Selector label="Modo ventilatorio" k="modo" v={v} set={set} w={168} opciones={[
+              { val: 'AC-VC', txt: 'A/C volumen (VC)' },
+              { val: 'AC-PC', txt: 'A/C presión (PC)' },
+              { val: 'SIMV', txt: 'SIMV' },
+              { val: 'PSV', txt: 'PSV / espontáneo' },
+              { val: 'CPAP', txt: 'CPAP' },
+              { val: 'APRV', txt: 'APRV / BiVent' },
+              { val: 'VNI', txt: 'VNI (BiPAP)' },
+              { val: 'AFNC', txt: 'Cánula alto flujo' },
+              { val: 'aire', txt: 'Aire ambiente / O₂ suplem.' },
+            ]} />
             <Campo label="Sexo (M/F)" k="sexo" v={v} set={set} w={70} />
             <Campo label="Talla" k="talla" v={v} set={set} sufijo="cm" />
             <Campo label="VT" k="vt" v={v} set={set} sufijo="mL" />
+            <Campo label="FR" k="fr" v={v} set={set} sufijo="rpm" w={80} />
             <Campo label="FiO₂" k="fio2" v={v} set={set} sufijo="%" />
             <Campo label="PEEP" k="peep" v={v} set={set} sufijo="cmH₂O" />
+            <Campo label="Auto-PEEP" k="autoPeep" v={v} set={set} sufijo="cmH₂O" w={100} />
+            <Campo label="P. pico" k="ppico" v={v} set={set} sufijo="cmH₂O" w={95} />
             <Campo label="Pplateau" k="pplat" v={v} set={set} sufijo="cmH₂O" />
+            <Campo label="P. soporte" k="psoporte" v={v} set={set} sufijo="cmH₂O" w={100} />
+            <Campo label="Relación I:E" k="ie" v={v} set={set} w={90} />
+            <Campo label="Trigger" k="trigger" v={v} set={set} w={90} />
             <Campo label="PaO₂" k="pao2" v={v} set={set} sufijo="mmHg" />
             <Campo label="Muestra gaso." k="muestra" v={v} set={set} w={110} />
             <Campo label="Soporte resp (si)" k="soporte" v={v} set={set} w={110} />
@@ -199,6 +308,9 @@ export default function UciPanelPage() {
             <Campo label="PAS" k="pas" v={v} set={set} />
             <Campo label="PAD" k="pad" v={v} set={set} />
             <Campo label="Norepi" k="norepi" v={v} set={set} sufijo="µg/kg/min" w={110} />
+            <Campo label="Dopamina" k="dopa" v={v} set={set} sufijo="µg/kg/min" w={110} />
+            <Campo label="Dobutamina" k="dobu" v={v} set={set} sufijo="µg/kg/min" w={110} />
+            <Campo label="Epinefrina" k="epi" v={v} set={set} sufijo="µg/kg/min" w={110} />
             <Campo label="Glasgow" k="glasgow" v={v} set={set} />
             <Campo label="Creatinina" k="creat" v={v} set={set} />
             <Campo label="Plaquetas" k="plaquetas" v={v} set={set} sufijo="×10³" />

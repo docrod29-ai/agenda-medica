@@ -108,7 +108,7 @@ const AntibiogramaTool = dynamic(() => import('@/app/(dashboard)/antibiograma/pa
 const CalculadorasClinicas = dynamic(() => import('@/components/CalculadorasClinicas').then(m => m.CalculadorasClinicas), { ssr: false })
 const FotosClinicas = dynamic(() => import('@/components/FotosClinicas').then(m => m.FotosClinicas), { ssr: false })
 
-const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'valoracion_preoperatoria', 'valoracion_inmuno', 'alta_consulta', 'ingreso', 'evolucion', 'egreso', 'nota_postoperatoria', 'nota_anestesia', 'consentimiento']
+const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'valoracion_preoperatoria', 'valoracion_inmuno', 'alta_consulta', 'ingreso', 'evolucion', 'evolucion_uci', 'egreso', 'nota_postoperatoria', 'nota_anestesia', 'consentimiento']
 
 // Menú de IA: motores que el médico elige por nota (⚡ barato → 💎 máximo).
 const MOTORES_UI: { clave: ClaveMotor; emoji: string; nombre: string; creditos: number; desc: string }[] = [
@@ -1488,8 +1488,32 @@ export default function ConsultaActivaPage() {
   // Al abrir: si hay respaldo local, RESTÁURALO SOLO (sin que tengas que ver un
   // banner) — salvo que estés abriendo otra nota (?nota=) o que el formulario ya
   // tenga contenido. Así volver de la agenda nunca "pierde" lo que hacías.
+  // SEMILLA DESDE EL PANEL DE UCI: cuando se llega con ?fuente=uci, el Panel UCI
+  // dejó en sessionStorage las 10 secciones deterministas ya redactadas (por
+  // aparatos y sistemas). Se siembran una sola vez, en una nota NUEVA. Nunca pisa
+  // una nota existente ni un borrador con contenido.
+  const uciSeedRef = useRef(false)
+  useEffect(() => {
+    if (uciSeedRef.current || notaIdParam) return
+    if (searchParams.get('fuente') !== 'uci' || !internamientoParam) return
+    let raw: string | null = null
+    try { raw = sessionStorage.getItem(`nx.uci.seed.${internamientoParam}`) } catch { /* */ }
+    if (!raw) return
+    try {
+      const secs = JSON.parse(raw) as NotaSeccion[]
+      if (Array.isArray(secs) && secs.length) {
+        uciSeedRef.current = true
+        setTipo('evolucion_uci')
+        setSecciones(secs)
+        toast('Valores del Panel UCI cargados en la nota — revísalos y firma', 'success')
+      }
+    } catch { /* */ }
+    try { sessionStorage.removeItem(`nx.uci.seed.${internamientoParam}`) } catch { /* */ }
+  }, [searchParams, internamientoParam, notaIdParam, toast])
+
   const autoRestRef = useRef(false)
   useEffect(() => {
+    if (uciSeedRef.current) return   // la semilla de UCI manda sobre el respaldo vacío
     if (!patientId || autoRestRef.current) return
     // 1º MEMORIA (instantáneo, sin parpadeo ni aviso): si vienes de otra pantalla,
     //   la nota estaba viva en memoria y se pone tal cual la dejaste.

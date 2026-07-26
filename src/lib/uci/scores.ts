@@ -80,7 +80,11 @@ function cardiovascular(e: EntradaSOFA): SubscoreSOFA {
   if ((dopa !== null && dopa > 5) || (epi !== null && epi <= 0.1 && epi > 0) || (nore !== null && nore <= 0.1 && nore > 0)) return { sistema: 'Cardiovascular', puntos: 3, motivo: 'Vasopresor a dosis media' }
   if ((dopa !== null && dopa > 0 && dopa <= 5) || (dobu !== null && dobu > 0)) return { sistema: 'Cardiovascular', puntos: 2, motivo: 'Dopamina baja o dobutamina' }
   if (pam !== null && pam < 70) return { sistema: 'Cardiovascular', puntos: 1, motivo: `PAM ${pam} < 70` }
-  return { sistema: 'Cardiovascular', puntos: 0, motivo: pam !== null ? `PAM ${pam} ≥ 70, sin vasopresor` : 'Sin vasopresor' }
+  // Solo PAM, sin ningún vasopresor documentado: la ausencia de registro NO equivale
+  // a ausencia de vasopresor. Se puntúa por PAM pero se advierte (una PAM normal
+  // sostenida por un presor no documentado escondería un CV de hasta 4).
+  const sinPresorDocumentado = dopa === null && dobu === null && epi === null && nore === null
+  return { sistema: 'Cardiovascular', puntos: 0, motivo: pam !== null ? `PAM ${pam} ≥ 70${sinPresorDocumentado ? ' — vasopresores no documentados; si los recibe, el CV puede ser mayor' : ', sin vasopresor'}` : 'Sin vasopresor' }
 }
 function neurologico(gcs: number | null): SubscoreSOFA {
   if (gcs === null) return { sistema: 'Neurológico', puntos: null, motivo: 'Falta Glasgow' }
@@ -152,8 +156,11 @@ export function camIcu(e: EntradaCAMICU): ResultadoCAMICU {
   if (e.inatencion === undefined) faltan.push('Rasgo 2 (inatención)')
   // Rasgos 3 y 4 solo se necesitan si 1 y 2 son positivos.
   const base = e.inicioAgudoOFluctuante === true && e.inatencion === true
-  if (base && e.nivelConcienciaAlterado === undefined && e.pensamientoDesorganizado === undefined) {
-    faltan.push('Rasgo 3 (conciencia) o Rasgo 4 (pensamiento)')
+  // Con base positiva se requiere Rasgo 3 O Rasgo 4. Si el Rasgo 3 NO es positivo
+  // y el Rasgo 4 no se evaluó, NO puede descartarse delirium (antes devolvía
+  // 'negativo' tratando el Rasgo 4 ausente como falso → falso negativo).
+  if (base && e.nivelConcienciaAlterado !== true && e.pensamientoDesorganizado === undefined) {
+    faltan.push(e.nivelConcienciaAlterado === undefined ? 'Rasgo 3 (conciencia) o Rasgo 4 (pensamiento)' : 'Rasgo 4 (pensamiento desorganizado)')
   }
   if (faltan.length && (e.inicioAgudoOFluctuante === undefined || e.inatencion === undefined || base)) {
     return { positivo: null, evaluable: false, faltan, explicacion: 'No evaluable: faltan rasgos.', fuente: 'Ely EW et al. CAM-ICU. JAMA 2001.' }
@@ -222,9 +229,13 @@ export function calcularAPACHE2(e: EntradaAPACHE): ResultadoAPACHE {
   puntos.push(add('PAM', e.pam, v => v >= 160 ? 4 : v >= 130 ? 3 : v >= 110 ? 2 : v >= 70 ? 0 : v >= 50 ? 2 : 4))
   puntos.push(add('FC', e.fc, v => v >= 180 ? 4 : v >= 140 ? 3 : v >= 110 ? 2 : v >= 70 ? 0 : v >= 55 ? 2 : v >= 40 ? 3 : 4))
   puntos.push(add('FR', e.fr, v => v >= 50 ? 4 : v >= 35 ? 3 : v >= 25 ? 1 : v >= 12 ? 0 : v >= 10 ? 1 : v >= 6 ? 2 : 4))
-  // Oxigenación
+  // Oxigenación: FiO2 define la vía (≥0.5 → A-aDO2; <0.5 → PaO2). Si falta FiO2 NO
+  // se asume la vía PaO2 (subestimaba la oxigenación con FiO2 alta real): es faltante.
   const fio2 = num(e.fio2)
-  if (fio2 !== null && fio2 >= 0.5) {
+  if (fio2 === null) {
+    faltantes.push('FiO2 (define la vía de oxigenación)')
+    puntos.push(null)
+  } else if (fio2 >= 0.5) {
     puntos.push(add('A-aDO2', e.aado2, v => rango(v, [[500, 9999, 4], [350, 499, 3], [200, 349, 2], [-9999, 199, 0]])))
   } else {
     puntos.push(add('PaO2', e.pao2, v => v > 70 ? 0 : v >= 61 ? 1 : v >= 55 ? 3 : 4))

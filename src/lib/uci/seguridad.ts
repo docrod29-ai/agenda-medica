@@ -85,8 +85,14 @@ export function analizarSeguridadUCI(e: EstadoUCI): AlertaUCI[] {
     else if (k >= 6.0 || k < 3.0) push('alta', 'potasio', `Potasio ${k} mmol/L fuera de rango: corregir.`)
   }
 
-  // Ritmo de cambio del sodio (riesgo de desmielinización osmótica)
+  // Sodio: umbral ABSOLUTO (hipo/hipernatremia grave) — antes solo se evaluaba el
+  // ritmo de cambio, así que un Na de 168 o 112 no generaba ninguna alerta.
   const na = num(e.sodio), naPrev = num(e.sodioPrevio)
+  if (na !== null) {
+    if (na >= 160 || na <= 120) push('critica', 'sodio', `Sodio ${na} mmol/L en rango crítico: riesgo neurológico; corregir vigilando el ritmo (evitar desmielinización osmótica).`)
+    else if (na >= 150 || na < 130) push('moderada', 'sodio', `Sodio ${na} mmol/L fuera de rango (135–145): vigilar.`)
+  }
+  // Ritmo de cambio del sodio (riesgo de desmielinización osmótica)
   if (na !== null && naPrev !== null) {
     const delta = Math.abs(na - naPrev)
     if (delta > 10) push('alta', 'sodio', `Cambio de sodio ${delta} mmol/L (>10): riesgo de corrección demasiado rápida.`)

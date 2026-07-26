@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v630'  // Panel UCI: cableado VExUS-C + PLR + corazon derecho (TAPSE, VD/VI, lineas B) a la UI. Bloque POCUS de captura (VCI, patrones venosos hepatica/porta/renal, PLR delta+parametro) + columna de resultados deterministas. Motor pocus.ts ya existia; ahora es visible y usable en la consulta.
+const CACHE = 'nexusmed-v631'  // AUDITORIA UCI (2 oleadas, 5 intensivistas + verificacion adversarial) + Panel UCI ligado a paciente internado. 19 bugs reparados: extraccion pip->ppico (no PEEP), Berlin cortes frontera, muestra arterial normalizada, gasometria deteccion MIXTO por anion gap + cronicidad respiratoria + delta-ratio, POCUS lineasB>=3 / TSVI>=30 / E-e' bloqueo FA-valvulopatia, SOFA cardiovascular no asume 'sin vasopresor' + panel pasa dopa/dobu/epi, CAM-ICU falso negativo Rasgo4, APACHE FiO2 faltante, sodio umbral absoluto. Panel UCI: modo ventilatorio + variables (FR/Ppico/autoPEEP/PS/IE/trigger), abre desde internamiento (paciente+cama+alergias), 'Pasar a nota de evolucion UCI' arma 10 secciones deterministas -> pipeline de consulta, reset entre camas.
 // (v601):
 
 self.addEventListener('install', (event) => {

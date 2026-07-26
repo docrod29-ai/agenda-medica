@@ -394,6 +394,7 @@ export default function EpisodioPage() {
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
             {!tieneIngreso && <Button icon={<Plus size={15} />} onClick={() => nuevaNota('ingreso')}>Nota de ingreso</Button>}
             <Button variant={tieneIngreso ? 'primary' : 'secondary'} icon={<Plus size={15} />} onClick={() => nuevaNota('evolucion')}>Evolución</Button>
+            <Button variant="secondary" icon={<Activity size={15} />} onClick={() => router.push(`/uci?internamiento=${internamientoId}`)}>Panel UCI</Button>
             <Button variant="secondary" icon={<Activity size={15} />} onClick={() => nuevaNota('nota_postoperatoria')}>Postoperatoria</Button>
             <Button variant="secondary" icon={<FileText size={15} />} onClick={() => nuevaNota('consentimiento')}>Consentimiento</Button>
             <Button variant="secondary" icon={<BedDouble size={15} />} onClick={() => { setTrForm({ servicio: inter.servicio, cama: inter.cama, tratante: inter.medicoTratanteNombre }); setModalTraslado(true) }}>Trasladar</Button>

@@ -116,8 +116,14 @@ export function parsearValorClinico(texto: string): ValorClinico {
  */
 const CAMPOS_UCI: { campo: string; alias: string[] }[] = [
   { campo: 'fio2', alias: ['fio2', 'fi o dos', 'fio dos', 'fraccion inspirada de oxigeno'] },
-  { campo: 'peep', alias: ['peep', 'pip'] },
+  // OJO: 'pip' (presión pico inspiratoria) NO es PEEP; va a su propio campo ppico.
+  // Mapearlo a PEEP corrompía el driving pressure (Pplat − PEEP).
+  { campo: 'peep', alias: ['peep', 'pip peep', 'peep total'] },
+  { campo: 'autoPeep', alias: ['auto peep', 'autopeep', 'peep intrinseco', 'peep intrínseco'] },
+  { campo: 'ppico', alias: ['presion pico', 'presión pico', 'pico inspiratoria', 'ppico', 'pip', 'presion inspiratoria pico'] },
   { campo: 'pplat', alias: ['plateau', 'presion plateau', 'presion meseta', 'pplat', 'presion plato'] },
+  { campo: 'psoporte', alias: ['presion soporte', 'presión de soporte', 'presion de soporte', 'soporte de presion'] },
+  { campo: 'fr', alias: ['frecuencia respiratoria', 'efe erre'] },
   { campo: 'vt', alias: ['volumen corriente', 'volumen tidal'] },
   { campo: 'pao2', alias: ['pao2', 'pao dos', 'presion arterial de oxigeno'] },
   { campo: 'paco2', alias: ['paco2', 'paco dos', 'pco2', 'pco dos'] },
