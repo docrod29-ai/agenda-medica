@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v657'  // 010 fase 2 (cliente, a prueba de fallos): al imprimir, print-element intenta cambiar las <img> del membrete/firma a URLs FIRMADAS (POST diseno-url, timeout 1.5s); si falla/tarda/no hay sesion imprime con las URLs originales EXACTAMENTE como antes (la firma nunca rompe una receta). OJO: el camino Descargar PDF (html2canvas) aun usa URLs sin firma -> NO activar RECETA_DISENO_FIRMA=obligatoria hasta cablearlo y probar papel.
+const CACHE = 'nexusmed-v658'  // 010 fase 2 COMPLETA (cliente): helper compartido receta-diseno-client (firma a prueba de fallos, timeout, espera recarga) usado por AMBOS caminos de papeleria: impresion (print-element) y Descargar PDF (pdf-download firma las <img> ANTES de rasterizar con html2canvas). Falta solo del Dr: secreto en Vercel + prueba de papel + activar RECETA_DISENO_FIRMA=obligatoria.
 // (v601):
 
 self.addEventListener('install', (event) => {

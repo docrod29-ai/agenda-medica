@@ -175,39 +175,14 @@ export function imprimirElemento(
     }
   }
 
-  // NEXUS-QUALITY-010 fase 2 — URLs FIRMADAS, A PRUEBA DE FALLOS: las imágenes del
-  // membrete/firma se sirven por /api/receta/diseno; aquí se intenta cambiarlas a
-  // su versión firmada con caducidad (POST /api/receta/diseno-url) ANTES de esperar
-  // su carga. Si el endpoint falla, tarda (>1.5 s) o no hay sesión, se imprime con
-  // las URLs originales EXACTAMENTE como antes — la firma nunca puede romper una
-  // receta. (El candado RECETA_DISENO_FIRMA=obligatoria solo se activa en Vercel
-  // cuando esta ruta esté probada en papel.)
-  void (async () => {
-    try {
-      const porFirmar = Array.from(win.document.images).filter(img =>
-        img.src.includes('/api/receta/diseno?path=') && !img.src.includes('&sig='))
-      if (porFirmar.length === 0) return
-      const paths = [...new Set(porFirmar.map(img => {
-        try { return new URL(img.src).searchParams.get('path') ?? '' } catch { return '' }
-      }).filter(Boolean))]
-      if (paths.length === 0) return
-      const { fetchAutenticado } = await import('@/lib/auth-client')
-      const res = await Promise.race([
-        fetchAutenticado('/api/receta/diseno-url', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paths }),
-        }),
-        new Promise<null>(r => setTimeout(() => r(null), 1500)),
-      ])
-      if (!res || !res.ok) return
-      const data = await res.json().catch(() => null) as { urls?: Record<string, string> } | null
-      if (!data?.urls) return
-      for (const img of porFirmar) {
-        try {
-          const p = new URL(img.src).searchParams.get('path') ?? ''
-          const firmada = data.urls[p]
-          if (firmada && firmada.includes('sig=')) img.src = firmada
-        } catch { /* esta imagen se queda con su URL original */ }
-      }
-    } catch { /* sin firma: se imprime igual que siempre */ }
-  })().finally(esperarImagenesEImprimir)
+  // NEXUS-QUALITY-010 fase 2 — URLs FIRMADAS, A PRUEBA DE FALLOS: antes de esperar
+  // la carga, se intenta cambiar las <img> del membrete/firma a su versión firmada
+  // con caducidad (helper compartido con el camino de PDF). Si algo falla o tarda,
+  // se imprime con las URLs originales exactamente como antes — la firma nunca
+  // puede romper una receta. (El candado RECETA_DISENO_FIRMA=obligatoria solo se
+  // activa en Vercel cuando la papelería esté probada.)
+  void import('@/lib/receta-diseno-client')
+    .then(m => m.firmarImagenesDiseno(Array.from(win.document.images), { esperarRecargaMs: 0 }))
+    .catch(() => 0)
+    .finally(esperarImagenesEImprimir)
 }

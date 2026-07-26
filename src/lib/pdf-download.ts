@@ -44,6 +44,15 @@ export async function descargarPaginasComoPDF(
     import('jspdf'),
   ])
 
+  // NEXUS-QUALITY-010 fase 2: el PDF rasteriza el DOM tal cual, así que las <img>
+  // del membrete/firma se cambian a su versión FIRMADA antes de capturar (y se
+  // espera su recarga). A prueba de fallos: si el endpoint falla o tarda, se
+  // rasterizan las URLs originales exactamente como antes.
+  try {
+    const { firmarImagenesDiseno } = await import('@/lib/receta-diseno-client')
+    await firmarImagenesDiseno(paginas.flatMap(p => Array.from(p.querySelectorAll('img'))))
+  } catch { /* sin firma: el PDF sale igual que siempre */ }
+
   const orientation = opts.anchoMm > opts.altoMm ? 'landscape' : 'portrait'
   const pdf = new jsPDF({ unit: 'mm', format: [opts.anchoMm, opts.altoMm], orientation, compress: true })
 
