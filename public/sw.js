@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v666'  // L2c seguridad: bump Next.js 16.2.6 -> 16.2.12 (cierra CVEs HIGH de App Router: middleware/proxy bypass GHSA-6gpp-xcg3-4w24, divulgacion no autenticada de Server Functions GHSA-955p-x3mx-jcvp, DoS Image Optimization/Server Actions, cache confusion). Residual anotado: sharp/libvips (transitiva de next/image) sigue en HIGH; forzarla choca con el pin de Next (arriesga el pipeline nativo) -> esperar a que Next suba su pin.
+const CACHE = 'nexusmed-v667'  // L3 PHI: la limpieza de logout ahora purga TAMBIEN el Panel UCI. Antes limpiarBorradoresLocales solo borraba nx.consulta.bkp.; las lecturas seriadas de UCI (nx.uci.lecturas.* en localStorage, PHI: PAM/lactato/vasopresores/SOFA) y la semilla de nota (nx.uci.seed.* en sessionStorage) sobrevivian el cierre de sesion en dispositivo compartido. Ahora PREFIJOS_PHI=[nx.consulta.bkp., nx.uci.] + se limpia sessionStorage. Ademas los 2 logout de la pantalla de error ahora llaman limpiarAudioLocal (empatados con Sidebar/AutoLogout).
 // (v601):
 
 self.addEventListener('install', (event) => {

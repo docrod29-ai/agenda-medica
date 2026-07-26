@@ -16,6 +16,16 @@
 export const PREFIJO_BORRADOR = 'nx.consulta.bkp.'
 
 /**
+ * TODOS los prefijos de claves con PHI que deben purgarse al cerrar sesión
+ * (L3 auditoría maestra 2026-07). Además del borrador de consulta, el Panel UCI
+ * (SW v54+) guarda `nx.uci.lecturas.<internamientoId>` (mediciones seriadas: PAM,
+ * lactato, vasopresores, SOFA…) en localStorage y `nx.uci.seed.<id>` (la nota de
+ * evolución) en sessionStorage — todo PHI que sobrevivía el logout en un
+ * dispositivo compartido porque la limpieza solo miraba el prefijo de consulta.
+ */
+export const PREFIJOS_PHI = ['nx.consulta.bkp.', 'nx.uci.'] as const
+
+/**
  * PESTILLO ANTI-RESURRECCIÓN (bug encontrado en la auditoría del Núcleo).
  *
  * Al cerrar sesión el orden real de los hechos era: (1) se borran los borradores,
@@ -44,9 +54,9 @@ export function permitirBorradores(): void {
   sesionCerrada = false
 }
 
-/** ¿Es una clave de borrador clínico (a limpiar al cerrar sesión)? */
+/** ¿Es una clave con PHI (a limpiar al cerrar sesión)? Borrador de consulta o UCI. */
 export function esClaveBorrador(clave: string): boolean {
-  return clave.startsWith(PREFIJO_BORRADOR)
+  return PREFIJOS_PHI.some(p => clave.startsWith(p))
 }
 
 /** De un conjunto de claves, cuáles deben borrarse. Pura y testeable. */
@@ -71,19 +81,27 @@ export function limpiarAudioLocal(): void {
 
 export function limpiarBorradoresLocales(): number {
   sesionCerrada = true   // ← cierra la ventana a los flush tardíos del desmonte
-  if (typeof window === 'undefined' || !window.localStorage) return 0
-  try {
-    const todas: string[] = []
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i)
-      if (k) todas.push(k)
-    }
-    const aBorrar = clavesABorrar(todas)
-    for (const k of aBorrar) {
-      try { localStorage.removeItem(k) } catch { /* ignora una clave problemática */ }
-    }
-    return aBorrar.length
-  } catch {
-    return 0
+  if (typeof window === 'undefined') return 0
+  let borradas = 0
+  // localStorage: borrador de consulta + lecturas seriadas de UCI (nx.uci.*).
+  if (window.localStorage) {
+    try {
+      const todas: string[] = []
+      for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k) todas.push(k) }
+      for (const k of clavesABorrar(todas)) {
+        try { localStorage.removeItem(k); borradas++ } catch { /* ignora una clave problemática */ }
+      }
+    } catch { /* best-effort */ }
   }
+  // sessionStorage: semilla de la nota de UCI (nx.uci.seed.*) — también PHI.
+  if (window.sessionStorage) {
+    try {
+      const todas: string[] = []
+      for (let i = 0; i < sessionStorage.length; i++) { const k = sessionStorage.key(i); if (k) todas.push(k) }
+      for (const k of clavesABorrar(todas)) {
+        try { sessionStorage.removeItem(k); borradas++ } catch { /* ignora */ }
+      }
+    } catch { /* best-effort */ }
+  }
+  return borradas
 }

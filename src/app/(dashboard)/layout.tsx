@@ -4,7 +4,7 @@ import { logAudit } from '@/lib/expediente/audit-log'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { esSuperadminCliente } from '@/lib/superadmin-client'
-import { limpiarBorradoresLocales } from '@/lib/mobile/local-drafts'
+import { limpiarBorradoresLocales, limpiarAudioLocal } from '@/lib/mobile/local-drafts'
 import { useClinic } from '@/context/ClinicContext'
 import { Sidebar } from '@/components/Sidebar'
 import { ToastProvider } from '@/context/ToastContext'
@@ -194,7 +194,7 @@ function AccesoGate({ estado, clinicId, esMedico, email }: { estado: 'sin_tarjet
             Pago seguro con Stripe · Cancela cuando quieras · ¿Tienes código <strong>FUNDADOR</strong>? Aplícalo en el pago.
           </div>
         )}
-        <button onClick={() => { limpiarBorradoresLocales(); import('@/lib/firebase').then(({ auth }) => auth.signOut()) }}
+        <button onClick={() => { limpiarBorradoresLocales(); limpiarAudioLocal(); import('@/lib/firebase').then(({ auth }) => auth.signOut()) }}
           style={{ marginTop: 22, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}>
           Cerrar sesión
         </button>
@@ -306,7 +306,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
               Reintentar
             </button>
             <button
-              onClick={() => { limpiarBorradoresLocales(); import('@/lib/firebase').then(({ auth }) => auth.signOut()).finally(() => { window.location.href = '/login' }) }}
+              onClick={() => { limpiarBorradoresLocales(); limpiarAudioLocal(); import('@/lib/firebase').then(({ auth }) => auth.signOut()).finally(() => { window.location.href = '/login' }) }}
               style={{
                 background: 'none', border: '1px solid var(--border)', color: 'var(--text2)',
                 borderRadius: 10, padding: '11px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
