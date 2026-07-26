@@ -20,7 +20,8 @@ import {
   type DemoPaso, type DemoEscenario,
 } from '@/lib/demo-sandbox'
 import { construirSeccionesUCI } from '@/lib/uci/nota'
-import { dosisARate } from '@/lib/uci/infusiones'
+import { dosisARate, CATALOGO_INFUSIONES } from '@/lib/uci/infusiones'
+import { snapshotUCI } from '@/lib/uci/copilot'
 
 export default function SandboxPage() {
   const [idx, setIdx] = useState(0)
@@ -410,30 +411,61 @@ function ExploradorModulos({ onReiniciar }: { onReiniciar: () => void }) {
   )
 }
 
-/** Panel UCI: el visitante "dicta" el pase de un paciente ficticio y ve cómo los
- *  MOTORES REALES (deterministas) calculan y arman la nota por 7 sistemas. Los
- *  valores son de ejemplo, pero los cálculos son los mismos del producto. */
-const DEMO_UCI_V: Record<string, string> = {
-  sexo: 'M', talla: '170', vt: '420', fio2: '60', peep: '10', pplat: '26', pao2: '78', muestra: 'arterial', soporte: 'si', modo: 'AC-VC',
-  ph: '7.28', paco2: '34', hco3: '15', na: '138', cl: '108', alb: '2.5', lactato: '3.2',
-  pas: '95', pad: '55', norepi: '0.2', glasgow: '13', creat: '1.6', plaquetas: '90', bili: '1.5',
-  vci: '2.3', vHep: 'grave', vPor: 'grave', vRen: 'normal',
-}
-const DEMO_UCI_TRANSCRIPCION = 'Día 3 de UCI, asistido controlado por volumen, FiO₂ 60, PEEP 10, volumen corriente 420, plateau 26, PaO₂ 78, gasometría arterial pH 7.28, PaCO₂ 34, bicarbonato 15, sodio 138, cloro 108, albúmina 2.5, lactato 3.2. Tensión 95 sobre 55, norepinefrina 0.2, Glasgow 13. Creatinina 1.6, plaquetas 90, bilirrubina 1.5. En eco vena cava 2.3, hepática grave, porta grave. En CVVHDF.'
+/** Panel UCI: el visitante elige un escenario y "dicta" el pase; los MOTORES
+ *  REALES (deterministas) calculan y arman la nota por 7 sistemas. Valores de
+ *  ejemplo, cálculos reales del producto. Incluye calculadora de infusión viva. */
+interface EscenarioUCI { id: string; titulo: string; cama: string; transcripcion: string; v: Record<string, string> }
+const DEMO_UCI_ESCENARIOS: EscenarioUCI[] = [
+  {
+    id: 'sepsis', titulo: 'SDRA séptico + LRA', cama: 'Cama 4 · Hombre 58 a, 70 kg',
+    transcripcion: 'Día 3 de UCI, asistido controlado por volumen, FiO₂ 60, PEEP 10, volumen corriente 420, plateau 26, PaO₂ 78, gasometría arterial pH 7.28, PaCO₂ 34, bicarbonato 15, sodio 138, cloro 108, albúmina 2.5, lactato 3.2. Tensión 95 sobre 55, norepinefrina 0.2, Glasgow 13. Creatinina 1.6, plaquetas 90, bilirrubina 1.5. En eco vena cava 2.3, hepática grave, porta grave. En CVVHDF.',
+    v: { sexo: 'M', talla: '170', vt: '420', fio2: '60', peep: '10', pplat: '26', pao2: '78', muestra: 'arterial', soporte: 'si', modo: 'AC-VC', ph: '7.28', paco2: '34', hco3: '15', na: '138', cl: '108', alb: '2.5', lactato: '3.2', pas: '95', pad: '55', norepi: '0.2', glasgow: '13', creat: '1.6', plaquetas: '90', bili: '1.5', vci: '2.3', vHep: 'grave', vPor: 'grave', vRen: 'normal' },
+  },
+  {
+    id: 'cardiogenico', titulo: 'Choque cardiogénico + ECMO VA', cama: 'Cama 2 · Hombre 63 a, 80 kg',
+    transcripcion: 'Choque cardiogénico en ECMO veno-arterial. SpO₂ mano derecha 84, miembro inferior 99, presión 70 sobre 62, válvula aórtica no abre. Norepinefrina 0.3, dobutamina 5, lactato 4.5, Glasgow 14. TAPSE 12, VD sobre VI 1.1. Presión pre-oxigenador 260, post 200, basal 25.',
+    v: { sexo: 'M', talla: '172', fio2: '50', peep: '8', pplat: '22', pao2: '90', muestra: 'arterial', soporte: 'si', modo: 'AC-VC', vt: '400', pas: '80', pad: '55', norepi: '0.3', dobu: '5', lactato: '4.5', glasgow: '14', creat: '1.4', plaquetas: '140', bili: '1.0', tapse: '12', vdvi: '1.1', ecmoConf: 'VA', ecmoPre: '260', ecmoPost: '200', ecmoBasal: '25', ecmoSpD: '84', ecmoSpI: '99', ecmoValv: 'no', ecmoPas: '70', ecmoPad: '62' },
+  },
+  {
+    id: 'tce', titulo: 'TCE grave · neurocrítico', cama: 'Cama 7 · Hombre 41 a, 75 kg',
+    transcripcion: 'Trauma craneoencefálico grave. Glasgow 6, presión intracraneal 26, pupilas anisocóricas, PaCO₂ 30, temperatura 38, sodio 150, osmolaridad 315. Tensión 110 sobre 70. FiO₂ 40, PEEP 5, plateau 18, PaO₂ 95, gasometría arterial.',
+    v: { sexo: 'M', talla: '175', glasgow: '6', pic: '26', pas: '110', pad: '70', paco2: '30', temp: '38', na: '150', osm: '315', pupilas: 'anisocoria', fio2: '40', peep: '5', pplat: '18', pao2: '95', muestra: 'arterial', soporte: 'si', vt: '450', modo: 'AC-VC' },
+  },
+]
 
 function ModUCI() {
+  const [escId, setEscId] = useState('sepsis')
   const [estado, setEstado] = useState<'idle' | 'grabando' | 'listo'>('idle')
-  const secciones = useMemo(() => construirSeccionesUCI(DEMO_UCI_V).filter(s => s.value.trim() !== ''), [])
-  const infusion = useMemo(() => dosisARate({ farmacoKey: 'norepinefrina', dosis: 0.2, pesoKg: 70 }), [])
-  const dictar = () => { setEstado('grabando'); setTimeout(() => setEstado('listo'), 1700) }
+  const esc = DEMO_UCI_ESCENARIOS.find(e => e.id === escId)!
+  const snap = useMemo(() => snapshotUCI(esc.v), [esc])
+  const secciones = useMemo(() => construirSeccionesUCI(esc.v).filter(s => s.value.trim() !== ''), [esc])
+  const dictar = () => { setEstado('grabando'); setTimeout(() => setEstado('listo'), 1600) }
+  const cambiar = (id: string) => { setEscId(id); setEstado('idle') }
+
+  // Métricas REALES calculadas por los motores para este escenario.
+  const metricas: [string, string, string][] = [
+    ['PaO₂/FiO₂', snap.ventilacion.indiceKirby.ok ? String(snap.ventilacion.indiceKirby.valor) : '—', 'Kirby/Berlin'],
+    ['Driving pressure', snap.ventilacion.drivingPressure.ok ? String(snap.ventilacion.drivingPressure.valor) : '—', 'meta ≤ 15'],
+    ['SOFA', snap.sofa.total != null ? String(snap.sofa.total) : '—', snap.sofa.parcial ? 'parcial' : 'completo'],
+    ['PAM', snap.pam.ok ? String(snap.pam.valor) : '—', 'mmHg'],
+    ['VExUS-C', snap.pocus.vexus.ok ? String(snap.pocus.vexus.valor) : '—', 'congestión'],
+    ['PPC', snap.neuro.ppc.ok ? String(snap.neuro.ppc.valor) : '—', 'PAM − PIC'],
+  ]
 
   return (
     <div>
-      <Encabezado icono={Activity} titulo="Panel UCI · dicta el pase, la nota se escribe sola" sub="Dicta el pase de visita de un paciente de terapia intensiva. Los motores deterministas calculan (P/F, driving pressure, SOFA, VExUS, gasometría) y arman la nota por los 7 sistemas. Valores de ejemplo; los cálculos son los reales." />
+      <Encabezado icono={Activity} titulo="Panel UCI · dicta el pase, la nota se escribe sola" sub="Elige un escenario y dicta el pase. Los motores deterministas calculan (P/F, driving pressure, SOFA, VExUS, PPC, gasometría, ECMO) y arman la nota por los 7 sistemas. Valores de ejemplo; los cálculos son los reales del producto." />
+
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '14px 0' }}>
+        {DEMO_UCI_ESCENARIOS.map(e => {
+          const on = e.id === escId
+          return <button key={e.id} onClick={() => cambiar(e.id)} style={{ fontSize: 12.5, fontWeight: 600, padding: '7px 13px', borderRadius: 100, cursor: 'pointer', border: '1px solid ' + (on ? 'var(--nexus)' : 'var(--border)'), background: on ? 'var(--nexus-soft)' : 'var(--s2)', color: on ? 'var(--nexus)' : 'var(--text2)' }}>{e.titulo}</button>
+        })}
+      </div>
 
       <div style={{ ...card, marginBottom: 14 }}>
-        <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Cama 4 · UCI · Día 3 · Hombre 58 a, 70 kg</div>
-        <div style={{ fontSize: 16, fontWeight: 600, margin: '4px 0 12px' }}>Choque séptico abdominal · SDRA moderado · LRA en CVVHDF</div>
+        <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>{esc.cama}</div>
+        <div style={{ fontSize: 16, fontWeight: 600, margin: '4px 0 12px' }}>{esc.titulo}</div>
         <button onClick={dictar} disabled={estado === 'grabando'} className="btn btn-primary"
           style={{ display: 'inline-flex', alignItems: 'center', gap: 7, ...(estado === 'grabando' ? { background: '#dc2626', border: 'none', color: '#fff' } : {}) }}>
           {estado === 'grabando' ? <Square size={15} /> : <Mic size={15} />}
@@ -441,32 +473,25 @@ function ModUCI() {
         </button>
         {estado === 'grabando' && <span style={{ marginLeft: 12, fontSize: 12.5, color: '#dc2626' }}>● Escuchando y transcribiendo…</span>}
         {estado === 'listo' && (
-          <div style={{ marginTop: 12, fontSize: 12.5, color: 'var(--text2)', background: 'var(--s2)', borderRadius: 8, padding: '10px 12px', fontStyle: 'italic' }}>
-            “{DEMO_UCI_TRANSCRIPCION}”
-          </div>
+          <div style={{ marginTop: 12, fontSize: 12.5, color: 'var(--text2)', background: 'var(--s2)', borderRadius: 8, padding: '10px 12px', fontStyle: 'italic' }}>“{esc.transcripcion}”</div>
         )}
       </div>
 
       {estado === 'listo' && (<>
         <div style={{ ...card, marginBottom: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 7 }}><CheckCircle2 size={15} style={{ color: 'var(--nexus)' }} /> El código calculó (no la IA)</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 8 }}>
-            {[['PaO₂/FiO₂', '130', 'SDRA moderado'], ['Driving pressure', '16', '> 15 · optimizar'], ['SOFA', '11', 'disfunción alta'], ['PAM', '68', '≥ 65'], ['Ácido-base', 'Metab. MIXTA', 'AG alto ≈19'], ['VExUS-C', 'Grado 3', 'congestión grave']].map(([l, n, t]) => (
-              <div key={l} style={{ background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 8 }}>
+            {metricas.map(([l, n, t]) => (
+              <div key={l} style={{ background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', opacity: n === '—' ? 0.5 : 1 }}>
                 <div style={{ fontSize: 11, color: 'var(--text3)' }}>{l}</div>
                 <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'ui-monospace,monospace' }}>{n}</div>
-                <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 2 }}>{t}</div>
+                <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 2 }}>{n === '—' ? 'sin dato' : t}</div>
               </div>
             ))}
           </div>
-          {infusion.ok && (
-            <div style={{ marginTop: 12, fontSize: 12.5, color: 'var(--text2)' }}>
-              💉 <b>Infusión:</b> norepinefrina 0.2 µg/kg/min · 4 mg/250 mL (16 µg/mL) · 70 kg → <b>{infusion.rateMlH} mL/h</b>
-            </div>
-          )}
         </div>
 
-        <div style={{ ...card }}>
+        <div style={{ ...card, marginBottom: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 7 }}><FileText size={15} style={{ color: 'var(--nexus)' }} /> Nota de evolución UCI · por los 7 sistemas</div>
           <div style={{ fontFamily: 'ui-monospace,monospace', fontSize: 12 }}>
             {secciones.map(s => (
@@ -479,6 +504,43 @@ function ModUCI() {
           <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 10 }}>Si falta un dato que invalida un cálculo, el motor lo bloquea y lo declara — nunca inventa. Cada alerta trae su guía citada.</div>
         </div>
       </>)}
+
+      <CalcInfusionDemo />
+    </div>
+  )
+}
+
+/** Calculadora de infusión interactiva (motor real): el visitante cambia fármaco,
+ *  dosis y peso y ve la velocidad en mL/h en vivo. */
+function CalcInfusionDemo() {
+  const [fk, setFk] = useState('norepinefrina')
+  const [dosis, setDosis] = useState('0.2')
+  const [peso, setPeso] = useState('70')
+  const res = useMemo(() => dosisARate({ farmacoKey: fk, dosis, pesoKg: peso }), [fk, dosis, peso])
+  const inp: React.CSSProperties = { padding: '7px 9px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 13 }
+  return (
+    <div style={{ ...card }}>
+      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>💉 Calculadora de infusión · dosis → mL/h (motor real)</div>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 11.5, color: 'var(--text3)' }}>Fármaco
+          <select value={fk} onChange={e => setFk(e.target.value)} style={{ ...inp, width: 170 }}>
+            {CATALOGO_INFUSIONES.map(f => <option key={f.key} value={f.key}>{f.nombre}</option>)}
+          </select>
+        </label>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 11.5, color: 'var(--text3)' }}>Dosis
+          <input value={dosis} onChange={e => setDosis(e.target.value)} inputMode="decimal" style={{ ...inp, width: 90 }} />
+        </label>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 11.5, color: 'var(--text3)' }}>Peso (kg)
+          <input value={peso} onChange={e => setPeso(e.target.value)} inputMode="decimal" style={{ ...inp, width: 80 }} />
+        </label>
+        <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+          {res.ok
+            ? <div style={{ fontSize: 22, fontWeight: 800, fontFamily: 'ui-monospace,monospace', color: 'var(--nexus)' }}>{res.rateMlH} <span style={{ fontSize: 12, color: 'var(--text3)' }}>mL/h</span></div>
+            : <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>{res.motivoBloqueo}</div>}
+        </div>
+      </div>
+      {res.ok && <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 8 }}>{res.interpretacion}</div>}
+      {res.advertencias.map((a, i) => <div key={i} style={{ fontSize: 11.5, color: '#d97706', marginTop: 4 }}>⚠ {a}</div>)}
     </div>
   )
 }

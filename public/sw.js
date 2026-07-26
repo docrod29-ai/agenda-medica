@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v643'  // Calculadora de infusion: DILUCION PERSONALIZADA. El medico captura lo que preparo (mg o U en bolsa + volumen mL) y el motor calcula la concentracion y la velocidad (o al reves). Ej norepi 8mg/100cc=80ug/mL -> 10.5 mL/h; 16mg/100cc=160 -> 5.3 mL/h. Convive con las diluciones estandar.
+const CACHE = 'nexusmed-v644'  // DEMO UCI enriquecido: selector de 3 ESCENARIOS (SDRA septico+LRA, choque cardiogenico+ECMO VA, TCE grave) que corren los MOTORES REALES (snapshotUCI dinamico: P/F, driving, SOFA, PAM, VExUS, PPC por caso) + nota por 7 sistemas + CALCULADORA DE INFUSION INTERACTIVA (elige farmaco/dosis/peso -> mL/h en vivo con dosisARate). Todo ficticio, calculos reales.
 // (v601):
 
 self.addEventListener('install', (event) => {
