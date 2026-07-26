@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v656'  // 010 endurecido: firma presente sin secreto configurado -> 403 (verificado en prod que las env vars faltan; sin esto el gate quedaba abierto). Sin-firma sigue en compatibilidad.
+const CACHE = 'nexusmed-v657'  // 010 fase 2 (cliente, a prueba de fallos): al imprimir, print-element intenta cambiar las <img> del membrete/firma a URLs FIRMADAS (POST diseno-url, timeout 1.5s); si falla/tarda/no hay sesion imprime con las URLs originales EXACTAMENTE como antes (la firma nunca rompe una receta). OJO: el camino Descargar PDF (html2canvas) aun usa URLs sin firma -> NO activar RECETA_DISENO_FIRMA=obligatoria hasta cablearlo y probar papel.
 // (v601):
 
 self.addEventListener('install', (event) => {
