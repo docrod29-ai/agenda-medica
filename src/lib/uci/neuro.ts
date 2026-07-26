@@ -12,7 +12,7 @@
  * osmolaridad < 320; evitar Na > 160; evitar fiebre.
  */
 
-export const NEURO_ENGINE_VERSION = '1.0.0'
+export const NEURO_ENGINE_VERSION = '1.1.0'  // icu-006: GCS no valorable en intubado → RASS
 
 const num = (v: unknown): number | null => {
   if (v === null || v === undefined || v === '') return null
@@ -44,12 +44,40 @@ export interface EntradaNeuro {
   temperatura?: number | string
   sodio?: number | string
   osmolaridad?: number | string
+  intubado?: boolean          // vía aérea artificial → el verbal del GCS NO es valorable
+  rass?: number | string      // Richmond Agitation-Sedation Scale (−5…+4)
+}
+
+/**
+ * Interpreta el RASS (Richmond Agitation-Sedation Scale, −5 a +4). Es la escala de
+ * SEDACIÓN del paciente intubado/sedado — mide agitación/profundidad de sedación,
+ * NO el nivel de conciencia por lesión (para eso está el GCS, no valorable si hay
+ * tubo). Meta habitual: sedación ligera 0 a −2 (PADIS 2018); la sedación profunda
+ * se asocia a más ventilación y delirium y debe justificarse.
+ */
+export function interpretarRASS(rass?: number | string): { ok: boolean; valor: number | null; etiqueta: string; interpretacion: string; fuenteId: string } {
+  const r = num(rass)
+  if (r === null) return { ok: false, valor: null, etiqueta: '', interpretacion: '', fuenteId: 'padis2018' }
+  const rr = Math.max(-5, Math.min(4, Math.round(r)))
+  const ETIQUETAS: Record<number, string> = {
+    4: 'Combativo', 3: 'Muy agitado', 2: 'Agitado', 1: 'Inquieto', 0: 'Alerta y tranquilo',
+    [-1]: 'Somnoliento', [-2]: 'Sedación ligera', [-3]: 'Sedación moderada', [-4]: 'Sedación profunda', [-5]: 'Sin respuesta',
+  }
+  const etiqueta = ETIQUETAS[rr] ?? `RASS ${rr}`
+  const signo = rr > 0 ? `+${rr}` : `${rr}`
+  let interpretacion: string
+  if (rr >= 2) interpretacion = `RASS ${signo} (${etiqueta}): agitación. Descartar dolor, delirium, hipoxia o abstinencia antes de subir sedación.`
+  else if (rr >= -2) interpretacion = `RASS ${signo} (${etiqueta}): dentro de la meta habitual de sedación ligera (0 a −2); permite valorar al paciente y despertar diario.`
+  else interpretacion = `RASS ${signo} (${etiqueta}): sedación profunda. Asociada a más días de ventilación y delirium; justifícala (HTIC, SDRA grave con bloqueo, estatus) o alígerala (PADIS 2018).`
+  return { ok: true, valor: rr, etiqueta, interpretacion, fuenteId: 'padis2018' }
 }
 
 export interface ResultadoNeuro {
   version: string
   ppc: { ok: boolean; valor: number | null; motivoBloqueo: string | null; interpretacion: string; fuenteId: string }
   picEstado: string | null
+  rass: { ok: boolean; valor: number | null; etiqueta: string; interpretacion: string; fuenteId: string }
+  gcsValorable: boolean       // false si está intubado (verbal no valorable)
   banderas: Bandera[]
   fuenteId: string
 }
@@ -81,9 +109,26 @@ export function analizarNeuro(e: EntradaNeuro): ResultadoNeuro {
   if (na !== null && na > 160) banderas.push({ nivel: 'alta', parametro: 'sodio', mensaje: `Na ${na} > 160: límite de la terapia hiperosmolar; riesgo de complicaciones.` })
   const osm = num(e.osmolaridad)
   if (osm !== null && osm > 320) banderas.push({ nivel: 'moderada', parametro: 'osmolaridad', mensaje: `Osmolaridad ${osm} > 320: techo del manitol (riesgo renal); valorar salino hipertónico.` })
+  // ── Conciencia vs sedación (icu-006) ──
+  // En el paciente INTUBADO el componente VERBAL del GCS no es valorable: un
+  // "GCS 15" con tubo es incoherente. Se monitorea la sedación con RASS. Reportar
+  // el GCS como "T" (verbal no valorable) y no dejar que sobreestime la conciencia.
+  const rass = interpretarRASS(e.rass)
   const gcs = num(e.glasgow)
-  if (gcs !== null && gcs <= 8) banderas.push({ nivel: 'alta', parametro: 'Glasgow', mensaje: `Glasgow ${gcs} ≤ 8: coma; asegurar vía aérea y valorar monitoreo de PIC.`, fuenteId: 'btf2016' })
+  const intubado = e.intubado === true
+  if (intubado) {
+    if (gcs !== null && gcs >= 11) {
+      banderas.push({ nivel: 'moderada', parametro: 'Glasgow', mensaje: `GCS ${gcs} en paciente intubado es incoherente: el componente verbal NO es valorable (repórtalo como "T", p. ej. O4 VT M6). La conciencia con tubo se sigue por RASS, no por GCS.` })
+    }
+    if (!rass.ok) {
+      banderas.push({ nivel: 'moderada', parametro: 'RASS', mensaje: 'Paciente intubado sin RASS registrado: usa la escala RASS (−5 a +4) para monitorear la sedación; el GCS no la sustituye.' })
+    } else if (rass.valor !== null && rass.valor <= -3) {
+      banderas.push({ nivel: 'moderada', parametro: 'RASS', mensaje: rass.interpretacion, fuenteId: 'padis2018' })
+    }
+  } else if (gcs !== null && gcs <= 8) {
+    banderas.push({ nivel: 'alta', parametro: 'Glasgow', mensaje: `Glasgow ${gcs} ≤ 8: coma; asegurar vía aérea y valorar monitoreo de PIC.`, fuenteId: 'btf2016' })
+  }
 
   banderas.sort((a, b) => ordenN[a.nivel] - ordenN[b.nivel])
-  return { version: NEURO_ENGINE_VERSION, ppc, picEstado, banderas, fuenteId: 'btf2016' }
+  return { version: NEURO_ENGINE_VERSION, ppc, picEstado, rass, gcsValorable: !intubado, banderas, fuenteId: 'btf2016' }
 }

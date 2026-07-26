@@ -19,7 +19,7 @@ import { getPatient } from '@/lib/firestore'
 import { construirSeccionesUCI } from '@/lib/uci/nota'
 import type { Internamiento } from '@/types/hospital'
 import type { Patient } from '@/types'
-import { analizarVentilacion, esModoEspontaneo } from '@/lib/uci/ventilacion'
+import { analizarVentilacion, esModoEspontaneo, esModoInvasivo } from '@/lib/uci/ventilacion'
 import { analizarGasometria } from '@/lib/uci/gasometria'
 import { presionArterialMedia } from '@/lib/uci/hemodinamia'
 import { calcularSOFA } from '@/lib/uci/scores'
@@ -31,7 +31,7 @@ import { analizarNeuro, type Pupilas } from '@/lib/uci/neuro'
 import { aplanarLectura, compararLecturas, correlacionTemporal, resumenCambios, type Lectura } from '@/lib/uci/correlacion'
 import { analizarSeguridadUCI, type NivelAlerta } from '@/lib/uci/seguridad'
 import { FUENTES, citarFuente } from '@/lib/uci/evidencia'
-import { extraerValoresUCI } from '@/lib/uci/extraccion'
+import { extraerValoresUCIConAvisos, type AvisoExtraccionUCI } from '@/lib/uci/extraccion'
 import { atribuirRolesDiscusion, formatearDiscusion } from '@/lib/uci/discusion'
 import { useGrabacionAudio } from '@/hooks/useGrabacionAudio'
 
@@ -131,6 +131,7 @@ export default function UciPanelPage() {
   const audio = useGrabacionAudio()
   const [discusionTxt, setDiscusionTxt] = useState('')
   const [detectados, setDetectados] = useState<string[]>([])
+  const [avisosVoz, setAvisosVoz] = useState<AvisoExtraccionUCI[]>([])
   const procesadoRef = useRef('')
   useEffect(() => {
     const t = audio.transcripcion?.trim()
@@ -142,11 +143,14 @@ export default function UciPanelPage() {
       : [{ hablante: 'A', texto: t }]
     setDiscusionTxt(formatearDiscusion(atribuirRolesDiscusion(turnos)))
     // 2) Extrae los valores dictados y prellena el panel (el médico confirma).
-    const extraidos = extraerValoresUCI(t)
+    const { valores: extraidos, avisos } = extraerValoresUCIConAvisos(t)
     if (Object.keys(extraidos).length) {
       setV(prev => ({ ...prev, ...extraidos }))
       setDetectados(Object.keys(extraidos))
     }
+    // icu-005: valores imposibles (error de dictado) o decimales ambiguos NO se
+    // prellenan; se muestran para que el médico los redicte/confirme (no se inventan).
+    setAvisosVoz(avisos)
   }, [audio.transcripcion, audio.utterances])
 
   // SEGURIDAD: al cambiar de paciente (otra cama) se LIMPIA todo el panel. Sin esto,
@@ -156,6 +160,7 @@ export default function UciPanelPage() {
     if (!internamientoId) return
     setV({})
     setDetectados([])
+    setAvisosVoz([])
     setDiscusionTxt('')
     procesadoRef.current = ''
   }, [internamientoId])
@@ -179,6 +184,7 @@ export default function UciPanelPage() {
   const neuro = useMemo(() => analizarNeuro({
     mapMmHg: pam.ok ? pam.valor ?? undefined : undefined, pic: n('pic'), glasgow: n('glasgow'),
     pupilas: (v.pupilas as Pupilas) || undefined, paco2: n('paco2'), temperatura: n('temp'), sodio: n('na'), osmolaridad: n('osm'),
+    intubado: esModoInvasivo(v.modo), rass: n('rass'),
   }), [v, pam])
   const alertas = useMemo(() => analizarSeguridadUCI({
     ph: n('ph'), glucosa: n('glucosa'), potasio: n('k'), pam: pam.ok ? pam.valor ?? undefined : undefined,
@@ -355,6 +361,16 @@ export default function UciPanelPage() {
         {audio.transcripcionParcial && grabando && (
           <div style={{ marginTop: 10, fontSize: 12.5, color: 'var(--text2)', background: 'var(--s2)', borderRadius: 8, padding: '8px 10px', maxHeight: 80, overflow: 'auto' }}>{audio.transcripcionParcial}<span className="nx-caret">▍</span></div>
         )}
+        {avisosVoz.length > 0 && (
+          <div style={{ marginTop: 10, display: 'grid', gap: 6 }}>
+            {avisosVoz.map((a, i) => (
+              <div key={i} style={{ fontSize: 12, display: 'flex', gap: 8, padding: '7px 10px', borderRadius: 8, background: 'rgba(217,119,6,.09)', border: '1px solid rgba(217,119,6,.35)', color: 'var(--text)' }}>
+                <span style={{ fontWeight: 800, textTransform: 'uppercase', fontSize: 9.5, color: '#d97706', width: 74, flexShrink: 0, paddingTop: 1 }}>{a.motivo === 'implausible' ? 'No cargado' : 'Confirma'}</span>
+                <span>{a.detalle}</span>
+              </div>
+            ))}
+          </div>
+        )}
         {discusionTxt && (
           <details style={{ marginTop: 10 }}>
             <summary style={{ fontSize: 12.5, color: 'var(--text3)', cursor: 'pointer' }}>Ver la discusión etiquetada por rol</summary>
@@ -446,6 +462,11 @@ export default function UciPanelPage() {
               { val: 'isocoricas', txt: 'Isocóricas' }, { val: 'anisocoria', txt: 'Anisocoria' }, { val: 'fijas', txt: 'Fijas' }]} />
             <Campo label="Temp" k="temp" v={v} set={set} sufijo="°C" w={80} />
             <Campo label="Osmolaridad" k="osm" v={v} set={set} sufijo="mOsm/L" w={120} />
+            <Selector label="RASS (sedación)" k="rass" v={v} set={set} w={190} opciones={[
+              { val: '4', txt: '+4 Combativo' }, { val: '3', txt: '+3 Muy agitado' }, { val: '2', txt: '+2 Agitado' },
+              { val: '1', txt: '+1 Inquieto' }, { val: '0', txt: '0 Alerta y tranquilo' }, { val: '-1', txt: '−1 Somnoliento' },
+              { val: '-2', txt: '−2 Sedación ligera' }, { val: '-3', txt: '−3 Sedación moderada' },
+              { val: '-4', txt: '−4 Sedación profunda' }, { val: '-5', txt: '−5 Sin respuesta' }]} />
           </Bloque>
           <Bloque icon={Waves} titulo="POCUS · ultrasonido a pie de cama">
             <Campo label="VCI" k="vci" v={v} set={set} sufijo="cm" w={80} />
@@ -502,7 +523,7 @@ export default function UciPanelPage() {
             </div>
           </div>
 
-          {(neuro.ppc.ok || neuro.picEstado || neuro.banderas.length > 0) && (
+          {(neuro.ppc.ok || neuro.picEstado || neuro.rass.ok || !neuro.gcsValorable || neuro.banderas.length > 0) && (
             <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 14, marginBottom: 10 }}>
                 <Brain size={16} style={{ color: 'var(--nexus)' }} /> Neurocrítico
@@ -510,6 +531,8 @@ export default function UciPanelPage() {
               <div style={{ display: 'grid', gap: 8 }}>
                 <Resultado label="PPC (PAM − PIC)" r={{ ok: neuro.ppc.ok, valor: neuro.ppc.valor, unidad: 'mmHg', motivoBloqueo: neuro.ppc.motivoBloqueo, interpretacion: neuro.ppc.interpretacion.split(':').slice(1).join(':').trim() || 'meta 60–70' }} />
                 {neuro.picEstado && <div style={{ fontSize: 12.5, color: 'var(--text2)' }}>{neuro.picEstado}</div>}
+                {!neuro.gcsValorable && <div style={{ fontSize: 12, color: 'var(--text3)', fontStyle: 'italic' }}>Paciente intubado: GCS verbal no valorable (reportar “T”). Conciencia/sedación → RASS.</div>}
+                {neuro.rass.ok && <div style={{ fontSize: 12.5, color: 'var(--text2)' }}><b>RASS {neuro.rass.valor! > 0 ? '+' : ''}{neuro.rass.valor} · {neuro.rass.etiqueta}</b> — {neuro.rass.interpretacion}</div>}
                 {neuro.banderas.map((b, i) => (
                   <div key={i} style={{ display: 'flex', gap: 8, fontSize: 12.5, padding: '7px 9px', borderRadius: 8, background: 'var(--s2)', borderLeft: `3px solid ${colorNivel[b.nivel]}` }}>
                     <span style={{ fontSize: 10, fontWeight: 800, color: colorNivel[b.nivel], textTransform: 'uppercase', width: 58, flexShrink: 0 }}>{b.nivel}</span>

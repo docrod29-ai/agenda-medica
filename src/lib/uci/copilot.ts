@@ -11,7 +11,7 @@
  * Este archivo es PURO y testeable: arma el snapshot y los prompts, y fusiona las
  * dos opiniones (Anthropic + OpenAI). La llamada a los modelos vive en la ruta.
  */
-import { analizarVentilacion, esModoEspontaneo } from './ventilacion'
+import { analizarVentilacion, esModoEspontaneo, esModoInvasivo } from './ventilacion'
 import { analizarGasometria } from './gasometria'
 import { presionArterialMedia } from './hemodinamia'
 import { calcularSOFA } from './scores'
@@ -76,6 +76,7 @@ export function snapshotUCI(v: Campos) {
   const neuro = analizarNeuro({
     mapMmHg: pam.ok ? pam.valor ?? undefined : undefined, pic: n('pic'), glasgow: n('glasgow'),
     pupilas: (v.pupilas as Pupilas) || undefined, paco2: n('paco2'), temperatura: n('temp'), sodio: n('na'), osmolaridad: n('osm'),
+    intubado: esModoInvasivo(v.modo), rass: n('rass'),
   })
   return { version: COPILOT_VERSION, ventilacion: vent, gasometria: gaso, pam, sofa, alertas, pocus, ckrt, citrato, ecmo, neuro }
 }

@@ -7,7 +7,7 @@
  * una sección solo incluye una línea si su dato existe; el LLM no calcula nada.
  * El plan queda para el médico. El texto es un BORRADOR que el médico revisa y firma.
  */
-import { analizarVentilacion, esModoEspontaneo } from './ventilacion'
+import { analizarVentilacion, esModoEspontaneo, esModoInvasivo } from './ventilacion'
 import { analizarGasometria } from './gasometria'
 import { presionArterialMedia } from './hemodinamia'
 import { calcularSOFA } from './scores'
@@ -91,16 +91,27 @@ export function construirSeccionesUCI(v: Campos, opts?: { dia?: string; discusio
   ])
 
   // ── Neurológico ──
+  const intubadoNeuro = esModoInvasivo(v.modo)
   const neuro = analizarNeuro({
     mapMmHg: pam.ok ? pam.valor ?? undefined : undefined, pic: n('pic'), glasgow: n('glasgow'),
     pupilas: (v.pupilas as Pupilas) || undefined, paco2: n('paco2'), temperatura: n('temp'), sodio: n('na'), osmolaridad: n('osm'),
+    intubado: intubadoNeuro, rass: n('rass'),
   })
   const neurologico = join([
-    n('glasgow') ? `Glasgow ${v.glasgow}.` : null,
+    // En intubado el verbal se reporta como "T"; un GCS alto (≥11) es incoherente
+    // con vía aérea artificial, uno bajo (coma) se conserva con la convención "T".
+    n('glasgow')
+      ? (intubadoNeuro
+          ? (Number(v.glasgow) >= 11
+              ? `Glasgow verbal no valorable por vía aérea artificial (reportar como “T”); seguir sedación por RASS.`
+              : `Glasgow ${v.glasgow} (intubado, verbal “T”).`)
+          : `Glasgow ${v.glasgow}.`)
+      : null,
+    neuro.rass.ok ? `RASS ${neuro.rass.valor! > 0 ? '+' : ''}${neuro.rass.valor} (${neuro.rass.etiqueta}).` : (intubadoNeuro ? 'RASS no registrado (paciente intubado: monitorizar sedación con RASS).' : null),
     n('pic') ? `PIC ${v.pic} mmHg${neuro.picEstado ? ` (${neuro.picEstado})` : ''}.` : null,
     neuro.ppc.ok ? `PPC ${neuro.ppc.valor} mmHg — ${neuro.ppc.interpretacion.split(':').slice(1).join(':').trim() || neuro.ppc.interpretacion}.` : null,
     v.pupilas ? `Pupilas: ${v.pupilas}.` : null,
-    ...neuro.banderas.filter(b => b.parametro !== 'Glasgow').map(b => `⚠ ${b.mensaje}`),
+    ...neuro.banderas.map(b => `⚠ ${b.mensaje}`),
   ])
 
   // ── Respiratorio ──

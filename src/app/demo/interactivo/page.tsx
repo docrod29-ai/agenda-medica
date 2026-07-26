@@ -418,18 +418,18 @@ interface EscenarioUCI { id: string; titulo: string; cama: string; transcripcion
 const DEMO_UCI_ESCENARIOS: EscenarioUCI[] = [
   {
     id: 'sepsis', titulo: 'SDRA séptico + LRA', cama: 'Cama 4 · Hombre 58 a, 70 kg',
-    transcripcion: 'Día 3 de UCI, asistido controlado por volumen, FiO₂ 60, PEEP 10, volumen corriente 420, plateau 26, PaO₂ 78, gasometría arterial pH 7.28, PaCO₂ 34, bicarbonato 15, sodio 138, cloro 108, albúmina 2.5, lactato 3.2. Tensión 95 sobre 55, norepinefrina 0.2, Glasgow 13. Creatinina 1.6, plaquetas 90, bilirrubina 1.5. En eco vena cava 2.3, hepática grave, porta grave. En CVVHDF.',
-    v: { sexo: 'M', talla: '170', vt: '420', fio2: '60', peep: '10', pplat: '26', pao2: '78', muestra: 'arterial', soporte: 'si', modo: 'AC-VC', ph: '7.28', paco2: '34', hco3: '15', na: '138', cl: '108', alb: '2.5', lactato: '3.2', pas: '95', pad: '55', norepi: '0.2', glasgow: '13', creat: '1.6', plaquetas: '90', bili: '1.5', vci: '2.3', vHep: 'grave', vPor: 'grave', vRen: 'normal' },
+    transcripcion: 'Día 3 de UCI, asistido controlado por volumen, FiO₂ 60, PEEP 10, volumen corriente 420, plateau 26, PaO₂ 78, gasometría arterial pH 7.28, PaCO₂ 34, bicarbonato 15, sodio 138, cloro 108, albúmina 2.5, lactato 3.2. Tensión 95 sobre 55, norepinefrina 0.2, bajo sedación RASS menos 2. Creatinina 1.6, plaquetas 90, bilirrubina 1.5. En eco vena cava 2.3, hepática grave, porta grave. En CVVHDF.',
+    v: { sexo: 'M', talla: '170', vt: '420', fio2: '60', peep: '10', pplat: '26', pao2: '78', muestra: 'arterial', soporte: 'si', modo: 'AC-VC', ph: '7.28', paco2: '34', hco3: '15', na: '138', cl: '108', alb: '2.5', lactato: '3.2', pas: '95', pad: '55', norepi: '0.2', rass: '-2', creat: '1.6', plaquetas: '90', bili: '1.5', vci: '2.3', vHep: 'grave', vPor: 'grave', vRen: 'normal' },
   },
   {
     id: 'cardiogenico', titulo: 'Choque cardiogénico + ECMO VA', cama: 'Cama 2 · Hombre 63 a, 80 kg',
-    transcripcion: 'Choque cardiogénico en ECMO veno-arterial. SpO₂ mano derecha 84, miembro inferior 99, presión 70 sobre 62, válvula aórtica no abre. Norepinefrina 0.3, dobutamina 5, lactato 4.5, Glasgow 14. TAPSE 12, VD sobre VI 1.1. Presión pre-oxigenador 260, post 200, basal 25.',
-    v: { sexo: 'M', talla: '172', fio2: '50', peep: '8', pplat: '22', pao2: '90', muestra: 'arterial', soporte: 'si', modo: 'AC-VC', vt: '400', pas: '80', pad: '55', norepi: '0.3', dobu: '5', lactato: '4.5', glasgow: '14', creat: '1.4', plaquetas: '140', bili: '1.0', tapse: '12', vdvi: '1.1', ecmoConf: 'VA', ecmoPre: '260', ecmoPost: '200', ecmoBasal: '25', ecmoSpD: '84', ecmoSpI: '99', ecmoValv: 'no', ecmoPas: '70', ecmoPad: '62' },
+    transcripcion: 'Choque cardiogénico en ECMO veno-arterial. SpO₂ mano derecha 84, miembro inferior 99, presión 70 sobre 62, válvula aórtica no abre. Norepinefrina 0.3, dobutamina 5, lactato 4.5, sedación profunda RASS menos 4. TAPSE 12, VD sobre VI 1.1. Presión pre-oxigenador 260, post 200, basal 25.',
+    v: { sexo: 'M', talla: '172', fio2: '50', peep: '8', pplat: '22', pao2: '90', muestra: 'arterial', soporte: 'si', modo: 'AC-VC', vt: '400', pas: '80', pad: '55', norepi: '0.3', dobu: '5', lactato: '4.5', rass: '-4', creat: '1.4', plaquetas: '140', bili: '1.0', tapse: '12', vdvi: '1.1', ecmoConf: 'VA', ecmoPre: '260', ecmoPost: '200', ecmoBasal: '25', ecmoSpD: '84', ecmoSpI: '99', ecmoValv: 'no', ecmoPas: '70', ecmoPad: '62' },
   },
   {
     id: 'tce', titulo: 'TCE grave · neurocrítico', cama: 'Cama 7 · Hombre 41 a, 75 kg',
-    transcripcion: 'Trauma craneoencefálico grave. Glasgow 6, presión intracraneal 26, pupilas anisocóricas, PaCO₂ 30, temperatura 38, sodio 150, osmolaridad 315. Tensión 110 sobre 70. FiO₂ 40, PEEP 5, plateau 18, PaO₂ 95, gasometría arterial.',
-    v: { sexo: 'M', talla: '175', glasgow: '6', pic: '26', pas: '110', pad: '70', paco2: '30', temp: '38', na: '150', osm: '315', pupilas: 'anisocoria', fio2: '40', peep: '5', pplat: '18', pao2: '95', muestra: 'arterial', soporte: 'si', vt: '450', modo: 'AC-VC' },
+    transcripcion: 'Trauma craneoencefálico grave, Glasgow al ingreso 6, intubado, sedación profunda RASS menos 4. Presión intracraneal 26, pupilas anisocóricas, PaCO₂ 30, temperatura 38, sodio 150, osmolaridad 315. Tensión 110 sobre 70. FiO₂ 40, PEEP 5, plateau 18, PaO₂ 95, gasometría arterial.',
+    v: { sexo: 'M', talla: '175', glasgow: '6', rass: '-4', pic: '26', pas: '110', pad: '70', paco2: '30', temp: '38', na: '150', osm: '315', pupilas: 'anisocoria', fio2: '40', peep: '5', pplat: '18', pao2: '95', muestra: 'arterial', soporte: 'si', vt: '450', modo: 'AC-VC' },
   },
 ]
 
@@ -450,6 +450,7 @@ function ModUCI() {
     ['PAM', snap.pam.ok ? String(snap.pam.valor) : '—', 'mmHg'],
     ['VExUS-C', snap.pocus.vexus.ok ? String(snap.pocus.vexus.valor) : '—', 'congestión'],
     ['PPC', snap.neuro.ppc.ok ? String(snap.neuro.ppc.valor) : '—', 'PAM − PIC'],
+    ['RASS', snap.neuro.rass.ok ? `${snap.neuro.rass.valor! > 0 ? '+' : ''}${snap.neuro.rass.valor}` : '—', snap.neuro.gcsValorable ? 'GCS valorable' : 'intubado → RASS'],
   ]
 
   return (

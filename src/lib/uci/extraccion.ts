@@ -9,7 +9,7 @@
  */
 import { parsearNumeroEs } from '@/lib/voz/comandos-uci'
 
-export const EXTRACCION_UCI_VERSION = '1.0.0'
+export const EXTRACCION_UCI_VERSION = '1.1.0'  // icu-005: plausibilidad + firewall de ambigüedad
 
 /** Unidades canónicas de UCI y sus variantes dictadas/escritas. */
 const UNIDADES: { canonica: string; variantes: string[] }[] = [
@@ -225,10 +225,63 @@ export function extraerCategoricosUCI(texto: string): Record<string, string> {
   return out
 }
 
-export function extraerValoresUCI(texto: string): Record<string, string> {
+/**
+ * RANGOS FISIOLÓGICOS DUROS por campo del Panel UCI (nexusmed-icu-005).
+ *
+ * No son rangos "normales" — son LÍMITES DE POSIBILIDAD FISIOLÓGICA. Un valor
+ * fuera de aquí casi nunca es enfermedad: es un error de dictado/transcripción
+ * (p. ej. "potasio cinco punto cero" oído como "cincuenta" → 50). Sirven para NO
+ * dejar que un número imposible prellene el panel y envenene SOFA/APACHE o dispare
+ * una alerta crítica falsa. Los valores CRÍTICOS reales (K 9, pH 6.9, lactato 15)
+ * SÍ pasan: los topes son generosos a propósito.
+ *
+ * No se usa `valorPlausible` de laboratorio: sus claves (creatinina, potasio…) no
+ * coinciden con los campos del panel (creat, k…) y el panel tiene decenas de
+ * campos no-lab (peep, fio2, pic…). Tabla propia, explícita y versionada.
+ */
+const RANGOS_UCI: Record<string, [number, number]> = {
+  // Respiratorio / ventilador
+  fio2: [21, 100], peep: [0, 45], autoPeep: [0, 40], ppico: [0, 100], pplat: [0, 90],
+  psoporte: [0, 60], fr: [0, 80], vt: [50, 2000], spo2: [40, 100],
+  // Gasometría
+  pao2: [15, 700], paco2: [5, 200], hco3: [2, 60], ph: [6.5, 7.9], lactato: [0, 40],
+  // Hemodinamia
+  pas: [30, 300], pad: [10, 200], norepi: [0, 5], dopa: [0, 50], dobu: [0, 40], epi: [0, 5],
+  // Neuro
+  glasgow: [3, 15], pic: [0, 100], temp: [24, 43], osm: [200, 400],
+  // Metabólico / lab
+  creat: [0.1, 25], k: [1, 9.5], na: [90, 190], cl: [50, 160], alb: [0.5, 7],
+  glucosa: [10, 2000], plaquetas: [1, 2000], bili: [0, 60], talla: [40, 230],
+  // POCUS
+  vci: [0, 4], tapse: [2, 45], vdvi: [0.2, 3], lineasB: [0, 40], plrDelta: [0, 100],
+}
+
+export interface AvisoExtraccionUCI {
+  campo: string
+  crudo: string
+  motivo: 'implausible' | 'ambiguo'
+  detalle: string
+}
+
+/**
+ * Extrae los valores del pase dictado CON dos controles de seguridad
+ * DETERMINISTAS (nexusmed-icu-005) — nunca inventa ni corrige el número:
+ *
+ *  1) PLAUSIBILIDAD: si el valor cae fuera de su rango fisiológico duro
+ *     (RANGOS_UCI), NO prellena el panel; lo reporta como aviso 'implausible'
+ *     para que el médico lo vuelva a dictar. Antes "potasio cincuenta" metía
+ *     K=50 → +puntos APACHE y una alerta de hiperkalemia FALSA.
+ *  2) AMBIGÜEDAD: un decimal dictado como "punto uno" (sin entero) es ambiguo
+ *     (0.1 vs 1 → 10× en una amina). Antes se DESCARTABA EN SILENCIO. Ahora lo
+ *     reporta como aviso 'ambiguo' para que el médico confirme.
+ */
+export function extraerValoresUCIConAvisos(texto: string): { valores: Record<string, string>; avisos: AvisoExtraccionUCI[] } {
   const t = norm(texto)
-  const out: Record<string, string> = { ...extraerCategoricosUCI(texto) }
+  const valores: Record<string, string> = { ...extraerCategoricosUCI(texto) }
+  const avisos: AvisoExtraccionUCI[] = []
   for (const { campo, alias } of CAMPOS_UCI) {
+    let hecho = false
+    let ambNum: string | null = null
     for (const a of alias) {
       const an = norm(a).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
       // <alias> [de|a|en] <numero>  → primera coincidencia
@@ -237,9 +290,50 @@ export function extraerValoresUCI(texto: string): Record<string, string> {
       if (m) {
         const crudo = m[1]
         const val = /^\d/.test(crudo) ? crudo : parsearNumeroEs(crudo)
-        if (val !== null && val !== '') { out[campo] = String(val); break }
+        if (val !== null && val !== '') {
+          const num = Number(val)
+          const rango = RANGOS_UCI[campo]
+          if (rango && Number.isFinite(num) && (num < rango[0] || num > rango[1])) {
+            avisos.push({
+              campo, crudo: String(val), motivo: 'implausible',
+              detalle: `"${a} ${crudo}" → ${val} está fuera del rango fisiológico posible (${rango[0]}–${rango[1]}); parece error de dictado. No se prellenó; vuelve a dictarlo.`,
+            })
+          } else {
+            valores[campo] = String(val)
+          }
+          hecho = true
+          break
+        }
+      }
+      // ¿alias seguido de "punto <n>" sin entero? → decimal ambiguo (0.x vs x)
+      if (ambNum === null) {
+        const ma = t.match(new RegExp(`\\b${an}\\b(?:\\s+(?:de|a|en|es|fue|esta en))?\\s+punto\\s+(${NUM_RE})`, 'i'))
+        if (ma) ambNum = ma[1]
+      }
+    }
+    if (!hecho && ambNum !== null && !(campo in valores)) {
+      const d = parsearNumeroEs(ambNum)
+      avisos.push({
+        campo, crudo: `punto ${ambNum}`, motivo: 'ambiguo',
+        detalle: `Dictaste "${campo} punto ${ambNum}": ambiguo (¿0.${d} o ${d}?, 10× de diferencia). No se prellenó; confírmalo en el panel.`,
+      })
+    }
+  }
+  // RASS es la única escala que puede ser NEGATIVA ("menos 3"); no cabe en el
+  // parser numérico general. Se extrae aparte y se acota a [−5, +4].
+  if (!('rass' in valores)) {
+    const mr = t.match(/\brass\b(?:\s+(?:de|en|es|fue|esta en))?\s+(menos\s+|negativ[oa]\s+|-)?\s*(\d|cero|uno|dos|tres|cuatro|cinco)\b/i)
+    if (mr) {
+      const mag = /^\d$/.test(mr[2]) ? Number(mr[2]) : Number(parsearNumeroEs(mr[2]))
+      if (Number.isFinite(mag) && mag >= 0 && mag <= 5) {
+        const neg = !!mr[1]
+        valores.rass = String(neg ? -mag : mag)
       }
     }
   }
-  return out
+  return { valores, avisos }
+}
+
+export function extraerValoresUCI(texto: string): Record<string, string> {
+  return extraerValoresUCIConAvisos(texto).valores
 }

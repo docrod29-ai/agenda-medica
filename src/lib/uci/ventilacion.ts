@@ -49,6 +49,15 @@ const num = (v: unknown): number | null => {
 export function esModoEspontaneo(modo?: string): boolean {
   return ['PSV', 'CPAP', 'VNI', 'AFNC', 'aire'].includes((modo || '').trim())
 }
+
+/**
+ * ¿El modo implica vía aérea artificial (intubado/traqueostomizado)? En estos
+ * modos el componente VERBAL del GCS no es valorable y la conciencia se sigue por
+ * RASS. VNI/AFNC/aire son NO invasivos (mascarilla/puntas) → false.
+ */
+export function esModoInvasivo(modo?: string): boolean {
+  return ['AC-VC', 'AC-PC', 'SIMV', 'APRV', 'PSV'].includes((modo || '').trim())
+}
 const enRango = (x: number, [lo, hi]: readonly [number, number]) => x >= lo && x <= hi
 const r1 = (x: number) => Math.round(x * 10) / 10
 const r2 = (x: number) => Math.round(x * 100) / 100

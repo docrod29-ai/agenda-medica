@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v648'  // NEXUS-QUALITY-004 (P0 seguridad pediatrica): el copiloto (ajusteRenal) calculaba CKD-EPI 2021 en menores de 18 (formula validada solo en adultos) y emitia contraindicaciones renales con TFG adulta inaplicable. FIX: guarda pediatrica en el punto de uso -> en <18 emite nota de Schwartz (info), NO contraindicacion adulta. Adulto con TFG baja sin cambios. Test de regresion. 1724 tests.
+const CACHE = 'nexusmed-v649'  // NEXUS-QUALITY-005+006. icu-005 (P0 seguridad): la extraccion de voz de UCI ahora valida PLAUSIBILIDAD fisiologica (potasio 50 no envenena SOFA/APACHE; se descarta y avisa) y ABRE el firewall de ambiguedad de decimales ("norepi punto uno" 0.1 vs 1 se confirma, ya no se descarta en silencio). icu-006 (coherencia clinica): GCS verbal NO valorable en intubado -> se usa RASS; motor neuro + panel + nota + sandbox coherentes. 1738 tests.
 // (v601):
 
 self.addEventListener('install', (event) => {
