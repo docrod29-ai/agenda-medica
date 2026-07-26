@@ -16,6 +16,7 @@ import { Menu, Loader2, AlertTriangle, Headset } from 'lucide-react'
 import Link from 'next/link'
 import { OfflineBanner } from '@/components/OfflineBanner'
 import { NotificacionesPushOptIn } from '@/components/NotificacionesPushOptIn'
+import FirmadorDisenos from '@/components/FirmadorDisenos'
 import { useMode } from '@/context/ModeContext'
 import { BottomNav } from '@/components/BottomNav'
 import { MobileBackButton } from '@/components/MobileBackButton'
@@ -392,6 +393,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
         <ModeBanner />
         <TrialBanner />
         <NotificacionesPushOptIn />
+        <FirmadorDisenos />
         <main style={{ flex: 1, overflowY: 'auto' }}>
           {children}
         </main>
