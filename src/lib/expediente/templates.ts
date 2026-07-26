@@ -104,6 +104,23 @@ export const SECCIONES_POR_TIPO: Record<TipoNota, Omit<NotaSeccion, 'value'>[]> 
     { key: 'alternativas',       label: 'Alternativas',                 obligatorio: true,  placeholder: 'Otras opciones, incluida no tratarse' },
     { key: 'declaracion',        label: 'Declaración del paciente',     obligatorio: true,  placeholder: 'El paciente comprende y acepta; nombre de testigos' },
   ],
+  // Nota de evolución de UCI ORGANIZADA POR APARATOS Y SISTEMAS (cabeza a pies).
+  // Cada sección es texto libre que el médico dicta; los motores deterministas
+  // (ventilación, gasometría, hemodinamia, POCUS, escalas) se cablearán en
+  // iteraciones posteriores y colgarán sus cálculos/alertas en un panel APARTE,
+  // no dentro de estas secciones narrativas. Solo el Plan es obligatorio (NOM-004).
+  evolucion_uci: [
+    { key: 'contexto',          label: 'Contexto y objetivos del día', placeholder: 'Día de UCI · día de VM · diagnósticos activos · procedimientos recientes · dispositivos invasivos · objetivos del día' },
+    { key: 'neurologico',       label: 'Neurológico',                  placeholder: 'Conciencia · Glasgow/FOUR · RASS · CAM-ICU · pupilas · focalización · sedación/analgesia · bloqueo neuromuscular · crisis · PIC/temperatura' },
+    { key: 'respiratorio',      label: 'Respiratorio',                 placeholder: 'Vía aérea · modo · FiO₂ · VT (y VT/PBW) · FR · PEEP · Ppico/Pplateau · driving pressure · compliance · auto-PEEP · secreciones · prono · destete · USG pulmonar · gasometría' },
+    { key: 'hemodinamico',      label: 'Hemodinámico y cardiovascular', placeholder: 'FC · ritmo · TA · PAM · vasopresores/inotrópicos (dosis y unidad) · lactato · llenado capilar · diuresis · gasto cardiaco · POCUS cardiaco · PLR · congestión vs perfusión' },
+    { key: 'renal_metabolico',  label: 'Renal e hidrometabólico',      placeholder: 'Creatinina/urea · diuresis horaria · balance 24 h y acumulado · peso · TRR/modalidad/ultrafiltración · Na/K/Cl/Mg/Ca/P · glucosa · ácido-base · KDIGO · ajustes de fármacos' },
+    { key: 'gastrointestinal',  label: 'Gastrointestinal y nutrición', placeholder: 'Abdomen · peristalsis · tolerancia enteral · residuo · evacuaciones · nutrición enteral/parenteral · metas calóricas/proteicas · función hepática · PIA · drenajes/ostomías · riesgo de sangrado' },
+    { key: 'hematoinfeccioso',  label: 'Hematológico e infeccioso',    placeholder: 'Hb · plaquetas · leucocitos · coagulación/sangrado · transfusiones · profilaxis TEV · foco infeccioso · cultivos/microorganismos/susceptibilidad · antimicrobianos (día, dosis, ajuste renal) · biomarcadores · aislamientos' },
+    { key: 'piel_dispositivos', label: 'Piel, músculo y dispositivos', placeholder: 'Lesiones por presión · heridas/sitios quirúrgicos · drenajes · catéteres/accesos · ECMO/balón/Impella · movilidad/rehabilitación' },
+    { key: 'ultrasonido',       label: 'Ultrasonido crítico (POCUS)',  placeholder: 'Pulmón (deslizamiento, líneas B, LUS) · corazón (función, VTI, VD) · VCI · VExUS · respuesta a precarga (VTI pre/post PLR). Describir hallazgos y calidad de ventana; nunca una sola medición decide conducta' },
+    { key: 'plan',              label: 'Plan por sistema',             obligatorio: true,  placeholder: 'Objetivos por aparato · estudios · cambios terapéuticos · destete/retiro de dispositivos · profilaxis · nutrición · antimicrobianos · comunicación con familia · criterios de egreso de UCI' },
+  ],
 }
 
 /** Construye las secciones vacías para un tipo de nota */
@@ -113,7 +130,7 @@ export function seccionesVacias(tipo: TipoNota): NotaSeccion[] {
 
 /** ¿Esta nota usa signos vitales obligatorios? */
 export function requiereSignosVitales(tipo: TipoNota): boolean {
-  return ['historia_clinica', 'primera_vez', 'seguimiento', 'ingreso', 'evolucion', 'valoracion_preoperatoria', 'valoracion_inmuno', 'nota_postoperatoria', 'nota_anestesia'].includes(tipo)
+  return ['historia_clinica', 'primera_vez', 'seguimiento', 'ingreso', 'evolucion', 'evolucion_uci', 'valoracion_preoperatoria', 'valoracion_inmuno', 'nota_postoperatoria', 'nota_anestesia'].includes(tipo)
 }
 
 /** ¿Es una valoración preoperatoria? */
@@ -128,5 +145,5 @@ export function esInmuno(tipo: TipoNota): boolean {
 
 /** ¿Es una nota hospitalaria? */
 export function esHospitalaria(tipo: TipoNota): boolean {
-  return ['ingreso', 'evolucion', 'egreso', 'nota_postoperatoria', 'nota_anestesia'].includes(tipo)
+  return ['ingreso', 'evolucion', 'evolucion_uci', 'egreso', 'nota_postoperatoria', 'nota_anestesia'].includes(tipo)
 }

@@ -18,6 +18,7 @@ export type TipoNota =
   | 'nota_postoperatoria' // Nota postquirúrgica (NOM-004)
   | 'nota_anestesia'     // Registro/nota de anestesia
   | 'consentimiento'     // Consentimiento informado
+  | 'evolucion_uci'      // Evolución de UCI por aparatos y sistemas (cabeza a pies)
 
 export const TIPO_NOTA_LABEL: Record<TipoNota, string> = {
   historia_clinica: 'Historia Clínica',
@@ -32,6 +33,7 @@ export const TIPO_NOTA_LABEL: Record<TipoNota, string> = {
   nota_postoperatoria: 'Nota Postoperatoria',
   nota_anestesia:   'Nota de Anestesia',
   consentimiento:   'Consentimiento Informado',
+  evolucion_uci:    'Nota de Evolución UCI',
 }
 
 export type EstadoNota = 'borrador' | 'firmada' | 'cancelada'

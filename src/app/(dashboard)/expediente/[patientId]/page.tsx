@@ -39,6 +39,7 @@ const ICONO_TIPO_NOTA: Record<TipoNota, LucideIcon> = {
   nota_postoperatoria: Activity,
   nota_anestesia: Activity,
   consentimiento: FileText,
+  evolucion_uci: Activity,
 }
 
 export default function ExpedientePage() {
