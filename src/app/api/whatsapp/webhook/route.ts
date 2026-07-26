@@ -176,7 +176,7 @@ function getAvailableSlotsForDate(
     // en días bloqueados (el panel y el booking público sí los respetan). Se excluye
     // el slot si cae dentro de un bloqueo del médico (o de toda la clínica).
     const hhmm = `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
-    if (bloques.length && estaBloqueado(`${fecha} ${hhmm}`, bloques, medicoId)) continue
+    if (bloques.length && estaBloqueado(`${fecha} ${hhmm}`, bloques, medicoId, config.zonaHoraria || 'America/Mexico_City')) continue
     slots.push(hhmm)
   }
   return slots

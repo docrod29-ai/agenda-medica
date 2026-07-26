@@ -10,6 +10,7 @@ import {
   collection, doc, addDoc, deleteDoc, getDocs, query, orderBy,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 
 export type TipoBloque = 'vacaciones' | 'ausencia' | 'evento' | 'mantenimiento' | 'otro'
 
@@ -48,13 +49,27 @@ export async function borrarBloque(clinicId: string, id: string): Promise<void> 
   await deleteDoc(doc(col(clinicId), id))
 }
 
+/**
+ * Instante (ms UTC) de una entrada que puede venir como instante absoluto (ISO con
+ * Z u offset) o como HORA DE PARED ("YYYY-MM-DD HH:MM") de la clínica. L5 auditoría
+ * maestra: la hora de pared antes se interpretaba en la zona del RUNTIME (UTC en
+ * Vercel) → los bloqueos quedaban corridos ~6h (más para el norte). Ahora la hora
+ * de pared se ancla a la zona de la clínica.
+ */
+function instanteDeEntrada(s: string, tz: string): number {
+  if (/[zZ]$|[+-]\d\d:?\d\d$/.test(s)) return new Date(s).getTime()  // ya es absoluto
+  const iso = s.replace(' ', 'T')
+  return instanteMX(iso.slice(0, 10), iso.slice(11, 16), tz).getTime()
+}
+
 /** Verifica si una fecha/hora cae dentro de algún bloque activo. */
 export function estaBloqueado(
-  fechaHora: string,                  // ISO o "YYYY-MM-DD HH:MM"
+  fechaHora: string,                  // ISO absoluto o "YYYY-MM-DD HH:MM" (pared)
   bloques: TimeBlock[],
   medicoId?: string,
+  tz: string = TZ_DEFAULT,            // zona de la clínica (config.zonaHoraria)
 ): TimeBlock | null {
-  const t = new Date(fechaHora.replace(' ', 'T')).getTime()
+  const t = instanteDeEntrada(fechaHora, tz)
   if (isNaN(t)) return null
   for (const b of bloques) {
     const desde = new Date(b.desde).getTime()

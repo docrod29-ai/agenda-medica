@@ -61,17 +61,40 @@ export function sumarDiasISO(fechaISO: string, n: number): string {
 }
 
 /**
- * Convierte una hora de pared MX (YYYY-MM-DD + HH:MM) al instante UTC real.
- * México es UTC-6 estable (sin horario de verano desde 2022), así que
- * anclamos el offset -06:00. Devuelve un Date con el instante correcto,
- * para comparar contra Date.now() sin desfase.
- *
- * Antes el cron hacía new Date(`${fecha}T${hora}:00`) que se interpreta en
- * la zona del SERVIDOR (UTC en Vercel) → las ventanas de recordatorio
- * (23-26h y 1-4h antes) disparaban 6h corridas.
+ * Offset (en minutos, + = adelante de UTC) de una IANA time zone en un instante.
+ * Reconstruye la hora de pared que la zona muestra para ese `date` y la compara
+ * contra el mismo `date` en UTC. Maneja DST (la franja fronteriza MX sí lo tiene:
+ * Tijuana sigue el horario del Pacífico de EE.UU.).
  */
-export function instanteMX(fechaISO: string, horaHHMM: string): Date {
-  return new Date(`${fechaISO}T${horaHHMM}:00-06:00`)
+function offsetZonaMin(tz: string, date: Date): number {
+  const p: Record<string, string> = {}
+  for (const part of new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+  }).formatToParts(date)) p[part.type] = part.value
+  const comoUTC = Date.UTC(+p.year, +p.month - 1, +p.day, (+p.hour) % 24, +p.minute, +p.second)
+  return Math.round((comoUTC - date.getTime()) / 60000)
+}
+
+/**
+ * Convierte una hora de PARED (YYYY-MM-DD + HH:MM) en la zona de la clínica al
+ * instante UTC real. L5 auditoría maestra 2026-07: antes el offset -06:00 estaba
+ * QUEMADO, así que Tijuana (UTC-8, con DST) y Hermosillo (UTC-7) quedaban corridas
+ * 1–2 h en recordatorios, corte de caja y bloqueos de agenda. Ahora se calcula el
+ * offset real de `tz` en esa fecha vía Intl (maneja DST). Default: Mexico City
+ * (UTC-6 estable). El parámetro `tz` sale de config.zonaHoraria.
+ *
+ * Antes el cron hacía new Date(`${fecha}T${hora}:00`) que se interpretaba en la
+ * zona del SERVIDOR (UTC en Vercel) → las ventanas de recordatorio disparaban 6h corridas.
+ */
+export function instanteMX(fechaISO: string, horaHHMM: string, tz: string = TZ_DEFAULT): Date {
+  const [Y, M, D] = fechaISO.split('-').map(Number)
+  const [h, m] = horaHHMM.split(':').map(Number)
+  const comoSiUTC = Date.UTC(Y, (M || 1) - 1, D || 1, h || 0, m || 0, 0)
+  // El offset se calcula sobre el instante aproximado (exacto salvo en la hora del
+  // salto de DST, caso rarísimo para una cita) y se resta para obtener el UTC real.
+  const off = offsetZonaMin(tz, new Date(comoSiUTC))
+  return new Date(comoSiUTC - off * 60000)
 }
 
 /**

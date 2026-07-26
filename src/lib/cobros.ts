@@ -14,7 +14,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { celdaSegura } from '@/lib/csv-seguro'
-import { instanteMX, sumarDiasISO, fechaISOLocal } from '@/lib/timezone'
+import { instanteMX, sumarDiasISO, fechaISOLocal, TZ_DEFAULT } from '@/lib/timezone'
 
 /**
  * Límites de un día LOCAL del consultorio, en instantes UTC.
@@ -30,10 +30,10 @@ import { instanteMX, sumarDiasISO, fechaISOLocal } from '@/lib/timezone'
  * también LO YA GUARDADO: el instante siempre fue correcto, lo que estaba mal
  * era la etiqueta derivada. Sin migración y sin tocar un solo cobro histórico.
  */
-function limitesDelDia(desde: string, hasta: string): { ini: string; fin: string } {
+function limitesDelDia(desde: string, hasta: string, tz: string = TZ_DEFAULT): { ini: string; fin: string } {
   return {
-    ini: instanteMX(desde, '00:00').toISOString(),
-    fin: instanteMX(sumarDiasISO(hasta, 1), '00:00').toISOString(),
+    ini: instanteMX(desde, '00:00', tz).toISOString(),
+    fin: instanteMX(sumarDiasISO(hasta, 1), '00:00', tz).toISOString(),
   }
 }
 
@@ -310,8 +310,9 @@ export async function listarCobros(
   desde: string,
   hasta: string,
   incluirCancelados = false,
+  tz: string = TZ_DEFAULT,            // zona de la clínica (config.zonaHoraria)
 ): Promise<Cobro[]> {
-  const { ini, fin } = limitesDelDia(desde, hasta)
+  const { ini, fin } = limitesDelDia(desde, hasta, tz)
   const q = query(
     COL(clinicId),
     where('fecha', '>=', ini),
@@ -331,9 +332,9 @@ function ultimoDiaDelMes(mes: string): string {
 }
 
 /** Cobros de un mes completo (YYYY-MM) */
-export async function cobrosDelMes(clinicId: string, mes: string): Promise<Cobro[]> {
+export async function cobrosDelMes(clinicId: string, mes: string, tz: string = TZ_DEFAULT): Promise<Cobro[]> {
   // Por instante, no por la etiqueta `mes` (misma razón que `limitesDelDia`).
-  const { ini, fin } = limitesDelDia(`${mes}-01`, ultimoDiaDelMes(mes))
+  const { ini, fin } = limitesDelDia(`${mes}-01`, ultimoDiaDelMes(mes), tz)
   const q = query(
     COL(clinicId),
     where('fecha', '>=', ini),

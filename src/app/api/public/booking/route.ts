@@ -78,6 +78,9 @@ export async function POST(req: NextRequest) {
      * `instanteMX` ya existe justo para esto — el cron de recordatorios tuvo el
      * mismo bug y así se resolvió.
      */
+    // Nota: la config aún no se ha cargado aquí; la validación de "fecha pasada"
+    // usa la zona por defecto (México central). El bloqueo (abajo) sí usa la zona
+    // real de la clínica, que es donde importa el desfase del norte.
     const fechaHoraDt = instanteMX(fecha, hora)
     if (isNaN(fechaHoraDt.getTime()) || fechaHoraDt.getTime() < Date.now()) {
       return NextResponse.json({ ok: false, error: 'No se puede agendar en el pasado' }, { status: 400 })
@@ -128,7 +131,7 @@ export async function POST(req: NextRequest) {
     }
     const bloquesSnap = await clinicRef.collection('time_blocks').get()
     const bloques = bloquesSnap.docs.map(d => ({ id: d.id, ...d.data() })) as unknown as import('@/lib/time-blocks').TimeBlock[]
-    if (estaBloqueado(fechaHora, bloques, medicoId)) {
+    if (estaBloqueado(fechaHora, bloques, medicoId, cfg.zonaHoraria || 'America/Mexico_City')) {
       return NextResponse.json({ ok: false, error: 'Ese horario no está disponible (bloqueo/ausencia)' }, { status: 409 })
     }
 

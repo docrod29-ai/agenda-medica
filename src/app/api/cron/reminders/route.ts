@@ -136,7 +136,7 @@ export async function GET(req: NextRequest) {
           const apptDate = appt.fechaHora.slice(0, 10)
           const apptHour = appt.fechaHora.slice(11, 16)
           // Instante REAL de la cita en hora MX (no en la zona del servidor)
-          const apptDateObj = instanteMX(apptDate, apptHour)
+          const apptDateObj = instanteMX(apptDate, apptHour, config.zonaHoraria || 'America/Mexico_City')
           const diffHours = (apptDateObj.getTime() - now.getTime()) / (1000 * 60 * 60)
 
           const msgData = {
@@ -204,7 +204,7 @@ export async function GET(req: NextRequest) {
             if (a.resenaSolicitada) continue
             if (!a.consentimientoMensajes || !a.pacienteTelefono) { totals.skipped++; continue }
             // Solo citas terminadas hace 2–72h (no spamear histórico viejo)
-            const fin = instanteMX(a.fechaHora.slice(0, 10), a.fechaHora.slice(11, 16))
+            const fin = instanteMX(a.fechaHora.slice(0, 10), a.fechaHora.slice(11, 16), config.zonaHoraria || 'America/Mexico_City')
             const horas = (now.getTime() - fin.getTime()) / 3_600_000
             if (horas < 2 || horas > 72) continue
             try {

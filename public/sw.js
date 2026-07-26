@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v669'  // L4b robustez: guarda de UNIDAD/plausibilidad en la calculadora renal de la receta. Creatinina fuera de [0.1, 25] mg/dL (probable umol/L o typo, o 0 que daba Infinity) ya NO calcula una TFG falsa ni dispara ajustes renales inventados; muestra aviso de revisar unidad. Guarda de SOFTWARE, no cambia formula ni umbrales clinicos. Render de TFG oculta NaN (pediatrico e implausible muestran solo la explicacion).
+const CACHE = 'nexusmed-v670'  // L5 zona horaria: instanteMX ahora es ZONA-CONSCIENTE (calcula el offset real de config.zonaHoraria via Intl, maneja DST de la franja fronteriza) en vez de -06:00 quemado -> Tijuana/Hermosillo dejan de estar corridas 1-2h. Propagado a cron de recordatorios, booking publico, whatsapp bot, estaBloqueado (bloqueos de vacaciones) y cobros (listarCobros/cobrosDelMes/limitesDelDia con tz). Default sigue CDMX (correcto para la mayoria). CDMX identico a antes (sin regresion).
 // (v601):
 
 self.addEventListener('install', (event) => {
