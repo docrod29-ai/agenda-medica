@@ -1,3 +1,4 @@
+import { num } from './num'
 /**
  * MOTOR DE CAMBIO Y CORRELACIÓN TEMPORAL — ICU OS.
  *
@@ -14,11 +15,6 @@
 
 export const CORRELACION_VERSION = '1.0.0'
 
-const num = (v: unknown): number | null => {
-  if (v === null || v === undefined || v === '') return null
-  const x = Number(v)
-  return Number.isFinite(x) ? x : null
-}
 const r1 = (x: number) => Math.round(x * 10) / 10
 
 /** Catálogo de métricas seguidas (clave → etiqueta + delta mínimo relevante). */

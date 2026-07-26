@@ -1,3 +1,4 @@
+import { num } from './num'
 /**
  * MOTOR DE INFUSIONES CONTINUAS (vasopresores / inotrópicos / vasodilatadores) — ICU OS.
  *
@@ -17,11 +18,6 @@
 
 export const INFUSIONES_VERSION = '1.0.0'
 
-const num = (v: unknown): number | null => {
-  if (v === null || v === undefined || v === '') return null
-  const x = Number(v)
-  return Number.isFinite(x) ? x : null
-}
 const r = (x: number, d = 2) => { const f = 10 ** d; return Math.round(x * f) / f }
 
 // Unidades soportadas por la conversión (todas por-minuto). No se incluye 'µg/kg/h'

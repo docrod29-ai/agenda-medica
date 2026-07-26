@@ -1,3 +1,4 @@
+import { num } from './num'
 /**
  * MOTOR DE ULTRASONIDO CRÍTICO (POCUS) — ICU (iteración nexusmed-icu-009).
  *
@@ -14,11 +15,6 @@
 
 export const POCUS_ENGINE_VERSION = '1.0.0'
 
-const num = (v: unknown): number | null => {
-  if (v === null || v === undefined || v === '') return null
-  const x = Number(v)
-  return Number.isFinite(x) ? x : null
-}
 
 export interface HallazgoPOCUS {
   ok: boolean

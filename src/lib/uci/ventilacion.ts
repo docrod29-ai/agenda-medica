@@ -1,3 +1,4 @@
+import { num } from './num'
 /**
  * MOTOR DETERMINISTA DE VENTILACIÓN — ICU (iteración nexusmed-icu-006).
  *
@@ -35,11 +36,6 @@ export const RANGOS = {
   dp_cmH2O: [0.5, 60],
 } as const
 
-const num = (v: unknown): number | null => {
-  if (v === null || v === undefined || v === '') return null
-  const x = Number(v)
-  return Number.isFinite(x) ? x : null
-}
 
 /**
  * ¿El modo ventilatorio implica esfuerzo/respiración espontánea? En estos modos la

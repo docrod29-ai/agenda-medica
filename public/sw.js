@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v667'  // L3 PHI: la limpieza de logout ahora purga TAMBIEN el Panel UCI. Antes limpiarBorradoresLocales solo borraba nx.consulta.bkp.; las lecturas seriadas de UCI (nx.uci.lecturas.* en localStorage, PHI: PAM/lactato/vasopresores/SOFA) y la semilla de nota (nx.uci.seed.* en sessionStorage) sobrevivian el cierre de sesion en dispositivo compartido. Ahora PREFIJOS_PHI=[nx.consulta.bkp., nx.uci.] + se limpia sessionStorage. Ademas los 2 logout de la pantalla de error ahora llaman limpiarAudioLocal (empatados con Sidebar/AutoLogout).
+const CACHE = 'nexusmed-v668'  // L4a robustez: num() clinico ROBUSTO como fuente unica (src/lib/uci/num.ts) reemplaza 12 copias identicas con bug. Fixes: (1) vacio/espacios -> null en vez de Number(' ')===0 (viola 'vacio!=0'), (2) coma decimal MX '7,35'->7.35 antes se perdia (NaN->null). 12 motores UCI centralizados. 1763 tests, 0 regresiones.
 // (v601):
 
 self.addEventListener('install', (event) => {

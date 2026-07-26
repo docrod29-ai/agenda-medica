@@ -1,3 +1,4 @@
+import { num } from './num'
 /**
  * MOTOR DETERMINISTA NEUROCRÍTICO (Brain ICU) — ICU OS.
  *
@@ -14,11 +15,6 @@
 
 export const NEURO_ENGINE_VERSION = '1.1.0'  // icu-006: GCS no valorable en intubado → RASS
 
-const num = (v: unknown): number | null => {
-  if (v === null || v === undefined || v === '') return null
-  const x = Number(v)
-  return Number.isFinite(x) ? x : null
-}
 
 export type Pupilas = 'isocoricas' | 'anisocoria' | 'fijas'
 

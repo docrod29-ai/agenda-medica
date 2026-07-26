@@ -1,3 +1,4 @@
+import { num } from './num'
 /**
  * MOTOR DETERMINISTA DE ECMO / ECLS — ICU (ICU OS · nivel P2).
  *
@@ -11,11 +12,6 @@
 
 export const ECMO_ENGINE_VERSION = '1.0.0'
 
-const num = (v: unknown): number | null => {
-  if (v === null || v === undefined || v === '') return null
-  const x = Number(v)
-  return Number.isFinite(x) ? x : null
-}
 const r1 = (x: number) => Math.round(x * 10) / 10
 
 export type ConfigECMO = 'VA' | 'VV' | 'VAV'

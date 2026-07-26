@@ -1,3 +1,4 @@
+import { num } from './num'
 /**
  * ESCALAS DE UCI — SOFA (iteración nexusmed-icu-010).
  *
@@ -16,11 +17,6 @@ export const SCORES_UCI_VERSION = '1.1.0'
 // SOFA: umbrales publicados (Vincent 1996) CONFIRMADOS por el Dr (2026-07).
 export const SOFA_PENDIENTE_VALIDACION = false
 
-const num = (v: unknown): number | null => {
-  if (v === null || v === undefined || v === '') return null
-  const x = Number(v)
-  return Number.isFinite(x) ? x : null
-}
 
 export interface EntradaSOFA {
   pafi?: number | string          // PaO2/FiO2 (mmHg)

@@ -1,3 +1,4 @@
+import { num } from './num'
 /**
  * MOTOR DETERMINISTA DE GASOMETRÍA / ÁCIDO-BASE — ICU (iteración nexusmed-icu-007).
  *
@@ -20,11 +21,6 @@
 
 export const GASOMETRIA_ENGINE_VERSION = '1.0.0'
 
-const num = (v: unknown): number | null => {
-  if (v === null || v === undefined || v === '') return null
-  const x = Number(v)
-  return Number.isFinite(x) ? x : null
-}
 const r1 = (x: number) => Math.round(x * 10) / 10
 
 export type TrastornoPrimario =

@@ -1,3 +1,4 @@
+import { num } from './num'
 /**
  * MOTOR DE SEGURIDAD DE UCI — alertas jerarquizadas (iteración nexusmed-icu-012).
  *
@@ -21,11 +22,6 @@ export interface AlertaUCI {
   fuenteId?: string   // enlaza a FUENTES en evidencia.ts
 }
 
-const num = (v: unknown): number | null => {
-  if (v === null || v === undefined || v === '') return null
-  const x = Number(v)
-  return Number.isFinite(x) ? x : null
-}
 
 export interface EstadoUCI {
   fc?: number | string

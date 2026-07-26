@@ -1,3 +1,4 @@
+import { num } from './num'
 /**
  * MOTOR DE TENDENCIAS — ICU (iteración nexusmed-icu-011).
  *
@@ -29,11 +30,6 @@ export interface Tendencia {
   resumen: string            // "0.22 → 0.15 → 0.10"
 }
 
-const num = (v: unknown): number | null => {
-  if (v === null || v === undefined || v === '') return null
-  const x = Number(v)
-  return Number.isFinite(x) ? x : null
-}
 const tms = (t: number | string): number => {
   const n = Number(t)
   if (Number.isFinite(n)) return n
