@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v629'  // (1) FIX VISIBILIDAD Panel UCI: estaba gateado bajo 'hospitalizacion' (modulo opt-in que el dueno con paseLibre NO recibe) -> movido al modulo 'expediente' (consulta/Pro, que si tiene) -> ahora aparece en el menu. (2) VExUS-C real (Beaubien-Souligny 2020: grado 0-3 por VCI>=2cm + patrones graves hepatica/porta/renal, pulsatilidadPorta), LUS aeration score (Mongodi ESICM-ESPNIC 2025: 12 regiones 0-3 = 0-36; consolidacion >2.5cm conservador), PLR (Monnet 2016 dCO/SV>=10% / Vignon 2017 dLVOT-VTI>=10%; presion de pulso NO valida). Fuentes con DOIs reales en evidencia.ts. Ya no hay huecos requiereFuente.
+const CACHE = 'nexusmed-v630'  // Panel UCI: cableado VExUS-C + PLR + corazon derecho (TAPSE, VD/VI, lineas B) a la UI. Bloque POCUS de captura (VCI, patrones venosos hepatica/porta/renal, PLR delta+parametro) + columna de resultados deterministas. Motor pocus.ts ya existia; ahora es visible y usable en la consulta.
 // (v601):
 
 self.addEventListener('install', (event) => {

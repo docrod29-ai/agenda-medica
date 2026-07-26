@@ -6,14 +6,15 @@
  * CÓDIGO calcula en vivo: ventilación (P/F, driving pressure, compliance),
  * gasometría (ácido-base), hemodinamia (PAM), SOFA — y las ALERTAS citadas, en un
  * panel SEPARADO de la nota. Ningún cálculo lo hace la IA. Si falta un dato, el
- * motor lo declara y no inventa. Gateado bajo el módulo de Hospitalización.
+ * motor lo declara y no inventa. Gateado bajo el módulo de Expediente (consulta).
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Activity, Wind, Droplets, HeartPulse, ShieldAlert, Info, Mic, Square } from 'lucide-react'
+import { Activity, Wind, Droplets, HeartPulse, ShieldAlert, Info, Mic, Square, Waves } from 'lucide-react'
 import { analizarVentilacion } from '@/lib/uci/ventilacion'
 import { analizarGasometria } from '@/lib/uci/gasometria'
 import { presionArterialMedia } from '@/lib/uci/hemodinamia'
 import { calcularSOFA } from '@/lib/uci/scores'
+import { vexus, respuestaPLR, disfuncionVD_TAPSE, sobrecargaVD_VDVI, lineasB as lineasBPocus, type PatronVena, type ParametroPLR } from '@/lib/uci/pocus'
 import { analizarSeguridadUCI, type NivelAlerta } from '@/lib/uci/seguridad'
 import { extraerValoresUCI } from '@/lib/uci/extraccion'
 import { atribuirRolesDiscusion, formatearDiscusion } from '@/lib/uci/discusion'
@@ -34,6 +35,19 @@ function Campo({ label, k, v, set, sufijo, w }: { label: string; k: string; v: C
           style={{ width: '100%', padding: '6px 8px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 13 }} />
         {sufijo && <span style={{ fontSize: 11, color: 'var(--text3)' }}>{sufijo}</span>}
       </span>
+    </label>
+  )
+}
+
+function Selector({ label, k, v, set, opciones, w }: { label: string; k: string; v: Campos; set: (k: string, val: string) => void; opciones: { val: string; txt: string }[]; w?: number }) {
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 12, color: 'var(--text3)', width: w ?? 120 }}>
+      {label}
+      <select value={v[k] ?? ''} onChange={e => set(k, e.target.value)}
+        style={{ width: '100%', padding: '6px 8px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 13 }}>
+        <option value="">—</option>
+        {opciones.map(o => <option key={o.val} value={o.val}>{o.txt}</option>)}
+      </select>
     </label>
   )
 }
@@ -107,6 +121,14 @@ export default function UciPanelPage() {
     vtPorPbw: vent.vtPorPbw.ok ? vent.vtPorPbw.valor ?? undefined : undefined, spo2: n('spo2'), fio2: vent.fio2.valor ?? undefined,
     lactato: n('lactato'),
   }), [v, vent, pam])
+
+  // ── POCUS: congestión venosa (VExUS-C), respuesta a líquidos (PLR), corazón derecho ──
+  const patron = (k: string): PatronVena | undefined => (v[k] === 'normal' || v[k] === 'leve' || v[k] === 'grave' ? v[k] : undefined)
+  const vex = useMemo(() => vexus({ vciCm: n('vci'), hepatica: patron('vHep'), porta: patron('vPor'), renal: patron('vRen') }), [v])
+  const plr = useMemo(() => respuestaPLR(n('plrDelta'), (v.plrParam as ParametroPLR) || undefined), [v])
+  const tapse = useMemo(() => disfuncionVD_TAPSE(n('tapse')), [v])
+  const vdvi = useMemo(() => sobrecargaVD_VDVI(n('vdvi')), [v])
+  const lb = useMemo(() => lineasBPocus(n('lineasB')), [v])
 
   return (
     <main style={{ maxWidth: 1180, margin: '0 auto', padding: '20px 20px 80px', color: 'var(--text)' }}>
@@ -182,6 +204,17 @@ export default function UciPanelPage() {
             <Campo label="Plaquetas" k="plaquetas" v={v} set={set} sufijo="×10³" />
             <Campo label="Bilirrubina" k="bili" v={v} set={set} />
           </Bloque>
+          <Bloque icon={Waves} titulo="POCUS · ultrasonido a pie de cama">
+            <Campo label="VCI" k="vci" v={v} set={set} sufijo="cm" w={80} />
+            <Selector label="V. hepática" k="vHep" v={v} set={set} opciones={[{ val: 'normal', txt: 'Normal (S≥D)' }, { val: 'leve', txt: 'Leve (S<D)' }, { val: 'grave', txt: 'Grave (S invertida)' }]} />
+            <Selector label="V. porta" k="vPor" v={v} set={set} opciones={[{ val: 'normal', txt: 'Normal (<30%)' }, { val: 'leve', txt: 'Leve (30–49%)' }, { val: 'grave', txt: 'Grave (≥50%)' }]} />
+            <Selector label="V. renal" k="vRen" v={v} set={set} opciones={[{ val: 'normal', txt: 'Normal (cont.)' }, { val: 'leve', txt: 'Leve (bifásico)' }, { val: 'grave', txt: 'Grave (solo diast.)' }]} />
+            <Campo label="PLR Δ" k="plrDelta" v={v} set={set} sufijo="%" w={80} />
+            <Selector label="PLR parámetro" k="plrParam" v={v} set={set} opciones={[{ val: 'CO', txt: 'Gasto (CO)' }, { val: 'SV', txt: 'Vol. sistólico (SV)' }, { val: 'LVOT_VTI', txt: 'LVOT-VTI' }]} w={130} />
+            <Campo label="TAPSE" k="tapse" v={v} set={set} sufijo="mm" w={80} />
+            <Campo label="VD/VI" k="vdvi" v={v} set={set} w={80} />
+            <Campo label="Líneas B/esp." k="lineasB" v={v} set={set} w={100} />
+          </Bloque>
         </div>
 
         {/* Cálculos + alertas (SEPARADOS de la nota) */}
@@ -207,6 +240,22 @@ export default function UciPanelPage() {
                   <strong>{sofa.total ?? '—'}{sofa.parcial ? ' (parcial)' : ''}</strong>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 14, marginBottom: 10 }}>
+              <Waves size={16} style={{ color: 'var(--nexus)' }} /> POCUS
+            </div>
+            <div style={{ display: 'grid', gap: 8 }}>
+              <Resultado label="VExUS-C (congestión)" r={{ ...vex, unidad: vex.ok ? 'grado' : undefined }} />
+              <Resultado label="PLR (respuesta a líquidos)" r={{ ...plr, unidad: '%' }} />
+              <Resultado label="TAPSE (VD)" r={{ ...tapse, unidad: 'mm' }} />
+              <Resultado label="VD/VI" r={vdvi} />
+              <Resultado label="Líneas B" r={lb} />
+            </div>
+            <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 8, lineHeight: 1.4 }}>
+              VExUS-C requiere VCI ≥ 2.0 cm + Doppler venoso. PLR: ≥10 % en gasto/VS/LVOT-VTI = respondedor (la presión de pulso no es criterio válido). Ninguna medida aislada decide conducta.
             </div>
           </div>
 
