@@ -26,6 +26,7 @@ import { calcularSOFA } from '@/lib/uci/scores'
 import { vexus, respuestaPLR, disfuncionVD_TAPSE, sobrecargaVD_VDVI, lineasB as lineasBPocus, type PatronVena, type ParametroPLR } from '@/lib/uci/pocus'
 import { analizarCKRT, analizarCitrato, type ModalidadCKRT } from '@/lib/uci/ckrt'
 import { analizarECMO, type ConfigECMO } from '@/lib/uci/ecmo'
+import { CATALOGO_INFUSIONES, farmacoPorKey, dosisARate, rateADosis } from '@/lib/uci/infusiones'
 import { analizarNeuro, type Pupilas } from '@/lib/uci/neuro'
 import { aplanarLectura, compararLecturas, correlacionTemporal, resumenCambios, type Lectura } from '@/lib/uci/correlacion'
 import { analizarSeguridadUCI, type NivelAlerta } from '@/lib/uci/seguridad'
@@ -261,6 +262,16 @@ export default function UciPanelPage() {
       })
     } catch { /* no-bloqueante */ }
   }
+
+  // ── Calculadora de infusión: dosis ↔ mL/h con dilución estándar por fármaco ──
+  const infFarmaco = useMemo(() => farmacoPorKey(v.infFarmaco || 'norepinefrina'), [v.infFarmaco])
+  const infDilIdx = Number(v.infDil ?? 0) || 0
+  const infusion = useMemo(() => {
+    const base = { farmacoKey: v.infFarmaco || 'norepinefrina', pesoKg: n('infPeso') ?? n('ckrtPeso'), dilucionIdx: infDilIdx }
+    return (v.infDir === 'rate')
+      ? rateADosis({ ...base, rateMlH: n('infRate') })
+      : dosisARate({ ...base, dosis: n('infDosis') })
+  }, [v]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── La nota se ARMA en vivo mientras dictas/capturas (por sistemas) ──
   const notaSecciones = useMemo(() => construirSeccionesUCI(v, { discusion: discusionTxt || undefined }), [v, discusionTxt])
@@ -623,6 +634,36 @@ export default function UciPanelPage() {
           </div>
         )}
       </div>
+
+      {/* ── CALCULADORA DE INFUSIÓN: dosis ↔ mL/h ── */}
+      <details style={{ marginTop: 18, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: '4px 16px 16px' }}>
+        <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: 14, padding: '12px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <HeartPulse size={16} style={{ color: 'var(--nexus)' }} /> Calculadora de infusión · dosis ↔ mL/h (vasopresores · inotrópicos)
+        </summary>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end' }}>
+          <Selector label="Fármaco" k="infFarmaco" v={v} set={set} w={180} opciones={CATALOGO_INFUSIONES.map(f => ({ val: f.key, txt: f.nombre }))} />
+          <Selector label="Dilución" k="infDil" v={v} set={set} w={170} opciones={(infFarmaco?.diluciones ?? []).map((d, i) => ({ val: String(i), txt: `${d.label} (${d.concentracion} ${d.unidadConc})` }))} />
+          {infFarmaco?.porKg && <Campo label="Peso" k="infPeso" v={v} set={set} sufijo="kg" w={85} />}
+          <Selector label="Convertir" k="infDir" v={v} set={set} w={150} opciones={[{ val: 'dose', txt: `Dosis → mL/h` }, { val: 'rate', txt: `mL/h → Dosis` }]} />
+          {v.infDir === 'rate'
+            ? <Campo label="Velocidad" k="infRate" v={v} set={set} sufijo="mL/h" w={100} />
+            : <Campo label={`Dosis (${infFarmaco?.unidad ?? 'µg/kg/min'})`} k="infDosis" v={v} set={set} w={150} />}
+        </div>
+        <div style={{ marginTop: 12, padding: '12px 14px', borderRadius: 10, background: infusion.ok ? 'var(--nexus-soft)' : 'var(--s2)', border: '1px solid var(--border2)' }}>
+          {infusion.ok
+            ? <>
+                <div style={{ fontSize: 18, fontWeight: 700 }}>
+                  {v.infDir === 'rate'
+                    ? <>{infusion.dosis} <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text3)' }}>{infusion.unidadDosis}</span></>
+                    : <>{infusion.rateMlH} <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text3)' }}>mL/h</span></>}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>{infusion.interpretacion}</div>
+                {infusion.advertencias.map((a, i) => <div key={i} style={{ fontSize: 12, color: '#d97706', marginTop: 4 }}>⚠ {a}</div>)}
+              </>
+            : <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>{infusion.motivoBloqueo}</div>}
+          {infFarmaco?.nota && <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6, fontStyle: 'italic' }}>{infFarmaco.nota}</div>}
+        </div>
+      </details>
 
       {/* ── SOPORTES EXTRACORPÓREOS: CKRT / PRISMA · ECMO ── */}
       <details style={{ marginTop: 18, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: '4px 16px 16px' }}>

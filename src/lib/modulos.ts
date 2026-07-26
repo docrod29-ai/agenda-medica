@@ -48,6 +48,7 @@ export interface ModuloDef {
   label: string
   descripcion: string
   rutas: string[]   // prefijos de ruta que este módulo habilita
+  precioMedico: number  // MXN/mes POR MÉDICO à la carte (los bundles son un descuento)
 }
 
 /**
@@ -58,20 +59,36 @@ export const RUTAS_CORE = ['/dashboard', '/configuracion', '/chat', '/pacientes'
 
 /** Catálogo de módulos vendibles. El dueño combina estos en paquetes. */
 export const MODULOS: ModuloDef[] = [
-  { key: 'agenda',         label: 'Agenda y citas',          descripcion: 'Agendar, calendario, recordatorios, lista de espera', rutas: ['/asistente', '/citas', '/calendario', '/lista-espera', '/waitlist'] },
-  { key: 'expediente',     label: 'Expediente de consulta',  descripcion: 'Consulta ambulatoria: notas, recetas, órdenes, referencias, consultor', rutas: ['/consulta', '/expediente', '/expedientes', '/nota', '/orden', '/receta', '/referencia', '/consultor'] },
-  { key: 'hospitalizacion', label: 'Hospitalización',        descripcion: 'Censo, internamientos, indicaciones/MAR, camas (hospital y UCI)', rutas: ['/hospitalizacion'] },
-  // UCI OS = módulo/entitlement PROPIO (la joya sin competencia). Se incluye en el
-  // plan Hospital y se vende como add-on por médico. Gatearlo aparte evita que un
-  // plan de consultorio tenga acceso técnico al Panel UCI (motores + Copilot).
-  { key: 'uci',            label: 'UCI OS',                  descripcion: 'Panel UCI de cabecera: ventilación, gasometría, SOFA/APACHE, POCUS/VExUS, neurocrítico, CKRT/PRISMA, ECMO, Copilot IA y nota por 7 sistemas', rutas: ['/uci'] },
-  { key: 'farmacia',       label: 'Farmacia',                descripcion: 'Inventario y movimientos de farmacia', rutas: ['/farmacia'] },
-  { key: 'crm',            label: 'CRM y reseñas',           descripcion: 'Seguimiento de pacientes, reputación', rutas: ['/crm', '/resenas'] },
-  { key: 'finanzas',       label: 'Finanzas',                descripcion: 'Cobros, ingresos, reportes', rutas: ['/finanzas'] },
-  { key: 'cumplimiento',   label: 'Cumplimiento',            descripcion: 'NOM-024, ARCO, bitácora, seguridad', rutas: ['/cumplimiento'] },
+  { key: 'agenda',         label: 'Agenda y citas',          precioMedico: 349,  descripcion: 'Agendar, calendario, recordatorios, lista de espera', rutas: ['/asistente', '/citas', '/calendario', '/lista-espera', '/waitlist'] },
+  { key: 'expediente',     label: 'Expediente de consulta',  precioMedico: 700,  descripcion: 'Consulta ambulatoria: notas, recetas, órdenes, referencias, consultor', rutas: ['/consulta', '/expediente', '/expedientes', '/nota', '/orden', '/receta', '/referencia', '/consultor'] },
+  { key: 'hospitalizacion', label: 'Hospitalización',        precioMedico: 1200, descripcion: 'Censo, internamientos, indicaciones/MAR, camas (hospital y UCI)', rutas: ['/hospitalizacion'] },
+  // UCI OS = módulo/entitlement PROPIO (la joya sin competencia). Trae SU PROPIO
+  // censo/camas (rutas de hospitalización) para que "consulta + UCI" o "solo UCI"
+  // puedan ingresar pacientes a camas de terapia sin comprar Hospitalización entera.
+  { key: 'uci',            label: 'UCI OS',                  precioMedico: 700,  descripcion: 'Panel UCI de cabecera (ventilación, gasometría, SOFA/APACHE, POCUS/VExUS, neurocrítico, CKRT/PRISMA, ECMO, Copilot IA, nota por 7 sistemas) + censo y camas de terapia', rutas: ['/uci', '/hospitalizacion'] },
+  { key: 'farmacia',       label: 'Farmacia',                precioMedico: 150,  descripcion: 'Inventario y movimientos de farmacia', rutas: ['/farmacia'] },
+  { key: 'crm',            label: 'CRM y reseñas',           precioMedico: 150,  descripcion: 'Seguimiento de pacientes, reputación', rutas: ['/crm', '/resenas'] },
+  { key: 'finanzas',       label: 'Finanzas',                precioMedico: 150,  descripcion: 'Cobros, ingresos, reportes', rutas: ['/finanzas'] },
+  { key: 'cumplimiento',   label: 'Cumplimiento',            precioMedico: 150,  descripcion: 'NOM-024, ARCO, bitácora, seguridad', rutas: ['/cumplimiento'] },
 ]
 
 export const MODULO_LABEL: Record<string, string> = Object.fromEntries(MODULOS.map(m => [m.key, m.label]))
+export const PRECIO_MODULO: Record<string, number> = Object.fromEntries(MODULOS.map(m => [m.key, m.precioMedico]))
+
+/**
+ * COTIZADOR À LA CARTE: precio de CUALQUIER combinación de módulos, por médico.
+ * El médico arma su combo (p.ej. consulta + UCI, o solo UCI) y esto lo cotiza.
+ * `agenda` siempre se incluye como base (sin ella no hay pacientes). Total mensual
+ * = (suma de los módulos elegidos) × nº de médicos. Los PAQUETES son un descuento
+ * sobre esta suma (bundle < à la carte). La IA se cobra APARTE por consumo (créditos).
+ */
+export function precioCombinacion(moduloKeys: string[], medicos = 1): { porMedico: number; total: number; modulos: string[] } {
+  const set = new Set(moduloKeys.filter(k => k in PRECIO_MODULO))
+  set.add('agenda')   // la agenda es la base: sin ella no hay a quién atender
+  const modulos = [...set]
+  const porMedico = modulos.reduce((s, k) => s + (PRECIO_MODULO[k] ?? 0), 0)
+  return { porMedico, total: porMedico * Math.max(1, medicos), modulos }
+}
 export const TODOS_LOS_MODULOS = MODULOS.map(m => m.key)
 /** Todos MENOS los opt-in (lo que ve un consultorio por defecto, sin Hospital). */
 export const MODULOS_BASE = TODOS_LOS_MODULOS.filter(k => !MODULOS_OPT_IN.includes(k))

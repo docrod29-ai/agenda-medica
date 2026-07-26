@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v640'  // COBRO POR MEDICO (no por cama): Hospital por_medico (base 3499 + 999/medico adicional) y UCI OS add-on por_medico (700/medico). MAS 'lo que gaste' en IA = creditos por uso (base incluye N creditos + recarga cuando se acaba + toda accion de IA medida, incl Copilot UCI=7). PAQUETES_VERSION=7.
+const CACHE = 'nexusmed-v641'  // A LA CARTE por medico: cada modulo con precioMedico (agenda 349, expediente 700, hospitalizacion 1200, uci 700, farmacia/crm/finanzas/cumplimiento 150) + precioCombinacion(modulos, medicos) para cotizar CUALQUIER combo (consulta+uci, solo uci, etc.); bundles = descuento. UCI trae SU censo/camas (rutas hospitalizacion) para admitir a camas de terapia sin comprar Hospital entero. CALCULADORA DE INFUSION: motor infusiones.ts (catalogo vasopresores/inotropicos con diluciones estandar: norepi/epi/dopa/dobuta/vasopresina/levosimendan/milrinona/fenilefrina/NTG/nitroprusiato) convierte dosis (ug/kg/min, ug/min, U/min) <-> velocidad mL/h; bloquea sin peso/concentracion; UI en el panel.
 // (v601):
 
 self.addEventListener('install', (event) => {
