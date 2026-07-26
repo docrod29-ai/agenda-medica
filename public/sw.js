@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v658'  // 010 fase 2 COMPLETA (cliente): helper compartido receta-diseno-client (firma a prueba de fallos, timeout, espera recarga) usado por AMBOS caminos de papeleria: impresion (print-element) y Descargar PDF (pdf-download firma las <img> ANTES de rasterizar con html2canvas). Falta solo del Dr: secreto en Vercel + prueba de papel + activar RECETA_DISENO_FIRMA=obligatoria.
+const CACHE = 'nexusmed-v659'  // redeploy para aplicar PORTAL_PACIENTE_SECRET (activa magic-link del Portal del Paciente + secreto del token de receta). Sin cambios de codigo.
 // (v601):
 
 self.addEventListener('install', (event) => {
