@@ -6,11 +6,11 @@ import { describe, it, expect } from 'vitest'
 import { construirSeccionesUCI } from '@/lib/uci/nota'
 
 describe('construirSeccionesUCI', () => {
-  it('devuelve las 10 secciones de evolucion_uci en orden', () => {
+  it('devuelve las secciones por los 7 sistemas del Dr, en orden', () => {
     const s = construirSeccionesUCI({})
     expect(s.map(x => x.key)).toEqual([
-      'contexto', 'neurologico', 'respiratorio', 'hemodinamico', 'renal_metabolico',
-      'gastrointestinal', 'hematoinfeccioso', 'piel_dispositivos', 'ultrasonido', 'plan',
+      'contexto', 'neurologico', 'respiratorio', 'hemodinamico', 'abdominodigestivo',
+      'hidrometabolico', 'hematoinfeccioso', 'musculoesqueletico', 'plan',
     ])
   })
 
@@ -20,8 +20,8 @@ describe('construirSeccionesUCI', () => {
     expect(by.neurologico).toBe('')
     expect(by.respiratorio).toBe('')
     expect(by.hemodinamico).toBe('')
-    // ultrasonido siempre lleva el recordatorio de seguridad
-    expect(by.ultrasonido).toMatch(/Ninguna medición aislada/)
+    expect(by.abdominodigestivo).toBe('')
+    expect(by.musculoesqueletico).toBe('')
   })
 
   it('caso SDRA: respiratorio refleja P/F, driving pressure y VT/PBW', () => {
@@ -36,12 +36,12 @@ describe('construirSeccionesUCI', () => {
     expect(resp).toMatch(/A\/C VC/)
   })
 
-  it('POCUS: refleja VExUS grado y respuesta a líquidos', () => {
+  it('POCUS (VExUS/PLR) va al sistema hemodinámico', () => {
     const s = construirSeccionesUCI({ vci: '2.3', vHep: 'grave', vPor: 'grave', vRen: 'normal', plrDelta: '8', plrParam: 'LVOT_VTI' })
-    const us = s.find(x => x.key === 'ultrasonido')!.value
-    expect(us).toMatch(/VExUS/)
-    expect(us).toMatch(/grado 3/)
-    expect(us).toMatch(/no respondedor/)
+    const hemo = s.find(x => x.key === 'hemodinamico')!.value
+    expect(hemo).toMatch(/VExUS/)
+    expect(hemo).toMatch(/grado 3/)
+    expect(hemo).toMatch(/no respondedor/)
   })
 
   it('la discusión del pase va al plan', () => {
@@ -49,14 +49,14 @@ describe('construirSeccionesUCI', () => {
     expect(s.find(x => x.key === 'plan')!.value).toMatch(/Adscrito: bajar volumen/)
   })
 
-  it('CKRT va a la sección renal y ECMO a dispositivos', () => {
+  it('CKRT va a hidrometabólico y ECMO VA a hemodinámico', () => {
     const s = construirSeccionesUCI({
       ckrtMod: 'CVVHDF', ckrtPeso: '70', ckrtDial: '1000', ckrtPost: '500', ckrtUf: '150',
       ecmoConf: 'VA', ecmoPre: '260', ecmoPost: '200', ecmoBasal: '25', ecmoSpD: '84', ecmoSpI: '99',
     })
-    expect(s.find(x => x.key === 'renal_metabolico')!.value).toMatch(/CKRT CVVHDF/)
-    const disp = s.find(x => x.key === 'piel_dispositivos')!.value
-    expect(disp).toMatch(/ECMO VA/)
-    expect(disp).toMatch(/diferencial|Harlequin|INSPECCIONAR/)
+    expect(s.find(x => x.key === 'hidrometabolico')!.value).toMatch(/CKRT CVVHDF/)
+    const hemo = s.find(x => x.key === 'hemodinamico')!.value
+    expect(hemo).toMatch(/ECMO VA/)
+    expect(hemo).toMatch(/diferencial|Harlequin|INSPECCIONAR/)
   })
 })

@@ -113,25 +113,39 @@ export function construirSeccionesUCI(v: Campos, opts?: { dia?: string; discusio
     vent.complianceEstatica.ok ? `Compliance estática ${vent.complianceEstatica.valor} mL/cmH₂O (${vent.complianceEstatica.interpretacion}).` : null,
     vent.indiceKirby.ok ? `PaO₂/FiO₂ ${vent.indiceKirby.valor} — ${(vent.indiceKirby.interpretacion ?? '').split('.')[0]}.` : null,
     n('spo2') ? `SpO₂ ${v.spo2}%.` : null,
+    lb.ok ? `USG pulmonar — líneas B: ${lb.interpretacion.split(':').slice(1).join(':').trim() || lb.hallazgo}.` : null,
     gaso.ok ? `Gasometría: ${gaso.interpretacion.split('.')[0]}.` : null,
+    // ECMO veno-venoso (soporte respiratorio) — si la config es VV.
+    ecmo.config === 'VV' ? `ECMO VV${ecmo.oxigenador.ok ? ` · ΔP oxigenador ${ecmo.oxigenador.deltaP} mmHg` : ''}.` : null,
   ])
 
-  // ── Hemodinámico ──
+  // ── Hemodinámico (incluye POCUS cardiaco, VExUS/congestión y ECMO VA) ──
   const hemodinamico = join([
     (n('pas') && n('pad')) ? `TA ${v.pas}/${v.pad} mmHg${pam.ok ? ` (PAM ${pam.valor} mmHg)` : ''}.` : null,
     n('norepi') ? `Norepinefrina ${v.norepi} µg/kg/min.` : null,
+    n('dopa') ? `Dopamina ${v.dopa} µg/kg/min.` : null,
+    n('dobu') ? `Dobutamina ${v.dobu} µg/kg/min.` : null,
+    n('epi') ? `Epinefrina ${v.epi} µg/kg/min.` : null,
     n('lactato') ? `Lactato ${v.lactato} mmol/L.` : null,
-    plr.ok ? `PLR: ${plr.interpretacion.split('.')[0]}.` : null,
     tapse.ok ? `TAPSE ${tapse.valor} mm (${tapse.hallazgo}).` : null,
     vdvi.ok ? `VD/VI ${vdvi.valor} (${vdvi.hallazgo}).` : null,
+    plr.ok ? `Respuesta a precarga (PLR): ${plr.hallazgo} — ${plr.interpretacion.split('.')[0]}.` : null,
+    n('vci') ? `VCI ${v.vci} cm.` : null,
+    vex.ok ? `VExUS-C ${vex.hallazgo}: ${vex.interpretacion.split('.')[0]}.` : (vex.bloqueado && (n('vci') || patron(v, 'vHep') || patron(v, 'vPor') || patron(v, 'vRen')) ? `VExUS: ${vex.motivoBloqueo}.` : null),
+    (ecmo.config === 'VA' || ecmo.config === 'VAV') ? `ECMO ${ecmo.config}${ecmo.oxigenador.ok ? ` · ΔP oxigenador ${ecmo.oxigenador.deltaP} mmHg` : ''}.` : null,
+    ...ecmo.señales.map(s => `ECMO — ${s.mensaje}`),
   ])
 
-  // ── Renal e hidrometabólico ──
-  const renal = join([
-    n('creat') ? `Creatinina ${v.creat} mg/dL.` : null,
+  // ── Abdominodigestivo (el médico completa; sin cálculo automático) ──
+  const abdominodigestivo = ''
+
+  // ── Hidrometabólico (electrolitos, ácido-base, renal, CKRT/citrato) ──
+  const hidrometabolico = join([
     n('na') ? `Na ${v.na}.` : null,
     n('k') ? `K ${v.k}.` : null,
     n('cl') ? `Cl ${v.cl}.` : null,
+    n('glucosa') ? `Glucosa ${v.glucosa} mg/dL.` : null,
+    n('creat') ? `Creatinina ${v.creat} mg/dL.` : null,
     gaso.ok ? `Ácido-base: ${gaso.interpretacion.split('.')[0]}${gaso.mixto ? ' (MIXTO)' : ''}${gaso.compensacion.comentario ? ` — ${gaso.compensacion.comentario}` : ''}.` : null,
     (gaso.ok && gaso.anionGap.valor != null) ? `Anion gap ${gaso.anionGap.corregidoAlbumina ?? gaso.anionGap.valor}${gaso.anionGap.corregidoAlbumina != null ? ' (corregido)' : ''}${gaso.anionGap.elevado ? ' — elevado' : ''}.` : null,
     ckrt.ok ? `CKRT ${ckrt.modalidad}: efluente ${ckrt.efluenteMlH} mL/h${ckrt.dosisEntregadaMlKgH != null ? `, dosis entregada ${ckrt.dosisEntregadaMlKgH} mL/kg/h` : ckrt.dosisPrescritaMlKgH != null ? `, dosis prescrita ${ckrt.dosisPrescritaMlKgH} mL/kg/h` : ''}${ckrt.fraccionFiltracionPct != null ? `, FF ${ckrt.fraccionFiltracionPct}%` : ''}.` : null,
@@ -139,19 +153,10 @@ export function construirSeccionesUCI(v: Campos, opts?: { dia?: string; discusio
     citrato.ratioCaTotalIonico != null ? `Citrato: ratio Ca total/iónico ${citrato.ratioCaTotalIonico}${citrato.patronAcumulacion ? ' (patrón de acumulación — verificar)' : ''}.` : null,
   ])
 
-  // ── Hematológico e infeccioso ──
+  // ── Hematoinfeccioso ──
   const hemato = join([
     n('plaquetas') ? `Plaquetas ${v.plaquetas} ×10³.` : null,
     n('bili') ? `Bilirrubina ${v.bili} mg/dL.` : null,
-  ])
-
-  // ── Ultrasonido crítico (POCUS) ──
-  const ultrasonido = join([
-    vex.ok ? `VExUS-C ${vex.hallazgo}: ${vex.interpretacion.split('.')[0]}.` : (vex.bloqueado && (n('vci') || patron(v, 'vHep') || patron(v, 'vPor') || patron(v, 'vRen')) ? `VExUS: ${vex.motivoBloqueo}.` : null),
-    n('vci') ? `VCI ${v.vci} cm.` : null,
-    lb.ok ? `Líneas B: ${lb.interpretacion.split(':').slice(1).join(':').trim() || lb.hallazgo}.` : null,
-    plr.ok ? `Respuesta a precarga (PLR): ${plr.hallazgo}.` : null,
-    'Ninguna medición aislada decide conducta.',
   ])
 
   const secciones: SeccionNota[] = [
@@ -159,14 +164,10 @@ export function construirSeccionesUCI(v: Campos, opts?: { dia?: string; discusio
     { key: 'neurologico', label: 'Neurológico', value: neurologico },
     { key: 'respiratorio', label: 'Respiratorio', value: respiratorio },
     { key: 'hemodinamico', label: 'Hemodinámico y cardiovascular', value: hemodinamico },
-    { key: 'renal_metabolico', label: 'Renal e hidrometabólico', value: renal },
-    { key: 'gastrointestinal', label: 'Gastrointestinal y nutrición', value: '' },
-    { key: 'hematoinfeccioso', label: 'Hematológico e infeccioso', value: hemato },
-    { key: 'piel_dispositivos', label: 'Piel, músculo y dispositivos', value: join([
-      ecmo.config ? `ECMO ${ecmo.config}${ecmo.oxigenador.ok ? ` · ΔP oxigenador ${ecmo.oxigenador.deltaP} mmHg` : ''}.` : null,
-      ...ecmo.señales.map(s => `ECMO — ${s.mensaje}`),
-    ]) },
-    { key: 'ultrasonido', label: 'Ultrasonido crítico (POCUS)', value: ultrasonido },
+    { key: 'abdominodigestivo', label: 'Abdominodigestivo', value: abdominodigestivo },
+    { key: 'hidrometabolico', label: 'Hidrometabólico', value: hidrometabolico },
+    { key: 'hematoinfeccioso', label: 'Hematoinfeccioso', value: hemato },
+    { key: 'musculoesqueletico', label: 'Musculoesquelético', value: '' },
     { key: 'plan', label: 'Plan por sistema', value: opts?.discusion ? `Discusión del pase:\n${opts.discusion}` : '' },
   ]
   return secciones

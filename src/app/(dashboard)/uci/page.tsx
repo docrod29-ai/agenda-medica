@@ -27,6 +27,7 @@ import { vexus, respuestaPLR, disfuncionVD_TAPSE, sobrecargaVD_VDVI, lineasB as 
 import { analizarCKRT, analizarCitrato, type ModalidadCKRT } from '@/lib/uci/ckrt'
 import { analizarECMO, type ConfigECMO } from '@/lib/uci/ecmo'
 import { analizarNeuro, type Pupilas } from '@/lib/uci/neuro'
+import { aplanarLectura, compararLecturas, correlacionTemporal, resumenCambios, type Lectura } from '@/lib/uci/correlacion'
 import { analizarSeguridadUCI, type NivelAlerta } from '@/lib/uci/seguridad'
 import { FUENTES, citarFuente } from '@/lib/uci/evidencia'
 import { extraerValoresUCI } from '@/lib/uci/extraccion'
@@ -215,12 +216,35 @@ export default function UciPanelPage() {
   const [copilotError, setCopilotError] = useState('')
   const [feedbackDado, setFeedbackDado] = useState<'up' | 'down' | null>(null)
   const [evidAlerta, setEvidAlerta] = useState<number | null>(null)  // "¿Por qué?" abierto
+
+  // ── Tendencias: lecturas seriadas (qué cambió en el tiempo) ──
+  const claveLecturas = `nx.uci.lecturas${internamientoId ? '.' + internamientoId : ''}`
+  const [lecturas, setLecturas] = useState<Lectura[]>([])
+  useEffect(() => {
+    try { const raw = localStorage.getItem(claveLecturas); setLecturas(raw ? JSON.parse(raw) : []) } catch { setLecturas([]) }
+  }, [claveLecturas])
+  const computados = useMemo(() => ({
+    pafi: vent.indiceKirby.ok ? vent.indiceKirby.valor : null,
+    driving: vent.drivingPressure.ok ? vent.drivingPressure.valor : null,
+    pam: pam.ok ? pam.valor : null,
+    sofa: sofa.total,
+    vexus: vex.ok ? vex.valor : null,
+    ppc: neuro.ppc.ok ? neuro.ppc.valor : null,
+  }), [vent, pam, sofa, vex, neuro])
+  const lecturaActual = useMemo(() => aplanarLectura(v, computados), [v, computados])
+  const cambios = useMemo(() => (lecturas.length ? compararLecturas(lecturas[lecturas.length - 1].m, lecturaActual) : []), [lecturas, lecturaActual])
+  const correlacion = useMemo(() => correlacionTemporal(lecturas), [lecturas])
+  const guardarLectura = () => {
+    const arr = [...lecturas, { t: Date.now(), m: lecturaActual }].slice(-24)
+    setLecturas(arr)
+    try { localStorage.setItem(claveLecturas, JSON.stringify(arr)) } catch { /* */ }
+  }
   const pedirCopilot = async () => {
     setCopilotCargando(true); setCopilotError(''); setCopilot(null); setFeedbackDado(null)
     try {
       const res = await fetchAutenticado('/api/uci/copilot', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'generar', campos: v, discusion: discusionTxt || undefined, internamientoId }),
+        body: JSON.stringify({ action: 'generar', campos: v, discusion: discusionTxt || undefined, tendencias: resumenCambios(cambios) || undefined, internamientoId }),
       })
       const j = await res.json()
       if (!res.ok) { setCopilotError(j?.error || 'No se pudo generar la síntesis'); return }
@@ -503,6 +527,36 @@ export default function UciPanelPage() {
                 </div>}
           </div>
         </div>
+      </div>
+
+      {/* ── TENDENCIAS: qué cambió en el tiempo ── */}
+      <div style={{ marginTop: 18, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 14 }}>
+            <Activity size={16} style={{ color: 'var(--nexus)' }} /> Tendencias · qué cambió {lecturas.length > 0 && <span style={{ fontSize: 11.5, color: 'var(--text3)', fontWeight: 400 }}>({lecturas.length} lectura{lecturas.length !== 1 ? 's' : ''} guardada{lecturas.length !== 1 ? 's' : ''})</span>}
+          </div>
+          <button onClick={guardarLectura} className="btn" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+            <Activity size={14} /> Guardar lectura
+          </button>
+        </div>
+        {lecturas.length === 0
+          ? <p style={{ fontSize: 12.5, color: 'var(--text3)', margin: '8px 0 0' }}>Guarda una lectura al inicio del pase; en la siguiente verás <b>qué cambió</b> (subió/bajó) por parámetro. Se comparte con el Copilot.</p>
+          : cambios.length === 0
+            ? <p style={{ fontSize: 12.5, color: 'var(--text3)', margin: '8px 0 0' }}>Sin cambios respecto a la última lectura guardada.</p>
+            : <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 10 }}>
+                {cambios.map((c, i) => (
+                  <span key={i} style={{ fontSize: 12.5, padding: '4px 10px', borderRadius: 100, background: c.relevante ? 'var(--nexus-soft)' : 'var(--s2)', border: `1px solid ${c.relevante ? 'var(--border2)' : 'var(--border)'}`, color: c.relevante ? 'var(--text)' : 'var(--text3)' }}>
+                    {c.label} {c.de}→{c.a} {c.direccion === 'sube' ? '↑' : '↓'}{c.unidad ? ' ' + c.unidad : ''}
+                  </span>
+                ))}
+              </div>}
+        {correlacion.asociaciones.length > 0 && (
+          <div style={{ marginTop: 10, display: 'grid', gap: 6 }}>
+            {correlacion.asociaciones.map((a, i) => (
+              <div key={i} style={{ fontSize: 12.5, color: '#d97706', padding: '7px 9px', borderRadius: 8, background: 'var(--s2)', borderLeft: '3px solid #d97706' }}>{a}</div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── COPILOT IA (dual-model, razona sobre lo determinista) ── */}

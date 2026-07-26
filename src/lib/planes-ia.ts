@@ -141,16 +141,20 @@ export const PLANES: Record<ClavePlan, PlanCreditos> = {
   // Plan APARTE: hospitalización. El producto estrella es el de consultorio
   // (Clínica); Hospital es para quien maneja internamiento y se cobra por su lado.
   hospital: {
-    clave: 'hospital', nombre: 'Hospital', precioMXN: 2900, creditos: 400, nivelIA: 'premium',
+    clave: 'hospital', nombre: 'Hospital + UCI', precioMXN: 3499, creditos: 500, nivelIA: 'premium',
     pacientesMax: null,
     incluye: [
+      'Todo lo de Pro (consultorio con IA de máximo nivel)',
       'Módulo de Hospitalización completo',
-      'Censo, tablero de camas y traslados',
+      'Censo, tablero de camas de hospital y de UCI, traslados',
       'Indicaciones/MAR, signos y gráficas (NEWS2)',
       'Notas de ingreso, evolución, egreso, postop y anestesia',
       'Interconsultas y laboratorio',
-      'Menú de IA completo · 400 créditos/mes',
-      'Al agotarlos sigue en ⚡ Rápida sin costo hasta 300 notas más/mes; luego se pausa y recargas o subes de plan',
+      'Panel UCI: motores deterministas de ventilación, gasometría/ácido-base, SOFA/APACHE, POCUS/VExUS/PLR, neurocrítico (PPC/PIC), CKRT/PRISMA y ECMO',
+      'Nota de evolución UCI por los 7 sistemas, dictada manos libres',
+      'Copilot IA de UCI (Claude + GPT) que razona sobre los cálculos y aprende',
+      'Menú de IA completo · 500 créditos/mes',
+      'Al agotarlos sigue en ⚡ Rápida sin costo; luego se pausa y recargas o subes de plan',
     ],
   },
 }

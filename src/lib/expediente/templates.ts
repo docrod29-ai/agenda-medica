@@ -109,16 +109,19 @@ export const SECCIONES_POR_TIPO: Record<TipoNota, Omit<NotaSeccion, 'value'>[]> 
   // (ventilación, gasometría, hemodinamia, POCUS, escalas) se cablearán en
   // iteraciones posteriores y colgarán sus cálculos/alertas en un panel APARTE,
   // no dentro de estas secciones narrativas. Solo el Plan es obligatorio (NOM-004).
+  // Nota de UCI por los 7 SISTEMAS del Dr (neuro · respiratorio · hemodinámico ·
+  // abdominodigestivo · hidrometabólico · hematoinfeccioso · musculoesquelético),
+  // con contexto y plan como marco. POCUS y soportes (CKRT/ECMO) se pliegan dentro
+  // del sistema que corresponde (no como sección aparte).
   evolucion_uci: [
     { key: 'contexto',          label: 'Contexto y objetivos del día', placeholder: 'Día de UCI · día de VM · diagnósticos activos · procedimientos recientes · dispositivos invasivos · objetivos del día' },
-    { key: 'neurologico',       label: 'Neurológico',                  placeholder: 'Conciencia · Glasgow/FOUR · RASS · CAM-ICU · pupilas · focalización · sedación/analgesia · bloqueo neuromuscular · crisis · PIC/temperatura' },
-    { key: 'respiratorio',      label: 'Respiratorio',                 placeholder: 'Vía aérea · modo · FiO₂ · VT (y VT/PBW) · FR · PEEP · Ppico/Pplateau · driving pressure · compliance · auto-PEEP · secreciones · prono · destete · USG pulmonar · gasometría' },
-    { key: 'hemodinamico',      label: 'Hemodinámico y cardiovascular', placeholder: 'FC · ritmo · TA · PAM · vasopresores/inotrópicos (dosis y unidad) · lactato · llenado capilar · diuresis · gasto cardiaco · POCUS cardiaco · PLR · congestión vs perfusión' },
-    { key: 'renal_metabolico',  label: 'Renal e hidrometabólico',      placeholder: 'Creatinina/urea · diuresis horaria · balance 24 h y acumulado · peso · TRR/modalidad/ultrafiltración · Na/K/Cl/Mg/Ca/P · glucosa · ácido-base · KDIGO · ajustes de fármacos' },
-    { key: 'gastrointestinal',  label: 'Gastrointestinal y nutrición', placeholder: 'Abdomen · peristalsis · tolerancia enteral · residuo · evacuaciones · nutrición enteral/parenteral · metas calóricas/proteicas · función hepática · PIA · drenajes/ostomías · riesgo de sangrado' },
-    { key: 'hematoinfeccioso',  label: 'Hematológico e infeccioso',    placeholder: 'Hb · plaquetas · leucocitos · coagulación/sangrado · transfusiones · profilaxis TEV · foco infeccioso · cultivos/microorganismos/susceptibilidad · antimicrobianos (día, dosis, ajuste renal) · biomarcadores · aislamientos' },
-    { key: 'piel_dispositivos', label: 'Piel, músculo y dispositivos', placeholder: 'Lesiones por presión · heridas/sitios quirúrgicos · drenajes · catéteres/accesos · ECMO/balón/Impella · movilidad/rehabilitación' },
-    { key: 'ultrasonido',       label: 'Ultrasonido crítico (POCUS)',  placeholder: 'Pulmón (deslizamiento, líneas B, LUS) · corazón (función, VTI, VD) · VCI · VExUS · respuesta a precarga (VTI pre/post PLR). Describir hallazgos y calidad de ventana; nunca una sola medición decide conducta' },
+    { key: 'neurologico',       label: 'Neurológico',                  placeholder: 'Conciencia · Glasgow/FOUR · RASS · CAM-ICU · pupilas · focalización · sedación/analgesia · bloqueo neuromuscular · crisis · PIC/PPC · temperatura' },
+    { key: 'respiratorio',      label: 'Respiratorio',                 placeholder: 'Vía aérea · modo · FiO₂ · VT (y VT/PBW) · FR · PEEP · Ppico/Pplateau · driving pressure · compliance · auto-PEEP · secreciones · prono · destete · USG pulmonar (líneas B/LUS) · gasometría' },
+    { key: 'hemodinamico',      label: 'Hemodinámico y cardiovascular', placeholder: 'FC · ritmo · TA · PAM · vasopresores/inotrópicos (dosis y unidad) · lactato · llenado capilar · diuresis · gasto cardiaco · POCUS cardiaco (VTI, VD, TAPSE) · PLR · VExUS/congestión · ECMO' },
+    { key: 'abdominodigestivo', label: 'Abdominodigestivo',            placeholder: 'Abdomen · peristalsis · tolerancia enteral · residuo gástrico · evacuaciones · nutrición enteral/parenteral · metas calóricas/proteicas · función hepática · presión intraabdominal · drenajes/ostomías · riesgo de sangrado' },
+    { key: 'hidrometabolico',   label: 'Hidrometabólico',              placeholder: 'Balance 24 h y acumulado · peso · diuresis horaria · Na/K/Cl/Mg/Ca/P · glucosa · ácido-base · creatinina/urea · KDIGO · TRR/CKRT (modalidad, dosis, UF, citrato) · osmolaridad · ajustes de fármacos' },
+    { key: 'hematoinfeccioso',  label: 'Hematoinfeccioso',             placeholder: 'Hb · plaquetas · leucocitos · coagulación/sangrado · transfusiones · profilaxis TEV · foco infeccioso · cultivos/microorganismos/susceptibilidad · antimicrobianos (día, dosis, ajuste renal) · biomarcadores · aislamientos' },
+    { key: 'musculoesqueletico', label: 'Musculoesquelético',          placeholder: 'Fuerza/tono · debilidad adquirida en UCI · movilización/rehabilitación · lesiones por presión · heridas/sitios quirúrgicos · catéteres/accesos · fracturas/férulas · dolor osteomuscular' },
     { key: 'plan',              label: 'Plan por sistema',             obligatorio: true,  placeholder: 'Objetivos por aparato · estudios · cambios terapéuticos · destete/retiro de dispositivos · profilaxis · nutrición · antimicrobianos · comunicación con familia · criterios de egreso de UCI' },
   ],
 }

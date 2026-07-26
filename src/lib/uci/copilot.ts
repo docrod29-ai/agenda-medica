@@ -93,7 +93,7 @@ Responde SOLO con JSON válido, sin texto fuera del JSON, con este esquema:
 {
   "resumen": "1-3 frases de la situación global",
   "problemas": [
-    { "sistema": "respiratorio|hemodinamico|renal_metabolico|neurologico|hematoinfeccioso|soporte_extracorporeo|acido_base|otro",
+    { "sistema": "neurologico|respiratorio|hemodinamico|abdominodigestivo|hidrometabolico|hematoinfeccioso|musculoesqueletico",
       "titulo": "problema en pocas palabras",
       "cambio": "qué está alterado (con el valor)",
       "porque": "hipótesis fisiológica, con incertidumbre",

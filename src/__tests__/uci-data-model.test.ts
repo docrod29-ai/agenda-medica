@@ -50,12 +50,12 @@ describe('Nota de evolución UCI por aparatos y sistemas', () => {
     expect(TIPO_NOTA_LABEL.evolucion_uci).toBe('Nota de Evolución UCI')
   })
 
-  it('la plantilla cubre los 8 sistemas + contexto + plan', () => {
+  it('la plantilla cubre los 7 sistemas del Dr + contexto + plan', () => {
     const keys = SECCIONES_POR_TIPO.evolucion_uci.map(s => s.key)
-    for (const k of ['contexto', 'neurologico', 'respiratorio', 'hemodinamico', 'renal_metabolico', 'gastrointestinal', 'hematoinfeccioso', 'piel_dispositivos', 'ultrasonido', 'plan']) {
+    for (const k of ['contexto', 'neurologico', 'respiratorio', 'hemodinamico', 'abdominodigestivo', 'hidrometabolico', 'hematoinfeccioso', 'musculoesqueletico', 'plan']) {
       expect(keys).toContain(k)
     }
-    expect(keys).toHaveLength(10)
+    expect(keys).toHaveLength(9)
   })
 
   it('el Plan es la sección obligatoria (NOM-004) y arranca vacía', () => {
@@ -63,7 +63,7 @@ describe('Nota de evolución UCI por aparatos y sistemas', () => {
     expect(plan?.obligatorio).toBe(true)
     const vacias = seccionesVacias('evolucion_uci')
     expect(vacias.every(s => s.value === '')).toBe(true)
-    expect(vacias).toHaveLength(10)
+    expect(vacias).toHaveLength(9)
   })
 
   it('la nota de UCI es hospitalaria y requiere signos vitales', () => {

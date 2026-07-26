@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v636'  // COHERENCIA DEL FLUJO DE NOTA: los dos botones ya no confunden. Ahora al dictar/capturar se muestra una VISTA PREVIA EN VIVO de la nota de evolucion UCI (se arma sola por sistemas, construirSeccionesUCI reactivo). El boton de arriba se renombro 'Revisar y firmar la nota' (deshabilitado hasta que haya datos) y solo ABRE la nota ya generada en el expediente para firmarla. Dictar=arma la nota (visible); boton=firmarla. Nada de segundo dictado.
+const CACHE = 'nexusmed-v637'  // NOTA UCI POR LOS 7 SISTEMAS DEL DR (neurologico, respiratorio, hemodinamico, abdominodigestivo, hidrometabolico, hematoinfeccioso, musculoesqueletico) + contexto/plan; POCUS plegado en hemodinamico/respiratorio, CKRT en hidrometabolico, ECMO en hemodinamico(VA)/respiratorio(VV). Copilot y prompt alineados a los 7 sistemas. MOTOR DE TENDENCIAS/CORRELACION (que cambio): guardar lectura seriada (localStorage por internamiento) + tarjeta 'que cambio' (sube/baja por parametro) + asociacion corazon-pulmon (no causalidad) + se alimenta al Copilot. Plan Hospital enriquecido con ICU OS (UCI/CKRT/ECMO/Copilot), 3499, 500 creditos.
 // (v601):
 
 self.addEventListener('install', (event) => {
