@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v664'  // L1d dinero: MEDIDOR de creditos visible. estadoClavesIA ahora devuelve creditos {usados, extra, limite}; Configuracion -> Llaves de IA pinta una barra usados/tope con aviso a 85% y 100% (antes el medico gastaba a ciegas: solo veia telemetria 'total', nunca el bote de creditos). L1 dinero COMPLETO (tope + RBAC + anticipo + medidor).
+const CACHE = 'nexusmed-v665'  // L2 seguridad telesalud: (a) /api/telesalud/token pasa de verificarMiembro a verificarMedico + valida que el paciente exista en la clinica (antes la secretaria emitia tokens que via /api/portal 'documentos' exponian Dx+medicamentos = bypass de secreto medico NOM-004). (b) /api/telesalud/sala exige titularidad SIEMPRE (token del paciente de esa cita O miembro autenticado); se elimino el camino legacy sin token (con solo citaId+clinicId cualquiera entraba a la videollamada de otro paciente, y la sala existente se devolvia antes de comprobar nada).
 // (v601):
 
 self.addEventListener('install', (event) => {
