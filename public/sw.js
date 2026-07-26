@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v651'  // NEXUS-QUALITY-011 (coherencia sedacion): el motor de seguridad de UCI RECIBIA rass y lo IGNORABA -> paciente agitado (riesgo de auto-retiro de dispositivos) o en sedacion profunda no generaba alerta; aptoMovilizacion asumia la conciencia. Ahora analizarSeguridadUCI alerta por RASS (>=+2 alta, <=-4 moderada) y aptoMovilizacion exige RASS -2..+1 si esta documentado. Panel + copilot pasan rass. 012 (infusiones) verificado correcto (vasopresina U/min fija, levosimendan/milrinona por peso). 1744 tests.
+const CACHE = 'nexusmed-v652'  // NEXUS-QUALITY-013+014 (coherencia por edad/estado, hermanos del bug GCS). 013: 'puerperio' (posparto) estaba en el trigger de 'embarazo confirmado' -> a una puerpera le salia aviso de teratogeno 'evita en el embarazo' pese a que el feto ya nacio; se quita puerper. 014: signosDeAlarma aplicaba umbrales de ADULTO (FC>=120, TAS<90, qSOFA, 140/90) a ninos -> falsas alarmas; en <12a emite nota pediatrica (PALS), la SpO2<90 y fiebre siguen. 1749 tests.
 // (v601):
 
 self.addEventListener('install', (event) => {

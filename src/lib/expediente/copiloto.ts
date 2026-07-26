@@ -296,8 +296,13 @@ function riesgoGestacional(e: EntradaCopiloto): Sugerencia[] {
   // teratógenos categoría 'evitar' (estatinas/tetraciclinas/quinolonas/AINE): sin
   // esto se metería ruido en toda mujer en edad fértil. Los 'contraindicado' sí
   // avisan siempre (el riesgo de un embarazo no detectado pesa más).
+  // OJO (icu-013): NO incluir 'puerper' (puerperio = posparto): la paciente YA NO
+  // está embarazada, el feto nació. Marcar embarazo por un Dx de puerperio hacía que
+  // los teratógenos categoría 'evitar' dispararan un aviso "La paciente cursa
+  // embarazo" a una puérpera — incoherente. La lactancia es otra cosa (transferencia
+  // a leche, no teratogenicidad) y tiene su propia lista, no este flag.
   const embarazoConfirmado = (e.diagnosticos ?? []).some(d =>
-    /embaraz|gestaci|gr[aá]vid|obst[eé]tric|prenatal|puerper/i.test(d.descripcion ?? ''))
+    /embaraz|gestaci|gr[aá]vid|obst[eé]tric|prenatal/i.test(d.descripcion ?? ''))
   const coincide = (x: { farmaco: string; sinonimos?: string[] }, nm: string) =>
     (x.sinonimos ?? []).some(s => nm.includes(norm(s))) ||
     nm.includes(norm(x.farmaco)) ||
@@ -344,10 +349,25 @@ function signosDeAlarma(e: EntradaCopiloto): Sugerencia[] {
   const out: Sugerencia[] = []
   const tas = sistolica(s.ta)
   const tad = diastolica(s.ta)
+  // icu-014: los umbrales de abajo (qSOFA, FC ≥120, TAS <90, TA 140/90–180/110) son
+  // de ADULTO. En < 12 años los signos normales cambian con la edad (FC 100–160 en
+  // lactantes, TAS más baja), así que aplicarlos genera falsas alarmas o falsa
+  // tranquilidad. La SpO₂ < 90 (hipoxemia) y la fiebre SÍ son válidas a cualquier edad.
+  const edad = e.edad
+  const pediatrico = edad != null && edad < 12
+  if (pediatrico && (s.fr != null || s.fc != null || tas != null)) {
+    out.push({
+      id: 'vital:pediatrico',
+      nivel: 'info',
+      titulo: 'Signos vitales pediátricos: interpreta por edad',
+      detalle: 'Los umbrales de alarma de adulto (FC ≥120, TAS <90, qSOFA, 140/90) no aplican en < 12 años; los rangos normales dependen de la edad (PALS). Valora FC/FR/TA contra la tabla por edad.',
+      textoNota: 'Signos vitales interpretados con umbrales pediátricos por edad (no de adulto).',
+    })
+  }
 
   // qSOFA: dos de los tres componentes son medibles con lo que ya hay. Si esos
   // dos ya suman 2, el puntaje YA es positivo — no puede bajar con el tercero.
-  if (s.fr != null && tas != null && s.fr >= 22 && tas <= 100) {
+  if (!pediatrico && s.fr != null && tas != null && s.fr >= 22 && tas <= 100) {
     out.push({
       id: 'vital:qsofa',
       nivel: 'critico',
@@ -367,7 +387,7 @@ function signosDeAlarma(e: EntradaCopiloto): Sugerencia[] {
     })
   }
 
-  if (tas != null && tas < 90) {
+  if (!pediatrico && tas != null && tas < 90) {
     out.push({
       id: 'vital:hipotension',
       nivel: 'critico',
@@ -377,7 +397,7 @@ function signosDeAlarma(e: EntradaCopiloto): Sugerencia[] {
     })
   }
 
-  if (tas != null && tad != null && (tas >= 180 || tad >= 110)) {
+  if (!pediatrico && tas != null && tad != null && (tas >= 180 || tad >= 110)) {
     out.push({
       id: 'vital:crisis-ht',
       nivel: 'critico',
@@ -395,7 +415,7 @@ function signosDeAlarma(e: EntradaCopiloto): Sugerencia[] {
     })
   }
 
-  if (s.fc != null && s.fc >= 120) {
+  if (!pediatrico && s.fc != null && s.fc >= 120) {
     out.push({
       id: 'vital:taquicardia',
       nivel: 'accion',
