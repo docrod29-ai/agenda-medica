@@ -26,7 +26,9 @@ import { calcularSOFA } from '@/lib/uci/scores'
 import { vexus, respuestaPLR, disfuncionVD_TAPSE, sobrecargaVD_VDVI, lineasB as lineasBPocus, type PatronVena, type ParametroPLR } from '@/lib/uci/pocus'
 import { analizarCKRT, analizarCitrato, type ModalidadCKRT } from '@/lib/uci/ckrt'
 import { analizarECMO, type ConfigECMO } from '@/lib/uci/ecmo'
+import { analizarNeuro, type Pupilas } from '@/lib/uci/neuro'
 import { analizarSeguridadUCI, type NivelAlerta } from '@/lib/uci/seguridad'
+import { FUENTES, citarFuente } from '@/lib/uci/evidencia'
 import { extraerValoresUCI } from '@/lib/uci/extraccion'
 import { atribuirRolesDiscusion, formatearDiscusion } from '@/lib/uci/discusion'
 import { useGrabacionAudio } from '@/hooks/useGrabacionAudio'
@@ -171,6 +173,10 @@ export default function UciPanelPage() {
     norepinefrina: n('norepi'), dopamina: n('dopa'), dobutamina: n('dobu'), epinefrina: n('epi'),
     glasgow: n('glasgow'), creatinina: n('creat'),
   }), [v, vent, pam])
+  const neuro = useMemo(() => analizarNeuro({
+    mapMmHg: pam.ok ? pam.valor ?? undefined : undefined, pic: n('pic'), glasgow: n('glasgow'),
+    pupilas: (v.pupilas as Pupilas) || undefined, paco2: n('paco2'), temperatura: n('temp'), sodio: n('na'), osmolaridad: n('osm'),
+  }), [v, pam])
   const alertas = useMemo(() => analizarSeguridadUCI({
     ph: n('ph'), glucosa: n('glucosa'), potasio: n('k'), pam: pam.ok ? pam.valor ?? undefined : undefined,
     pplat: n('pplat'), drivingPressure: vent.drivingPressure.ok ? vent.drivingPressure.valor ?? undefined : undefined,
@@ -208,6 +214,7 @@ export default function UciPanelPage() {
   const [copilotCargando, setCopilotCargando] = useState(false)
   const [copilotError, setCopilotError] = useState('')
   const [feedbackDado, setFeedbackDado] = useState<'up' | 'down' | null>(null)
+  const [evidAlerta, setEvidAlerta] = useState<number | null>(null)  // "¿Por qué?" abierto
   const pedirCopilot = async () => {
     setCopilotCargando(true); setCopilotError(''); setCopilot(null); setFeedbackDado(null)
     try {
@@ -338,8 +345,10 @@ export default function UciPanelPage() {
             <Campo label="Relación I:E" k="ie" v={v} set={set} w={90} />
             <Campo label="Trigger" k="trigger" v={v} set={set} w={90} />
             <Campo label="PaO₂" k="pao2" v={v} set={set} sufijo="mmHg" />
-            <Campo label="Muestra gaso." k="muestra" v={v} set={set} w={110} />
-            <Campo label="Soporte resp (si)" k="soporte" v={v} set={set} w={110} />
+            <Selector label="Muestra gaso." k="muestra" v={v} set={set} w={120} opciones={[
+              { val: 'arterial', txt: 'Arterial' }, { val: 'venosa', txt: 'Venosa' }, { val: 'capilar', txt: 'Capilar' }]} />
+            <Selector label="Soporte VM/CPAP" k="soporte" v={v} set={set} w={130} opciones={[
+              { val: 'si', txt: 'Sí (VM/CPAP)' }, { val: 'no', txt: 'No' }]} />
             <Campo label="SpO₂" k="spo2" v={v} set={set} sufijo="%" />
           </Bloque>
           <Bloque icon={Droplets} titulo="Gasometría / metabólico">
@@ -364,6 +373,13 @@ export default function UciPanelPage() {
             <Campo label="Creatinina" k="creat" v={v} set={set} />
             <Campo label="Plaquetas" k="plaquetas" v={v} set={set} sufijo="×10³" />
             <Campo label="Bilirrubina" k="bili" v={v} set={set} />
+          </Bloque>
+          <Bloque icon={Brain} titulo="Neurocrítico">
+            <Campo label="PIC" k="pic" v={v} set={set} sufijo="mmHg" w={85} />
+            <Selector label="Pupilas" k="pupilas" v={v} set={set} w={130} opciones={[
+              { val: 'isocoricas', txt: 'Isocóricas' }, { val: 'anisocoria', txt: 'Anisocoria' }, { val: 'fijas', txt: 'Fijas' }]} />
+            <Campo label="Temp" k="temp" v={v} set={set} sufijo="°C" w={80} />
+            <Campo label="Osmolaridad" k="osm" v={v} set={set} sufijo="mOsm/L" w={120} />
           </Bloque>
           <Bloque icon={Waves} titulo="POCUS · ultrasonido a pie de cama">
             <Campo label="VCI" k="vci" v={v} set={set} sufijo="cm" w={80} />
@@ -420,6 +436,24 @@ export default function UciPanelPage() {
             </div>
           </div>
 
+          {(neuro.ppc.ok || neuro.picEstado || neuro.banderas.length > 0) && (
+            <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 14, marginBottom: 10 }}>
+                <Brain size={16} style={{ color: 'var(--nexus)' }} /> Neurocrítico
+              </div>
+              <div style={{ display: 'grid', gap: 8 }}>
+                <Resultado label="PPC (PAM − PIC)" r={{ ok: neuro.ppc.ok, valor: neuro.ppc.valor, unidad: 'mmHg', motivoBloqueo: neuro.ppc.motivoBloqueo, interpretacion: neuro.ppc.interpretacion.split(':').slice(1).join(':').trim() || 'meta 60–70' }} />
+                {neuro.picEstado && <div style={{ fontSize: 12.5, color: 'var(--text2)' }}>{neuro.picEstado}</div>}
+                {neuro.banderas.map((b, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 8, fontSize: 12.5, padding: '7px 9px', borderRadius: 8, background: 'var(--s2)', borderLeft: `3px solid ${colorNivel[b.nivel]}` }}>
+                    <span style={{ fontSize: 10, fontWeight: 800, color: colorNivel[b.nivel], textTransform: 'uppercase', width: 58, flexShrink: 0 }}>{b.nivel}</span>
+                    <span>{b.mensaje}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 14, marginBottom: 10 }}>
               <ShieldAlert size={16} style={{ color: '#d97706' }} /> Alertas ({alertas.length})
@@ -427,12 +461,23 @@ export default function UciPanelPage() {
             {alertas.length === 0
               ? <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Sin alertas con los datos actuales.</div>
               : <div style={{ display: 'grid', gap: 7 }}>
-                  {alertas.map((a, i) => (
-                    <div key={i} style={{ display: 'flex', gap: 8, fontSize: 12.5, padding: '7px 9px', borderRadius: 8, background: 'var(--s2)', borderLeft: `3px solid ${colorNivel[a.nivel]}` }}>
-                      <span style={{ fontSize: 10, fontWeight: 800, color: colorNivel[a.nivel], textTransform: 'uppercase', width: 62, flexShrink: 0 }}>{a.nivel}</span>
-                      <span style={{ color: 'var(--text)' }}>{a.mensaje}</span>
-                    </div>
-                  ))}
+                  {alertas.map((a, i) => {
+                    const fuente = a.fuenteId ? FUENTES[a.fuenteId] : undefined
+                    return (
+                      <div key={i} style={{ fontSize: 12.5, padding: '7px 9px', borderRadius: 8, background: 'var(--s2)', borderLeft: `3px solid ${colorNivel[a.nivel]}` }}>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <span style={{ fontSize: 10, fontWeight: 800, color: colorNivel[a.nivel], textTransform: 'uppercase', width: 62, flexShrink: 0 }}>{a.nivel}</span>
+                          <span style={{ color: 'var(--text)', flex: 1 }}>{a.mensaje}</span>
+                          {fuente && <button onClick={() => setEvidAlerta(evidAlerta === i ? null : i)} style={{ background: 'none', border: 'none', color: 'var(--nexus)', cursor: 'pointer', fontSize: 11, flexShrink: 0, padding: 0 }}>¿Por qué?</button>}
+                        </div>
+                        {fuente && evidAlerta === i && (
+                          <div style={{ marginTop: 6, marginLeft: 70, fontSize: 11, color: 'var(--text3)', borderTop: '1px dashed var(--border)', paddingTop: 6 }}>
+                            {citarFuente(fuente)}{fuente.verified ? '' : ' · (fuente por confirmar contra el documento)'}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>}
           </div>
         </div>

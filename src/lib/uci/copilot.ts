@@ -18,6 +18,7 @@ import { calcularSOFA } from './scores'
 import { vexus, respuestaPLR, disfuncionVD_TAPSE, sobrecargaVD_VDVI, lineasB, type PatronVena, type ParametroPLR } from './pocus'
 import { analizarCKRT, analizarCitrato, type ModalidadCKRT } from './ckrt'
 import { analizarECMO, type ConfigECMO } from './ecmo'
+import { analizarNeuro, type Pupilas } from './neuro'
 import { analizarSeguridadUCI } from './seguridad'
 
 export const COPILOT_VERSION = '1.0.0'
@@ -71,7 +72,11 @@ export function snapshotUCI(v: Campos) {
     valvulaAorticaAbre: v.ecmoValv === 'si' ? true : v.ecmoValv === 'no' ? false : undefined,
     edemaPulmonar: v.ecmoEdema === 'si' ? true : v.ecmoEdema === 'no' ? false : undefined,
   })
-  return { version: COPILOT_VERSION, ventilacion: vent, gasometria: gaso, pam, sofa, alertas, pocus, ckrt, citrato, ecmo }
+  const neuro = analizarNeuro({
+    mapMmHg: pam.ok ? pam.valor ?? undefined : undefined, pic: n('pic'), glasgow: n('glasgow'),
+    pupilas: (v.pupilas as Pupilas) || undefined, paco2: n('paco2'), temperatura: n('temp'), sodio: n('na'), osmolaridad: n('osm'),
+  })
+  return { version: COPILOT_VERSION, ventilacion: vent, gasometria: gaso, pam, sofa, alertas, pocus, ckrt, citrato, ecmo, neuro }
 }
 
 export const COPILOT_SYSTEM = `Eres el COPILOT de una Unidad de Cuidados Intensivos dentro de NexusMED. Trabajas para un médico intensivista.

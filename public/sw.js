@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v633'  // ICU COPILOT dual-model (Anthropic Opus + OpenAI GPT): API /api/uci/copilot razona SOBRE las salidas deterministas (snapshotUCI en el servidor; el LLM NUNCA recalcula escalas), devuelve problemas por sistema (que cambio/por que/que soporte/que falta) con provenance + incertidumbre, SIN ordenes; fusion primario+2a opinion (divergencias); APRENDE del feedback del medico (uci_copilot_feedback -> preferencias reinyectadas). Boton 'Copilot IA' + pulgares en el Panel UCI. Gateado por verificarModuloIA, llaves por consultorio.
+const CACHE = 'nexusmed-v634'  // ICU OS: motor NEUROCRITICO (Brain ICU, BTF 2016): PPC=PAM-PIC meta 60-70, PIC>22 tratar, pupilas/herniacion, PaCO2 30-45, Na>160, osmolaridad>320, Glasgow<=8 -> bloque + tarjeta de resultados en el panel + en snapshot del Copilot + en la nota (neurologico). BOTON '¿Por que?' (evidencia citada de FUENTES) en cada alerta. COHERENCIA UI: 'Muestra gaso.' y 'Soporte VM/CPAP' pasan de texto libre a SELECTOR (mas usable, sin errores de string). Sin campos duplicados.
 // (v601):
 
 self.addEventListener('install', (event) => {

@@ -14,6 +14,7 @@ import { calcularSOFA } from './scores'
 import { vexus, respuestaPLR, disfuncionVD_TAPSE, sobrecargaVD_VDVI, lineasB, type PatronVena, type ParametroPLR } from './pocus'
 import { analizarCKRT, analizarCitrato, type ModalidadCKRT } from './ckrt'
 import { analizarECMO, type ConfigECMO } from './ecmo'
+import { analizarNeuro, type Pupilas } from './neuro'
 
 export const UCI_NOTA_VERSION = '1.0.0'
 
@@ -85,8 +86,16 @@ export function construirSeccionesUCI(v: Campos, opts?: { dia?: string; discusio
   ])
 
   // ── Neurológico ──
+  const neuro = analizarNeuro({
+    mapMmHg: pam.ok ? pam.valor ?? undefined : undefined, pic: n('pic'), glasgow: n('glasgow'),
+    pupilas: (v.pupilas as Pupilas) || undefined, paco2: n('paco2'), temperatura: n('temp'), sodio: n('na'), osmolaridad: n('osm'),
+  })
   const neurologico = join([
     n('glasgow') ? `Glasgow ${v.glasgow}.` : null,
+    n('pic') ? `PIC ${v.pic} mmHg${neuro.picEstado ? ` (${neuro.picEstado})` : ''}.` : null,
+    neuro.ppc.ok ? `PPC ${neuro.ppc.valor} mmHg — ${neuro.ppc.interpretacion.split(':').slice(1).join(':').trim() || neuro.ppc.interpretacion}.` : null,
+    v.pupilas ? `Pupilas: ${v.pupilas}.` : null,
+    ...neuro.banderas.filter(b => b.parametro !== 'Glasgow').map(b => `⚠ ${b.mensaje}`),
   ])
 
   // ── Respiratorio ──

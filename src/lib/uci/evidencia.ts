@@ -27,7 +27,7 @@ export interface FuenteEvidencia {
 
 export interface ReglaEvidencia {
   ruleId: string
-  dominio: 'hemodinamia' | 'ventilacion' | 'gasometria' | 'pocus' | 'nutricion' | 'seguridad' | 'sedacion' | 'glucemia' | 'ckrt' | 'ecmo'
+  dominio: 'hemodinamia' | 'ventilacion' | 'gasometria' | 'pocus' | 'nutricion' | 'seguridad' | 'sedacion' | 'glucemia' | 'ckrt' | 'ecmo' | 'neuro'
   resumen: string
   umbral: string
   fuenteId: string
@@ -55,6 +55,7 @@ export const FUENTES: Record<string, FuenteEvidencia> = {
   elsoGeneral2021: { id: 'elsoGeneral2021', titulo: 'ELSO General Guidelines for all ECLS Cases', organizacion: 'ELSO', anio: 2021, verified: false },
   elsoAnticoag2024: { id: 'elsoAnticoag2024', titulo: 'ELSO Anticoagulation Guideline', organizacion: 'ELSO', anio: 2024, verified: false },
   rcaKdigoCitrate: { id: 'rcaKdigoCitrate', titulo: 'Regional citrate anticoagulation for CKRT (KDIGO-suggested first line)', organizacion: 'KDIGO', revista: 'Kidney Int Suppl', anio: 2012, verified: false },
+  btf2016: { id: 'btf2016', titulo: 'Guidelines for the Management of Severe Traumatic Brain Injury, 4th Edition', organizacion: 'Brain Trauma Foundation', revista: 'Neurosurgery', anio: 2016, verified: false },
 }
 
 /** Reglas accionables ancladas a su fuente. */
@@ -123,6 +124,11 @@ export const REGLAS_UCI: ReglaEvidencia[] = [
   { ruleId: 'ecmo.hemolisis', dominio: 'ecmo', resumen: 'Hemólisis del circuito', umbral: 'plasma-free Hb > 50 mg/dL = significativa; apoya LDH alta + haptoglobina baja', fuenteId: 'elsoGeneral2021', fuerza: 'consenso', calidad: 'baja', limitaciones: ['Buscar fuente: oxigenador, bomba o cánula'] },
   { ruleId: 'ecmo.harlequin', dominio: 'ecmo', resumen: 'Hipoxia diferencial en VA periférico (Harlequin/North-South)', umbral: 'SpO2 mano derecha << miembro inferior → gasometría de radial DERECHA', fuenteId: 'elsoGeneral2021', fuerza: 'consenso', calidad: 'baja', limitaciones: ['Ocurre al recuperar eyección del VI con pulmón enfermo; valorar ventilación nativa o conversión de configuración'] },
   { ruleId: 'ecmo.distension', dominio: 'ecmo', resumen: 'Distensión del VI en VA-ECMO', umbral: 'baja pulsatilidad (pulso < 15 mmHg), válvula aórtica que no abre, edema pulmonar → valorar descarga (venting)', fuenteId: 'elsoGeneral2021', fuerza: 'consenso', calidad: 'baja', limitaciones: ['La conducta de descarga la decide el equipo; el motor solo detecta el patrón'] },
+
+  // ── Neurocrítico (BTF 2016) ───────────────────────────────────
+  { ruleId: 'neuro.ppc', dominio: 'neuro', resumen: 'Presión de perfusión cerebral', umbral: 'PPC = PAM − PIC; meta 60–70 mmHg', fuenteId: 'btf2016', fuerza: 'nivel IIB', calidad: 'moderada', limitaciones: ['Evitar forzar PPC > 70 con líquidos/vasopresores (riesgo de SDRA)'] },
+  { ruleId: 'neuro.pic', dominio: 'neuro', resumen: 'Umbral de tratamiento de la PIC', umbral: 'tratar PIC > 22 mmHg', fuenteId: 'btf2016', fuerza: 'nivel IIB', calidad: 'moderada', limitaciones: [] },
+  { ruleId: 'neuro.co2', dominio: 'neuro', resumen: 'Ventilación en TCE', umbral: 'normocapnia 35–45; hiperventilación 30–35 solo de rescate por herniación', fuenteId: 'btf2016', fuerza: 'nivel IIB', calidad: 'moderada', limitaciones: ['Evitar hiperventilación profunda profiláctica (isquemia)'] },
 ]
 
 /** Devuelve la evidencia (regla + fuente) de un ruleId, o null. */
