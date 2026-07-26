@@ -45,7 +45,10 @@ export async function GET(req: NextRequest) {
     //  · ausentes → compatible mientras RECETA_DISENO_FIRMA !== 'obligatoria'
     //    (las URLs guardadas en la config de los médicos siguen imprimiendo).
     const verif = verificarPathDiseno(path, req.nextUrl.searchParams.get('exp'), req.nextUrl.searchParams.get('sig'), Date.now())
-    if (verif === 'invalida' || verif === 'vencida') {
+    // 'sin_secreto' con firma presente también se rechaza: sin secreto nadie pudo
+    // acuñar una firma legítima, así que esa combinación siempre es sospechosa
+    // (y así el gate no queda abierto si la env var falta en prod).
+    if (verif === 'invalida' || verif === 'vencida' || verif === 'sin_secreto') {
       return new Response(verif === 'vencida' ? 'Enlace vencido; vuelve a abrir la impresión' : 'Firma no válida', { status: 403 })
     }
     if (verif === 'sin_firma' && firmaObligatoria()) {

@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v655'  // NEXUS-QUALITY-010 fase 1 (servidor): token firmado con caducidad para el proxy del formato de receta. lib/receta-diseno-token (HMAC path+exp, 24h; secreto RECETA_DISENO_SECRET con fallback a PORTAL_PACIENTE_SECRET). El proxy verifica SIEMPRE una firma presente (invalida/vencida -> 403) y acepta sin-firma solo mientras RECETA_DISENO_FIRMA != obligatoria (las URLs guardadas siguen imprimiendo: CERO riesgo hoy). + POST /api/receta/diseno-url (autenticado) acuna URLs firmadas para el cableado de impresion. 7 tests.
+const CACHE = 'nexusmed-v656'  // 010 endurecido: firma presente sin secreto configurado -> 403 (verificado en prod que las env vars faltan; sin esto el gate quedaba abierto). Sin-firma sigue en compatibilidad.
 // (v601):
 
 self.addEventListener('install', (event) => {
