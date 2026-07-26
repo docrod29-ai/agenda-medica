@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import admin from '@/lib/firebase-admin'
+import { verificarPathDiseno, firmaObligatoria } from '@/lib/receta-diseno-token'
 
 /**
  * Proxy SAME-ORIGIN del formato de receta guardado en Firebase Storage.
@@ -14,23 +15,17 @@ import admin from '@/lib/firebase-admin'
  * Seguridad (anti-SSRF): SOLO descarga URLs de descarga de NUESTRO bucket de
  * Firebase Storage. Cualquier otra URL → 403.
  *
- * LÍMITE CONOCIDO, ANOTADO A PROPÓSITO: este GET no lleva autenticación, y no
- * puede llevarla tal como está construido — el navegador pide estas imágenes con
- * <img src>, que NO manda la cabecera Authorization. Por eso lo que se sirve aquí
- * (membrete, firma y sello del médico, y hoy también fotos clínicas, porque
- * /api/config/imagen borra las diagonales de la key y todo acaba en esta misma
- * carpeta) queda tras una URL sin sesión. Las rutas llevan el uid de Firebase, 28
- * caracteres aleatorios, así que no son enumerables a ciegas; el riesgo real es
- * que la URL se filtre (un PDF compartido, un historial, una caché intermedia) y
- * el acceso sea entonces indefinido.
- *
- * Mientras tanto se endurece lo que sí se puede sin romper la impresión:
- * `cache-control: private` para que ninguna caché COMPARTIDA (CDN, proxy, el edge
- * de Vercel) guarde la firma del médico, y validación estricta del parámetro `u`.
- *
- * La solución de fondo es un token firmado y con caducidad en la URL, como ya se
- * hace en patient-token / receta-token. Toca el camino de impresión, así que se
- * hace aparte y con prueba en producción, no de pasada.
+ * AUTENTICACIÓN (NEXUS-QUALITY-010): una <img src> no manda Authorization, así
+ * que la protección es un TOKEN FIRMADO CON CADUCIDAD en la URL (exp+sig, HMAC —
+ * ver lib/receta-diseno-token). Despliegue en dos pasos para no romper la
+ * impresión: hoy una URL firmada se verifica SIEMPRE (inválida/vencida → 403) y
+ * una sin firma sigue pasando (compatibilidad con las URLs guardadas en la config
+ * de los médicos); cuando el camino de impresión acuñe URLs firmadas y la
+ * papelería esté probada en vivo, se pone RECETA_DISENO_FIRMA=obligatoria en
+ * Vercel y las URLs sin firma quedan cerradas. Mientras, siguen los otros
+ * candados: rutas con uid (28 chars, no enumerables), `cache-control: private`
+ * (ninguna caché compartida guarda la firma del médico), anti-traversal y
+ * validación estricta del parámetro `u`.
  */
 export const runtime = 'nodejs'
 
@@ -44,6 +39,17 @@ export async function GET(req: NextRequest) {
     // Anti-traversal: solo la carpeta permitida.
     if (!/^receta-diseno\/[^./][^:]*$/.test(path) || path.includes('..')) {
       return new Response('Ruta no permitida', { status: 403 })
+    }
+    // NEXUS-QUALITY-010 — token firmado con caducidad (ver lib/receta-diseno-token):
+    //  · exp+sig presentes → se verifican SIEMPRE (nunca se degrada a "sin firma").
+    //  · ausentes → compatible mientras RECETA_DISENO_FIRMA !== 'obligatoria'
+    //    (las URLs guardadas en la config de los médicos siguen imprimiendo).
+    const verif = verificarPathDiseno(path, req.nextUrl.searchParams.get('exp'), req.nextUrl.searchParams.get('sig'), Date.now())
+    if (verif === 'invalida' || verif === 'vencida') {
+      return new Response(verif === 'vencida' ? 'Enlace vencido; vuelve a abrir la impresión' : 'Firma no válida', { status: 403 })
+    }
+    if (verif === 'sin_firma' && firmaObligatoria()) {
+      return new Response('Este enlace requiere firma (RECETA_DISENO_FIRMA=obligatoria)', { status: 403 })
     }
     try {
       const file = admin.storage().bucket(BUCKET).file(path)
@@ -60,6 +66,9 @@ export async function GET(req: NextRequest) {
 
   const u = req.nextUrl.searchParams.get('u')
   if (!u) return new Response('Falta el parámetro u o path', { status: 400 })
+  // Modo estricto (010): la rama legacy `u` no puede firmarse (la firma liga un
+  // path del bucket); con el candado activo se cierra por completo.
+  if (firmaObligatoria()) return new Response('Este enlace requiere firma (usa ?path= firmado)', { status: 403 })
 
   /**
    * El chequeo era `u.includes('/b/' + BUCKET + '/')`, que se satisface con que la
