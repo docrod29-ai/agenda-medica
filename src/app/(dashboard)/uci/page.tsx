@@ -136,6 +136,7 @@ export default function UciPanelPage() {
   const [avisosVoz, setAvisosVoz] = useState<AvisoExtraccionUCI[]>([])
   const [paseTexto, setPaseTexto] = useState('')       // cuadro de texto editable del pase
   const [modoAvanzado, setModoAvanzado] = useState(false) // false = simple (dictado + nota); true = grid de campos
+  const [avisoPase, setAvisoPase] = useState('')       // confirmación tras "Generar nota"
   const procesadoRef = useRef('')
 
   // Procesa el texto del pase (dictado o escrito): arma la discusión por roles y
@@ -149,13 +150,17 @@ export default function UciPanelPage() {
       : [{ hablante: 'A', texto: txt }]
     setDiscusionTxt(formatearDiscusion(atribuirRolesDiscusion(turnos)))
     const { valores: extraidos, avisos } = extraerValoresUCIConAvisos(txt)
-    if (Object.keys(extraidos).length) {
+    const n = Object.keys(extraidos).length
+    if (n) {
       setV(prev => ({ ...prev, ...extraidos }))
       setDetectados(Object.keys(extraidos))
     }
     // icu-005: valores imposibles (error de dictado) o decimales ambiguos NO se
     // prellenan; se muestran para que el médico los redicte/confirme (no se inventan).
     setAvisosVoz(avisos)
+    setAvisoPase(n
+      ? `✓ ${n} valor${n === 1 ? '' : 'es'} reconocido${n === 1 ? '' : 's'} — la nota y los cálculos están abajo.`
+      : 'No reconocí valores clínicos en el texto. Revisa la redacción (p. ej. «PEEP 10, FiO2 60, norepinefrina 0.2»).')
   }
 
   useEffect(() => {
@@ -175,6 +180,8 @@ export default function UciPanelPage() {
     setV({})
     setDetectados([])
     setAvisosVoz([])
+    setAvisoPase('')
+    setPaseTexto('')
     setDiscusionTxt('')
     procesadoRef.current = ''
   }, [internamientoId])
@@ -390,9 +397,10 @@ export default function UciPanelPage() {
               <button onClick={() => aplicarPase(paseTexto)} disabled={!paseTexto.trim()} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, opacity: paseTexto.trim() ? 1 : 0.5 }}>
                 <FileText size={15} /> Generar nota
               </button>
-              {paseTexto.trim() && <button onClick={() => { setPaseTexto(''); procesadoRef.current = '' }} className="btn" style={{ fontSize: 12.5 }}>Limpiar</button>}
+              {paseTexto.trim() && <button onClick={() => { setPaseTexto(''); setAvisoPase(''); procesadoRef.current = '' }} className="btn" style={{ fontSize: 12.5 }}>Limpiar</button>}
               <span style={{ fontSize: 12, color: 'var(--text3)' }}>La nota y los cálculos aparecen abajo. Solo se reporta lo que dictaste/escribiste.</span>
             </div>
+            {avisoPase && <div style={{ marginTop: 8, fontSize: 12.5, color: avisoPase.startsWith('✓') ? 'var(--nexus)' : '#d97706' }}>{avisoPase}</div>}
           </div>
         )}
         {avisosVoz.length > 0 && (

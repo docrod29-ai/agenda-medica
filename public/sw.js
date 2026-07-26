@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v653'  // UX Panel UCI: modo SIMPLE por defecto. Antes = muro de ~40 campos manuales + columna de calculos 'bloqueado' (confuso). Ahora = cuadro de texto (dicta o escribe/pega el pase) + boton Generar nota; se muestra SOLO la nota por sistemas y los calculos que SI se dictaron (los bloqueados se ocultan). Toggle 'Editar campos manualmente' devuelve el grid completo (modo avanzado). aplicarPase() reutilizado por voz y texto.
+const CACHE = 'nexusmed-v654'  // UX: 'Generar nota' ahora confirma el resultado ("N valores reconocidos" o "no reconoci valores, revisa la redaccion"); antes no daba feedback. Limpieza de estado del pase al cambiar de paciente.
 // (v601):
 
 self.addEventListener('install', (event) => {
