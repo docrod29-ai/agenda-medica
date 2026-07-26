@@ -13,12 +13,14 @@ import Link from 'next/link'
 import {
   ArrowLeft, ArrowRight, Calendar, Mic, FileText, ShieldCheck, CheckCircle2,
   RotateCcw, Square, Info, MessageCircle, Headset, Smartphone, Lock,
-  FlaskConical, Sparkles, Stethoscope, ClipboardList, Send, AlertTriangle,
+  FlaskConical, Sparkles, Stethoscope, ClipboardList, Send, AlertTriangle, Activity,
 } from 'lucide-react'
 import {
   DEMO_ESCENARIOS, dictadoHasta, dictadoCompleto, DEMO_WHATSAPP,
   type DemoPaso, type DemoEscenario,
 } from '@/lib/demo-sandbox'
+import { construirSeccionesUCI } from '@/lib/uci/nota'
+import { dosisARate } from '@/lib/uci/infusiones'
 
 export default function SandboxPage() {
   const [idx, setIdx] = useState(0)
@@ -356,11 +358,12 @@ function Receta({ escenario, onReiniciar, onOtro, onExplorar }: { escenario: Dem
 }
 
 /* ─────────────────────── Explorador de módulos ─────────────────────────── */
-type ModTab = 'antibiograma' | 'ia' | 'herramientas' | 'whatsapp' | 'secretaria' | 'portal'
+type ModTab = 'uci' | 'antibiograma' | 'ia' | 'herramientas' | 'whatsapp' | 'secretaria' | 'portal'
 
 function ExploradorModulos({ onReiniciar }: { onReiniciar: () => void }) {
-  const [tab, setTab] = useState<ModTab>('antibiograma')
+  const [tab, setTab] = useState<ModTab>('uci')
   const tabs: { k: ModTab; label: string; icon: typeof MessageCircle }[] = [
+    { k: 'uci', label: 'Panel UCI', icon: Activity },
     { k: 'antibiograma', label: 'Antibiograma', icon: FlaskConical },
     { k: 'ia', label: 'Consultor IA', icon: Sparkles },
     { k: 'herramientas', label: 'Herramientas clínicas', icon: Stethoscope },
@@ -385,6 +388,7 @@ function ExploradorModulos({ onReiniciar }: { onReiniciar: () => void }) {
         })}
       </div>
 
+      {tab === 'uci' && <ModUCI />}
       {tab === 'antibiograma' && <ModAntibiograma />}
       {tab === 'ia' && <ModConsultorIA />}
       {tab === 'herramientas' && <ModHerramientas />}
@@ -402,6 +406,79 @@ function ExploradorModulos({ onReiniciar }: { onReiniciar: () => void }) {
           Volver a la agenda
         </button>
       </div>
+    </div>
+  )
+}
+
+/** Panel UCI: el visitante "dicta" el pase de un paciente ficticio y ve cómo los
+ *  MOTORES REALES (deterministas) calculan y arman la nota por 7 sistemas. Los
+ *  valores son de ejemplo, pero los cálculos son los mismos del producto. */
+const DEMO_UCI_V: Record<string, string> = {
+  sexo: 'M', talla: '170', vt: '420', fio2: '60', peep: '10', pplat: '26', pao2: '78', muestra: 'arterial', soporte: 'si', modo: 'AC-VC',
+  ph: '7.28', paco2: '34', hco3: '15', na: '138', cl: '108', alb: '2.5', lactato: '3.2',
+  pas: '95', pad: '55', norepi: '0.2', glasgow: '13', creat: '1.6', plaquetas: '90', bili: '1.5',
+  vci: '2.3', vHep: 'grave', vPor: 'grave', vRen: 'normal',
+}
+const DEMO_UCI_TRANSCRIPCION = 'Día 3 de UCI, asistido controlado por volumen, FiO₂ 60, PEEP 10, volumen corriente 420, plateau 26, PaO₂ 78, gasometría arterial pH 7.28, PaCO₂ 34, bicarbonato 15, sodio 138, cloro 108, albúmina 2.5, lactato 3.2. Tensión 95 sobre 55, norepinefrina 0.2, Glasgow 13. Creatinina 1.6, plaquetas 90, bilirrubina 1.5. En eco vena cava 2.3, hepática grave, porta grave. En CVVHDF.'
+
+function ModUCI() {
+  const [estado, setEstado] = useState<'idle' | 'grabando' | 'listo'>('idle')
+  const secciones = useMemo(() => construirSeccionesUCI(DEMO_UCI_V).filter(s => s.value.trim() !== ''), [])
+  const infusion = useMemo(() => dosisARate({ farmacoKey: 'norepinefrina', dosis: 0.2, pesoKg: 70 }), [])
+  const dictar = () => { setEstado('grabando'); setTimeout(() => setEstado('listo'), 1700) }
+
+  return (
+    <div>
+      <Encabezado icono={Activity} titulo="Panel UCI · dicta el pase, la nota se escribe sola" sub="Dicta el pase de visita de un paciente de terapia intensiva. Los motores deterministas calculan (P/F, driving pressure, SOFA, VExUS, gasometría) y arman la nota por los 7 sistemas. Valores de ejemplo; los cálculos son los reales." />
+
+      <div style={{ ...card, marginBottom: 14 }}>
+        <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Cama 4 · UCI · Día 3 · Hombre 58 a, 70 kg</div>
+        <div style={{ fontSize: 16, fontWeight: 600, margin: '4px 0 12px' }}>Choque séptico abdominal · SDRA moderado · LRA en CVVHDF</div>
+        <button onClick={dictar} disabled={estado === 'grabando'} className="btn btn-primary"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, ...(estado === 'grabando' ? { background: '#dc2626', border: 'none', color: '#fff' } : {}) }}>
+          {estado === 'grabando' ? <Square size={15} /> : <Mic size={15} />}
+          {estado === 'grabando' ? 'Grabando…' : estado === 'listo' ? 'Volver a dictar' : 'Dictar pase de visita'}
+        </button>
+        {estado === 'grabando' && <span style={{ marginLeft: 12, fontSize: 12.5, color: '#dc2626' }}>● Escuchando y transcribiendo…</span>}
+        {estado === 'listo' && (
+          <div style={{ marginTop: 12, fontSize: 12.5, color: 'var(--text2)', background: 'var(--s2)', borderRadius: 8, padding: '10px 12px', fontStyle: 'italic' }}>
+            “{DEMO_UCI_TRANSCRIPCION}”
+          </div>
+        )}
+      </div>
+
+      {estado === 'listo' && (<>
+        <div style={{ ...card, marginBottom: 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 7 }}><CheckCircle2 size={15} style={{ color: 'var(--nexus)' }} /> El código calculó (no la IA)</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 8 }}>
+            {[['PaO₂/FiO₂', '130', 'SDRA moderado'], ['Driving pressure', '16', '> 15 · optimizar'], ['SOFA', '11', 'disfunción alta'], ['PAM', '68', '≥ 65'], ['Ácido-base', 'Metab. MIXTA', 'AG alto ≈19'], ['VExUS-C', 'Grado 3', 'congestión grave']].map(([l, n, t]) => (
+              <div key={l} style={{ background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px' }}>
+                <div style={{ fontSize: 11, color: 'var(--text3)' }}>{l}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'ui-monospace,monospace' }}>{n}</div>
+                <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 2 }}>{t}</div>
+              </div>
+            ))}
+          </div>
+          {infusion.ok && (
+            <div style={{ marginTop: 12, fontSize: 12.5, color: 'var(--text2)' }}>
+              💉 <b>Infusión:</b> norepinefrina 0.2 µg/kg/min · 4 mg/250 mL (16 µg/mL) · 70 kg → <b>{infusion.rateMlH} mL/h</b>
+            </div>
+          )}
+        </div>
+
+        <div style={{ ...card }}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 7 }}><FileText size={15} style={{ color: 'var(--nexus)' }} /> Nota de evolución UCI · por los 7 sistemas</div>
+          <div style={{ fontFamily: 'ui-monospace,monospace', fontSize: 12 }}>
+            {secciones.map(s => (
+              <div key={s.key} style={{ borderTop: '1px solid var(--border)', padding: '9px 0' }}>
+                <div style={{ color: 'var(--nexus)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', fontSize: 10.5 }}>{s.label}</div>
+                <div style={{ color: 'var(--text2)', marginTop: 3, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{s.value}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 10 }}>Si falta un dato que invalida un cálculo, el motor lo bloquea y lo declara — nunca inventa. Cada alerta trae su guía citada.</div>
+        </div>
+      </>)}
     </div>
   )
 }
