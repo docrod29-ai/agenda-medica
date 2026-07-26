@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v662'  // L1 dinero (auditoria maestra): (a) TOPE de creditos en 8 rutas caras de IA (gateCreditos: 402 si corre con llave del dueno y agoto creditos; transcribir/chunk NO se topan por ser el fallback barato del modo economico). (b) RBAC facturacion: stripe/portal,checkout,recarga y asientos-POST pasan de verificarMiembro a verificarMedico (la secretaria ya no puede cancelar suscripcion ni comprar). 1761 tests.
+const CACHE = 'nexusmed-v663'  // L1c dinero: anticipo en linea. create-checkout ya NO acepta el monto del cliente -> lo lee del servidor (cita.pagoMonto o config.anticipoMonto); sin monto configurado no cobra. Webhook: solo marca 'pagada' si el pago CUBRE lo esperado; pago parcial = 'abono' + saldoPendiente + cita sigue 'pendiente-pago' (corte-caja no la da por saldada). Endpoint sin caller hoy (anticipo usa anticipoLink) -> blindaje defensivo, no rompe UI.
 // (v601):
 
 self.addEventListener('install', (event) => {

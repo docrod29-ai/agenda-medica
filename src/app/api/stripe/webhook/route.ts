@@ -180,10 +180,17 @@ export async function POST(req: NextRequest) {
           const monto = (session.amount_total ?? 0) / 100
           const citaRef = citaId ? adminDb.collection('clinics').doc(clinicId).collection('appointments').doc(citaId) : null
           const cita = citaRef ? (await citaRef.get()).data() as Record<string, unknown> | undefined : undefined
+          // INTEGRIDAD DE PAGO (L1 auditoría maestra): solo se SALDA la cita si lo
+          // pagado cubre el monto esperado (la tarifa que fijó el servidor en
+          // pagoMonto). Un pago parcial se registra como 'abono' y la cita queda
+          // 'pendiente-pago' con el saldo, no como 'pagada'. Así corte-caja no la
+          // da por cobrada (corte-caja: concepto 'abono' NO salda).
+          const esperado = Number(cita?.pagoMonto) || 0
+          const cubre = esperado <= 0 || monto + 0.01 >= esperado
           await adminDb.collection('clinics').doc(clinicId).collection('cobros').add({
             fecha: iso, dia, mes: dia.slice(0, 7),
-            monto, metodo: 'tarjeta', concepto: 'consulta',
-            descripcion: 'Anticipo pagado en línea por el paciente',
+            monto, metodo: 'tarjeta', concepto: cubre ? 'consulta' : 'abono',
+            descripcion: cubre ? 'Anticipo pagado en línea por el paciente' : 'Abono parcial pagado en línea por el paciente',
             citaId: citaId || undefined,
             patientId: (cita?.pacienteId as string) || undefined,
             patientNombre: (cita?.pacienteNombre as string) || undefined,
@@ -193,8 +200,9 @@ export async function POST(req: NextRequest) {
             referenciaExterna: session.id,
             createdAt: iso, creadoPor: 'stripe:anticipo', cancelado: false,
           })
-          // La cita deja de estar 'pendiente-pago': ya se pagó.
-          if (citaRef) await citaRef.update({ estado: 'pagada', pagadoEn: iso, updatedAt: iso })
+          if (citaRef) await citaRef.update(cubre
+            ? { estado: 'pagada', pagadoEn: iso, updatedAt: iso }
+            : { estado: 'pendiente-pago', saldoPendiente: Math.max(0, esperado - monto), abonadoEn: iso, updatedAt: iso })
           break
         }
 
