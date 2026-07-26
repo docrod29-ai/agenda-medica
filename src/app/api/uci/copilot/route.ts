@@ -18,6 +18,7 @@ import admin, { adminDb } from '@/lib/firebase-admin'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA, registrarUso, registrarCreditos } from '@/lib/ai-keys'
+import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { snapshotUCI, buildCopilotUser, COPILOT_SYSTEM, parseSalidaCopilot, fusionarCopilot, COPILOT_VERSION } from '@/lib/uci/copilot'
 import { safeLog } from '@/lib/security/sanitize'
 
@@ -131,10 +132,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'El Copilot no pudo generar la síntesis (ambos modelos fallaron o no hay llaves válidas).' }, { status: 502 })
   }
 
-  // Cuenta uso (medidor de créditos). El Copilot cuesta 1 crédito por modelo usado.
-  const modelosUsados = (rc ? 1 : 0) + (ro ? 1 : 0)
-  if (acceso.clinicId) {
-    registrarCreditos(acceso.clinicId, modelosUsados).catch(() => {})
+  // MEDIDOR DE CRÉDITOS: el Copilot UCI es la acción MÁS CARA (Opus + GPT en
+  // paralelo, ~$10/turno). Se cobra su costo real en créditos (antes valía 0 = la
+  // mayor fuga de dinero). Se cobra una vez por turno cuando respondió ≥1 modelo.
+  if (acceso.clinicId && (rc || ro)) {
+    registrarCreditos(acceso.clinicId, COSTO_CREDITOS.copilotUci).catch(() => {})
     registrarUso(acceso.clinicId, anthropic.fuente).catch(() => {})
   }
 

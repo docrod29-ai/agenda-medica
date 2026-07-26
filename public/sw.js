@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v637'  // NOTA UCI POR LOS 7 SISTEMAS DEL DR (neurologico, respiratorio, hemodinamico, abdominodigestivo, hidrometabolico, hematoinfeccioso, musculoesqueletico) + contexto/plan; POCUS plegado en hemodinamico/respiratorio, CKRT en hidrometabolico, ECMO en hemodinamico(VA)/respiratorio(VV). Copilot y prompt alineados a los 7 sistemas. MOTOR DE TENDENCIAS/CORRELACION (que cambio): guardar lectura seriada (localStorage por internamiento) + tarjeta 'que cambio' (sube/baja por parametro) + asociacion corazon-pulmon (no causalidad) + se alimenta al Copilot. Plan Hospital enriquecido con ICU OS (UCI/CKRT/ECMO/Copilot), 3499, 500 creditos.
+const CACHE = 'nexusmed-v638'  // PRICING (equipo de auditores): CIERRA LA FUGA -> el Copilot UCI ahora se cobra (COSTO_CREDITOS.copilotUci=7; antes valia 0, dual-model Opus+GPT ~10USD/turno ilimitado). Consultor Premium 1->4 creditos (costo real ~7.5). Clinica 160->200 creditos. Pro 1899->1590 (gap 899->1899 mataba conversion). TOPE_ECONOMICO.premium 300->150 (dejaba de regalar ~480/mes de Haiku). /uci GATEADO bajo hospitalizacion (antes bajo expediente: un plan de 899 tenia acceso tecnico a lo de 3499; el dueno con paseLibre lo sigue viendo). Plan Hospital+UCI 3499/500 creditos con ICU OS.
 // (v601):
 
 self.addEventListener('install', (event) => {

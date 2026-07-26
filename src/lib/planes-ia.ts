@@ -90,7 +90,10 @@ export const motorPorDefecto = (n: NivelIA): Motor => (n === 'premium' ? MOTORES
  */
 export const COSTO_CREDITOS = {
   consultorPro: 0.5,     // pregunta al Consultor con IA Pro (Sonnet 5 + GPT-4o)
-  consultorPremium: 1,   // pregunta al Consultor con IA Premium (Opus 4.8 + GPT-5)
+  consultorPremium: 4,   // pregunta al Consultor con IA Premium (Opus 4.8 + GPT-5): costo real ~$7.5
+  // El Copilot de UCI llama a Opus + GPT EN PARALELO por turno (dual-model, ~$10):
+  // es la acción más cara del sistema. NO puede valer 0 créditos (era la mayor fuga).
+  copilotUci: 7,
 } as const
 
 /** Cuántos créditos cuesta una pregunta al Consultor según el nivel de IA del plan. */
@@ -110,7 +113,7 @@ export const PLANES: Record<ClavePlan, PlanCreditos> = {
     ],
   },
   clinica: {
-    clave: 'clinica', nombre: 'Clínica', precioMXN: 899, creditos: 160, nivelIA: 'pro',
+    clave: 'clinica', nombre: 'Clínica', precioMXN: 899, creditos: 200, nivelIA: 'pro',
     pacientesMax: null, destacado: true,
     incluye: [
       'Todo lo de Agenda',
@@ -119,13 +122,13 @@ export const PLANES: Record<ClavePlan, PlanCreditos> = {
       'Recetas y órdenes',
       'Consultor de evidencia (PubMed) con doble IA (Claude + GPT)',
       'Menú de IA: elige ⚡ Rápida · ⭐ Estándar · 💎 Máxima por nota',
-      '160 créditos/mes (~50 notas Estándar)',
+      '200 créditos/mes (~63 notas Estándar)',
       'Al agotarlos sigue en ⚡ Rápida sin costo hasta 120 notas más/mes; luego se pausa y recargas o subes de plan',
       'Incluye 1 médico · +$499/mes por médico adicional',
     ],
   },
   premium: {
-    clave: 'premium', nombre: 'Pro', precioMXN: 1899, creditos: 450, nivelIA: 'premium',
+    clave: 'premium', nombre: 'Pro', precioMXN: 1590, creditos: 450, nivelIA: 'premium',
     pacientesMax: null,
     incluye: [
       'Todo lo de Clínica',
@@ -133,7 +136,7 @@ export const PLANES: Record<ClavePlan, PlanCreditos> = {
       'Revisión de consistencia y seguridad clínica automática en cada nota',
       'Consultor de evidencia con IA de máximo nivel',
       '450 créditos/mes (~45 notas Máxima o ~150 Estándar)',
-      'Al agotarlos sigue en ⚡ Rápida sin costo hasta 300 notas más/mes; luego se pausa y recargas o subes de plan',
+      'Al agotarlos sigue en ⚡ Rápida sin costo hasta 150 notas más/mes; luego se pausa y recargas o subes de plan',
       'Soporte prioritario',
       'Incluye 1 médico · +$999/mes por médico adicional',
     ],
@@ -172,7 +175,7 @@ export const RECARGA = { creditos: 100, precioMXN: 399 }
  * consultorio tenga varios médicos exprimiendo la IA, el costo del dueño queda
  * ACOTADO (nunca se dispara). Números fáciles de cambiar.
  */
-export const TOPE_ECONOMICO: Record<NivelIA, number> = { pro: 120, premium: 300 }
+export const TOPE_ECONOMICO: Record<NivelIA, number> = { pro: 120, premium: 150 }
 export const topeEconomicoDe = (n: NivelIA): number => TOPE_ECONOMICO[n] ?? 120
 
 /**

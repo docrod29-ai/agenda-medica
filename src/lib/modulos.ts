@@ -56,8 +56,11 @@ export const RUTAS_CORE = ['/dashboard', '/configuracion', '/chat', '/pacientes'
 /** Catálogo de módulos vendibles. El dueño combina estos en paquetes. */
 export const MODULOS: ModuloDef[] = [
   { key: 'agenda',         label: 'Agenda y citas',          descripcion: 'Agendar, calendario, recordatorios, lista de espera', rutas: ['/asistente', '/citas', '/calendario', '/lista-espera', '/waitlist'] },
-  { key: 'expediente',     label: 'Expediente de consulta',  descripcion: 'Consulta ambulatoria: notas, recetas, órdenes, referencias, consultor, panel UCI', rutas: ['/consulta', '/expediente', '/expedientes', '/nota', '/orden', '/receta', '/referencia', '/consultor', '/uci'] },
-  { key: 'hospitalizacion', label: 'Hospitalización',        descripcion: 'Censo, internamientos, indicaciones/MAR, camas', rutas: ['/hospitalizacion'] },
+  { key: 'expediente',     label: 'Expediente de consulta',  descripcion: 'Consulta ambulatoria: notas, recetas, órdenes, referencias, consultor', rutas: ['/consulta', '/expediente', '/expedientes', '/nota', '/orden', '/receta', '/referencia', '/consultor'] },
+  // El Panel UCI (/uci) es una función de HOSPITALIZACIÓN (Hospital + UCI), no de
+  // consulta: se cobra con ese plan. Antes vivía bajo 'expediente' y un plan de
+  // consultorio ($899) tenía acceso técnico a lo que se cobra en el plan Hospital.
+  { key: 'hospitalizacion', label: 'Hospitalización',        descripcion: 'Censo, internamientos, indicaciones/MAR, camas (hospital y UCI), Panel UCI', rutas: ['/hospitalizacion', '/uci'] },
   { key: 'farmacia',       label: 'Farmacia',                descripcion: 'Inventario y movimientos de farmacia', rutas: ['/farmacia'] },
   { key: 'crm',            label: 'CRM y reseñas',           descripcion: 'Seguimiento de pacientes, reputación', rutas: ['/crm', '/resenas'] },
   { key: 'finanzas',       label: 'Finanzas',                descripcion: 'Cobros, ingresos, reportes', rutas: ['/finanzas'] },
@@ -90,8 +93,8 @@ export const PAQUETES_SUGERIDOS: PaqueteDef[] = [
   { id: 'agenda',   nombre: 'Agenda',   precio: 349,  orden: 0, modulos: MODULOS_DE_PLAN.agenda,
     descripcion: 'Agenda, calendario, recordatorios y portal del paciente. Sin IA de consulta.' },
   { id: 'clinica',  nombre: 'Clínica',  precio: 899,  orden: 1, modulos: MODULOS_DE_PLAN.clinica,
-    descripcion: 'Consultorio completo con IA Estándar (Sonnet 5): nota por voz, recetas, consultor, farmacia, CRM y finanzas. 160 créditos/mes.' },
-  { id: 'premium',  nombre: 'Pro',      precio: 1899, orden: 2, modulos: MODULOS_DE_PLAN.premium,
+    descripcion: 'Consultorio completo con IA Estándar (Sonnet 5): nota por voz, recetas, consultor, farmacia, CRM y finanzas. 200 créditos/mes.' },
+  { id: 'premium',  nombre: 'Pro',      precio: 1590, orden: 2, modulos: MODULOS_DE_PLAN.premium,
     descripcion: 'Todo lo de Clínica con IA Máxima (Opus 4.8 + GPT-5) por defecto, 2ª opinión automática y soporte prioritario. 450 créditos/mes.' },
   { id: 'hospital', nombre: 'Hospital', precio: 3499, orden: 3, modulos: MODULOS_DE_PLAN.hospital,
     modeloPrecio: 'por_cama', precioBase: 3499, precioPorUnidad: 250,
@@ -99,7 +102,7 @@ export const PAQUETES_SUGERIDOS: PaqueteDef[] = [
 ]
 
 /** Versión del catálogo de paquetes. Al subirla, el seed reemplaza los viejos. */
-export const PAQUETES_VERSION = 4
+export const PAQUETES_VERSION = 5
 
 type ClinicMod = { modulos?: string[] | null; plan?: string | null; paseLibre?: boolean | null }
 
