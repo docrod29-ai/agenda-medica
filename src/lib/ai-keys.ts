@@ -290,6 +290,9 @@ export async function guardarClaveIA(clinicId: string, proveedor: ProveedorIA, k
 export interface EstadoClaves {
   claves: Record<ProveedorIA, { configurada: boolean; hint: string }>
   uso: { total: number; prueba: number; limitePrueba: number }
+  /** Medidor de CRÉDITOS del mes (L1 auditoría maestra): antes el cliente solo veía
+   *  'total'/'prueba' (telemetría), nunca cuánto llevaba del BOTE de créditos. */
+  creditos: { usados: number; extra: number; limite: number }
 }
 
 /** Estado ENMASCARADO de las llaves + uso del mes (lo que sí puede ver el cliente). */
@@ -299,10 +302,20 @@ export async function estadoClavesIA(clinicId: string): Promise<EstadoClaves> {
     ? { configurada: true, hint: '····' + k.trim().slice(-4) }
     : { configurada: false, hint: '' }
   const u = d.uso?.[mesActual()] ?? {}
+  // Créditos del mes: usados + recarga extra + límite efectivo (ya escalado por asientos).
+  let creditos = { usados: 0, extra: 0, limite: 0 }
+  try {
+    const nivel = await nivelIADe(clinicId)
+    const [usados, extra, ent] = await Promise.all([
+      creditosUsadosDelMes(clinicId), creditosExtraDelMes(clinicId), entitlementsDe(clinicId, nivel),
+    ])
+    creditos = { usados: Math.round(usados * 10) / 10, extra, limite: ent.limiteCreditos }
+  } catch { /* si falla la lectura, medidor en 0 (no bloquea la config) */ }
   return {
     claves: {
       anthropic: mk(d.anthropic), assemblyai: mk(d.assemblyai), openai: mk(d.openai),
     },
     uso: { total: u.total ?? 0, prueba: u.prueba ?? 0, limitePrueba: LIMITE_PRUEBA },
+    creditos,
   }
 }

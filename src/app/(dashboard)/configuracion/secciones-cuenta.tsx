@@ -23,6 +23,7 @@ type EstadoLlave = { configurada: boolean; hint: string }
 interface EstadoIA {
   claves: { anthropic: EstadoLlave; assemblyai: EstadoLlave; openai: EstadoLlave }
   uso: { total: number; prueba: number; limitePrueba: number }
+  creditos?: { usados: number; extra: number; limite: number }
 }
 const PROVEEDORES_IA = [
   { id: 'anthropic', nombre: 'Claude (ordenar la nota)', url: 'https://console.anthropic.com', placeholder: 'sk-ant-...' },
@@ -84,9 +85,35 @@ export function LlavesIASection({ clinicId }: { clinicId: string }) {
         Pon tus propias llaves para que la transcripción y el ordenado con IA corran con <strong>tu saldo</strong> (no compartido). Si no pones ninguna, usas una <strong>prueba gratis</strong> limitada. La llave se guarda cifrada del lado servidor — nunca se muestra completa.
       </p>
 
+      {/* MEDIDOR DE CRÉDITOS del mes (L1 auditoría maestra): antes el médico gastaba
+          a ciegas. Barra usados/límite + recarga cuando queda poco. */}
+      {estado?.creditos && estado.creditos.limite > 0 && (() => {
+        const c = estado.creditos!
+        const tope = c.limite + c.extra
+        const pct = Math.min(100, Math.round((c.usados / tope) * 100))
+        const casiVacio = pct >= 85
+        const color = pct >= 100 ? '#dc2626' : casiVacio ? '#d97706' : 'var(--nexus)'
+        return (
+          <div style={{ background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10, padding: '11px 13px', marginBottom: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 7 }}>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)' }}>Créditos de IA este mes</span>
+              <span style={{ fontSize: 12.5, color: 'var(--text2)' }}><strong style={{ color }}>{c.usados}</strong> / {tope}{c.extra > 0 && <span style={{ color: 'var(--text3)' }}> (incl. {c.extra} recarga)</span>}</span>
+            </div>
+            <div style={{ height: 7, borderRadius: 99, background: 'var(--border)', overflow: 'hidden' }}>
+              <div style={{ width: `${pct}%`, height: '100%', background: color, transition: 'width .3s' }} />
+            </div>
+            {pct >= 100
+              ? <div style={{ fontSize: 11.5, color: '#dc2626', fontWeight: 700, marginTop: 6 }}>Créditos agotados — las acciones de IA se pausan. Recarga o pon tu propia llave abajo.</div>
+              : casiVacio
+                ? <div style={{ fontSize: 11.5, color: '#d97706', marginTop: 6 }}>Te queda poco crédito ({tope - c.usados}). Valora recargar.</div>
+                : null}
+          </div>
+        )
+      })()}
+
       {u && (
         <div style={{ fontSize: 12, color: 'var(--text2)', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', marginBottom: 14 }}>
-          Uso este mes: <strong>{u.total}</strong> · Prueba gratis: <strong>{u.prueba}/{u.limitePrueba}</strong>
+          Acciones de IA este mes: <strong>{u.total}</strong> · Prueba gratis: <strong>{u.prueba}/{u.limitePrueba}</strong>
           {u.prueba >= u.limitePrueba && <span style={{ color: 'var(--amber)', fontWeight: 700 }}> · prueba agotada, pon tu llave</span>}
         </div>
       )}

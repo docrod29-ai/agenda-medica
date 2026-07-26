@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v663'  // L1c dinero: anticipo en linea. create-checkout ya NO acepta el monto del cliente -> lo lee del servidor (cita.pagoMonto o config.anticipoMonto); sin monto configurado no cobra. Webhook: solo marca 'pagada' si el pago CUBRE lo esperado; pago parcial = 'abono' + saldoPendiente + cita sigue 'pendiente-pago' (corte-caja no la da por saldada). Endpoint sin caller hoy (anticipo usa anticipoLink) -> blindaje defensivo, no rompe UI.
+const CACHE = 'nexusmed-v664'  // L1d dinero: MEDIDOR de creditos visible. estadoClavesIA ahora devuelve creditos {usados, extra, limite}; Configuracion -> Llaves de IA pinta una barra usados/tope con aviso a 85% y 100% (antes el medico gastaba a ciegas: solo veia telemetria 'total', nunca el bote de creditos). L1 dinero COMPLETO (tope + RBAC + anticipo + medidor).
 // (v601):
 
 self.addEventListener('install', (event) => {
