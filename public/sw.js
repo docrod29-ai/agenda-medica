@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v632'  // ICU OS P2: motores CKRT/PRISMA (dosis efluente por modalidad, downtime, fraccion de filtracion, citrato ratio Ca total/ionico, vida de filtro) + ECMO (VA/VV/VAV: vigilancia oxigenador dP vs basal, hemolisis pfHb, recirculacion VV, hipoxia diferencial/harlequin y distension VI en VA) — deterministas, bloquean, NO autodiagnostican. Seccion 'Soportes extracorporeos' en el Panel UCI + en la nota (renal/dispositivos). FIX ACCESO DUENO: paseLibre ahora da TODOS los modulos (Hospitalizacion+UCI visibles en la cuenta del dueno; antes excluia opt-in). Paquete HOSPITAL agregado (hospitalizacion + camas hospital/UCI + Panel UCI + CKRT/ECMO), por_cama, PAQUETES_VERSION=4.
+const CACHE = 'nexusmed-v633'  // ICU COPILOT dual-model (Anthropic Opus + OpenAI GPT): API /api/uci/copilot razona SOBRE las salidas deterministas (snapshotUCI en el servidor; el LLM NUNCA recalcula escalas), devuelve problemas por sistema (que cambio/por que/que soporte/que falta) con provenance + incertidumbre, SIN ordenes; fusion primario+2a opinion (divergencias); APRENDE del feedback del medico (uci_copilot_feedback -> preferencias reinyectadas). Boton 'Copilot IA' + pulgares en el Panel UCI. Gateado por verificarModuloIA, llaves por consultorio.
 // (v601):
 
 self.addEventListener('install', (event) => {

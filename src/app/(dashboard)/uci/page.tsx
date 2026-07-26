@@ -10,8 +10,10 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Activity, Wind, Droplets, HeartPulse, ShieldAlert, Info, Mic, Square, Waves, BedDouble, AlertTriangle, FileText, Calculator } from 'lucide-react'
+import { Activity, Wind, Droplets, HeartPulse, ShieldAlert, Info, Mic, Square, Waves, BedDouble, AlertTriangle, FileText, Calculator, Brain, Sparkles, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { useClinic } from '@/context/ClinicContext'
+import { fetchAutenticado } from '@/lib/auth-client'
+import type { FusionCopilot } from '@/lib/uci/copilot'
 import { getInternamiento } from '@/lib/hospital/firestore'
 import { getPatient } from '@/lib/firestore'
 import { construirSeccionesUCI } from '@/lib/uci/nota'
@@ -200,6 +202,34 @@ export default function UciPanelPage() {
     spo2ManoDerecha: n('ecmoSpD'), spo2MiembroInferior: n('ecmoSpI'), pas: n('ecmoPas'), pad: n('ecmoPad'),
     valvulaAorticaAbre: bool('ecmoValv'), edemaPulmonar: bool('ecmoEdema'),
   }), [v])
+
+  // ── Copilot IA (dual-model Anthropic + OpenAI, razona sobre lo determinista) ──
+  const [copilot, setCopilot] = useState<FusionCopilot | null>(null)
+  const [copilotCargando, setCopilotCargando] = useState(false)
+  const [copilotError, setCopilotError] = useState('')
+  const [feedbackDado, setFeedbackDado] = useState<'up' | 'down' | null>(null)
+  const pedirCopilot = async () => {
+    setCopilotCargando(true); setCopilotError(''); setCopilot(null); setFeedbackDado(null)
+    try {
+      const res = await fetchAutenticado('/api/uci/copilot', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'generar', campos: v, discusion: discusionTxt || undefined, internamientoId }),
+      })
+      const j = await res.json()
+      if (!res.ok) { setCopilotError(j?.error || 'No se pudo generar la síntesis'); return }
+      setCopilot(j as FusionCopilot)
+    } catch { setCopilotError('Error de red al llamar al Copilot') }
+    finally { setCopilotCargando(false) }
+  }
+  const enviarFeedback = async (rating: 'up' | 'down') => {
+    setFeedbackDado(rating)
+    try {
+      await fetchAutenticado('/api/uci/copilot', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'feedback', internamientoId, feedback: { rating, preferencia: rating === 'up' ? (copilot?.primario?.resumen || '') : '' } }),
+      })
+    } catch { /* no-bloqueante */ }
+  }
 
   // ── Pasar los valores del panel a una NOTA de evolución UCI del paciente ──
   const pasarANota = () => {
@@ -406,6 +436,71 @@ export default function UciPanelPage() {
                 </div>}
           </div>
         </div>
+      </div>
+
+      {/* ── COPILOT IA (dual-model, razona sobre lo determinista) ── */}
+      <div style={{ marginTop: 18, background: 'var(--nexus-soft)', border: '1px solid var(--border2)', borderRadius: 14, padding: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 14 }}>
+            <Brain size={17} style={{ color: 'var(--nexus)' }} /> Copilot IA · síntesis por sistemas
+          </div>
+          <button onClick={pedirCopilot} disabled={copilotCargando} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, opacity: copilotCargando ? 0.7 : 1 }}>
+            <Sparkles size={15} />{copilotCargando ? 'Razonando…' : copilot ? 'Regenerar' : 'Generar síntesis'}
+          </button>
+        </div>
+        <p style={{ fontSize: 11.5, color: 'var(--text3)', margin: '8px 0 0', display: 'flex', gap: 5, alignItems: 'center' }}>
+          <Info size={12} /> Razona con Anthropic + OpenAI SOBRE los cálculos deterministas (no recalcula escalas). Sugiere qué verificar/decidir; no da órdenes. Tú decides y firmas.
+        </p>
+        {copilotError && <div style={{ marginTop: 10, fontSize: 12.5, color: '#dc2626' }}>{copilotError}</div>}
+        {copilot?.primario && (
+          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {copilot.primario.resumen && <div style={{ fontSize: 13.5, color: 'var(--text)', fontWeight: 500 }}>{copilot.primario.resumen}</div>}
+            <div style={{ display: 'grid', gap: 8 }}>
+              {copilot.primario.problemas.map((p, i) => {
+                const c = p.prioridad === 'alta' ? '#dc2626' : p.prioridad === 'media' ? '#d97706' : 'var(--text3)'
+                return (
+                  <div key={i} style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderLeft: `3px solid ${c}`, borderRadius: 9, padding: '10px 12px' }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', color: c }}>{p.prioridad}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text3)' }}>{p.sistema.replace(/_/g, ' ')}</span>
+                      <strong style={{ fontSize: 13.5 }}>{p.titulo}</strong>
+                    </div>
+                    <div style={{ fontSize: 12.5, color: 'var(--text2)', marginTop: 4, display: 'grid', gap: 2 }}>
+                      {p.cambio && <div><b>Cambió:</b> {p.cambio}</div>}
+                      {p.porque && <div><b>Por qué:</b> {p.porque}</div>}
+                      {p.soporte && <div><b>Soporte:</b> {p.soporte}</div>}
+                      {p.faltante && <div style={{ color: '#d97706' }}><b>Falta para decidir:</b> {p.faltante}</div>}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            {copilot.primario.faltantesClave.length > 0 && (
+              <div style={{ fontSize: 12.5, color: 'var(--text2)' }}><b>Datos clave que faltan:</b> {copilot.primario.faltantesClave.join(' · ')}</div>
+            )}
+            {copilot.primario.seguridad.length > 0 && (
+              <div style={{ fontSize: 12.5, color: '#dc2626' }}><b>Seguridad:</b> {copilot.primario.seguridad.join(' · ')}</div>
+            )}
+            {copilot.divergencias.length > 0 && (
+              <details>
+                <summary style={{ fontSize: 12.5, color: 'var(--text3)', cursor: 'pointer' }}>2ª opinión ({copilot.modelos.segunda}) añade {copilot.divergencias.length} punto(s) que el primario no tocó</summary>
+                <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>
+                  {copilot.divergencias.map((p, i) => (
+                    <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', padding: '7px 9px', background: 'var(--s2)', borderRadius: 8 }}>
+                      <b>{p.sistema.replace(/_/g, ' ')}:</b> {p.titulo} — {p.cambio || p.porque}
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 2, fontSize: 11.5, color: 'var(--text3)' }}>
+              <span>Modelos: {[copilot.modelos.primario, copilot.modelos.segunda].filter(Boolean).join(' + ') || '—'}</span>
+              <span style={{ marginLeft: 'auto' }}>¿Útil?</span>
+              <button onClick={() => enviarFeedback('up')} disabled={!!feedbackDado} title="Útil (el Copilot lo aprende)" style={{ background: 'none', border: 'none', cursor: feedbackDado ? 'default' : 'pointer', color: feedbackDado === 'up' ? 'var(--nexus)' : 'var(--text3)' }}><ThumbsUp size={15} /></button>
+              <button onClick={() => enviarFeedback('down')} disabled={!!feedbackDado} title="No útil" style={{ background: 'none', border: 'none', cursor: feedbackDado ? 'default' : 'pointer', color: feedbackDado === 'down' ? '#dc2626' : 'var(--text3)' }}><ThumbsDown size={15} /></button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── SOPORTES EXTRACORPÓREOS: CKRT / PRISMA · ECMO ── */}
