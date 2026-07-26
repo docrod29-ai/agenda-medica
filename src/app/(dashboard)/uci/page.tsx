@@ -267,7 +267,13 @@ export default function UciPanelPage() {
   const infFarmaco = useMemo(() => farmacoPorKey(v.infFarmaco || 'norepinefrina'), [v.infFarmaco])
   const infDilIdx = Number(v.infDil ?? 0) || 0
   const infusion = useMemo(() => {
-    const base = { farmacoKey: v.infFarmaco || 'norepinefrina', pesoKg: n('infPeso') ?? n('ckrtPeso'), dilucionIdx: infDilIdx }
+    // Dilución PERSONALIZADA: el médico captura lo que preparó (mg o U en la bolsa
+    // y el volumen) → se calcula la concentración y manda sobre la estándar.
+    const cant = Number(n('infCantBolsa')), ml = Number(n('infMlBolsa'))
+    const customConc = (Number.isFinite(cant) && Number.isFinite(ml) && ml > 0 && cant > 0)
+      ? (infFarmaco?.unidadConc === 'U/mL' ? cant / ml : (cant * 1000) / ml)
+      : undefined
+    const base = { farmacoKey: v.infFarmaco || 'norepinefrina', pesoKg: n('infPeso') ?? n('ckrtPeso'), dilucionIdx: infDilIdx, concentracion: customConc }
     return (v.infDir === 'rate')
       ? rateADosis({ ...base, rateMlH: n('infRate') })
       : dosisARate({ ...base, dosis: n('infDosis') })
@@ -642,7 +648,10 @@ export default function UciPanelPage() {
         </summary>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end' }}>
           <Selector label="Fármaco" k="infFarmaco" v={v} set={set} w={180} opciones={CATALOGO_INFUSIONES.map(f => ({ val: f.key, txt: f.nombre }))} />
-          <Selector label="Dilución" k="infDil" v={v} set={set} w={170} opciones={(infFarmaco?.diluciones ?? []).map((d, i) => ({ val: String(i), txt: `${d.label} (${d.concentracion} ${d.unidadConc})` }))} />
+          <Selector label="Dilución estándar" k="infDil" v={v} set={set} w={175} opciones={(infFarmaco?.diluciones ?? []).map((d, i) => ({ val: String(i), txt: `${d.label} (${d.concentracion} ${d.unidadConc})` }))} />
+          <span style={{ fontSize: 11.5, color: 'var(--text3)', alignSelf: 'center' }}>o tu dilución →</span>
+          <Campo label={`En bolsa (${infFarmaco?.unidadConc === 'U/mL' ? 'U' : 'mg'})`} k="infCantBolsa" v={v} set={set} w={100} />
+          <Campo label="Volumen" k="infMlBolsa" v={v} set={set} sufijo="mL" w={95} />
           {infFarmaco?.porKg && <Campo label="Peso" k="infPeso" v={v} set={set} sufijo="kg" w={85} />}
           <Selector label="Convertir" k="infDir" v={v} set={set} w={150} opciones={[{ val: 'dose', txt: `Dosis → mL/h` }, { val: 'rate', txt: `mL/h → Dosis` }]} />
           {v.infDir === 'rate'

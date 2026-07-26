@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v642'  // DEMO IN-APP: pestana 'Panel UCI' en /demo/interactivo que corre los MOTORES REALES (construirSeccionesUCI, dosisARate) sobre un pase dictado simulado -> boton 'Dictar pase de visita' (animacion de grabacion) revela transcripcion + calculos deterministas (P/F, driving, SOFA, VExUS, gasometria MIXTA) + nota por los 7 sistemas + infusion norepi->mL/h. Valores de ejemplo, calculos reales.
+const CACHE = 'nexusmed-v643'  // Calculadora de infusion: DILUCION PERSONALIZADA. El medico captura lo que preparo (mg o U en bolsa + volumen mL) y el motor calcula la concentracion y la velocidad (o al reves). Ej norepi 8mg/100cc=80ug/mL -> 10.5 mL/h; 16mg/100cc=160 -> 5.3 mL/h. Convive con las diluciones estandar.
 // (v601):
 
 self.addEventListener('install', (event) => {

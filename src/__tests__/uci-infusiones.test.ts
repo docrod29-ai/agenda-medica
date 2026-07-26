@@ -45,6 +45,18 @@ describe('fármacos NO por kg', () => {
   })
 })
 
+describe('dilución PERSONALIZADA (la que preparó el médico)', () => {
+  it('norepinefrina 8 mg/100 mL (80 µg/mL): 0.2 µg/kg/min, 70 kg → 10.5 mL/h', () => {
+    expect(dosisARate({ farmacoKey: 'norepinefrina', dosis: 0.2, pesoKg: 70, concentracion: 80 }).rateMlH).toBe(10.5)
+  })
+  it('norepinefrina 16 mg/100 mL (160 µg/mL): misma dosis → ~la mitad (5.3 mL/h)', () => {
+    expect(dosisARate({ farmacoKey: 'norepinefrina', dosis: 0.2, pesoKg: 70, concentracion: 160 }).rateMlH).toBe(5.3)
+  })
+  it('vice-versa: 10.5 mL/h con 80 µg/mL, 70 kg → 0.2 µg/kg/min', () => {
+    expect(rateADosis({ farmacoKey: 'norepinefrina', rateMlH: 10.5, pesoKg: 70, concentracion: 80 }).dosis).toBe(0.2)
+  })
+})
+
 describe('bloqueos y advertencias', () => {
   it('bloquea si falta el peso en fármaco por kg', () => {
     expect(dosisARate({ farmacoKey: 'norepinefrina', dosis: 0.1 }).bloqueado).toBe(true)
