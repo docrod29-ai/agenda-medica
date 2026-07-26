@@ -48,4 +48,15 @@ describe('construirSeccionesUCI', () => {
     const s = construirSeccionesUCI({}, { discusion: 'Adscrito: bajar volumen' })
     expect(s.find(x => x.key === 'plan')!.value).toMatch(/Adscrito: bajar volumen/)
   })
+
+  it('CKRT va a la sección renal y ECMO a dispositivos', () => {
+    const s = construirSeccionesUCI({
+      ckrtMod: 'CVVHDF', ckrtPeso: '70', ckrtDial: '1000', ckrtPost: '500', ckrtUf: '150',
+      ecmoConf: 'VA', ecmoPre: '260', ecmoPost: '200', ecmoBasal: '25', ecmoSpD: '84', ecmoSpI: '99',
+    })
+    expect(s.find(x => x.key === 'renal_metabolico')!.value).toMatch(/CKRT CVVHDF/)
+    const disp = s.find(x => x.key === 'piel_dispositivos')!.value
+    expect(disp).toMatch(/ECMO VA/)
+    expect(disp).toMatch(/diferencial|Harlequin|INSPECCIONAR/)
+  })
 })

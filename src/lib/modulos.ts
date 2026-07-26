@@ -93,11 +93,13 @@ export const PAQUETES_SUGERIDOS: PaqueteDef[] = [
     descripcion: 'Consultorio completo con IA Estándar (Sonnet 5): nota por voz, recetas, consultor, farmacia, CRM y finanzas. 160 créditos/mes.' },
   { id: 'premium',  nombre: 'Pro',      precio: 1899, orden: 2, modulos: MODULOS_DE_PLAN.premium,
     descripcion: 'Todo lo de Clínica con IA Máxima (Opus 4.8 + GPT-5) por defecto, 2ª opinión automática y soporte prioritario. 450 créditos/mes.' },
-  // Hospital pausado por ahora (el cobro por número de médicos/camas se decide después).
+  { id: 'hospital', nombre: 'Hospital', precio: 3499, orden: 3, modulos: MODULOS_DE_PLAN.hospital,
+    modeloPrecio: 'por_cama', precioBase: 3499, precioPorUnidad: 250,
+    descripcion: 'Todo lo de Pro + Hospitalización: censo, camas de hospital y de UCI, internamiento (indicaciones/MAR, signos, interconsultas, laboratorio), Panel UCI con motores deterministas (ventilación, gasometría, SOFA/APACHE, POCUS/VExUS, CKRT/PRISMA y ECMO) y nota de evolución UCI por sistemas.' },
 ]
 
 /** Versión del catálogo de paquetes. Al subirla, el seed reemplaza los viejos. */
-export const PAQUETES_VERSION = 3
+export const PAQUETES_VERSION = 4
 
 type ClinicMod = { modulos?: string[] | null; plan?: string | null; paseLibre?: boolean | null }
 
@@ -110,11 +112,12 @@ type ClinicMod = { modulos?: string[] | null; plan?: string | null; paseLibre?: 
  *  5) sin nada (legado muy viejo) → TODOS (no encerrar a nadie).
  */
 export function modulosDe(clinic: ClinicMod | null | undefined): string[] {
-  // Los "atajos" (sin clínica, pase libre del dueño, sin plan) dan el consultorio
-  // BASE — NO los módulos opt-in (Hospitalización). Esos requieren plan/módulo
-  // explícito para no estorbar en un consultorio normal.
+  // El PASE LIBRE (dueño de la plataforma / cortesía) da acceso a TODO, incluidos
+  // los módulos opt-in (Hospitalización). El dueño debe ver su propia app completa;
+  // antes recibía solo la BASE y Hospitalización/UCI le quedaban ocultas.
+  if (clinic?.paseLibre) return TODOS_LOS_MODULOS
+  // Sin clínica (carga inicial): BASE, para no parpadear módulos opt-in.
   if (!clinic) return MODULOS_BASE
-  if (clinic.paseLibre) return MODULOS_BASE
   const m = clinic.modulos
   if (Array.isArray(m) && m.length > 0) return m   // módulos explícitos (pueden incluir Hospital si se contrató)
   if (clinic.plan && MODULOS_DE_PLAN[clinic.plan]) return MODULOS_DE_PLAN[clinic.plan]

@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v631'  // AUDITORIA UCI (2 oleadas, 5 intensivistas + verificacion adversarial) + Panel UCI ligado a paciente internado. 19 bugs reparados: extraccion pip->ppico (no PEEP), Berlin cortes frontera, muestra arterial normalizada, gasometria deteccion MIXTO por anion gap + cronicidad respiratoria + delta-ratio, POCUS lineasB>=3 / TSVI>=30 / E-e' bloqueo FA-valvulopatia, SOFA cardiovascular no asume 'sin vasopresor' + panel pasa dopa/dobu/epi, CAM-ICU falso negativo Rasgo4, APACHE FiO2 faltante, sodio umbral absoluto. Panel UCI: modo ventilatorio + variables (FR/Ppico/autoPEEP/PS/IE/trigger), abre desde internamiento (paciente+cama+alergias), 'Pasar a nota de evolucion UCI' arma 10 secciones deterministas -> pipeline de consulta, reset entre camas.
+const CACHE = 'nexusmed-v632'  // ICU OS P2: motores CKRT/PRISMA (dosis efluente por modalidad, downtime, fraccion de filtracion, citrato ratio Ca total/ionico, vida de filtro) + ECMO (VA/VV/VAV: vigilancia oxigenador dP vs basal, hemolisis pfHb, recirculacion VV, hipoxia diferencial/harlequin y distension VI en VA) — deterministas, bloquean, NO autodiagnostican. Seccion 'Soportes extracorporeos' en el Panel UCI + en la nota (renal/dispositivos). FIX ACCESO DUENO: paseLibre ahora da TODOS los modulos (Hospitalizacion+UCI visibles en la cuenta del dueno; antes excluia opt-in). Paquete HOSPITAL agregado (hospitalizacion + camas hospital/UCI + Panel UCI + CKRT/ECMO), por_cama, PAQUETES_VERSION=4.
 // (v601):
 
 self.addEventListener('install', (event) => {

@@ -27,7 +27,7 @@ export interface FuenteEvidencia {
 
 export interface ReglaEvidencia {
   ruleId: string
-  dominio: 'hemodinamia' | 'ventilacion' | 'gasometria' | 'pocus' | 'nutricion' | 'seguridad' | 'sedacion' | 'glucemia'
+  dominio: 'hemodinamia' | 'ventilacion' | 'gasometria' | 'pocus' | 'nutricion' | 'seguridad' | 'sedacion' | 'glucemia' | 'ckrt' | 'ecmo'
   resumen: string
   umbral: string
   fuenteId: string
@@ -50,6 +50,11 @@ export const FUENTES: Record<string, FuenteEvidencia> = {
   lus2025: { id: 'lus2025', titulo: 'ESICM–ESPNIC international expert consensus on quantitative lung ultrasound in intensive care', organizacion: 'ESICM/ESPNIC', revista: 'Intensive Care Medicine', anio: 2025, doi: '10.1007/s00134-025-07932-y', verified: true },
   plrMonnet2016: { id: 'plrMonnet2016', titulo: 'Passive leg raising for predicting fluid responsiveness: a systematic review and meta-analysis', revista: 'Intensive Care Medicine', anio: 2016, doi: '10.1007/s00134-015-4134-1', verified: true },
   plrVignon2017: { id: 'plrVignon2017', titulo: 'Comparison of Echocardiographic Indices Used to Predict Fluid Responsiveness in Ventilated Patients', revista: 'Am J Respir Crit Care Med', anio: 2017, doi: '10.1164/rccm.201604-0844OC', verified: true },
+  // ── CKRT / ECMO (fuentes reales por DOI/organización; verified:false = aún no leídas de un PDF del Dr) ──
+  kdigoAki2012: { id: 'kdigoAki2012', titulo: 'KDIGO Clinical Practice Guideline for Acute Kidney Injury', organizacion: 'KDIGO', revista: 'Kidney Int Suppl', anio: 2012, verified: false },
+  elsoGeneral2021: { id: 'elsoGeneral2021', titulo: 'ELSO General Guidelines for all ECLS Cases', organizacion: 'ELSO', anio: 2021, verified: false },
+  elsoAnticoag2024: { id: 'elsoAnticoag2024', titulo: 'ELSO Anticoagulation Guideline', organizacion: 'ELSO', anio: 2024, verified: false },
+  rcaKdigoCitrate: { id: 'rcaKdigoCitrate', titulo: 'Regional citrate anticoagulation for CKRT (KDIGO-suggested first line)', organizacion: 'KDIGO', revista: 'Kidney Int Suppl', anio: 2012, verified: false },
 }
 
 /** Reglas accionables ancladas a su fuente. */
@@ -107,6 +112,17 @@ export const REGLAS_UCI: ReglaEvidencia[] = [
   { ruleId: 'sed.ligera', dominio: 'sedacion', resumen: 'Objetivo de sedación ligera', umbral: 'RASS −2 a +1 (escalas RASS/SAS)', fuenteId: 'padis2018', fuerza: 'condicional', calidad: 'baja', limitaciones: ['Preferir propofol/dexmedetomidina sobre benzodiacepinas'] },
   { ruleId: 'delirium.icdsc', dominio: 'seguridad', resumen: 'Tamizaje de delirium', umbral: 'CAM-ICU +/−; ICDSC ≥ 4 = delirium (1–3 subsindromático)', fuenteId: 'padis2018', fuerza: 'good practice', calidad: 'consenso', limitaciones: ['No usar antipsicóticos de rutina para prevenir/tratar'] },
   { ruleId: 'movil.iniciar', dominio: 'seguridad', resumen: 'Criterios de seguridad para iniciar movilización', umbral: 'FC 60–130, PAS 90–180, PAM 60–100, FR 5–40, SpO2 ≥ 88%, FiO2 < 0.6, PEEP < 10, RASS ≤ +2, vía aérea asegurada, sin sangrado activo', fuenteId: 'padis2018', fuerza: 'condicional', calidad: 'baja', limitaciones: ['Vasopresores/VM no son barrera per se si estable'] },
+
+  // ── CKRT / PRISMA (KDIGO 2012) ────────────────────────────────
+  { ruleId: 'ckrt.dosis', dominio: 'ckrt', resumen: 'Dosis de efluente en CKRT', umbral: 'ENTREGAR 20–25 mL/kg/h; prescribir 25–30 para compensar downtime', fuenteId: 'kdigoAki2012', fuerza: 'consenso', calidad: 'moderada', limitaciones: ['Dosis mayores no mejoran desenlaces (ATN/RENAL); la dosis entregada < prescrita por interrupciones'] },
+  { ruleId: 'ckrt.ff', dominio: 'ckrt', resumen: 'Fracción de filtración y coagulación del filtro', umbral: 'mantener FF < 25% (post-dilución); la pre-dilución la reduce', fuenteId: 'kdigoAki2012', fuerza: 'consenso', calidad: 'baja', limitaciones: ['FF alta favorece hemoconcentración y coagulación del filtro'] },
+  { ruleId: 'ckrt.citrato', dominio: 'ckrt', resumen: 'Anticoagulación regional con citrato (1ª línea)', umbral: 'iCa sistémico 1.0–1.2; iCa postfiltro 0.25–0.35; ratio Ca total/iónico ≥ 2.5 → sospecha de acumulación', fuenteId: 'rcaKdigoCitrate', fuerza: 'Débil/sugerido', calidad: 'moderada', limitaciones: ['Acumulación más probable en falla hepática/hipoperfusión; el ratio es sospecha, no diagnóstico'] },
+
+  // ── ECMO / ECLS (ELSO) ────────────────────────────────────────
+  { ruleId: 'ecmo.oxigenador', dominio: 'ecmo', resumen: 'Vigilancia del oxigenador por ΔP', umbral: 'ΔP = presión pre − post; un ASCENSO vs basal hace sospechar depósito/trombo → inspeccionar', fuenteId: 'elsoGeneral2021', fuerza: 'consenso', calidad: 'baja', limitaciones: ['El ΔP también sube con el flujo; correlacionar con hemólisis (pfHb/LDH). No es diagnóstico de trombosis'] },
+  { ruleId: 'ecmo.hemolisis', dominio: 'ecmo', resumen: 'Hemólisis del circuito', umbral: 'plasma-free Hb > 50 mg/dL = significativa; apoya LDH alta + haptoglobina baja', fuenteId: 'elsoGeneral2021', fuerza: 'consenso', calidad: 'baja', limitaciones: ['Buscar fuente: oxigenador, bomba o cánula'] },
+  { ruleId: 'ecmo.harlequin', dominio: 'ecmo', resumen: 'Hipoxia diferencial en VA periférico (Harlequin/North-South)', umbral: 'SpO2 mano derecha << miembro inferior → gasometría de radial DERECHA', fuenteId: 'elsoGeneral2021', fuerza: 'consenso', calidad: 'baja', limitaciones: ['Ocurre al recuperar eyección del VI con pulmón enfermo; valorar ventilación nativa o conversión de configuración'] },
+  { ruleId: 'ecmo.distension', dominio: 'ecmo', resumen: 'Distensión del VI en VA-ECMO', umbral: 'baja pulsatilidad (pulso < 15 mmHg), válvula aórtica que no abre, edema pulmonar → valorar descarga (venting)', fuenteId: 'elsoGeneral2021', fuerza: 'consenso', calidad: 'baja', limitaciones: ['La conducta de descarga la decide el equipo; el motor solo detecta el patrón'] },
 ]
 
 /** Devuelve la evidencia (regla + fuente) de un ruleId, o null. */

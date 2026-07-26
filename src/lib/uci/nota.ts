@@ -12,6 +12,8 @@ import { analizarGasometria } from './gasometria'
 import { presionArterialMedia } from './hemodinamia'
 import { calcularSOFA } from './scores'
 import { vexus, respuestaPLR, disfuncionVD_TAPSE, sobrecargaVD_VDVI, lineasB, type PatronVena, type ParametroPLR } from './pocus'
+import { analizarCKRT, analizarCitrato, type ModalidadCKRT } from './ckrt'
+import { analizarECMO, type ConfigECMO } from './ecmo'
 
 export const UCI_NOTA_VERSION = '1.0.0'
 
@@ -53,6 +55,21 @@ export function construirSeccionesUCI(v: Campos, opts?: { dia?: string; discusio
     pafi: vent.indiceKirby.ok ? vent.indiceKirby.valor ?? undefined : undefined, soporteRespiratorio: v.soporte === 'si',
     plaquetas: n('plaquetas'), bilirrubina: n('bili'), pam: pam.ok ? pam.valor ?? undefined : undefined,
     norepinefrina: n('norepi'), glasgow: n('glasgow'), creatinina: n('creat'),
+  })
+  const ckrt = analizarCKRT({
+    modalidad: (v.ckrtMod as ModalidadCKRT) || undefined, pesoKg: n('ckrtPeso'), qbMlMin: n('ckrtQb'),
+    dializadoMlH: n('ckrtDial'), reposicionPreMlH: n('ckrtPre'), reposicionPostMlH: n('ckrtPost'),
+    ufNetaMlH: n('ckrtUf'), hematocrito: n('ckrtHto'), tiempoActivoH: n('ckrtHoras'),
+  })
+  const citrato = analizarCitrato({ caIonicoSistemico: n('ciCaSis'), caPostfiltro: n('ciCaPost'), caTotal: n('ciCaTot') })
+  const ecmo = analizarECMO({
+    config: (v.ecmoConf as ConfigECMO) || undefined,
+    presionPre: n('ecmoPre'), presionPost: n('ecmoPost'), deltaPBasal: n('ecmoBasal'),
+    plasmaFreeHb: n('ecmoPfhb'), ldh: n('ecmoLdh'), haptoglobina: n('ecmoHapto'),
+    flujoLMin: n('ecmoFlujo'), gastoCardiacoLMin: n('ecmoCo'), saO2: n('ecmoSao2'), preOxiSvO2: n('ecmoSvo2'), sweepLMin: n('ecmoSweep'), paco2: n('ecmoPaco2'),
+    spo2ManoDerecha: n('ecmoSpD'), spo2MiembroInferior: n('ecmoSpI'), pas: n('ecmoPas'), pad: n('ecmoPad'),
+    valvulaAorticaAbre: v.ecmoValv === 'si' ? true : v.ecmoValv === 'no' ? false : undefined,
+    edemaPulmonar: v.ecmoEdema === 'si' ? true : v.ecmoEdema === 'no' ? false : undefined,
   })
   const vex = vexus({ vciCm: n('vci'), hepatica: patron(v, 'vHep'), porta: patron(v, 'vPor'), renal: patron(v, 'vRen') })
   const plr = respuestaPLR(n('plrDelta'), (v.plrParam as ParametroPLR) || undefined)
@@ -108,6 +125,9 @@ export function construirSeccionesUCI(v: Campos, opts?: { dia?: string; discusio
     n('cl') ? `Cl ${v.cl}.` : null,
     gaso.ok ? `Ácido-base: ${gaso.interpretacion.split('.')[0]}${gaso.mixto ? ' (MIXTO)' : ''}${gaso.compensacion.comentario ? ` — ${gaso.compensacion.comentario}` : ''}.` : null,
     (gaso.ok && gaso.anionGap.valor != null) ? `Anion gap ${gaso.anionGap.corregidoAlbumina ?? gaso.anionGap.valor}${gaso.anionGap.corregidoAlbumina != null ? ' (corregido)' : ''}${gaso.anionGap.elevado ? ' — elevado' : ''}.` : null,
+    ckrt.ok ? `CKRT ${ckrt.modalidad}: efluente ${ckrt.efluenteMlH} mL/h${ckrt.dosisEntregadaMlKgH != null ? `, dosis entregada ${ckrt.dosisEntregadaMlKgH} mL/kg/h` : ckrt.dosisPrescritaMlKgH != null ? `, dosis prescrita ${ckrt.dosisPrescritaMlKgH} mL/kg/h` : ''}${ckrt.fraccionFiltracionPct != null ? `, FF ${ckrt.fraccionFiltracionPct}%` : ''}.` : null,
+    (ckrt.ok && ckrt.advertencias.length) ? `CKRT — ${ckrt.advertencias.join('; ')}.` : null,
+    citrato.ratioCaTotalIonico != null ? `Citrato: ratio Ca total/iónico ${citrato.ratioCaTotalIonico}${citrato.patronAcumulacion ? ' (patrón de acumulación — verificar)' : ''}.` : null,
   ])
 
   // ── Hematológico e infeccioso ──
@@ -133,7 +153,10 @@ export function construirSeccionesUCI(v: Campos, opts?: { dia?: string; discusio
     { key: 'renal_metabolico', label: 'Renal e hidrometabólico', value: renal },
     { key: 'gastrointestinal', label: 'Gastrointestinal y nutrición', value: '' },
     { key: 'hematoinfeccioso', label: 'Hematológico e infeccioso', value: hemato },
-    { key: 'piel_dispositivos', label: 'Piel, músculo y dispositivos', value: '' },
+    { key: 'piel_dispositivos', label: 'Piel, músculo y dispositivos', value: join([
+      ecmo.config ? `ECMO ${ecmo.config}${ecmo.oxigenador.ok ? ` · ΔP oxigenador ${ecmo.oxigenador.deltaP} mmHg` : ''}.` : null,
+      ...ecmo.señales.map(s => `ECMO — ${s.mensaje}`),
+    ]) },
     { key: 'ultrasonido', label: 'Ultrasonido crítico (POCUS)', value: ultrasonido },
     { key: 'plan', label: 'Plan por sistema', value: opts?.discusion ? `Discusión del pase:\n${opts.discusion}` : '' },
   ]

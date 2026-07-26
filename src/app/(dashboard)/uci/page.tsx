@@ -22,6 +22,8 @@ import { analizarGasometria } from '@/lib/uci/gasometria'
 import { presionArterialMedia } from '@/lib/uci/hemodinamia'
 import { calcularSOFA } from '@/lib/uci/scores'
 import { vexus, respuestaPLR, disfuncionVD_TAPSE, sobrecargaVD_VDVI, lineasB as lineasBPocus, type PatronVena, type ParametroPLR } from '@/lib/uci/pocus'
+import { analizarCKRT, analizarCitrato, type ModalidadCKRT } from '@/lib/uci/ckrt'
+import { analizarECMO, type ConfigECMO } from '@/lib/uci/ecmo'
 import { analizarSeguridadUCI, type NivelAlerta } from '@/lib/uci/seguridad'
 import { extraerValoresUCI } from '@/lib/uci/extraccion'
 import { atribuirRolesDiscusion, formatearDiscusion } from '@/lib/uci/discusion'
@@ -181,6 +183,23 @@ export default function UciPanelPage() {
   const tapse = useMemo(() => disfuncionVD_TAPSE(n('tapse')), [v])
   const vdvi = useMemo(() => sobrecargaVD_VDVI(n('vdvi')), [v])
   const lb = useMemo(() => lineasBPocus(n('lineasB')), [v])
+
+  // ── Soportes extracorpóreos: CKRT/PRISMA + ECMO ──
+  const bool = (k: string): boolean | undefined => (v[k] === 'si' ? true : v[k] === 'no' ? false : undefined)
+  const ckrt = useMemo(() => analizarCKRT({
+    modalidad: (v.ckrtMod as ModalidadCKRT) || undefined, pesoKg: n('ckrtPeso'), qbMlMin: n('ckrtQb'),
+    dializadoMlH: n('ckrtDial'), reposicionPreMlH: n('ckrtPre'), reposicionPostMlH: n('ckrtPost'),
+    ufNetaMlH: n('ckrtUf'), hematocrito: n('ckrtHto'), tiempoActivoH: n('ckrtHoras'),
+  }), [v])
+  const citrato = useMemo(() => analizarCitrato({ caIonicoSistemico: n('ciCaSis'), caPostfiltro: n('ciCaPost'), caTotal: n('ciCaTot') }), [v])
+  const ecmo = useMemo(() => analizarECMO({
+    config: (v.ecmoConf as ConfigECMO) || undefined,
+    presionPre: n('ecmoPre'), presionPost: n('ecmoPost'), deltaPBasal: n('ecmoBasal'),
+    plasmaFreeHb: n('ecmoPfhb'), ldh: n('ecmoLdh'), haptoglobina: n('ecmoHapto'),
+    flujoLMin: n('ecmoFlujo'), gastoCardiacoLMin: n('ecmoCo'), saO2: n('ecmoSao2'), preOxiSvO2: n('ecmoSvo2'), sweepLMin: n('ecmoSweep'), paco2: n('ecmoPaco2'),
+    spo2ManoDerecha: n('ecmoSpD'), spo2MiembroInferior: n('ecmoSpI'), pas: n('ecmoPas'), pad: n('ecmoPad'),
+    valvulaAorticaAbre: bool('ecmoValv'), edemaPulmonar: bool('ecmoEdema'),
+  }), [v])
 
   // ── Pasar los valores del panel a una NOTA de evolución UCI del paciente ──
   const pasarANota = () => {
@@ -388,6 +407,88 @@ export default function UciPanelPage() {
           </div>
         </div>
       </div>
+
+      {/* ── SOPORTES EXTRACORPÓREOS: CKRT / PRISMA · ECMO ── */}
+      <details style={{ marginTop: 18, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: '4px 16px 16px' }}>
+        <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: 14, padding: '12px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Waves size={16} style={{ color: 'var(--nexus)' }} /> Soportes extracorpóreos · CKRT / PRISMA · ECMO
+        </summary>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 14 }} className="nx-uci-grid">
+          {/* CKRT */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <Bloque icon={Droplets} titulo="CKRT / PRISMA">
+              <Selector label="Modalidad" k="ckrtMod" v={v} set={set} w={130} opciones={[
+                { val: 'CVVHDF', txt: 'CVVHDF' }, { val: 'CVVHD', txt: 'CVVHD' }, { val: 'CVVH', txt: 'CVVH' }, { val: 'SCUF', txt: 'SCUF' }]} />
+              <Campo label="Peso" k="ckrtPeso" v={v} set={set} sufijo="kg" w={80} />
+              <Campo label="Qb" k="ckrtQb" v={v} set={set} sufijo="mL/min" w={95} />
+              <Campo label="Dializado" k="ckrtDial" v={v} set={set} sufijo="mL/h" w={100} />
+              <Campo label="Repo. pre" k="ckrtPre" v={v} set={set} sufijo="mL/h" w={100} />
+              <Campo label="Repo. post" k="ckrtPost" v={v} set={set} sufijo="mL/h" w={100} />
+              <Campo label="UF neta" k="ckrtUf" v={v} set={set} sufijo="mL/h" w={95} />
+              <Campo label="Hto" k="ckrtHto" v={v} set={set} sufijo="%" w={70} />
+              <Campo label="Horas activas/24h" k="ckrtHoras" v={v} set={set} sufijo="h" w={130} />
+            </Bloque>
+            <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 16, display: 'grid', gap: 8 }}>
+              <Resultado label="Efluente" r={{ ok: ckrt.ok, valor: ckrt.efluenteMlH, unidad: 'mL/h', motivoBloqueo: ckrt.motivoBloqueo, interpretacion: ckrt.modalidad ?? '' }} />
+              <Resultado label="Dosis (entregada/prescrita)" r={{ ok: ckrt.dosisPrescritaMlKgH != null, valor: ckrt.dosisEntregadaMlKgH ?? ckrt.dosisPrescritaMlKgH, unidad: 'mL/kg/h', motivoBloqueo: 'sin peso/tiempo', interpretacion: ckrt.dosisEntregadaMlKgH != null ? 'entregada' : 'prescrita' }} />
+              <Resultado label="Fracción de filtración" r={{ ok: ckrt.fraccionFiltracionPct != null, valor: ckrt.fraccionFiltracionPct, unidad: '%', motivoBloqueo: 'requiere Qb + Hto (CVVH/CVVHDF)', interpretacion: 'meta < 25%' }} />
+              {ckrt.advertencias.map((a, i) => <div key={i} style={{ fontSize: 12, color: '#d97706' }}>⚠ {a}</div>)}
+              {citrato.ratioCaTotalIonico != null && <div style={{ fontSize: 12.5, color: citrato.patronAcumulacion ? '#dc2626' : 'var(--text3)' }}>Citrato · ratio Ca total/iónico {citrato.ratioCaTotalIonico}{citrato.patronAcumulacion ? ' — patrón de acumulación (verificar)' : ''}</div>}
+            </div>
+            <Bloque icon={Droplets} titulo="Citrato (anticoagulación regional)">
+              <Campo label="iCa sistémico" k="ciCaSis" v={v} set={set} sufijo="mmol/L" w={120} />
+              <Campo label="iCa postfiltro" k="ciCaPost" v={v} set={set} sufijo="mmol/L" w={120} />
+              <Campo label="Ca total" k="ciCaTot" v={v} set={set} sufijo="mmol/L" w={110} />
+            </Bloque>
+          </div>
+
+          {/* ECMO */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <Bloque icon={HeartPulse} titulo="ECMO / ECLS">
+              <Selector label="Configuración" k="ecmoConf" v={v} set={set} w={130} opciones={[
+                { val: 'VA', txt: 'VA' }, { val: 'VV', txt: 'VV' }, { val: 'VAV', txt: 'V-AV' }]} />
+              <Campo label="P. pre-oxi" k="ecmoPre" v={v} set={set} sufijo="mmHg" w={100} />
+              <Campo label="P. post-oxi" k="ecmoPost" v={v} set={set} sufijo="mmHg" w={100} />
+              <Campo label="ΔP basal" k="ecmoBasal" v={v} set={set} sufijo="mmHg" w={95} />
+              <Campo label="Hb libre" k="ecmoPfhb" v={v} set={set} sufijo="mg/dL" w={100} />
+              <Campo label="LDH" k="ecmoLdh" v={v} set={set} sufijo="U/L" w={85} />
+              <Campo label="Haptoglob." k="ecmoHapto" v={v} set={set} sufijo="mg/dL" w={105} />
+              {(v.ecmoConf === 'VV' || v.ecmoConf === 'VAV') && <>
+                <Campo label="Flujo" k="ecmoFlujo" v={v} set={set} sufijo="L/min" w={90} />
+                <Campo label="Gasto (CO)" k="ecmoCo" v={v} set={set} sufijo="L/min" w={100} />
+                <Campo label="SaO₂ pac." k="ecmoSao2" v={v} set={set} sufijo="%" w={95} />
+                <Campo label="SvO₂ pre-oxi" k="ecmoSvo2" v={v} set={set} sufijo="%" w={110} />
+                <Campo label="Sweep" k="ecmoSweep" v={v} set={set} sufijo="L/min" w={95} />
+                <Campo label="PaCO₂" k="ecmoPaco2" v={v} set={set} sufijo="mmHg" w={95} />
+              </>}
+              {(v.ecmoConf === 'VA' || v.ecmoConf === 'VAV') && <>
+                <Campo label="SpO₂ mano der." k="ecmoSpD" v={v} set={set} sufijo="%" w={120} />
+                <Campo label="SpO₂ inferior" k="ecmoSpI" v={v} set={set} sufijo="%" w={110} />
+                <Campo label="PAS" k="ecmoPas" v={v} set={set} sufijo="mmHg" w={90} />
+                <Campo label="PAD" k="ecmoPad" v={v} set={set} sufijo="mmHg" w={90} />
+                <Selector label="Válvula Ao abre" k="ecmoValv" v={v} set={set} w={120} opciones={[{ val: 'si', txt: 'Sí' }, { val: 'no', txt: 'No' }]} />
+                <Selector label="Edema pulmonar" k="ecmoEdema" v={v} set={set} w={120} opciones={[{ val: 'si', txt: 'Sí' }, { val: 'no', txt: 'No' }]} />
+              </>}
+            </Bloque>
+            <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
+              <div style={{ fontWeight: 600, fontSize: 13.5, marginBottom: 8 }}>Vigilancia ECMO {ecmo.oxigenador.ok ? `· ΔP ${ecmo.oxigenador.deltaP} mmHg` : ''}</div>
+              {ecmo.señales.length === 0
+                ? <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Sin señales con los datos actuales.</div>
+                : <div style={{ display: 'grid', gap: 7 }}>
+                    {ecmo.señales.map((s, i) => (
+                      <div key={i} style={{ display: 'flex', gap: 8, fontSize: 12.5, padding: '7px 9px', borderRadius: 8, background: 'var(--s2)', borderLeft: `3px solid ${colorNivel[s.nivel]}` }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: colorNivel[s.nivel], textTransform: 'uppercase', width: 58, flexShrink: 0 }}>{s.nivel}</span>
+                        <span>{s.mensaje}</span>
+                      </div>
+                    ))}
+                  </div>}
+              <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 8, lineHeight: 1.4 }}>
+                El motor detecta cambios vs basal y patrones (recirculación, hipoxia diferencial, distensión de VI, hemólisis) y pide verificación. NO autodiagnostica trombosis del oxigenador ni ejecuta descarga/venting.
+              </div>
+            </div>
+          </div>
+        </div>
+      </details>
       <style>{`@media (max-width: 820px){ .nx-uci-grid { grid-template-columns: 1fr !important; } }`}</style>
     </main>
   )
