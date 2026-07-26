@@ -17,7 +17,7 @@ describe('calcularSOFA', () => {
     })
     expect(r.parcial).toBe(false)
     expect(r.total).toBe(14)
-    expect(r.pendienteValidacion).toBe(true)
+    expect(r.pendienteValidacion).toBe(false) // umbrales confirmados por el Dr
   })
 
   it('marca PARCIAL y NO asume 0 cuando falta un aparato', () => {
