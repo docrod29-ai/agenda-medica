@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v665'  // L2 seguridad telesalud: (a) /api/telesalud/token pasa de verificarMiembro a verificarMedico + valida que el paciente exista en la clinica (antes la secretaria emitia tokens que via /api/portal 'documentos' exponian Dx+medicamentos = bypass de secreto medico NOM-004). (b) /api/telesalud/sala exige titularidad SIEMPRE (token del paciente de esa cita O miembro autenticado); se elimino el camino legacy sin token (con solo citaId+clinicId cualquiera entraba a la videollamada de otro paciente, y la sala existente se devolvia antes de comprobar nada).
+const CACHE = 'nexusmed-v666'  // L2c seguridad: bump Next.js 16.2.6 -> 16.2.12 (cierra CVEs HIGH de App Router: middleware/proxy bypass GHSA-6gpp-xcg3-4w24, divulgacion no autenticada de Server Functions GHSA-955p-x3mx-jcvp, DoS Image Optimization/Server Actions, cache confusion). Residual anotado: sharp/libvips (transitiva de next/image) sigue en HIGH; forzarla choca con el pin de Next (arriesga el pipeline nativo) -> esperar a que Next suba su pin.
 // (v601):
 
 self.addEventListener('install', (event) => {
