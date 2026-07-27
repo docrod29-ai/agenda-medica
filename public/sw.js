@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v671'  // P0 CLINICO (reporte externo): FIB-4 salia 3053.54 en vez de 3.05 (error de escala 1000x) en la demo publica. Raiz: copiloto dividia plaquetas/1000 ciegamente (correcto para conteo absoluto 135000, pero rompia la fuente que ya venia en x10^9/L: 135/1000=0.135). FIX: fib4() ahora normaliza plaquetas por MAGNITUD (>2000 = conteo absoluto -> /1000) blindando a TODOS los llamadores; se quito el /1000 del copiloto. Golden tests con el caso exacto + ambas unidades. La formula NO cambio.
+const CACHE = 'nexusmed-v672'  // Lote seguridad-reglas (reporte externo): firestore.rules -> (1) update de /clinics protege trialEndsAtMs+ownerId (cerraba bypass del trial) + create bloquea 'plan'; (2) cita create con cobroExento:true exige exentoPor+motivo (antes se creaba ya exenta); (3) googleTokens deny read/write al cliente (tokens OAuth server-only); (4) invitaciones update hasOnly([used,usedBy,usedAt]) -> role inmutable; (5) hospital signos/alertas sin delete cliente + hospital_roles write solo isMedico. next.config -> Referrer-Policy no-referrer de magic-links movido al FINAL (gana sobre la global). storage.rules -> limites size+MIME (audio/, imagenes+pdf). OJO: rules requieren firebase deploy.
 // (v601):
 
 self.addEventListener('install', (event) => {

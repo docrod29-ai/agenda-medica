@@ -65,17 +65,6 @@ const nextConfig: NextConfig = {
         ],
       },
 
-      // ── Rutas con TOKEN del paciente (magic link): NO indexar, NO enviar
-      // referer (el token va en la URL → evitar que se filtre a terceros o a
-      // buscadores). Aplica a /mi/[token] y /resena/[token].
-      {
-        source: "/(mi|resena|verificar)/:path*",
-        headers: [
-          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive, nosnippet" },
-          { key: "Referrer-Policy", value: "no-referrer" },
-        ],
-      },
-
       // ── Zona autenticada: anti-clickjacking ─────────────────────
       // Bloquea que cualquier sitio embeba la app en iframe
       // (clickjacking sobre /consulta, /agenda, etc.)
@@ -123,6 +112,21 @@ const nextConfig: NextConfig = {
           // Cross-Origin policies — defensa contra Spectre/timing
           { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
           { key: "X-DNS-Prefetch-Control", value: "on" },
+        ],
+      },
+
+      // ── Rutas con TOKEN del paciente (magic link) — AL FINAL a propósito ──
+      // El token va en la URL: NO indexar y NO enviar referer. Va DESPUÉS del
+      // bloque global porque, cuando dos reglas fijan la MISMA cabecera, Next usa
+      // la ÚLTIMA (auditoría maestra 2026-07 / reporte externo): así el
+      // 'no-referrer' de estas rutas gana sobre el 'strict-origin-when-cross-origin'
+      // global, cumpliendo la garantía de que el token no viaje ni en referers
+      // same-origin. Aplica a /mi/[token], /resena/[token] y /verificar/[token].
+      {
+        source: "/(mi|resena|verificar)/:path*",
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive, nosnippet" },
+          { key: "Referrer-Policy", value: "no-referrer" },
         ],
       },
     ];

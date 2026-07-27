@@ -102,8 +102,11 @@ service cloud.firestore {
         && request.resource.data.get('status', '') == 'trial'
         && request.resource.data.get('trialEndsAtMs', 0) > 0
         && request.resource.data.get('trialEndsAtMs', 0) <= request.time.toMillis() + 15 * 86400000
+        // 'plan' también se bloquea: la creación legítima va por el servidor
+        // (/api/clinic/crear, Admin SDK); un cliente que cree el doc directo no debe
+        // poder auto-asignarse un plan (el comentario del server ya lo exigía).
         && !request.resource.data.keys().hasAny(
-             ['modulos', 'paqueteId', 'stripeCustomerId', 'stripeSubscriptionId']
+             ['modulos', 'paqueteId', 'stripeCustomerId', 'stripeSubscriptionId', 'plan']
            );
       // El admin de la clínica puede editar metadatos del doc raíz, PERO NUNCA los
       // campos de FACTURACIÓN/ENTITLEMENTS (plan, estado, prueba, Stripe, pase
@@ -115,6 +118,12 @@ service cloud.firestore {
         && request.resource.data.get('plan', '')            == resource.data.get('plan', '')
         && request.resource.data.get('status', '')          == resource.data.get('status', '')
         && request.resource.data.get('trialEndsAt', '')     == resource.data.get('trialEndsAt', '')
+        // trialEndsAtMs es el reloj REAL del paywall (clinicaPuedeEscribir lo lee).
+        // Sin fijarlo, un admin extendía su prueba indefinidamente desde el cliente
+        // (bypass del trial — auditoría maestra 2026-07 / reporte externo).
+        && request.resource.data.get('trialEndsAtMs', 0)    == resource.data.get('trialEndsAtMs', 0)
+        // ownerId es la raíz de la propiedad de la clínica: server-authoritative.
+        && request.resource.data.get('ownerId', '')         == resource.data.get('ownerId', '')
         && request.resource.data.get('stripeCustomerId', '') == resource.data.get('stripeCustomerId', '')
         && request.resource.data.get('stripeSubscriptionId', '') == resource.data.get('stripeSubscriptionId', '')
         && request.resource.data.get('paseLibre', false)    == resource.data.get('paseLibre', false)
@@ -139,7 +148,17 @@ service cloud.firestore {
             && request.resource.data.get('exentoMotivo', '').size() > 0
           )
         );
-        allow create: if isMember(clinicId) && clinicaPuedeEscribir(clinicId);
+        // Al CREAR, si la cita nace exenta (cobroExento:true) se exige el mismo
+        // control antifraude que en el update (autor real + motivo). Antes se podía
+        // crear ya exenta y saltarse el guard de false→true (auditoría maestra 2026-07).
+        allow create: if isMember(clinicId) && clinicaPuedeEscribir(clinicId) && (
+          request.resource.data.get('cobroExento', false) == false
+          || (
+            request.resource.data.get('exentoPor', '') == request.auth.uid
+            && request.resource.data.get('exentoMotivo', '') is string
+            && request.resource.data.get('exentoMotivo', '').size() > 0
+          )
+        );
       }
       match /patients/{docId} {
         allow read: if isMember(clinicId);
@@ -213,15 +232,22 @@ service cloud.firestore {
         // (/api/hospital/mutar, Admin SDK) que valida el ROL POR ACCIÓN.
         // El cliente NO escribe directo → RBAC real, no de vista.
         allow create, update, delete: if false;
-        // Signos vitales seriados del internamiento (escritura directa OK:
-        // médicos/enfermería registran signos; no requieren gate por acción)
+        // Signos vitales seriados. Enfermería/médicos AÑADEN (create) y CORRIGEN
+        // (update) lecturas, pero NADIE los borra desde el cliente: un signo
+        // histórico no debe poder desaparecer (append/corregir, no borrar —
+        // auditoría maestra 2026-07 / reporte externo). `write` incluía delete.
         match /signos/{signoId} {
-          allow read, write: if isClinicoHospital(clinicId);
+          allow read, create, update: if isClinicoHospital(clinicId);
+          allow delete: if false;
         }
       }
-      // Rol hospitalario por usuario (médico/enfermería/farmacia/laboratorio/admin)
+      // Rol hospitalario por usuario. La ESCRITURA la controla médico/admin de la
+      // clínica (isMedico), NO cualquier clínico: si esta colección interviene en
+      // permisos, dejar que enfermería/farmacia/lab escriban su propio doc era un
+      // vector de auto-escalada (reporte externo). La lectura sí es de todo el staff.
       match /hospital_roles/{uid} {
-        allow read, write: if isClinicoHospital(clinicId);
+        allow read: if isClinicoHospital(clinicId);
+        allow write: if isMedico(clinicId);
       }
       // Módulo de laboratorio — solicitudes y resultados (datos clínicos).
       // LEE todo el staff clínico. SOLICITA cualquiera de ellos (un médico o
@@ -234,9 +260,12 @@ service cloud.firestore {
         allow create: if isClinicoHospital(clinicId);
         allow update, delete: if isLabStaff(clinicId);
       }
-      // Alertas hospitalarias (lab crítico, NEWS2, interconsulta)
+      // Alertas hospitalarias (lab crítico, NEWS2, interconsulta). Se crean y se
+      // atienden/resuelven (create+update), pero NO se borran desde el cliente: una
+      // alerta crítica no debe poder desaparecer con un delete (reporte externo).
       match /hospital_alertas/{alertaId} {
-        allow read, write: if isClinicoHospital(clinicId);
+        allow read, create, update: if isClinicoHospital(clinicId);
+        allow delete: if false;
       }
       // Catálogo de camas (inventario + ocupación). LEE todo el staff clínico;
       // ESCRIBE solo médico/admin (enfermería/farmacia/laboratorio no gestionan el
@@ -508,12 +537,15 @@ service cloud.firestore {
       // (evita que un médico/secretaria fabrique un admin: escalada de privilegios).
       allow create: if isMedico(request.resource.data.clinicId)
         && (request.resource.data.role != 'admin' || isAdmin(request.resource.data.clinicId));
-      // Actualizar: solo el invitado puede marcarla como usada (used: true + usedBy = su uid)
+      // Actualizar: solo el invitado marca la invitación como usada. Se congela TODO
+      // lo demás con hasOnly — sobre todo `role`: sin esto, en la aceptación se podía
+      // elevar el rol de la invitación (p.ej. a 'admin') y un flujo futuro confiaría
+      // en ese rol adulterado (auditoría maestra 2026-07 / reporte externo).
       allow update: if isAuth()
         && resource.data.used == false
         && request.resource.data.used == true
         && request.resource.data.usedBy == request.auth.uid
-        && request.resource.data.clinicId == resource.data.clinicId;
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used', 'usedBy', 'usedAt']);
       // Borrar (revocar): solo miembros de la clínica que creó la invitación
       allow delete: if isAuth()
         && exists(/databases/$(database)/documents/clinic_members/$(request.auth.uid))
@@ -554,9 +586,13 @@ service cloud.firestore {
       allow delete: if isAdmin(resource.data.clinicId) && request.auth.uid != uid;
     }
 
-    // Google OAuth tokens (per-user)
+    // Google OAuth tokens (per-user) — access/refresh tokens = credencial persistente.
+    // SOLO el servidor (Admin SDK): callback los escribe, sync/status/calendars los
+    // leen, todo server-side. El cliente NUNCA los toca (el estado de conexión se
+    // consulta por /api/calendar/status). Deny total cierra el robo por XSS de un
+    // acceso persistente a Google Calendar (auditoría maestra 2026-07 / reporte externo).
     match /googleTokens/{uid} {
-      allow read, write: if isAuth() && request.auth.uid == uid;
+      allow read, write: if false;
     }
 
     // Facturación de la PLATAFORMA (nivel dueño) — pagos registrados por el
