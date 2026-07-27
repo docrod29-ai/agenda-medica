@@ -37,7 +37,7 @@ const CASO: EntradaCopiloto = {
     { nombre: 'Warfarina', dosis: '5 mg' },
     { nombre: 'Amoxicilina', dosis: '500 mg' },
   ],
-  signos: { ta: '168/96', fc: 112, fr: 18, temperatura: 36.8, spo2: 96, peso: 74, talla: 158 },
+  signos: { ta: '186/118', fc: 112, fr: 18, temperatura: 36.8, spo2: 96, peso: 74, talla: 158 },
   labs: { creatinina: 2.1, ast: 42, alt: 48, plaquetas: 135, ldl: 162 },
 }
 
@@ -59,7 +59,7 @@ const EXTRACCION_DEMO = {
     // Amoxicilina NO está aquí → capturado a mano
   ],
   signosVitales: {
-    ta: { value: '168/96', source_quote: 'la presión ciento sesenta y ocho sobre noventa y seis', confidence: 'alta' as const },
+    ta: { value: '186/118', source_quote: 'la presión ciento ochenta y seis sobre ciento dieciocho', confidence: 'alta' as const },
   },
 }
 
@@ -67,7 +67,7 @@ const FINAL_DEMO = {
   diagnosticos: CASO.diagnosticos,
   medicamentos: CASO.medicamentos,
   alergias: ['penicilina'],
-  signosVitales: { ta: '168/96', fc: 112, peso: 74, talla: 158 },
+  signosVitales: { ta: '186/118', fc: 112, peso: 74, talla: 158 },
 }
 
 export default function DemoRazonamientoPage() {
@@ -101,7 +101,7 @@ export default function DemoRazonamientoPage() {
           <div style={{ display: 'grid', gap: 6, fontSize: 13, color: 'var(--text2)' }}>
             <div><b style={{ color: 'var(--text)' }}>Dx:</b> DM2 · ERC · Fibrilación auricular · Dislipidemia</div>
             <div><b style={{ color: 'var(--text)' }}>Fármacos:</b> Metformina 850 mg · Enalapril 10 mg · Ibuprofeno 400 mg · Warfarina 5 mg · Amoxicilina 500 mg</div>
-            <div><b style={{ color: 'var(--text)' }}>Signos:</b> TA 168/96 · FC 112 · peso 74 kg · talla 158 cm</div>
+            <div><b style={{ color: 'var(--text)' }}>Signos:</b> TA 186/118 · FC 112 · peso 74 kg · talla 158 cm</div>
             <div><b style={{ color: 'var(--text)' }}>Labs:</b> creatinina 2.1 · LDL 162 · AST 42 · ALT 48 · plaquetas 135</div>
             <div><b style={{ color: 'var(--text)' }}>Alergia:</b> penicilina</div>
           </div>

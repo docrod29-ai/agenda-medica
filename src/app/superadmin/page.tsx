@@ -340,7 +340,7 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
             {(['pro', 'premium'] as const).map(n => {
               const activo = nivelIA === n
               // Derivado de PLANES (fuente única): el literal estaba desincronizado
-              // — decía Premium $1,999 cuando el plan es "Pro" a $1,899.
+              // — decía Premium $1,999 cuando el plan es "Pro" (precio en @/lib/planes-ia).
               const label = n === 'pro'
                 ? `${PLANES.clinica.nombre} ($${PLANES.clinica.precioMXN.toLocaleString('es-MX')}) · Sonnet 5`
                 : `${PLANES.premium.nombre} ($${PLANES.premium.precioMXN.toLocaleString('es-MX')}) · Opus 4.8 + GPT-5`

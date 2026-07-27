@@ -61,7 +61,7 @@ export const GUIA: SeccionGuia[] = [
       { t: '⭐ Estándar (Sonnet 5 + separación de voces)', d: 'El día a día, muy buena. Cuesta 3 créditos. Es el default del plan Clínica.' },
       { t: '💎 Máxima (Opus 4.8 + GPT-5 + 2ª opinión)', d: 'El máximo razonamiento, para casos complejos. Cuesta 10 créditos. Es el default del plan Pro.' },
       { t: '¿Por qué cuestan distinto?', d: 'Porque los modelos de IA cuestan distinto de verdad: Rápida es un modelo ligero y barato; Máxima usa DOS inteligencias top (Opus de Anthropic + GPT-5 de OpenAI) que son mucho más caras. Los créditos son proporcionales a ese costo real.' },
-      { t: '¿Cuántas notas alcanzan mis créditos?', d: 'Depende del motor. Ej. con 160 créditos (plan Clínica): ~53 notas Estándar, o ~16 Máximas, o ~160 Rápidas, o una mezcla. El plan Pro trae 450 créditos.' },
+      { t: '¿Cuántas notas alcanzan mis créditos?', d: 'Depende del motor. Ej. con 200 créditos (plan Clínica): ~66 notas Estándar, o 20 Máximas, o 200 Rápidas, o una mezcla. El plan Pro trae 450 créditos.' },
       { t: 'Cuando se acaban los créditos', d: 'La IA NO se detiene: sigue GRATIS en ⚡ Rápida (hasta un tope generoso al mes). Para recuperar la IA máxima, compras más créditos o subes de plan. Nunca te quedas sin poder trabajar.' },
       { t: 'Comprar más créditos (recarga)', d: 'Cuando quieras más IA máxima, compras un paquete de recarga. Se suman al instante a los del mes.' },
     ],
@@ -162,7 +162,7 @@ export const GUIA: SeccionGuia[] = [
     id: 'planes', titulo: 'Planes, créditos y cobro (para el dueño)', roles: ['dueno'],
     intro: 'Cómo están armados los planes y cómo cobrar sin perder.',
     pasos: [
-      { t: 'Los planes', d: 'Agenda ($349, sin IA) · Clínica ($899, 160 créditos, IA Estándar) · Pro ($1,899, 450 créditos, IA Máxima). Hospital pausado por ahora.' },
+      { t: 'Los planes', d: 'Agenda ($349, sin IA) · Clínica ($899, 200 créditos, IA Estándar) · Pro ($1,590, 450 créditos, IA Máxima) · Hospital + UCI ($3,499).' },
       { t: 'Cobro por médico', d: 'Cada plan incluye 1 médico; cada médico adicional se cobra aparte (Clínica +$499, Pro +$999) y trae su propia bolsa de créditos. La asistente no cuenta.' },
       { t: 'Nunca pierdes', d: 'Los créditos son proporcionales al costo real de la IA, y el modo económico gratis tiene un tope al mes: aunque un consultorio tenga varios médicos, tu costo queda acotado.' },
       { t: 'La consola del dueño', d: '/superadmin: ves todas las clínicas, quién paga, das pase libre, cambias nivel de IA, eliminas consultorios de prueba. Botones "Contabilidad" (ingresos, costos, utilidad, export CSV) y "Soporte" (buzón de mensajes).' },

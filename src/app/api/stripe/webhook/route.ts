@@ -36,7 +36,7 @@ async function getClinicIdByCustomer(customerId: string): Promise<string | null>
 
 /* ── Stripe → nuestro plan (por monto MXN, respaldo si no viene en metadata) ── */
 function planPorMonto(amount: number): PlanKey {
-  // Precios (centavos MXN): 34900 Agenda · 89900 Clínica · 189900 Pro · 290000 Hospital
+  // Precios (centavos MXN): 34900 Agenda · 89900 Clínica · 159000 Pro · 349900 Hospital (ver PLANES en @/lib/planes-ia)
   if (amount <= 50000) return 'agenda'
   if (amount <= 120000) return 'clinica'
   if (amount <= 220000) return 'premium'

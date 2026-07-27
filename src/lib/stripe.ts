@@ -22,7 +22,7 @@ export const stripe = new Proxy({} as Stripe, {
 export const STRIPE_PRICES = {
   agenda:   process.env.STRIPE_PRICE_AGENDA   ?? '',
   clinica:  process.env.STRIPE_PRICE_CLINICA  ?? '',
-  premium:  process.env.STRIPE_PRICE_PREMIUM  ?? '',  // plan "Pro" ($1,899)
+  premium:  process.env.STRIPE_PRICE_PREMIUM  ?? '',  // plan "Pro" ($1,590 — ver PLANES en @/lib/planes-ia)
   hospital: process.env.STRIPE_PRICE_HOSPITAL ?? '',
 } as const
 

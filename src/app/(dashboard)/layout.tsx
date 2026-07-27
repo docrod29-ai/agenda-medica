@@ -91,10 +91,12 @@ function estadoAcceso(clinic: { status?: string; paseLibre?: boolean; plan?: str
   return 'sin_tarjeta'   // 'trial' o cuenta nueva → necesita tarjeta para iniciar
 }
 
+// Precios/créditos = fuente única PLANES en @/lib/planes-ia. Antes divergían aquí
+// (Pro $1,899 vs $1,590 canónico, Clínica 160 vs 200) → desync visible (auditoría P2).
 const PLANES_GATE = [
   { key: 'agenda',  label: 'Agenda',  price: '$349',   nota: 'Agenda + expediente · sin IA' },
-  { key: 'clinica', label: 'Clínica', price: '$899',   nota: '160 créditos de IA/mes', destacado: true },
-  { key: 'premium', label: 'Pro',     price: '$1,899', nota: '450 créditos · IA máxima (Opus + GPT-5)' },
+  { key: 'clinica', label: 'Clínica', price: '$899',   nota: '200 créditos de IA/mes', destacado: true },
+  { key: 'premium', label: 'Pro',     price: '$1,590', nota: '450 créditos · IA máxima (Opus + GPT-5)' },
 ]
 
 /** Tras pagar, el webhook tarda unos segundos. Clínica en vivo → el gate se quita

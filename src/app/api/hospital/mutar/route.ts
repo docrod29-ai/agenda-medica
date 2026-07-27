@@ -209,8 +209,19 @@ export async function POST(req: NextRequest) {
               throw new Error('CAMA_OCUPADA')
             }
           }
+          // ALLOWLIST anti mass-assignment (auditoría P2): solo campos de INGRESO;
+          // clinicId/estado/tiempos/autoría los fija el servidor.
+          const CAMPOS_INGRESO = [
+            'pacienteId', 'pacienteNombre', 'servicio', 'cama', 'medicoTratanteId',
+            'medicoTratanteNombre', 'diagnosticoIngreso', 'motivoIngreso', 'fechaIngreso',
+          ] as const
+          const limpio: Record<string, unknown> = {}
+          for (const k of CAMPOS_INGRESO) {
+            const v = (payload as Record<string, unknown>)[k]
+            if (v !== undefined) limpio[k] = v
+          }
           const nref = col.doc()
-          tx.set(nref, { ...payload, clinicId, estado: 'activo', createdAt: now, updatedAt: now })
+          tx.set(nref, { ...limpio, clinicId, estado: 'activo', createdAt: now, updatedAt: now, creadoPor: acc.uid })
           return nref.id
         })
         return NextResponse.json({ ok: true, id })

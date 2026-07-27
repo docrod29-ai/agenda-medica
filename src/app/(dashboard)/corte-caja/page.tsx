@@ -1,14 +1,14 @@
 'use client'
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { PageHeader, Button, Spinner, Input } from '@/components/ui'
 import { useClinic } from '@/context/ClinicContext'
 import { listarCobros, fmtMXN } from '@/lib/cobros'
-import { getAppointments } from '@/lib/firestore'
+import { getAppointments, getConfig } from '@/lib/firestore'
 import { where } from 'firebase/firestore'
 import type { Cobro } from '@/lib/cobros'
 import type { Appointment } from '@/types'
 import { corteDeCaja, embudoCobro, cuentasPorCobrar } from '@/lib/corte-caja'
-import { hoyISO } from '@/lib/timezone'
+import { hoyISO, TZ_DEFAULT } from '@/lib/timezone'
 import { Printer, Wallet, TrendingDown, Users, AlertCircle, Calendar } from 'lucide-react'
 
 /**
@@ -34,17 +34,35 @@ export default function CorteCajaPage() {
  * (sin su propio header/padding, para no duplicar el marco). */
 export function CorteCajaContenido({ embedded = false }: { embedded?: boolean }) {
   const { clinicId } = useClinic()
+  /**
+   * ZONA HORARIA DEL CONSULTORIO (auditoría P2). El "hoy" y la ventana de instantes
+   * de los cobros deben calcularse en la zona real de la clínica (config.zonaHoraria),
+   * no en la de CDMX por defecto: en el norte (Tijuana UTC-8, etc.) un cierre cerca de
+   * medianoche caía en el día equivocado. La zona vive en config/main, no en el doc
+   * Clinic, así que se carga aparte.
+   */
+  const [tz, setTz] = useState(TZ_DEFAULT)
   const [dia, setDia] = useState(hoyISO())
+  const diaAuto = useRef(true)  // el día sigue siendo el automático (el usuario no lo tocó)
   const [cobros, setCobros] = useState<Cobro[]>([])
   const [citas, setCitas] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!clinicId) return
+    getConfig(clinicId).then(c => {
+      const z = c?.zonaHoraria || TZ_DEFAULT
+      setTz(z)
+      if (diaAuto.current) setDia(hoyISO(z))  // corrige "hoy" a la zona real del consultorio
+    }).catch(() => {})
+  }, [clinicId])
 
   const cargar = useCallback(async () => {
     if (!clinicId) return
     setLoading(true)
     try {
       const [cb, ct] = await Promise.all([
-        listarCobros(clinicId, dia, dia),
+        listarCobros(clinicId, dia, dia, false, tz),
         getAppointments(clinicId, [
           where('fechaHora', '>=', dia + ' 00:00'),
           where('fechaHora', '<=', dia + ' 23:59'),
@@ -54,7 +72,7 @@ export function CorteCajaContenido({ embedded = false }: { embedded?: boolean })
     } finally {
       setLoading(false)
     }
-  }, [clinicId, dia])
+  }, [clinicId, dia, tz])
 
   useEffect(() => { cargar() }, [cargar])
 
@@ -77,8 +95,8 @@ export function CorteCajaContenido({ embedded = false }: { embedded?: boolean })
       {/* Selector de día */}
       <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
         <Calendar size={16} style={{ color: 'var(--text3)' }} />
-        <Input type="date" value={dia} onChange={e => setDia(e.target.value)} style={{ width: 180 }} />
-        <button className="btn btn-ghost btn-sm" onClick={() => setDia(hoyISO())}>Hoy</button>
+        <Input type="date" value={dia} onChange={e => { diaAuto.current = false; setDia(e.target.value) }} style={{ width: 180 }} />
+        <button className="btn btn-ghost btn-sm" onClick={() => { diaAuto.current = true; setDia(hoyISO(tz)) }}>Hoy</button>
       </div>
 
       {loading ? <Spinner center label="Cargando corte…" /> : (

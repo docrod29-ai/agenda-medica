@@ -260,14 +260,18 @@ export default function EpisodioPage() {
   // Imprimir brazalete con código de barras (BCMA)
   const imprimirBrazalete = () => {
     if (!inter) return
+    // XSS almacenado (auditoría P2): servicio/cama/nombre son texto libre y se
+    // inyectan en document.write. Escapar TODO el HTML, no solo '<' del nombre.
+    const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!))
     const folio = internamientoId.slice(-8).toUpperCase()
     const svg = code39Svg(folio, { height: 60 })
     const w = window.open('', '_blank', 'width=520,height=300')
     if (!w) return
     w.document.write(`<html><head><title>Brazalete</title></head><body style="font-family:Arial,sans-serif;margin:0;padding:16px;">
       <div style="border:1px solid #000;border-radius:8px;padding:12px 16px;max-width:420px;">
-        <div style="font-size:18px;font-weight:bold;">${(inter.pacienteNombre || '').replace(/</g, '')}</div>
-        <div style="font-size:12px;color:#333;margin:2px 0 8px;">${inter.servicio}${inter.cama ? ' · Cama ' + inter.cama : ''} · Ingreso ${new Date(inter.fechaIngreso).toLocaleDateString('es-MX')}</div>
+        <div style="font-size:18px;font-weight:bold;">${esc(inter.pacienteNombre)}</div>
+        <div style="font-size:12px;color:#333;margin:2px 0 8px;">${esc(inter.servicio)}${inter.cama ? ' · Cama ' + esc(inter.cama) : ''} · Ingreso ${new Date(inter.fechaIngreso).toLocaleDateString('es-MX')}</div>
         ${svg}
         <div style="font-size:10px;color:#666;margin-top:6px;">Folio de internamiento — verificación de identidad (BCMA)</div>
       </div>

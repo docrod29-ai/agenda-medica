@@ -1444,14 +1444,14 @@ const PLAN_DISPLAY: Record<string, { label: string; color: string; price: string
   trial:    { label: 'Prueba gratuita', color: 'var(--amber)', price: '$0 MXN/mes' },
   agenda:   { label: 'Plan Agenda',     color: '#60a5fa', price: '$349 MXN/mes' },
   clinica:  { label: 'Plan Clínica',    color: '#3D5AFE', price: '$899 MXN/mes' },
-  premium:  { label: 'Plan Pro',        color: '#a78bfa', price: '$1,899 MXN/mes' },
-  hospital: { label: 'Plan Hospital',   color: '#7c5cd6', price: '$2,900 MXN/mes' },
+  premium:  { label: 'Plan Pro',        color: '#a78bfa', price: '$1,590 MXN/mes' },
+  hospital: { label: 'Plan Hospital',   color: '#7c5cd6', price: '$3,499 MXN/mes' },
 }
 
 const PLAN_FEATURES: Record<string, string[]> = {
   trial:    ['14 días gratuitos', 'Todas las funciones', 'Sin tarjeta de crédito'],
   agenda:   ['Agenda y calendario', 'Recordatorios por WhatsApp', 'Expediente básico', 'Portal del paciente'],
-  clinica:  ['160 créditos de IA/mes', 'Nota por voz + separación de voces', 'Menú de IA (⚡/⭐/💎)', 'Consultor de evidencia', 'Todo el plan Agenda'],
+  clinica:  ['200 créditos de IA/mes', 'Nota por voz + separación de voces', 'Menú de IA (⚡/⭐/💎)', 'Consultor de evidencia', 'Todo el plan Agenda'],
   premium:  ['450 créditos/mes', 'IA de máximo razonamiento clínico por defecto', 'Revisión de seguridad clínica automática', 'Soporte prioritario', 'Todo el plan Clínica'],
   hospital: ['Módulo de Hospitalización', '400 créditos/mes', 'Censo, camas, MAR, NEWS2', 'Notas de ingreso/evolución/egreso'],
 }

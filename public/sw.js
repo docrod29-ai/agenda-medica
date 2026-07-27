@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v676'  // L6.2 (decision del Dr): seguridad de UNIDAD del peso pediatrico. Selector explicito kg/lb (convierte lb->kg antes de calcular, no adivina). Peso implausible (>120kg) o cambio ~x2.2046 vs previo = HARD-STOP: bloquea dosis y "Agregar a nota" hasta confirmar; nunca corrige el valor por su cuenta. Cambiar peso/unidad exige reconfirmar.
+const CACHE = 'nexusmed-v677'  // P2 (auditoria): 5 arreglos. (1) XSS almacenado en brazalete BCMA: servicio/cama/nombre eran texto libre inyectado en document.write -> escape HTML completo. (2) mass-assignment en /api/appointments y /api/hospital/mutar(crear): allowlist de campos + autoria fijada por el servidor (no el cliente). (3) precios desincronizados: Pro $1,899->$1,590, Hospital $2,900->$3,499, Clinica 160->200 creditos alineados al canonico PLANES en todos los banners/ayuda. (4) demo razonamiento: TA 168/96 (que el motor clasifica 'cifras elevadas') -> 186/118 para que la alerta critica de crisis HT sea real. (5) corte-caja: 'hoy' y ventana de cobros ahora en la zona horaria real del consultorio (config.zonaHoraria), no CDMX por defecto -> corrige el dia en el norte (Tijuana UTC-8).
 // (v601):
 
 self.addEventListener('install', (event) => {

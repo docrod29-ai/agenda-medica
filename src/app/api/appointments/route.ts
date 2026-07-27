@@ -28,6 +28,26 @@ export async function POST(req: NextRequest) {
   const acc = await verificarMiembro(req, clinicId)
   if (!acc.ok) return acc.response
 
+  /**
+   * ALLOWLIST anti mass-assignment (auditoría P2). Antes se persistía `{ ...appointment }`
+   * crudo: un miembro (incluida una asistente de rol bajo) podía inyectar campos que
+   * NO le corresponden a esta vía — cobro/cortesía (`cobroExento`, `cobradoEn`,
+   * `cobroId`, `exento*`), banderas de recordatorio, confirmación del paciente, o el
+   * estado de sync de Google. Esos flujos tienen su propio endpoint auditado. Aquí
+   * solo se aceptan los campos de AGENDAMIENTO; la identidad de autoría la fija el
+   * servidor desde la sesión, no el cliente.
+   */
+  const CAMPOS_CITA = [
+    'pacienteId', 'pacienteNombre', 'pacienteTelefono', 'fechaHora', 'duracion',
+    'tipo', 'motivo', 'estado', 'origen', 'medicoNombre', 'medicoId', 'lugar',
+    'notasInternas', 'consentimientoMensajes', 'doctorId', 'branchId',
+  ] as const
+  const limpia: Record<string, unknown> = {}
+  for (const k of CAMPOS_CITA) {
+    const v = (appointment as Record<string, unknown>)[k]
+    if (v !== undefined) limpia[k] = v
+  }
+
   const fecha = appointment.fechaHora.slice(0, 10)
   const hora = appointment.fechaHora.slice(11, 16)
   const duracion = appointment.duracion || 30
@@ -133,11 +153,11 @@ export async function POST(req: NextRequest) {
         // encima de otra no competía siquiera con las altas nuevas. Dos personas
         // podían dejar dos pacientes en el mismo horario sin ningún aviso.
         const ref = apptsCol.doc(reagendarId)
-        tx.set(ref, { ...appointment, updatedAt: now }, { merge: true })
+        tx.set(ref, { ...limpia, updatedAt: now, updatedPor: acc.uid }, { merge: true })
         id = reagendarId
       } else {
         const ref = apptsCol.doc()
-        tx.set(ref, { ...appointment, createdAt: now, updatedAt: now })
+        tx.set(ref, { ...limpia, createdAt: now, updatedAt: now, creadoPor: acc.uid, updatedPor: acc.uid })
         id = ref.id
       }
     })
