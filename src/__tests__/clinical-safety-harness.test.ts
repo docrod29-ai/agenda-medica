@@ -21,6 +21,11 @@ import { ckdEpi2021, cockcroftGault } from '@/lib/expediente/funcion-renal'
 import { meld } from '@/lib/expediente/calculadoras'
 import { fib4 } from '@/lib/expediente/cardiometabolico/masld'
 import { apfel } from '@/lib/expediente/cirugia'
+import { calcularSOFA, calcularAPACHE2 } from '@/lib/uci/scores'
+import { calcularRCRI, calcularCaprini } from '@/lib/expediente/preop'
+import { equivalenteNorepinefrina } from '@/lib/uci/hemodinamia'
+import { vexus } from '@/lib/uci/pocus'
+import { calcularDosisPediatrica, FARMACOS_PED } from '@/lib/expediente/pediatria'
 
 describe('CLINICAL SAFETY HARNESS · CKD-EPI 2021', () => {
   // El motor devuelve PRECISIÓN COMPLETA (decisión del Dr, L6); el redondeo es de
@@ -91,3 +96,161 @@ describe('CLINICAL SAFETY HARNESS · Apfel (NVPO)', () => {
     expect(apfel(-1).riesgo).toBe(10)
   })
 })
+
+describe('CLINICAL SAFETY HARNESS · SOFA (Vincent 1996)', () => {
+  // Caso con los 6 aparatos: PaFi 250+soporte=2, plaq 80=2, bili 3.0=2,
+  // NE 0.2 (>0.1)=4, GCS 13=1, Cr 2.5=2 → total 13, completo.
+  it('caso completo → 13 (no parcial)', () => {
+    const r = calcularSOFA({ pafi: 250, soporteRespiratorio: true, plaquetas: 80, bilirrubina: 3.0, norepinefrina: 0.2, glasgow: 13, creatinina: 2.5 })
+    expect(r.total).toBe(13)
+    expect(r.parcial).toBe(false)
+  })
+  it('caso leve → 2', () => {
+    const r = calcularSOFA({ pafi: 350, soporteRespiratorio: false, plaquetas: 120, bilirrubina: 1.0, pam: 80, glasgow: 15, creatinina: 1.0 })
+    expect(r.total).toBe(2)
+  })
+  it('faltar un aparato → parcial (no cuenta 0 falso)', () => {
+    const r = calcularSOFA({ plaquetas: 30 })   // solo coagulación
+    expect(r.total).toBe(3)
+    expect(r.parcial).toBe(true)
+    expect(r.faltantes).toContain('Respiratorio')
+  })
+})
+
+describe('CLINICAL SAFETY HARNESS · APACHE II (Knaus 1985)', () => {
+  // Séptico: temp39=3, PAM60=2, FC120=2, FR30=1, PaO2 65 (FiO2<0.5)=1, pH7.30=2,
+  // Na148=0, K5.0=0, Cr2.5=3, Hto40=0, Leu18=1, GCS13=(15−13)=2 → fisiología 17;
+  // edad 70=5; crónica no-operatorio/urgencia=5 → total 27.
+  it('caso séptico completo → total 27 (fisiología 17 + edad 5 + crónica 5)', () => {
+    const r = calcularAPACHE2({
+      temperatura: 39.0, pam: 60, fc: 120, fr: 30, fio2: 0.4, pao2: 65, ph: 7.30,
+      sodio: 148, potasio: 5.0, creatinina: 2.5, hematocrito: 40, leucocitos: 18,
+      glasgow: 13, edad: 70, saludCronica: 'no_operatorio_o_urgencia',
+    })
+    expect(r.fisiologia).toBe(17)
+    expect(r.edadPuntos).toBe(5)
+    expect(r.cronicaPuntos).toBe(5)
+    expect(r.total).toBe(27)
+    expect(r.parcial).toBe(false)
+  })
+  it('sano y joven → 0', () => {
+    const r = calcularAPACHE2({ temperatura: 37, pam: 90, fc: 80, fr: 16, fio2: 0.3, pao2: 90, ph: 7.4, sodio: 140, potasio: 4, creatinina: 1.0, hematocrito: 45, leucocitos: 8, glasgow: 15, edad: 30, saludCronica: 'ninguna' })
+    expect(r.total).toBe(0)
+  })
+  it('falla renal aguda DUPLICA los puntos de creatinina', () => {
+    const base = { temperatura: 37, pam: 90, fc: 80, fr: 16, fio2: 0.3, pao2: 90, ph: 7.4, sodio: 140, potasio: 4, hematocrito: 45, leucocitos: 8, glasgow: 15, edad: 30, saludCronica: 'ninguna' as const }
+    const sin = calcularAPACHE2({ ...base, creatinina: 2.5 })            // Cr 2.5 = 3 pts
+    const con = calcularAPACHE2({ ...base, creatinina: 2.5, fallaRenalAguda: true })  // ×2 = 6 pts
+    expect(con.total! - sin.total!).toBe(3)
+  })
+})
+
+describe('CLINICAL SAFETY HARNESS · RCRI (Lee revisado)', () => {
+  it.each([
+    [0, 'I', false],
+    [1, 'II', false],
+    [2, 'III', true],
+    [3, 'IV', true],
+  ] as const)('%d factores → clase %s, elevado=%s', (n, clase, elevado) => {
+    const keys = ['cirugiaAltoRiesgo', 'cardiopatiaIsquemica', 'insuficienciaCardiaca', 'enfermedadCerebrovascular', 'diabetesInsulina', 'creatininaMayor2']
+    const input: Record<string, boolean> = {}
+    for (let i = 0; i < n; i++) input[keys[i]] = true
+    const r = calcularRCRI(input)
+    expect(r.puntos).toBe(n)
+    expect(r.clase).toBe(clase)
+    expect(r.elevado).toBe(elevado)
+  })
+})
+
+describe('CLINICAL SAFETY HARNESS · Caprini (VTE)', () => {
+  it('sin factores → 0, Muy bajo', () => {
+    expect(calcularCaprini({}).puntos).toBe(0)
+    expect(calcularCaprini({}).nivel).toBe('Muy bajo')
+  })
+  it('edad 41-60 (1) + IMC>25 (1) → 2, Bajo', () => {
+    const r = calcularCaprini({ edad41_60: true, imcMayor25: true })
+    expect(r.puntos).toBe(2); expect(r.nivel).toBe('Bajo')
+  })
+  it('edad 61-74 (2) + malignidad (2) → 4, Moderado', () => {
+    const r = calcularCaprini({ edad61_74: true, malignidad: true })
+    expect(r.puntos).toBe(4); expect(r.nivel).toBe('Moderado')
+  })
+  it('antecedente TVP (3) + edad ≥75 (3) → 6, Alto', () => {
+    const r = calcularCaprini({ antecedenteTVP: true, edad75: true })
+    expect(r.puntos).toBe(6); expect(r.nivel).toBe('Alto')
+  })
+})
+
+describe('CLINICAL SAFETY HARNESS · Equivalente de norepinefrina (NEE)', () => {
+  it('NE 0.1 mcg/kg/min → 0.1', () => {
+    expect(equivalenteNorepinefrina([{ farmaco: 'norepinefrina', dosis: 0.1, unidad: 'mcg_kg_min' }]).valorTotal).toBe(0.1)
+  })
+  it('mezcla NE 0.2 + EPI 0.05 + dopamina 10 + fenilefrina 1 → 0.45', () => {
+    // 0.2 + 0.05 + 10/100 + 1/10 = 0.45
+    const r = equivalenteNorepinefrina([
+      { farmaco: 'norepinefrina', dosis: 0.2, unidad: 'mcg_kg_min' },
+      { farmaco: 'epinefrina', dosis: 0.05, unidad: 'mcg_kg_min' },
+      { farmaco: 'dopamina', dosis: 10, unidad: 'mcg_kg_min' },
+      { farmaco: 'fenilefrina', dosis: 1, unidad: 'mcg_kg_min' },
+    ])
+    expect(r.valorTotal).toBe(0.45)
+    expect(r.ok).toBe(true)
+  })
+  it('vasopresina 0.04 U/min → 0.1 (×2.5, sin peso)', () => {
+    expect(equivalenteNorepinefrina([{ farmaco: 'vasopresina', dosis: 0.04, unidad: 'units_min' }]).valorTotal).toBe(0.1)
+  })
+  it('dobutamina NO aporta (inotrópico), pero no bloquea', () => {
+    const r = equivalenteNorepinefrina([{ farmaco: 'norepinefrina', dosis: 0.1, unidad: 'mcg_kg_min' }, { farmaco: 'dobutamina', dosis: 5, unidad: 'mcg_kg_min' }])
+    expect(r.valorTotal).toBe(0.1)
+    expect(r.ok).toBe(true)
+  })
+  it('dosis en mcg/min SIN peso → bloquea (ok=false), no inventa conversión', () => {
+    expect(equivalenteNorepinefrina([{ farmaco: 'norepinefrina', dosis: 10, unidad: 'mcg_min' }]).ok).toBe(false)
+  })
+})
+
+describe('CLINICAL SAFETY HARNESS · VExUS (2020)', () => {
+  it('VCI < 2.0 → grado 0', () => {
+    expect(vexus({ vciCm: 1.8 }).valor).toBe(0)
+  })
+  it('VCI ≥ 2.0 + 2 patrones graves → grado 3', () => {
+    expect(vexus({ vciCm: 2.2, hepatica: 'grave', porta: 'grave' }).valor).toBe(3)
+  })
+  it('VCI ≥ 2.0 + 1 patrón grave → grado 2', () => {
+    expect(vexus({ vciCm: 2.2, hepatica: 'grave', porta: 'normal' }).valor).toBe(2)
+  })
+  it('VCI ≥ 2.0 + 0 patrones graves → grado 1', () => {
+    expect(vexus({ vciCm: 2.2, hepatica: 'normal', porta: 'leve' }).valor).toBe(1)
+  })
+  it('VCI no medida → bloqueado (no adivina el grado)', () => {
+    expect(vexus({}).bloqueado).toBe(true)
+  })
+})
+
+describe('CLINICAL SAFETY HARNESS · Dosis pediátrica por peso', () => {
+  const far = (n: string) => FARMACOS_PED.find(f => f.nombre === n)!
+  it('Paracetamol 10–15 mg/kg, 20 kg → 200–300 mg/toma, 800–1200 mg/día', () => {
+    const d = calcularDosisPediatrica(far('Paracetamol'), 20)!
+    expect(d.porToma).toEqual({ min: 200, max: 300 })
+    expect(d.porDia).toEqual({ min: 800, max: 1200 })
+    expect(d.topeAplicado).toBe(false)
+  })
+  it('Amoxicilina 45–90 mg/kg/día ÷2 tomas, 20 kg → 450–900 mg/toma', () => {
+    const d = calcularDosisPediatrica(far('Amoxicilina'), 20)!
+    expect(d.porToma).toEqual({ min: 450, max: 900 })
+  })
+  it('Ceftriaxona 50 kg → el tope diario (2000 mg) RECORTA la dosis por toma (no 3750 mg)', () => {
+    const d = calcularDosisPediatrica(far('Ceftriaxona'), 50)!
+    expect(d.porToma.max).toBe(2000)   // NO 3750
+    expect(d.porDia.max).toBe(2000)
+    expect(d.topeAplicado).toBe(true)
+  })
+})
+
+/**
+ * NEEDS_CLINICAL_REVIEW — escalas SIN motor determinista en el código (no se pueden
+ * anclar sin inventar sus reglas; requieren que el Dr. las especifique antes de
+ * implementarlas): qSOFA, Child-Pugh, PEWS, Wells (TVP/TEP), CURB-65.
+ * APACHE II, SOFA, RCRI, Caprini, NEE, VExUS y dosis pediátrica ya quedan cubiertos arriba.
+ */
+
