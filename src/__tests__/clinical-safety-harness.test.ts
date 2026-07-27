@@ -252,6 +252,34 @@ describe('CLINICAL SAFETY HARNESS · Dosis pediátrica por peso', () => {
   })
 })
 
+describe('CLINICAL SAFETY HARNESS · Aminoglucósidos: dosis/toma ≤ tope diario (REG-018)', () => {
+  const far = (n: string) => FARMACOS_PED.find(f => f.nombre === n)!
+  // Amikacina: mgKgDia [15,22.5] con topeMgKgDia 15. En 1 toma/día el máximo del
+  // rango (22.5) NO debe llegar a la receta por encima del tope de seguridad (15).
+  it('Amikacina 20 kg: porToma.max ≤ 300 mg (15 mg/kg), NUNCA 450 (22.5 mg/kg)', () => {
+    const d = calcularDosisPediatrica(far('Amikacina'), 20)!
+    expect(d.porToma.max).toBeLessThanOrEqual(300)
+    expect(d.topeAplicado).toBe(true)
+  })
+  it('Gentamicina 20 kg: coherente (tope 7.5 mg/kg = 150 mg)', () => {
+    const d = calcularDosisPediatrica(far('Gentamicina'), 20)!
+    expect(d.porToma.max).toBeLessThanOrEqual(150)
+  })
+  // INVARIANTE UNIVERSAL: la dosis por toma nunca puede exceder la dosis diaria
+  // (perDose × freq = perDay ≥ perDose). Property test sobre TODO el catálogo a
+  // varios pesos — caza cualquier contradicción de topes en cualquier fármaco.
+  it('invariante: porToma ≤ porDía para TODOS los fármacos, a todo peso', () => {
+    for (const f of FARMACOS_PED) {
+      for (const peso of [5, 12, 20, 35, 60]) {
+        const d = calcularDosisPediatrica(f, peso, 60)
+        if (!d || d.contraindicadoPorEdad) continue
+        expect(d.porToma.max, `${f.nombre} @${peso}kg`).toBeLessThanOrEqual(d.porDia.max + 0.011)
+        expect(d.porToma.min, `${f.nombre} @${peso}kg`).toBeLessThanOrEqual(d.porDia.min + 0.011)
+      }
+    }
+  })
+})
+
 /**
  * NEEDS_CLINICAL_REVIEW — escalas SIN motor determinista en el código (no se pueden
  * anclar sin inventar sus reglas; requieren que el Dr. las especifique antes de

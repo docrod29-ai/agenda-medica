@@ -196,6 +196,17 @@ export function calcularDosisPediatrica(f: FarmacoPed, pesoKg: number, edadMeses
     if (minToma > maxPorTomaSegunDia) { minToma = maxPorTomaSegunDia; topeAplicado = true }
   }
 
+  // El tope mg/kg/DÍA también limita la dosis POR TOMA (REG-018). Sin esto, un
+  // aminoglucósido de 1 toma/día (amikacina: rango 15–22.5 pero tope 15) escribía
+  // en la receta la dosis/toma cruda (22.5 mg/kg) aunque el total/día sí se recortaba
+  // a 15 → la RECETA quedaba 50% arriba del tope de seguridad. Se propaga de regreso
+  // a porToma, igual que topeDia.
+  if (f.topeMgKgDia != null && tomasDia > 0) {
+    const maxPorTomaSegunKgDia = (f.topeMgKgDia * pesoKg) / tomasDia
+    if (maxToma > maxPorTomaSegunKgDia) { maxToma = maxPorTomaSegunKgDia; topeAplicado = true }
+    if (minToma > maxPorTomaSegunKgDia) { minToma = maxPorTomaSegunKgDia; topeAplicado = true }
+  }
+
   let minDia = minToma * tomasDia
   let maxDia = maxToma * tomasDia
   if (f.topeDia != null) {
