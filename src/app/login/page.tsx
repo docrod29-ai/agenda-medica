@@ -3,9 +3,10 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithRedirect, getRedirectResult, sendPasswordResetEmail } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
+import { obtenerResolverMfa, resolverLoginTotp, type MultiFactorResolver } from '@/lib/mfa'
 import { useAuth } from '@/hooks/useAuth'
 import Link from 'next/link'
-import { Stethoscope, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Stethoscope, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
 import { MarcaAuth } from '@/components/brand/MarcaAuth'
 
 export default function LoginPage() {
@@ -29,6 +30,10 @@ function LoginInner() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
+  // Segundo factor (MFA): cuando la cuenta tiene 2FA, el primer factor deja un
+  // "resolvedor" pendiente y pedimos el código de 6 dígitos para completar.
+  const [mfaResolver, setMfaResolver] = useState<MultiFactorResolver | null>(null)
+  const [mfaCode, setMfaCode] = useState('')
 
   useEffect(() => {
     if (!loading && user) router.replace(destino)
@@ -37,11 +42,34 @@ function LoginInner() {
   // Completa el inicio de sesión con Google por REDIRECCIÓN (Safari) y muestra errores.
   useEffect(() => {
     getRedirectResult(auth).catch((err: unknown) => {
+      // Cuenta con 2FA: no es un error, hay que pedir el código de 6 dígitos.
+      const resolver = obtenerResolverMfa(err)
+      if (resolver) { setMfaResolver(resolver); return }
       const code = (err as { code?: string }).code ?? ''
       if (code === 'auth/unauthorized-domain') setError('Este dominio no está autorizado en Firebase (Authentication → Configuración → Dominios autorizados).')
       else if (code) setError(`No se pudo entrar con Google: ${code}`)
     })
   }, [])
+
+  // Completa el acceso con el código del segundo factor (TOTP).
+  const handleMfa = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!mfaResolver) return
+    setError(''); setSubmitting(true)
+    try {
+      await resolverLoginTotp(mfaResolver, mfaCode)
+      router.replace(destino)
+    } catch (err: unknown) {
+      const code = (err as { code?: string }).code ?? ''
+      if (code === 'auth/invalid-verification-code' || code === 'auth/argument-error' || code === 'auth/totp-challenge-timeout') {
+        setError('Código incorrecto o expirado. Abre tu app de autenticación y escribe el código actual de 6 dígitos.')
+      } else {
+        setError('No se pudo verificar el código. Intenta de nuevo.')
+      }
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -51,6 +79,9 @@ function LoginInner() {
       await signInWithEmailAndPassword(auth, email, password)
       router.replace(destino)
     } catch (err: unknown) {
+      // Cuenta con 2FA: pedir el código de 6 dígitos (no es contraseña incorrecta).
+      const resolver = obtenerResolverMfa(err)
+      if (resolver) { setMfaResolver(resolver); setSubmitting(false); return }
       const code = (err as { code?: string }).code ?? ''
       if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
         setError('Correo o contraseña incorrectos. Si te registraste con Google, entra con el botón "Continuar con Google" de arriba. Si olvidaste tu contraseña, usa el enlace de abajo.')
@@ -172,6 +203,48 @@ function LoginInner() {
           borderRadius: 14,
           padding: '28px 28px',
         }}>
+          {mfaResolver ? (
+            /* ── Segundo factor (2FA): pedir el código de 6 dígitos ── */
+            <form onSubmit={handleMfa} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 2 }}>
+                <ShieldCheck size={18} style={{ color: 'var(--teal)' }} />
+                <h2 style={{ fontSize: 17, fontWeight: 600, color: 'var(--text)', margin: 0, letterSpacing: '-0.01em' }}>
+                  Verificación en dos pasos
+                </h2>
+              </div>
+              <p style={{ fontSize: 13.5, color: 'var(--text2)', margin: 0, lineHeight: 1.5 }}>
+                Tu cuenta tiene segundo factor. Abre tu app de autenticación (Google Authenticator, Authy…) y escribe el código de 6 dígitos.
+              </p>
+              <div className="form-group">
+                <label className="label">Código de 6 dígitos</label>
+                <input
+                  className="input"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  placeholder="123456"
+                  maxLength={6}
+                  value={mfaCode}
+                  onChange={e => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                  autoFocus
+                  style={{ letterSpacing: '0.3em', fontSize: 18, textAlign: 'center' }}
+                />
+              </div>
+              {error && (
+                <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: '#f87171' }}>
+                  {error}
+                </div>
+              )}
+              <button type="submit" className="btn btn-primary" disabled={submitting || mfaCode.length < 6}
+                style={{ width: '100%', justifyContent: 'center', padding: '11px 16px' }}>
+                {submitting ? (<><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Verificando…</>) : 'Verificar y entrar'}
+              </button>
+              <button type="button" onClick={() => { setMfaResolver(null); setMfaCode(''); setError('') }}
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 12.5, color: 'var(--text3)' }}>
+                ← Volver
+              </button>
+            </form>
+          ) : (
+          <>
           <h2 style={{
             fontSize: 17, fontWeight: 600, color: 'var(--text)',
             margin: '0 0 22px', letterSpacing: '-0.01em',
@@ -286,6 +359,8 @@ function LoginInner() {
               ) : 'Iniciar sesión'}
             </button>
           </form>
+          </>
+          )}
         </div>
 
         {/* Registro — para quien AÚN no tiene cuenta */}
