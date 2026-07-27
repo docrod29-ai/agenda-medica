@@ -12,7 +12,9 @@ export interface SignosNews2 {
   temp?: number
   ta?: string          // "120/80" → se usa la sistólica
   fc?: number
-  conciencia?: 'alerta' | 'alterada'   // ACVPU: alerta=0, cualquier alteración=3
+  // ACVPU completo o legado alerta/alterada. NEWS2: Alert (A/'alerta') = 0;
+  // cualquier alteración (C/V/P/U/'alterada') = 3 (RCP). Ver esAlerta().
+  conciencia?: 'A' | 'C' | 'V' | 'P' | 'U' | 'alerta' | 'alterada'
   oxigeno?: boolean    // recibe O2 suplementario → +2
   /**
    * Escala de SpO₂ (validado por el Dr, auditoría 2026-07):
@@ -100,7 +102,11 @@ export function calcularNews2(s: SignosNews2): News2Result | null {
     const v = s.fc
     add('FC', `${v}/min`, v <= 40 ? 3 : v <= 50 ? 1 : v <= 90 ? 0 : v <= 110 ? 1 : v <= 130 ? 2 : 3)
   }
-  if (s.conciencia === 'alterada') add('Conciencia', 'alterada', 3)
+  // Conciencia (ACVPU): Alert = 0; cualquier otra (Confusion/Voice/Pain/Unresponsive
+  // o el legado 'alterada') = 3. Se deriva de la letra real conservada.
+  if (s.conciencia !== undefined && s.conciencia !== 'A' && s.conciencia !== 'alerta') {
+    add('Conciencia', String(s.conciencia), 3)
+  }
 
   if (!algunSigno) return null
 

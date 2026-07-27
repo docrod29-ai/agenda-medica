@@ -153,8 +153,14 @@ export interface RegistroSignos {
   spo2?: number
   glucosa?: number
   dolor?: number             // EVA 0-10
-  conciencia?: 'alerta' | 'alterada'   // ACVPU (para NEWS2)
+  // ACVPU COMPLETO (decisión del Dr, L6): Alert / Confusion(nuevo) / Voice / Pain /
+  // Unresponsive. Se conserva la letra real (no solo alerta/alterada) para no
+  // destruir información en FHIR/auditoría/evolución; NEWS2 se DERIVA (A=0, resto=3).
+  // 'alerta'/'alterada' se mantienen como legado (datos ya guardados).
+  conciencia?: 'A' | 'C' | 'V' | 'P' | 'U' | 'alerta' | 'alterada'
   oxigeno?: boolean          // O2 suplementario (para NEWS2)
+  oxigenoFlujoLpm?: number   // flujo de O2 (L/min) si se conoce → FHIR LOINC 3151-8
+  oxigenoFiO2?: number       // FiO2 (%) si se conoce → FHIR LOINC 3150-0
   por?: string
 }
 

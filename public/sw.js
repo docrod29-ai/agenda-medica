@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v673'  // L6.1 CKD-EPI fuente unica funcion-renal.ts sin redondeo interno (decision del Dr); duplicado de calculadoras.ts eliminado y re-exportado; motor precision completa, UI redondea. 1792 tests.
+const CACHE = 'nexusmed-v674'  // L6.4 (decision del Dr): FHIR ya NO pierde datos capturados. Export anade dolor/EVA (LOINC 72514-3), conciencia ACVPU (80288-4, valor real), O2 suplementario (valueBoolean) + flujo (3151-8) + FiO2 (3150-0). Modelo conciencia extendido a ACVPU completo (A/C/V/P/U) conservando el valor real; NEWS2 lo DERIVA (A=0, resto=3); alerta/alterada quedan como legado. 1798 tests.
 // (v601):
 
 self.addEventListener('install', (event) => {
