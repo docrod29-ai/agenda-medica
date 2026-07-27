@@ -507,9 +507,13 @@ service cloud.firestore {
       allow create: if isMember(request.resource.data.clinicId);
       // El paciente SOLO puede marcarla usada (false→true); no puede quemarla sin
       // enviar ni alterar otros campos (antes `if true` dejaba corromperla).
+      // REG-016: solo puede tocar `used`/`usedAt` (hasOnly). Antes, al marcar
+      // usada, el flujo público podía mutar de paso CUALQUIER otro campo (nombre de
+      // paciente/médico, etc.). El endpoint legítimo (Admin SDK) solo escribe esos dos.
       allow update: if resource.data.used == false
         && request.resource.data.used == true
-        && request.resource.data.clinicId == resource.data.clinicId;
+        && request.resource.data.clinicId == resource.data.clinicId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used', 'usedAt']);
       // Solo un miembro de la clínica DUEÑA puede borrarla. Antes `if isAuth()`
       // dejaba a cualquier usuario logueado (de otra clínica) borrar la solicitud de
       // reseña ajena si conocía/observaba el token.

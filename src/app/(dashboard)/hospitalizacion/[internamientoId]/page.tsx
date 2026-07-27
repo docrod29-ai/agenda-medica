@@ -89,7 +89,7 @@ export default function EpisodioPage() {
   const [indForm, setIndForm] = useState<{ tipo: TipoIndicacion; descripcion: string; dosis: string; via: string; frecuencia: string }>({ tipo: 'medicamento', descripcion: '', dosis: '', via: '', frecuencia: '' })
   const [medQuery, setMedQuery] = useState('')
   const [admNota, setAdmNota] = useState('')
-  const [sg, setSg] = useState<{ ta: string; fc: string; fr: string; temp: string; spo2: string; glucosa: string; dolor: string; conciencia: 'alerta' | 'alterada'; oxigeno: boolean }>({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'alerta', oxigeno: false })
+  const [sg, setSg] = useState<{ ta: string; fc: string; fr: string; temp: string; spo2: string; glucosa: string; dolor: string; conciencia: 'A' | 'C' | 'V' | 'P' | 'U'; oxigeno: boolean }>({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'A', oxigeno: false })
   const [patient, setPatient] = useState<Patient | null>(null)
   const [labs, setLabs] = useState<SolicitudLab[]>([])
   const [modalLab, setModalLab] = useState(false)
@@ -521,7 +521,7 @@ export default function EpisodioPage() {
       {tab === 'signos' && (<>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
           <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Registro seriado de signos vitales.</div>
-          {puedeEnfermeria && !egresado && <Button size="sm" icon={<Plus size={14} />} onClick={() => { setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'alerta', oxigeno: false }); setModalSignos(true) }}>Registrar signos</Button>}
+          {puedeEnfermeria && !egresado && <Button size="sm" icon={<Plus size={14} />} onClick={() => { setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'A', oxigeno: false }); setModalSignos(true) }}>Registrar signos</Button>}
         </div>
         {signos.length === 0 ? (
           <div style={{ fontSize: 13, color: 'var(--text3)', padding: 16, textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 12 }}>Sin registros de signos vitales.</div>
@@ -1084,7 +1084,7 @@ export default function EpisodioPage() {
             // Alerta por deterioro: NEWS2 alto O parámetro individual en rojo (criterio Royal College)
             const n2 = calcularNews2({ ta: sg.ta, fc: num(sg.fc), fr: num(sg.fr), temp: num(sg.temp), spo2: num(sg.spo2), conciencia: sg.conciencia, oxigeno: sg.oxigeno })
             if (n2 && (n2.riesgo === 'alto' || n2.parametroRojo) && inter) await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'news2', titulo: `Deterioro clínico — NEWS2 ${n2.total} (${n2.riesgo})`, detalle: n2.recomendacion })
-            toast('Signos registrados', 'success'); setModalSignos(false); setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'alerta', oxigeno: false }); cargar()
+            toast('Signos registrados', 'success'); setModalSignos(false); setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'A', oxigeno: false }); cargar()
           } catch (e) {
             // Sin catch, el modal quedaba abierto y sin mensaje: parecía que no pasó
             // nada y el dato clínico simplemente no se guardaba.
@@ -1101,8 +1101,22 @@ export default function EpisodioPage() {
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 10, alignItems: 'center' }}>
           <div>
             <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block' }}>Conciencia</label>
-            <div style={{ display: 'flex', gap: 5, marginTop: 2 }}>
-              {(['alerta', 'alterada'] as const).map(c => <button key={c} type="button" onClick={() => setSg(s => ({ ...s, conciencia: c }))} className="rounded-full border px-2.5 py-1 text-xs" style={sg.conciencia === c ? { borderColor: c === 'alterada' ? '#dc2626' : '#0d9488', background: (c === 'alterada' ? '#dc2626' : '#0d9488') + '18', color: c === 'alterada' ? '#dc2626' : '#0d9488', fontWeight: 700 } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{c === 'alerta' ? 'Alerta' : 'Alterada'}</button>)}
+            {/* ACVPU completo (REG: antes solo alerta/alterada → se perdía la letra
+                clínica). NEWS2: A=0; C/V/P/U=3 (lo deriva news2.ts). Se guarda la letra. */}
+            <div style={{ display: 'flex', gap: 5, marginTop: 2, flexWrap: 'wrap' }}>
+              {([
+                { c: 'A', label: 'A · Alerta', col: '#0d9488' },
+                { c: 'C', label: 'C · Confusión', col: '#d97706' },
+                { c: 'V', label: 'V · Voz', col: '#d97706' },
+                { c: 'P', label: 'P · Dolor', col: '#dc2626' },
+                { c: 'U', label: 'U · No responde', col: '#dc2626' },
+              ] as const).map(({ c, label, col }) => (
+                <button key={c} type="button" onClick={() => setSg(s => ({ ...s, conciencia: c }))}
+                  title={label} className="rounded-full border px-2.5 py-1 text-xs"
+                  style={sg.conciencia === c
+                    ? { borderColor: col, background: col + '18', color: col, fontWeight: 700 }
+                    : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{label}</button>
+              ))}
             </div>
           </div>
           <label style={{ fontSize: 12.5, color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', marginTop: 14 }}>

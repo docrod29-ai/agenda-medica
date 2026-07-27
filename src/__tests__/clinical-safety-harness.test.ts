@@ -280,6 +280,61 @@ describe('CLINICAL SAFETY HARNESS · Aminoglucósidos: dosis/toma ≤ tope diari
   })
 })
 
+describe('PROPERTY-BASED · invariantes sobre poblaciones sintéticas (charter #24)', () => {
+  // Mallas deterministas (reproducibles, sin Math.random) dentro y fuera de rangos.
+  const creatGrid = [0.3, 0.5, 0.7, 1.0, 1.5, 2.0, 3.0, 5.0, 8.0]
+  const edadGrid = [18, 30, 45, 60, 75, 90]
+  const sexos = ['Masculino', 'Femenino'] as const
+
+  it('CKD-EPI: finito, positivo y MONÓTONA decreciente al subir la creatinina', () => {
+    for (const edad of edadGrid) for (const sexo of sexos) {
+      let prev = Infinity
+      for (const cr of creatGrid) {
+        const g = ckdEpi2021(cr, edad, sexo)
+        expect(Number.isFinite(g)).toBe(true)
+        expect(g).toBeGreaterThan(0)
+        expect(g, `TFG debe bajar al subir creat (edad ${edad}, ${sexo}, cr ${cr})`).toBeLessThanOrEqual(prev + 1e-6)
+        prev = g
+      }
+    }
+  })
+
+  it('Cockcroft-Gault: no-negativo, finito y decreciente en creatinina', () => {
+    for (const edad of edadGrid) for (const sexo of sexos) {
+      let prev = Infinity
+      for (const cr of creatGrid) {
+        const v = cockcroftGault(cr, edad, sexo, 70)
+        expect(Number.isFinite(v)).toBe(true)
+        expect(v).toBeGreaterThanOrEqual(0)
+        expect(v).toBeLessThanOrEqual(prev + 1e-6)
+        prev = v
+      }
+    }
+  })
+
+  it('FIB-4: invariancia de UNIDAD (×10⁹/L ≡ conteo absoluto) en toda la malla', () => {
+    for (const edad of [30, 50, 70]) for (const ast of [20, 42, 120]) for (const alt of [20, 48, 150]) for (const plq of [80, 135, 250]) {
+      const a = fib4(edad, ast, plq, alt)
+      const b = fib4(edad, ast, plq * 1000, alt)
+      expect(a, `unidad plq @${plq}`).toBe(b)
+      if (a != null) { expect(Number.isFinite(a)).toBe(true); expect(a).toBeGreaterThan(0) }
+    }
+  })
+
+  it('MELD: SIEMPRE acotado 6–40 y no-decreciente al subir bilirrubina', () => {
+    for (const inr of [1, 1.5, 2.5]) for (const cr of [1, 2, 4]) {
+      let prev = -Infinity
+      for (const bili of [1, 2, 5, 10, 30]) {
+        const m = meld(bili, inr, cr)
+        expect(m).toBeGreaterThanOrEqual(6)
+        expect(m).toBeLessThanOrEqual(40)
+        expect(m, `MELD no baja al subir bili (inr ${inr}, cr ${cr}, bili ${bili})`).toBeGreaterThanOrEqual(prev)
+        prev = m
+      }
+    }
+  })
+})
+
 /**
  * NEEDS_CLINICAL_REVIEW — escalas SIN motor determinista en el código (no se pueden
  * anclar sin inventar sus reglas; requieren que el Dr. las especifique antes de

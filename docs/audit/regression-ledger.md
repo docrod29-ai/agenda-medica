@@ -23,7 +23,7 @@ Estados: **CLOSED** (con test/control) · **OPEN** (detectado, pendiente de repa
 | REG-013 | Clínico | Peso pediátrico: confusión kg/lb producía dosis peligrosa | CLOSED | `src/__tests__/peso-pediatrico-seguridad.test.ts` (hard-stop, sin heurística) |
 | REG-014 | Seguridad-legal | Firma médica (`firmaImagenDataUrl` en `config/main`) **leíble** por cualquier miembro vía SDK → robo para estampar recetas | **OPEN** | (pendiente) separar a subdoc con `read: if isMedico` |
 | REG-015 | Dinero | `cobros` create no fuerza `creadoPor==uid` ni valida `monto≥0` → cobro atribuible a otro / retroactivo | **OPEN** | (pendiente) regla create como `farmacia_movimientos` |
-| REG-016 | Integridad | `clinic_review_requests` update sin `hasOnly` → al marcar `used` se pueden mutar otros campos | **OPEN** | (pendiente) `hasOnly(['used','usedAt'])` |
+| REG-016 | Integridad | `clinic_review_requests` update sin `hasOnly` → al marcar `used` se pueden mutar otros campos | CLOSED | `firestore.rules` update ahora `diff().affectedKeys().hasOnly(['used','usedAt'])` |
 | REG-017 | Integridad | Una nota puede nacer `estado:'firmada'` (salta flujo borrador→firmada) | **OPEN** | (pendiente) forzar `estado=='borrador'` en create |
 | REG-018 | Clínico | Amikacina: dosis/toma no acotada por `topeMgKgDia` → receta 50% arriba del tope seguro en 1 toma/día | CLOSED | `src/__tests__/clinical-safety-harness.test.ts` (bloque Aminoglucósidos + invariante universal porToma≤porDía) |
 | REG-019 | Auth | WhatsApp disconnect/connect y CFDI eran any-member (podía desconectar mensajería a pacientes / timbrar) | CLOSED | Endpoints ahora `verificarMedico` (paridad con plantillas-config/voz-config) |

@@ -23,3 +23,10 @@ jobs:
         run: npx tsc --noEmit
       - name: Pruebas (vitest)
         run: npx vitest run
+      - name: Build de producción (next build)
+        run: npm run build
+        env:
+          # El build no debe requerir credenciales de runtime; el sitemap tolera su ausencia.
+          NEXT_TELEMETRY_DISABLED: '1'
+# NOTA: `npm run lint` aún NO se agrega como gate: el repo tiene ~128 errores de lint
+# pendientes de limpieza (P2). Meterlo bloquearía el CI. Se añadirá tras la limpieza.
