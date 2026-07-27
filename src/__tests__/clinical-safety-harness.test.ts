@@ -22,7 +22,7 @@ import { meld } from '@/lib/expediente/calculadoras'
 import { fib4 } from '@/lib/expediente/cardiometabolico/masld'
 import { apfel } from '@/lib/expediente/cirugia'
 import { calcularSOFA, calcularAPACHE2 } from '@/lib/uci/scores'
-import { calcularRCRI, calcularCaprini } from '@/lib/expediente/preop'
+import { calcularRCRI, calcularCaprini, type RCRIInput } from '@/lib/expediente/preop'
 import { equivalenteNorepinefrina } from '@/lib/uci/hemodinamia'
 import { vexus } from '@/lib/uci/pocus'
 import { calcularDosisPediatrica, FARMACOS_PED } from '@/lib/expediente/pediatria'
@@ -152,8 +152,13 @@ describe('CLINICAL SAFETY HARNESS · RCRI (Lee revisado)', () => {
     [2, 'III', true],
     [3, 'IV', true],
   ] as const)('%d factores → clase %s, elevado=%s', (n, clase, elevado) => {
-    const keys = ['cirugiaAltoRiesgo', 'cardiopatiaIsquemica', 'insuficienciaCardiaca', 'enfermedadCerebrovascular', 'diabetesInsulina', 'creatininaMayor2']
-    const input: Record<string, boolean> = {}
+    // RCRIInput exige las 6 llaves booleanas: se parte de todas en false y se
+    // encienden n (calcularRCRI solo cuenta las verdaderas).
+    const input: RCRIInput = {
+      cirugiaAltoRiesgo: false, cardiopatiaIsquemica: false, insuficienciaCardiaca: false,
+      enfermedadCerebrovascular: false, diabetesInsulina: false, creatininaMayor2: false,
+    }
+    const keys = Object.keys(input) as (keyof RCRIInput)[]
     for (let i = 0; i < n; i++) input[keys[i]] = true
     const r = calcularRCRI(input)
     expect(r.puntos).toBe(n)
