@@ -5,10 +5,11 @@
  *  · Esquema de vacunación de México con detección de atrasos.
  * Apoyo a la decisión: la dosis final la ajusta el médico.
  */
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Baby, Syringe, Pill, Plus, AlertTriangle, TrendingUp } from 'lucide-react'
 import {
   FARMACOS_PED, calcularDosisPediatrica, vacunasSegunEdad, imc, evaluarTodo, edadEnMeses,
+  libraAKg, revisarPesoPediatrico, type UnidadPeso,
 } from '@/lib/expediente/pediatria'
 
 interface Props {
@@ -31,6 +32,10 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
   const [tab, setTab] = useState<'dosis' | 'vacunas' | 'crecimiento'>('dosis')
   const [perimetro, setPerimetro] = useState('')
   const [peso, setPeso] = useState(pesoInicial && pesoInicial > 0 ? String(pesoInicial) : '')
+  // L6.2 (decisión del Dr): unidad EXPLÍCITA. Internamente siempre kg; si se captura
+  // en lb se convierte antes de dosificar. Sin auto-conversión por magnitud.
+  const [unidadPeso, setUnidadPeso] = useState<UnidadPeso>('kg')
+  const [pesoConfirmado, setPesoConfirmado] = useState(false)
   const [talla, setTalla] = useState('')
   const mesesIniciales = fechaNacimiento
     ? String(edadEnMeses(fechaNacimiento, new Date().toISOString().slice(0, 10)))
@@ -38,18 +43,24 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
   const [meses, setMeses] = useState(mesesIniciales)
   const [busca, setBusca] = useState('')
 
-  const pesoKg = Number(peso)
+  // Peso SIEMPRE a kg (convierte si se capturó en lb). Revisión de seguridad de
+  // unidad: si no es ok y no se confirmó, se BLOQUEA el cálculo y "Agregar a nota".
+  const pesoKg = unidadPeso === 'lb' ? libraAKg(Number(peso)) : Number(peso)
+  const revPeso = useMemo(() => pesoKg > 0 ? revisarPesoPediatrico(pesoKg, pesoInicial) : { ok: true }, [pesoKg, pesoInicial])
+  const pesoBloqueado = pesoKg > 0 && !revPeso.ok && !pesoConfirmado
+  // Cambiar el peso o la unidad exige volver a confirmar (no arrastrar un "confirmado" viejo).
+  useEffect(() => { setPesoConfirmado(false) }, [peso, unidadPeso])
   const edadMeses = Number(meses)
 
   const dosis = useMemo(() => {
-    if (!(pesoKg > 0)) return []
+    if (!(pesoKg > 0) || pesoBloqueado) return []   // sin dosis hasta confirmar el peso
     const q = busca.trim().toLowerCase()
     const edad = meses !== '' && edadMeses >= 0 ? edadMeses : undefined
     return FARMACOS_PED
       .filter(f => !q || f.nombre.toLowerCase().includes(q))
       .map(f => calcularDosisPediatrica(f, pesoKg, edad))
       .filter(Boolean)
-  }, [pesoKg, busca, meses, edadMeses])
+  }, [pesoKg, pesoBloqueado, busca, meses, edadMeses])
 
   const vacunas = useMemo(
     () => (edadMeses >= 0 && meses !== '' ? vacunasSegunEdad(edadMeses) : []),
@@ -90,7 +101,19 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
 
       {/* Datos base */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
-        <Campo label="Peso (kg)" valor={peso} set={setPeso} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <label style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text3)' }}>Peso</label>
+          <div style={{ display: 'flex', gap: 4 }}>
+            <input value={peso} onChange={e => setPeso(e.target.value)} inputMode="decimal"
+              style={{ ...campoBase, width: 62 }} />
+            <select value={unidadPeso} onChange={e => setUnidadPeso(e.target.value as UnidadPeso)}
+              style={{ ...campoBase, width: 54, padding: '6px 4px' }} aria-label="Unidad de peso">
+              <option value="kg">kg</option>
+              <option value="lb">lb</option>
+            </select>
+          </div>
+          {unidadPeso === 'lb' && Number(peso) > 0 && <span style={{ fontSize: 10, color: 'var(--text3)' }}>= {pesoKg.toFixed(1)} kg</span>}
+        </div>
         <Campo label="Talla (cm)" valor={talla} set={setTalla} />
         <Campo label="Edad (meses)" valor={meses} set={setMeses} />
         <Campo label="P. cefálico (cm)" valor={perimetro} set={setPerimetro} />
@@ -113,6 +136,23 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
         <div>
           {!(pesoKg > 0) ? (
             <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0 }}>Captura el peso para calcular las dosis.</p>
+          ) : pesoBloqueado ? (
+            /* L6.2 (decisión del Dr): hard-stop de UNIDAD. Mientras el peso no esté
+               confirmado NO se calcula dosis ni se ofrece "Agregar a nota"; solo el
+               porqué + un botón para confirmar. Nunca corrige el valor por su cuenta. */
+            <div style={{ border: '1px solid rgba(239,68,68,.4)', background: 'rgba(239,68,68,.07)', borderRadius: 9, padding: '11px 13px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <AlertTriangle size={16} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
+                <div>
+                  <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--red)', marginBottom: 3 }}>Verifica el peso antes de calcular</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text2)', lineHeight: 1.5 }}>{revPeso.motivo}</div>
+                  <button type="button" onClick={() => setPesoConfirmado(true)}
+                    style={{ ...btnMini, marginTop: 9 }}>
+                    Confirmar peso: {pesoKg.toFixed(1)} kg
+                  </button>
+                </div>
+              </div>
+            </div>
           ) : (
             <>
               <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar fármaco…"

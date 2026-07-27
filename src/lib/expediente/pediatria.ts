@@ -110,6 +110,42 @@ export interface DosisCalculada {
  * daba 3750 mg por toma) mientras el total diario decía 2000 mg: la receta se
  * escribe con la dosis POR TOMA, así que el tope no servía de nada.
  */
+/**
+ * SEGURIDAD DE UNIDAD DEL PESO PEDIÁTRICO (decisión del Dr, L6). NexusMED guarda
+ * SIEMPRE kg; si se captura en lb se convierte ANTES de dosificar. NO se asume que
+ * un peso alto sean libras (un adolescente puede pesar >100 kg; y meter 70 lb como
+ * 70 kg pasaría un filtro de tope alto). Por eso: (1) conversión explícita lb→kg;
+ * (2) plausibilidad = ADVERTENCIA + confirmación (hard-stop), nunca corrección
+ * automática; (3) comparación con el peso previo para detectar el error ≈×2.2046.
+ */
+export const LB_A_KG = 1 / 2.20462
+export function libraAKg(lb: number): number { return lb * LB_A_KG }
+
+export type UnidadPeso = 'kg' | 'lb'
+export interface RevisionPeso {
+  ok: boolean
+  tipo?: 'invalido' | 'implausible' | 'posible_lb_kg'
+  motivo?: string
+}
+
+/**
+ * Revisa un peso YA en kg contra plausibilidad pediátrica y contra el peso previo.
+ * `ok:false` = requiere confirmación humana; la UI debe BLOQUEAR el cálculo y el
+ * botón "Agregar a nota" hasta que se confirme (no solo mostrar un aviso).
+ */
+export function revisarPesoPediatrico(pesoKg: number, pesoPrevioKg?: number): RevisionPeso {
+  if (!(pesoKg > 0)) return { ok: false, tipo: 'invalido', motivo: 'Peso inválido.' }
+  if (pesoKg > 120) {
+    return { ok: false, tipo: 'implausible', motivo: `Peso ${pesoKg} kg extraordinariamente alto para pediatría. Verifique peso y unidad antes de calcular (no se asume que sean libras).` }
+  }
+  if (pesoPrevioKg && pesoPrevioKg > 0) {
+    const r = pesoKg / pesoPrevioKg
+    if (r >= 1.9 && r <= 2.5) return { ok: false, tipo: 'posible_lb_kg', motivo: `El peso pasó de ${pesoPrevioKg} a ${pesoKg} kg (≈×2.2): ¿se capturó en libras esta vez? Confirme la unidad.` }
+    if (r <= 0.53 && r >= 0.4) return { ok: false, tipo: 'posible_lb_kg', motivo: `El peso bajó de ${pesoPrevioKg} a ${pesoKg} kg (≈÷2.2): posible confusión lb/kg. Confirme la unidad.` }
+  }
+  return { ok: true }
+}
+
 export function calcularDosisPediatrica(f: FarmacoPed, pesoKg: number, edadMeses?: number): DosisCalculada | null {
   if (!(pesoKg > 0)) return null
 
