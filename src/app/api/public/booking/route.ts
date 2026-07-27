@@ -8,6 +8,7 @@
  * - Estado inicial: 'solicitada' (no confirmada hasta que el médico/asistente lo haga).
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { instanteMX } from '@/lib/timezone'
 import { adminDb } from '@/lib/firebase-admin'
 import { getDaySchedule, validarHorarioDia } from '@/lib/availability'
@@ -242,7 +243,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, citaId, fecha, hora, duracion })
   } catch (err) {
-    console.error('[public/booking]', err)
+    safeLog.error('[public/booking]', err)
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
   }
 }

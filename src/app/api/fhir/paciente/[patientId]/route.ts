@@ -7,6 +7,7 @@
  * sistemas de terceros. Solo miembros de la clínica.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarMedico } from '@/lib/auth-server'
 import { bundlePaciente } from '@/lib/fhir/recursos'
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ pati
 
     return NextResponse.json(bundle, { headers: { 'Content-Type': 'application/fhir+json' } })
   } catch (err) {
-    console.error('[fhir/paciente] error:', err)
+    safeLog.error('[fhir/paciente] error:', err)
     return NextResponse.json({ error: 'No se pudo generar el Bundle FHIR' }, { status: 500 })
   }
 }

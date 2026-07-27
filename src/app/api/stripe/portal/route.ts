@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { stripe } from '@/lib/stripe'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarMedico } from '@/lib/auth-server'
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ url: session.url })
   } catch (err) {
-    console.error('[Stripe Portal] Error:', err)
+    safeLog.error('[Stripe Portal] Error:', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

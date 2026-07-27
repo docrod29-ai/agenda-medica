@@ -314,7 +314,7 @@ export async function POST(req: NextRequest) {
 
     // Si Claude devolvió string vacío, es signo de bloqueo/timeout
     if (!text.trim()) {
-      console.warn('[procesar] Claude devolvió texto vacío. stop_reason=', stopReason)
+      safeLog.warn('[procesar] Claude devolvió texto vacío. stop_reason=', stopReason)
       return fallbackVisible(
         transcripcion, tipo,
         `IA de estructura devolvió respuesta vacía (stop_reason=${stopReason || 'desconocido'}).`,
@@ -342,7 +342,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!parsed) {
-      console.warn('[procesar] JSON no parseable. stop_reason=', stopReason, 'primeros 300 chars:', text.slice(0, 300))
+      safeLog.warn('[procesar] JSON no parseable. stop_reason=', stopReason, 'primeros 300 chars:', text.slice(0, 300))
       const fueCortado = stopReason === 'max_tokens'
       return fallbackVisible(
         transcripcion, tipo,
@@ -375,7 +375,7 @@ export async function POST(req: NextRequest) {
 
     const validation = RespuestaExtraccion.safeParse(parsed)
     if (!validation.success) {
-      console.warn('[procesar] Validación parcial:', validation.error.issues.slice(0, 3))
+      safeLog.warn('[procesar] Validación parcial:', validation.error.issues.slice(0, 3))
       void registrarUso(clinicId, fuente)
       return NextResponse.json({ ok: true, ...parsed, _schemaWarning: true, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION })
     }
@@ -433,7 +433,7 @@ export async function POST(req: NextRequest) {
     // usó (para la insignia). _modoEconomico: bajó a ⚡ Rápida por falta de créditos.
     return NextResponse.json({ ok: true, ...notaFinal, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION, _modelosNota: modelosNota })
   } catch (err) {
-    console.error('[expediente/procesar] Exception:', err)
+    safeLog.error('[expediente/procesar] Exception:', err)
     try {
       return fallbackVisible(
         transcripcion, tipo,
@@ -483,7 +483,7 @@ function parseJSON(text: string): Record<string, unknown> | null {
     .replace(/,(\s*[}\]])/g, '$1')
 
   try { return JSON.parse(limpio) } catch {
-    console.warn('[procesar] JSON inválido incluso tras limpieza. Primeros 200 chars:', slice.slice(0, 200))
+    safeLog.warn('[procesar] JSON inválido incluso tras limpieza. Primeros 200 chars:', slice.slice(0, 200))
     return null
   }
 }

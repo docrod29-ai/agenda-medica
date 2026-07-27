@@ -9,6 +9,7 @@
  * Body: { clinicId, phoneNumberId, token }
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { guardarSecretoCanal } from '@/lib/whatsapp/secreto-canal'
 import { verificarMedico } from '@/lib/auth-server'
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
     )
     if (!res.ok) {
       const err = await res.text()
-      console.error('[manual-connect] Validación falló:', res.status, err)
+      safeLog.error('[manual-connect] Validación falló:', res.status, err)
       return NextResponse.json(
         { ok: false, error: 'Credenciales inválidas. Revisa el Phone Number ID y el token.' },
         { status: 400 },
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, phoneNumber })
   } catch (err) {
-    console.error('[manual-connect] Error:', err)
+    safeLog.error('[manual-connect] Error:', err)
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
   }
 }

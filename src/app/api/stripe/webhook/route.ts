@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { stripe, nivelDePlan } from '@/lib/stripe'
 import { adminDb } from '@/lib/firebase-admin'
 import { agregarCreditosExtra, guardarNivelIA } from '@/lib/ai-keys'
@@ -109,11 +110,11 @@ export async function POST(req: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(body, sig, WEBHOOK_SECRET)
   } catch (err) {
-    console.error('[Stripe Webhook] Signature verification failed:', err)
+    safeLog.error('[Stripe Webhook] Signature verification failed:', err)
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
-  console.log(`[Stripe Webhook] ${event.type}`)
+  safeLog.info(`[Stripe Webhook] ${event.type}`)
 
   try {
     switch (event.type) {
@@ -326,7 +327,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ received: true })
   } catch (err) {
-    console.error(`[Stripe Webhook] Handler error for ${event.type}:`, err)
+    safeLog.error(`[Stripe Webhook] Handler error for ${event.type}:`, err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

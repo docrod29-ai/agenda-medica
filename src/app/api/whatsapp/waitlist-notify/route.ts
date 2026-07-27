@@ -11,6 +11,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarMiembro } from '@/lib/auth-server'
 import { ClinicConfig, WaitlistEntry } from '@/types'
@@ -181,7 +182,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, notified })
   } catch (err) {
-    console.error('[WaitlistNotify] Error:', err)
+    safeLog.error('[WaitlistNotify] Error:', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

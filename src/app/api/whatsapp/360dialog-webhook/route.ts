@@ -19,6 +19,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { findClinicByDialog360ApiKey } from '@/lib/whatsapp-send'
 import { marcarProcesado, telefonoRedactado } from '@/lib/whatsapp/dedup'
 import { parsearStatuses, registrarStatus } from '@/lib/whatsapp/status'
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
   const clinicId = await findClinicByDialog360ApiKey(apiKey)
   if (!clinicId) {
     // §9.5: no registrar material de la llave. Solo el evento (llave desconocida).
-    console.warn('[360dialog webhook] api_key desconocida — no coincide con ningún canal')
+    safeLog.warn('[360dialog webhook] api_key desconocida — no coincide con ningún canal')
     return NextResponse.json({ error: 'Unknown channel' }, { status: 404 })
   }
 
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
     try {
       await handleMessage(from, body, clinicId)
     } catch (err) {
-      console.error(`[360dialog webhook] handleMessage error for ${telefonoRedactado(from)}:`, err)
+      safeLog.error(`[360dialog webhook] handleMessage error for ${telefonoRedactado(from)}:`, err)
     }
   }
 

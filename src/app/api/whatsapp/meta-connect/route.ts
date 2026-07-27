@@ -18,6 +18,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { guardarSecretoCanal } from '@/lib/whatsapp/secreto-canal'
 import { verificarMedico } from '@/lib/auth-server'
@@ -57,7 +58,7 @@ async function getWABAInfo(userToken: string): Promise<{
   )
 
   if (!wabaRes.ok) {
-    console.error('[meta-connect] Failed to get businesses:', await wabaRes.text())
+    safeLog.error('[meta-connect] Failed to get businesses:', await wabaRes.text())
     return null
   }
 
@@ -132,7 +133,7 @@ async function registerWebhook(wabaId: string, token: string): Promise<void> {
       },
     })
   } catch (e) {
-    console.warn('[meta-connect] Webhook subscription warning:', e)
+    safeLog.warn('[meta-connect] Webhook subscription warning:', e)
   }
 }
 
@@ -192,7 +193,7 @@ export async function POST(req: NextRequest) {
       createdAt: now,
     })
 
-    console.log(`[meta-connect] ✅ Connected clinic ${clinicId} → ${info.phoneNumber} (WABA: ${info.wabaId})`)
+    safeLog.info(`[meta-connect] ✅ Connected clinic ${clinicId} → ${info.phoneNumber} (WABA: ${info.wabaId})`)
 
     return NextResponse.json({
       ok: true,
@@ -200,7 +201,7 @@ export async function POST(req: NextRequest) {
       phoneNumberId: info.phoneNumberId,
     })
   } catch (err) {
-    console.error('[meta-connect] Error:', err)
+    safeLog.error('[meta-connect] Error:', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

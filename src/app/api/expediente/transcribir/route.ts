@@ -13,6 +13,7 @@
  * Requiere env var: OPENAI_API_KEY
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { WHISPER_PROMPT_MEDICO } from '@/lib/expediente/medical-vocabulary'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
@@ -116,7 +117,7 @@ export async function POST(req: NextRequest) {
       }
       ultimoStatus = res.status
       ultimoError = (await res.text()).slice(0, 300)
-      console.warn(`[transcribir] ${model} respondió ${res.status} — probando siguiente modelo`)
+      safeLog.warn(`[transcribir] ${model} respondió ${res.status} — probando siguiente modelo`)
       // La llave es inválida/expiró → ningún modelo servirá: abortar de una vez.
       if (res.status === 401) {
         return NextResponse.json({ ok: false, error: 'La API key de OpenAI es inválida o expiró. Revísala en Vercel.' }, { status: 502 })
@@ -125,12 +126,12 @@ export async function POST(req: NextRequest) {
       // SIGUIENTE modelo. whisper-1 (el último) es el más estable y casi nunca da
       // 5xx, así que un 502 pasajero de gpt-4o-transcribe ya no tumba la nota.
     } catch (err) {
-      console.error(`[transcribir] ${model} error de red:`, err)
+      safeLog.error(`[transcribir] ${model} error de red:`, err)
       ultimoError = String(err).slice(0, 300)
     }
   }
   // Aquí solo se llega si TODOS los modelos de OpenAI fallaron (outage real).
-  console.error('[transcribir] Todos los modelos de OpenAI fallaron. Último:', ultimoStatus, ultimoError)
+  safeLog.error('[transcribir] Todos los modelos de OpenAI fallaron. Último:', ultimoStatus, ultimoError)
   return NextResponse.json(
     { ok: false, error: `OpenAI no disponible temporalmente (HTTP ${ultimoStatus}). El audio sigue guardado; reintenta en un momento.` },
     { status: 502 },

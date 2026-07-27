@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { randomUUID } from 'node:crypto'
 import { adminDb } from '@/lib/firebase-admin'
 import { Appointment, ClinicConfig } from '@/types'
@@ -257,13 +258,13 @@ export async function GET(req: NextRequest) {
           // 'silencio' / 'tope': dejar en la cola, se reintenta en el próximo ciclo
         }
       } catch (clinicErr) {
-        console.error(`[Cron] Error for clinic ${clinicId}:`, clinicErr)
+        safeLog.error(`[Cron] Error for clinic ${clinicId}:`, clinicErr)
       }
     }
 
     return NextResponse.json({ ok: true, ...totals })
   } catch (err) {
-    console.error('Reminders cron error:', err)
+    safeLog.error('Reminders cron error:', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

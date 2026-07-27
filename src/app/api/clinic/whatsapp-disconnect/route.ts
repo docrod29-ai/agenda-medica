@@ -3,6 +3,7 @@
  * Removes WhatsApp credentials from the clinic and the index collection.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarMedico } from '@/lib/auth-server'
 
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true })
   } catch (err) {
-    console.error('[whatsapp-disconnect]', err)
+    safeLog.error('[whatsapp-disconnect]', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

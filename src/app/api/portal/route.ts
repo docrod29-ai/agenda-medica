@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarTokenPaciente } from '@/lib/patient-token'
 import { getAvailableSlots } from '@/lib/availability'
@@ -267,7 +268,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Acción no soportada' }, { status: 400 })
     }
   } catch (e) {
-    console.error('[portal] error', e)
+    safeLog.error('[portal] error', e)
     return NextResponse.json({ error: 'Error del servidor' }, { status: 500 })
   }
 }

@@ -9,6 +9,7 @@
  * Devuelve: { ok, url, name, expiresAt }
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { verificarTokenPaciente } from '@/lib/patient-token'
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
     if (!autorizadoPorToken && !autorizadoPorMiembro) {
       // Sin prueba de titularidad → se responde como si la cita no existiera (no
       // confirma que el citaId sea real).
-      console.warn('[telesalud/sala] acceso sin titularidad rechazado')
+      safeLog.warn('[telesalud/sala] acceso sin titularidad rechazado')
       return NextResponse.json({ ok: false, error: 'Cita no encontrada' }, { status: 404 })
     }
 
@@ -99,7 +100,7 @@ export async function POST(req: NextRequest) {
 
     if (!res.ok) {
       const err = await res.text()
-      console.error('[telesalud/sala] Daily error:', res.status, err)
+      safeLog.error('[telesalud/sala] Daily error:', res.status, err)
       return NextResponse.json({ ok: false, error: 'No se pudo crear sala' }, { status: 502 })
     }
     const room = await res.json()
@@ -117,7 +118,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, url, name, expiresAt: exp })
   } catch (err) {
-    console.error('[telesalud/sala]', err)
+    safeLog.error('[telesalud/sala]', err)
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
   }
 }

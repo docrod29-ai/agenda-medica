@@ -18,6 +18,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { adminDb } from '@/lib/firebase-admin'
 import { ClinicConfig, Doctor, Appointment, AppointmentType } from '@/types'
@@ -101,7 +102,7 @@ function firmaValida(rawBody: string, signatureHeader: string | null): boolean {
      * App Dashboard → Configuración → Básica → Clave secreta de la app). Es el
      * mismo criterio fail-closed que ya usa el cron (CRON_SECRET).
      */
-    console.error('[Bot] META_APP_SECRET no configurado — se RECHAZA el webhook (fail-closed)')
+    safeLog.error('[Bot] META_APP_SECRET no configurado — se RECHAZA el webhook (fail-closed)')
     return false
   }
   if (!signatureHeader || !signatureHeader.startsWith('sha256=')) return false
@@ -769,7 +770,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
         try {
           await adminDb.collection('clinics').doc(clinicId).collection('waitlist').doc(waitlistId).update({ estado: 'convertido' })
         } catch (e) {
-          console.warn(`[bot] no se pudo marcar waitlist ${waitlistId} como convertido:`, String(e))
+          safeLog.warn(`[bot] no se pudo marcar waitlist ${waitlistId} como convertido:`, String(e))
         }
       }
 
@@ -862,10 +863,10 @@ export async function GET(req: NextRequest) {
   const challenge = searchParams.get('hub.challenge')
 
   if (mode === 'subscribe' && VERIFY_TOKEN && token === VERIFY_TOKEN) {
-    console.log('[Bot] Webhook verified')
+    safeLog.info('[Bot] Webhook verified')
     return new NextResponse(challenge, { status: 200 })
   }
-  if (!VERIFY_TOKEN) console.warn('[Bot] WHATSAPP_WEBHOOK_TOKEN no configurado — verificación rechazada')
+  if (!VERIFY_TOKEN) safeLog.warn('[Bot] WHATSAPP_WEBHOOK_TOKEN no configurado — verificación rechazada')
   return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 }
 
@@ -877,7 +878,7 @@ export async function POST(req: NextRequest) {
     const rawBody = await req.text()
     const firma = req.headers.get('x-hub-signature-256')
     if (!firmaValida(rawBody, firma)) {
-      console.warn('[Bot] Firma de webhook inválida — petición rechazada')
+      safeLog.warn('[Bot] Firma de webhook inválida — petición rechazada')
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
     const body = JSON.parse(rawBody)
@@ -900,7 +901,7 @@ export async function POST(req: NextRequest) {
     const clinicId = await findClinicByPhoneNumberId(phoneNumberId)
 
     if (!clinicId) {
-      console.warn('[Bot] No clinic found for phoneNumberId:', phoneNumberId)
+      safeLog.warn('[Bot] No clinic found for phoneNumberId:', phoneNumberId)
       return NextResponse.json({ ok: true })
     }
 
@@ -924,13 +925,13 @@ export async function POST(req: NextRequest) {
 
       // Handle async, don't block webhook response
       handleMessage(from, text, clinicId).catch(err => {
-        console.error(`[Bot] Error handling message from ${telefonoRedactado(from)}:`, err)
+        safeLog.error(`[Bot] Error handling message from ${telefonoRedactado(from)}:`, err)
       })
     }
 
     return NextResponse.json({ ok: true })
   } catch (err) {
-    console.error('[Bot] Webhook error:', err)
+    safeLog.error('[Bot] Webhook error:', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

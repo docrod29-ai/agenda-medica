@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarMedico } from '@/lib/auth-server'
 
@@ -21,7 +22,7 @@ export async function GET(req: NextRequest) {
     const pico = (snap.data()?.voz?.picovoice ?? {}) as Record<string, unknown>
     return NextResponse.json({ ok: true, picovoice: pico })
   } catch (err) {
-    console.error('[voz/comandos-config] GET error:', err)
+    safeLog.error('[voz/comandos-config] GET error:', err)
     return NextResponse.json({ error: 'No se pudo leer la configuración' }, { status: 500 })
   }
 }
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
     await adminDb.collection('clinics').doc(clinicId).set({ voz: { picovoice } }, { merge: true })
     return NextResponse.json({ ok: true, picovoice })
   } catch (err) {
-    console.error('[voz/comandos-config] POST error:', err)
+    safeLog.error('[voz/comandos-config] POST error:', err)
     return NextResponse.json({ error: 'No se pudo guardar' }, { status: 500 })
   }
 }

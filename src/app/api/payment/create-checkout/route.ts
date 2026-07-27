@@ -14,6 +14,7 @@
  * 'pagada' con lo que fuera (podía pagar el mínimo de $10 por una consulta cara).
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { stripe } from '@/lib/stripe'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarTokenPaciente } from '@/lib/patient-token'
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, url: session.url })
   } catch (err) {
-    console.error('[payment/create-checkout]', err)
+    safeLog.error('[payment/create-checkout]', err)
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
   }
 }

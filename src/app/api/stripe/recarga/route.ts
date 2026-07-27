@@ -9,6 +9,7 @@
  * Resp: { url } (Stripe Checkout) | { error }
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { stripe, STRIPE_PRICE_RECARGA } from '@/lib/stripe'
 import { RECARGA } from '@/lib/planes-ia'
 import { adminDb } from '@/lib/firebase-admin'
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ url: session.url })
   } catch (err) {
-    console.error('[Stripe Recarga] Error:', err)
+    safeLog.error('[Stripe Recarga] Error:', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

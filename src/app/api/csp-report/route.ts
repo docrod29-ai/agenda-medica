@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 
 /**
  * Receptor de reportes de CSP (Content-Security-Policy) en modo Report-Only.
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
       const doc = rutaSegura(r['document-uri'] ?? r['documentURL'] ?? r['document-url'])
       // Solo el ORIGEN del recurso bloqueado (sin ruta/query, para no arrastrar PHI).
       const bloqueadoOrigen = rutaSegura(bloqueado) || String(bloqueado)
-      console.warn(`[CSP-RO] directiva=${directiva} bloqueado=${bloqueadoOrigen} en=${doc} (ct=${ct})`)
+      safeLog.warn(`[CSP-RO] directiva=${directiva} bloqueado=${bloqueadoOrigen} en=${doc} (ct=${ct})`)
     }
   } catch {
     // Nunca fallar por un reporte mal formado.

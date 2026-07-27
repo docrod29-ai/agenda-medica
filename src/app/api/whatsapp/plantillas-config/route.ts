@@ -10,6 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarMedico } from '@/lib/auth-server'
 
@@ -35,7 +36,7 @@ export async function GET(req: NextRequest) {
       topeDiarioProactivo: typeof wa.topeDiarioProactivo === 'number' ? wa.topeDiarioProactivo : 3,
     })
   } catch (err) {
-    console.error('[plantillas-config] GET error:', err)
+    safeLog.error('[plantillas-config] GET error:', err)
     return NextResponse.json({ error: 'No se pudo leer la configuración' }, { status: 500 })
   }
 }
@@ -97,7 +98,7 @@ export async function POST(req: NextRequest) {
     await adminDb.collection('clinics').doc(clinicId).set({ whatsapp: wa }, { merge: true })
     return NextResponse.json({ ok: true, plantillas: wa.plantillas })
   } catch (err) {
-    console.error('[plantillas-config] POST error:', err)
+    safeLog.error('[plantillas-config] POST error:', err)
     return NextResponse.json({ error: 'No se pudo guardar' }, { status: 500 })
   }
 }

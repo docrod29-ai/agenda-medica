@@ -12,6 +12,7 @@
  * padre O su config.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 
 export async function GET(
@@ -83,7 +84,7 @@ export async function GET(
       horarios: config.horario ?? {},
     })
   } catch (err) {
-    console.error('[public/clinic] Error:', err)
+    safeLog.error('[public/clinic] Error:', err)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
   }
 }

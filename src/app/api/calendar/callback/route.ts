@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { getTokensFromCode } from '@/lib/google-calendar'
 import { adminDb } from '@/lib/firebase-admin'
 
@@ -47,7 +48,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.redirect(`${base}/configuracion?gcal=connected`)
   } catch (err) {
-    console.error('Google Calendar callback error:', err)
+    safeLog.error('Google Calendar callback error:', err)
     return NextResponse.redirect(`${base}/configuracion?gcal=error&msg=${encodeURIComponent(String(err))}`)
   }
 }

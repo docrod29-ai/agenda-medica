@@ -13,6 +13,7 @@
  * Resp: { ok, articulos:[...], evaluacion:[...], alternativas:[...], diferencial:[...] }
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { gateCreditos, resolverClaveIA, registrarUso, nivelIADe, registrarCreditos } from '@/lib/ai-keys'
@@ -214,7 +215,7 @@ export async function POST(req: NextRequest) {
   } catch (fatal) {
     // Cualquier excepción no prevista: NUNCA un 500 mudo. Devolvemos el error real
     // (status 200 para que el cliente lo parsee y lo muestre en vez del toast genérico).
-    console.error('[evidencia] fallo no controlado:', fatal)
+    safeLog.error('[evidencia] fallo no controlado:', fatal)
     const msg = fatal instanceof Error ? fatal.message : String(fatal)
     return NextResponse.json({ ok: false, error: `Fallo al analizar la evidencia: ${msg.slice(0, 160)}` }, { status: 200 })
   }

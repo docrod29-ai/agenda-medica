@@ -17,6 +17,7 @@
  *   - Devuelve más rápido — pensado para llamadas paralelas
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { WHISPER_PROMPT_MEDICO } from '@/lib/expediente/medical-vocabulary'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
@@ -105,7 +106,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: false, error: `OpenAI ${res.status}`, detail: err, chunkIdx }, { status: 502 })
       }
     } catch (err) {
-      console.error(`[transcribir-chunk] ${model}:`, String(err).slice(0, 200))
+      safeLog.error(`[transcribir-chunk] ${model}:`, String(err).slice(0, 200))
     }
   }
   return NextResponse.json({ ok: false, error: 'Todos los modelos fallaron', chunkIdx }, { status: 502 })
