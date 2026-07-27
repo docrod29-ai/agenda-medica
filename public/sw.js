@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v672'  // Lote seguridad-reglas (reporte externo): firestore.rules -> (1) update de /clinics protege trialEndsAtMs+ownerId (cerraba bypass del trial) + create bloquea 'plan'; (2) cita create con cobroExento:true exige exentoPor+motivo (antes se creaba ya exenta); (3) googleTokens deny read/write al cliente (tokens OAuth server-only); (4) invitaciones update hasOnly([used,usedBy,usedAt]) -> role inmutable; (5) hospital signos/alertas sin delete cliente + hospital_roles write solo isMedico. next.config -> Referrer-Policy no-referrer de magic-links movido al FINAL (gana sobre la global). storage.rules -> limites size+MIME (audio/, imagenes+pdf). OJO: rules requieren firebase deploy.
+const CACHE = 'nexusmed-v673'  // L6.1 CKD-EPI fuente unica funcion-renal.ts sin redondeo interno (decision del Dr); duplicado de calculadoras.ts eliminado y re-exportado; motor precision completa, UI redondea. 1792 tests.
 // (v601):
 
 self.addEventListener('install', (event) => {
