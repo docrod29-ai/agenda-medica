@@ -602,7 +602,7 @@ export default function GeneradorRecetaPage() {
               {renal && (
                 <div style={{ fontSize: 11.5, color: renal.datoImplausible ? 'var(--amber)' : 'var(--text2)', lineHeight: 1.4 }}>
                   {Number.isFinite(renal.egfrCkdEpi)
-                    ? <div><strong>TFG (CKD-EPI):</strong> {renal.egfrCkdEpi} mL/min/1.73m² · <strong>{renal.estadio}</strong> ({renal.estadioDesc})</div>
+                    ? <div><strong>TFG (CKD-EPI):</strong> {Math.round(renal.egfrCkdEpi)} mL/min/1.73m² · <strong>{renal.estadio}</strong> ({renal.estadioDesc})</div>
                     : <div>{renal.estadioDesc}</div>}
                   {renal.crClCockcroft != null && <div><strong>CrCl (Cockcroft):</strong> {renal.crClCockcroft} mL/min</div>}
                 </div>

@@ -49,17 +49,22 @@ export const CREAT_MGDL_MIN = 0.1
  * CKD-EPI 2021 (sin coeficiente de raza). Scr en mg/dL.
  * eGFR = 142 × min(Scr/κ,1)^α × max(Scr/κ,1)^-1.200 × 0.9938^edad × (1.012 si mujer)
  */
-export function ckdEpi2021(creatinina: number, edad: number, sexo: Sexo): number {
-  const mujer = sexo === 'Femenino'
+export function ckdEpi2021(creatinina: number, edad: number, sexo: Sexo | boolean): number {
+  // FUENTE DE VERDAD ÚNICA de CKD-EPI 2021 (decisión del Dr, L6). Ecuación canónica
+  // sin raza (NKF), creatinina en mg/dL. Devuelve PRECISIÓN COMPLETA — el redondeo
+  // corresponde a la capa de presentación; un Math.round interno podía cambiar
+  // clasificaciones, comparaciones o cálculos posteriores. Acepta Sexo o booleano
+  // (esMujer) para servir a todos los llamadores (antes había un duplicado).
+  const mujer = sexo === true || sexo === 'Femenino'
+  const scr = Math.max(creatinina, 0.01)   // guarda anti-división por cero (no altera valores válidos)
   const k = mujer ? 0.7 : 0.9
   const a = mujer ? -0.241 : -0.302
-  const r = creatinina / k
-  const egfr = 142
+  const r = scr / k
+  return 142
     * Math.pow(Math.min(r, 1), a)
     * Math.pow(Math.max(r, 1), -1.200)
     * Math.pow(0.9938, edad)
     * (mujer ? 1.012 : 1)
-  return Math.round(egfr)
 }
 
 /**

@@ -196,15 +196,10 @@ const childPugh: CampoCalc[] = [
     { label: 'Ausente', valor: 1 }, { label: 'Grado I-II', valor: 2 }, { label: 'Grado III-IV', valor: 3 } ] },
 ]
 
-/** CKD-EPI 2021 (SIN coeficiente de raza). */
-export function ckdEpi2021(creatinina: number, edad: number, esMujer: boolean): number {
-  const scr = Math.max(creatinina, 0.01)
-  const k = esMujer ? 0.7 : 0.9
-  const a = esMujer ? -0.241 : -0.302
-  const tfg = 142 * Math.pow(Math.min(scr / k, 1), a) * Math.pow(Math.max(scr / k, 1), -1.200) *
-    Math.pow(0.9938, edad) * (esMujer ? 1.012 : 1)
-  return Math.round(tfg * 10) / 10
-}
+// CKD-EPI 2021: fuente de verdad ÚNICA en funcion-renal.ts (decisión del Dr, L6).
+// Se re-exporta para no romper a quien lo importaba desde aquí. Devuelve precisión
+// completa (sin redondeo interno); redondear solo al mostrar.
+export { ckdEpi2021 } from './funcion-renal'
 
 /** MELD (UNOS): valores < 1 se llevan a 1; creatinina se topa en 4. */
 export function meld(bilirrubina: number, inr: number, creatinina: number): number {

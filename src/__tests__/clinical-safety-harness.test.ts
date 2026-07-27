@@ -23,13 +23,23 @@ import { fib4 } from '@/lib/expediente/cardiometabolico/masld'
 import { apfel } from '@/lib/expediente/cirugia'
 
 describe('CLINICAL SAFETY HARNESS · CKD-EPI 2021', () => {
-  // Golden: valor exacto de referencia (ecuación race-free 2021).
+  // El motor devuelve PRECISIÓN COMPLETA (decisión del Dr, L6); el redondeo es de
+  // presentación. Golden: valor de referencia (race-free 2021), redondeado al mostrar.
   it.each([
     ['H, Cr 1.0, 40a', 1.0, 40, 'Masculino' as const, 98],
     ['M, Cr 0.7, 40a', 0.7, 40, 'Femenino' as const, 112],
     ['H, Cr 4.0, 70a (falla renal)', 4.0, 70, 'Masculino' as const, 15],
-  ])('%s → %d mL/min/1.73m²', (_l, cr, edad, sexo, esperado) => {
-    expect(ckdEpi2021(cr, edad, sexo)).toBe(esperado)
+  ])('%s → %d mL/min/1.73m² (al redondear)', (_l, cr, edad, sexo, esperado) => {
+    expect(Math.round(ckdEpi2021(cr, edad, sexo))).toBe(esperado)
+  })
+  it('devuelve PRECISIÓN COMPLETA (no redondea el motor)', () => {
+    const v = ckdEpi2021(1.0, 40, 'Masculino')
+    expect(v).toBeCloseTo(97.575, 2)
+    expect(Number.isInteger(v)).toBe(false)   // el motor NO redondea
+  })
+  it('firma flexible: Sexo o booleano (esMujer) dan el mismo resultado', () => {
+    expect(ckdEpi2021(0.7, 40, 'Femenino')).toBe(ckdEpi2021(0.7, 40, true))
+    expect(ckdEpi2021(1.0, 40, 'Masculino')).toBe(ckdEpi2021(1.0, 40, false))
   })
 })
 
