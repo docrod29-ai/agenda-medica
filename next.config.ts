@@ -20,6 +20,34 @@ const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env.ANALYZE === "tr
  * scripts inline (SW kill-switch, theme anti-flicker, RSC payload).
  * En su lugar protegemos los vectores más peligrosos individualmente.
  */
+/**
+ * CSP en modo REPORT-ONLY (fase 1 de "report-only → enforce").
+ *
+ * NO bloquea nada — solo reporta a /api/csp-report lo que se saldría de la política.
+ * Sirve para descubrir, con tráfico real, TODOS los orígenes que usa la app antes de
+ * apretar la lista y pasar a enforce (cambiar la cabecera a 'Content-Security-Policy').
+ *
+ * script-src incluye 'unsafe-inline'/'unsafe-eval' a propósito en esta fase: Next
+ * inyecta scripts inline (SW kill-switch, anti-flicker de tema, payload RSC); sin eso
+ * el reporte se inundaría de ruido propio. El endurecimiento de script-src (nonces)
+ * es un paso posterior. Aquí el foco es cazar orígenes EXTERNOS inesperados.
+ */
+const CSP_REPORT_ONLY = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com https://www.recaptcha.net https://js.stripe.com https://apis.google.com https://va.vercel-scripts.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "img-src 'self' data: blob: https:",
+  "media-src 'self' blob: data:",
+  "worker-src 'self' blob:",
+  "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com wss://*.googleapis.com https://*.google.com https://*.cloudfunctions.net https://*.firebasestorage.app https://api.stripe.com https://va.vercel-scripts.com https://vitals.vercel-insights.com",
+  "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://www.google.com https://recaptcha.net https://*.firebaseapp.com https://accounts.google.com",
+  "form-action 'self'",
+  "report-uri /api/csp-report",
+].join("; ")
+
 const nextConfig: NextConfig = {
   // Anti-plagio / privacidad: no exponer el header "X-Powered-By: Next.js"
   // (no le regalamos el stack a quien escanee) ni los source maps del cliente en
@@ -112,6 +140,12 @@ const nextConfig: NextConfig = {
           // Cross-Origin policies — defensa contra Spectre/timing
           { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
           { key: "X-DNS-Prefetch-Control", value: "on" },
+
+          // CSP en modo REPORT-ONLY (fase de observación): no bloquea, solo reporta a
+          // /api/csp-report los orígenes fuera de política. Se aprieta y pasa a enforce
+          // tras ~1 semana de datos reales. NO incluye frame-ancestors (esa la fijan
+          // por-ruta los bloques de arriba, en modo enforce).
+          { key: "Content-Security-Policy-Report-Only", value: CSP_REPORT_ONLY },
         ],
       },
 
