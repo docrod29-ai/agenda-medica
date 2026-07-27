@@ -11,7 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
 import { guardarSecretoCanal } from '@/lib/whatsapp/secreto-canal'
-import { verificarMiembro } from '@/lib/auth-server'
+import { verificarMedico } from '@/lib/auth-server'
 
 const GRAPH = 'https://graph.facebook.com/v20.0'
 
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     }
     // Seguridad: solo un miembro de ESTA clínica puede conectar su WhatsApp.
     // Antes era anónimo → se podía secuestrar el canal de otra clínica.
-    const acceso = await verificarMiembro(req, clinicId)
+    const acceso = await verificarMedico(req, clinicId)
     if (!acceso.ok) return acceso.response
 
     // 1. Validar credenciales: pedir el número a Graph API

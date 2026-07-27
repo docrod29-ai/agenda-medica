@@ -25,6 +25,8 @@ Estados: **CLOSED** (con test/control) · **OPEN** (detectado, pendiente de repa
 | REG-015 | Dinero | `cobros` create no fuerza `creadoPor==uid` ni valida `monto≥0` → cobro atribuible a otro / retroactivo | **OPEN** | (pendiente) regla create como `farmacia_movimientos` |
 | REG-016 | Integridad | `clinic_review_requests` update sin `hasOnly` → al marcar `used` se pueden mutar otros campos | **OPEN** | (pendiente) `hasOnly(['used','usedAt'])` |
 | REG-017 | Integridad | Una nota puede nacer `estado:'firmada'` (salta flujo borrador→firmada) | **OPEN** | (pendiente) forzar `estado=='borrador'` en create |
+| REG-018 | Clínico | Amikacina: dosis/toma no acotada por `topeMgKgDia` → receta 50% arriba del tope seguro en 1 toma/día | CLOSED | `src/__tests__/clinical-safety-harness.test.ts` (bloque Aminoglucósidos + invariante universal porToma≤porDía) |
+| REG-019 | Auth | WhatsApp disconnect/connect y CFDI eran any-member (podía desconectar mensajería a pacientes / timbrar) | CLOSED | Endpoints ahora `verificarMedico` (paridad con plantillas-config/voz-config) |
 
 > Mantener este archivo actualizado en cada ciclo del loop de auditoría. Cada `OPEN` debe
 > pasar a `CLOSED` con su test/control antes de cerrar el lote correspondiente.

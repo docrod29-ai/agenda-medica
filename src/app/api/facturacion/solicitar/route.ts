@@ -9,7 +9,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
-import { verificarMiembro } from '@/lib/auth-server'
+import { verificarMedico } from '@/lib/auth-server'
 import { emitirCFDI, facturamaConfigurada, type DatosReceptor } from '@/lib/facturama'
 
 type Any = Record<string, unknown>
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   const { clinicId, pagoId, receptor } = body
   if (!clinicId || !pagoId || !receptor) return NextResponse.json({ ok: false, error: 'Faltan datos' }, { status: 400 })
 
-  const acceso = await verificarMiembro(req, clinicId)
+  const acceso = await verificarMedico(req, clinicId)
   if (!acceso.ok) return acceso.response
 
   if (!facturamaConfigurada()) {

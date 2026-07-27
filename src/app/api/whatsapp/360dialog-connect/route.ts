@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'node:crypto'
-import { verificarMiembro } from '@/lib/auth-server'
+import { verificarMedico } from '@/lib/auth-server'
 import { adminDb } from '@/lib/firebase-admin'
 
 const TTL_MIN = 15
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
   const { clinicId } = await req.json().catch(() => ({ clinicId: '' }))
   if (!clinicId) return NextResponse.json({ ok: false, error: 'Falta clinicId' }, { status: 400 })
 
-  const acc = await verificarMiembro(req, clinicId)
+  const acc = await verificarMedico(req, clinicId)
   if (!acc.ok) return acc.response
 
   const nonce = randomUUID()
