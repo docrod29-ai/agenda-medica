@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v674'  // L6.4 (decision del Dr): FHIR ya NO pierde datos capturados. Export anade dolor/EVA (LOINC 72514-3), conciencia ACVPU (80288-4, valor real), O2 suplementario (valueBoolean) + flujo (3151-8) + FiO2 (3150-0). Modelo conciencia extendido a ACVPU completo (A/C/V/P/U) conservando el valor real; NEWS2 lo DERIVA (A=0, resto=3); alerta/alterada quedan como legado. 1798 tests.
+const CACHE = 'nexusmed-v675'  // L6.3 (decision del Dr): NEWS2 es la UNICA fuente de verdad del deterioro. El score/color/riesgo ya salian de news2.ts (correcto). Se separan semanticamente las graficas: sus bandas son RANGO DE REFERENCIA VISUAL, no los cortes de NEWS2 (fuera de rango ahora en ambar, no rojo; + aclaracion en la ficha: NEWS2 da 0 con FC 51-90, una FC 95 sale del rango grafico pero suma +1).
 // (v601):
 
 self.addEventListener('install', (event) => {

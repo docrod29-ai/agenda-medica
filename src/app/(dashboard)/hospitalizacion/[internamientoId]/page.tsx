@@ -546,6 +546,13 @@ export default function EpisodioPage() {
             <GraficaSignos titulo="SpO₂" unidad="%" puntos={serie('spo2')} normalMin={92} normalMax={100} color="#0d9488" />
             <GraficaSignos titulo="Glucosa" unidad="mg/dL" puntos={serie('glucosa')} normalMin={70} normalMax={180} color="#0ea5e9" />
           </div>
+          {/* L6 (decisión del Dr): NEWS2 es la fuente de verdad del deterioro (arriba).
+              Las bandas de las gráficas son SOLO rango de referencia visual, NO los
+              cortes de NEWS2 (p. ej. NEWS2 da 0 pts con FC 51–90; una FC de 95 sale
+              del rango gráfico pero suma solo +1). Son conceptos distintos. */}
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: -6, marginBottom: 14, lineHeight: 1.4 }}>
+            Las bandas son <strong>rango de referencia visual</strong>, no los cortes de NEWS2. El deterioro se evalúa con el <strong>score NEWS2</strong> de arriba (Royal College), no con estas bandas.
+          </div>
           <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 12 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
               <thead>
