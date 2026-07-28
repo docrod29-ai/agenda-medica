@@ -1,7 +1,17 @@
 # E0-03 — Clinical Engine Registry completo + ADRs · DISEÑO
 
-> **Estado:** diseño. NO implementado. No se tocó código en esta unidad.
+> **Estado:** diseño **verificado contra el código** (2ª pasada, 2026-07-28). NO implementado. No se tocó código en esta unidad.
 > **Etapa:** E0 (hardening). **Riesgo declarado en backlog:** bajo. **Dependencias:** ninguna.
+
+## 0. Correcciones de la verificación (esta 2ª pasada)
+
+La 1ª pasada de este diseño tenía tres inexactitudes, medidas contra el árbol real:
+
+1. **`src/lib/seguridad` faltaba en `DIRECTORIOS_CLINICOS`** (§4.3). Es un hueco real, no cosmético: ahí vive `seguridad/dosis.ts` con `CATALOGO` (`:48`) y `revisarDosis` (`:115`) — el motor de techos de dosis del adulto, el mismo que E0-02 dejó marcado en E0-02-Q1/Q3 — y `seguridad/alergias.ts` con `tieneAlergiaGrave` (`:44`), la compuerta de alergias. **Ninguno está registrado.** Sin ese directorio, el gate habría dado verde dejando fuera el motor de seguridad farmacológica más citado del programa. Corregido en §4.3.
+2. **Ruta equivocada del bloque cardiometabólico.** No es `src/lib/cardiometabolico` (ese directorio **no existe**); es `src/lib/expediente/cardiometabolico/` — `dislipidemia.ts`, `obesidad.ts`, `biomarcadores-lipidos.ts`, `masld.ts`. Lo confirma el propio registro, que ya apunta a `src/lib/expediente/cardiometabolico/masld.ts`. Consecuencia de diseño: **el recorrido de archivos debe ser RECURSIVO** — `src/lib/expediente` tiene 3 subdirectorios (`antibiograma/`, `laboratorio/`, `cardiometabolico/`) y 70 `.ts` contando subdirectorios. Un `readdir` plano se saltaría el antibiograma entero. Explicitado en §4.4.
+3. **Conteo de tests desactualizado:** la línea base tras E0-02 es **1947**, no ~1885 (`estado.json`). Corregido en §5.
+
+Lo demás del diseño se confirma tal cual: 15 motores registrados, único consumidor = su propio test, `>= 15` como número mágico, 4 ADRs, y los dos punteros rotos de §2.1.
 
 ## 1. Qué pide la unidad
 
@@ -36,7 +46,8 @@ Motores deterministas **en producción y NO registrados** (evidencia por archivo
   `uci/gasometria.ts:22` (`GASOMETRIA_ENGINE_VERSION`, Winters/anion gap), `uci/ventilacion.ts:23` (Kirby, PBW, VT/kg, driving pressure, compliance), `uci/neuro.ts:16` (PPC = PAM − PIC, RASS), `uci/infusiones.ts:19` (**dosis ↔ mL/h**, safety-critical), `uci/tendencias.ts:13`, `uci/seguridad.ts:23`, `uci/extraccion.ts:12` (firewall de plausibilidad/ambigüedad).
 - **Hospital** — `hospital/escalas.ts:21` (`calcBraden`) y `:45` (`calcMorse`); `hospital/lab-criticos.ts` (umbrales de valor crítico); `hospital/cds.ts`.
 - **Consulta** — `expediente/calculadoras.ts:214` `CALCULADORAS[]`: **11 escalas con `calcular()` y `referencia` propias** (`cha2ds2vasc`, `hasbled`, `wells-tep`, `wells-tvp`, `curb65`, `qsofa`, `centor`, `alvarado`, `heart`, `glasgow`, `child-pugh`) — de ese archivo solo `meld` (`:205`) está registrado.
-- **Cardiometabólico** — `expediente/prevent.ts:100` (PREVENT-ASCVD, coeficientes en `prevent-coeficientes.ts`), `cardiometabolico/dislipidemia.ts`, `cardiometabolico/obesidad.ts`, `cardiometabolico/biomarcadores-lipidos.ts`.
+- **Cardiometabólico** — `expediente/prevent.ts:100` (PREVENT-ASCVD, coeficientes en `prevent-coeficientes.ts`), `expediente/cardiometabolico/dislipidemia.ts`, `.../obesidad.ts`, `.../biomarcadores-lipidos.ts`. (Sólo `.../masld.ts` está registrado hoy.)
+- **Seguridad farmacológica del adulto** — `seguridad/dosis.ts:48` (`CATALOGO` de techos `maxTomaMg`/`maxDiaMg`) y `:115` (`revisarDosis`, emite alertas de severidad crítica); `seguridad/alergias.ts:44` (`tieneAlergiaGrave`). **Es el hueco más grave del inventario:** E0-02 ya documentó que este motor contradice a `pediatria.ts` (E0-02-Q1) y que 20 de 25 fármacos no tienen techo adulto (E0-02-Q3), y aun así el motor no figura en ningún registro.
 - **Pediatría** — `expediente/oms-crecimiento.ts` (tablas LMS de la OMS → puntuación z; archivo generado, auditable).
 - **Gineco-obstetricia** — `expediente/ginecologia.ts` (FUM→FPP/edad gestacional, Bishop, profilaxis con aspirina, conducta ante citología).
 - **Seguridad farmacológica** — `expediente/prescripcion-segura.ts`, `expediente/via-parenteral.ts`, `expediente/farmacovigilancia.ts`.
@@ -51,6 +62,20 @@ Ninguno de estos hace falta *escribirlo*: hace falta **declararlo**. Todos traen
 > Las sub-fórmulas que ese punto de entrada calcula se listan en el campo `calculos[]`, no como motores separados.
 
 Ejemplo: `analizarVentilacion` es **un** motor (`ventilacion-protectora`) cuyos `calculos` son `['PBW', 'VT/kg PBW', 'PaFi (Kirby)', 'driving pressure', 'compliance estática']`. Sin esta regla el inventario se dispara a >60 entradas y el registro deja de ser legible. Con ella, el inventario final estimado es **~30–35 motores** (15 actuales + ~18 nuevos).
+
+### 3.2 Directorios DELIBERADAMENTE fuera del alcance del gate
+
+Existen y contienen lógica que roza lo clínico, pero **no** entran en `DIRECTORIOS_CLINICOS` en esta unidad:
+
+| Directorio | Contenido real | Por qué queda fuera |
+|---|---|---|
+| `src/lib/evidencia` | `pubmed.ts`, `openfda.ts`, `traducir-medico.ts` | recuperación de literatura, no cálculo determinista; es materia de la etapa **E2 (Nexus Evidence)** |
+| `src/lib/voz` | `comandos.ts`, `comandos-uci.ts` | interpretación de habla → intención; no emite número clínico |
+| `src/lib/ia` | `evaluacion.ts` | evalúa al LLM; es materia de **E7 (NexusBench)** |
+| `src/lib/fhir`, `src/lib/hl7` | `recursos.ts`, `v2.ts` | serialización de interoperabilidad |
+| `src/lib/compliance` | `country-profiles.ts`, `policy.ts` | regulatorio, no clínico |
+
+Esto es una **decisión de alcance explícita, no un olvido**: ampliarlo después es añadir una cadena al arreglo. Se anota como pregunta 4 en §6 para que el Dr. la confirme o la corrija.
 
 ## 4. Diseño del cambio mínimo
 
@@ -124,12 +149,14 @@ Los cinco campos nuevos son **obligatorios**: `tsc --noEmit` obliga a completarl
 ```ts
 /** Directorios donde vive lógica clínica. Todo .ts aquí debe estar clasificado. */
 export const DIRECTORIOS_CLINICOS = [
-  'src/lib/uci',
-  'src/lib/hospital',
-  'src/lib/expediente',
-  'src/lib/inmuno',
-  'src/lib/clinical',
+  'src/lib/uci',        // 19 archivos
+  'src/lib/hospital',   // 10
+  'src/lib/expediente', // 70 RECURSIVO (incluye antibiograma/, laboratorio/, cardiometabolico/)
+  'src/lib/inmuno',     //  5
+  'src/lib/clinical',   //  1 (el propio registry)
+  'src/lib/seguridad',  //  3 — dosis.ts, alergias.ts, ofuscar-local.ts   ← AÑADIDO en la 2ª pasada
 ] as const
+// Total a clasificar: ~108 archivos.
 
 export interface ModuloNoMotor {
   file: string   // ruta relativa a la raíz, exacta
@@ -154,7 +181,7 @@ Decisión: **lista central en vez de una etiqueta `@motor-clinico` dentro de cad
 
 Seis aserciones. Las tres primeras son el criterio de aceptación; las tres últimas cierran las salidas de escape.
 
-1. **Cobertura (el gate).** Recorre `DIRECTORIOS_CLINICOS`, junta todos los `.ts`/`.tsx` (excluye `*.test.*` y `*.d.ts`). Cada archivo debe estar **o** referenciado por al menos una entrada del registro (`file`), **o** en `MODULOS_NO_MOTOR` con `motivo` no vacío. Si no: falla con
+1. **Cobertura (el gate).** Recorre `DIRECTORIOS_CLINICOS` **de forma RECURSIVA** (obligatorio: `expediente/` esconde `antibiograma/`, `laboratorio/` y `cardiometabolico/` en subdirectorios; un `readdir` plano dejaría el motor de antibiograma fuera del gate y daría un verde falso), junta todos los `.ts`/`.tsx` (excluye `*.test.*` y `*.d.ts`). Cada archivo debe estar **o** referenciado por al menos una entrada del registro (`file`), **o** en `MODULOS_NO_MOTOR` con `motivo` no vacío. Si no: falla con
    `motor sin registrar: src/lib/uci/nuevo.ts — regístralo en registry.ts o justifícalo en MODULOS_NO_MOTOR`.
    ⇒ **un motor nuevo sin registro rompe el CI.** ✅ criterio de aceptación.
 2. **Antifraude de la lista de exclusión.** Un archivo en `MODULOS_NO_MOTOR` **no puede** contener `export const *_ENGINE_VERSION` / `*_VERSION` de motor, ni un export cuyo nombre empiece por `calcular|calc|score|puntaje|dosis|indice|clasificar|estratificar`. Si lo tiene, es un motor disfrazado ⇒ falla. Esto impide "resolver" el gate metiendo el motor nuevo en la lista de excluidos.
@@ -209,7 +236,7 @@ Las ~18 entradas nuevas entran como **`pendiente_validacion`**, no como `validad
 
 **Prueba negativa obligatoria en la implementación** (si no, el gate no está demostrado): crear temporalmente `src/lib/uci/__motor-falso.ts`, correr `vitest run clinical-registry-cobertura`, verificar que **falla** con el mensaje esperado, y borrarlo. Se deja constancia en `RESULTADO.json`.
 
-Gates de la unidad: `npx tsc --noEmit` limpio, `npx vitest run` en verde (los ~1885 tests, no solo los nuevos), `npm run build` OK.
+Gates de la unidad: `npx tsc --noEmit` limpio, `npx vitest run` en verde (la línea base tras E0-02 es **1947** tests, no solo los nuevos), `npm run build` OK. CI (`.github/workflows/ci.yml:26`) ya corre `npx vitest run` en cada PR y en push a `main`, así que **no hay que tocar CI**: un test nuevo bajo `src/__tests__/` es automáticamente el gate que pide la aceptación.
 
 ## 6. Decisión clínica que NO está en el repo
 
@@ -218,6 +245,9 @@ Esta unidad está diseñada para **completarse sin respuesta del médico**: lo q
 1. **Rango válido de entrada/salida** de los motores cuyo código no lo declara. Para algunos ya está en el código y se cita sin más (p. ej. `creatininaPlausibleMgDl` en `funcion-renal.ts`, `RANGOS` en `ventilacion.ts:29`, los pisos/topes de MELD 6–40). Para el resto (p. ej. rangos plausibles de bilirrubina/INR de entrada, de peso en `infusiones.ts`, de PIC/PAM en `neuro.ts`) hace falta que el Dr. fije el umbral de "esto no puede ser un dato real". **No lo pongo yo.**
 2. **Qué motores considera `validado`** y cuáles quedan `pendiente_validacion`. Yo los meto todos como `pendiente_validacion` por omisión.
 3. **Si algún módulo que voy a clasificar como motor NO debe serlo** (o al revés). La clasificación borde es: `uci/tendencias.ts`, `uci/correlacion.ts`, `uci/extraccion.ts`, `uci/seguridad.ts`, `expediente/farmacovigilancia.ts`, `hospital/cds.ts`. Mi criterio propuesto: si produce un número o una bandera que el médico puede leer como dato clínico, es motor. Confirmarlo es del Dr.
+4. **Alcance de `DIRECTORIOS_CLINICOS` (§3.2).** Propongo cubrir `uci`, `hospital`, `expediente`, `inmuno`, `clinical` y `seguridad`, y dejar fuera `evidencia`, `voz`, `ia`, `fhir`, `hl7` y `compliance`. Si el Dr. considera que alguno de esos últimos emite un dato que él leería como clínico, entra al gate y se registra.
+
+**Ninguna de las cuatro bloquea la unidad:** las cuatro se codifican como estado declarado (`pendiente_validacion_clinica` con su pregunta escrita) y el CI acepta ese estado. Ninguna se resuelve inventando un valor.
 
 ## 7. Riesgo de regresión sobre producción
 

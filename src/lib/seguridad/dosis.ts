@@ -20,16 +20,29 @@ export interface AlertaDosis {
   severidad: Severidad
   codigo: 'sobre_maximo_dosis' | 'sobre_maximo_diario' | 'posible_error_decimal'
     | 'pediatrico_sobre_mgkg' | 'sin_referencia' | 'dosis_extrema' | 'via_edad_no_aprobada'
+    /** Zona AMARILLA: por encima del máximo habitual pero dentro del absoluto. */
+    | 'dosis_alta_verificar'
   mensaje: string
 }
 
 export interface FarmacoRef {
   nombre: string
   alias: string[]
-  /** Dosis máxima por TOMA en adulto (mg). */
+  /**
+   * Máximo HABITUAL por toma (mg). Rebasarlo NO es toxicidad: es salir del
+   * esquema de uso común. Si además hay `hardMaxTomaMg`, la zona entre ambos es
+   * AMARILLA (dosis alta: verificar indicación), no crítica.
+   */
   maxTomaMg?: number
-  /** Dosis máxima DIARIA en adulto (mg). */
+  /** Máximo HABITUAL diario (mg). Misma lógica que `maxTomaMg`. */
   maxDiaMg?: number
+  /**
+   * Máximo ABSOLUTO por toma (mg) — hard stop. Por encima de esto la alerta es
+   * crítica aunque exista un régimen de dosis alta.
+   */
+  hardMaxTomaMg?: number
+  /** Máximo ABSOLUTO diario (mg) — hard stop. */
+  hardMaxDiaMg?: number
   /** Máx mg/kg por toma (pediátrico). */
   pedMaxMgKgToma?: number
   /** Máx mg/kg/día (pediátrico). */
@@ -51,7 +64,32 @@ export const CATALOGO: FarmacoRef[] = [
   { nombre: 'Naproxeno', alias: ['flanax', 'aleve'], maxTomaMg: 750, maxDiaMg: 1500 },
   { nombre: 'Ketorolaco', alias: ['dolac', 'toradol'], maxTomaMg: 30, maxDiaMg: 120, maxDiaOralMg: 40, edadMinimaOralAnios: 17, nota: 'Máx 5 días (sumando IV/IM/oral); oral máx 40 mg/día; VO no aprobado en <17 años.' },
   { nombre: 'Metamizol', alias: ['dipirona', 'neomelubrina'], maxTomaMg: 1000, maxDiaMg: 4000 },
-  { nombre: 'Amoxicilina', alias: ['amoxil'], maxTomaMg: 1000, maxDiaMg: 3000, pedMaxMgKgDia: 90 },
+  /**
+   * AMOXICILINA — tres niveles, decisión clínica del médico dueño (REG-041).
+   *
+   * 1000 mg/toma y 3000 mg/día son el máximo HABITUAL, no una frontera de
+   * toxicidad: el adulto recibe 1 g c/8 h en infecciones seleccionadas, y en
+   * pediatría los esquemas de dosis alta (80–90 mg/kg/día) producen dosis por
+   * toma mayores de forma legítima. Los ABSOLUTOS son 2000 mg/toma y 4000
+   * mg/día. Entre ambos la alerta es "dosis alta: verificar indicación y
+   * formulación", NO "sobredosis".
+   *
+   * Caso que esto arregla: niño de 35 kg a 90 mg/kg/día ÷ 2 = 1575 mg c/12 h
+   * (3150 mg/día). Antes salía marcado como CRÍTICO por pasar de 1000.
+   *
+   * Amoxicilina-clavulanato entra por alias y hereda estos límites del
+   * componente amoxicilina. Vigilar el CLAVULANATO por separado (proporción
+   * 14:1, formulación ES 600/42.9) es una unidad aparte: requiere la tabla de
+   * formulaciones y NO se deduce de aquí.
+   */
+  {
+    nombre: 'Amoxicilina',
+    alias: ['amoxil', 'amoxicilina-clavulanato', 'amoxicilina/clavulanato', 'amoxiclav', 'clavulin', 'augmentin'],
+    maxTomaMg: 1000, hardMaxTomaMg: 2000,
+    maxDiaMg: 3000, hardMaxDiaMg: 4000,
+    pedMaxMgKgDia: 90,
+    nota: 'Máx habitual 1 g/toma y 3 g/día; los esquemas de dosis alta llegan a 2 g/toma y 4 g/día. En amoxicilina-clavulanato la dosis se cuenta por el componente amoxicilina y la formulación debe ser 14:1.',
+  },
   { nombre: 'Tramadol', alias: [], maxTomaMg: 100, maxDiaMg: 400 },
   { nombre: 'Metformina', alias: ['glucophage'], maxTomaMg: 1000, maxDiaMg: 2550 },
   { nombre: 'Omeprazol', alias: ['losec'], maxTomaMg: 40, maxDiaMg: 80 },
@@ -129,14 +167,25 @@ export function revisarDosis(e: EntradaDosis): AlertaDosis[] {
     return alertas
   }
 
-  // Techo por toma (adulto)
+  /**
+   * Techo por toma (adulto) — TRES NIVELES cuando el fármaco declara un máximo
+   * ABSOLUTO además del habitual (decisión clínica del Dr., REG-041):
+   *   verde    ≤ maxTomaMg            → sin alerta
+   *   amarillo (maxTomaMg, hardMax]   → "dosis alta: verificar indicación"
+   *   rojo     > hardMaxTomaMg        → crítica (hard stop)
+   * Sin `hardMaxTomaMg` se conserva el comportamiento previo (crítica al pasar
+   * del habitual): fail-closed para los fármacos aún no revisados.
+   */
   if (f.maxTomaMg && dosis > f.maxTomaMg) {
     // ¿Es exactamente ~10x el máximo? → probable error de decimal.
     const factor = dosis / f.maxTomaMg
-    if (factor >= 9 && factor <= 11) {
+    const dentroDelPerfilAlto = f.hardMaxTomaMg != null && dosis <= f.hardMaxTomaMg
+    if (factor >= 9 && factor <= 11 && !dentroDelPerfilAlto) {
       alertas.push({ severidad: 'critica', codigo: 'posible_error_decimal', mensaje: `${f.nombre}: ${dosis} mg es ~10× el máximo por toma (${f.maxTomaMg} mg). ¿Error de decimal (p. ej. 500 en vez de 50)?` })
+    } else if (dentroDelPerfilAlto) {
+      alertas.push({ severidad: 'alta', codigo: 'dosis_alta_verificar', mensaje: `${f.nombre}: ${dosis} mg por toma supera el máximo HABITUAL (${f.maxTomaMg} mg) pero está dentro del perfil de dosis alta (máx ${f.hardMaxTomaMg} mg). Verifica la indicación y la formulación.` })
     } else {
-      alertas.push({ severidad: 'critica', codigo: 'sobre_maximo_dosis', mensaje: `${f.nombre}: ${dosis} mg por toma supera el máximo de referencia (${f.maxTomaMg} mg).` })
+      alertas.push({ severidad: 'critica', codigo: 'sobre_maximo_dosis', mensaje: `${f.nombre}: ${dosis} mg por toma supera el máximo${f.hardMaxTomaMg != null ? ' ABSOLUTO' : ' de referencia'} (${f.hardMaxTomaMg ?? f.maxTomaMg} mg).` })
     }
   }
 
@@ -149,8 +198,18 @@ export function revisarDosis(e: EntradaDosis): AlertaDosis[] {
   // Techo diario (adulto). Si la vía es oral y hay un tope oral específico, ese manda.
   const tomas = Math.max(1, Math.floor(e.tomasDia ?? 1))
   const maxDia = (esOral && f.maxDiaOralMg != null) ? f.maxDiaOralMg : f.maxDiaMg
-  if (maxDia && dosis * tomas > maxDia) {
-    alertas.push({ severidad: 'alta', codigo: 'sobre_maximo_diario', mensaje: `${f.nombre}: ${dosis} mg × ${tomas}/día = ${dosis * tomas} mg supera el máximo diario${esOral && f.maxDiaOralMg != null ? ' POR VÍA ORAL' : ' de referencia'} (${maxDia} mg).` })
+  const totalDia = dosis * tomas
+  if (maxDia && totalDia > maxDia) {
+    // Mismos tres niveles que el techo por toma. El tope ORAL específico (p. ej.
+    // ketorolaco) no tiene perfil de dosis alta: ahí manda el comportamiento previo.
+    const usaTopeOral = esOral && f.maxDiaOralMg != null
+    const dentroDelPerfilAlto = !usaTopeOral && f.hardMaxDiaMg != null && totalDia <= f.hardMaxDiaMg
+    if (dentroDelPerfilAlto) {
+      alertas.push({ severidad: 'alta', codigo: 'dosis_alta_verificar', mensaje: `${f.nombre}: ${dosis} mg × ${tomas}/día = ${totalDia} mg supera el máximo diario HABITUAL (${maxDia} mg) pero está dentro del perfil de dosis alta (máx ${f.hardMaxDiaMg} mg). Verifica la indicación.` })
+    } else {
+      const techo = (!usaTopeOral && f.hardMaxDiaMg != null) ? f.hardMaxDiaMg : maxDia
+      alertas.push({ severidad: !usaTopeOral && f.hardMaxDiaMg != null ? 'critica' : 'alta', codigo: 'sobre_maximo_diario', mensaje: `${f.nombre}: ${dosis} mg × ${tomas}/día = ${totalDia} mg supera el máximo diario${usaTopeOral ? ' POR VÍA ORAL' : f.hardMaxDiaMg != null ? ' ABSOLUTO' : ' de referencia'} (${techo} mg).` })
+    }
   }
 
   // Restricción de edad por vía oral (ketorolaco: no aprobado VO en <17 años).

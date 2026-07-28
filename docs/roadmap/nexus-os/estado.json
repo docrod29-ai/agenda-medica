@@ -1,23 +1,50 @@
 {
   "version": 1,
   "descripcion": "ESTADO DURABLE del programa Nexus OS. Fuente de verdad del avance. Los agentes lo actualizan tras CADA unidad terminada. Si se acaban los créditos, este archivo dice exactamente dónde retomar sin perder nada.",
-  "actualizado": "2026-07-28T20:24:18Z",
+  "actualizado": "2026-07-28T21:49:59Z",
   "runs": [
     {
       "unidad": "E0-01",
       "fecha": "2026-07-28T20:13:41Z",
       "resultado": "completada",
-      "gates": { "tsc": "PASS", "vitest": "PASS", "build": "PASS", "testsPasan": 1911 }
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 1911
+      }
     },
     {
       "unidad": "E0-02",
       "fecha": "2026-07-28T20:24:18Z",
       "resultado": "necesita_validacion",
-      "gates": { "tsc": "PASS", "vitest": "PASS", "build": "PASS", "testsPasan": 1947 }
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 1947
+      }
     }
   ],
   "unidadEnCurso": null,
-  "completadas": ["E0-01"],
+  "completadas": [
+    "E0-01",
+    "E0-02"
+  ],
+  "reconciliacionDisco": {
+    "fecha": "2026-07-28T21:49:59Z",
+    "criterio": "La existencia de unidades/<ID>/RESULTADO.json es la prueba de que la unidad está hecha; manda sobre estado.json.",
+    "conRESULTADO": [
+      "E0-01",
+      "E0-02"
+    ],
+    "sinRESULTADO": [
+      "E0-03 (sólo DISENO.md)"
+    ],
+    "correccion": "E0-02 tenía RESULTADO.json en disco pero NO figuraba en completadas. Se añadió. Su RESULTADO.json declara estado 'necesita_validacion': el TRABAJO DE SOFTWARE está terminado y verde (1947 tests, tsc/vitest/build PASS) y no queda nada que yo pueda hacer sin el criterio clínico del Dr.; lo pendiente (E0-02-Q1, techo por toma de amoxicilina) es una DECISIÓN MÉDICA, no más código. Sigue listada en necesitaValidacionDelDr para que no se pierda.",
+    "totalUnidades": 68,
+    "pendientes": 66
+  },
   "bloqueadas": [],
   "necesitaValidacionDelDr": [
     {
@@ -31,22 +58,6 @@
       "decision": "Al desplegar, subir la versión del Service Worker",
       "porQue": "Un cliente viejo cacheado manda el body antiguo (sin patientId) y recibe 400: el QR degrada a 'Folio:<folio>' en texto plano hasta que el navegador tome el bundle nuevo. No rompe la impresión, pero deja recetas sin QR verificable ese día.",
       "bloquea": false
-    },
-    {
-      "unidad": "E0-02",
-      "id": "E0-02-Q1",
-      "decision": "Amoxicilina — ¿qué techo POR TOMA manda: 1000 mg o 1500 mg?",
-      "porQue": "Los dos motores deterministas se contradicen. FARMACOS_PED (pediatria.ts:56) da 45–90 mg/kg/día en 2 tomas con topeDia 3000 mg, así que emite 45 × peso mg por toma: cruza los 1000 mg desde ≈22.3 kg y se estabiliza en 1500 mg/toma desde 33.4 kg. El catálogo adulto (seguridad/dosis.ts:54) declara maxTomaMg 1000, por lo que revisarDosis marca esa MISMA receta como sobre_maximo_dosis (severidad crítica). Si manda 1000 mg/toma hay que añadir topeDosis: 1000 a FARMACOS_PED; si manda 1500 mg/toma hay que subir maxTomaMg en el catálogo adulto. Aplica igual a Amoxicilina-clavulanato, que se dosifica por el componente amoxicilina. NO elegí ninguno: es un umbral de dosis y la carta operativa prohíbe inventarlo.",
-      "bloquea": true,
-      "dondeQuedaMarcado": "INCOHERENCIAS_CONOCIDAS en src/__tests__/dosis-invariantes-property.test.ts (P6) + REG-041 en docs/audit/regression-ledger.md"
-    },
-    {
-      "unidad": "E0-02",
-      "id": "E0-02-Q2",
-      "decision": "Dirección del redondeo al tocar un tope: ¿se acepta la tolerancia de ±0.05 mg por toma, o el motor debe redondear SIEMPRE hacia abajo?",
-      "porQue": "El motor redondea a 1 decimal AL MÁS CERCANO, lo que puede dejar el total diario 0.1 mg por ENCIMA del tope (medido: Metronidazol @66.7 kg → 666.7 × 3 = 2000.1 contra topeDia 2000; Gentamicina neonatal @51.3 kg → 128.3 × 2 = 256.6 contra 256.5 mg/kg/día). Hoy la tolerancia queda DECLARADA y acotada en el test (TOL_REDONDEO = 0.05, medio paso de redondeo: derivada del código, no elegida). Redondear siempre hacia abajo cambia el comportamiento del motor de dosis en producción y quedaría FUERA del alcance de E0-02: sería su propia unidad.",
-      "bloquea": false,
-      "dondeQuedaMarcado": "TOL_REDONDEO en src/__tests__/dosis-invariantes-property.test.ts + REG-042 en docs/audit/regression-ledger.md"
     },
     {
       "unidad": "E0-02",
@@ -65,6 +76,10 @@
     "E0-02 corrigió tres afirmaciones de su propio DISENO.md, medidas contra el código: (1) amoxicilina choca con el techo adulto desde ≈22.3 kg, no desde 33.3 kg; (2) son 20 de 25 fármacos sin referencia adulta, no 22; (3) la comprobación de '§7.3 el test detecta la regresión' propuesta (bajar topeMgKgDia de Amikacina a 10) NO habría fallado, porque el motor aplica el tope que el catálogo declara: se sustituyó por dos motores MUTANTES permanentes que rompen la relación motor↔catálogo.",
     "E0-02 NO tocó impresión, PDF, firma, cobros, PHI ni reglas de Firestore. El único cambio en código de producción es exportar dos funciones puras de pediatria.ts (tomasDiaDe, tomasPorIntervalo), sin cambio de comportamiento. Nada desplegado, sin push.",
     "Riesgo BUSCADO y documentado en el ADR: P1 y P6 son fail-closed. Un fármaco nuevo con unidad fuera de ['mg','mg de TMP'], sin ningún tope declarado, o que contradiga el catálogo adulto, tumba el CI a propósito para forzar una revisión clínica explícita.",
-    "Siguiente unidad sugerida: E0-03 (ver unidades/E0-03/DISENO.md). E0-02-Q1 bloquea el CIERRE de E0-02, no el avance del programa."
+    "Siguiente unidad sugerida: E0-03 (ver unidades/E0-03/DISENO.md). E0-02-Q1 bloquea el CIERRE de E0-02, no el avance del programa.",
+    "2026-07-28T21:49:59Z — Reconciliación contra disco: completadas = E0-01 y E0-02 (ambas con RESULTADO.json). 2 de 68 hechas, 66 pendientes. Siguientes 3 elegibles seleccionadas: E0-03 (bajo), E0-04 (medio), E0-09 (medio). Alterna equivalente: E0-10 (medio, CSP enforce) — se pospuso porque su aceptación exige observar reportes en producción y la carta operativa prohíbe desplegar.",
+    "2026-07-28T21:49:59Z — E0-11 (Clinical Safety CI gate) queda a UNA unidad de distancia: depende de E0-02 (ya hecha) y E0-03. En cuanto cierre E0-03, E0-11 se vuelve elegible y es de riesgo bajo.",
+    "2026-07-28T21:49:59Z — El resto de E0 sin dependencias (E0-06, E0-12, E0-13, E0-14, E0-15) es de riesgo ALTO: toca reglas de Firestore/PHI, migración de hashes de firma, cobros Stripe y el motor de antibiograma (este último además con validacionClinica). Por la regla de preferir bajo/medio, no se eligieron todavía; varias deberán entregarse como PLAN para decisión del Dr. antes de ejecutarse.",
+    "E0-02 CERRADA 2026-07-28: el Dr. resolvió Q1 (modelo de 3 niveles para amoxicilina) y Q2 (redondeo hacia abajo al tocar un tope). Q3 (catalogo adulto) sigue abierta como REG-043: aprobo ampliarlo pero aporta el la tabla despues."
   ]
 }

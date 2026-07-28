@@ -221,12 +221,76 @@ export function calcularDosisPediatrica(f: FarmacoPed, pesoKg: number, edadMeses
     if (minDia > maxSegunKg) { minDia = maxSegunKg; topeAplicado = true }
   }
 
-  const r = (x: number) => Math.round(x * 10) / 10
+  /**
+   * REDONDEO QUE NO PUEDE VIOLAR UN TOPE (decisión clínica del Dr., REG-042).
+   *
+   * Antes se redondeaba AL MÁS CERCANO a décimas, y eso dejaba la salida por
+   * ENCIMA de un tope que el propio catálogo declara:
+   *   · Metronidazol @66.7 kg → 666.7 × 3 = 2000.1 contra topeDia 2000
+   *   · Gentamicina neonatal @51.3 kg → 128.3 × 2 = 256.6 contra 256.5
+   * Clínicamente 0.1 mg es irrelevante; para un motor de seguridad es una
+   * invariante rota, y mañana el mismo comportamiento produce una desviación
+   * mayor al cambiar precisión, presentación o número de administraciones.
+   *
+   * Flujo: CLAMP (ya hecho arriba) → REDONDEAR → RE-VERIFICAR → PISO SI EXCEDE.
+   * No se redondea todo hacia abajo: solo cuando el redondeo cruzaría el techo.
+   * El epsilon existe para la aritmética de punto flotante, NO para tolerar una
+   * violación de la regla farmacológica.
+   */
+  const DEC = 10                                    // trabajo a décimas de mg
+  const EPS = 1e-9
+  const aDecimas = (x: number) => Math.round(x * DEC) / DEC
+  const pisoDecimas = (x: number) => Math.floor(x * DEC) / DEC
+  const menor = (vs: (number | undefined)[]): number | undefined => {
+    const ns = vs.filter((v): v is number => typeof v === 'number' && Number.isFinite(v))
+    return ns.length ? Math.min(...ns) : undefined
+  }
+  /**
+   * Techos EFECTIVOS. Incluyen los topes ABSOLUTOS del catálogo **y** los que se
+   * derivan del propio rango mg/kg: el arnés cazó que sin estos, redondear al
+   * más cercano cruzaba el techo por kilo aunque el tope absoluto quedara lejos
+   * (Paracetamol @1.85 kg → 27.75 mg redondeaba a 27.8 = 15.03 mg/kg contra un
+   * máximo de 15; Amoxicilina @1.85 kg → 90.05 mg/kg/día contra 90).
+   */
+  const techoToma = menor([
+    f.topeDosis,
+    f.mgKgDosis ? f.mgKgDosis[1] * pesoKg : undefined,
+    f.mgKgDia && tomasDia > 0 ? (f.mgKgDia[1] * pesoKg) / (f.tomas ?? 1) : undefined,
+    f.topeDia != null && tomasDia > 0 ? f.topeDia / tomasDia : undefined,
+    f.topeMgKgDia != null && tomasDia > 0 ? (f.topeMgKgDia * pesoKg) / tomasDia : undefined,
+  ])
+  /**
+   * Un PISO declarado gana sobre un techo DERIVADO del rango mg/kg. Salbutamol
+   * nebulizado a 10 kg da 1.5 mg por peso, pero su `dosisMinima` es 2.5 mg
+   * porque por debajo no nebuliza: aplicar el techo derivado lo devolvía a 1.5 e
+   * infradosificaba. Los topes ABSOLUTOS del catálogo no se tocan.
+   */
+  const techoTomaFinal = (f.dosisMinima != null && techoToma != null)
+    ? Math.max(techoToma, f.dosisMinima)
+    : techoToma
+
+  const r = (x: number, techo?: number) => {
+    const n = aDecimas(x)
+    if (techo == null || n <= techo + EPS) return n
+    return pisoDecimas(techo)   // el redondeo cruzó el techo → baja al escalón inferior
+  }
+
+  const tomaMin = r(minToma, techoTomaFinal)
+  const tomaMax = r(maxToma, techoTomaFinal)
+  /**
+   * El total del día se DERIVA de la dosis por toma ya redondeada, no se redondea
+   * aparte. Si se calculan por separado, la receta puede decir "666.6 mg × 3" y
+   * abajo "2000 mg/día", que no es lo que resulta de administrarla. Como el techo
+   * por toma ya contempla los topes diarios, este producto nunca los rebasa.
+   */
+  const diaMin = tomasDia > 0 ? aDecimas(tomaMin * tomasDia) : aDecimas(minDia)
+  const diaMax = tomasDia > 0 ? aDecimas(tomaMax * tomasDia) : aDecimas(maxDia)
+
   return {
     farmaco: f.nombre, intervalo: f.intervalo, unidad: f.unidad, topeAplicado, nota: f.nota,
     esRescate: f.esRescate,
-    porToma: { min: r(minToma), max: r(maxToma) },
-    porDia: { min: r(minDia), max: r(maxDia) },
+    porToma: { min: tomaMin, max: tomaMax },
+    porDia: { min: diaMin, max: diaMax },
   }
 }
 

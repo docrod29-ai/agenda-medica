@@ -41,12 +41,17 @@ const PASO_REDONDEO = 0.1
  * quedar hasta `TOL × tomas` por ENCIMA del tope (máximo medido: Metronidazol @66.7 kg
  * → 666.7 × 3 = 2000.1 contra topeDia 2000).
  *
- * NEEDS_CLINICAL_REVIEW (pregunta 2 de E0-02): que esta tolerancia se ACEPTE, o que el
- * motor deba redondear siempre HACIA ABAJO al tocar un tope, es decisión del médico
- * dueño. Si decide redondeo hacia abajo, esta constante pasa a 0 y el test se aprieta
- * solo — el cambio del motor quedaría fuera del alcance de E0-02.
+ * RESUELTO (REG-042). El médico dueño decidió: **redondear hacia abajo cuando el
+ * redondeo excedería un tope**, y volver a validar dosis/toma y dosis/día. Su
+ * argumento: 0.1 mg es clínicamente irrelevante, pero para un motor de seguridad la
+ * salida viola una invariante que el propio catálogo declara, y el mismo
+ * comportamiento puede producir una desviación mayor al cambiar precisión,
+ * presentación o número de administraciones.
+ *
+ * El motor implementa CLAMP → REDONDEAR → RE-VERIFICAR → PISO SI EXCEDE, así que la
+ * tolerancia es CERO: ningún tope admite ya ni una décima de más.
  */
-const TOL_REDONDEO = PASO_REDONDEO / 2
+const TOL_REDONDEO = 0
 
 /** Ruido de coma flotante (1e-9 relativo). Muy por debajo de cualquier diferencia clínica. */
 const EPS_REL = 1e-9
@@ -68,18 +73,20 @@ const UNIDADES_PERMITIDAS: readonly string[] = ['mg', 'mg de TMP']
  * adulto (`CATALOGO` de `seguridad/dosis.ts`): el motor pediátrico emite una dosis que el
  * verificador adulto marca como crítica.
  *
- * NEEDS_CLINICAL_REVIEW (pregunta 1 de E0-02) — Amoxicilina (y Amoxicilina-clavulanato,
- * que se dosifica por el componente amoxicilina):
- *   · `FARMACOS_PED`: 45–90 mg/kg/día en 2 tomas, topeDia 3000 ⇒ porToma.max = 45 × peso,
- *     que cruza 1000 mg desde ≈22.3 kg y se estabiliza en 1500 mg/toma desde 33.4 kg.
- *   · `CATALOGO` adulto: `maxTomaMg: 1000` ⇒ `revisarDosis` marca `sobre_maximo_dosis`
- *     (severidad crítica) sobre la receta que el propio motor pediátrico acaba de emitir.
- * NO se elige un techo aquí. La lista mantiene el hallazgo VERSIONADO y VISIBLE: el CI no
- * se cae hoy por algo ya conocido, pero una contradicción NUEVA sí lo tumba (P6), y si la
- * contradicción desaparece (porque el médico resolvió la pregunta) el test exige quitar la
- * entrada de esta lista (P6-bis) para que no se pudra.
+ * RESUELTO (REG-041) — la lista quedó VACÍA a propósito.
+ *
+ * El médico dueño no eligió "1000" ni "1500": cambió el modelo. 1000 mg/toma y 3000
+ * mg/día pasan a ser el máximo HABITUAL, y se declaran los ABSOLUTOS 2000 mg/toma y
+ * 4000 mg/día. Entre ambos la alerta es "dosis alta: verificar indicación y
+ * formulación", no "sobredosis". Así, un niño de 35 kg con 1575 mg c/12 h
+ * (3150 mg/día) deja de salir marcado como crítico sin que se afloje ningún techo
+ * real: por encima de 2 g/toma o 4 g/día sigue siendo hard stop.
+ *
+ * La lista sigue existiendo porque su valor es el fail-closed: una contradicción
+ * NUEVA entre los dos catálogos tumba el CI (P6), y P6-bis exige quitar de aquí lo
+ * que ya se resolvió para que la excepción no se pudra.
  */
-const INCOHERENCIAS_CONOCIDAS: readonly string[] = ['Amoxicilina', 'Amoxicilina-clavulanato']
+const INCOHERENCIAS_CONOCIDAS: readonly string[] = []
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Utilidades locales
@@ -419,24 +426,62 @@ describe('E0-02 · P5 — verificador adulto: unidad obligatoria y ausencia ≠ 
     }
   })
 
-  it('dosis por toma > maxTomaMg ⇒ SIEMPRE alerta crítica, en toda la malla', () => {
+  /**
+   * CONTRATO NUEVO (REG-041, decisión del médico dueño). Pasar del máximo
+   * HABITUAL siempre produce alerta, pero solo pasar del ABSOLUTO es crítica.
+   * Los fármacos sin `hardMaxTomaMg` conservan el contrato anterior (crítica al
+   * pasar del habitual), que es el fail-closed para lo aún no revisado.
+   */
+  it('dosis por toma > máximo habitual ⇒ SIEMPRE alerta, en toda la malla', () => {
     const factores = [1.01, 1.2, 1.5, 2, 3, 5, 9.5, 10, 11, 20]
     for (const ref of CATALOGO.filter(f => f.maxTomaMg != null)) {
       paraTodo(factores, k => `${ref.nombre} × ${k} del máximo por toma`, k => {
-        const alertas = revisarDosis({ farmaco: ref.nombre, dosisMg: ref.maxTomaMg! * k, tomasDia: 1 })
-        expect(alertas.some(a => a.severidad === 'critica')).toBe(true)
+        const dosisMg = ref.maxTomaMg! * k
+        const alertas = revisarDosis({ farmaco: ref.nombre, dosisMg, tomasDia: 1 })
+        // Nunca puede quedarse callado por encima del habitual.
+        expect(alertas.length).toBeGreaterThan(0)
+        const superaAbsoluto = ref.hardMaxTomaMg == null || dosisMg > ref.hardMaxTomaMg
+        if (superaAbsoluto) {
+          expect(alertas.some(a => a.severidad === 'critica')).toBe(true)
+        } else {
+          // Zona amarilla: avisa y pide verificar, sin gritar "sobredosis".
+          expect(alertas.some(a => a.codigo === 'dosis_alta_verificar')).toBe(true)
+          expect(alertas.some(a => a.severidad === 'critica')).toBe(false)
+        }
       })
     }
   })
 
-  it('dosis × tomas > maxDiaMg ⇒ SIEMPRE alerta `sobre_maximo_diario`', () => {
+  it('dosis × tomas > máximo diario habitual ⇒ SIEMPRE alerta de techo diario', () => {
     for (const ref of CATALOGO.filter(f => f.maxDiaMg != null)) {
       paraTodo([2, 3, 4, 6, 8], tomas => `${ref.nombre} × ${tomas} tomas/día`, tomas => {
         // Dosis por toma que rebasa el techo DIARIO por poco (y no por el de una sola toma).
         const porToma = (ref.maxDiaMg! / tomas) * 1.05
         const alertas = revisarDosis({ farmaco: ref.nombre, dosisMg: porToma, tomasDia: tomas })
-        expect(alertas.some(a => a.codigo === 'sobre_maximo_diario')).toBe(true)
+        const total = porToma * tomas
+        const superaAbsoluto = ref.hardMaxDiaMg == null || total > ref.hardMaxDiaMg
+        expect(alertas.some(a =>
+          a.codigo === (superaAbsoluto ? 'sobre_maximo_diario' : 'dosis_alta_verificar'),
+        )).toBe(true)
       })
+    }
+  })
+
+  /**
+   * El hard stop existe de verdad: por encima del máximo ABSOLUTO la alerta es
+   * crítica, no un "verifica la indicación".
+   */
+  it('por encima del máximo ABSOLUTO la alerta vuelve a ser crítica', () => {
+    for (const ref of CATALOGO.filter(f => f.hardMaxTomaMg != null)) {
+      paraTodo([1.01, 1.5, 3], k => `${ref.nombre} × ${k} del máximo absoluto`, k => {
+        const alertas = revisarDosis({ farmaco: ref.nombre, dosisMg: ref.hardMaxTomaMg! * k, tomasDia: 1 })
+        expect(alertas.some(a => a.severidad === 'critica')).toBe(true)
+      })
+    }
+    for (const ref of CATALOGO.filter(f => f.hardMaxDiaMg != null)) {
+      const porToma = (ref.hardMaxDiaMg! / 2) * 1.05   // 2 tomas → total 5% sobre el absoluto
+      const alertas = revisarDosis({ farmaco: ref.nombre, dosisMg: porToma, tomasDia: 2 })
+      expect(alertas.some(a => a.severidad === 'critica')).toBe(true)
     }
   })
 
@@ -497,9 +542,18 @@ function contradiccionesEntreMotores(): Map<string, string> {
        */
       const dosisSinRedondeo = (d.porToma.max - TOL_REDONDEO) * (1 - EPS_REL)
       if (dosisSinRedondeo <= 0) continue
+      /**
+       * Qué cuenta como CONTRADICCIÓN (REG-041). Una alerta `dosis_alta_verificar`
+       * NO lo es: es la conducta que el médico dueño definió — el motor pediátrico
+       * emite una dosis alta legítima y el verificador pide confirmar indicación y
+       * formulación. Los dos motores están de acuerdo. Contradicción es que el
+       * verificador declare PELIGROSA una dosis que el otro motor acaba de emitir:
+       * eso solo lo dice una alerta crítica, o un techo diario rebasado de verdad.
+       */
       const graves = revisarDosis({
         farmaco: f.nombre, dosisMg: dosisSinRedondeo, tomasDia: tomas, pesoKg: peso,
-      }).filter(a => a.severidad === 'critica' || a.severidad === 'alta')
+      }).filter(a => a.codigo !== 'dosis_alta_verificar'
+        && (a.severidad === 'critica' || a.severidad === 'alta'))
       if (graves.length && !out.has(f.nombre)) {
         out.set(f.nombre, `@${peso} kg → ${d.porToma.max} mg × ${tomas}/día · ${graves[0].mensaje}`)
       }
