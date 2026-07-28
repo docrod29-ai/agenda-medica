@@ -161,4 +161,24 @@ describe('el tamaño elegido manda, también con diseño subido', () => {
     expect(p.heightMm).toBe(150)
     expect(dimensionesImpresion(conDiseno(250, 150)).esHostCarta).toBe(false)
   })
+
+  /**
+   * "Sale descuadrada": la hoja blanca se dibujaba con las medidas del CATÁLOGO
+   * mientras el contenedor de la vista previa y el @page usaban las del DISEÑO.
+   * Dos tamaños para la misma receta → contenido corrido fuera de la hoja.
+   * Aquí se fija que hoja, vista previa e impresión salgan de la misma fuente.
+   */
+  it('la hoja, la vista previa y el @page usan la MISMA medida', () => {
+    // Diseño con medidas propias que NO son las del catálogo elegido (25 × 15).
+    // En papel-real no hay hospedaje, así que se ve la medida en crudo.
+    const cfg = { ...conDiseno(216, 140), imprimirEn: 'papel-real' } as RecetaConfig
+    const p = paperEfectivo(cfg)
+    const d = dimensionesImpresion(cfg)
+    expect(p.widthMm).toBe(216)
+    expect(p.heightMm).toBe(140)
+    // dimensionesImpresion parte de paperEfectivo, NO del catálogo:
+    expect(d.widthMm).toBe(p.widthMm)
+    expect(d.heightMm).toBe(p.heightMm)
+    expect(d.cssPage).toBe('216mm 140mm')
+  })
 })

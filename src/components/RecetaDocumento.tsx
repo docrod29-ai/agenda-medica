@@ -265,10 +265,24 @@ export function RecetaDocumento({ data, config, recetaConfig, containerId = 'rec
      * medidas reales del papel (media carta 140×215) puestas a lo largo o a lo alto según
      * si el membrete es apaisado o vertical; la imagen la llena con object-fit:contain.
      */
-    const pp = PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta']
-    const corto = Math.min(pp.widthMm, pp.heightMm)   // 140
-    const largo = Math.max(pp.widthMm, pp.heightMm)    // 215
-    const apaisado = imgAspect != null ? imgAspect > 1 : false
+    /**
+     * BUG (el Dr: "sale descuadrada"): esto leía `PAPER_SIZES[paperSize]` y NO
+     * `paperEfectivo`, así que ignoraba las medidas reales del diseño subido. La
+     * hoja blanca se dibujaba con las medidas del catálogo mientras el contenedor
+     * de la vista previa y el `@page` de impresión usaban las del diseño: dos
+     * tamaños distintos para la misma receta → contenido corrido fuera de la hoja.
+     * Ahora los tres salen de la MISMA fuente.
+     */
+    const pp = paperEfectivo(recetaConfig)
+    const corto = Math.min(pp.widthMm, pp.heightMm)
+    const largo = Math.max(pp.widthMm, pp.heightMm)
+    /**
+     * Mientras la imagen del membrete carga (`imgAspect == null`) se asumía
+     * VERTICAL. Con un papel ya apaisado (25 × 15) eso dibujaba la hoja de pie y
+     * luego saltaba al cargar la imagen. El default correcto es la orientación
+     * del PROPIO papel.
+     */
+    const apaisado = imgAspect != null ? imgAspect > 1 : pp.widthMm > pp.heightMm
     const w = apaisado ? largo : corto
     const h = apaisado ? corto : largo
     // Área de MEDICAMENTOS automática: debajo del campo más bajo (nombre/edad/fecha)
