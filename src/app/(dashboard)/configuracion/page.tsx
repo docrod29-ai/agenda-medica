@@ -253,7 +253,7 @@ export default function ConfiguracionPage() {
     {
       titulo: 'Documentos clínicos',
       tabs: [
-        { key: 'recetas', label: 'Recetas y órdenes', modoMin: 'medico' },
+        { key: 'recetas', label: 'Recetas, órdenes y notas', modoMin: 'medico' },
       ],
     },
     {
@@ -502,23 +502,10 @@ export default function ConfiguracionPage() {
             </select>
           </div>
 
-          {/* 🖋️ Firma + sello POR MÉDICO — cada médico la suya */}
-          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-            <FirmaUploadSection
-              form={form}
-              clinicId={clinicId}
-              onLocalChange={(patch) => setForm(f => ({ ...f, ...patch }))}
-            />
-          </div>
-
-          {/* 📄 Hoja membretada para NOTAS — general o por médico (cada quien la suya) */}
-          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-            <MembreteNotaSection
-              form={form}
-              clinicId={clinicId}
-              onLocalChange={(patch) => setForm(f => ({ ...f, ...patch }))}
-            />
-          </div>
+          {/* La FIRMA y la HOJA MEMBRETADA DE NOTAS se movieron a la pestaña
+              "Recetas, órdenes y notas": son ajustes de impresos y estaban
+              perdidos entre los datos del consultorio. Se guardan solas
+              (saveConfigPartial), así que el cambio de pestaña no las afecta. */}
 
           {/* 🔑 Llaves de IA por consultorio — SOLO el dueño la ve. El cliente NO
               configura llaves (el dueño las provee en Vercel); mostrarla confunde. */}
@@ -814,7 +801,28 @@ export default function ConfiguracionPage() {
       {tab === 'portal' && <PortalTab clinicId={clinicId} clinicNombre={form.nombreClinica || 'tu clínica'} />}
 
       {/* Recetas y órdenes */}
-      {tab === 'recetas' && <RecetasTab clinicId={clinicId} />}
+      {/* TODO lo de impresos en UNA pestaña: receta/orden, firma y hoja de notas.
+          Antes la firma y el membrete de notas vivían en "Datos del consultorio",
+          lejos de donde se configura lo que se imprime. */}
+      {tab === 'recetas' && (
+        <div style={{ display: 'grid', gap: 20 }}>
+          <RecetasTab clinicId={clinicId} />
+
+          {/* 🖋️ Firma + sello POR MÉDICO — sale en notas, recetas y órdenes */}
+          <FirmaUploadSection
+            form={form}
+            clinicId={clinicId}
+            onLocalChange={(patch) => setForm(f => ({ ...f, ...patch }))}
+          />
+
+          {/* 📄 Hoja membretada para NOTAS — general o por médico */}
+          <MembreteNotaSection
+            form={form}
+            clinicId={clinicId}
+            onLocalChange={(patch) => setForm(f => ({ ...f, ...patch }))}
+          />
+        </div>
+      )}
 
       {/* Seguridad — MFA / 2FA */}
       {tab === 'seguridad' && <SeguridadTab />}

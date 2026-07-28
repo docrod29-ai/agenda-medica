@@ -1,6 +1,6 @@
 'use client'
 /**
- * Guía en el SITIO donde el médico se atora: la pantalla de Recetas y órdenes.
+ * Guía en el SITIO donde el médico se atora: la pantalla de Recetas, órdenes y notas.
  *
  * El Dr. lo pidió literal: "no quiero que batallen mis clientes… enséñales a
  * configurar su receta para que no se confundan y sea muy fácil". Mandarlos a
@@ -38,7 +38,7 @@ const PASOS: { t: string; d: string }[] = [
   },
   {
     t: 'Sube tu firma',
-    d: 'Firma en una hoja BLANCA con plumón negro, tómale foto de frente con buena luz y recórtala. Saldrá en tus recetas y notas.',
+    d: 'Más abajo, en esta misma pantalla, está “Firma + sello”. Firma en una hoja BLANCA con plumón negro, tómale foto de frente con buena luz y recórtala. Saldrá en tus recetas, órdenes y notas.',
   },
   {
     t: 'Guarda y haz una prueba',

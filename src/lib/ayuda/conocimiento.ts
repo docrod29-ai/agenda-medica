@@ -111,7 +111,7 @@ export const GUIA: SeccionGuia[] = [
       },
       {
         t: '2. Entra al editor',
-        d: 'Configuración → “Recetas y órdenes” (grupo Documentos clínicos). A la derecha verás una vista previa en vivo: cada cambio se refleja al momento.',
+        d: 'Configuración → “Recetas, órdenes y notas” (grupo Documentos clínicos). Ahí está TODO lo que se imprime: el papel de la receta, tu formato, tu firma y la hoja membretada de las notas. A la derecha verás una vista previa en vivo.',
       },
       {
         t: '3. Elige el tamaño de papel',
