@@ -7,9 +7,13 @@
  * - oficio:       216 x 330 mm  (legal mexicano)
  * - a4:           210 x 297 mm  (internacional)
  * - a5:           148 x 210 mm  (mitad de A4)
+ * - receta-25x15: 250 x 150 mm  (APAISADO — forma continua de matriz de puntos,
+ *                                p. ej. Epson. Es MÁS ANCHO que carta, así que
+ *                                nunca se puede "hospedar" en una hoja carta:
+ *                                se imprime a su tamaño real, al 100 %.)
  */
 
-export type PaperSize = 'media-carta' | 'carta' | 'oficio' | 'a4' | 'a5'
+export type PaperSize = 'media-carta' | 'carta' | 'oficio' | 'a4' | 'a5' | 'receta-25x15'
 
 export interface PaperDimensions {
   /** Ancho en mm */
@@ -28,6 +32,23 @@ export const PAPER_SIZES: Record<PaperSize, PaperDimensions> = {
   'oficio':      { widthMm: 216, heightMm: 330, label: 'Oficio (21.6 × 33 cm)',  cssPage: '216mm 330mm' },
   'a4':          { widthMm: 210, heightMm: 297, label: 'A4 (21 × 29.7 cm)',       cssPage: 'A4' },
   'a5':          { widthMm: 148, heightMm: 210, label: 'A5 (14.8 × 21 cm)',       cssPage: 'A5' },
+  'receta-25x15': { widthMm: 250, heightMm: 150, label: 'Receta continua apaisada (25 × 15 cm)', cssPage: '250mm 150mm' },
+}
+
+/**
+ * Área SEGURA de impresión: la zona donde la impresora garantiza tinta. Las de
+ * matriz de puntos con forma continua (Epson y similares) no imprimen hasta el
+ * borde físico: hay que dejar un margen muerto en los cuatro lados.
+ *
+ * Para 250 × 150 mm con 3 mm de guarda: 244 × 144 mm útiles.
+ */
+export const GUARDA_IMPRESION_MM = 3
+
+export function areaSegura(p: PaperDimensions): { widthMm: number; heightMm: number } {
+  return {
+    widthMm: p.widthMm - GUARDA_IMPRESION_MM * 2,
+    heightMm: p.heightMm - GUARDA_IMPRESION_MM * 2,
+  }
 }
 
 /** Convierte mm a px asumiendo 96 DPI (estándar web). */
@@ -50,13 +71,17 @@ export const ESTILOS_RECETA: Record<EstiloReceta, { label: string; descripcion: 
  * los confunde). Si hay empate, gana el de menor diferencia total.
  */
 export function detectarPaperSize(widthMm: number, heightMm: number): PaperSize | null {
-  // Normalizar: el PDF puede venir horizontal — usamos ancho ≤ alto siempre
+  // Normalizar: el PDF puede venir horizontal — usamos ancho ≤ alto siempre.
+  // El CATÁLOGO también se normaliza: 'receta-25x15' está declarado apaisado
+  // (250 × 150), así que sin normalizarlo su propio PDF jamás se detectaría.
   const w = Math.min(widthMm, heightMm)
   const h = Math.max(widthMm, heightMm)
   let mejor: { size: PaperSize; diff: number } | null = null
   for (const [key, p] of Object.entries(PAPER_SIZES)) {
-    const diffW = Math.abs(p.widthMm - w)
-    const diffH = Math.abs(p.heightMm - h)
+    const pw = Math.min(p.widthMm, p.heightMm)
+    const ph = Math.max(p.widthMm, p.heightMm)
+    const diffW = Math.abs(pw - w)
+    const diffH = Math.abs(ph - h)
     const total = diffW + diffH
     if (diffW <= 5 && diffH <= 5) {
       if (!mejor || total < mejor.diff) mejor = { size: key as PaperSize, diff: total }

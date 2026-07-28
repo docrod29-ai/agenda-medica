@@ -6,7 +6,7 @@
  */
 import { useState, useEffect, useRef } from 'react'
 import { areaImpracticable } from '@/lib/receta-paginacion'
-import { RecetaDocumento, dimensionesImpresion, paperEfectivo, type RecetaData } from '@/components/RecetaDocumento'
+import { RecetaDocumento, dimensionesImpresion, paperEfectivo, admiteHojaCarta, type RecetaData } from '@/components/RecetaDocumento'
 import { imprimirElemento } from '@/lib/print-element'
 import { resizeImageFile, formatBytes } from '@/lib/image-utils'
 import { PAPER_SIZES, ESTILOS_RECETA, detectarPaperSize } from '@/lib/receta-template'
@@ -540,8 +540,11 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
           </select>
         </Section>
 
-        {/* Dónde se imprime físicamente — resuelve "no se imprime en formato receta" */}
-        {rx.paperSize !== 'carta' && rx.paperSize !== 'oficio' && (
+        {/* Dónde se imprime físicamente — resuelve "no se imprime en formato receta".
+            Se oculta cuando la hoja NO cabe en carta (p. ej. la receta continua
+            apaisada de 25 × 15 cm, más ancha que la carta): ahí no hay elección
+            que hacer, se imprime a su tamaño real al 100 %. */}
+        {rx.paperSize !== 'carta' && rx.paperSize !== 'oficio' && admiteHojaCarta(rx) && (
           <Section title="¿En qué papel imprime tu impresora?">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               {([
@@ -814,7 +817,7 @@ function PreviewReceta({
     const cfgOri = { ...rx, disenoWidthMm: paperOri.widthMm, disenoHeightMm: paperOri.heightMm }
     const h = dimensionesImpresion(cfgOri)
     imprimirElemento(document.getElementById('zona-print-receta-inner'), 'Prueba de receta', {
-      anchoMm: h.widthMm, altoMm: h.heightMm, onError: (m) => toast(m, 'error'),
+      anchoMm: h.widthMm, altoMm: h.heightMm, hojaExacta: true, onError: (m) => toast(m, 'error'),
     })
   }
 

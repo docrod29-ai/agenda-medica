@@ -485,7 +485,7 @@ export default function GeneradorRecetaPage() {
           <button onClick={() => router.push('/configuracion?tab=recetas')} className="btn btn-secondary" title="Configurar template">
             <Settings size={14} /> Template
           </button>
-          <button disabled={recetaVacia} onClick={() => { if (configError || descargando || recetaVacia) return; logAudit({ evento: 'receta_generada', clinicId: clinicId ?? '', patientId, notaId, meta: huellaImpreso(medicamentos, { folio, indicaciones, diagnostico }) }).catch(() => {}); aprenderDeReceta(); const h = dimensionesImpresion(recetaConfigOri); imprimirElemento(document.getElementById('receta-doc'), 'Receta', { anchoMm: h.widthMm, altoMm: h.heightMm, onError: (m) => toast(m, 'error') }) }} className="btn btn-secondary">
+          <button disabled={recetaVacia} onClick={() => { if (configError || descargando || recetaVacia) return; logAudit({ evento: 'receta_generada', clinicId: clinicId ?? '', patientId, notaId, meta: huellaImpreso(medicamentos, { folio, indicaciones, diagnostico }) }).catch(() => {}); aprenderDeReceta(); const h = dimensionesImpresion(recetaConfigOri); imprimirElemento(document.getElementById('receta-doc'), 'Receta', { anchoMm: h.widthMm, altoMm: h.heightMm, hojaExacta: true, onError: (m) => toast(m, 'error') }) }} className="btn btn-secondary">
             <Printer size={14} /> Imprimir
           </button>
           <button disabled={recetaVacia} onClick={() => { if (configError || descargando || recetaVacia) return; descargarWord() }} className="btn btn-secondary" title="Documento editable para tu membrete">

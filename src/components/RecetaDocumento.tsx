@@ -129,6 +129,21 @@ export function paperEfectivo(recetaConfig: RecetaConfig): { widthMm: number; he
   return { widthMm: p.widthMm, heightMm: p.heightMm, cssPage: p.cssPage }
 }
 
+/**
+ * ¿Esta hoja se puede "hospedar" dentro de una carta vertical (216 × 279)?
+ *
+ * Solo si CABE con la carta en su orientación natural. Una hoja APAISADA como la
+ * receta continua de 250 × 150 mm NO cabe (250 > 216): meterla en carta es
+ * justo el defecto que se veía en la vista previa de macOS — una hoja vertical
+ * grande con la receta chiquita adentro. Esa se imprime a su tamaño real, al
+ * 100 %, y no se escala jamás.
+ */
+function puedeHospedarseEnCarta(paper: { widthMm: number; heightMm: number }): boolean {
+  const cabe = paper.widthMm <= CARTA.widthMm && paper.heightMm <= CARTA.heightMm
+  const esMenor = paper.widthMm < CARTA.widthMm || paper.heightMm < CARTA.heightMm
+  return cabe && esMenor
+}
+
 export function dimensionesImpresion(recetaConfig: RecetaConfig): { widthMm: number; heightMm: number; cssPage: string; esHostCarta: boolean } {
   const paper = paperEfectivo(recetaConfig)
   // DEFAULT = 'carta': el diálogo de impresión del navegador solo ofrece los
@@ -137,12 +152,18 @@ export function dimensionesImpresion(recetaConfig: RecetaConfig): { widthMm: num
   // funciona en CUALQUIER impresora sin configurar nada.
   // Solo quien tiene papel del tamaño exacto cargado elige 'papel-real'.
   const quiereCarta = (recetaConfig.imprimirEn ?? 'carta') === 'carta'
-  const cabeEnCarta = paper.widthMm <= CARTA.widthMm && paper.heightMm <= CARTA.heightMm
-  const esMenorQueCarta = paper.widthMm < CARTA.widthMm || paper.heightMm < CARTA.heightMm
-  if (quiereCarta && cabeEnCarta && esMenorQueCarta) {
+  if (quiereCarta && puedeHospedarseEnCarta(paper)) {
     return { ...CARTA, cssPage: 'letter', esHostCarta: true }
   }
   return { widthMm: paper.widthMm, heightMm: paper.heightMm, cssPage: paper.cssPage, esHostCarta: false }
+}
+
+/**
+ * Para la UI de configuración: si la hoja no cabe en carta, ofrecer "imprimir en
+ * hoja carta con línea de corte" es mentira — no hay nada que elegir.
+ */
+export function admiteHojaCarta(recetaConfig: RecetaConfig): boolean {
+  return puedeHospedarseEnCarta(paperEfectivo(recetaConfig))
 }
 
 /**

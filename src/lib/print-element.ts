@@ -37,6 +37,16 @@ export function imprimirElemento(
      */
     margenMm?: number
     /**
+     * Solo RECETA y ORDEN MÉDICA. Fija html/body al tamaño exacto de la hoja y
+     * fuerza la impresión de fondos/colores, para que el papel salga a su medida
+     * real al 100 % (ver el bloque de CSS más abajo).
+     *
+     * Es opt-in a propósito: las NOTAS (evolución, ingreso, egreso) comparten
+     * este mismo modo 'sangre' con su membrete carta, y su paginación está
+     * calibrada. No se toca lo que ya imprime bien.
+     */
+    hojaExacta?: boolean
+    /**
      * Aviso de error (popup bloqueado / documento no encontrado). Si se pasa, se
      * usa en vez del window.alert nativo — así la app lo muestra con su sistema de
      * toasts. La decisión de NO imprimir basura se mantiene; solo cambia el canal.
@@ -91,6 +101,9 @@ export function imprimirElemento(
   // HOJA a ese tamaño exacto → la receta cae 1:1, centrada y sin partirse por no
   // coincidir con el papel del diálogo (A5/carta/etc.).
   const tamano = (opts?.anchoMm && opts?.altoMm) ? `${opts.anchoMm}mm ${opts.altoMm}mm` : 'auto'
+  // Medidas de la hoja para dimensionar también html/body (ver comentario abajo).
+  // Solo con hojaExacta: receta y orden. Las notas conservan su comportamiento.
+  const hoja = (opts?.hojaExacta && opts?.anchoMm && opts?.altoMm) ? { w: opts.anchoMm, h: opts.altoMm } : null
   // Zona segura del membrete (mm): el texto NO debe entrar aquí en NINGUNA hoja.
   const mm = opts?.margenesMembrete ?? { top: 42, right: 22, bottom: 28, left: 22 }
   const pageCss = opts?.formato === 'membrete'
@@ -119,8 +132,25 @@ export function imprimirElemento(
     ? `@page{size:letter;margin:18mm}
        html,body{margin:0;padding:0;background:#fff}
        ${sel}{max-width:none!important;width:auto!important;margin:0!important;padding:0!important;box-shadow:none!important;border-radius:0!important}`
+    /**
+     * Modo "a sangre" (receta / orden médica): la hoja ES el documento.
+     *
+     * `@page{size:<ancho>mm <alto>mm; margin:0}` fija el tamaño de página al del
+     * papel real. Se añade el mismo tamaño a html/body porque, sin él, el cuerpo
+     * conserva el ancho por defecto del navegador y el diálogo del sistema puede
+     * mostrar (e imprimir) una hoja de otro tamaño con el documento pequeño
+     * dentro — el defecto clásico de "sale chiquita en una hoja vertical". Con
+     * los tres alineados, la vista previa sale LLENA y al 100 %, sin escalar.
+     * La altura va como `min-height`, NO fija: una receta con muchos fármacos
+     * pagina en varias hojas, y una altura dura recortaría de la segunda en
+     * adelante.
+     *
+     * `print-color-adjust:exact` obliga al navegador a imprimir fondos y colores
+     * (el membrete es una imagen de fondo: sin esto puede salir en blanco).
+     */
     : `@page{size:${tamano};margin:0}
-       html,body{margin:0;padding:0;background:#fff}
+       html,body{margin:0;padding:0;background:#fff${hoja ? `;width:${hoja.w}mm;min-height:${hoja.h}mm` : ''}}
+       ${hoja ? `*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}` : ''}
        ${sel}{margin:0 auto!important;box-shadow:none!important;border-radius:0!important}`
 
   // En membrete el contenido se envuelve en la tabla espaciadora (thead/tfoot que

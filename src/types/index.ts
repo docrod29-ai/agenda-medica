@@ -400,7 +400,7 @@ export type { PaperSize, EstiloReceta } from '@/lib/receta-template'
 /** Configuración de impresos: recetas y órdenes médicas */
 export interface RecetaConfig {
   /** Tamaño de papel */
-  paperSize: 'media-carta' | 'carta' | 'oficio' | 'a4' | 'a5'
+  paperSize: 'media-carta' | 'carta' | 'oficio' | 'a4' | 'a5' | 'receta-25x15'
   /**
    * Dónde se imprime físicamente:
    *  - 'papel-real': la impresora tiene cargado el papel del tamaño exacto

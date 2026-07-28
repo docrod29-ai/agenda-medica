@@ -550,7 +550,7 @@ export default function GeneradorOrdenPage() {
           <button onClick={() => router.push('/configuracion?tab=recetas')} className="btn btn-secondary">
             <Settings size={14} /> Template
           </button>
-          <button disabled={ordenVacia} onClick={() => { if (configError || descargando || ordenVacia) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length } }).catch(() => {}); const h = dimensionesImpresion(recetaConfigOri); imprimirElemento(document.getElementById('receta-doc'), 'Orden', { anchoMm: h.widthMm, altoMm: h.heightMm, onError: (m) => toast(m, 'error') }) }} className="btn btn-secondary">
+          <button disabled={ordenVacia} onClick={() => { if (configError || descargando || ordenVacia) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length } }).catch(() => {}); const h = dimensionesImpresion(recetaConfigOri); imprimirElemento(document.getElementById('receta-doc'), 'Orden', { anchoMm: h.widthMm, altoMm: h.heightMm, hojaExacta: true, onError: (m) => toast(m, 'error') }) }} className="btn btn-secondary">
             <Printer size={14} /> Imprimir
           </button>
           <button disabled={ordenVacia} onClick={() => { if (configError || descargando || ordenVacia) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length, formato: 'word' } }).catch(() => {}); descargarWord() }} className="btn btn-secondary" title="Documento editable para tu membrete">
