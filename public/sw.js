@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v688'  // Auditoria P1 lote A (motores UCI): num '1,200'->1200 no 1.2 (glucosa hipo falsa); NEWS2 guards Number.isFinite (NaN ya no da rojo falso ni +2 silencioso); ckrt/infusiones bloquean peso<=0 (Infinity); tendencia usa delta CRUDO para el signo (troponina +200% ya no sale 'estable'). 1869 tests. --- v687: 3 P1 seguridad.
+const CACHE = 'nexusmed-v689'  // Auditoria P1 lote B: (consentimiento) el modal decia 'el audio no se guarda' siendo falso (se sube a transcripcion+IndexedDB) -> texto veraz. (integridad) configuracion ignoraba el error de useConfig -> formulario en blanco sin aviso y Guardar sobreescribia cedula/horario reales -> monta AvisoConfigNoCargada + bloquea Guardar si no cargo. --- v688: motores UCI.
 // (v601):
 
 self.addEventListener('install', (event) => {

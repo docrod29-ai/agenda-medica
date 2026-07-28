@@ -3165,8 +3165,9 @@ export default function ConsultaActivaPage() {
       >
         <p style={{ fontSize: 13.5, color: 'var(--text2)', lineHeight: 1.65, margin: '0 0 14px' }}>
           Confirme que el paciente fue informado de que la conversación será grabada y transcrita para
-          estructurar la nota clínica con asistencia de IA. El audio no se guarda; solo se conserva la
-          transcripción de texto vinculada a su expediente.
+          estructurar la nota clínica con asistencia de IA. El audio se envía a un servicio de
+          transcripción para generar el texto y se conserva temporalmente en este dispositivo por si la
+          transcripción falla; el expediente guarda únicamente la transcripción de texto.
         </p>
         <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text3)', lineHeight: 1.7 }}>
           <li>El paciente puede pedir detener la grabación en cualquier momento.</li>

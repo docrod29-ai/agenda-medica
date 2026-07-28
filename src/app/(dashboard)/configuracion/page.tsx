@@ -12,6 +12,7 @@ import { ESPECIALIDADES_CLINICAS, ESPECIALIDADES_QUIRURGICAS, ESPECIALIDADES_DIA
 import { X as IconX } from 'lucide-react'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useConfig } from '@/hooks/useConfig'
+import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
 import { useDoctors } from '@/hooks/useDoctors'
 import { useToast } from '@/context/ToastContext'
 import { useClinic } from '@/context/ClinicContext'
@@ -42,7 +43,7 @@ const DIAS_LABELS = { lunes: 'Lunes', martes: 'Martes', miercoles: 'Miércoles',
 type Tab = 'general' | 'horario' | 'duraciones' | 'bloqueos' | 'notificaciones' | 'integraciones' | 'plantillas' | 'portal' | 'recetas' | 'seguridad' | 'bot' | 'medicos' | 'equipo' | 'suscripcion' | 'entregas'
 
 export default function ConfiguracionPage() {
-  const { config, loading } = useConfig()
+  const { config, loading, error: configError } = useConfig()
   const { activeDoctors } = useDoctors()
   const { clinicId } = useClinic()
   const { toast } = useToast()
@@ -160,6 +161,12 @@ export default function ConfiguracionPage() {
   }, [config, loading])
 
   const handleSave = async () => {
+    // Si la config NO cargó (error de lectura), NO guardar: el formulario tiene los
+    // DEFAULT en blanco y guardar podría sobreescribir cédula/horario reales (P1).
+    if (configError) {
+      toast('No se pudo cargar tu configuración; recarga la página antes de guardar para no sobreescribirla.', 'error')
+      return
+    }
     setSaving(true)
     try {
       // Compacta las imágenes pesadas (base64 → Storage) ANTES de guardar. Si
@@ -283,6 +290,9 @@ export default function ConfiguracionPage() {
 
   return (
     <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
+      {/* Aviso si la config NO cargó (auditoría P1): sin esto se veía el formulario
+          en blanco sin avisar y Guardar podía sobreescribir cédula/horario reales. */}
+      <AvisoConfigNoCargada error={configError} />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
         <h1 className="t-h1" style={{ margin: 0 }}>Configuración</h1>
         {tab !== 'integraciones' && tab !== 'recetas' && tab !== 'portal' && tab !== 'seguridad' && tab !== 'equipo' && tab !== 'medicos' && tab !== 'bloqueos' && tab !== 'suscripcion' && tab !== 'bot' && tab !== 'entregas' && (
