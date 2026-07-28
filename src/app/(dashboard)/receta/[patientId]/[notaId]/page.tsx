@@ -10,6 +10,7 @@
  */
 import { useState, useEffect, useMemo } from 'react'
 import { huellaImpreso } from '@/lib/expediente/huella-impreso'
+import { folioDeNota } from '@/lib/receta-folio'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useDoctors } from '@/hooks/useDoctors'
 import { logAudit } from '@/lib/expediente/audit-log'
@@ -90,11 +91,15 @@ export default function GeneradorRecetaPage() {
    *
    * Ahora sale del `notaId`, que es único y no cambia. Sin nota (caso raro) se cae
    * al reloj, que es mejor que nada.
+   *
+   * E0-01: el cálculo se movió a `folioDeNota` para que el SERVIDOR use
+   * exactamente la misma función al acuñar el QR. Si cada lado calculara lo suyo,
+   * el papel y el certificado podrían llevar folios distintos.
    */
-  const folio = useMemo(() => {
-    const base = (notaId ?? '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
-    return `RX-${base ? base.slice(-7) : Date.now().toString(36).toUpperCase().slice(-7)}`
-  }, [notaId])
+  const folio = useMemo(
+    () => folioDeNota(notaId) || `RX-${Date.now().toString(36).toUpperCase().slice(-7)}`,
+    [notaId],
+  )
 
   // URL de verificación firmada (destino del QR): /verificar/<token HMAC>. Se pide
   // más abajo (después de calcular recetaConfig) para respetar el orden de hooks.
@@ -237,7 +242,7 @@ export default function GeneradorRecetaPage() {
   )
 
   useEffect(() => {
-    if (!clinicId || !notaId || !folio || !recetaConfig.mostrarQR) return
+    if (!clinicId || !patientId || !notaId || !folio || !recetaConfig.mostrarQR) return
     let vivo = true
     // fetchAutenticado, no fetch: la ruta exige `verificarMiembro`, que lee la
     // cabecera Authorization. Con `fetch` plano respondía 401 SIEMPRE, y los dos
@@ -247,12 +252,11 @@ export default function GeneradorRecetaPage() {
     fetchAutenticado('/api/receta/verificacion-url', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        clinicId, notaId, folio,
-        doctorNombre: config?.nombreMedico ?? '',
-        cedula: config?.cedulaProfesional ?? '',
-        contenidoHash,
-      }),
+      // E0-01: solo LOCALIZADORES. El folio, el nombre y la cédula del
+      // certificado los deriva el servidor de la nota firmada — antes se los
+      // mandábamos desde `config`, que es de la CLÍNICA: con dos médicos, quien
+      // imprimía estampaba SU cédula en la receta firmada por el otro.
+      body: JSON.stringify({ clinicId, patientId, notaId, contenidoHash }),
     })
       .then(async r => {
         if (!r.ok) { console.warn('[receta] verificacion-url respondió', r.status); return null }
@@ -261,7 +265,10 @@ export default function GeneradorRecetaPage() {
       .then(j => { if (vivo && j?.url) setVerificacionUrl(j.url) })
       .catch(e => { console.warn('[receta] no se pudo firmar el QR:', e) })
     return () => { vivo = false }
-  }, [clinicId, notaId, folio, recetaConfig.mostrarQR, config?.nombreMedico, config?.cedulaProfesional, contenidoHash])
+    // `config.nombreMedico`/`cedulaProfesional` salieron de las dependencias: ya
+    // no viajan en la petición, así que editarlos en Configuración no debe
+    // re-disparar el minteo del certificado.
+  }, [clinicId, patientId, notaId, folio, recetaConfig.mostrarQR, contenidoHash])
 
   // Config con la firma del MÉDICO de esta nota (per-médico), si tiene la suya.
   const configFirma = useMemo(() => {

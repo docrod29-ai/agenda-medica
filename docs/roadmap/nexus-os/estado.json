@@ -1,11 +1,36 @@
 {
   "version": 1,
   "descripcion": "ESTADO DURABLE del programa Nexus OS. Fuente de verdad del avance. Los agentes lo actualizan tras CADA unidad terminada. Si se acaban los créditos, este archivo dice exactamente dónde retomar sin perder nada.",
-  "actualizado": null,
-  "runs": [],
+  "actualizado": "2026-07-28T20:13:41Z",
+  "runs": [
+    {
+      "unidad": "E0-01",
+      "fecha": "2026-07-28T20:13:41Z",
+      "resultado": "completada",
+      "gates": { "tsc": "PASS", "vitest": "PASS", "build": "PASS", "testsPasan": 1911 }
+    }
+  ],
   "unidadEnCurso": null,
-  "completadas": [],
+  "completadas": ["E0-01"],
   "bloqueadas": [],
-  "necesitaValidacionDelDr": [],
-  "notas": []
+  "necesitaValidacionDelDr": [
+    {
+      "unidad": "E0-01",
+      "decision": "D1 — ¿el pie IMPRESO de la receta debe leerse de nota.firma en vez de config/main?",
+      "porQue": "Tras E0-01 el QR dice la identidad del médico que FIRMÓ la nota. El papel sigue imprimiendo nombre/cédula de config/main (que son de la clínica). En consultorios de un solo médico no cambia nada; con 2+ médicos, papel y QR pueden discrepar. Corregir el impreso toca el camino de impresión/PDF y la carta operativa prohíbe arriesgarlo a ciegas: requiere unidad aparte con verificación visual del PDF real.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-01",
+      "decision": "Al desplegar, subir la versión del Service Worker",
+      "porQue": "Un cliente viejo cacheado manda el body antiguo (sin patientId) y recibe 400: el QR degrada a 'Folio:<folio>' en texto plano hasta que el navegador tome el bundle nuevo. No rompe la impresión, pero deja recetas sin QR verificable ese día.",
+      "bloquea": false
+    }
+  ],
+  "notas": [
+    "E0-01 cerró REG-025 por completo en docs/audit/regression-ledger.md (era CLOSED parcial).",
+    "E0-01 NO tocó impresión, PDF, Word, firma, cobros ni reglas de Firestore. Nada desplegado, sin push.",
+    "Desviación consciente del diseño de E0-01 (PARTE 2): no se muestra el mensaje comparativo entre la huella del impreso y la de la nota, porque se calculan sobre entradas distintas y una diferencia no probaría edición alguna. Detalle en unidades/E0-01/RESULTADO.json → decisiones.D3.",
+    "Siguiente unidad sugerida: E0-02 (invariantes property-based de dosis pediátrica y aminoglucósidos; riesgo bajo, sin dependencias)."
+  ]
 }
