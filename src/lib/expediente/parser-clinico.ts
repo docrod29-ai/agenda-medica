@@ -320,6 +320,10 @@ export function extraerAlergias(texto: string): string[] {
   const re = /\b(?:alergi[ao]?|al[eé]rgic[oa])\s+(?:a|al)\s+([a-z][a-z\s]{2,30}?)(?=[.,;]|\sni|\sy\s|$)/gi
   let m
   while ((m = re.exec(texto)) !== null) {
+    // Respetar la NEGACIÓN (auditoría P1): "niega alergia a penicilina" / "sin
+    // alergia a X" NO documenta la alergia. Antes se agregaba igual → disparaba la
+    // alerta de reacción cruzada que BLOQUEA la firma NOM-004 de una receta correcta.
+    if (estaNegado(texto, m.index)) continue
     alergias.add(m[1].trim())
   }
   return [...alergias]

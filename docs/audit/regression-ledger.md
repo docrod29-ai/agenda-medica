@@ -46,5 +46,7 @@ Estados: **CLOSED** (con test/control) · **OPEN** (detectado, pendiente de repa
 | REG-032 | Consentimiento (P1) | El modal de grabación afirmaba "el audio no se guarda" pero se sube a transcripción + IndexedDB → consentimiento materialmente falso | CLOSED | Texto veraz en el modal de consulta |
 | REG-033 | Integridad (P1) | `configuracion` ignoraba el `error` de useConfig → formulario en blanco sin aviso y Guardar sobreescribía cédula/horario reales | CLOSED | Monta `AvisoConfigNoCargada` + bloquea Guardar si la config no cargó |
 
+| REG-034 | Clínico (P1) | `extraerAlergias` ignoraba la negación: "niega alergia a penicilina" documentaba la alergia → alerta de reacción cruzada que BLOQUEABA la firma NOM-004 | CLOSED | `parser-clinico.ts` extraerAlergias usa estaNegado + tests |
+
 > Mantener este archivo actualizado en cada ciclo del loop de auditoría. Cada `OPEN` debe
 > pasar a `CLOSED` con su test/control antes de cerrar el lote correspondiente.

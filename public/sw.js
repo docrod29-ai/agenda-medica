@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v689'  // Auditoria P1 lote B: (consentimiento) el modal decia 'el audio no se guarda' siendo falso (se sube a transcripcion+IndexedDB) -> texto veraz. (integridad) configuracion ignoraba el error de useConfig -> formulario en blanco sin aviso y Guardar sobreescribia cedula/horario reales -> monta AvisoConfigNoCargada + bloquea Guardar si no cargo. --- v688: motores UCI.
+const CACHE = 'nexusmed-v690'  // Auditoria antibiograma #4 (correctitud pura, con fundamento CLSI del skill PROA): extraerAlergias ignoraba la negacion -> 'niega alergia a penicilina' documentaba la alergia y disparaba la alerta de reaccion cruzada que BLOQUEABA la firma NOM-004 de una receta correcta. Fix: usa estaNegado + tests. El resto del motor de fenotipos (CMI censurada, MBL, propagacion EUCAST) = spec para validacion del Dr (no se toca a ciegas). --- v689: consent+config.
 // (v601):
 
 self.addEventListener('install', (event) => {

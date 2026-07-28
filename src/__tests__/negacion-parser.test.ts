@@ -22,3 +22,16 @@ describe('estaNegado · negaciones con afirmador embebido', () => {
     expect(estaNegado(texto, idx)).toBe(esperado)
   })
 })
+
+import { extraerAlergias } from '@/lib/expediente/parser-clinico'
+describe('extraerAlergias · respeta la negación', () => {
+  it('"niega alergia a penicilina" NO documenta alergia', () => {
+    expect(extraerAlergias('El paciente niega alergia a penicilina')).toEqual([])
+  })
+  it('"sin alergia a sulfas" NO documenta alergia', () => {
+    expect(extraerAlergias('sin alergia a sulfas')).toEqual([])
+  })
+  it('"alergia a penicilina" SÍ la documenta', () => {
+    expect(extraerAlergias('Tiene alergia a penicilina.')).toContain('penicilina')
+  })
+})
