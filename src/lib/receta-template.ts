@@ -7,8 +7,11 @@
  * - oficio:       216 x 330 mm  (legal mexicano)
  * - a4:           210 x 297 mm  (internacional)
  * - a5:           148 x 210 mm  (mitad de A4)
- * - receta-23x13: 230 x 130 mm  (APAISADO — la receta de consultorio más común
- *                                en México, "23 × 13 cm")
+ * - receta-13x23: 130 x 230 mm  (VERTICAL — hoja cortada a tamaño de receta, la
+ *                                más común en consultorio. CABE en carta, así que
+ *                                admite el modo "hoja carta + línea de corte".)
+ * - receta-23x13: 230 x 130 mm  (la MISMA medida pero apaisada, para quien tiene
+ *                                el formato acostado)
  * - receta-25x15: 250 x 150 mm  (APAISADO — forma continua de matriz de puntos,
  *                                p. ej. Epson)
  * - personalizado:               el médico escribe ancho × alto en mm
@@ -20,7 +23,7 @@
 
 export type PaperSize =
   | 'media-carta' | 'carta' | 'oficio' | 'a4' | 'a5'
-  | 'receta-23x13' | 'receta-25x15' | 'personalizado'
+  | 'receta-13x23' | 'receta-23x13' | 'receta-25x15' | 'personalizado'
 
 export interface PaperDimensions {
   /** Ancho en mm */
@@ -39,7 +42,8 @@ export const PAPER_SIZES: Record<PaperSize, PaperDimensions> = {
   'oficio':      { widthMm: 216, heightMm: 330, label: 'Oficio (21.6 × 33 cm)',  cssPage: '216mm 330mm' },
   'a4':          { widthMm: 210, heightMm: 297, label: 'A4 (21 × 29.7 cm)',       cssPage: 'A4' },
   'a5':          { widthMm: 148, heightMm: 210, label: 'A5 (14.8 × 21 cm)',       cssPage: 'A5' },
-  'receta-23x13': { widthMm: 230, heightMm: 130, label: 'Receta apaisada (23 × 13 cm)', cssPage: '230mm 130mm' },
+  'receta-13x23': { widthMm: 130, heightMm: 230, label: 'Receta vertical (13 × 23 cm)', cssPage: '130mm 230mm' },
+  'receta-23x13': { widthMm: 230, heightMm: 130, label: 'Receta acostada (23 × 13 cm)', cssPage: '230mm 130mm' },
   'receta-25x15': { widthMm: 250, heightMm: 150, label: 'Receta continua apaisada (25 × 15 cm)', cssPage: '250mm 150mm' },
   // Placeholder: las medidas REALES salen de paperCustomWidthMm/HeightMm.
   'personalizado': { widthMm: 230, heightMm: 130, label: 'Personalizado (escribe las medidas)', cssPage: '230mm 130mm' },

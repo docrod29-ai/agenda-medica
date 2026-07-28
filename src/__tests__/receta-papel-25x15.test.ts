@@ -92,26 +92,53 @@ describe('no hay regresión en los tamaños que ya funcionaban', () => {
   })
 })
 
-describe('receta apaisada 230 × 130 mm (el formato del Dr.)', () => {
-  const cfg23 = { ...base, paperSize: 'receta-23x13' } as RecetaConfig
+/**
+ * La receta de 13 × 23 cm existe en las DOS orientaciones porque la hoja física
+ * puede estar cortada de pie o acostada, y de eso depende todo lo demás.
+ */
+describe('receta de 13 × 23 cm en sus dos orientaciones', () => {
+  it('la VERTICAL mide 130 × 230 (es la hoja cortada a tamaño de receta)', () => {
+    const p = PAPER_SIZES['receta-13x23']
+    expect(p.widthMm).toBe(130)
+    expect(p.heightMm).toBe(230)
+    expect(p.heightMm).toBeGreaterThan(p.widthMm)
+    expect(p.cssPage).toBe('130mm 230mm')
+  })
 
-  it('está en el catálogo y es apaisado', () => {
+  it('la ACOSTADA es la misma medida volteada (230 × 130)', () => {
     const p = PAPER_SIZES['receta-23x13']
     expect(p.widthMm).toBe(230)
     expect(p.heightMm).toBe(130)
-    expect(p.cssPage).toBe('230mm 130mm')
   })
 
-  it('no se hospeda en carta (230 > 216) y sale a su medida', () => {
-    const d = dimensionesImpresion({ ...cfg23, imprimirEn: 'carta' } as RecetaConfig)
+  it('la VERTICAL cabe en carta → admite el modo hoja carta + corte', () => {
+    const cfg = { ...base, paperSize: 'receta-13x23', imprimirEn: 'carta' } as RecetaConfig
+    expect(admiteHojaCarta(cfg)).toBe(true)
+    expect(dimensionesImpresion(cfg).esHostCarta).toBe(true)
+  })
+
+  it('la VERTICAL en papel-real sale a 130 × 230 exactos', () => {
+    const d = dimensionesImpresion({ ...base, paperSize: 'receta-13x23', imprimirEn: 'papel-real' } as RecetaConfig)
+    expect(d.esHostCarta).toBe(false)
+    expect(d.widthMm).toBe(130)
+    expect(d.heightMm).toBe(230)
+    expect(d.cssPage).toBe('130mm 230mm')
+  })
+
+  it('la ACOSTADA no cabe en carta (230 > 216) y nunca se hospeda', () => {
+    const d = dimensionesImpresion({ ...base, paperSize: 'receta-23x13', imprimirEn: 'carta' } as RecetaConfig)
     expect(d.esHostCarta).toBe(false)
     expect(d.widthMm).toBe(230)
-    expect(d.heightMm).toBe(130)
   })
 
-  it('se autodetecta desde un membrete de 23 × 13 en cualquier orientación', () => {
-    expect(detectarPaperSize(230, 130)).toBe('receta-23x13')
-    expect(detectarPaperSize(130, 230)).toBe('receta-23x13')
+  /**
+   * La autodetección normaliza a vertical, así que NO puede distinguir la
+   * orientación: 230×130 y 130×230 son el mismo papel medido de dos formas.
+   * Devuelve la vertical como canónica; la orientación la decide el médico.
+   */
+  it('un membrete de 13 × 23 se detecta como la vertical, en cualquier orden', () => {
+    expect(detectarPaperSize(130, 230)).toBe('receta-13x23')
+    expect(detectarPaperSize(230, 130)).toBe('receta-13x23')
   })
 })
 
