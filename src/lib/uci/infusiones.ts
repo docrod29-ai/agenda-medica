@@ -90,7 +90,9 @@ function resolver(e: Entrada): { farmaco: Farmaco; peso: number | null; conc: nu
   const conc = num(e.concentracion) ?? farmaco.diluciones[e.dilucionIdx ?? 0]?.concentracion ?? farmaco.diluciones[0].concentracion
   if (conc === null || conc <= 0) return bloq('Falta la concentración de la dilución')
   const peso = num(e.pesoKg)
-  if (farmaco.porKg && peso === null) return bloq(`Falta el peso (${farmaco.nombre} se dosifica por kg)`)
+  // peso ≤ 0 (num('0')=0) NO es válido: rateADosis dividiría entre 0 → dosis Infinity
+  // mostrada como cálculo válido al intensivista (auditoría P1).
+  if (farmaco.porKg && (peso === null || peso <= 0)) return bloq(`Falta el peso válido (${farmaco.nombre} se dosifica por kg)`)
   return { farmaco, peso, conc }
 }
 

@@ -85,8 +85,10 @@ export function analizarCKRT(e: EntradaCKRT): ResultadoCKRT {
   let dosisPrescrita: number | null = null
   let dosisEntregada: number | null = null
   if (mod !== 'SCUF') {
-    if (peso === null) {
-      advertencias.push('Sin peso: no se calcula la dosis en mL/kg/h')
+    if (peso === null || peso <= 0) {
+      // peso 0/negativo (num('0')=0) daría dosisExacta = efluente/0 = Infinity con
+      // ok:true en la nota UCI firmada (auditoría P1).
+      advertencias.push('Sin peso válido: no se calcula la dosis en mL/kg/h')
     } else {
       const dosisExacta = efluente / peso
       dosisPrescrita = r1(dosisExacta)

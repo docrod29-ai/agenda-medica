@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v687'  // Auditoria: 3 P1 de seguridad. config/imagen aceptaba SVG (XSS almacenado) -> solo PNG/JPG/WEBP. hospital mutar/registro-durable escribian 'por' del cliente (autor NOM-004 falsificable) -> sellado por el servidor. transcribir-diarizado GET sin dueno -> en modo prueba otra clinica leia el dictado (PHI) por UUID -> registro transcript_owners + verificacion. 1863 tests. --- v686: 4 P0.
+const CACHE = 'nexusmed-v688'  // Auditoria P1 lote A (motores UCI): num '1,200'->1200 no 1.2 (glucosa hipo falsa); NEWS2 guards Number.isFinite (NaN ya no da rojo falso ni +2 silencioso); ckrt/infusiones bloquean peso<=0 (Infinity); tendencia usa delta CRUDO para el signo (troponina +200% ya no sale 'estable'). 1869 tests. --- v687: 3 P1 seguridad.
 // (v601):
 
 self.addEventListener('install', (event) => {

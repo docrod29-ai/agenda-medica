@@ -41,5 +41,7 @@ Estados: **CLOSED** (con test/control) · **OPEN** (detectado, pendiente de repa
 | REG-029 | Integridad (P1) | `hospital/mutar` y `registro-durable` escribían `por: p.por` del cliente → autor NOM-004 falsificable | CLOSED | Autor sellado por el servidor (`actor.nombre`) + test |
 | REG-030 | Seguridad (P1) | `transcribir-diarizado` GET sin dueño → en modo prueba otra clínica leía el dictado (PHI) por UUID | CLOSED | `transcript_owners` registra dueño en POST y GET lo verifica |
 
+| REG-031 | Clínico (P1) | Motores UCI sin guardas: num '1,200'→1.2 (glucosa=hipo falsa), NEWS2 NaN→rojo falso, ckrt/infusiones peso 0→Infinity, tendencia con delta redondeado (troponina +200%='estable') | CLOSED | `num.ts`/`news2.ts`/`ckrt.ts`/`infusiones.ts`/`tendencias.ts` + `src/__tests__/uci-guards-auditoria.test.ts` |
+
 > Mantener este archivo actualizado en cada ciclo del loop de auditoría. Cada `OPEN` debe
 > pasar a `CLOSED` con su test/control antes de cerrar el lote correspondiente.

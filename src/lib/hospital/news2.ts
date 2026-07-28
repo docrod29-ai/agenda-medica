@@ -74,32 +74,32 @@ export function calcularNews2(s: SignosNews2): News2Result | null {
   const sys = sistolica(s.ta)
   let algunSigno = false
 
-  if (typeof s.fr === 'number') {
+  if (Number.isFinite(s.fr)) {
     algunSigno = true
-    const v = s.fr
+    const v = s.fr as number
     add('FR', `${v}/min`, v <= 8 ? 3 : v <= 11 ? 1 : v <= 20 ? 0 : v <= 24 ? 2 : 3)
   }
-  if (typeof s.spo2 === 'number') {
+  if (Number.isFinite(s.spo2)) {
     algunSigno = true
-    const v = s.spo2
+    const v = s.spo2 as number
     const pts = s.escalaSpo2 === 2
       ? puntosSpo2Escala2(v, !!s.oxigeno)
       : (v >= 96 ? 0 : v >= 94 ? 1 : v >= 92 ? 2 : 3)   // Escala 1 (por defecto)
     add(`SpO₂${s.escalaSpo2 === 2 ? ' (escala 2)' : ''}`, `${v}%`, pts)
   }
   if (s.oxigeno) add('O₂ suplementario', 'sí', 2)
-  if (typeof s.temp === 'number') {
+  if (Number.isFinite(s.temp)) {
     algunSigno = true
-    const v = s.temp
+    const v = s.temp as number
     add('T°', `${v}°C`, v <= 35 ? 3 : v <= 36 ? 1 : v <= 38 ? 0 : v <= 39 ? 1 : 2)
   }
   if (typeof sys === 'number') {
     algunSigno = true
     add('TA sistólica', `${sys} mmHg`, sys <= 90 ? 3 : sys <= 100 ? 2 : sys <= 110 ? 1 : sys <= 219 ? 0 : 3)
   }
-  if (typeof s.fc === 'number') {
+  if (Number.isFinite(s.fc)) {
     algunSigno = true
-    const v = s.fc
+    const v = s.fc as number
     add('FC', `${v}/min`, v <= 40 ? 3 : v <= 50 ? 1 : v <= 90 ? 0 : v <= 110 ? 1 : v <= 130 ? 2 : 3)
   }
   // Conciencia (ACVPU): Alert = 0; cualquier otra (Confusion/Voice/Pain/Unresponsive
@@ -134,11 +134,11 @@ export function calcularNews2(s: SignosNews2): News2Result | null {
    * Es exactamente la subestimación del deterioro que el score existe para evitar.
    */
   const faltantes: string[] = []
-  if (typeof s.fr !== 'number') faltantes.push('FR')
-  if (typeof s.spo2 !== 'number') faltantes.push('SpO₂')
-  if (typeof s.temp !== 'number') faltantes.push('T°')
+  if (!Number.isFinite(s.fr)) faltantes.push('FR')
+  if (!Number.isFinite(s.spo2)) faltantes.push('SpO₂')
+  if (!Number.isFinite(s.temp)) faltantes.push('T°')
   if (typeof sys !== 'number') faltantes.push('TA sistólica')
-  if (typeof s.fc !== 'number') faltantes.push('FC')
+  if (!Number.isFinite(s.fc)) faltantes.push('FC')
   if (s.conciencia === undefined) faltantes.push('conciencia')
   if (s.oxigeno === undefined) faltantes.push('O₂ suplementario')
 

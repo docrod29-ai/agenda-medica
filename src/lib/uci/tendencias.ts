@@ -53,12 +53,15 @@ export function tendencia(serie: PuntoSerie[], deadbandPct = 5): Tendencia {
   if (valores.length < 2) return vacia
 
   const primero = valores[0], ultimo = valores[valores.length - 1]
-  const delta = r2(ultimo - primero)
-  const deltaPct = primero !== 0 ? r2(((ultimo - primero) / Math.abs(primero)) * 100) : null
+  // La DIRECCIÓN se decide con el delta CRUDO, no el redondeado (auditoría P1):
+  // troponina 0.002→0.006 (+200%) tenía delta r2()=0.00 y salía 'estable' con flecha →.
+  const deltaRaw = ultimo - primero
+  const delta = r2(deltaRaw)
+  const deltaPct = primero !== 0 ? r2((deltaRaw / Math.abs(primero)) * 100) : null
   const direccion: Direccion =
     deltaPct !== null && Math.abs(deltaPct) < deadbandPct ? 'estable'
-    : delta > 0 ? 'sube'
-    : delta < 0 ? 'baja'
+    : deltaRaw > 0 ? 'sube'
+    : deltaRaw < 0 ? 'baja'
     : 'estable'
 
   return { direccion, n: valores.length, primero, ultimo, delta, deltaPct, valores, resumen: valores.join(' → ') }
