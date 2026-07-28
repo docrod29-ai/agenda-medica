@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "descripcion": "ESTADO DURABLE del programa Nexus OS. Fuente de verdad del avance. Los agentes lo actualizan tras CADA unidad terminada. Si se acaban los créditos, este archivo dice exactamente dónde retomar sin perder nada.",
+  "actualizado": null,
+  "runs": [],
+  "unidadEnCurso": null,
+  "completadas": [],
+  "bloqueadas": [],
+  "necesitaValidacionDelDr": [],
+  "notas": []
+}
