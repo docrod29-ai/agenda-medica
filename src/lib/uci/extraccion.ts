@@ -159,7 +159,7 @@ const CAMPOS_UCI: { campo: string; alias: string[] }[] = [
   { campo: 'plrDelta', alias: ['elevacion de piernas', 'plr', 'pierna recta'] },
 ]
 
-const NUM_RE = 'cero|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinti\\w+|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien|ciento'
+const NUM_RE = 'cero|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinti\\w+|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien|ciento|doscient[oa]s|trescient[oa]s|cuatrocient[oa]s|quinient[oa]s|seiscient[oa]s|setecient[oa]s|ochocient[oa]s|novecient[oa]s'
 
 /**
  * Extrae de la transcripción del pase de visita los valores del Panel UCI. Para
@@ -285,7 +285,9 @@ export function extraerValoresUCIConAvisos(texto: string): { valores: Record<str
     for (const a of alias) {
       const an = norm(a).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
       // <alias> [de|a|en] <numero>  → primera coincidencia
-      const re = new RegExp(`\\b${an}\\b(?:\\s+(?:de|a|en|es|fue|esta en))?\\s+((?:\\d+(?:\\.\\d+)?)|(?:${NUM_RE})(?:\\s+(?:y|punto|${NUM_RE}))*)`, 'i')
+      // \b tras cada token numérico: sin él la alternación (ordenada) captura el
+      // prefijo — "cien" de "ciento", "dos" de "doscientos" → valor truncado.
+      const re = new RegExp(`\\b${an}\\b(?:\\s+(?:de|a|en|es|fue|esta en))?\\s+((?:\\d+(?:\\.\\d+)?)|(?:${NUM_RE})\\b(?:\\s+(?:y|punto|(?:${NUM_RE})\\b))*)`, 'i')
       const m = t.match(re)
       if (m) {
         const crudo = m[1]

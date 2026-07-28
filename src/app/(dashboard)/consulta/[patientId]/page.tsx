@@ -1327,11 +1327,12 @@ export default function ConsultaActivaPage() {
   const guardarBorrador = useCallback((silencioso = false): Promise<void> => {
     if (!clinicId || firmada) return Promise.resolve()
     // Nota que no se pudo leer: escribir sería sustituirla por lo que haya en
-    // pantalla, que es la plantilla vacía. Se bloquea hasta recargar.
-    if (errorCargaNota) return Promise.resolve()
+    // pantalla, que es la plantilla vacía. Se bloquea hasta recargar. En el
+    // guardado MANUAL (no silencioso) se avisa; antes fallaba mudo.
+    if (errorCargaNota) { if (!silencioso) toast('No se pudo abrir la nota; recárgala antes de guardar.', 'error'); return Promise.resolve() }
     // Paciente que no se pudo leer: guardar escribiría nombre y alergias vacíos
     // encima de la nota. Se bloquea hasta que la lectura del paciente tenga éxito.
-    if (pacienteError) return Promise.resolve()
+    if (pacienteError) { if (!silencioso) toast('No se pudieron leer los datos del paciente; recarga antes de guardar.', 'error'); return Promise.resolve() }
     // Serializa: cada guardado espera al anterior. Así dos autoguardados no
     // crean la nota dos veces (usa notaIdRef, que es síncrona).
     const tarea = cadenaGuardadoRef.current.then(async () => {
@@ -1691,6 +1692,17 @@ export default function ConsultaActivaPage() {
     if (!clinicId) return
 
     /**
+     * COMPUERTA DE LECTURA (auditoría PHI/seguridad): si la nota o el paciente no
+     * se pudieron leer, la nota en pantalla es la plantilla vacía. Firmar la
+     * volvería INMUTABLE con pacienteNombre='' y alergias=[] → el cross-check de
+     * alergias queda apagado sobre una firma medicolegal. guardarBorrador ya se
+     * bloquea en ese estado; firmar DEBE bloquear también, y avisar (no en
+     * silencio) para que el médico recargue.
+     */
+    if (errorCargaNota) { toast('No se pudo abrir la nota. Recarga la página antes de firmar.', 'error'); return }
+    if (pacienteError) { toast('No se pudieron leer los datos del paciente (nombre, alergias). Recarga antes de firmar.', 'error'); return }
+
+    /**
      * COMPUERTA DE SUGERENCIAS. Nada que la IA haya añadido por su cuenta entra a
      * una nota firmada sin que el médico lo haya visto.
      *
@@ -1819,7 +1831,7 @@ export default function ConsultaActivaPage() {
     } finally {
       setGuardando(false)
     }
-  }, [clinicId, patientId, notaId, config, construirNota, router, toast, citaDeHoy])
+  }, [clinicId, patientId, notaId, config, construirNota, router, toast, citaDeHoy, errorCargaNota, pacienteError])
 
   // ── Atajos de teclado ──────────────────────────────────────────
   //

@@ -43,17 +43,32 @@ const UNIDADES: Record<string, number> = {
   veinticuatro: 24, veinticinco: 25, veintiseis: 26, veintisiete: 27, veintiocho: 28, veintinueve: 29,
 }
 const DECENAS: Record<string, number> = { treinta: 30, cuarenta: 40, cincuenta: 50, sesenta: 60, setenta: 70, ochenta: 80, noventa: 90 }
+// Centenas (auditoría P1): antes enteroEs se detenía en 99 y un valor dictado
+// ≥100 en palabras ("ciento veinte", "doscientos cincuenta") devolvía null y se
+// PERDÍA en silencio — común en glucosa, TA sistólica, plaquetas, PaO₂, FC.
+const CENTENAS: Record<string, number> = {
+  cien: 100, ciento: 100, doscientos: 200, doscientas: 200, trescientos: 300, trescientas: 300,
+  cuatrocientos: 400, cuatrocientas: 400, quinientos: 500, quinientas: 500, seiscientos: 600, seiscientas: 600,
+  setecientos: 700, setecientas: 700, ochocientos: 800, ochocientas: 800, novecientos: 900, novecientas: 900,
+}
 
-/** Convierte un entero en palabras (0–99) a número. null si no reconoce. */
+/** Convierte un entero en palabras (0–999) a número. null si no reconoce. */
 function enteroEs(txt: string): number | null {
   const t = txt.trim()
   if (t === '') return null
   if (/^\d+$/.test(t)) return parseInt(t, 10)
   if (t in UNIDADES) return UNIDADES[t]
   if (t in DECENAS) return DECENAS[t]
+  if (t in CENTENAS) return CENTENAS[t]
   // "treinta y cinco"
   const m = t.match(/^(treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa)\s+y\s+(\w+)$/)
   if (m && m[2] in UNIDADES) return DECENAS[m[1]] + UNIDADES[m[2]]
+  // "ciento veinte", "doscientos cincuenta", "trescientos sesenta y cinco"
+  const c = t.match(/^(\w+)\s+(.+)$/)
+  if (c && c[1] in CENTENAS) {
+    const resto = enteroEs(c[2])
+    if (resto !== null && resto >= 0 && resto <= 99) return CENTENAS[c[1]] + resto
+  }
   return null
 }
 

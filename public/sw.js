@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v691'  // Auditoria GRUPO E (correctitud de software segura, sin tocar umbrales clinicos): REG-035 CDS hospitalario respeta la negacion de alergias (gemelo de REG-034, otra ruta) -> 'niega alergia a penicilina' ya no bloquea la firma; REG-036 alertas UCI ya no se pierden con valor censurado ('>500'/'<50'/'>=6.5' disparaban CERO alerta en el extremo critico); REG-037 antibiograma-vision cobra el credito en cuanto Claude responde (antes una foto en blanco corria la IA gratis y drenaba la llave del duenno). +8 tests. --- v690: extraerAlergias negacion.
+const CACHE = 'nexusmed-v692'  // Auditoria P1 lote software-seguro: REG-038 numeros dictados >=100 en palabras ('ciento veinte'=120) se perdian en el Panel UCI -> ahora centenas 0-999 + \b en el regex; REG-039 agendar SIN telefono fundia con homonimo con telefono distinto (contaminacion de PHI: cita/expediente bajo la persona equivocada); REG-040 firmar() no comprobaba pacienteError/errorCargaNota -> se podia firmar una nota INMUTABLE con paciente y alergias vacios (cross-check apagado). +5 tests. --- v691: GRUPO E (CDS negacion, alertas UCI censuradas, credito antibiograma).
 // (v601):
 
 self.addEventListener('install', (event) => {
