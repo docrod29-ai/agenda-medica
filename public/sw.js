@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v685'  // Auditoria: 4o P0 REAL. Inversion de negaciones en parser-clinico: 'no tiene/presenta/refiere X' se leia como X POSITIVO (el afirmador 'tiene' dentro del negador 'no tiene' cancelaba la negacion) -> diagnosticos/alergias NEGADOS se marcaban presentes. Fix: estaNegado ignora un afirmador precedido de no/nunca/sin + test 9 casos. 1859 tests. --- v684: n-gramas hiper<->hipo, IDOR diseno, TFG NaN.
+const CACHE = 'nexusmed-v686'  // Auditoria exhaustiva (workflow completo, 74 verificados): 4 P0 reparados. (dinero) create-checkout tomaba currency del body -> 'cop' cobraba USD0.12 y marcaba pagada -> moneda fija MXN. (legal) verificacion-url firmaba cedula/folio del body (forja de credencial) -> exige medico. (clinico) copiloto usaba ckdEpi crudo -> creatinina umol/L daba falla renal fantasma + contraindicaciones falsas -> reja de unidad en 3 sitios. (clinico) gasometria: albumina g/L restaba 90 al anion gap corregido -> guard de rango. + guards PaCO2/HCO3. 1863 tests. --- v685: negacion parser.
 // (v601):
 
 self.addEventListener('install', (event) => {

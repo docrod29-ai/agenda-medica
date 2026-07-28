@@ -46,6 +46,14 @@ export const CREAT_MGDL_MAX = 25
 export const CREAT_MGDL_MIN = 0.1
 
 /**
+ * ¿La creatinina es plausible EN mg/dL? Fuera de [0.1, 25] casi siempre es un valor
+ * en µmol/L (p.ej. 88) o un typo → estimar TFG con eso daría falla renal fantasma.
+ * Cualquier caller que use ckdEpi2021 crudo DEBE filtrar con esto antes (auditoría P0).
+ */
+export const creatininaPlausibleMgDl = (cr: unknown): boolean =>
+  typeof cr === 'number' && Number.isFinite(cr) && cr >= CREAT_MGDL_MIN && cr <= CREAT_MGDL_MAX
+
+/**
  * CKD-EPI 2021 (sin coeficiente de raza). Scr en mg/dL.
  * eGFR = 142 × min(Scr/κ,1)^α × max(Scr/κ,1)^-1.200 × 0.9938^edad × (1.012 si mujer)
  */

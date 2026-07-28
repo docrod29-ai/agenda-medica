@@ -82,6 +82,10 @@ export function analizarGasometria(e: EntradaGasometria): AnalisisGasometria {
 
   // Rangos fisiológicos (fuera = error de dato)
   if (ph! < 6.5 || ph! > 8.0) return { ...bloquear([]), motivoBloqueo: `pH no fisiológico (${ph})`, faltantes: [], interpretacion: `pH fuera de rango (${ph}).` }
+  // PaCO2 y HCO3 también con rango fisiológico (auditoría P0): un valor negativo o
+  // absurdo no debe calcular Winters/ΔΔ en silencio.
+  if (paco2! <= 0 || paco2! > 200) return { ...bloquear([]), motivoBloqueo: `PaCO2 no fisiológica (${paco2})`, faltantes: [], interpretacion: `PaCO2 fuera de rango (${paco2}).` }
+  if (hco3! <= 0 || hco3! > 60) return { ...bloquear([]), motivoBloqueo: `HCO3 no fisiológico (${hco3})`, faltantes: [], interpretacion: `HCO3 fuera de rango (${hco3}).` }
 
   const advertencias: string[] = []
 
@@ -162,9 +166,14 @@ export function analizarGasometria(e: EntradaGasometria): AnalisisGasometria {
   let ag: number | null = null, agCorr: number | null = null, agElevado: boolean | null = null
   if (na !== null && cl !== null) {
     ag = r1(na - (cl + hco3!))
-    agCorr = alb !== null ? r1(ag + 2.5 * (4 - alb)) : null
+    // GUARDA DE UNIDAD (auditoría P0): la albúmina debe ir en g/dL (normal 3.5–5).
+    // Un valor en g/L (p.ej. 40) metía `2.5·(4−40) = −90` al AG corregido, ocultando
+    // un anion gap elevado. Fuera de [1, 6] g/dL no se corrige; se avisa la unidad.
+    const albOk = alb !== null && alb >= 1 && alb <= 6
+    agCorr = albOk ? r1(ag + 2.5 * (4 - alb!)) : null
     agElevado = (agCorr ?? ag) > 12
     if (alb === null) advertencias.push('Albúmina no disponible: el anion gap no se pudo corregir')
+    else if (!albOk) advertencias.push(`Albúmina ${alb} fuera de rango en g/dL (1–6): ¿está en g/L (÷10)? El anion gap NO se corrigió`)
   } else {
     advertencias.push('Faltan Na y/o Cl: no se calculó el anion gap')
   }

@@ -17,6 +17,7 @@
 import { FARMACOS_PED, calcularDosisPediatrica, imc as calcImc } from './pediatria'
 import { AJUSTE_RENAL, ajustePorTFG, EMBARAZO_LACTANCIA, coincideRenal, RIESGO_HEPATICO, coincideHepatico } from './prescripcion-segura'
 import { ckdEpi2021 } from './calculadoras'
+import { creatininaPlausibleMgDl } from './funcion-renal'
 import { metaLipidica, recomendarEstatina } from './cardiometabolico/dislipidemia'
 import { clasificarIMC } from './cardiometabolico/obesidad'
 import { fib4, interpretarFib4 } from './cardiometabolico/masld'
@@ -253,6 +254,18 @@ function ajusteRenal(e: EntradaCopiloto): Sugerencia[] {
     }]
   }
 
+  // GUARDA DE UNIDAD (auditoría P0): una creatinina fuera de mg/dL plausible (p.ej.
+  // 88 en µmol/L) daría una TFG minúscula → falla renal fantasma y contraindicaciones
+  // antibióticas falsas. No se estima; se pide revisar la unidad.
+  if (!creatininaPlausibleMgDl(cr)) {
+    return [{
+      id: 'renal:unidad',
+      nivel: 'info',
+      titulo: `Creatinina ${cr}: revisa la unidad (mg/dL)`,
+      detalle: `Un valor fuera de 0.1–25 mg/dL suele venir en µmol/L (dividir entre 88.4) o ser un error de captura. No se estima TFG ni se ajustan dosis hasta corregir la unidad.`,
+      textoNota: `Creatinina ${cr} fuera de rango en mg/dL — verificar unidad antes de ajustar por función renal.`,
+    }]
+  }
   const tfg = ckdEpi2021(cr, edad, !!e.sexo && /^f/i.test(e.sexo))
   if (!Number.isFinite(tfg) || tfg >= 60) return []
 
@@ -475,7 +488,7 @@ function calculosAutomaticos(e: EntradaCopiloto): Sugerencia[] {
       detalle: 'CKD-EPI y Cockcroft-Gault son de adultos. En pediatría la estimación usa la fórmula de Schwartz con la talla; no se calcula aquí para no dar un valor engañoso.',
       textoNota: '',
     })
-  } else if (e.labs?.creatinina && edad != null) {
+  } else if (e.labs?.creatinina && edad != null && creatininaPlausibleMgDl(e.labs.creatinina)) {
     const tfg = ckdEpi2021(e.labs.creatinina, edad, !!e.sexo && /^f/i.test(e.sexo))
     if (Number.isFinite(tfg)) {
       out.push({
@@ -580,7 +593,7 @@ function metasPorDiagnostico(e: EntradaCopiloto): Sugerencia[] {
      */
     const factoresRiesgo = /hipertension|hta|tabaquismo|fumador|obesidad|sobrepeso|renal cronica|erc\b|sindrome metabolico|antecedente familiar/.test(dx)
     const erc = /renal cronica|erc\b|nefropat|insuficiencia renal/.test(dx)
-    const tfg = (e.labs?.creatinina && e.edad != null)
+    const tfg = (e.labs?.creatinina && e.edad != null && creatininaPlausibleMgDl(e.labs.creatinina))
       ? ckdEpi2021(e.labs.creatinina, e.edad, !!e.sexo && /^f/i.test(e.sexo)) : 0
     const prev = prevent({
       edad: e.edad ?? 0, esMujer: !!e.sexo && /^f/i.test(e.sexo),

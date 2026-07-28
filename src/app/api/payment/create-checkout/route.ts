@@ -23,7 +23,12 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.ve
 
 export async function POST(req: NextRequest) {
   try {
-    const { token, citaId, currency = 'mxn' } = await req.json()
+    const { token, citaId } = await req.json()
+    // MONEDA FIJA EN EL SERVIDOR (auditoría P0): el monto se calcula en MXN, así que
+    // la moneda DEBE ser 'mxn'. Antes se tomaba `currency` del body → con 'cop'/'ars'
+    // Stripe cobraba ~USD0.12 por el mismo número y el webhook (que compara solo el
+    // número, no la moneda) marcaba la cita 'pagada'. Nunca del cliente.
+    const currency = 'mxn'
 
     // AUTORIZACIÓN: token del portal del paciente (antes era público → cualquiera podía
     // mutar cualquier cita a 'pendiente-pago'). El clinicId sale del token, no del body.

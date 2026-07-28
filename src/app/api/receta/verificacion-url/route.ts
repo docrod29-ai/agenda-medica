@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verificarMiembro } from '@/lib/auth-server'
+import { verificarMedico } from '@/lib/auth-server'
 import { linkVerificacionReceta } from '@/lib/receta-token'
 
 /**
@@ -18,7 +18,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Falta clinicId, notaId o folio' }, { status: 400 })
   }
 
-  const acc = await verificarMiembro(req, body.clinicId)
+  // Solo un MÉDICO/admin acuña el certificado de verificación (auditoría P0): antes
+  // era cualquier miembro → una recepcionista podía firmar un "Integridad verificada"
+  // con la cédula de otro médico. La cédula/nombre siguen siendo los que el médico
+  // tiene en su config (no un tercero); esto cierra el vector de la recepcionista.
+  const acc = await verificarMedico(req, body.clinicId)
   if (!acc.ok) return acc.response
 
   const origin = req.headers.get('origin') || req.nextUrl.origin
