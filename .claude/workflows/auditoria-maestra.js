@@ -20,12 +20,13 @@ const INVENTARIO_SCHEMA = {
   type: 'object', additionalProperties: false,
   properties: {
     rutasApi: { type: 'array', items: { type: 'string' } },
-    motores: { type: 'array', items: { type: 'string' } },
+    // ARCHIVOS de motor (no funciones) — evita el estallido de agentes.
+    archivosMotor: { type: 'array', items: { type: 'string' } },
     areas: { type: 'array', items: { type: 'string' } },
     colecciones: { type: 'array', items: { type: 'string' } },
     conteos: { type: 'string' },
   },
-  required: ['rutasApi', 'motores', 'areas'],
+  required: ['rutasApi', 'archivosMotor', 'areas'],
 }
 const BASELINE_SCHEMA = {
   type: 'object', additionalProperties: false,
@@ -87,7 +88,7 @@ const COMPLETITUD_SCHEMA = {
 
 // ── Prompts por tipo de unidad ──────────────────────────────────────────────
 const promptApi = (r) => `${base}\nAUDITA A FONDO el endpoint ${r}. Cadena obligatoria: autentica → resuelve clinicId SERVER-SIDE (no del body) → autoriza rol/capability → valida input → carga recurso autoritativo → valida transición → deriva campos protegidos server-side → escribe → audita. Busca: cross-tenant/IDOR, escalada, mass-assignment ({...body} sin allowlist), campos protegidos fijados por cliente (estado/precio/rol/plan/pago), auth ausente, PHI en logs/respuesta, falta de idempotencia/rate-limit en dinero.`
-const promptMotor = (m) => `${base}\nAUDITA A FONDO el motor clínico ${m}. Verifica: unidad canónica explícita (no Record<string,number> ambiguo → riesgo de escala tipo FIB-4 1000x), fuente única (sin duplicados), missing≠0, no NaN/Infinity/negativos, topes/caps correctos y propagados (por-toma ≤ diaria), redondeo solo en presentación, versión/referencia/golden test presentes. Genera valores límite y fuera de rango mentalmente y ve si calcula silenciosamente con dato imposible.`
+const promptArchivoMotor = (f) => `${base}\nAUDITA A FONDO TODO el archivo ${f} (todas sus funciones clínicas). Verifica: unidad canónica explícita (no Record<string,number> ambiguo → riesgo de escala tipo FIB-4 1000x), fuente única (sin motores duplicados/divergentes), missing≠0, guardas de finitud (NaN/∞/negativos NO deben caer a un estadio/score por la cascada), topes/caps correctos y propagados (por-toma ≤ diaria), negaciones ("niega X" no debe marcar X positivo), valores censurados (>/≥/≤) no perdidos, redondeo solo en presentación. Genera valores límite y fuera de rango y ve si calcula silenciosamente con dato imposible.`
 const promptArea = (a) => `${base}\nAUDITA A FONDO el módulo/área "${a}" (sus páginas en src/app y componentes en src/components). Busca: bugs de lógica, pérdida de datos (guardado/navegación), estados vacíos/carga/error mal manejados, acciones irreversibles sin confirmación, datos que parecen editables pero no deberían, cálculos/unidades mal mostrados, fugas de PHI, y problemas de UX/accesibilidad/móvil (touch targets, contraste, foco, color como único indicador de riesgo).`
 
 // ── Dimensiones TRANSVERSALES (además del inventario) ───────────────────────
@@ -105,10 +106,10 @@ const CROSSCUTTING = [
 // ── FASE 0 — Inventario COMPLETO ────────────────────────────────────────────
 phase('Inventario')
 const inv = await agent(
-  `${base}\nMapea TODA la app con grep/find. Devuelve listas EXHAUSTIVAS (no muestrees, lista TODO):\n- rutasApi: cada archivo src/app/api/**/route.ts (ruta relativa al repo)\n- motores: cada motor clínico determinista exportado en src/lib/uci/*, src/lib/expediente/*, src/lib/hospital/* (formato "nombreFuncion — archivo")\n- areas: cada área/módulo de producto bajo src/app/(dashboard)/* y flujos públicos (agenda, citas, calendario, consulta, expediente, hospitalización, panel UCI, farmacia, finanzas, corte-caja, laboratorio, CRM, reseñas, configuración, equipo, superadmin, portal del paciente, teleconsulta, etc.)\n- colecciones: colecciones/subcolecciones Firestore que aparezcan en firestore.rules\nIncluye un string "conteos" con cuántos de cada uno.`,
+  `${base}\nMapea TODA la app con grep/find. Devuelve listas EXHAUSTIVAS (no muestrees, lista TODO):\n- rutasApi: cada archivo src/app/api/**/route.ts (ruta relativa al repo)\n- archivosMotor: cada ARCHIVO (no función) con lógica clínica determinista en src/lib/uci/*, src/lib/expediente/**, src/lib/hospital/* (ruta relativa; un auditor cubrirá TODO el archivo)\n- areas: cada área/módulo de producto bajo src/app/(dashboard)/* y flujos públicos\n- colecciones: colecciones/subcolecciones Firestore en firestore.rules\nIncluye un string "conteos".`,
   { label: 'inventario', phase: 'Inventario', schema: INVENTARIO_SCHEMA },
 )
-log(`Inventario: ${inv?.rutasApi?.length ?? 0} rutas API · ${inv?.motores?.length ?? 0} motores · ${inv?.areas?.length ?? 0} áreas`)
+log(`Inventario: ${inv?.rutasApi?.length ?? 0} rutas API · ${inv?.archivosMotor?.length ?? 0} archivos-motor · ${inv?.areas?.length ?? 0} áreas`)
 
 // ── FASE 1 — Baseline ───────────────────────────────────────────────────────
 phase('Baseline')
@@ -118,29 +119,37 @@ const baseline = await agent(
 )
 log(`Baseline → tsc:${baseline?.tsc} vitest:${baseline?.vitest} build:${baseline?.build}`)
 
-// ── FASE 2 — Construir la lista COMPLETA de unidades a auditar ───────────────
+// ── FASE 2 — Construir la lista de unidades (por ARCHIVO/ruta/área, no función) ─
 const unidades = [
   ...(inv?.rutasApi ?? []).map((r) => ({ tipo: 'api', id: r, prompt: promptApi(r) })),
-  ...(inv?.motores ?? []).map((m) => ({ tipo: 'motor', id: m, prompt: promptMotor(m) })),
+  ...(inv?.archivosMotor ?? []).map((f) => ({ tipo: 'motor', id: f, prompt: promptArchivoMotor(f) })),
   ...(inv?.areas ?? []).map((a) => ({ tipo: 'area', id: a, prompt: promptArea(a) })),
   ...CROSSCUTTING.map((c) => ({ tipo: 'transversal', id: c.id, prompt: c.prompt })),
 ]
-log(`Auditando ${unidades.length} unidades (cada una con verificación adversarial de sus hallazgos)…`)
+log(`Auditando ${unidades.length} unidades…`)
 
-// ── FASE 2+3 — Auditar CADA unidad, verificar cada hallazgo (pipeline) ───────
-const porUnidad = await pipeline(
-  unidades,
-  (u) => agent(u.prompt, { label: `audit:${u.id}`, phase: 'Auditoría', schema: FINDINGS_SCHEMA }),
-  (rev, u) => parallel((rev?.findings ?? []).map((f) => () =>
-    agent(
-      `${base}\nVERIFICACIÓN ADVERSARIAL. Intenta REFUTAR este hallazgo leyendo el código real. Si tras revisarlo NO puedes confirmar que es un fallo real y explotable, marca real=false. Default a false si dudas (evita falsos positivos). Unidad ${u.id}. Hallazgo: ${JSON.stringify(f)}`,
-      { label: `verify:${u.id}`, phase: 'Verificación', schema: VERDICT_SCHEMA },
-    ).then((v) => ({ ...f, unidad: u.id, tipo: u.tipo, verdict: v })).catch(() => null),
-  )),
-)
+// ── FASE 2 — Auditar cada unidad (barrera: reunir TODOS los hallazgos) ────────
+const auditorias = await parallel(unidades.map((u) => () =>
+  agent(u.prompt, { label: `audit:${u.id}`, phase: 'Auditoría', schema: FINDINGS_SCHEMA })
+    .then((r) => ({ u, findings: r?.findings ?? [] })).catch(() => ({ u, findings: [] }))))
 
-const confirmados = porUnidad.flat().filter(Boolean).filter((f) => f?.verdict?.real)
-log(`Hallazgos confirmados: ${confirmados.length} de ${porUnidad.flat().filter(Boolean).length} reportados`)
+// ── FASE 3 — Verificar SOLO los P0/P1 (los P2/P3 no gastan verificadores),
+// con TOPE DURO de 80 para no acercarse al límite de agentes ─────────────────
+const criticos = auditorias.filter(Boolean)
+  .flatMap(({ u, findings }) => findings.filter((f) => f.severidad === 'P0' || f.severidad === 'P1').map((f) => ({ ...f, unidad: u.id, tipo: u.tipo })))
+  .slice(0, 80)
+const p2p3 = auditorias.filter(Boolean)
+  .flatMap(({ u, findings }) => findings.filter((f) => f.severidad === 'P2' || f.severidad === 'P3').map((f) => ({ ...f, unidad: u.id, tipo: u.tipo })))
+log(`Reportados P0/P1: ${criticos.length} (a verificar) · P2/P3: ${p2p3.length} (sin verificar)`)
+
+const verificados = await parallel(criticos.map((f) => () =>
+  agent(
+    `${base}\nVERIFICACIÓN ADVERSARIAL. Intenta REFUTAR este hallazgo leyendo el código real. Si tras revisarlo NO puedes confirmar que es un fallo real y explotable, marca real=false. Default a false si dudas. Hallazgo (${f.unidad}): ${JSON.stringify(f)}`,
+    { label: `verify:${f.unidad}`, phase: 'Verificación', schema: VERDICT_SCHEMA },
+  ).then((v) => ({ ...f, verdict: v })).catch(() => null)))
+
+const confirmados = verificados.filter(Boolean).filter((f) => f?.verdict?.real)
+log(`P0/P1 confirmados: ${confirmados.length} de ${criticos.length}`)
 
 // ── FASE 4 — Síntesis ───────────────────────────────────────────────────────
 phase('Síntesis')
@@ -164,4 +173,5 @@ return {
   informe,
   completitud,
   hallazgos: confirmados,
+  p2p3SinVerificar: p2p3.length,
 }
