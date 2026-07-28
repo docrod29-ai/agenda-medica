@@ -129,7 +129,7 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     unidades: 'peso kg (conversión explícita lb→kg; hard-stop si sospecha de unidad)',
     redondeo: '1 decimal; aplica topes mg/kg/día, mg/kg/dosis, tope absoluto/día — a porToma y porDía',
     file: 'src/lib/expediente/pediatria.ts',
-    goldenTests: ['clinical-safety-harness.test.ts (aminoglucósidos + invariante porToma≤porDía)', 'pediatria.test.ts', 'peso-pediatrico-seguridad.test.ts', 'seguridad-dosis.test.ts'],
+    goldenTests: ['clinical-safety-harness.test.ts (aminoglucósidos + invariante porToma≤porDía)', 'pediatria.test.ts', 'peso-pediatrico-seguridad.test.ts', 'seguridad-dosis.test.ts', 'dosis-invariantes-property.test.ts (invariantes property-based sobre TODO el catálogo × pesos × edades)'],
     estado: 'validado',
   },
   {

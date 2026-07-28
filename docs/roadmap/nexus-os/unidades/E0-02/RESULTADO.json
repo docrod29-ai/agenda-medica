@@ -1,0 +1,124 @@
+{
+  "id": "E0-02",
+  "etapa": "E0",
+  "titulo": "Invariantes property-based de dosis pediátrica y aminoglucósidos",
+  "estado": "necesita_validacion",
+  "fecha": "2026-07-28T20:24:18Z",
+  "porQueNoEstaCompletada": "Todo lo que es software puro está implementado, verde y en CI. Lo que NO se puede cerrar sin el médico dueño es P6: los dos catálogos de dosis (FARMACOS_PED y CATALOGO de seguridad/dosis.ts) se contradicen en el techo POR TOMA de amoxicilina, y elegir cuál manda es criterio clínico. Se dejó el hueco explícito y VERSIONADO (INCOHERENCIAS_CONOCIDAS) en vez de inventar un valor por defecto. Regla 1 de la carta operativa.",
+  "aceptacion": {
+    "criterio": "Ningún fármaco del catálogo puede producir dosis/toma por encima de su tope.",
+    "cumplido": true,
+    "evidencia": "src/__tests__/dosis-invariantes-property.test.ts → bloque 'E0-02 · P2 — ACEPTACIÓN'. 25 fármacos × 250 pesos (0.5–120 kg) × 11 edades (incluye 'sin edad capturada') ≈ 68 750 evaluaciones: 0 violaciones de topeDosis, topeDia y topeMgKgDia.",
+    "matiz": "El criterio YA se cumplía antes de esta unidad (barrido exhaustivo previo: 0 violaciones). E0-02 no repara nada: convierte el hecho en un invariante permanente y FAIL-CLOSED que no se pueda romper en silencio al agregar el fármaco nº 26."
+  },
+  "pruebaDeQueElTestSirve": "Un invariante verde contra un motor sano no prueba nada, así que la propiedad de aceptación se parametrizó con la calculadora INYECTADA y se añadieron dos motores MUTANTES permanentes (no un experimento de una sola vez): (1) 'motorConBugREG018' reproduce el bug histórico exacto — topeMgKgDia recorta el total del día pero NO la dosis por toma — y la propiedad falla señalando Amikacina/Gentamicina; (2) 'motorQueIgnoraTopeDosis' emite la dosis cruda por toma y la propiedad falla con 'supera topeDosis'. Ambos casos son tests que se ejecutan en cada corrida de CI.",
+  "alcance": {
+    "implementado": [
+      "Arnés property-based propio y determinista (PRNG con semilla, mallas, contraejemplo legible). NO se agregó fast-check: una suite clínica que dependa de Math.random produce fallos irreproducibles, y el repo ya resuelve esto con mallas deterministas.",
+      "P0 — el arnés mismo es determinista y reproducible (misma semilla ⇒ misma malla; paraTodo reporta el caso exacto).",
+      "P1 — forma del catálogo pediátrico, fail-closed: nombre único, unidad dentro de ['mg','mg de TMP'], ≥1 tope declarado, exactamente una base de dosificación (mgKgDosis XOR mgKgDia), rango ordenado y finito, tomas ≥ 1, dosisMinima ≤ topeDosis, topeDosis ≤ topeDia, edadMinimaMeses ≥ 0.",
+      "P2 — ACEPTACIÓN sobre toda la malla + los dos motores mutantes.",
+      "P3 — monotonía en peso (porToma.max y porDia.max no decrecen al subir el peso) y peso no positivo ⇒ null, nunca un 0 usable.",
+      "P4 — la contraindicación por edad DOMINA: por debajo de la edad mínima siempre contraindicado, dosis 0/0 y motivo visible, a cualquier peso; y por encima NO se marca contraindicado (la guarda no se pasa de frenada).",
+      "P5 — verificador adulto: extraerMg de texto solo-volumen (mL/cc) ⇒ null en toda la malla; fármaco fuera del catálogo ⇒ SIEMPRE 'sin_referencia'; dosis > maxTomaMg ⇒ siempre crítica; dosis × tomas > maxDiaMg ⇒ siempre 'sobre_maximo_diario'; en el techo exacto NO alerta; CATALOGO internamente coherente.",
+      "P6 — coherencia entre los dos motores, con la contradicción conocida acotada en una lista nominal y versionada, más P6-bis (la lista no se pudre: si la contradicción desaparece, el test exige quitar la entrada).",
+      "Refactor puro en pediatria.ts: se extrajo y exportó tomasDiaDe(f) (era la expresión inline del cálculo) y se exportó tomasPorIntervalo. El test necesita las tomas/día REALES del motor: re-implementarlas en el test haría que el test coincidiera con cualquier bug del motor."
+    ],
+    "fueraDeAlcance": [
+      "Elegir el techo por toma de amoxicilina (pregunta 1) — criterio clínico.",
+      "Cambiar la dirección del redondeo del motor al tocar un tope (pregunta 2) — es un cambio de comportamiento del motor de dosis, no un test.",
+      "Ampliar el CATALOGO adulto con los 20 fármacos que faltan (pregunta 3) — requiere maxTomaMg/maxDiaMg aportados por el médico; no se derivan de las cifras pediátricas.",
+      "clinical-safety-harness.test.ts NO se tocó: su bloque REG-018 está citado por el ledger y por el registry. El archivo nuevo lo amplía, no lo sustituye.",
+      ".github/workflows/ci.yml NO se tocó: 'npx vitest run' ya recoge el archivo nuevo."
+    ]
+  },
+  "archivosTocados": [
+    "src/__tests__/_harness/property.ts (NUEVO — arnés; no es *.test.ts, así que vitest.config.ts no lo ejecuta como suite y nada de src/lib ni de la app lo importa: no entra al bundle)",
+    "src/__tests__/dosis-invariantes-property.test.ts (NUEVO — 36 casos: P0–P6 + refactor puro)",
+    "src/lib/expediente/pediatria.ts (MODIFICADO — refactor puro: export tomasDiaDe + export de tomasPorIntervalo; cero cambio de comportamiento)",
+    "src/lib/clinical/registry.ts (MODIFICADO — goldenTests del motor 'dosis-pediatrica')",
+    "docs/clinical-decisions/dosis-pediatrica.md (MODIFICADO — ADR: invariantes nuevos, tolerancia de redondeo declarada, huecos NEEDS_CLINICAL_REVIEW)",
+    "docs/audit/regression-ledger.md (MODIFICADO — REG-013 y REG-018 citan también el test property-based; REG-041/042/043 abiertos como NEEDS_CLINICAL_REVIEW)"
+  ],
+  "testsAgregados": [
+    "src/__tests__/dosis-invariantes-property.test.ts (36 casos)"
+  ],
+  "gates": {
+    "tsc": "PASS",
+    "vitest": "PASS",
+    "testsPasan": 1947,
+    "testFiles": 172,
+    "build": "PASS",
+    "antes": "1911 tests / 171 archivos (E0-01)"
+  },
+  "hallazgosDelBarrido": {
+    "correccionAlDiseno": "El DISENO.md decía que amoxicilina choca con el catálogo adulto 'desde ~33.3 kg'. Medido: el choque empieza en ≈22.3 kg (porToma.max = 45 × peso cruza los 1000 mg de maxTomaMg ahí). Los 33.4 kg son donde topeDia (3000 en 2 tomas) la ESTABILIZA en 1500 mg/toma. La pregunta clínica es la misma; el peso a partir del cual aparece es 11 kg menor de lo documentado. Anclado como test.",
+    "correccionAlDiseno2": "El DISENO.md decía '22 de 25 fármacos pediátricos sin referencia adulta'. Medido: son 20 de 25. buscarFarmaco SÍ reconoce Paracetamol, Ibuprofeno, Amoxicilina, Amoxicilina-clavulanato (por subcadena del componente) y Omeprazol. El conteo 20 quedó anclado en un test fail-closed suave.",
+    "correccionAlDiseno3": "El DISENO.md §7.3 proponía comprobar la detección bajando topeMgKgDia de Amikacina a 10. Eso NO habría fallado: el motor APLICA el tope que declara el catálogo, así que bajarlo solo baja la dosis y el invariante sigue verde. Se sustituyó por motores mutantes que rompen la RELACIÓN motor↔catálogo, que es lo que la propiedad afirma.",
+    "falsosPositivosDeRedondeo": "Sin descontar el presupuesto de redondeo, P6 marcaba también Paracetamol @1.85 kg (15.0 mg/kg) e Ibuprofeno @2.61 kg (10.0 mg/kg) como contradicciones. No lo son: están EXACTAMENTE en el techo y el 'exceso' es la aritmética de redondear a 1 decimal (y ruido de coma flotante). Se descuenta TOL_REDONDEO antes de verificar, así P6 habla de contradicciones de CATÁLOGO y no de redondeo. Documentado en el propio test.",
+    "monotonia": "0 violaciones de monotonía en peso en toda la malla (25 fármacos × 250 pesos × 11 edades).",
+    "overshootMaximoMedido": "0.1 mg/día (Metronidazol @66.7 kg: 666.7 × 3 = 2000.1 contra topeDia 2000). En porDia el máximo es 0.05 mg (Amikacina @83.69 kg: 1255.4 contra 1255.35)."
+  },
+  "decisiones": {
+    "D1": {
+      "pregunta": "¿Se agrega fast-check para las propiedades?",
+      "resuelta": true,
+      "eleccion": "No",
+      "motivo": "El repo ya resuelve esto con mallas deterministas (bloque PROPERTY-BASED de clinical-safety-harness.test.ts) y una suite clínica que dependa de Math.random produce fallos que no se pueden reproducir. Se implementó un arnés propio con PRNG sembrado; el shrinking se sustituye por reportar el caso exacto, que es reproducible a mano."
+    },
+    "D2": {
+      "pregunta": "¿Cómo se comprueba que el invariante DETECTA una regresión sin dejar el repo roto?",
+      "resuelta": true,
+      "eleccion": "Motores mutantes permanentes, no una mutación manual del catálogo",
+      "motivo": "La propiedad se parametrizó con la calculadora inyectada. Dos mutantes (bug REG-018 y tope por toma no aplicado) viven como tests permanentes: cada corrida de CI vuelve a demostrar que la propiedad tiene dientes, en vez de una comprobación de una sola vez que nadie repite."
+    },
+    "D3": {
+      "pregunta": "¿La contradicción amoxicilina se resuelve eligiendo un techo?",
+      "resuelta": false,
+      "paraQuien": "médico dueño",
+      "nota": "NO se eligió ninguno. Quedó en INCOHERENCIAS_CONOCIDAS: nominal, versionada y con la pregunta citada en el código. El CI no se cae por lo ya conocido, una contradicción NUEVA sí lo tumba, y P6-bis obliga a limpiar la excepción en cuanto el médico decida."
+    },
+    "D4": {
+      "pregunta": "¿P1 debe exigir restriccionEdad a todo fármaco con edadMinimaMeses?",
+      "resuelta": true,
+      "eleccion": "Solo si edadMinimaMeses > 0",
+      "motivo": "'Gentamicina neonatal (≤7 días)' declara edadMinimaMeses: 0, que es inerte (nunca hay edad < 0): es una marca informativa, no un bloqueo. Exigirle texto de restricción habría sido una falla inventada. Documentado en el test."
+    }
+  },
+  "necesitaValidacionClinica": true,
+  "preguntas": [
+    {
+      "id": "E0-02-Q1",
+      "titulo": "Amoxicilina — ¿qué techo POR TOMA manda?",
+      "pregunta": "FARMACOS_PED (pediatria.ts) da 45–90 mg/kg/día en 2 tomas con topeDia 3000 mg, así que emite 45 × peso mg por toma: cruza los 1000 mg desde ≈22.3 kg y se estabiliza en 1500 mg/toma desde 33.4 kg. El catálogo adulto (seguridad/dosis.ts) declara maxTomaMg 1000, por lo que revisarDosis marca esa MISMA receta como sobre_maximo_dosis (severidad crítica). ¿Cuál manda: 1000 mg por toma (habría que añadir topeDosis: 1000 a FARMACOS_PED) o 1500 mg por toma (habría que subir maxTomaMg en el catálogo adulto)? Aplica igual a Amoxicilina-clavulanato, que se dosifica por el componente amoxicilina.",
+      "porQueNoLaResuelvoYo": "Es un umbral de dosis. La carta operativa prohíbe inventar uno, y las dos cifras son defendibles: elegir cualquiera es una decisión médica, no de software.",
+      "bloquea": true,
+      "dondeQuedaMarcado": "INCOHERENCIAS_CONOCIDAS en src/__tests__/dosis-invariantes-property.test.ts (P6) + REG-041 en docs/audit/regression-ledger.md"
+    },
+    {
+      "id": "E0-02-Q2",
+      "titulo": "Dirección del redondeo al tocar un tope",
+      "pregunta": "El motor redondea a 1 decimal AL MÁS CERCANO, lo que puede dejar el total diario 0.1 mg por ENCIMA del tope (medido: Metronidazol @66.7 kg → 666.7 × 3 = 2000.1 contra topeDia 2000; Gentamicina neonatal @51.3 kg → 128.3 × 2 = 256.6 contra 256.5 mg/kg/día). ¿Acepta esa tolerancia declarada de ±0.05 mg por toma, o el motor debe redondear SIEMPRE HACIA ABAJO cuando la dosis toca un tope?",
+      "porQueNoLaResuelvoYo": "Cambiar la dirección del redondeo cambia el comportamiento del motor de dosis en producción — quedaría fuera del alcance de E0-02 y necesita su propia unidad.",
+      "bloquea": false,
+      "efectoSiDiceQueSi": "TOL_REDONDEO pasa a 0 y la propiedad se aprieta sola, sin tocar el test.",
+      "dondeQuedaMarcado": "TOL_REDONDEO en src/__tests__/dosis-invariantes-property.test.ts + REG-042 en docs/audit/regression-ledger.md"
+    },
+    {
+      "id": "E0-02-Q3",
+      "titulo": "Cobertura del catálogo adulto",
+      "pregunta": "20 de los 25 fármacos pediátricos (todos los antibióticos salvo amoxicilina, más prednisona, ondansetrón, difenhidramina, aciclovir, hierro elemental, etc.) NO existen en el CATALOGO de seguridad/dosis.ts, así que revisarDosis devuelve 'sin_referencia' y no impone ningún techo al prescribirlos a un adulto. ¿Quiere que se amplíe ese catálogo?",
+      "porQueNoLaResuelvoYo": "Requiere que usted aporte maxTomaMg/maxDiaMg por fármaco: no se derivan de las cifras pediátricas y no los voy a inventar.",
+      "bloquea": false,
+      "dondeQuedaMarcado": "Test 'la mayoría del catálogo pediátrico NO tiene techo adulto' en src/__tests__/dosis-invariantes-property.test.ts (P6) + REG-043 en docs/audit/regression-ledger.md"
+    }
+  ],
+  "riesgosVivos": [
+    "Riesgo BUSCADO: P1 y P6 son fail-closed. Agregar un fármaco con unidad nueva, sin tope declarado, o que contradiga el catálogo adulto, TUMBA el CI. Es el efecto deseado (obliga a revisión clínica explícita) y está documentado en el ADR para que no sorprenda a quien lo encuentre.",
+    "Riesgo de regresión en producción: prácticamente nulo. Lo único que cambió fuera de tests es la exportación de dos funciones puras de pediatria.ts (misma expresión, mismo resultado), ya cubiertas por pediatria.test.ts y por el bloque REG-018 de clinical-safety-harness.test.ts. No se tocó impresión, PDF, firma, cobros, PHI ni reglas de Firestore.",
+    "Coste en CI: ~110 ms para las ~68 750 evaluaciones. No frena la suite."
+  ],
+  "noDesplegado": true,
+  "sinPush": true,
+  "commitSugerido": "test(nexus-os E0-02): invariantes property-based de dosis pediátrica (REG-013/REG-018) + huecos NEEDS_CLINICAL_REVIEW"
+}

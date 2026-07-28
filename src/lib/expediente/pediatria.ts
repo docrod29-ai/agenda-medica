@@ -165,7 +165,7 @@ export function calcularDosisPediatrica(f: FarmacoPed, pesoKg: number, edadMeses
   }
 
   /** Cuántas veces al día se administra realmente. */
-  const tomasDia = f.mgKgDosis ? tomasPorIntervalo(f.intervalo) : (f.tomas ?? 1)
+  const tomasDia = tomasDiaDe(f)
 
   let minToma: number, maxToma: number
   if (f.mgKgDosis) {
@@ -231,11 +231,23 @@ export function calcularDosisPediatrica(f: FarmacoPed, pesoKg: number, edadMeses
 }
 
 /**
+ * Tomas al día que el motor aplica REALMENTE a un fármaco. Función pura; era la
+ * expresión inline de `calcularDosisPediatrica`. Se EXPORTA para que el arnés de
+ * invariantes (`src/__tests__/dosis-invariantes-property.test.ts`) compruebe
+ * `porToma × tomas ≤ tope` con las mismas tomas que usó el motor: re-implementarlas
+ * en el test haría que el test coincidiera con cualquier bug del motor.
+ * Cero cambio de comportamiento.
+ */
+export function tomasDiaDe(f: FarmacoPed): number {
+  return f.mgKgDosis ? tomasPorIntervalo(f.intervalo) : (f.tomas ?? 1)
+}
+
+/**
  * Tomas al día implícitas en el texto del intervalo. Distingue la unidad: sin
  * esto, "c/20 min (crisis)" se leía como cada 20 HORAS y devolvía una toma al
  * día para un broncodilatador que se repite cada 20 minutos.
  */
-function tomasPorIntervalo(intervalo: string): number {
+export function tomasPorIntervalo(intervalo: string): number {
   const min = intervalo.match(/c\/(\d+)\s*min/i)
   if (min) return Math.max(1, Math.round(1440 / Number(min[1])))
   const h = intervalo.match(/c\/(\d+)/)
