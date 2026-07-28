@@ -1,7 +1,7 @@
 {
   "version": 1,
   "descripcion": "ESTADO DURABLE del programa Nexus OS. Fuente de verdad del avance. Los agentes lo actualizan tras CADA unidad terminada. Si se acaban los créditos, este archivo dice exactamente dónde retomar sin perder nada.",
-  "actualizado": "2026-07-28T21:49:59Z",
+  "actualizado": "2026-07-28T22:15:15Z",
   "runs": [
     {
       "unidad": "E0-01",
@@ -26,22 +26,25 @@
       }
     }
   ],
-  "unidadEnCurso": null,
+  "unidadEnCurso": "E0-03",
   "completadas": [
     "E0-01",
     "E0-02"
   ],
   "reconciliacionDisco": {
-    "fecha": "2026-07-28T21:49:59Z",
+    "fecha": "2026-07-28T22:15:15Z",
     "criterio": "La existencia de unidades/<ID>/RESULTADO.json es la prueba de que la unidad está hecha; manda sobre estado.json.",
     "conRESULTADO": [
       "E0-01",
       "E0-02"
     ],
     "sinRESULTADO": [
-      "E0-03 (sólo DISENO.md)"
+      "E0-03 (sólo DISENO.md)",
+      "E0-04 (carpeta vacía)",
+      "E0-09 (sólo DISENO.md)"
     ],
-    "correccion": "E0-02 tenía RESULTADO.json en disco pero NO figuraba en completadas. Se añadió. Su RESULTADO.json declara estado 'necesita_validacion': el TRABAJO DE SOFTWARE está terminado y verde (1947 tests, tsc/vitest/build PASS) y no queda nada que yo pueda hacer sin el criterio clínico del Dr.; lo pendiente (E0-02-Q1, techo por toma de amoxicilina) es una DECISIÓN MÉDICA, no más código. Sigue listada en necesitaValidacionDelDr para que no se pierda.",
+    "correccion": "SIN CORRECCIÓN NECESARIA en esta pasada: el disco (unidades/E0-01/RESULTADO.json y unidades/E0-02/RESULTADO.json, únicos RESULTADO.json del árbol) coincide exactamente con completadas. Se dejan constancia dos matices que NO cambian el conteo: (1) el RESULTADO.json de E0-02 sigue diciendo estado 'necesita_validacion' porque se escribió antes de que el Dr. resolviera Q1 y Q2 — hoy E0-02 está CERRADA por decisión suya y sólo queda Q3 (catálogo adulto) como REG-043, que no bloquea; (2) E0-03 y E0-09 ya tienen DISENO.md escrito de una pasada anterior, pero SIN RESULTADO.json siguen contando como pendientes, y E0-04 tiene la carpeta creada y vacía.",
+    "correccionPrevia": "2026-07-28T21:49:59Z — E0-02 tenía RESULTADO.json en disco pero NO figuraba en completadas. Se añadió.",
     "totalUnidades": 68,
     "pendientes": 66
   },
@@ -80,6 +83,8 @@
     "2026-07-28T21:49:59Z — Reconciliación contra disco: completadas = E0-01 y E0-02 (ambas con RESULTADO.json). 2 de 68 hechas, 66 pendientes. Siguientes 3 elegibles seleccionadas: E0-03 (bajo), E0-04 (medio), E0-09 (medio). Alterna equivalente: E0-10 (medio, CSP enforce) — se pospuso porque su aceptación exige observar reportes en producción y la carta operativa prohíbe desplegar.",
     "2026-07-28T21:49:59Z — E0-11 (Clinical Safety CI gate) queda a UNA unidad de distancia: depende de E0-02 (ya hecha) y E0-03. En cuanto cierre E0-03, E0-11 se vuelve elegible y es de riesgo bajo.",
     "2026-07-28T21:49:59Z — El resto de E0 sin dependencias (E0-06, E0-12, E0-13, E0-14, E0-15) es de riesgo ALTO: toca reglas de Firestore/PHI, migración de hashes de firma, cobros Stripe y el motor de antibiograma (este último además con validacionClinica). Por la regla de preferir bajo/medio, no se eligieron todavía; varias deberán entregarse como PLAN para decisión del Dr. antes de ejecutarse.",
-    "E0-02 CERRADA 2026-07-28: el Dr. resolvió Q1 (modelo de 3 niveles para amoxicilina) y Q2 (redondeo hacia abajo al tocar un tope). Q3 (catalogo adulto) sigue abierta como REG-043: aprobo ampliarlo pero aporta el la tabla despues."
+    "E0-02 CERRADA 2026-07-28: el Dr. resolvió Q1 (modelo de 3 niveles para amoxicilina) y Q2 (redondeo hacia abajo al tocar un tope). Q3 (catalogo adulto) sigue abierta como REG-043: aprobo ampliarlo pero aporta el la tabla despues.",
+    "2026-07-28T22:15:15Z — Reconciliación contra disco (2ª pasada): sin cambios. Únicos RESULTADO.json del árbol = E0-01 y E0-02. Completadas 2 de 68; pendientes 66. Selección de las siguientes 3 elegibles, sin cambio respecto a la pasada anterior porque ninguna se ejecutó: E0-03 (riesgo bajo, sin dependencias, DISENO.md ya escrito), E0-04 (medio, sin dependencias, es el desbloqueador de E0-05/E1-01/E4-01) y E0-09 (medio, sin dependencias, DISENO.md ya escrito). E0-11 sigue a una unidad de distancia: en cuanto cierre E0-03 queda elegible y es de riesgo bajo.",
+    "2026-07-28T22:15:15Z — E0-10 (CSP enforce + Playwright) queda descartada de nuevo pese a ser elegible y de riesgo medio: su aceptación exige observar reportes CSP en PRODUCCIÓN antes de pasar a enforce, y la carta operativa prohíbe desplegar. Se reevaluará si el Dr. autoriza la observación en prod. El resto de E0 sin dependencias (E0-06, E0-12, E0-13, E0-14, E0-15) es de riesgo ALTO — reglas de Firestore/PHI, migración de hashes de firma, webhook de cobros Stripe y motor de antibiograma (éste además con validacionClinica) — y varias deberán entregarse como PLAN para decisión del Dr. antes de ejecutarse."
   ]
 }

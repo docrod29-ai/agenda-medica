@@ -152,7 +152,7 @@ corregir: ['medico', 'admin', 'enfermeria'],   // ← ver §6, pregunta Q2
 
 ### 4.5 Qué NO entra (y por qué)
 
-- **Migrar `indicaciones[].administraciones[]` a subcolección.** Es la solución "bonita", y es exactamente lo que la carta operativa manda no ejecutar a ciegas: toca censo, ficha, NEWS2, conciliación, export FHIR (`fhir-export.ts:302-390`) y el prompt de IA. Con este diseño **el registro legal ya es append-only y verificado por reglas**; el array queda como caché. Si el Dr. quiere la migración, es su propia unidad con su plan de doble escritura y backfill.
+- **Migrar `indicaciones[].administraciones[]` a subcolección.** Es la solución "bonita", y es exactamente lo que la carta operativa manda no ejecutar a ciegas: toca censo, ficha, NEWS2, conciliación, export FHIR (`src/lib/fhir-export.ts:302-390`) y el prompt de IA. Con este diseño **el registro legal ya es append-only y verificado por reglas**; el array queda como caché. Si el Dr. quiere la migración, es su propia unidad con su plan de doble escritura y backfill.
 - **Persistir `ICUObservation`.** No existe capa de almacenamiento y no la pide esta unidad; es del loop `nexusmed-icu-00X`. Los eventos de UCI que **sí** se persisten hoy (signos, escalas, balance, administraciones, nota `evolucion_uci`) quedan cubiertos.
 - **`laboratorio/{ordenId}`.** Sus resultados ya conservan historial por código (`firestore.ts:305`), pero sus reglas permiten `update`/`delete` a `isLabStaff` (`firestore.rules:262`). Es el mismo defecto de fondo; **no es "MAR, órdenes ni UCI"** y cerrarlo rompería la carga de resultados. Se **documenta como REG-046 candidato**, no se toca aquí.
 
@@ -180,7 +180,7 @@ corregir: ['medico', 'admin', 'enfermeria'],   // ← ver §6, pregunta Q2
 El **entregable (a) — reglas append-only — no depende de ninguna de estas respuestas** y puede implementarse tal cual. Los entregables (b) UI y su proyección **sí**: son política de expediente y de seguridad clínica, no umbrales que yo pueda deducir del código.
 
 - **Q1 — ¿Un signo vital corregido/anulado debe seguir alimentando NEWS2 y el export FHIR?**
-  Hoy NEWS2 usa `signos[signos.length - 1]` sin filtrar (`page.tsx:190-193`) y FHIR exporta el arreglo completo (`fhir-export.ts:382`). Las dos salidas son peligrosas en direcciones opuestas: si una SpO₂ mal capturada de 80 % permanece, se dispara una alerta falsa y la alerta ya se crea en el momento de capturar (`page.tsx:1085`); si se oculta un valor que en realidad era correcto, se **esconde** un deterioro real. Necesito la política, no una corazonada.
+  Hoy NEWS2 usa `signos[signos.length - 1]` sin filtrar (`page.tsx:190-193`) y FHIR exporta el arreglo completo (`src/lib/fhir-export.ts:382`). Las dos salidas son peligrosas en direcciones opuestas: si una SpO₂ mal capturada de 80 % permanece, se dispara una alerta falsa y la alerta ya se crea en el momento de capturar (`page.tsx:1085`); si se oculta un valor que en realidad era correcto, se **esconde** un deterioro real. Necesito la política, no una corazonada.
 - **Q2 — ¿Quién puede corregir, y con qué alcance?** ¿Sólo el autor del registro; cualquier enfermería del turno; sólo el médico tratante? ¿Enfermería puede anular una **administración** de medicamento, o eso queda reservado al médico? (Hoy `administrar` lo puede hacer `enfermeria` — `mutar/route.ts:33`.) Afecta directo al `GATES` de `corregir` propuesto en §4.3.
 - **Q3 — ¿Hay ventana de tiempo para corregir?** ¿Se puede corregir un evento de hace 5 días, o de un episodio **ya egresado**? (`administrar` exige episodio activo — `mutar/route.ts:104`; para `corregir` no hay precedente en el repo.)
 - **Q4 — ¿La corrección exige motivo escrito obligatorio?** Lo propongo obligatorio por NOM-004, pero es decisión del dueño del expediente: encarece cada corrección y, si estorba, la gente deja de corregir y el registro se degrada.
@@ -200,3 +200,34 @@ No inventé respuesta para ninguna. Mientras no estén, se implementa §4.2 (reg
 | Test `hospital-registro-durable.test.ts:24` | **Ninguno** en producción | El caso "`administrar` → `null`" deja de ser cierto **a propósito**; se reescribe y se anota en el ledger para que no parezca un test aflojado. |
 
 **Modo de fallo peor imaginable de este diseño:** que el equipo confíe en que "el MAR es append-only por reglas" cuando lo append-only por reglas es el **libro `registros`**, no el array del doc. Por eso el comentario de `firestore.rules` y el encabezado de `registro-durable.ts` deben decirlo con todas sus letras, y por eso H1 queda inscrito en el ledger como **REG-044 (abierto)** hasta que exista la migración.
+
+## 8. Re-verificación contra el código real — 2026-07-28
+
+Este DISEÑO se escribió en una pasada anterior. Antes de darlo por bueno se re-leyó **cada** archivo citado. Resultado: **todas las afirmaciones se sostienen**, con **una** corrección de ruta.
+
+| Afirmación del diseño | Verificación de hoy |
+|---|---|
+| `internamientos` cerrado al cliente | ✅ `firestore.rules:234` — `allow create, update, delete: if false;` |
+| `signos` permite `update` desde el cliente (H2) | ✅ `firestore.rules:240` — `allow read, create, update: if isClinicoHospital(clinicId);` y `:241` `allow delete: if false;` |
+| El botón "Borrar registro mal capturado" está ROTO | ✅ `hospitalizacion/[internamientoId]/page.tsx:579` llama `borrarSignos` → `src/lib/hospital/firestore.ts:219` hace `deleteDoc` contra `firestore.rules:241` (`if false`). **Único** llamador (grep). |
+| Nadie hace `updateDoc` sobre `signos` | ✅ grep en `src/lib/hospital/firestore.ts`: sobre `signosCol` sólo `addDoc` (`:195`), `getDocs` (`:213`), `onSnapshot` (`:84`) y ese `deleteDoc` (`:219`). Cerrar `update` no rompe nada. |
+| `registroDurable` cubre sólo balance/escala/sbar | ✅ `src/lib/hospital/registro-durable.ts:19-22`; `default: return null`. |
+| El test afirma `administrar → null` | ✅ `src/__tests__/hospital-registro-durable.test.ts:24` (y `:25-26` para `crear`/`indicacion_agregar`). |
+| El `tx.set(...registros...)` ya existe | ✅ `mutar/route.ts:262-263`, dentro de la transacción, tras `tx.update(ref, …)` de `:259`. |
+| Autor y hora sellados por el servidor | ✅ `mutar/route.ts:114-116` (`por: actor.nombre`, `porUid`, `fecha: now`) y `:254-258` (actor desde el correo verificado). |
+| Los arrays caché están topados y el MAR no | ✅ `.slice(-100)` en `:168`/`:170`, `.slice(-50)` en `:172`; `administraciones` (`:118`) **sin tope**. |
+| Guardas de inmutabilidad del MAR ya vigentes | ✅ `mutar/route.ts:74` y `:79` (bloquean editar/borrar indicación ya administrada), `:104-111` (episodio + indicación activos). |
+| El molde "append + corrección" ya existe | ✅ `firestore.rules:187-199` (`versions` y `adendas`, ambos `allow update, delete: if false;`). |
+| No hay `match /registros/{…}` | ✅ ausente; cae en el catch-all `firestore.rules:620-622`. |
+| El guardián de reglas es estático y por regex | ✅ `src/__tests__/firestore-rules-guard.test.ts:12-13` lee `firestore.rules` y quita comentarios antes de afirmar. |
+| No hay emulador en el repo | ✅ `package.json` y `firebase.json` no mencionan `@firebase/rules-unit-testing`, `firebase-tools` ni `emulators`. La aceptación conductual sigue siendo de **E0-08**. |
+| `ICUObservation` sin capa de almacenamiento | ✅ sólo 2 referencias, ambas en `src/types/uci.ts` (`:62` definición, `:107` `esUsableParaCalculo`). Cero consumidores. |
+| El panel de UCI no persiste eventos propios | ✅ `uci/page.tsx` no tiene `addDoc`/`setDoc`/`mutar(`; su única salida es el `router.push` a `?tipo=evolucion_uci` (`:320`). |
+| NEWS2 usa el último signo sin filtrar | ✅ `page.tsx:190` — `signos[signos.length - 1]`; la alerta se dispara al capturar (`:1086`). |
+| `RegistroSignos` no tiene campos de corrección | ✅ `src/types/hospital.ts:146-165`: no existen `corrigeA` ni `motivoCorreccion`. Añadirlos como opcionales no invalida documentos ya guardados. |
+| Tope de `getSignos` = 200 | ✅ `src/lib/hospital/firestore.ts:210` (`TOPE_SIGNOS = 200`), `:213`. |
+| Último id del ledger = REG-043 | ✅ `docs/audit/regression-ledger.md`. REG-044 y REG-045 siguen libres. |
+
+**Corrección aplicada:** el export FHIR está en `src/lib/fhir-export.ts` (líneas 302 y 382 correctas), **no** en `src/lib/hospital/fhir-export.ts` como decía la §4.5 y la Q1. Ya está arreglado arriba. Ningún otro dato cambió.
+
+**Conclusión:** el diseño queda **vigente y listo para implementar** en lo que no depende de decisión clínica (§4.2 reglas + tests 8-9). La UI de corrección (§4.4) y la proyección (§4.3) siguen **detenidas** a la espera de Q1-Q4 (§6). No se escribió una sola línea de código en esta pasada.

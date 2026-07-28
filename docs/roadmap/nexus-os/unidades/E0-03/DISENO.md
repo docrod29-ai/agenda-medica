@@ -1,9 +1,33 @@
 # E0-03 — Clinical Engine Registry completo + ADRs · DISEÑO
 
-> **Estado:** diseño **verificado contra el código** (2ª pasada, 2026-07-28). NO implementado. No se tocó código en esta unidad.
+> **Estado:** diseño **re-verificado contra el código** (3ª pasada, 2026-07-28). NO implementado. No se tocó código en esta unidad.
 > **Etapa:** E0 (hardening). **Riesgo declarado en backlog:** bajo. **Dependencias:** ninguna.
 
-## 0. Correcciones de la verificación (esta 2ª pasada)
+## 0-bis. Re-verificación (3ª pasada, tras E0-02)
+
+Se volvió a medir cada afirmación del diseño contra el árbol real. **El diseño se sostiene entero**; sólo hay deriva de detalle, más **un defecto pre-existente nuevo** que refuerza la unidad.
+
+**Confirmado tal cual:**
+
+- 15 motores en `CLINICAL_ENGINE_REGISTRY` (`src/lib/clinical/registry.ts:35`); `interface MotorClinico` (`:21`) sigue **sin** `rangoValido` ni `adr`.
+- **Único consumidor en todo `src/` = su propio test** (`src/__tests__/clinical-registry.test.ts:7`). Cero acoplamiento a producción ⇒ el "riesgo bajo" es medido, no optimista.
+- Número mágico intacto: `toBeGreaterThanOrEqual(15)` (`clinical-registry.test.ts:11`).
+- **Punteros rotos de §2.1 siguen rotos:** `registry.ts:139` declara `uci-ckrt.test.ts` y `:146` declara `uci-ecmo.test.ts`; **ninguno existe** en disco. Sí existe `src/__tests__/uci-soportes.test.ts`.
+- Conteo de archivos de `DIRECTORIOS_CLINICOS` (sin tests ni `.d.ts`): `uci` 19, `hospital` 10, `expediente` 70, `inmuno` 5, `clinical` 1, `seguridad` 3 ⇒ **108**, exactamente lo previsto en §4.3.
+- `src/lib/expediente` tiene los 3 subdirectorios previstos (`antibiograma/`, `laboratorio/`, `cardiometabolico/`) ⇒ **el recorrido RECURSIVO de §4.4 es obligatorio**.
+- Las 11 escalas de `CALCULADORAS[]` (`calculadoras.ts:216`–`:387`) siguen sin registrar; de ese archivo sólo `meld` figura en el registro (`registry.ts:56`).
+- CI (`.github/workflows/ci.yml:23-31`) corre `tsc --noEmit` + `npx vitest run` + `next build` en push a `main` y en cada PR ⇒ **no hay que tocar CI**.
+- Los directorios que §3.2 deja fuera existen y son pequeños (`evidencia` 3, `voz` 2, `ia` 1, `fhir` 1, `hl7` 1, `compliance` 2): ampliar el alcance después es barato.
+
+**Deriva a corregir (3 puntos):**
+
+1. **Los ADRs ya no son 4, son 5**: E0-02 añadió `docs/clinical-decisions/dosis-amoxicilina.md`. §2 debe leer 5 ADRs + `README.md`.
+2. **DEFECTO PRE-EXISTENTE NUEVO — `README.md` está desincronizado.** `docs/clinical-decisions/README.md` indexa sólo 4 (`CKD-EPI-2021`, `FIB-4`, `dosis-pediatrica`, `NEWS2`): **`dosis-amoxicilina.md` no está enlazado**. Es exactamente la podredumbre silenciosa que la **aserción 5** (§4.4) existe para cazar. Consecuencia: **hoy fallarían ya DOS aserciones del gate nuevo** (la 4 por los golden tests inexistentes, la 5 por el ADR huérfano), no una. Ambas reparaciones forman parte de esta unidad y son documentación pura.
+3. **Números de línea de `seguridad/dosis.ts` movidos por E0-02**: `CATALOGO` está ahora en **`:61`** (no `:48`) y `revisarDosis` en **`:153`** (no `:115`). `tieneAlergiaGrave` sigue en `alergias.ts:44`. El hallazgo de fondo de §4.3 (punto 1 de la 2ª pasada) **no cambia**: ninguno de los tres está registrado. *Lección operativa: los ADRs deben citar `archivo` + símbolo exportado, y usar `archivo:línea` sólo como pista — las líneas se mueven entre unidades.*
+
+Todo lo demás de §1–§8 queda vigente sin cambios.
+
+## 0. Correcciones de la verificación (2ª pasada)
 
 La 1ª pasada de este diseño tenía tres inexactitudes, medidas contra el árbol real:
 
@@ -27,7 +51,7 @@ Lo demás del diseño se confirma tal cual: 15 motores registrados, único consu
 | Tipo del registro | `src/lib/clinical/registry.ts:21` — `interface MotorClinico` | sin campo de **rango válido** y sin campo **ADR** |
 | Lookup | `src/lib/clinical/registry.ts:152` — `motorPorId` | OK, null-safe |
 | Test de integridad | `src/__tests__/clinical-registry.test.ts` | valida unicidad de id y campos no vacíos. **NO valida cobertura**: el umbral es `length >= 15` (`:11`), un número mágico que no detecta motores faltantes |
-| ADRs clínicos | `docs/clinical-decisions/` | **solo 4**: `CKD-EPI-2021.md`, `FIB-4.md`, `NEWS2.md`, `dosis-pediatrica.md` (+ `README.md` como índice) |
+| ADRs clínicos | `docs/clinical-decisions/` | **solo 5**: `CKD-EPI-2021.md`, `FIB-4.md`, `NEWS2.md`, `dosis-pediatrica.md`, `dosis-amoxicilina.md` (E0-02) (+ `README.md` como índice, que **sólo enlaza 4** — ver §0-bis punto 2) |
 | Ledger de regresiones | `docs/audit/regression-ledger.md` | existe; el registry ya lo referencia (`registry.ts:16`) |
 | CI | `.github/workflows/ci.yml` | ya corre `tsc --noEmit` + `vitest run` + `next build` en push a `main` y en cada PR ⇒ **un test nuevo en `src/__tests__/` es automáticamente un gate de CI. No hay que tocar CI.** |
 | Precedente de "test guardián" que escanea el filesystem | `src/__tests__/log-secrets-guard.test.ts:11` (`walk()` + `readFileSync`), `firestore-rules-guard.test.ts`, `claims-guard.test.ts`, `native-dialogs-guard.test.ts` | patrón ya aceptado en el repo: se reutiliza tal cual |
@@ -187,7 +211,7 @@ Seis aserciones. Las tres primeras son el criterio de aceptación; las tres últ
 2. **Antifraude de la lista de exclusión.** Un archivo en `MODULOS_NO_MOTOR` **no puede** contener `export const *_ENGINE_VERSION` / `*_VERSION` de motor, ni un export cuyo nombre empiece por `calcular|calc|score|puntaje|dosis|indice|clasificar|estratificar`. Si lo tiene, es un motor disfrazado ⇒ falla. Esto impide "resolver" el gate metiendo el motor nuevo en la lista de excluidos.
 3. **Catálogo de calculadoras.** Todo `CALCULADORAS[].id` de `expediente/calculadoras.ts` debe existir en el registro. (Import de datos puros, sin ciclo: `calculadoras.ts` no importa el registry.) Cubre el caso "motor nuevo dentro de un archivo ya clasificado".
 4. **Sin punteros rotos.** Todo `file` del registro existe; todo `file` de `MODULOS_NO_MOTOR` existe; todo `goldenTests[i]` existe bajo `src/__tests__/` (incluidos subdirectorios `nucleo/`, `evidencia/`) y cumple `/^[a-z0-9-]+\.test\.tsx?$/`. **Esta aserción, hoy, ya falla** por §2.1 — el arreglo forma parte de la unidad.
-5. **ADRs.** Todo `adr` del registro existe en disco y contiene los encabezados obligatorios (§4.6); todo `.md` de `docs/clinical-decisions/` salvo `README.md` está referenciado por alguna entrada (sin ADRs huérfanos); `README.md` enlaza todos.
+5. **ADRs.** Todo `adr` del registro existe en disco y contiene los encabezados obligatorios (§4.6); todo `.md` de `docs/clinical-decisions/` salvo `README.md` está referenciado por alguna entrada (sin ADRs huérfanos); `README.md` enlaza todos. **Esta aserción, hoy, ya falla**: `dosis-amoxicilina.md` no está indexado en `README.md` (§0-bis punto 2). Repararlo es parte de la unidad.
 6. **Rango válido.** Todo motor declara `rangoValido`; si `fuente === 'pendiente_validacion_clinica'`, `preguntaAlMedico` no puede estar vacío. El test **no** exige que ya esté resuelto — exige que la duda esté escrita. (Ver §6.)
 
 `src/__tests__/clinical-registry.test.ts` se conserva y se le quita el `>= 15`: el conteo pasa a derivarse de la cobertura, no de un número a mano.
