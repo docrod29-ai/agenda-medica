@@ -9,7 +9,7 @@ import { areaImpracticable } from '@/lib/receta-paginacion'
 import { RecetaDocumento, dimensionesImpresion, paperEfectivo, admiteHojaCarta, type RecetaData } from '@/components/RecetaDocumento'
 import { imprimirElemento } from '@/lib/print-element'
 import { resizeImageFile, formatBytes } from '@/lib/image-utils'
-import { PAPER_SIZES, ESTILOS_RECETA, detectarPaperSize, NOTA_PAPER_SIZES, type NotaPaperSize as NotaPaperSizeT } from '@/lib/receta-template'
+import { PAPER_SIZES, ESTILOS_RECETA, detectarPaperSize, NOTA_PAPER_SIZES, papelPersonalizado, PAPEL_MIN_MM, PAPEL_MAX_MM, type NotaPaperSize as NotaPaperSizeT } from '@/lib/receta-template'
 import type { RecetaConfig, PaperSize as PaperSizeT, EstiloReceta as EstiloT, Patient, Doctor as DoctorT, ClinicConfig } from '@/types'
 import { getDoctors, saveConfig } from '@/lib/firestore'
 import { subirImagen as subirImagenServidor } from '@/lib/subir-imagen'
@@ -540,7 +540,10 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
              */
             onChange={(e) => {
               const nuevo = e.target.value as PaperSizeT
-              const p = PAPER_SIZES[nuevo]
+              // En 'personalizado' manda lo que el médico ya escribió (si es usable).
+              const p = (nuevo === 'personalizado'
+                ? papelPersonalizado(rx.paperCustomWidthMm, rx.paperCustomHeightMm)
+                : null) ?? PAPER_SIZES[nuevo]
               setRx({
                 ...rx,
                 paperSize: nuevo,
@@ -553,6 +556,44 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
               <option key={k} value={k}>{PAPER_SIZES[k].label}</option>
             ))}
           </select>
+          {/* Medidas propias — para cualquier formato que no esté en la lista. */}
+          {rx.paperSize === 'personalizado' && (() => {
+            const w = rx.paperCustomWidthMm ?? 230
+            const h = rx.paperCustomHeightMm ?? 130
+            const valido = !!papelPersonalizado(w, h)
+            const set = (nw: number, nh: number) => setRx({
+              ...rx,
+              paperCustomWidthMm: nw,
+              paperCustomHeightMm: nh,
+              // Si hay diseño propio subido, se re-encaja a la medida escrita:
+              // si no, el diseño mandaría y escribir las medidas no haría nada.
+              ...(rx.disenoCompletoDataUrl && papelPersonalizado(nw, nh)
+                ? { disenoWidthMm: Math.round(nw), disenoHeightMm: Math.round(nh) }
+                : {}),
+            })
+            return (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={cfgLabel}>Ancho (mm)</div>
+                    <input type="number" min={PAPEL_MIN_MM} max={PAPEL_MAX_MM} value={w}
+                      onChange={(e) => set(Number(e.target.value), h)} style={cfgInput} />
+                  </div>
+                  <div style={{ paddingBottom: 10, color: 'var(--text3)' }}>×</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={cfgLabel}>Alto (mm)</div>
+                    <input type="number" min={PAPEL_MIN_MM} max={PAPEL_MAX_MM} value={h}
+                      onChange={(e) => set(w, Number(e.target.value))} style={cfgInput} />
+                  </div>
+                </div>
+                <div style={{ fontSize: 11, marginTop: 6, color: valido ? 'var(--text3)' : 'var(--red)' }}>
+                  {valido
+                    ? `Tu receta mide ${(w / 10).toFixed(1)} × ${(h / 10).toFixed(1)} cm. Mídela con regla, de borde a borde.`
+                    : `Medidas fuera de rango (${PAPEL_MIN_MM}–${PAPEL_MAX_MM} mm). Se usará 23 × 13 cm mientras tanto.`}
+                </div>
+              </div>
+            )
+          })()}
           <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>
             Solo para <strong>recetas y órdenes médicas</strong>.
           </div>

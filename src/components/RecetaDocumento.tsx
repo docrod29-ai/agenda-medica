@@ -24,7 +24,7 @@
  */
 import { useState, useEffect, useMemo } from 'react'
 import type { ClinicConfig, Patient, RecetaConfig } from '@/types'
-import { PAPER_SIZES } from '@/lib/receta-template'
+import { PAPER_SIZES, papelPersonalizado } from '@/lib/receta-template'
 import { paginarParaDocumento, etiquetaVia, type PaginaReceta } from '@/lib/receta-paginacion'
 import type { Medicamento } from '@/types/expediente'
 
@@ -124,6 +124,13 @@ export function paperEfectivo(recetaConfig: RecetaConfig): { widthMm: number; he
   if (recetaConfig.disenoCompletoDataUrl && recetaConfig.disenoWidthMm && recetaConfig.disenoHeightMm) {
     const w = recetaConfig.disenoWidthMm, h = recetaConfig.disenoHeightMm
     return { widthMm: w, heightMm: h, cssPage: `${w}mm ${h}mm` }
+  }
+  // Papel PERSONALIZADO: manda lo que el médico escribió. Si las medidas no son
+  // utilizables se cae al placeholder del catálogo — nunca a una hoja inválida,
+  // que saldría en blanco sin avisar.
+  if (recetaConfig.paperSize === 'personalizado') {
+    const c = papelPersonalizado(recetaConfig.paperCustomWidthMm, recetaConfig.paperCustomHeightMm)
+    if (c) return { widthMm: c.widthMm, heightMm: c.heightMm, cssPage: c.cssPage }
   }
   const p = PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta']
   return { widthMm: p.widthMm, heightMm: p.heightMm, cssPage: p.cssPage }

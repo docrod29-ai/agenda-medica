@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { PAPER_SIZES, detectarPaperSize, areaSegura, GUARDA_IMPRESION_MM, PAPEL_NOTA, papelNota, NOTA_PAPER_SIZES } from '@/lib/receta-template'
+import { PAPER_SIZES, detectarPaperSize, areaSegura, GUARDA_IMPRESION_MM, PAPEL_NOTA, papelNota, NOTA_PAPER_SIZES, papelPersonalizado, PAPEL_MIN_MM } from '@/lib/receta-template'
 import { dimensionesImpresion, paperEfectivo, admiteHojaCarta } from '@/components/RecetaDocumento'
 import type { RecetaConfig } from '@/types'
 
@@ -92,11 +92,61 @@ describe('no hay regresión en los tamaños que ya funcionaban', () => {
   })
 })
 
-/**
- * SEPARACIÓN DE AJUSTES (petición explícita del Dr.): un tamaño para cada cosa,
- * sin interferencia. La receta puede ir en forma continua de 25 × 15 cm mientras
- * la nota sigue en carta — cambiar uno no puede mover el otro.
- */
+describe('receta apaisada 230 × 130 mm (el formato del Dr.)', () => {
+  const cfg23 = { ...base, paperSize: 'receta-23x13' } as RecetaConfig
+
+  it('está en el catálogo y es apaisado', () => {
+    const p = PAPER_SIZES['receta-23x13']
+    expect(p.widthMm).toBe(230)
+    expect(p.heightMm).toBe(130)
+    expect(p.cssPage).toBe('230mm 130mm')
+  })
+
+  it('no se hospeda en carta (230 > 216) y sale a su medida', () => {
+    const d = dimensionesImpresion({ ...cfg23, imprimirEn: 'carta' } as RecetaConfig)
+    expect(d.esHostCarta).toBe(false)
+    expect(d.widthMm).toBe(230)
+    expect(d.heightMm).toBe(130)
+  })
+
+  it('se autodetecta desde un membrete de 23 × 13 en cualquier orientación', () => {
+    expect(detectarPaperSize(230, 130)).toBe('receta-23x13')
+    expect(detectarPaperSize(130, 230)).toBe('receta-23x13')
+  })
+})
+
+describe('papel PERSONALIZADO (medidas escritas por el médico)', () => {
+  const custom = (w?: number, h?: number) => ({
+    ...base, paperSize: 'personalizado', paperCustomWidthMm: w, paperCustomHeightMm: h,
+  }) as RecetaConfig
+
+  it('usa exactamente las medidas escritas', () => {
+    const p = paperEfectivo(custom(237, 127))
+    expect(p.widthMm).toBe(237)
+    expect(p.heightMm).toBe(127)
+    expect(p.cssPage).toBe('237mm 127mm')
+  })
+
+  it('una medida inválida NO produce una hoja rota (caería en blanco sin avisar)', () => {
+    for (const malo of [custom(0, 0), custom(undefined, undefined), custom(-5, 130), custom(9999, 130), custom(NaN, 130)]) {
+      const p = paperEfectivo(malo)
+      expect(p.widthMm).toBeGreaterThanOrEqual(PAPEL_MIN_MM)
+      expect(p.heightMm).toBeGreaterThanOrEqual(PAPEL_MIN_MM)
+    }
+    expect(papelPersonalizado(0, 0)).toBeNull()
+    expect(papelPersonalizado(230, undefined)).toBeNull()
+  })
+
+  it('un personalizado que SÍ cabe en carta sigue pudiendo hospedarse', () => {
+    const d = dimensionesImpresion({ ...custom(140, 100), imprimirEn: 'carta' } as RecetaConfig)
+    expect(d.esHostCarta).toBe(true)
+  })
+
+  it("'personalizado' nunca se devuelve en la autodetección", () => {
+    expect(detectarPaperSize(230, 130)).not.toBe('personalizado')
+  })
+})
+
 describe('receta y nota son ajustes independientes', () => {
   it('la nota viene en CARTA por defecto (sin configurar)', () => {
     expect(papelNota(undefined).widthMm).toBe(216)

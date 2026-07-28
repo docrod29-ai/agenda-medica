@@ -7,13 +7,20 @@
  * - oficio:       216 x 330 mm  (legal mexicano)
  * - a4:           210 x 297 mm  (internacional)
  * - a5:           148 x 210 mm  (mitad de A4)
+ * - receta-23x13: 230 x 130 mm  (APAISADO — la receta de consultorio más común
+ *                                en México, "23 × 13 cm")
  * - receta-25x15: 250 x 150 mm  (APAISADO — forma continua de matriz de puntos,
- *                                p. ej. Epson. Es MÁS ANCHO que carta, así que
- *                                nunca se puede "hospedar" en una hoja carta:
- *                                se imprime a su tamaño real, al 100 %.)
+ *                                p. ej. Epson)
+ * - personalizado:               el médico escribe ancho × alto en mm
+ *                                (`paperCustomWidthMm` / `paperCustomHeightMm`)
+ *
+ * Los apaisados son MÁS ANCHOS que la carta, así que nunca se pueden "hospedar"
+ * en una hoja carta: se imprimen a su tamaño real, al 100 %.
  */
 
-export type PaperSize = 'media-carta' | 'carta' | 'oficio' | 'a4' | 'a5' | 'receta-25x15'
+export type PaperSize =
+  | 'media-carta' | 'carta' | 'oficio' | 'a4' | 'a5'
+  | 'receta-23x13' | 'receta-25x15' | 'personalizado'
 
 export interface PaperDimensions {
   /** Ancho en mm */
@@ -32,7 +39,31 @@ export const PAPER_SIZES: Record<PaperSize, PaperDimensions> = {
   'oficio':      { widthMm: 216, heightMm: 330, label: 'Oficio (21.6 × 33 cm)',  cssPage: '216mm 330mm' },
   'a4':          { widthMm: 210, heightMm: 297, label: 'A4 (21 × 29.7 cm)',       cssPage: 'A4' },
   'a5':          { widthMm: 148, heightMm: 210, label: 'A5 (14.8 × 21 cm)',       cssPage: 'A5' },
+  'receta-23x13': { widthMm: 230, heightMm: 130, label: 'Receta apaisada (23 × 13 cm)', cssPage: '230mm 130mm' },
   'receta-25x15': { widthMm: 250, heightMm: 150, label: 'Receta continua apaisada (25 × 15 cm)', cssPage: '250mm 150mm' },
+  // Placeholder: las medidas REALES salen de paperCustomWidthMm/HeightMm.
+  'personalizado': { widthMm: 230, heightMm: 130, label: 'Personalizado (escribe las medidas)', cssPage: '230mm 130mm' },
+}
+
+/** Límites sanos para una medida escrita a mano (mm). */
+export const PAPEL_MIN_MM = 50
+export const PAPEL_MAX_MM = 500
+
+/**
+ * Medidas de un papel PERSONALIZADO. Devuelve null si no son utilizables, para
+ * que quien llame caiga a un tamaño conocido en vez de imprimir en 0 × 0 (una
+ * hoja de tamaño inválido sale en blanco, sin ningún aviso).
+ */
+export function papelPersonalizado(w?: number, h?: number): PaperDimensions | null {
+  const ok = (v?: number) => typeof v === 'number' && Number.isFinite(v) && v >= PAPEL_MIN_MM && v <= PAPEL_MAX_MM
+  if (!ok(w) || !ok(h)) return null
+  const width = Math.round(w as number), height = Math.round(h as number)
+  return {
+    widthMm: width,
+    heightMm: height,
+    label: `Personalizado (${(width / 10).toFixed(1)} × ${(height / 10).toFixed(1)} cm)`,
+    cssPage: `${width}mm ${height}mm`,
+  }
 }
 
 /**
@@ -102,6 +133,9 @@ export function detectarPaperSize(widthMm: number, heightMm: number): PaperSize 
   const h = Math.max(widthMm, heightMm)
   let mejor: { size: PaperSize; diff: number } | null = null
   for (const [key, p] of Object.entries(PAPER_SIZES)) {
+    // 'personalizado' no es un tamaño detectable: sus medidas del catálogo son un
+    // placeholder que coincide con 'receta-23x13' y lo eclipsaría.
+    if (key === 'personalizado') continue
     const pw = Math.min(p.widthMm, p.heightMm)
     const ph = Math.max(p.widthMm, p.heightMm)
     const diffW = Math.abs(pw - w)
