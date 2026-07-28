@@ -8,6 +8,7 @@ import { useState, useEffect, useRef } from 'react'
 import { areaImpracticable } from '@/lib/receta-paginacion'
 import { RecetaDocumento, dimensionesImpresion, paperEfectivo, admiteHojaCarta, type RecetaData } from '@/components/RecetaDocumento'
 import { imprimirElemento } from '@/lib/print-element'
+import { GuiaConfigurarReceta } from '@/components/GuiaConfigurarReceta'
 import { resizeImageFile, formatBytes } from '@/lib/image-utils'
 import { PAPER_SIZES, ESTILOS_RECETA, detectarPaperSize, NOTA_PAPER_SIZES, papelPersonalizado, PAPEL_MIN_MM, PAPEL_MAX_MM, type NotaPaperSize as NotaPaperSizeT } from '@/lib/receta-template'
 import type { RecetaConfig, PaperSize as PaperSizeT, EstiloReceta as EstiloT, Patient, Doctor as DoctorT, ClinicConfig } from '@/types'
@@ -296,6 +297,12 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
     <div className="recetas-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 380px', gap: 20, alignItems: 'start' }}>
       {/* Editor */}
       <div style={{ display: 'grid', gap: 16, minWidth: 0 }}>
+
+        {/* Guía en el sitio donde se configura (no en otra pantalla). Abierta
+            mientras no haya nada puesto; plegada en cuanto ya está resuelto. */}
+        <GuiaConfigurarReceta
+          yaConfigurado={!!rx.disenoCompletoDataUrl || !!rx.membreteDataUrl}
+        />
 
         {/* Cada médico su propia receta. Si entras con TU cuenta, editas la tuya
             (sin dropdown de otros). Solo un admin sin ficha de médico ve el selector. */}
