@@ -5,6 +5,8 @@ import { useToast } from '@/context/ToastContext'
 import { useParams, useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { imprimirElemento } from '@/lib/print-element'
+// Papel de las NOTAS: SIEMPRE carta, independiente de la config de receta.
+import { papelNota } from '@/lib/receta-template'
 import { entradaPorMedico, membreteValido, firmaValida } from '@/lib/impreso-medico'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
@@ -26,6 +28,13 @@ export default function NotaImprimiblePage() {
   const volver = useSmartBack(`/expediente/${patientId}`)
   const { clinicId } = useClinic()
   const { config, error: configError } = useConfig()
+
+  /**
+   * Papel de la NOTA. Ajuste PROPIO (`notaPaperSize`), independiente del de la
+   * receta: cambiar el papel de la receta no mueve el de la nota, ni al revés.
+   * Sin configurar → carta.
+   */
+  const hojaNota = papelNota(config?.recetaConfig?.notaPaperSize)
 
   /**
    * ¿Este consultorio tiene un solo médico?
@@ -68,7 +77,7 @@ export default function NotaImprimiblePage() {
         // SIN hojas en blanco (una hoja = una página exacta).
         const sheets = Array.from(el.querySelectorAll<HTMLElement>('.nota-sheet'))
         if (sheets.length) {
-          await descargarPaginasComoPDF(sheets, { filename: `Nota_${nombre}_${fechaCorta}`, anchoMm: 216, altoMm: 279 })
+          await descargarPaginasComoPDF(sheets, { filename: `Nota_${nombre}_${fechaCorta}`, anchoMm: hojaNota.widthMm, altoMm: hojaNota.heightMm })
         } else {
           await descargarComoPDF(el, { filename: `Nota_${nombre}_${fechaCorta}`, format: 'letter', margin: 0 })
         }
@@ -235,7 +244,7 @@ export default function NotaImprimiblePage() {
             // Con membrete la nota YA viene paginada en hojas carta (.nota-sheet con
             // page-break y el membrete de fondo en cada una). Se imprime a sangre en
             // carta (@page letter margin 0) para que cada hoja llene la página.
-            ? { anchoMm: 216, altoMm: 279, onError: (m) => toast(m, 'error') }
+            ? { anchoMm: hojaNota.widthMm, altoMm: hojaNota.heightMm, onError: (m) => toast(m, 'error') }
             : { formato: 'carta', onError: (m) => toast(m, 'error') }) }} disabled={!!configError} title={configError ? 'Espera a que cargue la configuración del consultorio' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: configError ? 'default' : 'pointer', opacity: configError ? 0.5 : 1 }}>
             <Printer size={16} /> Imprimir
           </button>
@@ -489,7 +498,7 @@ export default function NotaImprimiblePage() {
           // Nota membretada → paginar en hojas carta con el membrete en cada una.
           return (
             <div id="doc" style={{ width: 'fit-content', maxWidth: '100%', margin: '0 auto', color: '#1a1a1a', fontFamily: '"Times New Roman", Georgia, serif' }}>
-              <HojasNota anchoMm={216} altoMm={279} mMemb={mMemb} membrete={membrete} bloques={bloques}
+              <HojasNota anchoMm={hojaNota.widthMm} altoMm={hojaNota.heightMm} mMemb={mMemb} membrete={membrete} bloques={bloques}
                 firma={nota.estado === 'firmada' && firmaMostrar ? { src: firmaMostrar, x: firmaPos.x, y: firmaPos.y } : undefined} />
             </div>
           )

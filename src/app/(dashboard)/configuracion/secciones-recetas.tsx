@@ -9,7 +9,7 @@ import { areaImpracticable } from '@/lib/receta-paginacion'
 import { RecetaDocumento, dimensionesImpresion, paperEfectivo, admiteHojaCarta, type RecetaData } from '@/components/RecetaDocumento'
 import { imprimirElemento } from '@/lib/print-element'
 import { resizeImageFile, formatBytes } from '@/lib/image-utils'
-import { PAPER_SIZES, ESTILOS_RECETA, detectarPaperSize } from '@/lib/receta-template'
+import { PAPER_SIZES, ESTILOS_RECETA, detectarPaperSize, NOTA_PAPER_SIZES, type NotaPaperSize as NotaPaperSizeT } from '@/lib/receta-template'
 import type { RecetaConfig, PaperSize as PaperSizeT, EstiloReceta as EstiloT, Patient, Doctor as DoctorT, ClinicConfig } from '@/types'
 import { getDoctors, saveConfig } from '@/lib/firestore'
 import { subirImagen as subirImagenServidor } from '@/lib/subir-imagen'
@@ -527,17 +527,51 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
           )}
         </div>
 
-        {/* Tamaño de papel */}
+        {/* Tamaño de papel — SOLO recetas y órdenes. Las notas van SIEMPRE en carta
+            (PAPEL_NOTA) y no leen nada de aquí: son ajustes independientes. */}
         <Section title="Tamaño de papel">
           <select
             value={rx.paperSize}
-            onChange={(e) => setRx({ ...rx, paperSize: e.target.value as PaperSizeT })}
+            /**
+             * El tamaño elegido MANDA. Si hay un diseño propio subido, sus medidas
+             * se re-encajan al tamaño elegido: antes el diseño ganaba en silencio y
+             * elegir un tamaño no hacía nada visible (el Dr. elegía 25 × 15 y seguía
+             * saliendo A5, sin explicación).
+             */
+            onChange={(e) => {
+              const nuevo = e.target.value as PaperSizeT
+              const p = PAPER_SIZES[nuevo]
+              setRx({
+                ...rx,
+                paperSize: nuevo,
+                ...(rx.disenoCompletoDataUrl ? { disenoWidthMm: p.widthMm, disenoHeightMm: p.heightMm } : {}),
+              })
+            }}
             style={cfgInput}
           >
             {(Object.keys(PAPER_SIZES) as PaperSizeT[]).map(k => (
               <option key={k} value={k}>{PAPER_SIZES[k].label}</option>
             ))}
           </select>
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>
+            Solo para <strong>recetas y órdenes médicas</strong>.
+          </div>
+        </Section>
+
+        {/* Papel de las NOTAS — ajuste PROPIO e independiente del de la receta. */}
+        <Section title="Tamaño de papel de las notas">
+          <select
+            value={rx.notaPaperSize ?? 'carta'}
+            onChange={(e) => setRx({ ...rx, notaPaperSize: e.target.value as NotaPaperSizeT })}
+            style={cfgInput}
+          >
+            {NOTA_PAPER_SIZES.map(k => (
+              <option key={k} value={k}>{PAPER_SIZES[k].label}</option>
+            ))}
+          </select>
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>
+            Notas de evolución, ingreso y egreso. Cambiarlo <strong>no</strong> afecta a la receta.
+          </div>
         </Section>
 
         {/* Dónde se imprime físicamente — resuelve "no se imprime en formato receta".

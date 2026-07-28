@@ -44,6 +44,30 @@ export const PAPER_SIZES: Record<PaperSize, PaperDimensions> = {
  */
 export const GUARDA_IMPRESION_MM = 3
 
+/**
+ * Papel POR DEFECTO de las NOTAS clínicas (evolución, ingreso, egreso): carta.
+ *
+ * Son dos ajustes INDEPENDIENTES y no deben interferir:
+ *   · receta y orden médica → `RecetaConfig.paperSize` (p. ej. la forma continua
+ *     apaisada de 25 × 15 cm).
+ *   · notas                 → `RecetaConfig.notaPaperSize`, que arranca en carta.
+ *
+ * Cambiar el papel de la receta NUNCA mueve el de la nota, ni al revés.
+ */
+export const PAPEL_NOTA: PaperDimensions = PAPER_SIZES['carta']
+
+/** Tamaños ofrecidos para NOTAS: solo verticales de texto (la nota pagina). */
+export type NotaPaperSize = 'carta' | 'oficio' | 'a4' | 'media-carta' | 'a5'
+export const NOTA_PAPER_SIZES: NotaPaperSize[] = ['carta', 'oficio', 'a4', 'media-carta', 'a5']
+
+/** Dimensiones del papel de la NOTA. Sin ajuste (o inválido) → carta. */
+export function papelNota(size?: string): PaperDimensions {
+  if (size && (NOTA_PAPER_SIZES as string[]).includes(size)) {
+    return PAPER_SIZES[size as PaperSize]
+  }
+  return PAPEL_NOTA
+}
+
 export function areaSegura(p: PaperDimensions): { widthMm: number; heightMm: number } {
   return {
     widthMm: p.widthMm - GUARDA_IMPRESION_MM * 2,

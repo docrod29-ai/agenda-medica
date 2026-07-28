@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { PAPER_SIZES, detectarPaperSize, areaSegura, GUARDA_IMPRESION_MM } from '@/lib/receta-template'
+import { PAPER_SIZES, detectarPaperSize, areaSegura, GUARDA_IMPRESION_MM, PAPEL_NOTA, papelNota, NOTA_PAPER_SIZES } from '@/lib/receta-template'
 import { dimensionesImpresion, paperEfectivo, admiteHojaCarta } from '@/components/RecetaDocumento'
 import type { RecetaConfig } from '@/types'
 
@@ -89,5 +89,76 @@ describe('no hay regresión en los tamaños que ya funcionaban', () => {
     expect(detectarPaperSize(140, 215)).toBe('media-carta')
     expect(detectarPaperSize(148, 210)).toBe('a5')
     expect(detectarPaperSize(216, 279)).toBe('carta')
+  })
+})
+
+/**
+ * SEPARACIÓN DE AJUSTES (petición explícita del Dr.): un tamaño para cada cosa,
+ * sin interferencia. La receta puede ir en forma continua de 25 × 15 cm mientras
+ * la nota sigue en carta — cambiar uno no puede mover el otro.
+ */
+describe('receta y nota son ajustes independientes', () => {
+  it('la nota viene en CARTA por defecto (sin configurar)', () => {
+    expect(papelNota(undefined).widthMm).toBe(216)
+    expect(papelNota(undefined).heightMm).toBe(279)
+    expect(PAPEL_NOTA.cssPage).toBe('letter')
+  })
+
+  it('el médico puede cambiar el papel de la nota', () => {
+    expect(papelNota('a4').widthMm).toBe(210)
+    expect(papelNota('oficio').heightMm).toBe(330)
+  })
+
+  it('un valor inválido cae a carta, nunca a un tamaño raro', () => {
+    expect(papelNota('receta-25x15').widthMm).toBe(216)  // apaisado NO se ofrece para notas
+    expect(papelNota('basura').widthMm).toBe(216)
+  })
+
+  it('poner la receta en 25 × 15 NO mueve el papel de la nota', () => {
+    const cfg = { ...base, paperSize: 'receta-25x15' } as RecetaConfig
+    expect(dimensionesImpresion(cfg).widthMm).toBe(250)      // la receta cambia
+    expect(papelNota(cfg.notaPaperSize).widthMm).toBe(216)   // la nota sigue en carta
+  })
+
+  it('cambiar el papel de la nota NO mueve el de la receta', () => {
+    const cfg = { ...base, paperSize: 'receta-25x15', notaPaperSize: 'a4' } as RecetaConfig
+    expect(papelNota(cfg.notaPaperSize).widthMm).toBe(210)   // la nota cambia
+    expect(dimensionesImpresion(cfg).widthMm).toBe(250)      // la receta sigue en 25 × 15
+  })
+
+  it('a las notas solo se les ofrecen tamaños verticales de texto', () => {
+    for (const k of NOTA_PAPER_SIZES) {
+      const p = PAPER_SIZES[k]
+      expect(p.heightMm).toBeGreaterThan(p.widthMm)
+    }
+  })
+})
+
+/**
+ * Un diseño propio subido lleva sus propias medidas, y esas son las que se
+ * imprimen. Antes eso hacía que elegir un tamaño no sirviera de nada y sin
+ * explicación. Ahora el selector RE-ENCAJA el diseño al tamaño elegido, así que
+ * elegir 25 × 15 imprime 25 × 15. Aquí se fija ese comportamiento.
+ */
+describe('el tamaño elegido manda, también con diseño subido', () => {
+  const conDiseno = (w: number, h: number) => ({
+    ...base,
+    paperSize: 'receta-25x15',
+    disenoCompletoDataUrl: 'data:image/png;base64,xx',
+    disenoWidthMm: w,
+    disenoHeightMm: h,
+  }) as RecetaConfig
+
+  it('un diseño A5 ignora el 25 × 15 elegido (por eso hace falta el aviso)', () => {
+    const p = paperEfectivo(conDiseno(148, 210))
+    expect(p.widthMm).toBe(148)
+    expect(p.heightMm).toBe(210)
+  })
+
+  it('tras aplicar el tamaño elegido al diseño, ya imprime 250 × 150', () => {
+    const p = paperEfectivo(conDiseno(250, 150))
+    expect(p.widthMm).toBe(250)
+    expect(p.heightMm).toBe(150)
+    expect(dimensionesImpresion(conDiseno(250, 150)).esHostCarta).toBe(false)
   })
 })

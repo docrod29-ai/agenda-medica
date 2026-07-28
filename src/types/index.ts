@@ -400,7 +400,14 @@ export type { PaperSize, EstiloReceta } from '@/lib/receta-template'
 /** Configuración de impresos: recetas y órdenes médicas */
 export interface RecetaConfig {
   /** Tamaño de papel */
+  /** Tamaño de papel de RECETAS y ÓRDENES MÉDICAS. */
   paperSize: 'media-carta' | 'carta' | 'oficio' | 'a4' | 'a5' | 'receta-25x15'
+  /**
+   * Tamaño de papel de las NOTAS clínicas (evolución, ingreso, egreso).
+   * Ajuste INDEPENDIENTE del de la receta: cambiar uno no mueve el otro.
+   * Default 'carta' (si está sin definir, se usa carta).
+   */
+  notaPaperSize?: 'carta' | 'oficio' | 'a4' | 'media-carta' | 'a5'
   /**
    * Dónde se imprime físicamente:
    *  - 'papel-real': la impresora tiene cargado el papel del tamaño exacto
