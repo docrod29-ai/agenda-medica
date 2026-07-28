@@ -37,5 +37,9 @@ Estados: **CLOSED** (con test/control) · **OPEN** (detectado, pendiente de repa
 | REG-026 | Clínico (P0) | `copiloto` usaba `ckdEpi2021` crudo → creatinina µmol/L → falla renal fantasma + contraindicaciones falsas | CLOSED | `creatininaPlausibleMgDl` en 3 sitios + test |
 | REG-027 | Clínico (P0) | `gasometria`: albúmina g/L restaba ~90 al anion gap corregido; PaCO2/HCO3 negativos calculaban | CLOSED | Guard de rango albúmina [1–6] g/dL + PaCO2/HCO3 + test |
 
+| REG-028 | Seguridad (P1) | `config/imagen` aceptaba `image/svg+xml` → SVG con <script> servido same-origin = XSS almacenado | CLOSED | Allowlist solo PNG/JPG/WEBP |
+| REG-029 | Integridad (P1) | `hospital/mutar` y `registro-durable` escribían `por: p.por` del cliente → autor NOM-004 falsificable | CLOSED | Autor sellado por el servidor (`actor.nombre`) + test |
+| REG-030 | Seguridad (P1) | `transcribir-diarizado` GET sin dueño → en modo prueba otra clínica leía el dictado (PHI) por UUID | CLOSED | `transcript_owners` registra dueño en POST y GET lo verifica |
+
 > Mantener este archivo actualizado en cada ciclo del loop de auditoría. Cada `OPEN` debe
 > pasar a `CLOSED` con su test/control antes de cerrar el lote correspondiente.

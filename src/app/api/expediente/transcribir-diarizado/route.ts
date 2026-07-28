@@ -19,6 +19,7 @@ import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA, creditosAgotados, registrarUso, registrarCreditos } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { WORD_BOOST_MEDICO } from '@/lib/expediente/medical-vocabulary'
+import { adminDb } from '@/lib/firebase-admin'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -95,6 +96,10 @@ export async function POST(req: NextRequest) {
     })
     if (!sub.ok) return NextResponse.json({ ok: false, error: `AssemblyAI submit HTTP ${sub.status}` }, { status: 502 })
     const { id } = await sub.json()
+    // DUEÑO DEL TRANSCRIPT (auditoría P1 IDOR): en modo prueba varias clínicas
+    // comparten la llave del dueño → sin esto, otra clínica podía leer el dictado
+    // (PHI) con el UUID. Se registra el dueño y el GET lo verifica.
+    if (id) void adminDb.collection('transcript_owners').doc(String(id)).set({ clinicId, uid: acceso.uid, at: new Date().toISOString() }).catch(() => {})
     void registrarUso(clinicId, fuente)   // un job = un uso
     void registrarCreditos(clinicId, COSTO_CREDITOS.transcribirDiarizado)
     return NextResponse.json({ ok: true, id })
@@ -110,11 +115,19 @@ export async function GET(req: NextRequest) {
   if (_rl) return _rl
 
   // Debe poller con la MISMA llave que envió el job (la del consultorio).
-  const { key } = await resolverClaveIA(acceso.uid, 'assemblyai', process.env.ASSEMBLYAI_API_KEY)
+  const { key, clinicId } = await resolverClaveIA(acceso.uid, 'assemblyai', process.env.ASSEMBLYAI_API_KEY)
   if (!key) return NextResponse.json({ ok: false, sinClave: true }, { status: 503 })
 
   const id = req.nextUrl.searchParams.get('id')
   if (!id) return NextResponse.json({ ok: false, error: 'Falta id' }, { status: 400 })
+
+  // Verifica que el transcript sea de ESTA clínica (auditoría P1 IDOR): en modo
+  // prueba se comparte la llave del dueño, así que sin esto otra clínica leería el
+  // dictado (PHI) con el UUID. Si no hay registro de dueño (jobs previos), se permite.
+  const owner = await adminDb.collection('transcript_owners').doc(id).get().catch(() => null)
+  if (owner?.exists && owner.data()?.clinicId && owner.data()?.clinicId !== clinicId) {
+    return NextResponse.json({ ok: false, error: 'No autorizado' }, { status: 403 })
+  }
 
   try {
     const r = await fetch(`${AAI}/transcript/${id}`, { headers: { authorization: key } })

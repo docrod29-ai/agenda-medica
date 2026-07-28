@@ -59,10 +59,10 @@ function patch(accion: string, inter: Any, p: Any, now: string, actor: Actor): A
       }
     case 'trasladar': {
       const detalle = `${inter.servicio}${inter.cama ? ' · Cama ' + inter.cama : ''} → ${p.servicio}${p.cama ? ' · Cama ' + p.cama : ''}`
-      return { servicio: p.servicio, cama: p.cama, movimientos: [...arr('movimientos'), { fecha: now, tipo: 'traslado', detalle, por: p.por }] }
+      return { servicio: p.servicio, cama: p.cama, movimientos: [...arr('movimientos'), { fecha: now, tipo: 'traslado', detalle, por: actor.nombre }] }
     }
     case 'cambiar_tratante':
-      return { medicoTratanteId: p.medicoTratanteId, medicoTratanteNombre: p.medicoTratanteNombre, movimientos: [...arr('movimientos'), { fecha: now, tipo: 'tratante', detalle: `${inter.medicoTratanteNombre || '—'} → ${p.medicoTratanteNombre}`, por: p.por }] }
+      return { medicoTratanteId: p.medicoTratanteId, medicoTratanteNombre: p.medicoTratanteNombre, movimientos: [...arr('movimientos'), { fecha: now, tipo: 'tratante', detalle: `${inter.medicoTratanteNombre || '—'} → ${p.medicoTratanteNombre}`, por: actor.nombre }] }
     case 'indicacion_agregar':
       return { indicaciones: [...arr('indicaciones'), { id: randomUUID(), tipo: p.tipo, descripcion: p.descripcion, frecuencia: p.frecuencia, creadaPor: p.creadaPor, activa: true, fecha: now, administraciones: [] }] }
     case 'indicacion_suspender':
@@ -118,7 +118,7 @@ function patch(accion: string, inter: Any, p: Any, now: string, actor: Actor): A
       return { indicaciones: arr('indicaciones').map(x => (x as Any).id === p.indId ? { ...x, administraciones: [...((x as Any).administraciones as Any[] ?? []), adm] } : x) }
     }
     case 'verificar_farmacia':
-      return { indicaciones: arr('indicaciones').map(x => (x as Any).id === p.indId ? { ...x, verificadaFarmacia: true, verificadaPor: p.por, fechaVerificacion: now } : x) }
+      return { indicaciones: arr('indicaciones').map(x => (x as Any).id === p.indId ? { ...x, verificadaFarmacia: true, verificadaPor: actor.nombre, fechaVerificacion: now } : x) }
     case 'interconsulta_agregar':
       return { interconsultas: [...arr('interconsultas'), { id: randomUUID(), especialidad: p.especialidad, motivo: p.motivo, solicitanteNombre: p.solicitanteNombre, solicitanteId: p.solicitanteId ?? null, medicoSolicitadoId: p.medicoSolicitadoId ?? null, medicoSolicitadoNombre: p.medicoSolicitadoNombre ?? null, estado: 'solicitada', fecha: now }] }
     case 'interconsulta_responder':
@@ -259,7 +259,7 @@ export async function POST(req: NextRequest) {
       tx.update(ref, { ...patch(accion, inter, payload, now, actor), updatedAt: now })
       // Además del array-caché en el doc, persiste el registro clínico COMPLETO
       // a la subcolección append-only (sin truncar) → no se pierde nada (NOM-004).
-      const durable = registroDurable(accion, payload, now)
+      const durable = registroDurable(accion, payload, now, actor.nombre)
       if (durable) tx.set(ref.collection('registros').doc(), durable)
     })
     return NextResponse.json({ ok: true })

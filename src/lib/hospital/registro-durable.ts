@@ -11,11 +11,14 @@
  */
 type Any = Record<string, unknown>
 
-export function registroDurable(accion: string, p: Any, now: string): Any | null {
+export function registroDurable(accion: string, p: Any, now: string, por: string): Any | null {
+  // `por` = AUTOR REAL sellado por el servidor (usuario en sesión), NO `p.por` del
+  // cliente (auditoría P1): este registro es append-only NOM-004; atribuirlo a otro
+  // médico falsearía el expediente legal permanente.
   switch (accion) {
-    case 'balance': return { tipo: 'balance', fecha: now, ingresos: p.ingresos, egresos: p.egresos, por: p.por }
-    case 'escala':  return { tipo: 'escala', fecha: now, escala: p.tipo, score: p.score, riesgo: p.riesgo, por: p.por }
-    case 'sbar':    return { tipo: 'sbar', fecha: now, texto: p.texto, por: p.por }
+    case 'balance': return { tipo: 'balance', fecha: now, ingresos: p.ingresos, egresos: p.egresos, por }
+    case 'escala':  return { tipo: 'escala', fecha: now, escala: p.tipo, score: p.score, riesgo: p.riesgo, por }
+    case 'sbar':    return { tipo: 'sbar', fecha: now, texto: p.texto, por }
     default:        return null
   }
 }

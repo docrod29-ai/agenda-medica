@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v686'  // Auditoria exhaustiva (workflow completo, 74 verificados): 4 P0 reparados. (dinero) create-checkout tomaba currency del body -> 'cop' cobraba USD0.12 y marcaba pagada -> moneda fija MXN. (legal) verificacion-url firmaba cedula/folio del body (forja de credencial) -> exige medico. (clinico) copiloto usaba ckdEpi crudo -> creatinina umol/L daba falla renal fantasma + contraindicaciones falsas -> reja de unidad en 3 sitios. (clinico) gasometria: albumina g/L restaba 90 al anion gap corregido -> guard de rango. + guards PaCO2/HCO3. 1863 tests. --- v685: negacion parser.
+const CACHE = 'nexusmed-v687'  // Auditoria: 3 P1 de seguridad. config/imagen aceptaba SVG (XSS almacenado) -> solo PNG/JPG/WEBP. hospital mutar/registro-durable escribian 'por' del cliente (autor NOM-004 falsificable) -> sellado por el servidor. transcribir-diarizado GET sin dueno -> en modo prueba otra clinica leia el dictado (PHI) por UUID -> registro transcript_owners + verificacion. 1863 tests. --- v686: 4 P0.
 // (v601):
 
 self.addEventListener('install', (event) => {
