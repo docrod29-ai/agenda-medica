@@ -1,4 +1,13 @@
 import { num } from './num'
+
+/**
+ * num para ALERTAS de extremo (auditoría P1): un valor censurado ">500", "<50",
+ * "≥6.5" daba num=null → CERO alerta justo en el valor crítico. Para estas alertas
+ * de umbral, el número pelado es correcto porque el censurado es aún MÁS extremo en
+ * la dirección del corte (">500" ≥ 500 > 250; "<50" ≤ 50 < 70). Solo aquí, no global.
+ */
+const numA = (v: unknown): number | null =>
+  num(typeof v === 'string' ? v.replace(/^\s*[<>≤≥=]+\s*/, '') : v)
 /**
  * MOTOR DE SEGURIDAD DE UCI — alertas jerarquizadas (iteración nexusmed-icu-012).
  *
@@ -59,7 +68,7 @@ export function analizarSeguridadUCI(e: EstadoUCI): AlertaUCI[] {
   if (e.vasopresorSinConcentracion) push('alta', 'vasopresor', 'Vasopresor sin concentración conocida: no se puede verificar la dosis.')
 
   // Ácido-base
-  const ph = num(e.ph)
+  const ph = numA(e.ph)
   if (ph !== null) {
     if (ph < 7.20) push('critica', 'pH', `Acidemia severa (pH ${ph}): asociada a alta mortalidad; considerar UCI/manejo urgente.`, 'esicm2025')
     else if (ph < 7.30) push('moderada', 'pH', `Acidemia (pH ${ph}): vigilar causa y compensación.`)
@@ -67,7 +76,7 @@ export function analizarSeguridadUCI(e: EstadoUCI): AlertaUCI[] {
   }
 
   // Glucemia (McClave 2016)
-  const glu = num(e.glucosa)
+  const glu = numA(e.glucosa)
   if (glu !== null) {
     if (glu < 70) push('critica', 'glucosa', `Hipoglucemia (${glu} mg/dL): tratar de inmediato.`, 'mcclave2016')
     else if (glu > 250) push('alta', 'glucosa', `Hiperglucemia grave (${glu} mg/dL).`, 'mcclave2016')
@@ -75,7 +84,7 @@ export function analizarSeguridadUCI(e: EstadoUCI): AlertaUCI[] {
   }
 
   // Potasio (valores críticos estándar)
-  const k = num(e.potasio)
+  const k = numA(e.potasio)
   if (k !== null) {
     if (k >= 6.5 || k < 2.5) push('critica', 'potasio', `Potasio crítico (${k} mmol/L): riesgo de arritmia; ECG y corrección.`)
     else if (k >= 6.0 || k < 3.0) push('alta', 'potasio', `Potasio ${k} mmol/L fuera de rango: corregir.`)
@@ -83,7 +92,7 @@ export function analizarSeguridadUCI(e: EstadoUCI): AlertaUCI[] {
 
   // Sodio: umbral ABSOLUTO (hipo/hipernatremia grave) — antes solo se evaluaba el
   // ritmo de cambio, así que un Na de 168 o 112 no generaba ninguna alerta.
-  const na = num(e.sodio), naPrev = num(e.sodioPrevio)
+  const na = numA(e.sodio), naPrev = numA(e.sodioPrevio)
   if (na !== null) {
     if (na >= 160 || na <= 120) push('critica', 'sodio', `Sodio ${na} mmol/L en rango crítico: riesgo neurológico; corregir vigilando el ritmo (evitar desmielinización osmótica).`)
     else if (na >= 150 || na < 130) push('moderada', 'sodio', `Sodio ${na} mmol/L fuera de rango (135–145): vigilar.`)
@@ -96,32 +105,32 @@ export function analizarSeguridadUCI(e: EstadoUCI): AlertaUCI[] {
   }
 
   // Hemodinamia (ESICM 2025)
-  const pam = num(e.pam)
+  const pam = numA(e.pam)
   if (pam !== null && pam < 65) push('alta', 'PAM', `PAM ${pam} mmHg por debajo de la meta habitual (≥ 65).`, 'esicm2025')
-  const lactato = num(e.lactato)
+  const lactato = numA(e.lactato)
   if (lactato !== null && lactato > 4) push('alta', 'lactato', `Lactato ${lactato} mmol/L: hipoperfusión marcada.`, 'esicm2025')
   else if (lactato !== null && lactato > 2) push('moderada', 'lactato', `Lactato ${lactato} mmol/L (> 2): signo de hipoperfusión.`, 'esicm2025')
 
   // Ventilación (AHA-CICU 2020 / ARDSNet)
-  const pplat = num(e.pplat)
+  const pplat = numA(e.pplat)
   if (pplat !== null && pplat > 30) push('alta', 'Pplateau', `Pplateau ${pplat} cmH2O > 30: mayor riesgo de lesión pulmonar.`, 'ahaCicu2020')
-  const dp = num(e.drivingPressure)
+  const dp = numA(e.drivingPressure)
   if (dp !== null && dp > 15) push('alta', 'driving pressure', `Driving pressure ${dp} cmH2O > 15: por encima de la meta protectora.`, 'ahaCicu2020')
-  const vtpbw = num(e.vtPorPbw)
+  const vtpbw = numA(e.vtPorPbw)
   if (vtpbw !== null && vtpbw > 8) push('moderada', 'VT/PBW', `VT ${vtpbw} mL/kg PBW > 8: revisar protección pulmonar.`, 'ahaCicu2020')
-  const spo2 = num(e.spo2)
+  const spo2 = numA(e.spo2)
   if (spo2 !== null && spo2 < 88) push('alta', 'SpO2', `SpO2 ${spo2}% < 88: hipoxemia.`, 'ahaCicu2020')
-  const fio2 = num(e.fio2)
+  const fio2 = numA(e.fio2)
   if (fio2 !== null && fio2 >= 0.6) push('moderada', 'FiO2', `FiO2 ${fio2}: alta; vigilar toxicidad si se prolonga.`, 'ahaCicu2020')
 
   // Nutrición (McClave 2016)
-  const grv = num(e.residuoGastrico)
+  const grv = numA(e.residuoGastrico)
   if (grv !== null && grv >= 500) push('moderada', 'residuo gástrico', `Residuo gástrico ${grv} mL ≥ 500: valorar intolerancia antes de continuar NE.`, 'mcclave2016')
 
   // Sedación (RASS, PADIS 2018) — antes se RECIBÍA y se IGNORABA. La agitación
   // pone al paciente en riesgo de auto-retiro de dispositivos; la sedación profunda
   // se asocia a más días de ventilación y delirium (meta ligera 0 a −2 salvo indicación).
-  const rass = num(e.rass)
+  const rass = numA(e.rass)
   if (rass !== null) {
     if (rass >= 2) push('alta', 'RASS', `RASS +${rass}: agitación; riesgo de auto-retiro de dispositivos. Descartar dolor, delirium, hipoxia o abstinencia.`, 'padis2018')
     else if (rass <= -4) push('moderada', 'RASS', `RASS ${rass}: sedación profunda; PADIS recomienda meta ligera (0 a −2) salvo indicación (HTIC, SDRA grave, estatus).`, 'padis2018')
@@ -141,7 +150,7 @@ export interface AptoMovilizacion {
 }
 export function aptoMovilizacion(e: EstadoUCI): AptoMovilizacion {
   const faltan: string[] = []
-  const fc = num(e.fc), pas = num(e.pas), pam = num(e.pam), fr = num(e.fr), spo2 = num(e.spo2), fio2 = num(e.fio2), peep = num(e.peep), rass = num(e.rass)
+  const fc = numA(e.fc), pas = numA(e.pas), pam = numA(e.pam), fr = numA(e.fr), spo2 = numA(e.spo2), fio2 = numA(e.fio2), peep = numA(e.peep), rass = numA(e.rass)
   if (fc === null || fc < 60 || fc > 130) faltan.push('FC 60–130 lpm')
   if (pas === null || pas < 90 || pas > 180) faltan.push('PAS 90–180 mmHg')
   if (pam === null || pam < 60 || pam > 100) faltan.push('PAM 60–100 mmHg')

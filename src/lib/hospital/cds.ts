@@ -35,8 +35,14 @@ export function cdsMedicamento(opts: CdsInput): AlertaCDS[] {
   if (!nombre) return []
   const out: AlertaCDS[] = []
 
-  // 1) Alergias (crítico)
-  const alergias = (opts.alergias || '').split(/[,;]/).map(s => s.trim()).filter(Boolean).map(a => ({ alergeno: a }))
+  // 1) Alergias (crítico) — DESCARTAR los segmentos NEGADOS (auditoría P1): un campo
+  // "niega alergia a penicilina" / "sin alergias" NO debe disparar la alerta crítica
+  // que bloquea. Se separa también por punto para no perder una alergia real que
+  // venga después de una negada ("niega penicilina. alérgico a sulfas").
+  const NEG_SEG = /^\s*(?:niega|nieg[ao]|sin\b|no\s+(?:tiene|refiere|presenta|hay)|nunca|ausente|descart)/i
+  const alergias = (opts.alergias || '').split(/[,;.\n]/).map(s => s.trim()).filter(Boolean)
+    .filter(s => !NEG_SEG.test(s))
+    .map(a => ({ alergeno: a }))
   if (alergias.length) {
     for (const a of validarAlergiasVsMedicamentos(alergias, [{ nombre }])) {
       out.push({ nivel: 'critica', texto: a.mensaje })

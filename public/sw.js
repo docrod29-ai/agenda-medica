@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v690'  // Auditoria antibiograma #4 (correctitud pura, con fundamento CLSI del skill PROA): extraerAlergias ignoraba la negacion -> 'niega alergia a penicilina' documentaba la alergia y disparaba la alerta de reaccion cruzada que BLOQUEABA la firma NOM-004 de una receta correcta. Fix: usa estaNegado + tests. El resto del motor de fenotipos (CMI censurada, MBL, propagacion EUCAST) = spec para validacion del Dr (no se toca a ciegas). --- v689: consent+config.
+const CACHE = 'nexusmed-v691'  // Auditoria GRUPO E (correctitud de software segura, sin tocar umbrales clinicos): REG-035 CDS hospitalario respeta la negacion de alergias (gemelo de REG-034, otra ruta) -> 'niega alergia a penicilina' ya no bloquea la firma; REG-036 alertas UCI ya no se pierden con valor censurado ('>500'/'<50'/'>=6.5' disparaban CERO alerta en el extremo critico); REG-037 antibiograma-vision cobra el credito en cuanto Claude responde (antes una foto en blanco corria la IA gratis y drenaba la llave del duenno). +8 tests. --- v690: extraerAlergias negacion.
 // (v601):
 
 self.addEventListener('install', (event) => {

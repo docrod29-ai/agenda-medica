@@ -48,5 +48,9 @@ Estados: **CLOSED** (con test/control) · **OPEN** (detectado, pendiente de repa
 
 | REG-034 | Clínico (P1) | `extraerAlergias` ignoraba la negación: "niega alergia a penicilina" documentaba la alergia → alerta de reacción cruzada que BLOQUEABA la firma NOM-004 | CLOSED | `parser-clinico.ts` extraerAlergias usa estaNegado + tests |
 
+| REG-035 | Clínico (P1) | CDS hospitalario (`cds.ts`) pasaba la alergia de texto libre CRUDA a match por subcadena → "niega alergia a penicilina" disparaba alerta 'critica' que bloquea la firma (gemelo de REG-034, otra ruta) | CLOSED | `cds.ts` filtra segmentos negados (NEG_SEG) + separa por punto + `src/__tests__/grupo-e-guardas.test.ts` (E1) |
+| REG-036 | Clínico (P1) | Alertas UCI (`seguridad.ts`) con valor CENSURADO (">500", "<50", "≥6.5") → `num`=null → CERO alerta justo en el extremo crítico (hiper/hipoglucemia, K⁺ letal invisibles) | CLOSED | `seguridad.ts` wrapper local `numA` pela el comparador (censurado = aún más extremo) + `grupo-e-guardas.test.ts` (E2) |
+| REG-037 | Dinero (P1) | `antibiograma-vision` cobraba el crédito SOLO en el camino feliz (tras parseo) pese a que la llamada a Claude ya se hizo → una foto en blanco corría la IA GRATIS y drenaba la llave del dueño en prueba (fail-open) | CLOSED | Cobro movido a justo tras `res.ok` (el costo ya se incurrió), independiente del parseo |
+
 > Mantener este archivo actualizado en cada ciclo del loop de auditoría. Cada `OPEN` debe
 > pasar a `CLOSED` con su test/control antes de cerrar el lote correspondiente.

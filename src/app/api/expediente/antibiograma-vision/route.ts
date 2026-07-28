@@ -123,13 +123,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: `IA de visión: ${pista}.` }, { status: 502 })
     }
 
+    // Cobrar el crédito EN CUANTO Claude respondió OK: el costo (llave del dueño)
+    // ya se incurrió aquí. Antes solo se cobraba en el camino feliz (tras parseo),
+    // así una foto en blanco/ilegible corría la IA GRATIS y drenaba la llave del
+    // dueño en modo prueba (auditoría P1 — fail-open de contabilización).
+    void registrarCreditos(clinicId, COSTO_CREDITOS.antibiogramaVision)
+
     const data = await res.json()
     const text: string = data.content?.[0]?.text ?? ''
     const parsed = parseJSON(text)
     if (!parsed) {
       return NextResponse.json({ ok: false, error: 'La IA no devolvió un perfil legible. Reintenta con una foto más nítida.', raw: text.slice(0, 200) }, { status: 502 })
     }
-    void registrarCreditos(clinicId, COSTO_CREDITOS.antibiogramaVision)
     const val = PerfilExtraido.safeParse(parsed)
     if (!val.success) {
       // Modo permisivo: devuelve lo que sí cumple para que el médico corrija a mano.
