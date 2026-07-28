@@ -226,7 +226,15 @@ export function estaNegado(texto: string, indiceMatch: number): boolean {
   // ÚLTIMO afirmador y descarta todo lo previo (la negación quedó cerrada)
   const re = new RegExp(AFIRMADORES.source, 'gi')
   let m, ultimoAfirm = -1, lenUltimo = 0
-  while ((m = re.exec(ventana)) !== null) { ultimoAfirm = m.index; lenUltimo = m[0].length }
+  while ((m = re.exec(ventana)) !== null) {
+    // P0 (auditoría): un afirmador que es PARTE de un negador ("no tiene/presenta/
+    // refiere", "nunca tuvo") NO cierra la negación. Sin esto, "no tiene diabetes"
+    // se leía como diabetes POSITIVA (el "tiene" cancelaba el "no"). Se ignora el
+    // afirmador precedido inmediatamente por no/nunca/sin.
+    const antes = ventana.slice(Math.max(0, m.index - 7), m.index)
+    if (/\b(?:no|nunca|sin)\s+$/i.test(antes)) continue
+    ultimoAfirm = m.index; lenUltimo = m[0].length
+  }
   if (ultimoAfirm !== -1) ventana = ventana.slice(ultimoAfirm + lenUltimo)
   return NEGADORES.test(ventana)
 }

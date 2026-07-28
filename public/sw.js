@@ -5,7 +5,7 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v684'  // Auditoria exhaustiva (recuperada del workflow): 3 hallazgos REALES verificados y reparados. (P0) corrector fonetico invertia hiper<->hipo: 'hipertension'->'hipotension', 'hiperglucemia'->'hipoglucemia' (significado OPUESTO en la nota) -> guardian invierteHiperHipo + test. (P1 seguridad) receta/diseno-url acunaba URL firmada de cualquier receta-diseno/uid ajeno (robo de firma/membrete) -> gate misma-clinica. (P1 clinico) clasificarTFG(NaN) fabricaba 'G5 Falla renal' -> guard de finitud. 1850 tests. --- v683: PHI logs.
+const CACHE = 'nexusmed-v685'  // Auditoria: 4o P0 REAL. Inversion de negaciones en parser-clinico: 'no tiene/presenta/refiere X' se leia como X POSITIVO (el afirmador 'tiene' dentro del negador 'no tiene' cancelaba la negacion) -> diagnosticos/alergias NEGADOS se marcaban presentes. Fix: estaNegado ignora un afirmador precedido de no/nunca/sin + test 9 casos. 1859 tests. --- v684: n-gramas hiper<->hipo, IDOR diseno, TFG NaN.
 // (v601):
 
 self.addEventListener('install', (event) => {

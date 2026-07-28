@@ -30,6 +30,7 @@ Estados: **CLOSED** (con test/control) · **OPEN** (detectado, pendiente de repa
 | REG-020 | Clínico (P0) | Corrector fonético INVERTÍA hiper↔hipo: "hipertensión"→"hipotensión", "hiperglucemia"→"hipoglucemia" (significado OPUESTO en la nota) | CLOSED | `medical-vocabulary.ts` guardián `invierteHiperHipo` + `src/__tests__/ngramas-antonimos.test.ts` |
 | REG-021 | Seguridad (P1) | `/api/receta/diseno-url` acuñaba URL firmada de CUALQUIER `receta-diseno/<uid>` sin verificar dueño → robo de firma/membrete ajeno | CLOSED (parcial) | Gate misma-clínica en el minteo; residual: proxy sin firma hasta `RECETA_DISENO_FIRMA=obligatoria` (paso del Dr) |
 | REG-022 | Clínico (P1) | `clasificarTFG(NaN/∞/negativo)` caía a 'G5 Falla renal' → fabricaba falla renal terminal de un dato inválido | CLOSED | `funcion-renal.ts` guard de finitud → 'TFG no disponible' |
+| REG-023 | Clínico (P0) | 'no tiene/presenta/refiere X' se leía como X POSITIVO (el afirmador 'tiene' dentro del negador 'no tiene' cancelaba la negación) → dx/alergias negados marcados presentes | CLOSED | `parser-clinico.ts` estaNegado ignora afirmador precedido de no/nunca/sin + `src/__tests__/negacion-parser.test.ts` |
 
 > Mantener este archivo actualizado en cada ciclo del loop de auditoría. Cada `OPEN` debe
 > pasar a `CLOSED` con su test/control antes de cerrar el lote correspondiente.
