@@ -897,6 +897,21 @@ function buscarTerminoUnido(fonUnido: string): string | null {
   return null
 }
 
+/**
+ * GUARDIÁN ANTÓNIMO (P0 auditoría): jamás "corregir" una palabra a otra que INVIERTE
+ * su significado clínico cruzando el prefijo hiper↔hipo. El corrector fonético/
+ * Levenshtein confunde "hiperglucemia"→"hipoglucemia" y "hipertensión"→"hipotensión"
+ * (distancia ~2), lo que escribe lo OPUESTO en la nota (presión alta→baja). Bloquea
+ * ese cruce; nunca hay una corrección legítima hiper→hipo.
+ */
+function invierteHiperHipo(orig: string, cand: string): boolean {
+  const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  const o = norm(orig), c = norm(cand)
+  const hiper = (s: string) => /^h[iy]per/.test(s)
+  const hipo = (s: string) => /^h[iy]po/.test(s)
+  return (hiper(o) && hipo(c)) || (hipo(o) && hiper(c))
+}
+
 export function corregirNGramas(texto: string): ResultadoCorreccion {
   const cambios: CambioTranscripcion[] = []
   // split conservando los separadores de espacio (índices impares)
@@ -933,6 +948,8 @@ export function corregirNGramas(texto: string): ResultadoCorreccion {
       // b) unidas con espacio → término multipalabra ("ácido fólico")
       const term = buscarTerminoUnido(fonetEs(unida)) ?? buscarTerminoUnido(fonetEs(palabras.join(' ')))
       if (!term) continue
+      // GUARDIÁN ANTÓNIMO (P0): nunca invertir hiper↔hipo (significado opuesto).
+      if (invierteHiperHipo(unida, term) || invierteHiperHipo(palabras.join(' '), term)) continue
       // no reemplazar si ya estaba bien escrito
       if (term.toLowerCase() === palabras.join(' ').toLowerCase()) { reemplazado = false; break }
 

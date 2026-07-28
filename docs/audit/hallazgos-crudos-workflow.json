@@ -1,0 +1,962 @@
+{
+  "P0": [
+    {
+      "titulo": "n-gramas convierte \"hiper glucemia\" → \"hypoglucemia\" (inversión hiper→hipo, significado OPUESTO en la nota)",
+      "archivo": "src/lib/expediente/medical-vocabulary.ts",
+      "problema": "corregirTranscripcion() ejecuta el pase de n-gramas (corregirNGramas, línea 900) que SIGUE ACTIVO con la ruta Levenshtein (buscarTerminoUnido, línea 886-895) contra un índice conta"
+    }
+  ],
+  "P1_count": 190,
+  "P1": [
+    {
+      "titulo": "El evento anti-fraude 'cobro_exento' se cae silenciosamente: NO entra a la bitácora",
+      "archivo": "src/app/api/auditoria/registrar/route.ts",
+      "problema": "El Set EVENTOS (lineas 27-36) es la lista blanca de eventos aceptados. NO incluye 'cobro_exento'. Sin embargo el tipo del cliente SI lo declara (src/lib/expediente/audit-log.ts:48)"
+    },
+    {
+      "titulo": "\"niega presión alta\" burla el guardia de negación y marca hipertensión (pressure) = punto STOP-BANG fabricado",
+      "archivo": "src/lib/expediente/parser-clinico.ts",
+      "problema": "El item P (pressure) se marca con: `if (/hipertension|hta|presi[oó]n\\\\s+alta/.test(texto) && !/\\\\bniega\\\\s+(?:hipertension|hta)\\\\b/.test(texto))`. El guardia de negación SOLO cubre"
+    },
+    {
+      "titulo": "El ronquido (snoring) se marca true aunque venga negado: \"no ronca fuerte\" / \"niega roncar fuerte\"",
+      "archivo": "src/lib/expediente/parser-clinico.ts",
+      "problema": "La rama TRUE `if (/\\\\bronc(?:a|ar)\\\\s+(?:fuerte|...)\\\\b/.test(texto))` se evalúa ANTES del else-if de negación (línea 330 `niega roncar`). Como es substring, 'no ronca fuerte' cont"
+    },
+    {
+      "titulo": "Apnea observada (observed) y cansancio diurno (tiredness) no tienen NINGÚN guardia de negación",
+      "archivo": "src/lib/expediente/parser-clinico.ts",
+      "problema": "Línea 336 (observed): `if (/observad[ao]\\\\s+apnea|apneas?\\\\s+observad[ao]s?|deja\\\\s+de\\\\s+respirar/.test(texto)) flags.observed=true` — sin verificación de negación. Línea 333 (tir"
+    },
+    {
+      "titulo": "interpretarCMI ignora la CMI censurada (>/≥/≤): sub-declara R como I y fabrica falsas discordancias",
+      "archivo": "src/lib/expediente/antibiograma/clsi-breakpoints.ts",
+      "problema": "La firma es interpretarCMI(organismo, antibiotico, cmi: number, sitio) — NO recibe el flag de censura. En motor.ts:90 se llama con `interpretarCMI(organismo, x.antibiotico, x.cmi, "
+    },
+    {
+      "titulo": "Valor censurado (\">400\", \"<50\") pierde la desigualdad y cae EXACTO en el umbral estricto → alerta de pánico silenciada",
+      "archivo": "src/lib/expediente/laboratorio/extraccion.ts",
+      "problema": "aNumero() elimina los signos <>≤≥~ (línea 61) y devuelve el número desnudo: aNumero('>400') = 400. validarPanel pasa ese número a evaluarCriticoLab (línea 110). En lab-criticos.ts "
+    },
+    {
+      "titulo": "Infinity en semanasUS/diasUS evade el guardián y lanza RangeError no capturado (crash del panel)",
+      "archivo": "src/lib/expediente/ginecologia.ts",
+      "problema": "El guardián de la línea 62 `if (!(semanasUS >= 0) || !(diasUS >= 0)) return null` fue escrito para rechazar NaN (`NaN>=0` es false → null), pero `Infinity >= 0` es TRUE, así que In"
+    },
+    {
+      "titulo": "Unidad no canónica: 'unidad' es solo cosmética; los umbrales están cableados a unidades convencionales de EE.UU. sin validación → falsa LRA / escala tipo FIB-4",
+      "archivo": "src/lib/expediente/preventivo.ts",
+      "problema": "PuntoLab.valor es un number sin unidad. El parametro 'unidad' de analizarTendencia (linea 213) se usa SOLO para el texto del resumen (lineas 229-232); alertaDeTendencia (linea 314)"
+    },
+    {
+      "titulo": "Ruteo por subcadena mal dirige variantes ortograficas y analitos compuestos → alerta clinica equivocada (HbA1c 'glicosilada' cae en la regla de anemia)",
+      "archivo": "src/lib/expediente/preventivo.ts",
+      "problema": "norm() (linea 315) solo minusculiza y quita acentos; no reconcilia 'glucosilada' vs 'glicosilada' (ambas grafias son de uso comun en Mexico). En el paso 2 (lineas 325-328) se toman"
+    },
+    {
+      "titulo": "interpretarCMI ignora cmiCensurada → un «>X» en el borde del corte se clasifica S/I (falso-sensible)",
+      "archivo": "src/lib/expediente/antibiograma/clsi-breakpoints.ts",
+      "problema": "La firma es interpretarCMI(organismo, antibiotico, cmi: number, sitio?) y motor.ts:90 la llama con solo `x.cmi`, SIN pasar `x.cmiCensurada`. El propio tipo (tipos.ts:35-43) adviert"
+    },
+    {
+      "titulo": "disfuncionVD_TAPSE no valida rango fisiológico: valores imposibles (negativos, cero, confusión cm/mm, fuera de escala) calculan en silencio",
+      "archivo": "src/lib/uci/pocus.ts",
+      "problema": "El motor solo hace `const t = num(tapseMm)` y `if (t === null) return bloq(...)`. `num()` (src/lib/uci/num.ts:15-23) únicamente rechaza null/vacío/espacios/NaN/Infinity mediante Nu"
+    },
+    {
+      "titulo": "Motor auditado (tendencias.ts) es CÓDIGO MUERTO: la UCI usa un segundo motor divergente (correlacion.ts) — se viola fuente única",
+      "archivo": "src/lib/uci/tendencias.ts",
+      "problema": "tendencia()/tendenciasUCI() SOLO se importan desde su propio test (src/__tests__/uci-tendencias.test.ts). Ningún componente ni ruta de producción lo consume (grep 'uci/tendencias' "
+    },
+    {
+      "titulo": "El \"hueco liberado\" (fecha/hora/tipo/medicoId) es 100% aseverado por el cliente — nunca se carga ni valida la cita cancelada autoritativa",
+      "archivo": "src/app/api/whatsapp/waitlist-notify/route.ts",
+      "problema": "El endpoint toma fecha, hora, tipo y medicoId directamente del body (línea 30) y jamás carga la cita/appointment correspondiente para confirmar que realmente existió y pasó a estad"
+    },
+    {
+      "titulo": "Sin cota fisiológica inferior: E/e′ ≤ 0 (y TAPSE ≤ 0) imposibles se interpretan en silencio como NORMAL/patológico",
+      "archivo": "src/lib/uci/pocus.ts",
+      "problema": "presionesLlenado_Ee solo bloquea si num()==null (vacío/NaN/Infinity). Un valor finito pero fisiológicamente imposible pasa: `v < 8 ? 'presiones de llenado normales'`. Con E/e′ = -5"
+    },
+    {
+      "titulo": "Redondeo ANTES del umbral cambia la clasificación de respuesta a líquidos (distensibilidadVCI)",
+      "archivo": "src/lib/uci/pocus.ts",
+      "problema": "`const idx = Math.round(((mx - mn) / mn) * 100); const respondedor = idx > 18`. El redondeo NO es solo de presentación: el valor redondeado es el que se compara con el umbral >18%."
+    },
+    {
+      "titulo": "updateNota escribe un snapshot de versión COMPLETO en cada llamada, y el autoguardado la invoca cada 30 s → decenas de copias casi-1MB con PHI por consulta, en una subcolección sin tope",
+      "archivo": "src/lib/expediente/firestore.ts",
+      "problema": "updateNota (firestore.ts:202-217) crea SIEMPRE un doc de versión con `addDoc(... /versions)` copiando `prev.data()` completo (incluye `transcripcionCruda` + `dialogoDiarizado` + `e"
+    },
+    {
+      "titulo": "Signos vitales (FC, FR, TA, temperatura, SpO2) sin tope de plausibilidad — valores imposibles se almacenan en silencio",
+      "archivo": "src/lib/expediente/parser-clinico.ts",
+      "problema": "peso y talla pasan por pesoAKg()/tallaACm() con rangos plausibles (0.3-400 kg, 20-250 cm) y devuelven null si el valor es imposible. Pero fc, fr, ta, temperatura y spo2 se devuelve"
+    },
+    {
+      "titulo": "extraerCaprini corre sobre texto CRUDO sin normalizar — el dictado acentuado ('várices') pierde factores de una escala determinista",
+      "archivo": "src/lib/expediente/parser-clinico.ts",
+      "problema": "Todos los extractores normalizan primero (extraerComorbilidades t=normalizar, extraerMedicamentosPreop, e incluso extraerStopBang normaliza internamente en la línea 325). Pero pars"
+    },
+    {
+      "titulo": "Doble motor Caprini divergente: mismo paciente, distinto puntaje y profilaxis (fuente NO única)",
+      "archivo": "src/lib/expediente/cirugia.ts",
+      "problema": "Existen DOS motores Caprini independientes en el código. (A) sumarCaprini + caprini + CAPRINI_FACTORES en src/lib/expediente/cirugia.ts:73-136, consumido por el panel de consulta P"
+    },
+    {
+      "titulo": "Campos de contexto (notasPrevias/alergias/medicamentosActuales) se inyectan crudos y sin blindaje anti-inyección en el motor de estructuración de notas",
+      "archivo": "src/lib/expediente/prompts.ts",
+      "problema": "En buildUserPrompt (líneas 596-608) solo la TRANSCRIPCIÓN se envuelve entre triple-comillas y solo ella está cubierta por la sección ANTI-PROMPT-INJECTION de REGLAS_BASE ('La trans"
+    },
+    {
+      "titulo": "cmiDe descarta cmiCensurada: la CMI censurada se lee como valor EXACTO (falso-sensible / falso-fenotipo)",
+      "archivo": "src/lib/expediente/antibiograma/util.ts",
+      "problema": "cmiDe devuelve `r.cmi` desnudo (`return r.cmi`) y NO propaga `r.cmiCensurada` ('>' | '<'). El propio tipos.ts (líneas 35-43) documenta que esto importa —«`>500` no es lo mismo que "
+    },
+    {
+      "titulo": "Doble intérprete de Lp(a) con umbrales divergentes se muestran juntos y se contradicen",
+      "archivo": "src/lib/expediente/cardiometabolico/biomarcadores-lipidos.ts",
+      "problema": "Existen DOS motores de Lp(a) vivos sobre el mismo dato: interpretarLpA (biomarcadores-lipidos.ts:130-135) e interpretarLpa (dislipidemia.ts:335-354). No comparten fuente ni bandas."
+    },
+    {
+      "titulo": "La guarda de plausibilidad de creatinina NO está propagada al copiloto: creatinina en µmol/L o typo produce TFG falsa y contraindicaciones inventadas",
+      "archivo": "src/lib/expediente/copiloto.ts",
+      "problema": "evaluarFuncionRenal() (funcion-renal.ts:103) sí rechaza creatinina fuera de [0.1, 25] mg/dL (datoImplausible). Pero la ruta clínica del copiloto NO usa ese wrapper: en ajusteRenal("
+    },
+    {
+      "titulo": "clasificarTFG(NaN) devuelve silenciosamente 'G5 · Falla renal' — no hay guarda de finitud",
+      "archivo": "src/lib/expediente/funcion-renal.ts",
+      "problema": "clasificarTFG(egfr) (líneas 81–88) es una cadena de `if (egfr >= …) return`. Con egfr = NaN todas las comparaciones `>=` son false y la función CAE al `return { estadio: 'G5', desc"
+    },
+    {
+      "titulo": "Dos motores RASS duplicados y divergentes; el de scores.ts (más seguro) es código muerto (solo tests)",
+      "archivo": "src/lib/uci/scores.ts",
+      "problema": "La escala RASS está definida DOS veces con divergencias reales, violando la regla de fuente única. (1) `RASS_ESCALA` en scores.ts:128-133 y `ETIQUETAS` en neuro.ts:58-61. Difieren "
+    },
+    {
+      "titulo": "El detector de mención solo mira la PRIMERA aparición del fármaco: burla trivial del safety-net (falso negativo)",
+      "archivo": "/Users/davidrdz/Desktop/agenda-medica/src/lib/expediente/antibiograma/validar-razonamiento.ts",
+      "problema": "mencionadoComoTratamiento hace `const i = t.indexOf(a)` y evalúa el contexto de negación SOLO en los 60 caracteres previos a esa PRIMERA ocurrencia (líneas 40-42). Si el fármaco ap"
+    },
+    {
+      "titulo": "Matching por subcadena (sin frontera de token) marca falsas contradicciones contra combinaciones β-lactámico+inhibidor distintas",
+      "archivo": "/Users/davidrdz/Desktop/agenda-medica/src/lib/expediente/antibiograma/validar-razonamiento.ts",
+      "problema": "mencionadoComoTratamiento usa `t.includes(a)` (línea 34) y `t.indexOf(a)` con `norm()` que NO elimina guiones. Es exactamente el matching por subcadena que el resto del módulo aban"
+    },
+    {
+      "titulo": "Token 'bla' (y 'tb') hace match por SUBSTRING sin límite de palabra → inventa patógenos a partir de habla común ('habla', 'tabla', 'niebla')",
+      "archivo": "src/lib/expediente/parser-clinico.ts",
+      "problema": "extraerAntibioticosYPatogenos usa `PATOGENOS_DIC.filter(p => textoNorm.includes(p))` (línea 304-305) — substring crudo, sin `\\\\b`, a diferencia de TODO el resto del archivo que usa"
+    },
+    {
+      "titulo": "NUM_RE trunca centenas ('doscientos'→'dos') y prellena un valor PEQUEÑO y PLAUSIBLE que envenena SOFA en silencio",
+      "archivo": "src/lib/uci/extraccion.ts",
+      "problema": "El grupo numérico de la regex (línea 288) usa NUM_RE (línea 162) que incluye tokens como 'dos','tres','seis','ocho' SIN límite de palabra al final del token dentro del grupo de cap"
+    },
+    {
+      "titulo": "copiloto llama a ckdEpi2021 en crudo y salta la guarda de unidad de creatinina (µmol/L → TFG fantasma)",
+      "archivo": "src/lib/expediente/copiloto.ts",
+      "problema": "labs es Record<string,number> SIN unidad canónica (línea 59). La guarda de plausibilidad de creatinina (CREAT_MGDL_MIN=0.1 / CREAT_MGDL_MAX=25) vive SOLO dentro de evaluarFuncionRe"
+    },
+    {
+      "titulo": "IDOR cross-tenant: cualquiera autenticado firma el membrete/firma/sello de OTRO médico",
+      "archivo": "src/app/api/receta/diseno-url/route.ts",
+      "problema": "El endpoint autentica con verificarUsuario (nivel USUARIO, no miembro/clínica: auth-server.ts:62-66) y luego toma los `paths` DIRECTAMENTE del body (línea 28), validándolos solo po"
+    },
+    {
+      "titulo": "plaquetasEn10a9 tiene una BANDA MUERTA (1000–2000): plaquetas 1.0–2.0 ×10⁹/L en conteo absoluto NO se normalizan → FIB-4 1000× subestimado en el cirrótico con trombocitopenia severa",
+      "archivo": "src/lib/expediente/cardiometabolico/masld.ts",
+      "problema": "La normalización de unidad es por MAGNITUD, no explícita: `return plaquetas > 2000 ? plaquetas / 1000 : plaquetas`. El comentario afirma que ×10⁹/L va ~5–1000 y que >2000 'solo pue"
+    },
+    {
+      "titulo": "Evento 'cobro_exento' se emite pero el servidor lo rechaza y se pierde en silencio (bitácora incompleta)",
+      "archivo": "src/app/api/auditoria/registrar/route.ts",
+      "problema": "El union de tipos AuditEvento en audit-log.ts:48 incluye 'cobro_exento' y se emite realmente desde src/components/CobrarModal.tsx:62 ({ evento: 'cobro_exento', clinicId, ... }). Pe"
+    },
+    {
+      "titulo": "Stent DES sin 'motivo' seleccionado produce falsa tranquilidad: 'cumple el intervalo recomendado'",
+      "archivo": "src/lib/expediente/preop.ts",
+      "problema": "En generarRecomendaciones el bloque de tiempos post-stent (líneas 459-473) sólo emite advertencia si stentDESMotivo === 'SCA' (m<12) o 'cronico' (m<6). Si stentDES=true y mesesDesd"
+    },
+    {
+      "titulo": "Edad ausente desactiva TODAS las contraindicaciones por edad (fail-open silencioso)",
+      "archivo": "/Users/davidrdz/Desktop/agenda-medica/src/lib/expediente/pediatria.ts",
+      "problema": "El bloqueo por edad exige `edadMeses != null` (línea 158). La pestaña de dosis funciona solo con el peso (PanelPediatria.tsx:137 pide solo `pesoKg>0`), y el llamador pasa `edad = m"
+    },
+    {
+      "titulo": "KPC confirmada por PCR con CAZ-AVI R produce terapia CONTRADICTORIA (recomienda y prohíbe ceftazidima-avibactam a la vez) e inyecta esquema mexicano de MBL",
+      "archivo": "src/lib/expediente/antibiograma/enterobacterales.ts",
+      "problema": "analizarEnterobacterales SIEMPRE corre sobre (organismo, r) y NO recibe entrada.pruebas, así que infiere la clase de carbapenemasa desde el S/I/R aunque el laboratorio ya la haya c"
+    },
+    {
+      "titulo": "estaNegado invierte las negaciones más comunes ('no tiene/presenta/refiere X') y las marca como POSITIVAS",
+      "archivo": "/Users/davidrdz/Desktop/agenda-medica/src/lib/expediente/parser-clinico.ts",
+      "problema": "El mecanismo de 'cierre de negación' (lineas 227-230) busca el ULTIMO afirmador (presenta|refiere|tiene|tuvo|...) dentro de la ventana previa al termino y descarta TODO lo anterior"
+    },
+    {
+      "titulo": "validacionesGeneralesMedicamentos es código muerto: nunca se invoca en producción",
+      "archivo": "src/lib/expediente/medical-dictionary.ts",
+      "problema": "La función exportada validacionesGeneralesMedicamentos (chequeos de embarazo/ERC/anticoagulación) SOLO es importada por src/__tests__/medical-dictionary.test.ts. Ningún surface de "
+    },
+    {
+      "titulo": "Pseudomonas carbapenem-R con cefalosporinas AUSENTES (no probadas) se degrada a fenotipo benigno: se suprimen alerta crítica, notificación NOM-045 y aislamiento",
+      "archivo": "src/lib/expediente/antibiograma/nofermentadores.ts",
+      "problema": "El Patrón 1b `if (carbaR && !otrosBetaR)` clasifica el aislamiento como 'porina + bomba de expulsión, NO carbapenemasa' (confianza 'probable') y hace `return`. Pero `otrosBetaR = E"
+    },
+    {
+      "titulo": "Opt-out (BAJA) forzado cross-paciente vía payload de statuses sin verificar",
+      "archivo": "src/app/api/whatsapp/360dialog-webhook/route.ts",
+      "problema": "Los estados de entrega se procesan ANTES de cualquier deduplicación o validación, con datos totalmente controlados por quien envía el cuerpo: `for (const s of parsearStatuses(paylo"
+    },
+    {
+      "titulo": "El motor de modelo (Opus 4.8 + GPT-5) lo fija el cliente vía body.motor, sin gate de nivelIA y cobrando 1 crédito plano por un costo real de ~10",
+      "archivo": "src/app/api/expediente/antibiograma-razonar/route.ts",
+      "problema": "El tier del modelo se deriva SOLO del body del cliente: `const modelos = body.motor === 'maxima' ? MODELOS_OPUS : body.motor === 'rapida' ? MODELOS_HAIKU : MODELOS_SONNET` (línea 1"
+    },
+    {
+      "titulo": "El sello se puede silenciar degradando hashVersion (campo NO sellado y fuera del payload firmado)",
+      "archivo": "src/lib/expediente/integrity.ts",
+      "problema": "verificarIntegridadEstado hace corto-circuito ANTES de comparar el hash: `if ((nota.metadata.hashVersion ?? 1) < HASH_VERSION) return 'legado'`. hashVersion vive en metadata y NO e"
+    },
+    {
+      "titulo": "El payload canónico omite datos clínicos estructurados críticos: alteraciones post-firma quedan 'verificada'",
+      "archivo": "src/lib/expediente/integrity.ts",
+      "problema": "contenidoCanonico (líneas 40-53) sella solo: id, tipo, pacienteId, medicoId, fechaConsulta, secciones{key,value}, diagnosticos, medicamentos, alergias, signosVitales. NO sella camp"
+    },
+    {
+      "titulo": "El 'Quality Gate' es un oráculo espejo: re-implementa la misma fórmula que valida (no hay golden test independiente)",
+      "archivo": "src/lib/uci/benchmark.ts",
+      "problema": "El docstring afirma que el cálculo se compara «con un cómputo independiente» (línea 6), pero cada categoría calcula el valor 'esperado' RE-TIPEANDO la misma fórmula del motor y lo "
+    },
+    {
+      "titulo": "extraerAlergias ignora la negación: registra alergias que el paciente NEGÓ (inventa dato clínico)",
+      "archivo": "/Users/davidrdz/Desktop/agenda-medica/src/lib/expediente/parser-clinico.ts",
+      "problema": "Es el ÚNICO extractor del archivo que no consulta estaNegado(). extraerComorbilidades (línea 251), extraerMedicamentosPreop (278/289) y extraerCaprini (365, con el comentario explí"
+    },
+    {
+      "titulo": "alertaDeTendencia aplica umbrales absolutos sin unidad canónica: falsa LRA/anemia con unidades SI (trampa de escala tipo FIB-4)",
+      "archivo": "src/lib/expediente/preventivo.ts",
+      "problema": "El campo `unidad` de analizarTendencia (línea 213/229) es puramente cosmético: solo se concatena al string `resumen`. La firma alertaDeTendencia(analito, t: Tendencia) NO recibe un"
+    },
+    {
+      "titulo": "No se carga el recurso autoritativo: el contenido del evento (PHI) y los IDs vienen 100% del body sin reconciliar",
+      "archivo": "src/app/api/calendar/sync/route.ts",
+      "problema": "El endpoint nunca lee la cita autoritativa de Firestore. Toma el objeto `appointment` completo del body (línea 14) y lo pasa tal cual a `createCalendarEvent`/`updateCalendarEvent` "
+    },
+    {
+      "titulo": "noEvaluable falso ('verificar unidad') en todos los analitos sin rango crítico de pánico",
+      "archivo": "src/lib/expediente/laboratorio/extraccion.ts",
+      "problema": "noEvaluable = !ev.evaluable && !!fila.unidad?.trim() trata como 'no se pudo juzgar la unidad' cualquier caso en que evaluarCriticoLab devuelva evaluable:false. Pero lab-criticos.ts"
+    },
+    {
+      "titulo": "El campo `unidad` se ignora para TODO salvo conteos → sin unidad canónica; un valor en unidad SI válida pero dentro del rango mg/dL se escala mal en silencio y alimenta CKD-EPI/alertas",
+      "archivo": "src/lib/expediente/labs-desde-texto.ts",
+      "problema": "La salida es `Record<string, number>` sin unidad canónica adjunta, y el único lugar que consulta `e.unidad` es `normalizarConteo`, exclusivo de plaquetas/leucocitos (línea 81-86). "
+    },
+    {
+      "titulo": "El candado «en orina» solo protege a creatinina; sodio/potasio urinarios generan alertas críticas falsas",
+      "archivo": "src/lib/expediente/labs-desde-texto.ts",
+      "problema": "Solo `creatinina` (línea 38) lleva el lookahead negativo `(?!\\\\s*(en\\\\s*)?orina)`. `potasio` (línea 56), `sodio` (línea 57), `glucosa` (línea 55), `leucocitos` (línea 59) y `hemogl"
+    },
+    {
+      "titulo": "Solo el pH tiene gate fisiológico: PaCO2/HCO3/Na/Cl/albúmina se calculan en silencio con valores imposibles o con error de escala (riesgo tipo FIB-4 1000x)",
+      "archivo": "src/lib/uci/gasometria.ts",
+      "problema": "El único control de rango es `if (ph! < 6.5 || ph! > 8.0) return bloquear(...)` (línea 84). PaCO2, HCO3, Na, Cl y albúmina pasan por `num()` (que solo garantiza finitud, no rango) "
+    },
+    {
+      "titulo": "El campo `motor` del body escala a Opus 4.8 sin verificar el plan/nivel del consultorio",
+      "archivo": "src/app/api/expediente/evidencia/route.ts",
+      "problema": "El nivel de modelo se deriva de un campo controlado por el cliente sin autorización server-side. En líneas 128-134, `motorSel = String(body.motor)`; si vale 'maxima' se usa `MODELO"
+    },
+    {
+      "titulo": "pesoPredichoPBW devuelve PBW cero o NEGATIVO para talla baja dentro de rango (sin piso de sanidad en la salida)",
+      "archivo": "src/lib/uci/ventilacion.ts",
+      "problema": "La fórmula lineal Devine/ARDSNet PBW = base + 0.91·(talla−152.4) se aplica sobre RANGOS.talla_cm = [100,250], pero SOLO se valida la ENTRADA (talla en rango), nunca la SALIDA. Para"
+    },
+    {
+      "titulo": "vtPorPBW divide por el PBW sin validar signo ni rango → VT/PBW negativo o Infinity calculado en silencio y etiquetado 'Volumen protector'",
+      "archivo": "src/lib/uci/ventilacion.ts",
+      "problema": "vtPorPBW solo comprueba pbw === null (línea 111) y VT en rango (línea 113), pero NUNCA valida que pbw esté en un rango fisiológico ni que sea > 0 antes de dividir en la línea 114 ("
+    },
+    {
+      "titulo": "PCR/CRP: mezcla silenciosa de escala mg/dL vs mg/L (rango plausible admite ambas → tendencia y banda de referencia falsas)",
+      "archivo": "src/lib/expediente/laboratorio/analitos.ts",
+      "problema": "El PCR se declara unidad 'mg/L' con rango plausible [0,600]. Pero `valorPlausible` (analitos.ts:93-97) SOLO compara el número contra ese rango sin mirar la unidad reportada, y `val"
+    },
+    {
+      "titulo": "RCRI duplicado: dos motores clínicos independientes con contratos divergentes (viola fuente única)",
+      "archivo": "src/lib/expediente/cirugia.ts",
+      "problema": "Existen DOS implementaciones separadas del índice RCRI (Lee) sobre los MISMOS 6 factores. (a) src/lib/expediente/cirugia.ts:52 `rcri(factores:number)` devuelve nivel 'bajo'|'medio'"
+    },
+    {
+      "titulo": "PBW puede ser ≤ 0 o exactamente 0 → VT/kg negativo o Infinity, reportado como 'Volumen protector'",
+      "archivo": "/Users/davidrdz/Desktop/agenda-medica/src/lib/uci/ventilacion.ts",
+      "problema": "RANGOS.talla_cm = [100, 250] (línea 35) admite tallas por debajo del dominio válido de la fórmula de Devine. Para sexo 'F', 45.5 + 0.91·(talla−152.4) cruza cero en talla ≈ 102.4 cm"
+    },
+    {
+      "titulo": "El copiloto valida CUALQUIER 'gentamicina' contra la pauta NEONATAL → falsa alarma crítica de sobredosis",
+      "archivo": "src/lib/expediente/copiloto.ts",
+      "problema": "FARMACOS_PED tiene DOS filas de gentamicina: 'Gentamicina neonatal (≤7 días)' (pediatria.ts:69, 5 mg/kg/día repartido c/12h, topeMgKgDia 5) y 'Gentamicina' estándar (pediatria.ts:7"
+    },
+    {
+      "titulo": "peso ≤ 0 no se bloquea → dosis = Infinity (o rate = 0) silenciosa en cálculo de vasopresor",
+      "archivo": "src/lib/uci/infusiones.ts",
+      "problema": "resolver() solo bloquea cuando el fármaco es porKg y el peso es null (`if (farmaco.porKg && peso === null)`). No valida peso <= 0. Como num('0')=0 y num('-70')=-70 (ambos finitos, "
+    },
+    {
+      "titulo": "Dosis / velocidad negativas no se rechazan → mL/h o dosis negativos devueltos como ok:true",
+      "archivo": "src/lib/uci/infusiones.ts",
+      "problema": "En dosisARate `const dosis = num(e.dosis); if (dosis === null) return bloq('Falta la dosis')` — solo bloquea null, no valores < 0. num('-0.5') devuelve -0.5 (finito). rate = dosis*"
+    },
+    {
+      "titulo": "El control de plausibilidad de peso NO cruza contra la edad y es inerte en la ruta común: un peso 2.2× (confusión lb/kg) se dosifica en silencio",
+      "archivo": "src/lib/expediente/pediatria.ts",
+      "problema": "revisarPesoPediatrico(pesoKg, pesoPrevioKg?) solo dispara en tres casos: peso inválido, peso > 120 kg, o razón vs. un peso PREVIO entre ~1.9–2.5 (o ~0.4–0.53). No recibe ni usa la "
+    },
+    {
+      "titulo": "Segundo motor MDR duplicado y contradictorio (contarClasesResistentes) corre en paralelo al formal, sin exclusión intrínseca y con matcher .includes() prohibido",
+      "archivo": "src/lib/expediente/antibiograma/motor.ts",
+      "problema": "motor.ts:165-168 llama contarClasesResistentes() dentro de transversales() para TODO organismo y emite un fenotipo {clave:'MDR'} en PARALELO al motor formal analizarMDR() de mdr.ts"
+    },
+    {
+      "titulo": "Escalada de rol: secretaría/enfermería obtiene secreto médico (Dx + medicamentos) vía token del portal",
+      "archivo": "src/app/api/portal/route.ts",
+      "problema": "El handler 'documentos' (portal/route.ts:245-265) devuelve diagnósticos y medicamentos de notas FIRMADAS a cualquier portador de un token de paciente HMAC válido. /api/portal NO re"
+    },
+    {
+      "titulo": "SpO₂/edad faltante se puntúa como MEJOR caso (missing≠0) → sub-triaje silencioso",
+      "archivo": "src/lib/expediente/preop.ts",
+      "problema": "El estado inicial del formulario es `spo2: 0` y `edad: edadPaciente ?? 0` (PreopAssessment.tsx:49). El motor guarda la SpO₂ con `if (i.spo2 > 0 && i.spo2 <= 90)` y `else if (i.spo2"
+    },
+    {
+      "titulo": "esMedicamentoCritico es ciego a acentos: rivaroxaban/apixaban/dabigatran/codeina NO se marcan como críticos",
+      "archivo": "/Users/davidrdz/Desktop/agenda-medica/src/lib/expediente/medical-dictionary.ts",
+      "problema": "La compuerta usa coincidencia por subcadena con `low.includes(c)` (línea 244) contra FARMACOS_CRITICOS (líneas 55-60), cuyas entradas están SOLO en forma acentuada: 'rivaroxabán', "
+    },
+    {
+      "titulo": "parseSalidaCopilot no valida la forma de cada elemento de 'problemas' → crash del panel UCI y 500 en la ruta",
+      "archivo": "src/lib/uci/copilot.ts",
+      "problema": "Línea 140: `problemas: Array.isArray(o.problemas) ? o.problemas as ProblemaCopilot[] : []`. Solo se comprueba que sea un array; cada elemento se hace CAST sin validar que sea un ob"
+    },
+    {
+      "titulo": "El co-piloto de la nota calcula dosis pediátricas SIN la revisión de peso (revisarPesoPediatrico) y SIN edad: se saltan a la vez el hard-stop de unidad lb/kg y el bloqueo por contraindicación de edad",
+      "archivo": "src/lib/expediente/copiloto.ts",
+      "problema": "En dosisPediatrica() la variable `edad` (años) está en scope y se usa en la guarda de línea 192, y `peso = e.signos?.peso` viene crudo del expediente. Pero la llamada real es `calc"
+    },
+    {
+      "titulo": "edicionesInterpretativas (EUCAST T13: «S» que debe leerse R) nunca llegan ni al prompt ni al validador",
+      "archivo": "src/lib/expediente/antibiograma/razonar.ts",
+      "problema": "resumenDeterminista (líneas 13-38) vuelca al prompt categoriasCMI, fenotipos, mecanismos, resistenciaIntrinseca(solo conflicto), terapiaDirigida, advertencias, alertas, aislamiento"
+    },
+    {
+      "titulo": "Gate de créditos TOCTOU + cobro post-llamada + entrada sin tope = cost-bombing sobre la llave del dueño",
+      "archivo": "src/app/api/uci/copilot/route.ts",
+      "problema": "El candado de dinero se lee ANTES de llamar a los modelos (creditosAgotados/pruebaAgotada en líneas 128-136) pero el cargo se registra DESPUÉS (registrarCreditos en línea 153). Amb"
+    },
+    {
+      "titulo": "El fenotipo excepcional de S. aureus se dispara para CUALQUIER estafilococo (incluye coagulasa-negativos) y los rotula como 'S. aureus'",
+      "archivo": "src/lib/expediente/antibiograma/seguridad.ts",
+      "problema": "La guarda es organismoEs(organismo, ['staphylococcus','aureus']), y organismoEs usa OR (claves.some => o.includes(k)). 'Staphylococcus epidermidis' / 'S. haemolyticus' / cualquier "
+    },
+    {
+      "titulo": "PBW negativo/cero acepta talla desde 100 cm → VT/PBW negativo o Infinity presentado como 'Volumen protector'",
+      "archivo": "src/lib/uci/ventilacion.ts",
+      "problema": "RANGOS.talla_cm es [100, 250] (línea 35), pero la fórmula ARDSNet de PBW (línea 102: base + 0.91·(talla−152.4)) es válida solo para tallas de adulto (~≥150 cm). Para mujer: talla=1"
+    },
+    {
+      "titulo": "fusionarCopilot descarta las banderas de seguridad y los desacuerdos intra-sistema de la 2ª opinión",
+      "archivo": "src/lib/uci/copilot.ts",
+      "problema": "La fusión solo conserva del 2º modelo los `problemas` cuyo `sistema` NO aparece en el primario: `const sistemasPrim = new Set((primario?.problemas ?? []).map(p => p.sistema)); cons"
+    },
+    {
+      "titulo": "El hash NO cubre `indicacion` por-fármaco, que SÍ se imprime → cambios en la instrucción del medicamento no se detectan",
+      "archivo": "src/lib/expediente/huella-impreso.ts",
+      "problema": "`resumirMedicamentos` construye la línea de cada fármaco con `[m.nombre, m.dosis, m.via, m.frecuencia, m.duracion]` y OMITE `m.indicacion`. Sin embargo la receta impresa sí renderi"
+    },
+    {
+      "titulo": "vexus() acepta VCI no positiva / fuera de rango y grada en silencio (grado 0 falsamente tranquilizador; riesgo escala cm↔mm)",
+      "archivo": "/Users/davidrdz/Desktop/agenda-medica/src/lib/uci/pocus.ts",
+      "problema": "Tras `if (vci === null)` (L195) el único filtro es `if (vci < 2.0) return grado 0`. NO hay guardia de plausibilidad: un diámetro de VCI negativo, cero o imposible pasa. `vexus({ vc"
+    },
+    {
+      "titulo": "Unidad NO canónica: los umbrales clínicos se comparan contra un número crudo desacoplado de la unidad (riesgo de escala tipo FIB-4)",
+      "archivo": "src/lib/expediente/preventivo.ts",
+      "problema": "PuntoLab (línea 186-190) es { fecha, valor:number } sin unidad canónica. La unidad es texto libre (PanelPreventivo.tsx línea 103, input libre) y solo se pasa a analizarTendencia pa"
+    },
+    {
+      "titulo": "apoB no tiene parámetro de unidad ni rango de sanidad: error de escala silencioso g/L↔mg/dL (clase FIB-4)",
+      "archivo": "src/lib/expediente/cardiometabolico/biomarcadores-lipidos.ts",
+      "problema": "interpretarApoB(apoB, opts) asume la unidad mg/dL de forma implícita (la fija hardcodeada en `unidad: 'mg/dL'`, línea 116) y su ÚNICO guardián es `if (!(apoB > 0)) return null` (lí"
+    },
+    {
+      "titulo": "Contaminación cruzada PEEP/auto-PEEP: \"auto peep N\" fija también set-PEEP y envenena el driving pressure",
+      "archivo": "src/lib/uci/extraccion.ts",
+      "problema": "En extraerValoresUCIConAvisos el campo 'peep' (alias 'peep', CAMPOS_UCI línea 121) se busca con un regex `\\\\bpeep\\\\b(...)?\\\\s+(numero)`. El límite de palabra \\\\bpeep\\\\b casa DENTRO"
+    },
+    {
+      "titulo": "El motor ignora cmiCensurada al derivar S/I/R de la CMI → puede reportar «S» (falso sensible) sobre una CMI «>X»",
+      "archivo": "src/lib/expediente/antibiograma/motor.ts",
+      "problema": "El bucle de categoriasCMI (motor.ts:88-105) pasa solo el número x.cmi a interpretarCMI y NUNCA consulta x.cmiCensurada ('>' | '<'), campo que el propio tipos.ts (líneas 34-43) decl"
+    },
+    {
+      "titulo": "Canal de alertas suplantable: destinatario y contenido arbitrarios sin validar contra episodio/interconsulta",
+      "archivo": "src/app/api/hospital/alerta/route.ts",
+      "problema": "La cadena se rompe en el paso 'cargar recurso autoritativo → validar transición'. El endpoint NUNCA carga el internamiento/episodio ni la interconsulta. Toma `destinatarioUid` y `d"
+    },
+    {
+      "titulo": "Sin rate-limit ni idempotencia en envío de WhatsApp (acción que cuesta dinero)",
+      "archivo": "src/app/api/hospital/alerta/route.ts",
+      "problema": "El handler llama sendWhatsApp (línea 81) que cobra por mensaje vía 360dialog/Meta, sin ningún control de frecuencia ni clave de idempotencia. El único límite es la longitud del tex"
+    },
+    {
+      "titulo": "peso ≤ 0 no se valida: rateADosis divide entre 60·peso → Infinity (peso=0) o dosis negativa (peso<0), devueltos como resultado VÁLIDO (ok:true) sin bloqueo",
+      "archivo": "/Users/davidrdz/Desktop/agenda-medica/src/lib/uci/infusiones.ts",
+      "problema": "resolver() (L93) sólo bloquea cuando el peso es null: `if (farmaco.porKg && peso === null) return bloq(...)`. num('0')→0 y num('-70')→-70 son finitos y pasan el filtro. En rateADos"
+    },
+    {
+      "titulo": "peso ≤ 0 produce dosis Infinity o negativa SILENCIOSA (división por cero sin validar)",
+      "archivo": "src/lib/uci/ckrt.ts",
+      "problema": "La única guarda sobre el peso es `if (peso === null)` (línea 88). Pero `num()` devuelve 0 para la cadena '0' y valores negativos tal cual (num.ts línea 22 solo filtra no-finitos). "
+    },
+    {
+      "titulo": "cmiDe admite CMI no-finita/no-positiva: el gate es solo typeof, el motor calcula en silencio con un valor imposible",
+      "archivo": "src/lib/expediente/antibiograma/util.ts",
+      "problema": "cmiDe (líneas 87-92) usa como ÚNICO filtro de validez `typeof r.cmi === 'number'` y devuelve el crudo: `if (casaAlguno(r.antibiotico, sinonimos) && typeof r.cmi === 'number') retur"
+    },
+    {
+      "titulo": "analizarDTR usa CARBAPENEM (con ertapenem) en vez de CARBAPENEM_ANTIPSEUDOMONAS → DTR falso-positivo y falso-negativo en P. aeruginosa",
+      "archivo": "src/lib/expediente/antibiograma/mdr.ts",
+      "problema": "En analizarDTR, primeraLinea (línea 104-106) incluye `...CARBAPENEM`, y el gate proboCarba (línea 110) es `CARBAPENEM.some(a => estado(r,[a]) !== null)`. CARBAPENEM = ['meropenem',"
+    },
+    {
+      "titulo": "Las alertas de seguridad de PRESCRIPCIÓN nunca se disparan (dead code en producción)",
+      "archivo": "src/lib/uci/seguridad.ts",
+      "problema": "El motor soporta tres señales — `dosisSinUnidad` (58), `vasopresorSinConcentracion` (59) y `residuoGastrico` (118-119) — pero NINGÚN caller las alimenta. Verificado por grep en tod"
+    },
+    {
+      "titulo": "CKRT: dosis mL/kg/h con peso ≤ 0 se calcula en silencio (Infinity / dosis negativa)",
+      "archivo": "src/lib/uci/ckrt.ts",
+      "problema": "analizarCKRT() sólo protege el caso peso===null (línea 88). num() acepta 0 y negativos como valores finitos válidos, así que un ckrtPeso de '0' o '-70' (typo de captura) NO se bloq"
+    },
+    {
+      "titulo": "edadEnMeses viola 'missing≠0': fecha inválida/no-parseable devuelve 0 meses (neonato), no error",
+      "archivo": "src/lib/expediente/pediatria.ts",
+      "problema": "En `edadEnMeses` (línea 298-304), ante una fecha imposible de parsear se ejecuta `if (isNaN(n.getTime()) || isNaN(h.getTime())) return 0`. 0 meses NO es 'sin dato': es la edad clín"
+    },
+    {
+      "titulo": "La salvaguarda NOM-004 se puede saltar: getNotas oculta notas sin fechaConsulta",
+      "archivo": "src/lib/expediente/firestore.ts",
+      "problema": "El gate legal lee las notas con `getNotas` (línea 36: `orderBy('fechaConsulta','desc')`) y filtra `estado==='firmada'` (líneas 129-130). Firestore, al ordenar por un campo, OMITE s"
+    },
+    {
+      "titulo": "La cascada de citas por nombre/teléfono borra citas de OTROS pacientes (homónimos / teléfono familiar)",
+      "archivo": "src/lib/expediente/firestore.ts",
+      "problema": "Cuando la cita tiene `pacienteId` vacío, se empareja por igualdad de nombre normalizado O teléfono normalizado (líneas 162-164): `norm(data.pacienteNombre)===norm(matchInfo.nombre)"
+    },
+    {
+      "titulo": "interpretarElastografia NO normaliza plaquetas: el umbral de hipertensión portal (≤150 ×10⁹/L) se compara contra el conteo absoluto crudo",
+      "archivo": "src/lib/expediente/cardiometabolico/masld.ts",
+      "problema": "El criterio de hipertensión portal clínicamente significativa es `kPa > 20 && plaquetas != null && plaquetas <= 150`. A diferencia de fib4(), esta función NO llama a plaquetasEn10a"
+    },
+    {
+      "titulo": "extraerCaprini opera sobre texto SIN normalizar → términos acentuados nunca se capturan y negaciones acentuadas no cierran",
+      "archivo": "src/lib/expediente/parser-clinico.ts",
+      "problema": "Es el ÚNICO extractor que no normaliza su entrada. extraerComorbilidades (línea 243) y extraerMedicamentosPreop (línea 271) hacen `const t = normalizar(texto)` antes de aplicar reg"
+    },
+    {
+      "titulo": "Ventana de negación de 40 caracteres produce FALSO POSITIVO antecedenteTVP (+3) en listas de factores negados",
+      "archivo": "src/lib/expediente/parser-clinico.ts",
+      "problema": "estaNegado solo mira 40 caracteres hacia atrás (`ventanaInicio = Math.max(0, indiceMatch - 40)`, línea 219) y la coma NO resetea la negación (solo '.', ';', '\\\\n', línea 223). Cuan"
+    },
+    {
+      "titulo": "Negadores flexionados/acentuados no reconocidos: 'descartó/descartamos artroplastia' marca artroplastiaElectiva (+5)",
+      "archivo": "src/lib/expediente/parser-clinico.ts",
+      "problema": "NEGADORES = `...|descart[ao]\\\\b` (línea 206). 'descartamos' no matchea (tras 'descarta' viene 'm', el \\\\b falla) y 'descartó' no matchea porque extraerCaprini corre sobre texto ace"
+    },
+    {
+      "titulo": "NEGADORES no cubre la negación natural de fármacos/hábitos (\"no toma\", \"no fuma\") → flags preop en TRUE",
+      "archivo": "src/lib/expediente/parser-clinico.ts",
+      "problema": "La regex de negadores es `/\\\\b(?:niega|sin|no\\\\s+(?:tiene|presenta|refiere|hay|ha\\\\s+tenido)|nunca\\\\s+(?:ha|tuvo)|ausente|descart[ao])\\\\b/i`. Solo reconoce 'no tiene/presenta/refie"
+    },
+    {
+      "titulo": "AFIRMADORES cierra la negación dentro de la MISMA cláusula → inversión de negados",
+      "archivo": "src/lib/expediente/parser-clinico.ts",
+      "problema": "estaNegado() busca el ÚLTIMO afirmador (`presenta|refiere|tiene|tuvo|cursa con|acude por|en tratamiento|con diagnostico|diagnosticado`) dentro de la ventana de 40 chars y descarta "
+    },
+    {
+      "titulo": "Endpoint publico sin rate-limit: amplificacion de lecturas Firestore (cost-DoS)",
+      "archivo": "src/app/api/public/availability/[clinicId]/route.ts",
+      "problema": "El handler GET no aplica ningun limite de tasa, pese a ser publico y sin autenticacion (los propios comentarios lo reconocen, lineas 82-86). El endpoint hermano src/app/api/public/"
+    },
+    {
+      "titulo": "Centor/McIsaac NO invoca camposSinResponder: la edad sin capturar vale 0 en silencio (= opción '15-44 años') y produce un puntaje pegable a la nota",
+      "archivo": "src/lib/expediente/calculadoras.ts",
+      "problema": "Centor es la ÚNICA calculadora con un campo tipo 'opciones' (`edad`, línea 146-148: 3-14 años=+1, 15-44 años=0, ≥45 años=-1) que NO llama a `camposSinResponder`. Su `calcular` (lín"
+    },
+    {
+      "titulo": "Tabla LMS IMC/edad de NIÑAS tiene el parámetro L congelado (–0.5684) de los 25 a los 60 meses → z-score, percentil y clasificación nutricional erróneos para todas las niñas de 2–5 años",
+      "archivo": "src/lib/expediente/oms-crecimiento.ts",
+      "problema": "En IMC_EDAD_NINA la primera columna (L) es idéntica bit a bit (–0.5684) en los 36 meses del índice 25 al 60 (líneas 374–409), mientras M y S sí varían mes a mes (15.6589, 15.6311, "
+    },
+    {
+      "titulo": "Extracción CIEGA a la unidad dictada → escala tipo FIB-4 en aminas (SOFA cardiovascular disparado 10-70×)",
+      "archivo": "src/lib/uci/extraccion.ts",
+      "problema": "extraerValoresUCIConAvisos captura SÓLO el número que sigue al alias del fármaco (regex línea 288, se guarda tal cual en línea 302: valores[campo] = String(val)). La unidad dictada"
+    },
+    {
+      "titulo": "APACHE II: subscore neurológico `15 - gcs` sin acotar → puntos NEGATIVOS o inflados con un Glasgow fuera de rango, silenciosamente",
+      "archivo": "src/lib/uci/scores.ts",
+      "problema": "En calcularAPACHE2 el subscore de Glasgow se calcula como aritmética cruda: `if (gcs === null) {...} else puntos.push(15 - gcs)`. `num()` (src/lib/uci/num.ts:15) acepta CUALQUIER n"
+    },
+    {
+      "titulo": "SOFA neurológico puntúa un Glasgow imposible (>15) como 0 = 'sin disfunción': falso tranquilizador en silencio",
+      "archivo": "src/lib/uci/scores.ts",
+      "problema": "neurologico() usa `gcs < 6 ? 4 : gcs < 10 ? 3 : gcs < 13 ? 2 : gcs < 15 ? 1 : 0`. Cualquier GCS ≥15 cae en el `else 0`. Como `num()` no valida rango, un GCS de 51 (transcripción de"
+    },
+    {
+      "titulo": "Alergia NEGADA en texto libre dispara alerta CRÍTICA falsa que BLOQUEA la firma NOM-004",
+      "archivo": "src/lib/expediente/medical-dictionary.ts",
+      "problema": "validarAlergiasVsMedicamentos hace matching por subcadena sobre el campo alérgeno SIN manejar negaciones. El caller de consulta (consulta/[patientId]/page.tsx:2721-2722) pasa TODO "
+    },
+    {
+      "titulo": "Carbapenémicos marcados CRÍTICO por alergia a penicilina, contradiciendo la degradación deliberada a PRECAUCIÓN del copiloto (la 'fuente única' es falsa)",
+      "archivo": "src/lib/expediente/medical-dictionary.ts",
+      "problema": "FAMILIA_BETALACTAMICOS incluye 'meropenem','imipenem','ertapenem' en una lista plana; esBetalactamico (línea 150) los trata igual que penicilinas, así que alergia a penicilina + me"
+    },
+    {
+      "titulo": "GET /api/receta/diseno no autentica ni verifica propiedad del recurso (IDOR cross-tenant sobre firma/membrete del médico)",
+      "archivo": "src/app/api/receta/diseno/route.ts",
+      "problema": "El handler GET no llama a verificarUsuario ni a ninguna autorización. Lee el archivo con Admin SDK (admin.storage().bucket(BUCKET).file(path).download(), líneas 57-59), lo que IGNO"
+    },
+    {
+      "titulo": "El minter /api/receta/diseno-url firma paths ajenos: el 'candado' estricto NO aísla tenants",
+      "archivo": "src/app/api/receta/diseno-url/route.ts",
+      "problema": "El endpoint está autenticado (verificarUsuario) pero el bucle que acuña las URLs firmadas (for (const p of paths) { ... firmarPathDiseno(p, Date.now()) ... }) SOLO valida la FORMA "
+    },
+    {
+      "titulo": "El bloqueo pediátrico por edad mínima (ibuprofeno <6m, TMP-SMX <2m, nitrofurantoína <1m) es CÓDIGO MUERTO desde el copiloto",
+      "archivo": "src/lib/expediente/copiloto.ts",
+      "problema": "dosisPediatrica() llama `calcularDosisPediatrica(f, peso)` SIN pasar `edadMeses`. La contraindicación por edad de pediatria.ts (`if (f.edadMinimaMeses != null && edadMeses != null "
+    },
+    {
+      "titulo": "El sello de integridad NO cubre campos clínicos estructurados de la nota firmada (preop, infectología, hospital, estudios, resumen)",
+      "archivo": "src/lib/expediente/integrity.ts",
+      "problema": "contenidoCanonico (líneas 40-53) sólo hashea id, tipo, pacienteId, medicoId, fechaConsulta, secciones{key,value}, diagnosticos, medicamentos, alergias y signosVitales. NotaMedica ("
+    },
+    {
+      "titulo": "sanitizarProsa borra 'baja confianza' de prosa clínica legítima (contenido psiquiátrico eliminado en silencio)",
+      "archivo": "src/lib/expediente/sanitizar-prosa.ts",
+      "problema": "El patrón /(?:por confirmar\\\\s*\\\\(IA\\\\)|baja confianza)/gi elimina CUALQUIER aparición literal de 'baja confianza', sin anclar a que sea una bandera interna de la IA (p.ej. entre p"
+    },
+    {
+      "titulo": "Los 4 patrones consumen el espacio previo y fusionan palabras vecinas al coincidir a media oración",
+      "archivo": "src/lib/expediente/sanitizar-prosa.ts",
+      "problema": "Todos los patrones empiezan con \\\\s* (o ,?\\\\s*) y reemplazan por '' (línea 18), sin \\\\b ni reinserción de separador. Cuando la coincidencia está en medio de la frase, se elimina ta"
+    },
+    {
+      "titulo": "analizarCitrato no valida rango/plausibilidad ni unidades del calcio: mezcla mg/dL con mmol/L calcula un ratio de acumulación falso, en silencio",
+      "archivo": "src/lib/uci/ckrt.ts",
+      "problema": "El ratio de acumulación se calcula como r1(total/sis) exigiendo que AMBOS estén en mmol/L (docstring líneas 20, 156-157: iCa 1.0-1.2 mmol/L, ratio ≥2.5). Pero num() (num.ts:15-23) "
+    },
+    {
+      "titulo": "estado en la allowlist: mass-assignment del estado de facturación/flujo (el cliente marca 'pagada'/'finalizada' sin cobro real)",
+      "archivo": "src/app/api/appointments/route.ts",
+      "problema": "La allowlist anti mass-assignment (CAMPOS_CITA, líneas 40-44) presume excluir los campos de cobro ('cobroExento','cobradoEn','cobroId') y las banderas de recordatorio/confirmación,"
+    },
+    {
+      "titulo": "Reagendar sobrescribe CUALQUIER cita de la clínica sin cargar el recurso autoritativo ni validar la transición (update encubierto vía merge)",
+      "archivo": "src/app/api/appointments/route.ts",
+      "problema": "Cuando llega reagendarId, la transacción hace tx.set(apptsCol.doc(reagendarId), { ...limpia, ...}, { merge: true }) (líneas 149-157) SIN leer primero el documento. Se saltan dos pa"
+    },
+    {
+      "titulo": "deleteFoto borra el documento pero DEJA HUÉRFANA la imagen PHI en Storage",
+      "archivo": "src/lib/expediente/fotos-clinicas.ts",
+      "problema": "deleteFoto solo llama deleteDoc del documento Firestore (líneas 73-75). La IMAGEN real de la foto clínica se sube a Firebase Storage en la ruta 'fotos/{patientId}/{timestamp}' (Fot"
+    },
+    {
+      "titulo": "peso ≤ 0 no se bloquea → dosis Infinity/negativa se propaga a la nota clínica en silencio",
+      "archivo": "/Users/davidrdz/Desktop/agenda-medica/src/lib/uci/ckrt.ts",
+      "problema": "La única guarda del peso es `if (peso === null)` (línea 88). `num('0')` devuelve 0 (no null), así que peso=0 pasa la guarda y ejecuta `dosisExacta = efluente / peso` (línea 91) = I"
+    },
+    {
+      "titulo": "PBW cero/negativo/Infinity con talla válida baja → VT/PBW se calcula en silencio con dato imposible y lo etiqueta 'Volumen protector'",
+      "archivo": "src/lib/uci/ventilacion.ts",
+      "problema": "pesoPredichoPBW acepta cualquier talla dentro de RANGOS.talla_cm = [100, 250] (línea 35) y NO valida el resultado. La fórmula ARDSNet/Devine base + 0.91·(talla−152.4) sólo es válid"
+    },
+    {
+      "titulo": "Números ≥100 dictados en palabras (\"cien\", \"ciento cincuenta\") se descartan EN SILENCIO, sin aviso — pérdida de dato clínico",
+      "archivo": "src/lib/uci/extraccion.ts",
+      "problema": "NUM_RE (línea 162) incluye `cien|ciento`, así que la regex de alias (línea 288) SÍ captura crudo=\"cien\" o \"ciento cincuenta\". Pero parsearNumeroEs (comandos-uci.ts:64-81 / enteroEs"
+    },
+    {
+      "titulo": "Números dictados en palabras ≥100 se pierden en silencio o se truncan a un dígito (envenena el panel/SOFA)",
+      "archivo": "src/lib/uci/extraccion.ts",
+      "problema": "El motor de números de palabras (parsearNumeroEs → enteroEs en src/lib/voz/comandos-uci.ts:48-58) solo entiende 0–99: no maneja 'cien/ciento/doscientos/mil' ni compuestos. Pero NUM"
+    },
+    {
+      "titulo": "Separador decimal 'coma' no soportado: 0.2 de amina colapsa a 0 y se acepta sin aviso",
+      "archivo": "src/lib/voz/comandos-uci.ts",
+      "problema": "parsearNumeroEs solo reemplaza 'punto' por '.' (línea 65). En español de México 'coma' es separador decimal habitual. El chain de NUM_RE en extraccion.ts:288 solo continúa con 'y|p"
+    },
+    {
+      "titulo": "seriesDesdeHistorial no valida consistencia de unidad → mezcla escalas y oculta valores severos en la misma serie/gráfica",
+      "archivo": "src/lib/expediente/laboratorio/extraccion.ts",
+      "problema": "La serie fija su unidad con el PRIMER panel cronológico (`unidad: r.unidad`, línea 151) y luego apila TODOS los puntos del mismo `clave` sin comprobar que `r.unidad` coincida (líne"
+    },
+    {
+      "titulo": "Un NEGATIVO fraseado 'No presenta'/'No presente' se convierte en POSITIVO e inventa un mecanismo",
+      "archivo": "src/lib/expediente/antibiograma/vision.ts",
+      "problema": "El guard `esNeg` enumera muchas variantes de negativo ('No se detecta/detectó/detectada', 'No productor', 'No reactivo', 'Ausente', 'Negativo') pero OMITE 'presenta/presente'. En c"
+    },
+    {
+      "titulo": "Dos motores Lp(a) divergentes con nombres casi idénticos (interpretarLpa vs interpretarLpA) se renderizan a la vez con el MISMO valor → etiquetas contradictorias",
+      "archivo": "src/lib/expediente/cardiometabolico/dislipidemia.ts",
+      "problema": "Existen DOS funciones de interpretación de Lp(a) que solo se distinguen por la mayúscula de la última letra: interpretarLpa (dislipidemia.ts:335, cortes 125/250 nmol/L y 50/100 mg/"
+    },
+    {
+      "titulo": "Alergia documentada a CLASE ('cefalosporinas' / 'carbapenémicos') NO dispara alerta en la receta dispensada",
+      "archivo": "src/lib/expediente/medical-dictionary.ts",
+      "problema": "El detector betalactámico solo hace match por SUBSTRING contra nombres de fármaco concretos (FAMILIA_BETALACTAMICOS: 'cefalexina','ceftriaxona',...) más el frágil a.includes('beta'"
+    },
+    {
+      "titulo": "La compuerta directa de alergia mismo-fármaco está MUERTA en producción (guard al.tipo==='medicamento' nunca se cumple)",
+      "archivo": "src/lib/expediente/nom004.ts",
+      "problema": "El bloque que detecta prescribir el MISMO fármaco al que el paciente es alérgico exige `al.tipo === 'medicamento'`. Pero el constructor real de la nota (construirNota, src/app/(das"
+    },
+    {
+      "titulo": "Entero con separador de miles MX (sin punto decimal) se subescala 1000× en silencio → SOFA renal marca anuria con uresis normal",
+      "archivo": "src/lib/uci/num.ts",
+      "problema": "La regla `s.includes('.') ? s.replace(/,/g,'') : s.replace(',', '.')` decide que, si NO hay punto, la coma es SIEMPRE decimal. Pero en formato mexicano un entero sin decimales usa "
+    },
+    {
+      "titulo": "Unidad conflacionada: umbrales de anticoagulantes/digoxina son CrCl (Cockcroft-Gault, no indexado) pero se alimentan con TFG indexada CKD-EPI",
+      "archivo": "src/lib/expediente/prescripcion-segura.ts",
+      "problema": "La interfaz ReglaRenal declara que TODOS los umbrales desde/hasta están 'en mL/min/1.73 m²' (línea 21). Sin embargo las reglas de Enoxaparina (L80-86), Apixabán (L88-94), Rivaroxab"
+    },
+    {
+      "titulo": "Falta validación de transición de estado: una cita ya PAGADA o en estado terminal se revierte a 'pendiente-pago'",
+      "archivo": "/Users/davidrdz/Desktop/agenda-medica/src/app/api/payment/create-checkout/route.ts",
+      "problema": "Tras cargar la cita y verificar propiedad (líneas 36-42), el endpoint escribe incondicionalmente estado:'pendiente-pago', pagoStripeSessionId, pagoMonto y pagoMoneda (líneas 79-85)"
+    },
+    {
+      "titulo": "El matcher fuzzy (fonético + Levenshtein) sigue ACTIVO en el pase de n-gramas pese al comentario de seguridad que dice que se desactivó",
+      "archivo": "src/lib/expediente/medical-vocabulary.ts",
+      "problema": "El comentario de SEGURIDAD CLÍNICA (líneas 747-765) afirma que 'las capas FONÉTICA y LEVENSHTEIN se DESACTIVARON' porque corregían español correcto contra un vocabulario contaminad"
+    },
+    {
+      "titulo": "LEXICO_VOZ_2026 contamina el índice fonético con ~1600 términos ingleses/latinos no-fármaco elegibles para el corrector",
+      "archivo": "src/lib/expediente/medical-vocabulary.ts",
+      "problema": "En la línea 657 se hace '...LEXICO_VOZ_2026' dentro de TODOS_LOS_TERMINOS, que alimenta INDICE_FONETICO (línea 676) y TERMINOS_LEV (línea 686), consumidos por el matcher fuzzy de n"
+    },
+    {
+      "titulo": "Rate-limit por IP evadible: se confía en el valor más a la izquierda de X-Forwarded-For (controlado por el cliente)",
+      "archivo": "src/app/api/public/booking/route.ts",
+      "problema": "El identificador de IP para el rate-limit se toma como `req.headers.get('x-forwarded-for')?.split(',')[0]`. En Vercel/serverless el atacante puede enviar su propio header `X-Forwar"
+    },
+    {
+      "titulo": "Reservas públicas habilitadas por defecto: solo se bloquea si publicBookingEnabled === false",
+      "archivo": "src/app/api/public/booking/route.ts",
+      "problema": "El gate de reservas públicas es `if (cfgBase.publicBookingEnabled === false)`. Es un opt-OUT explícito: cualquier clínica cuyo `config/main` NO tenga el campo `publicBookingEnabled"
+    },
+    {
+      "titulo": "construirSeccionesUCI no valida rangos fisiológicos: entrada manual imposible alimenta SOFA y la nota firmada en silencio",
+      "archivo": "src/lib/uci/nota.ts",
+      "problema": "El constructor confía ciegamente en `v: Campos` y no re-valida ningún rango. La única barrera de plausibilidad (RANGOS_UCI: glasgow [3,15], pic [0,100], fio2 [21,100], plaquetas [1"
+    },
+    {
+      "titulo": "La compuerta previa a firmar falla en silencio si el marcador de IA varía un solo carácter",
+      "archivo": "src/lib/expediente/sugerencias-ia.ts",
+      "problema": "tieneSugerencias/contarSugerencias (líneas 34-42) detectan lo no-dictado con coincidencia EXACTA de subcadena sobre '[IA — no dictado]', que contiene un guion largo em dash U+2014 "
+    },
+    {
+      "titulo": "valorPlausible ignora la unidad reportada → punto de escala equivocada en la tendencia (clase FIB-4)",
+      "archivo": "src/lib/expediente/laboratorio/extraccion.ts",
+      "problema": "La compuerta de graficado es valorPlausible(a.clave, num) (extraccion.ts:98), que en analitos.ts:93-97 compara el número SOLO contra el rango en la unidad canónica y NUNCA mira fil"
+    },
+    {
+      "titulo": "Secuestro cross-tenant del canal: whatsapp_channels/{phoneNumberId} se sobreescribe sin verificar propiedad ni colisión",
+      "archivo": "src/app/api/whatsapp/manual-connect/route.ts",
+      "problema": "El índice de enrutamiento de webhooks se escribe con `.set()` incondicional: `adminDb.collection('whatsapp_channels').doc(phoneNumberId).set({ clinicId, ... })`. El phoneNumberId v"
+    },
+    {
+      "titulo": "El cap de plausibilidad se aplica ANTES de la criticidad → valores de pánico se archivan como 'no reconocidos' sin bandera crítica",
+      "archivo": "src/lib/expediente/laboratorio/extraccion.ts",
+      "problema": "En validarPanel el gate `!valorPlausible(a.clave, num)` cortocircuita ANTES de llamar a evaluarCriticoLab (línea 110). Los caps de analitos.ts son más estrechos que valores de páni"
+    },
+    {
+      "titulo": "Sinónimos de una sola letra (k, na, cl, fa) misclasifican otros analitos a series equivocadas",
+      "archivo": "src/lib/expediente/laboratorio/analitos.ts",
+      "problema": "Los patrones usan abreviaturas de 1–2 letras como PALABRA: potasio /\\\\b(potasio|k)\\\\b/ (l.62), sodio /\\\\b(sodio|na)\\\\b/ (l.61), cloro /\\\\b(cloro|cl)\\\\b/ (l.63), fosfatasa alcalina "
+    },
+    {
+      "titulo": "Vitamina K se clasifica como Potasio (símbolo de una letra \\\\bk\\\\b) y dispara alarma de pánico falsa",
+      "archivo": "src/lib/expediente/laboratorio/analitos.ts",
+      "problema": "El patrón de potasio es /\\\\b(potasio|k)\\\\b/i. El token de una sola letra `k` casa como PALABRA dentro de cualquier estudio que contenga 'K' aislada. Verificado ejecutando analitoDe"
+    },
+    {
+      "titulo": "Colesterol no-HDL se clasifica como HDL: la corrección aplicada en el archivo hermano NO se propagó aquí",
+      "archivo": "src/lib/expediente/laboratorio/analitos.ts",
+      "problema": "El patrón HDL es /\\\\b(hdl|colesterol hdl|c-hdl)\\\\b/i, sin el lookbehind negativo de 'no-HDL'. Verificado: analitoDe('Colesterol no-HDL') -> hdl y analitoDe('Colesterol no-LDL') -> "
+    },
+    {
+      "titulo": "HAS-BLED se calcula SIEMPRE en 0-2 (\"Bajo\") cuando lo pre-llena la IA: el esquema del prompt usa claves que NO existen en HASBLED_ITEMS → factores caen silenciosamente",
+      "archivo": "src/lib/expediente/preop.ts",
+      "problema": "calcularHasBled (preop.ts:342-351) suma con `HASBLED_ITEMS.filter(i => sel[i.key]).length`. Las claves canónicas del motor (única fuente para cálculo Y UI) son: htaNoControlada, re"
+    },
+    {
+      "titulo": "CHA₂DS₂-VASc (misma tarjeta) tiene el mismo drift de claves: pierde el ictus (S₂=2 pts), vasculopatía y sexo femenino al pre-llenar por IA",
+      "archivo": "src/lib/expediente/prompts.ts",
+      "problema": "CHADSVASC_ITEMS (preop.ts:288-297) usa evcPrevia (2 pts), enfVascular (1) y sexoFemenino (1). El esquema del prompt (prompts.ts:475-483) usa ictusEVC, vasculopatia y mujer. calcula"
+    },
+    {
+      "titulo": "cmiDe() descarta cmiCensurada → falso-sensible / fenotipo mal clasificado",
+      "archivo": "/Users/davidrdz/Desktop/agenda-medica/src/lib/expediente/antibiograma/util.ts",
+      "problema": "cmiDe() devuelve `r.cmi` crudo (solo valida `typeof r.cmi === 'number'`) y NUNCA propaga la bandera `cmiCensurada` ('>'/'<'). La censura SÍ se captura correctamente en la entrada ("
+    },
+    {
+      "titulo": "interpretarCMI() (categoriasCMI) también ignora la censura → categoría CLSI errónea y falsa «discrepancia» con el laboratorio",
+      "archivo": "/Users/davidrdz/Desktop/agenda-medica/src/lib/expediente/antibiograma/motor.ts",
+      "problema": "El bloque que deriva categoriasCMI pasa `x.cmi` directo a interpretarCMI(organismo, antibiotico, cmi:number, sitio) — cuya firma (clsi-breakpoints.ts:376) NO tiene parámetro de cen"
+    },
+    {
+      "titulo": "La nota firmada omite las ediciones interpretativas EUCAST T13 (una «S» que el motor determinó que debe leerse R)",
+      "archivo": "src/lib/expediente/antibiograma/resumen-nota.ts",
+      "problema": "El Panel imprime el S/I/R CRUDO reportado (`x.interpretacion`, línea 27) y la función NUNCA emite `r.edicionesInterpretativas`. El motor SÍ las calcula (motor.ts línea 69, `seg.edi"
+    },
+    {
+      "titulo": "omiteAlertasCriticas: cobertura satisfecha por palabras genéricas del propio mensaje → falso negativo (alerta crítica se da por 'cubierta' sin serlo)",
+      "archivo": "src/lib/expediente/antibiograma/validar-razonamiento.ts",
+      "problema": "La función concluye que el texto NO omite alertas si contiene ALGUNA palabra ≥6 letras de ALGUNA de las alertas críticas (doble `.some`: `criticas.some(...)` sobre `claves.slice(0,"
+    },
+    {
+      "titulo": "El sello de integridad OMITE campos clínicos materiales: alterarlos tras la firma devuelve 'verificada'",
+      "archivo": "src/lib/expediente/integrity.ts",
+      "problema": "contenidoCanonico() (líneas 40-53) solo hashea: id, tipo, pacienteId, medicoId, fechaConsulta, secciones{key,value}, diagnosticos, medicamentos, alergias y signosVitales. QUEDAN FU"
+    },
+    {
+      "titulo": "El pase de n-gramas sigue con fuzzy ACTIVO e inyecta palabras inglesas/latinas en la nota clínica",
+      "archivo": "src/lib/expediente/medical-vocabulary.ts",
+      "problema": "El comentario de seguridad (líneas 749-765) afirma que las capas FONÉTICA y LEVENSHTEIN se DESACTIVARON por corromper español correcto, pero ese apagado SOLO ocurrió en mejorCandid"
+    },
+    {
+      "titulo": "Vocabulario contaminado con ≥415 palabras inglesas/latinas que alimenta el fuzzy y el word_boost del ASR en vivo",
+      "archivo": "src/lib/expediente/lexico-voz-2026.ts",
+      "problema": "LEXICO_VOZ_2026 (4053 entradas 'auto-generadas') está lleno de palabras inglesas/latinas de morfología no-española: 'abducent','abnormality','abortion','abrasive','abscess','absorb"
+    },
+    {
+      "titulo": "Doble fuente de verdad para Lp(a) con umbrales divergentes: el mismo valor recibe dos interpretaciones contradictorias en la misma pantalla",
+      "archivo": "src/lib/expediente/cardiometabolico/biomarcadores-lipidos.ts",
+      "problema": "Existen DOS intérpretes de Lp(a) con lógica distinta y ambos se renderizan a la vez para el mismo dato:\\n1) `interpretarLpA` aquí (línea 130-162): bandas optimo <75, limitrofe 75–1"
+    },
+    {
+      "titulo": "Fuga de dinero: la redacción con IA nunca descuenta créditos (registrarCreditos ausente)",
+      "archivo": "src/app/api/inmuno/redactar/route.ts",
+      "problema": "El endpoint hace una llamada real a Anthropic (Sonnet 4.6, max_tokens 2500, SYSTEM largo) y al terminar SOLO llama `await registrarUso(clinicId, fuente)` (línea 87). `registrarUso`"
+    },
+    {
+      "titulo": "El matcher casaAlguno/coincideAntibiotico confunde la gentamicina de RUTINA con el tamiz de ALTO NIVEL (HLAR): puede perder el HLAR y aconsejar sinergia inexistente en endocarditis",
+      "archivo": "src/lib/expediente/antibiograma/util.ts",
+      "problema": "coincideAntibiotico solo aplica una regla de frontera de token (a) y una regla de inhibidor (b). La regla (b) (lineas 53) impide que un agente suelto case una COMBINACION con inhib"
+    },
+    {
+      "titulo": "Prefijo de centenas capturado como dígito suelto → valor erróneo DENTRO de rango, sin aviso (envenena SOFA)",
+      "archivo": "src/lib/uci/extraccion.ts",
+      "problema": "El grupo numérico `((?:\\\\d+...)|(?:${NUM_RE})(?:\\\\s+(?:y|punto|${NUM_RE}))*)` NO ancla el fin de la palabra-número. Alternativas de NUM_RE como `dos|tres|cuatro|seis` casan como PR"
+    },
+    {
+      "titulo": "'coma' como separador decimal no soportado → trunca el decimal en silencio (K 5.8→5, norepi 0.05→0)",
+      "archivo": "src/lib/uci/extraccion.ts",
+      "problema": "La continuación del número solo admite 'y|punto' y parsearNumeroEs (comandos-uci.ts:65) solo reemplaza `\\\\bpunto\\\\b`→'.'. En español mexicano el decimal se dicta muy a menudo como "
+    },
+    {
+      "titulo": "Oráculo de firma: nunca carga la nota autoritativa; firma identidad del prescriptor y contenido enviados por el cliente",
+      "archivo": "src/app/api/receta/verificacion-url/route.ts",
+      "problema": "El endpoint NUNCA carga el recurso autoritativo (la nota/receta) desde Firestore. Toma notaId, folio, doctorNombre, cedula y contenidoHash DIRECTAMENTE del body (líneas 25-34) y lo"
+    },
+    {
+      "titulo": "Umbrales clínicos como texto libre sin unidad canónica ni golden test de valores: un error de tecleo 10x es indetectable",
+      "archivo": "/Users/davidrdz/Desktop/agenda-medica/src/lib/uci/evidencia.ts",
+      "problema": "Todo umbral se almacena en el campo `umbral: string` (interface línea 28-38) como prosa: mezcla rangos, fórmulas y criterios compuestos con unidades incrustadas y heterogéneas (mmH"
+    },
+    {
+      "titulo": "El client/channel de 360dialog no se ata a la clínica autenticada: captura de canal cross-tenant",
+      "archivo": "src/app/api/whatsapp/360dialog-callback/route.ts",
+      "problema": "El nonce (state) recuperado en las líneas 46-57 SÍ ata el clinicId server-side (bien, cierra el IDOR original). Pero los parámetros `client` (línea 31) y `channels` (líneas 32,68,7"
+    },
+    {
+      "titulo": "Serratia: resistencias intrínsecas incompletas → falso MDR[confirmado] en cepa salvaje",
+      "archivo": "/Users/davidrdz/Desktop/agenda-medica/src/lib/expediente/antibiograma/intrinseca.ts",
+      "problema": "La regla de Serratia (líneas 91-98) declara como agente intrínseco solo AMPICILINA, CEF1G y COLISTINA. Serratia marcescens es además intrínsecamente R a amoxicilina-clavulánico (Am"
+    },
+    {
+      "titulo": "Editar el valor en la revisión NO recalcula criticidad ni plausibilidad → flag de pánico obsoleto se persiste",
+      "archivo": "src/components/laboratorio/PanelLaboratorios.tsx",
+      "problema": "El único camino de escritura pasa por el modal de revisión, donde el médico puede corregir el valor extraído con un <input type=number>. El onChange hace `rs[i] = { ...r, valor: Nu"
+    },
+    {
+      "titulo": "Sinónimos de una sola letra (k, na, cl) enrutan estudios ajenos a electrolitos y fabrican valores críticos falsos",
+      "archivo": "src/lib/expediente/laboratorio/analitos.ts",
+      "problema": "potasio usa patron /\\\\b(potasio|k)\\\\b/i, sodio /\\\\b(sodio|na)\\\\b/i (l.61) y cloro /\\\\b(cloro|cl)\\\\b/i (l.63). El comentario de cabecera promete 'PALABRA (no subcadena)', pero \\\\b n"
+    },
+    {
+      "titulo": "Rangos plausibles anchos aceptan valores en otra unidad como si fueran la canónica → salto x17 falso en la misma gráfica (el bug que el archivo dice prevenir)",
+      "archivo": "src/lib/expediente/laboratorio/analitos.ts",
+      "problema": "valorPlausible solo compara el número crudo contra [min,max] SIN mirar la unidad reportada. Para varios analitos la banda plausible en unidad canónica se solapa con los valores clí"
+    },
+    {
+      "titulo": "El gate de firma se burla en silencio con un guion casi-idéntico (em-dash U+2014 + match exacto sin normalizar)",
+      "archivo": "src/lib/expediente/sugerencias-ia.ts",
+      "problema": "Toda la seguridad del módulo depende de UN substring exacto. MARCA_SUGERENCIA = '[IA — no dictado]' contiene un EM DASH U+2014 (confirmado con codePointAt). tieneSugerencias/contar"
+    },
+    {
+      "titulo": "Falso positivo de aspirina: número de casa/gramos dispara tomaAspirina (falta \\\\b en la alternativa 'asa')",
+      "archivo": "src/lib/expediente/parser-clinico.ts",
+      "problema": "El patrón de aspirina es /\\\\baspirina|asa\\\\s+(?:81|100|150|300)|acido\\\\s+acetilsalicilico\\\\b/i. La alternativa central `asa\\\\s+(?:81|100|150|300)` NO tiene límite de palabra al ini"
+    },
+    {
+      "titulo": "Falso negativo por patrón de clase agrupado + solo primer match evaluado por negación",
+      "archivo": "src/lib/expediente/parser-clinico.ts",
+      "problema": "El loop usa `t.match(item.patron)` (SIN flag global), que devuelve únicamente la PRIMERA aparición textual, y evalúa estaNegado solo sobre ese índice. Los patrones agrupan varios f"
+    },
+    {
+      "titulo": "La censura de CMI (>/<) se ignora por completo al derivar categoriasCMI → falso susceptible silencioso",
+      "archivo": "src/lib/expediente/antibiograma/motor.ts",
+      "problema": "En el bucle que arma categoriasCMI, motor.ts:88-90 hace `if (typeof x.cmi !== 'number') continue; const cat = interpretarCMI(organismo, x.antibiotico, x.cmi, entrada.sitio)` y pasa"
+    },
+    {
+      "titulo": "perfilAEntrada descarta la CMI censurada/razón (cmi_texto) y pierde el símbolo → apaga HLAR/VISA/VRSA-por-CMI; duplica y contradice el convertidor de producción",
+      "archivo": "src/lib/expediente/antibiograma/vision.ts",
+      "problema": "perfilAEntrada() sólo copia la CMI cuando `typeof c.cmi === 'number'` (línea 209) y nunca lee `c.cmi_texto` ni emite `cmiCensurada`. Pero el propio esquema de visión y el VISION_SY"
+    },
+    {
+      "titulo": "Unidad NO canónica: `unidad` es decorativa y los umbrales delta asumen escala fija (riesgo tipo FIB-4)",
+      "archivo": "src/lib/expediente/preventivo.ts",
+      "problema": "`analizarTendencia(puntos, unidad='')` recibe `unidad` pero SOLO la usa para armar el string `resumen` (líneas 229-232). Nunca se valida ni normaliza contra una unidad canónica. La"
+    },
+    {
+      "titulo": "Coincidencia de analito por subcadena enruta HbA1c a la regla de ANEMIA (falsa alerta de sangrado) y pierde abreviaturas",
+      "archivo": "src/lib/expediente/preventivo.ts",
+      "problema": "`alertaDeTendencia` normaliza con `norm` (minúsculas + quita acentos, línea 315) pero hace matching por subcadena. La regla de HbA1c se llama 'Hemoglobina glucosilada'. Si el médic"
+    },
+    {
+      "titulo": "interpretarElastografia no normaliza plaquetas (misma trampa 1000× de FIB-4, arreglada solo a medias)",
+      "archivo": "src/lib/expediente/cardiometabolico/masld.ts",
+      "problema": "interpretarElastografia(kPa, plaquetas) compara `plaquetas <= 150` esperando la unidad ×10⁹/L (150 = 150 000/mm³), pero NO aplica la guarda de unidad plaquetasEn10a9() (líneas 94-9"
+    },
+    {
+      "titulo": "El sello se puede neutralizar bajando/borrando hashVersion o hashIntegridad (downgrade attack): la alteración se enmascara como 'legado'/'sin-sello', nunca 'alterada'",
+      "archivo": "src/lib/expediente/integrity.ts",
+      "problema": "verificarIntegridadEstado decide el estado a partir de dos campos (nota.metadata.hashIntegridad y nota.metadata.hashVersion) que NO forman parte del contenido sellado. contenidoCan"
+    },
+    {
+      "titulo": "CSRF de vinculación OAuth: el nonce se liga al uid iniciador, no al navegador — permite robar el Google Calendar de la víctima",
+      "archivo": "src/app/api/calendar/connect/route.ts",
+      "problema": "connect crea un nonce y lo guarda como oauthStates/{nonce} = { uid: acc.uid } SIN emitir ninguna cookie ni ligar el nonce al navegador que inicia el flujo. El callback (src/app/api"
+    },
+    {
+      "titulo": "El índice fonético sigue contaminado con inglés/latín (hypotension, pyonephritis, dehydration, appendagitis, hiperestesia) — misma causa del bug que se declaró resuelto",
+      "archivo": "src/lib/expediente/medical-vocabulary.ts",
+      "problema": "TODOS_LOS_TERMINOS (líneas 642-658) incorpora LEXICO_VOZ_2026 completo (2026 entradas) al índice fonético (INDICE_FONETICO, línea 676) y a TERMINOS_LEV (línea 686). lexico-voz-2026"
+    },
+    {
+      "titulo": "Negación invertida: «no tiene/presenta/refiere X» se registra como comorbilidad PRESENTE (dato fabricado que alimenta escalas)",
+      "archivo": "src/lib/expediente/parser-clinico.ts",
+      "problema": "En estaNegado() la lógica de AFIRMADORES (líneas 216, 227-230) recorta la ventana DEJANDO SOLO lo que va después del último afirmador, y RECIÉN DESPUÉS corre NEGADORES. Pero AFIRMA"
+    },
+    {
+      "titulo": "L de IMC-para-edad en NIÑAS congelado en −0.5684 para 25–60 meses (defecto de datos → z-score silenciosamente erróneo en niñas 2–5 años)",
+      "archivo": "src/lib/expediente/oms-crecimiento.ts",
+      "problema": "En IMC_EDAD_NINA el parámetro L (asimetría de la LMS) es idéntico (−0.5684) en las 36 filas de los meses 25 a 60 (líneas 374–409), mientras M y S varían con normalidad. Es un patró"
+    },
+    {
+      "titulo": "FC, FR, temperatura, SpO2 y TA se capturan SIN topes de plausibilidad — valores imposibles pasan en silencio y uno alimenta la escala ARISCAT",
+      "archivo": "src/lib/expediente/parser-clinico.ts",
+      "problema": "extraerSignosVitales (líneas 117-125) devuelve fc/fr/temperatura/spo2 con `Number(match[1])` crudo, sin ningún rango de validación. SOLO peso y talla tienen caps (pesoAKg 0.3-400 k"
+    },
+    {
+      "titulo": "estaNegado se anula con \"no presenta / no tiene / no refiere\": la comorbilidad NEGADA se registra como POSITIVA (significado invertido)",
+      "archivo": "/Users/davidrdz/Desktop/agenda-medica/src/lib/expediente/parser-clinico.ts",
+      "problema": "estaNegado() (lín. 218-232) primero busca el ÚLTIMO 'afirmador' (AFIRMADORES, lín. 216 = presenta|refiere|tiene|tuvo|...) y descarta todo lo anterior antes de probar los NEGADORES "
+    },
+    {
+      "titulo": "La unidad de Lp(a) se ASUME (nmol/L) cuando falta, causando un error de escala ~2.5x silencioso que subclasifica un valor elevado como bajo riesgo",
+      "archivo": "src/lib/expediente/cardiometabolico/biomarcadores-lipidos.ts",
+      "problema": "interpretarLpA(valor, unidad) exige la unidad como parametro obligatorio (bien: unidad canonica explicita). Pero su envoltorio evaluarPanelLipidico la vuelve opcional y la ADIVINA:"
+    },
+    {
+      "titulo": "categoriaPorAlcohol no valida gramosDia: NaN / faltante / negativo se clasifican en silencio (a diferencia de fib4/interpretarFib4 hermanos)",
+      "archivo": "src/lib/expediente/cardiometabolico/masld.ts",
+      "problema": "La firma es (gramosDia: number, esMujer, criteriosMetabolicos) y el tipo de retorno es SIEMPRE {categoria, explicacion} — NO admite null. No hay ninguna guarda de Number.isFinite n"
+    },
+    {
+      "titulo": "criteriosMetabolicos = NaN se trata como «tiene ≥1 criterio» → upgrade silencioso a MASLD/MetALD (default inseguro, opuesto al correcto)",
+      "archivo": "src/lib/expediente/cardiometabolico/masld.ts",
+      "problema": "La rama de exclusión es `if (criteriosMetabolicos < 1)`. Como toda comparación con NaN es false, `NaN < 1` es false → NO entra a la rama «sin criterio cardiometabólico» y procede a"
+    },
+    {
+      "titulo": "NEE calcula silenciosamente con dosis negativa o absurda y con peso microscópico (sin caps ni piso fisiológico)",
+      "archivo": "src/lib/uci/hemodinamia.ts",
+      "problema": "En equivalenteNorepinefrina la dosis solo se valida contra null (linea 113). No hay verificacion de dosis<0, dosis>tope fisiologico, ni de rango del peso salvo peso<=0 (linea 138)."
+    },
+    {
+      "titulo": "extraerEdad captura duración de enfermedad/tabaquismo como edad (primer match gana, 'de edad' es opcional)",
+      "archivo": "src/lib/expediente/parser-clinico.ts",
+      "problema": "El regex `/\\\\b(\\\\d{1,3})\\\\s*a[ñn]os(?:\\\\s+de\\\\s+edad)?\\\\b/i` hace OPCIONAL el calificador 'de edad', así que matchea CUALQUIER 'N años' del dictado: duración de enfermedad ('diabét"
+    },
+    {
+      "titulo": "Series de laboratorio mezclan escalas de distinta unidad sin conversión ni advertencia (PCR mg/dL vs mg/L = 10x)",
+      "archivo": "src/lib/expediente/laboratorio/extraccion.ts",
+      "problema": "seriesDesdeHistorial agrupa los puntos SOLO por r.clave y hace s.puntos.push({fecha, valor}) sin comparar r.unidad contra la unidad canónica de la serie ni convertir. La serie fija"
+    },
+    {
+      "titulo": "noEvaluable ('verificar unidad') se dispara en ~15 de 23 analitos por 'sin rango crítico definido', no por unidad discrepante — erosiona la señal de seguridad auditada (alarm fatigue)",
+      "archivo": "src/lib/expediente/laboratorio/extraccion.ts",
+      "problema": "noEvaluable = !ev.evaluable && !!fila.unidad?.trim(). Pero evaluarCriticoLab (lab-criticos.ts:136) devuelve evaluable:false con motivo 'sin rango crítico definido para este estudio"
+    },
+    {
+      "titulo": "El gate esIntrinsecamenteResistente (excluye R intrínseca del conteo MDR/XDR/PDR) no tiene NINGÚN test ni versión/golden snapshot",
+      "archivo": "src/lib/expediente/antibiograma/intrinseca.ts",
+      "problema": "esIntrinsecamenteResistente() es la función que mdr.ts (línea 72: `if (!esIntrinsecamenteResistente(organismo, a)) return true`) usa para descartar agentes antes de contar categorí"
+    },
+    {
+      "titulo": "Saturaciones (SpO2/SaO2/SvO2) sin acotar a [0,100]: un typo dispara alertas ALTAS falsas (Harlequin/recirculación)",
+      "archivo": "src/lib/uci/ecmo.ts",
+      "problema": "Ni el motor ni la ruta que lo alimenta validan que las saturaciones sean porcentajes fisiológicos (0–100). En evaluarVA (línea 188) el patrón de hipoxia diferencial se decide con `"
+    },
+    {
+      "titulo": "Presión de pulso negativa (PAD>PAS) dispara alerta ALTA de distensión de VI / venting con 'pulsatilidad -X mmHg'",
+      "archivo": "src/lib/uci/ecmo.ts",
+      "problema": "En evaluarVA, `pulso = pas - pad` (línea 196) sin verificar que pas>pad. Luego `distension = pulso < 15 || valvulaAorticaAbre === false` (línea 197): una presión de pulso negativa "
+    },
+    {
+      "titulo": "imc() no valida rango fisiológico: confusión metros/cm calcula IMC imposible en silencio",
+      "archivo": "src/lib/expediente/cardiometabolico/obesidad.ts",
+      "problema": "imc(pesoKg, tallaCm) solo rechaza no-positivos (`if (!(pesoKg > 0) || !(tallaCm > 0)) return null`) pero no impone NINGÚN límite fisiológico. Asume que talla viene en cm, sin verif"
+    },
+    {
+      "titulo": "Truncamiento silencioso a 12k mientras la ruta acepta 20k: se pierden ~8000 chars del texto clínico en el cross-check de seguridad",
+      "archivo": "src/lib/expediente/medical-ner.ts",
+      "problema": "buildNerUserPrompt corta el texto con textoFuente.slice(0, 12000). Su ÚNICO consumidor (src/app/api/expediente/extraer-entidades/route.ts:100-102) valida y ACEPTA textos de hasta 2"
+    },
+    {
+      "titulo": "copiloto.ts llama al motor crudo ckdEpi2021 y omite la guarda de unidad/plausibilidad, calculando una TFG con creatinina imposible (µmol/L o typo)",
+      "archivo": "src/lib/expediente/copiloto.ts",
+      "problema": "La guarda de unidad ([0.1, 25] mg/dL → datoImplausible) SOLO existe en evaluarFuncionRenal (funcion-renal.ts:103). copiloto invoca la función cruda ckdEpi2021(e.labs.creatinina, ed"
+    },
+    {
+      "titulo": "Umbral de anticoagulantes/aminoglucósidos etiquetado \"/1.73 m²\" pero clínicamente definido en depuración ABSOLUTA (Cockcroft-Gault): sub-alerta silenciosa en el anciano frágil",
+      "archivo": "src/lib/expediente/prescripcion-segura.ts",
+      "problema": "La interfaz ReglaRenal declara la unidad canónica como mL/min/1.73 m² (línea 21) y ajustePorTFG se alimenta con CKD-EPI 2021, que es INDEXADO por superficie corporal (copiloto.ts:2"
+    },
+    {
+      "titulo": "sanitizarProsa colapsa saltos de línea + sangría → aceptar/quitar (basados en líneas) se rompen: se pierde lo dictado o se filtra la marca a la nota firmada",
+      "archivo": "src/lib/expediente/sanitizar-prosa.ts",
+      "problema": "El motor de sugerencias es 100% basado en LÍNEAS: aceptarSugerencias (sugerencias-ia.ts:48-55) y quitarSugerencias (:61-68) hacen texto.split('\\\\n') y deciden por línea. Pero la sa"
+    },
+    {
+      "titulo": "tieneSugerencias es fail-open ante cualquier desviación de la marca que emite el LLM (em dash U+2014 exacto)",
+      "archivo": "src/lib/expediente/sugerencias-ia.ts",
+      "problema": "Toda la garantía de seguridad depende de un match EXACTO de string producido por el LLM. La marca (línea 31) es '[IA — no dictado]' con guión largo U+2014 (verificado: codepoint 20"
+    }
+  ]
+}

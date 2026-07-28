@@ -79,6 +79,10 @@ export function cockcroftGault(creatinina: number, edad: number, sexo: Sexo, pes
 
 /** Estadio KDIGO de enfermedad renal por TFG. */
 export function clasificarTFG(egfr: number): { estadio: string; desc: string } {
+  // Guard de finitud (auditoría P1): un TFG NaN/∞/negativo NO debe clasificarse como
+  // 'G5 Falla renal' por caer al final de la cascada — sería fabricar el peor
+  // estadio a partir de un dato inválido. Se devuelve indeterminado.
+  if (!Number.isFinite(egfr) || egfr < 0) return { estadio: '—', desc: 'TFG no disponible' }
   if (egfr >= 90) return { estadio: 'G1', desc: 'Normal o alta' }
   if (egfr >= 60) return { estadio: 'G2', desc: 'Levemente disminuida' }
   if (egfr >= 45) return { estadio: 'G3a', desc: 'Leve-moderada' }
