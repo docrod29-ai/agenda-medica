@@ -253,7 +253,7 @@
       "commit": "checkpoint propio; el código quedó absorbido por f227bbf (colisión con E0-09 en el mismo árbol)"
     }
   ],
-  "unidadEnCurso": "E0-07",
+  "unidadEnCurso": null,
   "completadas": [
     "E0-01",
     "E0-02",
