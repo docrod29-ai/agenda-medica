@@ -1,6 +1,8 @@
 import { Appointment, ClinicConfig } from '@/types'
-import type { TimeBlock } from '@/lib/time-blocks'
-import { estaBloqueado } from '@/lib/time-blocks'
+import type { TimeBlock } from '@/lib/time-blocks-core'
+// Del NÚCLEO PURO, no de time-blocks: esta cadena la importa /api/portal (servidor)
+// y time-blocks arrastra el SDK del navegador, que se inicializa al importarse.
+import { estaBloqueado } from '@/lib/time-blocks-core'
 import { hoyISO, ahoraMinutosDelDia } from '@/lib/timezone'
 import { format } from 'date-fns'
 

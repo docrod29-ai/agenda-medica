@@ -12,7 +12,9 @@ import { safeLog } from '@/lib/security/sanitize'
 import { instanteMX } from '@/lib/timezone'
 import { adminDb } from '@/lib/firebase-admin'
 import { getDaySchedule, validarHorarioDia } from '@/lib/availability'
-import { estaBloqueado } from '@/lib/time-blocks'
+// Del NÚCLEO PURO: esta ruta corre en el SERVIDOR y `time-blocks` arrastra el SDK
+// del navegador, que se inicializa al importarse y revienta el build sin variables.
+import { estaBloqueado } from '@/lib/time-blocks-core'
 import { limitarOResponder } from '@/lib/rate-limit'
 
 interface Body {
@@ -131,7 +133,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Horario fuera del servicio' }, { status: 409 })
     }
     const bloquesSnap = await clinicRef.collection('time_blocks').get()
-    const bloques = bloquesSnap.docs.map(d => ({ id: d.id, ...d.data() })) as unknown as import('@/lib/time-blocks').TimeBlock[]
+    const bloques = bloquesSnap.docs.map(d => ({ id: d.id, ...d.data() })) as unknown as import('@/lib/time-blocks-core').TimeBlock[]
     if (estaBloqueado(fechaHora, bloques, medicoId, cfg.zonaHoraria || 'America/Mexico_City')) {
       return NextResponse.json({ ok: false, error: 'Ese horario no está disponible (bloqueo/ausencia)' }, { status: 409 })
     }

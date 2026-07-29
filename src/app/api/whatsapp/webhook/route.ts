@@ -32,7 +32,9 @@ import {
 import { registrarEntrante } from '@/lib/whatsapp/contacts'
 import { parsearStatuses, registrarStatus } from '@/lib/whatsapp/status'
 import { hoyISO, sumarDiasISO } from '@/lib/timezone'
-import { estaBloqueado, type TimeBlock } from '@/lib/time-blocks'
+// Del NÚCLEO PURO: ruta de SERVIDOR — ver el comentario de cabecera de
+// time-blocks-core.ts (el SDK del cliente se inicializa al importarse).
+import { estaBloqueado, type TimeBlock } from '@/lib/time-blocks-core'
 
 /** Carga los bloqueos (vacaciones/ausencias) de la clínica para el bot. */
 async function cargarBloques(clinicId: string): Promise<TimeBlock[]> {

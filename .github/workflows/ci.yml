@@ -48,7 +48,33 @@ jobs:
       - name: Build de producción (next build)
         run: npm run build
         env:
-          # El build no debe requerir credenciales de runtime; el sitemap tolera su ausencia.
           NEXT_TELEMETRY_DISABLED: '1'
+          # ── Firebase: RELLENO DE BUILD, no credenciales ──────────────────────
+          # La nota anterior aquí decía «el build no debe requerir credenciales de
+          # runtime». La intención es correcta pero NO se cumple hoy, y el CI lo
+          # demostró: `next build` reventaba con `auth/invalid-api-key` al recolectar
+          # datos de páginas públicas (`/dr/[clinicId]`, `/api/public/booking`),
+          # porque `src/lib/firebase.ts` llama a `initializeApp`/`getAuth` **al
+          # importarse** y esas páginas usan el SDK del navegador de forma legítima.
+          #
+          # POR QUÉ ESTOS VALORES SON SEGUROS EN CLARO: la configuración
+          # `NEXT_PUBLIC_FIREBASE_*` NO es secreta por diseño — viaja dentro del
+          # bundle JavaScript a todos los navegadores de cualquier sitio Firebase.
+          # Lo que protege los datos son las Firestore Rules y App Check, no el
+          # secreto de la llave. Aun así aquí NO van los valores reales del Dr.:
+          # son placeholders sintéticos. Al build solo le hacen falta valores con
+          # FORMA válida — nunca contacta a Firebase — así que un proyecto que no
+          # existe basta, y de paso garantiza que el CI no pueda tocar datos reales.
+          #
+          # Lo que esto NO arregla, declarado: que rutas de SERVIDOR arrastren el
+          # SDK del cliente. Eso se corrigió aparte (`time-blocks-core.ts`) y el
+          # invariante que impide la reincidencia vive en
+          # `src/__tests__/servidor-sin-sdk-cliente.test.ts`.
+          NEXT_PUBLIC_FIREBASE_API_KEY: AIzaSyBUILD-ONLY-PLACEHOLDER-000000000000
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ci-build.firebaseapp.com
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ci-build
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ci-build.appspot.com
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '000000000000'
+          NEXT_PUBLIC_FIREBASE_APP_ID: '1:000000000000:web:0000000000000000000000'
 # NOTA: `npm run lint` aún NO se agrega como gate: el repo tiene ~128 errores de lint
 # pendientes de limpieza (P2). Meterlo bloquearía el CI. Se añadirá tras la limpieza.
