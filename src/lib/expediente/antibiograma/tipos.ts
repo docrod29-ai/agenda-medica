@@ -95,7 +95,7 @@ export type SitioInfeccion =
 export type FenotipoClave =
   | 'MRSA' | 'BORSA' | 'VISA' | 'hVISA' | 'VRSA' | 'MLSb-inducible' | 'MLSb-constitutivo'
   | 'penicilinasa-estafilococica' | 'HLAR' | 'VRE' | 'ampicilina-R-enterococo'
-  | 'neumococo-PNS' | 'carbapenemasa' | 'BLEE' | 'AmpC' | 'IRT'
+  | 'neumococo-PNS' | 'carbapenemasa' | 'carbapenemasa-indeterminada' | 'BLEE' | 'AmpC' | 'IRT'
   | 'porina-perdida' | 'bomba-expulsion' | 'FQ-R' | 'colistin-R'
   | 'S-maltophilia-intrinseca' | 'MDR' | 'XDR' | 'PDR'
   | '16S-RMTasa' | 'AME' | 'DTR' | 'linezolid-R' | 'daptomicina-R' | 'tigeciclina-R'
@@ -213,6 +213,20 @@ export interface PruebaCLSI {
 }
 
 /** Aporte parcial de un módulo de órgano-específico; el motor los fusiona. */
+/**
+ * Estado del mecanismo de carbapenemasa (E0-15b). Separa lo que está
+ * DOCUMENTADO (resistencia observada) de lo que sería INFERIDO (la clase),
+ * porque un antimicrobiano NO PROBADO no puede convertirse en resistente.
+ */
+export interface EstadoCarbapenemasa {
+  /** La resistencia a carbapenémicos SÍ está en el reporte. */
+  resistenciaSospechada: boolean
+  /** ¿Confirmada por prueba fenotípica/molecular? */
+  confirmada: boolean
+  /** 'UNKNOWN' cuando el panel no permite inferirla. */
+  clase: 'UNKNOWN' | string
+}
+
 export interface AporteModulo {
   fenotipos: FenotipoDetectado[]
   mecanismos: MecanismoInferido[]
@@ -223,6 +237,8 @@ export interface AporteModulo {
   optimizacionPKPD: string[]
   notificacion: boolean
   aislamiento: string | null
+  /** Solo cuando el mecanismo NO puede afirmarse con este panel (E0-15b). */
+  carbapenemasa?: EstadoCarbapenemasa
 }
 
 export function aporteVacio(): AporteModulo {
@@ -264,6 +280,11 @@ export interface InterpretacionAntibiograma {
    * `interpretacionLab` de cada resultado.
    */
   resultadosEfectivos: ResultadoAntibiograma[]
+  /**
+   * Estado del mecanismo de carbapenemasa cuando el panel NO permite inferir la
+   * clase (E0-15b): `clase: 'UNKNOWN'`. Ausente si no aplica.
+   */
+  carbapenemasa?: EstadoCarbapenemasa
   /** Pruebas microbiológicas del CLSI recomendadas según el fenotipo (cuándo/método/interpretación). */
   pruebasSugeridas: PruebaCLSI[]
   /** Algoritmo de diagnóstico de resistencia: el árbol de decisión de ESTE caso, paso a paso. */

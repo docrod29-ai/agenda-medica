@@ -9,7 +9,7 @@ import { REF } from './referencias'
 import {
   organismoEs, estado, ES_R, ES_S, NO_S,
   CEF3G, CEFOXITINA, CEFEPIME, AZTREONAM, CARBAPENEM, AMOXI_CLAV,
-  CEFTAZIDIMA_AVIBACTAM, IMIPENEM, MEROPENEM, ERTAPENEM, PIP_TAZO, algunoR, algunoS,
+  CEFTAZIDIMA_AVIBACTAM, IMIPENEM, MEROPENEM, ERTAPENEM, PIP_TAZO, algunoR, algunoS, presente,
 } from './util'
 import { CLASES, terapiaPorClase, type ClaseEnzima } from './betalactamasas'
 import { PRIOR_MEXICO, AVISO_ACCESO_MEXICO, METODOS_CONFIRMACION, REF_INVIFAR } from './epidemiologia'
@@ -74,6 +74,51 @@ export function analizarEnterobacterales(organismo: string, r: ResultadoAntibiog
     // Patrón ERTAPENEM-AISLADO: ert no-S con imi Y mer S → pérdida de porina + BLEE/AmpC,
     // o carbapenemasa de bajo nivel tipo OXA-48-like (solo eleva ertapenem). NO es carbapenemasa de alto nivel.
     const ertAislado = NO_S(ert) && ES_S(imi) && ES_S(mer)
+
+    /**
+     * ═══ DATO AUSENTE ≠ RESISTENTE (E0-15b, decisión del médico dueño) ═══
+     *
+     * `estado()` devuelve null tanto si el fármaco NO SE PROBÓ como si no
+     * aplica, y la guarda de arriba exige imipenem S EXPLÍCITO. Con un panel
+     * mero+erta (sin imipenem), una E. coli ertapenem-R / meropenem-S no
+     * cumplía `ertAislado` y caía a la clasificación de carbapenemasa: salía
+     * como MBL + NOM-045 + aislamiento a partir de un dato que nadie midió.
+     *
+     * Regla: MISSING ≠ R · MISSING ≠ S · MISSING → UNKNOWN.
+     * La resistencia a carbapenémicos SÍ está documentada (ertapenem-R es un
+     * dato real), pero el MECANISMO es indeterminado y así debe decirse.
+     *
+     * En Proteae el imipenem-R es intrínseco, así que ahí no es discriminador y
+     * no se le exige (el cribado ya se hace con ertapenem/meropenem).
+     */
+    const imiProbado = presente(r, IMIPENEM)
+    const merProbado = presente(r, MEROPENEM)
+    const faltaDiscriminador = !esProteae && NO_S(ert) && !(imiProbado && merProbado)
+    if (faltaDiscriminador) {
+      out.fenotipos.push({
+        clave: 'carbapenemasa-indeterminada',
+        nombre: 'Resistencia a carbapenémicos — mecanismo INDETERMINADO (panel incompleto)',
+        confianza: 'sospecha',
+        base: `Fenotipo de resistencia a carbapenémicos que requiere caracterización. El panel no incluye ${!imiProbado ? 'imipenem' : ''}${!imiProbado && !merProbado ? ' ni ' : ''}${!merProbado ? 'meropenem' : ''}, que es lo que permite distinguir el patrón ertapenem-aislado (porina/OXA-48) de una carbapenemasa de alto nivel. Un antimicrobiano NO PROBADO no equivale a resistente. ${REF.ENTEROBACT}`,
+      })
+      out.mecanismos.push({
+        categoria: 'β-lactamasa',
+        nombre: 'Mecanismo de carbapenemasa indeterminado',
+        confianza: 'sospecha',
+        explicacion: 'No se puede inferir la clase con este panel. La resistencia a ertapenem puede deberse a BLEE/AmpC + pérdida de permeabilidad, a OXA-48-like de bajo nivel o a una carbapenemasa de alto nivel: son conductas distintas. Confirmar mediante pruebas fenotípicas y/o moleculares según disponibilidad, y completar el panel con imipenem y meropenem.',
+        referencia: REF.BLI,
+      })
+      out.advertencias.push('Panel incompleto para caracterizar la resistencia a carbapenémicos: solicitar imipenem y meropenem, y confirmación fenotípica/molecular. NO se asume clase de carbapenemasa.')
+      out.carbapenemasa = { resistenciaSospechada: true, confirmada: false, clase: 'UNKNOWN' }
+      /**
+       * NO se emite `notificacion` ni `aislamiento` DESDE AQUÍ: el Dr. lo decidió
+       * explícitamente — «las medidas de control deben derivarse del
+       * microorganismo/mecanismo realmente identificado y de la política
+       * institucional», no de una clase inferida de un dato faltante.
+       */
+      return out
+    }
+
     if (ertAislado && !czaNoS) {
       out.fenotipos.push({
         clave: 'porina-perdida', nombre: 'Patrón ertapenem-aislado (pérdida de porina + BLEE/AmpC, u OXA-48-like)', confianza: 'probable',

@@ -197,3 +197,110 @@ describe('E0-15a · la edición experta llega a TODAS las salidas', () => {
     expect(i2.resultadosEfectivos.map(x => x.interpretacion)).toEqual(['S'])
   })
 })
+
+// ══════════════════════════════════════════════════════════════════════════
+// (b) DATO AUSENTE ≠ RESISTENTE — «MISSING → UNKNOWN»
+// ══════════════════════════════════════════════════════════════════════════
+describe('E0-15b · un antimicrobiano no probado no se vuelve resistente', () => {
+  // El caso del Dr: panel mero+erta SIN imipenem.
+  const sinImipenem = {
+    organismo: 'Escherichia coli',
+    resultados: [
+      { antibiotico: 'Ertapenem', interpretacion: 'R' as const },
+      { antibiotico: 'Meropenem', interpretacion: 'S' as const },
+    ],
+  }
+  const i = interpretarAntibiograma(sinImipenem)
+
+  it('NO se clasifica como MBL a partir de un dato que nadie midió', () => {
+    const nombres = i.fenotipos.map(f => f.nombre).join(' | ')
+    expect(nombres).not.toMatch(/MBL|metalo/i)
+    expect(i.mecanismos.map(m => m.nombre).join(' | ')).not.toMatch(/MBL|metalo/i)
+  })
+
+  it('el mecanismo se declara INDETERMINADO, con su motivo', () => {
+    const f = i.fenotipos.find(x => x.clave === 'carbapenemasa-indeterminada')
+    expect(f).toBeTruthy()
+    expect(f!.nombre).toMatch(/indeterminado/i)
+    expect(f!.base).toMatch(/requiere caracterizaci[oó]n/i)
+    expect(f!.base).toMatch(/imipenem/i)          // dice QUÉ falta
+    expect(f!.base).toMatch(/no probado.*no equivale a resistente/i)
+  })
+
+  it('el estado estructurado separa lo documentado de lo inferido', () => {
+    expect(i.carbapenemasa).toEqual({
+      resistenciaSospechada: true,   // la resistencia SÍ está en el reporte
+      confirmada: false,
+      clase: 'UNKNOWN',              // el mecanismo NO
+    })
+  })
+
+  it('NO genera NOM-045 ni aislamiento desde el dato faltante', () => {
+    expect(i.notificacionObligatoria).toBe(false)
+    expect(i.aislamiento).toBeNull()
+  })
+
+  it('pide completar el panel y confirmar', () => {
+    const adv = i.advertencias.join(' ')
+    expect(adv).toMatch(/panel incompleto/i)
+    expect(adv).toMatch(/imipenem/i)
+    expect(adv).toMatch(/fenot[ií]pica|molecular/i)
+  })
+
+  // ── Con el panel COMPLETO el motor sí concluye (sin regresión) ──
+  it('con imipenem S explícito vuelve el patrón ertapenem-aislado', () => {
+    const completo = interpretarAntibiograma({
+      organismo: 'Escherichia coli',
+      resultados: [
+        { antibiotico: 'Ertapenem', interpretacion: 'R' as const },
+        { antibiotico: 'Imipenem', interpretacion: 'S' as const },
+        { antibiotico: 'Meropenem', interpretacion: 'S' as const },
+      ],
+    })
+    expect(completo.fenotipos.some(f => f.clave === 'porina-perdida')).toBe(true)
+    expect(completo.carbapenemasa).toBeUndefined()
+  })
+
+  it('con carbapenémicos R de verdad la conducta grave se mantiene', () => {
+    const cre = interpretarAntibiograma({
+      organismo: 'Klebsiella pneumoniae',
+      resultados: [
+        { antibiotico: 'Ertapenem', interpretacion: 'R' as const },
+        { antibiotico: 'Imipenem', interpretacion: 'R' as const },
+        { antibiotico: 'Meropenem', interpretacion: 'R' as const },
+      ],
+    })
+    expect(cre.fenotipos.some(f => f.clave === 'carbapenemasa')).toBe(true)
+    expect(cre.alertas.some(a => a.nivel === 'critica')).toBe(true)
+  })
+})
+
+describe('E0-15b · P. aeruginosa: sin cefalosporinas no se degrada a benigno', () => {
+  it('carbapenémicos R sin cefalosporinas probadas ⇒ INDETERMINADO, no «porina + bomba»', () => {
+    const i = interpretarAntibiograma({
+      organismo: 'Pseudomonas aeruginosa',
+      resultados: [
+        { antibiotico: 'Imipenem', interpretacion: 'R' as const },
+        { antibiotico: 'Meropenem', interpretacion: 'R' as const },
+      ],
+    })
+    expect(i.fenotipos.some(f => f.clave === 'carbapenemasa-indeterminada')).toBe(true)
+    expect(i.fenotipos.map(f => f.nombre).join(' ')).not.toMatch(/bomba de expulsi[oó]n/i)
+    expect(i.carbapenemasa?.clase).toBe('UNKNOWN')
+    expect(i.advertencias.join(' ')).toMatch(/cefalosporinas antipseudom/i)
+  })
+
+  it('con las cefalosporinas PROBADAS y conservadas sí se concluye porina + bomba', () => {
+    const i = interpretarAntibiograma({
+      organismo: 'Pseudomonas aeruginosa',
+      resultados: [
+        { antibiotico: 'Imipenem', interpretacion: 'R' as const },
+        { antibiotico: 'Meropenem', interpretacion: 'R' as const },
+        { antibiotico: 'Ceftazidima', interpretacion: 'S' as const },
+        { antibiotico: 'Cefepime', interpretacion: 'S' as const },
+      ],
+    })
+    expect(i.fenotipos.map(f => f.nombre).join(' ')).toMatch(/bomba de expulsi[oó]n/i)
+    expect(i.carbapenemasa).toBeUndefined()
+  })
+})

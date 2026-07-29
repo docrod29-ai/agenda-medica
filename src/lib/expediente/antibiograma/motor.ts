@@ -39,6 +39,7 @@ function fusionar(a: AporteModulo, b: AporteModulo): AporteModulo {
     optimizacionPKPD: [...a.optimizacionPKPD, ...b.optimizacionPKPD],
     notificacion: a.notificacion || b.notificacion,
     aislamiento: a.aislamiento ?? b.aislamiento,
+    carbapenemasa: a.carbapenemasa ?? b.carbapenemasa,
   }
 }
 
@@ -153,6 +154,7 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
     didactica: ap.didactica,
     edicionesInterpretativas,
     resultadosEfectivos,
+    carbapenemasa: ap.carbapenemasa,
     pruebasSugeridas,
     categoriasCMI,
     algoritmo: [],
