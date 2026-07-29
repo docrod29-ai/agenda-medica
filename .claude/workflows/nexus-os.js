@@ -14,10 +14,28 @@ export const meta = {
 // ── Constantes ──────────────────────────────────────────────────────────────
 const REPO = '/Users/davidrdz/Desktop/agenda-medica'
 const DIR = `${REPO}/docs/roadmap/nexus-os`
-const LOTE = Number(args?.lote) > 0 ? Number(args.lote) : 3
-const SOLO_ETAPA = args?.soloEtapa || null
-const SOLO_UNIDADES = Array.isArray(args?.soloUnidades) ? args.soloUnidades : null
-const DRY_RUN = args?.dryRun === true
+/**
+ * Los argumentos pueden llegar como OBJETO o como CADENA JSON según cómo se
+ * invoque el workflow. Dos corridas seguidas ignoraron la lista de unidades del
+ * operador por esto: llegaba `'{"soloUnidades":[...]}'`, así que `args.soloUnidades`
+ * era `undefined`, `SOLO_UNIDADES` quedaba en null y el selector corría igual
+ * eligiendo otras unidades. Se normaliza aquí, una sola vez.
+ */
+const A = (() => {
+  if (typeof args === 'string') {
+    try { return JSON.parse(args) } catch { return {} }
+  }
+  return args ?? {}
+})()
+
+const LOTE = Number(A?.lote) > 0 ? Number(A.lote) : 3
+const SOLO_ETAPA = A?.soloEtapa || null
+const SOLO_UNIDADES = Array.isArray(A?.soloUnidades) && A.soloUnidades.length ? A.soloUnidades : null
+const DRY_RUN = A?.dryRun === true
+
+log(SOLO_UNIDADES
+  ? `Lista explícita del operador (${SOLO_UNIDADES.length}): ${SOLO_UNIDADES.map(u => (typeof u === 'string' ? u : u.id)).join(', ')}. Se salta la fase de selección.`
+  : `Sin lista explícita — el selector elegirá ${LOTE} unidades${SOLO_ETAPA ? ` de la etapa ${SOLO_ETAPA}` : ''}.`)
 
 /**
  * CARTA OPERATIVA — se inyecta en TODOS los agentes. No es decorativa: es el
