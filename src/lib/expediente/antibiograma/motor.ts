@@ -87,11 +87,18 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
   const categoriasCMI: CategoriaCMI[] = []
   for (const x of r) {
     if (typeof x.cmi !== 'number') continue
-    const cat = interpretarCMI(organismo, x.antibiotico, x.cmi, entrada.sitio)
+    /**
+     * El OPERADOR de la CMI viaja hasta el motor (E0-15c). El modelo ya guardaba
+     * `cmiCensurada`, pero aquí se descartaba y sólo se pasaba el número pelado:
+     * un neumococo con penicilina «>2» se interpretaba como «2 → S», es decir,
+     * tratable con penicilina. El valor real está POR ENCIMA de 2.
+     */
+    const cat = interpretarCMI(organismo, x.antibiotico, x.cmi, entrada.sitio, x.cmiCensurada)
     if (!cat) continue
     categoriasCMI.push({
       antibiotico: x.antibiotico,
       cmi: x.cmi,
+      cmiCensurada: x.cmiCensurada,
       categoriaCLSI: cat.categoria,
       categoriaReportada: x.interpretacion,
       // Si el corte NO aplica (foco/organismo), no tiene sentido marcar discordancia.
@@ -99,6 +106,7 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
       soloUTI: cat.soloUTI,
       noAplicable: cat.noAplicable,
       motivoNoAplicable: cat.motivoNoAplicable,
+      desdeCmiCensurada: cat.desdeCmiCensurada,
       referencia: cat.referencia,
     })
     refs.add(cat.referencia)

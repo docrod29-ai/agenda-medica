@@ -157,6 +157,12 @@ export interface EdicionInterpretativa {
 export interface CategoriaCMI {
   antibiotico: string
   cmi: number
+  /**
+   * Operador con el que el laboratorio reportó la CMI (E0-15c). «>2» significa
+   * que el valor real está en (2, +∞): sin él, una CMI censurada se leía como el
+   * número pelado y podía producir un falso «susceptible».
+   */
+  cmiCensurada?: '>' | '<'
   categoriaCLSI: 'S' | 'SDD' | 'I' | 'R'
   /** Categoría que reportó el laboratorio (si se capturó). */
   categoriaReportada?: SIR
@@ -167,6 +173,8 @@ export interface CategoriaCMI {
   /** true si el corte NO aplica a este caso (foco no urinario o especie sin breakpoint válido). */
   noAplicable?: boolean
   motivoNoAplicable?: string
+  /** La categoría no es S porque la CMI vino censurada con «>» (E0-15c). */
+  desdeCmiCensurada?: boolean
   referencia: string
 }
 

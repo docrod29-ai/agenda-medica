@@ -60,3 +60,7 @@ Estados: **CLOSED** (con test/control) · **OPEN** (detectado, pendiente de repa
 
 > Mantener este archivo actualizado en cada ciclo del loop de auditoría. Cada `OPEN` debe
 > pasar a `CLOSED` con su test/control antes de cerrar el lote correspondiente.
+
+| REG-044 | Clínico (P0) | CMI CENSURADA descartada: `interpretarCMI` recibía el número pelado y el operador `cmiCensurada` (que el modelo SÍ guardaba) se perdía en `motor.ts` → neumococo penicilina «>2» se leía como 2 y salía **S = tratable con penicilina**; igual en β-lactámicos de reserva («>8» en CAZ-AVI → S falso) | CLOSED | Decisión del Dr. E0-15c: una CMI es un INTERVALO. `interpretarCMI(..., censura)` — con «>» y valor ≥ sMax, S es imposible (no se sube a R: el valor real puede estar en la banda intermedia). `desdeCmiCensurada` explica el porqué. `src/__tests__/e0-15-antibiograma-decisiones.test.ts` |
+| REG-045 | Clínico (P1) | Carbapenémico + alergia a penicilina se marcaba **crítica** → bloqueaba la primera línea en sepsis y meningitis, donde el retraso mata más que el riesgo evitado | CLOSED | Decisión del Dr. E0-15d: reactividad cruzada <1% (AAAAI/ACAAI 2022, ~0.87% en metaanálisis) ⇒ PRECAUCIÓN. Vuelve a crítica con alergia al propio carbapenémico, SCAR (SJS/TEN, DRESS, AGEP) o daño de órgano. Penicilinas y cefalosporinas siguen críticas (probado) |
+

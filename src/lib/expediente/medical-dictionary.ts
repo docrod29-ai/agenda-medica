@@ -149,11 +149,46 @@ export function validarAlergiasVsMedicamentos(
     )
     const esBetalactamico = FAMILIA_BETALACTAMICOS.some(f => nom.includes(f))
     if (alergicoBetalactamico && esBetalactamico) {
-      alertas.push({
-        severidad: 'critica',
-        mensaje: `Paciente con alergia documentada a beta-lactámicos y se prescribe ${med.nombre}. Reacción cruzada posible — verificar.`,
-        campos: ['alergias', 'medicamentos'],
-      })
+      /**
+       * CARBAPENÉMICOS — decisión clínica del médico dueño (E0-15d, 2026-07-28).
+       *
+       * Con historia de alergia a PENICILINA aislada, el carbapenémico NO se
+       * bloquea: la reactividad cruzada es <1% (parámetro de práctica
+       * AAAAI/ACAAI 2022, ~0.87% en metaanálisis), y una alerta crítica aquí
+       * bloquea la primera línea justo en sepsis y meningitis — donde el retraso
+       * mata más que el riesgo que se intenta evitar.
+       *
+       * La alerta baja a PRECAUCIÓN, salvo tres excepciones donde vuelve a ser
+       * crítica: alergia al propio carbapenémico, reacción cutánea grave (SCAR:
+       * SJS/TEN, DRESS, AGEP) o daño de órgano atribuido a β-lactámicos.
+       */
+      const esCarbapenemico = /meropenem|imipenem|ertapenem|doripenem|carbapenem/.test(nom)
+      // Texto completo de la alergia (alérgeno + reacción) para buscar gravedad.
+      const textoAlergias = alergias
+        .map(a => `${a.alergeno ?? ''} ${a.reaccion ?? ''}`.toLowerCase())
+        .join(' | ')
+      const RE_SCAR = /stevens|johnson|sjs\b|\bten\b|necrolisis|necrólisis|epidermica|epidérmica|dress|agep|pustulosis|exantema.*pustuloso/
+      const RE_ORGANO = /nefritis|hepatitis|hepatot|anafilaxia al (?:meropenem|imipenem|ertapenem)|citopenia|hemolisis|hemólisis|vasculitis/
+      const alergicoAlCarbapenemicoMismo = alergiasLow.some(a =>
+        /meropenem|imipenem|ertapenem|doripenem|carbapenem/.test(a)
+      )
+      const reaccionGrave = RE_SCAR.test(textoAlergias) || RE_ORGANO.test(textoAlergias)
+
+      if (esCarbapenemico && !alergicoAlCarbapenemicoMismo && !reaccionGrave) {
+        alertas.push({
+          severidad: 'advertencia',
+          mensaje: `Alergia a beta-lactámicos y se prescribe ${med.nombre} (carbapenémico). La reactividad cruzada con penicilina es <1%: NO es contraindicación. Verifica que la alergia no sea al propio carbapenémico ni una reacción cutánea grave (SJS/TEN, DRESS, AGEP) o con daño de órgano.`,
+          campos: ['alergias', 'medicamentos'],
+        })
+      } else {
+        alertas.push({
+          severidad: 'critica',
+          mensaje: esCarbapenemico
+            ? `Paciente con ${alergicoAlCarbapenemicoMismo ? 'alergia al propio carbapenémico' : 'reacción grave previa a beta-lactámicos (cutánea grave o con daño de órgano)'} y se prescribe ${med.nombre}. Requiere valoración especializada antes de administrar.`
+            : `Paciente con alergia documentada a beta-lactámicos y se prescribe ${med.nombre}. Reacción cruzada posible — verificar.`,
+          campos: ['alergias', 'medicamentos'],
+        })
+      }
     }
 
     // AINE + alergia a AINE (paracetamol NO es AINE → excluido para evitar falsos positivos)

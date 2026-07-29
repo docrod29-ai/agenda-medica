@@ -369,11 +369,36 @@ export interface CategoriaCLSI {
    */
   noAplicable?: boolean
   motivoNoAplicable?: string
+  /**
+   * La categoría NO es «S» porque la CMI vino censurada con «>» y el valor
+   * reportado ya alcanza el techo de susceptibilidad (E0-15c). Permite que la
+   * salida explique el porqué en vez de mostrar una I sin motivo.
+   */
+  desdeCmiCensurada?: boolean
 }
 
-/** Interpreta una CMI (µg/mL) según el punto de corte CLSI del grupo/fármaco.
- *  `sitio`='snc' aplica la variante MENÍNGEA (neumococo) cuando existe. */
-export function interpretarCMI(organismo: string, antibiotico: string, cmi: number, sitio?: string): CategoriaCLSI | null {
+/**
+ * Interpreta una CMI (µg/mL) según el punto de corte CLSI del grupo/fármaco.
+ * `sitio`='snc' aplica la variante MENÍNGEA (neumococo) cuando existe.
+ *
+ * `censura` es el operador con el que el laboratorio reportó la CMI (E0-15c,
+ * decisión del médico dueño): una CMI **es un intervalo, no un número**.
+ *
+ *   «>2 mg/L»  ⇒  el valor real pertenece a (2, +∞)
+ *   «<0.12»    ⇒  el valor real pertenece a (−∞, 0.12)
+ *
+ * Por tanto, si el valor reportado con «>» ya alcanza el techo de susceptibilidad,
+ * **S es matemáticamente imposible**: el valor real está por encima. Descartar el
+ * operador convertía un neumococo penicilina «>2» en «2 → S = tratable con
+ * penicilina», que es un falso susceptible en meningitis.
+ */
+export function interpretarCMI(
+  organismo: string,
+  antibiotico: string,
+  cmi: number,
+  sitio?: string,
+  censura?: '>' | '<',
+): CategoriaCLSI | null {
   const grupo = grupoDe(organismo)
   if (!grupo || !(cmi >= 0)) return null
   const clave = claveFarmaco(antibiotico)
@@ -388,6 +413,19 @@ export function interpretarCMI(organismo: string, antibiotico: string, cmi: numb
   else if (corte.sinS) categoria = 'I'            // colistina: ≤2 = I, ≥4 = R
   else if (cmi <= corte.sMax) categoria = 'S'
   else categoria = corte.sdd ? 'SDD' : 'I'        // banda intermedia: SDD (dosis-dependiente) o I
+
+  /**
+   * CMI CENSURADA «>X» — S es imposible cuando X ya alcanza el techo de S.
+   * El valor real está por ENCIMA de X, así que como mínimo cae en la banda
+   * intermedia. No se sube a R: eso sería inventar en la otra dirección (el
+   * valor real podría estar entre sMax y rMin). Se marca `desdeCmiCensurada`
+   * para que la salida pueda decir POR QUÉ no es S.
+   */
+  let desdeCmiCensurada = false
+  if (censura === '>' && categoria === 'S' && cmi >= corte.sMax) {
+    categoria = corte.sdd ? 'SDD' : 'I'
+    desdeCmiCensurada = true
+  }
 
   // GATING DE FOCO/ORGANISMO para fármacos SOLO-IVU (nitrofurantoína, fosfomicina).
   // Decisión clínica del Dr: la celda NO debe verse "S/verde" fuera de su indicación
@@ -404,9 +442,9 @@ export function interpretarCMI(organismo: string, antibiotico: string, cmi: numb
       motivo = 'Fosfomicina: punto de corte CLSI validado solo en E. coli urinaria. No aplicable a esta especie (fosA cromosómica; la «S» in vitro no predice eficacia).'
     }
     if (motivo) {
-      return { categoria, corte, referencia: REF_TABLA[grupo], soloUTI: true, noAplicable: true, motivoNoAplicable: motivo }
+      return { categoria, corte, referencia: REF_TABLA[grupo], soloUTI: true, noAplicable: true, motivoNoAplicable: motivo, desdeCmiCensurada }
     }
   }
 
-  return { categoria, corte, referencia: REF_TABLA[grupo], soloUTI: !!corte.uti }
+  return { categoria, corte, referencia: REF_TABLA[grupo], soloUTI: !!corte.uti, desdeCmiCensurada }
 }
