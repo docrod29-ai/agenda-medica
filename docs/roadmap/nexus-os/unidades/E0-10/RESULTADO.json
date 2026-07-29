@@ -1,0 +1,94 @@
+{
+  "unidad": "E0-10",
+  "titulo": "CSP enforced + E2E de seguridad",
+  "etapa": "E0",
+  "fecha": "2026-07-29T11:25:21Z",
+  "estado": "necesita_validacion",
+  "aceptacionLiteral": "CSP enforce sin romper flujos; E2E de seguridad en verde.",
+  "veredictoHonesto": "PARCIAL POR DISEÑO. El MECANISMO del enforce está entregado, probado en los dos modos y a una variable de entorno del Dr. El enforce EN PRODUCCIÓN no se ha ejecutado (regla 6 de la carta operativa: el agente no despliega). Además, la afirmación «sin romper flujos» sólo está probada para el CAMINO PÚBLICO: no hay cuenta de prueba E2E, así que la zona autenticada (expediente, nota, receta/impresión, farmacia, UCI) no está cubierta por ninguna prueba de navegador. Decir lo contrario sería mentir.",
+  "comoSeCumple": {
+    "A_matrizE2E": "e2e/seguridad.spec.ts — grupos A1-A5 (cabeceras globales, CSP presente, anti-clickjacking parametrizado sobre las 34 rutas privadas, páginas embebibles que SIGUEN embebibles, tokens de paciente sin referer), B1-B2 (violaciones reales de CSP en navegador sobre 8 rutas públicas + recursos que no cargan), C1-C2 (endpoints protegidos sin sesión, receptor de reportes), D1-D2 (evidencia del flip en local). Deriva las rutas del módulo, NO de una copia — el guardián de vitest lo verifica.",
+    "B_guardianEstatico": "src/__tests__/csp-guard.test.ts — 19 casos que corren en CI sin red. Cruza CÓDIGO ↔ POLÍTICA: escanea las posiciones de carga del navegador (workerSrc, .src=, src=, importScripts, createElement('script')) en todo src/** y exige que cada host esté en la política o exento con motivo escrito. Es el test que habría cazado los tres agujeros de §2 del diseño ANTES de apretar la CSP.",
+    "C_politicaCorregida": "next.config.ts declara los tres orígenes que el navegador carga hoy y que faltaban: https://unpkg.com (worker de pdf.js), https://*.daily.co (iframe de teleconsulta) y Meta (connect.facebook.net / www.facebook.com) con alcance POR RUTA (/, /registro, /configuracion), nunca global — porque MetaPixel.tsx:3-6 exige que Meta no vea URLs con IDs de paciente. No se relajó nada: sin comodines abiertos, sin http:, object-src 'none' y base-uri 'self' intactos.",
+    "D_interruptorDelFlip": "CSP_MODE se evalúa en tiempo de BUILD. Sin variable → Content-Security-Policy-Report-Only (comportamiento de hoy, sin cambios). CSP_MODE=enforce → Content-Security-Policy. Fail-safe deliberado: CUALQUIER valor distinto del literal 'enforce' cae a report-only, para que un typo en Vercel nunca empiece a bloquear recursos en una app clínica.",
+    "E_hallazgoDeSeguridadReal": "El mayor valor de la unidad no estaba en el enunciado del backlog: la lista de rutas privadas incrustada en next.config.ts se había desincronizado del árbol de src/app/(dashboard)/. 22 de 34 pantallas de la zona autenticada viajaban SIN X-Frame-Options ni frame-ancestors — entre ellas /uci, /hospitalizacion y /receta (renderizan PHI) y /superadmin (consola del dueño). La lista pasó a src/lib/security/rutas-privadas.ts y el guardián la cruza contra los directorios reales: una pantalla nueva sin protección tumba el CI."
+  },
+  "efectoColateralQueSeCorrigio": "Renombrar la cabecera global a Content-Security-Policy hacía que la regla global y las reglas por-ruta de frame-ancestors compartieran clave; Next se queda con la ÚLTIMA. Como el bloque global iba DESPUÉS de los bloques por-ruta, la zona autenticada habría PERDIDO frame-ancestors 'none' al flipar, quedándose sólo con X-Frame-Options. Es decir: el hardening habría degradado la seguridad. Corregido reordenando los bloques de general a específico y emitiendo, en report-only, DOS cabeceras para que frame-ancestors siga siendo enforce en los dos modos. Probado por csp-guard.test.ts en ambos modos.",
+  "archivosTocados": [
+    "next.config.ts (MODIFICADO — política parametrizada por zona, interruptor CSP_MODE, 3 orígenes faltantes, Meta por ruta, bloques reordenados, Reporting-Endpoints + report-to)",
+    "src/lib/security/rutas-privadas.ts (NUEVO — fuente única de verdad de la zona autenticada: 34 rutas + RE_RUTAS_PRIVADAS)",
+    "src/__tests__/csp-guard.test.ts (NUEVO — guardián estático, 19 casos, corre en CI)",
+    "e2e/seguridad.spec.ts (NUEVO — matriz Playwright de seguridad, grupos A/B/C/D)",
+    "e2e/README.md (NUEVO — cómo correr la matriz en local, contra preview y contra producción)",
+    "playwright.config.ts (MODIFICADO — webServer OPCIONAL, sólo con PLAYWRIGHT_LOCAL=1, para poder probar el enforce sin desplegar)",
+    "docs/seguridad/csp-enforce.md (NUEVO — runbook del flip: qué observar, cómo revertir en ~2 min, checklist de flujos)",
+    "docs/audit/regression-ledger.md (ANOTADO — REG-054 rutas privadas sin protección, REG-055 degradación de frame-ancestors al flipar, REG-056 orígenes no declarados)",
+    "src/lib/clinical/invariantes-clinicos.json (MODIFICADO — el guardián entra al manifiesto del job clinical-safety)"
+  ],
+  "testsAgregados": [
+    "src/__tests__/csp-guard.test.ts — 19 casos en 6 bloques: política completa y sin aflojar (4) · trinquete de superficie de terceros congelada (3) · cruce código↔política con autotest del escáner (2) · zona autenticada completa y sin rutas fantasma (3) · comportamiento del interruptor CSP_MODE en los dos modos (5) · la matriz E2E existe y lee la misma lista (2)",
+    "e2e/seguridad.spec.ts — matriz Playwright: 34 casos A3 parametrizados + A1, A2, 2×A4, 3×A5, 8×B1, B2, 4×C1, C2, D1, D2 (NO ejecutada por el agente — regla 8; comando documentado en e2e/README.md)"
+  ],
+  "gates": {
+    "tsc": "PASS",
+    "vitest": "PASS",
+    "build": "PASS",
+    "testsPasan": 2276,
+    "archivosDeTest": 183,
+    "comando": "npx tsc --noEmit · npx vitest run src/__tests__/ · npm run build · CSP_MODE=enforce npm run build",
+    "buildEnLosDosModos": "PASS — sin CSP_MODE: '✓ Compiled successfully in 7.7s' (exit 0). Con CSP_MODE=enforce: '✓ Compiled successfully in 7.5s' (exit 0). El interruptor se evalúa en build, por eso se corre dos veces.",
+    "notaTsc": "tsconfig.json incluye **/*.ts sin excluir e2e/, así que e2e/seguridad.spec.ts SÍ pasa por el chequeo de tipos aunque Playwright no se ejecute.",
+    "playwright": "NO EJECUTADO por el agente. Regla 8 de la carta operativa: los únicos gates permitidos son tsc, vitest y build; un `npx playwright test` que se cuelga tumba la corrida entera. Comandos documentados en e2e/README.md."
+  },
+  "controlNegativoEjecutado": {
+    "obligatorio": true,
+    "porQue": "Un guardián que no se cae cuando quitas lo que vigila no vigila nada.",
+    "C1_rutasPrivadas": {
+      "que": "Quitar 'uci' y 'superadmin' de RUTAS_PRIVADAS (exactamente el estado en el que estaba producción antes de esta unidad).",
+      "resultadoReal": "vitest: 2 failed | 17 passed (19). «Pantallas del dashboard SIN cabecera anti-iframe: /uci» y «perdió la protección: /uci».",
+      "conclusion": "El invariante que impide que REG-054 vuelva a ocurrir es load-bearing, no decorativo. Archivo restaurado (git diff limpio)."
+    }
+  },
+  "loQueNOSeHizo": {
+    "flipEnProduccion": "No se puso CSP_MODE=enforce en Vercel. Regla 6. Es la decisión D-3 del Dr.",
+    "autoAlojarWorkerPdfjs": "src/lib/pdf-to-image.ts NO se tocó. Auto-alojar el worker sería mejor (quita un CDN de terceros ejecutando código en la sesión del médico) pero toca un flujo vivo: laboratorios, antibiograma por foto y receta por visión. Regla 5 → decisión D-1.",
+    "playwrightEnCI": "No entra en .github/workflows/ci.yml: instalar 5 navegadores multiplica el tiempo de cada PR y no hay presupuesto acordado. El job queda escrito y comentado en docs/seguridad/csp-enforce.md → decisión D-5.",
+    "noncesEnScriptSrc": "script-src conserva 'unsafe-inline'/'unsafe-eval'. Quitarlos exige nonces por request vía middleware para los scripts inline de layout.tsx y para el payload RSC de Next: endurecimiento posterior con su propio riesgo de pantalla en blanco. Debería ser una unidad aparte del backlog.",
+    "zonaAutenticadaEnE2E": "Sin cuenta de prueba con datos sintéticos no hay forma de cubrirla → decisión D-4. Es la razón por la que la aceptación queda PARCIAL."
+  },
+  "necesitaValidacionClinica": false,
+  "necesitaValidacionDelDr": [
+    {
+      "id": "D-1",
+      "pregunta": "Worker de pdf.js: ¿auto-alojarlo en /public/pdfjs/ (sin CDN de terceros ejecutando código en su sesión) o dejar https://unpkg.com permitido en la CSP (menos cambio, mantiene la dependencia externa)?",
+      "estadoActual": "Implementada la rama conservadora: unpkg.com permitido. Auto-alojar toca laboratorios, antibiograma por foto y receta por visión → merece unidad propia con prueba manual.",
+      "bloquea": false
+    },
+    {
+      "id": "D-2",
+      "pregunta": "¿Sigue usando el Meta Pixel (¿NEXT_PUBLIC_META_PIXEL_ID está definido en Vercel?) y el alta embebida de WhatsApp en /configuracion?",
+      "estadoActual": "Meta permitido SÓLO en /, /registro y /configuracion. Si el Pixel está apagado, esas dos entradas desaparecen y la superficie de terceros se encoge.",
+      "bloquea": false
+    },
+    {
+      "id": "D-3",
+      "pregunta": "¿Autoriza poner CSP_MODE=enforce en Vercel? Es el alcance E, lo único que falta para cumplir la aceptación literal del backlog.",
+      "estadoActual": "El interruptor está listo. Revertir = quitar la variable y redesplegar (~2 min). Runbook completo en docs/seguridad/csp-enforce.md. RECOMENDACIÓN: no flipar hasta cubrir D-4, porque la zona autenticada es justo donde el enforce puede romper algo en silencio.",
+      "bloquea": true
+    },
+    {
+      "id": "D-4",
+      "pregunta": "¿Se crea un usuario de prueba dedicado con datos SINTÉTICOS en una clínica de pruebas para el E2E?",
+      "estadoActual": "Sin esto, «enforce sin romper flujos» nunca pasará de «probado en el camino público». Es el mismo bloqueo que arrastra playwright.config.ts desde antes de esta unidad.",
+      "bloquea": true
+    },
+    {
+      "id": "D-5",
+      "pregunta": "¿Playwright entra al CI (~4-6 min extra por PR, 5 navegadores) o la matriz queda como comando manual pre-despliegue?",
+      "estadoActual": "Hoy: comando manual. El guardián de vitest (19 casos) sí corre en cada PR, que es donde vive el grueso del valor de regresión.",
+      "bloquea": false
+    }
+  ],
+  "pendienteDeDespliegue": "El cierre del hueco anti-clickjacking (REG-054) está en código pero NO en producción. Hasta que el Dr. despliegue, /uci, /hospitalizacion, /superadmin, /receta, /orden y /corte-caja siguen embebibles por cualquier sitio. Esto NO exige el flip a enforce: el arreglo de rutas privadas funciona igual en report-only, porque frame-ancestors y X-Frame-Options ya viajan en modo enforce en los dos casos.",
+  "resumen": "Entregado el mecanismo completo del flip de CSP (report-only ↔ enforce por variable de entorno, fail-safe), corregidos los tres orígenes que el enforce habría roto en silencio (worker de pdf.js, iframe de teleconsulta, Meta), corregido el efecto colateral por el que el propio hardening degradaba frame-ancestors en la zona con PHI, y cerrado un hueco real de seguridad que nadie había pedido buscar: 22 de 34 pantallas autenticadas viajaban sin ninguna protección anti-iframe. 19 casos de guardián en CI + matriz Playwright de 55 casos. Gates verdes, build verde en los dos modos. La aceptación queda PARCIAL a propósito: el enforce en producción es del Dr. (regla 6) y la zona autenticada no tiene cuenta de prueba E2E."
+}

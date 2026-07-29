@@ -1,13 +1,16 @@
 # Nexus OS — dónde vamos
 
-> **En 30 segundos.** Van **8 de 68** unidades cerradas y verificadas. En esta corrida cerró
-> **E2-01 · Modelo Claim / Source / Passage**: la pieza que convierte «cinco referencias al
-> final» en **evidencia auditable afirmación por afirmación**.
-> **Lo siguiente que puedo hacer solo es E2-02 · Extractor PICO** (que E2-01 acaba de
-> desbloquear) o **E4-01 · Safety Kernel**. Ninguna de las dos necesita decisión suya.
+> **En 30 segundos.** Van **9 de 68** unidades cerradas. En esta corrida cerró
+> **E0-10 · CSP + E2E de seguridad**, y de paso apareció **un agujero de seguridad real que
+> nadie había pedido buscar**: **22 de las 34 pantallas privadas de la app** —incluidas
+> `/uci`, `/hospitalizacion`, `/receta` y `/superadmin`— **se pueden meter hoy dentro de un
+> iframe invisible de cualquier página web**. Ya está arreglado en el código; **falta
+> desplegarlo**. Ver *Esperando decisión · 1*.
+> **Lo siguiente que puedo hacer solo es E2-02 · Extractor PICO** o **E4-01 · Safety Kernel**.
+> Ninguna de las dos necesita decisión suya.
 
-Última corrida: `2026-07-29T04:20:51Z`. `tsc` verde · **2252 tests verdes** (+41) · `build`
-verde · **nada desplegado, sin `push`**.
+Última corrida: `2026-07-29T11:25:21Z`. `tsc` verde · **2276 tests verdes** (+24) · `build`
+verde **en los dos modos de la política** · **nada desplegado, sin `push`**.
 
 ---
 
@@ -22,15 +25,78 @@ verde · **nada desplegado, sin `push`**.
 | E0-14 | Firma aislada · cobro sellado · nota nace borrador | ✅ cerrada (única con reglas desplegadas) |
 | E0-15 | Antibiograma: 4 decisiones clínicas suyas implementadas | ✅ cerrada |
 | E1-01 | Un hecho clínico no existe sin unidad y sin procedencia | ✅ cerrada |
-| **E2-01** | **Una afirmación no existe sin el fragmento de la fuente que la respalda** | ✅ **cerrada *(hoy)*** |
-| E0-11 | El CI protege los invariantes clínicos | 🔴 bloqueada — el gate se puede burlar |
+| E2-01 | Una afirmación no existe sin el fragmento de la fuente que la respalda | ✅ cerrada |
+| **E0-10** | **Nadie puede meter sus pantallas en un iframe · interruptor de la política de seguridad** | ✅ **cerrada *(hoy)*** — ⚠️ **pendiente de desplegar** |
+| E0-11 | El CI protege los invariantes clínicos | 🟡 código listo — espera 5 min suyos en GitHub |
 | E0-09 | El registro del hospital no se edita: se corrige anexando | 🟡 bloqueada — espera 1 línea suya |
 
-**8 cerradas · 2 bloqueadas · 58 sin empezar.**
+**9 cerradas · 2 esperándole · 57 sin empezar.**
 
 ---
 
-## Qué se hizo hoy: E2-01 · Claim / Source / Passage
+## Qué se hizo hoy: E0-10 · seguridad del navegador
+
+### Lo importante primero: el agujero que apareció buscando otra cosa
+
+El navegador tiene una defensa contra un truco viejo y muy eficaz: **el clickjacking**. Alguien
+monta una página cualquiera, mete **su** app dentro en un marco invisible, y lo que usted cree
+que está clicando en esa página en realidad lo está clicando **dentro de su sesión abierta de
+NexusMED**. La app manda una instrucción («a mí no me metas en un marco») para impedirlo… pero
+**la lista de pantallas protegidas se había quedado vieja**.
+
+Medido, no estimado: **22 de las 34 pantallas de la zona privada viajaban sin esa instrucción**.
+Entre ellas **`/uci`, `/hospitalizacion` y `/receta`** —que pintan datos de pacientes— y
+**`/superadmin`**, que es su consola de dueño.
+
+Ya está arreglado, y arreglado de forma que **no se pueda repetir**: la lista se sacó a un
+archivo propio y hay una prueba que la compara con las pantallas que existen de verdad. Si
+mañana alguien añade una pantalla nueva y se le olvida protegerla, **el CI se pone rojo**.
+
+> ⚠️ **Esto está en el código, no en producción.** Yo no despliego (es una regla del programa).
+> Hasta que se despliegue, el agujero sigue abierto.
+
+### Lo segundo: el interruptor de la política, listo para cuando usted quiera
+
+La app ya manda una lista de «de dónde acepto cargar cosas» (la CSP), pero **en modo aviso**:
+apunta lo que sería sospechoso y no bloquea nada. El paso natural es pasarla a **modo bloqueo**.
+Hacerlo a ciegas era peligroso, y aquí está el porqué — tres cosas que la app carga hoy **no
+estaban en la lista**, así que el modo bloqueo las habría matado **en silencio**:
+
+- el componente que convierte **PDF a imagen** → se cae *subir un laboratorio*, *el antibiograma
+  por foto* y *la receta por visión*;
+- el marco de **la videoconsulta** → se vería **en blanco**;
+- los scripts de **Meta** → deja de medirse la publicidad y se rompe el alta de WhatsApp.
+
+Los tres están ya declarados. Y Meta se concedió **sólo en la portada, el registro y la
+configuración** — nunca en el área clínica, porque las direcciones de esa zona llevan
+identificadores de paciente y Meta no tiene por qué verlas.
+
+Además apareció una trampa fina: **apretar la política habría debilitado la protección
+anti-iframe** de la zona con datos de pacientes, por cómo el sistema resuelve reglas que chocan.
+Corregido y fijado con pruebas en los dos modos.
+
+El cambio a modo bloqueo es ahora **una variable de entorno**, no un cambio de código: se activa
+y se revierte en unos dos minutos. Con una salvaguarda deliberada: **cualquier valor que no sea
+exactamente `enforce` deja la política en modo aviso**, para que una errata nunca empiece a
+bloquear recursos en una app clínica.
+
+### Cómo se comprobó que las pruebas sirven
+
+Se **quitaron a propósito** `/uci` y `/superadmin` de la lista protegida —o sea, se reintrodujo
+el agujero real— y el CI **se puso rojo** señalándolo por su nombre. Después se restauró. Un
+test que no se cae cuando quitas lo que vigila no vigila nada.
+
+### Lo que esta unidad NO puede prometerle
+
+La frase del plan era «modo bloqueo sin romper flujos». **Sólo lo puedo afirmar del camino
+público** (portada, precios, login, registro, páginas legales). **De la zona con sesión iniciada
+no**: no existe un usuario de prueba con datos ficticios, así que ninguna prueba automática
+entra a expediente, nota, receta o farmacia. Es justo donde el modo bloqueo podría romper algo
+sin avisar. Por eso **no recomiendo apretar la política** hasta resolver eso (decisión 1.d).
+
+---
+
+## Lo que se hizo antes: E2-01 · Claim / Source / Passage
 
 **El problema, y no es teórico: está en producción hoy.** Cuando la IA le da un análisis con
 evidencia, cada afirmación viene con unos números de cita (`[1]`, `[3]`). El código que las
@@ -83,7 +149,7 @@ que usen esto todavía. Cero recetas, cero impresión, cero cobros, cero reglas 
 - **No decide qué evidencia pesa más.** Que una guía valga más o menos que un ensayo clínico es
   criterio metodológico suyo, no de un agente. Hoy el sistema **ya ordena** los resultados con
   una jerarquía que nadie validó (pone las guías por encima de los ensayos); **no la copié**.
-  Se decide en E2-03 — ver *Esperando decisión · 4*.
+  Se decide en E2-03 — ver *Esperando decisión · 5*.
 - **No comprueba que el pasaje realmente *diga* lo que la afirmación afirma.** Garantiza que el
   fragmento **existe y es de esa fuente**. Un pasaje real que no respalda la afirmación todavía
   pasa; cazarlo es E2-06. Queda **declarado**, no escondido.
@@ -103,13 +169,39 @@ que usen esto todavía. Cero recetas, cero impresión, cero cobros, cero reglas 
    el LLM** y sea un valor, no un párrafo.
 
 **Ojo:** a partir de **E2-03** la cadena de evidencia **sí requiere decisiones suyas** (qué pesa
-más, qué se hace ante fuentes que se contradicen). Están abajo, en la 4.
+más, qué se hace ante fuentes que se contradicen). Están abajo, en la 5.
 
 ---
 
 ## Esperando decisión del médico
 
-### 1. El grafo no puede expresar 14 de los 35 datos que necesita primero *(bloquea E1-03)*
+### 1. ⚠️ Un despliegue urgente y cuatro preguntas (E0-10) — **nuevas hoy**
+
+**a. Lo urgente no es una decisión, es un despliegue.** El arreglo del clickjacking está en el
+código y **no en producción**. Mientras tanto, `/uci`, `/hospitalizacion`, `/receta`, `/orden`,
+`/corte-caja` y `/superadmin` se pueden embeber en un iframe desde cualquier sitio web.
+**Ojo: esto NO exige apretar la política de seguridad.** El arreglo funciona igual en el modo
+aviso de hoy; basta con desplegar. Al desplegar, **subir la versión del Service Worker**.
+
+**b. El componente que convierte PDF a imagen se descarga de un servidor ajeno (`unpkg.com`)
+cada vez que usted sube un laboratorio.** Funciona, pero significa que **código de un tercero
+se ejecuta dentro de su sesión**: si ese servidor cae, se cae la función; si lo comprometen,
+peor. Se puede guardar una copia dentro de la app y no depender de nadie. **No lo hice porque
+toca un flujo vivo** (laboratorios, antibiograma por foto, receta por visión) y merece su propia
+unidad con prueba manual. ¿Lo hacemos?
+
+**c. ¿Sigue usando el Pixel de Meta y el alta de WhatsApp desde Configuración?** Si el Pixel
+está apagado, quito los dos permisos de Facebook y la superficie expuesta se encoge. Es un sí/no.
+
+**d. ¿Aprieto la política a modo bloqueo?** Es lo único que falta para cumplir el objetivo
+original. **Mi recomendación: todavía no** — antes hace falta (e). Revertirlo son ~2 minutos.
+
+**e. ¿Creamos un usuario de prueba con datos INVENTADOS?** Hoy ninguna prueba automática puede
+entrar a la zona con sesión: ni expediente, ni nota, ni receta, ni farmacia. Es el punto ciego
+más grande que tiene el proyecto y arrastra desde antes de esta unidad. Sin eso, «no rompe nada»
+nunca podrá afirmarse de la parte que de verdad importa.
+
+### 2. El grafo no puede expresar 14 de los 35 datos que necesita primero *(bloquea E1-03)*
 
 Esto **está medido, no estimado**, y fijado con un test para que no se olvide.
 
@@ -133,7 +225,7 @@ puntillas un candado ajeno es exactamente lo que la carta operativa me prohíbe.
 > **Lo que necesito de usted:** un "adelante" para ampliar el catálogo. No hay criterio clínico
 > de por medio (son unidades de medida, no umbrales), sólo el permiso para tocar el candado.
 
-### 2. 🔓 Una línea suya cierra E0-09 — y ya casi la escribió usted
+### 3. 🔓 Una línea suya cierra E0-09 — y ya casi la escribió usted
 
 Hoy, si enfermería captura mal una tensión, **la sobrescribe y la anterior desaparece**. E0-09
 pide lo contrario: **anexar la corrección** y dejar el valor erróneo visible y tachado
@@ -144,7 +236,7 @@ signo vital no tiene ese estado: nace y ya está.
 > **Lo que necesito:** *"sí, aplica a los signos desde que se guardan"*.
 > Con eso entra el parche de 3 líneas, ya escrito, en `unidades/E0-09/RESULTADO.parcial.json`.
 
-### 3. ⏱️ Cinco minutos en GitHub — es lo que le falta a E0-11 por su lado
+### 4. ⏱️ Cinco minutos en GitHub — es lo que le falta a E0-11 por su lado
 
 El gate **avisa** pero no **bloquea**: impedir una fusión lo decide GitHub.
 
@@ -153,7 +245,7 @@ sobre `main`: (1) exigir pull request, (2) exigir que pasen **`clinical-safety`*
 **`verificar`**, (3) rama al día, (4) sin excepciones (incluido usted).
 Detalle en `docs/pendientes-externos.md` §3.
 
-### 4. 🆕 Tres preguntas sobre EVIDENCIA *(nuevas hoy — bloquean E2-03 y E2-04, no lo de ahora)*
+### 5. 🆕 Tres preguntas sobre EVIDENCIA *(nuevas hoy — bloquean E2-03 y E2-04, no lo de ahora)*
 
 - **¿Qué pesa más?** Hoy el buscador **ya ordena** los resultados así: meta-análisis, luego
   **guías**, luego **ensayos clínicos**, luego revisiones. Es decir, **una guía flota por encima
@@ -166,7 +258,7 @@ Detalle en `docs/pendientes-externos.md` §3.
   Ya está decidido que se muestran **las dos**; falta saber si a partir de cierta antigüedad la
   guía debe marcarse como *posiblemente superada*, y de cuánta.
 
-### 5. Las otras cuatro de E0-09 (definen *cómo* se corrige) — no bloquean
+### 6. Las otras cuatro de E0-09 (definen *cómo* se corrige) — no bloquean
 
 - **¿Un signo corregido sigue contando para el NEWS2 y el expediente FHIR?** Las dos respuestas
   fallan feo en direcciones opuestas. Hoy el sistema **se niega a calcular** en vez de suponer.
@@ -174,33 +266,33 @@ Detalle en `docs/pendientes-externos.md` §3.
 - **¿Hay ventana de tiempo?** ¿Algo de hace cinco días? ¿Un paciente ya egresado?
 - **¿El motivo escrito es obligatorio?** Lo pediría la NOM-004, pero encarece cada corrección.
 
-### 6. ¿Ampliamos el catálogo de dosis del adulto? (E0-02, REG-043) — no bloquea
+### 7. ¿Ampliamos el catálogo de dosis del adulto? (E0-02, REG-043) — no bloquea
 
 **20 de los 25** fármacos pediátricos no existen en el catálogo adulto. Al prescribirlos **a un
 adulto**, el verificador dice «sin referencia» y no impone techo. Usted aprobó ampliarlo; falta
 el máximo por toma y por día de cada uno. **No se derivan de las cifras pediátricas y no los voy
 a inventar.**
 
-### 7. ¿Qué análisis más deben convertirse entre mg/dL y µmol/L? (E0-04) — no bloquea
+### 8. ¿Qué análisis más deben convertirse entre mg/dL y µmol/L? (E0-04) — no bloquea
 
 Arrancó con **creatinina y colesterol**. Para cualquier otro (glucosa, urea/BUN, bilirrubina,
 calcio) devuelve «no lo sé» — el comportamiento seguro. *Relacionado:* **mEq/L no se convierte
 automáticamente a mmol/L**: para sodio, potasio y cloro el número coincide; para calcio y
 magnesio no.
 
-### 8. Firma: ¿se construye el renderizado server-side? (E0-14, REG-014) — no bloquea
+### 9. Firma: ¿se construye el renderizado server-side? (E0-14, REG-014) — no bloquea
 
 Recepción, farmacia y enfermería ya no pueden leer la firma, pero el médico autenticado sigue
 recibiendo la imagen en su navegador porque la impresión es del lado del cliente. Cerrarlo exige
 generar el documento firmado en el servidor: unidad aparte, y toca impresión.
 
-### 9. Pendientes anteriores (E0-01), sin cambios
+### 10. Pendientes anteriores (E0-01), sin cambios
 
 - **¿El pie IMPRESO de la receta debe leerse de la firma de la nota, no de la configuración?**
   Con un solo médico no cambia nada; con dos o más, papel y QR pueden discrepar.
 - **Al desplegar: subir la versión del Service Worker.**
 
-### 10. Tres preguntas de E1-01 que **no** bloquean nada
+### 11. Tres preguntas de E1-01 que **no** bloquean nada
 
 - ¿Un mismo hecho puede tener **dos certezas a la vez** (un antecedente que además es
   sospecha)? Hoy es una sola; si debe ser dos, se resuelve en E1-08.
@@ -220,9 +312,14 @@ generar el documento firmado en el servidor: unidad aparte, y toca impresión.
   volumen) pero no *unidades* dentro de una dimensión: copiar una cantidad cambiándole la
   etiqueta de `mg` a `µg` compila, y produce un **error de escala de 1000×**. Hoy es inocuo
   —nadie lo usa— pero debe cerrarse **antes** de que un motor real lo consuma.
-- **Lo que resta de E0** (E0-06 PHI, E0-10 CSP, E0-12 sello de integridad, E0-13 webhook de
-  Stripe) es de riesgo medio/alto y varias deben entregarse como **plan** para que usted decida.
+- **Lo que resta de E0** (E0-06 PHI, E0-12 sello de integridad, E0-13 webhook de Stripe) es de
+  riesgo medio/alto y varias deben entregarse como **plan** para que usted decida.
   E0-05 (migrar motores reales) va **por lotes**, nunca de un tirón.
+- **La política de seguridad sigue permitiendo `unsafe-inline`/`unsafe-eval` en los scripts.**
+  Quitarlo es el endurecimiento fuerte de verdad, pero exige firmar cada script en cada petición
+  y su riesgo típico es *pantalla en blanco*. Va en unidad aparte, nunca de propina (E0-10).
+- **Punto ciego estructural: no hay usuario de prueba.** Ninguna prueba de navegador puede
+  entrar a la zona con sesión. Afecta a E0-10 y a todo lo que venga después (decisión 1.e).
 
 ---
 

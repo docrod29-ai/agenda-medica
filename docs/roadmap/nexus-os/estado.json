@@ -1,7 +1,7 @@
 {
   "version": 1,
   "descripcion": "ESTADO DURABLE del programa Nexus OS. Fuente de verdad del avance. Los agentes lo actualizan tras CADA unidad terminada. Si se acaban los créditos, este archivo dice exactamente dónde retomar sin perder nada.",
-  "actualizado": "2026-07-29T04:20:51Z",
+  "actualizado": "2026-07-29T11:25:21Z",
   "runs": [
     {
       "unidad": "E0-01",
@@ -150,6 +150,18 @@
         "testsPasan": 2252
       },
       "notaCierre": "Aceptación literal («una afirmación sin pasaje de respaldo no puede construirse») cumplida por DOS puertas y VERIFICADA con tres controles negativos ejecutados: (C1) quitar las marcas fantasma pone en rojo los casos 3 y 4 del gate de tsc + el guardián #4; (C2) cambiar NoVacio<Passage> por Passage[] pone en rojo los casos 1 y 2 —la aceptación textual— + el guardián #6; (C3) reintroducir el descarte silencioso de citas (el bug real de consulta/[patientId]/page.tsx:2698) pone en rojo el test de CITA_FUERA_DE_RANGO. 12 @ts-expect-error consumidos por tsc. CERO archivos de producción tocados y CERO callers: el cableado es E2-05. NO se copió la jerarquía de evidencia sin validar de pubmed.ts:60 (es E2-03) ni se tradujo ArticuloPubMed.tipo a DisenoDeEstudio (el clasificador colapsa categorías y traducirlo inventaría un dato metodológico)."
+    },
+    {
+      "unidad": "E0-10",
+      "fecha": "2026-07-29T11:25:21Z",
+      "resultado": "necesita_validacion",
+      "notaCierre": "Entregados los alcances A-D (matriz E2E, guardián de CSP en CI, política corregida, interruptor CSP_MODE). El alcance E — poner CSP_MODE=enforce en Vercel — queda ABIERTO por la regla 6 (el agente no despliega) y es la decisión D-3 del Dr. La aceptación literal («CSP enforce sin romper flujos») sólo está probada para el CAMINO PÚBLICO: sin cuenta de prueba E2E (D-4) la zona autenticada no está cubierta. Hallazgo colateral y ya cerrado en código: 22 de 34 pantallas autenticadas viajaban sin ninguna cabecera anti-iframe (REG-054), incluidas /uci, /hospitalizacion, /receta y /superadmin.",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2276
+      }
     }
   ],
   "unidadEnCurso": null,
@@ -158,13 +170,14 @@
     "E0-02",
     "E0-03",
     "E0-04",
+    "E0-10",
     "E0-14",
     "E0-15",
     "E1-01",
     "E2-01"
   ],
   "reconciliacionDisco": {
-    "fecha": "2026-07-29T03:46:32Z",
+    "fecha": "2026-07-29T11:11:22Z",
     "criterio": "La existencia de unidades/<ID>/RESULTADO.json es la prueba de que la unidad está hecha; manda sobre estado.json.",
     "conRESULTADO": [
       "E0-01",
@@ -172,26 +185,30 @@
       "E0-03",
       "E0-04",
       "E0-14",
-      "E0-15"
+      "E0-15",
+      "E1-01",
+      "E2-01"
     ],
     "sinRESULTADO": [
       "E0-09",
+      "E0-10",
       "E0-11"
     ],
     "huboDiscrepancia": true,
-    "correccion": "5ª pasada: SÍ hubo discrepancia. El bloque `reconciliacionDisco` había quedado congelado en la foto de las 03:29:14Z y seguía listando E0-09 y E0-11 en `conRESULTADO` con completadasCuenta=7. En disco NINGUNA de las dos tiene RESULTADO.json: el commit 60d63b6 las renombró a RESULTADO.parcial.json justamente para que se reintenten. Se corrige a 6 completadas / 62 pendientes, que es lo que dice el disco y lo que ya decía `completadas` y el último `runs`.",
+    "correccion": "6ª pasada: SÍ hubo discrepancia, y del mismo tipo de siempre — el bloque `reconciliacionDisco` quedó congelado en la foto de las 03:46:32Z (6 completadas / 62 pendientes) mientras el array `completadas` y `runs` ya registraban E1-01 y E2-01 con sus tres gates en verde. En disco AMBAS tienen unidades/<ID>/RESULTADO.json, así que el disco manda: se corrige a 8 completadas / 60 pendientes. Segunda discrepancia, en dirección contraria: E0-10 NO tiene RESULTADO.json (sólo DISENO.md) pese a que su código está commiteado en 5e01c35 y una `nota` al final de este archivo lo dice; por el criterio del protocolo cuenta como PENDIENTE y por eso vuelve a la selección — no para reimplementarla, sino para verificarla y cerrarla. Tercera: E0-11 recibió trabajo real después del último cierre (commit f7f2afa cierra el bypass describe.skipIf/runIf que la dejó bloqueada) y sigue con RESULTADO.parcial.json; queda igualmente fuera de la selección porque figura en `necesitaValidacionDelDr` (branch protection en GitHub = acción del Dr.).",
     "correccionesPrevias": [
       "2026-07-28T21:49:59Z — E0-02 tenía RESULTADO.json en disco pero NO figuraba en completadas. Se añadió.",
       "2026-07-28T22:15:15Z — 2ª pasada: sin cambios.",
       "2026-07-29T02:44:15Z — 3ª pasada: se escribieron los RESULTADO.json ausentes de E0-03, E0-14 y E0-15 (reconstruidos con evidencia de git + tests + ledger). Sin ellos, tres unidades terminadas se habrían rehecho.",
       "2026-07-29T03:29:14Z — 4ª pasada: sin discrepancias. Se escribe unidades/E0-09/RESULTADO.json en el mismo cambio que cierra la unidad.",
       "2026-07-29T03:44:05Z — 5ª pasada (post-verificación adversarial). E0-11 y E0-09 estaban en `completadas` pese a que la verificación las declaró INCOMPLETAS. Se movieron a `bloqueadas` con motivo y sus RESULTADO.json se retiraron del disco (renombrados a RESULTADO.parcial.json, commit 60d63b6) para que la próxima corrida las REINTENTE. También se corrigió la cuenta: eran 7 completadas declaradas, son 6 reales.",
-      "2026-07-29T03:46:32Z — 5ª pasada: `reconciliacionDisco` contradecía al disco y a `completadas` (decía 7 completadas incluyendo E0-09 y E0-11, que sólo tienen RESULTADO.parcial.json). Corregido a 6/62. Manda el disco."
+      "2026-07-29T03:46:32Z — 5ª pasada: `reconciliacionDisco` contradecía al disco y a `completadas` (decía 7 completadas incluyendo E0-09 y E0-11, que sólo tienen RESULTADO.parcial.json). Corregido a 6/62. Manda el disco.",
+      "2026-07-29T11:11:22Z — 6ª pasada: `reconciliacionDisco` seguía en 6/62 y no incluía E1-01 ni E2-01 en `conRESULTADO`, pese a que ambas tienen RESULTADO.json en disco y ya figuraban en `completadas` y en `runs`. Corregido a 8/60. Se añadió E0-10 a `sinRESULTADO` (código commiteado en 5e01c35 pero unidad SIN cerrar) y se recalculó `siguientesElegibles`, que estaba obsoleto: proponía E1-01 y E2-01, que ya están hechas."
     ],
     "avisoDeProceso": "Las tres unidades se cerraron con commit pero SIN escribir RESULTADO.json. Es el único punto por donde este programa pierde trabajo. La regla operativa es: el RESULTADO.json se escribe en el MISMO commit que cierra la unidad, nunca después.",
     "totalUnidades": 68,
-    "completadasCuenta": 6,
-    "pendientes": 62,
+    "completadasCuenta": 8,
+    "pendientes": 60,
     "reglaOperativaNueva": "Un RESULTADO.json escrito por el implementador NO es prueba suficiente: sólo lo es si la VERIFICACION.json de esa unidad no la declara INCOMPLETA ni REGRESION. La reconciliación cruza los dos archivos, no sólo la existencia del primero.",
     "unidadesConResultadoParcialNoCuentan": [
       "E0-09",
@@ -317,94 +334,115 @@
       "bloquea": true,
       "bloqueaA": "E1-03",
       "noBloquea": "E1-01, que queda CERRADA"
+    },
+    {
+      "unidad": "E0-10",
+      "titulo": "CSP enforced + E2E de seguridad",
+      "urgente": "DESPLIEGUE PENDIENTE (no requiere decisión, sólo un deploy): el cierre del hueco anti-clickjacking está en código pero NO en producción. Hoy /uci, /hospitalizacion, /superadmin, /receta, /orden y /corte-caja se pueden embeber en un iframe de cualquier sitio. El arreglo NO exige apretar la CSP: funciona igual en report-only.",
+      "decisiones": [
+        "D-1 · Worker de pdf.js: ¿auto-alojarlo en /public (sin CDN de terceros ejecutando código en su sesión) o dejar unpkg.com permitido? Hoy: unpkg.com permitido. Auto-alojar toca laboratorios, antibiograma por foto y receta por visión.",
+        "D-2 · ¿Sigue usando el Meta Pixel y el alta embebida de WhatsApp? Si el Pixel está apagado, se quitan connect.facebook.net y www.facebook.com de la política.",
+        "D-3 · ¿Autoriza CSP_MODE=enforce en Vercel? Es lo único que falta para la aceptación literal. Revertir = quitar la variable y redesplegar (~2 min). RECOMENDACIÓN: no antes de D-4.",
+        "D-4 · ¿Se crea un usuario de prueba con datos SINTÉTICOS para cubrir la zona autenticada en E2E? Sin esto, «enforce sin romper flujos» no pasa del camino público.",
+        "D-5 · ¿Playwright entra al CI (~4-6 min extra por PR) o queda como comando manual pre-despliegue?"
+      ],
+      "ninguaEsClinica": true,
+      "evidencia": "docs/roadmap/nexus-os/unidades/E0-10/RESULTADO.json · runbook en docs/seguridad/csp-enforce.md · REG-054/055/056 en docs/audit/regression-ledger.md"
     }
   ],
   "siguientesElegibles": {
-    "fecha": "2026-07-29T03:46:32Z",
-    "notaDeEstaPasada": "Selección recalculada sobre el DISCO (6 completadas). Elegible = todas sus `depende` con RESULTADO.json + no está en `bloqueadas` + no está en `necesitaValidacionDelDr`. Eso deja fuera a E0-09 y E0-11 (bloqueadas: su verificación adversarial quedó incompleta) y a las ya hechas. En E0 sólo queda UNA unidad no-alta elegible (E0-10) y su aceptación literal exige desplegar; por eso las dos primeras plazas van a las unidades de riesgo BAJO que E0-04 desbloqueó.",
+    "fecha": "2026-07-29T11:11:22Z",
+    "notaDeEstaPasada": "Selección recalculada sobre el DISCO (8 completadas: E0-01, E0-02, E0-03, E0-04, E0-14, E0-15, E1-01, E2-01). Elegible = todas sus `depende` con RESULTADO.json en disco + NO está en `bloqueadas` + NO está en `necesitaValidacionDelDr`. Esa doble exclusión deja fuera a E0-09 (bloqueada por Q5) y a E0-11 (branch protection = acción del Dr.), aunque ambas tengan trabajo de software reciente commiteado. Quedan 14 unidades con dependencias satisfechas; 5 de ellas son de riesgo ALTO y se posponen por la regla de preferencia. Orden aplicado: etapa primero (E0 antes que E1 antes que E2), riesgo después.",
     "seleccion": [
-      {
-        "id": "E1-01",
-        "etapa": "E1",
-        "titulo": "Tipo ClinicalFact",
-        "riesgo": "bajo",
-        "porQueAhora": "Riesgo bajo, cerrable en una pasada y 100% software puro: tipo + esquema de validación + tests. Su única dependencia (E0-04 ClinicalQuantity) está en disco y fue CONFIRMADA por verificación adversarial. Abre toda la etapa E1 (E1-02..E1-09 cuelgan de ella). Aceptación testeable sin criterio médico: «un hecho sin unidad o sin procedencia no valida»."
-      },
-      {
-        "id": "E2-01",
-        "etapa": "E2",
-        "titulo": "Modelo Claim / Source / Passage",
-        "riesgo": "bajo",
-        "porQueAhora": "Riesgo bajo, sin dependencias, sin validacionClinica. Es types/evidence.ts + tests: no toca producción, no toca impresión, cobros ni firma. Cuello de botella de los 8 restantes de E2. La aceptación («una afirmación sin pasaje de respaldo no puede construirse») es una invariante de tipos, no un criterio clínico."
-      },
       {
         "id": "E0-10",
         "etapa": "E0",
         "titulo": "CSP enforced + E2E de seguridad",
         "riesgo": "medio",
-        "porQueAhora": "Es la ÚNICA unidad de E0 elegible que no es de riesgo alto, y E0 tiene prioridad de etapa. Va en tercer lugar y con el alcance partido explícito.",
-        "alcanceEjecutableAhora": "La matriz Playwright de seguridad: hoy e2e/ contiene UN solo archivo (smoke-publico.spec.ts) y playwright.config.ts. Escribir la matriz no exige desplegar.",
-        "alcanceQueNOSePuedeCerrarAqui": "«CSP enforce sin romper flujos»: next.config.ts:148 ya emite Content-Security-Policy-Report-Only y pasar a enforce exige OBSERVAR los reportes en PRODUCCIÓN. La regla 6 de la carta operativa prohíbe desplegar dentro del workflow, y RETOMAR-AQUI.md ya lista «CSP enforce» entre los pendientes del Dr. Si se ejecuta, terminará PARCIAL salvo que el Dr. autorice el flip."
+        "porQueAhora": "E0 tiene prioridad de etapa y ésta es la ÚNICA unidad de E0 elegible que no es de riesgo alto (E0-05, E0-06, E0-12 y E0-13 son altas; E0-09 y E0-11 están excluidas). Además es la más barata del lote: su CÓDIGO YA ESTÁ ESCRITO Y COMMITEADO (5e01c35: next.config.ts con CSP parametrizada por CSP_MODE, e2e/seguridad.spec.ts, src/__tests__/csp-guard.test.ts) y lo único que falta es cerrarla: verificación adversarial + unidades/E0-10/RESULTADO.json. NO reimplementar desde cero.",
+        "alcanceEjecutableAhora": "Verificar en frío lo commiteado (tsc + vitest + build), auditar que csp-guard cubra de verdad la matriz de rutas privadas, completar la matriz Playwright en e2e/seguridad.spec.ts y ESCRIBIR el RESULTADO.json en el mismo commit.",
+        "alcanceQueNOSePuedeCerrarAqui": "El flip a `Content-Security-Policy` (enforce) exige OBSERVAR los reportes en producción y desplegar; la regla 6 de la carta operativa lo prohíbe dentro del workflow. Tampoco se ejecuta Playwright (regla 8: ningún comando que no termine solo). Si el Dr. no autoriza el flip, la unidad cierra con la mitad 'CSP enforce' declarada explícitamente como pendiente externo, no como hecha."
+      },
+      {
+        "id": "E1-02",
+        "etapa": "E1",
+        "titulo": "Vocabulario de conceptos clínicos",
+        "riesgo": "medio",
+        "porQueAhora": "Etapa E1 va antes que E2 y su única dependencia (E1-01 ClinicalFact) tiene RESULTADO.json en disco. Es el cuello de botella de toda la cadena E1: E1-03 (proyector) depende de ella y sin ella E1 no avanza. La aceptación literal —«'creatinina', 'Cr' y 'creatinina sérica' resuelven al mismo concepto»— es una invariante de SOFTWARE (normalización + resolución de sinónimos + tests), no un juicio clínico.",
+        "avisoDeAlcance": "validacionClinica=true. La parte que SÍ es criterio médico es el CONTENIDO del catálogo y el mapeo a LOINC/ICD-10. Regla 1 de la carta operativa: no se inventa ni un código. El catálogo debe sembrarse EXCLUSIVAMENTE con conceptos y códigos que YA existan en el repo (ANALITOS, catálogos de dosis, CIE ya presentes), con su procedencia citada; cualquier concepto o código nuevo se marca NEEDS_CLINICAL_REVIEW y se detiene ahí. Riesgo real de cerrar PARCIAL, y así debe declararse en vez de rellenar el catálogo a ojo.",
+        "dependenciaSatisfecha": [
+          "E1-01"
+        ]
+      },
+      {
+        "id": "E2-02",
+        "etapa": "E2",
+        "titulo": "Extractor PICO",
+        "riesgo": "medio",
+        "porQueAhora": "Etapa E2, dependencia única E2-01 (Claim/Source/Passage) con RESULTADO.json en disco, validacionClinica=false y desbloquea E2-03. Es software puro: convertir la pregunta clínica en P/I/C/O tipado y armar la búsqueda DESDE el PICO, no desde el texto crudo. Se puede probar entero con casos ficticios (regla 2) y no toca impresión, cobros, firma ni reglas de Firestore.",
+        "dependenciaSatisfecha": [
+          "E2-01"
+        ]
       }
     ],
     "descartadasConMotivo": [
       {
         "id": "E0-09",
         "riesgo": "medio",
-        "motivo": "En `bloqueadas`. No tiene RESULTADO.json (sólo RESULTADO.parcial.json). Su cierre depende de Q5 del Dr. (revertir el UPDATE sobre signos en firestore.rules), no de más trabajo mío."
+        "motivo": "Excluida por regla explícita: está en `bloqueadas` Y en `necesitaValidacionDelDr` (Q1-Q5). En disco sólo tiene RESULTADO.parcial.json. Su cierre depende de UNA línea del Dr. sobre Q5 (¿§A3 de DECISIONES-ARQUITECTURA-2026-07-28.md aplica a `signos` desde que se guardan?), no de más trabajo mío. El parche de 3 líneas de firestore.rules ya está escrito y esperando."
       },
       {
         "id": "E0-11",
         "riesgo": "bajo",
-        "motivo": "En `bloqueadas` y en `necesitaValidacionDelDr`. Doble exclusión por la regla de selección. Falta cerrar el bypass describe.skipIf/runIf y activar la protección de rama en GitHub (acción del Dr.)."
+        "motivo": "Excluida por regla explícita: está en `necesitaValidacionDelDr` (dos entradas: activar required status checks sobre `main` y confirmar el handle @docrod29-ai). OJO PARA EL DR.: el trabajo de software que la mantenía en `bloqueadas` YA SE HIZO — el commit f7f2afa cierra el bypass describe.skipIf/runIf de safety-gate.ts. Lo único que resta son ~5 minutos en la consola de GitHub (docs/pendientes-externos.md §3) y escribir su RESULTADO.json. Es la unidad con mejor relación esfuerzo/cierre de todo el tablero, pero el esfuerzo no es mío."
       },
       {
         "id": "E0-05",
         "riesgo": "alto",
-        "motivo": "Elegible, pero alta: migra motores clínicos EN PRODUCCIÓN y cambia firmas con callers reales. La regla prefiere bajo/medio. Hereda además el hueco documentado por E0-04 (marca fantasma indexada por dimensión, no por unidad → spread con 'µg' compila y da error de escala 1000×)."
+        "motivo": "Elegible (E0-04 en disco) pero ALTA: migra motores clínicos EN PRODUCCIÓN y cambia firmas con callers reales. La regla prefiere bajo/medio. Hereda además el hueco documentado por E0-04 (marca fantasma indexada por dimensión y no por unidad → `{...mg(500), unidad:'µg'}` compila y da error de escala 1000×), que debe cerrarse ANTES de que un motor real clone cantidades con spread."
       },
       {
         "id": "E0-06",
         "riesgo": "alto",
-        "motivo": "Elegible, pero alta: reglas de Firestore + modelo de datos. Cuello de botella de E0-07 y E0-08; conviene entregarla como PLAN."
+        "motivo": "Elegible y sin dependencias, pero ALTA: separar PHI administrativo de clínico toca reglas de Firestore y modelo de datos. Cuello de botella de E0-07 y E0-08; conviene entregarla como PLAN para decisión del Dr. antes que ejecutarla."
       },
       {
         "id": "E0-12",
         "riesgo": "alto",
-        "motivo": "Elegible, pero alta: migración de hashes sobre notas YA firmadas = regresión visible (regla 5 de la carta)."
+        "motivo": "Elegible pero ALTA: migración de hashes sobre notas YA FIRMADAS = regresión visible (regla 5 de la carta operativa). PLAN antes que ejecución."
       },
       {
         "id": "E0-13",
         "riesgo": "alto",
-        "motivo": "Elegible, pero alta: es dinero (webhook de Stripe). PLAN antes que ejecución."
+        "motivo": "Elegible pero ALTA: es dinero (idempotencia del webhook de Stripe). PLAN antes que ejecución."
       },
       {
         "id": "E4-01",
         "riesgo": "medio",
-        "motivo": "Elegible y desbloqueada por E0-04, pero etapa E4 va después de E1 y E2 en el orden de etapas, y las dos elegidas de E1/E2 son de riesgo BAJO. Es la primera candidata del siguiente lote."
-      },
-      {
-        "id": "E7-02",
-        "riesgo": "bajo",
-        "motivo": "Elegible y de riesgo bajo, pero validacionClinica=true: el esquema exige definir «respuestas peligrosas» y «gold answer», que son criterio médico. Sólo el esqueleto es software puro."
+        "motivo": "Elegible (E0-04 en disco), riesgo medio, validacionClinica=false y buen candidato. Se pospone SÓLO por orden de etapa: E1 y E2 van antes que E4 y las dos plazas de esas etapas ya están tomadas. Primera candidata del siguiente lote."
       },
       {
         "id": "E6-01",
         "riesgo": "bajo",
-        "motivo": "Elegible, sin dependencias, pero su valor depende de que exista algo que corregir (etapas E3/E4). Se pospone sin costo."
+        "motivo": "Elegible, sin dependencias y de riesgo bajo, pero su valor depende de que exista algo que corregir (E3/E4) y su entregable incluye UI de motivo, que toca pantallas de producción. Se pospone sin costo."
       },
       {
         "id": "E7-01",
         "riesgo": "medio",
-        "motivo": "Elegible, sin dependencias. Etapa E7 va después; sin prisa."
+        "motivo": "Elegible, sin dependencias. Etapa E7 va después de E1/E2/E4; sin prisa."
+      },
+      {
+        "id": "E7-02",
+        "riesgo": "bajo",
+        "motivo": "Elegible y de riesgo bajo, pero validacionClinica=true en lo esencial: su aceptación literal («un caso sin 'respuestas peligrosas' definidas no entra al bench») exige que alguien DEFINA qué es una respuesta peligrosa y cuál es el gold answer, que es criterio médico puro (regla 1). Sólo el esqueleto es software."
       },
       {
         "id": "E9-01",
         "riesgo": "medio",
-        "motivo": "Elegible, sin dependencias. Etapa E9 va después; se apoya mejor sobre E4 ya hecho."
+        "motivo": "Elegible, sin dependencias. Etapa E9 va al final y el AI Safety Case se apoya mejor sobre E4 ya hecho."
       }
     ],
-    "efectoDominoTrasEsteLote": "E1-01 desbloquea E1-02 (y por cadena toda E1). E2-01 desbloquea E2-02. E0-10 no desbloquea a nadie. Si sólo se ejecuta UNA unidad, que sea E1-01: es la más cerrable y la que más abre."
+    "efectoDominoTrasEsteLote": "E0-10 no desbloquea a nadie pero VACÍA la lista de unidades de E0 no-altas: tras cerrarla, lo que quede de E0 (E0-05, E0-06, E0-12, E0-13) es todo de riesgo alto y varias deben entregarse como PLAN, más E0-09 y E0-11 esperando al Dr. E1-02 desbloquea E1-03 (y con ella el resto de la cadena E1). E2-02 desbloquea E2-03. Si sólo se ejecuta UNA, que sea E0-10: es la más cerrable (código ya escrito y commiteado) y la que salda la deuda de etapa E0, que por definición bloquea el release."
   },
   "notas": [
     "E0-01 cerró REG-025 por completo en docs/audit/regression-ledger.md (era CLOSED parcial).",
@@ -450,7 +488,9 @@
     "2026-07-29T03:44:05Z — E0-09/Q5 cambió de estado sin que nadie tocara código: docs/clinical-decisions/DECISIONES-ARQUITECTURA-2026-07-28.md ENTRÓ EN GIT (c795520, autor DAVID) y su §A3 lista «signos vitales» como append-only. Ya no es una pregunta abierta: es una línea de confirmación sobre un matiz (§A3 habla de dato «FINALIZADO/FIRMADO» y un signo no tiene ese estado).",
     "2026-07-29T03:44:05Z — Estado del repo al cerrar: `git status --short` VACÍO y `npx tsc --noEmit` exit 0. No hubo que revertir basura de las unidades bloqueadas: su código (núcleo append-only de E0-09, metagate de E0-11) está commiteado en 481b44b y es aditivo, verificado y sin consumidores de producción. Retirarlo destruiría trabajo bueno sin cerrar ningún riesgo — lo que falla en ambas es lo que NO se hizo, no lo hecho.",
     "2026-07-29T03:46:32Z — RECONCILIACIÓN 5ª pasada: el disco manda y el disco dice 6 completadas (E0-01, E0-02, E0-03, E0-04, E0-14, E0-15). `reconciliacionDisco` seguía diciendo 7 e incluía a E0-09 y E0-11, que sólo tienen RESULTADO.parcial.json. Corregido. OJO para la próxima corrida: RESULTADO.parcial.json NO cuenta como hecho — es la señal de reintento que dejó el commit 60d63b6.",
-    "E0-10: el CÓDIGO ya está escrito y commiteado (CSP parametrizada + rutas privadas + csp-guard + e2e), con tsc/vitest/build verdes verificados a mano. Lo que falta es sólo su RESULTADO.json y la verificación adversarial: la corrida se atascó antes. NO reimplementar desde cero."
+    "E0-10: el CÓDIGO ya está escrito y commiteado (CSP parametrizada + rutas privadas + csp-guard + e2e), con tsc/vitest/build verdes verificados a mano. Lo que falta es sólo su RESULTADO.json y la verificación adversarial: la corrida se atascó antes. NO reimplementar desde cero.",
+    "2026-07-29T11:11:22Z — 6ª RECONCILIACIÓN contra disco (pasada de selección, sin ejecutar unidades). El disco dice 8 completadas: E1-01 y E2-01 tienen RESULTADO.json y el bloque `reconciliacionDisco` seguía congelado en 6. Corregido a 8/60. Hallazgo NUEVO en dirección contraria: E0-10 tiene su código commiteado (5e01c35) pero NO tiene RESULTADO.json, así que por el criterio del protocolo cuenta como PENDIENTE — y por eso encabeza la selección: hay que VERIFICARLA y cerrarla, no reimplementarla. Segundo hallazgo: E0-11 recibió el arreglo que la sacaba de `bloqueadas` (f7f2afa cierra el bypass describe.skipIf/runIf), pero sigue excluida de la selección porque figura en `necesitaValidacionDelDr`; lo único que le falta son ~5 minutos de consola del Dr. y su RESULTADO.json.",
+    "2026-07-29T11:11:22Z — Selección de este lote: E0-10 (E0, medio), E1-02 (E1, medio, validacionClinica=true) y E2-02 (E2, medio). Criterio literal aplicado: etapa en orden, dependencias con RESULTADO.json en disco, exclusión de `bloqueadas` y `necesitaValidacionDelDr`, y preferencia bajo/medio sobre alto. AVISO para quien ejecute E1-02: el catálogo de conceptos NO se rellena a ojo — sólo con conceptos y códigos que YA existan en el repo y con su procedencia; cualquier mapeo LOINC/ICD-10 nuevo va a NEEDS_CLINICAL_REVIEW (regla 1 de la carta operativa) aunque eso deje la unidad PARCIAL."
   ],
   "paraReintentar": [
     {

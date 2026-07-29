@@ -449,3 +449,51 @@ despliegue y privacidad** que la carta operativa (reglas 5 y 6) me impide tomar 
   pantalla en blanco; el `next.config.ts:30-33` ya lo declara fuera de fase. Debería
   ser una unidad aparte del backlog.
 - **No inventa umbrales, dosis ni reglas clínicas.** No hay ninguna en esta unidad.
+
+---
+
+## 10. Addendum de verificación — 2026-07-29 (pasada de diseño repetida)
+
+Esta unidad volvió a la selección porque **no tiene `RESULTADO.json`**, no porque
+falte trabajo. Re-medido contra el árbol, el diseño de §1–§9 **ya está implementado y
+commiteado** en `5e01c35 feat(nexus-os E0-10): CSP parametrizada + cierre de hueco
+anti-clickjacking` (12 archivos, +1498 −70). Correspondencia diseño → código:
+
+| Diseño | Estado real | Evidencia |
+|---|---|---|
+| §4.1 `CspMode` / `modoCsp()` / `claveCsp()` | Implementado | `next.config.ts:41-50` |
+| §4.2 `politicaCsp(zona)` + doble cabecera anti-degradación | Implementado | `next.config.ts:113-166` (`cabecerasCsp`) |
+| §4.3 lista única de rutas privadas | Implementado como módulo propio | `src/lib/security/rutas-privadas.ts` (34 rutas, `RE_RUTAS_PRIVADAS`), importado en `next.config.ts:3` |
+| §4.4 `frame-src https://*.daily.co` | Implementado | `next.config.ts:96` (`ORIGENES_FRAME`) |
+| §4.4 `unpkg.com` en `script-src`/`worker-src` | Implementado (rama D-1 = "permitir CDN") | `next.config.ts:66,70` |
+| §4.4 Meta por ruta, no global | Implementado | `next.config.ts:106` (`ORIGENES_META`, fuera de la política global) |
+| §6.1 `report-to` + `Reporting-Endpoints` | Implementado | `next.config.ts` (directiva `report-to csp`) |
+| §5.1 guardián vitest | Implementado, **19 casos** (el diseño estimaba ~8) | `src/__tests__/csp-guard.test.ts` |
+| §5.2 matriz Playwright A/B/C/D | Implementado | `e2e/seguridad.spec.ts` (grupos A1-A5, B1-B2, C1-C2, D1-D2) |
+| §3 runbook + README E2E | Implementados | `docs/seguridad/csp-enforce.md`, `e2e/README.md` |
+| §3 anotación en el ledger | Implementada | `docs/audit/regression-ledger.md` |
+
+Diferencias respecto al texto de §5.2: el gate D usa `PLAYWRIGHT_ENFORCE=1`
+(`e2e/seguridad.spec.ts:175`), no `PLAYWRIGHT_LOCAL`; y el bypass quedó además
+cubierto por `f7f2afa`, que cerró el patrón `describe.skipIf/runIf` señalado por E0-11.
+
+**Gates re-corridos en esta pasada (2026-07-29):**
+
+- `npx tsc --noEmit` → limpio (exit 0).
+- `npx vitest run src/__tests__/csp-guard.test.ts` → **19/19 en verde**, 108 ms.
+- Playwright **NO** se ejecutó (regla 8: sólo tsc/vitest/build son gates permitidos).
+  Comando documentado para el Dr. en `e2e/README.md`.
+
+**Por tanto no queda diseño pendiente.** Lo único que falta para cerrar la unidad es:
+
+1. Correr `npm run build` en los dos modos (sin `CSP_MODE` y con `CSP_MODE=enforce`)
+   como confirmación final — el interruptor se evalúa en build.
+2. Escribir `unidades/E0-10/RESULTADO.json` declarando **PARCIAL**: alcance A–D
+   entregado, alcance **E (flip a enforce en producción) abierto por regla 6**.
+3. Dejar D-1…D-5 (§7) en `necesitaValidacionDelDr`. Ninguna es clínica.
+
+El estado honesto de la aceptación del backlog («CSP enforce sin romper flujos; E2E de
+seguridad en verde») es: **el mecanismo del enforce está entregado y probado; el
+enforce en producción no se ha ejecutado**, y la afirmación "sin romper flujos" sólo
+cubre el camino público — la zona autenticada sigue sin cuenta de prueba E2E (§2.6,
+decisión D-4).
