@@ -1,0 +1,70 @@
+{
+  "id": "E0-15",
+  "etapa": "E0",
+  "titulo": "Motor de antibiograma: grupos A–D validados",
+  "estado": "completada",
+  "fecha": "2026-07-28T19:31:36Z",
+  "reconstruido": {
+    "esReconstruccion": true,
+    "fechaReconstruccion": "2026-07-29T02:42:41Z",
+    "porQue": "La unidad se ejecutó en tres commits (a/b/c/d) pero nunca se escribió este RESULTADO.json ni existió la carpeta unidades/E0-15. Sin él el protocolo la habría dado por pendiente. Reconstruido sólo con evidencia en disco. NINGUNA regla clínica se escribe aquí: las cuatro decisiones son del Dr., citadas literalmente desde el ledger.",
+    "evidencia": [
+      "commit 623ff89 'feat(E0-15 c/d): la CMI conserva su operador + carbapenémicos = precaución (SW v701)'",
+      "commit c1a0911 'feat(E0-15a): la edición EUCAST es canónica en TODAS las salidas (SW v702)'",
+      "commit 9a0da9e 'feat(E0-15b): dato ausente ≠ resistente — E0-15 COMPLETA (SW v703)'",
+      "src/__tests__/e0-15-antibiograma-decisiones.test.ts (+107 líneas)",
+      "docs/audit/regression-ledger.md: REG-044 a REG-050, todos CLOSED"
+    ],
+    "reVerificadoAhora": "npx vitest run src/__tests__/e0-15-antibiograma-decisiones.test.ts (junto con clinical-registry-adr) → 45 casos en verde (2026-07-29T02:42Z).",
+    "noReEjecutado": "tsc y build completos NO se re-corrieron hoy; los gates son los DECLARADOS en el commit final."
+  },
+  "aceptacion": {
+    "criterio": "Ninguna salida muestra 'S' de un fármaco que el propio motor editó a R.",
+    "cumplido": true,
+    "evidencia": "aplicarEdicionesInterpretativas + resultadosEfectivos en motor.ts son la fuente única, consumida por razonar, validar, resumen-nota y PK/PD. interpretacionLab conserva el dato crudo del laboratorio sin destruirlo. Bloque E0-15a de src/__tests__/e0-15-antibiograma-decisiones.test.ts."
+  },
+  "decisionesDelMedicoImplementadas": {
+    "E0-15a": "La interpretación EDITADA es CANÓNICA en todas las salidas, sin destruir el original. (REG-046, P0: la edición EUCAST fluoroquinolonas S→R vivía sólo en edicionesInterpretativas, así que nota, prompt del LLM, validador y PK/PD seguían leyendo el panel CRUDO y mostraban la 'S' que el propio motor ya había declarado R.)",
+    "E0-15b": "MISSING ≠ R · MISSING ≠ S · MISSING → UNKNOWN. No se emite NOM-045 ni aislamiento desde un dato faltante: las medidas derivan del mecanismo realmente identificado. (REG-049 y REG-050, ambos P0.)",
+    "E0-15c": "Una CMI es un INTERVALO: interpretarCMI recibe el operador de censura. Con '>' y valor ≥ sMax, S es imposible; NO se sube a R porque el valor real puede caer en la banda intermedia. (REG-044, P0.)",
+    "E0-15d": "Carbapenémico + alergia a penicilina = PRECAUCIÓN, no crítica (reactividad cruzada < 1%). Vuelve a crítica con alergia al propio carbapenémico, SCAR (SJS/TEN, DRESS, AGEP) o daño de órgano. Penicilinas y cefalosporinas siguen críticas. (REG-045, P1.)"
+  },
+  "regsCerrados": [
+    "REG-044 (P0) CMI censurada descartada — el operador se perdía en motor.ts y '>2' se leía como 2",
+    "REG-045 (P1) carbapenémico + alergia a penicilina bloqueaba primera línea en sepsis/meningitis",
+    "REG-046 (P0) la edición interpretativa EUCAST no llegaba a las salidas",
+    "REG-047 (P1) resumen-nota descartaba en silencio las alertas de nivel 'alta'",
+    "REG-048 (P1) contradiccionesSegundaOpinion llegaba al cliente y el cliente la descartaba",
+    "REG-049 (P0) Enterobacterales: panel sin imipenem producía MBL + NOM-045 + aislamiento desde un dato no medido",
+    "REG-050 (P0) P. aeruginosa: el gemelo inverso — panel sin cefalosporinas SUPRIMÍA la alerta crítica"
+  ],
+  "archivosTocados": [
+    "src/lib/expediente/antibiograma/motor.ts (MODIFICADO)",
+    "src/lib/expediente/antibiograma/enterobacterales.ts (MODIFICADO)",
+    "src/lib/expediente/antibiograma/nofermentadores.ts (MODIFICADO)",
+    "src/lib/expediente/antibiograma/tipos.ts (MODIFICADO)",
+    "src/app/(dashboard)/.../antibiograma/page.tsx (MODIFICADO — REG-048)",
+    "src/__tests__/e0-15-antibiograma-decisiones.test.ts (NUEVO)",
+    "docs/audit/regression-ledger.md (MODIFICADO)",
+    "public/sw.js (v701 → v703)"
+  ],
+  "gates": {
+    "tsc": "PASS (declarado en commit)",
+    "vitest": "PASS (declarado en commit)",
+    "testsPasan": 2022,
+    "build": "PASS (declarado en commit)"
+  },
+  "necesitaValidacionClinica": true,
+  "validacionClinicaResuelta": true,
+  "notaValidacion": "El backlog marca esta unidad validacionClinica: true. Las cuatro decisiones (a, b, c, d) las tomó el Dr. antes de implementarse y están citadas en docs/audit/regression-ledger.md y en docs/clinical-decisions/. No se inventó ningún umbral ni criterio.",
+  "riesgosVivos": [
+    "El fenotipo carbapenemasa-indeterminada es NUEVO: cualquier consumidor que asuma la lista cerrada anterior de fenotipos debe revisarse.",
+    "Con panel incompleto el motor ahora PIDE completar el panel en vez de concluir. Es el comportamiento buscado, pero cambia lo que ve el usuario respecto a antes."
+  ],
+  "noDesplegado": true,
+  "commits": [
+    "623ff89 feat(E0-15 c/d)",
+    "c1a0911 feat(E0-15a)",
+    "9a0da9e feat(E0-15b) — E0-15 COMPLETA"
+  ]
+}

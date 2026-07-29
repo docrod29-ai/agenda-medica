@@ -1,7 +1,7 @@
 {
   "version": 1,
   "descripcion": "ESTADO DURABLE del programa Nexus OS. Fuente de verdad del avance. Los agentes lo actualizan tras CADA unidad terminada. Si se acaban los créditos, este archivo dice exactamente dónde retomar sin perder nada.",
-  "actualizado": "2026-07-29T03:10:52Z",
+  "actualizado": "2026-07-29T03:29:14Z",
   "runs": [
     {
       "unidad": "E0-01",
@@ -82,6 +82,18 @@
         "build": "PASS",
         "testsPasan": 2120
       }
+    },
+    {
+      "unidad": "E0-09",
+      "fecha": "2026-07-29T03:29:14Z",
+      "resultado": "necesita_validacion",
+      "notaCierre": "Implementado TODO lo que no depende de criterio médico: tipos del libro append-only, núcleo PURO de proyección de correcciones (marca, nunca elimina), el MAR y las órdenes ya entran a la subcolección `registros` (hueco H1 cerrado) y un gate de cobertura que rompe el CI si alguien añade una acción al gateway sin decidir si es un hecho clínico. firestore.rules NO se tocó: la aceptación literal («un update sobre un evento sellado es rechazado por reglas») exige cerrar el `update` de `signos`, y ese `update` está documentado EN LAS PROPIAS REGLAS como decisión deliberada del Dr. en la auditoría maestra 2026-07. Revertir una política suya a ciegas es exactamente lo que prohíbe la regla 5 de la carta operativa. Se entrega el parche literal de reglas para su visto bueno (Q5).",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2164
+      }
     }
   ],
   "unidadEnCurso": null,
@@ -90,38 +102,48 @@
     "E0-02",
     "E0-03",
     "E0-04",
-    "E0-11",
     "E0-14",
     "E0-15"
   ],
   "reconciliacionDisco": {
-    "fecha": "2026-07-29T02:44:15Z",
+    "fecha": "2026-07-29T03:29:14Z",
     "criterio": "La existencia de unidades/<ID>/RESULTADO.json es la prueba de que la unidad está hecha; manda sobre estado.json.",
     "conRESULTADO": [
       "E0-01",
       "E0-02",
       "E0-03",
       "E0-04",
+      "E0-09",
       "E0-11",
       "E0-14",
       "E0-15"
     ],
-    "sinRESULTADO": [
-      "E0-09 (sólo DISENO.md)"
-    ],
-    "huboDiscrepancia": true,
-    "correccion": "SÍ HUBO CORRECCIÓN, y en la dirección contraria a la obvia. Al empezar esta pasada, estado.json listaba 5 completadas (E0-01, E0-02, E0-03, E0-14, E0-15) pero en disco sólo existían DOS RESULTADO.json (E0-01 y E0-02). Aplicar 'manda el disco' de forma literal habría degradado E0-03, E0-14 y E0-15 a pendientes y el siguiente lote las habría REHECHO — incluyendo reglas de Firestore YA DESPLEGADAS (E0-14), que es exactamente el tipo de repetición a ciegas que la carta operativa prohíbe. Antes de tocar nada se buscó la evidencia en el propio disco y ahí estaba, completa: commits 81fbe68 (E0-03), 3b39d12 + 5f5dff0 + bfe12e4 (E0-14) y 623ff89 + c1a0911 + 9a0da9e (E0-15); los tests src/__tests__/clinical-registry-adr.test.ts y src/__tests__/e0-15-antibiograma-decisiones.test.ts (re-ejecutados HOY: 45 casos en verde); src/lib/clinical/adr-cobertura.ts, src/lib/firma-protegida.ts, src/hooks/useFirmaProtegida.ts, firestore.rules; y REG-014/015/017 + REG-044…REG-050 marcados CLOSED en docs/audit/regression-ledger.md. Conclusión: las tres unidades SÍ están hechas y lo que faltaba era el artefacto contable. La corrección aplicada fue ESCRIBIR los tres RESULTADO.json que faltaban, reconstruidos únicamente a partir de esa evidencia y marcados con reconstruido.esReconstruccion=true, de modo que el disco vuelva a ser prueba fiel de la realidad y el criterio del protocolo siga siendo válido en la siguiente pasada. NO se inventó ningún dato: los gates se citan como 'declarados en el commit' y se distingue explícitamente lo re-verificado hoy de lo que no.",
+    "sinRESULTADO": [],
+    "huboDiscrepancia": false,
+    "correccion": "4ª pasada: sin discrepancias. E0-09 era la única unidad con DISENO.md y sin RESULTADO.json; esta corrida lo escribe EN EL MISMO cambio que cierra la unidad, como manda la regla operativa del 28-07.",
     "correccionesPrevias": [
       "2026-07-28T21:49:59Z — E0-02 tenía RESULTADO.json en disco pero NO figuraba en completadas. Se añadió.",
       "2026-07-28T22:15:15Z — 2ª pasada: sin cambios.",
-      "2026-07-29T02:44:15Z — 3ª pasada: se escribieron los RESULTADO.json ausentes de E0-03, E0-14 y E0-15 (reconstruidos con evidencia de git + tests + ledger). Sin ellos, tres unidades terminadas se habrían rehecho."
+      "2026-07-29T02:44:15Z — 3ª pasada: se escribieron los RESULTADO.json ausentes de E0-03, E0-14 y E0-15 (reconstruidos con evidencia de git + tests + ledger). Sin ellos, tres unidades terminadas se habrían rehecho.",
+      "2026-07-29T03:29:14Z — 4ª pasada: sin discrepancias. Se escribe unidades/E0-09/RESULTADO.json en el mismo cambio que cierra la unidad."
     ],
     "avisoDeProceso": "Las tres unidades se cerraron con commit pero SIN escribir RESULTADO.json. Es el único punto por donde este programa pierde trabajo. La regla operativa es: el RESULTADO.json se escribe en el MISMO commit que cierra la unidad, nunca después.",
     "totalUnidades": 68,
     "completadasCuenta": 7,
     "pendientes": 61
   },
-  "bloqueadas": [],
+  "bloqueadas": [
+    {
+      "unidad": "E0-09",
+      "motivo": "Verificación adversarial INCOMPLETA: firestore.rules sigue permitiendo UPDATE sobre un registro de signos. Falta la parte de reglas.",
+      "origen": "verificacion-adversarial"
+    },
+    {
+      "unidad": "E0-11",
+      "motivo": "Verificación adversarial INCOMPLETA: PATRONES_DESACTIVACION no reconoce describe.skipIf/runIf → un invariante clínico se puede apagar con el CI en verde. Falta cerrar el bypass.",
+      "origen": "verificacion-adversarial"
+    }
+  ],
   "necesitaValidacionDelDr": [
     {
       "unidad": "E0-01",
@@ -176,41 +198,83 @@
       "decision": "¿mEq/L debe poder convertirse a mmol/L automáticamente?",
       "porQue": "Hoy NO: mEq/L es dimensión propia sin puente, porque la equivalencia depende de la VALENCIA del ion. Para Na⁺/K⁺/Cl⁻ el número coincide con mmol/L, pero automatizarlo abriría la puerta a Ca²⁺/Mg²⁺, donde no coincide. Si se quiere el puente, se hace en unidad aparte con la valencia declarada y su fuente.",
       "bloquea": false
+    },
+    {
+      "unidad": "E0-09",
+      "id": "E0-09-Q1",
+      "decision": "¿Un signo vital corregido o anulado debe seguir alimentando NEWS2 y el export FHIR?",
+      "porQue": "Hoy NEWS2 toma el último registro sin filtrar (hospitalizacion/[internamientoId]/page.tsx:190) y FHIR exporta el arreglo completo (src/lib/fhir-export.ts:382). Las dos salidas fallan en direcciones OPUESTAS: si una SpO2 mal capturada de 80% permanece, se dispara una alerta falsa; si se oculta un valor que en realidad era correcto, se esconde un deterioro real. No se deduce del código.",
+      "bloquea": false,
+      "dondeQuedaMarcado": "POLITICA_SIGNOS_EN_CALCULO = null en src/lib/hospital/eventos.ts. signosParaCalculoClinico() LANZA si se la llama sin política (fail-closed) y un test verifica que el módulo NO tenga consumidores de producción."
+    },
+    {
+      "unidad": "E0-09",
+      "id": "E0-09-Q2",
+      "decision": "¿Quién puede corregir y con qué alcance? ¿Puede enfermería ANULAR una administración de medicamento, o eso queda reservado al médico?",
+      "porQue": "Hoy 'administrar' lo puede hacer enfermería (src/app/api/hospital/mutar/route.ts:33). La respuesta define el GATES de la nueva acción 'corregir', que por eso NO se añadió al gateway.",
+      "bloquea": false,
+      "dondeQuedaMarcado": "PoliticaCorreccion.rolesQueCorrigen / .rolesQueAnulanAdministracion; POLITICA_CORRECCION = null."
+    },
+    {
+      "unidad": "E0-09",
+      "id": "E0-09-Q3",
+      "decision": "¿Hay ventana de tiempo para corregir? ¿Se puede corregir un evento de hace 5 días, o de un episodio ya egresado?",
+      "porQue": "'administrar' exige episodio activo (mutar/route.ts:103); para 'corregir' no hay precedente en el repo.",
+      "bloquea": false,
+      "dondeQuedaMarcado": "PoliticaCorreccion.ventanaHoras / .permiteEpisodioEgresado, ejercitados con fixture sintético en los tests y sin valor en producción."
+    },
+    {
+      "unidad": "E0-09",
+      "id": "E0-09-Q4",
+      "decision": "¿La corrección exige motivo escrito obligatorio?",
+      "porQue": "Se propone obligatorio por NOM-004, pero encarece cada corrección y, si estorba, la gente deja de corregir y el registro se degrada. Es decisión del dueño del expediente.",
+      "bloquea": false,
+      "dondeQuedaMarcado": "PoliticaCorreccion.motivoObligatorio; RegistroSignos.motivoCorreccion nace OPCIONAL para no presuponer la respuesta."
+    },
+    {
+      "unidad": "E0-09",
+      "id": "E0-09-Q5",
+      "decision": "¿Confirma revertir la política vigente de signos vitales (de «corregir en el sitio» a «anexar corrección»)?",
+      "porQue": "Hoy firestore.rules permite UPDATE sobre un registro de signos y su comentario dice que eso es deliberado (enfermería corrige en el sitio; el delete se cerró en la auditoría maestra 2026-07). E0-09 exige lo contrario: la corrección se ANEXA y el valor erróneo queda visible tachado. Es más fiel a NOM-004 y es lo que pide la aceptación de la unidad, pero es revertir una decisión suya anterior y hace la pantalla de signos más ruidosa. Dato que baja el riesgo: NINGÚN punto del código hace updateDoc sobre signos, así que cerrar el update no rompe nada existente. El parche literal está en unidades/E0-09/RESULTADO.json → needsClinicalReview[E0-09-Q5].parcheExactoQueEsperaSuVistoBueno.",
+      "bloquea": true,
+      "bloqueaQue": "La ACEPTACIÓN LITERAL de E0-09 ('un update sobre un evento sellado es rechazado por reglas'). Ninguna otra unidad depende de ello.",
+      "dondeQuedaMarcado": "REG-053 OPEN en docs/audit/regression-ledger.md + el comentario del bloque E0-09 en src/__tests__/firestore-rules-guard.test.ts, que dice qué aserción falta y por qué.",
+      "posibleRespuestaYaEscrita": "OJO: docs/clinical-decisions/DECISIONES-ARQUITECTURA-2026-07-28.md §A3 lista «signos vitales» como append-only y fija «sin UPDATE destructivo, sin DELETE físico, corrección = nueva versión/adenda, original conservado» — que es exactamente lo que pide E0-09. NO se aplicó porque ese archivo apareció A MITAD de esta corrida desde un proceso concurrente, no está en git, y su propio encabezado avisa de que algunas respuestas son «comportamiento seguro por defecto» y no la palabra del Dr. Basta una línea suya confirmando que el §A3 es propio y aplica a `signos` para desbloquear el parche."
     }
   ],
   "siguientesElegibles": {
-    "fecha": "2026-07-29T03:10:52Z",
-    "notaDeEstaPasada": "E0-04 cerrada. Al cerrarla se abren DE GOLPE tres unidades de tres etapas distintas: E0-05 (migración de motores, alto), E1-01 (ClinicalFact, bajo — primera unidad de la etapa E1 Nexus Context) y E4-01 (Safety Kernel, medio). En E0 ya sólo queda E0-09 como elegible de riesgo medio; el resto de E0 es alto o exige observar producción.",
+    "fecha": "2026-07-29T03:29:14Z",
+    "notaDeEstaPasada": "E0-09 sale de la lista de elegibles: queda en 'necesita_validacion' con 5 preguntas al Dr. (Q5 bloquea su aceptación literal). Con ella fuera, E0 se queda SIN unidades de riesgo medio ejecutables: lo pendiente de E0 es alto (E0-05, E0-06, E0-12, E0-13) o exige observar producción (E0-10). Los dos frentes vivos están fuera de E0: E1-01 y E4-01.",
     "seleccion": [
       {
         "id": "E1-01",
         "titulo": "ClinicalFact (etapa E1 — Nexus Context)",
         "riesgo": "bajo",
-        "porQueAhora": "Recién desbloqueada por E0-04 y es la ÚNICA de riesgo bajo que queda elegible en todo el programa. Se apoya directamente en ClinicalQuantity, que ya está en disco y verificado."
-      },
-      {
-        "id": "E0-09",
-        "titulo": "Eventos hospitalarios críticos append-only",
-        "riesgo": "medio",
-        "porQueAhora": "Sin dependencias y con DISENO.md ya escrito (23 KB). MAR, órdenes y eventos de UCI dejan de poder editarse o borrarse: sólo se anexa corrección. Toca reglas de Firestore, así que su despliegue es decisión aparte del Dr."
+        "porQueAhora": "La ÚNICA de riesgo bajo elegible en todo el programa. Se apoya en ClinicalQuantity (E0-04), que ya está en disco y verificado."
       },
       {
         "id": "E4-01",
         "titulo": "Safety Kernel (etapa E4)",
         "riesgo": "medio",
-        "porQueAhora": "Desbloqueada por E0-04. Abre la etapa E4. No tiene DISENO.md en disco todavía, así que su primera pasada incluiría el diseño."
+        "porQueAhora": "Desbloqueada por E0-04. Abre la etapa E4. No tiene DISENO.md en disco, así que su primera pasada incluiría el diseño."
+      },
+      {
+        "id": "E0-05",
+        "titulo": "ClinicalQuantity: migración de motores críticos",
+        "riesgo": "alto",
+        "porQueAhora": "Elegible desde E0-04 y es la que da valor real a ClinicalQuantity, pero migra motores EN PRODUCCIÓN y cambia firmas con callers reales: conviene por LOTES o como PLAN, no de un tirón."
       }
     ],
     "descartadasConMotivo": [
       {
-        "id": "E0-05",
-        "riesgo": "alto",
-        "motivo": "Ya elegible (E0-04 la desbloqueó), pero es LA unidad de riesgo alto del bloque: migra motores clínicos EN PRODUCCIÓN (funcion-renal, gasometria, infusiones, dosis, prevent) a exigir ClinicalQuantity. Cambia firmas que hoy usan callers reales. Conviene entregarla por lotes o como PLAN, no de un tirón."
+        "id": "E0-09",
+        "riesgo": "medio",
+        "motivo": "Ya ejecutada en lo que es software puro. Su aceptación literal espera Q5 (revertir la política de `update` sobre signos). No se re-ejecuta: tiene RESULTADO.json en disco."
       },
       {
         "id": "E0-10",
         "riesgo": "medio",
-        "motivo": "Su aceptación exige OBSERVAR los reportes CSP en PRODUCCIÓN antes de pasar de report-only a enforce, y la carta operativa prohíbe desplegar dentro del workflow. Cuarta pasada consecutiva descartada."
+        "motivo": "Su aceptación exige OBSERVAR los reportes CSP en PRODUCCIÓN antes de pasar de report-only a enforce, y la carta operativa prohíbe desplegar dentro del workflow. Quinta pasada consecutiva descartada."
       },
       {
         "id": "E0-06",
@@ -220,7 +284,7 @@
       {
         "id": "E0-12",
         "riesgo": "alto",
-        "motivo": "Implica migración de hashes de firma sobre notas YA firmadas: regresión visible. PLAN, no ejecución a ciegas."
+        "motivo": "Migración de hashes de firma sobre notas YA firmadas: regresión visible. PLAN, no ejecución a ciegas."
       },
       {
         "id": "E0-13",
@@ -228,7 +292,7 @@
         "motivo": "Idempotencia del webhook de Stripe: es dinero. PLAN antes que ejecución."
       }
     ],
-    "efectoDominoTrasEsteLote": "Con E0-04 en disco, el programa deja de estar confinado a E0: E1 y E4 quedan abiertas. E0 conserva sólo E0-09 como elegible de riesgo medio."
+    "efectoDominoTrasEsteLote": "Ninguna unidad se desbloquea con E0-09 (nadie depende de ella). Lo que cambia es el mapa: E0 se queda sin trabajo de riesgo medio y el programa se mueve a E1/E4, o entra en los E0 altos por la vía del PLAN."
   },
   "notas": [
     "E0-01 cerró REG-025 por completo en docs/audit/regression-ledger.md (era CLOSED parcial).",
@@ -256,6 +320,15 @@
     "2026-07-29T03:10:52Z — E0-04 NO introdujo ni un número clínico nuevo. Los dos factores molares (creatinina 88.4, colesterol 38.67) ya vivían en el repo y se copiaron con su cita; dos tests anti-deriva leen prevent.ts, funcion-renal.ts y copiloto.ts y fallan si alguien cambia un sitio y no el otro. Todo lo demás son definiciones del SI o de metrología (1 mmHg = 133.322387415 Pa).",
     "2026-07-29T03:10:52Z — E0-04 es ADITIVA PURA: 3 archivos nuevos, CERO archivos de producción modificados, cero importadores. Ninguna pantalla, motor, PDF, receta, cobro, firma ni regla de Firestore cambia de comportamiento. El riesgo real de ClinicalQuantity llega el día que un motor lo exija, y ese día es E0-05 (riesgo alto, unidad aparte). Por eso este núcleo no adelantó ni un motor.",
     "2026-07-29T03:10:52Z — Tal como anticipó el §5-bis del diseño, el módulo NO se registró en CLINICAL_ENGINE_REGISTRY: el trinquete de E0-03 exige la deuda exacta en 52 y registrarlo sin ADR la subiría a 53 (CI rojo). Verificado que clinical-registry-adr.test.ts sigue verde. Cuando E0-05 lo meta en un motor, ese motor ya tiene su entrada.",
-    "2026-07-29T03:10:52Z — AVISO de la corrida de E0-04, ajeno a la unidad: un proceso concurrente creó docs/clinical-decisions/PREGUNTAS-TODO-EL-PROGRAMA.md (sin rastrear) A MITAD de la corrida, y el gate de ADRs de E0-03 lo leyó como ADR huérfano ⇒ vitest ROJO en la re-verificación, estando verde 4 minutos antes con el mismo código de E0-04. Se arregló como indica el propio mensaje del test: declararlo en DOCS_NO_ADR (src/lib/clinical/adr-cobertura.ts), igual que su hermano PREGUNTAS-PENDIENTES.md. No mueve la deuda (sigue en 52). LECCIÓN: todo .md nuevo en docs/clinical-decisions/ que no sea ADR de motor debe declararse en DOCS_NO_ADR en el MISMO cambio que lo crea, o tumba el CI de quien pase después."
+    "2026-07-29T03:10:52Z — AVISO de la corrida de E0-04, ajeno a la unidad: un proceso concurrente creó docs/clinical-decisions/PREGUNTAS-TODO-EL-PROGRAMA.md (sin rastrear) A MITAD de la corrida, y el gate de ADRs de E0-03 lo leyó como ADR huérfano ⇒ vitest ROJO en la re-verificación, estando verde 4 minutos antes con el mismo código de E0-04. Se arregló como indica el propio mensaje del test: declararlo en DOCS_NO_ADR (src/lib/clinical/adr-cobertura.ts), igual que su hermano PREGUNTAS-PENDIENTES.md. No mueve la deuda (sigue en 52). LECCIÓN: todo .md nuevo en docs/clinical-decisions/ que no sea ADR de motor debe declararse en DOCS_NO_ADR en el MISMO cambio que lo crea, o tumba el CI de quien pase después.",
+    "2026-07-29T03:29:14Z — E0-09 EJECUTADA en lo que es software puro y DETENIDA en el punto clínico. Implementado: tipos del libro append-only (EventoClinico/EfectoCorreccion + corrigeA/motivoCorreccion opcionales en RegistroSignos), núcleo PURO src/lib/hospital/eventos.ts (proyectarSignos/proyectarEventos MARCAN y nunca eliminan; cadenas A←B←C, correcciones huérfanas fuera del tope de 200, autorreferencia y ciclos sin recursión infinita, no mutan la entrada), construirCorreccion/validarCorreccion parametrizados por política, y registroDurable extendido al MAR y a las órdenes. 40 casos nuevos. 2120 → 2164 tests.",
+    "2026-07-29T03:29:14Z — HUECO H1 CERRADO (REG-052): 'administrar', 'indicacion_agregar', 'indicacion_suspender' y 'verificar_farmacia' devolvían null, así que una dosis administrada vivía SÓLO en el array anidado indicaciones[].administraciones[] del doc — que escribe el Admin SDK (las reglas no pueden protegerlo por diseño) y que, a diferencia de balanceHidrico/escalas/sbar, NO tiene tope: una estancia larga acerca el doc al límite de 1 MB y el modo de falla es perder escrituras del MAR. La ruta api/hospital/mutar NO se tocó ni una línea: ya persistía lo que devuelve registroDurable().",
+    "2026-07-29T03:29:14Z — E0-09 NO tocó firestore.rules, y ésa es la razón exacta de 'necesita_validacion'. El DISENO.md afirmaba en §6 que el entregable de reglas no dependía de ninguna respuesta clínica, pero su propia re-verificación #2 (§9.2) descubrió que el `update` de signos está documentado EN LAS REGLAS como decisión deliberada del Dr. (auditoría maestra 2026-07: «enfermería AÑADE y CORRIGE, nadie borra»). Aplicarlo sería revertir una política suya a ciegas. El parche literal (3 cambios) queda escrito en el RESULTADO.json para su visto bueno.",
+    "2026-07-29T03:29:14Z — Desviación consciente del diseño (D3/D4): (a) balance/escala/sbar CONSERVAN su forma plana original en vez de migrar a `detalle` como proponía §4.3 — hay documentos ya escritos con esa forma en un libro append-only y uniformarlos exigiría reescribir registros legales, justo lo que el módulo existe para impedir; (b) proyectarSignos no devuelve {vigentes, corregidos}: 'vigentes' invita a creer que la función filtra, y filtrar es precisamente lo que Q1 prohíbe decidir.",
+    "2026-07-29T03:29:14Z — Los cinco huecos clínicos valen `null`, y `null` NO significa 'apagado': signosParaCalculoClinico LANZA con un mensaje que nombra la pregunta (FALTA_POLITICA_Q1) y validarCorreccion exige la política como parámetro obligatorio no anulable. Un test verifica además que src/lib/hospital/eventos.ts NO tenga consumidores de producción, para que nadie lo cablee a una pantalla antes de que el Dr. responda.",
+    "2026-07-29T03:29:14Z — Gate de cobertura nuevo (patrón de E0-03/E0-11): ACCIONES_CON_EVENTO_DURABLE ∪ ACCIONES_SIN_EVENTO_DURABLE debe ser una PARTICIÓN exacta de los GATES reales de api/hospital/mutar/route.ts, leídos como TEXTO para no obligar a exportar nada desde una ruta de producción. Una acción nueva sin clasificar tumba el CI, y cada descarte lleva su razón escrita.",
+    "2026-07-29T03:29:14Z — Los dos tests que cita el ledger se añadieron al sello de E0-11 (invariantes-clinicos.json: 78 → 80 archivos, 1249 → 1294 casos), como exige su ASERCIÓN 4. LECCIÓN heredada del aviso de E0-04: todo test citado en el regression-ledger debe entrar al sello EN EL MISMO cambio, o tumba el CI de quien pase después.",
+    "2026-07-29T03:29:14Z — AVISO de la corrida de E0-09, ajeno a la unidad (segunda vez que pasa lo mismo): un proceso concurrente creó docs/clinical-decisions/DECISIONES-ARQUITECTURA-2026-07-28.md A MITAD de la corrida y el gate de ADRs de E0-03 lo leyó como ADR huérfano ⇒ vitest ROJO en la re-verificación final estando verde minutos antes. Arreglado como indica el propio test: declararlo en DOCS_NO_ADR (src/lib/clinical/adr-cobertura.ts). No mueve la deuda (sigue en 52).",
+    "2026-07-29T03:29:14Z — HALLAZGO que afecta a E0-09: ese mismo documento parece RESPONDER Q5 — su §A3 lista «signos vitales» como append-only con «corrección = nueva versión/adenda, original conservado». NO se aplicó: apareció solo a mitad de la corrida, no está en git, y su encabezado avisa de que parte del contenido es «comportamiento seguro por defecto» y no la palabra del Dr. Revertir una política suya anterior con esa base sería adivinar. Verificado además que ese documento NO responde Q1, Q2, Q3 ni Q4, así que E0-09 seguiría en 'necesita_validacion' de todos modos."
   ]
 }

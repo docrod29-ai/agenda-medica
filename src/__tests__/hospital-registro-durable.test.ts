@@ -20,9 +20,25 @@ describe('registroDurable', () => {
     const r = registroDurable('sbar', { texto: 'Paciente estable', por: 'FALSO' }, now, POR)
     expect(r).toMatchObject({ tipo: 'sbar', texto: 'Paciente estable', por: POR })
   })
+  /**
+   * CAMBIO DELIBERADO (E0-09, REG-052). Este caso afirmaba que `administrar` e
+   * `indicacion_agregar` devolvían `null`, y ése era exactamente el hueco: el MAR
+   * y las órdenes NUNCA llegaban al libro append-only `registros`; vivían sólo en
+   * el array `indicaciones[].administraciones[]` del doc, que escribe el Admin SDK
+   * (las reglas de Firestore no pueden protegerlo) y que no tiene tope de tamaño.
+   * No es un test aflojado: la aserción se INVIRTIÓ a propósito y su contraparte
+   * completa está en `src/__tests__/hospital-eventos-append-only.test.ts`.
+   */
+  it('E0-09: el MAR y las órdenes SÍ producen registro durable', () => {
+    expect(registroDurable('administrar', { indId: 'i', adm: { estado: 'administrado' } }, now, POR))
+      .toMatchObject({ tipo: 'administracion', fecha: now, por: POR })
+    expect(registroDurable('indicacion_agregar', { descripcion: 'Fármaco X' }, now, POR))
+      .toMatchObject({ tipo: 'indicacion_alta', fecha: now, por: POR })
+  })
+
   it('acciones sin registro durable devuelven null (no duplican)', () => {
-    expect(registroDurable('administrar', {}, now, POR)).toBeNull()
     expect(registroDurable('crear', {}, now, POR)).toBeNull()
-    expect(registroDurable('indicacion_agregar', {}, now, POR)).toBeNull()
+    expect(registroDurable('conciliar', {}, now, POR)).toBeNull()
+    expect(registroDurable('interconsulta_agregar', {}, now, POR)).toBeNull()
   })
 })

@@ -1,0 +1,54 @@
+{
+  "id": "E0-11",
+  "titulo": "Clinical Safety CI gate",
+  "fecha": "2026-07-28",
+  "verificador": "adversarial (refutar), solo lectura",
+  "veredicto": "INCOMPLETA",
+  "cumpleAceptacion": false,
+  "aceptacionLiteral": "Un PR que rompe un invariante clínico no puede mergearse.",
+
+  "loQueSiSeSostiene": [
+    "Los 12 archivos declarados existen y hacen lo que dicen. Commit a4a797d, 13 archivos, +1501/-137.",
+    "src/lib/clinical/safety-gate.ts:89-125 deriva el conjunto protegido de CLINICAL_ENGINE_REGISTRY[].goldenTests ∪ tests citados en el ledger ∪ 3 METAGATES (safety-gate.ts:48-61). No es lista a mano.",
+    "src/lib/clinical/invariantes-clinicos.json en el commit: 78 archivos / totalCasos 1249 — cifra confirmada leyendo el blob del commit. En el árbol actual son 80 / 1294 (E0-09 añadió hospital-eventos-append-only y hospital-registro-durable).",
+    ".github/workflows/ci.yml:20-33 añade el job `clinical-safety` (nombre estable, sin tsc ni build) y NO altera el job `verificar` (ci.yml:35-52, sigue con tsc + `npx vitest run` + build).",
+    "El comando real del job, corrido tal cual: `npx vitest run src/__tests__/clinical-safety-gate.test.ts $(node scripts/invariantes-clinicos.mjs)` → 80 archivos / 1355 casos / 1.6 s, exit 0.",
+    "scripts/invariantes-clinicos.mjs:28-32 es fail-closed ante sello vacío (exit 1).",
+    "Autoprotección real: clinical-safety-gate.test.ts:169-186 exige el job en el YAML, y METAGATES incluye al propio gate (safety-gate.ts:57-60).",
+    "CERO reglas clínicas inventadas. safety-gate.ts e invariantes-clinicos.json no contienen un solo umbral, dosis ni criterio médico: minCasos son conteos MEDIDOS de `it(`/`test(` (safety-gate.ts:169-172) y el propio JSON lo declara en su campo comoSeRegenera.",
+    "CERO PHI y cero secretos: el sello solo contiene rutas de archivo; el único fixture del test es ficticio ('fixture-inventado.test.ts', clinical-safety-gate.test.ts:243).",
+    "SIN REGRESIÓN. Verificado por mí, no reportado: `npx tsc --noEmit` → exit 0, sin salida. `npx vitest run src/__tests__/` → 180 archivos / 2164 casos / 0 fallos. `npx vitest run src/__tests__/clinical-safety-gate.test.ts` → 32/32.",
+    "Honestidad del reporte: estado.json marca E0-11 como `necesita_validacion` (no `completada`), y docs/ci/clinical-safety-gate.md:92-100 + docs/pendientes-externos.md:52-53 declaran que sin required status checks el criterio NO se cumple. El autor no sobrevendió el cierre."
+  ],
+
+  "problemas": [
+    "P1 · ACEPTACIÓN NO CUMPLIDA (declarado por el propio autor, no descubierto): «no puede mergearse» lo decide la protección de rama de GitHub, no el CI. Hoy un PR con el gate en ROJO se mergea igual. docs/pendientes-externos.md:39-53 y docs/ci/clinical-safety-gate.md:92-100. Falta paso de consola del Dr. (~5 min). Por eso INCOMPLETA y no CONFIRMADA.",
+    "P1 · BYPASS DEMOSTRADO que anula el escenario estrella del propio gate. src/lib/clinical/safety-gate.ts:137-142 (PATRONES_DESACTIVACION) solo reconoce .skip / .only / .todo / xit / xdescribe. NO reconoce `describe.skipIf(...)` ni `describe.runIf(false)`, que son API de primera clase de vitest. Prueba en memoria sobre el contenido REAL de src/__tests__/clinical-safety-harness.test.ts (42 casos): sustituir `describe(` por `describe.skipIf(true)(` da desactivaciones=0 y casos=42 → aserción 2 verde, aserción 3 verde (el trinquete cuenta las líneas `it(`, que siguen ahí), y vitest reporta el archivo como SKIPPED, no failed, así que `verificar` también sale verde. Se apagan los 42 casos (CKD-EPI/MELD/FIB-4/SOFA) con los dos jobs en verde. Es exactamente lo que la unidad dice cerrar («le pone describe.skip a la dosis pediátrica»); un `skipIf` no es una 'desactivación exótica' como dice docs/ci/clinical-safety-gate.md:104-108. Arreglo = añadir skipIf|runIf a las regex de safety-gate.ts:138-141.",
+    "P2 · El trinquete mide casos DECLARADOS en el fuente, nunca los EJECUTADOS por vitest. clinical-safety-gate.test.ts:112-121 suma contarCasos() del texto; no compara contra el número de tests que vitest reporta. Corolario de P1: cualquier apagado que no borre líneas `it(` (skipIf, un `return` temprano dentro del callback de describe) pasa el trinquete. La cota está declarada en docs §8, pero la consecuencia — que el archivo entero se puede apagar en verde — no.",
+    "P2 · Extracción del ledger incompleta y SILENCIOSA. safety-gate.ts:77 solo captura /src\\/__tests__\\/…\\.test\\.ts/. El regression-ledger cita 4 tests por nombre suelto sin ruta (`clinical-safety-harness.test.ts` en REG-001 línea 11, `dosis-invariantes-property.test.ts` REG-018 línea 28, `grupo-e-guardas.test.ts` REG-035 línea 51, `dosis-decision-amoxicilina.test.ts`). Hoy no hay hueco real porque los 4 entran igual por registry.goldenTests, pero un REG-xxx futuro citado por nombre suelto quedaría FUERA del conjunto protegido y la aserción 4b (clinical-safety-gate.test.ts:143-152) no chillaría. Es justo la 'pudrición silenciosa' que el módulo dice evitar (safety-gate.ts:18-22).",
+    "P3 · La aserción 5 es textual y se satisface con un comentario. clinical-safety-gate.test.ts:174-175 usa ci.toContain('scripts/invariantes-clinicos.mjs'): dejar la mención en un comentario del YAML y vaciar el `run:` mantiene el test verde. El propio test declara que evita un parser de YAML a propósito (líneas 164-166), pero la autoprotección es más débil de lo que sugiere el resumen.",
+    "P3 · Cobertura sobrevendida en la palabra 'seguridad'. 90 de los 170 .test.ts de src/__tests__ quedan fuera del sello, entre ellos invariantes de seguridad reales: log-secrets-guard.test.ts, patient-token.test.ts, sanitize.test.ts, claims-guard.test.ts, integrity.test.ts, native-dialogs-guard.test.ts, y toda la familia uci-*.test.ts y whatsapp-*.test.ts. La regla de derivación lo justifica (no están en el registro ni en el ledger), pero docs/pendientes-externos.md:34-37 los describe como «los 78 archivos de invariantes clínicos y de seguridad», lo que da a entender una cobertura de seguridad que no existe: borrar o apagar esos 90 sigue siendo invisible."
+  ],
+
+  "regresionesEncontradas": [],
+
+  "reglasClinicasInventadas": "NINGUNA. Comprobado explícitamente: safety-gate.ts (180 líneas) y invariantes-clinicos.json (80 entradas) no contienen umbrales, dosis ni criterios médicos; el commit no tocó ningún motor clínico ni ningún test clínico existente (git show a4a797d --stat: solo CI, docs, scripts, el sello y los dos archivos nuevos del gate).",
+  "phiOSecretos": "NINGUNO. El sello son rutas; el único fixture es ficticio (clinical-safety-gate.test.ts:243).",
+
+  "losTestsFallarianSiSeRevierte": "SÍ, parcialmente. Si se borra el sello o safety-gate.ts, clinical-safety-gate.test.ts no compila ni corre (importa @/lib/clinical/safety-gate y lee el JSON, líneas 13 y 34). Si se quita el job del ci.yml, cae la aserción 5. Si se borra un invariante, cae la aserción 1; si se le pone .skip/.only, cae la aserción 2; si se le quitan casos, cae el trinquete. PERO ver P1: con describe.skipIf(true) el gate NO falla y el invariante queda apagado.",
+
+  "gatesVerificadosPorMi": {
+    "tsc": "PASS (exit 0, sin diagnósticos)",
+    "vitest_src_tests": "PASS — 180 archivos / 2164 casos / 0 fallos",
+    "vitest_metagate": "PASS — 32/32",
+    "comando_real_del_job_ci": "PASS — 80 archivos / 1355 casos / ~1.6 s"
+  },
+
+  "paraCerrarComoCONFIRMADA": [
+    "1. El Dr. activa en GitHub → Settings → Rules → Ruleset sobre `main`: Require status checks = `clinical-safety` + `verificar`, sin bypass para administradores (docs/pendientes-externos.md:42-50). Sin esto el criterio de aceptación no se cumple por definición.",
+    "2. Cerrar el bypass P1: añadir skipIf/runIf a PATRONES_DESACTIVACION (safety-gate.ts:137-142) y un caso de autotest en el bloque de la aserción 6 (clinical-safety-gate.test.ts:192-202).",
+    "3. Opcional (P2): que testsCitadosEnLedger también capture citas por nombre suelto en backticks, o que el ledger obligue a ruta completa."
+  ],
+
+  "noSeEdito": "Verificación de solo lectura. No se modificó ningún archivo del repo salvo este VERIFICACION.json. No se desplegó, no se hizo push."
+}

@@ -65,7 +65,7 @@ No hay `match /registros/{…}` bajo `internamientos/{intId}`, así que cae en e
 | `src/__tests__/hospital-registro-durable.test.ts` | MODIFICAR | El caso `:24` (`administrar` → `null`) **deja de ser cierto a propósito**. |
 | `src/__tests__/firestore-rules-guard.test.ts` | MODIFICAR | Fija la aceptación en el texto de las reglas. |
 | `src/__tests__/hospital-eventos-append-only.test.ts` | **NUEVO** | Tests del núcleo puro + de las reglas. |
-| `docs/audit/regression-ledger.md` | MODIFICAR | Alta de **REG-044** (H1), **REG-045** (H2). Último id usado: REG-043. |
+| `docs/audit/regression-ledger.md` | MODIFICAR | Alta de **REG-051** (H1), **REG-052** (H2). Último id usado hoy: **REG-050** (E0-15 consumió REG-044…REG-050; ver §9). |
 
 ### 4.2 Reglas — el cambio literal (entregable *a*)
 
@@ -185,6 +185,8 @@ El **entregable (a) — reglas append-only — no depende de ninguna de estas re
 - **Q3 — ¿Hay ventana de tiempo para corregir?** ¿Se puede corregir un evento de hace 5 días, o de un episodio **ya egresado**? (`administrar` exige episodio activo — `mutar/route.ts:104`; para `corregir` no hay precedente en el repo.)
 - **Q4 — ¿La corrección exige motivo escrito obligatorio?** Lo propongo obligatorio por NOM-004, pero es decisión del dueño del expediente: encarece cada corrección y, si estorba, la gente deja de corregir y el registro se degrada.
 
+- **Q5 — ¿Confirma el cambio de política de "corregir en el sitio" a "anexar corrección"?** Ver **§9.2**: el `update` de `signos` está documentado en las reglas como una decisión deliberada de la auditoría maestra 2026-07, no como un olvido. Esta unidad la revierte.
+
 No inventé respuesta para ninguna. Mientras no estén, se implementa §4.2 (reglas + tests 8-9) y se deja la UI de corrección detrás de la decisión.
 
 ## 7. Riesgo de regresión REAL sobre producción
@@ -199,7 +201,7 @@ No inventé respuesta para ninguna. Mientras no estén, se implementa §4.2 (reg
 | Proyección de correcciones en la ficha | **Medio** ← el punto caliente | Toca la tabla de signos, NEWS2 y el export FHIR. **Depende de Q1.** Mitigación: la proyección es una función **pura y testeada aparte**, y por defecto **no filtra nada** (sólo marca) hasta que el Dr. responda Q1. |
 | Test `hospital-registro-durable.test.ts:24` | **Ninguno** en producción | El caso "`administrar` → `null`" deja de ser cierto **a propósito**; se reescribe y se anota en el ledger para que no parezca un test aflojado. |
 
-**Modo de fallo peor imaginable de este diseño:** que el equipo confíe en que "el MAR es append-only por reglas" cuando lo append-only por reglas es el **libro `registros`**, no el array del doc. Por eso el comentario de `firestore.rules` y el encabezado de `registro-durable.ts` deben decirlo con todas sus letras, y por eso H1 queda inscrito en el ledger como **REG-044 (abierto)** hasta que exista la migración.
+**Modo de fallo peor imaginable de este diseño:** que el equipo confíe en que "el MAR es append-only por reglas" cuando lo append-only por reglas es el **libro `registros`**, no el array del doc. Por eso el comentario de `firestore.rules` y el encabezado de `registro-durable.ts` deben decirlo con todas sus letras, y por eso H1 queda inscrito en el ledger como **REG-051 (abierto)** hasta que exista la migración.
 
 ## 8. Re-verificación contra el código real — 2026-07-28
 
@@ -231,3 +233,49 @@ Este DISEÑO se escribió en una pasada anterior. Antes de darlo por bueno se re
 **Corrección aplicada:** el export FHIR está en `src/lib/fhir-export.ts` (líneas 302 y 382 correctas), **no** en `src/lib/hospital/fhir-export.ts` como decía la §4.5 y la Q1. Ya está arreglado arriba. Ningún otro dato cambió.
 
 **Conclusión:** el diseño queda **vigente y listo para implementar** en lo que no depende de decisión clínica (§4.2 reglas + tests 8-9). La UI de corrección (§4.4) y la proyección (§4.3) siguen **detenidas** a la espera de Q1-Q4 (§6). No se escribió una sola línea de código en esta pasada.
+
+## 9. Re-verificación #2 contra el código real — 2026-07-29
+
+Tercera lectura del código citado, tras las unidades E0-01/02/03/14/15. **El diseño se sostiene entero.** Se encontró **una** deriva y **un** matiz nuevo; ambos ya aplicados arriba.
+
+### 9.1 Deriva real: los ids del ledger que este diseño reservaba están OCUPADOS
+
+`docs/audit/regression-ledger.md` ya llega a **REG-050**: E0-15 consumió REG-044 … REG-050 (CMI censurada, carbapenémico + alergia a penicilina, ediciones interpretativas EUCAST, alertas `alta` descartadas, `contradiccionesSegundaOpinion`, MISSING≠R en Enterobacterales y su gemelo en *P. aeruginosa*). Ninguno tiene relación con esta unidad.
+
+**Corrección aplicada:** H1 → **REG-051**, H2 → **REG-052**. Antes de escribir, quien implemente debe **releer el último id**: este programa avanza en paralelo y el número puede volver a moverse.
+
+### 9.2 Matiz nuevo: la regla de `signos` documenta el `update` como una decisión deliberada
+
+`firestore.rules:242-245` lleva un comentario que dice explícitamente que enfermería/médicos "AÑADEN (create) y **CORRIGEN (update)**" y que el cierre de `delete` vino de la auditoría maestra 2026-07. Es decir: **el `update` de H2 no es un descuido, es una política previa** — "corregir en el sitio, pero no borrar".
+
+Esto no invalida H2, lo **agudiza**: E0-09 cambia esa política (corregir = anexar, no sobrescribir), así que el cambio **debe reescribir también ese comentario**, no sólo la línea `allow`. Dejar el comentario viejo junto a la regla nueva produciría una contradicción en el archivo que gobierna la seguridad. Y sube ligeramente el listón de aprobación: es revertir una decisión anterior del propio Dr., no tapar un hueco olvidado. **Queda como quinta pregunta:**
+
+- **Q5 — ¿Confirma el Dr. el cambio de política?** Hoy una lectura mal capturada se **sobrescribe** (rules:242-245, decisión de la auditoría maestra 2026-07). E0-09 pide que se **anexe** una corrección y el valor erróneo quede visible tachado. Es más fiel a NOM-004 y es lo que exige la aceptación de la unidad, pero es explícitamente **revertir** la política vigente y hace la pantalla de signos más ruidosa.
+
+### 9.3 Tabla de verificación (líneas de HOY)
+
+| Afirmación | Verificación 2026-07-29 |
+|---|---|
+| `internamientos` cerrado al cliente | ✅ `firestore.rules:241` — `allow create, update, delete: if false;` |
+| `signos` permite `update` (H2) | ✅ `firestore.rules:246-248` — `match /signos/{signoId}` → `:247` `allow read, create, update: if isClinicoHospital(clinicId);` · `:248` `allow delete: if false;` |
+| Botón "Borrar registro mal capturado" ROTO | ✅ `hospitalizacion/[internamientoId]/page.tsx:579` → `borrarSignos` → `src/lib/hospital/firestore.ts:218-220` (`deleteDoc`) contra `rules:248` (`if false`). Único llamador. |
+| Nadie hace `updateDoc` sobre `signos` | ✅ grep completo de `signosCol`: `onSnapshot` (`firestore.ts:84`), `addDoc` (`:195`), `getDocs` (`:213`), `deleteDoc` (`:219`). **Cero `updateDoc`.** Cerrar `update` no rompe nada. |
+| `registroDurable` sólo balance/escala/sbar | ✅ `src/lib/hospital/registro-durable.ts:19-21`, `default: return null` (`:22`). |
+| El test fija `administrar → null` | ✅ `src/__tests__/hospital-registro-durable.test.ts:23-27`. |
+| `tx.set(...registros...)` ya existe | ✅ `mutar/route.ts:263`, dentro de la transacción, tras `tx.update` de `:259`. |
+| Autor y hora sellados por el servidor | ✅ `mutar/route.ts:254-258` (actor desde el correo verificado) y `:113-118` (`por: actor.nombre`, `porUid`, `fecha: now`). |
+| Caché topado; el MAR **sin** tope | ✅ `.slice(-100)` en `:168`/`:170`, `.slice(-50)` en `:172`; `administraciones: [...]` en `:120` sin `.slice`. |
+| Guardas de inmutabilidad del MAR vigentes | ✅ `mutar/route.ts:75` y `:79` (bloquean editar/borrar indicación ya administrada); `:103-111` (episodio activo + indicación activa). |
+| `administrar` lo puede hacer enfermería (afecta Q2) | ✅ `mutar/route.ts:33` — `administrar: ['enfermeria','medico','admin']`. |
+| Molde "append + corrección" ya existe | ✅ `firestore.rules:193-197` (`versions`) y el bloque `adendas` contiguo: ambos `allow update, delete: if false;`. |
+| No hay `match /registros/{…}` | ✅ ausente. Cae en el catch-all `firestore.rules:654`. |
+| Guardián de reglas estático por regex | ✅ `src/__tests__/firestore-rules-guard.test.ts:12-13`. |
+| Sin emulador en el repo | ✅ `grep` de `rules-unit-testing`/`emulator` en `package.json` y `firebase.json`: **cero coincidencias**. La aceptación conductual sigue siendo de **E0-08**. |
+| NEWS2 usa el último signo sin filtrar (Q1) | ✅ `page.tsx:190` — `signos[signos.length - 1]`. |
+| FHIR exporta el arreglo completo (Q1) | ✅ `src/lib/fhir-export.ts:382` — `(signos ?? []).forEach(...)`; firma en `:305-310`. |
+| `RegistroSignos` sin campos de corrección | ✅ `src/types/hospital.ts:146-165`: no hay `corrigeA` ni `motivoCorreccion`. Añadirlos opcionales no invalida documentos ya guardados. |
+| Tope de `getSignos` = 200 | ✅ `src/lib/hospital/firestore.ts:210`, `:213`. |
+| `laboratorio` sigue permitiendo update/delete | ✅ `firestore.rules:268` — `allow update, delete: if isLabStaff(clinicId);`. Fuera de alcance (§4.5), sigue siendo candidato a ledger aparte. |
+| Precedente "no se borra, sí se actualiza" | ✅ `firestore.rules:273-276` (`hospital_alertas`) usa exactamente el mismo patrón que `signos`. **No se toca**: una alerta se *atiende* (cambia de estado), no es una medición. Vale la pena decirlo para que nadie "corrija por simetría". |
+
+**Conclusión #2:** sin cambios de fondo. §4.2 (reglas + tests 8-9) sigue implementable ya, con el añadido de reescribir el comentario de `rules:242-245`; §4.4 y §4.3 siguen detenidas por Q1-Q5. Cero líneas de código escritas.

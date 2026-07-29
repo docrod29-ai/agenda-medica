@@ -1,0 +1,55 @@
+{
+  "id": "E0-03",
+  "etapa": "E0",
+  "titulo": "Clinical Engine Registry completo + ADRs",
+  "estado": "completada",
+  "fecha": "2026-07-28T20:38:22Z",
+  "reconstruido": {
+    "esReconstruccion": true,
+    "fechaReconstruccion": "2026-07-29T02:42:41Z",
+    "porQue": "La unidad se ejecutó y se commiteó, pero la sesión terminó sin escribir este RESULTADO.json. Sin él, el protocolo (cuya regla es 'la existencia de unidades/<ID>/RESULTADO.json = unidad hecha') habría vuelto a poner E0-03 como pendiente y se habría rehecho trabajo ya integrado. Este archivo se reconstruye SÓLO a partir de evidencia verificable en disco; no se inventa nada.",
+    "evidencia": [
+      "commit 81fbe68 'feat(nexus-os E0-03): gate de ADRs del registro clínico, con trinquete (SW v706)'",
+      "src/lib/clinical/adr-cobertura.ts (NUEVO, 58 líneas)",
+      "src/__tests__/clinical-registry-adr.test.ts (NUEVO, 123 líneas)",
+      "docs/clinical-decisions/dosis-pediatrica.md (MODIFICADO: declara sus golden tests)",
+      "commit previo 9f2e45f 'revert(nexus-os E0-03): retirar el gate parcial que dejaba el CI en rojo' — primer intento revertido; ese revert borró unidades/E0-03/DISENO.md, que NO se recreó"
+    ],
+    "reVerificadoAhora": "npx vitest run src/__tests__/clinical-registry-adr.test.ts src/__tests__/e0-15-antibiograma-decisiones.test.ts → 2 archivos, 45 casos, TODOS EN VERDE (2026-07-29T02:42Z).",
+    "noReEjecutado": "tsc y build completos NO se re-corrieron en esta pasada de reconciliación; los valores de gates abajo son los DECLARADOS en el commit, no medidos hoy."
+  },
+  "aceptacion": {
+    "criterio": "Un motor nuevo sin registro rompe el CI.",
+    "cumplido": true,
+    "comoSeCumple": "Con TRINQUETE, no con exigencia total. El primer intento exigía un ADR por cada uno de los 56 motores registrados (existen 3) → el gate nacía con 53 fallos, y un gate que nadie puede poner en verde se marca skip y deja de proteger. Rediseño: la deuda documental (52 motores sin ADR) se declara y se CONGELA; el gate sólo impide que CREZCA. Un motor NUEVO sin ADR sube la deuda y tumba el CI. Segundo trinquete: si la deuda real baja y nadie actualiza la constante, el test también falla, para que la mejora quede fijada.",
+    "desviacionRespectoAlBacklog": "El entregable literal 'ADR por motor' NO se cumple: hay 3 ADRs para 56 motores. Se sustituyó por deuda declarada + trinquete. Documentar los 52 motores restantes es trabajo pendiente que el gate ahora hace visible y monótono decreciente."
+  },
+  "archivosTocados": [
+    "src/lib/clinical/adr-cobertura.ts (NUEVO)",
+    "src/__tests__/clinical-registry-adr.test.ts (NUEVO)",
+    "docs/clinical-decisions/dosis-pediatrica.md (MODIFICADO)",
+    "public/sw.js (versión → v706)",
+    "docs/roadmap/nexus-os/estado.json (MODIFICADO)"
+  ],
+  "testsAgregados": [
+    "src/__tests__/clinical-registry-adr.test.ts (+12 casos: motor con ADR ⇒ campos obligatorios y que el ADR cite el archivo REAL del motor (anti-deriva por renombrado); motor sin ADR ⇒ deuda; deuda no puede subir; deuda que baja sin actualizar la constante también falla)"
+  ],
+  "gates": {
+    "tsc": "PASS (declarado en commit)",
+    "vitest": "PASS (declarado en commit)",
+    "testsPasan": 2051,
+    "build": "PASS (declarado en commit)"
+  },
+  "hallazgosReales": [
+    "El propio test usaba m.archivo cuando el campo es m.file → 56 falsos positivos. Corregido.",
+    "docs/clinical-decisions/dosis-pediatrica.md no declaraba sus golden tests: hueco de documentación auténtico, reparado en vez de silenciado.",
+    "Los documentos de clinical-decisions/ que NO son ADRs de motor (las decisiones clínicas del Dr.) se declaran en DOCS_NO_ADR en vez de contarse como ADRs huérfanos — ésa era la causa del fallo del primer intento."
+  ],
+  "necesitaValidacionClinica": false,
+  "riesgosVivos": [
+    "52 motores clínicos siguen SIN ADR. El gate impide que la cifra crezca, no la baja solo. Cada ADR que falte es lógica clínica en producción sin justificación escrita.",
+    "unidades/E0-03/DISENO.md fue borrado por el revert 9f2e45f y no se recreó: esta unidad no tiene diseño en disco, sólo este resultado."
+  ],
+  "noDesplegado": true,
+  "commit": "81fbe68 feat(nexus-os E0-03): gate de ADRs del registro clínico, con trinquete (SW v706)"
+}

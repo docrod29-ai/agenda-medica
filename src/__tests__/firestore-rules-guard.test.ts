@@ -52,6 +52,33 @@ describe('firestore.rules — invariantes de seguridad', () => {
     expect(sinComentarios).toMatch(/secretos\/\{docId\}\s*\{\s*allow read, write: if false;/)
   })
 
+  /**
+   * E0-09 — invariantes del episodio hospitalario que YA rigen hoy y no deben
+   * aflojarse. Ojo con lo que este bloque NO afirma: no exige todavía
+   * `signos update: if false`. Cerrar ese `update` REVIERTE una política escrita
+   * a propósito en las reglas ("enfermería corrige en el sitio", auditoría
+   * maestra 2026-07) y es la pregunta Q5 al médico dueño. Cuando la responda,
+   * aquí se añade la aserción de aceptación de E0-09.
+   */
+  it('E0-09: el doc de internamiento NO se escribe desde el cliente (todo por el gateway)', () => {
+    expect(sinComentarios).toMatch(
+      /match \/internamientos\/\{intId\}\s*\{[\s\S]{0,200}allow create, update, delete: if false;/,
+    )
+  })
+
+  it('E0-09: un registro de signos vitales NO se borra desde el cliente', () => {
+    expect(sinComentarios).toMatch(/match \/signos\/\{signoId\}\s*\{[\s\S]{0,200}allow delete: if false;/)
+  })
+
+  it('E0-09: el libro append-only `registros` no es escribible por el cliente', () => {
+    // Hoy no tiene bloque propio y cae en el catch-all (deny). Si algún día se
+    // declara —para poder LEER el historial de correcciones—, la escritura debe
+    // seguir siendo exclusiva del Admin SDK.
+    const bloque = sinComentarios.match(/match \/registros\/\{[^}]*\}\s*\{([\s\S]*?)\n\s*\}/)
+    if (bloque) expect(bloque[1]).toMatch(/allow create, update, delete: if false;/)
+    else expect(sinComentarios).not.toContain('match /registros/')
+  })
+
   it('NINGÚN write/update/delete es públicamente abierto (if true)', () => {
     // 'create: if true' está permitido SOLO para colecciones públicas (ARCO/portal);
     // pero write/update/delete jamás deben ser 'if true'.

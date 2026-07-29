@@ -162,7 +162,83 @@ export interface RegistroSignos {
   oxigenoFlujoLpm?: number   // flujo de O2 (L/min) si se conoce → FHIR LOINC 3151-8
   oxigenoFiO2?: number       // FiO2 (%) si se conoce → FHIR LOINC 3150-0
   por?: string
+  // ── E0-09 · corrección APPEND-ONLY de un signo mal capturado ──
+  // Ambos OPCIONALES a propósito: los documentos ya guardados siguen siendo
+  // válidos sin migración. Un signo NO se sobrescribe ni se borra: se anexa
+  // otro registro que apunta al erróneo con `corrigeA`.
+  /** id del registro de signos que ESTE registro corrige. */
+  corrigeA?: string
+  /** Por qué se corrigió. Su obligatoriedad es política del expediente → E0-09/Q4. */
+  motivoCorreccion?: string
 }
+
+// ══════════════════════════════════════════════════════════════
+// E0-09 — Libro clínico-legal APPEND-ONLY del episodio
+// ══════════════════════════════════════════════════════════════
+/**
+ * Los arrays del doc de internamiento (`indicaciones[].administraciones[]`,
+ * `balanceHidrico`, `escalas`, `sbar`, `movimientos`) son CACHÉ DE DISPLAY y
+ * están topados por el límite de 1 MB por documento. El libro clínico-legal
+ * completo vive en la subcolección append-only `registros`, que sólo escribe el
+ * servidor (Admin SDK, /api/hospital/mutar) — ver `registro-durable.ts`.
+ *
+ * Un hecho ya ocurrido no se edita ni se borra: se ANEXA una corrección que lo
+ * referencia. El evento erróneo permanece visible (NOM-004).
+ */
+export type TipoEventoClinico =
+  | 'administracion'          // MAR: una dosis administrada u omitida
+  | 'indicacion_alta'         // se prescribió una indicación
+  | 'indicacion_suspension'   // se suspendió / reactivó una indicación
+  | 'verificacion_farmacia'   // ciclo cerrado del medicamento
+  | 'balance'                 // (ya en producción desde 2026-07, forma PLANA)
+  | 'escala'                  // (ya en producción desde 2026-07, forma PLANA)
+  | 'sbar'                    // (ya en producción desde 2026-07, forma PLANA)
+  | 'correccion'              // corrige un evento anterior; nunca lo reemplaza
+
+/** Qué afirma una corrección sobre el evento que corrige. */
+export type EfectoCorreccion =
+  | 'anula'      // el hecho NO ocurrió (p. ej. la dosis no se administró)
+  | 'sustituye'  // el hecho ocurrió, pero con otros datos
+  | 'aclara'     // el hecho ocurrió tal cual; se añade información
+
+/** Valores admitidos dentro de `detalle` (serializables a Firestore sin sorpresas). */
+export type ValorDetalle = string | number | boolean | null
+
+/** Un hecho ya ocurrido en el episodio. Inmutable: sólo se le anexan correcciones. */
+export interface EventoClinico {
+  tipo: TipoEventoClinico
+  /** ISO — reloj del SERVIDOR, nunca el del cliente. */
+  fecha: string
+  /** Autor REAL sellado por el servidor (no el `por` que manda el cliente). */
+  por: string
+  porUid?: string
+  /** A qué indicación pertenece el hecho (MAR / órdenes). */
+  indicacionId?: string
+  /** Contenido propio del tipo de evento, saneado por lista blanca. */
+  detalle?: Record<string, ValorDetalle>
+
+  // ── Sólo cuando tipo === 'correccion' ──
+  /** id del documento de `registros` que esta corrección corrige. */
+  corrigeEventoId?: string
+  motivo?: string
+  efecto?: EfectoCorreccion
+
+  // ── Campos PLANOS de los tres eventos que YA existen en producción ──
+  // `balance`/`escala`/`sbar` se escriben con esta forma desde 2026-07. NO se
+  // migran a `detalle`: hay documentos ya escritos en un libro append-only, y
+  // reescribirlos para uniformar la forma sería exactamente lo que este módulo
+  // existe para impedir. Se declaran `unknown` porque hoy pasan sin validar
+  // desde el payload del cliente; ése es el estado real, no un ideal.
+  ingresos?: unknown
+  egresos?: unknown
+  escala?: unknown
+  score?: unknown
+  riesgo?: unknown
+  texto?: unknown
+}
+
+/** Un evento tal como se lee de `registros` (el id lo pone Firestore). */
+export type EventoClinicoConId = EventoClinico & { id: string }
 
 // ══════════════════════════════════════════════════════════════
 // F4 — Roles (vista, no seguridad de servidor)
