@@ -190,6 +190,48 @@ export const CAMPOS_SELLADOS_V3: readonly string[] = [
 ]
 
 /**
+ * Campos OPCIONALES que v3 sella como `?? null`. Son los peligrosos: si el
+ * objeto los trae `undefined`, el canónico los sella como `null`, pero
+ * `stripUndefined` los quita del payload y `updateDoc` hace MERGE — así que el
+ * valor VIEJO sobrevive en Firestore y el hash guardado ya no le corresponde.
+ * Derivada del canónico, no escrita a mano: ver `normalizarParaSello`.
+ */
+const OPCIONALES_SELLADOS_V3 = [
+  'signosVitales', 'preop', 'hospital', 'infectologia', 'estudiosOrden',
+  'internamientoId', 'iaAuditoria', 'transcripcionCruda', 'dialogoDiarizado',
+] as const
+
+/**
+ * REG-060 — Deja la nota EXACTAMENTE como se va a sellar.
+ *
+ * EL DEFECTO QUE ARREGLA (reproducido con el código real): el médico dicta, se
+ * autoguarda, VACÍA el cuadro del dictado y firma. El hash se calcula con
+ * `transcripcionCruda: null`, pero al escribir:
+ *
+ *   1. `stripUndefined` (serializacion.ts) quita la llave del payload — Firestore
+ *      RECHAZA `undefined`, así que quitarla es correcto en sí.
+ *   2. `updateDoc` hace MERGE: lo que no viene en el payload NO se borra.
+ *   3. Resultado: en Firestore sigue «tos y fiebre de tres días», mientras el
+ *      sello se calculó sobre `null`.
+ *   4. Al reabrir la nota, el hash no cuadra → **"alterada"** en una nota
+ *      legítima. La alarma roja que este sello existe para no dar nunca.
+ *
+ * LA REGLA: se firma y se escribe el MISMO objeto. Convirtiendo los opcionales
+ * `undefined` en `null` EXPLÍCITO, el payload ya lleva la llave, `updateDoc`
+ * sobrescribe el valor viejo y el documento guardado coincide con lo sellado.
+ *
+ * Se aplica ANTES de calcular el hash y se escribe ESE objeto — nunca el
+ * original. No muta la entrada.
+ */
+export function normalizarParaSello(nota: NotaMedica): NotaMedica {
+  const salida = { ...nota } as unknown as Record<string, unknown>
+  for (const campo of OPCIONALES_SELLADOS_V3) {
+    if (salida[campo] === undefined) salida[campo] = null
+  }
+  return salida as unknown as NotaMedica
+}
+
+/**
  * Lo que el sello v3 NO cubre, con la razón. Ninguna de estas exclusiones es
  * comodidad: sellar cualquiera de ellas marcaría "alterada" a notas legítimas
  * (que es el modo de falla grave del sello: la alarma roja que no debe existir).

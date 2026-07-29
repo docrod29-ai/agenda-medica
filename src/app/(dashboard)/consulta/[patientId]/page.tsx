@@ -64,7 +64,7 @@ import { detectarInteracciones, detectarControlados } from '@/lib/expediente/far
 import { construirPlanPROA } from '@/lib/expediente/proa'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { validarNOM004 } from '@/lib/expediente/nom004'
-import { generarHashIntegridad, generarHashFirma, HASH_VERSION } from '@/lib/expediente/integrity'
+import { generarHashIntegridad, generarHashFirma, normalizarParaSello, HASH_VERSION } from '@/lib/expediente/integrity'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
 import { tiposVisibles } from '@/lib/expediente/tipos-visibles'
 import type { TipoNota, NotaMedica, NotaSeccion, Diagnostico, Medicamento, SignosVitales } from '@/types/expediente'
@@ -1739,12 +1739,23 @@ export default function ConsultaActivaPage() {
     setGuardando(true)
     try {
       const now = new Date().toISOString()
-      const hashIntegridad = await generarHashIntegridad(notaParaValidar)
+      /**
+       * REG-060 — se sella y se escribe EL MISMO objeto.
+       *
+       * `normalizarParaSello` convierte en `null` explícito los opcionales que el
+       * sello v3 cubre. Sin eso, un campo que el médico VACÍA (p. ej. borrar el
+       * cuadro del dictado tras un autoguardado) se sella como `null` pero
+       * `stripUndefined` lo quita del payload y `updateDoc` hace merge: el valor
+       * viejo sobrevive en Firestore y la nota sale "ALTERADA" al reabrirla.
+       * Reproducido con el código real antes de arreglarlo.
+       */
+      const notaSellable = normalizarParaSello(notaParaValidar)
+      const hashIntegridad = await generarHashIntegridad(notaSellable)
       const medicoId = auth.currentUser?.uid ?? ''
-      const hashFirma = await generarHashFirma(notaParaValidar.metadata.id, medicoId, now)
+      const hashFirma = await generarHashFirma(notaSellable.metadata.id, medicoId, now)
 
       const notaFirmada: NotaMedica = {
-        ...notaParaValidar,
+        ...notaSellable,
         metadata: { ...notaParaValidar.metadata, hashIntegridad, hashVersion: HASH_VERSION, fechaModificacion: now },
         firma: {
           nombreMedico: config.nombreMedico,
