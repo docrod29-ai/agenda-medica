@@ -585,9 +585,17 @@ function HojaCustom({
   const valorCampo = (k: string): string =>
     k === 'nombre' ? (data.paciente?.nombre ?? '')
     : k === 'edad' ? (data.paciente?.edad ? String(data.paciente.edad) : '')
-    // Fecha de nacimiento: la exigen las farmacias para dispensar. Mismo
-    // formateador que el encabezado por defecto, para que no salgan dos formatos.
-    : k === 'nacimiento' ? (data.paciente?.fechaNacimiento ? fmtFechaNac(data.paciente.fechaNacimiento) : '')
+    /**
+     * Fecha de nacimiento: la exigen las farmacias para dispensar.
+     *
+     * Va CON su etiqueta («Fecha de nacimiento: 15/03/1984»), a diferencia del
+     * nombre o la edad. La razón: el membrete impreso del médico ya trae escrito
+     * «Nombre:» y «Edad:», pero NO trae esta etiqueta —es un requisito nuevo—, así
+     * que una fecha suelta sobre el papel no se distinguiría de la fecha de
+     * expedición. Mismo formateador que el encabezado por defecto: dos formatos de
+     * fecha en la misma receta se leen como un error.
+     */
+    : k === 'nacimiento' ? (data.paciente?.fechaNacimiento ? `Fecha de nacimiento: ${fmtFechaNac(data.paciente.fechaNacimiento)}` : '')
     : k === 'sexo' ? (data.paciente?.sexo ?? '')
     : k === 'fecha' ? data.fecha.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' })
     : k === 'folio' ? data.folio : ''

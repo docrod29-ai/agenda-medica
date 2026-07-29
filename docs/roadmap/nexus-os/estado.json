@@ -1,7 +1,7 @@
 {
   "version": 1,
   "descripcion": "ESTADO DURABLE del programa Nexus OS. Fuente de verdad del avance. Los agentes lo actualizan tras CADA unidad terminada. Si se acaban los créditos, este archivo dice exactamente dónde retomar sin perder nada.",
-  "actualizado": "2026-07-29T22:58:09Z",
+  "actualizado": "2026-07-29T23:22:00Z",
   "runs": [
     {
       "unidad": "E0-01",
@@ -287,6 +287,53 @@
         "testsPasan": 2663
       },
       "notaCierre": "Sello de integridad v3: el hash NOM-024 pasa de cubrir 10 de 26 campos de la nota a cubrir TODO el contenido firmable (preop, hospital, infectologia, iaAuditoria.provenance, transcripcion, secciones[].label, encabezado medicolegal). canonicoV2 CONGELADO + despacho por version declarada => CERO notas cambian de estado (una v2 sigue 'verificada', no se degrada a 'legado'; vector golden de v2 fijado byte por byte). NO se re-sella ninguna nota firmada: seria fabricar evidencia. NO se toco el flujo de firma (consulta/page.tsx) ni firestore.rules ni el area imprimible."
+    },
+    {
+      "tipo": "cierre-de-corrida",
+      "fecha": "2026-07-29T23:22:00Z",
+      "corrida": "2026-07-29 (noche) · lote E0-07 / E0-08 / E0-12 + verificacion adversarial + 8a reconciliacion",
+      "unidadesIntentadas": [
+        "E0-07",
+        "E0-08",
+        "E0-12"
+      ],
+      "completadas": [],
+      "bloqueadas": [
+        "E0-07",
+        "E0-08",
+        "E0-12"
+      ],
+      "esperanAlMedico": [
+        "E0-12 (D3 — cual de las tres salidas al falso 'alterada'; es el unico bloqueo DURO de merge)",
+        "E0-07 (Q1 enfermeria de UCI + IA clinica, y Q3-Q7 para las 26 rutas que estrechan)",
+        "E0-08 (Q2 — JRE local o demostrar el aislamiento en el CI)",
+        "E0-06 (D1 — captura de alergias por recepcion)",
+        "E0-09 (Q5 — si §A3 aplica a `signos`)",
+        "E0-10 (D3 flip a CSP enforce + D4 cuenta de prueba E2E)",
+        "E0-11 (branch protection en GitHub)",
+        "E1-02 (Q1-Q5 + Q6 glucosa capilar + Q7 sinonimos de vitales)",
+        "E2-02 (Q4, Q6 y de quien es el cableado)",
+        "E0-02 (Q3 catalogo adulto)",
+        "E0-04 (Q1, Q2)",
+        "E0-01 (D1 pie impreso de la receta)",
+        "E0-05 (visto bueno para desplegar el cambio visible del copiloto)",
+        "E0-14 (REG-014 firmado server-side)"
+      ],
+      "veredicto": "CERO unidades cerradas. Las tres intentadas se devuelven a la cola: E0-07 INCOMPLETA (el guardian no comprueba QUE capacidad exige la ruta, y perdio una proteccion de E0-06), E0-08 INCOMPLETA por segunda vez (la aceptacion exige correr el emulador y no hay JRE; ademas ~190 de sus 1 120 aserciones son tautologicas) y E0-12 con REGRESION P1 (falso 'alterada' sobre notas firmadas legitimas). El saldo del programa BAJA de 10/68 a 9/68: no se perdio trabajo —los tres commits estan en la rama, tipados y en verde— pero E0-12 estaba contada como hecha trayendo una regresion medicolegal.",
+      "gates": {
+        "tsc": "PASS (re-ejecutado en la reconciliacion, 2026-07-29T23:20Z, exit 0)",
+        "vitest": "no re-ejecutado en la reconciliacion; ultima medicion 2 663 verdes en 196 archivos al cerrar E0-12",
+        "build": "no re-ejecutado en la reconciliacion",
+        "testsPasan": 2663
+      },
+      "accionesDeLaReconciliacion": [
+        "E0-12 SALE de `completadas` y entra en `bloqueadas` con la cadena de causalidad completa y las tres salidas posibles.",
+        "E0-07 entra en `bloqueadas` (nunca estuvo en completadas; su acta decia `necesita_validacion`).",
+        "E0-08 ya estaba en `bloqueadas`; se le anaden los residuales de software V-2..V-5 y se le abre reintento PARCIAL (la aceptacion sigue bloqueada por el entorno).",
+        "Los tres RESULTADO.json se retiraron del disco a RESULTADO.parcial.json (git mv), para que la proxima corrida las reintente sin perder la evidencia.",
+        "Nueva decision del medico registrada: E0-12-D3, la primera de la lista y la unica que bloquea el merge de la rama.",
+        "`unidadEnCurso` en null. Arbol de trabajo limpio: no habia codigo sin commitear, solo los tres VERIFICACION.json, que se commitean como evidencia."
+      ]
     }
   ],
   "unidadEnCurso": null,
@@ -299,31 +346,35 @@
     "E0-15",
     "E1-01",
     "E2-01",
-    "E0-05",
-    "E0-12"
+    "E0-05"
   ],
   "reconciliacionDisco": {
-    "fecha": "2026-07-29T12:12:11Z",
-    "criterio": "La existencia de unidades/<ID>/RESULTADO.json es la prueba de que la unidad está hecha; manda sobre estado.json. A partir de hoy se añade un segundo criterio: si existe VERIFICACION.json con veredicto INCOMPLETA o REGRESION, el RESULTADO.json se BORRA y la unidad vuelve a la cola.",
+    "fecha": "2026-07-29T23:22:00Z",
+    "criterio": "La existencia de unidades/<ID>/RESULTADO.json es la prueba de que la unidad esta hecha; manda sobre estado.json. Segundo criterio: si existe VERIFICACION.json con veredicto INCOMPLETA o REGRESION, el RESULTADO.json se retira del disco (a RESULTADO.parcial.json, para no perder la evidencia) y la unidad vuelve a la cola.",
     "conRESULTADO": [
       "E0-01",
       "E0-02",
       "E0-03",
       "E0-04",
+      "E0-05",
+      "E0-06",
       "E0-14",
       "E0-15",
       "E1-01",
       "E2-01"
     ],
     "sinRESULTADO": [
+      "E0-07 (retirado hoy — RESULTADO.parcial.json)",
+      "E0-08 (retirado hoy — RESULTADO.parcial.json)",
       "E0-09 (parcial)",
-      "E0-10 (borrado hoy)",
+      "E0-10 (sin RESULTADO desde la 7a pasada)",
       "E0-11 (parcial)",
-      "E1-02 (borrado hoy)",
-      "E2-02 (borrado hoy)"
+      "E0-12 (retirado hoy — RESULTADO.parcial.json)",
+      "E1-02 (sin RESULTADO desde la 7a pasada)",
+      "E2-02 (sin RESULTADO desde la 7a pasada)"
     ],
     "huboDiscrepancia": true,
-    "correccion": "7ª pasada — la de mayor calado hasta hoy, y la primera que RESTA. Se borraron TRES RESULTADO.json (E0-10, E1-02, E2-02) porque su verificación adversarial dictó INCOMPLETA, y E0-10 y E2-02 salieron de `completadas`. El programa pasa de 10/68 a 8/68 declaradas. E1-02 nunca llegó a `completadas` (estaba en necesita_validacion), pero su RESULTADO.json también se borra para que vuelva a la cola. Motivo de fondo, y es un patrón que ya se repitió tres veces: el agente que construye juzga su propia aceptación por la frontera de su módulo (tipos que compilan, tests verdes) mientras la aceptación del backlog habla del PRODUCTO. Un módulo impecable con cero importadores no cumple una aceptación que dice «la búsqueda se arma desde PICO».",
+    "correccion": "8a pasada. Se retiraron TRES RESULTADO.json (E0-07, E0-08, E0-12) y E0-12 salio de `completadas`. Cuenta real: 9 de 68. De esas 9, siete tienen RESULTADO.json con estado `completada` (E0-01, E0-03, E0-04, E0-14, E0-15, E1-01, E2-01) y dos se cuentan cerradas con nota declarada: E0-02 (su acta dice `necesita_validacion` porque se escribio ANTES de que el Dr. resolviera Q1 y Q2; hoy solo queda Q3, que no bloquea) y E0-05 (aceptacion de software cumplida y verificada; espera el visto bueno para desplegar el unico cambio visible). E0-06 tiene RESULTADO.json en disco y NO cuenta como cerrada: su propia acta declara que la aceptacion literal no se cumple.",
     "correccionesPrevias": [
       "2026-07-28T21:49:59Z — E0-02 tenía RESULTADO.json en disco pero NO figuraba en completadas. Se añadió.",
       "2026-07-28T22:15:15Z — 2ª pasada: sin cambios.",
@@ -332,10 +383,56 @@
       "2026-07-29T03:44:05Z — 5ª pasada (post-verificación adversarial). E0-11 y E0-09 estaban en `completadas` pese a que la verificación las declaró INCOMPLETAS. Se movieron a `bloqueadas` con motivo y sus RESULTADO.json se retiraron del disco (renombrados a RESULTADO.parcial.json, commit 60d63b6) para que la próxima corrida las REINTENTE. También se corrigió la cuenta: eran 7 completadas declaradas, son 6 reales.",
       "2026-07-29T03:46:32Z — 5ª pasada: `reconciliacionDisco` contradecía al disco y a `completadas` (decía 7 completadas incluyendo E0-09 y E0-11, que sólo tienen RESULTADO.parcial.json). Corregido a 6/62. Manda el disco.",
       "2026-07-29T11:11:22Z — 6ª pasada: `reconciliacionDisco` seguía en 6/62 y no incluía E1-01 ni E2-01 en `conRESULTADO`, pese a que ambas tienen RESULTADO.json en disco y ya figuraban en `completadas` y en `runs`. Corregido a 8/60. Se añadió E0-10 a `sinRESULTADO` (código commiteado en 5e01c35 pero unidad SIN cerrar) y se recalculó `siguientesElegibles`, que estaba obsoleto: proponía E1-01 y E2-01, que ya están hechas.",
-      "2026-07-29T11:11:22Z — 6ª pasada: E1-01/E2-01 confirmadas por disco (8 completadas); E0-10 devuelta a la cola por no tener RESULTADO.json; E0-11 fuera de selección por depender del Dr."
-    ]
+      "2026-07-29T11:11:22Z — 6ª pasada: E1-01/E2-01 confirmadas por disco (8 completadas); E0-10 devuelta a la cola por no tener RESULTADO.json; E0-11 fuera de selección por depender del Dr.",
+      "2026-07-29T12:50-13:12Z — E0-05 y E0-06 se cerraron como `necesita_validacion`. E0-05 quedo en `completadas` (aceptacion de software cumplida, solo espera visto bueno para desplegar); E0-06 NO, y a proposito: su propia acta dice que la aceptacion literal («recepcion no lee alergias») no se cumple porque las fases B y C dependen de la decision D1.",
+      "2026-07-29T23:22:00Z — 8a pasada (post-verificacion adversarial del lote E0-07 / E0-08 / E0-12). Las TRES quedaron sin cerrar: E0-07 INCOMPLETA, E0-08 INCOMPLETA (2a vez) y E0-12 con REGRESION P1. Los tres RESULTADO.json se retiraron del disco (renombrados a RESULTADO.parcial.json) para que la proxima corrida las REINTENTE, y E0-12 SALIO de `completadas`. El programa pasa de 10/68 declaradas a 9/68. Patron que ya se repite por cuarta vez: el agente que construye juzga su aceptacion por la frontera de su modulo (tsc + tests verdes) y no por el PRODUCTO; en E0-12 ademas el propio suite estaba escrito con una semantica de escritura (setDoc) distinta a la del flujo real (updateDoc con merge), y ahi se colo la regresion."
+    ],
+    "cuentaReal": "9 de 68 cerradas · 8 bloqueadas o a medias con trabajo commiteado (E0-07, E0-08, E0-09, E0-10, E0-11, E0-12, E1-02, E2-02) · 51 sin empezar."
   },
   "bloqueadas": [
+    {
+      "unidad": "E0-12",
+      "titulo": "Sello de integridad NOM-024 — hashVersion 3 (el hash cubre TODO el contenido firmable)",
+      "motivo": "Verificacion adversarial: REGRESION P1. La aceptacion literal SI se cumple y se verifico sin fiarse del test (mutacion exhaustiva hoja por hoja sobre el codigo transpilado: 57 de 68 hojas -> 'alterada', y las 11 no detectadas son EXACTAMENTE las 9 exclusiones declaradas mas las hojas de `firma`; el golden de v2 se reprodujo desde HEAD~1, asi que el historico NO se movio). PERO la unidad INTRODUCE un falso 'alterada' sobre notas firmadas LEGITIMAS: updateNota usa updateDoc (firestore.ts:229), que NO borra los campos ausentes del payload, y stripUndefined (serializacion.ts:15-28) elimina del payload la llave cuyo valor es undefined. Resultado: un campo opcional que v3 SI sella (transcripcionCruda, estudiosOrden, dialogoDiarizado, internamientoId, preop — integrity.ts:123-127) sobrevive con su valor VIEJO en Firestore mientras el hash se calculo con null. Reproducido con el codigo real en los 5 campos. Bajo v2 la misma secuencia daba 'verificada': el falso positivo lo introduce esta unidad.",
+      "caminoDeUsuarioReal": "consulta/[patientId]/page.tsx:2385-2388 — el bloque «Material de origen (dictado)» es un <textarea> editable. Secuencia: el medico dicta, el autoguardado escribe transcripcionCruda con el texto, el medico VACIA el textarea (accion legitima y a un clic) y firma. La nota firmada sale con «INTEGRIDAD ALTERADA» sin que nadie la alterara. Igual al vaciar la seleccion de estudios (estudiosOrden).",
+      "porQueLosTestsNoLoVen": "e0-12-sello-integridad.test.ts:280-307 simula el viaje a Firestore como documento COMPLETO (semantica de createNota/setDoc); nunca simula el merge de updateDoc sobre el borrador ya guardado, que es lo que hace el flujo de firma real (consulta/page.tsx:1785). Por eso el suite pasa con el hueco abierto.",
+      "origen": "verificacion-adversarial",
+      "reintentar": true,
+      "severidadMasAlta": "P1 (regresion)",
+      "riesgoHoy": "CERO en produccion: el commit 3c09a0d vive en la rama nexus-os/sesion-2026-07-29, sin push y sin desplegar. PERO es un BLOQUEO DURO de merge: si esto se despliega tal cual, notas legitimas saldran con alarma medicolegal roja — que es exactamente el modo de falla que la propia unidad declaraba evitar.",
+      "bloqueadaPor": "Regla 5 de la carta operativa. Las tres salidas posibles (deleteField() por campo omitido en updateNota · setDoc sin merge · escribir null explicito en construirNota) tocan la escritura de la nota y el flujo de firma. Se entrega como PLAN para decision del medico dueno; no se ejecuta a ciegas.",
+      "queFaltaExactamente": [
+        "MEDICO (decision de una linea, ver decisionesPendientesDelMedico E0-12-D3): cual de las tres salidas se aplica al falso 'alterada' del merge de updateDoc.",
+        "SOFTWARE: el test de round-trip que FALTA — sellar sobre un documento previo que YA contenia transcripcionCruda/estudiosOrden y firmarlo con esos campos vaciados, con la semantica de merge de updateDoc. Hoy iria ROJO: eso es precisamente lo que se quiere fijar.",
+        "SOFTWARE (barato): corregir la sobreafirmacion del acta — RESULTADO.parcial.json y REG-059 de docs/audit/regression-ledger.md dicen que src/__tests__/integrity.test.ts «prueba que v2 no se movio», y es falso: usa HASH_VERSION, que ahora vale 3, asi que ejercita v3. La prueba real es el vector golden.",
+        "SOFTWARE (opcional, cierra el trinquete): derivar CAMPOS_SELLADOS_V3 de canonicoV3 en vez de una lista de strings escrita a mano, para que la cobertura declarada no pueda mentir."
+      ],
+      "alternativaDeDesatasco": "Si el Dr. necesita mergear el resto de la rama antes de resolver el falso positivo, hay una salida de UNA linea: devolver HASH_VERSION a 2 (las notas nuevas seguirian naciendo con el sello viejo) dejando el algoritmo v3 congelado en el codigo hasta cerrarlo. Es una DECISION suya, no algo que el agente aplique por su cuenta.",
+      "loQueSIquedaEnPie": "Commit 3c09a0d: canonicoV3 correcto y verificado hoja por hoja, canonicoV2 CONGELADO byte por byte (el historico firmado no cambia de estado), despacho por version declarada, trinquete de TIPOS (Record<keyof NotaMedica, true>) que rompe `tsc` si alguien anade un campo al tipo sin clasificarlo, y stripUndefined extraido a serializacion.ts. NO reimplementar: falta CERRAR el falso positivo.",
+      "evidencia": "docs/roadmap/nexus-os/unidades/E0-12/VERIFICACION.json + RESULTADO.parcial.json",
+      "commit": "3c09a0d"
+    },
+    {
+      "unidad": "E0-07",
+      "titulo": "Autorizacion por capabilities (cada ruta declara la capacidad que exige)",
+      "motivo": "Verificacion adversarial INCOMPLETA. La clausula 1 de la aceptacion («cada ruta declara la capacidad que exige») SI esta cumplida y guardada por maquina: las 74 rutas de src/app/api estan en REGISTRO_RUTAS y el diff disco<->registro es identico. La clausula 2 («no hay any-member implicito») NO se cumple EN EJECUCION: de las 45 rutas con capacidad declarada solo 17 la EXIGEN; 28 siguen corriendo el guardian any-member. Y el guardian de tests no comprueba QUE capacidad exige la ruta, solo que se llame al helper (authz-rutas-declaradas.test.ts:152): sustituir 'administrar' por 'auditoria.registrar' en stripe/portal/route.ts:23, o 'clinico.escribir' por 'clinico.leer' en telesalud/token/route.ts:27 y fhir/paciente/[patientId]/route.ts:31, deja 2663/2663 en VERDE. La declaracion no es una garantia verificable: es documentacion.",
+      "origen": "verificacion-adversarial",
+      "reintentar": true,
+      "severidadMasAlta": "P1",
+      "perdidaNetaDeCobertura": "P1-2 — esta unidad RETIRO una proteccion que E0-06 ya tenia. Antes (ca37b50^ api-authz-guard.test.ts) el gate EN CODIGO de telesalud/token estaba fijado, y el verificador lo reprodujo ROJO al degradarlo. Ahora (api-authz-guard.test.ts:118-129) solo se fija la capacidad DECLARADA, y el degradado en codigo pasa verde. Es una de las dos P0 historicas que ese guardian vigila.",
+      "bloqueadaPor": "NADA externo para la parte que cierra la unidad: P1-1 y P1-2 son software puro y ejecutables por el agente. Lo que si depende del medico es ACTIVAR las 26 rutas que estrecharian acceso real (Q1, Q3-Q7): eso es politica de acceso del consultorio, no criterio clinico, y esta correctamente detenido por la regla 5.",
+      "queFaltaExactamente": [
+        "SOFTWARE (es lo que cierra la unidad): que el guardian EXTRAIGA del archivo de la ruta el argumento real de `verificarCapacidad(` / `exigeCapacidad(` y lo compare con la capacidad declarada en REGISTRO_RUTAS (y con la del metodo, en las rutas porMetodo). Arregla P1-1, P1-2 y P1-3 de un golpe.",
+        "SOFTWARE: restaurar el fijado EN CODIGO del gate de telesalud/token que E0-06 tenia y este commit perdio.",
+        "SOFTWARE: que `activacionPendiente` sea por METODO en las rutas porMetodo, para que el POST ya migrado de clinic/ai-keys y de stripe/asientos quede fijado.",
+        "SOFTWARE (P2-2): whitelist del valor `role` en firestore.rules (invitaciones) y en clinic/unirse, para que ROLES_ASIGNABLES sea un tope real.",
+        "MEDICO (politica de acceso, NO criterio clinico): Q1 es el hueco mas grande que queda abierto — hoy un miembro con rol `laboratorio` o `farmacia` puede hacer POST a /api/expediente/transcribir y recibir una nota clinica redactada. `verificarModuloYCapacidad` ya esta escrita y probada; solo falta activarla. Q3-Q7 gobiernan las otras rutas que estrechan."
+      ],
+      "loQueSIquedaEnPie": "Commit ca37b50, verificado de forma independiente y en verde: src/lib/authz/capabilities.ts (catalogo cerrado de 14 capacidades x 8 roles, importando la union canonica de E0-06 en vez de redeclararla), verificar.ts (membresia primero, capacidad despues, 403 sin filtrar el rol al cuerpo), registro-rutas.ts (74 claves, cero zombis, `motivo` obligatorio en cada exencion), CERO llamadas a verificarMedico bajo src/app/api, y 6 sabotajes ejecutados en rojo. NO reimplementar desde cero: falta CERRAR.",
+      "riesgoHoy": "CERO. La unidad no le quito el acceso a nadie (21 puertas migradas justo donde nadie pierde acceso). El defecto es de COBERTURA de la garantia, no comportamiento roto. Nada desplegado, sin push.",
+      "evidencia": "docs/roadmap/nexus-os/unidades/E0-07/VERIFICACION.json + RESULTADO.parcial.json",
+      "commit": "ca37b50"
+    },
     {
       "unidad": "E0-09",
       "titulo": "Eventos hospitalarios críticos append-only",
@@ -399,7 +496,7 @@
       "titulo": "Firebase Emulator + matriz multi-tenant",
       "motivo": "La aceptacion literal (\"cross-tenant leakage = 0 DEMOSTRADO, no asumido\") exige una corrida real del motor de reglas, y el emulador de Firestore es un JAR: en la maquina del agente no hay JRE (java -version devuelve \"Unable to locate a Java Runtime\"). Las Afirmaciones A (1 120 intentos cross-tenant que deben denegarse) y B (8 controles positivos) estan escritas y se recolectan sin error, pero NUNCA se han ejecutado.",
       "origen": "limitacion-del-entorno",
-      "reintentar": false,
+      "reintentar": true,
       "noReimplementar": true,
       "bloqueadaPor": "EXTERNO al workflow: hace falta un JRE (brew install --cask temurin, cambio del sistema que la carta operativa no autoriza al agente) o la primera corrida del job \"aislamiento-tenant\" en el CI.",
       "queFaltaExactamente": [
@@ -408,7 +505,16 @@
         "Si la corrida descubre una fuga real: NO parchear aqui. Reportarla con el caso reproducible y abrir unidad propia."
       ],
       "loQueSIquedaEnPie": "TODO el software, verificado: generador puro que deriva 2 304 casos de MATRIZ_ACCESO, guardian estatico de 18 pruebas en el gate normal con 6 controles negativos ejecutados en rojo y restaurados, job de CI aparte con setup-java, y el gate compartido protegido en tres capas (probado: \"npx vitest run src/__tests__/\" sigue verde en una maquina SIN Java). firestore.rules NO se toco.",
-      "evidencia": "docs/roadmap/nexus-os/unidades/E0-08/RESULTADO.json"
+      "evidencia": "docs/roadmap/nexus-os/unidades/E0-08/VERIFICACION.json + RESULTADO.parcial.json",
+      "alcanceDelReintento": "SOLO los residuales de software V-2..V-5 (sensibilidad y exactitud de la suite). La ACEPTACION sigue bloqueada por el entorno: exige correr el emulador una vez. NO reimplementar la suite.",
+      "segundaVerificacion": "2026-07-29 (adversarial). Confirma V-1 de forma independiente (verifico el ausente JRE el mismo: `java -version` falla, /Library/Java/JavaVirtualMachines vacio, sin casks) y anade V-2..V-5. Reconoce explicitamente que declarar `cumplida: false` fue la conducta correcta: escribir `true` habria sido REGRESION de honestidad.",
+      "residualesDeSoftware": [
+        "V-2 (P2): ~190 de las 1 120 aserciones de la Afirmacion A son TAUTOLOGICAS — quedarian VERDES con el aislamiento roto. bot_sessions y secretos son 'servidor' en lectura Y escritura (firestore.rules:359,372), y las escrituras de internamientos (:264), notas/versions (:198), notas/adendas (:207), patients/laboratorios (:217), chat (:536), audit_log y whatsapp_optout estan cerradas a TODOS. El comentario tenant-aislamiento.emu.test.ts:84-85 («un deny es un deny») pasa por alto justo esto, y la seccion «Que NO cubre» del .md (lineas 105-118) no lo declara. El titular «1 120 intentos cross-tenant, todos denegados» sigue siendo cierto: lo que falta es SENSIBILIDAD, no verdad.",
+        "V-3 (P2): bajo clinics/** solo se prueba `get` (tenant-aislamiento.emu.test.ts:83), nunca una CONSULTA (list) cross-tenant. En Firestore `read` = get + list y el motor los evalua distinto (en `list` no hay `resource`). docs/testing/emulador-multitenant.md:21 promete «lectura y escritura» sin ese matiz. Impacto real BAJO (el aislamiento de esas rutas es posicional), pero es cobertura que el .md da por hecha.",
+        "V-4 (P3): A2 son 9 pruebas, no 10 (RESULTADO.parcial.json:22 y :156, y el mensaje del commit e5a1ce4). El total si cuadra: es descuadre de prosa, no de codigo.",
+        "V-5 (P3): «2 304 casos» son los GENERADOS; los realmente afirmados contra el motor son 1 120 (solo casosDeAislamiento()). Declararlo para que la cifra no se lea como cobertura."
+      ],
+      "commit": "e5a1ce4"
     }
   ],
   "necesitaValidacionDelDr": [
@@ -678,64 +784,63 @@
     }
   ],
   "siguientesElegibles": {
-    "fecha": "2026-07-29T12:12:11Z",
-    "notaDeEstaPasada": "Recalculado tras sacar E0-10 y E2-02 de `completadas`. Base real: 8 completadas (E0-01, E0-02, E0-03, E0-04, E0-14, E0-15, E1-01, E2-01). Excluidas de la selección automática por estar en `bloqueadas` o depender del Dr.: E0-09, E0-10, E0-11, E1-02, E2-02. Con esa exclusión, TODA unidad de E0 que queda elegible es de riesgo ALTO (E0-05, E0-06, E0-12, E0-13) y E1/E2 se quedan sin nada elegible (E1-03 depende de E1-02; E2-03 depende de E2-02). Por eso la regla «etapa primero, riesgo después» ya no da un pick cómodo dentro de E0.",
+    "fecha": "2026-07-29T23:22:00Z",
+    "notaDeEstaPasada": "Recalculado tras la verificacion adversarial del lote E0-07 / E0-08 / E0-12. Base real: 9 completadas (E0-01, E0-02, E0-03, E0-04, E0-05, E0-14, E0-15, E1-01, E2-01). Hay OCHO unidades a medias con codigo ya commiteado (E0-07, E0-08, E0-09, E0-10, E0-11, E0-12, E1-02, E2-02): antes de abrir terreno nuevo, el programa tiene que dejar de acumular unidades a medias.",
     "recomendacionExplicita": {
-      "siguienteUnidad": "E1-02 (REINTENTO, no reimplementación)",
-      "porQue": "Es la única con trabajo ya en disco, en verde y con el pendiente 100% de software; cuesta poco cerrarla y desbloquea la rama E1 entera (E1-03). Reintentarla ANTES de abrir terreno nuevo evita que el programa acumule tres unidades a medias.",
+      "siguienteUnidad": "E0-07 (REINTENTO — CIERRE, no reimplementacion)",
+      "porQue": "Es la unica con un pendiente P1 100% de software y sin ninguna dependencia del medico para cerrarse, y ademas RECUPERA una proteccion que se perdio (el gate en codigo de telesalud/token, una de las dos P0 historicas). E0-12 tiene prioridad de RIESGO mas alta, pero su arreglo necesita una decision del Dr. antes de tocar codigo: lo que le corresponde a la proxima corrida ahi es entregar el PLAN, no implementar.",
       "alcanceExacto": [
-        "Test que derive los sinónimos de laboratorio desde los `patron` de ANALITOS (vuelve falsable «no hay sinónimos inventados»).",
-        "Retirar o dar fuente en el repo a 'pulso', 'bmi', 'dextrostix' y 'glucosa capilar'.",
-        "Formular Q6 (glucosa capilar vs glucosa sérica) como NEEDS_CLINICAL_REVIEW y DETENERSE ahí.",
-        "Escribir unidades/E1-02/RESULTADO.json en el MISMO commit."
+        "Reescribir el guardian para que EXTRAIGA el argumento real de `verificarCapacidad(` / `exigeCapacidad(` en el archivo de cada ruta y lo compare con la capacidad declarada en REGISTRO_RUTAS (por metodo en las rutas porMetodo).",
+        "Control negativo OBLIGATORIO y documentado: sustituir 'administrar' por 'auditoria.registrar' en stripe/portal/route.ts y comprobar que el gate se pone ROJO; restaurar. Idem con 'clinico.escribir' -> 'clinico.leer' en telesalud/token y fhir/paciente/[patientId].",
+        "Restaurar el fijado en codigo del gate de telesalud/token (P1-2).",
+        "`activacionPendiente` por METODO en las rutas porMetodo (P1-3).",
+        "NO activar ninguna de las 26 rutas que estrechan acceso: eso espera Q1 y Q3-Q7 del Dr.",
+        "Escribir unidades/E0-07/RESULTADO.json en el MISMO commit (y retirar RESULTADO.parcial.json)."
       ],
-      "siElDrPrefiereTerrenoNuevo": "E4-01 «Contrato del Safety Kernel» (riesgo medio, depende sólo de E0-04 que está cerrada). Su aceptación —«el kernel es invocable sin el LLM y su veredicto es un valor, no texto»— se agota DENTRO del módulo, así que no cae en la trampa que tumbó a E2-02."
+      "loPrimeroDeLaCorrida": "Antes de E0-07: entregar el PLAN de E0-12-D3 (las tres salidas, con el coste y el riesgo de cada una) y el test de round-trip con semantica de merge. Es lo unico que hoy bloquea el merge de la rama entera.",
+      "siElDrPrefiereTerrenoNuevo": "E4-01 «Contrato del Safety Kernel» (riesgo medio, depende solo de E0-04, que esta cerrada). Su aceptacion —«el kernel es invocable sin el LLM y su veredicto es un valor, no texto»— se agota DENTRO del modulo, asi que no cae en la trampa que tumbo a E2-02 y a E0-10."
     },
     "seleccion": [
+      {
+        "id": "E0-07",
+        "etapa": "E0",
+        "riesgo": "bajo (cierre)",
+        "titulo": "Autorizacion por capabilities (cierre del guardian)",
+        "porQueAhora": "Pendiente P1 de software puro, cero dependencia del medico para cerrar, recupera una proteccion perdida."
+      },
       {
         "id": "E1-02",
         "etapa": "E1",
         "riesgo": "bajo",
-        "titulo": "Vocabulario de conceptos clínicos (reintento)",
-        "porQueAhora": "Código en disco, pendiente de software, desbloquea E1-03."
+        "titulo": "Vocabulario de conceptos clinicos (reintento)",
+        "porQueAhora": "Codigo en disco y en verde; desatasca E1-03."
+      },
+      {
+        "id": "E0-08",
+        "etapa": "E0",
+        "riesgo": "bajo",
+        "titulo": "Residuales V-2..V-5 de la suite de aislamiento",
+        "porQueAhora": "Barato; sube la sensibilidad real de la suite. NO cierra la unidad."
       },
       {
         "id": "E4-01",
         "etapa": "E4",
         "riesgo": "medio",
         "titulo": "Contrato del Safety Kernel",
-        "porQueAhora": "Única elegible de riesgo NO alto en terreno nuevo; aceptación autocontenida."
+        "porQueAhora": "Unica elegible de riesgo NO alto en terreno nuevo; aceptacion autocontenida."
       },
       {
         "id": "E7-01",
         "etapa": "E7",
         "riesgo": "medio",
         "titulo": "Nexus Model Gateway",
-        "porQueAhora": "Sin dependencias; aceptación autocontenida."
-      },
-      {
-        "id": "E6-01",
-        "etapa": "E6",
-        "riesgo": "bajo",
-        "titulo": "Feedback estructurado",
-        "porQueAhora": "Riesgo bajo, sin dependencias. OJO: entrega UI, así que toca producción visible."
-      },
-      {
-        "id": "E9-01",
-        "etapa": "E9",
-        "riesgo": "medio",
-        "titulo": "AI Safety Case por versión",
-        "porQueAhora": "Sin dependencias; es documentación verificable."
+        "porQueAhora": "Sin dependencias; aceptacion autocontenida."
       }
     ],
     "elegiblesDeRiesgoALTOqueSePosponen": [
-      "E0-05 ClinicalQuantity (migración de motores)",
-      "E0-06 separación de PHI administrativo/clínico",
-      "E0-12 sello de integridad hashVersion 3 (toca migración de hashes)",
-      "E0-13 idempotencia del webhook de Stripe (toca cobros)"
+      "E0-13 idempotencia del webhook de Stripe (toca cobros) — la unica de riesgo ALTO de E0 que sigue sin empezar."
     ],
-    "avisoSobreLosALTO": "Los cuatro tocan justo lo que la carta operativa manda NO arriesgar a ciegas (hashes, cobros, reglas de acceso, motores clínicos). Cuando les toque, van con PLAN aprobado por el Dr. antes de una sola línea.",
-    "notaTrasE0-12": "2026-07-29T22:58Z — E0-12 (riesgo ALTO) quedó CERRADA en esta corrida, así que de las cuatro de riesgo alto de E0 ya sólo queda E0-13 (cobros de Stripe) sin empezar. La recomendación de arriba (E1-02 reintento, o E4-01 en terreno nuevo) sigue en pie sin cambios: E0-12 no desbloqueó ninguna dependencia (no la tenía nadie)."
+    "avisoSobreLosALTO": "Los de riesgo alto tocan justo lo que la carta operativa manda NO arriesgar a ciegas (hashes, cobros, reglas de acceso, motores clinicos). E0-12 es la prueba de por que: se cerro como completada y traia una regresion medicolegal. Cuando toque uno, va con PLAN aprobado por el Dr. antes de una sola linea."
   },
   "notas": [
     "E0-01 cerró REG-025 por completo en docs/audit/regression-ledger.md (era CLOSED parcial).",
@@ -806,35 +911,67 @@
     "E0-08: npm audit reporta 32 vulnerabilidades (9 moderate, 23 high) TODAS en el arbol transitivo de firebase-tools, que es devDependency: no viaja al bundle ni al servidor. Anotado, no arreglado.",
     "E0-12: el trinquete de cobertura del sello es de TIPOS, no de prosa — `Record<keyof NotaMedica, true>` hace que `tsc --noEmit` falle si alguien anade un campo al tipo sin clasificarlo como sellado o excluido-con-razon. Control ejecutado y restaurado. Es lo que impide que se repita el caso `preop` (nacer fuera del sello).",
     "E0-12: `stripUndefined` se mudo de firestore.ts (privado, con SDK) a src/lib/expediente/serializacion.ts (puro) para poder simular el viaje a Firestore en los tests del sello. Cero cambios para los llamadores.",
-    "E0-12 NO desplegado y sin push, como el resto del programa. Cuando se despliegue, las notas NUEVAS naceran con hashVersion 3 y las viejas seguiran verificandose con su propia version."
+    "E0-12 NO desplegado y sin push, como el resto del programa. Cuando se despliegue, las notas NUEVAS naceran con hashVersion 3 y las viejas seguiran verificandose con su propia version.",
+    "2026-07-29 (noche) — la verificacion adversarial tumbo las TRES unidades del lote. E0-12 es la mas instructiva del programa hasta hoy: los 3 gates verdes, la aceptacion CUMPLIDA y verificada hoja por hoja de forma independiente, y aun asi una REGRESION P1 — porque el test simulaba la escritura como documento completo (setDoc) y el flujo real hace merge (updateDoc). LECCION: cuando una unidad toca persistencia, el test tiene que usar la MISMA semantica de escritura que el codigo de produccion, no una equivalente.",
+    "E0-07: el patron a evitar quedo nombrado — un REGISTRO que declara la capacidad de cada ruta no es una garantia si el guardian solo comprueba que se llame al helper. Se puede cambiar la capacidad exigida en el codigo y el gate sigue verde. Declarar != exigir.",
+    "E0-07 introdujo una PERDIDA NETA: el fijado en codigo del gate de telesalud/token que E0-06 ya tenia. Al reintentarla hay que RESTAURARLO, no solo anadir cobertura nueva.",
+    "HEAD de la rama es 07cefc9 «feat(receta+pacientes): fecha de nacimiento acomodable + formulario corto de Consulta»: trabajo AJENO al programa Nexus OS, hecho en la misma rama. No lo cuente como avance de ninguna unidad ni lo revierta.",
+    "Estado de la rama nexus-os/sesion-2026-07-29: NADA desplegado, NADA con push. El commit 3c09a0d (E0-12) NO debe desplegarse hasta resolver E0-12-D3."
   ],
   "paraReintentar": [
     {
-      "unidad": "E1-02",
+      "unidad": "E0-12",
       "prioridad": 1,
-      "motivo": "El más barato y el que desatasca más: el código ya está en disco y en verde, y lo que falta es SOFTWARE — el test que deriva los sinónimos desde los `patron` de ANALITOS, y retirar o dar fuente a los 4 sinónimos de vitales sin respaldo. Desatasca toda la rama E1: E1-03 (proyector expediente→ClinicalFacts) depende de E1-01 + E1-02 y hoy está clavada por esto.",
-      "dependeDelMedico": "Sólo para Q1-Q5 y la nueva Q6; NINGUNA de ellas bloquea el software pendiente."
+      "motivo": "BLOQUEO DE MERGE, no solo una unidad a medias. La regresion P1 (falso 'alterada' en notas firmadas legitimas por el merge de updateDoc) esta COMMITEADA en 3c09a0d. Riesgo en produccion hoy: cero (sin push, sin desplegar), pero nada de esta rama debe desplegarse hasta cerrarla. Lo primero de la proxima corrida es entregar el PLAN de las tres salidas + el test de round-trip que falta.",
+      "dependeDelMedico": "SI para elegir la salida (E0-12-D3): toca la escritura de la nota y el flujo de firma, justo lo que la regla 5 manda no arriesgar a ciegas. NO para el test de round-trip ni para corregir el acta y REG-059."
+    },
+    {
+      "unidad": "E0-07",
+      "prioridad": 2,
+      "motivo": "SIGUIENTE UNIDAD A EJECUTAR. Es la mas barata con el mayor retorno y es 100% software del agente: hacer que el guardian compare el argumento REAL de verificarCapacidad/exigeCapacidad contra la capacidad declarada. Con eso el registro deja de ser documentacion y pasa a ser garantia verificable, se cierran P1-1, P1-2 y P1-3, y se RECUPERA la proteccion de telesalud/token que esta unidad perdio.",
+      "dependeDelMedico": "NO para cerrar la unidad. SI para ACTIVAR las 26 rutas que estrecharian acceso real (Q1 y Q3-Q7): politica de acceso del consultorio, no criterio clinico."
+    },
+    {
+      "unidad": "E1-02",
+      "prioridad": 3,
+      "motivo": "El codigo ya esta en disco y en verde y lo que falta es SOFTWARE: el test que deriva los sinonimos desde los `patron` de ANALITOS, y retirar o dar fuente a los 4 sinonimos de vitales sin respaldo. Desatasca toda la rama E1 (E1-03 depende de E1-01 + E1-02).",
+      "dependeDelMedico": "Solo para Q1-Q5 y Q6/Q7; NINGUNA bloquea el software pendiente."
+    },
+    {
+      "unidad": "E0-08",
+      "prioridad": 4,
+      "motivo": "Barato y honesto: marcar como tautologicas las ~190 aserciones que no discriminan aislamiento (V-2), anadir una CONSULTA (list) cross-tenant por coleccion (V-3) y corregir las dos cifras de prosa (V-4, V-5). No cierra la unidad —la aceptacion exige correr el emulador— pero sube el valor real de la suite.",
+      "dependeDelMedico": "Para CERRAR, si: JRE local o la primera corrida del CI (E0-08-Q2). Para los residuales, no."
     },
     {
       "unidad": "E2-02",
-      "prioridad": 2,
-      "motivo": "Falta CABLEAR el extractor PICO a las dos rutas reales de evidencia. Es software puro, pero cambia qué artículos ve el médico: entregar PLAN + tests de caracterización antes de tocar (regla 5).",
-      "dependeDelMedico": "Sí, para autorizar el cambio de comportamiento de la bibliografía y para decidir de qué unidad es el cableado."
+      "prioridad": 5,
+      "motivo": "Falta CABLEAR el extractor PICO a las dos rutas reales de evidencia. Software puro, pero cambia que articulos ve el medico: PLAN + tests de caracterizacion antes de tocar (regla 5).",
+      "dependeDelMedico": "Si, para autorizar el cambio de comportamiento de la bibliografia y para decidir de que unidad es el cableado (hoy es HUERFANO)."
     },
     {
       "unidad": "E0-11",
-      "prioridad": 3,
-      "motivo": "Cerrar el bypass describe.skipIf/runIf en safety-gate.ts:137-142. Software puro. OJO: el commit f7f2afa ya trabajó en esto; verificar antes de rehacer.",
-      "dependeDelMedico": "Sí para la mitad de branch protection en GitHub (acción del Dr., no del agente)."
+      "prioridad": 6,
+      "motivo": "Cerrar el bypass describe.skipIf/runIf en safety-gate.ts:137-142. Software puro. OJO: el commit f7f2afa ya trabajo en esto; verificar antes de rehacer.",
+      "dependeDelMedico": "Si para la mitad de branch protection en GitHub (accion del Dr., no del agente)."
     },
     {
       "unidad": "E0-10",
-      "prioridad": 4,
-      "motivo": "NO reintentable por el agente: lo que falta es desplegar, observar reportes y correr Playwright. Queda aquí sólo para que no se pierda de vista.",
-      "dependeDelMedico": "Sí, por completo."
+      "prioridad": 7,
+      "motivo": "NO reintentable por el agente: lo que falta es desplegar, observar reportes y correr Playwright. Queda aqui solo para que no se pierda de vista.",
+      "dependeDelMedico": "Si, por completo."
     }
   ],
   "decisionesPendientesDelMedico": [
+    {
+      "unidad": "E0-12",
+      "id": "E0-12-D3",
+      "decision": "NUEVA Y LA MAS URGENTE. Falso «INTEGRIDAD ALTERADA» en notas firmadas legitimas: el sello v3 cubre campos opcionales (transcripcion del dictado, estudios, dialogo, internamiento, preop) que la escritura de la nota NO borra cuando quedan vacios, asi que el documento conserva el valor viejo y el hash se calculo sin el. ¿Cual de las tres salidas se aplica? (a) que updateNota borre explicitamente el campo omitido (deleteField), (b) escribir la nota completa sin merge (setDoc), (c) que construirNota escriba null en vez de undefined en los campos sellados.",
+      "porQue": "Es el unico bloqueo DURO de merge/despliegue de toda la rama. Reproducido con el codigo real en 5 campos, y con un camino de usuario de un clic (vaciar el textarea del dictado y firmar). Las tres salidas tocan la escritura de la nota y el flujo de firma, por eso se entrega como PLAN y no se ejecuta a ciegas (regla 5). Hoy no hay riesgo en produccion: nada de esto esta desplegado.",
+      "defaultAplicado": "NINGUNO — a proposito. La unidad se devuelve a la cola en vez de dar por buena una regresion.",
+      "salidaDeEmergencia": "Si necesita mergear el resto antes de decidir: devolver HASH_VERSION a 2 (una linea) deja las notas nuevas con el sello viejo y el algoritmo v3 congelado hasta cerrarlo.",
+      "bloquea": true
+    },
     {
       "unidad": "E2-02",
       "id": "E2-02-Q4",

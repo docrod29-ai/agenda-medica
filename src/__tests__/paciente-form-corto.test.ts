@@ -98,6 +98,20 @@ describe('fecha de nacimiento en la receta (la piden las farmacias)', () => {
     expect(receta).toContain('fmtFechaNac(data.paciente.fechaNacimiento)')
   })
 
+  it('sale CON su etiqueta: «Fecha de nacimiento: <fecha>»', () => {
+    // Petición explícita del Dr. El membrete impreso ya trae «Nombre:» y «Edad:»,
+    // pero NO esta etiqueta: una fecha suelta no se distinguiría de la fecha de
+    // expedición de la receta.
+    expect(receta).toContain('`Fecha de nacimiento: ${fmtFechaNac(data.paciente.fechaNacimiento)}`')
+  })
+
+  it('sin fecha capturada NO imprime la etiqueta huérfana', () => {
+    // Un «Fecha de nacimiento:» sin fecha detrás se ve como un dato perdido.
+    const linea = receta.match(/k === 'nacimiento' \?[^\n]*/)![0]
+    expect(linea).toContain("data.paciente?.fechaNacimiento ?")
+    expect(linea).toMatch(/:\s*''/)
+  })
+
   it('entra en el auto-acomodo vertical junto a los demás datos', () => {
     expect(receta).toContain("['nombre', 'edad', 'nacimiento', 'sexo', 'fecha', 'folio']")
   })
