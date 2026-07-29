@@ -28,7 +28,10 @@
  *    superficie pública/paciente (algunas se embeben a propósito).
  */
 export const RUTAS_PRIVADAS = [
-  'agenda',
+  // NO va 'agenda': no existe ninguna página en /agenda. La pantalla que el menú
+  // rotula «Agenda» vive en /calendario (BottomNav.tsx:26). Estaba aquí como ruta
+  // fantasma — el mismo defecto que esta lista vino a arreglar — y el CI lo cazó
+  // porque en un checkout limpio la carpeta vacía de mi disco no existe.
   'antibiograma',
   'asistente',
   'calendario',
@@ -61,7 +64,9 @@ export const RUTAS_PRIVADAS = [
   'setup',
   'superadmin',
   'uci',
-  'waitlist',
+  // NO va 'waitlist': la página real es 'lista-espera' (ya está arriba).
+  // /api/whatsapp/waitlist-notify es una ruta de API, no una pantalla, y su
+  // protección es la de autenticación del endpoint, no cabeceras anti-iframe.
 ] as const
 
 /**

@@ -74,7 +74,11 @@ export function OnboardingTour({ enabled }: { enabled: boolean }) {
 
   const avanzar = () => {
     if (paso < PASOS.length - 1) setPaso(paso + 1)
-    else { cerrar(); router.push('/agenda') }
+    // '/calendario', NO '/agenda': la pantalla que el menú rotula «Agenda» es
+    // /calendario (BottomNav.tsx:26). No existe ninguna página en /agenda, así
+    // que el médico nuevo terminaba su tour de bienvenida en un 404 — lo caza
+    // csp-guard.test.ts al cruzar las rutas contra el árbol real.
+    else { cerrar(); router.push('/calendario') }
   }
 
   if (!visible) return null
