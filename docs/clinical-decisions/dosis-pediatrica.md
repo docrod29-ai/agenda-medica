@@ -46,4 +46,10 @@
 - **Residual conocido (P2):** en primera visita (sin peso previo) un peso en lb <120
   capturado con el selector en "kg" no dispara guarda → depende de la selección manual
   correcta de unidad. Mitigación futura: default de unidad explícito / confirmación.
+- **Golden:** `pediatria.test.ts` · `peso-pediatrico-seguridad.test.ts` (hard-stop kg/lb,
+  REG-013) · `seguridad-dosis.test.ts` · `dosis-invariantes-property.test.ts` (E0-02:
+  invariante sobre TODO el catálogo × pesos × edades, con motores MUTANTES que
+  reproducen REG-018 y demuestran que la propiedad tiene dientes) ·
+  `dosis-decision-amoxicilina.test.ts` (REG-041/042: tres niveles de amoxicilina y
+  redondeo que no viola topes).
 - **Fecha / responsable:** 2026-07 · loop de auditoría NexusMED.
