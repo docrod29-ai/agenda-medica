@@ -1,7 +1,7 @@
 {
   "version": 1,
   "descripcion": "ESTADO DURABLE del programa Nexus OS. Fuente de verdad del avance. Los agentes lo actualizan tras CADA unidad terminada. Si se acaban los créditos, este archivo dice exactamente dónde retomar sin perder nada.",
-  "actualizado": "2026-07-29T12:50:33Z",
+  "actualizado": "2026-07-29T13:12:00Z",
   "runs": [
     {
       "unidad": "E0-01",
@@ -237,9 +237,23 @@
         "build": "PASS",
         "testsPasan": 2403
       }
+    },
+    {
+      "unidad": "E0-06",
+      "fecha": "2026-07-29T13:12:00Z",
+      "resultado": "necesita_validacion",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2445
+      },
+      "nota": "Fase A del diseño entregada, verificada y commiteada. Fases B y C (mover de verdad alergias/notas/txValoracion* fuera de patients/{id}) NO se ejecutaron: riesgo alto declarado en el diseño §8 y dependen de la decisión D1 del Dr. Por eso NO entra en `completadas`: la aceptación literal («no lee alergias») todavía no se cumple, y ponerla ahí sería exactamente lo que la verificación adversarial le quitó a E0-10 y E2-02.",
+      "gatesCorridosEn": "git worktree aislado en /tmp sobre HEAD 0f73fea, porque el árbol principal tenía cambios sin commitear de E0-09 que en ese momento no compilaban (TS2304 'acvpu'). Los archivos ajenos no se tocaron ni se commitearon.",
+      "commit": "checkpoint propio; el código quedó absorbido por f227bbf (colisión con E0-09 en el mismo árbol)"
     }
   ],
-  "unidadEnCurso": "E0-06",
+  "unidadEnCurso": null,
   "completadas": [
     "E0-01",
     "E0-02",
@@ -532,6 +546,25 @@
       "decision": "¿Se añaden más analitos con conversión masa↔sustancia (glucosa, urea/BUN, bilirrubina, calcio)?",
       "porQue": "FACTORES_MOLARES sólo tiene creatinina y colesterol (los que ya existían). aConcentracionMasa devuelve null para el resto — comportamiento seguro. Cada analito exige su fuente citada. Heredada de E0-04.",
       "bloquea": false
+    },
+    {
+      "unidad": "E0-06",
+      "decision": "D1 — ¿la asistente/recepción puede CAPTURAR alergias y antecedentes en el alta, aunque después no pueda leerlos?",
+      "porQue": "Hoy los captura en /pacientes (campo Alergias + textarea Notas): es el flujo de alta real del consultorio, no un hueco teórico. Cumplir la aceptación al pie de la letra se lo quita. Opciones: (a) no puede, las captura el médico en consulta; (b) write-only (escribe el subdocumento pero no lo lee); (c) puede alergias, no antecedentes ni valoración. Recomendación del diseño: (a).",
+      "bloquea": true,
+      "queDesbloquea": "Fases B y C de E0-06 — el único camino que hace verdad «recepción no lee alergias»."
+    },
+    {
+      "unidad": "E0-06",
+      "decision": "D2 — ¿el enlace del portal que envía la asistente debe seguir mostrando «Mis recetas»?",
+      "porQue": "YA se aplicó que NO (el token que emite /api/portal/link nace con alcance `agenda`). Es la dirección segura —antes esa ruta le daba a cualquier rol una credencial de 30 días que abría diagnósticos y medicamentos de notas firmadas— pero es un cambio visible: la asistente notará que el enlace que manda ya no abre las recetas, y los enlaces de 30 días ya emitidos pierden esa pestaña. Revertirlo es de una línea.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-06",
+      "decision": "D3 — ¿`embarazo`, `cronico` y `alto-riesgo` (tags del paciente) son administrativos o clínicos?",
+      "porQue": "Hoy los ve todo el equipo y los usa la agenda/CRM. Moverlos a lo clínico cambia listados que la asistente usa a diario. Recomendación: dejarlos donde están y documentarlo como residual aceptado.",
+      "bloquea": false
     }
   ],
   "siguientesElegibles": {
@@ -646,7 +679,12 @@
     "El código de las tres unidades bloqueadas está commiteado, en verde y NO hay que reimplementarlo. A las tres les falta CERRAR, no construir: a E0-10 le falta un despliegue, a E1-02 un test y una decisión, a E2-02 dos callers.",
     "REPARADO EN LA RECONCILIACIÓN: se borraron de vocabulario.ts los sinónimos INVENTADOS 'hb' y 'bt'. Es la primera violación de la regla 1 que la verificación adversarial atrapa en este programa, y llegó disfrazada de comentario que afirmaba lo contrario ('cr es el ÚNICO sinónimo nuevo'). Lección: los comentarios que afirman cobertura no valen; el test que la deriva de la fuente, sí.",
     "docs/roadmap/nexus-os/RETOMAR-AQUI.md quedó VIEJO (habla de 2/68 y del 28-jul). La fuente de verdad son estado.json y CHECKPOINT.md.",
-    "E0-05 cerró los 4 lotes (renal, gasometría, infusiones, dosis). Verificación de no-regresión: se extrajeron los 4 motores de git HEAD a un directorio temporal y se compararon caso por caso contra los migrados (~16 000 combinaciones entre las cuatro mallas): CERO diferencias numéricas y CERO diferencias de texto. El directorio temporal se borró antes de commitear."
+    "E0-05 cerró los 4 lotes (renal, gasometría, infusiones, dosis). Verificación de no-regresión: se extrajeron los 4 motores de git HEAD a un directorio temporal y se compararon caso por caso contra los migrados (~16 000 combinaciones entre las cuatro mallas): CERO diferencias numéricas y CERO diferencias de texto. El directorio temporal se borró antes de commitear.",
+    "E0-06 NO está en `completadas` a propósito: entregó la Fase A entera y verificada (matriz ejecutable de las 44 colecciones, bloque de reglas del subdocumento clínico, cierre del bypass de /api/portal/link) pero la aceptación literal («recepción no lee alergias») exige mover campos de documento, y eso son las Fases B/C, bloqueadas por D1. El detalle honesto está en unidades/E0-06/RESULTADO.json.",
+    "E0-06 cerró un agujero REAL y explotable: /api/portal/link exigía solo verificarMiembro y devolvía al navegador de quien la llamara un token HMAC de 30 días que /api/portal aceptaba en la acción `documentos` (diagnósticos + medicamentos de notas FIRMADAS). Mismo vector que ya se había cerrado en /api/telesalud/token y que aquí seguía abierto.",
+    "E0-06 dejó `firestore.rules` MODIFICADO pero NO DESPLEGADO (regla 6). El bloque `clinico` no rige en producción hasta que el Dr. corra `firebase deploy --only firestore:rules`. Hoy es inocuo porque todavía no hay datos ahí, pero tiene que estar desplegado ANTES de la Fase C.",
+    "E0-06 habilita E0-07 (capabilities consume la matriz) y E0-08 (emulator la consume como tabla de casos).",
+    "E0-06: sus 14 archivos de código quedaron dentro del commit f227bbf (de E0-09), porque ese agente corrió `git add -A` sobre el árbol compartido mientras E0-06 escribía. Nada se perdió, nada se subió, y NO se reescribió la historia (rehacer commits con otro agente operando en el mismo repositorio es peor que un mensaje equivocado). LECCIÓN: si dos unidades corren a la vez, cada una debe commitear con lista EXPLÍCITA de archivos, o correr en worktrees separados."
   ],
   "paraReintentar": [
     {
@@ -725,6 +763,12 @@
       "decision": "¿Se aceptan como sinónimos de signos vitales 'pulso' (FC), 'bmi' (IMC), 'dextrostix' y 'glucosa capilar' (glucometría)? Ninguno tiene fuente en el repo.",
       "porQue": "Se escribieron a mano. Los demás sí tienen respaldo en código de producción ('saturacion', 'temperatura', 'estatura', 'pas', 'pad'). Si el Dr. no los firma, se retiran.",
       "bloquea": false
+    },
+    {
+      "unidad": "E0-06",
+      "id": "E0-06-D1",
+      "decision": "¿La asistente puede capturar alergias/antecedentes en el alta sin poder leerlos después? (a) no puede · (b) write-only · (c) solo alergias",
+      "porQue": "Sin esta respuesta el bloque de reglas `patients/{id}/clinico` no puede fijarse (hoy está en lo estricto: isMedico para leer y escribir) y la Fase B no debe fusionarse. Es una decisión de operación y privacidad, no clínica."
     }
   ]
 }
