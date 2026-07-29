@@ -1,7 +1,7 @@
 {
   "version": 1,
   "descripcion": "ESTADO DURABLE del programa Nexus OS. Fuente de verdad del avance. Los agentes lo actualizan tras CADA unidad terminada. Si se acaban los créditos, este archivo dice exactamente dónde retomar sin perder nada.",
-  "actualizado": "2026-07-29T03:29:14Z",
+  "actualizado": "2026-07-29T03:46:32Z",
   "runs": [
     {
       "unidad": "E0-01",
@@ -94,6 +94,38 @@
         "build": "PASS",
         "testsPasan": 2164
       }
+    },
+    {
+      "tipo": "cierre-de-corrida",
+      "fecha": "2026-07-29T03:44:05Z",
+      "unidadesIntentadas": [
+        "E0-11",
+        "E0-04",
+        "E0-09"
+      ],
+      "completadas": [
+        "E0-04"
+      ],
+      "bloqueadas": [
+        "E0-11",
+        "E0-09"
+      ],
+      "esperanAlMedico": [
+        "E0-09 (Q5 — 1 línea suya destraba la aceptación literal)",
+        "E0-11 (branch protection en GitHub — ~5 min, docs/pendientes-externos.md §3)",
+        "E0-02 (Q3/REG-043 catálogo adulto — no bloquea)",
+        "E0-04 (Q1 analitos molares, Q2 mEq/L — no bloquean)",
+        "E0-14 (REG-014 firmado server-side — no bloquea)",
+        "E0-01 (pie impreso de receta, SW version — no bloquean)"
+      ],
+      "veredictoTrasVerificacionAdversarial": "E0-04 CONFIRMADA (queda una inexactitud documental corregida en esta pasada y un LÍMITE DE DISEÑO heredado a E0-05). E0-11 y E0-09 INCOMPLETAS: NINGUNA cumple su criterio de aceptación literal. Salen de `completadas`, entran en `bloqueadas` y su RESULTADO.json se retiró del disco (renombrado a RESULTADO.parcial.json en 60d63b6) para que la próxima corrida las REINTENTE en vez de saltárselas por idempotencia.",
+      "gatesAlCerrar": {
+        "tsc": "PASS (exit 0)",
+        "vitest": "PASS (2164 tests / 180 archivos)",
+        "gitStatus": "limpio, sin residuos sin commitear",
+        "push": "NO",
+        "despliegue": "NO"
+      }
     }
   ],
   "unidadEnCurso": null,
@@ -106,42 +138,64 @@
     "E0-15"
   ],
   "reconciliacionDisco": {
-    "fecha": "2026-07-29T03:29:14Z",
+    "fecha": "2026-07-29T03:46:32Z",
     "criterio": "La existencia de unidades/<ID>/RESULTADO.json es la prueba de que la unidad está hecha; manda sobre estado.json.",
     "conRESULTADO": [
       "E0-01",
       "E0-02",
       "E0-03",
       "E0-04",
-      "E0-09",
-      "E0-11",
       "E0-14",
       "E0-15"
     ],
-    "sinRESULTADO": [],
-    "huboDiscrepancia": false,
-    "correccion": "4ª pasada: sin discrepancias. E0-09 era la única unidad con DISENO.md y sin RESULTADO.json; esta corrida lo escribe EN EL MISMO cambio que cierra la unidad, como manda la regla operativa del 28-07.",
+    "sinRESULTADO": [
+      "E0-09",
+      "E0-11"
+    ],
+    "huboDiscrepancia": true,
+    "correccion": "5ª pasada: SÍ hubo discrepancia. El bloque `reconciliacionDisco` había quedado congelado en la foto de las 03:29:14Z y seguía listando E0-09 y E0-11 en `conRESULTADO` con completadasCuenta=7. En disco NINGUNA de las dos tiene RESULTADO.json: el commit 60d63b6 las renombró a RESULTADO.parcial.json justamente para que se reintenten. Se corrige a 6 completadas / 62 pendientes, que es lo que dice el disco y lo que ya decía `completadas` y el último `runs`.",
     "correccionesPrevias": [
       "2026-07-28T21:49:59Z — E0-02 tenía RESULTADO.json en disco pero NO figuraba en completadas. Se añadió.",
       "2026-07-28T22:15:15Z — 2ª pasada: sin cambios.",
       "2026-07-29T02:44:15Z — 3ª pasada: se escribieron los RESULTADO.json ausentes de E0-03, E0-14 y E0-15 (reconstruidos con evidencia de git + tests + ledger). Sin ellos, tres unidades terminadas se habrían rehecho.",
-      "2026-07-29T03:29:14Z — 4ª pasada: sin discrepancias. Se escribe unidades/E0-09/RESULTADO.json en el mismo cambio que cierra la unidad."
+      "2026-07-29T03:29:14Z — 4ª pasada: sin discrepancias. Se escribe unidades/E0-09/RESULTADO.json en el mismo cambio que cierra la unidad.",
+      "2026-07-29T03:44:05Z — 5ª pasada (post-verificación adversarial). E0-11 y E0-09 estaban en `completadas` pese a que la verificación las declaró INCOMPLETAS. Se movieron a `bloqueadas` con motivo y sus RESULTADO.json se retiraron del disco (renombrados a RESULTADO.parcial.json, commit 60d63b6) para que la próxima corrida las REINTENTE. También se corrigió la cuenta: eran 7 completadas declaradas, son 6 reales.",
+      "2026-07-29T03:46:32Z — 5ª pasada: `reconciliacionDisco` contradecía al disco y a `completadas` (decía 7 completadas incluyendo E0-09 y E0-11, que sólo tienen RESULTADO.parcial.json). Corregido a 6/62. Manda el disco."
     ],
     "avisoDeProceso": "Las tres unidades se cerraron con commit pero SIN escribir RESULTADO.json. Es el único punto por donde este programa pierde trabajo. La regla operativa es: el RESULTADO.json se escribe en el MISMO commit que cierra la unidad, nunca después.",
     "totalUnidades": 68,
-    "completadasCuenta": 7,
-    "pendientes": 61
+    "completadasCuenta": 6,
+    "pendientes": 62,
+    "reglaOperativaNueva": "Un RESULTADO.json escrito por el implementador NO es prueba suficiente: sólo lo es si la VERIFICACION.json de esa unidad no la declara INCOMPLETA ni REGRESION. La reconciliación cruza los dos archivos, no sólo la existencia del primero.",
+    "unidadesConResultadoParcialNoCuentan": [
+      "E0-09",
+      "E0-11"
+    ]
   },
   "bloqueadas": [
     {
-      "unidad": "E0-09",
-      "motivo": "Verificación adversarial INCOMPLETA: firestore.rules sigue permitiendo UPDATE sobre un registro de signos. Falta la parte de reglas.",
-      "origen": "verificacion-adversarial"
+      "unidad": "E0-11",
+      "titulo": "El CI protege los invariantes clínicos",
+      "motivo": "Verificación adversarial INCOMPLETA por DOS razones independientes. (1) BYPASS DEMOSTRADO, y es software: PATRONES_DESACTIVACION en src/lib/clinical/safety-gate.ts:137-142 sólo reconoce .skip/.only/.todo/x-prefijo. NO reconoce `describe.skipIf(true)` ni `describe.runIf(false)`, que apagan el archivo ENTERO. Se probó sobre clinical-safety-harness.test.ts (42 casos): el gate quedó VERDE con el invariante apagado. (2) La aceptación literal («un PR que rompe un invariante no puede MERGEARSE») la decide la protección de rama de GitHub, que sigue sin activar (docs/pendientes-externos.md §3): hoy el gate AVISA, no BLOQUEA.",
+      "origen": "verificacion-adversarial",
+      "reintentar": true,
+      "queFaltaExactamente": [
+        "SOFTWARE (ejecutable ya, sin criterio médico): añadir skipIf/runIf a PATRONES_DESACTIVACION, con su caso en la ASERCIÓN 6 (el autotest de las regex). Ojo al falso positivo: `runIf(true)`/`skipIf(false)` NO apagan nada; hay que decidir y documentar si se marcan igual por conservadurismo.",
+        "DEL DR (no ejecutable por el agente): activar required status checks `clinical-safety` + `verificar` sobre `main`."
+      ],
+      "evidencia": "docs/roadmap/nexus-os/unidades/E0-11/VERIFICACION.json + RESULTADO.parcial.json (lo que sí quedó hecho y verificado)"
     },
     {
-      "unidad": "E0-11",
-      "motivo": "Verificación adversarial INCOMPLETA: PATRONES_DESACTIVACION no reconoce describe.skipIf/runIf → un invariante clínico se puede apagar con el CI en verde. Falta cerrar el bypass.",
-      "origen": "verificacion-adversarial"
+      "unidad": "E0-09",
+      "titulo": "Eventos hospitalarios críticos append-only",
+      "motivo": "Verificación adversarial INCOMPLETA: la aceptación literal («un update sobre un evento sellado es rechazado por reglas») NO se cumple. firestore.rules:246-248 sigue con `allow read, create, update: if isClinicoHospital(clinicId)` sobre /signos/{signoId} y ningún test la cubre. Lo entregado (tipos append-only, núcleo puro de correcciones, MAR y órdenes en el libro legal, gate de partición de acciones) es ANDAMIAJE sólido y verificado, pero no es la aceptación.",
+      "origen": "verificacion-adversarial",
+      "reintentar": true,
+      "bloqueadaPor": "E0-09-Q5 — decisión del médico. NO ejecutable por el agente sin violar la regla 1 y la regla 5 de la carta operativa.",
+      "queFaltaExactamente": [
+        "Una línea del Dr. confirmando que §A3 de docs/clinical-decisions/DECISIONES-ARQUITECTURA-2026-07-28.md aplica a `signos`. Con eso, el parche de 3 líneas ya escrito se aplica y la unidad cierra."
+      ],
+      "evidencia": "docs/roadmap/nexus-os/unidades/E0-09/VERIFICACION.json + RESULTADO.parcial.json"
     }
   ],
   "necesitaValidacionDelDr": [
@@ -235,64 +289,99 @@
       "unidad": "E0-09",
       "id": "E0-09-Q5",
       "decision": "¿Confirma revertir la política vigente de signos vitales (de «corregir en el sitio» a «anexar corrección»)?",
-      "porQue": "Hoy firestore.rules permite UPDATE sobre un registro de signos y su comentario dice que eso es deliberado (enfermería corrige en el sitio; el delete se cerró en la auditoría maestra 2026-07). E0-09 exige lo contrario: la corrección se ANEXA y el valor erróneo queda visible tachado. Es más fiel a NOM-004 y es lo que pide la aceptación de la unidad, pero es revertir una decisión suya anterior y hace la pantalla de signos más ruidosa. Dato que baja el riesgo: NINGÚN punto del código hace updateDoc sobre signos, así que cerrar el update no rompe nada existente. El parche literal está en unidades/E0-09/RESULTADO.json → needsClinicalReview[E0-09-Q5].parcheExactoQueEsperaSuVistoBueno.",
+      "porQue": "Hoy firestore.rules permite UPDATE sobre un registro de signos y su comentario dice que eso es deliberado (enfermería corrige en el sitio; el delete se cerró en la auditoría maestra 2026-07). E0-09 exige lo contrario: la corrección se ANEXA y el valor erróneo queda visible tachado. Es más fiel a NOM-004 y es lo que pide la aceptación de la unidad, pero es revertir una decisión suya anterior y hace la pantalla de signos más ruidosa. Dato que baja el riesgo: NINGÚN punto del código hace updateDoc sobre signos, así que cerrar el update no rompe nada existente. El parche literal está en unidades/E0-09/RESULTADO.parcial.json → needsClinicalReview[E0-09-Q5].parcheExactoQueEsperaSuVistoBueno.",
       "bloquea": true,
       "bloqueaQue": "La ACEPTACIÓN LITERAL de E0-09 ('un update sobre un evento sellado es rechazado por reglas'). Ninguna otra unidad depende de ello.",
       "dondeQuedaMarcado": "REG-053 OPEN en docs/audit/regression-ledger.md + el comentario del bloque E0-09 en src/__tests__/firestore-rules-guard.test.ts, que dice qué aserción falta y por qué.",
-      "posibleRespuestaYaEscrita": "OJO: docs/clinical-decisions/DECISIONES-ARQUITECTURA-2026-07-28.md §A3 lista «signos vitales» como append-only y fija «sin UPDATE destructivo, sin DELETE físico, corrección = nueva versión/adenda, original conservado» — que es exactamente lo que pide E0-09. NO se aplicó porque ese archivo apareció A MITAD de esta corrida desde un proceso concurrente, no está en git, y su propio encabezado avisa de que algunas respuestas son «comportamiento seguro por defecto» y no la palabra del Dr. Basta una línea suya confirmando que el §A3 es propio y aplica a `signos` para desbloquear el parche."
+      "posibleRespuestaYaEscrita": "ACTUALIZADO 2026-07-29: el documento YA ESTÁ EN GIT — commit c795520 «docs(clínico): decisiones de arquitectura del Dr. para todo Nexus OS», autor DAVID, y su encabezado dice «Documento canónico: el software lo implementa, no lo reinterpreta». Su §A3 (líneas 96-109) lista literalmente «signos vitales» entre lo append-only, con «sin UPDATE destructivo, sin DELETE físico, corrección = nueva versión/adenda, original conservado» — exactamente lo que pide E0-09. Durante la corrida el archivo estaba sin rastrear y la cautela fue correcta; hoy ya no lo está. MATIZ QUE AÚN EXIGE SU LÍNEA: §A3:98-100 condiciona la regla a dato «FINALIZADO/FIRMADO», y un registro de signos NO tiene estado draft/firmado — nace y ya está. Basta que confirme «sí, aplica a signos desde que se guardan» y el parche de 3 líneas entra sin más preguntas."
     }
   ],
   "siguientesElegibles": {
-    "fecha": "2026-07-29T03:29:14Z",
-    "notaDeEstaPasada": "E0-09 sale de la lista de elegibles: queda en 'necesita_validacion' con 5 preguntas al Dr. (Q5 bloquea su aceptación literal). Con ella fuera, E0 se queda SIN unidades de riesgo medio ejecutables: lo pendiente de E0 es alto (E0-05, E0-06, E0-12, E0-13) o exige observar producción (E0-10). Los dos frentes vivos están fuera de E0: E1-01 y E4-01.",
+    "fecha": "2026-07-29T03:46:32Z",
+    "notaDeEstaPasada": "Selección recalculada sobre el DISCO (6 completadas). Elegible = todas sus `depende` con RESULTADO.json + no está en `bloqueadas` + no está en `necesitaValidacionDelDr`. Eso deja fuera a E0-09 y E0-11 (bloqueadas: su verificación adversarial quedó incompleta) y a las ya hechas. En E0 sólo queda UNA unidad no-alta elegible (E0-10) y su aceptación literal exige desplegar; por eso las dos primeras plazas van a las unidades de riesgo BAJO que E0-04 desbloqueó.",
     "seleccion": [
       {
         "id": "E1-01",
-        "titulo": "ClinicalFact (etapa E1 — Nexus Context)",
+        "etapa": "E1",
+        "titulo": "Tipo ClinicalFact",
         "riesgo": "bajo",
-        "porQueAhora": "La ÚNICA de riesgo bajo elegible en todo el programa. Se apoya en ClinicalQuantity (E0-04), que ya está en disco y verificado."
+        "porQueAhora": "Riesgo bajo, cerrable en una pasada y 100% software puro: tipo + esquema de validación + tests. Su única dependencia (E0-04 ClinicalQuantity) está en disco y fue CONFIRMADA por verificación adversarial. Abre toda la etapa E1 (E1-02..E1-09 cuelgan de ella). Aceptación testeable sin criterio médico: «un hecho sin unidad o sin procedencia no valida»."
       },
       {
-        "id": "E4-01",
-        "titulo": "Safety Kernel (etapa E4)",
+        "id": "E2-01",
+        "etapa": "E2",
+        "titulo": "Modelo Claim / Source / Passage",
+        "riesgo": "bajo",
+        "porQueAhora": "Riesgo bajo, sin dependencias, sin validacionClinica. Es types/evidence.ts + tests: no toca producción, no toca impresión, cobros ni firma. Cuello de botella de los 8 restantes de E2. La aceptación («una afirmación sin pasaje de respaldo no puede construirse») es una invariante de tipos, no un criterio clínico."
+      },
+      {
+        "id": "E0-10",
+        "etapa": "E0",
+        "titulo": "CSP enforced + E2E de seguridad",
         "riesgo": "medio",
-        "porQueAhora": "Desbloqueada por E0-04. Abre la etapa E4. No tiene DISENO.md en disco, así que su primera pasada incluiría el diseño."
-      },
-      {
-        "id": "E0-05",
-        "titulo": "ClinicalQuantity: migración de motores críticos",
-        "riesgo": "alto",
-        "porQueAhora": "Elegible desde E0-04 y es la que da valor real a ClinicalQuantity, pero migra motores EN PRODUCCIÓN y cambia firmas con callers reales: conviene por LOTES o como PLAN, no de un tirón."
+        "porQueAhora": "Es la ÚNICA unidad de E0 elegible que no es de riesgo alto, y E0 tiene prioridad de etapa. Va en tercer lugar y con el alcance partido explícito.",
+        "alcanceEjecutableAhora": "La matriz Playwright de seguridad: hoy e2e/ contiene UN solo archivo (smoke-publico.spec.ts) y playwright.config.ts. Escribir la matriz no exige desplegar.",
+        "alcanceQueNOSePuedeCerrarAqui": "«CSP enforce sin romper flujos»: next.config.ts:148 ya emite Content-Security-Policy-Report-Only y pasar a enforce exige OBSERVAR los reportes en PRODUCCIÓN. La regla 6 de la carta operativa prohíbe desplegar dentro del workflow, y RETOMAR-AQUI.md ya lista «CSP enforce» entre los pendientes del Dr. Si se ejecuta, terminará PARCIAL salvo que el Dr. autorice el flip."
       }
     ],
     "descartadasConMotivo": [
       {
         "id": "E0-09",
         "riesgo": "medio",
-        "motivo": "Ya ejecutada en lo que es software puro. Su aceptación literal espera Q5 (revertir la política de `update` sobre signos). No se re-ejecuta: tiene RESULTADO.json en disco."
+        "motivo": "En `bloqueadas`. No tiene RESULTADO.json (sólo RESULTADO.parcial.json). Su cierre depende de Q5 del Dr. (revertir el UPDATE sobre signos en firestore.rules), no de más trabajo mío."
       },
       {
-        "id": "E0-10",
-        "riesgo": "medio",
-        "motivo": "Su aceptación exige OBSERVAR los reportes CSP en PRODUCCIÓN antes de pasar de report-only a enforce, y la carta operativa prohíbe desplegar dentro del workflow. Quinta pasada consecutiva descartada."
+        "id": "E0-11",
+        "riesgo": "bajo",
+        "motivo": "En `bloqueadas` y en `necesitaValidacionDelDr`. Doble exclusión por la regla de selección. Falta cerrar el bypass describe.skipIf/runIf y activar la protección de rama en GitHub (acción del Dr.)."
+      },
+      {
+        "id": "E0-05",
+        "riesgo": "alto",
+        "motivo": "Elegible, pero alta: migra motores clínicos EN PRODUCCIÓN y cambia firmas con callers reales. La regla prefiere bajo/medio. Hereda además el hueco documentado por E0-04 (marca fantasma indexada por dimensión, no por unidad → spread con 'µg' compila y da error de escala 1000×)."
       },
       {
         "id": "E0-06",
         "riesgo": "alto",
-        "motivo": "Separación de PHI administrativo vs clínico: reglas de Firestore y modelo de datos. Cuello de botella de E0-07 y E0-08; conviene entregarla como PLAN."
+        "motivo": "Elegible, pero alta: reglas de Firestore + modelo de datos. Cuello de botella de E0-07 y E0-08; conviene entregarla como PLAN."
       },
       {
         "id": "E0-12",
         "riesgo": "alto",
-        "motivo": "Migración de hashes de firma sobre notas YA firmadas: regresión visible. PLAN, no ejecución a ciegas."
+        "motivo": "Elegible, pero alta: migración de hashes sobre notas YA firmadas = regresión visible (regla 5 de la carta)."
       },
       {
         "id": "E0-13",
         "riesgo": "alto",
-        "motivo": "Idempotencia del webhook de Stripe: es dinero. PLAN antes que ejecución."
+        "motivo": "Elegible, pero alta: es dinero (webhook de Stripe). PLAN antes que ejecución."
+      },
+      {
+        "id": "E4-01",
+        "riesgo": "medio",
+        "motivo": "Elegible y desbloqueada por E0-04, pero etapa E4 va después de E1 y E2 en el orden de etapas, y las dos elegidas de E1/E2 son de riesgo BAJO. Es la primera candidata del siguiente lote."
+      },
+      {
+        "id": "E7-02",
+        "riesgo": "bajo",
+        "motivo": "Elegible y de riesgo bajo, pero validacionClinica=true: el esquema exige definir «respuestas peligrosas» y «gold answer», que son criterio médico. Sólo el esqueleto es software puro."
+      },
+      {
+        "id": "E6-01",
+        "riesgo": "bajo",
+        "motivo": "Elegible, sin dependencias, pero su valor depende de que exista algo que corregir (etapas E3/E4). Se pospone sin costo."
+      },
+      {
+        "id": "E7-01",
+        "riesgo": "medio",
+        "motivo": "Elegible, sin dependencias. Etapa E7 va después; sin prisa."
+      },
+      {
+        "id": "E9-01",
+        "riesgo": "medio",
+        "motivo": "Elegible, sin dependencias. Etapa E9 va después; se apoya mejor sobre E4 ya hecho."
       }
     ],
-    "efectoDominoTrasEsteLote": "Ninguna unidad se desbloquea con E0-09 (nadie depende de ella). Lo que cambia es el mapa: E0 se queda sin trabajo de riesgo medio y el programa se mueve a E1/E4, o entra en los E0 altos por la vía del PLAN."
+    "efectoDominoTrasEsteLote": "E1-01 desbloquea E1-02 (y por cadena toda E1). E2-01 desbloquea E2-02. E0-10 no desbloquea a nadie. Si sólo se ejecuta UNA unidad, que sea E1-01: es la más cerrable y la que más abre."
   },
   "notas": [
     "E0-01 cerró REG-025 por completo en docs/audit/regression-ledger.md (era CLOSED parcial).",
@@ -329,6 +418,14 @@
     "2026-07-29T03:29:14Z — Gate de cobertura nuevo (patrón de E0-03/E0-11): ACCIONES_CON_EVENTO_DURABLE ∪ ACCIONES_SIN_EVENTO_DURABLE debe ser una PARTICIÓN exacta de los GATES reales de api/hospital/mutar/route.ts, leídos como TEXTO para no obligar a exportar nada desde una ruta de producción. Una acción nueva sin clasificar tumba el CI, y cada descarte lleva su razón escrita.",
     "2026-07-29T03:29:14Z — Los dos tests que cita el ledger se añadieron al sello de E0-11 (invariantes-clinicos.json: 78 → 80 archivos, 1249 → 1294 casos), como exige su ASERCIÓN 4. LECCIÓN heredada del aviso de E0-04: todo test citado en el regression-ledger debe entrar al sello EN EL MISMO cambio, o tumba el CI de quien pase después.",
     "2026-07-29T03:29:14Z — AVISO de la corrida de E0-09, ajeno a la unidad (segunda vez que pasa lo mismo): un proceso concurrente creó docs/clinical-decisions/DECISIONES-ARQUITECTURA-2026-07-28.md A MITAD de la corrida y el gate de ADRs de E0-03 lo leyó como ADR huérfano ⇒ vitest ROJO en la re-verificación final estando verde minutos antes. Arreglado como indica el propio test: declararlo en DOCS_NO_ADR (src/lib/clinical/adr-cobertura.ts). No mueve la deuda (sigue en 52).",
-    "2026-07-29T03:29:14Z — HALLAZGO que afecta a E0-09: ese mismo documento parece RESPONDER Q5 — su §A3 lista «signos vitales» como append-only con «corrección = nueva versión/adenda, original conservado». NO se aplicó: apareció solo a mitad de la corrida, no está en git, y su encabezado avisa de que parte del contenido es «comportamiento seguro por defecto» y no la palabra del Dr. Revertir una política suya anterior con esa base sería adivinar. Verificado además que ese documento NO responde Q1, Q2, Q3 ni Q4, así que E0-09 seguiría en 'necesita_validacion' de todos modos."
+    "2026-07-29T03:29:14Z — HALLAZGO que afecta a E0-09: ese mismo documento parece RESPONDER Q5 — su §A3 lista «signos vitales» como append-only con «corrección = nueva versión/adenda, original conservado». NO se aplicó: apareció solo a mitad de la corrida, no está en git, y su encabezado avisa de que parte del contenido es «comportamiento seguro por defecto» y no la palabra del Dr. Revertir una política suya anterior con esa base sería adivinar. Verificado además que ese documento NO responde Q1, Q2, Q3 ni Q4, así que E0-09 seguiría en 'necesita_validacion' de todos modos.",
+    "2026-07-29T03:44:05Z — CIERRE DE CORRIDA con reconciliación tras verificación adversarial. Resultado honesto del lote de 3: UNA cerrada (E0-04), DOS revertidas a bloqueadas (E0-11, E0-09). El avance real pasa de 7 declaradas a 6 verificadas de 68.",
+    "2026-07-29T03:44:05Z — LECCIÓN DEL LOTE, la más cara del programa hasta hoy: el protocolo trata la existencia de RESULTADO.json como prueba de 'unidad hecha', y eso hace que un falso 'hecho' quede enterrado PARA SIEMPRE por la propia idempotencia. La verificación adversarial es lo único que lo destapa, y sólo sirve si la reconciliación DESHACE lo que refuta. Regla nueva escrita en reconciliacionDisco.reglaOperativaNueva.",
+    "2026-07-29T03:44:05Z — E0-11: el bypass NO es teórico, se demostró. `describe.skipIf(true)` apaga clinical-safety-harness.test.ts entero (42 casos) y el gate, el trinquete y el job `verificar` quedan en VERDE. El propio comentario de safety-gate.ts admite ser «una COTA, no un parser», pero skipIf/runIf no son un adversario sofisticado: son API pública y corriente de vitest. Es la siguiente unidad a ejecutar.",
+    "2026-07-29T03:44:05Z — E0-04 se CONFIRMA completada, pero su RESULTADO.json se contradecía: `archivosDeProduccionTocados` decía «NINGUNO» cuando el commit 48974dd incluye src/lib/clinical/adr-cobertura.ts, que es producción. El mismo archivo lo declaraba bien en `archivosTocados` y lo explicaba en `reparacionForzadaAjena` — inexactitud, no ocultamiento — pero un auditor que leyera ese campo concluiría algo falso. Corregido en esta pasada. Impacto funcional nulo: la línea sólo clasifica un .md como no-ADR.",
+    "2026-07-29T03:44:05Z — E0-04 deja una tarea HEREDADA a E0-05, fuera de la letra de su criterio pero real: la marca fantasma está indexada por DIMENSIÓN, no por unidad, así que `{...mg(500), unidad:'µg' as const}` compila SIN ningún `as` y valorEn(escala,'mg') devuelve 0.5 — error de escala 1000×. Hoy inocuo (cero consumidores). Debe cerrarse antes de que un motor real clone cantidades con spread.",
+    "2026-07-29T03:44:05Z — E0-09/Q5 cambió de estado sin que nadie tocara código: docs/clinical-decisions/DECISIONES-ARQUITECTURA-2026-07-28.md ENTRÓ EN GIT (c795520, autor DAVID) y su §A3 lista «signos vitales» como append-only. Ya no es una pregunta abierta: es una línea de confirmación sobre un matiz (§A3 habla de dato «FINALIZADO/FIRMADO» y un signo no tiene ese estado).",
+    "2026-07-29T03:44:05Z — Estado del repo al cerrar: `git status --short` VACÍO y `npx tsc --noEmit` exit 0. No hubo que revertir basura de las unidades bloqueadas: su código (núcleo append-only de E0-09, metagate de E0-11) está commiteado en 481b44b y es aditivo, verificado y sin consumidores de producción. Retirarlo destruiría trabajo bueno sin cerrar ningún riesgo — lo que falla en ambas es lo que NO se hizo, no lo hecho.",
+    "2026-07-29T03:46:32Z — RECONCILIACIÓN 5ª pasada: el disco manda y el disco dice 6 completadas (E0-01, E0-02, E0-03, E0-04, E0-14, E0-15). `reconciliacionDisco` seguía diciendo 7 e incluía a E0-09 y E0-11, que sólo tienen RESULTADO.parcial.json. Corregido. OJO para la próxima corrida: RESULTADO.parcial.json NO cuenta como hecho — es la señal de reintento que dejó el commit 60d63b6."
   ]
 }
