@@ -13,8 +13,24 @@ import type { EntradaAntibiograma, InterpretacionAntibiograma } from './tipos'
 export function resumenDeterminista(entrada: EntradaAntibiograma, r: InterpretacionAntibiograma): string {
   const L: string[] = []
   L.push(`Organismo: ${entrada.organismo || '(no especificado)'}${entrada.sitio && entrada.sitio !== 'otro' ? ` · sitio: ${entrada.sitio}` : ''}`)
-  const panel = entrada.resultados.map(x => `${x.antibiotico}=${x.interpretacion}${typeof x.cmi === 'number' ? ` (CMI ${x.cmi})` : ''}`).join(', ')
-  if (panel) L.push(`Panel S/I/R: ${panel}`)
+  /**
+   * El LLM lee la interpretación EFECTIVA, no el panel crudo (E0-15a). Antes se
+   * le mandaba `entrada.resultados`, así que veía «Levofloxacino=S» aunque el
+   * motor ya lo hubiera editado a R por regla experta EUCAST: razonaba y
+   * recomendaba sobre un dato que el propio sistema había descartado.
+   * Se marca la edición para que el modelo sepa que NO viene del laboratorio.
+   */
+  const efectivos = r.resultadosEfectivos?.length ? r.resultadosEfectivos : entrada.resultados
+  const panel = efectivos.map(x => {
+    const editado = x.interpretacionLab && x.interpretacionLab !== x.interpretacion
+    return `${x.antibiotico}=${x.interpretacion}`
+      + (typeof x.cmi === 'number' ? ` (CMI ${x.cmiCensurada ?? ''}${x.cmi})` : '')
+      + (editado ? ` [EDITADO por regla experta: el laboratorio reportó ${x.interpretacionLab}]` : '')
+  }).join(', ')
+  if (panel) L.push(`Panel S/I/R (interpretación canónica): ${panel}`)
+  if (r.edicionesInterpretativas?.length) {
+    L.push(`REGLA EXPERTA APLICADA — usa SIEMPRE la categoría editada, no la del laboratorio: ${r.edicionesInterpretativas.map(e => `${e.antibiotico} ${e.de}→${e.a} (${e.razon})`).join('; ')}`)
+  }
   if (r.categoriasCMI.length) L.push(`CMI→CLSI: ${r.categoriasCMI.map(c => `${c.antibiotico} ${c.cmi}=${c.categoriaCLSI}${c.concuerda === false ? ` (reporte decía ${c.categoriaReportada})` : ''}`).join('; ')}`)
   if (r.fenotipos.length) L.push(`Fenotipos: ${r.fenotipos.map(f => `${f.nombre} [${f.confianza}]`).join('; ')}`)
   if (r.mecanismos.length) L.push(`Mecanismos: ${r.mecanismos.map(m => `${m.nombre}${m.ambler ? ` (clase ${m.ambler})` : ''}`).join('; ')}`)

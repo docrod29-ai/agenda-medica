@@ -149,7 +149,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
 
   // Razonamiento con IA sobre el motor determinista.
   const [razonando, setRazonando] = useState(false)
-  const [razonamiento, setRazonamiento] = useState<{ texto: string; segunda?: string; contradicciones?: { agente: string; motivo: string }[] } | null>(null)
+  const [razonamiento, setRazonamiento] = useState<{ texto: string; segunda?: string; contradicciones?: { agente: string; motivo: string }[]; contradiccionesSegunda?: { agente: string; motivo: string }[] } | null>(null)
   const [errorRaz, setErrorRaz] = useState('')
 
   const razonarIA = async () => {
@@ -171,7 +171,17 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
       })
       const data = await resp.json().catch(() => null)
       if (!data?.ok) { setErrorRaz(data?.error || `No se pudo razonar (HTTP ${resp.status})`); return }
-      setRazonamiento({ texto: data.razonamiento, segunda: data.segundaOpinion, contradicciones: data.contradicciones })
+      /**
+       * `contradiccionesSegundaOpinion` YA viajaba desde el servidor y el cliente
+       * la tiraba (E0-15a): la segunda opinión se mostraba sin su caja roja
+       * aunque el validador hubiera detectado que contradice al motor.
+       */
+      setRazonamiento({
+        texto: data.razonamiento,
+        segunda: data.segundaOpinion,
+        contradicciones: data.contradicciones,
+        contradiccionesSegunda: data.contradiccionesSegundaOpinion,
+      })
     } catch (e) {
       setErrorRaz('Error de red: ' + (e instanceof Error ? e.message : String(e)))
     } finally {
@@ -440,6 +450,20 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
               {razonamiento.segunda && (
                 <div style={card}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.03em' }}>Segunda opinión (GPT-5)</div>
+                  {!!razonamiento.contradiccionesSegunda?.length && (
+                    <div style={{
+                      background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)',
+                      borderRadius: 10, padding: '11px 13px', marginBottom: 10,
+                      fontSize: 12.5, lineHeight: 1.55, color: 'var(--text)',
+                    }}>
+                      <strong>Ojo: la segunda opinión contradice al motor.</strong>
+                      <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+                        {razonamiento.contradiccionesSegunda.map((c, i) => (
+                          <li key={i}><strong>{c.agente}</strong> — {c.motivo}.</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{razonamiento.segunda}</p>
                 </div>
               )}

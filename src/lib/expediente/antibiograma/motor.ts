@@ -12,7 +12,7 @@ import {
   norm, estado, ES_R, ES_S, NO_S,
   FLUOROQUINOLONA, COLISTINA, CEF3G, CEFEPIME, CARBAPENEM, AMINOGLUCOSIDO,
   PIP_TAZO, VANCOMICINA, TEICOPLANINA, ERITROMICINA, TETRACICLINA, COTRIMOXAZOL,
-  AMPICILINA, algunoS,
+  AMPICILINA, algunoS, aplicarEdicionesInterpretativas,
 } from './util'
 import { analizarGramPositivos } from './grampositivos'
 import { analizarEnterobacterales } from './enterobacterales'
@@ -58,15 +58,41 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
   // respaldo para organismos no cubiertos por Magiorakos (Gram+, etc.).
   ap = fusionar(ap, analizarDTR(organismo, r))
   ap = fusionar(ap, analizarMDR(organismo, r))
-  ap = fusionar(ap, transversales(organismo, r))
-
-  const resistenciaIntrinseca = evaluarIntrinseca(organismo, r)
 
   // Capa de seguridad EUCAST: fenotipos excepcionales + cross-resistencia FQ.
+  // Se calcula ANTES de `transversales` porque el PK/PD debe razonar sobre la
+  // interpretación EFECTIVA, no sobre el panel crudo (ver abajo).
   const seg = analizarSeguridad(organismo, r)
+  const edicionesInterpretativas = seg.edicionesFQ
+
+  /**
+   * INTERPRETACIÓN EFECTIVA — fuente única de TODAS las salidas (E0-15a).
+   *
+   * Antes, la edición experta EUCAST vivía solo en `edicionesInterpretativas`:
+   * la nota, el prompt del LLM, el validador y el PK/PD seguían leyendo `r`
+   * (crudo) y mostraban la «S» que este mismo motor ya había declarado R.
+   * El médico dueño lo marcó como defecto P0: «nunca debe existir una pantalla
+   * donde Nexus muestre R y el LLM continúe razonando con S».
+   *
+   * `resultadosEfectivos` es lo que debe consumir cualquier salida clínica.
+   * El dato del laboratorio NO se destruye: viaja en `interpretacionLab`.
+   */
+  const resultadosEfectivos = aplicarEdicionesInterpretativas(r, edicionesInterpretativas)
+
+  /**
+   * `transversales` recibe el panel EFECTIVO porque de ahí sale el PK/PD: con el
+   * panel crudo, una fluoroquinolona editada a R por regla experta seguía
+   * imprimiendo «Fluoroquinolonas: dosis plena» — consejo de optimización para
+   * un fármaco que el propio motor acababa de descartar.
+   *
+   * Los módulos de FENOTIPO sí siguen leyendo `r` (crudo) a propósito: el
+   * fenotipo se infiere del dato del laboratorio, no de una edición derivada.
+   */
+  ap = fusionar(ap, transversales(organismo, resultadosEfectivos))
+
+  const resistenciaIntrinseca = evaluarIntrinseca(organismo, r)
   const alertas = [...seg.excepcionales, ...ap.alertas]
   const advertencias = [...ap.advertencias, ...seg.avisos]
-  const edicionesInterpretativas = seg.edicionesFQ
 
   // Referencias efectivamente usadas.
   const refs = new Set<string>()
@@ -126,6 +152,7 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
     terapiaDirigida: ap.terapiaDirigida,
     didactica: ap.didactica,
     edicionesInterpretativas,
+    resultadosEfectivos,
     pruebasSugeridas,
     categoriasCMI,
     algoritmo: [],

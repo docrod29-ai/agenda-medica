@@ -179,3 +179,48 @@ export function algunoR(resultados: ResultadoAntibiograma[], grupos: string[]): 
 export function algunoS(resultados: ResultadoAntibiograma[], grupos: string[]): boolean {
   return grupos.some(g => ES_S(estado(resultados, [g])))
 }
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * INTERPRETACIÓN EFECTIVA — fuente única para TODAS las salidas (E0-15a)
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * El motor edita categorías por regla experta EUCAST (fluoroquinolonas S→R por
+ * resistencia cruzada inferida), pero esa edición NO llegaba a la nota, al
+ * prompt del LLM, al validador ni al PK/PD: cada salida mostraba la «S» cruda
+ * que el propio motor ya había declarado R. Contradicción en la misma hoja.
+ *
+ * Decisión del médico dueño (2026-07-28): la interpretación editada es la
+ * **canónica** para UI, nota, prompt, validador, PK/PD, recomendaciones,
+ * exportación, alertas y auditoría — **pero el resultado original no se
+ * destruye**. Se conserva en `interpretacionLab` para poder mostrar:
+ *
+ *   Resultado de laboratorio: S
+ *   Interpretación Nexus: R por regla experta EUCAST [regla/versión]
+ *
+ * Función PURA: devuelve un arreglo nuevo, no muta el de entrada.
+ */
+export function aplicarEdicionesInterpretativas(
+  resultados: ResultadoAntibiograma[],
+  ediciones: { antibiotico: string; de: 'S'; a: 'R'; razon: string; referencia: string }[],
+): ResultadoAntibiograma[] {
+  if (!ediciones.length) return resultados
+  return resultados.map(r => {
+    const ed = ediciones.find(e => coincideAntibiotico(r.antibiotico, e.antibiotico))
+    // Solo se edita lo que la regla declara editar, y solo desde su categoría de
+    // origen: si el laboratorio ya reportó R, no hay nada que editar.
+    if (!ed || r.interpretacion !== ed.de) return r
+    return {
+      ...r,
+      interpretacion: ed.a,
+      interpretacionLab: r.interpretacion,
+      edicionRazon: ed.razon,
+      edicionReferencia: ed.referencia,
+    }
+  })
+}
+
+/** ¿Esta categoría viene de una edición interpretativa (y no del laboratorio)? */
+export function fueEditado(r: ResultadoAntibiograma): boolean {
+  return r.interpretacionLab != null && r.interpretacionLab !== r.interpretacion
+}

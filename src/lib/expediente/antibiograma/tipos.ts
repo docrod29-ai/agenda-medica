@@ -41,6 +41,20 @@ export interface ResultadoAntibiograma {
    * umbral estricto `> 500` y daba falso, apagando el HLAR.
    */
   cmiCensurada?: '>' | '<'
+  /**
+   * ═══ INTERPRETACIÓN EFECTIVA (E0-15a) ═══
+   * Cuando una regla experta EUCAST edita la categoría (p. ej. fluoroquinolonas
+   * S→R por resistencia cruzada inferida), `interpretacion` pasa a ser la
+   * **interpretación clínica canónica** y el dato del laboratorio se conserva
+   * aquí. Nunca se destruye el original.
+   *
+   * Decisión del médico dueño: «nunca debe existir una pantalla donde Nexus
+   * muestre R y el LLM continúe razonando con S. Eso es un defecto P0.»
+   */
+  interpretacionLab?: SIR
+  /** Por qué se editó (regla experta) y su fuente/versión. */
+  edicionRazon?: string
+  edicionReferencia?: string
 }
 
 /** Resultado de una prueba confirmatoria (como la reportan los sistemas automatizados). */
@@ -243,6 +257,13 @@ export interface InterpretacionAntibiograma {
   didactica: BloqueDidactico[]
   /** Ediciones interpretativas (EUCAST): «S» que debe leerse R por inferencia. */
   edicionesInterpretativas: EdicionInterpretativa[]
+  /**
+   * Panel con las ediciones YA APLICADAS — la interpretación clínica CANÓNICA
+   * (E0-15a). Toda salida (nota, prompt del LLM, validador, PK/PD, UI) debe
+   * leer esto y no el panel crudo. El dato del laboratorio se conserva en
+   * `interpretacionLab` de cada resultado.
+   */
+  resultadosEfectivos: ResultadoAntibiograma[]
   /** Pruebas microbiológicas del CLSI recomendadas según el fenotipo (cuándo/método/interpretación). */
   pruebasSugeridas: PruebaCLSI[]
   /** Algoritmo de diagnóstico de resistencia: el árbol de decisión de ESTE caso, paso a paso. */

@@ -22,10 +22,26 @@ export function resumenParaNota(
 
   L.push(`ANTIBIOGRAMA — ${entrada.organismo || 'organismo no especificado'}${entrada.sitio && entrada.sitio !== 'otro' ? ` (${entrada.sitio})` : ''}`)
 
-  const panel = entrada.resultados
+  /**
+   * La nota imprime la interpretación EFECTIVA (E0-15a). Antes usaba el panel
+   * crudo y podía imprimir «Levofloxacino S» en la misma hoja donde el motor
+   * decía R — contradicción dentro del mismo documento clínico.
+   * El dato del laboratorio NO se oculta: se muestra junto a la edición.
+   */
+  const efectivos = r.resultadosEfectivos?.length ? r.resultadosEfectivos : entrada.resultados
+  const panel = efectivos
     .filter(x => x.antibiotico?.trim())
-    .map(x => `${x.antibiotico} ${x.interpretacion}${typeof x.cmi === 'number' ? ` (CMI ${x.cmiCensurada ?? ''}${x.cmi})` : ''}`)
+    .map(x => {
+      const cmi = typeof x.cmi === 'number' ? ` (CMI ${x.cmiCensurada ?? ''}${x.cmi})` : ''
+      const editado = x.interpretacionLab && x.interpretacionLab !== x.interpretacion
+      return `${x.antibiotico} ${x.interpretacion}${cmi}${editado ? ` [lab: ${x.interpretacionLab} → ${x.interpretacion} por regla experta]` : ''}`
+    })
   if (panel.length) L.push(`Panel: ${panel.join(' · ')}`)
+
+  // Las ediciones se declaran explícitamente con su fuente, no solo en la celda.
+  if (r.edicionesInterpretativas?.length) {
+    L.push(`Interpretación Nexus (regla experta): ${r.edicionesInterpretativas.map(e => `${e.antibiotico} ${e.de}→${e.a} — ${e.razon} [${e.referencia}]`).join(' · ')}`)
+  }
 
   if (r.fenotipos.length) {
     L.push('')
@@ -58,11 +74,21 @@ export function resumenParaNota(
     L.push(`Advertencias: ${r.advertencias.join(' ')}`)
   }
 
-  // Lo accionable va al final y destacado: es lo que hay que ejecutar hoy.
+  /**
+   * Lo accionable va al final y destacado. Antes SOLO pasaban las 'critica' y
+   * las de nivel 'alta' se descartaban en silencio: una alerta que el motor
+   * consideró relevante desaparecía del documento clínico. Ahora pasan ambas,
+   * separadas para que la jerarquía siga siendo legible.
+   */
   const criticas = r.alertas.filter(a => a.nivel === 'critica')
+  const altas = r.alertas.filter(a => a.nivel === 'alta')
   if (criticas.length) {
     L.push('')
     L.push(`ALERTAS: ${criticas.map(a => a.mensaje).join(' | ')}`)
+  }
+  if (altas.length) {
+    if (!criticas.length) L.push('')
+    L.push(`Atención: ${altas.map(a => a.mensaje).join(' | ')}`)
   }
   if (r.aislamiento) L.push(`Aislamiento: ${r.aislamiento}`)
   if (r.notificacionObligatoria) L.push('Notificación epidemiológica OBLIGATORIA.')

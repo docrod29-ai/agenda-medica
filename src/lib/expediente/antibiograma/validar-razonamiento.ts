@@ -62,11 +62,24 @@ export function validarRazonamiento(
     out.push({ agente, motivo })
   }
 
+  /**
+   * Se valida contra la interpretación EFECTIVA, no contra el panel crudo
+   * (E0-15a). Antes, una sugerencia de moxifloxacino/levofloxacino que el motor
+   * ya había editado a R por regla experta EUCAST pasaba el validador sin
+   * marcar contradicción: el validador miraba la «S» del laboratorio.
+   */
+  const efectivos = interpretacion.resultadosEfectivos?.length
+    ? interpretacion.resultadosEfectivos
+    : entrada.resultados
+
   // 1. Fármacos que el panel reporta R y el texto propone como tratamiento.
-  for (const fila of entrada.resultados) {
+  for (const fila of efectivos) {
     if (fila.interpretacion !== 'R') continue
     if (mencionadoComoTratamiento(texto, fila.antibiotico)) {
-      anotar(fila.antibiotico, `el panel lo reporta R`)
+      const editado = fila.interpretacionLab && fila.interpretacionLab !== fila.interpretacion
+      anotar(fila.antibiotico, editado
+        ? `regla experta EUCAST lo edita a R (el laboratorio reportó ${fila.interpretacionLab}): ${fila.edicionRazon ?? ''}`.trim()
+        : `el panel lo reporta R`)
     }
   }
 
@@ -79,7 +92,7 @@ export function validarRazonamiento(
   }
 
   // 3. Resistencia intrínseca de la especie.
-  for (const fila of entrada.resultados) {
+  for (const fila of efectivos) {
     if (!esIntrinsecamenteResistente(entrada.organismo, fila.antibiotico)) continue
     if (mencionadoComoTratamiento(texto, fila.antibiotico)) {
       anotar(fila.antibiotico, `${entrada.organismo} es intrínsecamente resistente`)
