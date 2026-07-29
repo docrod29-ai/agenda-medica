@@ -1,5 +1,11 @@
 # Punto de retomada — 2026-07-28 (tarde)
 
+> ⚠️ **ESTE ARCHIVO ESTÁ OBSOLETO. No lo use para retomar.** Habla de «2 / 68» y de «SIGUIENTE
+> PASO: E0-15», y las dos cosas son falsas desde entonces. La fuente de verdad es
+> **`estado.json`** (durable, la escriben los agentes) y **`CHECKPOINT.md`** (el resumen en 30
+> segundos). Lo de abajo se conserva sólo como historia: las 25 decisiones clínicas del Dr. y el
+> aviso sobre el gate de E0-03 siguen siendo válidos.
+
 Todo commiteado. Nada depende del chat: este archivo y `estado.json` bastan.
 
 ## Estado del repo

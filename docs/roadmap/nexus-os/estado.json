@@ -1,7 +1,7 @@
 {
   "version": 1,
   "descripcion": "ESTADO DURABLE del programa Nexus OS. Fuente de verdad del avance. Los agentes lo actualizan tras CADA unidad terminada. Si se acaban los créditos, este archivo dice exactamente dónde retomar sin perder nada.",
-  "actualizado": "2026-07-29T23:22:00Z",
+  "actualizado": "2026-07-29T23:35:00Z",
   "runs": [
     {
       "unidad": "E0-01",
@@ -916,7 +916,8 @@
     "E0-07: el patron a evitar quedo nombrado — un REGISTRO que declara la capacidad de cada ruta no es una garantia si el guardian solo comprueba que se llame al helper. Se puede cambiar la capacidad exigida en el codigo y el gate sigue verde. Declarar != exigir.",
     "E0-07 introdujo una PERDIDA NETA: el fijado en codigo del gate de telesalud/token que E0-06 ya tenia. Al reintentarla hay que RESTAURARLO, no solo anadir cobertura nueva.",
     "HEAD de la rama es 07cefc9 «feat(receta+pacientes): fecha de nacimiento acomodable + formulario corto de Consulta»: trabajo AJENO al programa Nexus OS, hecho en la misma rama. No lo cuente como avance de ninguna unidad ni lo revierta.",
-    "Estado de la rama nexus-os/sesion-2026-07-29: NADA desplegado, NADA con push. El commit 3c09a0d (E0-12) NO debe desplegarse hasta resolver E0-12-D3."
+    "Estado de la rama nexus-os/sesion-2026-07-29: NADA desplegado, NADA con push. El commit 3c09a0d (E0-12) NO debe desplegarse hasta resolver E0-12-D3.",
+    "2026-07-29T23:35Z — CORRECCION IMPORTANTE: «sin push» ya NO es cierto. Otra sesion pusheo la rama (origin en 19425b7) y con ella el commit 3c09a0d de E0-12, que trae la regresion P1. Ver `avisoDeIntegridadDeLaRama`. Tambien: esa sesion barrio con `git add -A` y mi reconciliacion viajo dentro de SUS commits (19425b7 y c8e3cbf); el contenido es correcto, pero no busque un commit propio de reconciliacion."
   ],
   "paraReintentar": [
     {
@@ -1059,5 +1060,19 @@
       "porQue": "Residual declarado. Hoy un cambio en el bloque de firma se detecta por CONTRADICCION con la metadata sellada, pero no por el hash. Tocarlo entra al flujo de firma y a la impresion => se entrega como PLAN, no a ciegas (regla 5).",
       "bloquea": false
     }
-  ]
+  ],
+  "avisoDeIntegridadDeLaRama": {
+    "fecha": "2026-07-29T23:35:00Z",
+    "porQueExiste": "Durante la reconciliacion, OTRA sesion trabajando en el mismo arbol (receta: fecha de nacimiento + formulario corto) hizo commit barriendo con `git add -A`: se llevo dentro de sus commits 19425b7 y c8e3cbf mi trabajo de reconciliacion (estado.json + los tres RESULTADO.parcial.json + los tres VERIFICACION.json). Nada se perdio —el contenido en disco es el correcto y quedo en git— pero el historial atribuye esos cambios a commits de receta. Anotado para que nadie se confunda buscando un commit de reconciliacion que no existe.",
+    "correccionDeUnaAFIRMACIONQUEERAFALSA": "El CHECKPOINT anterior decia «nada desplegado, sin push». La segunda mitad ya NO es cierta: `origin/nexus-os/sesion-2026-07-29` esta en 19425b7, asi que el commit 3c09a0d (E0-12, el que trae la REGRESION P1) ESTA PUSHEADO al remoto. Verificado: `git branch -a --contains 3c09a0d` lista tambien la rama remota.",
+    "hechosVERIFICABLESdesdeElRepo": [
+      "La rama nexus-os/sesion-2026-07-29 esta pusheada a origin e incluye 3c09a0d (E0-12).",
+      "`main` local (f227bbf) NO contiene 3c09a0d. El sello v3 no esta mergeado a main.",
+      "src/lib/expediente/integrity.ts:132 tiene HASH_VERSION = 3 en el arbol y en la rama pusheada: cualquier despliegue de esta rama hace que las notas NUEVAS nazcan con el sello v3, y con el falso 'alterada'.",
+      "public/sw.js declara CACHE = 'nexusmed-v708', y su bitacora de comentarios atribuye versiones a unidades de ESTE programa (v700 = E0-02, v701-v703 = E0-15, v704 = REG-017/REG-015, v705 = REG-014, v706 = E0-03, v707-v708 = receta). El bump de Service Worker es el ritual de despliegue de este repo."
+    ],
+    "loQueNOSEPUEDEAFIRMARDESDEAQUI": "Si v707/v708 se desplegaron a produccion o no. El agente no despliega ni consulta produccion (regla 6). Por eso NO se afirma «esta en produccion» ni «no esta».",
+    "consecuenciaSiSEDESPLEGO": "E0-12-D3 deja de ser una decision de merge y pasa a ser URGENTE: el falso «INTEGRIDAD ALTERADA» estaria vivo para las notas nuevas. La salida de una linea (devolver HASH_VERSION a 2) existe justamente para ese caso.",
+    "queDebeHacerElMedico": "Confirmar si el despliegue de v707/v708 salio de esta rama. Si salio: decidir E0-12-D3 ya, o aplicar la salida de emergencia (HASH_VERSION a 2). Si no salio: E0-12-D3 sigue siendo un bloqueo de merge, sin urgencia clinica."
+  }
 }
