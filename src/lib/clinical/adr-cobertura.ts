@@ -57,4 +57,5 @@ export const DOCS_NO_ADR: readonly string[] = [
   'PREGUNTAS-TODO-EL-PROGRAMA.md', // mismo tipo que el anterior: preguntas al Dr. de las 63 unidades restantes
   'DECISIONES-ARQUITECTURA-2026-07-28.md', // respuestas del Dr. a PREGUNTAS-TODO-EL-PROGRAMA (bloques A→J), no ADR de motor
   'dosis-amoxicilina.md',       // decisión clínica del Dr., no ADR de motor
+  'PREGUNTAS-ABIERTAS-2026-07-29.md', // mismo tipo: preguntas al Dr. con default seguro, no ADR de motor
 ]

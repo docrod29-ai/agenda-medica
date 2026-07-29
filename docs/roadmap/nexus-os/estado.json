@@ -1,7 +1,7 @@
 {
   "version": 1,
   "descripcion": "ESTADO DURABLE del programa Nexus OS. Fuente de verdad del avance. Los agentes lo actualizan tras CADA unidad terminada. Si se acaban los créditos, este archivo dice exactamente dónde retomar sin perder nada.",
-  "actualizado": "2026-07-29T03:46:32Z",
+  "actualizado": "2026-07-29T04:06:30Z",
   "runs": [
     {
       "unidad": "E0-01",
@@ -126,6 +126,18 @@
         "push": "NO",
         "despliegue": "NO"
       }
+    },
+    {
+      "unidad": "E1-01",
+      "fecha": "2026-07-29T04:06:30Z",
+      "resultado": "completada",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2211
+      },
+      "notaCierre": "Aceptación literal cumplida y VERIFICADA con control negativo obligatorio: quitar strictObject pone 2 tests en rojo, quitar el refine anti-número-disfrazado-de-texto pone 3. 10 @ts-expect-error consumidos por tsc. 1 solo archivo de producción tocado (src/types/clinical-quantity.ts, +parsearCantidad, aditivo puro, sin consumidores de producción). Reparación AJENA incluida: adr-cobertura.ts DOCS_NO_ADR += PREGUNTAS-ABIERTAS-2026-07-29.md (rojo preexistente de una corrida anterior; sin él el gate vitest no podía declararse verde)."
     }
   ],
   "unidadEnCurso": null,
@@ -135,7 +147,8 @@
     "E0-03",
     "E0-04",
     "E0-14",
-    "E0-15"
+    "E0-15",
+    "E1-01"
   ],
   "reconciliacionDisco": {
     "fecha": "2026-07-29T03:46:32Z",
@@ -294,6 +307,15 @@
       "bloqueaQue": "La ACEPTACIÓN LITERAL de E0-09 ('un update sobre un evento sellado es rechazado por reglas'). Ninguna otra unidad depende de ello.",
       "dondeQuedaMarcado": "REG-053 OPEN en docs/audit/regression-ledger.md + el comentario del bloque E0-09 en src/__tests__/firestore-rules-guard.test.ts, que dice qué aserción falta y por qué.",
       "posibleRespuestaYaEscrita": "ACTUALIZADO 2026-07-29: el documento YA ESTÁ EN GIT — commit c795520 «docs(clínico): decisiones de arquitectura del Dr. para todo Nexus OS», autor DAVID, y su encabezado dice «Documento canónico: el software lo implementa, no lo reinterpreta». Su §A3 (líneas 96-109) lista literalmente «signos vitales» entre lo append-only, con «sin UPDATE destructivo, sin DELETE físico, corrección = nueva versión/adenda, original conservado» — exactamente lo que pide E0-09. Durante la corrida el archivo estaba sin rastrear y la cautela fue correcta; hoy ya no lo está. MATIZ QUE AÚN EXIGE SU LÍNEA: §A3:98-100 condiciona la regla a dato «FINALIZADO/FIRMADO», y un registro de signos NO tiene estado draft/firmado — nace y ya está. Basta que confirme «sí, aplica a signos desde que se guardan» y el parche de 3 líneas entra sin más preguntas."
+    },
+    {
+      "unidad": "E1-03",
+      "id": "E1-01-COBERTURA",
+      "decision": "¿Se amplía el catálogo de unidades de E0-04 con °C, cm, kg/m², lpm, rpm, puntos, U/L, 10³/µL y µUI/mL?",
+      "porQue": "MEDIDO contra el repo (no estimado) y fijado por test en src/__tests__/clinical-fact.test.ts bloque 6: el catálogo actual no puede expresar 14 de los 35 datos que el grafo necesitará primero (de SignosVitales sólo 3 de 11; de ANALITOS 18 de 24). E1-01 NO lo amplía: hacerlo obliga a reescribir un guardián deliberado de E0-04 (el que dice «no hay dimensión de temperatura: °C↔°F es afín, no un factor»), y reescribir un candado ajeno de puntillas es lo que la carta operativa prohíbe. Mientras tanto el comportamiento es SEGURO y verificado: lo no expresable falla ruidosamente (ni como cantidad ni colado como texto), nunca pierde la unidad. La presión arterial '120/80' no es un hecho sino dos (sistólica y diastólica), como ya hace la frontera FHIR; eso lo decide el proyector E1-03.",
+      "bloquea": true,
+      "bloqueaA": "E1-03",
+      "noBloquea": "E1-01, que queda CERRADA"
     }
   ],
   "siguientesElegibles": {

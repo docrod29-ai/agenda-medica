@@ -1,13 +1,13 @@
 # Nexus OS — dónde vamos
 
-> **En 30 segundos.** Van **6 de 68** unidades cerradas y verificadas. Hoy se intentaron 3:
-> **una cerró (E0-04)** y **dos volvieron atrás** (E0-11, E0-09) porque la verificación
-> adversarial demostró que no cumplían lo prometido.
-> **La siguiente unidad es E0-11** — hay que cerrar un agujero por el que un gate de
-> seguridad clínica se puede apagar sin que nadie lo note.
-> Y hay **una línea suya** que destraba E0-09 (ver *Esperando decisión del médico · 1*).
+> **En 30 segundos.** Van **7 de 68** unidades cerradas y verificadas. En esta corrida cerró
+> **E1-01 · ClinicalFact**: la pieza de la que cuelga toda la etapa E1 (el expediente como
+> grafo de hechos, no como montón de notas).
+> **Lo siguiente que puedo hacer solo es E4-01 · Safety Kernel.** La continuación natural
+> (E1-02) necesita **una decisión suya** primero — ver *Esperando decisión · 1*.
 
-Última corrida: `2026-07-29T03:44:05Z`. Repo limpio, `tsc` en verde, **nada desplegado, sin `push`**.
+Última corrida: `2026-07-29T04:06:30Z`. `tsc` verde · 2211 tests verdes · `build` verde ·
+**nada desplegado, sin `push`**.
 
 ---
 
@@ -18,157 +18,174 @@
 | E0-01 | Certificado de receta firmado con identidad derivada | ✅ cerrada |
 | E0-02 | Invariantes de dosis pediátrica (property-based) | ✅ cerrada |
 | E0-03 | Clinical Engine Registry + trinquete de ADRs | ✅ cerrada |
-| E0-04 | Un número clínico ya no puede viajar sin su unidad | ✅ cerrada *(hoy)* |
+| E0-04 | Un número clínico ya no puede viajar sin su unidad | ✅ cerrada |
 | E0-14 | Firma aislada · cobro sellado · nota nace borrador | ✅ cerrada (única con reglas desplegadas) |
 | E0-15 | Antibiograma: 4 decisiones clínicas suyas implementadas | ✅ cerrada |
-| **E0-11** | **El CI protege los invariantes clínicos** | 🔴 **bloqueada — el gate se puede burlar** |
-| **E0-09** | **El registro del hospital no se edita: se corrige anexando** | 🟡 **bloqueada — espera 1 línea suya** |
+| **E1-01** | **Un hecho clínico no existe sin unidad y sin procedencia** | ✅ **cerrada *(hoy)*** |
+| E0-11 | El CI protege los invariantes clínicos | 🔴 bloqueada — el gate se puede burlar |
+| E0-09 | El registro del hospital no se edita: se corrige anexando | 🟡 bloqueada — espera 1 línea suya |
 
-**6 cerradas · 2 bloqueadas · 60 sin empezar.**
-
----
-
-## Qué pasó hoy, sin adornos
-
-Se intentaron tres unidades. Después, un verificador independiente intentó **refutar** cada
-una — que es el paso que existe justamente para que nadie se crea su propio informe.
-
-**E0-04 sobrevivió.** El tipo que impide que un número clínico viaje sin su unidad hace lo
-que promete: el compilador rechaza sumar miligramos con mililitros. Confirmada.
-
-**E0-11 y E0-09 no.** Las dos se habían apuntado como listas y **las dos se dieron de baja**.
-No es un tecnicismo de papeleo:
-
-- **E0-11 tenía un agujero real y demostrado.** El guardián que vigila que nadie apague un
-  test de seguridad clínica reconoce las formas obvias de apagarlo… pero no dos que vitest
-  ofrece de serie (`skipIf` / `runIf`). Con una sola línea se apaga **un archivo entero de
-  42 comprobaciones clínicas** y el semáforo del CI **sigue en verde**. Se probó. Un guardián
-  así es peor que no tener guardián, porque da confianza falsa. **Por eso es lo siguiente.**
-- **E0-09 entregó el andamiaje, no la promesa.** El motor de correcciones está escrito,
-  probado y el MAR ya entra al libro legal del hospital — todo eso es bueno y se queda. Pero
-  lo que la unidad prometía era que **las reglas de seguridad rechacen sobrescribir** un
-  signo vital, y las reglas están intactas. Eso depende de una decisión suya, no mía.
-
-**Lo importante de este día no es el retroceso, es que se detectó.** El sistema daba por
-hecha una unidad en cuanto existía su archivo de resultado, y un "hecho" falso así quedaba
-enterrado para siempre. Ahora la reconciliación cruza el resultado con su verificación, y lo
-refutado vuelve a la cola. Se corrigió la cuenta: eran 7 declaradas, son **6 reales**.
-
-*Nada de esto tocó pantallas, impresión, recetas, cobros ni firmas. El código de las dos
-unidades bloqueadas es aditivo y no está conectado a nada — no había basura que revertir.*
+**7 cerradas · 2 bloqueadas · 59 sin empezar.**
 
 ---
 
-## 👉 La siguiente unidad: **E0-11 — tapar el bypass**
+## Qué se hizo hoy: E1-01 · ClinicalFact
 
-Es la elección obvia y no depende de usted:
+**El problema.** Hoy el sistema guarda *documentos* (notas, labs, recetas). Un dato suelto
+—«creatinina 1.2»— vive dentro de un texto, sin saber **de qué unidad es**, **quién lo dijo**
+ni **cuándo dejó de ser verdad**. Por eso no se puede preguntar «¿cómo va la función renal de
+este paciente en dos años?» sin releerlo todo.
 
-- El fallo está **localizado con precisión** (`src/lib/clinical/safety-gate.ts`, líneas 137-142).
-- Es **software puro**: ninguna decisión médica de por medio.
-- Es **pequeño**, y arregla algo que hoy da seguridad falsa.
+**Lo que se construyó.** La forma del **hecho clínico atómico**: concepto, valor, unidad,
+certeza, fuente, autor, cuándo pasó, hasta cuándo vale y a qué hecho anterior corrige. Nada de
+esto está conectado todavía a ninguna pantalla: es el cimiento sobre el que se levantan las
+ocho unidades siguientes de la etapa E1.
 
-Ojo con la expectativa: **cerrado el bypass, E0-11 todavía no queda "completada"**, porque su
-promesa final es *"un cambio que rompe un invariante clínico no se puede fusionar"* — y eso lo
-decide GitHub, no el CI. Ese switch es suyo (punto 2 de abajo). Pero eso **no es motivo para
-posponer el arreglo**.
+**La promesa era una sola frase: «un hecho sin unidad o sin procedencia no valida».** Y se
+verificó intentando **romperla**, que es la parte que importa:
 
-Después de E0-11, la siguiente unidad nueva es **E1-01 · ClinicalFact** (riesgo bajo, abre la
-etapa E1 y se apoya en lo que E0-04 dejó listo). Luego **E4-01 · Safety Kernel** (medio).
+- Se intentó colar **un número sin unidad** → rechazado. No es que esté prohibido: es que
+  **no se puede ni escribir**.
+- Se intentó colar el número **disfrazado de texto** (`"135"` como si fuera una frase) →
+  rechazado. Sin esa guarda la promesa habría sido decorativa: cualquier cifra entraba por esa
+  puerta sin decir en qué unidad estaba.
+- Se intentó colgar una unidad **al lado** de un texto para aparentar que la tenía → rechazado.
+- Se intentó una unidad **de la dimensión equivocada** (mililitros declarados como peso) →
+  rechazado. No basta con que «haya algo escrito en unidad».
+- Se intentó un hecho **sin autoría**, o con autoría vacía → rechazado. Un dato generado por IA
+  sin modelo ni versión de prompt, o por un motor sin versión, no entra: si mañana hay que
+  auditar por qué el sistema afirmó algo, tiene que poder reconstruirse.
+
+**Control obligatorio, ejecutado:** se *quitaron a propósito* las dos defensas clave y se
+comprobó que los tests **se ponen rojos** (2 y 3 casos respectivamente). Un test que no se cae
+cuando quitas lo que vigila no vigila nada. Después se restauraron.
+
+**Riesgo para el consultorio: nulo.** Tres archivos nuevos que nadie usa todavía y una función
+añadida a un módulo sin consumidores. Cero pantallas, cero recetas, cero impresión, cero
+cobros, cero reglas de seguridad. `npm run build` compila las 127 páginas igual que antes.
+
+*De paso se arregló un rojo **ajeno**: un documento de preguntas que una corrida anterior dejó
+sin declarar hacía fallar un test desde ayer. Queda anotado como reparación ajena, no como
+mérito de esta unidad.*
+
+---
+
+## 👉 Lo siguiente
+
+**Sin decisión suya, la mejor unidad es E4-01 · Contrato del Safety Kernel** (riesgo medio,
+software puro, depende sólo de E0-04, que ya está cerrada).
+
+**La continuación natural de hoy sería E1-02 · Vocabulario de conceptos clínicos**, pero está
+marcada como *requiere validación clínica*: decide cómo se llama cada cosa en el expediente y
+qué códigos estándar se usan. Eso no lo puede inventar un agente.
 
 ---
 
 ## Esperando decisión del médico
 
-### 1. 🔓 Una línea suya cierra E0-09 — y ya casi la escribió usted
+### 1. 🆕 El grafo no puede expresar 14 de los 35 datos que necesita primero *(nuevo hoy — bloquea E1-03)*
 
-Hoy, si enfermería captura mal una tensión, **la sobrescribe y la anterior desaparece**. Eso
-está así a propósito en las reglas, con su comentario, desde la auditoría de julio. E0-09
+Esto **está medido, no estimado**, y fijado con un test para que no se olvide.
+
+El catálogo de unidades que cerró E0-04 cubre bien lo de laboratorio, pero **le faltan las
+unidades más cotidianas de una consulta**:
+
+- De signos vitales: **latidos por minuto, respiraciones por minuto, °C, cm, kg/m² (IMC) y
+  "puntos"** (Glasgow, escala de dolor). También la tensión "120/80", que en realidad **son dos
+  datos, no uno** (sistólica y diastólica) — así lo hace ya la exportación FHIR.
+- De laboratorio: **U/L** (transaminasas, fosfatasa alcalina), **10³/µL** (leucocitos,
+  plaquetas) y **µUI/mL** (TSH).
+
+**Hoy el comportamiento ya es seguro** y verificado: un dato con unidad desconocida **se rechaza
+ruidosamente**, no se guarda "a medias" ni pierde la unidad por el camino. Nada se corrompe.
+Pero el proyector que convertirá su expediente actual en hechos (E1-03) no puede empezar hasta
+cerrar esto.
+
+**Por qué no lo hice solo:** añadir °C obliga a **reescribir un candado que E0-04 puso a
+propósito** (dice: "no hay dimensión de temperatura porque °C↔°F no es un factor, es una
+fórmula"). Tocar de puntillas un candado ajeno es exactamente lo que la carta operativa me
+prohíbe. Va como unidad aparte y explícita.
+
+> **Lo que necesito de usted:** un "adelante" para ampliar el catálogo con esas unidades.
+> No hay criterio clínico de por medio (son unidades de medida, no umbrales), sólo el permiso
+> para tocar el candado.
+
+### 2. 🔓 Una línea suya cierra E0-09 — y ya casi la escribió usted
+
+Hoy, si enfermería captura mal una tensión, **la sobrescribe y la anterior desaparece**. E0-09
 pide lo contrario: **anexar la corrección** y dejar el valor erróneo visible y tachado
-(NOM-004). Como era revertir una política suya, no lo hice solo.
+(NOM-004). Su documento `DECISIONES-ARQUITECTURA-2026-07-28.md` §A3 ya lista «signos vitales»
+como append-only; el único matiz es que ese §A3 habla de datos **«finalizados/firmados»** y un
+signo vital no tiene ese estado: nace y ya está.
 
-**Novedad:** su documento `DECISIONES-ARQUITECTURA-2026-07-28.md` **ya está en el repositorio**
-(usted lo subió) y su §A3 **lista «signos vitales» como append-only**, con «corrección = nueva
-versión/adenda, original conservado». Es exactamente lo que pide la unidad.
+> **Lo que necesito:** *"sí, aplica a los signos desde que se guardan"*.
+> Con eso entra el parche de 3 líneas, ya escrito, en `unidades/E0-09/RESULTADO.parcial.json`.
 
-Sólo queda un matiz: ese §A3 habla de datos **«FINALIZADOS/FIRMADOS»**, y un registro de signos
-no tiene ese estado — nace y ya está.
+### 3. ⏱️ Cinco minutos en GitHub — es lo que le falta a E0-11 por su lado
 
-> **Lo que necesito de usted:** *"sí, aplica a los signos desde que se guardan"*.
-> Con eso entra el parche de 3 líneas, ya escrito y esperando en
-> `unidades/E0-09/RESULTADO.parcial.json`.
-
-Dos datos que bajan el riesgo: **ningún punto del código sobrescribe un signo hoy** (cerrar esa
-puerta no rompe nada), y el botón *"Borrar registro mal capturado"* ya está bloqueado en
-producción — o sea que **hoy nadie puede señalar una lectura mala**. La corrección lo arregla.
-
-### 2. ⏱️ Cinco minutos en GitHub — es lo que le falta a E0-11 por su lado
-
-El gate **avisa** pero no **bloquea**: impedir una fusión lo decide GitHub. Hoy un cambio con
-el gate en rojo se fusiona igual.
+El gate **avisa** pero no **bloquea**: impedir una fusión lo decide GitHub.
 
 `github.com/docrod29-ai/agenda-medica` → **Settings → Rules → Rulesets → New branch ruleset**,
-sobre `main`:
+sobre `main`: (1) exigir pull request, (2) exigir que pasen **`clinical-safety`** y
+**`verificar`**, (3) rama al día, (4) sin excepciones (incluido usted).
+Detalle en `docs/pendientes-externos.md` §3.
 
-1. Require a pull request before merging.
-2. Require status checks to pass → marcar **`clinical-safety`** y **`verificar`**.
-3. Require branches to be up to date before merging.
-4. Do not allow bypassing the above settings (incluirse usted).
-
-Detalle en `docs/pendientes-externos.md` §3. *Opcional:* confirme que `docrod29-ai` es su
-usuario de GitHub y active «Require review from Code Owners».
-
-### 3. Las otras cuatro de E0-09 (definen *cómo* se corrige) — no bloquean el arreglo de arriba
+### 4. Las otras cuatro de E0-09 (definen *cómo* se corrige) — no bloquean
 
 - **¿Un signo corregido sigue contando para el NEWS2 y el expediente FHIR?** Las dos respuestas
-  fallan feo en direcciones opuestas: si una saturación mal capturada de 80 % se queda, dispara
-  una alerta falsa; si se oculta un valor que era correcto, **se esconde un deterioro real**. Hoy
-  el sistema **se niega a calcular** en vez de suponer.
-- **¿Quién puede corregir?** Y en concreto: **¿puede enfermería anular una administración de
-  medicamento, o eso queda para el médico?**
+  fallan feo en direcciones opuestas. Hoy el sistema **se niega a calcular** en vez de suponer.
+- **¿Quién puede corregir?** ¿Puede enfermería anular una administración de medicamento?
 - **¿Hay ventana de tiempo?** ¿Algo de hace cinco días? ¿Un paciente ya egresado?
-- **¿El motivo escrito es obligatorio?** Lo propondría por NOM-004, pero encarece cada corrección
-  — y si estorba, la gente deja de corregir y el registro empeora. Es su expediente.
+- **¿El motivo escrito es obligatorio?** Lo pediría la NOM-004, pero encarece cada corrección.
 
-### 4. ¿Ampliamos el catálogo de dosis del adulto? (E0-02, REG-043) — no bloquea
+### 5. ¿Ampliamos el catálogo de dosis del adulto? (E0-02, REG-043) — no bloquea
 
-**20 de los 25** fármacos pediátricos no existen en el catálogo adulto (todos los antibióticos
-salvo amoxicilina, más prednisona, ondansetrón, difenhidramina, aciclovir, hierro elemental…).
-Al prescribirlos **a un adulto**, el verificador dice «sin referencia» y no impone ningún techo.
-Usted aprobó ampliarlo; falta el máximo por toma y por día de cada uno. **No se derivan de las
-cifras pediátricas y no los voy a inventar.**
+**20 de los 25** fármacos pediátricos no existen en el catálogo adulto. Al prescribirlos **a un
+adulto**, el verificador dice «sin referencia» y no impone techo. Usted aprobó ampliarlo; falta
+el máximo por toma y por día de cada uno. **No se derivan de las cifras pediátricas y no los voy
+a inventar.**
 
-### 5. ¿Qué análisis más deben convertirse entre mg/dL y µmol/L? (E0-04) — no bloquea
+### 6. ¿Qué análisis más deben convertirse entre mg/dL y µmol/L? (E0-04) — no bloquea
 
-Arrancó con **creatinina y colesterol**, los dos que el sistema ya usaba. Para cualquier otro
-(glucosa, urea/BUN, bilirrubina, calcio) devuelve «no lo sé» — el comportamiento seguro. Si
-quiere alguno, dígame cuál y de qué referencia sale su peso molecular.
-*Relacionado:* **mEq/L no se convierte automáticamente a mmol/L**: para sodio, potasio y cloro
-el número coincide, para calcio y magnesio no. Automatizarlo sería sembrar un error.
+Arrancó con **creatinina y colesterol**. Para cualquier otro (glucosa, urea/BUN, bilirrubina,
+calcio) devuelve «no lo sé» — el comportamiento seguro. *Relacionado:* **mEq/L no se convierte
+automáticamente a mmol/L**: para sodio, potasio y cloro el número coincide; para calcio y
+magnesio no.
 
-### 6. Firma: ¿se construye el renderizado server-side? (E0-14, REG-014) — no bloquea
+### 7. Firma: ¿se construye el renderizado server-side? (E0-14, REG-014) — no bloquea
 
-Recepción, farmacia y enfermería ya no pueden leer la firma. Pero el médico autenticado sigue
-recibiendo la imagen en su navegador porque la impresión es toda del lado del cliente. Cerrarlo
-exige generar el documento firmado en el servidor: unidad aparte, y toca impresión.
+Recepción, farmacia y enfermería ya no pueden leer la firma, pero el médico autenticado sigue
+recibiendo la imagen en su navegador porque la impresión es del lado del cliente. Cerrarlo exige
+generar el documento firmado en el servidor: unidad aparte, y toca impresión.
 
-### 7. Pendientes anteriores (E0-01), sin cambios
+### 8. Pendientes anteriores (E0-01), sin cambios
 
-- **¿El pie IMPRESO de la receta debe leerse de la firma de la nota, no de la configuración de la
-  clínica?** Con un solo médico no cambia nada; con dos o más, papel y QR pueden discrepar.
-- **Al desplegar: subir la versión del Service Worker.** Un cliente viejo cacheado deja el QR
-  degradado a texto ese día. No rompe la impresión.
+- **¿El pie IMPRESO de la receta debe leerse de la firma de la nota, no de la configuración?**
+  Con un solo médico no cambia nada; con dos o más, papel y QR pueden discrepar.
+- **Al desplegar: subir la versión del Service Worker.**
+
+### 9. Tres preguntas nuevas de hoy que **no** bloquean nada
+
+- ¿Un mismo hecho puede tener **dos certezas a la vez** (un antecedente que además es
+  sospecha)? Hoy es una sola; si debe ser dos, se resuelve en E1-08.
+- Un laboratorio **preliminar** (aún no validado por el laboratorio): ¿se muestra en la línea de
+  tiempo o se esconde hasta el definitivo? Hoy se *representa*; quién lo muestra lo deciden
+  E1-07/E1-09.
+- ¿Confirma que los códigos UCUM son cosa de la **exportación** (ya los emite la salida FHIR) y
+  no del almacenamiento? Es lo que se asumió.
 
 ---
 
 ## Deuda técnica anotada (para no perderla)
 
-- **E0-05 hereda un cabo suelto de E0-04.** La protección del tipo distingue *dimensiones*
-  (masa vs volumen) pero no *unidades* dentro de una dimensión: copiar una cantidad cambiándole
-  la etiqueta de `mg` a `µg` compila, y produce un **error de escala de 1000×**. Hoy es inocuo
-  —el módulo no lo usa nadie— pero debe cerrarse **antes** de que un motor real lo consuma.
+- **E0-05 hereda un cabo suelto de E0-04.** La protección distingue *dimensiones* (masa vs
+  volumen) pero no *unidades* dentro de una dimensión: copiar una cantidad cambiándole la
+  etiqueta de `mg` a `µg` compila, y produce un **error de escala de 1000×**. Hoy es inocuo
+  —nadie lo usa— y E1-01 **no lo agrava** (los hechos se construyen por la puerta de entrada,
+  nunca copiando a mano), pero debe cerrarse **antes** de que un motor real lo consuma.
 - **Lo que resta de E0** (E0-06 PHI, E0-10 CSP, E0-12 sello de integridad, E0-13 webhook de
-  Stripe) es de riesgo medio/alto y varias deben entregarse como **plan** para que usted decida,
-  no ejecutarse a ciegas. E0-05 (migrar motores reales) va **por lotes**, nunca de un tirón.
+  Stripe) es de riesgo medio/alto y varias deben entregarse como **plan** para que usted decida.
+  E0-05 (migrar motores reales) va **por lotes**, nunca de un tirón.
 
 ---
 
@@ -178,7 +195,6 @@ Relanzar el workflow `nexus-os`. Lee `estado.json`, comprueba en disco qué unid
 `RESULTADO.json` y sigue en la primera pendiente. Es idempotente: relanzarlo nunca repite
 trabajo ni pierde avance.
 
-**Regla nueva de hoy, aprendida a golpes:** un `RESULTADO.json` **no** es prueba suficiente por
-sí solo. Sólo cuenta si el `VERIFICACION.json` de esa unidad no la declara *INCOMPLETA*. Lo
-refutado pierde su `RESULTADO.json` (queda como `RESULTADO.parcial.json`, como evidencia de lo
-que sí sirvió) y **vuelve a la cola**.
+**Regla vigente:** un `RESULTADO.json` **no** es prueba suficiente por sí solo. Sólo cuenta si
+el `VERIFICACION.json` de esa unidad no la declara *INCOMPLETA*. Lo refutado queda como
+`RESULTADO.parcial.json` y **vuelve a la cola**.

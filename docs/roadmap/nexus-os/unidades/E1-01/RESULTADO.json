@@ -1,0 +1,97 @@
+{
+  "unidad": "E1-01",
+  "titulo": "Tipo ClinicalFact",
+  "etapa": "E1",
+  "fecha": "2026-07-29T04:06:30Z",
+  "estado": "completada",
+  "aceptacionLiteral": "Un hecho sin unidad o sin procedencia no valida.",
+  "comoSeCumple": {
+    "sinUnidad": "La union ValorClinico NO tiene variante de número suelto: todo número viaja como CualquierCantidad. En runtime, la cantidad se construye con parsearCantidad(), que exige que la unidad pertenezca a la dimensión DECLARADA y nunca la infiere. Y la fuga por texto queda cerrada: un texto que num() lee como número no valida (si no, '135' sería un número sin unidad que sí pasaba).",
+    "sinProcedencia": "ProcedenciaHecho es una union discriminada por `origen` con campos obligatorios y no vacíos por variante (humano · ia · motor · externo). NO existe variante de campos todos opcionales, así que `procedencia: {}` no tiene dónde caer. Es la corrección explícita del patrón que hoy sí pasa en types/expediente.ts → iaAuditoria.provenance.",
+    "antiVaciamiento": "z.strictObject en TODOS los niveles: con z.object una llave extra (p. ej. `unidad` colgada al lado de un texto) se descartaría en silencio y el productor creería que su hecho tiene unidad."
+  },
+  "archivosTocados": [
+    "src/types/clinical-fact.ts (NUEVO — tipos puros, sin zod, client-safe)",
+    "src/lib/clinical-fact/schema.ts (NUEVO — validación zod + parsearHecho)",
+    "src/types/clinical-quantity.ts (MODIFICADO — aditivo: +parsearCantidad, única puerta de entrada para datos unknown)",
+    "src/__tests__/clinical-fact.test.ts (NUEVO — 47 casos de runtime)",
+    "src/__tests__/tipos/clinical-fact.tipos.ts (NUEVO — 10 casos @ts-expect-error, gate de tsc)",
+    "src/__tests__/fixtures/clinical-facts.ts (NUEVO — datos 100% sintéticos, sin PHI)",
+    "src/lib/clinical/adr-cobertura.ts (REPARACIÓN AJENA — ver `reparacionForzadaAjena`)"
+  ],
+  "archivosDeProduccionModificados": 1,
+  "notaSobreEseArchivo": "src/types/clinical-quantity.ts. Cambio ADITIVO puro (+36 líneas, 0 borradas). El módulo sigue sin consumidores de producción (E0-05 no se ha ejecutado): `grep` de importadores = sólo src/__tests__ y el nuevo schema.ts. Los tests de E0-04 no se tocaron.",
+  "testsAgregados": [
+    "src/__tests__/clinical-fact.test.ts — 47 casos en 7 bloques: guardián del gate del compilador · aceptación «sin unidad» · aceptación «sin procedencia» · anti-vaciamiento (strict + número disfrazado de texto) · ida y vuelta por JSON (Firestore) · parsearCantidad · esUsableParaCalculo · guardián del hueco de cobertura · corrección y vigencia",
+    "src/__tests__/tipos/clinical-fact.tipos.ts — 10 casos @ts-expect-error (no lo corre vitest; lo verifican tsc y next build)"
+  ],
+  "gates": {
+    "tsc": "PASS",
+    "vitest": "PASS",
+    "build": "PASS",
+    "testsPasan": 2211,
+    "archivosDeTest": 181,
+    "comando": "npx tsc --noEmit · npx vitest run src/__tests__/ · npm run build",
+    "lineaBaseAntes": "2164 casos con 1 fallo AJENO (ver reparacionForzadaAjena)"
+  },
+  "controlNegativoEjecutado": {
+    "obligatorio": true,
+    "R5_strictObject": {
+      "que": "Sustituir z.strictObject por z.object en schema.ts",
+      "resultado": "2 tests EN ROJO ('una llave EXTRA colada junto al valor…', 'una llave extra en el hecho tampoco pasa'). Confirmado: sin strict, la llave se descarta en silencio.",
+      "revertido": true
+    },
+    "R9_refineTexto": {
+      "que": "Quitar el .refine(num(t) === null) de la variante `texto`",
+      "resultado": "3 tests EN ROJO ('un NÚMERO disfrazado de texto NO valida', el de la coma decimal mexicana y el del comportamiento seguro del hueco de cobertura). Confirmado: sin esa guarda, cualquier número entra sin unidad por la puerta del texto.",
+      "revertido": true
+    },
+    "gateDelCompilador": "npx tsc --noEmit sale 0 con los 10 @ts-expect-error CONSUMIDOS. Si alguno dejara de fallar, TS2578 tumba tsc y next build."
+  },
+  "hallazgoDeDisenoConfirmado": {
+    "id": "E1-01-H1",
+    "que": "La marca invariante de E0-04 impide escribir el parser de cantidades FUERA de clinical-quantity.ts: ClinicalQuantity<Dimension> no es asignable a CualquierCantidad.",
+    "consecuencia": "Sin `parsearCantidad` en el módulo dueño, cada consumidor habría fabricado un `as CualquierCantidad` propio y la protección de E0-04 se habría erosionado sin poner ningún test en rojo.",
+    "decision": "parsearCantidad vive DENTRO de src/types/clinical-quantity.ts, donde la aserción ya estaba confinada por diseño (función `crear`). Prohibido inferir la dimensión desde la unidad; fijado por test."
+  },
+  "decisiones": [
+    "D1 — El esquema va a src/lib/clinical-fact/, NO a src/lib/clinical/: ese directorio es territorio del Clinical Engine Registry y su trinquete de ADRs (E0-03). Esto no es un motor clínico (no calcula, no decide, no tiene umbrales) y meterlo ahí lo habría hecho reclamar como motor sin ADR, poniendo el CI en rojo por una clasificación equivocada. DEUDA_ADR_CONGELADA sin cambios.",
+    "D2 — clinical-fact.ts NO importa zod: lo importará la UI en E1-09 y no debe arrastrar zod al bundle de cliente.",
+    "D3 — Cuatro vocabularios COPIADOS, no redecididos: ClinicalTruthStatus (types/uci.ts), EfectoCorreccion (types/hospital.ts), nombres de provenance (types/expediente.ts) y la política de esUsableParaCalculo (types/uci.ts).",
+    "D4 — ICUObservation NO se sustituye ni se migra. Es un tipo hermano en producción; tocarlo no lo pide esta aceptación.",
+    "D5 — El concepto se deja OPACO (ConceptoRef.clave como string). Canonizarlo es E1-02: decidirlo aquí habría impuesto una taxonomía inventada por un agente en vez de la que ya usa el producto.",
+    "D6 — parsearHecho NUNCA rellena con defaults. Un hecho incompleto no existe; no se degrada a uno plausible."
+  ],
+  "reparacionForzadaAjena": {
+    "que": "src/lib/clinical/adr-cobertura.ts → +1 línea en DOCS_NO_ADR ('PREGUNTAS-ABIERTAS-2026-07-29.md').",
+    "porQue": "Antes de tocar nada, `npx vitest run src/__tests__/` ya salía con 1 FALLO: clinical-registry-adr.test.ts trataba ese documento como un ADR de motor huérfano. Lo creó una corrida anterior sin declararlo. No lo causó E1-01, pero sin arreglarlo E1-01 no podía declarar el gate vitest en verde. El arreglo es exactamente el que indica el mensaje del propio test y no cambia DEUDA_ADR_CONGELADA.",
+    "esMismoIncidenteQue": "El registrado por E0-04 con el mismo patrón."
+  },
+  "riesgoDeRegresion": {
+    "produccion": "nulo",
+    "porQue": "3 archivos nuevos sin importadores de producción + 1 función aditiva en un módulo que hoy nadie importa fuera de tests. 0 pantallas, 0 rutas de API, 0 firestore.rules, 0 impresión/PDF/Word, 0 firma, 0 cobros. next build compila y prerrenderiza las 127 páginas igual que antes."
+  },
+  "necesitaValidacionClinica": false,
+  "preguntasQueNoBloquean": [
+    "¿Un mismo hecho puede tener DOS certezas a la vez (p. ej. `historical` + `suspected`)? Hoy CertezaHecho es un valor único, copiado de UCI. Si la respuesta es sí, es un cambio de forma en E1-08, no aquí.",
+    "¿`estado: 'preliminar'` (lab no validado por el laboratorio) debe MOSTRARSE en el grafo o esconderse hasta el `final`? E1-01 sólo lo representa; quién lo muestra lo deciden E1-07/E1-09. Hoy hl7/v2.ts emite todo como 'final'.",
+    "Confirmar que UCUM es asunto de la frontera de EXPORTACIÓN (lib/fhir/recursos.ts ya lo emite) y no del almacenamiento. E1-01 deja `codigo` opcional y no guarda UCUM en el hecho. Si debiera guardarse, es un campo más en E1-02, no un rediseño."
+  ],
+  "necesitaValidacionDelDrParaOtraUnidad": {
+    "id": "E1-01-COBERTURA",
+    "bloqueaA": "E1-03",
+    "noBloqueaA": "E1-01 (esta unidad queda cerrada)",
+    "que": "El catálogo de unidades de E0-04 NO puede expresar 14 de los 35 datos que el grafo necesitará primero. MEDIDO contra el repo y fijado por test (bloque 6 de clinical-fact.test.ts): de SignosVitales faltan lpm, rpm, °C, cm, kg/m², puntos y la TA compuesta; de ANALITOS faltan U/L, 10³/µL y µUI/mL.",
+    "porQueNoSeAmpliaAqui": "Ampliar el catálogo toca un guardián deliberado de E0-04 (el test que dice «no hay dimensión de temperatura: °C↔°F es afín, no un factor»), y reescribir un candado ajeno de puntillas es justo lo que la carta operativa prohíbe. Va como unidad aparte, con el invariante afinado a «ninguna dimensión contiene °C y °F a la vez».",
+    "comportamientoSeguroMientrasTanto": "Un dato cuya unidad no está en el catálogo NO puede construirse como hecho numérico, y tampoco puede colarse como texto. Falla ruidosamente en vez de perder la unidad. Verificado por test.",
+    "decisionesDiferidas": [
+      "Temperatura: añadir `temperatura: '°C'` como dimensión de UNA sola unidad no reintroduce el problema afín (no hay dos unidades entre las que convertir), pero obliga a reescribir el guardián de E0-04.",
+      "Cuentas y actividad enzimática (10³/µL, U/L, µUI/mL): dimensiones nuevas de una sola unidad; aditivo y sin criterio clínico, pero le corresponde a quien tenga productores reales (E1-03).",
+      "Presión arterial compuesta ('120/80'): NO es un hecho, son dos (sistólica y diastólica), como ya hace lib/fhir/recursos.ts con sus dos `component`. Decisión del proyector E1-03; E1-01 no la prejuzga."
+    ]
+  },
+  "deudaHeredadaNoCerrada": "E0-04-L1 (la marca indexa por dimensión, no por unidad, así que un spread puede cambiar `unidad` sin cambiar el valor → error de escala de 1000×). E1-01 NO lo agrava —los hechos se construyen por parsearHecho/parsearCantidad, nunca por spread— pero tampoco lo cierra. Su cierre sigue asignado a E0-05.",
+  "habilita": ["E1-02", "E1-03", "E1-04", "E1-05", "E1-06", "E1-07", "E1-08", "E1-09"],
+  "desplegado": false,
+  "push": false
+}

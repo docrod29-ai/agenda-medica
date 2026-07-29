@@ -224,6 +224,42 @@ export function cantidadDesde<D extends Dimension>(
   return n === null ? null : crear(n, unidad, dimension)
 }
 
+/**
+ * Única puerta de entrada para datos que vienen del EXTERIOR (Firestore, HL7 v2,
+ * un formulario, una foto de laboratorio), donde `unidad` y `dimension` llegan
+ * como `unknown` y hay que validarlas en TIEMPO DE EJECUCIÓN, no sólo en tipos.
+ *
+ * PORQUÉ VIVE AQUÍ Y NO EN EL CONSUMIDOR (hallazgo 1 de E1-01): la marca
+ * invariante hace que `ClinicalQuantity<Dimension>` NO sea asignable a
+ * `CualquierCantidad`, así que escribir este parser fuera del módulo obliga a un
+ * `as CualquierCantidad` en CADA consumidor — y por ahí se erosiona la
+ * protección de E0-04 sin que ningún test se ponga rojo. Dentro del módulo la
+ * aserción ya estaba confinada (ver `crear`), y aquí sigue confinada.
+ *
+ * NUNCA infiere la dimensión a partir de la unidad. `mL/min` y `mL/min/1.73m²`
+ * se separaron a propósito (no existe factor entre ellas: falta la superficie
+ * corporal) y adivinar reintroduciría justo el bug que este módulo impide. El
+ * productor DEBE declarar la dimensión.
+ *
+ * Devuelve `null` —nunca un 0, nunca una cantidad "plausible"— si la dimensión
+ * no está en el catálogo, si la unidad no pertenece a ESA dimensión, o si el
+ * valor no es un número finito. Fallar ruidosamente es el comportamiento seguro.
+ */
+export function parsearCantidad(valor: unknown, unidad: unknown, dimension: unknown): CualquierCantidad | null {
+  if (typeof dimension !== 'string' || !Object.prototype.hasOwnProperty.call(FACTORES, dimension)) return null
+  const dim = dimension as Dimension
+  if (typeof unidad !== 'string') return null
+  // La unidad debe pertenecer a ESA dimensión: 'mL' con dimension 'masa' → null.
+  if (!Object.prototype.hasOwnProperty.call(FACTORES[dim], unidad)) return null
+  const n = num(valor)
+  if (n === null) return null
+  // Aserción inevitable y CONFINADA: `crear` devuelve ClinicalQuantity<Dimension>,
+  // que por invarianza no es asignable a CualquierCantidad. Es el precio buscado
+  // de la marca; la validación de arriba garantiza que el par unidad/dimensión
+  // sí es legal en tiempo de ejecución.
+  return crear(n, unidad as UnidadDe<Dimension>, dim) as unknown as CualquierCantidad
+}
+
 /* Atajos legibles para lo más usado. Azúcar sobre `cantidad`, sin lógica propia. */
 export const mg = (v: number) => cantidad(v, 'mg', 'masa')
 export const mL = (v: number) => cantidad(v, 'mL', 'volumen')
