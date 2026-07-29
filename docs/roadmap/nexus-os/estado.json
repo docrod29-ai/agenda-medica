@@ -31,6 +31,7 @@
     "E0-01",
     "E0-02",
     "E0-03",
+    "E0-14",
     "E0-15"
   ],
   "reconciliacionDisco": {
@@ -89,6 +90,7 @@
     "2026-07-28T22:15:15Z — Reconciliación contra disco (2ª pasada): sin cambios. Únicos RESULTADO.json del árbol = E0-01 y E0-02. Completadas 2 de 68; pendientes 66. Selección de las siguientes 3 elegibles, sin cambio respecto a la pasada anterior porque ninguna se ejecutó: E0-03 (riesgo bajo, sin dependencias, DISENO.md ya escrito), E0-04 (medio, sin dependencias, es el desbloqueador de E0-05/E1-01/E4-01) y E0-09 (medio, sin dependencias, DISENO.md ya escrito). E0-11 sigue a una unidad de distancia: en cuanto cierre E0-03 queda elegible y es de riesgo bajo.",
     "2026-07-28T22:15:15Z — E0-10 (CSP enforce + Playwright) queda descartada de nuevo pese a ser elegible y de riesgo medio: su aceptación exige observar reportes CSP en PRODUCCIÓN antes de pasar a enforce, y la carta operativa prohíbe desplegar. Se reevaluará si el Dr. autoriza la observación en prod. El resto de E0 sin dependencias (E0-06, E0-12, E0-13, E0-14, E0-15) es de riesgo ALTO — reglas de Firestore/PHI, migración de hashes de firma, webhook de cobros Stripe y motor de antibiograma (éste además con validacionClinica) — y varias deberán entregarse como PLAN para decisión del Dr. antes de ejecutarse.",
     "E0-15 CERRADA 2026-07-28: las 4 decisiones del Dr. implementadas (a effectiveAST canonico, b MISSING->UNKNOWN, c CMI con operador, d carbapenemicos precaucion). REG-044 a REG-050. 2022 tests.",
-    "E0-03 CERRADA 2026-07-28 (segundo intento). El primero fallo por disenno: exigia un ADR por CADA motor (56 motores, 3 ADRs) -> el gate nacia rojo con 53 fallos y un gate asi se marca skip y deja de proteger. Rehecho con TRINQUETE: la deuda (52) se congela y solo puede BAJAR; un motor NUEVO sin ADR la sube y tumba el CI. Encontro un hueco real: dosis-pediatrica.md no declaraba sus golden tests."
+    "E0-03 CERRADA 2026-07-28 (segundo intento). El primero fallo por disenno: exigia un ADR por CADA motor (56 motores, 3 ADRs) -> el gate nacia rojo con 53 fallos y un gate asi se marca skip y deja de proteger. Rehecho con TRINQUETE: la deuda (52) se congela y solo puede BAJAR; un motor NUEVO sin ADR la sube y tumba el CI. Encontro un hueco real: dosis-pediatrica.md no declaraba sus golden tests.",
+    "E0-14 CERRADA 2026-07-28: sus tres componentes son REG-014 (firma aislada en config/firma, residual server-side declarado), REG-015 (cobro sella autor + monto>=0 + tipo) y REG-017 (nota nace DRAFT). Reglas de Firestore desplegadas."
   ]
 }
