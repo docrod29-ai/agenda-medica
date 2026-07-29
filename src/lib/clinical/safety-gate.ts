@@ -139,6 +139,17 @@ export const PATRONES_DESACTIVACION: readonly { nombre: string; re: RegExp }[] =
   { nombre: 'xit/xdescribe', re: /^\s*x(?:it|describe)\s*[(`]/m },
   { nombre: 'only', re: /^\s*(?:describe|it|test)(?:\.each\([^)]*\))?\.only\s*[(`]/m },
   { nombre: 'todo', re: /^\s*(?:describe|it|test)\.todo\s*[(`]/m },
+  // skipIf/runIf — el bypass que encontró la verificación adversarial de E0-11.
+  // NO son "desactivación exótica": son API de primera clase de vitest y apagan
+  // el archivo ENTERO sin borrar una sola línea `it(`, así que pasaban las tres
+  // aserciones a la vez (no hay .skip, el conteo de casos no baja) y vitest
+  // reporta el archivo como SKIPPED, no failed — o sea el job `verificar`
+  // también salía verde. Demostrado sobre clinical-safety-harness.test.ts:
+  // `describe.skipIf(true)(` apagaba sus 42 casos (CKD-EPI, MELD, FIB-4, SOFA)
+  // con TODO el CI en verde. Se acepta el falso positivo de un `skipIf(false)`
+  // legítimo: en un invariante clínico, condicionar la ejecución ya merece
+  // revisión humana.
+  { nombre: 'skipIf/runIf', re: /^\s*(?:describe|it|test)(?:\.each\([^)]*\))?\.(?:skipIf|runIf)\s*\(/m },
 ]
 
 /**

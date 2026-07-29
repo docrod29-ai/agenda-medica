@@ -199,6 +199,13 @@ describe('E0-11 · ASERCIÓN 6: autotest — el gate no es de cartón', () => {
     "describe.only('bloque', () => {})",
     "  it.todo('pendiente')",
     "  it.each([1,2]).skip('caso %s', () => {})",
+    // El bypass que encontró la verificación adversarial de E0-11 (ver
+    // PATRONES_DESACTIVACION en safety-gate.ts). Apagan el archivo entero sin
+    // borrar una sola línea `it(`, así que antes pasaban las tres aserciones.
+    "describe.skipIf(true)('bloque', () => {})",
+    "  it.skipIf(process.env.CI)('caso', () => {})",
+    "describe.runIf(false)('bloque', () => {})",
+    "  test.runIf(algo)('caso', () => {})",
   ]
   const noDebeDetectar = [
     "  it('no salta pasos', () => {})",
@@ -214,6 +221,30 @@ describe('E0-11 · ASERCIÓN 6: autotest — el gate no es de cartón', () => {
 
   it.each(noDebeDetectar)('NO dispara con: %s', (linea) => {
     expect(buscarDesactivaciones(linea)).toEqual([])
+  })
+
+  it('el bypass skipIf sobre el harness REAL queda detectado', () => {
+    // Reproduce el ataque exacto que demostró la verificación adversarial de
+    // E0-11, sobre el contenido REAL del harness clínico (no un fixture): se
+    // sustituye `describe(` por `describe.skipIf(true)(` y el archivo entero
+    // queda apagado. Antes del arreglo esto daba desactivaciones = 0 mientras
+    // vitest reportaba el archivo como SKIPPED (no failed), o sea los dos jobs
+    // de CI en verde con CKD-EPI, MELD, FIB-4 y SOFA sin ejecutarse.
+    const harness = readFileSync(
+      resolve(process.cwd(), 'src/__tests__/clinical-safety-harness.test.ts'),
+      'utf8',
+    )
+    expect(buscarDesactivaciones(harness)).toEqual([]) // el archivo real está sano
+
+    const apagado = harness.replace(/^describe\(/m, 'describe.skipIf(true)(')
+    expect(apagado).not.toBe(harness) // el ataque se aplicó de verdad
+
+    const hallazgos = buscarDesactivaciones(apagado)
+    expect(hallazgos.length).toBeGreaterThan(0)
+    expect(hallazgos[0].patron).toBe('skipIf/runIf')
+
+    // Y el conteo de casos NO baja: por eso el trinquete solo no bastaba.
+    expect(contarCasos(apagado)).toBe(contarCasos(harness))
   })
 
   it('las regex no arrastran estado entre llamadas (sin flag /g)', () => {
