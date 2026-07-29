@@ -1,0 +1,85 @@
+{
+  "unidad": "E2-02",
+  "titulo": "Extractor PICO",
+  "rol": "verificador adversarial (REFUTAR) — solo lectura sobre el repo",
+  "fecha": "2026-07-29",
+  "commitVerificado": "7a54d1a feat(nexus-os E2-02): Extractor PICO",
+  "veredicto": "INCOMPLETA",
+  "cumpleAceptacion": false,
+  "aceptacionDelBacklog": "La búsqueda se arma desde PICO, no desde embeddings del texto crudo.",
+
+  "resumenDelVeredicto": "El código existe, hace exactamente lo que dice y está bien probado: los tres controles negativos que reclama se reproducen sobre el código REAL, y 9 mutaciones que yo introduccí de forma independiente ponen los tests en rojo. No inventó ninguna regla clínica, no hay PHI ni secretos, y NO rompió nada (0 archivos de producción modificados, 0 callers). PERO la aceptación de la unidad no habla del módulo: habla de LA BÚSQUEDA. Y la búsqueda del producto sigue armándose desde texto crudo: expediente/evidencia/route.ts:73 sigue pegando `[dx[0], ...meds.slice(0,2)].join(' ')` y consultor-evidencia/route.ts:148-172 sigue dejando que el modelo DICTE las líneas y cayendo a la pregunta cruda. El módulo nace sin un solo importador. La aceptación se cumple DENTRO de la frontera de tipos del módulo, no en el producto. Además la postergación se atribuye a E2-05, que en el backlog es «Claim-level citation» y no el cableado: hoy NINGUNA unidad del backlog es dueña de ese cableado.",
+
+  "loQueSEVerificoIndependientemente": {
+    "existenciaYContenido": "Los 4 archivos existen y coinciden con lo afirmado: src/lib/evidencia/pico.ts (638 líneas: 3 marcas fantasma declare const :87-89, fábricas :230 y :273, ensamblador :315-359, backoff :371, 3 extractores :415 / :564 / :627), src/lib/evidencia/buscar-con-pico.ts (:33 firma que sólo acepta NoVacio<ConsultaPubMed>), src/__tests__/tipos/pico.tipos.ts (9 @ts-expect-error activos), src/__tests__/pico-extractor.test.ts (35 casos, contados uno a uno).",
+    "gatesRealesCorridosPorMi": "npx tsc --noEmit → EXIT=0, sin una sola línea de salida. npx vitest run src/__tests__/ → 185 archivos, 2357 tests, TODOS en verde (2.70 s). Coincide con lo reportado.",
+    "mutationTesting": "Copié el repo a un espejo aislado en el scratchpad (src + tsconfig + vitest.config + node_modules por symlink) y corrí 9 mutaciones sobre pico.ts; el repo NO se tocó (git status idéntico antes y después). TODAS fueron cazadas: (M1) quitar el rechazo booleano → 2 rojos (5, 5b); (M2) quitar el rechazo de field tag → 1 rojo (6); (M3) volver a concatenar dx+meds en P, el bug de route.ts:73 → 2 rojos (20, 21); (M4) demografía por defecto → 1 rojo (23); (M5) dejar de propagar `degradada` → 1 rojo (27); (M6) alterar ORDEN_FACETAS → 3 rojos (15, 18, 19); (M7) backoff con consultas repetidas → 2 rojos (18, 24); (M8) quitar el dedup entre facetas → 1 rojo (19); (M9) picoDesdeModelo sin exigir P → 1 rojo (8). Los tests NO pasan de todos modos: son sensibles.",
+    "controlesNegativosDelCompilador": "Reproducidos EXACTAMENTE, incluidos los números de línea que reclama el RESULTADO.json. C1 quitar [MARCA_CONSULTA] → 'src/__tests__/tipos/pico.tipos.ts(65,1): error TS2578: Unused @ts-expect-error directive'. C2 relajar poblacion a readonly TerminoPICO[] → TS2578 en (54,1) y (73,1). Añadí uno mío, C4: permitir string[] en buscarConPICO → TS2578 en (46,1). La puerta del compilador es real.",
+    "elGateEstaEnCI": ".github/workflows/ci.yml:44-49 corre `npx tsc --noEmit`, `npx vitest run` y `npm run build`; y tsconfig.json incluye `**/*.ts`, así que pico.tipos.ts SÍ se compila aunque vitest lo ignore (su include es src/__tests__/**/*.test.ts, vitest.config.ts:7). El mecanismo que describe funciona.",
+    "sinRegresion": "git diff HEAD~1 -- src/app/ está VACÍO. pubmed.ts y traducir-medico.ts intactos. grep de callers fuera del propio módulo y de src/__tests__: CERO resultados. Es imposible que esta unidad rompa algo en producción — y es también por eso que no puede cumplir su aceptación.",
+    "sinReglaClinicaInventada": "Revisado explícitamente. Los 3 topes (MAXIMO_PALABRAS_TERMINO=6 :107, MAXIMO_TERMINOS_POR_FACETA=5 :110, MAXIMO_CARACTERES_TERMINO=80 :113) son guardas de software declaradas, no umbrales clínicos. NO mapea edad a banda etaria y lo dice (:496, :585-587). NO emite MeSH/field tags. NO toca FILTRO_HQ ni RANK de pubmed.ts. SEXO_EN (:498-501) es traducción literal de dos palabras y es coherente con la convención del propio repo ('Masculino'|'Femenino'|'Otro', src/types/index.ts:181); un valor fuera del mapa NO se adivina (:579, test 23b). Ninguna dosis, ningún corte, ningún gold answer inventado.",
+    "sinPHIniSecretos": "Fixtures 100% sintéticos: 'IVU recurrente', 'DM2', 'nitrofurantoína', 'Paciente Ficticio', folio 'X-1'. Ningún dato real, ninguna llave. El test 25 usa un Proxy espía y demuestra que picoDesdeNota SÓLO lee motivo/diagnosticos/medicamentos/edad/sexo; verifiqué en el código que efectivamente no hay otra lectura (:564-610). Demografía OFF por defecto."
+  },
+
+  "problemasEncontrados": [
+    {
+      "id": "V-1",
+      "gravedad": "ALTA — es la razón del veredicto",
+      "titulo": "La aceptación no se cumple en el producto: cero callers",
+      "evidencia": "src/app/api/expediente/evidencia/route.ts:72-74 sigue armando `consultasDet` con texto crudo, incluido `consultasDet.push([dx[0], ...meds.slice(0, 2)].join(' '))` (:73) — el mismísimo defecto que pico.ts declara reparar (pico.ts:12, :562). src/app/api/consultor-evidencia/route.ts:150 sigue pidiéndole al modelo líneas «unidas con AND/OR», :157 las recoge como strings y :166 las manda tal cual a buscarEvidenciaMulti, con caída a la pregunta cruda en :169 y :172. grep de importadores de '@/lib/evidencia/pico' fuera de src/__tests__: 0. Hoy, en la app que usa el médico, la búsqueda NO se arma desde PICO.",
+      "matiz": "La postergación es DEFENDIBLE por la regla 5 (cablear toca un flujo que el médico ya probó en vivo) y está declarada sin disimulo en RESULTADO.json y en el encabezado de pico.ts:45-47. Lo que NO es defendible es dar la unidad por 'completada': su aceptación es sobre la búsqueda, no sobre la frontera de tipos de un módulo aislado."
+    },
+    {
+      "id": "V-2",
+      "gravedad": "MEDIA",
+      "titulo": "El cableado se atribuye a E2-05, que en el backlog es otra cosa — nadie es dueño del pendiente",
+      "evidencia": "El commit, pico.ts:45-46, RESULTADO.json ('NO se cablean las rutas ni los prompts (E2-05)') y estado.json dicen que el cableado es E2-05. Pero backlog.json define E2-05 = 'Claim-level citation', aceptación «No existe 'respuesta larga + 5 referencias al final'». Ninguna unidad de E2 (E2-03 retrieval jerarquizado, E2-04 evidence graph, E2-05 claim-level citation…) declara el cableado del extractor PICO. Riesgo concreto: E2-02 queda cerrada, E2-05 se cierra por su propia aceptación, y el extractor se queda sin importador para siempre.",
+      "reparacionSugerida": "O se abre una unidad explícita de cableado (con la comparación A/B que el propio RESULTADO.json recomienda en `riesgoParaE205`), o se corrige la referencia a la unidad que realmente lo va a hacer. Es bookkeeping, no código."
+    },
+    {
+      "id": "V-3",
+      "gravedad": "BAJA",
+      "titulo": "El camino determinista SÍ descarta en silencio, contra la doctrina que el propio módulo declara",
+      "evidencia": "pico.ts:538-552 `terminoDesdeTexto` devuelve `null` sin motivo cuando el texto se queda sin términos buscables (sólo stopwords, o un único token de más de 80 caracteres), y los llamadores lo saltan sin registrar nada: :570-573 (diagnósticos) y :596-600 (medicamentos). El encabezado de la fábrica promete «no descarta en silencio» (:227-228). Un diagnóstico o un fármaco puede desaparecer de la consulta sin que nadie se entere. Ningún test cubre este caso.",
+      "impactoHoy": "Nulo (0 callers), pero es exactamente el tipo de pérdida silenciosa que el resto del repo persigue."
+    },
+    {
+      "id": "V-4",
+      "gravedad": "BAJA",
+      "titulo": "`origen: 'diccionario'` puede ser falso — la trazabilidad que la unidad vende se degrada",
+      "evidencia": "pico.ts:546-549 decide el origen comparando `traducido !== sinAcentos(crudo.toLowerCase())`. Pero `traducido` ya pasó por `limpiarTextoDeNota` (:541) y por el borrado de puntuación de `traducirBasico` (traducir-medico.ts:107). Un término que sólo perdió un punto o una coma —p. ej. 'Klebsiella pneumoniae.'— sale etiquetado 'diccionario' sin que el diccionario lo haya tocado. Ningún test lo fija."
+    },
+    {
+      "id": "V-5",
+      "gravedad": "BAJA",
+      "titulo": "Dos guardianes son más laxos de lo que aparentan",
+      "evidencia": "Test 2 (pico-extractor.test.ts:73-81) exige `>= 6` @ts-expect-error habiendo 9: se pueden borrar 3 casos negativos —incluido el caso 6, el que el propio DISEÑO llama «EL CASO CLAVE»— sin poner nada en rojo. Test 30 (:399) sólo veta `from './pubmed'`; un `from '@/lib/evidencia/pubmed'` evadiría el test de pureza. Son guardas útiles, no herméticas."
+    },
+    {
+      "id": "V-6",
+      "gravedad": "INFORMATIVA (fuera del alcance de E2-02, pero viaja en su commit)",
+      "titulo": "El commit de E2-02 registra E1-02 como corrida y completada, pero el código de E1-02 no está commiteado",
+      "evidencia": "git show HEAD toca docs/roadmap/nexus-os/estado.json añadiendo el run de E1-02 con gates PASS y 2322 tests, mientras `git status` sigue mostrando como NO RASTREADOS src/lib/clinical-fact/vocabulario.ts, src/__tests__/clinical-vocabulario.test.ts, src/__tests__/fixtures/conceptos.ts y docs/roadmap/nexus-os/unidades/E1-02/. El estado durable afirma en disco algo que el árbol de git no respalda: si alguien limpia los untracked, E1-02 queda 'hecha' sin código."
+    }
+  ],
+
+  "loQueNOEsUnProblema": [
+    "«Los tests pasarían de todos modos si se revierte»: FALSO, lo medí. 9 mutaciones independientes → 9 baterías en rojo (detalle en loQueSEVerificoIndependientemente.mutationTesting).",
+    "«Las marcas fantasma son decorativas»: FALSO. Quitar [MARCA_CONSULTA] hace compilar una ConsultaPubMed escrita a mano y dispara TS2578 en pico.tipos.ts(65,1) — lo reproduje.",
+    "«Los topes son umbrales clínicos disfrazados»: NO. Son 3 constantes de coste/forma, exportadas, parametrizables y sin ninguna consecuencia médica.",
+    "«Rompió algo»: NO. 0 archivos de producción modificados, src/app sin diff, 0 importadores; los 2357 tests del repo pasan."
+  ],
+
+  "queHariaFaltaParaCONFIRMADA": [
+    "Que al menos un camino real de búsqueda arme su consulta con consultaDesdePICO/consultasDesdePICO, con la comparación A/B que el propio RESULTADO.json recomienda (misma nota → cadena cruda vs. consulta PICO, contando artículos) ANTES de retirar el camino viejo.",
+    "O, si el cableado se posterga (regla 5, que es razonable aquí): cerrar la unidad como PARCIAL / necesita_cableado en estado.json, y nombrar la unidad que sí lo va a hacer, porque E2-05 del backlog es 'Claim-level citation' y no ese cableado.",
+    "Opcional, barato: cubrir V-3 (descartes silenciosos con motivo) y endurecer el guardián del test 2 a los 9 casos existentes."
+  ],
+
+  "gatesObservadosPorElVerificador": {
+    "tsc": "PASS (EXIT=0, salida vacía)",
+    "vitest": "PASS — 2357 tests / 185 archivos",
+    "build": "NO EJECUTADO por el verificador (tsc y vitest son suficientes para el veredicto; el CI corre el build en ci.yml:48)",
+    "repoIntacto": "git status idéntico antes y después de la verificación; el mutation testing se hizo en un espejo del scratchpad"
+  }
+}

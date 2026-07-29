@@ -1,0 +1,92 @@
+{
+  "unidad": "E1-02",
+  "titulo": "Vocabulario de conceptos clínicos",
+  "verificador": "adversarial (solo lectura)",
+  "fecha": "2026-07-29",
+  "veredicto": "INCOMPLETA",
+  "cumpleAceptacion": true,
+  "aceptacionLiteral": "'creatinina', 'Cr' y 'creatinina sérica' resuelven al mismo concepto.",
+
+  "loQueSEverificoDeVerdad": {
+    "archivosExisten": "SÍ. src/lib/clinical-fact/vocabulario.ts (420 líneas), src/__tests__/clinical-vocabulario.test.ts, src/__tests__/fixtures/conceptos.ts — los tres sin trackear en git (working tree), como declara CHECKPOINT.md:357-360. docs/roadmap/nexus-os/unidades/E1-02/RESULTADO.json existe. estado.json y CHECKPOINT.md YA contienen E1-02 (committeados junto a E2-02, 7a54d1a), no había diff pendiente: `git diff -- docs/roadmap/nexus-os/` sale vacío.",
+    "aceptacionReal": "SE CUMPLE, no sólo aparentemente. vocabulario.ts:168 declara sinonimos de `creatinina` = ['creatinina','cr','creatinina serica','creatinina en suero','creatinina plasmatica']; el índice de crearResolvedor (vocabulario.ts:308-319) apunta los tres términos a la MISMA entrada del catálogo, que es un único objeto creado en el .map de vocabulario.ts:243. El test lo comprueba por identidad de referencia (`toBe`), no por igualdad de clave: clinical-vocabulario.test.ts:73-82.",
+    "antiCumplimiento1_especimen": "BLINDADO DE VERDAD. `creatinina_orina` es un concepto propio (vocabulario.ts:260-267) sin un solo sinónimo compartido; test clinical-vocabulario.test.ts:89-108.",
+    "antiCumplimiento2_regex": "BLINDADO. La resolución es igualdad exacta sobre término normalizado (vocabulario.ts:337 `indice.get(t)`), no `test()` ni `includes()`. Verificado que en producción sigue viva la falla contraria: analitos.ts:62 `/\\b(potasio|k)\\b/i` hace que analitoDe('vitamina K') caiga en potasio; el módulo nuevo NO lo hereda (fixtures/conceptos.ts:27-33 + test:115-140).",
+    "gatesEjecutadosPorMi": {
+      "tsc": "PASS (npx tsc --noEmit, exit 0)",
+      "vitestSuiteCompleta": "PASS — 185 archivos / 2357 tests verdes",
+      "vitestSoloE1_02": "PASS — 46/46 (npx vitest run src/__tests__/clinical-vocabulario.test.ts)",
+      "build": "NO EJECUTADO por el verificador"
+    },
+    "regresion": "NINGUNA DETECTADA. `grep -rn 'clinical-fact/vocabulario' src --include=*.ts --include=*.tsx` fuera de src/__tests__ devuelve CERO resultados: el módulo nace sin importadores de producción. `git diff --stat` sobre archivos trackeados sale VACÍO — no se modificó ni un archivo existente. analitos.ts, fhir/recursos.ts y clinical-fact/schema.ts están intactos.",
+    "loincNoInventados": "CONFIRMADO. Los 10 LOINC de signos vitales (vocabulario.ts:215-225) coinciden uno a uno con los de producción: fhir/recursos.ts:81-88 (fc 8867-4, fr 9279-1, temperatura 8310-5, spo2 2708-6, peso 29463-7, talla 8302-2, imc 39156-5, glucometria 2339-0) y recursos.ts:116-117 (ta_sistolica 8480-6, ta_diastolica 8462-4). Los 25 conceptos de laboratorio salen con `codigos: []` y trinquete LAB_SIN_CODIGO_CONGELADO=25 (vocabulario.ts:142, test:205-216). Verificado que ANALITOS tiene 24 entradas (analitos.ts:42-65): 24+1=25. Total 35 conceptos, como se declara.",
+    "umbralesODosisInventadas": "NINGUNA. El módulo no tiene un solo número clínico: sin rangos, sin dosis, sin puntos de corte. `unidadConvencional` se COPIA de ANALITOS (vocabulario.ts:252) y el test T-6 lo fija (test:237-241).",
+    "phiOSecretos": "NINGUNO. fixtures/conceptos.ts contiene sólo cadenas de términos y un catálogo ficticio ('concepto_lab_ficticio', 'xx', 'yy'). Sin nombres, sin identificadores, sin claves."
+  },
+
+  "problemas": [
+    {
+      "id": "V-1",
+      "severidad": "P1 — afirmación falsa que además evade el propio NEEDS_CLINICAL_REVIEW",
+      "titulo": "Se inventaron DOS abreviaturas de laboratorio ('hb' y 'bt') mientras el archivo y el RESULTADO.json afirman por escrito que no se inventó ninguna",
+      "evidencia": [
+        "vocabulario.ts:181 → hemoglobina: ['hemoglobina', 'hb']",
+        "vocabulario.ts:175 → bilirrubinaTotal: ['bilirrubina total', 'bt']",
+        "vocabulario.ts:167 afirma: «'cr' es el ÚNICO sinónimo nuevo del catálogo»",
+        "vocabulario.ts:159-163 afirma: «las abreviaturas de 1-3 letras que aquí aparecen (na, k, cl, fa, alp, glu, a1c, bun, hto, hct, tsh) son EXACTAMENTE las que ya están en los regex de producción. Ni una más.» — la lista NO incluye 'hb' ni 'bt'",
+        "CONTRAPRUEBA en la fuente citada: analitos.ts:57 es /\\bhemoglobina\\b(?!\\s*(glucosilada|glicada))/i — no contiene 'hb'; analitos.ts:51 es /\\bbilirrubina total\\b/i — no contiene 'bt'",
+        "CONTRAPRUEBA en todo el repo: `grep -rniE \"\\bhb\\b\" src/lib | grep -i hemoglob` y `grep -rniE \"\\bbt\\b\" src/lib` devuelven ÚNICAMENTE vocabulario.ts:181 y :175. No hay fuente en producción para ninguna de las dos.",
+        "RESULTADO.json → needsClinicalReview.Q3.defaultAplicado dice: «Se conservan EXACTAMENTE las que ya están en los regex de analitos.ts (ni una más) + 'cr'. Nada nuevo inventado.» — es falso",
+        "RESULTADO.json → needsClinicalReview.Q3.pregunta enumera al médico «Na, K, Cl, FA, Glu, ALP, A1c, BUN, Hto, Hct, TSH» y OMITE 'Hb' y 'BT'"
+      ],
+      "porQueImporta": "No es un umbral ni una dosis, pero sí es un mapeo término→concepto creado sin fuente, y el mecanismo de seguridad de la unidad (la pregunta Q3 al médico dueño) le presenta al Dr. una lista de la que faltan justamente las dos que sí se inventaron. Si contesta «esas once están bien», habrá aprobado sin verlas 'Hb' y 'BT'. 'BT' es además la más frágil: dos letras, sin desambiguación, y el módulo entero se justifica en no repetir el error de 'vitamina K'.",
+      "porQueLosTestsNoLoAtrapan": "T-4 (test:146-189) sólo prueba unicidad y normalización — 'hb' y 'bt' no colisionan con nada, así que pasan. T-6 (test:255-266) sólo detecta analitos que se quedaron con el sinónimo por defecto; NO existe ningún test que compare los sinónimos declarados contra los literales de los regex de analitos.ts, que es exactamente la regla de derivación que el archivo dice seguir. La afirmación 'ni una más' no es falsable por la suite.",
+      "arreglo": "O se borran 'hb' y 'bt' de SINONIMOS_LAB, o se añaden explícitamente a la pregunta Q3 del RESULTADO.json y se corrige el comentario de vocabulario.ts:159-167. Además, un test que derive mecánicamente las alternativas de cada `patron` de ANALITOS y exija que todo sinónimo de 1-3 letras esté ahí (o en una lista blanca firmada) haría falsable la afirmación."
+    },
+    {
+      "id": "V-2",
+      "severidad": "P2 — sinónimos de signos vitales sin fuente y sin ninguna pregunta que los cubra",
+      "titulo": "Los sinónimos de los 10 conceptos vitales se escribieron a mano; sólo los CÓDIGOS vienen de producción",
+      "evidencia": [
+        "vocabulario.ts:206 titula la sección «los 10 LOINC COPIADOS de lib/fhir/recursos.ts» y vocabulario.ts:22 dice «Los LOINC de signos vitales se copian de lib/fhir/recursos.ts con su cita» — la cita cubre el código, NO el sinónimo",
+        "Con fuente en el repo: 'saturacion'/'saturacion de oxigeno' (uci/extraccion.ts:146), 'temperatura' (extraccion.ts:152), 'estatura' (extraccion.ts:149), 'pas'/'pad' (uci/nota.ts:55)",
+        "SIN fuente en el repo: 'pulso' (vocabulario.ts:215), 'bmi' (:221), 'dextrostix' y 'glucosa capilar' (:222) — grep en src no los encuentra fuera de vocabulario.ts",
+        "RESULTADO.json → Q3 pregunta SÓLO por abreviaturas de laboratorio; ninguna de las cinco preguntas Q1-Q5 cubre los sinónimos de signos vitales"
+      ],
+      "porQueImporta": "'glucosa capilar' → glucometria (signo vital) mientras 'glucosa serica' → glucosa (laboratorio) es una separación defendible, pero es una decisión de significado clínico que hoy no está en ninguna pregunta al médico dueño. 'dextrostix' es un nombre comercial. Riesgo real hoy: CERO, porque nadie importa el módulo.",
+      "arreglo": "Añadir un Q6 que enumere los sinónimos de vitales sin fuente, igual que Q3 hace con los de laboratorio."
+    },
+    {
+      "id": "V-3",
+      "severidad": "P3 — trampa de API, ya documentada pero no probada",
+      "titulo": "`opts.dominio` es sólo desempate: con un único candidato NO filtra, y devuelve un concepto de otro dominio en silencio",
+      "evidencia": [
+        "vocabulario.ts:340-344: si `claves.length === 1` retorna `resuelto` sin mirar `opts.dominio`; el filtro por dominio (vocabulario.ts:345-350) sólo corre en la rama de ≥2 candidatos",
+        "Consecuencia comprobable: `resolverConcepto('creatinina', { dominio: 'signo-vital' })` devuelve el concepto de LABORATORIO",
+        "Está declarado en vocabulario.ts:391 («`dominio` es una PISTA del productor»), pero NINGÚN test de T-9 (test:351-397) fija ese comportamiento, así que no está protegido contra un cambio futuro"
+      ],
+      "porQueImporta": "Un futuro consumidor (E1-03, el proyector) puede leer `dominio` como filtro y no lo es. Sin importadores hoy, riesgo cero; con el primer importador deja de serlo.",
+      "arreglo": "Un test que congele la semántica de pista-no-filtro, o cambiar a filtro estricto antes de que exista el primer consumidor."
+    },
+    {
+      "id": "V-4",
+      "severidad": "P3 — inconsistencia menor",
+      "titulo": "`TERMINOS_RESERVADOS.pcr` lista un candidato que no existe, y deja el concepto `pcr` irresoluble por su propio nombre",
+      "evidencia": [
+        "vocabulario.ts:125 → candidatos: ['pcr', 'pcr_molecular']; `conceptoPorClave('pcr_molecular')` devuelve null (no está en CONCEPTOS)",
+        "vocabulario.ts:332-335: el reservado se evalúa ANTES del índice, así que `resolverConcepto('pcr')` es `ambiguo` aunque el catálogo tenga la clave `pcr` de analitos.ts:65",
+        "El propio test lo esquiva: clinical-vocabulario.test.ts:270 `if (normalizarTermino(a.clave) in TERMINOS_RESERVADOS) continue`"
+      ],
+      "porQueImporta": "Es la decisión CORRECTA según la carta operativa (no elegir por el médico) y está documentada como NEEDS_CLINICAL_REVIEW Q2. Sólo se anota que el consumidor recibe una clave candidata que no puede resolver.",
+      "arreglo": "Ninguno urgente. Documentar en el tipo que `candidatos` puede traer sentidos aún no catalogados (ya está en vocabulario.ts:79)."
+    }
+  ],
+
+  "loQueNOEsUnProblema": [
+    "El módulo no extrae de prosa ('se solicita creatinina de control' → desconocido). Es un precio DECLARADO del diseño (vocabulario.ts:386-389) y está probado (test:136-139); no es regresión porque nadie lo consume.",
+    "Los tests no serían falsables por 'revert' porque la unidad es 100% nueva — no hay nada que revertir. En su lugar comprobé la falsabilidad por construcción: T-1 depende de que 'cr' esté en SINONIMOS_LAB:168; T-7 relee src/lib/fhir/recursos.ts desde disco (test:281, 298-302) y se pone rojo si producción cambia un LOINC; T-5 se pone rojo si alguien rellena un LOINC de laboratorio. El control negativo que reporta el RESULTADO.json (subcadena → 4 rojos en T-3) es coherente con el código, aunque NO lo re-ejecuté (habría exigido editar).",
+    "El hallazgo E1-02-H1 (analitoDe('vitamina K') → potasio) sigue vivo en producción a propósito, con plan entregado y no ejecutado (Q5). Es exactamente lo que manda la regla 5 de la carta operativa."
+  ],
+
+  "conclusion": "El software cumple el criterio de aceptación de forma robusta y verificable, no lo simula, y no rompió nada: cero archivos de producción tocados, cero importadores, tsc limpio y 2357/2357 tests verdes. No se inventó ni un umbral ni una dosis. Pero NO es CONFIRMADA: el módulo declara por escrito —en el código y en la pregunta que se le hace al médico dueño— que no añadió ninguna abreviatura nueva, y añadió dos ('hb', 'bt') que no existen en ninguna parte del repo. La lista que el Dr. debe revisar en Q3 omite justamente esas dos. Se cierra en cuanto se borren o se le presenten para su visto bueno."
+}
