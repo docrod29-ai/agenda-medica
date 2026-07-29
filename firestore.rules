@@ -298,8 +298,19 @@ service cloud.firestore {
       function camposDeIdentidadMedica() {
         return ['firmaImagenDataUrl', 'firmaPorMedico', 'cedulaProfesional', 'especialidad'];
       }
+      /**
+       * REG-014 — LA FIRMA MÉDICA VIVE APARTE Y SOLO LA LEEN LOS MÉDICOS.
+       *
+       * En Firestore las reglas son ADITIVAS: si esta regla genérica concediera
+       * lectura a `config/firma`, la regla estricta de abajo no serviría de nada
+       * (basta con que UNA regla permita). Por eso se excluye aquí el documento
+       * en vez de solo añadir una regla más específica.
+       */
+      match /config/firma {
+        allow read, write: if isMedico(clinicId);
+      }
       match /config/{docId} {
-        allow read: if isMember(clinicId);
+        allow read: if isMember(clinicId) && docId != 'firma';
         allow create: if isMedico(clinicId);
         // OJO con el paréntesis: el `isMember` va DENTRO de la segunda rama. Al
         // introducir este bloqueo por campo se escribió la condición sin él, y la

@@ -80,3 +80,58 @@ describe('REG-015 · el cobro sella autor e importe', () => {
     expect(src).toMatch(/tipo:\s*'PAYMENT'/)
   })
 })
+
+describe('REG-014 · la firma médica vive aparte', () => {
+  it('config/firma solo la leen los médicos', () => {
+    expect(RULES).toMatch(/match \/config\/firma \{[\s\S]{0,200}?allow read, write: if isMedico\(clinicId\)/)
+  })
+
+  it('la regla GENÉRICA de config EXCLUYE el documento de firma', () => {
+    // Las reglas de Firestore son aditivas: si la genérica concediera lectura a
+    // config/firma, la estricta no serviría de nada.
+    expect(RULES).toMatch(/match \/config\/\{docId\} \{[\s\S]{0,200}?allow read: if isMember\(clinicId\) && docId != 'firma'/)
+  })
+
+  it('la migración BORRA la firma del documento general (si no, el hueco sigue)', () => {
+    const src = readFileSync(resolve(process.cwd(), 'src/lib/firma-protegida.ts'), 'utf8')
+    expect(src).toMatch(/deleteField\(\)/)
+    expect(src).toMatch(/firmaImagenDataUrl:\s*deleteField\(\)/)
+    expect(src).toMatch(/firmaPorMedico:\s*deleteField\(\)/)
+  })
+
+  it('el lector cae al legado para no tirarle la firma a quien no ha migrado', () => {
+    const src = readFileSync(resolve(process.cwd(), 'src/lib/firma-protegida.ts'), 'utf8')
+    expect(src).toMatch(/return legado \?\? \{\}/)
+  })
+
+  it('la migración es idempotente: sin nada que migrar no escribe', () => {
+    const src = readFileSync(resolve(process.cwd(), 'src/lib/firma-protegida.ts'), 'utf8')
+    expect(src).toMatch(/if \(!tieneLegado\) return false/)
+  })
+
+  it('el escritor ya NO persiste la firma en config/main', () => {
+    const src = readFileSync(
+      resolve(process.cwd(), 'src/app/(dashboard)/configuracion/secciones-cuenta.tsx'), 'utf8')
+    expect(src).not.toMatch(/saveConfigPartial\(clinicId, \{ firmaImagenDataUrl/)
+    expect(src).not.toMatch(/saveConfigPartial\(clinicId, \{ firmaPorMedico/)
+    expect(src).toMatch(/guardarFirma\(clinicId/)
+  })
+
+  it('los tres impresos leen la firma protegida, no config/main', () => {
+    for (const p of [
+      'src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx',
+      'src/app/(dashboard)/orden/[patientId]/[notaId]/page.tsx',
+      'src/app/(dashboard)/nota/[patientId]/[notaId]/page.tsx',
+    ]) {
+      const src = readFileSync(resolve(process.cwd(), p), 'utf8')
+      expect(src, p).toMatch(/useFirmaProtegida\(clinicId/)
+      expect(src, p).toMatch(/firmaProtegida\.(firmaPorMedico|firmaImagenDataUrl)/)
+    }
+  })
+
+  it('el SNAPSHOT de la nota firmada sigue mandando (no cambia retroactivamente)', () => {
+    const src = readFileSync(
+      resolve(process.cwd(), 'src/app/(dashboard)/nota/[patientId]/[notaId]/page.tsx'), 'utf8')
+    expect(src).toMatch(/const firmaMostrar = nota\.firma\?\.imagenDataUrl/)
+  })
+})

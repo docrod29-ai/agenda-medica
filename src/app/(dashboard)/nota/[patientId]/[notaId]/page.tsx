@@ -7,6 +7,7 @@ import { useSmartBack } from '@/hooks/useSmartBack'
 import { imprimirElemento } from '@/lib/print-element'
 // Papel de las NOTAS: SIEMPRE carta, independiente de la config de receta.
 import { papelNota } from '@/lib/receta-template'
+import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
 import { entradaPorMedico, membreteValido, firmaValida } from '@/lib/impreso-medico'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
@@ -35,6 +36,9 @@ export default function NotaImprimiblePage() {
    * Sin configurar → carta.
    */
   const hojaNota = papelNota(config?.recetaConfig?.notaPaperSize)
+
+  /** REG-014 — la firma vive aparte y solo la leen los médicos. */
+  const { firma: firmaProtegida } = useFirmaProtegida(clinicId, config ?? undefined)
 
   /**
    * ¿Este consultorio tiene un solo médico?
@@ -202,9 +206,12 @@ export default function NotaImprimiblePage() {
   // seguro con UN médico. Con varios, estampar la firma del consultorio sobre la
   // nota de otro médico es firmar por alguien más y NO se nota. Mejor sin firma
   // (se ve y se corrige) que con la firma equivocada. Igual criterio que la orden.
+  // REG-014: la firma viva viene del subdocumento protegido. El SNAPSHOT que
+  // quedó dentro de la nota firmada (`nota.firma.imagenDataUrl`) sigue mandando:
+  // es el documento tal como se selló y no debe cambiar retroactivamente.
   const firmaMostrar = nota.firma?.imagenDataUrl
-    || entradaPorMedico(config?.firmaPorMedico, nota.metadata?.medicoId, firmaValida, unicoMedico)
-    || (unicoMedico ? config?.firmaImagenDataUrl : undefined)
+    || entradaPorMedico(firmaProtegida.firmaPorMedico, nota.metadata?.medicoId, firmaValida, unicoMedico)
+    || (unicoMedico ? firmaProtegida.firmaImagenDataUrl : undefined)
   const mem = (medMembrete?.url ?? config?.notaMembreteDataUrl)?.trim()
   const membrete = (mem && /^(https?:|\/api\/|data:image)/.test(mem)) ? mem : undefined
   const mMemb = medMembrete?.margenes ?? config?.notaMembreteMargenes ?? { top: 42, right: 22, bottom: 28, left: 22 }

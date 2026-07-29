@@ -7,6 +7,7 @@
  * - MiembrosActivos: gestión de miembros del equipo.
  * Sin cambio de comportamiento respecto al monolito original.
  */
+import { guardarFirma, migrarFirmaSiHaceFalta } from '@/lib/firma-protegida'
 import { useState, useEffect } from 'react'
 import type { ClinicConfig, Doctor as DoctorT } from '@/types'
 import { getDoctors, saveConfigPartial } from '@/lib/firestore'
@@ -190,20 +191,48 @@ export function FirmaUploadSection({ form, clinicId, onLocalChange }: {
   const firmaDataUrl = medicoSel ? form.firmaPorMedico?.[medicoSel] : form.firmaImagenDataUrl
 
   // Guarda la firma del médico (merge conserva las de los demás) o la general.
+  /**
+   * REG-014 — la firma se guarda en el SUBDOCUMENTO PROTEGIDO (`config/firma`),
+   * que solo pueden leer los médicos. Ya NO se escribe en `config/main`, cuyo
+   * `read` es `isMember`: ahí cualquier miembro del consultorio podía leerla con
+   * el SDK y llevársela para estampar recetas.
+   *
+   * `onLocalChange` sigue actualizando el formulario en memoria para que la
+   * vista previa reaccione al instante; lo que cambia es DÓNDE se persiste.
+   */
   const persistir = (url: string | undefined) => {
     const medico = doctores.find(d => d.id === medicoSel)
-    if (medicoSel) {
-      onLocalChange({ firmaPorMedico: { ...(form.firmaPorMedico ?? {}), [medicoSel]: url ?? '' } })
-      if (clinicId) saveConfigPartial(clinicId, { firmaPorMedico: { [medicoSel]: url ?? '' } })
-        .then(() => toast(url ? `Firma de ${medico?.nombre ?? 'médico'} guardada` : 'Firma eliminada', 'success'))
-        .catch((e) => toast(`No se pudo guardar: ${e instanceof Error ? e.message.slice(0, 80) : ''}`, 'error'))
-    } else {
-      onLocalChange({ firmaImagenDataUrl: url })
-      if (clinicId) saveConfigPartial(clinicId, { firmaImagenDataUrl: url ?? '' })
-        .then(() => toast(url ? 'Firma guardada' : 'Firma eliminada', 'success'))
-        .catch((e) => toast(`No se pudo guardar: ${e instanceof Error ? e.message.slice(0, 80) : ''}`, 'error'))
-    }
+    const patch = medicoSel
+      ? { firmaPorMedico: { ...(form.firmaPorMedico ?? {}), [medicoSel]: url ?? '' } }
+      : { firmaImagenDataUrl: url }
+    onLocalChange(patch)
+    if (!clinicId) return
+    guardarFirma(clinicId, medicoSel
+      ? { firmaPorMedico: { [medicoSel]: url ?? '' } }
+      : { firmaImagenDataUrl: url ?? '' })
+      .then(() => toast(
+        url
+          ? (medicoSel ? `Firma de ${medico?.nombre ?? 'médico'} guardada` : 'Firma guardada')
+          : 'Firma eliminada',
+        'success'))
+      .catch((e) => toast(`No se pudo guardar: ${e instanceof Error ? e.message.slice(0, 80) : ''}`, 'error'))
   }
+
+  /**
+   * MIGRACIÓN AUTOMÁTICA. Mientras la firma siga en `config/main`, el agujero
+   * está abierto aunque el código nuevo ya lea del subdocumento. Al abrir esta
+   * sección (solo la abre un médico) se copia y se BORRA del general.
+   * Es idempotente: si no hay nada que migrar, no escribe.
+   */
+  useEffect(() => {
+    if (!clinicId) return
+    migrarFirmaSiHaceFalta(clinicId, {
+      firmaImagenDataUrl: form.firmaImagenDataUrl,
+      firmaPorMedico: form.firmaPorMedico,
+    }).catch(() => { /* si falla, el respaldo del lector mantiene la firma viva */ })
+    // Solo al montar con clinicId: la migración es de una vez.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clinicId])
   const onChange = (url: string | undefined) => persistir(url)
 
   const subir = async (file: File) => {

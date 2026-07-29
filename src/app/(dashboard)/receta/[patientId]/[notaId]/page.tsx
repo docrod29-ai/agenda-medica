@@ -18,6 +18,7 @@ import { useToast } from '@/context/ToastContext'
 import { useParams, useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { imprimirElemento } from '@/lib/print-element'
+import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
 import { entradaPorMedico, overrideRecetaValido, firmaValida } from '@/lib/impreso-medico'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
@@ -270,16 +271,20 @@ export default function GeneradorRecetaPage() {
     // re-disparar el minteo del certificado.
   }, [clinicId, patientId, notaId, folio, recetaConfig.mostrarQR, contenidoHash])
 
+  /** REG-014 — la firma vive en un subdocumento que solo leen los médicos. */
+  const { firma: firmaProtegida } = useFirmaProtegida(clinicId, config ?? undefined)
+
   // Config con la firma del MÉDICO de esta nota (per-médico), si tiene la suya.
   const configFirma = useMemo(() => {
     if (!config) return config
     const medicoId = nota?.metadata?.medicoId
-    const firma = entradaPorMedico(config.firmaPorMedico, medicoId, firmaValida, unicoMedico)
+    // REG-014: la firma viene del subdocumento protegido, no de `config/main`.
+    const firma = entradaPorMedico(firmaProtegida.firmaPorMedico, medicoId, firmaValida, unicoMedico)
       // Con VARIOS médicos tampoco se cae a la firma global (típicamente la del
       // dueño): sería la firma de otro. Mejor sin firma, que sí se nota.
-      || (unicoMedico ? config.firmaImagenDataUrl : undefined)
+      || (unicoMedico ? firmaProtegida.firmaImagenDataUrl : undefined)
     return { ...config, firmaImagenDataUrl: firma }
-  }, [config, nota?.metadata?.medicoId, unicoMedico])
+  }, [config, nota?.metadata?.medicoId, unicoMedico, firmaProtegida])
 
   /**
    * Sin firma resoluble no se imprime en silencio.
