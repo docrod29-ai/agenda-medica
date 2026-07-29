@@ -1,7 +1,7 @@
 {
   "version": 1,
   "descripcion": "ESTADO DURABLE del programa Nexus OS. Fuente de verdad del avance. Los agentes lo actualizan tras CADA unidad terminada. Si se acaban los créditos, este archivo dice exactamente dónde retomar sin perder nada.",
-  "actualizado": "2026-07-29T22:20:21Z",
+  "actualizado": "2026-07-29T22:40:34Z",
   "runs": [
     {
       "unidad": "E0-01",
@@ -263,6 +263,18 @@
         "testsPasan": 2583
       },
       "notaCierre": "Fases A + A' + B COMPLETAS y Fase C parcial (las 3 rutas donde nadie pierde acceso). CERO llamadas a verificarMedico bajo src/app/api; las 74 rutas declaradas en REGISTRO_RUTAS con guardián de tests. Las 26 que estrecharían el acceso de un usuario real quedan declaradas con su capacidad definitiva y `activacionPendiente` (Q1-Q7), no ejecutadas — regla 5 de la carta operativa. 6 sabotajes verificados en rojo, incluidos los 2 controles negativos que exigía §3.0.3 del diseño."
+    },
+    {
+      "unidad": "E0-08",
+      "fecha": "2026-07-29T22:40:34Z",
+      "resultado": "necesita_validacion",
+      "notaCierre": "Suite de aislamiento multi-tenant contra el emulador REAL entregada, tipada y en el CI (job aparte \"aislamiento-tenant\"). Los 3 gates VERDES. Lo que NO se puede firmar desde esta maquina: la propia aceptacion — el emulador de Firestore es un JAR y aqui no hay JRE, asi que las Afirmaciones A y B nunca se han ejecutado. Escribir \"cross-tenant leakage = 0 demostrado\" con la suite sin correr seria exactamente la falla que la aceptacion prohibe.",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2601
+      }
     }
   ],
   "unidadEnCurso": null,
@@ -368,6 +380,22 @@
       ],
       "loQueSIquedaEnPie": "El módulo está commiteado (7a54d1a), es correcto y está bien probado: 3 controles negativos reproducidos por el verificador y 9 mutaciones independientes lo ponen en rojo. No inventó reglas clínicas, no hay PHI y NO rompió nada (0 archivos de producción modificados). NO reimplementar: falta CABLEAR.",
       "evidencia": "docs/roadmap/nexus-os/unidades/E2-02/VERIFICACION.json"
+    },
+    {
+      "unidad": "E0-08",
+      "titulo": "Firebase Emulator + matriz multi-tenant",
+      "motivo": "La aceptacion literal (\"cross-tenant leakage = 0 DEMOSTRADO, no asumido\") exige una corrida real del motor de reglas, y el emulador de Firestore es un JAR: en la maquina del agente no hay JRE (java -version devuelve \"Unable to locate a Java Runtime\"). Las Afirmaciones A (1 120 intentos cross-tenant que deben denegarse) y B (8 controles positivos) estan escritas y se recolectan sin error, pero NUNCA se han ejecutado.",
+      "origen": "limitacion-del-entorno",
+      "reintentar": false,
+      "noReimplementar": true,
+      "bloqueadaPor": "EXTERNO al workflow: hace falta un JRE (brew install --cask temurin, cambio del sistema que la carta operativa no autoriza al agente) o la primera corrida del job \"aislamiento-tenant\" en el CI.",
+      "queFaltaExactamente": [
+        "Correr \"npm run test:emulador\" en una maquina con JRE (o abrir el primer PR para que corra el job \"aislamiento-tenant\" del CI) y transcribir el resultado.",
+        "Ejecutar y restaurar los 3 controles negativos conductuales de docs/testing/emulador-multitenant.md: isMember -> isAuth (A roja), borrar el default-deny (A roja), no sembrar clinics/{t} (SOLO B roja).",
+        "Si la corrida descubre una fuga real: NO parchear aqui. Reportarla con el caso reproducible y abrir unidad propia."
+      ],
+      "loQueSIquedaEnPie": "TODO el software, verificado: generador puro que deriva 2 304 casos de MATRIZ_ACCESO, guardian estatico de 18 pruebas en el gate normal con 6 controles negativos ejecutados en rojo y restaurados, job de CI aparte con setup-java, y el gate compartido protegido en tres capas (probado: \"npx vitest run src/__tests__/\" sigue verde en una maquina SIN Java). firestore.rules NO se toco.",
+      "evidencia": "docs/roadmap/nexus-os/unidades/E0-08/RESULTADO.json"
     }
   ],
   "necesitaValidacionDelDr": [
@@ -622,6 +650,18 @@
       "porQue": "Gobierna 6 de las 11 rutas que estrechan (appointments, calendar/sync, portal/link, whatsapp/waitlist-notify, whatsapp/entregas, facturacion/pagos). Un 403 nuevo en appointments deja a alguien sin poder agendar y se lee como «la app se rompió»; en whatsapp/waitlist-notify corta confirmaciones de cita.",
       "bloquea": false,
       "bloqueaQue": "6 rutas de Fase C"
+    },
+    {
+      "unidad": "E0-08",
+      "decision": "E0-08-Q2 — ¿instalo un JRE en su maquina (brew install --cask temurin) para poder correr aqui la prueba de aislamiento, o se demuestra solo en GitHub (CI) al abrir el primer PR?",
+      "porQue": "Sin Java la prueba no arranca, y sin arrancarla nadie puede firmar la frase \"ninguna clinica puede leer los datos de otra: demostrado\". El software esta listo y en verde; falta ejecutarlo una vez.",
+      "bloquea": true
+    },
+    {
+      "unidad": "E0-08",
+      "decision": "E0-08-Q1 — ¿acepta que el CI gane un job de ~2-3 min y que la instalacion de dependencias se alargue en los dos jobs existentes (487 paquetes de desarrollo por firebase-tools)?",
+      "porQue": "Es el costo de probar el aislamiento contra el motor real y de forma REPRODUCIBLE (versiones fijadas en el lockfile). Ya quedo aplicado como default. Nada de eso viaja a produccion: son dependencias de desarrollo.",
+      "bloquea": false
     }
   ],
   "siguientesElegibles": {
@@ -745,7 +785,11 @@
     "E0-07: la fuente de verdad de ROLES es src/lib/authz/matriz-acceso.ts (E0-06) y la de CAPACIDADES es src/lib/authz/capabilities.ts. Ninguna unidad posterior debe declarar otra lista de roles. E0-07 cerró la 3.ª (types/index.ts ClinicMember.role) y la 4.ª (permissions.ts, que ahora deriva).",
     "E0-07: el catálogo quedó en 14 capacidades, no 12. Las 12 del diseño no expresaban 1:1 el GATES de hospital/mutar (verificar_farmacia = {farmacia,medico,admin} no salía de ninguna), así que se añadieron `pase.registrar` y `farmacia.verificar`. Sin ellas la migración habría cambiado quién verifica en farmacia.",
     "E0-07: el mensaje de 403 cambió de 'Requiere rol de médico.' a 'Tu rol no tiene permiso para esta acción (requiere: <capacidad>).' No hay consumidores de ese texto en el cliente (buscado). El ROL a propósito NO viaja en el cuerpo (filtraría la composición del equipo); va al log del servidor vía safeLog.",
-    "E0-07 corrigió una cifra del diseño: son 13 rutas sin guardián de sesión, no 15. `portal` y `payment/create-checkout` sí tienen guardián (verificarTokenPaciente) y se declaran como `tokenPaciente`."
+    "E0-07 corrigió una cifra del diseño: son 13 rutas sin guardián de sesión, no 15. `portal` y `payment/create-checkout` sí tienen guardián (verificarTokenPaciente) y se declaran como `tokenPaciente`.",
+    "E0-08: las reglas de Firestore ya NO se prueban solo leyendo el archivo. Hay una suite que pregunta al MOTOR REAL — pero todavia no se ha ejecutado nunca (falta un JRE). El hueco que cierra: firestore-rules-guard.test.ts comprueba que la CADENA \"memberClinicId() == clinicId\" esta escrita; un match nuevo mal anidado la deja intacta, rompe el aislamiento y pasa en verde.",
+    "E0-08: firestore.rules NO se modifico. La unidad MIDE, no cambia politica. Si la primera corrida descubre una fuga, se reporta con caso reproducible y se abre unidad propia — no se parchea dentro de la unidad que estaba midiendo.",
+    "E0-08: el riesgo #1 de la unidad NO era clinico sino de infraestructura — que los specs del emulador contaminaran \"npx vitest run src/__tests__/\" (el gate compartido de TODO el programa) y lo pusieran rojo en las maquinas sin Java, tumbando el lote de las demas unidades. Cerrado en tres capas + 2 controles negativos en rojo.",
+    "E0-08: npm audit reporta 32 vulnerabilidades (9 moderate, 23 high) TODAS en el arbol transitivo de firebase-tools, que es devDependency: no viaja al bundle ni al servidor. Anotado, no arreglado."
   ],
   "paraReintentar": [
     {
@@ -830,6 +874,22 @@
       "id": "E0-06-D1",
       "decision": "¿La asistente puede capturar alergias/antecedentes en el alta sin poder leerlos después? (a) no puede · (b) write-only · (c) solo alergias",
       "porQue": "Sin esta respuesta el bloque de reglas `patients/{id}/clinico` no puede fijarse (hoy está en lo estricto: isMedico para leer y escribir) y la Fase B no debe fusionarse. Es una decisión de operación y privacidad, no clínica."
+    },
+    {
+      "unidad": "E0-08",
+      "id": "E0-08-Q2",
+      "decision": "¿JRE local (brew install --cask temurin) o demostrar el aislamiento solo en CI?",
+      "porQue": "Es lo unico que separa a esta unidad de estar cerrada. No es criterio clinico ni de negocio: es un runtime de Java para levantar el emulador de Firestore.",
+      "defaultAplicado": "Ninguno. La unidad se cierra \"necesita_validacion\" a proposito en vez de declarar \"demostrado\" sin evidencia.",
+      "bloquea": true
+    },
+    {
+      "unidad": "E0-08",
+      "id": "E0-08-Q1",
+      "decision": "¿Se acepta el costo del job nuevo de CI y del \"npm ci\" mas largo por firebase-tools?",
+      "porQue": "Alternativa descartada: resolver la dependencia con \"npx --yes\" en tiempo de CI, que no queda en el lockfile (no reproducible) y ademas deja \"npx tsc --noEmit\" rojo, porque emulator/ SI entra al typecheck.",
+      "defaultAplicado": "Aceptado: dependencias pinneadas en package.json + package-lock.json y job \"aislamiento-tenant\" anadido.",
+      "bloquea": false
     }
   ]
 }

@@ -1,25 +1,31 @@
 # Nexus OS — dónde vamos
 
-> **En 30 segundos.** Van **10 de 68** unidades cerradas. Hoy se trabajó **E0-07**: hasta ahora su
-> sistema sólo sabía distinguir **dos** clases de persona —«es del consultorio» y «es médico»—, y
-> con eso decidía **74** puertas distintas. Ahora cada puerta dice **qué permiso exige** (firmar,
-> receta, cobrar, facturar, administrar, dar un medicamento…), y hay una prueba que se pone roja si
-> mañana alguien añade una puerta nueva y **no la declara**.
-> **Lo que se cambió de verdad hoy:** las **18** puertas que pedían «ser médico» ahora piden el
-> permiso concreto —**exactamente las mismas personas pasan**, comprobado una por una—, y las tres
-> del hospital (pase de visita, alertas, bitácora) también. **Nadie perdió acceso a nada.**
-> **Lo que NO se cambió, a propósito:** hay **26** puertas donde apretar el permiso **le quitaría
-> el acceso a alguien de su equipo hoy mismo** (su asistente, enfermería, farmacia). Están todas
-> **declaradas y firmadas**, pero siguen funcionando como antes hasta que usted diga quién debe
-> pasar → **decisiones 7.a a 7.f**.
-> **Y aparece un hueco que hay que decirle:** las **16** pantallas de IA clínica (dictar,
-> transcribir, redactar la nota) comprueban **su plan**, no **el puesto** de quien las llama. Hoy
-> una cuenta de laboratorio o de farmacia puede pedirle al sistema una nota clínica redactada.
-> El candado ya está escrito y probado; **falta una respuesta suya** → **decisión 7.a**.
+> **En 30 segundos.** Van **11 de 68** unidades cerradas. Hoy se trabajó **E0-08**, y lo que
+> arregla se dice en una frase: **hasta hoy, que los datos de una clínica no se puedan ver desde
+> otra estaba comprobado LEYENDO el archivo de permisos, no PROBÁNDOLO.** Su app tenía una prueba
+> que buscaba una línea de texto dentro de ese archivo y, si la encontraba, daba el visto bueno. Es
+> como comprobar que una puerta cierra leyendo el manual de la cerradura en vez de empujarla.
+> **Lo que se hizo hoy:** se montaron **dos consultorios de mentira** (`clinica-alfa` y
+> `clinica-beta`, con pacientes, notas y cobros **inventados**) y se escribieron **1 120 intentos de
+> robo**: cada puesto de trabajo de la clínica A —usted, su asistente, enfermería, farmacia,
+> laboratorio, facturación— tratando de leer y de escribir en **cada una de las 36 carpetas** de la
+> clínica B, en las dos direcciones. Los 1 120 deben terminar en «acceso denegado». Y va con **8
+> pruebas al revés** (que en su PROPIA clínica cada quien sí puede lo suyo), porque si no, unos
+> permisos que lo bloquearan **todo** también pasarían el examen y usted se quedaría sin app.
+> **Lo que NO se pudo hacer, y hay que decírselo sin adornos:** **esos 1 120 intentos todavía no se
+> han ejecutado ni una vez.** El simulador de la base de datos de Google necesita **Java**, y en
+> esta máquina no hay Java instalado. Así que la unidad se cierra **«falta ejecutarla»**, no
+> «hecha». Escribir «demostrado que ninguna clínica ve a la otra» sin haberlo corrido sería
+> exactamente la mentira que esta unidad venía a eliminar → **decisión 8.a** (es un sí/no de un
+> minuto).
+> **Lo que sí quedó probado hoy:** que la prueba nueva **no puede romper el resto** (se sabotearon
+> **6** cosas a propósito y las **6** salieron rojas), que **no se tocó ni una línea** de los
+> permisos de su base de datos, y que los tres controles de calidad siguen verdes.
 > **Sigue pendiente lo de siempre:** el despliegue de seguridad *(decisión 2.a)*, el error de la
-> **«Vitamina K»** vivo en producción *(decisión 1.e)* y la mudanza de las alergias *(decisión 6.a)*.
+> **«Vitamina K»** vivo en producción *(decisión 1.e)*, la mudanza de las alergias *(decisión 6.a)*
+> y la frase sobre quién dicta en su UCI *(decisión 7.a)*.
 
-Última corrida: `2026-07-29T22:20:21Z`. `tsc` verde · **2583 tests verdes** (194 archivos) ·
+Última corrida: `2026-07-29T22:40:34Z`. `tsc` verde · **2601 tests verdes** (195 archivos) ·
 `npm run build` verde · **nada desplegado, sin `push`**.
 
 ---
@@ -37,7 +43,8 @@
 | E0-15 | Antibiograma: 4 decisiones clínicas suyas implementadas | ✅ cerrada |
 | E1-01 | Un hecho clínico no existe sin unidad y sin procedencia | ✅ cerrada |
 | E2-01 | Una afirmación no existe sin el fragmento que la respalda | ✅ cerrada |
-| **E0-07** | **Cada puerta dice qué permiso exige (ya no «es médico», sí/no)** | 🟡 **hoy** — 21 puertas migradas sin quitarle acceso a nadie; 26 esperan **decisiones suyas** |
+| E0-07 | Cada puerta dice qué permiso exige (ya no «es médico», sí/no) | ✅ cerrada — 21 puertas migradas sin quitarle acceso a nadie; 26 esperan **decisiones suyas** |
+| **E0-08** | **Que una clínica no vea a otra: probado empujando la puerta, no leyendo el manual** | 🟡 **hoy** — 1 120 intentos de robo escritos y en GitHub; **falta ejecutarlos una vez** (hace falta Java) → **decisión 8.a** |
 | E0-06 | Recepción no debe ver el expediente | 🟡 agujero de la API cerrado; mudar las alergias espera **una decisión suya** |
 | E0-10 | Iframes bloqueados en sus pantallas · interruptor de seguridad | 🔴 espera **un despliegue suyo** |
 | E1-02 | «Creatinina», «Cr» y «creatinina sérica» son el mismo dato | 🔴 falta 1 test + sus respuestas |
@@ -45,11 +52,74 @@
 | E0-11 | El CI protege los invariantes clínicos | 🟡 código listo — espera 5 min suyos en GitHub |
 | E0-09 | El registro del hospital no se edita: se corrige anexando | 🟡 bloqueada — espera 1 línea suya |
 
-**10 cerradas · 7 esperándole · 51 sin empezar.**
+**11 cerradas · 7 esperándole · 50 sin empezar.**
 
 ---
 
-## Qué pasó hoy: E0-07, en español
+## Qué pasó hoy: E0-08, en español
+
+**El problema, en una frase:** su app va a atender a **varios consultorios a la vez**, y lo único
+que impide que uno vea los pacientes de otro es un archivo de permisos de la base de datos. Ese
+archivo estaba comprobado **leyéndolo**: una prueba abría el archivo, buscaba dentro la frase «la
+clínica del usuario tiene que ser igual a la clínica del dato» y, si la encontraba, daba el visto
+bueno. **Eso no comprueba nada de lo que hace la base de datos.** Si mañana alguien añade una
+carpeta nueva y la coloca mal, o pone un «o» donde iba un «y», la frase sigue estando escrita —y la
+prueba sigue verde— mientras la puerta queda abierta. La propia meta de esta unidad lo decía con
+estas palabras: *fuga entre clínicas = 0, **demostrado**, no supuesto*.
+
+**Lo que se hizo.** Se levantó la base de datos de Google **de verdad, en versión simulador**, con
+dos consultorios inventados: `clinica-alfa` y `clinica-beta`. Cada uno con su equipo completo
+—usted, asistente, enfermería, farmacia, laboratorio, recepción, facturación, administrador— y un
+documento de mentira en **cada una de las 36 carpetas** que su app usa (agenda, pacientes, notas,
+laboratorios, fotos, internamientos, signos, camas, farmacia, cobros, reseñas, chat, bitácora…).
+Después, **1 120 intentos de robo**: cada puesto de la clínica A intentando **leer** y **escribir**
+en cada carpeta de la clínica B, y también al revés. Los 1 120 tienen que terminar en «acceso
+denegado». Y aparte hay **10 pruebas** para las carpetas más delicadas —las que no llevan el nombre
+de la clínica en la dirección— incluida la que más importa: **un miembro de su clínica no puede
+mirar la ficha de un usuario de otra, ni pedir la lista completa del directorio**.
+
+**Y algo que parece un detalle y no lo es: 8 pruebas al revés.** Si los permisos se rompieran de
+forma que bloquearan **absolutamente todo**, los 1 120 intentos de robo saldrían «denegado» y la
+prueba se pondría verde… con su app inservible. Por eso hay 8 pruebas que exigen lo contrario: que
+en **su propia** clínica su asistente sí pueda crear una cita, usted sí pueda abrir una nota,
+enfermería sí pueda registrar signos, el laboratorio sí pueda subir un resultado —y que la
+asistente **no** pueda leer la nota, y que las llaves de la IA **no** las lea nadie desde el
+navegador, ni siquiera el administrador.
+
+**Lo que hay que decirle sin adornos: esos 1 120 intentos todavía no se han ejecutado.** El
+simulador de la base de datos de Google es un programa de **Java**, y esta máquina no tiene Java
+instalado. Se comprobó que las pruebas están bien escritas y que el sistema las reconoce todas (55
+pruebas), pero **reconocerlas no es correrlas**. Así que la unidad NO se declara «hecha»: se declara
+**«falta ejecutarla una vez»**. Poner «demostrado que ninguna clínica ve a otra» sin haberlo corrido
+sería exactamente la mentira que esta unidad venía a eliminar. Se arregla con un `sí` suyo →
+**decisión 8.a**.
+
+**Lo que sí quedó demostrado hoy, con evidencia:**
+
+- **La prueba nueva no puede tumbar el resto del trabajo.** Ése era el riesgo real de esta unidad, y
+  no era clínico: si las pruebas del simulador se hubieran mezclado con las de siempre, **todas las
+  demás unidades del programa se pondrían rojas** en cualquier máquina sin Java. Están separadas en
+  tres capas, y hay un vigilante que se pone rojo si alguien las mezcla.
+- **Se sabotearon 6 cosas a propósito y las 6 salieron rojas** (y se restauraron): borrar la
+  separación, colar una prueba del simulador entre las normales, cambiar el comando por uno que
+  dejaría el proceso colgado, dejar de fijar la versión de una dependencia, borrar el trabajo nuevo
+  del CI, y **encoger la lista de carpetas vigiladas**. Ese último es el importante: garantiza que
+  la prueba **no se puede vaciar con el tiempo** sin que salte.
+- **No se tocó ni una línea del archivo de permisos.** Esta unidad **mide**, no cambia la política.
+  Si al ejecutarla apareciera una fuga real, se reporta con el caso exacto y se abre trabajo aparte:
+  arreglar a ciegas los permisos de producción desde dentro de la prueba que los estaba midiendo es
+  como se rompen las cosas de verdad.
+- **Cero datos suyos.** Dos consultorios inventados, y el simulador arranca con un identificador de
+  proyecto `demo-…` que hace que el programa **se niegue** a conectarse a una base de datos real. No
+  puede tocar a un paciente aunque alguien se equivoque.
+
+**Se corrigió una cifra del propio diseño:** las carpetas bajo la clínica son **36**, no 39 (y 9 más
+en la raíz). Se contaron contra el código. Un número a ojo en un documento de seguridad es una
+señal de que nadie lo verificó.
+
+---
+
+## Lo de la corrida anterior: E0-07
 
 **El problema, en una frase:** su sistema tenía **un interruptor de dos posiciones** para decidir
 **74** cosas distintas. La posición «es del consultorio» abría la agenda… y también la conversión
@@ -97,6 +167,12 @@ documento de seguridad es una señal de que se copió a ojo.
 
 ## 👉 Lo siguiente
 
+**Lo más barato de todo, y es de hoy: la decisión 8.a.** Un sí/no. Si me dice «instala Java», la
+prueba de aislamiento se ejecuta en esta máquina y **E0-08 pasa de «falta ejecutarla» a cerrada el
+mismo día** — con la frase «ninguna clínica puede ver a otra» por fin **demostrada**. Si me dice
+«sólo en GitHub», también sirve: corre sola en cuanto se abra el primer Pull Request, sólo tarda más
+en llegar la respuesta. Lo que no voy a hacer es instalar cosas en su computadora sin preguntarle.
+
 **Si contesta la decisión 7.a (una frase), lo siguiente es cerrar el hueco de la IA.** Es, con
 diferencia, **el mayor valor de seguridad que queda pendiente en todo el programa** y ya no requiere
 diseño: el candado está escrito, probado y en verde. Son las 16 pantallas de IA clínica pasando de
@@ -126,7 +202,35 @@ quedan dos sin empezar: **E0-12** (sellos de integridad) y **E0-13** (cobros de 
 
 ## Esperando decisión del médico
 
-### 7. 🆕 Quién puede *hacer* qué (E0-07)
+### 8. 🆕 La prueba de que una clínica no ve a otra (E0-08)
+
+Ninguna de las dos es criterio clínico. La primera es un sí/no de un minuto y es la que **cierra la
+unidad**.
+
+**a. ⚠️ ¿Instalo Java en su máquina para poder correr aquí la prueba de aislamiento, o la
+demostramos sólo en GitHub?** El simulador de la base de datos de Google es un programa de Java y
+esta máquina no lo tiene. Son dos caminos:
+
+- **(a) «Instala Java».** Un comando (`brew install --cask temurin`), y en la siguiente corrida los
+  1 120 intentos de robo se ejecutan de verdad, se corren también los tres sabotajes que faltan y
+  **E0-08 queda cerrada** con la frase demostrada. *Es un cambio en su computadora, y por eso no lo
+  hago sin su permiso.*
+- **(b) «Sólo en GitHub».** Ya quedó configurado un trabajo automático que instala Java y corre la
+  prueba **en los servidores de GitHub** en cuanto se abra el primer Pull Request. No toca su
+  máquina; simplemente la respuesta llega cuando eso pase.
+
+*Mientras no responda:* el software está escrito, en verde y no molesta a nada — pero la unidad
+sigue marcada como **«falta ejecutarla»**, a propósito.
+
+**b. Informativo, no pregunta: el control de calidad automático (CI) tarda un poco más.** Para poder
+levantar el simulador hay que instalar las herramientas de Firebase, que traen **487 paquetes de
+desarrollo**. Consecuencia: el CI tarda unos minutos más. Lo que **no** cambia: nada de eso viaja a
+su app ni a sus pacientes —son herramientas de taller, no piezas del producto—. La alternativa era
+descargarlas al vuelo cada vez, sin dejar constancia de qué versión se usó, y eso rompía la
+reproducibilidad (mañana la prueba podría estar examinando otra cosa sin que nadie se enterara).
+*Queda aplicado así; si prefiere lo contrario, se revierte.*
+
+### 7. Quién puede *hacer* qué (E0-07)
 
 Ninguna es criterio médico: son decisiones de **cómo trabaja su consultorio**. Mientras no
 responda, **todo sigue funcionando exactamente igual que hoy** — nadie pierde acceso a nada.
@@ -295,6 +399,7 @@ del fármaco, así que **nunca se convierten solas**.
 
 | | Qué | Unidad |
 |---|---|---|
+| ⚠️ | **Un sí/no:** ¿instalo Java para correr aquí la prueba de aislamiento, o se demuestra en GitHub? | **E0-08** (8.a) |
 | ⚠️ | **Una frase suya:** ¿la enfermería de su UCI dicta, o sólo usted? Cierra el hueco de la IA | **E0-07** (7.a) |
 | ⚠️ | Activar protección de rama en `main` (`clinical-safety` + `verificar`) — 5 minutos en GitHub | E0-11 |
 | ⚠️ | Confirmar que `docrod29-ai` es su handle real y activar «Require review from Code Owners» | E0-11 |
@@ -321,10 +426,20 @@ del fármaco, así que **nunca se convierten solas**.
   dentro de la ficha del paciente.** Mientras sigan ahí, cualquier miembro del consultorio los lee,
   y ninguna regla de permisos puede impedirlo. La mudanza está diseñada, con su candado escrito y
   su lista de campos fijada por una prueba; espera la decisión 6.a.
-- **Las reglas de permisos se prueban leyendo el archivo, no ejecutándolo.** No hay emulador de
-  base de datos en el proyecto: se afirma qué dice el archivo de reglas, no qué haría la base ante
-  una petición real. Eso es la unidad **E0-08**, que ahora tiene la matriz de acceso como tabla de
-  casos lista para usar.
+- **🆕 La prueba que empuja la puerta ya existe, pero nunca se ha ejecutado.** E0-08 dejó escrita la
+  suite que le pregunta a la base de datos de verdad (1 120 intentos cross-tenant + 8 controles al
+  revés) y el trabajo automático de GitHub que la corre. Falta la primera ejecución: hace falta Java
+  → **decisión 8.a**. Hasta entonces, el aislamiento entre clínicas sigue estando **argumentado**,
+  no **demostrado**.
+- **🆕 Lo que la prueba de aislamiento NO cubre, para que un verde futuro no se lea de más:** los
+  permisos **campo por campo** (que una nota firmada no se pueda editar, que la facturación quede
+  congelada) son la unidad E0-09; los permisos de los **archivos** (fotos, PDFs) necesitan su propio
+  simulador y quedan fuera; y las rutas del servidor **no pasan por estas reglas** por diseño — ésas
+  las cubre otra prueba distinta.
+- **🆕 487 paquetes de desarrollo nuevos, con 32 avisos de seguridad conocidos.** Vienen todos del
+  árbol de las herramientas de Firebase. Son **de taller**: no viajan a su app ni al servidor.
+  Anotado a propósito y no «arreglado», porque arreglarlos significa cambiar de versión mayor unas
+  herramientas que no tienen nada que ver con el trabajo de esta unidad.
 - **El motor de dosis no habla el idioma del principio 3** de sus decisiones clínicas: devuelve
   alertas, no `PASS | WARN | BLOCK | UNKNOWN | N/A`. Funciona, pero hay que migrarlo. *(E0-05 ya le
   cambió la entrada; la salida sigue igual.)*

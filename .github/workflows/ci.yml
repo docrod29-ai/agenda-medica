@@ -31,6 +31,38 @@ jobs:
         # el manifiesto sellado para EJECUTARLOS de verdad.
         run: npx vitest run src/__tests__/clinical-safety-gate.test.ts $(node scripts/invariantes-clinicos.mjs)
 
+  # Aislamiento multi-tenant contra el EMULADOR REAL (unidad Nexus OS E0-08).
+  #
+  # Job SEPARADO a propósito, y NO se mete en `clinical-safety` ni en `verificar`:
+  #  - `clinical-safety` es el *required status check* de la rama `main`. Si el
+  #    emulador falla por Java, red o un puerto ocupado, su rojo debe significar una
+  #    sola cosa ("se rompió un invariante clínico"), no "el emulador tuvo un mal día".
+  #  - `verificar` corre los tres gates del programa, que deben poder correr en
+  #    máquinas SIN Java (los agentes del roadmap trabajan en una de ellas).
+  #
+  # `emulators:exec` levanta, corre, mata y propaga el código de salida: TERMINA solo.
+  # `emulators:start` está prohibido en este repo (dejaría el job colgado).
+  aislamiento-tenant:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # El emulador de Firestore es un JAR. Se fija la JRE en vez de confiar en la
+      # que traiga la imagen del runner: si mañana cambia, este job no se cae solo.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Aislamiento cross-tenant contra el emulador real
+        # El projectId `demo-nexusmed-test` hace que el SDK se NIEGUE a contactar un
+        # proyecto real: este job no puede tocar datos de ningún consultorio.
+        run: npm run test:emulador
+
   verificar:
     runs-on: ubuntu-latest
     steps:

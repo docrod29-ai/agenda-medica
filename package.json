@@ -10,6 +10,7 @@
     "test": "vitest run",
     "e2e": "playwright test",
     "test:cobertura": "vitest run --coverage",
+    "test:emulador": "firebase emulators:exec --only firestore --project demo-nexusmed-test \"vitest run --config vitest.emulator.config.ts\"",
     "cap:add:ios": "npx cap add ios",
     "cap:add:android": "npx cap add android",
     "cap:sync": "npx cap sync",
@@ -44,6 +45,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "5.0.1",
     "@next/bundle-analyzer": "^16.2.10",
     "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
@@ -55,6 +57,7 @@
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "firebase-tools": "15.24.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.7"
