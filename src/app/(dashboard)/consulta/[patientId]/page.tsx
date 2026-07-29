@@ -1763,14 +1763,26 @@ export default function ConsultaActivaPage() {
       // Espera cualquier autoguardado en vuelo y usa la ref síncrona, para NO
       // crear una nota duplicada al firmar justo después de un autoguardado.
       await cadenaGuardadoRef.current.catch(() => {})
+      /**
+       * TODA NOTA NACE EN BORRADOR (REG-017, decisión del médico dueño).
+       *
+       * Antes, si la consulta se firmaba sin que hubiera llegado a guardarse un
+       * borrador (flujo rápido), esta rama CREABA la nota ya `firmada`: se
+       * saltaba el flujo borrador→firmada y nacía un documento inmutable sin
+       * historia previa. La firma debe ser una ACCIÓN explícita sobre algo que
+       * ya existe, no el estado inicial de un documento.
+       *
+       * Se crea primero el borrador y se firma inmediatamente después. Son dos
+       * escrituras en vez de una, y a cambio la trazabilidad NOM-024 queda
+       * intacta: existe el borrador, existe la transición y existe el sello.
+       */
       let id = notaIdRef.current
-      if (id) {
-        await updateNota(clinicId, patientId, id, notaFirmada)
-      } else {
-        id = await createNota(clinicId, patientId, notaFirmada)
+      if (!id) {
+        id = await createNota(clinicId, patientId, { ...notaParaValidar, estado: 'borrador' })
         notaIdRef.current = id
         setNotaId(id)
       }
+      await updateNota(clinicId, patientId, id, notaFirmada)
       setFirmada(true)
       try { localStorage.removeItem(respaldoKey) } catch { /* */ }  // ya firmada: respaldo local ya no hace falta
       toast('Nota firmada y sellada (NOM-024)', 'success')

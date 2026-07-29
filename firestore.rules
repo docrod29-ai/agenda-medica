@@ -177,7 +177,14 @@ service cloud.firestore {
           // Abrir una nota nueva = capturar dato nuevo → sujeto al paywall.
           // Firmar/editar un borrador YA abierto no, para no dejar una consulta
           // a medias sin poder cerrarla por un corte de pago a mitad del día.
-          allow create: if isMedico(clinicId) && clinicaPuedeEscribir(clinicId);
+          // REG-017 — TODA NOTA NACE EN BORRADOR. La firma es una ACCIÓN explícita
+          // (borrador → firmada), no el estado inicial de un documento. Sin esto,
+          // una nota podía nacer ya 'firmada' e inmutable sin historia previa,
+          // saltándose la trazabilidad NOM-024.
+          // La migración/importación histórica va por Admin SDK (omite reglas) y
+          // debe quedar marcada como importada — nunca parecer firma nativa.
+          allow create: if isMedico(clinicId) && clinicaPuedeEscribir(clinicId)
+                        && request.resource.data.estado == 'borrador';
           // Solo se pueden editar/borrar borradores; las firmadas son inmutables (NOM-024)
           allow update: if isMedico(clinicId) && resource.data.estado != 'firmada';
           allow delete: if isMedico(clinicId) && resource.data.estado != 'firmada';
@@ -413,7 +420,23 @@ service cloud.firestore {
       // Cobros (registro contable)
       // Solo se permite crear y leer; cancelar = update con cancelado=true (no delete).
       match /cobros/{cobroId} {
-        allow read, create: if isMember(clinicId);
+        allow read: if isMember(clinicId);
+        /**
+         * REG-015 — el AUTOR y el IMPORTE se validan aquí, no solo en el cliente.
+         *
+         * Antes bastaba con ser miembro: el navegador declaraba `creadoPor` con
+         * lo que quisiera (unos llamadores mandaban correo, otros uid), así que
+         * un cobro podía quedar atribuido a otra persona. Y no había piso de
+         * monto: un negativo simulando devolución descuadra el corte en silencio.
+         *
+         * Las devoluciones son su propio tipo de transacción con traza a la
+         * operación original (REFUND/CREDIT/ADJUSTMENT), no un signo menos.
+         * El webhook de Stripe escribe con Admin SDK y no pasa por esta regla.
+         */
+        allow create: if isMember(clinicId)
+                      && request.resource.data.creadoPor == request.auth.uid
+                      && request.resource.data.monto is number
+                      && request.resource.data.monto >= 0;
         /**
          * Un cobro es un registro contable: no se edita ni se borra, solo se
          * ANULA, y anular debe dejar huella. La regla anterior congelaba el monto

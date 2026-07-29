@@ -12,7 +12,7 @@
 import {
   collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc, runTransaction,
 } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { db, auth } from '@/lib/firebase'
 import { celdaSegura } from '@/lib/csv-seguro'
 import { instanteMX, sumarDiasISO, fechaISOLocal, TZ_DEFAULT } from '@/lib/timezone'
 
@@ -122,6 +122,12 @@ export interface Cobro {
   notas?: string
   createdAt: string
   creadoPor: string
+  /**
+   * Tipo de transacción (REG-015). Hoy solo se emite 'PAYMENT'. Devolución,
+   * nota de crédito y ajuste serán tipos propios con traza a la operación
+   * original — NO montos negativos, que descuadran el corte sin dejar rastro.
+   */
+  tipo?: 'PAYMENT' | 'REFUND' | 'CREDIT' | 'ADJUSTMENT'
 }
 
 const COL = (clinicId: string) => collection(db, 'clinics', clinicId, 'cobros')
@@ -152,15 +158,47 @@ export async function registrarCobro(
    * Auditoría 2026-07 (P1). Se limpian los undefined antes de escribir.
    */
   const limpio = Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined))
+
+  /**
+   * ═══ AUTOR E IMPORTE SELLADOS EN EL ORIGEN (REG-015) ═══
+   *
+   * El autor lo ponía CADA LLAMADOR, y de forma inconsistente: unos mandaban el
+   * correo y otros el uid. Un cobro podía quedar atribuido a alguien que no lo
+   * hizo, y el identificador ni siquiera era comparable entre registros.
+   *
+   * Decisión del médico dueño: `createdBy` = UID autenticado, validado además
+   * por la regla de Firestore (`creadoPor == request.auth.uid`), de modo que el
+   * navegador no pueda declarar un autor distinto. Lo que mande el llamador se
+   * IGNORA a propósito.
+   */
+  const uid = auth.currentUser?.uid
+  if (!uid) throw new Error('No hay sesión: un cobro no puede registrarse sin autor autenticado.')
+
+  /**
+   * El monto NO puede ser negativo. Un negativo simulando una devolución
+   * descuadra el corte en silencio y no deja rastro de qué se devolvió: las
+   * devoluciones son su propio tipo de transacción, con traza a la operación
+   * original (REFUND/CREDIT/ADJUSTMENT), no un signo menos.
+   */
+  const monto = Number((limpio as { monto?: unknown }).monto)
+  if (!Number.isFinite(monto) || monto < 0) {
+    throw new Error(`Monto inválido (${String((limpio as { monto?: unknown }).monto)}): debe ser un número ≥ 0. Para una devolución usa una operación de reembolso, no un monto negativo.`)
+  }
+
   const payload = {
-    ...limpio,
+    ...(limpio as Record<string, unknown>),
+    monto,
+    /** Tipo de transacción. Hoy solo se emiten pagos; REFUND/CREDIT/ADJUSTMENT
+     *  son su propia unidad (requieren traza a la operación original). */
+    tipo: 'PAYMENT' as const,
     fecha: isoFecha,
     dia,
     mes,
     folio: generarFolio(),
     createdAt: isoFecha,
+    creadoPor: uid,   // sellado aquí; se ignora lo que traiga `data`
     cancelado: false,
-  } as Omit<Cobro, 'id'>
+  } as unknown as Omit<Cobro, 'id'>
 
   /**
    * IDEMPOTENCIA POR CITA (anti-doble-cobro).
