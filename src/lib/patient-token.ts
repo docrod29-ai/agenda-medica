@@ -14,10 +14,33 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 
 const DIAS_DEFECTO = 30
 
+/**
+ * E0-06 — ALCANCE del token. No todos los magic-links deben poder lo mismo.
+ *
+ * `/api/portal/link` lo emite CUALQUIER miembro (la asistente pulsa el botón y se
+ * abre WhatsApp con el enlace: es su trabajo diario). Pero el token que le devuelve
+ * el servidor a SU navegador también abría la acción `documentos` de `/api/portal`,
+ * que devuelve diagnósticos y medicamentos de las notas FIRMADAS — o sea, secreto
+ * médico saltándose el gate `isMedico` de firestore.rules.
+ *
+ * Es el MISMO vector que ya se cerró en `/api/telesalud/token` subiéndolo a
+ * `verificarMedico`. Aquí no se puede hacer lo mismo sin romper el flujo real de la
+ * asistente, así que se separa la capacidad en vez del rol:
+ *
+ *  - `agenda`  → ver/confirmar/cancelar/reagendar citas. Lo que emite la asistente.
+ *  - `clinico` → además, los documentos clínicos. Solo lo emite un médico.
+ *
+ * FALLA-CERRADO: un token viejo SIN campo de alcance se interpreta como `agenda`.
+ */
+export type AlcanceToken = 'agenda' | 'clinico'
+
+const ALCANCE_DEFECTO: AlcanceToken = 'agenda'
+
 interface PayloadPaciente {
   c: string // clinicId
   p: string // patientId
   e: number // exp epoch (segundos)
+  a?: AlcanceToken // alcance (ausente = 'agenda', fail-closed)
 }
 
 function getSecret(): string {
@@ -38,10 +61,15 @@ function firmar(payloadB64: string): string {
   return createHmac('sha256', getSecret()).update(payloadB64).digest('base64url')
 }
 
-/** Crea un token firmado para un paciente. ttlDias por defecto 30. */
-export function crearTokenPaciente(clinicId: string, patientId: string, ttlDias = DIAS_DEFECTO): string {
+/** Crea un token firmado para un paciente. ttlDias por defecto 30, alcance `agenda`. */
+export function crearTokenPaciente(
+  clinicId: string,
+  patientId: string,
+  ttlDias = DIAS_DEFECTO,
+  alcance: AlcanceToken = ALCANCE_DEFECTO,
+): string {
   const exp = Math.floor(Date.now() / 1000) + ttlDias * 86400
-  const payload: PayloadPaciente = { c: clinicId, p: patientId, e: exp }
+  const payload: PayloadPaciente = { c: clinicId, p: patientId, e: exp, a: alcance }
   const payloadB64 = b64url(JSON.stringify(payload))
   return `${payloadB64}.${firmar(payloadB64)}`
 }
@@ -49,6 +77,8 @@ export function crearTokenPaciente(clinicId: string, patientId: string, ttlDias 
 export interface TokenVerificado {
   clinicId: string
   patientId: string
+  /** Nunca es undefined: un token sin alcance declarado se degrada a `agenda`. */
+  alcance: AlcanceToken
 }
 
 /** Verifica firma + caducidad. Devuelve null si es inválido o expiró. */
@@ -73,11 +103,24 @@ export function verificarTokenPaciente(token: string | undefined | null): TokenV
   if (!payload.c || !payload.p || !payload.e) return null
   if (Math.floor(Date.now() / 1000) > payload.e) return null // expirado
 
-  return { clinicId: payload.c, patientId: payload.p }
+  // Solo se acepta un alcance CONOCIDO; cualquier otra cosa (o su ausencia) cae a
+  // 'agenda'. Un payload manipulado no puede inventarse un alcance nuevo.
+  const alcance: AlcanceToken = payload.a === 'clinico' ? 'clinico' : ALCANCE_DEFECTO
+
+  return { clinicId: payload.c, patientId: payload.p, alcance }
 }
 
-/** URL absoluta del portal para enviar por WhatsApp. */
-export function linkPortalPaciente(baseUrl: string, clinicId: string, patientId: string, ttlDias = DIAS_DEFECTO): string {
-  const token = crearTokenPaciente(clinicId, patientId, ttlDias)
+/**
+ * URL absoluta del portal para enviar por WhatsApp.
+ * Alcance `agenda` por defecto: este enlace lo genera cualquier miembro del equipo.
+ */
+export function linkPortalPaciente(
+  baseUrl: string,
+  clinicId: string,
+  patientId: string,
+  ttlDias = DIAS_DEFECTO,
+  alcance: AlcanceToken = ALCANCE_DEFECTO,
+): string {
+  const token = crearTokenPaciente(clinicId, patientId, ttlDias, alcance)
   return `${baseUrl.replace(/\/$/, '')}/mi/${token}`
 }

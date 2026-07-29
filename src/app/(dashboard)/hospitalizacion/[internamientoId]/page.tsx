@@ -5,6 +5,7 @@
 // Rol (médico/enfermería/admin) filtra las acciones visibles (vista, no seguridad).
 // ══════════════════════════════════════════════════════════════
 import { useState, useEffect, useMemo } from 'react'
+import { proyectarSignos, acvpu, concienciaExigeReSeleccion } from '@/lib/hospital/eventos'
 import { useParams, useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { useClinic } from '@/context/ClinicContext'
@@ -16,7 +17,7 @@ import {
   agregarInterconsulta, responderInterconsulta, editarInterconsulta, borrarInterconsulta,
   agregarIndicacion, suspenderIndicacion, editarIndicacion, borrarIndicacion, registrarAdministracion,
   verificarIndicacionFarmacia, guardarMedicamentosCasa,
-  agregarSignos, getSignos, borrarSignos, getRolUsuario, setRolUsuario,
+  agregarSignos, corregirSignos, getSignos, getRolUsuario, setRolUsuario,
   crearSolicitudLab, getSolicitudesLabDeEpisodio, cargarResultadosLab, borrarSolicitudLab, crearAlerta, type AlertaHospital,
   trasladarInternamiento, cambiarTratante,
   suscribirInternamiento, suscribirSignos,
@@ -43,7 +44,7 @@ import { Modal, Button, Spinner } from '@/components/ui'
 import {
   ArrowLeft, BedDouble, Stethoscope, Clock, FileText, Plus, LogOut, Pill,
   Send, Check, Activity, Syringe, Ban, ShieldCheck, Printer, AlertTriangle, ScanLine, ClipboardCheck, HeartPulse,
-  Pencil, Trash2,
+  Pencil, PencilLine, Trash2,
 } from 'lucide-react'
 
 const TIPO_EGRESO_OPCIONES: TipoEgreso[] = ['mejoria', 'maximo_beneficio', 'voluntaria', 'traslado', 'defuncion', 'otro']
@@ -90,6 +91,24 @@ export default function EpisodioPage() {
   const [medQuery, setMedQuery] = useState('')
   const [admNota, setAdmNota] = useState('')
   const [sg, setSg] = useState<{ ta: string; fc: string; fr: string; temp: string; spo2: string; glucosa: string; dolor: string; conciencia: 'A' | 'C' | 'V' | 'P' | 'U'; oxigeno: boolean }>({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'A', oxigeno: false })
+  /**
+   * id del registro que se está CORRIGIENDO (null = captura nueva).
+   *
+   * Decisión del médico dueño (29-jul-2026): un signo vital se corrige siempre,
+   * sin ventana de tiempo, pero conservando el historial. Por eso corregir no
+   * edita ni borra: anexa un registro con `corrigeA` y `proyectarSignos` resuelve
+   * la cadena al pintar. Antes el único camino que ofrecía la pantalla era un
+   * bote de basura que las reglas de Firestore rechazan siempre.
+   */
+  const [corrigiendoId, setCorrigiendoId] = useState<string | null>(null)
+  /**
+   * true cuando el registro que se corrige guardaba la conciencia en el formato
+   * heredado 'alterada', que NO equivale a un solo nivel ACVPU: puede ser C, V, P
+   * o U. Elegir uno por el clínico sería inventar un dato clínico, así que el
+   * formulario avisa y obliga a re-seleccionarlo. ('alerta' sí es sinónimo exacto
+   * de 'A' y se traduce sin preguntar.)
+   */
+  const [concienciaSinMapeo, setConcienciaSinMapeo] = useState(false)
   const [patient, setPatient] = useState<Patient | null>(null)
   const [labs, setLabs] = useState<SolicitudLab[]>([])
   const [modalLab, setModalLab] = useState(false)
@@ -170,6 +189,12 @@ export default function EpisodioPage() {
   }, [rol])
 
   const notasEpisodio = useMemo(() => [...notas].sort((a, b) => (a.fechaConsulta < b.fechaConsulta ? 1 : -1)), [notas])
+  /**
+   * Signos con la cadena de correcciones resuelta. `proyectarSignos` no descarta
+   * ni un registro: devuelve todos marcando cuál quedó corregido por cuál, para
+   * que la tabla pueda tachar el erróneo sin borrarlo del expediente.
+   */
+  const proyeccionSignos = useMemo(() => proyectarSignos(signos), [signos])
   const tieneIngreso = notas.some(n => n.tipo === 'ingreso')
   const esMedico = rol === 'medico'
   const puedeEnfermeria = rol === 'medico' || rol === 'enfermeria'
@@ -521,7 +546,7 @@ export default function EpisodioPage() {
       {tab === 'signos' && (<>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
           <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Registro seriado de signos vitales.</div>
-          {puedeEnfermeria && !egresado && <Button size="sm" icon={<Plus size={14} />} onClick={() => { setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'A', oxigeno: false }); setModalSignos(true) }}>Registrar signos</Button>}
+          {puedeEnfermeria && !egresado && <Button size="sm" icon={<Plus size={14} />} onClick={() => { setCorrigiendoId(null); setConcienciaSinMapeo(false); setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'A', oxigeno: false }); setModalSignos(true) }}>Registrar signos</Button>}
         </div>
         {signos.length === 0 ? (
           <div style={{ fontSize: 13, color: 'var(--text3)', padding: 16, textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 12 }}>Sin registros de signos vitales.</div>
@@ -566,8 +591,12 @@ export default function EpisodioPage() {
                 </tr>
               </thead>
               <tbody>
-                {[...signos].reverse().map(s => (
-                  <tr key={s.id} style={{ borderTop: '1px solid var(--border)', color: 'var(--text2)' }}>
+                {[...proyeccionSignos.registros].reverse().map(({ registro: s, estado, corrigeA }) => (
+                  <tr key={s.id} style={{ borderTop: '1px solid var(--border)', color: 'var(--text2)',
+                    // Un registro corregido NO se oculta ni se borra: se muestra
+                    // atenuado y tachado, porque el expediente debe conservar lo
+                    // que se capturó Y lo que se corrigió.
+                    ...(estado === 'corregido' ? { opacity: 0.5, textDecoration: 'line-through' } : {}) }}>
                     <td style={{ padding: '7px 10px', whiteSpace: 'nowrap' }}>{new Date(s.fecha).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
                     <td style={{ padding: '7px 10px' }}>{s.ta ?? '—'}</td>
                     <td style={{ padding: '7px 10px', color: (s.fc && (s.fc > 100 || s.fc < 50)) ? '#dc2626' : undefined }}>{s.fc ?? '—'}</td>
@@ -576,7 +605,20 @@ export default function EpisodioPage() {
                     <td style={{ padding: '7px 10px', color: (s.spo2 && s.spo2 < 92) ? '#dc2626' : undefined }}>{s.spo2 ?? '—'}</td>
                     <td style={{ padding: '7px 10px' }}>{s.glucosa ?? '—'}</td>
                     <td style={{ padding: '7px 10px' }}>{s.dolor != null ? `${s.dolor}/10` : '—'}</td>
-                    {puedeEnfermeria && !egresado && <td style={{ padding: '7px 10px', textAlign: 'right' }}><button title="Borrar registro mal capturado" onClick={async () => { if (!clinicId || !(await confirm('¿Borrar este registro de signos?', { peligro: true, confirmar: 'Borrar' }))) return; try { await borrarSignos(clinicId, internamientoId, s.id); toast('Registro borrado', 'success'); cargar() } catch { toast('No se pudo borrar', 'error') } }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)' }}><Trash2 size={13} /></button></td>}
+                    {puedeEnfermeria && !egresado && <td style={{ padding: '7px 10px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      {corrigeA && <span title="Este registro corrige a uno anterior" style={{ fontSize: 10.5, color: 'var(--text3)', marginRight: 8 }}>corrección</span>}
+                      {/* Corregir, NO borrar. El bote de basura que había aquí llamaba a
+                          borrarSignos, que `firestore.rules` rechaza con `allow delete: if false`:
+                          la enfermera recibía "No se pudo borrar" SIEMPRE. Ahora se anexa un
+                          registro con `corrigeA` — se puede corregir sin límite de tiempo
+                          (decisión del médico dueño, 29-jul-2026) y nada se sobrescribe. */}
+                      {estado !== 'corregido' && <button title="Corregir este registro (se conserva el original)" onClick={() => {
+                        setCorrigiendoId(s.id)
+                        setSg({ ta: s.ta ?? '', fc: s.fc != null ? String(s.fc) : '', fr: s.fr != null ? String(s.fr) : '', temp: s.temp != null ? String(s.temp) : '', spo2: s.spo2 != null ? String(s.spo2) : '', glucosa: s.glucosa != null ? String(s.glucosa) : '', dolor: s.dolor != null ? String(s.dolor) : '', conciencia: acvpu(s.conciencia), oxigeno: !!s.oxigeno })
+                        setConcienciaSinMapeo(concienciaExigeReSeleccion(s.conciencia))
+                        setModalSignos(true)
+                      }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)' }}><PencilLine size={13} /></button>}
+                    </td>}
                   </tr>
                 ))}
               </tbody>
@@ -1075,16 +1117,18 @@ export default function EpisodioPage() {
       </Modal>
 
       {/* Registrar signos */}
-      <Modal open={modalSignos} onClose={() => setModalSignos(false)} title="Registrar signos vitales"
-        footer={<><Button variant="secondary" onClick={() => setModalSignos(false)}>Cancelar</Button><Button loading={busy} onClick={async () => {
+      <Modal open={modalSignos} onClose={() => { setModalSignos(false); setCorrigiendoId(null); setConcienciaSinMapeo(false) }} title={corrigiendoId ? "Corregir signos vitales" : "Registrar signos vitales"}
+        footer={<><Button variant="secondary" onClick={() => { setModalSignos(false); setCorrigiendoId(null); setConcienciaSinMapeo(false) }}>Cancelar</Button><Button loading={busy} onClick={async () => {
           if (!clinicId) return; setBusy(true)
           const num = (x: string) => x.trim() ? Number(x) : undefined
           try {
-            await agregarSignos(clinicId, internamientoId, { fecha: new Date().toISOString(), ta: sg.ta.trim() || undefined, fc: num(sg.fc), fr: num(sg.fr), temp: num(sg.temp), spo2: num(sg.spo2), glucosa: num(sg.glucosa), dolor: num(sg.dolor), conciencia: sg.conciencia, oxigeno: sg.oxigeno || undefined, por: config?.nombreMedico ?? '' })
+            const datos = { fecha: new Date().toISOString(), ta: sg.ta.trim() || undefined, fc: num(sg.fc), fr: num(sg.fr), temp: num(sg.temp), spo2: num(sg.spo2), glucosa: num(sg.glucosa), dolor: num(sg.dolor), conciencia: sg.conciencia, oxigeno: sg.oxigeno || undefined, por: config?.nombreMedico ?? '' }
+            if (corrigiendoId) await corregirSignos(clinicId, internamientoId, corrigiendoId, datos)
+            else await agregarSignos(clinicId, internamientoId, datos)
             // Alerta por deterioro: NEWS2 alto O parámetro individual en rojo (criterio Royal College)
             const n2 = calcularNews2({ ta: sg.ta, fc: num(sg.fc), fr: num(sg.fr), temp: num(sg.temp), spo2: num(sg.spo2), conciencia: sg.conciencia, oxigeno: sg.oxigeno })
             if (n2 && (n2.riesgo === 'alto' || n2.parametroRojo) && inter) await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'news2', titulo: `Deterioro clínico — NEWS2 ${n2.total} (${n2.riesgo})`, detalle: n2.recomendacion })
-            toast('Signos registrados', 'success'); setModalSignos(false); setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'A', oxigeno: false }); cargar()
+            toast(corrigiendoId ? 'Corrección registrada — el original se conserva' : 'Signos registrados', 'success'); setModalSignos(false); setCorrigiendoId(null); setConcienciaSinMapeo(false); setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'A', oxigeno: false }); cargar()
           } catch (e) {
             // Sin catch, el modal quedaba abierto y sin mensaje: parecía que no pasó
             // nada y el dato clínico simplemente no se guardaba.
@@ -1103,6 +1147,13 @@ export default function EpisodioPage() {
             <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block' }}>Conciencia</label>
             {/* ACVPU completo (REG: antes solo alerta/alterada → se perdía la letra
                 clínica). NEWS2: A=0; C/V/P/U=3 (lo deriva news2.ts). Se guarda la letra. */}
+            {/* El registro original guardaba 'alterada', que no equivale a un solo
+                nivel ACVPU. No se adivina: se pide re-seleccionar. Ver `acvpu()`. */}
+            {concienciaSinMapeo && (
+              <div style={{ fontSize: 11.5, color: '#d97706', maxWidth: 320, lineHeight: 1.4, marginTop: 2 }}>
+                El registro original decía <strong>&laquo;alterada&raquo;</strong> (formato antiguo), que puede ser C, V, P o U. <strong>Vuelve a elegir el nivel</strong> — no se rellena solo para no suponer.
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 5, marginTop: 2, flexWrap: 'wrap' }}>
               {([
                 { c: 'A', label: 'A · Alerta', col: '#0d9488' },

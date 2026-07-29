@@ -32,6 +32,9 @@ export async function POST(req: NextRequest) {
   if (!pac.exists) return NextResponse.json({ error: 'Paciente no encontrado en esta clínica' }, { status: 404 })
 
   // TTL corto: el token es para unirse a la teleconsulta, no un acceso persistente.
-  const token = crearTokenPaciente(clinicId, patientId, 1)
+  // Alcance `clinico` (E0-06): lo emite un MÉDICO verificado, así que este enlace sí
+  // abre los documentos clínicos del paciente en el portal. El de /api/portal/link,
+  // que emite cualquier miembro, no.
+  const token = crearTokenPaciente(clinicId, patientId, 1, 'clinico')
   return NextResponse.json({ ok: true, token })
 }

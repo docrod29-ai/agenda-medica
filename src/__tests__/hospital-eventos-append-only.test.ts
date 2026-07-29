@@ -3,6 +3,8 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import {
   proyectarSignos,
+  acvpu,
+  concienciaExigeReSeleccion,
   proyectarEventos,
   contarAdministracionesVigentes,
   signosParaCalculoClinico,
@@ -124,13 +126,34 @@ describe('E0-09 · Q1 — el hueco clínico sigue siendo un hueco (fail-closed)'
     expect(signosParaCalculoClinico(raw, 'excluye_corregidos').map(r => r.id)).toEqual(['b'])
   })
 
-  it('ninguna pantalla ni motor consume todavía la proyección de signos', () => {
-    // La UI de corrección y el filtrado de NEWS2/FHIR dependen de Q1-Q4: hasta
-    // que se respondan, este módulo NO debe tener consumidores de producción.
-    const consumidores = grepRepo("from '@/lib/hospital/eventos'")
+  it('NINGÚN consumidor de producción llama al filtrado para cálculo clínico', () => {
+    // GUARDIÁN ESTRECHADO el 29-jul-2026, no eliminado.
+    //
+    // El original prohibía CUALQUIER consumidor del módulo porque Q1-Q4 estaban
+    // todas abiertas. El médico dueño respondió Q3 ese día (un signo vital se
+    // corrige siempre, sin ventana, conservando historial), así que la UI de
+    // corrección — que sólo PINTA lo que ya existe — dejó de estar bloqueada.
+    //
+    // Lo que sigue prohibido es lo que Q1 decide: si un signo corregido sigue
+    // alimentando NEWS2 y el export FHIR. Ese cableado cambia un número clínico,
+    // así que se mantiene fail-closed hasta tener su respuesta por escrito.
+    const consumidores = grepRepo('signosParaCalculoClinico')
       .filter(f => !f.startsWith('src/__tests__/'))
-    expect(consumidores, `E0-09 se cableó antes de resolver Q1-Q4: ${consumidores.join(', ')}`)
+      .filter(f => f !== 'src/lib/hospital/eventos.ts')   // su propia definición
+    expect(consumidores, `Q1 sigue abierta y ya se cableó el cálculo: ${consumidores.join(', ')}`)
       .toEqual([])
+  })
+
+  it('la UI de corrección usa la proyección SÓLO para pintar, nunca para calcular', () => {
+    // Congela la separación de arriba: la ficha de hospitalización puede importar
+    // `proyectarSignos` (presentación), pero si algún día importa también el
+    // filtrado clínico, este caso lo caza.
+    const ficha = readFileSync(
+      resolve(process.cwd(), 'src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx'),
+      'utf8',
+    )
+    expect(ficha).toContain('proyectarSignos')
+    expect(ficha).not.toContain('signosParaCalculoClinico')
   })
 })
 
@@ -427,3 +450,61 @@ function grepRepo(aguja: string): string[] {
   recorrer('src')
   return encontrados.sort()
 }
+
+/**
+ * Corrección de signos vitales — decisión del médico dueño (29-jul-2026).
+ *
+ * Se corrige SIEMPRE, sin ventana de tiempo, pero conservando el historial: la
+ * corrección se ANEXA con `corrigeA` y el original nunca se toca. Estos casos
+ * congelan la parte donde un descuido inventaría un dato clínico.
+ */
+describe('acvpu — traducción del formato heredado', () => {
+  it("'alerta' es sinónimo exacto de A y se traduce", () => {
+    expect(acvpu('alerta')).toBe('A')
+    expect(concienciaExigeReSeleccion('alerta')).toBe(false)
+  })
+
+  it.each(['A', 'C', 'V', 'P', 'U'] as const)('%s se conserva tal cual', (v) => {
+    expect(acvpu(v)).toBe(v)
+    expect(concienciaExigeReSeleccion(v)).toBe(false)
+  })
+
+  it("'alterada' EXIGE re-selección: no se puede deducir un nivel ACVPU", () => {
+    // El caso peligroso. 'alterada' puede ser C, V, P o U — cuatro niveles que en
+    // NEWS2 suman 3 puntos, frente a los 0 de A. Si esto se resolviera en silencio
+    // a 'A', corregir un dato NO relacionado (p. ej. la glucosa) convertiría a un
+    // paciente con estado alterado en uno alerta y le bajaría el score.
+    expect(concienciaExigeReSeleccion('alterada')).toBe(true)
+  })
+
+  it('sin dato no exige re-selección (nunca hubo nivel que perder)', () => {
+    expect(concienciaExigeReSeleccion(undefined)).toBe(false)
+    expect(acvpu(undefined)).toBe('A')
+  })
+})
+
+describe('proyección de una corrección de signos', () => {
+  const original = { id: 's1', fecha: '2026-07-29T08:00:00Z', ta: '180/90', por: 'ENF' }
+  const correccion = { id: 's2', fecha: '2026-07-29T08:03:00Z', ta: '80/50', por: 'ENF', corrigeA: 's1' }
+
+  it('el original SIGUE presente y queda marcado como corregido', () => {
+    const p = proyectarSignos([original, correccion])
+    expect(p.registros).toHaveLength(2)   // nada se borra
+    const o = p.registros.find(r => r.registro.id === 's1')!
+    expect(o.estado).toBe('corregido')
+    expect(o.corregidoPor).toEqual(['s2'])
+  })
+
+  it('la corrección apunta al original y queda vigente', () => {
+    const p = proyectarSignos([original, correccion])
+    const c = p.registros.find(r => r.registro.id === 's2')!
+    expect(c.estado).toBe('vigente')
+    expect(c.corrigeA).toBe('s1')
+    expect(c.huerfana).toBe(false)
+  })
+
+  it('no muta la entrada: el original conserva su valor erróneo', () => {
+    proyectarSignos([original, correccion])
+    expect(original.ta).toBe('180/90')   // el expediente conserva lo capturado
+  })
+})

@@ -67,6 +67,29 @@ export interface ProyeccionSignos {
  *  · Un `corrigeA` que apunta a sí mismo o cierra un ciclo se IGNORA como enlace
  *    (el registro sigue presente): un dato malformado no debe colgar la ficha.
  */
+/**
+ * Traduce el campo `conciencia` guardado al selector ACVPU del formulario.
+ *
+ * El tipo admite dos valores HEREDADOS además de ACVPU:
+ *  · `'alerta'`   → sinónimo exacto de `'A'` (Alert). Se traduce sin preguntar.
+ *  · `'alterada'` → NO equivale a un solo nivel: puede ser C, V, P o U. Elegir
+ *    uno sería inventar un dato clínico, así que cae al default y el formulario
+ *    AVISA para que la persona lo vuelva a seleccionar (`concienciaSinMapeo`).
+ *
+ * Devolver `'A'` para `'alterada'` sin avisar sería lo peligroso: convertiría en
+ * silencio a un paciente con estado alterado en uno alerta.
+ */
+export function acvpu(v: RegistroSignos['conciencia']): 'A' | 'C' | 'V' | 'P' | 'U' {
+  if (v === 'alerta' || v === 'A') return 'A'
+  if (v === 'C' || v === 'V' || v === 'P' || v === 'U') return v
+  return 'A'   // sin dato o 'alterada': default del formulario, con aviso arriba
+}
+
+/** `true` si el valor guardado NO se puede mapear y exige re-seleccionar. */
+export function concienciaExigeReSeleccion(v: RegistroSignos['conciencia']): boolean {
+  return v === 'alterada'
+}
+
 export function proyectarSignos(raw: readonly RegistroSignos[]): ProyeccionSignos {
   const porId = new Map<string, RegistroSignos>()
   for (const r of raw) if (r?.id) porId.set(r.id, r)

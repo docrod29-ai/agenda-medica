@@ -215,8 +215,32 @@ export async function getSignos(clinicId: string, iid: string, tope = TOPE_SIGNO
     .map(d => ({ ...d.data(), id: d.id } as RegistroSignos))
     .reverse()   // ascendente para la gráfica
 }
-export async function borrarSignos(clinicId: string, iid: string, sid: string): Promise<void> {
-  await deleteDoc(doc(db, 'clinics', clinicId, 'internamientos', iid, 'signos', sid))
+/**
+ * Corrige un registro de signos ANEXANDO otro que apunta al erróneo.
+ *
+ * DECISIÓN DEL MÉDICO DUEÑO (29-jul-2026, enmienda a §A3 del documento de
+ * arquitectura): un signo vital se puede corregir SIEMPRE, sin ventana de
+ * tiempo, pero conservando el historial. Se implementa sin `update`: el
+ * registro original nunca se toca y la corrección es un documento nuevo con
+ * `corrigeA`. Así "editable siempre" (lo que ve la enfermera) y "nada se
+ * sobrescribe" (lo que exige el expediente) son la misma cosa.
+ *
+ * Sustituye al borrado: `borrarSignos` ofrecía un bote de basura que
+ * `firestore.rules` rechaza con `allow delete: if false`, así que el único
+ * camino que la UI le daba a la enfermera para arreglar un dedazo fallaba
+ * SIEMPRE con "No se pudo borrar".
+ *
+ * `proyectarSignos` (src/lib/hospital/eventos.ts) es quien resuelve la cadena
+ * para pintar la tabla y para decidir qué serie entra a un cálculo clínico.
+ */
+export async function corregirSignos(
+  clinicId: string,
+  iid: string,
+  idOriginal: string,
+  s: Omit<RegistroSignos, 'id' | 'corrigeA'>,
+): Promise<void> {
+  if (!idOriginal) throw new Error('corregirSignos requiere el id del registro que se corrige')
+  await addDoc(signosCol(clinicId, iid), limpiar({ ...s, corrigeA: idOriginal } as object))
 }
 
 // ── F3/V3 · Rol hospitalario por usuario (persistido, sigue al usuario entre dispositivos) ──

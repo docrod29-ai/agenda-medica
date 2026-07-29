@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
   if (!sesion) {
     return NextResponse.json({ error: 'Enlace inválido o vencido' }, { status: 401 })
   }
-  const { clinicId, patientId } = sesion
+  const { clinicId, patientId, alcance } = sesion
 
   // Helper: asegura que la cita pertenezca a este paciente
   const citaDelPaciente = async (citaId?: string): Promise<Appointment | NextResponse> => {
@@ -243,6 +243,25 @@ export async function POST(req: NextRequest) {
       }
 
       case 'documentos': {
+        /**
+         * E0-06 — ESTA es la acción que devuelve secreto médico (diagnósticos y
+         * medicamentos de notas firmadas), y por eso exige alcance `clinico`.
+         *
+         * Sin este gate, el token que /api/portal/link devuelve al navegador de
+         * CUALQUIER miembro —incluida la asistente, a quien firestore.rules mantiene
+         * fuera de `patients/{id}/notas`— servía para leer el expediente por API.
+         * Es el mismo agujero que ya se cerró en /api/telesalud/token.
+         *
+         * Fail-closed deliberado: los tokens de 30 días que ya circulan no traen
+         * alcance, se degradan a `agenda` y pierden esta pestaña. Se resuelve
+         * reenviando el enlace desde la sesión del médico.
+         */
+        if (alcance !== 'clinico') {
+          return NextResponse.json(
+            { error: 'Pide a tu médico el acceso a tus recetas.' },
+            { status: 403 },
+          )
+        }
         // Recetas del paciente: derivadas de sus notas FIRMADAS con medicamentos.
         const snap = await adminDb
           .collection('clinics').doc(clinicId)

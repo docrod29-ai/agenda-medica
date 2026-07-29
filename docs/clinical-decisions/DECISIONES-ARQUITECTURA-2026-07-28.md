@@ -108,6 +108,30 @@ CRRT/PRISMA y eventos UCI · código de reanimación/limitación terapéutica ·
 y rechazos · alertas clínicas importantes y overrides · firmas y adendas · fusión/corrección
 de identidad · accesos break-glass · bitácora de auditoría.
 
+### ✅ Enmienda A3-bis — signos vitales (29-jul-2026)
+
+**Planteamiento.** §A3 lista «signos vitales» como append-only, pero condiciona la regla
+a dato **FINALIZADO/FIRMADO**, y un registro de signos no tiene estado borrador/firmado:
+se captura y ya está. Se le preguntó al médico dueño qué debe pasar con un dedazo.
+
+**Su decisión:** *editable siempre, con historial.* **Sin ventana de tiempo.**
+
+**Cómo se implementa sin contradecir §A3.** Corregir NO edita ni borra: **anexa** un
+registro nuevo con `corrigeA` apuntando al erróneo. Desde la pantalla se corrige cuando
+sea (lo que él pidió); por debajo nada se sobrescribe y el original queda visible,
+tachado, en el expediente (lo que §A3 exige). Las dos cosas son la misma.
+
+**Lo que esto reparó de paso.** El único camino que la pantalla ofrecía para un dedazo
+era un bote de basura —`borrarSignos`, rotulado *«Borrar registro mal capturado»*— que
+`firestore.rules` rechaza con `allow delete: if false`. La enfermera recibía *«No se
+pudo borrar»* **siempre**: la función estaba muerta. Ahora ese botón corrige.
+
+**Lo que sigue abierto (E0-09 · Q1).** Si un signo corregido debe seguir alimentando
+**NEWS2** y el **export FHIR**. Eso cambia un número clínico, así que sigue
+`NEEDS_CLINICAL_REVIEW`: `POLITICA_SIGNOS_EN_CALCULO` vale `null` y
+`signosParaCalculoClinico` **lanza** si se la llama sin política, en vez de asumir una.
+Un test congela que ninguna pantalla la cablee mientras tanto.
+
 ## A4 · Sello de integridad — **(b) + verificador versionado permanente**
 
 > Una nota histórica **no debe volverse «no verificable»** solo porque Nexus actualizó

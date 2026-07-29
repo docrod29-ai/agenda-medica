@@ -79,6 +79,37 @@ describe('firestore.rules — invariantes de seguridad', () => {
     else expect(sinComentarios).not.toContain('match /registros/')
   })
 
+  /**
+   * E0-06 — el PHI clínico del paciente vive en su propia subcolección porque
+   * Firestore NO autoriza por campo: mientras `alergias` sea un campo de
+   * `patients/{docId}` (que es `isMember`), recepción lo lee y ninguna regla lo
+   * impide. Aquí se fija el bloque nuevo y, sobre todo, lo que NO debe cambiar.
+   */
+  it('E0-06: el resumen clínico del paciente solo lo lee personal médico', () => {
+    expect(sinComentarios).toMatch(
+      /match \/clinico\/\{clinicoId\}\s*\{\s*allow read: if isMedico\(clinicId\);/,
+    )
+  })
+
+  it('E0-06: el resumen clínico no se borra desde el cliente', () => {
+    expect(sinComentarios).toMatch(
+      /match \/clinico\/\{clinicoId\}\s*\{[\s\S]{0,300}allow delete: if false;/,
+    )
+  })
+
+  it('E0-06 REGRESIÓN: recepción SIGUE leyendo el directorio de pacientes', () => {
+    // La aceptación pide «lee cita, no lee nota ni alergias». Cerrar el documento
+    // administrativo del paciente rompería agendar (nombre y teléfono) y sería una
+    // regresión peor que el hueco que se cierra.
+    expect(sinComentarios).toMatch(/match \/patients\/\{docId\}\s*\{\s*allow read: if isMember\(clinicId\);/)
+  })
+
+  it('E0-06 REGRESIÓN: notas, laboratorios y fotos siguen bajo isMedico', () => {
+    expect(sinComentarios).toMatch(/match \/notas\/\{notaId\}\s*\{\s*allow read: if isMedico\(clinicId\);/)
+    expect(sinComentarios).toMatch(/match \/laboratorios\/\{labId\}\s*\{\s*allow read: if isMedico\(clinicId\);/)
+    expect(sinComentarios).toMatch(/match \/fotos\/\{fotoId\}\s*\{\s*allow read, create, update, delete: if isMedico\(clinicId\);/)
+  })
+
   it('NINGÚN write/update/delete es públicamente abierto (if true)', () => {
     // 'create: if true' está permitido SOLO para colecciones públicas (ARCO/portal);
     // pero write/update/delete jamás deben ser 'if true'.

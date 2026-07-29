@@ -224,6 +224,30 @@ service cloud.firestore {
         match /fotos/{fotoId} {
           allow read, create, update, delete: if isMedico(clinicId);
         }
+
+        /**
+         * E0-06 — PHI CLÍNICO del paciente (alergias, antecedentes, valoración del
+         * inmunocomprometido). Documento único `clinico/resumen`.
+         *
+         * Por qué una subcolección y no un candado sobre los campos: Firestore NO
+         * autoriza por campo en LECTURA — o se lee el documento entero o no se lee.
+         * Mientras `alergias` sea un campo de `patients/{docId}` (que es `isMember`
+         * porque recepción necesita el directorio para agendar), NINGUNA regla puede
+         * impedir que recepción las lea. El arreglo es de modelo de datos, no de
+         * reglas. Las reglas no son recursivas: el `read: if isMember` de arriba NO
+         * alcanza a esta subcolección, igual que no alcanza a `notas`.
+         *
+         * ESTADO: el bloque está en vigor, pero la MIGRACIÓN de los campos heredados
+         * (Fases B y C del diseño de E0-06) espera la decisión D1 del médico dueño:
+         * ¿la asistente puede CAPTURAR alergias en el alta aunque no pueda leerlas
+         * después? Si la respuesta es «sí», create/update pasan a `isMember` y la
+         * lectura se queda en `isMedico` (write-only). Hasta entonces, lo estricto.
+         */
+        match /clinico/{clinicoId} {
+          allow read: if isMedico(clinicId);
+          allow create, update: if isMedico(clinicId) && clinicaPuedeEscribir(clinicId);
+          allow delete: if false;   // un antecedente no se borra desde el cliente
+        }
       }
       match /waitlist/{docId} {
         allow read, write: if isMember(clinicId);

@@ -213,6 +213,62 @@ export interface Patient {
   creadoPor: string
 }
 
+/**
+ * E0-06 — PHI CLÍNICO del paciente, FUERA del documento administrativo.
+ *
+ * Vive en `clinics/{clinicId}/patients/{patientId}/clinico/resumen` (documento
+ * único, id fijo `resumen`) porque Firestore no autoriza por campo: mientras estos
+ * datos sean campos de `patients/{id}` —que es `isMember` para que recepción pueda
+ * agendar— cualquier rol de la clínica los lee y ninguna regla lo evita.
+ *
+ * Documento único y no colección de N docs: se lee y se escribe siempre completo,
+ * así el coste es UNA lectura por pantalla de paciente.
+ */
+export interface ResumenClinicoPaciente {
+  /** Alergias en texto libre (entrada rápida). */
+  alergias?: string
+  /** Alergias ESTRUCTURADAS — cruce de seguridad más fiable + FHIR rico. */
+  alergiasEstructuradas?: AlergiaEstructurada[]
+  /** Antes `Patient.notas`: texto libre que en la práctica son antecedentes. */
+  notasClinicas?: string
+  txValoracion?: Record<string, string>
+  txValoracionAt?: string
+  txValoracionHist?: { fecha: string; modo: string; huesped: string; texto: string }[]
+  actualizadoEn: string
+  /** uid de quien lo escribió. */
+  actualizadoPor: string
+  /** Sello del backfill. Su presencia prueba que el paciente ya migró. */
+  migradoEn?: string
+}
+
+/**
+ * Campos clínicos que TODAVÍA viven en `Patient` y que deben mudarse a
+ * `ResumenClinicoPaciente`. Fuente única para el splitter de escritura, para el
+ * script de migración y para los tests.
+ *
+ * Mientras esta lista no esté vacía en producción, la aceptación de E0-06
+ * («recepción no lee alergias») NO se cumple: son exactamente los campos que hoy
+ * se sirven bajo `allow read: if isMember`.
+ */
+export const CAMPOS_CLINICOS_PACIENTE = [
+  'alergias',
+  'alergiasEstructuradas',
+  'notas',
+  'txValoracion',
+  'txValoracionAt',
+  'txValoracionHist',
+] as const
+
+export type CampoClinicoPaciente = (typeof CAMPOS_CLINICOS_PACIENTE)[number]
+
+/**
+ * Comprobación EN COMPILACIÓN de que la lista de arriba solo nombra campos que de
+ * verdad existen en `Patient`. Si alguien renombra `txValoracionHist`, `tsc` falla
+ * aquí en vez de dejar un splitter que copia un campo inexistente y pierde el dato.
+ */
+const _CAMPOS_CLINICOS_SON_DE_PATIENT: readonly (keyof Patient)[] = CAMPOS_CLINICOS_PACIENTE
+void _CAMPOS_CLINICOS_SON_DE_PATIENT
+
 export interface Appointment {
   id: string
   pacienteId: string
