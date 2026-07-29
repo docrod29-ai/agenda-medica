@@ -132,7 +132,27 @@ const filtro = SOLO_UNIDADES
     ? `Considera SOLO unidades de la etapa ${SOLO_ETAPA}.`
     : 'Considera todas las etapas en orden (E0 primero: el hardening bloquea al resto).'
 
-const seleccion = await agent(`${CTX}
+/**
+ * ATAJO: si el operador ya dijo QUÉ unidades quiere, no hay nada que seleccionar.
+ *
+ * POR QUÉ EXISTE: el agente selector se colgó dos corridas seguidas — 6 reintentos
+ * repitiendo la misma exploración de backlog.json/estado.json, 458k tokens y dos
+ * horas sin emitir una sola unidad. Es un paso de pura contabilidad; hacerlo con un
+ * LLM es gastar el riesgo de un agente en algo que no lo necesita. Con lista
+ * explícita se salta entero y la corrida empieza por el diseño.
+ *
+ * `soloUnidades` acepta strings ('E0-05') u objetos ({id, titulo, etapa}).
+ */
+const seleccion = SOLO_UNIDADES
+  ? {
+      unidades: SOLO_UNIDADES.map(u =>
+        typeof u === 'string'
+          ? { id: u, titulo: u, etapa: u.split('-')[0] }
+          : { id: u.id, titulo: u.titulo ?? u.id, etapa: u.etapa ?? String(u.id).split('-')[0] },
+      ),
+      resumenEstado: `Lista explícita del operador: ${SOLO_UNIDADES.map(u => (typeof u === 'string' ? u : u.id)).join(', ')}. Se saltó la fase de selección a propósito.`,
+    }
+  : await agent(`${CTX}
 
 TAREA — determinar dónde vamos y qué sigue. Esto es lo que hace el programa reanudable,
 así que sé literal y no asumas nada:
