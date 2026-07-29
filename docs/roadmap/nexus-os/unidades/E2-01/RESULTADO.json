@@ -1,0 +1,81 @@
+{
+  "unidad": "E2-01",
+  "titulo": "Modelo Claim / Source / Passage",
+  "etapa": "E2",
+  "fecha": "2026-07-29T04:20:51Z",
+  "estado": "completada",
+  "aceptacionLiteral": "Una afirmación sin pasaje de respaldo no puede construirse.",
+  "comoSeCumple": {
+    "puerta1_compilador": "Claim.apoyos es NoVacio<Passage> = readonly [Passage, ...Passage[]], así que claim('…', []) NO COMPILA y un Passage[] suelto (que podría estar vacío) tampoco es asignable. Además las cuatro marcas fantasma (MARCA_SOURCE/PASAJE/CLAIM/ESTUDIO) NO se exportan: fabricar a mano un Passage o un Claim y hacerlo pasar por respaldado es imposible desde fuera del módulo. La única puerta son las fábricas.",
+    "puerta2_runtime": "El Claim no nace de código escrito a mano: nace del JSON de un LLM, donde el tipo no protege nada. claimDesde() y claimDesdeJSON() son totales (no lanzan, no inventan, no descartan en silencio) y devuelven Resultado con motivo: SIN_PASAJE para el caso `citas: []` que el prompt de src/app/api/expediente/evidencia/route.ts:153 autoriza hoy, y CITA_FUERA_DE_RANGO para el índice inválido que src/app/(dashboard)/consulta/[patientId]/page.tsx:2698 BORRA EN SILENCIO con `(nums ?? []).filter(n => arts[n - 1])`.",
+    "literalidad": "pasaje() sólo construye un Passage si el texto citado aparece TAL CUAL en Source.textoRecuperado, tras una normalización CONSERVADORA (espacios/saltos colapsados, guiones y comillas Unicode unificados). NO se normalizan cifras, decimales ni acentos: `0·72` frente a `0.72` se RECHAZA. Los offsets se mapean de vuelta al texto ORIGINAL, así que Passage.texto sigue siendo la subcadena literal, no una versión maquillada.",
+    "procedenciaDeCadaCampo": "Declarado<T> es una unión: o `{conocido:true, valor, pasajeId}` o `{conocido:false, motivo}`. No hay tercera forma: un `undefined` que signifique «normal» o «ninguno» no es expresable. `limitaciones: {conocido:true, valor: []}` se RECHAZA en construcción porque la lectura ambigua más peligrosa es «este estudio no tiene limitaciones»."
+  },
+  "archivosTocados": [
+    "src/types/evidence.ts (NUEVO — entregable del backlog: tipos, marcas fantasma, catálogo de proveedores con licencia y fábricas puras)",
+    "src/lib/evidencia/desde-pubmed.ts (NUEVO — adaptador ArticuloPubMed → Source, con `import type` para no arrastrar process.env.NCBI_API_KEY)",
+    "src/__tests__/tipos/evidence.tipos.ts (NUEVO — 12 casos @ts-expect-error, gate de tsc; vitest no lo ejecuta)",
+    "src/__tests__/evidence-model.test.ts (NUEVO — 41 casos de runtime + guardián del gate del compilador)"
+  ],
+  "archivosDeProduccionModificados": 0,
+  "notaSobreProduccion": "CERO archivos de producción tocados y CERO callers: `grep` de importadores de @/types/evidence y de desde-pubmed = sólo los dos archivos de test nuevos. El cableado a las rutas y el render por afirmación es E2-05 (cambio visible en producción, regla 5 de la carta operativa). No se registró motor en CLINICAL_ENGINE_REGISTRY: no calcula nada clínico, así que DEUDA_ADR_CONGELADA=52 queda intacta.",
+  "testsAgregados": [
+    "src/__tests__/evidence-model.test.ts — 41 casos en 8 bloques: guardián del gate del compilador (8) · ACEPTACIÓN en runtime (6) · literalidad del Passage (8) · ids deterministas (2) · serialización claimDesdeJSON (4) · cifras (2) · Estudio (4) · Source/proveedores/fechas (4) · adaptador de PubMed (3)",
+    "src/__tests__/tipos/evidence.tipos.ts — 12 casos @ts-expect-error (no lo corre vitest; lo verifican tsc y next build)"
+  ],
+  "gates": {
+    "tsc": "PASS",
+    "vitest": "PASS",
+    "build": "PASS",
+    "testsPasan": 2252,
+    "archivosDeTest": 182,
+    "comando": "npx tsc --noEmit · npx vitest run src/__tests__/ · npm run build",
+    "lineaBaseAntes": "2211 casos en 181 archivos (E1-01). +41 exactos, cero regresiones.",
+    "notaBuild": "`✓ Compiled successfully in 7.5s` + 127 páginas generadas. El aviso `[sitemap] no se pudieron enumerar los perfiles públicos: Could not load the default credentials` es ruido PREEXISTENTE del entorno local (no hay credenciales de Google en esta máquina), no lo introduce esta unidad."
+  },
+  "controlNegativoEjecutado": {
+    "obligatorio": true,
+    "porQue": "Un test que no se cae cuando quitas lo que vigila no vigila nada. Los tres controles se ejecutaron de verdad y después se restauró el archivo.",
+    "C1_marcasFantasma": {
+      "que": "Sustituir `readonly [MARCA_CLAIM]: (c:'claim')=>'claim'` y su gemela de Passage por `readonly marcaClaim?: never` / `marcaPasaje?: never`.",
+      "resultadoReal": "tsc: `evidence.tipos.ts(54,1): error TS2578` y `(58,1): error TS2578` — los casos 3 (pasaje fabricado a mano) y 4 (claim fabricado a mano) DEJAN de fallar, exactamente lo que predijo el DISEÑO §4.4. vitest: 1 failed (guardián #4).",
+      "conclusion": "La marca es load-bearing: sin ella un Passage inventado y un Claim inventado compilan y la aceptación queda sin cumplir con el CI en verde."
+    },
+    "C2_tuplaNoVacia": {
+      "que": "Sustituir `readonly apoyos: NoVacio<Passage>` por `readonly Passage[]` (y la firma de claim()).",
+      "resultadoReal": "tsc: `evidence.tipos.ts(45,1): error TS2578` y `(50,1): error TS2578` — los casos 1 y 2, que son LA ACEPTACIÓN TEXTUAL, dejan de fallar. vitest: 1 failed (guardián #6).",
+      "conclusion": "La tupla no vacía es lo que hace cumplir la frase de aceptación en compilación."
+    },
+    "C3_runtimeDescarteSilencioso": {
+      "que": "Cambiar el rechazo por `continue` en el bucle de citas de claimDesde(), imitando el `(nums ?? []).filter(n => arts[n - 1])` que está HOY en consulta/[patientId]/page.tsx:2698.",
+      "resultadoReal": "vitest: 1 failed — «un índice de cita FUERA DE RANGO se rechaza — hoy se descarta en silencio».",
+      "conclusion": "El test que documenta el bug de producción se cae si se reintroduce el bug. Es la prueba de que la puerta de runtime no es decorativa."
+    }
+  },
+  "decisionesCodificadasSinInventarNada": [
+    "D1 (licencia de fuentes) de docs/clinical-decisions/DECISIONES-ARQUITECTURA-2026-07-28.md:279-294 → constante PROVEEDORES con ENABLED vs LICENSE_UNKNOWN. Efecto: construir un Source de UpToDate, ClinicalKey o CLSI NO COMPILA, y también se rechaza en runtime (para el objeto que llega de Firestore por un `as`).",
+    "D2 (frescura) → Source.recuperadoEn, un instante ISO SEPARADO de la fecha de publicación.",
+    "D3 (idioma) → Claim.texto es la síntesis en español; el Passage conserva el texto de la fuente en su idioma original."
+  ],
+  "loQueDeliberadamenteNOSeHizo": {
+    "jerarquiaDeEvidencia": "DisenoDeEstudio es una taxonomía DESCRIPTIVA sin peso ni orden. La jerarquía de src/lib/evidencia/pubmed.ts:60 (`Meta-análisis 0 < Guía 1 < ECA 2 < Revisión 3`) NO se copió ni se consagró: nadie la validó y pone Guía por encima de ECA. Es E2-03 (validacionClinica: true).",
+    "mapeoTipoADiseno": "El adaptador de PubMed NO traduce `ArticuloPubMed.tipo` a DisenoDeEstudio, y hay un test que lo fija. Razón: el clasificador de pubmed.ts:61-68 COLAPSA categorías ('Meta-análisis' agrupa meta-análisis con revisiones sistemáticas; 'ECA' agrupa aleatorizados con `clinical trial` a secas, que puede no serlo). Traducir esas cubetas inventaría un dato metodológico que la fuente no dio.",
+    "entailment": "Este modelo garantiza LITERALIDAD y PROCEDENCIA, no que el pasaje IMPLIQUE la afirmación. Un pasaje real que no respalda la afirmación PASA este filtro. Es una limitación DECLARADA, no un descuido: atraparla es E2-06.",
+    "cableado": "Ninguna ruta ni render tocado. El agujero de consulta/[patientId]/page.tsx:2698 sigue abierto en producción y se cierra en E2-05."
+  },
+  "guardaDeSoftwareNoClinica": {
+    "constante": "MINIMO_CARACTERES_PASAJE = 40",
+    "porQue": "Un fragmento de 3 caracteres ('10%') es subcadena de casi cualquier resumen y volvería la verificación literal decorativa. El número es ARBITRARIO y ajustable por parámetro (`opts.minimoCaracteres`).",
+    "noEsUmbralClinico": "No decide nada médico, por eso NO tiene ADR clínico ni entra al registry."
+  },
+  "necesitaValidacionClinica": false,
+  "preguntasRegistradasParaMasAdelante": [
+    "Q1 (E2-03): ¿es aceptable que una GUÍA flote por encima de un ECA en el orden de resultados, como hace hoy pubmed.ts:60? ¿Y qué se hace con cohorte, casos y controles, serie de casos y preclínico, que hoy caen todos en la misma cubeta vacía?",
+    "Q2 (E2-03/E2-06): cuando un pasaje es REAL pero NO respalda la afirmación, ¿el médico ve la afirmación marcada como UNSUPPORTED, o no se le muestra?",
+    "Q3 (E2-04): cuando dos fuentes habilitadas discrepan (guía 2023 vs ECA 2026), ¿se muestran siempre ambas, o hay una ventana temporal a partir de la cual la guía se marca como potencialmente superada?"
+  ],
+  "riesgoDeRegresion": "nulo — 0 archivos de producción modificados, 0 callers, sin dependencias de red/Firebase/process.env, sin efectos de import. Tipos y funciones puras; sin consumidores, el bundler lo elimina por tree-shaking.",
+  "phi": "cero — todos los fixtures son sintéticos (un resumen ficticio escrito para el test), sin red y sin reloj.",
+  "desplegado": false,
+  "push": false
+}

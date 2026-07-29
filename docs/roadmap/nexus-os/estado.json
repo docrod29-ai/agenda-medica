@@ -1,7 +1,7 @@
 {
   "version": 1,
   "descripcion": "ESTADO DURABLE del programa Nexus OS. Fuente de verdad del avance. Los agentes lo actualizan tras CADA unidad terminada. Si se acaban los créditos, este archivo dice exactamente dónde retomar sin perder nada.",
-  "actualizado": "2026-07-29T04:06:30Z",
+  "actualizado": "2026-07-29T04:20:51Z",
   "runs": [
     {
       "unidad": "E0-01",
@@ -138,6 +138,18 @@
         "testsPasan": 2211
       },
       "notaCierre": "Aceptación literal cumplida y VERIFICADA con control negativo obligatorio: quitar strictObject pone 2 tests en rojo, quitar el refine anti-número-disfrazado-de-texto pone 3. 10 @ts-expect-error consumidos por tsc. 1 solo archivo de producción tocado (src/types/clinical-quantity.ts, +parsearCantidad, aditivo puro, sin consumidores de producción). Reparación AJENA incluida: adr-cobertura.ts DOCS_NO_ADR += PREGUNTAS-ABIERTAS-2026-07-29.md (rojo preexistente de una corrida anterior; sin él el gate vitest no podía declararse verde)."
+    },
+    {
+      "unidad": "E2-01",
+      "fecha": "2026-07-29T04:20:51Z",
+      "resultado": "completada",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2252
+      },
+      "notaCierre": "Aceptación literal («una afirmación sin pasaje de respaldo no puede construirse») cumplida por DOS puertas y VERIFICADA con tres controles negativos ejecutados: (C1) quitar las marcas fantasma pone en rojo los casos 3 y 4 del gate de tsc + el guardián #4; (C2) cambiar NoVacio<Passage> por Passage[] pone en rojo los casos 1 y 2 —la aceptación textual— + el guardián #6; (C3) reintroducir el descarte silencioso de citas (el bug real de consulta/[patientId]/page.tsx:2698) pone en rojo el test de CITA_FUERA_DE_RANGO. 12 @ts-expect-error consumidos por tsc. CERO archivos de producción tocados y CERO callers: el cableado es E2-05. NO se copió la jerarquía de evidencia sin validar de pubmed.ts:60 (es E2-03) ni se tradujo ArticuloPubMed.tipo a DisenoDeEstudio (el clasificador colapsa categorías y traducirlo inventaría un dato metodológico)."
     }
   ],
   "unidadEnCurso": null,
@@ -148,7 +160,8 @@
     "E0-04",
     "E0-14",
     "E0-15",
-    "E1-01"
+    "E1-01",
+    "E2-01"
   ],
   "reconciliacionDisco": {
     "fecha": "2026-07-29T03:46:32Z",
