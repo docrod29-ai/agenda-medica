@@ -1,7 +1,7 @@
 {
   "version": 1,
   "descripcion": "ESTADO DURABLE del programa Nexus OS. Fuente de verdad del avance. Los agentes lo actualizan tras CADA unidad terminada. Si se acaban los créditos, este archivo dice exactamente dónde retomar sin perder nada.",
-  "actualizado": "2026-07-29T11:25:21Z",
+  "actualizado": "2026-07-29T11:53:24Z",
   "runs": [
     {
       "unidad": "E0-01",
@@ -162,6 +162,30 @@
         "build": "PASS",
         "testsPasan": 2276
       }
+    },
+    {
+      "unidad": "E1-02",
+      "fecha": "2026-07-29T11:39:23Z",
+      "resultado": "necesita_validacion",
+      "notaCierre": "SOFTWARE ENTREGADO Y EN VERDE; lo que falta es CRITERIO MÉDICO, no código. Nuevos: src/lib/clinical-fact/vocabulario.ts (catálogo de 35 conceptos + resolvedor por término COMPLETO), src/__tests__/clinical-vocabulario.test.ts (46 casos, T-1…T-9) y src/__tests__/fixtures/conceptos.ts. ARCHIVOS DE PRODUCCIÓN MODIFICADOS: 0 — el módulo nace sin importadores (grep sólo devuelve src/__tests__). La aceptación literal se cumple Y se blindan sus dos anticumplimientos: 'creatinina en orina' es un concepto DISTINTO, y la resolución es por igualdad exacta, no por regex (añadir `cr` al regex actual habría metido 'proteína C reactiva' en la serie de creatinina). Control negativo ejecutado y revertido: con casado por subcadena, 4 tests de T-3 se ponen en rojo. Quedan Q1-Q5 para el Dr.: LOINC de laboratorio, sentido de «PCR», abreviaturas que resuelven solas, espécimen de la creatinina y la autorización para reparar el hallazgo E1-02-H1.",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2322
+      }
+    },
+    {
+      "unidad": "E2-02",
+      "fecha": "2026-07-29T11:53:24Z",
+      "resultado": "completada",
+      "notaCierre": "Extractor PICO entero y en verde. NUEVOS: src/lib/evidencia/pico.ts (tipos + 3 marcas fantasma + fábricas + 3 extractores + ensamblador + backoff), src/lib/evidencia/buscar-con-pico.ts (puente aislado para que pico.ts no arrastre el process.env/throttle de pubmed.ts), src/__tests__/tipos/pico.tipos.ts (9 casos negativos de compilación) y src/__tests__/pico-extractor.test.ts (35 casos). ARCHIVOS DE PRODUCCIÓN MODIFICADOS: 0, y CERO callers — el cableado de rutas y prompts es E2-05 (regla 5). La aceptación se defiende por dos puertas: el compilador (una cadena no se puede usar como consulta; una ConsultaPubMed no se puede escribir a mano) y el runtime (picoDesdeModelo RECHAZA con motivo la consulta que el modelo intente dictar dentro de una casilla, no la limpia). LOS TRES CONTROLES NEGATIVOS DEL DISEÑO SE EJECUTARON SOBRE EL CÓDIGO REAL Y SE REVIRTIERON: quitar la marca de ConsultaPubMed → TS2578 en el caso 6; relajar la P obligatoria → TS2578 en los casos 4 y 7; sustituir el rechazo por limpieza silenciosa → 2 tests en rojo. Q4 (fármaco actual = I o P) y Q6 (bandas etarias) quedan REGISTRADAS y NO bloquean: default declarado y parametrizado.",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2357
+      }
     }
   ],
   "unidadEnCurso": null,
@@ -174,7 +198,8 @@
     "E0-14",
     "E0-15",
     "E1-01",
-    "E2-01"
+    "E2-01",
+    "E2-02"
   ],
   "reconciliacionDisco": {
     "fecha": "2026-07-29T11:11:22Z",
@@ -348,6 +373,46 @@
       ],
       "ninguaEsClinica": true,
       "evidencia": "docs/roadmap/nexus-os/unidades/E0-10/RESULTADO.json · runbook en docs/seguridad/csp-enforce.md · REG-054/055/056 en docs/audit/regression-ledger.md"
+    },
+    {
+      "unidad": "E1-02",
+      "id": "E1-02-Q1",
+      "decision": "CÓDIGOS LOINC DE LABORATORIO. ¿Me da (a) la tabla concepto→LOINC validada, o (b) el visto bueno para publicar v1.0.0 sin LOINC de laboratorio, exportando sólo la clave interna?",
+      "porQue": "Los 10 de signos vitales ya están en producción (fhir/recursos.ts:80-88) y los copio con su cita. Los 24 analitos no tienen ninguno y NO los elijo yo: para una sola creatinina hay códigos distintos según magnitud (masa vs. sustancia) y espécimen (suero/plasma vs. orina), y un código equivocado viaja al exterior dentro del Observation de FHIR, donde otro sistema lo lee como verdad.",
+      "defaultAplicado": "codigos: [] para los 25 conceptos de laboratorio, con el trinquete LAB_SIN_CODIGO_CONGELADO=25 y el test T-5 que impide rellenarlos sin cita (el número sólo puede BAJAR).",
+      "bloquea": false
+    },
+    {
+      "unidad": "E1-02",
+      "id": "E1-02-Q2",
+      "decision": "«PCR»: ¿proteína C reactiva o reacción en cadena de la polimerasa? Elija (a) PCR a secas = proteína C reactiva y el sentido molecular siempre se escribe completo; (b) siempre ambiguo y que la UI pregunte; (c) desambiguar por dominio (panel de laboratorio = proteína C reactiva; microbiología = molecular).",
+      "porQue": "Hoy analitos.ts:65 lo resuelve SIEMPRE como proteína C reactiva, y está MEDIDO que 'PCR para influenza' cae en esa serie. En una app con módulo PROA/infectología el otro sentido aparece constantemente.",
+      "defaultAplicado": "En el vocabulario nuevo 'pcr' es término RESERVADO → devuelve 'ambiguo' con nota NEEDS_CLINICAL_REVIEW; 'proteína C reactiva' escrito completo sí resuelve. Producción no cambia.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E1-02",
+      "id": "E1-02-Q3",
+      "decision": "ABREVIATURAS QUE PUEDEN RESOLVER SOLAS. ¿Alguna de estas debe dejar de resolver sola: Na, K, Cl, FA, Glu, ALP, A1c, BUN, Hto, Hct, TSH? ¿Falta alguna que usted teclea y hoy no existe (BH, QS, ES, TP, TTP)? Cada una que agregue debe venir con un sentido único.",
+      "porQue": "'Cr' ya lo decide el propio backlog, así que ésa no la pregunto. Las demás las hereda el catálogo de analitos.ts y resuelven hoy sin contexto; cuáles usa usted y con qué sentido es criterio suyo.",
+      "defaultAplicado": "Se conservan EXACTAMENTE las que ya están en los regex de analitos.ts (ni una más) + 'cr'. Alta o baja = editar SINONIMOS_LAB; el invariante T-4 rechaza cualquier alta que colisione con otro concepto.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E1-02",
+      "id": "E1-02-Q4",
+      "decision": "ESPÉCIMEN: ¿«creatinina» a secas es la SÉRICA? Confírmelo, porque fija la semántica de toda serie temporal futura.",
+      "porQue": "El repo ya lo asume al excluir «en orina» (analitos.ts:44) y la aceptación del backlog lo confirma, pero hoy es implícito. Volverlo explícito es una afirmación clínica y merece su visto bueno.",
+      "defaultAplicado": "creatinina → especimen 'suero', y creatinina_orina como concepto separado sin sinónimos compartidos (fijado por el test T-2).",
+      "bloquea": false
+    },
+    {
+      "unidad": "E1-02",
+      "id": "E1-02-Q5",
+      "decision": "NO clínica, pero necesita su decisión — HALLAZGO E1-02-H1, con impacto HOY: ¿autoriza una unidad aparte que exija término COMPLETO para los alias de 1-3 letras en analitoDe()?",
+      "porQue": "MEDIDO: analitoDe('vitamina K') → 'potasio', y valorPlausible('potasio', 10) → true. Camino real: panel de laboratorio por visión → validarPanel (extraccion.ts:97) → seriesDesdeHistorial → gráfica. Una fila «Vitamina K 10» se dibuja como POTASIO 10 mEq/L (rango letal) en la gráfica de electrolitos del paciente. No lo reparo en esta unidad porque cambia una pantalla en producción (regla 5).",
+      "defaultAplicado": "Nada tocado. Reparación mínima propuesta: exigir término completo para na, k, cl, fa, glu, alp, a1c, bun, hto, hct, ldl, hdl, cr y dejar el casado por palabra sólo para los nombres largos (~6 líneas + test de regresión sobre 'Glu', 'Hemoglobina glucosilada' y 'no-HDL').",
+      "bloquea": false
     }
   ],
   "siguientesElegibles": {
@@ -490,12 +555,31 @@
     "2026-07-29T03:46:32Z — RECONCILIACIÓN 5ª pasada: el disco manda y el disco dice 6 completadas (E0-01, E0-02, E0-03, E0-04, E0-14, E0-15). `reconciliacionDisco` seguía diciendo 7 e incluía a E0-09 y E0-11, que sólo tienen RESULTADO.parcial.json. Corregido. OJO para la próxima corrida: RESULTADO.parcial.json NO cuenta como hecho — es la señal de reintento que dejó el commit 60d63b6.",
     "E0-10: el CÓDIGO ya está escrito y commiteado (CSP parametrizada + rutas privadas + csp-guard + e2e), con tsc/vitest/build verdes verificados a mano. Lo que falta es sólo su RESULTADO.json y la verificación adversarial: la corrida se atascó antes. NO reimplementar desde cero.",
     "2026-07-29T11:11:22Z — 6ª RECONCILIACIÓN contra disco (pasada de selección, sin ejecutar unidades). El disco dice 8 completadas: E1-01 y E2-01 tienen RESULTADO.json y el bloque `reconciliacionDisco` seguía congelado en 6. Corregido a 8/60. Hallazgo NUEVO en dirección contraria: E0-10 tiene su código commiteado (5e01c35) pero NO tiene RESULTADO.json, así que por el criterio del protocolo cuenta como PENDIENTE — y por eso encabeza la selección: hay que VERIFICARLA y cerrarla, no reimplementarla. Segundo hallazgo: E0-11 recibió el arreglo que la sacaba de `bloqueadas` (f7f2afa cierra el bypass describe.skipIf/runIf), pero sigue excluida de la selección porque figura en `necesitaValidacionDelDr`; lo único que le falta son ~5 minutos de consola del Dr. y su RESULTADO.json.",
-    "2026-07-29T11:11:22Z — Selección de este lote: E0-10 (E0, medio), E1-02 (E1, medio, validacionClinica=true) y E2-02 (E2, medio). Criterio literal aplicado: etapa en orden, dependencias con RESULTADO.json en disco, exclusión de `bloqueadas` y `necesitaValidacionDelDr`, y preferencia bajo/medio sobre alto. AVISO para quien ejecute E1-02: el catálogo de conceptos NO se rellena a ojo — sólo con conceptos y códigos que YA existan en el repo y con su procedencia; cualquier mapeo LOINC/ICD-10 nuevo va a NEEDS_CLINICAL_REVIEW (regla 1 de la carta operativa) aunque eso deje la unidad PARCIAL."
+    "2026-07-29T11:11:22Z — Selección de este lote: E0-10 (E0, medio), E1-02 (E1, medio, validacionClinica=true) y E2-02 (E2, medio). Criterio literal aplicado: etapa en orden, dependencias con RESULTADO.json en disco, exclusión de `bloqueadas` y `necesitaValidacionDelDr`, y preferencia bajo/medio sobre alto. AVISO para quien ejecute E1-02: el catálogo de conceptos NO se rellena a ojo — sólo con conceptos y códigos que YA existan en el repo y con su procedencia; cualquier mapeo LOINC/ICD-10 nuevo va a NEEDS_CLINICAL_REVIEW (regla 1 de la carta operativa) aunque eso deje la unidad PARCIAL.",
+    "2026-07-29T11:39:23Z — E1-02 (Vocabulario de conceptos clínicos) cerrada como necesita_validacion. Gates: tsc PASS · vitest 2322/2322 en 184 archivos (línea base 2276/183, delta +46) · build PASS. 0 archivos de producción modificados y 0 importadores fuera de src/__tests__. AVISO PARA QUIEN RETOME: el catálogo NO se rellena a ojo. Los 25 conceptos de laboratorio salen IMPORTADOS de analitos.ts (clave, etiqueta y unidad), los 10 LOINC de vitales están COPIADOS de fhir/recursos.ts con su cita, y los códigos LOINC de laboratorio están VACÍOS a propósito, con el trinquete LAB_SIN_CODIGO_CONGELADO=25 y el test T-5 que sólo permite que ese número BAJE cuando el Dr. valide la tabla. Con Q1-Q4 respondidas, cerrar E1-02 es editar tablas: no hay que rehacer diseño ni tests."
   ],
   "paraReintentar": [
     {
       "unidad": "E0-11",
       "motivo": "Cerrar el bypass describe.skipIf/runIf en safety-gate.ts:137-142. Software puro, no depende del médico."
+    }
+  ],
+  "decisionesPendientesDelMedico": [
+    {
+      "unidad": "E2-02",
+      "id": "E2-02-Q4",
+      "decision": "El fármaco que el paciente YA TOMA: ¿es la INTERVENCIÓN que se evalúa (I) o parte de la POBLACIÓN («pacientes con IVU recurrente en tratamiento con nitrofurantoína», P)? Cambia lo que PubMed devuelve.",
+      "porQue": "Hoy el repo los CONCATENA en una sola cadena (src/app/api/expediente/evidencia/route.ts:73), así que la pregunta ni siquiera se podía formular. Ahora sí, y afecta a qué artículos ve el médico.",
+      "defaultAplicado": "I, declarado y reversible con opts.medicamentosComo. Test 24 fija que el parámetro mueve la faceta de verdad.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E2-02",
+      "id": "E2-02-Q6",
+      "decision": "¿Quiere una tabla concepto→banda etaria («pediatric», «elderly»…) para la búsqueda, o la edad se queda como cifra literal?",
+      "porQue": "Dónde empieza «pediátrico» o «anciano» es criterio clínico. NO lo invento (regla 1). Además la edad exacta viaja a PubMed, que es un tercero: por eso la demografía está APAGADA por defecto.",
+      "defaultAplicado": "incluirDemografia = false; con el flag encendido, sexo entra como traducción literal y edad como cifra («34 years»). Sin bandas etarias.",
+      "bloquea": false
     }
   ]
 }
