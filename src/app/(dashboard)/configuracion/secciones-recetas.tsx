@@ -877,7 +877,7 @@ function PreviewReceta({
     tipo: tipoPreview,
     folio: 'RX-DEMO-01',
     fecha: new Date(),
-    paciente: { id: 'demo', nombre: 'Juan Pérez García', edad: 42, sexo: 'Masculino', telefono: '614 123 4567', alergias: 'Penicilina', noShowCount: 0, cancelacionCount: 0, createdAt: '', updatedAt: '', creadoPor: '' } as Patient,
+    paciente: { id: 'demo', nombre: 'Juan Pérez García', edad: 42, fechaNacimiento: '1984-03-15', sexo: 'Masculino', telefono: '614 123 4567', alergias: 'Penicilina', noShowCount: 0, cancelacionCount: 0, createdAt: '', updatedAt: '', creadoPor: '' } as Patient,
     diagnostico: 'Faringitis aguda (J02.9)',
     medicamentos: tipoPreview === 'receta' ? [
       { nombre: 'Amoxicilina', dosis: '500 mg', via: 'oral', frecuencia: 'Cada 8 horas', duracion: '7 días', indicacion: 'Tomar con alimentos' },
@@ -1151,6 +1151,8 @@ function MargenInput({ label, value, onChange }: { label: string; value: number;
 // ── Calibrador visual de receta: arrastra cada dato a su lugar exacto ──
 const CAMPOS_RECETA = [
   { k: 'nombre', label: 'Nombre' }, { k: 'edad', label: 'Edad' },
+  // Fecha de nacimiento: las farmacias la piden para dispensar.
+  { k: 'nacimiento', label: 'F. nacimiento' },
   { k: 'sexo', label: 'Sexo' }, { k: 'fecha', label: 'Fecha' }, { k: 'folio', label: 'Folio' },
   { k: 'firma', label: 'Firma / sello' }, { k: 'qr', label: 'QR' },
 ] as const

@@ -524,7 +524,13 @@ export interface RecetaConfig {
    * el diseño custom. El médico arrastra cada campo a su lugar UNA vez. Si está
    * definido, esos campos se colocan ahí (no en el bloque de márgenes).
    */
-  disenoCampos?: Partial<Record<'nombre' | 'edad' | 'sexo' | 'fecha' | 'folio' | 'firma' | 'qr', { x: number; y: number }>>
+  /**
+   * Calibrador: coordenadas (mm) de cada dato sobre el diseño del médico.
+   * `nacimiento` = fecha de nacimiento; la piden las farmacias para dispensar,
+   * y como el encabezado propio del médico la coloca donde él quiera, tiene que
+   * ser un campo ARRASTRABLE igual que el nombre, no una línea fija.
+   */
+  disenoCampos?: Partial<Record<'nombre' | 'edad' | 'nacimiento' | 'sexo' | 'fecha' | 'folio' | 'firma' | 'qr', { x: number; y: number }>>
   /** Tamaño (mm) de la firma/sello y del QR sobre el diseño. Default firma 20, QR 14. */
   disenoTamanos?: { firma?: number; qr?: number }
   /** Color de acento (botones, líneas) */

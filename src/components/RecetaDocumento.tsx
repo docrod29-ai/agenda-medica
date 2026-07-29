@@ -317,7 +317,7 @@ export function RecetaDocumento({ data, config, recetaConfig, containerId = 'rec
     let margenes = calibradoAMano ? hm : undefined
     const c = recetaConfig.disenoCampos
     if (c && !calibradoAMano) {
-      const ys = (['nombre', 'edad', 'sexo', 'fecha', 'folio'] as const)
+      const ys = (['nombre', 'edad', 'nacimiento', 'sexo', 'fecha', 'folio'] as const)
         .map(k => c[k]?.y).filter((v): v is number => typeof v === 'number')
       if (ys.length) {
         /**
@@ -585,6 +585,9 @@ function HojaCustom({
   const valorCampo = (k: string): string =>
     k === 'nombre' ? (data.paciente?.nombre ?? '')
     : k === 'edad' ? (data.paciente?.edad ? String(data.paciente.edad) : '')
+    // Fecha de nacimiento: la exigen las farmacias para dispensar. Mismo
+    // formateador que el encabezado por defecto, para que no salgan dos formatos.
+    : k === 'nacimiento' ? (data.paciente?.fechaNacimiento ? fmtFechaNac(data.paciente.fechaNacimiento) : '')
     : k === 'sexo' ? (data.paciente?.sexo ?? '')
     : k === 'fecha' ? data.fecha.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' })
     : k === 'folio' ? data.folio : ''
