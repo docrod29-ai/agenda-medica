@@ -18,6 +18,13 @@
  */
 import { describe, it, expect } from 'vitest'
 import { ckdEpi2021, cockcroftGault } from '@/lib/expediente/funcion-renal'
+// E0-05: los motores renales ya no reciben `number` suelto. Migración MECÁNICA:
+// ni un solo valor golden de este arnés cambió.
+import { mgPorDl, kg, valorEn } from '@/types/clinical-quantity'
+const tfgDe = (cr: number, edad: number, sexo: Parameters<typeof ckdEpi2021>[2]) =>
+  valorEn(ckdEpi2021(mgPorDl(cr), edad, sexo), 'mL/min/1.73m²')
+const crclDe = (cr: number, edad: number, sexo: Parameters<typeof cockcroftGault>[2], peso: number) =>
+  valorEn(cockcroftGault(mgPorDl(cr), edad, sexo, kg(peso)), 'mL/min')
 import { meld } from '@/lib/expediente/calculadoras'
 import { fib4 } from '@/lib/expediente/cardiometabolico/masld'
 import { apfel } from '@/lib/expediente/cirugia'
@@ -35,16 +42,16 @@ describe('CLINICAL SAFETY HARNESS · CKD-EPI 2021', () => {
     ['M, Cr 0.7, 40a', 0.7, 40, 'Femenino' as const, 112],
     ['H, Cr 4.0, 70a (falla renal)', 4.0, 70, 'Masculino' as const, 15],
   ])('%s → %d mL/min/1.73m² (al redondear)', (_l, cr, edad, sexo, esperado) => {
-    expect(Math.round(ckdEpi2021(cr, edad, sexo))).toBe(esperado)
+    expect(Math.round(tfgDe(cr, edad, sexo))).toBe(esperado)
   })
   it('devuelve PRECISIÓN COMPLETA (no redondea el motor)', () => {
-    const v = ckdEpi2021(1.0, 40, 'Masculino')
+    const v = tfgDe(1.0, 40, 'Masculino')
     expect(v).toBeCloseTo(97.575, 2)
     expect(Number.isInteger(v)).toBe(false)   // el motor NO redondea
   })
   it('firma flexible: Sexo o booleano (esMujer) dan el mismo resultado', () => {
-    expect(ckdEpi2021(0.7, 40, 'Femenino')).toBe(ckdEpi2021(0.7, 40, true))
-    expect(ckdEpi2021(1.0, 40, 'Masculino')).toBe(ckdEpi2021(1.0, 40, false))
+    expect(tfgDe(0.7, 40, 'Femenino')).toBe(tfgDe(0.7, 40, true))
+    expect(tfgDe(1.0, 40, 'Masculino')).toBe(tfgDe(1.0, 40, false))
   })
 })
 
@@ -53,7 +60,7 @@ describe('CLINICAL SAFETY HARNESS · Cockcroft-Gault', () => {
     ['H, Cr 1.0, 40a, 70kg', 1.0, 40, 'Masculino' as const, 70, 97],
     ['M, Cr 1.2, 60a, 65kg', 1.2, 60, 'Femenino' as const, 65, 51],
   ])('%s → %d mL/min', (_l, cr, edad, sexo, peso, esperado) => {
-    expect(cockcroftGault(cr, edad, sexo, peso)).toBe(esperado)
+    expect(crclDe(cr, edad, sexo, peso)).toBe(esperado)
   })
 })
 
@@ -290,7 +297,7 @@ describe('PROPERTY-BASED · invariantes sobre poblaciones sintéticas (charter #
     for (const edad of edadGrid) for (const sexo of sexos) {
       let prev = Infinity
       for (const cr of creatGrid) {
-        const g = ckdEpi2021(cr, edad, sexo)
+        const g = tfgDe(cr, edad, sexo)
         expect(Number.isFinite(g)).toBe(true)
         expect(g).toBeGreaterThan(0)
         expect(g, `TFG debe bajar al subir creat (edad ${edad}, ${sexo}, cr ${cr})`).toBeLessThanOrEqual(prev + 1e-6)
@@ -303,7 +310,7 @@ describe('PROPERTY-BASED · invariantes sobre poblaciones sintéticas (charter #
     for (const edad of edadGrid) for (const sexo of sexos) {
       let prev = Infinity
       for (const cr of creatGrid) {
-        const v = cockcroftGault(cr, edad, sexo, 70)
+        const v = crclDe(cr, edad, sexo, 70)
         expect(Number.isFinite(v)).toBe(true)
         expect(v).toBeGreaterThanOrEqual(0)
         expect(v).toBeLessThanOrEqual(prev + 1e-6)

@@ -3,7 +3,7 @@ import { readFileSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import {
   cantidad, cantidadDesde, convertir, sumar, restar, comparar, esMayor, escalar,
-  valorEn, formatear, etiqueta, aConcentracionSustancia,
+  valorEn, formatear, etiqueta, aConcentracionSustancia, aConcentracionMasa,
   FACTORES, FACTORES_MOLARES, UNIDAD_CANONICA, MMOL_COLESTEROL, UMOL_CREATININA,
   mg, mL, kg, mgPorDl, micromolPorL, mmHg,
   type Dimension, type CualquierCantidad,
@@ -213,7 +213,9 @@ describe('E0-04 · catálogo de factores', () => {
     // Si alguien mete mL/min y mL/min/1.73m² en la misma dimensión, convertir
     // devolvería el mismo número con otra etiqueta sin conocer la superficie
     // corporal. Igual con U/min (actividad) y mg/kg/dosis (nº de tomas).
-    for (const d of ['depuracion', 'depuracion_indexada', 'tasa_actividad', 'dosis_por_peso'] as const) {
+    // `concentracion_actividad` (U/mL) la añadió E0-05 §3.4 y entra en la misma
+    // regla: U/mL ↔ µg/mL depende del fármaco y del estándar, no de un factor.
+    for (const d of ['depuracion', 'depuracion_indexada', 'tasa_actividad', 'dosis_por_peso', 'concentracion_actividad'] as const) {
       expect(Object.keys(FACTORES[d]), `${d} no debe admitir conversiones automáticas`).toHaveLength(1)
     }
   })
@@ -270,7 +272,29 @@ describe('E0-04 · conversión masa ↔ sustancia', () => {
 
   it('el catálogo arranca SOLO con los dos factores que ya existían en el repo', () => {
     // Si crece, que sea con una decisión explícita (y su fuente), no "de paso".
+    // E0-05 añadió `aConcentracionMasa` pero NO añadió ni un analito.
     expect(Object.keys(FACTORES_MOLARES).sort()).toEqual(['colesterol', 'creatinina'])
+  })
+
+  // ── E0-05 §3.5 — la inversa: µmol/L → mg/dL ────────────────────────────────
+  it('aConcentracionMasa: un analito fuera del catálogo ⇒ null (nunca adivina)', () => {
+    expect(aConcentracionMasa(micromolPorL(106), 'analito-inexistente')).toBeNull()
+    expect(aConcentracionMasa(micromolPorL(90), 'glucosa')).toBeNull()
+  })
+
+  it('aConcentracionMasa: creatinina 106 µmol/L ⇒ ~1.199 mg/dL (÷ 88.4)', () => {
+    const q = aConcentracionMasa(micromolPorL(106), 'creatinina')
+    expect(q).not.toBeNull()
+    expect(q!.unidad).toBe('mg/dL')
+    expect(q!.dimension).toBe('concentracion_masa')
+    expect(q!.valor).toBeCloseTo(106 / UMOL_CREATININA, 9)
+  })
+
+  it('aConcentracionMasa es la inversa exacta de aConcentracionSustancia', () => {
+    for (const analito of Object.keys(FACTORES_MOLARES)) {
+      const ida = aConcentracionSustancia(mgPorDl(1.2), analito)!
+      expect(aConcentracionMasa(ida, analito)!.valor, analito).toBeCloseTo(1.2, 9)
+    }
   })
 })
 

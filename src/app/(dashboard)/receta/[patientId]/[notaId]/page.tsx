@@ -37,6 +37,9 @@ import { detectarInteracciones, detectarControlados } from '@/lib/expediente/far
 import { alergiasDe } from '@/lib/seguridad/alergias'
 import { revisarDosis, extraerMg, extraerTomasDia, esDosisPorKg, type AlertaDosis } from '@/lib/seguridad/dosis'
 import { evaluarFuncionRenal, ajusteRenalFarmacos } from '@/lib/expediente/funcion-renal'
+// E0-05: `kg` se importa con alias porque en este archivo `mg` ya es una variable
+// local del bucle de dosis; el alias evita cualquier sombra accidental.
+import { mgPorDl, kg as kgMasa, cantidad, valorEn } from '@/types/clinical-quantity'
 import { descargarRecetaWord } from '@/lib/receta-word'
 import { auth } from '@/lib/firebase'
 import { registrarRecetados, cargarRecetasFrecuentes, type MedRecetado } from '@/lib/learning'
@@ -142,8 +145,12 @@ export default function GeneradorRecetaPage() {
       const tomas = extraerTomasDia(m.frecuencia || '') ?? undefined
       // "50 mg/kg" NO son 50 mg absolutos: si no se marca, revisarDosis lo dividía
       // otra vez entre el peso y la alerta pediátrica nunca disparaba.
-      const porKg = esDosisPorKg(m.dosis)
-      const al = revisarDosis({ farmaco: m.nombre, dosisMg: mg, tomasDia: tomas, pesoKg: pesoParaDosis, dosisPorKg: porKg, via: m.via, edadAnios: patient?.edad })
+      // E0-05: `esDosisPorKg` no desaparece — deja de ser un flag y pasa a ser la
+      // FÁBRICA que elige la dimensión de la cantidad aquí, en la frontera del texto.
+      const dosisPrescrita = esDosisPorKg(m.dosis)
+        ? cantidad(mg, 'mg/kg/dosis', 'dosis_por_peso')
+        : cantidad(mg, 'mg', 'masa')
+      const al = revisarDosis({ farmaco: m.nombre, dosis: dosisPrescrita, tomasDia: tomas, peso: pesoParaDosis != null ? kgMasa(pesoParaDosis) : undefined, via: m.via, edadAnios: patient?.edad })
         .filter(a => a.codigo !== 'sin_referencia') // no saturar la receta con avisos informativos
       if (al.length) out.push({ med: m.nombre, alertas: al })
     }
@@ -158,12 +165,21 @@ export default function GeneradorRecetaPage() {
     const cr = parseFloat(creatinina)
     if (!cr || cr <= 0 || !patient?.edad) return null
     const peso = parseFloat(pesoKg)
-    return evaluarFuncionRenal(cr, patient.edad, patient.sexo, peso > 0 ? peso : undefined)
+    // E0-05 — FRONTERA: aquí es donde el número tecleado adquiere su unidad. La
+    // etiqueta del campo dice «Creatinina (mg/dL)» y «Peso (kg)»: es el único
+    // sitio del flujo donde el dato aún no tiene unidad, y a partir de aquí ya
+    // no puede perderla. El parseo (parseFloat) NO cambia, para no alterar qué
+    // teclas acepta el campo.
+    return evaluarFuncionRenal(
+      mgPorDl(cr), patient.edad, patient.sexo,
+      peso > 0 ? kgMasa(peso) : undefined,
+    )
   }, [creatinina, pesoKg, patient?.edad, patient?.sexo])
   const alertasRenales = useMemo(() => {
     // En <18 años (adulto no aplica) o creatinina implausible (probable error de
     // unidad): no se ajusta por ese valor — daría alertas renales falsas.
     if (!renal || renal.noAplicablePorEdad || renal.datoImplausible) return []
+    if (!renal.depuracionParaDosis) return []
     return ajusteRenalFarmacos(meds, renal.depuracionParaDosis)
   }, [renal, meds])
 
@@ -613,10 +629,13 @@ export default function GeneradorRecetaPage() {
               </div>
               {renal && (
                 <div style={{ fontSize: 11.5, color: renal.datoImplausible ? 'var(--amber)' : 'var(--text2)', lineHeight: 1.4 }}>
-                  {Number.isFinite(renal.egfrCkdEpi)
-                    ? <div><strong>TFG (CKD-EPI):</strong> {Math.round(renal.egfrCkdEpi)} mL/min/1.73m² · <strong>{renal.estadio}</strong> ({renal.estadioDesc})</div>
+                  {/* E0-05: `egfrCkdEpi` pasó de NaN a null cuando no se calcula.
+                      El texto en pantalla es EL MISMO; sólo cambia cómo se pregunta
+                      «¿hay valor?» (antes Number.isFinite sobre un NaN). */}
+                  {renal.egfrCkdEpi
+                    ? <div><strong>TFG (CKD-EPI):</strong> {Math.round(valorEn(renal.egfrCkdEpi, 'mL/min/1.73m²'))} mL/min/1.73m² · <strong>{renal.estadio}</strong> ({renal.estadioDesc})</div>
                     : <div>{renal.estadioDesc}</div>}
-                  {renal.crClCockcroft != null && <div><strong>CrCl (Cockcroft):</strong> {renal.crClCockcroft} mL/min</div>}
+                  {renal.crClCockcroft != null && <div><strong>CrCl (Cockcroft):</strong> {valorEn(renal.crClCockcroft, 'mL/min')} mL/min</div>}
                 </div>
               )}
             </div>

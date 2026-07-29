@@ -9,6 +9,13 @@ import { lineasB, obstruccionTSVI, presionesLlenado_Ee } from '@/lib/uci/pocus'
 import { extraerValoresUCI } from '@/lib/uci/extraccion'
 import { camIcu, calcularAPACHE2 } from '@/lib/uci/scores'
 import { analizarSeguridadUCI } from '@/lib/uci/seguridad'
+// E0-05: la gasometría recibe cantidades CON unidad. Migración MECÁNICA: ni un
+// solo valor esperado de estos casos cambió (mEq/L y mmol/L son numéricamente
+// idénticos en Na/Cl/HCO3 por ser iones monovalentes; sólo se unifica la etiqueta).
+import { mmHg, cantidad } from '@/types/clinical-quantity'
+const mEqL = (v: number) => cantidad(v, 'mEq/L', 'concentracion_equivalente')
+const gDl = (v: number) => cantidad(v, 'g/dL', 'concentracion_masa')
+
 
 describe('AUDITORÍA · extracción de voz', () => {
   it("'PIP' dictada NO se guarda como PEEP (PIP ≠ PEEP; corrompía el driving pressure)", () => {
@@ -38,19 +45,19 @@ describe('AUDITORÍA · ventilación', () => {
 
 describe('AUDITORÍA · gasometría (detección de MIXTO)', () => {
   it('AG elevado con pH y HCO3 normales → trastorno MIXTO (no "normal")', () => {
-    const r = analizarGasometria({ ph: 7.40, paco2: 40, hco3: 24, na: 140, cl: 95, albumina: 4 })
+    const r = analizarGasometria({ ph: 7.40, paco2: mmHg(40), hco3: mEqL(24), na: mEqL(140), cl: mEqL(95), albumina: gDl(4) })
     expect(r.anionGap.elevado).toBe(true)
     expect(r.mixto).toBe(true)
     expect(r.deltaDelta.interpretacion).toMatch(/alcalosis metabólica concomitante|MIXTO/i)
   })
   it('delta-ratio < 1 → acidosis hiperclorémica concomitante (MIXTO)', () => {
-    const r = analizarGasometria({ ph: 7.20, paco2: 30, hco3: 14, na: 140, cl: 108, albumina: 4 })
+    const r = analizarGasometria({ ph: 7.20, paco2: mmHg(30), hco3: mEqL(14), na: mEqL(140), cl: mEqL(108), albumina: gDl(4) })
     expect(r.anionGap.elevado).toBe(true)
     expect(r.mixto).toBe(true)
     expect(r.deltaDelta.interpretacion).toMatch(/hiperclor/i)
   })
   it('EPOC (retenedor crónico, cronicidad no especificada) NO se marca mixto inventado', () => {
-    const r = analizarGasometria({ ph: 7.34, paco2: 60, hco3: 32 })
+    const r = analizarGasometria({ ph: 7.34, paco2: mmHg(60), hco3: mEqL(32) })
     expect(r.trastornoPrimario).toBe('acidosis_respiratoria')
     expect(r.mixto).toBe(false) // HCO3 compatible con compensación crónica
   })

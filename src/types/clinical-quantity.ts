@@ -10,10 +10,12 @@
  * la defensa al COMPILADOR: sumar mg con mL o comparar mg/dL con µmol/L deja de
  * ser expresable.
  *
- * ALCANCE DELIBERADO: E0-04 es SOLO el núcleo. Ningún motor clínico lo importa
- * todavía — migrarlos es E0-05 (riesgo alto, unidad aparte). Este archivo no
- * define ningún umbral, dosis ni criterio de decisión: sólo definiciones del SI
- * y dos factores molares que YA existían en el repo, copiados con su cita.
+ * ALCANCE DELIBERADO: E0-04 fue SOLO el núcleo. E0-05 lo cableó a los motores
+ * críticos (función renal, gasometría, infusiones, seguridad de dosis) y le añadió
+ * dos piezas: la dimensión `concentracion_actividad` (U/mL) y `aConcentracionMasa`.
+ * Este archivo sigue sin definir ningún umbral, dosis ni criterio de decisión:
+ * sólo definiciones del SI y dos factores molares que YA existían en el repo,
+ * copiados con su cita.
  *
  * NO se registra en CLINICAL_ENGINE_REGISTRY: no calcula nada clínico y no tiene
  * callers; registrarlo sin ADR subiría la deuda congelada de E0-03 y pondría el
@@ -50,6 +52,15 @@ export interface UnidadesPorDimension {
   concentracion_sustancia:   'mol/L' | 'mmol/L' | 'µmol/L'
   /** mEq/L NO se convierte a mmol/L aquí: la equivalencia depende de la valencia del ion. */
   concentracion_equivalente: 'mEq/L'
+  /**
+   * Concentración de ACTIVIDAD biológica (vasopresina, insulina, heparina en la
+   * bolsa de infusión). Añadida por E0-05 §3.4: el motor de infusiones maneja
+   * diluciones en U/mL y hoy la unidad viaja en un string paralelo
+   * (`unidadConc: 'µg/mL' | 'U/mL'`). Dimensión SEPARADA de `concentracion_masa`
+   * por el mismo motivo que `tasa_actividad` lo está de `tasa_dosis`: la
+   * equivalencia UI↔masa depende del fármaco y del estándar, no de un factor.
+   */
+  concentracion_actividad:   'U/mL'
   presion:                   'mmHg' | 'kPa' | 'cmH2O'
   /** Depuración CRUDA (Cockcroft-Gault). Ver `depuracion_indexada`. */
   depuracion:                'mL/min'
@@ -140,6 +151,7 @@ export const UNIDAD_CANONICA = {
   concentracion_masa:        'mg/dL',
   concentracion_sustancia:   'mmol/L',
   concentracion_equivalente: 'mEq/L',
+  concentracion_actividad:   'U/mL',
   presion:                   'mmHg',
   depuracion:                'mL/min',
   depuracion_indexada:       'mL/min/1.73m²',
@@ -175,6 +187,7 @@ export const FACTORES: { readonly [D in Dimension]: Readonly<Record<UnidadDe<D>,
   concentracion_masa:        { 'g/dL': 1000, 'mg/dL': 1, 'mg/L': 0.1, 'µg/mL': 0.1 },
   concentracion_sustancia:   { 'mol/L': 1000, 'mmol/L': 1, 'µmol/L': 1e-3 },
   concentracion_equivalente: { 'mEq/L': 1 },
+  concentracion_actividad:   { 'U/mL': 1 },
   presion:                   { mmHg: 1, kPa: 1000 / 133.322387415, cmH2O: 98.0665 / 133.322387415 },
   depuracion:                { 'mL/min': 1 },
   depuracion_indexada:       { 'mL/min/1.73m²': 1 },
@@ -428,4 +441,25 @@ export function aConcentracionSustancia(
   const f = FACTORES_MOLARES[analito]
   if (!f) return null
   return cantidad(valorEn(q, 'mg/dL') * f.factorMgDlAMicromolL, 'µmol/L', 'concentracion_sustancia')
+}
+
+/**
+ * Inversa de `aConcentracionSustancia`: µmol/L → mg/dL con la masa molar del
+ * analito (E0-05 §3.5).
+ *
+ * PORQUÉ EXISTE: tras E0-05, `ckdEpi2021` exige `concentracion_masa` y una
+ * creatinina en µmol/L YA NO COMPILA. Eso cierra el bug, pero deja sin salida al
+ * laboratorio que sí reporta en µmol/L (fuera de México es lo habitual). Ésta es
+ * la ÚNICA puerta legítima, y obliga a NOMBRAR el analito — que es justo el dato
+ * que hace legítima la conversión.
+ *
+ * Devuelve `null` si el analito no está en FACTORES_MOLARES: NUNCA adivina una
+ * masa molar. No añade ningún analito ni factor nuevo al catálogo.
+ */
+export function aConcentracionMasa(
+  q: ClinicalQuantity<'concentracion_sustancia'>, analito: string,
+): ClinicalQuantity<'concentracion_masa'> | null {
+  const f = FACTORES_MOLARES[analito]
+  if (!f) return null
+  return cantidad(valorEn(q, 'µmol/L') / f.factorMgDlAMicromolL, 'mg/dL', 'concentracion_masa')
 }

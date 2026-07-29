@@ -14,6 +14,9 @@
  *  - Todo PURO (sin red/DB) → testeable y auditable.
  */
 
+import type { ClinicalQuantity } from '@/types/clinical-quantity'
+import { valorEn } from '@/types/clinical-quantity'
+
 export type Severidad = 'critica' | 'alta' | 'info'
 
 export interface AlertaDosis {
@@ -111,20 +114,27 @@ export function buscarFarmaco(nombre: string): FarmacoRef | null {
   return null
 }
 
+/**
+ * Dosis prescrita: absoluta (mg) o POR KILO (mg/kg/dosis) — E0-05.
+ *
+ * ANTES la unidad viajaba en un BOOLEANO paralelo al número (`dosisMg` +
+ * `dosisPorKg`), y si el booleano se perdía, "50 mg/kg" se leía como 50 mg. Ese
+ * es el P0 de pediatría documentado en `esDosisPorKg`. Con esta unión el estado
+ * NO ES REPRESENTABLE: el discriminante dejó de ser un flag que se puede olvidar
+ * y pasó a ser la DIMENSIÓN, que el compilador exige.
+ */
+export type DosisPrescrita =
+  | ClinicalQuantity<'masa'>            // mg — dosis absoluta por toma
+  | ClinicalQuantity<'dosis_por_peso'>  // mg/kg/dosis — dosis por kilo
+
 export interface EntradaDosis {
   farmaco: string
-  /** Dosis por toma en mg. */
-  dosisMg: number
+  /** Dosis por toma, CON su unidad (mg absolutos o mg/kg/dosis). */
+  dosis: DosisPrescrita
   /** Tomas al día (para el máximo diario). Default 1. */
   tomasDia?: number
-  /** Paciente pediátrico: peso en kg (activa la verificación mg/kg). */
-  pesoKg?: number
-  /**
-   * La dosis YA viene expresada POR KILO ("50 mg/kg"), no en mg absolutos.
-   * Cámbialo todo: sin esto se dividía otra vez entre el peso y la red de
-   * seguridad pediátrica quedaba muerta. Ver `esDosisPorKg`.
-   */
-  dosisPorKg?: boolean
+  /** Paciente pediátrico: peso (activa la verificación mg/kg). */
+  peso?: ClinicalQuantity<'masa'>
   /** Vía de administración (para topes específicos por vía, p. ej. ketorolaco VO). */
   via?: string
   /** Edad del paciente en años (para restricciones por vía y edad). */
@@ -152,7 +162,14 @@ export function esDosisPorKg(texto: string): boolean {
  */
 export function revisarDosis(e: EntradaDosis): AlertaDosis[] {
   const alertas: AlertaDosis[] = []
-  const dosis = Number(e.dosisMg)
+  // E0-05: el booleano `dosisPorKg` desapareció — la dimensión de la cantidad ES
+  // el discriminante. La aritmética de abajo no cambia: `dosis` sigue siendo el
+  // mismo número que antes, y `porKg` el mismo booleano, pero DERIVADO del tipo.
+  const porKg = e.dosis.dimension === 'dosis_por_peso'
+  const dosis = porKg
+    ? valorEn(e.dosis as ClinicalQuantity<'dosis_por_peso'>, 'mg/kg/dosis')
+    : valorEn(e.dosis as ClinicalQuantity<'masa'>, 'mg')
+  const pesoKg = e.peso ? valorEn(e.peso, 'kg') : undefined
   if (!Number.isFinite(dosis) || dosis <= 0) return alertas
 
   // Dosis absurda absoluta (oral): un solo medicamento > 10 g por toma casi siempre
@@ -222,22 +239,21 @@ export function revisarDosis(e: EntradaDosis): AlertaDosis[] {
    * los mg/kg y NO se divide entre el peso (dividir otra vez mataba la alerta).
    * Con dosis por kilo la verificación funciona incluso sin peso capturado.
    */
-  const porKg = !!e.dosisPorKg
-  if (porKg || (e.pesoKg && e.pesoKg > 0)) {
-    const pesoOk = !!(e.pesoKg && e.pesoKg > 0)
+  if (porKg || (pesoKg && pesoKg > 0)) {
+    const pesoOk = !!(pesoKg && pesoKg > 0)
     if (f.pedMaxMgKgToma && (porKg || pesoOk)) {
-      const mgkg = porKg ? dosis : dosis / e.pesoKg!
+      const mgkg = porKg ? dosis : dosis / pesoKg!
       if (mgkg > f.pedMaxMgKgToma) {
         alertas.push({
           severidad: 'critica', codigo: 'pediatrico_sobre_mgkg',
           mensaje: porKg
             ? `${f.nombre}: ${mgkg.toFixed(1)} mg/kg por toma supera ${f.pedMaxMgKgToma} mg/kg.`
-            : `${f.nombre}: ${dosis} mg en ${e.pesoKg} kg = ${mgkg.toFixed(1)} mg/kg por toma, supera ${f.pedMaxMgKgToma} mg/kg.`,
+            : `${f.nombre}: ${dosis} mg en ${pesoKg} kg = ${mgkg.toFixed(1)} mg/kg por toma, supera ${f.pedMaxMgKgToma} mg/kg.`,
         })
       }
     }
     if (f.pedMaxMgKgDia && (porKg || pesoOk)) {
-      const mgkgDia = porKg ? dosis * tomas : (dosis * tomas) / e.pesoKg!
+      const mgkgDia = porKg ? dosis * tomas : (dosis * tomas) / pesoKg!
       if (mgkgDia > f.pedMaxMgKgDia) {
         alertas.push({ severidad: 'alta', codigo: 'pediatrico_sobre_mgkg', mensaje: `${f.nombre}: ${(mgkgDia).toFixed(1)} mg/kg/día supera ${f.pedMaxMgKgDia} mg/kg/día.` })
       }

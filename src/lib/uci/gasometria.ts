@@ -1,4 +1,6 @@
 import { num } from './num'
+import type { ClinicalQuantity } from '@/types/clinical-quantity'
+import { valorEn } from '@/types/clinical-quantity'
 /**
  * MOTOR DETERMINISTA DE GASOMETRÍA / ÁCIDO-BASE — ICU (iteración nexusmed-icu-007).
  *
@@ -12,7 +14,7 @@ import { num } from './num'
  *   Resp. acidosis aguda: ΔHCO3 = 1·(ΔPaCO2/10) ; crónica: 3.5·(ΔPaCO2/10)
  *   Resp. alcalosis aguda: ΔHCO3 = 2·(ΔPaCO2/10) ; crónica: 4·(ΔPaCO2/10)
  *   (ΔPaCO2 es SIGNADO: en alcalosis es negativo, así el HCO3 esperado baja)
- *   Anion gap = Na − (Cl + HCO3) ; corregido = AG + 2.5·(4 − albúmina g/dL)
+ *   Anion gap = Na − (Cl + HCO3) [las tres en mEq/L] ; corregido = AG + 2.5·(4 − albúmina g/dL)
  *   Delta-delta = (AG − 12) / (24 − HCO3)
  *
  * El ÁCIDO-BASE puede evaluarse en sangre venosa con matices; la OXIGENACIÓN
@@ -31,13 +33,29 @@ export type TrastornoPrimario =
   | 'normal'
   | 'indeterminado'
 
+/**
+ * E0-05 — la entrada del motor viaja CON SUS UNIDADES.
+ *
+ * Por qué mEq/L y no mmol/L para HCO3/Na/Cl: el anion gap `Na − (Cl + HCO3)` es
+ * una RESTA y exige las tres en la misma dimensión. `laboratorio/analitos.ts`
+ * declara Na y Cl en mEq/L y `clinical/registry.ts` declara este motor entero en
+ * mEq/L; el comentario de cabecera decía «mmol/L». Como los tres iones son
+ * monovalentes el NÚMERO es idéntico — lo que se unifica es la ETIQUETA, y se
+ * adopta la del registro. (Q1 al médico, no bloqueante.) NO se añade puente
+ * mEq↔mmol: depende de la valencia y E0-04 lo prohibió a propósito.
+ *
+ * El pH NO es una cantidad: es adimensional (logaritmo de actividad). Sigue
+ * aceptando texto porque viene de un campo de formulario y `num()` es quien
+ * resuelve la coma decimal mexicana.
+ */
 export interface EntradaGasometria {
-  ph?: number | string
-  paco2?: number | string     // mmHg
-  hco3?: number | string      // mmol/L (bicarbonato)
-  na?: number | string
-  cl?: number | string
-  albumina?: number | string  // g/dL (para corregir el AG)
+  ph?: number | string | null
+  paco2?: ClinicalQuantity<'presion'> | null
+  hco3?: ClinicalQuantity<'concentracion_equivalente'> | null
+  na?: ClinicalQuantity<'concentracion_equivalente'> | null
+  cl?: ClinicalQuantity<'concentracion_equivalente'> | null
+  /** g/dL — corrige el AG. Un valor en g/L (40) ya no puede entrar como si fuera g/dL. */
+  albumina?: ClinicalQuantity<'concentracion_masa'> | null
   cronicidadRespiratoria?: 'aguda' | 'cronica'
 }
 
@@ -71,8 +89,14 @@ function bloquear(faltantes: string[]): AnalisisGasometria {
 }
 
 export function analizarGasometria(e: EntradaGasometria): AnalisisGasometria {
-  const ph = num(e.ph), paco2 = num(e.paco2), hco3 = num(e.hco3)
-  const na = num(e.na), cl = num(e.cl), alb = num(e.albumina)
+  // E0-05: las unidades se NOMBRAN aquí, en una sola línea por analito, y a partir
+  // de este punto la aritmética de abajo es EXACTAMENTE la de antes.
+  const ph = num(e.ph)
+  const paco2 = e.paco2 != null ? valorEn(e.paco2, 'mmHg') : null
+  const hco3 = e.hco3 != null ? valorEn(e.hco3, 'mEq/L') : null
+  const na = e.na != null ? valorEn(e.na, 'mEq/L') : null
+  const cl = e.cl != null ? valorEn(e.cl, 'mEq/L') : null
+  const alb = e.albumina != null ? valorEn(e.albumina, 'g/dL') : null
 
   const faltantes: string[] = []
   if (ph === null) faltantes.push('pH')

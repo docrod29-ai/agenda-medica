@@ -21,6 +21,7 @@ import type { Internamiento } from '@/types/hospital'
 import type { Patient } from '@/types'
 import { analizarVentilacion, esModoEspontaneo, esModoInvasivo } from '@/lib/uci/ventilacion'
 import { analizarGasometria } from '@/lib/uci/gasometria'
+import { cantidad, cantidadDesde } from '@/types/clinical-quantity'
 import { presionArterialMedia } from '@/lib/uci/hemodinamia'
 import { calcularSOFA } from '@/lib/uci/scores'
 import { vexus, respuestaPLR, disfuncionVD_TAPSE, sobrecargaVD_VDVI, lineasB as lineasBPocus, type PatronVena, type ParametroPLR } from '@/lib/uci/pocus'
@@ -193,7 +194,17 @@ export default function UciPanelPage() {
     esfuerzoEspontaneo: esModoEspontaneo(v.modo),
     pao2: n('pao2'), muestraGasometria: (v.muestra as 'arterial' | 'venosa' | 'capilar') || undefined,
   }), [v])
-  const gaso = useMemo(() => analizarGasometria({ ph: n('ph'), paco2: n('paco2'), hco3: n('hco3'), na: n('na'), cl: n('cl'), albumina: n('alb') }), [v])
+  const gaso = useMemo(() => analizarGasometria({
+    ph: n('ph'),
+    // E0-05 — FRONTERA: aquí el campo del formulario adquiere su unidad y ya no
+    // la puede perder. `cantidadDesde` devuelve null igual que `num()` cuando el
+    // campo está vacío: misma semántica de "faltante", cero cambios de número.
+    paco2: cantidadDesde(n('paco2'), 'mmHg', 'presion'),
+    hco3: cantidadDesde(n('hco3'), 'mEq/L', 'concentracion_equivalente'),
+    na: cantidadDesde(n('na'), 'mEq/L', 'concentracion_equivalente'),
+    cl: cantidadDesde(n('cl'), 'mEq/L', 'concentracion_equivalente'),
+    albumina: cantidadDesde(n('alb'), 'g/dL', 'concentracion_masa'),
+  }), [v])
   const pam = useMemo(() => presionArterialMedia(n('pas'), n('pad')), [v])
   const sofa = useMemo(() => calcularSOFA({
     pafi: vent.indiceKirby.ok ? vent.indiceKirby.valor ?? undefined : undefined,
@@ -300,13 +311,30 @@ export default function UciPanelPage() {
     // Dilución PERSONALIZADA: el médico captura lo que preparó (mg o U en la bolsa
     // y el volumen) → se calcula la concentración y manda sobre la estándar.
     const cant = Number(n('infCantBolsa')), ml = Number(n('infMlBolsa'))
-    const customConc = (Number.isFinite(cant) && Number.isFinite(ml) && ml > 0 && cant > 0)
+    const concNum = (Number.isFinite(cant) && Number.isFinite(ml) && ml > 0 && cant > 0)
       ? (infFarmaco?.unidadConc === 'U/mL' ? cant / ml : (cant * 1000) / ml)
       : undefined
-    const base = { farmacoKey: v.infFarmaco || 'norepinefrina', pesoKg: n('infPeso') ?? n('ckrtPeso'), dilucionIdx: infDilIdx, concentracion: customConc }
+    // E0-05 — FRONTERA: la concentración preparada adquiere aquí su unidad, que es
+    // la que el propio catálogo declara para ese fármaco (U/mL o µg/mL). El número
+    // es el mismo que antes; lo que ya no puede pasar es que se cruce con la otra.
+    const customConc = concNum === undefined ? undefined
+      : infFarmaco?.unidadConc === 'U/mL'
+        ? cantidad(concNum, 'U/mL', 'concentracion_actividad')
+        : cantidad(concNum, 'µg/mL', 'concentracion_masa')
+    // La dosis se etiqueta con la unidad DEL FÁRMACO (µg/kg/min, µg/min o U/min):
+    // es exactamente lo que el panel muestra al lado del campo.
+    const uDosis = infFarmaco?.unidad ?? 'µg/kg/min'
+    const dosisCant = uDosis === 'µg/kg/min' ? cantidadDesde(n('infDosis'), 'µg/kg/min', 'tasa_dosis_peso')
+      : uDosis === 'U/min' ? cantidadDesde(n('infDosis'), 'U/min', 'tasa_actividad')
+      : cantidadDesde(n('infDosis'), 'µg/min', 'tasa_dosis')
+    const base = {
+      farmacoKey: v.infFarmaco || 'norepinefrina',
+      pesoKg: cantidadDesde(n('infPeso') ?? n('ckrtPeso'), 'kg', 'masa'),
+      dilucionIdx: infDilIdx, concentracion: customConc,
+    }
     return (v.infDir === 'rate')
-      ? rateADosis({ ...base, rateMlH: n('infRate') })
-      : dosisARate({ ...base, dosis: n('infDosis') })
+      ? rateADosis({ ...base, rateMlH: cantidadDesde(n('infRate'), 'mL/h', 'tasa_volumen') })
+      : dosisARate({ ...base, dosis: dosisCant })
   }, [v]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── La nota se ARMA en vivo mientras dictas/capturas (por sistemas) ──
@@ -742,9 +770,11 @@ export default function UciPanelPage() {
           {infusion.ok
             ? <>
                 <div style={{ fontSize: 18, fontWeight: 700 }}>
+                  {/* E0-05: la unidad ya no viaja en un campo paralelo — sale de la
+                      propia cantidad, así que no puede desincronizarse del número. */}
                   {v.infDir === 'rate'
-                    ? <>{infusion.dosis} <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text3)' }}>{infusion.unidadDosis}</span></>
-                    : <>{infusion.rateMlH} <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text3)' }}>mL/h</span></>}
+                    ? <>{infusion.dosis?.valor} <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text3)' }}>{infusion.dosis?.unidad}</span></>
+                    : <>{infusion.rateMlH?.valor} <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text3)' }}>mL/h</span></>}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>{infusion.interpretacion}</div>
                 {infusion.advertencias.map((a, i) => <div key={i} style={{ fontSize: 12, color: '#d97706', marginTop: 4 }}>⚠ {a}</div>)}

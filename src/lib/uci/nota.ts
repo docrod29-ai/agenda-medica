@@ -9,6 +9,7 @@
  */
 import { analizarVentilacion, esModoEspontaneo, esModoInvasivo } from './ventilacion'
 import { analizarGasometria } from './gasometria'
+import { cantidadDesde } from '@/types/clinical-quantity'
 import { presionArterialMedia } from './hemodinamia'
 import { calcularSOFA } from './scores'
 import { vexus, respuestaPLR, disfuncionVD_TAPSE, sobrecargaVD_VDVI, lineasB, type PatronVena, type ParametroPLR } from './pocus'
@@ -51,7 +52,17 @@ export function construirSeccionesUCI(v: Campos, opts?: { dia?: string; discusio
     esfuerzoEspontaneo: esModoEspontaneo(v.modo),
     pao2: n('pao2'), muestraGasometria: (v.muestra as 'arterial' | 'venosa' | 'capilar') || undefined,
   })
-  const gaso = analizarGasometria({ ph: n('ph'), paco2: n('paco2'), hco3: n('hco3'), na: n('na'), cl: n('cl'), albumina: n('alb') })
+  const gaso = analizarGasometria({
+    ph: n('ph'),
+    // E0-05 — FRONTERA: aquí el campo del formulario adquiere su unidad y ya no
+    // la puede perder. `cantidadDesde` devuelve null igual que `num()` cuando el
+    // campo está vacío: misma semántica de "faltante", cero cambios de número.
+    paco2: cantidadDesde(n('paco2'), 'mmHg', 'presion'),
+    hco3: cantidadDesde(n('hco3'), 'mEq/L', 'concentracion_equivalente'),
+    na: cantidadDesde(n('na'), 'mEq/L', 'concentracion_equivalente'),
+    cl: cantidadDesde(n('cl'), 'mEq/L', 'concentracion_equivalente'),
+    albumina: cantidadDesde(n('alb'), 'g/dL', 'concentracion_masa'),
+  })
   const pam = presionArterialMedia(n('pas'), n('pad'))
   const sofa = calcularSOFA({
     pafi: vent.indiceKirby.ok ? vent.indiceKirby.valor ?? undefined : undefined,

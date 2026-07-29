@@ -1,4 +1,5 @@
-import { num } from './num'
+import type { ClinicalQuantity } from '@/types/clinical-quantity'
+import { cantidad, valorEn } from '@/types/clinical-quantity'
 /**
  * MOTOR DE INFUSIONES CONTINUAS (vasopresores / inotrópicos / vasodilatadores) — ICU OS.
  *
@@ -67,33 +68,91 @@ export const CATALOGO_INFUSIONES: Farmaco[] = [
 ]
 export const farmacoPorKey = (k: string): Farmaco | undefined => CATALOGO_INFUSIONES.find(f => f.key === k)
 
+/**
+ * E0-05 — la dosis de una infusión vive en TRES dimensiones distintas y no hay
+ * puente entre ellas (decisión D3 de E0-04): µg/kg/min necesita el peso, U/min
+ * mide actividad biológica y su equivalencia en masa depende del fármaco.
+ */
+export type DosisInfusion =
+  | ClinicalQuantity<'tasa_dosis_peso'>    // µg/kg/min
+  | ClinicalQuantity<'tasa_dosis'>         // µg/min
+  | ClinicalQuantity<'tasa_actividad'>     // U/min
+
+/** Concentración de la bolsa: masa (µg/mL) o actividad (U/mL). Nunca la misma cosa. */
+export type ConcentracionInfusion =
+  | ClinicalQuantity<'concentracion_masa'>
+  | ClinicalQuantity<'concentracion_actividad'>
+
 export interface ResultadoInfusion {
   ok: boolean
   bloqueado: boolean
   motivoBloqueo: string | null
-  dosis: number | null
-  unidadDosis: UnidadDosis | null
-  rateMlH: number | null
-  concentracion: number | null
-  unidadConc: 'µg/mL' | 'U/mL' | null
+  /** E0-05: `unidadDosis` desapareció — la unidad ya viaja DENTRO de la cantidad. */
+  dosis: DosisInfusion | null
+  rateMlH: ClinicalQuantity<'tasa_volumen'> | null
+  /** E0-05: `unidadConc` desapareció por el mismo motivo. */
+  concentracion: ConcentracionInfusion | null
   advertencias: string[]
   interpretacion: string
 }
 
-const bloq = (motivo: string): ResultadoInfusion => ({ ok: false, bloqueado: true, motivoBloqueo: motivo, dosis: null, unidadDosis: null, rateMlH: null, concentracion: null, unidadConc: null, advertencias: [], interpretacion: '' })
+const bloq = (motivo: string): ResultadoInfusion => ({ ok: false, bloqueado: true, motivoBloqueo: motivo, dosis: null, rateMlH: null, concentracion: null, advertencias: [], interpretacion: '' })
 
-interface Entrada { farmacoKey?: string; pesoKg?: number | string; concentracion?: number | string; dilucionIdx?: number }
+interface Entrada { farmacoKey?: string; pesoKg?: ClinicalQuantity<'masa'> | null; concentracion?: ConcentracionInfusion | null; dilucionIdx?: number }
+
+/**
+ * Concentración del fármaco COMO CANTIDAD, en la unidad que ese fármaco usa.
+ * Se construye aquí (y no en el catálogo) para no tocar `Dilucion`, que es
+ * puramente de presentación en el selector de diluciones.
+ */
+function concComoCantidad(farmaco: Farmaco, conc: number): ConcentracionInfusion {
+  return farmaco.unidadConc === 'U/mL'
+    ? cantidad(conc, 'U/mL', 'concentracion_actividad')
+    : cantidad(conc, 'µg/mL', 'concentracion_masa')
+}
+
+/**
+ * Número de la dosis EN LA UNIDAD DEL FÁRMACO. Devuelve null si la cantidad no
+ * pertenece a la dimensión de ese fármaco (p.ej. µg/min para norepinefrina, que
+ * se dosifica por kg): eso ya no se convierte en silencio, BLOQUEA.
+ */
+function dosisEnUnidadDelFarmaco(q: DosisInfusion, u: UnidadDosis): number | null {
+  if (u === 'µg/kg/min' && q.dimension === 'tasa_dosis_peso') return valorEn(q, 'µg/kg/min')
+  if (u === 'µg/min' && q.dimension === 'tasa_dosis') return valorEn(q, 'µg/min')
+  if (u === 'U/min' && q.dimension === 'tasa_actividad') return valorEn(q, 'U/min')
+  return null
+}
+
+/** Concentración en la unidad del fármaco; null si la dimensión no corresponde. */
+function concEnUnidadDelFarmaco(q: ConcentracionInfusion, u: 'µg/mL' | 'U/mL'): number | null {
+  if (u === 'U/mL' && q.dimension === 'concentracion_actividad') return valorEn(q, 'U/mL')
+  if (u === 'µg/mL' && q.dimension === 'concentracion_masa') return valorEn(q, 'µg/mL')
+  return null
+}
 
 function resolver(e: Entrada): { farmaco: Farmaco; peso: number | null; conc: number } | ResultadoInfusion {
   const farmaco = e.farmacoKey ? farmacoPorKey(e.farmacoKey) : undefined
   if (!farmaco) return bloq('Elige un fármaco del catálogo')
-  const conc = num(e.concentracion) ?? farmaco.diluciones[e.dilucionIdx ?? 0]?.concentracion ?? farmaco.diluciones[0].concentracion
+  // E0-05: una concentración en U/mL para un fármaco que se mide en µg/mL (o al
+  // revés) ya no se cuela como si fuera el mismo número.
+  const concCustom = e.concentracion != null ? concEnUnidadDelFarmaco(e.concentracion, farmaco.unidadConc) : null
+  if (e.concentracion != null && concCustom === null) {
+    return bloq(`La concentración capturada no está en ${farmaco.unidadConc} (${farmaco.nombre})`)
+  }
+  const conc = concCustom ?? farmaco.diluciones[e.dilucionIdx ?? 0]?.concentracion ?? farmaco.diluciones[0].concentracion
   if (conc === null || conc <= 0) return bloq('Falta la concentración de la dilución')
-  const peso = num(e.pesoKg)
+  const peso = e.pesoKg != null ? valorEn(e.pesoKg, 'kg') : null
   // peso ≤ 0 (num('0')=0) NO es válido: rateADosis dividiría entre 0 → dosis Infinity
   // mostrada como cálculo válido al intensivista (auditoría P1).
   if (farmaco.porKg && (peso === null || peso <= 0)) return bloq(`Falta el peso válido (${farmaco.nombre} se dosifica por kg)`)
   return { farmaco, peso, conc }
+}
+
+/** Reconstruye la dosis como cantidad en la unidad (y dimensión) del fármaco. */
+function dosisComoCantidad(farmaco: Farmaco, dosis: number): DosisInfusion {
+  return farmaco.unidad === 'µg/kg/min' ? cantidad(dosis, 'µg/kg/min', 'tasa_dosis_peso')
+    : farmaco.unidad === 'U/min' ? cantidad(dosis, 'U/min', 'tasa_actividad')
+    : cantidad(dosis, 'µg/min', 'tasa_dosis')
 }
 
 function advertenciaRango(farmaco: Farmaco, dosis: number): string[] {
@@ -105,30 +164,37 @@ function advertenciaRango(farmaco: Farmaco, dosis: number): string[] {
 }
 
 /** DOSIS → velocidad de infusión (mL/h). */
-export function dosisARate(e: Entrada & { dosis?: number | string }): ResultadoInfusion {
+export function dosisARate(e: Entrada & { dosis?: DosisInfusion | null }): ResultadoInfusion {
   const rr = resolver(e); if ('ok' in rr && rr.bloqueado) return rr as ResultadoInfusion
   const { farmaco, peso, conc } = rr as { farmaco: Farmaco; peso: number | null; conc: number }
-  const dosis = num(e.dosis)
-  if (dosis === null) return bloq('Falta la dosis')
+  if (e.dosis == null) return bloq('Falta la dosis')
+  const dosis = dosisEnUnidadDelFarmaco(e.dosis, farmaco.unidad)
+  if (dosis === null) return bloq(`La dosis no está en ${farmaco.unidad} (${farmaco.nombre})`)
+  // Aritmética INTACTA (los pasos intermedios siguen siendo `number`: el tipo
+  // protege entradas y salidas, no las dimensiones derivadas — DISENO §3.1).
   const rate = farmaco.porKg ? (dosis * (peso as number) * 60) / conc : (dosis * 60) / conc
   return {
-    ok: true, bloqueado: false, motivoBloqueo: null, dosis, unidadDosis: farmaco.unidad,
-    rateMlH: r(rate, 1), concentracion: conc, unidadConc: farmaco.unidadConc,
+    ok: true, bloqueado: false, motivoBloqueo: null,
+    dosis: dosisComoCantidad(farmaco, dosis),
+    rateMlH: cantidad(r(rate, 1), 'mL/h', 'tasa_volumen'),
+    concentracion: concComoCantidad(farmaco, conc),
     advertencias: advertenciaRango(farmaco, dosis),
     interpretacion: `${farmaco.nombre} ${dosis} ${farmaco.unidad}${farmaco.porKg ? ` (peso ${peso} kg)` : ''} · conc ${conc} ${farmaco.unidadConc} → ${r(rate, 1)} mL/h`,
   }
 }
 
 /** Velocidad de infusión (mL/h) → DOSIS. */
-export function rateADosis(e: Entrada & { rateMlH?: number | string }): ResultadoInfusion {
+export function rateADosis(e: Entrada & { rateMlH?: ClinicalQuantity<'tasa_volumen'> | null }): ResultadoInfusion {
   const rr = resolver(e); if ('ok' in rr && rr.bloqueado) return rr as ResultadoInfusion
   const { farmaco, peso, conc } = rr as { farmaco: Farmaco; peso: number | null; conc: number }
-  const rate = num(e.rateMlH)
-  if (rate === null) return bloq('Falta la velocidad de infusión (mL/h)')
+  if (e.rateMlH == null) return bloq('Falta la velocidad de infusión (mL/h)')
+  const rate = valorEn(e.rateMlH, 'mL/h')
   const dosis = farmaco.porKg ? (rate * conc) / (60 * (peso as number)) : (rate * conc) / 60
   return {
-    ok: true, bloqueado: false, motivoBloqueo: null, dosis: r(dosis, 3), unidadDosis: farmaco.unidad,
-    rateMlH: rate, concentracion: conc, unidadConc: farmaco.unidadConc,
+    ok: true, bloqueado: false, motivoBloqueo: null,
+    dosis: dosisComoCantidad(farmaco, r(dosis, 3)),
+    rateMlH: cantidad(rate, 'mL/h', 'tasa_volumen'),
+    concentracion: concComoCantidad(farmaco, conc),
     advertencias: advertenciaRango(farmaco, dosis),
     interpretacion: `${farmaco.nombre} ${rate} mL/h · conc ${conc} ${farmaco.unidadConc}${farmaco.porKg ? ` (peso ${peso} kg)` : ''} → ${r(dosis, 3)} ${farmaco.unidad}`,
   }

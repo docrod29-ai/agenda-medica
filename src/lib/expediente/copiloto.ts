@@ -18,6 +18,7 @@ import { FARMACOS_PED, calcularDosisPediatrica, imc as calcImc } from './pediatr
 import { AJUSTE_RENAL, ajustePorTFG, EMBARAZO_LACTANCIA, coincideRenal, RIESGO_HEPATICO, coincideHepatico } from './prescripcion-segura'
 import { ckdEpi2021 } from './calculadoras'
 import { creatininaPlausibleMgDl } from './funcion-renal'
+import { mgPorDl, valorEn } from '@/types/clinical-quantity'
 import { metaLipidica, recomendarEstatina } from './cardiometabolico/dislipidemia'
 import { clasificarIMC } from './cardiometabolico/obesidad'
 import { fib4, interpretarFib4 } from './cardiometabolico/masld'
@@ -266,7 +267,10 @@ function ajusteRenal(e: EntradaCopiloto): Sugerencia[] {
       textoNota: `Creatinina ${cr} fuera de rango en mg/dL — verificar unidad antes de ajustar por función renal.`,
     }]
   }
-  const tfg = ckdEpi2021(cr, edad, !!e.sexo && /^f/i.test(e.sexo))
+  // E0-05: la creatinina entra al motor CON SU UNIDAD. `mgPorDl` es legítimo aquí
+  // porque el campo `labs.creatinina` está declarado en mg/dL en laboratorio/analitos.ts
+  // y acaba de pasar la guarda de plausibilidad de esa misma unidad.
+  const tfg = valorEn(ckdEpi2021(mgPorDl(cr), edad, !!e.sexo && /^f/i.test(e.sexo)), 'mL/min/1.73m²')
   if (!Number.isFinite(tfg) || tfg >= 60) return []
 
   const out: Sugerencia[] = []
@@ -489,7 +493,7 @@ function calculosAutomaticos(e: EntradaCopiloto): Sugerencia[] {
       textoNota: '',
     })
   } else if (e.labs?.creatinina && edad != null && creatininaPlausibleMgDl(e.labs.creatinina)) {
-    const tfg = ckdEpi2021(e.labs.creatinina, edad, !!e.sexo && /^f/i.test(e.sexo))
+    const tfg = valorEn(ckdEpi2021(mgPorDl(e.labs.creatinina), edad, !!e.sexo && /^f/i.test(e.sexo)), 'mL/min/1.73m²')
     if (Number.isFinite(tfg)) {
       out.push({
         id: 'calc:tfg',
@@ -594,7 +598,7 @@ function metasPorDiagnostico(e: EntradaCopiloto): Sugerencia[] {
     const factoresRiesgo = /hipertension|hta|tabaquismo|fumador|obesidad|sobrepeso|renal cronica|erc\b|sindrome metabolico|antecedente familiar/.test(dx)
     const erc = /renal cronica|erc\b|nefropat|insuficiencia renal/.test(dx)
     const tfg = (e.labs?.creatinina && e.edad != null && creatininaPlausibleMgDl(e.labs.creatinina))
-      ? ckdEpi2021(e.labs.creatinina, e.edad, !!e.sexo && /^f/i.test(e.sexo)) : 0
+      ? valorEn(ckdEpi2021(mgPorDl(e.labs.creatinina), e.edad, !!e.sexo && /^f/i.test(e.sexo)), 'mL/min/1.73m²') : 0
     const prev = prevent({
       edad: e.edad ?? 0, esMujer: !!e.sexo && /^f/i.test(e.sexo),
       tas: sistolica(e.signos?.ta) ?? 0,
@@ -674,8 +678,19 @@ function riesgoCardiovascular(e: EntradaCopiloto): Sugerencia[] {
   if (/infarto|cardiopatia isquemica|angina|evc|isquemi|arteriopat|revasculariza/.test(dx)) return []
   if (e.edad == null || e.edad < 30 || e.edad > 79) return []
 
-  const tfg = e.labs?.tfg ?? (e.labs?.creatinina && e.edad
-    ? ckdEpi2021(e.labs.creatinina, e.edad, !!e.sexo && /^f/i.test(e.sexo))
+  /**
+   * E0-05 — HUECO CERRADO (único cambio de comportamiento de la unidad).
+   *
+   * Los otros tres call sites de ckdEpi2021 de este archivo (:270, :493, :598) ya
+   * filtraban con `creatininaPlausibleMgDl`; éste NO. Una creatinina de 88 (que es
+   * un valor NORMAL en µmol/L) entraba cruda, salía una TFG de ~5 mL/min/1.73 m² y
+   * alimentaba el riesgo PREVENT — un riesgo cardiovascular calculado sobre un dato
+   * basura, sin avisar. Ahora se filtra igual que en :598: con creatinina
+   * implausible, PREVENT recibe tfg=0 y devuelve null (prevent.ts), es decir,
+   * DECLARA el dato faltante en vez de inventar un riesgo.
+   */
+  const tfg = e.labs?.tfg ?? (e.labs?.creatinina && e.edad && creatininaPlausibleMgDl(e.labs.creatinina)
+    ? valorEn(ckdEpi2021(mgPorDl(e.labs.creatinina), e.edad, !!e.sexo && /^f/i.test(e.sexo)), 'mL/min/1.73m²')
     : undefined)
 
   const entrada = {

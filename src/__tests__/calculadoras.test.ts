@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { CALCULADORAS, calculadorasSugeridas, ckdEpi2021, meld } from '@/lib/expediente/calculadoras'
+// E0-05: el re-export de ckdEpi2021 ahora exige la creatinina CON su unidad.
+import { mgPorDl, valorEn } from '@/types/clinical-quantity'
+const tfgDe = (cr: number, edad: number, esMujer: boolean) =>
+  valorEn(ckdEpi2021(mgPorDl(cr), edad, esMujer), 'mL/min/1.73m²')
 
 const calc = (id: string) => CALCULADORAS.find(c => c.id === id)!
 
@@ -156,15 +160,15 @@ describe('Scores incompletos: nunca dan puntaje', () => {
 
 describe('Fórmulas: CKD-EPI 2021 y MELD', () => {
   it('CKD-EPI: hombre 60 años, Cr 1.0 ≈ 89 mL/min/1.73m²', () => {
-    const tfg = ckdEpi2021(1.0, 60, false)
+    const tfg = tfgDe(1.0, 60, false)
     expect(tfg).toBeGreaterThan(85)
     expect(tfg).toBeLessThan(95)
   })
   it('CKD-EPI: a igual creatinina, la mujer tiene TFG menor', () => {
-    expect(ckdEpi2021(1.0, 60, true)).toBeLessThan(ckdEpi2021(1.0, 60, false))
+    expect(tfgDe(1.0, 60, true)).toBeLessThan(tfgDe(1.0, 60, false))
   })
   it('CKD-EPI: creatinina más alta → TFG más baja', () => {
-    expect(ckdEpi2021(3.0, 60, false)).toBeLessThan(ckdEpi2021(1.0, 60, false))
+    expect(tfgDe(3.0, 60, false)).toBeLessThan(tfgDe(1.0, 60, false))
   })
   it('MELD queda acotado entre 6 y 40 y sube con la severidad', () => {
     expect(meld(1, 1, 1)).toBeGreaterThanOrEqual(6)

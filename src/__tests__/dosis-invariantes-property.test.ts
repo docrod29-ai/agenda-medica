@@ -29,6 +29,13 @@ import {
 import { CATALOGO, buscarFarmaco, revisarDosis, extraerMg } from '@/lib/seguridad/dosis'
 import { mallaPesosKg, MALLA_EDADES_MESES, paraTodo, prng } from './_harness/property'
 
+// E0-05: `revisarDosis` recibe la dosis CON su unidad (mg absolutos o mg/kg/dosis)
+// y el peso como masa. Migración MECÁNICA: ni un solo valor esperado cambió.
+import { cantidad, kg as kgMasa } from '@/types/clinical-quantity'
+const mgAbs = (v: number) => cantidad(v, 'mg', 'masa')
+const mgKgDosis = (v: number) => cantidad(v, 'mg/kg/dosis', 'dosis_por_peso')
+
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Constantes DERIVADAS del código (ninguna es una elección clínica)
 // ═══════════════════════════════════════════════════════════════════════════
@@ -420,7 +427,7 @@ describe('E0-02 · P5 — verificador adulto: unidad obligatoria y ausencia ≠ 
       // Guarda: si algún día entra al catálogo, este caso deja de aplicar y hay que revisarlo.
       if (buscarFarmaco(nombre)) throw new Error(`"${nombre}" ya está en el CATALOGO: actualiza el caso`)
       paraTodo(dosis, d => `${nombre} ${d} mg`, d => {
-        const alertas = revisarDosis({ farmaco: nombre, dosisMg: d, tomasDia: 3 })
+        const alertas = revisarDosis({ farmaco: nombre, dosis: mgAbs(d), tomasDia: 3 })
         expect(alertas.some(a => a.codigo === 'sin_referencia')).toBe(true)
       })
     }
@@ -437,7 +444,7 @@ describe('E0-02 · P5 — verificador adulto: unidad obligatoria y ausencia ≠ 
     for (const ref of CATALOGO.filter(f => f.maxTomaMg != null)) {
       paraTodo(factores, k => `${ref.nombre} × ${k} del máximo por toma`, k => {
         const dosisMg = ref.maxTomaMg! * k
-        const alertas = revisarDosis({ farmaco: ref.nombre, dosisMg, tomasDia: 1 })
+        const alertas = revisarDosis({ farmaco: ref.nombre, dosis: mgAbs(dosisMg), tomasDia: 1 })
         // Nunca puede quedarse callado por encima del habitual.
         expect(alertas.length).toBeGreaterThan(0)
         const superaAbsoluto = ref.hardMaxTomaMg == null || dosisMg > ref.hardMaxTomaMg
@@ -457,7 +464,7 @@ describe('E0-02 · P5 — verificador adulto: unidad obligatoria y ausencia ≠ 
       paraTodo([2, 3, 4, 6, 8], tomas => `${ref.nombre} × ${tomas} tomas/día`, tomas => {
         // Dosis por toma que rebasa el techo DIARIO por poco (y no por el de una sola toma).
         const porToma = (ref.maxDiaMg! / tomas) * 1.05
-        const alertas = revisarDosis({ farmaco: ref.nombre, dosisMg: porToma, tomasDia: tomas })
+        const alertas = revisarDosis({ farmaco: ref.nombre, dosis: mgAbs(porToma), tomasDia: tomas })
         const total = porToma * tomas
         const superaAbsoluto = ref.hardMaxDiaMg == null || total > ref.hardMaxDiaMg
         expect(alertas.some(a =>
@@ -474,13 +481,13 @@ describe('E0-02 · P5 — verificador adulto: unidad obligatoria y ausencia ≠ 
   it('por encima del máximo ABSOLUTO la alerta vuelve a ser crítica', () => {
     for (const ref of CATALOGO.filter(f => f.hardMaxTomaMg != null)) {
       paraTodo([1.01, 1.5, 3], k => `${ref.nombre} × ${k} del máximo absoluto`, k => {
-        const alertas = revisarDosis({ farmaco: ref.nombre, dosisMg: ref.hardMaxTomaMg! * k, tomasDia: 1 })
+        const alertas = revisarDosis({ farmaco: ref.nombre, dosis: mgAbs(ref.hardMaxTomaMg! * k), tomasDia: 1 })
         expect(alertas.some(a => a.severidad === 'critica')).toBe(true)
       })
     }
     for (const ref of CATALOGO.filter(f => f.hardMaxDiaMg != null)) {
       const porToma = (ref.hardMaxDiaMg! / 2) * 1.05   // 2 tomas → total 5% sobre el absoluto
-      const alertas = revisarDosis({ farmaco: ref.nombre, dosisMg: porToma, tomasDia: 2 })
+      const alertas = revisarDosis({ farmaco: ref.nombre, dosis: mgAbs(porToma), tomasDia: 2 })
       expect(alertas.some(a => a.severidad === 'critica')).toBe(true)
     }
   })
@@ -488,7 +495,7 @@ describe('E0-02 · P5 — verificador adulto: unidad obligatoria y ausencia ≠ 
   it('dosis en el techo exacto NO alerta por techo (ni falsos positivos ni falsos negativos)', () => {
     for (const ref of CATALOGO.filter(f => f.maxTomaMg != null && f.maxDiaMg != null)) {
       const tomas = Math.max(1, Math.floor(ref.maxDiaMg! / ref.maxTomaMg!))
-      const alertas = revisarDosis({ farmaco: ref.nombre, dosisMg: ref.maxTomaMg!, tomasDia: tomas })
+      const alertas = revisarDosis({ farmaco: ref.nombre, dosis: mgAbs(ref.maxTomaMg!), tomasDia: tomas })
       expect(
         alertas.filter(a => a.codigo === 'sobre_maximo_dosis' || a.codigo === 'sobre_maximo_diario'),
         `${ref.nombre} en su techo exacto`,
@@ -551,7 +558,7 @@ function contradiccionesEntreMotores(): Map<string, string> {
        * eso solo lo dice una alerta crítica, o un techo diario rebasado de verdad.
        */
       const graves = revisarDosis({
-        farmaco: f.nombre, dosisMg: dosisSinRedondeo, tomasDia: tomas, pesoKg: peso,
+        farmaco: f.nombre, dosis: mgAbs(dosisSinRedondeo), tomasDia: tomas, peso: kgMasa(peso),
       }).filter(a => a.codigo !== 'dosis_alta_verificar'
         && (a.severidad === 'critica' || a.severidad === 'alta'))
       if (graves.length && !out.has(f.nombre)) {
@@ -612,7 +619,7 @@ describe('E0-02 · P6 — los dos motores deterministas no se contradicen', () =
     // releer la pregunta 3 en lugar de dejarla marcada como pendiente para siempre.
     expect(sinReferencia.length).toBe(20)
     for (const nombre of sinReferencia) {
-      const alertas = revisarDosis({ farmaco: nombre, dosisMg: 100000, tomasDia: 4 })
+      const alertas = revisarDosis({ farmaco: nombre, dosis: mgAbs(100000), tomasDia: 4 })
       expect(alertas.some(a => a.codigo === 'sin_referencia'), nombre).toBe(true)
     }
   })

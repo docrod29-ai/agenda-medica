@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import { revisarDosis, buscarFarmaco, peorSeveridad, extraerMg, extraerTomasDia, esDosisPorKg } from '@/lib/seguridad/dosis'
 
+// E0-05: `revisarDosis` recibe la dosis CON su unidad (mg absolutos o mg/kg/dosis)
+// y el peso como masa. Migración MECÁNICA: ni un solo valor esperado cambió.
+import { cantidad, kg as kgMasa } from '@/types/clinical-quantity'
+const mgAbs = (v: number) => cantidad(v, 'mg', 'masa')
+const mgKgDosis = (v: number) => cantidad(v, 'mg/kg/dosis', 'dosis_por_peso')
+
+
 describe('Parsers de dosis y frecuencia', () => {
   it('extraerMg convierte unidades', () => {
     expect(extraerMg('500 mg')).toBe(500)
@@ -21,50 +28,50 @@ describe('Parsers de dosis y frecuencia', () => {
 describe('Verificación de dosis — error de decimal (el caso que mata)', () => {
   it('detecta 50 mg → 500 mg como posible error de decimal (crítico)', () => {
     // Ketorolaco máx por toma 30 mg → 300 mg es 10×
-    const a = revisarDosis({ farmaco: 'ketorolaco', dosisMg: 300 })
+    const a = revisarDosis({ farmaco: 'ketorolaco', dosis: mgAbs(300)})
     expect(a.some(x => x.codigo === 'posible_error_decimal')).toBe(true)
     expect(peorSeveridad(a)).toBe('critica')
   })
   it('paracetamol 10000 mg (10×) marca error de decimal', () => {
-    const a = revisarDosis({ farmaco: 'paracetamol', dosisMg: 10000 })
+    const a = revisarDosis({ farmaco: 'paracetamol', dosis: mgAbs(10000)})
     expect(a.some(x => x.codigo === 'posible_error_decimal' || x.codigo === 'dosis_extrema')).toBe(true)
   })
 })
 
 describe('Verificación de dosis — techos adulto', () => {
   it('dosis normal no alerta', () => {
-    expect(revisarDosis({ farmaco: 'paracetamol', dosisMg: 500, tomasDia: 3 })).toEqual([])
+    expect(revisarDosis({ farmaco: 'paracetamol', dosis: mgAbs(500), tomasDia: 3 })).toEqual([])
   })
   it('supera el máximo por toma', () => {
-    const a = revisarDosis({ farmaco: 'losartan', dosisMg: 300 })
+    const a = revisarDosis({ farmaco: 'losartan', dosis: mgAbs(300)})
     expect(a.some(x => x.codigo === 'sobre_maximo_dosis' || x.codigo === 'posible_error_decimal')).toBe(true)
   })
   it('supera el máximo diario aunque la toma sea válida', () => {
     // Paracetamol 1000 mg × 5 = 5000 > 4000/día
-    const a = revisarDosis({ farmaco: 'paracetamol', dosisMg: 1000, tomasDia: 5 })
+    const a = revisarDosis({ farmaco: 'paracetamol', dosis: mgAbs(1000), tomasDia: 5 })
     expect(a.some(x => x.codigo === 'sobre_maximo_diario')).toBe(true)
   })
 })
 
 describe('Verificación de dosis — pediátrico por peso', () => {
   it('ibuprofeno 300 mg en 10 kg = 30 mg/kg supera 10 mg/kg', () => {
-    const a = revisarDosis({ farmaco: 'ibuprofeno', dosisMg: 300, pesoKg: 10 })
+    const a = revisarDosis({ farmaco: 'ibuprofeno', dosis: mgAbs(300), peso: kgMasa(10)})
     expect(a.some(x => x.codigo === 'pediatrico_sobre_mgkg')).toBe(true)
     expect(peorSeveridad(a)).toBe('critica')
   })
   it('dosis pediátrica correcta no alerta', () => {
     // ibuprofeno 100 mg en 15 kg = 6.6 mg/kg, dentro de rango
-    expect(revisarDosis({ farmaco: 'ibuprofeno', dosisMg: 100, pesoKg: 15, tomasDia: 3 }).length).toBe(0)
+    expect(revisarDosis({ farmaco: 'ibuprofeno', dosis: mgAbs(100), peso: kgMasa(15), tomasDia: 3 }).length).toBe(0)
   })
 })
 
 describe('Honestidad: sin referencia NO calla', () => {
   it('fármaco desconocido devuelve alerta informativa (ausencia ≠ seguro)', () => {
-    const a = revisarDosis({ farmaco: 'medicamento-raro-xyz', dosisMg: 50 })
+    const a = revisarDosis({ farmaco: 'medicamento-raro-xyz', dosis: mgAbs(50)})
     expect(a.some(x => x.codigo === 'sin_referencia')).toBe(true)
   })
   it('dosis absurda absoluta alerta aunque no haya fármaco', () => {
-    const a = revisarDosis({ farmaco: 'algo', dosisMg: 50000 })
+    const a = revisarDosis({ farmaco: 'algo', dosis: mgAbs(50000)})
     expect(a.some(x => x.codigo === 'dosis_extrema')).toBe(true)
   })
   it('buscarFarmaco resuelve alias', () => {
@@ -90,29 +97,29 @@ describe('Dosis escrita POR KILO', () => {
   })
 
   it('paracetamol 50 mg/kg por toma SÍ alerta (techo 15 mg/kg)', () => {
-    const a = revisarDosis({ farmaco: 'Paracetamol', dosisMg: 50, dosisPorKg: true, pesoKg: 20 })
+    const a = revisarDosis({ farmaco: 'Paracetamol', dosis: mgKgDosis(50), peso: kgMasa(20)})
     expect(a.some(x => x.codigo === 'pediatrico_sobre_mgkg' && x.severidad === 'critica')).toBe(true)
   })
 
   it('EL BUG: sin marcar por-kg, ese mismo 50 mg/kg NO alertaba', () => {
-    const a = revisarDosis({ farmaco: 'Paracetamol', dosisMg: 50, pesoKg: 20 })  // 50/20 = 2.5 mg/kg
+    const a = revisarDosis({ farmaco: 'Paracetamol', dosis: mgAbs(50), peso: kgMasa(20)})  // 50/20 = 2.5 mg/kg
     expect(a.some(x => x.codigo === 'pediatrico_sobre_mgkg')).toBe(false)
   })
 
   it('funciona aunque NO se haya capturado el peso (la dosis ya es por kilo)', () => {
-    const a = revisarDosis({ farmaco: 'Ibuprofeno', dosisMg: 30, dosisPorKg: true })
+    const a = revisarDosis({ farmaco: 'Ibuprofeno', dosis: mgKgDosis(30)})
     expect(a.some(x => x.codigo === 'pediatrico_sobre_mgkg')).toBe(true)
   })
 
   it('amoxicilina 30 mg/kg × 3 = 90 mg/kg/día está en el límite, 40 × 3 lo supera', () => {
-    expect(revisarDosis({ farmaco: 'Amoxicilina', dosisMg: 30, tomasDia: 3, dosisPorKg: true })
+    expect(revisarDosis({ farmaco: 'Amoxicilina', dosis: mgKgDosis(30), tomasDia: 3 })
       .some(x => x.codigo === 'pediatrico_sobre_mgkg')).toBe(false)
-    expect(revisarDosis({ farmaco: 'Amoxicilina', dosisMg: 40, tomasDia: 3, dosisPorKg: true })
+    expect(revisarDosis({ farmaco: 'Amoxicilina', dosis: mgKgDosis(40), tomasDia: 3 })
       .some(x => x.codigo === 'pediatrico_sobre_mgkg')).toBe(true)
   })
 
   it('una dosis normal por kilo NO alerta (sin falsos positivos)', () => {
-    expect(revisarDosis({ farmaco: 'Paracetamol', dosisMg: 12, tomasDia: 4, dosisPorKg: true })
+    expect(revisarDosis({ farmaco: 'Paracetamol', dosis: mgKgDosis(12), tomasDia: 4 })
       .some(x => x.codigo === 'pediatrico_sobre_mgkg')).toBe(false)
   })
 })
@@ -131,7 +138,7 @@ describe('Frecuencias en rango', () => {
   })
   it('el techo diario YA dispara con rango (paracetamol 1000 mg c/4-6h)', () => {
     const tomas = extraerTomasDia('cada 4 a 6 horas')!
-    const a = revisarDosis({ farmaco: 'Paracetamol', dosisMg: 1000, tomasDia: tomas })
+    const a = revisarDosis({ farmaco: 'Paracetamol', dosis: mgAbs(1000), tomasDia: tomas })
     expect(a.some(x => x.codigo === 'sobre_maximo_diario')).toBe(true)
   })
   it('las frecuencias simples siguen igual', () => {
@@ -146,19 +153,19 @@ describe('Frecuencias en rango', () => {
  */
 describe('Ketorolaco por vía oral', () => {
   it('30 mg VO × 3 (90 mg/día) SÍ supera el tope oral de 40 mg', () => {
-    const a = revisarDosis({ farmaco: 'Ketorolaco', dosisMg: 30, tomasDia: 3, via: 'oral' })
+    const a = revisarDosis({ farmaco: 'Ketorolaco', dosis: mgAbs(30), tomasDia: 3, via: 'oral' })
     expect(a.some(x => x.codigo === 'sobre_maximo_diario' && /ORAL/.test(x.mensaje))).toBe(true)
   })
   it('la misma dosis parenteral (IM) no dispara el tope oral', () => {
-    const a = revisarDosis({ farmaco: 'Ketorolaco', dosisMg: 30, tomasDia: 3, via: 'im' })
+    const a = revisarDosis({ farmaco: 'Ketorolaco', dosis: mgAbs(30), tomasDia: 3, via: 'im' })
     expect(a.some(x => x.codigo === 'sobre_maximo_diario')).toBe(false)
   })
   it('VO en menor de 17 años → alerta crítica', () => {
-    const a = revisarDosis({ farmaco: 'Ketorolaco', dosisMg: 10, via: 'oral', edadAnios: 10 })
+    const a = revisarDosis({ farmaco: 'Ketorolaco', dosis: mgAbs(10), via: 'oral', edadAnios: 10 })
     expect(a.some(x => x.codigo === 'via_edad_no_aprobada' && x.severidad === 'critica')).toBe(true)
   })
   it('VO en adulto no dispara la restricción de edad', () => {
-    const a = revisarDosis({ farmaco: 'Ketorolaco', dosisMg: 10, via: 'oral', edadAnios: 40 })
+    const a = revisarDosis({ farmaco: 'Ketorolaco', dosis: mgAbs(10), via: 'oral', edadAnios: 40 })
     expect(a.some(x => x.codigo === 'via_edad_no_aprobada')).toBe(false)
   })
 })

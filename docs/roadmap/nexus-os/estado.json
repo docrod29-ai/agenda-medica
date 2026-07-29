@@ -1,7 +1,7 @@
 {
   "version": 1,
   "descripcion": "ESTADO DURABLE del programa Nexus OS. Fuente de verdad del avance. Los agentes lo actualizan tras CADA unidad terminada. Si se acaban los créditos, este archivo dice exactamente dónde retomar sin perder nada.",
-  "actualizado": "2026-07-29T12:12:11Z",
+  "actualizado": "2026-07-29T12:50:33Z",
   "runs": [
     {
       "unidad": "E0-01",
@@ -225,6 +225,18 @@
         "El test T-6 «ningún analito se quedó con sinónimos por defecto» pasó a comprobar la DECLARACIÓN (CLAVES_SINONIMOS_DECLARADOS) y no la FORMA del valor: al quitar 'hb', `hemoglobina` quedaba con un único sinónimo igual a su clave y el test lo confundía con el respaldo automático. La comprobación de ahora es estrictamente más fuerte.",
         "Los tres archivos de E1-02 se COMMITEAN como trabajo PARCIAL de una unidad bloqueada, no como unidad cerrada: dejarlos sin trackear era la peor opción (900 líneas verdes fuera de git y fuera de la vista del siguiente agente)."
       ]
+    },
+    {
+      "unidad": "E0-05",
+      "fecha": "2026-07-29T12:50:33Z",
+      "resultado": "necesita_validacion",
+      "notaCierre": "Los 4 lotes del diseño quedaron HECHOS y verificados. No se marca 'completada' por el único cambio de comportamiento declarado (copiloto riesgoCardiovascular deja de calcular PREVENT con creatinina implausible): es visible en pantalla y la regla 5 pide el visto bueno del Dr. antes de desplegar.",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2403
+      }
     }
   ],
   "unidadEnCurso": null,
@@ -236,7 +248,8 @@
     "E0-14",
     "E0-15",
     "E1-01",
-    "E2-01"
+    "E2-01",
+    "E0-05"
   ],
   "reconciliacionDisco": {
     "fecha": "2026-07-29T12:12:11Z",
@@ -490,6 +503,35 @@
       "porQue": "MEDIDO: analitoDe('vitamina K') → 'potasio', y valorPlausible('potasio', 10) → true. Camino real: panel de laboratorio por visión → validarPanel (extraccion.ts:97) → seriesDesdeHistorial → gráfica. Una fila «Vitamina K 10» se dibuja como POTASIO 10 mEq/L (rango letal) en la gráfica de electrolitos del paciente. No lo reparo en esta unidad porque cambia una pantalla en producción (regla 5).",
       "defaultAplicado": "Nada tocado. Reparación mínima propuesta: exigir término completo para na, k, cl, fa, glu, alp, a1c, bun, hto, hct, ldl, hdl, cr y dejar el casado por palabra sólo para los nombres largos (~6 líneas + test de regresión sobre 'Glu', 'Hemoglobina glucosilada' y 'no-HDL').",
       "bloquea": false
+    },
+    {
+      "unidad": "E0-05",
+      "id": "E0-05-VB",
+      "decision": "VISTO BUENO para desplegar el cierre del hueco de riesgoCardiovascular (copiloto.ts).",
+      "porQue": "Único cambio de comportamiento de la unidad y el único visible en pantalla. Con una creatinina fuera de [0.1, 25] mg/dL (p.ej. 88, normal en µmol/L) la tarjeta 'PREVENT-ASCVD a 10 años' deja de mostrarse y en su lugar se declara el dato faltante. Antes se mostraba un riesgo calculado sobre una TFG fantasma de ~5 mL/min/1.73m². Va en la dirección segura, pero la regla 5 pide su OK.",
+      "bloquea": false,
+      "dondeQuedaMarcado": "src/__tests__/motores-unidad-cruzada.test.ts → «copiloto ya no calcula riesgo PREVENT sobre una creatinina implausible» (control negativo ejecutado: revertir la línea pone ese test rojo)"
+    },
+    {
+      "unidad": "E0-05",
+      "id": "E0-05-Q1",
+      "decision": "Etiqueta oficial del bicarbonato: ¿mEq/L o mmol/L?",
+      "porQue": "El registro de motores decía mEq/L y el comentario del motor decía mmol/L. Al ser monovalente el NÚMERO es idéntico, pero la etiqueta que se imprime en la nota no. Se adoptó mEq/L por coherencia con Na/Cl de analitos.ts y con el registro. Cambiarlo es una línea.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-05",
+      "id": "E0-05-Q2",
+      "decision": "Depuración para dosificar SIN peso: ¿(a) seguir igual, (b) mostrar la procedencia en la alerta, o (c) no alertar sin peso?",
+      "porQue": "Sin peso se usa la TFG INDEXADA (mL/min/1.73m²) contra umbrales en mL/min. Es el comportamiento vigente y E0-05 no lo cambió; ahora la unión discriminada DepuracionParaDosis hace la procedencia visible en el código, así que la decisión se puede aplicar sin tocar la aritmética. La regla de enoxaparina ya advierte del punto.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-05",
+      "id": "E0-05-Q3",
+      "decision": "¿Se añaden más analitos con conversión masa↔sustancia (glucosa, urea/BUN, bilirrubina, calcio)?",
+      "porQue": "FACTORES_MOLARES sólo tiene creatinina y colesterol (los que ya existían). aConcentracionMasa devuelve null para el resto — comportamiento seguro. Cada analito exige su fuente citada. Heredada de E0-04.",
+      "bloquea": false
     }
   ],
   "siguientesElegibles": {
@@ -603,7 +645,8 @@
     "PATRÓN QUE YA SE REPITIÓ TRES VECES y que hay que atajar en el PROTOCOLO: el agente constructor da por cumplida la aceptación dentro de la frontera de su módulo (tipos que compilan, tests verdes, cero regresiones) mientras la aceptación del backlog habla del PRODUCTO. Un módulo perfecto con cero importadores no cumple «la búsqueda se arma desde PICO». Propuesta para la próxima corrida: que el DISENO.md tenga que citar textualmente la aceptación del backlog y nombrar el CALLER de producción que la hará cierta — o declarar por escrito que el cableado es de otra unidad e IDENTIFICARLA por id.",
     "El código de las tres unidades bloqueadas está commiteado, en verde y NO hay que reimplementarlo. A las tres les falta CERRAR, no construir: a E0-10 le falta un despliegue, a E1-02 un test y una decisión, a E2-02 dos callers.",
     "REPARADO EN LA RECONCILIACIÓN: se borraron de vocabulario.ts los sinónimos INVENTADOS 'hb' y 'bt'. Es la primera violación de la regla 1 que la verificación adversarial atrapa en este programa, y llegó disfrazada de comentario que afirmaba lo contrario ('cr es el ÚNICO sinónimo nuevo'). Lección: los comentarios que afirman cobertura no valen; el test que la deriva de la fuente, sí.",
-    "docs/roadmap/nexus-os/RETOMAR-AQUI.md quedó VIEJO (habla de 2/68 y del 28-jul). La fuente de verdad son estado.json y CHECKPOINT.md."
+    "docs/roadmap/nexus-os/RETOMAR-AQUI.md quedó VIEJO (habla de 2/68 y del 28-jul). La fuente de verdad son estado.json y CHECKPOINT.md.",
+    "E0-05 cerró los 4 lotes (renal, gasometría, infusiones, dosis). Verificación de no-regresión: se extrajeron los 4 motores de git HEAD a un directorio temporal y se compararon caso por caso contra los migrados (~16 000 combinaciones entre las cuatro mallas): CERO diferencias numéricas y CERO diferencias de texto. El directorio temporal se borró antes de commitear."
   ],
   "paraReintentar": [
     {

@@ -2,6 +2,13 @@ import { describe, it, expect } from 'vitest'
 import { revisarDosis, buscarFarmaco } from '@/lib/seguridad/dosis'
 import { calcularDosisPediatrica, FARMACOS_PED, tomasDiaDe } from '@/lib/expediente/pediatria'
 
+// E0-05: `revisarDosis` recibe la dosis CON su unidad (mg absolutos o mg/kg/dosis)
+// y el peso como masa. Migración MECÁNICA: ni un solo valor esperado cambió.
+import { cantidad, kg as kgMasa } from '@/types/clinical-quantity'
+const mgAbs = (v: number) => cantidad(v, 'mg', 'masa')
+const mgKgDosis = (v: number) => cantidad(v, 'mg/kg/dosis', 'dosis_por_peso')
+
+
 /**
  * DECISIÓN CLÍNICA del médico dueño (2026-07-28) — REG-041 y REG-042.
  * Ver `docs/clinical-decisions/dosis-amoxicilina.md` para el razonamiento completo.
@@ -20,12 +27,12 @@ const dosisDe = (nombre: string) => FARMACOS_PED.find(f => f.nombre === nombre)!
 
 describe('Amoxicilina — tres niveles, no un solo techo', () => {
   it('1000 mg por toma (máximo habitual) no alerta', () => {
-    const a = revisarDosis({ farmaco: 'Amoxicilina', dosisMg: 1000, tomasDia: 2 })
+    const a = revisarDosis({ farmaco: 'Amoxicilina', dosis: mgAbs(1000), tomasDia: 2 })
     expect(a.filter(x => x.severidad !== 'info')).toEqual([])
   })
 
   it('1575 mg c/12 h en un niño de 35 kg: AVISA, pero NO como sobredosis', () => {
-    const a = revisarDosis({ farmaco: 'Amoxicilina', dosisMg: 1575, tomasDia: 2, pesoKg: 35 })
+    const a = revisarDosis({ farmaco: 'Amoxicilina', dosis: mgAbs(1575), tomasDia: 2, peso: kgMasa(35)})
     // Era el caso que salía en rojo y no debía.
     expect(a.some(x => x.severidad === 'critica')).toBe(false)
     expect(a.some(x => x.codigo === 'dosis_alta_verificar')).toBe(true)
@@ -34,17 +41,17 @@ describe('Amoxicilina — tres niveles, no un solo techo', () => {
   })
 
   it('3150 mg/día (35 kg a 90 mg/kg/día) queda dentro del perfil de dosis alta', () => {
-    const a = revisarDosis({ farmaco: 'Amoxicilina', dosisMg: 1575, tomasDia: 2, pesoKg: 35 })
+    const a = revisarDosis({ farmaco: 'Amoxicilina', dosis: mgAbs(1575), tomasDia: 2, peso: kgMasa(35)})
     expect(a.some(x => x.codigo === 'sobre_maximo_diario' && x.severidad === 'critica')).toBe(false)
   })
 
   it('2500 mg por toma SÍ es crítica (pasa del absoluto de 2000)', () => {
-    const a = revisarDosis({ farmaco: 'Amoxicilina', dosisMg: 2500, tomasDia: 1 })
+    const a = revisarDosis({ farmaco: 'Amoxicilina', dosis: mgAbs(2500), tomasDia: 1 })
     expect(a.some(x => x.severidad === 'critica')).toBe(true)
   })
 
   it('4500 mg/día SÍ es crítica (pasa del absoluto de 4000)', () => {
-    const a = revisarDosis({ farmaco: 'Amoxicilina', dosisMg: 1500, tomasDia: 3 })
+    const a = revisarDosis({ farmaco: 'Amoxicilina', dosis: mgAbs(1500), tomasDia: 3 })
     expect(a.some(x => x.severidad === 'critica')).toBe(true)
   })
 
@@ -52,7 +59,7 @@ describe('Amoxicilina — tres niveles, no un solo techo', () => {
     for (const nombre of ['Amoxicilina-clavulanato', 'amoxicilina/clavulanato', 'Augmentin']) {
       expect(buscarFarmaco(nombre)?.nombre).toBe('Amoxicilina')
     }
-    const a = revisarDosis({ farmaco: 'Amoxicilina-clavulanato', dosisMg: 1575, tomasDia: 2 })
+    const a = revisarDosis({ farmaco: 'Amoxicilina-clavulanato', dosis: mgAbs(1575), tomasDia: 2 })
     expect(a.some(x => x.severidad === 'critica')).toBe(false)
   })
 
@@ -62,7 +69,7 @@ describe('Amoxicilina — tres niveles, no un solo techo', () => {
 
   it('el error de decimal se sigue cazando por encima del absoluto', () => {
     // 10 g: ~10× el habitual y muy por encima del absoluto.
-    const a = revisarDosis({ farmaco: 'Amoxicilina', dosisMg: 10000, tomasDia: 1 })
+    const a = revisarDosis({ farmaco: 'Amoxicilina', dosis: mgAbs(10000), tomasDia: 1 })
     expect(a.some(x => x.severidad === 'critica')).toBe(true)
   })
 })

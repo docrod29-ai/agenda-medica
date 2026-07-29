@@ -1,19 +1,21 @@
 # Nexus OS — dónde vamos
 
-> **En 30 segundos.** Van **8 de 68** unidades cerradas. **Hoy el marcador BAJÓ de 10 a 8, y es
-> una buena noticia.** No se perdió código: un verificador independiente revisó las tres unidades
-> de esta corrida (**E0-10**, **E1-02**, **E2-02**) y **las tres quedaron INCOMPLETAS**; dos
-> estaban contadas como terminadas sin serlo. Se les quitó el sello de «hecho» y vuelven a la
-> cola. **A las tres les falta CERRAR, no construir:** a una le falta un despliegue suyo, a otra
-> un test y una decisión, y a la tercera conectar el módulo a las dos pantallas que lo usarían.
-> **Riesgo para su consultorio: cero** — nada de esto está en producción y ninguno de los tres
-> módulos toca todavía una sola pantalla.
+> **En 30 segundos.** Van **9 de 68** unidades cerradas. Hoy se cerró **E0-05**, la más grande y la
+> más delicada de las que quedaban en E0: **un número clínico ya no puede entrar a un motor sin su
+> unidad.** La creatinina, la gasometría, las infusiones de la UCI y los techos de dosis dejaron de
+> recibir números pelados; ahora el compilador rechaza, por ejemplo, meter una creatinina en µmol/L
+> a la fórmula de la función renal.
+> **Se encontró y se tapó un agujero real, vivo en producción:** en la tarjeta de riesgo
+> cardiovascular, una creatinina capturada en la unidad equivocada producía un riesgo calculado
+> sobre un dato basura, sin avisar. Ahora esa tarjeta ya no se muestra y se dice qué dato falta.
+> **Eso es lo único que usted vería cambiar, y le pido su visto bueno antes de desplegarlo**
+> *(decisión 5.a)*.
 > **Lo siguiente: E1-02** (reintento barato, el código ya está escrito).
-> **Sigue pendiente lo de siempre:** el despliegue de seguridad de hace tres corridas
-> (*decisión 2.a*) y el error de la **«Vitamina K»**, vivo en producción (*decisión 1.e*).
+> **Sigue pendiente lo de siempre:** el despliegue de seguridad de hace cuatro corridas
+> *(decisión 2.a)* y el error de la **«Vitamina K»**, vivo en producción *(decisión 1.e)*.
 
-Última corrida: `2026-07-29T12:12:11Z`. `tsc` verde · **2357 tests verdes** · **0 archivos de
-producción modificados** · **nada desplegado, sin `push`**.
+Última corrida: `2026-07-29T12:50:33Z`. `tsc` verde · **2403 tests verdes** (186 archivos) ·
+`npm run build` verde · **nada desplegado, sin `push`**.
 
 ---
 
@@ -25,79 +27,57 @@ producción modificados** · **nada desplegado, sin `push`**.
 | E0-02 | Invariantes de dosis pediátrica (property-based) | ✅ cerrada |
 | E0-03 | Clinical Engine Registry + trinquete de ADRs | ✅ cerrada |
 | E0-04 | Un número clínico ya no puede viajar sin su unidad | ✅ cerrada |
+| **E0-05** | **Los motores clínicos ya no aceptan números sin unidad** | ✅ **cerrada hoy** — espera su visto bueno para desplegar |
 | E0-14 | Firma aislada · cobro sellado · nota nace borrador | ✅ cerrada (única con reglas desplegadas) |
 | E0-15 | Antibiograma: 4 decisiones clínicas suyas implementadas | ✅ cerrada |
 | E1-01 | Un hecho clínico no existe sin unidad y sin procedencia | ✅ cerrada |
 | E2-01 | Una afirmación no existe sin el fragmento que la respalda | ✅ cerrada |
-| **E0-10** | Iframes bloqueados en sus pantallas · interruptor de seguridad | 🔴 **destapada hoy** — espera **un despliegue suyo** |
-| **E1-02** | «Creatinina», «Cr» y «creatinina sérica» son el mismo dato | 🔴 **destapada hoy** — falta 1 test + sus respuestas |
-| **E2-02** | La búsqueda de evidencia se arma por partes, no con una frase suelta | 🔴 **destapada hoy** — **el módulo no lo usa nadie** |
+| E0-10 | Iframes bloqueados en sus pantallas · interruptor de seguridad | 🔴 espera **un despliegue suyo** |
+| E1-02 | «Creatinina», «Cr» y «creatinina sérica» son el mismo dato | 🔴 falta 1 test + sus respuestas |
+| E2-02 | La búsqueda de evidencia se arma por partes, no con una frase suelta | 🔴 **el módulo no lo usa nadie** |
 | E0-11 | El CI protege los invariantes clínicos | 🟡 código listo — espera 5 min suyos en GitHub |
 | E0-09 | El registro del hospital no se edita: se corrige anexando | 🟡 bloqueada — espera 1 línea suya |
 
-**8 cerradas · 5 destapadas o esperándole · 55 sin empezar.**
+**9 cerradas · 5 esperándole · 54 sin empezar.**
 
 ---
 
-## Qué pasó hoy, sin adornos
+## Qué pasó hoy: E0-05, en español
 
-Se intentaron tres unidades y las tres se entregaron con sus pruebas en verde. Después las revisó
-un verificador **cuyo trabajo es refutar**, no aplaudir. Resultado:
+**El problema.** En medicina el mismo análisis se reporta en unidades distintas según el
+laboratorio. La creatinina, en México, se reporta en **mg/dL** (un valor normal es ~1.0). En buena
+parte del mundo se reporta en **µmol/L** (el mismo paciente sano da ~88). Hasta hoy, todos los
+motores de la app recibían **un número pelado, sin unidad**: si un 88 entraba donde se esperaba un
+1.0, la app calculaba una falla renal que no existe y ajustaba dosis de antibiótico a partir de
+ella. La única defensa era una lista de rangos «esto no puede ser mg/dL», que es una heurística,
+no una prueba.
 
-### E0-10 · seguridad del navegador — la mitad no está hecha
+**Lo que se hizo.** Cuatro motores dejaron de recibir números y pasaron a recibir **cantidades con
+su unidad pegada**: función renal, gasometría, infusiones de la UCI y techos de dosis. Ahora
+intentar meter una creatinina en µmol/L a la fórmula renal **no compila**: el error salta al
+construir la app, no en la consulta.
 
-La aceptación pedía dos cosas: *política de seguridad en modo bloqueo sin romper flujos*, y
-*pruebas de seguridad en verde*.
+**Lo importante: ni un solo número cambió.** Antes de dar nada por bueno se sacaron los cuatro
+motores **tal como estaban antes del cambio** y se compararon, caso por caso, contra los nuevos:
+unas **16 000 combinaciones** entre las cuatro mallas (creatininas, edades, sexos, pesos,
+gasometrías completas, siete fármacos de infusión en ambos sentidos, y la malla entera de dosis con
+sus vías y edades). **Cero diferencias numéricas y cero diferencias de texto.** Sus alertas dicen
+exactamente lo mismo que decían ayer.
 
-- **El modo bloqueo no está puesto.** El interruptor existe y funciona, pero **por defecto sigue
-  en modo observación**, y el valor que lo pondría en bloqueo no está escrito en ninguna parte del
-  proyecto ni de la configuración de despliegue.
-- **Las pruebas de navegador nunca se ejecutaron.** El propio archivo declara un grupo en rojo
-  hasta que se despliegue, y los dos únicos casos que probarían el modo bloqueo están saltados
-  salvo que alguien los active a mano.
+**El agujero que apareció por el camino.** Al enumerar todos los sitios que llamaban a la fórmula
+renal, el compilador destapó uno que **se había quedado sin la protección de rango** que sus tres
+hermanos sí tenían: el que alimenta la tarjeta de **riesgo cardiovascular PREVENT**. Con una
+creatinina de 88 (normal si es µmol/L), esa tarjeta calculaba el riesgo a partir de una función
+renal fantasma y lo mostraba como si fuera un dato bueno. **Ya está tapado**: en ese caso la
+tarjeta no se muestra y en su lugar aparece «falta la TFG (o creatinina)». Es el **único** cambio
+que usted notaría, y sólo ocurre cuando el dato está mal capturado.
 
-**Lo que SÍ quedó en pie y es real:** se descubrió y se cerró en código un agujero de verdad —
-**22 de sus 34 pantallas con sesión viajaban sin ninguna protección contra iframes**, incluidas
-`/uci`, `/hospitalizacion`, `/receta` y `/superadmin`. Está escrito y probado; le falta salir a
-producción.
-
-> **Esto no lo puede terminar el sistema automático**: exige desplegar y observar, y el workflow
-> tiene prohibido desplegar. Es suyo.
-
-### E1-02 · el diccionario de conceptos — se coló una invención
-
-Lo que la unidad prometía **sí se cumple**: «creatinina», «Cr» y «creatinina sérica» resuelven al
-**mismo** concepto, comprobado de la forma más estricta posible.
-
-Pero el verificador encontró lo más grave que puede pasar en este proyecto: **se inventaron dos
-abreviaturas de laboratorio**, `Hb` para hemoglobina y `BT` para bilirrubina total, **que no
-existen en ninguna parte de su app** — y un comentario del propio archivo afirmaba que sólo se
-había añadido una abreviatura nueva («Cr»). La lista que le presentamos para revisar **no las
-incluía**.
-
-**Ya está reparado en esta reconciliación:** las dos se borraron, y la prueba que vigilaba ese
-archivo se cambió para que compruebe **la declaración contra la fuente real** en vez de fiarse de
-un comentario. *No se sustituyó una invención por otra: se borró.*
-
-Queda un residuo del mismo tipo, **sin riesgo hoy** porque nadie usa aún el módulo: cuatro
-sinónimos de signos vitales escritos a mano sin respaldo (`pulso`, `bmi`, `dextrostix`,
-`glucosa capilar`). Son las preguntas **1.f** y **1.g**.
-
-### E2-02 · la búsqueda por partes — el módulo no lo usa nadie
-
-El módulo es correcto y está bien probado (el verificador le metió 9 fallos a propósito y todos
-saltaron). Pero la aceptación **no habla del módulo, habla de la búsqueda del producto** — y la
-búsqueda del producto sigue exactamente igual: las dos rutas reales de evidencia siguen mandándole
-a PubMed una frase pegada con cinta.
-
-Dicho claro: **hoy usted no notaría ninguna diferencia**, porque el extractor nuevo **no está
-conectado a nada**. Conectarlo es poco trabajo, pero **cambia qué artículos ve usted**, así que no
-se hace a ciegas: es la decisión **2.f**.
-
-> **El patrón se repitió tres veces** y ya está anotado para corregir el protocolo: el agente que
-> construye da por buena la aceptación **dentro de su módulo** —compila, pasa los tests, no rompe
-> nada— mientras la aceptación habla **del producto**. Un módulo impecable que nadie usa no cumple
-> «la búsqueda se arma por partes».
+**Lo que esto NO resuelve, dicho antes de que lo pregunte.** Si el laboratorio reporta en µmol/L
+pero **la etiqueta dice mg/dL**, ningún sistema de tipos puede verlo: eso lo sigue atrapando la
+lista de rangos, y por eso **no se tocó**. Y hay un residuo honesto: un valor sano en µmol/L
+(p. ej. 20) cae dentro del rango plausible y sigue pasando. Cerrarlo del todo exige que el
+laboratorio traiga su unidad desde el origen — eso es E1, no esta unidad. Está escrito como test,
+no como comentario.
 
 ---
 
@@ -117,17 +97,41 @@ medias, la rama E1 entera está clavada.
 
 **Si prefiere terreno nuevo:** **E4-01 · Contrato del Safety Kernel** (riesgo medio, sin
 dependencias pendientes). Su aceptación —*«el motor de seguridad se puede invocar sin la IA y su
-veredicto es un valor, no un texto»*— se agota **dentro** del módulo, así que no cae en la trampa
-que tumbó a E2-02.
+veredicto es un valor, no un texto»*— se agota **dentro** del módulo.
 
-**Lo que NO se toca sin plan aprobado por usted:** las cuatro unidades de E0 que quedan (E0-05,
-E0-06, E0-12, E0-13) son de riesgo **alto** y tocan justo lo que la carta operativa manda no
-arriesgar a ciegas: **sellos de integridad, cobros de Stripe, permisos de acceso y motores
-clínicos**.
+**Lo que NO se toca sin plan aprobado por usted:** de las cuatro unidades de riesgo **alto** que
+quedaban en E0, hoy se cerró una (E0-05). Quedan tres: **E0-06** (permisos de acceso), **E0-12**
+(sellos de integridad) y **E0-13** (cobros de Stripe).
 
 ---
 
 ## Esperando decisión del médico
+
+### 5. 🆕 La migración de unidades (E0-05)
+
+**a. ⚠️ Visto bueno para desplegar el arreglo de la tarjeta de riesgo cardiovascular.** Es el único
+cambio visible de toda la unidad. Con una creatinina fuera del rango posible en mg/dL, la tarjeta
+«PREVENT-ASCVD a 10 años» **deja de mostrarse** y en su lugar se dice qué dato falta. Antes se
+mostraba un porcentaje calculado sobre una función renal fantasma. Va en la dirección segura, pero
+**cambia lo que usted ve en pantalla**, y por eso no se despliega sin su sí.
+
+**b. Etiqueta oficial del bicarbonato: ¿mEq/L o mmol/L?** Su app decía las dos cosas en sitios
+distintos (el registro de motores decía mEq/L, el comentario del código decía mmol/L). **El número
+es idéntico** —sodio, cloro y bicarbonato son iones de una sola carga—, pero la etiqueta que se
+imprime en la nota no. *Mientras tanto:* se adoptó **mEq/L**, por coherencia con el sodio y el
+cloro de su propio catálogo de laboratorio. Cambiarlo es una línea.
+
+**c. Ajuste renal cuando NO hay peso capturado: ¿(a) seguir igual, (b) que la alerta diga de dónde
+sale la depuración, o (c) no alertar sin peso?** Sin peso, la app usa la **TFG indexada**
+(mL/min/1.73 m²) y la compara contra umbrales que las fichas técnicas expresan en **mL/min**. Es
+lo que ya hacía y **E0-05 no lo cambió**; su propia regla de la enoxaparina ya advierte del punto.
+Lo nuevo es que ahora el código **declara** de dónde viene el número, así que su decisión se puede
+aplicar sin tocar ninguna fórmula.
+
+**d. ¿Qué otros análisis llevan conversión masa↔sustancia?** (glucosa, urea/BUN, bilirrubina,
+calcio). Hoy sólo hay creatinina y colesterol, que ya existían en su app. Para el resto la
+conversión **devuelve «no sé»**, que es el comportamiento seguro. Cada uno exige su fuente citada.
+*(Es la misma pregunta que quedó de E0-04.)*
 
 ### 1. El diccionario de conceptos (E1-02)
 
@@ -153,11 +157,11 @@ protegido. Confírmelo: fija el significado de todas las gráficas futuras.
 abreviaturas de 1-3 letras. ~6 líneas más su prueba de regresión. **Toca una pantalla viva**, por
 eso pregunto. *Este error sigue vivo en producción.*
 
-**f. 🆕 ¿«Glucosa capilar» y «glucosa sérica» son dos cosas distintas** (glucometría de dedo vs
+**f. ¿«Glucosa capilar» y «glucosa sérica» son dos cosas distintas** (glucometría de dedo vs
 laboratorio) **o la misma con distinto origen?** El diccionario ya las separa, y **esa separación
 la decidió el software, no usted**. Fija cómo se agruparán todas sus gráficas de glucosa.
 
-**g. 🆕 ¿Acepta como sinónimos `pulso` (FC), `bmi` (IMC), `dextrostix` y `glucosa capilar`?**
+**g. ¿Acepta como sinónimos `pulso` (FC), `bmi` (IMC), `dextrostix` y `glucosa capilar`?**
 Ninguno tiene respaldo en el código de su app; los demás sí. Si no los firma, se retiran.
 
 ### 2. Seguridad, despliegue y alcance
@@ -179,7 +183,7 @@ hace falta (e), y antes hay que **observar los reportes** con la app ya desplega
 a la zona con sesión: ni expediente, ni nota, ni receta, ni farmacia. Es el punto ciego más grande
 del proyecto, y es lo que impide cerrar E0-10.
 
-**f. 🆕 ¿Conecto la búsqueda por partes (E2-02) a sus dos pantallas de evidencia?** Es lo único que
+**f. ¿Conecto la búsqueda por partes (E2-02) a sus dos pantallas de evidencia?** Es lo único que
 falta para que esa unidad signifique algo. **Cambia qué artículos ve usted**, así que iría con
 pruebas que congelen antes el comportamiento actual. Además: **ninguna unidad del plan es dueña de
 ese trabajo** — hay que decidir si es E2-02 ampliada o una unidad nueva.
@@ -192,6 +196,10 @@ rpm, °C, cm, kg/m² y «puntos»** (Glasgow, dolor), y de laboratorio **U/L**, 
 dato con unidad desconocida **se rechaza ruidosamente**, no se guarda a medias. Añadir °C obliga a
 reescribir un candado que E0-04 puso a propósito («°C↔°F no es un factor, es una fórmula»).
 
+*Nota de hoy:* E0-05 añadió **U/mL** (para la vasopresina de la UCI). Va en dimensión aparte:
+las «unidades internacionales» miden actividad biológica y su equivalencia en miligramos depende
+del fármaco, así que **nunca se convierten solas**.
+
 ### 4. Lo que sigue esperándole de corridas anteriores
 
 | | Qué | Unidad |
@@ -203,7 +211,6 @@ reescribir un candado que E0-04 puso a propósito («°C↔°F no es un factor, 
 | | ¿Se amplía el catálogo adulto de dosis con los 20 fármacos que faltan? (usted lo aprobó; falta su tabla) | E0-02 |
 | | ¿El pie IMPRESO de la receta debe leerse de la firma de la nota en vez de la config de la clínica? | E0-01 |
 | | ¿Se construye el servicio de firmado en servidor (REG-014)? | E0-14 |
-| | ¿Qué analitos llevan conversión masa↔sustancia? ¿mEq/L convierte solo a mmol/L? | E0-04 |
 | | En la búsqueda de evidencia: el fármaco que ya toma el paciente, ¿es la intervención o parte de la población? ¿quiere bandas de edad? | E2-02 |
 
 ---
@@ -211,27 +218,16 @@ reescribir un candado que E0-04 puso a propósito («°C↔°F no es un factor, 
 ## Deuda técnica anotada (para no perderla)
 
 - **El motor de dosis no habla el idioma del principio 3** de sus decisiones clínicas: devuelve
-  alertas, no `PASS | WARN | BLOCK | UNKNOWN | N/A`. Funciona, pero hay que migrarlo.
+  alertas, no `PASS | WARN | BLOCK | UNKNOWN | N/A`. Funciona, pero hay que migrarlo. *(E0-05 ya le
+  cambió la entrada; la salida sigue igual.)*
+- **🆕 El rango habitual de cada fármaco de infusión sigue siendo un par de números sin unidad.**
+  Se dejó fuera de E0-05 a propósito: tiparlo multiplica el catálogo entero sin cerrar ningún hueco
+  nuevo, porque la dosis ya llega con su unidad. Candidato a «E0-05-bis».
+- **🆕 Las fórmulas siguen usando números pelados POR DENTRO.** El tipo protege la entrada y la
+  salida de cada motor, no los pasos intermedios: `mL/h = dosis × peso × 60 ÷ concentración` sigue
+  siendo aritmética suelta. Blindarlo exige álgebra de dimensiones derivadas, que es otra unidad.
 - **La política de seguridad sigue permitiendo `unsafe-inline`/`unsafe-eval`.** Quitarlo exige
   firmar cada script en cada petición; su riesgo típico es *pantalla en blanco*. Unidad aparte.
-- **`RETOMAR-AQUI.md` está viejo** (habla de 2/68 y del 28 de julio). La fuente de verdad son
-  `estado.json` y este archivo.
+- **`RETOMAR-AQUI.md` está viejo.** La fuente de verdad son `estado.json` y este archivo.
 - **Los comentarios que afirman cobertura no valen; el test que la deriva de la fuente, sí.** Es la
   lección de la invención de `Hb`/`BT`, ya aplicada en el vocabulario.
-- **Propuesta de cambio al protocolo:** que el `DISENO.md` de cada unidad cite textualmente la
-  aceptación del backlog **y nombre el archivo de producción que la hará cierta** — o declare por
-  escrito que el cableado es de otra unidad, **identificándola por id**. Las tres incompletas de
-  hoy se habrían evitado con eso.
-
----
-
-## Cómo se retoma
-
-1. Leer este archivo y `estado.json` (mismo directorio). Nada depende del chat.
-2. `estado.json → siguientesElegibles.recomendacionExplicita` da la unidad y su alcance exacto.
-3. **Regla de oro:** las unidades de `bloqueadas` **no se reimplementan desde cero**. Su código
-   está commiteado y en verde; se les completa lo que falta. Un `RESULTADO.json` sólo cuenta si el
-   `VERIFICACION.json` de esa unidad no la declara *INCOMPLETA*; cuando la declara, el
-   `RESULTADO.json` **se borra** y la unidad vuelve a la cola (eso se hizo hoy con tres).
-4. Gates permitidos: `npx tsc --noEmit`, `npx vitest run src/__tests__/`, `npm run build`. Nunca un
-   servidor, nunca Playwright, nunca `--watch`, nunca `push`, nunca desplegar.

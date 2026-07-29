@@ -103,7 +103,8 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     id: 'ckd-epi-2021', nombre: 'CKD-EPI 2021 (TFG, race-free)', especialidad: 'Nefrología',
     tipo: 'formula',
     version: '2021.1', referencia: 'Inker LA et al. NEJM 2021 (CKD-EPI creatinine, sin raza)',
-    unidades: 'creatinina mg/dL; edad años; sexo', redondeo: 'ninguno en el motor; el display redondea',
+    // E0-05: la firma REAL, no prosa. La creatinina ya no es un `number`.
+    unidades: 'ckdEpi2021(ClinicalQuantity<concentracion_masa>, edad años: number, sexo) → ClinicalQuantity<depuracion_indexada> (mL/min/1.73m²)', redondeo: 'ninguno en el motor; el display redondea',
     rangoValido: {
       fuente: 'codigo',
       entrada: 'creatinina dentro de CREAT_MGDL_MIN–CREAT_MGDL_MAX mg/dL; edad ≥ 18 años',
@@ -123,7 +124,8 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     id: 'cockcroft-gault', nombre: 'Cockcroft-Gault (ClCr)', especialidad: 'Nefrología/Farmacología',
     tipo: 'formula',
     version: '1976.1', referencia: 'Cockcroft & Gault, Nephron 1976',
-    unidades: 'creatinina mg/dL; edad años; peso kg; sexo', redondeo: 'entero al mostrar',
+    // E0-05: firma real. El peso ya no puede llegar en gramos ni como volumen.
+    unidades: 'cockcroftGault(ClinicalQuantity<concentracion_masa>, edad años: number, sexo, ClinicalQuantity<masa>) → ClinicalQuantity<depuracion> (mL/min)', redondeo: 'entero al mostrar',
     rangoValido: {
       fuente: 'codigo',
       entrada: 'creatinina plausible en mg/dL; edad ≥ 18 años; requiere peso',
@@ -142,7 +144,9 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     id: 'ajuste-renal-antimicrobianos', nombre: 'Ajuste renal de antimicrobianos', especialidad: 'Infectología/PROA',
     tipo: 'regla-de-seguridad',
     version: '1.0.0', referencia: 'Umbrales por fármaco declarados en el propio módulo (núcleo PROA)',
-    unidades: 'depuración mL/min; nombre genérico del fármaco', redondeo: 'no aplica (emite alertas, no números)',
+    // E0-05: la depuración llega como unión DISCRIMINADA — trae su procedencia
+    // (Cockcroft mL/min vs CKD-EPI mL/min/1.73m²), que antes se perdía en un number.
+    unidades: 'ajusteRenalFarmacos(medicamentos, DepuracionParaDosis = {base:"cockcroft-gault", q:ClinicalQuantity<depuracion>} | {base:"ckd-epi", q:ClinicalQuantity<depuracion_indexada>}); umbrales de la tabla en mL/min', redondeo: 'no aplica (emite alertas, no números)',
     rangoValido: {
       fuente: 'pendiente_validacion_clinica',
       preguntaAlMedico: '¿Qué fuente primaria (Sanford / ficha técnica / criterio del servicio) fija los umbrales de ajuste por fármaco de esta tabla, y a partir de qué depuración deja de ser interpretable?',
@@ -437,7 +441,8 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     id: 'gasometria-acidobase', nombre: 'Gasometría / ácido-base', especialidad: 'Medicina crítica',
     tipo: 'formula',
     version: '1.0.0', referencia: 'Fisiología estándar: Winters; compensaciones aguda/crónica; anion gap y delta-delta',
-    unidades: 'pH; PaCO₂ mmHg; HCO₃ mEq/L; Na/Cl mEq/L; albúmina g/dL', redondeo: '1 decimal',
+    // E0-05: firma real. El pH sigue siendo number (adimensional, §3.6 del diseño).
+    unidades: 'analizarGasometria({ ph: number, paco2: ClinicalQuantity<presion>, hco3|na|cl: ClinicalQuantity<concentracion_equivalente> (mEq/L), albumina: ClinicalQuantity<concentracion_masa> (g/dL) })', redondeo: '1 decimal',
     rangoValido: {
       fuente: 'pendiente_validacion_clinica',
       preguntaAlMedico: '¿Qué valores de pH, PaCO₂ y HCO₃ considera usted incompatibles con una muestra real (error de captura) para que el motor bloquee en vez de interpretar?',
@@ -476,7 +481,9 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     id: 'infusiones-dosis-rate', nombre: 'Infusiones continuas — dosis ↔ mL/h', especialidad: 'Medicina crítica/Farmacología',
     tipo: 'conversion',
     version: '1.0.0', referencia: 'Diluciones estándar declaradas en CATALOGO_INFUSIONES (aritmética de concentración)',
-    unidades: 'µg/kg/min, µg/min o U/min según fármaco; peso kg; concentración µg/mL o U/mL; velocidad mL/h',
+    // E0-05: firma real. Las tres unidades de dosis son TRES DIMENSIONES sin puente
+    // entre ellas, y la concentración en U/mL tiene su propia dimensión.
+    unidades: 'dosis: ClinicalQuantity<tasa_dosis_peso|tasa_dosis|tasa_actividad>; peso: ClinicalQuantity<masa>; concentracion: ClinicalQuantity<concentracion_masa|concentracion_actividad>; rateMlH: ClinicalQuantity<tasa_volumen>',
     redondeo: '2 decimales',
     rangoValido: {
       fuente: 'codigo',
@@ -767,7 +774,9 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     id: 'dosis-adulto-techos', nombre: 'Techos de dosis del adulto', especialidad: 'Farmacología/Seguridad del paciente',
     tipo: 'regla-de-seguridad',
     version: '1.1.0', referencia: 'CATALOGO: semilla de valores de referencia comunes, declarada como PENDIENTE de validación en su propio encabezado',
-    unidades: 'mg por toma y mg por día (y "mg de TMP" en trimetoprima-sulfametoxazol)',
+    // E0-05: la dosis prescrita es una UNIÓN por dimensión — el booleano
+    // `dosisPorKg` desapareció y con él el P0 de leer "50 mg/kg" como 50 mg.
+    unidades: 'revisarDosis({ dosis: ClinicalQuantity<masa> (mg) | ClinicalQuantity<dosis_por_peso> (mg/kg/dosis), peso: ClinicalQuantity<masa> }); techos del CATALOGO en mg por toma y por día (y "mg de TMP" en trimetoprima-sulfametoxazol)',
     redondeo: 'no aplica (compara contra techos)',
     rangoValido: {
       fuente: 'codigo',

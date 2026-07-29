@@ -20,7 +20,8 @@ import {
   type DemoPaso, type DemoEscenario,
 } from '@/lib/demo-sandbox'
 import { construirSeccionesUCI } from '@/lib/uci/nota'
-import { dosisARate, CATALOGO_INFUSIONES } from '@/lib/uci/infusiones'
+import { dosisARate, CATALOGO_INFUSIONES, farmacoPorKey } from '@/lib/uci/infusiones'
+import { cantidadDesde } from '@/types/clinical-quantity'
 import { snapshotUCI } from '@/lib/uci/copilot'
 
 export default function SandboxPage() {
@@ -517,7 +518,16 @@ function CalcInfusionDemo() {
   const [fk, setFk] = useState('norepinefrina')
   const [dosis, setDosis] = useState('0.2')
   const [peso, setPeso] = useState('70')
-  const res = useMemo(() => dosisARate({ farmacoKey: fk, dosis, pesoKg: peso }), [fk, dosis, peso])
+  // E0-05 — FRONTERA de la demo: la dosis se etiqueta con la unidad del fármaco
+  // elegido (la misma que muestra el catálogo) y el peso con kg. Números idénticos.
+  const res = useMemo(() => {
+    const f = farmacoPorKey(fk)
+    const u = f?.unidad ?? 'µg/kg/min'
+    const d = u === 'µg/kg/min' ? cantidadDesde(dosis, 'µg/kg/min', 'tasa_dosis_peso')
+      : u === 'U/min' ? cantidadDesde(dosis, 'U/min', 'tasa_actividad')
+      : cantidadDesde(dosis, 'µg/min', 'tasa_dosis')
+    return dosisARate({ farmacoKey: fk, dosis: d, pesoKg: cantidadDesde(peso, 'kg', 'masa') })
+  }, [fk, dosis, peso])
   const inp: React.CSSProperties = { padding: '7px 9px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 13 }
   return (
     <div style={{ ...card }}>
@@ -536,7 +546,7 @@ function CalcInfusionDemo() {
         </label>
         <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
           {res.ok
-            ? <div style={{ fontSize: 22, fontWeight: 800, fontFamily: 'ui-monospace,monospace', color: 'var(--nexus)' }}>{res.rateMlH} <span style={{ fontSize: 12, color: 'var(--text3)' }}>mL/h</span></div>
+            ? <div style={{ fontSize: 22, fontWeight: 800, fontFamily: 'ui-monospace,monospace', color: 'var(--nexus)' }}>{res.rateMlH?.valor} <span style={{ fontSize: 12, color: 'var(--text3)' }}>mL/h</span></div>
             : <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>{res.motivoBloqueo}</div>}
         </div>
       </div>
