@@ -1,0 +1,110 @@
+{
+  "id": "E0-04",
+  "titulo": "ClinicalQuantity: tipo con unidad obligatoria (núcleo)",
+  "etapa": "E0",
+  "fecha": "2026-07-29T03:10:52Z",
+  "estado": "completada",
+  "riesgo": "medio (declarado en backlog) · bajo (real: cambio ADITIVO PURO, cero importadores en producción)",
+  "validacionClinica": false,
+
+  "criterioDeAceptacion": "«El compilador rechaza operar cantidades de unidades incompatibles». CUMPLIDO y verificado por control negativo: al sustituir la marca invariante por una trivial, `npx tsc --noEmit` pasó de exit 0 a exit 2 con 5 errores TS2578 — incluidos los dos ejemplos textuales del backlog (sumar mg con mL, comparar mg/dL con µmol/L).",
+
+  "archivosTocados": [
+    "src/types/clinical-quantity.ts (NUEVO, ~350 líneas) — el núcleo: catálogo cerrado de 16 dimensiones, ClinicalQuantity<D> con marca invariante, CualquierCantidad, cantidad/cantidadDesde + atajos, sumar/restar/comparar/esMayor/escalar, convertir, valorEn/formatear/etiqueta, FACTORES, FACTORES_MOLARES y aConcentracionSustancia.",
+    "src/__tests__/tipos/clinical-quantity.tipos.ts (NUEVO, ~95 líneas) — GATE DEL COMPILADOR: 10 casos negativos con @ts-expect-error + 5 positivos. NO es un test de vitest (termina en .tipos.ts, que no empareja con el include de vitest.config.ts pero sí con el **/*.ts de tsconfig.json).",
+    "src/__tests__/clinical-quantity.test.ts (NUEVO, ~290 líneas) — 37 casos de runtime + el guardián del gate.",
+    "src/lib/clinical/adr-cobertura.ts (MODIFICADO, 1 línea) — AJENO A E0-04, ver `reparacionForzadaAjena`. Se declara docs/clinical-decisions/PREGUNTAS-TODO-EL-PROGRAMA.md en DOCS_NO_ADR.",
+    "docs/roadmap/nexus-os/estado.json (MODIFICADO) — checkpoint del programa.",
+    "docs/roadmap/nexus-os/CHECKPOINT.md (MODIFICADO) — checkpoint del programa.",
+    "docs/roadmap/nexus-os/unidades/E0-04/RESULTADO.json (NUEVO) — este archivo, en el MISMO commit que cierra la unidad (regla operativa del 28-07)."
+  ],
+  "archivosDeProduccionTocados": "NINGUNO. `git diff --stat` sobre lo rastreado sólo muestra los tres archivos de docs/roadmap. No se tocó ningún motor clínico, ruta de API, componente, firestore.rules, storage.rules, impresión, PDF, Word, firma ni cobros. El módulo nace SIN UN SOLO IMPORTADOR en producción, así que ninguna pantalla ni cálculo cambia de comportamiento y el bundle de cliente no crece.",
+
+  "testsAgregados": [
+    "src/__tests__/clinical-quantity.test.ts — 37 casos en 7 bloques: guardián del gate (5), conversión (5), operaciones y bug de escala (7), cantidadDesde (4), exhaustividad del catálogo (5), factores molares y anti-deriva (7), salida (4).",
+    "src/__tests__/tipos/clinical-quantity.tipos.ts — 10 casos negativos de COMPILACIÓN (no cuentan como tests de vitest a propósito: los verifica tsc y next build)."
+  ],
+  "porQueEstosTestsFallanSinElCambio": "Los 37 de vitest ejercitan un módulo que no existía: sin él, el import falla y el archivo entero se cae. Pero el par que de verdad prueba la unidad es otro, y se verificó destructivamente: (1) los 10 @ts-expect-error del archivo .tipos.ts sólo pasan si el compilador REALMENTE rechaza cada caso — si dejara de rechazarlo, TS emite TS2578 y tumba tsc Y next build; (2) el test «la MARCA INVARIANTE sigue en el tipo» falla si alguien borra la línea que hace todo el trabajo.",
+
+  "verificacionDestructiva": [
+    {
+      "ataque": "Sustituir `readonly [MARCA]: (d: D) => D` por `readonly [MARCA]: true` en src/types/clinical-quantity.ts — que es exactamente lo que sale de escribir este tipo «de forma natural».",
+      "resultado": "npx tsc --noEmit → exit 2 con 5 × TS2578 'Unused @ts-expect-error directive' en las líneas 37, 41, 58, 66 y 70 del archivo .tipos.ts. Es decir, SIN la marca invariante COMPILAN SIN ERROR: (1) sumar(masa, volumen), (2) comparar(creatMgDl, creatUmolL), (6) colar un CualquierCantidad donde se exige <'masa'>, (8) comparar depuración cruda con indexada, (9) sumar µg/kg/min con U/min. Los casos 1 y 2 son, palabra por palabra, los dos ejemplos del objetivo del backlog: el diseño ingenuo habría entregado la unidad con la aceptación aparentemente cumplida y el agujero exacto abierto.",
+      "revertido": true,
+      "revertidoVerificado": "npx tsc --noEmit → exit 0 tras restaurar; grep confirma que la línea `readonly [MARCA]: (d: D) => D` está de vuelta."
+    }
+  ],
+
+  "gates": {
+    "tsc": "PASS",
+    "vitest": "PASS",
+    "build": "PASS",
+    "testsPasan": 2120,
+    "detalle": "npx tsc --noEmit → exit 0 (con los 10 @ts-expect-error CONSUMIDOS). npx vitest run src/__tests__/ → 179 archivos, 2120 casos, 0 fallos (antes de la unidad: 178/2083; +1 archivo, +37 casos, exactamente lo añadido y ninguna regresión). npm run build → exit 0, compilado y 127 páginas. clinical-registry-adr.test.ts sigue en verde con la deuda en 52 (no se registró el módulo: ver decisión D4)."
+  },
+
+  "decisiones": {
+    "D1": {
+      "que": "La marca invariante `readonly [MARCA]: (d: D) => D` va en el código CON un comentario anti-borrado, no sólo en el diseño.",
+      "porQue": "Es la única línea del módulo cuyo borrado deja el CI VERDE y la protección inexistente. Un fallo silencioso así necesita defensa en el propio archivo + un guardián en el test (patrón ya usado en el repo por log-secrets-guard y firestore-rules-guard)."
+    },
+    "D2": {
+      "que": "CORRECCIÓN AL DISEÑO — `depuracion` se partió en dos dimensiones: `depuracion` ('mL/min') y `depuracion_indexada` ('mL/min/1.73m²').",
+      "porQue": "El DISENO.md las ponía en la misma dimensión. Pasar de mL/min (Cockcroft-Gault) a mL/min/1.73m² (CKD-EPI) exige la SUPERFICIE CORPORAL del paciente: no existe un factor. Juntas, `convertir` habría devuelto el mismo número con otra etiqueta — que es literalmente el bug que este módulo existe para impedir, reintroducido por el propio módulo. Separadas, el compilador lo prohíbe (caso negativo 8). Regla general escrita en el encabezado del catálogo: si convertir exige un dato del paciente, va en dimensión aparte."
+    },
+    "D3": {
+      "que": "CORRECCIÓN AL DISEÑO — 'U/min' salió de `tasa_dosis` a la dimensión `tasa_actividad`, y 'mg/kg/dosis' salió de `tasa_dosis_peso` a `dosis_por_peso`.",
+      "porQue": "Mismo criterio que D2, dos huecos más del catálogo original. (a) U/min mide ACTIVIDAD biológica (vasopresina, insulina, heparina); su equivalencia en masa depende del fármaco y del estándar — meterla junto a µg/min habría exigido un factor inventado. (b) mg/kg/DOSIS no es una tasa: pasar de mg/kg/día a mg/kg/dosis exige saber cuántas tomas al día lleva ese fármaco, que es criterio clínico. En los tres casos la respuesta es NO CONVERTIR, no adivinar."
+    },
+    "D4": {
+      "que": "No se registra en CLINICAL_ENGINE_REGISTRY.",
+      "porQue": "Tal como anticipó el diseño (§5-bis): el trinquete de ADRs de E0-03 exige `sinAdr.length === 52` exacto; registrarlo sin ADR lo subiría a 53 y pondría el CI en rojo. Además el módulo no calcula nada clínico (convierte con factores del SI) y no tiene callers. Cuando E0-05 lo meta en un motor, ese motor ya tiene su entrada. Verificado: clinical-registry-adr.test.ts en verde."
+    },
+    "D5": {
+      "que": "`comparar` usa igualdad EXACTA sobre el valor canónico, sin epsilon.",
+      "porQue": "Elegir una tolerancia sería fijar un criterio que nadie ha decidido. Queda documentado en el código para que quien lo necesite lo decida explícitamente."
+    },
+    "D6": {
+      "que": "El catálogo de factores molares arranca con DOS entradas y devuelve `null` para todo lo demás.",
+      "porQue": "Los dos factores (creatinina 88.4, colesterol 38.67) YA existían en el repo y se copiaron con su cita. No se introdujo ni un número clínico nuevo. Dos tests anti-deriva leen prevent.ts, funcion-renal.ts y copiloto.ts y fallan si alguien cambia uno de los dos sitios y no el otro."
+    },
+    "D7": {
+      "que": "Se pasó de 6 a 10 casos negativos de compilación.",
+      "porQue": "Los 6 del diseño más: valorEn con unidad de otra dimensión (7), los tres huecos que destaparon D2 y D3 (8 y 9) y el intento de fabricar el objeto a mano sin la marca (10). Cuatro de ellos no habrían existido si no se hubiera auditado el catálogo."
+    }
+  },
+
+  "needsClinicalReview": [
+    {
+      "que": "¿Qué analitos deben tener conversión masa↔sustancia además de creatinina y colesterol?",
+      "candidatosPorLoQueYaManejaElRepo": ["glucosa", "urea/BUN", "bilirrubina", "calcio"],
+      "estadoHoy": "FACTORES_MOLARES devuelve null para todos ellos, que es el comportamiento seguro. Cada uno entraría SÓLO con su masa molar y su fuente citada; no se inventó ninguna.",
+      "bloquea": false,
+      "dondeQuedaMarcado": "Comentario NEEDS_CLINICAL_REVIEW sobre FACTORES_MOLARES en src/types/clinical-quantity.ts + test «el catálogo arranca SOLO con los dos factores que ya existían en el repo»."
+    },
+    {
+      "que": "¿mEq/L debe poder convertirse a mmol/L automáticamente?",
+      "estadoHoy": "NO. `concentracion_equivalente` es dimensión propia sin puente: la equivalencia depende de la VALENCIA del ion. Para Na⁺/K⁺/Cl⁻ (valencia 1) el número coincide con mmol/L, pero automatizarlo abriría la puerta a Ca²⁺/Mg²⁺, donde no coincide.",
+      "bloquea": false
+    }
+  ],
+
+  "loQueNoSeHizo": [
+    "NO se migró ningún motor clínico a ClinicalQuantity. Eso es E0-05, riesgo alto, unidad aparte. Mezclarlo aquí sería exactamente lo que prohíbe la regla 5 de la carta operativa.",
+    "NO se tocaron las guardas de rango existentes (creatininaPlausibleMgDl, los min/max de analitos.ts). Siguen siendo la defensa para datos que entran del exterior; E0-05 las respaldará, no las borrará.",
+    "NO se añadió dimensión de temperatura: °C↔°F es una conversión AFÍN, no un factor, rompería la forma de la tabla y ningún motor la necesita hoy. Un test lo fija para que no entre por descuido.",
+    "NO se corrigió la referencia obsoleta de registry.ts:20-21 a src/lib/clinical/cobertura.ts (archivo que no existe, quedó así al cerrar E0-03). No es de esta unidad; queda anotado."
+  ],
+
+  "reparacionForzadaAjena": {
+    "que": "Una línea en src/lib/clinical/adr-cobertura.ts: se añade 'PREGUNTAS-TODO-EL-PROGRAMA.md' a DOCS_NO_ADR.",
+    "porQue": "NO tiene nada que ver con E0-04. Durante esta corrida, un proceso concurrente creó docs/clinical-decisions/PREGUNTAS-TODO-EL-PROGRAMA.md (archivo sin rastrear, mtime 21:12:23). El gate de E0-03 lo leyó como 'ADR huérfano sin motor que lo reclame' y puso vitest en ROJO.",
+    "pruebaDeQueNoLoCausoE0-04": "La corrida completa de gates de las 21:10:13 —con los tres archivos de E0-04 ya en disco— dio 179 archivos / 2120 casos / 0 fallos. El fallo apareció sólo en la re-verificación de las 21:14:39, después de que ese archivo existiera. Mismo código de E0-04 en ambas.",
+    "porQueSeArreglaEnVezDeBloquear": "Revertir E0-04 por un fallo que no causa habría destruido trabajo correcto sin arreglar el repo (el rojo seguiría ahí). El propio mensaje del test dice qué hacer: «Si NO es un ADR de motor (p. ej. una decisión clínica del médico), decláralo en DOCS_NO_ADR». El archivo es exactamente eso: preguntas para el Dr., hermano de PREGUNTAS-PENDIENTES.md, que YA estaba declarado en esa misma lista.",
+    "impacto": "Clasificación de un documento. No mueve la deuda de ADRs (sigue en 52, clinical-registry-adr.test.ts en verde con sus 12 casos), no toca ningún motor, umbral ni criterio clínico."
+  },
+
+  "rollback": "Borrar tres archivos nuevos y revertir la línea de adr-cobertura.ts. No hay estado, datos, hashes ni configuración que revertir.",
+
+  "desbloquea": ["E0-05 (migración de motores, riesgo alto)", "E1-01 (ClinicalFact)", "E4-01 (Safety Kernel)"]
+}

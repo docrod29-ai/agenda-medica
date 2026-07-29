@@ -54,5 +54,6 @@ export const DOCS_NO_ADR: readonly string[] = [
   'README.md',
   'DECISIONES-2026-07-28.md',   // respuestas del Dr. a las 25 preguntas
   'PREGUNTAS-PENDIENTES.md',    // registro de qué se preguntó
+  'PREGUNTAS-TODO-EL-PROGRAMA.md', // mismo tipo que el anterior: preguntas al Dr. de las 63 unidades restantes
   'dosis-amoxicilina.md',       // decisión clínica del Dr., no ADR de motor
 ]

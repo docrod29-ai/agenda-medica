@@ -1,7 +1,7 @@
 {
   "version": 1,
   "descripcion": "ESTADO DURABLE del programa Nexus OS. Fuente de verdad del avance. Los agentes lo actualizan tras CADA unidad terminada. Si se acaban los créditos, este archivo dice exactamente dónde retomar sin perder nada.",
-  "actualizado": "2026-07-29T03:00:21Z",
+  "actualizado": "2026-07-29T03:10:52Z",
   "runs": [
     {
       "unidad": "E0-01",
@@ -70,6 +70,18 @@
         "build": "PASS",
         "testsPasan": 2083
       }
+    },
+    {
+      "unidad": "E0-04",
+      "fecha": "2026-07-29T03:10:52Z",
+      "resultado": "completada",
+      "notaCierre": "Aceptación literal («el compilador rechaza operar cantidades incompatibles») VERIFICADA por control negativo: con la marca invariante trivializada, tsc pasó de exit 0 a exit 2 con 5 TS2578 — incluidos los dos ejemplos textuales del backlog. Cero archivos de producción tocados; el módulo nace sin importadores.",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2120
+      }
     }
   ],
   "unidadEnCurso": null,
@@ -77,6 +89,7 @@
     "E0-01",
     "E0-02",
     "E0-03",
+    "E0-04",
     "E0-11",
     "E0-14",
     "E0-15"
@@ -88,11 +101,12 @@
       "E0-01",
       "E0-02",
       "E0-03",
+      "E0-04",
+      "E0-11",
       "E0-14",
       "E0-15"
     ],
     "sinRESULTADO": [
-      "E0-04 (sólo DISENO.md)",
       "E0-09 (sólo DISENO.md)"
     ],
     "huboDiscrepancia": true,
@@ -104,8 +118,8 @@
     ],
     "avisoDeProceso": "Las tres unidades se cerraron con commit pero SIN escribir RESULTADO.json. Es el único punto por donde este programa pierde trabajo. La regla operativa es: el RESULTADO.json se escribe en el MISMO commit que cierra la unidad, nunca después.",
     "totalUnidades": 68,
-    "completadasCuenta": 6,
-    "pendientes": 62
+    "completadasCuenta": 7,
+    "pendientes": 61
   },
   "bloqueadas": [],
   "necesitaValidacionDelDr": [
@@ -147,52 +161,74 @@
       "decision": "Confirmar que `docrod29-ai` es su handle real de GitHub y activar «Require review from Code Owners»",
       "porQue": "Se creó .github/CODEOWNERS asignando el código clínico y de seguridad a @docrod29-ai, handle deducido de la URL del remoto. Si es incorrecto, GitHub ignora la línea (no rompe nada) pero la revisión obligatoria no se aplica.",
       "bloquea": false
+    },
+    {
+      "unidad": "E0-04",
+      "id": "E0-04-Q1",
+      "decision": "¿Qué analitos deben tener conversión masa↔sustancia además de creatinina y colesterol?",
+      "porQue": "El catálogo FACTORES_MOLARES arrancó con los DOS factores que ya existían en el repo (creatinina 88.4 de funcion-renal.ts/copiloto.ts, colesterol 38.67 de prevent.ts), copiados con su cita. Para cualquier otro analito (glucosa, urea/BUN, bilirrubina, calcio) aConcentracionSustancia devuelve null — el comportamiento seguro. Añadir uno exige su masa molar con fuente; no se inventó ninguna.",
+      "bloquea": false,
+      "dondeQuedaMarcado": "Comentario NEEDS_CLINICAL_REVIEW sobre FACTORES_MOLARES en src/types/clinical-quantity.ts + test «el catálogo arranca SOLO con los dos factores que ya existían en el repo»"
+    },
+    {
+      "unidad": "E0-04",
+      "id": "E0-04-Q2",
+      "decision": "¿mEq/L debe poder convertirse a mmol/L automáticamente?",
+      "porQue": "Hoy NO: mEq/L es dimensión propia sin puente, porque la equivalencia depende de la VALENCIA del ion. Para Na⁺/K⁺/Cl⁻ el número coincide con mmol/L, pero automatizarlo abriría la puerta a Ca²⁺/Mg²⁺, donde no coincide. Si se quiere el puente, se hace en unidad aparte con la valencia declarada y su fuente.",
+      "bloquea": false
     }
   ],
   "siguientesElegibles": {
-    "fecha": "2026-07-29T03:00:21Z",
-    "notaDeEstaPasada": "E0-11 se ejecutó y cerró en esta corrida (queda en 'necesita_validacion' por el paso de GitHub, no por código). Los dos siguientes elegibles son E0-04 y E0-09, ambos de riesgo medio y con DISENO.md ya en disco. E0 se queda SIN unidades de riesgo bajo.",
+    "fecha": "2026-07-29T03:10:52Z",
+    "notaDeEstaPasada": "E0-04 cerrada. Al cerrarla se abren DE GOLPE tres unidades de tres etapas distintas: E0-05 (migración de motores, alto), E1-01 (ClinicalFact, bajo — primera unidad de la etapa E1 Nexus Context) y E4-01 (Safety Kernel, medio). En E0 ya sólo queda E0-09 como elegible de riesgo medio; el resto de E0 es alto o exige observar producción.",
     "seleccion": [
       {
-        "id": "E0-04",
-        "titulo": "ClinicalQuantity: tipo con unidad obligatoria (núcleo)",
-        "riesgo": "medio",
-        "porQueAhora": "Sin dependencias, DISENO.md ya escrito en disco (24 KB) y es el DESBLOQUEADOR de tres unidades de tres etapas distintas: E0-05, E1-01 y E4-01. Es sólo el núcleo del tipo (types/clinical-quantity.ts + conversiones + tests); la migración de motores, que sí es de riesgo alto, es E0-05 y va aparte."
+        "id": "E1-01",
+        "titulo": "ClinicalFact (etapa E1 — Nexus Context)",
+        "riesgo": "bajo",
+        "porQueAhora": "Recién desbloqueada por E0-04 y es la ÚNICA de riesgo bajo que queda elegible en todo el programa. Se apoya directamente en ClinicalQuantity, que ya está en disco y verificado."
       },
       {
         "id": "E0-09",
         "titulo": "Eventos hospitalarios críticos append-only",
         "riesgo": "medio",
         "porQueAhora": "Sin dependencias y con DISENO.md ya escrito (23 KB). MAR, órdenes y eventos de UCI dejan de poder editarse o borrarse: sólo se anexa corrección. Toca reglas de Firestore, así que su despliegue es decisión aparte del Dr."
+      },
+      {
+        "id": "E4-01",
+        "titulo": "Safety Kernel (etapa E4)",
+        "riesgo": "medio",
+        "porQueAhora": "Desbloqueada por E0-04. Abre la etapa E4. No tiene DISENO.md en disco todavía, así que su primera pasada incluiría el diseño."
       }
     ],
     "descartadasConMotivo": [
       {
+        "id": "E0-05",
+        "riesgo": "alto",
+        "motivo": "Ya elegible (E0-04 la desbloqueó), pero es LA unidad de riesgo alto del bloque: migra motores clínicos EN PRODUCCIÓN (funcion-renal, gasometria, infusiones, dosis, prevent) a exigir ClinicalQuantity. Cambia firmas que hoy usan callers reales. Conviene entregarla por lotes o como PLAN, no de un tirón."
+      },
+      {
         "id": "E0-10",
         "riesgo": "medio",
-        "motivo": "Elegible y de riesgo medio, pero su aceptación exige OBSERVAR los reportes CSP en PRODUCCIÓN antes de pasar de report-only a enforce, y la carta operativa prohíbe desplegar dentro del workflow. Se descarta por tercera pasada consecutiva. Se reevaluará si el Dr. autoriza la observación en prod."
+        "motivo": "Su aceptación exige OBSERVAR los reportes CSP en PRODUCCIÓN antes de pasar de report-only a enforce, y la carta operativa prohíbe desplegar dentro del workflow. Cuarta pasada consecutiva descartada."
       },
       {
         "id": "E0-06",
         "riesgo": "alto",
-        "motivo": "Separación de PHI administrativo vs clínico: reglas de Firestore y modelo de datos. Elegible (sin dependencias) pero de riesgo alto; se prefiere bajo/medio. Además es el cuello de botella de E0-07 y E0-08, así que conviene entregarla como PLAN para decisión del Dr. antes de ejecutarla."
+        "motivo": "Separación de PHI administrativo vs clínico: reglas de Firestore y modelo de datos. Cuello de botella de E0-07 y E0-08; conviene entregarla como PLAN."
       },
       {
         "id": "E0-12",
         "riesgo": "alto",
-        "motivo": "El sello de integridad debe cubrir TODO el contenido firmable: implica migración de hashes de firma, riesgo de regresión visible sobre notas ya firmadas. La carta operativa pide PLAN, no ejecución a ciegas."
+        "motivo": "Implica migración de hashes de firma sobre notas YA firmadas: regresión visible. PLAN, no ejecución a ciegas."
       },
       {
         "id": "E0-13",
         "riesgo": "alto",
-        "motivo": "Idempotencia del webhook de Stripe: es dinero. Riesgo alto; PLAN antes que ejecución."
-      },
-      {
-        "id": "E0-05 / E0-07 / E0-08",
-        "motivo": "No elegibles: dependen de E0-04 (E0-05) y de E0-06 (E0-07, E0-08), que siguen pendientes."
+        "motivo": "Idempotencia del webhook de Stripe: es dinero. PLAN antes que ejecución."
       }
     ],
-    "efectoDominoTrasEsteLote": "Cerrando E0-04 quedan elegibles E0-05 (alto), E1-01 (bajo) y E4-01 (medio) — es decir, se abren de golpe la etapa E1 (Nexus Context) y la E4 (Safety Kernel). Cerrando E0-11 se completa el andamio de seguridad de E0 y ya no queda ninguna unidad de riesgo BAJO pendiente en E0: lo que reste será medio o alto."
+    "efectoDominoTrasEsteLote": "Con E0-04 en disco, el programa deja de estar confinado a E0: E1 y E4 quedan abiertas. E0 conserva sólo E0-09 como elegible de riesgo medio."
   },
   "notas": [
     "E0-01 cerró REG-025 por completo en docs/audit/regression-ledger.md (era CLOSED parcial).",
@@ -212,6 +248,14 @@
     "2026-07-29T03:00:21Z — El gate se probó DESTRUCTIVAMENTE antes de darlo por bueno (lección de 'verificar antes de declarar arreglado'): describe.skip en el harness clínico ⇒ rojo por ASERCIÓN 2; borrar funcion-renal.test.ts ⇒ rojo por ASERCIÓN 1 y exit 1 del comando real del job. Ambos revertidos. La ASERCIÓN 6 es un autotest de las propias regex (9 líneas que debe detectar, 5 que no) para que no sea un gate de cartón.",
     "2026-07-29T03:00:21Z — Desviación consciente respecto al estilo de E0-03: aquí el trinquete es MONÓTONO (falla si la cobertura baja; subir es libre) y no exacto. Motivo: E0-03 vigila UN número y apretar la tuerca es gratis; aquí serían 78 números y la comparación exacta cobraría peaje en cada PR clínico que añade un `it` — y un gate que molesta en cada PR acaba en `skip`, que es justo el fallo que E0-03 documentó. Escrito en docs/ci/clinical-safety-gate.md §5.",
     "2026-07-29T03:00:21Z — E0-11 queda en 'necesita_validacion', NO en 'completada', y no es un tecnicismo: el criterio del backlog dice «no puede MERGEARSE» y eso lo decide GitHub. Sin required status checks sobre `main`, el gate avisa pero no bloquea. Marcarla cumplida sin ese paso sería mentir en el propio archivo que dice qué está hecho.",
-    "2026-07-29T03:00:21Z — El commit de E0-11 incluye su RESULTADO.json (regla operativa nueva del 28-07). NO incluye los RESULTADO.json reconstruidos de E0-03/E0-14/E0-15 ni los DISENO.md modificados de E0-04/E0-09: son trabajo de la pasada anterior que sigue sin commitear. Están en disco (que es lo que lee el workflow), pero conviene commitearlos aparte."
+    "2026-07-29T03:00:21Z — El commit de E0-11 incluye su RESULTADO.json (regla operativa nueva del 28-07). NO incluye los RESULTADO.json reconstruidos de E0-03/E0-14/E0-15 ni los DISENO.md modificados de E0-04/E0-09: son trabajo de la pasada anterior que sigue sin commitear. Están en disco (que es lo que lee el workflow), pero conviene commitearlos aparte.",
+    "2026-07-29T03:10:52Z — E0-04 CERRADA. El hallazgo que la justifica es del propio diseño y se RE-VERIFICÓ en el repo real: el tipo intuitivo {valor, unidad, dimension} NO cumple la aceptación. TypeScript ensancha el genérico a la UNIÓN de dimensiones y `sumar(mg, mL)` compila sin error. La corrección es una marca fantasma invariante (`readonly [MARCA]: (d: D) => D`), que pone D a la vez en posición covariante y contravariante.",
+    "2026-07-29T03:10:52Z — Control negativo ejecutado y revertido (lección de 'verificar antes de declarar arreglado'): con `readonly [MARCA]: true` en vez de la marca invariante, tsc devolvió exit 2 con 5 TS2578. Es decir, sin esa línea COMPILAN: sumar mg con mL, comparar mg/dL con µmol/L, colar un CualquierCantidad donde se exige masa, comparar depuración cruda con indexada y sumar µg/kg/min con U/min. Los dos primeros son los ejemplos TEXTUALES del backlog: el diseño ingenuo habría entregado la unidad con el agujero abierto y el CI en verde.",
+    "2026-07-29T03:10:52Z — E0-04 CORRIGIÓ TRES HUECOS DE SU PROPIO DISENO.md, todos del mismo tipo (una 'conversión' que en realidad exige un dato que el módulo no tiene): (1) mL/min y mL/min/1.73m² estaban en la misma dimensión — convertir entre ellas exige la superficie corporal, así que `convertir` habría devuelto el mismo número con otra etiqueta, reintroduciendo el bug que el módulo existe para impedir; (2) 'U/min' estaba junto a 'µg/min' — la UI mide actividad biológica, no masa; (3) 'mg/kg/dosis' estaba junto a 'mg/kg/día' — el puente exige saber el número de tomas al día. En los tres casos la respuesta fue NO CONVERTIR y separar la dimensión, nunca inventar el factor. De ahí salieron 4 de los 10 casos negativos.",
+    "2026-07-29T03:10:52Z — Regla escrita en el encabezado del catálogo para que no vuelva a pasar: si convertir entre dos unidades exige un dato del paciente (masa molar, valencia, superficie corporal, número de tomas), van en DIMENSIONES DISTINTAS. Un test lo vigila: las cuatro dimensiones aisladas deben tener exactamente una unidad.",
+    "2026-07-29T03:10:52Z — E0-04 NO introdujo ni un número clínico nuevo. Los dos factores molares (creatinina 88.4, colesterol 38.67) ya vivían en el repo y se copiaron con su cita; dos tests anti-deriva leen prevent.ts, funcion-renal.ts y copiloto.ts y fallan si alguien cambia un sitio y no el otro. Todo lo demás son definiciones del SI o de metrología (1 mmHg = 133.322387415 Pa).",
+    "2026-07-29T03:10:52Z — E0-04 es ADITIVA PURA: 3 archivos nuevos, CERO archivos de producción modificados, cero importadores. Ninguna pantalla, motor, PDF, receta, cobro, firma ni regla de Firestore cambia de comportamiento. El riesgo real de ClinicalQuantity llega el día que un motor lo exija, y ese día es E0-05 (riesgo alto, unidad aparte). Por eso este núcleo no adelantó ni un motor.",
+    "2026-07-29T03:10:52Z — Tal como anticipó el §5-bis del diseño, el módulo NO se registró en CLINICAL_ENGINE_REGISTRY: el trinquete de E0-03 exige la deuda exacta en 52 y registrarlo sin ADR la subiría a 53 (CI rojo). Verificado que clinical-registry-adr.test.ts sigue verde. Cuando E0-05 lo meta en un motor, ese motor ya tiene su entrada.",
+    "2026-07-29T03:10:52Z — AVISO de la corrida de E0-04, ajeno a la unidad: un proceso concurrente creó docs/clinical-decisions/PREGUNTAS-TODO-EL-PROGRAMA.md (sin rastrear) A MITAD de la corrida, y el gate de ADRs de E0-03 lo leyó como ADR huérfano ⇒ vitest ROJO en la re-verificación, estando verde 4 minutos antes con el mismo código de E0-04. Se arregló como indica el propio mensaje del test: declararlo en DOCS_NO_ADR (src/lib/clinical/adr-cobertura.ts), igual que su hermano PREGUNTAS-PENDIENTES.md. No mueve la deuda (sigue en 52). LECCIÓN: todo .md nuevo en docs/clinical-decisions/ que no sea ADR de motor debe declararse en DOCS_NO_ADR en el MISMO cambio que lo crea, o tumba el CI de quien pase después."
   ]
 }
