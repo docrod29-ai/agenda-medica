@@ -1,0 +1,30 @@
+# CODEOWNERS — revisión humana obligatoria del dueño en el código clínico y de seguridad.
+# Unidad Nexus OS E0-11 (complemento del job `clinical-safety` de .github/workflows/ci.yml).
+#
+# POR QUÉ: el gate de CI comprueba que los invariantes sigan encendidos, pero no puede
+# juzgar si un umbral clínico NUEVO es correcto. Eso solo lo puede hacer el médico dueño.
+# Este archivo obliga a que su revisión aparezca en el PR.
+#
+# OJO — esto NO surte efecto por sí solo: hay que activar "Require review from Code Owners"
+# en la protección de rama de `main`. Ver docs/pendientes-externos.md §3.
+#
+# El handle se dedujo de la URL del remoto (github.com/docrod29-ai/agenda-medica); si no es
+# el usuario correcto de GitHub, GitHub marcará la línea como inválida y la ignorará.
+
+# Motores clínicos deterministas, su registro, sus ADRs y su cobertura
+/src/lib/clinical/            @docrod29-ai
+/src/lib/uci/                 @docrod29-ai
+/src/lib/expediente/          @docrod29-ai
+/src/lib/hospital/            @docrod29-ai
+/docs/clinical-decisions/     @docrod29-ai
+
+# Superficie de seguridad y de datos
+/firestore.rules              @docrod29-ai
+/storage.rules                @docrod29-ai
+/src/lib/seguridad/           @docrod29-ai
+/src/lib/security/            @docrod29-ai
+
+# El propio gate: cambiarlo exige revisión del dueño
+/.github/workflows/ci.yml                        @docrod29-ai
+/src/lib/clinical/invariantes-clinicos.json      @docrod29-ai
+/src/__tests__/clinical-safety-gate.test.ts      @docrod29-ai

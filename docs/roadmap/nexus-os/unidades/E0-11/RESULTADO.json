@@ -1,0 +1,104 @@
+{
+  "id": "E0-11",
+  "titulo": "Clinical Safety CI gate",
+  "etapa": "E0",
+  "fecha": "2026-07-29T03:00:21Z",
+  "estado": "necesita_validacion",
+  "porQueNecesitaValidacion": "El CÓDIGO está completo y verificado. Pero el criterio de aceptación literal del backlog —«un PR que rompe un invariante clínico no puede MERGEARSE»— no lo decide el CI, lo decide GitHub. Sin *required status checks* sobre `main`, el gate AVISA (check en rojo) pero no BLOQUEA. Ese paso es consola de GitHub, no repo, y la carta operativa prohíbe darlo por cumplido a ciegas. Queda documentado en docs/pendientes-externos.md §3 y es lo único pendiente.",
+  "riesgo": "bajo",
+  "validacionClinica": false,
+  "needsClinicalReview": [],
+  "porQueNingunNeedsClinicalReview": "Esta unidad no fija ningún umbral, dosis, escala ni respuesta clínica de oro. Todos los números que congela (minCasos por archivo, totalCasos) son CONTEOS MEDIDOS del propio repo con `contarCasos`, no criterios médicos. El único dato externo que se usó (el handle de GitHub para CODEOWNERS) se dedujo de la URL del remoto, es de infraestructura y su error posible es inocuo (GitHub ignora una línea con handle inválido).",
+
+  "archivosTocados": [
+    "src/lib/clinical/safety-gate.ts (NUEVO) — núcleo PURO: deriva el conjunto protegido, regex de desactivación, contarCasos. No lee disco, por eso es testeable con fixtures.",
+    "src/lib/clinical/invariantes-clinicos.json (NUEVO) — el sello congelado: 78 archivos, 1249 casos declarados.",
+    "src/__tests__/clinical-safety-gate.test.ts (NUEVO) — el metagate: 32 casos en 6 bloques de aserciones.",
+    "scripts/invariantes-clinicos.mjs (NUEVO) — runner del job de CI; lee el sello y emite las rutas. `scripts/` está excluido de tsconfig.json, no entra al typecheck.",
+    "docs/ci/clinical-safety-gate.md (NUEVO) — el entregable «gate documentado».",
+    ".github/CODEOWNERS (NUEVO) — revisión humana del dueño en src/lib/clinical, uci, expediente, hospital, seguridad, security, firestore.rules, storage.rules, docs/clinical-decisions y el propio gate.",
+    ".github/workflows/ci.yml (MODIFICADO) — se AÑADE el job `clinical-safety`; el job `verificar` queda IDÉNTICO.",
+    "docs/audit/regression-ledger.md (MODIFICADO) — REG-051, CLOSED (parcial) con el residual declarado.",
+    "docs/pendientes-externos.md (MODIFICADO) — nueva §3 «Protección de rama en main» + renumeración de las secciones siguientes y de la tabla de prioridad."
+  ],
+  "archivosDeProduccionTocados": "NINGUNO. No se tocó src/app/**, src/components/**, rutas de API, firestore.rules, storage.rules, impresión, PDF, Word, firma ni cobros.",
+
+  "testsAgregados": [
+    "src/__tests__/clinical-safety-gate.test.ts — 32 casos: manifiesto sano (3), ASERCIÓN 1 existencia (1), ASERCIÓN 2 desactivación (1), ASERCIÓN 3 trinquete por archivo y total (2), ASERCIÓN 4 sincronía con registry/ledger + basura huérfana (3), ASERCIÓN 5 cableado en ci.yml (4), ASERCIÓN 6 autotest de las regex (18: 9 que DEBE detectar, 5 que NO debe, sin estado /g, contarCasos ×2, pureza)."
+  ],
+  "porQueEstosTestsFallanSinElCambio": "Los 32 son nuevos y no existía nada equivalente: `npx vitest run` no puede detectar un test ausente. La prueba de que NO son de cartón es la verificación destructiva de abajo, hecha y revertida.",
+
+  "verificacionDestructiva": [
+    {
+      "ataque": "describe.skip en src/__tests__/clinical-safety-harness.test.ts (los 43 valores exactos de CKD-EPI, MELD, FIB-4, SOFA…)",
+      "resultado": "ROJO por ASERCIÓN 2. Mensaje textual: 'Hay invariantes clínicos DESACTIVADOS: src/__tests__/clinical-safety-harness.test.ts:30 [skip] describe.skip(...)'. 1 failed | 31 passed.",
+      "revertido": true
+    },
+    {
+      "ataque": "rm src/__tests__/funcion-renal.test.ts (golden de CKD-EPI 2021)",
+      "resultado": "ROJO por ASERCIÓN 1 ('Se borró un invariante protegido') y también por la 4 (2 failed | 30 passed). Además el comando REAL del job (`npx vitest run <metagate> $(node scripts/invariantes-clinicos.mjs)`) salió con exit=1, porque vitest falla ante una ruta inexistente.",
+      "revertido": true
+    }
+  ],
+
+  "gates": {
+    "tsc": "PASS",
+    "vitest": "PASS",
+    "build": "PASS",
+    "testsPasan": 2083,
+    "detalle": "npx tsc --noEmit → exit 0. npx vitest run src/__tests__/ → 178 archivos, 2083 casos, 0 fallos (antes de la unidad: 177/2051). npm run build → 'Compiled successfully in 8.6s' + 127 páginas estáticas. El job nuevo, corrido tal cual sale en el YAML, tarda 1.27 s en local: 78 archivos, 1307 casos."
+  },
+
+  "decisiones": {
+    "D1": {
+      "que": "El manifiesto es DERIVADO, no una lista escrita a mano.",
+      "porQue": "Una lista a mano se pudre en dos unidades y nadie se entera. Se deriva de CLINICAL_ENGINE_REGISTRY[].goldenTests (65 archivos) ∪ los tests citados en el regression-ledger (14) ∪ 3 metagates = 78. La ASERCIÓN 4 vigila las dos direcciones: que ninguna fuente quede sin proteger, y que el sello no acumule basura huérfana que dé falsa sensación de cobertura."
+    },
+    "D2": {
+      "que": "Trinquete MONÓTONO (falla si baja; subir es libre), y no exacto como en E0-03.",
+      "porQue": "adr-cobertura.ts:33 vigila UN número, así que la comparación exacta aprieta la tuerca sin costo. Aquí serían 78 números y la comparación exacta cobraría peaje en cada PR clínico que añade un `it` — y un gate que molesta en cada PR acaba en `skip`, que es exactamente el fallo que E0-03 documentó. Desviación de estilo consciente, escrita en docs/ci/clinical-safety-gate.md §5."
+    },
+    "D3": {
+      "que": "El job `clinical-safety` es SEPARADO de `verificar`, y `verificar` no se tocó.",
+      "porQue": "Necesita nombre estable para ser el *required status check*, y su rojo debe significar UNA sola cosa: «se rompió un invariante clínico». Corre sin tsc ni next build (~1-2 min contra ~8-10), así que nadie tiene la tentación de desactivarlo por lento. El metagate corre además dentro de `verificar` (suite completa), y por eso la ASERCIÓN 5 lo hace AUTOPROTEGIDO: quitar el job del YAML rompe el propio `verificar`."
+    },
+    "D4": {
+      "que": "El runner lee el JSON, no el .ts.",
+      "porQue": "Corre con `node` pelado en el workflow, sin transpilar TypeScript. La sincronía JSON↔registro↔ledger la verifica el metagate en el mismo comando, así que la duplicación no puede desviarse en silencio. Fail-closed extra: sello vacío ⇒ exit 1 (si no, el job correría cero tests y pasaría en verde)."
+    },
+    "D5": {
+      "que": "Las regex están ancladas a inicio de línea y se declaran COTA, no parser.",
+      "porQue": "Un parser de TypeScript sería una dependencia nueva para un objetivo que no la necesita: basta con que apagar un invariante exija un acto VISIBLE en el diff. El anclaje evita el falso positivo con menciones dentro de strings o comentarios (este propio archivo de test habla de `it.skip` en sus fixtures y no se autoacusa), y la ASERCIÓN 6 lo prueba con 14 líneas fixture: 9 que debe detectar y 5 que no."
+    },
+    "D6": {
+      "que": "CODEOWNERS SÍ se creó, pese a que el diseño lo marcaba «bloqueado por un dato».",
+      "porQue": "El dato apareció: `git remote -v` da github.com/docrod29-ai/agenda-medica, así que el handle no se adivinó, se leyó de la cuenta dueña del repo. Riesgo de error nulo: si el handle fuera incorrecto, GitHub marca la línea como inválida y la ignora — no rompe nada. Queda dicho en el propio archivo y en pendientes-externos que hay que confirmarlo y activar «Require review from Code Owners»."
+    }
+  },
+
+  "medicionesDelRepo": {
+    "archivosProtegidos": 78,
+    "desglose": "65 de registry.goldenTests + 14 del regression-ledger + 3 metagates, con solapes colapsados",
+    "casosDeclaradosCongelados": 1249,
+    "nota": "casosDeclarados (1249) < casos que reporta vitest para esos mismos archivos (1307) porque contarCasos NO expande las tablas de `.each`. Es correcto: ambos lados de la comparación usan la misma cota inferior.",
+    "testsTotalesRepo": { "antes": 2051, "despues": 2083 }
+  },
+
+  "pendienteDelDr": [
+    {
+      "que": "Activar la protección de rama en `main` con `clinical-safety` y `verificar` como required status checks.",
+      "donde": "github.com/docrod29-ai/agenda-medica → Settings → Rules → Rulesets → New branch ruleset",
+      "porQue": "Es lo único que convierte «el CI avisa» en «el PR no se puede mergear». Los 4 ajustes exactos están en docs/pendientes-externos.md §3.",
+      "bloquea": true,
+      "bloqueaQue": "SOLO el cierre formal del criterio de aceptación de E0-11. No bloquea ninguna otra unidad del programa."
+    },
+    {
+      "que": "Confirmar que `docrod29-ai` es su handle de GitHub y activar «Require review from Code Owners».",
+      "bloquea": false
+    }
+  ],
+
+  "noSeDesplego": true,
+  "noSeHizoPush": true,
+  "resumen": "El CI ya corría los invariantes, pero medía los tests que QUEDAN, no los que DEBEN existir: seguía verde si alguien borraba el harness clínico, le ponía describe.skip a la dosis pediátrica o dejaba un it.only. E0-11 cierra ese hueco con un metagate que deriva 78 archivos protegidos del registro de motores + el regression-ledger + 3 metagates, los congela con trinquete monótono y verifica existencia, desactivación, conteo, sincronía con sus fuentes y su propio cableado en ci.yml. Probado destructivamente (skip y borrado: rojo en ambos, revertido). Gates reales: tsc PASS, vitest 2083 PASS, build PASS. Cero archivos de producción tocados. Lo único que falta para el criterio literal del backlog no es código: son los required status checks en la consola de GitHub."
+}

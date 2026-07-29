@@ -1,7 +1,7 @@
 {
   "version": 1,
   "descripcion": "ESTADO DURABLE del programa Nexus OS. Fuente de verdad del avance. Los agentes lo actualizan tras CADA unidad terminada. Si se acaban los créditos, este archivo dice exactamente dónde retomar sin perder nada.",
-  "actualizado": "2026-07-28T22:15:15Z",
+  "actualizado": "2026-07-29T03:00:21Z",
   "runs": [
     {
       "unidad": "E0-01",
@@ -17,39 +17,95 @@
     {
       "unidad": "E0-02",
       "fecha": "2026-07-28T20:24:18Z",
-      "resultado": "necesita_validacion",
+      "resultado": "completada",
+      "notaCierre": "El RESULTADO.json en disco todavía dice 'necesita_validacion' porque se escribió ANTES de que el Dr. resolviera Q1 y Q2. Hoy está CERRADA; sólo queda Q3 (catálogo adulto) como REG-043, que NO bloquea.",
       "gates": {
         "tsc": "PASS",
         "vitest": "PASS",
         "build": "PASS",
         "testsPasan": 1947
       }
+    },
+    {
+      "unidad": "E0-15",
+      "fecha": "2026-07-28T19:31:36Z",
+      "resultado": "completada",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2022
+      }
+    },
+    {
+      "unidad": "E0-14",
+      "fecha": "2026-07-28T20:40:57Z",
+      "resultado": "completada",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2039
+      }
+    },
+    {
+      "unidad": "E0-03",
+      "fecha": "2026-07-28T20:38:22Z",
+      "resultado": "completada",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2051
+      }
+    },
+    {
+      "unidad": "E0-11",
+      "fecha": "2026-07-29T03:00:21Z",
+      "resultado": "necesita_validacion",
+      "notaCierre": "CÓDIGO COMPLETO Y VERIFICADO (metagate de 78 invariantes protegidos + job `clinical-safety` en el CI + gate documentado + CODEOWNERS). Se marca 'necesita_validacion' y no 'completada' porque el criterio de aceptación literal —«un PR que rompe un invariante clínico no puede MERGEARSE»— lo decide GitHub, no el CI: sin *required status checks* sobre `main` el gate avisa pero no bloquea. Ese paso es consola del Dr. (docs/pendientes-externos.md §3). No bloquea ninguna otra unidad.",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2083
+      }
     }
   ],
-  "unidadEnCurso": "E0-03",
+  "unidadEnCurso": null,
   "completadas": [
     "E0-01",
     "E0-02",
     "E0-03",
+    "E0-11",
     "E0-14",
     "E0-15"
   ],
   "reconciliacionDisco": {
-    "fecha": "2026-07-28T22:15:15Z",
+    "fecha": "2026-07-29T02:44:15Z",
     "criterio": "La existencia de unidades/<ID>/RESULTADO.json es la prueba de que la unidad está hecha; manda sobre estado.json.",
     "conRESULTADO": [
       "E0-01",
-      "E0-02"
+      "E0-02",
+      "E0-03",
+      "E0-14",
+      "E0-15"
     ],
     "sinRESULTADO": [
-      "E0-03 (sólo DISENO.md)",
-      "E0-04 (carpeta vacía)",
+      "E0-04 (sólo DISENO.md)",
       "E0-09 (sólo DISENO.md)"
     ],
-    "correccion": "SIN CORRECCIÓN NECESARIA en esta pasada: el disco (unidades/E0-01/RESULTADO.json y unidades/E0-02/RESULTADO.json, únicos RESULTADO.json del árbol) coincide exactamente con completadas. Se dejan constancia dos matices que NO cambian el conteo: (1) el RESULTADO.json de E0-02 sigue diciendo estado 'necesita_validacion' porque se escribió antes de que el Dr. resolviera Q1 y Q2 — hoy E0-02 está CERRADA por decisión suya y sólo queda Q3 (catálogo adulto) como REG-043, que no bloquea; (2) E0-03 y E0-09 ya tienen DISENO.md escrito de una pasada anterior, pero SIN RESULTADO.json siguen contando como pendientes, y E0-04 tiene la carpeta creada y vacía.",
-    "correccionPrevia": "2026-07-28T21:49:59Z — E0-02 tenía RESULTADO.json en disco pero NO figuraba en completadas. Se añadió.",
+    "huboDiscrepancia": true,
+    "correccion": "SÍ HUBO CORRECCIÓN, y en la dirección contraria a la obvia. Al empezar esta pasada, estado.json listaba 5 completadas (E0-01, E0-02, E0-03, E0-14, E0-15) pero en disco sólo existían DOS RESULTADO.json (E0-01 y E0-02). Aplicar 'manda el disco' de forma literal habría degradado E0-03, E0-14 y E0-15 a pendientes y el siguiente lote las habría REHECHO — incluyendo reglas de Firestore YA DESPLEGADAS (E0-14), que es exactamente el tipo de repetición a ciegas que la carta operativa prohíbe. Antes de tocar nada se buscó la evidencia en el propio disco y ahí estaba, completa: commits 81fbe68 (E0-03), 3b39d12 + 5f5dff0 + bfe12e4 (E0-14) y 623ff89 + c1a0911 + 9a0da9e (E0-15); los tests src/__tests__/clinical-registry-adr.test.ts y src/__tests__/e0-15-antibiograma-decisiones.test.ts (re-ejecutados HOY: 45 casos en verde); src/lib/clinical/adr-cobertura.ts, src/lib/firma-protegida.ts, src/hooks/useFirmaProtegida.ts, firestore.rules; y REG-014/015/017 + REG-044…REG-050 marcados CLOSED en docs/audit/regression-ledger.md. Conclusión: las tres unidades SÍ están hechas y lo que faltaba era el artefacto contable. La corrección aplicada fue ESCRIBIR los tres RESULTADO.json que faltaban, reconstruidos únicamente a partir de esa evidencia y marcados con reconstruido.esReconstruccion=true, de modo que el disco vuelva a ser prueba fiel de la realidad y el criterio del protocolo siga siendo válido en la siguiente pasada. NO se inventó ningún dato: los gates se citan como 'declarados en el commit' y se distingue explícitamente lo re-verificado hoy de lo que no.",
+    "correccionesPrevias": [
+      "2026-07-28T21:49:59Z — E0-02 tenía RESULTADO.json en disco pero NO figuraba en completadas. Se añadió.",
+      "2026-07-28T22:15:15Z — 2ª pasada: sin cambios.",
+      "2026-07-29T02:44:15Z — 3ª pasada: se escribieron los RESULTADO.json ausentes de E0-03, E0-14 y E0-15 (reconstruidos con evidencia de git + tests + ledger). Sin ellos, tres unidades terminadas se habrían rehecho."
+    ],
+    "avisoDeProceso": "Las tres unidades se cerraron con commit pero SIN escribir RESULTADO.json. Es el único punto por donde este programa pierde trabajo. La regla operativa es: el RESULTADO.json se escribe en el MISMO commit que cierra la unidad, nunca después.",
     "totalUnidades": 68,
-    "pendientes": 66
+    "completadasCuenta": 6,
+    "pendientes": 62
   },
   "bloqueadas": [],
   "necesitaValidacionDelDr": [
@@ -69,28 +125,93 @@
       "unidad": "E0-02",
       "id": "E0-02-Q3",
       "decision": "¿Se amplía el CATALOGO adulto de seguridad/dosis.ts con los 20 fármacos que faltan?",
-      "porQue": "20 de los 25 fármacos pediátricos (todos los antibióticos salvo amoxicilina, más prednisona, ondansetrón, difenhidramina, aciclovir, hierro elemental, etc.) NO existen en ese catálogo, así que revisarDosis devuelve 'sin_referencia' y no impone ningún techo al prescribirlos a un adulto. Ampliarlo requiere que usted aporte maxTomaMg/maxDiaMg por fármaco: no se derivan de las cifras pediátricas y no los voy a inventar.",
+      "porQue": "20 de los 25 fármacos pediátricos (todos los antibióticos salvo amoxicilina, más prednisona, ondansetrón, difenhidramina, aciclovir, hierro elemental, etc.) NO existen en ese catálogo, así que revisarDosis devuelve 'sin_referencia' y no impone ningún techo al prescribirlos a un adulto. El Dr. APROBÓ ampliarlo, pero no con un maxDose único: los máximos cambian por indicación, vía, función renal y formulación. El eje usual/hard ya está implementado; falta que él aporte la tabla por fármaco. No se derivan de las cifras pediátricas y no se van a inventar.",
       "bloquea": false,
       "dondeQuedaMarcado": "Test 'la mayoría del catálogo pediátrico NO tiene techo adulto' en src/__tests__/dosis-invariantes-property.test.ts (P6) + REG-043 en docs/audit/regression-ledger.md"
+    },
+    {
+      "unidad": "E0-14",
+      "decision": "REG-014 residual: ¿se construye el servicio de firmado SERVER-SIDE?",
+      "porQue": "La firma ya no la puede leer recepción/farmacia/enfermería (config/firma con read: isMedico). Pero el médico autenticado sigue recibiendo la imagen en su navegador porque la impresión es toda client-side. Cerrarlo del todo exige renderizar el documento firmado en el servidor: es una unidad aparte y toca el camino de impresión (regla 5 de la carta operativa).",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-11",
+      "decision": "Activar la protección de rama en `main` (required status checks `clinical-safety` + `verificar`)",
+      "porQue": "El gate de invariantes clínicos ya corre en cada PR y ya detecta que alguien borró, apagó o vació un invariante. Pero IMPEDIR EL MERGE lo decide GitHub, no el CI: hoy un PR con el gate en rojo se mergea igual. Son ~5 minutos en github.com/docrod29-ai/agenda-medica → Settings → Rules → Rulesets; los 4 ajustes exactos están en docs/pendientes-externos.md §3. Hasta entonces la unidad queda en 'necesita_validacion' y NO se marca cumplida a ciegas.",
+      "bloquea": false,
+      "bloqueaQue": "Solo el cierre formal de E0-11. Ninguna otra unidad depende de ello."
+    },
+    {
+      "unidad": "E0-11",
+      "decision": "Confirmar que `docrod29-ai` es su handle real de GitHub y activar «Require review from Code Owners»",
+      "porQue": "Se creó .github/CODEOWNERS asignando el código clínico y de seguridad a @docrod29-ai, handle deducido de la URL del remoto. Si es incorrecto, GitHub ignora la línea (no rompe nada) pero la revisión obligatoria no se aplica.",
+      "bloquea": false
     }
   ],
+  "siguientesElegibles": {
+    "fecha": "2026-07-29T03:00:21Z",
+    "notaDeEstaPasada": "E0-11 se ejecutó y cerró en esta corrida (queda en 'necesita_validacion' por el paso de GitHub, no por código). Los dos siguientes elegibles son E0-04 y E0-09, ambos de riesgo medio y con DISENO.md ya en disco. E0 se queda SIN unidades de riesgo bajo.",
+    "seleccion": [
+      {
+        "id": "E0-04",
+        "titulo": "ClinicalQuantity: tipo con unidad obligatoria (núcleo)",
+        "riesgo": "medio",
+        "porQueAhora": "Sin dependencias, DISENO.md ya escrito en disco (24 KB) y es el DESBLOQUEADOR de tres unidades de tres etapas distintas: E0-05, E1-01 y E4-01. Es sólo el núcleo del tipo (types/clinical-quantity.ts + conversiones + tests); la migración de motores, que sí es de riesgo alto, es E0-05 y va aparte."
+      },
+      {
+        "id": "E0-09",
+        "titulo": "Eventos hospitalarios críticos append-only",
+        "riesgo": "medio",
+        "porQueAhora": "Sin dependencias y con DISENO.md ya escrito (23 KB). MAR, órdenes y eventos de UCI dejan de poder editarse o borrarse: sólo se anexa corrección. Toca reglas de Firestore, así que su despliegue es decisión aparte del Dr."
+      }
+    ],
+    "descartadasConMotivo": [
+      {
+        "id": "E0-10",
+        "riesgo": "medio",
+        "motivo": "Elegible y de riesgo medio, pero su aceptación exige OBSERVAR los reportes CSP en PRODUCCIÓN antes de pasar de report-only a enforce, y la carta operativa prohíbe desplegar dentro del workflow. Se descarta por tercera pasada consecutiva. Se reevaluará si el Dr. autoriza la observación en prod."
+      },
+      {
+        "id": "E0-06",
+        "riesgo": "alto",
+        "motivo": "Separación de PHI administrativo vs clínico: reglas de Firestore y modelo de datos. Elegible (sin dependencias) pero de riesgo alto; se prefiere bajo/medio. Además es el cuello de botella de E0-07 y E0-08, así que conviene entregarla como PLAN para decisión del Dr. antes de ejecutarla."
+      },
+      {
+        "id": "E0-12",
+        "riesgo": "alto",
+        "motivo": "El sello de integridad debe cubrir TODO el contenido firmable: implica migración de hashes de firma, riesgo de regresión visible sobre notas ya firmadas. La carta operativa pide PLAN, no ejecución a ciegas."
+      },
+      {
+        "id": "E0-13",
+        "riesgo": "alto",
+        "motivo": "Idempotencia del webhook de Stripe: es dinero. Riesgo alto; PLAN antes que ejecución."
+      },
+      {
+        "id": "E0-05 / E0-07 / E0-08",
+        "motivo": "No elegibles: dependen de E0-04 (E0-05) y de E0-06 (E0-07, E0-08), que siguen pendientes."
+      }
+    ],
+    "efectoDominoTrasEsteLote": "Cerrando E0-04 quedan elegibles E0-05 (alto), E1-01 (bajo) y E4-01 (medio) — es decir, se abren de golpe la etapa E1 (Nexus Context) y la E4 (Safety Kernel). Cerrando E0-11 se completa el andamio de seguridad de E0 y ya no queda ninguna unidad de riesgo BAJO pendiente en E0: lo que reste será medio o alto."
+  },
   "notas": [
     "E0-01 cerró REG-025 por completo en docs/audit/regression-ledger.md (era CLOSED parcial).",
     "E0-01 NO tocó impresión, PDF, Word, firma, cobros ni reglas de Firestore. Nada desplegado, sin push.",
     "Desviación consciente del diseño de E0-01 (PARTE 2): no se muestra el mensaje comparativo entre la huella del impreso y la de la nota, porque se calculan sobre entradas distintas y una diferencia no probaría edición alguna. Detalle en unidades/E0-01/RESULTADO.json → decisiones.D3.",
-    "E0-02 dejó TODO el software implementado y verde (36 casos nuevos; 1947 tests en total; tsc, vitest y build PASS), pero queda en 'necesita_validacion': su propiedad P6 (coherencia entre los dos motores de dosis) no se puede cerrar sin que el Dr. decida el techo por toma de amoxicilina. El hueco quedó marcado NEEDS_CLINICAL_REVIEW y VERSIONADO en INCOHERENCIAS_CONOCIDAS — no se inventó ningún valor por defecto.",
-    "E0-02 corrigió tres afirmaciones de su propio DISENO.md, medidas contra el código: (1) amoxicilina choca con el techo adulto desde ≈22.3 kg, no desde 33.3 kg; (2) son 20 de 25 fármacos sin referencia adulta, no 22; (3) la comprobación de '§7.3 el test detecta la regresión' propuesta (bajar topeMgKgDia de Amikacina a 10) NO habría fallado, porque el motor aplica el tope que el catálogo declara: se sustituyó por dos motores MUTANTES permanentes que rompen la relación motor↔catálogo.",
-    "E0-02 NO tocó impresión, PDF, firma, cobros, PHI ni reglas de Firestore. El único cambio en código de producción es exportar dos funciones puras de pediatria.ts (tomasDiaDe, tomasPorIntervalo), sin cambio de comportamiento. Nada desplegado, sin push.",
-    "Riesgo BUSCADO y documentado en el ADR: P1 y P6 son fail-closed. Un fármaco nuevo con unidad fuera de ['mg','mg de TMP'], sin ningún tope declarado, o que contradiga el catálogo adulto, tumba el CI a propósito para forzar una revisión clínica explícita.",
-    "Siguiente unidad sugerida: E0-03 (ver unidades/E0-03/DISENO.md). E0-02-Q1 bloquea el CIERRE de E0-02, no el avance del programa.",
-    "2026-07-28T21:49:59Z — Reconciliación contra disco: completadas = E0-01 y E0-02 (ambas con RESULTADO.json). 2 de 68 hechas, 66 pendientes. Siguientes 3 elegibles seleccionadas: E0-03 (bajo), E0-04 (medio), E0-09 (medio). Alterna equivalente: E0-10 (medio, CSP enforce) — se pospuso porque su aceptación exige observar reportes en producción y la carta operativa prohíbe desplegar.",
-    "2026-07-28T21:49:59Z — E0-11 (Clinical Safety CI gate) queda a UNA unidad de distancia: depende de E0-02 (ya hecha) y E0-03. En cuanto cierre E0-03, E0-11 se vuelve elegible y es de riesgo bajo.",
-    "2026-07-28T21:49:59Z — El resto de E0 sin dependencias (E0-06, E0-12, E0-13, E0-14, E0-15) es de riesgo ALTO: toca reglas de Firestore/PHI, migración de hashes de firma, cobros Stripe y el motor de antibiograma (este último además con validacionClinica). Por la regla de preferir bajo/medio, no se eligieron todavía; varias deberán entregarse como PLAN para decisión del Dr. antes de ejecutarse.",
-    "E0-02 CERRADA 2026-07-28: el Dr. resolvió Q1 (modelo de 3 niveles para amoxicilina) y Q2 (redondeo hacia abajo al tocar un tope). Q3 (catalogo adulto) sigue abierta como REG-043: aprobo ampliarlo pero aporta el la tabla despues.",
-    "2026-07-28T22:15:15Z — Reconciliación contra disco (2ª pasada): sin cambios. Únicos RESULTADO.json del árbol = E0-01 y E0-02. Completadas 2 de 68; pendientes 66. Selección de las siguientes 3 elegibles, sin cambio respecto a la pasada anterior porque ninguna se ejecutó: E0-03 (riesgo bajo, sin dependencias, DISENO.md ya escrito), E0-04 (medio, sin dependencias, es el desbloqueador de E0-05/E1-01/E4-01) y E0-09 (medio, sin dependencias, DISENO.md ya escrito). E0-11 sigue a una unidad de distancia: en cuanto cierre E0-03 queda elegible y es de riesgo bajo.",
-    "2026-07-28T22:15:15Z — E0-10 (CSP enforce + Playwright) queda descartada de nuevo pese a ser elegible y de riesgo medio: su aceptación exige observar reportes CSP en PRODUCCIÓN antes de pasar a enforce, y la carta operativa prohíbe desplegar. Se reevaluará si el Dr. autoriza la observación en prod. El resto de E0 sin dependencias (E0-06, E0-12, E0-13, E0-14, E0-15) es de riesgo ALTO — reglas de Firestore/PHI, migración de hashes de firma, webhook de cobros Stripe y motor de antibiograma (éste además con validacionClinica) — y varias deberán entregarse como PLAN para decisión del Dr. antes de ejecutarse.",
-    "E0-15 CERRADA 2026-07-28: las 4 decisiones del Dr. implementadas (a effectiveAST canonico, b MISSING->UNKNOWN, c CMI con operador, d carbapenemicos precaucion). REG-044 a REG-050. 2022 tests.",
-    "E0-03 CERRADA 2026-07-28 (segundo intento). El primero fallo por disenno: exigia un ADR por CADA motor (56 motores, 3 ADRs) -> el gate nacia rojo con 53 fallos y un gate asi se marca skip y deja de proteger. Rehecho con TRINQUETE: la deuda (52) se congela y solo puede BAJAR; un motor NUEVO sin ADR la sube y tumba el CI. Encontro un hueco real: dosis-pediatrica.md no declaraba sus golden tests.",
-    "E0-14 CERRADA 2026-07-28: sus tres componentes son REG-014 (firma aislada en config/firma, residual server-side declarado), REG-015 (cobro sella autor + monto>=0 + tipo) y REG-017 (nota nace DRAFT). Reglas de Firestore desplegadas."
+    "E0-02 CERRADA 2026-07-28: el Dr. resolvió Q1 (modelo de 3 niveles para amoxicilina) y Q2 (redondeo hacia abajo al tocar un tope). Q3 (catálogo adulto) sigue abierta como REG-043: aprobó ampliarlo pero aporta la tabla después.",
+    "E0-02 corrigió tres afirmaciones de su propio DISENO.md, medidas contra el código: (1) amoxicilina choca con el techo adulto desde ≈22.3 kg, no desde 33.3 kg; (2) son 20 de 25 fármacos sin referencia adulta, no 22; (3) la comprobación de '§7.3 el test detecta la regresión' propuesta NO habría fallado: se sustituyó por dos motores MUTANTES permanentes que rompen la relación motor↔catálogo.",
+    "Riesgo BUSCADO y documentado en el ADR de E0-02: P1 y P6 son fail-closed. Un fármaco nuevo con unidad fuera de ['mg','mg de TMP'], sin ningún tope declarado, o que contradiga el catálogo adulto, tumba el CI a propósito para forzar una revisión clínica explícita.",
+    "E0-15 CERRADA 2026-07-28: las 4 decisiones del Dr. implementadas (a effectiveAST canónico, b MISSING→UNKNOWN, c CMI con operador, d carbapenémicos precaución). REG-044 a REG-050. 2022 tests.",
+    "E0-03 CERRADA 2026-07-28 (segundo intento). El primero falló por diseño: exigía un ADR por CADA motor (56 motores, 3 ADRs) → el gate nacía rojo con 53 fallos, y un gate así se marca skip y deja de proteger. Rehecho con TRINQUETE: la deuda (52) se congela y sólo puede BAJAR; un motor NUEVO sin ADR la sube y tumba el CI. Encontró un hueco real: dosis-pediatrica.md no declaraba sus golden tests. OJO: el revert 9f2e45f borró unidades/E0-03/DISENO.md y no se recreó.",
+    "E0-14 CERRADA 2026-07-28: sus tres componentes son REG-014 (firma aislada en config/firma, residual server-side declarado), REG-015 (cobro sella autor + monto≥0 + tipo) y REG-017 (nota nace DRAFT). Las reglas de Firestore de esta unidad SÍ se desplegaron — es la única excepción de despliegue del programa hasta hoy.",
+    "2026-07-29T02:44:15Z — 3ª reconciliación contra disco. Hallazgo del día: tres unidades terminadas (E0-03, E0-14, E0-15) no tenían RESULTADO.json. Como el protocolo dice que ese archivo ES la prueba, el siguiente lote las habría rehecho — incluyendo reglas de Firestore ya desplegadas. Se reconstruyeron los tres archivos a partir de evidencia verificable (commits, tests re-ejecutados hoy, ledger) y quedan marcados reconstruido.esReconstruccion=true. No se inventó ningún gate: lo declarado en commit se etiqueta como declarado, y se dice explícitamente qué se re-verificó hoy.",
+    "2026-07-29T02:44:15Z — REGLA OPERATIVA NUEVA, aprendida de ese hallazgo: el RESULTADO.json se escribe en el MISMO commit que cierra la unidad. Cerrar con commit y dejar el resultado para después es el único punto por donde este programa pierde trabajo.",
+    "2026-07-29T02:44:15Z — Estado: 5 de 68 completadas, 63 pendientes. Siguientes 3 elegibles: E0-11 (bajo, recién desbloqueada por E0-02+E0-03), E0-04 (medio, desbloqueador de E0-05/E1-01/E4-01) y E0-09 (medio, DISENO.md listo). Ninguna está en bloqueadas ni espera validación del Dr.",
+    "2026-07-29T02:44:15Z — Tras este lote, E0 se queda SIN unidades de riesgo bajo: lo pendiente será E0-06, E0-10, E0-12 y E0-13, todas medio/alto, y varias deben entregarse como PLAN para decisión del Dr. (PHI, migración de hashes de firma, webhook de cobros) en vez de ejecutarse.",
+    "2026-07-29T03:00:21Z — E0-11 EJECUTADA. Hallazgo que la justifica, medido y no supuesto: el CI corría los invariantes pero `npx vitest run` mide los tests que QUEDAN, no los que DEBEN existir — seguía verde si alguien borraba clinical-safety-harness.test.ts, le ponía describe.skip a la dosis pediátrica o dejaba un it.only. Se cerró con un metagate que DERIVA 78 archivos protegidos (65 de registry.goldenTests + 14 del regression-ledger + 3 metagates) y los congela en src/lib/clinical/invariantes-clinicos.json con 1249 casos declarados. REG-051 en el ledger.",
+    "2026-07-29T03:00:21Z — El gate se probó DESTRUCTIVAMENTE antes de darlo por bueno (lección de 'verificar antes de declarar arreglado'): describe.skip en el harness clínico ⇒ rojo por ASERCIÓN 2; borrar funcion-renal.test.ts ⇒ rojo por ASERCIÓN 1 y exit 1 del comando real del job. Ambos revertidos. La ASERCIÓN 6 es un autotest de las propias regex (9 líneas que debe detectar, 5 que no) para que no sea un gate de cartón.",
+    "2026-07-29T03:00:21Z — Desviación consciente respecto al estilo de E0-03: aquí el trinquete es MONÓTONO (falla si la cobertura baja; subir es libre) y no exacto. Motivo: E0-03 vigila UN número y apretar la tuerca es gratis; aquí serían 78 números y la comparación exacta cobraría peaje en cada PR clínico que añade un `it` — y un gate que molesta en cada PR acaba en `skip`, que es justo el fallo que E0-03 documentó. Escrito en docs/ci/clinical-safety-gate.md §5.",
+    "2026-07-29T03:00:21Z — E0-11 queda en 'necesita_validacion', NO en 'completada', y no es un tecnicismo: el criterio del backlog dice «no puede MERGEARSE» y eso lo decide GitHub. Sin required status checks sobre `main`, el gate avisa pero no bloquea. Marcarla cumplida sin ese paso sería mentir en el propio archivo que dice qué está hecho.",
+    "2026-07-29T03:00:21Z — El commit de E0-11 incluye su RESULTADO.json (regla operativa nueva del 28-07). NO incluye los RESULTADO.json reconstruidos de E0-03/E0-14/E0-15 ni los DISENO.md modificados de E0-04/E0-09: son trabajo de la pasada anterior que sigue sin commitear. Están en disco (que es lo que lee el workflow), pero conviene commitearlos aparte."
   ]
 }

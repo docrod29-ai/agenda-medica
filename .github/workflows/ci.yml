@@ -9,6 +9,28 @@ on:
   pull_request:
 
 jobs:
+  # Gate de seguridad clínica (unidad Nexus OS E0-11). Job SEPARADO y con nombre
+  # ESTABLE a propósito: es el que se marca como *required status check* en la
+  # protección de rama de `main`. Corre solo los invariantes (sin tsc ni build):
+  # ~1-2 min contra los ~8-10 del job completo, así que su rojo significa una
+  # sola cosa — "se rompió un invariante clínico" — y nadie tiene la tentación
+  # de desactivarlo por lento. Ver docs/ci/clinical-safety-gate.md.
+  clinical-safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Invariantes clínicos y de seguridad
+        # `clinical-safety-gate.test.ts` es el metagate (comprueba que ningún
+        # invariante fue borrado, apagado o vaciado) y el `$(node ...)` expande
+        # el manifiesto sellado para EJECUTARLOS de verdad.
+        run: npx vitest run src/__tests__/clinical-safety-gate.test.ts $(node scripts/invariantes-clinicos.mjs)
+
   verificar:
     runs-on: ubuntu-latest
     steps:

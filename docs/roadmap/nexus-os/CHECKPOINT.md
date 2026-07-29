@@ -1,142 +1,134 @@
 # Nexus OS — dónde vamos
 
-**Avance: 1 completada + 1 esperando su visto bueno / 68 unidades.**
-Etapa E0 (Hardening): 1 / 15 cerradas.
-Última corrida: `2026-07-28T20:24:18Z` — `E0-02` **necesita validación**.
+**Avance: 6 de 68 unidades.** Etapa E0 (Hardening): **6 de 15**.
+Última corrida: `2026-07-29T03:00:21Z` — **E0-11 · Clinical Safety CI gate**.
+
+| Unidad | Qué es | Estado |
+|---|---|---|
+| E0-01 | Certificado de receta firmado con identidad derivada | cerrada |
+| E0-02 | Invariantes de dosis pediátrica (property-based) | cerrada |
+| E0-03 | Clinical Engine Registry + trinquete de ADRs | cerrada |
+| E0-14 | Firma aislada · cobro sellado · nota nace borrador | cerrada (única con reglas desplegadas) |
+| E0-15 | Antibiograma: 4 decisiones clínicas suyas implementadas | cerrada |
+| **E0-11** | **El CI protege los invariantes clínicos** | **software listo — falta un switch suyo en GitHub** |
 
 ---
 
-## E0-02 — Invariantes de dosis pediátrica (software LISTO, falta una decisión suya)
+## Lo último: E0-11 — el candado que faltaba
 
-Todo el software de esta unidad está implementado, verde y corriendo en CI. **No la doy
-por cerrada** porque uno de sus invariantes topa con una pregunta que no me toca
-responder: dos partes del sistema no coinciden en cuánta amoxicilina puede llevar una
-sola toma, y elegir la cifra es criterio médico. Está abajo, en «Esperando decisión».
+Las unidades anteriores llenaron el repo de invariantes: 43 valores exactos de fórmulas
+(CKD-EPI, MELD, FIB-4, SOFA, APACHE-II…), 37 propiedades de dosis pediátrica, 51
+incidentes con su prueba permanente. Todos corrían en el CI.
 
-### Qué hace ahora el sistema que antes no hacía
+**El agujero:** el CI corría `vitest`, que mide **los tests que quedan**, no **los que
+deben existir**. Hasta ayer el CI seguía en verde si alguien:
 
-Antes existían dos pruebas puntuales: amikacina a 20 kg y «la dosis por toma nunca supera
-la del día», sobre 5 pesos fijos y una edad fija. Ahora hay un **invariante permanente
-sobre todo el catálogo**: los 25 fármacos pediátricos × 250 pesos entre 0.5 y 120 kg × 11
-edades (incluida «sin edad capturada», que es como lo llama el copiloto) — unas 68 mil
-combinaciones en cada corrida, en ~110 ms.
+- borraba el archivo con los 43 valores exactos de las fórmulas,
+- le ponía `describe.skip` al bloque de dosis pediátrica,
+- dejaba un `it.only` que excluía al resto del archivo,
+- o vaciaba un invariante dejando un solo `it` verde.
 
-El criterio de aceptación del backlog —*ningún fármaco puede producir una dosis por toma
-por encima de su tope*— **ya se cumplía**. Un barrido exhaustivo previo dio cero
-violaciones. Así que E0-02 no reparó nada roto: **convirtió ese hecho en algo que no se
-puede romper en silencio** el día que se agregue el fármaco número 26.
+Un invariante clínico se podía apagar sin que nada chillara.
 
-Eso es lo que de verdad protege. Las propiedades son **fail-closed**: si alguien agrega un
-fármaco con una unidad nueva, sin ningún tope declarado, o que contradiga el otro
-catálogo, **el CI se cae a propósito** y obliga a que usted lo revise antes de que entre.
-No es una falla del arnés: es el punto.
+### Qué hace ahora
 
-### Lo que se comprueba en cada corrida
+Hay un **metagate** que protege **78 archivos** de invariantes. La lista no está escrita a
+mano —se pudriría—: se **deriva** de tres fuentes que ya son la verdad del repo (el golden
+que cada motor declara en el registro, el test que cierra cada incidente del ledger, y
+tres gates que se vigilan a sí mismos). En cada Pull Request comprueba que cada uno siga
+**en disco, encendido y con al menos tantos casos como el día que se selló**.
 
-| | Propiedad |
-|---|---|
-| **P1** | Forma del catálogo: unidad válida, al menos un tope declarado, rangos ordenados, el piso nunca por encima del techo. |
-| **P2** | **Aceptación:** la dosis por toma nunca supera su tope, y multiplicada por las tomas del día tampoco rebasa el techo diario. |
-| **P3** | La dosis nunca **baja** al subir el peso (caza un tope mal propagado). Peso cero o negativo ⇒ sin dosis, nunca un «0» usable. |
-| **P4** | La contraindicación por edad **manda**: por debajo de la edad mínima siempre sale bloqueado con su motivo, a cualquier peso. |
-| **P5** | Verificador adulto: «5 mL» jamás se lee como 5 mg; un fármaco fuera del catálogo **siempre** avisa «sin referencia» (ausencia de alerta nunca significa «seguro»). |
-| **P6** | Los dos motores de dosis no se contradicen. Aquí aparece la pregunta pendiente. |
+### Se probó rompiéndolo a propósito
 
-### Y sobre todo: se comprobó que las pruebas SIRVEN
+Un gate que nunca se ha visto caer no es un gate. Antes de darlo por bueno:
 
-Un invariante en verde contra un motor sano no demuestra nada. Así que la propiedad de
-aceptación se ejecuta también contra dos **motores deliberadamente rotos**, y el test
-exige que falle:
+- Se le puso `describe.skip` al archivo de fórmulas clínicas → **rojo**, señalando archivo
+  y línea exacta.
+- Se borró el golden de la función renal → **rojo** por dos vías distintas.
 
-1. Uno reproduce el bug histórico **REG-018** (el tope por kilo recortaba el total del día
-   pero no la dosis por toma, así que la receta de amikacina salía ~50 % arriba del tope).
-2. Otro emite la dosis cruda ignorando el tope por toma.
+Ambos ataques revertidos. Además, el gate incluye un **autotest de sí mismo**: 14 líneas
+de ejemplo que debe (y no debe) detectar, para que una regex mal escrita no lo deje verde
+para siempre fingiendo que protege.
 
-No fue una comprobación de una sola vez: **viven como pruebas permanentes**, así que cada
-corrida vuelve a demostrar que el invariante tiene dientes.
+### El detalle que lo hace difícil de esquivar
 
-### Tres cosas del diseño que resultaron estar mal, y se corrigieron midiendo
-
-- El diseño decía que amoxicilina choca con el techo adulto «desde ~33.3 kg». **Medido:
-  desde ≈22.3 kg** — once kilos antes, es decir, en muchos más niños de los que decía el
-  papel. Los 33.4 kg son donde la cifra se *estabiliza* en 1500 mg.
-- Decía que 22 de 25 fármacos no tienen referencia adulta. **Son 20 de 25.**
-- Proponía comprobar la detección bajando a mano un tope de amikacina. **Eso no habría
-  fallado nunca**: el motor aplica el tope que el catálogo declara, así que bajarlo solo
-  baja la dosis. Por eso se sustituyó por los motores rotos de arriba.
+Modificar el archivo del CI para saltarse el gate **rompe el propio gate** —comprueba que
+su job siga cableado— y esa comprobación corre dentro del job general. No hay forma de
+quitarlo en el mismo cambio que rompe el invariante.
 
 ### Gates reales
 
-`tsc` PASS · `vitest` PASS (**1947** tests, 172 archivos; eran 1911) · `build` PASS.
-Detalle completo en `unidades/E0-02/RESULTADO.json`.
-
-**Nada desplegado. Sin `git push`.** El único cambio fuera de pruebas es exportar dos
-funciones puras de `pediatria.ts` (mismo cálculo, mismo resultado): el test necesita las
-tomas/día **reales** del motor, porque re-implementarlas en la prueba haría que la prueba
-coincidiera con cualquier bug del motor. No se tocó impresión, PDF, firma, cobros, PHI ni
-reglas de Firestore.
+`tsc` PASS · `vitest` PASS (**2083** tests, 178 archivos; eran 2051) · `build` PASS.
+**Cero archivos de producción tocados**: nada de impresión, PDF, firma, cobros, PHI ni
+reglas de Firestore. Nada desplegado, sin `git push`.
+Detalle en `unidades/E0-11/RESULTADO.json` · doc del gate en `docs/ci/clinical-safety-gate.md`.
 
 ---
 
 ## Esperando decisión del médico
 
-### 1. Amoxicilina: ¿1000 mg o 1500 mg por toma? — **bloquea el cierre de E0-02**
+### 1. Cinco minutos en GitHub — es lo único que le falta a E0-11
 
-Las dos partes del sistema se contradicen:
+El gate ya **avisa**, pero todavía no **bloquea**: impedir un merge lo decide GitHub, no
+el CI. Hoy un Pull Request con el gate en rojo se puede mergear igual.
 
-- El **motor pediátrico** da 45–90 mg/kg/día en 2 tomas, con tope de 3000 mg al día. Eso
-  son **45 × peso** mg por toma: pasa de 1000 mg **desde ≈22.3 kg** y llega a **1500 mg
-  por toma desde 33.4 kg**.
-- El **verificador de dosis de adulto** declara un máximo de **1000 mg por toma**. Con lo
-  cual marca como **crítica** la receta que el propio motor pediátrico acaba de emitir.
+En `github.com/docrod29-ai/agenda-medica` → **Settings → Rules → Rulesets → New branch
+ruleset**, sobre `main`:
 
-Hoy conviven así: un niño de 35 kg recibe una receta de 1500 mg por toma **y** una alerta
-roja que dice que eso rebasa el máximo. Una de las dos cifras sobra.
+1. Require a pull request before merging.
+2. Require status checks to pass → marcar **`clinical-safety`** y **`verificar`**.
+3. Require branches to be up to date before merging.
+4. Do not allow bypassing the above settings (incluirse usted).
 
-- Si manda **1000 mg/toma** → hay que ponerle un tope por toma al catálogo pediátrico.
-- Si manda **1500 mg/toma** → hay que subir el máximo en el catálogo adulto.
+Los pasos con más detalle están en `docs/pendientes-externos.md` §3. **No marqué la unidad
+como cerrada** porque el criterio dice «no puede mergearse» y sin ese paso no es cierto.
+No bloquea ninguna otra unidad del programa.
 
-Aplica igual a **amoxicilina-clavulanato**, que se dosifica por el componente amoxicilina.
+*Opcional, mismo sitio:* se creó `.github/CODEOWNERS` para exigir su revisión en todo
+cambio clínico. Confirme que `docrod29-ai` es su usuario de GitHub y active «Require
+review from Code Owners».
 
-**No elegí ninguna.** Es un umbral de dosis: inventarlo es exactamente lo que la carta
-operativa prohíbe. El hallazgo quedó **versionado y visible** en el código (lista nominal
-`INCOHERENCIAS_CONOCIDAS`), así que el CI no se cae hoy por algo ya conocido, pero
-**cualquier contradicción nueva sí lo tumba** — y en cuanto usted decida, otra prueba
-exige quitar la excepción para que el invariante vuelva a ser estricto y no se pudra ahí.
-
-### 2. ¿Se acepta un desvío de ±0.05 mg por toma al tocar un tope? — no bloquea
-
-El motor redondea a un decimal **al más cercano**, no hacia abajo. Eso puede dejar el
-total del día **0.1 mg por encima** del tope:
-
-- Metronidazol a 66.7 kg → 666.7 × 3 = **2000.1** contra un tope de 2000.
-- Gentamicina neonatal a 51.3 kg → 128.3 × 2 = **256.6** contra 256.5.
-
-Clínicamente es despreciable, pero prefiero que quede **declarado y acotado** en la prueba
-antes que escondido. ¿Lo acepta así, o el motor debe **redondear siempre hacia abajo**
-cuando la dosis toca un tope? Si prefiere lo segundo, la tolerancia pasa a cero y la
-prueba se aprieta sola — pero **cambiar el redondeo cambia el motor de dosis en
-producción**, y eso sería su propia unidad, no ésta.
-
-### 3. ¿Ampliamos el catálogo de dosis del adulto? — no bloquea
+### 2. ¿Ampliamos el catálogo de dosis del adulto? (E0-02, REG-043) — no bloquea
 
 **20 de los 25** fármacos pediátricos no existen en el catálogo adulto: todos los
 antibióticos salvo amoxicilina, más prednisona, ondansetrón, difenhidramina, aciclovir,
 hierro elemental… Al prescribirlos **a un adulto**, el verificador dice «sin referencia» y
-**no impone ningún techo**. Avisa honestamente de que no sabe, que es lo correcto, pero no
-protege.
+no impone ningún techo. Usted aprobó ampliarlo; falta que aporte el máximo por toma y por
+día de cada uno. **No se derivan de las cifras pediátricas y no los voy a inventar.**
 
-Ampliarlo necesita que usted aporte el máximo por toma y por día de cada uno. **No se
-derivan de las cifras pediátricas y no los voy a inventar.**
+### 3. Firma: ¿se construye el renderizado server-side? (E0-14, REG-014) — no bloquea
 
-### Pendientes anteriores (E0-01), sin cambios
+La firma ya no la puede leer recepción, farmacia ni enfermería. Pero el médico
+autenticado sigue recibiendo la imagen en su navegador, porque la impresión es toda del
+lado del cliente. Cerrarlo del todo exige generar el documento firmado en el servidor: es
+una unidad aparte y toca el camino de impresión.
+
+### 4. Pendientes anteriores (E0-01), sin cambios
 
 - **¿El pie IMPRESO de la receta debe leerse de la firma de la nota en vez de la
   configuración de la clínica?** Con un solo médico no cambia nada; con dos o más, papel y
-  QR pueden discrepar. Tocar la impresión pide una unidad aparte con verificación visual
-  del PDF real. No bloquea.
+  QR pueden discrepar. No bloquea.
 - **Al desplegar: subir la versión del Service Worker.** Un cliente viejo cacheado deja el
   QR degradado a texto ese día. No rompe la impresión.
+
+---
+
+## Qué sigue
+
+Con E0-11 hecha, **E0 se queda sin unidades de riesgo bajo**. Las dos siguientes,
+ambas de riesgo medio y con su diseño ya escrito en disco:
+
+- **E0-04 — ClinicalQuantity: tipo con unidad obligatoria.** Es el desbloqueador de tres
+  unidades de tres etapas distintas (E0-05, E1-01, E4-01): abre de golpe la etapa E1
+  (Nexus Context) y la E4 (Safety Kernel). Solo el núcleo del tipo; migrar los motores es
+  E0-05 y va aparte.
+- **E0-09 — Eventos hospitalarios críticos append-only.** MAR, órdenes y eventos de UCI
+  dejan de poder editarse o borrarse: solo se anexa corrección. Toca reglas de Firestore,
+  así que su despliegue sería decisión suya aparte.
+
+Lo que reste de E0 después (E0-06 PHI, E0-10 CSP, E0-12 sello de integridad, E0-13
+webhook de Stripe) es de riesgo medio/alto y varias deben entregarse como **plan** para
+que usted decida, no ejecutarse a ciegas.
 
 ---
 
@@ -145,7 +137,3 @@ derivan de las cifras pediátricas y no los voy a inventar.**
 Relanzar el workflow `nexus-os`. Lee `estado.json`, comprueba en disco qué unidades ya
 tienen `RESULTADO.json` y continúa en la siguiente pendiente. Es idempotente: relanzarlo
 nunca repite trabajo ni pierde avance.
-
-`E0-02` queda en `necesitaValidacionDelDr` con sus tres preguntas. La primera bloquea el
-**cierre** de E0-02, **no el avance del programa**: la siguiente unidad sugerida es
-`E0-03` (ver `unidades/E0-03/DISENO.md`).
