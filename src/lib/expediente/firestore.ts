@@ -5,6 +5,9 @@ import {
 } from 'firebase/firestore'
 import { db, auth } from '@/lib/firebase'
 import type { NotaMedica, Adenda } from '@/types/expediente'
+// `stripUndefined` se mudó a un módulo puro (sin SDK) para poder simular el viaje
+// a Firestore en los tests del sello de integridad. Ver serializacion.ts.
+import { stripUndefined } from './serializacion'
 
 /**
  * Notas clínicas viven en:
@@ -60,22 +63,6 @@ export async function findNotaByIdInClinic(clinicId: string, notaId: string): Pr
     }
   }
   return null
-}
-
-/** Firestore rechaza valores `undefined`. Los eliminamos recursivamente. */
-function stripUndefined<T>(value: T): T {
-  if (Array.isArray(value)) {
-    return value.map(v => stripUndefined(v)) as unknown as T
-  }
-  if (value && typeof value === 'object') {
-    const out: Record<string, unknown> = {}
-    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      if (v === undefined) continue
-      out[k] = stripUndefined(v)
-    }
-    return out as T
-  }
-  return value
 }
 
 export async function createNota(

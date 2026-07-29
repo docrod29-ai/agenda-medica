@@ -66,6 +66,14 @@ export default function NotaImprimiblePage() {
   const [verTranscripcion, setVerTranscripcion] = useState(false)
   // null = sin verificar/no aplica · true = sello íntegro · false = ALTERADA
   const [integridad, setIntegridad] = useState<'verificada' | 'alterada' | 'legado' | 'sin-sello' | null>(null)
+  /**
+   * QUÉ cubre el sello de ESTA nota (E0-12). El sello v2 sólo cubría 10 de los 24
+   * campos de la nota: una nota vieja puede estar legítimamente "verificada" y sin
+   * embargo su sello no abarcar la valoración preoperatoria ni la trazabilidad de
+   * la IA. Decirlo es lo honesto; callarlo daba una garantía más amplia que la real.
+   * Las notas nuevas nacen con el sello completo, así que esto no se muestra.
+   */
+  const [selloNoCubre, setSelloNoCubre] = useState<readonly string[]>([])
 
   const descargarPDF = async () => {
     const el = document.getElementById('doc')
@@ -149,8 +157,11 @@ export default function NotaImprimiblePage() {
       // sistema no comprobaba. Ahora se recalcula y se compara.
       if (n && n.estado === 'firmada') {
         try {
-          const { verificarIntegridadEstado } = await import('@/lib/expediente/integrity')
-          setIntegridad(await verificarIntegridadEstado(n))
+          const { verificarIntegridadDetalle } = await import('@/lib/expediente/integrity')
+          const detalle = await verificarIntegridadDetalle(n)
+          setIntegridad(detalle.estado)
+          // Sólo hay algo que declarar cuando el sello es válido pero PARCIAL (v2).
+          setSelloNoCubre(detalle.estado === 'verificada' && !detalle.cubreTodo ? detalle.noCubreEtiquetas : [])
         } catch { setIntegridad(null) }
         try { setAdendas(await getAdendas(clinicId, patientId, notaId)) } catch { /* noop */ }
       }
@@ -449,6 +460,21 @@ export default function NotaImprimiblePage() {
             <AlertTriangle size={13} className="ds-icon" style={{ flexShrink: 0 }} />
             <span>Nota firmada con un formato de sello anterior: el sello no puede recalcularse
             automáticamente (no implica alteración). Las notas nuevas se verifican solas.</span>
+          </div>
+        )}
+
+        {/* Aviso NEUTRO de COBERTURA: el sello coincide, pero es de una versión que
+            no abarcaba toda la nota. No es indicio de alteración, así que no alarma:
+            informa. `no-print` — no toca el documento imprimible. */}
+        {integridad === 'verificada' && selloNoCubre.length > 0 && (
+          <div className="no-print" style={{
+            marginTop: 16, padding: '8px 12px', borderRadius: 6,
+            background: 'var(--s2)', border: '1px solid var(--border)',
+            color: 'var(--text3)', fontSize: 11.5, textAlign: 'center',
+          }}>
+            Sello de formato anterior (v{nota.metadata.hashVersion ?? 1}): verificado sobre el cuerpo
+            de la nota. <strong>No cubre</strong>: {selloNoCubre.join(', ')}. Las notas nuevas se
+            sellan completas.
           </div>
         )}
 

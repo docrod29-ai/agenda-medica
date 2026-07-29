@@ -1,31 +1,38 @@
 # Nexus OS — dónde vamos
 
-> **En 30 segundos.** Van **11 de 68** unidades cerradas. Hoy se trabajó **E0-08**, y lo que
-> arregla se dice en una frase: **hasta hoy, que los datos de una clínica no se puedan ver desde
-> otra estaba comprobado LEYENDO el archivo de permisos, no PROBÁNDOLO.** Su app tenía una prueba
-> que buscaba una línea de texto dentro de ese archivo y, si la encontraba, daba el visto bueno. Es
-> como comprobar que una puerta cierra leyendo el manual de la cerradura en vez de empujarla.
-> **Lo que se hizo hoy:** se montaron **dos consultorios de mentira** (`clinica-alfa` y
-> `clinica-beta`, con pacientes, notas y cobros **inventados**) y se escribieron **1 120 intentos de
-> robo**: cada puesto de trabajo de la clínica A —usted, su asistente, enfermería, farmacia,
-> laboratorio, facturación— tratando de leer y de escribir en **cada una de las 36 carpetas** de la
-> clínica B, en las dos direcciones. Los 1 120 deben terminar en «acceso denegado». Y va con **8
-> pruebas al revés** (que en su PROPIA clínica cada quien sí puede lo suyo), porque si no, unos
-> permisos que lo bloquearan **todo** también pasarían el examen y usted se quedaría sin app.
-> **Lo que NO se pudo hacer, y hay que decírselo sin adornos:** **esos 1 120 intentos todavía no se
-> han ejecutado ni una vez.** El simulador de la base de datos de Google necesita **Java**, y en
-> esta máquina no hay Java instalado. Así que la unidad se cierra **«falta ejecutarla»**, no
-> «hecha». Escribir «demostrado que ninguna clínica ve a la otra» sin haberlo corrido sería
-> exactamente la mentira que esta unidad venía a eliminar → **decisión 8.a** (es un sí/no de un
-> minuto).
-> **Lo que sí quedó probado hoy:** que la prueba nueva **no puede romper el resto** (se sabotearon
-> **6** cosas a propósito y las **6** salieron rojas), que **no se tocó ni una línea** de los
-> permisos de su base de datos, y que los tres controles de calidad siguen verdes.
-> **Sigue pendiente lo de siempre:** el despliegue de seguridad *(decisión 2.a)*, el error de la
-> **«Vitamina K»** vivo en producción *(decisión 1.e)*, la mudanza de las alergias *(decisión 6.a)*
-> y la frase sobre quién dicta en su UCI *(decisión 7.a)*.
+> **En 30 segundos.** Van **12 de 68** unidades cerradas. Hoy se cerró **E0-12**, y lo que arregla se
+> dice en una frase: **el candado antifalsificación de sus notas firmadas sólo protegía la mitad de
+> la nota.** Cada nota que usted firma se sella con una huella digital (SHA-256): si alguien cambia
+> una letra después, la huella deja de coincidir y la pantalla lo grita. Eso ya funcionaba. El
+> problema es **qué** entraba en la huella: **10 de los 26 campos de la nota**. Fuera quedaban, entre
+> otros, **los puntajes de riesgo de una valoración preoperatoria**, el **día de antibiótico** y la
+> desescalada de una nota de infectología, los datos de hospitalización, el **resumen ejecutivo**, la
+> **transcripción del dictado** (que es la fuente de todo el expediente), **con qué modelo de IA se
+> redactó la nota y si usted la revisó de verdad**, y hasta **su cédula profesional** del encabezado.
+> Se podía cambiar cualquiera de esas cosas en una nota **ya firmada** y el documento seguía diciendo
+> «integridad verificada». **Ahora la huella cubre toda la nota firmable**, y lo que queda fuera está
+> escrito uno por uno **con el motivo** (son los campos que la propia app mueve *después* de firmar:
+> la fecha de modificación, el bloque de firma, el contador de versiones; sellarlos haría que TODAS
+> sus notas legítimas salieran marcadas como alteradas, que es el error que de verdad hay que evitar).
+> **Quién es el ladrón, para que quede claro:** no es usted editando desde la app — eso ya está
+> prohibido por las reglas de la base de datos. Es una escritura por la consola de administración, un
+> error de programación futuro, o una contraseña robada. La huella no impide que le toquen la nota:
+> hace que **se note**. Y se notaba en la mitad del documento.
+> **Lo importante para su tranquilidad: ninguna de sus notas ya firmadas cambia de estado.** Eso no
+> es una promesa, es lo que prueban los tests: cada nota se verifica con **su propio** sello, el
+> algoritmo viejo quedó **congelado** con una huella de referencia fijada letra por letra, y una nota
+> vieja sigue saliendo «verificada» — **no** degradada. Si hubiera subido el número del sello sin ese
+> cuidado, **todo su histórico firmado** habría pasado de «verificada» a «no se puede comprobar» de
+> golpe: un retroceso disfrazado de mejora.
+> **Lo que NO se hizo, a propósito: no se re-selló ninguna nota vieja** *(decisión 9.a — no urge)* y
+> **no se tocó ni una línea del flujo de firmar**, ni de la impresión, ni de la receta, ni de los
+> cobros. El único cambio que verá en pantalla es un renglón que **no se imprime**: en las notas
+> viejas ahora dice qué cubre su sello y qué no, sin alarma roja, porque no hay indicio de alteración.
+> **Sigue pendiente lo de siempre:** la prueba de aislamiento entre clínicas espera un sí/no
+> *(decisión 8.a)*, el despliegue de seguridad *(2.a)*, el error de la **«Vitamina K»** vivo en
+> producción *(1.e)*, la mudanza de las alergias *(6.a)* y quién dicta en su UCI *(7.a)*.
 
-Última corrida: `2026-07-29T22:40:34Z`. `tsc` verde · **2601 tests verdes** (195 archivos) ·
+Última corrida: `2026-07-29T22:58:09Z`. `tsc` verde · **2 663 tests verdes** (196 archivos) ·
 `npm run build` verde · **nada desplegado, sin `push`**.
 
 ---
@@ -44,7 +51,8 @@
 | E1-01 | Un hecho clínico no existe sin unidad y sin procedencia | ✅ cerrada |
 | E2-01 | Una afirmación no existe sin el fragmento que la respalda | ✅ cerrada |
 | E0-07 | Cada puerta dice qué permiso exige (ya no «es médico», sí/no) | ✅ cerrada — 21 puertas migradas sin quitarle acceso a nadie; 26 esperan **decisiones suyas** |
-| **E0-08** | **Que una clínica no vea a otra: probado empujando la puerta, no leyendo el manual** | 🟡 **hoy** — 1 120 intentos de robo escritos y en GitHub; **falta ejecutarlos una vez** (hace falta Java) → **decisión 8.a** |
+| **E0-12** | **El sello de la nota firmada cubre TODA la nota, no la mitad** | ✅ **cerrada hoy** — riesgo alto, cero notas cambian de estado; 2 preguntas suyas que **no bloquean** |
+| E0-08 | Que una clínica no vea a otra: probado empujando la puerta | 🟡 1 120 intentos de robo escritos; **falta ejecutarlos una vez** (hace falta Java) → **decisión 8.a** |
 | E0-06 | Recepción no debe ver el expediente | 🟡 agujero de la API cerrado; mudar las alergias espera **una decisión suya** |
 | E0-10 | Iframes bloqueados en sus pantallas · interruptor de seguridad | 🔴 espera **un despliegue suyo** |
 | E1-02 | «Creatinina», «Cr» y «creatinina sérica» son el mismo dato | 🔴 falta 1 test + sus respuestas |
@@ -52,126 +60,126 @@
 | E0-11 | El CI protege los invariantes clínicos | 🟡 código listo — espera 5 min suyos en GitHub |
 | E0-09 | El registro del hospital no se edita: se corrige anexando | 🟡 bloqueada — espera 1 línea suya |
 
-**11 cerradas · 7 esperándole · 50 sin empezar.**
+**12 cerradas · 7 esperándole · 49 sin empezar.**
 
 ---
 
-## Qué pasó hoy: E0-08, en español
+## Qué pasó hoy: E0-12, en español
 
-**El problema, en una frase:** su app va a atender a **varios consultorios a la vez**, y lo único
-que impide que uno vea los pacientes de otro es un archivo de permisos de la base de datos. Ese
-archivo estaba comprobado **leyéndolo**: una prueba abría el archivo, buscaba dentro la frase «la
-clínica del usuario tiene que ser igual a la clínica del dato» y, si la encontraba, daba el visto
-bueno. **Eso no comprueba nada de lo que hace la base de datos.** Si mañana alguien añade una
-carpeta nueva y la coloca mal, o pone un «o» donde iba un «y», la frase sigue estando escrita —y la
-prueba sigue verde— mientras la puerta queda abierta. La propia meta de esta unidad lo decía con
-estas palabras: *fuga entre clínicas = 0, **demostrado**, no supuesto*.
+**El problema, en una frase:** cuando usted firma una nota, el sistema le calcula una **huella
+digital** del contenido y la guarda dentro del documento. Si mañana alguien altera la nota, la huella
+ya no cuadra y la pantalla saca una alarma roja: «esta nota pudo haber sido alterada». Ése es el
+mecanismo que exige la NOM-024 y **funcionaba**. Lo que nadie había medido es **cuánto de la nota
+entraba en la huella: 10 de sus 26 campos.**
 
-**Lo que se hizo.** Se levantó la base de datos de Google **de verdad, en versión simulador**, con
-dos consultorios inventados: `clinica-alfa` y `clinica-beta`. Cada uno con su equipo completo
-—usted, asistente, enfermería, farmacia, laboratorio, recepción, facturación, administrador— y un
-documento de mentira en **cada una de las 36 carpetas** que su app usa (agenda, pacientes, notas,
-laboratorios, fotos, internamientos, signos, camas, farmacia, cobros, reseñas, chat, bitácora…).
-Después, **1 120 intentos de robo**: cada puesto de la clínica A intentando **leer** y **escribir**
-en cada carpeta de la clínica B, y también al revés. Los 1 120 tienen que terminar en «acceso
-denegado». Y aparte hay **10 pruebas** para las carpetas más delicadas —las que no llevan el nombre
-de la clínica en la dirección— incluida la que más importa: **un miembro de su clínica no puede
-mirar la ficha de un usuario de otra, ni pedir la lista completa del directorio**.
+**Qué se podía cambiar en una nota YA FIRMADA sin que el sistema se enterara** (esto no es una
+lista teórica; es lo que se midió campo por campo):
 
-**Y algo que parece un detalle y no lo es: 8 pruebas al revés.** Si los permisos se rompieran de
-forma que bloquearan **absolutamente todo**, los 1 120 intentos de robo saldrían «denegado» y la
-prueba se pondría verde… con su app inservible. Por eso hay 8 pruebas que exigen lo contrario: que
-en **su propia** clínica su asistente sí pueda crear una cita, usted sí pueda abrir una nota,
-enfermería sí pueda registrar signos, el laboratorio sí pueda subir un resultado —y que la
-asistente **no** pueda leer la nota, y que las llaves de la IA **no** las lea nadie desde el
-navegador, ni siquiera el administrador.
+- **Los puntajes de la valoración preoperatoria.** El riesgo cardiovascular, el de trombosis, el de
+  apnea. Se podía bajar el riesgo quirúrgico de una valoración firmada y el documento seguía
+  diciendo «integridad verificada». *Es literalmente la prueba de aceptación de esta unidad.*
+- **El día de antibiótico y la desescalada** de una nota de infectología (PROA / NOM-045).
+- **Los datos de hospitalización:** servicio, cama, día de estancia, balance hídrico.
+- **El resumen ejecutivo** — que es la primera línea que se imprime de la nota.
+- **La transcripción del dictado y el diálogo separado por voces.** Es la **fuente** del expediente,
+  la evidencia de origen de todo lo demás. Era editable sin dejar rastro.
+- **La trazabilidad de la IA:** con qué modelo se redactó, con qué versión del prompt, y **si usted
+  la revisó de verdad antes de firmar**. Ese último campo existe precisamente para poder auditar
+  «firmó sin revisar», y se podía cambiar después.
+- **Su cédula profesional, su especialidad y el establecimiento** del encabezado medicolegal. Y el
+  **nombre del paciente**.
+- **Las etiquetas de las secciones.** La huella vieja sellaba el *texto* de cada sección pero no su
+  *título*, y el documento imprime el título: se podía cambiar «Objetivo» por «Subjetivo» y así
+  cambiar **lo que la nota afirma** sin tocar una sola letra del contenido.
 
-**Lo que hay que decirle sin adornos: esos 1 120 intentos todavía no se han ejecutado.** El
-simulador de la base de datos de Google es un programa de **Java**, y esta máquina no tiene Java
-instalado. Se comprobó que las pruebas están bien escritas y que el sistema las reconoce todas (55
-pruebas), pero **reconocerlas no es correrlas**. Así que la unidad NO se declara «hecha»: se declara
-**«falta ejecutarla una vez»**. Poner «demostrado que ninguna clínica ve a otra» sin haberlo corrido
-sería exactamente la mentira que esta unidad venía a eliminar. Se arregla con un `sí` suyo →
-**decisión 8.a**.
+**Quién es el ladrón, porque importa.** No es usted editando su propia nota desde la app: eso ya
+está prohibido por las reglas de la base de datos (una nota firmada es de sólo lectura para
+cualquier cliente). Los escenarios reales son tres: una escritura desde la **consola de
+administración** de Google, un **error de programación futuro** que reescriba una nota firmada, o
+una **contraseña robada**. Para exactamente esos tres existe la huella. Y no sirve para
+*prevenirlos* —nada en el código de la app puede— sino para que **queden a la vista**. Estaba a la
+vista en la mitad del documento.
 
-**Lo que sí quedó demostrado hoy, con evidencia:**
+**Lo que se hizo.** Se creó el sello **versión 3**, que cubre **todo el contenido firmable**. Y lo
+que queda fuera está escrito **uno por uno con su motivo**, no por olvido:
 
-- **La prueba nueva no puede tumbar el resto del trabajo.** Ése era el riesgo real de esta unidad, y
-  no era clínico: si las pruebas del simulador se hubieran mezclado con las de siempre, **todas las
-  demás unidades del programa se pondrían rojas** en cualquier máquina sin Java. Están separadas en
-  tres capas, y hay un vigilante que se pone rojo si alguien las mezcla.
-- **Se sabotearon 6 cosas a propósito y las 6 salieron rojas** (y se restauraron): borrar la
-  separación, colar una prueba del simulador entre las normales, cambiar el comando por uno que
-  dejaría el proceso colgado, dejar de fijar la versión de una dependencia, borrar el trabajo nuevo
-  del CI, y **encoger la lista de carpetas vigiladas**. Ese último es el importante: garantiza que
-  la prueba **no se puede vaciar con el tiempo** sin que salte.
-- **No se tocó ni una línea del archivo de permisos.** Esta unidad **mide**, no cambia la política.
-  Si al ejecutarla apareciera una fuga real, se reporta con el caso exacto y se abre trabajo aparte:
-  arreglar a ciegas los permisos de producción desde dentro de la prueba que los estaba midiendo es
-  como se rompen las cosas de verdad.
-- **Cero datos suyos.** Dos consultorios inventados, y el simulador arranca con un identificador de
-  proyecto `demo-…` que hace que el programa **se niegue** a conectarse a una base de datos real. No
-  puede tocar a un paciente aunque alguien se equivoque.
+- **el bloque de la firma**, la **fecha de modificación** y el **contador de versiones** se escriben
+  *después* de calcular la huella. Sellarlos haría que **todas** sus notas legítimas salieran
+  marcadas como alteradas — y ése es el error grave de verdad: una alarma roja falsa destruye la
+  confianza en el sello, y ya pasó una vez en este sistema.
+- **el estado de la nota** queda fuera porque **cancelar una nota firmada es legítimo**. Sellarlo
+  convertiría una cancelación válida en una acusación de alteración.
 
-**Se corrigió una cifra del propio diseño:** las carpetas bajo la clínica son **36**, no 39 (y 9 más
-en la raíz). Se contaron contra el código. Un número a ojo en un documento de seguridad es una
-señal de que nadie lo verificó.
+**Lo importante: ninguna de sus notas ya firmadas cambia de estado.** Y hay una trampa aquí que era
+fácil de pisar: si se sube el número del sello **sin más**, el código viejo trataba a todas las notas
+con el sello anterior como «no se puede comprobar». Es decir: **todo su histórico firmado** habría
+pasado de «verificada» a «legado» en un solo despliegue — perder la verificabilidad de todo lo
+firmado, con la etiqueta de mejora. Se evitó así: **cada nota se verifica con el algoritmo de SU
+propio sello**, el algoritmo viejo quedó **congelado** (con un comentario que lo prohíbe tocar) y se
+fijó una **huella de referencia letra por letra**, medida con el código anterior, que se pone roja si
+alguien lo modifica.
+
+**Y algo que no se hizo, a propósito: no se re-selló ninguna nota vieja.** Dos razones, cada una
+suficiente. **La legal:** un sello afirma «éste era el contenido *en el momento de la firma*»; si hoy
+lo recalculo sobre una nota de mayo, lo que afirma es «éste es el contenido *hoy*» — y si alguien la
+alteró en junio, el sello nuevo **bendice la alteración** y destruye la única prueba. **La técnica:**
+sólo la consola de administración podría reescribir una nota firmada, que es justamente el vector del
+que la huella debe proteger. Así que las notas viejas se extinguen solas (cada nota nueva nace con el
+sello completo) y mientras coexistan, **la pantalla dice la verdad completa**: «sello de formato
+anterior, verificado sobre el cuerpo de la nota; **no cubre** valoración preoperatoria, datos
+hospitalarios, infectología, trazabilidad de IA». Sin alarma roja, porque **no hay indicio de
+alteración** — informar no es acusar. Y si una nota vieja necesita corrección, el camino legal ya
+existe y no se toca: la **adenda**.
+
+**El candado para que esto no se repita.** El hueco de `preop` no nació por descuido puntual: nació
+porque **nadie tenía que declarar** si un campo nuevo entra o no en la huella. Ahora sí. La partición
+está escrita —cada campo, en una lista o en la otra, **con el motivo**— y hay un trinquete de tipos:
+**si alguien añade un campo nuevo a la nota, el control de calidad se pone rojo** hasta que se
+clasifique. Se comprobó saboteándolo: se añadió un campo de prueba al tipo de la nota y `tsc` cayó
+señalando la línea exacta; se restauró.
+
+**Lo que se saboteó a propósito para comprobar que los tests sirven** (todos restaurados):
+
+- se **bajó el sello a la versión vieja** → **29 casos rojos**, incluida la aceptación;
+- se **mutó el algoritmo congelado** → cae la huella de referencia (que es su única defensa contra
+  que alguien lo toque sin darse cuenta);
+- se **quitó un campo** del sello nuevo → cae exactamente la mutación que lo vigilaba;
+- se **añadió un campo al tipo de la nota** → el control de calidad rojo.
+
+**Cero datos suyos.** Un paciente ficticio y puntajes inventados que sólo existen como *bytes que
+deben romper la huella*, nunca como criterio clínico. Esta unidad **no decide nada médico**: se
+limita a ampliar qué bytes entran a un cálculo.
 
 ---
 
-## Lo de la corrida anterior: E0-07
+## Lo de la corrida anterior: E0-08
 
-**El problema, en una frase:** su sistema tenía **un interruptor de dos posiciones** para decidir
-**74** cosas distintas. La posición «es del consultorio» abría la agenda… y también la conversión
-de datos clínicos, el listado de correos del equipo y los pagos. La posición «es médico» cerraba el
-expediente… y también la facturación, que no tiene nada de médica. No existía ningún sitio donde
-leer «¿quién puede timbrar un CFDI?» — la respuesta estaba **repartida en seis archivos distintos**
-que podían contradecirse sin que nada fallara. Y de hecho se contradecían.
+**El problema, en una frase:** que los datos de una clínica no se puedan ver desde otra estaba
+comprobado **leyendo** el archivo de permisos, no **probándolo** — como comprobar que una puerta
+cierra leyendo el manual de la cerradura. Se montaron dos consultorios de mentira (`clinica-alfa` y
+`clinica-beta`, con pacientes y notas **inventados**) y **1 120 intentos de robo**: cada puesto de
+la clínica A tratando de leer y escribir en cada una de las **36 carpetas** de la clínica B, en las
+dos direcciones, más **8 pruebas al revés** (que en su propia clínica cada quien sí puede lo suyo,
+porque unos permisos que bloquearan **todo** también aprobarían el examen y usted se quedaría sin
+app).
 
-**Lo que se hizo:** se escribió el vocabulario que faltaba. Catorce permisos, cada uno un verbo de
-su consultorio: *leer lo clínico*, *escribir lo clínico*, *firmar*, *prescribir*, *dar un
-medicamento*, *registrar en el pase de visita*, *verificar en farmacia*, *gestionar la agenda*,
-*mandar WhatsApp*, *cobrar*, *facturar*, *ver el equipo*, *administrar* y *dejar constancia en la
-bitácora*. Después, **las 74 puertas de su sistema declaran cuál exigen**, por escrito, en un solo
-archivo.
-
-**Lo importante: nadie perdió acceso a nada.** Eso no es una promesa, es una prueba. Las 18 puertas
-que pedían «ser médico» se migraron una por una comprobando que **el conjunto exacto de personas
-que pasa es el mismo**. Las tres del hospital también: el pase de visita de enfermería, la
-verificación de farmacia y las alertas mantienen persona por persona los mismos permisos que tenían
-—esa tabla se copió literal dentro de la prueba, para que cualquier desvío futuro salte.
-
-**Lo que NO se hizo, y por qué.** Hay **26** puertas donde apretar el permiso **le quita el acceso
-a alguien real hoy**: su asistente dejaría de poder mandar el enlace del portal, enfermería dejaría
-de ver los pagos, el mostrador dejaría de entrar a la teleconsulta. Ninguna de esas es una decisión
-técnica: es **cómo trabaja su consultorio**, y sólo usted lo sabe. Así que están **las 26
-declaradas y con el permiso definitivo escrito** —ya no son «cualquiera que esté dentro»— pero
-siguen funcionando como hasta hoy. Se activan con sus respuestas, en un lote pequeño y sin
-sobresaltos.
-
-**Y un hueco que hay que decirle sin adornos.** Las 16 pantallas de IA clínica —dictar la consulta,
-transcribirla, redactar la nota, el copiloto de UCI— preguntan **«¿su plan incluye esto?»** y **no**
-preguntan **«¿esta persona es médico?»**. Consecuencia real: una cuenta con puesto de *laboratorio*
-o de *farmacia* puede mandar un audio y **recibir una nota clínica redactada**, que es justo el dato
-que las reglas de la base le niegan a esa cuenta. Entra por la puerta de al lado. El candado ya está
-escrito y probado (una cuenta de laboratorio recibe «no autorizado»), y se probó también que un
-fallo momentáneo de la base **no** tumba la IA de todo el consultorio. **Sólo falta que usted diga
-si la enfermería de su UCI dicta o no** → decisión **7.a**.
-
-**Se corrigieron dos cifras del propio diseño**, midiéndolas contra el código: las puertas
-completamente abiertas son **13**, no 15 (dos de las que se creían abiertas sí tienen candado: el
-del enlace del paciente), y el gateway del hospital tiene **18** acciones. Un número mal en un
-documento de seguridad es una señal de que se copió a ojo.
+**Lo que hay que decir sin adornos: esos 1 120 intentos todavía no se han ejecutado ni una vez.** El
+simulador de la base de datos de Google necesita **Java** y esta máquina no lo tiene. Por eso la
+unidad se cierra **«falta ejecutarla»** y no «hecha»: escribir «demostrado que ninguna clínica ve a
+la otra» sin haberlo corrido sería justo la mentira que la unidad venía a eliminar → **decisión
+8.a** (un sí/no de un minuto). Lo que **sí** quedó probado: que la prueba nueva **no puede tumbar el
+resto** (se sabotearon 6 cosas y las 6 salieron rojas), que **no se tocó ni una línea** de los
+permisos de su base de datos, y que los tres controles de calidad siguen verdes.
 
 ---
 
 ## 👉 Lo siguiente
 
-**Lo más barato de todo, y es de hoy: la decisión 8.a.** Un sí/no. Si me dice «instala Java», la
-prueba de aislamiento se ejecuta en esta máquina y **E0-08 pasa de «falta ejecutarla» a cerrada el
-mismo día** — con la frase «ninguna clínica puede ver a otra» por fin **demostrada**. Si me dice
-«sólo en GitHub», también sirve: corre sola en cuanto se abra el primer Pull Request, sólo tarda más
-en llegar la respuesta. Lo que no voy a hacer es instalar cosas en su computadora sin preguntarle.
+**Lo más barato de todo sigue siendo la decisión 8.a.** Un sí/no. Si me dice «instala Java», los
+1 120 intentos de robo se ejecutan aquí y **E0-08 pasa de «falta ejecutarla» a cerrada el mismo
+día**, con la frase «ninguna clínica puede ver a otra» por fin **demostrada**. Si me dice «sólo en
+GitHub», también sirve: corre sola en cuanto se abra el primer Pull Request. Lo que no voy a hacer es
+instalar cosas en su computadora sin preguntarle.
 
 **Si contesta la decisión 7.a (una frase), lo siguiente es cerrar el hueco de la IA.** Es, con
 diferencia, **el mayor valor de seguridad que queda pendiente en todo el programa** y ya no requiere
@@ -188,21 +196,49 @@ barata y la que desatasca más. El código ya está escrito, en disco y en verde
 3. Formular la pregunta de la glucosa capilar y **detenerse ahí**: es criterio suyo.
 
 **Por qué ésta y no otra:** **E1-03** (proyectar todo su expediente actual a hechos clínicos) es la
-siguiente pieza grande de la columna vertebral y **depende de E1-02**. Mientras E1-02 siga a
-medias, la rama E1 entera está clavada.
+siguiente pieza grande de la columna vertebral y **depende de E1-02**. Mientras E1-02 siga a medias,
+la rama E1 entera está clavada.
 
 **Si prefiere terreno nuevo:** **E4-01 · Contrato del Safety Kernel** (riesgo medio, sin
 dependencias pendientes). Su aceptación —*«el motor de seguridad se puede invocar sin la IA y su
 veredicto es un valor, no un texto»*— se agota **dentro** del módulo.
 
-**Lo que NO se toca sin plan aprobado por usted:** de las cuatro unidades de riesgo **alto** de E0
-quedan dos sin empezar: **E0-12** (sellos de integridad) y **E0-13** (cobros de Stripe).
+**De las cuatro unidades de riesgo alto de E0, ya sólo queda una sin empezar: E0-13 (cobros de
+Stripe).** E0-12 acaba de cerrarse, y no se toca sin plan aprobado por usted.
 
 ---
 
 ## Esperando decisión del médico
 
-### 8. 🆕 La prueba de que una clínica no ve a otra (E0-08)
+### 9. 🆕 El sello de las notas firmadas (E0-12)
+
+**Ninguna de las dos bloquea nada** — la unidad quedó **cerrada** sin ellas. Son las dos únicas
+piezas de este trabajo que no se pueden deducir del código, así que no las decidí yo.
+
+**a. Para las notas que YA firmó: ¿quiere una «constancia de estado observado»?** Aquí está el
+problema, sin adornos. Sus notas viejas se sellaron con el sello corto. **No se puede arreglar hacia
+atrás**, y no por falta de ganas: un sello afirma «éste era el contenido **en el momento de la
+firma**». Si hoy le recalculo el sello a una nota que firmó en mayo, lo que ese número afirmaría es
+«éste es el contenido **hoy**» — y si alguien la hubiera alterado en junio, **el sello nuevo
+bendeciría la alteración** y borraría la única prueba de que ocurrió. Eso es fabricar evidencia, y no
+lo voy a hacer. Lo que **sí** se puede es distinto y honesto: guardar aparte, y **con esa etiqueta
+literal**, un «hash del estado observado el día tal» — que no sirve para el pasado, pero **detecta
+cualquier alteración a partir de hoy** en las notas viejas. *Mientras no responda:* las notas viejas
+siguen verificándose con su propio sello (nada se rompió) y la pantalla ahora **le dice qué cubre y
+qué no**, en vez de decir sólo «verificada».
+
+**b. ¿Extiendo el sello de la firma para que cubra su nombre y su cédula?** Hoy hay dos sellos: el
+del **contenido** (que a partir de esta unidad cubre toda la nota) y el de la **firma**, que se
+calcula sólo con la nota, su identificador de usuario y la hora. Consecuencia real: el bloque de
+firma —nombre, cédula, especialidad, la imagen— no está dentro de ese segundo sello. Está
+**parcialmente cubierto por rebote**, porque el sello del contenido ya sella su cédula y su
+establecimiento, así que un cambio en el bloque de firma **se delata por contradicción** con lo que
+el contenido afirma. Cerrarlo del todo es un cambio pequeño, pero cae **dentro del flujo de firma y
+de la impresión**, que es exactamente donde la carta operativa manda entregar el plan antes de
+tocar. *Se lo entrego como plan; usted dice cuándo.*
+
+
+### 8. La prueba de que una clínica no ve a otra (E0-08)
 
 Ninguna de las dos es criterio clínico. La primera es un sí/no de un minuto y es la que **cierra la
 unidad**.
@@ -440,6 +476,19 @@ del fármaco, así que **nunca se convierten solas**.
   árbol de las herramientas de Firebase. Son **de taller**: no viajan a su app ni al servidor.
   Anotado a propósito y no «arreglado», porque arreglarlos significa cambiar de versión mayor unas
   herramientas que no tienen nada que ver con el trabajo de esta unidad.
+- **🆕 El sello de la FIRMA no cubre su nombre ni su cédula.** Son dos sellos distintos: el del
+  contenido (que desde E0-12 cubre toda la nota) y el de la firma, que se calcula con la nota, el
+  identificador de usuario y la hora. El bloque de firma queda cubierto **por rebote** —el sello del
+  contenido ya lleva su cédula y su establecimiento, así que un cambio ahí se delata por
+  contradicción— pero no por el hash. Cerrarlo entra al flujo de firma y a la impresión →
+  **decisión 9.b**.
+- **🆕 `hospital` e `infectologia` entraron al sello sin que hoy los escriba nadie.** Los tipos
+  existen y ningún camino de producción los llena todavía. Sellarlos ahora es blindaje **preventivo**
+  (para que no nazcan fuera del sello el día que el módulo hospitalario los escriba), probado con
+  datos ficticios y no contra un flujo real.
+- **🆕 Las notas más antiguas (sello versión 1) siguen sin poder re-verificarse.** No es cosa de
+  E0-12: el algoritmo original dependía del orden en que la base de datos devolvía los campos, y ese
+  orden no se conserva. Salen como «formato anterior», que **no** significa alteradas.
 - **El motor de dosis no habla el idioma del principio 3** de sus decisiones clínicas: devuelve
   alertas, no `PASS | WARN | BLOCK | UNKNOWN | N/A`. Funciona, pero hay que migrarlo. *(E0-05 ya le
   cambió la entrada; la salida sigue igual.)*

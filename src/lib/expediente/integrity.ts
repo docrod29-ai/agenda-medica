@@ -36,8 +36,19 @@ function estable(x: unknown): unknown {
   return x
 }
 
-/** Contenido canónico de la nota para hashing (independiente del orden de llaves) */
-function contenidoCanonico(nota: NotaMedica): string {
+/**
+ * CONGELADO — sello v2. NO EDITAR.
+ *
+ * Cada nota ya firmada en producción con `hashVersion: 2` depende de que esta
+ * función devuelva byte por byte lo mismo que devolvía el día que se firmó.
+ * Tocar una coma aquí convierte notas legítimas en "alterada". El vector golden
+ * de `e0-12-sello-integridad.test.ts` (caso 6) existe exactamente para eso.
+ *
+ * Cubre 10 campos. Los huecos que dejaba —`preop`, `hospital`, `infectologia`,
+ * `iaAuditoria`, la trazabilidad del dictado, el encabezado medicolegal— son la
+ * razón de ser de v3; ver COBERTURA_SELLO.
+ */
+function canonicoV2(nota: NotaMedica): string {
   return JSON.stringify(estable({
     id: nota.metadata.id,
     tipo: nota.tipo,
@@ -52,12 +63,223 @@ function contenidoCanonico(nota: NotaMedica): string {
   }))
 }
 
-/** Versión actual del algoritmo de sello (canonicalización estable). */
-export const HASH_VERSION = 2
+/**
+ * Sello v3 — cubre TODO el contenido firmable de la nota (E0-12).
+ *
+ * Qué cambia respecto de v2 y por qué: v2 sellaba 10 de los 24 campos de
+ * `NotaMedica`. Se podía alterar el puntaje de riesgo quirúrgico de una
+ * valoración preoperatoria FIRMADA, el día de antibiótico de una nota de
+ * infectología, la procedencia de la IA (con qué modelo se generó, si el médico
+ * la revisó), la transcripción que es la FUENTE del expediente, o la cédula
+ * profesional del encabezado, y la pantalla seguía diciendo "integridad
+ * verificada". El sello no impide alterar: hace la alteración DETECTABLE, y era
+ * detectable sólo en la mitad del documento.
+ *
+ * Todo lo que queda fuera está en CAMPOS_NO_SELLADOS_V3 con su razón escrita, y
+ * el test de cobertura falla si aparece un campo nuevo sin clasificar. Un campo
+ * firmable no vuelve a quedar fuera del sello por descuido.
+ */
+function canonicoV3(nota: NotaMedica): string {
+  return JSON.stringify(estable({
+    // Versión LITERAL, no `nota.metadata.hashVersion`: sellar la versión declarada
+    // sería auto-referencia. Con el literal, bajarle la versión a un sello v3 para
+    // que se re-verifique con el juego de campos v2 no cuela → sale "alterada".
+    v: 3,
+    // ── identidad del documento
+    id: nota.metadata.id,          // metadata.id, NO el `id` de nivel superior (ver exclusiones)
+    clinicId: nota.clinicId ?? null,
+    pacienteId: nota.pacienteId,
+    pacienteNombre: nota.pacienteNombre ?? '',
+    tipo: nota.tipo,
+    fechaConsulta: nota.fechaConsulta,
+    createdAt: nota.createdAt ?? null,
+    creadoPor: nota.creadoPor ?? '',
+    // ── encabezado medicolegal (cédula y establecimiento son parte del documento)
+    meta: {
+      tipoNota: nota.metadata.tipoNota ?? null,
+      clinicId: nota.metadata.clinicId ?? null,
+      pacienteId: nota.metadata.pacienteId ?? null,
+      medicoId: nota.metadata.medicoId,
+      cedulaProfesional: nota.metadata.cedulaProfesional ?? '',
+      especialidad: nota.metadata.especialidad ?? '',
+      establecimiento: nota.metadata.establecimiento ?? '',
+      fechaCreacion: nota.metadata.fechaCreacion ?? null,
+      fuenteGeneracion: nota.metadata.fuenteGeneracion ?? null,
+    },
+    // ── cuerpo clínico
+    resumenEjecutivo: nota.resumenEjecutivo ?? '',
+    // Sección COMPLETA, no sólo {key,value}: el documento imprime `label`, así que
+    // cambiar "Objetivo" por "Subjetivo" cambia lo que la nota AFIRMA.
+    secciones: nota.secciones,
+    signosVitales: nota.signosVitales ?? null,
+    diagnosticos: nota.diagnosticos,
+    medicamentos: nota.medicamentos,
+    alergias: nota.alergias,
+    // ── los tres huecos que nombra el backlog
+    preop: nota.preop ?? null,
+    hospital: nota.hospital ?? null,
+    infectologia: nota.infectologia ?? null,
+    // ── contexto y trazabilidad
+    estudiosOrden: nota.estudiosOrden ?? null,
+    internamientoId: nota.internamientoId ?? null,
+    iaAuditoria: nota.iaAuditoria ?? null,
+    transcripcionCruda: nota.transcripcionCruda ?? null,
+    dialogoDiarizado: nota.dialogoDiarizado ?? null,
+  }))
+}
 
-/** Hash de integridad del contenido clínico (NOM-024) */
-export async function generarHashIntegridad(nota: NotaMedica): Promise<string> {
-  return sha256Hex(contenidoCanonico(nota))
+/** Versión del algoritmo de sello que usan las notas NUEVAS. */
+export const HASH_VERSION = 3
+
+/**
+ * Versiones que este build sabe RE-VERIFICAR.
+ * v1 no está: dependía del orden de llaves, que Firestore no conserva.
+ */
+export const VERSIONES_VERIFICABLES = [2, 3] as const
+export type VersionSello = (typeof VERSIONES_VERIFICABLES)[number]
+
+/**
+ * Canonizador por versión. Cada nota se re-verifica con el algoritmo de SU sello:
+ * subir HASH_VERSION sin esto convertiría todas las notas v2 —hoy "verificada"—
+ * en "legado" de golpe, perdiendo la verificabilidad de todo el histórico firmado.
+ */
+const CANONICO: Record<VersionSello, (n: NotaMedica) => string> = {
+  2: canonicoV2,
+  3: canonicoV3,
+}
+
+/**
+ * Partición EXPLÍCITA de los campos de `NotaMedica` bajo el sello v3.
+ * Cada campo está en esta lista o en CAMPOS_NO_SELLADOS_V3, con su razón escrita.
+ * El test de cobertura falla si un campo del tipo no aparece en ninguna.
+ */
+export const CAMPOS_SELLADOS_V3: readonly string[] = [
+  // El contenedor `metadata` se sella campo por campo (los `metadata.*` de abajo).
+  'metadata',
+  'clinicId',
+  'pacienteId',
+  'pacienteNombre',
+  'tipo',
+  'fechaConsulta',
+  'createdAt',
+  'creadoPor',
+  'metadata.id',
+  'metadata.tipoNota',
+  'metadata.clinicId',
+  'metadata.pacienteId',
+  'metadata.medicoId',
+  'metadata.cedulaProfesional',
+  'metadata.especialidad',
+  'metadata.establecimiento',
+  'metadata.fechaCreacion',
+  'metadata.fuenteGeneracion',
+  'resumenEjecutivo',
+  'secciones',
+  'signosVitales',
+  'diagnosticos',
+  'medicamentos',
+  'alergias',
+  'preop',
+  'hospital',
+  'infectologia',
+  'estudiosOrden',
+  'internamientoId',
+  'iaAuditoria',
+  'transcripcionCruda',
+  'dialogoDiarizado',
+]
+
+/**
+ * Lo que el sello v3 NO cubre, con la razón. Ninguna de estas exclusiones es
+ * comodidad: sellar cualquiera de ellas marcaría "alterada" a notas legítimas
+ * (que es el modo de falla grave del sello: la alarma roja que no debe existir).
+ */
+export const CAMPOS_NO_SELLADOS_V3: readonly { campo: string; razon: string }[] = [
+  {
+    campo: 'id',
+    razon: 'normNota lo SOBRESCRIBE con el doc.id al leer, y al firmar vale `notaId ?? \'\'` (en el camino rápido, cadena vacía). Sellarlo marcaría "alterada" toda nota firmada sin borrador previo. La identidad se sella vía metadata.id, que sí se guarda literal.',
+  },
+  {
+    campo: 'estado',
+    razon: 'Cancelar una nota firmada es una transición LEGÍTIMA posterior a la firma. Sellarla convertiría una cancelación válida en "alterada". Lo vigila el log de auditoría, no el hash.',
+  },
+  {
+    campo: 'updatedAt',
+    razon: 'updateNota lo reescribe en CADA escritura, después de calcular el hash.',
+  },
+  {
+    campo: 'firma',
+    razon: 'Se adjunta DESPUÉS de calcular el hash; sellarla haría que toda nota firmada saliera "alterada". Su integridad va por hashFirma. Residual declarado: hashFirma no cubre el nombre ni la cédula del bloque de firma, pero v3 sí sella metadata.cedulaProfesional/especialidad/establecimiento, así que un cambio ahí se detecta por contradicción.',
+  },
+  {
+    campo: 'metadata.fechaModificacion',
+    razon: 'Se fija DESPUÉS de calcular el hash, en el mismo objeto que se firma.',
+  },
+  {
+    campo: 'metadata.hashIntegridad',
+    razon: 'Auto-referencia: es el propio sello.',
+  },
+  {
+    campo: 'metadata.hashVersion',
+    razon: 'Vale undefined cuando se calcula el hash y 3 cuando se lee. En su lugar se sella el literal `v: 3`, que además cierra el ataque de degradación de versión.',
+  },
+  {
+    campo: 'metadata.version',
+    razon: 'Contador de versiones del documento; lo mueve el versionado NOM-024, no el contenido clínico.',
+  },
+  {
+    campo: 'metadata.estado',
+    razon: 'Igual que `estado`: la transición a cancelada es legítima tras la firma.',
+  },
+]
+
+/**
+ * Qué cubre cada versión del sello, para poder DECÍRSELO al médico en la nota.
+ * `noCubre` son nombres de campo (máquina); `noCubreEtiquetas`, lenguaje humano
+ * para la pantalla.
+ */
+export const COBERTURA_SELLO: Record<VersionSello, {
+  cubre: readonly string[]
+  noCubre: readonly string[]
+  noCubreEtiquetas: readonly string[]
+}> = {
+  2: {
+    cubre: [
+      'metadata.id', 'tipo', 'pacienteId', 'metadata.medicoId', 'fechaConsulta',
+      'secciones.key', 'secciones.value', 'diagnosticos', 'medicamentos', 'alergias',
+      'signosVitales',
+    ],
+    noCubre: [
+      'preop', 'hospital', 'infectologia', 'iaAuditoria', 'resumenEjecutivo',
+      'secciones.label', 'estudiosOrden', 'internamientoId', 'transcripcionCruda',
+      'dialogoDiarizado', 'pacienteNombre', 'clinicId', 'createdAt', 'creadoPor',
+      'metadata.tipoNota', 'metadata.clinicId', 'metadata.pacienteId',
+      'metadata.cedulaProfesional', 'metadata.especialidad', 'metadata.establecimiento',
+      'metadata.fechaCreacion', 'metadata.fuenteGeneracion',
+    ],
+    noCubreEtiquetas: [
+      'valoración preoperatoria', 'datos hospitalarios', 'infectología',
+      'trazabilidad de IA', 'resumen ejecutivo', 'transcripción del dictado',
+      'estudios solicitados', 'encabezado (cédula y establecimiento)',
+    ],
+  },
+  3: {
+    cubre: CAMPOS_SELLADOS_V3,
+    noCubre: [],
+    noCubreEtiquetas: [],
+  },
+}
+
+/**
+ * Hash de integridad del contenido clínico (NOM-024).
+ * `version` permite RE-verificar un sello antiguo con su propio algoritmo; por
+ * omisión sella con la versión actual.
+ */
+export async function generarHashIntegridad(
+  nota: NotaMedica,
+  version: VersionSello = HASH_VERSION,
+): Promise<string> {
+  return sha256Hex(CANONICO[version](nota))
 }
 
 /** Hash de la firma (timestamp + médico + nota) */
@@ -74,15 +296,53 @@ export type EstadoIntegridad = 'verificada' | 'alterada' | 'legado' | 'sin-sello
 /**
  * Verifica el sello de una nota firmada.
  * - 'sin-sello': la nota no tiene hash guardado.
- * - 'legado': sello con el algoritmo antiguo (hashVersion ausente/1). No es
- *   re-verificable porque Firestore ya reordenó las llaves; NO implica alteración.
- * - 'verificada' / 'alterada': para sellos estables (hashVersion ≥ 2).
+ * - 'legado': sello que este build no sabe re-verificar (hashVersion ausente/1,
+ *   o una versión FUTURA desconocida). NO implica alteración.
+ * - 'verificada' / 'alterada': se recalcula con el algoritmo de SU versión.
+ *
+ * Que una versión futura desconocida caiga en 'legado' (aviso neutro) y no en
+ * 'alterada' (alarma roja) es deliberado: durante un despliegue parcial un
+ * cliente viejo puede leer una nota sellada por un cliente nuevo, y eso no es
+ * una alteración.
  */
 export async function verificarIntegridadEstado(nota: NotaMedica): Promise<EstadoIntegridad> {
   if (!nota.metadata.hashIntegridad) return 'sin-sello'
-  if ((nota.metadata.hashVersion ?? 1) < HASH_VERSION) return 'legado'
-  const actual = await generarHashIntegridad(nota)
+  const version = nota.metadata.hashVersion ?? 1
+  const canon = CANONICO[version as VersionSello]
+  if (!canon) return 'legado'
+  const actual = await sha256Hex(canon(nota))
   return actual === nota.metadata.hashIntegridad ? 'verificada' : 'alterada'
+}
+
+/**
+ * Estado del sello MÁS su cobertura. Mientras coexistan notas v2 y v3, la
+ * pantalla puede decir la verdad completa: "sello verificado, y esto es lo que
+ * ese sello NO cubre" — que es honesto y no alarma, porque no hay indicio de
+ * alteración.
+ */
+export interface DetalleIntegridad {
+  estado: EstadoIntegridad
+  /** Versión declarada en la nota (`undefined` si no hay sello). */
+  version?: number
+  /** true si el sello cubre todo lo firmable (versión actual). */
+  cubreTodo: boolean
+  /** Campos que ESE sello no cubre (vacío en v3). */
+  noCubre: readonly string[]
+  /** Lo mismo, en lenguaje para el médico. */
+  noCubreEtiquetas: readonly string[]
+}
+
+export async function verificarIntegridadDetalle(nota: NotaMedica): Promise<DetalleIntegridad> {
+  const estado = await verificarIntegridadEstado(nota)
+  const version = nota.metadata.hashIntegridad ? (nota.metadata.hashVersion ?? 1) : undefined
+  const cobertura = version !== undefined ? COBERTURA_SELLO[version as VersionSello] : undefined
+  return {
+    estado,
+    version,
+    cubreTodo: version === HASH_VERSION,
+    noCubre: cobertura?.noCubre ?? [],
+    noCubreEtiquetas: cobertura?.noCubreEtiquetas ?? [],
+  }
 }
 
 /** Compat: booleano estricto (true solo si el sello estable coincide). */
