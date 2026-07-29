@@ -13,12 +13,24 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 const verifyIdToken = vi.fn()
 const getMiembro = vi.fn()
 
+/**
+ * `getClinica` es el SEGUNDO doc que lee `verificarModuloIA` (clinics/{id}); se
+ * separa de `getMiembro` para poder simular por un lado el entitlement de plan y por
+ * otro el fallo de Firestore, que tienen semánticas de error distintas.
+ */
+const getClinica = vi.fn()
+
 vi.mock('@/lib/firebase-admin', () => ({
   default: { auth: () => ({ verifyIdToken }) },
-  adminDb: { collection: () => ({ doc: () => ({ get: getMiembro }) }) },
+  adminDb: {
+    collection: (nombre: string) => ({
+      doc: () => ({ get: nombre === 'clinics' ? getClinica : getMiembro }),
+    }),
+  },
 }))
 
 import { verificarUsuario, verificarMiembro, verificarMedico } from '@/lib/auth-server'
+import { verificarCapacidad, verificarModuloYCapacidad, exigeCapacidad } from '@/lib/authz/verificar'
 import { esSuperadmin, superadminEmails, verificarSuperadmin } from '@/lib/superadmin'
 
 /** NextRequest mínimo: a estos helpers solo les importan las cabeceras. */
@@ -31,6 +43,7 @@ const miembro = (data: Record<string, unknown> | null) => ({ exists: data !== nu
 beforeEach(() => {
   verifyIdToken.mockReset()
   getMiembro.mockReset()
+  getClinica.mockReset()
 })
 
 describe('verificarUsuario — bloqueo de acceso anónimo', () => {
@@ -200,5 +213,167 @@ describe('permisosPorRol — mínimo privilegio ante datos ausentes', () => {
   it('el médico sí ve el expediente', async () => {
     const { permisosPorRol } = await import('@/lib/permissions')
     expect(permisosPorRol('medico').verExpediente).toBe(true)
+  })
+})
+
+/**
+ * ── E0-07 · autorización por CAPACIDAD ───────────────────────────────────────
+ *
+ * `verificarCapacidad` sustituye a `verificarMedico`/`verificarMiembro` en las
+ * rutas. Lo que se prueba aquí es que la migración NO cambió un solo código de
+ * estado (401/400/403/500 en los mismos casos que antes) y que el paso nuevo —la
+ * capacidad— falla CERRADO.
+ */
+describe('E0-07 · verificarCapacidad', () => {
+  it('sin cabecera Authorization → 401, sin tocar Firestore', async () => {
+    const r = await verificarCapacidad(req(), 'c1', 'administrar')
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.response.status).toBe(401)
+    expect(getMiembro).not.toHaveBeenCalled()
+  })
+
+  it('clinicId vacío → 400 antes de consultar nada', async () => {
+    verifyIdToken.mockResolvedValue({ uid: 'u1' })
+    const r = await verificarCapacidad(req('Bearer bueno'), '', 'administrar')
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.response.status).toBe(400)
+    expect(getMiembro).not.toHaveBeenCalled()
+  })
+
+  it('AISLAMIENTO: rol `admin` pero de OTRA clínica → 403 (el caso que más engaña)', async () => {
+    // Tiene la capacidad de sobra; lo que NO tiene es pertenencia a esta clínica.
+    verifyIdToken.mockResolvedValue({ uid: 'u1' })
+    getMiembro.mockResolvedValue(miembro({ clinicId: 'clinica-ajena', role: 'admin' }))
+    const r = await verificarCapacidad(req('Bearer bueno'), 'mi-clinica', 'administrar')
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.response.status).toBe(403)
+  })
+
+  it('miembro legítimo SIN la capacidad → 403 y el mensaje NOMBRA la capacidad', async () => {
+    verifyIdToken.mockResolvedValue({ uid: 'u1' })
+    getMiembro.mockResolvedValue(miembro({ clinicId: 'c1', role: 'secretaria' }))
+    const r = await verificarCapacidad(req('Bearer bueno'), 'c1', 'clinico.escribir')
+    expect(r.ok).toBe(false)
+    if (!r.ok) {
+      expect(r.response.status).toBe(403)
+      const cuerpo = await r.response.json()
+      expect(cuerpo.error).toContain('clinico.escribir')
+      // El ROL no se filtra en la respuesta: decir «tu rol (laboratorio) no puede»
+      // revela la composición del equipo a quien sondee la API.
+      expect(cuerpo.error).not.toContain('secretaria')
+    }
+  })
+
+  it('documento de membresía SIN campo `role` → 403 (mínimo privilegio)', async () => {
+    verifyIdToken.mockResolvedValue({ uid: 'u1' })
+    getMiembro.mockResolvedValue(miembro({ clinicId: 'c1' }))
+    const r = await verificarCapacidad(req('Bearer bueno'), 'c1', 'auditoria.registrar')
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.response.status).toBe(403)
+  })
+
+  it('rol desconocido tampoco pasa (lista blanca, no lista negra)', async () => {
+    verifyIdToken.mockResolvedValue({ uid: 'u1' })
+    getMiembro.mockResolvedValue(miembro({ clinicId: 'c1', role: 'director-general' }))
+    expect((await verificarCapacidad(req('Bearer bueno'), 'c1', 'auditoria.registrar')).ok).toBe(false)
+  })
+
+  it('si Firestore revienta, FALLA CERRADO (500), no deja pasar', async () => {
+    verifyIdToken.mockResolvedValue({ uid: 'u1' })
+    getMiembro.mockRejectedValue(new Error('firestore caído'))
+    const r = await verificarCapacidad(req('Bearer bueno'), 'c1', 'auditoria.registrar')
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.response.status).toBe(500)
+  })
+
+  it('rol que SÍ tiene la capacidad pasa y conserva uid/clinicId/role', async () => {
+    verifyIdToken.mockResolvedValue({ uid: 'u1', email: 'a@b.com' })
+    getMiembro.mockResolvedValue(miembro({ clinicId: 'c1', role: 'enfermeria' }))
+    const r = await verificarCapacidad(req('Bearer bueno'), 'c1', 'medicamento.administrar')
+    expect(r).toMatchObject({ ok: true, uid: 'u1', clinicId: 'c1', role: 'enfermeria' })
+  })
+
+  it('EQUIVALENCIA con el gate viejo: `clinico.escribir` pasa a los mismos roles que verificarMedico', async () => {
+    verifyIdToken.mockResolvedValue({ uid: 'u1' })
+    for (const role of ['admin', 'medico', 'secretaria', 'enfermeria', 'farmacia', 'laboratorio']) {
+      getMiembro.mockResolvedValue(miembro({ clinicId: 'c1', role }))
+      const viejo = (await verificarMedico(req('Bearer bueno'), 'c1')).ok
+      getMiembro.mockResolvedValue(miembro({ clinicId: 'c1', role }))
+      const nuevo = (await verificarCapacidad(req('Bearer bueno'), 'c1', 'clinico.escribir')).ok
+      expect(nuevo, `rol ${role}`).toBe(viejo)
+    }
+  })
+})
+
+describe('E0-07 · verificarModuloYCapacidad — entitlement de plan Y rol', () => {
+  const clinica = (data: Record<string, unknown>) => ({ exists: true, data: () => data })
+
+  beforeEach(() => { verifyIdToken.mockResolvedValue({ uid: 'u1' }) })
+
+  it('sin consultorio configurado → 403', async () => {
+    getMiembro.mockResolvedValue(miembro({}))
+    const r = await verificarModuloYCapacidad(req('Bearer bueno'), 'expediente', 'clinico.escribir')
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.response.status).toBe(403)
+  })
+
+  it('plan sin el módulo → 403 (el rol no se llega a mirar)', async () => {
+    getMiembro.mockResolvedValue(miembro({ clinicId: 'c1', role: 'medico' }))
+    getClinica.mockResolvedValue(clinica({ plan: 'agenda', modulos: [] }))
+    const r = await verificarModuloYCapacidad(req('Bearer bueno'), 'expediente', 'clinico.escribir')
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.response.status).toBe(403)
+  })
+
+  it('EL HUECO QUE CIERRA: plan correcto pero rol sin la capacidad → 403', async () => {
+    // Antes, `verificarModuloIA` solo miraba el PLAN: un rol `laboratorio` podía
+    // hacer POST a /api/expediente/transcribir y recibir una nota clínica redactada,
+    // PHI que firestore.rules le niega, por la puerta del Admin SDK.
+    getMiembro.mockResolvedValue(miembro({ clinicId: 'c1', role: 'laboratorio' }))
+    getClinica.mockResolvedValue(clinica({ plan: 'premium', paseLibre: true }))
+    const r = await verificarModuloYCapacidad(req('Bearer bueno'), 'expediente', 'clinico.escribir')
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.response.status).toBe(403)
+  })
+
+  it('plan correcto y rol con la capacidad → pasa', async () => {
+    getMiembro.mockResolvedValue(miembro({ clinicId: 'c1', role: 'medico' }))
+    getClinica.mockResolvedValue(clinica({ plan: 'premium', paseLibre: true }))
+    expect((await verificarModuloYCapacidad(req('Bearer bueno'), 'expediente', 'clinico.escribir')).ok).toBe(true)
+  })
+
+  it('REGRESIÓN: módulo OPT-IN con Firestore caído → 503 fail-CLOSED, nunca 403 por rol', async () => {
+    getMiembro.mockRejectedValue(new Error('firestore caído'))
+    const r = await verificarModuloYCapacidad(req('Bearer bueno'), 'uci', 'clinico.escribir')
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.response.status).toBe(503)
+  })
+
+  it('REGRESIÓN CRÍTICA: módulo de consulta con Firestore caído sigue siendo fail-OPEN', async () => {
+    // Evaluar la capacidad en el camino fail-OPEN convertiría un fallo transitorio
+    // de lectura en un 403 para TODOS (ahí no hay `role` que leer): la IA se caería
+    // para el consultorio entero. Es el modo de fallo más fácil de introducir sin
+    // notarlo, así que se fija por test.
+    getMiembro.mockRejectedValue(new Error('firestore caído'))
+    const r = await verificarModuloYCapacidad(req('Bearer bueno'), 'expediente', 'clinico.escribir')
+    expect(r.ok).toBe(true)
+    if (r.ok) expect(r.clinicId).toBeUndefined()
+  })
+})
+
+describe('E0-07 · exigeCapacidad — capacidad sobre un acceso ya verificado', () => {
+  it('devuelve null cuando el rol la tiene', () => {
+    const acc = { ok: true as const, uid: 'u1', clinicId: 'c1', role: 'enfermeria' }
+    expect(exigeCapacidad(acc, 'medicamento.administrar')).toBeNull()
+  })
+
+  it('devuelve un 403 cuando no la tiene', () => {
+    const acc = { ok: true as const, uid: 'u1', clinicId: 'c1', role: 'enfermeria' }
+    expect(exigeCapacidad(acc, 'prescribir')?.status).toBe(403)
+  })
+
+  it('rol ausente en el acceso → 403 (no se asume nada)', () => {
+    const acc = { ok: true as const, uid: 'u1', clinicId: 'c1' }
+    expect(exigeCapacidad(acc, 'auditoria.registrar')?.status).toBe(403)
   })
 })

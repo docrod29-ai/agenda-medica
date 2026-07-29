@@ -11,32 +11,22 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarMiembro } from '@/lib/auth-server'
+import { exigeCapacidad } from '@/lib/authz/verificar'
+import { ACCIONES_HOSPITAL_MUTAR } from '@/lib/authz/registro-rutas'
 import { adminDb } from '@/lib/firebase-admin'
 import { registroDurable } from '@/lib/hospital/registro-durable'
 import { mismaCama } from '@/lib/hospital/cama'
 import { randomUUID } from 'crypto'
 
-// Qué rol puede ejecutar cada acción.
-const GATES: Record<string, string[]> = {
-  crear:                 ['medico', 'admin'],
-  egresar:               ['medico', 'admin'],
-  trasladar:             ['medico', 'admin'],
-  cambiar_tratante:      ['medico', 'admin'],
-  indicacion_agregar:    ['medico', 'admin'],
-  indicacion_suspender:  ['medico', 'admin'],
-  indicacion_editar:     ['medico', 'admin'],
-  indicacion_borrar:     ['medico', 'admin'],
-  interconsulta_agregar: ['medico', 'admin'],
-  interconsulta_responder: ['medico', 'admin'],
-  interconsulta_editar:  ['medico', 'admin'],
-  interconsulta_borrar:  ['medico', 'admin'],
-  conciliar:             ['medico', 'admin'],
-  administrar:           ['enfermeria', 'medico', 'admin'],
-  balance:               ['enfermeria', 'medico', 'admin'],
-  escala:                ['enfermeria', 'medico', 'admin'],
-  sbar:                  ['enfermeria', 'medico', 'admin'],
-  verificar_farmacia:    ['farmacia', 'medico', 'admin'],
-}
+/**
+ * Qué CAPACIDAD exige cada acción (E0-07). Antes era un mapa `GATES` de listas de
+ * roles sueltas aquí mismo — una de las seis copias de la política de acceso que
+ * había en el repo. Ahora la tabla vive en `src/lib/authz/registro-rutas.ts` y un
+ * test de tabla comprueba, acción por acción, que el conjunto de roles resultante
+ * es IDÉNTICO al del `GATES` viejo (copiado literal como oráculo): esto es una
+ * traducción de vocabulario, no un cambio de política.
+ */
+const ACCIONES = ACCIONES_HOSPITAL_MUTAR
 
 type Any = Record<string, unknown>
 
@@ -181,11 +171,19 @@ export async function POST(req: NextRequest) {
   const { clinicId, internamientoId, accion, payload = {} } = body
   if (!clinicId || !accion) return NextResponse.json({ ok: false, error: 'clinicId y accion requeridos' }, { status: 400 })
 
+  /**
+   * Membresía PRIMERO, capacidad después. El orden es deliberado y hay que
+   * conservarlo: así una acción inventada solo devuelve 400 a quien YA es miembro
+   * del consultorio; a un extraño se le responde 401/403 y no se le confirma qué
+   * acciones existen. Por eso este gateway usa `exigeCapacidad` sobre un acceso ya
+   * verificado en vez de pasarle la capacidad a `verificarCapacidad`.
+   */
   const acc = await verificarMiembro(req, clinicId)
   if (!acc.ok) return acc.response
-  const roles = GATES[accion]
-  if (!roles) return NextResponse.json({ ok: false, error: 'Acción desconocida' }, { status: 400 })
-  if (!roles.includes(String(acc.role ?? ''))) return NextResponse.json({ ok: false, error: `Tu rol (${acc.role}) no puede: ${accion}` }, { status: 403 })
+  const capacidad = ACCIONES[accion]
+  if (!capacidad) return NextResponse.json({ ok: false, error: 'Acción desconocida' }, { status: 400 })
+  const denegado = exigeCapacidad(acc, capacidad)
+  if (denegado) return denegado
 
   const now = new Date().toISOString()
   const col = adminDb.collection('clinics').doc(clinicId).collection('internamientos')

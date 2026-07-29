@@ -68,6 +68,13 @@ export async function verificarUsuario(req: NextRequest): Promise<Acceso> {
 /**
  * Exige usuario autenticado Y miembro del clinicId indicado.
  * Para rutas que leen/escriben datos de una clínica específica.
+ *
+ * @internal E0-07 — no usar directamente en rutas NUEVAS. Es el «any-member»
+ * (cualquier rol pasa) que la unidad de capacidades vino a cerrar: hoy es el paso de
+ * MEMBRESÍA que consume `src/lib/authz/verificar.ts`, y las rutas piden una
+ * capacidad con `verificarCapacidad(req, clinicId, capacidad)`. Las pocas rutas que
+ * todavía lo llaman están declaradas una por una en `authz/registro-rutas.ts` con la
+ * decisión que falta, y un test congela esa lista.
  */
 export async function verificarMiembro(req: NextRequest, clinicId: string): Promise<Acceso> {
   const u = await verificarToken(req)
@@ -120,7 +127,14 @@ export async function verificarModuloIA(req: NextRequest, modulo: string): Promi
   }
 }
 
-/** Como verificarMiembro, pero además exige rol médico o admin. */
+/**
+ * Como verificarMiembro, pero además exige rol médico o admin.
+ *
+ * @internal E0-07 — SIN CONSUMIDORES en `src/app/api` (un test lo comprueba). Se
+ * conserva porque su semántica es la definición de `rolesCon('clinico.escribir')` y
+ * `nucleo/autorizacion-servidor.test.ts` la usa como oráculo del gate binario que
+ * había antes. En rutas se usa `verificarCapacidad` con la capacidad concreta.
+ */
 export async function verificarMedico(req: NextRequest, clinicId: string): Promise<Acceso> {
   const acceso = await verificarMiembro(req, clinicId)
   if (!acceso.ok) return acceso

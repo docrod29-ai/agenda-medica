@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import admin, { adminDb } from '@/lib/firebase-admin'
-import { verificarMiembro } from '@/lib/auth-server'
+import { verificarCapacidad } from '@/lib/authz/verificar'
 
 /**
  * Escritura SERVIDOR de la bitácora de auditoría.
@@ -46,7 +46,14 @@ export async function POST(req: NextRequest) {
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }
 
   const clinicId = texto(body.clinicId, 128) ?? ''
-  const acceso = await verificarMiembro(req, clinicId)
+  /**
+   * `auditoria.registrar` la tienen TODOS los roles A PROPÓSITO (E0-07): es la
+   * bitácora de la acción PROPIA, y estrecharla perdería entradas EN SILENCIO —el
+   * cliente no muestra el fallo—, o sea daño invisible sobre el rastro NOM-024. La
+   * diferencia con el `verificarMiembro` de antes es que ahora ese «todos» está
+   * DECLARADO por escrito en la matriz, no implícito en el guardián.
+   */
+  const acceso = await verificarCapacidad(req, clinicId, 'auditoria.registrar')
   if (!acceso.ok) return acceso.response
 
   const evento = texto(body.evento, 64) ?? ''

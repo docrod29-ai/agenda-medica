@@ -22,6 +22,7 @@ import {
   ACCIONES_CON_EVENTO_DURABLE,
   ACCIONES_SIN_EVENTO_DURABLE,
 } from '@/lib/hospital/registro-durable'
+import { ACCIONES_HOSPITAL_MUTAR } from '@/lib/authz/registro-rutas'
 import type { EventoClinicoConId, RegistroSignos } from '@/types/hospital'
 
 /**
@@ -383,25 +384,28 @@ describe('E0-09 · el libro durable cubre el MAR y las órdenes (H1)', () => {
 })
 
 describe('E0-09 · COBERTURA: toda acción del gateway está clasificada', () => {
-  // Se leen los GATES del ruteador como TEXTO (igual que el guardián de reglas):
-  // así el test no obliga a exportar nada desde una ruta de producción.
-  const ruta = 'src/app/api/hospital/mutar/route.ts'
-  const fuente = readFileSync(resolve(process.cwd(), ruta), 'utf8')
-  const bloque = fuente.match(/const GATES[^{]*\{([\s\S]*?)\n\}/)
-  const acciones = [...(bloque?.[1] ?? '').matchAll(/^\s{2}([a-z_]+):/gm)].map(m => m[1])
+  /**
+   * Antes se leía el mapa `GATES` de `hospital/mutar/route.ts` como TEXTO, para no
+   * obligar a exportar nada desde una ruta de producción. E0-07 movió esa tabla a
+   * `src/lib/authz/registro-rutas.ts` —un módulo PURO, sin Firebase ni next/server—
+   * así que ahora se importa: es la misma propiedad («toda acción del gateway está
+   * clasificada») comprobada contra el dato real en vez de contra una regex, que es
+   * estrictamente más fuerte y no se rompe si cambia el formato del archivo.
+   */
+  const acciones = Object.keys(ACCIONES_HOSPITAL_MUTAR)
 
-  it('el parseo de GATES encontró acciones (si no, este gate sería de cartón)', () => {
+  it('la tabla de acciones del gateway no está vacía (si no, este gate sería de cartón)', () => {
     expect(acciones.length).toBeGreaterThanOrEqual(15)
   })
 
-  it('cada acción de GATES está en CON o en SIN evento durable, nunca en ninguna', () => {
+  it('cada acción del gateway está en CON o en SIN evento durable, nunca en ninguna', () => {
     const sinClasificar = acciones.filter(
       a => !(a in ACCIONES_CON_EVENTO_DURABLE) && !(a in ACCIONES_SIN_EVENTO_DURABLE),
     )
     expect(
       sinClasificar,
       sinClasificar.length
-        ? `Acciones nuevas en ${ruta} sin decidir si entran al libro append-only: ` +
+        ? 'Acciones nuevas en el gateway hospital/mutar sin decidir si entran al libro append-only: ' +
           `${sinClasificar.join(', ')}. Añádelas a ACCIONES_CON_EVENTO_DURABLE (con su ` +
           'tipo) o a ACCIONES_SIN_EVENTO_DURABLE (con la razón escrita).'
         : '',
@@ -413,7 +417,7 @@ describe('E0-09 · COBERTURA: toda acción del gateway está clasificada', () =>
     expect(ambas).toEqual([])
   })
 
-  it('las dos listas sólo contienen acciones que existen en GATES', () => {
+  it('las dos listas sólo contienen acciones que existen en el gateway', () => {
     const declaradas = [...Object.keys(ACCIONES_CON_EVENTO_DURABLE), ...Object.keys(ACCIONES_SIN_EVENTO_DURABLE)]
     expect(declaradas.filter(a => !acciones.includes(a))).toEqual([])
   })

@@ -1,21 +1,25 @@
 # Nexus OS — dónde vamos
 
-> **En 30 segundos.** Van **9 de 68** unidades cerradas. Hoy se trabajó **E0-06**, los permisos de
-> acceso, y hay que decir dos cosas con claridad:
-> **(1) Se encontró y se cerró un agujero real:** cuando su asistente pulsaba «mandar el enlace del
-> portal por WhatsApp», el sistema le entregaba a ella —en su navegador— una llave válida **30 días**
-> que abría **los diagnósticos y los medicamentos de todas las recetas firmadas** de ese paciente.
-> Ese enlace ya sólo sirve para las citas; para las recetas hace falta un enlace emitido por usted.
-> **(2) La otra mitad no se pudo terminar, y no por falta de trabajo:** «que recepción no vea las
-> alergias» **es imposible con reglas de permisos** — las alergias están guardadas *dentro* de la
-> ficha del paciente, y esa ficha su asistente **tiene** que poder abrirla para agendar. Firestore
-> no sabe ocultar campos sueltos: o abre la ficha entera o no la abre. Hay que **mudar** las
-> alergias de sitio, y eso cambia el alta de pacientes que ella usa a diario → **decisión 6.a**.
-> **Lo siguiente: E1-02** (reintento barato, el código ya está escrito).
-> **Sigue pendiente lo de siempre:** el despliegue de seguridad *(decisión 2.a)* y el error de la
-> **«Vitamina K»**, vivo en producción *(decisión 1.e)*.
+> **En 30 segundos.** Van **10 de 68** unidades cerradas. Hoy se trabajó **E0-07**: hasta ahora su
+> sistema sólo sabía distinguir **dos** clases de persona —«es del consultorio» y «es médico»—, y
+> con eso decidía **74** puertas distintas. Ahora cada puerta dice **qué permiso exige** (firmar,
+> receta, cobrar, facturar, administrar, dar un medicamento…), y hay una prueba que se pone roja si
+> mañana alguien añade una puerta nueva y **no la declara**.
+> **Lo que se cambió de verdad hoy:** las **18** puertas que pedían «ser médico» ahora piden el
+> permiso concreto —**exactamente las mismas personas pasan**, comprobado una por una—, y las tres
+> del hospital (pase de visita, alertas, bitácora) también. **Nadie perdió acceso a nada.**
+> **Lo que NO se cambió, a propósito:** hay **26** puertas donde apretar el permiso **le quitaría
+> el acceso a alguien de su equipo hoy mismo** (su asistente, enfermería, farmacia). Están todas
+> **declaradas y firmadas**, pero siguen funcionando como antes hasta que usted diga quién debe
+> pasar → **decisiones 7.a a 7.f**.
+> **Y aparece un hueco que hay que decirle:** las **16** pantallas de IA clínica (dictar,
+> transcribir, redactar la nota) comprueban **su plan**, no **el puesto** de quien las llama. Hoy
+> una cuenta de laboratorio o de farmacia puede pedirle al sistema una nota clínica redactada.
+> El candado ya está escrito y probado; **falta una respuesta suya** → **decisión 7.a**.
+> **Sigue pendiente lo de siempre:** el despliegue de seguridad *(decisión 2.a)*, el error de la
+> **«Vitamina K»** vivo en producción *(decisión 1.e)* y la mudanza de las alergias *(decisión 6.a)*.
 
-Última corrida: `2026-07-29T13:12:00Z`. `tsc` verde · **2445 tests verdes** (190 archivos) ·
+Última corrida: `2026-07-29T22:20:21Z`. `tsc` verde · **2583 tests verdes** (194 archivos) ·
 `npm run build` verde · **nada desplegado, sin `push`**.
 
 ---
@@ -33,64 +37,74 @@
 | E0-15 | Antibiograma: 4 decisiones clínicas suyas implementadas | ✅ cerrada |
 | E1-01 | Un hecho clínico no existe sin unidad y sin procedencia | ✅ cerrada |
 | E2-01 | Una afirmación no existe sin el fragmento que la respalda | ✅ cerrada |
-| **E0-06** | **Recepción no debe ver el expediente** | 🟡 **hoy** — agujero de la API cerrado; mudar las alergias espera **una decisión suya** |
+| **E0-07** | **Cada puerta dice qué permiso exige (ya no «es médico», sí/no)** | 🟡 **hoy** — 21 puertas migradas sin quitarle acceso a nadie; 26 esperan **decisiones suyas** |
+| E0-06 | Recepción no debe ver el expediente | 🟡 agujero de la API cerrado; mudar las alergias espera **una decisión suya** |
 | E0-10 | Iframes bloqueados en sus pantallas · interruptor de seguridad | 🔴 espera **un despliegue suyo** |
 | E1-02 | «Creatinina», «Cr» y «creatinina sérica» son el mismo dato | 🔴 falta 1 test + sus respuestas |
 | E2-02 | La búsqueda de evidencia se arma por partes, no con una frase suelta | 🔴 **el módulo no lo usa nadie** |
 | E0-11 | El CI protege los invariantes clínicos | 🟡 código listo — espera 5 min suyos en GitHub |
 | E0-09 | El registro del hospital no se edita: se corrige anexando | 🟡 bloqueada — espera 1 línea suya |
 
-**9 cerradas · 6 esperándole · 53 sin empezar.**
+**10 cerradas · 7 esperándole · 51 sin empezar.**
 
 ---
 
-## Qué pasó hoy: E0-06, en español
+## Qué pasó hoy: E0-07, en español
 
-**La pregunta que había que responder era una sola:** *«su recepcionista puede ver la cita, pero
-¿puede ver la nota y las alergias?»*. Se probó contra el sistema real y salieron **tres respuestas
-distintas**, no una.
+**El problema, en una frase:** su sistema tenía **un interruptor de dos posiciones** para decidir
+**74** cosas distintas. La posición «es del consultorio» abría la agenda… y también la conversión
+de datos clínicos, el listado de correos del equipo y los pagos. La posición «es médico» cerraba el
+expediente… y también la facturación, que no tiene nada de médica. No existía ningún sitio donde
+leer «¿quién puede timbrar un CFDI?» — la respuesta estaba **repartida en seis archivos distintos**
+que podían contradecirse sin que nada fallara. Y de hecho se contradecían.
 
-**1. La nota: no la ve. Nunca la vio.** Las notas, los laboratorios y las fotos clínicas ya estaban
-cerradas a médico/administrador desde hace versiones. Lo que faltaba era que eso **no se pudiera
-aflojar por descuido**: ahora hay una prueba que se pone roja si alguien toca esas tres puertas.
+**Lo que se hizo:** se escribió el vocabulario que faltaba. Catorce permisos, cada uno un verbo de
+su consultorio: *leer lo clínico*, *escribir lo clínico*, *firmar*, *prescribir*, *dar un
+medicamento*, *registrar en el pase de visita*, *verificar en farmacia*, *gestionar la agenda*,
+*mandar WhatsApp*, *cobrar*, *facturar*, *ver el equipo*, *administrar* y *dejar constancia en la
+bitácora*. Después, **las 74 puertas de su sistema declaran cuál exigen**, por escrito, en un solo
+archivo.
 
-**2. La API: sí lo veía, y ése era el agujero grave.** Cuando su asistente pedía el enlace del
-portal del paciente para mandárselo por WhatsApp, el servidor le devolvía **a ella** una llave
-firmada, válida **30 días**, que también abría la pestaña «Mis recetas» — es decir, **diagnóstico y
-medicamentos de cada nota que usted firmó**. Ella nunca vio esa pantalla, pero la llave la tenía.
-Es exactamente el mismo hueco que ya se había tapado en el enlace de teleconsulta y que aquí seguía
-abierto.
-**Ya está cerrado, y sin quitarle trabajo a ella:** el enlace que ella manda sigue sirviendo para
-confirmar, cancelar y reagendar citas; simplemente ya no abre las recetas. Los enlaces que emite
-usted (teleconsulta) sí las abren.
+**Lo importante: nadie perdió acceso a nada.** Eso no es una promesa, es una prueba. Las 18 puertas
+que pedían «ser médico» se migraron una por una comprobando que **el conjunto exacto de personas
+que pasa es el mismo**. Las tres del hospital también: el pase de visita de enfermería, la
+verificación de farmacia y las alertas mantienen persona por persona los mismos permisos que tenían
+—esa tabla se copió literal dentro de la prueba, para que cualquier desvío futuro salte.
 
-**3. Las alergias: sí las ve, y no se puede arreglar con permisos.** Esto es lo importante y
-conviene decirlo sin rodeos. Las alergias, los antecedentes y la valoración del inmunocomprometido
-**no están en una carpeta aparte: son campos escritos dentro de la ficha del paciente**, la misma
-ficha que su asistente necesita abrir para saber cómo se llama y a qué teléfono le habla. La base
-de datos **no sabe entregar media ficha**: o la entrega completa o no la entrega. Por eso ninguna
-regla de permisos —por bien escrita que esté— puede cumplir esto. **Hay que mover las alergias a
-una carpeta propia**, y ese movimiento toca el formulario de alta de pacientes que ella usa todos
-los días. Por eso se detuvo aquí y se le pregunta: **decisión 6.a**.
+**Lo que NO se hizo, y por qué.** Hay **26** puertas donde apretar el permiso **le quita el acceso
+a alguien real hoy**: su asistente dejaría de poder mandar el enlace del portal, enfermería dejaría
+de ver los pagos, el mostrador dejaría de entrar a la teleconsulta. Ninguna de esas es una decisión
+técnica: es **cómo trabaja su consultorio**, y sólo usted lo sabe. Así que están **las 26
+declaradas y con el permiso definitivo escrito** —ya no son «cualquiera que esté dentro»— pero
+siguen funcionando como hasta hoy. Se activan con sus respuestas, en un lote pequeño y sin
+sobresaltos.
 
-**Lo que sí quedó listo para ese día:** la carpeta nueva ya tiene su candado escrito (sólo médico),
-la lista exacta de qué campos hay que mudar está fijada por una prueba, y —lo más importante— quedó
-blindado el error que este sistema **ya cometió una vez**: que la ausencia de un dato se imprima
-como una afirmación. Si mañana la lectura de las alergias falla, el papel **no** puede decir
-«Negadas»; decir «no lo sé» y decir «el paciente no tiene» no son la misma frase.
+**Y un hueco que hay que decirle sin adornos.** Las 16 pantallas de IA clínica —dictar la consulta,
+transcribirla, redactar la nota, el copiloto de UCI— preguntan **«¿su plan incluye esto?»** y **no**
+preguntan **«¿esta persona es médico?»**. Consecuencia real: una cuenta con puesto de *laboratorio*
+o de *farmacia* puede mandar un audio y **recibir una nota clínica redactada**, que es justo el dato
+que las reglas de la base le niegan a esa cuenta. Entra por la puerta de al lado. El candado ya está
+escrito y probado (una cuenta de laboratorio recibe «no autorizado»), y se probó también que un
+fallo momentáneo de la base **no** tumba la IA de todo el consultorio. **Sólo falta que usted diga
+si la enfermería de su UCI dicta o no** → decisión **7.a**.
 
-**Además, un mapa que no existía.** Se levantó el inventario completo: **las 44 colecciones de
-datos** de su sistema, cada una clasificada (administrativa · clínica · financiera · identidad
-profesional) con quién la puede leer y quién la puede escribir, y **el porqué de cada una**. No es
-un documento que se quede viejo: hay una prueba que falla si alguien añade una colección nueva y no
-la clasifica, y otra que falla si el documento publicado deja de coincidir con el sistema real.
+**Se corrigieron dos cifras del propio diseño**, midiéndolas contra el código: las puertas
+completamente abiertas son **13**, no 15 (dos de las que se creían abiertas sí tienen candado: el
+del enlace del paciente), y el gateway del hospital tiene **18** acciones. Un número mal en un
+documento de seguridad es una señal de que se copió a ojo.
 
 ---
 
-## 👉 Lo siguiente: **E1-02 (reintento, no reimplementación)**
+## 👉 Lo siguiente
 
-**Sigue siendo la más barata y la que desatasca más.** El código ya está escrito, en disco y en
-verde; lo que falta es **software, no criterio médico**:
+**Si contesta la decisión 7.a (una frase), lo siguiente es cerrar el hueco de la IA.** Es, con
+diferencia, **el mayor valor de seguridad que queda pendiente en todo el programa** y ya no requiere
+diseño: el candado está escrito, probado y en verde. Son las 16 pantallas de IA clínica pasando de
+«¿tiene plan?» a «¿tiene plan **y** es quien debe?». Un lote corto.
+
+**Si prefiere no decidir todavía: E1-02 (reintento, no reimplementación).** Sigue siendo la más
+barata y la que desatasca más. El código ya está escrito, en disco y en verde; lo que falta es
+**software, no criterio médico**:
 
 1. Un test que **derive** las abreviaturas de laboratorio desde la fuente real de su app, para que
    «aquí no hay nada inventado» lo compruebe una máquina y no un comentario.
@@ -112,7 +126,42 @@ quedan dos sin empezar: **E0-12** (sellos de integridad) y **E0-13** (cobros de 
 
 ## Esperando decisión del médico
 
-### 6. 🆕 Quién ve qué (E0-06)
+### 7. 🆕 Quién puede *hacer* qué (E0-07)
+
+Ninguna es criterio médico: son decisiones de **cómo trabaja su consultorio**. Mientras no
+responda, **todo sigue funcionando exactamente igual que hoy** — nadie pierde acceso a nada.
+
+**a. ⚠️ ¿La enfermería de su UCI dicta y usa el copiloto, o sólo usted?** Es **la más importante de
+toda esta lista.** Hoy las 16 pantallas de IA clínica comprueban su **plan** pero no el **puesto**:
+una cuenta de laboratorio o de farmacia puede mandar un audio y recibir **una nota clínica
+redactada** —el mismo dato que la base de datos le niega a esa cuenta. Si me dice **«sólo el
+médico»**, el hueco se cierra en un lote corto y sin riesgo. Si me dice **«la enfermería también
+dicta»**, necesita su propio permiso y lo escribo. *Lo que no voy a hacer es adivinarlo.*
+
+**b. ¿Enfermería, farmacia y laboratorio deben poder ver la lista de correos de su equipo?**
+**Hoy pueden.** No es PHI, pero tampoco es su trabajo.
+
+**c. ¿Su asistente descarga las facturas (CFDI), o sólo cobra?** Hoy las descarga. Determina si
+«facturar» y «cobrar» son dos permisos separados de verdad.
+
+**d. En un consultorio de un solo médico —el suyo—, ¿el puesto «médico» debe seguir tocando la
+suscripción de Stripe, las llaves de IA y el alta de WhatsApp?** Hoy sí, y **se dejó así a
+propósito**: quitárselo le rompería su propia cuenta mañana. Si prefiere que sólo «administrador»
+toque el dinero, es un cambio de una línea.
+
+**e. 🆕 ¿Su asistente entra a la sala de teleconsulta, o sólo usted y el paciente?** El diseño daba
+por hecho que apretar esta puerta no molestaba a nadie y **no era cierto**: dejaría fuera al
+mostrador. Por eso **no se tocó**. Sí se le escribió una prueba que protege lo delicado de esa
+pantalla: que el enlace del paciente se compruebe **primero**, y que cuando nada autoriza el sistema
+responda «esa cita no existe» en vez de «no tienes permiso» — porque lo segundo confirmaría que la
+cita existe.
+
+**f. 🆕 ¿Enfermería, farmacia y laboratorio necesitan agendar citas, mandar WhatsApp o ver los
+pagos?** Ésta gobierna **seis** puertas de golpe. Y es la de consecuencias más visibles: si aprieto
+la de citas y alguien la usaba, esa persona **deja de poder agendar** y usted lo va a leer como «la
+app se rompió». La de la lista de espera es peor: cortaría confirmaciones de cita.
+
+### 6. Quién ve qué (E0-06)
 
 **a. ⚠️ ¿Su asistente puede *capturar* alergias y antecedentes en el alta, aunque después no pueda
 verlos?** Hoy los captura: el formulario de alta de pacientes tiene el campo «Alergias» y el de
@@ -246,6 +295,7 @@ del fármaco, así que **nunca se convierten solas**.
 
 | | Qué | Unidad |
 |---|---|---|
+| ⚠️ | **Una frase suya:** ¿la enfermería de su UCI dicta, o sólo usted? Cierra el hueco de la IA | **E0-07** (7.a) |
 | ⚠️ | Activar protección de rama en `main` (`clinical-safety` + `verificar`) — 5 minutos en GitHub | E0-11 |
 | ⚠️ | Confirmar que `docrod29-ai` es su handle real y activar «Require review from Code Owners» | E0-11 |
 | 🔴 | **Una línea suya:** ¿los signos vitales pasan de «corregir en el sitio» a «anexar corrección»? | E0-09 (bloqueada) |
@@ -259,11 +309,19 @@ del fármaco, así que **nunca se convierten solas**.
 
 ## Deuda técnica anotada (para no perderla)
 
-- **🆕 Las alergias, los antecedentes y la valoración del inmunocomprometido siguen guardados
+- **🆕 Quedan 26 puertas que en EJECUCIÓN siguen siendo «cualquiera del consultorio».** Ya están
+  todas **declaradas** con el permiso que les corresponde y con la pregunta que falta escrita al
+  lado, así que ninguna es un descuido silencioso — pero declarar no es aplicar. Se activan con las
+  decisiones 7.a a 7.f.
+- **🆕 El puesto de cada persona ya admite 8 valores en el tipo, pero sólo 6 se pueden asignar
+  desde la app** («recepción» y «facturación» existen en la matriz y nadie los puede tener). Es lo
+  que hace que ampliar un permiso hacia ellos **no le dé acceso a nadie real**, y hay una prueba que
+  lo vigila. Sigue esperando la decisión de E0-06 sobre si se activan o se borran.
+- **Las alergias, los antecedentes y la valoración del inmunocomprometido siguen guardados
   dentro de la ficha del paciente.** Mientras sigan ahí, cualquier miembro del consultorio los lee,
   y ninguna regla de permisos puede impedirlo. La mudanza está diseñada, con su candado escrito y
   su lista de campos fijada por una prueba; espera la decisión 6.a.
-- **🆕 Las reglas de permisos se prueban leyendo el archivo, no ejecutándolo.** No hay emulador de
+- **Las reglas de permisos se prueban leyendo el archivo, no ejecutándolo.** No hay emulador de
   base de datos en el proyecto: se afirma qué dice el archivo de reglas, no qué haría la base ante
   una petición real. Eso es la unidad **E0-08**, que ahora tiene la matriz de acceso como tabla de
   casos lista para usar.

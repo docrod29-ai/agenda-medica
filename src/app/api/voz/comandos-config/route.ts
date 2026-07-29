@@ -9,12 +9,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
-import { verificarMedico } from '@/lib/auth-server'
+import { verificarCapacidad } from '@/lib/authz/verificar'
 
 export async function GET(req: NextRequest) {
   const clinicId = req.nextUrl.searchParams.get('clinicId')
   if (!clinicId) return NextResponse.json({ error: 'clinicId requerido' }, { status: 400 })
-  const acc = await verificarMedico(req, clinicId)
+  const acc = await verificarCapacidad(req, clinicId, 'administrar')
   if (!acc.ok) return acc.response
 
   try {
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
 
   const clinicId = body.clinicId
   if (!clinicId) return NextResponse.json({ error: 'clinicId requerido' }, { status: 400 })
-  const acc = await verificarMedico(req, clinicId)
+  const acc = await verificarCapacidad(req, clinicId, 'administrar')
   if (!acc.ok) return acc.response
 
   const s = Number(body.sensibilidad)

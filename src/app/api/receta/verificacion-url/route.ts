@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verificarMedico } from '@/lib/auth-server'
+import { verificarCapacidad } from '@/lib/authz/verificar'
 import { linkVerificacionReceta } from '@/lib/receta-token'
 import { adminDb } from '@/lib/firebase-admin'
 import { datosCertificado } from '@/lib/receta-certificado'
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
   // Solo un MÉDICO/admin acuña el certificado de verificación (auditoría P0):
   // antes era cualquier miembro → una recepcionista podía firmar un "Integridad
   // verificada". Se hace ANTES de tocar Firestore.
-  const acc = await verificarMedico(req, body.clinicId || '')
+  const acc = await verificarCapacidad(req, body.clinicId || '', 'firmar')
   if (!acc.ok) return acc.response
 
   if (!body.patientId || !body.notaId) {

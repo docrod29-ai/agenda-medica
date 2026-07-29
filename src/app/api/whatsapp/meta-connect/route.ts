@@ -21,7 +21,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { guardarSecretoCanal } from '@/lib/whatsapp/secreto-canal'
-import { verificarMedico } from '@/lib/auth-server'
+import { verificarCapacidad } from '@/lib/authz/verificar'
 
 const APP_ID     = process.env.META_APP_ID ?? ''
 const APP_SECRET = process.env.META_APP_SECRET ?? ''
@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
     if (!code || !clinicId) {
       return NextResponse.json({ error: 'code and clinicId required' }, { status: 400 })
     }
-    const acceso = await verificarMedico(req, clinicId)
+    const acceso = await verificarCapacidad(req, clinicId, 'administrar')
     if (!acceso.ok) return acceso.response
 
     if (!APP_ID || !APP_SECRET) {

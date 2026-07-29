@@ -3,6 +3,9 @@
 // ══════════════════════════════════════════════════════════════
 
 import type { LucideIcon } from 'lucide-react'
+// Unión canónica de roles (E0-06). Se importa en vez de redeclararse: este archivo
+// tenía la 3.ª de las cuatro listas de roles que había en el repo (ver E0-07).
+import type { Rol } from '@/lib/authz/matriz-acceso'
 import { UserPlus, RefreshCw, Siren, Microscope, Video, ClipboardCheck, Stethoscope, ClipboardList } from 'lucide-react'
 
 // Planes actuales: agenda · clinica · premium (Pro) · hospital. Se conservan
@@ -49,7 +52,18 @@ export interface Clinic {
 
 export interface ClinicMember {
   clinicId: string
-  role: 'admin' | 'medico' | 'secretaria' | 'enfermeria' | 'farmacia' | 'laboratorio'
+  /**
+   * E0-07: pasa a la unión CANÓNICA de roles (`src/lib/authz/matriz-acceso.ts`).
+   * Era la tercera lista de roles del repo y la única que dejaba fuera a `recepcion`
+   * y `facturacion`, así que un doc de membresía con uno de esos valores no tipaba
+   * aunque la matriz de acceso y `permissions.ts` sí los evalúan.
+   *
+   * Es una AMPLIACIÓN de tipo (6 → 8 valores), no un cambio de comportamiento:
+   * ningún literal existente deja de ser válido y `cambiarRolMiembro`
+   * (`src/lib/miembros.ts`) sigue admitiendo solo los 6 ASIGNABLES, que es lo que de
+   * verdad limita qué se puede guardar.
+   */
+  role: Rol
   /** Nombre visible en el chat. Si no se define, usa nombreMedico (médico/admin) o email prefix */
   displayName?: string
   /** Avatar opcional (emoji o data URL) */

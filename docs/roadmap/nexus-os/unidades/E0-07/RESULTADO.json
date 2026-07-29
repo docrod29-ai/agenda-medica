@@ -1,0 +1,194 @@
+{
+  "unidad": "E0-07",
+  "titulo": "Autorización por capabilities",
+  "etapa": "E0",
+  "fecha": "2026-07-29T22:20:21Z",
+  "estado": "necesita_validacion",
+  "porQueNecesitaValidacion": "El software queda entero, verificado y en verde. Lo que falta NO es código: son cinco decisiones de POLÍTICA DE ACCESO que solo el médico dueño puede tomar (Q1–Q5 del diseño). Las 26 rutas que al activar su capacidad estrecharían el acceso de un usuario real quedan DECLARADAS con su capacidad definitiva y con `activacionPendiente` que dice qué decisión falta; siguen ejecutando el guardián anterior. No son «any-member implícito»: están declaradas por escrito y un test congela la lista.",
+  "alcanceEjecutado": {
+    "faseA": "COMPLETA — `capabilities.ts` (núcleo puro), `verificar.ts` (guardia de request), `registro-rutas.ts` (las 74 rutas declaradas), `permissions.ts` derivado, `ClinicMember.role` a la unión canónica.",
+    "faseAprima": "COMPLETA — `api-authz-guard.test.ts` reescrito con las 3 propiedades de E0-06 re-expresadas contra la capacidad declarada, y con los 2 controles negativos ejecutados (ver `verificacionDestructiva`).",
+    "faseB": "COMPLETA — las 18 llamadas a `verificarMedico` migradas a `verificarCapacidad`. CERO llamadas a `verificarMedico` bajo `src/app/api` (probado).",
+    "faseC": "PARCIAL POR DISEÑO (regla 5 de la carta operativa) — migradas las 3 rutas donde NADIE pierde acceso: `hospital/mutar` (18 acciones 1:1 contra el `GATES` viejo), `hospital/alerta` (≡ `ROLES_CLINICOS`) y `auditoria/registrar` (todos los roles, declarado). Las 11 que estrechan + las 16 de IA + `telesalud/sala` quedan declaradas y pendientes de Q1–Q5."
+  },
+  "desviacionesDelDiseno": [
+    {
+      "que": "El catálogo de capacidades tiene 14, no 12.",
+      "porQue": "Las 12 del diseño no podían expresar 1:1 el mapa `GATES` de `hospital/mutar`: `GATES.verificar_farmacia` es {farmacia, medico, admin} y ninguna capacidad producía ese conjunto, y meter `balance`/`escala`/`sbar` dentro de `medicamento.administrar` habría dejado un nombre que MIENTE en un archivo de seguridad. Se añadieron `pase.registrar` (admin, medico, enfermeria) y `farmacia.verificar` (admin, medico, farmacia). Sin ellas, migrar `hospital/mutar` habría cambiado quién puede verificar en farmacia."
+    },
+    {
+      "que": "`telesalud/sala` NO se migró, aunque §8 del diseño la incluía entre las 4 «seguras».",
+      "porQue": "El diseño la listaba como sin estrechamiento, pero `clinico.leer` SÍ deja fuera a `secretaria`, y la ruta se llama desde `/teleconsulta/[citaId]`, una página que el mostrador puede abrir. Queda declarada con `capacidadAlternativa: 'clinico.leer'` + `activacionPendiente`, y se le escribió el test de no-regresión del OR (`telesalud-sala-or.test.ts`) que la futura migración tendrá que seguir pasando."
+    },
+    {
+      "que": "`hospital/mutar` conserva `verificarMiembro` como paso de MEMBRESÍA y usa `exigeCapacidad` para la capacidad por acción.",
+      "porQue": "El diseño proponía `verificarCapacidad` con la capacidad de la acción, pero eso invierte el orden: la acción se resolvería antes de autenticar y un extraño podría enumerar el catálogo de acciones con un 400. El orden original (membresía → 400 acción desconocida → 403 capacidad) se conserva exacto, que es precisamente para lo que el diseño creó `exigeCapacidad`."
+    },
+    {
+      "que": "Se tocaron 2 tests existentes además del autorizado por el diseño.",
+      "porQue": "`receta-verificacion-url-route.test.ts` mockeaba `verificarMedico` de la ruta migrada (el mock cambia de módulo; sus dos propiedades —se corta antes de tocar Firestore, el clinicId llega al guardián— se conservan y ahora también comprueba la capacidad). `hospital-eventos-append-only.test.ts` parseaba el mapa `GATES` como TEXTO desde la ruta; ahora IMPORTA `ACCIONES_HOSPITAL_MUTAR` del módulo puro, que es estrictamente más fuerte que una regex. Ninguno perdió una assertion."
+    },
+    {
+      "que": "`permissions.ts` deriva 11 de sus 12 permisos; `manejarPagos` queda como excepción DECLARADA.",
+      "porQue": "`manejarPagos` vale true para admin y facturacion pero FALSE para medico, aunque medico tiene `administrar`. Ninguna capacidad produce {admin, facturacion}. Es una asimetría deliberada de la tabla original y es el objeto de Q5, así que se conserva con la excepción escrita en vez de «arreglarla» en silencio."
+    }
+  ],
+  "archivosTocados": {
+    "nuevos": [
+      "src/lib/authz/capabilities.ts",
+      "src/lib/authz/verificar.ts",
+      "src/lib/authz/registro-rutas.ts",
+      "src/__tests__/authz-capabilities.test.ts",
+      "src/__tests__/authz-rutas-declaradas.test.ts",
+      "src/__tests__/telesalud-sala-or.test.ts"
+    ],
+    "modificados": [
+      "src/lib/auth-server.ts",
+      "src/lib/permissions.ts",
+      "src/types/index.ts",
+      "src/__tests__/api-authz-guard.test.ts",
+      "src/__tests__/nucleo/autorizacion-servidor.test.ts",
+      "src/__tests__/receta-verificacion-url-route.test.ts",
+      "src/__tests__/hospital-eventos-append-only.test.ts",
+      "src/app/api/auditoria/registrar/route.ts",
+      "src/app/api/clinic/ai-keys/route.ts",
+      "src/app/api/clinic/whatsapp-disconnect/route.ts",
+      "src/app/api/facturacion/solicitar/route.ts",
+      "src/app/api/fhir/paciente/[patientId]/route.ts",
+      "src/app/api/hospital/alerta/route.ts",
+      "src/app/api/hospital/mutar/route.ts",
+      "src/app/api/mantenimiento/backfill-contadores/route.ts",
+      "src/app/api/receta/verificacion-url/route.ts",
+      "src/app/api/stripe/asientos/route.ts",
+      "src/app/api/stripe/checkout/route.ts",
+      "src/app/api/stripe/portal/route.ts",
+      "src/app/api/stripe/recarga/route.ts",
+      "src/app/api/telesalud/token/route.ts",
+      "src/app/api/voz/comandos-config/route.ts",
+      "src/app/api/whatsapp/360dialog-connect/route.ts",
+      "src/app/api/whatsapp/manual-connect/route.ts",
+      "src/app/api/whatsapp/meta-connect/route.ts",
+      "src/app/api/whatsapp/plantillas-config/route.ts"
+    ],
+    "noTocados": [
+      "firestore.rules",
+      "storage.rules",
+      "impresión / PDF / Word",
+      "flujo de firma de nota",
+      "flujo de cobro del cliente",
+      "cualquier motor clínico",
+      "cualquier componente de UI",
+      "src/__tests__/matriz-acceso.test.ts",
+      "src/__tests__/firestore-rules-guard.test.ts",
+      "src/__tests__/portal-alcance.test.ts"
+    ]
+  },
+  "tests": {
+    "nuevos": [
+      "src/__tests__/authz-capabilities.test.ts — 81 casos: catálogo cerrado, mínimo privilegio, no-escalada, PUENTE con E0-06 (rolesCon('clinico.escribir') === rolesDe('isMedico') y clinico.leer === isClinicoHospital), no-regresión de las 18 llamadas de Fase B, invariante «ninguna ampliación alcanza a un rol asignable», las 18 acciones de hospital/mutar contra el GATES viejo copiado literal, y permisosPorRol derivado contra la tabla anterior copiada literal.",
+      "src/__tests__/authz-rutas-declaradas.test.ts — 15 casos: las 74 rutas de disco declaradas, cero zombis, cero verificarMedico, lista CONGELADA de los 13 supervivientes de verificarMiembro, motivos no vacíos, el registro no puede mentir sobre el código, las 13 rutas sin guardián congeladas, y la propiedad de E0-06 re-expresada en conjuntos de roles con su control anti-vacío.",
+      "src/__tests__/telesalud-sala-or.test.ts — 8 casos: el OR real, el token evaluado PRIMERO, y el 404 (nunca 403) que evita la fuga de existencia del citaId."
+    ],
+    "extendidos": [
+      "src/__tests__/nucleo/autorizacion-servidor.test.ts — +18 casos: verificarCapacidad (401/400/403 cross-tenant con rol admin de OTRA clínica/403 sin capacidad/403 sin campo role/500 fail-closed/equivalencia rol a rol con verificarMedico), verificarModuloYCapacidad (incluida la REGRESIÓN CRÍTICA de que el camino fail-OPEN NO se convierte en 403 y que los módulos OPT-IN siguen dando 503), y exigeCapacidad.",
+      "src/__tests__/api-authz-guard.test.ts — reescrito: 7 casos con las 3 propiedades de E0-06 re-expresadas y portal/link acotada por ARRIBA y por ABAJO."
+    ]
+  },
+  "gates": {
+    "tsc": "PASS",
+    "vitest": "PASS",
+    "build": "PASS",
+    "testsPasan": 2583,
+    "archivosDeTest": 194,
+    "comando": "npx tsc --noEmit · npx vitest run src/__tests__/ · npm run build"
+  },
+  "verificacionDestructiva": [
+    {
+      "sabotaje": "Quitar 'firmar' del rol `medico` en CAPACIDADES_POR_ROL.",
+      "esperado": "authz-capabilities rojo (no-regresión Fase B + no-escalada).",
+      "resultado": "ROJO — 4 fallos de 81. Restaurado: 81 en verde."
+    },
+    {
+      "sabotaje": "Crear `src/app/api/prueba-guardian/route.ts` sin declararla en REGISTRO_RUTAS.",
+      "esperado": "authz-rutas-declaradas + api-authz-guard rojos.",
+      "resultado": "ROJO — 4 fallos de 22. Tras borrarla: 22 en verde."
+    },
+    {
+      "sabotaje": "Bajar `stripe/portal` de verificarCapacidad a verificarMiembro.",
+      "esperado": "authz-rutas-declaradas rojo (el registro mentiría sobre el código y la lista congelada de supervivientes cambiaría).",
+      "resultado": "ROJO — 3 fallos de 15. Restaurado: 15 en verde."
+    },
+    {
+      "sabotaje": "Dar 'clinico.leer' al rol `secretaria`.",
+      "esperado": "authz-capabilities rojo por el puente con E0-06.",
+      "resultado": "ROJO — 2 fallos de 81. Restaurado: 81 en verde."
+    },
+    {
+      "sabotaje": "CONTROL NEGATIVO 1 (§3.0.3) — bajar `portal/link` a 'clinico.escribir' (capacidad de médico).",
+      "esperado": "api-authz-guard rojo por ROMPER A LA ASISTENTE.",
+      "resultado": "ROJO — 2 fallos de 7. Restaurado: 7 en verde."
+    },
+    {
+      "sabotaje": "CONTROL NEGATIVO 2 (§3.0.3) — subir `portal/link` a 'clinico.leer' (alcanza a laboratorio).",
+      "esperado": "api-authz-guard rojo por gatear el emisor de magic-links con una capacidad clínica.",
+      "resultado": "ROJO — 2 fallos de 7. Restaurado: 7 en verde."
+    }
+  ],
+  "cifrasVerificadas": {
+    "rutasDeApi": 74,
+    "llamadasVerificarMedicoAntes": 18,
+    "llamadasVerificarMedicoAhora": 0,
+    "archivosConVerificarMiembroAntes": 15,
+    "archivosConVerificarMiembroAhora": 13,
+    "rutasSinGuardianDeSesion": 13,
+    "nota": "El diseño decía «15 sin guardia»; son 13. Las otras dos (`portal` y `payment/create-checkout`) sí tienen guardián: `verificarTokenPaciente`. Se declaran como `tokenPaciente`, no como `publica`."
+  },
+  "decisionesPendientesDelMedico": [
+    {
+      "id": "E0-07-Q1",
+      "pregunta": "¿La enfermería de UCI usa `uci/copilot` y el dictado del expediente, o solo el médico?",
+      "porQueImporta": "Es el hueco de seguridad MÁS GRANDE que queda: las 16 rutas de IA exigen PLAN, no ROL. Hoy un miembro con rol `laboratorio` o `farmacia` puede hacer POST a /api/expediente/transcribir y recibir una nota clínica redactada — PHI que firestore.rules le niega, entregado por la puerta del Admin SDK. `verificarModuloYCapacidad` ya está escrita y probada (incluido el caso de que un rol `laboratorio` reciba 403); solo falta activarla en las 16 rutas. Si la respuesta es «solo el médico», el hueco se cierra en el siguiente lote sin más análisis.",
+      "bloquea": "16 rutas de IA"
+    },
+    {
+      "id": "E0-07-Q2",
+      "pregunta": "`recepcion` y `facturacion` existen en la matriz pero NO son asignables en la app. ¿Se activan o se borran?",
+      "porQueImporta": "Sigue abierta desde E0-06. No bloquea nada hoy —el invariante de ampliación garantiza que ningún usuario real gana acceso por ellos— pero mientras siga abierta hay dos filas de la matriz que nadie puede ejercer.",
+      "bloquea": "nada (documental)"
+    },
+    {
+      "id": "E0-07-Q3",
+      "pregunta": "¿Enfermería/farmacia/laboratorio deben poder listar los correos del equipo (`clinic/miembros`)? HOY PUEDEN.",
+      "bloquea": "clinic/miembros GET"
+    },
+    {
+      "id": "E0-07-Q4",
+      "pregunta": "¿La asistente (`secretaria`) descarga CFDI, o solo cobra?",
+      "bloquea": "facturacion/descargar GET"
+    },
+    {
+      "id": "E0-07-Q5",
+      "pregunta": "En un consultorio de un solo médico, `medico` conserva `administrar` (Stripe, llaves de IA, WhatsApp). ¿Correcto, o `admin` debería ser el único que toca la suscripción?",
+      "porQueImporta": "Quitárselo rompería de inmediato al consultorio de un solo médico (su propio caso). También determina si `manejarPagos` sigue siendo false para `medico` en permissions.ts.",
+      "bloquea": "nada hoy (se conserva el comportamiento actual)"
+    },
+    {
+      "id": "E0-07-Q6",
+      "pregunta": "NUEVA — ¿La asistente del mostrador entra a la sala de teleconsulta (`/teleconsulta/[citaId]`), o solo el médico y el paciente?",
+      "porQueImporta": "El diseño daba `telesalud/sala` por «no estrecha a nadie» y no es cierto: `clinico.leer` deja fuera a `secretaria`. Por eso no se migró.",
+      "bloquea": "telesalud/sala (rama del equipo)"
+    },
+    {
+      "id": "E0-07-Q7",
+      "pregunta": "NUEVA — ¿Enfermería/farmacia/laboratorio necesitan agendar citas, mandar WhatsApp o ver pagos?",
+      "porQueImporta": "Es la pregunta que gobierna 6 de las 11 rutas que estrechan (`appointments`, `calendar/sync`, `portal/link`, `whatsapp/waitlist-notify`, `whatsapp/entregas`, `facturacion/pagos`). Un 403 nuevo en `appointments` deja a alguien sin poder agendar y se lee como «la app se rompió»; en `whatsapp/waitlist-notify` corta confirmaciones de cita.",
+      "bloquea": "6 rutas de Fase C"
+    }
+  ],
+  "riesgoResidual": [
+    "Las 26 rutas pendientes siguen siendo any-member EN EJECUCIÓN (aunque no en declaración). El hueco de §1.5 del diseño (IA sin rol) sigue abierto hasta Q1.",
+    "`ClinicMember.role` pasó de 6 a 8 valores. Es una ampliación de tipo: ningún literal existente deja de tipar y `cambiarRolMiembro` sigue limitado a los 6 asignables, que es lo que de verdad restringe qué se guarda. tsc y build en verde lo confirman.",
+    "El mensaje de 403 cambió: donde antes decía 'Requiere rol de médico.' ahora dice 'Tu rol no tiene permiso para esta acción (requiere: <capacidad>).' Se buscó y no hay ningún consumidor de ese texto en el cliente. El ROL a propósito NO va en el cuerpo de la respuesta (filtraría la composición del equipo); sí va al log del servidor vía safeLog."
+  ],
+  "siguientePaso": "Con Q1 respondida, un lote pequeño activa las 16 rutas de IA (`verificarModuloIA` → `verificarModuloYCapacidad`), que es el mayor valor de seguridad que queda. Con Q6/Q7, las 11 de Fase C. Todo el andamiaje —guardia, registro, tests, invariantes— ya está y en verde."
+}

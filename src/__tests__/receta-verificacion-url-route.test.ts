@@ -24,8 +24,15 @@ vi.mock('@/lib/firebase-admin', () => ({
   },
 }))
 
-const verificarMedico = vi.fn()
-vi.mock('@/lib/auth-server', () => ({ verificarMedico: (...a: unknown[]) => verificarMedico(...a) }))
+/**
+ * E0-07: la ruta pasó de `verificarMedico` a `verificarCapacidad(..., 'firmar')`.
+ * `rolesCon('firmar')` es {medico, admin} — exactamente el conjunto que autorizaba
+ * `verificarMedico` — así que el doble cambia de módulo pero las propiedades que
+ * este archivo defiende (se corta antes de tocar Firestore, y el clinicId que llega
+ * al guardián es el de la clínica verificada) son las mismas.
+ */
+const verificarCapacidad = vi.fn()
+vi.mock('@/lib/authz/verificar', () => ({ verificarCapacidad: (...a: unknown[]) => verificarCapacidad(...a) }))
 
 import { POST } from '@/app/api/receta/verificacion-url/route'
 import { verificarTokenReceta } from '@/lib/receta-token'
@@ -82,8 +89,8 @@ const BODY_OK = { clinicId: 'clinicA', patientId: 'pac1', notaId: NOTA_ID }
 beforeEach(() => {
   getNota.mockReset()
   docPath.mockReset()
-  verificarMedico.mockReset()
-  verificarMedico.mockResolvedValue({ ok: true, uid: 'uid-ana', clinicId: 'clinicA', role: 'medico' })
+  verificarCapacidad.mockReset()
+  verificarCapacidad.mockResolvedValue({ ok: true, uid: 'uid-ana', clinicId: 'clinicA', role: 'medico' })
 })
 
 describe('POST /api/receta/verificacion-url — el certificado sale de la nota, no del body', () => {
@@ -139,9 +146,9 @@ describe('POST /api/receta/verificacion-url — el certificado sale de la nota, 
     expect((await POST(req(BODY_OK))).status).toBe(409)
   })
 
-  it('rol no médico → se corta antes de tocar Firestore', async () => {
+  it('rol sin la capacidad `firmar` → se corta antes de tocar Firestore', async () => {
     const { NextResponse } = await import('next/server')
-    verificarMedico.mockResolvedValue({ ok: false, response: NextResponse.json({ error: 'Requiere rol de médico.' }, { status: 403 }) })
+    verificarCapacidad.mockResolvedValue({ ok: false, response: NextResponse.json({ error: 'Tu rol no tiene permiso para esta acción (requiere: firmar).' }, { status: 403 }) })
     const res = await POST(req(BODY_OK))
     expect(res.status).toBe(403)
     expect(getNota).not.toHaveBeenCalled()
@@ -151,8 +158,8 @@ describe('POST /api/receta/verificacion-url — el certificado sale de la nota, 
     getNota.mockResolvedValue(snap(notaFirmada()))
     await POST(req(BODY_OK))
     expect(docPath).toHaveBeenCalledWith(`clinics/clinicA/patients/pac1/notas/${NOTA_ID}`)
-    // clinicId llega a verificarMedico, que lo contrasta contra clinic_members.
-    expect(verificarMedico).toHaveBeenCalledWith(expect.anything(), 'clinicA')
+    // clinicId llega al guardián, que lo contrasta contra clinic_members.
+    expect(verificarCapacidad).toHaveBeenCalledWith(expect.anything(), 'clinicA', 'firmar')
   })
 
   it('camino feliz sin campos de identidad en el body → 200 con certificado correcto', async () => {

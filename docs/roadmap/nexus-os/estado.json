@@ -1,7 +1,7 @@
 {
   "version": 1,
   "descripcion": "ESTADO DURABLE del programa Nexus OS. Fuente de verdad del avance. Los agentes lo actualizan tras CADA unidad terminada. Si se acaban los créditos, este archivo dice exactamente dónde retomar sin perder nada.",
-  "actualizado": "2026-07-29T13:12:00Z",
+  "actualizado": "2026-07-29T22:20:21Z",
   "runs": [
     {
       "unidad": "E0-01",
@@ -251,6 +251,18 @@
       "nota": "Fase A del diseño entregada, verificada y commiteada. Fases B y C (mover de verdad alergias/notas/txValoracion* fuera de patients/{id}) NO se ejecutaron: riesgo alto declarado en el diseño §8 y dependen de la decisión D1 del Dr. Por eso NO entra en `completadas`: la aceptación literal («no lee alergias») todavía no se cumple, y ponerla ahí sería exactamente lo que la verificación adversarial le quitó a E0-10 y E2-02.",
       "gatesCorridosEn": "git worktree aislado en /tmp sobre HEAD 0f73fea, porque el árbol principal tenía cambios sin commitear de E0-09 que en ese momento no compilaban (TS2304 'acvpu'). Los archivos ajenos no se tocaron ni se commitearon.",
       "commit": "checkpoint propio; el código quedó absorbido por f227bbf (colisión con E0-09 en el mismo árbol)"
+    },
+    {
+      "unidad": "E0-07",
+      "fecha": "2026-07-29T22:20:21Z",
+      "resultado": "necesita_validacion",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2583
+      },
+      "notaCierre": "Fases A + A' + B COMPLETAS y Fase C parcial (las 3 rutas donde nadie pierde acceso). CERO llamadas a verificarMedico bajo src/app/api; las 74 rutas declaradas en REGISTRO_RUTAS con guardián de tests. Las 26 que estrecharían el acceso de un usuario real quedan declaradas con su capacidad definitiva y `activacionPendiente` (Q1-Q7), no ejecutadas — regla 5 de la carta operativa. 6 sabotajes verificados en rojo, incluidos los 2 controles negativos que exigía §3.0.3 del diseño."
     }
   ],
   "unidadEnCurso": null,
@@ -565,6 +577,51 @@
       "decision": "D3 — ¿`embarazo`, `cronico` y `alto-riesgo` (tags del paciente) son administrativos o clínicos?",
       "porQue": "Hoy los ve todo el equipo y los usa la agenda/CRM. Moverlos a lo clínico cambia listados que la asistente usa a diario. Recomendación: dejarlos donde están y documentarlo como residual aceptado.",
       "bloquea": false
+    },
+    {
+      "unidad": "E0-07",
+      "id": "E0-07-Q1",
+      "decision": "¿La enfermería de UCI usa uci/copilot y el dictado del expediente, o solo el médico?",
+      "porQue": "Es el hueco de seguridad MÁS GRANDE que queda abierto. Las 16 rutas de IA clínica exigen PLAN, no ROL: hoy un miembro con rol `laboratorio` o `farmacia` puede hacer POST a /api/expediente/transcribir y recibir una nota clínica redactada — PHI que firestore.rules le niega, entregado por la puerta del Admin SDK. `verificarModuloYCapacidad` ya está escrita y probada (incluido el 403 a `laboratorio` y la preservación del fail-OPEN); solo falta activarla. Si la respuesta es «solo el médico», el hueco se cierra en un lote pequeño.",
+      "bloquea": true,
+      "bloqueaQue": "16 rutas de IA clínica"
+    },
+    {
+      "unidad": "E0-07",
+      "id": "E0-07-Q3",
+      "decision": "¿Enfermería/farmacia/laboratorio deben poder listar los correos del equipo (clinic/miembros)? HOY PUEDEN.",
+      "porQue": "Activar `equipo.leer` los deja fuera. Es política de acceso del consultorio, no criterio clínico.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-07",
+      "id": "E0-07-Q4",
+      "decision": "¿La asistente (secretaria) descarga CFDI, o solo cobra?",
+      "porQue": "Determina la fila `facturar` de la matriz y con ella el gate de facturacion/descargar.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-07",
+      "id": "E0-07-Q5",
+      "decision": "En un consultorio de un solo médico, `medico` conserva `administrar` (Stripe, llaves de IA, WhatsApp). ¿Correcto, o solo `admin` toca la suscripción?",
+      "porQue": "Quitárselo rompería de inmediato su propio caso (un médico = dueño). También decide si `manejarPagos` sigue siendo false para `medico` en permissions.ts, hoy conservado como excepción declarada.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-07",
+      "id": "E0-07-Q6",
+      "decision": "NUEVA — ¿La asistente del mostrador entra a la sala de teleconsulta (/teleconsulta/[citaId]), o solo el médico y el paciente?",
+      "porQue": "El diseño daba telesalud/sala por «no estrecha a nadie» y no es cierto: `clinico.leer` deja fuera a `secretaria`. Por eso NO se migró. Se le escribió el test de no-regresión del OR (token primero, 404 nunca 403) que la futura migración tendrá que seguir pasando.",
+      "bloquea": false,
+      "bloqueaQue": "telesalud/sala (rama del equipo)"
+    },
+    {
+      "unidad": "E0-07",
+      "id": "E0-07-Q7",
+      "decision": "NUEVA — ¿Enfermería/farmacia/laboratorio necesitan agendar citas, mandar WhatsApp o ver pagos?",
+      "porQue": "Gobierna 6 de las 11 rutas que estrechan (appointments, calendar/sync, portal/link, whatsapp/waitlist-notify, whatsapp/entregas, facturacion/pagos). Un 403 nuevo en appointments deja a alguien sin poder agendar y se lee como «la app se rompió»; en whatsapp/waitlist-notify corta confirmaciones de cita.",
+      "bloquea": false,
+      "bloqueaQue": "6 rutas de Fase C"
     }
   ],
   "siguientesElegibles": {
@@ -684,7 +741,11 @@
     "E0-06 cerró un agujero REAL y explotable: /api/portal/link exigía solo verificarMiembro y devolvía al navegador de quien la llamara un token HMAC de 30 días que /api/portal aceptaba en la acción `documentos` (diagnósticos + medicamentos de notas FIRMADAS). Mismo vector que ya se había cerrado en /api/telesalud/token y que aquí seguía abierto.",
     "E0-06 dejó `firestore.rules` MODIFICADO pero NO DESPLEGADO (regla 6). El bloque `clinico` no rige en producción hasta que el Dr. corra `firebase deploy --only firestore:rules`. Hoy es inocuo porque todavía no hay datos ahí, pero tiene que estar desplegado ANTES de la Fase C.",
     "E0-06 habilita E0-07 (capabilities consume la matriz) y E0-08 (emulator la consume como tabla de casos).",
-    "E0-06: sus 14 archivos de código quedaron dentro del commit f227bbf (de E0-09), porque ese agente corrió `git add -A` sobre el árbol compartido mientras E0-06 escribía. Nada se perdió, nada se subió, y NO se reescribió la historia (rehacer commits con otro agente operando en el mismo repositorio es peor que un mensaje equivocado). LECCIÓN: si dos unidades corren a la vez, cada una debe commitear con lista EXPLÍCITA de archivos, o correr en worktrees separados."
+    "E0-06: sus 14 archivos de código quedaron dentro del commit f227bbf (de E0-09), porque ese agente corrió `git add -A` sobre el árbol compartido mientras E0-06 escribía. Nada se perdió, nada se subió, y NO se reescribió la historia (rehacer commits con otro agente operando en el mismo repositorio es peor que un mensaje equivocado). LECCIÓN: si dos unidades corren a la vez, cada una debe commitear con lista EXPLÍCITA de archivos, o correr en worktrees separados.",
+    "E0-07: la fuente de verdad de ROLES es src/lib/authz/matriz-acceso.ts (E0-06) y la de CAPACIDADES es src/lib/authz/capabilities.ts. Ninguna unidad posterior debe declarar otra lista de roles. E0-07 cerró la 3.ª (types/index.ts ClinicMember.role) y la 4.ª (permissions.ts, que ahora deriva).",
+    "E0-07: el catálogo quedó en 14 capacidades, no 12. Las 12 del diseño no expresaban 1:1 el GATES de hospital/mutar (verificar_farmacia = {farmacia,medico,admin} no salía de ninguna), así que se añadieron `pase.registrar` y `farmacia.verificar`. Sin ellas la migración habría cambiado quién verifica en farmacia.",
+    "E0-07: el mensaje de 403 cambió de 'Requiere rol de médico.' a 'Tu rol no tiene permiso para esta acción (requiere: <capacidad>).' No hay consumidores de ese texto en el cliente (buscado). El ROL a propósito NO viaja en el cuerpo (filtraría la composición del equipo); va al log del servidor vía safeLog.",
+    "E0-07 corrigió una cifra del diseño: son 13 rutas sin guardián de sesión, no 15. `portal` y `payment/create-checkout` sí tienen guardián (verificarTokenPaciente) y se declaran como `tokenPaciente`."
   ],
   "paraReintentar": [
     {

@@ -5,13 +5,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
-import { verificarMedico } from '@/lib/auth-server'
+import { verificarCapacidad } from '@/lib/authz/verificar'
 
 export async function POST(req: NextRequest) {
   try {
     const { clinicId } = await req.json()
     if (!clinicId) return NextResponse.json({ error: 'clinicId required' }, { status: 400 })
-    const acceso = await verificarMedico(req, clinicId)
+    const acceso = await verificarCapacidad(req, clinicId, 'administrar')
     if (!acceso.ok) return acceso.response
 
     // Read current api_key Y phoneNumberId para borrar AMBOS índices posibles.
