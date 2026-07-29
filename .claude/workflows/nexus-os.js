@@ -37,6 +37,14 @@ REGLAS INVIOLABLES (carta operativa del proyecto):
    para decisión del médico dueño en vez de ejecutarlo a ciegas.
 6. NO despliegues a producción. NO toques secretos. NO hagas git push.
 7. El LLM nunca calcula dosis ni escalas: eso lo hace un motor determinista.
+8. NUNCA corras un comando que no termine solo. Prohibido: \`npx playwright test\`,
+   \`npm run dev\`, \`npm start\`, cualquier servidor, cualquier \`--watch\`. Un agente
+   colgado en un proceso vivo tumba la corrida entera y pierde el lote (ya pasó).
+   Los ÚNICOS gates son \`npx tsc --noEmit\`, \`npx vitest run src/__tests__/\` y
+   \`npm run build\`. Si tu unidad entrega pruebas E2E, escribe el archivo .spec y
+   documenta el comando para correrlo — pero NO lo ejecutes tú.
+9. Estos gates son de MÁQUINA COMPARTIDA: si uno tarda muchísimo o falla raro,
+   sospecha contención antes que del código. Repite una vez antes de declarar rojo.
 `.trim()
 
 const CTX = `Trabajas en ${REPO}: NexusMED, app médica multi-tenant en producción (Next.js 16 App Router, React 19, TypeScript, Firestore, Stripe, PWA). Tiene ~1885 tests en vitest. El roadmap del programa está en ${DIR}/backlog.json y el avance real en ${DIR}/estado.json.\n\n${CARTA}`
@@ -119,7 +127,7 @@ const VERIF_SCHEMA = {
 phase('Estado')
 
 const filtro = SOLO_UNIDADES
-  ? `Usa EXACTAMENTE estas unidades (en este orden), ignorando el orden natural: ${SOLO_UNIDADES.join(', ')}.`
+  ? `Usa EXACTAMENTE estas unidades (en este orden), ignorando el orden natural: ${SOLO_UNIDADES.join(', ')}. Esta lista es una ORDEN EXPLÍCITA del operador y MANDA sobre las reglas de exclusión de abajo: si una de estas unidades está en \`bloqueadas\`, hazla de todos modos (el operador ya sabe que estaba bloqueada — por eso la nombró). Lo único que NO puedes saltarte es la regla 1 de la carta: si falta criterio médico, te detienes.`
   : SOLO_ETAPA
     ? `Considera SOLO unidades de la etapa ${SOLO_ETAPA}.`
     : 'Considera todas las etapas en orden (E0 primero: el hardening bloquea al resto).'

@@ -200,18 +200,6 @@
   },
   "bloqueadas": [
     {
-      "unidad": "E0-11",
-      "titulo": "El CI protege los invariantes clínicos",
-      "motivo": "Verificación adversarial INCOMPLETA por DOS razones independientes. (1) BYPASS DEMOSTRADO, y es software: PATRONES_DESACTIVACION en src/lib/clinical/safety-gate.ts:137-142 sólo reconoce .skip/.only/.todo/x-prefijo. NO reconoce `describe.skipIf(true)` ni `describe.runIf(false)`, que apagan el archivo ENTERO. Se probó sobre clinical-safety-harness.test.ts (42 casos): el gate quedó VERDE con el invariante apagado. (2) La aceptación literal («un PR que rompe un invariante no puede MERGEARSE») la decide la protección de rama de GitHub, que sigue sin activar (docs/pendientes-externos.md §3): hoy el gate AVISA, no BLOQUEA.",
-      "origen": "verificacion-adversarial",
-      "reintentar": true,
-      "queFaltaExactamente": [
-        "SOFTWARE (ejecutable ya, sin criterio médico): añadir skipIf/runIf a PATRONES_DESACTIVACION, con su caso en la ASERCIÓN 6 (el autotest de las regex). Ojo al falso positivo: `runIf(true)`/`skipIf(false)` NO apagan nada; hay que decidir y documentar si se marcan igual por conservadurismo.",
-        "DEL DR (no ejecutable por el agente): activar required status checks `clinical-safety` + `verificar` sobre `main`."
-      ],
-      "evidencia": "docs/roadmap/nexus-os/unidades/E0-11/VERIFICACION.json + RESULTADO.parcial.json (lo que sí quedó hecho y verificado)"
-    },
-    {
       "unidad": "E0-09",
       "titulo": "Eventos hospitalarios críticos append-only",
       "motivo": "Verificación adversarial INCOMPLETA: la aceptación literal («un update sobre un evento sellado es rechazado por reglas») NO se cumple. firestore.rules:246-248 sigue con `allow read, create, update: if isClinicoHospital(clinicId)` sobre /signos/{signoId} y ningún test la cubre. Lo entregado (tipos append-only, núcleo puro de correcciones, MAR y órdenes en el libro legal, gate de partición de acciones) es ANDAMIAJE sólido y verificado, pero no es la aceptación.",
@@ -461,6 +449,13 @@
     "2026-07-29T03:44:05Z — E0-04 deja una tarea HEREDADA a E0-05, fuera de la letra de su criterio pero real: la marca fantasma está indexada por DIMENSIÓN, no por unidad, así que `{...mg(500), unidad:'µg' as const}` compila SIN ningún `as` y valorEn(escala,'mg') devuelve 0.5 — error de escala 1000×. Hoy inocuo (cero consumidores). Debe cerrarse antes de que un motor real clone cantidades con spread.",
     "2026-07-29T03:44:05Z — E0-09/Q5 cambió de estado sin que nadie tocara código: docs/clinical-decisions/DECISIONES-ARQUITECTURA-2026-07-28.md ENTRÓ EN GIT (c795520, autor DAVID) y su §A3 lista «signos vitales» como append-only. Ya no es una pregunta abierta: es una línea de confirmación sobre un matiz (§A3 habla de dato «FINALIZADO/FIRMADO» y un signo no tiene ese estado).",
     "2026-07-29T03:44:05Z — Estado del repo al cerrar: `git status --short` VACÍO y `npx tsc --noEmit` exit 0. No hubo que revertir basura de las unidades bloqueadas: su código (núcleo append-only de E0-09, metagate de E0-11) está commiteado en 481b44b y es aditivo, verificado y sin consumidores de producción. Retirarlo destruiría trabajo bueno sin cerrar ningún riesgo — lo que falla en ambas es lo que NO se hizo, no lo hecho.",
-    "2026-07-29T03:46:32Z — RECONCILIACIÓN 5ª pasada: el disco manda y el disco dice 6 completadas (E0-01, E0-02, E0-03, E0-04, E0-14, E0-15). `reconciliacionDisco` seguía diciendo 7 e incluía a E0-09 y E0-11, que sólo tienen RESULTADO.parcial.json. Corregido. OJO para la próxima corrida: RESULTADO.parcial.json NO cuenta como hecho — es la señal de reintento que dejó el commit 60d63b6."
+    "2026-07-29T03:46:32Z — RECONCILIACIÓN 5ª pasada: el disco manda y el disco dice 6 completadas (E0-01, E0-02, E0-03, E0-04, E0-14, E0-15). `reconciliacionDisco` seguía diciendo 7 e incluía a E0-09 y E0-11, que sólo tienen RESULTADO.parcial.json. Corregido. OJO para la próxima corrida: RESULTADO.parcial.json NO cuenta como hecho — es la señal de reintento que dejó el commit 60d63b6.",
+    "E0-10: el CÓDIGO ya está escrito y commiteado (CSP parametrizada + rutas privadas + csp-guard + e2e), con tsc/vitest/build verdes verificados a mano. Lo que falta es sólo su RESULTADO.json y la verificación adversarial: la corrida se atascó antes. NO reimplementar desde cero."
+  ],
+  "paraReintentar": [
+    {
+      "unidad": "E0-11",
+      "motivo": "Cerrar el bypass describe.skipIf/runIf en safety-gate.ts:137-142. Software puro, no depende del médico."
+    }
   ]
 }
