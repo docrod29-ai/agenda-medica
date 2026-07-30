@@ -1,98 +1,83 @@
 {
   "unidad": "E0-07",
   "titulo": "Autorización por capabilities",
+  "ronda": 2,
   "fecha": "2026-07-29",
   "verificador": "adversarial (refutar), solo lectura",
-  "commitVerificado": "ca37b50",
-  "hedVerificado": "3c09a0d",
+  "commitVerificado": "529c63a (lote de CIERRE)",
+  "headVerificado": "d4251e6",
+  "notaDeRonda": "La ronda 1 (sobre ca37b50) devolvió la unidad a la cola con 3 P1 + 2 P2 + 2 P3; su VERIFICACION.json completo vive en el historial de git (este archivo lo sustituye). Aquí solo se juzga el lote de cierre y si los tres P1 quedaron cerrados de verdad.",
   "veredicto": "INCOMPLETA",
   "cumpleAceptacion": false,
   "aceptacionLiteral": "Cada ruta declara la capacidad que exige; no hay any-member implícito.",
-  "lecturaDeLaAceptacion": {
-    "clausula1_declara": "CUMPLIDA Y GUARDADA POR MÁQUINA — las 74 rutas de src/app/api están en REGISTRO_RUTAS (diff disco↔registro: idénticos), con conteo congelado, sin zombis y con `motivo` obligatorio en cada exención.",
-    "clausula2_noAnyMemberImplicito": "NO CUMPLIDA EN EJECUCIÓN — de las 45 rutas con capacidad declarada, solo 17 la EXIGEN; 28 siguen corriendo el guardián any-member. Está documentado por el autor, pero el criterio habla de lo que la ruta exige, no de lo que declara."
+  "resumen": "Dos de los tres P1 quedan CERRADOS y lo verifiqué con mutación independiente. El tercero (P1-1) mejoró de verdad —los cinco sabotajes que la ronda 1 dejó en verde ahora salen rojos— pero la garantía que el lote afirma («la capacidad que CORRE es EXACTAMENTE la DECLARADA, par por par») NO es lo que el guardián impone: lo que impone es «la capacidad declarada aparece entre los literales de alguna llamada del segmento atribuido al método». Demostré 4 falsos verdes, uno de ellos un refactor realista que deja el POST de stripe/asientos SIN guardián alguno con la suite entera en verde. Cero regresiones.",
+  "gatesReproducidosPorMi": {
+    "tsc": "PASS — `npx tsc --noEmit`, exit 0.",
+    "vitest": "PASS — `npx vitest run src/__tests__/` → 203 archivos / 2833 tests, 0 fallos (la cifra difiere del 2801 del acta porque después entró E0-10 y el árbol tiene cambios sin commitear de E1-02, ajenos a esta unidad).",
+    "build": "NO se corrió (fuera del alcance de esta verificación; el acta lo reporta PASS)."
   },
+  "metodo": "Arnés de mutación EN MEMORIA, sin tocar el repo: se cargan `src/lib/authz/analisis-estatico.ts` y `registro-rutas.ts` con el type-stripping de Node 24, se lee cada `route.ts` de disco, se aplica el sabotaje sobre el TEXTO en memoria y se re-ejecuta la lógica central de authz-rutas-declaradas.test.ts (T1 capacidad declarada==código, T2 no-degradación, T3 pendiente con guardián viejo, T4 sin-literal, T5 módulo, T6 fuera-de-handler, T7 contadores congelados, T8 resumenActivacion, T9 lista congelada de verificarMiembro). Control base: VERDE, cero fallos. Scripts en el scratchpad de la sesión; ninguna edición en el árbol del médico.",
   "loQueSEVERIFICOYSOSTIENE": [
-    "src/lib/authz/capabilities.ts:50-137 — catálogo cerrado de 14 capacidades × 8 roles; importa la unión canónica de E0-06 (matriz-acceso.ts:1) en vez de redeclararla, como afirma.",
-    "src/lib/authz/verificar.ts:45-54 y 91-95 — verificarCapacidad / exigeCapacidad existen y hacen lo dicho: membresía primero (auth-server.ts:79), capacidad después; 403 sin filtrar el rol al cuerpo.",
-    "src/lib/authz/registro-rutas.ts:113-281 — 74 claves. Comprobado independientemente: `find src/app/api -name route.ts` → 74 rutas; diff contra las claves del registro = IDÉNTICO, cero divergencias.",
-    "EQUIVALENCIA DE ROLES REAL, verificada contra ca37b50^ por mí, no por su prosa: hospital/mutar GATES viejo (ca37b50^:src/app/api/hospital/mutar/route.ts:20-39) ≡ rolesCon() de ACCIONES_HOSPITAL_MUTAR (registro-rutas.ts:71-95) en las 18 acciones; hospital/alerta ROLES_CLINICOS (ca37b50^:.../alerta/route.ts:25) ≡ rolesCon('clinico.leer') = admin,medico,enfermeria,farmacia,laboratorio; auditoria.registrar = los 8 roles ⊇ any-member anterior. NINGÚN usuario real pierde acceso.",
-    "permissions.ts:65-90 deriva de la matriz sin cambiar una casilla: comparé las 8×12 casillas del oráculo (authz-capabilities.test.ts:220-261) contra ca37b50^:src/lib/permissions.ts:36-90 → coinciden una por una, incluida la asimetría manejarPagos=false para `medico` (permissions.ts:58).",
-    "SIN regla clínica, umbral ni dosis inventados. La unidad es 100% política de acceso. `pase.registrar` (capabilities.ts:71) agrupa balance/escala/sbar y reproduce GATES 1:1: es vocabulario de autorización, no criterio clínico. NEEDS_CLINICAL_REVIEW correctamente marcado como no aplicable.",
-    "SIN PHI ni secretos: `git show ca37b50 | grep` de sk-/AIza/BEGIN/teléfonos/CURP → 0 hits. Fixtures sintéticos ('u1', 'c1', 'pac-777').",
-    "SIN regresión funcional detectable: el texto del 403 cambió ('Requiere rol de médico.' → 'Tu rol no tiene permiso…'), y `grep -rn \"Tu rol\"` confirma que ningún consumidor del cliente lo parsea; permisosPorRol no tiene llamadores de producción; el <select> de roles (secciones-cuenta.tsx:627-632) sigue con 6 opciones cableadas, así que la ampliación de ClinicMember.role 6→8 no aparece en la UI.",
-    "GATES REPRODUCIDOS POR MÍ: `npx tsc --noEmit` → PASS (exit 0). `npx vitest run src/__tests__/` en HEAD 3c09a0d → 196 archivos / 2663 tests PASS. En un worktree aislado sobre ca37b50 → 194 / 2583 PASS, exactamente la cifra que reporta RESULTADO.json:gates. La cifra no está inflada.",
-    "El registro SÍ tiene dientes en 4 ejes, comprobados con sabotaje real en worktree aislado: ruta nueva sin declarar → 4 fallos; `secretaria` gana clinico.escribir → 21 fallos; revertir stripe/portal entero a verificarMiembro → 3 fallos; mover mutar.administrar a clinico.escribir (excluiría a enfermería) → 1 fallo; quitar activacionPendiente a facturacion/pagos → 2 fallos."
+    "P1-2 CERRADO (pérdida neta restaurada). `src/__tests__/api-authz-guard.test.ts:131-153` fija el gate sobre el ARGUMENTO real del handler: `analizarRuta(...).porMetodo.POST` filtrado a `verificarCapacidad` tiene que contener el literal 'clinico.escribir' (:147-148) y NO puede contener `verificarMiembro` (:152). Comprobé contra el historial que E0-06 tenía `expect(src).toContain('verificarMedico')` + `not.toContain('verificarMiembro')` (ca37b50~1:src/__tests__/api-authz-guard.test.ts:93-98) y que ca37b50 los había sustituido por una assert sobre la DECLARACIÓN (ca37b50:...:119-129). El diff del lote es 100% aditivo (+25/-0): no se quitó ninguna assert previa. Mutación: `src/app/api/telesalud/token/route.ts:27` 'clinico.escribir'→'clinico.leer' ⇒ ROJO.",
+    "P1-3 CERRADO. `src/lib/authz/registro-rutas.ts:52-56` — la variante `porMetodo` ya NO tiene `activacionPendiente` y gana `pendientePorMetodo?: Partial<Record<Metodo, string>>`; `pendienteDe` (:354-359) y `activaEnCodigoMetodo` (:362-364) resuelven por método, y `authz-rutas-declaradas.test.ts:145-152` exige que el método pendiente exista en el mapa de capacidades. Mutaciones: `src/app/api/clinic/ai-keys/route.ts:46` y `src/app/api/stripe/asientos/route.ts:57` verificarCapacidad('administrar')→verificarMiembro(req, clinicId) ⇒ ROJO cada una (T1 «no llama a verificarCapacidad» + T2 «volvió al gate binario» + T7 contador de vocabulario 38→37).",
+    "P1-1 PARCIAL — la parte que sí funciona. `src/lib/authz/analisis-estatico.ts:254-308` existe, es puro (solo `import type` de registro-rutas: cero `fs`, cero `next/server`, cero Firebase) y hace lo que dice para el caso frecuente: extrae llamadas, literales y handler. Mutaciones de la ronda 1, todas ROJAS ahora: stripe/portal:23 'administrar'→'auditoria.registrar'; telesalud/token:27 y fhir/paciente/[patientId] 'clinico.escribir'→'clinico.leer'; clinic/ai-keys#POST y stripe/asientos#POST de vuelta a verificarMiembro. Las 5 que dejaban 2663 tests en verde ya no pasan. Eso es progreso REAL y medido, no prosa.",
+    "El analizador está probado con fixtures sintéticos propios: `src/__tests__/authz-analisis-estatico.test.ts` (17 casos) cubre comentarios que CITAN guardianes (:37-49), URL con '//' dentro de cadena (:20-31), ')' dentro de cadena y paréntesis anidados (:73-83), plantilla/ternario/variable ⇒ argumentoNoLiteral (:96-113), y la exención dinámica legítima de hospital/mutar (:115-132). Los fragmentos son `route.ts` inventados.",
+    "Anti-vacío verificado: `authz-rutas-declaradas.test.ts:337-348` congela 74 llamadas / 61 rutas con guardia / 38 con vocabulario, y en mi arnés cualquier sabotaje que añada o quite una llamada mueve esos contadores a rojo. Un analizador que devolviera listas vacías NO pasaría.",
+    "CERO regresión funcional. `git show --stat 529c63a`: los 9 archivos son 3 tests, 2 de `src/lib/authz` y 4 de `docs/`. Ningún archivo bajo `src/app/api`, ningún guardián en ejecución, `firestore.rules` intacto. `grep -rn analisis-estatico src` ⇒ solo 3 archivos de test lo importan (authz-rutas-declaradas.test.ts:10, api-authz-guard.test.ts:6, authz-analisis-estatico.test.ts:2): no entra en ningún bundle de producción.",
+    "SIN regla clínica, umbral ni dosis inventados. El lote es 100% política de acceso y análisis de texto; no toca `ACCIONES_HOSPITAL_MUTAR` (registro-rutas.ts:84-108, ya verificado 1:1 contra el GATES viejo en la ronda 1). NEEDS_CLINICAL_REVIEW sigue correctamente marcado como no aplicable.",
+    "SIN PHI ni secretos. Los fixtures usan 'u1', 'cid', 'ejemplo.mx', 'administrar'; grep de sk-/AIza/api_key/@gmail/CURP/secuencias de 10+ dígitos sobre los dos archivos nuevos ⇒ 0 hits.",
+    "P3-1 CERRADO de forma comprobable: `resumenActivacion` (registro-rutas.ts:374-389) CALCULA el avance y el test lo fija en 49 pares declarados / 20 activos / 29 pendientes = 28 rutas (authz-rutas-declaradas.test.ts:350-362). Reproducido por mi arnés: 49/20/29 exactos.",
+    "P3-2 CERRADO: `internamientos` está en la señal de PHI clínico (authz-rutas-declaradas.test.ts:38) y el control anti-vacío pasa de 2 a 3 rutas (:433-440), más un segundo nivel congelado para `patients` (:442-457)."
   ],
   "problemas": [
     {
-      "id": "P1-1",
+      "id": "P1-1r",
       "severidad": "P1",
-      "titulo": "El guardián NO comprueba QUÉ capacidad exige la ruta, solo que se llame al helper. Es el mismo defecto que la unidad dice haber cerrado.",
-      "evidencia": "src/__tests__/authz-rutas-declaradas.test.ts:152 — `if (!/verificarCapacidad\\s*\\(/.test(FUENTE.get(clave) ?? '')) mentirosas.push(clave)`. Comprueba la EXISTENCIA de la llamada, nunca el argumento. Sustituir la capacidad en el código deja el registro mintiendo y la suite verde.",
-      "sabotajesEjecutados": [
-        "src/app/api/stripe/portal/route.ts:23 'administrar' → 'auditoria.registrar' (capacidad que tienen LOS 8 ROLES): 196 archivos / 2663 tests PASS. Un rol `laboratorio` abriría el portal de facturación de Stripe y nada se pone rojo.",
-        "src/app/api/telesalud/token/route.ts:27 'clinico.escribir' → 'clinico.leer' (añade enfermeria/farmacia/laboratorio al emisor de tokens de paciente con alcance clínico): 2663 PASS.",
-        "src/app/api/fhir/paciente/[patientId]/route.ts:31 'clinico.escribir' → 'clinico.leer' (export ÍNTEGRO de PHI abierto al staff hospitalario, justo lo que el comentario de registro-rutas.ts:157-159 dice evitar): 2663 PASS."
+      "titulo": "La comprobación NO ata la capacidad a su POSICIÓN de argumento: basta con que el literal declarado aparezca en cualquier parte de la llamada. Hay falsos verdes demostrados.",
+      "evidencia": "src/__tests__/authz-rutas-declaradas.test.ts:242 — `const coincide = exigen.some(l => l.literales.includes(esperada))`. `literales` es «todos los literales de cadena de la llamada, en orden» (src/lib/authz/analisis-estatico.ts:78, :237-248): el tipo `LlamadaGuardia` (analisis-estatico.ts:72-88) NO expone el argumento que ocupa la posición de vocabulario, aunque el módulo SÍ conoce esa tabla (POSICIONES_VOCABULARIO, analisis-estatico.ts:56-70) y la usa solo para `argumentoNoLiteral` (:270). Con la información publicada, el test NO PUEDE comprobar qué capacidad corre; solo que la declarada esté presente.",
+      "mutacionesEjecutadas": [
+        "src/app/api/stripe/portal/route.ts:23 → `verificarCapacidad(req, 'administrar', 'auditoria.registrar')`: la capacidad que CORRE es 'auditoria.registrar', que la tienen LOS 8 ROLES, y la suite queda VERDE (0 fallos en los 9 chequeos del arnés).",
+        "src/app/api/stripe/checkout/route.ts → `verificarCapacidad(req, clinicId, 'auditoria.registrar', 'administrar')` (4.º argumento señuelo, patrón «opciones» perfectamente plausible): corre 'auditoria.registrar', VERDE.",
+        "src/app/api/uci/copilot/route.ts → `verificarModuloIA(req, 'expediente', 'uci')`: el módulo que se comprueba es 'expediente' y el declarado es 'uci' (registro-rutas.ts:166); el test de entitlement (authz-rutas-declaradas.test.ts:291) usa el mismo `literales.includes` y queda VERDE."
       ],
-      "porQueImporta": "La aceptación dice «cada ruta declara la capacidad que EXIGE». Hoy el registro y el código pueden divergir sin que ningún test lo note, así que la declaración no es una garantía verificable, es documentación. Y es exactamente la crítica que api-authz-guard.test.ts:20-24 le hace a E0-06 («usaba el nombre del helper como señal»), reintroducida en otra forma."
+      "porQueImporta": "El acta y el mensaje del commit afirman «el guardián ya no comprueba que exista la llamada sino que la capacidad que CORRE sea exactamente la DECLARADA». Lo que hay es más débil que eso y la diferencia no es teórica: en las tres mutaciones de arriba el registro dice una cosa, el código ejecuta otra, y el gate no se mueve. La corrección es pequeña y contenida (publicar el literal de la posición de vocabulario en `LlamadaGuardia` y comparar POR POSICIÓN, no por pertenencia), y no toca producción."
     },
     {
-      "id": "P1-2",
+      "id": "P1-2r",
       "severidad": "P1",
-      "titulo": "Pérdida NETA de una protección de E0-06: el gate en CÓDIGO de telesalud/token dejó de estar fijado.",
-      "evidencia": "ANTES (ca37b50^:src/__tests__/api-authz-guard.test.ts) el test hacía `expect(src).toContain('verificarMedico')` y `expect(src).not.toContain('verificarMiembro')`. Lo reproduje: en un worktree sobre ca37b50^, cambiar verificarMedico→verificarMiembro en telesalud/token pone el archivo ROJO (1 fallo de 6). DESPUÉS (api-authz-guard.test.ts:118-129) solo se fija la capacidad DECLARADA (`rolesQuePasan('telesalud/token') === ['admin','medico']`), así que el degradado EN CÓDIGO del sabotaje P1-1 queda verde.",
-      "porQueImporta": "telesalud/token es una de las dos P0 históricas que este guardián existe para vigilar (emitía tokens de paciente con any-member, cerrado en la auditoría maestra 2026-07). El commit afirma que «las 3 propiedades de E0-06 se conservan»; se conservan re-expresadas sobre la DECLARACIÓN, y en esta ruta eso es estrictamente más débil que lo que había, no «más fuerte» como dice api-authz-guard.test.ts:29-31."
+      "titulo": "La atribución «último handler exportado que precede» falla hacia el VERDE: un guardián movido a un helper declarado DESPUÉS del handler se cuenta como si estuviera dentro, y el handler real queda sin guardia.",
+      "evidencia": "src/lib/authz/analisis-estatico.ts:288-300 — la llamada se asigna al último `export async function` cuyo offset la precede; el archivo NUNCA busca el cierre del handler. `compartidas` (:298) solo recoge lo que va ANTES del primer handler, y eso es lo único que vigila authz-rutas-declaradas.test.ts:327-335, cuyo comentario afirma cubrir el caso «si alguien mueve el guardián a un helper». El fixture del analizador (authz-analisis-estatico.test.ts:179-191) prueba únicamente el helper ANTERIOR al handler.",
+      "mutacionesEjecutadas": [
+        "src/app/api/stripe/asientos/route.ts:57 — se sustituye la llamada del POST por `await _gate(req, clinicId)` y se añade AL FINAL del archivo `async function _gate(req, clinicId) { return await verificarCapacidad(req, clinicId, 'administrar') }`. El POST real ya no llama a ningún guardián de capacidad; el total de llamadas sigue en 74 (los contadores congelados no se enteran) y la atribución cuenta la del helper como si fuera del POST. Resultado: VERDE, 0 fallos. Es la ruta que cambia los ASIENTOS de la suscripción."
+      ],
+      "porQueImporta": "Extraer el guardián a un helper del propio archivo es uno de los refactores más normales que existen, y aquí convierte una ruta de dinero en una ruta sin gate sin poner nada rojo. Además contradice por escrito el riesgo residual del acta («El analizador … falla en ABIERTO hacia el rojo: lo que no puede determinar lo marca argumentoNoLiteral», RESULTADO.json:riesgoResidual[2]): en este modo de falla no marca nada y el fallo es hacia el verde. Arreglo acotado: contar el balance de llaves del handler para delimitarlo, o tratar como `compartidas` toda llamada que caiga dentro de una `function`/`const` no exportada, sea antes o después."
     },
     {
-      "id": "P1-3",
-      "severidad": "P1",
-      "titulo": "En las rutas `porMetodo` con activacionPendiente, el método que el registro declara MIGRADO no está protegido por ningún test: se puede devolver a any-member en verde.",
-      "evidencia": "src/lib/authz/registro-rutas.ts:305 — `activaEnCodigo` devuelve false si hay activacionPendiente, y authz-rutas-declaradas.test.ts:150 hace `if (!activaEnCodigo(e)) continue`. Sabotajes ejecutados: src/app/api/clinic/ai-keys/route.ts:46 verificarCapacidad('administrar') → verificarMiembro → 2663 PASS; src/app/api/stripe/asientos/route.ts:57 idem → 2663 PASS.",
-      "porQueImporta": "El texto del registro afirma «POST ya migrado» (registro-rutas.ts:192 y 202) y nada lo verifica. El POST de clinic/ai-keys ESCRIBE las llaves de IA del consultorio: dejarlo caer a any-member (cualquier rol, p. ej. `laboratorio`) es escalada sobre secretos del tenant, y la suite no se movería."
-    },
-    {
-      "id": "P2-1",
+      "id": "P2-1r",
       "severidad": "P2",
-      "titulo": "El hueco central que la unidad venía a cerrar sigue abierto: las 16 rutas de IA no miran el rol, y el helper construido para cerrarlo no tiene ni un llamador.",
-      "evidencia": "registro-rutas.ts:138-153 declara 16 rutas como `entitlementIA` + capacidad `clinico.escribir`, todas con activacionPendiente PENDIENTE_Q1 (registro-rutas.ts:98). Su código sigue en verificarModuloIA (auth-server.ts:105-129), que devuelve `role` pero NUNCA lo evalúa. `grep -rn verificarModuloYCapacidad src/` → 0 llamadores de producción (solo su propio test, nucleo/autorizacion-servidor.test.ts:308-358). El test de tipos lo permite explícitamente: authz-rutas-declaradas.test.ts:185 acepta `verificarModulo(IA|YCapacidad)`.",
-      "porQueImporta": "Hoy un miembro con rol `secretaria`, `farmacia` o `laboratorio` puede seguir llamando a expediente/transcribir, expediente/procesar, uci/copilot, etc. — entrada y salida de PHI — con solo tener el plan. Es la misma afirmación de verificar.ts:60-61. Diferirlo por Q1 es defendible bajo la regla 5, pero entonces la unidad no cumple su aceptación todavía."
+      "titulo": "La cláusula 2 de la aceptación sigue sin cumplirse EN EJECUCIÓN, igual que en la ronda 1.",
+      "evidencia": "authz-rutas-declaradas.test.ts:353-355 fija `resumenActivacion` = {declarados: 49, activos: 20, pendientes: 29} y :361 fija 28 rutas pendientes (reproducido por mí). 13 rutas siguen llamando a `verificarMiembro` (lista congelada, :196-211) y las 16 de IA siguen en `verificarModuloIA`, que no evalúa el rol (registro-rutas.ts:151-166, todas con PENDIENTE_Q1 :111-114).",
+      "porQueImporta": "No es un defecto nuevo ni un engaño: está declarado por escrito, con motivo, con test que comprueba que el guardián viejo sigue ahí (:266-279) y correctamente detenido por la regla 5 de la carta operativa (activarlo estrecharía el acceso de usuarios reales). Pero mientras 29 de 49 pares corran el gate anterior, «no hay any-member implícito» se cumple como DECLARACIÓN, no como EJECUCIÓN, y la unidad no puede cerrarse contra su aceptación literal sin las respuestas Q1 y Q3-Q7 del médico dueño."
     },
     {
-      "id": "P2-2",
-      "severidad": "P2",
-      "titulo": "El invariante «ninguna ampliación alcanza a un usuario real» se apoya en un tope que no es el que de verdad limita qué se guarda.",
-      "evidencia": "capabilities.ts:42-44 (ROLES_ASIGNABLES) y authz-capabilities.test.ts:153-164 dan por bueno que `facturacion` no es asignable porque cambiarRolMiembro (src/lib/miembros.ts:40-45) tiene ese literal en su tipo TS. Pero src/app/api/clinic/unirse/route.ts:77 escribe `role: inv.role` VERBATIM (tipado `string`, sin whitelist) y firestore.rules:600-601 permite crear invitaciones con cualquier valor de `role` salvo 'admin'. Un medico/admin puede emitir con el SDK cliente una invitación con role 'facturacion' y ese usuario existiría de verdad.",
-      "porQueImporta": "La única ampliación de la Fase B (facturacion/solicitar → `facturar`, timbrado CFDI, registro-rutas.ts:183-188) SÍ es alcanzable en la práctica, no solo en la matriz. Severidad contenida: quien puede emitir esa invitación ya tiene `facturar`. Pero el invariante que el test presenta como cierre no está impuesto por reglas, solo por un tipo de TypeScript en un helper de cliente."
-    },
-    {
-      "id": "P3-1",
+      "id": "P3-1r",
       "severidad": "P3",
-      "titulo": "Error de conteo en el expediente del programa, justo sobre la cifra de la que pende la aceptación.",
-      "evidencia": "El commit ca37b50, estado.json (notaCierre de E0-07) y RESULTADO.json:riesgoResidual[0] dicen «26 rutas pendientes». Son 28: evaluando REGISTRO_RUTAS con `activaEnCodigo` → 45 con capacidad, 17 activas, 28 pendientes. El propio RESULTADO.json:alcanceEjecutado.faseC las enumera y suman 28 (11 que estrechan + 16 de IA + telesalud/sala)."
-    },
-    {
-      "id": "P3-2",
-      "severidad": "P3",
-      "titulo": "El barrido de PHI del guardián sigue dependiendo de una señal muy estrecha.",
-      "evidencia": "authz-rutas-declaradas.test.ts:29 y :230 detectan PHI clínico solo con `collection('notas'|'laboratorios'|'fotos'|'clinico')`, y el control anti-vacío (:252) congela el resultado en 2 rutas. Una ruta que lea PHI vía subcolección de `internamientos`, `pacientes` o con el nombre en una variable no entra al chequeo. Heredado de E0-06, no introducido aquí, pero el commit lo presenta como «MÁS FUERTE»."
+      "titulo": "`activaEnCodigo` quedó como código muerto exportado, y su comentario afirma lo contrario.",
+      "evidencia": "src/lib/authz/registro-rutas.ts:324-335 — el docstring dice «Se conserva con la firma de siempre (hay tests de E0-07 que la usan)». `grep -rn 'activaEnCodigo(' src scripts` ⇒ 0 llamadores en todo el repo (solo la definición). El guardián migró a `activaEnCodigoMetodo`. Además `docs/roadmap/nexus-os/unidades/E0-07/DISENO.md:32` cita `registro-rutas.ts:305` para una función que hoy está en la 331."
     }
   ],
   "loQueNOSEPUDOREFUTAR": [
-    "Que se haya inventado una regla clínica: no hay ninguna. Revisión explícita del catálogo y de la matriz.",
-    "Que se haya roto acceso a un usuario real: las 3 equivalencias de conjuntos las recalculé contra ca37b50^ y son exactas.",
-    "Que las cifras de gates estén inventadas: 2583/194 reproduce exactamente en un worktree sobre ca37b50.",
-    "Que el expediente mienta al programa: RESULTADO.json declara estado `necesita_validacion` y su riesgoResidual[0] admite por escrito que las pendientes «siguen siendo any-member EN EJECUCIÓN». El reporte de sesión que dice «implementada de verdad y verificada» es más optimista que el propio artefacto."
+    "Que P1-2 y P1-3 estén cerrados: los verifiqué con mutación independiente y con el historial de git, no con la prosa del commit.",
+    "Que las 5 mutaciones de la ronda 1 sigan pasando en verde: las cinco están ROJAS.",
+    "Que el lote haya roto algo: tsc exit 0 y 2833/2833 tests en verde; cero archivos de `src/app/api`, cero de `firestore.rules`, y el módulo nuevo solo lo importan tests.",
+    "Que se haya inventado una regla clínica, un umbral o una dosis: no hay ninguna; el lote es análisis léxico y política de acceso.",
+    "Que quedara PHI o un secreto en un fixture: los fragmentos son `route.ts` ficticios."
   ],
-  "metodo": {
-    "gates": "npx tsc --noEmit (PASS) y npx vitest run src/__tests__/ (196/2663 PASS) en el árbol principal, HEAD 3c09a0d. npm run build NO se corrió (E0-12 lo cubrió después).",
-    "sabotajes": "10 sabotajes en worktrees git aislados en el scratchpad (HEAD y ca37b50^), con node_modules por symlink. Ninguna edición en el árbol de trabajo del médico; los worktrees se eliminaron al terminar.",
-    "notaDeEntorno": "Al terminar, el árbol principal tiene cambios sin commitear en secciones-recetas.tsx, pacientes/page.tsx, RecetaDocumento.tsx, types/index.ts (campo `nacimiento` de RecetaConfig) y un test nuevo paciente-form-corto.test.ts. NO son míos ni de E0-07 (ningún archivo de la unidad está sucio): es otra sesión trabajando en el mismo repo. Se dejaron intactos."
-  },
   "recomendacion": [
-    "Cerrar P1-1 antes de dar la unidad por buena: el guardián debe extraer el ARGUMENTO de verificarCapacidad( del archivo y compararlo con la capacidad declarada (y con la del método, para porMetodo). Es el único cambio que convierte el registro en una garantía en vez de un comentario, y arregla P1-2 y P1-3 de paso.",
-    "P1-3 en concreto: que `activacionPendiente` sea por MÉTODO en las rutas porMetodo, para que el POST ya migrado de clinic/ai-keys y stripe/asientos quede fijado.",
-    "P2-1 depende de Q1 del médico dueño (política de acceso, no criterio clínico): ¿enfermería de UCI dicta y usa el copiloto, o solo el médico? Hasta esa respuesta, el hueco de IA-sin-rol queda abierto por decisión suya, no por falta de andamiaje.",
-    "P2-2: whitelist del valor `role` en firestore.rules (invitaciones) y en clinic/unirse, para que ROLES_ASIGNABLES sea un tope real."
+    "Cerrar P1-1r: exponer en `LlamadaGuardia` el literal de la POSICIÓN de vocabulario (p. ej. `vocabulario: Partial<Record<number, string>>`) y comparar por posición en authz-rutas-declaradas.test.ts:242 y :291. Sin eso, la frase «la capacidad que corre es la declarada» no debería figurar en el acta.",
+    "Cerrar P1-2r: delimitar el handler (balance de llaves) o mandar a `compartidas` toda llamada dentro de una función no exportada, esté antes o después. Añadir el fixture del helper POSTERIOR en authz-analisis-estatico.test.ts, que hoy solo prueba el anterior.",
+    "Corregir el riesgo residual del acta: el analizador NO falla siempre hacia el rojo (P1-2r es un fallo hacia el verde).",
+    "P3-1r: borrar `activaEnCodigo` o darle un llamador; hoy su comentario dice algo que el repo desmiente.",
+    "P2-1r no es trabajo de agente: depende de Q1 y Q3-Q7 (política de acceso del consultorio, no criterio clínico). Está correctamente detenido."
   ]
 }

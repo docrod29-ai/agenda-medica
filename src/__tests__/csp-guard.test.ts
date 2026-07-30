@@ -288,7 +288,17 @@ const IFRAMES_EXENTOS: Record<string, string> = {
 }
 
 /** Apertura de cada `<iframe …>` del archivo (hasta el `>` de cierre de la etiqueta). */
-const RE_APERTURA_IFRAME = /<iframe[\s\S]{0,400}?\/?>/g
+/**
+ * Tag de apertura de un <iframe>, SIN cota de longitud.
+ *
+ * Tenía `{0,400}`, y esa cota era un escape: un tag de apertura de más de 400
+ * caracteres (nada raro en JSX con estilos y props en línea) quedaba INVISIBLE
+ * para el escáner, así que un `src={url}` no declarado pasaba en verde.
+ * Demostrado por la verificación adversarial de E0-10 (mutante M3b: 23/23 verde).
+ *
+ * `[^>]*` no cruza el cierre del tag, así que no hace falta acotar nada.
+ */
+const RE_APERTURA_IFRAME = /<iframe[^>]*>/g
 
 describe('E0-10 · los iframes de origen DINÁMICO están atados a frame-src (V-3)', () => {
   // Se cruza contra el `frame-src` de la política GLOBAL a propósito: /teleconsulta no
@@ -478,5 +488,46 @@ describe('E0-10 · la matriz E2E de seguridad existe y lee la misma lista', () =
     const spec = readFileSync(resolve(RAIZ, 'e2e/seguridad.spec.ts'), 'utf8')
     expect(spec).toContain('rutas-privadas')
     expect(spec).toContain('RUTAS_PRIVADAS')
+  })
+})
+
+describe('REG-062 · el escáner de iframes no se burla con un tag largo', () => {
+  /**
+   * CONTROL POSITIVO del propio escáner. La regex tenía una cota `{0,400}`, así
+   * que un tag de apertura más largo que eso quedaba invisible y un `src={url}`
+   * no declarado pasaba en verde. Lo encontró la verificación adversarial de
+   * E0-10 (mutante M3b: 23/23 verde con el hueco abierto).
+   *
+   * Estos casos ejercitan la REGEX directamente: si alguien le vuelve a poner una
+   * cota, el caso del tag largo se pone rojo.
+   */
+  const encuentraSrcDinamico = (jsx: string): boolean => {
+    RE_APERTURA_IFRAME.lastIndex = 0
+    const tags = jsx.match(RE_APERTURA_IFRAME) ?? []
+    return tags.some(t => /src=\{/.test(t))
+  }
+
+  it('detecta `src={url}` en un tag CORTO', () => {
+    expect(encuentraSrcDinamico('<iframe src={url} />')).toBe(true)
+  })
+
+  it('detecta `src={url}` en un tag LARGO (>400 caracteres) ← el escape cerrado', () => {
+    const relleno = ' data-relleno="' + 'x'.repeat(500) + '"'
+    expect(encuentraSrcDinamico(`<iframe${relleno} src={url} allow="camera" />`)).toBe(true)
+  })
+
+  it('no confunde un iframe con src literal', () => {
+    expect(encuentraSrcDinamico('<iframe src="https://ejemplo.test/x" />')).toBe(false)
+  })
+
+  it('encuentra los DOS de un archivo con dos iframes largos', () => {
+    const largo = (n: string) => `<iframe data-p="${'y'.repeat(450)}" src={${n}} />`
+    RE_APERTURA_IFRAME.lastIndex = 0
+    const tags = `${largo('a')}\n<div/>\n${largo('b')}`.match(RE_APERTURA_IFRAME) ?? []
+    expect(tags).toHaveLength(2)
+  })
+
+  it('la regex NO tiene cota de longitud (si vuelve, este caso avisa)', () => {
+    expect(RE_APERTURA_IFRAME.source).not.toMatch(/\{\d+,\d+\}/)
   })
 })

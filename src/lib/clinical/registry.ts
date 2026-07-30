@@ -98,6 +98,60 @@ export interface MotorClinico {
 const ADR = (n: string) => `docs/clinical-decisions/${n}.md`
 
 export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
+  {
+    id: 'news2-set', nombre: 'NEWS2 sobre conjunto contemporaneo de observaciones',
+    especialidad: 'Medicina interna / deterioro clinico',
+    tipo: 'regla-de-seguridad',
+    version: '1.0.0',
+    referencia: 'Decision ICU-Q4.1 del medico dueno, 29-jul-2026. La FORMULA es del Royal College (NEWS2, Scale 1/Scale 2) y vive en src/lib/hospital/news2.ts: este motor NO la toca.',
+    unidades: 'agruparEnSets(ObservacionDeSet[]) -> SetContemporaneo[] · presentarNews2(SetContemporaneo[], instanteIso) -> News2Presentacion. No calcula puntos.',
+    redondeo: 'no aplica (no calcula magnitudes; agrupa y selecciona tomas)',
+    rangoValido: {
+      fuente: 'referencia',
+      entrada: 'observaciones con observationSetId, measuredAt, status, source y correctedVersion',
+      salida: 'set vigente + estado COMPLETE/INCOMPLETE/NO_DATA + encuadre de pantalla ya decidido',
+      ref: 'Royal College of Physicians NEWS2 (seis parametros fisiologicos + oxigeno suplementario); docs/clinical-decisions/news2-set.md',
+    },
+    file: 'src/lib/clinical/news2-set.ts',
+    entryPoints: ['agruparEnSets', 'presentarNews2', 'VARIABLES_NEWS2'],
+    calculos: [
+      'agrupacion en tomas contemporaneas (observationSetId)',
+      'resolucion de correcciones DENTRO de la toma',
+      'estado del score: COMPLETE / INCOMPLETE / NO_DATA',
+      'encuadre de presentacion: actual vs ultimo_valido vs incompleto vs sin_datos',
+    ],
+    missingData: 'PROHIBIDO Last Observation Carried Forward. Variable ausente del set => INCOMPLETE y puedeCalcularAhora=false, jamas se rellena con historia. Sin observaciones validas => NO_DATA, nunca un cero. Set del futuro => no es el vigente. Instante invalido => lanza.',
+    adr: ADR('news2-set'),
+    goldenTests: ['news2-set-contemporaneo.test.ts'],
+    estado: 'validado',
+    porQueExiste: 'Con una ventana temporal de 4h un NEWS2 de las 12:00 podia armarse con FR de las 08:10, TA de las 09:40 y SpO2 de las 11:55 — seis variables de horas distintas presentadas como un score de ahora. Ese numero no describe a ningun paciente en ningun momento. La unidad de verdad de un score compuesto es la TOMA.',
+  },
+  {
+    id: 'infusion-library', nombre: 'Biblioteca de preparaciones de infusion (3 capas)',
+    especialidad: 'Cuidados criticos / farmacologia',
+    tipo: 'regla-de-seguridad',
+    version: '1.0.0',
+    referencia: 'Decisiones Q2 e ICU-Q4.3 del medico dueno, 29-jul-2026. La capa de referencia NO se cargo: exige fuente externa citada y licencia revisada.',
+    unidades: 'resolverPreparacion(Preparacion[], medicamento) -> RESUELTA | CANNOT_CALCULATE. La concentracion se DERIVA de cantidadFarmaco/volumenFinal, nunca se teclea.',
+    redondeo: 'ninguno en este motor; el calculo de dosis lo hace src/lib/uci/infusiones.ts',
+    rangoValido: {
+      fuente: 'pendiente_validacion_clinica',
+      preguntaAlMedico: 'Las preparaciones de infusion de su unidad (medicamento, cantidad, volumen final, unidad de dosificacion, via, restricciones, poblacion, vigencia). Mientras no existan, HOSPITAL_STANDARD esta vacio y el medico captura a mano — que es exactamente lo que su decision pide. Ver docs/clinical-decisions/infusion-library.md.',
+    },
+    file: 'src/lib/clinical/infusion-library.ts',
+    entryPoints: ['resolverPreparacion', 'registrarSinDosis', 'promoverAEstandarHospital', 'REFERENCE_LIBRARY'],
+    calculos: [
+      'prioridad PATIENT_ACTIVE > HOSPITAL_STANDARD > REFERENCE_LIBRARY',
+      'REFERENCE_LIBRARY nunca se devuelve como resuelta',
+      'registro del hecho dictado SIN dosis cuando falta la concentracion',
+      'promocion a estandar del hospital con acto explicito de usuario autorizado',
+    ],
+    missingData: 'Sin preparacion local => CANNOT_CALCULATE / MISSING_CONCENTRATION y se piden los CUATRO datos de la decision. El dato dictado (velocidad de bomba) se conserva: descartarlo perderia lo que el medico dijo. REFERENCE_LIBRARY nace VACIA a proposito.',
+    adr: ADR('infusion-library'),
+    goldenTests: ['infusion-library-capas.test.ts'],
+    estado: 'pendiente_validacion',
+    porQueExiste: 'Una concentracion de REFERENCIA usada como si fuera la del hospital produce una dosis equivocada con apariencia de correcta. El tipo de retorno obliga a mirar la capa: no se puede ignorar por descuido.',
+  },
   // ── Integridad temporal del dato clínico ─────────────────────────────────
   {
     id: 'observacion-version', nombre: 'Observación versionada (vigencia clínica y temporal)',

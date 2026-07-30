@@ -42,6 +42,38 @@ export const TERMINOS_DESCONOCIDOS: readonly string[] = [
 ]
 
 /**
+ * Los tres términos RETIRADOS del catálogo por no tener fuente en el repo
+ * (NEEDS_CLINICAL_REVIEW Q6/Q7). Ninguno debe resolver mientras el médico dueño
+ * no decida su sentido: la salida correcta es `desconocido`, no una adivinanza.
+ */
+export const TERMINOS_RETIRADOS_SIN_FUENTE: readonly string[] = [
+  'glucosa capilar',
+  'dextrostix',
+  'bmi',
+  // variantes de escritura: la retirada no se esquiva con mayúsculas ni acentos
+  'BMI',
+  'Glucosa Capilar',
+]
+
+/**
+ * Casos del FILTRO por dominio (antes era un desempate silencioso, hallazgo V-3).
+ * `esperado` es el estado que debe devolver `resolverConcepto(termino, { dominio })`.
+ */
+export const CASOS_FILTRO_DOMINIO: readonly {
+  readonly termino: string
+  readonly dominio: 'laboratorio' | 'signo-vital' | 'diagnostico'
+  readonly esperado: 'resuelto' | 'desconocido' | 'ambiguo'
+  readonly porQue: string
+}[] = [
+  { termino: 'creatinina', dominio: 'laboratorio', esperado: 'resuelto', porQue: 'el dominio pedido es el suyo' },
+  { termino: 'creatinina', dominio: 'signo-vital', esperado: 'desconocido', porQue: 'pedir otro dominio NO debe devolver el concepto de laboratorio (V-3)' },
+  { termino: 'cr', dominio: 'signo-vital', esperado: 'desconocido', porQue: 'igual por sinónimo, no sólo por clave' },
+  { termino: 'fc', dominio: 'signo-vital', esperado: 'resuelto', porQue: 'signo vital pedido como signo vital' },
+  { termino: 'fc', dominio: 'laboratorio', esperado: 'desconocido', porQue: 'un signo vital no se cuela como analito' },
+  { termino: 'creatinina', dominio: 'diagnostico', esperado: 'desconocido', porQue: 'el dominio `diagnostico` no tiene entradas propias (lib/cie10.ts es el catálogo)' },
+]
+
+/**
  * Catálogo SINTÉTICO con una colisión deliberada: `xx` pertenece a dos
  * conceptos de dominios distintos. Existe sólo para ejercitar la rama de
  * ambigüedad, que el catálogo real prohíbe por invariante.

@@ -22,6 +22,10 @@ import {
   CONCEPTOS,
   LAB_SIN_CODIGO_CONGELADO,
   LOINC_VITALES_ESPERADOS,
+  PROCEDENCIA_CONGELADA,
+  PROCEDENCIA_SINONIMO,
+  SENTIDOS_NO_CATALOGADOS,
+  SINONIMOS_PROPUESTOS_PENDIENTES,
   TERMINOS_RESERVADOS,
   VOCABULARIO_VERSION,
   aConceptoRef,
@@ -33,12 +37,15 @@ import {
   type ConceptoCanonico,
 } from '@/lib/clinical-fact/vocabulario'
 import { ConceptoRefSchema } from '@/lib/clinical-fact/schema'
-import { ANALITOS } from '@/lib/expediente/laboratorio/analitos'
+import { ANALITOS, analitoDe } from '@/lib/expediente/laboratorio/analitos'
+import { extraerSignosVitales } from '@/lib/expediente/parser-clinico'
 import {
+  CASOS_FILTRO_DOMINIO,
   CATALOGO_CON_COLISION,
   FALSOS_POSITIVOS_MEDIDOS,
   TERMINOS_ACEPTACION,
   TERMINOS_DESCONOCIDOS,
+  TERMINOS_RETIRADOS_SIN_FUENTE,
 } from './fixtures/conceptos'
 
 /** Helper: la clave resuelta, o null si no resolvió. */
@@ -372,14 +379,16 @@ describe('T-9 · ante dos lecturas no se elige (cortafuegos de uci/extraccion.ts
     }
   })
 
-  it('la pista de dominio desempata SÓLO si deja exactamente uno', () => {
+  it('el filtro de dominio desemboca en resuelto SÓLO si deja exactamente uno', () => {
     const rv = crearResolvedor(CATALOGO_CON_COLISION, {})
     const r = rv.resolver('xx', { dominio: 'signo-vital' })
     expect(r.estado).toBe('resuelto')
     if (r.estado === 'resuelto') expect(r.concepto.clave).toBe('concepto_vital_ficticio')
 
-    // Un dominio que no deja ninguno tampoco inventa: sigue ambiguo.
-    expect(rv.resolver('xx', { dominio: 'diagnostico' }).estado).toBe('ambiguo')
+    // Un dominio que no deja NINGÚN candidato no inventa ni devuelve el otro:
+    // `desconocido`. (Antes de cerrar V-3 esta rama devolvía `ambiguo`, lo que
+    // hacía creer al consumidor que el término existía en ese dominio.)
+    expect(rv.resolver('xx', { dominio: 'diagnostico' }).estado).toBe('desconocido')
   })
 
   it('un término sin colisión resuelve normalmente en el catálogo sintético', () => {
@@ -398,12 +407,232 @@ describe('T-9 · ante dos lecturas no se elige (cortafuegos de uci/extraccion.ts
 })
 
 // ---------------------------------------------------------------------------
+// T-10 · PROCEDENCIA: la frase «aquí no se inventó ningún sinónimo» se vuelve
+//        FALSABLE POR MÁQUINA. Es el invariante que faltaba (hallazgo V-1: se
+//        habían colado 'hb' y 'bt' mientras el archivo afirmaba lo contrario).
+// ---------------------------------------------------------------------------
+
+/**
+ * Oráculo 2b — los `display` LOINC que HOY están en producción, cosechados del
+ * archivo real por código. Se ata el display AL CÓDIGO, no al concepto: así
+ * «sistolica» sólo puede justificarse con el display del 8480-6 y no con
+ * cualquier otro. Si mañana `recursos.ts` renombra un display, esto cambia.
+ */
+const DISPLAY_POR_CODIGO_LOINC: Record<string, string> = (() => {
+  const fuente = readFileSync(join(process.cwd(), 'src/lib/fhir/recursos.ts'), 'utf8')
+  const out: Record<string, string> = {}
+  for (const m of fuente.matchAll(/code:\s*'([0-9]+-[0-9])'\s*,\s*display:\s*'([^']+)'/g)) {
+    out[m[1]] = m[2]
+  }
+  return out
+})()
+
+/**
+ * Oráculo 4 — campo del parser de producción que corresponde a cada signo vital,
+ * con un valor sintético plausible para que el patrón (que exige número pegado al
+ * término) pueda casar. `imc`, `glucometria` y las dos de TA NO tienen campo
+ * numérico propio en el parser: para ellas este oráculo no existe y punto.
+ */
+const CAMPO_PARSER_VITAL: Record<string, { campo: 'fc' | 'fr' | 'temperatura' | 'spo2' | 'peso' | 'talla'; valor: number }> = {
+  fc: { campo: 'fc', valor: 80 },
+  fr: { campo: 'fr', valor: 18 },
+  temperatura: { campo: 'temperatura', valor: 37 },
+  spo2: { campo: 'spo2', valor: 95 },
+  peso: { campo: 'peso', valor: 72 },
+  talla: { campo: 'talla', valor: 170 },
+}
+
+/** Justificación de UN sinónimo, o `null` si ningún oráculo lo respalda. */
+function procedenciaDe(c: ConceptoCanonico, s: string): string | null {
+  // 1 · autorreferencia: no es un mapeo nuevo, es el nombre del propio concepto.
+  if (s === normalizarTermino(c.clave)) return 'clave'
+  if (s === normalizarTermino(c.clave.replace(/_/g, ' '))) return 'clave (con _ como espacio)'
+
+  // 2 · etiqueta del concepto (para laboratorio, T-6 ya la ata a ANALITOS).
+  if (s === normalizarTermino(c.etiqueta)) return 'etiqueta'
+
+  // 2b · `display` LOINC en producción, atado al código que declara el concepto.
+  for (const cod of c.codigos) {
+    const display = DISPLAY_POR_CODIGO_LOINC[cod.codigo]
+    if (display && normalizarTermino(display) === s) return `display LOINC ${cod.codigo} en recursos.ts`
+  }
+
+  // 3 · oráculo de laboratorio: producción YA hace ese mapeo.
+  if (c.dominio === 'laboratorio' && analitoDe(s)?.clave === c.clave) return 'analitoDe()'
+
+  // 4 · oráculo de signos vitales. Se exige el campo ESPERADO y que no se llene
+  //     ningún otro: una confirmación por casualidad no cuenta como fuente.
+  const esperado = CAMPO_PARSER_VITAL[c.clave]
+  if (c.dominio === 'signo-vital' && esperado) {
+    const sv = extraerSignosVitales(`${s} ${esperado.valor}`)
+    const otrosLlenos = (['fc', 'fr', 'temperatura', 'spo2', 'peso', 'talla'] as const)
+      .filter(k => k !== esperado.campo && sv[k] !== null)
+    if (sv[esperado.campo] === esperado.valor && otrosLlenos.length === 0 && sv.ta === '') {
+      return 'extraerSignosVitales()'
+    }
+  }
+
+  // 5 · cita explícita, con fuente no vacía y atada a ESTE concepto.
+  const cita = PROCEDENCIA_SINONIMO[s]
+  if (cita && cita.clave === c.clave && cita.fuente.trim().length > 0) return `cita: ${cita.fuente}`
+
+  return null
+}
+
+describe('T-10 · todo sinónimo tiene procedencia comprobable (cierra V-1)', () => {
+  it('NINGÚN sinónimo del catálogo carece de fuente', () => {
+    const huerfanos: string[] = []
+    for (const c of CONCEPTOS) {
+      for (const s of c.sinonimos) {
+        if (!procedenciaDe(c, s)) huerfanos.push(`«${s}» (declarado en '${c.clave}')`)
+      }
+    }
+    // Si este test se pone rojo hay exactamente dos salidas honestas: retirar el
+    // sinónimo, o citarlo en PROCEDENCIA_SINONIMO con su archivo:línea. Inventar
+    // una fuente es la falla más grave posible en este repo.
+    expect(huerfanos, `sinónimos sin fuente: ${huerfanos.join(' · ')}`).toEqual([])
+  })
+
+  it('las abreviaturas que la verificación pilló inventadas NO están de vuelta', () => {
+    // 'hb' y 'bt' no existen en ningún patrón de ANALITOS ni en el resto de src.
+    // Control positivo del invariante: si alguien las reintroduce, el test de
+    // arriba las delata — aquí se fija además que hoy no resuelven.
+    expect(analitoDe('hb')).toBeNull()
+    expect(analitoDe('bt')).toBeNull()
+    expect(resolverConcepto('hb').estado).toBe('desconocido')
+    expect(resolverConcepto('bt').estado).toBe('desconocido')
+  })
+
+  it('el trinquete de citas está congelado y ninguna cita está huérfana', () => {
+    expect(Object.keys(PROCEDENCIA_SINONIMO).length).toBe(PROCEDENCIA_CONGELADA)
+    for (const [termino, p] of Object.entries(PROCEDENCIA_SINONIMO)) {
+      expect(termino, 'la llave debe estar ya normalizada').toBe(normalizarTermino(termino))
+      expect(p.fuente.trim().length, `la cita de «${termino}» no puede venir vacía`).toBeGreaterThan(0)
+      const c = conceptoPorClave(p.clave)
+      expect(c, `la cita de «${termino}» apunta a una clave inexistente: ${p.clave}`).not.toBeNull()
+      expect(c?.sinonimos, `«${termino}» está citado pero no es sinónimo de ${p.clave}`).toContain(termino)
+    }
+  })
+
+  it('los oráculos que sostienen el invariante EXISTEN de verdad', () => {
+    // Guardián del propio test: si `analitoDe` dejara de reconocer nada, T-10
+    // pasaría en verde sin probar nada. Se fija que los tres oráculos responden.
+    expect(analitoDe('creatinina')?.clave).toBe('creatinina')
+    expect(extraerSignosVitales('fc 80').fc).toBe(80)
+    expect(Object.keys(DISPLAY_POR_CODIGO_LOINC).length).toBeGreaterThanOrEqual(10)
+    expect(DISPLAY_POR_CODIGO_LOINC['8480-6']).toBe('Sistólica')
+  })
+
+  it('el hallazgo E1-02-H2 queda REGISTRADO, no reparado (regla 5)', () => {
+    // MEDIDO: 'depuracion de creatinina' es una alternativa del patrón de `tfg`
+    // (analitos.ts:47), pero `creatinina` va antes en el array y gana. Producción
+    // manda la depuración a la serie de creatinina SÉRICA. No se toca aquí.
+    expect(analitoDe('depuracion de creatinina')?.clave).toBe('creatinina')
+    // El vocabulario nuevo declara la lectura correcta y cita la divergencia.
+    expect(claveDe('depuración de creatinina')).toBe('tfg')
+    expect(PROCEDENCIA_SINONIMO['depuracion de creatinina']?.needsClinicalReview).toContain('E1-02-H2')
+    // Segunda cara del mismo hallazgo: la exclusión sólo mira la palabra «orina».
+    expect(analitoDe('creatinina urinaria')?.clave).toBe('creatinina')
+    expect(claveDe('creatinina urinaria')).toBe('creatinina_orina')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// T-11 · `dominio` es FILTRO ESTRICTO, no desempate silencioso (cierra V-3)
+// ---------------------------------------------------------------------------
+
+describe('T-11 · el filtro por dominio', () => {
+  it.each([...CASOS_FILTRO_DOMINIO])('«$termino» con dominio $dominio → $esperado ($porQue)', ({ termino, dominio, esperado }) => {
+    expect(resolverConcepto(termino, { dominio }).estado).toBe(esperado)
+  })
+
+  it('sin dominio, el comportamiento no cambia', () => {
+    expect(claveDe('creatinina')).toBe('creatinina')
+    expect(claveDe('fc')).toBe('fc')
+  })
+
+  it('pedir el dominio equivocado NUNCA devuelve el concepto del otro dominio', () => {
+    for (const c of CONCEPTOS) {
+      const otro = c.dominio === 'laboratorio' ? 'signo-vital' : 'laboratorio'
+      const r = resolverConcepto(c.clave, { dominio: otro })
+      expect(r.estado, `«${c.clave}» se colgó del dominio ${otro}`).not.toBe('resuelto')
+    }
+  })
+
+  it('todo concepto resuelve pidiendo SU propio dominio', () => {
+    for (const c of CONCEPTOS) {
+      if (normalizarTermino(c.clave) in TERMINOS_RESERVADOS) continue
+      expect(claveDe(c.clave, c.dominio), `«${c.clave}» no resuelve en su propio dominio`).toBe(c.clave)
+    }
+  })
+})
+
+// ---------------------------------------------------------------------------
+// T-12 · Los candidatos de un término reservado son resolubles o declarados (V-4)
+// ---------------------------------------------------------------------------
+
+describe('T-12 · candidatos de términos reservados', () => {
+  it('cada candidato es un concepto del catálogo o está declarado como NO catalogado', () => {
+    const declarados = new Set(SENTIDOS_NO_CATALOGADOS.map(s => s.clave))
+    for (const [termino, r] of Object.entries(TERMINOS_RESERVADOS)) {
+      expect(r.candidatos.length, `«${termino}» reservado con menos de 2 sentidos`).toBeGreaterThanOrEqual(2)
+      for (const k of r.candidatos) {
+        const resoluble = conceptoPorClave(k) !== null
+        expect(resoluble || declarados.has(k), `el candidato '${k}' de «${termino}» no existe ni está declarado`).toBe(true)
+      }
+    }
+  })
+
+  it('todo sentido declarado NO catalogado trae su porqué y de verdad no está en el catálogo', () => {
+    for (const s of SENTIDOS_NO_CATALOGADOS) {
+      expect(s.porQue).toContain('NEEDS_CLINICAL_REVIEW')
+      expect(conceptoPorClave(s.clave), `'${s.clave}' se declara no catalogado pero SÍ está`).toBeNull()
+    }
+  })
+})
+
+// ---------------------------------------------------------------------------
+// T-13 · Los términos sin fuente RETIRADOS no resuelven (Q6 / Q7)
+// ---------------------------------------------------------------------------
+
+describe('T-13 · lo retirado por falta de fuente devuelve `desconocido`', () => {
+  it.each([...TERMINOS_RETIRADOS_SIN_FUENTE])('«%s» no resuelve', (termino) => {
+    expect(resolverConcepto(termino).estado).toBe('desconocido')
+  })
+
+  it('ninguno está en el catálogo por otra vía (ni como clave, ni como sinónimo)', () => {
+    for (const p of SINONIMOS_PROPUESTOS_PENDIENTES) {
+      expect(clavesQueDeclaran(p.termino), `«${p.termino}» sigue indexado`).toEqual([])
+    }
+  })
+
+  it('la propuesta NO se pierde: cada término pendiente dice a dónde iría y qué falta', () => {
+    expect(SINONIMOS_PROPUESTOS_PENDIENTES.length).toBeGreaterThan(0)
+    for (const p of SINONIMOS_PROPUESTOS_PENDIENTES) {
+      expect(p.termino).toBe(normalizarTermino(p.termino))
+      expect(conceptoPorClave(p.claveSugerida), `la clave sugerida de «${p.termino}» no existe`).not.toBeNull()
+      expect(['Q6', 'Q7']).toContain(p.pregunta)
+      expect(p.porQueNoEntra.length).toBeGreaterThan(20)
+    }
+  })
+
+  it('y el concepto al que se propusieron sigue resolviendo por su nombre canónico', () => {
+    // La retirada no puede dejar un concepto huérfano de todo término.
+    expect(claveDe('glucometria')).toBe('glucometria')
+    expect(claveDe('imc')).toBe('imc')
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Metadatos de la unidad
 // ---------------------------------------------------------------------------
 
 describe('metadatos del vocabulario', () => {
   it('declara su versión', () => {
-    expect(VOCABULARIO_VERSION).toBe('1.0.0')
+    // 1.1.0: el CONTENIDO del catálogo cambió (3 sinónimos retirados) y la
+    // semántica de `dominio` también. Una versión que no se mueve al cambiar el
+    // catálogo es una mentira barata; se mueve con él.
+    expect(VOCABULARIO_VERSION).toBe('1.1.0')
   })
 
   it('el dominio `diagnostico` no tiene entradas propias: lib/cie10.ts ya es el catálogo', () => {

@@ -1,101 +1,123 @@
 {
   "unidad": "E0-10",
   "titulo": "CSP enforced + E2E de seguridad",
-  "fecha": "2026-07-29T12:40:00Z",
-  "verificador": "adversarial (solo lectura, sin editar codigo del repo)",
+  "fecha": "2026-07-30T06:20:00Z",
+  "verificador": "adversarial (2a vuelta, sobre la 4a pasada / PARTE II del DISENO). Solo lectura del repo; las mutaciones se ejecutaron en una COPIA en el scratchpad con node_modules enlazado.",
+  "pasadaVerificada": "d4251e6 — «cierre del delta (mutante de Daily muerto, /login no-embebible)»",
+  "notaSobreEsteArchivo": "Sobrescribe la VERIFICACION.json de la 3a pasada (veredicto INCOMPLETA, V-1..V-7). Esa version NO se pierde: esta commiteada en 44accfd y es recuperable con `git show 44accfd:docs/roadmap/nexus-os/unidades/E0-10/VERIFICACION.json`.",
+
   "veredicto": "INCOMPLETA",
   "cumpleAceptacion": false,
   "aceptacionLiteral": "CSP enforce sin romper flujos; E2E de seguridad en verde.",
-  "resumen": "El MECANISMO esta entregado, es correcto y esta anclado por un guardian que SI es load-bearing (control negativo reproducido por mi). Pero la aceptacion literal no se cumple en ninguna de sus dos mitades: (1) la CSP sigue en report-only por defecto y CSP_MODE no esta puesto en ninguna parte del repo ni de la config de despliegue; (2) la matriz E2E nunca se ha ejecutado, su grupo A3 se declara ROJO contra produccion y el unico grupo que probaria el enforce (D) esta saltado salvo que se exporte PLAYWRIGHT_ENFORCE=1. No es REGRESION: no rompio nada y de hecho cierra un hueco real de clickjacking. El propio RESULTADO.json lo admite ('PARCIAL POR DISENO'), pero estado.json lo mete en `completadas`, que es mas de lo que la evidencia sostiene.",
+  "hayRegresion": false,
+
+  "resumen": "El DELTA que esta pasada dice haber hecho esta hecho y es load-bearing: reproduje los 5 controles negativos declarados (5/5 rojos con los mensajes exactos) y reproduje ademas que el suite ANTERIOR al commit quedaba 19/19 VERDE con el mutante de *.daily.co — o sea, el hallazgo V-3 era real y esta muerto. No hay regresion (tsc limpio, 203 archivos / 2833 casos verdes, /login sin consumidores) ni regla clinica inventada ni PHI. Pero la aceptacion literal sigue incumplida en sus dos mitades y aparecen TRES problemas nuevos, uno de ellos del mismo genero que el que la pasada vino a cerrar: (W-2) el trinquete de iframes dinamicos se esquiva con un tag de mas de 400 caracteres; (W-3) el arreglo de V-3 es puntual, no de clase: los origenes que inyectan los SDK de terceros desde node_modules (reCAPTCHA/App Check, login de Google, Stripe) no estan anclados por NINGUN invariante y quitarlos de la politica Y de la lista congelada deja el CI verde; (W-4) la 'higiene de evidencia' de esta pasada sostiene, sobre REG-054 y en el runbook, que la corrida de Playwright contra produccion «nunca ocurrio», y hay artefactos en disco que la refutan: test-results/.last-run.json (28-jul 22:37, status failed, 22 failedTests) + 22 directorios A3 fallidos que cuadran EXACTAMENTE con el «22 rojos, 12 verdes» retractado. Cerrar un hallazgo de evidencia falsa escribiendo la falsedad contraria no lo cierra.",
 
   "gatesReejecutadosPorMi": {
-    "tsc": "PASS — `npx tsc --noEmit` exit 0. tsconfig.json:29-36 incluye **/*.ts y solo excluye node_modules/scripts, asi que e2e/seguridad.spec.ts SI pasa por el chequeo de tipos (@playwright/test esta en devDependencies, package.json:'@playwright/test': '^1.61.1'). La nota del implementador es correcta.",
-    "vitest": "PASS — 185 archivos / 2357 casos / 0 fallos. El implementador reporto 183/2276: la diferencia son el commit posterior 7a54d1a (E2-02, +35) y los archivos sin trackear de E1-02. No es discrepancia.",
-    "build": "PASS en los DOS modos, verificado por mi. Sin CSP_MODE -> .next/routes-manifest.json emite `Content-Security-Policy-Report-Only` en /:path*. Con CSP_MODE=enforce -> emite `Content-Security-Policy`. Dejé el arbol reconstruido en modo por defecto (report-only).",
-    "playwright": "NO EJECUTADO (regla 8). Sigue sin haber NINGUNA evidencia de ejecucion de la matriz E2E."
+    "tsc": "PASS — `npx tsc --noEmit` exit 0.",
+    "vitest": "PASS — `npx vitest run src/__tests__/` → 203 archivos / 2833 casos / 0 fallos / 0 saltados. La diferencia con los 2809 declarados es el trabajo SIN COMMITEAR de E1-02 que hay en el arbol (src/__tests__/clinical-vocabulario.test.ts, fixtures/conceptos.ts, src/lib/clinical-fact/vocabulario.ts); no es discrepancia de esta unidad.",
+    "csp": "PASS — csp-guard.test.ts 23 casos + csp-manifest.test.ts 4 casos = 27, todos EJECUTADOS (no saltados) porque .next/routes-manifest.json existe y es del build actual (contiene `login` en el bloque privado).",
+    "build": "NO re-ejecutado por mi a proposito: `npm run build` reescribiria .next/routes-manifest.json y con `CSP_MODE=enforce` dejaria el arbol del Dr. en modo enforce, cambiando la evidencia que lee csp-manifest.test.ts. La coherencia del artefacto SI la verifique: el manifest en disco emite `Content-Security-Policy-Report-Only` en /:path* y `X-Frame-Options` + `Content-Security-Policy` en el bloque privado.",
+    "playwright": "NO EJECUTADO (regla 8)."
   },
 
+  "controlesNegativosQUEYOREPRODUJE": [
+    "M1 = MUTANTE 1 declarado. Quitar `https://*.daily.co` de ORIGENES_FRAME (next.config.ts:113) Y de ORIGENES_ESPERADOS (csp-guard.test.ts:118) → `1 failed | 22 passed` con «frame-src no permite estos origenes: una-sala.daily.co ← src/app/teleconsulta/[citaId]/page.tsx». CONFIRMADO.",
+    "M1b = la prueba de que el hallazgo V-3 era real y el arreglo es el que mata al mutante. Mismo mutante contra el csp-guard ANTERIOR al commit (`git show d4251e6^:src/__tests__/csp-guard.test.ts`) → `19 passed (19)`, todo verde. El «19/19 VERDE» que afirma la pasada es exacto.",
+    "M2 = MUTANTE 4. Quitar 'login' de RUTAS_PRIVADAS (src/lib/security/rutas-privadas.ts:61) → `1 failed` en «cubre las pantallas con PHI, la consola del dueño y el login» (csp-guard.test.ts:415). Efecto colateral observado y CORRECTO: csp-manifest.test.ts pasa a `1 skipped` («EVIDENCIA CADUCADA»), no a verde falso.",
+    "M3 = MUTANTE 2. Añadir un componente nuevo con `<iframe src={u} />` sin declararlo → `1 failed` por el trinquete (csp-guard.test.ts:322). CONFIRMADO.",
+    "M4 = MUTANTE 3. Dar ORIGENES_META a un cuarto bloque (/precios) → `2 failed`: la lista congelada de V-6 (csp-guard.test.ts:368) y «Meta NO entra en la politica global» (csp-guard.test.ts:165). CONFIRMADO.",
+    "M5 = MUTANTE 5. Borrar X-Frame-Options del bloque privado de .next/routes-manifest.json → `1 failed` en csp-manifest.test.ts:81. CONFIRMADO.",
+    "Sandbox restaurado y re-verificado al final: 27/27 verdes. El repo del Dr. NO se toco en ningun momento."
+  ],
+
   "loQueSEVERIFICOYESCIERTO": [
-    "El hueco de clickjacking existia y esta cerrado en codigo. next.config.ts (pre-5e01c35) protegia el regex `/(consulta|expediente|nota|agenda|pacientes|crm|cumplimiento|finanzas|farmacia|configuracion|equipo|reportes|usuarios|valoracion|nueva-consulta|dashboard)(.*)`; src/app/(dashboard)/ tiene HOY 32 directorios, mas /setup y /superadmin. Contado a mano: 22 pantallas viajaban sin X-Frame-Options ni frame-ancestors, entre ellas /uci, /hospitalizacion, /receta y /superadmin. La cifra del ledger REG-054 es correcta.",
-    "Las 5 rutas que la lista nueva DEJA de cubrir respecto al regex viejo (equipo, reportes, usuarios, valoracion, nueva-consulta) NO existen en disco: `find src/app -maxdepth 3 -type d -name <r>` no devuelve nada para ninguna. No hay perdida de cobertura. src/lib/security/rutas-privadas.ts:29-63 = 34 entradas, todas con directorio real (el test lo comprueba en csp-guard.test.ts:262-267).",
-    "CONTROL NEGATIVO REPRODUCIDO POR MI, no de segunda mano. Copie el arbol a un sandbox (/private/tmp/.../scratchpad/mut, con node_modules enlazado) y mute alli, sin tocar el repo: quitando 'uci' y 'superadmin' de RUTAS_PRIVADAS -> `2 failed | 17 passed (19)` con los mensajes «Pantallas del dashboard SIN cabecera anti-iframe» y «perdió la protección: /uci». Coincide EXACTAMENTE con lo declarado.",
-    "Mutantes adicionales que el guardian SI mata (verificados por mi en el sandbox): romper el fail-safe (modoCsp() devolviendo enforce por defecto, next.config.ts:44-46) -> 1 failed, «un enforce accidental es imposible»; mover el bloque global DESPUES de los especificos -> 1 failed, «el bloque general va ANTES»; quitar unpkg.com de la politica Y de la lista congelada -> 1 failed, «unpkg.com <- src/lib/pdf-to-image.ts». El escaner codigo<->politica NO es decorativo para ese caso.",
-    "La premisa de ordenamiento es CORRECTA a nivel de framework, no solo de comentario: node_modules/next/dist/server/lib/router-utils/resolve-routes.js:558-560 hace `resHeaders[key] = value` para toda cabecera que no sea set-cookie -> gana la ULTIMA regla que coincide. Por eso el bloque global debe ir primero, como quedo. REG-055 describe un efecto colateral real.",
-    "Regla 1 (nada clinico inventado): CUMPLE. El unico archivo clinico tocado es src/lib/clinical/invariantes-clinicos.json y el diff es solo conteo (totalCasos 1294->1313 y una entrada {archivo: csp-guard.test.ts, minCasos: 19}). Cero umbrales, cero dosis, cero reglas clinicas.",
-    "Regla 2 (nada de PHI ni secretos): CUMPLE. e2e/seguridad.spec.ts usa '/mi/token-de-prueba', '/resena/token-de-prueba', '/api/fhir/paciente/x?clinicId=x'. No hay claves ni datos de paciente en los archivos nuevos.",
-    "El receptor de reportes existe y se comporta como asume el E2E: src/app/api/csp-report/route.ts exporta SOLO POST (linea 34) -> un GET da 405, que es lo que espera C2; y redacta rutas/tokens antes de loguear (rutaSegura, lineas 20-32)."
+    "A1/V-3 esta cerrado de verdad. src/app/teleconsulta/[citaId]/page.tsx:66-67 monta `<iframe src={url}` (URL de sala de /api/telesalud/sala), asi que el host no esta en el codigo: ninguna de las 5 regex de POSICIONES_DE_CARGA (csp-guard.test.ts:180-186) podia verlo. El registro IFRAMES_DE_ORIGEN_DINAMICO (csp-guard.test.ts:270-278) se cruza contra la directiva `frame-src` de la politica GLOBAL (csp-guard.test.ts:299), que es la que de verdad aplica a /teleconsulta porque esa ruta NO esta en RUTAS_PRIVADAS. La eleccion es correcta y el mutante muere (M1).",
+    "La frase falsa del comentario esta corregida y ademas EXPLICADA en el propio archivo (csp-guard.test.ts:20-27), no borrada. Es la forma honesta de retractarse.",
+    "A4/V-7a es real y no rompe nada. src/app/login existe; 'login' entra en la lista (rutas-privadas.ts:61) con el porque escrito. Verifique los consumidores: los UNICOS archivos que importan RUTAS_PRIVADAS/RE_RUTAS_PRIVADAS son next.config.ts:3, csp-guard.test.ts, csp-manifest.test.ts y e2e/seguridad.spec.ts. NO hay src/middleware.ts en el repo (`find . -maxdepth 2 -name middleware.ts` vacio), asi que la lista no gobierna ninguna redireccion de sesion: no puede provocar bucle en /login. Y el unico iframe hacia dentro de la app es la CADENA snippetIframe de configuracion/page.tsx:2188, que apunta a /reservar, no a /login.",
+    "A2/V-6: la lista congelada RUTAS_CON_POLITICA_MAS_ANCHA_QUE_LA_GLOBAL (csp-guard.test.ts:365) es load-bearing (M4) y el analisis de la interseccion es correcto: la politica global OMITE `frame-ancestors` (next.config.ts:139 `if (zona !== 'omitir')`), y una politica sin la directiva no restringe el encuadre → la interseccion con 'none' sigue siendo 'none'. Verificado en el manifest real: el bloque `/` solo trae CSP-Report-Only y el privado trae X-Frame-Options + CSP + CSP-RO.",
+    "A3: csp-manifest.test.ts NO inventa verde. Comprobe sus dos salidas: sin el archivo → it.skip «SIN EVIDENCIA» (linea 44); con un manifest de un build anterior a la lista actual → it.skip «EVIDENCIA CADUCADA» (linea 54, observado de verdad en M2). Y NO sellarlo en invariantes-clinicos.json no rompe el metagate: el gate solo exige sellar los archivos que DERIVAN de sus fuentes (clinical-safety-gate.test.ts:126-138) y `grep -c csp-manifest docs/audit/regression-ledger.md` = 0.",
+    "Regla 1 (nada clinico inventado): CUMPLE. El unico archivo clinico tocado es src/lib/clinical/invariantes-clinicos.json y el diff son SOLO conteos (sellado 29→30-jul, totalCasos 1381→1408, csp-guard minCasos 19→23). Cero umbrales, cero dosis, cero reglas clinicas. Ningun motor clinico tocado.",
+    "Regla 2 (sin PHI ni secretos): CUMPLE. Lo nuevo usa '/mi/token-de-prueba', 'https://una-sala.daily.co' y '/api/fhir/paciente/x?clinicId=x'. No hay claves ni datos de paciente.",
+    "Regla 6: CUMPLE. `grep -rn CSP_MODE` fuera de node_modules/.next: solo next.config.ts, package.json, playwright.config.ts y documentos. vercel.json solo tiene el cron de recordatorios. El default de produccion sigue siendo report-only.",
+    "Sin regresion medible: tsc limpio, 2833/2833 verdes, /reservar y /privacidad siguen embebibles en los dos modos (csp-guard.test.ts:451-461) y el bloque de magic links sigue siendo el ULTIMO (csp-manifest.test.ts:104, verificado en el manifest real).",
+    "Contabilidad del roadmap (V-5) corregida de verdad: estado.json → `completadas` = [E0-01,E0-02,E0-03,E0-04,E0-14,E0-15,E1-01,E2-01,E0-05]; E0-10 NO esta. Figura en `bloqueadas` con reintentar:false y en `paraReintentar` con prioridad 99. Coherente con RESULTADO.json (`estado: necesita_validacion`, `cumpleAceptacionLiteral: false`)."
   ],
 
   "problemasEncontrados": [
     {
-      "id": "V-1",
-      "gravedad": "ALTA (define el veredicto)",
-      "titulo": "La mitad 'CSP enforce' de la aceptacion no esta cumplida ni es cumplible por el agente",
-      "evidencia": "next.config.ts:44-46 `return process.env.CSP_MODE === \"enforce\" ? \"enforce\" : \"report-only\"`. `grep -rn CSP_MODE` sobre el repo (excluyendo node_modules/.next) NO encuentra la variable puesta en ningun sitio: vercel.json solo tiene el cron de recordatorios, no hay .env con CSP_MODE, no esta en .github/workflows/ci.yml. Build por defecto verificado por mi: .next/routes-manifest.json -> `Content-Security-Policy-Report-Only`.",
-      "porQueImporta": "El backlog pide 'pasar CSP de report-only a enforce'. Lo entregado es el interruptor, no el flip. Es un choque genuino con la regla 6 (el agente no despliega), asi que el implementador hizo lo correcto al no ejecutarlo — pero eso significa INCOMPLETA, no completada."
+      "id": "W-1",
+      "gravedad": "ALTA (define el veredicto, igual que en la vuelta anterior)",
+      "titulo": "La aceptacion literal sigue incumplida en sus DOS mitades — y ahora hay evidencia en disco de que la unica corrida real de la matriz fue ROJA",
+      "evidencia": "Mitad 'enforce': next.config.ts:45 `return process.env.CSP_MODE === \"enforce\" ? \"enforce\" : \"report-only\"` y CSP_MODE no esta puesto en ninguna parte (vercel.json solo tiene crons); el .next/routes-manifest.json del build actual emite `Content-Security-Policy-Report-Only` en /:path*. Mitad 'E2E en verde': test-results/.last-run.json → `\"status\": \"failed\"`, 22 entradas en failedTests, mtime 28-jul-2026 22:37:25, con 22 directorios `seguridad-A3-·-…-chromium` (uno de ellos de `waitlist`, ruta que REG-058 elimino despues → la corrida es de la lista vieja de 34 = 22 rojos + 12 verdes).",
+      "porQueImporta": "No es reproche al implementador: las reglas 6 y 8 le prohiben las dos acciones, y hace lo correcto al no ejecutarlas y al no marcar la unidad como completada. Pero el veredicto no puede ser CONFIRMADA: lo entregado es el interruptor y su red de invariantes, no el flip ni una matriz verde."
     },
     {
-      "id": "V-2",
-      "gravedad": "ALTA",
-      "titulo": "'E2E de seguridad en verde' no tiene ninguna evidencia: la matriz nunca corrio y esta disenada para estar en rojo hoy",
-      "evidencia": "RESULTADO.json:41 'playwright: NO EJECUTADO por el agente'. e2e/seguridad.spec.ts:15-17 'se espera que el grupo A3 este ROJO contra produccion hasta que se despliegue esta unidad'. e2e/seguridad.spec.ts:175 `test.skip(process.env.PLAYWRIGHT_ENFORCE !== '1', ...)` deja fuera D1/D2, que son los DOS unicos casos que prueban el enforce en un navegador. Y playwright.config.ts:22 apunta por defecto a produccion (https://agenda-medica-one.vercel.app), donde el codigo no esta desplegado.",
-      "porQueImporta": "Hoy, si alguien corriera el comando documentado (`npx playwright test`), el resultado seria ~22 casos A3 rojos x 5 navegadores. 'En verde' no solo no esta demostrado: esta explicitamente descartado hasta que haya despliegue. La cobertura efectiva de la unidad en CI es el guardian estatico de vitest, no la matriz E2E."
+      "id": "W-2",
+      "gravedad": "MEDIA",
+      "titulo": "El trinquete de iframes dinamicos —lo mas importante de esta pasada— se esquiva con un tag de mas de 400 caracteres",
+      "evidencia": "csp-guard.test.ts:291 `const RE_APERTURA_IFRAME = /<iframe[\\s\\S]{0,400}?\\/?>/g`. MUTANTE M3b EJECUTADO en el sandbox: un componente nuevo con un `<iframe>` cuyo tag de apertura mide >400 caracteres antes del `>` (titulo largo + aria-label + data-*) y con `src={u}` SIN declarar → la regex devuelve 0 coincidencias y el suite queda `23 passed (23)`, VERDE. Con el mismo iframe corto (M3) el trinquete si lo caza. El iframe real de hoy mide 213 caracteres (src/app/teleconsulta/[citaId]/page.tsx:66-71), asi que el margen es de ~2x.",
+      "porQueImporta": "Es exactamente el genero de fallo que esta pasada vino a cerrar: una red que se sobrevende. El caso se titula «ningun iframe con src dinamico queda sin declarar ni exento» y hay una clase de iframes que no puede ver. Arreglo trivial y sin riesgo: quitar la cota {0,400} (o usar /<iframe\\b[^>]*>/g), y añadir como caso de autotest un tag largo — el archivo ya tiene el patron «el escaner no es de carton» en csp-guard.test.ts:248."
     },
     {
-      "id": "V-3",
-      "gravedad": "MEDIA (afirmacion falsa en la documentacion del propio test)",
-      "titulo": "El guardian NO habria cazado uno de los tres agujeros que dice haber cazado (el iframe de teleconsulta)",
-      "evidencia": "csp-guard.test.ts:12-17 afirma que el archivo habria cazado los tres fallos, entre ellos «(2) el iframe de teleconsulta (Daily) no estaba en frame-src»; RESULTADO.json:11 lo repite ('Es el test que habria cazado los tres agujeros'). MUTANTE EJECUTADO POR MI en el sandbox: quitando 'https://*.daily.co' de ORIGENES_FRAME (next.config.ts:100) Y de ORIGENES_ESPERADOS (csp-guard.test.ts:104) -> `19 passed (19)`, todo verde. La razon: el iframe se monta con src DINAMICO — src/app/teleconsulta/[citaId]/page.tsx:66-67 `<iframe src={url}` con url venida de /api/telesalud/sala — y ninguna de las 5 regex de POSICIONES_DE_CARGA (csp-guard.test.ts:163-169) reconoce `src={url}`. Solo el trinquete de lista congelada lo protege, y ese solo frena AÑADIR origenes, no QUITARLOS.",
-      "porQueImporta": "La afirmacion sobrevende la red de seguridad. Cualquiera que limpie ORIGENES_FRAME en el futuro deja la videoconsulta en blanco bajo enforce y el CI no dice nada. Es exactamente la clase de rotura silenciosa que la unidad dice prevenir. No invalida lo entregado; invalida la frase."
+      "id": "W-3",
+      "gravedad": "MEDIA (riesgo residual NO declarado)",
+      "titulo": "El arreglo de V-3 es puntual (solo Daily), no de clase: los origenes que inyectan los SDK de terceros desde node_modules no estan anclados por ningun invariante",
+      "evidencia": "El escaner solo mira hosts LITERALES bajo src/** (csp-guard.test.ts:225) y el trinquete de la lista congelada, por diseño, solo frena AÑADIR origenes (csp-guard.test.ts:113-115). MUTANTES EJECUTADOS, los tres VERDES (= sobreviven): (M9) quitar `https://www.google.com`, `https://www.gstatic.com`, `https://www.recaptcha.net` y `https://recaptcha.net` de la politica Y de ORIGENES_ESPERADOS → `23 passed (23)`; (M8) idem con `https://accounts.google.com` y `https://*.firebaseapp.com` → `23 passed (23)`; (M7) idem con `https://js.stripe.com` (esta en script-src y en frame-src) → `27 passed (27)`. Los hosts de M9 los necesita App Check: src/lib/firebase.ts:33-46 inicializa `ReCaptchaV3Provider` en el cliente, y el SDK inyecta el script y el iframe de reCAPTCHA desde node_modules → no hay literal que escanear. El unico `https://www.google.com` que hay en src es una URL de busqueda de SERVIDOR (src/app/api/consultor-evidencia/route.ts:174), que no pasa por la CSP del navegador.",
+      "porQueImporta": "Bajo enforce, quitar esos hosts mata App Check (y con enforcement activado en Firebase Console, todo Firestore/Storage detras) o el login de Google, con el CI en verde: el MISMO modo de falla de V-3, con otro origen. No pido cerrarlo aqui (declarar a mano cada SDK es trabajo y puede pudrirse); pido que deje de estar sin declarar: docs/seguridad/csp-enforce.md §6 lista dos hallazgos abiertos (qrserver y camera=()) y NO menciona esta limitacion, y el comentario de cabecera del guardian tampoco. Es informacion que el Dr. necesita ANTES de autorizar D-3."
     },
     {
-      "id": "V-4",
-      "gravedad": "MEDIA (higiene de evidencia)",
-      "titulo": "El regression-ledger registra como hechas dos mediciones que, segun el propio cierre, nunca se hicieron — y que la regla 8 prohibe",
-      "evidencia": "docs/audit/regression-ledger.md, fila REG-054: «Medido contra produccion con `npx playwright test e2e/seguridad.spec.ts -g A3` -> 22 rojos, 12 verdes». Fila REG-055: «verificado en HTTP real con `CSP_MODE=enforce npm run build && npm start`». Ambos comandos estan prohibidos por la regla 8 (playwright y npm start no terminan solos), y RESULTADO.json:41 declara que playwright NO se ejecuto. No pude reproducir ninguna de las dos.",
-      "porQueImporta": "El ledger es la memoria de regresiones del proyecto: si guarda como 'medido' algo que no consta ejecutado, la proxima auditoria hereda evidencia falsa. La cifra 22/12 SI la pude derivar por otro camino (conteo de directorios contra el regex viejo), asi que el numero no esta inventado — lo que no se sostiene es el metodo declarado."
+      "id": "W-4",
+      "gravedad": "MEDIA (higiene de evidencia — cierra V-4 con una falsedad de signo contrario)",
+      "titulo": "El ledger y el runbook afirman que la corrida de Playwright contra produccion «nunca ocurrio», y hay artefactos en disco que la refutan y que cuadran con la cifra retractada",
+      "evidencia": "docs/audit/regression-ledger.md:75 (REG-054, texto vigente): «⚠️ NO se midio contra produccion: una version previa de esta fila afirmaba haberlo hecho con `npx playwright test e2e/seguridad.spec.ts -g A3` → 22/12, y esa ejecucion nunca ocurrio». docs/seguridad/csp-enforce.md:49-51: «…el agente que escribio la unidad no puede correr Playwright (regla 8…)». CONTRA-EVIDENCIA en el repo: test-results/.last-run.json con `\"status\": \"failed\"` y 22 failedTests, mtime 28-jul 22:37:25 (horas ANTES del primer commit de la unidad, 5e01c35 del 29-jul 02:30, cuando el spec ya existia sin commitear); 22 directorios `seguridad-A3-·-…` con `error-context.md` que dice literalmente «uci: falta X-Frame-Options / Expected: \"DENY\" / Received: undefined» (comportamiento de produccion sin el arreglo); y uno de los directorios es de `waitlist`, ruta que solo existia en la lista ANTES de REG-058 → 34 rutas = 22 rojas + 12 verdes, la cifra exacta que se declara inventada.",
+      "porQueImporta": "Tres cosas. (1) La retractacion de REG-054 es falsa: la medicion SI se hizo y sus artefactos sobreviven; el ledger, que es la memoria de regresiones del proyecto, ahora miente en la direccion opuesta. (2) Se tira evidencia REAL y util: esa corrida es la prueba directa de que el hueco de clickjacking esta ABIERTO en produccion hoy (22 pantallas), que es justo el argumento del «DESPLIEGUE PENDIENTE» de estado.json. (3) Implica que alguna pasada anterior SI violo la regla 8 (corrio Playwright): eso hay que decirlo, no borrarlo. Nota: la retractacion del «57/57 en verde con CSP_MODE=enforce» SI es correcta — el ultimo run en disco es `failed` y del 28-jul, asi que no consta ninguna corrida verde posterior, ni ninguna en modo enforce. Lo que hay que corregir es el alcance de la frase, no la frase entera."
     },
     {
-      "id": "V-5",
-      "gravedad": "BAJA (contabilidad del roadmap)",
-      "titulo": "estado.json declara E0-10 en `completadas` mientras su propio RESULTADO.json la declara 'necesita_validacion / PARCIAL'",
-      "evidencia": "docs/roadmap/nexus-os/estado.json -> `completadas` incluye 'E0-10'; el mismo archivo la lista tambien en `necesitaValidacionDelDr` y su entrada de `runs` dice `\"resultado\": \"necesita_validacion\"`. RESULTADO.json:6-8 dice estado 'necesita_validacion' y «la aceptacion literal NO se cumple entera». CHECKPOINT.md la muestra como '✅ cerrada — ⚠️ pendiente de desplegar'.",
-      "porQueImporta": "Con E0-10 en `completadas` el selector no la devuelve a la cola, asi que las dos mitades pendientes de la aceptacion (flip + E2E verde) dejan de tener dueño automatico y quedan colgando solo de las decisiones D-3/D-4. Comparese con E0-09, que por el mismo tipo de deficit quedo en `bloqueadas`."
+      "id": "W-5",
+      "gravedad": "BAJA",
+      "titulo": "La aritmetica de totalCasos que declara el acta no cuadra con como mide el gate",
+      "evidencia": "RESULTADO.json, archivosTocados: «totalCasos 1381 → 1408 = 1404 medidos en HEAD + los 4 nuevos». Los 4 nuevos son de csp-manifest.test.ts, que el propio archivo declara NO SELLADO a proposito (csp-manifest.test.ts:19-21), asi que no pueden contribuir: clinical-safety-gate.test.ts:113-120 suma SOLO los archivos de `sello.archivos`. Medido por mi sobre esa lista: 1409 casos (el gate exige ≥1408, asi que pasa por 1).",
+      "porQueImporta": "No rompe nada y el trinquete es monotono, pero es una cifra explicada con un razonamiento que no es el del gate — en una pasada cuyo hallazgo estrella es «una afirmacion propia que no era verdad». El margen de 1 caso tambien conviene saberlo."
     },
     {
-      "id": "V-6",
-      "gravedad": "BAJA (riesgo residual no declarado)",
-      "titulo": "La regla 'gana la ultima cabecera' esta verificada para `next start`, no para Vercel — que es donde corre produccion",
-      "evidencia": "Comprobado en node_modules/next/dist/server/lib/router-utils/resolve-routes.js:558-560 (servidor Node de Next 16.2.12). En produccion las cabeceras las aplica el proxy de Vercel desde el routes-manifest, no ese codigo. csp-guard.test.ts:319-325 solo comprueba el ORDEN de los bloques, nunca el resultado HTTP.",
-      "porQueImporta": "Si el proxy de Vercel ACUMULARA en vez de sobrescribir, bajo enforce el navegador aplicaria la interseccion de las dos politicas: en `/` y `/registro` eso bloquearia connect.facebook.net (Pixel) y en /configuracion el SDK del alta de WhatsApp, porque la politica global no los declara. En report-only no pasa nada. Es una verificacion barata que solo puede hacerse en un preview desplegado — deberia ser un paso del runbook antes del flip."
+      "id": "W-6",
+      "gravedad": "BAJA",
+      "titulo": "`npm run e2e:seguridad:enforce` sugiere que configura el enforce, y CSP_MODE ahi es inerte",
+      "evidencia": "package.json:13 pasa `CSP_MODE=enforce` al proceso de Playwright, pero next.config.ts:27-31 y :45 leen la variable en tiempo de BUILD y el script no construye: `webServer.command` es `npm run start` (playwright.config.ts:33), que sirve el .next ya compilado. Corrido solo, contra un build por defecto, D1 (e2e/seguridad.spec.ts:186-190) dara rojo por un no-motivo.",
+      "porQueImporta": "El runbook SI lo documenta bien (`CSP_MODE=enforce npm run build && npm run e2e:seguridad:enforce`, docs/seguridad/csp-enforce.md:37-39), asi que es riesgo de que el Dr. copie el nombre del script y no el comando. Lo barato: renombrar a algo que grite el prerequisito o meter el build en el propio script."
     },
     {
-      "id": "V-7",
-      "gravedad": "BAJA (observacion, no regresion de esta unidad)",
-      "titulo": "/login queda fuera de RUTAS_PRIVADAS y el E2E consagra `camera=()` mientras la teleconsulta pide camara",
-      "evidencia": "src/lib/security/rutas-privadas.ts:29-63 no incluye 'login' (src/app/login existe), asi que la pantalla de credenciales sigue siendo embebible — igual que antes, no es regresion, pero es el blanco clasico de clickjacking en una unidad cuyo objetivo es justo ese. Aparte: e2e/seguridad.spec.ts:51 fija `camera=()` como correcto, mientras src/app/teleconsulta/[citaId]/page.tsx:69 monta el iframe con `allow=\"camera; microphone; ...\"`. La Permissions-Policy es PREVIA a esta unidad (no se toco), pero ahora queda anclada por una prueba.",
-      "porQueImporta": "Dos huecos pequeños que la unidad tuvo a la vista y no nombro. El de /login se cierra añadiendo una linea; el de la camara necesita mirar si la videoconsulta funciona hoy en produccion antes de decidir nada."
+      "id": "W-7",
+      "gravedad": "BAJA",
+      "titulo": "csp-manifest.test.ts exige «exactamente una CSP» solo en el bloque global",
+      "evidencia": "csp-manifest.test.ts:71 comprueba el conteo unicamente sobre `/:path*`. MUTANTE M6: renombrar TODAS las claves report-only del manifest a `Content-Security-Policy` (simula un build enforce, pero deja /reservar y el bloque privado con DOS CSP) → `4 passed (4)`, verde.",
+      "porQueImporta": "En un build enforce real `cabecerasCsp` devuelve una sola cabecera por bloque (next.config.ts:157), asi que hoy no ocurre; y el impacto seria benigno (la interseccion de 'frame-ancestors none' con la politica completa sigue siendo 'none'). Es un hueco de cobertura del invariante, no un defecto vivo."
     }
   ],
 
   "regresiones": {
     "hayRegresion": false,
     "comprobaciones": [
-      "Ninguna ruta perdio proteccion: las 5 entradas del regex viejo que no estan en la lista nueva no existen en disco.",
-      "/reservar y /privacidad siguen embebibles en los dos modos (next.config.ts:258-265 + csp-guard.test.ts:307-317); el widget que los consultorios incrustan no se rompe.",
-      "Las rutas con token del paciente conservan su bloque al final (next.config.ts:311-317) y el test fija que sea el ULTIMO (csp-guard.test.ts:324).",
-      "Por defecto no cambia NADA en produccion: sin CSP_MODE la politica sigue viajando en report-only, verificado por mi en el routes-manifest del build.",
-      "vitest 2357/2357 verde y tsc limpio con el arbol tal cual esta."
+      "Ninguna ruta perdio proteccion: el bloque privado del manifest real lista las 33 entradas actuales e incluye `login`.",
+      "/login es el UNICO cambio de comportamiento en produccion y no tiene consumidores: sin middleware.ts en el repo, RUTAS_PRIVADAS solo alimenta cabeceras; el unico iframe hacia dentro de la app (configuracion/page.tsx:2188) apunta a /reservar.",
+      "/reservar y /privacidad siguen embebibles en los dos modos y sin X-Frame-Options (csp-guard.test.ts:451-461 + manifest real).",
+      "Las rutas con token del paciente conservan `Referrer-Policy: no-referrer` y siguen en el ULTIMO bloque del manifest.",
+      "Ningun host que el navegador cargue hoy queda fuera de la politica: revise las posiciones de carga de src/** y ademas public/sw.js (0 hosts externos) y todos los fetch a terceros del repo (graph.facebook.com, waba/partner.360dialog.io, api.anthropic.com, api.openai.com, api.daily.co, eutils.ncbi…) — todos son de SERVIDOR, en src/app/api/** o src/lib/whatsapp-send.ts, y no pasan por connect-src. El unico host de tercero que carga el navegador y no esta en la politica es api.qrserver.com, exento con motivo escrito (csp-guard.test.ts:194) y anotado como hallazgo abierto de privacidad.",
+      "tsc limpio y 2833/2833 verdes con el arbol tal cual esta (incluido el trabajo sin commitear de E1-02)."
     ]
   },
 
+  "reglasClinicasInventadas": "NINGUNA. Ni umbrales, ni dosis, ni escalas, ni gold answers. La unidad es configuracion de cabeceras HTTP y tests; el unico archivo bajo src/lib/clinical/ que se toca es invariantes-clinicos.json y solo en conteos medidos del repo (verificado el diff completo).",
+  "phiOSecretos": "NINGUNO. Ni en los tests nuevos, ni en e2e/seguridad.spec.ts, ni en los fixtures: tokens y hosts ficticios ('token-de-prueba', 'una-sala.daily.co', 'cdn.malicioso.example'). Los artefactos de test-results/ (que menciono como evidencia en W-4) estan en .gitignore:44 y solo contienen cabeceras HTTP de rutas publicas, sin datos de paciente.",
+
   "quedaPendienteParaCERRARDEVERDAD": [
-    "Desplegar (no es el flip): REG-054 esta cerrado en codigo y ABIERTO en produccion. Hoy /uci, /hospitalizacion, /superadmin, /receta, /orden y /corte-caja siguen embebibles por cualquier sitio. Esto no necesita ninguna decision clinica ni el enforce.",
-    "Correr la matriz E2E una vez desplegado (A3 debe pasar de 22 rojos a verde). Es la unica forma de que 'E2E de seguridad en verde' deje de ser una promesa.",
-    "D-3 (autorizar CSP_MODE=enforce) y D-4 (cuenta de prueba con datos sinteticos) siguen siendo del Dr.; sin D-4, 'sin romper flujos' nunca pasara del camino publico.",
-    "Corregir la frase de csp-guard.test.ts:12-17 y RESULTADO.json:11 (el guardian caza 2 de los 3 agujeros, no 3), o añadir una regex que reconozca `<iframe src={...}` para que sea verdad.",
-    "Anotar en REG-054/REG-055 que las mediciones con playwright y npm start no constan ejecutadas en esta corrida."
+    "SOFTWARE, barato y sin riesgo (contra lo que afirma estado.json: «no queda software pendiente»): W-2 (quitar la cota de 400 caracteres del RE_APERTURA_IFRAME + autotest con un tag largo), W-3 (declarar en docs/seguridad/csp-enforce.md §6 que el escaner no ancla los origenes inyectados por SDK de terceros, con reCAPTCHA/App Check nombrado), W-4 (corregir REG-054: la medicion SI ocurrio, los artefactos estan en test-results/ del 28-jul, y decir que implico una violacion de la regla 8) y W-5/W-6 (dos frases).",
+    "DESPLEGAR — sigue siendo lo urgente y no necesita ninguna decision: REG-054 y REG-062 estan CLOSED en codigo y ABIERTOS en produccion. La corrida del 28-jul lo MIDIO: 22 pantallas sin X-Frame-Options, entre ellas /uci, /hospitalizacion, /receta y /superadmin. Ahora tambien /login.",
+    "Una ejecucion HUMANA de la matriz: `npm run build && npm run e2e:seguridad` y `CSP_MODE=enforce npm run build && npm run e2e:seguridad:enforce`.",
+    "El flip: D-3 (CSP_MODE=enforce en Vercel + redeploy), despues del paso 0 del runbook §3 (curl al preview para saber si el proxy de Vercel reemplaza o acumula cabeceras).",
+    "D-4 (cuenta E2E con datos sinteticos): sin ella, «sin romper flujos» no pasa del camino publico."
   ],
 
-  "notaDeProceso": "Trabaje en solo lectura sobre el repo. Los mutantes se ejecutaron sobre una copia en el scratchpad con node_modules enlazado; el arbol de trabajo quedo como estaba (git status identico al inicial: solo los untracked previos de E1-02). Corri `npm run build` dos veces (una con CSP_MODE=enforce para comprobar el interruptor) y lo deje reconstruido en el modo por defecto."
+  "notaDeProceso": "Mutaciones ejecutadas: 10 (M1, M1b, M2, M3, M3b, M4, M5, M6, M7, M8, M9). 6 mueren como se declara, 4 sobreviven y son los hallazgos W-2/W-3/W-7. Todas en /private/tmp/.../scratchpad/mut (copia del arbol con node_modules enlazado), sandbox restaurado a 27/27 verdes al terminar. No edite ni un archivo del repo salvo ESTE VERIFICACION.json. No corri build, ni Playwright, ni ningun servidor."
 }

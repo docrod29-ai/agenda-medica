@@ -27,7 +27,16 @@
 import type { ConceptoRef } from '@/types/clinical-fact'
 import { ANALITOS } from '@/lib/expediente/laboratorio/analitos'
 
-export const VOCABULARIO_VERSION = '1.0.0'
+/**
+ * 1.1.0 (2026-07-30) — cierre de la verificación adversarial de E1-02:
+ *  - la procedencia de cada sinónimo pasa de comentario a DATO auditable
+ *    (`PROCEDENCIA_SINONIMO` + invariante T-10, que la vuelve falsable por máquina);
+ *  - se RETIRAN 3 sinónimos sin fuente en el repo (`dextrostix`, `glucosa capilar`,
+ *    `bmi`) a `SINONIMOS_PROPUESTOS_PENDIENTES` — NEEDS_CLINICAL_REVIEW Q6/Q7;
+ *  - `opts.dominio` deja de ser pista silenciosa y pasa a FILTRO ESTRICTO.
+ * El contenido del catálogo cambió, así que la versión cambia con él.
+ */
+export const VOCABULARIO_VERSION = '1.1.0'
 
 // ---------------------------------------------------------------------------
 // 1. Tipos
@@ -142,6 +151,155 @@ export const TERMINOS_RESERVADOS: Readonly<Record<string, { readonly candidatos:
 export const LAB_SIN_CODIGO_CONGELADO = 25
 
 // ---------------------------------------------------------------------------
+// 3.b PROCEDENCIA DE LOS SINÓNIMOS — la afirmación «aquí no se inventó nada»
+//     deja de ser un comentario y pasa a ser un dato que una máquina refuta.
+//
+//     PORQUÉ EXISTE: la verificación adversarial de esta unidad (hallazgo V-1)
+//     encontró DOS abreviaturas inventadas ('hb', 'bt') mientras el archivo
+//     afirmaba por escrito que sólo 'cr' era nueva. La afirmación no era
+//     falsable: ningún test comparaba los sinónimos contra su fuente. Ahora sí
+//     (invariante T-10): para CADA sinónimo del catálogo, o lo confirma un motor
+//     de producción (`analitoDe` / `extraerSignosVitales`), o es la propia clave
+//     o etiqueta del concepto, o es un `display` LOINC de `lib/fhir/recursos.ts`,
+//     o está citado aquí con fuente no vacía. Si no, el test se pone ROJO.
+// ---------------------------------------------------------------------------
+
+/** Por qué existe un sinónimo que ningún motor de producción confirma por sí solo. */
+export interface ProcedenciaSinonimo {
+  /** Clave del concepto al que pertenece. Evita citas huérfanas (lo fija T-10). */
+  readonly clave: string
+  /** OBLIGATORIA y no vacía: archivo:línea, o «backlog E1-02 · aceptación literal». */
+  readonly fuente: string
+  /** Si la fuente NO es un literal del repo, qué decisión falta. */
+  readonly needsClinicalReview?: string
+}
+
+/**
+ * Sinónimo YA NORMALIZADO → su procedencia. Exportada para que T-10 la audite.
+ *
+ * Las 9 entradas se midieron una por una contra los motores de producción
+ * (`analitoDe`, `extraerSignosVitales`) y contra `grep` sobre `src/`. Ninguna se
+ * añade sin fuente: si no hay fuente, el término NO entra al catálogo — va a
+ * `SINONIMOS_PROPUESTOS_PENDIENTES` y espera al médico dueño.
+ */
+export const PROCEDENCIA_SINONIMO: Readonly<Record<string, ProcedenciaSinonimo>> = {
+  // El único alias sin fuente en el repo que SÍ entra: lo ordena la aceptación.
+  cr: {
+    clave: 'creatinina',
+    fuente: 'backlog E1-02 · aceptación literal («\'creatinina\', \'Cr\' y \'creatinina sérica\' resuelven al mismo concepto»)',
+  },
+  /**
+   * HALLAZGO E1-02-H2 (medido, NO reparado — regla 5 de la carta operativa):
+   * el literal existe en el patrón de `tfg` (analitos.ts:47) pero es CÓDIGO
+   * MUERTO: `creatinina` va antes en el array (analitos.ts:44) y `\bcreatinina\b`
+   * casa dentro de la frase, así que en producción una depuración de creatinina
+   * entra a la serie de creatinina SÉRICA. Aquí se declara la lectura correcta y
+   * la divergencia queda explícita; `analitoDe` no se toca.
+   */
+  'depuracion de creatinina': {
+    clave: 'tfg',
+    fuente: 'src/lib/expediente/laboratorio/analitos.ts:47 (alternativa literal del patrón de `tfg`)',
+    needsClinicalReview: 'E1-02/Q5 — hallazgo E1-02-H2: hoy producción la manda a `creatinina`, no a `tfg`.',
+  },
+  'creatinina en orina': {
+    clave: 'creatinina_orina',
+    fuente: 'src/lib/expediente/laboratorio/analitos.ts:44 (exclusión explícita `(?!\\s*(en\\s*)?orina)`)',
+    needsClinicalReview: 'E1-02/Q4 — confirmar que «creatinina» a secas es la sérica.',
+  },
+  'creatinina orina': {
+    clave: 'creatinina_orina',
+    fuente: 'src/lib/expediente/laboratorio/analitos.ts:44 (misma exclusión, sin la preposición)',
+    needsClinicalReview: 'E1-02/Q4',
+  },
+  /**
+   * DIVERGENCIA DELIBERADA Y DECLARADA: la exclusión de analitos.ts:44 sólo mira
+   * la palabra «orina», así que `analitoDe('creatinina urinaria')` devuelve
+   * `creatinina` (serie sérica). Misma familia que E1-02-H1. No se repara aquí.
+   */
+  'creatinina urinaria': {
+    clave: 'creatinina_orina',
+    fuente: 'src/lib/expediente/laboratorio/analitos.ts:44 (exclusión por espécimen; la palabra «urinaria» NO la cubre)',
+    needsClinicalReview: 'E1-02/Q4 y Q5 — hoy producción la manda a `creatinina`.',
+  },
+  // Composición de dos `display` de producción, no un literal: por eso se cita.
+  'presion arterial sistolica': {
+    clave: 'ta_sistolica',
+    fuente: 'composición de src/lib/fhir/recursos.ts:113 («Presión arterial») + :116 («Sistólica»)',
+  },
+  'presion arterial diastolica': {
+    clave: 'ta_diastolica',
+    fuente: 'composición de src/lib/fhir/recursos.ts:113 («Presión arterial») + :117 («Diastólica»)',
+  },
+  // Fuente DÉBIL declarada como tal: existen como claves de campo del formulario
+  // de UCI, no como término que el médico dicte. Por eso van a Q7.
+  pas: {
+    clave: 'ta_sistolica',
+    fuente: 'clave de campo del formulario de UCI (src/app/(dashboard)/uci/page.tsx, src/app/demo/interactivo/page.tsx:423)',
+    needsClinicalReview: 'E1-02/Q7 — ¿el Dr. usa PAS/PAD al DICTAR, o sólo son nombres de campo?',
+  },
+  pad: {
+    clave: 'ta_diastolica',
+    fuente: 'clave de campo del formulario de UCI (src/app/(dashboard)/uci/page.tsx, src/app/demo/interactivo/page.tsx:423)',
+    needsClinicalReview: 'E1-02/Q7',
+  },
+}
+
+/**
+ * Trinquete de citas. Sólo puede BAJAR (cuando aparezca una fuente real que haga
+ * innecesaria la cita) o cambiar por edición explícita del catálogo. Si SUBE sin
+ * tocar esta constante, alguien añadió un sinónimo citado a mano sin declararlo.
+ */
+export const PROCEDENCIA_CONGELADA = 9
+
+/**
+ * Términos PROPUESTOS que NO entran al catálogo hasta que el médico dueño los
+ * apruebe. NO se indexan: `resolverConcepto` los devuelve `desconocido` (T-13).
+ * Se conservan aquí para no perder la propuesta ni volver a inventarla mañana.
+ *
+ * Es el mismo criterio con el que se borraron 'hb' y 'bt': si no hay fuente en el
+ * repo, el término no entra. Retirar contenido sin fuente NO es una decisión
+ * clínica; DARLE sentido sí, y por eso cada uno viaja con su pregunta.
+ */
+export const SINONIMOS_PROPUESTOS_PENDIENTES: readonly {
+  readonly termino: string
+  readonly claveSugerida: string
+  readonly pregunta: 'Q6' | 'Q7'
+  readonly porQueNoEntra: string
+}[] = [
+  {
+    termino: 'glucosa capilar',
+    claveSugerida: 'glucometria',
+    pregunta: 'Q6',
+    porQueNoEntra: 'Sin fuente: `grep -rniE "glucosa capilar" src` = 0 resultados fuera de este archivo. Que la capilar sea la MISMA serie temporal que la de laboratorio (o no) es una decisión de significado clínico.',
+  },
+  {
+    termino: 'dextrostix',
+    claveSugerida: 'glucometria',
+    pregunta: 'Q6',
+    porQueNoEntra: 'Sin fuente: `grep -rniE "\\bdextrostix\\b" src` = 0 resultados fuera de este archivo. Además es un nombre comercial.',
+  },
+  {
+    termino: 'bmi',
+    claveSugerida: 'imc',
+    pregunta: 'Q7',
+    porQueNoEntra: 'Fuente DÉBIL: su única aparición en el repo está DENTRO de una etiqueta de texto (src/lib/expediente/preop.ts:201, «IMC > 35 kg/m² (B - BMI)»), no como término de entrada.',
+  },
+]
+
+/**
+ * Sentidos citados en `TERMINOS_RESERVADOS[].candidatos` que TODAVÍA no son un
+ * concepto del catálogo. Cierra el hallazgo V-4: el consumidor recibe una clave
+ * candidata que `conceptoPorClave` no resuelve, y eso es deliberado — no se
+ * fabrica el concepto antes de que el médico dueño decida el sentido.
+ */
+export const SENTIDOS_NO_CATALOGADOS: readonly { readonly clave: string; readonly porQue: string }[] = [
+  {
+    clave: 'pcr_molecular',
+    porQue: 'NEEDS_CLINICAL_REVIEW E1-02/Q2: el sentido molecular de «PCR» se cita como candidato para que la UI pueda ofrecerlo, pero NO se crea como concepto (no tiene unidad, ni analito, ni código validado) hasta que el médico dueño decida la política de desambiguación.',
+  },
+]
+
+// ---------------------------------------------------------------------------
 // 4. Sinónimos de laboratorio — derivados de los literales YA presentes en los
 //    regex de analitos.ts. No se inventa ninguno, SALVO 'cr' (lo ordena la
 //    aceptación del backlog de E1-02).
@@ -231,8 +389,12 @@ const CONCEPTOS_VITALES: readonly ConceptoCanonico[] = [
   { clave: 'spo2', etiqueta: 'Saturación de oxígeno', dominio: 'signo-vital', unidadConvencional: '%', sinonimos: ['spo2', 'saturacion de oxigeno', 'saturacion'], codigos: [loinc('2708-6', FUENTE_LOINC_VITALES)] },
   { clave: 'peso', etiqueta: 'Peso corporal', dominio: 'signo-vital', unidadConvencional: 'kg', sinonimos: ['peso', 'peso corporal'], codigos: [loinc('29463-7', FUENTE_LOINC_VITALES)] },
   { clave: 'talla', etiqueta: 'Estatura', dominio: 'signo-vital', unidadConvencional: 'cm', sinonimos: ['talla', 'estatura'], codigos: [loinc('8302-2', FUENTE_LOINC_VITALES)] },
-  { clave: 'imc', etiqueta: 'Índice de masa corporal', dominio: 'signo-vital', unidadConvencional: 'kg/m2', sinonimos: ['imc', 'indice de masa corporal', 'bmi'], codigos: [loinc('39156-5', FUENTE_LOINC_VITALES)] },
-  { clave: 'glucometria', etiqueta: 'Glucometría', dominio: 'signo-vital', unidadConvencional: 'mg/dL', sinonimos: ['glucometria', 'dextrostix', 'glucosa capilar'], codigos: [loinc('2339-0', FUENTE_LOINC_VITALES)] },
+  // 'bmi' RETIRADO (Q7): su única aparición en el repo está dentro de una
+  // etiqueta de texto (preop.ts:201), no como término de entrada.
+  { clave: 'imc', etiqueta: 'Índice de masa corporal', dominio: 'signo-vital', unidadConvencional: 'kg/m2', sinonimos: ['imc', 'indice de masa corporal'], codigos: [loinc('39156-5', FUENTE_LOINC_VITALES)] },
+  // 'dextrostix' y 'glucosa capilar' RETIRADOS (Q6): cero fuentes en `src` y la
+  // separación capilar/laboratorio es una decisión de significado clínico.
+  { clave: 'glucometria', etiqueta: 'Glucometría', dominio: 'signo-vital', unidadConvencional: 'mg/dL', sinonimos: ['glucometria'], codigos: [loinc('2339-0', FUENTE_LOINC_VITALES)] },
   // La TA se emite como DOS observaciones, no una: se conserva esa decisión.
   { clave: 'ta_sistolica', etiqueta: 'Presión arterial sistólica', dominio: 'signo-vital', unidadConvencional: 'mm[Hg]', sinonimos: ['ta sistolica', 'presion arterial sistolica', 'sistolica', 'pas'], codigos: [loinc('8480-6', FUENTE_LOINC_TA)] },
   { clave: 'ta_diastolica', etiqueta: 'Presión arterial diastólica', dominio: 'signo-vital', unidadConvencional: 'mm[Hg]', sinonimos: ['ta diastolica', 'presion arterial diastolica', 'diastolica', 'pad'], codigos: [loinc('8462-4', FUENTE_LOINC_TA)] },
@@ -350,22 +512,24 @@ export function crearResolvedor(
     const claves = indice.get(t)
     if (!claves || claves.length === 0) return { estado: 'desconocido', termino: t }
 
-    if (claves.length === 1) {
-      const c = porClave.get(claves[0])
-      return c ? { estado: 'resuelto', concepto: c } : { estado: 'desconocido', termino: t }
-    }
+    // `dominio` es FILTRO ESTRICTO, no desempate silencioso (cierra el hallazgo
+    // V-3). Antes, con un solo candidato se devolvía el concepto SIN mirar el
+    // dominio pedido: `resolverConcepto('creatinina', { dominio: 'signo-vital' })`
+    // devolvía el de LABORATORIO. El proyector de E1-03 va a leerlo como filtro,
+    // y hoy el cambio sale gratis porque el módulo no tiene ni un importador de
+    // producción; con el primer consumidor ya no.
+    const candidatos = claves
+      .map(k => porClave.get(k))
+      .filter((c): c is ConceptoCanonico => !!c)
+      .filter(c => !opts?.dominio || c.dominio === opts.dominio)
 
-    if (opts?.dominio) {
-      const enDominio = claves
-        .map(k => porClave.get(k))
-        .filter((c): c is ConceptoCanonico => !!c && c.dominio === opts.dominio)
-      if (enDominio.length === 1) return { estado: 'resuelto', concepto: enDominio[0] }
-    }
+    if (candidatos.length === 0) return { estado: 'desconocido', termino: t }
+    if (candidatos.length === 1) return { estado: 'resuelto', concepto: candidatos[0] }
     return {
       estado: 'ambiguo',
       termino: t,
-      candidatos: claves,
-      nota: `El término «${t}» pertenece a ${claves.length} conceptos. Sin una pista de dominio que deje uno solo, no se elige.`,
+      candidatos: candidatos.map(c => c.clave),
+      nota: `El término «${t}» pertenece a ${candidatos.length} conceptos${opts?.dominio ? ` del dominio «${opts.dominio}»` : ''}. Sin una pista que deje uno solo, no se elige.`,
     }
   }
 
@@ -392,16 +556,17 @@ export function clavesQueDeclaran(termino: string): readonly string[] {
  *  2. Igualdad EXACTA contra clave y sinónimos. Sin `test()`, sin `includes()`,
  *     sin `\b`: el casado por subcadena es lo que hace que «vitamina K» resuelva
  *     a potasio en `analitoDe()` (hallazgo E1-02-H1).
- *  3. 0 coincidencias → `desconocido`.  1 → `resuelto`.
- *  4. ≥2 → si `opts.dominio` deja exactamente una, `resuelto`; si no, `ambiguo`.
- *     NUNCA se elige la primera.
+ *  3. Si viene `opts.dominio`, se FILTRA por él SIEMPRE (no es un desempate).
+ *  4. 0 candidatos → `desconocido`.  1 → `resuelto`.  ≥2 → `ambiguo`.
+ *     NUNCA se elige el primero.
  *  5. Término en `TERMINOS_RESERVADOS` → `ambiguo` aunque haya un solo candidato.
  *
  * PRECIO DECLARADO: no extrae conceptos de prosa («PCR para influenza» →
  * `desconocido`). No es una regresión, es división de trabajo: extraer es del
  * NER y del proyector (E1-03); canonizar lo ya extraído es de aquí.
  *
- * `dominio` es una PISTA del productor, no una afirmación clínica.
+ * `dominio` NO es una afirmación clínica: es el eje del catálogo. Pedir un
+ * dominio que el término no tiene devuelve `desconocido`, nunca el otro concepto.
  */
 export function resolverConcepto(
   termino: string,

@@ -307,3 +307,178 @@ El repo lo asume hoy al excluir «en orina» (`analitos.ts:44`), y la aceptació
 3. `npx tsc --noEmit` · `npx vitest run src/__tests__/` · `npm run build` en verde, con la línea base de tests **medida antes** de tocar nada (E1-01 cerró en **2211** casos / 181 archivos).
 4. `grep -rn "clinical-fact/vocabulario" src/` devuelve **sólo** archivos de `src/__tests__/`.
 5. `RESULTADO.json` escrito **en el mismo commit** que cierra la unidad (regla operativa de `estado.json`), con `necesitaValidacionClinica: true` y Q1–Q4 copiadas literalmente.
+
+---
+---
+
+# PASADA 2 — diseño del CIERRE de E1-02 (2026-07-29, tarde)
+
+> **Qué cambió desde la pasada 1.** El diseño de arriba se implementó, pasó los gates (2 357 tests verdes) y **la verificación adversarial lo devolvió como `INCOMPLETA`** (`VERIFICACION.json`, veredicto). No por la aceptación —que sí se cumple y se comprobó por identidad de referencia— sino porque el módulo **afirmaba por escrito que no había inventado ningún sinónimo y había inventado dos** (`hb`, `bt`), y esa afirmación **no era falsable por la suite**: ningún test comparaba los sinónimos declarados contra su fuente.
+>
+> `hb` y `bt` **ya se borraron** en la reconciliación (`estado.json` → `correccionesAplicadasEnLaReconciliacion`, y los comentarios que lo documentan siguen en `src/lib/clinical-fact/vocabulario.ts:175-177,184-186`). Lo que **falta** para cerrar la unidad es exactamente lo que `estado.json` → `bloqueadas[E1-02].queFaltaExactamente` enumera: **un test que haga falsable la afirmación**, **retirar o citar los sinónimos de vitales sin respaldo**, y **dos preguntas nuevas al médico dueño (Q6, Q7)**.
+>
+> Esta pasada 2 diseña **eso y nada más**. Sigue sin tocarse un solo archivo de producción.
+
+## 11. Estado REAL medido hoy (no heredado del acta)
+
+Ejecuté un sondeo desechable (`src/__tests__/tmp-e1-02-oraculo.test.ts`, creado, corrido y **borrado**; árbol limpio) que recorre `CONCEPTOS` y pregunta a los motores de producción si confirman cada sinónimo. Resultado exacto: **22 de ~86 sinónimos no los confirma ningún oráculo**. Ese número es el punto de partida del diseño.
+
+**Laboratorio — 5 sin confirmar** (oráculo: `analitoDe`, `src/lib/expediente/laboratorio/analitos.ts:77`):
+
+| Sinónimo | `analitoDe()` real | Lectura |
+|---|---|---|
+| `cr` → `creatinina` | `null` | **Lo ordena la aceptación del backlog.** Única alta legítima sin fuente en el repo. |
+| `depuracion de creatinina` → `tfg` | **`creatinina`** | **HALLAZGO NUEVO (E1-02-H2).** El literal existe en el patrón de `tfg` (`analitos.ts:46`) pero es **código muerto**: `creatinina` está antes en el array (`analitos.ts:44`) y `\bcreatinina\b` casa dentro de la frase. En producción, una depuración de creatinina entra a la serie de **creatinina sérica**. |
+| `creatinina en orina` → `creatinina_orina` | `null` | Correcto: la exclusión `(?!\s*(en\s*)?orina)` de `analitos.ts:44` la bloquea a propósito. |
+| `creatinina orina` → `creatinina_orina` | `null` | Igual. |
+| `creatinina urinaria` → `creatinina_orina` | **`creatinina`** | **Divergencia deliberada**: la exclusión sólo mira la palabra «orina», así que producción manda «creatinina urinaria» a la serie sérica. Es la misma familia que E1-02-H1. |
+
+Los otros ~55 sinónimos de laboratorio **sí** los confirma producción, incluidos los 11 alias cortos que Q3 pregunta (`na`, `k`, `cl`, `fa`, `alp`, `glu`, `a1c`, `bun`, `hto`, `hct`, `tsh`) y las formas largas (`creatinina serica`, `creatinina plasmatica`, `glucosa en ayuno`, `nitrogeno ureico en sangre`, `tasa de filtrado glomerular`, `aspartato aminotransferasa`, `sodio serico`…). **Ninguno estaba inventado.**
+
+**Signos vitales — 17 sin confirmar por el parser, pero la mayoría SÍ tiene fuente en otro archivo.** El oráculo del parser (`extraerSignosVitales`, `src/lib/expediente/parser-clinico.ts:107`) sólo reconoce la forma **inmediatamente seguida de número**, así que confirma `fc`, `frecuencia cardiaca`, **`pulso`** (`parser-clinico.ts:65`), `fr`, `frecuencia respiratoria`, `temperatura`, `temp` (`:67`), `saturacion` (`:68`), `peso` (`:72`), `talla`, `estatura` (`:83`) — y falla en las compuestas. Cruzando con el resto del repo:
+
+| Sinónimo | ¿Fuente real? | Dónde |
+|---|---|---|
+| `temperatura corporal`, `peso corporal`, `indice de masa corporal`, `saturacion de oxigeno` | **SÍ** | son literalmente los `display` de `LOINC_VITALES` (`src/lib/fhir/recursos.ts:82,84,86,87`), normalizados |
+| `sistolica`, `diastolica` | **SÍ** | `display` de los componentes de TA (`src/lib/fhir/recursos.ts:116-117`) |
+| `saturacion de oxigeno` (2ª fuente) | SÍ | `src/lib/uci/extraccion.ts:146` |
+| `imc`, `glucometria`, `ta sistolica`, `ta diastolica` | **SÍ, trivialmente** | son la propia `clave` (`src/types/expediente.ts:93,95`), con `_`→espacio |
+| `presion arterial sistolica`, `presion arterial diastolica` | **composición**, no literal | `«Presión arterial»` (`recursos.ts:113`) + componente `«Sistólica»` (`:116`). Hay que **citarla como composición**, no fingir que es un literal |
+| `pas`, `pad` | **débil**: existen como **claves de campo** del formulario de UCI, no como término dictado | `src/app/(dashboard)/uci/page.tsx`, `src/app/demo/interactivo/page.tsx:423` |
+| **`bmi`** | **débil**: sólo aparece dentro de una etiqueta de texto | `src/lib/expediente/preop.ts:201` (`'IMC > 35 kg/m² (B - BMI)'`) |
+| **`dextrostix`** | **NINGUNA** | `grep -rniE '\bdextrostix\b' src` → 0 resultados fuera de `vocabulario.ts` |
+| **`glucosa capilar`** | **NINGUNA** | `grep -rniE 'glucosa capilar' src` → 0 resultados fuera de `vocabulario.ts` |
+
+**Correcciones al acta de verificación** (medidas, no opinadas): de los cuatro sinónimos que V-2 declaró sin fuente, **`pulso` sí la tiene** (`parser-clinico.ts:65`) y **`bmi` tiene una débil**; sin fuente de verdad quedan **dos**: `dextrostix` y `glucosa capilar`.
+
+## 12. El cambio mínimo que cierra la unidad
+
+Una sola idea, aplicada a todo el catálogo: **la procedencia de cada sinónimo deja de ser un comentario y pasa a ser un dato que una máquina puede refutar.**
+
+### 12.1 Invariante nuevo (T-10) — el que V-1 pedía
+
+Para **todo** concepto `c` de `CONCEPTOS` y **todo** sinónimo `s` de `c.sinonimos`, al menos una de estas cinco cosas debe ser cierta, o **el test se pone rojo**:
+
+1. **Autorreferencia** — `s === normalizarTermino(c.clave)` o `s === c.clave.replace(/_/g,' ')`. No es un mapeo nuevo.
+2. **Etiqueta** — `s === normalizarTermino(c.etiqueta)`, y la etiqueta viene de `ANALITOS` / `LOINC_VITALES`.
+3. **Oráculo de laboratorio** — `analitoDe(s)?.clave === c.clave`. Producción ya hace ese mapeo.
+4. **Oráculo de vitales** — `extraerSignosVitales(`${s} ${v}`)[campo] === v` para un `v` sintético. Producción ya extrae ese término. *(Requisito del test: se afirma **el campo esperado**; si además otro campo se llena, el caso se declara ambiguo y se manda a la regla 5, para no aceptar confirmaciones por casualidad.)*
+5. **Cita explícita** — `s` está en `PROCEDENCIA_SINONIMO` con una `fuente` **no vacía**, y el tamaño de esa tabla es exactamente `PROCEDENCIA_CONGELADA`.
+
+Con esto, la frase «no hay sinónimos inventados» se vuelve **ejecutable**. `hb` y `bt`, si alguien los reintroduce, caen en el hueco: `analitoDe('hb')` es `null`, no son clave ni etiqueta, y no están en la tabla ⇒ **rojo**.
+
+**Control negativo obligatorio en la implementación:** añadir `hb` a `SINONIMOS_LAB`, comprobar que **T-10 se pone rojo**, y revertir. Si no se pone rojo, el test no prueba lo que dice y hay que rehacerlo. *(La pasada 1 no tuvo este control para la afirmación de procedencia; es exactamente el hueco por el que entró V-1.)*
+
+### 12.2 Contrato nuevo (añadidos a `src/lib/clinical-fact/vocabulario.ts`)
+
+```ts
+/** Por qué existe un sinónimo que ningún motor de producción confirma. */
+export interface ProcedenciaSinonimo {
+  /** Clave del concepto al que pertenece (evita citas huérfanas). */
+  readonly clave: string
+  /** OBLIGATORIA y no vacía: archivo:línea, o «backlog E1-02 · aceptación». */
+  readonly fuente: string
+  /** Si la fuente NO es un literal del repo, qué falta decidir. */
+  readonly needsClinicalReview?: string
+}
+
+/** Sinónimo normalizado → su procedencia. Exportada para que T-10 la audite. */
+export const PROCEDENCIA_SINONIMO: Readonly<Record<string, ProcedenciaSinonimo>>
+
+/** Trinquete: sólo puede BAJAR (al aparecer una fuente real) o cambiar por edición explícita. */
+export const PROCEDENCIA_CONGELADA = 9
+
+/**
+ * Términos PROPUESTOS que NO entran al catálogo hasta que el médico dueño los
+ * apruebe (Q6/Q7). No se indexan: `resolverConcepto` los devuelve `desconocido`.
+ * Se conservan aquí para no perder la propuesta ni volver a inventarla.
+ */
+export const SINONIMOS_PROPUESTOS_PENDIENTES: readonly {
+  readonly termino: string
+  readonly claveSugerida: string
+  readonly pregunta: 'Q6' | 'Q7'
+  readonly porQueNoEntra: string
+}[]
+
+/** Sentidos citados en `TERMINOS_RESERVADOS.candidatos` que aún no son concepto (cierra V-4). */
+export const SENTIDOS_NO_CATALOGADOS: readonly { readonly clave: string; readonly porQue: string }[]
+```
+
+**`PROCEDENCIA_SINONIMO` con sus 9 entradas** (todas con fuente verificada en §11):
+
+| Sinónimo | clave | fuente |
+|---|---|---|
+| `cr` | `creatinina` | `backlog E1-02 · aceptación literal` |
+| `depuracion de creatinina` | `tfg` | `analitos.ts:46` (literal del patrón de `tfg`; **hoy inalcanzable** por orden del array → E1-02-H2) |
+| `creatinina en orina` | `creatinina_orina` | `analitos.ts:44` (exclusión explícita) · `needsClinicalReview: Q4` |
+| `creatinina orina` | `creatinina_orina` | idem |
+| `creatinina urinaria` | `creatinina_orina` | `analitos.ts:44` (**divergencia declarada**: producción la manda a `creatinina`) · `needsClinicalReview: Q4` |
+| `presion arterial sistolica` | `ta_sistolica` | composición `recursos.ts:113` + `:116` |
+| `presion arterial diastolica` | `ta_diastolica` | composición `recursos.ts:113` + `:117` |
+| `pas` | `ta_sistolica` | clave de campo del formulario de UCI · `needsClinicalReview: Q7` |
+| `pad` | `ta_diastolica` | idem · `needsClinicalReview: Q7` |
+
+**`SINONIMOS_PROPUESTOS_PENDIENTES` — se RETIRAN del catálogo 3 términos** (`dextrostix`, `glucosa capilar` → `glucometria`; `bmi` → `imc`). Es una **borradura de contenido sin fuente**, no una decisión clínica: exactamente el mismo criterio con el que se borraron `hb` y `bt`.
+
+### 12.3 `dominio`: de pista silenciosa a filtro estricto (cierra V-3)
+
+Hoy (`vocabulario.ts:353-363`) `opts.dominio` **sólo desempata**: con un único candidato no filtra, así que `resolverConcepto('creatinina', { dominio: 'signo-vital' })` devuelve el concepto de **laboratorio** sin avisar. E1-03 va a leerlo como filtro.
+
+**Cambio:** si `opts.dominio` viene, se filtra **siempre**; si no queda ningún candidato ⇒ `desconocido`; si queda uno ⇒ `resuelto`; si quedan ≥2 ⇒ `ambiguo`. Se hace **ahora** porque el módulo **no tiene un solo importador de producción** (`grep -rn "clinical-fact/vocabulario" src --include=*.ts --include=*.tsx` sólo devuelve `src/__tests__/`): cambiar la semántica cuesta cero hoy y es irreversible en cuanto exista el primer consumidor. Actualiza la tabla de §4 en dos filas y **exige** los tests T-11.
+
+### 12.4 Lo que esta pasada NO hace
+
+| No hace | Por qué |
+|---|---|
+| No repara `analitoDe` (H1 `vitamina K`→potasio, H2 `depuracion de creatinina`→creatinina, `creatinina urinaria`→creatinina) | Cambia una gráfica en producción. Regla 5 → se entrega el plan, decide el médico dueño (Q5, ahora con dos casos más). |
+| No añade `hb`, `bt`, `dextrostix`, `glucosa capilar`, `bmi` | No hay fuente. Regla 1. |
+| No elige ni un LOINC de laboratorio | Q1 sigue abierta; `LAB_SIN_CODIGO_CONGELADO = 25` intacto. |
+| No decide el sentido de «PCR» | Q2 sigue abierta; `pcr` sigue reservado ⇒ `ambiguo`. |
+| No exporta `LOINC_VITALES` desde `recursos.ts` | Sería tocar producción. El test ya lee ese archivo **como texto** (`clinical-vocabulario.test.ts:281,298-302`); se reusa ese mismo lector para cosechar los `display`. |
+
+## 13. Archivos que se tocan
+
+| Archivo | Acción | Por qué |
+|---|---|---|
+| `src/lib/clinical-fact/vocabulario.ts` | **modificar** (~+70/−6) | añade §12.2; retira 3 sinónimos sin fuente; `dominio` pasa a filtro estricto |
+| `src/__tests__/clinical-vocabulario.test.ts` | **modificar** (~+90) | T-10 (procedencia, con control negativo), T-11 (filtro de dominio: las 3 ramas), T-12 (candidatos catalogados o declarados, cierra V-4), T-13 (los 3 retirados devuelven `desconocido`) |
+| `src/__tests__/fixtures/conceptos.ts` | **modificar** (~+12) | fixtures de los términos retirados y de los casos de dominio |
+| `docs/roadmap/nexus-os/unidades/E1-02/{DISENO.md, RESULTADO.json}` | doc | este archivo + acta al cerrar |
+| `docs/roadmap/nexus-os/{estado.json, CHECKPOINT.md}` | doc | Q6, Q7, hallazgo E1-02-H2, sacar E1-02 de `bloqueadas` |
+
+**Archivos de producción modificados: 0.** Sigue sin tocarse `analitos.ts`, `parser-clinico.ts`, `recursos.ts`, `labs-desde-texto.ts`, `cie10.ts`, `schema.ts`, `firestore.rules`, impresión, cobros ni ninguna pantalla.
+
+## 14. Riesgo de regresión REAL
+
+**Bajo, y por la misma razón medida que en la pasada 1:** el módulo **no tiene importadores de producción**. Lo único que este diseño añade al riesgo:
+
+1. **Acoplamiento nuevo de TEST a producción** (no de runtime): T-10 importa `analitoDe` y `extraerSignosVitales`, y lee `recursos.ts` como texto. Si mañana alguien cambia el patrón de un analito o el `display` de un LOINC, **el CI se pone rojo**. Es **deliberado** (anti-deriva, igual que T-7), pero hay que declararlo: es un test que puede romperse por un cambio legítimo en otro archivo. Mitigación: el mensaje de fallo dice qué sinónimo perdió su fuente y ofrece las dos salidas (retirarlo o citarlo).
+2. **`dominio` cambia de semántica.** Riesgo **cero hoy** (0 importadores), y es el único momento en que sale gratis.
+3. `extraerSignosVitales` como oráculo depende de texto sintetizado. Falla conocida y acotada: si un sinónimo confirma **el campo equivocado**, el test debe tratarlo como **no confirmado** (regla 4 de §12.1), nunca como confirmado.
+
+**Gates:** `npx tsc --noEmit`, `npx vitest run src/__tests__/`, `npm run build`. Línea base a medir antes de tocar nada (última medición del programa: **2 663** tests verdes en 196 archivos, `estado.json` → cierre del 2026-07-29 noche). Nada de servidores, `--watch` ni Playwright.
+
+## 15. NEEDS_CLINICAL_REVIEW — Q1…Q5 siguen abiertas; se añaden Q6 y Q7
+
+Las cinco de la pasada 1 están registradas en `estado.json` → `necesitaValidacionDelDr` y **no se repiten aquí**. Ninguna bloquea: todas tienen default conservador ya aplicado en el código.
+
+### Q6 · «Glucosa capilar»: ¿es glucometría (signo vital) o glucosa de laboratorio?
+El catálogo hoy manda `glucosa capilar` → `glucometria` (signo vital, LOINC 2339-0) mientras `glucosa serica` → `glucosa` (laboratorio). Es una separación defendible, **pero no está en ninguna fuente del repo**: `grep` de «glucosa capilar» en `src` devuelve **cero** resultados fuera de `vocabulario.ts`. Es una decisión de **significado clínico** (¿la capilar y la venosa son la misma serie temporal o dos?), y de ella depende en qué gráfica cae el dato.
+*Default aplicado:* **se RETIRA** del catálogo (queda en `SINONIMOS_PROPUESTOS_PENDIENTES`); `glucosa capilar` devuelve `desconocido` hasta su respuesta. Igual `dextrostix`, que además es un nombre comercial.
+**Lo que necesito:** (a) `glucosa capilar` y `dextrostix` → `glucometria`; (b) → `glucosa`; (c) que sigan sin resolver y la UI pregunte.
+
+### Q7 · Abreviaturas de signos vitales sin uso confirmado en la app
+Con fuente medida y **se quedan**: `pulso` (`parser-clinico.ts:65`), `temp` (`:67`), `saturacion` (`:68`), `estatura` (`:83`), y los `display` LOINC (`temperatura corporal`, `peso corporal`, `indice de masa corporal`, `saturacion de oxigeno`, `sistolica`, `diastolica`).
+**Le pregunto sólo por tres:** `pas` y `pad` (existen como *claves de campo* del formulario de UCI, no como término que usted dicte) y `bmi` (sólo aparece dentro de una etiqueta de texto en `preop.ts:201`).
+*Default aplicado:* `pas`/`pad` **se quedan, citados** como campos de UCI; `bmi` **se retira**.
+**Lo que necesito:** ¿usa `PAS`/`PAD` al dictar? ¿Quiere `BMI` además de `IMC`? ¿Falta alguna que usted teclea (`FC`, `FR`, `TA`, `SatO₂`, `Glu cap`)?
+
+## 16. Definición de terminado (para la implementación de la pasada 2)
+
+1. T-10 en verde **con el control negativo ejecutado y revertido** (`hb` reintroducido ⇒ T-10 rojo). Sin ese control, la unidad **no se cierra**: es el hueco por el que pasó V-1.
+2. T-11 fija las tres ramas del `dominio` como filtro estricto, incluido `resolverConcepto('creatinina', { dominio: 'signo-vital' })` ⇒ `desconocido`.
+3. T-12 (V-4) y T-13 (los 3 retirados ⇒ `desconocido`) en verde.
+4. `PROCEDENCIA_CONGELADA` y `LAB_SIN_CODIGO_CONGELADO` afirmados por test; ambos sólo pueden **bajar**.
+5. `grep -rn "clinical-fact/vocabulario" src --include=*.ts --include=*.tsx` sigue devolviendo **sólo** `src/__tests__/`.
+6. Los tres gates en verde, con la línea base medida antes.
+7. `RESULTADO.json` escrito en el mismo commit, con `necesitaValidacionClinica: true`, Q1…Q7 literales, y el hallazgo **E1-02-H2** (`depuracion de creatinina` → `creatinina` en producción) registrado en el ledger junto a H1, **sin repararlo**.

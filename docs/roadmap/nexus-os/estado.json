@@ -1,7 +1,7 @@
 {
   "version": 1,
   "descripcion": "ESTADO DURABLE del programa Nexus OS. Fuente de verdad del avance. Los agentes lo actualizan tras CADA unidad terminada. Si se acaban los créditos, este archivo dice exactamente dónde retomar sin perder nada.",
-  "actualizado": "2026-07-30T05:30:22Z",
+  "actualizado": "2026-07-30T05:43:22Z",
   "runs": [
     {
       "unidad": "E0-01",
@@ -359,6 +359,19 @@
         "build": "PASS (los dos modos)",
         "testsPasan": 2809
       }
+    },
+    {
+      "unidad": "E1-02",
+      "fecha": "2026-07-30T05:43:22Z",
+      "resultado": "necesita_validacion",
+      "corrida": "2a pasada — CIERRE del software tras la verificacion adversarial (no reimplementacion)",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2833
+      },
+      "notaCierre": "Cerrados los DOS puntos de software que la bloqueaban, mas dos residuales del acta. (V-1) La procedencia de cada sinonimo deja de ser un COMENTARIO y pasa a ser un DATO auditable: el invariante T-10 exige, para TODO sinonimo del catalogo, que lo confirme un motor de produccion (`analitoDe` o `extraerSignosVitales`), o que sea la propia clave/etiqueta, o que sea un `display` LOINC cosechado de recursos.ts y ATADO AL CODIGO que el concepto declara, o que este citado en PROCEDENCIA_SINONIMO con fuente no vacia. Reintroducir 'hb' pone el test ROJO (control negativo ejecutado y revertido). (V-2) Se RETIRAN los 3 sinonimos de vitales sin respaldo medido: 'glucosa capilar' y 'dextrostix' (cero grep en src) y 'bmi' (fuente debil: dentro de una etiqueta de texto en preop.ts:201); quedan guardados en SINONIMOS_PROPUESTOS_PENDIENTES con su pregunta y devuelven `desconocido`. MEDICION que CORRIGE el acta: 'pulso' SI tiene fuente (parser-clinico.ts:65, confirmado por el oraculo) — eran DOS sin fuente, no cuatro. (V-3) `opts.dominio` pasa de desempate silencioso a FILTRO ESTRICTO: `resolverConcepto('creatinina',{dominio:'signo-vital'})` devolvia el concepto de LABORATORIO y ahora devuelve `desconocido`; se hizo ahora porque el modulo no tiene un solo importador de produccion y con el primer consumidor seria irreversible. (V-4) SENTIDOS_NO_CATALOGADOS declara que 'pcr_molecular' se cita como candidato pero NO se fabrica como concepto hasta que el Dr. decida Q2. HALLAZGO NUEVO E1-02-H2, registrado y NO reparado (regla 5): analitoDe('depuracion de creatinina') devuelve 'creatinina', no 'tfg' — el literal existe en el patron de tfg (analitos.ts:47) pero es CODIGO MUERTO porque creatinina va antes en el array; y analitoDe('creatinina urinaria') tambien cae en la serie serica porque la exclusion solo mira la palabra «orina». CUATRO controles negativos ejecutados y revertidos (reintroducir 'hb' -> 2 rojos; reintroducir 'glucosa capilar' -> 4 rojos; devolver el dominio a desempate -> 5 rojos; vaciar una cita -> 2 rojos). CERO archivos de produccion CONSUMIDOS tocados: analitos.ts, parser-clinico.ts, recursos.ts, cie10.ts y schema.ts intactos; el unico archivo de src/lib modificado es el propio vocabulario.ts, que sigue con 0 importadores de produccion. Tests 2809 -> 2833 (+24, todos en clinical-vocabulario.test.ts, 46 -> 70)."
     }
   ],
   "unidadEnCurso": null,
@@ -465,22 +478,6 @@
       "loQueSIquedaEnPie": "El mecanismo está commiteado (5e01c35 + 5690e5b): CSP parametrizada por CSP_MODE, guardián csp-guard.test.ts con control negativo reproducido por el verificador, y el cierre REAL de un hueco de clickjacking (22 de 34 pantallas autenticadas viajaban sin cabecera anti-iframe). NO reimplementar desde cero: falta CERRAR, no construir.",
       "evidencia": "docs/roadmap/nexus-os/unidades/E0-10/VERIFICACION.json",
       "actaEnDisco": "docs/roadmap/nexus-os/unidades/E0-10/RESULTADO.json (estado: necesita_validacion — NO cuenta como completada)"
-    },
-    {
-      "unidad": "E1-02",
-      "titulo": "Vocabulario de conceptos clínicos",
-      "motivo": "Verificación adversarial INCOMPLETA. La aceptación literal SÍ se cumple («creatinina», «Cr» y «creatinina sérica» resuelven al MISMO objeto, comprobado por identidad de referencia), pero (V-1, P1) el módulo inventó dos abreviaturas de laboratorio que no existen en ninguna fuente del repo, 'hb' y 'bt', mientras el propio comentario afirmaba que 'cr' era el único sinónimo nuevo — una afirmación falsa que además evadía el NEEDS_CLINICAL_REVIEW; y (V-2, P2) los sinónimos de los 10 signos vitales se escribieron a mano y cuatro no tienen fuente en el repo ('pulso', 'bmi', 'dextrostix', 'glucosa capilar'), sin que ninguna de las preguntas Q1-Q5 los cubra.",
-      "origen": "verificacion-adversarial",
-      "reintentar": true,
-      "bloqueadaPor": "Parcial. V-1 YA SE REPARÓ en esta reconciliación (ver `correccionesAplicadasEnLaReconciliacion`). Lo que queda de V-2 es criterio médico + un test que aún no existe.",
-      "queFaltaExactamente": [
-        "SOFTWARE (ejecutable por el agente): un test que DERIVE los sinónimos de laboratorio desde los `patron` de ANALITOS, para que la afirmación «no hay sinónimos inventados» sea falsable por máquina y no por comentario.",
-        "SOFTWARE: retirar o dar fuente a los sinónimos de vitales sin respaldo — 'pulso' (vocabulario.ts), 'bmi', 'dextrostix', 'glucosa capilar'. Los que SÍ tienen fuente en el repo: 'saturacion' (uci/extraccion.ts:146), 'temperatura' (:152), 'estatura' (:149), 'pas'/'pad' (uci/nota.ts:55).",
-        "MÉDICO: la separación 'glucosa capilar'→glucometria vs 'glucosa serica'→glucosa es una decisión de significado clínico y hoy no tiene pregunta asociada. Hay que formularla como Q6.",
-        "MÉDICO: Q1-Q5 ya registradas (LOINC de laboratorio, sentido de «PCR», abreviaturas que resuelven solas, espécimen de creatinina, autorización del hallazgo E1-02-H1)."
-      ],
-      "riesgoHoy": "CERO. El módulo no tiene un solo importador de producción (grep sólo devuelve src/__tests__). Nada de esto llega al médico ni al paciente.",
-      "evidencia": "docs/roadmap/nexus-os/unidades/E1-02/VERIFICACION.json"
     },
     {
       "unidad": "E2-02",
@@ -646,46 +643,6 @@
       ],
       "ninguaEsClinica": true,
       "evidencia": "docs/roadmap/nexus-os/unidades/E0-10/RESULTADO.json · runbook en docs/seguridad/csp-enforce.md · REG-054/055/056 en docs/audit/regression-ledger.md"
-    },
-    {
-      "unidad": "E1-02",
-      "id": "E1-02-Q1",
-      "decision": "CÓDIGOS LOINC DE LABORATORIO. ¿Me da (a) la tabla concepto→LOINC validada, o (b) el visto bueno para publicar v1.0.0 sin LOINC de laboratorio, exportando sólo la clave interna?",
-      "porQue": "Los 10 de signos vitales ya están en producción (fhir/recursos.ts:80-88) y los copio con su cita. Los 24 analitos no tienen ninguno y NO los elijo yo: para una sola creatinina hay códigos distintos según magnitud (masa vs. sustancia) y espécimen (suero/plasma vs. orina), y un código equivocado viaja al exterior dentro del Observation de FHIR, donde otro sistema lo lee como verdad.",
-      "defaultAplicado": "codigos: [] para los 25 conceptos de laboratorio, con el trinquete LAB_SIN_CODIGO_CONGELADO=25 y el test T-5 que impide rellenarlos sin cita (el número sólo puede BAJAR).",
-      "bloquea": false
-    },
-    {
-      "unidad": "E1-02",
-      "id": "E1-02-Q2",
-      "decision": "«PCR»: ¿proteína C reactiva o reacción en cadena de la polimerasa? Elija (a) PCR a secas = proteína C reactiva y el sentido molecular siempre se escribe completo; (b) siempre ambiguo y que la UI pregunte; (c) desambiguar por dominio (panel de laboratorio = proteína C reactiva; microbiología = molecular).",
-      "porQue": "Hoy analitos.ts:65 lo resuelve SIEMPRE como proteína C reactiva, y está MEDIDO que 'PCR para influenza' cae en esa serie. En una app con módulo PROA/infectología el otro sentido aparece constantemente.",
-      "defaultAplicado": "En el vocabulario nuevo 'pcr' es término RESERVADO → devuelve 'ambiguo' con nota NEEDS_CLINICAL_REVIEW; 'proteína C reactiva' escrito completo sí resuelve. Producción no cambia.",
-      "bloquea": false
-    },
-    {
-      "unidad": "E1-02",
-      "id": "E1-02-Q3",
-      "decision": "ABREVIATURAS QUE PUEDEN RESOLVER SOLAS. ¿Alguna de estas debe dejar de resolver sola: Na, K, Cl, FA, Glu, ALP, A1c, BUN, Hto, Hct, TSH? ¿Falta alguna que usted teclea y hoy no existe (BH, QS, ES, TP, TTP)? Cada una que agregue debe venir con un sentido único.",
-      "porQue": "'Cr' ya lo decide el propio backlog, así que ésa no la pregunto. Las demás las hereda el catálogo de analitos.ts y resuelven hoy sin contexto; cuáles usa usted y con qué sentido es criterio suyo.",
-      "defaultAplicado": "Se conservan EXACTAMENTE las que ya están en los regex de analitos.ts (ni una más) + 'cr'. Alta o baja = editar SINONIMOS_LAB; el invariante T-4 rechaza cualquier alta que colisione con otro concepto.",
-      "bloquea": false
-    },
-    {
-      "unidad": "E1-02",
-      "id": "E1-02-Q4",
-      "decision": "ESPÉCIMEN: ¿«creatinina» a secas es la SÉRICA? Confírmelo, porque fija la semántica de toda serie temporal futura.",
-      "porQue": "El repo ya lo asume al excluir «en orina» (analitos.ts:44) y la aceptación del backlog lo confirma, pero hoy es implícito. Volverlo explícito es una afirmación clínica y merece su visto bueno.",
-      "defaultAplicado": "creatinina → especimen 'suero', y creatinina_orina como concepto separado sin sinónimos compartidos (fijado por el test T-2).",
-      "bloquea": false
-    },
-    {
-      "unidad": "E1-02",
-      "id": "E1-02-Q5",
-      "decision": "NO clínica, pero necesita su decisión — HALLAZGO E1-02-H1, con impacto HOY: ¿autoriza una unidad aparte que exija término COMPLETO para los alias de 1-3 letras en analitoDe()?",
-      "porQue": "MEDIDO: analitoDe('vitamina K') → 'potasio', y valorPlausible('potasio', 10) → true. Camino real: panel de laboratorio por visión → validarPanel (extraccion.ts:97) → seriesDesdeHistorial → gráfica. Una fila «Vitamina K 10» se dibuja como POTASIO 10 mEq/L (rango letal) en la gráfica de electrolitos del paciente. No lo reparo en esta unidad porque cambia una pantalla en producción (regla 5).",
-      "defaultAplicado": "Nada tocado. Reparación mínima propuesta: exigir término completo para na, k, cl, fa, glu, alp, a1c, bun, hto, hct, ldl, hdl, cr y dejar el casado por palabra sólo para los nombres largos (~6 líneas + test de regresión sobre 'Glu', 'Hemoglobina glucosilada' y 'no-HDL').",
-      "bloquea": false
     },
     {
       "unidad": "E0-05",
@@ -863,20 +820,85 @@
       "bloquea": false,
       "esCriterioClinico": false,
       "dondeQuedaMarcado": "docs/roadmap/nexus-os/unidades/E0-07/RESULTADO.json + `activacionPendiente`/`pendientePorMetodo` en src/lib/authz/registro-rutas.ts (cada pendiente dice por escrito que decision espera, y un test lo comprueba)"
+    },
+    {
+      "unidad": "E1-02",
+      "id": "E1-02-Q1",
+      "decision": "CÓDIGOS LOINC DE LABORATORIO. ¿Me da (a) la tabla concepto→LOINC validada, o (b) el visto bueno para publicar v1.0.0 sin LOINC de laboratorio, exportando sólo la clave interna?",
+      "porQue": "Los 10 de signos vitales ya están en producción (fhir/recursos.ts:80-88) y los copio con su cita. Los 24 analitos no tienen ninguno y NO los elijo yo: para una sola creatinina hay códigos distintos según magnitud (masa vs. sustancia) y espécimen (suero/plasma vs. orina), y un código equivocado viaja al exterior dentro del Observation de FHIR, donde otro sistema lo lee como verdad.",
+      "defaultAplicado": "codigos: [] para los 25 conceptos de laboratorio, con el trinquete LAB_SIN_CODIGO_CONGELADO=25 y el test T-5 que impide rellenarlos sin cita (el número sólo puede BAJAR).",
+      "bloquea": false,
+      "dondeQuedaMarcado": "LAB_SIN_CODIGO_CONGELADO = 25 en src/lib/clinical-fact/vocabulario.ts + test T-5 en src/__tests__/clinical-vocabulario.test.ts"
+    },
+    {
+      "unidad": "E1-02",
+      "id": "E1-02-Q2",
+      "decision": "«PCR»: ¿proteína C reactiva o reacción en cadena de la polimerasa? Elija (a) PCR a secas = proteína C reactiva y el sentido molecular siempre se escribe completo; (b) siempre ambiguo y que la UI pregunte; (c) desambiguar por dominio (panel de laboratorio = proteína C reactiva; microbiología = molecular).",
+      "porQue": "Hoy analitos.ts:65 lo resuelve SIEMPRE como proteína C reactiva, y está MEDIDO que 'PCR para influenza' cae en esa serie. En una app con módulo PROA/infectología el otro sentido aparece constantemente.",
+      "defaultAplicado": "En el vocabulario nuevo 'pcr' es término RESERVADO → devuelve 'ambiguo' con nota NEEDS_CLINICAL_REVIEW; 'proteína C reactiva' escrito completo sí resuelve. Producción no cambia. AÑADIDO en la 2a pasada: el sentido molecular se cita como candidato pero NO se fabrica como concepto — SENTIDOS_NO_CATALOGADOS lo declara y el test T-12 lo vigila (cierra el hallazgo V-4 de la verificación).",
+      "bloquea": false,
+      "dondeQuedaMarcado": "TERMINOS_RESERVADOS.pcr + SENTIDOS_NO_CATALOGADOS en vocabulario.ts + tests T-9 y T-12"
+    },
+    {
+      "unidad": "E1-02",
+      "id": "E1-02-Q3",
+      "decision": "ABREVIATURAS DE LABORATORIO QUE PUEDEN RESOLVER SOLAS. ¿Alguna de estas debe dejar de resolver sola: Na, K, Cl, FA, Glu, ALP, A1c, BUN, Hto, Hct, TSH? ¿Falta alguna que usted teclea y hoy no existe (BH, QS, ES, TP, TTP)? Cada una que agregue debe venir con un sentido único.",
+      "porQue": "'Cr' lo decide el propio backlog, así que ésa no se pregunta. Las demás las hereda el catálogo de analitos.ts y resuelven hoy sin contexto; cuáles usa usted y con qué sentido es criterio suyo.",
+      "defaultAplicado": "Se conservan EXACTAMENTE las que ya están en los regex de analitos.ts + 'cr'. MEDIDO EN LA 2a PASADA con `analitoDe` como oráculo: las 11 que se le enumeran están TODAS confirmadas por producción — el único alias del catálogo sin fuente en el repo es 'cr', y ése lo ordena la aceptación del backlog. Ahora el invariante T-10 impide dar de alta cualquier abreviatura sin fuente (fue así como se colaron 'hb' y 'bt' en la 1a pasada).",
+      "bloquea": false,
+      "dondeQuedaMarcado": "SINONIMOS_LAB + PROCEDENCIA_SINONIMO en vocabulario.ts + tests T-4 (colisión) y T-10 (procedencia, con 4 controles negativos ejecutados)"
+    },
+    {
+      "unidad": "E1-02",
+      "id": "E1-02-Q4",
+      "decision": "ESPÉCIMEN: ¿«creatinina» a secas es la SÉRICA? Confírmelo, porque fija la semántica de toda serie temporal futura.",
+      "porQue": "El repo ya lo asume al excluir «en orina» (analitos.ts:44) y la aceptación del backlog lo confirma, pero hoy es implícito. Volverlo explícito es una afirmación clínica y merece su visto bueno.",
+      "defaultAplicado": "creatinina → especimen 'suero', y creatinina_orina como concepto separado sin sinónimos compartidos (fijado por el test T-2). En la 2a pasada la divergencia con producción quedó CITADA, no escondida: 'creatinina urinaria' cae hoy en la serie SÉRICA porque la exclusión de analitos.ts:44 sólo mira la palabra «orina».",
+      "bloquea": false,
+      "dondeQuedaMarcado": "ESPECIMEN_LAB + PROCEDENCIA_SINONIMO['creatinina urinaria'] en vocabulario.ts + tests T-2 y T-10"
+    },
+    {
+      "unidad": "E1-02",
+      "id": "E1-02-Q5",
+      "decision": "NO es clínica, pero es su decisión — HALLAZGO E1-02-H1/H2/H2b, con impacto HOY: ¿autoriza una unidad aparte que exija término COMPLETO para los alias cortos de analitoDe() y REORDENE el array de ANALITOS? Ahora son TRES casos medidos, no uno.",
+      "porQue": "(H1) analitoDe('vitamina K') → 'potasio' y valorPlausible('potasio', 10) → true, así que una fila «Vitamina K 10» de un panel leído por visión se dibuja como POTASIO 10 mEq/L en la gráfica de electrolitos (camino real: validarPanel en extraccion.ts:97 → seriesDesdeHistorial → gráfica). (H2, NUEVO en la 2a pasada) analitoDe('depuracion de creatinina') → 'creatinina', NO 'tfg': el literal SÍ existe en el patrón de tfg (analitos.ts:47) pero es CÓDIGO MUERTO porque creatinina va antes en el array (analitos.ts:44). Atenuante medido: el rango plausible de creatinina (0.1-25 mg/dL) descarta una TFG normal, pero NO una TFG baja (1-25), que es justo la del paciente renal. (H2b) analitoDe('creatinina urinaria') → 'creatinina', porque la exclusión sólo mira «orina».",
+      "defaultAplicado": "NADA TOCADO — regla 5: cambia una gráfica en producción. Los tres casos quedan asertados en su comportamiento REAL en el test T-10, así que ningún arreglo puede pasar en silencio. Reparación mínima propuesta: término completo para na, k, cl, fa, glu, alp, a1c, bun, hto, hct, ldl, hdl, cr; mover el patrón de tfg antes que el de creatinina; añadir «urinaria» a la exclusión (~8 líneas + test de regresión).",
+      "bloquea": false,
+      "dondeQuedaMarcado": "REG pendiente + bloque «el hallazgo E1-02-H2 queda REGISTRADO, no reparado (regla 5)» en src/__tests__/clinical-vocabulario.test.ts"
+    },
+    {
+      "unidad": "E1-02",
+      "id": "E1-02-Q6",
+      "decision": "«GLUCOSA CAPILAR»: ¿es glucometría (signo vital, LOINC 2339-0) o glucosa de laboratorio? Elija: (a) 'glucosa capilar' y 'dextrostix' → glucometria; (b) → glucosa; (c) que sigan sin resolver y la UI pregunte.",
+      "porQue": "El catálogo de la 1a pasada mandaba 'glucosa capilar' → glucometria (signo vital) mientras 'glucosa serica' → glucosa (laboratorio). Es una separación defendible, pero NO está en ninguna fuente del repo: `grep -rniE 'glucosa capilar' src` devuelve CERO resultados fuera de vocabulario.ts. Es una decisión de significado clínico (¿la capilar y la venosa son la misma serie temporal o dos?) y de ella depende en qué gráfica temporal cae el dato.",
+      "defaultAplicado": "(c) provisional: se RETIRAN del catálogo 'glucosa capilar' y 'dextrostix' (este último es además un nombre COMERCIAL) y ambos devuelven `desconocido`. La propuesta no se pierde: queda en SINONIMOS_PROPUESTOS_PENDIENTES con su clave sugerida.",
+      "bloquea": false,
+      "dondeQuedaMarcado": "SINONIMOS_PROPUESTOS_PENDIENTES en vocabulario.ts + test T-13 + fixture TERMINOS_RETIRADOS_SIN_FUENTE"
+    },
+    {
+      "unidad": "E1-02",
+      "id": "E1-02-Q7",
+      "decision": "ABREVIATURAS DE SIGNOS VITALES sin uso confirmado en la app. Sólo le pregunto por tres: ¿usa PAS/PAD al DICTAR (hoy existen sólo como claves de campo del formulario de UCI, no como término dictado)? ¿Quiere BMI además de IMC (su única aparición en el repo está dentro de una etiqueta de texto, preop.ts:201)? ¿Falta alguna que usted teclea (FC, FR, TA, SatO2, Glu cap)?",
+      "porQue": "Los sinónimos de los 10 conceptos vitales se escribieron a mano en la 1a pasada; sólo los CÓDIGOS venían de producción. La 2a pasada midió cada uno contra los motores reales. Con fuente medida y SE QUEDAN: 'pulso' (parser-clinico.ts:65), 'temp' (:67), 'saturacion' (:68), 'estatura' (:85) y los `display` LOINC ('temperatura corporal', 'peso corporal', 'indice de masa corporal', 'saturacion de oxigeno', 'sistolica', 'diastolica'). CORRECCIÓN AL ACTA DE VERIFICACIÓN: 'pulso' SÍ tenía fuente; sin fuente quedaban DOS, no cuatro.",
+      "defaultAplicado": "'pas' y 'pad' SE QUEDAN pero CITADOS como claves de campo de UCI y marcados needsClinicalReview; 'bmi' SE RETIRA a SINONIMOS_PROPUESTOS_PENDIENTES por fuente débil.",
+      "bloquea": false,
+      "dondeQuedaMarcado": "PROCEDENCIA_SINONIMO['pas'|'pad'] + SINONIMOS_PROPUESTOS_PENDIENTES en vocabulario.ts + tests T-10 y T-13"
     }
   ],
   "siguientesElegibles": {
-    "fecha": "2026-07-30T05:30:22Z",
-    "notaDeEstaPasada": "E0-10 acaba de cerrar su parte de software (4a pasada) y sale de la cola con acta `necesita_validacion`. Base real: 9 completadas + E0-07 y E0-10 en necesita_validacion con su software terminado. Siguen a medias E0-08, E0-09, E0-11, E0-12, E1-02, E2-02.",
+    "fecha": "2026-07-30T05:43:22Z",
+    "notaDeEstaPasada": "E1-02 acaba de cerrar su parte de software (2a pasada) y sale de la cola con acta `necesita_validacion`. Base real: 9 completadas + E0-07, E0-10 y E1-02 en necesita_validacion con su software terminado. Siguen a medias E0-08, E0-09, E0-11, E0-12 y E2-02.",
     "recomendacionExplicita": {
       "siguienteUnidad": "E0-12 (BLOQUEO DE MERGE)",
-      "porQue": "Es la de mayor RIESGO del programa: la regresion P1 del sello v3 (falso «INTEGRIDAD ALTERADA» en notas firmadas legitimas por el merge de updateDoc) esta commiteada en 3c09a0d y nada de esta rama debe desplegarse hasta cerrarla. Lo ejecutable por el agente SIN decision del Dr. es el test de round-trip que hoy iria en rojo (sellar sobre un documento que YA contenia transcripcionCruda/estudiosOrden y firmarlo con esos campos vaciados, con semantica de merge) y corregir la sobreafirmacion del acta y de REG-059. La ELECCION de la salida (deleteField / setDoc / null explicito) es del Dr.",
-      "despues": "E1-02 (retirar o dar fuente a los sinonimos de vitales sin respaldo + el test que DERIVA los sinonimos de laboratorio de los `patron` de ANALITOS) y E2-02 (cablear PICO a las dos rutas de evidencia, previa decision de alcance)."
+      "porQue": "Es la de mayor RIESGO del programa: la regresion P1 del sello v3 (falso «INTEGRIDAD ALTERADA» en notas firmadas legitimas por el merge de updateDoc) esta commiteada en 3c09a0d y nada de esta rama debe desplegarse hasta cerrarla. Lo ejecutable SIN decision del Dr. es el test de round-trip que hoy iria en rojo (sellar sobre un documento que YA contenia transcripcionCruda/estudiosOrden y firmarlo con esos campos vaciados, con semantica de merge) y corregir la sobreafirmacion del acta y de REG-059. La ELECCION de la salida (deleteField / setDoc / null explicito) es del Dr.",
+      "despues": "E1-03 (proyector expediente -> ClinicalFacts) queda DESATASCADA: sus dos dependencias E1-01 y E1-02 tienen el software cerrado. Debe consumir `resolverConcepto` con `dominio` COMO FILTRO ESTRICTO y tratar `ambiguo`/`desconocido` como estados de primera clase, no como fallos. Alternativa: E2-02 (cablear PICO a las dos rutas de evidencia, previa decision de alcance)."
     },
     "bloqueadasPorTerceros": [
       "E0-08 (necesita un JRE para el emulador)",
       "E0-10 (CERRADA como software: necesita desplegar, una corrida humana de Playwright y la decision D-3; NO reintentar)",
-      "E0-09 (necesita una linea del Dr. sobre `signos`)"
+      "E0-09 (necesita una linea del Dr. sobre `signos`)",
+      "E0-07 (CERRADA como software: necesita las respuestas de politica Q1 y Q3-Q7; NO reintentar)",
+      "E1-02 (CERRADA como software: Q1-Q7, ninguna bloqueante; NO reintentar)"
     ]
   },
   "notas": [
@@ -963,7 +985,9 @@
     "E0-10 (4a pasada, 2026-07-30): el hallazgo mas importante NO fue codigo nuevo sino una AFIRMACION FALSA propia. El guardian de la CSP decia cazar los tres agujeros y solo cazaba dos: el iframe de teleconsulta monta un src DINAMICO, asi que el host *.daily.co no esta en el codigo y ninguna regex podia verlo. Mutante reproducido: quitarlo de ORIGENES_FRAME dejaba el CI VERDE y la videoconsulta en blanco bajo enforce. Cerrado con un registro explicito de iframes de origen dinamico + trinquete, y con la frase corregida. Leccion: un test que se sobrevende es peor que no tenerlo.",
     "E0-10: /login era embebible (clickjacking sobre la pantalla de credenciales) en la unidad cuyo objetivo es justo ese. Ya no. REG-062. Es el UNICO cambio de comportamiento en produccion de esta pasada y se revierte borrando una linea.",
     "E0-10: el runbook afirmaba «57/57 en verde con CSP_MODE=enforce, medido el 2026-07-29» y esa ejecucion NO consta (mismo pecado que la verificacion marco como V-4 en el ledger). Retractado en el propio documento. Playwright sigue SIN correrse: lo prohibe la regla 8.",
-    "E0-10 queda FUERA de la cola a proposito (bloqueadas → reintentar:false, con acta `necesita_validacion` en disco). Tres pasadas anteriores se gastaron re-disenando lo que ya estaba implementado. No queda software pendiente: falta desplegar, correr la matriz y decidir D-3."
+    "E0-10 queda FUERA de la cola a proposito (bloqueadas → reintentar:false, con acta `necesita_validacion` en disco). Tres pasadas anteriores se gastaron re-disenando lo que ya estaba implementado. No queda software pendiente: falta desplegar, correr la matriz y decidir D-3.",
+    "2026-07-30T05:43Z — E1-02 CIERRA SU SOFTWARE (2a pasada) y sale de `bloqueadas` y de `paraReintentar` con acta `necesita_validacion` en unidades/E1-02/RESULTADO.json. La leccion es la misma del programa: un comentario que afirma cobertura no vale; el test que DERIVA el dato de la fuente, si. Ahora la frase «aqui no se invento ningun sinonimo» es falsable por maquina (T-10, con 4 controles negativos ejecutados y revertidos). NO CONTAR COMO `completada`: quedan Q1-Q7 del Dr., ninguna bloqueante.",
+    "2026-07-30 — HALLAZGO NUEVO en produccion, REGISTRADO Y NO REPARADO (regla 5): E1-02-H2 · analitoDe('depuracion de creatinina') devuelve 'creatinina', NO 'tfg', porque `creatinina` va antes en el array de ANALITOS y su patron casa dentro de la frase; el literal de tfg (analitos.ts:47) es CODIGO MUERTO. Y E1-02-H2b · analitoDe('creatinina urinaria') cae tambien en la serie serica porque la exclusion solo mira la palabra «orina». Se suman a E1-02-H1 (vitamina K -> potasio) en la pregunta Q5. Los tres estan asertados en su comportamiento REAL, asi que ningun arreglo puede pasar en silencio."
   ],
   "paraReintentar": [
     {
@@ -971,12 +995,6 @@
       "prioridad": 1,
       "motivo": "BLOQUEO DE MERGE, no solo una unidad a medias. La regresion P1 (falso 'alterada' en notas firmadas legitimas por el merge de updateDoc) esta COMMITEADA en 3c09a0d. Riesgo en produccion hoy: cero (sin push, sin desplegar), pero nada de esta rama debe desplegarse hasta cerrarla. Lo primero de la proxima corrida es entregar el PLAN de las tres salidas + el test de round-trip que falta.",
       "dependeDelMedico": "SI para elegir la salida (E0-12-D3): toca la escritura de la nota y el flujo de firma, justo lo que la regla 5 manda no arriesgar a ciegas. NO para el test de round-trip ni para corregir el acta y REG-059."
-    },
-    {
-      "unidad": "E1-02",
-      "prioridad": 3,
-      "motivo": "El codigo ya esta en disco y en verde y lo que falta es SOFTWARE: el test que deriva los sinonimos desde los `patron` de ANALITOS, y retirar o dar fuente a los 4 sinonimos de vitales sin respaldo. Desatasca toda la rama E1 (E1-03 depende de E1-01 + E1-02).",
-      "dependeDelMedico": "Solo para Q1-Q5 y Q6/Q7; NINGUNA bloquea el software pendiente."
     },
     {
       "unidad": "E0-08",
@@ -1053,16 +1071,18 @@
     {
       "unidad": "E1-02",
       "id": "E1-02-Q6",
-      "decision": "¿'glucosa capilar' y 'glucosa sérica' son conceptos DISTINTOS (glucometría vs glucosa de laboratorio) o el mismo concepto con distinto espécimen?",
-      "porQue": "El vocabulario ya los separa, y esa separación es una decisión de significado clínico que nadie firmó. Fija cómo se agrupará toda serie temporal de glucosa. No se inventa (regla 1).",
-      "bloquea": false
+      "decision": "¿'glucosa capilar' (y 'dextrostix') es GLUCOMETRÍA (signo vital, LOINC 2339-0) o glucosa de LABORATORIO? De su respuesta depende en qué gráfica temporal cae el dato.",
+      "porQue": "La 1a pasada los separaba sin fuente: `grep` de «glucosa capilar» en src da CERO resultados fuera del vocabulario. Es una decisión de significado clínico y fija cómo se agrupará toda serie temporal de glucosa. No se inventa (regla 1).",
+      "bloquea": false,
+      "estadoHoy": "RETIRADOS del catálogo en la 2a pasada (default conservador): ambos devuelven `desconocido` y la propuesta está guardada en SINONIMOS_PROPUESTOS_PENDIENTES. No bloquea nada."
     },
     {
       "unidad": "E1-02",
       "id": "E1-02-Q7",
-      "decision": "¿Se aceptan como sinónimos de signos vitales 'pulso' (FC), 'bmi' (IMC), 'dextrostix' y 'glucosa capilar' (glucometría)? Ninguno tiene fuente en el repo.",
-      "porQue": "Se escribieron a mano. Los demás sí tienen respaldo en código de producción ('saturacion', 'temperatura', 'estatura', 'pas', 'pad'). Si el Dr. no los firma, se retiran.",
-      "bloquea": false
+      "decision": "De los sinónimos de signos vitales, sólo TRES necesitan su palabra: ¿usa PAS/PAD al dictar? ¿quiere BMI además de IMC? ¿falta alguna que usted teclea?",
+      "porQue": "MEDIDO en la 2a pasada: 'pulso' SÍ tiene fuente en producción (parser-clinico.ts:65) — el acta de verificación lo contaba como inventado y era falso. Sin fuente quedaban 'dextrostix' y 'glucosa capilar' (Q6); con fuente DÉBIL, 'bmi' (sólo dentro de una etiqueta de texto) y 'pas'/'pad' (claves de campo del formulario de UCI, no términos dictados).",
+      "bloquea": false,
+      "estadoHoy": "'bmi' RETIRADO; 'pas'/'pad' se quedan CITADOS como claves de campo de UCI. Todo lo demás quedó confirmado por los motores de producción y fijado por el invariante T-10."
     },
     {
       "unidad": "E0-06",
