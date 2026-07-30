@@ -12,7 +12,8 @@
     "ICU-P1-5",
     "ICU-P1-5",
     "ICU-P1-2",
-    "ICU-P1-1"
+    "ICU-P1-1",
+    "ICU-P1-6"
   ],
   "unidadEnCurso": null,
   "unidades": [
@@ -102,6 +103,12 @@
       "titulo": "Vocabulario por contexto (charter 8)",
       "estado": "completada",
       "entrega": "src/lib/uci/contexto-vocabulario.ts + 22 casos + ADR + registrado. Las 4 listas literales del charter, congeladas exacto."
+    },
+    {
+      "id": "ICU-P1-6",
+      "titulo": "Motor de dato faltante (charter 31)",
+      "estado": "completada",
+      "entrega": "src/lib/uci/dato-faltante.ts + 19 casos + ADR + registrado."
     }
   ],
   "necesitaValidacionDelDr": [

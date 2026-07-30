@@ -260,6 +260,33 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     estado: 'validado',
     porQueExiste: 'Un diccionario unico compite consigo mismo: sweep contra suip, VT contra VTI, PEEP contra PIP, todos a la vez y siempre. Acotar al contexto activo reduce los candidatos confundibles que alimentan clasificarConfirmacion.',
   },
+  {
+    id: 'uci-dato-faltante', nombre: 'Motor de dato faltante (UCI)',
+    especialidad: 'Cuidados criticos / integridad del dato',
+    tipo: 'regla-de-seguridad',
+    version: '1.0.0',
+    referencia: 'Charter NEXUSMED CRITICAL CARE OS seccion 31. NINGUNA formula se implementa aqui: cada derivacion cita el motor real que la calcula, y un caso del golden lo verifica.',
+    unidades: 'huecoDe(Derivacion, capturados, noAplica?) -> Hueco. Sin unidades fisicas: presencia/ausencia y nombres.',
+    redondeo: 'no aplica',
+    rangoValido: {
+      fuente: 'codigo',
+      entrada: 'el conjunto de datos capturados, tal como los guarda el panel',
+      salida: 'calculable | faltan_datos | no_aplica, con la frase para el medico',
+      ref: 'src/lib/uci/dato-faltante.ts (DERIVACIONES, huecoDe)',
+    },
+    file: 'src/lib/uci/dato-faltante.ts',
+    entryPoints: ['huecoDe', 'huecos', 'soloFaltantes', 'datosQueDesbloquean', 'DERIVACIONES'],
+    calculos: [
+      'que entradas le faltan a cada derivacion',
+      'distincion entre falta un dato y no aplica clinicamente',
+      'agrupacion: que dato UNICO desbloquea mas calculos',
+    ],
+    missingData: 'ES el tema del modulo: el vacio se convierte en una frase. CERO es un dato PRESENTE (un PEEP de 0 existe); NaN, Infinity y cadena vacia NO. Y NO estima el dato ausente: una talla tipica daria un numero plausible sobre un dato inventado, el peor error posible porque es invisible.',
+    adr: ADR('uci-dato-faltante'),
+    goldenTests: ['uci-dato-faltante.test.ts'],
+    estado: 'validado',
+    porQueExiste: 'Un calculo que no se puede hacer desaparece en silencio. El medico ve una nota sin VT/PBW y no sabe si el paciente no esta ventilado, si el dato es normal, o si falta la talla: tres situaciones clinicas distintas y una misma pantalla vacia.',
+  },
   // ── Integridad temporal del dato clínico ─────────────────────────────────
   {
     id: 'observacion-version', nombre: 'Observación versionada (vigencia clínica y temporal)',
