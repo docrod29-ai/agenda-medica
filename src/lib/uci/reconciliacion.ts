@@ -58,7 +58,7 @@ export interface Reconciliacion {
   diferencia: number | null
   tolerancia: number
   /** Qué le falta para poder compararse (sólo en `incomparable`). */
-  motivoIncomparable?: 'falta_dictado' | 'falta_calculado' | 'valor_no_finito'
+  motivoIncomparable?: 'falta_dictado' | 'falta_calculado' | 'valor_no_finito' | 'faltan_ambos'
   /**
    * Mensaje ya redactado, para que ninguna pantalla improvise el encuadre.
    * Nunca dice cuál es correcto — dice que no cuadran.
@@ -87,6 +87,11 @@ export function reconciliar(
   if (d === null || c === null) {
     const motivo: Reconciliacion['motivoIncomparable'] =
       (dictado != null && d === null) || (calculado != null && c === null) ? 'valor_no_finito'
+      // Ambos ausentes es su propio caso. Antes caía en `falta_dictado` y la
+      // pantalla decía «sólo hay el valor calculado» cuando NO HABÍA NINGUNO:
+      // el motor afirmaba que existía un dato que no existe. Se vio en la
+      // primera pantalla real, con el paciente sin capturar nada.
+      : d === null && c === null ? 'faltan_ambos'
       : d === null ? 'falta_dictado'
       : 'falta_calculado'
     return {
@@ -94,9 +99,11 @@ export function reconciliar(
       diferencia: null, motivoIncomparable: motivo,
       mensaje: motivo === 'valor_no_finito'
         ? `${campo}: un valor no es un número válido; no se compara.`
-        : motivo === 'falta_dictado'
-          ? `${campo}: no se dictó; sólo hay el valor calculado.`
-          : `${campo}: no se puede calcular con los datos actuales; sólo hay el dictado.`,
+        : motivo === 'faltan_ambos'
+          ? `${campo}: no se dictó ni se puede calcular todavía; no hay nada que comparar.`
+          : motivo === 'falta_dictado'
+            ? `${campo}: no se dictó; sólo hay el valor calculado.`
+            : `${campo}: no se puede calcular con los datos actuales; sólo hay el dictado.`,
     }
   }
 

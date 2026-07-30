@@ -222,8 +222,34 @@ export async function POST(req: NextRequest) {
             const v = (payload as Record<string, unknown>)[k]
             if (v !== undefined) limpio[k] = v
           }
+          /**
+           * INGRESO DIRECTO A UNA UNIDAD CRÍTICA: abre la `ICUStay` aquí mismo.
+           *
+           * El traslado ya lo hacía, el ingreso NO — y se vio en la primera
+           * pantalla real: un paciente admitido directo a terapia se quedaba sin
+           * estancia, así que la tarjeta no podía decir su día de UCI hasta que
+           * alguien tocara los soportes por casualidad.
+           *
+           * Se lee ANTES de escribir, como exige la transacción.
+           */
+          const uSnap = await tx.get(adminDb.collection('clinics').doc(clinicId).collection('unidades'))
+          const unidades = uSnap.docs.map(d => ({ ...(d.data() as Any), id: d.id })) as Unidad[]
           const nref = col.doc()
           tx.set(nref, { ...limpio, clinicId, estado: 'activo', createdAt: now, updatedAt: now, creadoPor: acc.uid })
+
+          if (esCritica(String(payload.servicio ?? ''), unidades)) {
+            // El ingreso a la UNIDAD es el de este episodio: la fecha de ingreso
+            // capturada si viene, y si no, ahora.
+            tx.set(nref.collection('icu_stays').doc('actual'), {
+              internamientoId: nref.id,
+              pacienteId: payload.pacienteId,
+              estado: 'activa',
+              fechaIngresoUci: (payload.fechaIngreso as string) || now,
+              soportes: [],
+              actualizadoPor: acc.uid,
+              actualizadoEn: now,
+            })
+          }
           return nref.id
         })
         return NextResponse.json({ ok: true, id })

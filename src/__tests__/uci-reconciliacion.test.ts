@@ -156,3 +156,34 @@ describe('§24 · el catálogo de pares no se inventa fórmulas', () => {
     expect(PARES_RECONCILIABLES.length).toBeLessThanOrEqual(5)
   })
 })
+
+// ═══════════════════════════════════════════════════════════════════════
+describe('§24 · el motor no puede AFIRMAR un dato que no existe', () => {
+  it('sin dictado NI cálculo, dice que no hay nada que comparar', () => {
+    // Encontrado mirando la PRIMERA pantalla real, con el paciente sin capturar
+    // nada: el motor decía «no se dictó; sólo hay el valor calculado» cuando NO
+    // HABÍA NINGUNO. Afirmaba la existencia de un dato inexistente.
+    const r = reconciliar('driving pressure', null, null, 'cmH2O')
+    expect(r.veredicto).toBe('incomparable')
+    expect(r.motivoIncomparable).toBe('faltan_ambos')
+    expect(r.mensaje).toBe('driving pressure: no se dictó ni se puede calcular todavía; no hay nada que comparar.')
+    expect(r.mensaje).not.toMatch(/sólo hay/)
+  })
+
+  it('con cálculo pero sin dictado, sí hay un valor calculado y se dice', () => {
+    const r = reconciliar('driving pressure', null, 14, 'cmH2O')
+    expect(r.motivoIncomparable).toBe('falta_dictado')
+    expect(r.mensaje).toMatch(/sólo hay el valor calculado/)
+  })
+
+  it('con dictado pero sin cálculo, al revés', () => {
+    const r = reconciliar('driving pressure', 20, null, 'cmH2O')
+    expect(r.motivoIncomparable).toBe('falta_calculado')
+    expect(r.mensaje).toMatch(/sólo hay el dictado/)
+  })
+
+  it('undefined en ambos se trata igual que null', () => {
+    expect(reconciliar('pam', undefined, undefined, 'mmHg').motivoIncomparable).toBe('faltan_ambos')
+  })
+})
+
