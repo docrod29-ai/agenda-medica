@@ -447,6 +447,33 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     estado: 'validado',
     porQueExiste: 'El riesgo de un MAR de UCI no es callarse: es la alarma falsa. Si la norepinefrina en infusion y el paracetamol PRN salen en rojo cada hora, el rojo deja de significar algo y la dosis que si se paso se pierde en el ruido. Por eso hay cinco estados que NUNCA se atrasan. Y por eso NO reusa extraerTomasDia: ese motor colapsa «cada 4 a 6 h» al intervalo mas corto porque para un TECHO diario el peor caso es el que mas veces se toma; copiar ese sesgo aqui marcaria atrasada una dosis que va a tiempo.',
   },
+  {
+    id: 'estados-cama', nombre: 'Estados de cama y capacidad real',
+    especialidad: 'Hospitalizacion / gestion de camas',
+    tipo: 'regla-de-seguridad',
+    version: '1.0.0',
+    referencia: 'Charter NEXUSMED CRITICAL CARE OS seccion 2 via ICU-001: los estados de cama pasan de 4 a 7. Estados operativos de la unidad; sin fuente clinica externa.',
+    unidades: 'disponibilidad(estado, hayOcupante) -> Disponibilidad · contarCamas(camas) -> ConteoCamas · transicionar(desde, hacia, exigeLimpiezaEntrePacientes)',
+    redondeo: 'no aplica',
+    rangoValido: {
+      fuente: 'codigo',
+      entrada: 'EstadoCama guardado + si el censo reporta ocupante + politica de limpieza de la unidad',
+      salida: 'disponibilidad real por cama y conteo por bucket',
+      ref: 'src/lib/hospital/estados-cama.ts (disponibilidad, contarCamas, transicionar)',
+    },
+    file: 'src/lib/hospital/estados-cama.ts',
+    entryPoints: ['disponibilidad', 'puedeRecibir', 'contarCamas', 'transicionar', 'siguientes'],
+    calculos: [
+      'disponibilidad real de cada estado (5 buckets, no un si/no)',
+      'conteo de capacidad por bucket, que es lo que lee el tablero',
+      'transiciones estructuralmente validas entre los 7 estados',
+    ],
+    missingData: 'Si una cama puede pasar de OCUPADA a LIBRE sin limpieza es una politica de control de infecciones de cada unidad: entra como parametro obligatorio (FALTA_POLITICA_LIMPIEZA), no como constante. Mientras el Dr. no la fije, el tablero pasa false — no aplicar una regla que no se pregunto. Aislamiento sale como `condicionada`, no como disponible, porque quien requiere aislamiento es criterio medico.',
+    adr: ADR('estados-cama'),
+    goldenTests: ['hospital-estados-cama.test.ts'],
+    estado: 'validado',
+    porQueExiste: 'ESTADOS_CAMA_NO_DISPONIBLE estaba declarado en los tipos y NO lo usaba nadie: el tablero sumaba a «camas libres» las camas en limpieza, mantenimiento o bloqueadas. Un jefe de guardia que lee «4 libres» y solo puede usar 1 decide un ingreso sobre un numero que no existe. Ademas, «reservada» contada como libre anula el flujo B del charter (apartar la cama antes de que llegue el paciente).',
+  },
   // ── Integridad temporal del dato clínico ─────────────────────────────────
   {
     id: 'observacion-version', nombre: 'Observación versionada (vigencia clínica y temporal)',

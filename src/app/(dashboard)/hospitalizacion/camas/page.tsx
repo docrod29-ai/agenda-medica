@@ -11,6 +11,7 @@ import { suscribirCenso, getCamas, crearCama, actualizarCamaEstado, borrarCama }
 import { SERVICIOS_HOSPITAL, ESTADO_CAMA_LABEL, type Internamiento, type Cama, type EstadoCama } from '@/types/hospital'
 import { Modal, Button, Spinner } from '@/components/ui'
 import { mismaCama } from '@/lib/hospital/cama'
+import { contarCamas, siguientes } from '@/lib/hospital/estados-cama'
 import { ArrowLeft, BedDouble, Plus, Trash2, AlertTriangle } from 'lucide-react'
 
 // ICU-002c: siete estados. El `Record` obliga a tsc a completarlos, que es cómo
@@ -21,6 +22,13 @@ const COLOR: Record<EstadoCama, string> = {
   libre: '#0d9488', ocupada: '#3d5afe', bloqueada: '#dc2626', limpieza: '#d97706',
   reservada: '#7c3aed', mantenimiento: '#dc2626', aislamiento: '#a21caf',
 }
+// ICU-P2-1: si una cama puede pasar de OCUPADA a LIBRE sin limpieza es una
+// política de control de infecciones de cada unidad. Aquí NO se impone: el
+// tablero no marca ocupada→libre desde este selector (las ocupadas no lo
+// muestran), y el motor recibe `false` para no aplicar una regla que el Dr. no
+// ha fijado. Cuando la fije, este valor sale de la configuración del hospital.
+const POLITICA_LIMPIEZA = false
+
 const inputCls = 'w-full rounded-md border px-2.5 py-2 text-sm bg-transparent'
 
 export default function CamasPage() {
@@ -88,8 +96,16 @@ export default function CamasPage() {
     return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]))
   }, [camas])
 
-  const totalCamas = camas.length
-  const totalOcupadas = camas.filter(c => ocupante(c) || c.estado === 'ocupada').length
+  // ICU-P2-1: el conteo se delega al motor de estados. Antes se sumaba a «libres»
+  // toda cama que no estuviera en `ocupada`, así que una cama en limpieza, en
+  // mantenimiento o bloqueada aparecía como disponible: quien lee «4 libres» y
+  // sólo puede usar 1 decide un ingreso sobre un número que no existe.
+  const conteo = useMemo(
+    () => contarCamas(camas.map(c => ({ estado: c.estado, hayOcupante: !!ocupante(c) }))),
+    [camas, censo],   // eslint-disable-line react-hooks/exhaustive-deps
+  )
+  const totalCamas = conteo.total
+  const totalOcupadas = conteo.ocupadas
   const pctGlobal = totalCamas ? Math.round((totalOcupadas / totalCamas) * 100) : 0
 
   return (
@@ -145,7 +161,10 @@ export default function CamasPage() {
         </div>
       )}
 
-      {totalCamas > 0 && <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 20px' }}>Ocupación global: <strong style={{ color: pctGlobal >= 85 ? '#dc2626' : 'var(--text)' }}>{pctGlobal}%</strong> · {totalOcupadas}/{totalCamas} camas · {totalCamas - totalOcupadas} libres</p>}
+      {totalCamas > 0 && <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 20px' }}>Ocupación global: <strong style={{ color: pctGlobal >= 85 ? '#dc2626' : 'var(--text)' }}>{pctGlobal}%</strong> · {totalOcupadas}/{totalCamas} camas · <strong style={{ color: 'var(--text2)' }}>{conteo.disponibles} libres</strong>
+        {conteo.reservadas > 0 && ` · ${conteo.reservadas} reservada${conteo.reservadas !== 1 ? 's' : ''}`}
+        {conteo.condicionadas > 0 && ` · ${conteo.condicionadas} en aislamiento`}
+        {conteo.noDisponibles > 0 && ` · ${conteo.noDisponibles} fuera de servicio`}</p>}
 
       {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}><Spinner /></div>
         : totalCamas === 0 ? (
@@ -155,7 +174,8 @@ export default function CamasPage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
             {porServicio.map(([servicio, lista]) => {
-              const occ = lista.filter(c => ocupante(c) || c.estado === 'ocupada').length
+              const cs = contarCamas(lista.map(c => ({ estado: c.estado, hayOcupante: !!ocupante(c) })))
+              const occ = cs.ocupadas
               const pct = Math.round((occ / lista.length) * 100)
               return (
                 <div key={servicio}>
@@ -179,7 +199,8 @@ export default function CamasPage() {
                           {esAdmin && !oc && (
                             <div style={{ display: 'flex', gap: 4, marginTop: 6, alignItems: 'center' }}>
                               <select value={c.estado} onChange={async e => { if (!clinicId) return; await actualizarCamaEstado(clinicId, c.id, e.target.value as EstadoCama); recargarCamas() }} style={{ fontSize: 10.5, padding: '2px 4px', borderRadius: 5, background: 'var(--s2)', color: 'var(--text2)', border: '1px solid var(--border)' }} onClick={ev => ev.stopPropagation()}>
-                                {(['libre', 'bloqueada', 'limpieza'] as EstadoCama[]).map(s => <option key={s} value={s}>{ESTADO_CAMA_LABEL[s]}</option>)}
+                                {[c.estado, ...siguientes(c.estado, POLITICA_LIMPIEZA)].filter(s => s !== 'ocupada')
+                                  .map(s => <option key={s} value={s}>{ESTADO_CAMA_LABEL[s]}</option>)}
                               </select>
                               <button title="Eliminar cama" onClick={async ev => { ev.stopPropagation(); if (!clinicId) return; await borrarCama(clinicId, c.id); recargarCamas() }} style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', padding: 2 }}><Trash2 size={12} /></button>
                             </div>

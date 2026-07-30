@@ -19,7 +19,8 @@
     "ICU-P2-2",
     "ICU-P2-4",
     "ICU-P2-3",
-    "ICU-P1-7"
+    "ICU-P1-7",
+    "ICU-P2-1"
   ],
   "unidadEnCurso": null,
   "unidades": [
@@ -153,6 +154,12 @@
       "titulo": "MAR de UCI sobre la farmacia existente (charter 37)",
       "estado": "completada",
       "entrega": "src/lib/uci/mar.ts + 39 casos + ADR + registrado. Cinco estados que nunca se atrasan; control negativo de inventario."
+    },
+    {
+      "id": "ICU-P2-1",
+      "titulo": "Estados de cama 4->7 conectados (charter 2)",
+      "estado": "completada",
+      "entrega": "src/lib/hospital/estados-cama.ts + 22 casos + ADR + registrado + tablero conectado. Cierra el conteo falso de camas libres."
     }
   ],
   "necesitaValidacionDelDr": [
