@@ -643,7 +643,7 @@ export default function UciPanelPage() {
       <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 14, marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           {audio.soportado ? (
-            <button onClick={() => (grabando ? audio.detener() : audio.iniciar({ recoveryKey: `uci-panel${internamientoId ? '.' + internamientoId : ''}` }))}
+            <button onClick={() => (grabando ? audio.detener() : audio.iniciar({ recoveryKey: `uci-panel${internamientoId ? '.' + internamientoId : ''}`, contexto: 'uci' }))}
               className={grabando ? 'btn' : 'btn btn-primary'}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 7, ...(grabando ? { background: '#dc2626', color: '#fff', border: 'none' } : {}) }}>
               {grabando ? <Square size={15} /> : <Mic size={15} />}{grabando ? 'Detener' : 'Dictar pase de visita'}

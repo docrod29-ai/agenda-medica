@@ -24,6 +24,7 @@ import {
   type DecisionConfirmacion,
 } from '@/lib/uci/confirmacion'
 import { revisarInfusion, tieneErrores, type RegistroInfusion } from '@/lib/uci/infusion-registro'
+import { dosisSinNumero, AVISO_DOSIS_ROTA } from '@/lib/uci/dosis-sin-numero'
 
 const COLOR_VEREDICTO: Record<Reconciliacion['veredicto'], string> = {
   concuerdan: '#0d9488', discrepan: '#dc2626', incomparable: 'var(--text3)',
@@ -96,6 +97,12 @@ export default function Verificacion({ campos, computados, lecturas, dictado, av
     return tendenciasUCI(series)
   }, [lecturas])
 
+  /**
+   * Dosis que perdió su número — el error crítico que sobrevivió a todo en el
+   * corpus de 498. Se DETECTA, no se completa.
+   */
+  const dosisRotas = useMemo(() => (dictado ? dosisSinNumero(dictado) : []), [dictado])
+
   // ── §8 · contexto del dictado ──
   const contexto = useMemo(() => (dictado ? contextoDicho(dictado) : null), [dictado])
 
@@ -126,6 +133,21 @@ export default function Verificacion({ campos, computados, lecturas, dictado, av
           </Nota>
         </div>
       </Bloque>
+
+      {dosisRotas.length > 0 && (
+        <Bloque icon={AlertTriangle} titulo="Una dosis perdió su número" sub="medido en el corpus de UCI">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {dosisRotas.map((d, i) => (
+              <div key={i} style={{ fontSize: 13, lineHeight: 1.5, color: '#dc2626', fontWeight: 600 }}>
+                {d.mensaje}
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 10 }}>
+            <Nota color="#dc2626">{AVISO_DOSIS_ROTA}</Nota>
+          </div>
+        </Bloque>
+      )}
 
       <Bloque icon={HelpCircle} titulo="Lo que NO se puede calcular" sub="charter §31">
         {faltantes.length === 0 ? (

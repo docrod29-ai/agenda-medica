@@ -49,6 +49,12 @@ export interface OpcionesGrabacion {
   intervaloChunkMs?: number
   /** ID estable para recovery vía IndexedDB (ej. patientId). */
   recoveryKey?: string
+  /**
+   * Contexto del dictado: `'uci'` hace que el servidor sesgue el reconocedor con
+   * vocabulario de cuidados críticos. Medido sobre el corpus de 498 audios: sin
+   * esto, CVVHDF, VExUS y RASS fallan porque el sesgo apunta al consultorio.
+   */
+  contexto?: 'uci'
 }
 
 /** Un turno de habla diarizado (AssemblyAI): quién habló y qué dijo. */
@@ -253,10 +259,11 @@ let motivoFalloTranscripcion = ''
  * Transcribe un blob vía OpenAI. NUNCA lanza: ante 413/500/HTML devuelve ''.
  * (Antes, res.json() sobre una página de error HTML tiraba SyntaxError.)
  */
-async function transcribirBlobSimple(blob: Blob, ext: string): Promise<string> {
+async function transcribirBlobSimple(blob: Blob, ext: string, contexto = ''): Promise<string> {
   try {
     const fd = new FormData()
     fd.append('audio', blob, `audio.${ext}`)
+    if (contexto) fd.append('contexto', contexto)
     const res = await fetchAutenticado('/api/expediente/transcribir', { method: 'POST', body: fd })
     if (!res.ok) {
       const body = await res.text().catch(() => '')
@@ -289,8 +296,8 @@ async function transcribirBlobSimple(blob: Blob, ext: string): Promise<string> {
  * hay OPENAI_API_KEY (503) o falla, intenta AssemblyAI. Así basta con tener
  * UNA de las dos llaves. Nunca lanza.
  */
-async function transcribirParte(blob: Blob, ext: string): Promise<string> {
-  const openai = await transcribirBlobSimple(blob, ext)
+async function transcribirParte(blob: Blob, ext: string, contexto = ''): Promise<string> {
+  const openai = await transcribirBlobSimple(blob, ext, contexto)
   if (openai) return openai
   // Fallback: AssemblyAI (la misma llave que usa la diarización)
   const aai = await intentarDiarizar(blob, ext)
@@ -305,7 +312,7 @@ async function transcribirParte(blob: Blob, ext: string): Promise<string> {
  */
 export interface ResultadoPorPartes { texto: string; lotesFallidos: number }
 
-async function transcribirEnPartes(chunks: Blob[], mime: string, ext: string): Promise<ResultadoPorPartes> {
+async function transcribirEnPartes(chunks: Blob[], mime: string, ext: string, contexto = ''): Promise<ResultadoPorPartes> {
   if (chunks.length === 0) return { texto: '', lotesFallidos: 0 }
   const header = chunks[0]
   const LIMITE = 3_600_000
@@ -337,7 +344,7 @@ async function transcribirEnPartes(chunks: Blob[], mime: string, ext: string): P
   let lotesFallidos = 0
   for (let b = 0; b < lotes.length; b++) {
     const parts = b === 0 ? lotes[b] : [header, ...lotes[b]]
-    const t = await transcribirParte(new Blob(parts, { type: mime }), ext)
+    const t = await transcribirParte(new Blob(parts, { type: mime }), ext, contexto)
     if (t) {
       textos.push(t)
     } else {
@@ -400,6 +407,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   const chunkIdxRef = useRef<number>(0)
   const textosChunksRef = useRef<string[]>([])
   const recoveryKeyRef = useRef<string>('')
+  const contextoRef = useRef<string>('')
   // Anti-pérdida: desde qué índice persistir en IndexedDB. Si ya hay audio de una
   // transcripción que FALLÓ bajo la misma llave, los chunks nuevos se guardan
   // DESPUÉS (no encima), para no borrar el audio que se prometió a salvo.
@@ -506,6 +514,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     if (!soportado) { setError('Tu navegador no soporta grabación de audio'); setEstado('error'); return }
     streamingActivoRef.current = opts?.streaming !== false
     recoveryKeyRef.current = opts?.recoveryKey ?? ''
+    contextoRef.current = opts?.contexto ?? ''
     // Si ya hay chunks bajo esta llave (p. ej. audio de una transcripción que
     // falló y NO se ha recuperado), NO los pises: continúa el índice DESPUÉS de
     // ellos. En éxito, borrarChunks limpia todo y la próxima grabación arranca en 0.
@@ -751,8 +760,8 @@ export function useGrabacionAudio(): UseGrabacionAudio {
 
     // 2) Transcripción robusta (en partes si es grande). Nunca lanza.
     const porPartes = GRANDE
-      ? await transcribirEnPartes(allChunks, rec.mimeType, ext)
-      : { texto: await transcribirBlobSimple(blob, ext), lotesFallidos: 0 }
+      ? await transcribirEnPartes(allChunks, rec.mimeType, ext, contextoRef.current)
+      : { texto: await transcribirBlobSimple(blob, ext, contextoRef.current), lotesFallidos: 0 }
     const texto = porPartes.texto
 
     if (texto.trim()) {

@@ -1044,23 +1044,62 @@ export function corregirTranscripcion(texto: string): ResultadoCorreccion {
  * Prompt biased para Whisper (≤ ~200 tokens)
  * ════════════════════════════════════════════════════════════════ */
 
+/**
+ * PRESUPUESTO DE TOKENS — el limite es REAL y se estaba pasando.
+ *
+ * Whisper usa solo los ULTIMOS ~224 tokens del prompt. Al medir el corpus de 498
+ * se descubrio que `WHISPER_PROMPT_MEDICO` iba en ~242: el principio se truncaba
+ * EN SILENCIO, que es exactamente el bug contra el que avisa el comentario
+ * historico de este archivo. Y ademas no traia NI UNA palabra de UCI.
+ *
+ * Por eso ahora hay un prompt POR CONTEXTO. Mandar los dos juntos no cabe, y
+ * diluir el sesgo con vocabulario de otro dominio es peor que no sesgarlo.
+ */
+export const LIMITE_TOKENS_PROMPT = 224
+export const tokensAprox = (s: string) => Math.round(s.length / 4)
+
 export const WHISPER_PROMPT_MEDICO = [
-  // ⚠️ LÍMITE DE WHISPER: usa solo los ÚLTIMOS ~224 tokens del prompt.
-  // Si crece más, se trunca EN SILENCIO y el sesgo se pierde (bug real
-  // que tuvimos con la versión de ~1000 tokens). Aquí van SOLO los
-  // fármacos más mal transcritos. El vocabulario completo de todas las
-  // especialidades vive en corregirTranscripcion() — sin límite.
-  'Consulta médica en México. Fármacos:',
-  'empagliflozina, dapagliflozina, canagliflozina, semaglutida, tirzepatida, liraglutida,',
-  'sitagliptina, linagliptina, insulina glargina, insulina degludec,',
-  'atorvastatina, rosuvastatina, losartán, telmisartán, bisoprolol, carvedilol,',
-  'espironolactona, sacubitrilo/valsartán, apixabán, rivaroxabán, dabigatrán, ticagrelor,',
-  'levetiracetam, lamotrigina, pregabalina, escitalopram, venlafaxina, quetiapina,',
-  'meropenem, ertapenem, piperacilina/tazobactam, vancomicina, linezolid, daptomicina,',
-  'ceftriaxona, cefepime, ceftazidima/avibactam, levofloxacino, claritromicina,',
+  'Consulta médica en México. Fármacos: empagliflozina, dapagliflozina,',
+  'semaglutida, tirzepatida, liraglutida, sitagliptina, linagliptina,',
+  'insulina glargina, insulina degludec, atorvastatina, rosuvastatina,',
+  'losartán, telmisartán, bisoprolol, carvedilol, espironolactona,',
+  'sacubitrilo/valsartán, apixabán, rivaroxabán, dabigatrán, ticagrelor,',
+  'levetiracetam, lamotrigina, pregabalina, escitalopram, venlafaxina,',
+  'meropenem, ertapenem, piperacilina/tazobactam, vancomicina, linezolid,',
+  'daptomicina, ceftriaxona, cefepime, ceftazidima/avibactam, levofloxacino,',
   'trimetoprim/sulfametoxazol, fluconazol, voriconazol, caspofungina,',
-  'tacrolimus, micofenolato, rituximab, adalimumab, tocilizumab, hidroxicloroquina,',
-  'tamsulosina, alopurinol, colchicina, denosumab, levotiroxina, isotretinoína,',
-  'latanoprost, oxitocina, propofol, rocuronio, ondansetrón.',
-  'Términos: procalcitonina, hemocultivo, antibiograma, BLEE, MRSA, HbA1c, qSOFA, desescalada.',
+  'tacrolimus, micofenolato, rituximab, tocilizumab, alopurinol, colchicina,',
+  'levotiroxina, propofol, rocuronio, ondansetrón.',
+  'Términos: procalcitonina, hemocultivo, antibiograma, BLEE, MRSA, HbA1c, qSOFA.',
+].join(' ')
+
+/**
+ * Vocabulario de CUIDADOS CRÍTICOS.
+ *
+ * Cubre los diez dominios del corpus del Dr. —CKRT, ECMO, ventilación,
+ * hemodinámica, ultrasonido, gasometría, sedación, infección, laboratorio y UCI
+ * general— **no sólo los términos que fallaron**. Sesgar únicamente hacia los
+ * siete errores medidos seria sobreajustar a este dataset: el dictado real trae
+ * los otros ciento y pico terminos del dominio, y esos tambien tienen que
+ * llegar bien.
+ *
+ * Los que SÍ se midieron fallando van al principio de su grupo, porque el limite
+ * de tokens corta por el final... y el modelo lee los ULTIMOS: por eso lo mas
+ * critico va al FINAL del prompt.
+ */
+export const WHISPER_PROMPT_UCI = [
+  'Pase de visita en terapia intensiva.',
+  'PEEP, auto-PEEP, presión plateau, driving pressure, compliance estática,',
+  'volumen corriente, peso predicho, índice de Kirby, ventilación espontánea.',
+  'Norepinefrina, vasopresina, dobutamina, milrinona, presión arterial media,',
+  'variación de presión de pulso, índice cardiaco, lactato.',
+  'CKRT, CVVH, CVVHD, citrato, calcio ionizado postfiltro.',
+  'Vena cava inferior, TAPSE, lung ultrasound score, deslizamiento pleural.',
+  'Glasgow, dexmedetomidina, fentanilo, midazolam, delirium.',
+  'Bicarbonato, exceso de base, brecha aniónica, PaCO2, PaO2.',
+  'Meropenem, piperacilina tazobactam, vancomicina, linezolid, procalcitonina.',
+  // El modelo lee los ÚLTIMOS tokens: lo que MÁS falló va al final.
+  'ECMO venovenoso, ECMO venoarterial, sweep gas, chatter de la línea.',
+  'Meropenem dos gramos cada ocho horas. Linezolid seiscientos miligramos cada doce horas.',
+  'CVVHDF. PaO2/FiO2, PaFi. RASS menos cuatro. VExUS grado tres.',
 ].join(' ')

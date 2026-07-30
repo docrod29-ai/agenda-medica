@@ -10,7 +10,7 @@
  * `/api/expediente/transcribir`:
  *   · mismo modelo y su cascada (`gpt-4o-transcribe` → mini → whisper-1),
  *   · `language: es`, `temperature: 0`,
- *   · el MISMO `WHISPER_PROMPT_MEDICO`,
+ *   · el prompt del CONTEXTO (aquí el de UCI),
  *   · y después el corrector `corregirTranscripcion()`.
  *
  * Medir sin el corrector daría un número que no es el que ve el médico.
@@ -41,7 +41,7 @@ function cargarEnvLocal() {
   }
 }
 cargarEnvLocal()
-import { WHISPER_PROMPT_MEDICO, corregirTranscripcion } from '../src/lib/expediente/medical-vocabulary'
+import { WHISPER_PROMPT_UCI, corregirTranscripcion } from '../src/lib/expediente/medical-vocabulary'
 import { evaluarAudio, metricas, porCorte, rankingRiesgo, type ResultadoAudio } from '../src/lib/uci/benchmark-metricas'
 
 const CORPUS = '/Users/davidrdz/Desktop/AUDIO/NexusMED_UCI_498_AUDIOS_GENERADOR_MAC'
@@ -97,7 +97,7 @@ async function transcribir(ruta: string, apiKey: string): Promise<string> {
         fd.append('model', model)
         fd.append('language', 'es')
         fd.append('temperature', '0')
-        fd.append('prompt', WHISPER_PROMPT_MEDICO)
+        fd.append('prompt', WHISPER_PROMPT_UCI)   // corpus de UCI → vocabulario de UCI
         const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
           method: 'POST', headers: { Authorization: `Bearer ${apiKey}` }, body: fd,
         })

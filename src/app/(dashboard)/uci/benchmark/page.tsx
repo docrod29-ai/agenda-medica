@@ -163,7 +163,7 @@ export default function BenchmarkVozPage() {
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 14 }}>
           {audio.soportado ? (
             <Button
-              onClick={() => (grabando ? audio.detener() : audio.iniciar({ recoveryKey: 'benchmark-voz' }))}
+              onClick={() => (grabando ? audio.detener() : audio.iniciar({ recoveryKey: 'benchmark-voz', contexto: 'uci' }))}
               icon={grabando ? <Square size={15} /> : <Mic size={15} />}
               style={grabando ? { background: '#dc2626', color: '#fff', border: 'none' } : undefined}
             >

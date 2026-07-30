@@ -14,7 +14,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
-import { WHISPER_PROMPT_MEDICO } from '@/lib/expediente/medical-vocabulary'
+import { WHISPER_PROMPT_MEDICO, WHISPER_PROMPT_UCI } from '@/lib/expediente/medical-vocabulary'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { gateCreditos, resolverClaveIA, registrarUso, registrarCreditos  } from '@/lib/ai-keys'
@@ -57,6 +57,11 @@ export async function POST(req: NextRequest) {
   }
 
   const audio = formData.get('audio')
+  /**
+   * Contexto del dictado. `uci` cambia el vocabulario que se le sugiere al
+   * modelo. Si no viene, se usa el de consulta — el comportamiento de siempre.
+   */
+  const contexto = String(formData.get('contexto') ?? '')
   if (!audio || !(audio instanceof Blob)) {
     return NextResponse.json({ ok: false, error: 'Falta archivo de audio' }, { status: 400 })
   }
@@ -84,7 +89,15 @@ export async function POST(req: NextRequest) {
     upstream.append('temperature', '0')
     // Prompt con vocabulario médico extenso — clave para que la IA NO confunda
     // "amikacina" con "amigacina", "ceftriaxona" con "septriasona", etc.
-    upstream.append('prompt', WHISPER_PROMPT_MEDICO)
+    /**
+     * VOCABULARIO POR CONTEXTO.
+     *
+     * Medido sobre el corpus de 498 audios de UCI: el prompt de consulta no
+     * traía NI UNA palabra de cuidados críticos, y por eso CVVHDF, VExUS, RASS y
+     * sweep gas fallaban — el sesgo apuntaba a fármacos de consultorio. Mandar
+     * los dos juntos no cabe en los ~224 tokens que el modelo lee.
+     */
+    upstream.append('prompt', contexto === 'uci' ? WHISPER_PROMPT_UCI : WHISPER_PROMPT_MEDICO)
     return fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}` },
