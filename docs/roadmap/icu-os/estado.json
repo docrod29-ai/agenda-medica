@@ -14,7 +14,8 @@
     "ICU-P1-2",
     "ICU-P1-1",
     "ICU-P1-6",
-    "ICU-P1-3"
+    "ICU-P1-3",
+    "ICU-P1-4"
   ],
   "unidadEnCurso": null,
   "unidades": [
@@ -117,6 +118,12 @@
       "estado": "completada",
       "entrega": "src/lib/uci/infusion-registro.ts + 26 casos + ADR + registrado como pendiente_validacion.",
       "pendienteDelDr": "Umbrales de MAGNITUD del seccion 20 por farmaco (velocidad absurda, error de decimal)."
+    },
+    {
+      "id": "ICU-P1-4",
+      "titulo": "Linea de tiempo unica (charter 33)",
+      "estado": "completada",
+      "entrega": "src/lib/uci/linea-tiempo.ts + 23 casos + ADR + registrado. correlacion.ts ya cubria el 34 y no se duplico."
     }
   ],
   "necesitaValidacionDelDr": [
