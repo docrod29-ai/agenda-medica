@@ -287,6 +287,32 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     estado: 'validado',
     porQueExiste: 'Un calculo que no se puede hacer desaparece en silencio. El medico ve una nota sin VT/PBW y no sabe si el paciente no esta ventilado, si el dato es normal, o si falta la talla: tres situaciones clinicas distintas y una misma pantalla vacia.',
   },
+  {
+    id: 'uci-infusion-registro', nombre: 'La infusion como REGISTRO (UCI)',
+    especialidad: 'Cuidados criticos / farmacologia',
+    tipo: 'regla-de-seguridad',
+    version: '1.0.0',
+    referencia: 'Charter secciones 13, 19 y 20 + decision ICU-Q4.3. No implementa formulas: el calculo es infusiones.ts y la eleccion de preparacion es infusion-library.ts.',
+    unidades: 'revisarInfusion(RegistroInfusion) -> HallazgoInfusion[] · dosisVigenteEn(cambios, instanteIso) -> CambioTitulacion | null',
+    redondeo: 'ninguno; la tolerancia 1% del cuadre de concentracion es de coma flotante, no clinica',
+    rangoValido: {
+      fuente: 'pendiente_validacion_clinica',
+      preguntaAlMedico: 'Umbrales de MAGNITUD del seccion 20 por farmaco: que velocidad es absurda y que salto delata un error de decimal. Sin ellos este modulo revisa solo ESTRUCTURA. Inventar un rate maximo razonable daria alarmas falsas en pacientes que si necesitan esa velocidad. Ver docs/clinical-decisions/uci-infusion-registro.md.',
+    },
+    file: 'src/lib/uci/infusion-registro.ts',
+    entryPoints: ['revisarInfusion', 'tieneErrores', 'lineaTitulacion', 'dosisVigenteEn', 'tendenciaTitulacion'],
+    calculos: [
+      'revision estructural con las 3 severidades del seccion 20',
+      'cuadre de la concentracion contra cantidad/volumen',
+      'linea de titulacion ordenada (seccion 19) sin interpolar',
+      'dosis vigente en un instante: la disponible entonces, no la ultima fila',
+    ],
+    missingData: 'Sin concentracion => WARNING, NO error: la infusion existe, corre en el paciente, y descartar el registro por no poder calcular perderia lo que el medico dijo. La velocidad de bomba se conserva siempre.',
+    adr: ADR('uci-infusion-registro'),
+    goldenTests: ['uci-infusion-registro.test.ts'],
+    estado: 'pendiente_validacion',
+    porQueExiste: '«Norepinefrina 0.1» no es un dato clinico: no dice a que concentracion corre, con que peso se dosifico ni quien lo verifico. Dos hospitales con preparaciones distintas escriben LO MISMO para infusiones que entregan cantidades diferentes de farmaco.',
+  },
   // ── Integridad temporal del dato clínico ─────────────────────────────────
   {
     id: 'observacion-version', nombre: 'Observación versionada (vigencia clínica y temporal)',

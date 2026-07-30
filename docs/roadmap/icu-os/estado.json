@@ -13,7 +13,8 @@
     "ICU-P1-5",
     "ICU-P1-2",
     "ICU-P1-1",
-    "ICU-P1-6"
+    "ICU-P1-6",
+    "ICU-P1-3"
   ],
   "unidadEnCurso": null,
   "unidades": [
@@ -109,6 +110,13 @@
       "titulo": "Motor de dato faltante (charter 31)",
       "estado": "completada",
       "entrega": "src/lib/uci/dato-faltante.ts + 19 casos + ADR + registrado."
+    },
+    {
+      "id": "ICU-P1-3",
+      "titulo": "La infusion como registro (charter 13/19/20)",
+      "estado": "completada",
+      "entrega": "src/lib/uci/infusion-registro.ts + 26 casos + ADR + registrado como pendiente_validacion.",
+      "pendienteDelDr": "Umbrales de MAGNITUD del seccion 20 por farmaco (velocidad absurda, error de decimal)."
     }
   ],
   "necesitaValidacionDelDr": [
