@@ -738,6 +738,33 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     estado: 'validado',
     porQueExiste: 'La frase del Dr. que organiza todo: «Yo NO programaria meropenem simplemente como CrCl -> dosis». Y el motor NO ELIGE COLUMNA: el da dos —convencional y alta exposicion— y advierte que «la de alta exposicion NO significa que todo paciente critico deba recibir 6 g/dia». Se devuelven las dos, se listan los criterios que se cumplen, y la eleccion se queda con quien esta en la cabecera.',
   },
+  {
+    id: 'asr-guardian-sustituciones', nombre: 'Guardian de sustituciones del dictado',
+    especialidad: 'Seguridad del dictado clinico (todas las especialidades)',
+    tipo: 'regla-de-seguridad',
+    version: '1.0.0',
+    referencia: 'critical-error-policy.json y units-and-numbers.json del paquete NexusMED_CLINICAL_ASR_PIPELINE_V1 entregado por el Dr. (2026-07-30). Las 14 clases de error critico, los pares never_autocorrect/dangerous_confusions y los seis motivos de confirmacion son suyos; no se anade ninguna clase que el no haya declarado. Sin fuente clinica: es politica de seguridad de software sobre la salida del reconocedor.',
+    unidades: 'verificar(crudo, corregido) -> Veredicto {texto, revertido, violaciones, cifrasAgregadas}',
+    redondeo: 'no aplica',
+    rangoValido: {
+      fuente: 'referencia',
+      entrada: 'el transcript crudo del reconocedor y el que produjo el corrector lexico',
+      salida: 'cual de los dos debe usarse, y por que',
+      ref: 'docs/clinical-decisions/asr-guardian-sustituciones.md',
+    },
+    file: 'src/lib/asr/guardian-sustituciones.ts',
+    entryPoints: ['verificar', 'cifrasLibres', 'corregirVigilado'],
+    calculos: [
+      'cuenta por termino critico: si baja, se perdio una aparicion (aparecer NO es violacion, desaparecer si)',
+      'multiconjunto de cifras libres: excluye los digitos pegados a letra o guion (T4, CD4, COVID-19, CA 19-9) porque son nombres, no cantidades',
+      'presencia de negadores y de lateralidad antes y despues',
+    ],
+    missingData: 'NO DETECTA lo que el reconocedor ya entendio mal: compara crudo contra corregido, y si el audio decia «dos gramos» y llego «gramos» desde el reconocedor, aqui no hay nada que comparar (de eso se ocupa uci-dosis-sin-numero, que mira el texto final). NO cubre todos los pares peligrosos que existen, solo los que el Dr. declaro. Y NO CORRIGE: revertir es su unica accion.',
+    adr: ADR('asr-guardian-sustituciones'),
+    goldenTests: ['asr-guardian-sustituciones.test.ts'],
+    estado: 'validado',
+    porQueExiste: 'El corrector lexico propio se comia las dosis en produccion («Meropenem dos gramos» -> «Meropenem gramos») y NADA lo detectaba: anotaba el cambio en cambios[] y nadie leia esa lista. REG-065 tapo esa causa concreta; esto cierra la clase entera. La deteccion por presencia no bastaba: «PEEP 12, PIP 30» -> «PIP 12, PIP 30» tiene los dos miembros del par antes y despues, y solo la CUENTA por termino lo delata.',
+  },
   // ── Integridad temporal del dato clínico ─────────────────────────────────
   {
     id: 'observacion-version', nombre: 'Observación versionada (vigencia clínica y temporal)',

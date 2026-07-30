@@ -43,6 +43,7 @@ function alergiasArray(alergias?: string): string[] {
 }
 import { NerPanel } from '@/components/NerPanel'
 import { CorreccionesPanel } from '@/components/CorreccionesPanel'
+import { AlertasDictado } from '@/components/AlertasDictado'
 import { Alert, Modal, Button } from '@/components/ui'
 import { fetchAutenticado } from '@/lib/auth-client'
 
@@ -2403,6 +2404,12 @@ export default function ConsultaActivaPage() {
               )}
             </div>
           )}
+
+          {/* Lo que el GUARDIÁN descartó: correcciones que tocaban una cifra,
+              una unidad, una sigla crítica, una negación o el lado del paciente,
+              y dosis que se quedaron sin cantidad. Va arriba de las correcciones
+              aceptadas porque esto sí hay que mirarlo antes de firmar. */}
+          {audio.estado === 'listo' && <AlertasDictado alertas={audio.alertasDictado} />}
 
           {/* Panel de correcciones léxicas — transparencia + deshacer.
               En un documento legal nada debe cambiar en silencio: el médico

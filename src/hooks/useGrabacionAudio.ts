@@ -1,5 +1,6 @@
 'use client'
-import { corregirTranscripcion, type CambioTranscripcion } from '@/lib/expediente/medical-vocabulary'
+import { type CambioTranscripcion } from '@/lib/expediente/medical-vocabulary'
+import { corregirVigilado, alertasDe, type AlertaDictado } from '@/lib/asr/corrector-vigilado'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { auth, storage } from '@/lib/firebase'
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
@@ -84,6 +85,14 @@ export interface UseGrabacionAudio {
    * revisarlas y revertirlas (documento legal: nada cambia en silencio).
    */
   correcciones: CambioTranscripcion[]
+  /**
+   * Lo que el GUARDIÁN descartó, y las dosis que se quedaron sin cantidad.
+   *
+   * No son correcciones aplicadas: son correcciones que NO se aplicaron porque
+   * tocaban una cifra, una unidad, una sigla crítica, una negación o el lado del
+   * paciente. La pantalla debe pedirle al médico que revise esa parte.
+   */
+  alertasDictado: AlertaDictado[]
   iniciar: (opts?: OpcionesGrabacion) => Promise<void>
   detener: () => Promise<void>
   pausar: () => void
@@ -369,7 +378,7 @@ async function transcribirEnPartes(chunks: Blob[], mime: string, ext: string, co
  * se corregía.
  */
 function corregirUtterances(us: Utterance[]): Utterance[] {
-  return us.map(u => ({ ...u, text: corregirTranscripcion(u.text).corregido }))
+  return us.map(u => ({ ...u, text: corregirVigilado(u.text).corregido }))
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -389,6 +398,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   const [bytesGrabados, setBytesGrabados] = useState(0)
   const [chunksTranscritos, setChunksTranscritos] = useState(0)
   const [correcciones, setCorrecciones] = useState<CambioTranscripcion[]>([])
+  const [alertasDictado, setAlertasDictado] = useState<AlertaDictado[]>([])
 
   const mediaRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])           // chunks recientes para flush
@@ -465,7 +475,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     const rk = recoveryKeyRef.current
     liberarRecursos()
     setEstado('inactivo'); setDuracion(0); setTranscripcion(''); setError('')
-    setCorrecciones([]); setUtterances([])
+    setCorrecciones([]); setUtterances([]); setAlertasDictado([])
     if (rk) borrarChunks(rk)
     recoveryKeyRef.current = ''
   }, [liberarRecursos])
@@ -497,7 +507,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       if (data?.ok && data.text) {
         // Corrección léxica médica TAMBIÉN en chunks — el médico ve los
         // fármacos bien escritos EN VIVO, no solo al final
-        const { corregido } = corregirTranscripcion(data.text)
+        const { corregido } = corregirVigilado(data.text)
         textosChunksRef.current[idx] = corregido
         // Reconstruir transcripción parcial en orden
         const completa = textosChunksRef.current.filter(Boolean).join(' ')
@@ -736,9 +746,10 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     const ext = mt.includes('mp4') ? 'm4a' : mt.includes('ogg') ? 'ogg' : mt.includes('wav') ? 'wav' : 'webm'
 
     const aplicar = (texto: string) => {
-      const { corregido, cambios } = corregirTranscripcion(texto)
-      setTranscripcion(corregido)
-      setCorrecciones(cambios)
+      const r = corregirVigilado(texto)
+      setTranscripcion(r.corregido)
+      setCorrecciones(r.cambios)
+      setAlertasDictado(alertasDe(r))
       setEstado('listo')
     }
 
@@ -829,9 +840,10 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     }
 
     if (texto.trim()) {
-      const { corregido, cambios } = corregirTranscripcion(texto)
-      setTranscripcion(corregido)
-      setCorrecciones(cambios)
+      const r = corregirVigilado(texto)
+      setTranscripcion(r.corregido)
+      setCorrecciones(r.cambios)
+      setAlertasDictado(alertasDe(r))
       setEstado('listo')
       await borrarChunks(recoveryKey)  // solo se borra si SÍ se transcribió
     } else {
@@ -861,6 +873,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   return {
     soportado, estado, duracion, transcripcion, utterances, transcripcionParcial, error,
     nivelAudio, silencioProlongado, bytesGrabados, chunksTranscritos, correcciones,
+    alertasDictado,
     iniciar, detener, pausar, reanudar, reset, setTranscripcion,
     hayRecovery, recuperarAudio, descargarAudioGuardado, descartarRecovery,
   }
