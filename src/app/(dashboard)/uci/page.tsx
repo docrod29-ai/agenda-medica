@@ -12,11 +12,13 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Activity, Wind, Droplets, HeartPulse, ShieldAlert, Info, Mic, Square, Waves, BedDouble, AlertTriangle, FileText, Calculator, Brain, Sparkles, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { useClinic } from '@/context/ClinicContext'
+import { useToast } from '@/context/ToastContext'
 import { fetchAutenticado } from '@/lib/auth-client'
 import type { FusionCopilot } from '@/lib/uci/copilot'
 import { getInternamiento } from '@/lib/hospital/firestore'
 import { getPatient } from '@/lib/firestore'
 import { construirSeccionesUCI } from '@/lib/uci/nota'
+import { guardarToma, getTomas, serieTomas } from '@/lib/uci/observaciones'
 import type { Internamiento } from '@/types/hospital'
 import type { Patient } from '@/types'
 import { analizarVentilacion, esModoEspontaneo, esModoInvasivo } from '@/lib/uci/ventilacion'
@@ -103,6 +105,7 @@ export default function UciPanelPage() {
   const params = useSearchParams()
   const internamientoId = params.get('internamiento') || undefined
   const { clinicId } = useClinic()
+  const { toast } = useToast()
   const [inter, setInter] = useState<Internamiento | null>(null)
   const [paciente, setPaciente] = useState<Patient | null>(null)
   useEffect(() => {
@@ -260,9 +263,37 @@ export default function UciPanelPage() {
   // ── Tendencias: lecturas seriadas (qué cambió en el tiempo) ──
   const claveLecturas = `nx.uci.lecturas${internamientoId ? '.' + internamientoId : ''}`
   const [lecturas, setLecturas] = useState<Lectura[]>([])
+  /**
+   * ICU-003 · las lecturas dejan de vivir SOLO en este navegador.
+   *
+   * Se carga primero lo local (instantáneo, y es lo único que hay para el modo
+   * calculadora sin paciente) y DESPUÉS se pide el servidor. Si el servidor
+   * responde, gana: es lo que ve toda la guardia, no solo esta máquina.
+   *
+   * Si falla —sin internet, reglas, o paciente no internado— se queda lo local y
+   * el panel funciona igual que siempre. Esa es la condición para poder revertir.
+   */
+  const [tomasEnServidor, setTomasEnServidor] = useState<number | null>(null)
   useEffect(() => {
     try { const raw = localStorage.getItem(claveLecturas); setLecturas(raw ? JSON.parse(raw) : []) } catch { setLecturas([]) }
   }, [claveLecturas])
+  useEffect(() => {
+    if (!clinicId || !internamientoId) { setTomasEnServidor(null); return }
+    let vivo = true
+    getTomas(clinicId, internamientoId)
+      .then(tomas => {
+        if (!vivo) return
+        setTomasEnServidor(tomas.length)
+        // `serieTomas` resuelve las correcciones: una toma corregida NO aparece
+        // como punto extra en la gráfica, aparece en el lugar del original.
+        const serie = serieTomas(tomas)
+        if (serie.length > 0) {
+          setLecturas(serie.map(t => ({ t: Date.parse(t.medidoEn), m: t.medidas as Lectura['m'] })))
+        }
+      })
+      .catch(() => { if (vivo) setTomasEnServidor(null) })
+    return () => { vivo = false }
+  }, [clinicId, internamientoId])
   const computados = useMemo(() => ({
     pafi: vent.indiceKirby.ok ? vent.indiceKirby.valor : null,
     driving: vent.drivingPressure.ok ? vent.drivingPressure.valor : null,
@@ -274,10 +305,40 @@ export default function UciPanelPage() {
   const lecturaActual = useMemo(() => aplanarLectura(v, computados), [v, computados])
   const cambios = useMemo(() => (lecturas.length ? compararLecturas(lecturas[lecturas.length - 1].m, lecturaActual) : []), [lecturas, lecturaActual])
   const correlacion = useMemo(() => correlacionTemporal(lecturas), [lecturas])
+  /**
+   * ESCRITURA DOBLE durante la transición (ICU-003).
+   *
+   * Se guarda en `localStorage` EXACTAMENTE como antes y ADEMÁS en el servidor.
+   * El orden importa: primero lo local —que no puede fallar y es lo que el
+   * médico ve al instante— y después la red. Si la red falla, el panel no se
+   * entera: no se pierde la lectura ni se interrumpe el pase de visita.
+   *
+   * Quitar el respaldo local es una decisión POSTERIOR, cuando haya semanas de
+   * datos en el servidor. Hoy sería cambiar una pérdida conocida por una
+   * dependencia de red en el peor momento posible.
+   */
   const guardarLectura = () => {
-    const arr = [...lecturas, { t: Date.now(), m: lecturaActual }].slice(-24)
+    const ahora = Date.now()
+    const arr = [...lecturas, { t: ahora, m: lecturaActual }].slice(-24)
     setLecturas(arr)
     try { localStorage.setItem(claveLecturas, JSON.stringify(arr)) } catch { /* */ }
+
+    if (!clinicId || !internamientoId) return   // modo calculadora: nada que persistir
+    const iso = new Date(ahora).toISOString()
+    guardarToma(clinicId, internamientoId, {
+      medidoEn: iso,
+      registradoEn: iso,
+      estado: 'CONFIRMED',
+      por: inter?.medicoTratanteNombre ?? '',
+      fuente: 'panel-uci',
+      medidas: lecturaActual as unknown as Record<string, unknown>,
+    })
+      .then(() => setTomasEnServidor(n => (n ?? 0) + 1))
+      .catch(() => {
+        // No se interrumpe al médico: la lectura YA está guardada localmente.
+        // El contador se queda como estaba y el aviso de la UI lo delata.
+        toast('La lectura se guardó en este dispositivo, pero no se pudo enviar al expediente', 'error')
+      })
   }
   const pedirCopilot = async () => {
     setCopilotCargando(true); setCopilotError(''); setCopilot(null); setFeedbackDado(null)

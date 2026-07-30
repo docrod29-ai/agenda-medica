@@ -153,3 +153,68 @@ describe('ICU-003 · transición SIN pérdida', () => {
     ).rejects.toThrow(/exige motivo/)
   })
 })
+
+describe('ICU-003 · el CABLEADO del panel — escritura doble sin pérdida', () => {
+  /**
+   * El único paso de esta unidad que cambia comportamiento en producción, así que
+   * lo que se congela aquí es que NO puede romper lo que ya funcionaba.
+   */
+  const panel = readFileSync(
+    resolve(process.cwd(), 'src/app/(dashboard)/uci/page.tsx'), 'utf8',
+  )
+
+  it('sigue guardando en localStorage — el respaldo NO se quitó', () => {
+    // Quitarlo hoy cambiaría una pérdida conocida por una dependencia de red en
+    // el peor momento posible: el pase de visita.
+    expect(panel).toContain('localStorage.setItem(claveLecturas')
+  })
+
+  it('lo LOCAL se guarda ANTES que la red', () => {
+    const i = panel.indexOf('const guardarLectura')
+    const cuerpo = panel.slice(i, i + 1600)
+    const iLocal = cuerpo.indexOf('localStorage.setItem')
+    const iRed = cuerpo.indexOf('guardarToma(')
+    expect(iLocal, 'no se encontró el guardado local').toBeGreaterThan(-1)
+    expect(iRed, 'no se encontró el guardado en servidor').toBeGreaterThan(-1)
+    expect(iLocal).toBeLessThan(iRed)
+  })
+
+  it('un fallo de red NO interrumpe: se avisa, no se lanza', () => {
+    const i = panel.indexOf('guardarToma(')
+    const cuerpo = panel.slice(i, i + 900)
+    expect(cuerpo).toContain('.catch(')
+    expect(cuerpo).toMatch(/toast\(/)
+    // Y el mensaje dice la verdad: el dato NO se perdió.
+    expect(cuerpo).toMatch(/se guardó en este dispositivo/)
+  })
+
+  it('el modo CALCULADORA (sin paciente) no intenta persistir', () => {
+    // Sin internamiento no hay expediente donde escribir; el panel debe seguir
+    // sirviendo como calculadora, que es un valor real que ya tenía.
+    const i = panel.indexOf('const guardarLectura')
+    expect(panel.slice(i, i + 1200)).toMatch(/if \(!clinicId \|\| !internamientoId\) return/)
+  })
+
+  it('al cargar, el SERVIDOR gana sobre lo local si respondió', () => {
+    // Es lo que hace que otra guardia vea las mismas lecturas.
+    const i = panel.indexOf('getTomas(clinicId, internamientoId)')
+    expect(i, 'el panel no lee del servidor').toBeGreaterThan(-1)
+    expect(panel.slice(i, i + 700)).toContain('setLecturas(')
+  })
+
+  it('si el servidor falla, se queda lo local (no se vacía la gráfica)', () => {
+    const i = panel.indexOf('getTomas(clinicId, internamientoId)')
+    const cuerpo = panel.slice(i, i + 900)
+    expect(cuerpo).toContain('.catch(')
+    // El catch NO debe tocar `setLecturas`: vaciar la serie por un fallo de red
+    // le borraría al médico lo que sí tenía.
+    const iCatch = cuerpo.indexOf('.catch(')
+    expect(cuerpo.slice(iCatch)).not.toContain('setLecturas(')
+  })
+
+  it('la carga usa `serieTomas`, que resuelve las correcciones', () => {
+    // Sin esto, una toma corregida saldría como punto EXTRA en la gráfica.
+    const i = panel.indexOf('getTomas(clinicId, internamientoId)')
+    expect(panel.slice(i, i + 700)).toContain('serieTomas(tomas)')
+  })
+})
