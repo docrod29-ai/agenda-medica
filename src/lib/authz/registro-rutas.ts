@@ -147,6 +147,17 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   'public/clinic/[clinicId]': { tipo: 'publica', motivo: 'Perfil público del consultorio (SEO). Solo datos ya publicados.' },
   'public/resena': { tipo: 'publica', motivo: 'El paciente deja reseña con un token de un solo uso; la publicación la moderan después.' },
 
+  // La ESTANCIA en UCI (ICUStay): ingreso a la unidad y soportes activos. Pasa
+  // por el servidor porque `icu_stays` tiene create/update/delete: if false en
+  // las reglas — a diferencia de `icu_observations`, que enfermería captura a
+  // pie de cama. Leer es del equipo clínico del piso; declarar de qué soportes
+  // depende el paciente es del médico, porque de eso cuelga cómo se adapta la
+  // interfaz (charter §32).
+  'uci/estancia': {
+    tipo: 'porMetodo',
+    metodos: { GET: 'clinico.leer', POST: 'clinico.escribir' },
+  },
+
   // ── expediente e IA clínica (entitlement de plan + rol) ───────────────────
   'consultor-evidencia': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/antibiograma-razonar': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },

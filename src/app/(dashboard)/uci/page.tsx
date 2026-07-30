@@ -20,6 +20,10 @@ import { getInternamiento } from '@/lib/hospital/firestore'
 import { getPatient } from '@/lib/firestore'
 import { construirSeccionesUCI } from '@/lib/uci/nota'
 import { guardarToma, getTomas, serieTomas } from '@/lib/uci/observaciones'
+import { getEstanciaUci, guardarSoportesUci } from '@/lib/uci/estancia-cliente'
+import { SOPORTES_ACTIVOS, SOPORTE_LABEL, type SoporteActivo } from '@/types/hospital'
+import { medirEstancia } from '@/lib/uci/estancia'
+import { useConfig } from '@/hooks/useConfig'
 import type { Internamiento } from '@/types/hospital'
 import type { Patient } from '@/types'
 import { analizarVentilacion, esModoEspontaneo, esModoInvasivo } from '@/lib/uci/ventilacion'
@@ -129,6 +133,43 @@ export default function UciPanelPage() {
     }).catch(() => {})
     return () => { vivo = false }
   }, [clinicId, internamientoId])
+
+  // ── ESTANCIA UCI: soportes activos (charter §32) ──
+  //
+  // Se DECLARAN, nunca se deducen de las mediciones: que haya una PEEP anotada no
+  // prueba que el paciente siga ventilado — el ventilador pudo retirarse y la
+  // última toma seguir ahí.
+  const { config } = useConfig()
+  const [soportes, setSoportes] = useState<SoporteActivo[] | null>(null)
+  const [guardandoSoportes, setGuardandoSoportes] = useState(false)
+  const [ingresoUci, setIngresoUci] = useState<string | null>(null)
+  useEffect(() => {
+    if (!clinicId || !internamientoId) { setSoportes(null); setIngresoUci(null); return }
+    let vivo = true
+    getEstanciaUci(clinicId, internamientoId)
+      .then(e => { if (vivo) { setSoportes((e?.soportes ?? []) as SoporteActivo[]); setIngresoUci(e?.fechaIngresoUci ?? null) } })
+      .catch(() => { if (vivo) setSoportes([]) })
+    return () => { vivo = false }
+  }, [clinicId, internamientoId])
+
+  const alternarSoporte = async (sp: SoporteActivo) => {
+    if (!clinicId || !internamientoId || soportes === null) return
+    const siguiente = soportes.includes(sp) ? soportes.filter(x => x !== sp) : [...soportes, sp]
+    const previo = soportes
+    setSoportes(siguiente)                     // optimista: el pase de visita no espera
+    setGuardandoSoportes(true)
+    try {
+      const e = await guardarSoportesUci(clinicId, internamientoId, siguiente, inter?.pacienteId)
+      if (e?.fechaIngresoUci) setIngresoUci(e.fechaIngresoUci)
+    } catch (err) {
+      setSoportes(previo)                      // se revierte: no dejar la pantalla mintiendo
+      toast(err instanceof Error ? err.message : 'No se pudieron guardar los soportes', 'error')
+    } finally { setGuardandoSoportes(false) }
+  }
+
+  const estanciaUci = ingresoUci
+    ? (() => { try { return medirEstancia({ admittedAt: ingresoUci, unitTimezone: config.zonaHoraria || 'America/Mexico_City' }, new Date().toISOString()) } catch { return null } })()
+    : null
 
   const alergias = (() => {
     const raw = paciente?.alergias
@@ -456,6 +497,50 @@ export default function UciPanelPage() {
             <button onClick={pasarANota} disabled={notaLlenas.length === 0} title={notaLlenas.length === 0 ? 'Primero dicta o captura datos; la nota se arma sola' : 'Abre la nota ya generada para revisarla y firmarla'} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, opacity: notaLlenas.length === 0 ? 0.55 : 1 }}>
               <FileText size={15} /> Revisar y firmar la nota
             </button>
+          </div>
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.03em' }}>
+                Soportes activos
+              </span>
+              {estanciaUci && (
+                <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>· {estanciaUci.etiqueta}</span>
+              )}
+              {guardandoSoportes && <span style={{ fontSize: 11, color: 'var(--text3)' }}>guardando…</span>}
+            </div>
+            {soportes === null ? (
+              <span style={{ fontSize: 12, color: 'var(--text3)' }}>Cargando…</span>
+            ) : (
+              <>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {SOPORTES_ACTIVOS.map(sp => {
+                    const on = soportes.includes(sp)
+                    return (
+                      <button
+                        key={sp}
+                        onClick={() => alternarSoporte(sp)}
+                        aria-pressed={on}
+                        style={{
+                          fontSize: 11.5, fontWeight: 600, padding: '5px 10px', borderRadius: 7, cursor: 'pointer',
+                          minHeight: 30,
+                          border: `1px solid ${on ? 'var(--nexus,#3d5afe)' : 'var(--border)'}`,
+                          background: on ? 'rgba(61,90,254,0.14)' : 'transparent',
+                          color: on ? 'var(--nexus,#3d5afe)' : 'var(--text3)',
+                        }}
+                      >
+                        {SOPORTE_LABEL[sp]}
+                      </button>
+                    )
+                  })}
+                </div>
+                {soportes.length === 0 && (
+                  <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 7, lineHeight: 1.5 }}>
+                    No hay ninguno declarado. El sistema <strong>no los deduce</strong> de las
+                    mediciones: que haya una PEEP anotada no prueba que el paciente siga ventilado.
+                  </div>
+                )}
+              </>
+            )}
           </div>
           {alergias.lista.length > 0 && !alergias.negadas && (
             <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 10, padding: '7px 11px', borderRadius: 9, border: '1px solid rgba(220,38,38,.45)', background: 'rgba(220,38,38,.12)', color: '#dc2626' }}>

@@ -16,9 +16,10 @@ import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { suscribirCenso } from '@/lib/hospital/firestore'
 import { getTomas, serieTomas } from '@/lib/uci/observaciones'
+import { getEstanciaUci } from '@/lib/uci/estancia-cliente'
 import { construirTarjeta, ordenarTarjetas, type TarjetaUci } from '@/lib/uci/tarjetas'
 import { Spinner } from '@/components/ui'
-import { SOPORTE_LABEL, type Internamiento } from '@/types/hospital'
+import { SOPORTE_LABEL, type Internamiento, type SoporteActivo } from '@/types/hospital'
 
 /**
  * Ventana de lectura por paciente. NO es el tope de la ficha (200): esta
@@ -67,7 +68,10 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
       const armadas = await Promise.all(uci.map(async i => {
         // Si la subcolección falla (permisos, red), la tarjeta sale igual y el
         // hueco se declara: es mejor que desaparecer al paciente de la lista.
-        const tomas = await getTomas(clinicId, i.id, TOPE_LANDING).catch(() => [])
+        const [tomas, estancia] = await Promise.all([
+          getTomas(clinicId, i.id, TOPE_LANDING).catch(() => []),
+          getEstanciaUci(clinicId, i.id).catch(() => null),
+        ])
         const vigentes = serieTomas(tomas)
         const ultima = vigentes.length > 0 ? vigentes[vigentes.length - 1] : undefined
         return construirTarjeta({
@@ -78,10 +82,10 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
           dxIngreso: i.diagnosticoIngreso,
           ingresoEn: i.fechaIngreso,
           unitTimezone: tz,
-          // Los soportes salen de la estancia UCI cuando exista (ICUStay). NO se
-          // deducen de las mediciones: que haya PEEP anotada no prueba que siga
-          // ventilado. Mientras tanto, la tarjeta declara el hueco.
-          soportes: [],
+          // Los soportes salen de la ESTANCIA (ICUStay), declarados en el panel.
+          // NO se deducen de las mediciones: que haya PEEP anotada no prueba que
+          // el paciente siga ventilado. Si no hay ninguno, la tarjeta lo declara.
+          soportes: (estancia?.soportes ?? []) as SoporteActivo[],
           ultimaTomaEn: ultima?.medidoEn ?? null,
           ultimaTomaPor: ultima?.por ?? null,
           ultimaTomaFuente: ultima?.fuente ?? null,

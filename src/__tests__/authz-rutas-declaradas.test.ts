@@ -107,7 +107,7 @@ describe('E0-07 · el escaneo encuentra rutas de verdad', () => {
   it('hay 74 rutas en disco (un guardián que no encuentra archivos pasa vacío y no protege nada)', () => {
     // Si este número cambia es porque se añadió o quitó una ruta: hay que declararla
     // en REGISTRO_RUTAS y ajustar el conteo, a propósito y a mano.
-    expect(CLAVES_DISCO.length).toBe(74)
+    expect(CLAVES_DISCO.length).toBe(75)
   })
 })
 
@@ -340,18 +340,23 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
     const conVocabulario = llamadas.filter(l =>
       l.guardia === 'verificarCapacidad' || l.guardia === 'verificarModuloIA' ||
       l.guardia === 'verificarModuloYCapacidad' || l.guardia === 'exigeCapacidad').length
-    // Cifras observadas hoy sobre las 74 rutas. Si cambian es porque se añadió o
+    // Cifras observadas hoy sobre las 75 rutas. Si cambian es porque se añadió o
     // quitó una guardia: hay que revisarlo a mano, no ajustar el número a ciegas.
-    expect(llamadas.length).toBe(74)
-    expect(rutasConGuardia).toBe(61)
-    expect(conVocabulario).toBe(38)
+    //
+    // 74 → 76 llamadas al añadir `uci/estancia`: son DOS, una por método (GET con
+    // `clinico.leer`, POST con `clinico.escribir`), no una ruta sin guardia.
+    expect(llamadas.length).toBe(76)
+    expect(rutasConGuardia).toBe(62)
+    expect(conVocabulario).toBe(40)
   })
 
   it('el avance se cuenta DEL REGISTRO, no de la prosa del expediente', () => {
     // El expediente llegó a decir «26 rutas pendientes» cuando eran 28 (P3-1). Este
     // número se calcula: pares (ruta, método) que declaran capacidad.
+    // `uci/estancia` suma 2 declarados y 2 ACTIVOS: nace llamando a
+    // `verificarCapacidad` en el código, no en la cola de activación pendiente.
     expect(resumenActivacion(METODOS_POR_RUTA)).toEqual({
-      declarados: 49, activos: 20, pendientes: 29,
+      declarados: 51, activos: 22, pendientes: 29,
     })
     // 29 PARES = 28 RUTAS distintas: `expediente/transcribir-diarizado` exporta GET y
     // POST y los dos siguen en `verificarModuloIA`. Ésa es la cifra del verificador.
@@ -433,10 +438,11 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
   it('el control de que la comprobación anterior NO pasa por vacío', () => {
     // Si el walker o el filtro se rompen, la lista de rutas que leen PHI clínico
     // queda vacía y el test de arriba pasa sin comprobar nada. Con `internamientos`
-    // en la señal (P3-2) son 3, no 2.
+    // en la señal (P3-2) son 3, no 2; `uci/estancia` es la cuarta — lee y escribe
+    // la estancia bajo `internamientos`, y está bajo capacidad clínica.
     const conPHI = [...FUENTE].filter(([, src]) =>
       COLECCIONES_CLINICAS.some(c => src.includes(`collection('${c}')`))).map(([c]) => c).sort()
-    expect(conPHI).toEqual(['fhir/paciente/[patientId]', 'hospital/mutar', 'portal'])
+    expect(conPHI).toEqual(['fhir/paciente/[patientId]', 'hospital/mutar', 'portal', 'uci/estancia'])
   })
 
   it('las rutas que tocan la IDENTIDAD del paciente están congeladas (segundo nivel de PHI)', () => {

@@ -375,10 +375,12 @@ export const ESTADOS_CAMA_NO_DISPONIBLE: readonly EstadoCama[] = [
 // MISMO internamiento, y cada estancia se conserva.
 
 /** Soportes activos de la estancia. La UI se adapta a esto (charter §32). */
-export type SoporteActivo =
-  | 'vm_invasiva' | 'vm_ni' | 'hfnc'
-  | 'vasopresor' | 'inotropico'
-  | 'ckrt' | 'ecmo' | 'iabp' | 'impella' | 'monitor_pic'
+export const SOPORTES_ACTIVOS = [
+  'vm_invasiva', 'vm_ni', 'hfnc',
+  'vasopresor', 'inotropico',
+  'ckrt', 'ecmo', 'iabp', 'impella', 'monitor_pic',
+] as const
+export type SoporteActivo = (typeof SOPORTES_ACTIVOS)[number]
 
 export const SOPORTE_LABEL: Record<SoporteActivo, string> = {
   vm_invasiva: 'Ventilación mecánica invasiva',
