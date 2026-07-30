@@ -11,7 +11,8 @@
     "ICU-003",
     "ICU-P1-5",
     "ICU-P1-5",
-    "ICU-P1-2"
+    "ICU-P1-2",
+    "ICU-P1-1"
   ],
   "unidadEnCurso": null,
   "unidades": [
@@ -95,6 +96,12 @@
       "estado": "completada",
       "entrega": "src/lib/uci/confirmacion.ts + 54 casos + ADR + registrado como pendiente_validacion.",
       "pendienteDelDr": "Calibrar MARGEN_AMBIGUEDAD (0.15) y CONFIANZA_BAJA (0.80) con datos reales."
+    },
+    {
+      "id": "ICU-P1-1",
+      "titulo": "Vocabulario por contexto (charter 8)",
+      "estado": "completada",
+      "entrega": "src/lib/uci/contexto-vocabulario.ts + 22 casos + ADR + registrado. Las 4 listas literales del charter, congeladas exacto."
     }
   ],
   "necesitaValidacionDelDr": [
