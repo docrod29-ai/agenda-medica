@@ -30,7 +30,7 @@ const NAV: { href: string; label: string; icon: typeof LayoutDashboard; modos: '
   { href: '/calendario',    label: 'Calendario',     icon: Calendar,        modos: 'ambos' },
   { href: '/pacientes',     label: 'Consulta',       icon: Users,           modos: 'ambos' },
   { href: '/hospitalizacion', label: 'Hospitalización', icon: BedDouble,     modos: 'ambos' },
-  { href: '/uci',           label: 'Panel UCI',      icon: Activity,        modos: 'medico' },
+  { href: '/uci',           label: 'UCI',            icon: Activity,        modos: 'medico' },   // /uci es el expediente de terapia, no la calculadora
   { href: '/consultor',     label: 'Consultor IA',   icon: FlaskConical,    modos: 'medico' },
   { href: '/antibiograma',  label: 'Antibiograma',   icon: Bug,             modos: 'medico' },
   { href: '/lista-espera',  label: 'Lista de espera',icon: Clock,           modos: 'ambos' },

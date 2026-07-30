@@ -189,3 +189,16 @@ describe('eventos de la línea de tiempo', () => {
     expect(eventosDeTomas([])).toEqual([])
   })
 })
+
+// ═══════════════════════════════════════════════════════════════════════
+describe('el botón «Ingresar paciente a UCI» no puede ser un callejón', () => {
+  it('el prefijo de la URL encuentra el servicio real', async () => {
+    // La URL dice «UCI» y el servicio del catálogo es «UCI / Terapia Intensiva».
+    // Comparar con === habría dejado el botón muerto EN SILENCIO — el mismo
+    // callejón que la auditoría encontró en el prellenado calendario→asistente.
+    const { SERVICIOS_HOSPITAL } = await import('@/types/hospital')
+    const encontrado = SERVICIOS_HOSPITAL.find(sv => sv.toLowerCase().startsWith('uci'))
+    expect(encontrado).toBe('UCI / Terapia Intensiva')
+    expect(SERVICIOS_HOSPITAL.find(sv => sv === 'UCI')).toBeUndefined()
+  })
+})

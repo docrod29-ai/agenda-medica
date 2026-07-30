@@ -4,7 +4,7 @@
 // Punto de entrada del módulo de hospitalización.
 // ══════════════════════════════════════════════════════════════
 import { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
@@ -38,6 +38,27 @@ export default function CensoPage() {
   const [buscar, setBuscar] = useState('')
   const [pac, setPac] = useState<Patient | null>(null)
   const [servicio, setServicio] = useState(SERVICIOS_HOSPITAL[0])
+  /**
+   * Entrada desde otra pantalla: `?nuevo=1&servicio=UCI` abre el alta con el
+   * servicio ya puesto.
+   *
+   * Sin esto, el botón «Ingresar paciente a UCI» del listado de UCI dejaba al
+   * médico en el censo sin nada abierto — el mismo callejón que la auditoría
+   * encontró en el prellenado calendario→asistente. Se corrige por PREFIJO, no
+   * por igualdad: la URL dice «UCI» y el servicio real es «UCI / Terapia
+   * Intensiva»; comparar con === lo habría dejado igual de muerto, pero en
+   * silencio.
+   */
+  const params = useSearchParams()
+  useEffect(() => {
+    if (params.get('nuevo') !== '1') return
+    const pedido = (params.get('servicio') ?? '').trim().toLowerCase()
+    if (pedido !== '') {
+      const encontrado = SERVICIOS_HOSPITAL.find(sv => sv.toLowerCase().startsWith(pedido))
+      if (encontrado) setServicio(encontrado)
+    }
+    setModal(true)
+  }, [params])
   const [camasInventario, setCamasInventario] = useState<Cama[]>([])
   const camasDelServicio = useMemo(() => camasInventario.filter(c => c.servicio === servicio), [camasInventario, servicio])
   /** Camas del servicio ya ocupadas por alguien del censo, en forma canónica. */
