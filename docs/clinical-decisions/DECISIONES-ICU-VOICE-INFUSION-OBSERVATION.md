@@ -345,3 +345,107 @@ mejora opcional: es el requisito que hace computable el Ejemplo A.
 | ICU-Q3 · corregida en cálculos | ✅ **RESUELTA** — y cierra E0-09/Q1 |
 | Q4 · umbral de confirmación | ✅ **RESUELTA** — 4 niveles + antifatiga |
 | **C2 · hora efectiva** | 🔴 **NUEVO** — requisito descubierto al implementar Q3 |
+
+---
+
+# ICU-Q4 · DECISIONES FINALES — 29-jul-2026
+
+## 1 · Vigencia temporal para NEWS2 — conjunto contemporáneo
+
+> **NO** implementar TTL fijo de 4 horas **ni** Last Observation Carried Forward
+> para fabricar un NEWS2 actual. NEWS2 se calcula sobre un conjunto
+> **CONTEMPORÁNEO** de observaciones.
+
+Modelo: `observationSetId · measuredAt · status · source · correctedVersion`
+
+- El score actual usa **sólo** observaciones clínicamente válidas del **set vigente**.
+- Variable requerida ausente del set → **`NEWS2_STATUS = INCOMPLETE`**.
+  **No** rellenar con el último dato histórico.
+- Conservar `lastValidNEWS2` y `lastValidNEWS2At`.
+
+```
+Último NEWS2: 3 · calculado 08:00 · hora actual 12:00
+
+  NO:  NEWS2 actual = 3
+  SÍ:  Último NEWS2 válido: 3 · 08:00
+```
+
+- La política del hospital puede definir **frecuencia de adquisición**, pero
+  **no modificar la fórmula** NEWS2.
+- En UCI, NEWS2 es **complementario**: no reemplaza monitorización continua ni
+  las herramientas propias del paciente crítico.
+
+### ⚠️ Esta decisión CORRIGE el diseño anterior
+
+`ICU-002a` se construyó con un parámetro `ventanaMs`, y para un score compuesto
+**eso es el TTL que esta decisión rechaza**. Con una ventana de 4 h, un NEWS2 de
+las 12:00 podría armarse con una FR de las 08:10, una TA de las 09:40 y una SpO₂
+de las 11:55 — seis variables de horas distintas presentadas como un score de
+ahora. **Ese número no describe a ningún paciente en ningún momento.**
+
+`vigenteEn` sigue siendo correcto para «¿cuál es el valor vigente de **una**
+variable?». Para el score compuesto la unidad de verdad es la **toma**, y eso
+vive ahora en `src/lib/clinical/news2-set.ts`.
+
+## 2 · Dataset real de voz — voluntarios y holdout bloqueado
+
+> **No bloquear** el desarrollo hasta tener 200–500 dictados clínicos reales.
+
+Fase inicial: **Synthetic Text Benchmark + Standardized Volunteer Speech Dataset**
+
+```
+20–30 profesionales  ×  20–30 utterances estandarizadas  =  400–900 grabaciones
+```
+
+Sólo **pacientes ficticios** y frases prediseñadas. Incluir intensivistas ·
+residentes · enfermería UCI · terapia respiratoria · distintos acentos ·
+velocidades · inglés médico · español · Spanglish · ruido ambiental controlado ·
+distintos dispositivos.
+
+> Mantener un **locked holdout** que **nunca** se use para ajustar el sistema.
+
+Las grabaciones clínicas reales se incorporan **después**, sólo con protocolo de
+privacidad, consentimiento y gobernanza.
+
+## 3 · Hospital Infusion Library — arquitectura antes que datos
+
+> No hay preparaciones locales todavía. **NO INVENTAR NINGUNA.** Implementar la
+> arquitectura primero.
+
+```
+Prioridad:  PATIENT_ACTIVE_PREPARATION  >  HOSPITAL_STANDARD  >  REFERENCE_LIBRARY
+```
+
+> `REFERENCE_LIBRARY` **nunca** se tratará como estándar local.
+
+Si falta la preparación local y el médico dicta «Norepinefrina a 12 mL/h»:
+
+```
+medication  = norepinephrine
+pumpRate    = 12 mL/h
+doseStatus  = CANNOT_CALCULATE
+reason      = MISSING_CONCENTRATION
+```
+
+Y se piden: (1) cantidad total del medicamento · (2) unidad · (3) volumen final ·
+(4) peso si la unidad de dosificación lo requiere. **Sólo después** se ejecuta el
+cálculo determinista.
+
+Guardar esa preparación como estándar del hospital exige una **acción explícita
+de un usuario autorizado**. **Nunca** aprender una dilución local
+automáticamente de una sola infusión.
+
+---
+
+## Implementado el 29-jul-2026
+
+| Decisión | Módulo | Casos |
+|---|---|---|
+| ICU-Q3 · observación versionada | `src/lib/clinical/observacion-version.ts` | 35 |
+| ICU-Q3 aplicada a signos de piso | `src/lib/hospital/eventos.ts` (adaptador) | 7 |
+| **ICU-Q4.1 · conjunto contemporáneo** | `src/lib/clinical/news2-set.ts` | 15 |
+| **ICU-Q4.3 · 3 capas de infusión** | `src/lib/clinical/infusion-library.ts` | 15 |
+
+**ICU-Q4.2 (dataset de voz)** no es código todavía: define el protocolo de
+recolección. Las capas A y B del benchmark sí son programáticas y quedan en el
+backlog como `ICU-P1-1`.

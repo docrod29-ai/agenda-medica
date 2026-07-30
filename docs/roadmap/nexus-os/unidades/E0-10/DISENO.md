@@ -1,6 +1,9 @@
 # E0-10 — CSP enforced + E2E de seguridad · DISEÑO
 
-> Estado: **DISEÑO** (nada implementado todavía).
+> Estado: **PARTE I implementada** (commits `5e01c35` + `5690e5b`) y **verificada de
+> forma adversarial** con veredicto `INCOMPLETA` (`VERIFICACION.json`). El
+> `RESULTADO.json` se retiró del disco y la unidad volvió a la cola.
+> **El diseño vigente para la pasada de cierre es la [PARTE II](#parte-ii--rediseño-de-cierre-3ª-pasada-2026-07-29) al final de este documento.**
 > Etapa E0 · riesgo declarado **medio** · `validacionClinica: false`.
 > Aceptación del backlog: *«CSP enforce sin romper flujos; E2E de seguridad en verde.»*
 
