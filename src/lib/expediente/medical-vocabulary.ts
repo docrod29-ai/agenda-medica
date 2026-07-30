@@ -822,6 +822,40 @@ export const CONFUSIONES_CONOCIDAS: Record<string, string> = {
   'sofosbubir': 'sofosbuvir',
   'lebetirasetam': 'levetiracetam',
   'atorbastatina': 'atorvastatina',
+
+  /**
+   * ── CONFUSIONES MEDIDAS EN EL CORPUS DE 498 AUDIOS DE UCI (2026-07-30) ──
+   *
+   * NO son suposiciones: cada una se observó en la transcripción real de los
+   * audios del Dr., con la frase de referencia al lado. La corrida completa está
+   * en `docs/maintenance/benchmark-voz-uci-498.json`.
+   *
+   * Las tres primeras son CRÍTICAS por la regla del propio corpus —cifras,
+   * dosis, signos y unidades— y una de ellas es peligrosa de verdad: «PaFi» se
+   * transcribió como «SpO2», así que una PaFi de 120 (hipoxemia grave) se
+   * convertía en una SpO2 de 120, un valor que no existe.
+   */
+  // Modos de terapia continua: perder o sustituir CVVHDF es error clínico
+  // declarado en PARA_CLAUDE.md. Se oyó como CBVHDF y como CDVHDF.
+  'cbvhdf': 'CVVHDF',
+  'cdvhdf': 'CVVHDF',
+  'cvvhd f': 'CVVHDF',
+  // PaFi → SpO2: el error más peligroso de la corrida.
+  'pafi': 'PaFi',
+  'pa fi': 'PaFi',
+  // Escala de sedación: se oyó «RAS».
+  'ras -': 'RASS -',
+  'ras menos': 'RASS menos',
+  // Congestión venosa: se oyó «BXIUS».
+  'bxius': 'VExUS',
+  'vexius': 'VExUS',
+  'bexus': 'VExUS',
+  // Barrido de gas del oxigenador: se oyó «Swip gas».
+  'swip gas': 'sweep gas',
+  'suip gas': 'sweep gas',
+  // Vibración de la línea de drenaje en ECMO: se oyó «chater».
+  'chater': 'chatter',
+  'chatter de la linea': 'chatter de la línea',
 }
 
 /** Índice normalizado (sin acentos) para matching robusto */

@@ -104,7 +104,16 @@ async function transcribir(ruta: string, apiKey: string): Promise<string> {
         if (res.ok) {
           const j = await res.json() as { text?: string }
           const crudo = (j.text ?? '').trim()
-          return SIN_CORRECTOR ? crudo : corregirTranscripcion(crudo).texto
+          /**
+           * El corrector devuelve `{ corregido, cambios }`, NO `{ texto }`.
+           *
+           * Leí mal el nombre del campo y el runner devolvía `undefined` en las
+           * 498: el informe decía «audios sin transcripción» cuando el STT había
+           * respondido HTTP 200 con el texto correcto. Un fallo mío disfrazado
+           * de fallo del transcriptor — exactamente lo que este arnés existe
+           * para no hacer.
+           */
+          return SIN_CORRECTOR ? crudo : corregirTranscripcion(crudo).corregido
         }
         if (res.status === 401) throw new Error('LLAVE_INVALIDA')
         if (res.status === 429 || res.status >= 500) {

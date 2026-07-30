@@ -159,7 +159,7 @@ export const UNIDADES_HABLADAS: Readonly<Record<string, readonly string[]>> = {
   'mmol/l': ['milimoles por litro', 'milimol por litro'],
   'meq/l': ['miliequivalentes por litro'],
   'mmhg': ['milimetros de mercurio'],
-  'cmh2o': ['centimetros de agua'],
+  'cmh2o': ['centimetros de agua', 'cm de agua'],
   'kg': ['kilos', 'kilogramos', 'kilo', 'kilogramo'],
   'g/dl': ['gramos por decilitro'],
   'lpm': ['latidos por minuto'],
@@ -295,12 +295,23 @@ export const FORMAS_HABLADAS: Readonly<Record<string, readonly string[]>> = {
   'lung sliding': ['deslizamiento pleural'],
   'doppler hepatico': ['doppler de vena hepatica'],
   // ── ECMO ──
-  'ecmo vv': ['ecmo veno venoso'],
-  'ecmo va': ['ecmo veno arterial'],
+  'ecmo vv': ['ecmo veno venoso', 'ecmo venovenoso'],
+  'ecmo va': ['ecmo veno arterial', 'ecmo venoarterial'],
   'rpm': ['revoluciones por minuto'],
   'saturacion preoxigenador': ['saturacion venosa preoxigenador'],
   // ── Neuro ──
   'gcs 9': ['escala de glasgow de nueve', 'glasgow de nueve'],
+  /**
+   * Añadidas tras la PRIMERA corrida real contra los 498.
+   *
+   * Ninguna es una concesión al transcriptor: son formas correctas del español
+   * médico que mi evaluador no sabía leer, y que contaba como fallo suyo.
+   * «Presión plató» es la forma española de plateau; «venoarterial» junto es
+   * como se escribe; «48 mil» es como se escribe cuarenta y ocho mil.
+   */
+  'presion plateau': ['presion plato', 'presion meseta'],
+  'calcio ionizado postfiltro': ['calcio ionizado post filtro'],
+  '48000/ul': ['48 mil por microlitro', '48 mil/ul'],
   // ── Pauta de antibiótico ──
   'q8h': ['cada ocho horas', 'cada 8 horas'],
   'q12h': ['cada doce horas', 'cada 12 horas'],

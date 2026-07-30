@@ -1,0 +1,653 @@
+{
+  "fecha": "2026-07-30T22:49:30.803Z",
+  "corpus": "NexusMED_UCI_498",
+  "audiosEvaluados": 498,
+  "fallosDeTranscripcion": [],
+  "corrector": true,
+  "modelos": [
+    "gpt-4o-transcribe",
+    "gpt-4o-mini-transcribe",
+    "whisper-1"
+  ],
+  "global": {
+    "audios": 498,
+    "wer": 0.24108879462795174,
+    "clinicalTermRecall": 0.9808743169398907,
+    "acronymRecall": 0.9487179487179487,
+    "numberAccuracy": 0.9933333333333333,
+    "unitAccuracy": 0.9897959183673469,
+    "criticalSemanticErrorRate": 0.010040160642570281,
+    "terminosNoEvaluables": []
+  },
+  "porCategoria": [
+    {
+      "corte": "CKRT",
+      "m": {
+        "audios": 60,
+        "wer": 0.23087632275132283,
+        "clinicalTermRecall": 0.9423076923076923,
+        "acronymRecall": 0.8,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0.03333333333333333,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "Infección",
+      "m": {
+        "audios": 48,
+        "wer": 0.12847222222222224,
+        "clinicalTermRecall": 0.9629629629629629,
+        "acronymRecall": 1,
+        "numberAccuracy": 0.875,
+        "unitAccuracy": 0.875,
+        "criticalSemanticErrorRate": 0.0625,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "Ultrasonido",
+      "m": {
+        "audios": 54,
+        "wer": 0.11812169312169314,
+        "clinicalTermRecall": 0.9722222222222222,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "Ventilación",
+      "m": {
+        "audios": 72,
+        "wer": 0.22772667147667155,
+        "clinicalTermRecall": 0.9827586206896551,
+        "acronymRecall": 0.9444444444444444,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "Sedación",
+      "m": {
+        "audios": 36,
+        "wer": 0.19166666666666668,
+        "clinicalTermRecall": 0.9871794871794872,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "ECMO",
+      "m": {
+        "audios": 60,
+        "wer": 0.2651136363636362,
+        "clinicalTermRecall": 0.9920634920634921,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "Hemodinámica",
+      "m": {
+        "audios": 60,
+        "wer": 0.28347374847374834,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "Gasometría",
+      "m": {
+        "audios": 30,
+        "wer": 0.26267399267399266,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "Laboratorio",
+      "m": {
+        "audios": 48,
+        "wer": 0.3935267857142859,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "UCI general",
+      "m": {
+        "audios": 30,
+        "wer": 0.3561111111111111,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    }
+  ],
+  "porVoz": [
+    {
+      "corte": "cedar",
+      "m": {
+        "audios": 166,
+        "wer": 0.24203921914765286,
+        "clinicalTermRecall": 0.9754098360655737,
+        "acronymRecall": 0.9423076923076923,
+        "numberAccuracy": 0.9866666666666667,
+        "unitAccuracy": 0.9795918367346939,
+        "criticalSemanticErrorRate": 0.012048192771084338,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "marin",
+      "m": {
+        "audios": 166,
+        "wer": 0.2457080737201219,
+        "clinicalTermRecall": 0.9808743169398907,
+        "acronymRecall": 0.9423076923076923,
+        "numberAccuracy": 0.9933333333333333,
+        "unitAccuracy": 0.9897959183673469,
+        "criticalSemanticErrorRate": 0.012048192771084338,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "coral",
+      "m": {
+        "audios": 166,
+        "wer": 0.23551909101607896,
+        "clinicalTermRecall": 0.9863387978142076,
+        "acronymRecall": 0.9615384615384616,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0.006024096385542169,
+        "terminosNoEvaluables": []
+      }
+    }
+  ],
+  "porEstilo": [
+    {
+      "corte": "CEDAR_PASE",
+      "m": {
+        "audios": 83,
+        "wer": 0.24152764905776955,
+        "clinicalTermRecall": 0.9726775956284153,
+        "acronymRecall": 0.9615384615384616,
+        "numberAccuracy": 0.9866666666666667,
+        "unitAccuracy": 0.9795918367346939,
+        "criticalSemanticErrorRate": 0.012048192771084338,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "CEDAR_CLARA",
+      "m": {
+        "audios": 83,
+        "wer": 0.24255078923753626,
+        "clinicalTermRecall": 0.9781420765027322,
+        "acronymRecall": 0.9230769230769231,
+        "numberAccuracy": 0.9866666666666667,
+        "unitAccuracy": 0.9795918367346939,
+        "criticalSemanticErrorRate": 0.012048192771084338,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "MARIN_RAPIDA",
+      "m": {
+        "audios": 83,
+        "wer": 0.24300455234190174,
+        "clinicalTermRecall": 0.9781420765027322,
+        "acronymRecall": 0.9615384615384616,
+        "numberAccuracy": 0.9866666666666667,
+        "unitAccuracy": 0.9795918367346939,
+        "criticalSemanticErrorRate": 0.024096385542168676,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "MARIN_CLARA",
+      "m": {
+        "audios": 83,
+        "wer": 0.2484115950983421,
+        "clinicalTermRecall": 0.9836065573770492,
+        "acronymRecall": 0.9230769230769231,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "CORAL_CLARA",
+      "m": {
+        "audios": 83,
+        "wer": 0.23446128837695104,
+        "clinicalTermRecall": 0.9836065573770492,
+        "acronymRecall": 0.9230769230769231,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0.012048192771084338,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "CORAL_CONVERSACIONAL",
+      "m": {
+        "audios": 83,
+        "wer": 0.23657689365520687,
+        "clinicalTermRecall": 0.9890710382513661,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    }
+  ],
+  "rankingRiesgo": [
+    {
+      "termino": "2 g q8h",
+      "veces": 6,
+      "perdidas": 3,
+      "critico": true,
+      "recall": 0.5
+    },
+    {
+      "termino": "CVVHDF",
+      "veces": 6,
+      "perdidas": 2,
+      "critico": true,
+      "recall": 0.6666666666666666
+    },
+    {
+      "termino": "calcio ionizado postfiltro",
+      "veces": 6,
+      "perdidas": 3,
+      "critico": false,
+      "recall": 0.5
+    },
+    {
+      "termino": "VExUS",
+      "veces": 6,
+      "perdidas": 3,
+      "critico": false,
+      "recall": 0.5
+    },
+    {
+      "termino": "CKRT",
+      "veces": 12,
+      "perdidas": 2,
+      "critico": false,
+      "recall": 0.8333333333333334
+    },
+    {
+      "termino": "PEEP",
+      "veces": 12,
+      "perdidas": 2,
+      "critico": false,
+      "recall": 0.8333333333333334
+    },
+    {
+      "termino": "CVVHD",
+      "veces": 6,
+      "perdidas": 1,
+      "critico": false,
+      "recall": 0.8333333333333334
+    },
+    {
+      "termino": "CVVH",
+      "veces": 6,
+      "perdidas": 1,
+      "critico": false,
+      "recall": 0.8333333333333334
+    },
+    {
+      "termino": "sweep gas",
+      "veces": 6,
+      "perdidas": 1,
+      "critico": false,
+      "recall": 0.8333333333333334
+    },
+    {
+      "termino": "compliance estática",
+      "veces": 6,
+      "perdidas": 1,
+      "critico": false,
+      "recall": 0.8333333333333334
+    },
+    {
+      "termino": "dexmedetomidina",
+      "veces": 6,
+      "perdidas": 1,
+      "critico": false,
+      "recall": 0.8333333333333334
+    },
+    {
+      "termino": "linezolid",
+      "veces": 6,
+      "perdidas": 1,
+      "critico": false,
+      "recall": 0.8333333333333334
+    }
+  ],
+  "peores": [
+    {
+      "id": "001__CKRT__MARIN_RAPIDA",
+      "wer": 0.417,
+      "criticos": [
+        "CVVHDF"
+      ],
+      "esperado": "CKRT en modo CVVHDF, flujo de sangre ciento cincuenta mililitros por minuto.",
+      "obtenido": "CKRT en modo CD de HDF, flujo de sangre 150 mililitros por minuto."
+    },
+    {
+      "id": "001__CKRT__CORAL_CLARA",
+      "wer": 0.25,
+      "criticos": [
+        "CVVHDF"
+      ],
+      "esperado": "CKRT en modo CVVHDF, flujo de sangre ciento cincuenta mililitros por minuto.",
+      "obtenido": "CKRT en modo CVHDF. Flujo de sangre 150 mililitros por minuto."
+    },
+    {
+      "id": "066__INFECCION__MARIN_RAPIDA",
+      "wer": 0.111,
+      "criticos": [
+        "2 g q8h"
+      ],
+      "esperado": "Meropenem dos gramos cada ocho horas en infusión extendida.",
+      "obtenido": "Meropenem gramos cada ocho horas en infusión extendida."
+    },
+    {
+      "id": "066__INFECCION__CEDAR_CLARA",
+      "wer": 0.111,
+      "criticos": [
+        "2 g q8h"
+      ],
+      "esperado": "Meropenem dos gramos cada ocho horas en infusión extendida.",
+      "obtenido": "Meropenem gramos cada ocho horas en infusión extendida."
+    },
+    {
+      "id": "066__INFECCION__CEDAR_PASE",
+      "wer": 0.111,
+      "criticos": [
+        "2 g q8h"
+      ],
+      "esperado": "Meropenem dos gramos cada ocho horas en infusión extendida.",
+      "obtenido": "Meropenem gramos cada ocho horas en infusión extendida."
+    },
+    {
+      "id": "020__ECMO__CEDAR_PASE",
+      "wer": 0.778,
+      "criticos": [],
+      "esperado": "Saturación venosa preoxigenador de sesenta y ocho por ciento.",
+      "obtenido": "Saturación de Nosa preoxigenador de 68%."
+    },
+    {
+      "id": "073__LABORATORIO__MARIN_CLARA",
+      "wer": 0.75,
+      "criticos": [],
+      "esperado": "Potasio de cinco punto ocho milimoles por litro.",
+      "obtenido": "Potasio de 5.8 mmol/L."
+    },
+    {
+      "id": "078__LABORATORIO__MARIN_CLARA",
+      "wer": 0.6,
+      "criticos": [],
+      "esperado": "INR de uno punto ocho.",
+      "obtenido": "INR de 1.8"
+    },
+    {
+      "id": "078__LABORATORIO__MARIN_RAPIDA",
+      "wer": 0.6,
+      "criticos": [],
+      "esperado": "INR de uno punto ocho.",
+      "obtenido": "INR de 1.8"
+    },
+    {
+      "id": "078__LABORATORIO__CEDAR_CLARA",
+      "wer": 0.6,
+      "criticos": [],
+      "esperado": "INR de uno punto ocho.",
+      "obtenido": "INR de 1.8"
+    },
+    {
+      "id": "078__LABORATORIO__CORAL_CLARA",
+      "wer": 0.6,
+      "criticos": [],
+      "esperado": "INR de uno punto ocho.",
+      "obtenido": "INR de 1.8"
+    },
+    {
+      "id": "078__LABORATORIO__CEDAR_PASE",
+      "wer": 0.6,
+      "criticos": [],
+      "esperado": "INR de uno punto ocho.",
+      "obtenido": "INR de 1.8"
+    },
+    {
+      "id": "078__LABORATORIO__CORAL_CONVERSACIONAL",
+      "wer": 0.6,
+      "criticos": [],
+      "esperado": "INR de uno punto ocho.",
+      "obtenido": "INR de 1.8"
+    },
+    {
+      "id": "006__CKRT__MARIN_CLARA",
+      "wer": 0.571,
+      "criticos": [],
+      "esperado": "Anticoagulación regional con citrato, calcio ionizado postfiltro de cero punto treinta milimoles por litro.",
+      "obtenido": "Anticoagulación regional con citrato, calcio ionizado post filtro de 0.30 mmol/L."
+    },
+    {
+      "id": "017__ECMO__CEDAR_CLARA",
+      "wer": 0.571,
+      "criticos": [],
+      "esperado": "Canulación femoro yugular para ECMO veno venoso.",
+      "obtenido": "Canulación femoroyugular para ECMO venovenoso."
+    },
+    {
+      "id": "017__ECMO__CORAL_CLARA",
+      "wer": 0.571,
+      "criticos": [],
+      "esperado": "Canulación femoro yugular para ECMO veno venoso.",
+      "obtenido": "Canulación femoroyugular para ECMO venovenoso."
+    },
+    {
+      "id": "003__CKRT__MARIN_CLARA",
+      "wer": 0.556,
+      "criticos": [],
+      "esperado": "CVVH con ultrafiltración neta de cien mililitros por hora.",
+      "obtenido": "C-U-V-H, con ultrafiltración neta de 100 mililitros por hora."
+    },
+    {
+      "id": "020__ECMO__MARIN_RAPIDA",
+      "wer": 0.556,
+      "criticos": [],
+      "esperado": "Saturación venosa preoxigenador de sesenta y ocho por ciento.",
+      "obtenido": "Saturación venosa preoxigenador de 68%."
+    },
+    {
+      "id": "020__ECMO__MARIN_CLARA",
+      "wer": 0.556,
+      "criticos": [],
+      "esperado": "Saturación venosa preoxigenador de sesenta y ocho por ciento.",
+      "obtenido": "Saturación venosa preoxigenador de 68%."
+    },
+    {
+      "id": "020__ECMO__CORAL_CLARA",
+      "wer": 0.556,
+      "criticos": [],
+      "esperado": "Saturación venosa preoxigenador de sesenta y ocho por ciento.",
+      "obtenido": "Saturación venosa preoxigenador de 68%."
+    },
+    {
+      "id": "020__ECMO__CEDAR_CLARA",
+      "wer": 0.556,
+      "criticos": [],
+      "esperado": "Saturación venosa preoxigenador de sesenta y ocho por ciento.",
+      "obtenido": "Saturación venosa preoxigenador de 68%."
+    },
+    {
+      "id": "020__ECMO__CORAL_CONVERSACIONAL",
+      "wer": 0.556,
+      "criticos": [],
+      "esperado": "Saturación venosa preoxigenador de sesenta y ocho por ciento.",
+      "obtenido": "Saturación venosa preoxigenador de 68%."
+    },
+    {
+      "id": "081__UCI_GENERAL__MARIN_RAPIDA",
+      "wer": 0.556,
+      "criticos": [],
+      "esperado": "Temperatura de treinta y nueve punto dos grados Celsius.",
+      "obtenido": "Temperatura de 39.2 grados Celsius."
+    },
+    {
+      "id": "081__UCI_GENERAL__MARIN_CLARA",
+      "wer": 0.556,
+      "criticos": [],
+      "esperado": "Temperatura de treinta y nueve punto dos grados Celsius.",
+      "obtenido": "Temperatura de 39.2 grados Celsius."
+    },
+    {
+      "id": "081__UCI_GENERAL__CEDAR_PASE",
+      "wer": 0.556,
+      "criticos": [],
+      "esperado": "Temperatura de treinta y nueve punto dos grados Celsius.",
+      "obtenido": "Temperatura de 39.2 grados Celsius."
+    },
+    {
+      "id": "081__UCI_GENERAL__CORAL_CLARA",
+      "wer": 0.556,
+      "criticos": [],
+      "esperado": "Temperatura de treinta y nueve punto dos grados Celsius.",
+      "obtenido": "Temperatura de 39.2 grados Celsius."
+    },
+    {
+      "id": "081__UCI_GENERAL__CEDAR_CLARA",
+      "wer": 0.556,
+      "criticos": [],
+      "esperado": "Temperatura de treinta y nueve punto dos grados Celsius.",
+      "obtenido": "Temperatura de 39.2 grados Celsius."
+    },
+    {
+      "id": "081__UCI_GENERAL__CORAL_CONVERSACIONAL",
+      "wer": 0.556,
+      "criticos": [],
+      "esperado": "Temperatura de treinta y nueve punto dos grados Celsius.",
+      "obtenido": "Temperatura de 39.2 grados Celsius."
+    },
+    {
+      "id": "002__CKRT__CEDAR_CLARA",
+      "wer": 0.533,
+      "criticos": [],
+      "esperado": "CKRT en modalidad CVVHD con dosis de efluente de veinticinco mililitros por kilo por hora.",
+      "obtenido": "Se KRT en modalidad CVVHD con dosis de efluente de 25 ml/kg/h."
+    },
+    {
+      "id": "054__GASOMETRIA__CEDAR_CLARA",
+      "wer": 0.5,
+      "criticos": [],
+      "esperado": "Saturación arterial de oxígeno de noventa y dos por ciento.",
+      "obtenido": "Saturación arterial de oxígeno de 92%."
+    },
+    {
+      "id": "054__GASOMETRIA__MARIN_RAPIDA",
+      "wer": 0.5,
+      "criticos": [],
+      "esperado": "Saturación arterial de oxígeno de noventa y dos por ciento.",
+      "obtenido": "Saturación arterial de oxígeno de 92%."
+    },
+    {
+      "id": "054__GASOMETRIA__MARIN_CLARA",
+      "wer": 0.5,
+      "criticos": [],
+      "esperado": "Saturación arterial de oxígeno de noventa y dos por ciento.",
+      "obtenido": "Saturación arterial de oxígeno de 92%."
+    },
+    {
+      "id": "054__GASOMETRIA__CEDAR_PASE",
+      "wer": 0.5,
+      "criticos": [],
+      "esperado": "Saturación arterial de oxígeno de noventa y dos por ciento.",
+      "obtenido": "Saturación arterial de oxígeno de 92%."
+    },
+    {
+      "id": "054__GASOMETRIA__CORAL_CONVERSACIONAL",
+      "wer": 0.5,
+      "criticos": [],
+      "esperado": "Saturación arterial de oxígeno de noventa y dos por ciento.",
+      "obtenido": "Saturación arterial de oxígeno de 92%."
+    },
+    {
+      "id": "054__GASOMETRIA__CORAL_CLARA",
+      "wer": 0.5,
+      "criticos": [],
+      "esperado": "Saturación arterial de oxígeno de noventa y dos por ciento.",
+      "obtenido": "Saturación arterial de oxígeno de 92%."
+    },
+    {
+      "id": "069__INFECCION__CEDAR_PASE",
+      "wer": 0.5,
+      "criticos": [],
+      "esperado": "Linezolid seiscientos miligramos cada doce horas.",
+      "obtenido": "Linesoliv 600 miligramos cada 12 horas."
+    },
+    {
+      "id": "083__UCI_GENERAL__MARIN_CLARA",
+      "wer": 0.5,
+      "criticos": [],
+      "esperado": "Saturación periférica de oxígeno de ochenta y ocho por ciento.",
+      "obtenido": "Saturación periférica de oxígeno de 88%."
+    },
+    {
+      "id": "083__UCI_GENERAL__MARIN_RAPIDA",
+      "wer": 0.5,
+      "criticos": [],
+      "esperado": "Saturación periférica de oxígeno de ochenta y ocho por ciento.",
+      "obtenido": "Saturación periférica de oxígeno de 88%."
+    },
+    {
+      "id": "083__UCI_GENERAL__CEDAR_CLARA",
+      "wer": 0.5,
+      "criticos": [],
+      "esperado": "Saturación periférica de oxígeno de ochenta y ocho por ciento.",
+      "obtenido": "Saturación periférica de oxígeno de 88%."
+    },
+    {
+      "id": "083__UCI_GENERAL__CEDAR_PASE",
+      "wer": 0.5,
+      "criticos": [],
+      "esperado": "Saturación periférica de oxígeno de ochenta y ocho por ciento.",
+      "obtenido": "Saturación periférica de oxígeno de 88%."
+    }
+  ]
+}
