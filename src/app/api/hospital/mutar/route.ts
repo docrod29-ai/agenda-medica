@@ -14,6 +14,10 @@ import { verificarMiembro } from '@/lib/auth-server'
 import { exigeCapacidad } from '@/lib/authz/verificar'
 import { ACCIONES_HOSPITAL_MUTAR } from '@/lib/authz/registro-rutas'
 import { adminDb } from '@/lib/firebase-admin'
+import { esCritica, type Unidad } from '@/lib/hospital/unidades'
+import { camaVigenteDe, trasladar as trasladarCama } from '@/lib/hospital/bed-assignment'
+import { POLITICA_CAMAS_SEGURA, transicionar } from '@/lib/hospital/estados-cama'
+import type { BedAssignment, EstadoCama } from '@/types/hospital'
 import { registroDurable } from '@/lib/hospital/registro-durable'
 import { mismaCama } from '@/lib/hospital/cama'
 import { randomUUID } from 'crypto'
@@ -254,6 +258,108 @@ export async function POST(req: NextRequest) {
         // El correo verificado identifica a la PERSONA. El rol solo lo acompaña.
         nombre: acc.email ? `${acc.email} (${acc.role ?? 'clínico'})` : String(acc.role ?? 'clínico'),
       }
+      /**
+       * TRASLADO A / DESDE UNA UNIDAD CRÍTICA — abre y cierra la `ICUStay`.
+       *
+       * Sin esto, el «día de UCI» se contaba desde el ingreso al HOSPITAL: un
+       * paciente con 3 días en urgencias que ayer subió a terapia aparecía como
+       * «Día UCI 4». El día de UCI se cuenta desde que entra a la UNIDAD.
+       *
+       * El tipo de unidad NUNCA se decide por el nombre: sale de `unidades`, que
+       * configura el hospital. Un servicio sin clasificar no es crítico ni deja
+       * de serlo — simplemente no dispara nada, y la pantalla de UCI lo declara.
+       */
+      if (accion === 'trasladar') {
+        const uSnap = await tx.get(adminDb.collection('clinics').doc(clinicId).collection('unidades'))
+        const unidades = uSnap.docs.map(d => ({ ...(d.data() as Any), id: d.id })) as Unidad[]
+        const destino = (payload.servicio as string) ?? ((inter as Any).servicio as string) ?? ''
+        const origen = ((inter as Any).servicio as string) ?? ''
+        const aCritica = esCritica(destino, unidades)
+        const deCritica = esCritica(origen, unidades)
+        const estanciaRef = ref.collection('icu_stays').doc('actual')
+
+        if (aCritica && !deCritica) {
+          const prev = await tx.get(estanciaRef)
+          // Reingreso a terapia: se ABRE de nuevo con la fecha de ESTE ingreso.
+          // Conservar la anterior contaría los días de la estancia previa.
+          tx.set(estanciaRef, {
+            internamientoId,
+            pacienteId: (inter as Any).pacienteId ?? '',
+            estado: 'activa',
+            fechaIngresoUci: now,
+            fechaEgresoUci: null,
+            soportes: prev.exists ? ((prev.data() as Any).soportes ?? []) : [],
+            actualizadoPor: actor.uid,
+            actualizadoEn: now,
+          }, { merge: true })
+        } else if (deCritica && !aCritica) {
+          // Alta de UCI a piso: la estancia se cierra, el EPISODIO sigue abierto.
+          const prev = await tx.get(estanciaRef)
+          if (prev.exists) {
+            tx.set(estanciaRef, {
+              estado: 'egresada', fechaEgresoUci: now,
+              actualizadoPor: actor.uid, actualizadoEn: now,
+            }, { merge: true })
+          }
+        }
+      }
+
+      /**
+       * HISTORIA DE CAMAS y ESTADO DE LA CAMA QUE SE DEJA.
+       *
+       * Antes el traslado sólo dejaba una frase en `movimientos[].detalle`: no se
+       * podía preguntar «¿en qué cama estaba el martes a las 3?». Ahora se cierra
+       * la asignación vigente y se abre la nueva en intervalos semiabiertos
+       * (`hasta` === `desde`), que es lo que evita el doble conteo.
+       *
+       * Y la cama que se deja pasa a PENDIENTE DE LIMPIEZA TERMINAL, según la
+       * decisión del Dr. (2026-07-30). El motor decide si el paso es válido; aquí
+       * no se repite la política.
+       *
+       * Nada de esto puede tumbar el traslado: es historia y logística. Si algo
+       * falla, el traslado clínico ya quedó — la reconciliación es un problema
+       * menor que dejar al paciente sin mover.
+       */
+      if (accion === 'trasladar' && payload.cama) {
+        const camaDestino = String(payload.cama)
+        const camaOrigen = String((inter as Any).cama ?? '')
+        if (camaDestino !== camaOrigen) {
+          const asigCol = ref.collection('bed_assignments')
+          const asigSnap = await tx.get(asigCol)
+          const asignaciones = asigSnap.docs.map(d => ({ ...(d.data() as Any), id: d.id })) as BedAssignment[]
+          const vigente = asignaciones.find(a => a.hasta === undefined || a.hasta === null)
+
+          const nuevaRef = asigCol.doc()
+          if (vigente) {
+            try {
+              const { cierre, apertura } = trasladarCama(
+                vigente, { id: nuevaRef.id, camaId: camaDestino, por: actor.uid }, now)
+              tx.set(asigCol.doc(vigente.id), { hasta: cierre.hasta }, { merge: true })
+              tx.set(nuevaRef, { ...apertura })
+            } catch { /* asignación inconsistente: no se rompe el traslado clínico */ }
+          } else {
+            // Primer registro: el episodio venía de antes de que existiera la
+            // historia de camas. Se abre desde AHORA, no se inventa el pasado.
+            tx.set(nuevaRef, {
+              id: nuevaRef.id, camaId: camaDestino, desde: now,
+              motivo: 'traslado', por: actor.uid,
+            })
+          }
+
+          // La cama de ORIGEN, a limpieza terminal.
+          if (camaOrigen !== '') {
+            const camasSnap = await tx.get(
+              adminDb.collection('clinics').doc(clinicId).collection('camas')
+                .where('etiqueta', '==', camaOrigen))
+            for (const d of camasSnap.docs) {
+              const actualEstado = ((d.data() as Any).estado ?? 'ocupada') as EstadoCama
+              const r = transicionar(actualEstado, 'limpieza', POLITICA_CAMAS_SEGURA)
+              if (r.permitida) tx.set(d.ref, { estado: 'limpieza' }, { merge: true })
+            }
+          }
+        }
+      }
+
       tx.update(ref, { ...patch(accion, inter, payload, now, actor), updatedAt: now })
       // Además del array-caché en el doc, persiste el registro clínico COMPLETO
       // a la subcolección append-only (sin truncar) → no se pierde nada (NOM-004).

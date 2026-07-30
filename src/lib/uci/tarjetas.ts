@@ -90,7 +90,8 @@ export function construirTarjeta(e: EntradaTarjeta, ahoraIso: string): TarjetaUc
 
   let estancia: MedidaEstancia | null = null
   if (Number.isNaN(ingreso)) {
-    avisos.push('No consta la fecha de ingreso: no se puede calcular el día de UCI.')
+    avisos.push('No consta el ingreso a la unidad de terapia: no se puede calcular el día de UCI. '
+      + 'NO se cuenta desde el ingreso al hospital — daría «día 4» a quien lleva uno en UCI.')
   } else {
     if (ahora < ingreso) avisos.push('La fecha de ingreso es posterior al momento actual.')
     estancia = medirEstancia({ admittedAt: e.ingresoEn, unitTimezone: e.unitTimezone }, ahoraIso)

@@ -14,7 +14,8 @@ import { useRouter } from 'next/navigation'
 import { Activity, BedDouble, AlertTriangle, Clock, Wrench, UserPlus } from 'lucide-react'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
-import { suscribirCenso } from '@/lib/hospital/firestore'
+import { suscribirCenso, getUnidades } from '@/lib/hospital/firestore'
+import { esCritica, sinTipoConfigurado, AVISO_SIN_TIPO, type Unidad } from '@/lib/hospital/unidades'
 import { getTomas, serieTomas } from '@/lib/uci/observaciones'
 import { getEstanciaUci } from '@/lib/uci/estancia-cliente'
 import { construirTarjeta, ordenarTarjetas, type TarjetaUci } from '@/lib/uci/tarjetas'
@@ -40,8 +41,6 @@ const botonSecundario: React.CSSProperties = {
   ...botonBase, background: 'none', border: '1px solid var(--border)', color: 'var(--text2)',
 }
 
-const esUci = (i: Internamiento) => /uci|intensiv/i.test(i.servicio ?? '')
-
 function tiempo(horas: number | null): string {
   if (horas === null) return 'sin tomas'
   if (horas < 1) return `hace ${Math.round(horas * 60)} min`
@@ -58,12 +57,25 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
   const { config } = useConfig()
   const tz = config.zonaHoraria || 'America/Mexico_City'
   const [tarjetas, setTarjetas] = useState<TarjetaUci[] | null>(null)
-
+  // El TIPO de unidad decide quién es paciente crítico. NUNCA el nombre: un
+  // hospital que llame a su unidad «UTI» o «5º Norte» perdía a sus pacientes de
+  // esta pantalla, sin error y sin aviso.
+  const [unidades, setUnidades] = useState<Unidad[] | null>(null)
+  const [sinTipo, setSinTipo] = useState<string[]>([])
   useEffect(() => {
     if (!clinicId) return
     let vivo = true
+    getUnidades(clinicId).then(u => { if (vivo) setUnidades(u) }).catch(() => { if (vivo) setUnidades([]) })
+    return () => { vivo = false }
+  }, [clinicId])
+
+  useEffect(() => {
+    if (!clinicId || unidades === null) return
+    let vivo = true
     const off = suscribirCenso(clinicId, async censo => {
-      const uci = censo.filter(esUci)
+      const uci = censo.filter(i => esCritica(i.servicio, unidades))
+      // Un servicio sin tipo NO se descarta en silencio: se declara arriba.
+      setSinTipo(sinTipoConfigurado(censo.map(i => i.servicio), unidades))
       const ahora = new Date().toISOString()
       const armadas = await Promise.all(uci.map(async i => {
         // Si la subcolección falla (permisos, red), la tarjeta sale igual y el
@@ -80,7 +92,11 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
           cama: i.cama,
           servicio: i.servicio,
           dxIngreso: i.diagnosticoIngreso,
-          ingresoEn: i.fechaIngreso,
+          // El día de UCI se cuenta desde el ingreso a la UNIDAD, no al hospital.
+          // Antes salía «Día UCI 4» para quien llevaba 3 días en urgencias y
+          // ayer subió a terapia. Si no consta la estancia, se declara el hueco
+          // en vez de contar desde una fecha que no es.
+          ingresoEn: estancia?.fechaIngresoUci ?? '',
           unitTimezone: tz,
           // Los soportes salen de la ESTANCIA (ICUStay), declarados en el panel.
           // NO se deducen de las mediciones: que haya PEEP anotada no prueba que
@@ -94,7 +110,7 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
       if (vivo) setTarjetas(ordenarTarjetas(armadas))
     })
     return () => { vivo = false; off?.() }
-  }, [clinicId, tz])
+  }, [clinicId, tz, unidades])
 
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '8px 4px 40px' }}>
@@ -104,6 +120,19 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
       <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 20px' }}>
         Ordenado por antigüedad de la última toma: arriba, de quien hace más rato que no se anota nada.
       </p>
+
+      {sinTipo.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'rgba(217,119,6,0.09)', border: '1px solid rgba(217,119,6,0.4)', borderRadius: 12, padding: '13px 15px', margin: '0 0 16px' }}>
+          <AlertTriangle size={17} style={{ color: '#d97706', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text)' }}>
+            <strong>Servicios sin tipo de unidad: {sinTipo.join(' · ')}.</strong>{' '}
+            {AVISO_SIN_TIPO}{' '}
+            <button onClick={() => router.push('/hospitalizacion/unidades')} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--nexus,#3d5afe)', cursor: 'pointer', fontSize: 13, fontWeight: 600, textDecoration: 'underline' }}>
+              Configurar unidades
+            </button>
+          </div>
+        </div>
+      )}
 
       {tarjetas === null ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}><Spinner /></div>

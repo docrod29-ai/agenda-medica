@@ -86,10 +86,18 @@ describe('§3 · el día de UCI lo resuelve el motor de estancia', () => {
     expect(t.avisos.join(' ')).toMatch(/posterior al momento actual/)
   })
 
-  it('sin fecha de ingreso no hay estancia, y se dice', () => {
+  it('sin ingreso A LA UNIDAD no hay estancia, y se dice por qué', () => {
+    // Y se dice explícitamente que NO se cuenta desde el ingreso al hospital:
+    // daría «Día UCI 4» a quien lleva 3 días en urgencias y uno en terapia.
     const t = construirTarjeta(ent({ ingresoEn: 'ayer' }), AHORA)
     expect(t.estancia).toBeNull()
-    expect(t.avisos.join(' ')).toMatch(/No consta la fecha de ingreso/)
+    expect(t.avisos.join(' ')).toMatch(/No consta el ingreso a la unidad de terapia/)
+    expect(t.avisos.join(' ')).toMatch(/NO se cuenta desde el ingreso al hospital/)
+  })
+
+  it('un ingreso a la unidad VACÍO tampoco se rellena con otra fecha', () => {
+    const t = construirTarjeta(ent({ ingresoEn: '' }), AHORA)
+    expect(t.estancia).toBeNull()
   })
 })
 

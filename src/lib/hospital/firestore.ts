@@ -8,6 +8,7 @@ import {
   collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, onSnapshot, runTransaction,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import type { Unidad } from '@/lib/hospital/unidades'
 import { setDoc, orderBy, limit } from 'firebase/firestore'
 import { fetchAutenticado } from '@/lib/auth-client'
 import type {
@@ -370,4 +371,33 @@ export async function agregarEscala(clinicId: string, iid: string, e: { tipo: 'b
 }
 export async function agregarSbar(clinicId: string, iid: string, s: { texto: string; por?: string }): Promise<void> {
   await mutar(clinicId, iid, 'sbar', { texto: s.texto, por: s.por })
+}
+
+// ══════════════════════════════════════════════════════════════
+// UNIDADES — el nombre lo pone el hospital, el tipo lo entiende el software.
+// Ver src/lib/hospital/unidades.ts para la regla y su golden.
+// ══════════════════════════════════════════════════════════════
+function unidadesCol(clinicId: string) { return collection(db, 'clinics', clinicId, 'unidades') }
+
+export async function getUnidades(clinicId: string): Promise<Unidad[]> {
+  const snap = await getDocs(unidadesCol(clinicId))
+  return snap.docs.map(d => ({ ...(d.data() as Omit<Unidad, 'id'>), id: d.id }))
+}
+
+/** Suscripción en vivo: la configuración de unidades cambia el censo de UCI. */
+export function suscribirUnidades(clinicId: string, cb: (u: Unidad[]) => void): () => void {
+  return onSnapshot(unidadesCol(clinicId),
+    snap => cb(snap.docs.map(d => ({ ...(d.data() as Omit<Unidad, 'id'>), id: d.id }))),
+    () => { /* permisos/red: se conserva lo último leído */ })
+}
+
+export async function guardarUnidad(clinicId: string, u: Omit<Unidad, 'id'> & { id?: string }): Promise<string> {
+  const { id, ...datos } = u
+  if (id) { await setDoc(doc(unidadesCol(clinicId), id), datos, { merge: true }); return id }
+  const ref = await addDoc(unidadesCol(clinicId), datos)
+  return ref.id
+}
+
+export async function borrarUnidad(clinicId: string, id: string): Promise<void> {
+  await deleteDoc(doc(unidadesCol(clinicId), id))
 }

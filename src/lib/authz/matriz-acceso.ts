@@ -232,6 +232,13 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     porQue: 'Inventario y ocupación de camas. No es PHI, pero el censo revela quién está internado: se restringe al staff clínico igual que el módulo.',
   },
   {
+    ruta: 'clinics/{clinicId}/unidades/{unidadId}',
+    clase: 'administrativo',
+    guardaLectura: 'isClinicoHospital',
+    guardaEscritura: 'isMedico',
+    porQue: 'Unidades del hospital con su TIPO. Mismos permisos que camas: es inventario, no PHI. La escritura es de médico/admin porque marcar una unidad como «cuidados críticos» cambia el comportamiento clínico de la aplicación — de eso depende en qué pantalla aparece cada paciente.',
+  },
+  {
     ruta: 'clinics/{clinicId}/config/firma',
     clase: 'identidad_profesional',
     guardaLectura: 'isMedico',

@@ -357,6 +357,16 @@ service cloud.firestore {
         allow read: if isClinicoHospital(clinicId);
         allow write: if isMedico(clinicId);
       }
+      // UNIDADES — el nombre lo pone el hospital, el TIPO lo entiende el software.
+      //
+      // Mismos permisos que `camas`: es inventario, no PHI. Lo lee todo el equipo
+      // clínico del piso porque de esto depende en qué pantalla aparece cada
+      // paciente; lo escribe el médico/admin, porque marcar una unidad como
+      // «cuidados críticos» cambia el comportamiento clínico de la aplicación.
+      match /unidades/{unidadId} {
+        allow read: if isClinicoHospital(clinicId);
+        allow write: if isMedico(clinicId);
+      }
       // Configuración del consultorio. La asistente SÍ la necesita para agendar
       // (horarios, duraciones, sucursales), pero NO debe poder tocar la firma.
       //

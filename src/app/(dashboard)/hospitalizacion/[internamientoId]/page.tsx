@@ -8,6 +8,9 @@ import { useState, useEffect, useMemo } from 'react'
 import { proyectarSignos, acvpu, concienciaExigeReSeleccion } from '@/lib/hospital/eventos'
 import { useParams, useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
+import { getUnidades } from '@/lib/hospital/firestore'
+import { TIPO_UNIDAD_LABEL, type Unidad } from '@/lib/hospital/unidades'
+import { tramosDeEpisodio, indicadoresEpisodio, reingresosACritica, enDias } from '@/lib/hospital/indicadores-episodio'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
@@ -125,6 +128,16 @@ export default function EpisodioPage() {
   // servidor rechace si alguien más la actualizó en medio (bloqueo optimista).
   const [conciliadoAlVisto, setConciliadoAlVisto] = useState<string | null>(null)
   const [modalTraslado, setModalTraslado] = useState(false)
+  // Los indicadores del episodio necesitan el TIPO de cada unidad. Sin unidades
+  // configuradas se usa el catálogo de fábrica y el tiempo sin clasificar se
+  // declara aparte: nunca se reparte entre los demás tipos.
+  const [unidades, setUnidades] = useState<Unidad[]>([])
+  useEffect(() => {
+    if (!clinicId) return
+    let vivo = true
+    getUnidades(clinicId).then(u => { if (vivo) setUnidades(u) }).catch(() => { /* catálogo */ })
+    return () => { vivo = false }
+  }, [clinicId])
   const [trForm, setTrForm] = useState({ servicio: '', cama: '', tratante: '' })
   const [correctos, setCorrectos] = useState({ paciente: false, medicamento: false, dosis: false, via: false, hora: false })
   const [folioScan, setFolioScan] = useState('')
@@ -434,6 +447,52 @@ export default function EpisodioPage() {
         {(inter.movimientos?.length ?? 0) > 0 && (
           <details style={{ marginBottom: 16, fontSize: 12.5, color: 'var(--text3)' }}>
             <summary style={{ cursor: 'pointer' }}>Movimientos del episodio ({inter.movimientos!.length})</summary>
+            {(() => {
+              // Los traslados guardan «Origen · Cama X → Destino · Cama Y».
+              // El destino es lo que hay tras la flecha, antes del « · Cama».
+              const movs = inter.movimientos!.filter(m => m.tipo === 'traslado').map(m => ({
+                fecha: m.fecha,
+                servicioDestino: (m.detalle.split('→')[1] ?? '').split('·')[0].trim(),
+              })).filter(m => m.servicioDestino !== '')
+              const inicial = (inter.movimientos!.find(m => m.tipo === 'traslado')?.detalle.split('→')[0] ?? '')
+                .split('·')[0].trim() || inter.servicio
+              const tramos = tramosDeEpisodio(inter.fechaIngreso, movs, inicial)
+              const fin = inter.fechaEgreso ?? new Date().toISOString()
+              const ind = indicadoresEpisodio(tramos, unidades, fin)
+              const rein = reingresosACritica(tramos, unidades)
+              const filas = Object.entries(ind.horasPorTipo)
+                .sort((a, b) => b[1] - a[1])
+              if (filas.length === 0 && ind.horasSinClasificar === 0) return null
+              return (
+                <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 10, background: 'var(--s2)', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.03em', color: 'var(--text3)', marginBottom: 6 }}>
+                    Estancia por tipo de unidad
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14 }}>
+                    {filas.map(([tipo, horas]) => (
+                      <span key={tipo} style={{ fontSize: 12.5, color: 'var(--text2)' }}>
+                        {TIPO_UNIDAD_LABEL[tipo as keyof typeof TIPO_UNIDAD_LABEL]}:{' '}
+                        <strong style={{ color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>{enDias(horas)} d</strong>
+                      </span>
+                    ))}
+                  </div>
+                  {rein.length > 0 && (
+                    <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 7, lineHeight: 1.55 }}>
+                      Reingresó a cuidados críticos {rein.length === 1 ? 'una vez' : `${rein.length} veces`},
+                      tras {rein.map(r => `${Math.round(r.horasFuera)} h`).join(' y ')} fuera.
+                      Si eso cuenta como reingreso temprano lo define su unidad: el sistema no fija la ventana.
+                    </div>
+                  )}
+                  {ind.horasSinClasificar > 0 && (
+                    <div style={{ fontSize: 12, color: '#d97706', marginTop: 7, lineHeight: 1.55 }}>
+                      {enDias(ind.horasSinClasificar)} d en servicios sin tipo de unidad
+                      ({ind.serviciosSinTipo.join(', ')}). No se reparten entre los demás:
+                      sería contar tiempo que no se sabe dónde ocurrió.
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 6 }}>
               {[...inter.movimientos!].reverse().map((m, i) => (
                 <div key={i}>{new Date(m.fecha).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })} · {m.tipo === 'traslado' ? 'Traslado' : 'Cambio de tratante'}: {m.detalle}{m.por ? ` · ${m.por}` : ''}</div>
