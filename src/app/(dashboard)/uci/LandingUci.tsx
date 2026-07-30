@@ -117,9 +117,16 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
       <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 10 }}>
         <Activity size={22} style={{ color: 'var(--nexus,#3d5afe)' }} /> Terapia intensiva
       </h1>
-      <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 20px' }}>
-        Ordenado por antigüedad de la última toma: arriba, de quien hace más rato que no se anota nada.
-      </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', margin: '0 0 20px' }}>
+        <p style={{ fontSize: 13, color: 'var(--text3)', margin: 0, flex: '1 1 320px' }}>
+          Ordenado por antigüedad de la última toma: arriba, de quien hace más rato que no se anota nada.
+        </p>
+        {/* Siempre visible, no sólo cuando la lista está vacía: un ingreso a
+            terapia no espera a que la pantalla esté en su estado vacío. */}
+        <button onClick={() => router.push('/hospitalizacion?nuevo=1&servicio=UCI')} style={botonPrimario}>
+          <UserPlus size={14} /> Ingresar paciente a UCI
+        </button>
+      </div>
 
       {sinTipo.length > 0 && (
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'rgba(217,119,6,0.09)', border: '1px solid rgba(217,119,6,0.4)', borderRadius: 12, padding: '13px 15px', margin: '0 0 16px' }}>

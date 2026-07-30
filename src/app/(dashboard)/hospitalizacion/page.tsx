@@ -9,7 +9,7 @@ import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
 import { auth } from '@/lib/firebase'
-import { getPatients } from '@/lib/firestore'
+import { getPatients, createPatient } from '@/lib/firestore'
 import { suscribirCenso, crearInternamiento, getTelefonoAlertas, setTelefonoAlertas, getCamas } from '@/lib/hospital/firestore'
 import { normalizarCama } from '@/lib/hospital/cama'
 import { logAudit } from '@/lib/expediente/audit-log'
@@ -37,6 +37,20 @@ export default function CensoPage() {
   const [pacientes, setPacientes] = useState<Patient[]>([])
   const [buscar, setBuscar] = useState('')
   const [pac, setPac] = useState<Patient | null>(null)
+  /**
+   * ALTA RÁPIDA DEL PACIENTE desde el ingreso hospitalario.
+   *
+   * Antes esta pantalla decía «Registra al paciente primero en Pacientes»: un
+   * callejón. En urgencias y en terapia el paciente MUCHAS VECES NO EXISTE
+   * todavía en el consultorio, y obligar a salir, registrarlo y volver es
+   * exactamente la fricción que hace que la cama se capture mal o no se capture.
+   *
+   * Se piden los mismos campos cortos que el formulario de Consulta, más las
+   * ALERGIAS: aquí se va a prescribir en las próximas horas y la compuerta de
+   * alergias necesita el dato para poder bloquear.
+   */
+  const [nuevoPac, setNuevoPac] = useState(false)
+  const [np, setNp] = useState({ nombre: '', telefono: '', edad: '', fechaNacimiento: '', sexo: '', alergias: '' })
   const [servicio, setServicio] = useState(SERVICIOS_HOSPITAL[0])
   /**
    * Entrada desde otra pantalla: `?nuevo=1&servicio=UCI` abre el alta con el
@@ -236,7 +250,80 @@ export default function CensoPage() {
                     {p.nombre}{p.edad ? ` · ${p.edad} a` : ''}{p.sexo ? ` · ${p.sexo}` : ''}
                   </button>
                 ))}
-                {pacientesFiltrados.length === 0 && <div style={{ fontSize: 12, color: 'var(--text3)', padding: 6 }}>Sin coincidencias. Registra al paciente primero en «Pacientes».</div>}
+                {pacientesFiltrados.length === 0 && (
+                  <div style={{ fontSize: 12, color: 'var(--text3)', padding: 6 }}>
+                    Sin coincidencias.
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => { setNuevoPac(true); setNp(n => ({ ...n, nombre: buscar.trim() })) }}
+                style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: '1px dashed var(--border)', borderRadius: 8, padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: 'var(--nexus,#3d5afe)', cursor: 'pointer', minHeight: 38 }}
+              >
+                <Plus size={14} /> Registrar paciente nuevo
+              </button>
+            </div>
+          )}
+
+          {nuevoPac && !pac && (
+            <div style={{ padding: 12, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--s2)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text2)' }}>Paciente nuevo</div>
+              <input className={inputCls} placeholder="Nombre completo" value={np.nombre}
+                onChange={e => setNp({ ...np, nombre: e.target.value })} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <input className={inputCls} placeholder="Edad" inputMode="numeric" value={np.edad}
+                  onChange={e => setNp({ ...np, edad: e.target.value })} />
+                <select className={inputCls} value={np.sexo} onChange={e => setNp({ ...np, sexo: e.target.value })}>
+                  <option value="">Sexo</option>
+                  <option value="M">Masculino</option>
+                  <option value="F">Femenino</option>
+                </select>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <input className={inputCls} type="date" value={np.fechaNacimiento}
+                  onChange={e => setNp({ ...np, fechaNacimiento: e.target.value })} />
+                <input className={inputCls} placeholder="Teléfono" inputMode="tel" value={np.telefono}
+                  onChange={e => setNp({ ...np, telefono: e.target.value })} />
+              </div>
+              <input className={inputCls} placeholder="Alergias (o «niega»)" value={np.alergias}
+                onChange={e => setNp({ ...np, alergias: e.target.value })} />
+              <div style={{ fontSize: 11.5, color: 'var(--text3)', lineHeight: 1.5 }}>
+                Las alergias se piden aquí porque en las próximas horas se va a prescribir,
+                y la alerta que bloquea la firma necesita el dato para poder saltar.
+                Si no consta, escriba «niega» o «se desconoce»: dejarlo vacío no es lo mismo.
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Button size="sm" loading={guardando} onClick={async () => {
+                  if (!clinicId) return
+                  if (!np.nombre.trim()) { toast('El nombre es requerido', 'error'); return }
+                  if (!np.edad.trim() && !np.fechaNacimiento) { toast('Pon la edad o la fecha de nacimiento', 'error'); return }
+                  setGuardando(true)
+                  try {
+                    const tel = np.telefono.replace(/\D/g, '')
+                    const id = await createPatient(clinicId, {
+                      nombre: np.nombre.trim(),
+                      telefono: tel,
+                      // Mismo criterio que el alta de Consulta: si no se captura
+                      // el WhatsApp por separado, es el mismo número.
+                      whatsapp: tel,
+                      edad: np.edad ? Number(np.edad) : undefined,
+                      fechaNacimiento: np.fechaNacimiento || undefined,
+                      sexo: (np.sexo || undefined) as Patient['sexo'],
+                      alergias: np.alergias.trim(),
+                    } as Omit<Patient, 'id'>)
+                    const creado = { id, nombre: np.nombre.trim(), edad: np.edad ? Number(np.edad) : undefined,
+                      sexo: (np.sexo || undefined) as Patient['sexo'], telefono: tel,
+                      alergias: np.alergias.trim() } as Patient
+                    setPacientes(ps => [creado, ...ps])
+                    setPac(creado)
+                    setNuevoPac(false)
+                    setNp({ nombre: '', telefono: '', edad: '', fechaNacimiento: '', sexo: '', alergias: '' })
+                    toast('Paciente registrado. Queda en el expediente del consultorio.', 'success')
+                  } catch {
+                    toast('No se pudo registrar al paciente', 'error')
+                  } finally { setGuardando(false) }
+                }}>Registrar y continuar</Button>
+                <Button size="sm" variant="secondary" onClick={() => setNuevoPac(false)}>Cancelar</Button>
               </div>
             </div>
           )}
