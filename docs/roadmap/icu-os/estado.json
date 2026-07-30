@@ -8,7 +8,9 @@
     "ICU-002b",
     "ICU-002c",
     "ICU-002d",
-    "ICU-003"
+    "ICU-003",
+    "ICU-P1-5",
+    "ICU-P1-5"
   ],
   "unidadEnCurso": null,
   "unidades": [
@@ -71,6 +73,20 @@
       "riesgo": "ALTO — escribe PHI nueva en volumen. Cota de lecturas como getSignos (TOPE 200).",
       "entrega": "Persistencia append-only + regla con hasOnly + CABLEADO del panel con escritura DOBLE. 22 casos.",
       "nota": "El panel escribe a localStorage PRIMERO y despues al servidor. Un fallo de red avisa pero no interrumpe: la lectura ya esta guardada. Al cargar, el servidor gana si respondio; si falla, se queda lo local y la grafica NO se vacia. El modo calculadora sin paciente no intenta persistir."
+    },
+    {
+      "id": "ICU-P1-5",
+      "titulo": "Reconciliacion dictado vs calculado (charter 24)",
+      "estado": "completada",
+      "entrega": "src/lib/uci/reconciliacion.ts + 21 casos + ADR + registrado. El charter la marca como funcion de ENORME VALOR y no existia.",
+      "nota": "NO elige ganador a proposito: las dos direcciones de error son reales. El tipo no tiene campo //, y un test lo congela."
+    },
+    {
+      "id": "ICU-P1-5",
+      "titulo": "Reconciliacion dictado vs calculado (charter 24)",
+      "estado": "completada",
+      "entrega": "src/lib/uci/reconciliacion.ts + 21 casos + ADR + registrado.",
+      "nota": "NO elige ganador a proposito: las dos direcciones de error son reales."
     }
   ],
   "necesitaValidacionDelDr": [

@@ -180,6 +180,33 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     estado: 'validado',
     porQueExiste: 'La cama era un STRING y la union cama-paciente se hacia comparando texto. Sin historia de traslados, sin reservas, y el flujo E (volver a UCI) SOBRESCRIBIA la estancia anterior.',
   },
+  {
+    id: 'uci-reconciliacion', nombre: 'Reconciliacion dictado vs calculado (UCI)',
+    especialidad: 'Cuidados criticos / integridad del dato',
+    tipo: 'regla-de-seguridad',
+    version: '1.0.0',
+    referencia: 'Charter NEXUSMED CRITICAL CARE OS seccion 24 + regla antifatiga de la decision ICU-Q4.4. Las FORMULAS viven en sus motores; este modulo no las reimplementa.',
+    unidades: 'reconciliar(campo, dictado, calculado, unidad, tolerancia = 0.5) -> Reconciliacion. La unidad la pasa quien llama y se propaga al mensaje.',
+    redondeo: 'ninguno; la tolerancia 0.5 es media unidad (error de redondeo a entero), NO un umbral clinico',
+    rangoValido: {
+      fuente: 'codigo',
+      entrada: 'dos numeros finitos del mismo concepto y unidad',
+      salida: 'concuerdan | discrepan | incomparable, CON los dos valores conservados',
+      ref: 'src/lib/uci/reconciliacion.ts (reconciliar, PARES_RECONCILIABLES)',
+    },
+    file: 'src/lib/uci/reconciliacion.ts',
+    entryPoints: ['reconciliar', 'soloDiscrepancias', 'resumenRevision', 'PARES_RECONCILIABLES'],
+    calculos: [
+      'deteccion de inconsistencia entre lo dictado y lo derivado',
+      'clasificacion concuerdan / discrepan / incomparable',
+      'resumen antifatiga: una linea al final, no una alerta por valor',
+    ],
+    missingData: 'Falta uno de los dos => INCOMPARABLE con su motivo, NUNCA «concuerdan»: decir que concuerdan seria afirmar una verificacion que no ocurrio. Cero es un valor VALIDO (un PEEP de 0 existe), no un ausente. NaN e Infinity no se comparan.',
+    adr: ADR('uci-reconciliacion'),
+    goldenTests: ['uci-reconciliacion.test.ts'],
+    estado: 'validado',
+    porQueExiste: 'Las dos direcciones de error son reales: el dictado puede venir mal transcrito, y el calculo puede estar hecho con una Pplat vieja o con esfuerzo espontaneo, donde la Pplateau NO es interpretable. Un modulo que eligiera solo escondería la mitad de los casos. Por eso NO devuelve «el valor bueno»: devuelve los dos con su origen.',
+  },
   // ── Integridad temporal del dato clínico ─────────────────────────────────
   {
     id: 'observacion-version', nombre: 'Observación versionada (vigencia clínica y temporal)',
