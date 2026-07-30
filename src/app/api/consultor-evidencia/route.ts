@@ -18,7 +18,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { resolverClaveIA, registrarUso, nivelIADe, registrarConsultor, creditosUsadosDelMes, creditosExtraDelMes } from '@/lib/ai-keys'
+import { gateCreditos, resolverClaveIA, registrarUso, nivelIADe, registrarConsultor, creditosUsadosDelMes, creditosExtraDelMes  } from '@/lib/ai-keys'
 import { costoConsultor, planPorNivel } from '@/lib/planes-ia'
 import { buscarEvidencia, buscarEvidenciaMulti, textoCompletoPMC, type ArticuloPubMed } from '@/lib/evidencia/pubmed'
 import { traducirBasico, farmacosDetectados } from '@/lib/evidencia/traducir-medico'
@@ -126,6 +126,12 @@ export async function POST(req: NextRequest) {
   const _rl = await limitarOResponder(`consultor-evidencia:${acceso.uid}`, 30, 60)
   if (_rl) return _rl
   const { key, fuente, clinicId } = await resolverClaveIA(acceso.uid, 'anthropic', process.env.ANTHROPIC_API_KEY ?? '')
+  // TOPE DE CRÉDITOS (auditoría 26-jul): sin esto, un consultorio con los
+  // créditos agotados seguía quemando la llave del dueño indefinidamente.
+  // `gateCreditos` sólo corta cuando la llave es la del dueño (`prueba`):
+  // con llave propia del consultorio NO se corta, porque paga su propia API.
+  const corteCreditos = await gateCreditos(clinicId, fuente)
+  if (corteCreditos) return corteCreditos
   if (!key) return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada.' }, { status: 503 })
 
   let body: { pregunta?: string; historial?: { rol: string; texto: string }[]; contextoPaciente?: string }

@@ -10,7 +10,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarUsuario } from '@/lib/auth-server'
-import { resolverClaveIA } from '@/lib/ai-keys'
+import { gateCreditos, resolverClaveIA  } from '@/lib/ai-keys'
 import { conocimientoTexto } from '@/lib/ayuda/conocimiento'
 import { limitarOResponder } from '@/lib/rate-limit'
 
@@ -27,7 +27,13 @@ export async function POST(req: NextRequest) {
   const limite = await limitarOResponder(`bot:${acceso.uid}`, 20, 60)
   if (limite) return limite
 
-  const { key } = await resolverClaveIA(acceso.uid, 'anthropic', process.env.ANTHROPIC_API_KEY ?? '')
+  const { key, clinicId, fuente } = await resolverClaveIA(acceso.uid, 'anthropic', process.env.ANTHROPIC_API_KEY ?? '')
+  // TOPE DE CRÉDITOS (auditoría 26-jul): sin esto, un consultorio con los
+  // créditos agotados seguía quemando la llave del dueño indefinidamente.
+  // `gateCreditos` sólo corta cuando la llave es la del dueño (`prueba`):
+  // con llave propia del consultorio NO se corta, porque paga su propia API.
+  const corteCreditos = await gateCreditos(clinicId, fuente)
+  if (corteCreditos) return corteCreditos
   if (!key) return NextResponse.json({ ok: false, error: 'Asistente no disponible ahora.' }, { status: 503 })
 
   let body: { pregunta?: string; historial?: { rol: string; texto: string }[] }

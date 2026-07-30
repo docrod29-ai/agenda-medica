@@ -124,8 +124,25 @@ export function debeCortarCreditos(fuente: ClaveResuelta['fuente'], clinicId: st
 }
 
 export async function gateCreditos(clinicId: string | null, fuente: ClaveResuelta['fuente']): Promise<NextResponse | null> {
+  // QUIÉN PAGA decide si se corta: con llave propia del consultorio NO se corta,
+  // paga su propia API y cortarle sería quitarle algo que ya pagó.
   if (fuente !== 'prueba' || !clinicId) return null
-  if (debeCortarCreditos(fuente, clinicId, await creditosAgotados(clinicId))) {
+  /**
+   * También el tope de PRUEBA, no sólo los créditos del mes.
+   *
+   * Antes sólo miraba `creditosAgotados`, así que una cuenta en prueba con el
+   * tope de cortesía consumido seguía llamando a la API del dueño. El Copilot de
+   * UCI sí lo comprobaba (`pruebaAgotada`); estas rutas no.
+   *
+   * Falla ABIERTO: si la lectura revienta (red, permisos) NO se corta. Dejar al
+   * médico sin la función por un fallo de infraestructura es peor que una llamada
+   * de más, y el contador de uso sigue registrando.
+   */
+  const [agotados, prueba] = await Promise.all([
+    creditosAgotados(clinicId).catch(() => false),
+    pruebaAgotada(clinicId).catch(() => false),
+  ])
+  if (prueba || debeCortarCreditos(fuente, clinicId, agotados)) {
     return NextResponse.json(
       { ok: false, sinCreditos: true, error: 'Se acabaron tus créditos de IA del mes. Recarga créditos o configura tu propia llave de IA en Configuración para seguir.' },
       { status: 402 },
