@@ -28,6 +28,20 @@
 import type { TomaUci } from '@/lib/uci/observaciones'
 import { METRICAS_BRIEF, type ParMedido } from '@/lib/uci/morning-brief'
 import type { EventoLinea } from '@/lib/uci/linea-tiempo'
+import { num } from '@/lib/uci/num'
+
+/**
+ * Coerción numérica: se REEXPORTA la fuente única, no se reimplementa.
+ *
+ * Escribí aquí una propia y tenía el bug que `num()` existe para evitar:
+ * «1,200» daba **1.2** en vez de 1200. En una glucosa eso convierte una
+ * hiperglucemia en una alerta de hipoglucemia — es un hallazgo P1 de la propia
+ * auditoría, reintroducido por mí al escribir la copia número trece.
+ *
+ * La lección no es «tener cuidado»: es que un módulo nuevo NO escribe su propia
+ * coerción numérica.
+ */
+export { num as numero }
 
 /**
  * Del nombre con el que el PANEL guarda la medida al de la métrica del charter.
@@ -41,21 +55,6 @@ export const CLAVE_PANEL_A_BRIEF: Readonly<Record<string, string>> = {
 /** Nombre de métrica del charter para una medida del panel. */
 export function claveBrief(clavePanel: string): string {
   return CLAVE_PANEL_A_BRIEF[clavePanel] ?? clavePanel
-}
-
-/**
- * Número a partir de lo que venga guardado.
- *
- * **Vacío NO es cero.** Blanco, espacios, `null` y basura devuelven `null`.
- * La coma decimal mexicana («12,5») se entiende; antes se perdía en silencio.
- */
-export function numero(v: unknown): number | null {
-  if (typeof v === 'number') return Number.isFinite(v) ? v : null
-  if (typeof v !== 'string') return null
-  const t = v.trim()
-  if (t === '') return null
-  const n = Number(t.replace(',', '.'))
-  return Number.isFinite(n) ? n : null
 }
 
 /**
@@ -89,7 +88,7 @@ export function cambiosDeTomas(
   const porClave = new Map<string, number[]>()
   for (const t of enVentana) {
     for (const [k, raw] of Object.entries(t.medidas ?? {})) {
-      const n = numero(raw)
+      const n = num(raw)
       if (n === null) continue
       const clave = claveBrief(k)
       const lista = porClave.get(clave)
@@ -124,7 +123,7 @@ export function eventosDeTomas(tomas: readonly TomaUci[]): EventoLinea[] {
 
   for (const t of orden) {
     for (const [k, raw] of Object.entries(t.medidas ?? {})) {
-      const n = numero(raw)
+      const n = num(raw)
       if (n === null) continue
       const clave = claveBrief(k)
       const antes = previo.get(clave)

@@ -202,3 +202,28 @@ describe('el botón «Ingresar paciente a UCI» no puede ser un callejón', () =
     expect(SERVICIOS_HOSPITAL.find(sv => sv === 'UCI')).toBeUndefined()
   })
 })
+
+// ═══════════════════════════════════════════════════════════════════════
+describe('la coerción numérica es la FUENTE ÚNICA, no una copia', () => {
+  it('«1,200» son mil doscientos, no 1.2 ← el bug que yo reintroduje', () => {
+    // Escribí una coerción propia en este módulo y tenía exactamente el fallo
+    // que `num()` existe para evitar. En una glucosa, 1.2 convierte una
+    // hiperglucemia en alerta de hipoglucemia. Es un hallazgo P1 de la propia
+    // auditoría, reintroducido al escribir la copia número trece.
+    expect(numero('1,200')).toBe(1200)
+  })
+
+  it('es LA MISMA función, no una equivalente', async () => {
+    // Si esto se rompe es porque alguien volvió a escribir una copia local.
+    const central = await import('@/lib/uci/num')
+    expect(numero).toBe(central.num)
+  })
+
+  it('con punto presente, la coma es separador de miles', () => {
+    expect(numero('1,234.5')).toBe(1234.5)
+  })
+
+  it('y «12,5» sigue siendo doce coma cinco', () => {
+    expect(numero('12,5')).toBe(12.5)
+  })
+})
