@@ -341,6 +341,31 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     estado: 'validado',
     porQueExiste: 'Cada fuente tenia su vista y todas estaban separadas. El intensivista que llega a las 11:00 quiere saber que paso EN ORDEN, no abrir seis pantallas. La secuencia PEEP sube, MAP baja, NE sube solo se ve cuando las tres viven en la misma linea.',
   },
+  {
+    id: 'uci-morning-brief', nombre: 'Morning Brief (UCI)',
+    especialidad: 'Cuidados criticos / sintesis clinica',
+    tipo: 'regla-de-seguridad',
+    version: '1.0.0',
+    referencia: 'Charter NEXUSMED CRITICAL CARE OS seccion 30, con su regla transversal: TODAS las frases deben vincularse a datos reales.',
+    unidades: 'construirBrief(ParMedido[], ventanaHoras) -> Brief. Cada metrica lleva su propia unidad declarada.',
+    redondeo: 'ninguno; el delta se muestra con los valores tal como se midieron',
+    rangoValido: {
+      fuente: 'pendiente_validacion_clinica',
+      preguntaAlMedico: 'La DIRECCION DE BENEFICIO de 5 metricas: balance, lactato, creatinina, diuresis y vexus. Un delta es un hecho, pero llamarlo mejoro o empeoro es saber medicina. Las que deje sin declarar seguiran mostrandose como cambio SIN veredicto, que es el comportamiento seguro. Ver docs/clinical-decisions/uci-morning-brief.md.',
+    },
+    file: 'src/lib/uci/morning-brief.ts',
+    entryPoints: ['construirBrief', 'METRICAS_BRIEF', 'metricasSinDireccion', 'direccionesSinFuente'],
+    calculos: [
+      'delta entre los dos extremos de la ventana',
+      'veredicto SOLO donde la direccion de beneficio esta declarada',
+      'agrupacion por sistema, sin repetir',
+    ],
+    missingData: 'Metrica sin direccion declarada => SIN VEREDICTO, nunca un empeoro inventado, y el delta SI se muestra. Metrica desconocida o valor no finito se ignora. Los PENDIENTES van vacios y con la ausencia DECLARADA: un espacio en blanco se leeria como «no hay nada pendiente», que es una afirmacion clinica que nadie hizo.',
+    adr: ADR('uci-morning-brief'),
+    goldenTests: ['uci-morning-brief.test.ts'],
+    estado: 'pendiente_validacion',
+    porQueExiste: 'Un delta es un hecho: la creatinina paso de 1.5 a 2.4. Decir que eso significa que empeoro la funcion renal ya es saber medicina. Este modulo separa las dos cosas para no colar una interpretacion como si fuera un dato.',
+  },
   // ── Integridad temporal del dato clínico ─────────────────────────────────
   {
     id: 'observacion-version', nombre: 'Observación versionada (vigencia clínica y temporal)',
