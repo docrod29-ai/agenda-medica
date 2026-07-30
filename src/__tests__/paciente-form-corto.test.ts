@@ -127,3 +127,42 @@ describe('fecha de nacimiento en la receta (la piden las farmacias)', () => {
     expect(config).toContain("fechaNacimiento: '1984-03-15'")
   })
 })
+
+describe('la ayuda y el calibrador NO se desincronizan', () => {
+  /**
+   * Encontrado MIRANDO LA PANTALLA REAL en el Chrome del Dr. (30-jul-2026): el
+   * campo `F. nacimiento` ya existía y funcionaba, pero el texto que le dice al
+   * médico QUÉ etiquetas puede arrastrar seguía enumerando las de antes. Un campo
+   * que existe y nadie sabe que existe es, en la práctica, un campo que no existe.
+   *
+   * Los tests de código no lo veían porque ninguno leía ese texto.
+   */
+  const config = readFileSync(
+    resolve(process.cwd(), 'src/app/(dashboard)/configuracion/secciones-recetas.tsx'), 'utf8',
+  )
+  const ayuda = readFileSync(resolve(process.cwd(), 'src/lib/ayuda/conocimiento.ts'), 'utf8')
+
+  /** Etiquetas declaradas en CAMPOS_RECETA, la fuente de verdad del calibrador. */
+  const etiquetasDelCalibrador = (): string[] =>
+    [...config.matchAll(/\{ k: '[a-z]+', label: '([^']+)' \}/g)].map(m => m[1])
+
+  it('el calibrador declara sus etiquetas de forma legible', () => {
+    const e = etiquetasDelCalibrador()
+    expect(e.length).toBeGreaterThanOrEqual(7)
+    expect(e).toContain('F. nacimiento')
+  })
+
+  it('el texto de la PANTALLA nombra la fecha de nacimiento', () => {
+    expect(config).toMatch(/Arrastra <strong>[^<]*F\. nacimiento/)
+  })
+
+  it('el bot de ayuda y la guía también la nombran', () => {
+    // Alimenta /guia Y al asistente: si se queda atrás, el cliente nuevo no sabe
+    // que el campo existe.
+    expect(ayuda).toContain('F. nacimiento')
+  })
+
+  it('la ayuda explica PARA QUÉ sirve, no solo que existe', () => {
+    expect(ayuda).toMatch(/farmacias/i)
+  })
+})

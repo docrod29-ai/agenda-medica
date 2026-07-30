@@ -425,7 +425,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
                 <UserRound size={14} className="ds-icon" /> Coloca cada dato en tu formato
               </div>
               <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 10 }}>
-                Arrastra <strong>Nombre, Edad, Sexo, Fecha, Folio, Firma/sello y QR</strong> al lugar EXACTO de tu receta.
+                Arrastra <strong>Nombre, Edad, F. nacimiento, Sexo, Fecha, Folio, Firma/sello y QR</strong> al lugar EXACTO de tu receta.
                 Si tu formato ya los trae impresos, déjalos sin colocar. (El cuerpo de Rx usa los márgenes de abajo.)
               </div>
               <CalibradorReceta

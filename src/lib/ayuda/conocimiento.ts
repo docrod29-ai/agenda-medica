@@ -123,7 +123,7 @@ export const GUIA: SeccionGuia[] = [
       },
       {
         t: '5. Si tu papel YA trae líneas de Nombre/Edad/Fecha',
-        d: 'Activa la casilla “Mi diseño ya tiene campos del paciente impresos”. Así la app no vuelve a dibujar esas líneas encima de las tuyas. Después, en “Coloca cada dato en tu formato”, arrastra las etiquetas (Nombre, Edad, Fecha, Folio, QR, Firma) justo sobre las líneas de tu papel. El botón “Detectar campos con IA” los coloca solos y tú nada más los acomodas.',
+        d: 'Activa la casilla “Mi diseño ya tiene campos del paciente impresos”. Así la app no vuelve a dibujar esas líneas encima de las tuyas. Después, en “Coloca cada dato en tu formato”, arrastra las etiquetas (Nombre, Edad, F. nacimiento, Sexo, Fecha, Folio, QR, Firma) justo sobre las líneas de tu papel. La fecha de nacimiento la piden las farmacias para dispensar, y sale impresa con su etiqueta: «Fecha de nacimiento: 15/03/1984». El botón “Detectar campos con IA” los coloca solos y tú nada más los acomodas.',
       },
       {
         t: '6. Sube tu firma',
