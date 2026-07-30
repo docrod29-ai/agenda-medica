@@ -10,7 +10,8 @@
     "ICU-002d",
     "ICU-003",
     "ICU-P1-5",
-    "ICU-P1-5"
+    "ICU-P1-5",
+    "ICU-P1-2"
   ],
   "unidadEnCurso": null,
   "unidades": [
@@ -87,6 +88,13 @@
       "estado": "completada",
       "entrega": "src/lib/uci/reconciliacion.ts + 21 casos + ADR + registrado.",
       "nota": "NO elige ganador a proposito: las dos direcciones de error son reales."
+    },
+    {
+      "id": "ICU-P1-2",
+      "titulo": "Confirmacion basada en riesgo (decision ICU-Q4.4)",
+      "estado": "completada",
+      "entrega": "src/lib/uci/confirmacion.ts + 54 casos + ADR + registrado como pendiente_validacion.",
+      "pendienteDelDr": "Calibrar MARGEN_AMBIGUEDAD (0.15) y CONFIANZA_BAJA (0.80) con datos reales."
     }
   ],
   "necesitaValidacionDelDr": [

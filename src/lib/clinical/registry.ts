@@ -207,6 +207,31 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     estado: 'validado',
     porQueExiste: 'Las dos direcciones de error son reales: el dictado puede venir mal transcrito, y el calculo puede estar hecho con una Pplat vieja o con esfuerzo espontaneo, donde la Pplateau NO es interpretable. Un modulo que eligiera solo escondería la mitad de los casos. Por eso NO devuelve «el valor bueno»: devuelve los dos con su origen.',
   },
+  {
+    id: 'uci-confirmacion', nombre: 'Confirmacion basada en riesgo (voz de UCI)',
+    especialidad: 'Cuidados criticos / seguridad del dictado',
+    tipo: 'regla-de-seguridad',
+    version: '1.0.0',
+    referencia: 'Decision ICU-Q4.4 del medico dueno, 29-jul-2026. Los cuatro niveles y las dos listas de conceptos estan transcritos LITERALMENTE de esa decision, sin anadidos.',
+    unidades: 'clasificarConfirmacion(SenalesConfirmacion) -> DecisionConfirmacion. Sin unidades fisicas: senales del reconocedor + tabla de riesgo.',
+    redondeo: 'no aplica',
+    rangoValido: {
+      fuente: 'pendiente_validacion_clinica',
+      preguntaAlMedico: 'Calibrar MARGEN_AMBIGUEDAD (0.15) y CONFIANZA_BAJA (0.80) con datos reales. Estan ANCLADAS a los dos ejemplos de su decision (0.73/0.68 debe preguntar; 0.98 no), pero no derivadas de un corpus. Subirlas pregunta mas y fatiga; bajarlas deja pasar confusiones: ninguna direccion es segura por defecto. Ver docs/clinical-decisions/uci-confirmacion.md.',
+    },
+    file: 'src/lib/uci/confirmacion.ts',
+    entryPoints: ['clasificarConfirmacion', 'planificarConfirmaciones', 'preguntaDeDesambiguacion', 'hayCandidatoCercano'],
+    calculos: [
+      'clasificacion en los 4 niveles de la decision',
+      'deteccion de candidato fonetico cercano (el caso PEEP/PIP)',
+      'regla antifatiga: se cuentan y se resumen, no se disparan N modales',
+    ],
+    missingData: 'plausible: null significa NO EVALUABLE y no cuenta como improbable — confundirlos generaria preguntas por todo lo que el sistema aun no sabe validar, que es la definicion de fatiga de alertas. Sin candidatos alternativos no hay ambiguedad.',
+    adr: ADR('uci-confirmacion'),
+    goldenTests: ['uci-confirmacion-riesgo.test.ts'],
+    estado: 'pendiente_validacion',
+    porQueExiste: 'La decision prohibe un threshold universal (produce fatiga) y exige que la clasificacion sea DETERMINISTA: el LLM no toma la decision final de seguridad. Este modulo es esa funcion pura.',
+  },
   // ── Integridad temporal del dato clínico ─────────────────────────────────
   {
     id: 'observacion-version', nombre: 'Observación versionada (vigencia clínica y temporal)',
