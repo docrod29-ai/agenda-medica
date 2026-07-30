@@ -634,6 +634,33 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     estado: 'validado',
     porQueExiste: 'NO PRIORIZA CLINICAMENTE, y lo dice EN PANTALLA: ordena por el estado del registro, no por gravedad. Un antibiotico atrasado y una vitamina atrasada se ven igual aqui porque el modulo no sabe cual importa mas, y fingir que si seria un juicio clinico. Y lo que no se atrasa por definicion —infusion continua, PRN, dosis unica— NUNCA aparece: ponerlo en rojo cada hora haria que el rojo dejara de significar algo.',
   },
+  {
+    id: 'uci-benchmark-voz', nombre: 'Benchmark de voz de UCI',
+    especialidad: 'Cuidados criticos / reconocimiento de voz',
+    tipo: 'conversion',
+    version: '1.0.0',
+    referencia: 'Charter NEXUSMED CRITICAL CARE OS seccion 41. Metrica de ASR: WER sobre palabras (literatura estandar) + exactitud por termino clinico, que es la que manda.',
+    unidades: 'evaluarFrase(id, gold, transcripcion, terminos) -> ResultadoFrase · reporteVoz(resultados) -> exactitud clinica + ranking',
+    redondeo: 'ninguno en el calculo; la pantalla redondea a entero solo para mostrar',
+    rangoValido: {
+      fuente: 'codigo',
+      entrada: 'lo que se dijo (gold) + lo que el transcriptor devolvio + vocabulario a vigilar',
+      salida: 'WER, exactitud por termino clinico y ranking de lo que mas se pierde',
+      ref: 'src/lib/uci/benchmark-voz.ts',
+    },
+    file: 'src/lib/uci/benchmark-voz.ts',
+    entryPoints: ['normalizar', 'wer', 'evaluarFrase', 'reporteVoz', 'muestraSuficiente'],
+    calculos: [
+      'distancia de edicion sobre PALABRAS (peep vs pip es UN error, no dos)',
+      'exactitud por termino clinico presente en el gold',
+      'ranking de terminos por tasa de perdida',
+    ],
+    missingData: 'Un termino que NO esta en el gold no se evalua: ni a favor ni en contra. Si ninguna frase trae terminos clinicos, la exactitud es NULL, no 100% — contar frases sin nada que vigilar como exito inflaria la metrica. Y `muestraSuficiente` avisa cuando hay tan pocas frases que el porcentaje engana, pero NO fija una nota de aprobado: que exactitud es «suficiente» es una decision operativa que nadie ha tomado.',
+    adr: ADR('uci-benchmark-voz'),
+    goldenTests: ['uci-benchmark-voz.test.ts'],
+    estado: 'validado',
+    porQueExiste: 'El WER trata «el» y «norepinefrina» como si valieran lo mismo. En un pase de visita no valen lo mismo: perder un articulo no cambia nada y perder «PEEP» arruina el dato. Un caso del golden congela justo eso — un WER menor a 0.2 (que «suena excelente») escondiendo la perdida del unico termino con informacion clinica. Y el modulo MIDE, no corrige: las confusiones que encuentra son material para el diccionario, pero meterlas ahi es una decision revisada.',
+  },
   // ── Integridad temporal del dato clínico ─────────────────────────────────
   {
     id: 'observacion-version', nombre: 'Observación versionada (vigencia clínica y temporal)',
