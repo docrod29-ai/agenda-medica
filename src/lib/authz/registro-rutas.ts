@@ -39,8 +39,21 @@ export type Metodo = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 export type ExigenciaRuta =
   /** Una sola capacidad para todos los métodos de la ruta. */
   | { tipo: 'capacidad'; capacidad: Capacidad; activacionPendiente?: string }
-  /** Capacidad distinta por verbo HTTP (típico: GET lee, POST configura). */
-  | { tipo: 'porMetodo'; metodos: Partial<Record<Metodo, Capacidad>>; activacionPendiente?: string }
+  /**
+   * Capacidad distinta por verbo HTTP (típico: GET lee, POST configura).
+   *
+   * NO tiene `activacionPendiente` a nivel de ruta A PROPÓSITO: ese era el agujero
+   * P1-3 de la verificación adversarial. Un pendiente de RUTA apagaba la
+   * comprobación de TODOS los métodos, así que el `POST` que el registro declaraba
+   * «ya migrado» podía volver a `verificarMiembro` con la suite en verde — y el POST
+   * de `clinic/ai-keys` ESCRIBE las llaves de IA del consultorio. Aquí el pendiente
+   * es POR MÉTODO, con el texto de qué decisión falta.
+   */
+  | {
+      tipo: 'porMetodo'
+      metodos: Partial<Record<Metodo, Capacidad>>
+      pendientePorMetodo?: Partial<Record<Metodo, string>>
+    }
   /** Gateway con sub-acciones en el body: la capacidad depende de la acción. */
   | { tipo: 'porAccion'; acciones: Readonly<Record<string, Capacidad>>; motivo: string }
   /** Entitlement de PLAN (módulo contratado) + capacidad de ROL. */
@@ -189,7 +202,11 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   'payment/create-checkout': { tipo: 'tokenPaciente', motivo: 'El PACIENTE paga su anticipo desde el portal con el token HMAC de su cita; no hay sesión de equipo.' },
   'stripe/asientos': {
     tipo: 'porMetodo', metodos: { GET: 'administrar', POST: 'administrar' },
-    activacionPendiente: 'POST ya migrado. El GET (estado de asientos y precio) sigue en `verificarMiembro`: activarlo lo cerraría a todo el que no sea medico/admin.',
+    // El POST ya EXIGE `administrar` y el guardián lo fija en el código; el pendiente
+    // es solo del GET (ver `pendientePorMetodo` en el tipo).
+    pendientePorMetodo: {
+      GET: 'El GET (estado de asientos y precio) sigue en `verificarMiembro`: activarlo lo cerraría a todo el que no sea medico/admin. Pendiente de Q7 del dueño.',
+    },
   },
   'stripe/checkout': { tipo: 'capacidad', capacidad: 'administrar' },
   'stripe/portal': { tipo: 'capacidad', capacidad: 'administrar' },
@@ -199,7 +216,11 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   // ── consultorio: config, equipo, plataforma ──────────────────────────────
   'clinic/ai-keys': {
     tipo: 'porMetodo', metodos: { GET: 'administrar', POST: 'administrar' },
-    activacionPendiente: 'POST ya migrado. El GET (estado ENMASCARADO de las llaves y uso del mes) sigue en `verificarMiembro`: activarlo lo cerraría a todo el que no sea medico/admin.',
+    // El POST (que ESCRIBE las llaves de IA del tenant) ya EXIGE `administrar` y el
+    // guardián lo fija en el código. El pendiente es solo del GET.
+    pendientePorMetodo: {
+      GET: 'El GET (estado ENMASCARADO de las llaves y uso del mes) sigue en `verificarMiembro`: activarlo lo cerraría a todo el que no sea medico/admin. Pendiente de Q7 del dueño.',
+    },
   },
   'clinic/crear': { tipo: 'sesion', motivo: 'Se ejecuta ANTES de existir la clínica: no hay membresía que verificar todavía.' },
   'clinic/miembros': {
@@ -300,7 +321,69 @@ export function capacidadesDeRuta(e: ExigenciaRuta): readonly Capacidad[] {
   }
 }
 
-/** ¿La ruta ya ejecuta su capacidad, o sigue esperando una decisión del dueño? */
+/**
+ * ¿La ruta ejecuta ya su capacidad EN TODOS sus métodos declarados?
+ *
+ * Se conserva con la firma de siempre (hay tests de E0-07 que la usan), pero con las
+ * rutas `porMetodo` significa «ningún método tiene pendiente»: la comprobación fina
+ * es `activaEnCodigoMetodo`.
+ */
 export function activaEnCodigo(e: ExigenciaRuta): boolean {
-  return capacidadesDeRuta(e).length > 0 && !('activacionPendiente' in e && e.activacionPendiente)
+  if (capacidadesDeRuta(e).length === 0) return false
+  if (e.tipo === 'porMetodo') return Object.keys(e.pendientePorMetodo ?? {}).length === 0
+  return !('activacionPendiente' in e && e.activacionPendiente)
+}
+
+/**
+ * Capacidad que la ruta exige PARA ESE MÉTODO, o `null` si no declara ninguna.
+ *
+ * `porAccion` devuelve `null` a propósito: ahí la capacidad depende del body y la
+ * garantía es otra (el mapa vive en este archivo, no en la ruta).
+ */
+export function capacidadEsperada(e: ExigenciaRuta, m: Metodo): Capacidad | null {
+  switch (e.tipo) {
+    case 'capacidad': return e.capacidad
+    case 'entitlementIA': return e.capacidad
+    case 'porMetodo': return e.metodos[m] ?? null
+    case 'tokenPaciente': return e.capacidadAlternativa ?? null
+    default: return null
+  }
+}
+
+/** Texto de la decisión pendiente para ese método, o `null` si ya debe estar activo. */
+export function pendienteDe(e: ExigenciaRuta, m: Metodo): string | null {
+  if (capacidadEsperada(e, m) === null) return null
+  if (e.tipo === 'porMetodo') return e.pendientePorMetodo?.[m] ?? null
+  const pendiente = (e as { activacionPendiente?: string }).activacionPendiente
+  return pendiente && pendiente.trim().length > 0 ? pendiente : null
+}
+
+/** ¿Ese par (ruta, método) tiene que EJECUTAR ya su capacidad? */
+export function activaEnCodigoMetodo(e: ExigenciaRuta, m: Metodo): boolean {
+  return capacidadEsperada(e, m) !== null && pendienteDe(e, m) === null
+}
+
+/**
+ * Avance del programa contado DEL REGISTRO, no de la prosa: pares (ruta, método) que
+ * declaran capacidad, cuántos ya la exigen y cuántos esperan una decisión del dueño.
+ *
+ * Existe porque el expediente de la unidad llegó a decir «26 rutas pendientes»
+ * cuando eran 28 (P3-1 de la verificación adversarial). Un número escrito a mano en
+ * un documento se queda viejo; este se calcula.
+ */
+export function resumenActivacion(
+  metodosPorRuta: Readonly<Record<string, readonly Metodo[]>>,
+): { declarados: number; activos: number; pendientes: number } {
+  let declarados = 0
+  let activos = 0
+  let pendientes = 0
+  for (const [clave, e] of Object.entries(REGISTRO_RUTAS)) {
+    for (const m of metodosPorRuta[clave] ?? []) {
+      if (capacidadEsperada(e, m) === null) continue
+      declarados++
+      if (activaEnCodigoMetodo(e, m)) activos++
+      else pendientes++
+    }
+  }
+  return { declarados, activos, pendientes }
 }

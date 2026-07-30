@@ -3,6 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { resolve, join, relative } from 'node:path'
 import { REGISTRO_RUTAS, capacidadesDeRuta } from '@/lib/authz/registro-rutas'
 import { rolesCon, ROLES_NO_CLINICOS } from '@/lib/authz/capabilities'
+import { analizarRuta } from '@/lib/authz/analisis-estatico'
 
 /**
  * Guardián ESTÁTICO de la frontera de API (unidad Nexus OS E0-06,
@@ -125,5 +126,29 @@ describe('E0-06 · el emisor de magic-links no puede regalar alcance clínico', 
     const roles = [...rolesQuePasan('telesalud/token')].sort()
     expect(roles).toEqual(['admin', 'medico'])
     for (const r of ROLES_NO_CLINICOS) expect(roles).not.toContain(r)
+  })
+
+  it('/api/telesalud/token tiene el gate fijado EN CÓDIGO, no solo en la declaración', () => {
+    /**
+     * REPARA UNA PÉRDIDA NETA (P1-2 de la verificación adversarial de E0-07). E0-06
+     * fijaba el gate en el TEXTO del archivo (`expect(src).toContain('verificarMedico')`)
+     * y al migrar a capacidades esa assert se sustituyó por una sobre la capacidad
+     * DECLARADA — estrictamente más débil: degradar la capacidad en el CÓDIGO
+     * (`'clinico.escribir'` → `'clinico.leer'`) dejaba la suite en verde y ponía a
+     * enfermería/farmacia/laboratorio a emitir tokens de paciente con alcance
+     * clínico. Y ésta es una de las dos P0 históricas que este guardián existe para
+     * vigilar.
+     *
+     * Ahora se fija sobre el ARGUMENTO real del handler, que es lo que corre.
+     */
+    const a = analizarRuta(readFileSync(TELESALUD, 'utf8'))
+    const exige = (a.porMetodo.POST ?? []).filter(l => l.guardia === 'verificarCapacidad')
+    expect(exige.length, 'el POST de telesalud/token debe exigir una capacidad').toBeGreaterThan(0)
+    expect(exige.some(l => l.literales.includes('clinico.escribir')),
+      `el código exige '${exige.flatMap(l => l.literales).join('|')}', no 'clinico.escribir'`).toBe(true)
+    // Y la capacidad que corre es la que restringe a {medico, admin}.
+    expect([...rolesCon('clinico.escribir')].sort()).toEqual(['admin', 'medico'])
+    // El handler no puede además conformarse con ser miembro.
+    expect((a.porMetodo.POST ?? []).map(l => l.guardia)).not.toContain('verificarMiembro')
   })
 })

@@ -2,10 +2,12 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'
 import { resolve, join, relative, sep } from 'node:path'
 import {
-  REGISTRO_RUTAS, TIPOS_CON_MOTIVO, capacidadesDeRuta, activaEnCodigo,
-  type ExigenciaRuta,
+  REGISTRO_RUTAS, TIPOS_CON_MOTIVO, capacidadesDeRuta,
+  capacidadEsperada, pendienteDe, activaEnCodigoMetodo, resumenActivacion,
+  type ExigenciaRuta, type Metodo,
 } from '@/lib/authz/registro-rutas'
 import { rolesCon, ROLES_NO_CLINICOS } from '@/lib/authz/capabilities'
+import { analizarRuta, type LlamadaGuardia } from '@/lib/authz/analisis-estatico'
 
 /**
  * GUARDIÁN DEL REGISTRO DE RUTAS (unidad Nexus OS E0-07).
@@ -25,8 +27,24 @@ import { rolesCon, ROLES_NO_CLINICOS } from '@/lib/authz/capabilities'
 
 const DIR_API = resolve(process.cwd(), 'src/app/api')
 
-/** Colecciones cuyo contenido es secreto médico (las mismas que van a `isMedico`). */
-const COLECCIONES_CLINICAS = ['notas', 'laboratorios', 'fotos', 'clinico']
+/**
+ * Colecciones cuyo contenido es secreto médico (las mismas que van a `isMedico`).
+ *
+ * `internamientos` se añadió en el lote de cierre (P3-2 de la verificación
+ * adversarial: la señal era demasiado estrecha). `laboratorios`, `fotos` y `clinico`
+ * hoy no aparecen en ninguna ruta y se conservan A PROPÓSITO, para que el día que
+ * aparezcan ya estén vigiladas sin que nadie se acuerde de añadirlas.
+ */
+const COLECCIONES_CLINICAS = ['notas', 'laboratorios', 'fotos', 'clinico', 'internamientos']
+
+/**
+ * Segundo nivel: identidad del paciente, no secreto clínico. No se convierte en
+ * regla de capacidad porque dos de las rutas que la tocan son deliberadamente sin
+ * sesión (`public/booking`, `whatsapp/webhook`) y una regla ciega daría rojo por lo
+ * correcto. Lo que sí se hace es CONGELAR la lista: una ruta nueva que lea `patients`
+ * obliga a justificarla a mano.
+ */
+const COLECCIONES_PACIENTE = ['patients']
 
 function archivosDeRuta(dir: string, out: string[] = []): string[] {
   for (const e of readdirSync(dir, { withFileTypes: true })) {
@@ -53,6 +71,37 @@ const ARCHIVOS = archivosDeRuta(DIR_API)
 const CLAVES_DISCO = ARCHIVOS.map(claveDe).sort()
 const FUENTE = new Map(ARCHIVOS.map(p => [claveDe(p), codigo(p)]))
 const entrada = (clave: string): ExigenciaRuta | undefined => REGISTRO_RUTAS[clave]
+
+/**
+ * El análisis estático de cada ruta: qué guardián se llama, con qué literales y
+ * dentro de qué handler HTTP. Se le pasa la fuente CRUDA porque `analizarRuta`
+ * limpia los comentarios con un recorrido que respeta cadenas (mejor que el
+ * `codigo()` de arriba, que se conserva para las comprobaciones textuales).
+ */
+const ANALISIS = new Map(ARCHIVOS.map(p => [claveDe(p), analizarRuta(readFileSync(p, 'utf8'))]))
+
+/** Métodos HTTP que exporta cada ruta, observados del código. */
+const METODOS_POR_RUTA: Record<string, readonly Metodo[]> = Object.fromEntries(
+  [...ANALISIS].map(([c, a]) => [c, a.metodosExportados]),
+)
+
+/** Las llamadas a guardián del cuerpo de ESE handler. */
+function segmento(clave: string, m: Metodo): readonly LlamadaGuardia[] {
+  return ANALISIS.get(clave)?.porMetodo[m] ?? []
+}
+
+/** Todos los pares (ruta, método) que declaran una capacidad, con su entrada. */
+function paresConCapacidad(): { clave: string; metodo: Metodo; e: ExigenciaRuta }[] {
+  const out: { clave: string; metodo: Metodo; e: ExigenciaRuta }[] = []
+  for (const [clave, metodos] of Object.entries(METODOS_POR_RUTA)) {
+    const e = entrada(clave)
+    if (!e) continue
+    for (const m of metodos) {
+      if (capacidadEsperada(e, m) !== null) out.push({ clave, metodo: m, e })
+    }
+  }
+  return out
+}
 
 describe('E0-07 · el escaneo encuentra rutas de verdad', () => {
   it('hay 74 rutas en disco (un guardián que no encuentra archivos pasa vacío y no protege nada)', () => {
@@ -86,11 +135,20 @@ describe('E0-07 · toda ruta de API declara qué exige', () => {
 
   it('toda ruta que espera una decisión del dueño dice QUÉ decisión espera', () => {
     for (const [clave, e] of Object.entries(REGISTRO_RUTAS)) {
+      // Pendiente a nivel de ruta (tipos de un solo gate).
       const pendiente = (e as { activacionPendiente?: string }).activacionPendiente
-      if (pendiente === undefined) continue
-      expect(pendiente.trim().length, `${clave}: activacionPendiente vacío`).toBeGreaterThan(20)
-      // Una espera solo tiene sentido si HAY una capacidad esperando.
-      expect(capacidadesDeRuta(e).length, `${clave}: pendiente sin capacidad declarada`).toBeGreaterThan(0)
+      if (pendiente !== undefined) {
+        expect(pendiente.trim().length, `${clave}: activacionPendiente vacío`).toBeGreaterThan(20)
+        // Una espera solo tiene sentido si HAY una capacidad esperando.
+        expect(capacidadesDeRuta(e).length, `${clave}: pendiente sin capacidad declarada`).toBeGreaterThan(0)
+      }
+      // Pendiente POR MÉTODO (rutas `porMetodo`): el método pendiente tiene que
+      // existir en el mapa de capacidades, o el pendiente no gobierna nada.
+      if (e.tipo !== 'porMetodo') continue
+      for (const [m, texto] of Object.entries(e.pendientePorMetodo ?? {})) {
+        expect(texto.trim().length, `${clave}#${m}: pendientePorMetodo vacío`).toBeGreaterThan(20)
+        expect(e.metodos[m as Metodo], `${clave}#${m}: pendiente de un método que no declara capacidad`).toBeTruthy()
+      }
     }
   })
 })
@@ -107,21 +165,31 @@ describe('E0-07 · `verificarMiembro` solo donde está DECLARADO que sigue', () 
    * `verificarMiembro` es el «any-member» de la unidad. No se puede borrar de golpe:
    * las rutas que lo conservan estrecharían el acceso de usuarios reales al migrar
    * (regla 5 de la carta operativa). Lo que este test impide es que siga siendo
-   * IMPLÍCITO: cada superviviente tiene que estar declarado, o con
-   * `activacionPendiente` (esperando una decisión del médico dueño) o como
-   * `porAccion` (donde la membresía es solo el primer paso y la capacidad la impone
+   * IMPLÍCITO: cada llamada superviviente tiene que caer en un MÉTODO declarado como
+   * pendiente (esperando una decisión del médico dueño) o en una ruta `porAccion`
+   * (donde la membresía es solo el primer paso y la capacidad la impone
    * `exigeCapacidad`). Una ruta NUEVA con `verificarMiembro` y sin declarar → rojo.
+   *
+   * Se comprueba POR MÉTODO desde el lote de cierre: antes bastaba con que la RUTA
+   * tuviera un pendiente, así que en `clinic/ai-keys` y `stripe/asientos` el
+   * pendiente del GET cubría también al POST ya migrado (P1-3).
    */
   const CON_MIEMBRO = [...FUENTE].filter(([, src]) => /verificarMiembro\s*\(/.test(src)).map(([c]) => c).sort()
 
-  it('todos los supervivientes están declarados como pendientes o como porAccion', () => {
-    const indebidos = CON_MIEMBRO.filter(c => {
-      const e = entrada(c)
-      if (!e) return true
-      if (e.tipo === 'porAccion') return false
-      return !(e as { activacionPendiente?: string }).activacionPendiente
-    })
-    expect(indebidos, `rutas con any-member NO declarado: ${indebidos.join(', ')}`).toEqual([])
+  it('cada llamada superviviente cae en un método pendiente o en el gateway porAccion', () => {
+    const indebidos: string[] = []
+    for (const clave of CON_MIEMBRO) {
+      const e = entrada(clave)
+      if (!e) { indebidos.push(`${clave}: sin declarar`); continue }
+      if (e.tipo === 'porAccion') continue
+      const a = ANALISIS.get(clave)!
+      for (const m of a.metodosExportados) {
+        const tieneMiembro = segmento(clave, m).some(l => l.guardia === 'verificarMiembro')
+        if (!tieneMiembro) continue
+        if (pendienteDe(e, m) === null) indebidos.push(`${clave}#${m}`)
+      }
+    }
+    expect(indebidos, `any-member NO declarado: ${indebidos.join(', ')}`).toEqual([])
   })
 
   it('la lista de supervivientes está CONGELADA (bajar una ruta a any-member se ve)', () => {
@@ -143,36 +211,154 @@ describe('E0-07 · `verificarMiembro` solo donde está DECLARADO que sigue', () 
   })
 })
 
-describe('E0-07 · el registro no puede MENTIR sobre el código', () => {
-  it('una capacidad ya ACTIVA implica una llamada real a verificarCapacidad', () => {
-    const mentirosas: string[] = []
-    for (const [clave, e] of Object.entries(REGISTRO_RUTAS)) {
-      if (e.tipo !== 'capacidad' && e.tipo !== 'porMetodo') continue
-      if (!activaEnCodigo(e)) continue
-      if (!/verificarCapacidad\s*\(/.test(FUENTE.get(clave) ?? '')) mentirosas.push(clave)
+describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y por ARGUMENTO)', () => {
+  /**
+   * ESTE BLOQUE ES EL CIERRE DE LA UNIDAD. La primera versión comprobaba que la ruta
+   * LLAMARA a `verificarCapacidad(`, nunca CON QUÉ capacidad, y la verificación
+   * adversarial lo rompió con cinco sabotajes que dejaban 2663 tests en verde:
+   *   · `stripe/portal` 'administrar' → 'auditoria.registrar' (la tienen los 8 roles:
+   *     un `laboratorio` abría el portal de facturación),
+   *   · `telesalud/token` y `fhir/paciente/[patientId]` 'clinico.escribir' →
+   *     'clinico.leer' (staff hospitalario emitiendo tokens de alcance clínico y
+   *     exportando el expediente íntegro),
+   *   · el POST de `clinic/ai-keys` y de `stripe/asientos` de vuelta a
+   *     `verificarMiembro` (escalada sobre las llaves de IA del tenant), invisible
+   *     porque el pendiente vivía a nivel de RUTA y apagaba los dos métodos.
+   * Ahora la comprobación es: para cada par (ruta, método), la capacidad que corre en
+   * el código tiene que ser EXACTAMENTE la declarada.
+   */
+
+  it('la capacidad del CÓDIGO es la DECLARADA, método por método', () => {
+    const divergentes: string[] = []
+    for (const { clave, metodo, e } of paresConCapacidad()) {
+      if (!activaEnCodigoMetodo(e, metodo)) continue
+      const esperada = capacidadEsperada(e, metodo)!
+      const seg = segmento(clave, metodo)
+      const exigen = seg.filter(l => l.guardia === 'verificarCapacidad' || l.guardia === 'verificarModuloYCapacidad')
+      if (exigen.length === 0) {
+        divergentes.push(`${clave}#${metodo}: declara '${esperada}' y no llama a verificarCapacidad`)
+        continue
+      }
+      const coincide = exigen.some(l => l.literales.includes(esperada))
+      if (!coincide) {
+        const vistos = exigen.flatMap(l => l.literales).join('|') || '(ninguno)'
+        divergentes.push(`${clave}#${metodo}: declara '${esperada}' pero el código exige '${vistos}'`)
+      }
     }
-    expect(mentirosas, `declaran capacidad activa pero no la exigen: ${mentirosas.join(', ')}`).toEqual([])
+    expect(divergentes, `el código no exige lo que el registro declara:\n${divergentes.join('\n')}`).toEqual([])
   })
 
-  it('una capacidad PENDIENTE implica que el guardián viejo sigue ahí de verdad', () => {
-    // Impide que `activacionPendiente` se convierta en una escotilla para dejar una
-    // ruta sin guardia alguna «hasta que el Dr. decida».
-    const huecas: string[] = []
-    for (const [clave, e] of Object.entries(REGISTRO_RUTAS)) {
-      const pendiente = (e as { activacionPendiente?: string }).activacionPendiente
-      if (!pendiente) continue
-      const src = FUENTE.get(clave) ?? ''
-      const conGuardiaVieja = /verificarMiembro\s*\(/.test(src) || /verificarModuloIA\s*\(/.test(src)
-      if (!conGuardiaVieja) huecas.push(clave)
+  it('un método ya migrado NO puede caer a any-member', () => {
+    // Cierra P1-3: el POST de `clinic/ai-keys` (que ESCRIBE las llaves de IA del
+    // consultorio) y el de `stripe/asientos` podían volver a `verificarMiembro` en
+    // verde porque el pendiente del GET apagaba la comprobación de los dos.
+    const degradados: string[] = []
+    for (const { clave, metodo, e } of paresConCapacidad()) {
+      if (!activaEnCodigoMetodo(e, metodo)) continue
+      const debiles = segmento(clave, metodo)
+        .filter(l => l.guardia === 'verificarMiembro' || l.guardia === 'verificarMedico')
+        .map(l => l.guardia)
+      if (debiles.length) degradados.push(`${clave}#${metodo}: ${debiles.join('/')}`)
     }
-    expect(huecas, `pendientes que se quedaron SIN guardián: ${huecas.join(', ')}`).toEqual([])
+    expect(degradados, `métodos migrados que volvieron al gate binario: ${degradados.join(', ')}`).toEqual([])
   })
 
-  it('el gateway `porAccion` impone la capacidad por acción con exigeCapacidad', () => {
+  it('un método PENDIENTE conserva de verdad el guardián viejo, y dice qué decisión espera', () => {
+    // Impide que el pendiente sea una escotilla para dejar un método sin guardia
+    // alguna «hasta que el Dr. decida».
+    const huecos: string[] = []
+    for (const { clave, metodo, e } of paresConCapacidad()) {
+      const pendiente = pendienteDe(e, metodo)
+      if (pendiente === null) continue
+      if (pendiente.trim().length < 20) huecos.push(`${clave}#${metodo}: motivo del pendiente demasiado corto`)
+      const seg = segmento(clave, metodo)
+      const conViejo = seg.some(l => l.guardia === 'verificarMiembro' || l.guardia === 'verificarModuloIA')
+      if (!conViejo) huecos.push(`${clave}#${metodo}: pendiente SIN guardián (${seg.map(l => l.guardia).join('/') || 'ninguno'})`)
+    }
+    expect(huecos, `pendientes mal declarados:\n${huecos.join('\n')}`).toEqual([])
+  })
+
+  it('`entitlementIA` exige el MÓDULO declarado, no otro', () => {
+    // Una ruta de UCI que declarara el módulo `expediente` (o al revés) se pone roja:
+    // el entitlement de plan y la ruta tienen que hablar del mismo módulo.
+    const desajustes: string[] = []
+    for (const [clave, e] of Object.entries(REGISTRO_RUTAS)) {
+      if (e.tipo !== 'entitlementIA') continue
+      const llamadas = (ANALISIS.get(clave)?.llamadas ?? [])
+        .filter(l => l.guardia === 'verificarModuloIA' || l.guardia === 'verificarModuloYCapacidad')
+      if (llamadas.length === 0) { desajustes.push(`${clave}: sin entitlement de módulo`); continue }
+      for (const l of llamadas) {
+        if (!l.literales.includes(e.modulo)) {
+          desajustes.push(`${clave}: declara módulo '${e.modulo}' y el código pide '${l.literales.join('|') || '(no literal)'}'`)
+        }
+      }
+    }
+    expect(desajustes, `módulo declarado ≠ módulo exigido:\n${desajustes.join('\n')}`).toEqual([])
+  })
+
+  it('sin literal no pasa: la única capacidad dinámica es la del gateway `porAccion`', () => {
+    const opacas: string[] = []
+    for (const [clave, a] of ANALISIS) {
+      const e = entrada(clave)
+      for (const l of a.llamadas) {
+        if (!l.argumentoNoLiteral) continue
+        // Exención NOMBRADA: en `hospital/mutar` la capacidad TIENE que ser dinámica
+        // (depende de la acción del body). Ahí la garantía es otra, y más fuerte: el
+        // mapa acción→capacidad vive en el registro, no en la ruta.
+        if (l.guardia === 'exigeCapacidad' && e?.tipo === 'porAccion') continue
+        opacas.push(`${clave}: ${l.guardia} con capacidad/módulo no literal`)
+      }
+    }
+    expect(opacas, `capacidades imposibles de auditar:\n${opacas.join('\n')}`).toEqual([])
+  })
+
+  it('el gateway `porAccion` impone la capacidad por acción con exigeCapacidad, y NO tiene mapa propio', () => {
     for (const [clave, e] of Object.entries(REGISTRO_RUTAS)) {
       if (e.tipo !== 'porAccion') continue
-      expect(FUENTE.get(clave), clave).toMatch(/exigeCapacidad\s*\(/)
+      const src = FUENTE.get(clave) ?? ''
+      expect(src, clave).toMatch(/exigeCapacidad\s*\(/)
+      // La regresión concreta a impedir: que el mapa acción→rol vuelva al archivo de
+      // la ruta y se separe del registro, que es de donde E0-07 lo sacó.
+      expect(src, `${clave} importa el mapa del registro`).toMatch(/ACCIONES_HOSPITAL_MUTAR/)
+      expect(src, `${clave}: reapareció un mapa de gates propio en la ruta`).not.toMatch(/const\s+GATES\b/)
     }
+  })
+
+  it('ninguna llamada a guardián vive fuera de un handler exportado', () => {
+    // Si alguien mueve el guardián a un helper compartido del archivo, la atribución
+    // por método deja de ser fiable: se decide a mano, no se descubre con un falso
+    // verde. Hoy son 0 de 74 llamadas.
+    const fuera = [...ANALISIS]
+      .filter(([, a]) => a.compartidas.length > 0)
+      .map(([c, a]) => `${c}: ${a.compartidas.map(l => l.guardia).join('/')}`)
+    expect(fuera, `guardianes fuera del handler: ${fuera.join(', ')}`).toEqual([])
+  })
+
+  it('el ANALIZADOR no pasa por vacío (si se rompe, todo lo de arriba pasaría sin comprobar nada)', () => {
+    const llamadas = [...ANALISIS].flatMap(([, a]) => a.llamadas)
+    const rutasConGuardia = [...ANALISIS].filter(([, a]) => a.llamadas.length > 0).length
+    const conVocabulario = llamadas.filter(l =>
+      l.guardia === 'verificarCapacidad' || l.guardia === 'verificarModuloIA' ||
+      l.guardia === 'verificarModuloYCapacidad' || l.guardia === 'exigeCapacidad').length
+    // Cifras observadas hoy sobre las 74 rutas. Si cambian es porque se añadió o
+    // quitó una guardia: hay que revisarlo a mano, no ajustar el número a ciegas.
+    expect(llamadas.length).toBe(74)
+    expect(rutasConGuardia).toBe(61)
+    expect(conVocabulario).toBe(38)
+  })
+
+  it('el avance se cuenta DEL REGISTRO, no de la prosa del expediente', () => {
+    // El expediente llegó a decir «26 rutas pendientes» cuando eran 28 (P3-1). Este
+    // número se calcula: pares (ruta, método) que declaran capacidad.
+    expect(resumenActivacion(METODOS_POR_RUTA)).toEqual({
+      declarados: 49, activos: 20, pendientes: 29,
+    })
+    // 29 PARES = 28 RUTAS distintas: `expediente/transcribir-diarizado` exporta GET y
+    // POST y los dos siguen en `verificarModuloIA`. Ésa es la cifra del verificador.
+    const rutasPendientes = new Set(
+      paresConCapacidad().filter(({ e, metodo }) => !activaEnCodigoMetodo(e, metodo)).map(p => p.clave),
+    )
+    expect(rutasPendientes.size).toBe(28)
   })
 
   it('cada tipo de exención se corresponde con el guardián que dice usar', () => {
@@ -246,9 +432,27 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
 
   it('el control de que la comprobación anterior NO pasa por vacío', () => {
     // Si el walker o el filtro se rompen, la lista de rutas que leen PHI clínico
-    // queda vacía y el test de arriba pasa sin comprobar nada.
+    // queda vacía y el test de arriba pasa sin comprobar nada. Con `internamientos`
+    // en la señal (P3-2) son 3, no 2.
     const conPHI = [...FUENTE].filter(([, src]) =>
       COLECCIONES_CLINICAS.some(c => src.includes(`collection('${c}')`))).map(([c]) => c).sort()
-    expect(conPHI).toEqual(['fhir/paciente/[patientId]', 'portal'])
+    expect(conPHI).toEqual(['fhir/paciente/[patientId]', 'hospital/mutar', 'portal'])
+  })
+
+  it('las rutas que tocan la IDENTIDAD del paciente están congeladas (segundo nivel de PHI)', () => {
+    // No es una regla de capacidad: `public/booking` y `whatsapp/webhook` son sin
+    // sesión por diseño y una regla ciega daría rojo por lo correcto. Lo que impide
+    // este congelado es que una ruta NUEVA empiece a leer `patients` sin que nadie
+    // lo mire.
+    const conPaciente = [...FUENTE].filter(([, src]) =>
+      COLECCIONES_PACIENTE.some(c => src.includes(`collection('${c}')`))).map(([c]) => c).sort()
+    expect(conPaciente).toEqual([
+      'fhir/paciente/[patientId]',
+      'mantenimiento/backfill-contadores',
+      'portal',
+      'public/booking',
+      'telesalud/token',
+      'whatsapp/webhook',
+    ])
   })
 })
