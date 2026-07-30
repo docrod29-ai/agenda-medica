@@ -420,6 +420,33 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     estado: 'validado',
     porQueExiste: 'El handoff es el documento que se lee cuando el que conoce al paciente YA SE FUE. Un error que pase el cambio de turno se propaga a un equipo que no tiene con quien contrastarlo. Por eso «siempre revisado por medico» vive en el TIPO: nace BORRADOR y no hay forma de construirlo revisado.',
   },
+  {
+    id: 'uci-mar', nombre: 'MAR de UCI (registro de administracion)',
+    especialidad: 'Cuidados criticos / enfermeria',
+    tipo: 'regla-de-seguridad',
+    version: '1.0.0',
+    referencia: 'Charter NEXUSMED CRITICAL CARE OS seccion 37 segun ICU-001: «Vista MAR de UCI sobre la farmacia existente, SIN duplicar inventario». Lee Indicacion[]/Administracion[] de src/types/hospital.ts.',
+    unidades: 'interpretarFrecuencia(texto) -> Frecuencia · lineaMar(indicacion, ahoraIso, graciaMin) -> LineaMar',
+    redondeo: 'horasDesde a 1 decimal solo para el mensaje; el estado se decide sobre el instante exacto',
+    rangoValido: {
+      fuente: 'codigo',
+      entrada: 'frecuencia en texto libre de la orden + administraciones con fecha ISO + gracia en minutos (obligatoria)',
+      salida: 'estado del MAR y los instantes en que toca / se atrasa',
+      ref: 'src/lib/uci/mar.ts (interpretarFrecuencia, lineaMar, vistaMar)',
+    },
+    file: 'src/lib/uci/mar.ts',
+    entryPoints: ['interpretarFrecuencia', 'lineaMar', 'vistaMar'],
+    calculos: [
+      'interpretacion de la frecuencia escrita, conservando los RANGOS como rangos',
+      'instante en que toca la siguiente dosis y en que se considera atrasada',
+      'separacion de omisiones: una omision no cuenta como dosis dada',
+    ],
+    missingData: 'Horario ilegible -> `horario_no_interpretable` con el texto original a la vista: NO se adivina, porque un horario adivinado produce un atraso inventado. Sin administraciones -> se cuenta desde la hora de la ORDEN y el estado es `nunca_administrado`, jamas `al_dia`. La GRACIA en minutos es obligatoria en la firma (FALTA_GRACIA): depende de turnos y ronda de enfermeria, es una decision operativa de la unidad; una gracia invalida LANZA en vez de caer a un default.',
+    adr: ADR('uci-mar'),
+    goldenTests: ['uci-mar.test.ts'],
+    estado: 'validado',
+    porQueExiste: 'El riesgo de un MAR de UCI no es callarse: es la alarma falsa. Si la norepinefrina en infusion y el paracetamol PRN salen en rojo cada hora, el rojo deja de significar algo y la dosis que si se paso se pierde en el ruido. Por eso hay cinco estados que NUNCA se atrasan. Y por eso NO reusa extraerTomasDia: ese motor colapsa «cada 4 a 6 h» al intervalo mas corto porque para un TECHO diario el peor caso es el que mas veces se toma; copiar ese sesgo aqui marcaria atrasada una dosis que va a tiempo.',
+  },
   // ── Integridad temporal del dato clínico ─────────────────────────────────
   {
     id: 'observacion-version', nombre: 'Observación versionada (vigencia clínica y temporal)',

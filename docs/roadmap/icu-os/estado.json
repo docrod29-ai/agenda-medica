@@ -18,7 +18,8 @@
     "ICU-P1-4",
     "ICU-P2-2",
     "ICU-P2-4",
-    "ICU-P2-3"
+    "ICU-P2-3",
+    "ICU-P1-7"
   ],
   "unidadEnCurso": null,
   "unidades": [
@@ -146,6 +147,12 @@
       "titulo": "ICU Handoff (charter 36)",
       "estado": "completada",
       "entrega": "src/lib/uci/handoff.ts + 23 casos + ADR + registrado. La revision del medico vive en el TIPO."
+    },
+    {
+      "id": "ICU-P1-7",
+      "titulo": "MAR de UCI sobre la farmacia existente (charter 37)",
+      "estado": "completada",
+      "entrega": "src/lib/uci/mar.ts + 39 casos + ADR + registrado. Cinco estados que nunca se atrasan; control negativo de inventario."
     }
   ],
   "necesitaValidacionDelDr": [
