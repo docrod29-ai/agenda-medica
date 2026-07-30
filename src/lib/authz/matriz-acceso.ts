@@ -190,6 +190,13 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     porQue: 'Estancia en UCI dentro del episodio: soportes activos, peso de dosificacion, codigo de reanimacion, aislamiento. Se lee todo el staff clinico; se escribe SOLO por el servidor, que valida el rol por accion — igual que el doc de internamiento.',
   },
   {
+    ruta: 'clinics/{clinicId}/internamientos/{intId}/icu_observations/{obsId}',
+    clase: 'clinico',
+    guardaLectura: 'isClinicoHospital',
+    guardaEscritura: 'isClinicoHospital',
+    porQue: 'Tomas de UCI capturadas a pie de cama (ICU-003). El cliente SI crea, igual que en signos: obligarlas a pasar por el servidor anadiria latencia en el momento en que el dato se esta tomando. El APPEND-ONLY se hace cumplir en la REGLA — el update solo puede tocar `estado`, asi que una toma se marca como corregida pero sus MEDIDAS son inmutables. Borrar esta cerrado.',
+  },
+  {
     ruta: 'clinics/{clinicId}/internamientos/{intId}/bed_assignments/{asigId}',
     clase: 'clinico',
     guardaLectura: 'isClinicoHospital',

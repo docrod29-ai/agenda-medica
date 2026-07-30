@@ -7,7 +7,8 @@
     "ICU-002a",
     "ICU-002b",
     "ICU-002c",
-    "ICU-002d"
+    "ICU-002d",
+    "ICU-003"
   ],
   "unidadEnCurso": null,
   "unidades": [
@@ -62,12 +63,14 @@
     {
       "id": "ICU-003",
       "titulo": "Persistir ICUObservation (arregla el P0)",
-      "estado": "pendiente",
+      "estado": "completada-parcial",
       "depende": [
         "ICU-002d"
       ],
       "alcance": "El hallazgo central de ICU-001: hoy las lecturas viven solo en localStorage, tope 24, y el logout las purga. Va SOLA por ser el cambio de mayor riesgo.",
-      "riesgo": "ALTO — escribe PHI nueva en volumen. Cota de lecturas como getSignos (TOPE 200)."
+      "riesgo": "ALTO — escribe PHI nueva en volumen. Cota de lecturas como getSignos (TOPE 200).",
+      "entrega": "src/lib/uci/observaciones.ts (persistencia append-only, tope 200 como getSignos) + regla icu_observations con el append-only EN LA REGLA (update solo puede tocar `estado`) + matriz + 15 casos con control negativo.",
+      "pendiente": "CABLEAR el panel UCI para que escriba tambien a Firestore (hoy solo localStorage). Se hara con escritura DOBLE: si las reglas fallan o no hay internet, el comportamiento de hoy sigue intacto. Es el unico paso que cambia comportamiento en produccion."
     }
   ],
   "necesitaValidacionDelDr": [

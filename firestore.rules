@@ -293,6 +293,27 @@ service cloud.firestore {
           allow create, update, delete: if false;   // sólo servidor
         }
 
+        // Observaciones de UCI — APPEND-ONLY, capturadas a pie de cama.
+        //
+        // A DIFERENCIA de icu_stays/bed_assignments, aquí el CLIENTE sí crea:
+        // enfermería y el intensivista capturan durante el pase de visita, igual
+        // que en `signos`. Obligarlas a pasar por el servidor añadiría latencia
+        // en el único momento en que el dato se está tomando.
+        //
+        // EL APPEND-ONLY SE HACE CUMPLIR EN LA REGLA, no sólo en el código:
+        // el `update` sólo puede tocar `estado`. Así una toma errónea se marca
+        // (CORRECTED / ENTERED_IN_ERROR) pero sus MEDIDAS son inmutables: no se
+        // puede reescribir un valor clínico haciéndolo pasar por una corrección.
+        // La corrección de verdad es un documento NUEVO con `corrigeA`.
+        //
+        // `delete: if false` — una toma histórica no debe poder desaparecer.
+        match /icu_observations/{obsId} {
+          allow read, create: if isClinicoHospital(clinicId);
+          allow update: if isClinicoHospital(clinicId)
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado']);
+          allow delete: if false;
+        }
+
         // Asignación de cama — APPEND-ONLY con historia.
         // `delete: if false` es lo esencial: borrar una asignación destruiría la
         // trazabilidad de quién ocupó qué cama y cuándo, que es justo lo que esta
