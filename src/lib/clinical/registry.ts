@@ -711,6 +711,33 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     estado: 'validado',
     porQueExiste: 'Es el error critico que sobrevivio a TODO en el corpus: al diccionario de confusiones y al vocabulario del prompt, donde esta palabra por palabra. El reconocedor funde «-nem dos» en «-nem» y la cifra desaparece. Lo peligroso no es que falte la dosis: es que pase desapercibida, porque «Meropenem gramos cada ocho horas» se lee como una orden completa.',
   },
+  {
+    id: 'uci-dosificacion-critica', nombre: 'Dosificacion de meropenem en el adulto critico',
+    especialidad: 'Cuidados criticos / infectologia / PK-PD',
+    tipo: 'tabla-referencia',
+    version: '1.0.0',
+    referencia: 'Algoritmo entregado por el Dr. (2026-07-30) con su tabla por funcion renal, cuatro escenarios de reemplazo y criterios de alta exposicion. El cita ficha FDA mayo-2025 (ajuste con CrCl <=50), esquema UCSF, consenso ACCP/BSAC/ESCMID/IDSA/SCCM/SIDP sobre infusiones prolongadas, simulaciones de PTA en ARC y datos PIRRT 2026. FUNDAMENTO APORTADO POR EL MEDICO, no verificado contra las fuentes primarias.',
+    unidades: 'esquemaMeropenem({crCl, modalidad, criterios, mic, tdm}) -> esquema convencional + alta exposicion + infusion',
+    redondeo: 'no aplica: las dosis son literales de la tabla del Dr.',
+    rangoValido: {
+      fuente: 'referencia',
+      entrada: 'CrCl en mL/min + modalidad de reemplazo (ninguna/IHD/CRRT/PIRRT) + criterios de alta exposicion + MIC',
+      salida: 'las DOS columnas del esquema, la duracion de infusion y lo que falta',
+      ref: 'docs/clinical-decisions/uci-dosificacion-critica.md',
+    },
+    file: 'src/lib/uci/dosificacion-critica.ts',
+    entryPoints: ['esquemaMeropenem', 'tieneAlgoritmo'],
+    calculos: [
+      'seleccion de fila por modalidad de reemplazo PRIMERO y por CrCl despues',
+      'deteccion de ARC a partir de CrCl >= 130 mL/min',
+      'lista de criterios de alta exposicion presentes, sin decidir por ellos',
+    ],
+    missingData: 'SIN LA MODALIDAD DE REEMPLAZO NO SE PROPONE NADA (esquema: null): proponer una dosis sin saber si esta en CRRT es el error grave que el Dr. senalo — un anurico en CVVHD puede requerir VARIOS GRAMOS al dia porque el filtro elimina meropenem, y tratarlo como «CrCl < 10» lo infradosifica gravemente. La MIC ausente y la falta de TDM se declaran. Y SOLO hay algoritmo de meropenem: los otros trece farmacos estan en FARMACOS_SIN_ALGORITMO y la pantalla lo DICE, porque copiar la pauta del meropenem a la vancomicina seria inventarla.',
+    adr: ADR('uci-dosificacion-critica'),
+    goldenTests: ['uci-dosificacion-critica.test.ts'],
+    estado: 'validado',
+    porQueExiste: 'La frase del Dr. que organiza todo: «Yo NO programaria meropenem simplemente como CrCl -> dosis». Y el motor NO ELIGE COLUMNA: el da dos —convencional y alta exposicion— y advierte que «la de alta exposicion NO significa que todo paciente critico deba recibir 6 g/dia». Se devuelven las dos, se listan los criterios que se cumplen, y la eleccion se queda con quien esta en la cabecera.',
+  },
   // ── Integridad temporal del dato clínico ─────────────────────────────────
   {
     id: 'observacion-version', nombre: 'Observación versionada (vigencia clínica y temporal)',
