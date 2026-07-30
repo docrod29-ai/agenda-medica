@@ -393,6 +393,33 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     estado: 'validado',
     porQueExiste: 'Un objetivo sin medico que lo fije NO EXISTE. Una PAM de 65 es razonable en muchos pacientes y equivocada en un hipertenso cronico o en un neurocritico, y el modulo no sabe cual tiene enfrente. Por eso fijadaPor y fijadaEn son obligatorios en el tipo.',
   },
+  {
+    id: 'uci-handoff', nombre: 'ICU Handoff (entrega de turno)',
+    especialidad: 'Cuidados criticos / continuidad',
+    tipo: 'regla-de-seguridad',
+    version: '1.0.0',
+    referencia: 'Charter NEXUSMED CRITICAL CARE OS seccion 36: «Siempre revisado por medico.» Compone secciones que otros motores ya redactaron y NO reescribe ninguna.',
+    unidades: 'construirHandoff(EntradaHandoff) -> Handoff (siempre BORRADOR) · marcarRevisado(h, por, enIso) -> Handoff',
+    redondeo: 'no aplica',
+    rangoValido: {
+      fuente: 'codigo',
+      entrada: 'identificacion, soportes, cambios y pendientes ya redactados por sus motores',
+      salida: 'handoff en BORRADOR con las ausencias declaradas',
+      ref: 'src/lib/uci/handoff.ts (construirHandoff, marcarRevisado, listoParaEntregar)',
+    },
+    file: 'src/lib/uci/handoff.ts',
+    entryPoints: ['construirHandoff', 'marcarRevisado', 'listoParaEntregar', 'loQueFaltaDelMedico'],
+    calculos: [
+      'ensamblado de las 7 secciones del seccion 36',
+      'declaracion de cada seccion ausente con su motivo',
+      'compuerta de entrega: solo si un medico lo reviso',
+    ],
+    missingData: 'Un hueco NUNCA se calla: cada seccion vacia entra en `ausentes` con su motivo, porque en un handoff un espacio en blanco se lee como «no hay nada» — y en contingencias eso es peligroso. Problemas activos y contingencias van vacios A PROPOSITO: el primero es una sintesis clinica y el segundo un plan terapeutico, y sugerirlos seria dar indicacion de tratamiento.',
+    adr: ADR('uci-handoff'),
+    goldenTests: ['uci-handoff.test.ts'],
+    estado: 'validado',
+    porQueExiste: 'El handoff es el documento que se lee cuando el que conoce al paciente YA SE FUE. Un error que pase el cambio de turno se propaga a un equipo que no tiene con quien contrastarlo. Por eso «siempre revisado por medico» vive en el TIPO: nace BORRADOR y no hay forma de construirlo revisado.',
+  },
   // ── Integridad temporal del dato clínico ─────────────────────────────────
   {
     id: 'observacion-version', nombre: 'Observación versionada (vigencia clínica y temporal)',

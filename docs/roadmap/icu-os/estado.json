@@ -17,7 +17,8 @@
     "ICU-P1-3",
     "ICU-P1-4",
     "ICU-P2-2",
-    "ICU-P2-4"
+    "ICU-P2-4",
+    "ICU-P2-3"
   ],
   "unidadEnCurso": null,
   "unidades": [
@@ -139,6 +140,12 @@
       "titulo": "Metas diarias (charter 35)",
       "estado": "completada",
       "entrega": "src/lib/uci/metas-diarias.ts + 18 casos + ADR + registrado. Desbloquea los PENDIENTES del Morning Brief."
+    },
+    {
+      "id": "ICU-P2-3",
+      "titulo": "ICU Handoff (charter 36)",
+      "estado": "completada",
+      "entrega": "src/lib/uci/handoff.ts + 23 casos + ADR + registrado. La revision del medico vive en el TIPO."
     }
   ],
   "necesitaValidacionDelDr": [
