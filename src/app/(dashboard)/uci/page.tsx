@@ -11,6 +11,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import LandingUci from './LandingUci'
 import ResumenPase from './ResumenPase'
+import Verificacion from './Verificacion'
+import MarPaciente from './MarPaciente'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Activity, Wind, Droplets, HeartPulse, ShieldAlert, Info, Mic, Square, Waves, BedDouble, AlertTriangle, FileText, Calculator, Brain, Sparkles, ThumbsUp, ThumbsDown, ArrowLeft } from 'lucide-react'
 import { useClinic } from '@/context/ClinicContext'
@@ -116,7 +118,7 @@ export default function UciPanelPage() {
   const [panelLibre, setPanelLibre] = useState(false)
   // Decisión del Dr. (2026-07-30): dentro del paciente, el pase va antes que la
   // calculadora. El panel fisiológico NO se quita: es una pestaña más.
-  const [pestana, setPestana] = useState<'resumen' | 'panel' | 'linea'>('resumen')
+  const [pestana, setPestana] = useState<'resumen' | 'panel' | 'verificacion' | 'mar' | 'linea'>('resumen')
   const { clinicId } = useClinic()
   const { toast } = useToast()
   const [inter, setInter] = useState<Internamiento | null>(null)
@@ -448,6 +450,29 @@ export default function UciPanelPage() {
       : dosisARate({ ...base, dosis: dosisCant })
   }, [v]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  /**
+   * La infusión que se está calculando, en la forma del REGISTRO del §13.
+   *
+   * No se persiste todavía: se arma para que el revisor estructural
+   * (`revisarInfusion`) pueda mirarla y decir qué le falta ANTES de que se
+   * vuelva una orden. `verificada: false` es honesto — nadie la ha confirmado.
+   */
+  const infusionRegistro = useMemo(() => {
+    const vel = n('infRate')
+    if (!v.infFarmaco && vel === undefined) return null
+    const peso = n('infPeso') ?? n('ckrtPeso')
+    return {
+      id: 'en-curso',
+      medicamento: infFarmaco?.nombre ?? String(v.infFarmaco ?? ''),
+      velocidad: Number(vel ?? 0),
+      unidadVelocidad: 'mL/h' as const,
+      pesoKg: peso !== undefined ? Number(peso) : undefined,
+      iniciadaEn: new Date().toISOString(),
+      fuente: 'teclado' as const,   // se captura en el panel; si viene de voz, la extracción lo marcará
+      verificada: false,
+    }
+  }, [v, infFarmaco]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── La nota se ARMA en vivo mientras dictas/capturas (por sistemas) ──
   const notaSecciones = useMemo(() => construirSeccionesUCI(v, { discusion: discusionTxt || undefined }), [v, discusionTxt])
   const notaLlenas = notaSecciones.filter(s => s.value.trim() !== '')
@@ -489,7 +514,7 @@ export default function UciPanelPage() {
 
       {internamientoId && (
         <div role="tablist" style={{ display: 'flex', gap: 4, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-          {([['resumen', 'Resumen del pase'], ['panel', 'Panel fisiológico'], ['linea', 'Línea de tiempo']] as const).map(([k, txt]) => (
+          {([['resumen', 'Resumen del pase'], ['panel', 'Panel fisiológico'], ['verificacion', 'Verificación'], ['mar', 'MAR'], ['linea', 'Línea de tiempo']] as const).map(([k, txt]) => (
             <button
               key={k} role="tab" aria-selected={pestana === k}
               onClick={() => setPestana(k)}
@@ -585,11 +610,26 @@ export default function UciPanelPage() {
 
       {/* Resumen del pase y línea de tiempo: los motores del charter, en pantalla.
           Sólo con paciente — sin expediente no hay nada que resumir. */}
-      {internamientoId && clinicId && pestana !== 'panel' && (
+      {internamientoId && pestana === 'verificacion' && (
+        <Verificacion
+          campos={v}
+          computados={computados as Record<string, number | null>}
+          lecturas={lecturas}
+          dictado={paseTexto || discusionTxt || undefined}
+          avisosVoz={avisosVoz}
+          infusion={infusionRegistro}
+        />
+      )}
+
+      {internamientoId && pestana === 'mar' && (
+        <MarPaciente indicaciones={inter?.indicaciones ?? []} />
+      )}
+
+      {internamientoId && clinicId && (pestana === 'resumen' || pestana === 'linea') && (
         <ResumenPase
           clinicId={clinicId}
           internamientoId={internamientoId}
-          vista={pestana}
+          vista={pestana === 'linea' ? 'linea' : 'resumen'}
           zonaHoraria={config.zonaHoraria || 'America/Mexico_City'}
           soportes={soportes ?? []}
           cama={inter?.cama?.trim() || null}
