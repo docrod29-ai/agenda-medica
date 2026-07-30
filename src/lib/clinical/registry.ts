@@ -608,6 +608,32 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     estado: 'validado',
     porQueExiste: 'El modulo NO emite juicios: devuelve horas. «Reingreso a terapia» sale con las horas reales fuera; si esa separacion cuenta como bounce-back lo define la unidad. Y un tramo invertido no RESTA tiempo, que en una cuenta de dias de estancia seria un error que se propaga al costeo.',
   },
+  {
+    id: 'uci-enfermeria', nombre: 'Turno de enfermeria de UCI',
+    especialidad: 'Cuidados criticos / enfermeria',
+    tipo: 'regla-de-seguridad',
+    version: '1.0.0',
+    referencia: 'Charter NEXUSMED CRITICAL CARE OS seccion 40 via ICU-001, con su condicion: «despues del core medico». Compone el MAR (seccion 37) y la antiguedad de la ultima toma (seccion 3); no inventa ningun motor.',
+    unidades: 'turnoDeEnfermeria(pacientes, ahoraIso, graciaMin) -> tareas ordenadas + conteo + quien esta al dia',
+    redondeo: 'no aplica: las frases vienen ya redactadas por el motor de origen',
+    rangoValido: {
+      fuente: 'codigo',
+      entrada: 'pacientes criticos del censo + sus indicaciones + horas desde la ultima toma + gracia de la unidad',
+      salida: 'lista de tareas por estado del registro, con su conteo',
+      ref: 'src/lib/uci/enfermeria.ts (tareasDePaciente, turnoDeEnfermeria)',
+    },
+    file: 'src/lib/uci/enfermeria.ts',
+    entryPoints: ['tareasDePaciente', 'turnoDeEnfermeria', 'ordenarTareas'],
+    calculos: [
+      'composicion de tareas a partir del MAR y de la antiguedad de la ultima toma',
+      'orden por estado del REGISTRO y, dentro del tipo, por cama',
+    ],
+    missingData: 'La gracia en minutos la fija la unidad y se valida en la ENTRADA, no solo dentro del MAR: un caso del golden descubrio que un paciente sin ninguna indicacion dejaba pasar una gracia invalida en silencio. La lista tambien publica `sinTareas`: una lista que solo muestra lo que falta esconde que el resto va al dia y se lee como si toda la unidad estuviera atrasada.',
+    adr: ADR('uci-enfermeria'),
+    goldenTests: ['uci-enfermeria.test.ts'],
+    estado: 'validado',
+    porQueExiste: 'NO PRIORIZA CLINICAMENTE, y lo dice EN PANTALLA: ordena por el estado del registro, no por gravedad. Un antibiotico atrasado y una vitamina atrasada se ven igual aqui porque el modulo no sabe cual importa mas, y fingir que si seria un juicio clinico. Y lo que no se atrasa por definicion —infusion continua, PRN, dosis unica— NUNCA aparece: ponerlo en rojo cada hora haria que el rojo dejara de significar algo.',
+  },
   // ── Integridad temporal del dato clínico ─────────────────────────────────
   {
     id: 'observacion-version', nombre: 'Observación versionada (vigencia clínica y temporal)',

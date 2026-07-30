@@ -24,7 +24,8 @@
     "ICU-P2-6",
     "ICU-DEC-2026-07-30",
     "ICU-UI-1",
-    "ICU-FLUJO-1"
+    "ICU-FLUJO-1",
+    "ICU-P2-5"
   ],
   "unidadEnCurso": null,
   "unidades": [
@@ -188,6 +189,12 @@
       "titulo": "Unidades con tipo + flujo Urgencias->UCI->piso",
       "estado": "completada",
       "entrega": "unidades.ts (20 casos) + indicadores-episodio.ts (24 casos) + pantalla de unidades + traslado escribe ICUStay/BedAssignment/limpieza. Cierra el regex sobre el nombre del servicio."
+    },
+    {
+      "id": "ICU-P2-5",
+      "titulo": "Turno de enfermeria (charter 40)",
+      "estado": "completada",
+      "entrega": "src/lib/uci/enfermeria.ts + 23 casos + ADR + registrado + pantalla /uci/enfermeria. ULTIMA del backlog."
     }
   ],
   "necesitaValidacionDelDr": [

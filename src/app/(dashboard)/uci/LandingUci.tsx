@@ -11,7 +11,7 @@
 // ══════════════════════════════════════════════════════════════
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Activity, BedDouble, AlertTriangle, Clock, Wrench, UserPlus } from 'lucide-react'
+import { Activity, BedDouble, AlertTriangle, Clock, Wrench, UserPlus, HeartPulse } from 'lucide-react'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { suscribirCenso, getUnidades } from '@/lib/hospital/firestore'
@@ -123,9 +123,14 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
         </p>
         {/* Siempre visible, no sólo cuando la lista está vacía: un ingreso a
             terapia no espera a que la pantalla esté en su estado vacío. */}
-        <button onClick={() => router.push('/hospitalizacion?nuevo=1&servicio=UCI')} style={botonPrimario}>
-          <UserPlus size={14} /> Ingresar paciente a UCI
-        </button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button onClick={() => router.push('/uci/enfermeria')} style={botonSecundario}>
+            <HeartPulse size={14} /> Turno de enfermería
+          </button>
+          <button onClick={() => router.push('/hospitalizacion?nuevo=1&servicio=UCI')} style={botonPrimario}>
+            <UserPlus size={14} /> Ingresar paciente a UCI
+          </button>
+        </div>
       </div>
 
       {sinTipo.length > 0 && (
