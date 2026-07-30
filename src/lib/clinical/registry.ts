@@ -366,6 +366,33 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     estado: 'pendiente_validacion',
     porQueExiste: 'Un delta es un hecho: la creatinina paso de 1.5 a 2.4. Decir que eso significa que empeoro la funcion renal ya es saber medicina. Este modulo separa las dos cosas para no colar una interpretacion como si fuera un dato.',
   },
+  {
+    id: 'uci-metas-diarias', nombre: 'Metas diarias (UCI)',
+    especialidad: 'Cuidados criticos / plan del dia',
+    tipo: 'regla-de-seguridad',
+    version: '1.0.0',
+    referencia: 'Charter NEXUSMED CRITICAL CARE OS seccion 35: «El copiloto compara datos contra objetivos definidos. NO INVENTAR OBJETIVOS.» Este modulo no contiene un solo valor objetivo.',
+    unidades: 'evaluarMeta(MetaDiaria, medido?) -> EvaluacionMeta. Cada meta lleva su unidad declarada por el medico que la fijo.',
+    redondeo: 'ninguno',
+    rangoValido: {
+      fuente: 'codigo',
+      entrada: 'metas con autor y fecha obligatorios, y las mediciones disponibles',
+      salida: 'cumplida | no_cumplida | sin_dato | pendiente, con la frase para pantalla',
+      ref: 'src/lib/uci/metas-diarias.ts (evaluarMeta, pendientesDelBrief)',
+    },
+    file: 'src/lib/uci/metas-diarias.ts',
+    entryPoints: ['evaluarMeta', 'evaluarMetas', 'pendientesDelBrief', 'sinMedicion', 'dominiosSinMeta'],
+    calculos: [
+      'comparacion contra rango o umbral fijado por el medico',
+      'estado de las tareas cualitativas',
+      'los PENDIENTES del Morning Brief, con dato real detras',
+    ],
+    missingData: 'Sin medicion => sin_dato, NUNCA cumplida ni no cumplida: decir cumplida seria inventar, y decir no cumplida acusaria de un fallo de tratamiento a un hueco de documentacion. CERO si es una medicion valida. Sin metas, la pantalla DICE que nadie las fijo: un blanco se lee como «todo en orden».',
+    adr: ADR('uci-metas-diarias'),
+    goldenTests: ['uci-metas-diarias.test.ts'],
+    estado: 'validado',
+    porQueExiste: 'Un objetivo sin medico que lo fije NO EXISTE. Una PAM de 65 es razonable en muchos pacientes y equivocada en un hipertenso cronico o en un neurocritico, y el modulo no sabe cual tiene enfrente. Por eso fijadaPor y fijadaEn son obligatorios en el tipo.',
+  },
   // ── Integridad temporal del dato clínico ─────────────────────────────────
   {
     id: 'observacion-version', nombre: 'Observación versionada (vigencia clínica y temporal)',

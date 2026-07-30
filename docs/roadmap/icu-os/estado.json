@@ -16,7 +16,8 @@
     "ICU-P1-6",
     "ICU-P1-3",
     "ICU-P1-4",
-    "ICU-P2-2"
+    "ICU-P2-2",
+    "ICU-P2-4"
   ],
   "unidadEnCurso": null,
   "unidades": [
@@ -132,6 +133,12 @@
       "estado": "completada",
       "entrega": "src/lib/uci/morning-brief.ts + 23 casos + ADR + registrado como pendiente_validacion.",
       "pendienteDelDr": "Direccion de beneficio de 5 metricas: balance, lactato, creatinina, diuresis, vexus."
+    },
+    {
+      "id": "ICU-P2-4",
+      "titulo": "Metas diarias (charter 35)",
+      "estado": "completada",
+      "entrega": "src/lib/uci/metas-diarias.ts + 18 casos + ADR + registrado. Desbloquea los PENDIENTES del Morning Brief."
     }
   ],
   "necesitaValidacionDelDr": [
