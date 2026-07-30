@@ -117,3 +117,94 @@ describe('firestore.rules — invariantes de seguridad', () => {
     expect(sinComentarios).not.toMatch(/allow read, write: if true/)
   })
 })
+
+describe('ICU-002d · reglas de las colecciones de UCI', () => {
+  /**
+   * Congela lo que las reglas PROMETEN, no que existan.
+   *
+   * Las reglas de Firestore son ADITIVAS: una regla más permisiva GANA sobre una
+   * estricta (lección REG-014, donde la firma médica seguía leíble porque la
+   * regla genérica de `config` no excluía el documento). Por eso el primer caso
+   * comprueba que ninguna regla más amplia alcance estas rutas.
+   */
+  const crudo = readFileSync(resolve(process.cwd(), 'firestore.rules'), 'utf8')
+
+  /**
+   * Reglas SIN comentarios.
+   *
+   * Mi primera versión de estos casos contaba `{document=**}` sobre el archivo
+   * crudo y encontró DOS — pero el segundo era un comentario que yo mismo había
+   * escrito explicando el comodín. Un guardián que lee prosa no está leyendo
+   * reglas.
+   */
+  const reglas = crudo.split('\n').filter(l => !l.trim().startsWith('//')).join('\n')
+
+  /**
+   * Cuerpo de un `match`, contando llaves.
+   *
+   * `indexOf('}')` no sirve: cierra en la llave del comodín (`{stayId}`), no en
+   * la del bloque, y el caso pasa/falla leyendo una línea suelta.
+   */
+  const bloqueDe = (nombre: string): string => {
+    const i = reglas.indexOf(`match /${nombre}/`)
+    if (i === -1) return ''
+    // La llave que ABRE el bloque es la ÚLTIMA de la línea del `match`, no la
+    // primera: `match /icu_stays/{stayId} {` tiene dos, y empezar a contar en la
+    // del comodín cierra el bloque en `}` de `{stayId}`.
+    const finLinea = reglas.indexOf('\n', i)
+    const apertura = reglas.lastIndexOf('{', finLinea)
+    let nivel = 0
+    for (let j = apertura; j < reglas.length; j++) {
+      if (reglas[j] === '{') nivel++
+      else if (reglas[j] === '}') { nivel--; if (nivel === 0) return reglas.slice(i, j + 1) }
+    }
+    return ''
+  }
+
+  it('ninguna regla COMODÍN alcanza las colecciones nuevas', () => {
+    // El único `{document=**}` REAL del archivo debe ser el deny total del final.
+    const comodines = [...reglas.matchAll(/match \/\{[a-zA-Z]+=\*\*\}/g)]
+    expect(comodines).toHaveLength(1)
+    const iComodin = reglas.indexOf('match /{document=**}')
+    expect(reglas.slice(iComodin, iComodin + 120)).toContain('allow read, write: if false')
+  })
+
+  it.each(['icu_stays', 'bed_assignments'])('`%s` existe y sólo permite LEER', (coleccion) => {
+    const bloque = bloqueDe(coleccion)
+    expect(bloque, `no existe la regla de ${coleccion}`).not.toBe('')
+    expect(bloque).toMatch(/allow read: if isClinicoHospital\(clinicId\)/)
+    expect(bloque).toMatch(/allow create, update, delete: if false/)
+  })
+
+  it('la ESCRITURA de las dos va por el servidor, nunca por el cliente', () => {
+    // Un cliente que escribiera directo tendría RBAC de vista, no real: puede
+    // abrir la consola del navegador y usar el SDK.
+    for (const c of ['icu_stays', 'bed_assignments']) {
+      expect(bloqueDe(c), `${c} permite escritura desde el cliente`)
+        .not.toMatch(/allow [^:]*(create|update|write)[^:]*:\s*if\s+is/)
+    }
+  })
+
+  it('BORRAR una asignación de cama está cerrado — es la trazabilidad', () => {
+    // Borrar destruiría quién ocupó qué cama y cuándo, que es justo lo que esta
+    // colección vino a crear.
+    expect(bloqueDe('bed_assignments')).toContain('delete: if false')
+  })
+
+  it('las dos están DECLARADAS en la matriz de acceso', () => {
+    // Si la regla existe pero la matriz no la conoce, la suite del emulador no
+    // genera sus casos cross-tenant y el aislamiento queda sin probar.
+    const matriz = readFileSync(resolve(process.cwd(), 'src/lib/authz/matriz-acceso.ts'), 'utf8')
+    expect(matriz).toContain('internamientos/{intId}/icu_stays/{stayId}')
+    expect(matriz).toContain('internamientos/{intId}/bed_assignments/{asigId}')
+  })
+
+  it('la matriz declara ESCRITURA POR SERVIDOR para las dos', () => {
+    const matriz = readFileSync(resolve(process.cwd(), 'src/lib/authz/matriz-acceso.ts'), 'utf8')
+    for (const ruta of ['icu_stays/{stayId}', 'bed_assignments/{asigId}']) {
+      const i = matriz.indexOf(ruta)
+      const entrada = matriz.slice(i, i + 500)
+      expect(entrada, `${ruta} no declara guardaEscritura servidor`).toContain("guardaEscritura: 'servidor'")
+    }
+  })
+})

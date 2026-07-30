@@ -271,6 +271,37 @@ service cloud.firestore {
           allow read, create, update: if isClinicoHospital(clinicId);
           allow delete: if false;
         }
+
+        // ══ ICU-002c/d — ESTANCIA UCI y ASIGNACIÓN DE CAMA ══
+        //
+        // MISMO patrón que el doc de internamiento, y por la misma razón: la
+        // ESCRITURA va SOLO por el servidor (Admin SDK), que valida el rol POR
+        // ACCIÓN. Un cliente que escribiera directo tendría RBAC de vista, no
+        // real — puede abrir la consola del navegador y usar el SDK.
+        //
+        // POR QUÉ ESTO NO ES REDUNDANTE con el `match /{document=**}` de deny
+        // total del final: ese comodín las cerraría a TODO, incluida la lectura
+        // que la ficha necesita. Aquí se abre la lectura y sólo la lectura.
+        //
+        // Las reglas de Firestore son ADITIVAS (lección REG-014): se verificó que
+        // ninguna regla más amplia alcance estas rutas antes de escribirlas.
+
+        // Estancia en UCI dentro del episodio. Datos clínicos sensibles
+        // (soportes activos, peso de dosificación, código de reanimación).
+        match /icu_stays/{stayId} {
+          allow read: if isClinicoHospital(clinicId);
+          allow create, update, delete: if false;   // sólo servidor
+        }
+
+        // Asignación de cama — APPEND-ONLY con historia.
+        // `delete: if false` es lo esencial: borrar una asignación destruiría la
+        // trazabilidad de quién ocupó qué cama y cuándo, que es justo lo que esta
+        // colección vino a crear. Cerrar una asignación es un UPDATE del servidor
+        // (poner `hasta`), nunca un borrado.
+        match /bed_assignments/{asigId} {
+          allow read: if isClinicoHospital(clinicId);
+          allow create, update, delete: if false;   // sólo servidor
+        }
       }
       // Rol hospitalario por usuario. La ESCRITURA la controla médico/admin de la
       // clínica (isMedico), NO cualquier clínico: si esta colección interviene en

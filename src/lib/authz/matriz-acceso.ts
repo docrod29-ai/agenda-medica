@@ -183,6 +183,20 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     porQue: 'Signos vitales seriados. Enfermería añade y corrige en el sitio; nadie borra desde el cliente. El `update` abierto es la pregunta E0-09-Q5 al médico dueño.',
   },
   {
+    ruta: 'clinics/{clinicId}/internamientos/{intId}/icu_stays/{stayId}',
+    clase: 'clinico',
+    guardaLectura: 'isClinicoHospital',
+    guardaEscritura: 'servidor',
+    porQue: 'Estancia en UCI dentro del episodio: soportes activos, peso de dosificacion, codigo de reanimacion, aislamiento. Se lee todo el staff clinico; se escribe SOLO por el servidor, que valida el rol por accion — igual que el doc de internamiento.',
+  },
+  {
+    ruta: 'clinics/{clinicId}/internamientos/{intId}/bed_assignments/{asigId}',
+    clase: 'clinico',
+    guardaLectura: 'isClinicoHospital',
+    guardaEscritura: 'servidor',
+    porQue: 'Asignacion de cama APPEND-ONLY. El delete esta cerrado a proposito: borrar una asignacion destruiria la trazabilidad de quien ocupo que cama y cuando, que es justo lo que esta coleccion vino a crear. Cerrar una asignacion es un update del servidor (poner `hasta`), nunca un borrado.',
+  },
+  {
     ruta: 'clinics/{clinicId}/hospital_roles/{uid}',
     clase: 'plataforma',
     guardaLectura: 'isClinicoHospital',

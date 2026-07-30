@@ -6,7 +6,8 @@
     "ICU-001",
     "ICU-002a",
     "ICU-002b",
-    "ICU-002c"
+    "ICU-002c",
+    "ICU-002d"
   ],
   "unidadEnCurso": null,
   "unidades": [
@@ -49,12 +50,14 @@
     {
       "id": "ICU-002d",
       "titulo": "Reglas Firestore + suite del emulador",
-      "estado": "pendiente",
+      "estado": "completada",
       "depende": [
         "ICU-002c"
       ],
       "alcance": "3 subcolecciones nuevas. Las reglas son ADITIVAS: verificar que ninguna regla amplia ya las cubra (lección REG-014).",
-      "riesgo": "ALTO — fuga cross-tenant de PHI de UCI. Exigir la suite del emulador de E0-08 en el PR."
+      "riesgo": "ALTO — fuga cross-tenant de PHI de UCI. Exigir la suite del emulador de E0-08 en el PR.",
+      "entrega": "firestore.rules: icu_stays y bed_assignments con lectura para clinicos y escritura SOLO por servidor. Matriz de acceso + documento publicado regenerado. 6 casos de guardian con control negativo.",
+      "pendiente": "La suite del EMULADOR no se ejecuto: esta maquina no tiene JRE. Los casos cross-tenant se generan solos desde la matriz (ya declarada), asi que corren en el primer PR que pase por el job aislamiento-tenant del CI."
     },
     {
       "id": "ICU-003",
