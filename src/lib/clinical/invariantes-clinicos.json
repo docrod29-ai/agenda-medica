@@ -2,7 +2,7 @@
   "sellado": "2026-07-30",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 1443,
+  "totalCasos": 1467,
   "archivos": [
     {
       "archivo": "src/__tests__/alergias.test.ts",
@@ -31,6 +31,10 @@
     {
       "archivo": "src/__tests__/antibiograma.test.ts",
       "minCasos": 117
+    },
+    {
+      "archivo": "src/__tests__/bed-assignment.test.ts",
+      "minCasos": 24
     },
     {
       "archivo": "src/__tests__/biomarcadores-lipidos.test.ts",

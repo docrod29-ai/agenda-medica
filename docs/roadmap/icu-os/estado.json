@@ -5,7 +5,8 @@
   "completadas": [
     "ICU-001",
     "ICU-002a",
-    "ICU-002b"
+    "ICU-002b",
+    "ICU-002c"
   ],
   "unidadEnCurso": null,
   "unidades": [
@@ -36,12 +37,14 @@
     {
       "id": "ICU-002c",
       "titulo": "ICUStay + BedAssignment",
-      "estado": "pendiente",
+      "estado": "completada",
       "depende": [
         "ICU-002b"
       ],
       "alcance": "Modelos nuevos, aditivos. NO crear HospitalEncounter: `Internamiento` ya lo es. La cama deja de ser un string; el lector prefiere la asignación con respaldo al string (patrón REG-014).",
-      "riesgo": "Ampliar EstadoCama de 4 a 7 obliga a barrer todos los consumidores (el Record lo fuerza en tsc)."
+      "riesgo": "Ampliar EstadoCama de 4 a 7 obliga a barrer todos los consumidores (el Record lo fuerza en tsc).",
+      "entrega": "types/hospital.ts: ICUStay, BedAssignment, SoporteActivo, EstadoCama de 4 a 7 valores. lib/hospital/bed-assignment.ts: nucleo puro append-only. 24 casos con los CINCO flujos del charter como criterio de aceptacion. ADR propio + registrado + sellado.",
+      "nota": "El Record<EstadoCama> hizo su trabajo: tsc encontro el unico consumidor (el mapa de colores de camas/page.tsx) al ampliar el tipo. Internamiento.cama NO se toca: camaVigenteDe prefiere la asignacion con respaldo al string, y DECLARA la fuente para poder auditarla."
     },
     {
       "id": "ICU-002d",

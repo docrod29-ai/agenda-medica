@@ -323,9 +323,125 @@ export const ESTUDIOS_LAB_RAPIDOS = [
 // ══════════════════════════════════════════════════════════════
 // Catálogo de camas (inventario + ocupación)
 // ══════════════════════════════════════════════════════════════
-export type EstadoCama = 'libre' | 'ocupada' | 'bloqueada' | 'limpieza'
+/**
+ * Estado de la cama — LOCALIZACIÓN, nunca estado clínico (charter §2).
+ *
+ * ICU-002c amplía de 4 a 7 los valores que pide el charter. Los cuatro viejos se
+ * conservan con su mismo nombre, así que ningún documento guardado deja de ser
+ * válido; los tres nuevos (`reservada`, `mantenimiento`, `aislamiento`) permiten
+ * el flujo B del charter —reservar una cama ANTES de que llegue el paciente— y
+ * distinguir «bloqueada por decisión» de «fuera de servicio».
+ *
+ * `ESTADO_CAMA_LABEL` es un `Record` a propósito: al añadir un valor, tsc obliga
+ * a completarlo y encuentra por ti cada pantalla que lo consume.
+ */
+export type EstadoCama =
+  | 'libre' | 'ocupada' | 'bloqueada' | 'limpieza'
+  | 'reservada' | 'mantenimiento' | 'aislamiento'
+
 export const ESTADO_CAMA_LABEL: Record<EstadoCama, string> = {
   libre: 'Libre', ocupada: 'Ocupada', bloqueada: 'Bloqueada', limpieza: 'Limpieza',
+  reservada: 'Reservada', mantenimiento: 'Mantenimiento', aislamiento: 'Aislamiento',
+}
+
+/** Estados en los que la cama NO puede recibir a un paciente nuevo. */
+export const ESTADOS_CAMA_NO_DISPONIBLE: readonly EstadoCama[] = [
+  'ocupada', 'bloqueada', 'limpieza', 'mantenimiento',
+]
+
+// ══════════════════════════════════════════════════════════════
+// ICU-002c — ESTANCIA UCI y ASIGNACIÓN DE CAMA
+// ══════════════════════════════════════════════════════════════
+//
+// DECISIÓN DE DISEÑO (ICU-001): NO se crea `HospitalEncounter`. `Internamiento`
+// YA lo es —paciente, servicio, tratante, dx de ingreso, estado, fechas, egreso,
+// movimientos, interconsultas e indicaciones—, y duplicarlo rompería las reglas,
+// la subcolección `signos`, el censo, el MAR y las notas sin ganar nada clínico.
+// Estas dos capas se añaden ENCIMA:
+//
+//     Patient → Internamiento (=encounter) → ICUStay → BedAssignment
+//
+// Así los cinco flujos del charter (§1 A-E) quedan cubiertos sin migración
+// destructiva: un paciente puede entrar y salir de UCI varias veces dentro del
+// MISMO internamiento, y cada estancia se conserva.
+
+/** Soportes activos de la estancia. La UI se adapta a esto (charter §32). */
+export type SoporteActivo =
+  | 'vm_invasiva' | 'vm_ni' | 'hfnc'
+  | 'vasopresor' | 'inotropico'
+  | 'ckrt' | 'ecmo' | 'iabp' | 'impella' | 'monitor_pic'
+
+export const SOPORTE_LABEL: Record<SoporteActivo, string> = {
+  vm_invasiva: 'Ventilación mecánica invasiva',
+  vm_ni: 'Ventilación no invasiva',
+  hfnc: 'Cánula nasal de alto flujo',
+  vasopresor: 'Vasopresor',
+  inotropico: 'Inotrópico',
+  ckrt: 'CKRT / terapia continua',
+  ecmo: 'ECMO',
+  iabp: 'Balón intraaórtico',
+  impella: 'Impella',
+  monitor_pic: 'Monitor de PIC',
+}
+
+/** Qué peso se usa para dosificar. NO se cambia solo (charter §16). */
+export type TipoPesoDosificacion = 'actual' | 'ingreso' | 'seco' | 'configurado'
+
+/**
+ * Una ESTANCIA en UCI, dentro de un internamiento.
+ * `clinics/{c}/internamientos/{iid}/icu_stays/{stayId}`
+ */
+export interface ICUStay {
+  id: string
+  internamientoId: string
+  pacienteId: string
+  estado: 'activa' | 'egresada'
+  fechaIngresoUci: string
+  fechaEgresoUci?: string
+  motivoIngresoUci: string
+  soportes: SoporteActivo[]
+  /**
+   * Peso para dosificación. Se fija explícitamente y queda con su autor: la
+   * decisión del charter §16 prohíbe cambiarlo de forma automática.
+   */
+  pesoDosificacion?: {
+    valorKg: number
+    tipo: TipoPesoDosificacion
+    fijadoPor: string
+    fijadoEn: string
+  }
+  /** Talla en cm, para poder calcular PBW y VT/PBW (charter §31). */
+  tallaCm?: number
+  codigoReanimacion?: string
+  aislamiento?: string
+  createdAt: string
+  creadoPor: string
+}
+
+/** Por qué se asignó la cama. */
+export type MotivoAsignacion = 'ingreso' | 'traslado' | 'egreso' | 'reserva'
+
+/**
+ * Asignación de cama — APPEND-ONLY, con historia.
+ * `clinics/{c}/internamientos/{iid}/bed_assignments/{id}`
+ *
+ * POR QUÉ EXISTE: `Internamiento.cama` es un STRING, y la unión cama↔paciente se
+ * hacía comparando texto. No había historia de traslados (quedaban como texto
+ * libre en `movimientos[].detalle`) ni forma de reservar una cama antes de que
+ * llegue el paciente. El string NO se borra: durante la transición conviven y el
+ * lector prefiere la asignación, con respaldo al string.
+ */
+export interface BedAssignment {
+  id: string
+  /** Ausente si la cama es de piso (no de UCI). */
+  icuStayId?: string
+  /** Referencia REAL a `Cama.id`, no un texto libre. */
+  camaId: string
+  desde: string
+  /** Abierta (vigente) mientras no tenga `hasta`. */
+  hasta?: string
+  motivo: MotivoAsignacion
+  por: string
 }
 export interface Cama {
   id: string

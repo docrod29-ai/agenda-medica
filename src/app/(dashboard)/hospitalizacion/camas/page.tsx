@@ -13,7 +13,14 @@ import { Modal, Button, Spinner } from '@/components/ui'
 import { mismaCama } from '@/lib/hospital/cama'
 import { ArrowLeft, BedDouble, Plus, Trash2, AlertTriangle } from 'lucide-react'
 
-const COLOR: Record<EstadoCama, string> = { libre: '#0d9488', ocupada: '#3d5afe', bloqueada: '#dc2626', limpieza: '#d97706' }
+// ICU-002c: siete estados. El `Record` obliga a tsc a completarlos, que es cómo
+// este mapa se encontró al ampliar el tipo. Semántica del color:
+//   verde  = disponible · azul = con paciente · ámbar = transitorio ·
+//   rojo   = no utilizable · morado = precaución de contacto.
+const COLOR: Record<EstadoCama, string> = {
+  libre: '#0d9488', ocupada: '#3d5afe', bloqueada: '#dc2626', limpieza: '#d97706',
+  reservada: '#7c3aed', mantenimiento: '#dc2626', aislamiento: '#a21caf',
+}
 const inputCls = 'w-full rounded-md border px-2.5 py-2 text-sm bg-transparent'
 
 export default function CamasPage() {
