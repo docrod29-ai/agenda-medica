@@ -98,6 +98,33 @@ export interface MotorClinico {
 const ADR = (n: string) => `docs/clinical-decisions/${n}.md`
 
 export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
+  // ── Integridad temporal del dato clínico ─────────────────────────────────
+  {
+    id: 'observacion-version', nombre: 'Observación versionada (vigencia clínica y temporal)',
+    especialidad: 'Transversal / integridad del expediente',
+    tipo: 'regla-de-seguridad',
+    version: '1.0.0',
+    referencia: 'Decisión ICU-Q3 del médico dueño, 29-jul-2026 (cierra E0-09/Q1). Alineado con effectiveDateTime/issued de HL7 FHIR Observation.',
+    unidades: "vigenteEn(ObservacionVersionada<T>[], instanteIso: string, ventanaMs: number | null) → { vigente, descartadas }. La ventana es OBLIGATORIA: omitirla lanza.",
+    redondeo: 'no aplica (no calcula magnitudes; selecciona versiones)',
+    rangoValido: {
+      fuente: 'pendiente_validacion_clinica',
+      preguntaAlMedico: 'Cuanto tiempo sigue siendo VIGENTE una observacion para entrar a un score (SpO2, TA, lactato...). La decision ICU-Q3 prohibe mezclar variables de horas distintas sin politica explicita, asi que el parametro `ventanaMs` es OBLIGATORIO y sin default: el motor esta listo, el numero lo pone el medico. Ver docs/clinical-decisions/observacion-version.md.',
+    },
+    file: 'src/lib/clinical/observacion-version.ts',
+    entryPoints: ['vigenteEn', 'serieVigente', 'construirCorreccion', 'marcarCorregido', 'esClinicamenteValida'],
+    calculos: [
+      'version clinicamente vigente en un instante (latest clinically valid, NUNCA latest database row)',
+      'herencia de la hora efectiva en una correccion (hace computable el score retrospectivo)',
+      'distincion CORRECCION vs OBSERVACION NUEVA',
+      'serie para graficar: la correccion reemplaza al original en su lugar, no anade un punto',
+    ],
+    missingData: 'ventana temporal sin declarar => LANZA FALTA_VENTANA_TEMPORAL en vez de mezclar horas distintas. Fecha invalida o del futuro => se descarta CON motivo, nunca en silencio. Serie vacia => null.',
+    adr: ADR('observacion-version'),
+    goldenTests: ['observacion-version.test.ts'],
+    estado: 'pendiente_validacion',
+    porQueExiste: 'La politica anterior era un booleano (incluye/excluye corregidos) y no podia expresar "la version clinicamente vigente". Y la correccion no conservaba la hora del hecho, asi que un NEWS2 retrospectivo no encontraba el valor corregido: descartar el erroneo dejaba un HUECO en vez de una correccion.',
+  },
   // ── Nefrología / farmacología renal ──────────────────────────────────────
   {
     id: 'ckd-epi-2021', nombre: 'CKD-EPI 2021 (TFG, race-free)', especialidad: 'Nefrología',
