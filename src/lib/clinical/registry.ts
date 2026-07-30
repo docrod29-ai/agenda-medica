@@ -474,6 +474,33 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     estado: 'validado',
     porQueExiste: 'ESTADOS_CAMA_NO_DISPONIBLE estaba declarado en los tipos y NO lo usaba nadie: el tablero sumaba a «camas libres» las camas en limpieza, mantenimiento o bloqueadas. Un jefe de guardia que lee «4 libres» y solo puede usar 1 decide un ingreso sobre un numero que no existe. Ademas, «reservada» contada como libre anula el flujo B del charter (apartar la cama antes de que llegue el paciente).',
   },
+  {
+    id: 'uci-tarjetas', nombre: 'Landing de UCI (tarjeta por paciente)',
+    especialidad: 'Cuidados criticos / triaje de atencion',
+    tipo: 'tabla-referencia',
+    version: '1.0.0',
+    referencia: 'Charter NEXUSMED CRITICAL CARE OS seccion 3 via ICU-001: «Landing de UCI con tarjetas». Solo hechos ya registrados en el episodio y en las tomas persistidas.',
+    unidades: 'construirTarjeta(entrada, ahoraIso) -> TarjetaUci · ordenarTarjetas(tarjetas) -> TarjetaUci[]',
+    redondeo: 'horas con 1 decimal solo para la frase; el orden usa el valor exacto',
+    rangoValido: {
+      fuente: 'codigo',
+      entrada: 'internamiento activo + instante de la ultima toma vigente',
+      salida: 'dia de UCI, horas desde la ultima toma y los huecos declarados',
+      ref: 'src/lib/uci/tarjetas.ts (construirTarjeta, ordenarTarjetas)',
+    },
+    file: 'src/lib/uci/tarjetas.ts',
+    entryPoints: ['construirTarjeta', 'ordenarTarjetas', 'sinNingunaToma'],
+    calculos: [
+      'dia de UCI por bloques de 24 h transcurridas (convencion declarada)',
+      'horas desde la ultima toma vigente',
+      'orden por antiguedad de la ultima toma, no por numero de cama',
+    ],
+    missingData: 'Cada hueco entra en `avisos` con su frase: sin tomas, sin cama, sin fecha de ingreso. En una lista de pacientes una tarjeta silenciosa se lee como «todo en orden». Una fecha de toma invalida cuenta como SIN TOMA, no como toma reciente. Un ingreso posterior al momento actual se declara y no produce dia 0 ni negativo.',
+    adr: ADR('uci-tarjetas'),
+    goldenTests: ['uci-tarjetas.test.ts'],
+    estado: 'validado',
+    porQueExiste: 'El orden ES la funcion: ordenar por numero de cama —que es lo natural— esconderia justo al paciente del que hace horas que nadie anota nada, que es a quien esta pantalla existe para senalar. Y la tarjeta NO dice si el paciente esta mejor o peor: eso exige una direccion de beneficio declarada, y eso vive en uci-morning-brief; un caso del golden falla si aqui aparece cualquier export con nombre de veredicto.',
+  },
   // ── Integridad temporal del dato clínico ─────────────────────────────────
   {
     id: 'observacion-version', nombre: 'Observación versionada (vigencia clínica y temporal)',

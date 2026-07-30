@@ -20,7 +20,8 @@
     "ICU-P2-4",
     "ICU-P2-3",
     "ICU-P1-7",
-    "ICU-P2-1"
+    "ICU-P2-1",
+    "ICU-P2-6"
   ],
   "unidadEnCurso": null,
   "unidades": [
@@ -160,6 +161,12 @@
       "titulo": "Estados de cama 4->7 conectados (charter 2)",
       "estado": "completada",
       "entrega": "src/lib/hospital/estados-cama.ts + 22 casos + ADR + registrado + tablero conectado. Cierra el conteo falso de camas libres."
+    },
+    {
+      "id": "ICU-P2-6",
+      "titulo": "Landing de UCI con tarjetas (charter 3)",
+      "estado": "completada",
+      "entrega": "src/lib/uci/tarjetas.ts + 21 casos + ADR + registrado + LandingUci.tsx conectado a /uci."
     }
   ],
   "necesitaValidacionDelDr": [

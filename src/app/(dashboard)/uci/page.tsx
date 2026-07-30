@@ -9,6 +9,7 @@
  * motor lo declara y no inventa. Gateado bajo el módulo de Expediente (consulta).
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
+import LandingUci from './LandingUci'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Activity, Wind, Droplets, HeartPulse, ShieldAlert, Info, Mic, Square, Waves, BedDouble, AlertTriangle, FileText, Calculator, Brain, Sparkles, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { useClinic } from '@/context/ClinicContext'
@@ -104,6 +105,10 @@ export default function UciPanelPage() {
   const router = useRouter()
   const params = useSearchParams()
   const internamientoId = params.get('internamiento') || undefined
+  // ICU-P2-6: sin paciente en la URL se muestra el LANDING (§3). El panel
+  // suelto sigue disponible a un clic: se usaba como calculadora y quitarlo
+  // seria retirar algo que ya funcionaba.
+  const [panelLibre, setPanelLibre] = useState(false)
   const { clinicId } = useClinic()
   const { toast } = useToast()
   const [inter, setInter] = useState<Internamiento | null>(null)
@@ -407,6 +412,12 @@ export default function UciPanelPage() {
     if (!inter || !internamientoId) return
     try { sessionStorage.setItem(`nx.uci.seed.${internamientoId}`, JSON.stringify(notaSecciones)) } catch { /* */ }
     router.push(`/consulta/${inter.pacienteId}?tipo=evolucion_uci&internamiento=${internamientoId}&fuente=uci`)
+  }
+
+  // Todos los hooks quedan ARRIBA de este punto: el early return no puede
+  // saltarse ninguno (reglas de hooks).
+  if (!internamientoId && !panelLibre) {
+    return <LandingUci alPanelLibre={() => setPanelLibre(true)} />
   }
 
   return (
