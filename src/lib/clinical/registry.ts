@@ -528,6 +528,33 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     estado: 'validado',
     porQueExiste: 'Cada dato responde una pregunta distinta y elegir uno destruye el otro. Ingreso lunes 23:50, se mira el martes 08:00: calendarDayNumber 2, elapsedMinutes 490, completed24hPeriods 0. Decir «Dia 1» seria falso para el turno; decir «Dia 2» a secas sugeriria un dia entero de estancia. Y calendarDayNumber es para MOSTRAR: un balance de ultimas 24 h se calcula con instantes reales, nunca con el numero de dia.',
   },
+  {
+    id: 'uci-resumen', nombre: 'Puente tomas -> motores del pase',
+    especialidad: 'Cuidados criticos / integracion de datos',
+    tipo: 'conversion',
+    version: '1.0.0',
+    referencia: 'Sin fuente clinica: convierte las TomaUci persistidas en lo que esperan uci-morning-brief (charter 30) y uci-linea-tiempo (charter 33). Toda la interpretacion sigue en esos motores.',
+    unidades: 'cambiosDeTomas(tomas, ventanaHoras, ahoraIso) -> ParMedido[] · eventosDeTomas(tomas) -> EventoLinea[]',
+    redondeo: 'ninguno: los valores pasan tal cual se guardaron',
+    rangoValido: {
+      fuente: 'codigo',
+      entrada: 'tomas ya filtradas por serieTomas (clinicamente vigentes) + ventana en horas + instante',
+      salida: 'pares de/a por metrica y eventos de cambio para la linea',
+      ref: 'src/lib/uci/resumen.ts (numero, cambiosDeTomas, eventosDeTomas, clavesSinMetrica)',
+    },
+    file: 'src/lib/uci/resumen.ts',
+    entryPoints: ['numero', 'claveBrief', 'cambiosDeTomas', 'eventosDeTomas', 'clavesSinMetrica'],
+    calculos: [
+      'traduccion de nombres del panel a metricas del charter',
+      'primer y ultimo valor por metrica dentro de la ventana',
+      'eventos de cambio para la linea de tiempo (un valor repetido NO es evento)',
+    ],
+    missingData: 'VACIO NO ES CERO: numero() devuelve null para blanco, espacios y basura, y entiende la coma decimal mexicana — respuesta directa al hallazgo confirmado de la auditoria del 26-jul (un num() duplicado en 12 motores convierte un espacio en 0 y pierde «12,5» en silencio). Un 0 inventado en una FiO2 no es dato faltante, es dato FALSO. Con UN SOLO punto no se emite cambio y la metrica entra en `conUnSoloPunto`: fabricar el par contra si mismo diria «sin cambio» donde hay falta de comparacion.',
+    adr: ADR('uci-resumen'),
+    goldenTests: ['uci-resumen.test.ts'],
+    estado: 'validado',
+    porQueExiste: 'El puente puede romperse EN SILENCIO: el panel guarda `norepi`/`creat` y el brief usa `ne`/`creatinina`. Si el mapa se desalinea, el Morning Brief no falla — sale vacio para siempre y nadie sabe por que. Por eso el mapa es explicito y un caso comprueba que todo destino existe en METRICAS_BRIEF, y clavesSinMetrica() lista lo que se captura pero aun no llega a ninguna metrica.',
+  },
   // ── Integridad temporal del dato clínico ─────────────────────────────────
   {
     id: 'observacion-version', nombre: 'Observación versionada (vigencia clínica y temporal)',

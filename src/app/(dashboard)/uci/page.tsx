@@ -10,6 +10,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import LandingUci from './LandingUci'
+import ResumenPase from './ResumenPase'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Activity, Wind, Droplets, HeartPulse, ShieldAlert, Info, Mic, Square, Waves, BedDouble, AlertTriangle, FileText, Calculator, Brain, Sparkles, ThumbsUp, ThumbsDown, ArrowLeft } from 'lucide-react'
 import { useClinic } from '@/context/ClinicContext'
@@ -113,6 +114,9 @@ export default function UciPanelPage() {
   // suelto sigue disponible a un clic: se usaba como calculadora y quitarlo
   // seria retirar algo que ya funcionaba.
   const [panelLibre, setPanelLibre] = useState(false)
+  // Decisión del Dr. (2026-07-30): dentro del paciente, el pase va antes que la
+  // calculadora. El panel fisiológico NO se quita: es una pestaña más.
+  const [pestana, setPestana] = useState<'resumen' | 'panel' | 'linea'>('resumen')
   const { clinicId } = useClinic()
   const { toast } = useToast()
   const [inter, setInter] = useState<Internamiento | null>(null)
@@ -483,6 +487,26 @@ export default function UciPanelPage() {
         <Info size={14} /> Apoyo decisional. El código calcula, el motor verifica; tú revisas y firmas. Si falta un dato, no se inventa.
       </p>
 
+      {internamientoId && (
+        <div role="tablist" style={{ display: 'flex', gap: 4, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
+          {([['resumen', 'Resumen del pase'], ['panel', 'Panel fisiológico'], ['linea', 'Línea de tiempo']] as const).map(([k, txt]) => (
+            <button
+              key={k} role="tab" aria-selected={pestana === k}
+              onClick={() => setPestana(k)}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer', padding: '9px 14px',
+                fontSize: 13, fontWeight: pestana === k ? 700 : 500, minHeight: 40,
+                color: pestana === k ? 'var(--nexus,#3d5afe)' : 'var(--text3)',
+                borderBottom: `2px solid ${pestana === k ? 'var(--nexus,#3d5afe)' : 'transparent'}`,
+                marginBottom: -1,
+              }}
+            >
+              {txt}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Paciente ingresado (o aviso de modo calculadora) */}
       {inter ? (
         <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: '12px 16px', marginBottom: 14 }}>
@@ -559,6 +583,22 @@ export default function UciPanelPage() {
         </div>
       )}
 
+      {/* Resumen del pase y línea de tiempo: los motores del charter, en pantalla.
+          Sólo con paciente — sin expediente no hay nada que resumir. */}
+      {internamientoId && clinicId && pestana !== 'panel' && (
+        <ResumenPase
+          clinicId={clinicId}
+          internamientoId={internamientoId}
+          vista={pestana}
+          zonaHoraria={config.zonaHoraria || 'America/Mexico_City'}
+          soportes={soportes ?? []}
+          cama={inter?.cama?.trim() || null}
+          diaUci={estanciaUci?.calendarDayNumber ?? null}
+          diaVm={null}
+        />
+      )}
+
+      {(!internamientoId || pestana === 'panel') && (<>
       {/* Voz del pase de visita (adscritos + residentes) → prellena el panel */}
       <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 14, marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -1034,6 +1074,8 @@ export default function UciPanelPage() {
           </div>
         </div>
       </details>
+      </>)}
+
       <style>{`@media (max-width: 820px){ .nx-uci-grid { grid-template-columns: 1fr !important; } }`}</style>
     </main>
   )

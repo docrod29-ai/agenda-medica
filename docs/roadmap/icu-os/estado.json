@@ -22,7 +22,8 @@
     "ICU-P1-7",
     "ICU-P2-1",
     "ICU-P2-6",
-    "ICU-DEC-2026-07-30"
+    "ICU-DEC-2026-07-30",
+    "ICU-UI-1"
   ],
   "unidadEnCurso": null,
   "unidades": [
@@ -174,6 +175,12 @@
       "titulo": "Decisiones del Dr.: rotacion de cama + dia de UCI",
       "estado": "completada",
       "entrega": "src/lib/uci/estancia.ts (18 casos) + estados-cama con politica y override (42 casos) + tarjetas con soportes + /uci como expediente. Default seguro de limpieza terminal."
+    },
+    {
+      "id": "ICU-UI-1",
+      "titulo": "Resumen del pase y linea de tiempo en pantalla",
+      "estado": "completada",
+      "entrega": "src/lib/uci/resumen.ts (25 casos) + ResumenPase.tsx + pestanas en /uci. Los motores 30/33/35/36 dejan de ser invisibles."
     }
   ],
   "necesitaValidacionDelDr": [
