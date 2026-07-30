@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "descripcion": "ESTADO DURABLE del programa ICU Critical Care OS. Fuente de verdad del avance. Se actualiza tras CADA unidad. Si se acaban los créditos o se cae el internet, este archivo dice exactamente dónde retomar sin perder nada.",
+  "decision": "(a) FUSIONAR — la máquina de estados y la hora efectiva se construyen una vez y sirven a signos de piso y a UCI. Elegida por el Dr. el 29-jul-2026.",
+  "completadas": ["ICU-001", "ICU-002a"],
+  "unidadEnCurso": null,
+  "unidades": [
+    { "id": "ICU-001",  "titulo": "Auditoría y arquitectura",                     "estado": "completada", "entrega": "docs/roadmap/icu-os/ICU-001-AUDITORIA-Y-ARQUITECTURA.md" },
+    { "id": "ICU-002a", "titulo": "Núcleo de observación versionada (fusión)",     "estado": "completada", "entrega": "src/lib/clinical/observacion-version.ts + 35 casos + ADR" },
+    { "id": "ICU-002b", "titulo": "Aplicar el núcleo a RegistroSignos (cierra E0-09)", "estado": "pendiente", "depende": ["ICU-002a"],
+      "alcance": "Sustituir PoliticaSignoCorregido por la máquina de estados. Añadir fechaEfectiva/fechaRegistro a RegistroSignos con lector compatible (el `fecha` viejo NO se borra). Migrar signosParaCalculoClinico a vigenteEn. Retirar FALTA_POLITICA_Q1 y su guardián, que ya está resuelto.",
+      "riesgo": "Toca producción: la ficha de hospitalización y NEWS2. El guardián de E0-09 exige que ninguna pantalla cablee el cálculo — ese guardián se ACTUALIZA con la decisión escrita, no se borra." },
+    { "id": "ICU-002c", "titulo": "ICUStay + BedAssignment", "estado": "pendiente", "depende": ["ICU-002b"],
+      "alcance": "Modelos nuevos, aditivos. NO crear HospitalEncounter: `Internamiento` ya lo es. La cama deja de ser un string; el lector prefiere la asignación con respaldo al string (patrón REG-014).",
+      "riesgo": "Ampliar EstadoCama de 4 a 7 obliga a barrer todos los consumidores (el Record lo fuerza en tsc)." },
+    { "id": "ICU-002d", "titulo": "Reglas Firestore + suite del emulador", "estado": "pendiente", "depende": ["ICU-002c"],
+      "alcance": "3 subcolecciones nuevas. Las reglas son ADITIVAS: verificar que ninguna regla amplia ya las cubra (lección REG-014).",
+      "riesgo": "ALTO — fuga cross-tenant de PHI de UCI. Exigir la suite del emulador de E0-08 en el PR." },
+    { "id": "ICU-003",  "titulo": "Persistir ICUObservation (arregla el P0)", "estado": "pendiente", "depende": ["ICU-002d"],
+      "alcance": "El hallazgo central de ICU-001: hoy las lecturas viven solo en localStorage, tope 24, y el logout las purga. Va SOLA por ser el cambio de mayor riesgo.",
+      "riesgo": "ALTO — escribe PHI nueva en volumen. Cota de lecturas como getSignos (TOPE 200)." }
+  ],
+  "necesitaValidacionDelDr": [
+    { "id": "ICU-VENTANA", "pregunta": "Cuánto tiempo sigue siendo VIGENTE una observación para entrar a un score (SpO2, TA, lactato). El motor está listo; el parámetro es obligatorio y sin default a propósito.", "bloquea": "nada — cada llamador pasa null explícito mientras tanto" },
+    { "id": "ICU-Q1-CAPA-C", "pregunta": "Las 200-500 grabaciones reales de voluntarios de la Capa C. No bloquea: las capas A y B son programáticas.", "bloquea": "solo la Capa C del benchmark" },
+    { "id": "ICU-Q2-HOSPITAL", "pregunta": "Las preparaciones de infusión de su unidad. Sin ellas, HOSPITAL STANDARD queda vacío y el médico captura cantidad/volumen/velocidad a mano, como pide su decisión.", "bloquea": "nada — la jerarquía ya lo contempla" }
+  ],
+  "protocolo": "UNA unidad por corrida. Tras cada una: gates (tsc + vitest + build), commit, y actualizar este archivo ANTES de empezar la siguiente. Nunca desplegar sin que el Dr. lo pida. Nunca inventar un umbral clínico."
+}
