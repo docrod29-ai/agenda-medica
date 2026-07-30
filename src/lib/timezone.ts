@@ -16,6 +16,20 @@
  * clínica está en otra zona (config.zonaHoraria).
  */
 
+/**
+ * Zona de último recurso. **Ya no es un parámetro por omisión.**
+ *
+ * La auditoría del 26-jul lo confirmó: las funciones aceptaban `tz` pero 32
+ * llamadas NO se lo pasaban, así que todo el consultorio de Hermosillo (UTC-7) o
+ * Tijuana (UTC-8) —zonas que la propia interfaz ofrece— quedaba corrido 1-2 h en
+ * recordatorios, corte de caja y en la validación de «no agendar en el pasado».
+ * Y era SILENCIOSO: nadie veía un error, sólo citas raras.
+ *
+ * Ahora `tz` es OBLIGATORIA en todas las funciones de este archivo. Quien no
+ * tenga la zona del consultorio a mano tiene que ir a buscarla, y si de verdad
+ * no hay ninguna, escribe `TZ_DEFAULT` a la vista de quien lea el código —
+ * no escondida en una firma.
+ */
 export const TZ_DEFAULT = 'America/Mexico_City'
 
 /** Fecha de HOY en la zona dada, formato YYYY-MM-DD. */
