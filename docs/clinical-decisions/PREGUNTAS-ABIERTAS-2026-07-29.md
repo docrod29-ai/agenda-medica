@@ -6,6 +6,24 @@ esperando: si no contestas, se queda en el estado conservador.
 
 ---
 
+## ✅ Q-A — RESUELTA el 29-jul-2026
+
+Contestada dos veces, y la segunda amplió la primera:
+
+1. **Enmienda A3-bis:** se corrige SIEMPRE, sin ventana de tiempo, conservando
+   historial. Implementado y desplegado en v707 (el botón de la ficha ya corrige
+   en vez de intentar borrar).
+2. **ICU-Q3** (`DECISIONES-ICU-VOICE-INFUSION-OBSERVATION.md`) resolvió además la
+   parte de **cálculo**, que era E0-09/Q1: la observación corregida SÍ entra al
+   cálculo si es la versión clínica vigente, con máquina de estados de 6 valores
+   y `latest clinically valid observation`, nunca `latest database row`.
+
+**Requisito nuevo descubierto al implementarla:** la corrección debe heredar la
+**hora efectiva** del original (C2 de ese documento). Sin eso, «el NEWS2
+retrospectivo de las 08:00 usa 92» no es computable.
+
+<details><summary>Planteamiento original</summary>
+
 ## Q-A · Signos vitales append-only: ¿aplica sin estado «firmado»?
 
 **Bloquea:** E0-09 (registro hospitalario append-only) — un parche de 3 líneas en
@@ -29,7 +47,9 @@ captura**, o hay una ventana para corregir un dedazo?
 porque cambiarla afecta a producción y §5 de la carta operativa me prohíbe
 ejecutar a ciegas un cambio con riesgo de regresión visible.
 
-**Tu respuesta:**
+**Tu respuesta:** ver arriba.
+
+</details>
 
 ---
 
