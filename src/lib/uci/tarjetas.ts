@@ -15,15 +15,18 @@
  * cama. En una UCI, el paciente del que hace más rato que no se anota nada es el
  * que hay que mirar; ordenarlas por cama esconde justo a ese.
  *
- * ── DÍA DE UCI: LA CONVENCIÓN ESTÁ DECLARADA ─────────────────────────────────
+ * ── DÍA DE UCI ───────────────────────────────────────────────────────────────
  *
- * Se cuenta por **bloques de 24 h transcurridas**: día 1 son las primeras 24 h
- * desde el ingreso. Es la única forma de contarlo sin depender de la zona
- * horaria del navegador (lección REG-011). Si la unidad cuenta por día de
- * calendario, es otra convención y la fija el médico — ver el ADR.
+ * No se calcula aquí: lo resuelve `@/lib/uci/estancia`, que por decisión del Dr.
+ * (2026-07-30) **guarda los tres datos** —día de calendario en la zona de la
+ * unidad, minutos exactos y periodos de 24 h cumplidos— en vez de elegir uno.
+ * La tarjeta muestra «Día UCI N · X h de estancia».
  *
  * Módulo PURO: el instante entra como parámetro, no hay reloj propio.
  */
+
+import { medirEstancia, type MedidaEstancia } from '@/lib/uci/estancia'
+import type { SoporteActivo } from '@/types/hospital'
 
 export interface EntradaTarjeta {
   internamientoId: string
@@ -34,6 +37,10 @@ export interface EntradaTarjeta {
   dxIngreso?: string | null
   /** Ingreso al episodio, ISO. */
   ingresoEn: string
+  /** Zona horaria de la UNIDAD (`config.zonaHoraria`). Obligatoria. */
+  unitTimezone: string
+  /** Soportes activos documentados en la estancia. */
+  soportes?: readonly SoporteActivo[]
   /** La toma VIGENTE más reciente (ya filtrada por `serieTomas`). */
   ultimaTomaEn?: string | null
   ultimaTomaPor?: string | null
@@ -46,9 +53,9 @@ export interface TarjetaUci {
   cama: string | null
   servicio: string | null
   dxIngreso: string | null
-  /** Día de estancia por bloques de 24 h: día 1 = primeras 24 h. */
-  diaUci: number
-  horasDesdeIngreso: number
+  /** Los tres datos de estancia. `null` si no consta la fecha de ingreso. */
+  estancia: MedidaEstancia | null
+  soportes: SoporteActivo[]
   ultimaTomaEn: string | null
   /** Horas desde la última toma. `null` si no hay ninguna. */
   horasDesdeUltimaToma: number | null
@@ -59,6 +66,10 @@ export interface TarjetaUci {
 }
 
 const H = 3_600_000
+
+export const SIN_SOPORTES =
+  'No consta ningún soporte activo documentado en la estancia. El sistema NO los ' +
+  'deduce de las mediciones: que haya PEEP anotada no prueba que siga ventilado.'
 
 export const SIN_TOMAS =
   'Sin ninguna toma registrada en este episodio: la tarjeta no puede decir nada ' +
@@ -77,19 +88,17 @@ export function construirTarjeta(e: EntradaTarjeta, ahoraIso: string): TarjetaUc
   const ingreso = Date.parse(e.ingresoEn)
   const avisos: string[] = []
 
-  let horasDesdeIngreso = 0
-  let diaUci = 1
+  let estancia: MedidaEstancia | null = null
   if (Number.isNaN(ingreso)) {
     avisos.push('No consta la fecha de ingreso: no se puede calcular el día de UCI.')
   } else {
-    horasDesdeIngreso = (ahora - ingreso) / H
-    // Día 1 = primeras 24 h. Un ingreso en el futuro no produce un día 0 ni
-    // negativo: se declara y se queda en 1.
-    if (horasDesdeIngreso < 0) {
-      avisos.push('La fecha de ingreso es posterior al momento actual.')
-      horasDesdeIngreso = 0
-    }
-    diaUci = Math.floor(horasDesdeIngreso / 24) + 1
+    if (ahora < ingreso) avisos.push('La fecha de ingreso es posterior al momento actual.')
+    estancia = medirEstancia({ admittedAt: e.ingresoEn, unitTimezone: e.unitTimezone }, ahoraIso)
+  }
+
+  const soportes = [...(e.soportes ?? [])]
+  if (soportes.length === 0) {
+    avisos.push(SIN_SOPORTES)
   }
 
   const tomaMs = e.ultimaTomaEn ? Date.parse(e.ultimaTomaEn) : NaN
@@ -106,8 +115,8 @@ export function construirTarjeta(e: EntradaTarjeta, ahoraIso: string): TarjetaUc
     cama: e.cama?.trim() || null,
     servicio: e.servicio ?? null,
     dxIngreso: e.dxIngreso ?? null,
-    diaUci,
-    horasDesdeIngreso,
+    estancia,
+    soportes,
     ultimaTomaEn: hayToma ? e.ultimaTomaEn! : null,
     horasDesdeUltimaToma: hayToma ? (ahora - tomaMs) / H : null,
     ultimaTomaPor: e.ultimaTomaPor ?? null,

@@ -11,13 +11,14 @@
 // ══════════════════════════════════════════════════════════════
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Activity, BedDouble, AlertTriangle, Clock } from 'lucide-react'
+import { Activity, BedDouble, AlertTriangle, Clock, Wrench, UserPlus } from 'lucide-react'
 import { useClinic } from '@/context/ClinicContext'
+import { useConfig } from '@/hooks/useConfig'
 import { suscribirCenso } from '@/lib/hospital/firestore'
 import { getTomas, serieTomas } from '@/lib/uci/observaciones'
 import { construirTarjeta, ordenarTarjetas, type TarjetaUci } from '@/lib/uci/tarjetas'
 import { Spinner } from '@/components/ui'
-import type { Internamiento } from '@/types/hospital'
+import { SOPORTE_LABEL, type Internamiento } from '@/types/hospital'
 
 /**
  * Ventana de lectura por paciente. NO es el tope de la ficha (200): esta
@@ -26,6 +27,17 @@ import type { Internamiento } from '@/types/hospital'
  * recientes y saber cuándo fue la última toma.
  */
 const TOPE_LANDING = 30
+
+const botonBase: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 9,
+  padding: '9px 15px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+}
+const botonPrimario: React.CSSProperties = {
+  ...botonBase, background: 'var(--nexus,#3d5afe)', border: '1px solid transparent', color: '#fff',
+}
+const botonSecundario: React.CSSProperties = {
+  ...botonBase, background: 'none', border: '1px solid var(--border)', color: 'var(--text2)',
+}
 
 const esUci = (i: Internamiento) => /uci|intensiv/i.test(i.servicio ?? '')
 
@@ -39,6 +51,11 @@ function tiempo(horas: number | null): string {
 export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void }) {
   const router = useRouter()
   const { clinicId } = useClinic()
+  // La zona horaria es la de la UNIDAD, nunca la del navegador: el mismo
+  // paciente debe estar en el mismo día de UCI para quien pasa visita y para
+  // quien lo consulta desde otro huso.
+  const { config } = useConfig()
+  const tz = config.zonaHoraria || 'America/Mexico_City'
   const [tarjetas, setTarjetas] = useState<TarjetaUci[] | null>(null)
 
   useEffect(() => {
@@ -60,6 +77,11 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
           servicio: i.servicio,
           dxIngreso: i.diagnosticoIngreso,
           ingresoEn: i.fechaIngreso,
+          unitTimezone: tz,
+          // Los soportes salen de la estancia UCI cuando exista (ICUStay). NO se
+          // deducen de las mediciones: que haya PEEP anotada no prueba que siga
+          // ventilado. Mientras tanto, la tarjeta declara el hueco.
+          soportes: [],
           ultimaTomaEn: ultima?.medidoEn ?? null,
           ultimaTomaPor: ultima?.por ?? null,
           ultimaTomaFuente: ultima?.fuente ?? null,
@@ -68,7 +90,7 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
       if (vivo) setTarjetas(ordenarTarjetas(armadas))
     })
     return () => { vivo = false; off?.() }
-  }, [clinicId])
+  }, [clinicId, tz])
 
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '8px 4px 40px' }}>
@@ -82,8 +104,18 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
       {tarjetas === null ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}><Spinner /></div>
       ) : tarjetas.length === 0 ? (
-        <div style={{ fontSize: 13, color: 'var(--text3)', padding: 24, textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 12 }}>
-          No hay pacientes activos en UCI / Terapia Intensiva en el censo.
+        <div style={{ padding: 28, textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 12 }}>
+          <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
+            No hay pacientes activos en UCI / Terapia Intensiva en el censo.
+          </div>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button onClick={() => router.push('/hospitalizacion?nuevo=1&servicio=UCI')} style={botonPrimario}>
+              <UserPlus size={14} /> Ingresar paciente a UCI
+            </button>
+            <button onClick={alPanelLibre} style={botonSecundario}>
+              <Wrench size={14} /> Abrir herramientas rápidas
+            </button>
+          </div>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
@@ -104,7 +136,7 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
                     {t.pacienteNombre}
                   </span>
                   <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', flexShrink: 0 }}>
-                    Día {t.diaUci}
+                    {t.estancia?.etiqueta.replace(' de estancia', '') ?? 'Sin fecha de ingreso'}
                   </span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 12, color: 'var(--text2)' }}>
@@ -114,6 +146,15 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
                 {t.dxIngreso && (
                   <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {t.dxIngreso}
+                  </div>
+                )}
+                {t.soportes.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+                    {t.soportes.map(sp => (
+                      <span key={sp} style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 5, background: 'rgba(61,90,254,0.12)', color: 'var(--nexus,#3d5afe)' }}>
+                        {SOPORTE_LABEL[sp]}
+                      </span>
+                    ))}
                   </div>
                 )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: 12, fontWeight: 600, color: alerta ? '#dc2626' : 'var(--text2)' }}>
@@ -132,12 +173,11 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
         </div>
       )}
 
-      <button
-        onClick={alPanelLibre}
-        style={{ marginTop: 22, background: 'none', border: '1px solid var(--border)', borderRadius: 9, padding: '8px 14px', fontSize: 12.5, color: 'var(--text2)', cursor: 'pointer' }}
-      >
-        Abrir el panel sin paciente (calculadora)
-      </button>
+      {tarjetas !== null && tarjetas.length > 0 && (
+        <button onClick={alPanelLibre} style={{ ...botonSecundario, marginTop: 22 }}>
+          <Wrench size={14} /> Herramientas UCI · panel fisiológico
+        </button>
+      )}
     </div>
   )
 }

@@ -11,7 +11,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import LandingUci from './LandingUci'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Activity, Wind, Droplets, HeartPulse, ShieldAlert, Info, Mic, Square, Waves, BedDouble, AlertTriangle, FileText, Calculator, Brain, Sparkles, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { Activity, Wind, Droplets, HeartPulse, ShieldAlert, Info, Mic, Square, Waves, BedDouble, AlertTriangle, FileText, Calculator, Brain, Sparkles, ThumbsUp, ThumbsDown, ArrowLeft } from 'lucide-react'
 import { useClinic } from '@/context/ClinicContext'
 import { useToast } from '@/context/ToastContext'
 import { fetchAutenticado } from '@/lib/auth-client'
@@ -422,9 +422,21 @@ export default function UciPanelPage() {
 
   return (
     <main style={{ maxWidth: 1180, margin: '0 auto', padding: '20px 20px 80px', color: 'var(--text)' }}>
+      {/* Decisión del Dr. (2026-07-30): /uci es el expediente, no la calculadora.
+          Abierto sin paciente, esto es una HERRAMIENTA, y se nombra como tal. */}
+      {!internamientoId && (
+        <button
+          onClick={() => setPanelLibre(false)}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 13, marginBottom: 12, padding: 0 }}
+        >
+          <ArrowLeft size={15} /> Pacientes y camas de UCI
+        </button>
+      )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
         <Activity size={22} style={{ color: 'var(--nexus)' }} />
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>Panel de UCI</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>
+          {internamientoId ? 'Panel de UCI' : 'Herramientas UCI · panel fisiológico'}
+        </h1>
       </div>
       <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 16px', display: 'flex', gap: 6, alignItems: 'center' }}>
         <Info size={14} /> Apoyo decisional. El código calcula, el motor verifica; tú revisas y firmas. Si falta un dato, no se inventa.

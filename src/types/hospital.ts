@@ -338,15 +338,24 @@ export const ESTUDIOS_LAB_RAPIDOS = [
 export type EstadoCama =
   | 'libre' | 'ocupada' | 'bloqueada' | 'limpieza'
   | 'reservada' | 'mantenimiento' | 'aislamiento'
+  // ── Decisión del Dr. (2026-07-30) — flujo de rotación de cama ──
+  // `limpieza` pasa a significar PENDING_TERMINAL_CLEANING: el mismo valor que
+  // ya está guardado en los documentos, con el significado explícito. Se añaden
+  // los dos pasos que faltaban del flujo:
+  //   ocupada → limpieza → lista → libre
+  | 'lista'                  // CLEAN_READY: limpieza confirmada, falta liberarla
+  | 'limpieza_aislamiento'   // ISOLATION_CLEANING: precauciones de transmisión
 
 export const ESTADO_CAMA_LABEL: Record<EstadoCama, string> = {
-  libre: 'Libre', ocupada: 'Ocupada', bloqueada: 'Bloqueada', limpieza: 'Limpieza',
+  libre: 'Libre', ocupada: 'Ocupada', bloqueada: 'Bloqueada',
+  limpieza: 'Pendiente de limpieza terminal',
   reservada: 'Reservada', mantenimiento: 'Mantenimiento', aislamiento: 'Aislamiento',
+  lista: 'Limpia y lista', limpieza_aislamiento: 'Limpieza de aislamiento',
 }
 
 /** Estados en los que la cama NO puede recibir a un paciente nuevo. */
 export const ESTADOS_CAMA_NO_DISPONIBLE: readonly EstadoCama[] = [
-  'ocupada', 'bloqueada', 'limpieza', 'mantenimiento',
+  'ocupada', 'bloqueada', 'limpieza', 'mantenimiento', 'limpieza_aislamiento',
 ]
 
 // ══════════════════════════════════════════════════════════════

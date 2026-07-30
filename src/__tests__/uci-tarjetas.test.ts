@@ -4,6 +4,7 @@ import {
   ordenarTarjetas,
   sinNingunaToma,
   SIN_TOMAS,
+  SIN_SOPORTES,
   type EntradaTarjeta,
 } from '@/lib/uci/tarjetas'
 
@@ -19,6 +20,7 @@ import {
  */
 
 const AHORA = '2026-07-30T12:00:00Z'
+const TZ = 'America/Chihuahua'
 
 const ent = (e: Partial<EntradaTarjeta> = {}): EntradaTarjeta => ({
   internamientoId: 'int-1',
@@ -27,6 +29,8 @@ const ent = (e: Partial<EntradaTarjeta> = {}): EntradaTarjeta => ({
   servicio: 'UCI / Terapia Intensiva',
   dxIngreso: 'Diagnóstico ficticio',
   ingresoEn: '2026-07-27T12:00:00Z',
+  unitTimezone: TZ,
+  soportes: ['vm_invasiva', 'vasopresor'],
   ultimaTomaEn: '2026-07-30T10:00:00Z',
   ...e,
 })
@@ -55,38 +59,58 @@ describe('§3 · la tarjeta dice hechos, no veredictos', () => {
 })
 
 // ═══════════════════════════════════════════════════════════════════════
-describe('§3 · día de UCI: la convención está declarada', () => {
-  it('día 1 son las primeras 24 h', () => {
-    expect(construirTarjeta(ent({ ingresoEn: '2026-07-30T11:00:00Z' }), AHORA).diaUci).toBe(1)
-    expect(construirTarjeta(ent({ ingresoEn: '2026-07-29T13:00:00Z' }), AHORA).diaUci).toBe(1)
+describe('§3 · el día de UCI lo resuelve el motor de estancia', () => {
+  it('la tarjeta muestra el día Y la duración, no uno de los dos', () => {
+    // Decisión del Dr. (2026-07-30): no se elige entre día de calendario y
+    // bloques de 24 h; se guardan los tres datos.
+    const t = construirTarjeta(ent({ ingresoEn: '2026-07-27T23:50:00-06:00' }), '2026-07-28T08:00:00-06:00')
+    expect(t.estancia!.calendarDayNumber).toBe(2)
+    expect(t.estancia!.elapsedMinutes).toBe(490)
+    expect(t.estancia!.completed24hPeriods).toBe(0)
+    expect(t.estancia!.etiqueta).toBe('Día UCI 2 · 8 h de estancia')
   })
 
-  it('a las 24 h exactas empieza el día 2', () => {
-    expect(construirTarjeta(ent({ ingresoEn: '2026-07-29T12:00:00Z' }), AHORA).diaUci).toBe(2)
-  })
-
-  it('tres días de estancia son día 4', () => {
-    expect(construirTarjeta(ent({ ingresoEn: '2026-07-27T12:00:00Z' }), AHORA).diaUci).toBe(4)
-  })
-
-  it('la cuenta no depende de la zona horaria del navegador', () => {
-    // Bloques de 24 h transcurridas: mismo instante escrito con otro desfase da
-    // el mismo día. Es la lección REG-011.
-    const utc = construirTarjeta(ent({ ingresoEn: '2026-07-27T12:00:00Z' }), AHORA)
-    const off = construirTarjeta(ent({ ingresoEn: '2026-07-27T06:00:00-06:00' }), AHORA)
-    expect(off.diaUci).toBe(utc.diaUci)
+  it('el día se calcula en la zona de la UNIDAD, no en la del navegador', () => {
+    const ing = '2026-07-27T20:00:00Z'
+    const mx = construirTarjeta(ent({ ingresoEn: ing, unitTimezone: 'America/Chihuahua' }), '2026-07-28T05:00:00Z')
+    const es = construirTarjeta(ent({ ingresoEn: ing, unitTimezone: 'Europe/Madrid' }), '2026-07-28T05:00:00Z')
+    expect(mx.estancia!.calendarDayNumber).toBe(1)
+    expect(es.estancia!.calendarDayNumber).toBe(2)
+    expect(mx.estancia!.elapsedMinutes).toBe(es.estancia!.elapsedMinutes)
   })
 
   it('un ingreso en el futuro se declara y no produce día 0 ni negativo', () => {
     const t = construirTarjeta(ent({ ingresoEn: '2026-07-31T00:00:00Z' }), AHORA)
-    expect(t.diaUci).toBe(1)
-    expect(t.horasDesdeIngreso).toBe(0)
+    expect(t.estancia!.calendarDayNumber).toBe(1)
+    expect(t.estancia!.elapsedMinutes).toBe(0)
     expect(t.avisos.join(' ')).toMatch(/posterior al momento actual/)
   })
 
-  it('sin fecha de ingreso se dice, no se inventa', () => {
+  it('sin fecha de ingreso no hay estancia, y se dice', () => {
     const t = construirTarjeta(ent({ ingresoEn: 'ayer' }), AHORA)
+    expect(t.estancia).toBeNull()
     expect(t.avisos.join(' ')).toMatch(/No consta la fecha de ingreso/)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════
+describe('§3 · soportes activos: documentados, NUNCA deducidos', () => {
+  it('salen los que constan en la estancia', () => {
+    expect(construirTarjeta(ent(), AHORA).soportes).toEqual(['vm_invasiva', 'vasopresor'])
+  })
+
+  it('si no consta ninguno, se dice — y se dice que NO se deducen', () => {
+    // Que haya PEEP anotada no prueba que el paciente siga ventilado.
+    const t = construirTarjeta(ent({ soportes: [] }), AHORA)
+    expect(t.soportes).toEqual([])
+    expect(t.avisos).toContain(SIN_SOPORTES)
+    expect(SIN_SOPORTES).toMatch(/NO los deduce de las mediciones/)
+  })
+
+  it('no muta el arreglo que recibe', () => {
+    const soportes = ['ecmo'] as const
+    construirTarjeta(ent({ soportes }), AHORA).soportes.push('ckrt')
+    expect(soportes).toHaveLength(1)
   })
 })
 
@@ -112,6 +136,11 @@ describe('§3 · los huecos nunca se callan', () => {
 
   it('una tarjeta completa no inventa avisos', () => {
     expect(construirTarjeta(ent(), AHORA).avisos).toEqual([])
+  })
+
+  it('los avisos son acumulativos: faltan tres cosas, se dicen las tres', () => {
+    const t = construirTarjeta(ent({ cama: '', soportes: [], ultimaTomaEn: null }), AHORA)
+    expect(t.avisos).toHaveLength(3)
   })
 
   it('un instante inválido LANZA', () => {

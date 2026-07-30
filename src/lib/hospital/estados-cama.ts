@@ -1,40 +1,80 @@
 /**
- * ESTADOS DE CAMA — charter §2, los 7 estados.
+ * ESTADOS DE CAMA — charter §2, con el flujo de rotación decidido por el Dr.
  *
- * El tipo `EstadoCama` ya pasó de 4 a 7 en ICU-002. Este módulo es la otra
- * mitad: **qué significa cada estado para la capacidad** y **qué transiciones
- * tienen sentido**.
+ * ── LA DECISIÓN (2026-07-30) ─────────────────────────────────────────────────
  *
- * ── EL DEFECTO QUE CIERRA ────────────────────────────────────────────────────
+ * El default seguro **no** es dejar pasar `ocupada → libre`. Tras alta o
+ * traslado, el flujo es:
  *
- * `ESTADOS_CAMA_NO_DISPONIBLE` existía en los tipos y **no lo usaba nadie**. El
- * tablero contaba como ocupadas sólo las camas en `ocupada`, así que una cama en
- * **mantenimiento**, en **limpieza** o **bloqueada** se sumaba a «camas libres».
- * Un jefe de guardia que lee «4 libres» y sólo puede usar 1 toma decisiones de
- * ingreso sobre un número que no existe.
+ *     ocupada → limpieza (terminal) → lista (confirmada) → libre
  *
- * ── POR QUÉ «DISPONIBLE» NO ES UN SÍ/NO ──────────────────────────────────────
+ * y **nunca** `ocupada → libre` por omisión. El Dr. lo fundamenta en las
+ * recomendaciones de CDC sobre limpieza y desinfección terminal tras traslado o
+ * egreso, con énfasis en UCI y en precauciones basadas en transmisión; la
+ * decisión y su fundamento están en `docs/clinical-decisions/estados-cama.md`.
  *
- * Dos estados no caben en el binario:
+ * Cada hospital **puede** configurarlo (`PoliticaCamas`), pero el default de
+ * NexusMED es la limpieza terminal requerida. Un default permisivo se vuelve la
+ * práctica real del 90 % de las unidades porque nadie cambia lo que ya funciona.
  *
- *  · **reservada** — la cama está libre y **no** se le puede meter a cualquiera:
- *    ese es justamente el flujo B del charter (reservar antes de que llegue el
- *    paciente). Contarla como libre anula la reserva.
- *  · **aislamiento** — puede recibir paciente, pero **sólo uno que requiera
- *    aislamiento**. Quién lo requiere es criterio médico, no de este módulo, así
- *    que la cama sale como `condicionada` y la decisión queda con quien la toma.
+ * ── EL OVERRIDE EXISTE, PERO DEJA HUELLA ─────────────────────────────────────
  *
- * ── LO QUE NO SE ASUME ───────────────────────────────────────────────────────
+ * Una UCI llena a las 3 de la mañana necesita poder saltarse el paso. Por eso
+ * hay override de emergencia — pero **sólo** para usuario autorizado, **con
+ * motivo**, y devolviendo un `RegistroOverride` que el llamador tiene que
+ * guardar. Un override silencioso es peor que no tenerlo: convierte la política
+ * en decorado.
  *
- * Si una cama puede pasar de **ocupada a libre sin limpieza** es una política de
- * la unidad. El módulo no la impone ni la omite: se pasa como parámetro
- * obligatorio. Ver `FALTA_POLITICA_LIMPIEZA`.
+ * ── LO QUE ESTE MÓDULO NO CODIFICA ───────────────────────────────────────────
+ *
+ * Productos, tiempos de contacto, protocolos de desinfección y qué precauciones
+ * exigen `limpieza_aislamiento`. Eso es configuración de control de infecciones
+ * del hospital, no una constante universal.
+ *
+ * ── EL DEFECTO QUE CERRÓ ─────────────────────────────────────────────────────
+ *
+ * `ESTADOS_CAMA_NO_DISPONIBLE` existía en los tipos y **no lo usaba nadie**: el
+ * tablero sumaba a «camas libres» las camas en limpieza, mantenimiento o
+ * bloqueadas. Quien lee «4 libres» y sólo puede usar 1 decide un ingreso sobre
+ * un número que no existe.
  *
  * Módulo PURO.
  */
 
 import type { EstadoCama } from '@/types/hospital'
 import { ESTADOS_CAMA_NO_DISPONIBLE } from '@/types/hospital'
+
+// ═══════════════════════════════════════════════════════════════════════
+// Política de rotación de cama — configurable, con default SEGURO
+// ═══════════════════════════════════════════════════════════════════════
+
+export interface PoliticaCamas {
+  /** Tras alta o traslado, la cama NO pasa directo a libre. */
+  requiereLimpiezaTerminalAlEgreso: boolean
+  /** La limpieza la confirma personal autorizado antes de que la cama quede lista. */
+  requiereConfirmacionLimpieza: boolean
+  /** Se permite saltarse el flujo en emergencia. */
+  permiteOverrideEmergencia: boolean
+  /** El override exige motivo escrito. */
+  exigeMotivoOverride: boolean
+}
+
+/**
+ * Default de NexusMED. **Todo en `true`.**
+ *
+ * Decisión del Dr. (2026-07-30): un hospital puede desactivarlo, pero el default
+ * del producto es el seguro.
+ */
+export const POLITICA_CAMAS_SEGURA: PoliticaCamas = {
+  requiereLimpiezaTerminalAlEgreso: true,
+  requiereConfirmacionLimpieza: true,
+  permiteOverrideEmergencia: true,
+  exigeMotivoOverride: true,
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Disponibilidad
+// ═══════════════════════════════════════════════════════════════════════
 
 export type Disponibilidad =
   /** Puede recibir a cualquier paciente. */
@@ -79,11 +119,23 @@ export function disponibilidad(estado: EstadoCama, hayOcupante = false): EstadoD
           'Quién lo requiere es criterio médico.',
       }
     case 'limpieza':
-      return { disponibilidad: 'no_disponible', motivo: 'En limpieza.' }
+      return { disponibilidad: 'no_disponible', motivo: 'Pendiente de limpieza terminal.' }
+    case 'limpieza_aislamiento':
+      return {
+        disponibilidad: 'no_disponible',
+        motivo: 'En limpieza de aislamiento: el proceso puede exigir pasos adicionales ' +
+          'que define el control de infecciones del hospital.',
+      }
     case 'mantenimiento':
       return { disponibilidad: 'no_disponible', motivo: 'Fuera de servicio por mantenimiento.' }
     case 'bloqueada':
       return { disponibilidad: 'no_disponible', motivo: 'Bloqueada por decisión de la unidad.' }
+    case 'lista':
+      return {
+        disponibilidad: 'disponible',
+        motivo: 'Limpieza terminal confirmada: puede recibir paciente. Falta liberarla ' +
+          'en el tablero para que deje de figurar como recién rotada.',
+      }
     case 'libre':
       return { disponibilidad: 'disponible', motivo: 'Libre.' }
   }
@@ -139,65 +191,146 @@ export function contarCamas(
 // ═══════════════════════════════════════════════════════════════════════
 
 /**
- * Transiciones con sentido estructural. No es una política clínica: es qué
- * cambios de estado describen algo que pasa en la realidad.
- *
- * `ocupada → libre` está aquí pero **sujeta a política** (ver `transicionar`).
+ * Transiciones con sentido estructural: qué cambios de estado describen algo
+ * que pasa en la realidad. Lo que la POLÍTICA permite o bloquea se decide
+ * aparte, en `transicionar`.
  */
 export const TRANSICIONES: Record<EstadoCama, readonly EstadoCama[]> = {
   libre: ['ocupada', 'reservada', 'limpieza', 'bloqueada', 'mantenimiento', 'aislamiento'],
-  ocupada: ['limpieza', 'libre'],
+  ocupada: ['limpieza', 'limpieza_aislamiento', 'libre'],
   reservada: ['ocupada', 'libre', 'bloqueada'],
-  limpieza: ['libre', 'mantenimiento', 'bloqueada'],
+  limpieza: ['lista', 'libre', 'mantenimiento', 'bloqueada'],
+  limpieza_aislamiento: ['lista', 'libre', 'mantenimiento', 'bloqueada'],
+  lista: ['libre', 'ocupada', 'reservada', 'bloqueada', 'mantenimiento'],
   bloqueada: ['libre', 'mantenimiento', 'limpieza'],
   mantenimiento: ['libre', 'bloqueada', 'limpieza'],
-  aislamiento: ['ocupada', 'limpieza', 'libre'],
+  aislamiento: ['ocupada', 'limpieza_aislamiento', 'limpieza', 'libre'],
 }
 
-export const FALTA_POLITICA_LIMPIEZA =
-  'NEEDS_CLINICAL_REVIEW: si una cama puede pasar de OCUPADA a LIBRE sin pasar ' +
-  'por limpieza es una política de la unidad (control de infecciones y logística ' +
-  'de hotelería). El módulo no la inventa: se pasa como parámetro.'
+/** El flujo estándar de rotación tras alta o traslado. */
+export const FLUJO_ROTACION: readonly EstadoCama[] = ['ocupada', 'limpieza', 'lista', 'libre']
+
+export interface RegistroOverride {
+  desde: EstadoCama
+  hacia: EstadoCama
+  por: string
+  motivo: string
+  enIso: string
+  /** Qué regla se saltó. Se guarda para que la auditoría no tenga que deducirla. */
+  politicaOmitida: string
+}
+
+export interface ContextoTransicion {
+  /** Quién la hace. Sin esto no hay pista de auditoría. */
+  por?: string
+  /** El usuario tiene permiso de override de emergencia. */
+  autorizado?: boolean
+  /** Se está pidiendo explícitamente saltarse la política. */
+  overrideEmergencia?: boolean
+  motivo?: string
+  enIso?: string
+}
 
 export interface ResultadoTransicion {
   permitida: boolean
   motivo: string
+  /** Presente sólo si se permitió por override. **Hay que guardarlo.** */
+  auditoria?: RegistroOverride
 }
 
 /**
- * ¿Se puede pasar de un estado a otro?
+ * Qué regla de la política bloquea este paso. `null` si ninguna.
  *
- * @param exigeLimpiezaEntrePacientes política de la unidad. **Obligatoria** —
- *   ver `FALTA_POLITICA_LIMPIEZA`.
+ * Se expone para que la pantalla pueda explicar el bloqueo sin repetir la lógica.
+ */
+export function bloqueoDePolitica(
+  desde: EstadoCama, hacia: EstadoCama, politica: PoliticaCamas,
+): string | null {
+  if (desde === 'ocupada' && hacia === 'libre' && politica.requiereLimpiezaTerminalAlEgreso) {
+    return 'Tras alta o traslado la cama pasa por limpieza terminal antes de quedar ' +
+      'libre. El flujo es ocupada → limpieza → lista → libre.'
+  }
+  const enLimpieza = desde === 'limpieza' || desde === 'limpieza_aislamiento'
+  if (enLimpieza && hacia === 'libre' && politica.requiereConfirmacionLimpieza) {
+    return 'La limpieza la confirma personal autorizado: la cama pasa a «Limpia y ' +
+      'lista» y desde ahí se libera.'
+  }
+  return null
+}
+
+/**
+ * ¿Se puede pasar de un estado a otro con esta política?
+ *
+ * @param ctx sólo hace falta para pedir un override de emergencia.
  */
 export function transicionar(
   desde: EstadoCama,
   hacia: EstadoCama,
-  exigeLimpiezaEntrePacientes: boolean,
+  politica: PoliticaCamas,
+  ctx: ContextoTransicion = {},
 ): ResultadoTransicion {
   if (desde === hacia) return { permitida: true, motivo: 'Sin cambio.' }
 
-  if (desde === 'ocupada' && hacia === 'libre' && exigeLimpiezaEntrePacientes) {
-    return {
-      permitida: false,
-      motivo: 'La política de la unidad exige pasar por limpieza antes de liberar una ' +
-        'cama que estuvo ocupada.',
-    }
+  if (!TRANSICIONES[desde].includes(hacia)) {
+    return { permitida: false, motivo: `No hay paso de «${desde}» a «${hacia}».` }
   }
 
-  if (!TRANSICIONES[desde].includes(hacia)) {
-    return {
-      permitida: false,
-      motivo: `No hay paso de «${desde}» a «${hacia}».`,
-    }
+  const bloqueo = bloqueoDePolitica(desde, hacia, politica)
+  if (bloqueo === null) return { permitida: true, motivo: `De «${desde}» a «${hacia}».` }
+
+  if (!ctx.overrideEmergencia) {
+    return { permitida: false, motivo: bloqueo }
   }
-  return { permitida: true, motivo: `De «${desde}» a «${hacia}».` }
+  if (!politica.permiteOverrideEmergencia) {
+    return { permitida: false, motivo: `${bloqueo} Esta unidad no permite override de emergencia.` }
+  }
+  if (ctx.autorizado !== true) {
+    return { permitida: false, motivo: `${bloqueo} El override de emergencia requiere un usuario autorizado.` }
+  }
+  const motivo = (ctx.motivo ?? '').trim()
+  if (politica.exigeMotivoOverride && motivo === '') {
+    return { permitida: false, motivo: `${bloqueo} El override de emergencia exige un motivo escrito.` }
+  }
+  const por = (ctx.por ?? '').trim()
+  if (por === '') {
+    return { permitida: false, motivo: `${bloqueo} No consta quién hace el override: no habría pista de auditoría.` }
+  }
+  const enIso = ctx.enIso ?? ''
+  if (Number.isNaN(Date.parse(enIso))) {
+    return { permitida: false, motivo: `${bloqueo} El override necesita la fecha en que se hizo.` }
+  }
+
+  return {
+    permitida: true,
+    motivo: `Override de emergencia de «${desde}» a «${hacia}».`,
+    auditoria: { desde, hacia, por, motivo, enIso, politicaOmitida: bloqueo },
+  }
 }
 
-/** Estados a los que se puede pasar desde uno dado, con la política aplicada. */
-export function siguientes(desde: EstadoCama, exigeLimpiezaEntrePacientes: boolean): EstadoCama[] {
-  return TRANSICIONES[desde].filter(
-    h => transicionar(desde, h, exigeLimpiezaEntrePacientes).permitida)
+/**
+ * ÚNICA forma de que una cama quede «limpia y lista».
+ *
+ * Exige quién y cuándo — misma razón que la revisión del handoff: la regla vive
+ * en la función, no en un comentario que se ignora.
+ */
+export function confirmarLimpieza(
+  desde: EstadoCama, por: string, enIso: string,
+): { estado: EstadoCama; confirmadaPor: string; confirmadaEn: string } {
+  if (desde !== 'limpieza' && desde !== 'limpieza_aislamiento') {
+    throw new Error(`confirmarLimpieza: la cama no está en limpieza (está en «${desde}»)`)
+  }
+  if (por.trim() === '') {
+    throw new Error('confirmarLimpieza: exige personal identificado que la confirme')
+  }
+  if (Number.isNaN(Date.parse(enIso))) {
+    throw new Error(`confirmarLimpieza: fecha inválida «${enIso}»`)
+  }
+  return { estado: 'lista', confirmadaPor: por, confirmadaEn: enIso }
+}
+
+/** Estados alcanzables desde uno dado SIN override. Es lo que ofrece la pantalla. */
+export function siguientes(desde: EstadoCama, politica: PoliticaCamas): EstadoCama[] {
+  return TRANSICIONES[desde].filter(h => transicionar(desde, h, politica).permitida)
 }
 
 /**

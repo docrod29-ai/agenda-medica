@@ -11,7 +11,7 @@ import { suscribirCenso, getCamas, crearCama, actualizarCamaEstado, borrarCama }
 import { SERVICIOS_HOSPITAL, ESTADO_CAMA_LABEL, type Internamiento, type Cama, type EstadoCama } from '@/types/hospital'
 import { Modal, Button, Spinner } from '@/components/ui'
 import { mismaCama } from '@/lib/hospital/cama'
-import { contarCamas, siguientes } from '@/lib/hospital/estados-cama'
+import { contarCamas, siguientes, POLITICA_CAMAS_SEGURA } from '@/lib/hospital/estados-cama'
 import { ArrowLeft, BedDouble, Plus, Trash2, AlertTriangle } from 'lucide-react'
 
 // ICU-002c: siete estados. El `Record` obliga a tsc a completarlos, que es cómo
@@ -21,13 +21,13 @@ import { ArrowLeft, BedDouble, Plus, Trash2, AlertTriangle } from 'lucide-react'
 const COLOR: Record<EstadoCama, string> = {
   libre: '#0d9488', ocupada: '#3d5afe', bloqueada: '#dc2626', limpieza: '#d97706',
   reservada: '#7c3aed', mantenimiento: '#dc2626', aislamiento: '#a21caf',
+  lista: '#0d9488', limpieza_aislamiento: '#a21caf',
 }
-// ICU-P2-1: si una cama puede pasar de OCUPADA a LIBRE sin limpieza es una
-// política de control de infecciones de cada unidad. Aquí NO se impone: el
-// tablero no marca ocupada→libre desde este selector (las ocupadas no lo
-// muestran), y el motor recibe `false` para no aplicar una regla que el Dr. no
-// ha fijado. Cuando la fije, este valor sale de la configuración del hospital.
-const POLITICA_LIMPIEZA = false
+// DECISIÓN DEL DR. (2026-07-30): el default de NexusMED es limpieza terminal
+// requerida tras alta o traslado — ocupada → limpieza → lista → libre, y nunca
+// ocupada → libre por omisión. Cada hospital puede configurarlo; mientras no
+// haya pantalla de configuración, se usa el default seguro.
+const POLITICA = POLITICA_CAMAS_SEGURA
 
 const inputCls = 'w-full rounded-md border px-2.5 py-2 text-sm bg-transparent'
 
@@ -199,7 +199,7 @@ export default function CamasPage() {
                           {esAdmin && !oc && (
                             <div style={{ display: 'flex', gap: 4, marginTop: 6, alignItems: 'center' }}>
                               <select value={c.estado} onChange={async e => { if (!clinicId) return; await actualizarCamaEstado(clinicId, c.id, e.target.value as EstadoCama); recargarCamas() }} style={{ fontSize: 10.5, padding: '2px 4px', borderRadius: 5, background: 'var(--s2)', color: 'var(--text2)', border: '1px solid var(--border)' }} onClick={ev => ev.stopPropagation()}>
-                                {[c.estado, ...siguientes(c.estado, POLITICA_LIMPIEZA)].filter(s => s !== 'ocupada')
+                                {[c.estado, ...siguientes(c.estado, POLITICA)].filter(s => s !== 'ocupada')
                                   .map(s => <option key={s} value={s}>{ESTADO_CAMA_LABEL[s]}</option>)}
                               </select>
                               <button title="Eliminar cama" onClick={async ev => { ev.stopPropagation(); if (!clinicId) return; await borrarCama(clinicId, c.id); recargarCamas() }} style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', padding: 2 }}><Trash2 size={12} /></button>
