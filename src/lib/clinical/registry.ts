@@ -661,6 +661,33 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     estado: 'validado',
     porQueExiste: 'El WER trata «el» y «norepinefrina» como si valieran lo mismo. En un pase de visita no valen lo mismo: perder un articulo no cambia nada y perder «PEEP» arruina el dato. Un caso del golden congela justo eso — un WER menor a 0.2 (que «suena excelente») escondiendo la perdida del unico termino con informacion clinica. Y el modulo MIDE, no corrige: las confusiones que encuentra son material para el diccionario, pero meterlas ahi es una decision revisada.',
   },
+  {
+    id: 'uci-benchmark-metricas', nombre: 'Metricas del corpus de 498 audios',
+    especialidad: 'Cuidados criticos / reconocimiento de voz',
+    tipo: 'conversion',
+    version: '1.0.0',
+    referencia: 'PARA_CLAUDE.md y MANIFEST_498.csv del corpus del Dr. (2026-07-30): 83 frases x 6 condiciones de voz. Metricas estandar de ASR; ninguna fuente clinica.',
+    unidades: 'evaluarAudio(fila, transcripcion) -> ResultadoAudio · metricas(resultados) -> las seis metricas',
+    redondeo: 'ninguno en el calculo; el informe redondea a 1 decimal solo para mostrar',
+    rangoValido: {
+      fuente: 'codigo',
+      entrada: 'canonical_text + key_terms del manifiesto + transcripcion del STT real',
+      salida: 'WER, recall clinico/acronimos/numeros/unidades y tasa de error critico',
+      ref: 'src/lib/uci/benchmark-metricas.ts + scripts/benchmark-voz-uci.ts',
+    },
+    file: 'src/lib/uci/benchmark-metricas.ts',
+    entryPoints: ['canonizar', 'terminoPresente', 'evaluable', 'evaluarAudio', 'metricas', 'rankingRiesgo'],
+    calculos: [
+      'canonizacion: numero hablado -> digito y unidad hablada -> simbolo',
+      'presencia del CONCEPTO por su forma hablada, leida del manifiesto',
+      'clasificacion de error critico segun las reglas de PARA_CLAUDE.md',
+    ],
+    missingData: 'Si un termino no aparece NI EN SU PROPIO canonical_text, mi capa de equivalencia no sabe expresarlo: sale del calculo y se declara en `terminosNoEvaluables`. NUNCA cuenta como error de reconocimiento — culpar al transcriptor de un hueco del evaluador seria mentir sobre el resultado. Y sin terminos de un tipo, esa metrica es null, no 100%.',
+    adr: ADR('uci-benchmark-metricas'),
+    goldenTests: ['uci-benchmark-metricas.test.ts'],
+    estado: 'validado',
+    porQueExiste: 'El gold esta escrito de DOS formas: canonical_text dice «ciento cincuenta mililitros por minuto» y key_terms dice «150 mL/min»; ademas muchos key_terms son el CONCEPTO en taquigrafia (HCO3 se dice «bicarbonato»). Comparar literal daria 0% en todos los numeros y unidades: un informe catastrofico y FALSO. El modo --simular es la prueba que el arnes debe pasar antes de medir nada: con entrada perfecta todo debe dar 100%. La primera ejecucion dio 73.8% y ese numero era enteramente mio.',
+  },
   // ── Integridad temporal del dato clínico ─────────────────────────────────
   {
     id: 'observacion-version', nombre: 'Observación versionada (vigencia clínica y temporal)',

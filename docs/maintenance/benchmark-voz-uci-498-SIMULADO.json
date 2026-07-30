@@ -1,0 +1,558 @@
+{
+  "fecha": "2026-07-30T22:33:01.730Z",
+  "corpus": "NexusMED_UCI_498",
+  "audiosEvaluados": 498,
+  "fallosDeTranscripcion": [],
+  "corrector": true,
+  "modelos": [
+    "gpt-4o-transcribe",
+    "gpt-4o-mini-transcribe",
+    "whisper-1"
+  ],
+  "global": {
+    "audios": 498,
+    "wer": 0,
+    "clinicalTermRecall": 1,
+    "acronymRecall": 1,
+    "numberAccuracy": 1,
+    "unitAccuracy": 1,
+    "criticalSemanticErrorRate": 0,
+    "terminosNoEvaluables": []
+  },
+  "porCategoria": [
+    {
+      "corte": "CKRT",
+      "m": {
+        "audios": 60,
+        "wer": 0,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "ECMO",
+      "m": {
+        "audios": 60,
+        "wer": 0,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "Ventilación",
+      "m": {
+        "audios": 72,
+        "wer": 0,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "Hemodinámica",
+      "m": {
+        "audios": 60,
+        "wer": 0,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "Ultrasonido",
+      "m": {
+        "audios": 54,
+        "wer": 0,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "Gasometría",
+      "m": {
+        "audios": 30,
+        "wer": 0,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "Sedación",
+      "m": {
+        "audios": 36,
+        "wer": 0,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "Infección",
+      "m": {
+        "audios": 48,
+        "wer": 0,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "Laboratorio",
+      "m": {
+        "audios": 48,
+        "wer": 0,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "UCI general",
+      "m": {
+        "audios": 30,
+        "wer": 0,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    }
+  ],
+  "porVoz": [
+    {
+      "corte": "marin",
+      "m": {
+        "audios": 166,
+        "wer": 0,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "cedar",
+      "m": {
+        "audios": 166,
+        "wer": 0,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "coral",
+      "m": {
+        "audios": 166,
+        "wer": 0,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    }
+  ],
+  "porEstilo": [
+    {
+      "corte": "MARIN_CLARA",
+      "m": {
+        "audios": 83,
+        "wer": 0,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "MARIN_RAPIDA",
+      "m": {
+        "audios": 83,
+        "wer": 0,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "CEDAR_CLARA",
+      "m": {
+        "audios": 83,
+        "wer": 0,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "CEDAR_PASE",
+      "m": {
+        "audios": 83,
+        "wer": 0,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "CORAL_CLARA",
+      "m": {
+        "audios": 83,
+        "wer": 0,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "CORAL_CONVERSACIONAL",
+      "m": {
+        "audios": 83,
+        "wer": 0,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    }
+  ],
+  "rankingRiesgo": [],
+  "peores": [
+    {
+      "id": "001__CKRT__MARIN_CLARA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "CKRT en modo CVVHDF, flujo de sangre ciento cincuenta mililitros por minuto.",
+      "obtenido": "CKRT en modo CVVHDF, flujo de sangre ciento cincuenta mililitros por minuto."
+    },
+    {
+      "id": "001__CKRT__MARIN_RAPIDA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "CKRT en modo CVVHDF, flujo de sangre ciento cincuenta mililitros por minuto.",
+      "obtenido": "CKRT en modo CVVHDF, flujo de sangre ciento cincuenta mililitros por minuto."
+    },
+    {
+      "id": "001__CKRT__CEDAR_CLARA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "CKRT en modo CVVHDF, flujo de sangre ciento cincuenta mililitros por minuto.",
+      "obtenido": "CKRT en modo CVVHDF, flujo de sangre ciento cincuenta mililitros por minuto."
+    },
+    {
+      "id": "001__CKRT__CEDAR_PASE",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "CKRT en modo CVVHDF, flujo de sangre ciento cincuenta mililitros por minuto.",
+      "obtenido": "CKRT en modo CVVHDF, flujo de sangre ciento cincuenta mililitros por minuto."
+    },
+    {
+      "id": "001__CKRT__CORAL_CLARA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "CKRT en modo CVVHDF, flujo de sangre ciento cincuenta mililitros por minuto.",
+      "obtenido": "CKRT en modo CVVHDF, flujo de sangre ciento cincuenta mililitros por minuto."
+    },
+    {
+      "id": "001__CKRT__CORAL_CONVERSACIONAL",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "CKRT en modo CVVHDF, flujo de sangre ciento cincuenta mililitros por minuto.",
+      "obtenido": "CKRT en modo CVVHDF, flujo de sangre ciento cincuenta mililitros por minuto."
+    },
+    {
+      "id": "002__CKRT__MARIN_CLARA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "CKRT en modalidad CVVHD con dosis de efluente de veinticinco mililitros por kilo por hora.",
+      "obtenido": "CKRT en modalidad CVVHD con dosis de efluente de veinticinco mililitros por kilo por hora."
+    },
+    {
+      "id": "002__CKRT__MARIN_RAPIDA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "CKRT en modalidad CVVHD con dosis de efluente de veinticinco mililitros por kilo por hora.",
+      "obtenido": "CKRT en modalidad CVVHD con dosis de efluente de veinticinco mililitros por kilo por hora."
+    },
+    {
+      "id": "002__CKRT__CEDAR_CLARA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "CKRT en modalidad CVVHD con dosis de efluente de veinticinco mililitros por kilo por hora.",
+      "obtenido": "CKRT en modalidad CVVHD con dosis de efluente de veinticinco mililitros por kilo por hora."
+    },
+    {
+      "id": "002__CKRT__CEDAR_PASE",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "CKRT en modalidad CVVHD con dosis de efluente de veinticinco mililitros por kilo por hora.",
+      "obtenido": "CKRT en modalidad CVVHD con dosis de efluente de veinticinco mililitros por kilo por hora."
+    },
+    {
+      "id": "002__CKRT__CORAL_CLARA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "CKRT en modalidad CVVHD con dosis de efluente de veinticinco mililitros por kilo por hora.",
+      "obtenido": "CKRT en modalidad CVVHD con dosis de efluente de veinticinco mililitros por kilo por hora."
+    },
+    {
+      "id": "002__CKRT__CORAL_CONVERSACIONAL",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "CKRT en modalidad CVVHD con dosis de efluente de veinticinco mililitros por kilo por hora.",
+      "obtenido": "CKRT en modalidad CVVHD con dosis de efluente de veinticinco mililitros por kilo por hora."
+    },
+    {
+      "id": "003__CKRT__MARIN_CLARA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "CVVH con ultrafiltración neta de cien mililitros por hora.",
+      "obtenido": "CVVH con ultrafiltración neta de cien mililitros por hora."
+    },
+    {
+      "id": "003__CKRT__MARIN_RAPIDA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "CVVH con ultrafiltración neta de cien mililitros por hora.",
+      "obtenido": "CVVH con ultrafiltración neta de cien mililitros por hora."
+    },
+    {
+      "id": "003__CKRT__CEDAR_CLARA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "CVVH con ultrafiltración neta de cien mililitros por hora.",
+      "obtenido": "CVVH con ultrafiltración neta de cien mililitros por hora."
+    },
+    {
+      "id": "003__CKRT__CEDAR_PASE",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "CVVH con ultrafiltración neta de cien mililitros por hora.",
+      "obtenido": "CVVH con ultrafiltración neta de cien mililitros por hora."
+    },
+    {
+      "id": "003__CKRT__CORAL_CLARA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "CVVH con ultrafiltración neta de cien mililitros por hora.",
+      "obtenido": "CVVH con ultrafiltración neta de cien mililitros por hora."
+    },
+    {
+      "id": "003__CKRT__CORAL_CONVERSACIONAL",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "CVVH con ultrafiltración neta de cien mililitros por hora.",
+      "obtenido": "CVVH con ultrafiltración neta de cien mililitros por hora."
+    },
+    {
+      "id": "004__CKRT__MARIN_CLARA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "Presión transmembrana de doscientos veinte milímetros de mercurio.",
+      "obtenido": "Presión transmembrana de doscientos veinte milímetros de mercurio."
+    },
+    {
+      "id": "004__CKRT__MARIN_RAPIDA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "Presión transmembrana de doscientos veinte milímetros de mercurio.",
+      "obtenido": "Presión transmembrana de doscientos veinte milímetros de mercurio."
+    },
+    {
+      "id": "004__CKRT__CEDAR_CLARA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "Presión transmembrana de doscientos veinte milímetros de mercurio.",
+      "obtenido": "Presión transmembrana de doscientos veinte milímetros de mercurio."
+    },
+    {
+      "id": "004__CKRT__CEDAR_PASE",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "Presión transmembrana de doscientos veinte milímetros de mercurio.",
+      "obtenido": "Presión transmembrana de doscientos veinte milímetros de mercurio."
+    },
+    {
+      "id": "004__CKRT__CORAL_CLARA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "Presión transmembrana de doscientos veinte milímetros de mercurio.",
+      "obtenido": "Presión transmembrana de doscientos veinte milímetros de mercurio."
+    },
+    {
+      "id": "004__CKRT__CORAL_CONVERSACIONAL",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "Presión transmembrana de doscientos veinte milímetros de mercurio.",
+      "obtenido": "Presión transmembrana de doscientos veinte milímetros de mercurio."
+    },
+    {
+      "id": "005__CKRT__MARIN_CLARA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "Presión del filtro de ciento ochenta milímetros de mercurio y presión de retorno de noventa.",
+      "obtenido": "Presión del filtro de ciento ochenta milímetros de mercurio y presión de retorno de noventa."
+    },
+    {
+      "id": "005__CKRT__MARIN_RAPIDA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "Presión del filtro de ciento ochenta milímetros de mercurio y presión de retorno de noventa.",
+      "obtenido": "Presión del filtro de ciento ochenta milímetros de mercurio y presión de retorno de noventa."
+    },
+    {
+      "id": "005__CKRT__CEDAR_CLARA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "Presión del filtro de ciento ochenta milímetros de mercurio y presión de retorno de noventa.",
+      "obtenido": "Presión del filtro de ciento ochenta milímetros de mercurio y presión de retorno de noventa."
+    },
+    {
+      "id": "005__CKRT__CEDAR_PASE",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "Presión del filtro de ciento ochenta milímetros de mercurio y presión de retorno de noventa.",
+      "obtenido": "Presión del filtro de ciento ochenta milímetros de mercurio y presión de retorno de noventa."
+    },
+    {
+      "id": "005__CKRT__CORAL_CLARA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "Presión del filtro de ciento ochenta milímetros de mercurio y presión de retorno de noventa.",
+      "obtenido": "Presión del filtro de ciento ochenta milímetros de mercurio y presión de retorno de noventa."
+    },
+    {
+      "id": "005__CKRT__CORAL_CONVERSACIONAL",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "Presión del filtro de ciento ochenta milímetros de mercurio y presión de retorno de noventa.",
+      "obtenido": "Presión del filtro de ciento ochenta milímetros de mercurio y presión de retorno de noventa."
+    },
+    {
+      "id": "006__CKRT__MARIN_CLARA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "Anticoagulación regional con citrato, calcio ionizado postfiltro de cero punto treinta milimoles por litro.",
+      "obtenido": "Anticoagulación regional con citrato, calcio ionizado postfiltro de cero punto treinta milimoles por litro."
+    },
+    {
+      "id": "006__CKRT__MARIN_RAPIDA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "Anticoagulación regional con citrato, calcio ionizado postfiltro de cero punto treinta milimoles por litro.",
+      "obtenido": "Anticoagulación regional con citrato, calcio ionizado postfiltro de cero punto treinta milimoles por litro."
+    },
+    {
+      "id": "006__CKRT__CEDAR_CLARA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "Anticoagulación regional con citrato, calcio ionizado postfiltro de cero punto treinta milimoles por litro.",
+      "obtenido": "Anticoagulación regional con citrato, calcio ionizado postfiltro de cero punto treinta milimoles por litro."
+    },
+    {
+      "id": "006__CKRT__CEDAR_PASE",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "Anticoagulación regional con citrato, calcio ionizado postfiltro de cero punto treinta milimoles por litro.",
+      "obtenido": "Anticoagulación regional con citrato, calcio ionizado postfiltro de cero punto treinta milimoles por litro."
+    },
+    {
+      "id": "006__CKRT__CORAL_CLARA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "Anticoagulación regional con citrato, calcio ionizado postfiltro de cero punto treinta milimoles por litro.",
+      "obtenido": "Anticoagulación regional con citrato, calcio ionizado postfiltro de cero punto treinta milimoles por litro."
+    },
+    {
+      "id": "006__CKRT__CORAL_CONVERSACIONAL",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "Anticoagulación regional con citrato, calcio ionizado postfiltro de cero punto treinta milimoles por litro.",
+      "obtenido": "Anticoagulación regional con citrato, calcio ionizado postfiltro de cero punto treinta milimoles por litro."
+    },
+    {
+      "id": "007__CKRT__MARIN_CLARA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "Balance neto negativo de cincuenta mililitros por hora.",
+      "obtenido": "Balance neto negativo de cincuenta mililitros por hora."
+    },
+    {
+      "id": "007__CKRT__MARIN_RAPIDA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "Balance neto negativo de cincuenta mililitros por hora.",
+      "obtenido": "Balance neto negativo de cincuenta mililitros por hora."
+    },
+    {
+      "id": "007__CKRT__CEDAR_CLARA",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "Balance neto negativo de cincuenta mililitros por hora.",
+      "obtenido": "Balance neto negativo de cincuenta mililitros por hora."
+    },
+    {
+      "id": "007__CKRT__CEDAR_PASE",
+      "wer": 0,
+      "criticos": [],
+      "esperado": "Balance neto negativo de cincuenta mililitros por hora.",
+      "obtenido": "Balance neto negativo de cincuenta mililitros por hora."
+    }
+  ]
+}
