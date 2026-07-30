@@ -7,13 +7,13 @@ import {
   concienciaExigeReSeleccion,
   proyectarEventos,
   contarAdministracionesVigentes,
-  signosParaCalculoClinico,
+  signosComoObservaciones,
+  signosVigentesEn,
+  serieSignosVigente,
   validarCorreccion,
   construirCorreccion,
   horasEntre,
-  POLITICA_SIGNOS_EN_CALCULO,
   POLITICA_CORRECCION,
-  FALTA_POLITICA_Q1,
   type PoliticaCorreccion,
 } from '@/lib/hospital/eventos'
 import {
@@ -109,52 +109,78 @@ describe('E0-09 · proyectarSignos — corrige ANEXANDO, nunca eliminando', () =
   })
 })
 
-describe('E0-09 · Q1 — el hueco clínico sigue siendo un hueco (fail-closed)', () => {
-  it('la política de NEWS2/FHIR vale null en producción: NADIE eligió un default', () => {
-    // Si algún día esto deja de ser null, es porque el Dr. respondió Q1. Ese día
-    // se actualiza este test CON su decisión escrita, no antes.
-    expect(POLITICA_SIGNOS_EN_CALCULO).toBeNull()
+describe('E0-09/Q1 · RESUELTA — la versión clínicamente vigente entra al cálculo', () => {
+  /**
+   * GUARDIÁN REESCRITO el 29-jul-2026, no eliminado.
+   *
+   * Antes exigía que la política valiera `null` y que el cálculo LANZARA: era
+   * correcto mientras la pregunta estaba abierta. El médico dueño la respondió
+   * dentro de la decisión ICU-Q3, y su respuesta no cabía en el booleano que
+   * había, así que ese tipo se retiró. Estos casos congelan la decisión ESCRITA.
+   *
+   * Fuente: docs/clinical-decisions/DECISIONES-ICU-VOICE-INFUSION-OBSERVATION.md
+   */
+  const T = (hhmm: string) => `2026-03-01T${hhmm}:00Z`
+  const SIN_VENTANA = null
+
+  it('el adaptador NO exige migración: un registro viejo sólo con `fecha` funciona', () => {
+    // Compatibilidad hacia atrás — es la condición para poder revertir.
+    const viejo = { id: 'v', fecha: T('08:00'), spo2: 95 } as RegistroSignos
+    const [o] = signosComoObservaciones([viejo])
+    expect(o.fechaEfectiva).toBe(T('08:00'))
+    expect(o.fechaRegistro).toBe(T('08:00'))
+    expect(o.estado).toBe('CONFIRMED')
   })
 
-  it('llamar al cálculo sin política LANZA, en vez de asumir una', () => {
-    expect(() => signosParaCalculoClinico([signo('a')], POLITICA_SIGNOS_EN_CALCULO))
-      .toThrowError(FALTA_POLITICA_Q1)
+  it('un registro apuntado por una corrección se DERIVA como CORRECTED', () => {
+    const raw = [
+      { id: 'a', fecha: T('08:00'), spo2: 82 },
+      { id: 'b', fecha: T('08:03'), spo2: 92, corrigeA: 'a' },
+    ] as RegistroSignos[]
+    const porId = Object.fromEntries(signosComoObservaciones(raw).map(o => [o.id, o.estado]))
+    expect(porId).toEqual({ a: 'CORRECTED', b: 'CONFIRMED' })
   })
 
-  it('con política explícita el filtrado es determinista en ambos sentidos', () => {
-    const raw = [signo('a', { spo2: 80 }), signo('b', { spo2: 96, corrigeA: 'a' })]
-    expect(signosParaCalculoClinico(raw, 'incluye_corregidos').map(r => r.id)).toEqual(['a', 'b'])
-    expect(signosParaCalculoClinico(raw, 'excluye_corregidos').map(r => r.id)).toEqual(['b'])
+  it('EL VALOR CORREGIDO alimenta el cálculo, no el erróneo ← decisión ICU-Q3', () => {
+    const raw = [
+      { id: 'a', fecha: T('08:00'), fechaEfectiva: T('08:00'), spo2: 82 },
+      { id: 'b', fecha: T('08:03'), fechaEfectiva: T('08:00'), fechaRegistro: T('08:03'), spo2: 92, corrigeA: 'a' },
+    ] as RegistroSignos[]
+    // El retrospectivo de las 08:00 usa 92: es el Ejemplo A del Dr.
+    expect(signosVigentesEn(raw, T('08:00'), SIN_VENTANA)?.spo2).toBe(92)
   })
 
-  it('NINGÚN consumidor de producción llama al filtrado para cálculo clínico', () => {
-    // GUARDIÁN ESTRECHADO el 29-jul-2026, no eliminado.
-    //
-    // El original prohibía CUALQUIER consumidor del módulo porque Q1-Q4 estaban
-    // todas abiertas. El médico dueño respondió Q3 ese día (un signo vital se
-    // corrige siempre, sin ventana, conservando historial), así que la UI de
-    // corrección — que sólo PINTA lo que ya existe — dejó de estar bloqueada.
-    //
-    // Lo que sigue prohibido es lo que Q1 decide: si un signo corregido sigue
-    // alimentando NEWS2 y el export FHIR. Ese cableado cambia un número clínico,
-    // así que se mantiene fail-closed hasta tener su respuesta por escrito.
-    const consumidores = grepRepo('signosParaCalculoClinico')
-      .filter(f => !f.startsWith('src/__tests__/'))
-      .filter(f => f !== 'src/lib/hospital/eventos.ts')   // su propia definición
-    expect(consumidores, `Q1 sigue abierta y ya se cableó el cálculo: ${consumidores.join(', ')}`)
-      .toEqual([])
+  it('el valor erróneo NO desaparece del expediente', () => {
+    const raw = [
+      { id: 'a', fecha: T('08:00'), spo2: 82 },
+      { id: 'b', fecha: T('08:03'), fechaEfectiva: T('08:00'), spo2: 92, corrigeA: 'a' },
+    ] as RegistroSignos[]
+    // proyectarSignos sigue devolviéndolos TODOS: el cálculo filtra, el expediente no.
+    expect(proyectarSignos(raw).registros).toHaveLength(2)
   })
 
-  it('la UI de corrección usa la proyección SÓLO para pintar, nunca para calcular', () => {
-    // Congela la separación de arriba: la ficha de hospitalización puede importar
-    // `proyectarSignos` (presentación), pero si algún día importa también el
-    // filtrado clínico, este caso lo caza.
-    const ficha = readFileSync(
-      resolve(process.cwd(), 'src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx'),
-      'utf8',
-    )
-    expect(ficha).toContain('proyectarSignos')
-    expect(ficha).not.toContain('signosParaCalculoClinico')
+  it('dos observaciones VÁLIDAS no se pisan: cada instante usa su valor ← Ejemplo B', () => {
+    const raw = [
+      { id: 'x', fecha: T('08:00'), spo2: 82 },
+      { id: 'y', fecha: T('08:10'), spo2: 92 },   // tras intervención, NO corrección
+    ] as RegistroSignos[]
+    expect(signosVigentesEn(raw, T('08:00'), SIN_VENTANA)?.spo2).toBe(82)
+    expect(signosVigentesEn(raw, T('08:05'), SIN_VENTANA)?.spo2).toBe(82)
+    expect(signosVigentesEn(raw, T('08:10'), SIN_VENTANA)?.spo2).toBe(92)
+    expect(serieSignosVigente(raw).map(r => r.spo2)).toEqual([82, 92])
+  })
+
+  it('la ventana temporal sigue siendo OBLIGATORIA (la decisión lo exige)', () => {
+    // «No mezclar variables tomadas en horas diferentes sin política explícita.»
+    const raw = [{ id: 'a', fecha: T('08:00'), spo2: 95 }] as RegistroSignos[]
+    // @ts-expect-error — omitirla es justo lo que se prohíbe
+    expect(() => signosVigentesEn(raw, T('09:00'))).toThrowError(/NEEDS_CLINICAL_REVIEW/)
+  })
+
+  it('la política binaria vieja YA NO EXISTE (no se puede volver a cablear)', async () => {
+    const mod = await import('@/lib/hospital/eventos')
+    expect('POLITICA_SIGNOS_EN_CALCULO' in mod).toBe(false)
+    expect('signosParaCalculoClinico' in mod).toBe(false)
   })
 })
 

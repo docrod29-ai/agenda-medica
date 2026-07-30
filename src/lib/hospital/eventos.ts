@@ -8,18 +8,19 @@
  * ═══ La regla del módulo ═══
  * Un hecho registrado NO se edita ni se borra. Un error se corrige ANEXANDO otro
  * registro que apunta al erróneo. Por eso estas funciones **nunca eliminan** un
- * registro de la salida: sólo lo MARCAN como corregido. Si algo debe además
- * desaparecer de un cálculo clínico, eso es política del expediente y NO se
- * decide aquí (ver `POLITICA_SIGNOS_EN_CALCULO`).
+ * registro de la salida: sólo lo MARCAN como corregido. QUÉ valor alimenta un
+ * cálculo clínico es otra pregunta, y se resuelve con la máquina de estados de
+ * `src/lib/clinical/observacion-version.ts` — ver el adaptador al final.
  *
- * ═══ Lo que este archivo NO hace, y por qué ═══
- * No filtra signos corregidos de NEWS2 ni del export FHIR, no declara quién
- * puede corregir, no impone ventana de tiempo y no exige motivo. Las cuatro son
- * decisiones del médico dueño del expediente (E0-09 · Q1-Q4), están marcadas
- * `NEEDS_CLINICAL_REVIEW` más abajo y su valor en producción es `null`.
- * `null` no es «desactivado»: las funciones que lo necesitan LANZAN si se las
- * llama sin política, para que nadie las cablee por accidente con un default
- * inventado.
+ * ═══ Estado de los cuatro huecos clínicos (E0-09 · Q1-Q4) ═══
+ * · Q1 (¿un signo corregido alimenta NEWS2 y FHIR?) → **RESUELTA** el 29-jul-2026
+ *   dentro de la decisión ICU-Q3 del médico dueño. Su respuesta no cabía en el
+ *   booleano que había aquí, así que ese tipo se retiró y la lógica vive en el
+ *   núcleo compartido. `signosVigentesEn` la implementa.
+ * · Q2 (quién puede corregir) · Q3 (ventana) · Q4 (motivo obligatorio) → siguen
+ *   marcadas `NEEDS_CLINICAL_REVIEW` más abajo, con valor `null` en producción.
+ *   `null` no es «desactivado»: las funciones que lo necesitan LANZAN si se las
+ *   llama sin política, para que nadie las cablee con un default inventado.
  */
 import type {
   EfectoCorreccion,
@@ -28,6 +29,11 @@ import type {
   RegistroSignos,
   ValorDetalle,
 } from '@/types/hospital'
+import {
+  vigenteEn,
+  serieVigente,
+  type ObservacionVersionada,
+} from '@/lib/clinical/observacion-version'
 
 // ══════════════════════════════════════════════════════════════
 // 1 · Proyección de SIGNOS VITALES (marca, no elimina)
@@ -231,27 +237,86 @@ export function contarAdministracionesVigentes(raw: readonly EventoClinicoConId[
  * No se deduce del código. Mientras valga `null`, `signosParaCalculoClinico`
  * LANZA: fail-closed, para que nadie la cablee con un default inventado.
  */
-export type PoliticaSignoCorregido = 'incluye_corregidos' | 'excluye_corregidos'
-export const POLITICA_SIGNOS_EN_CALCULO: PoliticaSignoCorregido | null = null
-
-/** Mensaje único: si alguien lo ve en un log, sabe exactamente qué falta. */
-export const FALTA_POLITICA_Q1 =
-  'NEEDS_CLINICAL_REVIEW E0-09/Q1: no está definido si un signo vital corregido ' +
-  'sigue alimentando NEWS2 y el export FHIR. No se asume un default.'
+/**
+ * ══ E0-09/Q1 · RESUELTA el 29-jul-2026 ══════════════════════════════════════
+ *
+ * La política binaria que vivía aquí (`'incluye_corregidos' |
+ * 'excluye_corregidos'`) **se retiró**. El médico dueño respondió Q1 dentro de la
+ * decisión ICU-Q3 (`docs/clinical-decisions/DECISIONES-ICU-VOICE-INFUSION-OBSERVATION.md`)
+ * y su respuesta **no cabe en un booleano**:
+ *
+ *   «Una observación corregida SÍ entra al cálculo si es la versión clínica
+ *    vigente. El motor usa la LATEST CLINICALLY VALID OBSERVATION dentro de la
+ *    ventana temporal aplicable. Nunca "latest database row".»
+ *
+ * Ninguna de las dos opciones antiguas cumple eso:
+ *   · `incluye_corregidos` metía el valor ERRÓNEO al cálculo;
+ *   · `excluye_corregidos` lo quitaba **sin poner el corregido en su lugar**, así
+ *     que dejaba un HUECO — no una corrección.
+ *
+ * La lógica vive ahora en `src/lib/clinical/observacion-version.ts`, compartida
+ * con las observaciones de UCI (decisión (a) del Dr.: construirlo una sola vez).
+ * Aquí queda sólo el ADAPTADOR de `RegistroSignos` a ese núcleo.
+ */
 
 /**
- * Serie de signos lista para un cálculo clínico, según la política elegida.
+ * Traduce los signos guardados al modelo versionado, **sin migrar nada**.
  *
- * @param politica DEBE venir explícita. `null` lanza a propósito.
+ * Compatibilidad hacia atrás, que es la condición para poder revertir:
+ *  · `fechaEfectiva`/`fechaRegistro` ausentes ⇒ se usa `fecha` (todos los
+ *    documentos ya guardados). Su comportamiento no cambia.
+ *  · `estadoObservacion` ausente ⇒ se DERIVA: `CORRECTED` si otro registro lo
+ *    apunta con `corrigeA`, `CONFIRMED` en caso contrario.
+ *
+ * ⚠️ LÍMITE DECLARADO del dato histórico: en un registro previo a ICU-002b, una
+ * corrección lleva la hora en que se CAPTURÓ, no la del hecho. Para esos
+ * registros el score retrospectivo del Ejemplo A **no es reconstruible** — el
+ * dato para hacerlo nunca se guardó. Los registros nuevos sí lo llevan.
  */
-export function signosParaCalculoClinico(
+export function signosComoObservaciones(
   raw: readonly RegistroSignos[],
-  politica: PoliticaSignoCorregido | null,
-): RegistroSignos[] {
-  if (politica === null) throw new Error(FALTA_POLITICA_Q1)
-  const { registros } = proyectarSignos(raw)
-  if (politica === 'incluye_corregidos') return registros.map(p => p.registro)
-  return registros.filter(p => p.estado !== 'corregido').map(p => p.registro)
+): ObservacionVersionada<RegistroSignos>[] {
+  const corregidos = new Set<string>()
+  for (const r of raw) if (r.corrigeA && r.corrigeA !== r.id) corregidos.add(r.corrigeA)
+
+  return raw.map(r => ({
+    id: r.id,
+    fechaEfectiva: r.fechaEfectiva ?? r.fecha,
+    fechaRegistro: r.fechaRegistro ?? r.fecha,
+    estado: r.estadoObservacion ?? (corregidos.has(r.id) ? 'CORRECTED' : 'CONFIRMED'),
+    corrigeA: r.corrigeA,
+    motivoCorreccion: r.motivoCorreccion,
+    por: r.por ?? '',
+    valor: r,
+  }))
+}
+
+/**
+ * El registro de signos **clínicamente vigente** en un instante dado.
+ *
+ * Es lo que debe alimentar NEWS2 y el export FHIR, según la decisión.
+ *
+ * @param ventanaMs antigüedad máxima admisible. **Obligatorio y sin default**:
+ *   la decisión prohíbe mezclar variables de horas distintas «sin política
+ *   explícita». Pasa `null` para no limitar, pero pásalo tú.
+ */
+export function signosVigentesEn(
+  raw: readonly RegistroSignos[],
+  instanteIso: string,
+  ventanaMs: number | null,
+): RegistroSignos | null {
+  return vigenteEn(signosComoObservaciones(raw), instanteIso, ventanaMs).vigente?.valor ?? null
+}
+
+/**
+ * Serie para graficar o para un cálculo por tramos: la versión vigente de cada
+ * medición, ordenada por hora efectiva.
+ *
+ * Una corrección **no añade un punto extra** a la gráfica: aparece en el lugar
+ * del original con el valor corregido, que es lo que el médico espera ver.
+ */
+export function serieSignosVigente(raw: readonly RegistroSignos[]): RegistroSignos[] {
+  return serieVigente(signosComoObservaciones(raw)).map(o => o.valor)
 }
 
 /**

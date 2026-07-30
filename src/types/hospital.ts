@@ -7,6 +7,8 @@
 // siguen en el expediente del paciente pero llevan `internamientoId`.
 // ══════════════════════════════════════════════════════════════
 
+import type { EstadoObservacion } from '@/lib/clinical/observacion-version'
+
 export type EstadoInternamiento = 'activo' | 'egresado'
 
 export type TipoEgreso =
@@ -170,6 +172,36 @@ export interface RegistroSignos {
   corrigeA?: string
   /** Por qué se corrigió. Su obligatoriedad es política del expediente → E0-09/Q4. */
   motivoCorreccion?: string
+
+  // ── ICU-002b · vigencia temporal (decisión ICU-Q3, que cerró E0-09/Q1) ──
+  //
+  // `fecha` es la hora en que se CAPTURÓ el registro, y se conserva intacta:
+  // ningún documento ya guardado deja de ser válido. Los dos campos de abajo son
+  // opcionales y ADITIVOS; el lector cae a `fecha` cuando faltan.
+  //
+  // POR QUÉ HACEN FALTA: una corrección hecha a las 08:03 de un signo tomado a
+  // las 08:00 se guardaba con `fecha: 08:03`. Un NEWS2 recalculado para las
+  // 08:00 no la encontraba, y descartar el valor erróneo dejaba un HUECO en vez
+  // de una corrección. La decisión exige lo contrario: «el NEWS2 retrospectivo
+  // de las 08:00 debe usar 92».
+  //
+  // Es `effectiveDateTime` / `issued` de FHIR Observation.
+  /**
+   * Cuándo OCURRIÓ la medición. Una **corrección hereda la del original**.
+   * Ausente ⇒ se usa `fecha` (registros previos a ICU-002b).
+   */
+  fechaEfectiva?: string
+  /**
+   * Cuándo se CAPTURÓ este registro. Siempre la propia, nunca heredada.
+   * Ausente ⇒ se usa `fecha`.
+   */
+  fechaRegistro?: string
+  /**
+   * Estado del ciclo de vida (`ESTADOS_OBSERVACION`). Ausente ⇒ se DERIVA:
+   * `CONFIRMED`, o `CORRECTED` si otro registro lo apunta con `corrigeA`.
+   * Ver `signosComoObservaciones` en `src/lib/hospital/eventos.ts`.
+   */
+  estadoObservacion?: EstadoObservacion
 }
 
 // ══════════════════════════════════════════════════════════════
