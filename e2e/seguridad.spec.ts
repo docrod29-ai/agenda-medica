@@ -47,6 +47,15 @@ test('A1 · las cabeceras de endurecimiento globales están presentes', async ({
   expect(h['cross-origin-opener-policy']).toBe('same-origin')
   expect(h['origin-agent-cluster']).toBe('?1')
   // La app sólo necesita micrófono (dictado). Cámara y ubicación, cerradas.
+  //
+  // OJO — `camera=()` se fija aquí como ESTADO ACTUAL DOCUMENTADO, no como estado
+  // deseado: la cabecera cierra la cámara para todo el origen mientras
+  // src/app/teleconsulta/[citaId]/page.tsx monta el iframe de Daily con
+  // allow="camera; microphone; …", y una Permissions-Policy del documento superior NO
+  // se puede re-conceder desde el `allow` del iframe. Si el vídeo de la teleconsulta no
+  // funciona hoy en producción, ésta es la causa candidata — es PREVIA a E0-10 y no se
+  // toca de oficio (aflojar una cabecera de seguridad merece su propia unidad). Está
+  // abierto como decisión D-8 en docs/seguridad/csp-enforce.md §6.
   expect(h['permissions-policy']).toContain('microphone=(self)')
   expect(h['permissions-policy']).toContain('camera=()')
   expect(h['permissions-policy']).toContain('geolocation=()')

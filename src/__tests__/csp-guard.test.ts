@@ -9,11 +9,22 @@ import nextConfig from '../../next.config'
  * Molde: `firestore-rules-guard.test.ts` — fija invariantes que un cambio accidental
  * no debe romper, sin desplegar nada ni depender de la red.
  *
- * Los tres fallos que este archivo habría cazado ANTES de apretar la CSP a enforce:
- *   1. el worker de pdf.js se carga de unpkg.com y no estaba en la política,
- *   2. el iframe de teleconsulta (Daily) no estaba en `frame-src`,
+ * Los tres fallos que este archivo caza ANTES de apretar la CSP a enforce:
+ *   1. el worker de pdf.js se carga de unpkg.com y no estaba en la política
+ *      (lo caza el escáner de POSICIONES_DE_CARGA: el host está literal en el código),
+ *   2. el iframe de teleconsulta (Daily) no estaba en `frame-src`
+ *      (lo caza IFRAMES_DE_ORIGEN_DINAMICO; ver el porqué justo abajo),
  *   3. media docena de pantallas con PHI (/uci, /hospitalizacion, /receta…) y la
  *      consola del dueño (/superadmin) no llevaban NINGUNA cabecera anti-iframe.
+ *
+ * CORRECCIÓN DE UNA AFIRMACIÓN QUE ERA FALSA (verificación adversarial de E0-10, V-3):
+ * hasta la pasada de cierre este comentario decía que el archivo habría cazado los
+ * tres, y no era verdad para el (2): el iframe de teleconsulta monta un `src`
+ * DINÁMICO (`src={url}`, con la URL de la sala que devuelve /api/telesalud/sala), así
+ * que el host `*.daily.co` NO aparece en el código y ninguna regex podía verlo.
+ * Mutante que sobrevivía: quitar `https://*.daily.co` de ORIGENES_FRAME dejaba el CI
+ * verde y la videoconsulta en blanco bajo enforce. Lo cierra el registro de iframes de
+ * origen dinámico de más abajo.
  *
  * Aquí no hay criterio clínico: son invariantes de configuración de software.
  */
@@ -48,6 +59,12 @@ function politicasDe(bloque: Bloque, clave?: RegExp): string[] {
     .filter(h => /^content-security-policy(-report-only)?$/i.test(h.key))
     .filter(h => (clave ? clave.test(h.key) : true))
     .map(h => h.value)
+}
+
+/** Valores de UNA directiva de la política (p.ej. `frame-src`), sin el nombre. */
+function directiva(politica: string, nombre: string): string[] {
+  const d = politica.split('; ').find(x => x === nombre || x.startsWith(nombre + ' '))
+  return d ? d.split(/\s+/).slice(1) : []
 }
 
 const bloquesRO = (await cabeceras()) as Bloque[]
@@ -242,6 +259,130 @@ describe('E0-10 · ningún host cargado por el navegador queda fuera de la polí
   })
 })
 
+/**
+ * IFRAMES DE ORIGEN DINÁMICO — el hueco que dejaba pasar el mutante de Daily (V-3).
+ *
+ * El escáner de arriba sólo ve hosts LITERALES en el código. Un `<iframe src={url}>`
+ * cuya URL llega en runtime desde una API no tiene host que escanear, así que la
+ * única forma de atarlo a la política es DECLARARLO aquí: cada entrada dice de dónde
+ * sale la URL y el test exige que `frame-src` permita ese origen.
+ */
+const IFRAMES_DE_ORIGEN_DINAMICO: { archivo: string; origen: string; porQue: string }[] = [
+  {
+    archivo: 'src/app/teleconsulta/[citaId]/page.tsx',
+    origen: 'https://una-sala.daily.co',
+    porQue:
+      'room.url que devuelve /api/telesalud/sala (Daily). Sin frame-src el iframe sale EN BLANCO ' +
+      'con enforce y la videoconsulta deja de existir.',
+  },
+]
+
+/**
+ * iframes que aparecen en el código pero que ESTA app no monta (texto que se copia a
+ * otro sitio). Sin motivo escrito no hay exención.
+ */
+const IFRAMES_EXENTOS: Record<string, string> = {
+  'src/app/(dashboard)/configuracion/page.tsx':
+    'snippetIframe es una CADENA que el consultorio pega en SU web y apunta a /reservar de este ' +
+    'mismo origen: no es un iframe que renderice NexusMED, y /reservar es embebible a propósito.',
+}
+
+/** Apertura de cada `<iframe …>` del archivo (hasta el `>` de cierre de la etiqueta). */
+const RE_APERTURA_IFRAME = /<iframe[\s\S]{0,400}?\/?>/g
+
+describe('E0-10 · los iframes de origen DINÁMICO están atados a frame-src (V-3)', () => {
+  // Se cruza contra el `frame-src` de la política GLOBAL a propósito: /teleconsulta no
+  // está en RUTAS_PRIVADAS (la abre el paciente por enlace), así que la política que
+  // realmente aplica al iframe es la global. Y se compara contra ESA directiva, no
+  // contra "todos los orígenes de la política": así, quitar https://*.daily.co sólo de
+  // ORIGENES_FRAME pone el CI en rojo aunque el host siguiera en otra directiva.
+  const frameSrcGlobal = directiva(politicaGlobal, 'frame-src')
+
+  it('frame-src permite el origen de cada iframe dinámico declarado', () => {
+    const noPermitidos = IFRAMES_DE_ORIGEN_DINAMICO.filter(
+      i => !permitidoPorPolitica(new URL(i.origen).hostname, frameSrcGlobal),
+    ).map(i => `${new URL(i.origen).hostname} ← ${i.archivo} (${i.porQue})`)
+    expect(
+      noPermitidos,
+      noPermitidos.length
+        ? 'frame-src no permite estos orígenes: el iframe saldría EN BLANCO con enforce.\n  ' +
+          noPermitidos.join('\n  ')
+        : '',
+    ).toEqual([])
+  })
+
+  it('la declaración no se podre: cada archivo existe y sigue montando un iframe', () => {
+    for (const { archivo } of IFRAMES_DE_ORIGEN_DINAMICO) {
+      const ruta = resolve(RAIZ, archivo)
+      expect(existsSync(ruta), `${archivo} ya no existe: revisa la declaración`).toBe(true)
+      expect(readFileSync(ruta, 'utf8'), `${archivo} ya no monta ningún iframe`).toContain('<iframe')
+    }
+  })
+
+  it('TRINQUETE: ningún iframe con src dinámico queda sin declarar ni exento', () => {
+    const declarados = new Set(IFRAMES_DE_ORIGEN_DINAMICO.map(i => i.archivo))
+    const sinDeclarar: string[] = []
+    for (const archivo of archivosFuente(resolve(RAIZ, 'src'))) {
+      const rel = archivo.replace(RAIZ + '/', '')
+      const texto = readFileSync(archivo, 'utf8')
+      RE_APERTURA_IFRAME.lastIndex = 0
+      let m: RegExpExecArray | null
+      while ((m = RE_APERTURA_IFRAME.exec(texto))) {
+        // `src={algo}` o `src="${algo}"`: el host no está en el código.
+        if (!/src\s*=\s*\{|src\s*=\s*["'`]\$\{/.test(m[0])) continue
+        if (declarados.has(rel) || IFRAMES_EXENTOS[rel]) continue
+        sinDeclarar.push(rel)
+      }
+    }
+    expect(
+      [...new Set(sinDeclarar)],
+      sinDeclarar.length
+        ? 'Iframes con src dinámico sin declarar: la CSP no los cubre y el escáner de hosts ' +
+          'literales no puede verlos.\n  ' +
+          [...new Set(sinDeclarar)].join('\n  ') +
+          '\n\nDeclara el origen en IFRAMES_DE_ORIGEN_DINAMICO o exímelo con motivo en IFRAMES_EXENTOS.'
+        : '',
+    ).toEqual([])
+  })
+})
+
+/**
+ * RUTAS QUE RECIBEN DOS POLÍTICAS COMPLETAS (riesgo residual V-6).
+ *
+ * El «gana la última cabecera» está leído del servidor Node de Next, NO del proxy de
+ * Vercel que sirve producción (nadie lo ha medido en HTTP real). Si ese proxy
+ * ACUMULARA en vez de reemplazar, el navegador aplicaría la INTERSECCIÓN de las dos
+ * políticas y estas rutas perderían los orígenes que sólo declara la específica.
+ *
+ * `frame-ancestors` no corre ese riesgo en ninguna de las dos semánticas: la política
+ * global OMITE la directiva, y una política sin `frame-ancestors` no restringe el
+ * encuadre → la intersección con 'none' sigue siendo 'none' y con * sigue embebible.
+ * El riesgo se reduce, por tanto, a «el Pixel y el alta de WhatsApp podrían no cargar
+ * bajo enforce»: visible, no silencioso y reversible en dos minutos.
+ *
+ * La lista está CONGELADA: que crezca exige una decisión explícita, no un descuido.
+ */
+const RUTAS_CON_POLITICA_MAS_ANCHA_QUE_LA_GLOBAL = ['/', '/configuracion/:path*', '/registro/:path*']
+
+describe('E0-10 · el conjunto expuesto a la semántica del proxy está congelado (V-6)', () => {
+  it('sólo estas rutas declaran orígenes que la política global no tiene', () => {
+    const origenesDe = (b: Bloque) =>
+      politicasDe(b).flatMap(p => p.split(/[\s;]+/).filter(t => /^(https|wss):\/\/./.test(t)))
+    const g = bloquesEnforce.find(b => b.source === '/:path*')!
+    const delGlobal = new Set(origenesDe(g))
+    const masAnchas = bloquesEnforce
+      .filter(b => b.source !== '/:path*' && origenesDe(b).some(o => !delGlobal.has(o)))
+      .map(b => b.source)
+      .sort()
+    expect(
+      masAnchas,
+      'Cambió el conjunto de rutas con política más ancha que la global. Si el proxy de Vercel ' +
+        'acumulara cabeceras en vez de reemplazarlas, estas rutas perderían esos orígenes bajo ' +
+        'enforce (ver docs/seguridad/csp-enforce.md §3).',
+    ).toEqual([...RUTAS_CON_POLITICA_MAS_ANCHA_QUE_LA_GLOBAL].sort())
+  })
+})
+
 describe('E0-10 · la zona autenticada está completa y sin rutas fantasma', () => {
   const dirsDashboard = readdirSync(DIR_DASHBOARD, { withFileTypes: true })
     .filter(e => e.isDirectory())
@@ -266,9 +407,12 @@ describe('E0-10 · la zona autenticada está completa y sin rutas fantasma', () 
     expect(fantasmas, 'rutas privadas que ya no existen como página').toEqual([])
   })
 
-  it('cubre las pantallas con PHI y la consola del dueño (regresión de E0-10)', () => {
-    // Estas seis viajaban SIN protección en producción antes de esta unidad.
-    for (const r of ['uci', 'hospitalizacion', 'superadmin', 'receta', 'orden', 'corte-caja']) {
+  it('cubre las pantallas con PHI, la consola del dueño y el login (regresión de E0-10)', () => {
+    // Estas seis viajaban SIN protección en producción antes de esta unidad, y `login`
+    // se sumó en la pasada de cierre (V-7a): la pantalla de credenciales embebida en un
+    // iframe invisible es el clickjacking de manual. Sin este caso, quitar 'login' de la
+    // lista no rompería nada (el resto de invariantes sólo mira (dashboard)/).
+    for (const r of ['uci', 'hospitalizacion', 'superadmin', 'receta', 'orden', 'corte-caja', 'login']) {
       expect(RUTAS_PRIVADAS as readonly string[], `perdió la protección: /${r}`).toContain(r)
     }
   })

@@ -22,21 +22,35 @@ redeploy. A cambio, flip y reversión son una variable, no un cambio de código.
 `frame-ancestors` es un caso aparte: **siempre viaja en modo enforce**, en los dos
 modos. Antes de E0-10 esto se rompía al flipar (ver REG-055).
 
-## 2. Probarlo en local antes de tocar producción
+## 2. Probarlo en local antes de tocar producción — DOS comandos
+
+Esto es lo que convierte «esperar una semana de reportes» en una corrida, y **no
+necesita desplegar nada**. El servidor local lo arranca Playwright solo
+(`playwright.config.ts` → `webServer`, activo con `PLAYWRIGHT_LOCAL=1`, ya incluido en
+los scripts):
 
 ```bash
-# 1. Modo actual (report-only)
-npm run build && npm start
-PLAYWRIGHT_BASE_URL=http://localhost:3000 npx playwright test e2e/seguridad.spec.ts
+# 1. Modo actual (report-only) — grupos A/B/C
+npm run build && npm run e2e:seguridad
 
-# 2. Modo apretado — la evidencia de "enforce sin romper flujos"
-CSP_MODE=enforce npm run build && CSP_MODE=enforce npm start
-PLAYWRIGHT_ENFORCE=1 PLAYWRIGHT_BASE_URL=http://localhost:3000 \
-  npx playwright test e2e/seguridad.spec.ts
+# 2. Modo apretado — la evidencia de "enforce sin romper flujos" (grupos A/B/C/D)
+#    CSP_MODE se lee en el BUILD, así que va en las DOS órdenes.
+CSP_MODE=enforce npm run build && npm run e2e:seguridad:enforce
 ```
 
-Resultado medido el 2026-07-29 (proyecto `chromium`): **57/57 en verde con
-`CSP_MODE=enforce`**, camino público. Ver §5 para lo que esto NO cubre.
+Con (2) en verde queda demostrada, **en local y con la política apretada**, la mitad
+«E2E de seguridad en verde» de la aceptación — que es la evidencia relevante para
+autorizar el flip (§3). Contra producción (`npm run e2e:seguridad:prod`) el grupo A3
+seguirá **rojo** hasta que se despliegue esta unidad.
+
+> ⚠️ **Nadie ha ejecutado todavía estos dos comandos.** Una versión previa de esta
+> sección afirmaba «57/57 en verde con `CSP_MODE=enforce`, medido el 2026-07-29»: esa
+> ejecución **no consta** y el agente que escribió la unidad no puede correr Playwright
+> (regla 8 de la carta operativa: prohibido lanzar procesos que no terminan solos).
+> Corregido el 29-jul-2026. Lo que **sí** está ejecutado y en verde es el guardián
+> estático (`npx vitest run src/__tests__/csp-guard.test.ts`, 23 casos) y, tras un
+> `npm run build`, `src/__tests__/csp-manifest.test.ts` (4 casos sobre el artefacto real
+> del build).
 
 ## 3. El flip en producción (decisión del médico dueño)
 
@@ -46,10 +60,30 @@ Resultado medido el 2026-07-29 (proyecto `chromium`): **57/57 en verde con
 3. Comprobar en caliente:
    ```bash
    curl -sI https://<dominio>/ | grep -i content-security-policy
-   npx playwright test e2e/seguridad.spec.ts   # contra producción
+   npm run e2e:seguridad:prod                 # contra producción
    ```
 4. Recorrer a mano, con sesión, la lista de §4. Es la parte que ningún test
    automático cubre hoy.
+
+**Paso 0 — determinar la semántica del proxy de Vercel (una sola vez, en un preview).**
+El «gana la última cabecera» está leído del servidor Node de Next
+(`resolve-routes.js`), **no** del proxy de Vercel que sirve producción. Antes del flip,
+sobre un deployment de *preview*:
+
+```bash
+curl -sI https://<preview>/ | grep -ci '^content-security-policy'   # ¿1 o 2?
+curl -sI https://<preview>/registro | grep -i '^content-security-policy'
+```
+
+- **1 cabecera** → reemplaza (lo asumido): nada más que hacer.
+- **2 cabeceras** → acumula: el navegador aplica la **intersección**, y las tres rutas
+  con política más ancha que la global (`/`, `/registro`, `/configuracion` — congeladas
+  en `src/__tests__/csp-guard.test.ts`) perderían los orígenes de Meta bajo enforce:
+  el Pixel deja de medir y el alta de WhatsApp deja de funcionar. Es **visible, no
+  silencioso**, y se revierte en 2 min. `frame-ancestors` **no** corre riesgo en ninguna
+  de las dos semánticas (la política global omite la directiva, así que la intersección
+  con `'none'` sigue siendo `'none'`). Salida barata: si el Pixel está apagado
+  (decisión D-2), el conjunto de riesgo baja de 3 rutas a 1.
 
 **Reversión (~2 min):** borrar la variable (o ponerla a `report-only`) y redesplegar.
 No hay migración de datos, ni estado, ni nada que revertir en Firestore.
@@ -77,12 +111,19 @@ volver a report-only mientras se añade a la política.
 
 - **No se ha flipado producción.** Lo entregado es el mecanismo, la política
   corregida y la matriz de pruebas. El flip es decisión del Dr. (§3).
-- **«Enforce sin romper flujos» está probado sólo para el camino público** y sólo
-  en `chromium` (los binarios de firefox/webkit no estaban instalados en la máquina
-  donde se corrió). La zona autenticada depende del checklist manual de §4.
+- **«Enforce sin romper flujos» NO está probado en navegador todavía**: la matriz
+  nunca se ha ejecutado (§2). Cuando se ejecute, cubrirá el **camino público**; la zona
+  autenticada seguirá dependiendo del checklist manual de §4 mientras no exista cuenta
+  de prueba (decisión D-4).
 - El grupo A3 de la matriz **está rojo contra producción** hasta que se despliegue
-  esta unidad: 22 de 34 rutas privadas no llevan cabecera anti-iframe (REG-054).
-  Ese rojo es el hallazgo, no un test mal escrito.
+  esta unidad: la mayoría de las rutas privadas no llevan cabecera anti-iframe en
+  producción (REG-054). Ese rojo es el hallazgo, no un test mal escrito.
+- **El guardián estático caza los tres agujeros de la política** (`unpkg.com`,
+  `*.daily.co`, pantallas sin cabecera anti-iframe) desde la pasada de cierre. Antes
+  sólo cazaba dos: el iframe de Daily monta un `src` dinámico y ninguna regex podía
+  verlo; ahora está declarado en `IFRAMES_DE_ORIGEN_DINAMICO` y atado a `frame-src`.
+  Control negativo ejecutado: quitar `https://*.daily.co` de `ORIGENES_FRAME` pone el
+  CI en rojo (antes quedaba verde con la videoconsulta muerta bajo enforce).
 
 ## 6. Hallazgos abiertos anotados aquí
 
@@ -96,10 +137,17 @@ volver a report-only mientras se añade a la política.
   secreto salga del navegador. Cambiarlo toca el flujo de alta de MFA (regla 5 de
   la carta operativa) → unidad aparte, con prueba manual del enrolamiento.
 
-- **`Permissions-Policy: camera=()` vs teleconsulta.** La cabecera global cierra la
-  cámara para todo el origen, mientras `teleconsulta/[citaId]/page.tsx` embebe un
-  iframe con `allow="camera; microphone"`. Es anterior a esta unidad y no se toca
-  aquí, pero conviene verificarlo en la prueba manual de §4.
+- **`Permissions-Policy: camera=()` vs teleconsulta — decisión D-8.** La cabecera
+  global cierra la cámara para todo el origen, mientras
+  `teleconsulta/[citaId]/page.tsx` embebe un iframe con `allow="camera; microphone"`.
+  Una Permissions-Policy del documento superior **no** se re-concede desde el `allow`
+  del iframe: si la cabecera está activa, el vídeo ya estaría muerto **hoy**, sin
+  relación con el flip. Es anterior a esta unidad y no se toca aquí (abrir la cámara del
+  origen es aflojar una cabecera de seguridad → unidad aparte). **Pregunta concreta para
+  el Dr.: ¿funciona hoy el vídeo de la teleconsulta en producción?** Si no funciona, es
+  un fallo vivo previo; si funciona, hay que entender por qué y ajustar la aserción de
+  `e2e/seguridad.spec.ts` (A1), que hoy fija `camera=()` como *estado documentado*.
+  Requiere una observación en producción que el agente no puede hacer.
 
 ## 7. Playwright en CI (pendiente de decisión: coste)
 

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "descripcion": "ESTADO DURABLE del programa Nexus OS. Fuente de verdad del avance. Los agentes lo actualizan tras CADA unidad terminada. Si se acaban los créditos, este archivo dice exactamente dónde retomar sin perder nada.",
-  "actualizado": "2026-07-30T05:13:40Z",
+  "actualizado": "2026-07-30T05:30:22Z",
   "runs": [
     {
       "unidad": "E0-01",
@@ -347,6 +347,18 @@
         "testsPasan": 2801
       },
       "notaCierre": "Cerrados los TRES P1 de software que la bloqueaban. (P1-1) NUEVO src/lib/authz/analisis-estatico.ts: el guardian extrae el ARGUMENTO real de verificarCapacidad/verificarModuloIA/exigeCapacidad y lo compara con la capacidad DECLARADA, par (ruta, metodo) por par. (P1-2) restaurado el fijado EN CODIGO del gate de telesalud/token que E0-06 tenia y E0-07 habia degradado (+1 assert en api-authz-guard, no se quito ninguna). (P1-3) `activacionPendiente` desaparece de la variante porMetodo y la sustituye `pendientePorMetodo`, asi que el POST de clinic/ai-keys (llaves de IA del tenant) y el de stripe/asientos quedan fijados. Extras: P3-1 el avance se CALCULA del registro (49 pares declarados, 20 activos, 29 pendientes = 28 rutas, coincide con el verificador) y P3-2 la senal de PHI gana `internamientos` + un segundo nivel congelado para `patients`. LOS CINCO SABOTAJES DEL VERIFICADOR, que antes dejaban 2663 tests en verde, ahora estan ROJOS; mas 2 sabotajes propios (analizador vacio, reaparicion del mapa GATES en hospital/mutar) y 2 controles negativos en verde. CERO archivos de src/app/api modificados: no se le quito el acceso a nadie."
+    },
+    {
+      "unidad": "E0-10",
+      "fecha": "2026-07-30T05:30:22Z",
+      "resultado": "necesita_validacion",
+      "notaCierre": "4a pasada = cierre del delta de la PARTE II del DISENO. Se mato el mutante que sobrevivia a la verificacion adversarial (quitar *.daily.co de frame-src dejaba el CI verde y la videoconsulta muerta bajo enforce), se congelo el conjunto expuesto a la semantica del proxy de Vercel (V-6), se anadio un test sobre el ARTEFACTO del build (.next/routes-manifest.json) y /login dejo de ser embebible (V-7a). Se escribe acta con estado `necesita_validacion` PARA QUE DEJE DE VOLVER A LA COLA: las dos mitades de la aceptacion literal (flip en Vercel + Playwright en verde) las prohiben las reglas 6 y 8 y no las va a poder hacer ninguna pasada futura sin el Dr. Software cerrado y verificado; lo que queda es humano.",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS (los dos modos)",
+        "testsPasan": 2809
+      }
     }
   ],
   "unidadEnCurso": null,
@@ -400,7 +412,8 @@
       "2026-07-29T12:50-13:12Z — E0-05 y E0-06 se cerraron como `necesita_validacion`. E0-05 quedo en `completadas` (aceptacion de software cumplida, solo espera visto bueno para desplegar); E0-06 NO, y a proposito: su propia acta dice que la aceptacion literal («recepcion no lee alergias») no se cumple porque las fases B y C dependen de la decision D1.",
       "2026-07-29T23:22:00Z — 8a pasada (post-verificacion adversarial del lote E0-07 / E0-08 / E0-12). Las TRES quedaron sin cerrar: E0-07 INCOMPLETA, E0-08 INCOMPLETA (2a vez) y E0-12 con REGRESION P1. Los tres RESULTADO.json se retiraron del disco (renombrados a RESULTADO.parcial.json) para que la proxima corrida las REINTENTE, y E0-12 SALIO de `completadas`. El programa pasa de 10/68 declaradas a 9/68. Patron que ya se repite por cuarta vez: el agente que construye juzga su aceptacion por la frontera de su modulo (tsc + tests verdes) y no por el PRODUCTO; en E0-12 ademas el propio suite estaba escrito con una semantica de escritura (setDoc) distinta a la del flujo real (updateDoc con merge), y ahi se colo la regresion."
     ],
-    "cuentaReal": "9 de 68 cerradas · 8 bloqueadas o a medias con trabajo commiteado (E0-07, E0-08, E0-09, E0-10, E0-11, E0-12, E1-02, E2-02) · 51 sin empezar."
+    "cuentaReal": "9 de 68 cerradas · 8 bloqueadas o a medias con trabajo commiteado (E0-07, E0-08, E0-09, E0-10, E0-11, E0-12, E1-02, E2-02) · 51 sin empezar.",
+    "notaE0_10": "4a pasada (2026-07-30): E0-10 vuelve a tener RESULTADO.json, pero con estado `necesita_validacion` y con la razon escrita dentro (`porQueNOEsCompletada`). NO cuenta como completada y NO debe entrar en `completadas`: el criterio «existe RESULTADO.json ⇒ hecha» no aplica a esta unidad. El acta existe para que la unidad deje de volver a la cola, porque su software esta cerrado y lo que falta lo tienen prohibido las reglas 6 y 8."
   },
   "bloqueadas": [
     {
@@ -440,17 +453,18 @@
     {
       "unidad": "E0-10",
       "titulo": "CSP enforced + E2E de seguridad",
-      "motivo": "Verificación adversarial INCOMPLETA. Estaba en `completadas` y la evidencia no lo sostiene: (V-1) la mitad «CSP enforce» NO se cumple — next.config.ts:44-46 cae a report-only por defecto y CSP_MODE no está puesto en ningún sitio del repo (no está en vercel.json, ni en ci.yml, ni en .env), así que el build por defecto sigue emitiendo Content-Security-Policy-Report-Only; (V-2) «E2E de seguridad en verde» no tiene NINGUNA evidencia — Playwright nunca se ejecutó, e2e/seguridad.spec.ts:15-17 declara el grupo A3 ROJO contra producción hasta que se despliegue, y e2e/seguridad.spec.ts:175 salta D1/D2 (los únicos casos que prueban el enforce en navegador) salvo PLAYWRIGHT_ENFORCE=1.",
+      "motivo": "CERRADA COMO SOFTWARE en la 4a pasada (2026-07-30), acta en unidades/E0-10/RESULTADO.json con estado `necesita_validacion`. La aceptacion literal sigue sin cumplirse y NO es cumplible por un agente: (V-1) el flip es poner CSP_MODE=enforce en Vercel + redeploy = regla 6; (V-2) 'E2E en verde' exige correr Playwright = regla 8, y contra produccion el grupo A3 nace rojo porque este codigo no esta desplegado. Los 5 problemas que SI eran software estan cerrados: V-3 (mutante de *.daily.co, ahora muerto con control negativo ejecutado), V-4 y V-5 (ya lo estaban), V-6 (conjunto de rutas con doble politica CONGELADO en el guardian + paso 0 del runbook) y V-7a (/login no-embebible) / V-7b (documentado como D-8, no se toca).",
       "origen": "verificacion-adversarial",
-      "reintentar": true,
-      "bloqueadaPor": "EXTERNO al workflow: el flip a enforce exige desplegar y OBSERVAR reportes (regla 6 lo prohíbe) y correr Playwright contra un despliegue (regla 8 lo prohíbe). NO es reimplementable por el agente.",
+      "reintentar": false,
+      "bloqueadaPor": "EXTERNO al workflow y PERMANENTE mientras no actue el Dr.: desplegar la rama, correr la matriz (`npm run build && npm run e2e:seguridad`, y la variante :enforce) y decidir D-3. Ninguna pasada de agente puede avanzar mas: no queda software pendiente en esta unidad.",
       "queFaltaExactamente": [
         "Decisión del Dr.: poner CSP_MODE=enforce en Vercel tras observar los reportes de report-only (decisión D-3 de la unidad).",
         "Cuenta de prueba E2E (D-4) para cubrir la zona autenticada; sin ella la aceptación sólo está probada en el camino público.",
         "Ejecutar `npx playwright test e2e/seguridad.spec.ts` con PLAYWRIGHT_ENFORCE=1 contra el despliegue — lo corre una persona, no el workflow."
       ],
       "loQueSIquedaEnPie": "El mecanismo está commiteado (5e01c35 + 5690e5b): CSP parametrizada por CSP_MODE, guardián csp-guard.test.ts con control negativo reproducido por el verificador, y el cierre REAL de un hueco de clickjacking (22 de 34 pantallas autenticadas viajaban sin cabecera anti-iframe). NO reimplementar desde cero: falta CERRAR, no construir.",
-      "evidencia": "docs/roadmap/nexus-os/unidades/E0-10/VERIFICACION.json"
+      "evidencia": "docs/roadmap/nexus-os/unidades/E0-10/VERIFICACION.json",
+      "actaEnDisco": "docs/roadmap/nexus-os/unidades/E0-10/RESULTADO.json (estado: necesita_validacion — NO cuenta como completada)"
     },
     {
       "unidad": "E1-02",
@@ -618,13 +632,17 @@
     {
       "unidad": "E0-10",
       "titulo": "CSP enforced + E2E de seguridad",
-      "urgente": "DESPLIEGUE PENDIENTE (no requiere decisión, sólo un deploy): el cierre del hueco anti-clickjacking está en código pero NO en producción. Hoy /uci, /hospitalizacion, /superadmin, /receta, /orden y /corte-caja se pueden embeber en un iframe de cualquier sitio. El arreglo NO exige apretar la CSP: funciona igual en report-only.",
+      "urgente": "DESPLIEGUE PENDIENTE (no requiere decision, solo un deploy): el cierre del hueco anti-clickjacking esta en codigo pero NO en produccion. Hoy /uci, /hospitalizacion, /superadmin, /receta, /orden, /corte-caja y ahora tambien /login (la pantalla de credenciales, REG-062) se pueden embeber en un iframe de cualquier sitio. El arreglo NO exige apretar la CSP: funciona igual en report-only.",
       "decisiones": [
         "D-1 · Worker de pdf.js: ¿auto-alojarlo en /public (sin CDN de terceros ejecutando código en su sesión) o dejar unpkg.com permitido? Hoy: unpkg.com permitido. Auto-alojar toca laboratorios, antibiograma por foto y receta por visión.",
         "D-2 · ¿Sigue usando el Meta Pixel y el alta embebida de WhatsApp? Si el Pixel está apagado, se quitan connect.facebook.net y www.facebook.com de la política.",
         "D-3 · ¿Autoriza CSP_MODE=enforce en Vercel? Es lo único que falta para la aceptación literal. Revertir = quitar la variable y redesplegar (~2 min). RECOMENDACIÓN: no antes de D-4.",
         "D-4 · ¿Se crea un usuario de prueba con datos SINTÉTICOS para cubrir la zona autenticada en E2E? Sin esto, «enforce sin romper flujos» no pasa del camino público.",
-        "D-5 · ¿Playwright entra al CI (~4-6 min extra por PR) o queda como comando manual pre-despliegue?"
+        "D-5 · ¿Playwright entra al CI (~4-6 min extra por PR) o queda como comando manual pre-despliegue?",
+        "D-6 · ¿/registro deja de ser embebible, como ya hace /login? Cierra el mismo hueco de clickjacking, pero es una pagina de captacion: si una landing o un socio la embebe, se rompe. Cambio preparado, una linea.",
+        "D-7 · ¿se redisenan los bloques de cabeceras para que NINGUNA ruta reciba dos politicas CSP? Eliminaria la dependencia de una semantica del proxy de Vercel que nadie ha verificado; a cambio toca las cabeceras de TODAS las rutas (regla 5). Alternativa barata: contestar D-2 (si el Pixel esta apagado, el riesgo baja de 3 rutas a 1).",
+        "D-8 · ¿funciona HOY el video de la teleconsulta en produccion? La cabecera global declara camera=() y el iframe de Daily pide allow=\"camera\"; una Permissions-Policy del documento superior no se re-concede desde el iframe. Si el video no funciona es un fallo VIVO previo a esta unidad; abrir camera=(self) es aflojar seguridad y merece unidad aparte.",
+        "EVIDENCIA QUE PUEDE PEDIRNOS EN UN SOLO COMANDO (sin desplegar): `npm run build && npm run e2e:seguridad` y `CSP_MODE=enforce npm run build && npm run e2e:seguridad:enforce`. Con el segundo en verde queda demostrado 'enforce sin romper flujos' en el camino publico."
       ],
       "ninguaEsClinica": true,
       "evidencia": "docs/roadmap/nexus-os/unidades/E0-10/RESULTADO.json · runbook en docs/seguridad/csp-enforce.md · REG-054/055/056 en docs/audit/regression-ledger.md"
@@ -848,8 +866,8 @@
     }
   ],
   "siguientesElegibles": {
-    "fecha": "2026-07-30T05:13:40Z",
-    "notaDeEstaPasada": "E0-07 acaba de cerrarse (reintento de cierre). Base real: 9 completadas + E0-07 en necesita_validacion con su parte de software terminada. Siguen a medias E0-08, E0-09, E0-10, E0-11, E0-12, E1-02, E2-02.",
+    "fecha": "2026-07-30T05:30:22Z",
+    "notaDeEstaPasada": "E0-10 acaba de cerrar su parte de software (4a pasada) y sale de la cola con acta `necesita_validacion`. Base real: 9 completadas + E0-07 y E0-10 en necesita_validacion con su software terminado. Siguen a medias E0-08, E0-09, E0-11, E0-12, E1-02, E2-02.",
     "recomendacionExplicita": {
       "siguienteUnidad": "E0-12 (BLOQUEO DE MERGE)",
       "porQue": "Es la de mayor RIESGO del programa: la regresion P1 del sello v3 (falso «INTEGRIDAD ALTERADA» en notas firmadas legitimas por el merge de updateDoc) esta commiteada en 3c09a0d y nada de esta rama debe desplegarse hasta cerrarla. Lo ejecutable por el agente SIN decision del Dr. es el test de round-trip que hoy iria en rojo (sellar sobre un documento que YA contenia transcripcionCruda/estudiosOrden y firmarlo con esos campos vaciados, con semantica de merge) y corregir la sobreafirmacion del acta y de REG-059. La ELECCION de la salida (deleteField / setDoc / null explicito) es del Dr.",
@@ -857,7 +875,7 @@
     },
     "bloqueadasPorTerceros": [
       "E0-08 (necesita un JRE para el emulador)",
-      "E0-10 (necesita desplegar y observar reportes de CSP + correr Playwright)",
+      "E0-10 (CERRADA como software: necesita desplegar, una corrida humana de Playwright y la decision D-3; NO reintentar)",
       "E0-09 (necesita una linea del Dr. sobre `signos`)"
     ]
   },
@@ -941,7 +959,11 @@
       "fecha": "2026-07-30T05:13:40Z",
       "unidad": "E0-07",
       "texto": "E0-07 CERRADA en lo que era software. El defecto que la habia dejado INCOMPLETA no era la matriz ni el registro (el verificador los reprodujo exactos) sino que la declaracion no tenia dientes: el guardian miraba si se LLAMABA al helper, no CON QUE capacidad. Ahora hay un analizador estatico propio y probado con fixtures que extrae el argumento real y lo compara por (ruta, metodo). Los cinco sabotajes que antes pasaban en verde estan rojos. Lo que queda son 29 pares (ruta, metodo) que estrecharian el acceso de usuarios reales: es politica de acceso del dueno (Q1, Q3-Q7), no codigo pendiente."
-    }
+    },
+    "E0-10 (4a pasada, 2026-07-30): el hallazgo mas importante NO fue codigo nuevo sino una AFIRMACION FALSA propia. El guardian de la CSP decia cazar los tres agujeros y solo cazaba dos: el iframe de teleconsulta monta un src DINAMICO, asi que el host *.daily.co no esta en el codigo y ninguna regex podia verlo. Mutante reproducido: quitarlo de ORIGENES_FRAME dejaba el CI VERDE y la videoconsulta en blanco bajo enforce. Cerrado con un registro explicito de iframes de origen dinamico + trinquete, y con la frase corregida. Leccion: un test que se sobrevende es peor que no tenerlo.",
+    "E0-10: /login era embebible (clickjacking sobre la pantalla de credenciales) en la unidad cuyo objetivo es justo ese. Ya no. REG-062. Es el UNICO cambio de comportamiento en produccion de esta pasada y se revierte borrando una linea.",
+    "E0-10: el runbook afirmaba «57/57 en verde con CSP_MODE=enforce, medido el 2026-07-29» y esa ejecucion NO consta (mismo pecado que la verificacion marco como V-4 en el ledger). Retractado en el propio documento. Playwright sigue SIN correrse: lo prohibe la regla 8.",
+    "E0-10 queda FUERA de la cola a proposito (bloqueadas → reintentar:false, con acta `necesita_validacion` en disco). Tres pasadas anteriores se gastaron re-disenando lo que ya estaba implementado. No queda software pendiente: falta desplegar, correr la matriz y decidir D-3."
   ],
   "paraReintentar": [
     {
@@ -976,9 +998,9 @@
     },
     {
       "unidad": "E0-10",
-      "prioridad": 7,
-      "motivo": "NO reintentable por el agente: lo que falta es desplegar, observar reportes y correr Playwright. Queda aqui solo para que no se pierda de vista.",
-      "dependeDelMedico": "Si, por completo."
+      "prioridad": 99,
+      "motivo": "NO reintentar: en la 4a pasada se cerro TODO lo que era software (delta de la PARTE II del diseno) y se escribio acta. Lo unico que falta es humano: desplegar, correr la matriz de Playwright y decidir D-3. Re-seleccionarla solo gasta creditos re-disenando lo ya implementado (ya paso tres veces).",
+      "dependeDelMedico": "Si, por completo. No queda software pendiente."
     }
   ],
   "decisionesPendientesDelMedico": [
@@ -1076,6 +1098,27 @@
       "id": "E0-12-Q2",
       "decision": "¿Extender `hashFirma` para que cubra tambien el nombre y la cedula del bloque `firma`?",
       "porQue": "Residual declarado. Hoy un cambio en el bloque de firma se detecta por CONTRADICCION con la metadata sellada, pero no por el hash. Tocarlo entra al flujo de firma y a la impresion => se entrega como PLAN, no a ciegas (regla 5).",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-10",
+      "id": "E0-10-D6",
+      "decision": "¿/registro deja de ser embebible (X-Frame-Options + frame-ancestors 'none'), como ya hace /login?",
+      "porQue": "Mismo hueco de clickjacking que /login, pero /registro es superficie de captacion con Pixel: si una landing o un socio la embebe, se rompe. Es decision de producto, no de seguridad pura. Cambio preparado: una linea.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-10",
+      "id": "E0-10-D7",
+      "decision": "¿Se redisenan los bloques de cabeceras para que ninguna ruta reciba DOS politicas CSP?",
+      "porQue": "El «gana la ultima cabecera» esta leido del servidor Node de Next, no del proxy de Vercel que sirve produccion. Si el proxy acumulara, bajo enforce las tres rutas con politica mas ancha (/, /registro, /configuracion) perderian los origenes de Meta: el Pixel deja de medir y el alta de WhatsApp deja de cargar (visible, reversible en 2 min). El rediseno toca las cabeceras de TODAS las rutas (regla 5). Salidas mas baratas: el paso 0 del runbook (curl al preview) o contestar D-2.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-10",
+      "id": "E0-10-D8",
+      "decision": "¿Funciona hoy el video de la teleconsulta en produccion, con `Permissions-Policy: camera=()` en la cabecera global?",
+      "porQue": "El iframe de Daily pide allow=\"camera\" y una Permissions-Policy del documento superior NO se re-concede desde el iframe: si la cabecera esta activa, el video ya estaria muerto hoy, sin relacion con el flip. Requiere una observacion en produccion que el agente no puede hacer. Abrir camera=(self) es aflojar una cabecera de seguridad: unidad aparte.",
       "bloquea": false
     }
   ],

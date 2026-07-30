@@ -1,22 +1,26 @@
 # Nexus OS — dónde vamos
 
 > **En 30 segundos.**
-> **Van 9 de 68** unidades cerradas del todo, **y hoy se cerró la parte de software de una décima**:
-> **E0-07** (los permisos de cada puerta de la API), que ayer se había devuelto a la cola.
-> El defecto era serio y quedó tapado: el vigilante automático comprobaba que la puerta
-> **llamara al candado**, pero no **qué llave pedía**. Ahora extrae la llave real del código y la
-> compara con la declarada, puerta por puerta **y verbo por verbo**. Los **cinco sabotajes** que
-> el revisor había dejado pasar en verde **ahora salen rojos**, y se recuperó la protección que
-> se había perdido sin querer (el candado en código de la sala de teleconsulta).
-> **No se le quitó el acceso a nadie: no se modificó ni un archivo de la API.**
+> **Van 9 de 68** unidades cerradas del todo. Hoy se cerró la parte de software de **E0-10**
+> (las pantallas que nadie debe poder meter en un marco ajeno + el interruptor de la política de
+> seguridad), la segunda unidad que queda «cerrada en software, esperando a usted».
+> Lo más valioso de hoy **no fue código nuevo: fue destapar una mentira nuestra**. El vigilante de
+> la política *decía* cazar los tres agujeros y sólo cazaba dos: la **sala de videoconsulta** recibe
+> su dirección en el momento, así que el nombre del proveedor **no está escrito en el código** y
+> ninguna búsqueda de texto podía verlo. Comprobado a la mala: **borrar el permiso de la
+> videoconsulta dejaba todo en verde** y la llamada se habría quedado en negro el día que se apriete
+> la política. Ya no: hay un registro explícito de esos marcos y **borrarlo pone el CI en rojo**
+> (reproducido, no supuesto).
+> Y se cerró un hueco que teníamos delante: **la pantalla de entrada (`/login`) se podía meter en un
+> marco invisible** — el truco clásico para robar contraseñas. Ya no se puede.
 > **LO ÚNICO QUE URGE DE USTED SIGUE SIENDO `E0-12-D3`.** Es una línea, y hasta que la conteste
 > **nada de esta rama debe desplegarse**.
 > **La siguiente unidad es E0-12** (cerrar el falso «INTEGRIDAD ALTERADA»), porque es la de mayor
 > riesgo — aunque la parte final la decide usted.
 
-Última corrida: `2026-07-30T05:13Z` · `tsc` verde (0 errores) ·
-**2 801 tests verdes** · `build` verde · rama `nexus-os/sesion-2026-07-29` ·
-`unidadEnCurso: null` (nada a medio hacer sin registrar).
+Última corrida: `2026-07-30T05:30Z` · `tsc` verde (0 errores) ·
+**2 809 tests verdes** · `build` verde **en los dos modos** de la política · rama
+`nexus-os/sesion-2026-07-29` · `unidadEnCurso: null` (nada a medio hacer sin registrar).
 
 ---
 
@@ -52,7 +56,7 @@ ni consulto producción (regla 6).
 | **2** | **`E0-07-Q1`** — ¿la enfermería de su UCI usa el copiloto y el dictado del expediente, o sólo el médico? | Es el hueco de seguridad más grande que queda abierto, y ahora es **lo único** que separa a E0-07 de estar cerrada del todo: hoy un miembro con rol `laboratorio` o `farmacia` puede pedirle al servidor una nota clínica redactada. El candado está escrito, probado y **atado al código**; falta que usted diga a quién deja fuera. Gobierna 16 puertas. |
 | **3** | **`E0-07-Q7`, `E0-07-Q6`, `E0-07-Q3`, `E0-07-Q4`, `E0-07-Q5`, `E0-07-Q2`** — quién agenda citas, quién manda WhatsApp, quién ve pagos, quién entra a la sala de teleconsulta, quién lista los correos del equipo, quién descarga CFDI. | Gobiernan las otras 12 puertas que hoy siguen abiertas a «cualquiera del consultorio». **Ninguna es criterio clínico**: es quién en su consultorio puede hacer qué. Un «no» mal puesto en `appointments` se lee como «la app se rompió», así que no se activa nada sin su palabra. |
 | **4** | **`E0-08-Q2`** — ¿se instala Java en su Mac para correr **una vez** la prueba de aislamiento entre clínicas, o se demuestra en GitHub al abrir el primer PR? | Es lo único que separa a esa unidad de estar cerrada: 1 120 intentos de que una clínica lea a otra, escritos y **jamás ejecutados** por falta de Java. |
-| 5 | `E0-07-D8` (¿se blinda el valor del puesto al aceptar una invitación? toca el alta de miembros) · `E0-06-D1` (alergias en recepción) · `E0-09-Q5` (corregir signos anexando) · `E0-10-D3/D4` (desplegar + cuenta de prueba) · `E0-11` (5 min en GitHub) · `E1-02-Q6/Q7` · `E2-02-ALCANCE` · `E0-02-Q3` · `E0-04-Q1/Q2` · `E0-01-D1` · `E0-05` (visto bueno para desplegar) · `E0-14` (REG-014) | Las de siempre, con su «por qué» una por una en `estado.json` → `decisionesPendientesDelMedico` y `necesitaValidacionDelDr`. |
+| 5 | `E0-07-D8` (¿se blinda el valor del puesto al aceptar una invitación? toca el alta de miembros) · `E0-06-D1` (alergias en recepción) · `E0-09-Q5` (corregir signos anexando) · `E0-10-D3/D4/D6/D7/D8` (desplegar + cuenta de prueba + ¿`/registro` no-embebible? + ¿rediseñar cabeceras? + **¿funciona hoy el vídeo de la teleconsulta?**) · `E0-11` (5 min en GitHub) · `E1-02-Q6/Q7` · `E2-02-ALCANCE` · `E0-02-Q3` · `E0-04-Q1/Q2` · `E0-01-D1` · `E0-05` (visto bueno para desplegar) · `E0-14` (REG-014) | Las de siempre, con su «por qué» una por una en `estado.json` → `decisionesPendientesDelMedico` y `necesitaValidacionDelDr`. |
 
 ---
 
@@ -69,70 +73,76 @@ ni consulto producción (regla 6).
 | E0-15 | Antibiograma: 4 decisiones clínicas suyas implementadas | ✅ cerrada |
 | E1-01 | Un hecho clínico no existe sin unidad y sin procedencia | ✅ cerrada |
 | E2-01 | Una afirmación no existe sin el fragmento que la respalda | ✅ cerrada |
-| **E0-07** | **Cada puerta dice qué permiso exige** | 🟢 **CERRADA HOY en software** — el vigilante ya compara la llave real con la declarada, puerta y verbo por verbo. Sólo espera sus respuestas de política (Q1, Q3–Q7) para apretar las 28 puertas restantes. |
+| E0-07 | Cada puerta dice qué permiso exige | 🟢 cerrada en software — el vigilante compara la llave real con la declarada, puerta y verbo por verbo. Espera sus respuestas de política (Q1, Q3–Q7) para apretar las 28 puertas restantes. |
 | **E0-12** | El sello de la nota firmada cubre TODA la nota | 🔴 la mejora funciona, pero **acusa en falso** a notas legítimas → `E0-12-D3`. **NO DESPLEGAR.** **SIGUIENTE UNIDAD.** |
 | E0-08 | Que una clínica no vea a otra: probado empujando la puerta | 🟡 la prueba existe y **nunca se ha corrido**: falta Java → `E0-08-Q2` |
 | E0-06 | Recepción no debe ver el expediente | 🟡 agujero de la API cerrado; mudar las alergias espera `E0-06-D1` |
 | E0-09 | El registro del hospital no se edita: se corrige anexando | 🟡 espera una línea suya (`E0-09-Q5`) |
-| E0-10 | Iframes bloqueados · interruptor de seguridad | 🔴 espera un despliegue suyo + cuenta de prueba |
+| **E0-10** | **Iframes bloqueados · interruptor de seguridad** | 🟢 **CERRADA HOY en software** — el vigilante ya caza los tres agujeros (antes dos), `/login` deja de ser embebible y hay una prueba sobre el **artefacto real** del build. **Sale de la cola:** lo que falta es desplegar, correr la matriz de pruebas de navegador y decir sí/no al apretón (`E0-10-D3`). |
 | E0-11 | El CI protege los invariantes clínicos | 🟡 código listo — espera 5 min suyos en GitHub |
 | E1-02 | «Creatinina», «Cr» y «creatinina sérica» son el mismo dato | 🔴 falta 1 test (software) + sus respuestas |
 | E2-02 | La búsqueda de evidencia se arma por partes | 🔴 el módulo es correcto y **no lo usa nadie**: falta cablearlo |
 
-**9 cerradas del todo · 1 cerrada en software y esperando sus respuestas (E0-07) ·
-7 a medias con código ya guardado en la rama · 51 sin empezar.**
+**9 cerradas del todo · 2 cerradas en software y esperando a usted (E0-07 y E0-10) ·
+6 a medias con código ya guardado en la rama · 51 sin empezar.**
 Ninguna de las que están a medias hay que rehacerla desde cero: a todas les falta **cerrar**.
 
 ---
 
 ## Qué pasó en esta corrida, en español
 
-### E0-07 — el registro de permisos ya es un candado, no un cartel
+### E0-10 — el vigilante de la política ya no se sobrevende
 
-**Cuál era el problema.** El catálogo de permisos (14 capacidades × 8 puestos) y las **74 puertas**
-de la API declaradas estaban bien hechos: el revisor los reprodujo uno por uno y salieron exactos.
-Lo que **no** estaba bien era el vigilante automático: comprobaba que la puerta **llamara al
-candado**, no **qué llave pedía**. El revisor cambió la llave de tres puertas por una equivocada
-—entre ellas el portal de facturación de Stripe, que quedaba abierto a los 8 puestos— y los
-**2 663 tests siguieron en verde**. El registro *decía* la verdad, pero nada impedía que mañana
-dejara de decirla.
+**Cuál era el problema.** El archivo que vigila la política de seguridad **afirmaba por escrito**
+haber cazado los tres agujeros que había antes de poder apretarla. Era falso en uno: la **sala de
+videoconsulta** se abre con una dirección que llega **en el momento** (la crea el proveedor cuando
+empieza la llamada), así que el nombre del proveedor **no aparece en el código** y ninguna búsqueda
+de texto podía encontrarlo. Se comprobó a la mala: **borrando el permiso de la videoconsulta de la
+política, las 19 pruebas seguían en verde**. El día que se apriete la política, la llamada se
+queda en negro y el CI no habría dicho nada. Una red de seguridad que se sobrevende es peor que no
+tenerla.
 
-**Qué se hizo.** Se escribió un lector propio (`analisis-estatico.ts`) que abre cada archivo de
-puerta y saca tres cosas: **qué candado** se usa, **qué llave exacta** pide, y **dentro de qué
-verbo** (consultar, guardar, borrar…). Con eso el vigilante ya no pregunta «¿hay candado?» sino
-«¿la llave que corre es la que dice el registro?». Tres detalles que importan:
+**Qué se hizo.**
 
-1. **La comprobación es por verbo, no por puerta.** Antes, en dos puertas con dos verbos, el
-   «pendiente» de uno tapaba al otro: el verbo que **guarda las llaves de inteligencia artificial
-   de su consultorio** podía volver a «cualquiera del consultorio» sin que nada se moviera. Ya no.
-2. **Se recuperó una protección perdida.** El candado de la sala de teleconsulta estaba fijado *en
-   el código* antes de esta unidad y había quedado fijado sólo *en el papel*. Es una de las dos
-   fallas graves históricas que ese vigilante cuida. Está restaurado, y ahora sobre el argumento
-   real, que es más fuerte que antes.
-3. **El vigilante no puede pasar por vacío.** El modo de falla más traicionero de un lector así es
-   que se rompa, no encuentre nada y todo salga verde. Hay un control que congela lo que tiene que
-   encontrar (74 candados en 61 de las 74 puertas), y se comprobó rompiendo el lector a propósito:
-   14 pruebas se ponen rojas de inmediato.
+1. **Los marcos que reciben su dirección en el momento ahora se declaran uno por uno** (archivo,
+   proveedor y por qué), y la prueba exige que la política los permita. Además hay un **trinquete**:
+   si mañana alguien mete otro marco de un tercero sin declararlo, el CI se pone rojo. Los dos
+   sabotajes correspondientes se ejecutaron: **los dos salen rojos ahora**.
+2. **La pantalla de entrada (`/login`) deja de ser embebible.** Era el hueco clásico de robo de
+   contraseñas —meter su pantalla de acceso en un marco invisible— y estaba abierto justo en la
+   unidad cuyo objetivo es cerrarlo. Es **el único cambio de comportamiento** de hoy, y se revierte
+   borrando una línea. No hay nadie que la embeba a propósito: el único marco hacia dentro de la app
+   es el widget de citas que su web puede incrustar, y ése apunta a otra pantalla.
+3. **Se añadió una prueba sobre el archivo que el servidor consume de verdad** (el resultado del
+   build), no sólo sobre la intención escrita en el código. Si no hay build, la prueba se declara
+   **saltada** con el comando exacto: no se inventa un verde.
+4. **Se acotó el único riesgo que quedaba sin medir**: la regla «gana la última cabecera» está leída
+   del servidor de desarrollo, no del proxy que sirve producción. Si ese proxy acumulara en vez de
+   reemplazar, sólo se verían afectadas **tres** direcciones (la portada, el registro y
+   configuración) y el síntoma sería visible —el Pixel deja de medir y el alta de WhatsApp no
+   carga—, nunca silencioso. Esas tres quedan **congeladas** en la prueba, y el runbook estrena un
+   «paso 0»: un comando de una línea contra un despliegue de prueba para saber cuál de las dos
+   semánticas rige.
 
-**Cómo sé que sirve, y no es fe.** Se repitieron **los cinco sabotajes exactos** que el revisor
-había dejado pasar en verde: **los cinco salen rojos ahora**, con el mensaje diciendo qué llave
-declara y qué llave corre. Se añadieron dos sabotajes propios (romper el lector; devolver a la
-puerta del hospital su viejo mapa de puestos) y también salen rojos. Y —tan importante como lo
-anterior— **dos controles al revés**: reordenar código legítimo **no** pone nada rojo. Un
-vigilante que grita con todo no sirve de nada.
+**Una corrección de honestidad.** El runbook decía «57/57 en verde con la política apretada, medido
+el 29 de julio». **Esa medición no consta**: correr el navegador automatizado está prohibido para el
+agente (procesos que no terminan solos han tumbado corridas enteras). Queda retractado en el propio
+documento. Lo que **sí** está ejecutado hoy: el vigilante (23 pruebas) y la prueba del artefacto del
+build (4 pruebas, en los dos modos).
 
-**Riesgo:** **no se modificó ni un archivo de la API.** Cero cambios en quién entra a dónde, cero
-cambios en los mensajes de error, cero cambios en las reglas de la base de datos. Lo único nuevo
-es un módulo que sólo usan las pruebas. Si el lector se equivocara, lo que pasa es que **se
-detiene un commit**, no que se rompa algo para usted.
+**Riesgo:** cuatro de los cinco cambios son pruebas y documentación — no pueden romper nada. El
+quinto es `/login` no-embebible. Y el interruptor **sigue en modo observación por defecto**: nada
+empieza a bloquearse sin que usted ponga la variable.
 
-**Qué falta, y es suyo.** 28 puertas siguen abiertas a «cualquiera del consultorio» **en
-ejecución**. Ninguna es un descuido: cada una declara qué permiso debería pedir, **dice por
-escrito qué decisión suya espera**, y hay una prueba que verifica que el candado viejo sigue
-puesto de verdad y otra que congela la lista. La más importante es `E0-07-Q1` (la enfermería de
-UCI y el dictado): 16 de esas 28. Con sus respuestas, apretarlas es mecánico y ya está probado.
-
----
+**Qué falta, y es suyo.** (a) **Desplegar** — el cierre de los marcos está en el código y no en
+producción; (b) **una corrida de la matriz de navegador**, que ahora es **un comando** y no necesita
+desplegar nada: `npm run build && npm run e2e:seguridad` (y la variante `:enforce` para probarlo con
+la política apretada); (c) `E0-10-D3`: decir sí/no a apretar la política en Vercel. Se abrieron tres
+preguntas nuevas, ninguna clínica: `D-6` (¿`/registro` también deja de ser embebible?), `D-7`
+(¿rediseñar las cabeceras para que ninguna dirección reciba dos políticas?) y **`D-8`: ¿funciona hoy
+el vídeo de la teleconsulta en producción?** — porque la cabecera global cierra la cámara para todo
+el sitio y eso no se puede volver a conceder desde dentro del marco. Si el vídeo no funciona, es un
+fallo **vivo** anterior a esta unidad.
 
 ## 👉 Cómo retomar (para la próxima sesión, mía o de otro)
 
@@ -144,17 +154,23 @@ UCI y el dictado): 16 de esas 28. Con sus respuestas, apretarlas es mecánico y 
 3. **Después: `E1-02`** (retirar o dar fuente a los sinónimos de signos vitales sin respaldo, más
    el test que **deriva** los sinónimos de laboratorio de los patrones de los analitos) y **`E2-02`**
    (cablear el extractor PICO a las dos rutas de evidencia, previa decisión de alcance).
-4. **`E0-07` no se reintenta.** Su parte de software está cerrada y verificada; lo que queda son
-   respuestas del Dr. Cuando lleguen, el lote es mecánico: cambiar `verificarModuloIA` por
-   `verificarModuloYCapacidad` en las 16 rutas de IA y quitar el `activacionPendiente` de las que
-   él autorice. El guardián nuevo comprobará solo que el código haga lo que el registro dice.
+4. **`E0-07` y `E0-10` no se reintentan.** Su parte de software está cerrada y verificada; lo que
+   queda son respuestas y acciones del Dr. En E0-07 el lote pendiente es mecánico (cambiar
+   `verificarModuloIA` por `verificarModuloYCapacidad` en las 16 rutas de IA). En E0-10 **no queda
+   software**: falta desplegar, correr la matriz (`npm run e2e:seguridad`) y decidir `D-3`. Tres
+   pasadas anteriores se gastaron re-diseñando lo que ya estaba implementado; por eso ahora tiene
+   acta en disco (`RESULTADO.json`, estado `necesita_validacion`) y `reintentar: false`.
 5. Si el Dr. prefiere terreno nuevo: **E4-01 «Contrato del Safety Kernel»** (riesgo medio,
    aceptación autocontenida).
 
 **Convención vigente:** una unidad devuelta a la cola pierde su `RESULTADO.json` (se renombra a
 `RESULTADO.parcial.json`, para no perder la evidencia) y su veredicto queda en `VERIFICACION.json`.
 E0-07 vuelve a tener `RESULTADO.json`; su `RESULTADO.parcial.json` y su `VERIFICACION.json` se
-conservan como historia de por qué se devolvió.
+conservan como historia de por qué se devolvió. **E0-10 también vuelve a tener `RESULTADO.json`,
+pero con estado `necesita_validacion` y la razón escrita dentro**: no cuenta como cerrada del todo y
+**no debe entrar en `completadas`** (ése fue el error V-5 que encontró su verificación). El acta
+existe para que la unidad deje de volver a la cola, porque su software está cerrado y lo que falta
+lo prohíben las reglas de despliegue y de procesos.
 
 ---
 
@@ -188,12 +204,20 @@ conservan como historia de por qué se devolvió.
   diseñada y espera `E0-06-D1`.
 - **8 puestos en el tipo, 6 asignables desde la app** («recepción» y «facturación» existen en la
   matriz y nadie puede tenerlos). Hay una prueba que lo vigila → `E0-07-Q2`.
-- **El arreglo del clickjacking (22 pantallas) está en el código y no en producción.** Basta
-  desplegar — **subiendo la versión del Service Worker**.
+- **El arreglo del clickjacking está en el código y no en producción.** Son 22 pantallas con datos
+  clínicos **más la pantalla de entrada (`/login`)**, cerrada hoy. Basta desplegar — **subiendo la
+  versión del Service Worker**.
 - **La política de seguridad sigue permitiendo `unsafe-inline`/`unsafe-eval`.** Quitarlo exige
   firmar cada script en cada petición; su riesgo típico es *pantalla en blanco*. Unidad aparte.
 - **Ninguna prueba automática entra a la zona con sesión** (expediente, nota, receta, farmacia). Es
-  el punto ciego más grande del proyecto y lo que impide cerrar E0-10 → `E0-10-D4`.
+  el punto ciego más grande del proyecto y lo que impide afirmar «apretar la política no rompe
+  nada» más allá del camino público → `E0-10-D4`.
+- **La matriz de pruebas de navegador nunca se ha ejecutado** (ni contra producción ni en local).
+  Ahora es un solo comando y no exige desplegar; hasta que corra, «pruebas de seguridad en verde»
+  es una promesa, no un hecho.
+- **La cámara está cerrada para todo el sitio mientras la videoconsulta la pide** (`camera=()` vs
+  el marco de Daily). Es anterior a E0-10 y no se toca de oficio: aflojar una cabecera de seguridad
+  merece unidad aparte → `E0-10-D8`, que empieza por una observación suya en producción.
 - **El grafo no puede expresar 14 de los 35 datos que necesita** *(bloquea E1-03)*. Faltan lpm, rpm,
   °C, cm, kg/m², «puntos» (Glasgow, dolor), U/L, 10³/µL, µUI/mL. «120/80» son **dos datos, no uno**.
 - **El motor de dosis no habla el idioma del principio 3** de sus decisiones clínicas: devuelve

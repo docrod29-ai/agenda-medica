@@ -52,6 +52,13 @@ export const RUTAS_PRIVADAS = [
   'hospitalizacion',
   'legal',
   'lista-espera',
+  // `login` NO es zona autenticada, pero es la PANTALLA DE CREDENCIALES: embebida en
+  // un iframe invisible es el blanco clásico de clickjacking (el usuario cree teclear
+  // en otro sitio y entrega usuario/contraseña). Entró aquí en la pasada de cierre de
+  // E0-10 tras el hallazgo V-7a de la verificación adversarial. Único consumidor de
+  // iframes hacia dentro de la app en todo el código: el snippet de /reservar que el
+  // consultorio pega en SU web (configuracion/page.tsx) — no toca /login.
+  'login',
   'membresias',
   'migracion',
   'nota',

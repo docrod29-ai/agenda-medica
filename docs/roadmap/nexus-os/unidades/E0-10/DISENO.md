@@ -500,3 +500,309 @@ seguridad en verde») es: **el mecanismo del enforce está entregado y probado; 
 enforce en producción no se ha ejecutado**, y la afirmación "sin romper flujos" sólo
 cubre el camino público — la zona autenticada sigue sin cuenta de prueba E2E (§2.6,
 decisión D-4).
+
+---
+---
+
+# PARTE II — REDISEÑO DE CIERRE (3ª pasada, 2026-07-29)
+
+> Esta parte **sustituye** al plan de la Parte I como diseño vigente. La Parte I ya
+> está implementada en `5e01c35` + `5690e5b`; la verificación adversarial
+> (`VERIFICACION.json`, veredicto `INCOMPLETA`) encontró 7 problemas (V-1…V-7) y el
+> `RESULTADO.json` se retiró. Nada de lo que sigue propone reimplementar lo que ya
+> existe: es el **delta mínimo** entre lo entregado y lo que un agente *puede*
+> cerrar sin desplegar (regla 6) ni ejecutar servidores (regla 8).
+
+## II.0 · Punto de partida medido HOY (no heredado)
+
+Comprobado por mí en esta pasada, con el árbol en `fef2a23`:
+
+| Pieza | Dónde | Estado hoy |
+|---|---|---|
+| Interruptor `CSP_MODE` (fail-safe a report-only) | `next.config.ts:44-52` | Existe. `CSP_MODE` **no** aparece puesto en el repo → el default sigue siendo report-only |
+| Política parametrizada por zona | `next.config.ts:126-177` (`politicaCsp`, `cabecerasCsp`) | Existe. En report-only emite DOS cabeceras para no degradar `frame-ancestors` |
+| Orden de bloques general → específico | `next.config.ts:210`, `259`, `263`, `274`, `289`, `293`, `297`, `312` | Existe, y está anclado por test |
+| Fuente única de rutas privadas | `src/lib/security/rutas-privadas.ts:30-70` (32 entradas) | Existe. Cruzada contra disco: 30 dirs en `src/app/(dashboard)/` + `setup` + `superadmin` = 32 ✔ sin rutas fantasma |
+| Guardián estático | `src/__tests__/csp-guard.test.ts` (19 casos) | Existe y es *load-bearing* (el verificador reprodujo los mutantes) |
+| Matriz E2E | `e2e/seguridad.spec.ts` (A1-A5, B1-B2, C1-C2, D1-D2) | Existe. **Nunca ejecutada.** Grupo D salta salvo `PLAYWRIGHT_ENFORCE=1` (`e2e/seguridad.spec.ts:175`) |
+| Runbook | `docs/seguridad/csp-enforce.md` (126 líneas, §1-§7) | Existe, con checklist manual §4 y job de CI listo para pegar §7 |
+| Ledger | `docs/audit/regression-ledger.md:75-76` | **REG-054 y REG-055 ya traen la corrección de V-4** («⚠️ NO se midió contra producción… esa ejecución nunca ocurrió») |
+| Contabilidad del roadmap | `estado.json → completadas` | **V-5 ya corregido**: E0-10 no está en `completadas` |
+
+**Conclusión:** de los 7 problemas, V-4 y V-5 están cerrados. Quedan V-1, V-2 (no
+cerrables por el agente), V-3, V-6 y V-7 (cerrables, y son el alcance de esta parte).
+
+## II.1 · Qué NO se puede cerrar aquí, y por qué (sin adornos)
+
+- **V-1 — el flip.** `next.config.ts:44-46` devuelve `enforce` sólo con la variable
+  puesta. Ponerla es **desplegar** (Vercel → Environment Variables → redeploy):
+  regla 6. Queda como decisión **D-3**.
+- **V-2 — «E2E en verde».** Correr Playwright está prohibido por la regla 8 (no
+  termina solo). Además, contra producción el grupo A3 nace rojo porque el código de
+  esta unidad **no está desplegado** — eso no es un test malo, es la falta de deploy.
+  Lo que sí puedo hacer es **abaratar la evidencia a un solo comando para un humano**
+  (§II.4-A6) y dejar claro que el camino barato es *local*, no producción.
+
+No hay ninguna forma honesta de que un agente marque esta unidad como `completada`.
+El objetivo de esta pasada es **dejar de perder valor en cada re-diseño** y cerrar
+todo lo que sí es software.
+
+## II.2 · Alcance A — el delta implementable (5 ítems)
+
+### A1 · Matar el mutante que sobrevivió (V-3) — *el ítem más importante*
+
+**El problema, verificado:** `csp-guard.test.ts:12-17` afirma que el archivo habría
+cazado los tres agujeros, incluido «el iframe de teleconsulta (Daily) no estaba en
+`frame-src`». Es **falso**: el iframe se monta con `src` dinámico
+(`src/app/teleconsulta/[citaId]/page.tsx:66-67` → `<iframe src={url}` con `url`
+venida de `/api/telesalud/sala`), y ninguna de las 5 regex de `POSICIONES_DE_CARGA`
+(`csp-guard.test.ts:163-169`) puede ver un host que no está en el código. Quitar
+`https://*.daily.co` de `ORIGENES_FRAME` (`next.config.ts:89-101`) deja el CI verde y
+la videoconsulta en blanco bajo enforce.
+
+**Diseño (no basta con corregir el comentario: hay que crear el invariante que falta).**
+Añadir a `csp-guard.test.ts` un registro de iframes de origen **dinámico** y dos
+casos que lo aten a la política:
+
+```ts
+/** iframes cuyo `src` se resuelve en runtime: el host NO está en el código, así que
+ *  POSICIONES_DE_CARGA no puede verlo. Cada entrada declara de dónde sale la URL y
+ *  el test exige que `frame-src` permita ese origen. */
+const IFRAMES_DE_ORIGEN_DINAMICO: { archivo: string; origen: string; porQue: string }[] = [
+  {
+    archivo: 'src/app/teleconsulta/[citaId]/page.tsx',
+    origen: 'https://una-sala.daily.co',
+    porQue: 'room.url que devuelve /api/telesalud/sala (Daily). Sin frame-src el iframe sale en blanco.',
+  },
+]
+
+/** iframes en el código que NO monta esta app (texto que se copia a otro sitio). */
+const IFRAMES_EXENTOS: Record<string, string> = {
+  'src/app/(dashboard)/configuracion/page.tsx':
+    'snippetIframe (línea ~2188) es una CADENA que el consultorio pega en SU web; apunta a /reservar de este mismo origen.',
+}
+
+/** Valores de una directiva concreta de la política (p.ej. `frame-src`). */
+function directiva(politica: string, nombre: string): string[]
+```
+
+Tres casos nuevos:
+
+1. **`frame-src` permite el origen de cada iframe dinámico declarado.** Se comprueba
+   con `permitidoPorPolitica(host, directiva(politicaPrivada, 'frame-src'))` — *contra
+   `frame-src`, no contra todos los orígenes de la política*, para que quitar
+   `https://*.daily.co` **sólo** de `ORIGENES_FRAME` ponga el CI en rojo. Éste es el
+   mutante que hoy sobrevive.
+2. **La declaración no se podre:** cada `archivo` existe y sigue conteniendo `<iframe`.
+3. **Trinquete de completitud:** escanear `src/**/*.tsx` buscando `<iframe` y exigir
+   que todo archivo con un `src` **no literal** (`src={`, `src="${`) esté en
+   `IFRAMES_DE_ORIGEN_DINAMICO` o en `IFRAMES_EXENTOS` con motivo. Un iframe nuevo de
+   un tercero no puede entrar en silencio.
+
+Y **corregir la frase** de `csp-guard.test.ts:12-17`: con A1 pasa a ser verdad; sin
+A1 sería mentira. Se corrige **también** en el `RESULTADO` (§II.5).
+
+### A2 · Hacer explícito y no-creciente el riesgo del proxy de Vercel (V-6)
+
+**El problema:** la premisa «gana la última cabecera» está leída del servidor Node de
+Next (`node_modules/next/dist/server/lib/router-utils/resolve-routes.js:558-560`), no
+del proxy de Vercel, que es quien sirve producción. Si Vercel **acumulara** en vez de
+reemplazar, el navegador aplicaría la **intersección** de las dos políticas.
+
+**Análisis que aporta esta pasada (reduce el susto a su tamaño real):** la intersección
+sólo daña a las rutas cuya política específica declara orígenes que la global **no**
+tiene. Recorridas las 8 reglas de `next.config.ts`, ese conjunto es **exactamente tres**
+y todas por `ORIGENES_META` (`next.config.ts:111`): `/` y `/registro/:path*` (Pixel) y
+`/configuracion/:path*` (SDK de *embedded signup* de WhatsApp,
+`src/app/(dashboard)/configuracion/page.tsx:953-956`). Para `frame-ancestors` **no hay
+riesgo en ninguno de los dos modelos**: la política global omite la directiva
+(`next.config.ts:148` + la llamada `cabecerasCsp("omitir")` de `next.config.ts:251`),
+y una política sin `frame-ancestors` no
+restringe el encuadre → la intersección con `'none'` sigue siendo `'none'` y con `*`
+sigue siendo embebible. Es decir: **`/reservar`, `/privacidad` y toda la zona privada
+son seguras bajo las dos semánticas**; el riesgo se reduce a *«el Pixel y el alta de
+WhatsApp podrían dejar de cargar bajo enforce»* — visible, no silencioso, y
+reversible en 2 min.
+
+**Diseño:** un caso nuevo en `csp-guard.test.ts` que **congele ese conjunto**:
+
+```ts
+/** Rutas que reciben DOS políticas completas con orígenes DISTINTOS. Bajo Next gana
+ *  la última; si el proxy de Vercel acumulara, el navegador aplicaría la
+ *  INTERSECCIÓN y estas rutas perderían los orígenes que sólo declara la específica.
+ *  Lista CONGELADA: que crezca exige una decisión explícita, no un descuido. */
+const RUTAS_CON_POLITICA_MAS_ANCHA_QUE_LA_GLOBAL = ['/', '/configuracion/:path*', '/registro/:path*']
+```
+
+El test calcula, en modo enforce, los bloques cuyo conjunto de orígenes **no** es
+subconjunto del global y compara con la lista. Así V-6 deja de ser un párrafo de
+documentación y pasa a ser un invariante medible.
+
+**Y no se hace nada más:** cerrar V-6 "de verdad" exige o (a) un `curl -sI` a un
+*preview* desplegado —fuera de mis reglas—, o (b) rediseñar los bloques para que
+ninguna ruta reciba dos políticas (fuente global con *negative lookahead*, o meter
+Meta en la política global). (a) es un paso de runbook (§II.4-A6); (b) es un cambio
+de riesgo medio en las cabeceras de **todas** las rutas y por regla 5 se entrega como
+**decisión D-7**, no se ejecuta a ciegas. Además, si el Dr. contesta **D-2** («el
+Pixel está apagado»), el conjunto baja de 3 rutas a 1 y el riesgo se vuelve casi
+inexistente — es la salida más barata.
+
+### A3 · Convertir la comprobación manual del verificador en un artefacto repetible
+
+El verificador comprobó a mano que `.next/routes-manifest.json` emite
+`Content-Security-Policy-Report-Only` sin variable y `Content-Security-Policy` con
+`CSP_MODE=enforce`. Eso es **lo que Vercel consume de verdad**, un paso más cerca de
+producción que `nextConfig.headers()`.
+
+**Diseño:** `src/__tests__/csp-manifest.test.ts`, opt-in y honesto:
+
+- Si `.next/routes-manifest.json` **no existe** → `it.skip` con mensaje que dice el
+  comando exacto. No inventa verde.
+- Si existe → comprueba (1) que la clave CSP del bloque `/:path*` corresponde al modo
+  con el que se construyó, leído de un marcador propio, y (2) que el bloque privado
+  conserva `X-Frame-Options: DENY` y una CSP con `frame-ancestors 'none'` en la clave
+  que bloquea.
+- Para no adivinar el modo del build: el propio `next.config.ts` ya escribe la clave;
+  el test **deriva** el modo de la clave presente y verifica la coherencia interna del
+  manifest (que privadas y `/reservar` sigan correctas **en el modo que sea**). Así
+  vale para los dos builds y no necesita ninguna variable.
+
+Coste: un archivo de test. Riesgo en producción: **cero** (no toca runtime).
+
+### A4 · `/login` a la zona anti-iframe (V-7a)
+
+`src/app/login` existe (verificado) y **no** está en `RUTAS_PRIVADAS`
+(`rutas-privadas.ts:30-70`), así que hoy la pantalla de credenciales es embebible —
+el blanco clásico de clickjacking, en la unidad cuyo objetivo es precisamente ése. No
+es una regresión de E0-10; es un hueco que esta unidad tiene delante.
+
+**Diseño:** añadir `'login'` al array. Efecto: `/login` empieza a devolver
+`X-Frame-Options: DENY` + `frame-ancestors 'none'` (esta última **es enforce ya hoy**,
+`next.config.ts:166-170`: en report-only se emite aparte en la clave que bloquea, así
+que no espera al flip). El caso A3 del E2E lo cubre automáticamente
+(itera `RUTAS_PRIVADAS`), y el test de rutas fantasma sigue pasando porque el
+directorio existe.
+
+**Riesgo real:** si alguien embebiera `/login` en un iframe legítimo, se rompería. No
+encontré ningún consumidor: el único iframe hacia dentro de la app en todo el código
+es el *snippet* de `/reservar` que el consultorio pega en su web
+(`configuracion/page.tsx:2188`). Se implementa.
+
+**`/registro` NO se toca** aunque comparta el problema: hoy recibe `zona: 'omitir'`
+(`next.config.ts:293-295`) por ser superficie de marketing, y volverlo no-embebible es
+una decisión de producto sobre una página de captación → **D-6**, con el cambio
+preparado (una línea: `cabecerasCsp("ninguno", { meta: true })` + `X-Frame-Options`).
+
+### A5 · `Permissions-Policy: camera=()` vs teleconsulta (V-7b) — se documenta, no se toca
+
+`next.config.ts:226-236` cierra la cámara para todo el origen (`"camera=()"`, línea 229) mientras
+`teleconsulta/[citaId]/page.tsx:69` monta el iframe con
+`allow="camera; microphone; fullscreen; speaker; display-capture"`. Una
+`Permissions-Policy` del documento superior **no se puede re-conceder** desde el
+`allow` del iframe: si la cabecera está activa, la cámara de la videoconsulta ya
+estaría muerta **hoy** (es previo a esta unidad y nada de esto depende del flip).
+
+No lo cambio: abrir la cámara del origen es endurecimiento a la inversa y toca un
+flujo vivo (regla 5). Y **no puedo** comprobar si el vídeo funciona hoy: eso exige
+producción y una cita real. Se entrega como **decisión D-8** con la pregunta concreta,
+y `e2e/seguridad.spec.ts:49-51` conserva la aserción con un comentario que la marca
+como *estado actual documentado*, no como *estado deseado*.
+
+## II.3 · Archivos que se tocan
+
+| Archivo | Qué | Riesgo |
+|---|---|---|
+| `src/__tests__/csp-guard.test.ts` | A1 (registro de iframes dinámicos + 3 casos), A2 (1 caso), corregir la frase de las líneas 12-17 | Ninguno en runtime |
+| `src/__tests__/csp-manifest.test.ts` **(nuevo)** | A3 | Ninguno en runtime |
+| `src/lib/security/rutas-privadas.ts` | A4: `+ 'login'` y la nota de por qué | **Cambia cabeceras de `/login` en producción** (intencionado, reversible) |
+| `e2e/seguridad.spec.ts` | A5: comentario en la aserción de `camera=()`; nada funcional | Ninguno (nunca se ejecuta en CI) |
+| `docs/seguridad/csp-enforce.md` | §3 gana el paso «curl al preview para determinar la semántica del proxy» (V-6); §5 se corrige (el guardián caza 3 de 3 **tras A1**); §2 gana el comando local que da el verde de la matriz sin desplegar | Documentación |
+| `docs/audit/regression-ledger.md` | REG-056 (nuevo): `/login` embebible → cerrado en código, pendiente de despliegue. REG-055 gana el análisis de intersección de A2 | Documentación |
+| `src/lib/clinical/invariantes-clinicos.json` | `minCasos` de `csp-guard.test.ts` 19 → 23 (A1 aporta 3 casos, A2 uno; A4 va dentro de un caso existente) y `totalCasos` 1381 → 1385. `csp-manifest.test.ts` **no** se sella: puede saltarse legítimamente y el trinquete cuenta `it(` por texto, así que sellarlo contaría cobertura que a veces no corre | El gate es un trinquete `>=` (`clinical-safety-gate.test.ts:96-121`): subir no rompe |
+| `package.json` | scripts `e2e:seguridad` y `e2e:seguridad:enforce` (**definir**, no ejecutar) | Ninguno |
+| `docs/roadmap/nexus-os/unidades/E0-10/RESULTADO.parcial.json` | Acta honesta (§II.5) | Documentación |
+| `estado.json` | E0-10 a `bloqueadas` con motivo «espera D-3 (flip) + una corrida humana de la matriz»; D-6/D-7/D-8 a `decisionesPendientesDelMedico` | Documentación |
+
+**Nada de lo anterior toca** impresión, PDF, Word, firma, cobros, reglas de Firestore
+ni un solo motor clínico. El único cambio de comportamiento en producción es
+`/login` no-embebible (A4).
+
+## II.4 · Qué prueba cada cosa (y el control negativo obligatorio)
+
+Gates permitidos: `npx tsc --noEmit`, `npx vitest run src/__tests__/`, `npm run build`.
+
+| Ítem | Prueba | Control negativo que DEBE ponerse rojo (se ejecuta en un sandbox del scratchpad, no en el repo) |
+|---|---|---|
+| A1 | 3 casos en `csp-guard.test.ts` | Quitar `https://*.daily.co` de `ORIGENES_FRAME` **y** de `ORIGENES_ESPERADOS` → hoy da 19/19 verde; con A1 debe fallar con «frame-src no permite …daily.co». **Este mutante es el criterio de éxito de A1.** Segundo mutante: añadir un `<iframe src={x}>` nuevo sin declararlo → rojo por el trinquete |
+| A2 | 1 caso | Añadir `ORIGENES_META` a un cuarto bloque (p.ej. `/precios`) → rojo por lista congelada |
+| A3 | `csp-manifest.test.ts` tras `npm run build` en los dos modos | Editar a mano el manifest para que privadas pierdan `X-Frame-Options` → rojo. Y sin `.next/` → skip **con mensaje**, nunca verde vacuo |
+| A4 | A3 del E2E (no ejecutable) + `csp-guard.test.ts:262-267` (fantasmas) | Quitar `login` del array tras añadirlo no rompe nada por sí solo → **por eso A4 se acompaña de un caso explícito** en el bloque «cubre las pantallas con PHI y la consola del dueño» que exige `login` en la lista |
+| A6 (docs) | — | — |
+
+**A6 · Abaratar la evidencia de V-2 a un solo comando humano.** Lo que hace verde a
+la matriz **sin desplegar nada** ya está soportado por `playwright.config.ts:22-45`.
+Se documenta en el runbook §2 y como script:
+
+```bash
+# 1) report-only (default) — grupos A/B/C
+npm run build && PLAYWRIGHT_LOCAL=1 PLAYWRIGHT_BASE_URL=http://localhost:3000 \
+  npx playwright test e2e/seguridad.spec.ts --project=chromium
+
+# 2) enforce — grupos A/B/C/D  (CSP_MODE se lee en el BUILD)
+CSP_MODE=enforce npm run build && PLAYWRIGHT_LOCAL=1 PLAYWRIGHT_ENFORCE=1 \
+  PLAYWRIGHT_BASE_URL=http://localhost:3000 CSP_MODE=enforce \
+  npx playwright test e2e/seguridad.spec.ts --project=chromium
+```
+
+**No los ejecuto (regla 8).** Con (2) en verde, la mitad *«E2E de seguridad en verde»*
+de la aceptación queda demostrada **en local, con la política apretada** — que es la
+evidencia relevante para autorizar D-3. Contra producción seguirá roja hasta el deploy.
+
+## II.5 · Criterio de "hecho" de esta pasada (y qué acta se escribe)
+
+1. `npx tsc --noEmit` limpio.
+2. `npx vitest run src/__tests__/` verde, con `csp-guard.test.ts` en **23 casos** y
+   los dos mutantes de A1 reproducidos y **documentados en el acta**.
+3. `npm run build` OK en los dos modos, y `csp-manifest.test.ts` verde tras cada uno.
+4. Se escribe **`RESULTADO.parcial.json`**, no `RESULTADO.json`. Razón: el criterio de
+   reconciliación (`estado.json → reconciliacionDisco`) trata `RESULTADO.json` como
+   *prueba de que la unidad está hecha*, y la aceptación literal **no** se cumple. Un
+   `RESULTADO.json` aquí volvería a retirarse en la siguiente pasada: es el bucle que
+   ya consumió tres corridas en esta unidad.
+5. E0-10 queda en `bloqueadas` con motivo exacto: *«software cerrado; espera D-3
+   (variable en Vercel) y una ejecución humana de la matriz — ninguna de las dos la
+   puede hacer el agente»*. Así deja de volver a la cola como si faltara diseño.
+
+## II.6 · Decisiones que necesita el médico dueño (ninguna es clínica)
+
+Siguen abiertas **D-1…D-5** (§7). Esta parte añade tres, todas de producto/despliegue:
+
+- **D-6 — ¿`/registro` deja de ser embebible?** Es una página de captación con Pixel.
+  Ganancia: cierra el mismo hueco que `/login`. Coste: si alguna landing o socio la
+  embebe, se rompe. Cambio preparado, una línea.
+- **D-7 — ¿se rediseñan los bloques de cabeceras para que ninguna ruta reciba dos
+  políticas CSP?** Elimina para siempre la dependencia de una semántica del proxy de
+  Vercel que **nadie ha verificado** (V-6). Coste: toca las cabeceras de *todas* las
+  rutas (regla 5). Alternativa barata y recomendada: contestar **D-2** (si el Pixel
+  está apagado, el conjunto de riesgo baja de 3 rutas a 1).
+- **D-8 — ¿funciona hoy el vídeo de la teleconsulta en producción?** La cabecera
+  global declara `camera=()` y el iframe de Daily pide `allow="camera"`. Si el vídeo
+  **no** funciona, es un fallo vivo previo a esta unidad y merece su propia unidad
+  (abrir `camera=(self)` es aflojar una cabecera de seguridad: no se hace de oficio).
+  Si **sí** funciona, hay que entender por qué y ajustar la aserción del E2E. Requiere
+  una observación en producción que el agente no puede hacer.
+
+## II.7 · Riesgo de regresión (evaluación honesta)
+
+**Riesgo bajo, y concentrado en un único punto.** Justificación:
+
+- 4 de los 5 ítems son **tests y documentación**: no pueden romper producción.
+- El único cambio de comportamiento es `/login` no-embebible (A4). Reversión: borrar
+  una línea. Sin consumidores encontrados en el código.
+- El default de la CSP **no se mueve**: sigue `report-only` sin `CSP_MODE`
+  (`next.config.ts:44-46`), verificado en esta pasada.
+- El riesgo *real* de la unidad sigue viviendo fuera del código: el día que alguien
+  ponga `CSP_MODE=enforce`, los flujos del checklist manual del runbook §4 (worker de
+  pdf.js, Daily, Stripe, SDK de Meta, login de Google) son los que pueden romperse.
+  Esta parte no lo cambia; lo que hace es que **quitar uno de esos orígenes por
+  descuido tumbe el CI**, que es lo que el guardián no lograba con el iframe dinámico.
