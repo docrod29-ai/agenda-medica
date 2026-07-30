@@ -946,6 +946,25 @@ function invierteHiperHipo(orig: string, cand: string): boolean {
   return (hiper(o) && hipo(c)) || (hipo(o) && hiper(c))
 }
 
+/**
+ * ¿Esta palabra es una CANTIDAD? Cifra o número escrito con letra.
+ *
+ * Se usa para que el fusionador de n-gramas no se coma una dosis. La lista es
+ * de números, no de unidades: «gramos» sí puede formar parte de un término.
+ */
+const NUMEROS_PALABRA = new Set([
+  'un', 'una', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho',
+  'nueve', 'diez', 'once', 'doce', 'trece', 'catorce', 'quince', 'dieciseis',
+  'diecisiete', 'dieciocho', 'diecinueve', 'veinte', 'treinta', 'cuarenta',
+  'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa', 'cien', 'ciento',
+  'cientos', 'doscientos', 'trescientos', 'cuatrocientos', 'quinientos',
+  'seiscientos', 'setecientos', 'ochocientos', 'novecientos', 'mil', 'medio', 'media',
+])
+function esCantidad(p: string): boolean {
+  if (/\d/.test(p)) return true
+  return NUMEROS_PALABRA.has(p.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''))
+}
+
 export function corregirNGramas(texto: string): ResultadoCorreccion {
   const cambios: CambioTranscripcion[] = []
   // split conservando los separadores de espacio (índices impares)
@@ -974,9 +993,37 @@ export function corregirNGramas(texto: string): ResultadoCorreccion {
       // "flozina"), nunca palabras reales. Así no convertimos una frase normal en un
       // término médico. (Antes solo saltaba si TODAS eran comunes.)
       const algunaComun = palabras.some(p =>
-        PALABRAS_COMUNES.has(p.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''))
+        PALABRAS_COMUNES.has(p.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''))
       )
       if (algunaComun) continue
+
+      /**
+       * NUNCA fusionar una CANTIDAD con lo que va delante. (P0, medido)
+       *
+       * Este pase existe para reunir fármacos que el reconocedor partió
+       * («em pagli flozina» → empagliflozina). Un fragmento de nombre de fármaco
+       * es un trozo sin sentido; **nunca es un número**.
+       *
+       * Sin esta guarda, «Meropenem dos» se fusionaba en «Meropenem» —el
+       * fonético de «meropenemdos» casa con «meropenem»— y LA DOSIS DESAPARECÍA
+       * de una transcripción que era CORRECTA. El reconocedor la oía bien; nos
+       * la comíamos nosotros, en cada dictado, en producción.
+       *
+       * Medido en el corpus de 498 audios del Dr. (2026-07-30): 6 de 6 en
+       * «Meropenem dos gramos», y el mismo daño en «Ceftriaxona dos gramos».
+       * Se creyó un fallo del transcriptor hasta que se probaron los tres
+       * modelos y los tres devolvían el «dos».
+       */
+      if (palabras.some(esCantidad)) continue
+
+      /**
+       * NUNCA fusionar si la PRIMERA palabra ya es un término válido.
+       *
+       * Si «Meropenem» ya está bien escrito, unirlo a lo que sigue sólo puede
+       * destruir información. Un fármaco partido empieza por un fragmento
+       * («em», «pagli»), no por su propio nombre completo.
+       */
+      if (buscarTerminoUnido(fonetEs(palabras[0]))) continue
 
       // a) unidas sin espacio → término de una palabra
       // b) unidas con espacio → término multipalabra ("ácido fólico")
