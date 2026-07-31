@@ -11,6 +11,8 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { anotarLlamada, type Contexto } from '@/lib/ia/gateway'
+import { claseDeFallo, quienPaga, avisoAlMedico } from '@/lib/ia/fallo-proveedor'
+import { reportarFalloIA } from '@/lib/ia/incidentes-servidor'
 import { esFundador } from '@/lib/authz/fundador'
 import { validarRazonamiento } from '@/lib/expediente/antibiograma/validar-razonamiento'
 import { verificarModuloIA } from '@/lib/auth-server'
@@ -46,8 +48,13 @@ async function claude(key: string, modelos: string[], system: string, user: stri
         const t = (d.content?.[0]?.text ?? '').trim()
         if (t) return { texto: t, modelo: model }
       } else if (res.status !== 404 && res.status !== 400) {
-        const pista = res.status === 401 ? 'llave de IA inválida' : res.status === 429 ? 'sin créditos/límite' : `error ${res.status}`
-        return { error: pista }
+        // Mismo criterio que el resto de la IA: quién paga la llave decide qué se
+        // le dice al médico. Sin `ctx` no se sabe, y lo prudente es NO culparlo.
+        const cuerpo = await res.text().catch(() => '')
+        const quien = quienPaga(ctx?.fuente ?? 'ninguna')
+        const clase = claseDeFallo(res.status, cuerpo)
+        reportarFalloIA({ clase, quien, proveedor: 'anthropic', feature: 'antibiograma-razonar', status: res.status })
+        return { error: avisoAlMedico(clase, quien, 'anthropic').texto }
       }
     } catch (e) { return { error: String(e).includes('timeout') ? 'la IA tardó demasiado' : 'error de red' } }
   }
@@ -129,7 +136,10 @@ export async function POST(req: NextRequest) {
     ])
 
     if ('error' in rc) {
-      return NextResponse.json({ ok: false, error: `IA: ${rc.error}. Revisa tu llave/créditos en Configuración → Llaves de IA.` }, { status: 502 })
+      // `rc.error` YA viene redactado según quién paga la llave. Añadirle aquí un
+      // «revisa tu llave/créditos» volvía a culpar al médico por la llave de la
+      // plataforma — justo lo que el clasificador acaba de decidir no hacer.
+      return NextResponse.json({ ok: false, error: rc.error }, { status: 502 })
     }
     /**
      * VALIDACIÓN POSTERIOR: la regla anti-contradicción deja de ser solo prompt.

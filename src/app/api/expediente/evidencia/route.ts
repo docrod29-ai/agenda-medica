@@ -18,6 +18,7 @@ import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { gateCreditos, resolverClaveIA, registrarUso, nivelIADe, registrarCreditos } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
+import type { FuenteLlave } from '@/lib/finanzas/cost-ledger'
 import { buscarEvidenciaMulti, type ArticuloPubMed } from '@/lib/evidencia/pubmed'
 import { traducirBasico } from '@/lib/evidencia/traducir-medico'
 
@@ -38,7 +39,9 @@ export async function POST(req: NextRequest) {
   // si algo falla, devolvemos el ERROR REAL (no un toast mudo). Ver bug 2026-07.
   try {
   let key = ''
-  let fuente: 'clinica' | 'prueba' | 'ninguna' = 'ninguna'
+  // El tipo se IMPORTA, no se reescribe: esta copia a mano se quedó sin
+  // `'fundador'` el día que la union creció, y era la cuarta lista igual.
+  let fuente: FuenteLlave = 'ninguna'
   let clinicId = ''
   try {
     const r = await resolverClaveIA(acceso.uid, 'anthropic', process.env.ANTHROPIC_API_KEY ?? '')

@@ -17,6 +17,7 @@ import { adminDb } from '@/lib/firebase-admin'
 import { verificarSuperadmin } from '@/lib/superadmin'
 import { safeLog } from '@/lib/security/sanitize'
 import { resumir, soloCogs, porClave, suficiente, type EventoCosto } from '@/lib/finanzas/cost-ledger'
+import { incidentesRecientes } from '@/lib/ia/incidentes-servidor'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -41,9 +42,22 @@ export async function GET(req: NextRequest) {
     const cogs = soloCogs(eventos)
     const total = resumir(eventos)
 
+    /**
+     * Incidencias de la llave de la PLATAFORMA, en la misma respuesta.
+     *
+     * Viven aquí y no en una ruta nueva a propósito: el dueño ya abre esta
+     * pantalla para ver lo que gasta, y «la IA está caída» es exactamente la
+     * clase de cosa que tiene que encontrarse sin ir a buscarla. Una alerta que
+     * vive en su propia pantalla es una alerta que nadie ve.
+     */
+    const incidentes = await incidentesRecientes(20)
+
     return NextResponse.json({
       ok: true,
       mes,
+      incidentes,
+      /** ¿Hay algo caído AHORA que le cueste dinero o clientes? */
+      hayUrgente: incidentes.some(i => i.urgente === true),
       // El total de TODO y el de COGS son distintos a propósito: el gasto de I+D
       // del fundador no es costo de servir a ningún cliente (§CD).
       total,

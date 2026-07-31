@@ -29,9 +29,16 @@ interface Resumen {
   modelosSinTarifa: string[]; latenciaP50: number | null; latenciaP95: number | null
 }
 interface Grupo { clave: string; resumen: Resumen }
+/** Una caída de la IA de la plataforma, agrupada por proveedor, clase y hora. */
+interface Incidente {
+  id: string; proveedor?: string; clase?: string; urgente?: boolean
+  titulo?: string; queHacer?: string; veces?: number; hora?: string
+  features?: string[]; ultimoStatus?: number
+}
 interface Datos {
   ok: true; mes: string; total: Resumen; cogs: Resumen; confiable: boolean
   porFeature: Grupo[]; porModelo: Grupo[]; porClase: Grupo[]; truncado: boolean
+  incidentes?: Incidente[]; hayUrgente?: boolean
 }
 
 const mesActual = () => new Date().toISOString().slice(0, 7)
@@ -98,6 +105,36 @@ export default function CostosPage() {
 
       {datos && !cargando && (
         <>
+          {/*
+            LO QUE ESTÁ CAÍDO VA ANTES QUE LO QUE CUESTA.
+            El 31-jul-2026 la IA estuvo caída y la única señal apareció cuando el
+            dueño la probó a mano. Aquí ya no hay que ir a buscarla.
+          */}
+          {(datos.incidentes?.length ?? 0) > 0 && (
+            <div style={{ margin: '18px 0 4px' }}>
+              <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 8px', color: 'var(--text, #0f172a)' }}>
+                Incidencias de la llave de la plataforma
+              </h2>
+              {datos.incidentes!.map(i => (
+                <div key={i.id} style={{
+                  border: `1px solid ${i.urgente ? '#dc2626' : 'var(--border, #e5e7eb)'}`,
+                  background: i.urgente ? 'rgba(220,38,38,.07)' : 'var(--panel, #f8fafc)',
+                  borderRadius: 10, padding: '12px 14px', marginBottom: 8,
+                }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: i.urgente ? '#b91c1c' : 'var(--text, #0f172a)' }}>
+                    {i.urgente ? '⚠︎ ' : ''}{i.titulo}
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--text2, #334155)', marginTop: 4, lineHeight: 1.5 }}>{i.queHacer}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3, #64748b)', marginTop: 6 }}>
+                    {n(i.veces ?? 0)} {(i.veces ?? 0) === 1 ? 'vez' : 'veces'} · {i.hora?.replace('T', ' a las ')} h
+                    {i.features?.length ? ` · afectó: ${i.features.join(', ')}` : ''}
+                    {i.ultimoStatus ? ` · HTTP ${i.ultimoStatus}` : ''}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {datos.total.llamadas === 0 && (
             <Aviso tono="neutro">
               No hay llamadas registradas en {datos.mes}. El libro empezó a llenarse el 30 de julio de 2026:

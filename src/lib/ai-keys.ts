@@ -12,6 +12,8 @@
 import { NextResponse } from 'next/server'
 import admin, { adminDb } from './firebase-admin'
 import { planPorNivel, topeEconomicoDe, MEDICO_EXTRA } from './planes-ia'
+import { uidEsFundador } from './authz/fundador-servidor'
+import type { FuenteLlave } from './finanzas/cost-ledger'
 
 export type ProveedorIA = 'anthropic' | 'assemblyai' | 'openai'
 
@@ -117,8 +119,16 @@ export async function creditosAgotados(clinicId: string | null): Promise<boolean
  * CORTABAN: un consultorio agotado seguía quemando la API key del dueño.
  * Con llave propia del consultorio (fuente 'clinica') nunca corta: paga su API.
  */
-/** Decisión PURA del gate (testeable sin Firestore): solo corta con la llave del
- *  dueño ('prueba'), con clinicId, y si ya está agotado. */
+/**
+ * Decisión PURA del gate (testeable sin Firestore): solo corta con la llave del
+ * dueño usada por un CLIENTE (`'prueba'`), con clinicId, y si ya está agotado.
+ *
+ * `'fundador'` es la misma llave física, pero la usa el dueño construyendo el
+ * producto: no se corta nunca. Que la distinción viva en el NOMBRE DE LA FUENTE
+ * y no en un booleano suelto es deliberado — así este gate, el de la cartera y
+ * el medidor de uso deciden los tres a partir del mismo dato y no pueden
+ * discrepar.
+ */
 export function debeCortarCreditos(fuente: ClaveResuelta['fuente'], clinicId: string | null, agotado: boolean): boolean {
   return fuente === 'prueba' && !!clinicId && agotado
 }
@@ -228,7 +238,24 @@ async function clinicIdDe(uid: string): Promise<string | null> {
 
 export interface ClaveResuelta {
   key: string
-  fuente: 'clinica' | 'prueba' | 'ninguna'
+  /**
+   * Quién paga esta llamada.
+   *
+   *  · `clinica`  — el consultorio puso su propia llave. Paga su API; no se corta.
+   *  · `fundador` — el DUEÑO de la plataforma sobre la llave de la plataforma.
+   *                 Ni tope de prueba ni cartera: §BK, «el acceso del fundador NO
+   *                 debe depender de una suscripción de pago». Antes esto era
+   *                 `prueba`, así que el dueño se topaba a los 30 usos al mes
+   *                 construyendo su propio producto, y la única salida era pegar
+   *                 una llave a mano en Configuración — que es de donde vino el
+   *                 apagón del 31-jul: esa llave pegada envejeció y ganaba sobre
+   *                 la de Vercel.
+   *  · `prueba`   — un consultorio sin llave propia sobre la de la plataforma.
+   *                 Aquí SÍ hay tope: es cortesía, y sin tope 100 doctores
+   *                 quemarían el saldo del dueño.
+   *  · `ninguna`  — no hay llave. No se llama a nadie.
+   */
+  fuente: FuenteLlave
   clinicId: string | null
 }
 
@@ -268,7 +295,19 @@ export async function resolverClaveIA(
     if (typeof k === 'string' && k.trim()) return { key: k.trim(), fuente: 'clinica', clinicId }
   } catch { /* cae al env */ }
 
-  if (envFallback && envFallback.trim()) return { key: envFallback.trim(), fuente: 'prueba', clinicId }
+  /**
+   * La llave de la PLATAFORMA. Quién la usa decide si tiene tope.
+   *
+   * El dueño no es un cliente en prueba: está construyendo el producto y §BK
+   * prohíbe que su acceso dependa de una suscripción. La distinción se hace aquí
+   * —un solo sitio— y no como parámetro de las 23 rutas que llaman a esta
+   * función, porque una exención que hay que acordarse de pasar 23 veces se
+   * olvida en la 24 y falla en silencio. Ver `fundador-servidor.ts`.
+   */
+  if (envFallback && envFallback.trim()) {
+    const fuente = (await uidEsFundador(uid)) ? 'fundador' as const : 'prueba' as const
+    return { key: envFallback.trim(), fuente, clinicId }
+  }
   return { key: '', fuente: 'ninguna', clinicId }
 }
 
