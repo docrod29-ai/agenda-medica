@@ -18,7 +18,7 @@ vi.mock('@/lib/security/sanitize', () => ({ safeLog: { error: vi.fn(), warn: vi.
 // La cartera toca Firestore; aquí interesa CUÁNDO se reserva, se confirma y se
 // devuelve, no cómo se escribe.
 const { reservarParaClinica, confirmarCreditos, devolverCreditos } = vi.hoisted(() => ({
-  reservarParaClinica: vi.fn(async (_c: string | null, _f: string, n: number) =>
+  reservarParaClinica: vi.fn(async (_c: string | null, _f: string, n: number, _fu?: boolean) =>
     ({ ok: true, apartados: n, clinicId: 'c1', mes: '2026-07' })),
   confirmarCreditos: vi.fn(async () => {}),
   devolverCreditos: vi.fn(async () => {}),
@@ -179,7 +179,16 @@ describe('Los créditos se apartan ANTES de llamar', () => {
   it('se reserva el costo de la operación', async () => {
     vi.mocked(fetch).mockResolvedValue(respuesta(OK))
     await llamarIA(OPTS, CTX)
-    expect(reservarParaClinica).toHaveBeenCalledWith('c1', 'prueba', 3)
+    expect(reservarParaClinica).toHaveBeenCalledWith('c1', 'prueba', 3, undefined)
+  })
+
+  it('al fundador se le pasa su marca: no tiene bolsa que agotar (§BK)', () => {
+    // Su cuenta corre sobre la llave del dueño, así que sin esto el tope del
+    // plan lo dejaría sin IA a mitad de mes mientras construye el producto.
+    vi.mocked(fetch).mockResolvedValue(respuesta(OK))
+    return llamarIA(OPTS, { ...CTX, esFundador: true }).then(() => {
+      expect(reservarParaClinica).toHaveBeenCalledWith('c1', 'prueba', 3, true)
+    })
   })
 
   it('si no alcanza, NO se llama al proveedor', async () => {

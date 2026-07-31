@@ -140,10 +140,10 @@ async function sumarUsados(r: Reserva, n: number): Promise<void> {
  * consultorio, o sin consultorio): el llamador no tiene que preguntar.
  */
 export async function reservarParaClinica(
-  clinicId: string | null, fuente: string, costo: number,
+  clinicId: string | null, fuente: string, costo: number, esFundador?: boolean,
 ): Promise<Reserva> {
   const mes = mesActual()
-  if (!aplicaCartera(fuente, clinicId) || !clinicId) {
+  if (!aplicaCartera(fuente, clinicId, esFundador) || !clinicId) {
     return { ok: true, apartados: 0, clinicId: clinicId ?? '', mes }
   }
   try {

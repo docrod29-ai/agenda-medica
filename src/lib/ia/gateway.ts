@@ -95,7 +95,7 @@ export async function llamarIA(o: Opciones, ctx: Contexto): Promise<Resultado> {
    * Sólo aplica sobre la llave del dueño; con llave propia del consultorio el
    * gasto es suyo y descontarle de nuestra bolsa sería cobrarle dos veces.
    */
-  const reserva = await reservarParaClinica(ctx.clinicId, ctx.fuente, ctx.creditos)
+  const reserva = await reservarParaClinica(ctx.clinicId, ctx.fuente, ctx.creditos, ctx.esFundador)
   if (!reserva.ok) {
     return { ok: false, clase: 'limite', motivo: reserva.motivo ?? 'Sin créditos de IA este mes.' }
   }

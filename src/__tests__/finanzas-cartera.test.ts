@@ -99,6 +99,17 @@ describe('A quién se le descuenta', () => {
     expect(aplicaCartera('ninguna', 'c1')).toBe(false)
   })
 
+  it('al FUNDADOR no se le descuenta: no tiene bolsa que agotar', () => {
+    /**
+     * Su cuenta corre sobre la llave del dueño (`prueba`), así que sin esta
+     * regla el tope del plan lo dejaría sin IA a mitad de mes mientras
+     * construye el producto — justo lo que §BK prohíbe. Su gasto sí se
+     * registra, marcado como I+D: no se esconde, se clasifica.
+     */
+    expect(aplicaCartera('prueba', 'c1', true)).toBe(false)
+    expect(aplicaCartera('prueba', 'c1', false)).toBe(true)
+  })
+
   it('es EL MISMO criterio que el gate que ya existía', () => {
     /**
      * Dos respuestas distintas a «¿quién paga esto?» acabarían discrepando, y la

@@ -107,7 +107,15 @@ export function ajusteAlConfirmar(reservado: number, real: number): { cobrar: nu
  * siendo la misma: dos criterios distintos para «¿quién paga esto?» acabarían
  * discrepando.
  */
-export function aplicaCartera(fuente: string, clinicId: string | null): boolean {
+export function aplicaCartera(fuente: string, clinicId: string | null, esFundador?: boolean): boolean {
+  // El fundador NO tiene bolsa que agotar.
+  //
+  // §BK: «el acceso del fundador NO debe depender de una suscripción de pago».
+  // Su cuenta corre sobre la llave del dueño —o sea `fuente: 'prueba'`— así que
+  // sin esta línea el tope del plan Clínica lo dejaría sin IA a mitad de mes
+  // mientras construye el producto. Su gasto se sigue registrando en el libro,
+  // marcado como I+D: no se esconde, se clasifica.
+  if (esFundador) return false
   return fuente === 'prueba' && !!clinicId
 }
 
