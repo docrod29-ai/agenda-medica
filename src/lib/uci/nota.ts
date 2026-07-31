@@ -7,6 +7,7 @@
  * una sección solo incluye una línea si su dato existe; el LLM no calcula nada.
  * El plan queda para el médico. El texto es un BORRADOR que el médico revisa y firma.
  */
+import { repartirPorSistemas, type ClaveSistema } from '@/lib/uci/reparto-sistemas'
 import { analizarVentilacion, esModoEspontaneo, esModoInvasivo } from './ventilacion'
 import { analizarGasometria } from './gasometria'
 import { cantidadDesde } from '@/types/clinical-quantity'
@@ -188,16 +189,33 @@ export function construirSeccionesUCI(v: Campos, opts?: { dia?: string; discusio
     n('bili') ? `Bilirrubina ${v.bili} mg/dL.` : null,
   ])
 
+  /**
+   * El pase del médico se reparte entre los aparatos por SUS PROPIOS encabezados.
+   *
+   * Antes iba entero dentro de «Plan por sistema», y como el pase ya viene
+   * ordenado por sistemas, la nota decía cada aparato DOS VECES: una con los
+   * valores del panel y sus cálculos, y otra con el texto crudo repetido al
+   * final. Además «plan» decía otra cosa de la que hacía: un plan es lo que se va
+   * a HACER, no la lista de lo que se encontró.
+   *
+   * Lo que no cae bajo ningún encabezado se queda en el plan: si el médico no
+   * dijo a qué aparato pertenece, no se adivina.
+   */
+  const dicho = repartirPorSistemas(opts?.discusion ?? '')
+  /** Los valores calculados primero; debajo, las palabras del médico. */
+  const con = (calculado: string, clave: ClaveSistema) =>
+    [calculado, dicho[clave]].filter(x => x && x.trim()).join('\n\n')
+
   const secciones: SeccionNota[] = [
     { key: 'contexto', label: 'Contexto y objetivos del día', value: contexto },
-    { key: 'neurologico', label: 'Neurológico', value: neurologico },
-    { key: 'respiratorio', label: 'Respiratorio', value: respiratorio },
-    { key: 'hemodinamico', label: 'Hemodinámico y cardiovascular', value: hemodinamico },
-    { key: 'abdominodigestivo', label: 'Abdominodigestivo', value: abdominodigestivo },
-    { key: 'hidrometabolico', label: 'Hidrometabólico', value: hidrometabolico },
-    { key: 'hematoinfeccioso', label: 'Hematoinfeccioso', value: hemato },
-    { key: 'musculoesqueletico', label: 'Musculoesquelético', value: '' },
-    { key: 'plan', label: 'Plan por sistema', value: opts?.discusion ? `Discusión del pase:\n${opts.discusion}` : '' },
+    { key: 'neurologico', label: 'Neurológico', value: con(neurologico, 'neurologico') },
+    { key: 'respiratorio', label: 'Respiratorio', value: con(respiratorio, 'respiratorio') },
+    { key: 'hemodinamico', label: 'Hemodinámico y cardiovascular', value: con(hemodinamico, 'hemodinamico') },
+    { key: 'abdominodigestivo', label: 'Abdominodigestivo', value: con(abdominodigestivo, 'abdominodigestivo') },
+    { key: 'hidrometabolico', label: 'Hidrometabólico', value: con(hidrometabolico, 'hidrometabolico') },
+    { key: 'hematoinfeccioso', label: 'Hematoinfeccioso', value: con(hemato, 'hematoinfeccioso') },
+    { key: 'musculoesqueletico', label: 'Musculoesquelético', value: dicho.musculoesqueletico },
+    { key: 'plan', label: 'Plan por sistema', value: dicho.plan },
   ]
   return secciones
 }
