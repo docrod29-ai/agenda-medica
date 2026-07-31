@@ -1,3 +1,5 @@
+import { anotarLlamada } from '@/lib/ia/gateway'
+import { esFundador } from '@/lib/authz/fundador'
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
@@ -57,6 +59,19 @@ export async function POST(req: NextRequest) {
   const { imagenBase64, mediaType } = body
   if (!imagenBase64) return NextResponse.json({ ok: false, error: 'Falta la imagen' }, { status: 400 })
 
+  /**
+   * Contexto del libro de costos. Esta ruta todavía no pasa por el gateway; se
+   * anota el gasto igual, porque una llamada sin asiento no se ve como un error
+   * sino como una plataforma que gasta menos de lo que gasta.
+   */
+  const ctxCosto = {
+    feature: 'receta-detectar-campos',
+    requestId: req.headers.get('x-vercel-id') || `rd-${acceso.uid}-${Date.now()}`,
+    clinicId: clinicId ?? null, uid: acceso.uid, creditos: 0, fuente,
+    esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
+  }
+  const t0Costo = Date.now()
+
   try {
     const model = await resolverModelo(key)
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -79,6 +94,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: `IA no disponible (${res.status})`, detalle: t.slice(0, 200) }, { status: 502 })
     }
     const data = await res.json()
+    anotarLlamada(ctxCosto, 'anthropic', String(data?.model ?? ''), data, Date.now() - t0Costo)
     const texto: string = (data.content ?? []).map((c: { text?: string }) => c.text ?? '').join('')
     const m = texto.match(/\{[\s\S]*\}/)
     if (!m) return NextResponse.json({ ok: false, error: 'La IA no devolvió coordenadas' }, { status: 422 })

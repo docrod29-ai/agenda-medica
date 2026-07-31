@@ -12,6 +12,8 @@
  * Body:   { archivo: dataURL (image/* o application/pdf) }
  * Output: { ok, panel: PanelValidado, model } | { ok:false, error }
  */
+import { anotarLlamada } from '@/lib/ia/gateway'
+import { esFundador } from '@/lib/authz/fundador'
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
@@ -81,6 +83,19 @@ export async function POST(req: NextRequest) {
   if (!arch) return NextResponse.json({ ok: false, error: 'Falta un archivo válido: imagen (PNG/JPEG/WebP) o PDF en base64.' }, { status: 400 })
   if (arch.data.length > 10_000_000) return NextResponse.json({ ok: false, error: 'Archivo demasiado grande (>7.5MB). Reduce la resolución o divide el PDF.' }, { status: 400 })
 
+  /**
+   * Contexto del libro de costos. Esta ruta todavía no pasa por el gateway; se
+   * anota el gasto igual, porque una llamada sin asiento no se ve como un error
+   * sino como una plataforma que gasta menos de lo que gasta.
+   */
+  const ctxCosto = {
+    feature: 'laboratorio-vision',
+    requestId: req.headers.get('x-vercel-id') || `lv-${acceso.uid}-${Date.now()}`,
+    clinicId: clinicId ?? null, uid: acceso.uid, creditos: 0, fuente,
+    esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
+  }
+  const t0Costo = Date.now()
+
   try {
     const model = await resolverModelo(API_KEY)
     const contenido = arch.tipo === 'pdf'
@@ -102,6 +117,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: `IA de visión: ${pista}.` }, { status: 502 })
     }
     const data = await res.json()
+    anotarLlamada(ctxCosto, 'anthropic', String(data?.model ?? ''), data, Date.now() - t0Costo)
     const text: string = data.content?.[0]?.text ?? ''
     const parsed = parseJSON(text)
     if (!parsed) return NextResponse.json({ ok: false, error: 'La IA no devolvió resultados legibles. Reintenta con un archivo más nítido.' }, { status: 502 })

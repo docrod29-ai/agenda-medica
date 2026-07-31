@@ -12,6 +12,8 @@
  * No expone API keys. Usa el mismo modelo Claude que el endpoint
  * principal de extracción pero con un prompt NER puro.
  */
+import { anotarLlamada } from '@/lib/ia/gateway'
+import { esFundador } from '@/lib/authz/fundador'
 import { NextRequest, NextResponse } from 'next/server'
 import { NER_SYSTEM_PROMPT, buildNerUserPrompt, EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { safeLog } from '@/lib/security/sanitize'
@@ -105,6 +107,19 @@ export async function POST(req: NextRequest) {
     ? body.alergiasRegistradas.map(a => String(a)).filter(Boolean).slice(0, 40)
     : []
 
+  /**
+   * Contexto del libro de costos. Esta ruta todavía no pasa por el gateway; se
+   * anota el gasto igual, porque una llamada sin asiento no se ve como un error
+   * sino como una plataforma que gasta menos de lo que gasta.
+   */
+  const ctxCosto = {
+    feature: 'extraer-entidades',
+    requestId: req.headers.get('x-vercel-id') || `ee-${acceso.uid}-${Date.now()}`,
+    clinicId: clinicId ?? null, uid: acceso.uid, creditos: 0, fuente,
+    esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
+  }
+  const t0Costo = Date.now()
+
   try {
     const model = await resolverModelo(API_KEY)
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -130,6 +145,7 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await res.json()
+    anotarLlamada(ctxCosto, 'anthropic', String(data?.model ?? ''), data, Date.now() - t0Costo)
     const text: string = data.content?.[0]?.text ?? ''
     if (!text.trim()) {
       return NextResponse.json({ ok: false, error: 'IA devolvió respuesta vacía' }, { status: 502 })

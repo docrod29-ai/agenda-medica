@@ -17,6 +17,8 @@ import { parserClinicoComoRespuestaIA } from '@/lib/expediente/parser-clinico'
 import { safeLog, redactarString } from '@/lib/security/sanitize'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
+import { anotarLlamada } from '@/lib/ia/gateway'
+import { esFundador } from '@/lib/authz/fundador'
 import { gateCreditos, resolverClaveIA, registrarUso, nivelIADe, registrarCreditos, registrarConsultaEconomica, economicasDelMes, entitlementsDe, creditosUsadosDelMes, creditosExtraDelMes  } from '@/lib/ai-keys'
 import { planDeNivel, estadoUso, MOTORES, motorPorClave, motorPorDefecto, topeEconomicoDe } from '@/lib/planes-ia'
 import type { TipoNota, PacienteContexto } from '@/types/expediente'
@@ -220,6 +222,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Faltan transcripcion, tipo o contexto' }, { status: 400 })
   }
 
+  /**
+   * Contexto del libro de costos.
+   *
+   * Esta ruta NO pasa por el gateway todavía: hace descubrimiento de modelos
+   * contra `/v1/models`, usa razonamiento extendido y reintenta sin él ante un
+   * 400. Migrarla entera cambiaría de callado cómo razona la nota que el médico
+   * firma. Pero es la llamada MÁS CARA de la plataforma, y hasta hoy no dejaba
+   * un solo renglón: se anota el costo aunque el enrutado venga después.
+   */
+  const ctxCosto = {
+    feature: 'nota-consulta',
+    requestId: req.headers.get('x-vercel-id') || `np-${acceso.uid}-${Date.now()}`,
+    clinicId: clinicId ?? null,
+    uid: acceso.uid,
+    creditos: 0,   // los créditos los cobra esta ruta por su cuenta, más abajo
+    fuente,
+    esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
+  }
+  const t0Costo = Date.now()
+
   const nivel = await nivelIADe(clinicId)
 
   // ── MENÚ DE IA ──────────────────────────────────────────────────────────
@@ -311,6 +333,7 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await res.json()
+    anotarLlamada(ctxCosto, 'anthropic', String(data?.model ?? model), data, Date.now() - t0Costo)
     // Con "extended thinking" el content trae bloques {type:'thinking'} ANTES del
     // {type:'text'}; tomamos el bloque de texto, no content[0] (que sería el
     // razonamiento). Sin thinking, content[0] ya es el texto.
@@ -340,6 +363,8 @@ export async function POST(req: NextRequest) {
       const res2 = await llamarClaudeConReintentos(API_KEY, model, system, userMsg, false, 32000)
       if (res2.ok) {
         const data2 = await res2.json().catch(() => null)
+        // El reintento es OTRA llamada y cuesta otros tokens: su asiento va aparte.
+        anotarLlamada(ctxCosto, 'anthropic', String(data2?.model ?? model), data2, Date.now() - t0Costo)
         const b2: { type?: string; text?: string }[] = Array.isArray(data2?.content) ? data2.content : []
         const t2: string = b2.find(x => x?.type === 'text')?.text ?? b2[0]?.text ?? ''
         const p2 = parseJSON(t2)

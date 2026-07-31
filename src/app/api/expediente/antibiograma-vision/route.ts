@@ -10,6 +10,8 @@
  *
  * No expone API keys. Auth + rate limit + llave por consultorio, como el resto de la IA.
  */
+import { anotarLlamada } from '@/lib/ia/gateway'
+import { esFundador } from '@/lib/authz/fundador'
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
@@ -96,6 +98,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Imagen demasiado grande (>6MB). Reduce la resolución.' }, { status: 400 })
   }
 
+  /**
+   * Contexto del libro de costos. Esta ruta todavía no pasa por el gateway; se
+   * anota el gasto igual, porque una llamada sin asiento no se ve como un error
+   * sino como una plataforma que gasta menos de lo que gasta.
+   */
+  const ctxCosto = {
+    feature: 'antibiograma-vision',
+    requestId: req.headers.get('x-vercel-id') || `av-${acceso.uid}-${Date.now()}`,
+    clinicId: clinicId ?? null, uid: acceso.uid, creditos: 0, fuente,
+    esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
+  }
+  const t0Costo = Date.now()
+
   try {
     const model = await resolverModelo(API_KEY)
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -130,6 +145,7 @@ export async function POST(req: NextRequest) {
     void registrarCreditos(clinicId, COSTO_CREDITOS.antibiogramaVision)
 
     const data = await res.json()
+    anotarLlamada(ctxCosto, 'anthropic', String(data?.model ?? ''), data, Date.now() - t0Costo)
     const text: string = data.content?.[0]?.text ?? ''
     const parsed = parseJSON(text)
     if (!parsed) {

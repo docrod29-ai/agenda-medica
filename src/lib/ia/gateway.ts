@@ -154,6 +154,13 @@ export async function llamarIA(o: Opciones, ctx: Contexto): Promise<Resultado> {
  * `void` a propósito: la contabilidad no puede meterse en el camino de una nota
  * clínica. `registrarCosto` ya traga sus propios errores.
  */
+export function anotarLlamada(
+  ctx: Contexto, proveedor: Proveedor, modelo: string,
+  respuesta: unknown, latenciaMs: number, fallo = false,
+): void {
+  anotar(ctx, proveedor, modelo, respuesta, latenciaMs, fallo)
+}
+
 function anotar(
   ctx: Contexto, proveedor: Proveedor, modelo: string,
   respuesta: unknown, latenciaMs: number, fallo: boolean,
@@ -175,6 +182,21 @@ function anotar(
   })
 }
 
+/**
+ * ── POR QUÉ EXISTE `anotarLlamada` SI YA ESTÁ EL GATEWAY ─────────────────────
+ *
+ * Porque hay rutas que todavía no se pueden enrutar y no pueden esperar a que se
+ * puedan. `expediente/procesar` —la nota de consulta, la llamada MÁS CARA de la
+ * plataforma— hace descubrimiento de modelos contra `/v1/models`, usa
+ * razonamiento extendido y reintenta sin él ante un 400: migrarla entera de
+ * madrugada cambiaría de callado cómo razona la nota que el médico firma.
+ *
+ * El objetivo de la auditoría era VER el costo; el gateway es el medio. Anotar
+ * sin enrutar deja la visibilidad completa hoy y el refactor para cuando se
+ * pueda revisar despierto. Es una parada intermedia declarada, no el destino:
+ * una ruta que anota sigue teniendo su propia cascada y su propio `max_tokens`,
+ * que es de donde salió el fallo de los 4 000 tokens.
+ */
 export const POR_QUE_UNA_SOLA_PUERTA =
   'Porque el libro de costos deja de depender de que alguien se acuerde. ' +
   'Cablearlo ruta por ruta son dieciséis oportunidades de olvidarlo, y luego ' +
