@@ -1,0 +1,364 @@
+/**
+ * NORMALIZACIÓN DE CIFRAS Y UNIDADES — etapa 4 del pipeline clínico de dictado.
+ *
+ * «norepinefrina cero punto quince microgramos por kilo por minuto»
+ *      → «norepinefrina 0.15 mcg/kg/min»
+ *
+ * ── POR QUÉ NO SE REUSA EL NORMALIZADOR DEL BENCHMARK ────────────────────────
+ *
+ * `benchmark-metricas.ts` ya convierte números y unidades, y está calibrado al
+ * 100 % contra el corpus. Pero es un normalizador **de comparación**: baja a
+ * minúsculas, quita acentos y borra la puntuación para poder cotejar dos textos.
+ * Eso sirve para medir y arruinaría una nota clínica.
+ *
+ * Éste es un normalizador **de producción**: reescribe únicamente los tramos que
+ * son una cifra o una unidad y deja el resto del texto byte a byte como estaba —
+ * acentos, mayúsculas, comas y puntos incluidos. Son dos trabajos distintos con
+ * el mismo nombre; mantenerlos separados evita romper un instrumento calibrado
+ * para arreglar una nota.
+ *
+ * ── LAS TRES REGLAS QUE LE IMPIDEN INVENTAR ──────────────────────────────────
+ *
+ * 1. **«un» y «una» no se convierten a solas.** Son artículos mucho más a menudo
+ *    que números: «un paciente» no es «1 paciente». Sólo cuentan cuando les
+ *    sigue una unidad («un gramo» → «1 g»).
+ *
+ * 2. **Dos números del mismo rango no se suman.** Cuando alguien dicta
+ *    «uno dos cero sobre ocho cero» está deletreando 120/80, y sumar daría 3.
+ *    Al ver dos unidades seguidas se cierra el número y se empieza otro: sale
+ *    «1 2 0 sobre 8 0», que es exactamente lo que se dijo.
+ *
+ * 3. **Una unidad hablada sólo se abrevia detrás de una cifra.** «pesa muchos
+ *    kilos» se queda como está; «ochenta kilos» se vuelve «80 kg».
+ *
+ * Lo que no encaja en ninguna regla **se deja tal cual**. Este módulo nunca
+ * completa un número ausente ni elige entre dos lecturas posibles.
+ *
+ * Módulo PURO.
+ */
+
+const UNIDADES: Record<string, number> = {
+  cero: 0, uno: 1, una: 1, un: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6,
+  siete: 7, ocho: 8, nueve: 9, diez: 10, once: 11, doce: 12, trece: 13,
+  catorce: 14, quince: 15, dieciseis: 16, diecisiete: 17, dieciocho: 18,
+  diecinueve: 19, veinte: 20, veintiuno: 21, veintidos: 22, veintitres: 23,
+  veinticuatro: 24, veinticinco: 25, veintiseis: 26, veintisiete: 27,
+  veintiocho: 28, veintinueve: 29,
+  // «veintiún gramos», «veintiuna horas»: apócope y femenino de 21. No son
+  // ambiguas como «un» — nadie las usa de artículo.
+  veintiun: 21, veintiuna: 21,
+}
+const DECENAS: Record<string, number> = {
+  treinta: 30, cuarenta: 40, cincuenta: 50, sesenta: 60,
+  setenta: 70, ochenta: 80, noventa: 90,
+}
+const CENTENAS: Record<string, number> = {
+  cien: 100, ciento: 100, doscientos: 200, trescientos: 300, cuatrocientos: 400,
+  quinientos: 500, seiscientos: 600, setecientos: 700, ochocientos: 800,
+  novecientos: 900,
+  // Formas femeninas: «tres mil doscientas revoluciones».
+  doscientas: 200, trescientas: 300, cuatrocientas: 400, quinientas: 500,
+  seiscientas: 600, setecientas: 700, ochocientas: 800, novecientas: 900,
+}
+/** Sólo estas tres palabras convierten cuando van solas: ver regla 1. */
+const AMBIGUAS = new Set(['un', 'una', 'uno'])
+
+const sinAcento = (s: string) =>
+  s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+
+/** Categoría de una palabra dentro de un número hablado. */
+type Rango = 'unidad' | 'decena' | 'centena' | 'mil' | null
+function rango(p: string): Rango {
+  const w = sinAcento(p)
+  if (w === 'mil') return 'mil'
+  if (CENTENAS[w] !== undefined) return 'centena'
+  if (DECENAS[w] !== undefined) return 'decena'
+  if (UNIDADES[w] !== undefined) return 'unidad'
+  return null
+}
+function valor(p: string): number {
+  const w = sinAcento(p)
+  return CENTENAS[w] ?? DECENAS[w] ?? UNIDADES[w] ?? 0
+}
+
+export interface CambioNormalizacion {
+  antes: string
+  despues: string
+  tipo: 'cifra' | 'unidad'
+}
+
+export interface ResultadoNormalizacion {
+  texto: string
+  cambios: CambioNormalizacion[]
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   Cifras
+   ════════════════════════════════════════════════════════════════════════ */
+
+/** Palabras y espacios, conservando las posiciones. */
+function trocear(texto: string): string[] {
+  return texto.split(/(\s+)/)
+}
+
+/**
+ * Convierte los números escritos con letra a dígitos, sin tocar nada más.
+ *
+ * @param texto el transcript.
+ * @returns el texto con las cifras en dígitos y la lista de tramos convertidos.
+ */
+export function normalizarCifras(texto: string): ResultadoNormalizacion {
+  const partes = trocear(texto)
+  const cambios: CambioNormalizacion[] = []
+  const salida: string[] = []
+
+  let i = 0
+  while (i < partes.length) {
+    const p = partes[i]
+    if (/^\s*$/.test(p) || rango(limpiar(p)) === null) { salida.push(p); i++; continue }
+
+    /**
+     * «por ciento» es una unidad, no un número.
+     *
+     * Sin esta guarda, «veinte por ciento» salía «20 por 100»: el lector de
+     * números se comía el «ciento» como CENTENAS antes de que la etapa de
+     * unidades pudiera verlo. Lo encontró la regresión sobre el corpus, no un
+     * test escrito a mano.
+     */
+    if (['cien', 'ciento'].includes(sinAcento(limpiar(p)))) {
+      const previa = salida.map(limpiar).filter(Boolean).pop()
+      if (previa && sinAcento(previa) === 'por') { salida.push(p); i++; continue }
+    }
+
+    // Arranca un número: consumir el tramo más largo que sea UN solo número.
+    const { fin, num, decimal } = leerNumero(partes, i)
+    const tramo = partes.slice(i, fin).join('')
+    // El signo de puntuación final del tramo («ocho horas,») no forma parte del
+    // número y tiene que sobrevivir intacto.
+    const cola = tramo.match(/[^\p{L}\p{N}]*$/u)?.[0] ?? ''
+    const cuerpo = tramo.slice(0, tramo.length - cola.length)
+
+    if (num === null) { salida.push(...partes.slice(i, fin)); i = fin; continue }
+
+    const digitos = decimal !== null ? `${num}.${decimal}` : String(num)
+    salida.push(digitos + cola)
+    cambios.push({ antes: cuerpo, despues: digitos, tipo: 'cifra' })
+    i = fin
+  }
+
+  return { texto: salida.join(''), cambios }
+}
+
+const limpiar = (p: string) => p.replace(/[^\p{L}\p{N}]/gu, '')
+
+/**
+ * Lee UN número hablado a partir de `desde`.
+ *
+ * Para en cuanto la siguiente palabra no puede seguir al número que lleva: dos
+ * unidades seguidas no se suman (regla 2), y una decena no sigue a otra decena.
+ */
+function leerNumero(partes: string[], desde: number): { fin: number; num: number | null; decimal: string | null } {
+  let acc: number | null = null
+  let ultimo: Rango = null
+  let i = desde
+  let decimal: string | null = null
+
+  const siguientePalabra = (j: number): { idx: number; w: string } | null => {
+    for (let k = j; k < partes.length; k++) {
+      if (/^\s*$/.test(partes[k])) continue
+      return { idx: k, w: limpiar(partes[k]) }
+    }
+    return null
+  }
+
+  while (i < partes.length) {
+    if (/^\s*$/.test(partes[i])) { i++; continue }
+    const w = limpiar(partes[i])
+    const r = rango(w)
+
+    // «y» sólo une decena con unidad: «cuarenta y ocho».
+    if (sinAcento(w) === 'y' && ultimo === 'decena') {
+      const sig = siguientePalabra(i + 1)
+      if (sig && rango(sig.w) === 'unidad') { i = sig.idx; continue }
+      break
+    }
+
+    // «punto»: sólo si ya hay parte entera y detrás viene un número.
+    if (sinAcento(w) === 'punto' && acc !== null) {
+      const sig = siguientePalabra(i + 1)
+      if (!sig || rango(sig.w) === null || rango(sig.w) === 'mil') break
+      const dec: string[] = []
+      let j = sig.idx
+      while (j < partes.length) {
+        if (/^\s*$/.test(partes[j])) { j++; continue }
+        const rr = rango(limpiar(partes[j]))
+        if (rr !== 'unidad' && rr !== 'decena') break
+        dec.push(String(valor(limpiar(partes[j])))); j++
+      }
+      decimal = dec.join('')
+      i = j
+      break
+    }
+
+    if (r === null) break
+
+    if (acc === null) {
+      // Regla 1: «un/una/uno» a solas no es número; se acepta sólo si detrás
+      // viene una unidad de medida.
+      if (AMBIGUAS.has(sinAcento(w))) {
+        const sig = siguientePalabra(i + 1)
+        // Cuenta como número si le sigue una unidad («un gramo»), si le sigue
+        // otra cifra («uno dos cero», alguien deletreando 120), o si abre un
+        // decimal («uno punto ocho»). En cualquier otro caso es un artículo y se
+        // deja en paz.
+        //
+        // El caso del decimal lo encontró la regresión sobre el corpus: «calcio
+        // ionizado de uno punto cero dos» salía «uno punto 0 2».
+        const abreDecimal = !!sig && sinAcento(sig.w) === 'punto'
+          && rango(siguientePalabra(sig.idx + 1)?.w ?? '') !== null
+        const esNumero = !!sig && (esUnidadHablada(sig.w) || rango(sig.w) !== null || abreDecimal)
+        if (!esNumero) return { fin: i + 1, num: null, decimal: null }
+      }
+      acc = r === 'mil' ? 1000 : valor(w)
+      ultimo = r
+      i++
+      continue
+    }
+
+    // Regla 2: no se suman dos piezas del mismo rango ni una mayor tras una menor.
+    if (r === 'mil') { acc = acc * 1000; ultimo = 'mil'; i++; continue }
+    const orden: Record<Exclude<Rango, null>, number> = { mil: 3, centena: 2, decena: 1, unidad: 0 }
+    if (ultimo !== null && ultimo !== 'mil' && orden[r] >= orden[ultimo]) break
+    acc += valor(w)
+    ultimo = r
+    i++
+  }
+
+  // Recupera el espacio final para no comerse la separación.
+  while (i > desde && /^\s*$/.test(partes[i - 1])) i--
+  return { fin: i, num: acc, decimal }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   Unidades
+   ════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Formas habladas → símbolo canónico.
+ *
+ * Los símbolos son los de `UNIDADES_CANONICAS` de la política del Dr.
+ * Deliberadamente NO incluye `mg`↔`mcg` ni nada que pueda confundir dos
+ * unidades: aquí sólo se abrevia lo que se dijo con todas sus letras.
+ */
+export const UNIDADES_HABLADAS: Readonly<Record<string, readonly string[]>> = {
+  'mcg/kg/min': ['microgramos por kilogramo por minuto', 'microgramos por kilo por minuto',
+    'microgramo por kilo por minuto', 'microgramos kilo minuto'],
+  'mcg/kg/h': ['microgramos por kilogramo por hora', 'microgramos por kilo por hora'],
+  'mg/kg/h': ['miligramos por kilogramo por hora', 'miligramos por kilo por hora'],
+  'mL/kg/h': ['mililitros por kilogramo por hora', 'mililitros por kilo por hora'],
+  'L/min/m2': ['litros por minuto por metro cuadrado'],
+  'mL/cmH2O': ['mililitros por centimetro de agua', 'mililitros por centímetro de agua'],
+  'mg/kg': ['miligramos por kilogramo', 'miligramos por kilo'],
+  'mL/kg': ['mililitros por kilogramo', 'mililitros por kilo'],
+  'mL/min': ['mililitros por minuto', 'mililitro por minuto'],
+  'mL/h': ['mililitros por hora', 'mililitro por hora'],
+  'L/min': ['litros por minuto', 'litro por minuto'],
+  'mg/dL': ['miligramos por decilitro'],
+  'g/dL': ['gramos por decilitro'],
+  'mmol/L': ['milimoles por litro', 'milimol por litro', 'milímoles por litro'],
+  'mEq/L': ['miliequivalentes por litro'],
+  'ng/mL': ['nanogramos por mililitro'],
+  'pg/mL': ['picogramos por mililitro'],
+  'mcg/h': ['microgramos por hora'],
+  'U/min': ['unidades por minuto'],
+  '/uL': ['por microlitro'],
+  mmHg: ['milimetros de mercurio', 'milímetros de mercurio'],
+  cmH2O: ['centimetros de agua', 'centímetros de agua'],
+  lpm: ['latidos por minuto'],
+  rpm: ['respiraciones por minuto', 'revoluciones por minuto'],
+  '°C': ['grados centigrados', 'grados centígrados', 'grados celsius'],
+  '%': ['por ciento'],
+  kg: ['kilogramos', 'kilogramo', 'kilos', 'kilo'],
+  mL: ['mililitros', 'mililitro'],
+  mm: ['milimetros', 'milímetros', 'milimetro', 'milímetro'],
+  mcg: ['microgramos', 'microgramo'],
+  mg: ['miligramos', 'miligramo'],
+  g: ['gramos', 'gramo'],
+  L: ['litros', 'litro'],
+  UI: ['unidades internacionales'],
+  U: ['unidades', 'unidad'],
+}
+
+/** Pares (forma hablada normalizada, símbolo), de la más larga a la más corta. */
+const PARES_UNIDAD: readonly [string, string][] = Object.entries(UNIDADES_HABLADAS)
+  .flatMap(([simbolo, formas]) => formas.map(f => [sinAcento(f), simbolo] as [string, string]))
+  .sort((a, b) => b[0].length - a[0].length)
+
+/** ¿Esta palabra puede abrir una forma hablada de unidad? */
+function esUnidadHablada(palabra: string): boolean {
+  const w = sinAcento(palabra)
+  return PARES_UNIDAD.some(([forma]) => forma === w || forma.startsWith(w + ' '))
+}
+
+/**
+ * Abrevia las unidades habladas que van **detrás de una cifra**.
+ *
+ * @param texto el transcript, idealmente ya con `normalizarCifras` aplicado.
+ */
+export function normalizarUnidades(texto: string): ResultadoNormalizacion {
+  const cambios: CambioNormalizacion[] = []
+  let out = ''
+  let i = 0
+
+  while (i < texto.length) {
+    // ¿Venimos de una cifra? (dígito, quizá con espacios en medio)
+    const previo = out.replace(/\s+$/, '')
+    const trasCifra = /\d$/.test(previo) && /^\s/.test(texto.slice(i - 1, i) || ' ')
+
+    let casado: [string, string] | null = null
+    if (trasCifra) {
+      const resto = sinAcento(texto.slice(i))
+      for (const [forma, simbolo] of PARES_UNIDAD) {
+        if (!resto.startsWith(forma)) continue
+        const sig = texto[i + forma.length] ?? ' '
+        if (/[\p{L}\p{N}]/u.test(sig)) continue      // «gramos» no casa dentro de «gramosos»
+        casado = [forma, simbolo]
+        break
+      }
+    }
+
+    if (casado) {
+      const [forma, simbolo] = casado
+      cambios.push({ antes: texto.slice(i, i + forma.length), despues: simbolo, tipo: 'unidad' })
+      out += simbolo
+      i += forma.length
+    } else {
+      out += texto[i]
+      i++
+    }
+  }
+
+  // Una unidad que empieza por barra se pega a su cifra («48000 /uL»), y el
+  // porcentaje también: «20 %» no se escribe así.
+  return { texto: out.replace(/(\d)\s+\//g, '$1/').replace(/(\d)\s+%/g, '$1%'), cambios }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   Las dos juntas
+   ════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Cifras y luego unidades. El orden importa: la unidad sólo se abrevia detrás de
+ * un dígito, y el dígito lo produce la etapa anterior.
+ */
+export function normalizar(texto: string): ResultadoNormalizacion {
+  const a = normalizarCifras(texto)
+  const b = normalizarUnidades(a.texto)
+  return { texto: b.texto, cambios: [...a.cambios, ...b.cambios] }
+}
+
+export const POR_QUE_NO_INVENTA =
+  'La normalización reescribe lo que se dijo, no lo interpreta: «un» y «una» sólo ' +
+  'cuentan como número si les sigue una unidad, dos cifras del mismo rango no se ' +
+  'suman (quien dicta «uno dos cero» está deletreando 120), y una unidad hablada ' +
+  'sólo se abrevia detrás de una cifra. Lo que no encaja se deja tal cual.'

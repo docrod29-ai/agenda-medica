@@ -2,7 +2,7 @@
   "sellado": "2026-07-30",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 2053,
+  "totalCasos": 2128,
   "archivos": [
     {
       "archivo": "src/__tests__/alergias.test.ts",
@@ -35,6 +35,22 @@
     {
       "archivo": "src/__tests__/asr-guardian-sustituciones.test.ts",
       "minCasos": 21
+    },
+    {
+      "archivo": "src/__tests__/asr-lexicon.test.ts",
+      "minCasos": 13
+    },
+    {
+      "archivo": "src/__tests__/asr-normalizacion.test.ts",
+      "minCasos": 23
+    },
+    {
+      "archivo": "src/__tests__/asr-pipeline.test.ts",
+      "minCasos": 18
+    },
+    {
+      "archivo": "src/__tests__/asr-siglas.test.ts",
+      "minCasos": 14
     },
     {
       "archivo": "src/__tests__/bed-assignment.test.ts",
@@ -286,6 +302,10 @@
     },
     {
       "archivo": "src/__tests__/reg-065-corrector-come-dosis.test.ts",
+      "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/reg-066-ngramas-destruyen-terminos.test.ts",
       "minCasos": 7
     },
     {

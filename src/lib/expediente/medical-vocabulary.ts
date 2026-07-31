@@ -911,16 +911,34 @@ export function aplicarConfusionesConocidas(texto: string): ResultadoCorreccion 
 /** ¿El token es una palabra "pura" (sin puntuación pegada)? */
 const REGEX_PALABRA_PURA = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ][A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9-]*$/
 
-function buscarTerminoUnido(fonUnido: string): string | null {
+function buscarTerminoUnido(fonUnido: string, estricto = false): string | null {
   // Coincidencia exacta en el índice fonético
   const exacto = INDICE_FONETICO.get(fonUnido)
   if (exacto && fonUnido.length >= 8) return exacto
+  /**
+   * En modo ESTRICTO el candidato tiene que medir casi lo mismo que la unión.
+   *
+   * Una fusión repara un ESPACIO: el número de letras apenas cambia. Un
+   * candidato dos o más letras más corto no está reparando, se está tragando
+   * contenido. Medido:
+   *
+   *     activoparalisis → acroparalysis   d=3  len 15→13   ✗ se traga
+   *     activoanestesia → acroanesthesia  d=3  len 15→14   ✗ se traga
+   *     empaqlinfosina  → empagliflozina  d=3  len 14→14   ✓ repara
+   *     platanopros     → latanoprost     d=2  len 11→11   ✓ repara
+   *
+   * La distancia sola no los separa —hay buenos y malos a distancia 3—; la
+   * diferencia de longitud sí. Los dos malos los encontró el corpus V3, que el
+   * pipeline no había visto nunca: la nota decía «problema acroparalysis facial
+   * periférica».
+   */
+  const deltaMax = estricto ? 1 : 3
   // Levenshtein con el mismo umbral que palabra-por-palabra (distAceptable),
   // solo para uniones de ≥10 chars fonéticos (las cortas son riesgosas)
   if (fonUnido.length >= 10) {
     let mejor: { term: string; dist: number } | null = null
     for (const { term, fonet } of TERMINOS_LEV) {
-      if (Math.abs(fonet.length - fonUnido.length) > 3) continue
+      if (Math.abs(fonet.length - fonUnido.length) > deltaMax) continue
       const d = levenshtein(fonet, fonUnido)
       if (!distAceptable(d, Math.max(fonet.length, fonUnido.length))) continue
       if (!mejor || d < mejor.dist) mejor = { term, dist: d }
@@ -963,6 +981,17 @@ const NUMEROS_PALABRA = new Set([
 function esCantidad(p: string): boolean {
   if (/\d/.test(p)) return true
   return NUMEROS_PALABRA.has(p.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''))
+}
+
+/**
+ * ¿Es una sigla escrita a propósito?
+ *
+ * Dos o más letras y todas en mayúscula («NIRS», «PEEP», «CVVHDF»). Un fragmento
+ * de fármaco partido por el reconocedor nunca sale así.
+ */
+function esSigla(p: string): boolean {
+  const limpio = p.replace(/[^\p{L}\p{N}]/gu, '')
+  return limpio.length >= 2 && /^[\p{Lu}\p{N}]+$/u.test(limpio) && /\p{Lu}/u.test(limpio)
 }
 
 export function corregirNGramas(texto: string): ResultadoCorreccion {
@@ -1017,17 +1046,38 @@ export function corregirNGramas(texto: string): ResultadoCorreccion {
       if (palabras.some(esCantidad)) continue
 
       /**
-       * NUNCA fusionar si la PRIMERA palabra ya es un término válido.
+       * NUNCA fusionar si ALGUNA palabra ya es un término válido.
        *
        * Si «Meropenem» ya está bien escrito, unirlo a lo que sigue sólo puede
-       * destruir información. Un fármaco partido empieza por un fragmento
-       * («em», «pagli»), no por su propio nombre completo.
+       * destruir información. Un fármaco partido son fragmentos sin sentido
+       * («em», «pagli»), no palabras que existen por sí solas.
+       *
+       * Empezó mirando sólo la PRIMERA palabra (REG-065). El corpus V3 mostró
+       * que no basta: «problema activo parálisis facial» salía «problema
+       * acroparalysis facial», y «problema activo anestesia general» salía
+       * «problema acroanesthesia general». El término destruido estaba en
+       * segunda posición.
        */
-      if (buscarTerminoUnido(fonetEs(palabras[0]))) continue
+      if (palabras.some(p => buscarTerminoUnido(fonetEs(p)))) continue
+
+      /**
+       * NUNCA fusionar una ventana que contenga una SIGLA. (REG-066, medido)
+       *
+       * Una palabra en mayúsculas es una sigla que alguien escribió a
+       * propósito; no es un fragmento de fármaco partido. Sin esta guarda,
+       * «NIRS cerebral» se fusionaba en «Precerebral» —el fonético de
+       * «nirscerebral» casaba— y desaparecía el nombre del monitor.
+       *
+       * Encontrado el 30-jul-2026 pasando el corpus V3 de 7 000 audios, que el
+       * pipeline no había visto nunca. El guardián de sustituciones no podía
+       * verlo: no cambió ninguna cifra, ni unidad, ni negación, ni lateralidad.
+       */
+      if (palabras.some(esSigla)) continue
 
       // a) unidas sin espacio → término de una palabra
       // b) unidas con espacio → término multipalabra ("ácido fólico")
-      const term = buscarTerminoUnido(fonetEs(unida)) ?? buscarTerminoUnido(fonetEs(palabras.join(' ')))
+      const term = buscarTerminoUnido(fonetEs(unida), true)
+        ?? buscarTerminoUnido(fonetEs(palabras.join(' ')), true)
       if (!term) continue
       // GUARDIÁN ANTÓNIMO (P0): nunca invertir hiper↔hipo (significado opuesto).
       if (invierteHiperHipo(unida, term) || invierteHiperHipo(palabras.join(' '), term)) continue
