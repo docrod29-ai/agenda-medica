@@ -19,6 +19,7 @@ import { useClinic } from '@/context/ClinicContext'
 import { useToast } from '@/context/ToastContext'
 import { fetchAutenticado } from '@/lib/auth-client'
 import type { FusionCopilot } from '@/lib/uci/copilot'
+import { formatear, type FormatoNota } from '@/lib/uci/formato-nota'
 import { MOTORES, COPILOT_UCI_POR_MOTOR, type ClaveMotor } from '@/lib/planes-ia'
 import { getInternamiento } from '@/lib/hospital/firestore'
 import { getPatient } from '@/lib/firestore'
@@ -487,7 +488,25 @@ export default function UciPanelPage() {
   }, [v, infFarmaco]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── La nota se ARMA en vivo mientras dictas/capturas (por sistemas) ──
-  const notaSecciones = useMemo(() => construirSeccionesUCI(v, { discusion: discusionTxt || undefined }), [v, discusionTxt])
+  /**
+   * Narrativa o lista. Se recuerda entre pases: es preferencia de quien escribe.
+   *
+   * No cambia NI UNA palabra ni una cifra — cada dato ya es una oración completa
+   * y la narrativa sólo las une en párrafo. Las advertencias van aparte a
+   * propósito: enterrar un aviso de seguridad a media frase es cómo se deja de
+   * leer.
+   */
+  const [formatoNota, setFormatoNota] = useState<FormatoNota>('narrativa')
+  useEffect(() => {
+    try { const g = localStorage.getItem('nx.uci.formatoNota'); if (g === 'lista' || g === 'narrativa') setFormatoNota(g) } catch { /* */ }
+  }, [])
+  const cambiarFormato = (f: FormatoNota) => {
+    setFormatoNota(f)
+    try { localStorage.setItem('nx.uci.formatoNota', f) } catch { /* */ }
+  }
+
+  const notaCruda = useMemo(() => construirSeccionesUCI(v, { discusion: discusionTxt || undefined }), [v, discusionTxt])
+  const notaSecciones = useMemo(() => formatear(notaCruda, formatoNota), [notaCruda, formatoNota])
   const notaLlenas = notaSecciones.filter(s => s.value.trim() !== '')
 
   // ── Pasar la nota YA generada al expediente para revisar y FIRMAR ──
@@ -718,8 +737,27 @@ export default function UciPanelPage() {
         <details open style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: '4px 16px 14px', marginBottom: 16 }}>
           <summary style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0', fontWeight: 600, fontSize: 14 }}>
             <FileText size={16} style={{ color: 'var(--nexus)' }} /> Nota de evolución UCI — se genera al dictar ({notaLlenas.length} secciones)
-            {inter && <span style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--text3)', fontWeight: 400 }}>Revísala y pulsa “Pasar a nota” para firmarla</span>}
+            <span
+              style={{ marginLeft: 'auto', display: 'inline-flex', gap: 4 }}
+              onClick={e => { e.preventDefault(); e.stopPropagation() }}
+            >
+              {(['narrativa', 'lista'] as const).map(f => (
+                <button
+                  key={f} onClick={() => cambiarFormato(f)}
+                  title={f === 'narrativa'
+                    ? 'Párrafos, más compacta. Mismas palabras y mismas cifras.'
+                    : 'Un dato por renglón.'}
+                  style={{
+                    padding: '3px 9px', borderRadius: 5, fontSize: 11.5, cursor: 'pointer',
+                    border: '1px solid var(--border2)', fontWeight: 500,
+                    background: formatoNota === f ? 'var(--teal)' : 'transparent',
+                    color: formatoNota === f ? '#fff' : 'var(--text2)',
+                  }}
+                >{f === 'narrativa' ? 'Narrativa' : 'Lista'}</button>
+              ))}
+            </span>
           </summary>
+          {inter && <div style={{ fontSize: 11.5, color: 'var(--text3)', marginBottom: 4 }}>Revísala y pulsa “Pasar a nota” para firmarla</div>}
           <div style={{ display: 'grid', gap: 10, marginTop: 6 }}>
             {notaLlenas.map(s => (
               <div key={s.key}>
