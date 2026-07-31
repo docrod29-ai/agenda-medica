@@ -1,3 +1,4 @@
+import { num } from '@/lib/uci/num'
 // ══════════════════════════════════════════════════════════════
 // NEWS2 — National Early Warning Score 2 (Royal College of Physicians, NHS).
 // Detecta deterioro clínico a partir de los signos vitales. Estándar mundial
@@ -149,3 +150,59 @@ export function calcularNews2(s: SignosNews2): News2Result | null {
 
   return { total, riesgo, color: COLOR[riesgo], parcial, faltantes, parametroRojo: algun3, detalle: det, recomendacion: recomendacionFinal }
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   Color de un signo suelto — derivado del MISMO motor
+   ════════════════════════════════════════════════════════════════════════ */
+
+/** Qué tan lejos de lo normal está un signo, según NEWS2. */
+export type NivelSigno = 'normal' | 'aviso' | 'critico'
+
+/**
+ * Nivel de un signo aislado, con los puntos que le da NEWS2.
+ *
+ * ── POR QUÉ EXISTE ───────────────────────────────────────────────────────────
+ *
+ * La tabla de signos del episodio pintaba en rojo con umbrales escritos a mano
+ * —`spo2 < 92`, `temp >= 38`, `fc > 100 || fc < 50`— mientras el score usaba los
+ * del Royal College. **Las dos decían cosas distintas del mismo número:** una
+ * SpO₂ de 92 salía en negro en la tabla y sumaba DOS puntos en el NEWS2 de
+ * arriba, en la misma pantalla.
+ *
+ * Eso no es un detalle de color. Es la aplicación contradiciéndose delante del
+ * médico, y la contradicción se resuelve siempre igual: se cree lo que se ve, no
+ * lo que hay que ir a buscar.
+ *
+ * Aquí no hay ningún umbral nuevo: se llama al motor con ese único signo y se
+ * traduce su puntaje. Si mañana cambia la tabla del Royal College, cambia en un
+ * solo sitio.
+ */
+export function nivelDeSigno(campo: 'fr' | 'spo2' | 'temp' | 'fc' | 'sys', valor: unknown,
+                             ctx?: { oxigeno?: boolean; escalaSpo2?: 1 | 2 }): NivelSigno {
+  /**
+   * `num()`, no `Number()`.
+   *
+   * `Number('')` y `Number('  ')` son CERO, así que un campo vacío salía como
+   * una SpO₂ de 0 % — crítico. Es el mismo «vacío no es 0» que ya costó un
+   * arreglo en los motores de UCI, y volvió a aparecer aquí en cuanto se
+   * escribió una coerción a mano. Por eso la coerción numérica clínica tiene un
+   * solo sitio.
+   */
+  const v = num(valor)
+  if (v === null) return 'normal'
+  const entrada: SignosNews2 = campo === 'sys'
+    ? { ta: `${v}/70` }
+    : { [campo]: v, ...(campo === 'spo2' ? { oxigeno: ctx?.oxigeno, escalaSpo2: ctx?.escalaSpo2 } : {}) }
+  const r = calcularNews2(entrada)
+  // Se busca el parámetro por sus PUNTOS, no por su nombre: la etiqueta cambia
+  // con la escala («SpO₂» contra «SpO₂ (escala 2)») y comparar cadenas se
+  // rompería en silencio.
+  const pts = r?.detalle[0]?.puntos ?? 0
+  return pts >= 3 ? 'critico' : pts >= 1 ? 'aviso' : 'normal'
+}
+
+export const POR_QUE_EL_COLOR_SALE_DEL_MOTOR =
+  'La tabla pintaba con umbrales propios mientras el score usaba los del Royal ' +
+  'College, así que una SpO₂ de 92 salía normal en la tabla y sumaba dos puntos ' +
+  'en el NEWS2 de la misma pantalla. Una aplicación que se contradice delante ' +
+  'del médico pierde las dos veces: se cree lo que se ve.'

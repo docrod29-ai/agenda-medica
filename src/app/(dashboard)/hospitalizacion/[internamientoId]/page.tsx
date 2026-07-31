@@ -34,7 +34,7 @@ import { code39Svg } from '@/lib/hospital/barcode'
 import { buscarMed } from '@/lib/hospital/medicamentos-catalogo'
 import { esCriticoLab } from '@/lib/hospital/lab-criticos'
 import { logAudit } from '@/lib/expediente/audit-log'
-import { calcularNews2 } from '@/lib/hospital/news2'
+import { nivelDeSigno, calcularNews2 } from '@/lib/hospital/news2'
 import { GraficaSignos, type PuntoSigno } from '@/components/hospital/GraficaSignos'
 import { PanelEnfermeria } from '@/components/hospital/PanelEnfermeria'
 import {
@@ -54,6 +54,36 @@ const TIPO_EGRESO_OPCIONES: TipoEgreso[] = ['mejoria', 'maximo_beneficio', 'volu
 const TIPO_IND_OPCIONES: TipoIndicacion[] = ['medicamento', 'liquidos', 'dieta', 'cuidado', 'estudio', 'otro']
 const inputCls = 'w-full rounded-md border px-2.5 py-2 text-sm bg-transparent'
 type Tab = 'resumen' | 'indicaciones' | 'signos' | 'laboratorio' | 'enfermeria' | 'interconsultas'
+
+/**
+ * El color de un signo sale del MOTOR NEWS2, no de umbrales escritos aquí.
+ *
+ * Esta tabla pintaba con los suyos —`spo2 < 92`, `temp >= 38`, `fc > 100`—
+ * mientras el score de arriba usaba los del Royal College. **Decían cosas
+ * distintas del mismo número en la misma pantalla:** una SpO₂ de 92 salía en
+ * negro y sumaba dos puntos, y una temperatura de 35 salía en negro cuando NEWS2
+ * le da TRES — una hipotermia invisible en la tabla.
+ *
+ * Ahora los dos leen la misma tabla. Naranja para lo que suma 1-2 puntos y rojo
+ * para lo que suma 3, que es el criterio de escalamiento del propio score.
+ */
+function colorSigno(
+  campo: 'fr' | 'spo2' | 'temp' | 'fc' | 'sys',
+  valor: unknown,
+  ctx?: { oxigeno?: boolean },
+): { color?: string; fontWeight?: number } {
+  const n = nivelDeSigno(campo, valor, ctx)
+  if (n === 'critico') return { color: '#dc2626', fontWeight: 700 }
+  if (n === 'aviso') return { color: '#d97706' }
+  return {}
+}
+
+/** La sistólica de un «120/80». Sin ella no se puede colorear la tensión. */
+function sistolicaDe(ta?: string): number | undefined {
+  if (!ta) return undefined
+  const n = parseInt(String(ta).split('/')[0], 10)
+  return Number.isFinite(n) ? n : undefined
+}
 
 export default function EpisodioPage() {
   const { internamientoId } = useParams<{ internamientoId: string }>()
@@ -657,11 +687,11 @@ export default function EpisodioPage() {
                     // que se capturó Y lo que se corrigió.
                     ...(estado === 'corregido' ? { opacity: 0.5, textDecoration: 'line-through' } : {}) }}>
                     <td style={{ padding: '7px 10px', whiteSpace: 'nowrap' }}>{new Date(s.fecha).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
-                    <td style={{ padding: '7px 10px' }}>{s.ta ?? '—'}</td>
-                    <td style={{ padding: '7px 10px', color: (s.fc && (s.fc > 100 || s.fc < 50)) ? '#dc2626' : undefined }}>{s.fc ?? '—'}</td>
-                    <td style={{ padding: '7px 10px' }}>{s.fr ?? '—'}</td>
-                    <td style={{ padding: '7px 10px', color: (s.temp && s.temp >= 38) ? '#dc2626' : undefined }}>{s.temp ?? '—'}</td>
-                    <td style={{ padding: '7px 10px', color: (s.spo2 && s.spo2 < 92) ? '#dc2626' : undefined }}>{s.spo2 ?? '—'}</td>
+                    <td style={{ padding: '7px 10px', ...colorSigno('sys', sistolicaDe(s.ta)) }}>{s.ta ?? '—'}</td>
+                    <td style={{ padding: '7px 10px', ...colorSigno('fc', s.fc) }}>{s.fc ?? '—'}</td>
+                    <td style={{ padding: '7px 10px', ...colorSigno('fr', s.fr) }}>{s.fr ?? '—'}</td>
+                    <td style={{ padding: '7px 10px', ...colorSigno('temp', s.temp) }}>{s.temp ?? '—'}</td>
+                    <td style={{ padding: '7px 10px', ...colorSigno('spo2', s.spo2, { oxigeno: s.oxigeno }) }}>{s.spo2 ?? '—'}</td>
                     <td style={{ padding: '7px 10px' }}>{s.glucosa ?? '—'}</td>
                     <td style={{ padding: '7px 10px' }}>{s.dolor != null ? `${s.dolor}/10` : '—'}</td>
                     {puedeEnfermeria && !egresado && <td style={{ padding: '7px 10px', textAlign: 'right', whiteSpace: 'nowrap' }}>

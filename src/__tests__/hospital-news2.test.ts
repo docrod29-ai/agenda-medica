@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calcularNews2 , puntosSpo2Escala2 } from '@/lib/hospital/news2'
+import { calcularNews2 , puntosSpo2Escala2, nivelDeSigno } from '@/lib/hospital/news2'
 import { buscarMed } from '@/lib/hospital/medicamentos-catalogo'
 
 describe('NEWS2 — early warning score', () => {
@@ -64,5 +64,66 @@ describe('NEWS2 Escala 2 de SpO₂', () => {
     expect(puntosSpo2Escala2(82, false)).toBe(3)
     expect(puntosSpo2Escala2(85, false)).toBe(2)
     expect(puntosSpo2Escala2(87, false)).toBe(1)
+  })
+})
+
+describe('El color de la tabla y el score dicen LO MISMO', () => {
+  /**
+   * La tabla de signos del episodio pintaba con umbrales escritos a mano
+   * —`spo2 < 92`, `temp >= 38`, `fc > 100 || fc < 50`— mientras el score usaba
+   * los del Royal College. Decían cosas distintas del mismo número **en la misma
+   * pantalla**, y la contradicción se resuelve siempre igual: se cree lo que se
+   * ve, no lo que hay que ir a buscar.
+   *
+   * Lo peor no era la SpO₂: era la temperatura. Una de 35 °C salía en NEGRO en
+   * la tabla y NEWS2 le da TRES puntos — una hipotermia invisible justo en la
+   * lista que se mira para decidir si escalar.
+   */
+  it('una hipotermia de 35 °C es crítica, no normal', () => {
+    expect(nivelDeSigno('temp', 35)).toBe('critico')
+    expect(nivelDeSigno('temp', 37.5)).toBe('normal')
+  })
+
+  it('una SpO₂ de 92 avisa: no es normal aunque no llegue a crítica', () => {
+    expect(nivelDeSigno('spo2', 92)).toBe('aviso')
+    expect(nivelDeSigno('spo2', 91)).toBe('critico')
+    expect(nivelDeSigno('spo2', 96)).toBe('normal')
+  })
+
+  it('una bradicardia de 45 avisa; una taquicardia de 135 es crítica', () => {
+    // La tabla las pintaba iguales, en rojo las dos.
+    expect(nivelDeSigno('fc', 45)).toBe('aviso')
+    expect(nivelDeSigno('fc', 135)).toBe('critico')
+    expect(nivelDeSigno('fc', 80)).toBe('normal')
+  })
+
+  it('una sistólica de 88 es crítica', () => {
+    expect(nivelDeSigno('sys', 88)).toBe('critico')
+    expect(nivelDeSigno('sys', 130)).toBe('normal')
+  })
+
+  it('crítico es EXACTAMENTE el 3 del score, no una escala aparte', () => {
+    /**
+     * Éste es el que impide que las dos fuentes se separen otra vez: se recorre
+     * el rango y se comprueba que el color coincida con los puntos que da el
+     * motor. Si alguien mete un umbral propio en la interfaz, aquí se ve.
+     */
+    for (const v of [30, 34, 35, 36, 37, 38, 38.5, 39, 40]) {
+      const pts = calcularNews2({ temp: v })?.detalle[0]?.puntos ?? 0
+      const esperado = pts >= 3 ? 'critico' : pts >= 1 ? 'aviso' : 'normal'
+      expect(nivelDeSigno('temp', v), `temp ${v} (${pts} pts)`).toBe(esperado)
+    }
+    for (const v of [30, 40, 45, 60, 95, 115, 135]) {
+      const pts = calcularNews2({ fc: v })?.detalle[0]?.puntos ?? 0
+      const esperado = pts >= 3 ? 'critico' : pts >= 1 ? 'aviso' : 'normal'
+      expect(nivelDeSigno('fc', v), `fc ${v} (${pts} pts)`).toBe(esperado)
+    }
+  })
+
+  it('un campo vacío no se pinta de nada', () => {
+    // «Vacío no es 0»: pintar un signo que nadie midió afirma algo del paciente.
+    for (const v of [undefined, null, '', '  ', NaN]) {
+      expect(nivelDeSigno('spo2', v)).toBe('normal')
+    }
   })
 })
