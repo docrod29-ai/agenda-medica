@@ -28,10 +28,24 @@
  * Uso:
  *   OPENAI_API_KEY=... npx tsx scripts/asr-benchmark-audio.ts <carpeta del corpus> [muestra]
  *
- * Coste orientativo: ~6 000 audios de unos 7 s son ~700 min. Con `whisper-1`
- * (0.006 USD/min) rondan los 4 USD. Empieza con una muestra.
+ * ── SE PAGA UNA VEZ ─────────────────────────────────────────────────────────
+ *
+ * Cada transcripción se guarda en `TRANSCRIPCIONES/<modelo>/<phrase_id>.txt`
+ * dentro de la carpeta del corpus. Al repetir el banco de pruebas se reutiliza y
+ * **no se vuelve a llamar a la API**.
+ *
+ * No es una comodidad: sin caché, cada cambio en el pipeline costaría otros 4
+ * USD y otra hora, así que en la práctica nadie volvería a medir — y un banco de
+ * pruebas que se corre una vez no sirve para saber si una mejora mejoró. Con
+ * caché, medir el efecto de un cambio es gratis e instantáneo, porque lo único
+ * que cambia es el post-proceso, no lo que oyó el reconocedor.
+ *
+ * Para forzar una nueva transcripción: `ASR_IGNORAR_CACHE=1`.
+ *
+ * Coste orientativo la PRIMERA vez: ~6 000 audios de unos 7 s son ~700 min. Con
+ * `whisper-1` (0.006 USD/min) rondan los 4 USD. Empieza con una muestra.
  */
-import { readFileSync, existsSync, writeFileSync, readdirSync } from 'node:fs'
+import { readFileSync, existsSync, writeFileSync, readdirSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { procesarTranscript } from '../src/lib/asr/pipeline'
 import { terminoPresente, evaluable } from '../src/lib/uci/benchmark-metricas'
@@ -45,7 +59,14 @@ if (!CARPETA || !existsSync(CARPETA)) {
   console.error('Uso: npx tsx scripts/asr-benchmark-audio.ts <carpeta del corpus> [muestra]')
   process.exit(1)
 }
-if (!process.env.OPENAI_API_KEY) {
+/**
+ * La llave se exige sólo si hay algo que transcribir de verdad.
+ *
+ * Con la caché llena, repetir la medición no necesita ni llave ni red — que es
+ * justo el escenario en que se quiere repetir: después de tocar el pipeline.
+ */
+const HAY_CACHE_COMPLETA = existsSync(join(CARPETA, 'TRANSCRIPCIONES'))
+if (!process.env.OPENAI_API_KEY && !HAY_CACHE_COMPLETA) {
   console.error('Falta OPENAI_API_KEY. No la escribas en el comando: expórtala en la sesión.')
   process.exit(1)
 }
@@ -122,6 +143,29 @@ function erroresCriticos(ref: string, hip: string): string[] {
   return malos
 }
 
+const CACHE_DIR = join(CARPETA, 'TRANSCRIPCIONES', MODELO)
+const IGNORAR_CACHE = process.env.ASR_IGNORAR_CACHE === '1'
+mkdirSync(CACHE_DIR, { recursive: true })
+
+/** Lo que ya se pagó, si está. */
+function deCache(id: string): string | null {
+  if (IGNORAR_CACHE) return null
+  const f = join(CACHE_DIR, `${id}.txt`)
+  return existsSync(f) ? readFileSync(f, 'utf8') : null
+}
+
+/**
+ * Guarda la transcripción CRUDA, nunca la procesada.
+ *
+ * Lo que se paga es oír el audio; el post-proceso es gratis y cambia con cada
+ * versión del pipeline. Guardar el resultado ya procesado convertiría la caché
+ * en una foto vieja del pipeline y las corridas siguientes medirían el código de
+ * ayer creyendo que miden el de hoy.
+ */
+function aCache(id: string, texto: string): void {
+  try { writeFileSync(join(CACHE_DIR, `${id}.txt`), texto) } catch { /* la medición sigue */ }
+}
+
 async function transcribir(ruta: string): Promise<string> {
   const datos = new FormData()
   datos.append('file', new Blob([readFileSync(ruta)]), ruta.split('/').pop()!)
@@ -165,14 +209,23 @@ async function main() {
   let nCrudo = 0, nPipe = 0, sumaWerCrudo = 0, sumaWerPipe = 0
   let termsTotal = 0, termsCrudo = 0, termsPipe = 0
   const criticosCrudo: string[] = [], criticosPipe: string[] = []
+  let deCacheN = 0, pagadosN = 0
   const fallos: { id: string; ref: string; crudo: string; pipe: string; motivo: string }[] = []
   let errores = 0
 
   for (let i = 0; i < lista.length; i++) {
     const f = lista[i]
     let crudo: string
-    try { crudo = await transcribir(audios.get(f.phrase_id)!) }
-    catch (e) { errores++; console.log(`  [${i + 1}/${lista.length}] ERROR ${f.phrase_id}: ${String(e).slice(0, 90)}`); continue }
+    const guardado = deCache(f.phrase_id)
+    if (guardado !== null) {
+      crudo = guardado
+      deCacheN++
+    } else {
+      try { crudo = await transcribir(audios.get(f.phrase_id)!) }
+      catch (e) { errores++; console.log(`  [${i + 1}/${lista.length}] ERROR ${f.phrase_id}: ${String(e).slice(0, 90)}`); continue }
+      aCache(f.phrase_id, crudo)
+      pagadosN++
+    }
 
     const pipe = procesarTranscript(crudo).texto
     const ref = f.canonical_text
@@ -211,6 +264,12 @@ async function main() {
 ${criticosPipe.slice(0, 12).map(c => `       ${c}`).join('\n')}
 
      audios que fallaron al transcribir: ${errores}
+
+  ── COSTE ──
+     reutilizados de la caché ... ${deCacheN}  (no se pagaron)
+     transcritos ahora .......... ${pagadosN}
+     La caché vive en TRANSCRIPCIONES/${MODELO}/ dentro del corpus.
+     Vuelve a correr esto tras cambiar el pipeline: sale gratis.
 `)
   // El detalle se escribe SIEMPRE: un resumen sin los casos no se puede depurar.
   writeFileSync('benchmark-audio-fallos.jsonl', fallos.map(f => JSON.stringify(f)).join('\n') + '\n')

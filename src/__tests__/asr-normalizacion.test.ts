@@ -147,3 +147,46 @@ describe('Tabla de unidades', () => {
     expect(normalizarUnidades('dos gramos').texto).toBe('dos gramos')
   })
 })
+
+describe('Números hablados en una CONSULTA, no en un pase de UCI', () => {
+  it('«ochocientos cincuenta dos veces al día» no es 852', () => {
+    /**
+     * El bug más grave que ha salido de este módulo. «Tomo metformina
+     * ochocientos cincuenta, dos veces al día» se convertía en «metformina 852
+     * veces al día»: la DOSIS DESAPARECÍA y la frecuencia se volvía absurda, en
+     * silencio, dentro de una nota clínica.
+     *
+     * En español una unidad detrás de una decena EXIGE la «y». «Cincuenta y dos»
+     * es 52; «cincuenta dos» son dos números distintos. El corpus de UCI no lo
+     * veía porque ahí las pautas se dictan con la unidad pegada al número.
+     */
+    expect(normalizar('Tomo metformina ochocientos cincuenta dos veces al día.').texto)
+      .toBe('Tomo metformina 850 2 veces al día.')
+  })
+
+  it('pero CON la «y» sí compone', () => {
+    expect(normalizar('Metformina ochocientos cincuenta y dos miligramos.').texto)
+      .toBe('Metformina 852 mg.')
+    expect(normalizar('Cuarenta y tres años.').texto).toBe('43 años.')
+  })
+
+  it('«un diez de diez» conserva el artículo', () => {
+    // «un» apocopado casi nunca introduce una cifra suelta; aceptar cualquier
+    // número detrás convertía en dígito todo artículo que precediera a una
+    // cantidad, y en una consulta eso pasa en cada frase.
+    expect(normalizar('El dolor es como un diez de diez.').texto)
+      .toBe('El dolor es como un 10 de 10.')
+  })
+
+  it('y el deletreo de dígitos sigue funcionando', () => {
+    // «uno dos cero» es alguien dictando 120 cifra a cifra.
+    expect(normalizar('Uno dos cero sobre ochenta.').texto).toBe('1 2 0 sobre 80.')
+  })
+
+  it('las pautas críticas del documento no se tocan', () => {
+    expect(normalizar('Norepinefrina cero punto quince microgramos por kilo por minuto.').texto)
+      .toBe('Norepinefrina 0.15 mcg/kg/min.')
+    expect(normalizar('Linezolid seiscientos miligramos cada doce horas.').texto)
+      .toBe('Linezolid 600 mg cada 12 horas.')
+  })
+})

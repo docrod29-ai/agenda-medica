@@ -34,6 +34,7 @@
  * Módulo PURO. El crudo nunca se borra.
  */
 
+import { type CambioTranscripcion } from '@/lib/expediente/medical-vocabulary'
 import { corregirVigilado, alertasDe, type AlertaDictado } from '@/lib/asr/corrector-vigilado'
 import { verificar, type Violacion } from '@/lib/asr/guardian-sustituciones'
 import { normalizar, type CambioNormalizacion } from '@/lib/asr/normalizacion'
@@ -55,6 +56,14 @@ export interface ResultadoPipeline {
   trazas: EtapaTexto[]
   /** Correcciones léxicas descartadas por tocar algo que no debían. */
   violaciones: Violacion[]
+  /**
+   * Correcciones LÉXICAS aplicadas (fármacos mal transcritos, etc.).
+   *
+   * Se exponen porque la consulta las enseña y deja deshacerlas: una corrección
+   * que el médico no puede ver ni revertir es una edición que alguien le hizo a
+   * su dictado sin decírselo.
+   */
+  cambiosLexicos: CambioTranscripcion[]
   cambiosNormalizacion: CambioNormalizacion[]
   cambiosSiglas: CambioSigla[]
   /** Lo que hay que enseñarle al médico. */
@@ -122,6 +131,9 @@ export function procesarTranscript(crudo: string): ResultadoPipeline {
     crudo,
     trazas,
     violaciones: [...vig.violaciones, ...roto],
+    // Si el guardián revirtió, `vig.cambios` ya viene vacío: no se anuncian como
+    // hechas correcciones que no se aplicaron.
+    cambiosLexicos: vig.cambios,
     cambiosNormalizacion: num.cambios,
     cambiosSiglas: sig.cambios,
     alertas,

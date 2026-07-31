@@ -162,6 +162,19 @@ function leerNumero(partes: string[], desde: number): { fin: number; num: number
   let ultimo: Rango = null
   let i = desde
   let decimal: string | null = null
+  /**
+   * ¿La unidad que viene se enganchó a la decena con una «y»?
+   *
+   * En español una unidad detrás de una decena EXIGE la «y»: «cincuenta y dos»
+   * es 52, «cincuenta dos» no es nada — son dos números distintos.
+   *
+   * Sin esta distinción, «metformina ochocientos cincuenta, dos veces al día»
+   * salía «metformina 852 veces al día»: la dosis desaparecía y la frecuencia se
+   * volvía absurda, en silencio y dentro de una nota clínica. Lo encontró una
+   * prueba con frases de consulta real; el corpus de UCI no lo veía porque ahí
+   * las pautas se dictan con la unidad pegada.
+   */
+  let unidoPorY = false
 
   const siguientePalabra = (j: number): { idx: number; w: string } | null => {
     for (let k = j; k < partes.length; k++) {
@@ -179,7 +192,7 @@ function leerNumero(partes: string[], desde: number): { fin: number; num: number
     // «y» sólo une decena con unidad: «cuarenta y ocho».
     if (sinAcento(w) === 'y' && ultimo === 'decena') {
       const sig = siguientePalabra(i + 1)
-      if (sig && rango(sig.w) === 'unidad') { i = sig.idx; continue }
+      if (sig && rango(sig.w) === 'unidad') { unidoPorY = true; i = sig.idx; continue }
       break
     }
 
@@ -216,7 +229,18 @@ function leerNumero(partes: string[], desde: number): { fin: number; num: number
         // ionizado de uno punto cero dos» salía «uno punto 0 2».
         const abreDecimal = !!sig && sinAcento(sig.w) === 'punto'
           && rango(siguientePalabra(sig.idx + 1)?.w ?? '') !== null
-        const esNumero = !!sig && (esUnidadHablada(sig.w) || rango(sig.w) !== null || abreDecimal)
+        /**
+         * Detrás de otra cifra sólo cuenta cuando se están DELETREANDO dígitos
+         * («uno dos cero» = 120) y la palabra es «uno», no «un».
+         *
+         * «El dolor es como un diez de diez» salía «como 1 10 de 10»: «un» ahí
+         * es un artículo, y en español «un» apocopado casi nunca introduce una
+         * cifra suelta. Aceptar cualquier número detrás convertía en dígito todo
+         * artículo que precediera a una cantidad — y en una consulta eso pasa en
+         * cada frase.
+         */
+        const deletreando = !!sig && sinAcento(w) === 'uno' && rango(sig.w) === 'unidad'
+        const esNumero = !!sig && (esUnidadHablada(sig.w) || deletreando || abreDecimal)
         if (!esNumero) return { fin: i + 1, num: null, decimal: null }
       }
       acc = r === 'mil' ? 1000 : valor(w)
@@ -229,7 +253,10 @@ function leerNumero(partes: string[], desde: number): { fin: number; num: number
     if (r === 'mil') { acc = acc * 1000; ultimo = 'mil'; i++; continue }
     const orden: Record<Exclude<Rango, null>, number> = { mil: 3, centena: 2, decena: 1, unidad: 0 }
     if (ultimo !== null && ultimo !== 'mil' && orden[r] >= orden[ultimo]) break
+    // Unidad detrás de decena SIN «y»: no compone. Son dos números.
+    if (r === 'unidad' && ultimo === 'decena' && !unidoPorY) break
     acc += valor(w)
+    unidoPorY = false
     ultimo = r
     i++
   }

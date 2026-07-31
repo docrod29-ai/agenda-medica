@@ -1,6 +1,23 @@
 'use client'
 import { type CambioTranscripcion } from '@/lib/expediente/medical-vocabulary'
-import { corregirVigilado, alertasDe, type AlertaDictado } from '@/lib/asr/corrector-vigilado'
+import { type AlertaDictado } from '@/lib/asr/corrector-vigilado'
+/**
+ * EL PIPELINE COMPLETO, no sólo el guardián.
+ *
+ * Hasta hoy la consulta corría `corregirVigilado`, que es la etapa 1 de nueve:
+ * corrige el léxico y vigila que la corrección no se coma una cifra. Las otras
+ * ocho —cifras y unidades en su forma escrita, ortografía de siglas, verificación
+ * de entidades críticas, gate de ambigüedad— estaban escritas, probadas contra
+ * 6 000 frases y **sin conectar a nada**: `procesarTranscript` no aparecía en un
+ * solo archivo de producción.
+ *
+ * O sea que «paracetamol quinientos miligramos cada ocho horas» llegaba a la nota
+ * tal cual, en letra, y todo lo que midió el banco de voz no le servía al médico.
+ *
+ * `procesarTranscript` LLAMA a `corregirVigilado` como su primera etapa, así que
+ * esto no quita nada: añade.
+ */
+import { procesarTranscript } from '@/lib/asr/pipeline'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { auth, storage } from '@/lib/firebase'
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
@@ -378,7 +395,7 @@ async function transcribirEnPartes(chunks: Blob[], mime: string, ext: string, co
  * se corregía.
  */
 function corregirUtterances(us: Utterance[]): Utterance[] {
-  return us.map(u => ({ ...u, text: corregirVigilado(u.text).corregido }))
+  return us.map(u => ({ ...u, text: procesarTranscript(u.text).texto }))
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -507,8 +524,11 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       if (data?.ok && data.text) {
         // Corrección léxica médica TAMBIÉN en chunks — el médico ve los
         // fármacos bien escritos EN VIVO, no solo al final
-        const { corregido } = corregirVigilado(data.text)
-        textosChunksRef.current[idx] = corregido
+        // En el parcial en vivo se aplica el pipeline entero: si el médico ve
+        // «500 mg» mientras habla, ve lo mismo que va a quedar en la nota. Con
+        // sólo la corrección léxica veía «quinientos miligramos» y luego el
+        // texto le cambiaba al cerrar, que parece un error de la aplicación.
+        textosChunksRef.current[idx] = procesarTranscript(data.text).texto
         // Reconstruir transcripción parcial en orden
         const completa = textosChunksRef.current.filter(Boolean).join(' ')
         setTranscripcionParcial(completa)
@@ -746,10 +766,12 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     const ext = mt.includes('mp4') ? 'm4a' : mt.includes('ogg') ? 'ogg' : mt.includes('wav') ? 'wav' : 'webm'
 
     const aplicar = (texto: string) => {
-      const r = corregirVigilado(texto)
-      setTranscripcion(r.corregido)
-      setCorrecciones(r.cambios)
-      setAlertasDictado(alertasDe(r))
+      const r = procesarTranscript(texto)
+      setTranscripcion(r.texto)
+      setCorrecciones(r.cambiosLexicos)
+      // El pipeline ya trae las alertas de las nueve etapas, no sólo las del
+      // guardián: incluye lo que pide confirmación por ambigüedad.
+      setAlertasDictado(r.alertas)
       setEstado('listo')
     }
 
@@ -840,10 +862,10 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     }
 
     if (texto.trim()) {
-      const r = corregirVigilado(texto)
-      setTranscripcion(r.corregido)
-      setCorrecciones(r.cambios)
-      setAlertasDictado(alertasDe(r))
+      const r = procesarTranscript(texto)
+      setTranscripcion(r.texto)
+      setCorrecciones(r.cambiosLexicos)
+      setAlertasDictado(r.alertas)
       setEstado('listo')
       await borrarChunks(recoveryKey)  // solo se borra si SÍ se transcribió
     } else {
