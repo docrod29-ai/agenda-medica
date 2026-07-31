@@ -919,6 +919,31 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     estado: 'validado',
     porQueExiste: 'El dataset se marca a si mismo VERIFIED_NUMERIC_CORE, y eso describe DE DONDE VIENE EL DATO — no que un medico de aqui lo haya cotejado. La diferencia es la que separa «segun UCSF» de «yo lo revise», y la pantalla no puede confundirlas. Ademas la firma CADUCA al cambiar el dataset: si no, diria «validado» sobre un numero que nadie miro.',
   },
+  {
+    id: 'antimicrobianos-v4', nombre: 'Motor de inteligencia antimicrobiana V4 (Safety Kernel + resolver)',
+    especialidad: 'Infectologia / PROA',
+    tipo: 'regla-de-seguridad',
+    version: '4.0.0',
+    referencia: 'Dataset del Dr. verificado contra FDA/DailyMed, IDSA 2026, CLSI M100 Ed36 y EUCAST v16.1 (SHA-256 sellado). Sanford NO se uso.',
+    unidades: 'resolveDoseRule(peticion) -> reglaDosis (label|guideline|pkpd|offLabel, sin fusionar) + exige[] + avisos[]; evaluar(peticion, dosis, contexto) -> uno de 8 estados',
+    redondeo: 'ninguno: el motor no calcula dosis, las compara contra limites declarados',
+    rangoValido: {
+      fuente: 'pendiente_validacion_clinica',
+      preguntaAlMedico: 'Faltan los LIMITES por farmaco e indicacion (usualMax / contextualMax / absolutoMax). Sin ellos el kernel responde UNKNOWN_INSUFFICIENT_DATA —que es lo correcto— pero todavia no puede juzgar una cifra. Tambien: separar las 11 entradas donde la dosis de ficha y la de guia vienen fusionadas en un solo campo, y completar los 20 antibioticos que el propio dataset declara pendientes.',
+    },
+    file: 'src/lib/antimicrobianos/v4/kernel.ts',
+    entryPoints: ['evaluar', 'resolveDoseRule', 'buscarFarmaco', 'datosQueFaltan'],
+    calculos: ['comparacion de la dosis contra usualMax / contextualMax / absolutoMax', 'total diario = dosis x tomas', 'clasificacion del veredicto por ORIGEN de la pauta, no por magnitud'],
+    missingData: 'LOS LIMITES POR FARMACO E INDICACION NO ESTAN CARGADOS: sin ellos el kernel responde UNKNOWN_INSUFFICIENT_DATA, que es lo correcto, pero todavia no puede juzgar una cifra. La prosa del dataset (renal_adjustment, crrt) NO se parsea a numeros. 20 antibioticos declarados pendientes. 11 entradas con la dosis de ficha y la de guia FUSIONADAS en un solo campo. Vancomycin PO y Metronidazole sin fuentes.',
+    adr: ADR('antimicrobianos-v4'),
+    goldenTests: [
+      'antimicrobianos-v4-kernel.test.ts',
+      'antimicrobianos-v4-catalogo.test.ts',
+      'antimicrobianos-v4-resolver.test.ts',
+    ],
+    estado: 'pendiente_validacion',
+    porQueExiste: 'Para eliminar `if (dose > drug.maxDose)`. Un antibiotico no tiene UNA dosis maxima: con un solo numero quedan marcadas como error la ceftriaxona 2 g q12h de una meningitis, la daptomicina a 10 mg/kg y el meropenem en infusion extendida con aclaramiento aumentado — tres cosas que un intensivista hace cada semana. Una alerta que se equivoca en lo cotidiano enseña a ignorarla, y el dia que tenga razon tampoco se va a leer. Y separa faltar-un-dato de estar-mal: amikacina sin peso es una pregunta sin responder, no una sobredosis.',
+  },
   // ── Integridad temporal del dato clínico ─────────────────────────────────
   {
     id: 'observacion-version', nombre: 'Observación versionada (vigencia clínica y temporal)',
