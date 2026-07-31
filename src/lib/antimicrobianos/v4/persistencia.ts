@@ -29,9 +29,39 @@ export async function getLimites(clinicId: string): Promise<LimiteCargado[]> {
   return snap.docs.map(d => d.data() as LimiteCargado).filter(l => l?.farmaco)
 }
 
-export async function guardarLimite(clinicId: string, l: LimiteCargado): Promise<void> {
-  await setDoc(doc(col(clinicId), idDe(l.farmaco, l.indicacion)), l)
+/**
+ * Quita las llaves con valor `undefined`, en profundidad.
+ *
+ * **Firestore RECHAZA `undefined`** y esta aplicación no lo tiene configurado
+ * para ignorarlo (`ignoreUndefinedProperties` no está puesto, a propósito: que
+ * salte avisa de datos mal formados en vez de guardarlos a medias).
+ *
+ * Y casi todos los topes traen máximos vacíos —un fármaco con techo absoluto
+ * pero sin contextual, por ejemplo—, así que TODOS los botones de confirmar
+ * lanzaban `Unsupported field value: undefined` y no guardaban nada. Como la
+ * llamada iba con `void`, el error se perdía y el botón parecía muerto: el
+ * médico se quedaba picándole sin saber que el problema no era el clic.
+ *
+ * Se limpia aquí, en la única puerta de escritura, y no en cada llamador: un
+ * saneamiento que hay que acordarse de aplicar se olvida.
+ */
+function sinIndefinidos<T>(v: T): T {
+  if (Array.isArray(v)) return v.map(sinIndefinidos) as unknown as T
+  if (v !== null && typeof v === 'object') {
+    const out: Record<string, unknown> = {}
+    for (const [k, x] of Object.entries(v as Record<string, unknown>)) {
+      if (x !== undefined) out[k] = sinIndefinidos(x)
+    }
+    return out as T
+  }
+  return v
 }
+
+export async function guardarLimite(clinicId: string, l: LimiteCargado): Promise<void> {
+  await setDoc(doc(col(clinicId), idDe(l.farmaco, l.indicacion)), sinIndefinidos(l))
+}
+
+export { sinIndefinidos }
 
 /**
  * Retira un límite.

@@ -55,7 +55,7 @@ const num = (s: string): number | undefined => {
 }
 
 export default function AntimicrobianosPage() {
-  const { clinicId } = useClinic()
+  const { clinicId, loading: cargandoClinica } = useClinic()
   const [email, setEmail] = useState('')
   const [cargados, setCargados] = useState<LimiteCargado[]>([])
   const [pestana, setPestana] = useState<'caso' | 'propuestos' | 'topes'>('caso')
@@ -149,7 +149,7 @@ export default function AntimicrobianosPage() {
 
   /** Confirmar una propuesta la guarda con su fuente y su razonamiento. */
   async function confirmarPropuesta(t: PropuestaAsistente, enBloque = false) {
-    if (!clinicId) return
+    if (!clinicId) throw new Error('Todavía no se sabe a qué consultorio guardarlo.')
     await guardarLimite(clinicId, {
       farmaco: t.farmaco, indicacion: t.indicacion,
       limites: {
@@ -166,6 +166,24 @@ export default function AntimicrobianosPage() {
   }
 
   const [cargandoTodo, setCargandoTodo] = useState(false)
+  const [progreso, setProgreso] = useState('')
+  /**
+   * Fallo VISIBLE.
+   *
+   * La primera versión hacía `void confirmar(t)`: si la escritura fallaba, el
+   * error se perdía y el botón parecía muerto. Un botón que no hace nada y no
+   * dice por qué es peor que uno que da un error — el médico se queda picándole
+   * sin saber que el problema no es el clic.
+   */
+  const [errorCarga, setErrorCarga] = useState('')
+  const [ocupado, setOcupado] = useState<string | null>(null)
+
+  async function conAviso(clave: string, fn: () => Promise<void>) {
+    setErrorCarga(''); setOcupado(clave)
+    try { await fn() } catch (e) {
+      setErrorCarga(`No se pudo guardar: ${e instanceof Error ? e.message : String(e)}`)
+    } finally { setOcupado(null) }
+  }
 
   /**
    * Carga los 31 de una vez.
@@ -175,11 +193,19 @@ export default function AntimicrobianosPage() {
    */
   async function cargarTodos() {
     if (!clinicId) return
-    setCargandoTodo(true)
+    setCargandoTodo(true); setErrorCarga(''); setProgreso('')
+    const total = sinConfirmar.length + propuestasPend.length
+    let n = 0
     try {
-      for (const t of sinConfirmar) await confirmar(t, true)
-      for (const t of propuestasPend) await confirmarPropuesta(t, true)
+      for (const t of sinConfirmar) { await confirmar(t, true); setProgreso(`${++n} de ${total}`) }
+      for (const t of propuestasPend) { await confirmarPropuesta(t, true); setProgreso(`${++n} de ${total}`) }
       setCargados(await getLimites(clinicId))
+      setProgreso(`${n} cargados.`)
+    } catch (e) {
+      // Se dice CUÁNTOS entraron antes de romperse: reintentar sólo carga los
+      // que faltan, así que saber dónde se quedó ahorra buscar a ciegas.
+      setErrorCarga(`Se cargaron ${n} de ${total} y falló: ${e instanceof Error ? e.message : String(e)}`)
+      setCargados(await getLimites(clinicId).catch(() => cargados))
     } finally { setCargandoTodo(false) }
   }
 
@@ -189,7 +215,7 @@ export default function AntimicrobianosPage() {
    * alguien discute el número, se ve de dónde vino sin abrir el JSON.
    */
   async function confirmar(t: TopePropuesto, enBloque = false) {
-    if (!clinicId) return
+    if (!clinicId) throw new Error('Todavía no se sabe a qué consultorio guardarlo.')
     await guardarLimite(clinicId, {
       farmaco: t.farmaco, indicacion: t.indicacion,
       limites: {
@@ -359,6 +385,20 @@ export default function AntimicrobianosPage() {
 
       {pestana === 'propuestos' && (
         <div>
+          {/* Un botón que no hace nada tiene que DECIR por qué. */}
+          {cargandoClinica && (
+            <Aviso tono="neutro">Cargando tu consultorio… los botones se activan en cuanto termine.</Aviso>
+          )}
+          {!cargandoClinica && !clinicId && (
+            <Aviso tono="alerta">
+              No se pudo identificar tu consultorio, así que no hay dónde guardar los topes.
+              Recarga la página; si sigue igual, entra y sal de tu cuenta.
+            </Aviso>
+          )}
+          {errorCarga && <Aviso tono="alerta">{errorCarga}</Aviso>}
+          {!errorCarga && progreso && !cargandoTodo && (
+            <Aviso tono="neutro">{progreso}</Aviso>
+          )}
           <div style={{ ...S.card, marginBottom: 14 }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text, #0f172a)' }}>
               {sinConfirmar.length} topes transcritos de tu dataset
@@ -389,11 +429,11 @@ export default function AntimicrobianosPage() {
                     de dónde salieron y cada uno se puede quitar después.
                   </p>
                 </div>
-                <button onClick={() => void cargarTodos()} disabled={!clinicId || cargandoTodo} style={{
+                <button onClick={() => void cargarTodos()} disabled={cargandoTodo || ocupado !== null} style={{
                   padding: '11px 22px', borderRadius: 9, fontSize: 14, fontWeight: 700,
                   border: 'none', cursor: cargandoTodo ? 'wait' : 'pointer',
                   background: 'var(--nexus, #3d5afe)', color: '#fff',
-                }}>{cargandoTodo ? 'Cargando…' : 'Cargar todos'}</button>
+                }}>{cargandoTodo ? `Cargando… ${progreso}` : 'Cargar todos'}</button>
               </div>
             </div>
           )}
@@ -420,10 +460,12 @@ export default function AntimicrobianosPage() {
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text3, #64748b)', marginTop: 3 }}>{t.fuenteIds.join(' · ')}</div>
                   </div>
-                  <button onClick={() => void confirmar(t)} disabled={!clinicId} style={{
+                  <button onClick={() => void conAviso(t.farmaco, () => confirmar(t))}
+                    disabled={ocupado !== null || cargandoTodo} style={{
                     padding: '9px 18px', borderRadius: 9, fontSize: 13.5, fontWeight: 700,
-                    border: 'none', cursor: 'pointer', background: 'var(--nexus, #3d5afe)', color: '#fff',
-                  }}>Confirmar</button>
+                    border: 'none', cursor: ocupado ? 'wait' : 'pointer',
+                    background: 'var(--nexus, #3d5afe)', color: '#fff', opacity: ocupado === t.farmaco ? 0.6 : 1,
+                  }}>{ocupado === t.farmaco ? 'Guardando…' : 'Confirmar'}</button>
                 </div>
               </div>
             ))}
@@ -456,10 +498,12 @@ export default function AntimicrobianosPage() {
                     <div style={{ fontSize: 12.5, color: 'var(--text2, #334155)', marginTop: 6, lineHeight: 1.5 }}>{t.razon}</div>
                     <div style={{ fontSize: 11.5, color: 'var(--text3, #64748b)', marginTop: 3 }}>{t.fuente}</div>
                   </div>
-                  <button onClick={() => void confirmarPropuesta(t)} disabled={!clinicId} style={{
+                  <button onClick={() => void conAviso(t.farmaco, () => confirmarPropuesta(t))}
+                    disabled={ocupado !== null || cargandoTodo} style={{
                     padding: '9px 18px', borderRadius: 9, fontSize: 13.5, fontWeight: 700,
-                    border: '1px solid #d97706', cursor: 'pointer', background: 'transparent', color: '#b45309',
-                  }}>Confirmar</button>
+                    border: '1px solid #d97706', cursor: ocupado ? 'wait' : 'pointer',
+                    background: 'transparent', color: '#b45309', opacity: ocupado === t.farmaco ? 0.6 : 1,
+                  }}>{ocupado === t.farmaco ? 'Guardando…' : 'Confirmar'}</button>
                 </div>
               </div>
             ))}
@@ -604,6 +648,19 @@ export default function AntimicrobianosPage() {
         </div>
       )}
     </div>
+  )
+}
+
+/** Aviso de una línea. Los fallos se ven; no se quedan en la consola. */
+function Aviso({ tono, children }: { tono: 'alerta' | 'neutro'; children: React.ReactNode }) {
+  const alerta = tono === 'alerta'
+  return (
+    <div style={{
+      marginBottom: 14, padding: '11px 14px', borderRadius: 10, fontSize: 13.5, lineHeight: 1.55,
+      background: alerta ? 'rgba(220,38,38,0.08)' : 'var(--s2, #f1f5f9)',
+      border: '1px solid ' + (alerta ? 'rgba(220,38,38,0.35)' : 'var(--border, #e5e7eb)'),
+      color: alerta ? '#b91c1c' : 'var(--text2, #334155)',
+    }}>{children}</div>
   )
 }
 

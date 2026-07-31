@@ -125,3 +125,31 @@ describe('Avance de la carga', () => {
     for (const t of TIPOS_MAXIMO) expect(t.ayuda.length).toBeGreaterThan(10)
   })
 })
+
+describe('Lo que se escribe en Firestore no lleva undefined', () => {
+  it('los máximos vacíos se quitan, no se guardan como undefined', async () => {
+    /**
+     * Éste es el bug que dejaba muertos TODOS los botones de confirmar.
+     * Firestore rechaza `undefined` y la aplicación no está configurada para
+     * ignorarlo, así que cada clic lanzaba «Unsupported field value: undefined»
+     * — y como la llamada iba con `void`, el error se perdía y el botón parecía
+     * no hacer nada.
+     */
+    const { sinIndefinidos } = await import('@/lib/antimicrobianos/v4/persistencia')
+    const limpio = sinIndefinidos({
+      farmaco: 'Ceftriaxone', indicacion: 'meningitis',
+      limites: {
+        usualMaxPorDosis: 2000, usualMaxPorDia: undefined,
+        contextualMaxPorDia: 4000, absolutoMaxPorDosis: undefined,
+        tipoMaximo: 'CONTEXTUAL', unidad: 'mg',
+      },
+      fuente: 'x', cargadoPor: 'y', cargadoEn: 'z', huellaDataset: 'h',
+    })
+    expect(JSON.stringify(limpio)).not.toMatch(/undefined/)
+    expect(Object.keys(limpio.limites)).toEqual(['usualMaxPorDosis', 'contextualMaxPorDia', 'tipoMaximo', 'unidad'])
+    // Y no se lleva por delante lo que sí tiene valor, incluido el cero.
+    expect(limpio.limites.usualMaxPorDosis).toBe(2000)
+    expect(sinIndefinidos({ a: 0, b: null, c: false }))
+      .toEqual({ a: 0, b: null, c: false })
+  })
+})
