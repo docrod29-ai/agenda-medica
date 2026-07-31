@@ -124,6 +124,22 @@ export default function AntimicrobianosPage() {
     },
   }), [tFarmaco, tIndicacion, tFuente, tUsualDosis, tUsualDia, tCtxDosis, tCtxDia, tAbsDosis, tAbsDia, tTipo, tUnidad])
 
+  /**
+   * Quién queda como responsable de la carga.
+   *
+   * Confirmando uno por uno, es el médico. Con «cargar todos», el registro dice
+   * **que se cargaron en bloque desde la propuesta, con su autorización** — y no
+   * simula que revisó cada uno.
+   *
+   * No es una formalidad. Un tope guardado con su nombre que él no miró es lo
+   * único de todo esto que sí le podría perjudicar: el día que alguien pregunte
+   * quién comprobó ese número, el registro tiene que poder contestar sin mentir.
+   * Se carga todo igual y funciona igual; lo único que cambia es que el papel
+   * dice lo que pasó.
+   */
+  const firmante = (enBloque: boolean) =>
+    enBloque ? `carga en bloque desde la propuesta, autorizada por ${email}` : email
+
   const av = avance(cargados, FARMACOS.length)
   const sinConfirmar = useMemo(() => porConfirmar(PROPUESTOS, cargados), [cargados])
   const propuestasPend = useMemo(() => {
@@ -132,7 +148,7 @@ export default function AntimicrobianosPage() {
   }, [cargados])
 
   /** Confirmar una propuesta la guarda con su fuente y su razonamiento. */
-  async function confirmarPropuesta(t: PropuestaAsistente) {
+  async function confirmarPropuesta(t: PropuestaAsistente, enBloque = false) {
     if (!clinicId) return
     await guardarLimite(clinicId, {
       farmaco: t.farmaco, indicacion: t.indicacion,
@@ -143,10 +159,28 @@ export default function AntimicrobianosPage() {
         tipoMaximo: t.tipoMaximo, unidad: t.unidad,
       },
       fuente: `${t.fuente} — ${t.razon}`,
-      cargadoPor: email, cargadoEn: new Date().toISOString(),
+      cargadoPor: firmante(enBloque), cargadoEn: new Date().toISOString(),
       huellaDataset: HUELLA_DATASET,
     })
-    setCargados(await getLimites(clinicId))
+    if (!enBloque) setCargados(await getLimites(clinicId))
+  }
+
+  const [cargandoTodo, setCargandoTodo] = useState(false)
+
+  /**
+   * Carga los 31 de una vez.
+   *
+   * Cada uno se puede quitar después con su botón, y todos guardan de dónde
+   * salieron: revisarlos luego es leer una lista, no volver a teclear nada.
+   */
+  async function cargarTodos() {
+    if (!clinicId) return
+    setCargandoTodo(true)
+    try {
+      for (const t of sinConfirmar) await confirmar(t, true)
+      for (const t of propuestasPend) await confirmarPropuesta(t, true)
+      setCargados(await getLimites(clinicId))
+    } finally { setCargandoTodo(false) }
   }
 
   /**
@@ -154,7 +188,7 @@ export default function AntimicrobianosPage() {
    * apuntando a la frase EXACTA del dataset de la que salió. Así, si mañana
    * alguien discute el número, se ve de dónde vino sin abrir el JSON.
    */
-  async function confirmar(t: TopePropuesto) {
+  async function confirmar(t: TopePropuesto, enBloque = false) {
     if (!clinicId) return
     await guardarLimite(clinicId, {
       farmaco: t.farmaco, indicacion: t.indicacion,
@@ -164,10 +198,10 @@ export default function AntimicrobianosPage() {
         tipoMaximo: t.tipoMaximo, unidad: t.unidad,
       },
       fuente: `Dataset V3 (${t.fuenteIds.join(' · ')}): «${t.textoFuente}»`,
-      cargadoPor: email, cargadoEn: new Date().toISOString(),
+      cargadoPor: firmante(enBloque), cargadoEn: new Date().toISOString(),
       huellaDataset: t.huellaDataset,
     })
-    setCargados(await getLimites(clinicId))
+    if (!enBloque) setCargados(await getLimites(clinicId))
   }
 
   async function guardar() {
@@ -341,6 +375,28 @@ export default function AntimicrobianosPage() {
               todos los días enseña a ignorarla.
             </p>
           </div>
+
+          {(sinConfirmar.length + propuestasPend.length) > 0 && (
+            <div style={{ ...S.card, marginBottom: 14, borderLeft: '4px solid var(--nexus, #3d5afe)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ flex: '1 1 320px' }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text, #0f172a)' }}>
+                    Cargar los {sinConfirmar.length + propuestasPend.length} de una vez
+                  </div>
+                  <p style={{ fontSize: 12.5, color: 'var(--text2, #334155)', margin: '5px 0 0', lineHeight: 1.55 }}>
+                    Quedan guardados como «carga en bloque autorizada por ti», no como si
+                    hubieras revisado cada uno — el registro dice lo que pasó. Todos guardan
+                    de dónde salieron y cada uno se puede quitar después.
+                  </p>
+                </div>
+                <button onClick={() => void cargarTodos()} disabled={!clinicId || cargandoTodo} style={{
+                  padding: '11px 22px', borderRadius: 9, fontSize: 14, fontWeight: 700,
+                  border: 'none', cursor: cargandoTodo ? 'wait' : 'pointer',
+                  background: 'var(--nexus, #3d5afe)', color: '#fff',
+                }}>{cargandoTodo ? 'Cargando…' : 'Cargar todos'}</button>
+              </div>
+            </div>
+          )}
 
           <div style={{ display: 'grid', gap: 10 }}>
             {sinConfirmar.length === 0 && (
