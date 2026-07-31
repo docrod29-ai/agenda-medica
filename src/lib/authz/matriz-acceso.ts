@@ -414,6 +414,13 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     porQue: 'Access/refresh tokens de Google = credencial persistente. Deny total cierra el robo por XSS.',
   },
   {
+    ruta: 'platform_cost_ledger/{eventoId}',
+    clase: 'financiero',
+    guardaLectura: 'servidor',
+    guardaEscritura: 'servidor',
+    porQue: 'Libro de costos de IA. No lleva PHI, pero enseña el gasto de todos los consultorios: se lee sólo por API del dueño.',
+  },
+  {
     ruta: 'platform_payments/{payId}',
     clase: 'financiero',
     guardaLectura: 'servidor',

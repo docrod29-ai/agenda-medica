@@ -306,6 +306,7 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   'superadmin/accion': { tipo: 'superadmin' },
   'superadmin/clientes': { tipo: 'superadmin' },
   'superadmin/contabilidad': { tipo: 'superadmin' },
+  'superadmin/costos': { tipo: 'superadmin' },
   'superadmin/paquetes': { tipo: 'superadmin' },
 
   // ── tareas programadas ───────────────────────────────────────────────────

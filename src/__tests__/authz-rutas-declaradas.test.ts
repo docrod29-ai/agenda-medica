@@ -104,10 +104,10 @@ function paresConCapacidad(): { clave: string; metodo: Metodo; e: ExigenciaRuta 
 }
 
 describe('E0-07 · el escaneo encuentra rutas de verdad', () => {
-  it('hay 74 rutas en disco (un guardián que no encuentra archivos pasa vacío y no protege nada)', () => {
+  it('hay 76 rutas en disco (un guardián que no encuentra archivos pasa vacío y no protege nada)', () => {
     // Si este número cambia es porque se añadió o quitó una ruta: hay que declararla
     // en REGISTRO_RUTAS y ajustar el conteo, a propósito y a mano.
-    expect(CLAVES_DISCO.length).toBe(75)
+    expect(CLAVES_DISCO.length).toBe(76)
   })
 })
 
@@ -345,8 +345,13 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
     //
     // 74 → 76 llamadas al añadir `uci/estancia`: son DOS, una por método (GET con
     // `clinico.leer`, POST con `clinico.escribir`), no una ruta sin guardia.
-    expect(llamadas.length).toBe(76)
-    expect(rutasConGuardia).toBe(62)
+    //
+    // 76 → 77 y 62 → 63 al añadir `superadmin/costos`: UNA ruta con UNA llamada
+    // (`verificarSuperadmin` en su GET). Las dos cifras suben en uno, que es lo
+    // que tenía que pasar; si sólo hubiera subido la de llamadas, querría decir
+    // que una ruta se quedó sin guardián.
+    expect(llamadas.length).toBe(77)
+    expect(rutasConGuardia).toBe(63)
     expect(conVocabulario).toBe(40)
   })
 

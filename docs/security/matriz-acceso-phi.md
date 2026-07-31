@@ -73,6 +73,7 @@ se activen no entren por una puerta abierta.
 | `clinic_invitations/{code}` | Plataforma | `publico` | `isMedico` | GET por código aleatorio para que el invitado sin cuenta la vea; LIST cerrado. Solo médico/admin invita, y para invitar `admin` hay que ser admin. |
 | `clinic_members/{uid}` | Plataforma | `isMember` | `isAdmin` | La membresía ES el rol: quien la escriba se auto-asigna privilegios. LIST cerrado (el equipo se sirve por Admin SDK) y el clinicId es inmutable. |
 | `googleTokens/{uid}` | Plataforma | `servidor` | `servidor` | Access/refresh tokens de Google = credencial persistente. Deny total cierra el robo por XSS. |
+| `platform_cost_ledger/{eventoId}` | Financiero | `servidor` | `servidor` | Libro de costos de IA. No lleva PHI, pero enseña el gasto de todos los consultorios: se lee sólo por API del dueño. |
 | `platform_payments/{payId}` | Financiero | `servidor` | `servidor` | Facturación de la PLATAFORMA (nivel dueño). Solo el webhook de Stripe y /superadmin vía API. |
 | `platform_admin_log/{logId}` | Plataforma | `servidor` | `servidor` | Bitácora de acciones del dueño. Nunca desde el cliente. |
 | `platform_packages/{pkgId}` | Plataforma | `servidor` | `servidor` | Paquetes de módulos y precio. Los define el dueño desde /superadmin. |

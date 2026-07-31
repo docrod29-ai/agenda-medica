@@ -753,6 +753,12 @@ service cloud.firestore {
     match /platform_meta/{docId} {
       allow read, write: if false; // Admin SDK only
     }
+    // Libro de costos de IA (tokens, modelo, latencia, precio). Lo escribe el
+    // gateway con Admin SDK y lo lee /superadmin por API. NUNCA desde el cliente:
+    // aunque no lleva nada clínico, revela el gasto de todos los consultorios.
+    match /platform_cost_ledger/{eventoId} {
+      allow read, write: if false; // Admin SDK only
+    }
 
     match /{document=**} {
       allow read, write: if false;
