@@ -19,7 +19,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import admin, { adminDb } from '@/lib/firebase-admin'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { resolverClaveIA, registrarUso, registrarCreditos, creditosAgotados, pruebaAgotada } from '@/lib/ai-keys'
+import { resolverClaveIA, registrarUso, creditosAgotados, pruebaAgotada } from '@/lib/ai-keys'
 import { COPILOT_UCI_POR_MOTOR, motorPorClave, motorPorDefecto } from '@/lib/planes-ia'
 import { nivelIADe } from '@/lib/ai-keys'
 import { snapshotUCI, buildCopilotUser, COPILOT_SYSTEM, parseSalidaCopilot, fusionarCopilot, COPILOT_VERSION } from '@/lib/uci/copilot'
@@ -221,7 +221,8 @@ export async function POST(req: NextRequest) {
   // paralelo, ~$10/turno). Se cobra su costo real en créditos (antes valía 0 = la
   // mayor fuga de dinero). Se cobra una vez por turno cuando respondió ≥1 modelo.
   if (acceso.clinicId && (rc || ro)) {
-    registrarCreditos(acceso.clinicId, cfg.creditos).catch(() => {})
+    // Los créditos ya los cobró la cartera al confirmar la reserva (§AA–AF).
+    // Dejar aquí el incremento de antes cobraría DOS VECES la misma nota.
     // Atribuir el uso a la fuente del modelo que REALMENTE respondió (si Anthropic
     // no tenía llave pero OpenAI sí consumió la env del dueño, no marcarlo 'ninguna').
     registrarUso(acceso.clinicId, rc ? anthropic.fuente : openai.fuente).catch(() => {})

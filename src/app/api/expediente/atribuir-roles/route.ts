@@ -19,7 +19,7 @@ import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { llamarIA } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
-import { gateCreditos, resolverClaveIA, registrarCreditos } from '@/lib/ai-keys'
+import { gateCreditos, resolverClaveIA } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
 
 export const runtime = 'nodejs'
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
       {
         feature: 'atribuir-roles',
         requestId: req.headers.get('x-vercel-id') || `ar-${acceso.uid}-${Date.now()}`,
-        clinicId: clinicId ?? null, uid: acceso.uid, creditos: 0, fuente,
+        clinicId: clinicId ?? null, uid: acceso.uid, creditos: COSTO_CREDITOS.atribuirRoles, fuente,
         esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
       },
     )
@@ -83,7 +83,8 @@ export async function POST(req: NextRequest) {
       const r = String(crudo[h] ?? '').trim()
       if (ROLES_VALIDOS.has(r)) roles[h] = r
     }
-    void registrarCreditos(clinicId, COSTO_CREDITOS.atribuirRoles)
+    // Los créditos ya los cobró la cartera al confirmar la reserva (§AA–AF).
+    // Dejar aquí el incremento de antes cobraría DOS VECES la misma nota.
     return NextResponse.json({ ok: true, roles })
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })

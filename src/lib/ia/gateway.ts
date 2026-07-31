@@ -33,6 +33,7 @@ import { registrarCosto } from '@/lib/finanzas/cost-ledger-server'
 import { usoDe } from '@/lib/finanzas/medir-ia'
 import type { FuenteLlave } from '@/lib/finanzas/cost-ledger'
 import { safeLog } from '@/lib/security/sanitize'
+import { reservarParaClinica, confirmarCreditos, devolverCreditos } from '@/lib/finanzas/cartera-server'
 import {
   cuerpoAnthropic, cuerpoOpenAI, falloHttp, leerAnthropic, leerOpenAI,
   siguienteModelo, type Peticion, type Proveedor, type Resultado,
@@ -83,6 +84,22 @@ export async function llamarIA(o: Opciones, ctx: Contexto): Promise<Resultado> {
   if (!o.clave) {
     return { ok: false, clase: 'llave', motivo: `${o.proveedor === 'anthropic' ? 'Anthropic' : 'OpenAI'}: no hay llave configurada.` }
   }
+  /**
+   * Se APARTAN los créditos antes de llamar (§AA–AF).
+   *
+   * Antes se preguntaba «¿le quedan?», se llamaba, y al final se incrementaba el
+   * contador: entre la pregunta y el incremento caben treinta segundos, y en ese
+   * hueco dos notas simultáneas del mismo consultorio pasan las dos con el saldo
+   * de una. Aquí la decisión de gastar y el descuento ocurren en el mismo paso.
+   *
+   * Sólo aplica sobre la llave del dueño; con llave propia del consultorio el
+   * gasto es suyo y descontarle de nuestra bolsa sería cobrarle dos veces.
+   */
+  const reserva = await reservarParaClinica(ctx.clinicId, ctx.fuente, ctx.creditos)
+  if (!reserva.ok) {
+    return { ok: false, clase: 'limite', motivo: reserva.motivo ?? 'Sin créditos de IA este mes.' }
+  }
+
   const lista = o.modelos.length > 0 ? o.modelos : ['']
   const t0 = Date.now()
   let ultimo: Resultado = { ok: false, clase: 'modelo', motivo: 'No se intentó ningún modelo.' }
@@ -118,9 +135,16 @@ export async function llamarIA(o: Opciones, ctx: Contexto): Promise<Resultado> {
     const data = await res.json().catch(() => null)
     const r = o.proveedor === 'anthropic' ? leerAnthropic(data, modelo) : leerOpenAI(data, modelo)
     anotar(ctx, o.proveedor, r.ok ? r.modelo : modelo, data, Date.now() - t0, !r.ok)
+    // Se cobra lo apartado si contestó; si su salida no se pudo leer, no.
+    if (r.ok) void confirmarCreditos(reserva, ctx.creditos)
+    else void devolverCreditos(reserva)
     return r
   }
 
+  // Ningún modelo contestó: los créditos vuelven a la bolsa. Un médico al que se
+  // le cobra una nota que nunca salió pierde dos veces: el crédito y la
+  // confianza en el contador.
+  void devolverCreditos(reserva)
   return ultimo
 }
 

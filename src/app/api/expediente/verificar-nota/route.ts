@@ -18,7 +18,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { GUARDA_INYECCION, delimitar } from '@/lib/expediente/prompts'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { gateCreditos, resolverClaveIA, registrarUso, registrarCreditos } from '@/lib/ai-keys'
+import { gateCreditos, resolverClaveIA, registrarUso } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { llamarIA } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
@@ -111,7 +111,8 @@ export async function POST(req: NextRequest) {
       .filter(h => h.problema)
 
     void registrarUso(clinicId, fuente)
-    void registrarCreditos(clinicId, COSTO_CREDITOS.verificarNota)
+    // Los créditos ya los cobró la cartera al confirmar la reserva (§AA–AF).
+    // Dejar aquí el incremento de antes cobraría DOS VECES la misma nota.
     return NextResponse.json({ ok: true, modelo: usado, hallazgos })
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })

@@ -15,6 +15,16 @@ const { registrarCosto } = vi.hoisted(() => ({
 vi.mock('@/lib/finanzas/cost-ledger-server', () => ({ registrarCosto }))
 vi.mock('@/lib/security/sanitize', () => ({ safeLog: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }))
 
+// La cartera toca Firestore; aquí interesa CUÁNDO se reserva, se confirma y se
+// devuelve, no cómo se escribe.
+const { reservarParaClinica, confirmarCreditos, devolverCreditos } = vi.hoisted(() => ({
+  reservarParaClinica: vi.fn(async (_c: string | null, _f: string, n: number) =>
+    ({ ok: true, apartados: n, clinicId: 'c1', mes: '2026-07' })),
+  confirmarCreditos: vi.fn(async () => {}),
+  devolverCreditos: vi.fn(async () => {}),
+}))
+vi.mock('@/lib/finanzas/cartera-server', () => ({ reservarParaClinica, confirmarCreditos, devolverCreditos }))
+
 import { llamarIA } from '@/lib/ia/gateway'
 
 const CTX = {
@@ -35,6 +45,9 @@ const respuesta = (body: unknown, status = 200) => ({
 
 beforeEach(() => {
   registrarCosto.mockClear()
+  confirmarCreditos.mockClear()
+  devolverCreditos.mockClear()
+  reservarParaClinica.mockClear()
   vi.stubGlobal('fetch', vi.fn())
 })
 
@@ -159,5 +172,57 @@ describe('El gasto del fundador se marca como tal', () => {
     vi.mocked(fetch).mockResolvedValue(respuesta(OK))
     await llamarIA(OPTS, { ...CTX, esFundador: true })
     expect(registrarCosto.mock.calls[0][0]).toMatchObject({ esFundador: true })
+  })
+})
+
+describe('Los créditos se apartan ANTES de llamar', () => {
+  it('se reserva el costo de la operación', async () => {
+    vi.mocked(fetch).mockResolvedValue(respuesta(OK))
+    await llamarIA(OPTS, CTX)
+    expect(reservarParaClinica).toHaveBeenCalledWith('c1', 'prueba', 3)
+  })
+
+  it('si no alcanza, NO se llama al proveedor', async () => {
+    // Aquí es donde la reserva gana a leer-y-luego-escribir: se corta antes de
+    // gastar, no después.
+    reservarParaClinica.mockResolvedValueOnce({ ok: false, apartados: 0, clinicId: 'c1', mes: '2026-07', motivo: 'Se acabaron tus créditos de IA del mes (quedan 2 y esta operación cuesta 3).' } as never)
+    const r = await llamarIA(OPTS, CTX)
+    expect(r).toMatchObject({ ok: false, clase: 'limite' })
+    expect(r.ok === false && r.motivo).toMatch(/quedan 2/)
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('si la llamada sale bien, se confirma', async () => {
+    vi.mocked(fetch).mockResolvedValue(respuesta(OK))
+    await llamarIA(OPTS, CTX)
+    expect(confirmarCreditos).toHaveBeenCalledTimes(1)
+    expect(devolverCreditos).not.toHaveBeenCalled()
+  })
+
+  it('si el proveedor falla, se DEVUELVEN', async () => {
+    // Un médico al que se le cobra una nota que nunca salió pierde dos veces:
+    // el crédito y la confianza en el contador.
+    vi.mocked(fetch).mockResolvedValue(respuesta({ error: 'x' }, 500))
+    await llamarIA(OPTS, CTX)
+    expect(devolverCreditos).toHaveBeenCalledTimes(1)
+    expect(confirmarCreditos).not.toHaveBeenCalled()
+  })
+
+  it('si contesta pero su salida no se puede leer, también se devuelven', async () => {
+    vi.mocked(fetch).mockResolvedValue(respuesta({ content: [] }))
+    await llamarIA(OPTS, CTX)
+    expect(devolverCreditos).toHaveBeenCalledTimes(1)
+    expect(confirmarCreditos).not.toHaveBeenCalled()
+  })
+
+  it('un fallo de red también los devuelve', async () => {
+    vi.mocked(fetch).mockRejectedValue(new Error('ECONNRESET'))
+    await llamarIA(OPTS, CTX)
+    expect(devolverCreditos).toHaveBeenCalledTimes(1)
+  })
+
+  it('sin llave no se reserva nada: no hubo gasto que apartar', async () => {
+    await llamarIA({ ...OPTS, clave: '' }, CTX)
+    expect(reservarParaClinica).not.toHaveBeenCalled()
   })
 })
