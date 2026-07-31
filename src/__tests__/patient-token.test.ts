@@ -5,7 +5,8 @@ describe('patient-token', () => {
   it('round-trip: crea y verifica un token válido', () => {
     const t = crearTokenPaciente('clinicA', 'pac123')
     const v = verificarTokenPaciente(t)
-    expect(v).toEqual({ clinicId: 'clinicA', patientId: 'pac123' })
+    // E0-06: el token declara ALCANCE; sin pedir nada, nace en 'agenda'.
+    expect(v).toEqual({ clinicId: 'clinicA', patientId: 'pac123', alcance: 'agenda' })
   })
 
   it('rechaza token manipulado (firma inválida)', () => {
@@ -37,6 +38,6 @@ describe('patient-token', () => {
     const url = linkPortalPaciente('https://app.example.com/', 'clinicA', 'pac123')
     expect(url.startsWith('https://app.example.com/mi/')).toBe(true)
     const token = url.split('/mi/')[1]
-    expect(verificarTokenPaciente(token)).toEqual({ clinicId: 'clinicA', patientId: 'pac123' })
+    expect(verificarTokenPaciente(token)).toEqual({ clinicId: 'clinicA', patientId: 'pac123', alcance: 'agenda' })
   })
 })

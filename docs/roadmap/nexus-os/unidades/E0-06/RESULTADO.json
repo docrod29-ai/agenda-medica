@@ -1,0 +1,137 @@
+{
+  "unidad": "E0-06",
+  "titulo": "Separación de PHI administrativo vs clínico",
+  "etapa": "E0",
+  "estado": "necesita_validacion",
+  "porQueNecesitaValidacion": "Se entregó ENTERA la Fase A del diseño (matriz ejecutable + bloque de reglas para el subdocumento clínico + cierre del bypass de API del portal), con los tres gates en verde. Las Fases B y C —mover de verdad `alergias`, `notas` y `txValoracion*` fuera de `patients/{id}`— NO se ejecutaron a propósito: el propio diseño las declara de riesgo ALTO (§8) y dependen de decisiones de operación del médico dueño (D1, D2, D3 en §9). La regla 5 de la carta operativa manda entregar el PLAN en vez de ejecutarlas a ciegas. Sin ellas, la aceptación LITERAL de la unidad todavía no se cumple; está dicho abajo sin adornos.",
+  "aceptacion": {
+    "literal": "Rol recepción: lee cita, no lee nota ni alergias",
+    "cumplida": false,
+    "desglose": {
+      "lee cita": "SÍ, y se protege con test de regresión. `appointments/{docId}` y `patients/{docId}` siguen bajo isMember; cerrarlos rompería agendar.",
+      "no lee nota": "SÍ, ya se cumplía antes de esta unidad (firestore.rules cierra notas/laboratorios/fotos con isMedico). Ahora está fijado por test: si alguien afloja esas tres reglas, `firestore-rules-guard.test.ts` se pone rojo.",
+      "no lee alergias": "TODAVÍA NO. Las alergias no viven en una subcolección: son campos del documento `patients/{id}`, que es `allow read: if isMember` porque recepción necesita nombre y teléfono para agendar. Firestore NO autoriza por campo en lectura: o se lee el documento entero o no se lee. Ninguna regla puede cumplir esto — el arreglo obligatorio es de MODELO DE DATOS (mover los campos), y eso son las Fases B y C.",
+      "ni por API": "El agujero concreto de API SÍ quedó cerrado: /api/portal/link devolvía a cualquier miembro un token HMAC de 30 días que /api/portal aceptaba en la acción `documentos` (diagnósticos y medicamentos de notas FIRMADAS). Ese era secreto médico servido a un rol que las reglas mantienen fuera del expediente."
+    },
+    "comoSePrueba": "src/__tests__/matriz-acceso.test.ts (aceptación como invariante sobre la matriz + coherencia con firestore.rules), src/__tests__/portal-alcance.test.ts (handler REAL de /api/portal con dobles del Admin SDK), src/__tests__/api-authz-guard.test.ts (escaneo estático de las 100+ rutas de API), src/__tests__/firestore-rules-guard.test.ts (bloque nuevo + regresiones).",
+    "controlesNegativosEjecutados": [
+      "Se borró el bloque `match /clinico/{clinicoId}` de firestore.rules → 3 tests en rojo (2 del rules-guard + 'cada entrada de la matriz existe como match'). Restaurado, verde.",
+      "Se bajó la guarda de lectura del subdocumento clínico de isMedico a isMember en la matriz → 4 tests en rojo (invariante de clase clínica, aceptación de recepción, coherencia del .md publicado, clasificación en phi-separacion). Restaurado, verde.",
+      "Se quitó el gate `alcance !== 'clinico'` de /api/portal → 2 tests en rojo (el 403 del handler real y el guardián estático de API). Restaurado, verde.",
+      "Conclusión: los gates NO pasan por vacío."
+    ]
+  },
+  "loQueSEhizo": [
+    "MATRIZ DE ACCESO EJECUTABLE (src/lib/authz/matriz-acceso.ts): las 44 colecciones de firestore.rules clasificadas por clase de dato (administrativo · clínico · financiero · identidad profesional · plataforma) con su guarda de lectura y de escritura, y el porqué de cada una. No es prosa: los tests derivan de ella la aceptación, verifican que cada `match` del archivo de reglas tiene entrada (nadie añade una colección sin clasificarla), que cada guarda nombrada existe como `function` en las reglas, y que los roles declarados por guarda son la transcripción literal del `role ==` / `role in [...]` de cada función.",
+    "MATRIZ PUBLICADA (docs/security/matriz-acceso-phi.md): archivo GENERADO desde el módulo. Un test compara el archivo con la salida del generador, así que no puede quedarse viejo. Se regenera con `REGENERAR_MATRIZ=1 npx vitest run src/__tests__/matriz-acceso.test.ts`.",
+    "REGLAS (firestore.rules): bloque nuevo `patients/{docId}/clinico/{clinicoId}` — lectura y escritura isMedico, delete cerrado. Aditivo: no toca ninguna regla existente. Las reglas de Firestore no son recursivas, así que el `read: if isMember` del documento del paciente no alcanza a esta subcolección (misma propiedad de la que ya depende `notas`).",
+    "TIPOS (src/types/index.ts): `ResumenClinicoPaciente` (la forma del subdocumento) y `CAMPOS_CLINICOS_PACIENTE` (el inventario de los 6 campos que hoy viajan en `patients/{id}` y deben mudarse). Aditivo: `Patient` no perdió ningún campo, así que no se rompió ni un consumidor. Hay una comprobación EN COMPILACIÓN de que la lista solo nombra campos que existen en `Patient`.",
+    "API — cierre del bypass del portal: el token del paciente lleva ahora ALCANCE. `/api/portal/link` (cualquier miembro) emite `agenda`; `/api/telesalud/token` (ya exigía verificarMedico) emite `clinico`; la acción `documentos` de `/api/portal` exige `clinico` y responde 403 en otro caso. Un token sin campo de alcance —los que ya circulan— se degrada a `agenda`: fail-closed deliberado.",
+    "PORTAL DEL PACIENTE (src/app/mi/[token]/page.tsx): ante el 403 se dice «Este enlace sirve para tus citas. Pide a tu médico el acceso a tus recetas» en vez de esconder la sección en silencio."
+  ],
+  "loQueNOseHizo": {
+    "faseB": "Doble lectura (`getPatientCompleto` + splitter de `updatePatient` + 11 pantallas consumidoras). BLOQUEADA por D1: cambia el trabajo diario de la asistente en el alta de pacientes.",
+    "faseC": "Script de backfill `scripts/migrar-phi-clinico.ts` y borrado de los campos heredados con FieldValue.delete(). BLOQUEADA por la Fase B y por acceso a datos reales, que este entorno no tiene.",
+    "porQue": "Regla 5 de la carta operativa. Además, el riesgo declarado en el diseño (§8) es que una pantalla clínica se quede sin ver alergias, o —peor— que la ausencia de dato se pinte como «Negadas». Ese incidente ya ocurrió una vez en este repo, en los impresos.",
+    "loQueSIquedaListoParaEsaFase": "El inventario de campos, la forma del subdocumento, la regla de Firestore que la protegerá y el test que fija la invariante de fail-closed («la ausencia de dato clínico nunca es una negación»). No hay que construir: hay que decidir y mover."
+  },
+  "archivosTocados": {
+    "produccion": [
+      "firestore.rules",
+      "src/types/index.ts",
+      "src/lib/authz/matriz-acceso.ts",
+      "src/lib/patient-token.ts",
+      "src/app/api/portal/route.ts",
+      "src/app/api/portal/link/route.ts",
+      "src/app/api/telesalud/token/route.ts",
+      "src/app/mi/[token]/page.tsx"
+    ],
+    "testsNuevos": [
+      "src/__tests__/matriz-acceso.test.ts",
+      "src/__tests__/phi-separacion.test.ts",
+      "src/__tests__/api-authz-guard.test.ts",
+      "src/__tests__/portal-alcance.test.ts"
+    ],
+    "testsModificados": [
+      "src/__tests__/firestore-rules-guard.test.ts",
+      "src/__tests__/patient-token.test.ts"
+    ],
+    "documentacion": [
+      "docs/security/matriz-acceso-phi.md"
+    ],
+    "noSeToco": [
+      "motor de dosis",
+      "sello de integridad / hashes",
+      "impresión y paginación de receta",
+      "cobros y Stripe",
+      "WhatsApp",
+      "antibiograma",
+      "reglas de notas / internamientos / cobros"
+    ]
+  },
+  "cambioDeComportamiento": [
+    "VISIBLE PARA EL PACIENTE: el enlace del portal que envía la asistente deja de mostrar la sección «Mis recetas». Los enlaces emitidos por un médico (teleconsulta) sí la muestran. Es la decisión D2 y va en la dirección segura, pero es un cambio real de producto — por eso la unidad no se marca completada.",
+    "TOKENS YA EMITIDOS: los magic-links de 30 días que ya circulan no traen alcance, se leen como `agenda` y pierden la pestaña de recetas. Se resuelve reenviando el enlace desde la sesión del médico. La alternativa laxa (tratar el token sin alcance como clínico durante 30 días) se descartó a propósito.",
+    "NO CAMBIA: confirmar, cancelar, reagendar y ver citas desde el enlace de la asistente siguen funcionando igual. Hay un test de regresión explícito para eso."
+  ],
+  "gates": {
+    "tsc": "PASS",
+    "vitest": "PASS",
+    "build": "PASS",
+    "testsPasan": 2445,
+    "archivosDeTest": 190,
+    "lineaBaseAnterior": 2403,
+    "testsAgregados": 42,
+    "comandos": [
+      "npx tsc --noEmit",
+      "npx vitest run src/__tests__/",
+      "npm run build"
+    ],
+    "notaSobreLaEjecucion": "Los tres gates se corrieron en un `git worktree` aislado en /tmp con SOLO los cambios de esta unidad aplicados sobre HEAD (0f73fea). Motivo: durante esta corrida el árbol de trabajo principal tenía cambios sin commitear de OTRA unidad (E0-09: src/lib/hospital/firestore.ts y src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx) que en ese momento no compilaban (`error TS2304: Cannot find name 'acvpu'`). Contaminaban el gate y no son de E0-06. El worktree se eliminó al terminar; los archivos ajenos NO se tocaron ni se commitearon."
+  },
+  "decisionesDelMedicoQueBLOQUEANlasFasesByC": [
+    {
+      "id": "E0-06-D1",
+      "decision": "¿La asistente/recepción puede CAPTURAR alergias y antecedentes en el alta del paciente, aunque después no pueda leerlos?",
+      "contexto": "Hoy los captura: /pacientes está declarada para ambos modos y su formulario tiene el campo Alergias y el textarea Notas. No es un hueco teórico, es el flujo de alta que usa el consultorio.",
+      "opciones": [
+        "(a) NO puede — el médico las captura en consulta. Es la única que cumple la aceptación al pie de la letra; riesgo: que en el alta no las capture nadie.",
+        "(b) WRITE-ONLY — puede escribir el subdocumento pero no leerlo. Expresable en reglas (create/update: isMember + read: isMedico). Rareza de UX: escribe a ciegas y no puede corregir lo que ella misma puso.",
+        "(c) Puede leer y escribir ALERGIAS, pero no antecedentes ni valoración (dos subdocumentos separados)."
+      ],
+      "recomendacionDelDiseno": "(a)",
+      "impactoSiNoSeResponde": "La Fase B no se puede fusionar: el bloque de reglas ya escrito asume (a)."
+    },
+    {
+      "id": "E0-06-D2",
+      "decision": "¿El enlace del portal que envía la asistente debe seguir mostrando «Mis recetas» (diagnósticos + medicamentos)?",
+      "contexto": "Ya está implementado que NO (alcance `agenda`). Si el Dr. prefiere que sí, la vuelta atrás es de una línea, PERO entonces la asistente conserva una credencial de 30 días con secreto médico y el bypass sigue abierto; la alternativa sería enviar el enlace desde el servidor (whatsapp-send) sin devolvérselo a su navegador.",
+      "recomendacionDelDiseno": "NO (alcance agenda). Ya aplicado.",
+      "impactoSiNoSeResponde": "Ninguno técnico — el cambio ya está y es el seguro. Es un aviso de producto: la asistente notará que el enlace que manda ya no abre las recetas."
+    },
+    {
+      "id": "E0-06-D3",
+      "decision": "¿Las etiquetas `embarazo`, `cronico` y `alto-riesgo` del paciente son administrativas o clínicas?",
+      "contexto": "Hoy son visibles a todo el equipo y las usa la agenda/CRM. Moverlas a lo clínico cambia listados que la asistente usa a diario.",
+      "recomendacionDelDiseno": "Dejarlas en el documento administrativo y documentarlo como residual aceptado, o crear `tagsClinicos` aparte.",
+      "impactoSiNoSeResponde": "No bloquea. Queda como residual documentado en la matriz."
+    },
+    {
+      "id": "E0-06-D4",
+      "decision": "INFORMATIVA, no bloqueante: `appointments.motivo` es dato de salud y recepción lo lee.",
+      "contexto": "La aceptación de la unidad EXIGE que recepción lea la cita. Se documenta como residual aceptado en la matriz publicada; no se cambia.",
+      "recomendacionDelDiseno": "Aceptar el residual."
+    }
+  ],
+  "loQueNOgarantizaEstaUnidad": [
+    "NO garantiza que recepción no lea las alergias hoy: mientras sean campos de `patients/{id}` las lee, y ninguna regla lo evita. Eso lo cierran las Fases B y C.",
+    "NO hay emulador de Firestore: las aserciones sobre las reglas son ESTÁTICAS (se lee firestore.rules y se afirman invariantes). Probar las reglas ejecutándolas es la unidad E0-08, que depende de esta y consume la matriz como tabla de casos.",
+    "NO se desplegó nada. `firestore.rules` está modificado en el repo pero NO se corrió `firebase deploy --only firestore:rules`. Hasta que el Dr. lo despliegue, el bloque `clinico` no rige en producción — hoy da igual porque todavía no hay datos ahí, pero tiene que desplegarse ANTES de la Fase C.",
+    "NO se tocó `src/lib/permissions.ts`: sigue sin llamadores de producción (solo lo importan los tests). Cablearlo sería UX, no autorización, y lo sustituye E0-07. Sí se cruza contra la matriz en un test para que no diverjan."
+  ],
+  "phi": "CERO. Todos los datos de los tests son ficticios ('clinica-ficticia', 'pac-ficticio-001', 'Sustancia ficticia A', 'Dra. Ficticia').",
+  "reglasClinicasInventadas": "NINGUNA. Esta unidad no toca umbrales, dosis ni escalas: es autorización y modelo de datos. `validacionClinica: false` en el backlog, coherente.",
+  "siguientePaso": "Con D1 respondida, la Fase B es mecánica y ya está diseñada: getPatientCompleto con fallback al campo heredado + splitter de updatePatient por CAMPOS_CLINICOS_PACIENTE + enganchar el estado de la lectura clínica al `pacienteError` que ya bloquea el guardado en la pantalla de consulta.",
+  "fecha": "2026-07-29T13:12:00Z",
+  "notaDeGit": "El código de esta unidad quedó COMMITEADO, pero NO en un commit propio: mientras E0-06 escribía, otro agente que trabajaba E0-09 en el MISMO árbol hizo `git add -A` y se llevó los 14 archivos de E0-06 dentro de su commit f227bbf ('feat(E0-09): corregir signos vitales'). No se perdió nada y no se hizo push. NO se reescribió la historia a propósito: rehacer commits con otro agente operando en el mismo repositorio es peor que un mensaje de commit equivocado. El commit de E0-06 contiene el checkpoint (RESULTADO.json, estado.json, CHECKPOINT.md) y deja constancia de dónde está el resto."
+}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
-import { verificarMedico } from '@/lib/auth-server'
+import { verificarCapacidad } from '@/lib/authz/verificar'
 
 /**
  * Reconstruye `noShowCount`, `cancelacionCount` y `ultimaCita` a partir de las
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   const clinicId = req.nextUrl.searchParams.get('clinicId') ?? ''
   const simular = req.nextUrl.searchParams.get('simular') === '1'
 
-  const acc = await verificarMedico(req, clinicId)
+  const acc = await verificarCapacidad(req, clinicId, 'administrar')
   if (!acc.ok) return acc.response
 
   const clinicRef = adminDb.collection('clinics').doc(clinicId)

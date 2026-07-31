@@ -5,6 +5,9 @@ import {
 } from 'firebase/firestore'
 import { db, auth } from '@/lib/firebase'
 import type { NotaMedica, Adenda } from '@/types/expediente'
+// `stripUndefined` se mudó a un módulo puro (sin SDK) para poder simular el viaje
+// a Firestore en los tests del sello de integridad. Ver serializacion.ts.
+import { stripUndefined } from './serializacion'
 
 /**
  * Notas clínicas viven en:
@@ -62,22 +65,6 @@ export async function findNotaByIdInClinic(clinicId: string, notaId: string): Pr
   return null
 }
 
-/** Firestore rechaza valores `undefined`. Los eliminamos recursivamente. */
-function stripUndefined<T>(value: T): T {
-  if (Array.isArray(value)) {
-    return value.map(v => stripUndefined(v)) as unknown as T
-  }
-  if (value && typeof value === 'object') {
-    const out: Record<string, unknown> = {}
-    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      if (v === undefined) continue
-      out[k] = stripUndefined(v)
-    }
-    return out as T
-  }
-  return value
-}
-
 export async function createNota(
   clinicId: string,
   patientId: string,
@@ -87,7 +74,19 @@ export async function createNota(
   // sobreescribe el doc.id al leer con spread y rompe la navegación.
   const { id: _ignorado, ...sinId } = data as NotaMedica
   void _ignorado
-  const ref = await addDoc(notasCol(clinicId, patientId), stripUndefined(sinId))
+  const payload = stripUndefined(sinId)
+  // Guardián de 1 MB TAMBIÉN al crear (antes solo estaba en updateNota): una nota
+  // ya grande en su PRIMERA escritura —dictado largo con transcripción cruda +
+  // diálogo diarizado + entidades— fallaba con el error crudo de Firestore. Aquí
+  // se avisa con un mensaje claro; el respaldo local conserva el contenido.
+  const bytes = new TextEncoder().encode(JSON.stringify(payload)).length
+  if (bytes > 950_000) {
+    throw Object.assign(
+      new Error(`La nota pesa ${(bytes / 1024).toFixed(0)} KB y Firestore admite hasta 1 MB por documento. Suele deberse a una transcripción muy larga. No se perdió nada: hay respaldo local.`),
+      { code: 'nota-demasiado-grande' },
+    )
+  }
+  const ref = await addDoc(notasCol(clinicId, patientId), payload)
   return ref.id
 }
 

@@ -78,9 +78,29 @@ function lineasDeTexto(texto: string, anchoMm: number, fontSizePx: number): numb
   return texto.split('\n').reduce((acc, linea) => acc + Math.max(1, Math.ceil(linea.length / cpl)), 0)
 }
 
+/**
+ * Etiqueta legible de la vía para el impreso. La vía se guarda como código
+ * ('oral','sc','iv','im'…) pero imprimir "· sc" en una receta es poco claro; se
+ * traduce a texto. Cualquier valor no reconocido (p.ej. una cadena libre de la
+ * extracción) pasa tal cual.
+ */
+const VIA_LABEL: Record<string, string> = {
+  oral: 'Oral', vo: 'Oral',
+  sc: 'Subcutánea', subcutanea: 'Subcutánea',
+  iv: 'Intravenosa', im: 'Intramuscular',
+  topica: 'Tópica', inhalatoria: 'Inhalada', inhalada: 'Inhalada',
+  sublingual: 'Sublingual', rectal: 'Rectal', oftalmica: 'Oftálmica',
+  otica: 'Ótica', nasal: 'Nasal', otra: 'Otra',
+}
+export function etiquetaVia(via: string | undefined | null): string {
+  const v = (via ?? '').trim()
+  if (!v) return ''
+  return VIA_LABEL[v.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')] ?? v
+}
+
 /** Altura estimada de UN medicamento (nombre + posología, con wrapping). */
 export function alturaMedicamentoMm(m: Medicamento, anchoMm: number, fontSizePx: number): number {
-  const linea1 = `${m.nombre}${m.dosis ? ` ${m.dosis}` : ''}${m.via ? ` · ${m.via}` : ''}`
+  const linea1 = `${m.nombre}${m.dosis ? ` ${m.dosis}` : ''}${m.via ? ` · ${etiquetaVia(m.via)}` : ''}`
   const linea2 = [m.frecuencia, m.duracion && `por ${m.duracion}`, m.indicacion && `— ${m.indicacion}`]
     .filter(Boolean).join(' ')
   const lineas = lineasDeTexto(linea1, anchoMm - 6, fontSizePx) + lineasDeTexto(linea2, anchoMm - 6, fontSizePx - 0.5)
@@ -145,7 +165,9 @@ export function paginarReceta(opts: OpcionesPaginacion): PaginaReceta[] {
   const alturaNota = notaParaPaciente?.trim()
     ? alturaLineasMm(lineasDeTexto(notaParaPaciente, areaAnchoMm - 4, fontSizePx - 0.5) + 0.5, fontSizePx) + 3
     : 0
-  const colaFinalMm = alturaIndic + alturaNota + firmaMm
+  // La firma NO entra en la cola cuando ya se reserva en cada hoja (formato
+  // propio): contarla aquí además la duplicaba y forzaba una hoja de más.
+  const colaFinalMm = alturaIndic + alturaNota + (firmaEnTodasLasHojas ? 0 : firmaMm)
 
   // ── 2. Greedy fill ─────────────────────────────────────────────
   const paginas: Array<{ meds: Medicamento[]; ests: string[] }> = [{ meds: [], ests: [] }]
@@ -157,6 +179,19 @@ export function paginarReceta(opts: OpcionesPaginacion): PaginaReceta[] {
    * las de continuación. Solo se reservaba para la última, así que en las
    * intermedias el contenido se metía en el espacio de la firma y, con
    * `overflow: hidden`, lo que sobraba desaparecía.
+   */
+  /**
+   * La firma se reserva SOLO en las hojas de continuación cuando va en todas
+   * (formato propio: cada hoja se firma y se entrega). NO se resta en la hoja 1
+   * porque `disponiblePrimera` ya es un estimado conservador que en el render
+   * real absorbe la firma —verificado en vivo: los 4 medicamentos del Dr. caben
+   * con firma en la hoja 1—. Restarla también aquí encogía la hoja 1 tanto que
+   * salía UN medicamento por hoja (5 hojas para 4 fármacos). En las hojas de
+   * continuación sí hay que reservarla: su `disponibleContinuacion` es generoso
+   * (header de solo 8 mm) y sin la reserva el contenido se metía bajo la firma y,
+   * con `overflow: hidden`, lo que sobraba desaparecía. La firma tampoco se suma
+   * en la "cola" (arriba) cuando va en todas: eso la contaba dos veces y forzaba
+   * una hoja 2 VACÍA ("Continuación… Hoja 2 de 2") aunque todo cupiera en la 1.
    */
   const reservaFirmaContinuacion = firmaEnTodasLasHojas ? firmaMm : 0
   const capacidadDe = (idx: number) =>

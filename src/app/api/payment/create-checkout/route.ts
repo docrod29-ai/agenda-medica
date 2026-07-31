@@ -7,9 +7,14 @@
  *
  * NO procesa pagos directamente: redirige al paciente al Checkout de Stripe.
  *
- * Body: { clinicId, citaId, descripcion, montoMXN, currency? }
+ * Body: { token, citaId, currency? }
+ * SEGURIDAD (L1 auditoría maestra 2026-07): el MONTO NO se acepta del cliente —
+ * se lee de la config del consultorio en el servidor (config.anticipoMonto). Antes
+ * el navegador del paciente mandaba `montoMXN` y el webhook marcaba la cita
+ * 'pagada' con lo que fuera (podía pagar el mínimo de $10 por una consulta cara).
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { stripe } from '@/lib/stripe'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarTokenPaciente } from '@/lib/patient-token'
@@ -18,7 +23,12 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.ve
 
 export async function POST(req: NextRequest) {
   try {
-    const { token, citaId, descripcion, montoMXN, currency = 'mxn' } = await req.json()
+    const { token, citaId } = await req.json()
+    // MONEDA FIJA EN EL SERVIDOR (auditoría P0): el monto se calcula en MXN, así que
+    // la moneda DEBE ser 'mxn'. Antes se tomaba `currency` del body → con 'cop'/'ars'
+    // Stripe cobraba ~USD0.12 por el mismo número y el webhook (que compara solo el
+    // número, no la moneda) marcaba la cita 'pagada'. Nunca del cliente.
+    const currency = 'mxn'
 
     // AUTORIZACIÓN: token del portal del paciente (antes era público → cualquiera podía
     // mutar cualquier cita a 'pendiente-pago'). El clinicId sale del token, no del body.
@@ -26,10 +36,7 @@ export async function POST(req: NextRequest) {
     if (!sesion) return NextResponse.json({ ok: false, error: 'Enlace inválido o vencido' }, { status: 401 })
     const { clinicId, patientId } = sesion
 
-    // TODO(pago fase 2): el monto debe venir de la config del servidor, NO del cliente.
-    if (!citaId || !descripcion || !montoMXN || montoMXN < 10) {
-      return NextResponse.json({ ok: false, error: 'Datos inválidos' }, { status: 400 })
-    }
+    if (!citaId) return NextResponse.json({ ok: false, error: 'Falta la cita' }, { status: 400 })
 
     const citaRef = adminDb.collection('clinics').doc(clinicId).collection('appointments').doc(citaId)
     const citaSnap = await citaRef.get()
@@ -41,6 +48,19 @@ export async function POST(req: NextRequest) {
 
     const clinicSnap = await adminDb.collection('clinics').doc(clinicId).get()
     const clinicNombre = clinicSnap.data()?.nombreClinica ?? 'Consultorio'
+
+    // MONTO DESDE EL SERVIDOR: la tarifa de la cita si el médico la fijó, si no el
+    // anticipo configurado del consultorio. NUNCA del cliente. Sin monto → no se cobra.
+    const cfgSnap = await adminDb.collection('clinics').doc(clinicId).collection('config').doc('main').get()
+    const cfg = cfgSnap.data() ?? {}
+    const montoServidor = Number(citaSnap.data()?.pagoMonto) > 0
+      ? Number(citaSnap.data()?.pagoMonto)
+      : Number(cfg.anticipoMonto)
+    if (!Number.isFinite(montoServidor) || montoServidor < 10) {
+      return NextResponse.json({ ok: false, error: 'Este consultorio no tiene configurado un monto de anticipo.' }, { status: 400 })
+    }
+    const montoMXN = Math.round(montoServidor * 100) / 100
+    const descripcion = `Anticipo de cita · ${clinicNombre}`
 
     // Stripe espera el monto en centavos del moneda local
     const unit_amount = Math.round(montoMXN * 100)
@@ -71,7 +91,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, url: session.url })
   } catch (err) {
-    console.error('[payment/create-checkout]', err)
+    safeLog.error('[payment/create-checkout]', err)
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
   }
 }

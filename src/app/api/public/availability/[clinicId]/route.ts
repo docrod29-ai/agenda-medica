@@ -8,6 +8,7 @@
  *  - Días festivos
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { validarHorarioDia } from '@/lib/availability'
 
@@ -42,7 +43,14 @@ export async function GET(
     // 1. Configuración
     const configSnap = await adminDb.collection('clinics').doc(clinicId).collection('config').doc('main').get()
     if (!configSnap.exists) return NextResponse.json({ ok: true, slots: [] })
-    const cfg = configSnap.data()!
+    let cfg = configSnap.data()!
+    // Horario POR MÉDICO: si se pide disponibilidad de un médico concreto, sus
+    // horario/duraciones/intervalo pisan a los de la clínica (coherente con el panel).
+    if (medicoId) {
+      const docSnap = await adminDb.collection('clinics').doc(clinicId).collection('doctors').doc(medicoId).get()
+      const doc = docSnap.data()
+      if (doc) cfg = { ...cfg, horario: doc.horario ?? cfg.horario, duraciones: doc.duraciones ?? cfg.duraciones, intervaloMinutos: doc.intervaloMinutos ?? cfg.intervaloMinutos }
+    }
 
     // 2. Horario del día
     const d = new Date(fecha + 'T12:00:00')
@@ -63,7 +71,7 @@ export async function GET(
     // fantasma. Mejor mostrar 0 disponibilidad que 32 lugares ficticios.
     const validacion = validarHorarioDia(schedule.inicio, schedule.fin)
     if (!validacion.valido) {
-      console.warn(`[public/availability] ${clinicId} ${fecha}: ${validacion.motivo}`)
+      safeLog.warn(`[public/availability] ${clinicId} ${fecha}: ${validacion.motivo}`)
       return NextResponse.json({ ok: true, slots: [], motivo: `Configuración del día: ${validacion.motivo}` })
     }
     const { startMin, endMin } = validacion
@@ -113,7 +121,7 @@ export async function GET(
     for (let m = startMin; m + duracion <= endMin; m += interval) {
       // Tope absoluto: nunca devolver > MAX_SLOTS_POR_DIA al cliente público
       if (slots.length >= MAX_SLOTS_POR_DIA) {
-        console.warn(`[public/availability] tope ${MAX_SLOTS_POR_DIA} alcanzado para ${clinicId} ${fecha}`)
+        safeLog.warn(`[public/availability] tope ${MAX_SLOTS_POR_DIA} alcanzado para ${clinicId} ${fecha}`)
         break
       }
       const ts = baseTs + m * 60 * 1000
@@ -132,7 +140,7 @@ export async function GET(
 
     return NextResponse.json({ ok: true, slots, duracion })
   } catch (err) {
-    console.error('[public/availability]', err)
+    safeLog.error('[public/availability]', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

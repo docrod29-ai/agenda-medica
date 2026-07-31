@@ -5,9 +5,10 @@
 // paciente y se vinculan por `internamientoId`.
 // ══════════════════════════════════════════════════════════════
 import {
-  collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, onSnapshot,
+  collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, onSnapshot, runTransaction,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import type { Unidad } from '@/lib/hospital/unidades'
 import { setDoc, orderBy, limit } from 'firebase/firestore'
 import { fetchAutenticado } from '@/lib/auth-client'
 import type {
@@ -171,8 +172,10 @@ export async function verificarIndicacionFarmacia(clinicId: string, iid: string,
 }
 
 /** Guarda los medicamentos que el paciente tomaba en casa (para conciliar). */
-export async function guardarMedicamentosCasa(clinicId: string, iid: string, meds: string[]): Promise<void> {
-  await mutar(clinicId, iid, 'conciliar', { meds })
+export async function guardarMedicamentosCasa(clinicId: string, iid: string, meds: string[], baseConciliadoAl?: string | null): Promise<void> {
+  // `baseConciliadoAl` = el sello que se vio al abrir la conciliación; el servidor
+  // lo usa para rechazar si alguien más guardó en medio (ver 'conciliar' en mutar).
+  await mutar(clinicId, iid, 'conciliar', { meds, baseConciliadoAl: baseConciliadoAl ?? null })
 }
 
 /** Traslado de servicio/cama con registro en el historial de movimientos. */
@@ -213,8 +216,32 @@ export async function getSignos(clinicId: string, iid: string, tope = TOPE_SIGNO
     .map(d => ({ ...d.data(), id: d.id } as RegistroSignos))
     .reverse()   // ascendente para la gráfica
 }
-export async function borrarSignos(clinicId: string, iid: string, sid: string): Promise<void> {
-  await deleteDoc(doc(db, 'clinics', clinicId, 'internamientos', iid, 'signos', sid))
+/**
+ * Corrige un registro de signos ANEXANDO otro que apunta al erróneo.
+ *
+ * DECISIÓN DEL MÉDICO DUEÑO (29-jul-2026, enmienda a §A3 del documento de
+ * arquitectura): un signo vital se puede corregir SIEMPRE, sin ventana de
+ * tiempo, pero conservando el historial. Se implementa sin `update`: el
+ * registro original nunca se toca y la corrección es un documento nuevo con
+ * `corrigeA`. Así "editable siempre" (lo que ve la enfermera) y "nada se
+ * sobrescribe" (lo que exige el expediente) son la misma cosa.
+ *
+ * Sustituye al borrado: `borrarSignos` ofrecía un bote de basura que
+ * `firestore.rules` rechaza con `allow delete: if false`, así que el único
+ * camino que la UI le daba a la enfermera para arreglar un dedazo fallaba
+ * SIEMPRE con "No se pudo borrar".
+ *
+ * `proyectarSignos` (src/lib/hospital/eventos.ts) es quien resuelve la cadena
+ * para pintar la tabla y para decidir qué serie entra a un cálculo clínico.
+ */
+export async function corregirSignos(
+  clinicId: string,
+  iid: string,
+  idOriginal: string,
+  s: Omit<RegistroSignos, 'id' | 'corrigeA'>,
+): Promise<void> {
+  if (!idOriginal) throw new Error('corregirSignos requiere el id del registro que se corrige')
+  await addDoc(signosCol(clinicId, iid), limpiar({ ...s, corrigeA: idOriginal } as object))
 }
 
 // ── F3/V3 · Rol hospitalario por usuario (persistido, sigue al usuario entre dispositivos) ──
@@ -262,10 +289,33 @@ export async function borrarSolicitudLab(clinicId: string, ordenId: string): Pro
   }
   await deleteDoc(ref)
 }
+/**
+ * Carga resultados en una orden CONSERVANDO los anteriores.
+ *
+ * Antes hacía un `updateDoc` que reemplazaba el arreglo `resultados`: una segunda
+ * carga borraba la primera sin dejar rastro — pérdida de dato clínico y de
+ * trazabilidad (NOM-004). Ahora, en una transacción (por si dos dispositivos
+ * cargan a la vez), lo que ya había se empuja a `historialResultados` antes de
+ * escribir la nueva versión. Nada se pierde; `resultados` sigue siendo la última.
+ */
 export async function cargarResultadosLab(clinicId: string, ordenId: string, resultados: ResultadoLab[], por: string): Promise<void> {
-  await updateDoc(doc(db, 'clinics', clinicId, 'laboratorio', ordenId), limpiar({
-    resultados, estado: 'resultado', procesadaPor: por, fechaResultado: new Date().toISOString(), updatedAt: new Date().toISOString(),
-  }))
+  const ref = doc(db, 'clinics', clinicId, 'laboratorio', ordenId)
+  const ahora = new Date().toISOString()
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref)
+    const data = snap.data() ?? {}
+    const previos = (data.resultados as ResultadoLab[] | undefined) ?? []
+    const historial = (data.historialResultados as unknown[] | undefined) ?? []
+    // Solo se archiva si ya había una carga real (no re-guardar un arreglo vacío).
+    const nuevoHistorial = previos.length > 0
+      ? [...historial, { resultados: previos, procesadaPor: data.procesadaPor ?? '—', fechaResultado: data.fechaResultado ?? data.updatedAt ?? ahora }]
+      : historial
+    tx.update(ref, limpiar({
+      resultados, estado: 'resultado', procesadaPor: por,
+      fechaResultado: ahora, updatedAt: ahora,
+      historialResultados: nuevoHistorial,
+    }))
+  })
 }
 
 // ── F5 · Alertas hospitalarias (lab crítico, NEWS2, interconsulta/resultado) ──
@@ -321,4 +371,33 @@ export async function agregarEscala(clinicId: string, iid: string, e: { tipo: 'b
 }
 export async function agregarSbar(clinicId: string, iid: string, s: { texto: string; por?: string }): Promise<void> {
   await mutar(clinicId, iid, 'sbar', { texto: s.texto, por: s.por })
+}
+
+// ══════════════════════════════════════════════════════════════
+// UNIDADES — el nombre lo pone el hospital, el tipo lo entiende el software.
+// Ver src/lib/hospital/unidades.ts para la regla y su golden.
+// ══════════════════════════════════════════════════════════════
+function unidadesCol(clinicId: string) { return collection(db, 'clinics', clinicId, 'unidades') }
+
+export async function getUnidades(clinicId: string): Promise<Unidad[]> {
+  const snap = await getDocs(unidadesCol(clinicId))
+  return snap.docs.map(d => ({ ...(d.data() as Omit<Unidad, 'id'>), id: d.id }))
+}
+
+/** Suscripción en vivo: la configuración de unidades cambia el censo de UCI. */
+export function suscribirUnidades(clinicId: string, cb: (u: Unidad[]) => void): () => void {
+  return onSnapshot(unidadesCol(clinicId),
+    snap => cb(snap.docs.map(d => ({ ...(d.data() as Omit<Unidad, 'id'>), id: d.id }))),
+    () => { /* permisos/red: se conserva lo último leído */ })
+}
+
+export async function guardarUnidad(clinicId: string, u: Omit<Unidad, 'id'> & { id?: string }): Promise<string> {
+  const { id, ...datos } = u
+  if (id) { await setDoc(doc(unidadesCol(clinicId), id), datos, { merge: true }); return id }
+  const ref = await addDoc(unidadesCol(clinicId), datos)
+  return ref.id
+}
+
+export async function borrarUnidad(clinicId: string, id: string): Promise<void> {
+  await deleteDoc(doc(unidadesCol(clinicId), id))
 }

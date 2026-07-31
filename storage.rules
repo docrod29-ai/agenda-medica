@@ -7,7 +7,13 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     match /consultas-audio/{uid}/{allPaths=**} {
-      allow write, delete: if request.auth != null && request.auth.uid == uid;
+      // Límites (auditoría maestra 2026-07 / reporte externo): solo AUDIO, y un tope
+      // de tamaño, para que nadie con cuenta suba archivos enormes o contenido
+      // arbitrario al namespace permitido (abuso de costo/almacenamiento).
+      allow write: if request.auth != null && request.auth.uid == uid
+        && request.resource.size < 80 * 1024 * 1024
+        && (request.resource.contentType.matches('audio/.*') || request.resource.contentType.matches('video/webm.*'));
+      allow delete: if request.auth != null && request.auth.uid == uid;
       allow read: if false;
     }
     // Formato de receta / hoja membretada / firma del médico (alta resolución).
@@ -16,7 +22,13 @@ service firebase.storage {
     // e inflaba el documento de config (error "1MB / cannot be written"). El proxy
     // same-origin sigue leyendo por la URL con token (independiente de reglas).
     match /receta-diseno/{uid}/{allPaths=**} {
-      allow write, delete: if request.auth != null && request.auth.uid == uid;
+      // Solo imágenes (membrete/firma/sello) o PDF, con tope de tamaño. La firma
+      // médica es prácticamente una credencial gráfica: se restringe el tipo para
+      // que no se suba contenido arbitrario a este namespace (reporte externo).
+      allow write: if request.auth != null && request.auth.uid == uid
+        && request.resource.size < 12 * 1024 * 1024
+        && request.resource.contentType in ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'];
+      allow delete: if request.auth != null && request.auth.uid == uid;
       allow read: if request.auth != null && request.auth.uid == uid;
     }
     // Todo lo demás: denegado.

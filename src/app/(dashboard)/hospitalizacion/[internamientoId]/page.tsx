@@ -5,8 +5,12 @@
 // Rol (médico/enfermería/admin) filtra las acciones visibles (vista, no seguridad).
 // ══════════════════════════════════════════════════════════════
 import { useState, useEffect, useMemo } from 'react'
+import { proyectarSignos, acvpu, concienciaExigeReSeleccion } from '@/lib/hospital/eventos'
 import { useParams, useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
+import { getUnidades } from '@/lib/hospital/firestore'
+import { TIPO_UNIDAD_LABEL, type Unidad } from '@/lib/hospital/unidades'
+import { tramosDeEpisodio, indicadoresEpisodio, reingresosACritica, enDias } from '@/lib/hospital/indicadores-episodio'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
@@ -16,7 +20,7 @@ import {
   agregarInterconsulta, responderInterconsulta, editarInterconsulta, borrarInterconsulta,
   agregarIndicacion, suspenderIndicacion, editarIndicacion, borrarIndicacion, registrarAdministracion,
   verificarIndicacionFarmacia, guardarMedicamentosCasa,
-  agregarSignos, getSignos, borrarSignos, getRolUsuario, setRolUsuario,
+  agregarSignos, corregirSignos, getSignos, getRolUsuario, setRolUsuario,
   crearSolicitudLab, getSolicitudesLabDeEpisodio, cargarResultadosLab, borrarSolicitudLab, crearAlerta, type AlertaHospital,
   trasladarInternamiento, cambiarTratante,
   suscribirInternamiento, suscribirSignos,
@@ -24,7 +28,7 @@ import {
 import { ESTUDIOS_LAB_RAPIDOS, SERVICIOS_HOSPITAL, type SolicitudLab, type ResultadoLab } from '@/types/hospital'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { getNotas } from '@/lib/expediente/firestore'
-import { getPatients, getDoctors } from '@/lib/firestore'
+import { getPatient, getDoctors } from '@/lib/firestore'
 import { cdsMedicamento, type AlertaCDS } from '@/lib/hospital/cds'
 import { code39Svg } from '@/lib/hospital/barcode'
 import { buscarMed } from '@/lib/hospital/medicamentos-catalogo'
@@ -43,7 +47,7 @@ import { Modal, Button, Spinner } from '@/components/ui'
 import {
   ArrowLeft, BedDouble, Stethoscope, Clock, FileText, Plus, LogOut, Pill,
   Send, Check, Activity, Syringe, Ban, ShieldCheck, Printer, AlertTriangle, ScanLine, ClipboardCheck, HeartPulse,
-  Pencil, Trash2,
+  Pencil, PencilLine, Trash2,
 } from 'lucide-react'
 
 const TIPO_EGRESO_OPCIONES: TipoEgreso[] = ['mejoria', 'maximo_beneficio', 'voluntaria', 'traslado', 'defuncion', 'otro']
@@ -89,7 +93,25 @@ export default function EpisodioPage() {
   const [indForm, setIndForm] = useState<{ tipo: TipoIndicacion; descripcion: string; dosis: string; via: string; frecuencia: string }>({ tipo: 'medicamento', descripcion: '', dosis: '', via: '', frecuencia: '' })
   const [medQuery, setMedQuery] = useState('')
   const [admNota, setAdmNota] = useState('')
-  const [sg, setSg] = useState<{ ta: string; fc: string; fr: string; temp: string; spo2: string; glucosa: string; dolor: string; conciencia: 'alerta' | 'alterada'; oxigeno: boolean }>({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'alerta', oxigeno: false })
+  const [sg, setSg] = useState<{ ta: string; fc: string; fr: string; temp: string; spo2: string; glucosa: string; dolor: string; conciencia: 'A' | 'C' | 'V' | 'P' | 'U'; oxigeno: boolean }>({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'A', oxigeno: false })
+  /**
+   * id del registro que se está CORRIGIENDO (null = captura nueva).
+   *
+   * Decisión del médico dueño (29-jul-2026): un signo vital se corrige siempre,
+   * sin ventana de tiempo, pero conservando el historial. Por eso corregir no
+   * edita ni borra: anexa un registro con `corrigeA` y `proyectarSignos` resuelve
+   * la cadena al pintar. Antes el único camino que ofrecía la pantalla era un
+   * bote de basura que las reglas de Firestore rechazan siempre.
+   */
+  const [corrigiendoId, setCorrigiendoId] = useState<string | null>(null)
+  /**
+   * true cuando el registro que se corrige guardaba la conciencia en el formato
+   * heredado 'alterada', que NO equivale a un solo nivel ACVPU: puede ser C, V, P
+   * o U. Elegir uno por el clínico sería inventar un dato clínico, así que el
+   * formulario avisa y obliga a re-seleccionarlo. ('alerta' sí es sinónimo exacto
+   * de 'A' y se traduce sin preguntar.)
+   */
+  const [concienciaSinMapeo, setConcienciaSinMapeo] = useState(false)
   const [patient, setPatient] = useState<Patient | null>(null)
   const [labs, setLabs] = useState<SolicitudLab[]>([])
   const [modalLab, setModalLab] = useState(false)
@@ -102,7 +124,20 @@ export default function EpisodioPage() {
   const [importTxt, setImportTxt] = useState('')
   const [modalConcil, setModalConcil] = useState(false)
   const [medsCasa, setMedsCasa] = useState('')
+  // Sello de la conciliación tal como se cargó: se manda al guardar para que el
+  // servidor rechace si alguien más la actualizó en medio (bloqueo optimista).
+  const [conciliadoAlVisto, setConciliadoAlVisto] = useState<string | null>(null)
   const [modalTraslado, setModalTraslado] = useState(false)
+  // Los indicadores del episodio necesitan el TIPO de cada unidad. Sin unidades
+  // configuradas se usa el catálogo de fábrica y el tiempo sin clasificar se
+  // declara aparte: nunca se reparte entre los demás tipos.
+  const [unidades, setUnidades] = useState<Unidad[]>([])
+  useEffect(() => {
+    if (!clinicId) return
+    let vivo = true
+    getUnidades(clinicId).then(u => { if (vivo) setUnidades(u) }).catch(() => { /* catálogo */ })
+    return () => { vivo = false }
+  }, [clinicId])
   const [trForm, setTrForm] = useState({ servicio: '', cama: '', tratante: '' })
   const [correctos, setCorrectos] = useState({ paciente: false, medicamento: false, dosis: false, via: false, hora: false })
   const [folioScan, setFolioScan] = useState('')
@@ -112,17 +147,20 @@ export default function EpisodioPage() {
     const i = await getInternamiento(clinicId, internamientoId)
     setInter(i)
     if (i) {
-      const [todas, sgs, pacientes, labsE] = await Promise.all([
+      // getPatient (una lectura) en vez de getPatients (colección entera) solo para
+      // resolver el nombre del paciente internado — mismo anti-patrón que la consulta corrigió.
+      const [todas, sgs, pac, labsE] = await Promise.all([
         getNotas(clinicId, i.pacienteId).catch(() => [] as NotaMedica[]),
         getSignos(clinicId, internamientoId).catch(() => [] as RegistroSignos[]),
-        getPatients(clinicId).catch(() => [] as Patient[]),
+        getPatient(clinicId, i.pacienteId).catch(() => null),
         getSolicitudesLabDeEpisodio(clinicId, internamientoId).catch(() => [] as SolicitudLab[]),
       ])
       setLabs(labsE)
       setNotas(todas.filter(n => n.internamientoId === internamientoId))
       setSignos(sgs)
-      setPatient(pacientes.find(p => p.id === i.pacienteId) ?? null)
+      setPatient(pac ?? null)
       setMedsCasa((i.medicamentosCasa ?? []).join('\n'))
+      setConciliadoAlVisto(i.conciliadoAl ?? null)
     }
     setLoading(false)
   }
@@ -164,6 +202,12 @@ export default function EpisodioPage() {
   }, [rol])
 
   const notasEpisodio = useMemo(() => [...notas].sort((a, b) => (a.fechaConsulta < b.fechaConsulta ? 1 : -1)), [notas])
+  /**
+   * Signos con la cadena de correcciones resuelta. `proyectarSignos` no descarta
+   * ni un registro: devuelve todos marcando cuál quedó corregido por cuál, para
+   * que la tabla pueda tachar el erróneo sin borrarlo del expediente.
+   */
+  const proyeccionSignos = useMemo(() => proyectarSignos(signos), [signos])
   const tieneIngreso = notas.some(n => n.tipo === 'ingreso')
   const esMedico = rol === 'medico'
   const puedeEnfermeria = rol === 'medico' || rol === 'enfermeria'
@@ -254,14 +298,18 @@ export default function EpisodioPage() {
   // Imprimir brazalete con código de barras (BCMA)
   const imprimirBrazalete = () => {
     if (!inter) return
+    // XSS almacenado (auditoría P2): servicio/cama/nombre son texto libre y se
+    // inyectan en document.write. Escapar TODO el HTML, no solo '<' del nombre.
+    const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!))
     const folio = internamientoId.slice(-8).toUpperCase()
     const svg = code39Svg(folio, { height: 60 })
     const w = window.open('', '_blank', 'width=520,height=300')
     if (!w) return
     w.document.write(`<html><head><title>Brazalete</title></head><body style="font-family:Arial,sans-serif;margin:0;padding:16px;">
       <div style="border:1px solid #000;border-radius:8px;padding:12px 16px;max-width:420px;">
-        <div style="font-size:18px;font-weight:bold;">${(inter.pacienteNombre || '').replace(/</g, '')}</div>
-        <div style="font-size:12px;color:#333;margin:2px 0 8px;">${inter.servicio}${inter.cama ? ' · Cama ' + inter.cama : ''} · Ingreso ${new Date(inter.fechaIngreso).toLocaleDateString('es-MX')}</div>
+        <div style="font-size:18px;font-weight:bold;">${esc(inter.pacienteNombre)}</div>
+        <div style="font-size:12px;color:#333;margin:2px 0 8px;">${esc(inter.servicio)}${inter.cama ? ' · Cama ' + esc(inter.cama) : ''} · Ingreso ${new Date(inter.fechaIngreso).toLocaleDateString('es-MX')}</div>
         ${svg}
         <div style="font-size:10px;color:#666;margin-top:6px;">Folio de internamiento — verificación de identidad (BCMA)</div>
       </div>
@@ -342,6 +390,33 @@ export default function EpisodioPage() {
         </div>
       </div>
 
+      {/* Banner de ALERGIAS — visible en TODO momento del internamiento (seguridad
+          del paciente). Antes las alergias solo entraban al CDS al PRESCRIBIR; el
+          resto del equipo (enfermería que administra, quien prescribe a mano) no
+          las veía. Rojo si hay; ámbar si no hay registro (no asumir "sin alergias"). */}
+      {(() => {
+        const raw = patient?.alergias
+        const lista = Array.isArray(raw)
+          ? raw.map(a => String(a).trim()).filter(Boolean)
+          : (raw ? String(raw).split(/[,;\n]+/).map(s => s.trim()).filter(Boolean) : [])
+        const negadas = lista.length === 1 && /^(no|niega|ninguna|sin)\b/i.test(lista[0])
+        if (lista.length && !negadas) {
+          return (
+            <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(220,38,38,.45)', background: 'rgba(220,38,38,.12)', color: '#dc2626' }}>
+              <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: 13.5, fontWeight: 700 }}>ALERGIAS:</span>
+              <span style={{ fontSize: 13.5, fontWeight: 600 }}>{lista.join(' · ')}</span>
+            </div>
+          )
+        }
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '8px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text3)' }}>
+            <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: 12.5 }}>{negadas ? 'Alergias negadas por el paciente.' : 'Sin alergias registradas — verifícalo antes de prescribir.'}</span>
+          </div>
+        )
+      })()}
+
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap', borderBottom: '1px solid var(--border)' }}>
         {([['resumen', 'Resumen / Notas'], ['indicaciones', `Indicaciones · MAR${indicaciones.filter(i => i.activa).length ? ' (' + indicaciones.filter(i => i.activa).length + ')' : ''}`], ['signos', 'Signos vitales'], ['laboratorio', `Laboratorio${labs.length ? ' (' + labs.length + ')' : ''}`], ['enfermeria', 'Enfermería'], ['interconsultas', `Interconsultas${interconsultas.length ? ' (' + interconsultas.length + ')' : ''}`]] as [Tab, string][]).map(([t, label]) => (
@@ -361,6 +436,7 @@ export default function EpisodioPage() {
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
             {!tieneIngreso && <Button icon={<Plus size={15} />} onClick={() => nuevaNota('ingreso')}>Nota de ingreso</Button>}
             <Button variant={tieneIngreso ? 'primary' : 'secondary'} icon={<Plus size={15} />} onClick={() => nuevaNota('evolucion')}>Evolución</Button>
+            <Button variant="secondary" icon={<Activity size={15} />} onClick={() => router.push(`/uci?internamiento=${internamientoId}`)}>Panel UCI</Button>
             <Button variant="secondary" icon={<Activity size={15} />} onClick={() => nuevaNota('nota_postoperatoria')}>Postoperatoria</Button>
             <Button variant="secondary" icon={<FileText size={15} />} onClick={() => nuevaNota('consentimiento')}>Consentimiento</Button>
             <Button variant="secondary" icon={<BedDouble size={15} />} onClick={() => { setTrForm({ servicio: inter.servicio, cama: inter.cama, tratante: inter.medicoTratanteNombre }); setModalTraslado(true) }}>Trasladar</Button>
@@ -371,6 +447,52 @@ export default function EpisodioPage() {
         {(inter.movimientos?.length ?? 0) > 0 && (
           <details style={{ marginBottom: 16, fontSize: 12.5, color: 'var(--text3)' }}>
             <summary style={{ cursor: 'pointer' }}>Movimientos del episodio ({inter.movimientos!.length})</summary>
+            {(() => {
+              // Los traslados guardan «Origen · Cama X → Destino · Cama Y».
+              // El destino es lo que hay tras la flecha, antes del « · Cama».
+              const movs = inter.movimientos!.filter(m => m.tipo === 'traslado').map(m => ({
+                fecha: m.fecha,
+                servicioDestino: (m.detalle.split('→')[1] ?? '').split('·')[0].trim(),
+              })).filter(m => m.servicioDestino !== '')
+              const inicial = (inter.movimientos!.find(m => m.tipo === 'traslado')?.detalle.split('→')[0] ?? '')
+                .split('·')[0].trim() || inter.servicio
+              const tramos = tramosDeEpisodio(inter.fechaIngreso, movs, inicial)
+              const fin = inter.fechaEgreso ?? new Date().toISOString()
+              const ind = indicadoresEpisodio(tramos, unidades, fin)
+              const rein = reingresosACritica(tramos, unidades)
+              const filas = Object.entries(ind.horasPorTipo)
+                .sort((a, b) => b[1] - a[1])
+              if (filas.length === 0 && ind.horasSinClasificar === 0) return null
+              return (
+                <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 10, background: 'var(--s2)', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.03em', color: 'var(--text3)', marginBottom: 6 }}>
+                    Estancia por tipo de unidad
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14 }}>
+                    {filas.map(([tipo, horas]) => (
+                      <span key={tipo} style={{ fontSize: 12.5, color: 'var(--text2)' }}>
+                        {TIPO_UNIDAD_LABEL[tipo as keyof typeof TIPO_UNIDAD_LABEL]}:{' '}
+                        <strong style={{ color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>{enDias(horas)} d</strong>
+                      </span>
+                    ))}
+                  </div>
+                  {rein.length > 0 && (
+                    <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 7, lineHeight: 1.55 }}>
+                      Reingresó a cuidados críticos {rein.length === 1 ? 'una vez' : `${rein.length} veces`},
+                      tras {rein.map(r => `${Math.round(r.horasFuera)} h`).join(' y ')} fuera.
+                      Si eso cuenta como reingreso temprano lo define su unidad: el sistema no fija la ventana.
+                    </div>
+                  )}
+                  {ind.horasSinClasificar > 0 && (
+                    <div style={{ fontSize: 12, color: '#d97706', marginTop: 7, lineHeight: 1.55 }}>
+                      {enDias(ind.horasSinClasificar)} d en servicios sin tipo de unidad
+                      ({ind.serviciosSinTipo.join(', ')}). No se reparten entre los demás:
+                      sería contar tiempo que no se sabe dónde ocurrió.
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 6 }}>
               {[...inter.movimientos!].reverse().map((m, i) => (
                 <div key={i}>{new Date(m.fecha).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })} · {m.tipo === 'traslado' ? 'Traslado' : 'Cambio de tratante'}: {m.detalle}{m.por ? ` · ${m.por}` : ''}</div>
@@ -483,7 +605,7 @@ export default function EpisodioPage() {
       {tab === 'signos' && (<>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
           <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Registro seriado de signos vitales.</div>
-          {puedeEnfermeria && !egresado && <Button size="sm" icon={<Plus size={14} />} onClick={() => setModalSignos(true)}>Registrar signos</Button>}
+          {puedeEnfermeria && !egresado && <Button size="sm" icon={<Plus size={14} />} onClick={() => { setCorrigiendoId(null); setConcienciaSinMapeo(false); setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'A', oxigeno: false }); setModalSignos(true) }}>Registrar signos</Button>}
         </div>
         {signos.length === 0 ? (
           <div style={{ fontSize: 13, color: 'var(--text3)', padding: 16, textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 12 }}>Sin registros de signos vitales.</div>
@@ -512,6 +634,13 @@ export default function EpisodioPage() {
             <GraficaSignos titulo="SpO₂" unidad="%" puntos={serie('spo2')} normalMin={92} normalMax={100} color="#0d9488" />
             <GraficaSignos titulo="Glucosa" unidad="mg/dL" puntos={serie('glucosa')} normalMin={70} normalMax={180} color="#0ea5e9" />
           </div>
+          {/* L6 (decisión del Dr): NEWS2 es la fuente de verdad del deterioro (arriba).
+              Las bandas de las gráficas son SOLO rango de referencia visual, NO los
+              cortes de NEWS2 (p. ej. NEWS2 da 0 pts con FC 51–90; una FC de 95 sale
+              del rango gráfico pero suma solo +1). Son conceptos distintos. */}
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: -6, marginBottom: 14, lineHeight: 1.4 }}>
+            Las bandas son <strong>rango de referencia visual</strong>, no los cortes de NEWS2. El deterioro se evalúa con el <strong>score NEWS2</strong> de arriba (Royal College), no con estas bandas.
+          </div>
           <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 12 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
               <thead>
@@ -521,8 +650,12 @@ export default function EpisodioPage() {
                 </tr>
               </thead>
               <tbody>
-                {[...signos].reverse().map(s => (
-                  <tr key={s.id} style={{ borderTop: '1px solid var(--border)', color: 'var(--text2)' }}>
+                {[...proyeccionSignos.registros].reverse().map(({ registro: s, estado, corrigeA }) => (
+                  <tr key={s.id} style={{ borderTop: '1px solid var(--border)', color: 'var(--text2)',
+                    // Un registro corregido NO se oculta ni se borra: se muestra
+                    // atenuado y tachado, porque el expediente debe conservar lo
+                    // que se capturó Y lo que se corrigió.
+                    ...(estado === 'corregido' ? { opacity: 0.5, textDecoration: 'line-through' } : {}) }}>
                     <td style={{ padding: '7px 10px', whiteSpace: 'nowrap' }}>{new Date(s.fecha).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
                     <td style={{ padding: '7px 10px' }}>{s.ta ?? '—'}</td>
                     <td style={{ padding: '7px 10px', color: (s.fc && (s.fc > 100 || s.fc < 50)) ? '#dc2626' : undefined }}>{s.fc ?? '—'}</td>
@@ -531,7 +664,20 @@ export default function EpisodioPage() {
                     <td style={{ padding: '7px 10px', color: (s.spo2 && s.spo2 < 92) ? '#dc2626' : undefined }}>{s.spo2 ?? '—'}</td>
                     <td style={{ padding: '7px 10px' }}>{s.glucosa ?? '—'}</td>
                     <td style={{ padding: '7px 10px' }}>{s.dolor != null ? `${s.dolor}/10` : '—'}</td>
-                    {puedeEnfermeria && !egresado && <td style={{ padding: '7px 10px', textAlign: 'right' }}><button title="Borrar registro mal capturado" onClick={async () => { if (!clinicId || !(await confirm('¿Borrar este registro de signos?', { peligro: true, confirmar: 'Borrar' }))) return; try { await borrarSignos(clinicId, internamientoId, s.id); toast('Registro borrado', 'success'); cargar() } catch { toast('No se pudo borrar', 'error') } }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)' }}><Trash2 size={13} /></button></td>}
+                    {puedeEnfermeria && !egresado && <td style={{ padding: '7px 10px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      {corrigeA && <span title="Este registro corrige a uno anterior" style={{ fontSize: 10.5, color: 'var(--text3)', marginRight: 8 }}>corrección</span>}
+                      {/* Corregir, NO borrar. El bote de basura que había aquí llamaba a
+                          borrarSignos, que `firestore.rules` rechaza con `allow delete: if false`:
+                          la enfermera recibía "No se pudo borrar" SIEMPRE. Ahora se anexa un
+                          registro con `corrigeA` — se puede corregir sin límite de tiempo
+                          (decisión del médico dueño, 29-jul-2026) y nada se sobrescribe. */}
+                      {estado !== 'corregido' && <button title="Corregir este registro (se conserva el original)" onClick={() => {
+                        setCorrigiendoId(s.id)
+                        setSg({ ta: s.ta ?? '', fc: s.fc != null ? String(s.fc) : '', fr: s.fr != null ? String(s.fr) : '', temp: s.temp != null ? String(s.temp) : '', spo2: s.spo2 != null ? String(s.spo2) : '', glucosa: s.glucosa != null ? String(s.glucosa) : '', dolor: s.dolor != null ? String(s.dolor) : '', conciencia: acvpu(s.conciencia), oxigeno: !!s.oxigeno })
+                        setConcienciaSinMapeo(concienciaExigeReSeleccion(s.conciencia))
+                        setModalSignos(true)
+                      }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)' }}><PencilLine size={13} /></button>}
+                    </td>}
                   </tr>
                 ))}
               </tbody>
@@ -569,6 +715,27 @@ export default function EpisodioPage() {
                       </div>
                     ))}
                   </div>
+                )}
+                {l.historialResultados && l.historialResultados.length > 0 && (
+                  <details style={{ marginTop: 8 }}>
+                    <summary style={{ fontSize: 11.5, color: 'var(--text3)', cursor: 'pointer' }}>
+                      {l.historialResultados.length} carga{l.historialResultados.length !== 1 ? 's' : ''} anterior{l.historialResultados.length !== 1 ? 'es' : ''} (corregidas)
+                    </summary>
+                    <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {l.historialResultados.slice().reverse().map((h, hi) => (
+                        <div key={hi} style={{ borderLeft: '2px solid var(--border)', paddingLeft: 8 }}>
+                          <div style={{ fontSize: 10.5, color: 'var(--text3)' }}>
+                            {h.procesadaPor} · {new Date(h.fechaResultado).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                          {h.resultados.map((r, i) => (
+                            <div key={i} style={{ fontSize: 11.5, display: 'flex', justifyContent: 'space-between', gap: 8, color: 'var(--text3)', textDecoration: 'line-through' }}>
+                              <span>{r.estudio}</span><span>{r.valor} {r.unidad ?? ''}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </details>
                 )}
                 {((rol === 'laboratorio' || rol === 'medico') && l.estado !== 'resultado') || (esMedico && l.estado === 'solicitada' && !egresado) ? (
                   <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -871,7 +1038,7 @@ export default function EpisodioPage() {
         footer={<><Button variant="secondary" onClick={() => setModalConcil(false)}>Cancelar</Button><Button loading={busy} onClick={async () => {
           if (!clinicId) return; setBusy(true)
           const meds = medsCasa.split('\n').map(s => s.trim()).filter(Boolean)
-          try { await guardarMedicamentosCasa(clinicId, internamientoId, meds); toast('Conciliación guardada', 'success'); setModalConcil(false); cargar() }
+          try { await guardarMedicamentosCasa(clinicId, internamientoId, meds, conciliadoAlVisto); toast('Conciliación guardada', 'success'); setModalConcil(false); cargar() }
           catch (e) { toast(e instanceof Error ? e.message : 'NO se guardó la conciliación de medicamentos. Reintenta.', 'error') }
           finally { setBusy(false) }
         }}>Guardar</Button></>}>
@@ -941,7 +1108,7 @@ export default function EpisodioPage() {
         footer={<><Button variant="secondary" onClick={() => setCargandoRes(null)}>Cancelar</Button><Button loading={busy} onClick={async () => {
           if (!clinicId || !cargandoRes || !inter) return; setBusy(true)
           // Respaldo determinista: marca crítico por rango aunque no se haya marcado a mano.
-          const resultados = resForm.filter(r => r.valor.trim()).map(r => ({ ...r, critico: r.critico || esCriticoLab(r.estudio, r.valor) }))
+          const resultados = resForm.filter(r => r.valor.trim()).map(r => ({ ...r, critico: r.critico || esCriticoLab(r.estudio, r.valor, r.unidad) }))
           try {
             await cargarResultadosLab(clinicId, cargandoRes.id, resultados, ROL_HOSPITAL_LABEL[rol])
             const criticos = resultados.filter(r => r.critico)
@@ -971,9 +1138,34 @@ export default function EpisodioPage() {
         footer={<><Button variant="secondary" onClick={() => setModalImport(false)}>Cancelar</Button><Button loading={busy} disabled={!importTxt.trim()} onClick={async () => {
           if (!clinicId || !inter) return; setBusy(true)
           try {
-            const { parsearLabsFhir } = await import('@/lib/hospital/fhir-import')
+            const { parsearLabsFhir, sujetosDelBundle, verificaSujeto } = await import('@/lib/hospital/fhir-import')
             const resultados = parsearLabsFhir(importTxt)
             if (!resultados.length) { toast('No se encontraron Observations en el FHIR', 'error'); return }
+            /**
+             * ¿DE QUIÉN son estos resultados?
+             *
+             * Antes no se preguntaba: se archivaban en el paciente del episodio
+             * abierto, y el `subject` del Bundle se descartaba. Pegar el Bundle de
+             * otro paciente por tener la pestaña equivocada metía sus laboratorios
+             * en este expediente, con mensaje de éxito y sin ningún aviso.
+             *
+             * No coincide → se BLOQUEA, no se advierte. Sobre resultados de
+             * laboratorio se transfunde y se ajusta insulina; un aviso que se
+             * puede aceptar de un clic no es una salvaguarda.
+             */
+            const veredicto = verificaSujeto(sujetosDelBundle(importTxt), { id: inter.pacienteId, nombre: inter.pacienteNombre })
+            if (veredicto.veredicto === 'no-coincide') {
+              toast(`BLOQUEADO: estos resultados son de ${veredicto.detalle}, no de ${inter.pacienteNombre}. Ábrelos en el episodio correcto.`, 'error')
+              return
+            }
+            /**
+             * Sin identificar NO es coincidencia: el Bundle simplemente no dice de
+             * quién es. Aquí sí decide una persona, pero viendo el nombre a quien
+             * se le van a archivar — que es justo lo que faltaba.
+             */
+            if (veredicto.veredicto === 'sin-identificar' && !(await confirm(
+              `Este archivo no identifica al paciente. Los ${resultados.length} resultados se archivarán en el expediente de ${inter.pacienteNombre}. ¿Es correcto?`
+            ))) return
             await crearSolicitudLab(clinicId, { clinicId, internamientoId, pacienteId: inter.pacienteId, pacienteNombre: inter.pacienteNombre, estudios: resultados.map(r => r.estudio), prioridad: 'rutina', solicitadaPor: 'Importación FHIR', fecha: new Date().toISOString() })
               .then(async (id) => { await cargarResultadosLab(clinicId, id, resultados, 'FHIR'); const crit = resultados.filter(r => r.critico); if (crit.length) await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'lab_critico', titulo: 'Valor de laboratorio CRÍTICO (FHIR)', detalle: crit.map(c => `${c.estudio}: ${c.valor} ${c.unidad ?? ''}`).join('; ') }) })
             toast(`Importados ${resultados.length} resultados`, 'success'); setModalImport(false); cargar()
@@ -984,16 +1176,18 @@ export default function EpisodioPage() {
       </Modal>
 
       {/* Registrar signos */}
-      <Modal open={modalSignos} onClose={() => setModalSignos(false)} title="Registrar signos vitales"
-        footer={<><Button variant="secondary" onClick={() => setModalSignos(false)}>Cancelar</Button><Button loading={busy} onClick={async () => {
+      <Modal open={modalSignos} onClose={() => { setModalSignos(false); setCorrigiendoId(null); setConcienciaSinMapeo(false) }} title={corrigiendoId ? "Corregir signos vitales" : "Registrar signos vitales"}
+        footer={<><Button variant="secondary" onClick={() => { setModalSignos(false); setCorrigiendoId(null); setConcienciaSinMapeo(false) }}>Cancelar</Button><Button loading={busy} onClick={async () => {
           if (!clinicId) return; setBusy(true)
           const num = (x: string) => x.trim() ? Number(x) : undefined
           try {
-            await agregarSignos(clinicId, internamientoId, { fecha: new Date().toISOString(), ta: sg.ta.trim() || undefined, fc: num(sg.fc), fr: num(sg.fr), temp: num(sg.temp), spo2: num(sg.spo2), glucosa: num(sg.glucosa), dolor: num(sg.dolor), conciencia: sg.conciencia, oxigeno: sg.oxigeno || undefined, por: config?.nombreMedico ?? '' })
+            const datos = { fecha: new Date().toISOString(), ta: sg.ta.trim() || undefined, fc: num(sg.fc), fr: num(sg.fr), temp: num(sg.temp), spo2: num(sg.spo2), glucosa: num(sg.glucosa), dolor: num(sg.dolor), conciencia: sg.conciencia, oxigeno: sg.oxigeno || undefined, por: config?.nombreMedico ?? '' }
+            if (corrigiendoId) await corregirSignos(clinicId, internamientoId, corrigiendoId, datos)
+            else await agregarSignos(clinicId, internamientoId, datos)
             // Alerta por deterioro: NEWS2 alto O parámetro individual en rojo (criterio Royal College)
             const n2 = calcularNews2({ ta: sg.ta, fc: num(sg.fc), fr: num(sg.fr), temp: num(sg.temp), spo2: num(sg.spo2), conciencia: sg.conciencia, oxigeno: sg.oxigeno })
             if (n2 && (n2.riesgo === 'alto' || n2.parametroRojo) && inter) await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'news2', titulo: `Deterioro clínico — NEWS2 ${n2.total} (${n2.riesgo})`, detalle: n2.recomendacion })
-            toast('Signos registrados', 'success'); setModalSignos(false); setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'alerta', oxigeno: false }); cargar()
+            toast(corrigiendoId ? 'Corrección registrada — el original se conserva' : 'Signos registrados', 'success'); setModalSignos(false); setCorrigiendoId(null); setConcienciaSinMapeo(false); setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'A', oxigeno: false }); cargar()
           } catch (e) {
             // Sin catch, el modal quedaba abierto y sin mensaje: parecía que no pasó
             // nada y el dato clínico simplemente no se guardaba.
@@ -1010,8 +1204,29 @@ export default function EpisodioPage() {
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 10, alignItems: 'center' }}>
           <div>
             <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block' }}>Conciencia</label>
-            <div style={{ display: 'flex', gap: 5, marginTop: 2 }}>
-              {(['alerta', 'alterada'] as const).map(c => <button key={c} type="button" onClick={() => setSg(s => ({ ...s, conciencia: c }))} className="rounded-full border px-2.5 py-1 text-xs" style={sg.conciencia === c ? { borderColor: c === 'alterada' ? '#dc2626' : '#0d9488', background: (c === 'alterada' ? '#dc2626' : '#0d9488') + '18', color: c === 'alterada' ? '#dc2626' : '#0d9488', fontWeight: 700 } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{c === 'alerta' ? 'Alerta' : 'Alterada'}</button>)}
+            {/* ACVPU completo (REG: antes solo alerta/alterada → se perdía la letra
+                clínica). NEWS2: A=0; C/V/P/U=3 (lo deriva news2.ts). Se guarda la letra. */}
+            {/* El registro original guardaba 'alterada', que no equivale a un solo
+                nivel ACVPU. No se adivina: se pide re-seleccionar. Ver `acvpu()`. */}
+            {concienciaSinMapeo && (
+              <div style={{ fontSize: 11.5, color: '#d97706', maxWidth: 320, lineHeight: 1.4, marginTop: 2 }}>
+                El registro original decía <strong>&laquo;alterada&raquo;</strong> (formato antiguo), que puede ser C, V, P o U. <strong>Vuelve a elegir el nivel</strong> — no se rellena solo para no suponer.
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 5, marginTop: 2, flexWrap: 'wrap' }}>
+              {([
+                { c: 'A', label: 'A · Alerta', col: '#0d9488' },
+                { c: 'C', label: 'C · Confusión', col: '#d97706' },
+                { c: 'V', label: 'V · Voz', col: '#d97706' },
+                { c: 'P', label: 'P · Dolor', col: '#dc2626' },
+                { c: 'U', label: 'U · No responde', col: '#dc2626' },
+              ] as const).map(({ c, label, col }) => (
+                <button key={c} type="button" onClick={() => setSg(s => ({ ...s, conciencia: c }))}
+                  title={label} className="rounded-full border px-2.5 py-1 text-xs"
+                  style={sg.conciencia === c
+                    ? { borderColor: col, background: col + '18', color: col, fontWeight: 700 }
+                    : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{label}</button>
+              ))}
             </div>
           </div>
           <label style={{ fontSize: 12.5, color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', marginTop: 14 }}>

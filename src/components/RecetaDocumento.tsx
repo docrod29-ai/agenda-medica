@@ -24,8 +24,8 @@
  */
 import { useState, useEffect, useMemo } from 'react'
 import type { ClinicConfig, Patient, RecetaConfig } from '@/types'
-import { PAPER_SIZES } from '@/lib/receta-template'
-import { paginarParaDocumento, type PaginaReceta } from '@/lib/receta-paginacion'
+import { PAPER_SIZES, papelPersonalizado } from '@/lib/receta-template'
+import { paginarParaDocumento, etiquetaVia, type PaginaReceta } from '@/lib/receta-paginacion'
 import type { Medicamento } from '@/types/expediente'
 
 export interface RecetaData {
@@ -77,7 +77,10 @@ function QrLocal({ contenido, tamMm }: { contenido: string; tamMm: number }) {
   useEffect(() => {
     let vivo = true
     import('qrcode')
-      .then((QR) => QR.toDataURL(contenido, { margin: 1, width: 320, errorCorrectionLevel: 'M' }))
+      // margin 2 = zona de silencio (quiet zone) suficiente para que el escáner lo
+      // aísle; width 640 = fuente de alta resolución para que aguante el reescalado
+      // de html2canvas/impresión sin difuminar los módulos.
+      .then((QR) => QR.toDataURL(contenido, { margin: 2, width: 640, errorCorrectionLevel: 'M' }))
       .then((url) => { if (vivo) setDataUrl(url) })
       .catch(() => { /* si falla, no rompe la impresión: simplemente no hay QR */ })
     return () => { vivo = false }
@@ -88,7 +91,10 @@ function QrLocal({ contenido, tamMm }: { contenido: string; tamMm: number }) {
     <img
       src={dataUrl}
       alt="QR de verificación"
-      style={{ width: `${tamMm}mm`, height: `${tamMm}mm`, background: 'rgba(255,255,255,0.9)', padding: 2, borderRadius: 2 }}
+      // Fondo BLANCO SÓLIDO (antes 0.9: la marca de agua del membrete se colaba y el
+      // escáner NO lo detectaba por falta de contraste). imageRendering:pixelated
+      // conserva los bordes de los módulos al reescalar (crítico para que se lea).
+      style={{ width: `${tamMm}mm`, height: `${tamMm}mm`, background: '#fff', padding: 3, borderRadius: 2, imageRendering: 'pixelated' }}
     />
   )
 }
@@ -114,13 +120,35 @@ function fmtFechaNac(fecha: string): string {
  * "flotar" arriba por el letterbox de objectFit:contain. Si no hay dimensiones,
  * cae al tamaño de papel estándar.
  */
-function paperEfectivo(recetaConfig: RecetaConfig): { widthMm: number; heightMm: number; cssPage: string } {
+export function paperEfectivo(recetaConfig: RecetaConfig): { widthMm: number; heightMm: number; cssPage: string } {
   if (recetaConfig.disenoCompletoDataUrl && recetaConfig.disenoWidthMm && recetaConfig.disenoHeightMm) {
     const w = recetaConfig.disenoWidthMm, h = recetaConfig.disenoHeightMm
     return { widthMm: w, heightMm: h, cssPage: `${w}mm ${h}mm` }
   }
+  // Papel PERSONALIZADO: manda lo que el médico escribió. Si las medidas no son
+  // utilizables se cae al placeholder del catálogo — nunca a una hoja inválida,
+  // que saldría en blanco sin avisar.
+  if (recetaConfig.paperSize === 'personalizado') {
+    const c = papelPersonalizado(recetaConfig.paperCustomWidthMm, recetaConfig.paperCustomHeightMm)
+    if (c) return { widthMm: c.widthMm, heightMm: c.heightMm, cssPage: c.cssPage }
+  }
   const p = PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta']
   return { widthMm: p.widthMm, heightMm: p.heightMm, cssPage: p.cssPage }
+}
+
+/**
+ * ¿Esta hoja se puede "hospedar" dentro de una carta vertical (216 × 279)?
+ *
+ * Solo si CABE con la carta en su orientación natural. Una hoja APAISADA como la
+ * receta continua de 250 × 150 mm NO cabe (250 > 216): meterla en carta es
+ * justo el defecto que se veía en la vista previa de macOS — una hoja vertical
+ * grande con la receta chiquita adentro. Esa se imprime a su tamaño real, al
+ * 100 %, y no se escala jamás.
+ */
+function puedeHospedarseEnCarta(paper: { widthMm: number; heightMm: number }): boolean {
+  const cabe = paper.widthMm <= CARTA.widthMm && paper.heightMm <= CARTA.heightMm
+  const esMenor = paper.widthMm < CARTA.widthMm || paper.heightMm < CARTA.heightMm
+  return cabe && esMenor
 }
 
 export function dimensionesImpresion(recetaConfig: RecetaConfig): { widthMm: number; heightMm: number; cssPage: string; esHostCarta: boolean } {
@@ -131,12 +159,46 @@ export function dimensionesImpresion(recetaConfig: RecetaConfig): { widthMm: num
   // funciona en CUALQUIER impresora sin configurar nada.
   // Solo quien tiene papel del tamaño exacto cargado elige 'papel-real'.
   const quiereCarta = (recetaConfig.imprimirEn ?? 'carta') === 'carta'
-  const cabeEnCarta = paper.widthMm <= CARTA.widthMm && paper.heightMm <= CARTA.heightMm
-  const esMenorQueCarta = paper.widthMm < CARTA.widthMm || paper.heightMm < CARTA.heightMm
-  if (quiereCarta && cabeEnCarta && esMenorQueCarta) {
+  if (quiereCarta && puedeHospedarseEnCarta(paper)) {
     return { ...CARTA, cssPage: 'letter', esHostCarta: true }
   }
   return { widthMm: paper.widthMm, heightMm: paper.heightMm, cssPage: paper.cssPage, esHostCarta: false }
+}
+
+/**
+ * Para la UI de configuración: si la hoja no cabe en carta, ofrecer "imprimir en
+ * hoja carta con línea de corte" es mentira — no hay nada que elegir.
+ */
+export function admiteHojaCarta(recetaConfig: RecetaConfig): boolean {
+  return puedeHospedarseEnCarta(paperEfectivo(recetaConfig))
+}
+
+/**
+ * Dimensiones del papel ORIENTADAS al diseño subido, IGUAL que HojaCustom.
+ *
+ * BUG que el Dr cazó en vivo: la hoja se orienta al diseño (si la imagen es
+ * apaisada, el papel se voltea a horizontal), pero los contenedores de vista
+ * previa y el @page de impresión usaban las medidas SIN orientar → hoja
+ * horizontal en marco vertical = recortada. Este hook carga el aspecto real de la
+ * imagen y devuelve las medidas ya orientadas, para que preview/print coincidan
+ * con la hoja renderizada. Sin diseño (o mientras carga), devuelve las de base.
+ */
+export function useRecetaPaperOrientado(recetaConfig: RecetaConfig): { widthMm: number; heightMm: number; apaisado: boolean } {
+  const url = recetaConfig.disenoCompletoDataUrl
+  const [imgAspect, setImgAspect] = useState<number | null>(null)
+  useEffect(() => {
+    if (!url) { setImgAspect(null); return }
+    const im = new window.Image()
+    im.onload = () => { if (im.naturalWidth && im.naturalHeight) setImgAspect(im.naturalWidth / im.naturalHeight) }
+    im.onerror = () => setImgAspect(null)
+    im.src = url
+  }, [url])
+  const base = paperEfectivo(recetaConfig)
+  if (!url || imgAspect == null) return { widthMm: base.widthMm, heightMm: base.heightMm, apaisado: base.widthMm > base.heightMm }
+  const corto = Math.min(base.widthMm, base.heightMm)
+  const largo = Math.max(base.widthMm, base.heightMm)
+  const apaisado = imgAspect > 1
+  return { widthMm: apaisado ? largo : corto, heightMm: apaisado ? corto : largo, apaisado }
 }
 
 /** Cuenta las hojas que generará el documento — para el preview wrapper del padre. */
@@ -200,8 +262,36 @@ export function RecetaDocumento({ data, config, recetaConfig, containerId = 'rec
   // caben, la paginación reparte en varias hojas (cada una repite el membrete).
   const cfg: RecetaConfig = useMemo(() => {
     if (!custom) return recetaConfig
-    const w = recetaConfig.disenoWidthMm ?? 140
-    const h = imgAspect ? Math.max(60, Math.round(w / imgAspect)) : (recetaConfig.disenoHeightMm ?? 190)
+    /**
+     * TAMAÑO DE HOJA = el del papel configurado, ORIENTADO según el membrete.
+     *
+     * Antes se fijaba el ancho en 140 mm y el alto salía del aspecto de la imagen. Un
+     * membrete APAISADO (media carta horizontal, 215×140) tiene aspecto ~1.54, así que
+     * el alto salía 140/1.54 ≈ 90 mm: la hoja quedaba achatada, el área de medicamentos
+     * mínima, y por eso se partía en 4 hojas / se encimaba el QR. Ahora la hoja toma las
+     * medidas reales del papel (media carta 140×215) puestas a lo largo o a lo alto según
+     * si el membrete es apaisado o vertical; la imagen la llena con object-fit:contain.
+     */
+    /**
+     * BUG (el Dr: "sale descuadrada"): esto leía `PAPER_SIZES[paperSize]` y NO
+     * `paperEfectivo`, así que ignoraba las medidas reales del diseño subido. La
+     * hoja blanca se dibujaba con las medidas del catálogo mientras el contenedor
+     * de la vista previa y el `@page` de impresión usaban las del diseño: dos
+     * tamaños distintos para la misma receta → contenido corrido fuera de la hoja.
+     * Ahora los tres salen de la MISMA fuente.
+     */
+    const pp = paperEfectivo(recetaConfig)
+    const corto = Math.min(pp.widthMm, pp.heightMm)
+    const largo = Math.max(pp.widthMm, pp.heightMm)
+    /**
+     * Mientras la imagen del membrete carga (`imgAspect == null`) se asumía
+     * VERTICAL. Con un papel ya apaisado (25 × 15) eso dibujaba la hoja de pie y
+     * luego saltaba al cargar la imagen. El default correcto es la orientación
+     * del PROPIO papel.
+     */
+    const apaisado = imgAspect != null ? imgAspect > 1 : pp.widthMm > pp.heightMm
+    const w = apaisado ? largo : corto
+    const h = apaisado ? corto : largo
     // Área de MEDICAMENTOS automática: debajo del campo más bajo (nombre/edad/fecha)
     // y con un margen inferior sano para no tapar el pie. Así el médico SOLO coloca
     // los campos y los medicamentos se acomodan solos — nada de calibrar mm.
@@ -218,11 +308,16 @@ export function RecetaDocumento({ data, config, recetaConfig, containerId = 'rec
      * "solo coloca los campos y los medicamentos se acomodan solos". Pero es un
      * VALOR POR DEFECTO: si el médico calibró los márgenes a mano, ganan los suyos.
      */
-    const calibradoAMano = !!recetaConfig.disenoMargenes
-    let margenes = recetaConfig.disenoMargenes
+    // Se respetan los márgenes calibrados A MANO SOLO si de verdad caben en la hoja
+    // (dejan ≥ 40 mm de contenido). Una calibración vieja hecha cuando la hoja se
+    // detectaba con otro alto puede tener un margen superior enorme (que achataba todo);
+    // en ese caso se descarta y se recalcula desde los campos.
+    const hm = recetaConfig.disenoMargenes
+    const calibradoAMano = !!hm && (hm.top + hm.bottom) < h - 40
+    let margenes = calibradoAMano ? hm : undefined
     const c = recetaConfig.disenoCampos
     if (c && !calibradoAMano) {
-      const ys = (['nombre', 'edad', 'sexo', 'fecha', 'folio'] as const)
+      const ys = (['nombre', 'edad', 'nacimiento', 'sexo', 'fecha', 'folio'] as const)
         .map(k => c[k]?.y).filter((v): v is number => typeof v === 'number')
       if (ys.length) {
         /**
@@ -247,7 +342,23 @@ export function RecetaDocumento({ data, config, recetaConfig, containerId = 'rec
         }
       }
     }
-    return { ...recetaConfig, disenoWidthMm: w, disenoHeightMm: h, disenoMargenes: margenes }
+    /**
+     * CLAMP FINAL — el área de contenido NUNCA puede colapsar.
+     *
+     * El cuerpo se dibuja en un recuadro absoluto `top:Xmm … bottom:Ymm` dentro de
+     * una hoja con `overflow:hidden`. Si los márgenes (calibrados A MANO, o el default
+     * 35/30) suman MÁS que la altura real `h` —muy común con un membrete APAISADO,
+     * donde `h = w / aspecto` sale baja— el recuadro se invierte y los MEDICAMENTOS
+     * desaparecen sin aviso. La protección MIN_CONTENIDO de arriba solo cubría el
+     * caso auto; aquí se aplica a TODOS (incluido el calibrado a mano y el default),
+     * y a los mismos márgenes que usa la paginación → render y conteo coinciden.
+     */
+    const MIN_CONTENIDO_MM = 22
+    const baseM = margenes ?? { top: 35, right: 12, bottom: 30, left: 12 }
+    const bottomC = Math.min(baseM.bottom, Math.max(0, h - MIN_CONTENIDO_MM))
+    const topC = Math.min(baseM.top, Math.max(0, h - bottomC - MIN_CONTENIDO_MM))
+    const margenesSeguros = { ...baseM, top: topC, bottom: bottomC }
+    return { ...recetaConfig, disenoWidthMm: w, disenoHeightMm: h, disenoMargenes: margenesSeguros }
   }, [custom, recetaConfig, imgAspect])
 
   const paper = paperEfectivo(cfg)
@@ -332,7 +443,7 @@ function CuerpoRx({ medicamentos, fontSize, startIndex, variant = 'plano', accen
         {medicamentos.map((m, i) => (
           <li key={i} style={{ marginBottom: 4, breakInside: 'avoid' }}>
             <strong>{m.nombre}{m.dosis ? ` ${m.dosis}` : ''}</strong>
-            {m.via && <span> · {m.via}</span>}
+            {m.via && <span> · {etiquetaVia(m.via)}</span>}
             <br />
             <span style={{ fontSize: fontSize - 0.5 }}>
               {[m.frecuencia, m.duracion && `por ${m.duracion}`, m.indicacion].filter(Boolean).join(' · ')}
@@ -357,7 +468,7 @@ function CuerpoRx({ medicamentos, fontSize, startIndex, variant = 'plano', accen
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: fontSize + 0.5, fontWeight: 700, color: '#111', lineHeight: 1.25 }}>
               {m.nombre}{m.dosis ? ` ${m.dosis}` : ''}
-              {m.via && <span style={{ fontWeight: 500, color: '#666', fontSize: fontSize - 1 }}> · {m.via}</span>}
+              {m.via && <span style={{ fontWeight: 500, color: '#666', fontSize: fontSize - 1 }}> · {etiquetaVia(m.via)}</span>}
             </div>
             <div style={{ fontSize: fontSize - 0.5, color: '#444', lineHeight: 1.4, marginTop: 1 }}>
               {[m.frecuencia, m.duracion && `por ${m.duracion}`, m.indicacion].filter(Boolean).join(' · ')}
@@ -429,7 +540,7 @@ function IndicadorHoja({ pagina }: { pagina: PaginaReceta }) {
   return (
     <div style={{
       position: 'absolute', bottom: '2mm', right: '4mm',
-      fontSize: 8, color: '#9ca3af', fontVariantNumeric: 'tabular-nums',
+      fontSize: 8, color: '#6b7280', fontVariantNumeric: 'tabular-nums',
     }}>
       Hoja {pagina.numero} de {pagina.total}
     </div>
@@ -474,6 +585,17 @@ function HojaCustom({
   const valorCampo = (k: string): string =>
     k === 'nombre' ? (data.paciente?.nombre ?? '')
     : k === 'edad' ? (data.paciente?.edad ? String(data.paciente.edad) : '')
+    /**
+     * Fecha de nacimiento: la exigen las farmacias para dispensar.
+     *
+     * Va CON su etiqueta («Fecha de nacimiento: 15/03/1984»), a diferencia del
+     * nombre o la edad. La razón: el membrete impreso del médico ya trae escrito
+     * «Nombre:» y «Edad:», pero NO trae esta etiqueta —es un requisito nuevo—, así
+     * que una fecha suelta sobre el papel no se distinguiría de la fecha de
+     * expedición. Mismo formateador que el encabezado por defecto: dos formatos de
+     * fecha en la misma receta se leen como un error.
+     */
+    : k === 'nacimiento' ? (data.paciente?.fechaNacimiento ? `Fecha de nacimiento: ${fmtFechaNac(data.paciente.fechaNacimiento)}` : '')
     : k === 'sexo' ? (data.paciente?.sexo ?? '')
     : k === 'fecha' ? data.fecha.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' })
     : k === 'folio' ? data.folio : ''
@@ -728,14 +850,14 @@ function HojaGenerada({
             display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, flexWrap: 'wrap',
           }}>
             <div style={{ fontSize: 11.5 }}>
-              <span style={{ fontSize: 8.5, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5, display: 'block' }}>Paciente</span>
+              <span style={{ fontSize: 8.5, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5, display: 'block' }}>Paciente</span>
               <span style={{ fontWeight: 700, color: '#111' }}>{data.paciente?.nombre ?? '—'}</span>
             </div>
             <div style={{ fontSize: 10, color: '#555', textAlign: 'right' }}>
               {data.paciente?.edad ? <>{data.paciente.edad} años{data.paciente?.sexo ? ' · ' : ''}</> : ''}
               {data.paciente?.sexo || ''}
-              {data.paciente?.fechaNacimiento && <div style={{ fontSize: 9.5, color: '#888' }}>F. nac.: {fmtFechaNac(data.paciente.fechaNacimiento)}</div>}
-              {data.paciente?.telefono && <div style={{ fontSize: 9.5, color: '#888' }}>Tel. {data.paciente.telefono}</div>}
+              {data.paciente?.fechaNacimiento && <div style={{ fontSize: 9.5, color: '#555' }}>F. nac.: {fmtFechaNac(data.paciente.fechaNacimiento)}</div>}
+              {data.paciente?.telefono && <div style={{ fontSize: 9.5, color: '#555' }}>Tel. {data.paciente.telefono}</div>}
             </div>
           </div>
 
@@ -771,7 +893,7 @@ function HojaGenerada({
           {pagina.esPrimera && (
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 7 }}>
               <span style={{ fontSize: 24, fontWeight: 700, color: accent, fontFamily: 'Georgia, serif', lineHeight: 1 }}>℞</span>
-              <span style={{ fontSize: 10, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: 0.8 }}>Prescripción</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: '#555', textTransform: 'uppercase', letterSpacing: 0.8 }}>Prescripción</span>
             </div>
           )}
           <CuerpoRx medicamentos={pagina.medicamentos} fontSize={11} startIndex={startIndex} variant="limpio" accent={accent} />
@@ -851,7 +973,7 @@ function HojaGenerada({
           {recetaConfig.mostrarQR && (
             <div style={{ position: 'absolute', bottom: '8mm', right: '10mm', textAlign: 'center' }}>
               <QrLocal contenido={data.verificacionUrl || `Folio:${data.folio}`} tamMm={14} />
-              <div style={{ fontSize: 7, color: '#999', marginTop: 1 }}>Verificación</div>
+              <div style={{ fontSize: 7, color: '#666', marginTop: 1 }}>Verificación</div>
             </div>
           )}
         </>
@@ -926,7 +1048,7 @@ function EncabezadoAuto({
         <div>
           <div style={{ fontSize: 16, fontWeight: 800, color: '#111', letterSpacing: -0.2, lineHeight: 1.1 }}>{medico}</div>
           {especialidad && <div style={{ fontSize: 10.5, color: accent, fontWeight: 600, marginTop: 1 }}>{especialidad}</div>}
-          {cedula !== '—' && <div style={{ fontSize: 9, color: '#888', marginTop: 1 }}>Cédula Prof. {cedula}</div>}
+          {cedula !== '—' && <div style={{ fontSize: 9, color: '#555', marginTop: 1 }}>Cédula Prof. {cedula}</div>}
         </div>
       </div>
       <div style={{ textAlign: 'right', fontSize: 9, color: '#666', lineHeight: 1.5, paddingTop: 2 }}>

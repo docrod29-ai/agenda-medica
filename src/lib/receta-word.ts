@@ -66,7 +66,16 @@ export function construirRecetaHTML(
    * que una ruta relativa no resuelve contra nada: la imagen sale rota. Solo se
    * absolutiza cuando ya no es un data URI ni una URL completa.
    */
+  // NOTA sobre el WORD (auditoría flujo 2026-07): Word NO reproduce bien un DISEÑO a
+  // página completa con texto superpuesto (sale "mocho y mal acomodado"). Por eso el
+  // Word es la versión LIMPIA y editable (encabezado de texto o el membrete pequeño),
+  // pensada para pegar sobre tu papel o editar; el diseño completo va FIEL en
+  // Imprimir/PDF. Solo se usa el membrete CHICO de plantilla si existe.
   const membreteSrc = (() => {
+    // Si el médico usa un DISEÑO a página completa, el Word NO lo reproduce bien
+    // (mezcla la maqueta con su arte = "mocho"). Con diseño → texto limpio; el arte
+    // va fiel en Imprimir/PDF. Solo se usa el membrete CHICO cuando NO hay diseño.
+    if (recetaConfig.disenoCompletoDataUrl) return ''
     const u = recetaConfig.membreteDataUrl
     if (!u) return ''
     if (/^(data:|https?:)/i.test(u)) return u
@@ -74,7 +83,7 @@ export function construirRecetaHTML(
     return new URL(u, window.location.origin).href
   })()
 
-  // Encabezado: membrete subido (imagen) o datos del médico generados
+  // Encabezado: membrete pequeño de plantilla o datos del médico (limpio)
   const encabezado = membreteSrc
     ? `<img src="${membreteSrc}" style="max-width:100%;max-height:140px;display:block;margin:0 auto 8pt;" />`
     : `
@@ -131,7 +140,7 @@ export function construirRecetaHTML(
       <div style="border-top:1pt solid #000;width:240pt;margin:0 auto;padding-top:4pt;font-size:10pt;">
         <b>${esc(medico)}</b><br/>
         ${especialidad ? esc(especialidad) + '<br/>' : ''}
-        Cédula Prof. ${esc(cedula)}
+        ${cedula ? 'Cédula Prof. ' + esc(cedula) : '[FALTA CÉDULA PROFESIONAL]'}
         ${recetaConfig.registroDGP ? '<br/>Reg. DGP/SSA ' + esc(recetaConfig.registroDGP) : ''}
       </div>
     </div>`

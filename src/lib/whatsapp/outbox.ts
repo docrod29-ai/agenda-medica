@@ -18,6 +18,14 @@ export interface CargaProactiva {
   clave: ClavePlantilla
   datos: DatosProactivos
   textoLibre: string
+  /**
+   * Contexto opcional para reconstruir efectos secundarios al REENVIAR desde la
+   * cola. Para la oferta de lista de espera lleva los datos de la sesión
+   * `esperando_lista` (que el handler inline crea, pero el drenado del cron no):
+   * sin esto, una oferta reenviada por el outbox deja al paciente sin sesión y su
+   * "SÍ" cae al menú por defecto → el hueco se pierde.
+   */
+  meta?: Record<string, unknown>
 }
 
 export interface EntradaOutbox extends CargaProactiva {

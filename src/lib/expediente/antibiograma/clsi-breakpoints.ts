@@ -10,7 +10,7 @@
  * ⚠ Sólo se incluyen combinaciones bug-fármaco con punto de corte VIGENTE y no
  *    condicionadas a foco (las de "solo IVU no complicada" se marcan uti:true).
  */
-import { norm } from './util'
+import { norm, coincideAntibiotico } from './util'
 
 export type GrupoCLSI =
   | 'enterobacterales' | 'pseudomonas' | 'acinetobacter'
@@ -46,7 +46,10 @@ const FARMACO_ALIAS: Record<string, string[]> = {
   'ampicilina-sulbactam': ['ampicilina-sulbactam', 'ampicilina/sulbactam', 'unasyn'],
   'piperacilina-tazobactam': ['piperacilina-tazobactam', 'piperacilina/tazobactam', 'tazocin'],
   'ceftolozano-tazobactam': ['ceftolozano-tazobactam', 'ceftolozano/tazobactam', 'zerbaxa'],
-  'ceftazidima-avibactam': ['ceftazidima-avibactam', 'ceftazidima/avibactam', 'avibactam'],
+  // Auditoría 2026-07 (P0): se quita el alias suelto 'avibactam' (casaba
+  // «aztreonam-avibactam»). Sin entrada propia, aztreonam-avibactam devuelve
+  // «sin punto de corte» —seguro— hasta que el Dr valide sus breakpoints.
+  'ceftazidima-avibactam': ['ceftazidima-avibactam', 'ceftazidima/avibactam', 'caz-avi'],
   'imipenem-relebactam': ['imipenem-relebactam', 'imipenem/relebactam', 'relebactam'],
   'meropenem-vaborbactam': ['meropenem-vaborbactam', 'meropenem/vaborbactam', 'vaborbactam'],
   'ticarcilina-clavulanato': ['ticarcilina-clavulanico', 'ticarcilina/clavulanico', 'ticarcilina-clavulanato'],
@@ -135,7 +138,7 @@ const ENTEROBACTERALES: Record<string, Corte> = {
 
 /** Tabla 2B-1 — Pseudomonas aeruginosa (CLSI M100-Ed35, 2025). CMI en µg/mL. */
 const PSEUDOMONAS: Record<string, Corte> = {
-  'piperacilina-tazobactam': { sMax: 16, rMin: 64 },
+  'piperacilina-tazobactam': { sMax: 16, rMin: 64 },   // Dr-validado M100-Ed35: S≤16/4, I=32/4, R≥64/4 (32 es I, NO SDD)
   'ceftazidima-avibactam': { sMax: 8, rMin: 16 },
   'ceftolozano-tazobactam': { sMax: 4, rMin: 16 },
   'imipenem-relebactam': { sMax: 2, rMin: 8 },
@@ -174,7 +177,7 @@ const ACINETOBACTER: Record<string, Corte> = {
   tobramicina: { sMax: 4, rMin: 16 },
   amikacina: { sMax: 16, rMin: 64 },
   netilmicina: { sMax: 8, rMin: 32 },
-  minociclina: { sMax: 1, rMin: 4 },
+  minociclina: { sMax: 1, rMin: 4 },   // Dr-validado M100-Ed35: S≤1, I=2, R≥4 (disco: si I, confirmar por CMI)
   ciprofloxacino: { sMax: 1, rMin: 4 },
   levofloxacino: { sMax: 2, rMin: 8 },
   cotrimoxazol: { sMax: 2, rMin: 4 },
@@ -342,7 +345,11 @@ function claveFarmaco(antibiotico: string): string | null {
   // más específico primero (combinaciones antes que el componente suelto)
   const orden = Object.keys(FARMACO_ALIAS).sort((x, y) => y.length - x.length)
   for (const clave of orden) {
-    if (FARMACO_ALIAS[clave].some(s => a.includes(norm(s)))) return clave
+    // Auditoría 2026-07 (P0/P1, muchos auditores): antes era `a.includes(s)` crudo,
+    // así que «Aztreonam-avibactam», «Cefepime-taniborbactam» y otros BL/BLI nuevos
+    // recibían los puntos de corte del componente suelto o de otra combinación. Se
+    // usa el matcher endurecido con límite de token y regla de inhibidores.
+    if (FARMACO_ALIAS[clave].some(s => coincideAntibiotico(a, s))) return clave
   }
   return null
 }
@@ -354,11 +361,44 @@ export interface CategoriaCLSI {
   corte: Corte
   referencia: string
   soloUTI: boolean
+  /**
+   * true cuando el punto de corte NO aplica a este caso (foco no urinario, o
+   * fosfomicina en Enterobacterales que no sean E. coli): la categoría NO debe
+   * mostrarse como susceptible utilizable. Se prefiere perder sensibilidad a
+   * inducir un error terapéutico.
+   */
+  noAplicable?: boolean
+  motivoNoAplicable?: string
+  /**
+   * La categoría NO es «S» porque la CMI vino censurada con «>» y el valor
+   * reportado ya alcanza el techo de susceptibilidad (E0-15c). Permite que la
+   * salida explique el porqué en vez de mostrar una I sin motivo.
+   */
+  desdeCmiCensurada?: boolean
 }
 
-/** Interpreta una CMI (µg/mL) según el punto de corte CLSI del grupo/fármaco.
- *  `sitio`='snc' aplica la variante MENÍNGEA (neumococo) cuando existe. */
-export function interpretarCMI(organismo: string, antibiotico: string, cmi: number, sitio?: string): CategoriaCLSI | null {
+/**
+ * Interpreta una CMI (µg/mL) según el punto de corte CLSI del grupo/fármaco.
+ * `sitio`='snc' aplica la variante MENÍNGEA (neumococo) cuando existe.
+ *
+ * `censura` es el operador con el que el laboratorio reportó la CMI (E0-15c,
+ * decisión del médico dueño): una CMI **es un intervalo, no un número**.
+ *
+ *   «>2 mg/L»  ⇒  el valor real pertenece a (2, +∞)
+ *   «<0.12»    ⇒  el valor real pertenece a (−∞, 0.12)
+ *
+ * Por tanto, si el valor reportado con «>» ya alcanza el techo de susceptibilidad,
+ * **S es matemáticamente imposible**: el valor real está por encima. Descartar el
+ * operador convertía un neumococo penicilina «>2» en «2 → S = tratable con
+ * penicilina», que es un falso susceptible en meningitis.
+ */
+export function interpretarCMI(
+  organismo: string,
+  antibiotico: string,
+  cmi: number,
+  sitio?: string,
+  censura?: '>' | '<',
+): CategoriaCLSI | null {
   const grupo = grupoDe(organismo)
   if (!grupo || !(cmi >= 0)) return null
   const clave = claveFarmaco(antibiotico)
@@ -373,5 +413,38 @@ export function interpretarCMI(organismo: string, antibiotico: string, cmi: numb
   else if (corte.sinS) categoria = 'I'            // colistina: ≤2 = I, ≥4 = R
   else if (cmi <= corte.sMax) categoria = 'S'
   else categoria = corte.sdd ? 'SDD' : 'I'        // banda intermedia: SDD (dosis-dependiente) o I
-  return { categoria, corte, referencia: REF_TABLA[grupo], soloUTI: !!corte.uti }
+
+  /**
+   * CMI CENSURADA «>X» — S es imposible cuando X ya alcanza el techo de S.
+   * El valor real está por ENCIMA de X, así que como mínimo cae en la banda
+   * intermedia. No se sube a R: eso sería inventar en la otra dirección (el
+   * valor real podría estar entre sMax y rMin). Se marca `desdeCmiCensurada`
+   * para que la salida pueda decir POR QUÉ no es S.
+   */
+  let desdeCmiCensurada = false
+  if (censura === '>' && categoria === 'S' && cmi >= corte.sMax) {
+    categoria = corte.sdd ? 'SDD' : 'I'
+    desdeCmiCensurada = true
+  }
+
+  // GATING DE FOCO/ORGANISMO para fármacos SOLO-IVU (nitrofurantoína, fosfomicina).
+  // Decisión clínica del Dr: la celda NO debe verse "S/verde" fuera de su indicación
+  // validada — un falso «susceptible» es más peligroso que un falso «no utilizable».
+  if (corte.uti) {
+    const esUrinario = sitio === 'orina'
+    const esEcoli = /escherichia|e\.?\s*coli|\bcoli\b/.test(norm(organismo))
+    let motivo = ''
+    if (!esUrinario) {
+      motivo = 'Solo aplicable en IVU. Si es urocultivo, marca el sitio «Orina»; en cualquier otro foco (sangre, hueso, abdomen, próstata…) no uses este resultado.'
+    } else if (clave === 'fosfomicina' && grupo === 'enterobacterales' && !esEcoli) {
+      // El punto de corte de fosfomicina CLSI está validado SOLO en E. coli urinaria;
+      // no se extrapola a Klebsiella/Enterobacter/Citrobacter/Serratia/Proteus/Morganella.
+      motivo = 'Fosfomicina: punto de corte CLSI validado solo en E. coli urinaria. No aplicable a esta especie (fosA cromosómica; la «S» in vitro no predice eficacia).'
+    }
+    if (motivo) {
+      return { categoria, corte, referencia: REF_TABLA[grupo], soloUTI: true, noAplicable: true, motivoNoAplicable: motivo, desdeCmiCensurada }
+    }
+  }
+
+  return { categoria, corte, referencia: REF_TABLA[grupo], soloUTI: !!corte.uti, desdeCmiCensurada }
 }

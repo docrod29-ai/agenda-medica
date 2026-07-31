@@ -43,9 +43,11 @@ export function GraficaSignos({
         <text x={2} y={y(lo) + 4} fontSize="9" fill="var(--text3)">{lo}</text>
         {/* línea */}
         <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-        {/* puntos */}
+        {/* puntos — fuera del rango de REFERENCIA en ámbar (no rojo): la banda es
+            referencia visual, NO los cortes de NEWS2 (decisión del Dr, L6). El
+            score/color de NEWS2 se muestra aparte, calculado por news2.ts. */}
         {puntos.map((p, i) => (
-          <circle key={i} cx={x(i)} cy={y(p.valor)} r={2.6} fill={fueraDeRango(p.valor) ? '#dc2626' : color} />
+          <circle key={i} cx={x(i)} cy={y(p.valor)} r={2.6} fill={fueraDeRango(p.valor) ? '#d97706' : color} />
         ))}
       </svg>
     </div>

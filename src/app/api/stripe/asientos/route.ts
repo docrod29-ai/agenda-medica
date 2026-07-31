@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarMiembro } from '@/lib/auth-server'
+import { verificarCapacidad } from '@/lib/authz/verificar'
 import { stripe, priceMedicoDe, nivelDePlan, type PlanKey } from '@/lib/stripe'
 import { contarMedicos } from '@/lib/ai-keys'
 import { MEDICO_EXTRA, planPorNivel } from '@/lib/planes-ia'
@@ -39,6 +40,9 @@ async function estado(clinicId: string) {
 export async function GET(req: NextRequest) {
   const clinicId = req.nextUrl.searchParams.get('clinicId') ?? ''
   if (!clinicId) return NextResponse.json({ ok: false, error: 'Falta clinicId' }, { status: 400 })
+  // E0-07: declarada como `administrar` en REGISTRO_RUTAS, pero SIN activar todavía:
+  // cerrar el estado de asientos a medico/admin estrecha el acceso de usuarios
+  // reales y eso lo decide el médico dueño, no esta unidad.
   const acceso = await verificarMiembro(req, clinicId)
   if (!acceso.ok) return acceso.response
   return NextResponse.json({ ok: true, ...(await estado(clinicId)) })
@@ -49,7 +53,8 @@ export async function POST(req: NextRequest) {
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }
   const clinicId = body.clinicId ?? ''
   if (!clinicId) return NextResponse.json({ ok: false, error: 'Falta clinicId' }, { status: 400 })
-  const acceso = await verificarMiembro(req, clinicId)
+  // E0-07: era `verificarMedico`; `administrar` es el mismo conjunto {medico, admin}.
+  const acceso = await verificarCapacidad(req, clinicId, 'administrar')
   if (!acceso.ok) return acceso.response
 
   try {

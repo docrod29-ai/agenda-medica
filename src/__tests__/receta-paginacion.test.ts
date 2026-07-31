@@ -51,6 +51,21 @@ describe('paginarReceta', () => {
     expect(paginas[0].medicamentos).toHaveLength(2)
   })
 
+  it('formato propio (firma en todas las hojas): pocos meds → 1 SOLA hoja, sin hoja vacía', () => {
+    // Regresión del bug que vio el Dr.: 4 medicamentos que caben en una hoja
+    // salían en DOS, con la 2ª vacía ("Continuación… Hoja 2 de 2"). Causa: la
+    // firma se contaba dos veces (reservada por hoja + sumada en la cola).
+    const paginas = paginarReceta({
+      ...OPTS_BASE,
+      medicamentos: [med('Metformina'), med('Insulina glargina'), med('Dapagliflozina'), med('Telmisartán')],
+      estudios: [],
+      firmaEnTodasLasHojas: true,
+    })
+    expect(paginas).toHaveLength(1)
+    expect(paginas[0].medicamentos).toHaveLength(4)
+    expect(paginas[0].total).toBe(1)
+  })
+
   it('muchos medicamentos → multi-hoja sin perder NINGUNO', () => {
     const meds = Array.from({ length: 20 }, (_, i) => med(`Medicamento número ${i + 1}`))
     const paginas = paginarReceta({ ...OPTS_BASE, medicamentos: meds, estudios: [] })

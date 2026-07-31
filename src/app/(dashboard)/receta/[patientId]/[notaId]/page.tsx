@@ -10,6 +10,7 @@
  */
 import { useState, useEffect, useMemo } from 'react'
 import { huellaImpreso } from '@/lib/expediente/huella-impreso'
+import { folioDeNota } from '@/lib/receta-folio'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useDoctors } from '@/hooks/useDoctors'
 import { logAudit } from '@/lib/expediente/audit-log'
@@ -17,23 +18,31 @@ import { useToast } from '@/context/ToastContext'
 import { useParams, useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { imprimirElemento } from '@/lib/print-element'
+import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
 import { entradaPorMedico, overrideRecetaValido, firmaValida } from '@/lib/impreso-medico'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { getNota } from '@/lib/expediente/firestore'
+import { corregirViaParenteral } from '@/lib/expediente/via-parenteral'
+import { etiquetaVia } from '@/lib/receta-paginacion'
 import { getPatient } from '@/lib/firestore'
 import type { NotaMedica, Medicamento } from '@/types/expediente'
 import type { Patient } from '@/types'
-import { RecetaDocumento, dimensionesImpresion, contarPaginas } from '@/components/RecetaDocumento'
+import { RecetaDocumento, dimensionesImpresion, contarPaginas, useRecetaPaperOrientado } from '@/components/RecetaDocumento'
 import { RecetaPreviewWrapper } from '@/components/RecetaPreviewWrapper'
 import { PAPER_SIZES } from '@/lib/receta-template'
-import { descargarComoPDF } from '@/lib/pdf-download'
+import { descargarPaginasComoPDF } from '@/lib/pdf-download'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
 import { detectarInteracciones, detectarControlados } from '@/lib/expediente/farmacovigilancia'
 import { alergiasDe } from '@/lib/seguridad/alergias'
-import { revisarDosis, extraerMg, extraerTomasDia, type AlertaDosis } from '@/lib/seguridad/dosis'
+import { revisarDosis, extraerMg, extraerTomasDia, esDosisPorKg, type AlertaDosis } from '@/lib/seguridad/dosis'
 import { evaluarFuncionRenal, ajusteRenalFarmacos } from '@/lib/expediente/funcion-renal'
+// E0-05: `kg` se importa con alias porque en este archivo `mg` ya es una variable
+// local del bucle de dosis; el alias evita cualquier sombra accidental.
+import { mgPorDl, kg as kgMasa, cantidad, valorEn } from '@/types/clinical-quantity'
 import { descargarRecetaWord } from '@/lib/receta-word'
+import { auth } from '@/lib/firebase'
+import { registrarRecetados, cargarRecetasFrecuentes, type MedRecetado } from '@/lib/learning'
 import {
   ArrowLeft, Download, Loader2, Plus, Trash2, Printer, Settings, AlertCircle, FileText,
   AlertTriangle, Lock, Droplet, Ban, Scale, Lightbulb, Scissors,
@@ -71,6 +80,8 @@ export default function GeneradorRecetaPage() {
   const [notaParaPaciente, setNotaParaPaciente] = useState('')
   const [diagnostico, setDiagnostico] = useState('')
   const [descargando, setDescargando] = useState(false)
+  // Learning Engine: "tus más recetados" del propio médico (fail-safe).
+  const [frecuentes, setFrecuentes] = useState<MedRecetado[]>([])
 
   // Folio único (timestamp corto)
   /**
@@ -84,11 +95,15 @@ export default function GeneradorRecetaPage() {
    *
    * Ahora sale del `notaId`, que es único y no cambia. Sin nota (caso raro) se cae
    * al reloj, que es mejor que nada.
+   *
+   * E0-01: el cálculo se movió a `folioDeNota` para que el SERVIDOR use
+   * exactamente la misma función al acuñar el QR. Si cada lado calculara lo suyo,
+   * el papel y el certificado podrían llevar folios distintos.
    */
-  const folio = useMemo(() => {
-    const base = (notaId ?? '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
-    return `RX-${base ? base.slice(-7) : Date.now().toString(36).toUpperCase().slice(-7)}`
-  }, [notaId])
+  const folio = useMemo(
+    () => folioDeNota(notaId) || `RX-${Date.now().toString(36).toUpperCase().slice(-7)}`,
+    [notaId],
+  )
 
   // URL de verificación firmada (destino del QR): /verificar/<token HMAC>. Se pide
   // más abajo (después de calcular recetaConfig) para respetar el orden de hooks.
@@ -116,17 +131,31 @@ export default function GeneradorRecetaPage() {
   // sobre-máximo, sobre-mg/kg pediátrico). Ausencia de alerta ≠ dosis segura.
   const alertasDosis = useMemo(() => {
     const out: { med: string; alertas: AlertaDosis[] }[] = []
+    // PESO para la verificación mg/kg PEDIÁTRICA (antes NO se pasaba → la red de
+    // seguridad más importante en niños estaba muerta: solo corrían topes de adulto).
+    // Se toma el peso de la nota (signos) y, si no, el que el médico teclee para el
+    // cálculo renal. Solo se aplica a pacientes < 18 años.
+    const esPediatrico = patient?.edad != null && patient.edad < 18
+    const pesoNota = Number(nota?.signosVitales?.peso ?? 0)
+    const pesoParaDosis = esPediatrico && pesoNota > 0 ? pesoNota : undefined
     for (const m of medicamentos) {
       if (!m.nombre?.trim() || !m.dosis?.trim()) continue
       const mg = extraerMg(m.dosis)
       if (mg == null) continue
       const tomas = extraerTomasDia(m.frecuencia || '') ?? undefined
-      const al = revisarDosis({ farmaco: m.nombre, dosisMg: mg, tomasDia: tomas })
+      // "50 mg/kg" NO son 50 mg absolutos: si no se marca, revisarDosis lo dividía
+      // otra vez entre el peso y la alerta pediátrica nunca disparaba.
+      // E0-05: `esDosisPorKg` no desaparece — deja de ser un flag y pasa a ser la
+      // FÁBRICA que elige la dimensión de la cantidad aquí, en la frontera del texto.
+      const dosisPrescrita = esDosisPorKg(m.dosis)
+        ? cantidad(mg, 'mg/kg/dosis', 'dosis_por_peso')
+        : cantidad(mg, 'mg', 'masa')
+      const al = revisarDosis({ farmaco: m.nombre, dosis: dosisPrescrita, tomasDia: tomas, peso: pesoParaDosis != null ? kgMasa(pesoParaDosis) : undefined, via: m.via, edadAnios: patient?.edad })
         .filter(a => a.codigo !== 'sin_referencia') // no saturar la receta con avisos informativos
       if (al.length) out.push({ med: m.nombre, alertas: al })
     }
     return out
-  }, [medicamentos])
+  }, [medicamentos, patient?.edad, nota?.signosVitales?.peso])
 
   // Función renal — opcional: el médico teclea creatinina (y peso opcional)
   // y se calcula TFG + ajuste de antimicrobianos por depuración (PROA).
@@ -136,10 +165,21 @@ export default function GeneradorRecetaPage() {
     const cr = parseFloat(creatinina)
     if (!cr || cr <= 0 || !patient?.edad) return null
     const peso = parseFloat(pesoKg)
-    return evaluarFuncionRenal(cr, patient.edad, patient.sexo, peso > 0 ? peso : undefined)
+    // E0-05 — FRONTERA: aquí es donde el número tecleado adquiere su unidad. La
+    // etiqueta del campo dice «Creatinina (mg/dL)» y «Peso (kg)»: es el único
+    // sitio del flujo donde el dato aún no tiene unidad, y a partir de aquí ya
+    // no puede perderla. El parseo (parseFloat) NO cambia, para no alterar qué
+    // teclas acepta el campo.
+    return evaluarFuncionRenal(
+      mgPorDl(cr), patient.edad, patient.sexo,
+      peso > 0 ? kgMasa(peso) : undefined,
+    )
   }, [creatinina, pesoKg, patient?.edad, patient?.sexo])
   const alertasRenales = useMemo(() => {
-    if (!renal) return []
+    // En <18 años (adulto no aplica) o creatinina implausible (probable error de
+    // unidad): no se ajusta por ese valor — daría alertas renales falsas.
+    if (!renal || renal.noAplicablePorEdad || renal.datoImplausible) return []
+    if (!renal.depuracionParaDosis) return []
     return ajusteRenalFarmacos(meds, renal.depuracionParaDosis)
   }, [renal, meds])
 
@@ -152,7 +192,11 @@ export default function GeneradorRecetaPage() {
       setNota(n)
       setPatient(ps)
       if (n) {
-        setMedicamentos(n.medicamentos ?? [])
+        // Corrige la vía de fármacos parenterales puros (insulina, HBPM, GLP-1
+        // inyectables) que la extracción pudo dejar en 'oral' por defecto — así no
+        // se imprime "insulina · oral". Conservador: solo toca vía oral/vacía y
+        // fármacos sin forma oral; el médico lo ve y puede editarlo antes de imprimir.
+        setMedicamentos((n.medicamentos ?? []).map(m => ({ ...m, via: corregirViaParenteral(m.nombre, m.via) as Medicamento['via'] })))
         // Diagnóstico principal: primero activo de tipo definitivo, o el primero
         const dxs = n.diagnosticos ?? []
         const principal = dxs.find(d => d.tipo === 'definitivo') ?? dxs[0]
@@ -161,6 +205,13 @@ export default function GeneradorRecetaPage() {
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [clinicId, patientId, notaId])
+
+  // Learning Engine: carga "tus más recetados" del propio médico (fail-safe).
+  useEffect(() => {
+    const uid = auth.currentUser?.uid
+    if (!clinicId || !uid) return
+    cargarRecetasFrecuentes(clinicId, uid, 8).then(setFrecuentes).catch(() => {})
+  }, [clinicId])
 
   // Plantilla efectiva: la del MÉDICO de la nota (si tiene una propia)
   // sobre la general de la clínica. Cada médico ya tiene su papel impreso.
@@ -183,12 +234,32 @@ export default function GeneradorRecetaPage() {
     // (media carta exacta) NO funciona en la práctica porque Safari lo redondea a
     // A5 y recorta el diseño.
     return { ...merged, imprimirEn: 'carta' as const }
-  }, [config, nota?.metadata?.medicoId])
+    // `unicoMedico` y `overrideRecetaValido` SÍ entran en el cálculo (entradaPorMedico):
+    // `unicoMedico` llega tarde desde useDoctors, así que sin él en deps la plantilla
+    // podía quedarse con el valor inicial y desalinearse de la firma (que sí lo escucha).
+  }, [config, nota?.metadata?.medicoId, unicoMedico, overrideRecetaValido])
+
+  // Dimensiones ORIENTADAS al diseño (apaisado/vertical), para que el contenedor
+  // de la vista previa y el @page de impresión coincidan con la hoja renderizada
+  // (si no, un diseño apaisado sale recortado — "mocho"). El cfg orientado lleva
+  // las dims para que dimensionesImpresion las respete.
+  const paperOri = useRecetaPaperOrientado(recetaConfig)
+  const recetaConfigOri = useMemo(
+    () => ({ ...recetaConfig, disenoWidthMm: paperOri.widthMm, disenoHeightMm: paperOri.heightMm }),
+    [recetaConfig, paperOri.widthMm, paperOri.heightMm],
+  )
 
   // Pide al servidor la URL de verificación firmada (secreto HMAC no accesible en
   // cliente). Sin datos del paciente. Si falla, el QR cae al folio.
+  // Huella del contenido prescrito para ligarla al QR (se re-firma si editas los
+  // medicamentos antes de imprimir). Mismo hash que ya se registra en bitácora.
+  const contenidoHash = useMemo(
+    () => huellaImpreso(medicamentos, { folio, indicaciones, diagnostico }).hash,
+    [medicamentos, folio, indicaciones, diagnostico],
+  )
+
   useEffect(() => {
-    if (!clinicId || !notaId || !folio || !recetaConfig.mostrarQR) return
+    if (!clinicId || !patientId || !notaId || !folio || !recetaConfig.mostrarQR) return
     let vivo = true
     // fetchAutenticado, no fetch: la ruta exige `verificarMiembro`, que lee la
     // cabecera Authorization. Con `fetch` plano respondía 401 SIEMPRE, y los dos
@@ -198,11 +269,11 @@ export default function GeneradorRecetaPage() {
     fetchAutenticado('/api/receta/verificacion-url', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        clinicId, notaId, folio,
-        doctorNombre: config?.nombreMedico ?? '',
-        cedula: config?.cedulaProfesional ?? '',
-      }),
+      // E0-01: solo LOCALIZADORES. El folio, el nombre y la cédula del
+      // certificado los deriva el servidor de la nota firmada — antes se los
+      // mandábamos desde `config`, que es de la CLÍNICA: con dos médicos, quien
+      // imprimía estampaba SU cédula en la receta firmada por el otro.
+      body: JSON.stringify({ clinicId, patientId, notaId, contenidoHash }),
     })
       .then(async r => {
         if (!r.ok) { console.warn('[receta] verificacion-url respondió', r.status); return null }
@@ -211,18 +282,25 @@ export default function GeneradorRecetaPage() {
       .then(j => { if (vivo && j?.url) setVerificacionUrl(j.url) })
       .catch(e => { console.warn('[receta] no se pudo firmar el QR:', e) })
     return () => { vivo = false }
-  }, [clinicId, notaId, folio, recetaConfig.mostrarQR, config?.nombreMedico, config?.cedulaProfesional])
+    // `config.nombreMedico`/`cedulaProfesional` salieron de las dependencias: ya
+    // no viajan en la petición, así que editarlos en Configuración no debe
+    // re-disparar el minteo del certificado.
+  }, [clinicId, patientId, notaId, folio, recetaConfig.mostrarQR, contenidoHash])
+
+  /** REG-014 — la firma vive en un subdocumento que solo leen los médicos. */
+  const { firma: firmaProtegida } = useFirmaProtegida(clinicId, config ?? undefined)
 
   // Config con la firma del MÉDICO de esta nota (per-médico), si tiene la suya.
   const configFirma = useMemo(() => {
     if (!config) return config
     const medicoId = nota?.metadata?.medicoId
-    const firma = entradaPorMedico(config.firmaPorMedico, medicoId, firmaValida, unicoMedico)
+    // REG-014: la firma viene del subdocumento protegido, no de `config/main`.
+    const firma = entradaPorMedico(firmaProtegida.firmaPorMedico, medicoId, firmaValida, unicoMedico)
       // Con VARIOS médicos tampoco se cae a la firma global (típicamente la del
       // dueño): sería la firma de otro. Mejor sin firma, que sí se nota.
-      || (unicoMedico ? config.firmaImagenDataUrl : undefined)
+      || (unicoMedico ? firmaProtegida.firmaImagenDataUrl : undefined)
     return { ...config, firmaImagenDataUrl: firma }
-  }, [config, nota?.metadata?.medicoId, unicoMedico])
+  }, [config, nota?.metadata?.medicoId, unicoMedico, firmaProtegida])
 
   /**
    * Sin firma resoluble no se imprime en silencio.
@@ -235,6 +313,14 @@ export default function GeneradorRecetaPage() {
   const sinFirmaResoluble = !!config && !configFirma?.firmaImagenDataUrl
   /** La cédula es requisito del impreso; sin ella el documento no es válido. */
   const sinCedula = !!config && !config.cedulaProfesional?.trim()
+  /**
+   * ¿El médico imprime sobre SU PROPIO diseño de receta (imagen completa subida)?
+   * Con diseño propio la app NO dibuja el pie: no puede "marcar en rojo" la cédula
+   * ni garantizar el domicilio; esos datos deben venir en el arte del médico.
+   */
+  const usaDisenoPropio = !!recetaConfig.disenoCompletoDataUrl
+  /** Domicilio del consultorio: requisito COFEPRIS del recetario (plantilla generada). */
+  const sinDireccion = !!config && !config.direccion?.trim() && !usaDisenoPropio
 
   // Descarga un Word (.doc) editable — para el médico que prefiere ajustar
   // a su propio formato/membrete en lugar de la plantilla generada.
@@ -266,14 +352,19 @@ export default function GeneradorRecetaPage() {
     try {
       // El PDF usa el tamaño FÍSICO de la hoja que sale de la impresora
       // (carta si imprimirEn === 'carta', el papel de la receta si no)
-      const host = dimensionesImpresion(recetaConfig)
+      const host = dimensionesImpresion(recetaConfigOri)
       const nombre = (patient?.nombre ?? 'paciente').replace(/[^\w\sáéíóúñ-]/gi, '').replace(/\s+/g, '_')
       const fechaCorta = new Date().toISOString().slice(0, 10)
-      await descargarComoPDF(el, {
+      // PDF LIMPIO hoja-por-hoja. Antes: con diseño se enrutaba por el diálogo de
+      // impresión y el navegador estampaba "about:blank" + la fecha DENTRO del PDF
+      // (queja del Dr) y a veces una 2ª hoja. Ahora se rasteriza cada hoja física y
+      // se arma el PDF a sangre: hoja exacta, fiel al diseño, sin encabezados.
+      const paginas = Array.from(el.querySelectorAll<HTMLElement>('.receta-sheet-wrap'))
+      const objetivo = paginas.length ? paginas : [el]
+      await descargarPaginasComoPDF(objetivo, {
         filename: `Receta_${nombre}_${fechaCorta}`,
-        format: [host.widthMm, host.heightMm],
-        orientation: 'portrait',
-        margin: 0, // el documento ya tiene su propio padding
+        anchoMm: host.widthMm,
+        altoMm: host.heightMm,
       })
     } catch (e) {
       console.error('PDF error:', e)
@@ -283,10 +374,39 @@ export default function GeneradorRecetaPage() {
     }
   }
 
+  // Tope de 6 medicamentos por receta (petición del Dr): más de eso no cabe bien y la
+  // norma recomienda no saturar una receta. Si necesita más, se hace una segunda.
+  const MAX_MEDS = 6
   const agregarMed = () => {
+    if (medicamentos.length >= MAX_MEDS) {
+      toast(`Máximo ${MAX_MEDS} medicamentos por receta. Genera otra receta si necesitas más.`, 'error')
+      return
+    }
     setMedicamentos([...medicamentos, {
       nombre: '', dosis: '', via: 'oral', frecuencia: '', duracion: '',
     }])
+  }
+
+  // Learning Engine: rellena una fila COMPLETA desde "tus más recetados" (1 toque).
+  // Evita duplicar un fármaco que ya está en la receta. Siempre editable después.
+  const agregarMedDesde = (r: MedRecetado) => {
+    if (medicamentos.length >= MAX_MEDS) {
+      toast(`Máximo ${MAX_MEDS} medicamentos por receta.`, 'error')
+      return
+    }
+    const yaEsta = medicamentos.some(m => (m.nombre ?? '').trim().toLowerCase() === r.nombre.trim().toLowerCase())
+    if (yaEsta) { toast(`${r.nombre} ya está en la receta.`, 'info'); return }
+    setMedicamentos([...medicamentos, {
+      nombre: r.nombre, dosis: r.dosis, via: (r.via as Medicamento['via']) || 'oral',
+      frecuencia: r.frecuencia, duracion: r.duracion,
+    }])
+  }
+
+  // Learning Engine: registra lo recetado al CONFIRMAR (imprimir/descargar). Fail-safe.
+  const aprenderDeReceta = () => {
+    const uid = auth.currentUser?.uid
+    if (!clinicId || !uid) return
+    registrarRecetados(clinicId, uid, medicamentos.filter(m => m.nombre?.trim())).catch(() => {})
   }
 
   const actualizarMed = (i: number, campo: keyof Medicamento, valor: string) => {
@@ -315,6 +435,11 @@ export default function GeneradorRecetaPage() {
     )
   }
 
+  // Sin ningún medicamento con nombre NI indicaciones, la receta saldría en
+  // blanco: un documento membretado y firmado sin contenido clínico. Se bloquea
+  // Imprimir / Word / PDF hasta que haya algo real.
+  const recetaVacia = !medicamentos.some(m => m.nombre?.trim()) && !indicaciones.trim()
+
   return (
     <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
       <AvisoConfigNoCargada error={configError} />
@@ -325,10 +450,33 @@ export default function GeneradorRecetaPage() {
           background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)',
           borderRadius: 12, padding: '13px 15px', marginBottom: 14,
         }}>
-          <AlertTriangle size={17} style={{ color: '#ef4444', flexShrink: 0, marginTop: 1 }} />
+          <AlertTriangle size={17} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--text)' }}>
-            <strong>Falta tu cédula profesional.</strong> El documento saldrá marcándolo en rojo,
-            porque la cédula es requisito del impreso (NOM-004). Agrégala en Configuración → General.
+            {/* Auditoría papelería 2026-07 (P2): con diseño propio la app no dibuja
+                el pie, así que NO puede "marcar en rojo" la cédula — el aviso sería
+                falso. Se ajusta el texto según el modo. */}
+            {usaDisenoPropio ? (
+              <><strong>Falta tu cédula profesional.</strong> Como imprimes sobre tu propio diseño,
+              verifica que tu formato ya la incluya: la app no puede marcarla sobre tu arte. La cédula
+              es requisito del impreso (NOM-004). Agrégala en Configuración → General.</>
+            ) : (
+              <><strong>Falta tu cédula profesional.</strong> El documento saldrá marcándolo en rojo,
+              porque la cédula es requisito del impreso (NOM-004). Agrégala en Configuración → General.</>
+            )}
+          </div>
+        </div>
+      )}
+
+      {sinDireccion && (
+        <div className="no-print" style={{
+          display: 'flex', alignItems: 'flex-start', gap: 10,
+          background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.35)',
+          borderRadius: 12, padding: '13px 15px', marginBottom: 14,
+        }}>
+          <AlertTriangle size={17} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--text)' }}>
+            <strong>Falta el domicilio del consultorio.</strong> El recetario debe incluir el domicilio
+            del prescriptor (requisito COFEPRIS). Agrégalo en Configuración → General.
           </div>
         </div>
       )}
@@ -339,7 +487,7 @@ export default function GeneradorRecetaPage() {
           background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.35)',
           borderRadius: 12, padding: '13px 15px', marginBottom: 14,
         }}>
-          <AlertTriangle size={17} style={{ color: '#f59e0b', flexShrink: 0, marginTop: 1 }} />
+          <AlertTriangle size={17} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--text)' }}>
             <strong>Este documento saldrá sin firma ni sello.</strong> No encontramos la firma
             registrada para el médico de esta nota. Como el consultorio tiene varios médicos, no se
@@ -358,13 +506,13 @@ export default function GeneradorRecetaPage() {
           <button onClick={() => router.push('/configuracion?tab=recetas')} className="btn btn-secondary" title="Configurar template">
             <Settings size={14} /> Template
           </button>
-          <button onClick={() => { if (configError || descargando) return; logAudit({ evento: 'receta_generada', clinicId: clinicId ?? '', patientId, notaId, meta: huellaImpreso(medicamentos, { folio, indicaciones, diagnostico }) }).catch(() => {}); const h = dimensionesImpresion(recetaConfig); imprimirElemento(document.getElementById('receta-doc'), 'Receta', { anchoMm: h.widthMm, altoMm: h.heightMm }) }} className="btn btn-secondary">
+          <button disabled={recetaVacia} onClick={() => { if (configError || descargando || recetaVacia) return; logAudit({ evento: 'receta_generada', clinicId: clinicId ?? '', patientId, notaId, meta: huellaImpreso(medicamentos, { folio, indicaciones, diagnostico }) }).catch(() => {}); aprenderDeReceta(); const h = dimensionesImpresion(recetaConfigOri); imprimirElemento(document.getElementById('receta-doc'), 'Receta', { anchoMm: h.widthMm, altoMm: h.heightMm, hojaExacta: true, onError: (m) => toast(m, 'error') }) }} className="btn btn-secondary">
             <Printer size={14} /> Imprimir
           </button>
-          <button onClick={() => { if (configError || descargando) return; descargarWord() }} className="btn btn-secondary" title="Documento editable para tu membrete">
+          <button disabled={recetaVacia} onClick={() => { if (configError || descargando || recetaVacia) return; descargarWord() }} className="btn btn-secondary" title="Documento editable para tu membrete">
             <FileText size={14} /> Word
           </button>
-          <button onClick={() => { if (configError || descargando) return; logAudit({ evento: 'receta_descargada', clinicId: clinicId ?? '', patientId, notaId, meta: huellaImpreso(medicamentos, { folio, indicaciones, diagnostico }) }).catch(() => {}); descargarPDF() }} disabled={descargando || !!configError} className="btn btn-primary">
+          <button onClick={() => { if (configError || descargando || recetaVacia) return; logAudit({ evento: 'receta_descargada', clinicId: clinicId ?? '', patientId, notaId, meta: huellaImpreso(medicamentos, { folio, indicaciones, diagnostico }) }).catch(() => {}); aprenderDeReceta(); descargarPDF() }} disabled={descargando || !!configError || recetaVacia} className="btn btn-primary">
             {descargando
               ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</>
               : <><Download size={14} /> Descargar PDF</>}
@@ -390,9 +538,11 @@ export default function GeneradorRecetaPage() {
           {alertasAlergia.length > 0 && (
             <div style={{
               padding: '10px 14px', borderRadius: 8,
-              background: 'rgba(220,38,38,0.10)', border: '2px solid #b91c1c',
+              // Tokens de badge rojo por tema: el título #b91c1c fijo era ilegible
+              // sobre el canvas oscuro (rojo oscuro sobre fondo oscuro).
+              background: 'var(--badge-red-b, rgba(220,38,38,0.10))', border: '2px solid var(--badge-red-t, #b91c1c)',
             }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#b91c1c', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--badge-red-t, #b91c1c)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <AlertTriangle size={15} className="ds-icon" /> Alerta de alergia — revisa antes de imprimir
               </div>
               {alertasAlergia.map((a, i) => (
@@ -478,9 +628,14 @@ export default function GeneradorRecetaPage() {
                   inputMode="decimal" style={{ ...inputStyle, width: 90 }} />
               </div>
               {renal && (
-                <div style={{ fontSize: 11.5, color: 'var(--text2)', lineHeight: 1.4 }}>
-                  <div><strong>TFG (CKD-EPI):</strong> {renal.egfrCkdEpi} mL/min/1.73m² · <strong>{renal.estadio}</strong> ({renal.estadioDesc})</div>
-                  {renal.crClCockcroft != null && <div><strong>CrCl (Cockcroft):</strong> {renal.crClCockcroft} mL/min</div>}
+                <div style={{ fontSize: 11.5, color: renal.datoImplausible ? 'var(--amber)' : 'var(--text2)', lineHeight: 1.4 }}>
+                  {/* E0-05: `egfrCkdEpi` pasó de NaN a null cuando no se calcula.
+                      El texto en pantalla es EL MISMO; sólo cambia cómo se pregunta
+                      «¿hay valor?» (antes Number.isFinite sobre un NaN). */}
+                  {renal.egfrCkdEpi
+                    ? <div><strong>TFG (CKD-EPI):</strong> {Math.round(valorEn(renal.egfrCkdEpi, 'mL/min/1.73m²'))} mL/min/1.73m² · <strong>{renal.estadio}</strong> ({renal.estadioDesc})</div>
+                    : <div>{renal.estadioDesc}</div>}
+                  {renal.crClCockcroft != null && <div><strong>CrCl (Cockcroft):</strong> {valorEn(renal.crClCockcroft, 'mL/min')} mL/min</div>}
                 </div>
               )}
             </div>
@@ -509,11 +664,38 @@ export default function GeneradorRecetaPage() {
           {/* Medicamentos */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <label style={{ ...labelStyle, margin: 0 }}>Medicamentos</label>
-              <button onClick={agregarMed} className="btn btn-secondary btn-sm">
+              <label style={{ ...labelStyle, margin: 0 }}>Medicamentos {medicamentos.length >= MAX_MEDS && <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text3)' }}>· máx. {MAX_MEDS}</span>}</label>
+              <button onClick={agregarMed} className="btn btn-secondary btn-sm" disabled={medicamentos.length >= MAX_MEDS}
+                title={medicamentos.length >= MAX_MEDS ? `Máximo ${MAX_MEDS} medicamentos por receta` : undefined}>
                 <Plus size={12} /> Agregar
               </button>
             </div>
+
+            {/* Learning Engine: "tus más recetados" — 1 toque llena la fila completa
+                con la posología que ESE médico suele usar. Aparece cuando ya hay
+                historial y todavía cabe otro fármaco. Todo editable después. */}
+            {frecuentes.length > 0 && medicamentos.length < MAX_MEDS && (
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'var(--text3)', marginBottom: 6 }}>
+                  <Lightbulb size={12} style={{ color: 'var(--nexus, #3d5afe)' }} /> Tus más recetados
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {frecuentes.map((r, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => agregarMedDesde(r)}
+                      title={`${r.nombre}${r.dosis ? ' · ' + r.dosis : ''}${r.frecuencia ? ' · ' + r.frecuencia : ''}${r.duracion ? ' · ' + r.duracion : ''}`}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', borderRadius: 100, padding: '5px 11px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      <Plus size={11} style={{ color: 'var(--nexus, #3d5afe)' }} />
+                      {r.nombre}{r.dosis ? <span style={{ color: 'var(--text3)', fontWeight: 500 }}> · {r.dosis}</span> : null}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {medicamentos.length === 0 && (
               <div style={{ padding: 14, background: 'var(--s2)', border: '1px dashed var(--border)', borderRadius: 8, color: 'var(--text3)', fontSize: 13, textAlign: 'center' }}>
                 Sin medicamentos. Agrega uno o usa "Solo indicaciones".
@@ -579,14 +761,16 @@ export default function GeneradorRecetaPage() {
               notaParaPaciente,
               verificacionUrl,
             }
-            const host = dimensionesImpresion(recetaConfig)
+            const host = dimensionesImpresion(recetaConfigOri)
             // configFirma, no config: el conteo debe usar la MISMA config que el
             // documento, o el contador dice "1 hoja" y el PDF sale con 2.
             const numPages = contarPaginas(dataPreview, configFirma, recetaConfig)
             return (
               <>
                 <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', marginBottom: 8 }}>
-                  Vista previa · {PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta'].label.split(' ')[0]}
+                  Vista previa · {recetaConfig.disenoCompletoDataUrl && recetaConfig.disenoWidthMm && recetaConfig.disenoHeightMm
+                    ? `tu formato (${Math.round(host.widthMm)}×${Math.round(host.heightMm)} mm)`
+                    : PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta'].label.split(' ')[0]}
                   {numPages > 1 && <strong> · {numPages} hojas</strong>}
                   {host.esHostCarta && <> · impresa en carta <Scissors size={11} className="ds-icon" style={{ display: 'inline' }} /></>}
                 </div>
@@ -621,7 +805,7 @@ export default function GeneradorRecetaPage() {
           }
           #receta-doc .receta-sheet { box-shadow: none !important; margin: 0 !important; }
           .no-print { display: none !important; }
-          @page { size: ${dimensionesImpresion(recetaConfig).cssPage}; margin: 0; }
+          @page { size: ${dimensionesImpresion(recetaConfigOri).cssPage}; margin: 0; }
         }
         @media (max-width: 1000px) {
           .receta-gen-grid {
@@ -657,7 +841,7 @@ function MedRow({
         />
         <button onClick={onEliminar} title="Quitar" style={{
           background: 'transparent', border: '1px solid rgba(239,68,68,0.3)',
-          color: '#f87171', borderRadius: 6, padding: '4px 8px', cursor: 'pointer',
+          color: 'var(--red)', borderRadius: 6, padding: '4px 8px', cursor: 'pointer',
         }}>
           <Trash2 size={12} />
         </button>
@@ -668,7 +852,7 @@ function MedRow({
           onChange={(e) => onChange('via', e.target.value)}
           style={inputStyle}
         >
-          {VIAS.map(v => <option key={v} value={v}>{v}</option>)}
+          {VIAS.map(v => <option key={v} value={v}>{etiquetaVia(v)}</option>)}
         </select>
         <input
           value={med.frecuencia}

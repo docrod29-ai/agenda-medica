@@ -15,9 +15,11 @@
  */
 
 import { FARMACOS_PED, calcularDosisPediatrica, imc as calcImc } from './pediatria'
-import { AJUSTE_RENAL, ajustePorTFG, EMBARAZO_LACTANCIA } from './prescripcion-segura'
+import { AJUSTE_RENAL, ajustePorTFG, EMBARAZO_LACTANCIA, coincideRenal, RIESGO_HEPATICO, coincideHepatico } from './prescripcion-segura'
 import { ckdEpi2021 } from './calculadoras'
-import { metaLipidica } from './cardiometabolico/dislipidemia'
+import { creatininaPlausibleMgDl } from './funcion-renal'
+import { mgPorDl, valorEn } from '@/types/clinical-quantity'
+import { metaLipidica, recomendarEstatina } from './cardiometabolico/dislipidemia'
 import { clasificarIMC } from './cardiometabolico/obesidad'
 import { fib4, interpretarFib4 } from './cardiometabolico/masld'
 import { prevent, motivoSinPrevent } from './prevent'
@@ -81,22 +83,33 @@ export function diastolica(ta?: string): number | undefined {
  * también debe saltar. Comparar solo por nombre exacto dejaría pasar justo el
  * caso peligroso.
  */
-const FAMILIAS_ALERGIA: { familia: string; dispara: string[]; miembros: string[] }[] = [
+const FAMILIAS_ALERGIA: { familia: string; dispara: string[]; miembros: string[]; precaucion?: string[] }[] = [
   {
     familia: 'betalactámicos',
     dispara: ['penicilina', 'amoxicilina', 'ampicilina', 'betalactam', 'cefalosporina', 'peni'],
     miembros: ['penicilina', 'amoxicilina', 'ampicilina', 'dicloxacilina', 'piperacilina',
       'cefalexina', 'cefuroxima', 'ceftriaxona', 'cefotaxima', 'cefepime', 'cefazolina',
-      'cefixima', 'ceftazidima', 'meropenem', 'imipenem', 'ertapenem'],
+      'cefixima', 'ceftazidima'],
+    // Carbapenémicos: reactividad cruzada REAL con penicilina ~1% (dependiente de
+    // cadena lateral). Se avisa como PRECAUCIÓN, no como choque crítico, para no
+    // empujar a evitar el tratamiento de 1ª línea (p. ej. meropenem en meningitis).
+    precaucion: ['meropenem', 'imipenem', 'ertapenem', 'doripenem'],
   },
   {
     familia: 'sulfas',
     dispara: ['sulfa', 'sulfonamida', 'trimetoprim', 'tmp', 'bactrim'],
-    miembros: ['trimetoprim', 'sulfametoxazol', 'sulfadiazina', 'furosemida', 'hidroclorotiazida'],
+    // SIN furosemida/hidroclorotiazida: la evidencia no sustenta reactividad cruzada
+    // relevante entre sulfonamidas antibióticas y no-antibióticas (diuréticos). Marcarlas
+    // podía llevar a retirar un diurético necesario. (El validador de impresión ya las excluía.)
+    miembros: ['trimetoprim', 'sulfametoxazol', 'sulfadiazina'],
   },
   {
     familia: 'antiinflamatorios no esteroideos',
-    dispara: ['aine', 'aspirina', 'acido acetilsalicilico', 'ibuprofeno', 'naproxeno', 'antiinflamatorio'],
+    // Auditoría 2026-07 (P1): `dispara` solo tenía 4 términos, así que una alergia
+    // registrada a un AINE CONCRETO (p. ej. «diclofenaco», «ketorolaco») no activaba
+    // la familia y no saltaba con otro AINE. Se igualan `dispara` y `miembros`.
+    dispara: ['aine', 'antiinflamatorio', 'ibuprofeno', 'naproxeno', 'diclofenaco', 'ketorolaco',
+      'indometacina', 'meloxicam', 'aspirina', 'acido acetilsalicilico', 'celecoxib'],
     miembros: ['ibuprofeno', 'naproxeno', 'diclofenaco', 'ketorolaco', 'indometacina',
       'meloxicam', 'aspirina', 'acido acetilsalicilico', 'celecoxib'],
   },
@@ -116,7 +129,15 @@ const FAMILIAS_ALERGIA: { familia: string; dispara: string[]; miembros: string[]
 
 function alergiaVsReceta(e: EntradaCopiloto): Sugerencia[] {
   const alergias = norm(e.alergias ?? '')
-  if (!alergias || /ning|nega|no refier|sin alerg/.test(alergias)) return []
+  // Suprime SOLO si el campo es una NEGACIÓN PURA (sin alérgeno escrito). Antes,
+  // una negación referida a OTRAS alergias ("sulfas; no refiere otras" — fraseo muy
+  // común en México) hacía match con /no refier/ y apagaba TODO el chequeo, dejando
+  // pasar la sulfa. Ahora se limpian las palabras de negación/relleno y, si queda un
+  // alérgeno real escrito, la verificación sigue viva.
+  const restante = alergias
+    .replace(/ning\w*|niega\w*|no\s+refiere|sin\s+alergias?|conocid\w*|otr\w*|previ\w*|alergi\w*|medicament\w*|aliment\w*|ambient\w*|nkda|ska|negad\w*/g, ' ')
+    .replace(/[^a-z]+/g, ' ').trim()
+  if (!alergias || !restante) return []
   const meds = e.medicamentos ?? []
   if (meds.length === 0) return []
 
@@ -127,14 +148,28 @@ function alergiaVsReceta(e: EntradaCopiloto): Sugerencia[] {
       const nm = norm(m.nombre ?? '')
       if (!nm) continue
       const choca = fam.miembros.find(x => nm.includes(x))
-      if (!choca) continue
-      out.push({
-        id: `alergia:${fam.familia}:${choca}`,
-        nivel: 'critico',
-        titulo: `${m.nombre} choca con una alergia registrada`,
-        detalle: `El paciente tiene registrada alergia a ${fam.familia}, y ${m.nombre} pertenece a esa familia. Confirma la reacción previa antes de recetarlo o cambia de familia.`,
-        textoNota: `Se identificó que ${m.nombre} pertenece a la familia de ${fam.familia}, a la que el paciente refiere alergia. Se verificó con el paciente antes de prescribir.`,
-      })
+      if (choca) {
+        out.push({
+          id: `alergia:${fam.familia}:${choca}`,
+          nivel: 'critico',
+          titulo: `${m.nombre} choca con una alergia registrada`,
+          detalle: `El paciente tiene registrada alergia a ${fam.familia}, y ${m.nombre} pertenece a esa familia. Confirma la reacción previa antes de recetarlo o cambia de familia.`,
+          textoNota: `Se identificó que ${m.nombre} pertenece a la familia de ${fam.familia}, a la que el paciente refiere alergia. Se verificó con el paciente antes de prescribir.`,
+        })
+        continue
+      }
+      // Reactividad cruzada BAJA (p. ej. carbapenémicos ante alergia a penicilina, ~1%):
+      // aviso de PRECAUCIÓN, no choque crítico, para no descartar 1ª línea de golpe.
+      const precaucion = fam.precaucion?.find(x => nm.includes(x))
+      if (precaucion) {
+        out.push({
+          id: `alergia:precaucion:${fam.familia}:${precaucion}`,
+          nivel: 'accion',
+          titulo: `${m.nombre}: precaución por alergia a ${fam.familia}`,
+          detalle: `${m.nombre} tiene reactividad cruzada BAJA con ${fam.familia} (≈1%, según la cadena lateral). No está contraindicado: valora la gravedad de la reacción previa; si fue leve/no-anafiláctica suele poder usarse con vigilancia.`,
+          textoNota: `${m.nombre}: reactividad cruzada baja con la alergia a ${fam.familia} referida. Se valoró el antecedente y se decidió su uso con vigilancia.`,
+        })
+      }
     }
   }
   return out
@@ -206,13 +241,52 @@ function ajusteRenal(e: EntradaCopiloto): Sugerencia[] {
   const meds = e.medicamentos ?? []
   if (!cr || !edad || meds.length === 0) return []
 
-  const tfg = ckdEpi2021(cr, edad, !!e.sexo && /^f/i.test(e.sexo))
+  // GUARDA PEDIÁTRICA (NEXUS-QUALITY-004): CKD-EPI 2021 está validada SOLO en ≥18
+  // años. En menores NO se calcula una TFG "adulta" ni se emiten contraindicaciones
+  // basadas en ella (antes sí → una fórmula inaplicable contraindicaba fármacos en
+  // niños). Se deriva a la fórmula pediátrica (Schwartz).
+  if (edad < 18) {
+    return [{
+      id: 'renal:pediatrico',
+      nivel: 'info',
+      titulo: 'Ajuste renal pediátrico: CKD-EPI no aplica en < 18 años',
+      detalle: 'La TFG por CKD-EPI 2021 está validada solo en adultos. En menores usa la fórmula de Schwartz (0.413 × talla_cm ÷ creatinina) para estimar la TFG y ajustar dosis.',
+      textoNota: 'Ajuste renal en < 18 años: estimar TFG por Schwartz (no CKD-EPI).',
+    }]
+  }
+
+  // GUARDA DE UNIDAD (auditoría P0): una creatinina fuera de mg/dL plausible (p.ej.
+  // 88 en µmol/L) daría una TFG minúscula → falla renal fantasma y contraindicaciones
+  // antibióticas falsas. No se estima; se pide revisar la unidad.
+  if (!creatininaPlausibleMgDl(cr)) {
+    return [{
+      id: 'renal:unidad',
+      nivel: 'info',
+      titulo: `Creatinina ${cr}: revisa la unidad (mg/dL)`,
+      detalle: `Un valor fuera de 0.1–25 mg/dL suele venir en µmol/L (dividir entre 88.4) o ser un error de captura. No se estima TFG ni se ajustan dosis hasta corregir la unidad.`,
+      textoNota: `Creatinina ${cr} fuera de rango en mg/dL — verificar unidad antes de ajustar por función renal.`,
+    }]
+  }
+  // E0-05: la creatinina entra al motor CON SU UNIDAD. `mgPorDl` es legítimo aquí
+  // porque el campo `labs.creatinina` está declarado en mg/dL en laboratorio/analitos.ts
+  // y acaba de pasar la guarda de plausibilidad de esa misma unidad.
+  const tfg = valorEn(ckdEpi2021(mgPorDl(cr), edad, !!e.sexo && /^f/i.test(e.sexo)), 'mL/min/1.73m²')
   if (!Number.isFinite(tfg) || tfg >= 60) return []
 
   const out: Sugerencia[] = []
   for (const m of meds) {
     const nm = norm(m.nombre ?? '')
-    const f = AJUSTE_RENAL.find(x => nm.includes(norm(x.nombre)) || norm(x.nombre).includes(nm))
+    /**
+     * Guard de longitud — auditoría 2026-07 (P2). `revisarListaRenal` sí lo tenía
+     * y aquí faltaba: con el nombre vacío o a medio teclear, el match por subcadena
+     * casaba con el PRIMER fármaco del catálogo e inventaba una contraindicación de
+     * metformina en quien no la toma.
+     */
+    if (nm.length < 3) continue
+    // Casa también por PRINCIPIO ACTIVO: sin esto, «Ketorolaco» nunca encontraba la
+    // entrada de clase «Antiinflamatorios no esteroideos» y la contraindicación con
+    // TFG<30 era código muerto (auditoría 2026-07, P0).
+    const f = AJUSTE_RENAL.find(x => coincideRenal(x, nm))
     if (!f) continue
     const a = ajustePorTFG(f, tfg)
     if (!a) continue
@@ -235,22 +309,51 @@ function riesgoGestacional(e: EntradaCopiloto): Sugerencia[] {
   const esMujer = !!e.sexo && /^f/i.test(e.sexo)
   const edad = e.edad
   if (!esMujer || edad == null || edad < 12 || edad > 50) return []
+  // ¿El Dx/nota indican embarazo CONFIRMADO? Solo entonces se avisa de los
+  // teratógenos categoría 'evitar' (estatinas/tetraciclinas/quinolonas/AINE): sin
+  // esto se metería ruido en toda mujer en edad fértil. Los 'contraindicado' sí
+  // avisan siempre (el riesgo de un embarazo no detectado pesa más).
+  // OJO (icu-013): NO incluir 'puerper' (puerperio = posparto): la paciente YA NO
+  // está embarazada, el feto nació. Marcar embarazo por un Dx de puerperio hacía que
+  // los teratógenos categoría 'evitar' dispararan un aviso "La paciente cursa
+  // embarazo" a una puérpera — incoherente. La lactancia es otra cosa (transferencia
+  // a leche, no teratogenicidad) y tiene su propia lista, no este flag.
+  const embarazoConfirmado = (e.diagnosticos ?? []).some(d =>
+    /embaraz|gestaci|gr[aá]vid|obst[eé]tric|prenatal/i.test(d.descripcion ?? ''))
+  const coincide = (x: { farmaco: string; sinonimos?: string[] }, nm: string) =>
+    (x.sinonimos ?? []).some(s => nm.includes(norm(s))) ||
+    nm.includes(norm(x.farmaco)) ||
+    norm(x.farmaco).split(/[ ,]/).some(w => w.length > 5 && nm.includes(w))
+
   const meds = e.medicamentos ?? []
   const out: Sugerencia[] = []
   for (const m of meds) {
     const nm = norm(m.nombre ?? '')
     if (!nm) continue
     const g = EMBARAZO_LACTANCIA.find(x =>
-      x.embarazo === 'contraindicado' &&
-      (nm.includes(norm(x.farmaco)) || norm(x.farmaco).split(/[ ,]/).some(w => w.length > 5 && nm.includes(w))))
+      (x.embarazo === 'contraindicado' || (x.embarazo === 'evitar' && embarazoConfirmado)) &&
+      coincide(x, nm))
     if (!g) continue
-    out.push({
-      id: `gesta:${m.nombre}`,
-      nivel: 'critico',
-      titulo: `${m.nombre} está contraindicado en el embarazo`,
-      detalle: `${g.motivo}${g.alternativa ? ` Alternativa: ${g.alternativa}` : ''} La paciente está en edad fértil: descarta embarazo y comenta anticoncepción.`,
-      textoNota: `Se comentó con la paciente que ${m.nombre} está contraindicado en el embarazo. ${g.motivo}`,
-    })
+    if (g.embarazo === 'contraindicado') {
+      out.push({
+        id: `gesta:${m.nombre}`,
+        nivel: 'critico',
+        titulo: `${m.nombre} está contraindicado en el embarazo`,
+        // Correcto en ambos casos (el motor aún no sabe con certeza si hay embarazo):
+        // si está embarazada → suspender; si no → descartar antes de prescribir.
+        detalle: `${g.motivo}${g.alternativa ? ` Alternativa: ${g.alternativa}` : ''} Si la paciente está o pudiera estar embarazada, suspender de inmediato; si no, descarta embarazo antes de prescribir y comenta planeación/anticoncepción.`,
+        textoNota: `Se comentó con la paciente que ${m.nombre} está contraindicado en el embarazo. ${g.motivo}`,
+      })
+    } else {
+      // 'evitar' + embarazo confirmado: aviso de acción (cambiar), no crítico.
+      out.push({
+        id: `gesta:evitar:${m.nombre}`,
+        nivel: 'accion',
+        titulo: `${m.nombre}: evítalo en el embarazo`,
+        detalle: `La paciente cursa embarazo. ${g.motivo}${g.alternativa ? ` Alternativa: ${g.alternativa}` : ''}`,
+        textoNota: `${m.nombre} debe evitarse en el embarazo; se comentó y se valoró una alternativa. ${g.motivo}`,
+      })
+    }
   }
   return out
 }
@@ -263,10 +366,25 @@ function signosDeAlarma(e: EntradaCopiloto): Sugerencia[] {
   const out: Sugerencia[] = []
   const tas = sistolica(s.ta)
   const tad = diastolica(s.ta)
+  // icu-014: los umbrales de abajo (qSOFA, FC ≥120, TAS <90, TA 140/90–180/110) son
+  // de ADULTO. En < 12 años los signos normales cambian con la edad (FC 100–160 en
+  // lactantes, TAS más baja), así que aplicarlos genera falsas alarmas o falsa
+  // tranquilidad. La SpO₂ < 90 (hipoxemia) y la fiebre SÍ son válidas a cualquier edad.
+  const edad = e.edad
+  const pediatrico = edad != null && edad < 12
+  if (pediatrico && (s.fr != null || s.fc != null || tas != null)) {
+    out.push({
+      id: 'vital:pediatrico',
+      nivel: 'info',
+      titulo: 'Signos vitales pediátricos: interpreta por edad',
+      detalle: 'Los umbrales de alarma de adulto (FC ≥120, TAS <90, qSOFA, 140/90) no aplican en < 12 años; los rangos normales dependen de la edad (PALS). Valora FC/FR/TA contra la tabla por edad.',
+      textoNota: 'Signos vitales interpretados con umbrales pediátricos por edad (no de adulto).',
+    })
+  }
 
   // qSOFA: dos de los tres componentes son medibles con lo que ya hay. Si esos
   // dos ya suman 2, el puntaje YA es positivo — no puede bajar con el tercero.
-  if (s.fr != null && tas != null && s.fr >= 22 && tas <= 100) {
+  if (!pediatrico && s.fr != null && tas != null && s.fr >= 22 && tas <= 100) {
     out.push({
       id: 'vital:qsofa',
       nivel: 'critico',
@@ -286,7 +404,7 @@ function signosDeAlarma(e: EntradaCopiloto): Sugerencia[] {
     })
   }
 
-  if (tas != null && tas < 90) {
+  if (!pediatrico && tas != null && tas < 90) {
     out.push({
       id: 'vital:hipotension',
       nivel: 'critico',
@@ -296,7 +414,7 @@ function signosDeAlarma(e: EntradaCopiloto): Sugerencia[] {
     })
   }
 
-  if (tas != null && tad != null && (tas >= 180 || tad >= 110)) {
+  if (!pediatrico && tas != null && tad != null && (tas >= 180 || tad >= 110)) {
     out.push({
       id: 'vital:crisis-ht',
       nivel: 'critico',
@@ -314,7 +432,7 @@ function signosDeAlarma(e: EntradaCopiloto): Sugerencia[] {
     })
   }
 
-  if (s.fc != null && s.fc >= 120) {
+  if (!pediatrico && s.fc != null && s.fc >= 120) {
     out.push({
       id: 'vital:taquicardia',
       nivel: 'accion',
@@ -362,9 +480,20 @@ function calculosAutomaticos(e: EntradaCopiloto): Sugerencia[] {
     }
   }
 
-  // Función renal
-  if (e.labs?.creatinina && edad != null) {
-    const tfg = ckdEpi2021(e.labs.creatinina, edad, !!e.sexo && /^f/i.test(e.sexo))
+  // Función renal — CKD-EPI 2021 es una fórmula de ADULTOS. Auditoría 2026-07 (P1):
+  // aplicarla a un niño/recién nacido daba una TFG falsamente normal y se ofrecía
+  // pegarla a la nota. En <18 años se avisa, no se calcula (la TFG pediátrica usa
+  // la fórmula de Schwartz con la TALLA, que no está en este flujo).
+  if (e.labs?.creatinina && edad != null && edad < 18) {
+    out.push({
+      id: 'renal:pediatrico-tfg',
+      nivel: 'info',
+      titulo: 'TFG en menores de 18 años requiere fórmula pediátrica',
+      detalle: 'CKD-EPI y Cockcroft-Gault son de adultos. En pediatría la estimación usa la fórmula de Schwartz con la talla; no se calcula aquí para no dar un valor engañoso.',
+      textoNota: '',
+    })
+  } else if (e.labs?.creatinina && edad != null && creatininaPlausibleMgDl(e.labs.creatinina)) {
+    const tfg = valorEn(ckdEpi2021(mgPorDl(e.labs.creatinina), edad, !!e.sexo && /^f/i.test(e.sexo)), 'mL/min/1.73m²')
     if (Number.isFinite(tfg)) {
       out.push({
         id: 'calc:tfg',
@@ -378,9 +507,56 @@ function calculosAutomaticos(e: EntradaCopiloto): Sugerencia[] {
     }
   }
 
+  /**
+   * POTASIO y SODIO críticos del dictado — auditoría 2026-07 (P2). El copiloto los
+   * extraía (labsDesdeEstudios) y los TIRABA: ninguna alerta ambulatoria de hiper/
+   * hipokalemia ni de disnatremia. Se reutilizan los umbrales YA auditados en
+   * `lab-criticos.ts` (K 2.5–6.5 mEq/L, Na 120–160 mEq/L). No se inventan valores.
+   */
+  /**
+   * RIESGO HEPÁTICO de fármacos — auditoría 2026-07 (P2). La capa `RIESGO_HEPATICO`
+   * existía pero NO la consumía nadie. Se activa cuando el dx trae hepatopatía y
+   * un fármaco recetado está en 'evitar' (AINE/benzodiacepinas en cirrosis, etc.).
+   */
+  const dxHep = norm((e.diagnosticos ?? []).map(d => d.descripcion).join(' · '))
+  if (/cirrosis|hepatopat|insuficiencia hepatica|falla hepatica|encefalopat|hipertension portal|ascitis/.test(dxHep)) {
+    for (const m of e.medicamentos ?? []) {
+      const q = norm(m.nombre ?? '')
+      if (q.length < 3) continue
+      const h = RIESGO_HEPATICO.find(x => coincideHepatico(x, q))
+      if (h && h.riesgo === 'evitar') {
+        out.push({
+          id: `hepatico:${m.nombre}`,
+          nivel: 'accion',
+          titulo: `${m.nombre}: evitar en hepatopatía`,
+          detalle: h.motivo,
+          textoNota: `${m.nombre}: se desaconseja en hepatopatía. ${h.motivo}`,
+        })
+      }
+    }
+  }
+
+  const k = e.labs?.potasio
+  if (typeof k === 'number' && k > 0) {
+    if (k >= 6.5) out.push({ id: 'lab:k-alto', nivel: 'critico', titulo: `Potasio ${k} mEq/L: hiperkalemia crítica`, detalle: 'Riesgo de arritmia. ECG, suspender ahorradores de potasio/IECA-ARA-II y tratar según gravedad.', textoNota: `Potasio ${k} mEq/L (hiperkalemia crítica).` })
+    else if (k <= 2.5) out.push({ id: 'lab:k-bajo', nivel: 'critico', titulo: `Potasio ${k} mEq/L: hipokalemia crítica`, detalle: 'Riesgo de arritmia y debilidad. Reponer y buscar causa (pérdidas, diuréticos).', textoNota: `Potasio ${k} mEq/L (hipokalemia crítica).` })
+  }
+  const na = e.labs?.sodio
+  if (typeof na === 'number' && na > 0) {
+    if (na >= 160) out.push({ id: 'lab:na-alto', nivel: 'accion', titulo: `Sodio ${na} mEq/L: hipernatremia`, detalle: 'Evaluar estado de volumen y corregir el déficit de agua a ritmo seguro.', textoNota: `Sodio ${na} mEq/L (hipernatremia).` })
+    else if (na <= 120) out.push({ id: 'lab:na-bajo', nivel: 'accion', titulo: `Sodio ${na} mEq/L: hiponatremia`, detalle: 'Corrección a ritmo seguro (evitar >8–10 mEq/L en 24 h por riesgo de desmielinización). Definir volumen y osmolaridad.', textoNota: `Sodio ${na} mEq/L (hiponatremia).` })
+  }
+
   // FIB-4 cuando los laboratorios ya están
   const { ast, alt, plaquetas } = e.labs ?? {}
   if (ast && alt && plaquetas && edad != null) {
+    /**
+     * UNIDADES: las plaquetas llegan en ×10⁹/L (panel: 135) o en conteo absoluto
+     * (parser de labs: 135 000) según la fuente. Antes aquí se dividía SIEMPRE /1000,
+     * lo que corregía la fuente absoluta pero ROMPÍA la que ya venía en ×10⁹/L
+     * (135/1000 → FIB-4 ×1000, 3053 en vez de 3.05). Ahora fib4() detecta la unidad
+     * por magnitud y normaliza sola — se pasan crudas. Auditoría maestra 2026-07 (P0).
+     */
     const v = fib4(edad, ast, plaquetas, alt)
     const r = v != null ? interpretarFib4(v, edad) : null
     if (r) {
@@ -409,7 +585,33 @@ function metasPorDiagnostico(e: EntradaCopiloto): Sugerencia[] {
   const tieneDislip = /dislipidemia|hipercolesterolemia|hipertriglicerid|colesterol/.test(dx)
 
   if (tieneDiabetes || tieneASCVD || tieneDislip) {
-    const meta = metaLipidica({ diabetes: tieneDiabetes, ascvdClinica: tieneASCVD, tg: e.labs?.trigliceridos })
+    /**
+     * Auditoría 2026-07 (P1): antes se llamaba a metaLipidica SOLO con {diabetes,
+     * ascvdClinica, tg}. Nunca se le pasaba el PREVENT ni los factores de riesgo,
+     * así que la meta salía SIEMPRE la más laxa y la nota afirmaba «Diabetes SIN
+     * factores de riesgo» sin haberlos interrogado. Ahora:
+     *  - factoresRiesgo y erc se derivan del MISMO texto de diagnósticos.
+     *  - preventPct se calcula de verdad (mismo motor que la tarjeta de riesgo).
+     * Con esto la meta se ajusta al riesgo (ACC/AHA 2026, validado por el Dr):
+     * PREVENT <3% → <130 · 3-<10% → <100 · ≥10% → <70 · ASCVD → <55/<70.
+     */
+    const factoresRiesgo = /hipertension|hta|tabaquismo|fumador|obesidad|sobrepeso|renal cronica|erc\b|sindrome metabolico|antecedente familiar/.test(dx)
+    const erc = /renal cronica|erc\b|nefropat|insuficiencia renal/.test(dx)
+    const tfg = (e.labs?.creatinina && e.edad != null && creatininaPlausibleMgDl(e.labs.creatinina))
+      ? valorEn(ckdEpi2021(mgPorDl(e.labs.creatinina), e.edad, !!e.sexo && /^f/i.test(e.sexo)), 'mL/min/1.73m²') : 0
+    const prev = prevent({
+      edad: e.edad ?? 0, esMujer: !!e.sexo && /^f/i.test(e.sexo),
+      tas: sistolica(e.signos?.ta) ?? 0,
+      colesterolTotal: e.labs?.colesterolTotal ?? 0, hdl: e.labs?.hdl ?? 0,
+      tfg: tfg || (e.labs?.tfg ?? 0),
+      diabetes: tieneDiabetes, fuma: /tabaquismo|fumador|fuma/.test(dx),
+      tomaAntihipertensivo: false, tomaEstatina: false,
+    })
+    const meta = metaLipidica({
+      diabetes: tieneDiabetes, ascvdClinica: tieneASCVD, tg: e.labs?.trigliceridos,
+      factoresRiesgo, erc, preventPct: prev?.riesgo10, edad: e.edad,
+      hipercolesterolemiaSevera: (e.labs?.ldl ?? 0) >= 190,
+    })
     const ldl = e.labs?.ldl
     out.push({
       id: 'meta:ldl',
@@ -423,6 +625,28 @@ function metasPorDiagnostico(e: EntradaCopiloto): Sugerencia[] {
       textoNota: `Meta de LDL-C menor de ${meta.ldl} mg/dL y no-HDL-C menor de ${meta.noHDL} mg/dL (${meta.poblacion}), según la guía ACC/AHA 2026.`,
       pide: ldl == null ? 'LDL' : undefined,
     })
+
+    /**
+     * ¿A quién indicar estatina? (guía ACC/AHA 2026, imagen validada por el Dr).
+     * Recomienda la INTENSIDAD por escenario, no solo la meta. Solo se muestra
+     * cuando ya está indicada de forma clara (no en «individualizar/no-de-rutina»,
+     * para no empujar estatina sin criterio).
+     */
+    const rec = recomendarEstatina({
+      edad: e.edad, ldl, preventPct: prev?.riesgo10, prevent30Pct: prev?.riesgo30 ?? undefined,
+      ascvdClinica: tieneASCVD, diabetes: tieneDiabetes, diabetesMultiplesFR: tieneDiabetes && factoresRiesgo,
+      ercEstadio3o4: erc, potenciadores: factoresRiesgo,
+    })
+    if (rec.indicar === 'alta' || rec.indicar === 'moderada' || rec.indicar === 'considerar-moderada') {
+      const alta = rec.indicar === 'alta'
+      out.push({
+        id: 'meta:estatina',
+        nivel: 'info',
+        titulo: alta ? 'Corresponde estatina de ALTA intensidad' : rec.indicar === 'moderada' ? 'Corresponde estatina de intensidad moderada' : 'Considerar estatina moderada',
+        detalle: `${rec.motivo}${alta ? ' Preferidas: atorvastatina 40–80 mg o rosuvastatina 20–40 mg (reducción de LDL-C ≥50%).' : rec.indicar === 'moderada' ? ' Preferidas: atorvastatina 10–20 mg o rosuvastatina 5–10 mg (reducción 30–49%).' : ''}`,
+        textoNota: `${rec.motivo} (guía ACC/AHA 2026).`,
+      })
+    }
   }
 
   // MASLD (antes «hígado graso no alcohólico»): el tamizaje con FIB-4 se hace
@@ -454,8 +678,19 @@ function riesgoCardiovascular(e: EntradaCopiloto): Sugerencia[] {
   if (/infarto|cardiopatia isquemica|angina|evc|isquemi|arteriopat|revasculariza/.test(dx)) return []
   if (e.edad == null || e.edad < 30 || e.edad > 79) return []
 
-  const tfg = e.labs?.tfg ?? (e.labs?.creatinina && e.edad
-    ? ckdEpi2021(e.labs.creatinina, e.edad, !!e.sexo && /^f/i.test(e.sexo))
+  /**
+   * E0-05 — HUECO CERRADO (único cambio de comportamiento de la unidad).
+   *
+   * Los otros tres call sites de ckdEpi2021 de este archivo (:270, :493, :598) ya
+   * filtraban con `creatininaPlausibleMgDl`; éste NO. Una creatinina de 88 (que es
+   * un valor NORMAL en µmol/L) entraba cruda, salía una TFG de ~5 mL/min/1.73 m² y
+   * alimentaba el riesgo PREVENT — un riesgo cardiovascular calculado sobre un dato
+   * basura, sin avisar. Ahora se filtra igual que en :598: con creatinina
+   * implausible, PREVENT recibe tfg=0 y devuelve null (prevent.ts), es decir,
+   * DECLARA el dato faltante en vez de inventar un riesgo.
+   */
+  const tfg = e.labs?.tfg ?? (e.labs?.creatinina && e.edad && creatininaPlausibleMgDl(e.labs.creatinina)
+    ? valorEn(ckdEpi2021(mgPorDl(e.labs.creatinina), e.edad, !!e.sexo && /^f/i.test(e.sexo)), 'mL/min/1.73m²')
     : undefined)
 
   const entrada = {
@@ -467,8 +702,24 @@ function riesgoCardiovascular(e: EntradaCopiloto): Sugerencia[] {
     tfg: tfg ?? 0,
     diabetes: /diabetes|dm2|dm 2|dm1/.test(dx),
     fuma: /tabaquismo|fumador|fuma/.test(dx),
+    /**
+     * Auditoría 2026-07 (P1): la lista sólo tenía 9 fármacos y dejaba fuera los más
+     * recetados en México. Un paciente con irbesartán, captopril, bisoprolol,
+     * carvedilol o nifedipino contaba como NO tratado y PREVENT SUBESTIMABA su
+     * riesgo cardiovascular. Se completa por CLASE (ARA-II, IECA, calcioantagonistas,
+     * betabloqueadores, diuréticos); es clasificación factual de fármacos, no un
+     * cambio de umbrales ni de la fórmula.
+     */
     tomaAntihipertensivo: (e.medicamentos ?? []).some(m =>
-      /losartan|telmisartan|valsartan|enalapril|lisinopril|amlodipino|metoprolol|hidroclorotiazida|clortalidona/
+      /losartan|telmisartan|valsartan|irbesartan|candesartan|olmesartan|azilsartan|eprosartan/
+        .test(norm(m.nombre ?? '')) ||
+      /enalapril|lisinopril|captopril|ramipril|perindopril|quinapril|benazepril|fosinopril|trandolapril/
+        .test(norm(m.nombre ?? '')) ||
+      /amlodipino|nifedipino|felodipino|nitrendipino|lercanidipino|verapamilo|diltiazem/
+        .test(norm(m.nombre ?? '')) ||
+      /metoprolol|bisoprolol|carvedilol|atenolol|nebivolol|propranolol|labetalol/
+        .test(norm(m.nombre ?? '')) ||
+      /hidroclorotiazida|clortalidona|indapamida|espironolactona|eplerenona|furosemida/
         .test(norm(m.nombre ?? ''))),
     tomaEstatina: (e.medicamentos ?? []).some(m =>
       /atorvastatina|rosuvastatina|simvastatina|pravastatina|pitavastatina|lovastatina|fluvastatina/

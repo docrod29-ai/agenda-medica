@@ -7,7 +7,8 @@
  * La llave nunca se devuelve al cliente; solo "configurada: true · ····1234".
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { verificarMiembro, verificarMedico } from '@/lib/auth-server'
+import { verificarMiembro } from '@/lib/auth-server'
+import { verificarCapacidad } from '@/lib/authz/verificar'
 import { estadoClavesIA, guardarClaveIA, type ProveedorIA } from '@/lib/ai-keys'
 
 export const runtime = 'nodejs'
@@ -16,6 +17,9 @@ const PROVEEDORES: ProveedorIA[] = ['anthropic', 'assemblyai', 'openai']
 
 export async function GET(req: NextRequest) {
   const clinicId = req.nextUrl.searchParams.get('clinicId') ?? ''
+  // E0-07: declarada como `administrar` en REGISTRO_RUTAS, pero SIN activar todavía:
+  // cerrar el estado enmascarado de las llaves a medico/admin estrecha el acceso de
+  // usuarios reales y eso lo decide el médico dueño, no esta unidad.
   const acceso = await verificarMiembro(req, clinicId)
   if (!acceso.ok) return acceso.response
   try {
@@ -37,8 +41,9 @@ export async function POST(req: NextRequest) {
   if (!PROVEEDORES.includes(proveedor as ProveedorIA)) {
     return NextResponse.json({ ok: false, error: 'Proveedor no válido' }, { status: 400 })
   }
-  // Solo médico/admin del consultorio puede tocar las llaves.
-  const acceso = await verificarMedico(req, clinicId)
+  // Solo quien puede ADMINISTRAR el consultorio toca las llaves (E0-07: era
+  // `verificarMedico`, mismo conjunto de roles {medico, admin}).
+  const acceso = await verificarCapacidad(req, clinicId, 'administrar')
   if (!acceso.ok) return acceso.response
   try {
     await guardarClaveIA(clinicId, proveedor as ProveedorIA, key ?? '')

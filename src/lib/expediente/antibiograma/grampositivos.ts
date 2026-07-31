@@ -60,7 +60,13 @@ function ultimaLineaGramPos(r: ResultadoAntibiograma[], out: AporteModulo, organ
    */
   const esFaecium = /faecium/i.test(organismo)
   const esEnterococo = /enterococ|faecalis|faecium/i.test(organismo)
-  const umbralDapNoS = esFaecium ? 8 : esEnterococo ? 8 : 1
+  /**
+   * Auditoría 2026-07 (P1): en estafilococo la CMI SENSIBLE es ≤1, así que el
+   * primer valor NO-sensible es 2. El umbral estaba en 1 con la condición `>= 1`,
+   * de modo que una daptomicina CMI 1 (S, agente de PRIMERA LÍNEA en bacteriemia
+   * por SARM) se reportaba como no-S y se descartaba. Se corrige a 2.
+   */
+  const umbralDapNoS = esFaecium ? 8 : esEnterococo ? 8 : 2
   const dapCmi = cmiDe(r, DAPTOMICINA)
   if (ES_R(estado(r, DAPTOMICINA)) || (dapCmi !== null && dapCmi >= umbralDapNoS)) {
     out.fenotipos.push({ clave: 'daptomicina-R', nombre: 'Sensibilidad reducida / R a daptomicina', confianza: dapCmi !== null ? 'probable' : 'confirmado', base: `Daptomicina no-S${dapCmi !== null ? ` (CMI ${dapCmi})` : ''}: mutaciones en mprF (carga de la membrana) o el sistema LiaFSR (respuesta de envoltura). ${REF.GRAM_POS}` })

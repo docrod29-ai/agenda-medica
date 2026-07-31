@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { adminDb } from '@/lib/firebase-admin'
 import { MapPin, Phone, Star, CalendarPlus, Stethoscope, ShieldCheck } from 'lucide-react'
+import { nombreAnonimizado } from '@/lib/reviews'
 
 /**
  * Perfil público del médico/clínica — Server Component (SSR) optimizado para SEO.
@@ -123,7 +124,7 @@ export default async function PerfilPublico({ params }: { params: Promise<{ clin
       review: p.reviews.slice(0, 8).map(r => ({
         '@type': 'Review',
         reviewRating: { '@type': 'Rating', ratingValue: r.rating, bestRating: 5 },
-        ...(r.pacienteNombre ? { author: { '@type': 'Person', name: r.pacienteNombre } } : {}),
+        ...(r.pacienteNombre ? { author: { '@type': 'Person', name: nombreAnonimizado(r.pacienteNombre) } } : {}),
         ...(r.texto ? { reviewBody: r.texto } : {}),
       })),
     } : {}),
@@ -131,7 +132,15 @@ export default async function PerfilPublico({ params }: { params: Promise<{ clin
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--bg)' }}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      {/* Auditoría 2026-07 (P0): XSS almacenado. jsonLd incluye datos del usuario
+          (reseñas, nombre del médico); si alguno traía «</script>» cerraba la etiqueta
+          e inyectaba JS en esta página PÚBLICA. Se escapan <, >, & y separadores de
+          línea a sus escapes unicode, que dentro de JSON son equivalentes y seguros. */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html:
+        JSON.stringify(jsonLd)
+          .replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')
+          .replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029')
+      }} />
 
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 16px 64px' }}>
         {/* Hero */}
@@ -232,7 +241,7 @@ export default async function PerfilPublico({ params }: { params: Promise<{ clin
                     ))}
                   </div>
                   {r.texto && <p style={{ fontSize: 13.5, color: 'var(--text2)', lineHeight: 1.6, margin: '0 0 6px' }}>“{r.texto}”</p>}
-                  <div style={{ fontSize: 12, color: 'var(--text3)' }}>— {r.pacienteNombre || 'Paciente'}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)' }}>— {r.pacienteNombre ? nombreAnonimizado(r.pacienteNombre) : 'Paciente'}</div>
                 </div>
               ))}
             </div>

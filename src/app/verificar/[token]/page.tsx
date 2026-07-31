@@ -45,12 +45,32 @@ export default async function VerificarPage({ params }: { params: Promise<{ toke
             <Fila k="Folio" v={r.folio} />
             <Fila k="Médico emisor" v={r.doctorNombre || '—'} />
             <Fila k="Cédula profesional (registrada en NexusMED)" v={r.cedula || '—'} />
+            {r.contenidoHash && <Fila k="Huella del contenido prescrito" v={r.contenidoHash} />}
+            {/* E0-01: huella calculada por el servidor sobre los medicamentos de la
+                nota firmada. NO se compara con la anterior: se calculan sobre
+                entradas distintas (aquélla incluye folio, indicaciones y
+                diagnóstico del impreso), así que una diferencia no probaría nada.
+                Se muestran como dos hechos independientes. */}
+            {r.huellaNota && <Fila k="Huella de los medicamentos de la nota firmada" v={r.huellaNota} />}
             <Fila k="Emitido" v={r.emitido.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })} />
             <Fila k="Estado" v="Vigente (sin registro de cancelación)" />
             <p style={{ fontSize: 11.5, opacity: 0.6, marginTop: 12 }}>
               La cédula mostrada es la registrada por el médico en NexusMED; NexusMED <strong>no</strong> la valida ante la autoridad.
               La verificación confirma que el documento se generó en NexusMED y no fue alterado.
             </p>
+            {r.firmaVersion >= 2 && (
+              <p style={{ fontSize: 11.5, opacity: 0.6, marginTop: 8 }}>
+                El <strong>médico emisor y el folio</strong> de este certificado los leyó el servidor de la nota
+                clínica firmada en el expediente; no provienen de un formulario ni de quien imprimió el documento.
+              </p>
+            )}
+            {r.contenidoHash && (
+              <p style={{ fontSize: 11.5, opacity: 0.6, marginTop: 8 }}>
+                La <strong>huella del contenido</strong> queda firmada dentro del QR: liga esta verificación a los
+                medicamentos y dosis que se imprimieron. Nadie puede alterar la prescripción y conservar un QR
+                válido, porque re-firmar la huella exige el secreto del servidor.
+              </p>
+            )}
           </div>
         )}
 

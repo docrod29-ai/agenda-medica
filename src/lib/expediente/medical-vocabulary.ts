@@ -822,6 +822,40 @@ export const CONFUSIONES_CONOCIDAS: Record<string, string> = {
   'sofosbubir': 'sofosbuvir',
   'lebetirasetam': 'levetiracetam',
   'atorbastatina': 'atorvastatina',
+
+  /**
+   * ── CONFUSIONES MEDIDAS EN EL CORPUS DE 498 AUDIOS DE UCI (2026-07-30) ──
+   *
+   * NO son suposiciones: cada una se observó en la transcripción real de los
+   * audios del Dr., con la frase de referencia al lado. La corrida completa está
+   * en `docs/maintenance/benchmark-voz-uci-498.json`.
+   *
+   * Las tres primeras son CRÍTICAS por la regla del propio corpus —cifras,
+   * dosis, signos y unidades— y una de ellas es peligrosa de verdad: «PaFi» se
+   * transcribió como «SpO2», así que una PaFi de 120 (hipoxemia grave) se
+   * convertía en una SpO2 de 120, un valor que no existe.
+   */
+  // Modos de terapia continua: perder o sustituir CVVHDF es error clínico
+  // declarado en PARA_CLAUDE.md. Se oyó como CBVHDF y como CDVHDF.
+  'cbvhdf': 'CVVHDF',
+  'cdvhdf': 'CVVHDF',
+  'cvvhd f': 'CVVHDF',
+  // PaFi → SpO2: el error más peligroso de la corrida.
+  'pafi': 'PaFi',
+  'pa fi': 'PaFi',
+  // Escala de sedación: se oyó «RAS».
+  'ras -': 'RASS -',
+  'ras menos': 'RASS menos',
+  // Congestión venosa: se oyó «BXIUS».
+  'bxius': 'VExUS',
+  'vexius': 'VExUS',
+  'bexus': 'VExUS',
+  // Barrido de gas del oxigenador: se oyó «Swip gas».
+  'swip gas': 'sweep gas',
+  'suip gas': 'sweep gas',
+  // Vibración de la línea de drenaje en ECMO: se oyó «chater».
+  'chater': 'chatter',
+  'chatter de la linea': 'chatter de la línea',
 }
 
 /** Índice normalizado (sin acentos) para matching robusto */
@@ -877,16 +911,34 @@ export function aplicarConfusionesConocidas(texto: string): ResultadoCorreccion 
 /** ¿El token es una palabra "pura" (sin puntuación pegada)? */
 const REGEX_PALABRA_PURA = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ][A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9-]*$/
 
-function buscarTerminoUnido(fonUnido: string): string | null {
+function buscarTerminoUnido(fonUnido: string, estricto = false): string | null {
   // Coincidencia exacta en el índice fonético
   const exacto = INDICE_FONETICO.get(fonUnido)
   if (exacto && fonUnido.length >= 8) return exacto
+  /**
+   * En modo ESTRICTO el candidato tiene que medir casi lo mismo que la unión.
+   *
+   * Una fusión repara un ESPACIO: el número de letras apenas cambia. Un
+   * candidato dos o más letras más corto no está reparando, se está tragando
+   * contenido. Medido:
+   *
+   *     activoparalisis → acroparalysis   d=3  len 15→13   ✗ se traga
+   *     activoanestesia → acroanesthesia  d=3  len 15→14   ✗ se traga
+   *     empaqlinfosina  → empagliflozina  d=3  len 14→14   ✓ repara
+   *     platanopros     → latanoprost     d=2  len 11→11   ✓ repara
+   *
+   * La distancia sola no los separa —hay buenos y malos a distancia 3—; la
+   * diferencia de longitud sí. Los dos malos los encontró el corpus V3, que el
+   * pipeline no había visto nunca: la nota decía «problema acroparalysis facial
+   * periférica».
+   */
+  const deltaMax = estricto ? 1 : 3
   // Levenshtein con el mismo umbral que palabra-por-palabra (distAceptable),
   // solo para uniones de ≥10 chars fonéticos (las cortas son riesgosas)
   if (fonUnido.length >= 10) {
     let mejor: { term: string; dist: number } | null = null
     for (const { term, fonet } of TERMINOS_LEV) {
-      if (Math.abs(fonet.length - fonUnido.length) > 3) continue
+      if (Math.abs(fonet.length - fonUnido.length) > deltaMax) continue
       const d = levenshtein(fonet, fonUnido)
       if (!distAceptable(d, Math.max(fonet.length, fonUnido.length))) continue
       if (!mejor || d < mejor.dist) mejor = { term, dist: d }
@@ -895,6 +947,51 @@ function buscarTerminoUnido(fonUnido: string): string | null {
     if (mejor) return mejor.term
   }
   return null
+}
+
+/**
+ * GUARDIÁN ANTÓNIMO (P0 auditoría): jamás "corregir" una palabra a otra que INVIERTE
+ * su significado clínico cruzando el prefijo hiper↔hipo. El corrector fonético/
+ * Levenshtein confunde "hiperglucemia"→"hipoglucemia" y "hipertensión"→"hipotensión"
+ * (distancia ~2), lo que escribe lo OPUESTO en la nota (presión alta→baja). Bloquea
+ * ese cruce; nunca hay una corrección legítima hiper→hipo.
+ */
+function invierteHiperHipo(orig: string, cand: string): boolean {
+  const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  const o = norm(orig), c = norm(cand)
+  const hiper = (s: string) => /^h[iy]per/.test(s)
+  const hipo = (s: string) => /^h[iy]po/.test(s)
+  return (hiper(o) && hipo(c)) || (hipo(o) && hiper(c))
+}
+
+/**
+ * ¿Esta palabra es una CANTIDAD? Cifra o número escrito con letra.
+ *
+ * Se usa para que el fusionador de n-gramas no se coma una dosis. La lista es
+ * de números, no de unidades: «gramos» sí puede formar parte de un término.
+ */
+const NUMEROS_PALABRA = new Set([
+  'un', 'una', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho',
+  'nueve', 'diez', 'once', 'doce', 'trece', 'catorce', 'quince', 'dieciseis',
+  'diecisiete', 'dieciocho', 'diecinueve', 'veinte', 'treinta', 'cuarenta',
+  'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa', 'cien', 'ciento',
+  'cientos', 'doscientos', 'trescientos', 'cuatrocientos', 'quinientos',
+  'seiscientos', 'setecientos', 'ochocientos', 'novecientos', 'mil', 'medio', 'media',
+])
+function esCantidad(p: string): boolean {
+  if (/\d/.test(p)) return true
+  return NUMEROS_PALABRA.has(p.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''))
+}
+
+/**
+ * ¿Es una sigla escrita a propósito?
+ *
+ * Dos o más letras y todas en mayúscula («NIRS», «PEEP», «CVVHDF»). Un fragmento
+ * de fármaco partido por el reconocedor nunca sale así.
+ */
+function esSigla(p: string): boolean {
+  const limpio = p.replace(/[^\p{L}\p{N}]/gu, '')
+  return limpio.length >= 2 && /^[\p{Lu}\p{N}]+$/u.test(limpio) && /\p{Lu}/u.test(limpio)
 }
 
 export function corregirNGramas(texto: string): ResultadoCorreccion {
@@ -925,14 +1022,65 @@ export function corregirNGramas(texto: string): ResultadoCorreccion {
       // "flozina"), nunca palabras reales. Así no convertimos una frase normal en un
       // término médico. (Antes solo saltaba si TODAS eran comunes.)
       const algunaComun = palabras.some(p =>
-        PALABRAS_COMUNES.has(p.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''))
+        PALABRAS_COMUNES.has(p.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''))
       )
       if (algunaComun) continue
 
+      /**
+       * NUNCA fusionar una CANTIDAD con lo que va delante. (P0, medido)
+       *
+       * Este pase existe para reunir fármacos que el reconocedor partió
+       * («em pagli flozina» → empagliflozina). Un fragmento de nombre de fármaco
+       * es un trozo sin sentido; **nunca es un número**.
+       *
+       * Sin esta guarda, «Meropenem dos» se fusionaba en «Meropenem» —el
+       * fonético de «meropenemdos» casa con «meropenem»— y LA DOSIS DESAPARECÍA
+       * de una transcripción que era CORRECTA. El reconocedor la oía bien; nos
+       * la comíamos nosotros, en cada dictado, en producción.
+       *
+       * Medido en el corpus de 498 audios del Dr. (2026-07-30): 6 de 6 en
+       * «Meropenem dos gramos», y el mismo daño en «Ceftriaxona dos gramos».
+       * Se creyó un fallo del transcriptor hasta que se probaron los tres
+       * modelos y los tres devolvían el «dos».
+       */
+      if (palabras.some(esCantidad)) continue
+
+      /**
+       * NUNCA fusionar si ALGUNA palabra ya es un término válido.
+       *
+       * Si «Meropenem» ya está bien escrito, unirlo a lo que sigue sólo puede
+       * destruir información. Un fármaco partido son fragmentos sin sentido
+       * («em», «pagli»), no palabras que existen por sí solas.
+       *
+       * Empezó mirando sólo la PRIMERA palabra (REG-065). El corpus V3 mostró
+       * que no basta: «problema activo parálisis facial» salía «problema
+       * acroparalysis facial», y «problema activo anestesia general» salía
+       * «problema acroanesthesia general». El término destruido estaba en
+       * segunda posición.
+       */
+      if (palabras.some(p => buscarTerminoUnido(fonetEs(p)))) continue
+
+      /**
+       * NUNCA fusionar una ventana que contenga una SIGLA. (REG-066, medido)
+       *
+       * Una palabra en mayúsculas es una sigla que alguien escribió a
+       * propósito; no es un fragmento de fármaco partido. Sin esta guarda,
+       * «NIRS cerebral» se fusionaba en «Precerebral» —el fonético de
+       * «nirscerebral» casaba— y desaparecía el nombre del monitor.
+       *
+       * Encontrado el 30-jul-2026 pasando el corpus V3 de 7 000 audios, que el
+       * pipeline no había visto nunca. El guardián de sustituciones no podía
+       * verlo: no cambió ninguna cifra, ni unidad, ni negación, ni lateralidad.
+       */
+      if (palabras.some(esSigla)) continue
+
       // a) unidas sin espacio → término de una palabra
       // b) unidas con espacio → término multipalabra ("ácido fólico")
-      const term = buscarTerminoUnido(fonetEs(unida)) ?? buscarTerminoUnido(fonetEs(palabras.join(' ')))
+      const term = buscarTerminoUnido(fonetEs(unida), true)
+        ?? buscarTerminoUnido(fonetEs(palabras.join(' ')), true)
       if (!term) continue
+      // GUARDIÁN ANTÓNIMO (P0): nunca invertir hiper↔hipo (significado opuesto).
+      if (invierteHiperHipo(unida, term) || invierteHiperHipo(palabras.join(' '), term)) continue
       // no reemplazar si ya estaba bien escrito
       if (term.toLowerCase() === palabras.join(' ').toLowerCase()) { reemplazado = false; break }
 
@@ -993,23 +1141,62 @@ export function corregirTranscripcion(texto: string): ResultadoCorreccion {
  * Prompt biased para Whisper (≤ ~200 tokens)
  * ════════════════════════════════════════════════════════════════ */
 
+/**
+ * PRESUPUESTO DE TOKENS — el limite es REAL y se estaba pasando.
+ *
+ * Whisper usa solo los ULTIMOS ~224 tokens del prompt. Al medir el corpus de 498
+ * se descubrio que `WHISPER_PROMPT_MEDICO` iba en ~242: el principio se truncaba
+ * EN SILENCIO, que es exactamente el bug contra el que avisa el comentario
+ * historico de este archivo. Y ademas no traia NI UNA palabra de UCI.
+ *
+ * Por eso ahora hay un prompt POR CONTEXTO. Mandar los dos juntos no cabe, y
+ * diluir el sesgo con vocabulario de otro dominio es peor que no sesgarlo.
+ */
+export const LIMITE_TOKENS_PROMPT = 224
+export const tokensAprox = (s: string) => Math.round(s.length / 4)
+
 export const WHISPER_PROMPT_MEDICO = [
-  // ⚠️ LÍMITE DE WHISPER: usa solo los ÚLTIMOS ~224 tokens del prompt.
-  // Si crece más, se trunca EN SILENCIO y el sesgo se pierde (bug real
-  // que tuvimos con la versión de ~1000 tokens). Aquí van SOLO los
-  // fármacos más mal transcritos. El vocabulario completo de todas las
-  // especialidades vive en corregirTranscripcion() — sin límite.
-  'Consulta médica en México. Fármacos:',
-  'empagliflozina, dapagliflozina, canagliflozina, semaglutida, tirzepatida, liraglutida,',
-  'sitagliptina, linagliptina, insulina glargina, insulina degludec,',
-  'atorvastatina, rosuvastatina, losartán, telmisartán, bisoprolol, carvedilol,',
-  'espironolactona, sacubitrilo/valsartán, apixabán, rivaroxabán, dabigatrán, ticagrelor,',
-  'levetiracetam, lamotrigina, pregabalina, escitalopram, venlafaxina, quetiapina,',
-  'meropenem, ertapenem, piperacilina/tazobactam, vancomicina, linezolid, daptomicina,',
-  'ceftriaxona, cefepime, ceftazidima/avibactam, levofloxacino, claritromicina,',
+  'Consulta médica en México. Fármacos: empagliflozina, dapagliflozina,',
+  'semaglutida, tirzepatida, liraglutida, sitagliptina, linagliptina,',
+  'insulina glargina, insulina degludec, atorvastatina, rosuvastatina,',
+  'losartán, telmisartán, bisoprolol, carvedilol, espironolactona,',
+  'sacubitrilo/valsartán, apixabán, rivaroxabán, dabigatrán, ticagrelor,',
+  'levetiracetam, lamotrigina, pregabalina, escitalopram, venlafaxina,',
+  'meropenem, ertapenem, piperacilina/tazobactam, vancomicina, linezolid,',
+  'daptomicina, ceftriaxona, cefepime, ceftazidima/avibactam, levofloxacino,',
   'trimetoprim/sulfametoxazol, fluconazol, voriconazol, caspofungina,',
-  'tacrolimus, micofenolato, rituximab, adalimumab, tocilizumab, hidroxicloroquina,',
-  'tamsulosina, alopurinol, colchicina, denosumab, levotiroxina, isotretinoína,',
-  'latanoprost, oxitocina, propofol, rocuronio, ondansetrón.',
-  'Términos: procalcitonina, hemocultivo, antibiograma, BLEE, MRSA, HbA1c, qSOFA, desescalada.',
+  'tacrolimus, micofenolato, rituximab, tocilizumab, alopurinol, colchicina,',
+  'levotiroxina, propofol, rocuronio, ondansetrón.',
+  'Términos: procalcitonina, hemocultivo, antibiograma, BLEE, MRSA, HbA1c, qSOFA.',
+].join(' ')
+
+/**
+ * Vocabulario de CUIDADOS CRÍTICOS.
+ *
+ * Cubre los diez dominios del corpus del Dr. —CKRT, ECMO, ventilación,
+ * hemodinámica, ultrasonido, gasometría, sedación, infección, laboratorio y UCI
+ * general— **no sólo los términos que fallaron**. Sesgar únicamente hacia los
+ * siete errores medidos seria sobreajustar a este dataset: el dictado real trae
+ * los otros ciento y pico terminos del dominio, y esos tambien tienen que
+ * llegar bien.
+ *
+ * Los que SÍ se midieron fallando van al principio de su grupo, porque el limite
+ * de tokens corta por el final... y el modelo lee los ULTIMOS: por eso lo mas
+ * critico va al FINAL del prompt.
+ */
+export const WHISPER_PROMPT_UCI = [
+  'Pase de visita en terapia intensiva.',
+  'PEEP, auto-PEEP, presión plateau, driving pressure, compliance estática,',
+  'volumen corriente, peso predicho, índice de Kirby, ventilación espontánea.',
+  'Norepinefrina, vasopresina, dobutamina, milrinona, presión arterial media,',
+  'variación de presión de pulso, índice cardiaco, lactato.',
+  'CKRT, CVVH, CVVHD, citrato, calcio ionizado postfiltro.',
+  'Vena cava inferior, TAPSE, lung ultrasound score, deslizamiento pleural.',
+  'Glasgow, dexmedetomidina, fentanilo, midazolam, delirium.',
+  'Bicarbonato, exceso de base, brecha aniónica, PaCO2, PaO2.',
+  'Meropenem, piperacilina tazobactam, vancomicina, linezolid, procalcitonina.',
+  // El modelo lee los ÚLTIMOS tokens: lo que MÁS falló va al final.
+  'ECMO venovenoso, ECMO venoarterial, sweep gas, chatter de la línea.',
+  'Meropenem dos gramos cada ocho horas. Linezolid seiscientos miligramos cada doce horas.',
+  'CVVHDF. PaO2/FiO2, PaFi. RASS menos cuatro. VExUS grado tres.',
 ].join(' ')

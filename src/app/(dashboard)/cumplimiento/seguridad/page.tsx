@@ -153,7 +153,7 @@ export default function SeguridadPage() {
             borderRadius: 4, fontSize: 12, color: 'var(--text2)', marginBottom: 14,
             display: 'flex', alignItems: 'flex-start', gap: 7,
           }}>
-            <AlertTriangle size={14} className="ds-icon" style={{ marginTop: 1, flexShrink: 0, color: '#f59e0b' }} />
+            <AlertTriangle size={14} className="ds-icon" style={{ marginTop: 1, flexShrink: 0, color: 'var(--amber)' }} />
             <span>Si pierdes tu celular y no tienes el código de recuperación, NO podrás iniciar sesión.
             Guarda el código de respaldo que te daré después.</span>
           </div>

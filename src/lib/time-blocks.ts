@@ -5,24 +5,20 @@
  * de inicio, fecha de fin y motivo opcional. Cuando un slot cae dentro de
  * un bloque, no se ofrece para reservar (ni a través del bot, ni del
  * portal, ni de la agenda).
+ *
+ * Este archivo es la capa de ACCESO A DATOS (necesita el SDK del navegador).
+ * La lógica pura vive en `time-blocks-core.ts` y se re-exporta aquí para que
+ * ningún llamador existente cambie. Si tu módulo corre en el SERVIDOR, importa
+ * del núcleo directamente — ver el comentario de cabecera de ese archivo.
  */
 import {
   collection, doc, addDoc, deleteDoc, getDocs, query, orderBy,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import type { TimeBlock } from '@/lib/time-blocks-core'
 
-export type TipoBloque = 'vacaciones' | 'ausencia' | 'evento' | 'mantenimiento' | 'otro'
-
-export interface TimeBlock {
-  id: string
-  desde: string            // ISO datetime
-  hasta: string            // ISO datetime
-  tipo: TipoBloque
-  motivo?: string
-  medicoId?: string        // opcional: bloque solo para un médico
-  createdAt: string
-  creadoPor: string
-}
+export type { TipoBloque, TimeBlock } from '@/lib/time-blocks-core'
+export { estaBloqueado, TIPO_BLOQUE_LABEL } from '@/lib/time-blocks-core'
 
 function col(clinicId: string) {
   return collection(db, 'clinics', clinicId, 'time_blocks')
@@ -46,32 +42,4 @@ export async function crearBloque(
 
 export async function borrarBloque(clinicId: string, id: string): Promise<void> {
   await deleteDoc(doc(col(clinicId), id))
-}
-
-/** Verifica si una fecha/hora cae dentro de algún bloque activo. */
-export function estaBloqueado(
-  fechaHora: string,                  // ISO o "YYYY-MM-DD HH:MM"
-  bloques: TimeBlock[],
-  medicoId?: string,
-): TimeBlock | null {
-  const t = new Date(fechaHora.replace(' ', 'T')).getTime()
-  if (isNaN(t)) return null
-  for (const b of bloques) {
-    const desde = new Date(b.desde).getTime()
-    const hasta = new Date(b.hasta).getTime()
-    if (t >= desde && t < hasta) {
-      // Si el bloque es para un médico específico, solo bloquea a ese médico
-      if (b.medicoId && medicoId && b.medicoId !== medicoId) continue
-      return b
-    }
-  }
-  return null
-}
-
-export const TIPO_BLOQUE_LABEL: Record<TipoBloque, string> = {
-  vacaciones: '🌴 Vacaciones',
-  ausencia: '✋ Ausencia',
-  evento: '📅 Evento',
-  mantenimiento: '🔧 Mantenimiento',
-  otro: '⏸️ Otro',
 }

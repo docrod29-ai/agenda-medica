@@ -15,10 +15,12 @@ import {
   ArrowLeft, Mic, FileText, Loader2, AlertTriangle, CheckCircle2,
   Clock, ChevronDown, ChevronUp, Plus, Printer, Trash2, Send, Pill, ClipboardList, Pencil, Upload,
   Stethoscope, Activity, LogIn, LogOut, UserPlus, ClipboardCheck, ShieldPlus, type LucideIcon,
-  Camera,
+  Camera, FlaskConical,
 } from 'lucide-react'
 import { Button, EmptyState, Spinner, Badge } from '@/components/ui'
 import { FotosClinicas } from '@/components/FotosClinicas'
+import { PanelLaboratorios } from '@/components/laboratorio/PanelLaboratorios'
+import { ResumenPaciente } from '@/components/expediente/ResumenPaciente'
 import { Herramientas } from '@/components/Herramientas'
 import { ExpedienteVacio } from '@/components/brand/EmptyArt'
 import { avatarColor } from '@/lib/avatar-color'
@@ -37,6 +39,7 @@ const ICONO_TIPO_NOTA: Record<TipoNota, LucideIcon> = {
   nota_postoperatoria: Activity,
   nota_anestesia: Activity,
   consentimiento: FileText,
+  evolucion_uci: Activity,
 }
 
 export default function ExpedientePage() {
@@ -107,12 +110,26 @@ export default function ExpedientePage() {
           <button className="btn btn-sm" onClick={() => window.location.reload()}>Reintentar</button>
         </div>
       )}
-      {patient?.alergias && (
-        <div style={alergiaBanner}>
-          <AlertTriangle size={16} />
-          <strong>ALERGIAS:</strong> {patient.alergias}
-        </div>
-      )}
+      {/* Banner de alergias — ÚNICO en el expediente (antes había otro en la
+          tarjeta de resumen: dos avisos para lo mismo). Se muestra siempre; rojo
+          solo cuando hay alergias REALES, neutro si están negadas (rojo cuando
+          no hay alergias es "gritar lobo" y desgasta la señal). */}
+      {(() => {
+        const a = (patient?.alergias ?? '').trim()
+        const sin = !a || /^(ninguna|niega|no|sin|nkda|negad)/i.test(a)
+        return (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8, borderRadius: 8,
+            padding: '10px 14px', fontSize: 13, marginBottom: 16,
+            background: sin ? 'var(--s2)' : 'rgba(239,68,68,0.12)',
+            border: `1px solid ${sin ? 'var(--border)' : 'rgba(239,68,68,0.35)'}`,
+            color: sin ? 'var(--text2)' : 'var(--red)',
+          }}>
+            <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+            <span><strong>Alergias:</strong> {a || 'no registradas'}</span>
+          </div>
+        )
+      })()}
 
       {/* Patient header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
@@ -169,18 +186,30 @@ export default function ExpedientePage() {
         </div>
       </div>
 
-      {/* Datos del paciente — vista unificada (antes estaba en "Pacientes") */}
+      {/* Resumen del paciente: alergias, últimos signos, diagnósticos activos y
+          actividad — todo de un vistazo (lo que la competencia enseña como fuerte,
+          pero aquí la info ya existía, solo estaba dispersa). */}
+      <ResumenPaciente patient={patient} notas={notas} />
+
+      {/* Datos del paciente (contacto) — plegado, para editar cuando haga falta. */}
       <DatosPaciente patient={patient} onEditar={() => router.push('/pacientes')} />
 
-      {/* Fotografía clínica seriada: la SERIE completa con el antes/después vive
-          aquí (es donde se revisa evolución); la captura está en la consulta.
-          Plegada para no ocupar pantalla en los expedientes que no la usan. */}
+      {/* Herramientas del expediente en UN SOLO bloque (antes eran dos cajas
+          separadas, cada una con su encabezado "Herramientas clínicas" — se veían
+          duplicadas). Laboratorios y la fotografía seriada, ambas plegadas. */}
       {clinicId && patientId && (
-        <Herramientas items={[{
-          id: 'fotos', nombre: 'Fotografía clínica seriada', color: 'var(--teal)', icono: <Camera size={14} />,
-          para: 'Serie por región · comparación antes/después con días de evolución',
-          contenido: <FotosClinicas embebido modo="completo" clinicId={clinicId} patientId={patientId} />,
-        }]} />
+        <Herramientas items={[
+          {
+            id: 'laboratorios', nombre: 'Laboratorios', color: 'var(--teal)', icono: <FlaskConical size={14} />,
+            para: 'Adjunta PDF o foto → la IA los interpreta → gráficas de tendencia por analito',
+            contenido: <PanelLaboratorios clinicId={clinicId} patientId={patientId} />,
+          },
+          {
+            id: 'fotos', nombre: 'Fotografía clínica seriada', color: 'var(--teal)', icono: <Camera size={14} />,
+            para: 'Serie por región · comparación antes/después con días de evolución',
+            contenido: <FotosClinicas embebido modo="completo" clinicId={clinicId} patientId={patientId} />,
+          },
+        ]} />
       )}
 
       {/* La valoración del inmunocomprometido vive ahora como TIPO DE NOTA en la
@@ -440,7 +469,7 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
                 </>
               )}
               {!firmada && (
-                <button onClick={onBorrar} style={{ ...ghostBtn, color: '#f87171', borderColor: 'rgba(239,68,68,0.3)' }}>
+                <button onClick={onBorrar} style={{ ...ghostBtn, color: 'var(--red)', borderColor: 'rgba(239,68,68,0.3)' }}>
                   <Trash2 size={13} /> Eliminar borrador
                 </button>
               )}
@@ -459,7 +488,7 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
 }
 
 const backBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer', marginBottom: 16, padding: 0 }
-const alergiaBanner: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 }
+const alergiaBanner: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', color: 'var(--red)', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 }
 const primaryBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, background: 'var(--teal)', color: '#000', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }
 const ghostBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 5, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, cursor: 'pointer' }
 const chip = (active: boolean): React.CSSProperties => ({ background: active ? 'var(--teal)' : 'var(--s2)', color: active ? '#000' : 'var(--text2)', border: '1px solid var(--border)', borderRadius: 100, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' })

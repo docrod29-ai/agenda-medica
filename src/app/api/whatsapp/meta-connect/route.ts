@@ -18,8 +18,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
-import { verificarMiembro } from '@/lib/auth-server'
+import { guardarSecretoCanal } from '@/lib/whatsapp/secreto-canal'
+import { verificarCapacidad } from '@/lib/authz/verificar'
 
 const APP_ID     = process.env.META_APP_ID ?? ''
 const APP_SECRET = process.env.META_APP_SECRET ?? ''
@@ -56,7 +58,7 @@ async function getWABAInfo(userToken: string): Promise<{
   )
 
   if (!wabaRes.ok) {
-    console.error('[meta-connect] Failed to get businesses:', await wabaRes.text())
+    safeLog.error('[meta-connect] Failed to get businesses:', await wabaRes.text())
     return null
   }
 
@@ -131,7 +133,7 @@ async function registerWebhook(wabaId: string, token: string): Promise<void> {
       },
     })
   } catch (e) {
-    console.warn('[meta-connect] Webhook subscription warning:', e)
+    safeLog.warn('[meta-connect] Webhook subscription warning:', e)
   }
 }
 
@@ -143,7 +145,7 @@ export async function POST(req: NextRequest) {
     if (!code || !clinicId) {
       return NextResponse.json({ error: 'code and clinicId required' }, { status: 400 })
     }
-    const acceso = await verificarMiembro(req, clinicId)
+    const acceso = await verificarCapacidad(req, clinicId, 'administrar')
     if (!acceso.ok) return acceso.response
 
     if (!APP_ID || !APP_SECRET) {
@@ -167,9 +169,10 @@ export async function POST(req: NextRequest) {
 
     // 5. Save to Firestore
     const now = new Date().toISOString()
+    // El token va al gestor de secretos, NUNCA al doc raíz (legible por miembros).
+    await guardarSecretoCanal(clinicId, longToken)
     const whatsapp = {
       provider: 'meta',
-      apiKey: longToken,           // The access token
       phoneNumberId: info.phoneNumberId,
       phoneNumber: info.phoneNumber,
       wabaId: info.wabaId,
@@ -190,7 +193,7 @@ export async function POST(req: NextRequest) {
       createdAt: now,
     })
 
-    console.log(`[meta-connect] ✅ Connected clinic ${clinicId} → ${info.phoneNumber} (WABA: ${info.wabaId})`)
+    safeLog.info(`[meta-connect] ✅ Connected clinic ${clinicId} → ${info.phoneNumber} (WABA: ${info.wabaId})`)
 
     return NextResponse.json({
       ok: true,
@@ -198,7 +201,7 @@ export async function POST(req: NextRequest) {
       phoneNumberId: info.phoneNumberId,
     })
   } catch (err) {
-    console.error('[meta-connect] Error:', err)
+    safeLog.error('[meta-connect] Error:', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

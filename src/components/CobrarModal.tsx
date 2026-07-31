@@ -5,11 +5,13 @@
  */
 import { useState } from 'react'
 import {
-  registrarCobro, METODO_LABEL, CONCEPTO_LABEL,
+  registrarCobro, exentarCobro, METODO_LABEL, CONCEPTO_LABEL,
   type MetodoPago, type ConceptoCobro,
 } from '@/lib/cobros'
 import { updateAppointment } from '@/lib/firestore'
-import { DollarSign } from 'lucide-react'
+import { auth } from '@/lib/firebase'
+import { logAudit } from '@/lib/expediente/audit-log'
+import { DollarSign, HeartHandshake } from 'lucide-react'
 import { Modal, Button } from '@/components/ui'
 import { useToast } from '@/context/ToastContext'
 
@@ -18,6 +20,8 @@ export interface CobrarModalProps {
   creadoPor: string
   prefill?: {
     citaId?: string
+    /** Estado actual de la cita: para no retroceder uno más avanzado al cobrar. */
+    estadoActual?: string
     patientId?: string
     patientNombre?: string
     medicoId?: string
@@ -38,6 +42,35 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
   const [referencia, setReferencia] = useState('')
   const [notas, setNotas] = useState('')
   const [guardando, setGuardando] = useState(false)
+  // Modo cortesía (no cobrar): decisión deliberada y auditada.
+  const [modoCortesia, setModoCortesia] = useState(false)
+  const [motivoCortesia, setMotivoCortesia] = useState('')
+
+  const confirmarCortesia = async () => {
+    if (!prefill?.citaId) { toast('La cortesía se marca sobre una cita', 'error'); return }
+    const m = motivoCortesia.trim()
+    if (!m) { toast('Escribe el motivo de la cortesía', 'error'); return }
+    setGuardando(true)
+    try {
+      // Quien AUTORIZA la cortesía es el operador logueado, NO el médico de la cita
+      // (antes se guardaba prefill.medicoNombre → bitácora anti-fraude mal atribuida
+      // cuando la asistente exentaba). El uid (creadoPor) ya era correcto.
+      const autorNombre = auth.currentUser?.displayName || auth.currentUser?.email || ''
+      await exentarCobro(clinicId, prefill.citaId, m, creadoPor, autorNombre)
+      // Bitácora inmutable (best-effort): quién autorizó no cobrar y por qué.
+      logAudit({
+        evento: 'cobro_exento', clinicId, patientId: prefill.patientId,
+        meta: { citaId: prefill.citaId, paciente: prefill.patientNombre ?? '', motivo: m },
+      }).catch(() => {})
+      toast('Marcada como cortesía (no se cobra)', 'success')
+      onCobrado?.('')
+      onClose()
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'No se pudo marcar la cortesía', 'error')
+    } finally {
+      setGuardando(false)
+    }
+  }
 
   const guardar = async () => {
     const n = parseFloat(monto)
@@ -67,7 +100,37 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
       let marcadaLaCita = true
       if (prefill?.citaId) {
         try {
-          await updateAppointment(clinicId, prefill.citaId, { cobroId: id, cobradoEn: new Date().toISOString() })
+          /**
+           * COBRAR CIERRA LA CONSULTA.
+           *
+           * Antes solo se marcaba el `cobroId`. El estado de la cita había que
+           * cambiarlo a mano después, en OTRA pantalla: ir a Citas, abrir el menú
+           * ⋮ y elegir "atendida" de una lista sin traducir. Dos clics por
+           * paciente, y en el lado contrario al que te lleva el flujo tras firmar.
+           *
+           * Y de `atendida` dependen SIETE cosas: el embudo del corte de caja,
+           * cuentas por cobrar, el CRM, la campaña de reactivación, los
+           * recordatorios post-visita y las reseñas. Si se olvida, todas se
+           * degradan en silencio.
+           *
+           * Cobrar es la señal inequívoca de que el paciente fue atendido, así que
+           * es el momento correcto para marcarlo. No se pisa un estado más
+           * avanzado (finalizada, pagada) si ya lo tenía.
+           */
+          const avanzados = ['atendida', 'finalizada', 'pagada']
+          /**
+           * Un ABONO (pago parcial) o un REEMBOLSO NO saldan la cita. `registrarCobro`
+           * a propósito NO reserva `cita.cobroId` en un abono, para que la cita SIGA
+           * "por cobrar" por el saldo restante. Si aquí escribiéramos `cobroId`, el
+           * botón "Cobrar" desaparecería (se oculta con `cobroId`) y el saldo quedaría
+           * imposible de cobrar — ingreso perdido en silencio y corte de caja que sigue
+           * marcándola pendiente. Solo un cobro que SALDA cierra la cita.
+           */
+          const salda = concepto !== 'abono' && concepto !== 'reembolso'
+          await updateAppointment(clinicId, prefill.citaId, {
+            ...(salda ? { cobroId: id, cobradoEn: new Date().toISOString() } : {}),
+            ...(prefill.estadoActual && avanzados.includes(prefill.estadoActual) ? {} : { estado: 'atendida' as const }),
+          })
         } catch {
           // El cobro YA quedó registrado, pero la cita no se marcó. Como el botón
           // "Cobrar" se oculta justo con ese cobroId, callarlo hacía que el botón
@@ -85,7 +148,7 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
       onClose()
     } catch (e) {
       console.error(e)
-      toast('Error al registrar cobro', 'error')
+      toast(e instanceof Error && e.message ? e.message : 'Error al registrar cobro', 'error')
     } finally {
       setGuardando(false)
     }
@@ -95,14 +158,45 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
     <Modal
       open
       onClose={onClose}
-      title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><DollarSign size={18} color="var(--teal)" /> Registrar cobro</span>}
-      footer={(
+      title={modoCortesia
+        ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><HeartHandshake size={18} color="#a855f7" /> No cobrar (cortesía)</span>
+        : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><DollarSign size={18} color="var(--teal)" /> Registrar cobro</span>}
+      footer={modoCortesia ? (
+        <>
+          <Button variant="secondary" onClick={() => setModoCortesia(false)}>Volver</Button>
+          <Button onClick={confirmarCortesia} loading={guardando}>Confirmar cortesía</Button>
+        </>
+      ) : (
         <>
           <Button variant="secondary" onClick={onClose}>Cancelar</Button>
           <Button onClick={guardar} loading={guardando}>Registrar cobro</Button>
         </>
       )}
     >
+      {modoCortesia ? (
+        <div style={{ display: 'grid', gap: 12 }}>
+          {prefill?.patientNombre && (
+            <div style={{ padding: 10, background: 'var(--s)', borderRadius: 8, fontSize: 13 }}>
+              <div style={{ color: 'var(--text3)', fontSize: 11, marginBottom: 2 }}>Paciente</div>
+              <div style={{ fontWeight: 700, color: 'var(--text)' }}>{prefill.patientNombre}</div>
+            </div>
+          )}
+          <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+            Vas a marcar esta consulta como <strong>cortesía</strong>: no se cobra, se saca de cuentas
+            por cobrar y no aparece en el corte de caja. Queda registrado <strong>quién lo autoriza,
+            cuándo y por qué</strong>. Se puede revertir después.
+          </div>
+          <div>
+            <label style={lbl}>Motivo de la cortesía *</label>
+            <textarea
+              value={motivoCortesia} onChange={e => setMotivoCortesia(e.target.value)}
+              autoFocus rows={3} placeholder="Ej. familiar, cortesía profesional, paciente sin recursos…"
+              style={{ ...inp, resize: 'vertical' }}
+            />
+          </div>
+        </div>
+      ) : (
+        <>
         {prefill?.patientNombre && (
           <div style={{ padding: 10, background: 'var(--s)', borderRadius: 8, marginBottom: 14, fontSize: 13 }}>
             <div style={{ color: 'var(--text3)', fontSize: 11, marginBottom: 2 }}>Paciente</div>
@@ -177,7 +271,25 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
             <label style={lbl}>Notas (opcional)</label>
             <input value={notas} onChange={(e) => setNotas(e.target.value)} style={inp} />
           </div>
+
+          {/* No cobrar (cortesía): solo cuando se cobra sobre una cita concreta. */}
+          {prefill?.citaId && (
+            <button
+              type="button"
+              onClick={() => setModoCortesia(true)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                background: 'rgba(168,85,247,0.10)', border: '1px solid rgba(168,85,247,0.35)',
+                color: '#a855f7', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600,
+                cursor: 'pointer', marginTop: 2,
+              }}
+            >
+              <HeartHandshake size={15} /> No cobrar a este paciente (cortesía)
+            </button>
+          )}
         </div>
+        </>
+      )}
     </Modal>
   )
 }

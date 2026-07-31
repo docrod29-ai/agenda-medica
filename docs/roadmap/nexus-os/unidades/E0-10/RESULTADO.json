@@ -1,0 +1,78 @@
+{
+  "unidad": "E0-10",
+  "titulo": "CSP enforced + E2E de seguridad",
+  "etapa": "E0",
+  "fecha": "2026-07-30T05:30:22Z",
+  "pasada": "4a (cierre del delta de la PARTE II del DISENO, tras la verificacion adversarial INCOMPLETA)",
+  "estado": "necesita_validacion",
+  "aceptacionLiteral": "CSP enforce sin romper flujos; E2E de seguridad en verde.",
+  "cumpleAceptacionLiteral": false,
+
+  "porQueNOEsCompletada": "Las dos mitades de la aceptacion literal exigen acciones que un agente NO puede hacer bajo la carta operativa, y no se van a poder hacer en ninguna pasada futura sin el Dr.: (1) el flip es poner CSP_MODE=enforce en Vercel y redesplegar = regla 6 (no despliego); (2) 'E2E en verde' exige ejecutar Playwright = regla 8 (prohibido lanzar procesos que no terminan solos), y contra produccion el grupo A3 nace rojo porque este codigo NO esta desplegado. Se escribe esta acta con estado `necesita_validacion` (no se deja sin acta) para que la unidad DEJE de volver a la cola como si faltara diseno: en tres pasadas anteriores se re-disenio lo que ya estaba implementado. El software de la unidad esta cerrado y verificado; lo que queda es del humano.",
+
+  "queSeHizoEnESTAPasada": [
+    "A1 (el item mas importante) — se MATO el mutante que sobrevivia a la verificacion adversarial (V-3): el iframe de teleconsulta monta un src DINAMICO (`src={url}` con la URL de sala de /api/telesalud/sala), asi que `*.daily.co` no aparece en el codigo y el escaner de hosts literales no podia verlo. Antes, quitar `https://*.daily.co` de ORIGENES_FRAME dejaba el CI VERDE y la videoconsulta en blanco bajo enforce. Ahora hay registro explicito IFRAMES_DE_ORIGEN_DINAMICO (archivo/origen/porQue) atado a la directiva `frame-src`, un caso anti-podredumbre y un TRINQUETE que exige declarar (o eximir con motivo) cualquier `<iframe>` con src no literal. Se corrigio ademas la frase del comentario de cabecera que afirmaba cazar 3 de 3 cuando cazaba 2 de 3.",
+    "A2 (V-6) — el riesgo residual del proxy de Vercel deja de ser un parrafo y pasa a ser invariante medible: la lista de rutas que reciben DOS politicas con origenes distintos (`/`, `/registro/:path*`, `/configuracion/:path*`, todas por ORIGENES_META) queda CONGELADA en el guardian. Analisis aportado: si el proxy acumulara en vez de reemplazar, el navegador aplicaria la INTERSECCION, y eso solo dana a esas tres rutas (Pixel y alta de WhatsApp: fallo VISIBLE, reversible en 2 min). `frame-ancestors` no corre riesgo en ninguna de las dos semanticas porque la politica global OMITE la directiva.",
+    "A3 — nuevo `src/__tests__/csp-manifest.test.ts`: verifica el artefacto que Vercel consume de verdad (.next/routes-manifest.json), un paso mas cerca de produccion que `nextConfig.headers()`. Deriva el modo de la clave presente (vale para los dos builds, sin variables) y comprueba que privadas conservan X-Frame-Options + frame-ancestors 'none' en la clave que BLOQUEA, que /reservar sigue embebible y que el bloque de magic links sigue al final. Opt-in honesto: sin build declara SALTADO con el comando exacto, y si el manifest es de un build anterior a la lista de rutas actual lo declara EVIDENCIA CADUCADA — nunca inventa verde.",
+    "A4 (V-7a) — `/login` entra en RUTAS_PRIVADAS: la pantalla de credenciales era embebible (clickjacking de manual) en la unidad cuyo objetivo es justo ese. Pasa a devolver X-Frame-Options: DENY + frame-ancestors 'none' (esta ultima ya es enforce hoy, no espera el flip). Anclado con un caso explicito, porque los otros invariantes solo miran src/app/(dashboard)/.",
+    "A5 (V-7b) — `Permissions-Policy: camera=()` vs el iframe de Daily con allow=\"camera\": NO se toca (aflojar una cabecera de seguridad sobre un flujo vivo = regla 5). La asercion del E2E queda marcada en el codigo como ESTADO ACTUAL DOCUMENTADO, no deseado, y se abre la decision D-8 con la pregunta concreta.",
+    "A6 — la evidencia de 'E2E en verde' se abarata a UN comando humano sin desplegar nada: scripts `e2e:seguridad`, `e2e:seguridad:enforce` y `e2e:seguridad:prod` (el servidor local lo arranca Playwright via PLAYWRIGHT_LOCAL=1). NO se ejecutan (regla 8).",
+    "Higiene de evidencia — el runbook afirmaba '57/57 en verde con CSP_MODE=enforce, medido el 2026-07-29' y esa ejecucion NO consta (es el mismo pecado que la verificacion marco como V-4 en el ledger). Corregido en el propio documento, con la frase que dice que nadie ha corrido la matriz todavia."
+  ],
+
+  "archivosTocados": [
+    "src/__tests__/csp-guard.test.ts (19 -> 23 casos: A1 aporta 3, A2 uno; A4 va dentro de un caso existente. Corregida la afirmacion falsa del comentario)",
+    "src/__tests__/csp-manifest.test.ts (NUEVO, 4 casos + 2 salidas declaradas de 'sin evidencia')",
+    "src/lib/security/rutas-privadas.ts (+ 'login', con el porque escrito)",
+    "e2e/seguridad.spec.ts (comentario de A5 en la asercion de camera=(); sin cambio funcional)",
+    "docs/seguridad/csp-enforce.md (§2 dos comandos + retractacion del 57/57 no ejecutado; §3 paso 0 = curl al preview para determinar la semantica del proxy; §5 corregido; §6 D-8 explicita)",
+    "docs/audit/regression-ledger.md (REG-062 /login embebible; REG-063 el guardian sobrevendia su cobertura; REG-055 gana el analisis de interseccion acotado)",
+    "src/lib/clinical/invariantes-clinicos.json (csp-guard minCasos 19 -> 23; totalCasos 1381 -> 1408 = 1404 medidos en HEAD + los 4 nuevos; trinquete monotono, subir no rompe)",
+    "package.json (3 scripts de la matriz; definidos, NO ejecutados)"
+  ],
+
+  "noSeToco": "Impresion, PDF, Word, firma, cobros, firestore.rules, ningun motor clinico, src/lib/pdf-to-image.ts (decision D-1), MetaPixel.tsx. El UNICO cambio de comportamiento en produccion es /login no-embebible (A4), reversible borrando una linea.",
+
+  "gates": {
+    "tsc": "PASS — `npx tsc --noEmit` exit 0",
+    "vitest": "PASS — `npx vitest run src/__tests__/` → 203 archivos / 2809 casos / 0 fallos / 0 saltados (con el build ya hecho; sin build, csp-manifest.test.ts sale SALTADO a proposito y son 2805 + 1)",
+    "build": "PASS en los DOS modos. Sin CSP_MODE → .next/routes-manifest.json emite Content-Security-Policy-Report-Only en /:path*. Con CSP_MODE=enforce → emite Content-Security-Policy y el bloque privado conserva X-Frame-Options: DENY + frame-ancestors 'none'. El arbol se dejo reconstruido en el modo por DEFECTO (report-only).",
+    "playwright": "NO EJECUTADO (regla 8). Comandos listos: `npm run e2e:seguridad` y `CSP_MODE=enforce npm run build && npm run e2e:seguridad:enforce`.",
+    "testsPasan": 2809
+  },
+
+  "controlesNegativosEJECUTADOS": [
+    "MUTANTE 1 (el que sobrevivia, criterio de exito de A1): quitar `https://*.daily.co` de ORIGENES_FRAME Y de ORIGENES_ESPERADOS → antes 19/19 VERDE; ahora `1 failed | 22 passed` con «frame-src no permite estos origenes: una-sala.daily.co ← src/app/teleconsulta/[citaId]/page.tsx».",
+    "MUTANTE 2 (trinquete de completitud): anadir `<iframe src={u} />` en src/components/MetaPixel.tsx sin declararlo → `1 failed` con «Iframes con src dinamico sin declarar: src/components/MetaPixel.tsx».",
+    "MUTANTE 3 (A2): dar ORIGENES_META a un cuarto bloque (/precios) → `2 failed` (la lista congelada de V-6 y el invariante de que Meta no se cuela fuera de sus tres rutas).",
+    "MUTANTE 4 (A4): quitar 'login' de RUTAS_PRIVADAS → `1 failed` con «perdio la proteccion: /login».",
+    "MUTANTE 5 (A3): borrar X-Frame-Options del bloque privado del routes-manifest → `1 failed` con «expected undefined to be 'DENY'». Y con el manifest sincronizado, 4/4 en verde.",
+    "Nota de proceso: los cinco se ejecutaron en una COPIA del arbol en el scratchpad (node_modules enlazado), nunca sobre el repo. El repo quedo intacto salvo los archivos de esta unidad."
+  ],
+
+  "queFALTAParaCerrarLaAceptacionLiteral": [
+    "DESPLEGAR (no es el flip): REG-054 y REG-062 estan CLOSED en codigo y ABIERTOS en produccion. Hoy /uci, /hospitalizacion, /superadmin, /receta, /orden, /corte-caja y /login siguen embebibles por cualquier sitio. No necesita ninguna decision clinica ni el enforce.",
+    "Una ejecucion HUMANA de la matriz: `npm run build && npm run e2e:seguridad` y `CSP_MODE=enforce npm run build && npm run e2e:seguridad:enforce`. Con la segunda en verde, la mitad 'E2E en verde' queda demostrada en local con la politica apretada.",
+    "El flip: CSP_MODE=enforce en Vercel + redeploy (decision D-3), tras el paso 0 del runbook §3 (curl al preview para saber si el proxy reemplaza o acumula cabeceras).",
+    "Zona autenticada: sin cuenta de prueba con datos sinteticos (D-4), 'sin romper flujos' no pasara del camino publico. La cubre hoy el checklist manual del runbook §4."
+  ],
+
+  "necesitaValidacionDelDr": [
+    { "id": "D-1", "decision": "Worker de pdf.js: ¿auto-alojarlo en /public/pdfjs/ o mantener unpkg.com permitido en la CSP?", "porQue": "Auto-alojar quita un CDN de terceros ejecutando codigo en la sesion del medico, pero toca un flujo vivo (labs, antibiograma por foto, receta por vision) → unidad aparte con prueba manual.", "bloquea": false },
+    { "id": "D-2", "decision": "¿Sigue encendido el Meta Pixel (NEXT_PUBLIC_META_PIXEL_ID) y el alta embebida de WhatsApp?", "porQue": "Si el Pixel esta apagado, connect.facebook.net sale de la politica y el conjunto de rutas expuestas a la semantica del proxy baja de 3 a 1. Es la salida mas barata a V-6.", "bloquea": false },
+    { "id": "D-3", "decision": "¿Autoriza CSP_MODE=enforce en Vercel (Production) + redeploy?", "porQue": "Es la mitad 'enforce' de la aceptacion. Reversion: borrar la variable y redesplegar (~2 min). Antes: paso 0 del runbook §3 y la matriz local en verde.", "bloquea": true },
+    { "id": "D-4", "decision": "¿Se crea una cuenta E2E dedicada con datos SINTETICOS en una clinica de pruebas?", "porQue": "Sin ella la zona autenticada (expediente, nota, receta, farmacia, UCI) nunca se prueba automaticamente y 'sin romper flujos' se queda en el camino publico.", "bloquea": false },
+    { "id": "D-5", "decision": "¿Playwright en CI (~4-6 min extra por PR) o comando manual pre-deploy?", "porQue": "Job listo para pegar en docs/seguridad/csp-enforce.md §7.", "bloquea": false },
+    { "id": "D-6", "decision": "¿/registro deja de ser embebible, como ya hace /login?", "porQue": "Cierra el mismo hueco, pero es una pagina de captacion con Pixel: si una landing o un socio la embebe, se rompe. Cambio preparado, una linea.", "bloquea": false },
+    { "id": "D-7", "decision": "¿Se redisenan los bloques de cabeceras para que NINGUNA ruta reciba dos politicas CSP?", "porQue": "Eliminaria para siempre la dependencia de una semantica del proxy que nadie ha verificado (V-6), pero toca las cabeceras de TODAS las rutas (regla 5). Alternativa barata: contestar D-2.", "bloquea": false },
+    { "id": "D-8", "decision": "¿Funciona HOY el video de la teleconsulta en produccion?", "porQue": "La cabecera global declara camera=() y el iframe de Daily pide allow=\"camera\"; una Permissions-Policy del documento superior no se re-concede desde el iframe. Si el video no funciona, es un fallo VIVO previo a esta unidad (y abrir camera=(self) es aflojar seguridad: unidad aparte). Requiere observacion en produccion.", "bloquea": false }
+  ],
+
+  "reglasDeLaCartaOperativa": {
+    "regla1_nadaClinicoInventado": "CUMPLE — cero umbrales, dosis o reglas clinicas. El unico archivo clinico tocado es invariantes-clinicos.json y solo en conteos medidos del repo.",
+    "regla2_soloDatosSinteticos": "CUMPLE — la matriz usa '/mi/token-de-prueba' y hosts de ejemplo; ni PHI ni secretos.",
+    "regla5_noArriesgarRegresionVisible": "CUMPLE — 4 de 5 items son tests y documentacion. El unico cambio de comportamiento es /login no-embebible, sin consumidores encontrados en el codigo. Lo arriesgado (auto-alojar el worker, abrir camera, redisenar los bloques, /registro) se entrega como D-1/D-6/D-7/D-8, no se ejecuta.",
+    "regla6_noDesplegar": "CUMPLE — sin push, sin deploy, CSP_MODE sigue sin ponerse en ninguna parte del repo: el default de produccion sigue siendo report-only.",
+    "regla8_nadaQueNoTermineSolo": "CUMPLE — solo tsc, vitest y build. Playwright y npm start no se ejecutaron; sus comandos quedan documentados."
+  }
+}

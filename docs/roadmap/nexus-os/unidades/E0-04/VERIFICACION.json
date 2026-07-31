@@ -1,0 +1,101 @@
+{
+  "unidad": "E0-04",
+  "titulo": "ClinicalQuantity: tipo con unidad obligatoria (núcleo)",
+  "verificador": "agente adversarial (solo lectura) — encargo: REFUTAR, no confirmar",
+  "fecha": "2026-07-28",
+  "commitAuditado": "48974dd",
+  "veredicto": "CONFIRMADA",
+  "cumpleAceptacion": true,
+  "aceptacionLiteral": "El compilador rechaza operar cantidades de unidades incompatibles. (docs/roadmap/nexus-os/backlog.json → E0-04.aceptacion; el commit 48974dd NO tocó backlog.json: `git show --stat 48974dd -- backlog.json` sale vacío, el criterio no se movió)",
+
+  "comoLoVerifiqueSinConfiarEnElReporte": [
+    {
+      "prueba": "El gate del compilador se ejecuta de verdad (no es un archivo huérfano fuera del type-check)",
+      "metodo": "npx tsc --noEmit --incremental false --listFiles | grep clinical-quantity",
+      "resultado": "Lista los tres archivos, incluido src/__tests__/tipos/clinical-quantity.tipos.ts. tsconfig.json:23-30 incluye '**/*.ts' y sólo excluye node_modules y scripts, así que el archivo de casos negativos SÍ lo compila tsc. vitest.config.ts:6 incluye únicamente 'src/__tests__/**/*.test.ts', por lo que vitest lo ignora — el reparto de responsabilidades declarado es real."
+    },
+    {
+      "prueba": "PRUEBA INDEPENDIENTE: escribí mis propios casos negativos, sin @ts-expect-error, contra una copia del módulo fuera del repo (scratchpad). No me apoyé en las directivas del autor.",
+      "metodo": "Copia de src/types/clinical-quantity.ts + stub de num() + tsconfig propio; 6 operaciones ilegales sin ninguna anotación.",
+      "resultado": "tsc emitió error en las 6: TS2345 en sumar(mg,mL) («Types of property '[MARCA]' are incompatible … '\"volumen\"' is not assignable to '\"masa\"'»), TS2345 en comparar(mg/dL, µmol/L), TS2345 en convertir(masa,'mL'), TS2345 en cantidad(5,'mL','masa'), TS2345 en valorEn(mg/dL,'mmol/L'), TS2741 en el objeto fabricado a mano («Property '[MARCA]' is missing»). La aceptación se cumple DE VERDAD, no por la colocación de las directivas."
+    },
+    {
+      "prueba": "CONTROL NEGATIVO REPRODUCIDO por mí (la afirmación central del reporte)",
+      "metodo": "Sobre mi copia, sustituí src/types/clinical-quantity.ts:119 `readonly [MARCA]: (d: D) => D` por `readonly [MARCA]: true` y recompilé los mismos 6 casos.",
+      "resultado": "CIERTO: los errores de sumar(masa,volumen) y comparar(creatMgDl,creatUmolL) DESAPARECEN — los dos ejemplos textuales del objetivo del backlog compilan en silencio. Sólo sobreviven los 4 errores de unidad/marca ausente. La línea 119 es load-bearing y el hallazgo del autor es correcto, no retórica."
+    },
+    {
+      "prueba": "Escotillas de escape que el reporte NO menciona (busqué agujeros propios)",
+      "metodo": "10 intentos de burlar la invarianza sin `as`: sumar dos CualquierCantidad entre sí, asignación cruzada de dimensión, paso por función genérica <D>, reduce sobre array mixto, comparar mL/min vs mL/min/1.73m², escalar por una cantidad, cantidad() con Dimension ensanchada, forja por spread con override de unidad+dimensión, forja por Object.assign.",
+      "resultado": "TODAS rechazadas por tsc (TS2345/TS2322). La forja por spread cae en src/types/clinical-quantity.ts:103 (`unidad: UnidadDe<D>`): «Argument of type '{ unidad: \"mL\"; dimension: \"volumen\"; valor: number; [MARCA]: (d: \"masa\") => \"masa\"; }' is not assignable to parameter of type 'ClinicalQuantity<\"masa\">'». Única excepción, ver problemas[2]."
+    },
+    {
+      "prueba": "Gates reales del repo, corridos por mí",
+      "resultado": "npx tsc --noEmit → exit 0 (los 10 @ts-expect-error CONSUMIDOS: si alguno dejara de fallar, TS2578 tumba tsc). npx vitest run src/__tests__/ → 180 archivos / 2164 casos / 0 fallos. npm run build → exit 0. src/__tests__/clinical-quantity.test.ts aislado → 37 casos, que es exactamente el +37 reportado."
+    },
+    {
+      "prueba": "Conciliación del número de tests (el reporte dice 2120, yo veo 2164)",
+      "resultado": "NO es una regresión ni un inflado. El árbol de trabajo tiene obra sin commitear de un proceso concurrente (E0-09): src/__tests__/hospital-eventos-append-only.test.ts (nuevo, 40 casos por sí solo) + modificaciones a hospital-registro-durable.test.ts y firestore-rules-guard.test.ts. 2120 + 40 + 4 = 2164, y el archivo nuevo de E0-04 sigue aportando 37 exactos. ADVERTENCIA DE ALCANCE: mis corridas verifican E0-04 tal como vive en el árbol ACTUAL, no el commit 48974dd aislado."
+    },
+    {
+      "prueba": "¿Rompió algo? (callers y gates vecinos)",
+      "resultado": "CERO importadores en producción: `grep -rn clinical-quantity src/` sólo devuelve el propio módulo y sus dos archivos de test. El único archivo de producción tocado (src/lib/clinical/adr-cobertura.ts:57) añade UNA entrada a una lista blanca de documentos; no mueve DEUDA_ADR_CONGELADA (adr-cobertura.ts:33, sigue en 52). Corrí los gates vecinos: clinical-registry-adr.test.ts + clinical-registry.test.ts + clinical-safety-gate.test.ts → 48 casos, 3 archivos, 0 fallos."
+    },
+    {
+      "prueba": "¿Se inventó umbral, dosis o regla clínica? (la falla más grave — la busqué explícitamente)",
+      "resultado": "NO. El módulo no define ningún umbral, dosis ni criterio de decisión. Verifiqué uno por uno los únicos números: (a) prefijos SI y tiempo (clinical-quantity.ts:170-176) son definiciones; (b) presión (línea 178): 1 kPa = 1000/133.322387415 = 7.50062 mmHg y 1 cmH2O = 98.0665/133.322387415 = 0.73556 mmHg, definiciones metrológicas correctas, y el test de línea 88 las cruza contra 760 mmHg = 101.325 kPa; (c) los DOS únicos números clínicos NO son nuevos: 88.4 existe ya en src/lib/expediente/copiloto.ts:265 y src/lib/expediente/funcion-renal.ts:42, y 38.67 en src/lib/expediente/prevent.ts:21 (`const MMOL = 38.67`) — comprobado con grep. Todo analito fuera del catálogo devuelve null (clinical-quantity.ts:392-393) en vez de adivinar una masa molar, y hay NEEDS_CLINICAL_REVIEW declarado en clinical-quantity.ts:364-366."
+    },
+    {
+      "prueba": "¿PHI, secreto o dato de paciente en fixtures?",
+      "resultado": "NO. Grep de correos, CURP/RFC, teléfonos y nombres sobre los tres archivos: única coincidencia es la palabra 'paciente' en el título de un test (clinical-quantity.test.ts:212). Los valores son sintéticos (500 mg, 1.2 mg/dL, 760 mmHg). Cero credenciales."
+    }
+  ],
+
+  "problemas": [
+    {
+      "severidad": "documentación (no funcional)",
+      "que": "RESULTADO.json se contradice a sí mismo: el campo `archivosDeProduccionTocados` dice «NINGUNO … `git diff --stat` sobre lo rastreado sólo muestra los tres archivos de docs/roadmap». Es FALSO: `git show --stat 48974dd` incluye src/lib/clinical/adr-cobertura.ts, que es código de producción bajo src/lib/. El mismo documento lo declara correctamente dos campos más arriba (`archivosTocados`) y lo explica entero en `reparacionForzadaAjena`, así que es una inexactitud, no un ocultamiento — pero un auditor futuro que confíe en ese campo concluirá algo falso.",
+      "impactoReal": "Nulo en comportamiento: la línea añadida (adr-cobertura.ts:57) sólo clasifica docs/clinical-decisions/PREGUNTAS-TODO-EL-PROGRAMA.md como no-ADR; el archivo existe y es, en efecto, un cuestionario para el Dr., hermano de PREGUNTAS-PENDIENTES.md que ya estaba en la misma lista. La deuda de ADRs sigue en 52 y su gate en verde."
+    },
+    {
+      "severidad": "límite de diseño (fuera del criterio literal, pero real)",
+      "que": "La marca fantasma sólo está indexada por DIMENSIÓN, no por unidad. Reetiquetar la unidad DENTRO de la misma dimensión pasa el compilador sin ningún `as`: `const escala = { ...mg(500), unidad: 'µg' as const }` compila, y `valorEn(escala,'mg')` devuelve 0.5 — un error de escala de 1000× exactamente del tipo que el módulo existe para impedir.",
+      "porQueNoTumbaElVeredicto": "El criterio de aceptación habla de unidades INCOMPATIBLES (mg vs mL, mg/dL vs µmol/L); mg y µg son compatibles y ese caso queda fuera de la letra. Además exige una forja deliberada por spread con override, y hoy no hay ni un consumidor. RECOMENDACIÓN para E0-05: prohibir la construcción estructural (p. ej. marcar también la unidad, o `Readonly` con marca por unidad) antes de que el primer motor real empiece a clonar cantidades con spread."
+    },
+    {
+      "severidad": "riesgo clínico latente (documentado por el autor, no inventado)",
+      "que": "La dimensión `tasa_dosis_peso` (clinical-quantity.ts:67) agrupa 'µg/kg/min', 'mg/kg/min' y 'mg/kg/día'. Verifiqué que `sumar(cantidad(0.1,'µg/kg/min',…), cantidad(40,'mg/kg/día',…))` COMPILA — es decir, una tasa de vasopresor y una dosis diaria por peso son sumables/comparables entre sí. Dimensionalmente es correcto (masa/masa/tiempo) y el autor lo advierte en clinical-quantity.ts:182-184, pero la conversión ÷1440 asume implícitamente administración continua.",
+      "porQueNoTumbaElVeredicto": "No es una regla clínica inventada: es aritmética del tiempo, declarada, con la advertencia escrita en el propio catálogo. Queda como decisión a revisar por el médico dueño cuando E0-05 migre dosificación."
+    },
+    {
+      "severidad": "menor (robustez del test)",
+      "que": "Los dos tests anti-deriva de los factores molares (clinical-quantity.test.ts:258-261) sólo hacen `toContain('88.4')` sobre funcion-renal.ts y copiloto.ts, donde el 88.4 vive en COMENTARIOS. Si alguien cambiara el divisor real dejando el comentario, el test seguiría verde. El de colesterol (líneas 249-256) sí es fuerte: parsea `const MMOL = 38.67` de prevent.ts.",
+      "impactoReal": "Bajo hoy; el 88.4 no es una constante ejecutable en esos archivos."
+    },
+    {
+      "severidad": "hueco de ergonomía para la siguiente unidad",
+      "que": "No existe deserializador seguro: una cantidad guardada en Firestore serializa a {valor,unidad,dimension} (test de clinical-quantity.test.ts:299-301) pero no hay función que la rehidrate — `cantidadDesde` pide unidad y dimensión por separado. El primer consumidor que lea del almacenamiento se verá empujado a un `as unknown as ClinicalQuantity<D>`, que reabre exactamente el agujero cerrado.",
+      "impactoReal": "Ninguno hoy (cero consumidores). Debe resolverse EN E0-05, no después."
+    },
+    {
+      "severidad": "preexistente, ajeno a E0-04",
+      "que": "src/lib/clinical/registry.ts:19-21 remite a src/lib/clinical/cobertura.ts y a src/__tests__/clinical-registry-cobertura.test.ts; comprobé que NINGUNO de los dos existe. El autor de E0-04 lo anotó honestamente en `loQueNoSeHizo` y no lo tocó. Se confirma el hallazgo y se deja para quien cierre E0-03/E0-05."
+    }
+  ],
+
+  "afirmacionesDelReporteContrastadas": {
+    "«tsc exit 0 con los 10 @ts-expect-error consumidos»": "CIERTO (reproducido).",
+    "«al trivializar la marca, tsc pasa a exit 2 y COMPILAN sumar(mg,mL) y comparar(mg/dL,µmol/L)»": "CIERTO (reproducido de forma independiente sobre copia fuera del repo).",
+    "«+37 casos, exactamente lo añadido, sin regresiones»": "CIERTO en cuanto a los 37; el total ya no es 2120 sino 2164 por obra concurrente de E0-09, no por E0-04.",
+    "«build exit 0»": "CIERTO (npm run build → exit 0).",
+    "«cero archivos de producción tocados»": "FALSO en la letra — adr-cobertura.ts es producción. El propio documento lo declara y lo justifica en otros dos campos; la contradicción está en el campo `archivosDeProduccionTocados`.",
+    "«cero números clínicos nuevos»": "CIERTO (88.4 y 38.67 verificados en su origen del repo por grep).",
+    "«no se registró en CLINICAL_ENGINE_REGISTRY y su gate sigue verde con deuda 52»": "CIERTO (48 casos de los tres gates clínicos en verde; DEUDA_ADR_CONGELADA = 52 en adr-cobertura.ts:33)."
+  },
+
+  "regresionDetectada": false,
+  "reglaClinicaInventada": false,
+  "phiOSecretos": false,
+
+  "resumen": "Se cumple el criterio literal de E0-04, y se cumple por la razón correcta. Lo verifiqué sin apoyarme en las anotaciones del autor: escribí mis propios casos ilegales contra una copia del módulo y tsc los rechazó los 6; reproduje el control negativo y confirmé que, sin la marca invariante de la línea 119, los DOS ejemplos textuales del backlog compilan en silencio; probé 10 escotillas de escape adicionales que el reporte no menciona y todas quedaron cerradas. Los tres gates están en verde en el árbol real. No hay umbral, dosis ni regla clínica inventada, ni PHI. Lo que sí encontré: un campo de RESULTADO.json que se contradice a sí mismo («cero producción tocada» frente al adr-cobertura.ts que él mismo declara), y tres límites de diseño reales —reetiquetado de unidad dentro de la misma dimensión, mezcla legal de µg/kg/min con mg/kg/día, y la ausencia de deserializador seguro— que no violan la aceptación de esta unidad pero deben resolverse ANTES de que E0-05 meta el tipo en un motor con pacientes detrás."
+}

@@ -149,7 +149,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
 
   // Razonamiento con IA sobre el motor determinista.
   const [razonando, setRazonando] = useState(false)
-  const [razonamiento, setRazonamiento] = useState<{ texto: string; segunda?: string; contradicciones?: { agente: string; motivo: string }[] } | null>(null)
+  const [razonamiento, setRazonamiento] = useState<{ texto: string; segunda?: string; contradicciones?: { agente: string; motivo: string }[]; contradiccionesSegunda?: { agente: string; motivo: string }[] } | null>(null)
   const [errorRaz, setErrorRaz] = useState('')
 
   const razonarIA = async () => {
@@ -157,7 +157,13 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
     try {
       const resultados = filas.filter(f => f.antibiotico.trim()).map(f => {
         const cmi = parseCMI(f.cmi)
-        return { antibiotico: f.antibiotico.trim(), interpretacion: f.interpretacion, ...(cmi != null ? { cmi } : {}) }
+        // La CMI va como NÚMERO (cmi.valor), no como el objeto {valor,censurada}: el
+        // motor del servidor exige typeof === 'number' o descarta TODA la lógica de CMI
+        // (VRSA/VISA/HLAR-por-CMI/SDD) y la IA premium razonaría sobre un panel mutilado.
+        return {
+          antibiotico: f.antibiotico.trim(), interpretacion: f.interpretacion,
+          ...(cmi != null ? { cmi: cmi.valor, ...(cmi.censurada ? { cmiCensurada: cmi.censurada } : {}) } : {}),
+        }
       })
       const resp = await fetchAutenticado('/api/expediente/antibiograma-razonar', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -165,7 +171,17 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
       })
       const data = await resp.json().catch(() => null)
       if (!data?.ok) { setErrorRaz(data?.error || `No se pudo razonar (HTTP ${resp.status})`); return }
-      setRazonamiento({ texto: data.razonamiento, segunda: data.segundaOpinion, contradicciones: data.contradicciones })
+      /**
+       * `contradiccionesSegundaOpinion` YA viajaba desde el servidor y el cliente
+       * la tiraba (E0-15a): la segunda opinión se mostraba sin su caja roja
+       * aunque el validador hubiera detectado que contradice al motor.
+       */
+      setRazonamiento({
+        texto: data.razonamiento,
+        segunda: data.segundaOpinion,
+        contradicciones: data.contradicciones,
+        contradiccionesSegunda: data.contradiccionesSegundaOpinion,
+      })
     } catch (e) {
       setErrorRaz('Error de red: ' + (e instanceof Error ? e.message : String(e)))
     } finally {
@@ -203,7 +219,11 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
       // recomendarse un antibiótico al que el organismo es resistente.
       const esValida = (x: unknown): x is 'S' | 'I' | 'R' => x === 'S' || x === 'I' || x === 'R'
       const legibles = celdas.filter(c => c.antibiotico && esValida(c.interpretacion))
-      const ilegibles = celdas.filter(c => c.antibiotico && !esValida(c.interpretacion))
+      // SDD (sensible dosis-dependiente, p. ej. cefepime CMI 4-8): SÍ se leyó, pero el
+      // panel trabaja en S/I/R. NO es "ilegible" — se separa para no dar un aviso falso
+      // de "no se pudo leer" sobre algo que el laboratorio sí reportó.
+      const sdd = celdas.filter(c => c.antibiotico && c.interpretacion === 'SDD').map(c => String(c.antibiotico))
+      const ilegibles = celdas.filter(c => c.antibiotico && !esValida(c.interpretacion) && c.interpretacion !== 'SDD')
                              .map(c => String(c.antibiotico))
       const nuevas: Fila[] = legibles.map(c => ({
         antibiotico: String(c.antibiotico),
@@ -227,16 +247,23 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
       })
 
       const avisos: string[] = []
-      if (data._schemaWarning) avisos.push('La lectura no cumplió del todo el formato esperado; revisa y corrige las filas.')
+      if (data._schemaWarning) avisos.push('Parte del reporte no se pudo estructurar por completo; revisa las filas y complétalas a mano donde falte.')
       if (Array.isArray(perfil.avisos)) perfil.avisos.forEach((a: string) => avisos.push(a))
+      if (sdd.length) {
+        avisos.push('ℹ Reportados como SDD (sensible dosis-dependiente): ' + sdd.join(', ') +
+          '. El panel usa S/I/R; captúralos a mano según el punto de corte de DOSIS ALTA (p. ej. cefepime CMI 4-8).')
+      }
       if (ilegibles.length) {
         avisos.push('⚠ NO se pudo leer la interpretación de: ' + ilegibles.join(', ') +
           '. Se dejaron FUERA del panel a propósito, para no darlos por sensibles. Captúralos a mano si los necesitas.')
       }
       const rev = celdas.filter(c => c.needs_review || c.conf === 'baja').map(c => c.antibiotico).filter(Boolean)
       if (rev.length) avisos.push('⚠ Lectura dudosa (revisa a mano): ' + rev.join(', '))
-      if (sitioAuto) avisos.push(`Sitio ajustado automáticamente a «${sitioAuto}» por la muestra reportada.`)
-      if (Object.keys(pruebasAuto).length) avisos.push(`Pruebas confirmatorias tomadas del reporte: ${Object.keys(pruebasAuto).join(', ')}.`)
+      if (sitioAuto) avisos.push(`Sitio ajustado automáticamente a «${SITIOS.find(s => s.v === sitioAuto)?.t ?? sitioAuto}» por la muestra reportada.`)
+      const etiquetasPruebas = Object.keys(pruebasAuto)
+        .map(k => PRUEBAS_CONF.find(p => p.k === k)?.t)   // nombre legible, no la clave interna
+        .filter((t): t is string => Boolean(t))
+      if (etiquetasPruebas.length) avisos.push(`Pruebas confirmatorias tomadas del reporte: ${etiquetasPruebas.join(', ')}.`)
       if (Array.isArray(perfil.organismosAdicionales) && perfil.organismosAdicionales.length) {
         avisos.push(`⚠ Cultivo POLIMICROBIANO: también se reportó ${perfil.organismosAdicionales.join(', ')}. Interpreta un aislamiento a la vez.`)
       }
@@ -387,7 +414,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: 'var(--nexus)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 13.5, fontWeight: 700, cursor: razonando ? 'wait' : 'pointer', opacity: razonando ? 0.7 : 1 }}>
             {razonando ? <><Loader2 size={16} className="spin" /> Razonando el caso…</> : <><Brain size={16} /> Razonar con IA (infectólogo — Claude + GPT)</>}
           </button>
-          {errorRaz && <div style={{ ...box, marginTop: 8, borderColor: 'rgba(239,68,68,.4)', background: 'rgba(239,68,68,.08)', color: '#f87171' }}>{errorRaz}</div>}
+          {errorRaz && <div style={{ ...box, marginTop: 8, borderColor: 'rgba(239,68,68,.4)', background: 'rgba(239,68,68,.08)', color: 'var(--red)' }}>{errorRaz}</div>}
           {razonamiento && (
             <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={card}>
@@ -423,6 +450,20 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
               {razonamiento.segunda && (
                 <div style={card}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.03em' }}>Segunda opinión (GPT-5)</div>
+                  {!!razonamiento.contradiccionesSegunda?.length && (
+                    <div style={{
+                      background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)',
+                      borderRadius: 10, padding: '11px 13px', marginBottom: 10,
+                      fontSize: 12.5, lineHeight: 1.55, color: 'var(--text)',
+                    }}>
+                      <strong>Ojo: la segunda opinión contradice al motor.</strong>
+                      <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+                        {razonamiento.contradiccionesSegunda.map((c, i) => (
+                          <li key={i}><strong>{c.agente}</strong> — {c.motivo}.</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{razonamiento.segunda}</p>
                 </div>
               )}
@@ -465,11 +506,12 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
     : { bg: 'rgba(148,163,184,.15)', fg: 'var(--text3)' }
 
   const conflictos = res.resistenciaIntrinseca.filter(n => n.tipo === 'conflicto')
+  const alertasClinicas = res.resistenciaIntrinseca.filter(n => n.tipo === 'alerta_clinica')
 
   return (
     <div style={{ marginTop: 26, display: 'flex', flexDirection: 'column', gap: 16 }}>
       {res.notificacionObligatoria && (
-        <div style={{ ...box, borderColor: 'rgba(239,68,68,.4)', background: 'rgba(239,68,68,.08)', color: '#f87171' }}>
+        <div style={{ ...box, borderColor: 'rgba(239,68,68,.4)', background: 'rgba(239,68,68,.08)', color: 'var(--red)' }}>
           <ShieldAlert size={16} /> <b>Notificación epidemiológica obligatoria (NOM-045).</b>
           {res.aislamiento && <span style={{ color: 'var(--text2)' }}> · {res.aislamiento}</span>}
         </div>
@@ -480,7 +522,20 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
           <SecTitle icon={<AlertTriangle size={15} />} t="Conflicto con resistencia intrínseca" />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {conflictos.map((n, i) => (
-              <div key={i} style={{ ...box, borderColor: 'rgba(245,158,11,.4)', background: 'rgba(245,158,11,.08)', color: '#f59e0b' }}>
+              <div key={i} style={{ ...box, borderColor: 'rgba(245,158,11,.4)', background: 'rgba(245,158,11,.08)', color: 'var(--amber)' }}>
+                <span><b>{n.antibiotico}:</b> {n.mensaje}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {alertasClinicas.length > 0 && (
+        <div>
+          <SecTitle icon={<AlertTriangle size={15} />} t="Alerta clínica — no reportar como utilizable" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {alertasClinicas.map((n, i) => (
+              <div key={i} style={{ ...box, borderColor: 'rgba(239,68,68,.4)', background: 'rgba(239,68,68,.08)', color: 'var(--red)' }}>
                 <span><b>{n.antibiotico}:</b> {n.mensaje}</span>
               </div>
             ))}
@@ -567,6 +622,18 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
           <SecTitle icon={<Microscope size={15} />} t="Interpretación de CMI (puntos de corte CLSI M100)" />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {res.categoriasCMI.map((c, i) => {
+              // NO APLICABLE: no se pinta la categoría en verde/color. Gris + motivo.
+              // Evita que una «S» se lea como utilizable fuera de su indicación validada.
+              if (c.noAplicable) {
+                return (
+                  <div key={i} style={{ ...box, color: 'var(--text3)' }}>
+                    <span>
+                      <b style={{ color: 'var(--text2)' }}>{c.antibiotico}</b> · CMI {c.cmi} µg/mL → <b style={{ color: 'var(--text3)' }}>No aplicable</b>
+                      {c.motivoNoAplicable && <span> · {c.motivoNoAplicable}</span>}
+                    </span>
+                  </div>
+                )
+              }
               const col = c.categoriaCLSI === 'S' ? '#10b981'
                 : c.categoriaCLSI === 'SDD' ? '#3b82f6'
                 : c.categoriaCLSI === 'I' ? '#f59e0b' : '#f87171'
@@ -577,7 +644,7 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
                     <b>{c.antibiotico}</b> · CMI {c.cmi} µg/mL → <b style={{ color: col }}>{etiqueta}</b> (CLSI)
                     {c.categoriaCLSI === 'SDD' && <span style={{ color: 'var(--text3)' }}> · usa el esquema de dosis alto (no la dosis estándar)</span>}
                     {c.soloUTI && <span style={{ color: 'var(--text3)' }}> · solo IVU no complicada</span>}
-                    {c.concuerda === false && <span style={{ color: '#f59e0b' }}> · ⚠ discrepa del reporte ({c.categoriaReportada})</span>}
+                    {c.concuerda === false && <span style={{ color: 'var(--amber)' }}> · ⚠ discrepa del reporte ({c.categoriaReportada})</span>}
                   </span>
                 </div>
               )
@@ -687,8 +754,8 @@ function SecTitle({ icon, t }: { icon: React.ReactNode; t: string }) {
 }
 
 function alertaEstilo(n: 'critica' | 'alta' | 'info'): React.CSSProperties {
-  if (n === 'critica') return { borderColor: 'rgba(239,68,68,.4)', background: 'rgba(239,68,68,.08)', color: '#f87171' }
-  if (n === 'alta') return { borderColor: 'rgba(245,158,11,.4)', background: 'rgba(245,158,11,.08)', color: '#f59e0b' }
+  if (n === 'critica') return { borderColor: 'rgba(239,68,68,.4)', background: 'rgba(239,68,68,.08)', color: 'var(--red)' }
+  if (n === 'alta') return { borderColor: 'rgba(245,158,11,.4)', background: 'rgba(245,158,11,.08)', color: 'var(--amber)' }
   return { color: 'var(--text2)' }
 }
 
@@ -703,7 +770,7 @@ function etiquetaLinea(l: 'dirigida' | 'alternativa' | 'evitar'): string {
 
 const label: React.CSSProperties = { display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--text2)', marginBottom: 4 }
 const input: React.CSSProperties = { background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 11px', fontSize: 13, color: 'var(--text)', outline: 'none', width: '100%', boxSizing: 'border-box' }
-const delBtn: React.CSSProperties = { background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: 6, flexShrink: 0 }
+const delBtn: React.CSSProperties = { background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: 6, flexShrink: 0 }
 const addBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 5, background: 'var(--s2)', border: '1px dashed var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, cursor: 'pointer' }
 const chip: React.CSSProperties = { background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text3)', borderRadius: 100, padding: '5px 11px', fontSize: 11.5, cursor: 'pointer' }
 const metaChip: React.CSSProperties = { background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '4px 9px', fontSize: 11 }

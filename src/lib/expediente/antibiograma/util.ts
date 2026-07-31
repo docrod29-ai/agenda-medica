@@ -113,10 +113,21 @@ export const CEFTAZIDIMA = ['ceftazidima']
 export const CEFEPIME = ['cefepime', 'cefepima']
 export const AZTREONAM = ['aztreonam']
 export const CARBAPENEM = ['meropenem', 'imipenem', 'ertapenem', 'doripenem']
+/**
+ * Carbapenémicos con actividad ANTIPSEUDOMONAS (sin ertapenem). Auditoría 2026-07
+ * (P0): en Pseudomonas y Acinetobacter el ertapenem es intrínsecamente R, así que un
+ * ertapenem R en la placa NO indica carbapenemasa. Usar este set —no CARBAPENEM— para
+ * detectar resistencia a carbapenémicos en no-fermentadores evita la falsa
+ * carbapenemasa, la falsa notificación NOM-045 y el falso aislamiento.
+ */
+export const CARBAPENEM_ANTIPSEUDOMONAS = ['meropenem', 'imipenem', 'doripenem']
 export const IMIPENEM = ['imipenem']
 export const MEROPENEM = ['meropenem']
 export const ERTAPENEM = ['ertapenem']
-export const PIP_TAZO = ['piperacilina-tazobactam', 'piperacilina/tazobactam', 'piperacilina', 'tazobactam']
+// OJO: sin el alias suelto 'tazobactam' — como es "inhibidor", el matcher lo casaba
+// por frontera de token dentro de 'ceftolozano-tazobactam', leyendo esa fila como si
+// fuera pip-tazo (contaminaba DTR/MDR y la advertencia AmpC citaba el fármaco equivocado).
+export const PIP_TAZO = ['piperacilina-tazobactam', 'piperacilina/tazobactam', 'piperacilina']
 export const FLUOROQUINOLONA = ['ciprofloxacino', 'levofloxacino', 'moxifloxacino', 'ofloxacino', 'norfloxacino']
 export const CIPROFLOXACINO = ['ciprofloxacino', 'ofloxacino']
 export const LEVOFLOXACINO = ['levofloxacino']
@@ -148,7 +159,16 @@ export const COTRIMOXAZOL = ['trimetoprim', 'sulfametoxazol', 'cotrimoxazol', 't
 export const TETRACICLINA = ['tetraciclina', 'doxiciclina', 'minociclina']
 export const TIGECICLINA = ['tigeciclina']
 export const NITROFURANTOINA = ['nitrofurantoina']
-export const CEFTAZIDIMA_AVIBACTAM = ['ceftazidima-avibactam', 'ceftazidima/avibactam', 'ceftazidima avibactam', 'cef-avi', 'avibactam']
+/**
+ * Auditoría 2026-07 (P0, hallado por muchos auditores): el alias suelto 'avibactam'
+ * casaba «Aztreonam-avibactam» (avibactam es un TOKEN completo ahí, así que ni el
+ * límite de token ni la regla de inhibidores lo frenaban) y una metalo-β-lactamasa
+ * (NDM) —cuyo único fármaco ES aztreonam-avibactam— se interpretaba con los puntos
+ * de corte de ceftazidima-avibactam. Se quita el alias suelto y aztreonam-avibactam
+ * pasa a ser su propio fármaco.
+ */
+export const CEFTAZIDIMA_AVIBACTAM = ['ceftazidima-avibactam', 'ceftazidima/avibactam', 'ceftazidima avibactam', 'cef-avi', 'caz-avi']
+export const AZTREONAM_AVIBACTAM = ['aztreonam-avibactam', 'aztreonam/avibactam', 'aztreonam avibactam', 'azt-avi']
 export const CEFIDEROCOL = ['cefiderocol']
 
 /** Alguna(s) coincidencia(s) con estado R entre una lista de sinónimos-clase. */
@@ -158,4 +178,49 @@ export function algunoR(resultados: ResultadoAntibiograma[], grupos: string[]): 
 /** Alguna(s) coincidencia(s) con estado S. */
 export function algunoS(resultados: ResultadoAntibiograma[], grupos: string[]): boolean {
   return grupos.some(g => ES_S(estado(resultados, [g])))
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * INTERPRETACIÓN EFECTIVA — fuente única para TODAS las salidas (E0-15a)
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * El motor edita categorías por regla experta EUCAST (fluoroquinolonas S→R por
+ * resistencia cruzada inferida), pero esa edición NO llegaba a la nota, al
+ * prompt del LLM, al validador ni al PK/PD: cada salida mostraba la «S» cruda
+ * que el propio motor ya había declarado R. Contradicción en la misma hoja.
+ *
+ * Decisión del médico dueño (2026-07-28): la interpretación editada es la
+ * **canónica** para UI, nota, prompt, validador, PK/PD, recomendaciones,
+ * exportación, alertas y auditoría — **pero el resultado original no se
+ * destruye**. Se conserva en `interpretacionLab` para poder mostrar:
+ *
+ *   Resultado de laboratorio: S
+ *   Interpretación Nexus: R por regla experta EUCAST [regla/versión]
+ *
+ * Función PURA: devuelve un arreglo nuevo, no muta el de entrada.
+ */
+export function aplicarEdicionesInterpretativas(
+  resultados: ResultadoAntibiograma[],
+  ediciones: { antibiotico: string; de: 'S'; a: 'R'; razon: string; referencia: string }[],
+): ResultadoAntibiograma[] {
+  if (!ediciones.length) return resultados
+  return resultados.map(r => {
+    const ed = ediciones.find(e => coincideAntibiotico(r.antibiotico, e.antibiotico))
+    // Solo se edita lo que la regla declara editar, y solo desde su categoría de
+    // origen: si el laboratorio ya reportó R, no hay nada que editar.
+    if (!ed || r.interpretacion !== ed.de) return r
+    return {
+      ...r,
+      interpretacion: ed.a,
+      interpretacionLab: r.interpretacion,
+      edicionRazon: ed.razon,
+      edicionReferencia: ed.referencia,
+    }
+  })
+}
+
+/** ¿Esta categoría viene de una edición interpretativa (y no del laboratorio)? */
+export function fueEditado(r: ResultadoAntibiograma): boolean {
+  return r.interpretacionLab != null && r.interpretacionLab !== r.interpretacion
 }

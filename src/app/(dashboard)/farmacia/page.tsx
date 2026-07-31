@@ -195,14 +195,21 @@ export default function FarmaciaPage() {
           onConfirmar={async (cantidad, motivo) => {
             if (!clinicId) return
             try {
-              await registrarMovimiento(clinicId, moviendo.item, {
+              const aplicada = await registrarMovimiento(clinicId, moviendo.item, {
                 itemId: moviendo.item.id!,
                 tipo: moviendo.tipo,
                 cantidad,
                 motivo,
                 realizadoPor: user?.uid ?? '',
               })
-              toast(`${moviendo.tipo === 'entrada' ? '+' : '-'}${cantidad} registrado`, 'success')
+              // Refleja la cantidad REALMENTE aplicada (puede ser menor por falta de
+              // stock): antes decía "-10" aunque solo salieran 3 → engañaba la
+              // trazabilidad, crítico en controlados.
+              const ajustado = aplicada < cantidad
+              toast(
+                `${moviendo.tipo === 'entrada' ? '+' : '-'}${aplicada} registrado${ajustado ? ` (se solicitaron ${cantidad}, solo había ${aplicada})` : ''}`,
+                ajustado ? 'info' : 'success',
+              )
               setMoviendo(null)
               recargar()
             } catch { toast('Error al registrar', 'error') }
@@ -259,17 +266,17 @@ function ItemRow({
             </span>
           )}
           {caducado && (
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 100, background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 100, background: 'rgba(239,68,68,0.15)', color: 'var(--red)' }}>
               CADUCADO
             </span>
           )}
           {!caducado && pronto && dias !== null && (
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 100, background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 100, background: 'rgba(245,158,11,0.15)', color: 'var(--amber)' }}>
               Caduca en {dias}d
             </span>
           )}
           {bajo && (
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 100, background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 100, background: 'rgba(245,158,11,0.15)', color: 'var(--amber)' }}>
               Bajo stock
             </span>
           )}
@@ -385,7 +392,18 @@ function ModalItem({ item, onClose, onGuardar }: {
             <Field label="Presentación" value={f.presentacion} onChange={(v) => setF({ ...f, presentacion: v })} placeholder="Caja con 12" />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-            <Field label="Cantidad" value={f.cantidad} onChange={(v) => setF({ ...f, cantidad: v })} type="number" />
+            {item ? (
+              // En EDICIÓN las existencias no se teclean: se cambian con + / − (que
+              // pasan por el ledger). Teclearlas aquí revertía dispensaciones.
+              <div>
+                <label style={lbl}>Existencias</label>
+                <div style={{ ...inp, display: 'flex', alignItems: 'center', color: 'var(--text3)' }} title="Usa las flechas + / − de la lista para mover existencias">
+                  {item.cantidad} · usa + / −
+                </div>
+              </div>
+            ) : (
+              <Field label="Cantidad inicial" value={f.cantidad} onChange={(v) => setF({ ...f, cantidad: v })} type="number" />
+            )}
             <Field label="Mínimo" value={f.cantidadMinima} onChange={(v) => setF({ ...f, cantidadMinima: v })} type="number" placeholder="3" />
             <Field label="Unidad" value={f.unidadMedida} onChange={(v) => setF({ ...f, unidadMedida: v })} placeholder="caja" />
           </div>
@@ -427,6 +445,11 @@ function ModalMovimiento({ item, tipo, onClose, onConfirmar }: {
     if (!n || n <= 0) { toast('Cantidad inválida', 'error'); return }
     if (tipo === 'salida' && n > item.cantidad) {
       if (!(await confirm(`Estás sacando ${n} pero solo tienes ${item.cantidad}. ¿Continuar?`))) return
+    }
+    // Dispensar un lote CADUCADO no se hacía notar en ninguna parte — solo un
+    // badge en la lista. Aquí, en el acto de la salida, se exige confirmación.
+    if (tipo === 'salida' && estaCaducado(item)) {
+      if (!(await confirm(`⚠ Este lote está CADUCADO${item.caducidad ? ` (venció ${new Date(item.caducidad).toLocaleDateString('es-MX')})` : ''}. Dispensar medicamento caducado es un riesgo. ¿Continuar de todos modos?`))) return
     }
     setSaving(true)
     try { await onConfirmar(n, motivo.trim() || undefined) } finally { setSaving(false) }

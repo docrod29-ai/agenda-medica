@@ -13,9 +13,11 @@
  * Resp: { ok, articulos:[...], evaluacion:[...], alternativas:[...], diferencial:[...] }
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { verificarUsuario } from '@/lib/auth-server'
+import { safeLog } from '@/lib/security/sanitize'
+import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { resolverClaveIA, registrarUso, nivelIADe } from '@/lib/ai-keys'
+import { gateCreditos, resolverClaveIA, registrarUso, nivelIADe, registrarCreditos } from '@/lib/ai-keys'
+import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { buscarEvidenciaMulti, type ArticuloPubMed } from '@/lib/evidencia/pubmed'
 import { traducirBasico } from '@/lib/evidencia/traducir-medico'
 
@@ -27,7 +29,7 @@ const MODELOS_PRO = ['claude-sonnet-5', 'claude-sonnet-4-6', 'claude-3-5-sonnet-
 const MODELOS_HAIKU_ANALISIS = ['claude-haiku-4-5-20251001', 'claude-3-5-haiku-latest']
 
 export async function POST(req: NextRequest) {
-  const acceso = await verificarUsuario(req)
+  const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
   const _rl = await limitarOResponder(`evidencia:${acceso.uid}`, 30, 60)
   if (_rl) return _rl
@@ -42,6 +44,7 @@ export async function POST(req: NextRequest) {
     const r = await resolverClaveIA(acceso.uid, 'anthropic', process.env.ANTHROPIC_API_KEY ?? '')
     key = (r.key as string) ?? ''; fuente = r.fuente; clinicId = r.clinicId ?? ''
   } catch { /* key queda vacía → mensaje claro abajo, nunca 500 */ }
+  const _corte = await gateCreditos(clinicId, fuente); if (_corte) return _corte
   if (!key) return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada (revisa Configuración → Llaves de IA).' }, { status: 503 })
 
   let body: {
@@ -200,6 +203,7 @@ export async function POST(req: NextRequest) {
     }
 
     void registrarUso(clinicId, fuente)
+    void registrarCreditos(clinicId, COSTO_CREDITOS.evidencia)
     const avisos: string[] = []
     if (!hayEvidencia) avisos.push('Razonado con conocimiento clínico y guías (PubMed no devolvió citas nuevas para estos términos exactos).')
     avisos.push(modelosUsados.length > 1 ? `Análisis combinado: ${modelosUsados.join(' + ')}.` : `Análisis con ${modelosUsados[0] ?? tierClaude}.`)
@@ -211,7 +215,7 @@ export async function POST(req: NextRequest) {
   } catch (fatal) {
     // Cualquier excepción no prevista: NUNCA un 500 mudo. Devolvemos el error real
     // (status 200 para que el cliente lo parsee y lo muestre en vez del toast genérico).
-    console.error('[evidencia] fallo no controlado:', fatal)
+    safeLog.error('[evidencia] fallo no controlado:', fatal)
     const msg = fatal instanceof Error ? fatal.message : String(fatal)
     return NextResponse.json({ ok: false, error: `Fallo al analizar la evidencia: ${msg.slice(0, 160)}` }, { status: 200 })
   }

@@ -1,0 +1,121 @@
+{
+  "id": "E0-12",
+  "etapa": "E0",
+  "titulo": "El sello de integridad cubre TODO el contenido firmable (hashVersion 3)",
+  "estado": "completada",
+  "fecha": "2026-07-29T22:58:09Z",
+  "aceptacion": {
+    "literal": "Alterar `preop.resultados` de una nota firmada la marca 'alterada'.",
+    "cumplida": true,
+    "donde": "src/__tests__/e0-12-sello-integridad.test.ts → describe('E0-12 · aceptación: preop entra al sello')",
+    "como": "Se sella una nota firmada completa (verificarIntegridadEstado → 'verificada'), se cambia preop.resultados.rcri.puntos de 2 a 4 y el estado pasa a 'alterada'. Antes de esta unidad el mismo cambio devolvía 'verificada'."
+  },
+  "queSeCerro": {
+    "hueco": "El sello v2 cubría 10 de los 26 campos de NotaMedica. Se podía alterar en una nota FIRMADA: preop (puntajes de riesgo quirúrgico), hospital, infectologia (día de antibiótico, desescalada), iaAuditoria.provenance (modelo, promptVersion, revisadoPorHumano), transcripcionCruda, dialogoDiarizado, resumenEjecutivo, secciones[].label (que SÍ se imprime), estudiosOrden, internamientoId, pacienteNombre, clinicId, createdAt, creadoPor y el encabezado medicolegal (cedulaProfesional, especialidad, establecimiento, fechaCreacion, fuenteGeneracion) — y la pantalla seguía diciendo «integridad verificada».",
+    "ahora": "HASH_VERSION = 3 con canonicoV3, que sella todo el contenido firmable. canonicoV2 queda CONGELADO y la verificación DESPACHA por la versión declarada en cada nota.",
+    "vectorRealDeAtaque": "No es el médico editando desde la app (firestore.rules:189 lo impide en la nota firmada), sino escritura por Admin SDK / consola / import, un bug futuro que reescriba una firmada, o credenciales comprometidas. El sello no previene la alteración: la vuelve DETECTABLE. Era detectable en la mitad del documento."
+  },
+  "entregables": {
+    "contenidoCanonicoCompleto": "canonicoV3 en src/lib/expediente/integrity.ts, con partición explícita CAMPOS_SELLADOS_V3 (32 entradas) / CAMPOS_NO_SELLADOS_V3 (9 exclusiones, cada una con su `razon` escrita).",
+    "hashVersion3": "HASH_VERSION = 3. VERSIONES_VERIFICABLES = [2, 3]. CANONICO despacha por versión: una nota v2 sigue 'verificada' y NO se degrada a 'legado'.",
+    "planDeMigracion": "Implementado como convergencia natural, documentado en el DISEÑO §2 y en REG-059. NO se re-sella ninguna nota firmada (dos razones independientes: re-sellar afirmaría sobre contenido observado hoy = fabricar evidencia, y bendeciría la alteración que el sello debe delatar; además sólo el Admin SDK podría escribirla, que es el propio vector de riesgo). La población v2 se extingue sola porque cada nota nueva nace v3; mientras coexista, la pantalla DECLARA qué no cubre ese sello. Corregir una nota v2 se hace por ADENDA, el mecanismo legal que ya existe."
+  },
+  "cerocambiosDeEstadoEnNotasExistentes": {
+    "afirmacion": "Ninguna nota cambia de estado por este cambio.",
+    "pruebas": [
+      "v2 sellada → 'verificada' (no 'legado'): sería la regresión de cumplimiento si se subiera la constante sin el despacho por versión.",
+      "Vector GOLDEN de v2 fijado byte por byte: 939119bcc0b4738acde02fdb9ce8740ecdafbb45b604c649c270b9dfde029b8d, medido con el código ANTERIOR a esta unidad sobre la fixture de integrity.test.ts.",
+      "src/__tests__/integrity.test.ts NO se modificó: sus 6 casos siguen verdes tal cual.",
+      "v1 / hashVersion ausente sigue 'legado'; sin hash sigue 'sin-sello'."
+    ]
+  },
+  "trampasIdentificadasYExcluidasConRazon": [
+    "id de nivel superior — normNota lo sobrescribe con el doc.id y al firmar vale '' en el camino rápido. Sellarlo marcaría 'alterada' TODA nota firmada sin borrador previo. La identidad va por metadata.id.",
+    "metadata.fechaModificacion — se fija DESPUÉS de calcular el hash.",
+    "updatedAt — updateNota lo reescribe en cada escritura.",
+    "firma — se adjunta DESPUÉS del hash; sellarla haría que toda nota firmada saliera 'alterada'.",
+    "metadata.hashVersion — vale undefined al hashear y 3 al leer. Se sella el literal `v: 3`, lo que además cierra el ataque de DEGRADACIÓN (bajarle la versión a un sello v3 → 'alterada', con test).",
+    "metadata.version y estado/metadata.estado — el versionado y la cancelación son transiciones LEGÍTIMAS posteriores a la firma."
+  ],
+  "trinqueteAntiReincidencia": "El test declara `Record<keyof NotaMedica, true>` y `Record<keyof MetadataNOM024, true>`: si alguien añade un campo al tipo, `npx tsc --noEmit` FALLA por propiedad faltante y el assert obliga a clasificarlo como sellado o excluido-con-razón. Control ejecutado: se añadió `campoNuevoDePrueba?: string` a NotaMedica y tsc salió rojo con TS2741 en e0-12-sello-integridad.test.ts:376; se restauró el tipo y tsc volvió a verde. Es la garantía de que no vuelve a pasar lo de `preop`: nacer fuera del sello.",
+  "controlesNegativosEjecutados": [
+    "HASH_VERSION bajado a 2 (v3 inalcanzable) → 29 de 62 casos ROJOS, incluida la aceptación. Restaurado.",
+    "canonicoV2 mutado (`tipo` → `tipoNota`) → el vector GOLDEN cae. Restaurado.",
+    "Una llave quitada de canonicoV3 (`alergias`) → la mutación correspondiente deja de detectarse y su caso cae. Restaurado.",
+    "Campo nuevo en el tipo NotaMedica → `tsc --noEmit` rojo (trinquete de cobertura). Restaurado."
+  ],
+  "regsCerrados": ["REG-059"],
+  "archivosTocados": [
+    "src/lib/expediente/integrity.ts",
+    "src/lib/expediente/serializacion.ts",
+    "src/lib/expediente/firestore.ts",
+    "src/app/(dashboard)/nota/[patientId]/[notaId]/page.tsx",
+    "src/__tests__/e0-12-sello-integridad.test.ts",
+    "src/lib/clinical/invariantes-clinicos.json",
+    "docs/audit/regression-ledger.md",
+    "docs/roadmap/nexus-os/unidades/E0-12/RESULTADO.json",
+    "docs/roadmap/nexus-os/estado.json",
+    "docs/roadmap/nexus-os/CHECKPOINT.md"
+  ],
+  "loQueNOseToco": [
+    "src/app/(dashboard)/consulta/[patientId]/page.tsx — el flujo de firma (el código de mayor riesgo del repo, REG-017/REG-040) NO se modificó. `firmar()` ya llamaba generarHashIntegridad y escribía hashVersion: HASH_VERSION; subir la constante bastó.",
+    "firestore.rules — ni una línea.",
+    "El área IMPRIMIBLE de la nota, la receta, el PDF y el Word: el único cambio de UI es un aviso `no-print`.",
+    "src/__tests__/integrity.test.ts — intacto a propósito: es la prueba de que v2 no se movió.",
+    "Cobros, agenda, Stripe: nada."
+  ],
+  "cambioDeUI": "src/app/(dashboard)/nota/[patientId]/[notaId]/page.tsx pasa de verificarIntegridadEstado a verificarIntegridadDetalle y, SÓLO cuando el sello es válido pero PARCIAL (v2), añade un renglón neutro `no-print`: «Sello de formato anterior (v2): verificado sobre el cuerpo de la nota. No cubre: valoración preoperatoria, datos hospitalarios, infectología, trazabilidad de IA…». La alarma roja de 'alterada' y el aviso de 'legado' quedaron intactos. Una nota v3 no muestra nada nuevo.",
+  "tests": {
+    "archivo": "src/__tests__/e0-12-sello-integridad.test.ts",
+    "casosDeclarados": 23,
+    "casosEjecutados": 62,
+    "cobertura": [
+      "1 · ACEPTACIÓN: alterar preop.resultados de una nota firmada → 'alterada'.",
+      "2 · 35 mutaciones parametrizadas (una hoja por caso) → 'alterada' en las 35, incluidas preop.inputs/resultados, hospital.balanceHidrico.balance, infectologia.diaAntibiotico, secciones[0].label, iaAuditoria.provenance.revisadoPorHumano, transcripcionCruda, metadata.cedulaProfesional.",
+      "2-bis · CONTROL: las 8 mismas mutaciones bajo el sello v2 siguen 'verificada' — es el hueco que esta unidad cierra, medido, no supuesto.",
+      "3 · 6 cambios LEGÍTIMOS (adjuntar firma, fechaModificacion, updatedAt, metadata.version, estado 'cancelada', doc.id distinto) → siguen 'verificada'. Es el modo de falla grave: una alarma roja falsa destruye la confianza en el sello.",
+      "4 · Round-trip completo simulado: sellar → stripUndefined → barajado profundo de llaves → defaults de normNota → las 5 mutaciones post-hash juntas → 'verificada'. Más el caso de la nota SIN campos opcionales (consulta sin preop, sin hospital, sin dictado).",
+      "5-9 · Compatibilidad de versiones: v2 verificada, vector golden de v2, degradación v3→v2 = 'alterada', versión futura 99 = 'legado', v1/ausente = 'legado', sin hash = 'sin-sello', HASH_VERSION = 3.",
+      "10 · Trinquete de cobertura (6 casos): todo campo del tipo clasificado, sin inventar campos que el tipo no tiene, sin solapamiento entre listas, toda exclusión con razón >30 caracteres, y la fixture puebla TODOS los campos.",
+      "11 · COBERTURA_SELLO y verificarIntegridadDetalle por versión (5 casos)."
+    ]
+  },
+  "gates": {
+    "tsc": "PASS",
+    "vitest": "PASS",
+    "build": "PASS",
+    "testsPasan": 2663,
+    "archivosDeTest": 196,
+    "comandos": [
+      "npx tsc --noEmit",
+      "npx vitest run src/__tests__/",
+      "npm run build"
+    ],
+    "nota": "El único mensaje del build es el aviso preexistente del sitemap («Could not load the default credentials»): no hay credenciales de producción en esta máquina, por diseño. BUILD_EXIT=0."
+  },
+  "necesitaValidacionClinica": false,
+  "notaValidacion": "El backlog marca validacionClinica: false y así es. Esta unidad sólo amplía QUÉ BYTES entran a un SHA-256: no decide ningún umbral, dosis ni regla clínica. Los puntajes de la fixture (rcri.puntos = 2, ariscat = 26, dasi.mets = 6.5…) son SINTÉTICOS y existen como bytes que deben romper el hash al cambiar, no como criterio médico; el paciente es ficticio. Cero PHI.",
+  "riesgosVivos": [
+    "Residual: `hashFirma` = sha256(notaId|medicoId|timestamp) sigue sin cubrir nombreMedico, cedulaProfesional, especialidad, institucion ni imagenDataUrl del bloque `firma`. v3 SÍ sella metadata.cedulaProfesional/especialidad/establecimiento, así que un cambio en el bloque de firma se detecta por CONTRADICCIÓN con la metadata sellada, pero el hash por sí solo no lo ve. Cerrarlo (hashFirma v2 con el mismo despacho por versión) toca el flujo de firma y la impresión → unidad aparte.",
+    "Residual: `estado` y `metadata.version` deliberadamente fuera del sello. Una cancelación indebida no la detecta el hash: es responsabilidad de las reglas y de src/lib/expediente/audit-log.ts.",
+    "Residual: las notas v1 siguen sin ser re-verificables, por diseño del algoritmo original (dependía del orden de llaves que Firestore no conserva), no por esta unidad.",
+    "`hospital` e `infectologia` no los escribe ningún camino de producción hoy: sellarlos es blindaje PREVENTIVO, probado con fixtures sintéticas y no contra un flujo existente.",
+    "El hash ahora incluye transcripcionCruda + dialogoDiarizado (decenas–cientos de KB). SHA-256 sobre ≤1 MB (tope duro del documento) es del orden de milisegundos y se calcula una vez al firmar y una al abrir: no se midió en dispositivo real, pero el tope de tamaño lo acota."
+  ],
+  "decisionesPendientesDelMedico": [
+    {
+      "id": "E0-12-Q1",
+      "decision": "¿Se quiere una «constancia de estado observado» para el histórico v1/v2? Sería una subcolección notas/{id}/sellos/{selloId} escrita por Admin SDK con { hashV3, observadoEn, porQuien } y la etiqueta explícita «hash de estado observado en la fecha indicada — NO es el sello de la firma».",
+      "porQue": "Daría detección de alteraciones DE AQUÍ EN ADELANTE sobre las notas viejas, sin fingir cobertura retroactiva. NO se implementó porque es una decisión de semántica legal del expediente (¿qué afirma un hash calculado años después de la firma?), no derivable del código.",
+      "bloquea": false
+    },
+    {
+      "id": "E0-12-Q2",
+      "decision": "¿Extender hashFirma para que cubra el nombre y la cédula del bloque `firma`?",
+      "porQue": "Es el residual 1. Toca el flujo de firma y el área de impresión, que es exactamente lo que la regla 5 de la carta manda entregar como PLAN antes que ejecutar a ciegas.",
+      "bloquea": false
+    }
+  ],
+  "noDesplegado": true,
+  "sinPush": true
+}

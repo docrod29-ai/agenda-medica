@@ -1,0 +1,58 @@
+{
+  "id": "E0-09",
+  "verificador": "adversarial (solo lectura)",
+  "fecha": "2026-07-28",
+  "veredicto": "INCOMPLETA",
+  "cumpleAceptacion": false,
+  "criterioDeAceptacion": "Un update sobre un evento sellado es rechazado por reglas.",
+  "resumen": "Todo lo que el implementador dice haber escrito EXISTE y hace lo que dice; tsc limpio y 2164/2164 tests en verde, verificado por mí, no reportado. Pero la aceptación literal NO se cumple: firestore.rules está intacto y sigue permitiendo UPDATE sobre un registro de signos. El propio RESULTADO.json lo declara (aceptacionCumplida:false, estado 'necesita_validacion') y estado.json NO mete E0-09 en completadas: el reporte es honesto. Sin regresiones detectadas. Sin regla clínica, dosis ni umbral inventados. Sin PHI.",
+  "evidencia": {
+    "aceptacionNoCumplida": [
+      "firestore.rules:246-248 — `match /signos/{signoId} { allow read, create, update: if isClinicoHospital(clinicId); allow delete: if false; }`. El update sigue abierto al cliente.",
+      "`git diff --stat firestore.rules` vacío: el archivo de reglas no se tocó en esta corrida.",
+      "src/__tests__/firestore-rules-guard.test.ts:55-61 — el bloque nuevo declara EXPLÍCITAMENTE que NO afirma `signos update: if false` porque eso es Q5. Es decir, ningún test cubre la aceptación.",
+      "docs/roadmap/nexus-os/unidades/E0-09/RESULTADO.json — \"aceptacionCumplida\": false. La afirmación del implementador coincide con lo que veo."
+    ],
+    "loQueSiEstaYFunciona": [
+      "src/types/hospital.ts:165-172 — `corrigeA` y `motivoCorreccion` OPCIONALES en RegistroSignos; src/types/hospital.ts:176-240 — EventoClinico/EfectoCorreccion/EventoClinicoConId nuevos. Aditivo puro: ningún tipo existente cambia de forma, cero migración.",
+      "src/lib/hospital/eventos.ts:70-113 — proyectarSignos construye la salida con `raw.map`, así que registros.length === raw.length por construcción: MARCA, nunca elimina. eventos.ts:116-125 `cierraCiclo` corta ciclos con un Set (sin recursión).",
+      "src/lib/hospital/eventos.ts:212 POLITICA_SIGNOS_EN_CALCULO = null y :228 `if (politica === null) throw` — fail-closed real, no un default disfrazado. eventos.ts:261 POLITICA_CORRECCION = null y :311-315 validarCorreccion exige la política como parámetro NO anulable.",
+      "src/lib/hospital/eventos.ts:353-370 construirCorreccion no tiene parámetro para `fecha`/`por` del cliente: el sello viene del llamador servidor. No hay camino en el módulo que mute el evento original.",
+      "src/lib/hospital/registro-durable.ts:116-128 — H1 cerrado de verdad: administrar / indicacion_agregar / indicacion_suspender / verificar_farmacia ya devuelven evento (antes null). src/lib/hospital/registro-durable.ts:81-86 lista blanca CAMPOS_DETALLE, que cubre exactamente los campos no-servidor de `Administracion` (src/types/hospital.ts:121-128): no se pierde dato del MAR ni entra basura del cliente.",
+      "src/app/api/hospital/mutar/route.ts:260-263 — el caller ya persistía lo que devuelve registroDurable() dentro de la MISMA transacción; la extensión no cambia el patch del doc, sólo añade una escritura.",
+      "src/lib/clinical/invariantes-clinicos.json:+40/+5 casos y totalCasos 1249→1294 (cuadra con 2120→2164 = 40 + 1 + 3)."
+    ],
+    "controlNegativo": [
+      "Repliqué src/ en scratchpad y corrí los tests contra DOS mutantes: (1) `case 'administrar': return null` en registro-durable.ts (revertir H1) y (2) `raw.filter(r => !corregidos.has(r.id))` en proyectarSignos (que la corrección ELIMINE el original, el bug exacto que ataca la unidad). Resultado: 9 tests fallidos / 36 pasados. Los tests MUERDEN; no pasan de todos modos.",
+      "Sin el mutante: `npx tsc --noEmit` exit 0 y `npx vitest run src/__tests__/` = 180 archivos, 2164/2164 verdes. Sin `.only`, `.skip` ni `todo(` en los tres archivos tocados (grep)."
+    ],
+    "sinRegresion": [
+      "`grep -rn \"from '@/lib/hospital/eventos'\" src/` → sólo el test. eventos.ts no tiene NINGÚN importador de producción (y hay un test que lo fija: hospital-eventos-append-only.test.ts:127-134).",
+      "`grep -rn \"'registros'\" src/` fuera de tests → sólo route.ts:263. Nadie LEE el libro todavía, así que los nuevos tipos de evento no pueden romper ninguna pantalla.",
+      "src/lib/hospital/firestore.ts:191-219 — sobre signos sólo hay addDoc/getDocs/onSnapshot/deleteDoc; ningún updateDoc. Confirmo el riesgo medido que el implementador declara para el parche de Q5: cerrar el update no rompe ningún camino existente.",
+      "firestore.rules:654 catch-all `allow read, write: if false` y `registros` sin bloque propio → hoy el libro no es escribible NI legible por el cliente."
+    ],
+    "sinInvencionClinica": [
+      "Ningún umbral, dosis ni regla clínica nueva. Los cinco huecos valen null (eventos.ts:212, :261) y las funciones que los necesitan LANZAN.",
+      "La única política con valores concretos es el FIXTURE de test (src/__tests__/hospital-eventos-append-only.test.ts:186-194: ventana 24 h, roles), rotulada 'NO es la política del consultorio' y sin uso en producción.",
+      "Único derivado semántico: 'anula' ⇒ la administración no cuenta (eventos.ts:171, :188-192). Es definicional, no clínico, y no lo consume nadie todavía."
+    ],
+    "sinPHI": [
+      "Fixtures 100% sintéticos: ids 'a'/'b'/'e1', autores 'enf@x (enfermeria)', 'dra@x (medico)'. Grep de CURP/NSS/teléfonos/correos reales: sin resultados."
+    ]
+  },
+  "problemas": [
+    "P1 — La aceptación literal no se cumple (firestore.rules:246-248 intacto). El trabajo entregado es el andamiaje, no la aceptación.",
+    "P2 — DATO NUEVO QUE CAMBIA EL PANORAMA DE Q5: docs/clinical-decisions/DECISIONES-ARQUITECTURA-2026-07-28.md:96-109 (§A3 'Append-only — DEFAULT AMPLIADO') lista literalmente «signos vitales» entre lo append-only, y ese archivo YA ESTÁ EN GIT: commit c795520 'docs(clínico): decisiones de arquitectura del Dr. para todo Nexus OS', autor DAVID, 21:32, con la frase «Documento canónico: el software lo implementa, no lo reinterpreta». Durante la corrida (21:25-21:29) el archivo estaba sin rastrear y la cautela fue correcta; hoy ya no lo está. Matiz real que aún justifica una línea de confirmación: §A3:98-100 condiciona la regla a dato «FINALIZADO/FIRMADO» y un registro de signos no tiene estado draft/firmado.",
+    "P3 — El libro legal pierde el `porUid`. route.ts:115 sí guarda `porUid: actor.uid` en el array-caché del doc, pero route.ts:263 llama a registroDurable(accion, payload, now, actor.nombre) sin el uid, y EventoClinico.porUid (src/types/hospital.ts:~200) queda siempre vacío. El registro append-only atribuye por nombre visible, más débil que la caché que pretende respaldar.",
+    "P4 — `indicacion_suspender` también dispara en la REACTIVACIÓN (route.ts:69 aplica `activa: p.activa`, que puede ser true), pero el evento se sella con tipo 'indicacion_suspension' (registro-durable.ts:125-126). Un lector del libro sólo puede distinguirlo mirando detalle.activa. Nombre de tipo engañoso en un registro legal.",
+    "P5 — Menor: el tercer caso nuevo del guardián de reglas (firestore-rules-guard.test.ts:74-81) es condicional; hoy corre la rama `else`, que sólo afirma que NO existe el bloque `match /registros/`. Protege poco hasta que exista ese bloque.",
+    "P6 — Coste declarado y real: +1 escritura Firestore por acción de MAR/órdenes dentro de la transacción existente. No es defecto, pero es cambio de comportamiento en producción entregado sin desplegar."
+  ],
+  "loQueNOencontre": [
+    "Ninguna funcionalidad rota. Ningún test aflojado (la única inversión, hospital-registro-durable.test.ts:23-38, sustituye una aserción por otra MÁS fuerte y su contraparte completa está en el archivo nuevo).",
+    "Ningún secreto ni PHI en fixtures.",
+    "Ninguna contabilidad inflada: estado.json deja E0-09 en 'necesita_validacion', fuera de completadas, y lo saca de siguientesElegibles con motivo escrito."
+  ],
+  "recomendacion": "No re-ejecutar la unidad. Basta una línea del Dr.: (a) confirmar que §A3 del documento canónico aplica a `signos` aunque un signo no tenga estado 'firmado' → se aplica el parche de 3 cambios ya redactado en RESULTADO.json y la aceptación se cierra en una unidad corta; (b) Q1-Q4 siguen pendientes para la UI de corrección. Antes de esa unidad corta, arreglar P3 (pasar actor.uid a registroDurable) y P4 (tipo del evento de reactivación), que son mecánicos y no dependen de criterio médico."
+}

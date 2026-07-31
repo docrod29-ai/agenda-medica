@@ -1,0 +1,65 @@
+{
+  "id": "E0-14",
+  "etapa": "E0",
+  "titulo": "Cierre de REG-014 / REG-015 / REG-017",
+  "estado": "completada",
+  "fecha": "2026-07-28T20:40:57Z",
+  "reconstruido": {
+    "esReconstruccion": true,
+    "fechaReconstruccion": "2026-07-29T02:42:41Z",
+    "porQue": "La unidad se ejecutó en dos commits de código + un commit de cierre, pero nunca se escribió este RESULTADO.json ni existió la carpeta unidades/E0-14. Sin este archivo el protocolo la habría vuelto a dar por pendiente y se habría rehecho trabajo ya integrado (y con reglas de Firestore YA DESPLEGADAS, que es exactamente lo que no se debe repetir a ciegas). Reconstruido sólo con evidencia en disco.",
+    "evidencia": [
+      "commit 3b39d12 'fix(REG-015/REG-017): el cobro sella su autor y la nota nace en borrador (SW v704)'",
+      "commit 5f5dff0 'fix(REG-014): la firma médica sale de config/main a un subdocumento protegido (SW v705)'",
+      "commit bfe12e4 'chore(nexus-os): E0-14 cerrada — sus tres componentes son REG-014/015/017'",
+      "docs/audit/regression-ledger.md: REG-015 CLOSED, REG-017 CLOSED, REG-014 CLOSED (parcial)",
+      "src/__tests__/reg-015-017-cobros-notas.test.ts (+82 y +55 líneas en los dos commits)",
+      "firestore.rules (+27 y +13 líneas)"
+    ],
+    "noReEjecutado": "tsc, vitest y build completos NO se re-corrieron en esta pasada de reconciliación; los gates de abajo son los DECLARADOS en cada commit."
+  },
+  "aceptacion": {
+    "criterio": "Los tres OPEN del ledger pasan a CLOSED con control permanente.",
+    "cumplido": "parcial-honesto",
+    "detalle": {
+      "REG-015": "CLOSED. registrarCobro sella creadoPor = auth.currentUser.uid e IGNORA lo que mande el llamador (antes unos mandaban correo y otros uid, así que un cobro podía quedar atribuido a quien no lo hizo y el identificador ni siquiera era comparable). Monto no finito o < 0 lanza, con mensaje que apunta a la alternativa correcta: una devolución es su propio tipo de transacción con traza a la operación original, no un signo menos que descuadra el corte en silencio. Campo tipo ('PAYMENT' hoy). Regla Firestore exige creadoPor == request.auth.uid y monto >= 0. El webhook de Stripe escribe por Admin SDK y no pasa por la regla.",
+      "REG-017": "CLOSED. Toda nota nace DRAFT. Antes, firmar una consulta que nunca llegó a guardarse como borrador CREABA la nota ya 'firmada': nacía un documento inmutable sin historia previa ni transición. Ahora firmar() crea el borrador y firma después (2 escrituras; trazabilidad NOM-024 intacta) y la regla Firestore de create exige estado == 'borrador', así que no depende del cliente. La migración histórica va por Admin SDK y queda marcada como importada.",
+      "REG-014": "CLOSED (PARCIAL) — y el residual está declarado, no escondido. La firma pasa de config/main (read: isMember) a clinics/{id}/config/firma con read/write: if isMedico, y la regla GENÉRICA de config tuvo que EXCLUIR ese docId: en Firestore las reglas son aditivas, así que añadir una estricta sin quitar la permisiva no habría cerrado nada. Migración idempotente que COPIA y borra del general; lector con respaldo al legado para no tirar la firma de nadie durante la transición; el snapshot dentro de una nota ya firmada NO cambia retroactivamente. RESIDUAL: el ideal ('el frontend no necesita recibir nunca el archivo original de firma') exige renderizar el documento firmado en el SERVIDOR, y hoy la impresión es toda client-side. Esta capa cierra el robo ENTRE ROLES (el riesgo concreto y presente), pero un médico autenticado sigue recibiendo la imagen en su navegador porque es él quien imprime. El servicio de firmado server-side queda como unidad aparte."
+    }
+  },
+  "archivosTocados": [
+    "src/lib/cobros.ts (MODIFICADO)",
+    "src/app/(dashboard)/consulta/[patientId]/page.tsx (MODIFICADO)",
+    "src/lib/firma-protegida.ts (NUEVO)",
+    "src/hooks/useFirmaProtegida.ts (NUEVO)",
+    "src/app/(dashboard)/configuracion/secciones-cuenta.tsx (MODIFICADO)",
+    "src/app/(dashboard)/nota/[patientId]/[notaId]/page.tsx (MODIFICADO)",
+    "src/app/(dashboard)/orden/[patientId]/[notaId]/page.tsx (MODIFICADO)",
+    "src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx (MODIFICADO)",
+    "firestore.rules (MODIFICADO)",
+    "docs/audit/regression-ledger.md (MODIFICADO)",
+    "public/sw.js (v704 → v705)"
+  ],
+  "testsAgregados": [
+    "src/__tests__/reg-015-017-cobros-notas.test.ts (+9 casos en 3b39d12: autoría sellada, monto negativo/no finito, nota nace borrador)",
+    "src/__tests__/reg-015-017-cobros-notas.test.ts (+8 casos en 5f5dff0: firma en subdocumento, migración idempotente, respaldo al legado)"
+  ],
+  "gates": {
+    "tsc": "PASS (declarado en ambos commits)",
+    "vitest": "PASS (declarado)",
+    "testsPasan": 2039,
+    "build": "PASS (declarado)"
+  },
+  "necesitaValidacionClinica": false,
+  "riesgosVivos": [
+    "REG-014 residual: la imagen de firma sigue llegando al navegador del médico porque la impresión es client-side. Cerrarlo exige un servicio de firmado server-side — unidad aparte, y toca el camino de impresión (regla 5 de la carta operativa).",
+    "Las reglas de Firestore de esta unidad SÍ se desplegaron (firebase deploy --only firestore:rules). Cualquier reintento de E0-14 debe partir de ese hecho, no de las reglas antiguas."
+  ],
+  "noDesplegado": false,
+  "notaDespliegue": "Excepción respecto al resto del programa: las reglas de Firestore de REG-014/015/017 se desplegaron con firebase deploy --only firestore:rules. El código de la app no se desplegó.",
+  "commits": [
+    "3b39d12 fix(REG-015/REG-017): el cobro sella su autor y la nota nace en borrador (SW v704)",
+    "5f5dff0 fix(REG-014): la firma médica sale de config/main a un subdocumento protegido (SW v705)",
+    "bfe12e4 chore(nexus-os): E0-14 cerrada"
+  ]
+}

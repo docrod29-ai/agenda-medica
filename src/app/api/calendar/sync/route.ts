@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import {
   createCalendarEvent,
   updateCalendarEvent,
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
   } catch (err) {
-    console.error('Calendar sync error:', err)
+    safeLog.error('Calendar sync error:', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

@@ -175,3 +175,13 @@ describe('Lista de verificación de la OMS', () => {
     expect(salida.puntos.join(' ')).toMatch(/conteo de gasas/i)
   })
 })
+
+/** REGRESIÓN (P2): la re-dosis se cuenta desde el INICIO de la dosis preop, no la incisión. */
+describe('Re-dosis intraoperatoria: ancla correcta', () => {
+  it('el texto dice explícitamente "desde el INICIO de la dosis preoperatoria"', () => {
+    const ab = { nombre: 'Cefazolina', dosis: '2 g IV', minutosAntes: 60, redosisHoras: 4 }
+    const p = planProfilaxis(ab as Parameters<typeof planProfilaxis>[0], 9)
+    expect(p.redosis).toMatch(/inicio de la dosis preoperatoria/i)
+    expect(p.redosis).toMatch(/no desde la incisión/i)
+  })
+})

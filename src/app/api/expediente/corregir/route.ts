@@ -10,9 +10,12 @@
  * Resp: { ok, resumenEjecutivo, secciones, diagnosticos, medicamentos, alergias, signosVitales } | { ok:false, error }
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { verificarUsuario } from '@/lib/auth-server'
+import { anotarLlamada, type Contexto } from '@/lib/ia/gateway'
+import { esFundador } from '@/lib/authz/fundador'
+import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { resolverClaveIA, nivelIADe } from '@/lib/ai-keys'
+import { gateCreditos, resolverClaveIA, nivelIADe, registrarCreditos } from '@/lib/ai-keys'
+import { COSTO_CREDITOS } from '@/lib/planes-ia'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL ?? ''
@@ -82,7 +85,7 @@ function extraerJSON(txt: string): unknown | null {
 }
 
 export async function POST(req: NextRequest) {
-  const acceso = await verificarUsuario(req)
+  const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
 
   // Tope de ráfaga: corregir usa IA por llamada. 40/min por usuario.
@@ -95,7 +98,18 @@ export async function POST(req: NextRequest) {
   if (!instruccion) return NextResponse.json({ ok: false, error: 'Escribe qué corregir' }, { status: 400 })
   if (!body.nota) return NextResponse.json({ ok: false, error: 'Falta la nota' }, { status: 400 })
 
-  const { key: API_KEY, clinicId } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
+  const { key: API_KEY, clinicId, fuente } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
+  const _corte = await gateCreditos(clinicId, fuente); if (_corte) return _corte
+
+  // Contexto del libro de costos. La ruta conserva su cascada; el gasto deja
+  // de ser invisible, que era lo que hacía falta.
+  const ctxCosto: Contexto = {
+    feature: 'corregir-transcripcion',
+    requestId: req.headers.get('x-vercel-id') || `co-${acceso.uid}-${Date.now()}`,
+    clinicId: clinicId ?? null, uid: acceso.uid, creditos: 0, fuente,
+    esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
+  }
+  const t0Costo = Date.now()
   if (!API_KEY) return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada (Configuración → Llaves de IA).' }, { status: 503 })
 
   const userMsg = `NOTA ACTUAL (JSON):\n${JSON.stringify(body.nota)}\n\nCONTEXTO DEL PACIENTE (referencia, no lo metas a la nota salvo que se pida):\n${JSON.stringify(body.contexto ?? {})}\n\nINSTRUCCIÓN DE CORRECCIÓN DEL MÉDICO:\n"${instruccion}"\n\nDevuelve la nota corregida en JSON aplicando SOLO ese cambio.`
@@ -132,6 +146,8 @@ export async function POST(req: NextRequest) {
         continue
       }
       const data = await res.json()
+      // Asiento del libro de costos: esta ruta no dejaba ninguno.
+      anotarLlamada(ctxCosto, 'anthropic', String(data?.model ?? model), data, Date.now() - t0Costo)
       // Con thinking, el texto va en el bloque type==='text' (tras los de razonamiento).
       const bloques: { type?: string; text?: string }[] = Array.isArray(data?.content) ? data.content : []
       const texto = (bloques.find(b => b?.type === 'text')?.text ?? bloques[0]?.text ?? '') as string
@@ -150,6 +166,7 @@ export async function POST(req: NextRequest) {
             if (verificada) { notaFinal = verificada; modelos.push(nivel === 'premium' ? 'GPT-5' : 'GPT-4o') }
           }
         } catch { /* se queda la corrección de Claude */ }
+        void registrarCreditos(clinicId, COSTO_CREDITOS.correccionVoz)
         return NextResponse.json({ ok: true, ...notaFinal, _modelos: modelos })
       }
       // Respondió pero no fue JSON parseable → intenta con el siguiente modelo.

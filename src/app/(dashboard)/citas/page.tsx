@@ -12,6 +12,7 @@ import type { Patient } from '@/types'
 import { AppointmentModal } from '@/components/AppointmentModal'
 import { DoctorFilter, useFiltroMedico, colorMedico } from '@/components/DoctorFilter'
 import { CobrarModal } from '@/components/CobrarModal'
+import { quitarExencion } from '@/lib/cobros'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { useAuth } from '@/hooks/useAuth'
 import { Appointment, AppointmentStatus, APPOINTMENT_TYPE_CONFIG } from '@/types'
@@ -69,7 +70,15 @@ export default function CitasPage() {
     getPatients(clinicId).then(setPacientes).catch(() => { /* ignore */ })
   }, [clinicId])
 
-  const [statusFilter, setStatusFilter] = useState<AppointmentStatus | 'todas'>('todas')
+  /**
+   * "por-cobrar" no es un estado de la cita: es una VISTA. El cobro no lo hace el
+   * médico —lo registra la asistente cuando el paciente sale y paga— y hasta ahora
+   * no tenía forma de saber a quién le tocaba. Veía la lista completa del día con
+   * botón "Cobrar" en todas, incluidas las que ni siquiera habían pasado, y tenía
+   * que acordarse de quién ya salió. Esta vista responde su única pregunta:
+   * atendidos y todavía sin cobrar.
+   */
+  const [statusFilter, setStatusFilter] = useState<AppointmentStatus | 'todas' | 'por-cobrar'>('todas')
   const [search, setSearch] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editAppt, setEditAppt] = useState<Appointment | null>(null)
@@ -108,10 +117,16 @@ export default function CitasPage() {
     router.replace('/citas', { scroll: false })
   }, [params, appointments, router, loading, toast])
 
+  // Índice O(1) por id: antes cada fila hacía pacientes.find() lineal → O(filas ×
+  // pacientes) en cada tecla del buscador y cada toggle de menú (jank con miles de pacientes).
+  const patientById = useMemo(() => new Map(pacientes.map(p => [p.id, p])), [pacientes])
+
   const filtered = useMemo(() => {
     return appointments.filter(a => {
       if (a.fechaHora.slice(0, 10) !== selectedDate) return false
-      if (statusFilter !== 'todas' && a.estado !== statusFilter) return false
+      if (statusFilter === 'por-cobrar') {
+        if (!['atendida', 'finalizada'].includes(a.estado) || a.cobroId || a.cobroExento) return false
+      } else if (statusFilter !== 'todas' && a.estado !== statusFilter) return false
       if (search && !a.pacienteNombre.toLowerCase().includes(search.toLowerCase())) return false
       // Filtro multi-doctor: si hay médico seleccionado, solo sus citas
       if (medicoFiltro && a.medicoId !== medicoFiltro) return false
@@ -124,8 +139,16 @@ export default function CitasPage() {
     const day = appointments.filter(a => a.fechaHora.slice(0, 10) === selectedDate && (!medicoFiltro || a.medicoId === medicoFiltro))
     const conf = day.filter(a => ['confirmada', 'en-sala', 'en-consulta', 'atendida', 'finalizada'].includes(a.estado)).length
     const pend = day.filter(a => ['solicitada', 'pendiente-confirmar', 'pendiente-datos', 'recordatorio-enviado'].includes(a.estado)).length
-    return { total: day.length, conf, pend }
+    const porCobrar = day.filter(a => ['atendida', 'finalizada'].includes(a.estado) && !a.cobroId && !a.cobroExento).length
+    return { total: day.length, conf, pend, porCobrar }
   }, [appointments, selectedDate, medicoFiltro])
+
+  // Si el filtro está en "por-cobrar" y ya no queda ninguno (se cobró el último), el
+  // chip desaparece pero el filtro se quedaba atascado mostrando "sin citas". Se
+  // regresa a "todas" para no dejar la lista vacía con citas que sí existen ese día.
+  useEffect(() => {
+    if (statusFilter === 'por-cobrar' && daySummary.porCobrar === 0) setStatusFilter('todas')
+  }, [statusFilter, daySummary.porCobrar])
 
   const dateLabel = useMemo(() => {
     const d = new Date(selectedDate + 'T12:00')
@@ -306,6 +329,29 @@ export default function CitasPage() {
           />
         </div>
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+          {/*
+            Va PRIMERO y con su propio contador porque es la única pregunta que la
+            asistente se hace todo el día. Si no hay nadie pendiente de cobro no se
+            muestra: un cero permanente enseña a ignorar el aviso.
+          */}
+          {daySummary.porCobrar > 0 && (
+            <button
+              onClick={() => setStatusFilter(statusFilter === 'por-cobrar' ? 'todas' : 'por-cobrar')}
+              className="btn btn-sm"
+              style={{
+                background: statusFilter === 'por-cobrar' ? 'var(--teal-glow)' : 'var(--s2)',
+                color: statusFilter === 'por-cobrar' ? 'var(--teal)' : 'var(--text2)',
+                border: `1px solid ${statusFilter === 'por-cobrar' ? 'rgba(61,90,254,0.3)' : 'var(--border)'}`,
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}
+            >
+              <DollarSign size={13} className="ds-icon" /> Por cobrar
+              <span style={{
+                background: 'var(--teal)', color: '#fff', borderRadius: 999,
+                padding: '1px 6px', fontSize: 11, fontWeight: 600, fontVariantNumeric: 'tabular-nums',
+              }}>{daySummary.porCobrar}</span>
+            </button>
+          )}
           {STATUS_FILTERS.map(f => (
             <button
               key={f.value}
@@ -347,7 +393,7 @@ export default function CitasPage() {
               <AppointmentRowFull
                 onConsulta={pid => router.push(`/consulta/${pid}`)}
                 appt={appt}
-                paciente={pacientes.find(p => p.id === appt.pacienteId) ?? null}
+                paciente={patientById.get(appt.pacienteId) ?? null}
                 config={config}
                 isLast={i === filtered.length - 1}
                 menuOpen={menuId === appt.id}
@@ -356,6 +402,13 @@ export default function CitasPage() {
                 onDelete={() => { handleDelete(appt.id); setMenuId(null) }}
                 onStatusChange={s => handleStatusChange(appt, s)}
                 onCobrar={(a) => setCobrarAppt(a)}
+                onQuitarCortesia={async (a) => {
+                  if (!clinicId) return
+                  const ok = await confirm(`¿Quitar la cortesía de ${a.pacienteNombre}? Volverá a aparecer para cobro.`, { confirmar: 'Quitar cortesía' })
+                  if (!ok) return
+                  try { await quitarExencion(clinicId, a.id); toast('Cortesía quitada; la cita vuelve a cobro', 'info') }
+                  catch { toast('No se pudo quitar la cortesía', 'error') }
+                }}
                 deleting={deletingId === appt.id}
               />
               </div>
@@ -378,6 +431,9 @@ export default function CitasPage() {
           creadoPor={user.uid}
           prefill={{
             citaId: cobrarAppt.id,
+            // estadoActual: para NO retroceder un estado más avanzado (finalizada/
+            // pagada) a 'atendida' al cobrar. La consulta ya lo pasaba; Citas no.
+            estadoActual: cobrarAppt.estado,
             patientId: cobrarAppt.pacienteId,
             patientNombre: cobrarAppt.pacienteNombre,
             medicoId: cobrarAppt.medicoId,
@@ -385,6 +441,7 @@ export default function CitasPage() {
             concepto: cobrarAppt.tipo === 'teleconsulta' ? 'teleconsulta' : 'consulta',
           }}
           onClose={() => setCobrarAppt(null)}
+          onCobrado={() => setCobrarAppt(null)}
         />
       )}
 
@@ -410,7 +467,7 @@ function DiaChip({ color, value, label }: { color: string; value: number; label:
 }
 
 function AppointmentRowFull({
-  appt, paciente, config, isLast, menuOpen, onMenuToggle, onEdit, onDelete, onStatusChange, onCobrar, deleting, onConsulta,
+  appt, paciente, config, isLast, menuOpen, onMenuToggle, onEdit, onDelete, onStatusChange, onCobrar, onQuitarCortesia, deleting, onConsulta,
 }: {
   /** Abre la consulta del paciente. Se recibe del padre para no montar otro router. */
   onConsulta: (pacienteId: string) => void
@@ -424,6 +481,7 @@ function AppointmentRowFull({
   onDelete: () => void
   onStatusChange: (s: AppointmentStatus) => void
   onCobrar?: (appt: Appointment) => void
+  onQuitarCortesia?: (appt: Appointment) => void
   deleting: boolean
 }) {
   const { clinicId: rowClinicId } = useClinic()
@@ -517,7 +575,7 @@ function AppointmentRowFull({
       {/* Actions */}
       <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
         {/* Botón Cobrar — no cancelada/no-asistió/reagendada Y sin cobro previo (anti doble cobro) */}
-        {appt.estado !== 'cancelada' && appt.estado !== 'no-asistio' && appt.estado !== 'reagendada' && !appt.cobroId && onCobrar && (
+        {appt.estado !== 'cancelada' && appt.estado !== 'no-asistio' && appt.estado !== 'reagendada' && !appt.cobroId && !appt.cobroExento && onCobrar && (
           <button
             onClick={() => onCobrar(appt)}
             title="Registrar cobro"
@@ -529,6 +587,22 @@ function AppointmentRowFull({
             }}
           >
             <DollarSign size={13} className="ds-icon" /> Cobrar
+          </button>
+        )}
+        {/* Distintivo de cortesía: el médico decidió no cobrar esta cita. Clic para
+            quitarla (vuelve a cobro). Reversible, como promete el modal. */}
+        {appt.cobroExento && (
+          <button
+            onClick={() => onQuitarCortesia?.(appt)}
+            title={`${appt.exentoMotivo ? `Cortesía: ${appt.exentoMotivo}` : 'Cortesía (no se cobra)'} · clic para quitar`}
+            style={{
+              background: 'rgba(168,85,247,0.12)', color: '#a855f7',
+              border: '1px solid rgba(168,85,247,0.4)', borderRadius: 6,
+              padding: '5px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
+            }}
+          >
+            Cortesía ✕
           </button>
         )}
         {/*
@@ -642,7 +716,7 @@ function AppointmentRowFull({
             style={{
               display: 'flex', alignItems: 'center', gap: 6, width: '100%', textAlign: 'left',
               padding: '7px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
-              fontSize: 13, color: '#f87171', background: 'transparent',
+              fontSize: 13, color: 'var(--red)', background: 'transparent',
             }}
           >
             <Trash2 size={13} /> Eliminar cita

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { randomUUID } from 'node:crypto'
 import { adminDb } from '@/lib/firebase-admin'
 import { Appointment, ClinicConfig } from '@/types'
 import { sendWhatsApp as sendWA } from '@/lib/whatsapp-send'
 import { enviarProactivo } from '@/lib/whatsapp/proactivo'
 import { entradasVencidas, resolverEntrada, reprogramarEntrada } from '@/lib/whatsapp/outbox'
-import { instanteMX, hoyISO, sumarDiasISO, ahoraMinutosDelDia } from '@/lib/timezone'
+import { instanteMX, hoyISO, sumarDiasISO, ahoraMinutosDelDia, TZ_DEFAULT } from '@/lib/timezone'
 
 const CRON_SECRET = process.env.CRON_SECRET
 
@@ -80,7 +81,6 @@ export async function GET(req: NextRequest) {
 
   try {
     const now = new Date()
-    const minMx = ahoraMinutosDelDia() // hora de pared MX → horas de silencio (WA-8)
     const totals = { sent: 0, failed: 0, skipped: 0, clinics: 0 }
 
     // ── Get all active clinics ────────────────────────────────
@@ -100,6 +100,26 @@ export async function GET(req: NextRequest) {
         if (!configSnap.exists) continue
 
         const config = configSnap.data() as ClinicConfig
+        /**
+         * ZONA DEL CONSULTORIO, una sola vez y para TODO el bloque.
+         *
+         * Aquí estaba el defecto de la auditoría del 26-jul en su forma más clara:
+         * tres líneas más abajo `instanteMX` SÍ recibía `config.zonaHoraria`, y
+         * `hoyISO(tzClinica)` justo debajo NO — así que la misma iteración mezclaba la zona
+         * del consultorio con America/Mexico_City. Para Hermosillo (UTC-7) o
+         * Tijuana (UTC-8) eso corre el recordatorio 1-2 h, y en silencio: nadie ve
+         * un error, sólo un mensaje que llega a deshora.
+         */
+        const tzClinica = config.zonaHoraria || TZ_DEFAULT
+        /**
+         * Las HORAS DE SILENCIO se calculan POR CONSULTORIO.
+         *
+         * Estaba fuera del bucle, así que un solo valor —el de la zona por
+         * omisión— decidía si «ya es hora de no molestar» para TODAS las clínicas
+         * a la vez. Un consultorio en Tijuana recibía la ventana de silencio de
+         * la Ciudad de México, con 2 h de desfase.
+         */
+        const minMx = ahoraMinutosDelDia(tzClinica)
         if (!config.recordatorio24h && !config.recordatorioMismoDia && !config.resenaAutomatica) continue
 
         // Config de plantillas HSM de la clínica (whatsapp.plantillas) para la
@@ -114,7 +134,10 @@ export async function GET(req: NextRequest) {
         const snap = await adminDb
           .collection('clinics').doc(clinicId)
           .collection('appointments')
-          .where('estado', 'in', ['confirmada', 'pendiente-confirmar', 'solicitada'])
+          // 'recordatorio-enviado' DEBE incluirse: al mandar el aviso de 24 h una
+          // cita 'confirmada' pasa a ese estado; sin él, salía de la query y nunca
+          // recibía el recordatorio de mismo día.
+          .where('estado', 'in', ['confirmada', 'pendiente-confirmar', 'solicitada', 'recordatorio-enviado'])
           .get()
 
         const appointments = snap.docs.map(d => ({ id: d.id, ...d.data() } as Appointment))
@@ -133,14 +156,15 @@ export async function GET(req: NextRequest) {
           const apptDate = appt.fechaHora.slice(0, 10)
           const apptHour = appt.fechaHora.slice(11, 16)
           // Instante REAL de la cita en hora MX (no en la zona del servidor)
-          const apptDateObj = instanteMX(apptDate, apptHour)
+          const apptDateObj = instanteMX(apptDate, apptHour, tzClinica)
           const diffHours = (apptDateObj.getTime() - now.getTime()) / (1000 * 60 * 60)
 
           const msgData = {
             paciente: appt.pacienteNombre,
             fecha: formatDateES(apptDate),
             hora: apptHour,
-            medico: config.nombreMedico || 'el médico',
+            // El médico de LA CITA, no el titular de la clínica (multi-médico).
+            medico: appt.medicoNombre || config.nombreMedico || 'el médico',
             clinica: config.nombreClinica,
             direccion: config.direccion || '',
             telefono: config.whatsappConsultorio || config.telefonoAdmin,
@@ -149,7 +173,7 @@ export async function GET(req: NextRequest) {
           // 24h reminder (window: 23–26h before)
           if (config.recordatorio24h && !appt.recordatorio24hEnviado && diffHours >= 23 && diffHours <= 26) {
             const { resultado } = await enviarProactivo(clinicId, phone, {
-              clave: 'recordatorio24h', datos: msgData, ahoraMs: now.getTime(), waConfig, minutosDelDiaMx: minMx, fechaHoyMx: hoyISO(),
+              clave: 'recordatorio24h', datos: msgData, ahoraMs: now.getTime(), waConfig, minutosDelDiaMx: minMx, fechaHoyMx: hoyISO(tzClinica),
               textoLibre: buildWhatsAppMessage(template24h, msgData),
             })
             if (resultado === 'enviado') {
@@ -168,7 +192,7 @@ export async function GET(req: NextRequest) {
           // Same-day reminder (window: 1–4h before)
           if (config.recordatorioMismoDia && !appt.recordatorioMismoDiaEnviado && diffHours >= 1 && diffHours <= 4) {
             const { resultado } = await enviarProactivo(clinicId, phone, {
-              clave: 'recordatorioMismoDia', datos: msgData, ahoraMs: now.getTime(), waConfig, minutosDelDiaMx: minMx, fechaHoyMx: hoyISO(),
+              clave: 'recordatorioMismoDia', datos: msgData, ahoraMs: now.getTime(), waConfig, minutosDelDiaMx: minMx, fechaHoyMx: hoyISO(tzClinica),
               textoLibre: buildWhatsAppMessage(templateSameDay, msgData),
             })
             if (resultado === 'enviado') {
@@ -188,7 +212,7 @@ export async function GET(req: NextRequest) {
           const origin = req.nextUrl.origin
           // Acotar por fecha (~4 días) → desigualdad de un solo campo (índice automático,
           // sin índice compuesto). El estado se filtra en código.
-          const desdeStr = `${sumarDiasISO(hoyISO(), -4)} 00:00`
+          const desdeStr = `${sumarDiasISO(hoyISO(tzClinica), -4)} 00:00`
           const postSnap = await adminDb
             .collection('clinics').doc(clinicId)
             .collection('appointments')
@@ -200,7 +224,7 @@ export async function GET(req: NextRequest) {
             if (a.resenaSolicitada) continue
             if (!a.consentimientoMensajes || !a.pacienteTelefono) { totals.skipped++; continue }
             // Solo citas terminadas hace 2–72h (no spamear histórico viejo)
-            const fin = instanteMX(a.fechaHora.slice(0, 10), a.fechaHora.slice(11, 16))
+            const fin = instanteMX(a.fechaHora.slice(0, 10), a.fechaHora.slice(11, 16), tzClinica)
             const horas = (now.getTime() - fin.getTime()) / 3_600_000
             if (horas < 2 || horas > 72) continue
             try {
@@ -220,9 +244,31 @@ export async function GET(req: NextRequest) {
         for (const e of await entradasVencidas(clinicId, now.getTime())) {
           const { resultado } = await enviarProactivo(clinicId, e.to, {
             clave: e.clave, datos: e.datos, textoLibre: e.textoLibre,
-            waConfig, ahoraMs: now.getTime(), minutosDelDiaMx: minMx, fechaHoyMx: hoyISO(),
+            waConfig, ahoraMs: now.getTime(), minutosDelDiaMx: minMx, fechaHoyMx: hoyISO(tzClinica),
           })
           if (resultado === 'enviado' || resultado === 'optout' || resultado === 'omitido') {
+            // Si la oferta de lista de espera se reenvió con éxito, recrear la sesión
+            // `esperando_lista` (el handler inline la crea, pero el drenado no): sin
+            // ella el "SÍ" del paciente cae al menú y el hueco se pierde.
+            const sesion = resultado === 'enviado' && e.clave === 'listaEspera'
+              ? (e.meta?.sesionListaEspera as { telefono?: string; nombre?: string; slotFecha?: string; slotHora?: string; tipo?: string; waitlistId?: string; pacienteId?: string } | undefined)
+              : undefined
+            if (sesion?.telefono) {
+              const nowIso = now.toISOString()
+              await adminDb.collection('clinics').doc(clinicId).collection('bot_sessions').doc(sesion.telefono).set({
+                telefono: sesion.telefono,
+                estado: 'esperando_lista',
+                datos: {
+                  nombre: sesion.nombre || '', slotFecha: sesion.slotFecha || '', slotHora: sesion.slotHora || '',
+                  tipo: sesion.tipo || 'seguimiento', waitlistId: sesion.waitlistId || '', pacienteId: sesion.pacienteId || '',
+                },
+                lastMessageAt: nowIso, createdAt: nowIso,
+              }, { merge: true }).catch(() => {})
+              if (sesion.waitlistId) {
+                await adminDb.collection('clinics').doc(clinicId).collection('waitlist').doc(sesion.waitlistId)
+                  .update({ estado: 'contactado' }).catch(() => {})
+              }
+            }
             await resolverEntrada(clinicId, e.id) // resuelto o inalcanzable por config → sacar de la cola
             if (resultado === 'enviado') totals.sent++
           } else if (resultado === 'fallo') {
@@ -231,13 +277,13 @@ export async function GET(req: NextRequest) {
           // 'silencio' / 'tope': dejar en la cola, se reintenta en el próximo ciclo
         }
       } catch (clinicErr) {
-        console.error(`[Cron] Error for clinic ${clinicId}:`, clinicErr)
+        safeLog.error(`[Cron] Error for clinic ${clinicId}:`, clinicErr)
       }
     }
 
     return NextResponse.json({ ok: true, ...totals })
   } catch (err) {
-    console.error('Reminders cron error:', err)
+    safeLog.error('Reminders cron error:', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

@@ -12,8 +12,34 @@ export interface SignosNews2 {
   temp?: number
   ta?: string          // "120/80" → se usa la sistólica
   fc?: number
-  conciencia?: 'alerta' | 'alterada'   // ACVPU: alerta=0, cualquier alteración=3
+  // ACVPU completo o legado alerta/alterada. NEWS2: Alert (A/'alerta') = 0;
+  // cualquier alteración (C/V/P/U/'alterada') = 3 (RCP). Ver esAlerta().
+  conciencia?: 'A' | 'C' | 'V' | 'P' | 'U' | 'alerta' | 'alterada'
   oxigeno?: boolean    // recibe O2 suplementario → +2
+  /**
+   * Escala de SpO₂ (validado por el Dr, auditoría 2026-07):
+   *  1 = por defecto.
+   *  2 = SOLO para insuficiencia respiratoria hipercápnica con objetivo prescrito
+   *      de 88–92%. NO se activa automáticamente por tener diagnóstico de EPOC;
+   *      es una indicación clínica explícita.
+   */
+  escalaSpo2?: 1 | 2
+}
+
+/**
+ * Puntos de SpO₂ en la Escala 2 (objetivo 88–92%). Tabla del Royal College,
+ * validada por el Dr. En ≥93% el puntaje depende de si respira aire u O₂.
+ */
+export function puntosSpo2Escala2(spo2: number, conOxigeno: boolean): number {
+  if (spo2 <= 83) return 3
+  if (spo2 <= 85) return 2
+  if (spo2 <= 87) return 1
+  if (spo2 <= 92) return 0
+  // ≥93%
+  if (!conOxigeno) return 0            // ≥93% en aire ambiente
+  if (spo2 <= 94) return 1
+  if (spo2 <= 96) return 2
+  return 3                              // ≥97% con O₂
 }
 
 export interface News2Param { param: string; valor: string; puntos: number }
@@ -48,32 +74,39 @@ export function calcularNews2(s: SignosNews2): News2Result | null {
   const sys = sistolica(s.ta)
   let algunSigno = false
 
-  if (typeof s.fr === 'number') {
+  if (Number.isFinite(s.fr)) {
     algunSigno = true
-    const v = s.fr
+    const v = s.fr as number
     add('FR', `${v}/min`, v <= 8 ? 3 : v <= 11 ? 1 : v <= 20 ? 0 : v <= 24 ? 2 : 3)
   }
-  if (typeof s.spo2 === 'number') {
+  if (Number.isFinite(s.spo2)) {
     algunSigno = true
-    const v = s.spo2
-    add('SpO₂', `${v}%`, v >= 96 ? 0 : v >= 94 ? 1 : v >= 92 ? 2 : 3)
+    const v = s.spo2 as number
+    const pts = s.escalaSpo2 === 2
+      ? puntosSpo2Escala2(v, !!s.oxigeno)
+      : (v >= 96 ? 0 : v >= 94 ? 1 : v >= 92 ? 2 : 3)   // Escala 1 (por defecto)
+    add(`SpO₂${s.escalaSpo2 === 2 ? ' (escala 2)' : ''}`, `${v}%`, pts)
   }
   if (s.oxigeno) add('O₂ suplementario', 'sí', 2)
-  if (typeof s.temp === 'number') {
+  if (Number.isFinite(s.temp)) {
     algunSigno = true
-    const v = s.temp
+    const v = s.temp as number
     add('T°', `${v}°C`, v <= 35 ? 3 : v <= 36 ? 1 : v <= 38 ? 0 : v <= 39 ? 1 : 2)
   }
   if (typeof sys === 'number') {
     algunSigno = true
     add('TA sistólica', `${sys} mmHg`, sys <= 90 ? 3 : sys <= 100 ? 2 : sys <= 110 ? 1 : sys <= 219 ? 0 : 3)
   }
-  if (typeof s.fc === 'number') {
+  if (Number.isFinite(s.fc)) {
     algunSigno = true
-    const v = s.fc
+    const v = s.fc as number
     add('FC', `${v}/min`, v <= 40 ? 3 : v <= 50 ? 1 : v <= 90 ? 0 : v <= 110 ? 1 : v <= 130 ? 2 : 3)
   }
-  if (s.conciencia === 'alterada') add('Conciencia', 'alterada', 3)
+  // Conciencia (ACVPU): Alert = 0; cualquier otra (Confusion/Voice/Pain/Unresponsive
+  // o el legado 'alterada') = 3. Se deriva de la letra real conservada.
+  if (s.conciencia !== undefined && s.conciencia !== 'A' && s.conciencia !== 'alerta') {
+    add('Conciencia', String(s.conciencia), 3)
+  }
 
   if (!algunSigno) return null
 
@@ -101,11 +134,11 @@ export function calcularNews2(s: SignosNews2): News2Result | null {
    * Es exactamente la subestimación del deterioro que el score existe para evitar.
    */
   const faltantes: string[] = []
-  if (typeof s.fr !== 'number') faltantes.push('FR')
-  if (typeof s.spo2 !== 'number') faltantes.push('SpO₂')
-  if (typeof s.temp !== 'number') faltantes.push('T°')
+  if (!Number.isFinite(s.fr)) faltantes.push('FR')
+  if (!Number.isFinite(s.spo2)) faltantes.push('SpO₂')
+  if (!Number.isFinite(s.temp)) faltantes.push('T°')
   if (typeof sys !== 'number') faltantes.push('TA sistólica')
-  if (typeof s.fc !== 'number') faltantes.push('FC')
+  if (!Number.isFinite(s.fc)) faltantes.push('FC')
   if (s.conciencia === undefined) faltantes.push('conciencia')
   if (s.oxigeno === undefined) faltantes.push('O₂ suplementario')
 

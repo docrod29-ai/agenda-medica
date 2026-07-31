@@ -1,0 +1,130 @@
+{
+  "id": "E0-09",
+  "titulo": "Eventos hospitalarios críticos append-only",
+  "etapa": "E0",
+  "fecha": "2026-07-29T03:29:14Z",
+  "estado": "necesita_validacion",
+  "riesgo": "medio",
+  "validacionClinica": true,
+  "criterioDeAceptacion": "Un update sobre un evento sellado es rechazado por reglas.",
+  "aceptacionCumplida": false,
+  "porQueNoSeCumpleAun": "La aceptación literal vive en firestore.rules y cerrar el `update` de `signos` REVIERTE una política escrita a propósito en el propio archivo de reglas ('enfermería AÑADE (create) y CORRIGE (update)', decisión de la auditoría maestra 2026-07). Eso es E0-09/Q5 y lo decide el médico dueño del expediente, no este agente. Las reglas NO se tocaron. Todo lo que no depende de esa decisión sí está implementado, probado y en verde.",
+  "archivosTocados": [
+    "src/types/hospital.ts",
+    "src/lib/hospital/eventos.ts",
+    "src/lib/hospital/registro-durable.ts",
+    "src/__tests__/hospital-eventos-append-only.test.ts",
+    "src/__tests__/hospital-registro-durable.test.ts",
+    "src/__tests__/firestore-rules-guard.test.ts",
+    "src/lib/clinical/invariantes-clinicos.json",
+    "docs/audit/regression-ledger.md",
+    "src/lib/clinical/adr-cobertura.ts",
+    "docs/roadmap/nexus-os/unidades/E0-09/RESULTADO.json",
+    "docs/roadmap/nexus-os/estado.json",
+    "docs/roadmap/nexus-os/CHECKPOINT.md"
+  ],
+  "archivosDeProduccionTocados": [
+    "src/types/hospital.ts — ADITIVO PURO: tipos nuevos (TipoEventoClinico, EfectoCorreccion, ValorDetalle, EventoClinico, EventoClinicoConId) y dos campos OPCIONALES en RegistroSignos (corrigeA, motivoCorreccion). Ningún tipo existente cambia de forma; los documentos ya guardados siguen siendo válidos sin migración.",
+    "src/lib/hospital/eventos.ts — NUEVO. Núcleo PURO (sin Firestore, sin red, sin reloj propio). CERO importadores de producción, y hay un test que lo verifica.",
+    "src/lib/hospital/registro-durable.ts — MAR y órdenes pasan a producir evento durable. Es la única modificación de comportamiento en producción de esta unidad."
+  ],
+  "archivosDeProduccionNOTocados": [
+    "firestore.rules — bloqueado por Q5.",
+    "src/app/api/hospital/mutar/route.ts — ni una línea. La nueva acción `corregir` y su GATE dependen de Q2/Q3. El MAR entra al libro sin tocar la ruta porque ésta ya persistía lo que devuelve registroDurable().",
+    "src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx — la UI de corrección depende de Q1 y Q4.",
+    "src/lib/hospital/firestore.ts — se conserva borrarSignos(): retirarlo sin la UI de corrección dejaría a enfermería sin ninguna forma de señalar una lectura mal capturada, y eso es cambio de flujo clínico.",
+    "src/lib/fhir-export.ts y el cálculo de NEWS2 — dependen de Q1."
+  ],
+  "queSeImplemento": {
+    "1_tipos": "Contrato del libro append-only: EventoClinico (tipo · fecha · por · porUid · indicacionId · detalle · corrigeEventoId · motivo · efecto) + EfectoCorreccion ('anula' | 'sustituye' | 'aclara'). Los campos planos de balance/escala/sbar se declaran explícitamente y se DEJAN como están: hay documentos escritos con esa forma desde 2026-07 en un libro append-only, y uniformarlos exigiría reescribir un registro legal — justo lo que este módulo existe para impedir.",
+    "2_nucleo_puro": "src/lib/hospital/eventos.ts — proyectarSignos() y proyectarEventos() MARCAN, nunca eliminan: registros.length === entrada.length siempre. Cubren cadenas A←B←C, correcciones huérfanas (original fuera del tope de 200 de getSignos), autorreferencia y ciclos malformados sin recursión infinita, y no mutan la entrada. Más construirCorreccion() (sella fecha/autor del servidor; no existe parámetro para aceptarlos del cliente) y validarCorreccion() (determinista DADA una política; acumula todos los rechazos, no sólo el primero).",
+    "3_H1_MAR_en_el_libro": "registroDurable() cubre administrar, indicacion_agregar, indicacion_suspender y verificar_farmacia. `detalle` se llena por LISTA BLANCA (anti mass-assignment en un registro legal permanente) y sólo admite escalares serializables; el `por`/`fecha` que manda el cliente se descartan por construcción. Un test comprueba que ningún evento emite `undefined` (Firestore lo rechaza si algún día se apaga ignoreUndefinedProperties).",
+    "4_gate_de_cobertura": "ACCIONES_CON_EVENTO_DURABLE y ACCIONES_SIN_EVENTO_DURABLE forman una PARTICIÓN de los GATES reales de api/hospital/mutar/route.ts, leídos como texto (mismo patrón que el guardián de reglas: no obliga a exportar nada desde una ruta de producción). Una acción nueva sin clasificar rompe el CI a propósito, y cada descarte lleva su razón escrita.",
+    "5_guardian_de_reglas": "3 casos nuevos en firestore-rules-guard.test.ts que fijan lo que YA rige y no debe aflojarse: el doc de internamiento cerrado al cliente, `signos delete: if false`, y `registros` no escribible desde el cliente (hoy por catch-all; si algún día se declara el bloque, la escritura debe seguir en `if false`). Deliberadamente NO afirman `signos update: if false`: eso es la aceptación, y depende de Q5."
+  },
+  "testsAgregados": [
+    "src/__tests__/hospital-eventos-append-only.test.ts (NUEVO, 40 casos)",
+    "src/__tests__/hospital-registro-durable.test.ts (de 4 a 5 casos; el caso 'administrar → null' se INVIRTIÓ a propósito, ver REG-052)",
+    "src/__tests__/firestore-rules-guard.test.ts (de 8 a 11 casos)"
+  ],
+  "porQueEstosTestsFallanSinElCambio": "El test de cobertura falla si alguien añade una acción al gateway sin decidir si es un hecho clínico. El bloque Q1 falla si alguien pone un default a la política de NEWS2/FHIR o cablea el módulo a una pantalla antes de que el Dr. responda. Los de proyección fallan si una corrección llega a ELIMINAR el registro erróneo en vez de marcarlo — que es exactamente el bug que la unidad ataca. El de lista blanca falla si un campo del payload del cliente se cuela al registro legal permanente.",
+  "gates": {
+    "tsc": "PASS",
+    "vitest": "PASS",
+    "build": "PASS",
+    "testsPasan": 2164,
+    "testsAntes": 2120,
+    "comando": "npx tsc --noEmit · npx vitest run src/__tests__/ · npx next build"
+  },
+  "needsClinicalReview": [
+    {
+      "id": "E0-09-Q1",
+      "pregunta": "¿Un signo vital corregido o anulado debe seguir alimentando NEWS2 y el export FHIR?",
+      "porQue": "Hoy NEWS2 toma el último registro sin filtrar (hospitalizacion/[internamientoId]/page.tsx:190) y FHIR exporta el arreglo completo (src/lib/fhir-export.ts:382). Las dos salidas fallan en direcciones opuestas: si una SpO2 mal capturada de 80% permanece, se dispara una alerta falsa; si se oculta un valor que en realidad era correcto, se esconde un deterioro real. No se deduce esa política del código.",
+      "dondeQuedaMarcado": "POLITICA_SIGNOS_EN_CALCULO = null en src/lib/hospital/eventos.ts; signosParaCalculoClinico() LANZA si se la llama sin política (fail-closed), y un test verifica que el módulo NO tenga consumidores de producción.",
+      "bloquea": "La UI de corrección y cualquier filtrado en NEWS2/FHIR."
+    },
+    {
+      "id": "E0-09-Q2",
+      "pregunta": "¿Quién puede corregir y con qué alcance? ¿Sólo el autor del registro, cualquier enfermería del turno, o sólo el médico tratante? En concreto: ¿puede enfermería ANULAR una administración de medicamento, o eso queda reservado al médico?",
+      "porQue": "Hoy 'administrar' lo puede hacer enfermería (src/app/api/hospital/mutar/route.ts:33). Define el GATES de la nueva acción 'corregir'.",
+      "dondeQuedaMarcado": "PoliticaCorreccion.rolesQueCorrigen y .rolesQueAnulanAdministracion; POLITICA_CORRECCION = null. La acción 'corregir' NO se añadió al gateway.",
+      "bloquea": "La acción 'corregir' en api/hospital/mutar."
+    },
+    {
+      "id": "E0-09-Q3",
+      "pregunta": "¿Hay ventana de tiempo para corregir? ¿Se puede corregir un evento de hace 5 días, o de un episodio ya egresado?",
+      "porQue": "'administrar' exige episodio activo (mutar/route.ts:103); para 'corregir' no hay precedente en el repo.",
+      "dondeQuedaMarcado": "PoliticaCorreccion.ventanaHoras y .permiteEpisodioEgresado; ambos ejercitados con fixture sintético en los tests, sin valor en producción.",
+      "bloquea": "La acción 'corregir'."
+    },
+    {
+      "id": "E0-09-Q4",
+      "pregunta": "¿La corrección exige motivo escrito obligatorio?",
+      "porQue": "Se propone obligatorio por NOM-004, pero encarece cada corrección y, si estorba, la gente deja de corregir y el registro se degrada. Es decisión del dueño del expediente.",
+      "dondeQuedaMarcado": "PoliticaCorreccion.motivoObligatorio; RegistroSignos.motivoCorreccion nace OPCIONAL para no presuponer la respuesta.",
+      "bloquea": "La UI de corrección."
+    },
+    {
+      "id": "E0-09-Q5",
+      "pregunta": "¿Confirma revertir la política vigente de signos vitales?",
+      "porQue": "Hoy firestore.rules permite UPDATE sobre un registro de signos y su comentario dice que eso es deliberado (enfermería 'corrige en el sitio'; el delete se cerró en la auditoría maestra 2026-07). E0-09 exige lo contrario: la corrección se ANEXA y el valor erróneo queda visible tachado. Es más fiel a NOM-004 y es lo que pide la aceptación de la unidad, pero es revertir una decisión suya anterior y hace la pantalla de signos más ruidosa.",
+      "dondeQuedaMarcado": "REG-053 OPEN en docs/audit/regression-ledger.md + el comentario del bloque E0-09 en src/__tests__/firestore-rules-guard.test.ts, que dice explícitamente qué aserción falta y por qué.",
+      "bloquea": "LA ACEPTACIÓN LITERAL DE LA UNIDAD.",
+      "parcheExactoQueEsperaSuVistoBueno": "En firestore.rules, dentro de match /internamientos/{intId}: (a) match /signos/{signoId} pasa de 'allow read, create, update: if isClinicoHospital(clinicId); allow delete: if false;' a 'allow read, create: if isClinicoHospital(clinicId); allow update, delete: if false;'  (b) se añade 'match /registros/{registroId} { allow read: if isClinicoHospital(clinicId); allow create, update, delete: if false; }'  (c) se reescribe el comentario de la política vigente, que hoy dice lo contrario. Riesgo medido: NINGÚN punto del código hace updateDoc sobre signos (sólo addDoc, getDocs, onSnapshot y el deleteDoc del botón ya roto), así que cerrar el update no rompe nada existente. Es la misma frase que ya protege notas/{id}/versions y notas/{id}/adendas."
+    }
+  ],
+  "decisiones": {
+    "D1": "NO se tocó firestore.rules. El diseño (§6) afirmaba que el entregable (a) era implementable sin respuestas clínicas, pero su propia re-verificación #2 (§9.2) descubrió que el `update` de signos está documentado en las reglas como decisión deliberada previa del Dr. Aplicarlo sería revertir una política suya a ciegas — regla 5 de la carta operativa. Se entrega el parche literal para su visto bueno en vez de ejecutarlo.",
+    "D2": "SÍ se extendió registroDurable, aunque cambia comportamiento en producción. Motivo: es el hueco H1 y no depende de ninguna pregunta clínica. Riesgo acotado y medido: es una escritura ADICIONAL dentro de la transacción que ya existía, no cambia el patch del doc ni ninguna lectura, `registros` no lo lee nadie todavía, y adminDb tiene ignoreUndefinedProperties activo (verificado en src/lib/firebase-admin.ts) además del test que comprueba que no se emiten undefined. Coste: +1 escritura por acción del MAR.",
+    "D3": "El core NO recibe la forma que proponía el diseño para balance/escala/sbar. El §4.3 los llevaba a `detalle`; se rechazó porque hay documentos YA ESCRITOS con la forma plana en un libro append-only y uniformarlos obligaría a reescribir registros legales. Se conserva la forma plana bit a bit (el test histórico sigue comparando con toEqual) y `detalle` se usa sólo en los tipos nuevos.",
+    "D4": "proyectarSignos devuelve una forma más rica que la del diseño ({vigentes, corregidos}). Motivo: 'vigentes' invita a creer que la función filtra, y filtrar es exactamente lo que Q1 prohíbe decidir. Se devuelve `registros` (todos, marcados) + correccionesDe + corregidos + huerfanas + enlacesIgnorados, para que el nombre no mienta.",
+    "D5": "No se retiró borrarSignos() pese a que el botón está roto en producción (choca contra allow delete: if false). Retirarlo sin la UI de corrección —que depende de Q1 y Q4— dejaría a enfermería sin NINGUNA forma de señalar una lectura mal capturada. Queda anotado en REG-053.",
+    "D6": "Los cinco huecos clínicos valen `null`, no un default. Y `null` no significa 'apagado': signosParaCalculoClinico LANZA con un mensaje que nombra la pregunta (FALTA_POLITICA_Q1), y validarCorreccion exige la política como parámetro obligatorio no anulable. Así el hueco no se puede cablear por accidente."
+  },
+  "loQueNoSeHizo": [
+    "Migrar indicaciones[].administraciones[] a subcolección. Toca censo, ficha, NEWS2, conciliación, export FHIR y el prompt de IA: unidad aparte con doble escritura y backfill. Residual declarado en REG-052.",
+    "Persistir ICUObservation: no tiene capa de almacenamiento ni consumidores; es del loop nexusmed-icu-00X. Los eventos de UCI que SÍ se persisten hoy (signos, escalas, balance, administraciones, nota evolucion_uci) quedan cubiertos.",
+    "laboratorio/{ordenId}: sus reglas permiten update/delete a isLabStaff. Mismo defecto de fondo, pero no es 'MAR, órdenes ni UCI' y cerrarlo rompería la carga de resultados.",
+    "Prueba CONDUCTUAL de las reglas ('un updateDoc real recibe permission-denied'). Exige el emulador de Firestore, que es E0-08 y no existe en el repo. Los dos casos que E0-08 debe cubrir quedan escritos: signos.update → DENY y registros.create → DENY.",
+    "Enlazar indicacion_alta con su indicacionId: el id lo acuña patch() con randomUUID dentro de la misma llamada y enlazarlos exige tocar la ruta. Residual en REG-052."
+  ],
+  "regressionLedger": [
+    "REG-052 CLOSED (parcial) — el MAR y las órdenes ya entran al libro append-only.",
+    "REG-053 OPEN — signos sobrescribibles + botón de borrar roto; espera Q5."
+  ],
+  "selloDeInvariantes": "Los dos tests citados en el ledger se añadieron a src/lib/clinical/invariantes-clinicos.json (78 → 80 archivos, totalCasos 1249 → 1294) como exige la ASERCIÓN 4 del metagate de E0-11. Verificado: clinical-safety-gate.test.ts y clinical-registry-adr.test.ts en verde.",
+  "rollback": "Revertir los 3 archivos de src/ (tipos, eventos.ts, registro-durable.ts) devuelve el comportamiento exacto anterior: eventos.ts no tiene importadores, los campos de RegistroSignos son opcionales y registroDurable vuelve a su switch de tres casos. Los documentos ya escritos en `registros` con los tipos nuevos quedarían huérfanos de lector, igual que los de balance/escala/sbar hoy. Nada desplegado, sin push, firestore.rules intacto.",
+  "desbloquea": [],
+  "reparacionForzadaAjena": {
+    "que": "A MITAD de esta corrida (mtime 21:29, la corrida arrancó ~21:25) un proceso concurrente creó docs/clinical-decisions/DECISIONES-ARQUITECTURA-2026-07-28.md, sin rastrear en git. El gate de ADRs de E0-03 lo leyó como ADR huérfano y vitest se puso ROJO en la re-verificación final, estando verde minutos antes con el mismo código de E0-09.",
+    "arreglo": "Declarado en DOCS_NO_ADR (src/lib/clinical/adr-cobertura.ts), exactamente como indica el mensaje del propio test y como ya se hizo con PREGUNTAS-TODO-EL-PROGRAMA.md en E0-04. No mueve la deuda de ADRs. Es reparación ajena a esta unidad.",
+    "eraEsperable": "Sí: la nota del 2026-07-29T03:10:52Z de estado.json ya avisaba de este modo de falla. La lección sigue vigente: todo .md nuevo en docs/clinical-decisions/ que no sea ADR de motor debe declararse en DOCS_NO_ADR en el MISMO cambio que lo crea."
+  },
+  "hallazgoQueAfectaAEstaUnidad": {
+    "que": "Ese documento CONTIENE una respuesta a Q5. Su §A3 («Append-only — DEFAULT AMPLIADO») lista explícitamente «signos vitales» entre los datos append-only y fija: «sin UPDATE destructivo, sin DELETE físico, corrección = nueva versión/adenda, original conservado». Es literalmente lo que E0-09 pide.",
+    "porQueNoSeAplico": "TRES razones, y ninguna es pereza. (1) El archivo apareció A MITAD de la corrida desde un proceso concurrente y no está en git: no lo vi escribir y no vino del Dr. en esta sesión. (2) El propio documento avisa en su encabezado que «donde una respuesta dependía de un dato que sólo el Dr. puede aportar, se define el comportamiento seguro por defecto» — es decir, parte de su contenido puede ser un default elegido por un agente, no la palabra del médico. (3) Aplicarlo significaría REVERTIR una política que las reglas documentan como decisión deliberada suya (auditoría maestra 2026-07), basándome en un archivo que apareció solo. La carta operativa (reglas 1 y 5) manda detenerse y preguntar, no deducir.",
+    "queNOresuelve": "El mismo documento NO responde Q1 (¿un signo corregido sigue alimentando NEWS2 y el export FHIR?), NI Q2 (¿quién puede corregir; puede enfermería ANULAR una administración?), NI Q3 (ventana de tiempo / episodio egresado), NI Q4 (motivo escrito obligatorio para una corrección — su línea 264-266 habla de overrides de alertas, que es otra cosa). Verificado por búsqueda directa. Así que E0-09 seguiría en 'necesita_validacion' aunque Q5 se diera por respondida.",
+    "accionSugeridaAlDr": "Basta con que confirme en una línea que el §A3 de ese documento es suyo y aplica a `signos`. Con eso, el parche de reglas de Q5 (ya escrito, 3 cambios) se aplica en una unidad corta; Q1-Q4 seguirían pendientes para la UI."
+  }
+}

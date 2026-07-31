@@ -77,6 +77,7 @@ export default function MiPortalPage() {
   const token = params?.token ?? ''
   const [sesion, setSesion] = useState<Sesion | null>(null)
   const [docs, setDocs] = useState<DocReceta[] | null>(null)
+  const [docsBloqueados, setDocsBloqueados] = useState(false)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState('')
   const [accion, setAccion] = useState<string>('') // id de cita con acción en curso
@@ -89,7 +90,12 @@ export default function MiPortalPage() {
       setSesion(await r.json())
       // Documentos (recetas) en paralelo — no bloquea la vista de citas
       fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'documentos', token }) })
-        .then(res => res.ok ? res.json() : { documentos: [] })
+        .then(res => {
+          // E0-06: 403 = el enlace no tiene alcance clínico (lo generó el mostrador,
+          // no el médico). No es un error de red ni «no tienes recetas»: se dice.
+          if (res.status === 403) { setDocsBloqueados(true); return { documentos: [] } }
+          return res.ok ? res.json() : { documentos: [] }
+        })
         .then(d => setDocs(d.documentos || []))
         .catch(() => setDocs([]))
     } catch {
@@ -245,6 +251,14 @@ export default function MiPortalPage() {
               })}
             </div>
           </details>
+        )}
+
+        {/* Mis recetas — enlace sin alcance clínico (E0-06) */}
+        {docsBloqueados && (
+          <div style={{ marginTop: 28, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, padding: 14, fontSize: 13, color: 'var(--text3)' }}>
+            <div style={{ fontWeight: 600, color: 'var(--text2)', marginBottom: 4 }}>Mis recetas</div>
+            Este enlace sirve para tus citas. Pide a tu médico el acceso a tus recetas.
+          </div>
         )}
 
         {/* Mis recetas */}

@@ -12,7 +12,7 @@ export default function DashboardError({ error, reset }: { error: Error & { dige
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', padding: '80px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
       <div style={{ width: 52, height: 52, borderRadius: 15, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <AlertTriangle size={24} style={{ color: '#f59e0b' }} />
+        <AlertTriangle size={24} style={{ color: 'var(--amber)' }} />
       </div>
       <h1 style={{ fontSize: 19, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Algo salió mal</h1>
       <p style={{ fontSize: 14, color: 'var(--text2)', margin: 0, lineHeight: 1.6 }}>

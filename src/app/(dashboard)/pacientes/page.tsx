@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Patient } from '@/types'
 import { getPatients, createPatient, updatePatient } from '@/lib/firestore'
 import { getNotas } from '@/lib/expediente/firestore'
+import { edadEnAnios } from '@/lib/expediente/pediatria'
 import { getCenso } from '@/lib/hospital/firestore'
 import { useToast } from '@/context/ToastContext'
 import { useAuth } from '@/hooks/useAuth'
@@ -107,7 +108,9 @@ export default function PacientesPage() {
   const conAlerta = useMemo(() =>
     [...patients]
       .filter(p => (p.noShowCount ?? 0) > 0 || (p.cancelacionCount ?? 0) > 0)
-      .sort((a, b) => (b.noShowCount + b.cancelacionCount) - (a.noShowCount + a.cancelacionCount)),
+      // ?? 0 en el comparador también: sin él, un contador undefined daba NaN y el
+      // orden quedaba inestable, así que los pacientes con más faltas no subían.
+      .sort((a, b) => ((b.noShowCount ?? 0) + (b.cancelacionCount ?? 0)) - ((a.noShowCount ?? 0) + (a.cancelacionCount ?? 0))),
     [patients]
   )
 
@@ -323,7 +326,7 @@ function PacienteRow({ p, mode, internado, onAbrir, onEditar }: {
       {(p.noShowCount > 0 || p.cancelacionCount > 0) && (
         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
           {p.noShowCount > 0 && (
-            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 9999, background: 'rgba(239,68,68,0.1)', color: '#f87171' }}>{p.noShowCount} no-show{p.noShowCount > 1 ? 's' : ''}</span>
+            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 9999, background: 'rgba(239,68,68,0.1)', color: 'var(--red)' }}>{p.noShowCount} no-show{p.noShowCount > 1 ? 's' : ''}</span>
           )}
           {p.cancelacionCount > 0 && (
             <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 9999, background: 'rgba(251,146,60,0.1)', color: '#fb923c' }}>{p.cancelacionCount} cancel.</span>
@@ -375,15 +378,39 @@ function PatientModal({ patient, onClose, onSaved, userEmail }: {
   const upd = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setF(prev => ({ ...prev, [key]: e.target.value }))
 
+  /**
+   * La fecha de nacimiento CALCULA la edad — auditoría en vivo 2026-07.
+   *
+   * Eran dos campos independientes: había que teclear la edad aunque ya se hubiera
+   * dado la fecha, nada impedía guardar «nació 2019» con «edad 40», y la edad
+   * guardada envejecía mal (un niño registrado a los 6 seguía teniendo 6 al año
+   * siguiente). De esa edad comen la dosis pediátrica por peso/edad, los percentiles
+   * de la OMS, el esquema de vacunación y las escalas de riesgo cardiovascular.
+   * Sigue siendo editable a mano: hay pacientes que sólo saben su edad aproximada.
+   */
+  const setFechaNacimiento = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fecha = e.target.value
+    setF(prev => {
+      const edad = edadEnAnios(fecha)
+      return { ...prev, fechaNacimiento: fecha, edad: edad != null ? String(edad) : prev.edad }
+    })
+  }
+
   const handleSave = async () => {
     if (!f.nombre.trim()) { toast('El nombre es requerido', 'error'); return }
     if (!f.edad.trim()) { toast('La edad es requerida', 'error'); return }
     setSaving(true)
     try {
+      const tel = f.telefono.replace(/\D/g, '')
       const payload = {
         nombre: f.nombre.trim(),
-        telefono: f.telefono.replace(/\D/g, ''),
-        whatsapp: f.whatsapp.replace(/\D/g, ''),
+        telefono: tel,
+        // UN SOLO teléfono en la pantalla (29-jul-2026), dos campos por debajo.
+        // El formulario ya no pregunta el WhatsApp por separado —en la práctica es
+        // el mismo número—, pero el export FHIR y otras rutas leen `whatsapp`
+        // aparte: si se quedara vacío, un paciente nuevo perdería su contacto móvil
+        // ahí. Se respeta el que ya estuviera guardado y sólo se rellena si falta.
+        whatsapp: (f.whatsapp.replace(/\D/g, '') || tel),
         email: f.email.trim(),
         fechaNacimiento: f.fechaNacimiento,
         edad: f.edad ? Number(f.edad) : undefined,
@@ -454,30 +481,53 @@ function PatientModal({ patient, onClose, onSaved, userEmail }: {
         </>
       )}
     >
+          {/*
+            FORMULARIO CORTO — petición del médico dueño (29-jul-2026).
+            Solo lo que se llena de verdad al dar de alta a alguien en el consultorio:
+            nombre · UN teléfono · edad · fecha de nacimiento · sexo · alergias ·
+            servicio médico.
+
+            SE QUITARON DE LA PANTALLA, NO DE LOS DATOS: correo, CURP, notas
+            clínicas y el segundo teléfono. Los valores YA GUARDADOS de un paciente
+            existente se conservan intactos porque `f` se inicializa desde `patient`
+            y `handleSave` los sigue enviando — esconder un campo NO debe borrar
+            información del expediente. Se siguen pudiendo buscar pacientes por
+            correo o CURP, y el export FHIR los sigue emitiendo si existen.
+          */}
           <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
               <label className="label">Nombre completo *</label>
               <input className="input" value={f.nombre} onChange={upd('nombre')} placeholder="Apellido Apellido, Nombre" />
             </div>
+            {/*
+              UN SOLO teléfono. Antes eran dos (Teléfono y WhatsApp) y en la práctica
+              es el mismo número. `handleSave` copia este valor al campo `whatsapp`,
+              porque el export FHIR y algunas rutas lo leen por separado: si se
+              quedara vacío, un paciente nuevo perdería su contacto móvil ahí.
+            */}
             <div className="form-group">
               <label className="label">Teléfono</label>
               <input className="input" type="tel" value={f.telefono} onChange={upd('telefono')} placeholder="6641234567" />
-            </div>
-            <div className="form-group">
-              <label className="label">WhatsApp</label>
-              <input className="input" type="tel" value={f.whatsapp} onChange={upd('whatsapp')} placeholder="6641234567" />
-            </div>
-            <div className="form-group">
-              <label className="label">Correo electrónico</label>
-              <input className="input" type="email" value={f.email} onChange={upd('email')} placeholder="paciente@email.com" />
-            </div>
-            <div className="form-group">
-              <label className="label">Fecha de nacimiento</label>
-              <input className="input" type="date" value={f.fechaNacimiento} onChange={upd('fechaNacimiento')} />
+              <p style={{ fontSize: 11, color: 'var(--text3)', margin: '4px 0 0' }}>
+                Se usa también para los recordatorios por WhatsApp.
+              </p>
             </div>
             <div className="form-group">
               <label className="label">Edad *</label>
               <input className="input" type="number" value={f.edad} onChange={upd('edad')} min={0} max={130} />
+              {f.fechaNacimiento && (
+                <p style={{ fontSize: 11, color: 'var(--text3)', margin: '4px 0 0' }}>
+                  Calculada desde la fecha de nacimiento. La edad es la que usan la dosis pediátrica,
+                  los percentiles y las escalas de riesgo.
+                </p>
+              )}
+            </div>
+            <div className="form-group">
+              <label className="label">Fecha de nacimiento</label>
+              <input className="input" type="date" value={f.fechaNacimiento} onChange={setFechaNacimiento} />
+              <p style={{ fontSize: 11, color: 'var(--text3)', margin: '4px 0 0' }}>
+                Las farmacias la piden para dispensar: sale impresa en la receta.
+              </p>
             </div>
             <div className="form-group">
               <label className="label">Sexo</label>
@@ -488,34 +538,17 @@ function PatientModal({ patient, onClose, onSaved, userEmail }: {
                 <option value="Otro">Otro</option>
               </select>
             </div>
-            <div className="form-group">
-              <label className="label">CURP (NOM-024) <span style={{ color: 'var(--text3)', fontSize: 11 }}>opcional</span></label>
-              <input
-                className="input"
-                value={f.curp}
-                onChange={(e) => setF({ ...f, curp: e.target.value.toUpperCase() })}
-                maxLength={18}
-                placeholder="GARC890101HCHRZN09"
-                style={{ fontFamily: 'monospace', textTransform: 'uppercase' }}
-              />
-            </div>
-            <div className="form-group">
-              <label className="label">Seguro médico</label>
+            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+              <label className="label">Servicio médico</label>
               <input className="input" value={f.seguroMedico} onChange={upd('seguroMedico')} placeholder="IMSS, ISSSTE, Gastos mayores…" />
             </div>
-            {/* Datos CLÍNICOS — solo médicos/admin pueden verlos y editarlos.
+            {/* Dato CLÍNICO — solo médicos/admin pueden verlo y editarlo.
                 La asistente solo administra datos demográficos del paciente. */}
             {mode === 'medico' && (
-              <>
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <label className="label">Alergias</label>
-                  <input className="input" value={f.alergias} onChange={upd('alergias')} placeholder="Penicilina, AINES, …" />
-                </div>
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <label className="label">Notas clínicas</label>
-                  <textarea className="input" value={f.notas} onChange={upd('notas')} rows={2} placeholder="Información adicional" />
-                </div>
-              </>
+              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                <label className="label">Alergias</label>
+                <input className="input" value={f.alergias} onChange={upd('alergias')} placeholder="Penicilina, AINES, …" />
+              </div>
             )}
           </div>
     </Modal>

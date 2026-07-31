@@ -1,0 +1,588 @@
+{
+  "sellado": "2026-07-30",
+  "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
+  "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
+  "totalCasos": 2504,
+  "archivos": [
+    {
+      "archivo": "src/__tests__/alergias.test.ts",
+      "minCasos": 5
+    },
+    {
+      "archivo": "src/__tests__/antibiograma-clinico.test.ts",
+      "minCasos": 14
+    },
+    {
+      "archivo": "src/__tests__/antibiograma-clsi-validado-dr.test.ts",
+      "minCasos": 9
+    },
+    {
+      "archivo": "src/__tests__/antibiograma-fosfo-nitro-gating.test.ts",
+      "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/antibiograma-frontera-ia.test.ts",
+      "minCasos": 11
+    },
+    {
+      "archivo": "src/__tests__/antibiograma-matcher.test.ts",
+      "minCasos": 18
+    },
+    {
+      "archivo": "src/__tests__/antibiograma.test.ts",
+      "minCasos": 117
+    },
+    {
+      "archivo": "src/__tests__/antimicrobianos-v4-catalogo.test.ts",
+      "minCasos": 14
+    },
+    {
+      "archivo": "src/__tests__/antimicrobianos-v4-kernel.test.ts",
+      "minCasos": 14
+    },
+    {
+      "archivo": "src/__tests__/antimicrobianos-v4-limites.test.ts",
+      "minCasos": 17
+    },
+    {
+      "archivo": "src/__tests__/antimicrobianos-v4-propuestas.test.ts",
+      "minCasos": 12
+    },
+    {
+      "archivo": "src/__tests__/antimicrobianos-v4-resolver.test.ts",
+      "minCasos": 21
+    },
+    {
+      "archivo": "src/__tests__/asr-guardian-sustituciones.test.ts",
+      "minCasos": 21
+    },
+    {
+      "archivo": "src/__tests__/asr-lexicon.test.ts",
+      "minCasos": 19
+    },
+    {
+      "archivo": "src/__tests__/asr-normalizacion.test.ts",
+      "minCasos": 28
+    },
+    {
+      "archivo": "src/__tests__/asr-pipeline.test.ts",
+      "minCasos": 18
+    },
+    {
+      "archivo": "src/__tests__/asr-siglas.test.ts",
+      "minCasos": 14
+    },
+    {
+      "archivo": "src/__tests__/authz-fundador.test.ts",
+      "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/availability.test.ts",
+      "minCasos": 16
+    },
+    {
+      "archivo": "src/__tests__/bed-assignment.test.ts",
+      "minCasos": 24
+    },
+    {
+      "archivo": "src/__tests__/biomarcadores-lipidos.test.ts",
+      "minCasos": 21
+    },
+    {
+      "archivo": "src/__tests__/calculadoras.test.ts",
+      "minCasos": 29
+    },
+    {
+      "archivo": "src/__tests__/cardiometabolico.test.ts",
+      "minCasos": 56
+    },
+    {
+      "archivo": "src/__tests__/cirugia.test.ts",
+      "minCasos": 35
+    },
+    {
+      "archivo": "src/__tests__/ckd-epi-golden.test.ts",
+      "minCasos": 12
+    },
+    {
+      "archivo": "src/__tests__/clinical-registry-adr.test.ts",
+      "minCasos": 12
+    },
+    {
+      "archivo": "src/__tests__/clinical-registry.test.ts",
+      "minCasos": 4
+    },
+    {
+      "archivo": "src/__tests__/clinical-safety-gate.test.ts",
+      "minCasos": 21
+    },
+    {
+      "archivo": "src/__tests__/clinical-safety-harness.test.ts",
+      "minCasos": 42
+    },
+    {
+      "archivo": "src/__tests__/copiloto-ckdepi-pediatrico.test.ts",
+      "minCasos": 2
+    },
+    {
+      "archivo": "src/__tests__/copiloto-clinico-lote7.test.ts",
+      "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/copiloto-puerperio.test.ts",
+      "minCasos": 2
+    },
+    {
+      "archivo": "src/__tests__/copiloto-signos-pediatricos.test.ts",
+      "minCasos": 3
+    },
+    {
+      "archivo": "src/__tests__/copiloto.test.ts",
+      "minCasos": 54
+    },
+    {
+      "archivo": "src/__tests__/csp-guard.test.ts",
+      "minCasos": 28
+    },
+    {
+      "archivo": "src/__tests__/dislipidemia.test.ts",
+      "minCasos": 61
+    },
+    {
+      "archivo": "src/__tests__/dosing-motor.test.ts",
+      "minCasos": 22
+    },
+    {
+      "archivo": "src/__tests__/dosing-validacion.test.ts",
+      "minCasos": 13
+    },
+    {
+      "archivo": "src/__tests__/dosis-decision-amoxicilina.test.ts",
+      "minCasos": 12
+    },
+    {
+      "archivo": "src/__tests__/dosis-invariantes-property.test.ts",
+      "minCasos": 37
+    },
+    {
+      "archivo": "src/__tests__/e0-12-sello-integridad.test.ts",
+      "minCasos": 23
+    },
+    {
+      "archivo": "src/__tests__/e0-15-antibiograma-decisiones.test.ts",
+      "minCasos": 33
+    },
+    {
+      "archivo": "src/__tests__/farmacovigilancia.test.ts",
+      "minCasos": 27
+    },
+    {
+      "archivo": "src/__tests__/finanzas-cartera.test.ts",
+      "minCasos": 18
+    },
+    {
+      "archivo": "src/__tests__/finanzas-cost-ledger.test.ts",
+      "minCasos": 20
+    },
+    {
+      "archivo": "src/__tests__/finanzas-estado-producto.test.ts",
+      "minCasos": 18
+    },
+    {
+      "archivo": "src/__tests__/firestore-rules-guard.test.ts",
+      "minCasos": 21
+    },
+    {
+      "archivo": "src/__tests__/funcion-renal-plausibilidad.test.ts",
+      "minCasos": 4
+    },
+    {
+      "archivo": "src/__tests__/funcion-renal.test.ts",
+      "minCasos": 16
+    },
+    {
+      "archivo": "src/__tests__/ginecologia.test.ts",
+      "minCasos": 37
+    },
+    {
+      "archivo": "src/__tests__/grupo-e-guardas.test.ts",
+      "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/hospital-cds.test.ts",
+      "minCasos": 5
+    },
+    {
+      "archivo": "src/__tests__/hospital-escalas-fhir.test.ts",
+      "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/hospital-estados-cama.test.ts",
+      "minCasos": 42
+    },
+    {
+      "archivo": "src/__tests__/hospital-eventos-append-only.test.ts",
+      "minCasos": 50
+    },
+    {
+      "archivo": "src/__tests__/hospital-indicadores-episodio.test.ts",
+      "minCasos": 24
+    },
+    {
+      "archivo": "src/__tests__/hospital-news2-parcial.test.ts",
+      "minCasos": 5
+    },
+    {
+      "archivo": "src/__tests__/hospital-news2.test.ts",
+      "minCasos": 12
+    },
+    {
+      "archivo": "src/__tests__/hospital-registro-durable.test.ts",
+      "minCasos": 5
+    },
+    {
+      "archivo": "src/__tests__/hospital-unidades.test.ts",
+      "minCasos": 20
+    },
+    {
+      "archivo": "src/__tests__/ia-gateway.test.ts",
+      "minCasos": 21
+    },
+    {
+      "archivo": "src/__tests__/ia-protocolo.test.ts",
+      "minCasos": 16
+    },
+    {
+      "archivo": "src/__tests__/icu-observaciones-persistencia.test.ts",
+      "minCasos": 22
+    },
+    {
+      "archivo": "src/__tests__/infusion-library-capas.test.ts",
+      "minCasos": 15
+    },
+    {
+      "archivo": "src/__tests__/inmuno-farmacos.test.ts",
+      "minCasos": 15
+    },
+    {
+      "archivo": "src/__tests__/inmuno.test.ts",
+      "minCasos": 16
+    },
+    {
+      "archivo": "src/__tests__/integrity.test.ts",
+      "minCasos": 6
+    },
+    {
+      "archivo": "src/__tests__/l6-acvpu-fhir.test.ts",
+      "minCasos": 2
+    },
+    {
+      "archivo": "src/__tests__/lab-criticos.test.ts",
+      "minCasos": 9
+    },
+    {
+      "archivo": "src/__tests__/laboratorio-extraccion.test.ts",
+      "minCasos": 13
+    },
+    {
+      "archivo": "src/__tests__/medical-dictionary.test.ts",
+      "minCasos": 15
+    },
+    {
+      "archivo": "src/__tests__/negacion-parser.test.ts",
+      "minCasos": 4
+    },
+    {
+      "archivo": "src/__tests__/news2-set-contemporaneo.test.ts",
+      "minCasos": 15
+    },
+    {
+      "archivo": "src/__tests__/ngramas-antonimos.test.ts",
+      "minCasos": 1
+    },
+    {
+      "archivo": "src/__tests__/numeros-palabras-uci.test.ts",
+      "minCasos": 5
+    },
+    {
+      "archivo": "src/__tests__/observacion-version.test.ts",
+      "minCasos": 31
+    },
+    {
+      "archivo": "src/__tests__/pediatria.test.ts",
+      "minCasos": 58
+    },
+    {
+      "archivo": "src/__tests__/peso-pediatrico-seguridad.test.ts",
+      "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/preop-scales.test.ts",
+      "minCasos": 14
+    },
+    {
+      "archivo": "src/__tests__/prescripcion-segura.test.ts",
+      "minCasos": 37
+    },
+    {
+      "archivo": "src/__tests__/prevent.test.ts",
+      "minCasos": 16
+    },
+    {
+      "archivo": "src/__tests__/preventivo.test.ts",
+      "minCasos": 28
+    },
+    {
+      "archivo": "src/__tests__/proa.test.ts",
+      "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/razonamiento.test.ts",
+      "minCasos": 9
+    },
+    {
+      "archivo": "src/__tests__/receta-certificado.test.ts",
+      "minCasos": 11
+    },
+    {
+      "archivo": "src/__tests__/receta-verificacion-url-route.test.ts",
+      "minCasos": 12
+    },
+    {
+      "archivo": "src/__tests__/reg-015-017-cobros-notas.test.ts",
+      "minCasos": 17
+    },
+    {
+      "archivo": "src/__tests__/reg-060-sello-merge-updatedoc.test.ts",
+      "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/reg-065-corrector-come-dosis.test.ts",
+      "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/reg-066-ngramas-destruyen-terminos.test.ts",
+      "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/reg-068-extraccion-uci-pase-escrito.test.ts",
+      "minCasos": 12
+    },
+    {
+      "archivo": "src/__tests__/reg-069-nota-uci-sistemas-duplicados.test.ts",
+      "minCasos": 15
+    },
+    {
+      "archivo": "src/__tests__/reg-070-copilot-json-truncado.test.ts",
+      "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/reg-072-nota-uci-sin-lecciones.test.ts",
+      "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/reg-073-extraccion-hemodinamica.test.ts",
+      "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/reg-074-nota-sin-texto-de-software.test.ts",
+      "minCasos": 5
+    },
+    {
+      "archivo": "src/__tests__/seguridad-dosis.test.ts",
+      "minCasos": 26
+    },
+    {
+      "archivo": "src/__tests__/seguridad-red-clinica.test.ts",
+      "minCasos": 11
+    },
+    {
+      "archivo": "src/__tests__/timezone-sitios.test.ts",
+      "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/timezone-zona-consultorio.test.ts",
+      "minCasos": 12
+    },
+    {
+      "archivo": "src/__tests__/uci-benchmark-metricas.test.ts",
+      "minCasos": 38
+    },
+    {
+      "archivo": "src/__tests__/uci-benchmark-voz.test.ts",
+      "minCasos": 26
+    },
+    {
+      "archivo": "src/__tests__/uci-benchmark.test.ts",
+      "minCasos": 4
+    },
+    {
+      "archivo": "src/__tests__/uci-confirmacion-riesgo.test.ts",
+      "minCasos": 27
+    },
+    {
+      "archivo": "src/__tests__/uci-contexto-vocabulario.test.ts",
+      "minCasos": 16
+    },
+    {
+      "archivo": "src/__tests__/uci-correlacion.test.ts",
+      "minCasos": 6
+    },
+    {
+      "archivo": "src/__tests__/uci-dato-faltante.test.ts",
+      "minCasos": 19
+    },
+    {
+      "archivo": "src/__tests__/uci-dosificacion-critica.test.ts",
+      "minCasos": 24
+    },
+    {
+      "archivo": "src/__tests__/uci-dosis-sin-numero.test.ts",
+      "minCasos": 9
+    },
+    {
+      "archivo": "src/__tests__/uci-enfermeria.test.ts",
+      "minCasos": 23
+    },
+    {
+      "archivo": "src/__tests__/uci-estancia.test.ts",
+      "minCasos": 18
+    },
+    {
+      "archivo": "src/__tests__/uci-evidencia-seguridad.test.ts",
+      "minCasos": 11
+    },
+    {
+      "archivo": "src/__tests__/uci-extraccion-manoslibres.test.ts",
+      "minCasos": 6
+    },
+    {
+      "archivo": "src/__tests__/uci-extraccion-seguridad.test.ts",
+      "minCasos": 6
+    },
+    {
+      "archivo": "src/__tests__/uci-extraccion.test.ts",
+      "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/uci-extraer-valores.test.ts",
+      "minCasos": 4
+    },
+    {
+      "archivo": "src/__tests__/uci-formato-nota.test.ts",
+      "minCasos": 14
+    },
+    {
+      "archivo": "src/__tests__/uci-gasometria-alcalosis-resp.test.ts",
+      "minCasos": 4
+    },
+    {
+      "archivo": "src/__tests__/uci-gasometria.test.ts",
+      "minCasos": 6
+    },
+    {
+      "archivo": "src/__tests__/uci-guards-auditoria.test.ts",
+      "minCasos": 6
+    },
+    {
+      "archivo": "src/__tests__/uci-handoff.test.ts",
+      "minCasos": 23
+    },
+    {
+      "archivo": "src/__tests__/uci-hemodinamia.test.ts",
+      "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/uci-infusion-registro.test.ts",
+      "minCasos": 24
+    },
+    {
+      "archivo": "src/__tests__/uci-infusiones.test.ts",
+      "minCasos": 15
+    },
+    {
+      "archivo": "src/__tests__/uci-labs-nota.test.ts",
+      "minCasos": 18
+    },
+    {
+      "archivo": "src/__tests__/uci-linea-tiempo.test.ts",
+      "minCasos": 23
+    },
+    {
+      "archivo": "src/__tests__/uci-mar.test.ts",
+      "minCasos": 39
+    },
+    {
+      "archivo": "src/__tests__/uci-metas-diarias.test.ts",
+      "minCasos": 18
+    },
+    {
+      "archivo": "src/__tests__/uci-morning-brief.test.ts",
+      "minCasos": 23
+    },
+    {
+      "archivo": "src/__tests__/uci-motores-version.test.ts",
+      "minCasos": 4
+    },
+    {
+      "archivo": "src/__tests__/uci-neuro-rass.test.ts",
+      "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/uci-neuro.test.ts",
+      "minCasos": 6
+    },
+    {
+      "archivo": "src/__tests__/uci-plan-desde-copilot.test.ts",
+      "minCasos": 13
+    },
+    {
+      "archivo": "src/__tests__/uci-pocus.test.ts",
+      "minCasos": 15
+    },
+    {
+      "archivo": "src/__tests__/uci-reconciliacion.test.ts",
+      "minCasos": 25
+    },
+    {
+      "archivo": "src/__tests__/uci-resumen.test.ts",
+      "minCasos": 30
+    },
+    {
+      "archivo": "src/__tests__/uci-scores2.test.ts",
+      "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/uci-seguridad-rass.test.ts",
+      "minCasos": 6
+    },
+    {
+      "archivo": "src/__tests__/uci-sofa.test.ts",
+      "minCasos": 5
+    },
+    {
+      "archivo": "src/__tests__/uci-soportes.test.ts",
+      "minCasos": 14
+    },
+    {
+      "archivo": "src/__tests__/uci-tarjetas.test.ts",
+      "minCasos": 24
+    },
+    {
+      "archivo": "src/__tests__/uci-tendencias.test.ts",
+      "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/uci-ventilacion.test.ts",
+      "minCasos": 18
+    },
+    {
+      "archivo": "src/__tests__/via-parenteral.test.ts",
+      "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/whisper-prompt-presupuesto.test.ts",
+      "minCasos": 7
+    }
+  ]
+}

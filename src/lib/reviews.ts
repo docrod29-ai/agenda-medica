@@ -16,10 +16,34 @@ import {
 import { db } from '@/lib/firebase'
 
 const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+
+/**
+ * Token de solicitud de reseña — con aleatoriedad CRIPTOGRÁFICA.
+ *
+ * Antes era `Math.random()`. El generador de V8 es xorshift128+: no es
+ * criptográfico y su estado interno se reconstruye observando unas pocas salidas
+ * consecutivas. Estos tokens se generan en el navegador del médico, en secuencia
+ * y en la misma sesión, así que quien consiguiera dos o tres podía predecir el
+ * resto — y con ellos publicar reseñas a nombre de otros pacientes.
+ *
+ * El otro camino que crea estas solicitudes (el cron de recordatorios) ya usaba
+ * `randomUUID`; el que faltaba era este, el manual desde el panel.
+ *
+ * El módulo `crypto` del navegador está en todo lo que soportamos, pero si no
+ * estuviera se prefiere FALLAR a emitir un token adivinable en silencio.
+ */
 function generarToken(): string {
-  let s = ''
-  for (let i = 0; i < 12; i++) s += ALFABETO[Math.floor(Math.random() * ALFABETO.length)]
-  return s
+  const c = globalThis.crypto
+  if (!c?.getRandomValues) throw new Error('Este navegador no puede generar un enlace de reseña seguro.')
+  const bytes = new Uint8Array(12)
+  c.getRandomValues(bytes)
+  /**
+   * 256 no es múltiplo de 32, pero el alfabeto SÍ tiene 32 caracteres, así que
+   * `% 32` reparte de forma exactamente uniforme. Si alguien cambia el alfabeto a
+   * un tamaño que no sea potencia de dos, esto introduce sesgo — de ahí la guarda.
+   */
+  if (ALFABETO.length !== 32) throw new Error('El alfabeto del token debe tener 32 caracteres')
+  return Array.from(bytes, b => ALFABETO[b % 32]).join('')
 }
 
 export interface ReviewRequest {

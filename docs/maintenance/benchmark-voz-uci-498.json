@@ -1,0 +1,582 @@
+{
+  "fecha": "2026-07-30T23:09:36.395Z",
+  "corpus": "NexusMED_UCI_498",
+  "audiosEvaluados": 498,
+  "fallosDeTranscripcion": [],
+  "corrector": true,
+  "modelos": [
+    "gpt-4o-transcribe",
+    "gpt-4o-mini-transcribe",
+    "whisper-1"
+  ],
+  "global": {
+    "audios": 498,
+    "wer": 0.11246374107819887,
+    "clinicalTermRecall": 0.9972677595628415,
+    "acronymRecall": 0.9807692307692307,
+    "numberAccuracy": 1,
+    "unitAccuracy": 1,
+    "criticalSemanticErrorRate": 0.002008032128514056,
+    "terminosNoEvaluables": []
+  },
+  "porCategoria": [
+    {
+      "corte": "CKRT",
+      "m": {
+        "audios": 60,
+        "wer": 0.06865079365079367,
+        "clinicalTermRecall": 0.9871794871794872,
+        "acronymRecall": 0.9333333333333333,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0.016666666666666666,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "Ventilación",
+      "m": {
+        "audios": 72,
+        "wer": 0.044673382173382174,
+        "clinicalTermRecall": 0.9942528735632183,
+        "acronymRecall": 0.9722222222222222,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "ECMO",
+      "m": {
+        "audios": 60,
+        "wer": 0.13958152958152956,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "Hemodinámica",
+      "m": {
+        "audios": 60,
+        "wer": 0.18654914529914537,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "Ultrasonido",
+      "m": {
+        "audios": 54,
+        "wer": 0.018055555555555554,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "Gasometría",
+      "m": {
+        "audios": 30,
+        "wer": 0.08333333333333333,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "Sedación",
+      "m": {
+        "audios": 36,
+        "wer": 0.06388888888888888,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "Infección",
+      "m": {
+        "audios": 48,
+        "wer": 0.012152777777777776,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "Laboratorio",
+      "m": {
+        "audios": 48,
+        "wer": 0.3250744047619047,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "UCI general",
+      "m": {
+        "audios": 30,
+        "wer": 0.23805555555555555,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    }
+  ],
+  "porVoz": [
+    {
+      "corte": "coral",
+      "m": {
+        "audios": 166,
+        "wer": 0.11125450854366521,
+        "clinicalTermRecall": 0.994535519125683,
+        "acronymRecall": 0.9615384615384616,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0.006024096385542169,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "marin",
+      "m": {
+        "audios": 166,
+        "wer": 0.11478014956930624,
+        "clinicalTermRecall": 0.9972677595628415,
+        "acronymRecall": 0.9807692307692307,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "cedar",
+      "m": {
+        "audios": 166,
+        "wer": 0.11135656512162542,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    }
+  ],
+  "porEstilo": [
+    {
+      "corte": "CORAL_CLARA",
+      "m": {
+        "audios": 83,
+        "wer": 0.11605944256546666,
+        "clinicalTermRecall": 0.9890710382513661,
+        "acronymRecall": 0.9230769230769231,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0.012048192771084338,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "MARIN_CLARA",
+      "m": {
+        "audios": 83,
+        "wer": 0.12162860566475023,
+        "clinicalTermRecall": 0.994535519125683,
+        "acronymRecall": 0.9615384615384616,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "MARIN_RAPIDA",
+      "m": {
+        "audios": 83,
+        "wer": 0.10793169347386214,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "CEDAR_CLARA",
+      "m": {
+        "audios": 83,
+        "wer": 0.11107613938939238,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "CEDAR_PASE",
+      "m": {
+        "audios": 83,
+        "wer": 0.1116369908538583,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    },
+    {
+      "corte": "CORAL_CONVERSACIONAL",
+      "m": {
+        "audios": 83,
+        "wer": 0.10644957452186368,
+        "clinicalTermRecall": 1,
+        "acronymRecall": 1,
+        "numberAccuracy": 1,
+        "unitAccuracy": 1,
+        "criticalSemanticErrorRate": 0,
+        "terminosNoEvaluables": []
+      }
+    }
+  ],
+  "rankingRiesgo": [
+    {
+      "termino": "CVVHDF",
+      "veces": 6,
+      "perdidas": 1,
+      "critico": true,
+      "recall": 0.8333333333333334
+    },
+    {
+      "termino": "CVVHD",
+      "veces": 6,
+      "perdidas": 1,
+      "critico": false,
+      "recall": 0.8333333333333334
+    },
+    {
+      "termino": "PEEP",
+      "veces": 12,
+      "perdidas": 1,
+      "critico": false,
+      "recall": 0.9166666666666666
+    }
+  ],
+  "peores": [
+    {
+      "id": "001__CKRT__CORAL_CLARA",
+      "wer": 0.25,
+      "criticos": [
+        "CVVHDF"
+      ],
+      "esperado": "CKRT en modo CVVHDF, flujo de sangre ciento cincuenta mililitros por minuto.",
+      "obtenido": "CKRT en modo CVHDF, flujo de sangre 150 mililitros por minuto."
+    },
+    {
+      "id": "078__LABORATORIO__MARIN_RAPIDA",
+      "wer": 0.6,
+      "criticos": [],
+      "esperado": "INR de uno punto ocho.",
+      "obtenido": "INR de 1.8"
+    },
+    {
+      "id": "078__LABORATORIO__MARIN_CLARA",
+      "wer": 0.6,
+      "criticos": [],
+      "esperado": "INR de uno punto ocho.",
+      "obtenido": "INR de 1.8"
+    },
+    {
+      "id": "078__LABORATORIO__CEDAR_CLARA",
+      "wer": 0.6,
+      "criticos": [],
+      "esperado": "INR de uno punto ocho.",
+      "obtenido": "INR de 1.8"
+    },
+    {
+      "id": "078__LABORATORIO__CEDAR_PASE",
+      "wer": 0.6,
+      "criticos": [],
+      "esperado": "INR de uno punto ocho.",
+      "obtenido": "INR de 1.8."
+    },
+    {
+      "id": "078__LABORATORIO__CORAL_CLARA",
+      "wer": 0.6,
+      "criticos": [],
+      "esperado": "INR de uno punto ocho.",
+      "obtenido": "INR de 1.8"
+    },
+    {
+      "id": "078__LABORATORIO__CORAL_CONVERSACIONAL",
+      "wer": 0.6,
+      "criticos": [],
+      "esperado": "INR de uno punto ocho.",
+      "obtenido": "INR de 1.8"
+    },
+    {
+      "id": "017__ECMO__CORAL_CLARA",
+      "wer": 0.571,
+      "criticos": [],
+      "esperado": "Canulación femoro yugular para ECMO veno venoso.",
+      "obtenido": "Canulación femoroyugular para ECMO venovenoso."
+    },
+    {
+      "id": "020__ECMO__MARIN_CLARA",
+      "wer": 0.556,
+      "criticos": [],
+      "esperado": "Saturación venosa preoxigenador de sesenta y ocho por ciento.",
+      "obtenido": "Saturación venosa preoxigenador de 68%."
+    },
+    {
+      "id": "020__ECMO__CORAL_CONVERSACIONAL",
+      "wer": 0.556,
+      "criticos": [],
+      "esperado": "Saturación venosa preoxigenador de sesenta y ocho por ciento.",
+      "obtenido": "Saturación venosa preoxigenador de 68%."
+    },
+    {
+      "id": "081__UCI_GENERAL__MARIN_CLARA",
+      "wer": 0.556,
+      "criticos": [],
+      "esperado": "Temperatura de treinta y nueve punto dos grados Celsius.",
+      "obtenido": "Temperatura de 39.2 grados Celsius."
+    },
+    {
+      "id": "081__UCI_GENERAL__CEDAR_PASE",
+      "wer": 0.556,
+      "criticos": [],
+      "esperado": "Temperatura de treinta y nueve punto dos grados Celsius.",
+      "obtenido": "Temperatura de 39.2 grados Celsius."
+    },
+    {
+      "id": "081__UCI_GENERAL__CORAL_CLARA",
+      "wer": 0.556,
+      "criticos": [],
+      "esperado": "Temperatura de treinta y nueve punto dos grados Celsius.",
+      "obtenido": "Temperatura de 39.2 grados Celsius."
+    },
+    {
+      "id": "083__UCI_GENERAL__MARIN_CLARA",
+      "wer": 0.5,
+      "criticos": [],
+      "esperado": "Saturación periférica de oxígeno de ochenta y ocho por ciento.",
+      "obtenido": "Saturación periférica de oxígeno de 88%."
+    },
+    {
+      "id": "083__UCI_GENERAL__MARIN_RAPIDA",
+      "wer": 0.5,
+      "criticos": [],
+      "esperado": "Saturación periférica de oxígeno de ochenta y ocho por ciento.",
+      "obtenido": "Saturación periférica de oxígeno de 88%."
+    },
+    {
+      "id": "083__UCI_GENERAL__CORAL_CONVERSACIONAL",
+      "wer": 0.5,
+      "criticos": [],
+      "esperado": "Saturación periférica de oxígeno de ochenta y ocho por ciento.",
+      "obtenido": "Saturación periférica de oxígeno de 88%."
+    },
+    {
+      "id": "083__UCI_GENERAL__CEDAR_CLARA",
+      "wer": 0.5,
+      "criticos": [],
+      "esperado": "Saturación periférica de oxígeno de ochenta y ocho por ciento.",
+      "obtenido": "Saturación periférica de oxígeno de 88%."
+    },
+    {
+      "id": "083__UCI_GENERAL__CORAL_CLARA",
+      "wer": 0.5,
+      "criticos": [],
+      "esperado": "Saturación periférica de oxígeno de ochenta y ocho por ciento.",
+      "obtenido": "Saturación periférica de oxígeno de 88%."
+    },
+    {
+      "id": "011__ECMO__MARIN_CLARA",
+      "wer": 0.455,
+      "criticos": [],
+      "esperado": "ECMO veno venoso, flujo de cuatro punto dos litros por minuto.",
+      "obtenido": "ECMO venovenoso, flujo de 4.2 litros por minuto."
+    },
+    {
+      "id": "011__ECMO__MARIN_RAPIDA",
+      "wer": 0.455,
+      "criticos": [],
+      "esperado": "ECMO veno venoso, flujo de cuatro punto dos litros por minuto.",
+      "obtenido": "ECMO venovenoso, flujo de 4.2 litros por minuto."
+    },
+    {
+      "id": "011__ECMO__CEDAR_CLARA",
+      "wer": 0.455,
+      "criticos": [],
+      "esperado": "ECMO veno venoso, flujo de cuatro punto dos litros por minuto.",
+      "obtenido": "ECMO venovenoso, flujo de 4.2 litros por minuto."
+    },
+    {
+      "id": "011__ECMO__CORAL_CLARA",
+      "wer": 0.455,
+      "criticos": [],
+      "esperado": "ECMO veno venoso, flujo de cuatro punto dos litros por minuto.",
+      "obtenido": "ECMO venovenoso, flujo de 4.2 litros por minuto."
+    },
+    {
+      "id": "011__ECMO__CEDAR_PASE",
+      "wer": 0.455,
+      "criticos": [],
+      "esperado": "ECMO veno venoso, flujo de cuatro punto dos litros por minuto.",
+      "obtenido": "ECMO venovenoso, flujo de 4.2 litros por minuto."
+    },
+    {
+      "id": "011__ECMO__CORAL_CONVERSACIONAL",
+      "wer": 0.455,
+      "criticos": [],
+      "esperado": "ECMO veno venoso, flujo de cuatro punto dos litros por minuto.",
+      "obtenido": "ECMO venovenoso, flujo de 4.2 litros por minuto."
+    },
+    {
+      "id": "034__HEMODINAMICA__CEDAR_PASE",
+      "wer": 0.444,
+      "criticos": [],
+      "esperado": "Vasopresina a cero punto cero tres unidades por minuto.",
+      "obtenido": "Vasopresina a 0.03 unidades por minuto."
+    },
+    {
+      "id": "034__HEMODINAMICA__MARIN_RAPIDA",
+      "wer": 0.444,
+      "criticos": [],
+      "esperado": "Vasopresina a cero punto cero tres unidades por minuto.",
+      "obtenido": "Vasopresina a 0.03 unidades por minuto."
+    },
+    {
+      "id": "034__HEMODINAMICA__MARIN_CLARA",
+      "wer": 0.444,
+      "criticos": [],
+      "esperado": "Vasopresina a cero punto cero tres unidades por minuto.",
+      "obtenido": "Vasopresina a 0.03 unidades por minuto."
+    },
+    {
+      "id": "034__HEMODINAMICA__CORAL_CLARA",
+      "wer": 0.444,
+      "criticos": [],
+      "esperado": "Vasopresina a cero punto cero tres unidades por minuto.",
+      "obtenido": "Vasopresina a 0.03 unidades por minuto."
+    },
+    {
+      "id": "034__HEMODINAMICA__CEDAR_CLARA",
+      "wer": 0.444,
+      "criticos": [],
+      "esperado": "Vasopresina a cero punto cero tres unidades por minuto.",
+      "obtenido": "Vasopresina a 0.03 unidades por minuto."
+    },
+    {
+      "id": "034__HEMODINAMICA__CORAL_CONVERSACIONAL",
+      "wer": 0.444,
+      "criticos": [],
+      "esperado": "Vasopresina a cero punto cero tres unidades por minuto.",
+      "obtenido": "Vasopresina a 0.03 unidades por minuto."
+    },
+    {
+      "id": "012__ECMO__MARIN_RAPIDA",
+      "wer": 0.417,
+      "criticos": [],
+      "esperado": "ECMO veno arterial con flujo de tres punto ocho litros por minuto.",
+      "obtenido": "ECMO venoarterial con flujo de 3.8 litros por minuto."
+    },
+    {
+      "id": "012__ECMO__CEDAR_CLARA",
+      "wer": 0.417,
+      "criticos": [],
+      "esperado": "ECMO veno arterial con flujo de tres punto ocho litros por minuto.",
+      "obtenido": "ECMO venoarterial con flujo de 3.8 litros por minuto."
+    },
+    {
+      "id": "012__ECMO__CEDAR_PASE",
+      "wer": 0.417,
+      "criticos": [],
+      "esperado": "ECMO veno arterial con flujo de tres punto ocho litros por minuto.",
+      "obtenido": "ECMO venoarterial con flujo de 3.8 litros por minuto."
+    },
+    {
+      "id": "012__ECMO__MARIN_CLARA",
+      "wer": 0.417,
+      "criticos": [],
+      "esperado": "ECMO veno arterial con flujo de tres punto ocho litros por minuto.",
+      "obtenido": "ECMO venoarterial con flujo de 3.8 litros por minuto."
+    },
+    {
+      "id": "012__ECMO__CORAL_CONVERSACIONAL",
+      "wer": 0.417,
+      "criticos": [],
+      "esperado": "ECMO veno arterial con flujo de tres punto ocho litros por minuto.",
+      "obtenido": "ECMO venoarterial con flujo de 3.8 litros por minuto."
+    },
+    {
+      "id": "012__ECMO__CORAL_CLARA",
+      "wer": 0.417,
+      "criticos": [],
+      "esperado": "ECMO veno arterial con flujo de tres punto ocho litros por minuto.",
+      "obtenido": "ECMO venoarterial con flujo de 3.8 litros por minuto."
+    },
+    {
+      "id": "052__GASOMETRIA__MARIN_CLARA",
+      "wer": 0.417,
+      "criticos": [],
+      "esperado": "Gasometría arterial con pH siete punto veintinueve, PaCO2 cincuenta y PaO2 sesenta.",
+      "obtenido": "Gasometría arterial con pH 7.29, PaCO2 50 y PaO2 60."
+    },
+    {
+      "id": "052__GASOMETRIA__MARIN_RAPIDA",
+      "wer": 0.417,
+      "criticos": [],
+      "esperado": "Gasometría arterial con pH siete punto veintinueve, PaCO2 cincuenta y PaO2 sesenta.",
+      "obtenido": "Gasometría arterial con pH 7.29, PaCO2 50 y PaO2 60."
+    },
+    {
+      "id": "052__GASOMETRIA__CEDAR_CLARA",
+      "wer": 0.417,
+      "criticos": [],
+      "esperado": "Gasometría arterial con pH siete punto veintinueve, PaCO2 cincuenta y PaO2 sesenta.",
+      "obtenido": "Gasometría arterial con pH 7.29, PaCO2 50 y PaO2 60."
+    },
+    {
+      "id": "052__GASOMETRIA__CORAL_CLARA",
+      "wer": 0.417,
+      "criticos": [],
+      "esperado": "Gasometría arterial con pH siete punto veintinueve, PaCO2 cincuenta y PaO2 sesenta.",
+      "obtenido": "Gasometría arterial con pH 7.29, PaCO2 50 y PaO2 60."
+    }
+  ]
+}

@@ -14,7 +14,7 @@ export default function ConsultaError({ error, reset }: { error: Error & { diges
   return (
     <div style={{ maxWidth: 520, margin: '0 auto', padding: '80px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
       <div style={{ width: 56, height: 56, borderRadius: 16, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <AlertTriangle size={26} style={{ color: '#f59e0b' }} />
+        <AlertTriangle size={26} style={{ color: 'var(--amber)' }} />
       </div>
       <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Algo se atoró en esta pantalla</h1>
       <p style={{ fontSize: 14.5, color: 'var(--text2)', margin: 0, lineHeight: 1.6 }}>

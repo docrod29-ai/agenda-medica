@@ -1,10 +1,13 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { useDoctors } from '@/hooks/useDoctors'
 import { useToast } from '@/context/ToastContext'
 import { useParams, useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { imprimirElemento } from '@/lib/print-element'
+// Papel de las NOTAS: SIEMPRE carta, independiente de la config de receta.
+import { papelNota } from '@/lib/receta-template'
+import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
 import { entradaPorMedico, membreteValido, firmaValida } from '@/lib/impreso-medico'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
@@ -16,7 +19,8 @@ import type { NotaMedica, Adenda } from '@/types/expediente'
 import type { Patient } from '@/types'
 import { ArrowLeft, Printer, Loader2, Download, Pill, ClipboardList, AlertTriangle, Check, FileText, FilePlus2, X, Mic, ChevronDown } from 'lucide-react'
 import { Spinner, EmptyState } from '@/components/ui'
-import { descargarComoPDF } from '@/lib/pdf-download'
+import { descargarComoPDF, descargarPaginasComoPDF } from '@/lib/pdf-download'
+import { descargarNotaWord } from '@/lib/nota-word'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
 
 export default function NotaImprimiblePage() {
@@ -25,6 +29,16 @@ export default function NotaImprimiblePage() {
   const volver = useSmartBack(`/expediente/${patientId}`)
   const { clinicId } = useClinic()
   const { config, error: configError } = useConfig()
+
+  /**
+   * Papel de la NOTA. Ajuste PROPIO (`notaPaperSize`), independiente del de la
+   * receta: cambiar el papel de la receta no mueve el de la nota, ni al revés.
+   * Sin configurar → carta.
+   */
+  const hojaNota = papelNota(config?.recetaConfig?.notaPaperSize)
+
+  /** REG-014 — la firma vive aparte y solo la leen los médicos. */
+  const { firma: firmaProtegida } = useFirmaProtegida(clinicId, config ?? undefined)
 
   /**
    * ¿Este consultorio tiene un solo médico?
@@ -52,15 +66,37 @@ export default function NotaImprimiblePage() {
   const [verTranscripcion, setVerTranscripcion] = useState(false)
   // null = sin verificar/no aplica · true = sello íntegro · false = ALTERADA
   const [integridad, setIntegridad] = useState<'verificada' | 'alterada' | 'legado' | 'sin-sello' | null>(null)
+  /**
+   * QUÉ cubre el sello de ESTA nota (E0-12). El sello v2 sólo cubría 10 de los 24
+   * campos de la nota: una nota vieja puede estar legítimamente "verificada" y sin
+   * embargo su sello no abarcar la valoración preoperatoria ni la trazabilidad de
+   * la IA. Decirlo es lo honesto; callarlo daba una garantía más amplia que la real.
+   * Las notas nuevas nacen con el sello completo, así que esto no se muestra.
+   */
+  const [selloNoCubre, setSelloNoCubre] = useState<readonly string[]>([])
 
   const descargarPDF = async () => {
     const el = document.getElementById('doc')
     if (!el) return
     setDescargando(true)
+    const nombre = (patient?.nombre ?? 'paciente').replace(/[^\w\sáéíóúñ-]/gi, '').replace(/\s+/g, '_')
+    const fechaCorta = new Date(nota?.fechaConsulta ?? Date.now()).toISOString().slice(0, 10)
     try {
-      const nombre = (patient?.nombre ?? 'paciente').replace(/[^\w\sáéíóúñ-]/gi, '').replace(/\s+/g, '_')
-      const fechaCorta = new Date(nota?.fechaConsulta ?? Date.now()).toISOString().slice(0, 10)
-      await descargarComoPDF(el, { filename: `Nota_${nombre}_${fechaCorta}` })
+      if (membrete) {
+        // Nota membretada: PDF LIMPIO hoja-por-hoja (una .nota-sheet = una página
+        // carta a sangre). Incluye el membrete y la firma, SIN "about:blank" ni la
+        // fecha del navegador (eso pasaba al enrutar por el diálogo de impresión) y
+        // SIN hojas en blanco (una hoja = una página exacta).
+        const sheets = Array.from(el.querySelectorAll<HTMLElement>('.nota-sheet'))
+        if (sheets.length) {
+          await descargarPaginasComoPDF(sheets, { filename: `Nota_${nombre}_${fechaCorta}`, anchoMm: hojaNota.widthMm, altoMm: hojaNota.heightMm })
+        } else {
+          await descargarComoPDF(el, { filename: `Nota_${nombre}_${fechaCorta}`, format: 'letter', margin: 0 })
+        }
+      } else {
+        // Nota SIN membrete (formato de texto): html2canvas va bien.
+        await descargarComoPDF(el, { filename: `Nota_${nombre}_${fechaCorta}`, format: 'letter' })
+      }
     } catch (e) {
       console.error('PDF error:', e)
       toast('No se pudo generar el PDF. Intenta con Imprimir → Guardar como PDF.', 'error')
@@ -121,8 +157,11 @@ export default function NotaImprimiblePage() {
       // sistema no comprobaba. Ahora se recalcula y se compara.
       if (n && n.estado === 'firmada') {
         try {
-          const { verificarIntegridadEstado } = await import('@/lib/expediente/integrity')
-          setIntegridad(await verificarIntegridadEstado(n))
+          const { verificarIntegridadDetalle } = await import('@/lib/expediente/integrity')
+          const detalle = await verificarIntegridadDetalle(n)
+          setIntegridad(detalle.estado)
+          // Sólo hay algo que declarar cuando el sello es válido pero PARCIAL (v2).
+          setSelloNoCubre(detalle.estado === 'verificada' && !detalle.cubreTodo ? detalle.noCubreEtiquetas : [])
         } catch { setIntegridad(null) }
         try { setAdendas(await getAdendas(clinicId, patientId, notaId)) } catch { /* noop */ }
       }
@@ -160,21 +199,54 @@ export default function NotaImprimiblePage() {
   const cedula = nota.firma?.cedulaProfesional || config?.cedulaProfesional || '—'
   const especialidad = nota.firma?.especialidad || config?.especialidad || ''
   const establecimiento = nota.metadata.establecimiento || config?.nombreClinica || ''
-  // Hoja membretada: la del MÉDICO de la nota si tiene una propia; si no, la
-  // general del consultorio. Se ignora un valor vacío/roto (evita descuadrar).
-  const medMembrete = entradaPorMedico(config?.notaMembretePorMedico, nota.metadata?.medicoId, membreteValido, unicoMedico)
+  // Hoja membretada de la nota. BUG que el Dr reportó (su membrete subido NO salía
+  // en la nota impresa): el match EXACTO por médico casi siempre falla porque la
+  // nota se sella con medicoId=uid y Config guarda por id de la subcolección
+  // `doctors` (ver impreso-medico.ts). A diferencia de la FIRMA, una hoja
+  // membretada es branding de la CLÍNICA (no hay riesgo de suplantación), así que
+  // se resuelve con tolerancia: exacto por médico → ÚNICA hoja disponible → general.
+  const medMembrete = (() => {
+    const exacta = entradaPorMedico(config?.notaMembretePorMedico, nota.metadata?.medicoId, membreteValido, unicoMedico)
+    if (exacta) return exacta
+    const validas = Object.values(config?.notaMembretePorMedico ?? {}).filter(v => membreteValido(v as { url?: string }))
+    return validas.length === 1 ? (validas[0] as { url?: string; margenes?: { top: number; right: number; bottom: number; left: number }; firmaPos?: { x: number; y: number } }) : undefined
+  })()
   // Firma a mostrar: el snapshot de la nota (inmutable) o la firma del médico que
   // la firmó (per-médico) o, en último caso, la general del consultorio.
+  // Auditoría papelería 2026-07 (P1): el último fallback a la firma GLOBAL solo es
+  // seguro con UN médico. Con varios, estampar la firma del consultorio sobre la
+  // nota de otro médico es firmar por alguien más y NO se nota. Mejor sin firma
+  // (se ve y se corrige) que con la firma equivocada. Igual criterio que la orden.
+  // REG-014: la firma viva viene del subdocumento protegido. El SNAPSHOT que
+  // quedó dentro de la nota firmada (`nota.firma.imagenDataUrl`) sigue mandando:
+  // es el documento tal como se selló y no debe cambiar retroactivamente.
   const firmaMostrar = nota.firma?.imagenDataUrl
-    || entradaPorMedico(config?.firmaPorMedico, nota.metadata?.medicoId, firmaValida, unicoMedico)
-    || config?.firmaImagenDataUrl
+    || entradaPorMedico(firmaProtegida.firmaPorMedico, nota.metadata?.medicoId, firmaValida, unicoMedico)
+    || (unicoMedico ? firmaProtegida.firmaImagenDataUrl : undefined)
   const mem = (medMembrete?.url ?? config?.notaMembreteDataUrl)?.trim()
   const membrete = (mem && /^(https?:|\/api\/|data:image)/.test(mem)) ? mem : undefined
   const mMemb = medMembrete?.margenes ?? config?.notaMembreteMargenes ?? { top: 42, right: 22, bottom: 28, left: 22 }
+  // Posición de la firma sobre la hoja membretada (calibrada en Config). % de la
+  // hoja. Default: sobre el pie derecho, donde suele imprimirse el nombre.
+  const firmaPos = medMembrete?.firmaPos ?? config?.notaMembreteFirmaPos ?? { x: 70, y: 84 }
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh', padding: 24 }}>
       <div style={{ maxWidth: 800, margin: '0 auto' }}><AvisoConfigNoCargada error={configError} /></div>
+
+      {/* Auditoría papelería 2026-07 (P2 NOM-004): avisos de datos obligatorios que
+          podrían salir vacíos en el papel. Solo cuando NO hay hoja membretada (esa
+          ya trae el encabezado con el establecimiento). No se imprimen. */}
+      {!membrete && !establecimiento && (
+        <div className="no-print" style={{ maxWidth: 800, margin: '0 auto 12px', display: 'flex', alignItems: 'flex-start', gap: 10, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.35)', borderRadius: 12, padding: '11px 14px' }}>
+          <AlertTriangle size={16} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--text)' }}>
+            <strong>Falta el nombre del establecimiento.</strong> Es dato obligatorio del expediente (NOM-004).
+            Agrégalo en Configuración → General (o usa tu hoja membretada, que ya lo incluye).
+          </div>
+        </div>
+      )}
+
       {/* Barra de acciones (no se imprime) */}
       <div className="no-print" style={{ maxWidth: 800, margin: '0 auto 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <button onClick={volver} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}>
@@ -186,8 +258,18 @@ export default function NotaImprimiblePage() {
               ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</>
               : <><Download size={16} /> Descargar PDF</>}
           </button>
-          <button onClick={() => { if (configError) return; imprimirElemento(document.getElementById('doc'), 'Nota médica', { formato: membrete ? 'membrete' : 'carta' }) }} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => { if (configError) return; imprimirElemento(document.getElementById('doc'), 'Nota médica', membrete
+            // Con membrete la nota YA viene paginada en hojas carta (.nota-sheet con
+            // page-break y el membrete de fondo en cada una). Se imprime a sangre en
+            // carta (@page letter margin 0) para que cada hoja llene la página.
+            ? { anchoMm: hojaNota.widthMm, altoMm: hojaNota.heightMm, onError: (m) => toast(m, 'error') }
+            : { formato: 'carta', onError: (m) => toast(m, 'error') }) }} disabled={!!configError} title={configError ? 'Espera a que cargue la configuración del consultorio' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: configError ? 'default' : 'pointer', opacity: configError ? 0.5 : 1 }}>
             <Printer size={16} /> Imprimir
+          </button>
+          {/* Word editable — para ajustar la nota al membrete/formato propio (igual
+              que receta y orden; capacidad consistente entre documentos). */}
+          <button onClick={() => { if (configError) return; descargarNotaWord(nota, config ?? null, { edad: patient?.edad, sexo: patient?.sexo, telefono: patient?.telefono, alergias: patient ? (patient.alergias || 'Negadas / no referidas') : 'NO DISPONIBLE — verificar con el paciente', membrete }).catch(() => toast('No se pudo generar el Word', 'error')) }} disabled={!!configError} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: configError ? 'default' : 'pointer', opacity: configError ? 0.5 : 1 }}>
+            <FileText size={16} /> Word
           </button>
           {/* Generar receta y orden — solo cuando la nota está firmada */}
           {nota.estado === 'firmada' && (
@@ -206,24 +288,15 @@ export default function NotaImprimiblePage() {
         </div>
       </div>
 
-      {/* Documento (hoja blanca o hoja membretada del médico) */}
-      <div id="doc" style={membrete ? {
-        maxWidth: 800, margin: '0 auto', background: '#fff', color: '#1a1a1a',
-        position: 'relative', borderRadius: 4, fontFamily: '"Times New Roman", Georgia, serif',
-        lineHeight: 1.4, fontSize: 13, aspectRatio: '216 / 279',  // proporción carta para la vista previa
-        paddingTop: `${mMemb.top}mm`, paddingBottom: `${mMemb.bottom}mm`,
-        paddingLeft: `${mMemb.left}mm`, paddingRight: `${mMemb.right}mm`, boxSizing: 'border-box',
-      } : {
-        maxWidth: 800, margin: '0 auto', background: '#fff', color: '#1a1a1a', position: 'relative',
-        padding: '40px 48px', borderRadius: 4, fontFamily: '"Times New Roman", Georgia, serif',
-        lineHeight: 1.4, fontSize: 13,
-      }}>
-        {/* Hoja membretada del médico como fondo (se repite en cada página al imprimir) */}
-        {membrete && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img className="membrete-bg" src={membrete} alt="" aria-hidden
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'fill', zIndex: -1, pointerEvents: 'none' }} />
-        )}
+      {/* Documento de la nota.
+          Auditoría flujo 2026-07 (el Dr reportó pie del membrete empalmado a media
+          hoja y página 2 sin membrete): con hoja membretada, el contenido se PAGINA
+          en hojas carta (HojasNota) con el membrete completo en cada una y el texto
+          en la zona segura. Sin membrete, render continuo normal. Los bloques
+          imprimibles se arman una sola vez y se reparten por hoja. */}
+      {(() => {
+        const printables = (
+          <>
         {/* Encabezado de texto — SOLO si NO hay hoja membretada (la membretada ya lo trae) */}
         {!membrete && (
         <div style={{ textAlign: 'center', borderBottom: '2px solid #1a1a1a', paddingBottom: 12, marginBottom: 16 }}>
@@ -322,7 +395,10 @@ export default function NotaImprimiblePage() {
           </div>
         )}
 
-        {/* Firma — solo si la nota está firmada */}
+        {/* Bloque de firma DEFAULT — solo SIN hoja membretada. Con membrete, la firma
+            se coloca CALIBRADA sobre la hoja (HojasNota) y el pie del membrete ya trae
+            el nombre impreso, así que este bloque duplicaría — se omite. */}
+        {!membrete && (
         <div style={{ marginTop: 40, textAlign: 'center' }}>
           {/* NOM-024: usar el SNAPSHOT de firma guardado en la nota (inmutable).
               Fallback al config actual solo si la nota es vieja y no tiene snapshot. */}
@@ -342,8 +418,13 @@ export default function NotaImprimiblePage() {
           )}
           <div style={{ borderTop: '1px solid #1a1a1a', width: 280, margin: '0 auto', paddingTop: 4, fontSize: 12.5 }}>
             <strong>{medico}</strong><br />
-            {especialidad}<br />
-            Cédula Profesional {cedula}
+            {especialidad}{especialidad ? <br /> : null}
+            {/* Auditoría papelería 2026-07 (P1 NOM): la cédula es dato obligatorio.
+                Antes se imprimía "Cédula Profesional —" (parece guion de maqueta);
+                ahora se marca la ausencia en rojo para que no pase inadvertida. */}
+            {cedula !== '—'
+              ? <>Cédula Profesional {cedula}</>
+              : <span style={{ color: '#b91c1c', fontWeight: 700 }}>[FALTA CÉDULA PROFESIONAL]</span>}
           </div>
           {nota.estado !== 'firmada' && (
             <div className="no-print" style={{ marginTop: 8, fontSize: 11.5, color: 'var(--text3)', fontStyle: 'italic' }}>
@@ -351,6 +432,7 @@ export default function NotaImprimiblePage() {
             </div>
           )}
         </div>
+        )}
 
         {/* Alerta ROJA solo si el sello estable NO coincide (posible alteración real) */}
         {integridad === 'alterada' && (
@@ -378,6 +460,21 @@ export default function NotaImprimiblePage() {
             <AlertTriangle size={13} className="ds-icon" style={{ flexShrink: 0 }} />
             <span>Nota firmada con un formato de sello anterior: el sello no puede recalcularse
             automáticamente (no implica alteración). Las notas nuevas se verifican solas.</span>
+          </div>
+        )}
+
+        {/* Aviso NEUTRO de COBERTURA: el sello coincide, pero es de una versión que
+            no abarcaba toda la nota. No es indicio de alteración, así que no alarma:
+            informa. `no-print` — no toca el documento imprimible. */}
+        {integridad === 'verificada' && selloNoCubre.length > 0 && (
+          <div className="no-print" style={{
+            marginTop: 16, padding: '8px 12px', borderRadius: 6,
+            background: 'var(--s2)', border: '1px solid var(--border)',
+            color: 'var(--text3)', fontSize: 11.5, textAlign: 'center',
+          }}>
+            Sello de formato anterior (v{nota.metadata.hashVersion ?? 1}): verificado sobre el cuerpo
+            de la nota. <strong>No cubre</strong>: {selloNoCubre.join(', ')}. Las notas nuevas se
+            sellan completas.
           </div>
         )}
 
@@ -425,7 +522,31 @@ export default function NotaImprimiblePage() {
             ))}
           </div>
         )}
-      </div>
+          </>
+        )
+        // Bloques imprimibles como arreglo (los conditionals falsy se filtran).
+        const bloques = (Array.isArray(printables.props.children) ? printables.props.children : [printables.props.children])
+          .flat().filter((b: React.ReactNode) => b !== false && b != null)
+        if (membrete) {
+          // Nota membretada → paginar en hojas carta con el membrete en cada una.
+          return (
+            <div id="doc" style={{ width: 'fit-content', maxWidth: '100%', margin: '0 auto', color: '#1a1a1a', fontFamily: '"Times New Roman", Georgia, serif' }}>
+              <HojasNota anchoMm={hojaNota.widthMm} altoMm={hojaNota.heightMm} mMemb={mMemb} membrete={membrete} bloques={bloques}
+                firma={nota.estado === 'firmada' && firmaMostrar ? { src: firmaMostrar, x: firmaPos.x, y: firmaPos.y } : undefined} />
+            </div>
+          )
+        }
+        // Sin membrete → hoja blanca continua (encabezado de texto incluido en los bloques).
+        return (
+          <div id="doc" style={{
+            maxWidth: 800, margin: '0 auto', background: '#fff', color: '#1a1a1a', position: 'relative',
+            padding: '40px 48px', borderRadius: 4, fontFamily: '"Times New Roman", Georgia, serif',
+            lineHeight: 1.4, fontSize: 13, orphans: 3, widows: 3,
+          }}>
+            {printables}
+          </div>
+        )
+      })()}
 
       {/* Trazabilidad: lo que se DIJO vs lo redactado. Colapsable, NO se imprime.
           Permite al médico verificar que la nota refleja el dictado. */}
@@ -520,9 +641,135 @@ export default function NotaImprimiblePage() {
 }
 
 function SecTitle({ children }: { children: React.ReactNode }) {
+  // breakAfter:avoid → el título de sección nunca queda solo al pie de una hoja
+  // (se imprime junto a su contenido en notas de varias páginas).
   return (
-    <div style={{ fontSize: 12.5, fontWeight: 700, textTransform: 'uppercase', borderBottom: '0.5px solid #999', marginBottom: 3, letterSpacing: 0.3 }}>
+    <div style={{ fontSize: 12.5, fontWeight: 700, textTransform: 'uppercase', borderBottom: '0.5px solid #999', marginBottom: 3, letterSpacing: 0.3, breakAfter: 'avoid', pageBreakAfter: 'avoid' }}>
       {children}
     </div>
+  )
+}
+
+/**
+ * PAGINADOR de la NOTA MEMBRETADA — el Dr reportó que en notas de 2+ páginas el
+ * PIE de su membrete caía a media hoja y la página 2 salía sin membrete.
+ *
+ * Solución (modelo de la receta): la nota se parte en HOJAS carta discretas; cada
+ * hoja lleva el membrete COMPLETO de fondo (encabezado arriba, pie abajo) y el
+ * texto SOLO en la zona segura (entre los márgenes mMemb). Los bloques se miden
+ * en un medidor oculto y se reparten por hoja sin cortar un bloque a la mitad.
+ * Como el DOM queda paginado, PANTALLA, PDF (html2canvas) e IMPRIMIR (page-break
+ * inline) coinciden — congruente en las tres salidas.
+ */
+function HojasNota({ membrete, mMemb, anchoMm, altoMm, bloques, firma }: {
+  membrete: string
+  mMemb: { top: number; right: number; bottom: number; left: number }
+  anchoMm: number; altoMm: number
+  bloques: React.ReactNode[]
+  /** Firma a colocar (calibrada) sobre la ÚLTIMA hoja. x/y en % de la hoja. */
+  firma?: { src: string; x: number; y: number }
+}) {
+  const PXMM = 96 / 25.4
+  const anchoPx = anchoMm * PXMM
+  // Hoja carta EXACTA. El PDF se genera hoja-por-hoja (una .nota-sheet = una página
+  // a sangre, sin desbordes), así que no hace falta el -1px que se usaba para el
+  // desborde sub-píxel del diálogo de impresión.
+  const altoPx = Math.round(altoMm * PXMM)
+  const topPx = mMemb.top * PXMM, botPx = mMemb.bottom * PXMM
+  const leftPx = mMemb.left * PXMM, rightPx = mMemb.right * PXMM
+  const contentW = Math.max(50, anchoPx - leftPx - rightPx)
+  const contentH = Math.max(80, altoPx - topPx - botPx)
+  const medRef = useRef<HTMLDivElement>(null)
+  const [paginas, setPaginas] = useState<number[][]>([bloques.map((_, i) => i)])
+
+  // Dep ESTABLE: `bloques` se recrea en cada render (nuevo array), así que usarlo
+  // como dependencia dispara el efecto en cada render → setState → bucle infinito
+  // (congelaba la nota). Se depende de bloques.length + contentH, y setPaginas
+  // BAILA si el resultado no cambió (misma referencia → React no re-renderiza).
+  useLayoutEffect(() => {
+    const c = medRef.current
+    if (!c) return
+    const medir = () => {
+      const kids = Array.from(c.children) as HTMLElement[]
+      if (!kids.length) return
+      // Alturas EFECTIVAS con MÁRGENES: getBoundingClientRect excluye los márgenes
+      // entre bloques → subestimaba y metía demasiados bloques por hoja (el texto se
+      // derramaba al pie). offsetTop refleja la posición REAL ya con márgenes; la
+      // diferencia entre bloques = el espacio vertical que ocupa cada uno.
+      const tops = kids.map(k => k.offsetTop)
+      const totalH = c.scrollHeight
+      const hs = kids.map((k, i) => (i < kids.length - 1 ? tops[i + 1] - tops[i] : Math.max(0, totalH - tops[i])))
+      // Colchón de seguridad (~10mm): el margen entre bloques colapsa distinto y no
+      // se quiere que la última línea de la hoja toque el pie del membrete.
+      const limite = contentH - 38
+      const pages: number[][] = []
+      let cur: number[] = []; let acc = 0
+      hs.forEach((h, i) => {
+        if (acc + h > limite && cur.length) { pages.push(cur); cur = []; acc = 0 }
+        cur.push(i); acc += h
+      })
+      if (cur.length) pages.push(cur)   // ← la ÚLTIMA hoja
+      const final = pages.length ? pages : [Array.from({ length: kids.length }, (_, i) => i)]
+      setPaginas(prev => (JSON.stringify(prev) === JSON.stringify(final) ? prev : final))
+    }
+    medir()
+    // Brute force acotado: re-medir varias veces por si las fuentes asientan tarde.
+    let n = 0
+    const iv = setInterval(() => { medir(); if (++n >= 6) clearInterval(iv) }, 200)
+    // ResizeObserver: re-mide cuando las alturas cambian (al cargar la tipografía,
+    // reflow, etc.). La primera medición corre antes de que asiente la fuente y
+    // subestimaba alturas → salía 1 hoja con el texto cortado. El guard de
+    // setPaginas evita el bucle (si las páginas no cambian, no re-renderiza). El
+    // medidor no se ve afectado por setPaginas, así que no hay lazo de observación.
+    let ro: ResizeObserver | undefined
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => medir())
+      ro.observe(c)
+    }
+    // Respaldo por si no hay ResizeObserver: re-medir tras cargar fuentes.
+    if (typeof document !== 'undefined' && document.fonts?.ready) document.fonts.ready.then(() => medir())
+    return () => { ro?.disconnect(); clearInterval(iv) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bloques.length, contentH])
+
+  return (
+    <>
+      {/* Medidor oculto: mismos bloques al ancho de la zona de contenido */}
+      <div ref={medRef} aria-hidden style={{ position: 'absolute', left: -99999, top: 0, width: contentW, fontFamily: 'inherit', fontSize: 13, lineHeight: 1.4, visibility: 'hidden' }}>
+        {bloques.map((b, i) => <div key={i}>{b}</div>)}
+      </div>
+      {/* Hojas reales */}
+      {paginas.map((idxs, p) => (
+        <div key={p} className="nota-sheet" style={{
+          width: anchoPx, height: altoPx, position: 'relative', background: '#fff',
+          // margin VERTICAL 0: un margen entre hojas empujaba el contenido más allá
+          // del borde de página al imprimir → salían HOJAS EN BLANCO extra. La
+          // separación en pantalla se da con box-shadow (no ocupa layout, no imprime).
+          margin: '0 auto', overflow: 'hidden', isolation: 'isolate',
+          boxShadow: p > 0 ? '0 -6px 0 -2px rgba(0,0,0,0.06)' : undefined,
+          pageBreakAfter: p < paginas.length - 1 ? 'always' : 'auto',
+          breakAfter: p < paginas.length - 1 ? 'page' : 'auto',
+        }}>
+          {/* Membrete de fondo. z-index:0 (NO -1): html2canvas no dibuja bien los
+              elementos en z-index negativo (el PDF salía SIN membrete). Con z-index:0
+              el <img> se captura en PDF y se imprime; el texto va encima en z-index:1. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="membrete-bg" src={membrete} alt="" aria-hidden
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', zIndex: 0, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', top: topPx, left: leftPx, width: contentW, zIndex: 1 }}>
+            {idxs.map(i => <div key={i}>{bloques[i]}</div>)}
+          </div>
+          {/* Firma CALIBRADA en CADA hoja (el Dr la quiere en todas), centro en x/y %. */}
+          {firma && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={firma.src} alt="Firma del médico" style={{
+              position: 'absolute', left: `${firma.x}%`, top: `${firma.y}%`,
+              transform: 'translate(-50%, -50%)', maxWidth: '38%', maxHeight: '14%',
+              objectFit: 'contain', pointerEvents: 'none', zIndex: 2,
+            }} />
+          )}
+        </div>
+      ))}
+    </>
   )
 }

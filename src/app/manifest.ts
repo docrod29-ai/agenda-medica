@@ -15,7 +15,11 @@ export default function manifest(): MetadataRoute.Manifest {
     categories: ['medical', 'productivity', 'health'],
     icons: [
       { src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
-      { src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'maskable' },
+      // PNG rasterizados 192/512: requisito de instalabilidad (Lighthouse/Android) y
+      // maskable fiable; el SVG solo no bastaba y Safari no lo usa como ícono de app.
+      { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
     // Accesos rápidos (mantener pulsado el ícono). Todas son rutas bajo el layout
     // autenticado → validan sesión al abrir; no exponen datos por sí mismas.

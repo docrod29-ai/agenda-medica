@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { stripe, nivelDePlan } from '@/lib/stripe'
 import { adminDb } from '@/lib/firebase-admin'
 import { agregarCreditosExtra, guardarNivelIA } from '@/lib/ai-keys'
@@ -36,13 +37,41 @@ async function getClinicIdByCustomer(customerId: string): Promise<string | null>
 
 /* ── Stripe → nuestro plan (por monto MXN, respaldo si no viene en metadata) ── */
 function planPorMonto(amount: number): PlanKey {
-  // Precios (centavos MXN): 34900 Agenda · 89900 Clínica · 189900 Pro · 290000 Hospital
+  // Precios (centavos MXN): 34900 Agenda · 89900 Clínica · 159000 Pro · 349900 Hospital (ver PLANES en @/lib/planes-ia)
   if (amount <= 50000) return 'agenda'
   if (amount <= 120000) return 'clinica'
   if (amount <= 220000) return 'premium'
   return 'hospital'
 }
 const ES_PLAN = (p: unknown): p is PlanKey => p === 'agenda' || p === 'clinica' || p === 'premium' || p === 'hospital'
+
+/**
+ * Estado interno del consultorio a partir del estado de la suscripción de Stripe.
+ *
+ * La clave está en `past_due`: Stripe emite ese estado —y un
+ * `invoice.payment_failed`— en el PRIMER intento fallido del ciclo, no al agotar
+ * los reintentos (reintenta a los 3, 5 y 7 días). El manejo anterior suspendía la
+ * clínica en ese instante, así que un rechazo transitorio de tarjeta le quitaba
+ * al médico el acceso a TODOS los expedientes de sus pacientes el mismo día,
+ * aunque el cobro se recuperara 48 h después. Ese es el caso "pierde acceso
+ * pagando".
+ *
+ * Durante el dunning se mantiene el acceso (estado 'active'); solo se corta
+ * cuando Stripe da el cobro por definitivamente perdido (`unpaid`) o cancela la
+ * suscripción (`canceled`).
+ */
+function estadoDeSuscripcion(status: string): 'active' | 'suspended' | 'cancelled' {
+  switch (status) {
+    case 'active':
+    case 'trialing':
+    case 'past_due':      // en reintentos: NO cortar todavía
+      return 'active'
+    case 'canceled':
+      return 'cancelled'
+    default:              // unpaid, incomplete_expired, incomplete → sin acceso
+      return 'suspended'
+  }
+}
 
 /** Activa el plan en el consultorio: estado + MÓDULOS (solo lo que compró) + nivel de IA. */
 async function activarPlan(clinicId: string, plan: PlanKey, extra: Record<string, unknown>) {
@@ -81,11 +110,11 @@ export async function POST(req: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(body, sig, WEBHOOK_SECRET)
   } catch (err) {
-    console.error('[Stripe Webhook] Signature verification failed:', err)
+    safeLog.error('[Stripe Webhook] Signature verification failed:', err)
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
-  console.log(`[Stripe Webhook] ${event.type}`)
+  safeLog.info(`[Stripe Webhook] ${event.type}`)
 
   try {
     switch (event.type) {
@@ -115,7 +144,78 @@ export async function POST(req: NextRequest) {
           break
         }
 
-        // SUSCRIPCIÓN: activa el plan + enciende el nivel de IA.
+        /**
+         * ANTICIPO DEL PACIENTE (pago único desde el portal).
+         *
+         * Antes NO tenía rama propia, y como el desvío de arriba solo mira
+         * `tipo === 'recarga'`, caía en la rama de SUSCRIPCIÓN de abajo. El daño
+         * era doble y silencioso:
+         *
+         *  1. `activarPlan(clinicId, 'clinica')` reescribía el plan del
+         *     consultorio. Una clínica en plan Hospital perdía los módulos que
+         *     paga, y `stripeSubscriptionId` quedaba en '' porque un pago único no
+         *     trae suscripción — rompiendo el vínculo con la suscripción real que
+         *     Stripe sigue cobrando. En el otro sentido, una cuenta de prueba se
+         *     quedaba con plan Clínica activo para siempre por el importe de un
+         *     anticipo.
+         *  2. El dinero del paciente no generaba NINGÚN cobro, así que no existía
+         *     en Finanzas ni en el corte de caja: la cita salía en "cuentas por
+         *     cobrar" ya pagada y la asistente la cobraba otra vez en ventanilla.
+         *
+         * Se registra el cobro con candado atómico por `session.id` —el mismo
+         * patrón que ya usaba la recarga— porque Stripe reintenta el webhook.
+         */
+        if (session.mode === 'payment' && session.metadata?.tipo === 'paciente_anticipo') {
+          const citaId = String(session.metadata?.citaId ?? '')
+          const marca = adminDb.collection('anticipos_procesados').doc(session.id)
+          try {
+            await marca.create({ clinicId, citaId, fecha: new Date().toISOString() })
+          } catch {
+            break  // ya procesado (o carrera perdida) → NO registrar de nuevo
+          }
+          const ahora = new Date()
+          const iso = ahora.toISOString()
+          const dia = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'America/Mexico_City', year: 'numeric', month: '2-digit', day: '2-digit',
+          }).format(ahora)
+          const monto = (session.amount_total ?? 0) / 100
+          const citaRef = citaId ? adminDb.collection('clinics').doc(clinicId).collection('appointments').doc(citaId) : null
+          const cita = citaRef ? (await citaRef.get()).data() as Record<string, unknown> | undefined : undefined
+          // INTEGRIDAD DE PAGO (L1 auditoría maestra): solo se SALDA la cita si lo
+          // pagado cubre el monto esperado (la tarifa que fijó el servidor en
+          // pagoMonto). Un pago parcial se registra como 'abono' y la cita queda
+          // 'pendiente-pago' con el saldo, no como 'pagada'. Así corte-caja no la
+          // da por cobrada (corte-caja: concepto 'abono' NO salda).
+          const esperado = Number(cita?.pagoMonto) || 0
+          const cubre = esperado <= 0 || monto + 0.01 >= esperado
+          await adminDb.collection('clinics').doc(clinicId).collection('cobros').add({
+            fecha: iso, dia, mes: dia.slice(0, 7),
+            monto, metodo: 'tarjeta', concepto: cubre ? 'consulta' : 'abono',
+            descripcion: cubre ? 'Anticipo pagado en línea por el paciente' : 'Abono parcial pagado en línea por el paciente',
+            citaId: citaId || undefined,
+            patientId: (cita?.pacienteId as string) || undefined,
+            patientNombre: (cita?.pacienteNombre as string) || undefined,
+            medicoId: (cita?.medicoId as string) || undefined,
+            medicoNombre: (cita?.medicoNombre as string) || undefined,
+            folio: `CB-${session.id.slice(-7).toUpperCase()}`,
+            referenciaExterna: session.id,
+            createdAt: iso, creadoPor: 'stripe:anticipo', cancelado: false,
+          })
+          if (citaRef) await citaRef.update(cubre
+            ? { estado: 'pagada', pagadoEn: iso, updatedAt: iso }
+            : { estado: 'pendiente-pago', saldoPendiente: Math.max(0, esperado - monto), abonadoEn: iso, updatedAt: iso })
+          break
+        }
+
+        /**
+         * SUSCRIPCIÓN: activa el plan + enciende el nivel de IA.
+         *
+         * La guarda por `mode` es deliberada: cualquier pago único FUTURO que se
+         * añada al portal y no tenga rama propia arriba se descartaría aquí en vez
+         * de reescribir el plan del consultorio, que es lo que pasó con el
+         * anticipo del paciente.
+         */
+        if (session.mode !== 'subscription') break
         const plan = ES_PLAN(session.metadata?.plan) ? session.metadata!.plan as PlanKey : 'clinica'
         const nuevaSubId = String(session.subscription ?? '')
         await activarPlan(clinicId, plan, { stripeSubscriptionId: nuevaSubId })
@@ -136,11 +236,7 @@ export async function POST(req: NextRequest) {
 
         const item = sub.items.data[0]
         const plan = ES_PLAN(sub.metadata?.plan) ? sub.metadata!.plan as PlanKey : planPorMonto(item.price.unit_amount ?? 0)
-        const status = sub.status === 'active' || sub.status === 'trialing'
-          ? 'active'
-          : sub.status === 'canceled'
-            ? 'cancelled'
-            : 'suspended'
+        const status = estadoDeSuscripcion(sub.status)
 
         if (status === 'active') {
           await activarPlan(clinicId, plan, { stripeSubscriptionId: sub.id, stripeSubscriptionStatus: sub.status })
@@ -182,8 +278,27 @@ export async function POST(req: NextRequest) {
           moneda: (invoice.currency ?? 'mxn').toUpperCase(),
           fecha: new Date((invoice.created ?? Math.floor(Date.now() / 1000)) * 1000).toISOString(),
           descripcion: invoice.lines?.data?.[0]?.description ?? 'Suscripción',
+          // livemode: distingue un pago REAL de uno de PRUEBA (Stripe en modo test).
+          // Sin esto la consola contaba el dinero de prueba como ingreso real.
+          livemode: event.livemode === true,
           createdAt: new Date().toISOString(),
         }, { merge: true })
+        /**
+         * Se RESTAURA el acceso al cobrar. Antes `invoice.paid` no tocaba el
+         * estado, así que si la clínica había quedado suspendida por un fallo
+         * previo, recuperarse del cobro no la reactivaba: el médico se quedaba
+         * fuera hasta que llegara —si llegaba— un `subscription.updated`. Solo se
+         * sube a 'active' desde un estado de impago, para no pisar una cancelación
+         * en curso.
+         */
+        if (clinicId) {
+          try {
+            const snap = await adminDb.collection('clinics').doc(clinicId).get()
+            if (snap.get('status') === 'suspended') {
+              await updateClinic(clinicId, { status: 'active', pagoVencido: false })
+            }
+          } catch { /* no-bloqueante: el pago ya quedó registrado */ }
+        }
         break
       }
 
@@ -193,7 +308,15 @@ export async function POST(req: NextRequest) {
         const clinicId = await getClinicIdByCustomer(invoice.customer as string)
         if (!clinicId) break
 
-        await updateClinic(clinicId, { status: 'suspended' })
+        /**
+         * NO se suspende aquí. Stripe emite este evento en el primer intento
+         * fallido del ciclo y sigue reintentando durante días; suspender ya
+         * cortaba el acceso por un rechazo transitorio de tarjeta. Se marca el
+         * pago como vencido —para poder avisarle al médico— y la suspensión real
+         * queda en manos de `subscription.updated` (cuando pase a `unpaid`) o de
+         * `subscription.deleted`, que son los estados terminales del dunning.
+         */
+        await updateClinic(clinicId, { pagoVencido: true })
         break
       }
 
@@ -204,7 +327,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ received: true })
   } catch (err) {
-    console.error(`[Stripe Webhook] Handler error for ${event.type}:`, err)
+    safeLog.error(`[Stripe Webhook] Handler error for ${event.type}:`, err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

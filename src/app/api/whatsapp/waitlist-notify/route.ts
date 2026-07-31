@@ -11,12 +11,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarMiembro } from '@/lib/auth-server'
 import { ClinicConfig, WaitlistEntry } from '@/types'
 import { enviarProactivo } from '@/lib/whatsapp/proactivo'
 import { encolarReintento } from '@/lib/whatsapp/outbox'
-import { hoyISO } from '@/lib/timezone'
+import { hoyISO, TZ_DEFAULT } from '@/lib/timezone'
+import { normalizarTelefonoWa } from '@/lib/whatsapp/consent'
 
 function formatDate(fecha: string): string {
   const d = new Date(fecha + 'T12:00:00')
@@ -25,7 +27,7 @@ function formatDate(fecha: string): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const { fecha, hora, clinicId, tipo: slotTipo } = await req.json()
+    const { fecha, hora, clinicId, tipo: slotTipo, medicoId: slotMedicoId } = await req.json()
     if (!fecha || !hora || !clinicId) {
       return NextResponse.json({ error: 'fecha, hora y clinicId requeridos' }, { status: 400 })
     }
@@ -104,13 +106,20 @@ export async function POST(req: NextRequest) {
         textoLibre: msg,
         waConfig,
         ahoraMs: Date.now(),
-        fechaHoyMx: hoyISO(),
+        // La zona REAL del consultorio: el tope diario por contacto se cuenta
+        // por su día, no por el de México central (Tijuana cierra 2 h antes).
+        fechaHoyMx: hoyISO(config.zonaHoraria || TZ_DEFAULT),
       })
       if (resultado === 'enviado') {
         notified++
 
+        // MISMA clave canónica que el webhook (normalizarTelefonoWa → 52 + 10
+        // dígitos). Antes se guardaba el teléfono crudo y el webhook buscaba por
+        // el wa_id de Meta (formato 521…): no coincidían y la respuesta "SÍ" del
+        // paciente caía al menú por defecto → el hueco se perdía en silencio.
+        const telNorm = normalizarTelefonoWa(entry.pacienteTelefono || '')
         const sessionData = {
-          telefono: entry.pacienteTelefono,
+          telefono: telNorm,
           estado: 'esperando_lista',
           datos: {
             nombre: entry.pacienteNombre,
@@ -119,6 +128,9 @@ export async function POST(req: NextRequest) {
             tipo: entry.tipo || 'seguimiento',
             waitlistId: entry.id,
             pacienteId: entry.pacienteId || '',
+            // medicoId del hueco liberado: sin esto el bot agendaba con el primer
+            // doctor activo, no con el médico al que pertenecía el hueco.
+            medicoId: slotMedicoId || '',
           },
           lastMessageAt: new Date().toISOString(),
           createdAt: new Date().toISOString(),
@@ -140,7 +152,7 @@ export async function POST(req: NextRequest) {
          *
          * Se usa el mismo id determinista, con merge para no pisar lo que ya haya.
          */
-        const idSesion = (entry.pacienteTelefono || '').replace(/\D/g, '').slice(-15) || 'sin-telefono'
+        const idSesion = telNorm || 'sin-telefono'
         await clinicRef.collection('bot_sessions').doc(idSesion).set(sessionData, { merge: true })
 
         // Mark waitlist entry as contactado
@@ -152,13 +164,27 @@ export async function POST(req: NextRequest) {
           to: entry.pacienteTelefono, clave: 'listaEspera',
           datos: { paciente: entry.pacienteNombre.split(' ')[0], medico: config.nombreMedico || 'el médico', fecha: formatDate(fecha), hora },
           textoLibre: msg,
+          // Para que, si el cron reenvía esta oferta, cree la sesión esperando_lista
+          // y el "SÍ" del paciente sí agende el hueco (mismo efecto que el envío inline).
+          meta: {
+            sesionListaEspera: {
+              telefono: normalizarTelefonoWa(entry.pacienteTelefono || ''),
+              nombre: entry.pacienteNombre,
+              slotFecha: fecha,
+              slotHora: hora,
+              tipo: entry.tipo || 'seguimiento',
+              waitlistId: entry.id,
+              pacienteId: entry.pacienteId || '',
+              medicoId: slotMedicoId || '',
+            },
+          },
         }, Date.now())
       }
     }
 
     return NextResponse.json({ ok: true, notified })
   } catch (err) {
-    console.error('[WaitlistNotify] Error:', err)
+    safeLog.error('[WaitlistNotify] Error:', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

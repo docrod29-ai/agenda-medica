@@ -234,6 +234,8 @@ export function exportarPacienteAFhir({
       if (sv.spo2) obs.push({ codigo: '2708-6', display: 'Saturación de oxígeno', valor: sv.spo2, unidad: '%' })
       if (sv.peso) obs.push({ codigo: '29463-7', display: 'Peso', valor: sv.peso, unidad: 'kg' })
       if (sv.talla) obs.push({ codigo: '8302-2', display: 'Talla', valor: sv.talla, unidad: 'cm' })
+      // Dolor/EVA 0-10 (LOINC 72514-3) — L6: no perder el dato capturado en la nota.
+      if (sv.escalaDolor != null) obs.push({ codigo: '72514-3', display: 'Dolor — escala numérica verbal 0-10', valor: sv.escalaDolor, unidad: '{score}' })
 
       obs.forEach((o, i) => {
         const obsId = `Observation/${nota.id}-obs-${i}`
@@ -397,6 +399,28 @@ export function exportarInternamientoAFhir({
         },
       })
     }
+    // L6 (decisión del Dr): NO perder datos clínicos capturados en el round-trip FHIR.
+    // Cada uno como su propia Observation con su LOINC.
+    const vsCat = [{ coding: [{ system: 'http://terminology.hl7.org/CodeSystem/observation-category', code: 'vital-signs' }] } as FhirCodeableConcept]
+    const obsBase = (suf: string, code: string, display: string) => ({
+      resourceType: 'Observation' as const, id: `${internamiento.id}-sv-${si}-${suf}`, status: 'final' as const,
+      category: vsCat, code: { coding: [{ system: SYSTEM.loinc, code, display }] } as FhirCodeableConcept,
+      subject: { reference: patientId } as FhirReference, encounter: { reference: encId } as FhirReference,
+      effectiveDateTime: s.fecha,
+    })
+    // Dolor / EVA 0-10 (LOINC 72514-3)
+    if (s.dolor != null) entries.push({ fullUrl: `Observation/${internamiento.id}-sv-${si}-dolor`,
+      resource: { ...obsBase('dolor', '72514-3', 'Dolor — escala numérica verbal 0-10'), valueQuantity: cantidad(s.dolor, '{score}') } })
+    // Conciencia ACVPU (LOINC 80288-4) — se conserva la letra/valor REAL (no A=0/resto=3)
+    if (s.conciencia != null) entries.push({ fullUrl: `Observation/${internamiento.id}-sv-${si}-acvpu`,
+      resource: { ...obsBase('acvpu', '80288-4', 'Nivel de conciencia (ACVPU)'), valueString: String(s.conciencia) } })
+    // O2 suplementario: sí/no siempre; flujo (3151-8) y FiO2 (3150-0) si se conocen
+    if (s.oxigeno != null) entries.push({ fullUrl: `Observation/${internamiento.id}-sv-${si}-o2`,
+      resource: { ...obsBase('o2', '3150-1', 'Oxígeno suplementario'), valueBoolean: s.oxigeno } })
+    if (s.oxigenoFlujoLpm != null) entries.push({ fullUrl: `Observation/${internamiento.id}-sv-${si}-o2flujo`,
+      resource: { ...obsBase('o2flujo', '3151-8', 'Flujo de O₂ inhalado'), valueQuantity: cantidad(s.oxigenoFlujoLpm, 'L/min') } })
+    if (s.oxigenoFiO2 != null) entries.push({ fullUrl: `Observation/${internamiento.id}-sv-${si}-fio2`,
+      resource: { ...obsBase('fio2', '3150-0', 'Concentración inspirada de O₂ (FiO₂)'), valueQuantity: cantidad(s.oxigenoFiO2, '%') } })
   })
 
   return { resourceType: 'Bundle', type: 'collection', timestamp: base.timestamp, entry: entries }

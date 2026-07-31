@@ -1,7 +1,9 @@
+import { anotarLlamada } from '@/lib/ia/gateway'
+import { esFundador } from '@/lib/authz/fundador'
 import { NextRequest, NextResponse } from 'next/server'
-import { verificarUsuario } from '@/lib/auth-server'
+import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { resolverClaveIA, creditosAgotados } from '@/lib/ai-keys'
+import { resolverClaveIA, gateCreditos } from '@/lib/ai-keys'
 
 /**
  * IA de visión: recibe la imagen del FORMATO de receta del médico y detecta dónde
@@ -41,21 +43,40 @@ NO expliques nada. Responde ÚNICAMENTE el JSON.`
 const CLAVES_VALIDAS = ['nombre', 'edad', 'sexo', 'fecha', 'folio']
 
 export async function POST(req: NextRequest) {
-  const acceso = await verificarUsuario(req)
+  const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
   const _rl = await limitarOResponder(`detectar-campos:${acceso.uid}`, 20, 60)
   if (_rl) return _rl
 
   const { key, fuente, clinicId } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
   if (!key) return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada.' }, { status: 503 })
-  if (fuente === 'prueba' && await creditosAgotados(clinicId)) {
-    return NextResponse.json({ ok: false, sinCreditos: true, error: 'Se acabaron tus créditos con IA del mes. Compra más o sube de plan.' }, { status: 402 })
-  }
+  /**
+   * El gate COMPARTIDO, no uno propio.
+   *
+   * Aquí había una comprobación a mano de `creditosAgotados` que se saltaba el
+   * tope de PRUEBA: una cuenta en cortesía con el cupo consumido seguía llamando
+   * a la API del dueño. `gateCreditos` mira las dos cosas, y es el mismo criterio
+   * que el resto de las rutas — dos gates distintos acaban discrepando.
+   */
+  const _corte = await gateCreditos(clinicId, fuente); if (_corte) return _corte
 
   let body: { imagenBase64?: string; mediaType?: string }
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }
   const { imagenBase64, mediaType } = body
   if (!imagenBase64) return NextResponse.json({ ok: false, error: 'Falta la imagen' }, { status: 400 })
+
+  /**
+   * Contexto del libro de costos. Esta ruta todavía no pasa por el gateway; se
+   * anota el gasto igual, porque una llamada sin asiento no se ve como un error
+   * sino como una plataforma que gasta menos de lo que gasta.
+   */
+  const ctxCosto = {
+    feature: 'receta-detectar-campos',
+    requestId: req.headers.get('x-vercel-id') || `rd-${acceso.uid}-${Date.now()}`,
+    clinicId: clinicId ?? null, uid: acceso.uid, creditos: 0, fuente,
+    esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
+  }
+  const t0Costo = Date.now()
 
   try {
     const model = await resolverModelo(key)
@@ -79,6 +100,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: `IA no disponible (${res.status})`, detalle: t.slice(0, 200) }, { status: 502 })
     }
     const data = await res.json()
+    anotarLlamada(ctxCosto, 'anthropic', String(data?.model ?? ''), data, Date.now() - t0Costo)
     const texto: string = (data.content ?? []).map((c: { text?: string }) => c.text ?? '').join('')
     const m = texto.match(/\{[\s\S]*\}/)
     if (!m) return NextResponse.json({ ok: false, error: 'La IA no devolvió coordenadas' }, { status: 422 })

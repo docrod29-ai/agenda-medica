@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  metaLipidica, planTrigliceridos, interpretarLpa,
+  metaLipidica, planTrigliceridos, interpretarLpa, recomendarEstatina,
   DIETA_LDL, SUPLEMENTOS_SIN_BENEFICIO, SEGUIMIENTO_LIPIDOS,
 } from '@/lib/expediente/cardiometabolico/dislipidemia'
 
@@ -267,5 +267,71 @@ describe('Síntomas musculares por estatina', () => {
   })
   it('la coenzima Q10 no se recomienda', () => {
     expect(SAMS.coenzimaQ10).toMatch(/NO se recomienda/)
+  })
+})
+
+/**
+ * Guía ACC/AHA 2026 validada por el Dr (imágenes de la guía).
+ * Metas de LDL por PREVENT y decisión "¿a quién indicar estatina?".
+ */
+describe('Meta LDL por PREVENT (AHA/ACC 2026)', () => {
+  it('PREVENT <3% → LDL <130, no-HDL <160 (escalón que faltaba)', () => {
+    const m = metaLipidica({ preventPct: 2 })
+    expect(m.ldl).toBe(130)
+    expect(m.noHDL).toBe(160)
+  })
+  it('PREVENT 3–<10% → LDL <100', () => {
+    expect(metaLipidica({ preventPct: 6 }).ldl).toBe(100)
+  })
+  it('PREVENT ≥10% → LDL <70', () => {
+    expect(metaLipidica({ preventPct: 12 }).ldl).toBe(70)
+  })
+  it('ASCVD clínica → LDL <70 (o <55 si muy alto riesgo)', () => {
+    expect(metaLipidica({ ascvdClinica: true }).ldl).toBe(70)
+    expect(metaLipidica({ ascvdClinica: true, muyAltoRiesgo: true }).ldl).toBe(55)
+  })
+  it('sin PREVENT NO se relaja a 130 (se mantiene conservador)', () => {
+    expect(metaLipidica({}).ldl).toBe(100)
+  })
+})
+
+describe('¿A quién indicar estatina? (AHA/ACC 2026)', () => {
+  it('LDL ≥190 → alta intensidad, sin importar el PREVENT', () => {
+    expect(recomendarEstatina({ ldl: 200, preventPct: 1 }).indicar).toBe('alta')
+  })
+  it('ASCVD clínica → alta', () => {
+    expect(recomendarEstatina({ ascvdClinica: true }).indicar).toBe('alta')
+  })
+  it('diabetes 40–75 → moderada; con múltiples FR → alta', () => {
+    expect(recomendarEstatina({ diabetes: true, edad: 55 }).indicar).toBe('moderada')
+    expect(recomendarEstatina({ diabetes: true, edad: 55, diabetesMultiplesFR: true }).indicar).toBe('alta')
+  })
+  it('ERC 3–4 → moderada (alta si ASCVD)', () => {
+    expect(recomendarEstatina({ ercEstadio3o4: true }).indicar).toBe('moderada')
+    expect(recomendarEstatina({ ercEstadio3o4: true, ascvdClinica: true }).indicar).toBe('alta')
+  })
+  it('VIH 40–75 → estatina recomendada (moderada)', () => {
+    expect(recomendarEstatina({ vih: true, edad: 50 }).indicar).toBe('moderada')
+  })
+  it('CAC ≥100 → considerar estatina (moderada)', () => {
+    expect(recomendarEstatina({ cac: 120 }).indicar).toBe('moderada')
+  })
+  it('PREVENT ≥10% → alta; 5–<10% → moderada', () => {
+    expect(recomendarEstatina({ preventPct: 11 }).indicar).toBe('alta')
+    expect(recomendarEstatina({ preventPct: 6 }).indicar).toBe('moderada')
+  })
+  it('PREVENT 3–<5%: considerar moderada solo con potenciadores', () => {
+    expect(recomendarEstatina({ preventPct: 4, potenciadores: true }).indicar).toBe('considerar-moderada')
+    expect(recomendarEstatina({ preventPct: 4 }).sugerirCAC).toBe(true)
+  })
+  it('PREVENT <3% → no de rutina; excepción si LDL 160-189 o riesgo 30a ≥10%', () => {
+    expect(recomendarEstatina({ preventPct: 2, ldl: 140 }).indicar).toBe('no-de-rutina')
+    expect(recomendarEstatina({ preventPct: 2, ldl: 170 }).indicar).toBe('considerar-moderada')
+    expect(recomendarEstatina({ preventPct: 2, prevent30Pct: 12 }).indicar).toBe('considerar-moderada')
+  })
+  it('sin PREVENT → individualizar y sugerir CAC', () => {
+    const r = recomendarEstatina({})
+    expect(r.indicar).toBe('individualizar')
+    expect(r.sugerirCAC).toBe(true)
   })
 })

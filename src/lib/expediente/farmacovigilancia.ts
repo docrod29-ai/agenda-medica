@@ -45,10 +45,26 @@ interface ReglaInteraccion {
 
 const REGLAS: ReglaInteraccion[] = [
   {
-    a: ['warfarina', 'acenocumarol', 'coumadin', 'sintrom'],
+    /**
+     * Auditoría 2026-07 (P1): la regla se llama "Anticoagulante + AINE" pero sólo
+     * listaba antagonistas de vitamina K. Ningún ANTICOAGULANTE ORAL DIRECTO
+     * (apixabán, rivaroxabán, dabigatrán, edoxabán) la disparaba, y hoy son los más
+     * prescritos en fibrilación auricular. Se completa la lista para que la regla
+     * cubra lo que su propio título promete; no se cambió su severidad ni su texto.
+     */
+    a: ['warfarina', 'acenocumarol', 'coumadin', 'sintrom',
+        'apixaban', 'apixabán', 'eliquis',
+        'rivaroxaban', 'rivaroxabán', 'xarelto',
+        'dabigatran', 'dabigatrán', 'pradaxa',
+        'edoxaban', 'edoxabán', 'lixiana',
+        // HBPM y heparina — auditoría 2026-07 (P2): faltaban.
+        'enoxaparina', 'clexane', 'dalteparina', 'tinzaparina', 'nadroparina', 'bemiparina',
+        'fondaparinux', 'heparina',
+        // Antiagregantes — también aumentan el sangrado con AINE.
+        'clopidogrel', 'prasugrel', 'ticagrelor'],
     b: ['ibuprofeno', 'naproxeno', 'ketorolaco', 'diclofenaco', 'aspirina', 'aine', 'meloxicam', 'celecoxib'],
     severidad: 'mayor',
-    titulo: 'Anticoagulante + AINE',
+    titulo: 'Anticoagulante o antiagregante + AINE',
     detalle: 'Riesgo elevado de sangrado (gastrointestinal y otros). Preferir paracetamol; si es indispensable el AINE, gastroprotección y monitoreo de INR.',
   },
   {
@@ -119,7 +135,23 @@ const REGLAS: ReglaInteraccion[] = [
 export function detectarInteracciones(medicamentos: { nombre?: string }[]): AlertaFarmaco[] {
   const nombres = medicamentos.map(m => norm(m.nombre ?? '')).filter(Boolean)
   if (nombres.length < 2) return []
-  const tiene = (terminos: string[]) => terminos.some(t => nombres.some(n => n.includes(t)))
+  /**
+   * FALSO POSITIVO que esto cierra (auditoría 2026-07, P2 — lo hallaron TRES
+   * auditores): el término 'ara' (por ARA-II) casaba por subcadena dentro de
+   * «par-ARA-cetamol», así que un paciente con paracetamol + espironolactona
+   * recibía una alerta de hiperkalemia falsa. Las alertas falsas son caras: enseñan
+   * al médico a ignorar el panel, y entonces la verdadera tampoco se lee.
+   *
+   * Criterio: los términos CORTOS (≤4) son abreviaturas de clase ('ara', 'ieca',
+   * 'isrs', 'aine') y deben aparecer como PALABRA COMPLETA. Los largos son raíces
+   * de principio activo y siguen casando por subcadena, para no perder sensibilidad
+   * (p. ej. 'estatina' debe seguir atrapando «rosuvastatina», que no está listada).
+   */
+  const casa = (n: string, t: string) =>
+    t.length <= 4
+      ? new RegExp(`(^|[^a-z0-9])${t}([^a-z0-9]|$)`).test(n)
+      : n.includes(t)
+  const tiene = (terminos: string[]) => terminos.some(t => nombres.some(n => casa(n, t)))
   const alertas: AlertaFarmaco[] = []
   for (const r of REGLAS) {
     if (tiene(r.a) && tiene(r.b)) {

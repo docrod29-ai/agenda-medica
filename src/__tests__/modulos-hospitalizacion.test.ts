@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { modulosDe, tieneModulo, MODULOS_BASE } from '@/lib/modulos'
 
 describe('Hospitalización es OPT-IN (solo con plan/módulo Hospital explícito)', () => {
-  it('NO aparece por pase libre del dueño', () => {
-    expect(tieneModulo({ paseLibre: true } as never, 'hospitalizacion')).toBe(false)
+  it('SÍ aparece por pase libre del dueño (el dueño ve su app completa)', () => {
+    expect(tieneModulo({ paseLibre: true } as never, 'hospitalizacion')).toBe(true)
   })
 
   it('NO aparece para una clínica sin plan ni módulos definidos', () => {

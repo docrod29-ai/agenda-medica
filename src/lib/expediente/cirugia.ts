@@ -230,7 +230,7 @@ export function planProfilaxis(ab: AntibioticoProfilaxis, duracionHoras: number)
       ? 'Sin intervalo de re-dosis intraoperatoria cargado en la herramienta; verificar el protocolo institucional en cirugías prolongadas.'
       : momentos.length === 0
         ? `Re-dosis cada ${ab.redosisHoras} h; con la duración estimada no se alcanza el primer intervalo.`
-        : `Re-dosis cada ${ab.redosisHoras} h: a las ${momentos.join(' h, a las ')} h de la incisión. También re-dosificar si la pérdida sanguínea supera 1 500 mL.`,
+        : `Re-dosis cada ${ab.redosisHoras} h contadas desde el INICIO de la dosis preoperatoria (no desde la incisión): a las ${momentos.join(' h, a las ')} h. También re-dosificar si la pérdida sanguínea supera 1 500 mL.`,
     duracion: 'Suspender al cerrar la herida. NO prolongar la profilaxis más allá de 24 horas: no reduce la infección de sitio quirúrgico y sí aumenta la resistencia y el riesgo de colitis por Clostridioides difficile.',
     momentosRedosis: momentos,
     nota: ab.nota,

@@ -19,6 +19,14 @@ describe('FIB-4', () => {
     // 50 × 40 / (200 × √25) = 2000 / 1000 = 2.0
     expect(fib4(50, 40, 200, 25)).toBe(2)
   })
+  it('P0 auditoría maestra: caso del reporte (68a, AST 42, plaq 135, ALT 48) → 3.05, NO 3053.54', () => {
+    expect(fib4(68, 42, 135, 48)).toBe(3.05)
+  })
+  it('unidad robusta: mismo resultado con plaquetas en ×10⁹/L (135) o en conteo absoluto (135000)', () => {
+    expect(fib4(68, 42, 135, 48)).toBe(fib4(68, 42, 135_000, 48))
+    // caso absoluto clásico: 50a, AST 40, plaq 150000/µL, ALT 25 → 2.67 (no 0.0027)
+    expect(fib4(50, 40, 150_000, 25)).toBe(2.67)
+  })
   it('rechaza valores inválidos en vez de devolver un número falso', () => {
     expect(fib4(0, 40, 200, 25)).toBeNull()
     expect(fib4(50, 40, 0, 25)).toBeNull()

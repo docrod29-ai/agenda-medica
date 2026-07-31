@@ -1,0 +1,64 @@
+/**
+ * GET /api/superadmin/costos?mes=YYYY-MM
+ *
+ * Lo que costó de verdad la IA, leído del libro de costos
+ * (`platform_cost_ledger`). Sólo el dueño de la plataforma.
+ *
+ * ── LO QUE ESTA RUTA NO HACE ─────────────────────────────────────────────────
+ *
+ * No completa lo que falta. Si un modelo no tiene tarifa cargada, su costo va
+ * `null` y aparece en `modelosSinTarifa` — no se estima, no se promedia, no se
+ * suma como cero. §Y: «si no existe información suficiente, INSUFFICIENT_DATA.
+ * Nunca inventar». Un total calculado sobre la mitad de las llamadas no es un
+ * total, y en un tablero se ve exactamente igual que uno completo.
+ */
+import { NextRequest, NextResponse } from 'next/server'
+import { adminDb } from '@/lib/firebase-admin'
+import { verificarSuperadmin } from '@/lib/superadmin'
+import { safeLog } from '@/lib/security/sanitize'
+import { resumir, soloCogs, porClave, suficiente, type EventoCosto } from '@/lib/finanzas/cost-ledger'
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
+const mesActual = () => new Date().toISOString().slice(0, 7)
+
+export async function GET(req: NextRequest) {
+  const acc = await verificarSuperadmin(req)
+  if (!acc.ok) return acc.response
+
+  const mes = (req.nextUrl.searchParams.get('mes') || mesActual()).slice(0, 7)
+  try {
+    // El asiento guarda `ts` en ISO, así que el mes es un prefijo de cadena: un
+    // rango [mes-01, mes-32) ordena igual y no necesita índice compuesto.
+    const snap = await adminDb.collection('platform_cost_ledger')
+      .where('ts', '>=', `${mes}-01`)
+      .where('ts', '<', `${mes}-32`)
+      .limit(5000)
+      .get()
+
+    const eventos = snap.docs.map(d => d.data() as EventoCosto)
+    const cogs = soloCogs(eventos)
+    const total = resumir(eventos)
+
+    return NextResponse.json({
+      ok: true,
+      mes,
+      // El total de TODO y el de COGS son distintos a propósito: el gasto de I+D
+      // del fundador no es costo de servir a ningún cliente (§CD).
+      total,
+      cogs: resumir(cogs),
+      /** ¿Se puede AFIRMAR el costo, o falta demasiada tarifa? */
+      confiable: suficiente(total),
+      porFeature: porClave(eventos, e => e.feature),
+      porModelo: porClave(eventos, e => e.modelo),
+      porClase: porClave(eventos, e => e.clase),
+      // Si se alcanzó el tope, el tablero tiene que decirlo: un total truncado
+      // en silencio se lee como un total.
+      truncado: snap.size >= 5000,
+    })
+  } catch (err) {
+    safeLog.error('[superadmin/costos]', err)
+    return NextResponse.json({ ok: false, error: 'No se pudo leer el libro de costos.' }, { status: 500 })
+  }
+}

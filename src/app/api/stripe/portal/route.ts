@@ -6,9 +6,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { stripe } from '@/lib/stripe'
 import { adminDb } from '@/lib/firebase-admin'
-import { verificarMiembro } from '@/lib/auth-server'
+import { verificarCapacidad } from '@/lib/authz/verificar'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.vercel.app'
 
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
     if (!clinicId) {
       return NextResponse.json({ error: 'clinicId required' }, { status: 400 })
     }
-    const acceso = await verificarMiembro(req, clinicId)
+    const acceso = await verificarCapacidad(req, clinicId, 'administrar')
     if (!acceso.ok) return acceso.response
 
     const clinicSnap = await adminDb.collection('clinics').doc(clinicId).get()
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ url: session.url })
   } catch (err) {
-    console.error('[Stripe Portal] Error:', err)
+    safeLog.error('[Stripe Portal] Error:', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

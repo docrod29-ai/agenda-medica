@@ -24,7 +24,17 @@ interface ReglaIntrinseca {
   /** Claves para reconocer la especie/grupo. */
   claves: string[]
   /** Antibióticos (sinónimos) a los que es intrínsecamente R. */
-  resistentes: { agente: string[]; nota: string }[]
+  resistentes: {
+    agente: string[]
+    nota: string
+    /**
+     * Si se define, una «S» reportada NO es un conflicto (error de ID) sino un
+     * fenómeno conocido: se emite este texto como alerta clínica y NO se sugiere
+     * como error de especie ni como susceptible utilizable. Para TMP-SMX en
+     * Enterococcus (S in vitro sin folatos, R in vivo con folatos exógenos).
+     */
+    avisoClinico?: string
+  }[]
   ref: string
 }
 
@@ -134,7 +144,14 @@ const REGLAS: ReglaIntrinseca[] = [
       { agente: CEFEPIME, nota: 'Enterococcus: cefepime (y toda cefalosporina) R intrínseco.' },
       { agente: AZTREONAM, nota: 'Enterococcus (Gram+): aztreonam R intrínseco (los monobactámicos no cubren Gram+).' },
       { agente: COLISTINA, nota: 'Enterococcus (Gram+): colistina/polimixina R intrínseco.' },
-      { agente: COTRIMOXAZOL, nota: 'Enterococcus: cotrimoxazol R in vivo (puede aparecer S in vitro — no fiable).' },
+      {
+        agente: COTRIMOXAZOL,
+        nota: 'Enterococcus: cotrimoxazol R in vivo (puede aparecer S in vitro — no fiable).',
+        // NO es un error de identificación: es fisiológico. El enterococo parece S
+        // in vitro porque el medio no lleva folatos; in vivo usa folatos exógenos y
+        // el fármaco falla. Alerta clínica, no conflicto de especie.
+        avisoClinico: 'No reportar susceptibilidad clínica para TMP-SMX en Enterococcus spp. La aparente susceptibilidad in vitro no predice eficacia clínica.',
+      },
       { agente: ['clindamicina'], nota: 'Enterococcus: clindamicina R intrínseco.' },
     ],
     ref: REF.GRAM_POS,
@@ -160,7 +177,7 @@ export function evaluarIntrinseca(
   const notas: NotaIntrinseca[] = []
   for (const regla of REGLAS) {
     if (!organismoEs(organismo, regla.claves)) continue
-    for (const { agente, nota } of regla.resistentes) {
+    for (const { agente, nota, avisoClinico } of regla.resistentes) {
       if (!agente.length) continue
       /**
        * TODAS las filas que correspondan, no solo la primera.
@@ -174,12 +191,22 @@ export function evaluarIntrinseca(
        */
       for (const fila of todosLosEstados(resultados, agente)) {
         if (!ES_S(fila.interpretacion)) continue
-        notas.push({
-          tipo: 'conflicto',
-          antibiotico: fila.antibiotico || nombreLegible(agente),
-          mensaje: `⚠️ Reporte «S» para un agente de resistencia intrínseca. ${nota} Reconfirmar identificación de especie y la prueba.`,
-          referencia: regla.ref,
-        })
+        if (avisoClinico) {
+          // Fenómeno conocido (no error de ID): alerta clínica, NO conflicto.
+          notas.push({
+            tipo: 'alerta_clinica',
+            antibiotico: fila.antibiotico || nombreLegible(agente),
+            mensaje: `⚠️ ${avisoClinico}`,
+            referencia: regla.ref,
+          })
+        } else {
+          notas.push({
+            tipo: 'conflicto',
+            antibiotico: fila.antibiotico || nombreLegible(agente),
+            mensaje: `⚠️ Reporte «S» para un agente de resistencia intrínseca. ${nota} Reconfirmar identificación de especie y la prueba.`,
+            referencia: regla.ref,
+          })
+        }
       }
     }
   }

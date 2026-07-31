@@ -112,7 +112,7 @@ export function Section({ title, icon, obligatorio, children }: { title: string;
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
         {icon && <span style={{ color: 'var(--teal)' }}>{icon}</span>}
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{title}</span>
-        {obligatorio && <span style={{ color: '#f87171', fontSize: 13 }}>*</span>}
+        {obligatorio && <span style={{ color: 'var(--red)', fontSize: 13 }}>*</span>}
       </div>
       {children}
     </div>
@@ -121,7 +121,7 @@ export function Section({ title, icon, obligatorio, children }: { title: string;
 
 export const S = {
   back: { display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer', marginBottom: 14, padding: 0 } as React.CSSProperties,
-  alergia: { display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 } as React.CSSProperties,
+  alergia: { display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', color: 'var(--red)', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 } as React.CSSProperties,
   firmadaBadge: { display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(61,90,254,0.12)', color: 'var(--teal)', fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 100 } as React.CSSProperties,
   grabCard: { background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, padding: 18, marginBottom: 20 } as React.CSSProperties,
   transcripcion: { width: '100%', marginTop: 14, minHeight: 100, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, fontSize: 13, color: 'var(--text2)', lineHeight: 1.6, resize: 'vertical', outline: 'none' } as React.CSSProperties,
@@ -131,12 +131,12 @@ export const S = {
   miniLabel: { fontSize: 11, color: 'var(--text3)', display: 'block', marginBottom: 3 } as React.CSSProperties,
   miniInput: { width: '100%', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 8px', fontSize: 13, color: 'var(--text)', outline: 'none' } as React.CSSProperties,
   row: { display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' } as React.CSSProperties,
-  del: { background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: 6, flexShrink: 0 } as React.CSSProperties,
+  del: { background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: 6, flexShrink: 0 } as React.CSSProperties,
   addBtn: { display: 'flex', alignItems: 'center', gap: 5, background: 'var(--s2)', border: '1px dashed var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, cursor: 'pointer' } as React.CSSProperties,
   chip: (a: boolean): React.CSSProperties => ({ background: a ? 'var(--teal)' : 'var(--s2)', color: a ? '#000' : 'var(--text2)', border: '1px solid var(--border)', borderRadius: 100, padding: '6px 12px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }),
   iaBtn: (d: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: 7, background: d ? 'var(--s3)' : 'var(--nexus)', color: d ? 'var(--text3)' : '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 600, cursor: d ? 'default' : 'pointer', letterSpacing: '-0.005em' }),
   valBox: (t: 'error' | 'warn'): React.CSSProperties => ({ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 6, background: t === 'error' ? 'rgba(239,68,68,0.08)' : 'rgba(245,158,11,0.08)', border: `1px solid ${t === 'error' ? 'rgba(239,68,68,0.25)' : 'rgba(245,158,11,0.25)'}`, color: t === 'error' ? '#f87171' : '#f59e0b', borderRadius: 8, padding: '12px 14px', fontSize: 12.5 }),
   firmar: (d: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: 8, background: d ? 'var(--s3)' : 'var(--teal)', color: d ? 'var(--text3)' : '#000', border: 'none', borderRadius: 10, padding: '13px 22px', fontSize: 15, fontWeight: 700, cursor: d ? 'default' : 'pointer' }),
   guardar: { background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 10, padding: '13px 18px', fontSize: 14, cursor: 'pointer' } as React.CSSProperties,
-  descartar: { display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', borderRadius: 10, padding: '13px 16px', fontSize: 14, cursor: 'pointer' } as React.CSSProperties,
+  descartar: { display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--red)', borderRadius: 10, padding: '13px 16px', fontSize: 14, cursor: 'pointer' } as React.CSSProperties,
 }

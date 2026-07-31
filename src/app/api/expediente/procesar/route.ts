@@ -15,9 +15,11 @@ import { buildSystemPrompt, buildUserPrompt } from '@/lib/expediente/prompts'
 import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
 import { parserClinicoComoRespuestaIA } from '@/lib/expediente/parser-clinico'
 import { safeLog, redactarString } from '@/lib/security/sanitize'
-import { verificarUsuario } from '@/lib/auth-server'
+import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { resolverClaveIA, registrarUso, nivelIADe, registrarCreditos, registrarConsultaEconomica, economicasDelMes, entitlementsDe, creditosUsadosDelMes, creditosExtraDelMes } from '@/lib/ai-keys'
+import { anotarLlamada } from '@/lib/ia/gateway'
+import { esFundador } from '@/lib/authz/fundador'
+import { gateCreditos, resolverClaveIA, registrarUso, nivelIADe, registrarCreditos, registrarConsultaEconomica, economicasDelMes, entitlementsDe, creditosUsadosDelMes, creditosExtraDelMes  } from '@/lib/ai-keys'
 import { planDeNivel, estadoUso, MOTORES, motorPorClave, motorPorDefecto, topeEconomicoDe } from '@/lib/planes-ia'
 import type { TipoNota, PacienteContexto } from '@/types/expediente'
 
@@ -186,7 +188,7 @@ export const maxDuration = 300
 export async function POST(req: NextRequest) {
   // Seguridad: solo usuarios autenticados. Procesa PHI y consume la API key
   // de Anthropic — sin esto cualquiera con la URL la quemaba.
-  const acceso = await verificarUsuario(req)
+  const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
 
   // Tope de ráfaga sobre el sistema de créditos: la generación de nota cuesta IA. 40/min por usuario.
@@ -195,6 +197,12 @@ export async function POST(req: NextRequest) {
 
   // Llave del consultorio (o la del dueño en modo prueba con tope).
   const { key: API_KEY, fuente, clinicId } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
+  // TOPE DE CRÉDITOS (auditoría 26-jul): sin esto, un consultorio con los
+  // créditos agotados seguía quemando la llave del dueño indefinidamente.
+  // `gateCreditos` sólo corta cuando la llave es la del dueño (`prueba`):
+  // con llave propia del consultorio NO se corta, porque paga su propia API.
+  const corteCreditos = await gateCreditos(clinicId, fuente)
+  if (corteCreditos) return corteCreditos
   if (!API_KEY) {
     return NextResponse.json(
       { ok: false, error: 'No hay API key de Claude configurada. Agrégala en Configuración → Llaves de IA.' },
@@ -213,6 +221,26 @@ export async function POST(req: NextRequest) {
   if (!transcripcion || !tipo || !contexto) {
     return NextResponse.json({ ok: false, error: 'Faltan transcripcion, tipo o contexto' }, { status: 400 })
   }
+
+  /**
+   * Contexto del libro de costos.
+   *
+   * Esta ruta NO pasa por el gateway todavía: hace descubrimiento de modelos
+   * contra `/v1/models`, usa razonamiento extendido y reintenta sin él ante un
+   * 400. Migrarla entera cambiaría de callado cómo razona la nota que el médico
+   * firma. Pero es la llamada MÁS CARA de la plataforma, y hasta hoy no dejaba
+   * un solo renglón: se anota el costo aunque el enrutado venga después.
+   */
+  const ctxCosto = {
+    feature: 'nota-consulta',
+    requestId: req.headers.get('x-vercel-id') || `np-${acceso.uid}-${Date.now()}`,
+    clinicId: clinicId ?? null,
+    uid: acceso.uid,
+    creditos: 0,   // los créditos los cobra esta ruta por su cuenta, más abajo
+    fuente,
+    esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
+  }
+  const t0Costo = Date.now()
 
   const nivel = await nivelIADe(clinicId)
 
@@ -305,6 +333,7 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await res.json()
+    anotarLlamada(ctxCosto, 'anthropic', String(data?.model ?? model), data, Date.now() - t0Costo)
     // Con "extended thinking" el content trae bloques {type:'thinking'} ANTES del
     // {type:'text'}; tomamos el bloque de texto, no content[0] (que sería el
     // razonamiento). Sin thinking, content[0] ya es el texto.
@@ -314,7 +343,7 @@ export async function POST(req: NextRequest) {
 
     // Si Claude devolvió string vacío, es signo de bloqueo/timeout
     if (!text.trim()) {
-      console.warn('[procesar] Claude devolvió texto vacío. stop_reason=', stopReason)
+      safeLog.warn('[procesar] Claude devolvió texto vacío. stop_reason=', stopReason)
       return fallbackVisible(
         transcripcion, tipo,
         `IA de estructura devolvió respuesta vacía (stop_reason=${stopReason || 'desconocido'}).`,
@@ -334,6 +363,8 @@ export async function POST(req: NextRequest) {
       const res2 = await llamarClaudeConReintentos(API_KEY, model, system, userMsg, false, 32000)
       if (res2.ok) {
         const data2 = await res2.json().catch(() => null)
+        // El reintento es OTRA llamada y cuesta otros tokens: su asiento va aparte.
+        anotarLlamada(ctxCosto, 'anthropic', String(data2?.model ?? model), data2, Date.now() - t0Costo)
         const b2: { type?: string; text?: string }[] = Array.isArray(data2?.content) ? data2.content : []
         const t2: string = b2.find(x => x?.type === 'text')?.text ?? b2[0]?.text ?? ''
         const p2 = parseJSON(t2)
@@ -342,7 +373,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!parsed) {
-      console.warn('[procesar] JSON no parseable. stop_reason=', stopReason, 'primeros 300 chars:', text.slice(0, 300))
+      safeLog.warn('[procesar] JSON no parseable. stop_reason=', stopReason, 'primeros 300 chars:', text.slice(0, 300))
       const fueCortado = stopReason === 'max_tokens'
       return fallbackVisible(
         transcripcion, tipo,
@@ -375,7 +406,7 @@ export async function POST(req: NextRequest) {
 
     const validation = RespuestaExtraccion.safeParse(parsed)
     if (!validation.success) {
-      console.warn('[procesar] Validación parcial:', validation.error.issues.slice(0, 3))
+      safeLog.warn('[procesar] Validación parcial:', validation.error.issues.slice(0, 3))
       void registrarUso(clinicId, fuente)
       return NextResponse.json({ ok: true, ...parsed, _schemaWarning: true, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION })
     }
@@ -433,7 +464,7 @@ export async function POST(req: NextRequest) {
     // usó (para la insignia). _modoEconomico: bajó a ⚡ Rápida por falta de créditos.
     return NextResponse.json({ ok: true, ...notaFinal, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION, _modelosNota: modelosNota })
   } catch (err) {
-    console.error('[expediente/procesar] Exception:', err)
+    safeLog.error('[expediente/procesar] Exception:', err)
     try {
       return fallbackVisible(
         transcripcion, tipo,
@@ -483,7 +514,7 @@ function parseJSON(text: string): Record<string, unknown> | null {
     .replace(/,(\s*[}\]])/g, '$1')
 
   try { return JSON.parse(limpio) } catch {
-    console.warn('[procesar] JSON inválido incluso tras limpieza. Primeros 200 chars:', slice.slice(0, 200))
+    safeLog.warn('[procesar] JSON inválido incluso tras limpieza. Primeros 200 chars:', slice.slice(0, 200))
     return null
   }
 }

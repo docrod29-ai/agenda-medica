@@ -82,12 +82,27 @@ export function categoriaPorAlcohol(
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * FIB-4 = (edad × AST) / (plaquetas × √ALT)
- * Plaquetas en 10⁹/L (es decir, 250 000/mm³ se captura como 250).
+ * Normaliza plaquetas a ×10⁹/L SIN importar en qué unidad lleguen. Las plaquetas
+ * se reportan como ×10⁹/L (p. ej. 135) o como CONTEO ABSOLUTO /µL (135 000) según
+ * la fuente (panel manual vs parser de laboratorio). Se detecta por MAGNITUD:
+ * fisiológicamente las plaquetas en ×10⁹/L van ~5–1000; un valor > 2000 solo puede
+ * ser conteo absoluto → se divide entre 1000. Es una guarda de UNIDAD (software),
+ * no un umbral clínico. Blinda a TODOS los llamadores de fib4 (auditoría maestra:
+ * un fix previo dividía /1000 en un sitio y rompía la fuente que ya venía en 10⁹/L
+ * → FIB-4 salía 1000× — p. ej. 68/42/135/48 daba 3053.54 en vez de 3.05).
+ */
+export function plaquetasEn10a9(plaquetas: number): number {
+  return plaquetas > 2000 ? plaquetas / 1000 : plaquetas
+}
+
+/**
+ * FIB-4 = (edad × AST) / (plaquetas × √ALT). Plaquetas en 10⁹/L; si llegan en
+ * conteo absoluto (>2000) se normalizan solas (ver plaquetasEn10a9).
  */
 export function fib4(edad: number, ast: number, plaquetas: number, alt: number): number | null {
   if (!(edad > 0) || !(ast > 0) || !(plaquetas > 0) || !(alt > 0)) return null
-  const v = (edad * ast) / (plaquetas * Math.sqrt(alt))
+  const plaq = plaquetasEn10a9(plaquetas)
+  const v = (edad * ast) / (plaq * Math.sqrt(alt))
   return Math.round(v * 100) / 100
 }
 

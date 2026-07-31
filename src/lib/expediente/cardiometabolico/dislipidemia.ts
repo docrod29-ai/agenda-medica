@@ -145,9 +145,24 @@ export function metaLipidica(e: EntradaMetas): MetaLipidica {
     ldl: 100, noHDL: 130,
     poblacion: 'Hipertrigliceridemia en menor de 50 años sin potenciadores de riesgo adicionales',
   }
+
+  /**
+   * BAJO RIESGO — escalón que faltaba (validado por el Dr contra la guía ACC/AHA
+   * 2026): con PREVENT-ASCVD a 10 años <3% la meta es LDL-C <130 y no-HDL-C <160.
+   * SOLO se relaja a <130 cuando el PREVENT bajo está REALMENTE calculado; sin ese
+   * dato se mantiene la meta más estricta (<100), porque no se debe aflojar la meta
+   * sin haber demostrado el bajo riesgo.
+   */
+  if (e.preventPct != null && e.preventPct < 3) return {
+    ldl: 130, noHDL: 160,
+    poblacion: 'Prevención primaria con riesgo PREVENT-ASCVD a 10 años menor de 3%',
+  }
+
   return {
     ldl: 100, noHDL: 130, apoB: tgEnRango ? 90 : undefined,
-    poblacion: 'Prevención primaria con riesgo PREVENT-ASCVD menor de 10%',
+    poblacion: e.preventPct != null
+      ? 'Prevención primaria con riesgo PREVENT-ASCVD a 10 años de 3% a menos de 10%'
+      : 'Prevención primaria (PREVENT-ASCVD no calculado): meta conservadora',
   }
 }
 
@@ -396,6 +411,87 @@ export const ADVERTENCIA_SIMVASTATINA =
   'La FDA NO recomienda iniciar simvastatina 80 mg ni titular hasta 80 mg, por el aumento del riesgo de miopatía incluida rabdomiólisis.'
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 6b. ¿A QUIÉN INDICAR ESTATINA? — decisión por escenario (guía ACC/AHA 2026)
+//     Validado por el Dr. contra la guía. Los escenarios "otros" ganan sobre el
+//     PREVENT: LDL≥190, ASCVD y diabetes NO dependen del score.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface EntradaEstatina {
+  edad?: number
+  ldl?: number
+  preventPct?: number
+  /** Riesgo PREVENT a 30 años (%). */
+  prevent30Pct?: number
+  ascvdClinica?: boolean
+  diabetes?: boolean
+  /** Diabético con múltiples factores de riesgo → alta intensidad. */
+  diabetesMultiplesFR?: boolean
+  ercEstadio3o4?: boolean
+  vih?: boolean
+  cac?: number
+  /** Potenciadores de riesgo presentes (para el rango 3–<5%). */
+  potenciadores?: boolean
+}
+
+export interface RecomendacionEstatina {
+  indicar: 'alta' | 'moderada' | 'considerar-moderada' | 'no-de-rutina' | 'individualizar'
+  motivo: string
+  /** Para prevención primaria dudosa: apoyar la decisión con CAC. */
+  sugerirCAC?: boolean
+}
+
+/**
+ * Decide la intensidad de estatina por escenario (imagen "¿A quién indicar una
+ * estatina?" de la guía 2026). Orden: primero los escenarios que NO dependen del
+ * PREVENT (más deterministas y de mayor peso), luego el score.
+ */
+export function recomendarEstatina(e: EntradaEstatina): RecomendacionEstatina {
+  // ── Escenarios independientes del PREVENT ──
+  if (e.ldl != null && e.ldl >= 190) return {
+    indicar: 'alta', motivo: 'LDL-C ≥190 mg/dL: estatina de alta intensidad, independiente del PREVENT.',
+  }
+  if (e.ascvdClinica) return {
+    indicar: 'alta', motivo: 'ASCVD clínica establecida: estatina de alta intensidad.',
+  }
+  const enRango4075 = e.edad != null && e.edad >= 40 && e.edad <= 75
+  if (e.diabetes && enRango4075) return e.diabetesMultiplesFR
+    ? { indicar: 'alta', motivo: 'Diabetes (40–75 años) con múltiples factores de riesgo: estatina de alta intensidad.' }
+    : { indicar: 'moderada', motivo: 'Diabetes (40–75 años): estatina de intensidad moderada.' }
+  if (e.ercEstadio3o4) return e.ascvdClinica
+    ? { indicar: 'alta', motivo: 'ERC estadio 3–4 con ASCVD: terapia hipolipemiante de alta intensidad.' }
+    : { indicar: 'moderada', motivo: 'ERC estadio 3–4: terapia hipolipemiante para prevención primaria (alta intensidad si hay ASCVD).' }
+  if (e.vih && enRango4075) return {
+    indicar: 'moderada', motivo: 'Persona con VIH (40–75 años): estatina recomendada.',
+  }
+  if (e.cac != null && e.cac >= 100) return {
+    indicar: 'moderada', motivo: 'CAC ≥100 UA: considerar estatina como primera línea.',
+  }
+
+  // ── Según PREVENT a 10 años ──
+  const p = e.preventPct
+  if (p == null) return {
+    indicar: 'individualizar',
+    motivo: 'Calcula el PREVENT (10 y 30 años) para decidir la indicación; complementa con potenciadores y, si hay incertidumbre, con calcio coronario.',
+    sugerirCAC: true,
+  }
+  if (p >= 10) return { indicar: 'alta', motivo: `PREVENT ${p}% (≥10%): estatina de alta intensidad.` }
+  if (p >= 5) return {
+    indicar: 'moderada',
+    motivo: `PREVENT ${p}% (5–<10%): estatina de intensidad moderada${p >= 7.5 ? ' (subir a alta si el riesgo es cercano al 10%)' : ''}.`,
+  }
+  if (p >= 3) return {
+    indicar: e.potenciadores ? 'considerar-moderada' : 'individualizar',
+    motivo: `PREVENT ${p}% (3–<5%): considerar estatina moderada SI existen potenciadores de riesgo.`,
+    sugerirCAC: !e.potenciadores,
+  }
+  // p < 3
+  const excepcion = (e.ldl != null && e.ldl >= 160 && e.ldl <= 189) || (e.prevent30Pct != null && e.prevent30Pct >= 10)
+  return excepcion
+    ? { indicar: 'considerar-moderada', motivo: `PREVENT ${p}% (<3%) pero con excepción (LDL 160–189 mg/dL o riesgo a 30 años ≥10%): es razonable una estatina moderada para limitar la exposición acumulada.` }
+    : { indicar: 'no-de-rutina', motivo: `PREVENT ${p}% (<3%): estatina no de rutina; consejería de hábitos. Reevaluar el riesgo a 30 años.` }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // 7. PREVENT: categorías de riesgo
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -495,7 +591,7 @@ export const NO_ESTATINAS_LDL: NoEstatina[] = [
 ]
 
 export const NO_ESTATINAS_TG: NoEstatina[] = [
-  { nombre: 'Icosapento de etilo', dosis: '4 g dos veces al día con alimentos', via: 'Oral', efecto: 'Reduce triglicéridos; en REDUCE-IT redujo 25% el desenlace primario.', nota: 'Contiene SOLO EPA. Vigilar fibrilación auricular (3.1% frente a 2.1%) y sangrado. No confundir con los aceites de pescado de venta libre.' },
+  { nombre: 'Icosapento de etilo', dosis: '2 g dos veces al día con alimentos (4 g/día en total)', via: 'Oral', efecto: 'Reduce triglicéridos; en REDUCE-IT redujo 25% el desenlace primario.', nota: 'Contiene SOLO EPA. Dosis de la etiqueta/REDUCE-IT = 2 g c/12 h (4 g/día). Vigilar fibrilación auricular (3.1% frente a 2.1%) y sangrado. No confundir con los aceites de pescado de venta libre.' },
   { nombre: 'Fenofibrato', dosis: '40 a 200 mg una vez al día', via: 'Oral', efecto: 'Baja los triglicéridos 30% a 50%.', nota: 'Primera línea en hipertrigliceridemia severa. Los ensayos NO muestran reducción de eventos al agregarlo a estatina.' },
   { nombre: 'Gemfibrozilo', dosis: '600 mg dos veces al día', via: 'Oral', efecto: 'Baja los triglicéridos 30% a 50%.', nota: 'NO debe combinarse con estatina: la interacción es seria.' },
   { nombre: 'Olezarsén', dosis: '80 mg una vez al mes', via: 'Subcutánea', efecto: 'Bajó los triglicéridos 43.5% a 6 meses y redujo los episodios de pancreatitis.', nota: 'Aprobado ÚNICAMENTE para síndrome de quilomicronemia familiar. Vigilar trombocitopenia.' },

@@ -45,6 +45,7 @@ export type AuditEvento =
   | 'login_exitoso'              // usuario inició sesión
   | 'login_fallido'              // intento de login fallido
   | 'export_datos'               // se exportaron datos del paciente
+  | 'cobro_exento'               // se marcó una cita como cortesía (no cobrar), con motivo
   // === Hospitalización (trazabilidad NOM-004) ===
   | 'hosp_ingreso'               // ingreso hospitalario
   | 'hosp_egreso'                // egreso hospitalario

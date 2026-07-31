@@ -16,12 +16,10 @@
 import { adminDb } from '@/lib/firebase-admin'
 
 // ── Puro: normalización de teléfono (misma clave en registro y verificación) ──
-
-/** Normaliza a solo dígitos con lada 52 (MX). Clave estable del registro. */
-export function normalizarTelefonoWa(raw: string): string {
-  const d = (raw || '').replace(/\D/g, '')
-  return d.startsWith('52') && d.length >= 12 ? d : `52${d}`
-}
+// Se movió a `./telefono` (module client-safe) y se re-exporta aquí para no romper
+// los imports existentes `from '@/lib/whatsapp/consent'`.
+export { normalizarTelefonoWa } from '@/lib/whatsapp/telefono'
+import { normalizarTelefonoWa } from '@/lib/whatsapp/telefono'
 
 // ── Puro: detección de intención de baja / alta ──────────────────────────────
 

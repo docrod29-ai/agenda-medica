@@ -14,6 +14,9 @@
 // 1. AJUSTE POR FUNCIÓN RENAL
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Normaliza para comparar: minúsculas y sin acentos. */
+const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+
 export interface ReglaRenal {
   /** TFG mínima (inclusive) a la que aplica esta regla, en mL/min/1.73 m². */
   desde: number
@@ -29,6 +32,34 @@ export interface FarmacoRenal {
   clase: string
   reglas: ReglaRenal[]
   nota?: string
+  /**
+   * Principios activos de esta clase. IMPRESCINDIBLE cuando `nombre` es un nombre
+   * de CLASE ('Antiinflamatorios no esteroideos', 'Aminoglucósidos').
+   *
+   * EL BUG QUE ESTO CIERRA (auditoría 2026-07, P0 — lo encontraron CINCO
+   * especialistas por separado): ninguna receta real dice «Antiinflamatorios no
+   * esteroideos», dice «Ketorolaco 30 mg». El match por subcadena contra el nombre
+   * de clase NUNCA coincidía, así que la contraindicación de AINE con TFG<30 y la
+   * nota de la «triple whammy» (AINE + IECA/ARA-II + diurético) eran CÓDIGO MUERTO.
+   * Se reprodujo ejecutando el copiloto: paciente con TFG 28 + ketorolaco +
+   * ibuprofeno + losartán + furosemida devolvía SOLO la TFG, cero alertas. Y el
+   * médico veía que sí alertaba de metformina en el mismo paciente, así que la
+   * ausencia de alerta se leía como aprobación.
+   *
+   * Es el MISMO defecto que ya se había corregido para EMBARAZO_LACTANCIA (ver el
+   * comentario de `sinonimos` en RiesgoGestacional) y que aquí quedó sin corregir.
+   */
+  sinonimos?: string[]
+}
+
+/**
+ * Coincidencia de un fármaco recetado contra una entrada del catálogo renal:
+ * por su nombre O por cualquiera de sus principios activos.
+ * `q` debe venir ya normalizado y con al menos 3 caracteres.
+ */
+export function coincideRenal(x: FarmacoRenal, q: string): boolean {
+  const c = (n: string) => { const s = norm(n); return !!s && (q.includes(s) || s.includes(q)) }
+  return c(x.nombre) || (x.sinonimos ?? []).some(c)
 }
 
 /**
@@ -90,6 +121,10 @@ export const AJUSTE_RENAL: FarmacoRenal[] = [
   },
   {
     nombre: 'Antiinflamatorios no esteroideos', clase: 'Analgésico',
+    // Misma lista de miembros que ya usa la familia de alergia en copiloto.ts
+    // (FAMILIAS_ALERGIA, 'antiinflamatorios no esteroideos'). No se inventó ninguno.
+    sinonimos: ['aine', 'ibuprofeno', 'naproxeno', 'diclofenaco', 'ketorolaco', 'indometacina',
+      'meloxicam', 'aspirina', 'acido acetilsalicilico', 'celecoxib'],
     reglas: [
       { desde: 60, hasta: 999, conducta: 'Usar el menor tiempo posible; vigilar la función renal y la presión arterial.' },
       { desde: 30, hasta: 60, conducta: 'Evitar salvo indicación clara, dosis mínima y por pocos días.' },
@@ -105,6 +140,9 @@ export const AJUSTE_RENAL: FarmacoRenal[] = [
   },
   {
     nombre: 'Aminoglucósidos', clase: 'Antibiótico',
+    // Mismos principios activos que ya lista funcion-renal.ts para esta clase.
+    // Si el Dr quiere añadir otros (neomicina, estreptomicina), se agregan aquí.
+    sinonimos: ['gentamicina', 'amikacina', 'tobramicina'],
     reglas: [
       { desde: 60, hasta: 999, conducta: 'Dosis única diaria basada en peso; monitorizar niveles.' },
       { desde: 0, hasta: 60, conducta: 'Espaciar el intervalo y monitorizar niveles séricos de forma obligada. Valorar alternativa no nefrotóxica.' },
@@ -170,7 +208,6 @@ export function ajustePorTFG(f: FarmacoRenal, tfg: number): AjusteResultado | nu
 
 /** Revisa una lista de fármacos contra la TFG y devuelve solo los que requieren acción. */
 export function revisarListaRenal(nombres: string[], tfg: number): AjusteResultado[] {
-  const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
   const salida: AjusteResultado[] = []
   for (const n of nombres) {
     const q = norm(n).trim()
@@ -178,7 +215,7 @@ export function revisarListaRenal(nombres: string[], tfg: number): AjusteResulta
     // fármaco del catálogo: una línea en blanco al partir un textarea inventaba
     // una contraindicación de metformina en quien no la toma.
     if (q.length < 3) continue
-    const f = AJUSTE_RENAL.find(x => q.includes(norm(x.nombre)) || norm(x.nombre).includes(q))
+    const f = AJUSTE_RENAL.find(x => coincideRenal(x, q))
     if (!f) continue
     const a = ajustePorTFG(f, tfg)
     if (a) salida.push(a)
@@ -206,14 +243,22 @@ export interface RiesgoHepatico {
   farmaco: string
   riesgo: 'evitar' | 'ajustar' | 'vigilar'
   motivo: string
+  /** Principios activos de la clase (mismo patrón que el renal/gestacional). */
+  sinonimos?: string[]
+}
+
+/** Coincidencia de un fármaco recetado contra una entrada de riesgo hepático. */
+export function coincideHepatico(x: RiesgoHepatico, q: string): boolean {
+  const c = (n: string) => { const s = norm(n); return !!s && (q.includes(s) || s.includes(q)) }
+  return c(x.farmaco) || (x.sinonimos ?? []).some(c)
 }
 
 export const RIESGO_HEPATICO: RiesgoHepatico[] = [
-  { farmaco: 'Antiinflamatorios no esteroideos', riesgo: 'evitar', motivo: 'En cirrosis precipitan sangrado variceal, síndrome hepatorrenal y retención de líquidos.' },
+  { farmaco: 'Antiinflamatorios no esteroideos', riesgo: 'evitar', sinonimos: ['aine', 'ibuprofeno', 'naproxeno', 'diclofenaco', 'ketorolaco', 'indometacina', 'meloxicam', 'aspirina', 'celecoxib'], motivo: 'En cirrosis precipitan sangrado variceal, síndrome hepatorrenal y retención de líquidos.' },
   { farmaco: 'Paracetamol', riesgo: 'ajustar', motivo: 'Sigue siendo el analgésico de elección en hepatopatía, pero limitado a 2 g al día en cirrosis. No usar si hay consumo activo de alcohol.' },
-  { farmaco: 'Benzodiacepinas', riesgo: 'evitar', motivo: 'Precipitan encefalopatía hepática. Si son indispensables, preferir las de vida media corta sin metabolismo oxidativo (lorazepam, oxazepam).' },
-  { farmaco: 'Opioides', riesgo: 'ajustar', motivo: 'Vida media prolongada; reducir dosis y espaciar. Precipitan encefalopatía y estreñimiento.' },
-  { farmaco: 'Estatinas', riesgo: 'vigilar', motivo: 'NO están contraindicadas en hepatopatía crónica estable ni en esteatosis hepática metabólica (MASLD); se evitan en falla hepática descompensada. La elevación leve de transaminasas no obliga a suspender.' },
+  { farmaco: 'Benzodiacepinas', riesgo: 'evitar', sinonimos: ['diazepam', 'lorazepam', 'clonazepam', 'alprazolam', 'midazolam', 'oxazepam', 'bromazepam'], motivo: 'Precipitan encefalopatía hepática. Si son indispensables, preferir las de vida media corta sin metabolismo oxidativo (lorazepam, oxazepam).' },
+  { farmaco: 'Opioides', riesgo: 'ajustar', sinonimos: ['tramadol', 'morfina', 'oxicodona', 'oxycontin', 'buprenorfina', 'fentanilo', 'codeina', 'tapentadol'], motivo: 'Vida media prolongada; reducir dosis y espaciar. Precipitan encefalopatía y estreñimiento.' },
+  { farmaco: 'Estatinas', riesgo: 'vigilar', sinonimos: ['atorvastatina', 'rosuvastatina', 'simvastatina', 'pravastatina', 'lovastatina', 'pitavastatina', 'fluvastatina'], motivo: 'NO están contraindicadas en hepatopatía crónica estable ni en esteatosis hepática metabólica (MASLD); se evitan en falla hepática descompensada. La elevación leve de transaminasas no obliga a suspender.' },
   { farmaco: 'Metformina', riesgo: 'vigilar', motivo: 'Puede usarse en hepatopatía crónica estable; se evita en falla hepática descompensada por riesgo de acidosis láctica.' },
   { farmaco: 'Amiodarona', riesgo: 'evitar', motivo: 'Hepatotoxicidad y depósito hepático.' },
   { farmaco: 'Metotrexato', riesgo: 'evitar', motivo: 'Fibrosis hepática con el uso acumulado.' },
@@ -226,6 +271,13 @@ export const RIESGO_HEPATICO: RiesgoHepatico[] = [
 
 export interface RiesgoGestacional {
   farmaco: string
+  /**
+   * Principios activos que pertenecen a esta clase. IMPRESCINDIBLE cuando `farmaco`
+   * es un nombre de CLASE ('Inhibidores de la enzima…'): sin esto, el match por
+   * palabras de la clase NUNCA coincide con "enalapril"/"losartan" y la alerta
+   * crítica (p. ej. IECA/ARA-II en embarazo, teratógeno frecuente) no se dispara.
+   */
+  sinonimos?: string[]
   embarazo: 'contraindicado' | 'evitar' | 'seguro-conocido'
   lactancia: 'compatible' | 'evitar' | 'precaucion'
   motivo: string
@@ -233,21 +285,21 @@ export interface RiesgoGestacional {
 }
 
 export const EMBARAZO_LACTANCIA: RiesgoGestacional[] = [
-  { farmaco: 'Inhibidores de la enzima convertidora y ARA II', embarazo: 'contraindicado', lactancia: 'precaucion', motivo: 'Fetopatía: oligohidramnios, hipoplasia pulmonar, falla renal y muerte fetal. Suspender en cuanto se confirma el embarazo.', alternativa: 'Labetalol, nifedipino de acción prolongada o metildopa.' },
-  { farmaco: 'Estatinas', embarazo: 'evitar', lactancia: 'evitar', motivo: 'Se suspenden durante el embarazo y la lactancia; el colesterol es necesario para el desarrollo fetal.', alternativa: 'Manejo con dieta; en hipertrigliceridemia severa la guía permite fibratos después del primer trimestre u omega-3 a dosis alta.' },
+  { farmaco: 'Inhibidores de la enzima convertidora y ARA II', sinonimos: ['enalapril','lisinopril','captopril','ramipril','perindopril','benazepril','quinapril','fosinopril','losartan','losartán','valsartan','valsartán','telmisartan','telmisartán','irbesartan','candesartan','olmesartan','azilsartan'], embarazo: 'contraindicado', lactancia: 'precaucion', motivo: 'Fetopatía: oligohidramnios, hipoplasia pulmonar, falla renal y muerte fetal. Suspender en cuanto se confirma el embarazo.', alternativa: 'Labetalol, nifedipino de acción prolongada o metildopa.' },
+  { farmaco: 'Estatinas', sinonimos: ['atorvastatina','rosuvastatina','simvastatina','pravastatina','lovastatina','pitavastatina','fluvastatina'], embarazo: 'evitar', lactancia: 'evitar', motivo: 'Se suspenden durante el embarazo y la lactancia; el colesterol es necesario para el desarrollo fetal.', alternativa: 'Manejo con dieta; en hipertrigliceridemia severa la guía permite fibratos después del primer trimestre u omega-3 a dosis alta.' },
   { farmaco: 'Warfarina', embarazo: 'contraindicado', lactancia: 'compatible', motivo: 'Embriopatía warfarínica, sobre todo entre las semanas 6 y 12. En lactancia sí es compatible.', alternativa: 'Heparina de bajo peso molecular, que no cruza la placenta.' },
-  { farmaco: 'Anticoagulantes orales directos', embarazo: 'contraindicado', lactancia: 'evitar', motivo: 'Datos insuficientes y paso placentario.', alternativa: 'Heparina de bajo peso molecular.' },
+  { farmaco: 'Anticoagulantes orales directos', sinonimos: ['rivaroxaban','rivaroxabán','apixaban','apixabán','dabigatran','dabigatrán','edoxaban','edoxabán'], embarazo: 'contraindicado', lactancia: 'evitar', motivo: 'Datos insuficientes y paso placentario.', alternativa: 'Heparina de bajo peso molecular.' },
   { farmaco: 'Isotretinoína', embarazo: 'contraindicado', lactancia: 'evitar', motivo: 'Teratógeno mayor. Requiere anticoncepción eficaz y prueba de embarazo antes, durante y después.' },
   { farmaco: 'Ácido valproico', embarazo: 'contraindicado', lactancia: 'precaucion', motivo: 'Defectos del tubo neural y afectación del neurodesarrollo. Evitar en toda mujer en edad fértil sin anticoncepción.', alternativa: 'Lamotrigina o levetiracetam, según la indicación.' },
   { farmaco: 'Metotrexato', embarazo: 'contraindicado', lactancia: 'evitar', motivo: 'Abortivo y teratógeno. Suspender al menos 3 meses antes de buscar embarazo.' },
-  { farmaco: 'Tetraciclinas y doxiciclina', embarazo: 'evitar', lactancia: 'precaucion', motivo: 'Después de la semana 15 se depositan en dientes y hueso fetal.', alternativa: 'Amoxicilina o azitromicina según el germen.' },
-  { farmaco: 'Quinolonas', embarazo: 'evitar', lactancia: 'precaucion', motivo: 'Efecto sobre el cartílago en estudios animales; se prefieren alternativas.', alternativa: 'Betalactámicos o nitrofurantoína (esta última no al término).' },
+  { farmaco: 'Tetraciclinas y doxiciclina', sinonimos: ['doxiciclina','tetraciclina','minociclina','tigeciclina'], embarazo: 'evitar', lactancia: 'precaucion', motivo: 'Después de la semana 15 se depositan en dientes y hueso fetal.', alternativa: 'Amoxicilina o azitromicina según el germen.' },
+  { farmaco: 'Quinolonas', sinonimos: ['ciprofloxacino','levofloxacino','moxifloxacino','ofloxacino','norfloxacino','gemifloxacino'], embarazo: 'evitar', lactancia: 'precaucion', motivo: 'Efecto sobre el cartílago en estudios animales; se prefieren alternativas.', alternativa: 'Betalactámicos o nitrofurantoína (esta última no al término).' },
   { farmaco: 'Penicilinas y cefalosporinas', embarazo: 'seguro-conocido', lactancia: 'compatible', motivo: 'Amplia experiencia de uso seguro; son los antibióticos de elección en el embarazo.' },
   { farmaco: 'Paracetamol', embarazo: 'seguro-conocido', lactancia: 'compatible', motivo: 'Analgésico y antipirético de elección en el embarazo, a la dosis eficaz más baja y por el menor tiempo.' },
-  { farmaco: 'Antiinflamatorios no esteroideos', embarazo: 'evitar', lactancia: 'compatible', motivo: 'Desde la semana 20 se asocian a oligohidramnios y desde la 30 a cierre prematuro del conducto arterioso.', alternativa: 'Paracetamol.' },
+  { farmaco: 'Antiinflamatorios no esteroideos', sinonimos: ['ibuprofeno','naproxeno','diclofenaco','ketorolaco','indometacina','meloxicam','celecoxib','piroxicam','ketoprofeno'], embarazo: 'evitar', lactancia: 'compatible', motivo: 'Desde la semana 20 se asocian a oligohidramnios y desde la 30 a cierre prematuro del conducto arterioso.', alternativa: 'Paracetamol.' },
   { farmaco: 'Insulina', embarazo: 'seguro-conocido', lactancia: 'compatible', motivo: 'Tratamiento de elección de la diabetes en el embarazo; no cruza la placenta.' },
   { farmaco: 'Levotiroxina', embarazo: 'seguro-conocido', lactancia: 'compatible', motivo: 'Debe continuarse; el requerimiento suele AUMENTAR durante el embarazo y necesita ajuste con perfil tiroideo.' },
-  { farmaco: 'Agonistas del receptor de GLP-1', embarazo: 'contraindicado', lactancia: 'evitar', motivo: 'Se suspenden antes de un embarazo planeado; la pérdida de peso no es deseable en la gestación.' },
+  { farmaco: 'Agonistas del receptor de GLP-1', sinonimos: ['semaglutida','liraglutida','dulaglutida','exenatida','lixisenatida','tirzepatida'], embarazo: 'contraindicado', lactancia: 'evitar', motivo: 'Se suspenden antes de un embarazo planeado; la pérdida de peso no es deseable en la gestación.' },
 ]
 
 /** Busca en las tres listas por nombre y devuelve todo lo que aplique. */
@@ -256,13 +308,16 @@ export function revisarFarmaco(nombre: string): {
   hepatico?: RiesgoHepatico
   gestacional?: RiesgoGestacional
 } {
-  const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
   const q = norm(nombre).trim()
   if (q.length < 3) return {}
   const coincide = (n: string) => q.includes(norm(n)) || norm(n).includes(q)
+  // Para clases (IECA/ARA-II, DOAC, GLP-1…) el nombre de clase no casa con el
+  // principio activo; se consultan también los sinónimos (principios activos).
+  const coincideGesta = (x: RiesgoGestacional) =>
+    coincide(x.farmaco) || (x.sinonimos ?? []).some(s => coincide(s))
   return {
-    renal: AJUSTE_RENAL.find(x => coincide(x.nombre)),
-    hepatico: RIESGO_HEPATICO.find(x => coincide(x.farmaco)),
-    gestacional: EMBARAZO_LACTANCIA.find(x => coincide(x.farmaco)),
+    renal: AJUSTE_RENAL.find(x => coincideRenal(x, q)),
+    hepatico: RIESGO_HEPATICO.find(x => coincideHepatico(x, q)),
+    gestacional: EMBARAZO_LACTANCIA.find(coincideGesta),
   }
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarTokenPaciente } from '@/lib/patient-token'
 import { getAvailableSlots } from '@/lib/availability'
@@ -29,7 +30,38 @@ async function leerCitasPaciente(clinicId: string, patientId: string): Promise<A
     .collection('appointments')
     .where('pacienteId', '==', patientId)
     .get()
-  return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Appointment, 'id'>) }))
+  /**
+   * LISTA BLANCA, no `...spread` del documento.
+   *
+   * Se devolvía la cita CRUDA al paciente. Entre sus campos viaja
+   * `notasInternas`, que el propio tipo describe como "notas del dueño sobre este
+   * cliente (no visibles al cliente)": ahí es donde el consultorio anota que
+   * alguien es moroso o conflictivo, o una sospecha clínica todavía no
+   * comunicada. La interfaz del portal solo pintaba un subconjunto, así que no
+   * se veía — pero estaba en el JSON, a un DevTools de distancia.
+   *
+   * También se iban `cobroId`, `cobradoEn`, `googleCalendarEventId` y quién creó
+   * o modificó la cita, que son datos internos del consultorio.
+   *
+   * Se enumera lo que el paciente SÍ puede ver. Con `spread`, cualquier campo
+   * nuevo que se añada a la cita mañana se filtraría solo.
+   */
+  return snap.docs.map(d => {
+    const a = d.data() as Appointment
+    return {
+      id: d.id,
+      fechaHora: a.fechaHora,
+      duracion: a.duracion,
+      tipo: a.tipo,
+      motivo: a.motivo,
+      estado: a.estado,
+      medicoId: a.medicoId,
+      medicoNombre: a.medicoNombre,
+      pacienteId: a.pacienteId,
+      pacienteNombre: a.pacienteNombre,
+      confirmadoPaciente: a.confirmadoPaciente,
+    } as Appointment
+  })
 }
 
 async function leerConfig(clinicId: string): Promise<ClinicConfig | null> {
@@ -54,7 +86,7 @@ export async function POST(req: NextRequest) {
   if (!sesion) {
     return NextResponse.json({ error: 'Enlace inválido o vencido' }, { status: 401 })
   }
-  const { clinicId, patientId } = sesion
+  const { clinicId, patientId, alcance } = sesion
 
   // Helper: asegura que la cita pertenezca a este paciente
   const citaDelPaciente = async (citaId?: string): Promise<Appointment | NextResponse> => {
@@ -211,6 +243,25 @@ export async function POST(req: NextRequest) {
       }
 
       case 'documentos': {
+        /**
+         * E0-06 — ESTA es la acción que devuelve secreto médico (diagnósticos y
+         * medicamentos de notas firmadas), y por eso exige alcance `clinico`.
+         *
+         * Sin este gate, el token que /api/portal/link devuelve al navegador de
+         * CUALQUIER miembro —incluida la asistente, a quien firestore.rules mantiene
+         * fuera de `patients/{id}/notas`— servía para leer el expediente por API.
+         * Es el mismo agujero que ya se cerró en /api/telesalud/token.
+         *
+         * Fail-closed deliberado: los tokens de 30 días que ya circulan no traen
+         * alcance, se degradan a `agenda` y pierden esta pestaña. Se resuelve
+         * reenviando el enlace desde la sesión del médico.
+         */
+        if (alcance !== 'clinico') {
+          return NextResponse.json(
+            { error: 'Pide a tu médico el acceso a tus recetas.' },
+            { status: 403 },
+          )
+        }
         // Recetas del paciente: derivadas de sus notas FIRMADAS con medicamentos.
         const snap = await adminDb
           .collection('clinics').doc(clinicId)
@@ -236,7 +287,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Acción no soportada' }, { status: 400 })
     }
   } catch (e) {
-    console.error('[portal] error', e)
+    safeLog.error('[portal] error', e)
     return NextResponse.json({ error: 'Error del servidor' }, { status: 500 })
   }
 }

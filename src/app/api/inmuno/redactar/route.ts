@@ -9,12 +9,13 @@
  * Body: { contexto: string }   Resp: { ok, texto } | { ok:false, error }
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { verificarUsuario } from '@/lib/auth-server'
+import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
+import { llamarIA } from '@/lib/ia/gateway'
+import { esFundador } from '@/lib/authz/fundador'
 import { resolverClaveIA, creditosAgotados, registrarUso } from '@/lib/ai-keys'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
-const ANTHROPIC_VERSION = '2023-06-01'
 const MODELOS = ['claude-sonnet-4-6', 'claude-sonnet-4-5', 'claude-3-7-sonnet-latest', 'claude-3-5-sonnet-latest']
 
 const SYSTEM = `Eres infectólogo de trasplantes y huésped inmunocomprometido. Redacta una NOTA DE VALORACIÓN INFECTOLÓGICA de nivel de publicación, en prosa profesional, lista para el expediente y para entregar a quien solicitó la interconsulta (nefrología, hematología, hepatología, reumatología, etc.). Debe leerse como escrita por un especialista y dejar impresionado al que la lea.
@@ -40,7 +41,7 @@ Devuelve solo la nota, sin preámbulos.`
 export const maxDuration = 300  // redacción con IA; sin esto se cortaba a 60s en Vercel
 
 export async function POST(req: NextRequest) {
-  const acceso = await verificarUsuario(req)
+  const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
 
   // Tope de ráfaga: redacción con IA por llamada. 30/min por usuario.
@@ -64,25 +65,21 @@ export async function POST(req: NextRequest) {
   const contexto = (body.contexto || '').trim()
   if (!contexto) return NextResponse.json({ ok: false, error: 'Falta el contexto de la valoración' }, { status: 400 })
 
-  const headers = { 'x-api-key': key, 'anthropic-version': ANTHROPIC_VERSION, 'Content-Type': 'application/json' }
-  const payload = (model: string) => JSON.stringify({
-    model, max_tokens: 2500, system: SYSTEM,
-    messages: [{ role: 'user', content: 'Datos de la valoración:\n\n' + contexto + '\n\nRedacta la nota infectológica siguiendo las reglas.' }],
-  })
-
+  // Por el gateway (§P–T): la cascada de modelos y los motivos accionables
+  // dejan de estar escritos a mano aquí, y la llamada deja asiento en el libro
+  // de costos — antes no dejaba ninguno.
   try {
-    let res: Response | null = null
-    for (const model of MODELOS) {
-      res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers, body: payload(model) })
-      if (res.status !== 404) break // 404 = modelo no disponible para esta cuenta → probar el siguiente
-    }
-    if (!res || !res.ok) {
-      const status = res?.status ?? 500
-      const pista = status === 401 ? ' (llave inválida)' : status === 429 ? ' (sin créditos o saturada)' : ''
-      return NextResponse.json({ ok: false, error: `IA no disponible: Anthropic respondió HTTP ${status}${pista}.` }, { status: 502 })
-    }
-    const data = await res.json()
-    const texto: string = data?.content?.[0]?.text ?? ''
+    const r = await llamarIA(
+      { proveedor: 'anthropic', clave: key, modelos: MODELOS, system: SYSTEM, user: 'Datos de la valoración:\n\n' + contexto + '\n\nRedacta la nota infectológica siguiendo las reglas.', maxTokens: 2500 },
+      {
+        feature: 'inmuno-redactar',
+        requestId: req.headers.get('x-vercel-id') || `ir-${acceso.uid}-${Date.now()}`,
+        clinicId: clinicId ?? null, uid: acceso.uid, creditos: 0, fuente,
+        esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
+      },
+    )
+    if (!r.ok) return NextResponse.json({ ok: false, error: `IA no disponible: ${r.motivo}` }, { status: 502 })
+    const texto = r.texto
     if (!texto.trim()) return NextResponse.json({ ok: false, error: 'La IA devolvió una respuesta vacía. Intenta de nuevo.' }, { status: 502 })
     await registrarUso(clinicId, fuente)
     return NextResponse.json({ ok: true, texto })

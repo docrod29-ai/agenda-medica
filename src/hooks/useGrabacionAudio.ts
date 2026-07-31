@@ -1,5 +1,23 @@
 'use client'
-import { corregirTranscripcion, type CambioTranscripcion } from '@/lib/expediente/medical-vocabulary'
+import { type CambioTranscripcion } from '@/lib/expediente/medical-vocabulary'
+import { type AlertaDictado } from '@/lib/asr/corrector-vigilado'
+/**
+ * EL PIPELINE COMPLETO, no sólo el guardián.
+ *
+ * Hasta hoy la consulta corría `corregirVigilado`, que es la etapa 1 de nueve:
+ * corrige el léxico y vigila que la corrección no se coma una cifra. Las otras
+ * ocho —cifras y unidades en su forma escrita, ortografía de siglas, verificación
+ * de entidades críticas, gate de ambigüedad— estaban escritas, probadas contra
+ * 6 000 frases y **sin conectar a nada**: `procesarTranscript` no aparecía en un
+ * solo archivo de producción.
+ *
+ * O sea que «paracetamol quinientos miligramos cada ocho horas» llegaba a la nota
+ * tal cual, en letra, y todo lo que midió el banco de voz no le servía al médico.
+ *
+ * `procesarTranscript` LLAMA a `corregirVigilado` como su primera etapa, así que
+ * esto no quita nada: añade.
+ */
+import { procesarTranscript } from '@/lib/asr/pipeline'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { auth, storage } from '@/lib/firebase'
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
@@ -49,6 +67,23 @@ export interface OpcionesGrabacion {
   intervaloChunkMs?: number
   /** ID estable para recovery vía IndexedDB (ej. patientId). */
   recoveryKey?: string
+  /**
+   * Módulo del dictado. Decide el vocabulario con el que se sesga al reconocedor.
+   *
+   * Medido sobre el corpus de 498 audios: sin esto, CVVHDF, VExUS y RASS fallan
+   * porque el sesgo apunta al consultorio.
+   */
+  contexto?: 'consulta' | 'hospitalizacion' | 'uci' | 'urgencias' | 'quirofano'
+  /**
+   * Vocabulario de ESTE paciente, para el prompt del reconocedor.
+   *
+   * El prompt es lo único que cambia lo que el modelo OYE, y su presupuesto son
+   * ~224 tokens: lo del paciente entra PRIMERO y lo genérico llena lo que sobre.
+   * Un fármaco que el paciente ya toma es la pista más específica que existe.
+   */
+  especialidades?: readonly string[]
+  medicamentos?: readonly string[]
+  problemas?: readonly string[]
 }
 
 /** Un turno de habla diarizado (AssemblyAI): quién habló y qué dijo. */
@@ -78,6 +113,14 @@ export interface UseGrabacionAudio {
    * revisarlas y revertirlas (documento legal: nada cambia en silencio).
    */
   correcciones: CambioTranscripcion[]
+  /**
+   * Lo que el GUARDIÁN descartó, y las dosis que se quedaron sin cantidad.
+   *
+   * No son correcciones aplicadas: son correcciones que NO se aplicaron porque
+   * tocaban una cifra, una unidad, una sigla crítica, una negación o el lado del
+   * paciente. La pantalla debe pedirle al médico que revise esa parte.
+   */
+  alertasDictado: AlertaDictado[]
   iniciar: (opts?: OpcionesGrabacion) => Promise<void>
   detener: () => Promise<void>
   pausar: () => void
@@ -89,6 +132,8 @@ export interface UseGrabacionAudio {
   /** Recupera el audio huérfano y lo manda a transcribir. */
   recuperarAudio: (recoveryKey: string) => Promise<void>
   descargarAudioGuardado: (recoveryKey: string) => Promise<boolean>
+  /** BORRA de IndexedDB el audio guardado de una clave (descartar recuperación). */
+  descartarRecovery: (recoveryKey: string) => Promise<void>
 }
 
 const SILENCIO_MS = 15_000
@@ -251,10 +296,26 @@ let motivoFalloTranscripcion = ''
  * Transcribe un blob vía OpenAI. NUNCA lanza: ante 413/500/HTML devuelve ''.
  * (Antes, res.json() sobre una página de error HTML tiraba SyntaxError.)
  */
-async function transcribirBlobSimple(blob: Blob, ext: string): Promise<string> {
+interface CtxDictado {
+  contexto?: string
+  especialidades?: readonly string[]
+  medicamentos?: readonly string[]
+  problemas?: readonly string[]
+}
+
+/** Añade el vocabulario del paciente al formulario, si lo hay. */
+function anexarContexto(fd: FormData, c: CtxDictado): void {
+  if (c.contexto) fd.append('contexto', c.contexto)
+  for (const [k, v] of [['especialidades', c.especialidades], ['medicamentos', c.medicamentos], ['problemas', c.problemas]] as const) {
+    if (v && v.length > 0) fd.append(k, JSON.stringify([...v]))
+  }
+}
+
+async function transcribirBlobSimple(blob: Blob, ext: string, contexto: CtxDictado = {}): Promise<string> {
   try {
     const fd = new FormData()
     fd.append('audio', blob, `audio.${ext}`)
+    anexarContexto(fd, contexto)
     const res = await fetchAutenticado('/api/expediente/transcribir', { method: 'POST', body: fd })
     if (!res.ok) {
       const body = await res.text().catch(() => '')
@@ -287,8 +348,8 @@ async function transcribirBlobSimple(blob: Blob, ext: string): Promise<string> {
  * hay OPENAI_API_KEY (503) o falla, intenta AssemblyAI. Así basta con tener
  * UNA de las dos llaves. Nunca lanza.
  */
-async function transcribirParte(blob: Blob, ext: string): Promise<string> {
-  const openai = await transcribirBlobSimple(blob, ext)
+async function transcribirParte(blob: Blob, ext: string, contexto: CtxDictado = {}): Promise<string> {
+  const openai = await transcribirBlobSimple(blob, ext, contexto)
   if (openai) return openai
   // Fallback: AssemblyAI (la misma llave que usa la diarización)
   const aai = await intentarDiarizar(blob, ext)
@@ -303,7 +364,7 @@ async function transcribirParte(blob: Blob, ext: string): Promise<string> {
  */
 export interface ResultadoPorPartes { texto: string; lotesFallidos: number }
 
-async function transcribirEnPartes(chunks: Blob[], mime: string, ext: string): Promise<ResultadoPorPartes> {
+async function transcribirEnPartes(chunks: Blob[], mime: string, ext: string, contexto: CtxDictado = {}): Promise<ResultadoPorPartes> {
   if (chunks.length === 0) return { texto: '', lotesFallidos: 0 }
   const header = chunks[0]
   const LIMITE = 3_600_000
@@ -335,7 +396,7 @@ async function transcribirEnPartes(chunks: Blob[], mime: string, ext: string): P
   let lotesFallidos = 0
   for (let b = 0; b < lotes.length; b++) {
     const parts = b === 0 ? lotes[b] : [header, ...lotes[b]]
-    const t = await transcribirParte(new Blob(parts, { type: mime }), ext)
+    const t = await transcribirParte(new Blob(parts, { type: mime }), ext, contexto)
     if (t) {
       textos.push(t)
     } else {
@@ -360,7 +421,7 @@ async function transcribirEnPartes(chunks: Blob[], mime: string, ext: string): P
  * se corregía.
  */
 function corregirUtterances(us: Utterance[]): Utterance[] {
-  return us.map(u => ({ ...u, text: corregirTranscripcion(u.text).corregido }))
+  return us.map(u => ({ ...u, text: procesarTranscript(u.text).texto }))
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -380,6 +441,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   const [bytesGrabados, setBytesGrabados] = useState(0)
   const [chunksTranscritos, setChunksTranscritos] = useState(0)
   const [correcciones, setCorrecciones] = useState<CambioTranscripcion[]>([])
+  const [alertasDictado, setAlertasDictado] = useState<AlertaDictado[]>([])
 
   const mediaRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])           // chunks recientes para flush
@@ -398,12 +460,27 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   const chunkIdxRef = useRef<number>(0)
   const textosChunksRef = useRef<string[]>([])
   const recoveryKeyRef = useRef<string>('')
+  const contextoRef = useRef<CtxDictado>({})
+  // Anti-pérdida: desde qué índice persistir en IndexedDB. Si ya hay audio de una
+  // transcripción que FALLÓ bajo la misma llave, los chunks nuevos se guardan
+  // DESPUÉS (no encima), para no borrar el audio que se prometió a salvo.
+  const recoveryBaseRef = useRef<number>(0)
   const streamingActivoRef = useRef<boolean>(true)
   const mimeRef = useRef<string>('')
 
   const liberarRecursos = useCallback(() => {
     const rec = mediaRef.current
     if (rec && rec.state !== 'inactive') {
+      /**
+       * DESENGANCHAR el handler ANTES de parar — auditoría 2026-07 (P0). `stop()`
+       * dispara un `ondataavailable` FINAL de forma asíncrona, y justo abajo se
+       * resetea `todosChunksRef = []`. Ese último evento calculaba
+       * `localIdx = recoveryBaseRef - 1` y PISABA un chunk válido del respaldo en
+       * IndexedDB (o escribía en idx -1), corrompiendo el audio de recuperación al
+       * salir de la consulta grabando. Los chunks ya persistidos quedan intactos;
+       * solo se descarta el buffer final (~2 s), que es el intercambio correcto.
+       */
+      try { rec.ondataavailable = null } catch { /* */ }
       try { rec.stop() } catch { /* */ }
     }
     mediaRef.current = null
@@ -441,7 +518,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     const rk = recoveryKeyRef.current
     liberarRecursos()
     setEstado('inactivo'); setDuracion(0); setTranscripcion(''); setError('')
-    setCorrecciones([]); setUtterances([])
+    setCorrecciones([]); setUtterances([]); setAlertasDictado([])
     if (rk) borrarChunks(rk)
     recoveryKeyRef.current = ''
   }, [liberarRecursos])
@@ -473,8 +550,11 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       if (data?.ok && data.text) {
         // Corrección léxica médica TAMBIÉN en chunks — el médico ve los
         // fármacos bien escritos EN VIVO, no solo al final
-        const { corregido } = corregirTranscripcion(data.text)
-        textosChunksRef.current[idx] = corregido
+        // En el parcial en vivo se aplica el pipeline entero: si el médico ve
+        // «500 mg» mientras habla, ve lo mismo que va a quedar en la nota. Con
+        // sólo la corrección léxica veía «quinientos miligramos» y luego el
+        // texto le cambiaba al cerrar, que parece un error de la aplicación.
+        textosChunksRef.current[idx] = procesarTranscript(data.text).texto
         // Reconstruir transcripción parcial en orden
         const completa = textosChunksRef.current.filter(Boolean).join(' ')
         setTranscripcionParcial(completa)
@@ -490,6 +570,19 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     if (!soportado) { setError('Tu navegador no soporta grabación de audio'); setEstado('error'); return }
     streamingActivoRef.current = opts?.streaming !== false
     recoveryKeyRef.current = opts?.recoveryKey ?? ''
+    contextoRef.current = {
+      contexto: opts?.contexto,
+      especialidades: opts?.especialidades,
+      medicamentos: opts?.medicamentos,
+      problemas: opts?.problemas,
+    }
+    // Si ya hay chunks bajo esta llave (p. ej. audio de una transcripción que
+    // falló y NO se ha recuperado), NO los pises: continúa el índice DESPUÉS de
+    // ellos. En éxito, borrarChunks limpia todo y la próxima grabación arranca en 0.
+    recoveryBaseRef.current = 0
+    if (recoveryKeyRef.current) {
+      try { recoveryBaseRef.current = (await leerChunks(recoveryKeyRef.current)).length } catch { recoveryBaseRef.current = 0 }
+    }
     const intervaloMs = opts?.intervaloChunkMs ?? INTERVALO_CHUNK_DEFAULT_MS
 
     try {
@@ -507,6 +600,12 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       todosChunksRef.current = []
       chunkIdxRef.current = 0
       textosChunksRef.current = []
+      // Limpia la diarización del tramo anterior: la separación de voces es POR
+      // blob y el blob nuevo solo trae este tramo. Si no se limpia, quedaban los
+      // turnos del tramo 1 y, al no diarizar el tramo 2, la nota se armaba con el
+      // tramo viejo ignorando el nuevo. (El texto completo multi-tramo se conserva
+      // aparte en la transcripción; ver conBase/baseTranscripcionRef.)
+      setUtterances([])
 
       // AnalyserNode → medidor de nivel + detección de silencio
       try {
@@ -570,7 +669,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
           setBytesGrabados(prev => prev + e.data.size)
           // Persistir en IndexedDB para crash recovery
           if (recoveryKeyRef.current) {
-            const localIdx = todosChunksRef.current.length - 1
+            const localIdx = recoveryBaseRef.current + todosChunksRef.current.length - 1
             guardarChunk(recoveryKeyRef.current, localIdx, e.data)
           }
         }
@@ -698,9 +797,12 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     const ext = mt.includes('mp4') ? 'm4a' : mt.includes('ogg') ? 'ogg' : mt.includes('wav') ? 'wav' : 'webm'
 
     const aplicar = (texto: string) => {
-      const { corregido, cambios } = corregirTranscripcion(texto)
-      setTranscripcion(corregido)
-      setCorrecciones(cambios)
+      const r = procesarTranscript(texto)
+      setTranscripcion(r.texto)
+      setCorrecciones(r.cambiosLexicos)
+      // El pipeline ya trae las alertas de las nueve etapas, no sólo las del
+      // guardián: incluye lo que pide confirmación por ambigüedad.
+      setAlertasDictado(r.alertas)
       setEstado('listo')
     }
 
@@ -722,8 +824,8 @@ export function useGrabacionAudio(): UseGrabacionAudio {
 
     // 2) Transcripción robusta (en partes si es grande). Nunca lanza.
     const porPartes = GRANDE
-      ? await transcribirEnPartes(allChunks, rec.mimeType, ext)
-      : { texto: await transcribirBlobSimple(blob, ext), lotesFallidos: 0 }
+      ? await transcribirEnPartes(allChunks, rec.mimeType, ext, contextoRef.current)
+      : { texto: await transcribirBlobSimple(blob, ext, contextoRef.current), lotesFallidos: 0 }
     const texto = porPartes.texto
 
     if (texto.trim()) {
@@ -749,6 +851,20 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   const hayRecovery = useCallback(async (recoveryKey: string): Promise<boolean> => {
     const chunks = await leerChunks(recoveryKey)
     return chunks.length > 0
+  }, [])
+
+  /**
+   * Descarta el audio de recuperación BORRÁNDOLO de IndexedDB.
+   *
+   * EL BUG QUE CIERRA: el botón "Descartar audio guardado" llamaba a `reset()`,
+   * que solo borra de IndexedDB la clave de la sesión ACTUAL
+   * (`recoveryKeyRef.current`). Pero al recargar la página y encontrar audio
+   * huérfano, esa ref está vacía —no se ha grabado nada en esta sesión— así que
+   * no se borraba nada y el audio reaparecía en cada recarga. Aquí se borra por
+   * clave explícita, que es la que sí apunta al audio guardado.
+   */
+  const descartarRecovery = useCallback(async (recoveryKey: string) => {
+    await borrarChunks(recoveryKey)
   }, [])
 
   const recuperarAudio = useCallback(async (recoveryKey: string) => {
@@ -777,9 +893,10 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     }
 
     if (texto.trim()) {
-      const { corregido, cambios } = corregirTranscripcion(texto)
-      setTranscripcion(corregido)
-      setCorrecciones(cambios)
+      const r = procesarTranscript(texto)
+      setTranscripcion(r.texto)
+      setCorrecciones(r.cambiosLexicos)
+      setAlertasDictado(r.alertas)
       setEstado('listo')
       await borrarChunks(recoveryKey)  // solo se borra si SÍ se transcribió
     } else {
@@ -809,7 +926,8 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   return {
     soportado, estado, duracion, transcripcion, utterances, transcripcionParcial, error,
     nivelAudio, silencioProlongado, bytesGrabados, chunksTranscritos, correcciones,
+    alertasDictado,
     iniciar, detener, pausar, reanudar, reset, setTranscripcion,
-    hayRecovery, recuperarAudio, descargarAudioGuardado,
+    hayRecovery, recuperarAudio, descargarAudioGuardado, descartarRecovery,
   }
 }

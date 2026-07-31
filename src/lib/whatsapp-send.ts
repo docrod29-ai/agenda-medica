@@ -8,7 +8,8 @@
 
 import { adminDb } from '@/lib/firebase-admin'
 import type { ClinicWhatsApp } from '@/types'
-import { estaDadoDeBaja, conPieOptout } from '@/lib/whatsapp/consent'
+import { estaDadoDeBaja, conPieOptout, normalizarTelefonoWa } from '@/lib/whatsapp/consent'
+import { conSecretoCanal } from '@/lib/whatsapp/secreto-canal'
 
 interface SendResult {
   ok: boolean
@@ -26,11 +27,15 @@ interface SendOpts {
   proactivo?: boolean
 }
 
-/** Normalise a Mexican phone number to E.164 without '+' (WhatsApp format) */
+/**
+ * Normaliza un teléfono mexicano a la forma canónica de WhatsApp.
+ *
+ * Reexporta la MISMA función que usan el opt-out y la ventana de 24 h: distintas y una dejaba el "1" de móvil que la otra quitaba, de
+ * modo que el mensaje se enviaba con una clave y la baja se había guardado con
+ * otra. Una sola definición cierra ese desajuste de raíz.
+ */
 function normalisePhone(raw: string): string {
-  const digits = raw.replace(/\D/g, '')
-  // If already has country code (52XXXXXXXXXX) keep it; otherwise prepend 52
-  return digits.startsWith('52') && digits.length >= 12 ? digits : `52${digits}`
+  return normalizarTelefonoWa(raw)
 }
 
 // ── 360dialog ────────────────────────────────────────────────────────────────
@@ -141,7 +146,9 @@ export async function sendWhatsApp(
   let waConfig: ClinicWhatsApp | undefined
   try {
     const clinicSnap = await adminDb.collection('clinics').doc(clinicId).get()
-    waConfig = clinicSnap.data()?.whatsapp as ClinicWhatsApp | undefined
+    const publico = clinicSnap.data()?.whatsapp as ClinicWhatsApp | undefined
+    // El token NO viene en el doc raíz: se resuelve desde el gestor de secretos.
+    waConfig = await conSecretoCanal(clinicId, publico)
   } catch {
     // Firestore unavailable — fall through to env vars
   }
@@ -255,7 +262,7 @@ export async function sendWhatsAppTemplate(
   let waConfig: ClinicWhatsApp | undefined
   try {
     const clinicSnap = await adminDb.collection('clinics').doc(clinicId).get()
-    waConfig = clinicSnap.data()?.whatsapp as ClinicWhatsApp | undefined
+    waConfig = await conSecretoCanal(clinicId, clinicSnap.data()?.whatsapp as ClinicWhatsApp | undefined)
   } catch {
     // Firestore no disponible — cae a env vars
   }

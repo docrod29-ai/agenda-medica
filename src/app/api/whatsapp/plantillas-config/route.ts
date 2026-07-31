@@ -10,8 +10,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
-import { verificarMedico } from '@/lib/auth-server'
+import { verificarCapacidad } from '@/lib/authz/verificar'
 
 const CLAVES = ['recordatorio24h', 'recordatorioMismoDia', 'listaEspera'] as const
 type Clave = typeof CLAVES[number]
@@ -22,7 +23,7 @@ const HHMM_OK = /^\d{1,2}:\d{2}$/
 export async function GET(req: NextRequest) {
   const clinicId = req.nextUrl.searchParams.get('clinicId')
   if (!clinicId) return NextResponse.json({ error: 'clinicId requerido' }, { status: 400 })
-  const acc = await verificarMedico(req, clinicId)
+  const acc = await verificarCapacidad(req, clinicId, 'administrar')
   if (!acc.ok) return acc.response
 
   try {
@@ -35,7 +36,7 @@ export async function GET(req: NextRequest) {
       topeDiarioProactivo: typeof wa.topeDiarioProactivo === 'number' ? wa.topeDiarioProactivo : 3,
     })
   } catch (err) {
-    console.error('[plantillas-config] GET error:', err)
+    safeLog.error('[plantillas-config] GET error:', err)
     return NextResponse.json({ error: 'No se pudo leer la configuración' }, { status: 500 })
   }
 }
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
 
   const clinicId = body.clinicId
   if (!clinicId) return NextResponse.json({ error: 'clinicId requerido' }, { status: 400 })
-  const acc = await verificarMedico(req, clinicId)
+  const acc = await verificarCapacidad(req, clinicId, 'administrar')
   if (!acc.ok) return acc.response
 
   // ── Validación + saneo (solo se escriben campos permitidos) ──
@@ -97,7 +98,7 @@ export async function POST(req: NextRequest) {
     await adminDb.collection('clinics').doc(clinicId).set({ whatsapp: wa }, { merge: true })
     return NextResponse.json({ ok: true, plantillas: wa.plantillas })
   } catch (err) {
-    console.error('[plantillas-config] POST error:', err)
+    safeLog.error('[plantillas-config] POST error:', err)
     return NextResponse.json({ error: 'No se pudo guardar' }, { status: 500 })
   }
 }

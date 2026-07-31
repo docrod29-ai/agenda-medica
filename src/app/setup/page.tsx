@@ -178,7 +178,7 @@ export default function SetupPage() {
 
         <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 24, textAlign: 'center', lineHeight: 1.6 }}>
           Tu consultorio incluye 14 días de prueba gratuita.
-          Puedes agregar más médicos, secretarias y el bot de WhatsApp en la configuración.
+          Puedes agregar más médicos, asistentes y el bot de WhatsApp en la configuración.
         </p>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

@@ -8,14 +8,16 @@ import { useConfig } from '@/hooks/useConfig'
 import {
   LayoutDashboard, CalendarDays, Calendar, Users, Clock,
   Settings, LogOut, Stethoscope, Shield, Bot, UserSquare2, FileText, Search,
-  MessageCircle, TrendingUp, Star, ShieldCheck, Pill, BedDouble, BookOpen, FlaskConical, ArrowLeftRight, HeartHandshake, Bug,
+  MessageCircle, TrendingUp, Star, ShieldCheck, Pill, BedDouble, BookOpen, FlaskConical, ArrowLeftRight, HeartHandshake, Bug, CreditCard, Activity,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
 import { rutaPermitida } from '@/lib/modulos'
 import { suscribirMensajes, suscribirLectura, contarNoLeidos, type ChatMessage } from '@/lib/chat'
-import { limpiarBorradoresLocales } from '@/lib/mobile/local-drafts'
+import { limpiarBorradoresLocales, limpiarAudioLocal } from '@/lib/mobile/local-drafts'
+import { limpiarZonaConsultorio } from '@/lib/timezone'
+import { limpiarCacheFirestore } from '@/lib/firebase'
 import { EVENTO_GUARDAR_TODO } from '@/components/AutoLogout'
 
 // Cada item declara en qué modos aparece:
@@ -29,6 +31,7 @@ const NAV: { href: string; label: string; icon: typeof LayoutDashboard; modos: '
   { href: '/calendario',    label: 'Calendario',     icon: Calendar,        modos: 'ambos' },
   { href: '/pacientes',     label: 'Consulta',       icon: Users,           modos: 'ambos' },
   { href: '/hospitalizacion', label: 'Hospitalización', icon: BedDouble,     modos: 'ambos' },
+  { href: '/uci',           label: 'UCI',            icon: Activity,        modos: 'medico' },   // /uci es el expediente de terapia, no la calculadora
   { href: '/consultor',     label: 'Consultor IA',   icon: FlaskConical,    modos: 'medico' },
   { href: '/antibiograma',  label: 'Antibiograma',   icon: Bug,             modos: 'medico' },
   { href: '/lista-espera',  label: 'Lista de espera',icon: Clock,           modos: 'ambos' },
@@ -36,8 +39,9 @@ const NAV: { href: string; label: string; icon: typeof LayoutDashboard; modos: '
   { href: '/resenas',       label: 'Reseñas',        icon: Star,            modos: 'medico' },
   { href: '/reactivacion',  label: 'Reactivación',   icon: HeartHandshake,  modos: 'medico' },
   { href: '/chat',          label: 'Chat',           icon: MessageCircle,   modos: 'ambos' },
-  { href: '/farmacia',      label: 'Farmacia',       icon: Pill,            modos: 'ambos' },
+  { href: '/farmacia',      label: 'Farmacia',       icon: Pill,            modos: 'medico' },
   { href: '/finanzas',      label: 'Finanzas',       icon: TrendingUp,      modos: 'medico' },
+  { href: '/membresias',    label: 'Membresías',     icon: CreditCard,      modos: 'ambos' },
   // 'Corte de caja' ahora es una PESTAÑA dentro de Finanzas (era una 2ª entrada
   // que confundía). La ruta /corte-caja sigue viva por si hay marcadores.
   { href: '/cumplimiento',  label: 'Cumplimiento',   icon: ShieldCheck,     modos: 'medico' },
@@ -82,8 +86,13 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
     // médico cierra sesión con una consulta dictada sin guardar, se guarda.
     window.dispatchEvent(new CustomEvent(EVENTO_GUARDAR_TODO))
     await new Promise(r => setTimeout(r, 1200))
-    limpiarBorradoresLocales() // no dejar residuo clínico en dispositivo compartido
+    limpiarBorradoresLocales() // borradores en localStorage (+ pestillo anti-resurrección)
+    limpiarZonaConsultorio()   // si entra otro consultorio, no hereda la zona del anterior
     await signOut(auth)
+    // Limpia el grueso del PHI en disco (dispositivo compartido): audio crudo y la
+    // caché offline de Firestore en IndexedDB. Antes solo se borraba localStorage.
+    limpiarAudioLocal()
+    await limpiarCacheFirestore()
     router.replace('/login')
   }
 

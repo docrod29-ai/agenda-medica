@@ -12,6 +12,7 @@ import { ESPECIALIDADES_CLINICAS, ESPECIALIDADES_QUIRURGICAS, ESPECIALIDADES_DIA
 import { X as IconX } from 'lucide-react'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useConfig } from '@/hooks/useConfig'
+import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
 import { useDoctors } from '@/hooks/useDoctors'
 import { useToast } from '@/context/ToastContext'
 import { useClinic } from '@/context/ClinicContext'
@@ -42,7 +43,7 @@ const DIAS_LABELS = { lunes: 'Lunes', martes: 'Martes', miercoles: 'Miércoles',
 type Tab = 'general' | 'horario' | 'duraciones' | 'bloqueos' | 'notificaciones' | 'integraciones' | 'plantillas' | 'portal' | 'recetas' | 'seguridad' | 'bot' | 'medicos' | 'equipo' | 'suscripcion' | 'entregas'
 
 export default function ConfiguracionPage() {
-  const { config, loading } = useConfig()
+  const { config, loading, error: configError } = useConfig()
   const { activeDoctors } = useDoctors()
   const { clinicId } = useClinic()
   const { toast } = useToast()
@@ -160,6 +161,12 @@ export default function ConfiguracionPage() {
   }, [config, loading])
 
   const handleSave = async () => {
+    // Si la config NO cargó (error de lectura), NO guardar: el formulario tiene los
+    // DEFAULT en blanco y guardar podría sobreescribir cédula/horario reales (P1).
+    if (configError) {
+      toast('No se pudo cargar tu configuración; recarga la página antes de guardar para no sobreescribirla.', 'error')
+      return
+    }
     setSaving(true)
     try {
       // Compacta las imágenes pesadas (base64 → Storage) ANTES de guardar. Si
@@ -246,7 +253,7 @@ export default function ConfiguracionPage() {
     {
       titulo: 'Documentos clínicos',
       tabs: [
-        { key: 'recetas', label: 'Recetas y órdenes', modoMin: 'medico' },
+        { key: 'recetas', label: 'Recetas, órdenes y notas', modoMin: 'medico' },
       ],
     },
     {
@@ -283,6 +290,9 @@ export default function ConfiguracionPage() {
 
   return (
     <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
+      {/* Aviso si la config NO cargó (auditoría P1): sin esto se veía el formulario
+          en blanco sin avisar y Guardar podía sobreescribir cédula/horario reales. */}
+      <AvisoConfigNoCargada error={configError} />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
         <h1 className="t-h1" style={{ margin: 0 }}>Configuración</h1>
         {tab !== 'integraciones' && tab !== 'recetas' && tab !== 'portal' && tab !== 'seguridad' && tab !== 'equipo' && tab !== 'medicos' && tab !== 'bloqueos' && tab !== 'suscripcion' && tab !== 'bot' && tab !== 'entregas' && (
@@ -395,7 +405,7 @@ export default function ConfiguracionPage() {
             <input className="input" value={form.nombreClinica} onChange={upd('nombreClinica')} placeholder="Consultorio Médico García" />
           </div>
           <div className="form-group">
-            <label className="label">Cédula profesional <span style={{ color: '#f87171' }}>*</span></label>
+            <label className="label">Cédula profesional <span style={{ color: 'var(--red)' }}>*</span></label>
             <input className="input" value={form.cedulaProfesional ?? ''} onChange={upd('cedulaProfesional')} placeholder="12345678 (requerida para firmar expedientes)" />
           </div>
           <div className="form-group">
@@ -492,23 +502,10 @@ export default function ConfiguracionPage() {
             </select>
           </div>
 
-          {/* 🖋️ Firma + sello POR MÉDICO — cada médico la suya */}
-          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-            <FirmaUploadSection
-              form={form}
-              clinicId={clinicId}
-              onLocalChange={(patch) => setForm(f => ({ ...f, ...patch }))}
-            />
-          </div>
-
-          {/* 📄 Hoja membretada para NOTAS — general o por médico (cada quien la suya) */}
-          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-            <MembreteNotaSection
-              form={form}
-              clinicId={clinicId}
-              onLocalChange={(patch) => setForm(f => ({ ...f, ...patch }))}
-            />
-          </div>
+          {/* La FIRMA y la HOJA MEMBRETADA DE NOTAS se movieron a la pestaña
+              "Recetas, órdenes y notas": son ajustes de impresos y estaban
+              perdidos entre los datos del consultorio. Se guardan solas
+              (saveConfigPartial), así que el cambio de pestaña no las afecta. */}
 
           {/* 🔑 Llaves de IA por consultorio — SOLO el dueño la ve. El cliente NO
               configura llaves (el dueño las provee en Vercel); mostrarla confunde. */}
@@ -695,7 +692,7 @@ export default function ConfiguracionPage() {
                   <button
                     className="btn btn-ghost btn-sm"
                     onClick={handleDisconnectGcal}
-                    style={{ color: '#f87171' }}
+                    style={{ color: 'var(--red)' }}
                   >
                     <XCircle size={14} /> Desconectar
                   </button>
@@ -804,7 +801,28 @@ export default function ConfiguracionPage() {
       {tab === 'portal' && <PortalTab clinicId={clinicId} clinicNombre={form.nombreClinica || 'tu clínica'} />}
 
       {/* Recetas y órdenes */}
-      {tab === 'recetas' && <RecetasTab clinicId={clinicId} />}
+      {/* TODO lo de impresos en UNA pestaña: receta/orden, firma y hoja de notas.
+          Antes la firma y el membrete de notas vivían en "Datos del consultorio",
+          lejos de donde se configura lo que se imprime. */}
+      {tab === 'recetas' && (
+        <div style={{ display: 'grid', gap: 20 }}>
+          <RecetasTab clinicId={clinicId} />
+
+          {/* 🖋️ Firma + sello POR MÉDICO — sale en notas, recetas y órdenes */}
+          <FirmaUploadSection
+            form={form}
+            clinicId={clinicId}
+            onLocalChange={(patch) => setForm(f => ({ ...f, ...patch }))}
+          />
+
+          {/* 📄 Hoja membretada para NOTAS — general o por médico */}
+          <MembreteNotaSection
+            form={form}
+            clinicId={clinicId}
+            onLocalChange={(patch) => setForm(f => ({ ...f, ...patch }))}
+          />
+        </div>
+      )}
 
       {/* Seguridad — MFA / 2FA */}
       {tab === 'seguridad' && <SeguridadTab />}
@@ -865,7 +883,7 @@ function AutoAgendaLink({ configNumero, onCopy, copied }: {
       </div>
 
       {!numero ? (
-        <div style={{ fontSize: 13, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ fontSize: 13, color: 'var(--amber)', display: 'flex', alignItems: 'center', gap: 8 }}>
           <XCircle size={15} /> Conecta tu WhatsApp o escribe el número del consultorio (pestaña General) para generar el enlace.
         </div>
       ) : (
@@ -1097,7 +1115,7 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 background: 'none', border: '1px solid rgba(239,68,68,0.3)',
-                color: '#f87171', fontSize: 13, padding: '8px 14px',
+                color: 'var(--red)', fontSize: 13, padding: '8px 14px',
                 borderRadius: 8, cursor: 'pointer',
               }}
             >
@@ -1441,17 +1459,17 @@ function MedicosTab() {
 
 /* ── Suscripción Tab ─────────────────────────────────────────── */
 const PLAN_DISPLAY: Record<string, { label: string; color: string; price: string }> = {
-  trial:    { label: 'Prueba gratuita', color: '#f59e0b', price: '$0 MXN/mes' },
+  trial:    { label: 'Prueba gratuita', color: 'var(--amber)', price: '$0 MXN/mes' },
   agenda:   { label: 'Plan Agenda',     color: '#60a5fa', price: '$349 MXN/mes' },
   clinica:  { label: 'Plan Clínica',    color: '#3D5AFE', price: '$899 MXN/mes' },
-  premium:  { label: 'Plan Pro',        color: '#a78bfa', price: '$1,899 MXN/mes' },
-  hospital: { label: 'Plan Hospital',   color: '#7c5cd6', price: '$2,900 MXN/mes' },
+  premium:  { label: 'Plan Pro',        color: '#a78bfa', price: '$1,590 MXN/mes' },
+  hospital: { label: 'Plan Hospital',   color: '#7c5cd6', price: '$3,499 MXN/mes' },
 }
 
 const PLAN_FEATURES: Record<string, string[]> = {
   trial:    ['14 días gratuitos', 'Todas las funciones', 'Sin tarjeta de crédito'],
   agenda:   ['Agenda y calendario', 'Recordatorios por WhatsApp', 'Expediente básico', 'Portal del paciente'],
-  clinica:  ['160 créditos de IA/mes', 'Nota por voz + separación de voces', 'Menú de IA (⚡/⭐/💎)', 'Consultor de evidencia', 'Todo el plan Agenda'],
+  clinica:  ['200 créditos de IA/mes', 'Nota por voz + separación de voces', 'Menú de IA (⚡/⭐/💎)', 'Consultor de evidencia', 'Todo el plan Agenda'],
   premium:  ['450 créditos/mes', 'IA de máximo razonamiento clínico por defecto', 'Revisión de seguridad clínica automática', 'Soporte prioritario', 'Todo el plan Clínica'],
   hospital: ['Módulo de Hospitalización', '400 créditos/mes', 'Censo, camas, MAR, NEWS2', 'Notas de ingreso/evolución/egreso'],
 }
@@ -1804,7 +1822,7 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
                 <button onClick={() => compartirWhatsApp(inv)} style={{ background: '#25D366', border: 'none', color: '#fff', borderRadius: 6, padding: '5px 10px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
                   WhatsApp
                 </button>
-                <button onClick={() => revocar(inv.code)} style={{ background: 'none', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', borderRadius: 6, padding: '5px 10px', fontSize: 11.5, cursor: 'pointer' }}>
+                <button onClick={() => revocar(inv.code)} style={{ background: 'none', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--red)', borderRadius: 6, padding: '5px 10px', fontSize: 11.5, cursor: 'pointer' }}>
                   Revocar
                 </button>
               </div>

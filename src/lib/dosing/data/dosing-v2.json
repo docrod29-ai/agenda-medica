@@ -1,0 +1,1177 @@
+{
+  "title": "NexusMED UCI/Hospital Drug Dosing Engine V2 - REAL DOSING CORE",
+  "version": "2.0-core",
+  "release_date": "2026-07-30",
+  "scope": "Adult hospital/ICU core. Numeric rules intended for deterministic CDS, not autonomous prescribing.",
+  "important_limitations": [
+    "This is a verified P0/core library, not every medication in the hospital formulary.",
+    "UCSF CRRT recommendations generally assume CVVHD with effluent about 2 L/h unless a drug-specific effluent table is stated.",
+    "Institutional concentrations, compatibility, maximum peripheral concentrations and local formulary rules must be configured separately.",
+    "Critical illness changes PK/PD; dynamic renal function, obesity, burns, ECMO and unusual MICs may require TDM/specialist review."
+  ],
+  "required_inputs": [
+    "age",
+    "sex",
+    "height_cm",
+    "weight_kg",
+    "weight_scalar",
+    "SCr_mg_dL",
+    "CrCl_Cockcroft_Gault_mL_min",
+    "renal_trend",
+    "urine_output",
+    "indication",
+    "severity",
+    "organism",
+    "MIC",
+    "RRT_mode",
+    "CRRT_effluent_L_h",
+    "hepatic_status",
+    "ECMO",
+    "allergies",
+    "drug_interactions"
+  ],
+  "global_hard_stops": [
+    "No mg/kg dose without a documented weight and explicit weight scalar (TBW/IBW/AdjBW).",
+    "Do not use eGFR alone when a source specifies Cockcroft-Gault CrCl.",
+    "Unstable AKI: fixed renal-bin dosing is provisional; force renal reassessment and pharmacist/ID/ICU review.",
+    "RRT is not equivalent to CrCl <10. Require IHD vs SLED/PIRRT vs CVVH/CVVHD/CVVHDF and, when relevant, effluent rate.",
+    "Never infer a missing RRT dose by halving a non-dialysis dose.",
+    "TMP/SMX weight dosing is by TMP component unless explicitly stated otherwise.",
+    "Liposomal amphotericin B and amphotericin B deoxycholate are different formulations; never interchange mg/kg rules.",
+    "Daptomycin must not be selected for pneumonia.",
+    "Vancomycin serious MRSA should use AUC-guided workflow (target AUC24/MIC 400-600 when MIC=1), not trough-only finalization.",
+    "Neuromuscular blockers require sedation/analgesia and ventilatory support.",
+    "For beta-lactam extended infusion, use only a validated drug-specific regimen; do not generalize duration/dose across the class.",
+    "If required inputs are missing or the rule context does not match the indication/population, return SPECIALIST_REVIEW rather than fabricate a number."
+  ],
+  "sources": {
+    "UCSF_NONHD": {
+      "title": "UCSF IDMP - Adult Antimicrobial Dosing, Non-dialysis",
+      "url": "https://idmp.ucsf.edu/adult-antimicrobial-dosing-non-dialysis",
+      "type": "institutional dosing program",
+      "verified": "2026-07-30"
+    },
+    "UCSF_RRT": {
+      "title": "UCSF IDMP - Antimicrobial Dosing in Intermittent & Continuous Hemodialysis",
+      "url": "https://idmp.ucsf.edu/antimicrobial-dosing-intermittent-continuous-hemodialysis",
+      "type": "institutional dosing program",
+      "verified": "2026-07-30"
+    },
+    "UCSF_MERO": {
+      "title": "UCSF IDMP - Meropenem",
+      "url": "https://idmp.ucsf.edu/content/meropenem",
+      "type": "institutional dosing program",
+      "verified": "2026-07-30"
+    },
+    "VANC2020": {
+      "title": "ASHP/IDSA/PIDS/SIDP Vancomycin Consensus Guideline",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/32227354/",
+      "type": "multisociety guideline",
+      "verified": "2026-07-30"
+    },
+    "PIBL2023": {
+      "title": "International Consensus - Prolonged-Infusion Beta-Lactams",
+      "url": "https://www.idsociety.org/practice-guideline/accp_prolonged_infusion_beta_lactums/",
+      "type": "international consensus",
+      "verified": "2026-07-30"
+    },
+    "SSC2026": {
+      "title": "Surviving Sepsis Campaign: International Guidelines 2026",
+      "url": "https://sccm.org/clinical-resources/guidelines/guidelines/surviving-sepsis-campaign-international-guidelines-for-management-of-sepsis-and-septic-shock-2026",
+      "type": "international guideline",
+      "verified": "2026-07-30"
+    },
+    "PADIS2025": {
+      "title": "SCCM Focused Update PADIS 2025",
+      "url": "https://www.sccm.org/clinical-resources/guidelines/guidelines/focused-update-padis-guideline",
+      "type": "guideline",
+      "verified": "2026-07-30"
+    },
+    "DM_NE": {
+      "title": "DailyMed Norepinephrine Bitartrate, updated 2026",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=6363e9b4-29df-4553-904d-a563e5adda6e",
+      "type": "US prescribing information",
+      "verified": "2026-07-30"
+    },
+    "DM_VP": {
+      "title": "DailyMed Vasopressin Injection, updated 2026",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=b97e5c3e-ca28-4ffa-80af-6c5bdbadaf10",
+      "type": "US prescribing information",
+      "verified": "2026-07-30"
+    },
+    "DM_EPI": {
+      "title": "DailyMed Epinephrine Injection, updated 2026",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?audience=professional&setid=1e8ebac1-5b32-47f9-a930-86a98a24dccc",
+      "type": "US prescribing information",
+      "verified": "2026-07-30"
+    },
+    "DM_DEX": {
+      "title": "DailyMed Dexmedetomidine, updated 2026",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=ebdfe2e8-30ca-4f18-935a-41bcbbce4937",
+      "type": "US prescribing information",
+      "verified": "2026-07-30"
+    },
+    "DM_PROP": {
+      "title": "DailyMed Propofol injectable emulsion - ICU sedation",
+      "url": "https://dailymed.nlm.nih.gov/",
+      "type": "US prescribing information",
+      "verified": "2026-07-30"
+    },
+    "DM_MID": {
+      "title": "DailyMed Midazolam injection - continuous ICU sedation",
+      "url": "https://dailymed.nlm.nih.gov/",
+      "type": "US prescribing information",
+      "verified": "2026-07-30"
+    },
+    "DM_MIL": {
+      "title": "DailyMed Milrinone lactate injection",
+      "url": "https://dailymed.nlm.nih.gov/",
+      "type": "US prescribing information",
+      "verified": "2026-07-30"
+    },
+    "DM_KET": {
+      "title": "DailyMed Ketamine hydrochloride injection",
+      "url": "https://dailymed.nlm.nih.gov/",
+      "type": "US prescribing information",
+      "verified": "2026-07-30"
+    },
+    "DM_ETO": {
+      "title": "DailyMed Etomidate injection",
+      "url": "https://dailymed.nlm.nih.gov/",
+      "type": "US prescribing information",
+      "verified": "2026-07-30"
+    },
+    "DM_ROC": {
+      "title": "DailyMed Rocuronium bromide injection",
+      "url": "https://dailymed.nlm.nih.gov/",
+      "type": "US prescribing information",
+      "verified": "2026-07-30"
+    },
+    "DM_FOS": {
+      "title": "DailyMed Fosphenytoin sodium injection",
+      "url": "https://dailymed.nlm.nih.gov/",
+      "type": "US prescribing information",
+      "verified": "2026-07-30"
+    },
+    "DM_NIC": {
+      "title": "DailyMed Nicardipine hydrochloride injection",
+      "url": "https://dailymed.nlm.nih.gov/",
+      "type": "US prescribing information",
+      "verified": "2026-07-30"
+    },
+    "DM_FUR": {
+      "title": "DailyMed Furosemide injection",
+      "url": "https://dailymed.nlm.nih.gov/",
+      "type": "US prescribing information",
+      "verified": "2026-07-30"
+    },
+    "DM_PHENYL": {
+      "title": "DailyMed Phenylephrine hydrochloride injection",
+      "url": "https://dailymed.nlm.nih.gov/",
+      "type": "US prescribing information",
+      "verified": "2026-07-30"
+    },
+    "DM_DOB": {
+      "title": "DailyMed Dobutamine injection",
+      "url": "https://dailymed.nlm.nih.gov/",
+      "type": "US prescribing information",
+      "verified": "2026-07-30"
+    }
+  },
+  "drugs": [
+    {
+      "drug": "Acyclovir IV",
+      "class": "antiviral",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Non-CNS HSV: CrCl >50: 5 mg/kg IV q8h; 25-50: q12h; 10-25: q24h; <10: 2.5 mg/kg q24h. HSV encephalitis/disseminated VZV: 10 mg/kg q8h, q12h, q24h, then 5 mg/kg q24h in same renal strata.",
+      "renal_rule": "Use TBW; if TBW >120% IBW use AdjBW. Renal strata are part of dose rule.",
+      "rrt_rule": "IHD: non-CNS 2.5 mg/kg IV now then qPM; CNS/VZV 5 mg/kg now then qPM. CRRT/CVVHD: non-CNS 5 mg/kg q24h; CNS/VZV 10 mg/kg q12h.",
+      "critical_care_rule": "",
+      "monitoring": "SCr, urine output, neurotoxicity; ensure hydration as clinically appropriate.",
+      "hard_stops": "Do not calculate mg/kg without a documented weight and weight scalar.",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Amikacin",
+      "class": "aminoglycoside",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Extended interval, other infections: CrCl >=60: 15 mg/kg IV q24h; 40-59: q36h; 21-39: q48h; <=20: use conventional/TDM rather than automatic extended interval.",
+      "renal_rule": "Weight-based; renal interval adjustment shown in dose rule.",
+      "rrt_rule": "IHD/CRRT: require modality-specific aminoglycoside protocol plus levels; do not infer from CrCl <10.",
+      "critical_care_rule": "Obtain random level 6-14 h after dose for extended-interval nomogram when protocol applies.",
+      "monitoring": "Drug levels, SCr, urine output, vestibular/auditory toxicity. Pneumonia conventional peak target example 25-35 mg/L; trough <5 mg/L in UCSF table.",
+      "hard_stops": "No automatic extended-interval dosing if CrCl <=20, unstable renal function, or population excluded by local nomogram.",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Amphotericin B liposomal (AmBisome)",
+      "class": "antifungal",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Cryptococcal meningitis: 4 mg/kg IV q24h with flucytosine when indicated. Other invasive fungal infection: 5 mg/kg IV q24h.",
+      "renal_rule": "No renal dose adjustment in UCSF dosing table; toxicity monitoring remains mandatory.",
+      "rrt_rule": "IHD/CRRT: same dose; no dialysis adjustment in UCSF table.",
+      "critical_care_rule": "",
+      "monitoring": "SCr, K, Mg, hepatic tests, infusion reactions.",
+      "hard_stops": "FORMULATION HARD STOP: liposomal amphotericin B doses are not interchangeable with amphotericin B deoxycholate.",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Ampicillin",
+      "class": "penicillin",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "UTI/other lower-intensity: >50: 2 g IV q6h; 30-49: q8h; 15-29: q12h; <15: q24h. Other serious infections: >50: 2 g q4h; 30-49: q6h; 15-29: q8h; <15: q12h.",
+      "renal_rule": "Use CrCl strata in dose rule.",
+      "rrt_rule": "Use dedicated IHD/CRRT rule from current institutional table; never substitute <15 rule for RRT.",
+      "critical_care_rule": "",
+      "monitoring": "",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Ampicillin/sulbactam",
+      "class": "beta-lactam/beta-lactamase inhibitor",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Standard: CrCl >30: 3 g IV q6h; 15-30: 3 g q12h; <15: 3 g q24h. CRAB high-dose extended-infusion strategy in UCSF: CrCl >60: 9 g IV q8h over 4 h; lower renal function requires ID/pharmacy-specific adjustment.",
+      "renal_rule": "Standard renal strata shown; high-dose CRAB renal adjustment should be protocol-driven.",
+      "rrt_rule": "RRT: use dedicated table/protocol; do not infer high-dose CRAB regimen in RRT.",
+      "critical_care_rule": "High-dose 9 g q8h over 4 h is indication-specific, not a universal ICU dose.",
+      "monitoring": "",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "PIBL2023"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Azithromycin",
+      "class": "macrolide",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "CAP including ICU: 500 mg IV/PO q24h.",
+      "renal_rule": "No renal adjustment in UCSF table.",
+      "rrt_rule": "No RRT adjustment in core table.",
+      "critical_care_rule": "",
+      "monitoring": "",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Aztreonam",
+      "class": "monobactam",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": ">50: 2 g IV q8h; 10-50: 2 g q12h; <10: 1 g q12h. In selected meningitis/ARC/resistant GNR combination scenarios, 2 g q6h may be considered with specialist oversight.",
+      "renal_rule": "Renal intervals shown.",
+      "rrt_rule": "Use current IHD/CRRT table.",
+      "critical_care_rule": "",
+      "monitoring": "",
+      "hard_stops": "Do not automatically select q6h merely because patient is in ICU; require indication/ARC/specialist rule.",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Cefazolin",
+      "class": "1st-gen cephalosporin",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Uncomplicated GP: CrCl >30: 1 g IV q8h; 10-29: 1 g q12h; <10: 1 g q24h. Complicated GP/GN: >30: 2 g q8h; 10-29: 2 g q12h; <10: 1 g q24h.",
+      "renal_rule": "Renal strata shown.",
+      "rrt_rule": "IHD: 2 g IV now/post-HD; stable schedule can use 2 g/2 g/3 g post-HD. CRRT/CVVHD: 2 g IV q12h.",
+      "critical_care_rule": "",
+      "monitoring": "",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Cefepime",
+      "class": "4th-gen cephalosporin",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Severe infection/Pseudomonas/febrile neutropenia/meningitis: CrCl >60: 2 g IV q8h; 30-60: 2 g q12h; 10-29: 2 g q24h; <10: 1 g q24h. Non-severe: 2 g q12h, 2 g q24h, 1 g q24h, 500 mg q24h respectively.",
+      "renal_rule": "Renal strata shown; reassess frequently in AKI recovery.",
+      "rrt_rule": "IHD: 2 g x1 now/post-HD (alternative 1 g now then qPM in UCSF). CRRT/CVVHD: 1 g q8h; extended infusion may be used per protocol.",
+      "critical_care_rule": "Extended-infusion option: load 2 g over 30 min; >60: 2 g q8h over 4 h; 30-60: 2 g q12h over 4 h; <30 use short-infusion regimen in UCSF protocol.",
+      "monitoring": "SCr and neurologic status; cefepime neurotoxicity risk increases with accumulation.",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT",
+        "PIBL2023"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Cefiderocol",
+      "class": "siderophore cephalosporin",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "CrCl >120: 2 g IV q6h over 3 h; 60-119: 2 g q8h; 30-59: 1.5 g q8h; 15-29: 1 g q8h; <15: 750 mg q12h; all over 3 h.",
+      "renal_rule": "Explicit ARC-like >120 mL/min stratum is included.",
+      "rrt_rule": "IHD: 750 mg q12h over 3 h. CRRT by effluent: <=2 L/h: 1.5 g q12h; 2.1-3: 2 g q12h; 3.1-4: 1.5 g q8h; >4: 2 g q8h.",
+      "critical_care_rule": "",
+      "monitoring": "",
+      "hard_stops": "CRRT dose requires effluent rate; do not default to a single CRRT dose.",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Ceftaroline",
+      "class": "anti-MRSA cephalosporin",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Severe/MRSA pneumonia: CrCl >50: 600 mg IV q8h; 30-50: 400 mg q8h; 15-30: 300 mg q8h; <15: 200 mg q8h. Lower-risk SSTI/CAP uses same renal amounts q12h.",
+      "renal_rule": "Renal strata shown.",
+      "rrt_rule": "Use current IHD/CRRT table if RRT.",
+      "critical_care_rule": "",
+      "monitoring": "",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Ceftazidime",
+      "class": "antipseudomonal cephalosporin",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "CrCl >50: 2 g IV q8h; 31-50: 2 g q12h; 15-30: 2 g q24h; <15: 1 g q24h.",
+      "renal_rule": "Renal strata shown.",
+      "rrt_rule": "Use current IHD/CRRT table.",
+      "critical_care_rule": "Extended infusion option: load 2 g; >50: 2 g q8h over 4 h; 31-50: q12h over 4 h; <31 use short infusion per UCSF.",
+      "monitoring": "",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT",
+        "PIBL2023"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Ceftazidime/avibactam",
+      "class": "novel beta-lactam/BLI",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "CrCl >50: 2.5 g IV q8h; 31-50: 1.25 g q8h; 16-30: 0.94 g q12h; 6-15: 0.94 g q24h; <5: 0.94 g q48h; infuse over 3 h.",
+      "renal_rule": "Renal strata shown; re-evaluate daily if renal function changes.",
+      "rrt_rule": "Use dedicated RRT table.",
+      "critical_care_rule": "",
+      "monitoring": "Renal function; microbiology/MIC and resistance mechanism.",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Ceftolozane/tazobactam",
+      "class": "novel beta-lactam/BLI",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "cUTI: CrCl >50: 1.5 g IV q8h; 30-50: 750 mg q8h; 15-29: 375 mg q8h. Pneumonia/severe infection: >50: 3 g q8h; 30-50: 1.5 g q8h; 15-29: 750 mg q8h. Infuse over 3 h.",
+      "renal_rule": "Renal strata shown.",
+      "rrt_rule": "Use dedicated RRT table/protocol.",
+      "critical_care_rule": "",
+      "monitoring": "",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Ceftriaxone",
+      "class": "3rd-gen cephalosporin",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Standard serious infection: 2 g IV q24h. UTI: 1 g q24h. Meningitis or enterococcal endocarditis combination regimen: 2 g q12h.",
+      "renal_rule": "No renal adjustment in UCSF table.",
+      "rrt_rule": "No routine dialysis adjustment in core rule; verify combined severe renal/hepatic dysfunction separately.",
+      "critical_care_rule": "",
+      "monitoring": "",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Ciprofloxacin",
+      "class": "fluoroquinolone",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Standard: CrCl >50 or 30-50: 400 mg IV q12h or 500 mg PO q12h; <30: 400 mg IV q24h or 500 mg PO q24h. Pseudomonas/GNR BSI: >50: 400 mg IV q8h or 750 mg PO q12h; 30-50: 400 mg IV q12h or 500 mg PO q12h; <30: 400 mg IV q24h or 500 mg PO q24h.",
+      "renal_rule": "Renal strata shown.",
+      "rrt_rule": "IHD: 400 mg IV qPM or 500 mg PO qPM. CRRT: 400 mg IV q8h or 500 mg PO q12h.",
+      "critical_care_rule": "",
+      "monitoring": "",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Clindamycin",
+      "class": "lincosamide",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Uncomplicated: 600 mg IV q8h or 450 mg PO q8h. Necrotizing fasciitis/GAS toxin-suppression context: 900 mg IV q8h.",
+      "renal_rule": "No renal adjustment.",
+      "rrt_rule": "No IHD adjustment.",
+      "critical_care_rule": "",
+      "monitoring": "",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Daptomycin",
+      "class": "lipopeptide",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Serious infection: CrCl >30: 8-10 mg/kg IV q24h; CrCl <=30: q48h. Selected VRE infections may use up to 12 mg/kg with specialist/TDM strategy.",
+      "renal_rule": "Interval adjustment at CrCl <=30.",
+      "rrt_rule": "Use RRT-specific protocol/current table.",
+      "critical_care_rule": "",
+      "monitoring": "CPK at baseline and at least weekly; renal function; symptoms of myopathy.",
+      "hard_stops": "HARD STOP: do not use daptomycin to treat pneumonia.",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Doxycycline",
+      "class": "tetracycline",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "100 mg IV/PO q12h.",
+      "renal_rule": "No renal adjustment.",
+      "rrt_rule": "No RRT adjustment in core dosing.",
+      "critical_care_rule": "",
+      "monitoring": "",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Ertapenem",
+      "class": "carbapenem",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "CrCl >30: 1 g IV q24h; <=30: 500 mg IV q24h.",
+      "renal_rule": "Renal reduction shown.",
+      "rrt_rule": "IHD: 500 mg now then qPM, or selected post-HD strategy 500 mg-1 g post-HD. CRRT: 1 g q24h.",
+      "critical_care_rule": "",
+      "monitoring": "",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Fluconazole",
+      "class": "azole antifungal",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Severe systemic infection target maintenance by weight in UCSF: <=80 kg 400 mg q24h; 81-100 kg 600 mg q24h; >100 kg 800 mg q24h; loading depends on indication.",
+      "renal_rule": "CrCl 10-50: 50% of target maintenance; <10: 25% of target maintenance in UCSF table.",
+      "rrt_rule": "Use dedicated IHD/CRRT dosing table; post-HD timing matters.",
+      "critical_care_rule": "",
+      "monitoring": "QT, hepatic tests, interactions; organism/species/MIC.",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Flucytosine",
+      "class": "antimetabolite antifungal",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "CrCl >40: 25 mg/kg PO q6h; 20-40: q12h; 10-20: q24h; <10: q48h.",
+      "renal_rule": "Renal interval adjustment shown.",
+      "rrt_rule": "Use current RRT table plus levels.",
+      "critical_care_rule": "",
+      "monitoring": "CBC, hepatic tests, renal function, serum levels when available.",
+      "hard_stops": "If calculated single dose >2 g, flag pharmacist/ID review per institutional guidance.",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Ganciclovir IV",
+      "class": "antiviral",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Treatment: CrCl >70: 5 mg/kg q12h; 50-69: 2.5 mg/kg q12h; 25-49: 2.5 mg/kg q24h; 10-24: 1.25 mg/kg q24h. Prophylaxis: >70: 5 mg/kg q24h; 50-69: 2.5 mg/kg q24h; 25-49: 1.25 mg/kg q24h; 10-24: 0.625 mg/kg q24h.",
+      "renal_rule": "Renal strata shown.",
+      "rrt_rule": "Use RRT-specific table.",
+      "critical_care_rule": "",
+      "monitoring": "CBC with differential, SCr.",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Gentamicin",
+      "class": "aminoglycoside",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Extended interval, other infections: CrCl >=60: 7 mg/kg IV q24h; 40-59: q36h; 21-39: q48h; <=20: conventional/TDM.",
+      "renal_rule": "Interval adjustment shown.",
+      "rrt_rule": "IHD/CRRT require modality-specific protocol and levels.",
+      "critical_care_rule": "Random level 6-14 h after dose for applicable nomogram.",
+      "monitoring": "Drug levels, SCr, auditory/vestibular toxicity. Conventional example pneumonia peak 8-10 mg/L, trough <1 mg/L.",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Imipenem/cilastatin",
+      "class": "carbapenem",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Serious GN/Nocardia: CrCl >60: 500 mg IV q6h; 30-60: 250 mg q6h; 15-30: 250 mg q8h; <15: alternative/specialist regimen. NTM example: 1000 mg q12h, 500 mg q12h, 250 mg q12h by same first 3 renal strata.",
+      "renal_rule": "Renal strata shown.",
+      "rrt_rule": "Use RRT-specific table.",
+      "critical_care_rule": "",
+      "monitoring": "Renal function and neurotoxicity/seizure risk.",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Isavuconazonium/isavuconazole",
+      "class": "azole antifungal",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "372 mg isavuconazonium IV/PO q8h for 6 doses (48 h), then 372 mg q24h. 372 mg prodrug corresponds to 200 mg isavuconazole.",
+      "renal_rule": "No renal adjustment in UCSF table.",
+      "rrt_rule": "No IHD adjustment.",
+      "critical_care_rule": "",
+      "monitoring": "LFTs, interactions; QT-shortening context.",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Levofloxacin",
+      "class": "fluoroquinolone",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Other severe infection/GNR BSI: CrCl >50: 750 mg q24h; 20-49: 750 mg q48h; <20: 750 mg x1 then 500 mg q48h. UTI: >50: 500 mg q24h; 20-49: 500 mg x1 then 250 mg q24h; <20: 500 mg x1 then 250 mg q48h.",
+      "renal_rule": "Renal adjustment shown.",
+      "rrt_rule": "IHD severe/pneumonia: 750 mg x1 then 500 mg q48h. CRRT severe: 750 mg x1 then 500 mg q24h.",
+      "critical_care_rule": "",
+      "monitoring": "",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Linezolid",
+      "class": "oxazolidinone",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "600 mg IV/PO q12h. Mycobacterial regimens may use 600 mg q24h under specialist protocol.",
+      "renal_rule": "No routine renal adjustment; in stable CrCl <30 and courses >10 d, some experts consider 300 mg BID after 72 h with TDM.",
+      "rrt_rule": "No IHD adjustment; 600 mg q12h in current UCSF RRT table.",
+      "critical_care_rule": "",
+      "monitoring": "CBC, neuropathy with prolonged course, serotonergic interactions; consider TDM.",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Meropenem",
+      "class": "carbapenem",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Standard: CrCl >50: 1 g IV q8h; 26-50: 1 g q12h; 10-25: 500 mg q12h; <10: 500 mg q24h. Meningitis/CF: 2 g q8h, 2 g q12h, 1 g q12h, 1 g q24h respectively.",
+      "renal_rule": "Renal strata shown.",
+      "rrt_rule": "IHD: standard 500 mg now then qPM; meningitis/CF 1 g now then qPM. CRRT/CVVHD: standard 1 g q8h; meningitis/CF 2 g q12h. If CVVHD >2 L/h, specialist/pharmacy review.",
+      "critical_care_rule": "Selected extended infusion: load 1 g over 30 min; CrCl >50 standard 1 g q8h over 3 h, 26-50 q12h over 3 h; meningitis/CF 2 g q8h or q12h over 3 h. Do not encode 2 g q8h as universal shock dose.",
+      "monitoring": "Renal function, MIC/organism; beta-lactam TDM if available in high-risk critical illness.",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_MERO",
+        "PIBL2023"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Metronidazole",
+      "class": "nitroimidazole",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Standard: CrCl >10: 500 mg IV/PO q8h; <10: 500 mg q12h. Intra-abdominal infection: 500 mg q12h regardless of these strata in UCSF table.",
+      "renal_rule": "Renal adjustment shown for standard indication.",
+      "rrt_rule": "Use current RRT table if dialysis.",
+      "critical_care_rule": "",
+      "monitoring": "",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Micafungin",
+      "class": "echinocandin",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Candidemia/invasive candidiasis or empiric ICU therapy: 100 mg IV q24h. Endocarditis/device infection/esophageal candidiasis: 150 mg q24h.",
+      "renal_rule": "No renal or hepatic dose adjustment in UCSF table.",
+      "rrt_rule": "No dialysis adjustment in core rule.",
+      "critical_care_rule": "",
+      "monitoring": "",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Minocycline",
+      "class": "tetracycline",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Load 200 mg IV/PO x1 then 100 mg q12h. Selected resistant-infection high-dose strategy: 200 mg q12h under specialist protocol.",
+      "renal_rule": "No renal adjustment in UCSF core rule.",
+      "rrt_rule": "Use current RRT guidance if needed.",
+      "critical_care_rule": "",
+      "monitoring": "",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Piperacillin/tazobactam",
+      "class": "antipseudomonal penicillin/BLI",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Extended infusion preferred in UCSF if eligible: CrCl >20: load 4.5 g IV over 30 min x1, then 4.5 g over 4 h q8h starting immediately after load. If <20, use short infusion. Short infusion: non-Pseudomonas >50 3.375 g q6h; 10-50 q8h; <10 2.25 g q8h. Pseudomonas: CrCl >20 4.5 g q6h; <20 3.375 g q8h.",
+      "renal_rule": "Renal strategies shown.",
+      "rrt_rule": "IHD: 2.25 g IV q8h short infusion. CRRT/CVVHD: load 4.5 g then 4.5 g over 4 h q8h.",
+      "critical_care_rule": "",
+      "monitoring": "Renal function, sodium load, microbiology/MIC.",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT",
+        "PIBL2023"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Posaconazole IV/DR tablet",
+      "class": "azole antifungal",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "300 mg IV/PO q12h x2 doses on day 1, then 300 mg q24h.",
+      "renal_rule": "No renal dose adjustment; avoid IV formulation if possible when CrCl <50 because of IV vehicle, per UCSF note.",
+      "rrt_rule": "No HD dose adjustment in current UCSF table.",
+      "critical_care_rule": "",
+      "monitoring": "TDM when indicated, LFTs, QT, interactions.",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Tigecycline",
+      "class": "glycylcycline",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Standard: 100 mg IV load then 50 mg q12h. Severe hepatic impairment: 100 mg load then 25 mg q12h. Selected severe resistant infections may use 200 mg load then 100 mg q12h under ID protocol.",
+      "renal_rule": "No renal adjustment.",
+      "rrt_rule": "No dialysis adjustment in core rule.",
+      "critical_care_rule": "",
+      "monitoring": "LFTs, nausea; indication-specific mortality signal considerations.",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "TMP/SMX",
+      "class": "folate antagonist combination",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Dose MUST be expressed by trimethoprim (TMP). SSTI/UTI: CrCl >30 1 DS tab q12h; 15-30 1 DS q24h; <15 1 SS q24h. Bone/joint: 8 mg TMP/kg/day -> 4 -> 2 by renal strata >30, 15-30, <15. Systemic GNR/Nocardia/Stenotrophomonas: 10 -> 5 -> 2.5 mg TMP/kg/day. PCP/CNS: 15 -> 7.5 -> 5 mg TMP/kg/day.",
+      "renal_rule": "Renal reductions embedded above. DS = 160 mg TMP/800 mg SMX; SS = 80/400.",
+      "rrt_rule": "IHD: SSTI/UTI 1 SS now then qPM; systemic GNR 2.5 mg TMP/kg now/qPM; PCP 5 mg TMP/kg now/qPM. CRRT: SSTI 1 DS q12h; systemic GNR 10 mg TMP/kg/day; PCP 15 mg TMP/kg/day.",
+      "critical_care_rule": "",
+      "monitoring": "K, SCr, CBC, interactions.",
+      "hard_stops": "HARD STOP: never calculate mg/kg from the sulfamethoxazole component when the protocol specifies TMP.",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Vancomycin IV",
+      "class": "glycopeptide",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Serious infection: loading 20-25 mg/kg IV using appropriate body-weight rule; maintenance individualized to AUC. UCSF example nomogram: CrCl >90, complicated age <65: <60 kg 750 mg q8h; 60-80 kg 1 g q8h; 81-100 kg 1.25 g q8h; >100 kg 1.5 g q8h. CrCl 50-90 uses same weight bands q12h; CrCl 15-49 q24h. CrCl <15 not on dialysis: 10-15 mg/kg x1 then level-driven.",
+      "renal_rule": "AUC-guided dosing preferred for serious MRSA; do not rely on trough-only target.",
+      "rrt_rule": "CRRT: load 20-25 mg/kg x1, then 10-15 mg/kg q24h with AUC/levels. IHD: load 20-25 mg/kg x1, then commonly 500 mg post-HD only in UCSF nomogram with levels.",
+      "critical_care_rule": "Target AUC24/MIC 400-600 mg*h/L for serious MRSA assuming MIC 1 mg/L; target early (24-48 h) when feasible.",
+      "monitoring": "AUC/Bayesian levels, SCr, urine output; re-estimate with renal change.",
+      "hard_stops": "HARD STOP: serious MRSA dosing must not be finalized from trough alone when AUC workflow is available.",
+      "notes": "",
+      "source_ids": [
+        "UCSF_RRT",
+        "VANC2020"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Voriconazole",
+      "class": "azole antifungal",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Treatment: 6 mg/kg IV q12h x2 doses, then 4 mg/kg IV q12h; oral maintenance according to formulation/weight/indication.",
+      "renal_rule": "No dose reduction for renal function itself; manufacturer cautions about IV vehicle (SBECD) in renal impairment; use oral when appropriate.",
+      "rrt_rule": "No HD dose adjustment in current UCSF table.",
+      "critical_care_rule": "",
+      "monitoring": "TDM, LFTs, QT, visual/neurotoxicity, interactions. In obesity use institutional AdjBW protocol.",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Remdesivir",
+      "class": "antiviral",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "200 mg IV x1 on day 1, then 100 mg IV q24h for indicated course.",
+      "renal_rule": "No renal dose adjustment in current UCSF dosing table, including severe renal impairment; assess formulation/vehicle and current label/local policy.",
+      "rrt_rule": "Same standard regimen in IHD/CRRT in UCSF table.",
+      "critical_care_rule": "",
+      "monitoring": "LFTs; indication and treatment window.",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "UCSF_NONHD",
+        "UCSF_RRT"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Norepinephrine",
+      "class": "vasopressor",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Acute hypotension label: start 8-12 mcg/min IV, then titrate; typical maintenance 2-4 mcg/min.",
+      "renal_rule": "No renal dose table; titrate to hemodynamic endpoint.",
+      "rrt_rule": "RRT does not dictate a fixed dose.",
+      "critical_care_rule": "SSC 2026: first-line vasopressor in septic shock.",
+      "monitoring": "Continuous hemodynamics/ECG; frequent BP; assess perfusion and extravasation.",
+      "hard_stops": "Do not convert mcg/min to mcg/kg/min without explicit institutional protocol and documented weight.",
+      "notes": "",
+      "source_ids": [
+        "DM_NE",
+        "SSC2026"
+      ],
+      "tags": [
+        "ICU",
+        "shock"
+      ]
+    },
+    {
+      "drug": "Vasopressin",
+      "class": "vasopressor",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Septic shock label: 0.01-0.07 units/min IV. Post-cardiotomy shock: 0.03-0.1 units/min.",
+      "renal_rule": "No renal dose table; titrate within indication-specific range.",
+      "rrt_rule": "RRT does not dictate fixed dose.",
+      "critical_care_rule": "SSC 2026 suggests adding vasopressin when norepinephrine dose is escalating.",
+      "monitoring": "MAP, heart rate, sodium, ischemia, cardiac output/perfusion.",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "DM_VP",
+        "SSC2026"
+      ],
+      "tags": [
+        "ICU",
+        "shock"
+      ]
+    },
+    {
+      "drug": "Epinephrine",
+      "class": "vasopressor/inotrope",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Septic shock hypotension: 0.05-2 mcg/kg/min IV, titrated to desired BP; wean gradually.",
+      "renal_rule": "No renal dose table; titrate clinically.",
+      "rrt_rule": "RRT does not dictate fixed dose.",
+      "critical_care_rule": "SSC 2026: add when MAP remains inadequate despite norepinephrine + vasopressin; can be used when vasopressin unavailable.",
+      "monitoring": "MAP, ECG, lactate interpreted with epinephrine effect, glucose, perfusion.",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "DM_EPI",
+        "SSC2026"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Phenylephrine",
+      "class": "vasopressor",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Vasodilatory shock continuous infusion: 0.5-6 mcg/kg/min IV. Perioperative infusion: 0.5-1.4 mcg/kg/min; bolus 50-250 mcg for perioperative hypotension.",
+      "renal_rule": "No fixed renal reduction; titrate.",
+      "rrt_rule": "RRT does not dictate fixed dose.",
+      "critical_care_rule": "",
+      "monitoring": "BP, heart rate, peripheral perfusion.",
+      "hard_stops": "Do not use perioperative bolus rule as a septic-shock infusion rule.",
+      "notes": "",
+      "source_ids": [
+        "DM_PHENYL"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Dobutamine",
+      "class": "inotrope",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Typical IV infusion 2.5-15 mcg/kg/min; rare doses up to 40 mcg/kg/min in labeling/clinical use.",
+      "renal_rule": "No fixed renal reduction; titrate to cardiac output/perfusion.",
+      "rrt_rule": "RRT does not dictate a fixed dose.",
+      "critical_care_rule": "SSC 2026: in septic shock with cardiac dysfunction and persistent hypoperfusion, use dobutamine added to norepinephrine or epinephrine alone as an inotropic strategy.",
+      "monitoring": "ECG, HR, BP, perfusion, cardiac output when available.",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "DM_DOB",
+        "SSC2026"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Milrinone",
+      "class": "PDE-3 inhibitor inotrope",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Load 50 mcg/kg IV over 10 min when appropriate; maintenance 0.375-0.75 mcg/kg/min.",
+      "renal_rule": "Renal maintenance examples: CrCl 5: 0.20; 10: 0.23; 20: 0.28; 30: 0.33; 40: 0.38; 50: 0.43 mcg/kg/min.",
+      "rrt_rule": "RRT: require pharmacy/ICU protocol because clearance depends on modality/residual kidney function.",
+      "critical_care_rule": "",
+      "monitoring": "BP, arrhythmias, renal function, electrolytes.",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "DM_MIL"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Propofol",
+      "class": "sedative",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "ICU sedation: start 5 mcg/kg/min; increase by 5-10 mcg/kg/min at intervals of at least 5 min to clinical effect; typical maintenance 5-50 mcg/kg/min. Avoid exceeding 4 mg/kg/h (about 67 mcg/kg/min) unless benefits outweigh risks.",
+      "renal_rule": "No renal dose table; titrate effect.",
+      "rrt_rule": "RRT does not define dose.",
+      "critical_care_rule": "Use sedation target (e.g., RASS) and daily reassessment. PADIS 2025 conditionally favors dexmedetomidine over propofol when light sedation/delirium reduction are highest priorities.",
+      "monitoring": "RASS, BP, triglycerides, CK/lactate/acid-base if PRIS concern, calories.",
+      "hard_stops": "Hard warning when >4 mg/kg/h; require override reason.",
+      "notes": "",
+      "source_ids": [
+        "DM_PROP",
+        "PADIS2025"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Dexmedetomidine",
+      "class": "sedative",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "ICU initiation: 1 mcg/kg over 10 min; loading may be omitted when converting from another sedative. Maintenance 0.2-0.7 mcg/kg/h.",
+      "renal_rule": "No renal reduction specified; consider dose reduction in hepatic impairment and age >65.",
+      "rrt_rule": "RRT does not define dose.",
+      "critical_care_rule": "PADIS 2025 suggests dexmedetomidine over propofol when light sedation and/or delirium reduction are highest priorities.",
+      "monitoring": "RASS, bradycardia, hypotension.",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "DM_DEX",
+        "PADIS2025"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Midazolam",
+      "class": "benzodiazepine sedative",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "If loading required for continuous ICU sedation: 0.01-0.05 mg/kg IV slowly, repeat q10-15 min as needed. Initial maintenance infusion 0.02-0.10 mg/kg/h, titrated to lowest effective rate.",
+      "renal_rule": "Renal dysfunction can increase active metabolite accumulation; no simple CrCl table in this core rule.",
+      "rrt_rule": "RRT does not guarantee removal of parent/metabolites; titrate and reassess.",
+      "critical_care_rule": "",
+      "monitoring": "RASS, respiratory/hemodynamic status, accumulation/delirium risk.",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "DM_MID"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Ketamine",
+      "class": "dissociative anesthetic",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "IV induction: 1-4.5 mg/kg over about 60 sec; commonly 1-2 mg/kg at approximately 0.5 mg/kg/min within labeling.",
+      "renal_rule": "No fixed renal reduction in this core rule.",
+      "rrt_rule": "RRT does not define dose.",
+      "critical_care_rule": "",
+      "monitoring": "BP, HR, airway/secretions, emergence reactions.",
+      "hard_stops": "Do not reuse induction dose as an analgesic/sedation infusion dose; separate protocols required.",
+      "notes": "",
+      "source_ids": [
+        "DM_KET"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Etomidate",
+      "class": "induction agent",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Adult induction: 0.2-0.6 mg/kg IV; usual 0.3 mg/kg over 30-60 sec.",
+      "renal_rule": "No renal dosing table for single induction dose.",
+      "rrt_rule": "RRT not relevant to single induction dose.",
+      "critical_care_rule": "",
+      "monitoring": "Hemodynamics; myoclonus; adrenal suppression context.",
+      "hard_stops": "RSI/induction-only rule; not a maintenance sedative.",
+      "notes": "",
+      "source_ids": [
+        "DM_ETO"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Rocuronium",
+      "class": "neuromuscular blocker",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Intubation: 0.6 mg/kg IV. Rapid-sequence intubation: 0.6-1.2 mg/kg. Maintenance bolus 0.1-0.2 mg/kg. Continuous infusion may start around 10-12 mcg/kg/min after evidence of recovery, then titrate to TOF/clinical need.",
+      "renal_rule": "Renal/hepatic dysfunction may prolong effect; titrate neuromuscular monitoring rather than fixed renal table.",
+      "rrt_rule": "RRT does not define a fixed dose.",
+      "critical_care_rule": "",
+      "monitoring": "TOF, ventilation, depth of sedation/analgesia.",
+      "hard_stops": "HARD STOP: neuromuscular blockade requires adequate sedation/analgesia and ventilatory support.",
+      "notes": "",
+      "source_ids": [
+        "DM_ROC"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Fosphenytoin",
+      "class": "antiseizure",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Status epilepticus load: 15-20 mg PE/kg IV at 100-150 mg PE/min; maximum administration rate 150 mg PE/min. Maintenance: 4-6 mg PE/kg/day divided.",
+      "renal_rule": "Renal failure/hypoalbuminemia alter protein binding; use free phenytoin interpretation/clinical pharmacy when relevant.",
+      "rrt_rule": "RRT-specific level interpretation required.",
+      "critical_care_rule": "",
+      "monitoring": "Continuous ECG/BP/respiration during loading; phenytoin/free levels.",
+      "hard_stops": "Units are mg PE (phenytoin equivalents), not mg fosphenytoin mass.",
+      "notes": "",
+      "source_ids": [
+        "DM_FOS"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Nicardipine",
+      "class": "IV antihypertensive",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Start 5 mg/h IV; increase by 2.5 mg/h every 5 min for rapid titration or every 15 min for gradual titration; maximum 15 mg/h. If hypotension/tachycardia occurs, stop and may restart at 3-5 mg/h after stabilization.",
+      "renal_rule": "No CrCl-based titration table; titrate BP.",
+      "rrt_rule": "RRT does not define dose.",
+      "critical_care_rule": "",
+      "monitoring": "Continuous BP/HR; IV site.",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "DM_NIC"
+      ],
+      "tags": []
+    },
+    {
+      "drug": "Furosemide IV",
+      "class": "loop diuretic",
+      "adult_scope": true,
+      "status": "VERIFIED_NUMERIC_CORE",
+      "dose_rule": "Edema: initial 20-40 mg IV/IM; may repeat or increase after 2 h based on response. Acute pulmonary edema: 40 mg IV slowly; if inadequate, 80 mg IV after 1 h. For high-dose IV administration, rate should not exceed 4 mg/min.",
+      "renal_rule": "Renal impairment often requires higher threshold doses, but no universal CrCl-to-dose table; titrate to urine/output endpoint.",
+      "rrt_rule": "RRT: if anuric with no residual kidney function, diuretic response is not expected; do not auto-dose based on CRRT alone.",
+      "critical_care_rule": "",
+      "monitoring": "Urine output, Na/K/Mg, BP, renal function, ototoxicity risk with rapid/high doses.",
+      "hard_stops": "",
+      "notes": "",
+      "source_ids": [
+        "DM_FUR"
+      ],
+      "tags": []
+    }
+  ],
+  "claude_contract": {
+    "source_of_truth": "This JSON/deterministic rule engine; the LLM is not the dosing source of truth.",
+    "algorithm": [
+      "Parse clinical context",
+      "Check required inputs",
+      "Match indication and severity",
+      "Select renal/RRT branch",
+      "Apply weight scalar",
+      "Apply infusion/admin rule",
+      "Run hard stops",
+      "Return dose + rationale + source IDs + verification date"
+    ],
+    "if_no_exact_match": "Return SPECIALIST_REVIEW and list missing/mismatched inputs. Never invent a dose.",
+    "output_fields": [
+      "drug",
+      "indication",
+      "patient_inputs_used",
+      "loading_dose",
+      "maintenance_dose",
+      "interval",
+      "infusion_time",
+      "renal_or_RRT_branch",
+      "monitoring",
+      "hard_stop_state",
+      "source_ids",
+      "last_verified"
+    ]
+  }
+}

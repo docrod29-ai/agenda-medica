@@ -1,0 +1,74 @@
+{
+  "benchmark.ts": {
+    "version": "1.0.0",
+    "huella": "2665f40b6c80b272"
+  },
+  "ckrt.ts": {
+    "version": "1.0.0",
+    "huella": "24fb43bed39f05ce"
+  },
+  "copilot.ts": {
+    "version": "1.0.0",
+    "huella": "52dd7999ae366bd7"
+  },
+  "correlacion.ts": {
+    "version": "1.0.0",
+    "huella": "9b8df80849ee0fa3"
+  },
+  "discusion.ts": {
+    "version": "1.0.0",
+    "huella": "8349d41ea7fc6886"
+  },
+  "ecmo.ts": {
+    "version": "1.0.0",
+    "huella": "8d6d9f3881bdc178"
+  },
+  "evidencia.ts": {
+    "version": "1.0.0",
+    "huella": "05f66996346248da"
+  },
+  "extraccion.ts": {
+    "version": "1.2.0",
+    "huella": "6e56d93e5ef362f0"
+  },
+  "gasometria.ts": {
+    "version": "1.0.0",
+    "huella": "ad630743f4444bd0"
+  },
+  "hemodinamia.ts": {
+    "version": "1.0.0",
+    "huella": "7ea62962ab2de4a9"
+  },
+  "infusiones.ts": {
+    "version": "1.0.0",
+    "huella": "a655a1c18180a32c"
+  },
+  "neuro.ts": {
+    "version": "1.1.0",
+    "huella": "bceb03684a583b8f"
+  },
+  "nota.ts": {
+    "version": "1.0.0",
+    "huella": "62a58da1dfbf32d5"
+  },
+  "pocus.ts": {
+    "version": "1.0.0",
+    "huella": "859c690bb0f74124"
+  },
+  "scores.ts": {
+    "version": "1.1.0",
+    "huella": "5d7b20ea77a572ba"
+  },
+  "seguridad.ts": {
+    "version": "1.1.0",
+    "huella": "8fb3820be1338dfc"
+  },
+  "tendencias.ts": {
+    "version": "1.0.0",
+    "huella": "60e06f2578f30f96"
+  },
+  "ventilacion.ts": {
+    "version": "1.0.0",
+    "huella": "939672d8fd7200ba"
+  }
+}

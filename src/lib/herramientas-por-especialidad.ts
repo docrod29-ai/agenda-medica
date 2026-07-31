@@ -37,6 +37,7 @@ export type HerramientaId =
   | 'preventivo'
   | 'antibiograma'
   | 'fotos'
+  | 'laboratorios'
 
 export type Tronco =
   | 'medicina-interna'
@@ -99,16 +100,16 @@ export function troncoDe(especialidad: string | undefined | null): Tronco {
  */
 const POR_TRONCO: Record<Tronco, HerramientaId[]> = {
   // El adulto complejo: riesgo cardiovascular, prevención, cultivos.
-  'medicina-interna': ['copiloto', 'cardiometabolico', 'preventivo', 'antibiograma', 'calculadoras', 'fotos'],
+  'medicina-interna': ['copiloto', 'cardiometabolico', 'preventivo', 'antibiograma', 'calculadoras', 'fotos', 'laboratorios'],
 
   // Dosis por peso y percentiles; el riesgo cardiovascular a 10 años no aplica.
-  'pediatria': ['copiloto', 'pediatria', 'calculadoras', 'antibiograma', 'preventivo', 'fotos'],
+  'pediatria': ['copiloto', 'pediatria', 'calculadoras', 'antibiograma', 'preventivo', 'fotos', 'laboratorios'],
 
-  'gineco-obstetricia': ['copiloto', 'gineco', 'calculadoras', 'preventivo', 'fotos'],
+  'gineco-obstetricia': ['copiloto', 'gineco', 'calculadoras', 'preventivo', 'fotos', 'laboratorios'],
 
   // La valoración perioperatoria es su herramienta central: ASA, RCRI, Caprini,
   // Apfel, profilaxis con re-dosis. Trauma comparte tronco por lo mismo.
-  'cirugia': ['copiloto', 'cirugia', 'calculadoras', 'antibiograma', 'fotos'],
+  'cirugia': ['copiloto', 'cirugia', 'calculadoras', 'antibiograma', 'fotos', 'laboratorios'],
 
   /**
    * PRIMER CONTACTO VE TODO. Indicación explícita del médico.
@@ -121,17 +122,27 @@ const POR_TRONCO: Record<Tronco, HerramientaId[]> = {
    * El filtrado tiene sentido para el subespecialista, cuyo día es predecible. No
    * para quien ve de todo.
    */
-  'primer-contacto': ['copiloto', 'cirugia', 'gineco', 'pediatria', 'calculadoras', 'cardiometabolico', 'preventivo', 'antibiograma', 'fotos'],
+  'primer-contacto': ['copiloto', 'cirugia', 'gineco', 'pediatria', 'calculadoras', 'cardiometabolico', 'preventivo', 'antibiograma', 'fotos', 'laboratorios'],
 
   // Sin especialidad reconocida NO se adivina: se muestra todo, como hasta ahora.
   // Esconderle herramientas a alguien de quien no sabemos qué hace es peor que
   // mostrarle de más.
-  'otra': ['copiloto', 'cirugia', 'gineco', 'pediatria', 'calculadoras', 'cardiometabolico', 'preventivo', 'antibiograma', 'fotos'],
+  'otra': ['copiloto', 'cirugia', 'gineco', 'pediatria', 'calculadoras', 'cardiometabolico', 'preventivo', 'antibiograma', 'fotos', 'laboratorios'],
 }
 
 /** Herramientas que se muestran por defecto para esta especialidad. */
 export function herramientasDe(especialidad: string | undefined | null): HerramientaId[] {
   return POR_TRONCO[troncoDe(especialidad)]
+}
+
+/**
+ * Herramientas de un tronco directamente (para catálogos/paquetes que se
+ * presentan por tronco y no por nombre de especialidad). Misma fuente de verdad
+ * que `herramientasDe`, así el catálogo público NO puede divergir de lo que la
+ * consulta realmente muestra.
+ */
+export function herramientasDeTronco(t: Tronco): HerramientaId[] {
+  return POR_TRONCO[t]
 }
 
 /** ¿Esta herramienta se muestra por defecto para esta especialidad? */

@@ -1,0 +1,1159 @@
+{
+  "version": 1,
+  "descripcion": "ESTADO DURABLE del programa Nexus OS. Fuente de verdad del avance. Los agentes lo actualizan tras CADA unidad terminada. Si se acaban los créditos, este archivo dice exactamente dónde retomar sin perder nada.",
+  "actualizado": "2026-07-30T05:43:22Z",
+  "runs": [
+    {
+      "unidad": "E0-01",
+      "fecha": "2026-07-28T20:13:41Z",
+      "resultado": "completada",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 1911
+      }
+    },
+    {
+      "unidad": "E0-02",
+      "fecha": "2026-07-28T20:24:18Z",
+      "resultado": "completada",
+      "notaCierre": "El RESULTADO.json en disco todavía dice 'necesita_validacion' porque se escribió ANTES de que el Dr. resolviera Q1 y Q2. Hoy está CERRADA; sólo queda Q3 (catálogo adulto) como REG-043, que NO bloquea.",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 1947
+      }
+    },
+    {
+      "unidad": "E0-15",
+      "fecha": "2026-07-28T19:31:36Z",
+      "resultado": "completada",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2022
+      }
+    },
+    {
+      "unidad": "E0-14",
+      "fecha": "2026-07-28T20:40:57Z",
+      "resultado": "completada",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2039
+      }
+    },
+    {
+      "unidad": "E0-03",
+      "fecha": "2026-07-28T20:38:22Z",
+      "resultado": "completada",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2051
+      }
+    },
+    {
+      "unidad": "E0-11",
+      "fecha": "2026-07-29T03:00:21Z",
+      "resultado": "necesita_validacion",
+      "notaCierre": "CÓDIGO COMPLETO Y VERIFICADO (metagate de 78 invariantes protegidos + job `clinical-safety` en el CI + gate documentado + CODEOWNERS). Se marca 'necesita_validacion' y no 'completada' porque el criterio de aceptación literal —«un PR que rompe un invariante clínico no puede MERGEARSE»— lo decide GitHub, no el CI: sin *required status checks* sobre `main` el gate avisa pero no bloquea. Ese paso es consola del Dr. (docs/pendientes-externos.md §3). No bloquea ninguna otra unidad.",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2083
+      }
+    },
+    {
+      "unidad": "E0-04",
+      "fecha": "2026-07-29T03:10:52Z",
+      "resultado": "completada",
+      "notaCierre": "Aceptación literal («el compilador rechaza operar cantidades incompatibles») VERIFICADA por control negativo: con la marca invariante trivializada, tsc pasó de exit 0 a exit 2 con 5 TS2578 — incluidos los dos ejemplos textuales del backlog. Cero archivos de producción tocados; el módulo nace sin importadores.",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2120
+      }
+    },
+    {
+      "unidad": "E0-09",
+      "fecha": "2026-07-29T03:29:14Z",
+      "resultado": "necesita_validacion",
+      "notaCierre": "Implementado TODO lo que no depende de criterio médico: tipos del libro append-only, núcleo PURO de proyección de correcciones (marca, nunca elimina), el MAR y las órdenes ya entran a la subcolección `registros` (hueco H1 cerrado) y un gate de cobertura que rompe el CI si alguien añade una acción al gateway sin decidir si es un hecho clínico. firestore.rules NO se tocó: la aceptación literal («un update sobre un evento sellado es rechazado por reglas») exige cerrar el `update` de `signos`, y ese `update` está documentado EN LAS PROPIAS REGLAS como decisión deliberada del Dr. en la auditoría maestra 2026-07. Revertir una política suya a ciegas es exactamente lo que prohíbe la regla 5 de la carta operativa. Se entrega el parche literal de reglas para su visto bueno (Q5).",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2164
+      }
+    },
+    {
+      "tipo": "cierre-de-corrida",
+      "fecha": "2026-07-29T03:44:05Z",
+      "unidadesIntentadas": [
+        "E0-11",
+        "E0-04",
+        "E0-09"
+      ],
+      "completadas": [
+        "E0-04"
+      ],
+      "bloqueadas": [
+        "E0-11",
+        "E0-09"
+      ],
+      "esperanAlMedico": [
+        "E0-09 (Q5 — 1 línea suya destraba la aceptación literal)",
+        "E0-11 (branch protection en GitHub — ~5 min, docs/pendientes-externos.md §3)",
+        "E0-02 (Q3/REG-043 catálogo adulto — no bloquea)",
+        "E0-04 (Q1 analitos molares, Q2 mEq/L — no bloquean)",
+        "E0-14 (REG-014 firmado server-side — no bloquea)",
+        "E0-01 (pie impreso de receta, SW version — no bloquean)"
+      ],
+      "veredictoTrasVerificacionAdversarial": "E0-04 CONFIRMADA (queda una inexactitud documental corregida en esta pasada y un LÍMITE DE DISEÑO heredado a E0-05). E0-11 y E0-09 INCOMPLETAS: NINGUNA cumple su criterio de aceptación literal. Salen de `completadas`, entran en `bloqueadas` y su RESULTADO.json se retiró del disco (renombrado a RESULTADO.parcial.json en 60d63b6) para que la próxima corrida las REINTENTE en vez de saltárselas por idempotencia.",
+      "gatesAlCerrar": {
+        "tsc": "PASS (exit 0)",
+        "vitest": "PASS (2164 tests / 180 archivos)",
+        "gitStatus": "limpio, sin residuos sin commitear",
+        "push": "NO",
+        "despliegue": "NO"
+      }
+    },
+    {
+      "unidad": "E1-01",
+      "fecha": "2026-07-29T04:06:30Z",
+      "resultado": "completada",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2211
+      },
+      "notaCierre": "Aceptación literal cumplida y VERIFICADA con control negativo obligatorio: quitar strictObject pone 2 tests en rojo, quitar el refine anti-número-disfrazado-de-texto pone 3. 10 @ts-expect-error consumidos por tsc. 1 solo archivo de producción tocado (src/types/clinical-quantity.ts, +parsearCantidad, aditivo puro, sin consumidores de producción). Reparación AJENA incluida: adr-cobertura.ts DOCS_NO_ADR += PREGUNTAS-ABIERTAS-2026-07-29.md (rojo preexistente de una corrida anterior; sin él el gate vitest no podía declararse verde)."
+    },
+    {
+      "unidad": "E2-01",
+      "fecha": "2026-07-29T04:20:51Z",
+      "resultado": "completada",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2252
+      },
+      "notaCierre": "Aceptación literal («una afirmación sin pasaje de respaldo no puede construirse») cumplida por DOS puertas y VERIFICADA con tres controles negativos ejecutados: (C1) quitar las marcas fantasma pone en rojo los casos 3 y 4 del gate de tsc + el guardián #4; (C2) cambiar NoVacio<Passage> por Passage[] pone en rojo los casos 1 y 2 —la aceptación textual— + el guardián #6; (C3) reintroducir el descarte silencioso de citas (el bug real de consulta/[patientId]/page.tsx:2698) pone en rojo el test de CITA_FUERA_DE_RANGO. 12 @ts-expect-error consumidos por tsc. CERO archivos de producción tocados y CERO callers: el cableado es E2-05. NO se copió la jerarquía de evidencia sin validar de pubmed.ts:60 (es E2-03) ni se tradujo ArticuloPubMed.tipo a DisenoDeEstudio (el clasificador colapsa categorías y traducirlo inventaría un dato metodológico)."
+    },
+    {
+      "unidad": "E0-10",
+      "fecha": "2026-07-29T11:25:21Z",
+      "resultado": "necesita_validacion",
+      "notaCierre": "Entregados los alcances A-D (matriz E2E, guardián de CSP en CI, política corregida, interruptor CSP_MODE). El alcance E — poner CSP_MODE=enforce en Vercel — queda ABIERTO por la regla 6 (el agente no despliega) y es la decisión D-3 del Dr. La aceptación literal («CSP enforce sin romper flujos») sólo está probada para el CAMINO PÚBLICO: sin cuenta de prueba E2E (D-4) la zona autenticada no está cubierta. Hallazgo colateral y ya cerrado en código: 22 de 34 pantallas autenticadas viajaban sin ninguna cabecera anti-iframe (REG-054), incluidas /uci, /hospitalizacion, /receta y /superadmin.",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2276
+      }
+    },
+    {
+      "unidad": "E1-02",
+      "fecha": "2026-07-29T11:39:23Z",
+      "resultado": "necesita_validacion",
+      "notaCierre": "SOFTWARE ENTREGADO Y EN VERDE; lo que falta es CRITERIO MÉDICO, no código. Nuevos: src/lib/clinical-fact/vocabulario.ts (catálogo de 35 conceptos + resolvedor por término COMPLETO), src/__tests__/clinical-vocabulario.test.ts (46 casos, T-1…T-9) y src/__tests__/fixtures/conceptos.ts. ARCHIVOS DE PRODUCCIÓN MODIFICADOS: 0 — el módulo nace sin importadores (grep sólo devuelve src/__tests__). La aceptación literal se cumple Y se blindan sus dos anticumplimientos: 'creatinina en orina' es un concepto DISTINTO, y la resolución es por igualdad exacta, no por regex (añadir `cr` al regex actual habría metido 'proteína C reactiva' en la serie de creatinina). Control negativo ejecutado y revertido: con casado por subcadena, 4 tests de T-3 se ponen en rojo. Quedan Q1-Q5 para el Dr.: LOINC de laboratorio, sentido de «PCR», abreviaturas que resuelven solas, espécimen de la creatinina y la autorización para reparar el hallazgo E1-02-H1.",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2322
+      }
+    },
+    {
+      "unidad": "E2-02",
+      "fecha": "2026-07-29T11:53:24Z",
+      "resultado": "completada",
+      "notaCierre": "Extractor PICO entero y en verde. NUEVOS: src/lib/evidencia/pico.ts (tipos + 3 marcas fantasma + fábricas + 3 extractores + ensamblador + backoff), src/lib/evidencia/buscar-con-pico.ts (puente aislado para que pico.ts no arrastre el process.env/throttle de pubmed.ts), src/__tests__/tipos/pico.tipos.ts (9 casos negativos de compilación) y src/__tests__/pico-extractor.test.ts (35 casos). ARCHIVOS DE PRODUCCIÓN MODIFICADOS: 0, y CERO callers — el cableado de rutas y prompts es E2-05 (regla 5). La aceptación se defiende por dos puertas: el compilador (una cadena no se puede usar como consulta; una ConsultaPubMed no se puede escribir a mano) y el runtime (picoDesdeModelo RECHAZA con motivo la consulta que el modelo intente dictar dentro de una casilla, no la limpia). LOS TRES CONTROLES NEGATIVOS DEL DISEÑO SE EJECUTARON SOBRE EL CÓDIGO REAL Y SE REVIRTIERON: quitar la marca de ConsultaPubMed → TS2578 en el caso 6; relajar la P obligatoria → TS2578 en los casos 4 y 7; sustituir el rechazo por limpieza silenciosa → 2 tests en rojo. Q4 (fármaco actual = I o P) y Q6 (bandas etarias) quedan REGISTRADAS y NO bloquean: default declarado y parametrizado.",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2357
+      }
+    },
+    {
+      "tipo": "cierre-de-corrida",
+      "fecha": "2026-07-29T12:12:11Z",
+      "corrida": "2026-07-29 · lote E0-10 / E1-02 / E2-02 + verificación adversarial + reconciliación",
+      "unidadesIntentadas": [
+        "E0-10",
+        "E1-02",
+        "E2-02"
+      ],
+      "completadas": [],
+      "bloqueadas": [
+        "E0-10",
+        "E1-02",
+        "E2-02"
+      ],
+      "esperanAlMedico": [
+        "E0-09 (Q5)",
+        "E0-11 (branch protection en GitHub)",
+        "E0-10 (flip a CSP enforce + cuenta E2E)",
+        "E1-02 (Q1-Q5 + la nueva Q6 de glucosa capilar)",
+        "E2-02 (Q4, Q6 y de quién es el cableado)",
+        "E0-02 (Q3, catálogo adulto)",
+        "E0-04 (Q1, Q2)",
+        "E0-01 (D1 pie impreso de la receta)",
+        "E0-14 (REG-014 firmado server-side)"
+      ],
+      "veredicto": "CERO unidades cerradas en esta corrida. Las tres intentadas quedaron INCOMPLETAS en la verificación adversarial y las tres SALEN de `completadas`. El saldo real del programa BAJA de 10/68 a 8/68: no porque se haya perdido trabajo (el código de las tres está commiteado y verde), sino porque dos de ellas estaban contadas como hechas sin que la evidencia lo sostuviera.",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS (suite de E1-02 46/46 tras la reparación de V-1)",
+        "build": "no re-ejecutado en la reconciliación",
+        "testsPasan": 2357
+      },
+      "correccionesAplicadasEnLaReconciliacion": [
+        "E1-02 V-1 REPARADO: se retiraron los sinónimos INVENTADOS 'hb' (hemoglobina) y 'bt' (bilirrubina total) de src/lib/clinical-fact/vocabulario.ts. Ninguno existe en el `patron` de ANALITOS (analitos.ts:57 y :51) ni en el resto de src/lib. Es una BORRADURA de contenido inventado, no una decisión clínica.",
+        "El test T-6 «ningún analito se quedó con sinónimos por defecto» pasó a comprobar la DECLARACIÓN (CLAVES_SINONIMOS_DECLARADOS) y no la FORMA del valor: al quitar 'hb', `hemoglobina` quedaba con un único sinónimo igual a su clave y el test lo confundía con el respaldo automático. La comprobación de ahora es estrictamente más fuerte.",
+        "Los tres archivos de E1-02 se COMMITEAN como trabajo PARCIAL de una unidad bloqueada, no como unidad cerrada: dejarlos sin trackear era la peor opción (900 líneas verdes fuera de git y fuera de la vista del siguiente agente)."
+      ]
+    },
+    {
+      "unidad": "E0-05",
+      "fecha": "2026-07-29T12:50:33Z",
+      "resultado": "necesita_validacion",
+      "notaCierre": "Los 4 lotes del diseño quedaron HECHOS y verificados. No se marca 'completada' por el único cambio de comportamiento declarado (copiloto riesgoCardiovascular deja de calcular PREVENT con creatinina implausible): es visible en pantalla y la regla 5 pide el visto bueno del Dr. antes de desplegar.",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2403
+      }
+    },
+    {
+      "unidad": "E0-06",
+      "fecha": "2026-07-29T13:12:00Z",
+      "resultado": "necesita_validacion",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2445
+      },
+      "nota": "Fase A del diseño entregada, verificada y commiteada. Fases B y C (mover de verdad alergias/notas/txValoracion* fuera de patients/{id}) NO se ejecutaron: riesgo alto declarado en el diseño §8 y dependen de la decisión D1 del Dr. Por eso NO entra en `completadas`: la aceptación literal («no lee alergias») todavía no se cumple, y ponerla ahí sería exactamente lo que la verificación adversarial le quitó a E0-10 y E2-02.",
+      "gatesCorridosEn": "git worktree aislado en /tmp sobre HEAD 0f73fea, porque el árbol principal tenía cambios sin commitear de E0-09 que en ese momento no compilaban (TS2304 'acvpu'). Los archivos ajenos no se tocaron ni se commitearon.",
+      "commit": "checkpoint propio; el código quedó absorbido por f227bbf (colisión con E0-09 en el mismo árbol)"
+    },
+    {
+      "unidad": "E0-07",
+      "fecha": "2026-07-29T22:20:21Z",
+      "resultado": "necesita_validacion",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2583
+      },
+      "notaCierre": "Fases A + A' + B COMPLETAS y Fase C parcial (las 3 rutas donde nadie pierde acceso). CERO llamadas a verificarMedico bajo src/app/api; las 74 rutas declaradas en REGISTRO_RUTAS con guardián de tests. Las 26 que estrecharían el acceso de un usuario real quedan declaradas con su capacidad definitiva y `activacionPendiente` (Q1-Q7), no ejecutadas — regla 5 de la carta operativa. 6 sabotajes verificados en rojo, incluidos los 2 controles negativos que exigía §3.0.3 del diseño."
+    },
+    {
+      "unidad": "E0-08",
+      "fecha": "2026-07-29T22:40:34Z",
+      "resultado": "necesita_validacion",
+      "notaCierre": "Suite de aislamiento multi-tenant contra el emulador REAL entregada, tipada y en el CI (job aparte \"aislamiento-tenant\"). Los 3 gates VERDES. Lo que NO se puede firmar desde esta maquina: la propia aceptacion — el emulador de Firestore es un JAR y aqui no hay JRE, asi que las Afirmaciones A y B nunca se han ejecutado. Escribir \"cross-tenant leakage = 0 demostrado\" con la suite sin correr seria exactamente la falla que la aceptacion prohibe.",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2601
+      }
+    },
+    {
+      "unidad": "E0-12",
+      "fecha": "2026-07-29T22:58:09Z",
+      "resultado": "completada",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2663
+      },
+      "notaCierre": "Sello de integridad v3: el hash NOM-024 pasa de cubrir 10 de 26 campos de la nota a cubrir TODO el contenido firmable (preop, hospital, infectologia, iaAuditoria.provenance, transcripcion, secciones[].label, encabezado medicolegal). canonicoV2 CONGELADO + despacho por version declarada => CERO notas cambian de estado (una v2 sigue 'verificada', no se degrada a 'legado'; vector golden de v2 fijado byte por byte). NO se re-sella ninguna nota firmada: seria fabricar evidencia. NO se toco el flujo de firma (consulta/page.tsx) ni firestore.rules ni el area imprimible."
+    },
+    {
+      "tipo": "cierre-de-corrida",
+      "fecha": "2026-07-29T23:22:00Z",
+      "corrida": "2026-07-29 (noche) · lote E0-07 / E0-08 / E0-12 + verificacion adversarial + 8a reconciliacion",
+      "unidadesIntentadas": [
+        "E0-07",
+        "E0-08",
+        "E0-12"
+      ],
+      "completadas": [],
+      "bloqueadas": [
+        "E0-07",
+        "E0-08",
+        "E0-12"
+      ],
+      "esperanAlMedico": [
+        "E0-12 (D3 — cual de las tres salidas al falso 'alterada'; es el unico bloqueo DURO de merge)",
+        "E0-07 (Q1 enfermeria de UCI + IA clinica, y Q3-Q7 para las 26 rutas que estrechan)",
+        "E0-08 (Q2 — JRE local o demostrar el aislamiento en el CI)",
+        "E0-06 (D1 — captura de alergias por recepcion)",
+        "E0-09 (Q5 — si §A3 aplica a `signos`)",
+        "E0-10 (D3 flip a CSP enforce + D4 cuenta de prueba E2E)",
+        "E0-11 (branch protection en GitHub)",
+        "E1-02 (Q1-Q5 + Q6 glucosa capilar + Q7 sinonimos de vitales)",
+        "E2-02 (Q4, Q6 y de quien es el cableado)",
+        "E0-02 (Q3 catalogo adulto)",
+        "E0-04 (Q1, Q2)",
+        "E0-01 (D1 pie impreso de la receta)",
+        "E0-05 (visto bueno para desplegar el cambio visible del copiloto)",
+        "E0-14 (REG-014 firmado server-side)"
+      ],
+      "veredicto": "CERO unidades cerradas. Las tres intentadas se devuelven a la cola: E0-07 INCOMPLETA (el guardian no comprueba QUE capacidad exige la ruta, y perdio una proteccion de E0-06), E0-08 INCOMPLETA por segunda vez (la aceptacion exige correr el emulador y no hay JRE; ademas ~190 de sus 1 120 aserciones son tautologicas) y E0-12 con REGRESION P1 (falso 'alterada' sobre notas firmadas legitimas). El saldo del programa BAJA de 10/68 a 9/68: no se perdio trabajo —los tres commits estan en la rama, tipados y en verde— pero E0-12 estaba contada como hecha trayendo una regresion medicolegal.",
+      "gates": {
+        "tsc": "PASS (re-ejecutado en la reconciliacion, 2026-07-29T23:20Z, exit 0)",
+        "vitest": "no re-ejecutado en la reconciliacion; ultima medicion 2 663 verdes en 196 archivos al cerrar E0-12",
+        "build": "no re-ejecutado en la reconciliacion",
+        "testsPasan": 2663
+      },
+      "accionesDeLaReconciliacion": [
+        "E0-12 SALE de `completadas` y entra en `bloqueadas` con la cadena de causalidad completa y las tres salidas posibles.",
+        "E0-07 entra en `bloqueadas` (nunca estuvo en completadas; su acta decia `necesita_validacion`).",
+        "E0-08 ya estaba en `bloqueadas`; se le anaden los residuales de software V-2..V-5 y se le abre reintento PARCIAL (la aceptacion sigue bloqueada por el entorno).",
+        "Los tres RESULTADO.json se retiraron del disco a RESULTADO.parcial.json (git mv), para que la proxima corrida las reintente sin perder la evidencia.",
+        "Nueva decision del medico registrada: E0-12-D3, la primera de la lista y la unica que bloquea el merge de la rama.",
+        "`unidadEnCurso` en null. Arbol de trabajo limpio: no habia codigo sin commitear, solo los tres VERIFICACION.json, que se commitean como evidencia."
+      ]
+    },
+    {
+      "unidad": "E0-07",
+      "fecha": "2026-07-30T05:13:40Z",
+      "resultado": "necesita_validacion",
+      "corrida": "reintento de CIERRE tras la verificacion adversarial (no reimplementacion)",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2801
+      },
+      "notaCierre": "Cerrados los TRES P1 de software que la bloqueaban. (P1-1) NUEVO src/lib/authz/analisis-estatico.ts: el guardian extrae el ARGUMENTO real de verificarCapacidad/verificarModuloIA/exigeCapacidad y lo compara con la capacidad DECLARADA, par (ruta, metodo) por par. (P1-2) restaurado el fijado EN CODIGO del gate de telesalud/token que E0-06 tenia y E0-07 habia degradado (+1 assert en api-authz-guard, no se quito ninguna). (P1-3) `activacionPendiente` desaparece de la variante porMetodo y la sustituye `pendientePorMetodo`, asi que el POST de clinic/ai-keys (llaves de IA del tenant) y el de stripe/asientos quedan fijados. Extras: P3-1 el avance se CALCULA del registro (49 pares declarados, 20 activos, 29 pendientes = 28 rutas, coincide con el verificador) y P3-2 la senal de PHI gana `internamientos` + un segundo nivel congelado para `patients`. LOS CINCO SABOTAJES DEL VERIFICADOR, que antes dejaban 2663 tests en verde, ahora estan ROJOS; mas 2 sabotajes propios (analizador vacio, reaparicion del mapa GATES en hospital/mutar) y 2 controles negativos en verde. CERO archivos de src/app/api modificados: no se le quito el acceso a nadie."
+    },
+    {
+      "unidad": "E0-10",
+      "fecha": "2026-07-30T05:30:22Z",
+      "resultado": "necesita_validacion",
+      "notaCierre": "4a pasada = cierre del delta de la PARTE II del DISENO. Se mato el mutante que sobrevivia a la verificacion adversarial (quitar *.daily.co de frame-src dejaba el CI verde y la videoconsulta muerta bajo enforce), se congelo el conjunto expuesto a la semantica del proxy de Vercel (V-6), se anadio un test sobre el ARTEFACTO del build (.next/routes-manifest.json) y /login dejo de ser embebible (V-7a). Se escribe acta con estado `necesita_validacion` PARA QUE DEJE DE VOLVER A LA COLA: las dos mitades de la aceptacion literal (flip en Vercel + Playwright en verde) las prohiben las reglas 6 y 8 y no las va a poder hacer ninguna pasada futura sin el Dr. Software cerrado y verificado; lo que queda es humano.",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS (los dos modos)",
+        "testsPasan": 2809
+      }
+    },
+    {
+      "unidad": "E1-02",
+      "fecha": "2026-07-30T05:43:22Z",
+      "resultado": "necesita_validacion",
+      "corrida": "2a pasada — CIERRE del software tras la verificacion adversarial (no reimplementacion)",
+      "gates": {
+        "tsc": "PASS",
+        "vitest": "PASS",
+        "build": "PASS",
+        "testsPasan": 2833
+      },
+      "notaCierre": "Cerrados los DOS puntos de software que la bloqueaban, mas dos residuales del acta. (V-1) La procedencia de cada sinonimo deja de ser un COMENTARIO y pasa a ser un DATO auditable: el invariante T-10 exige, para TODO sinonimo del catalogo, que lo confirme un motor de produccion (`analitoDe` o `extraerSignosVitales`), o que sea la propia clave/etiqueta, o que sea un `display` LOINC cosechado de recursos.ts y ATADO AL CODIGO que el concepto declara, o que este citado en PROCEDENCIA_SINONIMO con fuente no vacia. Reintroducir 'hb' pone el test ROJO (control negativo ejecutado y revertido). (V-2) Se RETIRAN los 3 sinonimos de vitales sin respaldo medido: 'glucosa capilar' y 'dextrostix' (cero grep en src) y 'bmi' (fuente debil: dentro de una etiqueta de texto en preop.ts:201); quedan guardados en SINONIMOS_PROPUESTOS_PENDIENTES con su pregunta y devuelven `desconocido`. MEDICION que CORRIGE el acta: 'pulso' SI tiene fuente (parser-clinico.ts:65, confirmado por el oraculo) — eran DOS sin fuente, no cuatro. (V-3) `opts.dominio` pasa de desempate silencioso a FILTRO ESTRICTO: `resolverConcepto('creatinina',{dominio:'signo-vital'})` devolvia el concepto de LABORATORIO y ahora devuelve `desconocido`; se hizo ahora porque el modulo no tiene un solo importador de produccion y con el primer consumidor seria irreversible. (V-4) SENTIDOS_NO_CATALOGADOS declara que 'pcr_molecular' se cita como candidato pero NO se fabrica como concepto hasta que el Dr. decida Q2. HALLAZGO NUEVO E1-02-H2, registrado y NO reparado (regla 5): analitoDe('depuracion de creatinina') devuelve 'creatinina', no 'tfg' — el literal existe en el patron de tfg (analitos.ts:47) pero es CODIGO MUERTO porque creatinina va antes en el array; y analitoDe('creatinina urinaria') tambien cae en la serie serica porque la exclusion solo mira la palabra «orina». CUATRO controles negativos ejecutados y revertidos (reintroducir 'hb' -> 2 rojos; reintroducir 'glucosa capilar' -> 4 rojos; devolver el dominio a desempate -> 5 rojos; vaciar una cita -> 2 rojos). CERO archivos de produccion CONSUMIDOS tocados: analitos.ts, parser-clinico.ts, recursos.ts, cie10.ts y schema.ts intactos; el unico archivo de src/lib modificado es el propio vocabulario.ts, que sigue con 0 importadores de produccion. Tests 2809 -> 2833 (+24, todos en clinical-vocabulario.test.ts, 46 -> 70)."
+    }
+  ],
+  "unidadEnCurso": null,
+  "completadas": [
+    "E0-01",
+    "E0-02",
+    "E0-03",
+    "E0-04",
+    "E0-14",
+    "E0-15",
+    "E1-01",
+    "E2-01",
+    "E0-05"
+  ],
+  "reconciliacionDisco": {
+    "fecha": "2026-07-29T23:22:00Z",
+    "criterio": "La existencia de unidades/<ID>/RESULTADO.json es la prueba de que la unidad esta hecha; manda sobre estado.json. Segundo criterio: si existe VERIFICACION.json con veredicto INCOMPLETA o REGRESION, el RESULTADO.json se retira del disco (a RESULTADO.parcial.json, para no perder la evidencia) y la unidad vuelve a la cola.",
+    "conRESULTADO": [
+      "E0-01",
+      "E0-02",
+      "E0-03",
+      "E0-04",
+      "E0-05",
+      "E0-06",
+      "E0-14",
+      "E0-15",
+      "E1-01",
+      "E2-01"
+    ],
+    "sinRESULTADO": [
+      "E0-07 (retirado hoy — RESULTADO.parcial.json)",
+      "E0-08 (retirado hoy — RESULTADO.parcial.json)",
+      "E0-09 (parcial)",
+      "E0-10 (sin RESULTADO desde la 7a pasada)",
+      "E0-11 (parcial)",
+      "E0-12 (retirado hoy — RESULTADO.parcial.json)",
+      "E1-02 (sin RESULTADO desde la 7a pasada)",
+      "E2-02 (sin RESULTADO desde la 7a pasada)"
+    ],
+    "huboDiscrepancia": true,
+    "correccion": "8a pasada. Se retiraron TRES RESULTADO.json (E0-07, E0-08, E0-12) y E0-12 salio de `completadas`. Cuenta real: 9 de 68. De esas 9, siete tienen RESULTADO.json con estado `completada` (E0-01, E0-03, E0-04, E0-14, E0-15, E1-01, E2-01) y dos se cuentan cerradas con nota declarada: E0-02 (su acta dice `necesita_validacion` porque se escribio ANTES de que el Dr. resolviera Q1 y Q2; hoy solo queda Q3, que no bloquea) y E0-05 (aceptacion de software cumplida y verificada; espera el visto bueno para desplegar el unico cambio visible). E0-06 tiene RESULTADO.json en disco y NO cuenta como cerrada: su propia acta declara que la aceptacion literal no se cumple.",
+    "correccionesPrevias": [
+      "2026-07-28T21:49:59Z — E0-02 tenía RESULTADO.json en disco pero NO figuraba en completadas. Se añadió.",
+      "2026-07-28T22:15:15Z — 2ª pasada: sin cambios.",
+      "2026-07-29T02:44:15Z — 3ª pasada: se escribieron los RESULTADO.json ausentes de E0-03, E0-14 y E0-15 (reconstruidos con evidencia de git + tests + ledger). Sin ellos, tres unidades terminadas se habrían rehecho.",
+      "2026-07-29T03:29:14Z — 4ª pasada: sin discrepancias. Se escribe unidades/E0-09/RESULTADO.json en el mismo cambio que cierra la unidad.",
+      "2026-07-29T03:44:05Z — 5ª pasada (post-verificación adversarial). E0-11 y E0-09 estaban en `completadas` pese a que la verificación las declaró INCOMPLETAS. Se movieron a `bloqueadas` con motivo y sus RESULTADO.json se retiraron del disco (renombrados a RESULTADO.parcial.json, commit 60d63b6) para que la próxima corrida las REINTENTE. También se corrigió la cuenta: eran 7 completadas declaradas, son 6 reales.",
+      "2026-07-29T03:46:32Z — 5ª pasada: `reconciliacionDisco` contradecía al disco y a `completadas` (decía 7 completadas incluyendo E0-09 y E0-11, que sólo tienen RESULTADO.parcial.json). Corregido a 6/62. Manda el disco.",
+      "2026-07-29T11:11:22Z — 6ª pasada: `reconciliacionDisco` seguía en 6/62 y no incluía E1-01 ni E2-01 en `conRESULTADO`, pese a que ambas tienen RESULTADO.json en disco y ya figuraban en `completadas` y en `runs`. Corregido a 8/60. Se añadió E0-10 a `sinRESULTADO` (código commiteado en 5e01c35 pero unidad SIN cerrar) y se recalculó `siguientesElegibles`, que estaba obsoleto: proponía E1-01 y E2-01, que ya están hechas.",
+      "2026-07-29T11:11:22Z — 6ª pasada: E1-01/E2-01 confirmadas por disco (8 completadas); E0-10 devuelta a la cola por no tener RESULTADO.json; E0-11 fuera de selección por depender del Dr.",
+      "2026-07-29T12:50-13:12Z — E0-05 y E0-06 se cerraron como `necesita_validacion`. E0-05 quedo en `completadas` (aceptacion de software cumplida, solo espera visto bueno para desplegar); E0-06 NO, y a proposito: su propia acta dice que la aceptacion literal («recepcion no lee alergias») no se cumple porque las fases B y C dependen de la decision D1.",
+      "2026-07-29T23:22:00Z — 8a pasada (post-verificacion adversarial del lote E0-07 / E0-08 / E0-12). Las TRES quedaron sin cerrar: E0-07 INCOMPLETA, E0-08 INCOMPLETA (2a vez) y E0-12 con REGRESION P1. Los tres RESULTADO.json se retiraron del disco (renombrados a RESULTADO.parcial.json) para que la proxima corrida las REINTENTE, y E0-12 SALIO de `completadas`. El programa pasa de 10/68 declaradas a 9/68. Patron que ya se repite por cuarta vez: el agente que construye juzga su aceptacion por la frontera de su modulo (tsc + tests verdes) y no por el PRODUCTO; en E0-12 ademas el propio suite estaba escrito con una semantica de escritura (setDoc) distinta a la del flujo real (updateDoc con merge), y ahi se colo la regresion."
+    ],
+    "cuentaReal": "9 de 68 cerradas · 8 bloqueadas o a medias con trabajo commiteado (E0-07, E0-08, E0-09, E0-10, E0-11, E0-12, E1-02, E2-02) · 51 sin empezar.",
+    "notaE0_10": "4a pasada (2026-07-30): E0-10 vuelve a tener RESULTADO.json, pero con estado `necesita_validacion` y con la razon escrita dentro (`porQueNOEsCompletada`). NO cuenta como completada y NO debe entrar en `completadas`: el criterio «existe RESULTADO.json ⇒ hecha» no aplica a esta unidad. El acta existe para que la unidad deje de volver a la cola, porque su software esta cerrado y lo que falta lo tienen prohibido las reglas 6 y 8."
+  },
+  "bloqueadas": [
+    {
+      "unidad": "E0-12",
+      "titulo": "Sello de integridad NOM-024 — hashVersion 3 (el hash cubre TODO el contenido firmable)",
+      "motivo": "Verificacion adversarial: REGRESION P1. La aceptacion literal SI se cumple y se verifico sin fiarse del test (mutacion exhaustiva hoja por hoja sobre el codigo transpilado: 57 de 68 hojas -> 'alterada', y las 11 no detectadas son EXACTAMENTE las 9 exclusiones declaradas mas las hojas de `firma`; el golden de v2 se reprodujo desde HEAD~1, asi que el historico NO se movio). PERO la unidad INTRODUCE un falso 'alterada' sobre notas firmadas LEGITIMAS: updateNota usa updateDoc (firestore.ts:229), que NO borra los campos ausentes del payload, y stripUndefined (serializacion.ts:15-28) elimina del payload la llave cuyo valor es undefined. Resultado: un campo opcional que v3 SI sella (transcripcionCruda, estudiosOrden, dialogoDiarizado, internamientoId, preop — integrity.ts:123-127) sobrevive con su valor VIEJO en Firestore mientras el hash se calculo con null. Reproducido con el codigo real en los 5 campos. Bajo v2 la misma secuencia daba 'verificada': el falso positivo lo introduce esta unidad.",
+      "caminoDeUsuarioReal": "consulta/[patientId]/page.tsx:2385-2388 — el bloque «Material de origen (dictado)» es un <textarea> editable. Secuencia: el medico dicta, el autoguardado escribe transcripcionCruda con el texto, el medico VACIA el textarea (accion legitima y a un clic) y firma. La nota firmada sale con «INTEGRIDAD ALTERADA» sin que nadie la alterara. Igual al vaciar la seleccion de estudios (estudiosOrden).",
+      "porQueLosTestsNoLoVen": "e0-12-sello-integridad.test.ts:280-307 simula el viaje a Firestore como documento COMPLETO (semantica de createNota/setDoc); nunca simula el merge de updateDoc sobre el borrador ya guardado, que es lo que hace el flujo de firma real (consulta/page.tsx:1785). Por eso el suite pasa con el hueco abierto.",
+      "origen": "verificacion-adversarial",
+      "reintentar": true,
+      "severidadMasAlta": "P1 (regresion)",
+      "riesgoHoy": "CERO en produccion: el commit 3c09a0d vive en la rama nexus-os/sesion-2026-07-29, sin push y sin desplegar. PERO es un BLOQUEO DURO de merge: si esto se despliega tal cual, notas legitimas saldran con alarma medicolegal roja — que es exactamente el modo de falla que la propia unidad declaraba evitar.",
+      "bloqueadaPor": "Regla 5 de la carta operativa. Las tres salidas posibles (deleteField() por campo omitido en updateNota · setDoc sin merge · escribir null explicito en construirNota) tocan la escritura de la nota y el flujo de firma. Se entrega como PLAN para decision del medico dueno; no se ejecuta a ciegas.",
+      "queFaltaExactamente": [
+        "MEDICO (decision de una linea, ver decisionesPendientesDelMedico E0-12-D3): cual de las tres salidas se aplica al falso 'alterada' del merge de updateDoc.",
+        "SOFTWARE: el test de round-trip que FALTA — sellar sobre un documento previo que YA contenia transcripcionCruda/estudiosOrden y firmarlo con esos campos vaciados, con la semantica de merge de updateDoc. Hoy iria ROJO: eso es precisamente lo que se quiere fijar.",
+        "SOFTWARE (barato): corregir la sobreafirmacion del acta — RESULTADO.parcial.json y REG-059 de docs/audit/regression-ledger.md dicen que src/__tests__/integrity.test.ts «prueba que v2 no se movio», y es falso: usa HASH_VERSION, que ahora vale 3, asi que ejercita v3. La prueba real es el vector golden.",
+        "SOFTWARE (opcional, cierra el trinquete): derivar CAMPOS_SELLADOS_V3 de canonicoV3 en vez de una lista de strings escrita a mano, para que la cobertura declarada no pueda mentir."
+      ],
+      "alternativaDeDesatasco": "Si el Dr. necesita mergear el resto de la rama antes de resolver el falso positivo, hay una salida de UNA linea: devolver HASH_VERSION a 2 (las notas nuevas seguirian naciendo con el sello viejo) dejando el algoritmo v3 congelado en el codigo hasta cerrarlo. Es una DECISION suya, no algo que el agente aplique por su cuenta.",
+      "loQueSIquedaEnPie": "Commit 3c09a0d: canonicoV3 correcto y verificado hoja por hoja, canonicoV2 CONGELADO byte por byte (el historico firmado no cambia de estado), despacho por version declarada, trinquete de TIPOS (Record<keyof NotaMedica, true>) que rompe `tsc` si alguien anade un campo al tipo sin clasificarlo, y stripUndefined extraido a serializacion.ts. NO reimplementar: falta CERRAR el falso positivo.",
+      "evidencia": "docs/roadmap/nexus-os/unidades/E0-12/VERIFICACION.json + RESULTADO.parcial.json",
+      "commit": "3c09a0d"
+    },
+    {
+      "unidad": "E0-09",
+      "titulo": "Eventos hospitalarios críticos append-only",
+      "motivo": "Verificación adversarial INCOMPLETA: la aceptación literal («un update sobre un evento sellado es rechazado por reglas») NO se cumple. firestore.rules:246-248 sigue con `allow read, create, update: if isClinicoHospital(clinicId)` sobre /signos/{signoId} y ningún test la cubre. Lo entregado (tipos append-only, núcleo puro de correcciones, MAR y órdenes en el libro legal, gate de partición de acciones) es ANDAMIAJE sólido y verificado, pero no es la aceptación.",
+      "origen": "verificacion-adversarial",
+      "reintentar": true,
+      "bloqueadaPor": "E0-09-Q5 — decisión del médico. NO ejecutable por el agente sin violar la regla 1 y la regla 5 de la carta operativa.",
+      "queFaltaExactamente": [
+        "Una línea del Dr. confirmando que §A3 de docs/clinical-decisions/DECISIONES-ARQUITECTURA-2026-07-28.md aplica a `signos`. Con eso, el parche de 3 líneas ya escrito se aplica y la unidad cierra."
+      ],
+      "evidencia": "docs/roadmap/nexus-os/unidades/E0-09/VERIFICACION.json + RESULTADO.parcial.json"
+    },
+    {
+      "unidad": "E0-10",
+      "titulo": "CSP enforced + E2E de seguridad",
+      "motivo": "CERRADA COMO SOFTWARE en la 4a pasada (2026-07-30), acta en unidades/E0-10/RESULTADO.json con estado `necesita_validacion`. La aceptacion literal sigue sin cumplirse y NO es cumplible por un agente: (V-1) el flip es poner CSP_MODE=enforce en Vercel + redeploy = regla 6; (V-2) 'E2E en verde' exige correr Playwright = regla 8, y contra produccion el grupo A3 nace rojo porque este codigo no esta desplegado. Los 5 problemas que SI eran software estan cerrados: V-3 (mutante de *.daily.co, ahora muerto con control negativo ejecutado), V-4 y V-5 (ya lo estaban), V-6 (conjunto de rutas con doble politica CONGELADO en el guardian + paso 0 del runbook) y V-7a (/login no-embebible) / V-7b (documentado como D-8, no se toca).",
+      "origen": "verificacion-adversarial",
+      "reintentar": false,
+      "bloqueadaPor": "EXTERNO al workflow y PERMANENTE mientras no actue el Dr.: desplegar la rama, correr la matriz (`npm run build && npm run e2e:seguridad`, y la variante :enforce) y decidir D-3. Ninguna pasada de agente puede avanzar mas: no queda software pendiente en esta unidad.",
+      "queFaltaExactamente": [
+        "Decisión del Dr.: poner CSP_MODE=enforce en Vercel tras observar los reportes de report-only (decisión D-3 de la unidad).",
+        "Cuenta de prueba E2E (D-4) para cubrir la zona autenticada; sin ella la aceptación sólo está probada en el camino público.",
+        "Ejecutar `npx playwright test e2e/seguridad.spec.ts` con PLAYWRIGHT_ENFORCE=1 contra el despliegue — lo corre una persona, no el workflow."
+      ],
+      "loQueSIquedaEnPie": "El mecanismo está commiteado (5e01c35 + 5690e5b): CSP parametrizada por CSP_MODE, guardián csp-guard.test.ts con control negativo reproducido por el verificador, y el cierre REAL de un hueco de clickjacking (22 de 34 pantallas autenticadas viajaban sin cabecera anti-iframe). NO reimplementar desde cero: falta CERRAR, no construir.",
+      "evidencia": "docs/roadmap/nexus-os/unidades/E0-10/VERIFICACION.json",
+      "actaEnDisco": "docs/roadmap/nexus-os/unidades/E0-10/RESULTADO.json (estado: necesita_validacion — NO cuenta como completada)"
+    },
+    {
+      "unidad": "E2-02",
+      "titulo": "Extractor PICO",
+      "motivo": "Verificación adversarial INCOMPLETA. Estaba en `completadas` y no le corresponde: (V-1, ALTA) la aceptación del backlog no habla del módulo, habla de LA BÚSQUEDA («la búsqueda se arma desde PICO, no desde embeddings del texto crudo»), y la búsqueda del producto sigue armándose desde texto crudo — src/app/api/expediente/evidencia/route.ts:73 sigue pegando `[dx[0], ...meds.slice(0,2)].join(' ')` y consultor-evidencia/route.ts:150-172 deja que el modelo DICTE las líneas con caída a la pregunta cruda. El módulo nace con CERO importadores. (V-2, MEDIA) el cableado se atribuyó a E2-05, pero el backlog define E2-05 como «Claim-level citation»: ninguna unidad del backlog es dueña del cableado, así que el pendiente quedó HUÉRFANO.",
+      "origen": "verificacion-adversarial",
+      "reintentar": true,
+      "bloqueadaPor": "Decisión de alcance del médico dueño: el cableado toca DOS rutas de producción que hoy le devuelven bibliografía al médico. Es software puro y ejecutable, pero es exactamente el tipo de cambio que la regla 5 manda entregar como PLAN antes que a ciegas.",
+      "queFaltaExactamente": [
+        "Cablear src/app/api/expediente/evidencia/route.ts y src/app/api/consultor-evidencia/route.ts para que la ConsultaPubMed venga de picoDesdeModelo/buscar-con-pico en vez de la concatenación cruda.",
+        "Decidir de quién es esa unidad: E2-02 (reintento con alcance ampliado) o una unidad NUEVA en el backlog. Hoy no es de nadie.",
+        "Antes de tocar esas rutas: fijar el comportamiento actual con tests de caracterización, porque el cambio altera QUÉ artículos ve el médico."
+      ],
+      "loQueSIquedaEnPie": "El módulo está commiteado (7a54d1a), es correcto y está bien probado: 3 controles negativos reproducidos por el verificador y 9 mutaciones independientes lo ponen en rojo. No inventó reglas clínicas, no hay PHI y NO rompió nada (0 archivos de producción modificados). NO reimplementar: falta CABLEAR.",
+      "evidencia": "docs/roadmap/nexus-os/unidades/E2-02/VERIFICACION.json"
+    },
+    {
+      "unidad": "E0-08",
+      "titulo": "Firebase Emulator + matriz multi-tenant",
+      "motivo": "La aceptacion literal (\"cross-tenant leakage = 0 DEMOSTRADO, no asumido\") exige una corrida real del motor de reglas, y el emulador de Firestore es un JAR: en la maquina del agente no hay JRE (java -version devuelve \"Unable to locate a Java Runtime\"). Las Afirmaciones A (1 120 intentos cross-tenant que deben denegarse) y B (8 controles positivos) estan escritas y se recolectan sin error, pero NUNCA se han ejecutado.",
+      "origen": "limitacion-del-entorno",
+      "reintentar": true,
+      "noReimplementar": true,
+      "bloqueadaPor": "EXTERNO al workflow: hace falta un JRE (brew install --cask temurin, cambio del sistema que la carta operativa no autoriza al agente) o la primera corrida del job \"aislamiento-tenant\" en el CI.",
+      "queFaltaExactamente": [
+        "Correr \"npm run test:emulador\" en una maquina con JRE (o abrir el primer PR para que corra el job \"aislamiento-tenant\" del CI) y transcribir el resultado.",
+        "Ejecutar y restaurar los 3 controles negativos conductuales de docs/testing/emulador-multitenant.md: isMember -> isAuth (A roja), borrar el default-deny (A roja), no sembrar clinics/{t} (SOLO B roja).",
+        "Si la corrida descubre una fuga real: NO parchear aqui. Reportarla con el caso reproducible y abrir unidad propia."
+      ],
+      "loQueSIquedaEnPie": "TODO el software, verificado: generador puro que deriva 2 304 casos de MATRIZ_ACCESO, guardian estatico de 18 pruebas en el gate normal con 6 controles negativos ejecutados en rojo y restaurados, job de CI aparte con setup-java, y el gate compartido protegido en tres capas (probado: \"npx vitest run src/__tests__/\" sigue verde en una maquina SIN Java). firestore.rules NO se toco.",
+      "evidencia": "docs/roadmap/nexus-os/unidades/E0-08/VERIFICACION.json + RESULTADO.parcial.json",
+      "alcanceDelReintento": "SOLO los residuales de software V-2..V-5 (sensibilidad y exactitud de la suite). La ACEPTACION sigue bloqueada por el entorno: exige correr el emulador una vez. NO reimplementar la suite.",
+      "segundaVerificacion": "2026-07-29 (adversarial). Confirma V-1 de forma independiente (verifico el ausente JRE el mismo: `java -version` falla, /Library/Java/JavaVirtualMachines vacio, sin casks) y anade V-2..V-5. Reconoce explicitamente que declarar `cumplida: false` fue la conducta correcta: escribir `true` habria sido REGRESION de honestidad.",
+      "residualesDeSoftware": [
+        "V-2 (P2): ~190 de las 1 120 aserciones de la Afirmacion A son TAUTOLOGICAS — quedarian VERDES con el aislamiento roto. bot_sessions y secretos son 'servidor' en lectura Y escritura (firestore.rules:359,372), y las escrituras de internamientos (:264), notas/versions (:198), notas/adendas (:207), patients/laboratorios (:217), chat (:536), audit_log y whatsapp_optout estan cerradas a TODOS. El comentario tenant-aislamiento.emu.test.ts:84-85 («un deny es un deny») pasa por alto justo esto, y la seccion «Que NO cubre» del .md (lineas 105-118) no lo declara. El titular «1 120 intentos cross-tenant, todos denegados» sigue siendo cierto: lo que falta es SENSIBILIDAD, no verdad.",
+        "V-3 (P2): bajo clinics/** solo se prueba `get` (tenant-aislamiento.emu.test.ts:83), nunca una CONSULTA (list) cross-tenant. En Firestore `read` = get + list y el motor los evalua distinto (en `list` no hay `resource`). docs/testing/emulador-multitenant.md:21 promete «lectura y escritura» sin ese matiz. Impacto real BAJO (el aislamiento de esas rutas es posicional), pero es cobertura que el .md da por hecha.",
+        "V-4 (P3): A2 son 9 pruebas, no 10 (RESULTADO.parcial.json:22 y :156, y el mensaje del commit e5a1ce4). El total si cuadra: es descuadre de prosa, no de codigo.",
+        "V-5 (P3): «2 304 casos» son los GENERADOS; los realmente afirmados contra el motor son 1 120 (solo casosDeAislamiento()). Declararlo para que la cifra no se lea como cobertura."
+      ],
+      "commit": "e5a1ce4"
+    }
+  ],
+  "necesitaValidacionDelDr": [
+    {
+      "unidad": "E0-01",
+      "decision": "D1 — ¿el pie IMPRESO de la receta debe leerse de nota.firma en vez de config/main?",
+      "porQue": "Tras E0-01 el QR dice la identidad del médico que FIRMÓ la nota. El papel sigue imprimiendo nombre/cédula de config/main (que son de la clínica). En consultorios de un solo médico no cambia nada; con 2+ médicos, papel y QR pueden discrepar. Corregir el impreso toca el camino de impresión/PDF y la carta operativa prohíbe arriesgarlo a ciegas: requiere unidad aparte con verificación visual del PDF real.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-01",
+      "decision": "Al desplegar, subir la versión del Service Worker",
+      "porQue": "Un cliente viejo cacheado manda el body antiguo (sin patientId) y recibe 400: el QR degrada a 'Folio:<folio>' en texto plano hasta que el navegador tome el bundle nuevo. No rompe la impresión, pero deja recetas sin QR verificable ese día.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-02",
+      "id": "E0-02-Q3",
+      "decision": "¿Se amplía el CATALOGO adulto de seguridad/dosis.ts con los 20 fármacos que faltan?",
+      "porQue": "20 de los 25 fármacos pediátricos (todos los antibióticos salvo amoxicilina, más prednisona, ondansetrón, difenhidramina, aciclovir, hierro elemental, etc.) NO existen en ese catálogo, así que revisarDosis devuelve 'sin_referencia' y no impone ningún techo al prescribirlos a un adulto. El Dr. APROBÓ ampliarlo, pero no con un maxDose único: los máximos cambian por indicación, vía, función renal y formulación. El eje usual/hard ya está implementado; falta que él aporte la tabla por fármaco. No se derivan de las cifras pediátricas y no se van a inventar.",
+      "bloquea": false,
+      "dondeQuedaMarcado": "Test 'la mayoría del catálogo pediátrico NO tiene techo adulto' en src/__tests__/dosis-invariantes-property.test.ts (P6) + REG-043 en docs/audit/regression-ledger.md"
+    },
+    {
+      "unidad": "E0-14",
+      "decision": "REG-014 residual: ¿se construye el servicio de firmado SERVER-SIDE?",
+      "porQue": "La firma ya no la puede leer recepción/farmacia/enfermería (config/firma con read: isMedico). Pero el médico autenticado sigue recibiendo la imagen en su navegador porque la impresión es toda client-side. Cerrarlo del todo exige renderizar el documento firmado en el servidor: es una unidad aparte y toca el camino de impresión (regla 5 de la carta operativa).",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-11",
+      "decision": "Activar la protección de rama en `main` (required status checks `clinical-safety` + `verificar`)",
+      "porQue": "El gate de invariantes clínicos ya corre en cada PR y ya detecta que alguien borró, apagó o vació un invariante. Pero IMPEDIR EL MERGE lo decide GitHub, no el CI: hoy un PR con el gate en rojo se mergea igual. Son ~5 minutos en github.com/docrod29-ai/agenda-medica → Settings → Rules → Rulesets; los 4 ajustes exactos están en docs/pendientes-externos.md §3. Hasta entonces la unidad queda en 'necesita_validacion' y NO se marca cumplida a ciegas.",
+      "bloquea": false,
+      "bloqueaQue": "Solo el cierre formal de E0-11. Ninguna otra unidad depende de ello."
+    },
+    {
+      "unidad": "E0-11",
+      "decision": "Confirmar que `docrod29-ai` es su handle real de GitHub y activar «Require review from Code Owners»",
+      "porQue": "Se creó .github/CODEOWNERS asignando el código clínico y de seguridad a @docrod29-ai, handle deducido de la URL del remoto. Si es incorrecto, GitHub ignora la línea (no rompe nada) pero la revisión obligatoria no se aplica.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-04",
+      "id": "E0-04-Q1",
+      "decision": "¿Qué analitos deben tener conversión masa↔sustancia además de creatinina y colesterol?",
+      "porQue": "El catálogo FACTORES_MOLARES arrancó con los DOS factores que ya existían en el repo (creatinina 88.4 de funcion-renal.ts/copiloto.ts, colesterol 38.67 de prevent.ts), copiados con su cita. Para cualquier otro analito (glucosa, urea/BUN, bilirrubina, calcio) aConcentracionSustancia devuelve null — el comportamiento seguro. Añadir uno exige su masa molar con fuente; no se inventó ninguna.",
+      "bloquea": false,
+      "dondeQuedaMarcado": "Comentario NEEDS_CLINICAL_REVIEW sobre FACTORES_MOLARES en src/types/clinical-quantity.ts + test «el catálogo arranca SOLO con los dos factores que ya existían en el repo»"
+    },
+    {
+      "unidad": "E0-04",
+      "id": "E0-04-Q2",
+      "decision": "¿mEq/L debe poder convertirse a mmol/L automáticamente?",
+      "porQue": "Hoy NO: mEq/L es dimensión propia sin puente, porque la equivalencia depende de la VALENCIA del ion. Para Na⁺/K⁺/Cl⁻ el número coincide con mmol/L, pero automatizarlo abriría la puerta a Ca²⁺/Mg²⁺, donde no coincide. Si se quiere el puente, se hace en unidad aparte con la valencia declarada y su fuente.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-09",
+      "id": "E0-09-Q1",
+      "decision": "¿Un signo vital corregido o anulado debe seguir alimentando NEWS2 y el export FHIR?",
+      "porQue": "Hoy NEWS2 toma el último registro sin filtrar (hospitalizacion/[internamientoId]/page.tsx:190) y FHIR exporta el arreglo completo (src/lib/fhir-export.ts:382). Las dos salidas fallan en direcciones OPUESTAS: si una SpO2 mal capturada de 80% permanece, se dispara una alerta falsa; si se oculta un valor que en realidad era correcto, se esconde un deterioro real. No se deduce del código.",
+      "bloquea": false,
+      "dondeQuedaMarcado": "POLITICA_SIGNOS_EN_CALCULO = null en src/lib/hospital/eventos.ts. signosParaCalculoClinico() LANZA si se la llama sin política (fail-closed) y un test verifica que el módulo NO tenga consumidores de producción."
+    },
+    {
+      "unidad": "E0-09",
+      "id": "E0-09-Q2",
+      "decision": "¿Quién puede corregir y con qué alcance? ¿Puede enfermería ANULAR una administración de medicamento, o eso queda reservado al médico?",
+      "porQue": "Hoy 'administrar' lo puede hacer enfermería (src/app/api/hospital/mutar/route.ts:33). La respuesta define el GATES de la nueva acción 'corregir', que por eso NO se añadió al gateway.",
+      "bloquea": false,
+      "dondeQuedaMarcado": "PoliticaCorreccion.rolesQueCorrigen / .rolesQueAnulanAdministracion; POLITICA_CORRECCION = null."
+    },
+    {
+      "unidad": "E0-09",
+      "id": "E0-09-Q3",
+      "decision": "¿Hay ventana de tiempo para corregir? ¿Se puede corregir un evento de hace 5 días, o de un episodio ya egresado?",
+      "porQue": "'administrar' exige episodio activo (mutar/route.ts:103); para 'corregir' no hay precedente en el repo.",
+      "bloquea": false,
+      "dondeQuedaMarcado": "PoliticaCorreccion.ventanaHoras / .permiteEpisodioEgresado, ejercitados con fixture sintético en los tests y sin valor en producción."
+    },
+    {
+      "unidad": "E0-09",
+      "id": "E0-09-Q4",
+      "decision": "¿La corrección exige motivo escrito obligatorio?",
+      "porQue": "Se propone obligatorio por NOM-004, pero encarece cada corrección y, si estorba, la gente deja de corregir y el registro se degrada. Es decisión del dueño del expediente.",
+      "bloquea": false,
+      "dondeQuedaMarcado": "PoliticaCorreccion.motivoObligatorio; RegistroSignos.motivoCorreccion nace OPCIONAL para no presuponer la respuesta."
+    },
+    {
+      "unidad": "E0-09",
+      "id": "E0-09-Q5",
+      "decision": "¿Confirma revertir la política vigente de signos vitales (de «corregir en el sitio» a «anexar corrección»)?",
+      "porQue": "Hoy firestore.rules permite UPDATE sobre un registro de signos y su comentario dice que eso es deliberado (enfermería corrige en el sitio; el delete se cerró en la auditoría maestra 2026-07). E0-09 exige lo contrario: la corrección se ANEXA y el valor erróneo queda visible tachado. Es más fiel a NOM-004 y es lo que pide la aceptación de la unidad, pero es revertir una decisión suya anterior y hace la pantalla de signos más ruidosa. Dato que baja el riesgo: NINGÚN punto del código hace updateDoc sobre signos, así que cerrar el update no rompe nada existente. El parche literal está en unidades/E0-09/RESULTADO.parcial.json → needsClinicalReview[E0-09-Q5].parcheExactoQueEsperaSuVistoBueno.",
+      "bloquea": true,
+      "bloqueaQue": "La ACEPTACIÓN LITERAL de E0-09 ('un update sobre un evento sellado es rechazado por reglas'). Ninguna otra unidad depende de ello.",
+      "dondeQuedaMarcado": "REG-053 OPEN en docs/audit/regression-ledger.md + el comentario del bloque E0-09 en src/__tests__/firestore-rules-guard.test.ts, que dice qué aserción falta y por qué.",
+      "posibleRespuestaYaEscrita": "ACTUALIZADO 2026-07-29: el documento YA ESTÁ EN GIT — commit c795520 «docs(clínico): decisiones de arquitectura del Dr. para todo Nexus OS», autor DAVID, y su encabezado dice «Documento canónico: el software lo implementa, no lo reinterpreta». Su §A3 (líneas 96-109) lista literalmente «signos vitales» entre lo append-only, con «sin UPDATE destructivo, sin DELETE físico, corrección = nueva versión/adenda, original conservado» — exactamente lo que pide E0-09. Durante la corrida el archivo estaba sin rastrear y la cautela fue correcta; hoy ya no lo está. MATIZ QUE AÚN EXIGE SU LÍNEA: §A3:98-100 condiciona la regla a dato «FINALIZADO/FIRMADO», y un registro de signos NO tiene estado draft/firmado — nace y ya está. Basta que confirme «sí, aplica a signos desde que se guardan» y el parche de 3 líneas entra sin más preguntas."
+    },
+    {
+      "unidad": "E1-03",
+      "id": "E1-01-COBERTURA",
+      "decision": "¿Se amplía el catálogo de unidades de E0-04 con °C, cm, kg/m², lpm, rpm, puntos, U/L, 10³/µL y µUI/mL?",
+      "porQue": "MEDIDO contra el repo (no estimado) y fijado por test en src/__tests__/clinical-fact.test.ts bloque 6: el catálogo actual no puede expresar 14 de los 35 datos que el grafo necesitará primero (de SignosVitales sólo 3 de 11; de ANALITOS 18 de 24). E1-01 NO lo amplía: hacerlo obliga a reescribir un guardián deliberado de E0-04 (el que dice «no hay dimensión de temperatura: °C↔°F es afín, no un factor»), y reescribir un candado ajeno de puntillas es lo que la carta operativa prohíbe. Mientras tanto el comportamiento es SEGURO y verificado: lo no expresable falla ruidosamente (ni como cantidad ni colado como texto), nunca pierde la unidad. La presión arterial '120/80' no es un hecho sino dos (sistólica y diastólica), como ya hace la frontera FHIR; eso lo decide el proyector E1-03.",
+      "bloquea": true,
+      "bloqueaA": "E1-03",
+      "noBloquea": "E1-01, que queda CERRADA"
+    },
+    {
+      "unidad": "E0-10",
+      "titulo": "CSP enforced + E2E de seguridad",
+      "urgente": "DESPLIEGUE PENDIENTE (no requiere decision, solo un deploy): el cierre del hueco anti-clickjacking esta en codigo pero NO en produccion. Hoy /uci, /hospitalizacion, /superadmin, /receta, /orden, /corte-caja y ahora tambien /login (la pantalla de credenciales, REG-062) se pueden embeber en un iframe de cualquier sitio. El arreglo NO exige apretar la CSP: funciona igual en report-only.",
+      "decisiones": [
+        "D-1 · Worker de pdf.js: ¿auto-alojarlo en /public (sin CDN de terceros ejecutando código en su sesión) o dejar unpkg.com permitido? Hoy: unpkg.com permitido. Auto-alojar toca laboratorios, antibiograma por foto y receta por visión.",
+        "D-2 · ¿Sigue usando el Meta Pixel y el alta embebida de WhatsApp? Si el Pixel está apagado, se quitan connect.facebook.net y www.facebook.com de la política.",
+        "D-3 · ¿Autoriza CSP_MODE=enforce en Vercel? Es lo único que falta para la aceptación literal. Revertir = quitar la variable y redesplegar (~2 min). RECOMENDACIÓN: no antes de D-4.",
+        "D-4 · ¿Se crea un usuario de prueba con datos SINTÉTICOS para cubrir la zona autenticada en E2E? Sin esto, «enforce sin romper flujos» no pasa del camino público.",
+        "D-5 · ¿Playwright entra al CI (~4-6 min extra por PR) o queda como comando manual pre-despliegue?",
+        "D-6 · ¿/registro deja de ser embebible, como ya hace /login? Cierra el mismo hueco de clickjacking, pero es una pagina de captacion: si una landing o un socio la embebe, se rompe. Cambio preparado, una linea.",
+        "D-7 · ¿se redisenan los bloques de cabeceras para que NINGUNA ruta reciba dos politicas CSP? Eliminaria la dependencia de una semantica del proxy de Vercel que nadie ha verificado; a cambio toca las cabeceras de TODAS las rutas (regla 5). Alternativa barata: contestar D-2 (si el Pixel esta apagado, el riesgo baja de 3 rutas a 1).",
+        "D-8 · ¿funciona HOY el video de la teleconsulta en produccion? La cabecera global declara camera=() y el iframe de Daily pide allow=\"camera\"; una Permissions-Policy del documento superior no se re-concede desde el iframe. Si el video no funciona es un fallo VIVO previo a esta unidad; abrir camera=(self) es aflojar seguridad y merece unidad aparte.",
+        "EVIDENCIA QUE PUEDE PEDIRNOS EN UN SOLO COMANDO (sin desplegar): `npm run build && npm run e2e:seguridad` y `CSP_MODE=enforce npm run build && npm run e2e:seguridad:enforce`. Con el segundo en verde queda demostrado 'enforce sin romper flujos' en el camino publico."
+      ],
+      "ninguaEsClinica": true,
+      "evidencia": "docs/roadmap/nexus-os/unidades/E0-10/RESULTADO.json · runbook en docs/seguridad/csp-enforce.md · REG-054/055/056 en docs/audit/regression-ledger.md"
+    },
+    {
+      "unidad": "E0-05",
+      "id": "E0-05-VB",
+      "decision": "VISTO BUENO para desplegar el cierre del hueco de riesgoCardiovascular (copiloto.ts).",
+      "porQue": "Único cambio de comportamiento de la unidad y el único visible en pantalla. Con una creatinina fuera de [0.1, 25] mg/dL (p.ej. 88, normal en µmol/L) la tarjeta 'PREVENT-ASCVD a 10 años' deja de mostrarse y en su lugar se declara el dato faltante. Antes se mostraba un riesgo calculado sobre una TFG fantasma de ~5 mL/min/1.73m². Va en la dirección segura, pero la regla 5 pide su OK.",
+      "bloquea": false,
+      "dondeQuedaMarcado": "src/__tests__/motores-unidad-cruzada.test.ts → «copiloto ya no calcula riesgo PREVENT sobre una creatinina implausible» (control negativo ejecutado: revertir la línea pone ese test rojo)"
+    },
+    {
+      "unidad": "E0-05",
+      "id": "E0-05-Q1",
+      "decision": "Etiqueta oficial del bicarbonato: ¿mEq/L o mmol/L?",
+      "porQue": "El registro de motores decía mEq/L y el comentario del motor decía mmol/L. Al ser monovalente el NÚMERO es idéntico, pero la etiqueta que se imprime en la nota no. Se adoptó mEq/L por coherencia con Na/Cl de analitos.ts y con el registro. Cambiarlo es una línea.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-05",
+      "id": "E0-05-Q2",
+      "decision": "Depuración para dosificar SIN peso: ¿(a) seguir igual, (b) mostrar la procedencia en la alerta, o (c) no alertar sin peso?",
+      "porQue": "Sin peso se usa la TFG INDEXADA (mL/min/1.73m²) contra umbrales en mL/min. Es el comportamiento vigente y E0-05 no lo cambió; ahora la unión discriminada DepuracionParaDosis hace la procedencia visible en el código, así que la decisión se puede aplicar sin tocar la aritmética. La regla de enoxaparina ya advierte del punto.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-05",
+      "id": "E0-05-Q3",
+      "decision": "¿Se añaden más analitos con conversión masa↔sustancia (glucosa, urea/BUN, bilirrubina, calcio)?",
+      "porQue": "FACTORES_MOLARES sólo tiene creatinina y colesterol (los que ya existían). aConcentracionMasa devuelve null para el resto — comportamiento seguro. Cada analito exige su fuente citada. Heredada de E0-04.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-06",
+      "decision": "D1 — ¿la asistente/recepción puede CAPTURAR alergias y antecedentes en el alta, aunque después no pueda leerlos?",
+      "porQue": "Hoy los captura en /pacientes (campo Alergias + textarea Notas): es el flujo de alta real del consultorio, no un hueco teórico. Cumplir la aceptación al pie de la letra se lo quita. Opciones: (a) no puede, las captura el médico en consulta; (b) write-only (escribe el subdocumento pero no lo lee); (c) puede alergias, no antecedentes ni valoración. Recomendación del diseño: (a).",
+      "bloquea": true,
+      "queDesbloquea": "Fases B y C de E0-06 — el único camino que hace verdad «recepción no lee alergias»."
+    },
+    {
+      "unidad": "E0-06",
+      "decision": "D2 — ¿el enlace del portal que envía la asistente debe seguir mostrando «Mis recetas»?",
+      "porQue": "YA se aplicó que NO (el token que emite /api/portal/link nace con alcance `agenda`). Es la dirección segura —antes esa ruta le daba a cualquier rol una credencial de 30 días que abría diagnósticos y medicamentos de notas firmadas— pero es un cambio visible: la asistente notará que el enlace que manda ya no abre las recetas, y los enlaces de 30 días ya emitidos pierden esa pestaña. Revertirlo es de una línea.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-06",
+      "decision": "D3 — ¿`embarazo`, `cronico` y `alto-riesgo` (tags del paciente) son administrativos o clínicos?",
+      "porQue": "Hoy los ve todo el equipo y los usa la agenda/CRM. Moverlos a lo clínico cambia listados que la asistente usa a diario. Recomendación: dejarlos donde están y documentarlo como residual aceptado.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-07",
+      "id": "E0-07-Q1",
+      "decision": "¿La enfermería de UCI usa uci/copilot y el dictado del expediente, o solo el médico?",
+      "porQue": "Es el hueco de seguridad MÁS GRANDE que queda abierto. Las 16 rutas de IA clínica exigen PLAN, no ROL: hoy un miembro con rol `laboratorio` o `farmacia` puede hacer POST a /api/expediente/transcribir y recibir una nota clínica redactada — PHI que firestore.rules le niega, entregado por la puerta del Admin SDK. `verificarModuloYCapacidad` ya está escrita y probada (incluido el 403 a `laboratorio` y la preservación del fail-OPEN); solo falta activarla. Si la respuesta es «solo el médico», el hueco se cierra en un lote pequeño.",
+      "bloquea": true,
+      "bloqueaQue": "16 rutas de IA clínica"
+    },
+    {
+      "unidad": "E0-07",
+      "id": "E0-07-Q3",
+      "decision": "¿Enfermería/farmacia/laboratorio deben poder listar los correos del equipo (clinic/miembros)? HOY PUEDEN.",
+      "porQue": "Activar `equipo.leer` los deja fuera. Es política de acceso del consultorio, no criterio clínico.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-07",
+      "id": "E0-07-Q4",
+      "decision": "¿La asistente (secretaria) descarga CFDI, o solo cobra?",
+      "porQue": "Determina la fila `facturar` de la matriz y con ella el gate de facturacion/descargar.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-07",
+      "id": "E0-07-Q5",
+      "decision": "En un consultorio de un solo médico, `medico` conserva `administrar` (Stripe, llaves de IA, WhatsApp). ¿Correcto, o solo `admin` toca la suscripción?",
+      "porQue": "Quitárselo rompería de inmediato su propio caso (un médico = dueño). También decide si `manejarPagos` sigue siendo false para `medico` en permissions.ts, hoy conservado como excepción declarada.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-07",
+      "id": "E0-07-Q6",
+      "decision": "NUEVA — ¿La asistente del mostrador entra a la sala de teleconsulta (/teleconsulta/[citaId]), o solo el médico y el paciente?",
+      "porQue": "El diseño daba telesalud/sala por «no estrecha a nadie» y no es cierto: `clinico.leer` deja fuera a `secretaria`. Por eso NO se migró. Se le escribió el test de no-regresión del OR (token primero, 404 nunca 403) que la futura migración tendrá que seguir pasando.",
+      "bloquea": false,
+      "bloqueaQue": "telesalud/sala (rama del equipo)"
+    },
+    {
+      "unidad": "E0-07",
+      "id": "E0-07-Q7",
+      "decision": "NUEVA — ¿Enfermería/farmacia/laboratorio necesitan agendar citas, mandar WhatsApp o ver pagos?",
+      "porQue": "Gobierna 6 de las 11 rutas que estrechan (appointments, calendar/sync, portal/link, whatsapp/waitlist-notify, whatsapp/entregas, facturacion/pagos). Un 403 nuevo en appointments deja a alguien sin poder agendar y se lee como «la app se rompió»; en whatsapp/waitlist-notify corta confirmaciones de cita.",
+      "bloquea": false,
+      "bloqueaQue": "6 rutas de Fase C"
+    },
+    {
+      "unidad": "E0-08",
+      "decision": "E0-08-Q2 — ¿instalo un JRE en su maquina (brew install --cask temurin) para poder correr aqui la prueba de aislamiento, o se demuestra solo en GitHub (CI) al abrir el primer PR?",
+      "porQue": "Sin Java la prueba no arranca, y sin arrancarla nadie puede firmar la frase \"ninguna clinica puede leer los datos de otra: demostrado\". El software esta listo y en verde; falta ejecutarlo una vez.",
+      "bloquea": true
+    },
+    {
+      "unidad": "E0-08",
+      "decision": "E0-08-Q1 — ¿acepta que el CI gane un job de ~2-3 min y que la instalacion de dependencias se alargue en los dos jobs existentes (487 paquetes de desarrollo por firebase-tools)?",
+      "porQue": "Es el costo de probar el aislamiento contra el motor real y de forma REPRODUCIBLE (versiones fijadas en el lockfile). Ya quedo aplicado como default. Nada de eso viaja a produccion: son dependencias de desarrollo.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-07",
+      "id": "E0-07-Q1",
+      "decision": "¿La enfermeria de UCI DICTA en el expediente y usa el copiloto (/api/expediente/*, /api/uci/copilot), o solo el medico?",
+      "porQue": "Es el hueco de seguridad mas grande que queda abierto: hoy cualquier miembro con el plan contratado — incluidos `farmacia` y `laboratorio` — puede hacer POST a /api/expediente/transcribir y recibir una nota clinica redactada por la API. Gobierna 16 rutas. `verificarModuloYCapacidad` ya esta escrita y probada, con la asimetria fail-OPEN/503 preservada; solo falta la respuesta. Activarla con la respuesta equivocada deja a la enfermeria de UCI sin dictado.",
+      "bloquea": true,
+      "esCriterioClinico": false,
+      "dondeQuedaMarcado": "docs/roadmap/nexus-os/unidades/E0-07/RESULTADO.json + `activacionPendiente`/`pendientePorMetodo` en src/lib/authz/registro-rutas.ts (cada pendiente dice por escrito que decision espera, y un test lo comprueba)"
+    },
+    {
+      "unidad": "E0-07",
+      "id": "E0-07-Q6",
+      "decision": "¿La asistente del mostrador entra a la sala de teleconsulta (/teleconsulta/[citaId]), o solo el medico y el paciente?",
+      "porQue": "Gobierna la rama de equipo de telesalud/sala, que hoy pasa con `verificarMiembro`. Activar `clinico.leer` estrecharia a `secretaria`.",
+      "bloquea": false,
+      "esCriterioClinico": false,
+      "dondeQuedaMarcado": "docs/roadmap/nexus-os/unidades/E0-07/RESULTADO.json + `activacionPendiente`/`pendientePorMetodo` en src/lib/authz/registro-rutas.ts (cada pendiente dice por escrito que decision espera, y un test lo comprueba)"
+    },
+    {
+      "unidad": "E0-07",
+      "id": "E0-07-Q7",
+      "decision": "¿Enfermeria/farmacia/laboratorio necesitan AGENDAR citas, mandar WhatsApp o ver pagos?",
+      "porQue": "Gobierna 6 rutas (appointments, calendar/sync, portal/link, whatsapp/entregas, whatsapp/waitlist-notify, facturacion/pagos). Un 403 nuevo en `appointments` se lee como «la app se rompio», y un 403 en waitlist-notify corta confirmaciones de cita.",
+      "bloquea": false,
+      "esCriterioClinico": false,
+      "dondeQuedaMarcado": "docs/roadmap/nexus-os/unidades/E0-07/RESULTADO.json + `activacionPendiente`/`pendientePorMetodo` en src/lib/authz/registro-rutas.ts (cada pendiente dice por escrito que decision espera, y un test lo comprueba)"
+    },
+    {
+      "unidad": "E0-07",
+      "id": "E0-07-Q3",
+      "decision": "¿Enfermeria/farmacia/laboratorio deben poder listar los correos del equipo (clinic/miembros)?",
+      "porQue": "HOY PUEDEN. Activar `equipo.leer` los deja fuera.",
+      "bloquea": false,
+      "esCriterioClinico": false,
+      "dondeQuedaMarcado": "docs/roadmap/nexus-os/unidades/E0-07/RESULTADO.json + `activacionPendiente`/`pendientePorMetodo` en src/lib/authz/registro-rutas.ts (cada pendiente dice por escrito que decision espera, y un test lo comprueba)"
+    },
+    {
+      "unidad": "E0-07",
+      "id": "E0-07-Q4",
+      "decision": "¿La asistente DESCARGA CFDI, o solo cobra?",
+      "porQue": "Determina la fila `facturar` y con ella facturacion/descargar.",
+      "bloquea": false,
+      "esCriterioClinico": false,
+      "dondeQuedaMarcado": "docs/roadmap/nexus-os/unidades/E0-07/RESULTADO.json + `activacionPendiente`/`pendientePorMetodo` en src/lib/authz/registro-rutas.ts (cada pendiente dice por escrito que decision espera, y un test lo comprueba)"
+    },
+    {
+      "unidad": "E0-07",
+      "id": "E0-07-Q5",
+      "decision": "En un consultorio de un solo medico, `medico` conserva `administrar` (Stripe, llaves de IA, WhatsApp). ¿Correcto?",
+      "porQue": "Quitarselo romperia su propio caso: no podria pagar su suscripcion ni configurar sus llaves.",
+      "bloquea": false,
+      "esCriterioClinico": false,
+      "dondeQuedaMarcado": "docs/roadmap/nexus-os/unidades/E0-07/RESULTADO.json + `activacionPendiente`/`pendientePorMetodo` en src/lib/authz/registro-rutas.ts (cada pendiente dice por escrito que decision espera, y un test lo comprueba)"
+    },
+    {
+      "unidad": "E0-07",
+      "id": "E0-07-Q2",
+      "decision": "`recepcion` y `facturacion` estan en la matriz pero no son asignables. ¿Se activan o se borran?",
+      "porQue": "Abierta desde E0-06. No bloquea nada hoy porque ningun usuario real puede tener esos roles.",
+      "bloquea": false,
+      "esCriterioClinico": false,
+      "dondeQuedaMarcado": "docs/roadmap/nexus-os/unidades/E0-07/RESULTADO.json + `activacionPendiente`/`pendientePorMetodo` en src/lib/authz/registro-rutas.ts (cada pendiente dice por escrito que decision espera, y un test lo comprueba)"
+    },
+    {
+      "unidad": "E0-07",
+      "id": "E0-07-D8",
+      "decision": "¿Se ejecuta la Parte B (whitelist del valor `role` en clinic/unirse, P2-2)?",
+      "porQue": "Entregada como PLAN, no ejecutada: toca el ALTA DE MIEMBROS del consultorio (regla 5). El plan concreto es validar `inv.role` contra ROLES_ASIGNABLES DENTRO de la transaccion de src/app/api/clinic/unirse/route.ts:78-84 y rechazar con 409 + safeLog. `RolInvitacion` ya es exactamente esos 6 roles, asi que ninguna invitacion emitida por la app puede ser rechazada. La otra mitad (firestore.rules) exige un deploy de reglas y la regla 6 lo prohibe.",
+      "bloquea": false,
+      "esCriterioClinico": false,
+      "dondeQuedaMarcado": "docs/roadmap/nexus-os/unidades/E0-07/RESULTADO.json + `activacionPendiente`/`pendientePorMetodo` en src/lib/authz/registro-rutas.ts (cada pendiente dice por escrito que decision espera, y un test lo comprueba)"
+    },
+    {
+      "unidad": "E1-02",
+      "id": "E1-02-Q1",
+      "decision": "CÓDIGOS LOINC DE LABORATORIO. ¿Me da (a) la tabla concepto→LOINC validada, o (b) el visto bueno para publicar v1.0.0 sin LOINC de laboratorio, exportando sólo la clave interna?",
+      "porQue": "Los 10 de signos vitales ya están en producción (fhir/recursos.ts:80-88) y los copio con su cita. Los 24 analitos no tienen ninguno y NO los elijo yo: para una sola creatinina hay códigos distintos según magnitud (masa vs. sustancia) y espécimen (suero/plasma vs. orina), y un código equivocado viaja al exterior dentro del Observation de FHIR, donde otro sistema lo lee como verdad.",
+      "defaultAplicado": "codigos: [] para los 25 conceptos de laboratorio, con el trinquete LAB_SIN_CODIGO_CONGELADO=25 y el test T-5 que impide rellenarlos sin cita (el número sólo puede BAJAR).",
+      "bloquea": false,
+      "dondeQuedaMarcado": "LAB_SIN_CODIGO_CONGELADO = 25 en src/lib/clinical-fact/vocabulario.ts + test T-5 en src/__tests__/clinical-vocabulario.test.ts"
+    },
+    {
+      "unidad": "E1-02",
+      "id": "E1-02-Q2",
+      "decision": "«PCR»: ¿proteína C reactiva o reacción en cadena de la polimerasa? Elija (a) PCR a secas = proteína C reactiva y el sentido molecular siempre se escribe completo; (b) siempre ambiguo y que la UI pregunte; (c) desambiguar por dominio (panel de laboratorio = proteína C reactiva; microbiología = molecular).",
+      "porQue": "Hoy analitos.ts:65 lo resuelve SIEMPRE como proteína C reactiva, y está MEDIDO que 'PCR para influenza' cae en esa serie. En una app con módulo PROA/infectología el otro sentido aparece constantemente.",
+      "defaultAplicado": "En el vocabulario nuevo 'pcr' es término RESERVADO → devuelve 'ambiguo' con nota NEEDS_CLINICAL_REVIEW; 'proteína C reactiva' escrito completo sí resuelve. Producción no cambia. AÑADIDO en la 2a pasada: el sentido molecular se cita como candidato pero NO se fabrica como concepto — SENTIDOS_NO_CATALOGADOS lo declara y el test T-12 lo vigila (cierra el hallazgo V-4 de la verificación).",
+      "bloquea": false,
+      "dondeQuedaMarcado": "TERMINOS_RESERVADOS.pcr + SENTIDOS_NO_CATALOGADOS en vocabulario.ts + tests T-9 y T-12"
+    },
+    {
+      "unidad": "E1-02",
+      "id": "E1-02-Q3",
+      "decision": "ABREVIATURAS DE LABORATORIO QUE PUEDEN RESOLVER SOLAS. ¿Alguna de estas debe dejar de resolver sola: Na, K, Cl, FA, Glu, ALP, A1c, BUN, Hto, Hct, TSH? ¿Falta alguna que usted teclea y hoy no existe (BH, QS, ES, TP, TTP)? Cada una que agregue debe venir con un sentido único.",
+      "porQue": "'Cr' lo decide el propio backlog, así que ésa no se pregunta. Las demás las hereda el catálogo de analitos.ts y resuelven hoy sin contexto; cuáles usa usted y con qué sentido es criterio suyo.",
+      "defaultAplicado": "Se conservan EXACTAMENTE las que ya están en los regex de analitos.ts + 'cr'. MEDIDO EN LA 2a PASADA con `analitoDe` como oráculo: las 11 que se le enumeran están TODAS confirmadas por producción — el único alias del catálogo sin fuente en el repo es 'cr', y ése lo ordena la aceptación del backlog. Ahora el invariante T-10 impide dar de alta cualquier abreviatura sin fuente (fue así como se colaron 'hb' y 'bt' en la 1a pasada).",
+      "bloquea": false,
+      "dondeQuedaMarcado": "SINONIMOS_LAB + PROCEDENCIA_SINONIMO en vocabulario.ts + tests T-4 (colisión) y T-10 (procedencia, con 4 controles negativos ejecutados)"
+    },
+    {
+      "unidad": "E1-02",
+      "id": "E1-02-Q4",
+      "decision": "ESPÉCIMEN: ¿«creatinina» a secas es la SÉRICA? Confírmelo, porque fija la semántica de toda serie temporal futura.",
+      "porQue": "El repo ya lo asume al excluir «en orina» (analitos.ts:44) y la aceptación del backlog lo confirma, pero hoy es implícito. Volverlo explícito es una afirmación clínica y merece su visto bueno.",
+      "defaultAplicado": "creatinina → especimen 'suero', y creatinina_orina como concepto separado sin sinónimos compartidos (fijado por el test T-2). En la 2a pasada la divergencia con producción quedó CITADA, no escondida: 'creatinina urinaria' cae hoy en la serie SÉRICA porque la exclusión de analitos.ts:44 sólo mira la palabra «orina».",
+      "bloquea": false,
+      "dondeQuedaMarcado": "ESPECIMEN_LAB + PROCEDENCIA_SINONIMO['creatinina urinaria'] en vocabulario.ts + tests T-2 y T-10"
+    },
+    {
+      "unidad": "E1-02",
+      "id": "E1-02-Q5",
+      "decision": "NO es clínica, pero es su decisión — HALLAZGO E1-02-H1/H2/H2b, con impacto HOY: ¿autoriza una unidad aparte que exija término COMPLETO para los alias cortos de analitoDe() y REORDENE el array de ANALITOS? Ahora son TRES casos medidos, no uno.",
+      "porQue": "(H1) analitoDe('vitamina K') → 'potasio' y valorPlausible('potasio', 10) → true, así que una fila «Vitamina K 10» de un panel leído por visión se dibuja como POTASIO 10 mEq/L en la gráfica de electrolitos (camino real: validarPanel en extraccion.ts:97 → seriesDesdeHistorial → gráfica). (H2, NUEVO en la 2a pasada) analitoDe('depuracion de creatinina') → 'creatinina', NO 'tfg': el literal SÍ existe en el patrón de tfg (analitos.ts:47) pero es CÓDIGO MUERTO porque creatinina va antes en el array (analitos.ts:44). Atenuante medido: el rango plausible de creatinina (0.1-25 mg/dL) descarta una TFG normal, pero NO una TFG baja (1-25), que es justo la del paciente renal. (H2b) analitoDe('creatinina urinaria') → 'creatinina', porque la exclusión sólo mira «orina».",
+      "defaultAplicado": "NADA TOCADO — regla 5: cambia una gráfica en producción. Los tres casos quedan asertados en su comportamiento REAL en el test T-10, así que ningún arreglo puede pasar en silencio. Reparación mínima propuesta: término completo para na, k, cl, fa, glu, alp, a1c, bun, hto, hct, ldl, hdl, cr; mover el patrón de tfg antes que el de creatinina; añadir «urinaria» a la exclusión (~8 líneas + test de regresión).",
+      "bloquea": false,
+      "dondeQuedaMarcado": "REG pendiente + bloque «el hallazgo E1-02-H2 queda REGISTRADO, no reparado (regla 5)» en src/__tests__/clinical-vocabulario.test.ts"
+    },
+    {
+      "unidad": "E1-02",
+      "id": "E1-02-Q6",
+      "decision": "«GLUCOSA CAPILAR»: ¿es glucometría (signo vital, LOINC 2339-0) o glucosa de laboratorio? Elija: (a) 'glucosa capilar' y 'dextrostix' → glucometria; (b) → glucosa; (c) que sigan sin resolver y la UI pregunte.",
+      "porQue": "El catálogo de la 1a pasada mandaba 'glucosa capilar' → glucometria (signo vital) mientras 'glucosa serica' → glucosa (laboratorio). Es una separación defendible, pero NO está en ninguna fuente del repo: `grep -rniE 'glucosa capilar' src` devuelve CERO resultados fuera de vocabulario.ts. Es una decisión de significado clínico (¿la capilar y la venosa son la misma serie temporal o dos?) y de ella depende en qué gráfica temporal cae el dato.",
+      "defaultAplicado": "(c) provisional: se RETIRAN del catálogo 'glucosa capilar' y 'dextrostix' (este último es además un nombre COMERCIAL) y ambos devuelven `desconocido`. La propuesta no se pierde: queda en SINONIMOS_PROPUESTOS_PENDIENTES con su clave sugerida.",
+      "bloquea": false,
+      "dondeQuedaMarcado": "SINONIMOS_PROPUESTOS_PENDIENTES en vocabulario.ts + test T-13 + fixture TERMINOS_RETIRADOS_SIN_FUENTE"
+    },
+    {
+      "unidad": "E1-02",
+      "id": "E1-02-Q7",
+      "decision": "ABREVIATURAS DE SIGNOS VITALES sin uso confirmado en la app. Sólo le pregunto por tres: ¿usa PAS/PAD al DICTAR (hoy existen sólo como claves de campo del formulario de UCI, no como término dictado)? ¿Quiere BMI además de IMC (su única aparición en el repo está dentro de una etiqueta de texto, preop.ts:201)? ¿Falta alguna que usted teclea (FC, FR, TA, SatO2, Glu cap)?",
+      "porQue": "Los sinónimos de los 10 conceptos vitales se escribieron a mano en la 1a pasada; sólo los CÓDIGOS venían de producción. La 2a pasada midió cada uno contra los motores reales. Con fuente medida y SE QUEDAN: 'pulso' (parser-clinico.ts:65), 'temp' (:67), 'saturacion' (:68), 'estatura' (:85) y los `display` LOINC ('temperatura corporal', 'peso corporal', 'indice de masa corporal', 'saturacion de oxigeno', 'sistolica', 'diastolica'). CORRECCIÓN AL ACTA DE VERIFICACIÓN: 'pulso' SÍ tenía fuente; sin fuente quedaban DOS, no cuatro.",
+      "defaultAplicado": "'pas' y 'pad' SE QUEDAN pero CITADOS como claves de campo de UCI y marcados needsClinicalReview; 'bmi' SE RETIRA a SINONIMOS_PROPUESTOS_PENDIENTES por fuente débil.",
+      "bloquea": false,
+      "dondeQuedaMarcado": "PROCEDENCIA_SINONIMO['pas'|'pad'] + SINONIMOS_PROPUESTOS_PENDIENTES en vocabulario.ts + tests T-10 y T-13"
+    }
+  ],
+  "siguientesElegibles": {
+    "fecha": "2026-07-30T05:43:22Z",
+    "notaDeEstaPasada": "E1-02 acaba de cerrar su parte de software (2a pasada) y sale de la cola con acta `necesita_validacion`. Base real: 9 completadas + E0-07, E0-10 y E1-02 en necesita_validacion con su software terminado. Siguen a medias E0-08, E0-09, E0-11, E0-12 y E2-02.",
+    "recomendacionExplicita": {
+      "siguienteUnidad": "E0-12 (BLOQUEO DE MERGE)",
+      "porQue": "Es la de mayor RIESGO del programa: la regresion P1 del sello v3 (falso «INTEGRIDAD ALTERADA» en notas firmadas legitimas por el merge de updateDoc) esta commiteada en 3c09a0d y nada de esta rama debe desplegarse hasta cerrarla. Lo ejecutable SIN decision del Dr. es el test de round-trip que hoy iria en rojo (sellar sobre un documento que YA contenia transcripcionCruda/estudiosOrden y firmarlo con esos campos vaciados, con semantica de merge) y corregir la sobreafirmacion del acta y de REG-059. La ELECCION de la salida (deleteField / setDoc / null explicito) es del Dr.",
+      "despues": "E1-03 (proyector expediente -> ClinicalFacts) queda DESATASCADA: sus dos dependencias E1-01 y E1-02 tienen el software cerrado. Debe consumir `resolverConcepto` con `dominio` COMO FILTRO ESTRICTO y tratar `ambiguo`/`desconocido` como estados de primera clase, no como fallos. Alternativa: E2-02 (cablear PICO a las dos rutas de evidencia, previa decision de alcance)."
+    },
+    "bloqueadasPorTerceros": [
+      "E0-08 (necesita un JRE para el emulador)",
+      "E0-10 (CERRADA como software: necesita desplegar, una corrida humana de Playwright y la decision D-3; NO reintentar)",
+      "E0-09 (necesita una linea del Dr. sobre `signos`)",
+      "E0-07 (CERRADA como software: necesita las respuestas de politica Q1 y Q3-Q7; NO reintentar)",
+      "E1-02 (CERRADA como software: Q1-Q7, ninguna bloqueante; NO reintentar)"
+    ]
+  },
+  "notas": [
+    "E0-01 cerró REG-025 por completo en docs/audit/regression-ledger.md (era CLOSED parcial).",
+    "E0-01 NO tocó impresión, PDF, Word, firma, cobros ni reglas de Firestore. Nada desplegado, sin push.",
+    "Desviación consciente del diseño de E0-01 (PARTE 2): no se muestra el mensaje comparativo entre la huella del impreso y la de la nota, porque se calculan sobre entradas distintas y una diferencia no probaría edición alguna. Detalle en unidades/E0-01/RESULTADO.json → decisiones.D3.",
+    "E0-02 CERRADA 2026-07-28: el Dr. resolvió Q1 (modelo de 3 niveles para amoxicilina) y Q2 (redondeo hacia abajo al tocar un tope). Q3 (catálogo adulto) sigue abierta como REG-043: aprobó ampliarlo pero aporta la tabla después.",
+    "E0-02 corrigió tres afirmaciones de su propio DISENO.md, medidas contra el código: (1) amoxicilina choca con el techo adulto desde ≈22.3 kg, no desde 33.3 kg; (2) son 20 de 25 fármacos sin referencia adulta, no 22; (3) la comprobación de '§7.3 el test detecta la regresión' propuesta NO habría fallado: se sustituyó por dos motores MUTANTES permanentes que rompen la relación motor↔catálogo.",
+    "Riesgo BUSCADO y documentado en el ADR de E0-02: P1 y P6 son fail-closed. Un fármaco nuevo con unidad fuera de ['mg','mg de TMP'], sin ningún tope declarado, o que contradiga el catálogo adulto, tumba el CI a propósito para forzar una revisión clínica explícita.",
+    "E0-15 CERRADA 2026-07-28: las 4 decisiones del Dr. implementadas (a effectiveAST canónico, b MISSING→UNKNOWN, c CMI con operador, d carbapenémicos precaución). REG-044 a REG-050. 2022 tests.",
+    "E0-03 CERRADA 2026-07-28 (segundo intento). El primero falló por diseño: exigía un ADR por CADA motor (56 motores, 3 ADRs) → el gate nacía rojo con 53 fallos, y un gate así se marca skip y deja de proteger. Rehecho con TRINQUETE: la deuda (52) se congela y sólo puede BAJAR; un motor NUEVO sin ADR la sube y tumba el CI. Encontró un hueco real: dosis-pediatrica.md no declaraba sus golden tests. OJO: el revert 9f2e45f borró unidades/E0-03/DISENO.md y no se recreó.",
+    "E0-14 CERRADA 2026-07-28: sus tres componentes son REG-014 (firma aislada en config/firma, residual server-side declarado), REG-015 (cobro sella autor + monto≥0 + tipo) y REG-017 (nota nace DRAFT). Las reglas de Firestore de esta unidad SÍ se desplegaron — es la única excepción de despliegue del programa hasta hoy.",
+    "2026-07-29T02:44:15Z — 3ª reconciliación contra disco. Hallazgo del día: tres unidades terminadas (E0-03, E0-14, E0-15) no tenían RESULTADO.json. Como el protocolo dice que ese archivo ES la prueba, el siguiente lote las habría rehecho — incluyendo reglas de Firestore ya desplegadas. Se reconstruyeron los tres archivos a partir de evidencia verificable (commits, tests re-ejecutados hoy, ledger) y quedan marcados reconstruido.esReconstruccion=true. No se inventó ningún gate: lo declarado en commit se etiqueta como declarado, y se dice explícitamente qué se re-verificó hoy.",
+    "2026-07-29T02:44:15Z — REGLA OPERATIVA NUEVA, aprendida de ese hallazgo: el RESULTADO.json se escribe en el MISMO commit que cierra la unidad. Cerrar con commit y dejar el resultado para después es el único punto por donde este programa pierde trabajo.",
+    "2026-07-29T02:44:15Z — Estado: 5 de 68 completadas, 63 pendientes. Siguientes 3 elegibles: E0-11 (bajo, recién desbloqueada por E0-02+E0-03), E0-04 (medio, desbloqueador de E0-05/E1-01/E4-01) y E0-09 (medio, DISENO.md listo). Ninguna está en bloqueadas ni espera validación del Dr.",
+    "2026-07-29T02:44:15Z — Tras este lote, E0 se queda SIN unidades de riesgo bajo: lo pendiente será E0-06, E0-10, E0-12 y E0-13, todas medio/alto, y varias deben entregarse como PLAN para decisión del Dr. (PHI, migración de hashes de firma, webhook de cobros) en vez de ejecutarse.",
+    "2026-07-29T03:00:21Z — E0-11 EJECUTADA. Hallazgo que la justifica, medido y no supuesto: el CI corría los invariantes pero `npx vitest run` mide los tests que QUEDAN, no los que DEBEN existir — seguía verde si alguien borraba clinical-safety-harness.test.ts, le ponía describe.skip a la dosis pediátrica o dejaba un it.only. Se cerró con un metagate que DERIVA 78 archivos protegidos (65 de registry.goldenTests + 14 del regression-ledger + 3 metagates) y los congela en src/lib/clinical/invariantes-clinicos.json con 1249 casos declarados. REG-051 en el ledger.",
+    "2026-07-29T03:00:21Z — El gate se probó DESTRUCTIVAMENTE antes de darlo por bueno (lección de 'verificar antes de declarar arreglado'): describe.skip en el harness clínico ⇒ rojo por ASERCIÓN 2; borrar funcion-renal.test.ts ⇒ rojo por ASERCIÓN 1 y exit 1 del comando real del job. Ambos revertidos. La ASERCIÓN 6 es un autotest de las propias regex (9 líneas que debe detectar, 5 que no) para que no sea un gate de cartón.",
+    "2026-07-29T03:00:21Z — Desviación consciente respecto al estilo de E0-03: aquí el trinquete es MONÓTONO (falla si la cobertura baja; subir es libre) y no exacto. Motivo: E0-03 vigila UN número y apretar la tuerca es gratis; aquí serían 78 números y la comparación exacta cobraría peaje en cada PR clínico que añade un `it` — y un gate que molesta en cada PR acaba en `skip`, que es justo el fallo que E0-03 documentó. Escrito en docs/ci/clinical-safety-gate.md §5.",
+    "2026-07-29T03:00:21Z — E0-11 queda en 'necesita_validacion', NO en 'completada', y no es un tecnicismo: el criterio del backlog dice «no puede MERGEARSE» y eso lo decide GitHub. Sin required status checks sobre `main`, el gate avisa pero no bloquea. Marcarla cumplida sin ese paso sería mentir en el propio archivo que dice qué está hecho.",
+    "2026-07-29T03:00:21Z — El commit de E0-11 incluye su RESULTADO.json (regla operativa nueva del 28-07). NO incluye los RESULTADO.json reconstruidos de E0-03/E0-14/E0-15 ni los DISENO.md modificados de E0-04/E0-09: son trabajo de la pasada anterior que sigue sin commitear. Están en disco (que es lo que lee el workflow), pero conviene commitearlos aparte.",
+    "2026-07-29T03:10:52Z — E0-04 CERRADA. El hallazgo que la justifica es del propio diseño y se RE-VERIFICÓ en el repo real: el tipo intuitivo {valor, unidad, dimension} NO cumple la aceptación. TypeScript ensancha el genérico a la UNIÓN de dimensiones y `sumar(mg, mL)` compila sin error. La corrección es una marca fantasma invariante (`readonly [MARCA]: (d: D) => D`), que pone D a la vez en posición covariante y contravariante.",
+    "2026-07-29T03:10:52Z — Control negativo ejecutado y revertido (lección de 'verificar antes de declarar arreglado'): con `readonly [MARCA]: true` en vez de la marca invariante, tsc devolvió exit 2 con 5 TS2578. Es decir, sin esa línea COMPILAN: sumar mg con mL, comparar mg/dL con µmol/L, colar un CualquierCantidad donde se exige masa, comparar depuración cruda con indexada y sumar µg/kg/min con U/min. Los dos primeros son los ejemplos TEXTUALES del backlog: el diseño ingenuo habría entregado la unidad con el agujero abierto y el CI en verde.",
+    "2026-07-29T03:10:52Z — E0-04 CORRIGIÓ TRES HUECOS DE SU PROPIO DISENO.md, todos del mismo tipo (una 'conversión' que en realidad exige un dato que el módulo no tiene): (1) mL/min y mL/min/1.73m² estaban en la misma dimensión — convertir entre ellas exige la superficie corporal, así que `convertir` habría devuelto el mismo número con otra etiqueta, reintroduciendo el bug que el módulo existe para impedir; (2) 'U/min' estaba junto a 'µg/min' — la UI mide actividad biológica, no masa; (3) 'mg/kg/dosis' estaba junto a 'mg/kg/día' — el puente exige saber el número de tomas al día. En los tres casos la respuesta fue NO CONVERTIR y separar la dimensión, nunca inventar el factor. De ahí salieron 4 de los 10 casos negativos.",
+    "2026-07-29T03:10:52Z — Regla escrita en el encabezado del catálogo para que no vuelva a pasar: si convertir entre dos unidades exige un dato del paciente (masa molar, valencia, superficie corporal, número de tomas), van en DIMENSIONES DISTINTAS. Un test lo vigila: las cuatro dimensiones aisladas deben tener exactamente una unidad.",
+    "2026-07-29T03:10:52Z — E0-04 NO introdujo ni un número clínico nuevo. Los dos factores molares (creatinina 88.4, colesterol 38.67) ya vivían en el repo y se copiaron con su cita; dos tests anti-deriva leen prevent.ts, funcion-renal.ts y copiloto.ts y fallan si alguien cambia un sitio y no el otro. Todo lo demás son definiciones del SI o de metrología (1 mmHg = 133.322387415 Pa).",
+    "2026-07-29T03:10:52Z — E0-04 es ADITIVA PURA: 3 archivos nuevos, CERO archivos de producción modificados, cero importadores. Ninguna pantalla, motor, PDF, receta, cobro, firma ni regla de Firestore cambia de comportamiento. El riesgo real de ClinicalQuantity llega el día que un motor lo exija, y ese día es E0-05 (riesgo alto, unidad aparte). Por eso este núcleo no adelantó ni un motor.",
+    "2026-07-29T03:10:52Z — Tal como anticipó el §5-bis del diseño, el módulo NO se registró en CLINICAL_ENGINE_REGISTRY: el trinquete de E0-03 exige la deuda exacta en 52 y registrarlo sin ADR la subiría a 53 (CI rojo). Verificado que clinical-registry-adr.test.ts sigue verde. Cuando E0-05 lo meta en un motor, ese motor ya tiene su entrada.",
+    "2026-07-29T03:10:52Z — AVISO de la corrida de E0-04, ajeno a la unidad: un proceso concurrente creó docs/clinical-decisions/PREGUNTAS-TODO-EL-PROGRAMA.md (sin rastrear) A MITAD de la corrida, y el gate de ADRs de E0-03 lo leyó como ADR huérfano ⇒ vitest ROJO en la re-verificación, estando verde 4 minutos antes con el mismo código de E0-04. Se arregló como indica el propio mensaje del test: declararlo en DOCS_NO_ADR (src/lib/clinical/adr-cobertura.ts), igual que su hermano PREGUNTAS-PENDIENTES.md. No mueve la deuda (sigue en 52). LECCIÓN: todo .md nuevo en docs/clinical-decisions/ que no sea ADR de motor debe declararse en DOCS_NO_ADR en el MISMO cambio que lo crea, o tumba el CI de quien pase después.",
+    "2026-07-29T03:29:14Z — E0-09 EJECUTADA en lo que es software puro y DETENIDA en el punto clínico. Implementado: tipos del libro append-only (EventoClinico/EfectoCorreccion + corrigeA/motivoCorreccion opcionales en RegistroSignos), núcleo PURO src/lib/hospital/eventos.ts (proyectarSignos/proyectarEventos MARCAN y nunca eliminan; cadenas A←B←C, correcciones huérfanas fuera del tope de 200, autorreferencia y ciclos sin recursión infinita, no mutan la entrada), construirCorreccion/validarCorreccion parametrizados por política, y registroDurable extendido al MAR y a las órdenes. 40 casos nuevos. 2120 → 2164 tests.",
+    "2026-07-29T03:29:14Z — HUECO H1 CERRADO (REG-052): 'administrar', 'indicacion_agregar', 'indicacion_suspender' y 'verificar_farmacia' devolvían null, así que una dosis administrada vivía SÓLO en el array anidado indicaciones[].administraciones[] del doc — que escribe el Admin SDK (las reglas no pueden protegerlo por diseño) y que, a diferencia de balanceHidrico/escalas/sbar, NO tiene tope: una estancia larga acerca el doc al límite de 1 MB y el modo de falla es perder escrituras del MAR. La ruta api/hospital/mutar NO se tocó ni una línea: ya persistía lo que devuelve registroDurable().",
+    "2026-07-29T03:29:14Z — E0-09 NO tocó firestore.rules, y ésa es la razón exacta de 'necesita_validacion'. El DISENO.md afirmaba en §6 que el entregable de reglas no dependía de ninguna respuesta clínica, pero su propia re-verificación #2 (§9.2) descubrió que el `update` de signos está documentado EN LAS REGLAS como decisión deliberada del Dr. (auditoría maestra 2026-07: «enfermería AÑADE y CORRIGE, nadie borra»). Aplicarlo sería revertir una política suya a ciegas. El parche literal (3 cambios) queda escrito en el RESULTADO.json para su visto bueno.",
+    "2026-07-29T03:29:14Z — Desviación consciente del diseño (D3/D4): (a) balance/escala/sbar CONSERVAN su forma plana original en vez de migrar a `detalle` como proponía §4.3 — hay documentos ya escritos con esa forma en un libro append-only y uniformarlos exigiría reescribir registros legales, justo lo que el módulo existe para impedir; (b) proyectarSignos no devuelve {vigentes, corregidos}: 'vigentes' invita a creer que la función filtra, y filtrar es precisamente lo que Q1 prohíbe decidir.",
+    "2026-07-29T03:29:14Z — Los cinco huecos clínicos valen `null`, y `null` NO significa 'apagado': signosParaCalculoClinico LANZA con un mensaje que nombra la pregunta (FALTA_POLITICA_Q1) y validarCorreccion exige la política como parámetro obligatorio no anulable. Un test verifica además que src/lib/hospital/eventos.ts NO tenga consumidores de producción, para que nadie lo cablee a una pantalla antes de que el Dr. responda.",
+    "2026-07-29T03:29:14Z — Gate de cobertura nuevo (patrón de E0-03/E0-11): ACCIONES_CON_EVENTO_DURABLE ∪ ACCIONES_SIN_EVENTO_DURABLE debe ser una PARTICIÓN exacta de los GATES reales de api/hospital/mutar/route.ts, leídos como TEXTO para no obligar a exportar nada desde una ruta de producción. Una acción nueva sin clasificar tumba el CI, y cada descarte lleva su razón escrita.",
+    "2026-07-29T03:29:14Z — Los dos tests que cita el ledger se añadieron al sello de E0-11 (invariantes-clinicos.json: 78 → 80 archivos, 1249 → 1294 casos), como exige su ASERCIÓN 4. LECCIÓN heredada del aviso de E0-04: todo test citado en el regression-ledger debe entrar al sello EN EL MISMO cambio, o tumba el CI de quien pase después.",
+    "2026-07-29T03:29:14Z — AVISO de la corrida de E0-09, ajeno a la unidad (segunda vez que pasa lo mismo): un proceso concurrente creó docs/clinical-decisions/DECISIONES-ARQUITECTURA-2026-07-28.md A MITAD de la corrida y el gate de ADRs de E0-03 lo leyó como ADR huérfano ⇒ vitest ROJO en la re-verificación final estando verde minutos antes. Arreglado como indica el propio test: declararlo en DOCS_NO_ADR (src/lib/clinical/adr-cobertura.ts). No mueve la deuda (sigue en 52).",
+    "2026-07-29T03:29:14Z — HALLAZGO que afecta a E0-09: ese mismo documento parece RESPONDER Q5 — su §A3 lista «signos vitales» como append-only con «corrección = nueva versión/adenda, original conservado». NO se aplicó: apareció solo a mitad de la corrida, no está en git, y su encabezado avisa de que parte del contenido es «comportamiento seguro por defecto» y no la palabra del Dr. Revertir una política suya anterior con esa base sería adivinar. Verificado además que ese documento NO responde Q1, Q2, Q3 ni Q4, así que E0-09 seguiría en 'necesita_validacion' de todos modos.",
+    "2026-07-29T03:44:05Z — CIERRE DE CORRIDA con reconciliación tras verificación adversarial. Resultado honesto del lote de 3: UNA cerrada (E0-04), DOS revertidas a bloqueadas (E0-11, E0-09). El avance real pasa de 7 declaradas a 6 verificadas de 68.",
+    "2026-07-29T03:44:05Z — LECCIÓN DEL LOTE, la más cara del programa hasta hoy: el protocolo trata la existencia de RESULTADO.json como prueba de 'unidad hecha', y eso hace que un falso 'hecho' quede enterrado PARA SIEMPRE por la propia idempotencia. La verificación adversarial es lo único que lo destapa, y sólo sirve si la reconciliación DESHACE lo que refuta. Regla nueva escrita en reconciliacionDisco.reglaOperativaNueva.",
+    "2026-07-29T03:44:05Z — E0-11: el bypass NO es teórico, se demostró. `describe.skipIf(true)` apaga clinical-safety-harness.test.ts entero (42 casos) y el gate, el trinquete y el job `verificar` quedan en VERDE. El propio comentario de safety-gate.ts admite ser «una COTA, no un parser», pero skipIf/runIf no son un adversario sofisticado: son API pública y corriente de vitest. Es la siguiente unidad a ejecutar.",
+    "2026-07-29T03:44:05Z — E0-04 se CONFIRMA completada, pero su RESULTADO.json se contradecía: `archivosDeProduccionTocados` decía «NINGUNO» cuando el commit 48974dd incluye src/lib/clinical/adr-cobertura.ts, que es producción. El mismo archivo lo declaraba bien en `archivosTocados` y lo explicaba en `reparacionForzadaAjena` — inexactitud, no ocultamiento — pero un auditor que leyera ese campo concluiría algo falso. Corregido en esta pasada. Impacto funcional nulo: la línea sólo clasifica un .md como no-ADR.",
+    "2026-07-29T03:44:05Z — E0-04 deja una tarea HEREDADA a E0-05, fuera de la letra de su criterio pero real: la marca fantasma está indexada por DIMENSIÓN, no por unidad, así que `{...mg(500), unidad:'µg' as const}` compila SIN ningún `as` y valorEn(escala,'mg') devuelve 0.5 — error de escala 1000×. Hoy inocuo (cero consumidores). Debe cerrarse antes de que un motor real clone cantidades con spread.",
+    "2026-07-29T03:44:05Z — E0-09/Q5 cambió de estado sin que nadie tocara código: docs/clinical-decisions/DECISIONES-ARQUITECTURA-2026-07-28.md ENTRÓ EN GIT (c795520, autor DAVID) y su §A3 lista «signos vitales» como append-only. Ya no es una pregunta abierta: es una línea de confirmación sobre un matiz (§A3 habla de dato «FINALIZADO/FIRMADO» y un signo no tiene ese estado).",
+    "2026-07-29T03:44:05Z — Estado del repo al cerrar: `git status --short` VACÍO y `npx tsc --noEmit` exit 0. No hubo que revertir basura de las unidades bloqueadas: su código (núcleo append-only de E0-09, metagate de E0-11) está commiteado en 481b44b y es aditivo, verificado y sin consumidores de producción. Retirarlo destruiría trabajo bueno sin cerrar ningún riesgo — lo que falla en ambas es lo que NO se hizo, no lo hecho.",
+    "2026-07-29T03:46:32Z — RECONCILIACIÓN 5ª pasada: el disco manda y el disco dice 6 completadas (E0-01, E0-02, E0-03, E0-04, E0-14, E0-15). `reconciliacionDisco` seguía diciendo 7 e incluía a E0-09 y E0-11, que sólo tienen RESULTADO.parcial.json. Corregido. OJO para la próxima corrida: RESULTADO.parcial.json NO cuenta como hecho — es la señal de reintento que dejó el commit 60d63b6.",
+    "E0-10: el CÓDIGO ya está escrito y commiteado (CSP parametrizada + rutas privadas + csp-guard + e2e), con tsc/vitest/build verdes verificados a mano. Lo que falta es sólo su RESULTADO.json y la verificación adversarial: la corrida se atascó antes. NO reimplementar desde cero.",
+    "2026-07-29T11:11:22Z — 6ª RECONCILIACIÓN contra disco (pasada de selección, sin ejecutar unidades). El disco dice 8 completadas: E1-01 y E2-01 tienen RESULTADO.json y el bloque `reconciliacionDisco` seguía congelado en 6. Corregido a 8/60. Hallazgo NUEVO en dirección contraria: E0-10 tiene su código commiteado (5e01c35) pero NO tiene RESULTADO.json, así que por el criterio del protocolo cuenta como PENDIENTE — y por eso encabeza la selección: hay que VERIFICARLA y cerrarla, no reimplementarla. Segundo hallazgo: E0-11 recibió el arreglo que la sacaba de `bloqueadas` (f7f2afa cierra el bypass describe.skipIf/runIf), pero sigue excluida de la selección porque figura en `necesitaValidacionDelDr`; lo único que le falta son ~5 minutos de consola del Dr. y su RESULTADO.json.",
+    "2026-07-29T11:11:22Z — Selección de este lote: E0-10 (E0, medio), E1-02 (E1, medio, validacionClinica=true) y E2-02 (E2, medio). Criterio literal aplicado: etapa en orden, dependencias con RESULTADO.json en disco, exclusión de `bloqueadas` y `necesitaValidacionDelDr`, y preferencia bajo/medio sobre alto. AVISO para quien ejecute E1-02: el catálogo de conceptos NO se rellena a ojo — sólo con conceptos y códigos que YA existan en el repo y con su procedencia; cualquier mapeo LOINC/ICD-10 nuevo va a NEEDS_CLINICAL_REVIEW (regla 1 de la carta operativa) aunque eso deje la unidad PARCIAL.",
+    "2026-07-29T11:39:23Z — E1-02 (Vocabulario de conceptos clínicos) cerrada como necesita_validacion. Gates: tsc PASS · vitest 2322/2322 en 184 archivos (línea base 2276/183, delta +46) · build PASS. 0 archivos de producción modificados y 0 importadores fuera de src/__tests__. AVISO PARA QUIEN RETOME: el catálogo NO se rellena a ojo. Los 25 conceptos de laboratorio salen IMPORTADOS de analitos.ts (clave, etiqueta y unidad), los 10 LOINC de vitales están COPIADOS de fhir/recursos.ts con su cita, y los códigos LOINC de laboratorio están VACÍOS a propósito, con el trinquete LAB_SIN_CODIGO_CONGELADO=25 y el test T-5 que sólo permite que ese número BAJE cuando el Dr. valide la tabla. Con Q1-Q4 respondidas, cerrar E1-02 es editar tablas: no hay que rehacer diseño ni tests.",
+    "2026-07-29 · CIERRE DE CORRIDA. Tres unidades intentadas, TRES incompletas, CERO cerradas. E0-10 y E2-02 salieron de `completadas` (10/68 → 8/68) y se borraron los tres RESULTADO.json para que vuelvan a la cola.",
+    "PATRÓN QUE YA SE REPITIÓ TRES VECES y que hay que atajar en el PROTOCOLO: el agente constructor da por cumplida la aceptación dentro de la frontera de su módulo (tipos que compilan, tests verdes, cero regresiones) mientras la aceptación del backlog habla del PRODUCTO. Un módulo perfecto con cero importadores no cumple «la búsqueda se arma desde PICO». Propuesta para la próxima corrida: que el DISENO.md tenga que citar textualmente la aceptación del backlog y nombrar el CALLER de producción que la hará cierta — o declarar por escrito que el cableado es de otra unidad e IDENTIFICARLA por id.",
+    "El código de las tres unidades bloqueadas está commiteado, en verde y NO hay que reimplementarlo. A las tres les falta CERRAR, no construir: a E0-10 le falta un despliegue, a E1-02 un test y una decisión, a E2-02 dos callers.",
+    "REPARADO EN LA RECONCILIACIÓN: se borraron de vocabulario.ts los sinónimos INVENTADOS 'hb' y 'bt'. Es la primera violación de la regla 1 que la verificación adversarial atrapa en este programa, y llegó disfrazada de comentario que afirmaba lo contrario ('cr es el ÚNICO sinónimo nuevo'). Lección: los comentarios que afirman cobertura no valen; el test que la deriva de la fuente, sí.",
+    "docs/roadmap/nexus-os/RETOMAR-AQUI.md quedó VIEJO (habla de 2/68 y del 28-jul). La fuente de verdad son estado.json y CHECKPOINT.md.",
+    "E0-05 cerró los 4 lotes (renal, gasometría, infusiones, dosis). Verificación de no-regresión: se extrajeron los 4 motores de git HEAD a un directorio temporal y se compararon caso por caso contra los migrados (~16 000 combinaciones entre las cuatro mallas): CERO diferencias numéricas y CERO diferencias de texto. El directorio temporal se borró antes de commitear.",
+    "E0-06 NO está en `completadas` a propósito: entregó la Fase A entera y verificada (matriz ejecutable de las 44 colecciones, bloque de reglas del subdocumento clínico, cierre del bypass de /api/portal/link) pero la aceptación literal («recepción no lee alergias») exige mover campos de documento, y eso son las Fases B/C, bloqueadas por D1. El detalle honesto está en unidades/E0-06/RESULTADO.json.",
+    "E0-06 cerró un agujero REAL y explotable: /api/portal/link exigía solo verificarMiembro y devolvía al navegador de quien la llamara un token HMAC de 30 días que /api/portal aceptaba en la acción `documentos` (diagnósticos + medicamentos de notas FIRMADAS). Mismo vector que ya se había cerrado en /api/telesalud/token y que aquí seguía abierto.",
+    "E0-06 dejó `firestore.rules` MODIFICADO pero NO DESPLEGADO (regla 6). El bloque `clinico` no rige en producción hasta que el Dr. corra `firebase deploy --only firestore:rules`. Hoy es inocuo porque todavía no hay datos ahí, pero tiene que estar desplegado ANTES de la Fase C.",
+    "E0-06 habilita E0-07 (capabilities consume la matriz) y E0-08 (emulator la consume como tabla de casos).",
+    "E0-06: sus 14 archivos de código quedaron dentro del commit f227bbf (de E0-09), porque ese agente corrió `git add -A` sobre el árbol compartido mientras E0-06 escribía. Nada se perdió, nada se subió, y NO se reescribió la historia (rehacer commits con otro agente operando en el mismo repositorio es peor que un mensaje equivocado). LECCIÓN: si dos unidades corren a la vez, cada una debe commitear con lista EXPLÍCITA de archivos, o correr en worktrees separados.",
+    "E0-07: la fuente de verdad de ROLES es src/lib/authz/matriz-acceso.ts (E0-06) y la de CAPACIDADES es src/lib/authz/capabilities.ts. Ninguna unidad posterior debe declarar otra lista de roles. E0-07 cerró la 3.ª (types/index.ts ClinicMember.role) y la 4.ª (permissions.ts, que ahora deriva).",
+    "E0-07: el catálogo quedó en 14 capacidades, no 12. Las 12 del diseño no expresaban 1:1 el GATES de hospital/mutar (verificar_farmacia = {farmacia,medico,admin} no salía de ninguna), así que se añadieron `pase.registrar` y `farmacia.verificar`. Sin ellas la migración habría cambiado quién verifica en farmacia.",
+    "E0-07: el mensaje de 403 cambió de 'Requiere rol de médico.' a 'Tu rol no tiene permiso para esta acción (requiere: <capacidad>).' No hay consumidores de ese texto en el cliente (buscado). El ROL a propósito NO viaja en el cuerpo (filtraría la composición del equipo); va al log del servidor vía safeLog.",
+    "E0-07 corrigió una cifra del diseño: son 13 rutas sin guardián de sesión, no 15. `portal` y `payment/create-checkout` sí tienen guardián (verificarTokenPaciente) y se declaran como `tokenPaciente`.",
+    "E0-08: las reglas de Firestore ya NO se prueban solo leyendo el archivo. Hay una suite que pregunta al MOTOR REAL — pero todavia no se ha ejecutado nunca (falta un JRE). El hueco que cierra: firestore-rules-guard.test.ts comprueba que la CADENA \"memberClinicId() == clinicId\" esta escrita; un match nuevo mal anidado la deja intacta, rompe el aislamiento y pasa en verde.",
+    "E0-08: firestore.rules NO se modifico. La unidad MIDE, no cambia politica. Si la primera corrida descubre una fuga, se reporta con caso reproducible y se abre unidad propia — no se parchea dentro de la unidad que estaba midiendo.",
+    "E0-08: el riesgo #1 de la unidad NO era clinico sino de infraestructura — que los specs del emulador contaminaran \"npx vitest run src/__tests__/\" (el gate compartido de TODO el programa) y lo pusieran rojo en las maquinas sin Java, tumbando el lote de las demas unidades. Cerrado en tres capas + 2 controles negativos en rojo.",
+    "E0-08: npm audit reporta 32 vulnerabilidades (9 moderate, 23 high) TODAS en el arbol transitivo de firebase-tools, que es devDependency: no viaja al bundle ni al servidor. Anotado, no arreglado.",
+    "E0-12: el trinquete de cobertura del sello es de TIPOS, no de prosa — `Record<keyof NotaMedica, true>` hace que `tsc --noEmit` falle si alguien anade un campo al tipo sin clasificarlo como sellado o excluido-con-razon. Control ejecutado y restaurado. Es lo que impide que se repita el caso `preop` (nacer fuera del sello).",
+    "E0-12: `stripUndefined` se mudo de firestore.ts (privado, con SDK) a src/lib/expediente/serializacion.ts (puro) para poder simular el viaje a Firestore en los tests del sello. Cero cambios para los llamadores.",
+    "E0-12 NO desplegado y sin push, como el resto del programa. Cuando se despliegue, las notas NUEVAS naceran con hashVersion 3 y las viejas seguiran verificandose con su propia version.",
+    "2026-07-29 (noche) — la verificacion adversarial tumbo las TRES unidades del lote. E0-12 es la mas instructiva del programa hasta hoy: los 3 gates verdes, la aceptacion CUMPLIDA y verificada hoja por hoja de forma independiente, y aun asi una REGRESION P1 — porque el test simulaba la escritura como documento completo (setDoc) y el flujo real hace merge (updateDoc). LECCION: cuando una unidad toca persistencia, el test tiene que usar la MISMA semantica de escritura que el codigo de produccion, no una equivalente.",
+    "E0-07: el patron a evitar quedo nombrado — un REGISTRO que declara la capacidad de cada ruta no es una garantia si el guardian solo comprueba que se llame al helper. Se puede cambiar la capacidad exigida en el codigo y el gate sigue verde. Declarar != exigir.",
+    "E0-07 introdujo una PERDIDA NETA: el fijado en codigo del gate de telesalud/token que E0-06 ya tenia. Al reintentarla hay que RESTAURARLO, no solo anadir cobertura nueva.",
+    "HEAD de la rama es 07cefc9 «feat(receta+pacientes): fecha de nacimiento acomodable + formulario corto de Consulta»: trabajo AJENO al programa Nexus OS, hecho en la misma rama. No lo cuente como avance de ninguna unidad ni lo revierta.",
+    "Estado de la rama nexus-os/sesion-2026-07-29: NADA desplegado, NADA con push. El commit 3c09a0d (E0-12) NO debe desplegarse hasta resolver E0-12-D3.",
+    "2026-07-29T23:35Z — CORRECCION IMPORTANTE: «sin push» ya NO es cierto. Otra sesion pusheo la rama (origin en 19425b7) y con ella el commit 3c09a0d de E0-12, que trae la regresion P1. Ver `avisoDeIntegridadDeLaRama`. Tambien: esa sesion barrio con `git add -A` y mi reconciliacion viajo dentro de SUS commits (19425b7 y c8e3cbf); el contenido es correcto, pero no busque un commit propio de reconciliacion.",
+    {
+      "fecha": "2026-07-30T05:13:40Z",
+      "unidad": "E0-07",
+      "texto": "E0-07 CERRADA en lo que era software. El defecto que la habia dejado INCOMPLETA no era la matriz ni el registro (el verificador los reprodujo exactos) sino que la declaracion no tenia dientes: el guardian miraba si se LLAMABA al helper, no CON QUE capacidad. Ahora hay un analizador estatico propio y probado con fixtures que extrae el argumento real y lo compara por (ruta, metodo). Los cinco sabotajes que antes pasaban en verde estan rojos. Lo que queda son 29 pares (ruta, metodo) que estrecharian el acceso de usuarios reales: es politica de acceso del dueno (Q1, Q3-Q7), no codigo pendiente."
+    },
+    "E0-10 (4a pasada, 2026-07-30): el hallazgo mas importante NO fue codigo nuevo sino una AFIRMACION FALSA propia. El guardian de la CSP decia cazar los tres agujeros y solo cazaba dos: el iframe de teleconsulta monta un src DINAMICO, asi que el host *.daily.co no esta en el codigo y ninguna regex podia verlo. Mutante reproducido: quitarlo de ORIGENES_FRAME dejaba el CI VERDE y la videoconsulta en blanco bajo enforce. Cerrado con un registro explicito de iframes de origen dinamico + trinquete, y con la frase corregida. Leccion: un test que se sobrevende es peor que no tenerlo.",
+    "E0-10: /login era embebible (clickjacking sobre la pantalla de credenciales) en la unidad cuyo objetivo es justo ese. Ya no. REG-062. Es el UNICO cambio de comportamiento en produccion de esta pasada y se revierte borrando una linea.",
+    "E0-10: el runbook afirmaba «57/57 en verde con CSP_MODE=enforce, medido el 2026-07-29» y esa ejecucion NO consta (mismo pecado que la verificacion marco como V-4 en el ledger). Retractado en el propio documento. Playwright sigue SIN correrse: lo prohibe la regla 8.",
+    "E0-10 queda FUERA de la cola a proposito (bloqueadas → reintentar:false, con acta `necesita_validacion` en disco). Tres pasadas anteriores se gastaron re-disenando lo que ya estaba implementado. No queda software pendiente: falta desplegar, correr la matriz y decidir D-3.",
+    "2026-07-30T05:43Z — E1-02 CIERRA SU SOFTWARE (2a pasada) y sale de `bloqueadas` y de `paraReintentar` con acta `necesita_validacion` en unidades/E1-02/RESULTADO.json. La leccion es la misma del programa: un comentario que afirma cobertura no vale; el test que DERIVA el dato de la fuente, si. Ahora la frase «aqui no se invento ningun sinonimo» es falsable por maquina (T-10, con 4 controles negativos ejecutados y revertidos). NO CONTAR COMO `completada`: quedan Q1-Q7 del Dr., ninguna bloqueante.",
+    "2026-07-30 — HALLAZGO NUEVO en produccion, REGISTRADO Y NO REPARADO (regla 5): E1-02-H2 · analitoDe('depuracion de creatinina') devuelve 'creatinina', NO 'tfg', porque `creatinina` va antes en el array de ANALITOS y su patron casa dentro de la frase; el literal de tfg (analitos.ts:47) es CODIGO MUERTO. Y E1-02-H2b · analitoDe('creatinina urinaria') cae tambien en la serie serica porque la exclusion solo mira la palabra «orina». Se suman a E1-02-H1 (vitamina K -> potasio) en la pregunta Q5. Los tres estan asertados en su comportamiento REAL, asi que ningun arreglo puede pasar en silencio."
+  ],
+  "paraReintentar": [
+    {
+      "unidad": "E0-12",
+      "prioridad": 1,
+      "motivo": "BLOQUEO DE MERGE, no solo una unidad a medias. La regresion P1 (falso 'alterada' en notas firmadas legitimas por el merge de updateDoc) esta COMMITEADA en 3c09a0d. Riesgo en produccion hoy: cero (sin push, sin desplegar), pero nada de esta rama debe desplegarse hasta cerrarla. Lo primero de la proxima corrida es entregar el PLAN de las tres salidas + el test de round-trip que falta.",
+      "dependeDelMedico": "SI para elegir la salida (E0-12-D3): toca la escritura de la nota y el flujo de firma, justo lo que la regla 5 manda no arriesgar a ciegas. NO para el test de round-trip ni para corregir el acta y REG-059."
+    },
+    {
+      "unidad": "E0-08",
+      "prioridad": 4,
+      "motivo": "Barato y honesto: marcar como tautologicas las ~190 aserciones que no discriminan aislamiento (V-2), anadir una CONSULTA (list) cross-tenant por coleccion (V-3) y corregir las dos cifras de prosa (V-4, V-5). No cierra la unidad —la aceptacion exige correr el emulador— pero sube el valor real de la suite.",
+      "dependeDelMedico": "Para CERRAR, si: JRE local o la primera corrida del CI (E0-08-Q2). Para los residuales, no."
+    },
+    {
+      "unidad": "E2-02",
+      "prioridad": 5,
+      "motivo": "Falta CABLEAR el extractor PICO a las dos rutas reales de evidencia. Software puro, pero cambia que articulos ve el medico: PLAN + tests de caracterizacion antes de tocar (regla 5).",
+      "dependeDelMedico": "Si, para autorizar el cambio de comportamiento de la bibliografia y para decidir de que unidad es el cableado (hoy es HUERFANO)."
+    },
+    {
+      "unidad": "E0-11",
+      "prioridad": 6,
+      "motivo": "Cerrar el bypass describe.skipIf/runIf en safety-gate.ts:137-142. Software puro. OJO: el commit f7f2afa ya trabajo en esto; verificar antes de rehacer.",
+      "dependeDelMedico": "Si para la mitad de branch protection en GitHub (accion del Dr., no del agente)."
+    },
+    {
+      "unidad": "E0-10",
+      "prioridad": 99,
+      "motivo": "NO reintentar: en la 4a pasada se cerro TODO lo que era software (delta de la PARTE II del diseno) y se escribio acta. Lo unico que falta es humano: desplegar, correr la matriz de Playwright y decidir D-3. Re-seleccionarla solo gasta creditos re-disenando lo ya implementado (ya paso tres veces).",
+      "dependeDelMedico": "Si, por completo. No queda software pendiente."
+    }
+  ],
+  "decisionesPendientesDelMedico": [
+    {
+      "unidad": "E0-12",
+      "id": "E0-12-D3",
+      "decision": "NUEVA Y LA MAS URGENTE. Falso «INTEGRIDAD ALTERADA» en notas firmadas legitimas: el sello v3 cubre campos opcionales (transcripcion del dictado, estudios, dialogo, internamiento, preop) que la escritura de la nota NO borra cuando quedan vacios, asi que el documento conserva el valor viejo y el hash se calculo sin el. ¿Cual de las tres salidas se aplica? (a) que updateNota borre explicitamente el campo omitido (deleteField), (b) escribir la nota completa sin merge (setDoc), (c) que construirNota escriba null en vez de undefined en los campos sellados.",
+      "porQue": "Es el unico bloqueo DURO de merge/despliegue de toda la rama. Reproducido con el codigo real en 5 campos, y con un camino de usuario de un clic (vaciar el textarea del dictado y firmar). Las tres salidas tocan la escritura de la nota y el flujo de firma, por eso se entrega como PLAN y no se ejecuta a ciegas (regla 5). Hoy no hay riesgo en produccion: nada de esto esta desplegado.",
+      "defaultAplicado": "NINGUNO — a proposito. La unidad se devuelve a la cola en vez de dar por buena una regresion.",
+      "salidaDeEmergencia": "Si necesita mergear el resto antes de decidir: devolver HASH_VERSION a 2 (una linea) deja las notas nuevas con el sello viejo y el algoritmo v3 congelado hasta cerrarlo.",
+      "bloquea": true
+    },
+    {
+      "unidad": "E2-02",
+      "id": "E2-02-Q4",
+      "decision": "El fármaco que el paciente YA TOMA: ¿es la INTERVENCIÓN que se evalúa (I) o parte de la POBLACIÓN («pacientes con IVU recurrente en tratamiento con nitrofurantoína», P)? Cambia lo que PubMed devuelve.",
+      "porQue": "Hoy el repo los CONCATENA en una sola cadena (src/app/api/expediente/evidencia/route.ts:73), así que la pregunta ni siquiera se podía formular. Ahora sí, y afecta a qué artículos ve el médico.",
+      "defaultAplicado": "I, declarado y reversible con opts.medicamentosComo. Test 24 fija que el parámetro mueve la faceta de verdad.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E2-02",
+      "id": "E2-02-Q6",
+      "decision": "¿Quiere una tabla concepto→banda etaria («pediatric», «elderly»…) para la búsqueda, o la edad se queda como cifra literal?",
+      "porQue": "Dónde empieza «pediátrico» o «anciano» es criterio clínico. NO lo invento (regla 1). Además la edad exacta viaja a PubMed, que es un tercero: por eso la demografía está APAGADA por defecto.",
+      "defaultAplicado": "incluirDemografia = false; con el flag encendido, sexo entra como traducción literal y edad como cifra («34 years»). Sin bandas etarias.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E2-02",
+      "id": "E2-02-ALCANCE",
+      "decision": "¿Se autoriza cablear el extractor PICO a /api/expediente/evidencia y /api/consultor-evidencia, y de qué unidad es ese trabajo?",
+      "porQue": "Sin el cableado, E2-02 no cumple su aceptación (la búsqueda del producto sigue armándose con texto crudo). Con él, CAMBIA qué artículos de PubMed ve el médico. Ninguna unidad del backlog es hoy dueña de ese cableado: E2-05 es «Claim-level citation», no esto.",
+      "bloquea": true
+    },
+    {
+      "unidad": "E0-10",
+      "id": "E0-10-D3",
+      "decision": "¿Se pone CSP_MODE=enforce en Vercel, tras observar los reportes de report-only?",
+      "porQue": "Es la mitad de la aceptación de E0-10 y el agente no puede hacerlo (regla 6: no despliega). Mientras no ocurra, la CSP protege en modo observación, no bloqueando.",
+      "bloquea": true
+    },
+    {
+      "unidad": "E0-10",
+      "id": "E0-10-D4",
+      "decision": "¿Se crea una cuenta de prueba para E2E?",
+      "porQue": "Sin ella, la matriz Playwright sólo cubre el camino público: la zona autenticada (22 pantallas donde vive el PHI) queda sin probar en navegador.",
+      "bloquea": true
+    },
+    {
+      "unidad": "E1-02",
+      "id": "E1-02-Q6",
+      "decision": "¿'glucosa capilar' (y 'dextrostix') es GLUCOMETRÍA (signo vital, LOINC 2339-0) o glucosa de LABORATORIO? De su respuesta depende en qué gráfica temporal cae el dato.",
+      "porQue": "La 1a pasada los separaba sin fuente: `grep` de «glucosa capilar» en src da CERO resultados fuera del vocabulario. Es una decisión de significado clínico y fija cómo se agrupará toda serie temporal de glucosa. No se inventa (regla 1).",
+      "bloquea": false,
+      "estadoHoy": "RETIRADOS del catálogo en la 2a pasada (default conservador): ambos devuelven `desconocido` y la propuesta está guardada en SINONIMOS_PROPUESTOS_PENDIENTES. No bloquea nada."
+    },
+    {
+      "unidad": "E1-02",
+      "id": "E1-02-Q7",
+      "decision": "De los sinónimos de signos vitales, sólo TRES necesitan su palabra: ¿usa PAS/PAD al dictar? ¿quiere BMI además de IMC? ¿falta alguna que usted teclea?",
+      "porQue": "MEDIDO en la 2a pasada: 'pulso' SÍ tiene fuente en producción (parser-clinico.ts:65) — el acta de verificación lo contaba como inventado y era falso. Sin fuente quedaban 'dextrostix' y 'glucosa capilar' (Q6); con fuente DÉBIL, 'bmi' (sólo dentro de una etiqueta de texto) y 'pas'/'pad' (claves de campo del formulario de UCI, no términos dictados).",
+      "bloquea": false,
+      "estadoHoy": "'bmi' RETIRADO; 'pas'/'pad' se quedan CITADOS como claves de campo de UCI. Todo lo demás quedó confirmado por los motores de producción y fijado por el invariante T-10."
+    },
+    {
+      "unidad": "E0-06",
+      "id": "E0-06-D1",
+      "decision": "¿La asistente puede capturar alergias/antecedentes en el alta sin poder leerlos después? (a) no puede · (b) write-only · (c) solo alergias",
+      "porQue": "Sin esta respuesta el bloque de reglas `patients/{id}/clinico` no puede fijarse (hoy está en lo estricto: isMedico para leer y escribir) y la Fase B no debe fusionarse. Es una decisión de operación y privacidad, no clínica."
+    },
+    {
+      "unidad": "E0-08",
+      "id": "E0-08-Q2",
+      "decision": "¿JRE local (brew install --cask temurin) o demostrar el aislamiento solo en CI?",
+      "porQue": "Es lo unico que separa a esta unidad de estar cerrada. No es criterio clinico ni de negocio: es un runtime de Java para levantar el emulador de Firestore.",
+      "defaultAplicado": "Ninguno. La unidad se cierra \"necesita_validacion\" a proposito en vez de declarar \"demostrado\" sin evidencia.",
+      "bloquea": true
+    },
+    {
+      "unidad": "E0-08",
+      "id": "E0-08-Q1",
+      "decision": "¿Se acepta el costo del job nuevo de CI y del \"npm ci\" mas largo por firebase-tools?",
+      "porQue": "Alternativa descartada: resolver la dependencia con \"npx --yes\" en tiempo de CI, que no queda en el lockfile (no reproducible) y ademas deja \"npx tsc --noEmit\" rojo, porque emulator/ SI entra al typecheck.",
+      "defaultAplicado": "Aceptado: dependencias pinneadas en package.json + package-lock.json y job \"aislamiento-tenant\" anadido.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-12",
+      "id": "E0-12-Q1",
+      "decision": "Para el historico ya firmado (v1/v2): ¿se quiere una «constancia de estado observado» (subcoleccion notas/{id}/sellos/) que detecte alteraciones DE AQUI EN ADELANTE, etiquetada explicitamente como «NO es el sello de la firma»?",
+      "porQue": "Es semantica legal del expediente: que afirma un hash calculado anos despues de firmar. No se puede derivar del codigo. NO BLOQUEA: la unidad cierra sin esto.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-12",
+      "id": "E0-12-Q2",
+      "decision": "¿Extender `hashFirma` para que cubra tambien el nombre y la cedula del bloque `firma`?",
+      "porQue": "Residual declarado. Hoy un cambio en el bloque de firma se detecta por CONTRADICCION con la metadata sellada, pero no por el hash. Tocarlo entra al flujo de firma y a la impresion => se entrega como PLAN, no a ciegas (regla 5).",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-10",
+      "id": "E0-10-D6",
+      "decision": "¿/registro deja de ser embebible (X-Frame-Options + frame-ancestors 'none'), como ya hace /login?",
+      "porQue": "Mismo hueco de clickjacking que /login, pero /registro es superficie de captacion con Pixel: si una landing o un socio la embebe, se rompe. Es decision de producto, no de seguridad pura. Cambio preparado: una linea.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-10",
+      "id": "E0-10-D7",
+      "decision": "¿Se redisenan los bloques de cabeceras para que ninguna ruta reciba DOS politicas CSP?",
+      "porQue": "El «gana la ultima cabecera» esta leido del servidor Node de Next, no del proxy de Vercel que sirve produccion. Si el proxy acumulara, bajo enforce las tres rutas con politica mas ancha (/, /registro, /configuracion) perderian los origenes de Meta: el Pixel deja de medir y el alta de WhatsApp deja de cargar (visible, reversible en 2 min). El rediseno toca las cabeceras de TODAS las rutas (regla 5). Salidas mas baratas: el paso 0 del runbook (curl al preview) o contestar D-2.",
+      "bloquea": false
+    },
+    {
+      "unidad": "E0-10",
+      "id": "E0-10-D8",
+      "decision": "¿Funciona hoy el video de la teleconsulta en produccion, con `Permissions-Policy: camera=()` en la cabecera global?",
+      "porQue": "El iframe de Daily pide allow=\"camera\" y una Permissions-Policy del documento superior NO se re-concede desde el iframe: si la cabecera esta activa, el video ya estaria muerto hoy, sin relacion con el flip. Requiere una observacion en produccion que el agente no puede hacer. Abrir camera=(self) es aflojar una cabecera de seguridad: unidad aparte.",
+      "bloquea": false
+    }
+  ],
+  "avisoDeIntegridadDeLaRama": {
+    "fecha": "2026-07-29T23:35:00Z",
+    "porQueExiste": "Durante la reconciliacion, OTRA sesion trabajando en el mismo arbol (receta: fecha de nacimiento + formulario corto) hizo commit barriendo con `git add -A`: se llevo dentro de sus commits 19425b7 y c8e3cbf mi trabajo de reconciliacion (estado.json + los tres RESULTADO.parcial.json + los tres VERIFICACION.json). Nada se perdio —el contenido en disco es el correcto y quedo en git— pero el historial atribuye esos cambios a commits de receta. Anotado para que nadie se confunda buscando un commit de reconciliacion que no existe.",
+    "correccionDeUnaAFIRMACIONQUEERAFALSA": "El CHECKPOINT anterior decia «nada desplegado, sin push». La segunda mitad ya NO es cierta: `origin/nexus-os/sesion-2026-07-29` esta en 19425b7, asi que el commit 3c09a0d (E0-12, el que trae la REGRESION P1) ESTA PUSHEADO al remoto. Verificado: `git branch -a --contains 3c09a0d` lista tambien la rama remota.",
+    "hechosVERIFICABLESdesdeElRepo": [
+      "La rama nexus-os/sesion-2026-07-29 esta pusheada a origin e incluye 3c09a0d (E0-12).",
+      "`main` local (f227bbf) NO contiene 3c09a0d. El sello v3 no esta mergeado a main.",
+      "src/lib/expediente/integrity.ts:132 tiene HASH_VERSION = 3 en el arbol y en la rama pusheada: cualquier despliegue de esta rama hace que las notas NUEVAS nazcan con el sello v3, y con el falso 'alterada'.",
+      "public/sw.js declara CACHE = 'nexusmed-v708', y su bitacora de comentarios atribuye versiones a unidades de ESTE programa (v700 = E0-02, v701-v703 = E0-15, v704 = REG-017/REG-015, v705 = REG-014, v706 = E0-03, v707-v708 = receta). El bump de Service Worker es el ritual de despliegue de este repo."
+    ],
+    "loQueNOSEPUEDEAFIRMARDESDEAQUI": "Si v707/v708 se desplegaron a produccion o no. El agente no despliega ni consulta produccion (regla 6). Por eso NO se afirma «esta en produccion» ni «no esta».",
+    "consecuenciaSiSEDESPLEGO": "E0-12-D3 deja de ser una decision de merge y pasa a ser URGENTE: el falso «INTEGRIDAD ALTERADA» estaria vivo para las notas nuevas. La salida de una linea (devolver HASH_VERSION a 2) existe justamente para ese caso.",
+    "queDebeHacerElMedico": "Confirmar si el despliegue de v707/v708 salio de esta rama. Si salio: decidir E0-12-D3 ya, o aplicar la salida de emergencia (HASH_VERSION a 2). Si no salio: E0-12-D3 sigue siendo un bloqueo de merge, sin urgencia clinica."
+  }
+}

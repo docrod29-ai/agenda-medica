@@ -1,0 +1,132 @@
+{
+  "unidad": "E0-05",
+  "titulo": "ClinicalQuantity: migración de motores críticos",
+  "etapa": "E0",
+  "estado": "necesita_validacion",
+  "porQueNecesitaValidacion": "La unidad está ENTERA y con los tres gates en verde. El motivo de no marcarla 'completada' es el único cambio de comportamiento declarado en el diseño (§8.2): copiloto.ts riesgoCardiovascular deja de calcular un riesgo PREVENT sobre una creatinina implausible. Es un cambio VISIBLE en pantalla (la tarjeta de riesgo desaparece y en su lugar se declara el dato faltante), en la dirección segura, y la regla 5 de la carta operativa pide el visto bueno del médico dueño antes de desplegarlo.",
+  "aceptacion": {
+    "literal": "Creatinina en µmol/L ya no puede llegar cruda a CKD-EPI",
+    "cumplida": true,
+    "comoSePrueba": "src/__tests__/tipos/motores-unidad.tipos.ts caso 1: `ckdEpi2021(creatUmolL, 60, 'Masculino')` con @ts-expect-error. Si dejara de ser un error, tsc emite TS2578 y tumba `npx tsc --noEmit` y `npm run build`.",
+    "controlNegativoEjecutado": "Se sustituyó creatUmolL por creatMgDl (caso legal) y tsc falló con `src/__tests__/tipos/motores-unidad.tipos.ts(37,1): error TS2578: Unused '@ts-expect-error' directive`. Restaurado; tsc vuelve a exit 0. El gate NO pasa por vacío."
+  },
+  "lotes": [
+    { "lote": 1, "nombre": "función renal", "estado": "hecho", "archivos": ["src/lib/expediente/funcion-renal.ts", "src/lib/expediente/copiloto.ts", "src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx"] },
+    { "lote": 2, "nombre": "gasometría", "estado": "hecho", "archivos": ["src/lib/uci/gasometria.ts", "src/lib/uci/nota.ts", "src/lib/uci/copilot.ts", "src/app/(dashboard)/uci/page.tsx"] },
+    { "lote": 3, "nombre": "infusiones", "estado": "hecho", "archivos": ["src/lib/uci/infusiones.ts", "src/app/(dashboard)/uci/page.tsx", "src/app/demo/interactivo/page.tsx"] },
+    { "lote": 4, "nombre": "seguridad de dosis", "estado": "hecho", "archivos": ["src/lib/seguridad/dosis.ts", "src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx"] }
+  ],
+  "archivosTocados": {
+    "produccion": [
+      "src/types/clinical-quantity.ts",
+      "src/lib/expediente/funcion-renal.ts",
+      "src/lib/expediente/copiloto.ts",
+      "src/lib/uci/gasometria.ts",
+      "src/lib/uci/infusiones.ts",
+      "src/lib/uci/nota.ts",
+      "src/lib/uci/copilot.ts",
+      "src/lib/seguridad/dosis.ts",
+      "src/lib/clinical/registry.ts",
+      "src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx",
+      "src/app/(dashboard)/uci/page.tsx",
+      "src/app/demo/interactivo/page.tsx"
+    ],
+    "testsNuevos": [
+      "src/__tests__/tipos/motores-unidad.tipos.ts",
+      "src/__tests__/motores-unidad-cruzada.test.ts"
+    ],
+    "testsMigrados": [
+      "src/__tests__/funcion-renal.test.ts",
+      "src/__tests__/funcion-renal-plausibilidad.test.ts",
+      "src/__tests__/clinical-safety-harness.test.ts",
+      "src/__tests__/calculadoras.test.ts",
+      "src/__tests__/clinical-quantity.test.ts",
+      "src/__tests__/guardas-unidad-clinica.test.ts",
+      "src/__tests__/uci-gasometria.test.ts",
+      "src/__tests__/uci-gasometria-alcalosis-resp.test.ts",
+      "src/__tests__/uci-auditoria-fixes.test.ts",
+      "src/__tests__/uci-infusiones.test.ts",
+      "src/__tests__/seguridad-dosis.test.ts",
+      "src/__tests__/dosis-decision-amoxicilina.test.ts",
+      "src/__tests__/dosis-invariantes-property.test.ts"
+    ]
+  },
+  "cambiosDeContrato": [
+    "funcion-renal: ckdEpi2021/cockcroftGault/evaluarFuncionRenal reciben ClinicalQuantity y devuelven ClinicalQuantity. `egfrCkdEpi` pasó de NaN a null. `depuracionParaDosis: number` pasó a la unión discriminada DepuracionParaDosis (declara si viene de Cockcroft mL/min o de CKD-EPI mL/min/1.73m²).",
+    "gasometria: EntradaGasometria pasa de `number|string` a cantidades. HCO3/Na/Cl se etiquetan mEq/L (era el registro; el comentario decía mmol/L). Numéricamente idéntico: los tres iones son monovalentes.",
+    "infusiones: ResultadoInfusion pierde `unidadDosis` y `unidadConc` — la unidad viaja DENTRO de la cantidad. Nueva dimensión concentracion_actividad (U/mL).",
+    "seguridad/dosis: EntradaDosis pierde el booleano `dosisPorKg` y `dosisMg`; la dosis es ahora `ClinicalQuantity<'masa'> | ClinicalQuantity<'dosis_por_peso'>`. El P0 de pediatría («50 mg/kg» leído como 50 mg) deja de ser REPRESENTABLE.",
+    "clinical-quantity: +dimensión concentracion_actividad, +función aConcentracionMasa (inversa de aConcentracionSustancia). NINGÚN analito ni factor molar nuevo."
+  ],
+  "cambioDeComportamiento": {
+    "cuantos": 1,
+    "donde": "src/lib/expediente/copiloto.ts → riesgoCardiovascular",
+    "que": "Se añadió el filtro `creatininaPlausibleMgDl` que los otros tres call sites del mismo archivo ya tenían. Con una creatinina fuera de [0.1, 25] mg/dL (p.ej. 88, que es un valor NORMAL en µmol/L), PREVENT recibía una TFG fantasma de ~5 mL/min/1.73m² y devolvía un riesgo cardiovascular calculado sobre basura. Ahora recibe tfg=0, devuelve null y el motivo se DECLARA (sugerencia 'prevent:falta').",
+    "efectoVisible": "En ese caso la tarjeta 'PREVENT-ASCVD a 10 años' deja de mostrarse y aparece 'Se puede estimar el riesgo cardiovascular a 10 años ... falta TFG (o creatinina)'. Sólo se dispara con un dato fuera de rango, es decir, con un error de captura o de unidad.",
+    "controlNegativoEjecutado": "Revertida la línea, `npx vitest run src/__tests__/motores-unidad-cruzada.test.ts` falla en «con creatinina 88 (µmol/L capturada como mg/dL) NO emite un riesgo calculado» (1 failed | 37 passed). Restaurada, 38 passed.",
+    "requiereVistoBuenoDelDr": true
+  },
+  "verificacionDeNoRegresion": {
+    "metodo": "Se extrajeron los CUATRO motores tal como estaban en git HEAD a un directorio temporal y se comparó, caso por caso, la salida vieja contra la nueva. Directorio borrado antes de commitear.",
+    "malla": {
+      "renal": "6 creatininas × 5 edades × 2 sexos × 3 pesos para CKD-EPI y Cockcroft; 6 creatininas × 4 edades × 2 sexos × {con y sin peso} para evaluarFuncionRenal (estadio, descripción, banderas, depuración); 9 depuraciones × 4 fármacos para ajusteRenalFarmacos (alertas y TEXTOS completos)",
+      "gasometria": "5 pH × 5 PaCO2 × 5 HCO3 × 4 albúminas × 3 cronicidades = 1500 objetos AnalisisGasometria comparados con toEqual",
+      "infusiones": "7 fármacos representativos en ambos sentidos (dosisARate y rateADosis): mL/h, dosis, concentración, interpretación literal y advertencias",
+      "dosis": "6 fármacos × 8 dosis × 4 tomas × 4 pesos × {absoluta, por kg} × 3 vías × 3 edades ≈ 13 824 combinaciones, comparando el arreglo de alertas completo con toEqual"
+    },
+    "resultado": "6 pruebas, 6 pasadas. CERO diferencias numéricas y CERO diferencias de texto entre el motor viejo y el migrado.",
+    "goldensCongelados": "Los literales de src/__tests__/motores-unidad-cruzada.test.ts se imprimieron desde el motor PRE-migración y se congelaron; si un número se mueve, el test se pone rojo."
+  },
+  "loQueNOgarantizaEstaUnidad": [
+    "Un laboratorio que reporta en µmol/L pero viene ETIQUETADO mg/dL. Ningún sistema de tipos ve el papel del laboratorio. Sólo lo atrapa la guarda de rango `creatininaPlausibleMgDl`, que POR ESO se conserva intacta. Hay un test explícito de esto y otro que declara el hueco residual: un valor sano en µmol/L (p.ej. 20) sigue cayendo dentro de [0.1, 25] y pasa. Cerrarlo exige que el laboratorio traiga su unidad desde el origen — es E1 (ClinicalFact), no E0-05.",
+    "Errores de escala en los PASOS INTERMEDIOS de una fórmula. ClinicalQuantity no tiene multiplicación ni división entre dimensiones (E0-04 lo dejó fuera a propósito), así que `mL/h = dosis · peso · 60 / conc` sigue siendo aritmética con `number` por dentro. El tipo protege ENTRADAS y SALIDAS. Decirlo es parte del entregable.",
+    "El cruce fármaco↔dimensión en infusiones (µg/min para un fármaco que se dosifica por kg) NO lo puede ver el compilador, porque `farmacoKey` es un string. Lo bloquea el motor EN EJECUCIÓN y está probado en uci-infusiones.test.ts."
+  ],
+  "gates": {
+    "tsc": "PASS",
+    "vitest": "PASS",
+    "build": "PASS",
+    "testsPasan": 2403,
+    "archivosDeTest": 186,
+    "lineaBaseAnterior": 2322,
+    "comandos": ["npx tsc --noEmit", "npx vitest run src/__tests__/", "npm run build"]
+  },
+  "preguntasAlMedico": [
+    {
+      "id": "E0-05-Q1",
+      "pregunta": "Etiqueta oficial del bicarbonato: ¿mEq/L o mmol/L?",
+      "porQue": "El registro de motores decía HCO₃ mEq/L y el comentario del motor decía mmol/L. Al ser monovalente el NÚMERO es el mismo, pero la etiqueta que se imprime en la nota no. El diseño adoptó mEq/L por coherencia con Na/Cl de laboratorio/analitos.ts y con el registro. Cambiarlo después es una línea.",
+      "bloquea": false
+    },
+    {
+      "id": "E0-05-Q2",
+      "pregunta": "Depuración para dosificar SIN peso: ¿(a) seguir igual, (b) mostrar la procedencia en el texto de la alerta, o (c) no emitir alerta de ajuste renal sin peso?",
+      "porQue": "Sin peso, `depuracionParaDosis` cae en la TFG INDEXADA (mL/min/1.73 m²) y se compara contra umbrales expresados en mL/min. Es el comportamiento vigente y esta unidad NO lo cambió; la regla de enoxaparina ya advierte «usa la depuración de creatinina, no la TFG indexada». La unión discriminada ahora hace la procedencia VISIBLE en el código, así que la decisión se puede tomar sin tocar la aritmética.",
+      "bloquea": false
+    },
+    {
+      "id": "E0-05-Q3",
+      "pregunta": "¿Se añaden más analitos con conversión masa↔sustancia (glucosa, urea/BUN, bilirrubina, calcio)?",
+      "porQue": "FACTORES_MOLARES sólo tiene creatinina y colesterol (los dos que ya existían en el repo). `aConcentracionMasa` devuelve null para el resto, que es el comportamiento seguro. Cada analito nuevo exige su fuente citada; no se añade ninguno de paso. Heredada de E0-04.",
+      "bloquea": false
+    },
+    {
+      "id": "E0-05-VB",
+      "pregunta": "VISTO BUENO para desplegar el cierre del hueco de riesgoCardiovascular (ver cambioDeComportamiento).",
+      "porQue": "Es el único cambio visible en pantalla de toda la unidad y va en la dirección segura, pero la regla 5 pide el OK del médico dueño antes de desplegar algo observable.",
+      "bloquea": false
+    }
+  ],
+  "candidatosASiguienteUnidad": [
+    "E0-05-bis: tipar el `rango?: [number, number]` de cada fármaco de CATALOGO_INFUSIONES. Se dejó fuera a propósito: obliga a un par de cantidades por fármaco y multiplica la superficie de cambio del catálogo sin cerrar ningún hueco nuevo (la dosis ya llega tipada).",
+    "Enriquecer el mensaje de ajusteRenalFarmacos con la procedencia de la depuración («TFG indexada, sin peso»). Es una mejora real pero cambia TEXTO CLÍNICO IMPRESO: fuera de E0-05 por la regla 5. Depende de Q2."
+  ],
+  "trinquetes": {
+    "adrsE0_03": "No se registró ningún motor nuevo — sólo se actualizó el campo `unidades` de 6 entradas existentes. El contador de deuda de ADRs no se movió (clinical-registry-adr.test.ts en verde).",
+    "coberturaRegistro": "No se crearon archivos nuevos en directorios clínicos, así que clinical-registry-cobertura.test.ts no exige entradas nuevas.",
+    "exhaustividadE0_04": "La dimensión nueva se añadió a la lista de dimensiones AISLADAS de clinical-quantity.test.ts (U/mL no se convierte a µg/mL: depende del fármaco). FACTORES_MOLARES sigue siendo exactamente ['colesterol','creatinina']."
+  },
+  "phi": "CERO. Todos los fixtures son sintéticos (creatininas, gasometrías y dosis inventadas). Ningún dato de paciente real.",
+  "reglasClinicasInventadas": "NINGUNA. No se tocó ni una fórmula, ni un umbral, ni una dosis, ni un texto de alerta. Los únicos números nuevos del módulo son factores del SI (U/mL = 1) y la inversa aritmética de un factor molar que ya estaba en el repo.",
+  "fecha": "2026-07-29T06:52:00Z"
+}

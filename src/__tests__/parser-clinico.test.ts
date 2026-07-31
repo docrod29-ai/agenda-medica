@@ -36,7 +36,9 @@ describe('extraerSignosVitales', () => {
     expect(r.spo2).toBe(95)
     expect(r.temperatura).toBe(36.8)
     expect(r.peso).toBe(72)
-    expect(r.talla).toBe(1.7)
+    // La talla se guarda en CENTÍMETROS (types/expediente.ts) y así la usa imc().
+    // Antes se guardaba 1.7 (metros) en un campo de cm → IMC absurdo. Auditoría 2026-07.
+    expect(r.talla).toBe(170)
   })
   it('devuelve null cuando no hay datos', () => {
     const r = extraerSignosVitales('paciente refiere dolor abdominal')
@@ -195,5 +197,39 @@ describe('parserClinicoComoRespuestaIA', () => {
   it('para tipo no-preop deja preopInputs undefined', () => {
     const r = parserClinicoComoRespuestaIA('paciente estable', 'evolucion')
     expect(r.preopInputs).toBeUndefined()
+  })
+})
+
+/**
+ * REGRESIÓN auditoría 2026-07 (P1): peso y talla del RECIÉN NACIDO.
+ * `\d{2,3}` impedía capturar "3.5 kg" (un dígito entero), y la talla se guardaba
+ * en metros dentro de un campo documentado en cm.
+ */
+describe('Peso y talla: unidades y neonato', () => {
+  const s = (txt: string) => extraerSignosVitales(txt)
+
+  it('peso de recién nacido en kg (antes: imposible de capturar)', () => {
+    expect(s('el bebé pesa 3.5 kg').peso).toBe(3.5)
+  })
+  it('peso de recién nacido dictado en GRAMOS se convierte a kg', () => {
+    expect(s('peso 3200 gramos').peso).toBe(3.2)
+  })
+  it('peso de adulto sigue igual', () => {
+    expect(s('peso 72 kg').peso).toBe(72)
+  })
+  it('talla en metros se normaliza a cm', () => {
+    expect(s('talla 1.70 m').talla).toBe(170)
+    expect(s('mide 1.62').talla).toBe(162)
+  })
+  it('longitud del recién nacido en cm (antes capturaba "5" de "50")', () => {
+    expect(s('talla 50 cm').talla).toBe(50)
+    expect(s('longitud 48 cm').talla).toBe(48)
+  })
+  it('talla de adulto ya en cm se respeta', () => {
+    expect(s('talla 170 cm').talla).toBe(170)
+  })
+  it('valores implausibles NO se capturan (no alimentan fórmulas)', () => {
+    expect(s('talla 900 cm').talla).toBeNull()
+    expect(s('peso 900 kg').peso).toBeNull()
   })
 })

@@ -1,0 +1,114 @@
+{
+  "CKRT": [
+    "CRRT",
+    "terapia de reemplazo renal continua"
+  ],
+  "CVVHDF": [
+    "hemodiafiltración venovenosa continua"
+  ],
+  "CVVHD": [
+    "hemodiálisis venovenosa continua"
+  ],
+  "CVVH": [
+    "hemofiltración venovenosa continua"
+  ],
+  "ECMO VV": [
+    "ECMO veno venoso",
+    "ECMO venovenoso"
+  ],
+  "ECMO VA": [
+    "ECMO veno arterial",
+    "ECMO venoarterial"
+  ],
+  "PEEP": [
+    "presión positiva al final de la espiración"
+  ],
+  "PIP": [
+    "presión inspiratoria pico"
+  ],
+  "Pplat": [
+    "presión plateau",
+    "presión meseta"
+  ],
+  "FiO2": [
+    "fracción inspirada de oxígeno"
+  ],
+  "PaO2": [
+    "presión arterial de oxígeno"
+  ],
+  "PaCO2": [
+    "presión arterial de dióxido de carbono"
+  ],
+  "P/F": [
+    "PaFi",
+    "PaO2/FiO2"
+  ],
+  "VExUS": [
+    "vexus"
+  ],
+  "POCUS": [
+    "ultrasonido a pie de cama"
+  ],
+  "TAPSE": [
+    "tapse"
+  ],
+  "RASS": [
+    "escala de sedación de Richmond"
+  ],
+  "CAM-ICU": [
+    "evaluación de delirium en UCI"
+  ],
+  "GCS": [
+    "Glasgow",
+    "escala de Glasgow"
+  ],
+  "MRSA": [
+    "Staphylococcus aureus resistente a meticilina"
+  ],
+  "VRE": [
+    "enterococo resistente a vancomicina"
+  ],
+  "BLEE": [
+    "ESBL",
+    "betalactamasa de espectro extendido"
+  ],
+  "KPC": [
+    "carbapenemasa KPC"
+  ],
+  "NDM": [
+    "metalo betalactamasa NDM"
+  ],
+  "OXA-48": [
+    "oxa cuarenta y ocho"
+  ],
+  "HbA1c": [
+    "hemoglobina glucosilada"
+  ],
+  "EPOC": [
+    "enfermedad pulmonar obstructiva crónica"
+  ],
+  "CPAP": [
+    "presión positiva continua en vía aérea"
+  ],
+  "BiPAP": [
+    "presión positiva binivel"
+  ],
+  "SBT": [
+    "prueba de ventilación espontánea"
+  ],
+  "RSBI": [
+    "índice de respiración rápida superficial"
+  ],
+  "HFNC": [
+    "cánula nasal de alto flujo"
+  ],
+  "NIV": [
+    "ventilación no invasiva"
+  ],
+  "MALDI-TOF": [
+    "maldi tof"
+  ],
+  "MIC": [
+    "concentración mínima inhibitoria"
+  ]
+}

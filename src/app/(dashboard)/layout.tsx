@@ -4,7 +4,9 @@ import { logAudit } from '@/lib/expediente/audit-log'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { esSuperadminCliente } from '@/lib/superadmin-client'
-import { limpiarBorradoresLocales } from '@/lib/mobile/local-drafts'
+import { limpiarBorradoresLocales, limpiarAudioLocal } from '@/lib/mobile/local-drafts'
+import { limpiarZonaConsultorio, fijarZonaConsultorio } from '@/lib/timezone'
+import { getConfig } from '@/lib/firestore'
 import { useClinic } from '@/context/ClinicContext'
 import { Sidebar } from '@/components/Sidebar'
 import { ToastProvider } from '@/context/ToastContext'
@@ -16,6 +18,7 @@ import { Menu, Loader2, AlertTriangle, Headset } from 'lucide-react'
 import Link from 'next/link'
 import { OfflineBanner } from '@/components/OfflineBanner'
 import { NotificacionesPushOptIn } from '@/components/NotificacionesPushOptIn'
+import FirmadorDisenos from '@/components/FirmadorDisenos'
 import { useMode } from '@/context/ModeContext'
 import { BottomNav } from '@/components/BottomNav'
 import { MobileBackButton } from '@/components/MobileBackButton'
@@ -37,7 +40,7 @@ function ModeBanner() {
       padding: '5px 12px',
       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
     }}>
-      <Headset size={13} className="ds-icon" /> Modo Secretaria · vista enfocada en agenda y atención al paciente
+      <Headset size={13} className="ds-icon" /> Modo Asistente · vista enfocada en agenda y atención al paciente
     </div>
   )
 }
@@ -90,10 +93,12 @@ function estadoAcceso(clinic: { status?: string; paseLibre?: boolean; plan?: str
   return 'sin_tarjeta'   // 'trial' o cuenta nueva → necesita tarjeta para iniciar
 }
 
+// Precios/créditos = fuente única PLANES en @/lib/planes-ia. Antes divergían aquí
+// (Pro $1,899 vs $1,590 canónico, Clínica 160 vs 200) → desync visible (auditoría P2).
 const PLANES_GATE = [
   { key: 'agenda',  label: 'Agenda',  price: '$349',   nota: 'Agenda + expediente · sin IA' },
-  { key: 'clinica', label: 'Clínica', price: '$899',   nota: '160 créditos de IA/mes', destacado: true },
-  { key: 'premium', label: 'Pro',     price: '$1,899', nota: '450 créditos · IA máxima (Opus + GPT-5)' },
+  { key: 'clinica', label: 'Clínica', price: '$899',   nota: '200 créditos de IA/mes', destacado: true },
+  { key: 'premium', label: 'Pro',     price: '$1,590', nota: '450 créditos · IA máxima (Opus + GPT-5)' },
 ]
 
 /** Tras pagar, el webhook tarda unos segundos. Clínica en vivo → el gate se quita
@@ -193,7 +198,7 @@ function AccesoGate({ estado, clinicId, esMedico, email }: { estado: 'sin_tarjet
             Pago seguro con Stripe · Cancela cuando quieras · ¿Tienes código <strong>FUNDADOR</strong>? Aplícalo en el pago.
           </div>
         )}
-        <button onClick={() => { limpiarBorradoresLocales(); import('@/lib/firebase').then(({ auth }) => auth.signOut()) }}
+        <button onClick={() => { limpiarBorradoresLocales(); limpiarAudioLocal(); limpiarZonaConsultorio(); import('@/lib/firebase').then(({ auth }) => auth.signOut()) }}
           style={{ marginTop: 22, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}>
           Cerrar sesión
         </button>
@@ -224,6 +229,26 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
     loginRegistradoRef.current = marca
     logAudit({ evento: 'login_exitoso', clinicId, meta: { rol: role ?? null } }).catch(() => {})
   }, [user, clinicId, role])
+
+  /**
+   * Publica la zona horaria del consultorio en cuanto hay sesión.
+   *
+   * `useConfig` ya la publica, pero sólo lo usan 22 de las pantallas: una que no
+   * lo llame se quedaba con México central en su PRIMERA carga. Aquí se hace una
+   * vez por sesión, en el layout que todas comparten, y queda recordada para las
+   * siguientes cargas de ese navegador.
+   *
+   * Es una lectura del mismo documento que ya leen esas 22 pantallas, así que el
+   * SDK la sirve de su caché.
+   */
+  const zonaFijadaRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!clinicId || zonaFijadaRef.current === clinicId) return
+    zonaFijadaRef.current = clinicId
+    getConfig(clinicId)
+      .then(c => { fijarZonaConsultorio(c?.zonaHoraria) })
+      .catch(() => { /* sin zona: se sigue con TZ_DEFAULT, como hasta ahora */ })
+  }, [clinicId])
   const { mode } = useMode()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -305,7 +330,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
               Reintentar
             </button>
             <button
-              onClick={() => { limpiarBorradoresLocales(); import('@/lib/firebase').then(({ auth }) => auth.signOut()).finally(() => { window.location.href = '/login' }) }}
+              onClick={() => { limpiarBorradoresLocales(); limpiarAudioLocal(); limpiarZonaConsultorio(); import('@/lib/firebase').then(({ auth }) => auth.signOut()).finally(() => { window.location.href = '/login' }) }}
               style={{
                 background: 'none', border: '1px solid var(--border)', color: 'var(--text2)',
                 borderRadius: 10, padding: '11px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
@@ -392,6 +417,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
         <ModeBanner />
         <TrialBanner />
         <NotificacionesPushOptIn />
+        <FirmadorDisenos />
         <main style={{ flex: 1, overflowY: 'auto' }}>
           {children}
         </main>

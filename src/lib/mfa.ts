@@ -11,7 +11,8 @@
 
 import {
   multiFactor, TotpMultiFactorGenerator, TotpSecret,
-  PhoneAuthProvider, type User,
+  PhoneAuthProvider, getMultiFactorResolver,
+  type User, type MultiFactorError, type MultiFactorResolver,
 } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 
@@ -60,5 +61,26 @@ export async function desactivarFactor(factorUid: string): Promise<void> {
   await multiFactor(user).unenroll(factorUid)
 }
 
+/**
+ * LOGIN con MFA: cuando el primer factor (correo/Google) sale bien pero la cuenta
+ * tiene un 2º factor, Firebase lanza `auth/multi-factor-auth-required`. Esto obtiene
+ * el "resolvedor" con el que se completa el acceso pidiendo el código de 6 dígitos.
+ * Devuelve null si el error NO es de MFA (para no confundirlo con otros fallos).
+ */
+export function obtenerResolverMfa(error: unknown): MultiFactorResolver | null {
+  const code = (error as { code?: string })?.code
+  if (code !== 'auth/multi-factor-auth-required') return null
+  return getMultiFactorResolver(auth, error as MultiFactorError)
+}
+
+/** Completa el inicio de sesión resolviendo el 2º factor TOTP con el código de 6 dígitos. */
+export async function resolverLoginTotp(resolver: MultiFactorResolver, codigo: string): Promise<void> {
+  const factor = resolver.hints.find(h => h.factorId === TotpMultiFactorGenerator.FACTOR_ID) ?? resolver.hints[0]
+  if (!factor) throw new Error('Esta cuenta no tiene un segundo factor TOTP configurado.')
+  const assertion = TotpMultiFactorGenerator.assertionForSignIn(factor.uid, codigo.trim())
+  await resolver.resolveSignIn(assertion)
+}
+
 // Re-export útil
 export { multiFactor, PhoneAuthProvider }
+export type { MultiFactorResolver }

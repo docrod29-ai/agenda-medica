@@ -10,9 +10,12 @@ import { useClinic } from '@/context/ClinicContext'
 import { useBorrador } from '@/context/BorradorContext'
 import { useTarea } from '@/context/TareasContext'
 import { useConfig } from '@/hooks/useConfig'
+import { usePatientAppointments } from '@/hooks/useAppointments'
+import { hoyISO } from '@/lib/timezone'
+import type { Appointment } from '@/types'
 import { useToast } from '@/context/ToastContext'
 import { auth } from '@/lib/firebase'
-import { getPatient, getPatients, updatePatient } from '@/lib/firestore'
+import { getPatient, getPatients, updatePatient, updateAppointment } from '@/lib/firestore'
 import { useGrabacionVoz } from '@/hooks/useGrabacionVoz'
 import { useGrabacionAudio } from '@/hooks/useGrabacionAudio'
 import { useComandoVoz } from '@/hooks/useComandoVoz'
@@ -30,8 +33,17 @@ import { MOTORES, type ClaveMotor } from '@/lib/planes-ia'
 import { PreopAssessment } from '@/components/PreopAssessment'
 import ValoracionInmuno from '@/components/pacientes/ValoracionInmuno'
 import { RevisionPanel } from '@/components/RevisionPanel'
+import { SelloProcedencia } from '@/components/SelloProcedencia'
+import { construirManifiesto } from '@/lib/expediente/procedencia'
+
+/** Alergias del paciente (texto libre) → lista para el sello de procedencia. */
+function alergiasArray(alergias?: string): string[] {
+  if (!alergias) return []
+  return alergias.split(/[,;\n]/).map(s => s.trim()).filter(Boolean)
+}
 import { NerPanel } from '@/components/NerPanel'
 import { CorreccionesPanel } from '@/components/CorreccionesPanel'
+import { AlertasDictado } from '@/components/AlertasDictado'
 import { Alert, Modal, Button } from '@/components/ui'
 import { fetchAutenticado } from '@/lib/auth-client'
 
@@ -43,7 +55,9 @@ import { vacunasSegunEdad } from '@/lib/expediente/pediatria'
 
 
 import { Copiloto } from '@/components/Copiloto'
+import { cargarPreferencias, registrarAceptacion, type Preferencias } from '@/lib/learning'
 import { Herramientas } from '@/components/Herramientas'
+import { PanelLaboratorios } from '@/components/laboratorio/PanelLaboratorios'
 
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
@@ -51,19 +65,21 @@ import { detectarInteracciones, detectarControlados } from '@/lib/expediente/far
 import { construirPlanPROA } from '@/lib/expediente/proa'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { validarNOM004 } from '@/lib/expediente/nom004'
-import { generarHashIntegridad, generarHashFirma, HASH_VERSION } from '@/lib/expediente/integrity'
+import { generarHashIntegridad, generarHashFirma, normalizarParaSello, HASH_VERSION } from '@/lib/expediente/integrity'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
+import { tiposVisibles } from '@/lib/expediente/tipos-visibles'
 import type { TipoNota, NotaMedica, NotaSeccion, Diagnostico, Medicamento, SignosVitales } from '@/types/expediente'
 import type { Patient } from '@/types'
 import { Cie10Autocomplete } from '@/components/Cie10Autocomplete'
 import { CobrarModal } from '@/components/CobrarModal'
+import { PanelRazonamiento } from '@/components/PanelRazonamiento'
 import { DialogoDiarizado, Section, S } from './consulta-ui'
 import {
 
   ArrowLeft, Mic, Square, Sparkles, Loader2, AlertTriangle, CheckCircle2,
   Trash2, Plus, ShieldCheck, Pill, Stethoscope, FileSignature, Headphones,
   Lock, Bug, FlaskConical, Lightbulb, FileText, ChevronDown, ChevronUp, Volume2, BedDouble,
-  Scissors, Baby, Calculator, Camera, HeartPulse,
+  Scissors, Baby, Calculator, Camera, HeartPulse, Brain,
 } from 'lucide-react'
 
 /**
@@ -93,7 +109,7 @@ const AntibiogramaTool = dynamic(() => import('@/app/(dashboard)/antibiograma/pa
 const CalculadorasClinicas = dynamic(() => import('@/components/CalculadorasClinicas').then(m => m.CalculadorasClinicas), { ssr: false })
 const FotosClinicas = dynamic(() => import('@/components/FotosClinicas').then(m => m.FotosClinicas), { ssr: false })
 
-const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'valoracion_preoperatoria', 'valoracion_inmuno', 'alta_consulta', 'ingreso', 'evolucion', 'egreso', 'nota_postoperatoria', 'nota_anestesia', 'consentimiento']
+const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'valoracion_preoperatoria', 'valoracion_inmuno', 'alta_consulta', 'ingreso', 'evolucion', 'evolucion_uci', 'egreso', 'nota_postoperatoria', 'nota_anestesia', 'consentimiento']
 
 // Menú de IA: motores que el médico elige por nota (⚡ barato → 💎 máximo).
 const MOTORES_UI: { clave: ClaveMotor; emoji: string; nombre: string; creditos: number; desc: string }[] = [
@@ -117,6 +133,11 @@ const ESPECIALIDADES_POR_GRUPO: { grupo: string; items: string[] }[] = [
   ] },
 ]
 
+/** ¿Hay algún signo vital capturado? Objeto de signos con algún valor no vacío. */
+function signosConValor(sv: SignosVitales | undefined | null): boolean {
+  return !!sv && Object.values(sv as Record<string, unknown>).some(v => v != null && String(v).trim() !== '')
+}
+
 export default function ConsultaActivaPage() {
   const { patientId } = useParams<{ patientId: string }>()
   const router = useRouter()
@@ -132,6 +153,9 @@ export default function ConsultaActivaPage() {
   const internamientoActivo = internamientoParam || notaInternamientoId
   const esNotaHospital = !!internamientoActivo
   const volverA = esNotaHospital ? `/hospitalizacion/${internamientoActivo}` : `/expediente/${patientId}`
+  // Llave del respaldo local por paciente Y por episodio (declarada arriba para
+  // que `descartar()` pueda listarla en sus deps sin caer en TDZ).
+  const respaldoKey = `nx.consulta.bkp.${patientId}${internamientoActivo ? '.h.' + internamientoActivo : ''}`
   const { clinicId } = useClinic()
   const borradorMem = useBorrador()  // almacén EN MEMORIA (sobrevive navegación, sin parpadeo)
   // Tarea de "procesar nota con IA" en el almacén reactivo (sobrevive navegación):
@@ -169,6 +193,29 @@ export default function ConsultaActivaPage() {
    * Se pierde el material de origen, que es justo lo que da respaldo legal a la
    * nota. Aquí se guarda lo que había ANTES de empezar a grabar y se antepone.
    */
+  /**
+   * NOTA PRELIMINAR MIENTRAS SE SEPARAN LAS VOCES.
+   *
+   * Al detener el dictado el médico se quedaba mirando una pantalla vacía durante
+   * toda la cadena: subir el audio completo → transcribirlo OTRA VEZ con
+   * separación de voces (que en una consulta larga no es rápido) → recién
+   * entonces estructurar la nota con la IA. Dos esperas en serie, y la primera
+   * ni siquiera hacía falta para empezar: el texto del streaming en vivo YA
+   * estaba en pantalla.
+   *
+   * Ahora se arranca a estructurar en cuanto se detiene, con lo que hay. La nota
+   * aparece mientras la diarización sigue su curso, y cuando llega el texto bueno
+   * —con Médico/Paciente separados, que es mejor material— se re-proyecta.
+   *
+   * `edicionManualRef` es la salvaguarda: si el médico ya empezó a escribir sobre
+   * la nota preliminar, la re-proyección NO lo pisa en silencio, pregunta. Antes
+   * este riesgo no existía porque no había nada que editar todavía; al adelantar
+   * la nota, lo creamos, y hay que cerrarlo en el mismo cambio.
+   */
+  const preliminarRef = useRef(false)
+  const [ofreceReproyectar, setOfreceReproyectar] = useState(false)
+  const edicionManualRef = useRef(false)
+
   const baseTranscripcionRef = useRef('')
   const grabandoPrevioRef = useRef(false)
   useEffect(() => {
@@ -176,6 +223,10 @@ export default function ConsultaActivaPage() {
     if (grabando && !grabandoPrevioRef.current) {
       // Flanco de subida: arranca una grabación. Se congela lo que ya había.
       baseTranscripcionRef.current = voz.transcripcion.trim()
+      // Y se rearma el adelanto de la nota: en una consulta puede grabarse más de
+      // una vez, y sin esto solo la primera se estructuraría por adelantado.
+      preliminarRef.current = false
+      setOfreceReproyectar(false)
     }
     grabandoPrevioRef.current = grabando
   }, [audio.estado, voz.transcripcion])
@@ -190,7 +241,17 @@ export default function ConsultaActivaPage() {
   useEffect(() => {
     if (audio.estado === 'listo' && audio.transcripcion) {
       voz.setTranscripcion(conBase(audio.transcripcion))
-      autoProcRef.current = true
+      /**
+       * Llegó el texto con las voces separadas. Es MEJOR material que el del
+       * streaming, así que vale re-proyectar la nota — pero solo si el médico no
+       * ha escrito encima. Si ya escribió, se le ofrece y decide él: pisarle
+       * texto propio sin avisar es justo lo que no se puede hacer.
+       */
+      if (preliminarRef.current && edicionManualRef.current) {
+        setOfreceReproyectar(true)
+      } else {
+        autoProcRef.current = true
+      }
     }
   }, [audio.estado, audio.transcripcion, conBase]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -273,14 +334,22 @@ export default function ConsultaActivaPage() {
      */
     if (firmadaRef.current) {
       toast('Esta nota ya está firmada. Para corregirla, usa una adenda desde la nota.', 'info')
-      return
+      return false
     }
+    const t = texto.trim()
+    if (!t) return false
+    let duplicado = false
     setSecciones(prev => {
       const i = prev.findIndex(s => s.key === key)
-      const valor = i >= 0 ? `${prev[i].value}\n${texto}` : texto
+      // DEDUP: si la sección ya contiene EXACTAMENTE este texto, no lo anexa otra
+      // vez. Antes cada clic concatenaba, así que reaplicar una escala o recalcular
+      // dejaba líneas idénticas repetidas en la nota (ruido medicolegal).
+      if (i >= 0 && prev[i].value.includes(t)) { duplicado = true; return prev }
+      const valor = i >= 0 ? `${prev[i].value}\n${t}` : t
       return [...prev.filter(s => s.key !== key), { key, label, value: valor }]
     })
-    toast('Agregado a la nota ✓', 'success')
+    toast(duplicado ? 'Eso ya estaba en la nota' : 'Agregado a la nota ✓', duplicado ? 'info' : 'success')
+    return true
   }, [toast])
 
   const esCasoQuirurgico = useMemo(() => {
@@ -308,10 +377,47 @@ export default function ConsultaActivaPage() {
   const [medicamentos, setMedicamentos] = useState<Medicamento[]>([])
 
   /**
+   * LA CITA DE HOY DE ESTE PACIENTE.
+   *
+   * La consulta no sabía a qué cita pertenecía, así que el modal de cobro no
+   * recibía `citaId` — y sin él nunca se marcaba `cobroId`. Consecuencia: el
+   * botón "Cobrar" seguía visible en la agenda (su guarda es justamente
+   * `!cobroId`), con riesgo de cobrar dos veces al mismo paciente, y la cita
+   * aparecía en "cuentas por cobrar" del corte estando ya cobrada.
+   */
+  const { appointments: citasDelPaciente } = usePatientAppointments(patientId)
+  const citaDeHoy = useMemo(() => {
+    const hoy = hoyISO()
+    return citasDelPaciente
+      .filter((c: Appointment) => c.fechaHora.slice(0, 10) === hoy && !['cancelada', 'reagendada'].includes(c.estado))
+      .sort((a: Appointment, b: Appointment) => a.fechaHora.localeCompare(b.fechaHora))[0] ?? null
+  }, [citasDelPaciente])
+
+  const montoSugerido = useMemo(() => {
+    const precios = config?.preciosPublicos ?? []
+    if (!precios.length) return undefined
+    const tipoCita = (citaDeHoy?.tipo ?? '').toLowerCase()
+    const coincide = precios.find(p => tipoCita && p.servicio.toLowerCase().includes(tipoCita.split('-')[0]))
+    return (coincide ?? precios[0])?.precio
+  }, [config?.preciosPublicos, citaDeHoy?.tipo])
+
+  /**
    * Se declara aquí, antes del memo del copiloto, porque el copiloto consume los
    * estudios que salen de esta extracción para calcular TFG, FIB-4 y PREVENT.
    */
   const [extraction, setExtraction] = useState<Record<string, unknown> | undefined>(undefined)
+
+  /**
+   * LEARNING ENGINE — frecuencias por categoría de sugerencia de ESTE médico.
+   * Se cargan una vez y sirven para reordenar (no críticas) lo que suele usar.
+   * Fail-safe: si no hay datos o falla, queda {} y el orden es el de siempre.
+   */
+  const [prefsIA, setPrefsIA] = useState<Preferencias>({})
+  useEffect(() => {
+    const uid = auth.currentUser?.uid
+    if (!clinicId || !uid) return
+    cargarPreferencias(clinicId, uid).then(setPrefsIA).catch(() => {})
+  }, [clinicId])
 
   /**
    * Se memoriza aquí y no dentro del componente: al pasarlo como objeto literal
@@ -400,6 +506,14 @@ export default function ConsultaActivaPage() {
   const [guardando, setGuardando] = useState(false)
   const [firmada, setFirmada] = useState(false)
   const [errorCargaNota, setErrorCargaNota] = useState('')
+  /**
+   * La lectura del PACIENTE falló — auditoría 2026-07 (P0). Sin este flag, si
+   * getPatient fallaba (red intermitente), `patient` quedaba null y el autoguardado
+   * escribía pacienteNombre='' y alergias='' → BORRABA el nombre y las alergias de
+   * la nota y apagaba el cross-check alergia↔fármaco. Bloquea el guardado, como ya
+   * se hace con la nota que no se pudo leer.
+   */
+  const [pacienteError, setPacienteError] = useState(false)
   /** Id estable mientras la nota aún no existe en Firestore. Ver construirNota. */
   const uuidRespaldoRef = useRef<string>('')
   if (!uuidRespaldoRef.current) uuidRespaldoRef.current = crypto.randomUUID()
@@ -426,12 +540,27 @@ export default function ConsultaActivaPage() {
   // Constraints para capturar TODA la conversación (médico + paciente) en el modo
   // Whisper: sin supresión de ruido ni cancelación de eco (borran al paciente),
   // con control de ganancia para levantar su voz.
-  const opcionesWhisper = {
+  /**
+   * El vocabulario de ESTE paciente viaja con el audio.
+   *
+   * El prompt es lo único que cambia lo que el reconocedor OYE, y su presupuesto
+   * son ~224 tokens: los fármacos y diagnósticos del paciente entran PRIMERO y
+   * lo genérico llena lo que sobre. Un fármaco que ya toma es la pista más
+   * específica que existe — «metformina» dictada sobre un diabético deja de
+   * competir con las palabras parecidas del diccionario general.
+   *
+   * Hasta hoy se mandaba un prompt fijo para todos: el módulo que elige el
+   * vocabulario existía, estaba probado, y no lo llamaba nadie.
+   */
+  const opcionesWhisper = useMemo(() => ({
     recoveryKey: `consulta-${patientId}`,
     noiseSuppression: false,
     echoCancellation: false,
     autoGainControl: true,
-  } as const
+    contexto: 'consulta' as const,
+    medicamentos: (medicamentos ?? []).map(m => m?.nombre).filter(Boolean) as string[],
+    problemas: (diagnosticos ?? []).map(d => d?.descripcion).filter(Boolean) as string[],
+  }), [patientId, medicamentos, diagnosticos])
 
   // Arranca el grabador que corresponde al modo seleccionado (no siempre el de voz).
   const arrancarSegunModo = () => {
@@ -440,7 +569,11 @@ export default function ConsultaActivaPage() {
   }
 
   const iniciarGrabacion = () => {
-    if (consentimiento) { voz.iniciar(); return }
+    // arrancarSegunModo, NO voz.iniciar directo: `modoVoz` está en 'whisper', así
+    // que el grabador real es `audio`. Llamar voz.iniciar() arrancaba un SEGUNDO
+    // grabador (Web Speech) en paralelo al de Whisper — dos motores escribiendo la
+    // misma transcripción. El atajo de teclado disparaba justo este camino.
+    if (consentimiento) { arrancarSegunModo(); return }
     setModalConsentimiento(true)
   }
   const confirmarConsentimiento = () => {
@@ -493,7 +626,9 @@ export default function ConsultaActivaPage() {
      * a la consulta entre las pantallas que deben usarla. El expediente ya lo
      * hacía bien; esta pantalla se había quedado atrás.
      */
-    getPatient(clinicId, patientId).then(setPatient).catch((e: unknown) => console.error('cargar paciente:', e))
+    getPatient(clinicId, patientId)
+      .then(p => { setPatient(p); setPacienteError(!p) })
+      .catch((e: unknown) => { console.error('cargar paciente:', e); setPacienteError(true) })
     getUltimasNotasResumen(clinicId, patientId)
       .then(r => { ultimasNotasRef.current = r; setContextoPrevio(r) })
       .catch(e => console.error('contexto de visitas previas:', e))  // degrada sin romper la nota
@@ -565,9 +700,12 @@ export default function ConsultaActivaPage() {
       })
       const data = await res.json().catch(() => null)
       if (data?.ok) setVerificacion({ modelo: data.modelo ?? 'IA', hallazgos: data.hallazgos ?? [] })
+      // Auditoría 2026-07 (P1): NO mostrar «sin observaciones» si la revisión falló.
+      // La segunda opinión queda nula (no verde) y se avisa que no se verificó.
+      else if (data?.incompleto) toast(data.error ?? 'La segunda opinión no se pudo completar; la nota NO fue verificada.', 'error')
     } catch { /* silencioso: la segunda opinión es un extra, no bloquea */ }
     finally { setVerificando(false) }
-  }, [patient?.edad, patient?.sexo, patient?.alergias])
+  }, [patient?.edad, patient?.sexo, patient?.alergias, toast])
 
   // Segunda opinión A DEMANDA (plan Pro): construye la nota desde el estado actual
   // y la manda a verificar. En Premium ya corre sola tras generar.
@@ -627,7 +765,9 @@ export default function ConsultaActivaPage() {
       const dx = diagnosticos.map(d => d.descripcion).filter(Boolean).join('; ')
       const meds = medicamentos.map(m => m.nombre).filter(Boolean).join('; ')
       const pregunta = `Análisis clínico y plan basado en la MEJOR evidencia, a nivel subespecialista, conciso y sin relleno. Diagnóstico(s): ${dx || '—'}. Tratamiento actual: ${meds || '—'}.${resumenTexto ? ` Resumen del caso: ${resumenTexto.slice(0, 1200)}.` : ''} Evalúa si el tratamiento es el adecuado según la evidencia, señala alternativas si aplica, dosis y puntos de seguridad (interacciones/contraindicaciones). No repitas la historia clínica.`
-      const contextoPaciente = `${patient?.nombre ?? ''}, ${patient?.edad ?? '?'} años, ${patient?.sexo ?? '?'}. Alergias: ${patient?.alergias || 'no referidas'}.`
+      // Sin el NOMBRE del paciente: no aporta nada clínico y evita transferir PII a un
+      // tercero en el extranjero (minimización, igual que buildUserPrompt del prompt maestro).
+      const contextoPaciente = `${patient?.edad ?? '?'} años, ${patient?.sexo ?? '?'}. Alergias: ${patient?.alergias || 'no referidas'}.`
       const res = await fetchAutenticado('/api/consultor-evidencia', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pregunta, contextoPaciente }),
@@ -648,7 +788,7 @@ export default function ConsultaActivaPage() {
     finally { setGenerandoAnalisis(false) }
   }, [diagnosticos, medicamentos, patient?.nombre, patient?.edad, patient?.sexo, patient?.alergias, toast])
 
-  const procesarIA = useCallback(async (tipoOverride?: TipoNota, opts?: { enVivo?: boolean }) => {
+  const procesarIA = useCallback(async (tipoOverride?: TipoNota, opts?: { enVivo?: boolean; preliminar?: boolean }) => {
     // Una nota firmada es inmutable. El atajo de teclado no comprobaba esto y
     // reescribía en pantalla el contenido de una nota ya firmada: lo que se veía
     // dejaba de coincidir con lo almacenado y con lo que se entregó al paciente.
@@ -656,12 +796,27 @@ export default function ConsultaActivaPage() {
     // enVivo = estructuración EN TIEMPO REAL mientras se graba (silenciosa, sin
     // toasts ni reset de aprobaciones; la nota se va armando sola).
     const enVivo = opts?.enVivo === true
+    /**
+     * `preliminar` = esta nota se armó con el texto del streaming mientras la
+     * diarización sigue corriendo, y va a re-proyectarse en cuanto llegue el
+     * texto bueno. No se pide segunda opinión sobre ella: se pagaría dos veces
+     * por revisar una nota que está por reemplazarse, y peor aún, el médico
+     * vería hallazgos de una versión que ya no existe.
+     */
+    const preliminar = opts?.preliminar === true
     if (!voz.transcripcion.trim()) { if (!enVivo) toast('No hay transcripción que procesar', 'info'); return }
     if (enVivo && vivoRef.current) return  // ya hay una estructuración en vivo en curso
     const tipoActivo = tipoOverride ?? tipo
     // Si hubo diarización, mandamos el diálogo etiquetado por hablante para que la
     // IA atribuya bien quién dijo qué (médico/paciente). Si no, el texto plano.
-    const transcripcionParaIA = audio.utterances.length > 0
+    //
+    // PERO la diarización es POR blob y solo cubre el ÚLTIMO tramo grabado. Cuando
+    // la grabación fue multi-tramo (baseTranscripcionRef trae lo previo), usar las
+    // utterances mandaría a la IA SOLO el último tramo y la nota final perdería la
+    // primera parte clínica. En ese caso se usa la transcripción completa (texto
+    // plano rec1+rec2): se sacrifican las etiquetas de voz, nunca el contenido.
+    const multiTramo = baseTranscripcionRef.current.trim().length > 0
+    const transcripcionParaIA = (audio.utterances.length > 0 && !multiTramo)
       ? audio.utterances.map(u => `${rolesHablante[u.speaker] || `Hablante ${u.speaker}`}: ${u.text}`).join('\n')
       : voz.transcripcion
     if (enVivo) { vivoRef.current = true; setEstructurandoVivo(true) } else { setProcesando(true); setVerificacion(null); setTareaProc({ ejecutando: true }) }
@@ -672,8 +827,12 @@ export default function ConsultaActivaPage() {
         body: JSON.stringify({
           transcripcion: transcripcionParaIA,
           tipo: tipoActivo,
-          rapido: enVivo,  // en vivo = modelo rápido/barato; nota final = motor elegido
-          motor: enVivo ? undefined : motorEfectivo,  // menú de IA: ⚡/⭐/💎 (o default del plan)
+          // La preliminar TAMBIÉN va en modelo rápido (Haiku): es un borrador que
+          // se re-proyecta en cuanto llega la diarización. Antes corría el motor
+          // completo (Opus + razonamiento, ~40s) y el médico igual esperaba
+          // mirando la pantalla — el propósito de la nota "instantánea" se perdía.
+          rapido: enVivo || preliminar,
+          motor: (enVivo || preliminar) ? undefined : motorEfectivo,  // menú de IA: ⚡/⭐/💎 (o default del plan)
           contexto: {
             // Sin nombre: no aporta nada a estructurar la nota e identifica al
             // titular ante un tercero en el extranjero. Ver buildUserPrompt.
@@ -740,21 +899,29 @@ export default function ConsultaActivaPage() {
       })
 
       const nuevosDx = Array.isArray(data.diagnosticos) ? data.diagnosticos.filter((d: Diagnostico) => d.descripcion) : []
-      if (enVivo) {
-        // Fusiona por descripción: añade los que la IA detectó y respeta los del médico.
-        if (nuevosDx.length > 0) setDiagnosticos(prev => {
+      if (tipoOverride) {
+        // RE-PROYECCIÓN a otra modalidad de nota: se parte de plantilla limpia a propósito.
+        setDiagnosticos(nuevosDx)
+      } else if (nuevosDx.length > 0) {
+        // FUSIÓN: tanto el pase en vivo como "Procesar de nuevo" AÑADEN lo que la IA
+        // detectó pero NUNCA borran lo que el médico agregó a mano. Antes, reprocesar
+        // hacía setDiagnosticos(nuevosDx) y borraba en silencio el Dx con su CIE-10 que
+        // el médico había capturado (la IA nunca lo supo). Pérdida de datos clínicos.
+        setDiagnosticos(prev => {
           const vistos = new Set(prev.map(d => d.descripcion.trim().toLowerCase()))
           return [...prev, ...nuevosDx.filter((d: Diagnostico) => !vistos.has(d.descripcion.trim().toLowerCase()))]
         })
-      } else if (nuevosDx.length > 0 || tipoOverride) setDiagnosticos(nuevosDx)
+      }
 
       const nuevosMed = Array.isArray(data.medicamentos) ? data.medicamentos.filter((m: Medicamento) => m.nombre) : []
-      if (enVivo) {
-        if (nuevosMed.length > 0) setMedicamentos(prev => {
+      if (tipoOverride) {
+        setMedicamentos(nuevosMed)
+      } else if (nuevosMed.length > 0) {
+        setMedicamentos(prev => {
           const vistos = new Set(prev.map(m => m.nombre.trim().toLowerCase()))
           return [...prev, ...nuevosMed.filter((m: Medicamento) => !vistos.has(m.nombre.trim().toLowerCase()))]
         })
-      } else if (nuevosMed.length > 0 || tipoOverride) setMedicamentos(nuevosMed)
+      }
 
       if (data.signosVitales) {
         const sv = data.signosVitales
@@ -811,7 +978,7 @@ export default function ConsultaActivaPage() {
         if (data._uso) setUsoIA(data._uso)
         // Segunda opinión (GPT-5): AUTOMÁTICA en plan Premium; en plan Pro es un
         // botón a demanda (controla el costo). En ambos revisa seguridad clínica.
-        if (data._plan === 'premium') {
+        if (data._plan === 'premium' && !preliminar) {
           const seccionesArr = data.secciones && typeof data.secciones === 'object'
             ? Object.entries(data.secciones).map(([k, v]) => ({ titulo: k, contenido: String(v ?? '') }))
             : []
@@ -901,9 +1068,18 @@ export default function ConsultaActivaPage() {
       })
     })
     const nuevosDx = Array.isArray(data.diagnosticos) ? data.diagnosticos.filter(d => d.descripcion) : []
-    if (nuevosDx.length > 0 || tipoOverride) setDiagnosticos(nuevosDx)
+    if (tipoOverride) setDiagnosticos(nuevosDx)   // re-proyección: plantilla limpia
+    else if (nuevosDx.length > 0) setDiagnosticos(prev => {
+      // FUSIÓN anti-pérdida: no borra lo que el médico agregó a mano mientras la IA corría.
+      const vistos = new Set(prev.map(d => d.descripcion.trim().toLowerCase()))
+      return [...prev, ...nuevosDx.filter(d => !vistos.has(d.descripcion.trim().toLowerCase()))]
+    })
     const nuevosMed = Array.isArray(data.medicamentos) ? data.medicamentos.filter(m => m.nombre) : []
-    if (nuevosMed.length > 0 || tipoOverride) setMedicamentos(nuevosMed)
+    if (tipoOverride) setMedicamentos(nuevosMed)
+    else if (nuevosMed.length > 0) setMedicamentos(prev => {
+      const vistos = new Set(prev.map(m => m.nombre.trim().toLowerCase()))
+      return [...prev, ...nuevosMed.filter(m => !vistos.has(m.nombre.trim().toLowerCase()))]
+    })
     if (data.signosVitales) {
       const sv = data.signosVitales
       setSignos(prev => ({ fc: sv.fc || prev.fc, fr: sv.fr || prev.fr, ta: sv.ta || prev.ta, temperatura: sv.temperatura || prev.temperatura, spo2: sv.spo2 || prev.spo2, peso: sv.peso || prev.peso, talla: sv.talla || prev.talla }))
@@ -982,6 +1158,24 @@ export default function ConsultaActivaPage() {
     }
   }, [voz.grabando, modoVoz, firmada, procesando, voz.transcripcion])
 
+  /**
+   * En cuanto se DETIENE (estado 'subiendo'), se estructura ya con el texto del
+   * streaming en vez de esperar a la diarización. Ver `preliminarRef`.
+   *
+   * Se exige un mínimo de palabras: con cuatro frases sueltas la IA no produce
+   * una nota útil y solo se gastaría una llamada.
+   */
+  useEffect(() => {
+    if (audio.estado !== 'subiendo' || firmada || procesando) return
+    if (preliminarRef.current) return
+    const palabras = voz.transcripcion.trim().split(/\s+/).filter(Boolean).length
+    if (palabras < 40) return
+    preliminarRef.current = true
+    edicionManualRef.current = false
+    procesarIARef.current(undefined, { preliminar: true })
+  }, [audio.estado, firmada, procesando, voz.transcripcion])
+
+
   // ── Cambiar la modalidad de nota ───────────────────────────────
   // Si hay dictado, la nota se RE-PROYECTA desde esa fuente hacia la nueva
   // modalidad (primera vez → historia clínica → preop, etc.). El dictado es la
@@ -1018,10 +1212,16 @@ export default function ConsultaActivaPage() {
     if (!textoFuente) { toast('No hay texto que analizar todavía', 'info'); return }
     setNerCargando(true); setNerError(''); setEntidades(null)
     try {
+      // Auditoría 2026-07 (P1): mandamos las alergias REGISTRADAS del expediente
+      // para que el cross-check alergia↔medicamento las considere, no solo las
+      // que se dictaron en esta consulta.
+      const alergiasRegistradas = Array.isArray(patient?.alergias)
+        ? patient.alergias
+        : (patient?.alergias ? String(patient.alergias).split(/[,;\n]+/).map(s => s.trim()).filter(Boolean) : [])
       const res = await fetchAutenticado('/api/expediente/extraer-entidades', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texto: textoFuente }),
+        body: JSON.stringify({ texto: textoFuente, alergiasRegistradas }),
       })
       const data = await res.json().catch(() => null)
       if (!data || !data.ok) {
@@ -1041,7 +1241,7 @@ export default function ConsultaActivaPage() {
     } finally {
       setNerCargando(false)
     }
-  }, [voz.transcripcion, secciones, toast])
+  }, [voz.transcripcion, secciones, toast, patient?.alergias])
 
   // ── Construir objeto NotaMedica ────────────────────────────────
   const construirNota = useCallback((estado: 'borrador' | 'firmada'): NotaMedica => {
@@ -1106,6 +1306,12 @@ export default function ConsultaActivaPage() {
       iaAuditoria: extraction || safety ? {
         extraction, safety,
         aprobadosPorMedico: Array.from(aprobados),
+        // Sello de procedencia: cuántos datos vinieron del dictado / IA / a mano.
+        // Aditivo y derivado (no inventa); queda en el registro medicolegal.
+        procedencia: construirManifiesto(
+          { diagnosticos, medicamentos, alergias: alergiasArray(patient?.alergias), signosVitales: signosNum as unknown as Record<string, unknown> },
+          extraction as never,
+        ).resumen,
         procesadoEn: now,
         aprobadoPor: estado === 'firmada' ? (auth.currentUser?.email ?? '') : undefined,
         // Provenance inmutable: con qué modelo/prompt se generó + revisión humana
@@ -1137,8 +1343,12 @@ export default function ConsultaActivaPage() {
   const guardarBorrador = useCallback((silencioso = false): Promise<void> => {
     if (!clinicId || firmada) return Promise.resolve()
     // Nota que no se pudo leer: escribir sería sustituirla por lo que haya en
-    // pantalla, que es la plantilla vacía. Se bloquea hasta recargar.
-    if (errorCargaNota) return Promise.resolve()
+    // pantalla, que es la plantilla vacía. Se bloquea hasta recargar. En el
+    // guardado MANUAL (no silencioso) se avisa; antes fallaba mudo.
+    if (errorCargaNota) { if (!silencioso) toast('No se pudo abrir la nota; recárgala antes de guardar.', 'error'); return Promise.resolve() }
+    // Paciente que no se pudo leer: guardar escribiría nombre y alergias vacíos
+    // encima de la nota. Se bloquea hasta que la lectura del paciente tenga éxito.
+    if (pacienteError) { if (!silencioso) toast('No se pudieron leer los datos del paciente; recarga antes de guardar.', 'error'); return Promise.resolve() }
     // Serializa: cada guardado espera al anterior. Así dos autoguardados no
     // crean la nota dos veces (usa notaIdRef, que es síncrona).
     const tarea = cadenaGuardadoRef.current.then(async () => {
@@ -1207,7 +1417,7 @@ export default function ConsultaActivaPage() {
     })
     cadenaGuardadoRef.current = tarea.catch(() => {})
     return tarea
-  }, [errorCargaNota, clinicId, patientId, firmada, construirNota, toast])
+  }, [errorCargaNota, pacienteError, clinicId, patientId, firmada, construirNota, toast])
 
   // ── Descartar borrador ─────────────────────────────────────────
   const descartar = useCallback(async () => {
@@ -1228,6 +1438,10 @@ export default function ConsultaActivaPage() {
       // completa al abrir "Nueva consulta" del mismo paciente y se recreaba sola
       // en Firestore al autoguardarse.
       borradorMem.borrar(respaldoKey)
+      // Y el audio de recuperación en IndexedDB: sin esto quedaba PHI guardada y al
+      // reabrir la consulta salía el banner "hay audio de una sesión anterior"
+      // ofreciendo resucitar el audio de la consulta YA descartada.
+      try { await audio.descartarRecovery(`consulta-${patientId}`) } catch { /* */ }
       toast('Consulta descartada', 'info')
       router.push(volverA)
     } catch (e) {
@@ -1235,39 +1449,49 @@ export default function ConsultaActivaPage() {
       toast('Error al descartar', 'error')
       setGuardando(false)
     }
-  }, [firmada, clinicId, notaId, patientId, router, toast, confirm])
+    // Auditoría 2026-07 (P1): respaldoKey/borradorMem/audio/volverA en deps.
+    // respaldoKey depende del episodio (internamientoActivo); si se omitía, al
+    // cambiar de episodio el callback conservaba la llave VIEJA y borraba el
+    // respaldo del episodio equivocado (dejando el actual vivo, y viceversa).
+  }, [firmada, clinicId, notaId, patientId, router, toast, confirm, respaldoKey, borradorMem, audio, volverA])
 
   // ── Autoguardado cada 30s ──────────────────────────────────────
+  // La función real se guarda en un ref que se refresca en CADA render con los
+  // valores más nuevos. El intervalo se arma UNA sola vez y lee el ref. Antes las
+  // deps (resumen, transcripción, Dx, medicamentos…) cambiaban en cada palabra del
+  // dictado, así que el setInterval(30s) se limpiaba y recreaba antes de cumplirse:
+  // dictando sin pausas, el guardado al servidor NUNCA disparaba.
+  const autoguardarRef = useRef<() => void>(() => {})
   useEffect(() => {
-    if (firmada) return
-    // La condición miraba SOLO `resumen` y las secciones. Mientras el médico
-    // DICTA —que es el flujo normal— nada de eso tiene contenido todavía: la
-    // consulta vive en la transcripción, los diagnósticos y los medicamentos.
-    // Resultado: el autoguardado al servidor NUNCA disparaba durante el dictado y
-    // la consulta existía únicamente en el respaldo del navegador. Se usa el mismo
-    // criterio de "hay contenido" que el respaldo local, que sí los miraba.
-    const hayContenido = () =>
-      !!(resumen.trim() || secciones.some(s => s.value?.trim()) ||
-         diagnosticos.length || medicamentos.length || voz.transcripcion.trim())
-    const t = setInterval(() => { if (hayContenido()) guardarBorrador(true) }, 30000)
+    autoguardarRef.current = () => {
+      if (firmada) return
+      const hayContenido =
+        !!(resumen.trim() || secciones.some(s => s.value?.trim()) ||
+           diagnosticos.length || medicamentos.length || voz.transcripcion.trim() ||
+           signosConValor(signos) || estudiosOrden.length || preop)
+      if (hayContenido) guardarBorrador(true)
+    }
+  })
+  useEffect(() => {
+    const t = setInterval(() => autoguardarRef.current(), 30000)
     return () => clearInterval(t)
-  }, [firmada, resumen, secciones, diagnosticos, medicamentos, voz.transcripcion, guardarBorrador])
+  }, [])
 
   // ── Red de seguridad LOCAL (anti-pérdida): respalda la nota en el navegador
   //    mientras escribes (instantáneo, sobrevive a crashes y a estar sin red). ──
-  // Llave por paciente Y por episodio: así el borrador de una nota de
-  // HOSPITALIZACIÓN (mismo paciente) no pisa el de la consulta externa.
-  const respaldoKey = `nx.consulta.bkp.${patientId}${internamientoActivo ? '.h.' + internamientoActivo : ''}`
+  // (respaldoKey se declara arriba, junto a internamientoActivo, para evitar TDZ
+  //  en las deps de descartar(); es por paciente Y por episodio.)
   useEffect(() => {
     if (firmada) return
     const hayContenido = resumen.trim() || secciones.some(s => s.value?.trim()) ||
-      diagnosticos.length > 0 || medicamentos.length > 0 || voz.transcripcion.trim()
+      diagnosticos.length > 0 || medicamentos.length > 0 || voz.transcripcion.trim() ||
+      signosConValor(signos) || estudiosOrden.length > 0 || !!preop
     if (!hayContenido) return
     const id = setTimeout(() => {
       if (borradoresBloqueados()) return   // sesión cerrada: no resucitar PHI
       try {
         localStorage.setItem(respaldoKey, ofuscar(JSON.stringify({
-          tipo, resumen, secciones, signos, diagnosticos, medicamentos,
+          tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop,
           // notaId: sin él, restaurar el respaldo dejaba notaIdRef en null y el
           // siguiente autoguardado CREABA una segunda nota con el mismo contenido.
           notaId: notaIdRef.current,
@@ -1281,8 +1505,32 @@ export default function ConsultaActivaPage() {
   // Al abrir: si hay respaldo local, RESTÁURALO SOLO (sin que tengas que ver un
   // banner) — salvo que estés abriendo otra nota (?nota=) o que el formulario ya
   // tenga contenido. Así volver de la agenda nunca "pierde" lo que hacías.
+  // SEMILLA DESDE EL PANEL DE UCI: cuando se llega con ?fuente=uci, el Panel UCI
+  // dejó en sessionStorage las 10 secciones deterministas ya redactadas (por
+  // aparatos y sistemas). Se siembran una sola vez, en una nota NUEVA. Nunca pisa
+  // una nota existente ni un borrador con contenido.
+  const uciSeedRef = useRef(false)
+  useEffect(() => {
+    if (uciSeedRef.current || notaIdParam) return
+    if (searchParams.get('fuente') !== 'uci' || !internamientoParam) return
+    let raw: string | null = null
+    try { raw = sessionStorage.getItem(`nx.uci.seed.${internamientoParam}`) } catch { /* */ }
+    if (!raw) return
+    try {
+      const secs = JSON.parse(raw) as NotaSeccion[]
+      if (Array.isArray(secs) && secs.length) {
+        uciSeedRef.current = true
+        setTipo('evolucion_uci')
+        setSecciones(secs)
+        toast('Valores del Panel UCI cargados en la nota — revísalos y firma', 'success')
+      }
+    } catch { /* */ }
+    try { sessionStorage.removeItem(`nx.uci.seed.${internamientoParam}`) } catch { /* */ }
+  }, [searchParams, internamientoParam, notaIdParam, toast])
+
   const autoRestRef = useRef(false)
   useEffect(() => {
+    if (uciSeedRef.current) return   // la semilla de UCI manda sobre el respaldo vacío
     if (!patientId || autoRestRef.current) return
     // 1º MEMORIA (instantáneo, sin parpadeo ni aviso): si vienes de otra pantalla,
     //   la nota estaba viva en memoria y se pone tal cual la dejaste.
@@ -1306,6 +1554,8 @@ export default function ConsultaActivaPage() {
     if (b.signos) setSignos(b.signos as SignosVitales)
     if (Array.isArray(b.diagnosticos)) setDiagnosticos(b.diagnosticos as Diagnostico[])
     if (Array.isArray(b.medicamentos)) setMedicamentos(b.medicamentos as Medicamento[])
+    if (Array.isArray(b.estudiosOrden)) setEstudiosOrden(b.estudiosOrden as string[])
+    if (b.preop) setPreop(b.preop as typeof preop)
     if (typeof b.transcripcion === 'string') voz.setTranscripcion(b.transcripcion)
     setRespaldoDisponible(false)
     if (!mem) toast('Recuperé tu nota sin guardar de este paciente ✓', 'success')  // solo si vino de localStorage
@@ -1315,28 +1565,71 @@ export default function ConsultaActivaPage() {
   // cancelaba si salías rápido a la agenda (el desmonte mataba el timeout antes
   // de guardar). Aquí guardamos SIN esperar: al desmontar (navegación dentro de
   // la app), al ocultar la pestaña y al cerrar. Usa un ref con el estado vivo.
-  const estadoVivoRef = useRef({ tipo, resumen, secciones, signos, diagnosticos, medicamentos, transcripcion: voz.transcripcion, firmada })
+  const estadoVivoRef = useRef({ tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, transcripcion: voz.transcripcion, firmada })
   useEffect(() => {
-    estadoVivoRef.current = { tipo, resumen, secciones, signos, diagnosticos, medicamentos, transcripcion: voz.transcripcion, firmada }
+    estadoVivoRef.current = { tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, transcripcion: voz.transcripcion, firmada }
     // Espejo EN MEMORIA en cada cambio (barato, sin debounce): así al navegar y
     // volver la nota está exactamente como la dejaste, al instante.
     const e = estadoVivoRef.current
-    const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) || e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim()
-    if (e.firmada || !hay) borradorMem.borrar(respaldoKey)
-    else borradorMem.escribir(respaldoKey, { tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos, diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, transcripcion: e.transcripcion, notaId: notaIdRef.current })
+    const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) || e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim() || signosConValor(e.signos) || (e.estudiosOrden?.length ?? 0) > 0 || !!e.preop
+    /**
+     * NUNCA se borra el respaldo por verse VACÍO — esa era la fuente del
+     * "a veces se borra y tengo que empezar otra vez".
+     *
+     * Este efecto corre en CADA render. Al volver a la nota desde otra pantalla,
+     * el formulario arranca vacío un instante ANTES de que la restauración
+     * escriba el contenido; en ese instante, la condición `!hay` borraba el
+     * respaldo en memoria. Si la restauración no ganaba la carrera, la nota se
+     * perdía. Un formulario vacío al montar es el estado por defecto, no una
+     * orden de tirar el trabajo guardado.
+     *
+     * Ahora el respaldo SOLO se borra al FIRMAR (nota inmutable, ya está en el
+     * servidor) o al descartar explícito (`descartar()` lo limpia aparte). Si hay
+     * contenido se escribe; si está vacío y sin firmar, se deja como está.
+     */
+    if (e.firmada) borradorMem.borrar(respaldoKey)
+    else if (hay) borradorMem.escribir(respaldoKey, { tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos, diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, estudiosOrden: e.estudiosOrden, preop: e.preop, transcripcion: e.transcripcion, notaId: notaIdRef.current })
   })
+  /**
+   * RESTAURAR LA POSICIÓN al volver a la nota.
+   *
+   * Al salir a otra pantalla y regresar, Next.js REMONTA la consulta y el scroll
+   * saltaba hasta arriba: había que buscar de nuevo dónde ibas. Se guarda la
+   * posición por paciente en sessionStorage (sobrevive la navegación, se limpia
+   * al cerrar la pestaña) y se restaura tras montar, cuando el contenido ya se
+   * repuso desde el respaldo en memoria.
+   */
+  const scrollKey = `nx.consulta.scroll.${patientId}${internamientoActivo ? '.h.' + internamientoActivo : ''}`
+  useEffect(() => {
+    // Restaurar: dos frames para que el contenido restaurado ya esté pintado.
+    let raf2 = 0
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        const y = Number(sessionStorage.getItem(scrollKey) || 0)
+        if (y > 0) window.scrollTo(0, y)
+      })
+    })
+    const guardarScroll = () => { try { sessionStorage.setItem(scrollKey, String(window.scrollY)) } catch { /* */ } }
+    window.addEventListener('scroll', guardarScroll, { passive: true })
+    return () => {
+      cancelAnimationFrame(raf1); cancelAnimationFrame(raf2)
+      window.removeEventListener('scroll', guardarScroll)
+      guardarScroll()  // al desmontar (irte): recuerda dónde ibas
+    }
+  }, [scrollKey])
+
   const flushRespaldo = useCallback(() => {
     const e = estadoVivoRef.current
     if (e.firmada) return
     // Tras cerrar sesión, el desmonte dispara este flush. Escribir aquí resucitaba
     // el borrador que se acababa de purgar, y encima con la clave equivocada.
     if (borradoresBloqueados()) return
-    const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) || e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim()
+    const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) || e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim() || signosConValor(e.signos) || (e.estudiosOrden?.length ?? 0) > 0 || !!e.preop
     if (!hay) return
     try {
       localStorage.setItem(respaldoKey, ofuscar(JSON.stringify({
         tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos,
-        diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, notaId: notaIdRef.current,
+        diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, estudiosOrden: e.estudiosOrden, preop: e.preop, notaId: notaIdRef.current,
         transcripcion: e.transcripcion, ts: Date.now(),
       }), secretoLocal(auth.currentUser?.uid)))
     } catch { /* almacenamiento lleno */ }
@@ -1360,7 +1653,8 @@ export default function ConsultaActivaPage() {
       const e = estadoVivoRef.current
       if (e.firmada) return
       const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) ||
-        e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim()
+        e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim() ||
+        signosConValor(e.signos) || (e.estudiosOrden?.length ?? 0) > 0 || !!e.preop
       if (hay) guardarBorrador(true)
     }
     window.addEventListener(EVENTO_GUARDAR_TODO, alGuardarTodo)
@@ -1376,6 +1670,8 @@ export default function ConsultaActivaPage() {
       if (Array.isArray(b.secciones)) setSecciones(b.secciones)
       if (typeof b.resumen === 'string') setResumen(b.resumen)
       if (b.signos) setSignos(b.signos)
+      if (Array.isArray(b.estudiosOrden)) setEstudiosOrden(b.estudiosOrden)
+      if (b.preop) setPreop(b.preop)
       if (Array.isArray(b.diagnosticos)) setDiagnosticos(b.diagnosticos)
       if (Array.isArray(b.medicamentos)) setMedicamentos(b.medicamentos)
       if (b.transcripcion) voz.setTranscripcion(b.transcripcion)
@@ -1410,6 +1706,17 @@ export default function ConsultaActivaPage() {
   // ── Firmar nota (NOM-004 + NOM-024) ────────────────────────────
   const firmar = useCallback(async () => {
     if (!clinicId) return
+
+    /**
+     * COMPUERTA DE LECTURA (auditoría PHI/seguridad): si la nota o el paciente no
+     * se pudieron leer, la nota en pantalla es la plantilla vacía. Firmar la
+     * volvería INMUTABLE con pacienteNombre='' y alergias=[] → el cross-check de
+     * alergias queda apagado sobre una firma medicolegal. guardarBorrador ya se
+     * bloquea en ese estado; firmar DEBE bloquear también, y avisar (no en
+     * silencio) para que el médico recargue.
+     */
+    if (errorCargaNota) { toast('No se pudo abrir la nota. Recarga la página antes de firmar.', 'error'); return }
+    if (pacienteError) { toast('No se pudieron leer los datos del paciente (nombre, alergias). Recarga antes de firmar.', 'error'); return }
 
     /**
      * COMPUERTA DE SUGERENCIAS. Nada que la IA haya añadido por su cuenta entra a
@@ -1448,12 +1755,23 @@ export default function ConsultaActivaPage() {
     setGuardando(true)
     try {
       const now = new Date().toISOString()
-      const hashIntegridad = await generarHashIntegridad(notaParaValidar)
+      /**
+       * REG-060 — se sella y se escribe EL MISMO objeto.
+       *
+       * `normalizarParaSello` convierte en `null` explícito los opcionales que el
+       * sello v3 cubre. Sin eso, un campo que el médico VACÍA (p. ej. borrar el
+       * cuadro del dictado tras un autoguardado) se sella como `null` pero
+       * `stripUndefined` lo quita del payload y `updateDoc` hace merge: el valor
+       * viejo sobrevive en Firestore y la nota sale "ALTERADA" al reabrirla.
+       * Reproducido con el código real antes de arreglarlo.
+       */
+      const notaSellable = normalizarParaSello(notaParaValidar)
+      const hashIntegridad = await generarHashIntegridad(notaSellable)
       const medicoId = auth.currentUser?.uid ?? ''
-      const hashFirma = await generarHashFirma(notaParaValidar.metadata.id, medicoId, now)
+      const hashFirma = await generarHashFirma(notaSellable.metadata.id, medicoId, now)
 
       const notaFirmada: NotaMedica = {
-        ...notaParaValidar,
+        ...notaSellable,
         metadata: { ...notaParaValidar.metadata, hashIntegridad, hashVersion: HASH_VERSION, fechaModificacion: now },
         firma: {
           nombreMedico: config.nombreMedico,
@@ -1472,14 +1790,26 @@ export default function ConsultaActivaPage() {
       // Espera cualquier autoguardado en vuelo y usa la ref síncrona, para NO
       // crear una nota duplicada al firmar justo después de un autoguardado.
       await cadenaGuardadoRef.current.catch(() => {})
+      /**
+       * TODA NOTA NACE EN BORRADOR (REG-017, decisión del médico dueño).
+       *
+       * Antes, si la consulta se firmaba sin que hubiera llegado a guardarse un
+       * borrador (flujo rápido), esta rama CREABA la nota ya `firmada`: se
+       * saltaba el flujo borrador→firmada y nacía un documento inmutable sin
+       * historia previa. La firma debe ser una ACCIÓN explícita sobre algo que
+       * ya existe, no el estado inicial de un documento.
+       *
+       * Se crea primero el borrador y se firma inmediatamente después. Son dos
+       * escrituras en vez de una, y a cambio la trazabilidad NOM-024 queda
+       * intacta: existe el borrador, existe la transición y existe el sello.
+       */
       let id = notaIdRef.current
-      if (id) {
-        await updateNota(clinicId, patientId, id, notaFirmada)
-      } else {
-        id = await createNota(clinicId, patientId, notaFirmada)
+      if (!id) {
+        id = await createNota(clinicId, patientId, { ...notaParaValidar, estado: 'borrador' })
         notaIdRef.current = id
         setNotaId(id)
       }
+      await updateNota(clinicId, patientId, id, notaFirmada)
       setFirmada(true)
       try { localStorage.removeItem(respaldoKey) } catch { /* */ }  // ya firmada: respaldo local ya no hace falta
       toast('Nota firmada y sellada (NOM-024)', 'success')
@@ -1489,32 +1819,71 @@ export default function ConsultaActivaPage() {
         medicoUid: auth.currentUser?.uid, medicoEmail: auth.currentUser?.email ?? undefined,
         meta: { tipo, aprobadosIA: aprobados.size, diagnosticos: diagnosticos.length, medicamentos: medicamentos.length },
       })
+      /**
+       * FIRMAR MARCA LA CITA COMO ATENDIDA.
+       *
+       * El cobro NO es trabajo del médico —lo registra la asistente cuando el
+       * paciente sale y paga— pero para eso la asistente necesita saber a QUIÉN
+       * cobrar. Hasta ahora firmar no marcaba nada: la cita se quedaba en el
+       * estado en que estuviera, así que la asistente veía la lista entera del día
+       * con botón "Cobrar" en todas, incluidas las que aún no habían pasado, y
+       * quien terminaba marcando "atendida" a mano era el propio médico, en otra
+       * pantalla y con un menú sin traducir.
+       *
+       * Firmar la nota es la señal inequívoca y ya existente de que el paciente
+       * fue atendido. Marcar aquí le cuesta CERO clics al médico y es lo que
+       * alimenta la cola de cobro de la asistente.
+       *
+       * Se hace después de guardar la nota y aparte del try principal: si esto
+       * fallara, la nota YA está firmada y sellada, y perder el estado de la cita
+       * no puede invalidar eso. Se avisa en vez de callar, porque el efecto
+       * visible es que la asistente no verá al paciente en su cola.
+       */
+      if (citaDeHoy && !['atendida', 'finalizada', 'pagada'].includes(citaDeHoy.estado)) {
+        try {
+          await updateAppointment(clinicId, citaDeHoy.id, { estado: 'atendida' })
+        } catch {
+          toast('La nota quedó firmada, pero la cita no se marcó como atendida: no le aparecerá a tu asistente para cobrar.', 'error')
+        }
+      }
+
       // Cobro OPCIONAL. Por defecto el MÉDICO NO cobra al firmar: el cobro lo
-      // registra la secretaria desde Citas cuando el paciente se va (y cae en las
+      // registra la ASISTENTE desde Citas cuando el paciente se va (y cae en las
       // Finanzas del médico). Solo si la clínica lo enciende (pedirCobroAlCerrar
       // === true) se le pide el cobro al médico aquí.
       if (config?.pedirCobroAlCerrar === true) {
         setCobrar(true)
       } else {
         const nid = notaIdRef.current
-        router.push(internamientoActivo ? `/hospitalizacion/${internamientoActivo}` : medicamentos.length > 0 && nid ? `/receta/${patientId}/${nid}` : `/expediente/${patientId}`)
+        router.push(
+          internamientoActivo ? `/hospitalizacion/${internamientoActivo}`
+          // Con medicamentos → receta. Sin medicamentos pero CON estudios → orden
+          // médica (antes solo ramificaba a receta y la orden se quedaba en el
+          // tintero; el paciente salía sin su solicitud de estudios). Si no hay
+          // ni lo uno ni lo otro → expediente.
+          : (medicamentos.length > 0 && nid) ? `/receta/${patientId}/${nid}`
+          : (estudiosOrden.length > 0 && nid) ? `/orden/${patientId}/${nid}`
+          : `/expediente/${patientId}`)
       }
     } catch (e) {
       toast('Error al firmar', 'error')
     } finally {
       setGuardando(false)
     }
-  }, [clinicId, patientId, notaId, config, construirNota, router, toast])
+  }, [clinicId, patientId, notaId, config, construirNota, router, toast, citaDeHoy, errorCargaNota, pacienteError])
 
   // ── Atajos de teclado ──────────────────────────────────────────
   //
-  // Tres problemas que tenía este bloque:
-  //  1. Secuestraba Cmd/Ctrl+R y Cmd/Ctrl+P en TODA la pantalla: recargar e
-  //     imprimir quedaban inutilizados. Ahora usan Shift, que no choca con nada.
-  //  2. No miraba dónde estaba el foco: escribir en un campo y pulsar Cmd+R
-  //     arrancaba a grabar, y Cmd+Enter FIRMABA la nota. La firma es
-  //     irreversible (NOM-024), así que ese era el peor de los tres.
-  //  3. Cmd+Enter firmaba de golpe. Ahora pide confirmación explícita.
+  // Historia de este bloque:
+  //  1. Antes secuestraba Cmd/Ctrl+R (recargar) para grabar. Se cambió a
+  //     Cmd/Ctrl+SHIFT+R "para no chocar"... pero ESO ES EL HARD-REFRESH del
+  //     navegador: al actualizar forzado, la app arrancaba a grabar en vez de
+  //     recargar (con preventDefault, ni siquiera recargaba). El Dr. lo reportó.
+  //     Ahora GRABAR es Cmd/Ctrl+Shift+G (Grabar), que no colisiona con recargar,
+  //     imprimir, nueva pestaña, etc.
+  //  2. No miraba dónde estaba el foco: escribir en un campo y pulsar el atajo
+  //     arrancaba a grabar. Ahora se ignora si el foco está en un campo de texto.
+  //  3. Firmar es IRREVERSIBLE (NOM-024): nunca por un atajo suelto → confirma.
   useEffect(() => {
     const enCampoDeTexto = (t: EventTarget | null) => {
       const el = t as HTMLElement | null
@@ -1527,8 +1896,17 @@ export default function ConsultaActivaPage() {
       if (!(e.metaKey || e.ctrlKey)) return
       if (enCampoDeTexto(e.target)) return
 
-      if (e.shiftKey && (e.key === 'R' || e.key === 'r')) {
-        e.preventDefault(); voz.grabando ? voz.detener() : iniciarGrabacion(); return
+      // GRABAR: Cmd/Ctrl+Shift+G. NO se usa R: Cmd/Ctrl+Shift+R es el hard-refresh
+      // del navegador y la app terminaba grabando al actualizar forzado.
+      if (e.shiftKey && (e.key === 'G' || e.key === 'g')) {
+        e.preventDefault()
+        // Detener el grabador ACTIVO (audio en modo whisper); si no graba, iniciar.
+        // Antes miraba voz.grabando, que en el flujo real es SIEMPRE false → el
+        // atajo ni detenía ni evitaba arrancar un grabador paralelo.
+        if (audio.estado === 'grabando' || audio.estado === 'pausado') audio.detener()
+        else if (voz.grabando) voz.detener()
+        else iniciarGrabacion()
+        return
       }
       if (e.shiftKey && (e.key === 'D' || e.key === 'd')) {
         e.preventDefault(); procesarIA(); return
@@ -1572,7 +1950,17 @@ export default function ConsultaActivaPage() {
       }
       if (Array.isArray(data.diagnosticos)) setDiagnosticos(data.diagnosticos.filter((d: Diagnostico) => d.descripcion))
       if (Array.isArray(data.medicamentos)) setMedicamentos(data.medicamentos.filter((m: Medicamento) => m.nombre))
-      if (data.signosVitales && typeof data.signosVitales === 'object') setSignos(data.signosVitales)
+      if (data.signosVitales && typeof data.signosVitales === 'object') {
+        // MERGE por campo, no reemplazo: si la IA devuelve el bloque de signos
+        // parcial (o vacío) al corregir algo ajeno a signos, un reemplazo total
+        // borraba los signos capturados a mano. Solo se pisan los campos que la IA
+        // devuelve con valor.
+        const soloPresentes = Object.fromEntries(
+          Object.entries(data.signosVitales as Record<string, unknown>)
+            .filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== ''),
+        )
+        setSignos(prev => ({ ...prev, ...soloPresentes }))
+      }
       setChatCorr(c => [...c, { rol: 'ia', texto: '✓ Listo, apliqué el cambio. Revisa la nota (puedes deshacer).' }])
     } catch {
       setChatCorr(c => [...c, { rol: 'ia', texto: 'Sin conexión. Intenta de nuevo.' }]); setSnapshotUndo(null)
@@ -1646,6 +2034,28 @@ export default function ConsultaActivaPage() {
           <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>
             {patient?.edad ? `${patient.edad} años` : ''}{patient?.sexo ? ` · ${patient.sexo}` : ''} · {TIPO_NOTA_LABEL[tipo]}
           </div>
+          {/*
+            ALERGIAS SIEMPRE A LA VISTA durante la consulta.
+            Antes solo aparecían al desplegar los datos del paciente, pero es
+            justo mientras se dicta y se prescribe cuando hay que tenerlas
+            enfrente. Rojo si el paciente tiene alergias; discreto si no.
+          */}
+          {(() => {
+            const a = (patient?.alergias ?? '').trim()
+            const sin = /^(ninguna|niega|no|sin|nkda)\b/i.test(a)
+            if (!a) return null
+            return (
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8,
+                background: sin ? 'var(--s2)' : 'rgba(220,38,38,0.10)',
+                border: `1px solid ${sin ? 'var(--border)' : 'rgba(220,38,38,0.4)'}`,
+                borderRadius: 999, padding: '4px 12px', fontSize: 12.5,
+                color: sin ? 'var(--text2)' : '#dc2626', fontWeight: 600,
+              }}>
+                <AlertTriangle size={13} /> Alergias: <span style={{ fontWeight: 700 }}>{a}</span>
+              </div>
+            )
+          })()}
         </div>
         {firmada && <span style={S.firmadaBadge}><CheckCircle2 size={14} /> Nota firmada</span>}
       </div>
@@ -1671,10 +2081,11 @@ export default function ConsultaActivaPage() {
         </div>
       )}
 
-      {/* Selector tipo de nota */}
+      {/* Selector tipo de nota — solo los que aplican al contexto (consultorio
+          vs internamiento), para no apilar filas de opciones que ahí no van. */}
       {!firmada && (
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-          {TIPOS.map(t => (
+          {tiposVisibles(esNotaHospital, tipo).map(t => (
             <button key={t} onClick={() => cambiarTipo(t)} style={S.chip(tipo === t)}>{TIPO_NOTA_LABEL[t]}</button>
           ))}
         </div>
@@ -1726,7 +2137,7 @@ export default function ConsultaActivaPage() {
 
           {/* Mensaje útil cuando NO hay opción de voz */}
           {!voz.soportado && !audio.soportado && (
-            <div style={{ fontSize: 13, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ fontSize: 13, color: 'var(--amber)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <AlertTriangle size={15} /> Tu navegador no soporta dictado por voz. Escribe la nota manualmente abajo.
             </div>
           )}
@@ -1752,7 +2163,7 @@ export default function ConsultaActivaPage() {
                 <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>
                   {voz.grabando
                     ? 'La nota se arma sola; al detener se finaliza automáticamente.'
-                    : 'Dicta la consulta. Al detener, la nota se estructura sola. · Ctrl/Cmd+R'}
+                    : 'Dicta la consulta. Al detener, la nota se estructura sola. · Ctrl/Cmd+Shift+G'}
                 </div>
               </div>
               {/* Respaldo manual: normalmente NO hace falta (se procesa solo al detener). */}
@@ -1782,7 +2193,7 @@ export default function ConsultaActivaPage() {
                     onClick={async () => { const ok = await audio.descargarAudioGuardado(`consulta-${patientId}`); if (!ok) toast('No se encontró audio guardado.', 'info') }}>
                     Descargar audio
                   </button>
-                  <button className="btn btn-sm btn-ghost" onClick={() => { audio.reset(); setOfreceRecovery(false) }}>
+                  <button className="btn btn-sm btn-ghost" onClick={async () => { await audio.descartarRecovery(`consulta-${patientId}`); audio.reset(); setOfreceRecovery(false); toast('Audio guardado descartado', 'info') }}>
                     Descartar
                   </button>
                 </div>
@@ -1835,6 +2246,29 @@ export default function ConsultaActivaPage() {
                   title={audio.estado === 'grabando' ? 'Pausar (mantiene la grabación)' : 'Reanudar'}
                 >
                   {audio.estado === 'grabando' ? '⏸' : '▶'}
+                </button>
+              )}
+              {(audio.estado === 'grabando' || audio.estado === 'pausado') && (
+                <button
+                  onClick={async () => {
+                    // PARAR Y BORRAR AL INSTANTE (grabación por error). Corta el
+                    // micrófono, NO transcribe y borra el audio guardado; con una
+                    // confirmación ligera para no tirar una grabación real de un
+                    // roce accidental.
+                    if (!(await confirm('¿Cancelar y borrar esta grabación? No se transcribirá ni se guardará.', { peligro: true, confirmar: 'Cancelar y borrar' }))) return
+                    audio.reset()
+                    await audio.descartarRecovery(`consulta-${patientId}`)
+                    setOfreceRecovery(false)
+                    toast('Grabación cancelada y borrada', 'info')
+                  }}
+                  style={{
+                    width: 48, height: 48, borderRadius: '50%', border: '1px solid rgba(220,38,38,0.4)',
+                    background: 'rgba(220,38,38,0.10)', color: 'var(--red)', cursor: 'pointer', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                  title="Cancelar y borrar esta grabación (no se transcribe)"
+                >
+                  <Trash2 size={18} />
                 </button>
               )}
               <div style={{ flex: 1, minWidth: 200 }}>
@@ -1896,7 +2330,7 @@ export default function ConsultaActivaPage() {
                 )}
                 {audio.error && (
                   <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 11.5, color: '#f59e0b', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ fontSize: 11.5, color: 'var(--amber)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                       <AlertTriangle size={12} className="ds-icon" /> {audio.error}
                     </span>
                     <button className="btn btn-sm" style={{ background: 'var(--amber)', color: '#000', border: 'none', fontWeight: 600 }}
@@ -1904,7 +2338,7 @@ export default function ConsultaActivaPage() {
                       onClick={async () => { const ok = await audio.descargarAudioGuardado(`consulta-${patientId}`); if (!ok) toast('No se encontró audio guardado.', 'info') }}>
                       Descargar audio
                     </button>
-                    <button className="btn btn-sm btn-ghost" onClick={() => { audio.reset(); setOfreceRecovery(false) }}>
+                    <button className="btn btn-sm btn-ghost" onClick={async () => { await audio.descartarRecovery(`consulta-${patientId}`); audio.reset(); setOfreceRecovery(false); toast('Audio guardado descartado', 'info') }}>
                       Descartar audio guardado
                     </button>
                   </div>
@@ -1985,6 +2419,12 @@ export default function ConsultaActivaPage() {
               )}
             </div>
           )}
+
+          {/* Lo que el GUARDIÁN descartó: correcciones que tocaban una cifra,
+              una unidad, una sigla crítica, una negación o el lado del paciente,
+              y dosis que se quedaron sin cantidad. Va arriba de las correcciones
+              aceptadas porque esto sí hay que mirarlo antes de firmar. */}
+          {audio.estado === 'listo' && <AlertasDictado alertas={audio.alertasDictado} />}
 
           {/* Panel de correcciones léxicas — transparencia + deshacer.
               En un documento legal nada debe cambiar en silencio: el médico
@@ -2143,11 +2583,16 @@ export default function ConsultaActivaPage() {
         )
       )}
 
-      {/* Preguntar a la evidencia sobre ESTE paciente (abre el Consultor con contexto) */}
+      {/* Preguntar a la evidencia sobre ESTE paciente (abre el Consultor con contexto).
+          Se abre en OTRA PESTAÑA a propósito: así la consulta NO se desmonta y la nota
+          en progreso queda intacta; el médico va y viene entre la consulta y el
+          consultor sin perder nada ni tener que empezar de nuevo. */}
       {(diagnosticos.length > 0 || medicamentos.length > 0 || resumen) && (
-        <button onClick={() => router.push(`/consultor?paciente=${patientId}`)}
+        <button
+          onClick={() => window.open(`/consultor?paciente=${patientId}`, '_blank', 'noopener')}
+          title="Se abre en otra pestaña para que no pierdas tu nota en progreso"
           style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, marginRight: 8, background: 'rgba(61,90,254,0.08)', color: 'var(--nexus, #3d5afe)', border: '1px solid rgba(61,90,254,0.30)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-          <FlaskConical size={14} /> Preguntar a la evidencia (chat)
+          <FlaskConical size={14} /> Preguntar a la evidencia (chat) ↗
         </button>
       )}
 
@@ -2156,7 +2601,28 @@ export default function ConsultaActivaPage() {
       <Copiloto
         entrada={entradaCopiloto}
         onAgregarANota={agregarASeccion('copiloto', 'Valoración asistida')}
+        prefs={prefsIA}
+        onAceptar={(cat) => {
+          const uid = auth.currentUser?.uid
+          if (clinicId && uid) registrarAceptacion(clinicId, uid, cat)
+          // eco optimista: reordena en caliente sin re-leer Firestore
+          setPrefsIA(p => ({ ...p, [cat]: (p[cat] ?? 0) + 1 }))
+        }}
       />
+
+      {/* Clinical Reasoning Engine VISIBLE: cómo llegó el copiloto a sus sugerencias
+          — los 12 pasos, cada uno con su ORIGEN (regla/IA/PubMed) y su CONFIANZA.
+          Es el diferenciador: el razonamiento deja de ser una caja negra. */}
+      {(diagnosticos.length > 0 || medicamentos.length > 0 || resumen || Object.keys(signosNum).length > 0) && (
+        <details style={{ marginTop: 8, border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1, rgba(127,127,127,0.04))' }}>
+          <summary style={{ cursor: 'pointer', padding: '11px 14px', fontSize: 13, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8, listStyle: 'none' }}>
+            <Brain size={15} style={{ color: 'var(--nexus, #3d5afe)' }} /> Cómo razoné este caso · 12 pasos con fuente y confianza
+          </summary>
+          <div style={{ padding: '0 14px 14px' }}>
+            <PanelRazonamiento entrada={entradaCopiloto} embebido />
+          </div>
+        </details>
+      )}
 
       {/* ── Herramientas clínicas: un solo bloque plegado. Antes eran cinco cajas
              siempre abiertas apiladas aquí; la mayoría de las consultas no usa
@@ -2182,6 +2648,7 @@ export default function ConsultaActivaPage() {
             : undefined,
           abrirPorDefecto: vacunasAtrasadas > 0,
           contenido: <PanelPediatria embebido edadAnios={patient?.edad} sexo={patient?.sexo}
+            fechaNacimiento={patient?.fechaNacimiento} pesoInicial={signosNum.peso}
             onAgregarANota={agregarASeccion('pediatria', 'Pediatría')} />,
         }] : []),
         ...(calcSugeridas.length > 0 ? [{
@@ -2204,7 +2671,7 @@ export default function ConsultaActivaPage() {
             onAgregarANota={agregarASeccion('preventivo', 'Medicina preventiva')} />,
         },
         {
-          id: 'antibiograma', nombre: 'Antibiograma', color: '#f59e0b', icono: <FlaskConical size={14} />,
+          id: 'antibiograma', nombre: 'Antibiograma', color: 'var(--amber)', icono: <FlaskConical size={14} />,
           para: 'Interpretar un cultivo: fenotipo, mecanismo de resistencia y terapia dirigida',
           contenido: <AntibiogramaTool embebido onAgregarANota={agregarASeccion('antibiograma', 'Antibiograma e interpretación')} />,
         },
@@ -2213,6 +2680,14 @@ export default function ConsultaActivaPage() {
           para: 'Tomar foto de esta consulta (la serie está en el expediente)',
           contenido: clinicId
             ? <FotosClinicas embebido modo="captura" clinicId={clinicId} patientId={patientId} notaId={notaId ?? undefined} />
+            : <p style={{ fontSize: 12, color: 'var(--text3)' }}>Cargando…</p>,
+        },
+        {
+          id: 'laboratorios', nombre: 'Laboratorios', color: 'var(--teal)', icono: <FlaskConical size={14} />,
+          para: 'Adjunta un PDF o foto → la IA lo interpreta → gráficas de tendencia',
+          contenido: clinicId
+            ? <PanelLaboratorios clinicId={clinicId} patientId={patientId}
+                onAgregarANota={agregarASeccion('laboratorios', 'Laboratorios')} />
             : <p style={{ fontSize: 12, color: 'var(--text3)' }}>Cargando…</p>,
         },
         ]
@@ -2373,6 +2848,16 @@ export default function ConsultaActivaPage() {
         />
       )}
 
+      {/* Sello de procedencia: de dónde salió CADA dato de la nota (dictado con
+          cita / inferencia de IA / a mano). Medicolegal, solo lectura. Se muestra
+          también en la nota firmada — es parte del registro. */}
+      {(diagnosticos.length > 0 || medicamentos.length > 0) && (
+        <SelloProcedencia
+          final={{ diagnosticos, medicamentos, alergias: alergiasArray(patient?.alergias), signosVitales: signosNum as unknown as Record<string, unknown> }}
+          extraction={extraction}
+        />
+      )}
+
       {/* Historial de versiones: la vía de rescate si dos pestañas se pisaron. */}
       {!firmada && clinicId && (
         <HistorialVersiones
@@ -2397,9 +2882,36 @@ export default function ConsultaActivaPage() {
           background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)',
           borderRadius: 12, padding: '13px 15px', marginBottom: 14,
         }}>
-          <AlertTriangle size={17} style={{ color: '#ef4444', flexShrink: 0, marginTop: 1 }} />
+          <AlertTriangle size={17} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--text)' }}>
             <strong>No se pudo abrir esta nota.</strong> {errorCargaNota}
+          </div>
+        </div>
+      )}
+
+      {/* ── Ya está el texto con las voces separadas, pero el médico ya escribió ── */}
+      {ofreceReproyectar && !firmada && (
+        <div className="no-print" style={{
+          display: 'flex', alignItems: 'flex-start', gap: 11, flexWrap: 'wrap',
+          background: 'rgba(61,90,254,0.07)', border: '1px solid rgba(61,90,254,0.3)',
+          borderRadius: 12, padding: '13px 15px', marginBottom: 14,
+        }}>
+          <Sparkles size={17} style={{ color: 'var(--teal)', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ flex: '1 1 300px', fontSize: 13.5, lineHeight: 1.55, color: 'var(--text)' }}>
+            <strong>Ya quedó la transcripción con las voces separadas.</strong> Es mejor material que
+            el del dictado en vivo con el que se armó esta nota. Puedes re-estructurarla desde ahí,
+            pero <strong>se reemplaza lo que escribiste</strong>.
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              className="btn btn-sm btn-primary"
+              onClick={() => { setOfreceReproyectar(false); edicionManualRef.current = false; procesarIA() }}
+            >
+              Re-estructurar
+            </button>
+            <button className="btn btn-sm" onClick={() => setOfreceReproyectar(false)}>
+              Dejar mi versión
+            </button>
           </div>
         </div>
       )}
@@ -2413,7 +2925,7 @@ export default function ConsultaActivaPage() {
             background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.35)',
             borderRadius: 12, padding: '13px 15px', marginBottom: 14,
           }}>
-            <AlertTriangle size={17} style={{ color: '#f59e0b', flexShrink: 0, marginTop: 1 }} />
+            <AlertTriangle size={17} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
             <div style={{ flex: 1, minWidth: 220, fontSize: 13.5, lineHeight: 1.55, color: 'var(--text)' }}>
               <strong>{n} {n === 1 ? 'línea la propuso la IA' : 'líneas las propuso la IA'}, no tú.</strong>{' '}
               Están marcadas con <code style={{ fontSize: 12 }}>[IA — no dictado]</code> dentro de la nota —
@@ -2491,6 +3003,7 @@ export default function ConsultaActivaPage() {
             }))
             toast('Escalas aplicadas a la nota', 'success')
           }}
+          onSinDatos={() => toast('Captura al menos una escala antes de aplicar (no se tocó la nota).', 'info')}
         />
       )}
 
@@ -2525,7 +3038,12 @@ export default function ConsultaActivaPage() {
         <Section key={s.key} title={s.label} obligatorio={s.obligatorio}>
           <textarea
             value={s.value}
-            onChange={e => setSecciones(prev => prev.map((x, j) => j === i ? { ...x, value: e.target.value } : x))}
+            onChange={e => {
+              // Se anota que el médico ESCRIBIÓ. Lo usa la re-proyección con voces
+              // separadas para no pisar su texto sin preguntar (ver `edicionManualRef`).
+              edicionManualRef.current = true
+              setSecciones(prev => prev.map((x, j) => j === i ? { ...x, value: e.target.value } : x))
+            }}
             placeholder={s.placeholder ?? ''}
             disabled={firmada}
             style={S.textarea}
@@ -2704,8 +3222,9 @@ export default function ConsultaActivaPage() {
       >
         <p style={{ fontSize: 13.5, color: 'var(--text2)', lineHeight: 1.65, margin: '0 0 14px' }}>
           Confirme que el paciente fue informado de que la conversación será grabada y transcrita para
-          estructurar la nota clínica con asistencia de IA. El audio no se guarda; solo se conserva la
-          transcripción de texto vinculada a su expediente.
+          estructurar la nota clínica con asistencia de IA. El audio se envía a un servicio de
+          transcripción para generar el texto y se conserva temporalmente en este dispositivo por si la
+          transcripción falla; el expediente guarda únicamente la transcripción de texto.
         </p>
         <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text3)', lineHeight: 1.7 }}>
           <li>El paciente puede pedir detener la grabación en cualquier momento.</li>
@@ -2725,13 +3244,30 @@ export default function ConsultaActivaPage() {
             medicoId: auth.currentUser?.uid,
             medicoNombre: config?.nombreMedico,
             concepto: 'consulta',
+            citaId: citaDeHoy?.id,
+            estadoActual: citaDeHoy?.estado,
+            /**
+             * MONTO SUGERIDO. El campo arrancaba vacío y había que teclearlo en
+             * cada consulta, aunque el sistema conoce el precio: se lo dice al
+             * paciente por WhatsApp y lo publica en internet. Se sugiere el
+             * servicio que coincida con el tipo de cita, o el primero de la lista.
+             */
+            monto: montoSugerido,
           }}
           onClose={() => {
             setCobrar(false)
             // Fluidez: si la consulta dejó medicamentos, encadena directo a la
             // RECETA (acabas de prescribir → imprímela); si no, al expediente.
             const nid = notaId || notaIdRef.current
-            router.push(internamientoActivo ? `/hospitalizacion/${internamientoActivo}` : medicamentos.length > 0 && nid ? `/receta/${patientId}/${nid}` : `/expediente/${patientId}`)
+            router.push(
+          internamientoActivo ? `/hospitalizacion/${internamientoActivo}`
+          // Con medicamentos → receta. Sin medicamentos pero CON estudios → orden
+          // médica (antes solo ramificaba a receta y la orden se quedaba en el
+          // tintero; el paciente salía sin su solicitud de estudios). Si no hay
+          // ni lo uno ni lo otro → expediente.
+          : (medicamentos.length > 0 && nid) ? `/receta/${patientId}/${nid}`
+          : (estudiosOrden.length > 0 && nid) ? `/orden/${patientId}/${nid}`
+          : `/expediente/${patientId}`)
           }}
         />
       )}

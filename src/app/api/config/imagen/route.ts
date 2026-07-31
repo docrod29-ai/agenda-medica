@@ -30,6 +30,13 @@ export async function POST(req: NextRequest) {
   if (!mm) return NextResponse.json({ ok: false, error: 'Imagen inválida (se esperaba data URL base64)' }, { status: 400 })
 
   const contentType = mm[1].toLowerCase()
+  // Solo raster (auditoría P1): antes se aceptaba `image/svg+xml`; un SVG con
+  // <script> servido same-origin por /api/receta/diseno ejecuta JS en el origen de
+  // la app médica (XSS almacenado). SVG y cualquier otro formato quedan fuera.
+  const PERMITIDOS = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
+  if (!PERMITIDOS.includes(contentType)) {
+    return NextResponse.json({ ok: false, error: 'Formato no permitido (solo PNG, JPG o WEBP)' }, { status: 415 })
+  }
   let buffer: Buffer
   try { buffer = Buffer.from(mm[2], 'base64') } catch { return NextResponse.json({ ok: false, error: 'base64 inválido' }, { status: 400 }) }
   if (buffer.length > 8_000_000) return NextResponse.json({ ok: false, error: 'Imagen mayor a 8 MB' }, { status: 413 })

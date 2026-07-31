@@ -55,15 +55,52 @@ export interface Motor {
   creditos: number
   /** Perfil de modelo en procesar (live=Haiku, pro=Sonnet, premium=Opus). */
   perfil: 'live' | 'pro' | 'premium'
+  /** Uso clínico recomendado (transparencia: qué caso conviene con cada nivel). */
+  usoRecomendado: string
+  /**
+   * QUÉ CAMBIA CLÍNICAMENTE en cada nivel (no solo el precio). El usuario merece
+   * saber qué gana con "Máxima": no es "más caro", es 2º verificador + evidencia +
+   * revisión de seguridad. Esto se muestra en /precios y en el selector de nota.
+   */
+  incluye: string[]
+  /** Latencia relativa (para gestionar expectativa). */
+  latencia: string
 }
 export const MOTORES: Record<ClaveMotor, Motor> = {
-  rapida:   { clave: 'rapida',   nombre: 'Rápida',   emoji: '⚡', modelos: 'Haiku 4.5',                   creditos: 1,  perfil: 'live' },
-  estandar: { clave: 'estandar', nombre: 'Estándar', emoji: '⭐', modelos: 'Sonnet 5 + separación de voces', creditos: 3,  perfil: 'pro' },
-  maxima:   { clave: 'maxima',   nombre: 'Máxima',   emoji: '💎', modelos: 'Máximo razonamiento + revisión de seguridad', creditos: 10, perfil: 'premium' },
+  rapida:   { clave: 'rapida',   nombre: 'Rápida',   emoji: '⚡', modelos: 'Haiku 4.5',                   creditos: 1,  perfil: 'live',
+    usoRecomendado: 'Nota rutinaria / seguimiento simple',
+    incluye: ['Estructuración de la nota', 'Resumen del caso', 'Modelo veloz (baja latencia)'],
+    latencia: 'Mínima' },
+  estandar: { clave: 'estandar', nombre: 'Estándar', emoji: '⭐', modelos: 'Sonnet 5 + separación de voces', creditos: 3,  perfil: 'pro',
+    usoRecomendado: 'Consulta compleja',
+    incluye: ['Todo lo de Rápida', 'Separación de voces (médico/paciente)', 'Detección de omisiones', 'Revisión básica de seguridad', 'Escalas clínicas con código'],
+    latencia: 'Media' },
+  maxima:   { clave: 'maxima',   nombre: 'Máxima',   emoji: '💎', modelos: 'Opus 4.8 + GPT-5 + 2ª opinión', creditos: 10, perfil: 'premium',
+    usoRecomendado: 'Caso clínico difícil',
+    incluye: ['Todo lo de Estándar', 'Modelo de máximo razonamiento', 'Segundo verificador (2ª opinión)', 'Evidencia PubMed con PMID verificado', 'Revisión farmacológica (dosis · interacciones · función renal)', 'Mayor contexto clínico'],
+    latencia: 'Mayor (razonamiento profundo)' },
 }
 export const motorPorClave = (c?: string): Motor => MOTORES[(c as ClaveMotor)] ?? MOTORES.estandar
 /** Motor por defecto según el nivel del plan: Pro/Premium → Máxima; Clínica → Estándar. */
 export const motorPorDefecto = (n: NivelIA): Motor => (n === 'premium' ? MOTORES.maxima : MOTORES.estandar)
+
+/**
+ * Qué modelos usa el Copilot de UCI en cada motor.
+ *
+ * La diferencia que se paga NO es «un modelo mejor»: es cuántos cerebros
+ * razonan el caso. En Máxima son dos modelos distintos en paralelo y sus
+ * desacuerdos se muestran; en Rápida es uno solo y rápido.
+ */
+export const COPILOT_UCI_POR_MOTOR: Record<ClaveMotor, {
+  creditos: number; anthropic: boolean; openai: boolean; descripcion: string
+}> = {
+  rapida: { creditos: 1, anthropic: true, openai: false,
+    descripcion: 'Un modelo veloz. Para el pase de rutina.' },
+  estandar: { creditos: 3, anthropic: true, openai: false,
+    descripcion: 'Un modelo de razonamiento. Para el paciente que se mueve.' },
+  maxima: { creditos: 7, anthropic: true, openai: true,
+    descripcion: 'Dos modelos en paralelo y sus desacuerdos a la vista. Para el caso difícil.' },
+}
 
 /**
  * COSTO EN CRÉDITOS de acciones que NO son la nota. El Consultor de evidencia
@@ -71,7 +108,40 @@ export const motorPorDefecto = (n: NivelIA): Motor => (n === 'premium' ? MOTORES
  */
 export const COSTO_CREDITOS = {
   consultorPro: 0.5,     // pregunta al Consultor con IA Pro (Sonnet 5 + GPT-4o)
-  consultorPremium: 1,   // pregunta al Consultor con IA Premium (Opus 4.8 + GPT-5)
+  consultorPremium: 4,   // pregunta al Consultor con IA Premium (Opus 4.8 + GPT-5): costo real ~$7.5
+  // El Copilot de UCI llama a Opus + GPT EN PARALELO por turno (dual-model, ~$10):
+  // es la acción más cara del sistema. NO puede valer 0 créditos (era la mayor fuga).
+  copilotUci: 7,
+  /**
+   * El Copilot de UCI, POR MOTOR — el médico elige, igual que en la nota.
+   *
+   * Antes sólo existía un precio: 7 créditos, con Opus y GPT-5 en paralelo
+   * SIEMPRE. Eso convertía la acción más cara del sistema en la única sin
+   * alternativa: un pase de rutina pagaba lo mismo que el caso difícil, y con
+   * 500 créditos daba para 59 pases si se usaba en todos.
+   *
+   * Ahora la síntesis rutinaria cuesta 1 y la de máximo razonamiento 7. La
+   * diferencia real está en la SEGUNDA OPINIÓN: pedirle a dos modelos distintos
+   * que razonen el mismo caso vale para el paciente complicado y sobra para
+   * confirmar que un postoperatorio va bien.
+   */
+  copilotUciRapida: 1,
+  copilotUciEstandar: 3,
+  copilotUciMaxima: 7,
+  // ── Acciones de IA que antes valían 0 créditos (fuga de dinero icu-007) ──
+  // Cada llamada a un modelo/proveedor tiene costo real que corría con la llave del
+  // dueño sin cobrarse. Ahora cada acción quema créditos (passthrough del gasto).
+  correccionVoz: 0.2,        // corrector de dictado (LLM breve)
+  extraerEntidades: 0.3,     // NER clínico
+  atribuirRoles: 0.2,        // roles médico/paciente en diarización
+  verificarNota: 0.5,        // verificación anti-alucinación de la nota
+  laboratorioVision: 1,      // interpreta PDF/foto de laboratorio (visión)
+  antibiogramaVision: 1,     // lee foto de antibiograma (visión)
+  antibiogramaRazonar: 1,    // razona mecanismo de resistencia (LLM)
+  evidencia: 1,              // Consultor de evidencia (LLM + PubMed)
+  transcribir: 0.5,          // transcripción final (Whisper/gpt-4o-transcribe)
+  transcribirChunk: 0.05,    // parcial en vivo (barato, pero no es gratis)
+  transcribirDiarizado: 1,   // separación de voces (AssemblyAI)
 } as const
 
 /** Cuántos créditos cuesta una pregunta al Consultor según el nivel de IA del plan. */
@@ -91,7 +161,7 @@ export const PLANES: Record<ClavePlan, PlanCreditos> = {
     ],
   },
   clinica: {
-    clave: 'clinica', nombre: 'Clínica', precioMXN: 899, creditos: 160, nivelIA: 'pro',
+    clave: 'clinica', nombre: 'Clínica', precioMXN: 899, creditos: 200, nivelIA: 'pro',
     pacientesMax: null, destacado: true,
     incluye: [
       'Todo lo de Agenda',
@@ -100,21 +170,24 @@ export const PLANES: Record<ClavePlan, PlanCreditos> = {
       'Recetas y órdenes',
       'Consultor de evidencia (PubMed) con doble IA (Claude + GPT)',
       'Menú de IA: elige ⚡ Rápida · ⭐ Estándar · 💎 Máxima por nota',
-      '160 créditos/mes (~50 notas Estándar)',
+      '200 créditos/mes (~63 notas Estándar)',
       'Al agotarlos sigue en ⚡ Rápida sin costo hasta 120 notas más/mes; luego se pausa y recargas o subes de plan',
       'Incluye 1 médico · +$499/mes por médico adicional',
     ],
   },
   premium: {
-    clave: 'premium', nombre: 'Pro', precioMXN: 1899, creditos: 450, nivelIA: 'premium',
+    clave: 'premium', nombre: 'Pro', precioMXN: 1590, creditos: 450, nivelIA: 'premium',
     pacientesMax: null,
     incluye: [
       'Todo lo de Clínica',
-      'IA de máximo razonamiento clínico por defecto 💎',
-      'Revisión de consistencia y seguridad clínica automática en cada nota',
+      'IA de máximo razonamiento clínico (Opus 4.8 + GPT-5) por defecto 💎',
+      '2ª opinión automática (verificador GPT-5) en cada nota',
+      'Revisión farmacológica automática: dosis · interacciones · función renal',
+      'Interpretación de laboratorios por IA con tendencias por analito',
+      'Valoración del inmunocomprometido con IA de máximo nivel',
       'Consultor de evidencia con IA de máximo nivel',
       '450 créditos/mes (~45 notas Máxima o ~150 Estándar)',
-      'Al agotarlos sigue en ⚡ Rápida sin costo hasta 300 notas más/mes; luego se pausa y recargas o subes de plan',
+      'Al agotarlos sigue en ⚡ Rápida sin costo hasta 150 notas más/mes; luego se pausa y recargas o subes de plan',
       'Soporte prioritario',
       'Incluye 1 médico · +$999/mes por médico adicional',
     ],
@@ -122,16 +195,20 @@ export const PLANES: Record<ClavePlan, PlanCreditos> = {
   // Plan APARTE: hospitalización. El producto estrella es el de consultorio
   // (Clínica); Hospital es para quien maneja internamiento y se cobra por su lado.
   hospital: {
-    clave: 'hospital', nombre: 'Hospital', precioMXN: 2900, creditos: 400, nivelIA: 'premium',
+    clave: 'hospital', nombre: 'Hospital + UCI', precioMXN: 3499, creditos: 500, nivelIA: 'premium',
     pacientesMax: null,
     incluye: [
+      'Todo lo de Pro (consultorio con IA de máximo nivel)',
       'Módulo de Hospitalización completo',
-      'Censo, tablero de camas y traslados',
+      'Censo, tablero de camas de hospital y de UCI, traslados',
       'Indicaciones/MAR, signos y gráficas (NEWS2)',
       'Notas de ingreso, evolución, egreso, postop y anestesia',
       'Interconsultas y laboratorio',
-      'Menú de IA completo · 400 créditos/mes',
-      'Al agotarlos sigue en ⚡ Rápida sin costo hasta 300 notas más/mes; luego se pausa y recargas o subes de plan',
+      'Panel UCI: motores deterministas de ventilación, gasometría/ácido-base, SOFA/APACHE, POCUS/VExUS/PLR, neurocrítico (PPC/PIC), CKRT/PRISMA y ECMO',
+      'Nota de evolución UCI por los 7 sistemas, dictada manos libres',
+      'Copilot IA de UCI (Claude + GPT) que razona sobre los cálculos y aprende',
+      'Menú de IA completo · 500 créditos/mes',
+      'Al agotarlos sigue en ⚡ Rápida sin costo; luego se pausa y recargas o subes de plan',
     ],
   },
 }
@@ -143,13 +220,32 @@ export const planPorNivel = (n: NivelIA): PlanCreditos => (n === 'premium' ? PLA
 export const RECARGA = { creditos: 100, precioMXN: 399 }
 
 /**
+ * ORDEN COMERCIAL de los planes y qué módulos abre cada uno.
+ *
+ * Vive aquí, con los precios, porque el P0-2 de la auditoría fue exactamente
+ * esto: un segundo catálogo quemado en `superadmin/page.tsx` que discrepaba de
+ * `PLANES` en sus cuatro renglones. Un precio que depende de qué pantalla mires
+ * no es un precio.
+ *
+ * Cambiar la oferta se hace AQUÍ, en un sitio.
+ */
+export const PLANES_ORDEN: readonly ClavePlan[] = ['agenda', 'clinica', 'premium', 'hospital']
+
+export const MODULOS_POR_PLAN: Readonly<Record<ClavePlan, string[]>> = {
+  agenda: ['agenda'],
+  clinica: ['agenda', 'expediente'],
+  premium: ['agenda', 'expediente', 'consultor'],
+  hospital: ['agenda', 'expediente', 'consultor', 'hospitalizacion', 'uci'],
+}
+
+/**
  * TOPE del MODO ECONÓMICO (red de seguridad de costo). Tras agotar los créditos
  * premium, la IA sigue GRATIS en ⚡ Rápida (Haiku) pero SOLO hasta este número de
  * notas al mes; pasado eso se PAUSA y pide recarga/subir de plan. Así, aunque un
  * consultorio tenga varios médicos exprimiendo la IA, el costo del dueño queda
  * ACOTADO (nunca se dispara). Números fáciles de cambiar.
  */
-export const TOPE_ECONOMICO: Record<NivelIA, number> = { pro: 120, premium: 300 }
+export const TOPE_ECONOMICO: Record<NivelIA, number> = { pro: 120, premium: 150 }
 export const topeEconomicoDe = (n: NivelIA): number => TOPE_ECONOMICO[n] ?? 120
 
 /**

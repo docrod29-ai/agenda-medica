@@ -14,8 +14,8 @@ const leer = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf8')
 
 describe('creditos-transparencia', () => {
   it('las notas gratis por motor coinciden con los créditos del plan (matemática honesta)', () => {
-    // Clínica: 160 créditos ÷ 3 (Estándar) ≈ 50 notas
-    expect(Math.floor(PLANES.clinica.creditos / MOTORES.estandar.creditos)).toBe(53)
+    // Clínica: 200 créditos ÷ 3 (Estándar) ≈ 66 notas
+    expect(Math.floor(PLANES.clinica.creditos / MOTORES.estandar.creditos)).toBe(66)
     // Pro: 450 ÷ 10 (Máxima) = 45 notas
     expect(PLANES.premium.creditos / MOTORES.maxima.creditos).toBe(45)
   })

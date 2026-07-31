@@ -5,6 +5,7 @@ import { useClinic } from '@/context/ClinicContext'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/context/ToastContext'
 import { getPatients, createPatient } from '@/lib/firestore'
+import { edadEnAnios } from '@/lib/expediente/pediatria'
 import type { Patient } from '@/types'
 import {
   pacientesACsv, parseCsv, mapearEncabezados, construirFilas, clasificarFilas,
@@ -91,6 +92,10 @@ export default function MigracionPage() {
           whatsapp: fila.whatsapp ? normalizarTel(fila.whatsapp) : undefined,
           email: fila.email?.trim() || undefined,
           fechaNacimiento: fila.fechaNacimiento?.trim() || undefined,
+          // Derivar la EDAD de la fecha de nacimiento: sin esto, un niño importado
+          // quedaba con edad=undefined y NO se le mostraban las herramientas
+          // pediátricas (ni las gineco por edad), porque el gate usa `edad`.
+          edad: edadEnAnios(fila.fechaNacimiento?.trim()) ?? undefined,
           sexo: fila.sexo === 'Masculino' || fila.sexo === 'Femenino' || fila.sexo === 'Otro' ? fila.sexo : undefined,
           curp: fila.curp?.trim() || undefined,
           seguroMedico: fila.seguroMedico?.trim() || undefined,

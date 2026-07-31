@@ -18,6 +18,7 @@ export type TipoNota =
   | 'nota_postoperatoria' // Nota postquirúrgica (NOM-004)
   | 'nota_anestesia'     // Registro/nota de anestesia
   | 'consentimiento'     // Consentimiento informado
+  | 'evolucion_uci'      // Evolución de UCI por aparatos y sistemas (cabeza a pies)
 
 export const TIPO_NOTA_LABEL: Record<TipoNota, string> = {
   historia_clinica: 'Historia Clínica',
@@ -32,6 +33,7 @@ export const TIPO_NOTA_LABEL: Record<TipoNota, string> = {
   nota_postoperatoria: 'Nota Postoperatoria',
   nota_anestesia:   'Nota de Anestesia',
   consentimiento:   'Consentimiento Informado',
+  evolucion_uci:    'Nota de Evolución UCI',
 }
 
 export type EstadoNota = 'borrador' | 'firmada' | 'cancelada'
@@ -210,6 +212,12 @@ export interface NotaMedica {
     aprobadosPorMedico?: string[]          // ids de campos aprobados explícitamente
     procesadoEn?: string                   // ISO timestamp del último procesamiento
     aprobadoPor?: string                   // email del médico que aprobó al firmar
+    /**
+     * Sello de procedencia: cuántos datos estructurados de la nota vinieron del
+     * dictado (con cita), de inferencia de IA (sin cita) o capturados a mano.
+     * Derivado (no inventado), aditivo; refuerza la trazabilidad medicolegal.
+     */
+    procedencia?: { dictado: number; ia: number; manual: number; total: number }
     /**
      * Provenance INMUTABLE de la IA (trazabilidad medicolegal / SaMD): con qué
      * modelo, versión de prompt y motor se generó la nota, y su revisión humana.

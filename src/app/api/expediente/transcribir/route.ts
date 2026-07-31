@@ -13,16 +13,19 @@
  * Requiere env var: OPENAI_API_KEY
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { WHISPER_PROMPT_MEDICO } from '@/lib/expediente/medical-vocabulary'
-import { verificarUsuario } from '@/lib/auth-server'
+import { safeLog } from '@/lib/security/sanitize'
+import { WHISPER_PROMPT_MEDICO, WHISPER_PROMPT_UCI } from '@/lib/expediente/medical-vocabulary'
+import { construir as construirLexicon } from '@/lib/asr/lexicon'
+import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { resolverClaveIA, registrarUso } from '@/lib/ai-keys'
+import { gateCreditos, resolverClaveIA, registrarUso, registrarCreditos  } from '@/lib/ai-keys'
+import { COSTO_CREDITOS } from '@/lib/planes-ia'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
-  const acceso = await verificarUsuario(req)
+  const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
 
   // Tope de ráfaga: transcribir audio cuesta por llamada (OpenAI). 30/min por usuario.
@@ -31,6 +34,12 @@ export async function POST(req: NextRequest) {
 
   // Llave del consultorio (o la del dueño en modo prueba).
   const { key: apiKey, fuente, clinicId } = await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY)
+  // TOPE DE CRÉDITOS (auditoría 26-jul): sin esto, un consultorio con los
+  // créditos agotados seguía quemando la llave del dueño indefinidamente.
+  // `gateCreditos` sólo corta cuando la llave es la del dueño (`prueba`):
+  // con llave propia del consultorio NO se corta, porque paga su propia API.
+  const corteCreditos = await gateCreditos(clinicId, fuente)
+  if (corteCreditos) return corteCreditos
   if (!apiKey) {
     return NextResponse.json(
       { ok: false, error: 'OPENAI_API_KEY no configurada. La app sigue funcionando con Web Speech.' },
@@ -49,6 +58,50 @@ export async function POST(req: NextRequest) {
   }
 
   const audio = formData.get('audio')
+  /**
+   * Contexto del dictado. `uci` cambia el vocabulario que se le sugiere al
+   * modelo. Si no viene, se usa el de consulta — el comportamiento de siempre.
+   */
+  const contexto = String(formData.get('contexto') ?? '')
+  /**
+   * VOCABULARIO DE ESTE PACIENTE.
+   *
+   * El prompt es lo ÚNICO que cambia lo que el reconocedor OYE: sesga su
+   * decodificación hacia las palabras que se le dan. Todo lo demás del pipeline
+   * ocurre DESPUÉS y no puede recuperar una palabra que nunca se oyó.
+   *
+   * Hasta hoy se mandaba uno de dos prompts fijos, así que el trabajo de
+   * `lib/asr/lexicon.ts` —79 especialidades, presupuestadas a los 224 tokens que
+   * el modelo lee, con los fármacos y problemas de ESTE paciente primero— no
+   * llegaba nunca al reconocedor. Estaba escrito, probado y desconectado.
+   *
+   * Los campos son opcionales y todo cae al prompt de siempre si algo falta: un
+   * dictado nunca se queda sin vocabulario por un dato que no llegó.
+   */
+  const leerLista = (k: string): string[] => {
+    try {
+      const v = JSON.parse(String(formData.get(k) ?? '[]')) as unknown
+      return Array.isArray(v) ? v.map(String).filter(Boolean).slice(0, 40) : []
+    } catch { return [] }
+  }
+  const promptLexicon = ((): string => {
+    try {
+      const modulo = (['consulta', 'hospitalizacion', 'uci', 'urgencias', 'quirofano'] as const)
+        .find(m => m === contexto)
+      if (!modulo) return ''
+      const lex = construirLexicon({
+        modulo,
+        especialidades: leerLista('especialidades'),
+        medicamentos: leerLista('medicamentos'),
+        problemas: leerLista('problemas'),
+      })
+      return lex.prompt
+    } catch {
+      // Si el léxico revienta, se sigue con el de siempre. Perder vocabulario
+      // extra es molesto; quedarse sin dictado es otra cosa.
+      return ''
+    }
+  })()
   if (!audio || !(audio instanceof Blob)) {
     return NextResponse.json({ ok: false, error: 'Falta archivo de audio' }, { status: 400 })
   }
@@ -76,7 +129,15 @@ export async function POST(req: NextRequest) {
     upstream.append('temperature', '0')
     // Prompt con vocabulario médico extenso — clave para que la IA NO confunda
     // "amikacina" con "amigacina", "ceftriaxona" con "septriasona", etc.
-    upstream.append('prompt', WHISPER_PROMPT_MEDICO)
+    /**
+     * VOCABULARIO POR CONTEXTO.
+     *
+     * Medido sobre el corpus de 498 audios de UCI: el prompt de consulta no
+     * traía NI UNA palabra de cuidados críticos, y por eso CVVHDF, VExUS, RASS y
+     * sweep gas fallaban — el sesgo apuntaba a fármacos de consultorio. Mandar
+     * los dos juntos no cabe en los ~224 tokens que el modelo lee.
+     */
+    upstream.append('prompt', promptLexicon || (contexto === 'uci' ? WHISPER_PROMPT_UCI : WHISPER_PROMPT_MEDICO))
     return fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}` },
@@ -105,6 +166,7 @@ export async function POST(req: NextRequest) {
       if (res.ok) {
         const data = await res.json()
         void registrarUso(clinicId, fuente)
+        void registrarCreditos(clinicId, COSTO_CREDITOS.transcribir)
         return NextResponse.json({
           ok: true,
           text: data.text ?? '',
@@ -114,7 +176,7 @@ export async function POST(req: NextRequest) {
       }
       ultimoStatus = res.status
       ultimoError = (await res.text()).slice(0, 300)
-      console.warn(`[transcribir] ${model} respondió ${res.status} — probando siguiente modelo`)
+      safeLog.warn(`[transcribir] ${model} respondió ${res.status} — probando siguiente modelo`)
       // La llave es inválida/expiró → ningún modelo servirá: abortar de una vez.
       if (res.status === 401) {
         return NextResponse.json({ ok: false, error: 'La API key de OpenAI es inválida o expiró. Revísala en Vercel.' }, { status: 502 })
@@ -123,12 +185,12 @@ export async function POST(req: NextRequest) {
       // SIGUIENTE modelo. whisper-1 (el último) es el más estable y casi nunca da
       // 5xx, así que un 502 pasajero de gpt-4o-transcribe ya no tumba la nota.
     } catch (err) {
-      console.error(`[transcribir] ${model} error de red:`, err)
+      safeLog.error(`[transcribir] ${model} error de red:`, err)
       ultimoError = String(err).slice(0, 300)
     }
   }
   // Aquí solo se llega si TODOS los modelos de OpenAI fallaron (outage real).
-  console.error('[transcribir] Todos los modelos de OpenAI fallaron. Último:', ultimoStatus, ultimoError)
+  safeLog.error('[transcribir] Todos los modelos de OpenAI fallaron. Último:', ultimoStatus, ultimoError)
   return NextResponse.json(
     { ok: false, error: `OpenAI no disponible temporalmente (HTTP ${ultimoStatus}). El audio sigue guardado; reintenta en un momento.` },
     { status: 502 },

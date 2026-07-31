@@ -24,27 +24,31 @@ const CONSULTORIO = ['agenda', 'expediente', 'farmacia', 'crm', 'finanzas', 'cum
 export const MODULOS_DE_PLAN: Record<string, string[]> = {
   agenda:   ['agenda'],
   clinica:  CONSULTORIO,
-  premium:  CONSULTORIO,                         // "Pro": mismos módulos que Clínica
-  hospital: [...CONSULTORIO, 'hospitalizacion'],
+  premium:  CONSULTORIO,                         // "Pro": mismos módulos + IA Máxima/2ª opinión/soporte
+  // Hospital = consultorio + hospitalización + el ICU OS (Panel UCI). El UCI OS
+  // también se vende como add-on suelto (paquete 'uci', por médico).
+  hospital: [...CONSULTORIO, 'hospitalizacion', 'uci'],
   // Legados / especiales
   basico:   CONSULTORIO,
   pro:      CONSULTORIO,
-  trial:    CONSULTORIO,   // Hospitalización es un producto APARTE: no se muestra en prueba
+  trial:    CONSULTORIO,   // Hospitalización/UCI son productos APARTE: no se muestran en prueba
   cortesia: CONSULTORIO,
 }
 
 /**
- * Módulos OPT-IN: productos separados que NO se muestran por los "atajos" (pase
- * libre del dueño, clínica sin plan, prueba). Solo aparecen si el plan Hospital o
- * un módulo explícito los incluye. Así Hospitalización no estorba en un consultorio.
+ * Módulos OPT-IN: productos separados que NO se muestran por los "atajos" (clínica
+ * sin plan, prueba). Solo aparecen si el plan Hospital o un módulo explícito los
+ * incluye. Así Hospitalización y el UCI OS no estorban en un consultorio normal.
+ * (El dueño con pase libre SÍ ve todo — ver modulosDe.)
  */
-export const MODULOS_OPT_IN = ['hospitalizacion']
+export const MODULOS_OPT_IN = ['hospitalizacion', 'uci']
 
 export interface ModuloDef {
   key: string
   label: string
   descripcion: string
   rutas: string[]   // prefijos de ruta que este módulo habilita
+  precioMedico: number  // MXN/mes POR MÉDICO à la carte (los bundles son un descuento)
 }
 
 /**
@@ -55,16 +59,36 @@ export const RUTAS_CORE = ['/dashboard', '/configuracion', '/chat', '/pacientes'
 
 /** Catálogo de módulos vendibles. El dueño combina estos en paquetes. */
 export const MODULOS: ModuloDef[] = [
-  { key: 'agenda',         label: 'Agenda y citas',          descripcion: 'Agendar, calendario, recordatorios, lista de espera', rutas: ['/asistente', '/citas', '/calendario', '/lista-espera', '/waitlist'] },
-  { key: 'expediente',     label: 'Expediente de consulta',  descripcion: 'Consulta ambulatoria: notas, recetas, órdenes, referencias, consultor', rutas: ['/consulta', '/expediente', '/expedientes', '/nota', '/orden', '/receta', '/referencia', '/consultor'] },
-  { key: 'hospitalizacion', label: 'Hospitalización',        descripcion: 'Censo, internamientos, indicaciones/MAR, camas', rutas: ['/hospitalizacion'] },
-  { key: 'farmacia',       label: 'Farmacia',                descripcion: 'Inventario y movimientos de farmacia', rutas: ['/farmacia'] },
-  { key: 'crm',            label: 'CRM y reseñas',           descripcion: 'Seguimiento de pacientes, reputación', rutas: ['/crm', '/resenas'] },
-  { key: 'finanzas',       label: 'Finanzas',                descripcion: 'Cobros, ingresos, reportes', rutas: ['/finanzas'] },
-  { key: 'cumplimiento',   label: 'Cumplimiento',            descripcion: 'NOM-024, ARCO, bitácora, seguridad', rutas: ['/cumplimiento'] },
+  { key: 'agenda',         label: 'Agenda y citas',          precioMedico: 349,  descripcion: 'Agendar, calendario, recordatorios, lista de espera', rutas: ['/asistente', '/citas', '/calendario', '/lista-espera', '/waitlist'] },
+  { key: 'expediente',     label: 'Expediente de consulta',  precioMedico: 700,  descripcion: 'Consulta ambulatoria: notas, recetas, órdenes, referencias, consultor', rutas: ['/consulta', '/expediente', '/expedientes', '/nota', '/orden', '/receta', '/referencia', '/consultor'] },
+  { key: 'hospitalizacion', label: 'Hospitalización',        precioMedico: 1200, descripcion: 'Censo, internamientos, indicaciones/MAR, camas (hospital y UCI)', rutas: ['/hospitalizacion'] },
+  // UCI OS = módulo/entitlement PROPIO (la joya sin competencia). Trae SU PROPIO
+  // censo/camas (rutas de hospitalización) para que "consulta + UCI" o "solo UCI"
+  // puedan ingresar pacientes a camas de terapia sin comprar Hospitalización entera.
+  { key: 'uci',            label: 'UCI OS',                  precioMedico: 700,  descripcion: 'Panel UCI de cabecera (ventilación, gasometría, SOFA/APACHE, POCUS/VExUS, neurocrítico, CKRT/PRISMA, ECMO, Copilot IA, nota por 7 sistemas) + censo y camas de terapia', rutas: ['/uci', '/hospitalizacion'] },
+  { key: 'farmacia',       label: 'Farmacia',                precioMedico: 150,  descripcion: 'Inventario y movimientos de farmacia', rutas: ['/farmacia'] },
+  { key: 'crm',            label: 'CRM y reseñas',           precioMedico: 150,  descripcion: 'Seguimiento de pacientes, reputación', rutas: ['/crm', '/resenas'] },
+  { key: 'finanzas',       label: 'Finanzas',                precioMedico: 150,  descripcion: 'Cobros, ingresos, reportes', rutas: ['/finanzas'] },
+  { key: 'cumplimiento',   label: 'Cumplimiento',            precioMedico: 150,  descripcion: 'NOM-024, ARCO, bitácora, seguridad', rutas: ['/cumplimiento'] },
 ]
 
 export const MODULO_LABEL: Record<string, string> = Object.fromEntries(MODULOS.map(m => [m.key, m.label]))
+export const PRECIO_MODULO: Record<string, number> = Object.fromEntries(MODULOS.map(m => [m.key, m.precioMedico]))
+
+/**
+ * COTIZADOR À LA CARTE: precio de CUALQUIER combinación de módulos, por médico.
+ * El médico arma su combo (p.ej. consulta + UCI, o solo UCI) y esto lo cotiza.
+ * `agenda` siempre se incluye como base (sin ella no hay pacientes). Total mensual
+ * = (suma de los módulos elegidos) × nº de médicos. Los PAQUETES son un descuento
+ * sobre esta suma (bundle < à la carte). La IA se cobra APARTE por consumo (créditos).
+ */
+export function precioCombinacion(moduloKeys: string[], medicos = 1): { porMedico: number; total: number; modulos: string[] } {
+  const set = new Set(moduloKeys.filter(k => k in PRECIO_MODULO))
+  set.add('agenda')   // la agenda es la base: sin ella no hay a quién atender
+  const modulos = [...set]
+  const porMedico = modulos.reduce((s, k) => s + (PRECIO_MODULO[k] ?? 0), 0)
+  return { porMedico, total: porMedico * Math.max(1, medicos), modulos }
+}
 export const TODOS_LOS_MODULOS = MODULOS.map(m => m.key)
 /** Todos MENOS los opt-in (lo que ve un consultorio por defecto, sin Hospital). */
 export const MODULOS_BASE = TODOS_LOS_MODULOS.filter(k => !MODULOS_OPT_IN.includes(k))
@@ -90,14 +114,22 @@ export const PAQUETES_SUGERIDOS: PaqueteDef[] = [
   { id: 'agenda',   nombre: 'Agenda',   precio: 349,  orden: 0, modulos: MODULOS_DE_PLAN.agenda,
     descripcion: 'Agenda, calendario, recordatorios y portal del paciente. Sin IA de consulta.' },
   { id: 'clinica',  nombre: 'Clínica',  precio: 899,  orden: 1, modulos: MODULOS_DE_PLAN.clinica,
-    descripcion: 'Consultorio completo con IA Estándar (Sonnet 5): nota por voz, recetas, consultor, farmacia, CRM y finanzas. 160 créditos/mes.' },
-  { id: 'premium',  nombre: 'Pro',      precio: 1899, orden: 2, modulos: MODULOS_DE_PLAN.premium,
+    descripcion: 'Consultorio completo con IA Estándar (Sonnet 5): nota por voz, recetas, consultor, farmacia, CRM y finanzas. 200 créditos/mes.' },
+  { id: 'premium',  nombre: 'Pro',      precio: 1590, orden: 2, modulos: MODULOS_DE_PLAN.premium,
     descripcion: 'Todo lo de Clínica con IA Máxima (Opus 4.8 + GPT-5) por defecto, 2ª opinión automática y soporte prioritario. 450 créditos/mes.' },
-  // Hospital pausado por ahora (el cobro por número de médicos/camas se decide después).
+  { id: 'hospital', nombre: 'Hospital', precio: 3499, orden: 3, modulos: MODULOS_DE_PLAN.hospital,
+    modeloPrecio: 'por_medico', precioBase: 3499, precioPorUnidad: 999,
+    descripcion: 'Todo lo de Pro + Hospitalización: censo, camas de hospital y de UCI, internamiento (indicaciones/MAR, signos, interconsultas, laboratorio). Incluye el UCI OS. Incluye 1 médico · +$999/mes por médico adicional.' },
+  // ADD-ON: UCI OS. La joya sin competencia, desacoplada para venderse sobre
+  // Hospital (o a quien haga terapia intensiva). Se cobra POR MÉDICO, igual que el
+  // resto de la plataforma (cada médico que la usa quema su propia IA).
+  { id: 'uci', nombre: 'UCI OS (add-on)', precio: 700, orden: 4, modulos: ['uci'],
+    modeloPrecio: 'por_medico', precioBase: 700, precioPorUnidad: 700,
+    descripcion: 'Add-on por médico: Panel UCI de cabecera con motores deterministas (ventilación, gasometría/ácido-base, SOFA/APACHE, POCUS/VExUS/PLR, neurocrítico PPC/PIC, CKRT/PRISMA, ECMO), Copilot IA de UCI (Claude + GPT) que aprende, y nota de evolución por los 7 sistemas dictada manos libres. $700/mes por médico.' },
 ]
 
 /** Versión del catálogo de paquetes. Al subirla, el seed reemplaza los viejos. */
-export const PAQUETES_VERSION = 3
+export const PAQUETES_VERSION = 7
 
 type ClinicMod = { modulos?: string[] | null; plan?: string | null; paseLibre?: boolean | null }
 
@@ -110,11 +142,12 @@ type ClinicMod = { modulos?: string[] | null; plan?: string | null; paseLibre?: 
  *  5) sin nada (legado muy viejo) → TODOS (no encerrar a nadie).
  */
 export function modulosDe(clinic: ClinicMod | null | undefined): string[] {
-  // Los "atajos" (sin clínica, pase libre del dueño, sin plan) dan el consultorio
-  // BASE — NO los módulos opt-in (Hospitalización). Esos requieren plan/módulo
-  // explícito para no estorbar en un consultorio normal.
+  // El PASE LIBRE (dueño de la plataforma / cortesía) da acceso a TODO, incluidos
+  // los módulos opt-in (Hospitalización). El dueño debe ver su propia app completa;
+  // antes recibía solo la BASE y Hospitalización/UCI le quedaban ocultas.
+  if (clinic?.paseLibre) return TODOS_LOS_MODULOS
+  // Sin clínica (carga inicial): BASE, para no parpadear módulos opt-in.
   if (!clinic) return MODULOS_BASE
-  if (clinic.paseLibre) return MODULOS_BASE
   const m = clinic.modulos
   if (Array.isArray(m) && m.length > 0) return m   // módulos explícitos (pueden incluir Hospital si se contrató)
   if (clinic.plan && MODULOS_DE_PLAN[clinic.plan]) return MODULOS_DE_PLAN[clinic.plan]

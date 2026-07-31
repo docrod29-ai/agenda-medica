@@ -8,7 +8,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
-import { verificarSuperadmin, PRECIO_PLAN_MXN } from '@/lib/superadmin'
+import { verificarSuperadmin, precioPlanMXN } from '@/lib/superadmin'
 import { calcularPrecioPaquete } from '@/lib/pricing'
 import { planDeNivel } from '@/lib/planes-ia'
 
@@ -48,6 +48,10 @@ export async function GET(req: NextRequest) {
     let ingresoMes = 0
     paysSnap.docs.forEach(d => {
       const p = d.data() as Any
+      // Solo se cuentan pagos REALES confirmados (livemode === true). Los de PRUEBA
+      // (Stripe en modo test: livemode false o ausente en registros viejos) NO son
+      // ingreso real y se excluyen, para que la consola no muestre dinero no cobrado.
+      if (p.livemode !== true) return
       const monto = Number(p.monto ?? 0)
       const cid = String(p.clinicId ?? '')
       pagadoPorClinica.set(cid, (pagadoPorClinica.get(cid) ?? 0) + monto)
@@ -78,7 +82,7 @@ export async function GET(req: NextRequest) {
           { medicos, camas },
         )
       }
-      const mrr = cob === 'al_corriente' ? (precioPaquete > 0 ? precioPaquete : (PRECIO_PLAN_MXN[plan] ?? 0)) : 0
+      const mrr = cob === 'al_corriente' ? (precioPaquete > 0 ? precioPaquete : precioPlanMXN(plan)) : 0
       // Nivel de IA (Pro económico / Premium Opus+GPT-5) + consumo del mes — vive en secretos/ia.
       let nivelIA: 'pro' | 'premium' = 'pro'
       let consultasMes = 0

@@ -12,12 +12,15 @@
  * No expone API keys. Usa el mismo modelo Claude que el endpoint
  * principal de extracción pero con un prompt NER puro.
  */
+import { anotarLlamada } from '@/lib/ia/gateway'
+import { esFundador } from '@/lib/authz/fundador'
 import { NextRequest, NextResponse } from 'next/server'
 import { NER_SYSTEM_PROMPT, buildNerUserPrompt, EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { safeLog } from '@/lib/security/sanitize'
-import { verificarUsuario } from '@/lib/auth-server'
+import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { resolverClaveIA } from '@/lib/ai-keys'
+import { gateCreditos, resolverClaveIA, registrarCreditos } from '@/lib/ai-keys'
+import { COSTO_CREDITOS } from '@/lib/planes-ia'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const ANTHROPIC_VERSION = '2023-06-01'
@@ -73,12 +76,13 @@ function parseJSON(text: string): Record<string, unknown> | null {
 }
 
 export async function POST(req: NextRequest) {
-  const acceso = await verificarUsuario(req)
+  const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
   const _rl = await limitarOResponder(`extraer-entidades:${acceso.uid}`, 40, 60)
   if (_rl) return _rl
 
-  const { key: API_KEY } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
+  const { key: API_KEY, clinicId, fuente } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
+  const _corte = await gateCreditos(clinicId, fuente); if (_corte) return _corte
   if (!API_KEY) {
     return NextResponse.json(
       { ok: false, error: 'No hay API key de Claude configurada. Agrégala en Configuración → Llaves de IA.' },
@@ -86,7 +90,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  let body: { texto?: string }
+  let body: { texto?: string; alergiasRegistradas?: string[] }
   try { body = await req.json() } catch {
     return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 })
   }
@@ -98,6 +102,23 @@ export async function POST(req: NextRequest) {
   if (texto.length > 20000) {
     return NextResponse.json({ ok: false, error: 'Texto demasiado largo (>20k chars)' }, { status: 400 })
   }
+  // Auditoría 2026-07 (P1): alergias del expediente entran al cross-check.
+  const alergiasRegistradas = Array.isArray(body.alergiasRegistradas)
+    ? body.alergiasRegistradas.map(a => String(a)).filter(Boolean).slice(0, 40)
+    : []
+
+  /**
+   * Contexto del libro de costos. Esta ruta todavía no pasa por el gateway; se
+   * anota el gasto igual, porque una llamada sin asiento no se ve como un error
+   * sino como una plataforma que gasta menos de lo que gasta.
+   */
+  const ctxCosto = {
+    feature: 'extraer-entidades',
+    requestId: req.headers.get('x-vercel-id') || `ee-${acceso.uid}-${Date.now()}`,
+    clinicId: clinicId ?? null, uid: acceso.uid, creditos: 0, fuente,
+    esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
+  }
+  const t0Costo = Date.now()
 
   try {
     const model = await resolverModelo(API_KEY)
@@ -112,7 +133,7 @@ export async function POST(req: NextRequest) {
         model,
         max_tokens: 4000,
         system: NER_SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: buildNerUserPrompt(texto) }],
+        messages: [{ role: 'user', content: buildNerUserPrompt(texto, alergiasRegistradas) }],
       }),
       signal: AbortSignal.timeout(45000),   // aborta limpio si tarda, sin "error de red" ambiguo
     })
@@ -124,6 +145,7 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await res.json()
+    anotarLlamada(ctxCosto, 'anthropic', String(data?.model ?? ''), data, Date.now() - t0Costo)
     const text: string = data.content?.[0]?.text ?? ''
     if (!text.trim()) {
       return NextResponse.json({ ok: false, error: 'IA devolvió respuesta vacía' }, { status: 502 })
@@ -132,6 +154,9 @@ export async function POST(req: NextRequest) {
     if (!parsed) {
       return NextResponse.json({ ok: false, error: 'NER no parseable', raw: text.slice(0, 300) }, { status: 502 })
     }
+
+    // Cobro (icu-007): el NER es una llamada real a IA; quema créditos una vez.
+    void registrarCreditos(clinicId, COSTO_CREDITOS.extraerEntidades)
 
     const validation = EntidadesExtraidas.safeParse(parsed)
     if (!validation.success) {

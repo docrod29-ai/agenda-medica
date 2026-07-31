@@ -1,0 +1,341 @@
+{
+  "semillas": [
+    {
+      "farmaco": "Cefepime-enmetazobactam",
+      "indicacion": "*",
+      "usualMaxPorDosis": 2500,
+      "usualMaxPorDia": 7500,
+      "unidad": "mg",
+      "tipoMaximo": "CONTEXTUAL",
+      "textoFuente": "2.5 g IV q8h over 2 h.",
+      "fuenteIds": [
+        "FDA_EXBLIFEP_2024",
+        "IDSA_TABLE1_2026",
+        "IDSA_AMR_2026",
+        "CLSI_M100_36"
+      ],
+      "huellaDataset": "924573038c4befcef87059512378b87de46dd8a435a0a5b756811a8eb88b3005"
+    },
+    {
+      "farmaco": "Cefiderocol",
+      "indicacion": "*",
+      "usualMaxPorDosis": 2000,
+      "usualMaxPorDia": 6000,
+      "unidad": "mg",
+      "tipoMaximo": "CONTEXTUAL",
+      "textoFuente": "2 g IV q8h over 3 h.",
+      "fuenteIds": [
+        "FDA_FETROJA_2025",
+        "IDSA_AMR_2026",
+        "IDSA_TABLE1_2026",
+        "CLSI_M100_36"
+      ],
+      "huellaDataset": "924573038c4befcef87059512378b87de46dd8a435a0a5b756811a8eb88b3005"
+    },
+    {
+      "farmaco": "Sulbactam-durlobactam",
+      "indicacion": "*",
+      "usualMaxPorDosis": 2000,
+      "usualMaxPorDia": 8000,
+      "unidad": "mg",
+      "tipoMaximo": "CONTEXTUAL",
+      "textoFuente": "2 g (1 g/1 g) IV q6h over 3 h.",
+      "fuenteIds": [
+        "FDA_XACDURO_2023",
+        "IDSA_AMR_2026",
+        "IDSA_TABLE1_2026",
+        "CLSI_M100_36"
+      ],
+      "huellaDataset": "924573038c4befcef87059512378b87de46dd8a435a0a5b756811a8eb88b3005"
+    },
+    {
+      "farmaco": "Meropenem-vaborbactam",
+      "indicacion": "*",
+      "usualMaxPorDosis": 4000,
+      "usualMaxPorDia": 12000,
+      "unidad": "mg",
+      "tipoMaximo": "CONTEXTUAL",
+      "textoFuente": "4 g (2 g/2 g) IV q8h over 3 h when eGFR >=50.",
+      "fuenteIds": [
+        "DML_VABOMERE_2026",
+        "IDSA_TABLE1_2026",
+        "IDSA_AMR_2026",
+        "CLSI_M100_36"
+      ],
+      "huellaDataset": "924573038c4befcef87059512378b87de46dd8a435a0a5b756811a8eb88b3005"
+    },
+    {
+      "farmaco": "Imipenem-cilastatin-relebactam",
+      "indicacion": "*",
+      "usualMaxPorDosis": 1250,
+      "usualMaxPorDia": 5000,
+      "unidad": "mg",
+      "tipoMaximo": "CONTEXTUAL",
+      "textoFuente": "1.25 g IV q6h over 30 min with normal renal function.",
+      "fuenteIds": [
+        "FDA_RECARBRIO_2025",
+        "IDSA_TABLE1_2026",
+        "IDSA_AMR_2026",
+        "CLSI_M100_36"
+      ],
+      "huellaDataset": "924573038c4befcef87059512378b87de46dd8a435a0a5b756811a8eb88b3005"
+    },
+    {
+      "farmaco": "Ceftaroline fosamil",
+      "indicacion": "*",
+      "usualMaxPorDosis": 600,
+      "usualMaxPorDia": 1200,
+      "unidad": "mg",
+      "tipoMaximo": "CONTEXTUAL",
+      "textoFuente": "FDA label standard adult ABSSSI/CABP: 600 mg IV q12h (infusion duration per label).",
+      "fuenteIds": [
+        "DML_CEFTAROLINE"
+      ],
+      "huellaDataset": "924573038c4befcef87059512378b87de46dd8a435a0a5b756811a8eb88b3005"
+    },
+    {
+      "farmaco": "Gepotidacin",
+      "indicacion": "*",
+      "usualMaxPorDosis": 1500,
+      "usualMaxPorDia": 3000,
+      "unidad": "mg",
+      "tipoMaximo": "CONTEXTUAL",
+      "textoFuente": "uUTI: 1.5 g PO q12h for 5 days after a meal per label context; gonorrhea limited/no alternatives: 3 g PO then second 3 g ~12 h later.",
+      "fuenteIds": [
+        "FDA_BLUJEPA_2025",
+        "IDSA_AMR_2026",
+        "IDSA_TABLE1_2026"
+      ],
+      "huellaDataset": "924573038c4befcef87059512378b87de46dd8a435a0a5b756811a8eb88b3005"
+    },
+    {
+      "farmaco": "Tebipenem pivoxil",
+      "indicacion": "*",
+      "usualMaxPorDosis": 600,
+      "usualMaxPorDia": 2400,
+      "unidad": "mg",
+      "tipoMaximo": "CONTEXTUAL",
+      "textoFuente": "600 mg PO q6h for 7-10 days when eGFR 60-150 in FDA cUTI/pyelonephritis label context.",
+      "fuenteIds": [
+        "FDA_UTEBZI_2026"
+      ],
+      "huellaDataset": "924573038c4befcef87059512378b87de46dd8a435a0a5b756811a8eb88b3005"
+    },
+    {
+      "farmaco": "Linezolid",
+      "indicacion": "*",
+      "usualMaxPorDosis": 600,
+      "usualMaxPorDia": 1200,
+      "unidad": "mg",
+      "tipoMaximo": "CONTEXTUAL",
+      "textoFuente": "600 mg IV/PO q12h for major adult serious indications (pneumonia, cSSSI, VRE pathways).",
+      "fuenteIds": [
+        "DML_LINEZOLID"
+      ],
+      "huellaDataset": "924573038c4befcef87059512378b87de46dd8a435a0a5b756811a8eb88b3005"
+    }
+  ],
+  "pendientes": [
+    {
+      "farmaco": "Aztreonam-avibactam",
+      "porQue": "el texto describe más de una pauta (/\\bload\\b/i)",
+      "texto": "Load 2.67 g IV over 3 h once, then 2 g IV q6h over 3 h."
+    },
+    {
+      "farmaco": "Ceftazidime-avibactam",
+      "porQue": "ficha y guía fusionadas en el mismo texto: hay dos pautas",
+      "texto": "FDA label: 2.5 g IV q8h over 2 h when CrCl >50; IDSA AMR suggests 2.5 g q8h over 3 h for AMR infections."
+    },
+    {
+      "farmaco": "Ceftolozane-tazobactam",
+      "porQue": "el texto trae 3 pautas distintas",
+      "texto": "cUTI/cIAI: 1.5 g IV q8h over 1 h. HABP/VABP: 3 g IV q8h over 1 h. IDSA AMR uses 3 g q8h over 3 h for non-uUTI resistant infections."
+    },
+    {
+      "farmaco": "Ceftobiprole medocaril",
+      "porQue": "el dataset lo marca «CONDITIONAL»",
+      "texto": "ABSSSI/CABP: 667 mg IV q8h over 2 h. Adult S. aureus bacteremia: 667 mg q6h days 1-8 then q8h from day 9 (label regimen)."
+    },
+    {
+      "farmaco": "Meropenem",
+      "porQue": "ficha y guía fusionadas en el mismo texto: hay dos pautas",
+      "texto": "Label standard: 1 g IV q8h for major adult severe indications; IDSA AMR: uUTI 1 g q8h over 30 min; other AMR infections 1-2 g q8h over 3 h."
+    },
+    {
+      "farmaco": "Cefepime",
+      "porQue": "el dataset lo marca «CONDITIONAL»",
+      "texto": "IDSA AMR: uUTI 1 g IV q8h over 30 min; all other AMR infections: 2 g loading over 30 min, then 2 g q8h over 3 h."
+    },
+    {
+      "farmaco": "Piperacillin-tazobactam",
+      "porQue": "el texto describe más de una pauta (/\\bpathway\\b/i)",
+      "texto": "Label: 3.375 g IV q6h for most adult indications; nosocomial pneumonia 4.5 g q6h. Extended-infusion ICU regimens should be maintained as a separate PK/PD pathway."
+    },
+    {
+      "farmaco": "Imipenem-cilastatin",
+      "porQue": "el dataset lo marca «CONDITIONAL»",
+      "texto": "IDSA AMR: uUTI 500 mg imipenem IV q6h over 30 min; other AMR infections 500 mg q6h over 3 h if feasible OR 1 g q8h over 1 h; CrCl >=90 may use 1 g q6h over 1 h in selected AMR contexts."
+    },
+    {
+      "farmaco": "Ertapenem",
+      "porQue": "el dataset lo marca «CONDITIONAL»",
+      "texto": "1 g IV q24h over 30 min."
+    },
+    {
+      "farmaco": "Ampicillin-sulbactam",
+      "porQue": "el dataset lo marca «CONDITIONAL»",
+      "texto": "Standard label regimens are indication-dependent. For invasive CRAB when sulbactam-durlobactam is unavailable, IDSA 2026 high-dose target is total sulbactam 9 g/day: 9 g amp/sulb (6/3) IV q8h over 4 h OR 27 g/24 h continuous infusion."
+    },
+    {
+      "farmaco": "Aztreonam",
+      "porQue": "el texto describe más de una pauta (/\\bsevere\\b/i)",
+      "texto": "Usual adult dose depends on site/severity; severe systemic/Pseudomonas infections often use 2 g IV q6-8h within label limits."
+    },
+    {
+      "farmaco": "Cefazolin",
+      "porQue": "el texto describe más de una pauta (/\\bsevere\\b/i)",
+      "texto": "Moderate-severe: 0.5-1 g IV q6-8h; severe/life-threatening (e.g. septicemia/endocarditis label): 1-1.5 g q6h. Rare label experience up to 12 g/day."
+    },
+    {
+      "farmaco": "Ceftriaxone",
+      "porQue": "ficha y guía fusionadas en el mismo texto: hay dos pautas",
+      "texto": "Usual adult: 1-2 g IV q24h or divided q12h; max 4 g/day. Meningitis commonly uses 2 g q12h (syndrome-specific guideline/label context)."
+    },
+    {
+      "farmaco": "Ceftazidime",
+      "porQue": "el dataset lo marca «CONDITIONAL»",
+      "texto": "Severe infections: 2 g IV q8h is a label-supported adult regimen."
+    },
+    {
+      "farmaco": "Nafcillin",
+      "porQue": "el texto describe más de una pauta (/\\bsevere\\b/i)",
+      "texto": "500 mg IV q4h usual; 1 g IV q4h for severe infections per current label."
+    },
+    {
+      "farmaco": "Penicillin G potassium",
+      "porQue": "el dataset lo marca «CONDITIONAL»",
+      "texto": "Dose is syndrome-specific and often expressed in million units/day divided q4-6h; meningococcal meningitis/septicemia may use q2h. Nexus must select a syndrome table rather than one universal dose."
+    },
+    {
+      "farmaco": "Amikacin",
+      "porQue": "el dataset lo marca «CONDITIONAL»",
+      "texto": "IDSA AMR: uUTI 15 mg/kg IV once; cUTI 15 mg/kg IV once, then subsequent doses/interval by PK evaluation."
+    },
+    {
+      "farmaco": "Gentamicin",
+      "porQue": "el dataset lo marca «CONDITIONAL»",
+      "texto": "IDSA AMR: uUTI 5 mg/kg IV once; cUTI 7 mg/kg IV once then PK-guided. Legacy FDA label: 3 mg/kg/day divided q8h for serious infection; up to 5 mg/kg/day for life-threatening infection with monitoring."
+    },
+    {
+      "farmaco": "Tobramycin",
+      "porQue": "el dataset lo marca «CONDITIONAL»",
+      "texto": "IDSA AMR: uUTI 5 mg/kg IV once; cUTI 7 mg/kg IV once then PK-guided. Label: 3 mg/kg/day divided q8h; up to 5 mg/kg/day in life-threatening infection with monitoring."
+    },
+    {
+      "farmaco": "Plazomicin",
+      "porQue": "ficha y guía fusionadas en el mismo texto: hay dos pautas",
+      "texto": "CrCl >=60-90+ label pathway: 15 mg/kg IV q24h over 30 min; IDSA AMR: uUTI 15 mg/kg once; cUTI 15 mg/kg once then PK-guided."
+    },
+    {
+      "farmaco": "Fosfomycin IV",
+      "porQue": "ficha y guía fusionadas en el mismo texto: hay dos pautas",
+      "texto": "cUTI: 6 g IV q8h over 1 h when CrCl >50 (FDA CONTEPO; IDSA 2026)."
+    },
+    {
+      "farmaco": "Fosfomycin tromethamine PO",
+      "porQue": "no se pudo leer la pauta sin ambigüedad",
+      "texto": "uUTI: 3 g PO once (IDSA AMR; organism/site restrictions apply)."
+    },
+    {
+      "farmaco": "Pivmecillinam",
+      "porQue": "el dataset lo marca «CONDITIONAL»",
+      "texto": "FDA uUTI adult women: 185 mg pivmecillinam PO TID for 3-7 days. IDSA AMR 2026 for ESBL uUTI: 370 mg pivmecillinam PO q8h."
+    },
+    {
+      "farmaco": "Sulopenem etzadroxil/probenecid",
+      "porQue": "no se pudo leer la pauta sin ambigüedad",
+      "texto": "500/500 mg PO q12h with food for 5 days (adult women with uUTI in label context)."
+    },
+    {
+      "farmaco": "Nitrofurantoin",
+      "porQue": "el dataset lo marca «CONDITIONAL»",
+      "texto": "Macrobid 100 mg PO q12h for uUTI; oral suspension 50 mg q6h in IDSA AMR table."
+    },
+    {
+      "farmaco": "Ciprofloxacin",
+      "porQue": "el dataset lo marca «CONDITIONAL»",
+      "texto": "IDSA AMR: uUTI 400 mg IV q12h OR 500 mg PO q12h; other AMR infections 400 mg IV q8h OR 750 mg PO q12h."
+    },
+    {
+      "farmaco": "Levofloxacin",
+      "porQue": "el dataset lo marca «CONDITIONAL»",
+      "texto": "750 mg IV/PO q24h in IDSA AMR table."
+    },
+    {
+      "farmaco": "Trimethoprim-sulfamethoxazole",
+      "porQue": "el texto describe más de una pauta (/\\bdivided\\b/i)",
+      "texto": "uUTI: 160 mg TMP component IV/PO q12h. Other selected AMR infections: 8-15 mg TMP/kg/day divided q8-12h."
+    },
+    {
+      "farmaco": "Vancomycin IV",
+      "porQue": "el dataset lo marca «CONDITIONAL»",
+      "texto": "Serious MRSA: use weight-based loading when clinically indicated, then AUC-guided maintenance rather than a fixed universal maintenance dose."
+    },
+    {
+      "farmaco": "Vancomycin PO",
+      "porQue": "el dataset lo marca «CONDITIONAL»",
+      "texto": "C. difficile infection: 125 mg PO q6h for 10 days for a standard initial episode pathway; recurrent/fulminant regimens are separate guideline rules."
+    },
+    {
+      "farmaco": "Daptomycin",
+      "porQue": "se dosifica por kg: el tope depende del peso",
+      "texto": "Label: cSSSI 4 mg/kg IV q24h; S. aureus bacteremia 6 mg/kg q24h. Higher 8-12 mg/kg regimens are off-label/syndrome/resistance specific and must be separately sourced."
+    },
+    {
+      "farmaco": "Doxycycline",
+      "porQue": "el texto describe más de una pauta (/\\bpathway\\b/i)",
+      "texto": "IV: 200 mg on day 1 in one or two infusions; then 100-200 mg/day depending on severity. Common serious-infection pathway: 100 mg q12h."
+    },
+    {
+      "farmaco": "Minocycline",
+      "porQue": "el dataset lo marca «CONDITIONAL»",
+      "texto": "IDSA AMR: 200 mg IV/PO q12h for selected resistant Gram-negative infections."
+    },
+    {
+      "farmaco": "Tigecycline",
+      "porQue": "el dataset lo marca «CONDITIONAL»",
+      "texto": "FDA label: load 100 mg IV, then 50 mg q12h. IDSA AMR 2026 high-dose pathway: load 200 mg, then 100 mg q12h for selected resistant infections."
+    },
+    {
+      "farmaco": "Eravacycline",
+      "porQue": "el dataset lo marca «CONDITIONAL»",
+      "texto": "1 mg/kg IV q12h (IDSA AMR table)."
+    },
+    {
+      "farmaco": "Polymyxin B",
+      "porQue": "el dataset lo marca «CONDITIONAL»",
+      "texto": "Consensus systemic regimen: loading 2.0-2.5 mg/kg (20,000-25,000 IU/kg) TBW, then 1.25-1.5 mg/kg (12,500-15,000 IU/kg) q12h; verify product units."
+    },
+    {
+      "farmaco": "Colistimethate sodium (colistin)",
+      "porQue": "el dataset lo marca «SPECIALIST_REVIEW»",
+      "texto": "Use international consensus calculator based on colistin base activity (CBA) or million IU; loading dose is generally required for systemic therapy."
+    },
+    {
+      "farmaco": "Ceftazidime-avibactam + aztreonam",
+      "porQue": "el dataset lo marca «CONDITIONAL»",
+      "texto": "IDSA AMR: ceftazidime-avibactam 2.5 g IV q8h over 3 h PLUS aztreonam 2 g IV q8h over 3 h, administered simultaneously via Y-site when feasible."
+    },
+    {
+      "farmaco": "Metronidazole",
+      "porQue": "el dataset lo marca «CONDITIONAL»",
+      "texto": "Common severe anaerobic infection pathway: 500 mg IV/PO q8h; indication-specific regimens vary."
+    },
+    {
+      "farmaco": "Nafcillin/Oxacillin class pathway",
+      "porQue": "el dataset lo marca «SELECT_AGENT»",
+      "texto": "For MSSA severe infection, use agent-specific current label/guideline. Nafcillin current label: 1 g IV q4h for severe infection."
+    }
+  ],
+  "huellaDataset": "924573038c4befcef87059512378b87de46dd8a435a0a5b756811a8eb88b3005"
+}

@@ -11,31 +11,26 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarMiembro } from '@/lib/auth-server'
+import { exigeCapacidad } from '@/lib/authz/verificar'
+import { ACCIONES_HOSPITAL_MUTAR } from '@/lib/authz/registro-rutas'
 import { adminDb } from '@/lib/firebase-admin'
+import { esCritica, type Unidad } from '@/lib/hospital/unidades'
+import { camaVigenteDe, trasladar as trasladarCama } from '@/lib/hospital/bed-assignment'
+import { POLITICA_CAMAS_SEGURA, transicionar } from '@/lib/hospital/estados-cama'
+import type { BedAssignment, EstadoCama } from '@/types/hospital'
 import { registroDurable } from '@/lib/hospital/registro-durable'
+import { mismaCama } from '@/lib/hospital/cama'
 import { randomUUID } from 'crypto'
 
-// Qué rol puede ejecutar cada acción.
-const GATES: Record<string, string[]> = {
-  crear:                 ['medico', 'admin'],
-  egresar:               ['medico', 'admin'],
-  trasladar:             ['medico', 'admin'],
-  cambiar_tratante:      ['medico', 'admin'],
-  indicacion_agregar:    ['medico', 'admin'],
-  indicacion_suspender:  ['medico', 'admin'],
-  indicacion_editar:     ['medico', 'admin'],
-  indicacion_borrar:     ['medico', 'admin'],
-  interconsulta_agregar: ['medico', 'admin'],
-  interconsulta_responder: ['medico', 'admin'],
-  interconsulta_editar:  ['medico', 'admin'],
-  interconsulta_borrar:  ['medico', 'admin'],
-  conciliar:             ['medico', 'admin'],
-  administrar:           ['enfermeria', 'medico', 'admin'],
-  balance:               ['enfermeria', 'medico', 'admin'],
-  escala:                ['enfermeria', 'medico', 'admin'],
-  sbar:                  ['enfermeria', 'medico', 'admin'],
-  verificar_farmacia:    ['farmacia', 'medico', 'admin'],
-}
+/**
+ * Qué CAPACIDAD exige cada acción (E0-07). Antes era un mapa `GATES` de listas de
+ * roles sueltas aquí mismo — una de las seis copias de la política de acceso que
+ * había en el repo. Ahora la tabla vive en `src/lib/authz/registro-rutas.ts` y un
+ * test de tabla comprueba, acción por acción, que el conjunto de roles resultante
+ * es IDÉNTICO al del `GATES` viejo (copiado literal como oráculo): esto es una
+ * traducción de vocabulario, no un cambio de política.
+ */
+const ACCIONES = ACCIONES_HOSPITAL_MUTAR
 
 type Any = Record<string, unknown>
 
@@ -47,13 +42,21 @@ function patch(accion: string, inter: Any, p: Any, now: string, actor: Actor): A
   const arr = (k: string) => (Array.isArray(inter[k]) ? (inter[k] as Any[]) : [])
   switch (accion) {
     case 'egresar':
-      return { estado: 'egresado', fechaEgreso: now, tipoEgreso: p.tipoEgreso, resumenEgreso: p.resumenEgreso }
+      // Al egresar se cierran TODAS las indicaciones activas: si no, quedaban
+      // `activa: true` en un paciente ya dado de alta → la ficha seguía contando
+      // "Indicaciones · MAR (N)", la conciliación las marcaba "continuado" y el
+      // export FHIR las veía vigentes. (La administración ya estaba bloqueada por la
+      // guarda de episodio, así que esto es consistencia de estado, no de dosis.)
+      return {
+        estado: 'egresado', fechaEgreso: now, tipoEgreso: p.tipoEgreso, resumenEgreso: p.resumenEgreso,
+        indicaciones: arr('indicaciones').map(x => (x as Any).activa ? { ...x, activa: false, suspendidaPor: 'Cierre por egreso', fechaSuspension: now } : x),
+      }
     case 'trasladar': {
       const detalle = `${inter.servicio}${inter.cama ? ' · Cama ' + inter.cama : ''} → ${p.servicio}${p.cama ? ' · Cama ' + p.cama : ''}`
-      return { servicio: p.servicio, cama: p.cama, movimientos: [...arr('movimientos'), { fecha: now, tipo: 'traslado', detalle, por: p.por }] }
+      return { servicio: p.servicio, cama: p.cama, movimientos: [...arr('movimientos'), { fecha: now, tipo: 'traslado', detalle, por: actor.nombre }] }
     }
     case 'cambiar_tratante':
-      return { medicoTratanteId: p.medicoTratanteId, medicoTratanteNombre: p.medicoTratanteNombre, movimientos: [...arr('movimientos'), { fecha: now, tipo: 'tratante', detalle: `${inter.medicoTratanteNombre || '—'} → ${p.medicoTratanteNombre}`, por: p.por }] }
+      return { medicoTratanteId: p.medicoTratanteId, medicoTratanteNombre: p.medicoTratanteNombre, movimientos: [...arr('movimientos'), { fecha: now, tipo: 'tratante', detalle: `${inter.medicoTratanteNombre || '—'} → ${p.medicoTratanteNombre}`, por: actor.nombre }] }
     case 'indicacion_agregar':
       return { indicaciones: [...arr('indicaciones'), { id: randomUUID(), tipo: p.tipo, descripcion: p.descripcion, frecuencia: p.frecuencia, creadaPor: p.creadaPor, activa: true, fecha: now, administraciones: [] }] }
     case 'indicacion_suspender':
@@ -109,7 +112,7 @@ function patch(accion: string, inter: Any, p: Any, now: string, actor: Actor): A
       return { indicaciones: arr('indicaciones').map(x => (x as Any).id === p.indId ? { ...x, administraciones: [...((x as Any).administraciones as Any[] ?? []), adm] } : x) }
     }
     case 'verificar_farmacia':
-      return { indicaciones: arr('indicaciones').map(x => (x as Any).id === p.indId ? { ...x, verificadaFarmacia: true, verificadaPor: p.por, fechaVerificacion: now } : x) }
+      return { indicaciones: arr('indicaciones').map(x => (x as Any).id === p.indId ? { ...x, verificadaFarmacia: true, verificadaPor: actor.nombre, fechaVerificacion: now } : x) }
     case 'interconsulta_agregar':
       return { interconsultas: [...arr('interconsultas'), { id: randomUUID(), especialidad: p.especialidad, motivo: p.motivo, solicitanteNombre: p.solicitanteNombre, solicitanteId: p.solicitanteId ?? null, medicoSolicitadoId: p.medicoSolicitadoId ?? null, medicoSolicitadoNombre: p.medicoSolicitadoNombre ?? null, estado: 'solicitada', fecha: now }] }
     case 'interconsulta_responder':
@@ -126,19 +129,41 @@ function patch(accion: string, inter: Any, p: Any, now: string, actor: Actor): A
       if (ic && ic.estado === 'respondida') throw new Error('BLOQUEADO: una interconsulta ya respondida no se borra')
       return { interconsultas: arr('interconsultas').filter(x => (x as Any).id !== p.icId) }
     }
-    case 'conciliar':
+    case 'conciliar': {
+      /**
+       * BLOQUEO OPTIMISTA. La conciliación reemplaza la lista ENTERA con lo que
+       * manda el cliente, no la fusiona. Sin control, dos dispositivos que abren
+       * la conciliación, editan por separado y guardan producen un lost-update:
+       * gana el último y borra en silencio los medicamentos que agregó el otro —
+       * en una lista de la que dependen decisiones de prescripción.
+       *
+       * El cliente envía el `conciliadoAl` que vio al cargar. Si ya no coincide,
+       * alguien más guardó en medio: se rechaza y se le pide recargar, en vez de
+       * pisar su trabajo. `undefined` del cliente contra `undefined` en el doc
+       * (primera conciliación) sí coincide, que es lo correcto.
+       */
+      const baseVista = (p as Any).baseConciliadoAl ?? null
+      const actual = (inter as Any).conciliadoAl ?? null
+      if (baseVista !== actual) {
+        throw new Error('BLOQUEADO: otra persona actualizó la conciliación mientras la editabas. Recárgala y vuelve a aplicar tus cambios.')
+      }
       return { medicamentosCasa: p.meds, conciliadoAl: now }
+    }
     // NOTA: los arrays balanceHidrico/escalas/sbar en el DOC se limitan por
     // tamaño (tope de 1 MB por documento Firestore) y son solo CACHÉ DE DISPLAY.
     // El registro clínico-legal COMPLETO (sin truncar) se persiste en la
     // subcolección append-only `registros` — ver registroDurable() y la
     // transacción de POST. Así ningún registro se pierde (NOM-004).
+    // `por: actor.nombre` — el AUTOR REAL (usuario en sesión), no el `p.por` que
+    // manda el cliente (que traía config.nombreMedico = el titular de la clínica).
+    // Igual que el MAR: la enfermera que registra queda registrada como ella, no
+    // como el médico. Es dato clínico-legal (quién hizo qué).
     case 'balance':
-      return { balanceHidrico: [...arr('balanceHidrico'), { fecha: now, ingresos: p.ingresos, egresos: p.egresos, por: p.por }].slice(-100) }
+      return { balanceHidrico: [...arr('balanceHidrico'), { fecha: now, ingresos: p.ingresos, egresos: p.egresos, por: actor.nombre }].slice(-100) }
     case 'escala':
-      return { escalas: [...arr('escalas'), { fecha: now, tipo: p.tipo, score: p.score, riesgo: p.riesgo, por: p.por }].slice(-100) }
+      return { escalas: [...arr('escalas'), { fecha: now, tipo: p.tipo, score: p.score, riesgo: p.riesgo, por: actor.nombre }].slice(-100) }
     case 'sbar':
-      return { sbar: [...arr('sbar'), { fecha: now, texto: p.texto, por: p.por }].slice(-50) }
+      return { sbar: [...arr('sbar'), { fecha: now, texto: p.texto, por: actor.nombre }].slice(-50) }
     default:
       return {}
   }
@@ -150,11 +175,19 @@ export async function POST(req: NextRequest) {
   const { clinicId, internamientoId, accion, payload = {} } = body
   if (!clinicId || !accion) return NextResponse.json({ ok: false, error: 'clinicId y accion requeridos' }, { status: 400 })
 
+  /**
+   * Membresía PRIMERO, capacidad después. El orden es deliberado y hay que
+   * conservarlo: así una acción inventada solo devuelve 400 a quien YA es miembro
+   * del consultorio; a un extraño se le responde 401/403 y no se le confirma qué
+   * acciones existen. Por eso este gateway usa `exigeCapacidad` sobre un acceso ya
+   * verificado en vez de pasarle la capacidad a `verificarCapacidad`.
+   */
   const acc = await verificarMiembro(req, clinicId)
   if (!acc.ok) return acc.response
-  const roles = GATES[accion]
-  if (!roles) return NextResponse.json({ ok: false, error: 'Acción desconocida' }, { status: 400 })
-  if (!roles.includes(String(acc.role ?? ''))) return NextResponse.json({ ok: false, error: `Tu rol (${acc.role}) no puede: ${accion}` }, { status: 403 })
+  const capacidad = ACCIONES[accion]
+  if (!capacidad) return NextResponse.json({ ok: false, error: 'Acción desconocida' }, { status: 400 })
+  const denegado = exigeCapacidad(acc, capacidad)
+  if (denegado) return denegado
 
   const now = new Date().toISOString()
   const col = adminDb.collection('clinics').doc(clinicId).collection('internamientos')
@@ -168,13 +201,61 @@ export async function POST(req: NextRequest) {
         const id = await adminDb.runTransaction(async (tx) => {
           const snap = await tx.get(col.where('pacienteId', '==', payload.pacienteId))
           if (snap.docs.some(d => d.data().estado === 'activo')) throw new Error('DUPLICADO')
+          // Colisión de CAMA: si se asignó cama, rechazar si otro internamiento
+          // ACTIVO ya la ocupa (mismo servicio). Sin esto se metían dos pacientes en
+          // la misma cama y el segundo quedaba invisible en el tablero. Se compara
+          // por servicio (query, sin índice compuesto) y se normaliza la etiqueta.
+          if (payload.cama) {
+            const ocup = await tx.get(col.where('servicio', '==', payload.servicio ?? ''))
+            if (ocup.docs.some(d => { const x = d.data(); return x.estado === 'activo' && mismaCama(x.cama as string, payload.cama as string) })) {
+              throw new Error('CAMA_OCUPADA')
+            }
+          }
+          // ALLOWLIST anti mass-assignment (auditoría P2): solo campos de INGRESO;
+          // clinicId/estado/tiempos/autoría los fija el servidor.
+          const CAMPOS_INGRESO = [
+            'pacienteId', 'pacienteNombre', 'servicio', 'cama', 'medicoTratanteId',
+            'medicoTratanteNombre', 'diagnosticoIngreso', 'motivoIngreso', 'fechaIngreso',
+          ] as const
+          const limpio: Record<string, unknown> = {}
+          for (const k of CAMPOS_INGRESO) {
+            const v = (payload as Record<string, unknown>)[k]
+            if (v !== undefined) limpio[k] = v
+          }
+          /**
+           * INGRESO DIRECTO A UNA UNIDAD CRÍTICA: abre la `ICUStay` aquí mismo.
+           *
+           * El traslado ya lo hacía, el ingreso NO — y se vio en la primera
+           * pantalla real: un paciente admitido directo a terapia se quedaba sin
+           * estancia, así que la tarjeta no podía decir su día de UCI hasta que
+           * alguien tocara los soportes por casualidad.
+           *
+           * Se lee ANTES de escribir, como exige la transacción.
+           */
+          const uSnap = await tx.get(adminDb.collection('clinics').doc(clinicId).collection('unidades'))
+          const unidades = uSnap.docs.map(d => ({ ...(d.data() as Any), id: d.id })) as Unidad[]
           const nref = col.doc()
-          tx.set(nref, { ...payload, clinicId, estado: 'activo', createdAt: now, updatedAt: now })
+          tx.set(nref, { ...limpio, clinicId, estado: 'activo', createdAt: now, updatedAt: now, creadoPor: acc.uid })
+
+          if (esCritica(String(payload.servicio ?? ''), unidades)) {
+            // El ingreso a la UNIDAD es el de este episodio: la fecha de ingreso
+            // capturada si viene, y si no, ahora.
+            tx.set(nref.collection('icu_stays').doc('actual'), {
+              internamientoId: nref.id,
+              pacienteId: payload.pacienteId,
+              estado: 'activa',
+              fechaIngresoUci: (payload.fechaIngreso as string) || now,
+              soportes: [],
+              actualizadoPor: acc.uid,
+              actualizadoEn: now,
+            })
+          }
           return nref.id
         })
         return NextResponse.json({ ok: true, id })
       } catch (e) {
         if (e instanceof Error && e.message === 'DUPLICADO') return NextResponse.json({ ok: false, error: 'DUPLICADO: el paciente ya tiene un internamiento activo.' }, { status: 409 })
+        if (e instanceof Error && e.message === 'CAMA_OCUPADA') return NextResponse.json({ ok: false, error: 'Esa cama ya está ocupada por otro paciente activo.' }, { status: 409 })
         throw e
       }
     }
@@ -185,21 +266,137 @@ export async function POST(req: NextRequest) {
       const snap = await tx.get(ref)
       if (!snap.exists) throw new Error('no-existe')
       const inter = { id: snap.id, ...(snap.data() as Any) }
+      // Traslado a una cama ya ocupada por OTRO internamiento activo → rechazar.
+      // (Lectura antes de la escritura, como exige la transacción.)
+      if (accion === 'trasladar' && payload.cama) {
+        // Servicio DESTINO: si el traslado solo cambia la cama dentro del mismo
+        // servicio, el payload puede no reenviar `servicio` → se usa el actual del
+        // internamiento. Sin este fallback la query miraba servicio='' y no detectaba
+        // al ocupante real (permitiendo la doble ocupación que se quiere evitar).
+        const servicioDestino = (payload.servicio as string) ?? ((inter as Any).servicio as string) ?? ''
+        const ocup = await tx.get(col.where('servicio', '==', servicioDestino))
+        if (ocup.docs.some(d => { const x = d.data(); return d.id !== internamientoId && x.estado === 'activo' && mismaCama(x.cama as string, payload.cama as string) })) {
+          throw new Error('CAMA_OCUPADA')
+        }
+      }
       const actor: Actor = {
         uid: acc.uid,
         // El correo verificado identifica a la PERSONA. El rol solo lo acompaña.
         nombre: acc.email ? `${acc.email} (${acc.role ?? 'clínico'})` : String(acc.role ?? 'clínico'),
       }
+      /**
+       * TRASLADO A / DESDE UNA UNIDAD CRÍTICA — abre y cierra la `ICUStay`.
+       *
+       * Sin esto, el «día de UCI» se contaba desde el ingreso al HOSPITAL: un
+       * paciente con 3 días en urgencias que ayer subió a terapia aparecía como
+       * «Día UCI 4». El día de UCI se cuenta desde que entra a la UNIDAD.
+       *
+       * El tipo de unidad NUNCA se decide por el nombre: sale de `unidades`, que
+       * configura el hospital. Un servicio sin clasificar no es crítico ni deja
+       * de serlo — simplemente no dispara nada, y la pantalla de UCI lo declara.
+       */
+      if (accion === 'trasladar') {
+        const uSnap = await tx.get(adminDb.collection('clinics').doc(clinicId).collection('unidades'))
+        const unidades = uSnap.docs.map(d => ({ ...(d.data() as Any), id: d.id })) as Unidad[]
+        const destino = (payload.servicio as string) ?? ((inter as Any).servicio as string) ?? ''
+        const origen = ((inter as Any).servicio as string) ?? ''
+        const aCritica = esCritica(destino, unidades)
+        const deCritica = esCritica(origen, unidades)
+        const estanciaRef = ref.collection('icu_stays').doc('actual')
+
+        if (aCritica && !deCritica) {
+          const prev = await tx.get(estanciaRef)
+          // Reingreso a terapia: se ABRE de nuevo con la fecha de ESTE ingreso.
+          // Conservar la anterior contaría los días de la estancia previa.
+          tx.set(estanciaRef, {
+            internamientoId,
+            pacienteId: (inter as Any).pacienteId ?? '',
+            estado: 'activa',
+            fechaIngresoUci: now,
+            fechaEgresoUci: null,
+            soportes: prev.exists ? ((prev.data() as Any).soportes ?? []) : [],
+            actualizadoPor: actor.uid,
+            actualizadoEn: now,
+          }, { merge: true })
+        } else if (deCritica && !aCritica) {
+          // Alta de UCI a piso: la estancia se cierra, el EPISODIO sigue abierto.
+          const prev = await tx.get(estanciaRef)
+          if (prev.exists) {
+            tx.set(estanciaRef, {
+              estado: 'egresada', fechaEgresoUci: now,
+              actualizadoPor: actor.uid, actualizadoEn: now,
+            }, { merge: true })
+          }
+        }
+      }
+
+      /**
+       * HISTORIA DE CAMAS y ESTADO DE LA CAMA QUE SE DEJA.
+       *
+       * Antes el traslado sólo dejaba una frase en `movimientos[].detalle`: no se
+       * podía preguntar «¿en qué cama estaba el martes a las 3?». Ahora se cierra
+       * la asignación vigente y se abre la nueva en intervalos semiabiertos
+       * (`hasta` === `desde`), que es lo que evita el doble conteo.
+       *
+       * Y la cama que se deja pasa a PENDIENTE DE LIMPIEZA TERMINAL, según la
+       * decisión del Dr. (2026-07-30). El motor decide si el paso es válido; aquí
+       * no se repite la política.
+       *
+       * Nada de esto puede tumbar el traslado: es historia y logística. Si algo
+       * falla, el traslado clínico ya quedó — la reconciliación es un problema
+       * menor que dejar al paciente sin mover.
+       */
+      if (accion === 'trasladar' && payload.cama) {
+        const camaDestino = String(payload.cama)
+        const camaOrigen = String((inter as Any).cama ?? '')
+        if (camaDestino !== camaOrigen) {
+          const asigCol = ref.collection('bed_assignments')
+          const asigSnap = await tx.get(asigCol)
+          const asignaciones = asigSnap.docs.map(d => ({ ...(d.data() as Any), id: d.id })) as BedAssignment[]
+          const vigente = asignaciones.find(a => a.hasta === undefined || a.hasta === null)
+
+          const nuevaRef = asigCol.doc()
+          if (vigente) {
+            try {
+              const { cierre, apertura } = trasladarCama(
+                vigente, { id: nuevaRef.id, camaId: camaDestino, por: actor.uid }, now)
+              tx.set(asigCol.doc(vigente.id), { hasta: cierre.hasta }, { merge: true })
+              tx.set(nuevaRef, { ...apertura })
+            } catch { /* asignación inconsistente: no se rompe el traslado clínico */ }
+          } else {
+            // Primer registro: el episodio venía de antes de que existiera la
+            // historia de camas. Se abre desde AHORA, no se inventa el pasado.
+            tx.set(nuevaRef, {
+              id: nuevaRef.id, camaId: camaDestino, desde: now,
+              motivo: 'traslado', por: actor.uid,
+            })
+          }
+
+          // La cama de ORIGEN, a limpieza terminal.
+          if (camaOrigen !== '') {
+            const camasSnap = await tx.get(
+              adminDb.collection('clinics').doc(clinicId).collection('camas')
+                .where('etiqueta', '==', camaOrigen))
+            for (const d of camasSnap.docs) {
+              const actualEstado = ((d.data() as Any).estado ?? 'ocupada') as EstadoCama
+              const r = transicionar(actualEstado, 'limpieza', POLITICA_CAMAS_SEGURA)
+              if (r.permitida) tx.set(d.ref, { estado: 'limpieza' }, { merge: true })
+            }
+          }
+        }
+      }
+
       tx.update(ref, { ...patch(accion, inter, payload, now, actor), updatedAt: now })
       // Además del array-caché en el doc, persiste el registro clínico COMPLETO
       // a la subcolección append-only (sin truncar) → no se pierde nada (NOM-004).
-      const durable = registroDurable(accion, payload, now)
+      const durable = registroDurable(accion, payload, now, actor.nombre)
       if (durable) tx.set(ref.collection('registros').doc(), durable)
     })
     return NextResponse.json({ ok: true })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'error'
     if (msg === 'no-existe') return NextResponse.json({ ok: false, error: 'El internamiento no existe' }, { status: 404 })
+    if (msg === 'CAMA_OCUPADA') return NextResponse.json({ ok: false, error: 'Esa cama ya está ocupada por otro paciente activo.' }, { status: 409 })
     if (msg.startsWith('BLOQUEADO:')) return NextResponse.json({ ok: false, error: msg.replace('BLOQUEADO: ', '') }, { status: 409 })
     return NextResponse.json({ ok: false, error: msg }, { status: 500 })
   }

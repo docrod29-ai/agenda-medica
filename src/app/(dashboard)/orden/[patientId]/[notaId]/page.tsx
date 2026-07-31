@@ -14,6 +14,7 @@ import { useToast } from '@/context/ToastContext'
 import { useParams, useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { imprimirElemento } from '@/lib/print-element'
+import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
 import { entradaPorMedico, overrideRecetaValido, firmaValida } from '@/lib/impreso-medico'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
@@ -21,10 +22,10 @@ import { getNota } from '@/lib/expediente/firestore'
 import { getPatient } from '@/lib/firestore'
 import type { NotaMedica } from '@/types/expediente'
 import type { Patient } from '@/types'
-import { RecetaDocumento, dimensionesImpresion, contarPaginas } from '@/components/RecetaDocumento'
+import { RecetaDocumento, dimensionesImpresion, contarPaginas, useRecetaPaperOrientado } from '@/components/RecetaDocumento'
 import { RecetaPreviewWrapper } from '@/components/RecetaPreviewWrapper'
 import { PAPER_SIZES } from '@/lib/receta-template'
-import { descargarComoPDF } from '@/lib/pdf-download'
+import { descargarPaginasComoPDF } from '@/lib/pdf-download'
 import { descargarRecetaWord } from '@/lib/receta-word'
 import {
   ArrowLeft, Download, Loader2, Plus, Trash2, Printer, Settings, AlertCircle, ChevronDown, FileText, Check, Scissors,
@@ -338,6 +339,9 @@ export default function GeneradorOrdenPage() {
   const [diagnostico, setDiagnostico] = useState('')
   const [descargando, setDescargando] = useState(false)
   const [categoriaAbierta, setCategoriaAbierta] = useState<string | null>('Laboratorio general')
+  // Estudio personalizado con input inline (antes prompt() nativo).
+  const [customEstudio, setCustomEstudio] = useState('')
+  const [mostrarCustom, setMostrarCustom] = useState(false)
 
   /**
    * FOLIO ESTABLE, derivado de la nota.
@@ -393,16 +397,28 @@ export default function GeneradorOrdenPage() {
     return { ...merged, imprimirEn: 'carta' as const }
   }, [config, nota?.metadata?.medicoId])
 
+  // Dimensiones ORIENTADAS al diseño (apaisado/vertical) para que preview/print
+  // coincidan con la hoja renderizada (evita el "mocho" del diseño apaisado).
+  const paperOri = useRecetaPaperOrientado(recetaConfig)
+  const recetaConfigOri = useMemo(
+    () => ({ ...recetaConfig, disenoWidthMm: paperOri.widthMm, disenoHeightMm: paperOri.heightMm }),
+    [recetaConfig, paperOri.widthMm, paperOri.heightMm],
+  )
+
   // Config con la firma del MÉDICO de esta nota (per-médico), si tiene la suya.
+  /** REG-014 — la firma vive aparte y solo la leen los médicos. */
+  const { firma: firmaProtegida } = useFirmaProtegida(clinicId, config ?? undefined)
+
   const configFirma = useMemo(() => {
     if (!config) return config
     const medicoId = nota?.metadata?.medicoId
-    const firma = entradaPorMedico(config.firmaPorMedico, medicoId, firmaValida, unicoMedico)
+    // REG-014: firma desde el subdocumento protegido.
+    const firma = entradaPorMedico(firmaProtegida.firmaPorMedico, medicoId, firmaValida, unicoMedico)
       // Con VARIOS médicos tampoco se cae a la firma global (típicamente la del
       // dueño): sería la firma de otro. Mejor sin firma, que sí se nota.
-      || (unicoMedico ? config.firmaImagenDataUrl : undefined)
+      || (unicoMedico ? firmaProtegida.firmaImagenDataUrl : undefined)
     return { ...config, firmaImagenDataUrl: firma }
-  }, [config, nota?.metadata?.medicoId, unicoMedico])
+  }, [config, nota?.metadata?.medicoId, unicoMedico, firmaProtegida])
 
   /**
    * Sin firma resoluble no se imprime en silencio.
@@ -443,14 +459,17 @@ export default function GeneradorOrdenPage() {
     if (!el) return
     setDescargando(true)
     try {
-      const host = dimensionesImpresion(recetaConfig)
+      const host = dimensionesImpresion(recetaConfigOri)
       const nombre = (patient?.nombre ?? 'paciente').replace(/[^\w\sáéíóúñ-]/gi, '').replace(/\s+/g, '_')
       const fechaCorta = new Date().toISOString().slice(0, 10)
-      await descargarComoPDF(el, {
+      // PDF LIMPIO hoja-por-hoja (misma corrección que receta): sin "about:blank" ni
+      // fecha del navegador, hoja física exacta, fiel al diseño.
+      const paginas = Array.from(el.querySelectorAll<HTMLElement>('.receta-sheet-wrap'))
+      const objetivo = paginas.length ? paginas : [el]
+      await descargarPaginasComoPDF(objetivo, {
         filename: `Orden_${nombre}_${fechaCorta}`,
-        format: [host.widthMm, host.heightMm],
-        orientation: 'portrait',
-        margin: 0,
+        anchoMm: host.widthMm,
+        altoMm: host.heightMm,
       })
     } catch (e) {
       console.error('PDF error:', e)
@@ -468,8 +487,10 @@ export default function GeneradorOrdenPage() {
   }
 
   const agregarCustom = () => {
-    const txt = prompt('Estudio personalizado:')
-    if (txt && txt.trim()) setEstudios([...estudios, txt.trim()])
+    const t = customEstudio.trim()
+    if (!t) return
+    if (!estudios.includes(t)) setEstudios([...estudios, t])
+    setCustomEstudio(''); setMostrarCustom(false)
   }
 
   if (loading) {
@@ -488,6 +509,10 @@ export default function GeneradorOrdenPage() {
     )
   }
 
+  // Sin estudios, la orden saldría en blanco (membrete + firma, sin contenido).
+  // Se bloquea Imprimir / Word / PDF hasta que haya al menos un estudio.
+  const ordenVacia = estudios.filter(e => e.trim()).length === 0
+
   return (
     <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
       <AvisoConfigNoCargada error={configError} />
@@ -498,7 +523,7 @@ export default function GeneradorOrdenPage() {
           background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)',
           borderRadius: 12, padding: '13px 15px', marginBottom: 14,
         }}>
-          <AlertTriangle size={17} style={{ color: '#ef4444', flexShrink: 0, marginTop: 1 }} />
+          <AlertTriangle size={17} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--text)' }}>
             <strong>Falta tu cédula profesional.</strong> El documento saldrá marcándolo en rojo,
             porque la cédula es requisito del impreso (NOM-004). Agrégala en Configuración → General.
@@ -512,7 +537,7 @@ export default function GeneradorOrdenPage() {
           background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.35)',
           borderRadius: 12, padding: '13px 15px', marginBottom: 14,
         }}>
-          <AlertTriangle size={17} style={{ color: '#f59e0b', flexShrink: 0, marginTop: 1 }} />
+          <AlertTriangle size={17} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--text)' }}>
             <strong>Este documento saldrá sin firma ni sello.</strong> No encontramos la firma
             registrada para el médico de esta nota. Como el consultorio tiene varios médicos, no se
@@ -530,13 +555,13 @@ export default function GeneradorOrdenPage() {
           <button onClick={() => router.push('/configuracion?tab=recetas')} className="btn btn-secondary">
             <Settings size={14} /> Template
           </button>
-          <button onClick={() => { if (configError || descargando) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length } }).catch(() => {}); const h = dimensionesImpresion(recetaConfig); imprimirElemento(document.getElementById('receta-doc'), 'Orden', { anchoMm: h.widthMm, altoMm: h.heightMm }) }} className="btn btn-secondary">
+          <button disabled={ordenVacia} onClick={() => { if (configError || descargando || ordenVacia) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length } }).catch(() => {}); const h = dimensionesImpresion(recetaConfigOri); imprimirElemento(document.getElementById('receta-doc'), 'Orden', { anchoMm: h.widthMm, altoMm: h.heightMm, hojaExacta: true, onError: (m) => toast(m, 'error') }) }} className="btn btn-secondary">
             <Printer size={14} /> Imprimir
           </button>
-          <button onClick={() => { if (configError || descargando) return; descargarWord() }} className="btn btn-secondary" title="Documento editable para tu membrete">
+          <button disabled={ordenVacia} onClick={() => { if (configError || descargando || ordenVacia) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length, formato: 'word' } }).catch(() => {}); descargarWord() }} className="btn btn-secondary" title="Documento editable para tu membrete">
             <FileText size={14} /> Word
           </button>
-          <button onClick={() => { if (configError) return; descargarPDF() }} disabled={descargando || !!configError} className="btn btn-primary">
+          <button onClick={() => { if (configError || ordenVacia) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length, formato: 'pdf' } }).catch(() => {}); descargarPDF() }} disabled={descargando || !!configError || ordenVacia} className="btn btn-primary">
             {descargando
               ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</>
               : <><Download size={14} /> Descargar PDF</>}
@@ -559,10 +584,27 @@ export default function GeneradorOrdenPage() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
               <label style={{ ...labelStyle, margin: 0 }}>Estudios solicitados ({estudios.length})</label>
-              <button onClick={agregarCustom} className="btn btn-secondary btn-sm">
+              <button onClick={() => setMostrarCustom(v => !v)} className="btn btn-secondary btn-sm">
                 <Plus size={12} /> Personalizado
               </button>
             </div>
+
+            {/* Input inline para estudio personalizado (reemplaza prompt() nativo) */}
+            {mostrarCustom && (
+              <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                <input
+                  autoFocus
+                  value={customEstudio}
+                  onChange={(e) => setCustomEstudio(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); agregarCustom() } else if (e.key === 'Escape') { setCustomEstudio(''); setMostrarCustom(false) } }}
+                  placeholder="Nombre del estudio personalizado…"
+                  style={{ ...inputStyle, flex: 1 }}
+                />
+                <button onClick={agregarCustom} disabled={!customEstudio.trim()} className="btn btn-primary btn-sm" style={{ opacity: customEstudio.trim() ? 1 : 0.5 }}>
+                  Agregar
+                </button>
+              </div>
+            )}
 
             {/* Estudios seleccionados (chips) */}
             {estudios.length > 0 && (
@@ -653,7 +695,7 @@ export default function GeneradorOrdenPage() {
               estudios,
               indicaciones,
             }
-            const host = dimensionesImpresion(recetaConfig)
+            const host = dimensionesImpresion(recetaConfigOri)
             const numPages = contarPaginas(dataPreview, configFirma, recetaConfig)   // misma config que el documento
             return (
               <>
@@ -692,7 +734,7 @@ export default function GeneradorOrdenPage() {
           }
           #receta-doc .receta-sheet { box-shadow: none !important; margin: 0 !important; }
           .no-print { display: none !important; }
-          @page { size: ${dimensionesImpresion(recetaConfig).cssPage}; margin: 0; }
+          @page { size: ${dimensionesImpresion(recetaConfigOri).cssPage}; margin: 0; }
         }
         @media (max-width: 1000px) {
           .orden-gen-grid {

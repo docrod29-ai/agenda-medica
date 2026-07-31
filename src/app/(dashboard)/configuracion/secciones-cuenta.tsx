@@ -7,6 +7,7 @@
  * - MiembrosActivos: gestión de miembros del equipo.
  * Sin cambio de comportamiento respecto al monolito original.
  */
+import { guardarFirma, migrarFirmaSiHaceFalta } from '@/lib/firma-protegida'
 import { useState, useEffect } from 'react'
 import type { ClinicConfig, Doctor as DoctorT } from '@/types'
 import { getDoctors, saveConfigPartial } from '@/lib/firestore'
@@ -23,6 +24,7 @@ type EstadoLlave = { configurada: boolean; hint: string }
 interface EstadoIA {
   claves: { anthropic: EstadoLlave; assemblyai: EstadoLlave; openai: EstadoLlave }
   uso: { total: number; prueba: number; limitePrueba: number }
+  creditos?: { usados: number; extra: number; limite: number }
 }
 const PROVEEDORES_IA = [
   { id: 'anthropic', nombre: 'Claude (ordenar la nota)', url: 'https://console.anthropic.com', placeholder: 'sk-ant-...' },
@@ -84,10 +86,36 @@ export function LlavesIASection({ clinicId }: { clinicId: string }) {
         Pon tus propias llaves para que la transcripción y el ordenado con IA corran con <strong>tu saldo</strong> (no compartido). Si no pones ninguna, usas una <strong>prueba gratis</strong> limitada. La llave se guarda cifrada del lado servidor — nunca se muestra completa.
       </p>
 
+      {/* MEDIDOR DE CRÉDITOS del mes (L1 auditoría maestra): antes el médico gastaba
+          a ciegas. Barra usados/límite + recarga cuando queda poco. */}
+      {estado?.creditos && estado.creditos.limite > 0 && (() => {
+        const c = estado.creditos!
+        const tope = c.limite + c.extra
+        const pct = Math.min(100, Math.round((c.usados / tope) * 100))
+        const casiVacio = pct >= 85
+        const color = pct >= 100 ? '#dc2626' : casiVacio ? '#d97706' : 'var(--nexus)'
+        return (
+          <div style={{ background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10, padding: '11px 13px', marginBottom: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 7 }}>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)' }}>Créditos de IA este mes</span>
+              <span style={{ fontSize: 12.5, color: 'var(--text2)' }}><strong style={{ color }}>{c.usados}</strong> / {tope}{c.extra > 0 && <span style={{ color: 'var(--text3)' }}> (incl. {c.extra} recarga)</span>}</span>
+            </div>
+            <div style={{ height: 7, borderRadius: 99, background: 'var(--border)', overflow: 'hidden' }}>
+              <div style={{ width: `${pct}%`, height: '100%', background: color, transition: 'width .3s' }} />
+            </div>
+            {pct >= 100
+              ? <div style={{ fontSize: 11.5, color: '#dc2626', fontWeight: 700, marginTop: 6 }}>Créditos agotados — las acciones de IA se pausan. Recarga o pon tu propia llave abajo.</div>
+              : casiVacio
+                ? <div style={{ fontSize: 11.5, color: '#d97706', marginTop: 6 }}>Te queda poco crédito ({tope - c.usados}). Valora recargar.</div>
+                : null}
+          </div>
+        )
+      })()}
+
       {u && (
         <div style={{ fontSize: 12, color: 'var(--text2)', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', marginBottom: 14 }}>
-          Uso este mes: <strong>{u.total}</strong> · Prueba gratis: <strong>{u.prueba}/{u.limitePrueba}</strong>
-          {u.prueba >= u.limitePrueba && <span style={{ color: '#f59e0b', fontWeight: 700 }}> · prueba agotada, pon tu llave</span>}
+          Acciones de IA este mes: <strong>{u.total}</strong> · Prueba gratis: <strong>{u.prueba}/{u.limitePrueba}</strong>
+          {u.prueba >= u.limitePrueba && <span style={{ color: 'var(--amber)', fontWeight: 700 }}> · prueba agotada, pon tu llave</span>}
         </div>
       )}
 
@@ -163,20 +191,48 @@ export function FirmaUploadSection({ form, clinicId, onLocalChange }: {
   const firmaDataUrl = medicoSel ? form.firmaPorMedico?.[medicoSel] : form.firmaImagenDataUrl
 
   // Guarda la firma del médico (merge conserva las de los demás) o la general.
+  /**
+   * REG-014 — la firma se guarda en el SUBDOCUMENTO PROTEGIDO (`config/firma`),
+   * que solo pueden leer los médicos. Ya NO se escribe en `config/main`, cuyo
+   * `read` es `isMember`: ahí cualquier miembro del consultorio podía leerla con
+   * el SDK y llevársela para estampar recetas.
+   *
+   * `onLocalChange` sigue actualizando el formulario en memoria para que la
+   * vista previa reaccione al instante; lo que cambia es DÓNDE se persiste.
+   */
   const persistir = (url: string | undefined) => {
     const medico = doctores.find(d => d.id === medicoSel)
-    if (medicoSel) {
-      onLocalChange({ firmaPorMedico: { ...(form.firmaPorMedico ?? {}), [medicoSel]: url ?? '' } })
-      if (clinicId) saveConfigPartial(clinicId, { firmaPorMedico: { [medicoSel]: url ?? '' } })
-        .then(() => toast(url ? `Firma de ${medico?.nombre ?? 'médico'} guardada` : 'Firma eliminada', 'success'))
-        .catch((e) => toast(`No se pudo guardar: ${e instanceof Error ? e.message.slice(0, 80) : ''}`, 'error'))
-    } else {
-      onLocalChange({ firmaImagenDataUrl: url })
-      if (clinicId) saveConfigPartial(clinicId, { firmaImagenDataUrl: url ?? '' })
-        .then(() => toast(url ? 'Firma guardada' : 'Firma eliminada', 'success'))
-        .catch((e) => toast(`No se pudo guardar: ${e instanceof Error ? e.message.slice(0, 80) : ''}`, 'error'))
-    }
+    const patch = medicoSel
+      ? { firmaPorMedico: { ...(form.firmaPorMedico ?? {}), [medicoSel]: url ?? '' } }
+      : { firmaImagenDataUrl: url }
+    onLocalChange(patch)
+    if (!clinicId) return
+    guardarFirma(clinicId, medicoSel
+      ? { firmaPorMedico: { [medicoSel]: url ?? '' } }
+      : { firmaImagenDataUrl: url ?? '' })
+      .then(() => toast(
+        url
+          ? (medicoSel ? `Firma de ${medico?.nombre ?? 'médico'} guardada` : 'Firma guardada')
+          : 'Firma eliminada',
+        'success'))
+      .catch((e) => toast(`No se pudo guardar: ${e instanceof Error ? e.message.slice(0, 80) : ''}`, 'error'))
   }
+
+  /**
+   * MIGRACIÓN AUTOMÁTICA. Mientras la firma siga en `config/main`, el agujero
+   * está abierto aunque el código nuevo ya lea del subdocumento. Al abrir esta
+   * sección (solo la abre un médico) se copia y se BORRA del general.
+   * Es idempotente: si no hay nada que migrar, no escribe.
+   */
+  useEffect(() => {
+    if (!clinicId) return
+    migrarFirmaSiHaceFalta(clinicId, {
+      firmaImagenDataUrl: form.firmaImagenDataUrl,
+      firmaPorMedico: form.firmaPorMedico,
+    }).catch(() => { /* si falla, el respaldo del lector mantiene la firma viva */ })
+    // Solo al montar con clinicId: la migración es de una vez.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clinicId])
   const onChange = (url: string | undefined) => persistir(url)
 
   const subir = async (file: File) => {
@@ -365,12 +421,17 @@ export function MembreteNotaSection({ form, clinicId, onLocalChange }: {
     try {
       let dataUrl: string; let sizeBytes: number
       if (esPDF) {
+        // Auditoría papelería 2026-07 (P2): 300 DPI de imprenta (antes 200). Como
+        // la hoja SIEMPRE va a Storage (abajo), el peso ya no es problema.
         const { pdfFileToImageDataUrl } = await import('@/lib/pdf-to-image')
-        const r = await pdfFileToImageDataUrl(file, { dpi: 200, quality: 0.9, type: 'image/jpeg', timeoutMs: 60_000 })
+        const r = await pdfFileToImageDataUrl(file, { dpi: 300, quality: 0.92, type: 'image/jpeg', timeoutMs: 60_000 })
         dataUrl = r.dataUrl; sizeBytes = r.sizeBytes
       } else {
+        // Auditoría papelería 2026-07 (P2): resolución de imprenta ~300 DPI a carta
+        // (2550×3300) en vez de ~146 DPI (1240×1650). El logo y la tipografía del
+        // membrete se imprimen nítidos. Igual criterio que el diseño de receta.
         const esPNG = file.type === 'image/png'
-        const r = await resizeImageFile(file, { maxWidth: 1240, maxHeight: 1650, quality: 0.9, type: esPNG ? 'image/png' : 'image/jpeg' })
+        const r = await resizeImageFile(file, { maxWidth: 2550, maxHeight: 3300, quality: 0.95, type: esPNG ? 'image/png' : 'image/jpeg' })
         dataUrl = r.dataUrl; sizeBytes = r.sizeBytes
       }
       // Subir SIEMPRE a Storage vía el servidor (Admin SDK) — la hoja es página
@@ -433,7 +494,7 @@ export function MembreteNotaSection({ form, clinicId, onLocalChange }: {
           {/* Vista previa con la ZONA de contenido marcada */}
           <div style={{ position: 'relative', width: 160, aspectRatio: `${CW} / ${CH}`, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={membreteUrl} alt="Hoja membretada" style={{ width: '100%', height: '100%', objectFit: 'fill' }} />
+            <img src={membreteUrl} alt="Hoja membretada" style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center' }} />
             <div style={{ position: 'absolute', top: `${m.top / CH * 100}%`, bottom: `${m.bottom / CH * 100}%`, left: `${m.left / CW * 100}%`, right: `${m.right / CW * 100}%`, border: '1.5px dashed #14b8a6', background: 'rgba(20,184,166,0.10)' }} />
           </div>
           <div>
@@ -575,7 +636,7 @@ export function MiembrosActivos({ clinicId, miUid }: { clinicId: string | null; 
                   onClick={() => remover(m)}
                   title="Quitar del equipo"
                   style={{
-                    background: 'rgba(239,68,68,0.1)', color: '#ef4444',
+                    background: 'rgba(239,68,68,0.1)', color: 'var(--red)',
                     border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6,
                     padding: '5px 8px', fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
                   }}

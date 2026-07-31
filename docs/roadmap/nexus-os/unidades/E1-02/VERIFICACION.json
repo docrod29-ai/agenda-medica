@@ -1,0 +1,100 @@
+{
+  "unidad": "E1-02",
+  "titulo": "Vocabulario de conceptos clínicos",
+  "verificador": "adversarial (solo lectura) · 2a pasada",
+  "fecha": "2026-07-30",
+  "pasadaVerificada": 2,
+  "actaAnterior": "El acta de la 1a pasada (veredicto INCOMPLETA, hallazgos V-1…V-4, fecha 2026-07-29) queda en el historial de git de este mismo archivo; aquí se verifica el CIERRE que la 2a pasada afirma.",
+  "veredicto": "INCOMPLETA",
+  "cumpleAceptacion": true,
+  "aceptacionLiteral": "'creatinina', 'Cr' y 'creatinina sérica' resuelven al mismo concepto.",
+
+  "gatesEjecutadosPorMi": {
+    "tsc": "PASS — `npx tsc --noEmit`, exit 0, sin salida",
+    "vitestSuiteCompleta": "PASS — 203 archivos / 2833 tests verdes (`npx vitest run src/__tests__/`)",
+    "vitestSoloE1_02": "PASS — 70/70 (`npx vitest run src/__tests__/clinical-vocabulario.test.ts`)",
+    "build": "PASS — `npm run build`, exit 0 (lo ejecuté yo; la verificación anterior no lo había hecho)",
+    "conclusionSobreLosGates": "Los tres números del acta son EXACTOS: 2833 tests en 203 archivos y 70 en el archivo de la unidad. La aritmética del delta también cierra: `git show HEAD:src/__tests__/clinical-vocabulario.test.ts | grep -cE '^\\s*it(\\.each)?\\('` = 42 bloques, que con la expansión de la única `it.each` de 5 casos dan los 46 previos ⇒ 2809 + 24 = 2833."
+  },
+
+  "loQueSEverificoDeVerdad": {
+    "archivosExisten": "SÍ, los seis. `git status --short`: M src/lib/clinical-fact/vocabulario.ts (597 líneas), M src/__tests__/clinical-vocabulario.test.ts (641), M src/__tests__/fixtures/conceptos.ts (103), M docs/roadmap/nexus-os/estado.json, M docs/roadmap/nexus-os/CHECKPOINT.md, M unidades/E1-02/DISENO.md, ?? unidades/E1-02/RESULTADO.json. `git diff --stat` = 6 archivos, +852/−209.",
+    "aceptacionReal": "SE CUMPLE, medido por mí FUERA de la suite (script propio con `npx tsx` sobre el repo real): resolverConcepto('cr') → 'creatinina', resolverConcepto('Cr') → 'creatinina', resolverConcepto('creatinina en suero') → 'creatinina'. La identidad de OBJETO la fija el test con `toBe` (clinical-vocabulario.test.ts:81-90) sobre el único objeto que crea el `.map` de vocabulario.ts:418; el índice de crearResolvedor (vocabulario.ts:491-494) apunta clave y sinónimos a ese mismo objeto. No es un cumplimiento aparente.",
+    "anticumplimientoEspecimen": "BLINDADO. `creatinina_orina` es concepto propio (vocabulario.ts:435-442) sin un solo sinónimo compartido; T-2 (test:97-117). Medido: resolverConcepto('creatinina urinaria') → 'creatinina_orina'.",
+    "anticumplimientoRegex": "BLINDADO. La resolución es `indice.get(t)` (vocabulario.ts:512): igualdad exacta sobre término normalizado, sin test(), sin includes(), sin \\b. Medido: 'creatinina fantasma' y 'creatinina de control' → `desconocido` en el vocabulario, aunque analitoDe() SÍ los manda a 'creatinina'.",
+    "V1_estaCerradoEnSuNucleo": "SÍ para la clase exacta que devolvió la unidad. `PROCEDENCIA_SINONIMO` (vocabulario.ts:185-245) + invariante T-10 (test:482-538) hacen falsable la afirmación. Medido: analitoDe('hb') = null y analitoDe('bt') = null ⇒ reintroducirlas no tiene oráculo que las respalde y T-10 se pone rojo (CN1 del acta es coherente con el código). El trinquete PROCEDENCIA_CONGELADA = 9 coincide con las 9 entradas reales, y el test exige que cada cita apunte a una clave existente Y que el término citado sea sinónimo de ESA clave (test:506-515): no hay citas huérfanas.",
+    "V2_retiradaVerificada": "SÍ. El diff confirma que 'bmi' salió de `imc` y 'dextrostix' + 'glucosa capilar' salieron de `glucometria`. Medido: los tres → `desconocido`, y T-13 lo fija en las dos direcciones (no resuelven Y no quedan indexados). La corrección al acta anterior sobre 'pulso' es CIERTA y medida: extraerSignosVitales('pulso 80') = {fc:80, resto null, ta:''}.",
+    "citasComprobadasUnaAUna": "Las líneas citadas EXISTEN y dicen lo que la cita afirma: recursos.ts:113 «Presión arterial», :116 «Sistólica», :117 «Diastólica»; recursos.ts:80-88 los 8 LOINC de LOINC_VITALES; analitos.ts:44 la exclusión `\\bcreatinina\\b(?!\\s*(en\\s*)?orina)`; analitos.ts:47 el literal «depuracion de creatinina» dentro del patrón de `tfg`; preop.ts:201 «IMC > 35 kg/m² (B - BMI)»; demo/interactivo/page.tsx:423 `pas: '95', pad: '55'`; uci/page.tsx:527 `<Campo label=\"PAS\" k=\"pas\" …>`. NO hay ni una cita fabricada.",
+    "hallazgoH2Confirmado": "MEDIDO y correcto: analitoDe('depuracion de creatinina') → 'creatinina' (no 'tfg') porque `creatinina` está en analitos.ts:44 y `tfg` en :47 y `ANALITOS.find` devuelve el primero; analitoDe('creatinina urinaria') → 'creatinina'. Ambos quedan asertados en su comportamiento REAL (test:526-537), así que un arreglo silencioso no puede pasar. Regla 5 respetada: analitos.ts NO se tocó.",
+    "regresion": "NINGUNA DETECTADA. `grep -rn 'clinical-fact/vocabulario' src --include=*.ts --include=*.tsx` devuelve SÓLO src/__tests__/clinical-vocabulario.test.ts:38 y src/__tests__/fixtures/conceptos.ts:9 ⇒ cero importadores de producción, luego el cambio de semántica de `opts.dominio` no puede romper a nadie hoy. analitos.ts, parser-clinico.ts, fhir/recursos.ts, cie10.ts, clinical-fact/schema.ts, firestore.rules, impresión y cobros están intactos. Suite completa y build en verde.",
+    "umbralesODosisInventadas": "NINGUNA. El módulo sigue sin un solo número clínico: cero rangos, cero dosis, cero puntos de corte. `unidadConvencional` se COPIA de ANALITOS (vocabulario.ts:427, fijado por T-6). Los únicos números nuevos son (a) los 10 LOINC, copiados y re-verificados contra recursos.ts, y (b) los valores del oráculo del test (fc 80, fr 18, temp 37, spo2 95, peso 72, talla 170), que son entradas SINTÉTICAS para que el patrón del parser case, no umbrales. DISENO.md tampoco introduce ninguno (grep de mg/mmol/umbral/dosis/corte/rango/mEq sobre el diff: 0 líneas).",
+    "phiOSecretos": "NINGUNO. fixtures/conceptos.ts son cadenas de términos y un catálogo ficticio ('concepto_lab_ficticio', 'xx', 'yy'). Sin nombres, sin identificadores, sin llaves.",
+    "contabilidadDelPrograma": "estado.json quita E1-02 de la lista de devueltas, añade la corrida de la 2a pasada con sus gates y mueve Q1…Q7 a `necesitaValidacionDelDr` con `dondeQuedaMarcado`. Coherente. Duplicación menor: Q6 y Q7 aparecen además en `decisionesPendientesDelMedico` con campos vacíos."
+  },
+
+  "problemas": [
+    {
+      "id": "V2-1",
+      "severidad": "P2 — recurrencia atenuada del patrón que devolvió la unidad: afirmación de procedencia más fuerte que la máquina, justo en el texto con el que el Dr. decidirá Q3",
+      "titulo": "El oráculo de laboratorio de T-10 no comprueba procedencia, comprueba COINCIDENCIA con una regex laxa; hay 10 alias multipalabra sin ningún literal en el repo mientras el acta afirma que «el único alias del catálogo sin fuente en el repo es 'cr'»",
+      "evidencia": [
+        "vocabulario.ts:461 — el oráculo 3 es `analitoDe(s)?.clave === c.clave`, y analitoDe (analitos.ts:88-92) casa por `patron.test(n)`, o sea por SUBCADENA delimitada por \\b: cualquier frase que contenga la palabra canónica pasa.",
+        "MEDIDO (npx tsx sobre el repo real): analitoDe('creatinina fantasma') → 'creatinina'. Un sinónimo inventado de ese estilo obtendría «fuente: analitoDe()» en T-10.",
+        "MEDIDO — barrido de los sinónimos del catálogo contra TODO src (normalizado sin acentos, excluyendo vocabulario.ts y __tests__): sin NINGÚN literal en el repo aparecen 'glucosa serica', 'creatinina en suero', 'creatinina plasmatica', 'urea serica', 'nitrogeno ureico en sangre', 'albumina serica', 'sodio serico', 'potasio serico', 'cloro serico' y 'creatinina orina'.",
+        "estado.json → necesitaValidacionDelDr E1-02-Q3 defaultAplicado: «…el único alias del catálogo sin fuente en el repo es 'cr'…»; idéntico en RESULTADO.json → needsClinicalReview.E1-02-Q3. Es falso en el sentido estricto de «fuente en el repo» que la propia unidad usó para RETIRAR 'glucosa capilar' y 'dextrostix' (0 hits de grep).",
+        "RESULTADO.json → queSeHizoEnEstaPasada.1_procedenciaAuditable: «lo confirma un motor de producción ejecutado de verdad (analitoDe / extraerSignosVitales, exigiendo el campo ESPERADO y ningún otro)». El «exigiendo el campo ESPERADO y ningún otro» sólo es cierto para el oráculo de VITALES (test:465-473); para laboratorio no hay nada equivalente."
+      ],
+      "porQueImporta": "El daño es menor que el de 'hb'/'bt' (ésas no resolvían a nada en producción; éstas coinciden con lo que analitoDe ya hace), pero el mecanismo de seguridad de la unidad vuelve a ser una afirmación escrita más fuerte que el candado, y es la que el Dr. leerá al contestar Q3. Ninguna de Q1…Q7 le presenta los alias multipalabra que el agente creó.",
+      "porQueLosTestsNoLoAtrapan": "T-10 los acepta por diseño (oráculo 3); T-4 sólo mira colisión y normalización; T-6 sólo la no-deriva de claves/unidades/etiquetas; T-13 sólo los tres términos retirados."
+    },
+    {
+      "id": "V2-2",
+      "severidad": "P2 — el invariante nuevo no cubre la clase de error que la unidad existe para evitar, salvo en creatinina",
+      "titulo": "T-10 daría VERDE a un sinónimo que confunde espécimen (orina → serie sérica) en los 23 analitos que no son creatinina",
+      "evidencia": [
+        "MEDIDO: analitoDe('potasio urinario') → 'potasio'; analitoDe('sodio en orina') → 'sodio'; analitoDe('albumina urinaria') → 'albumina'; analitoDe('glucosa en orina') → 'glucosa'.",
+        "vocabulario.ts:461 — con esa coincidencia, procedenciaDe() devuelve 'analitoDe()' y T-10 pasa; T-4 no ve colisión (son términos nuevos) y ningún otro test los mira.",
+        "La protección equivalente sólo existe para creatinina: T-2 (test:97-117) más la exclusión de analitos.ts:44. El tipo `Especimen` admite 'orina' y 'sangre-total', pero ESPECIMEN_LAB (vocabulario.ts:372-374) sólo declara creatinina→'suero'."
+      ],
+      "porQueImporta": "El acta presenta T-10 como el candado que impide que vuelva a entrar un mapeo sin fundamento. Impide la clase «abreviatura suelta inventada» ('hb', 'bt'), que es la que causó V-1, pero NO la clase «frase que contiene la palabra canónica y cambia el significado clínico», que es precisamente la que T-2 declara como la peor forma de fingir esta aceptación.",
+      "queHariaFaltaParaCerrarlo": "Software puro, sin criterio clínico: exigir que el oráculo 3 sea literal (que el sinónimo sea una alternativa del `patron` de ANALITOS), o declarar la lista cerrada de adjetivos de espécimen que invalidan la coincidencia."
+    },
+    {
+      "id": "V2-3",
+      "severidad": "P3 — V-3 queda cerrado a medias y el docstring afirma más de lo que hace",
+      "titulo": "Los términos RESERVADOS esquivan el filtro estricto de dominio: `resolverConcepto('pcr', { dominio: 'signo-vital' })` devuelve `ambiguo` con candidatos de LABORATORIO",
+      "evidencia": [
+        "MEDIDO: resolverConcepto('pcr', { dominio: 'signo-vital' }) → {estado:'ambiguo', candidatos:['pcr','pcr_molecular']}, y 'pcr' es la clave del concepto de LABORATORIO (analitos.ts:65).",
+        "vocabulario.ts:507-510 — el corto-circuito de reservados corre ANTES de construir `candidatos` y antes del `.filter(c => !opts?.dominio || …)` de vocabulario.ts:524.",
+        "vocabulario.ts:559 y :568-569 afirman «3. Si viene `opts.dominio`, se FILTRA por él SIEMPRE (no es un desempate)» y «Pedir un dominio que el término no tiene devuelve `desconocido`, nunca el otro concepto». Con 'pcr' + dominio 'signo-vital' no ocurre ninguna de las dos.",
+        "Ningún test cubre esa rama: T-9 (test:369-372) sólo prueba 'pcr' con dominio 'laboratorio', y CASOS_FILTRO_DOMINIO (fixtures/conceptos.ts:62-74) no incluye ningún reservado."
+      ],
+      "porQueImporta": "El propio RESULTADO.json dice que E1-03 «debe consumir resolverConcepto con dominio COMO FILTRO». El primer consumidor recibiría, para un dominio al que el término no pertenece, una clave candidata de otro dominio en vez de `desconocido`. Riesgo hoy: cero (0 importadores). Coste de cerrarlo: 2 líneas y un caso.",
+      "notaJusta": "Que 'pcr' sea `ambiguo` en vez de resuelto es un default conservador correcto y declarado (Q2). Lo que falla es sólo su interacción con el filtro de dominio."
+    },
+    {
+      "id": "V2-4",
+      "severidad": "P3 — aplicación desigual de su propia regla, en una decisión de significado clínico",
+      "titulo": "El estándar «sin fuente en el repo ⇒ no entra» se aplicó a 'glucosa capilar'/'dextrostix'/'bmi' pero no a 'creatinina urinaria' ni a 'creatinina plasmatica', que también deciden a qué serie temporal pertenece un término",
+      "evidencia": [
+        "vocabulario.ts:219-223 — la cita de 'creatinina urinaria' dice literalmente que su fuente (analitos.ts:44) «la palabra «urinaria» NO la cubre»: es una cita que declara que la fuente citada NO respalda el mapeo. T-10 sólo comprueba que `fuente` no esté vacía (test:510), no que sostenga la afirmación.",
+        "MEDIDO: el respaldo que SÍ existe en el repo para ese término no está citado — src/lib/expediente/medical-vocabulary.ts:455 contiene «cociente albúmina-creatinina urinaria» y «creatinina urinaria de 24 horas».",
+        "vocabulario.ts:326 — 'creatinina plasmatica' entra como sinónimo de un concepto cuyo `especimen` se declara 'suero' (vocabulario.ts:372-374): afirma plasma ≡ suero para la misma serie temporal. No tiene literal en el repo (medido) y ninguna de Q1…Q7 lo pregunta: Q4 sólo pregunta si «creatinina» a secas es la SÉRICA.",
+        "Contraste: 'glucosa capilar' se retiró por 0 hits de grep (RESULTADO.json → 2_retiradaDeLoSinFuente) aunque analitoDe('glucosa capilar') → 'glucosa' está MEDIDO en producción."
+      ],
+      "porQueImporta": "Regla 1 de la carta operativa. Que capilar y venosa sean la misma serie se elevó (bien) a pregunta del médico; que plasmática y sérica lo sean se resolvió en silencio, con el mismo grado de respaldo documental. No es un umbral ni una dosis y el riesgo hoy es cero (0 importadores), pero es la clase de decisión que la unidad se comprometió a no tomar sola."
+    }
+  ],
+
+  "loQueNOEsUnProblema": [
+    "El acta NO miente en los gates: reproduje los tres (tsc, vitest 2833/203, build) y el build lo corrí yo, que la verificación anterior no había hecho.",
+    "Las citas archivo:línea son reales, una por una. En una unidad cuyo hallazgo P1 anterior fue una afirmación falsa, fue lo primero que audité y no hallé ninguna fabricada.",
+    "Los cuatro controles negativos del acta son coherentes con el código leído (no los re-ejecuté: exigiría editar y esta verificación es de sólo lectura). CN1 se sostiene sobre analitoDe('hb') = null, medido; CN2 sobre la ausencia de oráculo para 'glucometria' en CAMPO_PARSER_VITAL (test:436-443) más T-13; CN3 sobre el barrido de T-11 (test:554-560); CN4 sobre test:510.",
+    "Que el módulo no extraiga de prosa ('se solicita creatinina de control' → desconocido) sigue siendo un precio declarado del diseño y está probado.",
+    "Que 'pcr' no resuelva por su propio nombre es un default conservador declarado (Q2), no una omisión.",
+    "Mover `opts.dominio` a filtro estricto era el momento correcto (0 importadores) y quedó fijado con un barrido sobre todo el catálogo.",
+    "El acoplamiento nuevo test→producción (T-10 lee recursos.ts como texto y ejecuta analitoDe/extraerSignosVitales) está declarado en riesgoDeRegresion y es deliberado."
+  ],
+
+  "conclusion": "La aceptación literal se cumple de verdad (identidad de objeto, medida por mí fuera de la suite), no se rompió nada (0 importadores de producción, 2833/2833 tests, tsc y build verdes), no se inventó ningún umbral, dosis ni regla clínica, y no hay PHI ni secretos. La 2a pasada SÍ avanzó: V-1 tiene ya un invariante de máquina que caza la reintroducción de 'hb'/'bt', V-2 se retiró/citó con medición real (incluida la corrección honesta sobre 'pulso'), V-3 se cambió y V-4 se declaró. Pero NO es CONFIRMADA, por el mismo motivo estructural que la primera vez: la afirmación escrita sigue siendo más fuerte que el candado. El oráculo de laboratorio de T-10 valida coincidencia con una regex laxa, no procedencia (V2-1: 10 alias multipalabra sin literal en el repo, y la frase «el único alias sin fuente es 'cr'» que el Dr. leerá en Q3), y por eso el invariante daría verde a un sinónimo que confunde espécimen en los 23 analitos que no son creatinina (V2-2). Además el filtro de dominio no es estricto para los reservados, contra lo que afirma su propio docstring (V2-3), y la regla «sin fuente ⇒ no entra» se aplicó de forma desigual en una decisión de significado clínico (V2-4). Los cuatro son software: ninguno exige criterio médico para cerrarse, y el riesgo en producción hoy es CERO."
+}

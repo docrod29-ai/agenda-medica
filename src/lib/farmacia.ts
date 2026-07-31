@@ -89,7 +89,22 @@ export async function crearItem(clinicId: string, data: Omit<FarmaciaItem, 'id'>
 }
 
 export async function actualizarItem(clinicId: string, itemId: string, data: Partial<FarmaciaItem>): Promise<void> {
-  await updateDoc(doc(COL(clinicId), itemId), { ...data, updatedAt: new Date().toISOString() })
+  /**
+   * EDITAR METADATOS NUNCA TOCA EXISTENCIAS.
+   *
+   * El modal de edición precargaba `cantidad` con el valor que el ítem tenía AL
+   * ABRIRSE y lo reescribía con un updateDoc plano, fuera del ledger transaccional.
+   * Corregir el proveedor de un ítem revertía en silencio cualquier dispensación
+   * hecha entre que se abrió el modal y se guardó: el stock "reaparecía" y el
+   * movimiento quedaba huérfano. Es pérdida de dato de inventario, grave con
+   * controlados.
+   *
+   * Las existencias SOLO se mueven por `registrarMovimiento` (transacción que
+   * relee el stock real). Aquí se descarta `cantidad` aunque el caller la mande.
+   */
+  const { cantidad: _ignora, ...metadatos } = data
+  void _ignora
+  await updateDoc(doc(COL(clinicId), itemId), { ...metadatos, updatedAt: new Date().toISOString() })
 }
 
 export async function borrarItem(clinicId: string, itemId: string): Promise<void> {
@@ -110,7 +125,7 @@ export async function registrarMovimiento(
   clinicId: string,
   itemActual: FarmaciaItem,
   mov: Omit<MovimientoFarmacia, 'id' | 'fecha'>,
-): Promise<void> {
+): Promise<number> {   // devuelve la cantidad REALMENTE aplicada (puede ser < la solicitada por clamp)
   if (!itemActual.id) throw new Error('Item sin id')
   const fecha = new Date().toISOString()
   const itemRef = doc(COL(clinicId), itemActual.id)
@@ -118,7 +133,7 @@ export async function registrarMovimiento(
   // TRANSACCIÓN: lee la existencia ACTUAL del doc (no la que trae el caller, que
   // puede estar vieja) y calcula desde ahí. Antes, dos salidas concurrentes
   // partían del mismo valor viejo → last-write-wins descuadraba el stock.
-  await runTransaction(db, async (tx) => {
+  return await runTransaction(db, async (tx) => {
     const snap = await tx.get(itemRef)
     const disponible = snap.exists() ? Number((snap.data() as { cantidad?: number }).cantidad ?? 0) : itemActual.cantidad
     let nuevaCantidad = disponible
@@ -138,6 +153,7 @@ export async function registrarMovimiento(
     // Movimiento con la cantidad REAL aplicada (libros cuadran) + stock resultante.
     tx.set(doc(COL_MOV(clinicId)), { ...mov, cantidad: cantidadAplicada, motivo: (mov.motivo ?? '') + notaAjuste, fecha })
     tx.update(itemRef, { cantidad: nuevaCantidad, updatedAt: fecha })
+    return cantidadAplicada
   })
 }
 

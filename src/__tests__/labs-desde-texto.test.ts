@@ -100,3 +100,22 @@ describe('mapeo de estudios a laboratorios', () => {
     expect(labsDesdeEstudios([{ texto: 'Radiografía de tórax', valor: '2' }])).toEqual({})
   })
 })
+
+/**
+ * REGRESIÓN auditoría 2026-07 (P2): «colesterol no-HDL» casaba \bhdl\b (el guion
+ * separa palabra) y un no-HDL de 140 se guardaba como un HDL excelente → PREVENT
+ * subestimaba el riesgo cardiovascular.
+ */
+describe('Colesterol no-HDL no se confunde con HDL', () => {
+  const mapa = (texto: string, valor: string) => labsDesdeEstudios([{ texto, valor }])
+  it('«colesterol no-HDL» NO se guarda como hdl', () => {
+    expect(mapa('colesterol no-HDL', '140').hdl).toBeUndefined()
+  })
+  it('«no HDL» con espacio tampoco', () => {
+    expect(mapa('no HDL', '140').hdl).toBeUndefined()
+  })
+  it('el HDL de verdad sí se sigue capturando', () => {
+    expect(mapa('HDL', '45').hdl).toBe(45)
+    expect(mapa('colesterol HDL', '52').hdl).toBe(52)
+  })
+})

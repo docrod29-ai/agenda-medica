@@ -10,8 +10,9 @@ import { useAuth } from '@/hooks/useAuth'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { Modal, Button, Spinner } from '@/components/ui'
 import { MODULOS, MODULO_LABEL } from '@/lib/modulos'
+import { PLANES, PLANES_ORDEN, MODULOS_POR_PLAN } from '@/lib/planes-ia'
 import { type ModeloPrecio, explicarPrecio } from '@/lib/pricing'
-import { ShieldCheck, Search, Gift, Ban, Play, CalendarPlus, StickyNote, Lock, RefreshCw, Package, Plus, Trash2, Boxes, Sparkles, TrendingUp, LogIn, LifeBuoy, Bug } from 'lucide-react'
+import { ShieldCheck, Search, Gift, Ban, Play, CalendarPlus, StickyNote, Lock, RefreshCw, Package, Plus, Trash2, Boxes, Sparkles, TrendingUp, LogIn, LifeBuoy, Bug, Coins } from 'lucide-react'
 
 interface Cliente {
   id: string; esMio?: boolean; nombreClinica: string; nombreMedico: string
@@ -98,6 +99,9 @@ export default function SuperadminPage() {
           </a>
           <a href="/superadmin/errores" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--s2)', color: 'var(--text)', textDecoration: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 13px', fontSize: 13, fontWeight: 700 }}>
             <Bug size={14} /> Errores
+          </a>
+          <a href="/superadmin/costos" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--s2)', color: 'var(--text)', textDecoration: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 13px', fontSize: 13, fontWeight: 700 }}>
+            <Coins size={14} /> Costo de la IA
           </a>
           <a href="/superadmin/contabilidad" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#000', textDecoration: 'none', borderRadius: 8, padding: '7px 13px', fontSize: 13, fontWeight: 700 }}>
             <TrendingUp size={14} /> Contabilidad
@@ -338,7 +342,11 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
           <div style={{ display: 'flex', gap: 8 }}>
             {(['pro', 'premium'] as const).map(n => {
               const activo = nivelIA === n
-              const label = n === 'pro' ? 'Pro ($899) · Sonnet 5' : 'Premium ($1,999) · Opus 4.8 + GPT-5'
+              // Derivado de PLANES (fuente única): el literal estaba desincronizado
+              // — decía Premium $1,999 cuando el plan es "Pro" (precio en @/lib/planes-ia).
+              const label = n === 'pro'
+                ? `${PLANES.clinica.nombre} ($${PLANES.clinica.precioMXN.toLocaleString('es-MX')}) · Sonnet 5`
+                : `${PLANES.premium.nombre} ($${PLANES.premium.precioMXN.toLocaleString('es-MX')}) · Opus 4.8 + GPT-5`
               return (
                 <button key={n} disabled={busy === 'set_nivel_ia'}
                   onClick={() => { setNivelIA(n); accion('set_nivel_ia', { nivelIA: n }) }}
@@ -455,34 +463,61 @@ function PaquetesManager({ paquetes, onCambio }: { paquetes: Paquete[]; onCambio
     if (!editar || !editar.nombre.trim() || editar.modulos.length === 0) return
     setBusy(true)
     try {
-      await fetchAutenticado('/api/superadmin/paquetes', {
+      // Verifica res.ok: antes un fallo del servidor cerraba el modal como si hubiera
+      // guardado. Ahora se mantiene abierto y avisa.
+      const r = await fetchAutenticado('/api/superadmin/paquetes', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accion: editar.id ? 'editar' : 'crear', id: editar.id, paquete: editar }),
       })
+      if (!r.ok) { alert('No se pudo guardar el paquete. Reintenta.'); return }
       setEditar(null); onCambio()
-    } finally { setBusy(false) }
+    } catch { alert('No se pudo guardar el paquete (revisa tu conexión).') }
+    finally { setBusy(false) }
   }
   const borrar = async (id: string) => {
+    // Confirmación en una acción destructiva (los otros borrados de la app sí confirman).
+    if (!window.confirm('¿Eliminar este paquete? No se puede deshacer.')) return
     setBusy(true)
     try {
-      await fetchAutenticado('/api/superadmin/paquetes', {
+      const r = await fetchAutenticado('/api/superadmin/paquetes', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accion: 'borrar', id }),
       })
+      if (!r.ok) { alert('No se pudo eliminar el paquete.'); return }
       onCambio()
-    } finally { setBusy(false) }
+    } catch { alert('No se pudo eliminar el paquete (revisa tu conexión).') }
+    finally { setBusy(false) }
   }
   const toggle = (k: string) => setEditar(e => e ? { ...e, modulos: e.modulos.includes(k) ? e.modulos.filter(x => x !== k) : [...e.modulos, k] } : e)
 
   // Genera paquetes de ejemplo (todos editables después). Solo para arrancar.
   const sugeridos = async () => {
     setBusy(true)
-    const base: { nombre: string; precio: number; modulos: string[]; descripcion: string }[] = [
-      { nombre: 'Solo agenda', precio: 399, modulos: ['agenda'], descripcion: 'Citas, calendario y recordatorios' },
-      { nombre: 'Consulta', precio: 699, modulos: ['agenda', 'expediente'], descripcion: 'Agenda + expediente de consulta' },
-      { nombre: 'Hospital', precio: 999, modulos: ['agenda', 'hospitalizacion'], descripcion: 'Agenda + módulo de hospitalización' },
-      { nombre: 'Todo', precio: 1799, modulos: MODULOS.map(m => m.key), descripcion: 'Acceso completo a la plataforma' },
-    ]
+    /**
+     * P0-2 de la auditoría de monetización: aquí vivía un SEGUNDO catálogo de
+     * precios, quemado en el componente, que NO coincidía con `PLANES` en
+     * ninguno de sus cuatro renglones:
+     *
+     *     aquí decía          PLANES dice
+     *     Solo agenda  399    Agenda    349
+     *     Consulta     699    Clínica   899
+     *     Hospital     999    Hospital  3499
+     *     Todo        1799    —
+     *
+     * Y no era decorativo: son los paquetes que el superadmin siembra y vende.
+     * Un precio que depende de qué pantalla mires no es un precio.
+     *
+     * Ahora sale del catálogo central. Cambiar un precio se hace en UN sitio.
+     */
+    const base = PLANES_ORDEN.map(clave => {
+      const p = PLANES[clave]
+      return {
+        nombre: p.nombre,
+        precio: p.precioMXN,
+        modulos: MODULOS_POR_PLAN[clave] ?? [],
+        descripcion: p.incluye[0] ?? '',
+      }
+    })
     try {
       for (let i = 0; i < base.length; i++) {
         await fetchAutenticado('/api/superadmin/paquetes', {

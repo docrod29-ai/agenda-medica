@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarMiembro } from '@/lib/auth-server'
 import { resumirEntregas } from '@/lib/whatsapp/entregas'
@@ -44,7 +45,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ ok: true, dias, resumen: resumirEntregas(items) })
   } catch (err) {
-    console.error('[whatsapp/entregas] error:', err)
+    safeLog.error('[whatsapp/entregas] error:', err)
     return NextResponse.json({ error: 'No se pudo leer la entregabilidad' }, { status: 500 })
   }
 }

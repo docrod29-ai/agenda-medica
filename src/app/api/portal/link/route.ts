@@ -22,6 +22,17 @@ export async function POST(req: NextRequest) {
 
   // Origen real desde el navegador del personal (la URL que el médico está usando)
   const origin = req.headers.get('origin') || req.nextUrl.origin
-  const url = linkPortalPaciente(origin, body.clinicId, body.patientId)
+  /**
+   * E0-06 — alcance `agenda`, EXPLÍCITO.
+   *
+   * Esta ruta la puede llamar cualquier miembro (incluida la asistente), y devuelve
+   * el token al navegador de quien la llama. Con alcance clínico eso era una
+   * credencial de 30 días con secreto médico en manos de un rol que firestore.rules
+   * mantiene fuera del expediente: el mismo bypass que ya se cerró en
+   * /api/telesalud/token. El enlace sigue sirviendo para lo que se usa —confirmar,
+   * cancelar y reagendar citas—; los documentos clínicos exigen un enlace emitido
+   * por un médico.
+   */
+  const url = linkPortalPaciente(origin, body.clinicId, body.patientId, undefined, 'agenda')
   return NextResponse.json({ url })
 }

@@ -19,24 +19,29 @@ import { useClinic } from '@/context/ClinicContext'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/context/ToastContext'
 import {
-  listarCobros, agregarResumen, cobrosACSV, fmtMXN,
+  listarCobros, agregarResumen, cobrosACSV, fmtMXN, cancelarCobro,
   METODO_LABEL, CONCEPTO_LABEL,
   type Cobro, type MetodoPago, type ConceptoCobro, type ResumenMes,
 } from '@/lib/cobros'
 import { CobrarModal } from '@/components/CobrarModal'
+import { PanelComisiones } from '@/components/PanelComisiones'
 import { useSearchParams } from 'next/navigation'
 import { CorteCajaContenido } from '../corte-caja/page'
 import {
   TrendingUp, Download, Plus, ChevronLeft, ChevronRight, Loader2,
-  DollarSign, Receipt, Activity, Users, Banknote, Landmark, CreditCard,
+  DollarSign, Receipt, Activity, Users, Banknote, Landmark, CreditCard, AlertTriangle,
 } from 'lucide-react'
+
+import { hoyISO } from '@/lib/timezone'
 
 type Periodo = 'dia' | 'semana' | 'mes'
 
-// ───────────── Helpers de fechas (UTC, para casar con cobro.dia) ─────────────
-// cobro.dia se guarda como toISOString().slice(0,10) (día UTC); todo el cálculo
-// de rangos se hace en UTC para que los buckets coincidan exactamente.
-function hoyISO(): string { return new Date().toISOString().slice(0, 10) }
+// ───────────── Helpers de fechas ─────────────
+// La aritmética de calendario sobre cadenas YYYY-MM-DD sí va en UTC: sumar días
+// o buscar el lunes de la semana no depende de zona horaria. Lo que SÍ dependía
+// —y estaba mal— era "hoy": con el día UTC, cualquier consulta a partir de las
+// 18:00 hora de México caía en el día siguiente y Finanzas abría en mañana,
+// vacío. Ese es el mismo defecto que vaciaba el corte de caja al cerrar.
 
 function addDias(iso: string, n: number): string {
   const d = new Date(iso + 'T00:00:00Z')
@@ -121,7 +126,9 @@ export default function FinanzasPage() {
   const [loading, setLoading] = useState(true)
   const [creando, setCreando] = useState(false)
   const sp = useSearchParams()
-  const [tab, setTab] = useState<'reportes' | 'corte'>(sp.get('tab') === 'corte' ? 'corte' : 'reportes')
+  const [tab, setTab] = useState<'reportes' | 'corte' | 'comisiones'>(
+    sp.get('tab') === 'corte' ? 'corte' : sp.get('tab') === 'comisiones' ? 'comisiones' : 'reportes',
+  )
 
   const { desde, hasta } = useMemo(() => rangoDe(periodo, ancla), [periodo, ancla])
 
@@ -133,12 +140,22 @@ export default function FinanzasPage() {
     Promise.all([
       listarCobros(clinicId, desde, hasta),
       listarCobros(clinicId, pDesde, pHasta),
-    ]).then(([actual, anterior]) => {
+      // Incluye cancelados SOLO para poder mostrarlos: antes un cobro anulado era
+      // invisible en toda la app, que es justo lo que lo hacía útil para ocultar
+      // una sustracción. Se filtra a los cancelados para la tarjeta de auditoría.
+      listarCobros(clinicId, desde, hasta, true),
+    ]).then(([actual, anterior, conCancelados]) => {
       setCobros(actual)
       setResumenAnterior(agregarResumen(anterior))
+      setCancelados(conCancelados.filter(c => c.cancelado))
     }).finally(() => setLoading(false))
   }, [clinicId, periodo, ancla, desde, hasta])
 
+  const [cancelados, setCancelados] = useState<Cobro[]>([])
+  // Anulación de un cobro (captura equivocada): modal con motivo obligatorio.
+  const [anulando, setAnulando] = useState<Cobro | null>(null)
+  const [motivoAnul, setMotivoAnul] = useState('')
+  const [anulaGuardando, setAnulaGuardando] = useState(false)
   const resumen = useMemo(() => agregarResumen(cobros), [cobros])
   const cambio = resumenAnterior
     ? ((resumen.totalIngresos - resumenAnterior.totalIngresos) / Math.max(1, resumenAnterior.totalIngresos)) * 100
@@ -164,8 +181,14 @@ export default function FinanzasPage() {
 
   const recargar = async () => {
     if (!clinicId) return
-    const c = await listarCobros(clinicId, desde, hasta)
+    // Recarga TAMBIÉN los cancelados: al anular, la tarjeta roja "Cobros anulados"
+    // se poblaba solo en el useEffect inicial y quedaba rezagada de la acción.
+    const [c, conCancelados] = await Promise.all([
+      listarCobros(clinicId, desde, hasta),
+      listarCobros(clinicId, desde, hasta, true),
+    ])
     setCobros(c)
+    setCancelados(conCancelados.filter(x => x.cancelado))
   }
 
   // Desglose Efectivo vs Transferencia (lo que el médico más consulta)
@@ -202,7 +225,7 @@ export default function FinanzasPage() {
 
       {/* Pestañas: Reportes · Corte de caja (antes eran 2 entradas de menú) */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 18, borderBottom: '1px solid var(--border)' }}>
-        {([['reportes', 'Reportes'], ['corte', 'Corte de caja']] as const).map(([k, label]) => {
+        {([['reportes', 'Reportes'], ['corte', 'Corte de caja'], ['comisiones', 'Comisiones']] as const).map(([k, label]) => {
           const activo = tab === k
           return (
             <button key={k} onClick={() => setTab(k)} style={{
@@ -216,6 +239,8 @@ export default function FinanzasPage() {
 
       {tab === 'corte' ? (
         <CorteCajaContenido embedded />
+      ) : tab === 'comisiones' ? (
+        <PanelComisiones clinicId={clinicId} cobros={cobros} />
       ) : (
       <>
       {/* Selector de periodo (Hoy · Semana · Mes) */}
@@ -458,6 +483,11 @@ export default function FinanzasPage() {
                     <div style={{ fontSize: 14, fontWeight: 700, color: c.monto >= 0 ? '#10b981' : '#ef4444', textAlign: 'right' }}>
                       {fmtMXN(c.monto)}
                     </div>
+                    <button
+                      onClick={() => { setAnulando(c); setMotivoAnul('') }}
+                      title="Anular este cobro (captura equivocada)"
+                      style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text3)', fontSize: 11, padding: '4px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    >Anular</button>
                   </div>
                 ))
               )}
@@ -469,6 +499,42 @@ export default function FinanzasPage() {
       </>
       )}
 
+      {cancelados.length > 0 && (
+        <div style={{
+          border: '1px solid rgba(220,38,38,0.3)', borderRadius: 14,
+          background: 'rgba(220,38,38,0.05)', padding: 16, marginTop: 20,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <AlertTriangle size={15} style={{ color: '#dc2626' }} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+              Cobros anulados en este periodo · {cancelados.length}
+            </span>
+          </div>
+          <p style={{ fontSize: 11.5, color: 'var(--text3)', margin: '0 0 12px' }}>
+            No cuentan en los totales. Se listan para que toda anulación quede a la vista, con quién la hizo y por qué.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {cancelados.map(c => (
+              <div key={c.id} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12,
+                fontSize: 12.5, paddingBottom: 8, borderBottom: '1px solid var(--border)',
+              }}>
+                <div>
+                  <div style={{ color: 'var(--text2)', textDecoration: 'line-through' }}>
+                    {fmtMXN(c.monto)} · {CONCEPTO_LABEL[c.concepto] ?? c.concepto}{c.patientNombre ? ` · ${c.patientNombre}` : ''}
+                  </div>
+                  <div style={{ color: 'var(--text3)', fontSize: 11.5, marginTop: 2 }}>
+                    Motivo: {c.motivoCancelacion || '— sin motivo —'}
+                    {c.canceladoEn ? ` · ${new Date(c.canceladoEn).toLocaleDateString('es-MX')}` : ''}
+                  </div>
+                </div>
+                <span style={{ fontSize: 11, color: '#dc2626', fontWeight: 600, flexShrink: 0 }}>ANULADO</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {creando && clinicId && user && (
         <CobrarModal
           clinicId={clinicId}
@@ -476,6 +542,47 @@ export default function FinanzasPage() {
           onClose={() => setCreando(false)}
           onCobrado={() => { recargar() }}
         />
+      )}
+
+      {anulando && (
+        <div
+          onClick={() => !anulaGuardando && setAnulando(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 16, padding: 22, width: '100%', maxWidth: 420 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Anular cobro</div>
+            <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 14 }}>
+              {anulando.patientNombre ?? 'Sin paciente'} · {fmtMXN(anulando.monto)} · {anulando.folio}
+              <br />No se borra: queda registrado como anulado (con motivo, quién y cuándo). Si estaba ligado a una cita, podrás volver a cobrarla.
+            </div>
+            <textarea
+              value={motivoAnul}
+              onChange={e => setMotivoAnul(e.target.value)}
+              placeholder="Motivo de la anulación (obligatorio). Ej. monto capturado por error."
+              rows={3}
+              style={{ width: '100%', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', fontSize: 13, color: 'var(--text)', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }}
+            />
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16 }}>
+              <button disabled={anulaGuardando} onClick={() => setAnulando(null)} style={{ background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
+              <button
+                disabled={anulaGuardando || !motivoAnul.trim() || !clinicId || !user}
+                onClick={async () => {
+                  if (!clinicId || !user || !anulando?.id) return
+                  setAnulaGuardando(true)
+                  try {
+                    await cancelarCobro(clinicId, anulando.id, motivoAnul.trim(), user.uid)
+                    toast('Cobro anulado', 'info')
+                    setAnulando(null)
+                    await recargar()
+                  } catch (e) {
+                    toast(e instanceof Error ? e.message : 'No se pudo anular', 'error')
+                  } finally { setAnulaGuardando(false) }
+                }}
+                style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: (anulaGuardando || !motivoAnul.trim()) ? 'default' : 'pointer', opacity: (anulaGuardando || !motivoAnul.trim()) ? 0.6 : 1 }}
+              >{anulaGuardando ? 'Anulando…' : 'Anular cobro'}</button>
+            </div>
+          </div>
+        </div>
       )}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

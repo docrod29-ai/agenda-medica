@@ -12,7 +12,7 @@ import { REF } from './referencias'
 import {
   organismoEs, estado, ES_R, ES_S,
   IMIPENEM, MEROPENEM, CEFTAZIDIMA, CEFEPIME, PIP_TAZO, AZTREONAM,
-  CEFTAZIDIMA_AVIBACTAM, COTRIMOXAZOL, CARBAPENEM, algunoR, algunoS,
+  CEFTAZIDIMA_AVIBACTAM, COTRIMOXAZOL, CARBAPENEM_ANTIPSEUDOMONAS, algunoR, algunoS, presente,
 } from './util'
 import { CLASES } from './betalactamasas'
 
@@ -32,7 +32,8 @@ function pseudomonas(r: ResultadoAntibiograma[], out: AporteModulo) {
   const fep = estado(r, CEFEPIME)
   const piptazo = estado(r, PIP_TAZO)
   const cza = estado(r, CEFTAZIDIMA_AVIBACTAM)
-  const carbaR = algunoR(r, CARBAPENEM)
+  // Sin ertapenem: es R intrínseco en no-fermentadores (auditoría 2026-07 P0).
+  const carbaR = algunoR(r, CARBAPENEM_ANTIPSEUDOMONAS)
   const otrosBetaR = ES_R(caz) || ES_R(piptazo) || ES_R(fep)
 
   // Patrón 1: imipenem R aislado (meropenem S y demás β-lactámicos S) → pérdida de OprD.
@@ -57,6 +58,38 @@ function pseudomonas(r: ResultadoAntibiograma[], out: AporteModulo) {
    * expulsión (MexAB-OprM), no de una carbapenemasa — precisamente porque una
    * carbapenemasa arrastraría también a las cefalosporinas.
    */
+  /**
+   * ═══ DATO AUSENTE ≠ CONSERVADO (E0-15b) ═══
+   *
+   * `otrosBetaR` se calcula con `ES_R(...)`, que es falso tanto si el fármaco es
+   * S como si NO SE PROBÓ. Con un panel que no incluye ceftazidima/cefepime/
+   * pip-tazo, un imipenem-R + meropenem-R se degradaba a «porina + bomba»
+   * (fenotipo benigno) y se SUPRIMÍA la sospecha de carbapenemasa, su alerta
+   * crítica, la NOM-045 y el aislamiento — a partir de cefalosporinas que nadie
+   * midió.
+   *
+   * Solo se degrada si las cefalosporinas están PROBADAS y conservadas.
+   */
+  const cefalosporinasProbadas = presente(r, CEFTAZIDIMA) || presente(r, CEFEPIME) || presente(r, PIP_TAZO)
+  if (carbaR && !otrosBetaR && !cefalosporinasProbadas) {
+    out.fenotipos.push({
+      clave: 'carbapenemasa-indeterminada',
+      nombre: 'Carbapenémicos R — mecanismo INDETERMINADO (panel incompleto)',
+      confianza: 'sospecha',
+      base: `Carbapenémicos no-S en P. aeruginosa, pero el panel no probó ceftazidima, cefepime ni piperacilina-tazobactam: son ESAS las que distinguen una carbapenemasa (que las arrastraría) de la combinación porina + bomba de expulsión (que las respeta). Un antimicrobiano no probado no equivale a conservado. ${REF.NO_FERM}`,
+    })
+    out.mecanismos.push({
+      categoria: 'porina',
+      nombre: 'Mecanismo de resistencia a carbapenémicos indeterminado',
+      confianza: 'sospecha',
+      explicacion: 'No se puede distinguir carbapenemasa de porina + bomba con este panel. Completar con ceftazidima, cefepime y piperacilina-tazobactam, y confirmar por prueba fenotípica/molecular según disponibilidad.',
+      referencia: REF.NO_FERM,
+    })
+    out.advertencias.push('Panel incompleto en P. aeruginosa carbapenem-R: solicitar cefalosporinas antipseudomónicas. NO se asume mecanismo benigno ni carbapenemasa.')
+    out.carbapenemasa = { resistenciaSospechada: true, confirmada: false, clase: 'UNKNOWN' }
+    return out
+  }
+
   if (carbaR && !otrosBetaR) {
     out.fenotipos.push({
       clave: 'porina-perdida',
@@ -101,7 +134,8 @@ function pseudomonas(r: ResultadoAntibiograma[], out: AporteModulo) {
 
 // ── Acinetobacter baumannii ─────────────────────────────────────────────────
 function acinetobacter(r: ResultadoAntibiograma[], out: AporteModulo) {
-  const carbaR = algunoR(r, CARBAPENEM)
+  // Sin ertapenem: es R intrínseco en no-fermentadores (auditoría 2026-07 P0).
+  const carbaR = algunoR(r, CARBAPENEM_ANTIPSEUDOMONAS)
   if (carbaR) {
     out.fenotipos.push({ clave: 'carbapenemasa', nombre: 'A. baumannii resistente a carbapenémicos (oxacilinasa tipo OXA)', confianza: 'probable', base: `Carbapenémico R en A. baumannii: lo más frecuente es una oxacilinasa con actividad carbapenemasa (OXA-23/24/58) sobre la OXA-51 intrínseca, potenciada por ISAba1. ${REF.NO_FERM}` })
     out.mecanismos.push({ categoria: 'β-lactamasa', nombre: 'Carbapenemasa OXA (clase D)', ambler: 'D', confianza: 'probable', explicacion: 'Las OXA de A. baumannii no se inhiben con clavulanato; ISAba1 aporta el promotor que sobreexpresa la enzima. También pueden coexistir MBL (IMP/VIM/NDM) y AmpC (ADC).', referencia: REF.NO_FERM })

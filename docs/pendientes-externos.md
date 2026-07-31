@@ -29,22 +29,49 @@
    `STRIPE_WEBHOOK_SECRET`, y las de Facturama. (El código de cobro/paywall ya existe; solo faltan llaves.)
 4. Configurar el **webhook de Stripe** apuntando a `/api/stripe/...` (te doy la URL exacta cuando lo hagas).
 
+### 3. Protección de rama en `main`  — *el gate clínico YA existe, falta que BLOQUEE* (unidad E0-11)
+
+**Estado real:** el CI ya corre en cada Pull Request un job llamado **`clinical-safety`** que
+verifica los 78 archivos de invariantes clínicos y de seguridad, y que además detecta si alguien
+**borró, apagó (`skip`/`only`) o vació** uno de ellos. Funciona y está probado
+(`docs/ci/clinical-safety-gate.md`).
+
+**Lo que el código NO puede hacer:** *impedir el merge*. Eso lo decide GitHub. Hoy, un PR con el
+gate en **rojo** se puede mergear igual — el gate avisa, pero no bloquea.
+
+**Qué hacer (≈5 min, una sola vez):** en `github.com/docrod29-ai/agenda-medica` →
+**Settings → Rules → Rulesets → New branch ruleset** (o *Settings → Branches*), sobre `main`:
+
+1. **Require a pull request before merging** — si no, `push` directo a `main` es una puerta trasera.
+2. **Require status checks to pass** → marcar exactamente **`clinical-safety`** *y* **`verificar`**.
+3. **Require branches to be up to date before merging** — evita el merge que rompe el invariante
+   solo al combinarse con lo que ya está en `main`.
+4. **Do not allow bypassing the above settings** (incluir administradores; si no, el dueño se
+   salta su propio gate sin querer).
+
+**Sin el paso 2, la unidad E0-11 queda a medias**: el código está completo, pero el criterio de
+aceptación («un PR que rompe un invariante clínico no puede mergearse») no se cumple.
+
+**Opcional, mismo sitio:** `.github/CODEOWNERS` ya asigna los directorios clínicos a `@docrod29-ai`.
+Para que sirva hay que activar **Require review from Code Owners** en el mismo ruleset, y confirmar
+que ese es tu handle real de GitHub (se dedujo de la URL del remoto, no está verificado).
+
 ---
 
 ## 🛡️ Seguridad verificable (requiere infraestructura o terceros)
 
-### 3. Recuperación probada (PITR + restore drill)
+### 4. Recuperación probada (PITR + restore drill)
 - Activar **Point-in-Time Recovery** en Firestore (GCP Console) y **backups programados** (`gcloud firestore backups`).
 - Correr **una restauración de prueba** en un proyecto/entorno staging y medir RPO/RTO.
 - **Hasta que no se pruebe la restauración**, el control sigue "en proceso" en `/seguridad` (es lo honesto).
 - El diseño y objetivos ya están en `docs/security/backup-and-restore.md`.
 
-### 4. Pentest externo
+### 5. Pentest externo
 - Contratar una **firma de seguridad** (pentest de aplicación web + API). Rango típico PyME: variable.
 - Entregable: reporte con hallazgos priorizados → los corregimos → se puede citar "evaluado por terceros".
 - Checklist de preparación: `docs/security/pentest-readiness.md`.
 
-### 5. Certificación / evaluación regulatoria
+### 6. Certificación / evaluación regulatoria
 - No existe hoy y **no se puede afirmar sin que un tercero la emita** (sería falso).
 - Caminos: evaluación **ISO 27001** (seguridad de la información) y, para dispositivo médico/SaMD, lo que aplique con **COFEPRIS**.
 - Es un proyecto con costo y tiempo; se arranca cuando haya tracción comercial que lo justifique.
@@ -53,11 +80,11 @@
 
 ## 📈 Cosas que solo llegan con uso real (no se pueden inventar)
 
-### 6. Métricas públicas de precisión y rendimiento
+### 7. Métricas públicas de precisión y rendimiento
 - Requieren **medir con datos reales** (p. ej. exactitud de la nota por voz, tiempos). Publicarlas inventadas es justo lo que evitamos.
 - Cuando haya volumen, se instrumenta y se publican **con su método** (no como eslogan).
 
-### 7. Prueba social / usuarios verificables
+### 8. Prueba social / usuarios verificables
 - Testimonios y logos reales requieren **clientes reales**. Mientras tanto, la página es honesta ("producto nuevo, no inflamos cifras" — ya en `/evidencia`).
 - Primer paso: conseguir 3–5 médicos piloto y pedir permiso para citarlos.
 
@@ -68,10 +95,11 @@
 |---|---|---|---|---|
 | 1 | MFA (habilitar en Firebase) | Tú | ~10 min | Control de seguridad "activo" |
 | 2 | Stripe Connect + CFDI | Tú + Stripe/Facturama | Medio | Cobro real + facturación |
-| 3 | Restore drill (PITR) | Tú + GCP | Medio | "Recuperación probada" |
-| 4 | Pentest externo | Firma de seguridad | Alto ($) | "Evaluado por terceros" |
-| 5 | Certificación (ISO/COFEPRIS) | Certificador | Alto ($$) | Sello regulatorio |
-| 6 | Métricas de precisión | Datos reales | Con el tiempo | Cifras propias verificables |
-| 7 | Prueba social | Clientes reales | Con el tiempo | Testimonios/logos |
+| 3 | Protección de rama en `main` (required checks) | Tú | ~5 min | Cierra E0-11: el gate clínico BLOQUEA el merge |
+| 4 | Restore drill (PITR) | Tú + GCP | Medio | "Recuperación probada" |
+| 5 | Pentest externo | Firma de seguridad | Alto ($) | "Evaluado por terceros" |
+| 6 | Certificación (ISO/COFEPRIS) | Certificador | Alto ($$) | Sello regulatorio |
+| 7 | Métricas de precisión | Datos reales | Con el tiempo | Cifras propias verificables |
+| 8 | Prueba social | Clientes reales | Con el tiempo | Testimonios/logos |
 
 **Lo más rentable hoy: #1 (MFA) y #2 (Stripe).** Cuando hagas el #1, dímelo y actualizo `/seguridad` en un minuto.

@@ -1,0 +1,157 @@
+{
+  "id": "E0-08",
+  "etapa": "E0",
+  "titulo": "Firebase Emulator + matriz multi-tenant",
+  "estado": "necesita_validacion",
+  "fecha": "2026-07-29T22:40:34Z",
+  "riesgoDeclarado": "medio",
+  "necesitaValidacionClinica": false,
+  "notaValidacionClinica": "Ninguna decisión clínica en juego: es aislamiento de datos. No se inventó ningún umbral, dosis ni regla. `firestore.rules` NO se modificó.",
+  "aceptacion": {
+    "criterio": "Cross-tenant leakage = 0 DEMOSTRADO, no asumido.",
+    "cumplida": false,
+    "porQueNo": "La suite está escrita, tipada, recolectable y en el CI — pero NUNCA se ha ejecutado contra el motor real. El emulador de Firestore es un JAR y en esta máquina no hay JRE (`java -version` → «Unable to locate a Java Runtime»). Escribir «demostrado» con la suite sin correr sería exactamente la falla que la aceptación quiere impedir, así que no se escribe.",
+    "queFaltaParaFirmarla": [
+      "Una corrida verde de `npm run test:emulador` en una máquina con JRE (o el job `aislamiento-tenant` del CI en el primer PR).",
+      "Los 3 controles negativos conductuales de docs/testing/emulador-multitenant.md ejecutados y restaurados (isMember→isAuth, borrar el default-deny, no sembrar clinics/{t})."
+    ]
+  },
+  "queSeEntrega": {
+    "generadorDeCasos": "emulator/casos-tenant.ts — DERIVA los casos de MATRIZ_ACCESO (E0-06), no de una lista a mano. Módulo puro: sin Firebase, sin red, sin PHI. 2 304 casos generados (36 recursos con clinicId posicional × 8 roles × 2 operaciones × 4 combinaciones propio/ajeno en las DOS direcciones A→B y B→A).",
+    "afirmacionA": "1 120 intentos cross-tenant que deben ser DENEGADOS (34 recursos × 32 + los 2 con guarda `publico` × 16). Agrupados en un `it` por colección: 36 pruebas legibles sin perder una sola aserción.",
+    "afirmacionA2": "10 pruebas escritas a mano para las colecciones de RAÍZ, cuyo aislamiento es por CONTENIDO (`resource.data.clinicId`) y no posicional: get de clinic_members ajeno, list del directorio, reapuntar la propia membresía a otra clínica, borrar solicitud de reseña / invitación ajena, enumeración de clinic_invitations y clinic_review_requests, googleTokens y platform_*, y el default-deny.",
+    "afirmacionB": "8 controles positivos con payloads válidos escritos a mano, uno por guarda (isMember, isMedico, isClinicoHospital, isLabStaff, isAdmin, servidor, publico, y el bloque `patients/{id}/clinico` de E0-06). Sin B, A pasaría en verde con unas reglas que niegan absolutamente todo.",
+    "humo": "emulator/reglas-cargan.emu.test.ts — el motor real COMPILA firestore.rules y el projectId es `demo-*`. Spec aparte para que un error de sintaxis dé un mensaje inequívoco y no 55 fallos de setup que se confunden con flakiness.",
+    "guardianEstatico": "src/__tests__/emulador-config-guard.test.ts — 18 pruebas que SÍ corren en el gate normal (sin Java, sin red)."
+  },
+  "riesgoNumeroUnoYComoSeCerro": {
+    "riesgo": "Que los specs del emulador contaminaran `npx vitest run src/__tests__/` — el gate compartido de TODAS las unidades del programa — y lo pusieran rojo en cualquier máquina sin emulador levantado, tumbando el lote entero.",
+    "cierreEnTresCapas": [
+      "Los specs viven en `emulator/` con sufijo propio `*.emu.test.ts` (fuera del `include` del gate).",
+      "`vitest.config.ts` gana `exclude: [...configDefaults.exclude, 'emulator/**']` — cinturón además de tirantes.",
+      "El guardián estático afirma las dos cosas anteriores: mover un `.emu.test.ts` a src/__tests__ o borrar el `exclude` se pone rojo ANTES de romper la corrida ajena."
+    ],
+    "verificado": "Los dos sabotajes se ejecutaron y pusieron el guardián rojo (ver controlesNegativos)."
+  },
+  "controlesNegativos": {
+    "ejecutadosYRestaurados": [
+      {
+        "sabotaje": "Borrar `exclude: [...configDefaults.exclude, 'emulator/**']` de vitest.config.ts",
+        "resultado": "1 failed | 17 passed"
+      },
+      {
+        "sabotaje": "Copiar un *.emu.test.ts dentro de src/__tests__/",
+        "resultado": "1 failed | 17 passed"
+      },
+      {
+        "sabotaje": "Cambiar `emulators:exec` por `emulators:start` en el script",
+        "resultado": "1 failed | 17 passed"
+      },
+      {
+        "sabotaje": "Despinnear la devDependency (5.0.1 → ^5.0.1)",
+        "resultado": "1 failed | 17 passed"
+      },
+      {
+        "sabotaje": "Borrar el job `aislamiento-tenant` del CI",
+        "resultado": "1 failed | 17 passed"
+      },
+      {
+        "sabotaje": "Encoger el generador (que `secretos` deje de aparecer en los casos)",
+        "resultado": "1 failed | 17 passed"
+      },
+      {
+        "sabotaje": "— restaurado todo —",
+        "resultado": "18 passed (18)"
+      }
+    ],
+    "noEjecutables": [
+      "isMember → `return isAuth();` (debe poner roja la Afirmación A en decenas de casos)",
+      "Borrar el `match /{document=**}` de default-deny (Afirmación A)",
+      "No sembrar `clinics/{t}` (debe poner roja SOLO la Afirmación B — es la demostración de por qué B existe)"
+    ],
+    "porQueNoEjecutables": "Requieren el emulador levantado; sin JRE en esta máquina no se pueden correr. Quedan escritos en docs/testing/emulador-multitenant.md como tabla de la primera corrida."
+  },
+  "desviacionesDelDiseno": [
+    {
+      "que": "Versiones pinneadas: `@firebase/rules-unit-testing@5.0.1` (el diseño decía 5.0.0) y `firebase-tools@15.24.0` (el diseño decía 14.x.y).",
+      "porQue": "Son las últimas publicadas hoy. El diseño exigía PIN EXACTO, no una versión concreta; pinnear una vieja a propósito no aporta nada y el guardián estático vigila que el pin siga siendo exacto."
+    },
+    {
+      "que": "El diseño estimaba ~1 250 casos con el recurso fijo en el tenant A; se generan 2 304 (1 120 cross-tenant) probando las DOS direcciones.",
+      "porQue": "El aislamiento debe ser simétrico. Probar solo A→B dejaría media afirmación sin evidencia. El coste extra recae en un job aparte, no en el gate rápido."
+    },
+    {
+      "que": "El control negativo «añadir una entrada a MATRIZ_ACCESO sin tocar el generador» del diseño (§6) se sustituyó por «encoger el generador».",
+      "porQue": "El del diseño es imposible por construcción: como los casos se DERIVAN de la matriz, una entrada nueva aparece sola. El sabotaje que sí importa es el inverso — que alguien reemplace la derivación por una lista o le añada un filtro — y ese se ejecutó en rojo. La cadena completa sigue cubierta: un `match` nuevo sin entrada en la matriz ya lo caza `matriz-acceso.test.ts` (E0-06)."
+    },
+    {
+      "que": "Los recursos cubiertos son los 36 cuya ruta empieza por `clinics/{clinicId}` (el diseño decía `clinics/{clinicId}/`, 39).",
+      "porQue": "El conteo del diseño estaba alto: la matriz tiene 36 entradas bajo la clínica (incluido el doc raíz `clinics/{clinicId}`, que también se prueba) y 9 de raíz. Se midió, no se copió a ojo."
+    },
+    {
+      "que": "Las expectativas MISMO-tenant se generan pero NO se afirman en masa.",
+      "porQue": "Igual que el diseño decidió para B: varias reglas tienen condiciones POR CAMPO (`chat_reads`/`learning` exigen `uid == auth.uid`, cobros congela campos, nota firmada inmutable), así que un `set` genérico produciría rojos por payload inválido y no por autorización — ruido que acaba con la suite desactivada. Lo mismo-tenant lo cubre B con payloads a mano. Está dicho en el encabezado del spec para que nadie lea de más en un verde."
+    }
+  ],
+  "archivosTocados": [
+    "emulator/casos-tenant.ts (NUEVO — generador puro derivado de MATRIZ_ACCESO)",
+    "emulator/entorno.ts (NUEVO — arranque del emulador + siembra sintética de los 2 inquilinos)",
+    "emulator/tenant-aislamiento.emu.test.ts (NUEVO — Afirmaciones A, A2 y B)",
+    "emulator/reglas-cargan.emu.test.ts (NUEVO — humo: las reglas compilan en el motor real)",
+    "vitest.emulator.config.ts (NUEVO — config aparte, fileParallelism:false)",
+    "src/__tests__/emulador-config-guard.test.ts (NUEVO — guardián estático, 18 pruebas en el gate normal)",
+    "docs/testing/emulador-multitenant.md (NUEVO — cómo correrlo, por qué hace falta Java, qué NO cubre)",
+    "firebase.json (MODIFICADO — bloque `emulators` ADITIVO; siguen declaradas firestore.rules y storage.rules)",
+    "vitest.config.ts (MODIFICADO — `exclude` de emulator/**)",
+    "package.json (MODIFICADO — script test:emulador + 2 devDependencies pinneadas)",
+    "package-lock.json (MODIFICADO — 487 paquetes de dev por firebase-tools)",
+    ".github/workflows/ci.yml (MODIFICADO — job NUEVO `aislamiento-tenant` con setup-java)"
+  ],
+  "archivosNoTocados": {
+    "firestore.rules": "Esta unidad MIDE, no cambia política. Si la primera corrida descubre una fuga real, el arreglo es otra unidad con su propia decisión — no un parche a ciegas dentro de la que estaba midiendo."
+  },
+  "testsAgregados": [
+    "src/__tests__/emulador-config-guard.test.ts (18 pruebas, corren en el gate normal)",
+    "emulator/tenant-aislamiento.emu.test.ts (54 pruebas / 1 120 aserciones cross-tenant + 8 controles positivos — REQUIERE JRE)",
+    "emulator/reglas-cargan.emu.test.ts (1 prueba — REQUIERE JRE)"
+  ],
+  "gates": {
+    "tsc": "PASS",
+    "vitest": "PASS",
+    "testsPasan": 2601,
+    "archivosDeTest": 195,
+    "build": "PASS",
+    "detalle": "`npx tsc --noEmit` → exit 0, y `--listFiles` confirma que los 4 archivos de emulator/ SÍ entran al typecheck (por eso las dependencias son devDependencies reales y no `npx --yes`). `npx vitest run src/__tests__/` → 195 archivos / 2 601 pruebas (antes 194 / 2 583). `npm run build` → exit 0.",
+    "testEmulador": "NO EJECUTADO — sin JRE. `npx vitest list --config vitest.emulator.config.ts` sí recolecta las 55 pruebas sin error, lo que prueba que los specs importan, tipan y generan los casos esperados; no prueba nada sobre las reglas."
+  },
+  "riesgoDeRegresionSobreProduccion": {
+    "firebaseJson": "NULO en producción: solo se lee al desplegar reglas o levantar emuladores; Vercel no lo mira. Cambio aditivo y con prueba de regresión que fija `firestore.rules` y `storage.rules`.",
+    "gateCompartido": "Cerrado en tres capas + 2 controles negativos ejecutados. `npx vitest run src/__tests__/` sigue verde en esta máquina SIN Java.",
+    "npmCi": "Más lento en los dos jobs que ya existían (487 paquetes de dev por firebase-tools). Costo declarado y aceptado en el diseño §5.1; `cache: npm` lo amortigua. `npm audit` reporta 32 vulnerabilidades (9 moderate, 23 high) TODAS en el árbol transitivo de firebase-tools, que es devDependency: no viaja al bundle ni al servidor de producción. Queda anotado, no arreglado (un `audit fix --force` sobre firebase-tools es un cambio de versión mayor sin relación con esta unidad).",
+    "phi": "NULO. Dos inquilinos sintéticos (`clinica-alfa`, `clinica-beta`), ids deterministas, emulador en memoria y `--project demo-*` que hace que el SDK se NIEGUE a contactar un proyecto real."
+  },
+  "fueraDeAlcance": [
+    "storage.rules — necesita el emulador de Storage y su propia matriz de rutas.",
+    "Rutas de API / Admin SDK — el Admin SDK IGNORA las reglas por diseño; eso lo cubre src/__tests__/api-authz-guard.test.ts (E0-06).",
+    "Política POR CAMPO (inmutabilidad de nota firmada, congelado de facturación) — es E0-09.",
+    "App Check — no participa en la evaluación de reglas del emulador."
+  ],
+  "decisionesPendientesDelMedico": [
+    {
+      "id": "E0-08-Q1",
+      "decision": "¿Se acepta que el CI gane un job de ~2-3 min y que `npm ci` se alargue en los dos jobs existentes por firebase-tools (487 paquetes de dev)?",
+      "porQue": "Es el costo de que el aislamiento se pruebe contra el motor real y de forma reproducible (lockfile) en vez de con `npx --yes`, que además dejaría el typecheck rojo.",
+      "defaultAplicado": "Aceptado: job añadido, dependencias pinneadas en el lockfile.",
+      "bloquea": false
+    },
+    {
+      "id": "E0-08-Q2",
+      "decision": "¿Se instala un JRE en la máquina de trabajo (`brew install --cask temurin`) para poder correr la suite localmente, o el aislamiento se demuestra SOLO en CI?",
+      "porQue": "Sin JRE la palabra «demostrado» de la aceptación no la puede firmar nadie desde esta máquina. Instalar un JRE es un cambio del sistema y la carta operativa no lo autoriza al agente.",
+      "defaultAplicado": "Ninguno. La unidad se cierra `necesita_validacion` a propósito.",
+      "bloquea": true,
+      "bloqueaQue": "Solo la firma de la aceptación. NO bloquea el resto del programa ni deja el repo peor: los tres gates están verdes."
+    }
+  ],
+  "resumen": "Se entrega la suite conductual de aislamiento multi-tenant contra el emulador real de Firestore: un generador PURO que deriva 2 304 casos de MATRIZ_ACCESO (E0-06) y afirma que los 1 120 cross-tenant no públicos se DENIEGAN, más 10 pruebas a mano para las colecciones de raíz (aislamiento por contenido) y 8 controles positivos que impiden el falso verde de «todo denegado». El riesgo real de la unidad no era clínico sino de infraestructura —contaminar el gate compartido del programa y tumbar el lote de las demás unidades— y se cerró en tres capas con 6 controles negativos ejecutados en rojo y restaurados. Los tres gates quedan verdes (tsc, 2 601 pruebas, build). Lo que NO se puede firmar desde aquí: la propia aceptación. El emulador es un JAR y esta máquina no tiene JRE, así que las Afirmaciones A y B nunca se han ejecutado. Por eso la unidad cierra `necesita_validacion` y no `completada`."
+}

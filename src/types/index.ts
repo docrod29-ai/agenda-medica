@@ -3,6 +3,9 @@
 // ══════════════════════════════════════════════════════════════
 
 import type { LucideIcon } from 'lucide-react'
+// Unión canónica de roles (E0-06). Se importa en vez de redeclararse: este archivo
+// tenía la 3.ª de las cuatro listas de roles que había en el repo (ver E0-07).
+import type { Rol } from '@/lib/authz/matriz-acceso'
 import { UserPlus, RefreshCw, Siren, Microscope, Video, ClipboardCheck, Stethoscope, ClipboardList } from 'lucide-react'
 
 // Planes actuales: agenda · clinica · premium (Pro) · hospital. Se conservan
@@ -49,7 +52,18 @@ export interface Clinic {
 
 export interface ClinicMember {
   clinicId: string
-  role: 'admin' | 'medico' | 'secretaria' | 'enfermeria' | 'farmacia' | 'laboratorio'
+  /**
+   * E0-07: pasa a la unión CANÓNICA de roles (`src/lib/authz/matriz-acceso.ts`).
+   * Era la tercera lista de roles del repo y la única que dejaba fuera a `recepcion`
+   * y `facturacion`, así que un doc de membresía con uno de esos valores no tipaba
+   * aunque la matriz de acceso y `permissions.ts` sí los evalúan.
+   *
+   * Es una AMPLIACIÓN de tipo (6 → 8 valores), no un cambio de comportamiento:
+   * ningún literal existente deja de ser válido y `cambiarRolMiembro`
+   * (`src/lib/miembros.ts`) sigue admitiendo solo los 6 ASIGNABLES, que es lo que de
+   * verdad limita qué se puede guardar.
+   */
+  role: Rol
   /** Nombre visible en el chat. Si no se define, usa nombreMedico (médico/admin) o email prefix */
   displayName?: string
   /** Avatar opcional (emoji o data URL) */
@@ -213,6 +227,62 @@ export interface Patient {
   creadoPor: string
 }
 
+/**
+ * E0-06 — PHI CLÍNICO del paciente, FUERA del documento administrativo.
+ *
+ * Vive en `clinics/{clinicId}/patients/{patientId}/clinico/resumen` (documento
+ * único, id fijo `resumen`) porque Firestore no autoriza por campo: mientras estos
+ * datos sean campos de `patients/{id}` —que es `isMember` para que recepción pueda
+ * agendar— cualquier rol de la clínica los lee y ninguna regla lo evita.
+ *
+ * Documento único y no colección de N docs: se lee y se escribe siempre completo,
+ * así el coste es UNA lectura por pantalla de paciente.
+ */
+export interface ResumenClinicoPaciente {
+  /** Alergias en texto libre (entrada rápida). */
+  alergias?: string
+  /** Alergias ESTRUCTURADAS — cruce de seguridad más fiable + FHIR rico. */
+  alergiasEstructuradas?: AlergiaEstructurada[]
+  /** Antes `Patient.notas`: texto libre que en la práctica son antecedentes. */
+  notasClinicas?: string
+  txValoracion?: Record<string, string>
+  txValoracionAt?: string
+  txValoracionHist?: { fecha: string; modo: string; huesped: string; texto: string }[]
+  actualizadoEn: string
+  /** uid de quien lo escribió. */
+  actualizadoPor: string
+  /** Sello del backfill. Su presencia prueba que el paciente ya migró. */
+  migradoEn?: string
+}
+
+/**
+ * Campos clínicos que TODAVÍA viven en `Patient` y que deben mudarse a
+ * `ResumenClinicoPaciente`. Fuente única para el splitter de escritura, para el
+ * script de migración y para los tests.
+ *
+ * Mientras esta lista no esté vacía en producción, la aceptación de E0-06
+ * («recepción no lee alergias») NO se cumple: son exactamente los campos que hoy
+ * se sirven bajo `allow read: if isMember`.
+ */
+export const CAMPOS_CLINICOS_PACIENTE = [
+  'alergias',
+  'alergiasEstructuradas',
+  'notas',
+  'txValoracion',
+  'txValoracionAt',
+  'txValoracionHist',
+] as const
+
+export type CampoClinicoPaciente = (typeof CAMPOS_CLINICOS_PACIENTE)[number]
+
+/**
+ * Comprobación EN COMPILACIÓN de que la lista de arriba solo nombra campos que de
+ * verdad existen en `Patient`. Si alguien renombra `txValoracionHist`, `tsc` falla
+ * aquí en vez de dejar un splitter que copia un campo inexistente y pierde el dato.
+ */
+const _CAMPOS_CLINICOS_SON_DE_PATIENT: readonly (keyof Patient)[] = CAMPOS_CLINICOS_PACIENTE
+void _CAMPOS_CLINICOS_SON_DE_PATIENT
+
 export interface Appointment {
   id: string
   pacienteId: string
@@ -239,6 +309,15 @@ export interface Appointment {
   googleCalendarSyncStatus?: 'pending' | 'synced' | 'error'
   cobroId?: string             // cobro ya registrado para esta cita (evita doble cobro)
   cobradoEn?: string
+  // Exención de cobro (cortesía): el médico/asistente decide NO cobrar esta cita.
+  // Es una decisión DELIBERADA y AUDITADA (quién, cuándo, por qué), no un olvido:
+  // oculta el botón "Cobrar" y saca la cita de cuentas por cobrar, sin registrar un
+  // cobro de $0 que ensucie el corte de caja. Reversible (con auditoría).
+  cobroExento?: boolean
+  exentoMotivo?: string
+  exentoPor?: string           // uid de quien marcó la cortesía
+  exentoPorNombre?: string
+  exentoEn?: string
   createdAt: string
   updatedAt: string
   creadoPor: string
@@ -358,9 +437,13 @@ export interface ClinicConfig {
   /** Zona de contenido de la nota sobre la hoja membretada (mm): márgenes para no
    *  encimar el encabezado ni el pie. Default: top 42, bottom 28, left 22, right 22. */
   notaMembreteMargenes?: { top: number; right: number; bottom: number; left: number }
+  /** Posición de la FIRMA sobre la hoja membretada de notas (% de la hoja; centro
+   *  de la firma). Se calibra arrastrando en Configuración → Cuenta. Si no está,
+   *  la firma cae a una posición razonable sobre el pie derecho. */
+  notaMembreteFirmaPos?: { x: number; y: number }
   /** Hoja membretada de notas POR MÉDICO (key = medicoId). Cada médico tiene su
    *  propio papel; si no, cae a la general (notaMembreteDataUrl). */
-  notaMembretePorMedico?: Record<string, { url: string; margenes?: { top: number; right: number; bottom: number; left: number } }>
+  notaMembretePorMedico?: Record<string, { url: string; margenes?: { top: number; right: number; bottom: number; left: number }; firmaPos?: { x: number; y: number } }>
 
   // === Perfil público /dr (captación / SEO — convierte como Doctoralia) ===
   /** Foto del médico para el perfil público (URL de Storage). */
@@ -387,7 +470,17 @@ export type { PaperSize, EstiloReceta } from '@/lib/receta-template'
 /** Configuración de impresos: recetas y órdenes médicas */
 export interface RecetaConfig {
   /** Tamaño de papel */
-  paperSize: 'media-carta' | 'carta' | 'oficio' | 'a4' | 'a5'
+  /** Tamaño de papel de RECETAS y ÓRDENES MÉDICAS. */
+  paperSize: 'media-carta' | 'carta' | 'oficio' | 'a4' | 'a5' | 'receta-13x23' | 'receta-23x13' | 'receta-25x15' | 'personalizado'
+  /** Medidas propias en mm — solo cuando paperSize === 'personalizado'. */
+  paperCustomWidthMm?: number
+  paperCustomHeightMm?: number
+  /**
+   * Tamaño de papel de las NOTAS clínicas (evolución, ingreso, egreso).
+   * Ajuste INDEPENDIENTE del de la receta: cambiar uno no mueve el otro.
+   * Default 'carta' (si está sin definir, se usa carta).
+   */
+  notaPaperSize?: 'carta' | 'oficio' | 'a4' | 'media-carta' | 'a5'
   /**
    * Dónde se imprime físicamente:
    *  - 'papel-real': la impresora tiene cargado el papel del tamaño exacto
@@ -431,7 +524,13 @@ export interface RecetaConfig {
    * el diseño custom. El médico arrastra cada campo a su lugar UNA vez. Si está
    * definido, esos campos se colocan ahí (no en el bloque de márgenes).
    */
-  disenoCampos?: Partial<Record<'nombre' | 'edad' | 'sexo' | 'fecha' | 'folio' | 'firma' | 'qr', { x: number; y: number }>>
+  /**
+   * Calibrador: coordenadas (mm) de cada dato sobre el diseño del médico.
+   * `nacimiento` = fecha de nacimiento; la piden las farmacias para dispensar,
+   * y como el encabezado propio del médico la coloca donde él quiera, tiene que
+   * ser un campo ARRASTRABLE igual que el nombre, no una línea fija.
+   */
+  disenoCampos?: Partial<Record<'nombre' | 'edad' | 'nacimiento' | 'sexo' | 'fecha' | 'folio' | 'firma' | 'qr', { x: number; y: number }>>
   /** Tamaño (mm) de la firma/sello y del QR sobre el diseño. Default firma 20, QR 14. */
   disenoTamanos?: { firma?: number; qr?: number }
   /** Color de acento (botones, líneas) */

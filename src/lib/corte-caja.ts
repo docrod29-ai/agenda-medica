@@ -51,11 +51,21 @@ export interface Embudo {
   tasaCobro: number      // cobradas / atendidas (0-1)
 }
 
-/** citasIdsCobradas: conjunto de citaId con cobro activo positivo. */
+/**
+ * citaId con un cobro que SALDA la consulta.
+ *
+ * Un `abono` es, por definición, un pago PARCIAL: queda saldo pendiente. Antes
+ * cualquier monto positivo sacaba la cita de "cuentas por cobrar", así que abonar
+ * $200 de una consulta de $800 la daba por cobrada al 100% y los $600 restantes
+ * no se reclamaban en ningún lado. Ahora un abono NO salda: la cita sigue
+ * apareciendo como pendiente hasta que se registre el cobro de cierre con un
+ * concepto que no sea "abono". Se prefiere sobre-reportar pendiente —que a lo
+ * sumo hace que alguien pregunte— antes que perder un saldo en silencio.
+ */
 function citasConCobro(cobros: Cobro[]): Set<string> {
   const s = new Set<string>()
   for (const c of cobros) {
-    if (!c.cancelado && c.monto > 0 && c.citaId) s.add(c.citaId)
+    if (!c.cancelado && c.monto > 0 && c.citaId && c.concepto !== 'abono') s.add(c.citaId)
   }
   return s
 }
@@ -67,6 +77,9 @@ export function embudoCobro(citas: Appointment[], cobros: Cobro[]): Embudo {
   const atendidas = agendables.filter(c => ATENDIDAS.includes(c.estado))
   const noAsistio = citas.filter(c => c.estado === 'no-asistio').length
   const cobradas = atendidas.filter(c => conCobro.has(c.id))
+  // El dinero cobrado SÍ incluye los abonos: entró a caja aunque no salde la cita.
+  // (La cita sigue contando como no cobrada arriba; son dos preguntas distintas:
+  //  cuánto entró vs. qué consultas quedan por saldar.)
   const montoCobrado = cobros
     .filter(c => !c.cancelado && c.monto > 0 && c.citaId && atendidas.some(a => a.id === c.citaId))
     .reduce((s, c) => s + c.monto, 0)
@@ -93,7 +106,8 @@ export interface CuentaPorCobrar {
 export function cuentasPorCobrar(citas: Appointment[], cobros: Cobro[]): CuentaPorCobrar[] {
   const conCobro = citasConCobro(cobros)
   return citas
-    .filter(c => ATENDIDAS.includes(c.estado) && !conCobro.has(c.id))
+    // Excluye las EXENTAS (cortesía): el médico decidió no cobrarlas, no son deuda.
+    .filter(c => ATENDIDAS.includes(c.estado) && !conCobro.has(c.id) && !c.cobroExento)
     .map(c => ({
       citaId: c.id,
       paciente: c.pacienteNombre,

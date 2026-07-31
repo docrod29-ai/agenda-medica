@@ -17,7 +17,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
+import { guardarSecretoCanal } from '@/lib/whatsapp/secreto-canal'
 
 const PARTNER_ID    = process.env.DIALOG360_PARTNER_ID ?? ''
 const PARTNER_TOKEN = process.env.DIALOG360_PARTNER_TOKEN ?? ''
@@ -32,7 +34,7 @@ export async function GET(req: NextRequest) {
 
   // ── Validate ──────────────────────────────────────────────────
   if (!clientId || !channelsRaw || !nonce) {
-    console.error('[360dialog callback] Missing params:', { clientId, channelsRaw, nonce: !!nonce })
+    safeLog.error('[360dialog callback] Missing params:', { clientId, channelsRaw, nonce: !!nonce })
     return NextResponse.redirect(`${APP_URL}/configuracion?tab=integraciones&wa=error&reason=missing_params`)
   }
 
@@ -45,7 +47,7 @@ export async function GET(req: NextRequest) {
   const estadoSnap = await estadoRef.get()
   const estado = estadoSnap.data()
   if (!estadoSnap.exists || estado?.proveedor !== 'whatsapp-360dialog' || !estado?.clinicId) {
-    console.error('[360dialog callback] Nonce inválido o de otro proveedor')
+    safeLog.error('[360dialog callback] Nonce inválido o de otro proveedor')
     return NextResponse.redirect(`${APP_URL}/configuracion?tab=integraciones&wa=error&reason=estado_invalido`)
   }
   if (typeof estado.exp !== 'number' || estado.exp < Date.now()) {
@@ -57,7 +59,7 @@ export async function GET(req: NextRequest) {
   await estadoRef.delete().catch(() => {})
 
   if (!PARTNER_ID || !PARTNER_TOKEN) {
-    console.error('[360dialog callback] Partner credentials not set in env vars')
+    safeLog.error('[360dialog callback] Partner credentials not set in env vars')
     return NextResponse.redirect(`${APP_URL}/configuracion?tab=integraciones&wa=error&reason=not_configured`)
   }
 
@@ -87,7 +89,7 @@ export async function GET(req: NextRequest) {
 
     if (!keyRes.ok) {
       const body = await keyRes.text()
-      console.error('[360dialog callback] Failed to get api_key:', keyRes.status, body)
+      safeLog.error('[360dialog callback] Failed to get api_key:', keyRes.status, body)
       return NextResponse.redirect(`${APP_URL}/configuracion?tab=integraciones&wa=error&reason=api_key_failed`)
     }
 
@@ -95,7 +97,7 @@ export async function GET(req: NextRequest) {
     const apiKey: string = keyData.api_key ?? keyData.apiKey ?? keyData.data?.api_key
 
     if (!apiKey) {
-      console.error('[360dialog callback] No api_key in response:', JSON.stringify(keyData))
+      safeLog.error('[360dialog callback] No api_key in response:', JSON.stringify(keyData))
       return NextResponse.redirect(`${APP_URL}/configuracion?tab=integraciones&wa=error&reason=no_api_key`)
     }
 
@@ -126,18 +128,18 @@ export async function GET(req: NextRequest) {
       })
       if (!webhookRes.ok) {
         const err = await webhookRes.text()
-        console.warn('[360dialog callback] Webhook registration warning:', err)
+        safeLog.warn('[360dialog callback] Webhook registration warning:', err)
         // Non-fatal — continue
       }
     } catch (e) {
-      console.warn('[360dialog callback] Webhook registration failed (non-fatal):', e)
+      safeLog.warn('[360dialog callback] Webhook registration failed (non-fatal):', e)
     }
 
     // ── Step 4: Save to Firestore ─────────────────────────────────
     const now = new Date().toISOString()
+    await guardarSecretoCanal(clinicId, apiKey)
     const whatsapp = {
       provider: '360dialog',
-      apiKey,
       phoneNumberId,
       phoneNumber: phoneNumber || `+${channelId}`,
       connected: true,
@@ -157,13 +159,13 @@ export async function GET(req: NextRequest) {
       createdAt: now,
     })
 
-    console.log(`[360dialog callback] ✅ Connected clinic ${clinicId} → channel ${channelId}`)
+    safeLog.info(`[360dialog callback] ✅ Connected clinic ${clinicId} → channel ${channelId}`)
 
     return NextResponse.redirect(
       `${APP_URL}/configuracion?tab=integraciones&wa=connected`
     )
   } catch (err) {
-    console.error('[360dialog callback] Unexpected error:', err)
+    safeLog.error('[360dialog callback] Unexpected error:', err)
     return NextResponse.redirect(
       `${APP_URL}/configuracion?tab=integraciones&wa=error&reason=unexpected`
     )

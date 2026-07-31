@@ -1,0 +1,136 @@
+{
+  "unidad": "E0-08",
+  "titulo": "Firebase Emulator + matriz multi-tenant",
+  "verificador": "adversarial (solo lectura)",
+  "fecha": "2026-07-29",
+  "commitVerificado": "e5a1ce4",
+  "veredicto": "INCOMPLETA",
+  "cumpleAceptacion": false,
+  "aceptacionLiteral": "Cross-tenant leakage = 0 demostrado, no asumido. (backlog.json, unidad E0-08)",
+  "resumenDelVeredicto": "El software existe, hace lo que dice, está tipado, no rompió nada y no inventó ninguna regla clínica ni dejó PHI. Pero la aceptación literal exige la palabra DEMOSTRADO y la suite conductual NUNCA se ha ejecutado: no hay JRE en esta máquina y lo verifiqué yo (no me fié del reporte). Por eso INCOMPLETA y no CONFIRMADA. La propia unidad lo declara así (RESULTADO.json:12-13 `cumplida: false`, estado `necesita_validacion`, y estado.json la pone en `bloqueadas`, NO en `completadas`), lo cual es la conducta correcta y no un intento de colar un verde.",
+
+  "loQueVerifiqueDeVerdad": {
+    "archivosExisten": "SÍ, los 15 declarados. Nuevos: emulator/casos-tenant.ts (177 l), emulator/entorno.ts (207 l), emulator/tenant-aislamiento.emu.test.ts (268 l), emulator/reglas-cargan.emu.test.ts (34 l), vitest.emulator.config.ts, src/__tests__/emulador-config-guard.test.ts (235 l), docs/testing/emulador-multitenant.md. Modificados: firebase.json, vitest.config.ts, package.json, package-lock.json, .github/workflows/ci.yml, docs/roadmap/*. Todo en el commit e5a1ce4 (`git show --stat e5a1ce4`), sin push.",
+
+    "gatesEjecutadosPorMi": {
+      "tsc": "PASS — `npx tsc --noEmit` exit 0, salida vacía.",
+      "vitestGateCompartido": "PASS — `npx vitest run src/__tests__/` → 196 archivos / 2 663 pruebas verdes (el RESULTADO.json declaraba 195/2 601; la diferencia es E0-12, que se commiteó DESPUÉS: 3c09a0d).",
+      "vitestSinRuta": "PASS — `npx vitest run` (lo que corre de verdad el job `verificar` del CI, .github/workflows/ci.yml:75) → 197 archivos / 2 689 verdes. IMPORTANTE: confirma que los `*.emu.test.ts` NO se cuelan en el job `verificar`, que corre SIN Java; si se colaran, el CI se pondría rojo en cada PR.",
+      "build": "PASS — `npm run build` exit 0 (Next 16 compiló y prerenderizó; `emulator/**` entra a tsconfig y no lo rompe).",
+      "colectaDeLaSuiteDelEmulador": "`npx vitest list --config vitest.emulator.config.ts` → 55 pruebas, sin error de import. Recolecta ≠ ejecuta: no dice NADA sobre las reglas."
+    },
+
+    "laAceptacionNOseCumple": {
+      "porQue": "La suite conductual nunca corrió. Verificado por mí, no por el reporte: `java -version` → «Unable to locate a Java Runtime»; /Library/Java/JavaVirtualMachines vacío; sin jbr de Android Studio; sin cask temurin/zulu/corretto; `find /opt /usr/local -name java` vacío. El emulador de Firestore es un JAR: no hay forma de ejecutar A ni B aquí. (Sí existe el CLI global /Users/.../.npm-global/bin/firebase, pero sin JRE `emulators:exec` no arranca.)",
+      "quedaPendienteExactamente": [
+        "Una corrida verde de `npm run test:emulador` en máquina con JRE, o la primera corrida del job `aislamiento-tenant` del CI (ci.yml:45-64, con actions/setup-java temurin 21).",
+        "Los 3 controles negativos CONDUCTUALES de docs/testing/emulador-multitenant.md (isMember→isAuth ⇒ A roja; borrar el default-deny ⇒ A roja; no sembrar clinics/{t} ⇒ SOLO B roja)."
+      ],
+      "evidenciaFavorableQueSIencontre": "Contrasté a mano las 8 aserciones positivas de B y las 9 de A2 contra firestore.rules y son COHERENTES con las reglas reales, así que la primera corrida tiene buena probabilidad de salir verde por el motivo correcto: appointments create exige `cobroExento==false` + clinicaPuedeEscribir (firestore.rules:156-162, la semilla pone status 'active' → pasa); notas create exige `estado=='borrador'` (firestore.rules:180-182, el payload de B lo cumple, tenant-aislamiento.emu.test.ts:212); laboratorio update es isLabStaff y NO isClinicoHospital (firestore.rules:289-293), que es justo lo que B afirma con enfermería (líneas 229-239); clinics update congela plan/status/ownerId/Stripe/paseLibre/modulos/paqueteId (firestore.rules:118-135) y B usa `update({nombre})`, no `set` (líneas 241-250); reviews read es `isMember || resource.data.estado=='publicada'` (firestore.rules:521) y la semilla siembra 'publicada' y 'pendiente' (entorno.ts:79,159-162); clinic_members update exige `request.resource.data.clinicId == resource.data.clinicId` (firestore.rules:643-645), que es exactamente el caso de escalada de A2 (línea 149); clinic_invitations create es `isMedico(request.resource.data.clinicId)` (firestore.rules:598-600), que deniega el caso de A2 (línea 156); `allow list: if false` en clinic_members (firestore.rules:630) y en clinic_invitations/clinic_review_requests sostiene las pruebas de enumeración.",
+      "conteosQueSIcuadran": "Verificado con `npx vitest list`: 36 `it` de colección con 34×32 + 2×16 = 1 120 aserciones cross-tenant (los 2 de 16 son `reviews` —read `publico`— y `arco_requests` —write `publico`—, las dos únicas entradas `publico` bajo clinics/ en MATRIZ_ACCESO: matriz-acceso.ts:266,335). 36 recursos posicionales × 8 roles × 2 ops × 4 combinaciones = 2 304 casos generados. Los números del RESULTADO.json no están inflados."
+    },
+
+    "losTestsFallanSiSeRevierteElCambio": {
+      "guardianEstatico": "SÍ por construcción, verificado leyendo el código: no compara texto contra texto muerto, inspecciona el OBJETO de configuración (`configDelGate.test?.exclude`, emulador-config-guard.test.ts:44-49), parsea firebase.json y package.json reales (:72,:93), trocea el yaml del CI (:125-133) y DERIVA las expectativas de MATRIZ_ACCESO (:160-172). El sabotaje obvio —aflojar `esRutaDeTenant` para que las dos listas se encojan a la vez— está tapado con `expect(esperadas.length).toBeGreaterThan(30)` (:162). Los 6 sabotajes declarados en RESULTADO.json:36-66 son consistentes con lo que el archivo puede detectar (no los re-ejecuté: exigen editar el repo y mi mandato es solo lectura).",
+      "suiteConductual": "NO VERIFICABLE hoy. La sensibilidad de A a una rotura real del aislamiento es una AFIRMACIÓN, no evidencia: sin JRE nadie la ha mutado. Es el hueco central de la unidad."
+    },
+
+    "regresionSobreLoExistente": {
+      "veredicto": "NINGUNA DETECTADA.",
+      "dependenciasDeProduccion": "COMPROBADO PAQUETE POR PAQUETE (no de palabra): comparé `git show e5a1ce4^:package-lock.json` contra `git show e5a1ce4:package-lock.json` y de los 1 330 paquetes nuevos, los NO-dev cambiados/añadidos/eliminados = 0, 0 y 0. Los 487 paquetes nuevos (843 → 1 330) son TODOS dev, del árbol de firebase-tools. Ni next, ni react, ni firebase se movieron.",
+      "firebaseJson": "Cambio aditivo: siguen `firestore.rules` y `storage.rules` (firebase.json:2-7), así que `firebase deploy --only firestore:rules` sigue encontrando las reglas, y hay prueba de regresión que lo fija (emulador-config-guard.test.ts:83-89).",
+      "vitestConfig": "`exclude: [...configDefaults.exclude, 'emulator/**']` (vitest.config.ts:18) es equivalente al default previo (que era configDefaults.exclude implícito) más el directorio nuevo: no puede excluir nada que antes corriera.",
+      "ci": "El job nuevo `aislamiento-tenant` está SEPARADO (ci.yml:45); `clinical-safety` (el required status check) y `verificar` quedaron intactos salvo el coste de `npm ci`. Verificado que `npx vitest run` —el comando literal de `verificar`— sigue verde sin Java.",
+      "firestoreRules": "NO se tocó. `git show --stat e5a1ce4` no lista firestore.rules. La unidad mide, no cambia política: correcto según la regla 5 de la carta operativa."
+    },
+
+    "reglasClinicasInventadas": "NINGUNA. No hay un umbral, una dosis ni una escala en toda la unidad: son rutas, roles y permisos. Los ÚNICOS valores de contenido son campos que las reglas dereferencian, y cada uno está justificado con la regla que lo exige (entorno.ts:77-95): `estado:'publicada'` ← firestore.rules:521; `estado:'borrador'` ← firestore.rules:187-189; `cobroExento:false` ← firestore.rules:144-149; los campos congelados de `cobros` ← firestore.rules:495-511. `fc: 80, fr: 16` (tenant-aislamiento.emu.test.ts:222) son datos sintéticos de un payload, no puntos de corte, y ningún motor los consume. La decisión de sembrar 8 roles cuando producción admite 6 está declarada y razonada (entorno.ts:123-126) y es estrictamente más fuerte, no una invención.",
+
+    "phiOSecretos": "NINGUNO. Dos inquilinos sintéticos (`clinica-alfa`, `clinica-beta`, casos-tenant.ts:30-31), uids deterministas `u-<tenant>-<rol>`, ids `x-<comodín>`, 'Paciente Sintético'/'Dr. Sintético' (entorno.ts:177), teléfono = `x-telefono`. Grep de docrod29/davidrdz/@gmail/sk-/AIza/api_key/token sobre emulator/**, el guardián y el .md: cero coincidencias reales (solo las palabras 'secretaria'/'secretos'). `PROJECT_ID = 'demo-nexusmed-test'` (entorno.ts:30) + `--project demo-*` en el script: el SDK se niega a contactar un proyecto real, así que la suite no puede tocar datos del médico ni por accidente."
+  },
+
+  "problemas": [
+    {
+      "id": "V-1",
+      "severidad": "P1 — es la aceptación, no un detalle",
+      "titulo": "«DEMOSTRADO» sigue sin demostrarse: la suite jamás se ejecutó",
+      "evidencia": [
+        "`java -version` → «Unable to locate a Java Runtime»; /Library/Java/JavaVirtualMachines vacío; sin jbr, sin casks de Java; `find /opt /usr/local -name java -type f` vacío.",
+        "RESULTADO.json:11-17 lo declara: `cumplida: false` + `queFaltaParaFirmarla`.",
+        "RESULTADO.json:125 → `testEmulador: \"NO EJECUTADO — sin JRE\"`.",
+        "docs/testing/emulador-multitenant.md:141-145 deja los 3 controles negativos conductuales como tabla PENDIENTE."
+      ],
+      "porQueImporta": "Hasta esa corrida, el aislamiento cross-tenant sigue estando ASUMIDO —ahora con mucho mejor andamiaje, pero asumido—. Es exactamente la palabra que la aceptación prohíbe. No es reimplementable por el agente: exige un JRE (cambio del sistema) o el primer PR.",
+      "esCulpaDelImplementador": "NO. Es límite del entorno y lo declaró en vez de firmarlo. Habría sido REGRESION de honestidad escribir `cumplida: true`."
+    },
+    {
+      "id": "V-2",
+      "severidad": "P2 — sobreestima la SENSIBILIDAD de la Afirmación A (no su verdad)",
+      "titulo": "Una parte de los 1 120 intentos se deniega para TODOS los clientes, así que seguiría verde con el aislamiento roto",
+      "evidencia": [
+        "`intentar()` hace `ref.get()` o `ref.set()` (tenant-aislamiento.emu.test.ts:80-91) y el comentario :84-85 sostiene que «un deny es un deny sea el payload válido o no».",
+        "Pero hay recursos cerrados al SDK cliente en ambas operaciones: `clinics/{clinicId}/bot_sessions/{docId}` y `clinics/{clinicId}/secretos/{docId}` tienen guardaLectura Y guardaEscritura = 'servidor' (matriz-acceso.ts:235,249 ← firestore.rules:359,372, `allow read, write: if false`). Sus 2×32 = 64 aserciones se denegarían igual con `isMember` convertido en `isAuth()`.",
+        "Y la MITAD de escritura es tautológica donde el update está cerrado a todos: internamientos (firestore.rules:264 `create, update, delete: if false`), audit_log y whatsapp_optout (guardaEscritura 'servidor', matriz-acceso.ts:256,242), notas/versions y notas/adendas (firestore.rules:198,207 `update, delete: if false`), patients/laboratorios (:217), chat (:536). Son ~8 colecciones × 16 = ~128 aserciones más que no discriminan aislamiento.",
+        "La prueba B de la propia suite lo demuestra sin querer: «secretos: ni el admin de la propia clínica los lee» (tenant-aislamiento.emu.test.ts:252-255)."
+      ],
+      "porQueImporta": "El titular «1 120 intentos cross-tenant, todos denegados» es literalmente cierto y sigue siendo consistente con leakage = 0, pero ~190 de esas aserciones NO son detectoras de regresión de aislamiento. La sección «Qué NO cubre» del .md (líneas 105-118) no lo dice. Para el valor futuro de la suite conviene marcar esos casos como tautológicos o afirmarlos aparte.",
+      "noEsFalsedad": "El aislamiento sí queda cubierto por el resto: cada colección con guarda isMember/isMedico/isClinicoHospital/isLabStaff/isAdmin aporta 16 lecturas cross-tenant que sí discriminan."
+    },
+    {
+      "id": "V-3",
+      "severidad": "P2 — hueco de cobertura no declarado",
+      "titulo": "Bajo `clinics/**` solo se prueba `get`; ninguna CONSULTA (list) cross-tenant",
+      "evidencia": [
+        "tenant-aislamiento.emu.test.ts:83 → `if (caso.operacion === 'read') return ref.get()`: siempre un documento, nunca una query.",
+        "En Firestore `read` = get + list y el motor los evalúa distinto (en `list` no hay `resource`). La matriz declara `guardaLectura` sin separarlos (matriz-acceso.ts:90-93).",
+        "Solo las colecciones de RAÍZ reciben pruebas de enumeración (A2, líneas 140-174: `collection('clinic_members').get()`, clinic_invitations, clinic_review_requests). Ninguna de las 36 colecciones de la clínica.",
+        "docs/testing/emulador-multitenant.md:21 promete «lectura y escritura» sin este matiz."
+      ],
+      "porQueImporta": "Impacto real BAJO —el aislamiento de esas rutas es posicional, así que una fuga por `list` casi siempre se vería también por `get`— pero es cobertura que el .md da por hecha y no está. Candidato natural para la primera corrida: una query cross-tenant por colección."
+    },
+    {
+      "id": "V-4",
+      "severidad": "P3 — inexactitud de documentación",
+      "titulo": "A2 son 9 pruebas, no 10",
+      "evidencia": [
+        "RESULTADO.json:22 → «afirmacionA2: 10 pruebas escritas a mano»; RESULTADO.json:156 repite «10 pruebas a mano»; el mensaje del commit e5a1ce4 también dice 10.",
+        "`npx vitest list --config vitest.emulator.config.ts` lista 9 `it` bajo «A2) Aislamiento de las colecciones de RAÍZ»: membresía ajena, list del directorio, reapuntar la membresía, borrar solicitud de reseña, crear invitación, borrar invitación, enumerar invitations/review_requests, googleTokens+platform_*, default-deny.",
+        "El total sí cuadra (1 meta + 36 colecciones + 9 A2 + 8 B = 54, + 1 de humo = 55), así que es un descuadre de prosa, no de código."
+      ]
+    },
+    {
+      "id": "V-5",
+      "severidad": "P3 — cifra que puede leerse como cobertura",
+      "titulo": "«2 304 casos» generados vs 1 120 realmente afirmados",
+      "evidencia": [
+        "`generarCasos()` produce 2 304 (casos-tenant.ts:132-169) y calcula `esperado` también para los casos MISMO-tenant, pero solo `casosDeAislamiento()` (:175-177) se ejecuta contra el motor.",
+        "Los mismo-tenant no se afirman en masa a propósito y está declarado (RESULTADO.json:91-93), y el gate rápido sí valida el generador entero (emulador-config-guard.test.ts:191-234).",
+        "Aun así, «2 304 casos» encabeza el RESULTADO.json:20 y el commit: quien lea rápido creerá que se ejecutaron 2 304."
+      ]
+    },
+    {
+      "id": "V-6",
+      "severidad": "P3 — cosmético",
+      "titulo": "Las cifras de gates del RESULTADO.json ya están viejas",
+      "evidencia": [
+        "RESULTADO.json:121-124 declara 2 601 pruebas / 195 archivos; hoy son 2 663 / 196 porque E0-12 (3c09a0d) entró después. Verificado por mí: sigue todo verde."
+      ]
+    }
+  ],
+
+  "loQueSIquedaEnPie": "TODO el software, y es bueno: generador PURO derivado de MATRIZ_ACCESO (no una lista que envejece), 1 120 aserciones cross-tenant en 36 `it` legibles, 9 pruebas a mano para las 9 colecciones de raíz cuyo aislamiento es por CONTENIDO, 8 controles positivos que impiden el falso verde de «todo denegado», humo de compilación de reglas, guardián estático de 18 pruebas dentro del gate rápido, job de CI aparte con setup-java, y el gate compartido del programa protegido en tres capas (verificado por mí: `npx vitest run` sigue verde en una máquina SIN Java). Cero cambios en el árbol de dependencias de producción. `firestore.rules` intacto. NO REIMPLEMENTAR: falta EJECUTAR.",
+
+  "recomendacionAlOrquestador": {
+    "estado": "Dejar E0-08 en `bloqueadas` con `reintentar: false` y `noReimplementar: true`, como ya está en estado.json. Es un bloqueo de ENTORNO, no de calidad.",
+    "paraCerrarla": [
+      "Decisión E0-08-Q2 del médico dueño: instalar JRE (`brew install --cask temurin`) o demostrarlo solo en CI al abrir el primer PR.",
+      "Transcribir la corrida real y los 3 controles negativos conductuales al RESULTADO.json; recién entonces `cumplida: true`.",
+      "Si la corrida encuentra una fuga: NO parchear dentro de E0-08 (así lo dice la propia unidad, RESULTADO.json:110-112). Unidad propia."
+    ],
+    "arreglosBaratosQueMejorarianLaSuiteSinCorrerla": [
+      "V-2: separar las colecciones cerradas al cliente (bot_sessions, secretos) y las escrituras inmutables en un `describe` propio, o etiquetar el caso como tautológico, para que el conteo de A signifique lo que promete.",
+      "V-3: añadir un intento de `list` cross-tenant por colección (`collection('clinics/B/<col>').get()`), que es donde el motor se comporta distinto.",
+      "V-4/V-5/V-6: corregir 10→9, aclarar 2 304 generados / 1 120 ejecutados y refrescar las cifras de gates."
+    ]
+  }
+}

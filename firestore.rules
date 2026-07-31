@@ -39,10 +39,75 @@ service cloud.firestore {
         get(/databases/$(database)/documents/clinic_members/$(request.auth.uid)).data.role in ['medico', 'admin', 'enfermeria', 'farmacia', 'laboratorio'];
     }
 
+    // Quién EMITE resultados de laboratorio: el laboratorio y el médico. NO
+    // enfermería ni farmacia, que no producen el resultado. La lectura sigue
+    // abierta a todo el staff clínico (necesitan ver los resultados).
+    function isLabStaff(clinicId) {
+      return isAuth() &&
+        get(/databases/$(database)/documents/clinic_members/$(request.auth.uid)).data.clinicId == clinicId &&
+        get(/databases/$(database)/documents/clinic_members/$(request.auth.uid)).data.role in ['medico', 'admin', 'laboratorio'];
+    }
+
+    /**
+     * ¿La clínica puede CAPTURAR datos nuevos? Puerta del paywall en las reglas.
+     *
+     * El bloqueo de suscripción vencida vivía SOLO en React (`AccesoGate`), así
+     * que saltándose ese componente desde la consola se seguía escribiendo. Esto
+     * lo cierra en el servidor — pero con dos decisiones deliberadas:
+     *
+     *  - Solo bloquea ESCRITURA de datos nuevos, no la LECTURA. El expediente
+     *    debe poder leerse aunque el pago falle (NOM-004: el médico tratante tiene
+     *    derecho de acceso al registro). Cortar la lectura sería ilegal, no solo
+     *    hostil.
+     *  - FALLA-ABIERTO. Si el doc de la clínica no tiene `status` (documentos
+     *    viejos, o el campo aún no escrito), NO se bloquea: atrapar a una clínica
+     *    legítima por un campo ausente es peor que dejar pasar una escritura de
+     *    una vencida. Solo se bloquea ante un estado terminal EXPLÍCITO.
+     *
+     * `paseLibre` (cuentas del dueño / cortesía) siempre puede escribir.
+     */
+    function clinicaPuedeEscribir(clinicId) {
+      let c = get(/databases/$(database)/documents/clinics/$(clinicId)).data;
+      let status = c.get('status', 'active');
+      // Paywall del servidor: una PRUEBA vencida (status 'trial') deja de escribir tras
+      // 1 día de gracia. Solo aplica a 'trial' — quien PAGA o tiene Stripe-trialing
+      // queda en status 'active' (el webhook mapea trialing→active), así que NUNCA se
+      // bloquea a un cliente al día. FALLA-ABIERTO: sin `trialEndsAtMs` (clínicas
+      // viejas) no se bloquea; atrapar a una legítima por un campo ausente es peor.
+      // El reloj se compara en epoch-ms (trialEndsAtMs) porque las reglas no parsean ISO.
+      let trialMs = c.get('trialEndsAtMs', 0);
+      let pruebaVencida = status == 'trial' && trialMs > 0
+        && (trialMs + 86400000) < request.time.toMillis();   // +1 día de gracia
+      return c.get('paseLibre', false) == true
+        || (!(status in ['cancelled', 'canceled', 'suspended']) && !pruebaVencida);
+    }
+
     // Clinic metadata (root)
     match /clinics/{clinicId} {
       allow read: if isMember(clinicId);
-      allow create: if isAuth();
+      // CREATE blindado: el alta legítima pasa por /api/clinic/crear (Admin SDK, que
+      // ignora estas reglas), así que aquí solo llega el SDK cliente. Sin este
+      // candado, cualquier cuenta autenticada podía crear su propia clínica con
+      // `paseLibre:true`, `status:'active'`, todos los `modulos`, etc. — auto-
+      // activándose sin pasar por Stripe (bypass de paywall/entitlements). Se exige
+      // ser el dueño y se PROHÍBEN los campos de facturación/entitlement (solo los
+      // asigna el servidor), igual que ya hace el `update`.
+      // El alta legítima pasa por Admin SDK (ignora estas reglas). Este create SOLO lo
+      // usaría el SDK cliente: se exige que arranque como PRUEBA con un reloj real y
+      // ACOTADO (≤15 días), para cerrar el hueco de crearse una clínica sin reloj de
+      // prueba que quedaba escribible para siempre (status ausente → 'active').
+      allow create: if isAuth()
+        && request.resource.data.get('ownerId', '') == request.auth.uid
+        && request.resource.data.get('paseLibre', false) == false
+        && request.resource.data.get('status', '') == 'trial'
+        && request.resource.data.get('trialEndsAtMs', 0) > 0
+        && request.resource.data.get('trialEndsAtMs', 0) <= request.time.toMillis() + 15 * 86400000
+        // 'plan' también se bloquea: la creación legítima va por el servidor
+        // (/api/clinic/crear, Admin SDK); un cliente que cree el doc directo no debe
+        // poder auto-asignarse un plan (el comentario del server ya lo exigía).
+        && !request.resource.data.keys().hasAny(
+             ['modulos', 'paqueteId', 'stripeCustomerId', 'stripeSubscriptionId', 'plan']
+           );
       // El admin de la clínica puede editar metadatos del doc raíz, PERO NUNCA los
       // campos de FACTURACIÓN/ENTITLEMENTS (plan, estado, prueba, Stripe, pase
       // libre, módulos/paquete). Esos SOLO los cambia el servidor (webhook Stripe
@@ -53,6 +118,12 @@ service cloud.firestore {
         && request.resource.data.get('plan', '')            == resource.data.get('plan', '')
         && request.resource.data.get('status', '')          == resource.data.get('status', '')
         && request.resource.data.get('trialEndsAt', '')     == resource.data.get('trialEndsAt', '')
+        // trialEndsAtMs es el reloj REAL del paywall (clinicaPuedeEscribir lo lee).
+        // Sin fijarlo, un admin extendía su prueba indefinidamente desde el cliente
+        // (bypass del trial — auditoría maestra 2026-07 / reporte externo).
+        && request.resource.data.get('trialEndsAtMs', 0)    == resource.data.get('trialEndsAtMs', 0)
+        // ownerId es la raíz de la propiedad de la clínica: server-authoritative.
+        && request.resource.data.get('ownerId', '')         == resource.data.get('ownerId', '')
         && request.resource.data.get('stripeCustomerId', '') == resource.data.get('stripeCustomerId', '')
         && request.resource.data.get('stripeSubscriptionId', '') == resource.data.get('stripeSubscriptionId', '')
         && request.resource.data.get('paseLibre', false)    == resource.data.get('paseLibre', false)
@@ -61,17 +132,59 @@ service cloud.firestore {
       allow delete: if false;
 
       match /appointments/{docId} {
-        allow read, write: if isMember(clinicId);
+        allow read: if isMember(clinicId);
+        allow delete: if isMember(clinicId);
+        // Captura nueva sujeta al paywall; leer/actualizar/borrar lo existente no.
+        // ANTI-FRAUDE DE CORTESÍA: marcar una cita como exenta (no cobrar) oculta una
+        // deuda; por eso, al pasar `cobroExento` de false→true, se EXIGE que quede el
+        // autor real (exentoPor == uid) y un motivo, igual que la anulación de cobros
+        // (la validación del cliente en exentarCobro no basta: las rules son el borde).
+        // Los demás updates (reagendar, etc.) no se ven afectados.
+        allow update: if isMember(clinicId) && (
+          !(resource.data.get('cobroExento', false) == false && request.resource.data.get('cobroExento', false) == true)
+          || (
+            request.resource.data.get('exentoPor', '') == request.auth.uid
+            && request.resource.data.get('exentoMotivo', '') is string
+            && request.resource.data.get('exentoMotivo', '').size() > 0
+          )
+        );
+        // Al CREAR, si la cita nace exenta (cobroExento:true) se exige el mismo
+        // control antifraude que en el update (autor real + motivo). Antes se podía
+        // crear ya exenta y saltarse el guard de false→true (auditoría maestra 2026-07).
+        allow create: if isMember(clinicId) && clinicaPuedeEscribir(clinicId) && (
+          request.resource.data.get('cobroExento', false) == false
+          || (
+            request.resource.data.get('exentoPor', '') == request.auth.uid
+            && request.resource.data.get('exentoMotivo', '') is string
+            && request.resource.data.get('exentoMotivo', '').size() > 0
+          )
+        );
       }
       match /patients/{docId} {
-        allow read, write: if isMember(clinicId);
+        allow read: if isMember(clinicId);
+        // La asistente puede EDITAR datos del paciente (contacto, demografía), pero
+        // BORRAR un expediente completo es irreversible y sensible a pérdida de datos
+        // (NOM-004): solo el Admin/dueño. Antes cualquier miembro podía eliminarlo.
+        allow update: if isMember(clinicId);
+        allow delete: if isAdmin(clinicId);
+        allow create: if isMember(clinicId) && clinicaPuedeEscribir(clinicId);
 
         // Expediente Clínico Electrónico — notas del paciente
         // SECRETO MÉDICO: solo médicos/admin pueden leer o escribir notas clínicas.
         // La asistente NUNCA tiene acceso (NOM-004 + LFPDPPP datos sensibles).
         match /notas/{notaId} {
           allow read: if isMedico(clinicId);
-          allow create: if isMedico(clinicId);
+          // Abrir una nota nueva = capturar dato nuevo → sujeto al paywall.
+          // Firmar/editar un borrador YA abierto no, para no dejar una consulta
+          // a medias sin poder cerrarla por un corte de pago a mitad del día.
+          // REG-017 — TODA NOTA NACE EN BORRADOR. La firma es una ACCIÓN explícita
+          // (borrador → firmada), no el estado inicial de un documento. Sin esto,
+          // una nota podía nacer ya 'firmada' e inmutable sin historia previa,
+          // saltándose la trazabilidad NOM-024.
+          // La migración/importación histórica va por Admin SDK (omite reglas) y
+          // debe quedar marcada como importada — nunca parecer firma nativa.
+          allow create: if isMedico(clinicId) && clinicaPuedeEscribir(clinicId)
+                        && request.resource.data.estado == 'borrador';
           // Solo se pueden editar/borrar borradores; las firmadas son inmutables (NOM-024)
           allow update: if isMedico(clinicId) && resource.data.estado != 'firmada';
           allow delete: if isMedico(clinicId) && resource.data.estado != 'firmada';
@@ -93,12 +206,47 @@ service cloud.firestore {
           }
         }
 
+        /**
+         * Historial de LABORATORIOS del paciente (valores extraídos de PDF/foto).
+         * Secreto médico, igual que las notas: solo médico/admin. Cada doc es un
+         * panel con su fecha; nunca se editan (se borra y se re-sube si hay error).
+         */
+        match /laboratorios/{labId} {
+          allow read: if isMedico(clinicId);
+          allow create, delete: if isMedico(clinicId);
+          allow update: if false;
+        }
+
         // Fotografía clínica seriada (dermatología, heridas, seguimiento).
         // Dato personal SENSIBLE: mismo secreto médico que las notas — la
         // asistente nunca tiene acceso. Se permite borrar (una toma mal hecha
         // o sin consentimiento debe poder eliminarse).
         match /fotos/{fotoId} {
           allow read, create, update, delete: if isMedico(clinicId);
+        }
+
+        /**
+         * E0-06 — PHI CLÍNICO del paciente (alergias, antecedentes, valoración del
+         * inmunocomprometido). Documento único `clinico/resumen`.
+         *
+         * Por qué una subcolección y no un candado sobre los campos: Firestore NO
+         * autoriza por campo en LECTURA — o se lee el documento entero o no se lee.
+         * Mientras `alergias` sea un campo de `patients/{docId}` (que es `isMember`
+         * porque recepción necesita el directorio para agendar), NINGUNA regla puede
+         * impedir que recepción las lea. El arreglo es de modelo de datos, no de
+         * reglas. Las reglas no son recursivas: el `read: if isMember` de arriba NO
+         * alcanza a esta subcolección, igual que no alcanza a `notas`.
+         *
+         * ESTADO: el bloque está en vigor, pero la MIGRACIÓN de los campos heredados
+         * (Fases B y C del diseño de E0-06) espera la decisión D1 del médico dueño:
+         * ¿la asistente puede CAPTURAR alergias en el alta aunque no pueda leerlas
+         * después? Si la respuesta es «sí», create/update pasan a `isMember` y la
+         * lectura se queda en `isMedico` (write-only). Hasta entonces, lo estricto.
+         */
+        match /clinico/{clinicoId} {
+          allow read: if isMedico(clinicId);
+          allow create, update: if isMedico(clinicId) && clinicaPuedeEscribir(clinicId);
+          allow delete: if false;   // un antecedente no se borra desde el cliente
         }
       }
       match /waitlist/{docId} {
@@ -115,28 +263,107 @@ service cloud.firestore {
         // (/api/hospital/mutar, Admin SDK) que valida el ROL POR ACCIÓN.
         // El cliente NO escribe directo → RBAC real, no de vista.
         allow create, update, delete: if false;
-        // Signos vitales seriados del internamiento (escritura directa OK:
-        // médicos/enfermería registran signos; no requieren gate por acción)
+        // Signos vitales seriados. Enfermería/médicos AÑADEN (create) y CORRIGEN
+        // (update) lecturas, pero NADIE los borra desde el cliente: un signo
+        // histórico no debe poder desaparecer (append/corregir, no borrar —
+        // auditoría maestra 2026-07 / reporte externo). `write` incluía delete.
         match /signos/{signoId} {
-          allow read, write: if isClinicoHospital(clinicId);
+          allow read, create, update: if isClinicoHospital(clinicId);
+          allow delete: if false;
+        }
+
+        // ══ ICU-002c/d — ESTANCIA UCI y ASIGNACIÓN DE CAMA ══
+        //
+        // MISMO patrón que el doc de internamiento, y por la misma razón: la
+        // ESCRITURA va SOLO por el servidor (Admin SDK), que valida el rol POR
+        // ACCIÓN. Un cliente que escribiera directo tendría RBAC de vista, no
+        // real — puede abrir la consola del navegador y usar el SDK.
+        //
+        // POR QUÉ ESTO NO ES REDUNDANTE con el `match /{document=**}` de deny
+        // total del final: ese comodín las cerraría a TODO, incluida la lectura
+        // que la ficha necesita. Aquí se abre la lectura y sólo la lectura.
+        //
+        // Las reglas de Firestore son ADITIVAS (lección REG-014): se verificó que
+        // ninguna regla más amplia alcance estas rutas antes de escribirlas.
+
+        // Estancia en UCI dentro del episodio. Datos clínicos sensibles
+        // (soportes activos, peso de dosificación, código de reanimación).
+        match /icu_stays/{stayId} {
+          allow read: if isClinicoHospital(clinicId);
+          allow create, update, delete: if false;   // sólo servidor
+        }
+
+        // Observaciones de UCI — APPEND-ONLY, capturadas a pie de cama.
+        //
+        // A DIFERENCIA de icu_stays/bed_assignments, aquí el CLIENTE sí crea:
+        // enfermería y el intensivista capturan durante el pase de visita, igual
+        // que en `signos`. Obligarlas a pasar por el servidor añadiría latencia
+        // en el único momento en que el dato se está tomando.
+        //
+        // EL APPEND-ONLY SE HACE CUMPLIR EN LA REGLA, no sólo en el código:
+        // el `update` sólo puede tocar `estado`. Así una toma errónea se marca
+        // (CORRECTED / ENTERED_IN_ERROR) pero sus MEDIDAS son inmutables: no se
+        // puede reescribir un valor clínico haciéndolo pasar por una corrección.
+        // La corrección de verdad es un documento NUEVO con `corrigeA`.
+        //
+        // `delete: if false` — una toma histórica no debe poder desaparecer.
+        match /icu_observations/{obsId} {
+          allow read, create: if isClinicoHospital(clinicId);
+          allow update: if isClinicoHospital(clinicId)
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado']);
+          allow delete: if false;
+        }
+
+        // Asignación de cama — APPEND-ONLY con historia.
+        // `delete: if false` es lo esencial: borrar una asignación destruiría la
+        // trazabilidad de quién ocupó qué cama y cuándo, que es justo lo que esta
+        // colección vino a crear. Cerrar una asignación es un UPDATE del servidor
+        // (poner `hasta`), nunca un borrado.
+        match /bed_assignments/{asigId} {
+          allow read: if isClinicoHospital(clinicId);
+          allow create, update, delete: if false;   // sólo servidor
         }
       }
-      // Rol hospitalario por usuario (médico/enfermería/farmacia/laboratorio/admin)
+      // Rol hospitalario por usuario. La ESCRITURA la controla médico/admin de la
+      // clínica (isMedico), NO cualquier clínico: si esta colección interviene en
+      // permisos, dejar que enfermería/farmacia/lab escriban su propio doc era un
+      // vector de auto-escalada (reporte externo). La lectura sí es de todo el staff.
       match /hospital_roles/{uid} {
-        allow read, write: if isClinicoHospital(clinicId);
+        allow read: if isClinicoHospital(clinicId);
+        allow write: if isMedico(clinicId);
       }
-      // Módulo de laboratorio — solicitudes y resultados (datos clínicos)
+      // Módulo de laboratorio — solicitudes y resultados (datos clínicos).
+      // LEE todo el staff clínico. SOLICITA cualquiera de ellos (un médico o
+      // enfermería puede pedir un estudio). Pero CARGAR o CORREGIR un resultado y
+      // BORRAR una orden queda para quien lo emite: laboratorio o médico. Antes
+      // enfermería y farmacia podían sobrescribir o borrar resultados que no
+      // producen, sin bitácora — RBAC que era solo de vista.
       match /laboratorio/{ordenId} {
-        allow read, write: if isClinicoHospital(clinicId);
+        allow read: if isClinicoHospital(clinicId);
+        allow create: if isClinicoHospital(clinicId);
+        allow update, delete: if isLabStaff(clinicId);
       }
-      // Alertas hospitalarias (lab crítico, NEWS2, interconsulta)
+      // Alertas hospitalarias (lab crítico, NEWS2, interconsulta). Se crean y se
+      // atienden/resuelven (create+update), pero NO se borran desde el cliente: una
+      // alerta crítica no debe poder desaparecer con un delete (reporte externo).
       match /hospital_alertas/{alertaId} {
-        allow read, write: if isClinicoHospital(clinicId);
+        allow read, create, update: if isClinicoHospital(clinicId);
+        allow delete: if false;
       }
       // Catálogo de camas (inventario + ocupación). LEE todo el staff clínico;
       // ESCRIBE solo médico/admin (enfermería/farmacia/laboratorio no gestionan el
       // inventario — antes podían borrar/alterar camas: RBAC era solo de vista).
       match /camas/{camaId} {
+        allow read: if isClinicoHospital(clinicId);
+        allow write: if isMedico(clinicId);
+      }
+      // UNIDADES — el nombre lo pone el hospital, el TIPO lo entiende el software.
+      //
+      // Mismos permisos que `camas`: es inventario, no PHI. Lo lee todo el equipo
+      // clínico del piso porque de esto depende en qué pantalla aparece cada
+      // paciente; lo escribe el médico/admin, porque marcar una unidad como
+      // «cuidados críticos» cambia el comportamiento clínico de la aplicación.
+      match /unidades/{unidadId} {
         allow read: if isClinicoHospital(clinicId);
         allow write: if isMedico(clinicId);
       }
@@ -157,8 +384,43 @@ service cloud.firestore {
       function camposDeIdentidadMedica() {
         return ['firmaImagenDataUrl', 'firmaPorMedico', 'cedulaProfesional', 'especialidad'];
       }
-      match /config/{docId} {
+      /**
+       * REG-014 — LA FIRMA MÉDICA VIVE APARTE Y SOLO LA LEEN LOS MÉDICOS.
+       *
+       * En Firestore las reglas son ADITIVAS: si esta regla genérica concediera
+       * lectura a `config/firma`, la regla estricta de abajo no serviría de nada
+       * (basta con que UNA regla permita). Por eso se excluye aquí el documento
+       * en vez de solo añadir una regla más específica.
+       */
+      match /config/firma {
+        allow read, write: if isMedico(clinicId);
+      }
+
+      /**
+       * Validación médica del dataset de dosificación.
+       *
+       * Una firma dice «yo, médico responsable, cotejé esta regla contra su
+       * fuente». Sólo un MÉDICO puede firmarla: recepción o farmacia pueden
+       * necesitar LEER qué está validado, pero validar una dosis es un acto
+       * clínico y lleva nombre.
+       *
+       * Se permite `delete` a propósito, y es la única concesión: un médico tiene
+       * que poder decir «me equivoqué al validar esto». Dejarlo marcado como
+       * validado por no poder deshacerlo sería peor que borrarlo.
+       */
+      match /dosing_validations/{farmacoId} {
         allow read: if isMember(clinicId);
+        allow write, delete: if isMedico(clinicId);
+      }
+      // Topes de dosis antimicrobiana cargados por el médico. Los lee todo el
+      // equipo (la alerta se le enseña a quien prescribe), pero sólo un médico
+      // los escribe: un tope de dosis es una decisión clínica.
+      match /antimicrobial_limits/{limiteId} {
+        allow read: if isMember(clinicId);
+        allow write, delete: if isMedico(clinicId);
+      }
+      match /config/{docId} {
+        allow read: if isMember(clinicId) && docId != 'firma';
         allow create: if isMedico(clinicId);
         // OJO con el paréntesis: el `isMember` va DENTRO de la segunda rama. Al
         // introducir este bloqueo por campo se escribió la condición sin él, y la
@@ -181,6 +443,14 @@ service cloud.firestore {
       }
       match /bot_sessions/{docId} {
         allow read, write: if false; // Admin SDK only
+      }
+      // Bajas (opt-out) de WhatsApp. La ESCRITURA es solo del servidor (el paciente
+      // se da de baja por el bot). La LECTURA la habilita el equipo de la clínica
+      // para NO ofrecer campañas de reactivación a quien pidió BAJA (cumplimiento).
+      // El id del doc es el teléfono normalizado (52 + 10 dígitos).
+      match /whatsapp_optout/{telefono} {
+        allow read: if isMember(clinicId);
+        allow write: if false; // Admin SDK (bot) only
       }
       // API keys de IA del consultorio + medidor de uso. NUNCA accesibles desde
       // el cliente: solo el servidor (Admin SDK) las lee/escribe.
@@ -205,7 +475,18 @@ service cloud.firestore {
       // Nunca se pueden borrar (registro legal).
       match /arco_requests/{docId} {
         allow read: if isMember(clinicId);
-        allow create: if true;  // creación vía portal público (sin auth)
+        // Creación vía portal público (sin auth). Auditoría 2026-07 (P1): antes era
+        // `if true` → cualquiera podía crear docs ARCO INMUTABLES (no se borran) en
+        // CUALQUIER clínica, incluidas inexistentes, y spamear el registro legal. Se
+        // constriñe: la clínica debe EXISTIR, el estado inicial fijo, y los campos de
+        // texto acotados. No es rate-limit (eso va por API), pero corta el abuso masivo.
+        allow create: if exists(/databases/$(database)/documents/clinics/$(clinicId))
+          && request.resource.data.estado == 'recibida'
+          && request.resource.data.clinicId == clinicId
+          && request.resource.data.solicitante.nombre is string
+          && request.resource.data.solicitante.nombre.size() <= 200
+          && request.resource.data.descripcion is string
+          && request.resource.data.descripcion.size() <= 5000;
         allow update: if isMember(clinicId);
         allow delete: if false;
       }
@@ -222,31 +503,117 @@ service cloud.firestore {
       match /time_blocks/{blockId} {
         allow read, write: if isMember(clinicId);
       }
-      // Inventario de farmacia interna
+      // Inventario de farmacia interna. LEE/ESCRIBE solo staff clínico: el manejo
+      // de medicamentos —incluidos controlados— no es de recepción/facturación.
+      // Antes `isMember` dejaba a cualquier rol tocar el inventario. Además el
+      // stock nunca puede quedar negativo (la aritmética que lo evitaba vivía
+      // solo en el cliente; una escritura directa con cantidad<0 pasaba).
       match /farmacia/{itemId} {
+        allow read: if isClinicoHospital(clinicId);
+        allow write: if isClinicoHospital(clinicId)
+          && (request.resource.data.get('cantidad', 0) is number)
+          && request.resource.data.get('cantidad', 0) >= 0;
+      }
+      // Membresías de pacientes: catálogo de planes + asignaciones. Cualquier
+      // miembro del consultorio (incl. asistente) las gestiona; el cobro real pasa
+      // por la colección `cobros` (con sus propias reglas anti-fraude).
+      match /membership_plans/{planId} {
         allow read, write: if isMember(clinicId);
       }
-      // Movimientos de farmacia (entradas, salidas, ajustes)
+      match /memberships/{membershipId} {
+        allow read, write: if isMember(clinicId);
+      }
+      // Learning Engine: preferencias de sugerencias POR MÉDICO (frecuencias por
+      // categoría). Cada médico solo lee/escribe las suyas (uid == su propio uid);
+      // no son datos del paciente, pero se aíslan por autor de todos modos.
+      match /learning/{uid} {
+        allow read, write: if isMember(clinicId) && request.auth.uid == uid;
+      }
+      // Movimientos de farmacia (entradas, salidas, ajustes). Inmutables, y el
+      // autor lo sella el servidor: antes se podía crear un movimiento a nombre
+      // de otro (el registro de controlados debe acreditar QUIÉN dispensó).
       match /farmacia_movimientos/{movId} {
-        allow read, create: if isMember(clinicId);
+        allow read: if isClinicoHospital(clinicId);
+        allow create: if isClinicoHospital(clinicId)
+          && request.resource.data.realizadoPor == request.auth.uid;
         allow update, delete: if false;  // movimientos inmutables — registro contable
       }
       // Cobros (registro contable)
       // Solo se permite crear y leer; cancelar = update con cancelado=true (no delete).
       match /cobros/{cobroId} {
-        allow read, create: if isMember(clinicId);
-        // Update solo para marcar cancelado o vincular factura (no para editar montos)
+        allow read: if isMember(clinicId);
+        /**
+         * REG-015 — el AUTOR y el IMPORTE se validan aquí, no solo en el cliente.
+         *
+         * Antes bastaba con ser miembro: el navegador declaraba `creadoPor` con
+         * lo que quisiera (unos llamadores mandaban correo, otros uid), así que
+         * un cobro podía quedar atribuido a otra persona. Y no había piso de
+         * monto: un negativo simulando devolución descuadra el corte en silencio.
+         *
+         * Las devoluciones son su propio tipo de transacción con traza a la
+         * operación original (REFUND/CREDIT/ADJUSTMENT), no un signo menos.
+         * El webhook de Stripe escribe con Admin SDK y no pasa por esta regla.
+         */
+        allow create: if isMember(clinicId)
+                      && request.resource.data.creadoPor == request.auth.uid
+                      && request.resource.data.monto is number
+                      && request.resource.data.monto >= 0;
+        /**
+         * Un cobro es un registro contable: no se edita ni se borra, solo se
+         * ANULA, y anular debe dejar huella. La regla anterior congelaba el monto
+         * pero dejaba `cancelado` libre: cualquier miembro —de cualquier rol—
+         * podía poner `cancelado:true` desde la consola, sin motivo ni autor, y el
+         * cobro desaparecía de todos los cortes sin dejar rastro. En un archivo
+         * que se describe a sí mismo como anti-fraude, eso era sustracción de
+         * efectivo indetectable.
+         *
+         * Ahora una anulación SOLO es válida si:
+         *  - el cobro no estaba ya cancelado (no se "re-anula" para pisar el autor)
+         *  - se sella quién (== su propio uid, no se puede culpar a otro) y cuándo
+         *  - se da un motivo no vacío
+         *  - no se toca nada más del cobro (monto, método, concepto, fecha, y los
+         *    vínculos con la cita y el paciente)
+         * La otra rama permite vincular una factura sin cambiar nada más.
+         */
         allow update: if isMember(clinicId)
           && request.resource.data.monto == resource.data.monto
           && request.resource.data.metodo == resource.data.metodo
           && request.resource.data.concepto == resource.data.concepto
-          && request.resource.data.fecha == resource.data.fecha;
+          && request.resource.data.fecha == resource.data.fecha
+          && request.resource.data.citaId == resource.data.citaId
+          && request.resource.data.patientId == resource.data.patientId
+          && request.resource.data.creadoPor == resource.data.creadoPor
+          && (
+            // (a) ANULAR: false/ausente → true, con autor, fecha y motivo.
+            (resource.data.cancelado != true
+              && request.resource.data.cancelado == true
+              && request.resource.data.canceladoPor == request.auth.uid
+              && request.resource.data.canceladoEn is string
+              && request.resource.data.motivoCancelacion is string
+              && request.resource.data.motivoCancelacion.size() > 0)
+            // (b) VINCULAR FACTURA: sin tocar el estado de cancelación.
+            || (request.resource.data.get('cancelado', false) == resource.data.get('cancelado', false)
+              && request.resource.data.facturaUuid is string)
+          );
         allow delete: if false;
       }
       // Reseñas: read publicadas o miembros leen todo; create solo desde servidor
       match /reviews/{reviewId} {
-        allow read: if true;  // permite mostrar publicadas en página pública
-        allow create: if isAuth();   // creación protegida adicional en route /api
+        /**
+         * Solo lo PUBLICADO es público. Con `read: if true` se exponían también
+         * las reseñas pendientes y las RECHAZADAS de cualquier clínica: justo lo
+         * que un médico modera para que no se vea.
+         */
+        allow read: if isMember(clinicId) || resource.data.estado == 'publicada';
+        /**
+         * Crear solo desde el servidor. El comentario anterior daba por hecho que
+         * bastaba con proteger la ruta /api, pero la regla no obliga a pasar por
+         * ella: con `isAuth()`, cualquier cuenta —incluida la de prueba de otro
+         * consultorio— podía escribir reseñas en la clínica que quisiera usando el
+         * SDK cliente, sin token y sin cita. Quedaban en moderación, pero llenaban
+         * la cola de otro.
+         */
+        allow create: if false;   // solo Admin SDK (/api/public/resena)
         allow update, delete: if isMember(clinicId);
       }
       // Chat interno (médico ↔ asistente)
@@ -262,14 +629,39 @@ service cloud.firestore {
 
     // Solicitudes de reseña (top-level — el paciente las lee con el token)
     match /clinic_review_requests/{token} {
-      allow read: if true;        // token funciona como autorización
-      allow create: if isAuth();  // el médico genera la solicitud
+      /**
+       * GET público, LIST bloqueado — la misma distinción que ya se hace en
+       * `clinic_invitations` aquí abajo, y por la misma razón.
+       *
+       * `read` cubre `get` Y `list`. Como esta colección es de primer nivel, con
+       * `read: if true` cualquiera sin autenticarse podía pedir la colección
+       * ENTERA y recibir, de todas las clínicas: nombre del paciente, nombre del
+       * médico, clinicId y el token de reseña. Nombre de paciente asociado a un
+       * médico y su especialidad es un dato de salud inferido (LFPDPPP), y encima
+       * entregaba los tokens para suplantar reseñas.
+       *
+       * El token sigue funcionando como autorización, que era la intención: lo
+       * que se quita es la enumeración, no el acceso por id.
+       */
+      allow get: if true;
+      allow list: if false;
+      // El creador debe ser MIEMBRO de la clínica que dice en el doc: con `isAuth()`
+      // a secas, cualquier cuenta podía crear solicitudes con un `clinicId` ajeno
+      // (spam cross-tenant en la cola de reseñas de otra clínica).
+      allow create: if isMember(request.resource.data.clinicId);
       // El paciente SOLO puede marcarla usada (false→true); no puede quemarla sin
       // enviar ni alterar otros campos (antes `if true` dejaba corromperla).
+      // REG-016: solo puede tocar `used`/`usedAt` (hasOnly). Antes, al marcar
+      // usada, el flujo público podía mutar de paso CUALQUIER otro campo (nombre de
+      // paciente/médico, etc.). El endpoint legítimo (Admin SDK) solo escribe esos dos.
       allow update: if resource.data.used == false
         && request.resource.data.used == true
-        && request.resource.data.clinicId == resource.data.clinicId;
-      allow delete: if isAuth();
+        && request.resource.data.clinicId == resource.data.clinicId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used', 'usedAt']);
+      // Solo un miembro de la clínica DUEÑA puede borrarla. Antes `if isAuth()`
+      // dejaba a cualquier usuario logueado (de otra clínica) borrar la solicitud de
+      // reseña ajena si conocía/observaba el token.
+      allow delete: if isMember(resource.data.clinicId);
     }
 
     // Invitaciones de clínica (top-level — el invitado las lee con el code)
@@ -280,21 +672,28 @@ service cloud.firestore {
       // - La info expuesta no es sensible (nombre clínica + rol + nombre invitado opcional)
       // - LIST está bloqueado: nadie puede enumerar invitaciones, solo leer por id exacto
       allow get: if true;
-      // LIST permitido solo a usuarios autenticados (el médico para ver sus
-      // invitaciones desde el panel). La query del cliente ya filtra por
-      // clinicId; aquí solo evitamos enumeración pública.
-      allow list: if isAuth();
+      // LIST CERRADO — auditoría 2026-07 (P0). Antes era `if isAuth()` confiando en
+      // que la query del cliente filtrara por clinicId, pero un cliente malicioso
+      // puede enumerar TODAS las invitaciones de TODAS las clínicas (nombre de
+      // clínica, invitado, rol y el código de invitación que permite UNIRSE a esa
+      // clínica) — fuga cross-tenant + posible toma de cuenta (LFPDPPP). El cliente
+      // no lista invitaciones en ninguna parte (el join usa Admin SDK por id exacto,
+      // /api/clinic/unirse), así que cerrar `list` no rompe nada. `get` por id sigue.
+      allow list: if false;
       // Crear: solo MÉDICO o ADMIN de la clínica destino (la secretaria/enfermería
       // ya NO puede invitar). Y para invitar con rol 'admin' hay que SER admin
       // (evita que un médico/secretaria fabrique un admin: escalada de privilegios).
       allow create: if isMedico(request.resource.data.clinicId)
         && (request.resource.data.role != 'admin' || isAdmin(request.resource.data.clinicId));
-      // Actualizar: solo el invitado puede marcarla como usada (used: true + usedBy = su uid)
+      // Actualizar: solo el invitado marca la invitación como usada. Se congela TODO
+      // lo demás con hasOnly — sobre todo `role`: sin esto, en la aceptación se podía
+      // elevar el rol de la invitación (p.ej. a 'admin') y un flujo futuro confiaría
+      // en ese rol adulterado (auditoría maestra 2026-07 / reporte externo).
       allow update: if isAuth()
         && resource.data.used == false
         && request.resource.data.used == true
         && request.resource.data.usedBy == request.auth.uid
-        && request.resource.data.clinicId == resource.data.clinicId;
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used', 'usedBy', 'usedAt']);
       // Borrar (revocar): solo miembros de la clínica que creó la invitación
       allow delete: if isAuth()
         && exists(/databases/$(database)/documents/clinic_members/$(request.auth.uid))
@@ -324,16 +723,24 @@ service cloud.firestore {
           && get(/databases/$(database)/documents/clinics/$(request.resource.data.clinicId)).data.ownerId == request.auth.uid)
         || isAdmin(request.resource.data.clinicId)
       );
-      allow update: if isAdmin(resource.data.clinicId);
+      // Actualizar: solo el admin de la clínica ACTUAL, y el clinicId NO puede
+      // cambiar — auditoría 2026-07 (P0): sin fijarlo, un admin podía reapuntar su
+      // propia membresía (o la de otro) a OTRA clínica (escalada cross-tenant).
+      allow update: if isAdmin(resource.data.clinicId)
+        && request.resource.data.clinicId == resource.data.clinicId;
       // Eliminar = revocar acceso. Solo el admin de la clínica, y
       // nadie puede eliminar al admin original (creador) — esa restricción
       // se hace en UI por ahora.
       allow delete: if isAdmin(resource.data.clinicId) && request.auth.uid != uid;
     }
 
-    // Google OAuth tokens (per-user)
+    // Google OAuth tokens (per-user) — access/refresh tokens = credencial persistente.
+    // SOLO el servidor (Admin SDK): callback los escribe, sync/status/calendars los
+    // leen, todo server-side. El cliente NUNCA los toca (el estado de conexión se
+    // consulta por /api/calendar/status). Deny total cierra el robo por XSS de un
+    // acceso persistente a Google Calendar (auditoría maestra 2026-07 / reporte externo).
     match /googleTokens/{uid} {
-      allow read, write: if isAuth() && request.auth.uid == uid;
+      allow read, write: if false;
     }
 
     // Facturación de la PLATAFORMA (nivel dueño) — pagos registrados por el
@@ -351,6 +758,12 @@ service cloud.firestore {
       allow read, write: if false; // Admin SDK only
     }
     match /platform_meta/{docId} {
+      allow read, write: if false; // Admin SDK only
+    }
+    // Libro de costos de IA (tokens, modelo, latencia, precio). Lo escribe el
+    // gateway con Admin SDK y lo lee /superadmin por API. NUNCA desde el cliente:
+    // aunque no lleva nada clínico, revela el gasto de todos los consultorios.
+    match /platform_cost_ledger/{eventoId} {
       allow read, write: if false; // Admin SDK only
     }
 

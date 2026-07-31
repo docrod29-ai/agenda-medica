@@ -15,7 +15,7 @@ const BENEFICIOS = [
   'Recordatorios automáticos a pacientes',
   'Lista de espera con notificación automática',
   'Google Calendar sincronizado',
-  'Portal simplificado para secretaria',
+  'Portal simplificado para tu asistente',
 ]
 
 export default function RegistroPage() {

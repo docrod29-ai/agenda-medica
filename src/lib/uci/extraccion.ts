@@ -1,0 +1,480 @@
+/**
+ * EXTRACCIÓN CLÍNICA DE UCI — normalización de unidades, sinónimos y ambigüedad
+ * (iteración nexusmed-icu-004).
+ *
+ * Puro y testeable. Ayuda a que el dato dictado se convierta en un valor
+ * normalizado SIN inventar. Regla de oro: ante ambigüedad (falta la unidad o hay
+ * dos lecturas posibles) NO se asume — se marca `unidadPendiente`/`ambiguo` para
+ * que la UI pida confirmación. Reutiliza el parseo de números en español.
+ */
+import { parsearNumeroEs } from '@/lib/voz/comandos-uci'
+import { num } from '@/lib/uci/num'
+
+export const EXTRACCION_UCI_VERSION = '1.2.0'  // A5: la coma decimal mexicana ya no se trunca («pH 7,35» era 7)
+
+/** Unidades canónicas de UCI y sus variantes dictadas/escritas. */
+const UNIDADES: { canonica: string; variantes: string[] }[] = [
+  { canonica: 'mcg/kg/min', variantes: ['mcg/kg/min', 'microgramos por kilo por minuto', 'ug/kg/min', 'gammas', 'gamma', 'microgramos/kg/min'] },
+  { canonica: 'mcg/min',    variantes: ['mcg/min', 'microgramos por minuto', 'ug/min', 'microgramos/min'] },
+  { canonica: 'mg/h',       variantes: ['mg/h', 'miligramos por hora', 'mg/hora'] },
+  { canonica: 'U/min',      variantes: ['u/min', 'unidades por minuto', 'unidades/min'] },
+  { canonica: 'U/h',        variantes: ['u/h', 'unidades por hora', 'unidades/hora'] },
+  { canonica: 'mL/h',       variantes: ['ml/h', 'mililitros por hora', 'ml/hora'] },
+  { canonica: 'cmH2O',      variantes: ['cmh2o', 'centimetros de agua', 'cm de agua', 'cm h2o'] },
+  { canonica: 'mmHg',       variantes: ['mmhg', 'milimetros de mercurio'] },
+  { canonica: 'mL/kg',      variantes: ['ml/kg', 'mililitros por kilo'] },
+  { canonica: 'mmol/L',     variantes: ['mmol/l', 'milimoles por litro', 'milimolar'] },
+  { canonica: 'mEq/L',      variantes: ['meq/l', 'miliequivalentes por litro'] },
+  { canonica: 'mg/dL',      variantes: ['mg/dl', 'miligramos por decilitro'] },
+  { canonica: 'g/dL',       variantes: ['g/dl', 'gramos por decilitro'] },
+  { canonica: '%',          variantes: ['%', 'por ciento', 'porciento'] },
+  { canonica: 'L/min',      variantes: ['l/min', 'litros por minuto'] },
+]
+
+/**
+ * SUBÍNDICES Y SUPERÍNDICES → dígitos normales.
+ *
+ * Un pase escrito o pegado trae «PaO₂», «PaCO₂», «FiO₂», «SpO₂», «HCO₃»,
+ * «cmH₂O». El extractor busca `pao2`, `fio2`, `hco3`… y NINGUNO casaba: el «₂»
+ * es U+2082, no el «2» de siempre.
+ *
+ * Consecuencia real, vista en producción el 30-jul-2026: el Dr. dictó un pase de
+ * UCI completo —pH, PaCO₂, PaO₂, FiO₂, PEEP, lactato— y la pantalla le respondió
+ * «no se puede calcular el índice de Kirby: falta PaO₂ y FiO₂». Los había dado
+ * los dos. El panel quedó vacío, los motores no calcularon nada y todo el
+ * dictado se volcó en crudo al final de la nota.
+ */
+const SUBINDICES: Record<string, string> = {
+  '₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4',
+  '₅': '5', '₆': '6', '₇': '7', '₈': '8', '₉': '9',
+  '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4',
+  '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9',
+}
+
+const norm = (s: string): string => (s || '')
+  .replace(/[₀-₉⁰-⁹]/g, c => SUBINDICES[c] ?? c)
+  // El menos de verdad (U+2212) y los guiones tipográficos: un «RASS: −4» venía
+  // con el signo matemático, no con el guion del teclado, y no casaba nunca.
+  .replace(/[\u2212\u2013\u2014]/g, '-')
+  // Menos y más en superíndice de la nomenclatura química: «HCO₃⁻», «Na⁺».
+  .replace(/[\u207b\u207a]/g, '')
+  // Separador de MILLAR: «118,000/µL» y «17,800/µL». Sin esto se leía 118 y 17.
+  .replace(/(?<=\d),(?=\d{3}\b)/g, '')
+  .toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .replace(/\s+/g, ' ').trim()
+
+/**
+ * Separadores que pueden ir entre el nombre del dato y su número.
+ *
+ * El regex original sólo aceptaba ESPACIO (y algunas palabras: «de», «a», «en»).
+ * Un pase escrito usa dos puntos —«pH: 7.19», «PEEP: 8 cmH₂O»— y ninguno casaba.
+ * Se aceptan también `=` y la flecha de una tendencia, que es como se escribe un
+ * cambio: «lactato 8.7 → 5.9» (se toma el PRIMER número; la tendencia es otra
+ * cosa y no se adivina).
+ */
+const SEP = '(?:\\s*[:=]\\s*|\\s+(?:de|a|en|es|fue|esta en)\\s+|\\s*[*\u2022\u2013\u2014-]\\s*|\\s+)'
+
+/** Devuelve la unidad canónica reconocida, o null si no la identifica. */
+export function interpretarUnidad(texto?: string): string | null {
+  if (!texto) return null
+  const t = norm(texto)
+  for (const u of UNIDADES) {
+    if (u.variantes.some(v => t === norm(v) || t.includes(norm(v)))) return u.canonica
+  }
+  return null
+}
+
+/** Sinónimos de fármacos/términos de UCI → nombre canónico. */
+const SINONIMOS: Record<string, string> = {
+  norepi: 'norepinefrina', noradrenalina: 'norepinefrina', 'nor-epi': 'norepinefrina',
+  epi: 'epinefrina', adrenalina: 'epinefrina',
+  vaso: 'vasopresina', avp: 'vasopresina',
+  dobuta: 'dobutamina', dopa: 'dopamina', fenil: 'fenilefrina',
+  propo: 'propofol', midazo: 'midazolam', dexmede: 'dexmedetomidina', precede: 'dexmedetomidina',
+  fenta: 'fentanilo',
+}
+export function canonizarFarmaco(nombre?: string): string {
+  if (!nombre) return ''
+  const t = norm(nombre)
+  return SINONIMOS[t] ?? t
+}
+
+export interface ValorClinico {
+  valor: number | null
+  unidad: string | null
+  unidadPendiente: boolean   // hay número pero falta unidad → confirmar
+  ambiguo: boolean           // dos lecturas posibles → confirmar
+  crudo: string
+}
+
+/**
+ * Parsea un valor clínico de una frase. Ej.:
+ *   "PEEP ocho"                → { valor:8, unidad:null, unidadPendiente:true (contexto lo pone) }
+ *   "potasio cinco punto ocho" → { valor:5.8, unidad:null, unidadPendiente:true }
+ *   "norepinefrina punto uno"  → { valor:0.1?, ambiguo:true }  (¿0.1 mcg/kg/min?)
+ *   "FiO2 cuarenta por ciento" → { valor:40, unidad:'%' }
+ *
+ * NO asume la unidad: si no viene, `unidadPendiente=true`. Si el número empieza
+ * por "punto" (sin entero), lo marca `ambiguo` (0.1 vs 1, hay que confirmar).
+ */
+export function parsearValorClinico(texto: string): ValorClinico {
+  const crudo = texto
+  const t = norm(texto)
+  const base: ValorClinico = { valor: null, unidad: null, unidadPendiente: false, ambiguo: false, crudo }
+
+  // "punto uno" sin entero explícito → ambiguo (0.1 vs 1)
+  const empiezaPunto = /(^|\s)punto\s+\w+/.test(t) && !/\d|\b(cero|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|veinte|treinta|cuarenta|cincuenta)\b\s+punto/.test(t)
+
+  // Extraer el número embebido en la frase (dígitos o palabras, con "punto").
+  // El dígito debe estar SUELTO: el "2" de "FiO2" no es un valor (va pegado a letra).
+  /**
+   * La COMA también es separador decimal.
+   *
+   * Antes el patrón sólo aceptaba el punto, así que «pH 7,35» extraía **7** y
+   * «peso 82,4 kg» extraía **82**: el decimal se perdía en silencio y el valor
+   * quedaba plausible, que es lo peor. Un pH de 7 en vez de 7.35 es la
+   * diferencia entre una acidosis grave y un paciente normal, y nada en la
+   * pantalla decía que se había recortado.
+   *
+   * La conversión va por `num()`, que ya sabe distinguir la coma decimal de la
+   * de miles: «12,5» es 12.5 pero «1,200» es 1200 — tres dígitos exactos detrás
+   * de la coma son miles, y una glucosa de 1,200 leída como 1.2 dispararía una
+   * alerta de hipoglucemia en plena hiperglucemia.
+   */
+  const mDig = t.match(/(?<![a-z])(\d+(?:[.,]\d+)?)(?![a-z])/)
+  let valor: number | null = null
+  if (mDig) {
+    valor = num(mDig[1])
+  } else {
+    // Busca una secuencia de palabras-número (p.ej. "ocho", "cero punto cuatro",
+    // "treinta y cinco") aunque venga precedida de la etiqueta ("peep ocho").
+    const NUM = 'cero|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinti\\w+|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa'
+    const m = t.match(new RegExp(`\\b(?:${NUM})(?:\\s+(?:y|punto|${NUM}))*`))
+    if (m) {
+      const s = parsearNumeroEs(m[0])
+      if (s !== null) valor = num(s)
+    }
+  }
+
+  const unidad = interpretarUnidad(t)
+  return {
+    ...base,
+    valor: Number.isFinite(valor as number) ? valor : null,
+    unidad,
+    unidadPendiente: valor !== null && unidad === null,
+    ambiguo: empiezaPunto,
+  }
+}
+
+/**
+ * Campos del Panel UCI y las frases que los nombran (para extraer de la voz del
+ * pase de visita). El nombre debe ir seguido del número dictado.
+ */
+const CAMPOS_UCI: { campo: string; alias: string[] }[] = [
+  { campo: 'fio2', alias: ['fio2', 'fi o dos', 'fio dos', 'fraccion inspirada de oxigeno'] },
+  // OJO: 'pip' (presión pico inspiratoria) NO es PEEP; va a su propio campo ppico.
+  // Mapearlo a PEEP corrompía el driving pressure (Pplat − PEEP).
+  { campo: 'peep', alias: ['peep', 'pip peep', 'peep total'] },
+  { campo: 'autoPeep', alias: ['auto peep', 'autopeep', 'peep intrinseco', 'peep intrínseco'] },
+  { campo: 'ppico', alias: ['presion pico', 'presión pico', 'p pico', 'pico inspiratoria', 'ppico', 'pip', 'presion inspiratoria pico'] },
+  { campo: 'pplat', alias: ['plateau', 'presion plateau', 'presion meseta', 'pplat', 'presion plato'] },
+  { campo: 'psoporte', alias: ['presion soporte', 'presión de soporte', 'presion de soporte', 'soporte de presion'] },
+  { campo: 'fr', alias: ['frecuencia respiratoria', 'efe erre', 'fr'] },
+  { campo: 'vt', alias: ['volumen corriente', 'volumen tidal', 'vt'] },
+  { campo: 'pao2', alias: ['pao2', 'pao dos', 'presion arterial de oxigeno'] },
+  { campo: 'paco2', alias: ['paco2', 'paco dos', 'pco2', 'pco dos'] },
+  { campo: 'hco3', alias: ['bicarbonato', 'hco3', 'hache ce o tres'] },
+  { campo: 'ph', alias: ['ph', 'pe hache'] },
+  { campo: 'fc', alias: ['frecuencia cardiaca', 'fc'] },
+  { campo: 'lactato', alias: ['lactato'] },
+  { campo: 'pas', alias: ['presion sistolica', 'sistolica', 'tension sistolica'] },
+  { campo: 'pad', alias: ['presion diastolica', 'diastolica', 'tension diastolica'] },
+  { campo: 'norepi', alias: ['norepinefrina', 'noradrenalina', 'norepi', 'nora'] },
+  { campo: 'dopa', alias: ['dopamina'] },
+  { campo: 'dobu', alias: ['dobutamina'] },
+  { campo: 'epi', alias: ['epinefrina', 'adrenalina'] },
+  { campo: 'glasgow', alias: ['glasgow', 'escala de coma'] },
+  { campo: 'creat', alias: ['creatinina', 'cr'] },
+  { campo: 'k', alias: ['potasio', 'k'] },
+  { campo: 'na', alias: ['sodio', 'na'] },
+  { campo: 'cl', alias: ['cloro', 'cl'] },
+  { campo: 'alb', alias: ['albumina', 'albúmina', 'alb'] },
+  { campo: 'glucosa', alias: ['glucosa', 'glucemia', 'glu'] },
+  { campo: 'spo2', alias: ['saturacion de oxigeno', 'saturacion', 'spo2', 'sato dos', 'sato2', 'sao2'] },
+  { campo: 'plaquetas', alias: ['plaquetas'] },
+  { campo: 'bili', alias: ['bilirrubina', 'bt', 'bilirrubina total'] },
+  { campo: 'talla', alias: ['talla', 'estatura'] },
+  // Neurocrítico
+  { campo: 'pic', alias: ['presion intracraneal', 'presión intracraneana', 'presion intracraneana', 'pic'] },
+  { campo: 'temp', alias: ['temperatura'] },
+  { campo: 'osm', alias: ['osmolaridad', 'osmolalidad'] },
+  // POCUS (numéricos)
+  { campo: 'vci', alias: ['vena cava inferior', 'cava inferior', 'vci', 'vena cava'] },
+  { campo: 'tapse', alias: ['tapse'] },
+  // Hemodinámica invasiva: el pase del Dr. la trae completa y no había ni un campo.
+  { campo: 'pvc', alias: ['pvc', 'presion venosa central'] },
+  { campo: 'pcp', alias: ['pcp', 'paop', 'pcp/paop', 'presion capilar pulmonar', 'presion de enclavamiento'] },
+  { campo: 'gc', alias: ['gasto cardiaco', 'gc termodilucion', 'gc'] },
+  { campo: 'ic', alias: ['indice cardiaco', 'ic'] },
+  { campo: 'svo2', alias: ['svo2', 'saturacion venosa mixta'] },
+  { campo: 'fevi', alias: ['fevi', 'fraccion de expulsion', 'fraccion de eyeccion'] },
+  { campo: 'pam', alias: ['pam', 'presion arterial media', 'tension arterial media'] },
+  { campo: 'peso', alias: ['peso'] },
+  { campo: 'vdvi', alias: ['relacion vd vi', 'vd vi', 've de ve i'] },
+  { campo: 'lineasB', alias: ['lineas b', 'líneas b', 'lineas be'] },
+  { campo: 'plrDelta', alias: ['elevacion de piernas', 'plr', 'pierna recta'] },
+]
+
+const NUM_RE = 'cero|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinti\\w+|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien|ciento|doscient[oa]s|trescient[oa]s|cuatrocient[oa]s|quinient[oa]s|seiscient[oa]s|setecient[oa]s|ochocient[oa]s|novecient[oa]s'
+
+/**
+ * Extrae de la transcripción del pase de visita los valores del Panel UCI. Para
+ * cada campo busca su nombre seguido de un número (dígitos o palabras, con
+ * "punto"). Devuelve solo lo que reconoce con seguridad — NO inventa. La UI
+ * prellena el panel y el médico confirma antes de calcular.
+ */
+/**
+ * Extrae los campos CATEGÓRICOS (selectores) del pase dictado: modo ventilatorio,
+ * tipo de muestra, soporte, pupilas, parámetro de PLR, patrones venosos de VExUS,
+ * modalidad de CKRT y configuración de ECMO. Conservador: solo mapea frases claras
+ * (el panel muestra lo prellenado para que el médico lo revise). No inventa.
+ */
+export function extraerCategoricosUCI(texto: string): Record<string, string> {
+  const t = norm(texto)
+  const out: Record<string, string> = {}
+  const tiene = (re: RegExp) => re.test(t)
+
+  // Muestra gasométrica (exigir "arterial/venosa/capilar" junto a gaso/muestra)
+  if (tiene(/\bgaso\w*\s+arterial\b/) || tiene(/\bmuestra\s+arterial\b/)) out.muestra = 'arterial'
+  else if (tiene(/\bgaso\w*\s+venosa\b/) || tiene(/\bmuestra\s+venosa\b/)) out.muestra = 'venosa'
+  else if (tiene(/\bgaso\w*\s+capilar\b/) || tiene(/\bmuestra\s+capilar\b/)) out.muestra = 'capilar'
+
+  // Modo ventilatorio + soporte
+  /**
+   * Los modos también se ESCRIBEN abreviados, y así es como llegan de un pase
+   * tecleado: «Modo: VC-AC», «PCV», «VCV», «PRVC». Sin estas formas, un paciente
+   * INTUBADO en volumen control caía al `else if` de «no invasiva» —porque el
+   * texto mencionaba una VNI en el plan de destete— y la nota afirmaba
+   * «Ventilación no invasiva (BiPAP)» sobre alguien intubado y en ECMO.
+   * Visto en producción el 30-jul-2026.
+   *
+   * Lo específico va ANTES que lo genérico: `vc-ac` antes que `no invasiva`.
+   */
+  if (tiene(/\baprv\b|bivent/)) out.modo = 'APRV'
+  else if (tiene(/\bsimv\b/)) out.modo = 'SIMV'
+  else if (tiene(/\bprvc\b|volumen control regulado por presion/)) out.modo = 'AC-VC'
+  else if (tiene(/presion control|control por presion|a\/?c\s+presion|asistido controlado por presion|\bpcv\b|\bpc[\s-]?ac\b|\bac[\s-]?pc\b/)) out.modo = 'AC-PC'
+  else if (tiene(/volumen control|control por volumen|a\/?c\s+volumen|asistido controlado por volumen|\bvcv\b|\bvc[\s-]?ac\b|\bac[\s-]?vc\b/)) out.modo = 'AC-VC'
+  else if (tiene(/presion soporte|ventilacion espontanea|\bpsv\b|\bp's\b/)) out.modo = 'PSV'
+  else if (tiene(/\bcpap\b/)) out.modo = 'CPAP'
+  else if (tiene(/no invasiva|\bvni\b|\bbipap\b/)) out.modo = 'VNI'
+  else if (tiene(/alto flujo|canula nasal de alto flujo|\bafnc\b/)) out.modo = 'AFNC'
+  else if (tiene(/aire ambiente|puntas nasales|mascarilla|oxigeno suplementario/)) out.modo = 'aire'
+  if (tiene(/ventilacion mecanica|ventilad[oa]|intubad[oa]|en ventilador|asistido controlado|volumen control|presion control|\bsimv\b|\bcpap\b|\baprv\b/)) out.soporte = 'si'
+
+  // Pupilas
+  if (tiene(/pupilas?\s+fijas|midriasis fija|pupilas? arreactivas/)) out.pupilas = 'fijas'
+  else if (tiene(/anisocor/)) out.pupilas = 'anisocoria'
+  else if (tiene(/isocor|pupilas iguales|pupilas normales/)) out.pupilas = 'isocoricas'
+
+  // Parámetro de PLR
+  if (tiene(/lvot|\bvti\b|integral velocidad tiempo/)) out.plrParam = 'LVOT_VTI'
+  else if (tiene(/volumen sistolico/)) out.plrParam = 'SV'
+  else if (tiene(/gasto cardiaco|\bgasto\b/)) out.plrParam = 'CO'
+
+  // VExUS: vena hepática / porta / renal → grave|leve|normal
+  const sev = (m: string): string | null => /grav|sever/.test(m) ? 'grave' : /lev|moderad/.test(m) ? 'leve' : /normal/.test(m) ? 'normal' : null
+  for (const [campo, nombre] of [['vHep', 'hepatic'], ['vPor', 'port'], ['vRen', 'renal']] as const) {
+    const m = t.match(new RegExp(`${nombre}\\w*[^.]{0,30}?(grav\\w*|sever\\w*|lev\\w*|moderad\\w*|normal)`))
+    if (m) { const s = sev(m[1]); if (s) out[campo] = s }
+  }
+
+  // Modalidad de CKRT
+  if (tiene(/cvvhdf/)) out.ckrtMod = 'CVVHDF'
+  else if (tiene(/cvvhd/)) out.ckrtMod = 'CVVHD'
+  else if (tiene(/cvvh/)) out.ckrtMod = 'CVVH'
+  else if (tiene(/\bscuf\b/)) out.ckrtMod = 'SCUF'
+
+  // Configuración de ECMO
+  if (tiene(/veno[\s-]?arterial|\becmo v\s?a\b|\bv\s?a\s?v\b/)) out.ecmoConf = tiene(/\bv\s?a\s?v\b/) ? 'VAV' : 'VA'
+  else if (tiene(/veno[\s-]?venos|\becmo v\s?v\b/)) out.ecmoConf = 'VV'
+
+  return out
+}
+
+/**
+ * RANGOS FISIOLÓGICOS DUROS por campo del Panel UCI (nexusmed-icu-005).
+ *
+ * No son rangos "normales" — son LÍMITES DE POSIBILIDAD FISIOLÓGICA. Un valor
+ * fuera de aquí casi nunca es enfermedad: es un error de dictado/transcripción
+ * (p. ej. "potasio cinco punto cero" oído como "cincuenta" → 50). Sirven para NO
+ * dejar que un número imposible prellene el panel y envenene SOFA/APACHE o dispare
+ * una alerta crítica falsa. Los valores CRÍTICOS reales (K 9, pH 6.9, lactato 15)
+ * SÍ pasan: los topes son generosos a propósito.
+ *
+ * No se usa `valorPlausible` de laboratorio: sus claves (creatinina, potasio…) no
+ * coinciden con los campos del panel (creat, k…) y el panel tiene decenas de
+ * campos no-lab (peep, fio2, pic…). Tabla propia, explícita y versionada.
+ */
+const RANGOS_UCI: Record<string, [number, number]> = {
+  // Respiratorio / ventilador
+  fio2: [21, 100], peep: [0, 45], autoPeep: [0, 40], ppico: [0, 100], pplat: [0, 90],
+  psoporte: [0, 60], fr: [0, 80], vt: [50, 2000], spo2: [40, 100],
+  // Gasometría
+  pao2: [15, 700], paco2: [5, 200], hco3: [2, 60], ph: [6.5, 7.9], lactato: [0, 40],
+  // Hemodinamia
+  pas: [30, 300], pad: [10, 200], norepi: [0, 5], dopa: [0, 50], dobu: [0, 40], epi: [0, 5],
+  // Neuro
+  glasgow: [3, 15], pic: [0, 100], temp: [24, 43], osm: [200, 400],
+  // Metabólico / lab
+  creat: [0.1, 25], k: [1, 9.5], na: [90, 190], cl: [50, 160], alb: [0.5, 7],
+  glucosa: [10, 2000], plaquetas: [1, 2000], bili: [0, 60], talla: [40, 230],
+  // POCUS
+  vci: [0, 4], tapse: [2, 45], vdvi: [0.2, 3], lineasB: [0, 40], plrDelta: [0, 100],
+  // Hemodinámica invasiva
+  pvc: [-5, 40], pcp: [0, 50], gc: [0.5, 15], ic: [0.3, 8], svo2: [10, 95],
+  fevi: [5, 80], pam: [20, 200], peso: [20, 300],
+}
+
+export interface AvisoExtraccionUCI {
+  campo: string
+  crudo: string
+  motivo: 'implausible' | 'ambiguo'
+  detalle: string
+}
+
+/**
+ * Extrae los valores del pase dictado CON dos controles de seguridad
+ * DETERMINISTAS (nexusmed-icu-005) — nunca inventa ni corrige el número:
+ *
+ *  1) PLAUSIBILIDAD: si el valor cae fuera de su rango fisiológico duro
+ *     (RANGOS_UCI), NO prellena el panel; lo reporta como aviso 'implausible'
+ *     para que el médico lo vuelva a dictar. Antes "potasio cincuenta" metía
+ *     K=50 → +puntos APACHE y una alerta de hiperkalemia FALSA.
+ *  2) AMBIGÜEDAD: un decimal dictado como "punto uno" (sin entero) es ambiguo
+ *     (0.1 vs 1 → 10× en una amina). Antes se DESCARTABA EN SILENCIO. Ahora lo
+ *     reporta como aviso 'ambiguo' para que el médico confirme.
+ */
+export function extraerValoresUCIConAvisos(texto: string): { valores: Record<string, string>; avisos: AvisoExtraccionUCI[] } {
+  const t = norm(texto)
+  const valores: Record<string, string> = { ...extraerCategoricosUCI(texto) }
+  const avisos: AvisoExtraccionUCI[] = []
+  for (const { campo, alias } of CAMPOS_UCI) {
+    let hecho = false
+    let ambNum: string | null = null
+    for (const a of alias) {
+      const an = norm(a).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      // <alias> [de|a|en] <numero>  → primera coincidencia
+      // \b tras cada token numérico: sin él la alternación (ordenada) captura el
+      // prefijo — "cien" de "ciento", "dos" de "doscientos" → valor truncado.
+      const re = new RegExp(`\\b${an}\\b${SEP}((?:\\d+(?:\\.\\d+)?)|(?:${NUM_RE})\\b(?:\\s+(?:y|punto|(?:${NUM_RE})\\b))*)`, 'i')
+      const m = t.match(re)
+      if (m) {
+        const crudo = m[1]
+        const val = /^\d/.test(crudo) ? crudo : parsearNumeroEs(crudo)
+        if (val !== null && val !== '') {
+          const num = Number(val)
+          const rango = RANGOS_UCI[campo]
+          if (rango && Number.isFinite(num) && (num < rango[0] || num > rango[1])) {
+            avisos.push({
+              campo, crudo: String(val), motivo: 'implausible',
+              detalle: `"${a} ${crudo}" → ${val} está fuera del rango fisiológico posible (${rango[0]}–${rango[1]}); parece error de dictado. No se prellenó; vuelve a dictarlo.`,
+            })
+          } else {
+            valores[campo] = String(val)
+          }
+          hecho = true
+          break
+        }
+      }
+      // ¿alias seguido de "punto <n>" sin entero? → decimal ambiguo (0.x vs x)
+      if (ambNum === null) {
+        const ma = t.match(new RegExp(`\\b${an}\\b${SEP}punto\\s+(${NUM_RE})`, 'i'))
+        if (ma) ambNum = ma[1]
+      }
+    }
+    if (!hecho && ambNum !== null && !(campo in valores)) {
+      const d = parsearNumeroEs(ambNum)
+      avisos.push({
+        campo, crudo: `punto ${ambNum}`, motivo: 'ambiguo',
+        detalle: `Dictaste "${campo} punto ${ambNum}": ambiguo (¿0.${d} o ${d}?, 10× de diferencia). No se prellenó; confírmalo en el panel.`,
+      })
+    }
+  }
+  /**
+   * TENSIÓN EN FRACCIÓN: «TA invasiva: 78/46 mmHg».
+   *
+   * Así es como se escribe y como se dice una presión arterial, y el extractor
+   * sólo sabía leer «presión sistólica 78». Sin sistólica y diastólica no hay
+   * PAM, y sin PAM se bloquean la presión de perfusión cerebral y media
+   * hemodinámica. El Copilot lo dijo con todas sus letras: «PAM bloqueada en
+   * motor por falta de PAS/PAD aunque hay TA registrada en notas».
+   *
+   * Se exige el par en el MISMO tramo y que sistólica > diastólica: un «6/12 mL»
+   * o una relación I:E no son una tensión.
+   */
+  if (!('pas' in valores) && !('pad' in valores)) {
+    const mta = t.match(/\b(?:ta|tension|presion)\s*(?:arterial|invasiva|no invasiva|nibp)?\s*[:=]?\s*(\d{2,3})\s*\/\s*(\d{2,3})\b/i)
+    if (mta) {
+      const sis = Number(mta[1]), dia = Number(mta[2])
+      if (sis > dia && sis >= 40 && sis <= 300 && dia >= 10 && dia <= 200) {
+        valores.pas = String(sis); valores.pad = String(dia)
+      }
+    }
+  }
+
+  /**
+   * UNIDADES ESCRITAS: se convierten, NO se adivinan.
+   *
+   * «VCI 24 mm» quedaba fuera de rango (el campo está en cm) y «Plaquetas
+   * 118,000/µL» también (el campo está en millares). Los dos se descartaban con
+   * un aviso de «error de dictado» — y no era un error: era la unidad del
+   * laboratorio, escrita ahí mismo en el texto.
+   *
+   * La conversión sólo ocurre cuando la unidad está ESCRITA. Sin unidad no se
+   * toca nada: elegirla por el médico sería adivinar, y un factor de mil en una
+   * cifra clínica no se adivina.
+   */
+  const convertir: { campo: string; re: RegExp; factor: number; nota: string }[] = [
+    { campo: 'vci', re: /\bvci|vena cava( inferior)?/i, factor: 0.1, nota: 'mm→cm' },
+    { campo: 'plaquetas', re: /plaquetas/i, factor: 0.001, nota: '/µL→×10³' },
+  ]
+  for (const c of convertir) {
+    if (c.campo in valores) continue
+    const i = avisos.findIndex(a => a.campo === c.campo && a.motivo === 'implausible')
+    if (i < 0) continue
+    // ¿La unidad que lo explica está escrita justo después del número?
+    // El grupo NO es opcional: sin `(?:…)` la alternación del patrón se come el
+    // resto de la expresión y «VCI: 24» (sin unidad) casaba con sólo `\bvci`,
+    // convirtiendo a 2.4 cm un número que nadie dijo en milímetros. Es el mismo
+    // fallo de precedencia que se arregló hoy en otros dos sitios.
+    const base = `(?:${c.re.source})`
+    const unidad = c.campo === 'vci'
+      ? new RegExp(`${base}[^.]{0,20}?\\b${avisos[i].crudo}\\s*mm\\b`, 'i')
+      : new RegExp(`${base}[^.]{0,20}?\\b${avisos[i].crudo.replace('.', '')}\\s*\\/?\\s*(u|µ|mc)l\\b`, 'i')
+    if (!unidad.test(t)) continue
+    const convertido = Number(avisos[i].crudo) * c.factor
+    const r = RANGOS_UCI[c.campo]
+    if (!r || convertido < r[0] || convertido > r[1]) continue
+    valores[c.campo] = String(Number(convertido.toFixed(3)))
+    avisos.splice(i, 1)
+  }
+
+  // RASS es la única escala que puede ser NEGATIVA ("menos 3"); no cabe en el
+  // parser numérico general. Se extrae aparte y se acota a [−5, +4].
+  if (!('rass' in valores)) {
+    const mr = t.match(new RegExp(`\\brass\\b${SEP}(menos\\s+|negativ[oa]\\s+|-)?\\s*(\\d|cero|uno|dos|tres|cuatro|cinco)\\b`, 'i'))
+    if (mr) {
+      const mag = /^\d$/.test(mr[2]) ? Number(mr[2]) : Number(parsearNumeroEs(mr[2]))
+      if (Number.isFinite(mag) && mag >= 0 && mag <= 5) {
+        const neg = !!mr[1]
+        valores.rass = String(neg ? -mag : mag)
+      }
+    }
+  }
+  return { valores, avisos }
+}
+
+export function extraerValoresUCI(texto: string): Record<string, string> {
+  return extraerValoresUCIConAvisos(texto).valores
+}

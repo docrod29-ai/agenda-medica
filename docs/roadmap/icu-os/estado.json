@@ -1,0 +1,218 @@
+{
+  "version": 1,
+  "descripcion": "ESTADO DURABLE del programa ICU Critical Care OS. Fuente de verdad del avance. Se actualiza tras CADA unidad. Si se acaban los créditos o se cae el internet, este archivo dice exactamente dónde retomar sin perder nada.",
+  "decision": "(a) FUSIONAR — la máquina de estados y la hora efectiva se construyen una vez y sirven a signos de piso y a UCI. Elegida por el Dr. el 29-jul-2026.",
+  "completadas": [
+    "ICU-001",
+    "ICU-002a",
+    "ICU-002b",
+    "ICU-002c",
+    "ICU-002d",
+    "ICU-003",
+    "ICU-P1-5",
+    "ICU-P1-5",
+    "ICU-P1-2",
+    "ICU-P1-1",
+    "ICU-P1-6",
+    "ICU-P1-3",
+    "ICU-P1-4",
+    "ICU-P2-2",
+    "ICU-P2-4",
+    "ICU-P2-3",
+    "ICU-P1-7",
+    "ICU-P2-1",
+    "ICU-P2-6",
+    "ICU-DEC-2026-07-30",
+    "ICU-UI-1",
+    "ICU-FLUJO-1",
+    "ICU-P2-5"
+  ],
+  "unidadEnCurso": null,
+  "unidades": [
+    {
+      "id": "ICU-001",
+      "titulo": "Auditoría y arquitectura",
+      "estado": "completada",
+      "entrega": "docs/roadmap/icu-os/ICU-001-AUDITORIA-Y-ARQUITECTURA.md"
+    },
+    {
+      "id": "ICU-002a",
+      "titulo": "Núcleo de observación versionada (fusión)",
+      "estado": "completada",
+      "entrega": "src/lib/clinical/observacion-version.ts + 35 casos + ADR"
+    },
+    {
+      "id": "ICU-002b",
+      "titulo": "Aplicar el núcleo a RegistroSignos (cierra E0-09)",
+      "estado": "completada",
+      "depende": [
+        "ICU-002a"
+      ],
+      "alcance": "Sustituir PoliticaSignoCorregido por la máquina de estados. Añadir fechaEfectiva/fechaRegistro a RegistroSignos con lector compatible (el `fecha` viejo NO se borra). Migrar signosParaCalculoClinico a vigenteEn. Retirar FALTA_POLITICA_Q1 y su guardián, que ya está resuelto.",
+      "riesgo": "Toca producción: la ficha de hospitalización y NEWS2. El guardián de E0-09 exige que ninguna pantalla cablee el cálculo — ese guardián se ACTUALIZA con la decisión escrita, no se borra.",
+      "entrega": "Adaptador signosComoObservaciones + signosVigentesEn + serieSignosVigente. Politica binaria RETIRADA. Guardian de E0-09/Q1 reescrito con la decision escrita (7 casos nuevos). fechaEfectiva/fechaRegistro/estadoObservacion aditivos en RegistroSignos: ningun documento guardado deja de ser valido.",
+      "limiteDeclarado": "En un registro previo a ICU-002b la correccion lleva la hora de CAPTURA, no la del hecho. Para ese historico el score retrospectivo del Ejemplo A NO es reconstruible: el dato para hacerlo nunca se guardo. Los registros nuevos si lo llevan."
+    },
+    {
+      "id": "ICU-002c",
+      "titulo": "ICUStay + BedAssignment",
+      "estado": "completada",
+      "depende": [
+        "ICU-002b"
+      ],
+      "alcance": "Modelos nuevos, aditivos. NO crear HospitalEncounter: `Internamiento` ya lo es. La cama deja de ser un string; el lector prefiere la asignación con respaldo al string (patrón REG-014).",
+      "riesgo": "Ampliar EstadoCama de 4 a 7 obliga a barrer todos los consumidores (el Record lo fuerza en tsc).",
+      "entrega": "types/hospital.ts: ICUStay, BedAssignment, SoporteActivo, EstadoCama de 4 a 7 valores. lib/hospital/bed-assignment.ts: nucleo puro append-only. 24 casos con los CINCO flujos del charter como criterio de aceptacion. ADR propio + registrado + sellado.",
+      "nota": "El Record<EstadoCama> hizo su trabajo: tsc encontro el unico consumidor (el mapa de colores de camas/page.tsx) al ampliar el tipo. Internamiento.cama NO se toca: camaVigenteDe prefiere la asignacion con respaldo al string, y DECLARA la fuente para poder auditarla."
+    },
+    {
+      "id": "ICU-002d",
+      "titulo": "Reglas Firestore + suite del emulador",
+      "estado": "completada",
+      "depende": [
+        "ICU-002c"
+      ],
+      "alcance": "3 subcolecciones nuevas. Las reglas son ADITIVAS: verificar que ninguna regla amplia ya las cubra (lección REG-014).",
+      "riesgo": "ALTO — fuga cross-tenant de PHI de UCI. Exigir la suite del emulador de E0-08 en el PR.",
+      "entrega": "firestore.rules: icu_stays y bed_assignments con lectura para clinicos y escritura SOLO por servidor. Matriz de acceso + documento publicado regenerado. 6 casos de guardian con control negativo.",
+      "pendiente": "La suite del EMULADOR no se ejecuto: esta maquina no tiene JRE. Los casos cross-tenant se generan solos desde la matriz (ya declarada), asi que corren en el primer PR que pase por el job aislamiento-tenant del CI."
+    },
+    {
+      "id": "ICU-003",
+      "titulo": "Persistir ICUObservation (arregla el P0)",
+      "estado": "completada",
+      "depende": [
+        "ICU-002d"
+      ],
+      "alcance": "El hallazgo central de ICU-001: hoy las lecturas viven solo en localStorage, tope 24, y el logout las purga. Va SOLA por ser el cambio de mayor riesgo.",
+      "riesgo": "ALTO — escribe PHI nueva en volumen. Cota de lecturas como getSignos (TOPE 200).",
+      "entrega": "Persistencia append-only + regla con hasOnly + CABLEADO del panel con escritura DOBLE. 22 casos.",
+      "nota": "El panel escribe a localStorage PRIMERO y despues al servidor. Un fallo de red avisa pero no interrumpe: la lectura ya esta guardada. Al cargar, el servidor gana si respondio; si falla, se queda lo local y la grafica NO se vacia. El modo calculadora sin paciente no intenta persistir."
+    },
+    {
+      "id": "ICU-P1-5",
+      "titulo": "Reconciliacion dictado vs calculado (charter 24)",
+      "estado": "completada",
+      "entrega": "src/lib/uci/reconciliacion.ts + 21 casos + ADR + registrado. El charter la marca como funcion de ENORME VALOR y no existia.",
+      "nota": "NO elige ganador a proposito: las dos direcciones de error son reales. El tipo no tiene campo //, y un test lo congela."
+    },
+    {
+      "id": "ICU-P1-5",
+      "titulo": "Reconciliacion dictado vs calculado (charter 24)",
+      "estado": "completada",
+      "entrega": "src/lib/uci/reconciliacion.ts + 21 casos + ADR + registrado.",
+      "nota": "NO elige ganador a proposito: las dos direcciones de error son reales."
+    },
+    {
+      "id": "ICU-P1-2",
+      "titulo": "Confirmacion basada en riesgo (decision ICU-Q4.4)",
+      "estado": "completada",
+      "entrega": "src/lib/uci/confirmacion.ts + 54 casos + ADR + registrado como pendiente_validacion.",
+      "pendienteDelDr": "Calibrar MARGEN_AMBIGUEDAD (0.15) y CONFIANZA_BAJA (0.80) con datos reales."
+    },
+    {
+      "id": "ICU-P1-1",
+      "titulo": "Vocabulario por contexto (charter 8)",
+      "estado": "completada",
+      "entrega": "src/lib/uci/contexto-vocabulario.ts + 22 casos + ADR + registrado. Las 4 listas literales del charter, congeladas exacto."
+    },
+    {
+      "id": "ICU-P1-6",
+      "titulo": "Motor de dato faltante (charter 31)",
+      "estado": "completada",
+      "entrega": "src/lib/uci/dato-faltante.ts + 19 casos + ADR + registrado."
+    },
+    {
+      "id": "ICU-P1-3",
+      "titulo": "La infusion como registro (charter 13/19/20)",
+      "estado": "completada",
+      "entrega": "src/lib/uci/infusion-registro.ts + 26 casos + ADR + registrado como pendiente_validacion.",
+      "pendienteDelDr": "Umbrales de MAGNITUD del seccion 20 por farmaco (velocidad absurda, error de decimal)."
+    },
+    {
+      "id": "ICU-P1-4",
+      "titulo": "Linea de tiempo unica (charter 33)",
+      "estado": "completada",
+      "entrega": "src/lib/uci/linea-tiempo.ts + 23 casos + ADR + registrado. correlacion.ts ya cubria el 34 y no se duplico."
+    },
+    {
+      "id": "ICU-P2-2",
+      "titulo": "Morning Brief (charter 30)",
+      "estado": "completada",
+      "entrega": "src/lib/uci/morning-brief.ts + 23 casos + ADR + registrado como pendiente_validacion.",
+      "pendienteDelDr": "Direccion de beneficio de 5 metricas: balance, lactato, creatinina, diuresis, vexus."
+    },
+    {
+      "id": "ICU-P2-4",
+      "titulo": "Metas diarias (charter 35)",
+      "estado": "completada",
+      "entrega": "src/lib/uci/metas-diarias.ts + 18 casos + ADR + registrado. Desbloquea los PENDIENTES del Morning Brief."
+    },
+    {
+      "id": "ICU-P2-3",
+      "titulo": "ICU Handoff (charter 36)",
+      "estado": "completada",
+      "entrega": "src/lib/uci/handoff.ts + 23 casos + ADR + registrado. La revision del medico vive en el TIPO."
+    },
+    {
+      "id": "ICU-P1-7",
+      "titulo": "MAR de UCI sobre la farmacia existente (charter 37)",
+      "estado": "completada",
+      "entrega": "src/lib/uci/mar.ts + 39 casos + ADR + registrado. Cinco estados que nunca se atrasan; control negativo de inventario."
+    },
+    {
+      "id": "ICU-P2-1",
+      "titulo": "Estados de cama 4->7 conectados (charter 2)",
+      "estado": "completada",
+      "entrega": "src/lib/hospital/estados-cama.ts + 22 casos + ADR + registrado + tablero conectado. Cierra el conteo falso de camas libres."
+    },
+    {
+      "id": "ICU-P2-6",
+      "titulo": "Landing de UCI con tarjetas (charter 3)",
+      "estado": "completada",
+      "entrega": "src/lib/uci/tarjetas.ts + 21 casos + ADR + registrado + LandingUci.tsx conectado a /uci."
+    },
+    {
+      "id": "ICU-DEC-2026-07-30",
+      "titulo": "Decisiones del Dr.: rotacion de cama + dia de UCI",
+      "estado": "completada",
+      "entrega": "src/lib/uci/estancia.ts (18 casos) + estados-cama con politica y override (42 casos) + tarjetas con soportes + /uci como expediente. Default seguro de limpieza terminal."
+    },
+    {
+      "id": "ICU-UI-1",
+      "titulo": "Resumen del pase y linea de tiempo en pantalla",
+      "estado": "completada",
+      "entrega": "src/lib/uci/resumen.ts (25 casos) + ResumenPase.tsx + pestanas en /uci. Los motores 30/33/35/36 dejan de ser invisibles."
+    },
+    {
+      "id": "ICU-FLUJO-1",
+      "titulo": "Unidades con tipo + flujo Urgencias->UCI->piso",
+      "estado": "completada",
+      "entrega": "unidades.ts (20 casos) + indicadores-episodio.ts (24 casos) + pantalla de unidades + traslado escribe ICUStay/BedAssignment/limpieza. Cierra el regex sobre el nombre del servicio."
+    },
+    {
+      "id": "ICU-P2-5",
+      "titulo": "Turno de enfermeria (charter 40)",
+      "estado": "completada",
+      "entrega": "src/lib/uci/enfermeria.ts + 23 casos + ADR + registrado + pantalla /uci/enfermeria. ULTIMA del backlog."
+    }
+  ],
+  "necesitaValidacionDelDr": [
+    {
+      "id": "ICU-VENTANA",
+      "pregunta": "Cuánto tiempo sigue siendo VIGENTE una observación para entrar a un score (SpO2, TA, lactato). El motor está listo; el parámetro es obligatorio y sin default a propósito.",
+      "bloquea": "nada — cada llamador pasa null explícito mientras tanto"
+    },
+    {
+      "id": "ICU-Q1-CAPA-C",
+      "pregunta": "Las 200-500 grabaciones reales de voluntarios de la Capa C. No bloquea: las capas A y B son programáticas.",
+      "bloquea": "solo la Capa C del benchmark"
+    },
+    {
+      "id": "ICU-Q2-HOSPITAL",
+      "pregunta": "Las preparaciones de infusión de su unidad. Sin ellas, HOSPITAL STANDARD queda vacío y el médico captura cantidad/volumen/velocidad a mano, como pide su decisión.",
+      "bloquea": "nada — la jerarquía ya lo contempla"
+    }
+  ],
+  "protocolo": "UNA unidad por corrida. Tras cada una: gates (tsc + vitest + build), commit, y actualizar este archivo ANTES de empezar la siguiente. Nunca desplegar sin que el Dr. lo pida. Nunca inventar un umbral clínico."
+}

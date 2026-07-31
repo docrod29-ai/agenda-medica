@@ -17,23 +17,31 @@
  *   - Devuelve más rápido — pensado para llamadas paralelas
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { WHISPER_PROMPT_MEDICO } from '@/lib/expediente/medical-vocabulary'
-import { verificarUsuario } from '@/lib/auth-server'
+import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { resolverClaveIA } from '@/lib/ai-keys'
+import { gateCreditos, resolverClaveIA, registrarCreditos  } from '@/lib/ai-keys'
+import { COSTO_CREDITOS } from '@/lib/planes-ia'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
 
 export async function POST(req: NextRequest) {
-  const acceso = await verificarUsuario(req)
+  const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
   const _rl = await limitarOResponder(`transcribir-chunk:${acceso.uid}`, 120, 60)
   if (_rl) return _rl
 
   // Usa la llave del consultorio si la tiene. No cuenta ni aplica tope: es el
   // preview en vivo de UNA consulta que se cuenta al transcribir/procesar final.
-  const { key: apiKey } = await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY)
+  const { key: apiKey, clinicId, fuente } = await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY)
+  // TOPE DE CRÉDITOS (auditoría 26-jul): sin esto, un consultorio con los
+  // créditos agotados seguía quemando la llave del dueño indefinidamente.
+  // `gateCreditos` sólo corta cuando la llave es la del dueño (`prueba`):
+  // con llave propia del consultorio NO se corta, porque paga su propia API.
+  const corteCreditos = await gateCreditos(clinicId, fuente)
+  if (corteCreditos) return corteCreditos
   if (!apiKey) {
     return NextResponse.json({ ok: false, error: 'OPENAI_API_KEY no configurada' }, { status: 503 })
   }
@@ -91,6 +99,7 @@ export async function POST(req: NextRequest) {
       const res = await llamarOpenAI(model)
       if (res.ok) {
         const data = await res.json()
+        void registrarCreditos(clinicId, COSTO_CREDITOS.transcribirChunk)
         return NextResponse.json({
           ok: true,
           text: data.text ?? '',
@@ -103,7 +112,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: false, error: `OpenAI ${res.status}`, detail: err, chunkIdx }, { status: 502 })
       }
     } catch (err) {
-      console.error(`[transcribir-chunk] ${model}:`, String(err).slice(0, 200))
+      safeLog.error(`[transcribir-chunk] ${model}:`, String(err).slice(0, 200))
     }
   }
   return NextResponse.json({ ok: false, error: 'Todos los modelos fallaron', chunkIdx }, { status: 502 })

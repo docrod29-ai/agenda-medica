@@ -17,18 +17,62 @@
 import { z } from 'zod'
 import type { EntradaAntibiograma, SIR, SitioInfeccion, PruebasConfirmatorias, ResultadoPrueba } from './tipos'
 
+/**
+ * NORMALIZADORES TOLERANTES. La IA de visión a veces devuelve variantes válidas
+ * pero fuera del enum estricto: interpretación en minúscula ('s'), palabra completa
+ * ('Sensible'/'Resistente'), método como 'Kirby-Bauer', o `cmi: 0`. Antes CUALQUIERA
+ * de esas hacía fallar TODO el schema y disparaba el aviso «la lectura no cumplió el
+ * formato» aunque el antibiograma fuera perfectamente legible. Estos preprocess las
+ * normalizan SIN cambiar ningún valor S/I/R real ('sensible'→'S' es transcripción,
+ * no criterio clínico); lo ilegible cae a null, no a un supuesto.
+ */
+const sirNorm = z.preprocess((v) => {
+  if (v == null) return null
+  const s = String(v).trim().toUpperCase()
+  if (s === 'S' || s === 'I' || s === 'R' || s === 'SDD') return s
+  if (/^SENS|^SUSCEP/.test(s)) return 'S'
+  if (/^RESIST/.test(s)) return 'R'
+  if (/^INTERM/.test(s)) return 'I'
+  if (/DOSIS\s*DEPEND/.test(s)) return 'SDD'
+  return null
+}, z.enum(['S', 'I', 'R', 'SDD']).nullable())
+
+const numPos = z.preprocess((v) => {
+  if (v == null || v === '') return null
+  const n = typeof v === 'number' ? v : parseFloat(String(v).replace(',', '.'))
+  return Number.isFinite(n) && n > 0 ? n : null
+}, z.number().positive().nullable())
+
+const confNorm = z.preprocess((v) => {
+  const s = String(v ?? '').toLowerCase()
+  return s === 'alta' || s === 'media' || s === 'baja' ? s : undefined
+}, z.enum(['alta', 'media', 'baja']).optional())
+
+const metodoNorm = z.preprocess((v) => {
+  const s = String(v ?? '').toLowerCase().trim()
+  if (!s || s === 'desconocido') return s === 'desconocido' ? 'desconocido' : undefined
+  if (/disco|kirby|bauer|difus/.test(s)) return 'disco'
+  if (/gradient|e-?test|tira|epsilon/.test(s)) return 'gradiente'
+  if (/vitek|phoenix|microscan|automat|maldi|\bbd\b/.test(s)) return 'automatizado'
+  if (/\bmic\b|cmi|microdiluc|diluci|caldo|broth/.test(s)) return 'mic'
+  return 'desconocido'
+}, z.enum(['disco', 'mic', 'automatizado', 'gradiente', 'desconocido']).optional())
+
+/** Texto libre tolerante: null/número → string o ausente. */
+const texto = z.preprocess((v) => (v == null || v === '' ? undefined : String(v)), z.string().optional())
+
 export const CeldaExtraida = z.object({
-  antibiotico: z.string().min(1),
+  antibiotico: z.preprocess((v) => (v == null ? '' : String(v).trim()), z.string()),
   /** S/I/R (o SDD) tal como aparece impreso; null si solo trae CMI/halo sin categoría. */
-  interpretacion: z.enum(['S', 'I', 'R', 'SDD']).nullable().optional(),
+  interpretacion: sirNorm.optional(),
   /** CMI TAL CUAL viene, con su símbolo: "≤0.5", ">16", "2/38". El motor la parsea. */
-  cmi_texto: z.string().nullable().optional(),
+  cmi_texto: texto,
   /** CMI numérica si es un número simple. */
-  cmi: z.number().positive().nullable().optional(),
+  cmi: numPos.optional(),
   /** Diámetro de halo en mm (difusión en disco). */
-  halo_mm: z.number().positive().nullable().optional(),
-  conf: z.enum(['alta', 'media', 'baja']).optional(),
-  needs_review: z.boolean().optional(),
+  halo_mm: numPos.optional(),
+  conf: confNorm,
+  needs_review: z.preprocess((v) => (typeof v === 'boolean' ? v : undefined), z.boolean().optional()),
 })
 
 /** Prueba confirmatoria YA IMPRESA en el reporte (los automatizados suelen traerlas). */
@@ -38,27 +82,44 @@ export const PruebaReportada = z.object({
 })
 
 export const PerfilExtraido = z.object({
-  organismo: z.string(),
+  organismo: z.preprocess((v) => (v == null ? '' : String(v).trim()), z.string()),
   /** Aislamientos adicionales si el cultivo es polimicrobiano. */
-  organismosAdicionales: z.array(z.string()).optional(),
+  organismosAdicionales: z.preprocess(
+    (v) => (Array.isArray(v) ? v.map(String).map(s => s.trim()).filter(Boolean) : undefined),
+    z.array(z.string()).optional(),
+  ),
   /** Tipo de muestra: sangre/orina/esputo/herida/LCR… (define el sitio y los breakpoints). */
-  muestra: z.string().optional(),
+  muestra: texto,
   /** Recuento (p. ej. ">100,000 UFC/mL" en urocultivo) — distingue infección de contaminación. */
-  recuento: z.string().optional(),
+  recuento: texto,
   /** Fecha del cultivo/reporte tal como aparece. */
-  fecha: z.string().optional(),
+  fecha: texto,
   /** Método de sensibilidad. */
-  metodo: z.enum(['disco', 'mic', 'automatizado', 'gradiente', 'desconocido']).optional(),
+  metodo: metodoNorm,
   /** Sistema/equipo si se identifica (Vitek 2, Phoenix, MicroScan, manual…). */
-  sistema: z.string().optional(),
+  sistema: texto,
   /** Tinción de Gram si viene reportada. */
-  gram: z.string().optional(),
-  resultados: z.array(CeldaExtraida),
+  gram: texto,
+  /**
+   * Panel S/I/R. Cada celda es tolerante y, si aun así una fila viene ilegible,
+   * cae a `{antibiotico:''}` (no rompe el arreglo) y se descarta al filtrar — una
+   * fila mala NO tumba la lectura completa. Solo se conservan filas con nombre.
+   */
+  resultados: z.preprocess(
+    (v) => (Array.isArray(v) ? v : []),
+    z.array(CeldaExtraida.catch({ antibiotico: '' })),
+  ).transform((arr) => arr.filter((c) => c.antibiotico && c.antibiotico.length > 0)),
   /** Pruebas confirmatorias impresas en el reporte. */
-  pruebasReportadas: z.array(PruebaReportada).optional(),
+  pruebasReportadas: z.preprocess(
+    (v) => (Array.isArray(v) ? v : undefined),
+    z.array(PruebaReportada.catch({ nombre: '', resultado: '' })).optional(),
+  ),
   /** Comentarios/observaciones del laboratorio. */
-  observaciones: z.string().optional(),
-  avisos: z.array(z.string()).optional(),
+  observaciones: texto,
+  avisos: z.preprocess(
+    (v) => (Array.isArray(v) ? v.map(String) : undefined),
+    z.array(z.string()).optional(),
+  ),
 })
 
 export type PerfilExtraido = z.infer<typeof PerfilExtraido>
@@ -107,9 +168,14 @@ export function sitioDesdeMuestra(muestra?: string): SitioInfeccion | undefined 
 export function pruebasDesdeReporte(reportadas?: { nombre: string; resultado: string }[]): PruebasConfirmatorias {
   const out: PruebasConfirmatorias = {}
   if (!reportadas?.length) return out
-  const esPos = (v: string) => /posit|detect|\+|present/i.test(v) && !/no detect|negat/i.test(v)
-  const esNeg = (v: string) => /negat|no detect|ausen|\bneg\b|-$/i.test(v)
-  const val = (v: string): ResultadoPrueba | undefined => (esPos(v) ? 'pos' : esNeg(v) ? 'neg' : undefined)
+  // SEGURIDAD DEL PACIENTE: el NEGATIVO siempre gana y debe atrapar el fraseo real
+  // del laboratorio en México — "No se detecta", "No detectó", "No detectada",
+  // "No productor". Antes el guard era solo /no detect/ (exigía "no" pegado a
+  // "detect"), así que "No se detecta carbapenemasa" casaba /detect/ → se marcaba
+  // POSITIVO e inventaba una carbapenemasa/BLEE/MRSA a partir de un reporte NEGATIVO.
+  const esNeg = (v: string) => /negativ|ausen|\bneg\b|-\s*$|no\s+(?:se\s+)?(?:detect|observ|aisl|reactiv|product|evidenci)/i.test(v)
+  const esPos = (v: string) => !esNeg(v) && /positiv|detectad|detecta\b|\bdetecto\b|\+|present|reactiv|product/i.test(v)
+  const val = (v: string): ResultadoPrueba | undefined => (esNeg(v) ? 'neg' : esPos(v) ? 'pos' : undefined)
 
   for (const p of reportadas) {
     const n = (p.nombre || '').toLowerCase()

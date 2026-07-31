@@ -21,6 +21,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import admin, { adminDb } from './firebase-admin'
+import { tieneModulo, MODULOS_OPT_IN } from './modulos'
 
 export interface AccesoOk {
   ok: true
@@ -67,6 +68,13 @@ export async function verificarUsuario(req: NextRequest): Promise<Acceso> {
 /**
  * Exige usuario autenticado Y miembro del clinicId indicado.
  * Para rutas que leen/escriben datos de una clínica específica.
+ *
+ * @internal E0-07 — no usar directamente en rutas NUEVAS. Es el «any-member»
+ * (cualquier rol pasa) que la unidad de capacidades vino a cerrar: hoy es el paso de
+ * MEMBRESÍA que consume `src/lib/authz/verificar.ts`, y las rutas piden una
+ * capacidad con `verificarCapacidad(req, clinicId, capacidad)`. Las pocas rutas que
+ * todavía lo llaman están declaradas una por una en `authz/registro-rutas.ts` con la
+ * decisión que falta, y un test congela esa lista.
  */
 export async function verificarMiembro(req: NextRequest, clinicId: string): Promise<Acceso> {
   const u = await verificarToken(req)
@@ -84,7 +92,49 @@ export async function verificarMiembro(req: NextRequest, clinicId: string): Prom
   }
 }
 
-/** Como verificarMiembro, pero además exige rol médico o admin. */
+/**
+ * Exige usuario autenticado Y que SU consultorio tenga el MÓDULO indicado
+ * (entitlement por plan). Cierra el hueco de que un plan `agenda` llame directo
+ * a las API de IA de consulta ("Pro") — el guard de rutas del navegador NO
+ * protege las API. Resuelve la clínica del UID y aplica `tieneModulo`.
+ *
+ * Fail-OPEN solo ante error transitorio de Firestore: preferimos no tumbar la IA
+ * a TODOS por un fallo de lectura puntual; el camino normal (clínica que carga
+ * bien) sí bloquea. Sin consultorio configurado → bloquea (aún está en /setup).
+ */
+export async function verificarModuloIA(req: NextRequest, modulo: string): Promise<Acceso> {
+  const u = await verificarToken(req)
+  if (!u) return err(401, 'No autenticado. Inicia sesión nuevamente.')
+  try {
+    const miembro = await adminDb.collection('clinic_members').doc(u.uid).get()
+    const clinicId = miembro.data()?.clinicId as string | undefined
+    if (!clinicId) return err(403, 'Aún no tienes un consultorio configurado.')
+    const clinicSnap = await adminDb.collection('clinics').doc(clinicId).get()
+    const clinic = clinicSnap.data() as { plan?: string; modulos?: string[]; paseLibre?: boolean } | undefined
+    if (!tieneModulo(clinic ?? null, modulo)) {
+      return err(403, 'Tu plan no incluye la IA de consulta. Mejora a Clínica o Pro para usar esta función.')
+    }
+    return { ok: true, uid: u.uid, email: u.email, clinicId, role: miembro.data()?.role }
+  } catch {
+    // Error transitorio de Firestore. Para módulos de consulta (expediente) se es
+    // fail-OPEN: no tumbar la IA de todos por una lectura puntual. Pero para los
+    // módulos OPT-IN de pago (UCI/Hospitalización) se falla CERRADO: no dar acceso
+    // técnico a una función cara sin poder verificar el entitlement.
+    if (MODULOS_OPT_IN.includes(modulo)) {
+      return err(503, 'No se pudo verificar tu plan en este momento. Intenta de nuevo en unos segundos.')
+    }
+    return { ok: true, uid: u.uid, email: u.email }
+  }
+}
+
+/**
+ * Como verificarMiembro, pero además exige rol médico o admin.
+ *
+ * @internal E0-07 — SIN CONSUMIDORES en `src/app/api` (un test lo comprueba). Se
+ * conserva porque su semántica es la definición de `rolesCon('clinico.escribir')` y
+ * `nucleo/autorizacion-servidor.test.ts` la usa como oráculo del gate binario que
+ * había antes. En rutas se usa `verificarCapacidad` con la capacidad concreta.
+ */
 export async function verificarMedico(req: NextRequest, clinicId: string): Promise<Acceso> {
   const acceso = await verificarMiembro(req, clinicId)
   if (!acceso.ok) return acceso

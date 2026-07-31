@@ -9,6 +9,7 @@
  * Body: texto crudo HL7 (Content-Type text/plain). Query: ?clinicId=&tipo=oru|adt
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { verificarMiembro } from '@/lib/auth-server'
 import { parsearORU, parsearADT, oruAFHIR, construirACK } from '@/lib/hl7/v2'
 
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
       ack: construirACK(oru.mensajeControlId || ''),
     })
   } catch (err) {
-    console.error('[hl7/convertir] error:', err)
+    safeLog.error('[hl7/convertir] error:', err)
     return NextResponse.json({ error: 'No se pudo procesar el mensaje HL7' }, { status: 422 })
   }
 }

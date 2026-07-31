@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { PLANES, RECARGA, MOTORES, TOPE_ECONOMICO, precioAnual, type PlanCreditos } from '@/lib/planes-ia'
+import { TablaNivelesIA } from '@/components/TablaNivelesIA'
 
 export const metadata = {
   title: 'Precios · NexusMED',
@@ -107,6 +108,17 @@ export default function PreciosPage() {
       <div style={{ maxWidth: 560, margin: '22px auto 0', textAlign: 'center', fontSize: 13, color: 'var(--text2, #334155)', background: 'var(--s2, #f1f5f9)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 12, padding: '12px 16px' }}>
         ¿Se te acaban los créditos del mes? Recarga <strong>{RECARGA.creditos} créditos</strong> por <strong>${RECARGA.precioMXN} MXN</strong> — o sigue con ⚡ Rápida sin costo
         hasta un tope mensual (<strong>{TOPE_ECONOMICO.pro} notas</strong> en Clínica, <strong>{TOPE_ECONOMICO.premium}</strong> en Pro). Pasado ese punto la IA se pausa y recargas o subes de plan.
+      </div>
+
+      {/* Tabla funcional de IA: qué CAMBIA CLÍNICAMENTE en cada nivel (no solo el precio). */}
+      <div style={{ maxWidth: 860, margin: '48px auto 0' }}>
+        <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text, #0f172a)', textAlign: 'center', margin: '0 0 6px', letterSpacing: -0.3 }}>
+          Qué cambia clínicamente en cada nivel de IA
+        </h2>
+        <p style={{ textAlign: 'center', fontSize: 13.5, color: 'var(--text2, #334155)', margin: '0 0 18px', maxWidth: 620, marginInline: 'auto' }}>
+          Mantenemos los nombres simples, pero te decimos exactamente qué hace la IA en cada uno — sin cajas negras.
+        </p>
+        <TablaNivelesIA />
       </div>
 
       <div style={{ maxWidth: 560, margin: '40px auto 0', textAlign: 'center', fontSize: 13, color: 'var(--text2, #334155)', background: 'rgba(20,184,166,0.08)', border: '1px solid rgba(20,184,166,0.3)', borderRadius: 12, padding: '12px 16px' }}>

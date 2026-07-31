@@ -10,6 +10,7 @@
  */
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
+import { PLANES, type ClavePlan } from '@/lib/planes-ia'
 import admin from './firebase-admin'
 
 const DEFAULT_OWNER = 'docrod29@gmail.com'
@@ -61,14 +62,19 @@ export async function verificarSuperadmin(req: NextRequest): Promise<SuperadminA
   }
 }
 
-/** Precio mensual (MXN) por plan — para estimar MRR. El cobro real lo hace Stripe;
- *  el ingreso REGISTRADO se calcula de `platform_payments` (webhook). */
-export const PRECIO_PLAN_MXN: Record<string, number> = {
-  trial: 0,
-  cortesia: 0,
-  basico: 699,
-  pro: 999,
-  clinica: 1799,
+/**
+ * Precio base mensual (MXN) de un plan para estimar MRR.
+ *
+ * FUENTE ÚNICA: `PLANES` (planes-ia.ts), la misma tabla que anuncia la landing y
+ * cobra el checkout. Antes existía aquí una tabla PARALELA (`PRECIO_PLAN_MXN`)
+ * con claves viejas (basico/pro/clinica) y valores desincronizados (1799 vs el
+ * 899 real), así que la Consola del dueño y su Contabilidad mostraban DOS MRR
+ * distintos para la misma clínica — y los planes cuya clave no estaba en la tabla
+ * caían a 0. El cobro real lo hace Stripe; el ingreso REGISTRADO se calcula de
+ * `platform_payments` (webhook). Esto es solo la estimación de MRR.
+ */
+export function precioPlanMXN(plan: string): number {
+  return PLANES[plan as ClavePlan]?.precioMXN ?? 0
 }
 
 export const PLAN_LABEL: Record<string, string> = {

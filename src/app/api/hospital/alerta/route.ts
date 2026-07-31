@@ -18,11 +18,9 @@
  * Resp: { ok, enviado, destino?, motivo? }
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { verificarMiembro } from '@/lib/auth-server'
+import { verificarCapacidad } from '@/lib/authz/verificar'
 import { adminDb } from '@/lib/firebase-admin'
 import { sendWhatsApp } from '@/lib/whatsapp-send'
-
-const ROLES_CLINICOS = ['medico', 'admin', 'enfermeria', 'farmacia', 'laboratorio']
 
 export async function POST(req: NextRequest) {
   let body: { clinicId?: string; mensaje?: string; destinatarioUid?: string; doctorId?: string }
@@ -31,12 +29,15 @@ export async function POST(req: NextRequest) {
   const { clinicId, mensaje, destinatarioUid, doctorId } = body
   if (!clinicId || !mensaje) return NextResponse.json({ ok: false, error: 'clinicId y mensaje requeridos' }, { status: 400 })
 
-  const acc = await verificarMiembro(req, clinicId)
+  /**
+   * Solo rol clínico puede disparar alertas (no secretaria/recepción/facturación).
+   * E0-07: era una lista `ROLES_CLINICOS` suelta en este archivo — una de las seis
+   * copias de la política de acceso del repo. `clinico.leer` es EXACTAMENTE el mismo
+   * conjunto, y un test lo ata a `rolesDe('isClinicoHospital')` de firestore.rules,
+   * así que aflojar una y no la otra ya no pasa desapercibido.
+   */
+  const acc = await verificarCapacidad(req, clinicId, 'clinico.leer')
   if (!acc.ok) return acc.response
-  // Solo rol clínico puede disparar alertas (no secretaria/recepción/facturación).
-  if (!ROLES_CLINICOS.includes(String(acc.role ?? ''))) {
-    return NextResponse.json({ ok: false, error: 'Rol no autorizado' }, { status: 403 })
-  }
 
   const clinicRef = adminDb.collection('clinics').doc(clinicId)
 

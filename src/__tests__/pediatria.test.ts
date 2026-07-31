@@ -196,7 +196,7 @@ describe('Evaluación del crecimiento contra la OMS', () => {
     const r = evaluarCrecimiento('peso', 7.5, 12, false)!
     expect(r.z).toBeLessThan(-2)
     expect(r.nivel).toBe('bajo')
-    expect(r.clasificacion).toMatch(/desnutrición/i)
+    expect(r.clasificacion).toMatch(/peso bajo para la edad|desnutrici[oó]n/i)
   })
 
   it('caso real: niña de 36 meses con 14 kg está en rango normal', () => {
@@ -291,7 +291,7 @@ describe('Regresión: el tope diario debe recortar también la dosis POR TOMA', 
   it('salbutamol respeta el piso de 2.5 mg que dice su propia nota', () => {
     const d = calcularDosisPediatrica(f('Salbutamol nebulizado'), 10)!
     expect(d.porToma.min).toBe(2.5)      // antes daba 1.5: infradosis en crisis asmática
-    expect(f('Salbutamol nebulizado').nota).toMatch(/2\.5 mg/)
+    expect(f('Salbutamol nebulizado').nota).toMatch(/2\.5/)
   })
 
   it('"c/20 min" se lee como minutos, no como 20 horas', () => {
@@ -302,5 +302,85 @@ describe('Regresión: el tope diario debe recortar también la dosis POR TOMA', 
   it('"dosis única" cuenta como una sola toma al día', () => {
     const d = calcularDosisPediatrica(f('Dexametasona (croup)'), 10)!
     expect(d.porDia.max).toBe(d.porToma.max)
+  })
+})
+
+/**
+ * REGRESIÓN auditoría 2026-07 (P0), validado por el Dr:
+ *  - gentamicina/amikacina eran los únicos SIN tope → con peso erróneo, miles de mg.
+ *  - el panel ofrecía fármacos contraindicados por edad a un clic.
+ */
+describe('Aminoglucósidos con tope + reja de edad (Dr-validado)', () => {
+  const buscar = (n: string) => FARMACOS_PED.find(f => f.nombre === n)!
+
+  it('NINGÚN fármaco del catálogo queda sin algún tope', () => {
+    const sinTope = FARMACOS_PED.filter(f =>
+      f.topeDosis == null && f.topeDia == null && f.topeMgKgDia == null)
+    expect(sinTope.map(f => f.nombre)).toEqual([])
+  })
+
+  it('amikacina: tope absoluto 1500 mg/día aunque el peso sea enorme', () => {
+    const d = calcularDosisPediatrica(buscar('Amikacina'), 200)!  // peso erróneo (200 kg)
+    expect(d.porDia.max).toBeLessThanOrEqual(1500)
+    expect(d.topeAplicado).toBe(true)
+  })
+
+  it('gentamicina: el tope por kg (7.5 mg/kg/día) recorta el rango', () => {
+    const d = calcularDosisPediatrica(buscar('Gentamicina'), 10)!
+    expect(d.porDia.max).toBeLessThanOrEqual(7.5 * 10)
+  })
+
+  it('existe pauta neonatal de gentamicina (≤7 días, 5 mg/kg/día)', () => {
+    const neo = buscar('Gentamicina neonatal (≤7 días)')
+    expect(neo.topeMgKgDia).toBe(5)
+    const d = calcularDosisPediatrica(neo, 3)!
+    expect(d.porDia.max).toBeLessThanOrEqual(5 * 3)
+  })
+
+  it('ibuprofeno a los 3 meses → CONTRAINDICADO por edad (no dosis)', () => {
+    const d = calcularDosisPediatrica(buscar('Ibuprofeno'), 6, 3)!
+    expect(d.contraindicadoPorEdad).toBe(true)
+    expect(d.porToma.max).toBe(0)
+    expect(d.motivoEdad).toMatch(/6 meses/i)
+  })
+
+  it('ibuprofeno a los 8 meses → SÍ se calcula normal', () => {
+    const d = calcularDosisPediatrica(buscar('Ibuprofeno'), 8, 8)!
+    expect(d.contraindicadoPorEdad).toBeFalsy()
+    expect(d.porToma.max).toBeGreaterThan(0)
+  })
+
+  it('TMP-SMX < 2 meses y nitrofurantoína < 1 mes quedan bloqueados', () => {
+    expect(calcularDosisPediatrica(buscar('Trimetoprim-sulfametoxazol'), 5, 1)!.contraindicadoPorEdad).toBe(true)
+    expect(calcularDosisPediatrica(buscar('Nitrofurantoína'), 4, 0)!.contraindicadoPorEdad).toBe(true)
+  })
+
+  it('sin edad capturada NO bloquea (no inventa contraindicación)', () => {
+    expect(calcularDosisPediatrica(buscar('Ibuprofeno'), 6)!.contraindicadoPorEdad).toBeFalsy()
+  })
+})
+
+/** Peso-para-edad OMS (Dr 2026-07): sin categorías de sobrepeso/obesidad. */
+describe('Peso para la edad no usa cortes de IMC', () => {
+  const pesoAlto = evaluarCrecimiento('peso', 20, 24, false)  // niño 2a, 20 kg (z muy alto)
+  it('un peso muy alto se etiqueta "peso alto para la edad", NO "obesidad"', () => {
+    expect(pesoAlto).toBeTruthy()
+    expect(pesoAlto!.clasificacion).toMatch(/peso alto para la edad/i)
+    expect(pesoAlto!.clasificacion).not.toMatch(/^.*: (sobrepeso|obesidad)/i)
+    expect(pesoAlto!.nivel).toBe('alto')
+  })
+  it('el IMC-para-edad SÍ conserva sobrepeso/obesidad', () => {
+    const r = evaluarCrecimiento('imc', 30, 24, false)
+    if (r && r.nivel === 'alto') expect(r.clasificacion).toMatch(/sobrepeso|obesidad|riesgo/i)
+  })
+})
+
+/** Salbutamol nebulizado = rescate: sin total diario absurdo (Dr 2026-07). */
+describe('Salbutamol nebulizado es de rescate', () => {
+  it('la dosis calculada trae esRescate y no se usa un total diario fijo', () => {
+    const f = FARMACOS_PED.find(x => x.nombre === 'Salbutamol nebulizado')!
+    expect(f.esRescate).toBe(true)
+    const d = calcularDosisPediatrica(f, 15)!
+    expect(d.esRescate).toBe(true)
   })
 })

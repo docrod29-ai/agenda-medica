@@ -15,10 +15,15 @@ import {
   copiloto, textoParaNota,
   type EntradaCopiloto, type Sugerencia, type NivelSugerencia,
 } from '@/lib/expediente/copiloto'
+import { ordenarPorPreferencia, categoriaDe, type Preferencias } from '@/lib/learning'
 
 interface Props {
   entrada: EntradaCopiloto
-  onAgregarANota?: (texto: string) => void
+  onAgregarANota?: (texto: string) => boolean | void
+  /** Learning Engine: frecuencias por categoría de ESTE médico (reordena no-críticas). */
+  prefs?: Preferencias
+  /** Se llama cuando el médico ACEPTA una sugerencia (para aprender su estilo). */
+  onAceptar?: (categoria: string) => void
 }
 
 const COLOR: Record<NivelSugerencia, { fg: string; bg: string; bd: string }> = {
@@ -27,8 +32,10 @@ const COLOR: Record<NivelSugerencia, { fg: string; bg: string; bd: string }> = {
   info:    { fg: 'var(--text2)', bg: 'var(--s1)', bd: 'var(--border)' },
 }
 
-export function Copiloto({ entrada, onAgregarANota }: Props) {
-  const sugerencias = useMemo(() => copiloto(entrada), [entrada])
+export function Copiloto({ entrada, onAgregarANota, prefs, onAceptar }: Props) {
+  // Learning Engine: reordena las NO críticas por lo que este médico suele usar
+  // (las críticas quedan pinneadas arriba por seguridad).
+  const sugerencias = useMemo(() => ordenarPorPreferencia(copiloto(entrada), prefs ?? {}), [entrada, prefs])
   const [puestas, setPuestas] = useState<Set<string>>(new Set())
   const [abierto, setAbierto] = useState<string | null>(null)
 
@@ -40,13 +47,20 @@ export function Copiloto({ entrada, onAgregarANota }: Props) {
 
   const poner = (s: Sugerencia) => {
     if (!onAgregarANota || !s.textoNota) return
-    onAgregarANota(s.textoNota)
-    setPuestas(p => new Set(p).add(s.id))
+    // Solo se marca como "puesta" si REALMENTE se agregó. Con la nota firmada,
+    // onAgregarANota devuelve false (no se puede enmendar sin adenda) y antes el
+    // Copiloto igual pintaba el check verde: un falso éxito medicolegal.
+    if (onAgregarANota(s.textoNota) !== false) {
+      setPuestas(p => new Set(p).add(s.id))
+      onAceptar?.(categoriaDe(s.id))   // aprende del estilo del médico
+    }
   }
   const ponerTodo = () => {
     if (!onAgregarANota || documentables.length === 0) return
-    onAgregarANota(textoParaNota(documentables))
-    setPuestas(p => { const n = new Set(p); documentables.forEach(s => n.add(s.id)); return n })
+    if (onAgregarANota(textoParaNota(documentables)) !== false) {
+      setPuestas(p => { const n = new Set(p); documentables.forEach(s => n.add(s.id)); return n })
+      documentables.forEach(s => onAceptar?.(categoriaDe(s.id)))
+    }
   }
 
   return (
@@ -102,7 +116,7 @@ export function Copiloto({ entrada, onAgregarANota }: Props) {
                 <div style={{ padding: '0 12px 12px' }}>
                   <p style={{ fontSize: 12, color: 'var(--text2)', margin: 0, lineHeight: 1.55 }}>{s.detalle}</p>
                   {s.pide && (
-                    <p style={{ fontSize: 11.5, color: '#f59e0b', margin: '6px 0 0' }}>
+                    <p style={{ fontSize: 11.5, color: 'var(--amber)', margin: '6px 0 0' }}>
                       Captura {s.pide} arriba y esto se calcula solo.
                     </p>
                   )}

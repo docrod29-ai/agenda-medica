@@ -1,0 +1,58 @@
+{
+  "id": "E0-12",
+  "verificador": "adversarial (refutar), solo lectura",
+  "fecha": "2026-07-29T23:20:00Z",
+  "commitVerificado": "3c09a0d feat(nexus-os E0-12): el sello de integridad cubre TODO el contenido firmable (hashVersion 3)",
+  "veredicto": "REGRESION",
+  "cumpleAceptacion": true,
+  "aceptacion": {
+    "literal": "Alterar preop.resultados de una nota firmada la marca 'alterada'.",
+    "cumplida": true,
+    "verificadaDeFormaIndependiente": "No me fié del test: transpilé src/lib/expediente/integrity.ts con esbuild y ejecuté una mutación EXHAUSTIVA hoja por hoja sobre una nota sintética sellada con v3 (68 hojas). 57 hojas -> 'alterada', incluidas preop.resultados.rcri.puntos, preop.inputs.dasi, hospital.balanceHidrico.balance, infectologia.diaAntibiotico, secciones[0].label, secciones[0].placeholder, iaAuditoria.provenance.revisadoPorHumano, transcripcionCruda, metadata.cedulaProfesional. Las 11 NO detectadas son EXACTAMENTE las 9 exclusiones declaradas en CAMPOS_NO_SELLADOS_V3 (integrity.ts:197-234) más las hojas de `firma`: no hay ni un hueco sin declarar.",
+    "goldenV2Independiente": "Extraje el algoritmo ANTERIOR (git show HEAD~1:src/lib/expediente/integrity.ts, `contenidoCanonico` líneas 40-53), lo corrí sobre la fixture legada del test y reproduje 939119bcc0b4738acde02fdb9ce8740ecdafbb45b604c649c270b9dfde029b8d. canonicoV2 (integrity.ts:51-64) es byte por byte el de antes: el histórico v2 NO se movió."
+  },
+  "gatesEjecutadosPorMi": {
+    "tsc": "PASS (npx tsc --noEmit, EXIT=0)",
+    "vitest": "PASS (npx vitest run src/__tests__/ -> 196 archivos, 2663 tests, EXIT=0)",
+    "build": "PASS (npm run build, EXIT=0; único aviso el preexistente del sitemap por falta de credenciales)",
+    "e0-12aislado": "npx vitest run src/__tests__/e0-12-sello-integridad.test.ts src/__tests__/integrity.test.ts -> 68 tests PASS (62 + 6, coincide con lo declarado)"
+  },
+  "regresionConfirmada": {
+    "titulo": "FALSO 'alterada' en notas firmadas legítimas: updateNota usa updateDoc (merge) y stripUndefined borra la llave del payload, no del documento",
+    "severidad": "P1 — alarma medicolegal roja falsa sobre una nota firmada legítima; es el 'modo de falla grave' que la propia unidad declara evitar",
+    "cadenaDeCausalidad": [
+      "src/lib/expediente/firestore.ts:236 — `const payload = stripUndefined({ ...sinId, updatedAt: ... })`",
+      "src/lib/expediente/firestore.ts:229 — `await updateDoc(notaDoc(...), payload)`: updateDoc NO borra los campos ausentes del payload; los deja como estaban en el documento.",
+      "src/lib/expediente/serializacion.ts:15-28 — stripUndefined ELIMINA la llave cuyo valor es undefined, así que un campo que pasó de tener valor a undefined desaparece del payload y sobrevive en Firestore.",
+      "src/app/(dashboard)/consulta/[patientId]/page.tsx:1287,1308,1309 — construirNota devuelve `estudiosOrden: estudiosOrden.length ? estudiosOrden : undefined`, `transcripcionCruda: voz.transcripcion || undefined`, `dialogoDiarizado: audio.utterances.length > 0 ? ... : undefined`.",
+      "src/app/(dashboard)/consulta/[patientId]/page.tsx:1359 — el autoguardado del borrador ya escribió esos campos CON valor.",
+      "src/app/(dashboard)/consulta/[patientId]/page.tsx:1742 y 1785 — el hash se calcula sobre el objeto EN MEMORIA (campo = undefined -> canonicoV3 lo sella como null) y después se hace updateNota, que deja el valor VIEJO en el documento.",
+      "src/lib/expediente/integrity.ts:123-127 — v3 sella estudiosOrden, internamientoId, iaAuditoria, transcripcionCruda y dialogoDiarizado. Al releer la nota, el sello se recalcula sobre el valor viejo que quedó en Firestore y NO coincide -> 'alterada'."
+    ],
+    "caminoDeUsuarioReal": "src/app/(dashboard)/consulta/[patientId]/page.tsx:2385-2388 — el bloque «Material de origen (dictado)» es un <textarea> EDITABLE (`onChange={e => voz.setTranscripcion(e.target.value)}`). Secuencia: el médico dicta, el autoguardado escribe transcripcionCruda con el texto, el médico VACÍA el textarea (acción legítima y a un clic) y firma. La nota firmada queda con `transcripcionCruda` viejo en el documento y el hash calculado sin él: la pantalla de la nota (nota/[patientId]/[notaId]/page.tsx:160-161) mostrará INTEGRIDAD ALTERADA sobre una nota que nadie alteró. Lo mismo aplica a estudiosOrden (vaciar la selección de estudios) y a dialogoDiarizado / internamientoId.",
+    "pruebaEjecutada": "Con el código REAL transpilado (integrity.mjs + serializacion.mjs) y una simulación fiel de updateDoc (merge de llaves), los 5 campos opcionales sellados por v3 dan 'alterada' tras la secuencia legítima autoguardar-con-valor -> vaciar -> firmar: transcripcionCruda, estudiosOrden, dialogoDiarizado, internamientoId, preop.",
+    "controlDeQueEsNUEVO": "La MISMA secuencia con el sello v2 (generarHashIntegridad(nota, 2) + hashVersion 2) devuelve 'verificada' en los 5 casos. Bajo v2 el hueco no era alcanzable porque todos los campos sellados se escriben SIEMPRE (los arreglos existen siempre y `signosVitales: signosNum` es un objeto siempre, consulta/page.tsx:289-298). El falso positivo lo introduce esta unidad.",
+    "porQueLosTestsNoLoVEN": "src/__tests__/e0-12-sello-integridad.test.ts:280-307 simula el viaje a Firestore aplicando stripUndefined al documento COMPLETO (semántica de createNota/setDoc) y el caso 'nota sin campos opcionales' poda los campos ANTES de sellar. Nunca simula updateDoc sobre un documento previo que ya contenía el campo, que es lo que hace el flujo de firma real (updateNota sobre el borrador ya guardado).",
+    "arreglarloTocaElFLUJODEFIRMA": "Cualquiera de las salidas (deleteField() por campo omitido en updateNota, setDoc sin merge, o escribir null explícito en construirNota) toca la escritura de la nota y/o el flujo de firma -> por la regla 5 de la carta operativa se entrega como PLAN para decisión del médico dueño, no se ejecuta a ciegas."
+  },
+  "problemasSecundarios": [
+    "SOBREAFIRMACIÓN EN LA DOCUMENTACIÓN: RESULTADO.json ('cerocambiosDeEstadoEnNotasExistentes.pruebas[3]') y docs/audit/regression-ledger.md (REG-059) dicen que `src/__tests__/integrity.test.ts` «es la prueba de que v2 no se movió». Es falso: ese archivo usa HASH_VERSION en su fixture (integrity.test.ts:11), y HASH_VERSION ahora vale 3, así que ejercita v3, no v2. La prueba real de que v2 no se movió es el vector golden (que sí verifiqué de forma independiente contra el código de HEAD~1). No afecta al código; sí a la fiabilidad del acta.",
+    "TRINQUETE MÁS DÉBIL DE LO ANUNCIADO: CAMPOS_SELLADOS_V3 (integrity.ts:156-190) es una lista de strings escrita a mano, NO derivada de canonicoV3, y MUTACIONES_DETECTABLES en el test también es manual. Hoy la lista es exacta (lo comprobé hoja por hoja), pero nada impide que un campo futuro se añada a CAMPOS_SELLADOS_V3 —o a CAMPOS_NO_SELLADOS_V3 con una razón de 31 caracteres— y los tests sigan verdes con el campo FUERA del hash. El trinquete obliga a CLASIFICAR, no a SELLAR.",
+    "RESIDUAL DECLARADO QUE CONTRADICE EL TÍTULO: el bloque `firma` completo queda fuera del hash (integrity.ts:210-213). Verificado: alterar firma.nombreMedico o firma.cedulaProfesional en una nota firmada devuelve 'verificada', y esos son justo los datos del firmante que SE IMPRIMEN (expediente/[patientId]/page.tsx:480). Está declarado como residual y diferido a E0-12-Q2, pero el título «cubre TODO el contenido firmable» es más amplio que la realidad.",
+    "ACEPTACIÓN SÓLO HACIA ADELANTE: en toda la población ya firmada (hashVersion 2) alterar preop.resultados sigue devolviendo 'verificada'; la decisión de no re-sellar está argumentada y la pantalla lo DECLARA (nota/[patientId]/[notaId]/page.tsx:466-478), pero el criterio del backlog sólo se cumple para notas nuevas.",
+    "NIT: el comentario de integrity.ts:69 dice «10 de los 24 campos» mientras el ledger y el commit dicen 26; NotaMedica tiene 26 llaves (types/expediente.ts:148-264 / LLAVES_NOTA del test)."
+  ],
+  "chequeosQueSALIERONLIMPIOS": {
+    "reglaClinicaInventada": "NO. El cambio sólo amplía qué bytes entran a un SHA-256. No hay umbral, dosis, escala ni regla clínica nueva. El diff de src/lib/clinical/invariantes-clinicos.json es SÓLO conteos de casos (totalCasos 1313->1342 y dos entradas minCasos), que el propio archivo declara como «medidos del repo, no criterios clínicos». Los puntajes de la fixture (rcri.puntos 2, ariscat 26, dasi.mets 6.5) no se comparan contra ningún criterio: sólo deben romper el hash al cambiar.",
+    "phiOSecretos": "NO hay PHI ni secretos. Fixture sintética: 'Paciente Ficticio de Prueba', 'clinica-sintetica', cédula '00000000', 'medico@ejemplo.test', pmids ['00000000'], textos «sintético». Ningún token ni credencial.",
+    "canonicoV2congelado": "Confirmado byte por byte contra HEAD~1 (golden reproducido).",
+    "notasV2noSeDegradan": "Confirmado: el despacho por versión (integrity.ts:146-149, 308-315) mantiene v2 en 'verificada'; v1/ausente sigue 'legado'; sin hash sigue 'sin-sello'. El cambio de comportamiento respecto al código viejo para hashVersion desconocida (99) va de 'alterada' a 'legado', que es mejora, no regresión.",
+    "callersRevisados": "Únicos consumidores: consulta/[patientId]/page.tsx:1742,1748 (sella) y nota/[patientId]/[notaId]/page.tsx:160-161 (verifica). No hay ninguna segunda implementación del hash de nota (grep de hashIntegridad/sha256 en src y api: sólo HMAC de tokens de receta y del webhook de WhatsApp). stripUndefined se movió VERBATIM a serializacion.ts y firestore.ts lo importa: cero cambio de comportamiento para sus llamadores. El aviso nuevo de la UI es `no-print` y no toca el área imprimible; con hashVersion desconocida COBERTURA_SELLO[v] es undefined y el código no revienta (integrity.ts:338-345)."
+  },
+  "queHaceFaltaParaCONFIRMAR": [
+    "Cerrar el falso 'alterada' del merge de updateDoc (PLAN para el médico dueño porque toca la escritura/firma): que updateNota borre explícitamente los campos opcionales omitidos (deleteField) o que construirNota escriba null en vez de undefined para los campos sellados.",
+    "Añadir al test el round-trip que FALTA: sellar sobre un documento previo que ya contenía transcripcionCruda / estudiosOrden y firmarlo con esos campos vacíos, con la semántica de merge de updateDoc.",
+    "Corregir en RESULTADO.json y en REG-059 la afirmación sobre integrity.test.ts (no prueba v2; lo prueba el golden).",
+    "Opcional pero barato: derivar CAMPOS_SELLADOS_V3 de canonicoV3 (o cruzarlo con una mutación por campo generada, no escrita a mano) para que la cobertura declarada no pueda mentir."
+  ]
+}

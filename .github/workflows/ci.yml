@@ -9,6 +9,60 @@ on:
   pull_request:
 
 jobs:
+  # Gate de seguridad clínica (unidad Nexus OS E0-11). Job SEPARADO y con nombre
+  # ESTABLE a propósito: es el que se marca como *required status check* en la
+  # protección de rama de `main`. Corre solo los invariantes (sin tsc ni build):
+  # ~1-2 min contra los ~8-10 del job completo, así que su rojo significa una
+  # sola cosa — "se rompió un invariante clínico" — y nadie tiene la tentación
+  # de desactivarlo por lento. Ver docs/ci/clinical-safety-gate.md.
+  clinical-safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Invariantes clínicos y de seguridad
+        # `clinical-safety-gate.test.ts` es el metagate (comprueba que ningún
+        # invariante fue borrado, apagado o vaciado) y el `$(node ...)` expande
+        # el manifiesto sellado para EJECUTARLOS de verdad.
+        run: npx vitest run src/__tests__/clinical-safety-gate.test.ts $(node scripts/invariantes-clinicos.mjs)
+
+  # Aislamiento multi-tenant contra el EMULADOR REAL (unidad Nexus OS E0-08).
+  #
+  # Job SEPARADO a propósito, y NO se mete en `clinical-safety` ni en `verificar`:
+  #  - `clinical-safety` es el *required status check* de la rama `main`. Si el
+  #    emulador falla por Java, red o un puerto ocupado, su rojo debe significar una
+  #    sola cosa ("se rompió un invariante clínico"), no "el emulador tuvo un mal día".
+  #  - `verificar` corre los tres gates del programa, que deben poder correr en
+  #    máquinas SIN Java (los agentes del roadmap trabajan en una de ellas).
+  #
+  # `emulators:exec` levanta, corre, mata y propaga el código de salida: TERMINA solo.
+  # `emulators:start` está prohibido en este repo (dejaría el job colgado).
+  aislamiento-tenant:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # El emulador de Firestore es un JAR. Se fija la JRE en vez de confiar en la
+      # que traiga la imagen del runner: si mañana cambia, este job no se cae solo.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Aislamiento cross-tenant contra el emulador real
+        # El projectId `demo-nexusmed-test` hace que el SDK se NIEGUE a contactar un
+        # proyecto real: este job no puede tocar datos de ningún consultorio.
+        run: npm run test:emulador
+
   verificar:
     runs-on: ubuntu-latest
     steps:
@@ -23,3 +77,56 @@ jobs:
         run: npx tsc --noEmit
       - name: Pruebas (vitest)
         run: npx vitest run
+      - name: Build de producción (next build)
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+          # ── Firebase: RELLENO DE BUILD, no credenciales ──────────────────────
+          # La nota anterior aquí decía «el build no debe requerir credenciales de
+          # runtime». La intención es correcta pero NO se cumple hoy, y el CI lo
+          # demostró: `next build` reventaba con `auth/invalid-api-key` al recolectar
+          # datos de páginas públicas (`/dr/[clinicId]`, `/api/public/booking`),
+          # porque `src/lib/firebase.ts` llama a `initializeApp`/`getAuth` **al
+          # importarse** y esas páginas usan el SDK del navegador de forma legítima.
+          #
+          # POR QUÉ ESTOS VALORES SON SEGUROS EN CLARO: la configuración
+          # `NEXT_PUBLIC_FIREBASE_*` NO es secreta por diseño — viaja dentro del
+          # bundle JavaScript a todos los navegadores de cualquier sitio Firebase.
+          # Lo que protege los datos son las Firestore Rules y App Check, no el
+          # secreto de la llave. Aun así aquí NO van los valores reales del Dr.:
+          # son placeholders sintéticos. Al build solo le hacen falta valores con
+          # FORMA válida — nunca contacta a Firebase — así que un proyecto que no
+          # existe basta, y de paso garantiza que el CI no pueda tocar datos reales.
+          #
+          # Lo que esto NO arregla, declarado: que rutas de SERVIDOR arrastren el
+          # SDK del cliente. Eso se corrigió aparte (`time-blocks-core.ts`) y el
+          # invariante que impide la reincidencia vive en
+          # `src/__tests__/servidor-sin-sdk-cliente.test.ts`.
+          NEXT_PUBLIC_FIREBASE_API_KEY: AIzaSyBUILD-ONLY-PLACEHOLDER-000000000000
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ci-build.firebaseapp.com
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ci-build
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ci-build.appspot.com
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '000000000000'
+          NEXT_PUBLIC_FIREBASE_APP_ID: '1:000000000000:web:0000000000000000000000'
+
+  # ── A1 de la auditoría maestra: el lint YA es un gate ─────────────────────
+  #
+  # Exigir cero errores haría nacer el gate en rojo, y un gate que nadie puede
+  # poner en verde se marca `continue-on-error` y deja de proteger — es lo que
+  # pasó con el de ADRs hasta que se le puso trinquete.
+  #
+  # Así que la deuda se CONGELA en `docs/audit/lint-techo.json` y sólo puede
+  # bajar. Si sube, el CI dice EN QUÉ ARCHIVO se añadió. Si baja, también falla:
+  # pide apretar el trinquete, porque un margen que no se aprieta se lo come el
+  # siguiente descuido.
+  lint:
+    name: lint (trinquete)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node scripts/lint-trinquete.mjs

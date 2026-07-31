@@ -56,7 +56,7 @@ export function PanelPreventivo({ edad, sexo, onAgregarANota, embebido }: Props)
                   <div key={t.prueba} style={{ border: '1px solid var(--border)', borderRadius: 9, background: 'var(--s1)', padding: '8px 11px' }}>
                     <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)' }}>{t.prueba}</div>
                     <div style={{ fontSize: 11.5, color: '#38bdf8', marginTop: 2 }}>{t.frecuencia}</div>
-                    {t.condicion && <div style={{ fontSize: 11, color: '#f59e0b', marginTop: 2 }}>Solo si: {t.condicion}</div>}
+                    {t.condicion && <div style={{ fontSize: 11, color: 'var(--amber)', marginTop: 2 }}>Solo si: {t.condicion}</div>}
                     {t.nota && <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2, lineHeight: 1.45 }}>{t.nota}</div>}
                     <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 3, fontStyle: 'italic' }}>{t.organismo}</div>
                   </div>
@@ -85,7 +85,7 @@ export function PanelPreventivo({ edad, sexo, onAgregarANota, embebido }: Props)
                 )}><Plus size={12} /> Agregar a la nota</button>
               )}
 
-              <p style={{ ...txt, color: '#f59e0b', marginTop: 10, fontSize: 10.5 }}>{ADVERTENCIA_PREVENTIVO}</p>
+              <p style={{ ...txt, color: 'var(--amber)', marginTop: 10, fontSize: 10.5 }}>{ADVERTENCIA_PREVENTIVO}</p>
             </>
           )}
         </div>
@@ -126,7 +126,7 @@ export function PanelPreventivo({ edad, sexo, onAgregarANota, embebido }: Props)
               <div style={{ fontSize: 12.5, fontWeight: 800, color: alerta ? '#f87171' : '#38bdf8' }}>
                 {analito}: {tend.resumen}
               </div>
-              {alerta && <p style={{ ...txt, fontWeight: 700, color: '#f87171' }}>{alerta}</p>}
+              {alerta && <p style={{ ...txt, fontWeight: 700, color: 'var(--red)' }}>{alerta}</p>}
               {onAgregarANota && (
                 <button type="button" style={{ ...btn, marginTop: 8 }} onClick={() => onAgregarANota(
                   `${analito}: ${tend.resumen}${alerta ? ` ${alerta}` : ''}`

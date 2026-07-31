@@ -1,6 +1,8 @@
 import { Appointment, ClinicConfig } from '@/types'
-import type { TimeBlock } from '@/lib/time-blocks'
-import { estaBloqueado } from '@/lib/time-blocks'
+import type { TimeBlock } from '@/lib/time-blocks-core'
+// Del NÚCLEO PURO, no de time-blocks: esta cadena la importa /api/portal (servidor)
+// y time-blocks arrastra el SDK del navegador, que se inicializa al importarse.
+import { estaBloqueado } from '@/lib/time-blocks-core'
 import { hoyISO, ahoraMinutosDelDia } from '@/lib/timezone'
 import { format } from 'date-fns'
 
@@ -144,7 +146,7 @@ export function getAvailableSlots(
 
     // 1. ¿Cae en un bloque de tiempo (vacaciones, ausencia, etc.)?
     if (bloques.length > 0) {
-      const bloqueado = estaBloqueado(`${fecha} ${slot}`, bloques, medicoId)
+      const bloqueado = estaBloqueado(`${fecha} ${slot}`, bloques, medicoId, tz)
       if (bloqueado) continue
     }
 
@@ -195,8 +197,8 @@ export function hasConflict(
     if (!vh.valido || startMin < vh.startMin || endMin > vh.endMin) return true
   }
 
-  // Bloqueo (vacaciones/ausencia) del médico o de toda la clínica.
-  if (bloques.length > 0 && estaBloqueado(`${fecha} ${hora}`, bloques, medicoId)) return true
+  // Bloqueo (vacaciones/ausencia) del médico o de toda la clínica — en la zona de la clínica.
+  if (bloques.length > 0 && estaBloqueado(`${fecha} ${hora}`, bloques, medicoId, config?.zonaHoraria || 'America/Mexico_City')) return true
 
   return appointments.some(a => {
     if (a.id === excludeId) return false

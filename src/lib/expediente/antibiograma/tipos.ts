@@ -41,6 +41,20 @@ export interface ResultadoAntibiograma {
    * umbral estricto `> 500` y daba falso, apagando el HLAR.
    */
   cmiCensurada?: '>' | '<'
+  /**
+   * ═══ INTERPRETACIÓN EFECTIVA (E0-15a) ═══
+   * Cuando una regla experta EUCAST edita la categoría (p. ej. fluoroquinolonas
+   * S→R por resistencia cruzada inferida), `interpretacion` pasa a ser la
+   * **interpretación clínica canónica** y el dato del laboratorio se conserva
+   * aquí. Nunca se destruye el original.
+   *
+   * Decisión del médico dueño: «nunca debe existir una pantalla donde Nexus
+   * muestre R y el LLM continúe razonando con S. Eso es un defecto P0.»
+   */
+  interpretacionLab?: SIR
+  /** Por qué se editó (regla experta) y su fuente/versión. */
+  edicionRazon?: string
+  edicionReferencia?: string
 }
 
 /** Resultado de una prueba confirmatoria (como la reportan los sistemas automatizados). */
@@ -81,7 +95,7 @@ export type SitioInfeccion =
 export type FenotipoClave =
   | 'MRSA' | 'BORSA' | 'VISA' | 'hVISA' | 'VRSA' | 'MLSb-inducible' | 'MLSb-constitutivo'
   | 'penicilinasa-estafilococica' | 'HLAR' | 'VRE' | 'ampicilina-R-enterococo'
-  | 'neumococo-PNS' | 'carbapenemasa' | 'BLEE' | 'AmpC' | 'IRT'
+  | 'neumococo-PNS' | 'carbapenemasa' | 'carbapenemasa-indeterminada' | 'BLEE' | 'AmpC' | 'IRT'
   | 'porina-perdida' | 'bomba-expulsion' | 'FQ-R' | 'colistin-R'
   | 'S-maltophilia-intrinseca' | 'MDR' | 'XDR' | 'PDR'
   | '16S-RMTasa' | 'AME' | 'DTR' | 'linezolid-R' | 'daptomicina-R' | 'tigeciclina-R'
@@ -115,7 +129,14 @@ export interface AlertaAntibiograma {
 
 /** Conflicto/nota de resistencia intrínseca (una «S» reportada que es biológicamente imposible → error de lab). */
 export interface NotaIntrinseca {
-  tipo: 'conflicto' | 'esperado'
+  /**
+   * 'conflicto'      = «S» biológicamente imposible → sospechar error de ID/AST.
+   * 'esperado'       = R intrínseca ya reportada como R (informativo).
+   * 'alerta_clinica' = fenómeno CONOCIDO (no un error): la «S» in vitro no predice
+   *                    eficacia clínica (p. ej. TMP-SMX en Enterococcus). No se debe
+   *                    reportar como susceptible utilizable ni como error de especie.
+   */
+  tipo: 'conflicto' | 'esperado' | 'alerta_clinica'
   antibiotico: string
   mensaje: string
   referencia: string
@@ -150,6 +171,12 @@ export interface EdicionInterpretativa {
 export interface CategoriaCMI {
   antibiotico: string
   cmi: number
+  /**
+   * Operador con el que el laboratorio reportó la CMI (E0-15c). «>2» significa
+   * que el valor real está en (2, +∞): sin él, una CMI censurada se leía como el
+   * número pelado y podía producir un falso «susceptible».
+   */
+  cmiCensurada?: '>' | '<'
   categoriaCLSI: 'S' | 'SDD' | 'I' | 'R'
   /** Categoría que reportó el laboratorio (si se capturó). */
   categoriaReportada?: SIR
@@ -157,6 +184,11 @@ export interface CategoriaCMI {
   concuerda: boolean | null
   /** El punto de corte aplica solo a IVU no complicada. */
   soloUTI: boolean
+  /** true si el corte NO aplica a este caso (foco no urinario o especie sin breakpoint válido). */
+  noAplicable?: boolean
+  motivoNoAplicable?: string
+  /** La categoría no es S porque la CMI vino censurada con «>» (E0-15c). */
+  desdeCmiCensurada?: boolean
   referencia: string
 }
 
@@ -181,6 +213,20 @@ export interface PruebaCLSI {
 }
 
 /** Aporte parcial de un módulo de órgano-específico; el motor los fusiona. */
+/**
+ * Estado del mecanismo de carbapenemasa (E0-15b). Separa lo que está
+ * DOCUMENTADO (resistencia observada) de lo que sería INFERIDO (la clase),
+ * porque un antimicrobiano NO PROBADO no puede convertirse en resistente.
+ */
+export interface EstadoCarbapenemasa {
+  /** La resistencia a carbapenémicos SÍ está en el reporte. */
+  resistenciaSospechada: boolean
+  /** ¿Confirmada por prueba fenotípica/molecular? */
+  confirmada: boolean
+  /** 'UNKNOWN' cuando el panel no permite inferirla. */
+  clase: 'UNKNOWN' | string
+}
+
 export interface AporteModulo {
   fenotipos: FenotipoDetectado[]
   mecanismos: MecanismoInferido[]
@@ -191,6 +237,8 @@ export interface AporteModulo {
   optimizacionPKPD: string[]
   notificacion: boolean
   aislamiento: string | null
+  /** Solo cuando el mecanismo NO puede afirmarse con este panel (E0-15b). */
+  carbapenemasa?: EstadoCarbapenemasa
 }
 
 export function aporteVacio(): AporteModulo {
@@ -225,6 +273,18 @@ export interface InterpretacionAntibiograma {
   didactica: BloqueDidactico[]
   /** Ediciones interpretativas (EUCAST): «S» que debe leerse R por inferencia. */
   edicionesInterpretativas: EdicionInterpretativa[]
+  /**
+   * Panel con las ediciones YA APLICADAS — la interpretación clínica CANÓNICA
+   * (E0-15a). Toda salida (nota, prompt del LLM, validador, PK/PD, UI) debe
+   * leer esto y no el panel crudo. El dato del laboratorio se conserva en
+   * `interpretacionLab` de cada resultado.
+   */
+  resultadosEfectivos: ResultadoAntibiograma[]
+  /**
+   * Estado del mecanismo de carbapenemasa cuando el panel NO permite inferir la
+   * clase (E0-15b): `clase: 'UNKNOWN'`. Ausente si no aplica.
+   */
+  carbapenemasa?: EstadoCarbapenemasa
   /** Pruebas microbiológicas del CLSI recomendadas según el fenotipo (cuándo/método/interpretación). */
   pruebasSugeridas: PruebaCLSI[]
   /** Algoritmo de diagnóstico de resistencia: el árbol de decisión de ESTE caso, paso a paso. */

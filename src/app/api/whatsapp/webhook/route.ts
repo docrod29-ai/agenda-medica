@@ -18,6 +18,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { adminDb } from '@/lib/firebase-admin'
 import { ClinicConfig, Doctor, Appointment, AppointmentType } from '@/types'
@@ -26,11 +27,51 @@ import { marcarProcesado, telefonoRedactado } from '@/lib/whatsapp/dedup'
 import { permiteFallbackUnicoTenant } from '@/lib/whatsapp/tenant'
 import {
   esPalabraBaja, esPalabraAlta, registrarBaja, registrarAlta,
-  MENSAJE_BAJA_OK, MENSAJE_ALTA_OK,
+  MENSAJE_BAJA_OK, MENSAJE_ALTA_OK, normalizarTelefonoWa,
 } from '@/lib/whatsapp/consent'
 import { registrarEntrante } from '@/lib/whatsapp/contacts'
 import { parsearStatuses, registrarStatus } from '@/lib/whatsapp/status'
-import { hoyISO, sumarDiasISO } from '@/lib/timezone'
+import { hoyISO, sumarDiasISO, TZ_DEFAULT } from '@/lib/timezone'
+// Del NÚCLEO PURO: ruta de SERVIDOR — ver el comentario de cabecera de
+// time-blocks-core.ts (el SDK del cliente se inicializa al importarse).
+import { estaBloqueado, type TimeBlock } from '@/lib/time-blocks-core'
+
+/** Carga los bloqueos (vacaciones/ausencias) de la clínica para el bot. */
+async function cargarBloques(clinicId: string): Promise<TimeBlock[]> {
+  try {
+    const snap = await adminDb.collection('clinics').doc(clinicId).collection('time_blocks').get()
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }) as TimeBlock)
+  } catch { return [] }
+}
+
+/**
+ * Vincula la cita del bot a un EXPEDIENTE: busca al paciente por teléfono (varios
+ * formatos, para no depender de cómo se guardó) y lo crea si no existe — igual que
+ * el booking público. Antes el bot dejaba `pacienteId: ''`: cita huérfana, no-show
+ * nunca contabilizado y el motor de riesgo ciego para ese paciente.
+ * Devuelve el id del paciente, o '' si algo falla (nunca rompe el agendado).
+ */
+async function resolverPacienteBot(clinicId: string, telefonoRaw: string, nombre: string, now: string): Promise<string> {
+  try {
+    const canonico = normalizarTelefonoWa(telefonoRaw)   // 52 + 10 dígitos
+    const diez = canonico.length >= 10 ? canonico.slice(-10) : canonico
+    // Candidatos exactos (Firestore no hace "termina en"): cubre lo que guarda el
+    // panel (10 dígitos), el booking (dígitos crudos) y la forma canónica/móvil.
+    const candidatos = Array.from(new Set(
+      [diez, canonico, `521${diez}`, telefonoRaw.replace(/\D/g, '')].filter(Boolean),
+    )).slice(0, 10)
+    const pRef = adminDb.collection('clinics').doc(clinicId).collection('patients')
+    const snap = await pRef.where('telefono', 'in', candidatos).limit(1).get()
+    if (!snap.empty) return snap.docs[0].id
+    const np = await pRef.add({
+      nombre: (nombre || '').trim(),
+      telefono: diez,   // se guarda en 10 dígitos (como el panel), para futuros matches
+      noShowCount: 0, cancelacionCount: 0,
+      createdAt: now, updatedAt: now, creadoPor: 'bot-whatsapp',
+    })
+    return np.id
+  } catch { return '' }
+}
 
 // Sin fallback público: si no está configurado, la verificación GET fallará
 // (mejor que aceptar un token por defecto que está en el repo).
@@ -51,8 +92,20 @@ const META_APP_SECRET = process.env.META_APP_SECRET || ''
  */
 function firmaValida(rawBody: string, signatureHeader: string | null): boolean {
   if (!META_APP_SECRET) {
-    console.warn('[Bot] META_APP_SECRET no configurado — firma del webhook NO verificada')
-    return true
+    /**
+     * FAIL-CLOSED. Antes esto devolvía `true` "para no tumbar un bot en
+     * producción durante la migración", pero el efecto real era que, sin el
+     * secreto configurado, CUALQUIERA que conociera un phone_number_id podía
+     * inyectar mensajes falsos: agendar citas espurias y disparar WhatsApp a
+     * costa de la clínica. Un webhook público sin verificar la firma no es una
+     * migración, es una puerta abierta.
+     *
+     * Ahora se rechaza. Requiere que META_APP_SECRET esté en el entorno (Meta →
+     * App Dashboard → Configuración → Básica → Clave secreta de la app). Es el
+     * mismo criterio fail-closed que ya usa el cron (CRON_SECRET).
+     */
+    safeLog.error('[Bot] META_APP_SECRET no configurado — se RECHAZA el webhook (fail-closed)')
+    return false
   }
   if (!signatureHeader || !signatureHeader.startsWith('sha256=')) return false
   const esperado = 'sha256=' + createHmac('sha256', META_APP_SECRET).update(rawBody).digest('hex')
@@ -75,8 +128,16 @@ function formatDate(fecha: string): string {
   return d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
-function todayStr(): string {
-  return hoyISO()  // zona MX, no UTC del servidor (Vercel corre en UTC)
+/**
+ * Hoy en la zona del CONSULTORIO.
+ *
+ * `tz` es obligatoria a propósito: esto corre en el servidor, donde una misma
+ * función atiende a muchos consultorios y no existe «la zona actual». Sin ella,
+ * el bot ofrecía los días libres contando desde el día de México central: en
+ * Tijuana (UTC-8), a partir de las 22:00 locales ya proponía el día siguiente.
+ */
+function todayStr(tz: string): string {
+  return hoyISO(tz)  // no el UTC del servidor: Vercel corre en UTC
 }
 
 function addDays(dateStr: string, n: number): string {
@@ -90,6 +151,8 @@ function getAvailableSlotsForDate(
   duracion: number,
   config: ClinicConfig,
   appointments: Appointment[],
+  bloques: TimeBlock[] = [],
+  medicoId?: string,
 ): string[] {
   const d = new Date(fecha + 'T12:00:00')
   const dayKey = DAY_KEYS[d.getDay()]
@@ -119,9 +182,13 @@ function getAvailableSlotsForDate(
       const aEnd = aStart + a.duracion
       return m < aEnd && slotEnd > aStart
     })
-    if (!conflict) {
-      slots.push(`${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`)
-    }
+    if (conflict) continue
+    // BLOQUEOS (vacaciones/ausencias): el bot ignoraba time_blocks y ofrecía huecos
+    // en días bloqueados (el panel y el booking público sí los respetan). Se excluye
+    // el slot si cae dentro de un bloqueo del médico (o de toda la clínica).
+    const hhmm = `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
+    if (bloques.length && estaBloqueado(`${fecha} ${hhmm}`, bloques, medicoId, config.zonaHoraria || 'America/Mexico_City')) continue
+    slots.push(hhmm)
   }
   return slots
 }
@@ -141,28 +208,41 @@ function clinicSessions(clinicId: string) {
   return adminDb.collection('clinics').doc(clinicId).collection('bot_sessions')
 }
 
+/**
+ * CLAVE CANÓNICA DE SESIÓN — el mismo teléfono debe mapear SIEMPRE al mismo doc.
+ *
+ * Antes había dos convenciones sobre `bot_sessions`: el webhook buscaba por el
+ * CAMPO `telefono` (con el wa_id crudo de Meta, formato `521…`) y creaba con
+ * `.add()` (id aleatorio), mientras `waitlist-notify` guardaba con un id derivado
+ * de `pacienteTelefono` (dígitos sin lada, `55…`). Las dos claves NO coincidían:
+ * el paciente respondía "SÍ" a una oferta de lista de espera, el webhook no
+ * encontraba la sesión `esperando_lista`, caía al menú por defecto y el hueco se
+ * perdía en silencio. Ahora todo se indexa por el teléfono NORMALIZADO
+ * (`normalizarTelefonoWa` → `52` + 10 dígitos), igual que opt-out y la ventana de
+ * 24 h, usándolo como ID del documento para que no puedan existir duplicados.
+ */
+function claveSesion(telefono: string): string {
+  return normalizarTelefonoWa(telefono)
+}
+
 async function getSession(clinicId: string, telefono: string): Promise<(Session & { id: string }) | null> {
-  const snap = await clinicSessions(clinicId).where('telefono', '==', telefono).limit(1).get()
-  if (snap.empty) return null
-  const d = snap.docs[0]
+  const id = claveSesion(telefono)
+  const d = await clinicSessions(clinicId).doc(id).get()
+  if (!d.exists) return null
   return { id: d.id, ...(d.data() as Session) }
 }
 
 async function saveSession(clinicId: string, telefono: string, update: Partial<Session>): Promise<void> {
   const now = new Date().toISOString()
-  const existing = await getSession(clinicId, telefono)
-  if (existing) {
-    await clinicSessions(clinicId).doc(existing.id).update({ ...update, lastMessageAt: now })
-  } else {
-    await clinicSessions(clinicId).add({
-      telefono, estado: 'inicio', datos: {}, lastMessageAt: now, createdAt: now, ...update,
-    })
-  }
+  const id = claveSesion(telefono)
+  await clinicSessions(clinicId).doc(id).set(
+    { telefono: id, estado: 'inicio', datos: {}, createdAt: now, ...update, lastMessageAt: now },
+    { merge: true },
+  )
 }
 
 async function clearSession(clinicId: string, telefono: string): Promise<void> {
-  const existing = await getSession(clinicId, telefono)
-  if (existing) await clinicSessions(clinicId).doc(existing.id).delete()
+  await clinicSessions(clinicId).doc(claveSesion(telefono)).delete().catch(() => {})
 }
 
 // ── Find clinic by WhatsApp phoneNumberId ─────────────────────
@@ -435,8 +515,9 @@ export async function handleMessage(from: string, body: string, clinicId: string
       .where('fechaHora', '<=', fecha + ' 23:59')
       .get()
     const appts = apptSnap.docs.map(d => ({ id: d.id, ...d.data() } as Appointment))
+    const bloques = await cargarBloques(clinicId)
 
-    const slots = getAvailableSlotsForDate(fecha, duracion, config!, appts)
+    const slots = getAvailableSlotsForDate(fecha, duracion, config!, appts, bloques, doctor?.id)
 
     if (slots.length === 0) {
       await send(from, `No hay horarios disponibles ese día. Por favor elija otro día.`)
@@ -494,6 +575,8 @@ export async function handleMessage(from: string, body: string, clinicId: string
       const fechaHora = `${datos.fecha} ${datos.hora}`
       const medicoNombre = doctor?.nombre || config?.nombreMedico || 'Dr.'
       const doctorId = doctor?.id
+      // Vincula al expediente (fuera de la transacción de la cita, como el booking).
+      const pacienteIdBot = await resolverPacienteBot(clinicId, from, datos.nombre, now)
 
       // Crear ATÓMICO: re-chequea conflicto dentro de la transacción → dos pacientes
       // no pueden confirmar el mismo horario a la vez (antes era un .add() directo).
@@ -523,7 +606,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
           const nref = apptsCol.doc()
           nuevoFolio = nref.id
           tx.set(nref, {
-            pacienteId: '', pacienteNombre: datos.nombre, pacienteTelefono: from,
+            pacienteId: pacienteIdBot, pacienteNombre: datos.nombre, pacienteTelefono: from,
             fechaHora, duracion, tipo: datos.tipo as AppointmentType, motivo: '',
             estado: 'solicitada', origen: 'WhatsApp', medicoNombre,
             medicoId: doctorId || '', doctorId: doctorId || '', lugar: clinicName,
@@ -626,7 +709,13 @@ export async function handleMessage(from: string, body: string, clinicId: string
        */
       const duracion = 30
       const now = new Date().toISOString()
-      const medicoIdBot = doctor?.id || ''
+      // El médico del HUECO liberado (guardado en la sesión por waitlist-notify), no
+      // el primer doctor activo. Antes se agendaba con el médico equivocado → la cita
+      // desaparecía al filtrar por médico y tapaba el hueco a los demás.
+      const medicoIdBot = datos.medicoId || doctor?.id || ''
+      // Vincula al expediente: usa el de la sesión de lista de espera si vino, y si no
+      // lo resuelve por teléfono (crea si hace falta) para no dejar la cita huérfana.
+      const pacienteIdLE = datos.pacienteId || await resolverPacienteBot(clinicId, from, datos.nombre, now)
       const apptsColLE = adminDb.collection('clinics').doc(clinicId).collection('appointments')
       const [sh, sm] = slotHora.split(':').map(Number)
       const sStart = sh * 60 + sm, sEnd = sStart + duracion
@@ -648,7 +737,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
           if (conflicto) throw new Error('CONFLICTO')
           tx.set(diaRefLE, { ultimaReserva: now }, { merge: true })
           tx.set(apptsColLE.doc(), {
-            pacienteId: datos.pacienteId || '',
+            pacienteId: pacienteIdLE,
             pacienteNombre: datos.nombre,
             pacienteTelefono: from,
             fechaHora: `${slotFecha} ${slotHora}`,
@@ -691,7 +780,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
         try {
           await adminDb.collection('clinics').doc(clinicId).collection('waitlist').doc(waitlistId).update({ estado: 'convertido' })
         } catch (e) {
-          console.warn(`[bot] no se pudo marcar waitlist ${waitlistId} como convertido:`, String(e))
+          safeLog.warn(`[bot] no se pudo marcar waitlist ${waitlistId} como convertido:`, String(e))
         }
       }
 
@@ -720,7 +809,7 @@ async function getAvailableDays(clinicId: string, duracionStr: string, config: C
   if (!config) return []
   const duracion = parseInt(duracionStr || '30')
   const days: string[] = []
-  let cursor = todayStr()
+  let cursor = todayStr(config.zonaHoraria || TZ_DEFAULT)
 
   // Get all appointments for next 14 days
   const endDate = addDays(cursor, 14)
@@ -729,13 +818,14 @@ async function getAvailableDays(clinicId: string, duracionStr: string, config: C
     .where('fechaHora', '<=', endDate + ' 23:59')
     .get()
   const appts = snap.docs.map(d => ({ id: d.id, ...d.data() } as Appointment))
+  const bloques = await cargarBloques(clinicId)
 
   for (let i = 0; i < 14 && days.length < 5; i++) {
     const fecha = addDays(cursor, i === 0 ? 1 : 0) // start tomorrow
     if (i === 0) cursor = fecha
     else cursor = addDays(cursor, 1)
 
-    const slots = getAvailableSlotsForDate(cursor, duracion, config, appts)
+    const slots = getAvailableSlotsForDate(cursor, duracion, config, appts, bloques, doctor?.id)
     if (slots.length > 0) days.push(cursor)
   }
 
@@ -783,10 +873,10 @@ export async function GET(req: NextRequest) {
   const challenge = searchParams.get('hub.challenge')
 
   if (mode === 'subscribe' && VERIFY_TOKEN && token === VERIFY_TOKEN) {
-    console.log('[Bot] Webhook verified')
+    safeLog.info('[Bot] Webhook verified')
     return new NextResponse(challenge, { status: 200 })
   }
-  if (!VERIFY_TOKEN) console.warn('[Bot] WHATSAPP_WEBHOOK_TOKEN no configurado — verificación rechazada')
+  if (!VERIFY_TOKEN) safeLog.warn('[Bot] WHATSAPP_WEBHOOK_TOKEN no configurado — verificación rechazada')
   return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 }
 
@@ -798,7 +888,7 @@ export async function POST(req: NextRequest) {
     const rawBody = await req.text()
     const firma = req.headers.get('x-hub-signature-256')
     if (!firmaValida(rawBody, firma)) {
-      console.warn('[Bot] Firma de webhook inválida — petición rechazada')
+      safeLog.warn('[Bot] Firma de webhook inválida — petición rechazada')
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
     const body = JSON.parse(rawBody)
@@ -821,7 +911,7 @@ export async function POST(req: NextRequest) {
     const clinicId = await findClinicByPhoneNumberId(phoneNumberId)
 
     if (!clinicId) {
-      console.warn('[Bot] No clinic found for phoneNumberId:', phoneNumberId)
+      safeLog.warn('[Bot] No clinic found for phoneNumberId:', phoneNumberId)
       return NextResponse.json({ ok: true })
     }
 
@@ -845,13 +935,13 @@ export async function POST(req: NextRequest) {
 
       // Handle async, don't block webhook response
       handleMessage(from, text, clinicId).catch(err => {
-        console.error(`[Bot] Error handling message from ${telefonoRedactado(from)}:`, err)
+        safeLog.error(`[Bot] Error handling message from ${telefonoRedactado(from)}:`, err)
       })
     }
 
     return NextResponse.json({ ok: true })
   } catch (err) {
-    console.error('[Bot] Webhook error:', err)
+    safeLog.error('[Bot] Webhook error:', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

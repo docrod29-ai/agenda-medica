@@ -8,10 +8,14 @@
  * - Estado inicial: 'solicitada' (no confirmada hasta que el médico/asistente lo haga).
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { instanteMX } from '@/lib/timezone'
+import { safeLog } from '@/lib/security/sanitize'
+import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 import { adminDb } from '@/lib/firebase-admin'
 import { getDaySchedule, validarHorarioDia } from '@/lib/availability'
-import { estaBloqueado } from '@/lib/time-blocks'
+// Del NÚCLEO PURO: esta ruta corre en el SERVIDOR y `time-blocks` arrastra el SDK
+// del navegador, que se inicializa al importarse y revienta el build sin variables.
+import { estaBloqueado } from '@/lib/time-blocks-core'
+import { limitarOResponder } from '@/lib/rate-limit'
 
 interface Body {
   clinicId: string
@@ -42,6 +46,22 @@ export async function POST(req: NextRequest) {
     if (!consentimientos?.avisoPrivacidad || !consentimientos?.informado) {
       return NextResponse.json({ ok: false, error: 'Se requieren los consentimientos' }, { status: 400 })
     }
+
+    /**
+     * RATE-LIMIT (endpoint público sin auth). Sin esto, un script podía crear
+     * pacientes y citas 'solicitada' en masa y disparar WhatsApp a números
+     * arbitrarios (spam/costo). Dos ventanas: por IP (freno general) y por
+     * teléfono+clínica (evita reservas repetidas del mismo número). Es a prueba de
+     * fallos: si Firestore falla, `limitar` deja pasar (no bloquea reservas
+     * legítimas por un problema de infraestructura).
+     */
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'sin-ip'
+    const telClave = (paciente.telefono || '').replace(/\D/g, '').slice(-10)
+    const limIp = await limitarOResponder(`booking:ip:${ip}`, 8, 3600, 'Demasiadas solicitudes. Intenta más tarde.')
+    if (limIp) return limIp
+    const limTel = await limitarOResponder(`booking:tel:${clinicId}:${telClave}`, 4, 86400, 'Ya tienes varias solicitudes recientes. Te contactaremos pronto.')
+    if (limTel) return limTel
+
     // Validaciones de forma (defensa contra abuso de endpoint público)
     if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return NextResponse.json({ ok: false, error: 'Fecha inválida' }, { status: 400 })
     if (!/^\d{2}:\d{2}$/.test(hora)) return NextResponse.json({ ok: false, error: 'Hora inválida' }, { status: 400 })
@@ -61,11 +81,6 @@ export async function POST(req: NextRequest) {
      * `instanteMX` ya existe justo para esto — el cron de recordatorios tuvo el
      * mismo bug y así se resolvió.
      */
-    const fechaHoraDt = instanteMX(fecha, hora)
-    if (isNaN(fechaHoraDt.getTime()) || fechaHoraDt.getTime() < Date.now()) {
-      return NextResponse.json({ ok: false, error: 'No se puede agendar en el pasado' }, { status: 400 })
-    }
-
     const clinicRef = adminDb.collection('clinics').doc(clinicId)
     // Resiliencia (igual que /api/public/clinic): el doc padre puede ser
     // "virtual" en Firestore aunque la config exista. Validamos por config.
@@ -81,11 +96,41 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Clínica no activa' }, { status: 403 })
     }
 
-    const cfg = configSnap.data() ?? {}
-    if (cfg.publicBookingEnabled === false) {
+    const cfgBase = configSnap.data() ?? {}
+    if (cfgBase.publicBookingEnabled === false) {
       return NextResponse.json({ ok: false, error: 'Esta clínica no acepta reservas en línea' }, { status: 403 })
     }
+    // HORARIO POR MÉDICO: si la reserva es para un médico concreto, su horario/
+    // duraciones pisan a los de la clínica (igual que el panel y /api/appointments).
+    // Sin esto, el portal rechazaba o permitía días según el horario de la clínica,
+    // incoherente con lo que el médico realmente atiende.
+    let cfg = cfgBase
+    if (medicoId) {
+      const docSnap = await clinicRef.collection('doctors').doc(medicoId).get()
+      const doc = docSnap.data()
+      if (doc) cfg = { ...cfgBase, horario: doc.horario ?? cfgBase.horario, duraciones: doc.duraciones ?? cfgBase.duraciones, intervaloMinutos: doc.intervaloMinutos ?? cfgBase.intervaloMinutos }
+    }
     const duracion = Number((cfg.duraciones ?? {})[tipo] ?? 30)
+
+    /**
+     * La validación de «fecha pasada» va AQUÍ, no arriba con las de forma.
+     *
+     * Arriba la configuración todavía no se ha leído, así que `instanteMX` caía a
+     * México central. El propio comentario que había lo declaraba y lo dejaba
+     * pasar: «el bloqueo sí usa la zona real, que es donde importa». No es cierto
+     * — en Tijuana (UTC-8) esta comprobación va dos horas adelantada, y el día que
+     * se habiliten reservas del mismo día rechazaría como «pasado» un hueco que
+     * todavía no ha llegado.
+     *
+     * Movida aquí, ya se conoce `cfg.zonaHoraria`. El coste es una lectura de
+     * Firestore antes de rechazar una fecha pasada; el límite de peticiones ya se
+     * aplicó mucho antes, así que no abre nada.
+     */
+    const tzClinica = cfg.zonaHoraria || TZ_DEFAULT
+    const fechaHoraDt = instanteMX(fecha, hora, tzClinica)
+    if (isNaN(fechaHoraDt.getTime()) || fechaHoraDt.getTime() < Date.now()) {
+      return NextResponse.json({ ok: false, error: 'No se puede agendar en el pasado' }, { status: 400 })
+    }
 
     const fechaHora = `${fecha} ${hora}`
 
@@ -100,8 +145,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Horario fuera del servicio' }, { status: 409 })
     }
     const bloquesSnap = await clinicRef.collection('time_blocks').get()
-    const bloques = bloquesSnap.docs.map(d => ({ id: d.id, ...d.data() })) as unknown as import('@/lib/time-blocks').TimeBlock[]
-    if (estaBloqueado(fechaHora, bloques, medicoId)) {
+    const bloques = bloquesSnap.docs.map(d => ({ id: d.id, ...d.data() })) as unknown as import('@/lib/time-blocks-core').TimeBlock[]
+    if (estaBloqueado(fechaHora, bloques, medicoId, tzClinica)) {
       return NextResponse.json({ ok: false, error: 'Ese horario no está disponible (bloqueo/ausencia)' }, { status: 409 })
     }
 
@@ -212,7 +257,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, citaId, fecha, hora, duracion })
   } catch (err) {
-    console.error('[public/booking]', err)
+    safeLog.error('[public/booking]', err)
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
   }
 }

@@ -9,8 +9,10 @@
  * Body: { clinicId, phoneNumberId, token }
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
-import { verificarMiembro } from '@/lib/auth-server'
+import { guardarSecretoCanal } from '@/lib/whatsapp/secreto-canal'
+import { verificarCapacidad } from '@/lib/authz/verificar'
 
 const GRAPH = 'https://graph.facebook.com/v20.0'
 
@@ -23,7 +25,7 @@ export async function POST(req: NextRequest) {
     }
     // Seguridad: solo un miembro de ESTA clínica puede conectar su WhatsApp.
     // Antes era anónimo → se podía secuestrar el canal de otra clínica.
-    const acceso = await verificarMiembro(req, clinicId)
+    const acceso = await verificarCapacidad(req, clinicId, 'administrar')
     if (!acceso.ok) return acceso.response
 
     // 1. Validar credenciales: pedir el número a Graph API
@@ -32,7 +34,7 @@ export async function POST(req: NextRequest) {
     )
     if (!res.ok) {
       const err = await res.text()
-      console.error('[manual-connect] Validación falló:', res.status, err)
+      safeLog.error('[manual-connect] Validación falló:', res.status, err)
       return NextResponse.json(
         { ok: false, error: 'Credenciales inválidas. Revisa el Phone Number ID y el token.' },
         { status: 400 },
@@ -43,9 +45,9 @@ export async function POST(req: NextRequest) {
 
     // 2. Guardar en la clínica
     const now = new Date().toISOString()
+    await guardarSecretoCanal(clinicId, token)
     const whatsapp = {
       provider: 'meta',
-      apiKey: token,
       phoneNumberId,
       phoneNumber,
       connected: true,
@@ -60,7 +62,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, phoneNumber })
   } catch (err) {
-    console.error('[manual-connect] Error:', err)
+    safeLog.error('[manual-connect] Error:', err)
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
   }
 }

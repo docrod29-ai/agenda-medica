@@ -24,7 +24,7 @@ export function AvisoConfigNoCargada({ error }: { error: string | null }) {
       background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)',
       borderRadius: 12, padding: '13px 15px', margin: '0 0 16px',
     }}>
-      <AlertTriangle size={17} style={{ color: '#ef4444', flexShrink: 0, marginTop: 1 }} />
+      <AlertTriangle size={17} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
       <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--text)' }}>
         <strong>No se pudo cargar la configuración de tu consultorio.</strong>{' '}
         Este documento saldría sin membrete, sin tu firma y sin tu cédula profesional, así que

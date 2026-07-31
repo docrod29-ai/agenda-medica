@@ -124,7 +124,7 @@ export default function CartaReferenciaPage() {
               ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</>
               : <><Download size={16} /> Descargar PDF</>}
           </button>
-          <button onClick={() => { if (configError) return; imprimirElemento(document.getElementById('doc'), 'Carta de referencia', { formato: 'carta' }) }} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => { if (configError) return; imprimirElemento(document.getElementById('doc'), 'Carta de referencia', { formato: 'carta', onError: (m) => toast(m, 'error') }) }} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
             <Printer size={16} /> Imprimir
           </button>
         </div>
@@ -196,7 +196,9 @@ export default function CartaReferenciaPage() {
           {(config?.telefonoAdmin || config?.whatsappConsultorio) && <div style={{ fontSize: 11, color: '#555' }}>Tel. {config.telefonoAdmin || config.whatsappConsultorio}</div>}
         </div>
 
-        <div style={{ textAlign: 'right', fontSize: 12.5, marginBottom: 14 }}>{config?.direccion?.split(',').pop()?.trim() || 'Chihuahua, Chih.'}, a {fecha}</div>
+        {/* Lugar: último segmento de la dirección del consultorio si lo hay; NUNCA
+            una ciudad fija (antes decía "Chihuahua, Chih." para cualquier clínica). */}
+        <div style={{ textAlign: 'right', fontSize: 12.5, marginBottom: 14 }}>{(() => { const lugar = config?.direccion?.split(',').pop()?.trim(); return lugar ? `${lugar}, a ${fecha}` : `A ${fecha}` })()}</div>
 
         <div style={{ textAlign: 'center', fontSize: 15, fontWeight: 700, marginBottom: 14 }}>
           {titulo}
@@ -237,8 +239,11 @@ export default function CartaReferenciaPage() {
         <div style={{ marginTop: 40, textAlign: 'center' }}>
           <div style={{ borderTop: '1px solid #1a1a1a', width: 280, margin: '0 auto', paddingTop: 4, fontSize: 12.5 }}>
             <strong>{medico}</strong><br />
-            {especialidad}<br />
-            Cédula Profesional {cedula}
+            {especialidad}{especialidad ? <br /> : null}
+            {/* Cédula = dato obligatorio: marcar su ausencia, no imprimir un guion. */}
+            {cedula !== '—'
+              ? <>Cédula Profesional {cedula}</>
+              : <span style={{ color: '#b91c1c', fontWeight: 700 }}>[FALTA CÉDULA PROFESIONAL]</span>}
           </div>
         </div>
       </div>

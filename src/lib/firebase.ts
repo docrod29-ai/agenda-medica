@@ -3,6 +3,7 @@ import { getAuth } from 'firebase/auth'
 import {
   getFirestore, initializeFirestore,
   persistentLocalCache, persistentMultipleTabManager,
+  terminate, clearIndexedDbPersistence,
 } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
 
@@ -65,5 +66,22 @@ export const storage = (() => {
   if (typeof window === 'undefined') return null
   try { return getStorage(app) } catch { return null }
 })()
+
+/**
+ * Limpia la caché OFFLINE de Firestore en IndexedDB (expedientes, Dx, medicamentos,
+ * transcripciones consultadas) al cerrar sesión — en un dispositivo COMPARTIDO ese
+ * residuo clínico no debe quedar. Es la fracción MAYOR de PHI en disco; la limpieza
+ * de logout previa solo tocaba localStorage. Best-effort: no bloquea el cierre.
+ *
+ * `terminate` + `clearIndexedDbPersistence` es la vía oficial; se llama en el logout,
+ * justo antes de navegar a /login (el cliente Firestore ya no se vuelve a usar).
+ */
+export async function limpiarCacheFirestore(): Promise<void> {
+  if (typeof window === 'undefined') return
+  try {
+    await terminate(db)
+    await clearIndexedDbPersistence(db)
+  } catch { /* si falla (otra pestaña, cliente ocupado) no debe trabar el logout */ }
+}
 
 export default app

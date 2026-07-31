@@ -9,6 +9,7 @@
  * el servidor vía Admin SDK. El cliente nunca las recibe (solo un estado
  * enmascarado "····1234"). Firestore niega ese path al cliente por defecto.
  */
+import { NextResponse } from 'next/server'
 import admin, { adminDb } from './firebase-admin'
 import { planPorNivel, topeEconomicoDe, MEDICO_EXTRA } from './planes-ia'
 
@@ -106,6 +107,48 @@ export async function creditosAgotados(clinicId: string | null): Promise<boolean
   } catch {
     return false
   }
+}
+
+/**
+ * GATE DE CRÉDITOS compartido (auditoría maestra 2026-07, L1 dinero). Devuelve una
+ * respuesta 402 lista para `return` si el consultorio corre con la llave del DUEÑO
+ * (fuente 'prueba') y ya agotó sus créditos del mes; si no, devuelve null y la ruta
+ * sigue. Antes 10 rutas de IA MEDÍAN el gasto (registrarCreditos) pero no lo
+ * CORTABAN: un consultorio agotado seguía quemando la API key del dueño.
+ * Con llave propia del consultorio (fuente 'clinica') nunca corta: paga su API.
+ */
+/** Decisión PURA del gate (testeable sin Firestore): solo corta con la llave del
+ *  dueño ('prueba'), con clinicId, y si ya está agotado. */
+export function debeCortarCreditos(fuente: ClaveResuelta['fuente'], clinicId: string | null, agotado: boolean): boolean {
+  return fuente === 'prueba' && !!clinicId && agotado
+}
+
+export async function gateCreditos(clinicId: string | null, fuente: ClaveResuelta['fuente']): Promise<NextResponse | null> {
+  // QUIÉN PAGA decide si se corta: con llave propia del consultorio NO se corta,
+  // paga su propia API y cortarle sería quitarle algo que ya pagó.
+  if (fuente !== 'prueba' || !clinicId) return null
+  /**
+   * También el tope de PRUEBA, no sólo los créditos del mes.
+   *
+   * Antes sólo miraba `creditosAgotados`, así que una cuenta en prueba con el
+   * tope de cortesía consumido seguía llamando a la API del dueño. El Copilot de
+   * UCI sí lo comprobaba (`pruebaAgotada`); estas rutas no.
+   *
+   * Falla ABIERTO: si la lectura revienta (red, permisos) NO se corta. Dejar al
+   * médico sin la función por un fallo de infraestructura es peor que una llamada
+   * de más, y el contador de uso sigue registrando.
+   */
+  const [agotados, prueba] = await Promise.all([
+    creditosAgotados(clinicId).catch(() => false),
+    pruebaAgotada(clinicId).catch(() => false),
+  ])
+  if (prueba || debeCortarCreditos(fuente, clinicId, agotados)) {
+    return NextResponse.json(
+      { ok: false, sinCreditos: true, error: 'Se acabaron tus créditos de IA del mes. Recarga créditos o configura tu propia llave de IA en Configuración para seguir.' },
+      { status: 402 },
+    )
+  }
+  return null
 }
 
 /** Suma consultas EXTRA al mes (lo llama el webhook de Stripe al comprar recarga). */
@@ -264,6 +307,9 @@ export async function guardarClaveIA(clinicId: string, proveedor: ProveedorIA, k
 export interface EstadoClaves {
   claves: Record<ProveedorIA, { configurada: boolean; hint: string }>
   uso: { total: number; prueba: number; limitePrueba: number }
+  /** Medidor de CRÉDITOS del mes (L1 auditoría maestra): antes el cliente solo veía
+   *  'total'/'prueba' (telemetría), nunca cuánto llevaba del BOTE de créditos. */
+  creditos: { usados: number; extra: number; limite: number }
 }
 
 /** Estado ENMASCARADO de las llaves + uso del mes (lo que sí puede ver el cliente). */
@@ -273,10 +319,20 @@ export async function estadoClavesIA(clinicId: string): Promise<EstadoClaves> {
     ? { configurada: true, hint: '····' + k.trim().slice(-4) }
     : { configurada: false, hint: '' }
   const u = d.uso?.[mesActual()] ?? {}
+  // Créditos del mes: usados + recarga extra + límite efectivo (ya escalado por asientos).
+  let creditos = { usados: 0, extra: 0, limite: 0 }
+  try {
+    const nivel = await nivelIADe(clinicId)
+    const [usados, extra, ent] = await Promise.all([
+      creditosUsadosDelMes(clinicId), creditosExtraDelMes(clinicId), entitlementsDe(clinicId, nivel),
+    ])
+    creditos = { usados: Math.round(usados * 10) / 10, extra, limite: ent.limiteCreditos }
+  } catch { /* si falla la lectura, medidor en 0 (no bloquea la config) */ }
   return {
     claves: {
       anthropic: mk(d.anthropic), assemblyai: mk(d.assemblyai), openai: mk(d.openai),
     },
     uso: { total: u.total ?? 0, prueba: u.prueba ?? 0, limitePrueba: LIMITE_PRUEBA },
+    creditos,
   }
 }

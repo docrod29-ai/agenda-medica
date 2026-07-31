@@ -367,7 +367,7 @@ function ArcoPanel({ requests, loading, onResolver }: { requests: ArcoRequest[];
               </span>
               {pendiente && (
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <button onClick={() => onResolver(r, 'rechazada')} style={{ background: 'transparent', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', borderRadius: 6, padding: '4px 10px', fontSize: 11.5, cursor: 'pointer' }}>
+                  <button onClick={() => onResolver(r, 'rechazada')} style={{ background: 'transparent', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--red)', borderRadius: 6, padding: '4px 10px', fontSize: 11.5, cursor: 'pointer' }}>
                     Rechazar
                   </button>
                   <button onClick={() => onResolver(r, 'resuelta')} className="btn btn-primary" style={{ fontSize: 11.5, padding: '4px 10px' }}>
@@ -391,7 +391,7 @@ function ArcoPanel({ requests, loading, onResolver }: { requests: ArcoRequest[];
 function EstadoBadge({ estado }: { estado: ArcoEstado }) {
   const map: Record<ArcoEstado, { label: string; color: string; bg: string }> = {
     recibida: { label: 'RECIBIDA', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
-    en_proceso: { label: 'EN PROCESO', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
+    en_proceso: { label: 'EN PROCESO', color: 'var(--amber)', bg: 'rgba(245,158,11,0.15)' },
     resuelta: { label: 'RESUELTA', color: '#10b981', bg: 'rgba(16,185,129,0.15)' },
     rechazada: { label: 'RECHAZADA', color: '#9ca3af', bg: 'rgba(156,163,175,0.15)' },
   }

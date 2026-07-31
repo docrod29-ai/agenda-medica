@@ -16,7 +16,7 @@ const FEATURES = [
   {
     icon: MessageCircle,
     title: 'Bot de WhatsApp',
-    desc: 'Tus pacientes agendan solos por WhatsApp 24/7. Sin llamadas, sin secretaria disponible.',
+    desc: 'Tus pacientes agendan solos por WhatsApp 24/7. Sin llamadas, sin depender de que alguien conteste.',
   },
   {
     icon: Bell,
@@ -30,7 +30,7 @@ const FEATURES = [
   },
   {
     icon: Clock,
-    title: 'Portal de secretaria',
+    title: 'Portal de asistente',
     desc: 'Vista simplificada para tu asistente. Solo ve lo que necesita, sin acceso a configuración.',
   },
   {
@@ -195,9 +195,14 @@ function Hero() {
         </h1>
 
         <p style={{
-          fontSize: 'clamp(16px, 1.6vw, 19px)', color: 'var(--text2)',
+          // --text (no --text2): el subtítulo caía sobre la parte BRILLANTE de la
+          // imagen del hero y con el gris medio se lavaba. La sombra del color de
+          // fondo lo despega de la imagen sin cambiar el tono en ninguno de los
+          // dos temas.
+          fontSize: 'clamp(16px, 1.6vw, 19px)', color: 'var(--text)',
           maxWidth: 580, margin: '0 auto 44px', lineHeight: 1.6,
-          letterSpacing: '-0.005em',
+          letterSpacing: '-0.005em', fontWeight: 500,
+          textShadow: '0 1px 16px var(--bg), 0 0 2px var(--bg)',
         }}>
           Agenda, expediente, recetas y cobros en una sola herramienta.
           Sin saltar de app en app.
@@ -395,6 +400,18 @@ function HowItWorks() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div style={{ maxWidth: 1100, margin: '48px auto 0', display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
+        <Link href="/demo/razonamiento" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus, #3d5afe)', color: '#fff', textDecoration: 'none', borderRadius: 10, padding: '12px 20px', fontSize: 14.5, fontWeight: 700 }}>
+          Ver cómo razona la IA en vivo →
+        </Link>
+        <Link href="/arquitectura" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--text2)', textDecoration: 'none', borderRadius: 10, padding: '12px 20px', fontSize: 14.5, fontWeight: 600, border: '1px solid var(--border)' }}>
+          Ver los 10 motores
+        </Link>
+        <Link href="/paquetes" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--text2)', textDecoration: 'none', borderRadius: 10, padding: '12px 20px', fontSize: 14.5, fontWeight: 600, border: '1px solid var(--border)' }}>
+          Paquetes por especialidad
+        </Link>
       </div>
 
       <style>{`
@@ -603,7 +620,11 @@ function Footer() {
         <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>NexusMED</span>
         <span style={{ fontSize: 14, color: 'var(--text3)' }}>· Hecho en México 🇲🇽</span>
       </div>
-      <div style={{ display: 'flex', gap: 24 }}>
+      <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+        <a href="/arquitectura" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Arquitectura</a>
+        <a href="/paquetes" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Paquetes por especialidad</a>
+        <a href="/demo/razonamiento" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Cómo razona la IA</a>
+        <a href="/operacion" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Operación</a>
         <a href="/seguridad" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Seguridad</a>
         <a href="/terminos" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Términos</a>
         <a href="/privacidad" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Privacidad</a>

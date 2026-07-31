@@ -189,12 +189,17 @@ function AsistenteInner() {
         // Prioriza el TELÉFONO. Solo funde por nombre si NO hay teléfono en
         // conflicto (dos personas con el mismo nombre y teléfonos distintos NO se
         // fusionan → se crea uno nuevo, evita mezclar expedientes).
+        // AUDITORÍA (PHI): una reserva SIN teléfono NO debe fundirse con un
+        // homónimo que SÍ tiene teléfono (no hay forma de confirmar que es la
+        // misma persona) → antes el disyunto `!tel` lo permitía y la cita/el
+        // expediente caían bajo la persona equivocada. Ahora sólo funde por
+        // nombre cuando el existente no tiene teléfono o coincide con el dado.
         const dig = (t?: string) => (t ?? '').replace(/\D/g, '')
         const existente =
           (tel && pacientes.find(p => dig(p.telefono) === tel)) ||
           pacientes.find(p =>
             p.nombre.toLowerCase().trim() === nombreLimpio.toLowerCase() &&
-            (!tel || !dig(p.telefono) || dig(p.telefono) === tel)
+            (!dig(p.telefono) || dig(p.telefono) === tel)
           )
         if (existente) {
           pacienteId = existente.id
@@ -514,7 +519,9 @@ function AsistenteInner() {
                       background: isSelected ? 'rgba(61,90,254,0.1)' : 'var(--s2)',
                       color: daySlots.length === 0 ? 'var(--text3)' : isSelected ? 'var(--teal)' : 'var(--text)',
                       cursor: daySlots.length === 0 ? 'default' : 'pointer',
-                      opacity: daySlots.length === 0 ? 0.4 : 1,
+                      // Un día sin cupo va apagado, pero LEGIBLE: con 0.4 sobre un
+                      // texto ya atenuado (--text3) quedaba casi invisible en claro.
+                      opacity: daySlots.length === 0 ? 0.6 : 1,
                       transition: 'all 0.15s',
                     }}
                   >

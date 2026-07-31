@@ -1,0 +1,72 @@
+{
+  "id": "E0-01",
+  "etapa": "E0",
+  "titulo": "Receta/QR 100% derivada de datos autoritativos del servidor",
+  "estado": "completada",
+  "fecha": "2026-07-28T20:13:41Z",
+  "aceptacion": {
+    "criterio": "Un body con cédula/folio arbitrarios no produce certificado válido.",
+    "cumplido": true,
+    "evidencia": "src/__tests__/receta-verificacion-url-route.test.ts → 'ACEPTACIÓN: un body con cédula, nombre y folio arbitrarios NO llega al certificado'. Con la ruta anterior (git stash) fallan 11 de los casos nuevos, incluido éste."
+  },
+  "alcance": {
+    "parte1_obligatoria": "implementada",
+    "parte2_recomendada": "implementada con desviación documentada (ver decisiones.D3)",
+    "fueraDeAlcance": [
+      "Camino de IMPRESIÓN (pie de la receta sigue leyendo config/main) — decisión D1, pendiente del médico dueño",
+      "/orden/[patientId]/[notaId] no consume esta ruta; su QR sigue cayendo a texto"
+    ]
+  },
+  "archivosTocados": [
+    "src/lib/receta-folio.ts (NUEVO)",
+    "src/lib/receta-certificado.ts (NUEVO)",
+    "src/app/api/receta/verificacion-url/route.ts (MODIFICADO)",
+    "src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx (MODIFICADO)",
+    "src/lib/receta-token.ts (MODIFICADO)",
+    "src/app/verificar/[token]/page.tsx (MODIFICADO)",
+    "src/__tests__/receta-certificado.test.ts (NUEVO)",
+    "src/__tests__/receta-verificacion-url-route.test.ts (NUEVO)",
+    "src/__tests__/receta-token.test.ts (MODIFICADO)",
+    "docs/audit/regression-ledger.md (MODIFICADO — REG-025 → CLOSED)"
+  ],
+  "testsAgregados": [
+    "src/__tests__/receta-certificado.test.ts (11 casos puros: prioridad firma>metadata>vacío, no-inventa, folio determinista, huella de nota)",
+    "src/__tests__/receta-verificacion-url-route.test.ts (12 casos de ruta con dobles del Admin SDK: forja, 404 notaId inexistente, 400 sin patientId, 409 borrador/cancelada, 403 no-médico, path sin cruce de tenant, 503 fail-cerrado, contenidoHash inválido descartado)",
+    "src/__tests__/receta-token.test.ts (3 casos: hn viaja y vuelve, ausencia de hn, token LEGADO v=1 sigue verificando)"
+  ],
+  "gates": {
+    "tsc": "PASS",
+    "vitest": "PASS",
+    "testsPasan": 1911,
+    "testFiles": 171,
+    "build": "PASS"
+  },
+  "pruebaDeQueElTestSirve": "git stash de route.ts + receta-token.ts → 11 casos nuevos en rojo (2 archivos), incluido el de aceptación. Restaurado; suite de nuevo 1911/1911.",
+  "decisiones": {
+    "D1": {
+      "pregunta": "¿El pie IMPRESO de la receta debe leerse de nota.firma en vez de config/main?",
+      "resuelta": false,
+      "paraQuien": "médico dueño",
+      "nota": "NO se tocó la impresión (regla 5 de la carta operativa). Efecto conocido: en consultorios con 2+ médicos el QR ya dice la identidad de quien FIRMÓ la nota, mientras el pie impreso sigue diciendo la de config/main. Antes el QR mentía; ahora dice la verdad y el papel puede discrepar. Candidato a unidad aparte con verificación visual del PDF real."
+    },
+    "D2": {
+      "pregunta": "Nota en borrador: ¿409 o certificado sin emisor?",
+      "resuelta": true,
+      "eleccion": "409",
+      "motivo": "La UI solo ofrece 'Generar receta' sobre notas firmadas (expediente/[patientId]/page.tsx), así que el 409 es inalcanzable por el flujo normal y cierra la emisión de certificados de borradores por llamada directa a la API."
+    },
+    "D3": {
+      "pregunta": "¿Se incluye la PARTE 2 (huella hn) en esta unidad?",
+      "resuelta": true,
+      "eleccion": "sí, con desviación",
+      "motivo": "Aditiva y retro-compatible. DESVIACIÓN DEL DISEÑO: el diseño proponía mostrar un mensaje neutro cuando h y hn difieren. NO se implementó porque h (impreso) y hn (nota) se calculan sobre entradas distintas — h incluye folio, indicaciones y diagnóstico — así que difieren casi siempre aunque los medicamentos sean idénticos: el mensaje habría afirmado un hecho falso. Se muestran como dos hechos independientes, sin comparación."
+    }
+  },
+  "necesitaValidacionClinica": false,
+  "riesgosVivos": [
+    "R2: un cliente viejo cacheado por el Service Worker manda body sin patientId → 400 y el QR degrada a 'Folio:<folio>' en texto (degradación ya existente, no rompe la impresión). Subir versión del SW en el despliegue.",
+    "R3/D1: pie impreso vs certificado pueden discrepar en clínicas con 2+ médicos hasta que se resuelva D1."
+  ],
+  "noDesplegado": true,
+  "commit": "feat(nexus-os E0-01): receta/QR derivada de la nota autoritativa (REG-025)"
+}
