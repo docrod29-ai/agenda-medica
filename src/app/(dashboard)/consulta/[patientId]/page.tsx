@@ -540,12 +540,27 @@ export default function ConsultaActivaPage() {
   // Constraints para capturar TODA la conversación (médico + paciente) en el modo
   // Whisper: sin supresión de ruido ni cancelación de eco (borran al paciente),
   // con control de ganancia para levantar su voz.
-  const opcionesWhisper = {
+  /**
+   * El vocabulario de ESTE paciente viaja con el audio.
+   *
+   * El prompt es lo único que cambia lo que el reconocedor OYE, y su presupuesto
+   * son ~224 tokens: los fármacos y diagnósticos del paciente entran PRIMERO y
+   * lo genérico llena lo que sobre. Un fármaco que ya toma es la pista más
+   * específica que existe — «metformina» dictada sobre un diabético deja de
+   * competir con las palabras parecidas del diccionario general.
+   *
+   * Hasta hoy se mandaba un prompt fijo para todos: el módulo que elige el
+   * vocabulario existía, estaba probado, y no lo llamaba nadie.
+   */
+  const opcionesWhisper = useMemo(() => ({
     recoveryKey: `consulta-${patientId}`,
     noiseSuppression: false,
     echoCancellation: false,
     autoGainControl: true,
-  } as const
+    contexto: 'consulta' as const,
+    medicamentos: (medicamentos ?? []).map(m => m?.nombre).filter(Boolean) as string[],
+    problemas: (diagnosticos ?? []).map(d => d?.descripcion).filter(Boolean) as string[],
+  }), [patientId, medicamentos, diagnosticos])
 
   // Arranca el grabador que corresponde al modo seleccionado (no siempre el de voz).
   const arrancarSegunModo = () => {

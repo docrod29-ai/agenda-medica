@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { WHISPER_PROMPT_MEDICO, WHISPER_PROMPT_UCI } from '@/lib/expediente/medical-vocabulary'
+import { construir as construirLexicon } from '@/lib/asr/lexicon'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { gateCreditos, resolverClaveIA, registrarUso, registrarCreditos  } from '@/lib/ai-keys'
@@ -62,6 +63,45 @@ export async function POST(req: NextRequest) {
    * modelo. Si no viene, se usa el de consulta — el comportamiento de siempre.
    */
   const contexto = String(formData.get('contexto') ?? '')
+  /**
+   * VOCABULARIO DE ESTE PACIENTE.
+   *
+   * El prompt es lo ÚNICO que cambia lo que el reconocedor OYE: sesga su
+   * decodificación hacia las palabras que se le dan. Todo lo demás del pipeline
+   * ocurre DESPUÉS y no puede recuperar una palabra que nunca se oyó.
+   *
+   * Hasta hoy se mandaba uno de dos prompts fijos, así que el trabajo de
+   * `lib/asr/lexicon.ts` —79 especialidades, presupuestadas a los 224 tokens que
+   * el modelo lee, con los fármacos y problemas de ESTE paciente primero— no
+   * llegaba nunca al reconocedor. Estaba escrito, probado y desconectado.
+   *
+   * Los campos son opcionales y todo cae al prompt de siempre si algo falta: un
+   * dictado nunca se queda sin vocabulario por un dato que no llegó.
+   */
+  const leerLista = (k: string): string[] => {
+    try {
+      const v = JSON.parse(String(formData.get(k) ?? '[]')) as unknown
+      return Array.isArray(v) ? v.map(String).filter(Boolean).slice(0, 40) : []
+    } catch { return [] }
+  }
+  const promptLexicon = ((): string => {
+    try {
+      const modulo = (['consulta', 'hospitalizacion', 'uci', 'urgencias', 'quirofano'] as const)
+        .find(m => m === contexto)
+      if (!modulo) return ''
+      const lex = construirLexicon({
+        modulo,
+        especialidades: leerLista('especialidades'),
+        medicamentos: leerLista('medicamentos'),
+        problemas: leerLista('problemas'),
+      })
+      return lex.prompt
+    } catch {
+      // Si el léxico revienta, se sigue con el de siempre. Perder vocabulario
+      // extra es molesto; quedarse sin dictado es otra cosa.
+      return ''
+    }
+  })()
   if (!audio || !(audio instanceof Blob)) {
     return NextResponse.json({ ok: false, error: 'Falta archivo de audio' }, { status: 400 })
   }
@@ -97,7 +137,7 @@ export async function POST(req: NextRequest) {
      * sweep gas fallaban — el sesgo apuntaba a fármacos de consultorio. Mandar
      * los dos juntos no cabe en los ~224 tokens que el modelo lee.
      */
-    upstream.append('prompt', contexto === 'uci' ? WHISPER_PROMPT_UCI : WHISPER_PROMPT_MEDICO)
+    upstream.append('prompt', promptLexicon || (contexto === 'uci' ? WHISPER_PROMPT_UCI : WHISPER_PROMPT_MEDICO))
     return fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}` },

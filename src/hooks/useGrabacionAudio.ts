@@ -68,11 +68,22 @@ export interface OpcionesGrabacion {
   /** ID estable para recovery vía IndexedDB (ej. patientId). */
   recoveryKey?: string
   /**
-   * Contexto del dictado: `'uci'` hace que el servidor sesgue el reconocedor con
-   * vocabulario de cuidados críticos. Medido sobre el corpus de 498 audios: sin
-   * esto, CVVHDF, VExUS y RASS fallan porque el sesgo apunta al consultorio.
+   * Módulo del dictado. Decide el vocabulario con el que se sesga al reconocedor.
+   *
+   * Medido sobre el corpus de 498 audios: sin esto, CVVHDF, VExUS y RASS fallan
+   * porque el sesgo apunta al consultorio.
    */
-  contexto?: 'uci'
+  contexto?: 'consulta' | 'hospitalizacion' | 'uci' | 'urgencias' | 'quirofano'
+  /**
+   * Vocabulario de ESTE paciente, para el prompt del reconocedor.
+   *
+   * El prompt es lo único que cambia lo que el modelo OYE, y su presupuesto son
+   * ~224 tokens: lo del paciente entra PRIMERO y lo genérico llena lo que sobre.
+   * Un fármaco que el paciente ya toma es la pista más específica que existe.
+   */
+  especialidades?: readonly string[]
+  medicamentos?: readonly string[]
+  problemas?: readonly string[]
 }
 
 /** Un turno de habla diarizado (AssemblyAI): quién habló y qué dijo. */
@@ -285,11 +296,26 @@ let motivoFalloTranscripcion = ''
  * Transcribe un blob vía OpenAI. NUNCA lanza: ante 413/500/HTML devuelve ''.
  * (Antes, res.json() sobre una página de error HTML tiraba SyntaxError.)
  */
-async function transcribirBlobSimple(blob: Blob, ext: string, contexto = ''): Promise<string> {
+interface CtxDictado {
+  contexto?: string
+  especialidades?: readonly string[]
+  medicamentos?: readonly string[]
+  problemas?: readonly string[]
+}
+
+/** Añade el vocabulario del paciente al formulario, si lo hay. */
+function anexarContexto(fd: FormData, c: CtxDictado): void {
+  if (c.contexto) fd.append('contexto', c.contexto)
+  for (const [k, v] of [['especialidades', c.especialidades], ['medicamentos', c.medicamentos], ['problemas', c.problemas]] as const) {
+    if (v && v.length > 0) fd.append(k, JSON.stringify([...v]))
+  }
+}
+
+async function transcribirBlobSimple(blob: Blob, ext: string, contexto: CtxDictado = {}): Promise<string> {
   try {
     const fd = new FormData()
     fd.append('audio', blob, `audio.${ext}`)
-    if (contexto) fd.append('contexto', contexto)
+    anexarContexto(fd, contexto)
     const res = await fetchAutenticado('/api/expediente/transcribir', { method: 'POST', body: fd })
     if (!res.ok) {
       const body = await res.text().catch(() => '')
@@ -322,7 +348,7 @@ async function transcribirBlobSimple(blob: Blob, ext: string, contexto = ''): Pr
  * hay OPENAI_API_KEY (503) o falla, intenta AssemblyAI. Así basta con tener
  * UNA de las dos llaves. Nunca lanza.
  */
-async function transcribirParte(blob: Blob, ext: string, contexto = ''): Promise<string> {
+async function transcribirParte(blob: Blob, ext: string, contexto: CtxDictado = {}): Promise<string> {
   const openai = await transcribirBlobSimple(blob, ext, contexto)
   if (openai) return openai
   // Fallback: AssemblyAI (la misma llave que usa la diarización)
@@ -338,7 +364,7 @@ async function transcribirParte(blob: Blob, ext: string, contexto = ''): Promise
  */
 export interface ResultadoPorPartes { texto: string; lotesFallidos: number }
 
-async function transcribirEnPartes(chunks: Blob[], mime: string, ext: string, contexto = ''): Promise<ResultadoPorPartes> {
+async function transcribirEnPartes(chunks: Blob[], mime: string, ext: string, contexto: CtxDictado = {}): Promise<ResultadoPorPartes> {
   if (chunks.length === 0) return { texto: '', lotesFallidos: 0 }
   const header = chunks[0]
   const LIMITE = 3_600_000
@@ -434,7 +460,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   const chunkIdxRef = useRef<number>(0)
   const textosChunksRef = useRef<string[]>([])
   const recoveryKeyRef = useRef<string>('')
-  const contextoRef = useRef<string>('')
+  const contextoRef = useRef<CtxDictado>({})
   // Anti-pérdida: desde qué índice persistir en IndexedDB. Si ya hay audio de una
   // transcripción que FALLÓ bajo la misma llave, los chunks nuevos se guardan
   // DESPUÉS (no encima), para no borrar el audio que se prometió a salvo.
@@ -544,7 +570,12 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     if (!soportado) { setError('Tu navegador no soporta grabación de audio'); setEstado('error'); return }
     streamingActivoRef.current = opts?.streaming !== false
     recoveryKeyRef.current = opts?.recoveryKey ?? ''
-    contextoRef.current = opts?.contexto ?? ''
+    contextoRef.current = {
+      contexto: opts?.contexto,
+      especialidades: opts?.especialidades,
+      medicamentos: opts?.medicamentos,
+      problemas: opts?.problemas,
+    }
     // Si ya hay chunks bajo esta llave (p. ej. audio de una transcripción que
     // falló y NO se ha recuperado), NO los pises: continúa el índice DESPUÉS de
     // ellos. En éxito, borrarChunks limpia todo y la próxima grabación arranca en 0.

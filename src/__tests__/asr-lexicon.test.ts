@@ -11,6 +11,11 @@ import {
   CONTEXTOS_POR_MODULO, NOMBRES_ESPECIALIDAD, type ModuloDictado,
 } from '@/lib/asr/lexicon'
 import { LIMITE_TOKENS_PROMPT } from '@/lib/expediente/medical-vocabulary'
+import crudo from '@/lib/asr/data/especialidades.json'
+
+const ESPECIALIDADES_CRUDAS = (crudo as unknown as {
+  specialties: Record<string, { critical_terms: string[]; high_priority_terms: string[]; normal_terms: string[] }>
+}).specialties
 
 const MODULOS: ModuloDictado[] = ['consulta', 'hospitalizacion', 'uci', 'urgencias', 'quirofano']
 
@@ -110,5 +115,50 @@ describe('El mapa del Dr. llegó entero', () => {
     expect(globales.length).toBeGreaterThan(0)
     const l = construir({ modulo: 'consulta' })
     expect(l.terminos).toContain(globales[0])
+  })
+})
+
+describe('El léxico del Dr. está COMPLETO, no un esqueleto', () => {
+  it('las 79 especialidades tienen términos', () => {
+    /**
+     * Regresión real: el archivo tenía la ESTRUCTURA del corpus —las 79
+     * especialidades— pero sólo 35 términos, y **65 especialidades estaban
+     * vacías**. El prompt es lo único que cambia lo que el reconocedor OYE, así
+     * que dictar de nefrología, hematología o neonatología no sesgaba nada.
+     * Su LEXICON_MEDICO.csv traía los 1 400 desde el principio.
+     */
+    const esp = ESPECIALIDADES_CRUDAS
+    const vacias = Object.entries(esp)
+      .filter(([, e]) => !e.critical_terms.length && !e.high_priority_terms.length && !e.normal_terms.length)
+      .map(([k]) => k)
+    expect(vacias, `especialidades sin un solo término: ${vacias.join(', ')}`).toEqual([])
+    expect(Object.keys(esp)).toHaveLength(79)
+
+    const total = Object.values(esp).reduce(
+      (n, e) => n + e.critical_terms.length + e.high_priority_terms.length + e.normal_terms.length, 0)
+    expect(total).toBe(1400)
+  })
+
+  it('cada módulo produce un vocabulario DISTINTO', () => {
+    // Si todos salieran iguales, el contexto no estaría haciendo nada.
+    const prompts = (['consulta', 'hospitalizacion', 'uci', 'urgencias', 'quirofano'] as const)
+      .map(m => construir({ modulo: m }).prompt)
+    expect(new Set(prompts).size).toBe(prompts.length)
+  })
+
+  it('y ninguno se pasa del presupuesto que lee el reconocedor', () => {
+    // Lo que se pasa de 224 tokens el modelo lo ignora EN SILENCIO: un prompt
+    // más largo no es un prompt mejor, es uno truncado sin avisar.
+    for (const m of ['consulta', 'hospitalizacion', 'uci', 'urgencias', 'quirofano'] as const) {
+      const l = construir({ modulo: m })
+      expect(l.tokens, m).toBeLessThanOrEqual(224)
+      expect(l.terminos.length, m).toBeGreaterThan(30)
+    }
+  })
+
+  it('lo del paciente entra ANTES que lo genérico', () => {
+    const l = construir({ modulo: 'consulta', medicamentos: ['tacrolimus'], problemas: ['nefropatia por BK'] })
+    expect(l.terminos[0]).toBe('tacrolimus')
+    expect(l.terminos.slice(0, 2)).toContain('nefropatia por BK')
   })
 })
