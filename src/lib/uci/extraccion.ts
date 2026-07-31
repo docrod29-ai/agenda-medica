@@ -179,15 +179,15 @@ const CAMPOS_UCI: { campo: string; alias: string[] }[] = [
   { campo: 'dobu', alias: ['dobutamina'] },
   { campo: 'epi', alias: ['epinefrina', 'adrenalina'] },
   { campo: 'glasgow', alias: ['glasgow', 'escala de coma'] },
-  { campo: 'creat', alias: ['creatinina'] },
-  { campo: 'k', alias: ['potasio'] },
-  { campo: 'na', alias: ['sodio'] },
-  { campo: 'cl', alias: ['cloro'] },
-  { campo: 'alb', alias: ['albumina', 'albúmina'] },
-  { campo: 'glucosa', alias: ['glucosa', 'glucemia'] },
+  { campo: 'creat', alias: ['creatinina', 'cr'] },
+  { campo: 'k', alias: ['potasio', 'k'] },
+  { campo: 'na', alias: ['sodio', 'na'] },
+  { campo: 'cl', alias: ['cloro', 'cl'] },
+  { campo: 'alb', alias: ['albumina', 'albúmina', 'alb'] },
+  { campo: 'glucosa', alias: ['glucosa', 'glucemia', 'glu'] },
   { campo: 'spo2', alias: ['saturacion de oxigeno', 'saturacion', 'spo2', 'sato dos', 'sato2', 'sao2'] },
   { campo: 'plaquetas', alias: ['plaquetas'] },
-  { campo: 'bili', alias: ['bilirrubina'] },
+  { campo: 'bili', alias: ['bilirrubina', 'bt', 'bilirrubina total'] },
   { campo: 'talla', alias: ['talla', 'estatura'] },
   // Neurocrítico
   { campo: 'pic', alias: ['presion intracraneal', 'presión intracraneana', 'presion intracraneana', 'pic'] },
@@ -196,6 +196,15 @@ const CAMPOS_UCI: { campo: string; alias: string[] }[] = [
   // POCUS (numéricos)
   { campo: 'vci', alias: ['vena cava inferior', 'cava inferior', 'vci', 'vena cava'] },
   { campo: 'tapse', alias: ['tapse'] },
+  // Hemodinámica invasiva: el pase del Dr. la trae completa y no había ni un campo.
+  { campo: 'pvc', alias: ['pvc', 'presion venosa central'] },
+  { campo: 'pcp', alias: ['pcp', 'paop', 'pcp/paop', 'presion capilar pulmonar', 'presion de enclavamiento'] },
+  { campo: 'gc', alias: ['gasto cardiaco', 'gc termodilucion', 'gc'] },
+  { campo: 'ic', alias: ['indice cardiaco', 'ic'] },
+  { campo: 'svo2', alias: ['svo2', 'saturacion venosa mixta'] },
+  { campo: 'fevi', alias: ['fevi', 'fraccion de expulsion', 'fraccion de eyeccion'] },
+  { campo: 'pam', alias: ['pam', 'presion arterial media', 'tension arterial media'] },
+  { campo: 'peso', alias: ['peso'] },
   { campo: 'vdvi', alias: ['relacion vd vi', 'vd vi', 've de ve i'] },
   { campo: 'lineasB', alias: ['lineas b', 'líneas b', 'lineas be'] },
   { campo: 'plrDelta', alias: ['elevacion de piernas', 'plr', 'pierna recta'] },
@@ -307,6 +316,9 @@ const RANGOS_UCI: Record<string, [number, number]> = {
   glucosa: [10, 2000], plaquetas: [1, 2000], bili: [0, 60], talla: [40, 230],
   // POCUS
   vci: [0, 4], tapse: [2, 45], vdvi: [0.2, 3], lineasB: [0, 40], plrDelta: [0, 100],
+  // Hemodinámica invasiva
+  pvc: [-5, 40], pcp: [0, 50], gc: [0.5, 15], ic: [0.3, 8], svo2: [10, 95],
+  fevi: [5, 80], pam: [20, 200], peso: [20, 300],
 }
 
 export interface AvisoExtraccionUCI {
@@ -374,6 +386,65 @@ export function extraerValoresUCIConAvisos(texto: string): { valores: Record<str
       })
     }
   }
+  /**
+   * TENSIÓN EN FRACCIÓN: «TA invasiva: 78/46 mmHg».
+   *
+   * Así es como se escribe y como se dice una presión arterial, y el extractor
+   * sólo sabía leer «presión sistólica 78». Sin sistólica y diastólica no hay
+   * PAM, y sin PAM se bloquean la presión de perfusión cerebral y media
+   * hemodinámica. El Copilot lo dijo con todas sus letras: «PAM bloqueada en
+   * motor por falta de PAS/PAD aunque hay TA registrada en notas».
+   *
+   * Se exige el par en el MISMO tramo y que sistólica > diastólica: un «6/12 mL»
+   * o una relación I:E no son una tensión.
+   */
+  if (!('pas' in valores) && !('pad' in valores)) {
+    const mta = t.match(/\b(?:ta|tension|presion)\s*(?:arterial|invasiva|no invasiva|nibp)?\s*[:=]?\s*(\d{2,3})\s*\/\s*(\d{2,3})\b/i)
+    if (mta) {
+      const sis = Number(mta[1]), dia = Number(mta[2])
+      if (sis > dia && sis >= 40 && sis <= 300 && dia >= 10 && dia <= 200) {
+        valores.pas = String(sis); valores.pad = String(dia)
+      }
+    }
+  }
+
+  /**
+   * UNIDADES ESCRITAS: se convierten, NO se adivinan.
+   *
+   * «VCI 24 mm» quedaba fuera de rango (el campo está en cm) y «Plaquetas
+   * 118,000/µL» también (el campo está en millares). Los dos se descartaban con
+   * un aviso de «error de dictado» — y no era un error: era la unidad del
+   * laboratorio, escrita ahí mismo en el texto.
+   *
+   * La conversión sólo ocurre cuando la unidad está ESCRITA. Sin unidad no se
+   * toca nada: elegirla por el médico sería adivinar, y un factor de mil en una
+   * cifra clínica no se adivina.
+   */
+  const convertir: { campo: string; re: RegExp; factor: number; nota: string }[] = [
+    { campo: 'vci', re: /\bvci|vena cava( inferior)?/i, factor: 0.1, nota: 'mm→cm' },
+    { campo: 'plaquetas', re: /plaquetas/i, factor: 0.001, nota: '/µL→×10³' },
+  ]
+  for (const c of convertir) {
+    if (c.campo in valores) continue
+    const i = avisos.findIndex(a => a.campo === c.campo && a.motivo === 'implausible')
+    if (i < 0) continue
+    // ¿La unidad que lo explica está escrita justo después del número?
+    // El grupo NO es opcional: sin `(?:…)` la alternación del patrón se come el
+    // resto de la expresión y «VCI: 24» (sin unidad) casaba con sólo `\bvci`,
+    // convirtiendo a 2.4 cm un número que nadie dijo en milímetros. Es el mismo
+    // fallo de precedencia que se arregló hoy en otros dos sitios.
+    const base = `(?:${c.re.source})`
+    const unidad = c.campo === 'vci'
+      ? new RegExp(`${base}[^.]{0,20}?\\b${avisos[i].crudo}\\s*mm\\b`, 'i')
+      : new RegExp(`${base}[^.]{0,20}?\\b${avisos[i].crudo.replace('.', '')}\\s*\\/?\\s*(u|µ|mc)l\\b`, 'i')
+    if (!unidad.test(t)) continue
+    const convertido = Number(avisos[i].crudo) * c.factor
+    const r = RANGOS_UCI[c.campo]
+    if (!r || convertido < r[0] || convertido > r[1]) continue
+    valores[c.campo] = String(Number(convertido.toFixed(3)))
+    avisos.splice(i, 1)
+  }
+
   // RASS es la única escala que puede ser NEGATIVA ("menos 3"); no cabe en el
   // parser numérico general. Se extrae aparte y se acota a [−5, +4].
   if (!('rass' in valores)) {

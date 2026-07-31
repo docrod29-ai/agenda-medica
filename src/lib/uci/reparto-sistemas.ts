@@ -90,6 +90,36 @@ export function claveDeEncabezado(linea: string): ClaveSistema | null {
   return null
 }
 
+/**
+ * Frases que hablan DEL SISTEMA, no del paciente.
+ *
+ * En el pase real del Dr. apareció, dentro de la nota de un enfermo:
+ *
+ *   «Debe permitirse que los objetivos sean configurables por protocolo
+ *    institucional, no hardcodearlos como un único rango universal.»
+ *
+ * Eso es una especificación de software que él me estaba dictando a mí, y acabó
+ * en el expediente de un paciente. Una nota clínica no habla de la aplicación.
+ *
+ * El filtro es DELIBERADAMENTE estrecho: sólo saca frases que nombran al sistema
+ * como sujeto. Un «el sistema respiratorio» o «el sistema nervioso» no cae aquí
+ * —se exige un verbo de requisito— porque sacar una frase clínica de la nota
+ * sería mucho peor que dejar una de software.
+ */
+const INSTRUCCION_AL_SISTEMA: RegExp[] = [
+  /\bhardcode/i,
+  /\b(debe|deberia|habria que|hay que)\s+(permitirse|permitir|poder|mostrarse|mostrar|registrar|guardar|calcular|configurar)\b/i,
+  /\bel sistema\s+(debe|deberia|tiene que|no debe)\b/i,
+  /\b(la app|la aplicaci[oó]n|el motor|la pantalla|el panel)\s+(debe|deberia|tiene que|no debe)\b/i,
+  /\bconfigurables?\s+por\s+protocolo\b/i,
+  /\brango universal\b/i,
+]
+
+/** ¿Esta línea le habla al software en vez de al expediente? */
+export function esInstruccionAlSistema(linea: string): boolean {
+  return INSTRUCCION_AL_SISTEMA.some(re => re.test(linea))
+}
+
 export type RepartoSistemas = Record<ClaveSistema, string>
 
 const VACIO = (): RepartoSistemas => ({
@@ -109,6 +139,7 @@ export function repartirPorSistemas(texto: string): RepartoSistemas {
   if (!texto?.trim()) return out
 
   const lineas = texto.split('\n')
+  const descartadas: string[] = []
   let actual: ClaveSistema = 'plan'
   const buffers: Record<ClaveSistema, string[]> = {
     neurologico: [], respiratorio: [], hemodinamico: [], abdominodigestivo: [],
@@ -122,6 +153,8 @@ export function repartirPorSistemas(texto: string): RepartoSistemas {
       // El encabezado NO se copia: la nota ya rotula la sección.
       continue
     }
+    // Lo que le habla al software no entra en el expediente de un paciente.
+    if (esInstruccionAlSistema(linea)) { descartadas.push(linea.trim()); continue }
     buffers[actual].push(linea)
   }
 
