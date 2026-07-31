@@ -112,3 +112,45 @@ describe('Los que no llevan cifra dicen por qué', () => {
     for (const p of SIN_PROPONER) expect(p.porQue.length, p.farmaco).toBeGreaterThan(10)
   })
 })
+
+describe('Las indicaciones que se hacen a diario NO dan aviso', () => {
+  /**
+   * Verificado en pantalla el 31-jul: con sólo el tope general, ceftriaxona
+   * 2 g cada 12 h —la pauta de libro en meningitis— salía como «por encima de
+   * lo habitual» CADA VEZ.
+   *
+   * Ése es exactamente el fallo que este motor existe para no cometer. Una
+   * alerta que salta en lo que se hace siempre enseña a ignorarla, y el día que
+   * tenga razón tampoco se va a leer.
+   */
+  const conIndicacion = PROPUESTAS.filter(p => p.indicacion !== '*')
+
+  it('meningitis, neutropenia febril y neumonía nosocomial tienen su entrada', () => {
+    for (const [f, i] of [
+      ['Ceftriaxone', 'meningitis'],
+      ['Meropenem', 'meningitis'],
+      ['Cefepime', 'neutropenia febril'],
+      ['Ceftolozane-tazobactam', 'neumonía nosocomial'],
+    ] as const) {
+      expect(conIndicacion.some(p => p.farmaco === f && p.indicacion === i), `${f} · ${i}`).toBe(true)
+    }
+  })
+
+  it('y la entrada de la indicación permite MÁS que la general', () => {
+    // Si no permitiera más, no serviría de nada tenerla.
+    for (const esp of conIndicacion) {
+      const general = PROPUESTAS.find(p => p.farmaco === esp.farmaco && p.indicacion === '*')
+      if (!general) continue
+      const techoEsp = esp.absolutoMaxPorDia ?? esp.usualMaxPorDia ?? 0
+      const usualGeneral = general.usualMaxPorDia ?? 0
+      expect(techoEsp, `${esp.farmaco} · ${esp.indicacion}`).toBeGreaterThanOrEqual(usualGeneral)
+    }
+  })
+
+  it('la pauta de libro de la meningitis queda DENTRO de lo habitual', () => {
+    const m = PROPUESTAS.find(p => p.farmaco === 'Ceftriaxone' && p.indicacion === 'meningitis')!
+    // 2 g q12h = 4 000 mg/día. Tiene que caber en el «habitual», no rozar el techo.
+    expect(m.usualMaxPorDia).toBeGreaterThanOrEqual(4000)
+    expect(m.usualMaxPorDosis).toBeGreaterThanOrEqual(2000)
+  })
+})

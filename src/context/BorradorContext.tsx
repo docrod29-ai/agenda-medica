@@ -1,5 +1,5 @@
 'use client'
-import { createContext, useContext, useRef } from 'react'
+import { createContext, useContext, useRef, useState } from 'react'
 
 /**
  * Almacén EN MEMORIA de borradores de nota, que vive en el layout del dashboard
@@ -22,12 +22,20 @@ const Ctx = createContext<BorradorCtx | null>(null)
 
 export function BorradorProvider({ children }: { children: React.ReactNode }) {
   const cajon = useRef<Map<string, Borrador>>(new Map())
-  const api = useRef<BorradorCtx>({
+  /**
+   * `useState` con función: el objeto se crea UNA vez.
+   *
+   * Con `useRef({...})` el literal se construía en cada render y se tiraba, y
+   * además `api.current` se leía DURANTE el render, que es lo que React
+   * prohíbe. La identidad del objeto sigue siendo la misma durante toda la vida
+   * del proveedor, que es lo único que este contexto necesita.
+   */
+  const [api] = useState<BorradorCtx>(() => ({
     leer: (clave) => cajon.current.get(clave) ?? null,
     escribir: (clave, datos) => { cajon.current.set(clave, datos) },
     borrar: (clave) => { cajon.current.delete(clave) },
-  })
-  return <Ctx.Provider value={api.current}>{children}</Ctx.Provider>
+ }))
+  return <Ctx.Provider value={api}>{children}</Ctx.Provider>
 }
 
 /** Devuelve el almacén de borradores en memoria (o un no-op si falta el provider). */

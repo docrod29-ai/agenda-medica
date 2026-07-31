@@ -50,8 +50,25 @@ export function usePorcupineComando({ activo, config, onIniciar, onCerrar }: Opc
   const [ultimo, setUltimo] = useState<ComandoVoz>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const cbIniciar = useRef(onIniciar); cbIniciar.current = onIniciar
-  const cbCerrar = useRef(onCerrar); cbCerrar.current = onCerrar
+  /**
+   * Los callbacks se refrescan DESPUÉS del render, no durante.
+   *
+   * Estaban como `useRef(cb); ref.current = cb` en el cuerpo del componente, o
+   * sea escribiendo un ref MIENTRAS se renderiza. React lo prohíbe: con render
+   * concurrente el trabajo puede empezarse y tirarse, y el ref se queda con el
+   * valor de un render que nunca llegó a pantalla. Aquí eso sería el
+   * reconocedor de voz llamando al callback de una consulta anterior.
+   *
+   * En un efecto se asigna tras confirmar el render, que es cuando ya se sabe
+   * cuál es el bueno. El reconocedor NO se re-suscribe: sigue leyendo
+   * `ref.current`, que era el motivo de usar refs.
+   */
+  const cbIniciar = useRef(onIniciar)
+  const cbCerrar = useRef(onCerrar)
+  useEffect(() => {
+    cbIniciar.current = onIniciar
+    cbCerrar.current = onCerrar
+  })
 
   const disponible = !!(config?.accessKey && config?.keywordIniciarUrl && config?.keywordCerrarUrl)
 

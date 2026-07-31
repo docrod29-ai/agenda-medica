@@ -1048,6 +1048,20 @@ function ZonaContenidoEditable({ m, paperWmm, paperHmm, scale, onChange }: {
   const drag = useRef<{ modo: ModoZona; x: number; y: number; m0: Margenes } | null>(null)
   const MIN = 10 // mm: ancho/alto mínimo de la zona de contenido
 
+  /**
+   * FALSA ALARMA del analizador, declarada.
+   *
+   * `react-hooks/refs` marca seis escrituras de este ref, pero todas ocurren
+   * dentro de manejadores de eventos —al empezar y al mover el arrastre—, no
+   * durante el render. Escribir un ref en un manejador es exactamente para lo
+   * que existen los refs; la regla no puede probar que este closure es un
+   * manejador y avisa por si acaso.
+   *
+   * Se silencia AQUÍ y con el motivo escrito, en vez de dejarla contando en el
+   * techo: una deuda que no es deuda hace que el número deje de significar algo,
+   * y entonces nadie mira el número.
+   */
+  /* eslint-disable react-hooks/refs -- escrituras dentro de manejadores de puntero, no en render */
   const iniciar = (modo: ModoZona) => (e: React.PointerEvent) => {
     e.preventDefault(); e.stopPropagation()
     drag.current = { modo, x: e.clientX, y: e.clientY, m0: { ...m } }
@@ -1112,6 +1126,7 @@ function ZonaContenidoEditable({ m, paperWmm, paperHmm, scale, onChange }: {
       <div onPointerDown={iniciar('corner')} style={asa('nwse-resize', { right: -6, bottom: -6, width: 14, height: 14, borderRadius: 4 })} />
     </div>
   )
+  /* eslint-enable react-hooks/refs */
 }
 
 /* ── Seguridad Tab (2FA) ─────────────────────────────────────── */
