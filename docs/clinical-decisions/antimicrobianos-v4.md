@@ -90,6 +90,10 @@ respeta una regla que su propia fuente no respeta.
 - `src/lib/antimicrobianos/v4/resolver.ts` — `resolveDoseRule`, `fusionadas`.
 - `src/lib/antimicrobianos/v4/catalogo.ts` — `buscarFarmaco`, `candidatos`,
   `estaPendiente`, `reglasDuras`, `HUELLA_DATASET`.
+- `src/lib/antimicrobianos/v4/limites.ts` — `revisar`, `limitesDe`, `utilizable`,
+  `avance`. Los topes los carga el médico con su fuente; el software sólo revisa
+  la coherencia interna (orden de los máximos, cifras positivas, unidad, fuente).
+- `src/app/(dashboard)/uci/antimicrobianos` — probar un caso y cargar los topes.
 
 ## Golden
 
@@ -99,12 +103,18 @@ respeta una regla que su propia fuente no respeta.
   (huella, fuentes, pendientes) y que buscar un fármaco no sea adivinarlo.
 - `src/__tests__/antimicrobianos-v4-resolver.test.ts` — las doce reglas del motor
   sobre fármacos reales del catálogo.
+- `src/__tests__/antimicrobianos-v4-limites.test.ts` — que ninguna cifra pase sin
+  fuente y que los topes vayan en orden (un habitual por encima del contextual
+  invierte el significado de la alerta).
 
 ## NEEDS_CLINICAL_REVIEW
 
 1. Cargar los límites (`usualMax` / `contextualMax` / `absolutoMax`) por fármaco
    e indicación. **Sin ellos el kernel responde `UNKNOWN`, que es lo correcto**,
-   pero el motor todavía no puede juzgar una cifra.
+   pero el motor todavía no puede juzgar una cifra. La pantalla para hacerlo ya
+   existe: `/uci/antimicrobianos`, pestaña «Cargar topes». Ninguna cifra viene
+   sugerida — un campo pre-llenado se acepta, y aquí lo que habría puesto el
+   programa no lo sabe nadie.
 2. Separar los 11 campos fusionados en `label_regimen` y `guideline_regimen`.
 3. Completar los 20 antibióticos pendientes.
 4. `Vancomycin PO` y `Metronidazole` no declaran fuentes.

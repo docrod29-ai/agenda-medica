@@ -940,6 +940,7 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
       'antimicrobianos-v4-kernel.test.ts',
       'antimicrobianos-v4-catalogo.test.ts',
       'antimicrobianos-v4-resolver.test.ts',
+      'antimicrobianos-v4-limites.test.ts',
     ],
     estado: 'pendiente_validacion',
     porQueExiste: 'Para eliminar `if (dose > drug.maxDose)`. Un antibiotico no tiene UNA dosis maxima: con un solo numero quedan marcadas como error la ceftriaxona 2 g q12h de una meningitis, la daptomicina a 10 mg/kg y el meropenem en infusion extendida con aclaramiento aumentado — tres cosas que un intensivista hace cada semana. Una alerta que se equivoca en lo cotidiano enseña a ignorarla, y el dia que tenga razon tampoco se va a leer. Y separa faltar-un-dato de estar-mal: amikacina sin peso es una pregunta sin responder, no una sobredosis.',

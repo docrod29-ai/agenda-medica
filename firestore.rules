@@ -412,6 +412,13 @@ service cloud.firestore {
         allow read: if isMember(clinicId);
         allow write, delete: if isMedico(clinicId);
       }
+      // Topes de dosis antimicrobiana cargados por el médico. Los lee todo el
+      // equipo (la alerta se le enseña a quien prescribe), pero sólo un médico
+      // los escribe: un tope de dosis es una decisión clínica.
+      match /antimicrobial_limits/{limiteId} {
+        allow read: if isMember(clinicId);
+        allow write, delete: if isMedico(clinicId);
+      }
       match /config/{docId} {
         allow read: if isMember(clinicId) && docId != 'firma';
         allow create: if isMedico(clinicId);

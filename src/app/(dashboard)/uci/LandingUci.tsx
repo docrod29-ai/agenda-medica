@@ -11,7 +11,7 @@
 // ══════════════════════════════════════════════════════════════
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Activity, BedDouble, AlertTriangle, Clock, Wrench, UserPlus, HeartPulse, BarChart3 } from 'lucide-react'
+import { Activity, BedDouble, AlertTriangle, Clock, Wrench, UserPlus, HeartPulse, BarChart3, Pill, ClipboardCheck } from 'lucide-react'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { suscribirCenso, getUnidades } from '@/lib/hospital/firestore'
@@ -129,6 +129,12 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
           </button>
           <button onClick={() => router.push('/uci/benchmark')} style={botonSecundario}>
             <BarChart3 size={14} /> Benchmark de voz
+          </button>
+          <button onClick={() => router.push('/uci/antimicrobianos')} style={botonSecundario}>
+            <Pill size={14} /> Antimicrobianos
+          </button>
+          <button onClick={() => router.push('/uci/dosificacion')} style={botonSecundario}>
+            <ClipboardCheck size={14} /> Validar dosis
           </button>
           <button onClick={() => router.push('/hospitalizacion?nuevo=1&servicio=UCI')} style={botonPrimario}>
             <UserPlus size={14} /> Ingresar paciente a UCI

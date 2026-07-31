@@ -253,6 +253,13 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     porQue: 'La firma con la que un MEDICO declara que coteje una regla de dosificacion contra su fuente. Lectura para todo el consultorio (farmacia y enfermeria necesitan saber que esta validado y que no); escritura solo de medico, porque validar una dosis es un acto clinico y lleva nombre. Se permite delete a proposito: un medico tiene que poder retirar una validacion equivocada, y dejarla puesta por no poder deshacerla seria peor.',
   },
   {
+    ruta: 'clinics/{clinicId}/antimicrobial_limits/{limiteId}',
+    clase: 'identidad_profesional',
+    guardaLectura: 'isMember',
+    guardaEscritura: 'isMedico',
+    porQue: 'Topes de dosis antimicrobiana con su fuente. Los lee el equipo porque la alerta se le enseña a quien prescribe; solo un medico los escribe.',
+  },
+  {
     ruta: 'clinics/{clinicId}/config/{docId}',
     clase: 'administrativo',
     guardaLectura: 'isMember',
