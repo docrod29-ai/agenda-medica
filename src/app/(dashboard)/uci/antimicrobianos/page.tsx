@@ -401,7 +401,11 @@ export default function AntimicrobianosPage() {
           )}
           <div style={{ ...S.card, marginBottom: 14 }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text, #0f172a)' }}>
-              {sinConfirmar.length} topes transcritos de tu dataset
+              {/* «0 topes transcritos» se leía como si no hubiera ninguno, cuando
+                  lo que pasa es lo contrario: ya están todos confirmados. */}
+              {sinConfirmar.length > 0
+                ? `${sinConfirmar.length} topes transcritos de tu dataset`
+                : `Los ${PROPUESTOS.length} transcritos de tu dataset ya están confirmados`}
             </div>
             <p style={{ fontSize: 13, color: 'var(--text2, #334155)', margin: '6px 0 0', lineHeight: 1.55 }}>
               No son una opinión: es la pauta que <strong>ya está escrita</strong> en tu dataset,
