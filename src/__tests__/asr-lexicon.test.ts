@@ -37,12 +37,36 @@ describe('El presupuesto de 224 tokens no se rebasa NUNCA', () => {
   })
 
   it('lo que no cabe se cuenta: nunca se recorta en silencio', () => {
-    // Con presupuesto de sobra no sobra nada que contar…
-    expect(construir({ modulo: 'uci' }).descartados).toBe(0)
-    // …pero en cuanto aprieta, el recorte se declara.
     const apretado = construir({ modulo: 'uci' }, 40)
     expect(apretado.descartados).toBeGreaterThan(0)
     expect(apretado.tokens).toBeLessThanOrEqual(40)
+  })
+
+  it('el presupuesto NO se queda a medias: siempre hay cola de espera', () => {
+    /**
+     * Este caso afirmaba antes `descartados === 0` en UCI con el presupuesto
+     * completo, y ese cero era el SÍNTOMA, no la prueba de que todo cupiera:
+     * significaba que se habían **acabado los candidatos** con 212 de 224
+     * tokens. Las especialidades del núcleo de cuidados críticos son las más
+     * flacas del CSV del Dr. (ventilación mecánica 3 términos, gasometría 2,
+     * sedación 1) mientras imagenología tiene 59.
+     *
+     * Cada token sin usar es una palabra suya que el reconocedor no va a
+     * esperar. Ahora el hueco se rellena con lo más crítico del resto y siempre
+     * queda cola: si algún módulo vuelve a marcar cero, es que se quedó otra vez
+     * sin vocabulario que ofrecer.
+     */
+    for (const m of ['consulta', 'hospitalizacion', 'uci', 'urgencias', 'quirofano'] as const) {
+      const l = construir({ modulo: m })
+      expect(l.descartados, `${m} agotó los candidatos`).toBeGreaterThan(0)
+      expect(l.tokens, m).toBeGreaterThan(LIMITE_TOKENS_PROMPT - 12)
+    }
+  })
+
+  it('el relleno va al FINAL: no le quita el sitio a este paciente', () => {
+    const l = construir({ modulo: 'uci', medicamentos: ['tacrolimus'], problemas: ['nefropatia por BK'] })
+    expect(l.terminos[0]).toBe('tacrolimus')
+    expect(l.terminos[1]).toBe('nefropatia por BK')
   })
 
   it('con el tope de 4 contextos del Dr., una nota de UCI NO agota los 224 tokens', () => {

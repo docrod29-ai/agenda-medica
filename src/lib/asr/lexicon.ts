@@ -139,6 +139,30 @@ export function construir(ctx: ContextoDictado, limite = LIMITE_TOKENS_PROMPT): 
     ...especialidades.flatMap(e => ESPECIALIDADES[e].critical_terms),
     ...especialidades.flatMap(e => ESPECIALIDADES[e].high_priority_terms),
     ...especialidades.flatMap(e => ESPECIALIDADES[e].normal_terms),
+    /**
+     * RELLENO: el presupuesto que sobra se llena con lo más crítico del resto.
+     *
+     * Medido sobre el vocabulario real del Dr.: en UCI se agotaban los
+     * candidatos con 212 de 224 tokens y CERO descartados. «Cero descartados»
+     * ahí no significaba que todo cupiera: significaba que **se acabaron los
+     * términos**, porque las especialidades del núcleo de cuidados críticos son
+     * las más flacas de su CSV (ventilación mecánica 3, gasometría 2, sedación
+     * 1) mientras imagenología tiene 59.
+     *
+     * Dejar tokens sin usar es tirar sesgo: cada hueco es una palabra suya que
+     * el reconocedor no va a esperar. Va al FINAL, así que no le quita el sitio
+     * a nada de este paciente ni de su especialidad — sólo ocupa lo que iba a
+     * quedarse vacío.
+     *
+     * Sólo términos críticos y de prioridad alta: si va a sobrar poco espacio,
+     * que se lo lleve lo que él marcó como importante.
+     */
+    ...Object.entries(ESPECIALIDADES)
+      .filter(([e]) => !especialidades.includes(e))
+      .flatMap(([, v]) => v.critical_terms),
+    ...Object.entries(ESPECIALIDADES)
+      .filter(([e]) => !especialidades.includes(e))
+      .flatMap(([, v]) => v.high_priority_terms),
   ]
 
   const vistos = new Set<string>()
