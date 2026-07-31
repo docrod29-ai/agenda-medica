@@ -17,13 +17,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
+import { llamarIA } from '@/lib/ia/gateway'
+import { esFundador } from '@/lib/authz/fundador'
 import { gateCreditos, resolverClaveIA, registrarCreditos } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
 
-const ANTHROPIC_VERSION = '2023-06-01'
 const MODELOS = ['claude-sonnet-5', 'claude-sonnet-4-6', 'claude-sonnet-4-5', 'claude-3-5-sonnet-latest']
 const ROLES_VALIDOS = new Set(['Médico', 'Paciente', 'Acompañante'])
 
@@ -58,22 +59,20 @@ export async function POST(req: NextRequest) {
   const system = 'Eres un asistente clínico. Recibes el diálogo de una consulta médica transcrito con hablantes anónimos (Hablante A, B, C…). Determina el ROL de cada hablante: "Médico" (pregunta, explora, explica, indica tratamiento), "Paciente" (describe síntomas y molestias) o "Acompañante" (familiar/cuidador que apoya). Responde ÚNICAMENTE un objeto JSON que mapee cada letra de hablante a su rol, sin texto extra. Ejemplo: {"A":"Médico","B":"Paciente"}.'
   const userMsg = `Hablantes: ${hablantes.join(', ')}\n\nDiálogo:\n${muestra}\n\nResponde solo el JSON.`
 
-  async function llamar(model: string) {
-    return fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': key as string, 'anthropic-version': ANTHROPIC_VERSION, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, max_tokens: 300, system, messages: [{ role: 'user', content: userMsg }] }),
-    })
-  }
-
+  // Por el gateway (§P–T): misma cascada, mismo manejo de errores, y ahora
+  // también asiento en el libro de costos — esta llamada no dejaba ninguno.
   try {
-    let res = await llamar(MODELOS[0])
-    // 404 = modelo no disponible en la cuenta → prueba el siguiente
-    for (let i = 1; i < MODELOS.length && res.status === 404; i++) res = await llamar(MODELOS[i])
-    if (!res.ok) return NextResponse.json({ ok: false, error: `Claude HTTP ${res.status}` }, { status: 502 })
-
-    const data = await res.json()
-    const text: string = data.content?.[0]?.text ?? ''
+    const r = await llamarIA(
+      { proveedor: 'anthropic', clave: key as string, modelos: MODELOS, system, user: userMsg, maxTokens: 300 },
+      {
+        feature: 'atribuir-roles',
+        requestId: req.headers.get('x-vercel-id') || `ar-${acceso.uid}-${Date.now()}`,
+        clinicId: clinicId ?? null, uid: acceso.uid, creditos: 0, fuente,
+        esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
+      },
+    )
+    if (!r.ok) return NextResponse.json({ ok: false, error: r.motivo }, { status: 502 })
+    const text = r.texto
     const m = text.match(/\{[\s\S]*\}/)
     if (!m) return NextResponse.json({ ok: false, error: 'sin JSON' }, { status: 502 })
 

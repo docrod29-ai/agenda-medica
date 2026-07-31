@@ -13,10 +13,10 @@ import { verificarUsuario } from '@/lib/auth-server'
 import { gateCreditos, resolverClaveIA  } from '@/lib/ai-keys'
 import { conocimientoTexto } from '@/lib/ayuda/conocimiento'
 import { limitarOResponder } from '@/lib/rate-limit'
+import { llamarIA } from '@/lib/ia/gateway'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
-const AV = '2023-06-01'
 const MODELOS = ['claude-haiku-4-5-20251001', 'claude-3-5-haiku-latest', 'claude-sonnet-5']
 
 export async function POST(req: NextRequest) {
@@ -56,19 +56,13 @@ ${conocimientoTexto()}`
 
   const user = `${contexto ? 'Conversación previa:\n' + contexto + '\n\n' : ''}Pregunta del usuario: ${pregunta}`
 
-  for (const model of MODELOS) {
-    try {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'x-api-key': key, 'anthropic-version': AV, 'content-type': 'application/json' },
-        body: JSON.stringify({ model, max_tokens: 900, system, messages: [{ role: 'user', content: user }] }),
-      })
-      if (!r.ok) continue
-      const d = await r.json()
-      const c = (d?.content as { type?: string; text?: string }[]) ?? []
-      const texto = (c.find(b => b?.type === 'text')?.text ?? c[0]?.text ?? '').trim()
-      if (texto) return NextResponse.json({ ok: true, respuesta: texto })
-    } catch { /* siguiente modelo */ }
-  }
+  // Por el gateway (§P–T). El bot de ayuda no cobra créditos al médico, pero sí
+  // cuesta tokens: sin asiento, ese gasto no existía en ningún lado.
+  const r = await llamarIA(
+    { proveedor: 'anthropic', clave: key, modelos: MODELOS, system, user, maxTokens: 900 },
+    { feature: 'ayuda-bot', requestId: req.headers.get('x-vercel-id') || `ab-${Date.now()}`, clinicId: null, uid: null, creditos: 0, fuente: 'prueba' },
+  )
+  if (r.ok && r.texto.trim()) return NextResponse.json({ ok: true, respuesta: r.texto.trim() })
+
   return NextResponse.json({ ok: true, respuesta: 'Ahora no pude responder. Escribe tu duda en Configuración → Soporte y sugerencias y el equipo te ayuda.' })
 }

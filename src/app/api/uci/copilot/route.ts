@@ -20,15 +20,13 @@ import admin, { adminDb } from '@/lib/firebase-admin'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA, registrarUso, registrarCreditos, creditosAgotados, pruebaAgotada } from '@/lib/ai-keys'
-import { COSTO_CREDITOS, COPILOT_UCI_POR_MOTOR, motorPorClave, motorPorDefecto } from '@/lib/planes-ia'
+import { COPILOT_UCI_POR_MOTOR, motorPorClave, motorPorDefecto } from '@/lib/planes-ia'
 import { nivelIADe } from '@/lib/ai-keys'
 import { snapshotUCI, buildCopilotUser, COPILOT_SYSTEM, parseSalidaCopilot, fusionarCopilot, COPILOT_VERSION } from '@/lib/uci/copilot'
 import { safeLog } from '@/lib/security/sanitize'
-import { registrarCosto } from '@/lib/finanzas/cost-ledger-server'
 import { esFundador as fundador } from '@/lib/authz/fundador'
-import { usoDe, trajoUso } from '@/lib/finanzas/medir-ia'
+import { llamarIA, type Contexto } from '@/lib/ia/gateway'
 
-const ANTHROPIC_VERSION = '2023-06-01'
 const MODELOS_CLAUDE = ['claude-opus-4-8', 'claude-sonnet-5', 'claude-sonnet-4-5', 'claude-3-5-sonnet-latest']
 const MODELOS_OPENAI = ['gpt-5', 'gpt-4o']
 
@@ -42,7 +40,7 @@ const MODELOS_OPENAI = ['gpt-5', 'gpt-4o']
  * entre esos tres no es un error: es un encogimiento de hombros.
  */
 type FalloIA = { ok: false; motivo: string }
-type ExitoIA = { ok: true; texto: string; model: string; truncado?: boolean; bruto?: unknown; ms?: number }
+type ExitoIA = { ok: true; texto: string; model: string; truncado?: boolean; bruto?: unknown }
 type ResultadoIA = ExitoIA | FalloIA
 
 const MODELOS_POR_MOTOR: Record<string, string[]> = {
@@ -51,86 +49,28 @@ const MODELOS_POR_MOTOR: Record<string, string[]> = {
   maxima: MODELOS_CLAUDE,
 }
 
-async function llamarClaude(key: string, user: string, motorClave = 'maxima'): Promise<ResultadoIA> {
-  const lista = MODELOS_POR_MOTOR[motorClave] ?? MODELOS_CLAUDE
-  const t0 = Date.now()
-  async function intento(model: string) {
-    return fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': key, 'anthropic-version': ANTHROPIC_VERSION, 'content-type': 'application/json' },
-      body: JSON.stringify({
-        /**
-         * 16 000, no 4 000.
-         *
-         * Con el panel VACÍO la síntesis cabía y el Copilot funcionaba. Con el
-         * panel LLENO —21 campos, seis alertas, las escalas calculadas— la
-         * respuesta se pasaba de 4 000 tokens y llegaba **cortada a media
-         * llave**: un JSON truncado no se puede leer, y el médico veía «el
-         * Copilot no pudo generar la síntesis» justo cuando había MÁS datos que
-         * sintetizar. Al revés de lo que uno esperaría, y por eso costó verlo.
-         *
-         * La nota de consulta ya usaba 24 000 por la misma razón.
-         */
-        model, max_tokens: 16000,
-        system: [{ type: 'text', text: COPILOT_SYSTEM, cache_control: { type: 'ephemeral' } }],
-        messages: [{ role: 'user', content: user }],
-      }),
-    })
-  }
-  try {
-    let res = await intento(lista[0])
-    for (let i = 1; i < lista.length && (res.status === 404 || res.status === 400); i++) res = await intento(lista[i])
-    if (!res.ok) {
-      const cuerpo = await res.text().catch(() => '')
-      safeLog.error('[uci-copilot] anthropic', { status: res.status, cuerpo: cuerpo.slice(0, 300) })
-      return { ok: false, motivo: motivoHttp('Anthropic', res.status) }
-    }
-    const data = await res.json()
-    const texto: string = (data.content ?? []).filter((b: { type: string }) => b.type === 'text').map((b: { text: string }) => b.text).join('') ?? ''
-    // Si el modelo se quedó sin espacio, se dice — no se hace pasar por «no se
-    // pudo leer», que apunta al sitio equivocado.
-    if (data.stop_reason === 'max_tokens') {
-      return { ok: true, texto, model: data.model ?? lista[0], truncado: true, bruto: data, ms: Date.now() - t0 }
-    }
-    return { ok: true, texto, model: data.model ?? lista[0], bruto: data, ms: Date.now() - t0 }
-  } catch (e) {
-    safeLog.error('[uci-copilot] anthropic red', e)
-    return { ok: false, motivo: 'Anthropic: no se pudo conectar.' }
-  }
-}
-
-/** Traduce un código HTTP a algo que se pueda ACCIONAR. */
-function motivoHttp(proveedor: string, status: number): string {
-  if (status === 401 || status === 403) return `${proveedor}: la llave no es válida o fue revocada (${status}).`
-  if (status === 429) return `${proveedor}: límite de uso alcanzado (429). Espera un momento o revisa el saldo de tu cuenta.`
-  if (status === 402) return `${proveedor}: sin saldo en la cuenta (402).`
-  if (status >= 500) return `${proveedor}: el proveedor está caído (${status}).`
-  return `${proveedor}: rechazó la solicitud (${status}).`
-}
-
-async function llamarOpenAI(key: string, user: string): Promise<ResultadoIA> {
-  const t1 = Date.now()
-  async function intento(model: string) {
-    return fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages: [{ role: 'system', content: COPILOT_SYSTEM }, { role: 'user', content: user }], response_format: { type: 'json_object' }, max_completion_tokens: 16000 }),
-    })
-  }
-  try {
-    let res = await intento(MODELOS_OPENAI[0])
-    for (let i = 1; i < MODELOS_OPENAI.length && (res.status === 404 || res.status === 400); i++) res = await intento(MODELOS_OPENAI[i])
-    if (!res.ok) {
-      const cuerpo = await res.text().catch(() => '')
-      safeLog.error('[uci-copilot] openai', { status: res.status, cuerpo: cuerpo.slice(0, 300) })
-      return { ok: false, motivo: motivoHttp('OpenAI', res.status) }
-    }
-    const data = await res.json()
-    return { ok: true, texto: data.choices?.[0]?.message?.content ?? '', model: data.model ?? MODELOS_OPENAI[0], bruto: data, ms: Date.now() - t1 }
-  } catch (e) {
-    safeLog.error('[uci-copilot] openai red', e)
-    return { ok: false, motivo: 'OpenAI: no se pudo conectar.' }
-  }
+/**
+ * Los dos proveedores, por el gateway.
+ *
+ * Aquí vivían `llamarClaude`, `llamarOpenAI` y `motivoHttp`: ochenta líneas que
+ * repetían —con variaciones— lo que hacían otras quince rutas. Una de esas
+ * variaciones fue el fallo del 30-jul: este archivo se quedó en `max_tokens:
+ * 4000` mientras la nota de consulta ya usaba 24 000, y la síntesis llegaba
+ * cortada a media llave justo cuando había más datos que sintetizar.
+ *
+ * Lo que se queda aquí es lo que SÍ es de este módulo: qué modelos correspondan
+ * a cada motor, y que la salida sea JSON.
+ */
+async function llamarProveedor(
+  proveedor: 'anthropic' | 'openai', clave: string, user: string,
+  modelos: readonly string[], ctx: Contexto,
+): Promise<ResultadoIA> {
+  const r = await llamarIA(
+    { proveedor, clave, modelos, system: COPILOT_SYSTEM, user, maxTokens: 16000, json: true, cacheSystem: proveedor === 'anthropic' },
+    ctx,
+  )
+  if (!r.ok) return { ok: false, motivo: r.motivo }
+  return { ok: true, texto: r.texto, model: r.modelo, truncado: r.truncado, bruto: r.bruto }
 }
 
 export async function POST(req: NextRequest) {
@@ -219,41 +159,37 @@ export async function POST(req: NextRequest) {
   const motor = body.motor ? motorPorClave(body.motor) : motorPorDefecto(nivel)
   const cfg = COPILOT_UCI_POR_MOTOR[motor.clave]
 
+  /**
+   * COST LEDGER — el asiento ya no se escribe aquí.
+   *
+   * Lo hace el gateway al volver de cada `fetch`, con los tokens que el
+   * proveedor acaba de devolver. La diferencia no es de estilo: cablearlo ruta
+   * por ruta son dieciséis oportunidades de olvidarlo, y una llamada sin asiento
+   * no se ve como un error sino como una plataforma que gasta menos de lo que
+   * gasta. Aquí quedan las llamadas fallidas registradas también, porque un
+   * rechazo tras generar tokens se cobra igual.
+   */
+  const ctx: Contexto = {
+    feature: `copilot-uci:${motor.clave}`,
+    requestId: req.headers.get('x-vercel-id') || `uci-${acceso.uid}-${Date.now()}`,
+    clinicId: acceso.clinicId ?? null,
+    uid: acceso.uid,
+    creditos: cfg.creditos,
+    fuente: 'ninguna',
+    // Una sola definición de «fundador» para toda la plataforma: aquí vivía una
+    // copia suelta de la lista de correos, y dos listas se desincronizan el día
+    // que se agregue un socio.
+    esFundador: fundador(acceso.email, process.env.SUPERADMIN_EMAILS),
+  }
+
   const [rc, ro] = await Promise.all([
     (cfg.anthropic && anthropic.key)
-      ? llamarClaude(anthropic.key, user, motor.clave)
+      ? llamarProveedor('anthropic', anthropic.key, user, MODELOS_POR_MOTOR[motor.clave] ?? MODELOS_CLAUDE, { ...ctx, fuente: anthropic.fuente })
       : Promise.resolve<ResultadoIA>({ ok: false, motivo: cfg.anthropic ? 'Anthropic: sin llave configurada.' : 'Anthropic: no se pidió en este motor.' }),
     (cfg.openai && openai.key)
-      ? llamarOpenAI(openai.key, user)
+      ? llamarProveedor('openai', openai.key, user, MODELOS_OPENAI, { ...ctx, fuente: openai.fuente })
       : Promise.resolve<ResultadoIA>({ ok: false, motivo: cfg.openai ? 'OpenAI: sin llave configurada.' : 'Segunda opinión: no se pidió en este motor (sólo en 💎 Máxima).' }),
   ])
-  /**
-   * COST LEDGER — se registra lo que costó, con los tokens que el proveedor
-   * acaba de devolver y que hasta hoy se tiraban (P0-1 de la auditoría).
-   *
-   * Va antes de cualquier `return`: una llamada que falló al parsear COSTÓ
-   * IGUAL, y no registrarla haría que el costo real pareciera menor de lo que
-   * es. Y nunca bloquea: si el ledger falla, la síntesis se entrega igual.
-   */
-  const ts = new Date().toISOString()
-  const reqId = req.headers.get('x-vercel-id') || `uci-${acceso.uid}-${Date.now()}`
-  // Una sola definición de «fundador» para toda la plataforma: aquí vivía una
-  // copia suelta de la lista de correos, y dos listas se desincronizan el día
-  // que se agregue un socio.
-  const esFundador = fundador(acceso.email, process.env.SUPERADMIN_EMAILS)
-  for (const [prov, r, fuente] of [
-    ['anthropic', rc, anthropic.fuente], ['openai', ro, openai.fuente],
-  ] as const) {
-    if (!r.ok) continue
-    const uso = usoDe(r.bruto)
-    if (!trajoUso(uso)) continue
-    void registrarCosto({
-      requestId: `${reqId}:${prov}`, clinicId: acceso.clinicId ?? null, uid: acceso.uid,
-      feature: `copilot-uci:${motor.clave}`, proveedor: prov, modelo: r.model,
-      uso, latenciaMs: r.ms ?? 0, creditos: cfg.creditos,
-      fuente: fuente as 'clinica' | 'prueba' | 'ninguna', esFundador, ts,
-    })
-  }
 
   const primario = rc.ok ? parseSalidaCopilot(rc.texto) : null
   const segunda = ro.ok ? parseSalidaCopilot(ro.texto) : null

@@ -20,6 +20,8 @@ import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { gateCreditos, resolverClaveIA, registrarUso, registrarCreditos } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
+import { llamarIA } from '@/lib/ia/gateway'
+import { esFundador } from '@/lib/authz/fundador'
 
 export const runtime = 'nodejs'
 export const maxDuration = 45
@@ -66,31 +68,27 @@ export async function POST(req: NextRequest) {
   const system = GUARDA_INYECCION + '\n\n' + 'Eres un médico revisor experto en seguridad del paciente. Revisas una nota clínica ya redactada contra la transcripción de la consulta y los datos del paciente. Señala SOLO problemas de seguridad o congruencia REALES: dosis peligrosas o fuera de rango, interacciones farmacológicas, fármaco recetado contra una alergia del paciente, contradicciones entre la nota y lo dicho, diagnósticos sin sustento en la transcripción, o datos críticos faltantes. NO reescribas la nota. NO inventes problemas si no los hay. Responde SOLO un objeto JSON: {"hallazgos":[{"severidad":"alta|media|baja","tema":"...","problema":"...","sugerencia":"..."}]}. Si todo está correcto, devuelve {"hallazgos":[]}.'
   const userMsg = `PACIENTE: edad ${ctx.edad ?? '?'}, sexo ${ctx.sexo ?? '?'}, alergias: ${alergias}.\n\nTRANSCRIPCIÓN DE LA CONSULTA:\n${delimitar((body.transcripcion ?? '').slice(0, 12000))}\n\nNOTA GENERADA A REVISAR:\n${notaTexto.slice(0, 12000)}\n\nDevuelve solo el JSON de hallazgos.`
 
-  async function llamar(model: string) {
-    return fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: 'system', content: system }, { role: 'user', content: userMsg }],
-        response_format: { type: 'json_object' },
-        max_completion_tokens: 2000,
-      }),
-    })
-  }
-
+  /**
+   * Por el gateway (§P–T): aquí vivía la misma cascada de modelos y el mismo
+   * manejo de errores que repetían otras quince rutas — y, sobre todo, esta
+   * llamada NO dejaba asiento en el libro de costos. Cablearlo ruta por ruta son
+   * dieciséis oportunidades de olvidarlo; ahora el asiento es lo que pasa al
+   * volver del `fetch`.
+   */
   try {
-    let usado = MODELOS_OPENAI[0]
-    let res = await llamar(usado)
-    // Si el modelo no existe / no lo permite la cuenta (400/404), prueba el respaldo.
-    for (let i = 1; i < MODELOS_OPENAI.length && (res.status === 404 || res.status === 400); i++) {
-      usado = MODELOS_OPENAI[i]
-      res = await llamar(usado)
-    }
-    if (!res.ok) return NextResponse.json({ ok: false, error: `OpenAI HTTP ${res.status}` }, { status: 502 })
-
-    const data = await res.json()
-    const text: string = data.choices?.[0]?.message?.content ?? ''
+    const r = await llamarIA(
+      { proveedor: 'openai', clave: key, modelos: MODELOS_OPENAI, system, user: userMsg, maxTokens: 2000, json: true },
+      {
+        feature: 'verificar-nota',
+        requestId: req.headers.get('x-vercel-id') || `vn-${acceso.uid}-${Date.now()}`,
+        clinicId: clinicId ?? null, uid: acceso.uid,
+        creditos: COSTO_CREDITOS.verificarNota, fuente,
+        esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
+      },
+    )
+    if (!r.ok) return NextResponse.json({ ok: false, error: r.motivo }, { status: 502 })
+    const usado = r.modelo
+    const text = r.texto
     const m = text.match(/\{[\s\S]*\}/)
     /**
      * Auditoría 2026-07 (P1): si el modelo NO devolvió un JSON, antes se respondía
