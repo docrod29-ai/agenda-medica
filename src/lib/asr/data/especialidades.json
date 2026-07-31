@@ -30,7 +30,19 @@
         "inmunodeficiencia común variable",
         "inmunodeficiencia primaria",
         "inmunoterapia con alérgenos",
-        "síndrome hipereosinofílico"
+        "síndrome hipereosinofílico",
+        "alérgica",
+        "alergia",
+        "inmunodeficiencia",
+        "penicilina",
+        "deficiencia",
+        "inmunodeficiencia común",
+        "común variable",
+        "reacción",
+        "medios",
+        "contraste",
+        "inmunoterapia",
+        "alérgenos"
       ],
       "normal_terms": [
         "alergia a penicilina",
@@ -101,7 +113,11 @@
       "critical_terms": [],
       "high_priority_terms": [
         "hipertermia maligna",
-        "hipotensión intraoperatoria"
+        "hipotensión intraoperatoria",
+        "anestesia",
+        "riesgo cardiovascular",
+        "aérea difícil",
+        "anticoagulación"
       ],
       "normal_terms": [
         "anafilaxia perioperatoria",
@@ -124,7 +140,17 @@
     },
     "Angiología y vascular": {
       "critical_terms": [],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "úlcera",
+        "insuficiencia venosa",
+        "venosa crónica",
+        "enfermedad arterial",
+        "arterial periférica",
+        "isquemia crítica",
+        "aneurisma",
+        "aorta abdominal",
+        "diabético"
+      ],
       "normal_terms": [
         "aneurisma de aorta abdominal",
         "anticoagulación",
@@ -174,7 +200,12 @@
         "meropenem",
         "piperacilina tazobactam",
         "sin ajuste renal",
-        "vancomicina"
+        "vancomicina",
+        "ajuste renal",
+        "mg/kg",
+        "infusión extendida",
+        "tazobactam",
+        "AUC/MIC"
       ],
       "normal_terms": []
     },
@@ -191,7 +222,13 @@
         "taquicardia supraventricular",
         "taquicardia ventricular monomórfica",
         "taquicardia ventricular polimórfica",
-        "torsades de pointes"
+        "torsades de pointes",
+        "fibrilación",
+        "taquicardia ventricular",
+        "AV",
+        "torsades",
+        "pointes",
+        "segundo grado"
       ],
       "normal_terms": []
     },
@@ -213,7 +250,9 @@
       ],
       "high_priority_terms": [
         "cisatracurio",
-        "TOF"
+        "TOF",
+        "mcg/kg/min",
+        "sedación profunda"
       ],
       "normal_terms": [
         "analgesia adecuada antes del bloqueo",
@@ -253,7 +292,13 @@
         "insulina",
         "midazolam",
         "mL/h",
-        "propofol"
+        "propofol",
+        "Bomba",
+        "dilución",
+        "velocidad",
+        "norepinefrina",
+        "vasopresina",
+        "dobutamina"
       ],
       "normal_terms": []
     },
@@ -266,7 +311,9 @@
       ],
       "high_priority_terms": [
         "efluente",
-        "Qb"
+        "Qb",
+        "mL/min",
+        "mL/kg/h"
       ],
       "normal_terms": []
     },
@@ -275,7 +322,19 @@
       "high_priority_terms": [
         "hipertensión arterial resistente",
         "hipertensión pulmonar",
-        "miocardiopatía hipertrófica"
+        "miocardiopatía hipertrófica",
+        "insuficiencia cardiaca",
+        "fracción",
+        "eyección",
+        "miocardiopatía",
+        "síndrome coronario",
+        "coronario agudo",
+        "eyección reducida",
+        "eyección preservada",
+        "taquicardia supraventricular",
+        "derrame pericárdico",
+        "hipertensión arterial",
+        "arterial resistente"
       ],
       "normal_terms": [
         "angina estable",
@@ -296,7 +355,16 @@
       "high_priority_terms": [
         "BNP",
         "fracción de eyección",
-        "troponina"
+        "troponina",
+        "Fracción",
+        "eyección",
+        "troponina ultrasensible",
+        "ng/L",
+        "pg/mL",
+        "cardiogénico",
+        "elevación",
+        "ST",
+        "aórtica"
       ],
       "normal_terms": [
         "asistencia con balón intraaórtico",
@@ -323,7 +391,14 @@
     },
     "Cirugía especializada": {
       "critical_terms": [],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "cirugía",
+        "reconstrucción",
+        "columna",
+        "aorta",
+        "injerto",
+        "piel"
+      ],
       "normal_terms": [
         "absceso odontógeno",
         "bypass coronario",
@@ -349,7 +424,12 @@
     },
     "Cirugía general": {
       "critical_terms": [],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "hernia",
+        "pared abdominal",
+        "colon",
+        "sitio quirúrgico"
+      ],
       "normal_terms": [
         "absceso intraabdominal",
         "apendicitis",
@@ -373,7 +453,22 @@
     },
     "Consulta general y documentación": {
       "critical_terms": [],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "antecedentes",
+        "medicamentos",
+        "signos",
+        "motivo",
+        "padecimiento",
+        "antecedentes personales",
+        "personales patológicos",
+        "conciliación",
+        "exploración física",
+        "física dirigida",
+        "terapéutico",
+        "alarma",
+        "referencia",
+        "especialista"
+      ],
       "normal_terms": [
         "adherencia terapéutica",
         "alergias medicamentosas",
@@ -399,7 +494,11 @@
     },
     "Control de infecciones": {
       "critical_terms": [],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "hemodiálisis",
+        "prevención",
+        "protección"
+      ],
       "normal_terms": [
         "aislamiento por Clostridioides difficile",
         "aislamiento por influenza",
@@ -436,7 +535,12 @@
     },
     "Dermatología": {
       "critical_terms": [],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "dermatitis",
+        "carcinoma",
+        "contacto",
+        "úlcera"
+      ],
       "normal_terms": [
         "absceso cutáneo",
         "acné",
@@ -472,7 +576,19 @@
     },
     "Dispositivos y accesos": {
       "critical_terms": [],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "venoso central",
+        "femoral",
+        "Línea arterial",
+        "eritema local",
+        "central yugular",
+        "central femoral",
+        "femoral izquierdo",
+        "arterial radial",
+        "radial derecha",
+        "arterial femoral",
+        "arteria pulmonar"
+      ],
       "normal_terms": [
         "catéter de arteria pulmonar",
         "catéter venoso central femoral izquierdo",
@@ -493,7 +609,17 @@
     },
     "Dolor y rehabilitación": {
       "critical_terms": [],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "rehabilitación",
+        "neuropatía diabética",
+        "diabética dolorosa",
+        "ablación",
+        "radiofrecuencia",
+        "debilidad adquirida",
+        "UCI",
+        "alteración",
+        "marcha"
+      ],
       "normal_terms": [
         "ablación por radiofrecuencia",
         "alteración de la marcha",
@@ -521,7 +647,8 @@
         "FdO2",
         "flujo",
         "sweep gas",
-        "veno venoso"
+        "veno venoso",
+        "L/min"
       ],
       "normal_terms": []
     },
@@ -531,7 +658,12 @@
         "delta de presión",
         "postoxigenador",
         "presión de drenaje",
-        "rpm"
+        "rpm",
+        "Bomba",
+        "presión postoxigenador",
+        "canulación",
+        "flujo",
+        "canulación femoro"
       ],
       "normal_terms": [
         "ACT fuera de objetivo",
@@ -563,7 +695,22 @@
     },
     "Emergencias y códigos": {
       "critical_terms": [],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "epinefrina",
+        "joules",
+        "paro",
+        "administra",
+        "masiva",
+        "intoxicación",
+        "deterioro",
+        "eléctrica",
+        "pulso",
+        "circulación espontánea",
+        "aérea difícil",
+        "intubación",
+        "secuencia rápida",
+        "sospecha"
+      ],
       "normal_terms": [
         "anafilaxia con choque",
         "bicarbonato",
@@ -617,7 +764,13 @@
         "beta hidroxibutirato",
         "cetonas",
         "glucosa",
-        "osmolaridad"
+        "osmolaridad",
+        "insulina",
+        "U/h",
+        "mOsm/kg",
+        "cetonas negativas",
+        "cetonas trazas",
+        "cetonas positivas"
       ],
       "normal_terms": []
     },
@@ -632,7 +785,13 @@
         "hipertiroidismo",
         "hipoglucemia",
         "hipoparatiroidismo",
-        "hipotiroidismo"
+        "hipotiroidismo",
+        "diabetes mellitus",
+        "mellitus tipo",
+        "tipo uno",
+        "cetoacidosis diabética",
+        "tiroides",
+        "Cushing"
       ],
       "normal_terms": [
         "acromegalia",
@@ -646,7 +805,18 @@
     "Enfermedades infecciosas": {
       "critical_terms": [],
       "high_priority_terms": [
-        "fiebre en inmunosuprimido"
+        "fiebre en inmunosuprimido",
+        "tuberculosis",
+        "hepatitis",
+        "endocarditis infecciosa",
+        "infección periprotésica",
+        "infección urinaria",
+        "urinaria recurrente",
+        "VIH",
+        "candidemia",
+        "Clostridioides difficile",
+        "neutropenia febril",
+        "fiebre"
       ],
       "normal_terms": [
         "absceso de tejidos blandos",
@@ -704,13 +874,25 @@
         "positivo",
         "qSOFA",
         "SAPS II",
-        "SOFA"
+        "SOFA",
+        "II",
+        "APACHE",
+        "SAPS"
       ],
       "normal_terms": []
     },
     "Farmacología clínica y farmacia": {
       "critical_terms": [],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "ajuste",
+        "terapéutica",
+        "ajuste renal",
+        "ajuste hepático",
+        "valle",
+        "pico",
+        "carga",
+        "mantenimiento"
+      ],
       "normal_terms": [
         "ajuste hepático de dosis",
         "ajuste renal de dosis",
@@ -735,14 +917,23 @@
         "PaCO2"
       ],
       "high_priority_terms": [
-        "pH"
+        "pH",
+        "Gasometría",
+        "bicarbonato"
       ],
       "normal_terms": []
     },
     "Gastroenterología y hepatología": {
       "critical_terms": [],
       "high_priority_terms": [
-        "hipertensión portal"
+        "hipertensión portal",
+        "hemorragia digestiva",
+        "hepatitis",
+        "digestiva alta",
+        "digestiva baja",
+        "intestino irritable",
+        "Crohn",
+        "encefalopatía hepática"
       ],
       "normal_terms": [
         "ascitis",
@@ -766,7 +957,13 @@
     },
     "Geriatría y paliativos": {
       "critical_terms": [],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "aspiración",
+        "úlceras",
+        "objetivos",
+        "atención",
+        "confort"
+      ],
       "normal_terms": [
         "caídas recurrentes",
         "cuidados de confort",
@@ -787,7 +984,20 @@
     },
     "Ginecología": {
       "critical_terms": [],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "uterino anormal",
+        "ovario poliquístico",
+        "enfermedad inflamatoria",
+        "inflamatoria pélvica",
+        "dolor pélvico",
+        "pélvico crónico",
+        "lesión intraepitelial",
+        "intraepitelial cervical",
+        "virus",
+        "papiloma humano",
+        "incontinencia urinaria",
+        "esfuerzo"
+      ],
       "normal_terms": [
         "adenomiosis",
         "atrofia vaginal",
@@ -810,7 +1020,18 @@
     },
     "Hematología": {
       "critical_terms": [],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "anemia",
+        "leucemia",
+        "leucemia mieloide",
+        "mieloide aguda",
+        "leucemia linfocítica",
+        "linfocítica crónica",
+        "trombosis venosa",
+        "venosa profunda",
+        "Willebrand",
+        "coagulación intravascular"
+      ],
       "normal_terms": [
         "anemia aplásica",
         "anemia ferropénica",
@@ -839,7 +1060,8 @@
         "hemoglobina",
         "INR",
         "leucocitos",
-        "plaquetas"
+        "plaquetas",
+        "g/dL"
       ],
       "normal_terms": []
     },
@@ -852,13 +1074,16 @@
         "PVC",
         "ScvO2",
         "SVR",
-        "índice cardiaco"
+        "índice cardiaco",
+        "L/min/m2"
       ],
       "normal_terms": []
     },
     "Hepático y gastrointestinal": {
       "critical_terms": [],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "g/dL"
+      ],
       "normal_terms": [
         "abdomen abierto con terapia de presión negativa",
         "albúmina",
@@ -888,7 +1113,29 @@
     },
     "Imagenología": {
       "critical_terms": [],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "tamaño",
+        "Tomografía",
+        "pleural bilateral",
+        "Radiografía",
+        "infarto",
+        "pleural derecho",
+        "tamaño pequeño",
+        "tamaño moderado",
+        "tamaño grande",
+        "pleural izquierdo",
+        "bilaterales",
+        "consolidación",
+        "basal",
+        "tubo endotraqueal",
+        "centímetros",
+        "patrón",
+        "embolia pulmonar",
+        "colección",
+        "tórax",
+        "Tomografía abdominal",
+        "Tomografía cerebral"
+      ],
       "normal_terms": [
         "angiotomografía",
         "aplanamiento diafragmático",
@@ -953,7 +1200,15 @@
     },
     "Infectología crítica": {
       "critical_terms": [],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "Diagnóstico",
+        "crecimiento",
+        "PCR",
+        "punta",
+        "bacteriemia",
+        "invasiva",
+        "tuberculosis"
+      ],
       "normal_terms": [
         "absceso pulmonar",
         "aspergilosis pulmonar invasiva",
@@ -1003,7 +1258,30 @@
         "FiO2",
         "KPC"
       ],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "cambios",
+        "ahora",
+        "punto",
+        "norepinefrina",
+        "vasopresina",
+        "fentanilo",
+        "dobutamina",
+        "cero punto",
+        "cuatro punto",
+        "sigue",
+        "flujo",
+        "punto ocho",
+        "Corrijo",
+        "punto quince",
+        "siete punto",
+        "Tiene",
+        "tres punto",
+        "punto dos",
+        "mejoró",
+        "punto cuatro",
+        "kilo",
+        "ventilador"
+      ],
       "normal_terms": [
         "0.3 mL/kg/h",
         "1.9",
@@ -1040,7 +1318,22 @@
       ],
       "high_priority_terms": [
         "hipersomnia",
-        "índice de apnea hipopnea"
+        "índice de apnea hipopnea",
+        "sueño",
+        "apnea",
+        "piernas",
+        "trastorno",
+        "apnea central",
+        "piernas inquietas",
+        "conducta",
+        "sueño REM",
+        "índice",
+        "apnea hipopnea",
+        "movimientos periódicos",
+        "higiene",
+        "trabajo",
+        "turnos",
+        "adherencia"
       ],
       "normal_terms": [
         "adherencia a CPAP",
@@ -1061,7 +1354,10 @@
     },
     "Medicina hospitalaria": {
       "critical_terms": [],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "Hospitalización",
+        "respiratoria"
+      ],
       "normal_terms": [
         "anemia severa",
         "cetoacidosis diabética",
@@ -1103,7 +1399,22 @@
       "high_priority_terms": [
         "hipertensión resistente",
         "hiperuricemia",
-        "hiponatremia"
+        "hiponatremia",
+        "diabetes mellitus",
+        "mellitus tipo",
+        "tipo dos",
+        "enfermedad renal",
+        "renal crónica",
+        "fibrilación auricular",
+        "hipercalemia",
+        "peso involuntaria",
+        "fiebre",
+        "origen desconocido",
+        "alteración",
+        "pruebas hepáticas",
+        "reactantes",
+        "fase aguda",
+        "aguda elevados"
       ],
       "normal_terms": [
         "alteración de pruebas hepáticas",
@@ -1126,7 +1437,20 @@
     "Medicina ocupacional": {
       "critical_terms": [],
       "high_priority_terms": [
-        "hipoacusia ocupacional"
+        "hipoacusia ocupacional",
+        "laboral",
+        "exposición",
+        "ocupacional",
+        "solventes",
+        "sílice",
+        "asbesto",
+        "lesión musculoesquelética",
+        "musculoesquelética laboral",
+        "trabajo",
+        "pinchazo",
+        "aguja",
+        "vigilancia",
+        "salud laboral"
       ],
       "normal_terms": [
         "accidente laboral",
@@ -1153,7 +1477,11 @@
     "Medicina preventiva y familiar": {
       "critical_terms": [],
       "high_priority_terms": [
-        "hipertensión arterial"
+        "hipertensión arterial",
+        "tamizaje",
+        "consumo",
+        "alcohol",
+        "mama"
       ],
       "normal_terms": [
         "ansiedad",
@@ -1183,7 +1511,21 @@
         "MALDI-TOF"
       ],
       "high_priority_terms": [
-        "auditoría antimicrobiana"
+        "auditoría antimicrobiana",
+        "cultivo",
+        "hemocultivo",
+        "urocultivo",
+        "esputo",
+        "tinción",
+        "Gram",
+        "PCR",
+        "concentración mínima",
+        "mínima inhibitoria",
+        "KPC",
+        "NDM",
+        "OXA-48",
+        "resistencia",
+        "meticilina"
       ],
       "normal_terms": [
         "aislamiento",
@@ -1218,7 +1560,20 @@
         "Pseudomonas aeruginosa",
         "resistencia a colistina",
         "resistencia a fluoroquinolonas",
-        "Staphylococcus aureus"
+        "Staphylococcus aureus",
+        "Cultivo positivo",
+        "fenotipo",
+        "fenotipo resistencia",
+        "fenotipo MRSA",
+        "fenotipo VRE",
+        "fenotipo ESBL",
+        "fenotipo KPC",
+        "fenotipo NDM",
+        "fenotipo OXA-",
+        "fenotipo carbapenemasa",
+        "colistina",
+        "fluoroquinolonas",
+        "fenotipo multirresistente"
       ],
       "normal_terms": []
     },
@@ -1229,7 +1584,11 @@
       ],
       "high_priority_terms": [
         "EPAP",
-        "IPAP"
+        "IPAP",
+        "FiO2",
+        "L/min",
+        "SpO2",
+        "presión soporte"
       ],
       "normal_terms": []
     },
@@ -1239,7 +1598,13 @@
         "hiperfosfatemia",
         "hipomagnesemia",
         "nefropatía hipertensiva",
-        "trasplante renal"
+        "trasplante renal",
+        "nefropatía",
+        "metabólica",
+        "lesión renal",
+        "renal aguda",
+        "síndrome nefrótico",
+        "síndrome nefrítico"
       ],
       "normal_terms": [
         "acidosis metabólica",
@@ -1260,7 +1625,18 @@
       "high_priority_terms": [
         "hiperbilirrubinemia neonatal",
         "hipoglucemia neonatal",
-        "hipotermia neonatal"
+        "hipotermia neonatal",
+        "neonatal",
+        "prematuro",
+        "dificultad respiratoria",
+        "respiratoria neonatal",
+        "apnea",
+        "conducto arterioso",
+        "arterioso persistente",
+        "retinopatía",
+        "crecimiento intrauterino",
+        "peso",
+        "alimentación"
       ],
       "normal_terms": [
         "alimentación por sonda",
@@ -1287,7 +1663,19 @@
         "EPOC"
       ],
       "high_priority_terms": [
-        "hipoventilación por obesidad"
+        "hipoventilación por obesidad",
+        "bronquiectasias",
+        "enfermedad intersticial",
+        "intersticial pulmonar",
+        "derrame pleural",
+        "disnea",
+        "esfuerzo",
+        "apnea obstructiva",
+        "sueño",
+        "hipoventilación",
+        "obesidad",
+        "insuficiencia respiratoria",
+        "respiratoria crónica"
       ],
       "normal_terms": [
         "apnea obstructiva del sueño",
@@ -1312,7 +1700,16 @@
       "high_priority_terms": [
         "CPP",
         "ICP",
-        "NPi"
+        "NPi",
+        "GCS",
+        "Neuro-UCI",
+        "EVD",
+        "status",
+        "status epiléptico",
+        "EEG",
+        "osmoterapia",
+        "respuesta motora",
+        "reflejo"
       ],
       "normal_terms": [
         "anisocoria de nueva aparición",
@@ -1339,7 +1736,22 @@
     },
     "Neurología": {
       "critical_terms": [],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "isquémico",
+        "esclerosis",
+        "evento vascular",
+        "cerebral isquémico",
+        "ataque isquémico",
+        "isquémico transitorio",
+        "Parkinson",
+        "esclerosis lateral",
+        "lateral amiotrófica",
+        "Guillain Barré",
+        "neuralgia",
+        "trigémino",
+        "trastorno",
+        "sueño REM"
+      ],
       "normal_terms": [
         "ataque isquémico transitorio",
         "cefalea tensional",
@@ -1364,7 +1776,16 @@
     },
     "Nutrición UCI": {
       "critical_terms": [],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "meta",
+        "mL/h",
+        "kcaldía",
+        "gdía",
+        "nutrición",
+        "realimentación",
+        "nutrición parenteral",
+        "durante realimentación"
+      ],
       "normal_terms": [
         "alto riesgo de síndrome de realimentación",
         "aporte de agua libre",
@@ -1393,7 +1814,17 @@
     "Nutrición clínica": {
       "critical_terms": [],
       "high_priority_terms": [
-        "hipofosfatemia"
+        "hipofosfatemia",
+        "nutrición",
+        "peso",
+        "requerimiento",
+        "ganancia",
+        "nutrición enteral",
+        "realimentación",
+        "diarrea asociada",
+        "alimentación",
+        "enfermedad renal",
+        "dieta"
       ],
       "normal_terms": [
         "caquexia",
@@ -1415,7 +1846,21 @@
       "critical_terms": [],
       "high_priority_terms": [
         "hipertensión gestacional",
-        "hiperémesis gravídica"
+        "hiperémesis gravídica",
+        "embarazo",
+        "gestacional",
+        "placenta",
+        "fetal",
+        "puerperal",
+        "eclampsia",
+        "desprendimiento",
+        "amenaza",
+        "parto pretérmino",
+        "ruptura prematura",
+        "membranas",
+        "crecimiento fetal",
+        "colestasis intrahepática",
+        "prenatal"
       ],
       "normal_terms": [
         "amenaza de parto pretérmino",
@@ -1440,7 +1885,19 @@
     "Oftalmología": {
       "critical_terms": [],
       "high_priority_terms": [
-        "retinopatía hipertensiva"
+        "retinopatía hipertensiva",
+        "retinopatía",
+        "retina",
+        "oclusión",
+        "seco",
+        "desprendimiento",
+        "arteria central",
+        "oclusión venosa",
+        "venosa retiniana",
+        "cuerpo extraño",
+        "extraño corneal",
+        "disminución",
+        "agudeza visual"
       ],
       "normal_terms": [
         "blefaritis",
@@ -1468,7 +1925,15 @@
       "high_priority_terms": [
         "inmunoterapia",
         "neutropenia por quimioterapia",
-        "quimioterapia"
+        "quimioterapia",
+        "metástasis",
+        "mama",
+        "pulmón",
+        "próstata",
+        "vejiga",
+        "ovario",
+        "endometrio",
+        "páncreas"
       ],
       "normal_terms": [
         "cáncer cervicouterino",
@@ -1492,7 +1957,17 @@
     "Ortopedia y traumatología": {
       "critical_terms": [],
       "high_priority_terms": [
-        "coxartrosis"
+        "coxartrosis",
+        "fractura",
+        "tobillo",
+        "cadera",
+        "radio distal",
+        "tibia",
+        "manguito rotador",
+        "ruptura",
+        "ligamento cruzado",
+        "esguince",
+        "túnel carpiano"
       ],
       "normal_terms": [
         "cervicalgia",
@@ -1517,7 +1992,12 @@
       "critical_terms": [],
       "high_priority_terms": [
         "hipertrofia adenoidea",
-        "hipoacusia"
+        "hipoacusia",
+        "otitis",
+        "parálisis facial",
+        "facial periférica",
+        "cabeza",
+        "cuello"
       ],
       "normal_terms": [
         "amigdalitis",
@@ -1542,7 +2022,17 @@
       "critical_terms": [],
       "high_priority_terms": [
         "pulsatilidad portal",
-        "VCI"
+        "VCI",
+        "VExUS",
+        "POCUS",
+        "sistólica",
+        "derrame pleural",
+        "bilateral",
+        "vena hepática",
+        "lung sliding",
+        "función sistólica",
+        "sistólica izquierda",
+        "patrón"
       ],
       "normal_terms": [
         "consolidación posterior con broncograma aéreo",
@@ -1579,14 +2069,23 @@
         "presión de acceso",
         "reposición",
         "retorno",
-        "ultrafiltración neta"
+        "ultrafiltración neta",
+        "PRISMA",
+        "acceso",
+        "filtro",
+        "TMP",
+        "mL/h"
       ],
       "normal_terms": []
     },
     "Patología y laboratorio": {
       "critical_terms": [],
       "high_priority_terms": [
-        "inmunohistoquímica"
+        "inmunohistoquímica",
+        "invasión",
+        "carcinoma",
+        "perfil",
+        "situ"
       ],
       "normal_terms": [
         "adenocarcinoma",
@@ -1612,7 +2111,15 @@
     },
     "Pediatría": {
       "critical_terms": [],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "pediátrica",
+        "fiebre",
+        "foco",
+        "otitis media",
+        "dolor abdominal",
+        "abdominal recurrente",
+        "niño sano"
+      ],
       "normal_terms": [
         "asma pediátrica",
         "bronquiolitis",
@@ -1636,7 +2143,22 @@
     "Psiquiatría": {
       "critical_terms": [],
       "high_priority_terms": [
-        "hipomanía"
+        "hipomanía",
+        "trastorno",
+        "ansiedad",
+        "consumo",
+        "trastorno depresivo",
+        "ansiedad generalizada",
+        "pánico",
+        "trastorno obsesivo",
+        "obsesivo compulsivo",
+        "estrés postraumático",
+        "déficit",
+        "atención",
+        "alcohol",
+        "sustancias",
+        "adaptación",
+        "conducta alimentaria"
       ],
       "normal_terms": [
         "crisis de ansiedad",
@@ -1661,7 +2183,17 @@
     },
     "Radiología": {
       "critical_terms": [],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "tórax",
+        "tomografía",
+        "resonancia",
+        "radiografía",
+        "angiotomografía",
+        "columna",
+        "PET",
+        "CT",
+        "difusión"
+      ],
       "normal_terms": [
         "colección",
         "consolidación",
@@ -1686,7 +2218,8 @@
     "Renal y electrolitos": {
       "critical_terms": [],
       "high_priority_terms": [
-        "balance acumulado"
+        "balance acumulado",
+        "mL/kg/h"
       ],
       "normal_terms": [
         "cloro",
@@ -1697,7 +2230,17 @@
     },
     "Reumatología": {
       "critical_terms": [],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "artritis",
+        "lupus eritematoso",
+        "eritematoso sistémico",
+        "vasculitis ANCA",
+        "arteritis",
+        "células gigantes",
+        "Sjgren",
+        "fenómeno",
+        "Raynaud"
+      ],
       "normal_terms": [
         "arteritis de células gigantes",
         "artritis psoriásica",
@@ -1725,7 +2268,11 @@
       "critical_terms": [
         "P/F"
       ],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "estrategia protectora",
+        "supino",
+        "pronación"
+      ],
       "normal_terms": [
         "en pronación",
         "en supino",
@@ -1735,13 +2282,24 @@
     "Sedación y analgesia": {
       "critical_terms": [],
       "high_priority_terms": [
-        "ketamina"
+        "ketamina",
+        "mcg/kg/min",
+        "fentanilo",
+        "mcg/h",
+        "Dexmedetomidina",
+        "mcg/kg/h",
+        "mg/kg/h",
+        "CPOT"
       ],
       "normal_terms": []
     },
     "Sepsis y choque": {
       "critical_terms": [],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "segundos",
+        "alteración",
+        "mental"
+      ],
       "normal_terms": [
         "alteración del estado mental",
         "choque cardiogénico",
@@ -1756,7 +2314,15 @@
     },
     "Transfusión y hemostasia": {
       "critical_terms": [],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "Hemoglobina",
+        "g/dL",
+        "administran",
+        "unidades",
+        "plasma fresco",
+        "fresco congelado",
+        "aféresis"
+      ],
       "normal_terms": [
         "coagulopatía de consumo",
         "concentrado eritrocitario",
@@ -1777,7 +2343,23 @@
         "seguimiento postrasplante",
         "trasplante cardiaco",
         "trasplante hepático",
-        "trasplante pulmonar"
+        "trasplante pulmonar",
+        "trasplante",
+        "rechazo",
+        "injerto",
+        "postrasplante",
+        "citomegalovirus",
+        "BK",
+        "virus",
+        "infección fúngica",
+        "fúngica invasiva",
+        "función",
+        "toxicidad",
+        "inhibidor",
+        "calcineurina",
+        "enfermedad injerto",
+        "injerto contra",
+        "contra huésped"
       ],
       "normal_terms": [
         "ciclosporina",
@@ -1798,7 +2380,11 @@
     "Trauma y quemados": {
       "critical_terms": [],
       "high_priority_terms": [
-        "superficie corporal"
+        "superficie corporal",
+        "Quemadura",
+        "mL/kg/h",
+        "inestable",
+        "fractura"
       ],
       "normal_terms": [
         "abdomen abierto",
@@ -1825,7 +2411,14 @@
     "UCI obstétrica": {
       "critical_terms": [],
       "high_priority_terms": [
-        "sulfato de magnesio"
+        "sulfato de magnesio",
+        "sulfato",
+        "magnesio",
+        "g/h",
+        "UCI",
+        "obstétrica",
+        "embarazo",
+        "preeclampsia"
       ],
       "normal_terms": [
         "atonía uterina",
@@ -1852,7 +2445,17 @@
     },
     "UCI quirúrgica": {
       "critical_terms": [],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "posoperatorio",
+        "Drenaje Jackson",
+        "Jackson Pratt",
+        "Drenaje Blake",
+        "Drenaje Penrose",
+        "trasplante",
+        "abdomen abierto",
+        "dehiscencia",
+        "postoperatoria"
+      ],
       "normal_terms": [
         "100",
         "250",
@@ -1903,7 +2506,9 @@
     "Urología": {
       "critical_terms": [],
       "high_priority_terms": [
-        "hiperplasia prostática benigna"
+        "hiperplasia prostática benigna",
+        "hiperplasia prostática",
+        "prostática benigna"
       ],
       "normal_terms": [
         "catéter urinario",
@@ -1923,7 +2528,10 @@
     },
     "Ventilación mecánica": {
       "critical_terms": [],
-      "high_priority_terms": [],
+      "high_priority_terms": [
+        "Ventilador",
+        "FiO2"
+      ],
       "normal_terms": [
         "PCV",
         "VCV",

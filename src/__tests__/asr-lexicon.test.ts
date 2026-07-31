@@ -158,9 +158,19 @@ describe('El léxico del Dr. está COMPLETO, no un esqueleto', () => {
     expect(vacias, `especialidades sin un solo término: ${vacias.join(', ')}`).toEqual([])
     expect(Object.keys(esp)).toHaveLength(79)
 
+    /**
+     * 1 400 de su `LEXICON_MEDICO.csv` + 580 minados de las 6 000 FRASES del
+     * corpus, que hasta entonces no habían aportado una sola palabra.
+     *
+     * Los minados salen literales de sus frases: siglas y unidades tal como él
+     * las escribe (mcg/kg/min, ng/L, mOsm/kg, U/h, L/min/m2) y los términos
+     * PROPIOS de cada especialidad —los que aparecen ahí y casi no aparecen en
+     * las demás—, porque una palabra que sale en las 78 categorías no distingue
+     * nada y gastaría presupuesto sin cambiar lo que el reconocedor espera.
+     */
     const total = Object.values(esp).reduce(
       (n, e) => n + e.critical_terms.length + e.high_priority_terms.length + e.normal_terms.length, 0)
-    expect(total).toBe(1400)
+    expect(total).toBe(1980)
   })
 
   it('cada módulo produce un vocabulario DISTINTO', () => {
