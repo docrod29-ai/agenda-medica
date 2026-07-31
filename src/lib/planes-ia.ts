@@ -220,6 +220,25 @@ export const planPorNivel = (n: NivelIA): PlanCreditos => (n === 'premium' ? PLA
 export const RECARGA = { creditos: 100, precioMXN: 399 }
 
 /**
+ * ORDEN COMERCIAL de los planes y qué módulos abre cada uno.
+ *
+ * Vive aquí, con los precios, porque el P0-2 de la auditoría fue exactamente
+ * esto: un segundo catálogo quemado en `superadmin/page.tsx` que discrepaba de
+ * `PLANES` en sus cuatro renglones. Un precio que depende de qué pantalla mires
+ * no es un precio.
+ *
+ * Cambiar la oferta se hace AQUÍ, en un sitio.
+ */
+export const PLANES_ORDEN: readonly ClavePlan[] = ['agenda', 'clinica', 'premium', 'hospital']
+
+export const MODULOS_POR_PLAN: Readonly<Record<ClavePlan, string[]>> = {
+  agenda: ['agenda'],
+  clinica: ['agenda', 'expediente'],
+  premium: ['agenda', 'expediente', 'consultor'],
+  hospital: ['agenda', 'expediente', 'consultor', 'hospitalizacion', 'uci'],
+}
+
+/**
  * TOPE del MODO ECONÓMICO (red de seguridad de costo). Tras agotar los créditos
  * premium, la IA sigue GRATIS en ⚡ Rápida (Haiku) pero SOLO hasta este número de
  * notas al mes; pasado eso se PAUSA y pide recarga/subir de plan. Así, aunque un

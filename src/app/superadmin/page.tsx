@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { Modal, Button, Spinner } from '@/components/ui'
 import { MODULOS, MODULO_LABEL } from '@/lib/modulos'
-import { PLANES } from '@/lib/planes-ia'
+import { PLANES, PLANES_ORDEN, MODULOS_POR_PLAN } from '@/lib/planes-ia'
 import { type ModeloPrecio, explicarPrecio } from '@/lib/pricing'
 import { ShieldCheck, Search, Gift, Ban, Play, CalendarPlus, StickyNote, Lock, RefreshCw, Package, Plus, Trash2, Boxes, Sparkles, TrendingUp, LogIn, LifeBuoy, Bug } from 'lucide-react'
 
@@ -490,12 +490,31 @@ function PaquetesManager({ paquetes, onCambio }: { paquetes: Paquete[]; onCambio
   // Genera paquetes de ejemplo (todos editables después). Solo para arrancar.
   const sugeridos = async () => {
     setBusy(true)
-    const base: { nombre: string; precio: number; modulos: string[]; descripcion: string }[] = [
-      { nombre: 'Solo agenda', precio: 399, modulos: ['agenda'], descripcion: 'Citas, calendario y recordatorios' },
-      { nombre: 'Consulta', precio: 699, modulos: ['agenda', 'expediente'], descripcion: 'Agenda + expediente de consulta' },
-      { nombre: 'Hospital', precio: 999, modulos: ['agenda', 'hospitalizacion'], descripcion: 'Agenda + módulo de hospitalización' },
-      { nombre: 'Todo', precio: 1799, modulos: MODULOS.map(m => m.key), descripcion: 'Acceso completo a la plataforma' },
-    ]
+    /**
+     * P0-2 de la auditoría de monetización: aquí vivía un SEGUNDO catálogo de
+     * precios, quemado en el componente, que NO coincidía con `PLANES` en
+     * ninguno de sus cuatro renglones:
+     *
+     *     aquí decía          PLANES dice
+     *     Solo agenda  399    Agenda    349
+     *     Consulta     699    Clínica   899
+     *     Hospital     999    Hospital  3499
+     *     Todo        1799    —
+     *
+     * Y no era decorativo: son los paquetes que el superadmin siembra y vende.
+     * Un precio que depende de qué pantalla mires no es un precio.
+     *
+     * Ahora sale del catálogo central. Cambiar un precio se hace en UN sitio.
+     */
+    const base = PLANES_ORDEN.map(clave => {
+      const p = PLANES[clave]
+      return {
+        nombre: p.nombre,
+        precio: p.precioMXN,
+        modulos: MODULOS_POR_PLAN[clave] ?? [],
+        descripcion: p.incluye[0] ?? '',
+      }
+    })
     try {
       for (let i = 0; i < base.length; i++) {
         await fetchAutenticado('/api/superadmin/paquetes', {
