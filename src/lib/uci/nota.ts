@@ -112,18 +112,43 @@ export function construirSeccionesUCI(v: Campos, opts?: { dia?: string; discusio
   const neurologico = join([
     // En intubado el verbal se reporta como "T"; un GCS alto (≥11) es incoherente
     // con vía aérea artificial, uno bajo (coma) se conserva con la convención "T".
+    /**
+     * En el intubado con GCS alto, la nota NO reporta Glasgow. Y NO explica por qué.
+     *
+     * Antes escribía «Glasgow verbal no valorable por vía aérea artificial
+     * (reportar como “T”); seguir sedación por RASS» dentro de la nota. El Dr.:
+     * «¿para qué pones lo del Glasgow si no lo necesita? Omítelo, es una nota
+     * médica, no tienes que explicar eso».
+     *
+     * Tiene razón, y no es sólo estética: la nota es un documento que se FIRMA.
+     * Un intensivista no necesita que le expliquen que el verbal no se valora con
+     * tubo, y meter la lección en el expediente lo ensucia y lo alarga.
+     *
+     * El aviso NO se pierde: sigue en el panel de alertas de la pantalla, que es
+     * donde sirve —mientras trabaja— y no en lo que firma. Ahí la nota
+     * simplemente reporta RASS, que es la escala que sí aplica.
+     */
     n('glasgow')
       ? (intubadoNeuro
           ? (Number(v.glasgow) >= 11
-              ? `Glasgow verbal no valorable por vía aérea artificial (reportar como “T”); seguir sedación por RASS.`
-              : `Glasgow ${v.glasgow} (intubado, verbal “T”).`)
+              ? null
+              : `Glasgow ${v.glasgow} (verbal “T”).`)
           : `Glasgow ${v.glasgow}.`)
       : null,
     neuro.rass.ok ? `RASS ${neuro.rass.valor! > 0 ? '+' : ''}${neuro.rass.valor} (${neuro.rass.etiqueta}).` : (intubadoNeuro ? 'RASS no registrado (paciente intubado: monitorizar sedación con RASS).' : null),
     n('pic') ? `PIC ${v.pic} mmHg${neuro.picEstado ? ` (${neuro.picEstado})` : ''}.` : null,
     neuro.ppc.ok ? `PPC ${neuro.ppc.valor} mmHg — ${neuro.ppc.interpretacion.split(':').slice(1).join(':').trim() || neuro.ppc.interpretacion}.` : null,
     v.pupilas ? `Pupilas: ${v.pupilas}.` : null,
-    ...neuro.banderas.map(b => `⚠ ${b.mensaje}`),
+    /**
+     * Las banderas del motor neurológico NO van en la nota.
+     *
+     * Son consejo para quien está trabajando —«RASS -4 se asocia a más días de
+     * ventilación; justifícala o aligérala (PADIS 2018)»— y ése es un buen aviso
+     * EN PANTALLA. En el documento firmado es una lección no pedida dentro de un
+     * registro clínico-legal.
+     *
+     * Siguen apareciendo enteras en el panel de Alertas, que es su sitio.
+     */
   ])
 
   // ── Respiratorio ──
