@@ -24,6 +24,8 @@ import {
   type LimiteCargado,
 } from '@/lib/antimicrobianos/v4/limites'
 import { getLimites, guardarLimite, borrarLimite } from '@/lib/antimicrobianos/v4/persistencia'
+import { PROPUESTOS, SIN_PROPONER, porConfirmar, type TopePropuesto } from '@/lib/antimicrobianos/v4/propuestos'
+import { PROPUESTAS, SIN_CIFRA, type PropuestaAsistente } from '@/lib/antimicrobianos/v4/propuesta-asistente'
 import type { TipoMaximo } from '@/lib/antimicrobianos/v4/tipos'
 
 const ESTADO_COLOR: Record<string, string> = {
@@ -56,7 +58,7 @@ export default function AntimicrobianosPage() {
   const { clinicId } = useClinic()
   const [email, setEmail] = useState('')
   const [cargados, setCargados] = useState<LimiteCargado[]>([])
-  const [pestana, setPestana] = useState<'caso' | 'topes'>('caso')
+  const [pestana, setPestana] = useState<'caso' | 'propuestos' | 'topes'>('caso')
 
   // ── caso ──
   const [farmaco, setFarmaco] = useState('Ceftriaxone')
@@ -123,6 +125,50 @@ export default function AntimicrobianosPage() {
   }), [tFarmaco, tIndicacion, tFuente, tUsualDosis, tUsualDia, tCtxDosis, tCtxDia, tAbsDosis, tAbsDia, tTipo, tUnidad])
 
   const av = avance(cargados, FARMACOS.length)
+  const sinConfirmar = useMemo(() => porConfirmar(PROPUESTOS, cargados), [cargados])
+  const propuestasPend = useMemo(() => {
+    const tengo = new Set(cargados.map(l => `${l.farmaco.toLowerCase()}|${l.indicacion}`))
+    return PROPUESTAS.filter(p => !tengo.has(`${p.farmaco.toLowerCase()}|${p.indicacion}`))
+  }, [cargados])
+
+  /** Confirmar una propuesta la guarda con su fuente y su razonamiento. */
+  async function confirmarPropuesta(t: PropuestaAsistente) {
+    if (!clinicId) return
+    await guardarLimite(clinicId, {
+      farmaco: t.farmaco, indicacion: t.indicacion,
+      limites: {
+        usualMaxPorDosis: t.usualMaxPorDosis, usualMaxPorDia: t.usualMaxPorDia,
+        contextualMaxPorDosis: t.contextualMaxPorDosis, contextualMaxPorDia: t.contextualMaxPorDia,
+        absolutoMaxPorDia: t.absolutoMaxPorDia,
+        tipoMaximo: t.tipoMaximo, unidad: t.unidad,
+      },
+      fuente: `${t.fuente} — ${t.razon}`,
+      cargadoPor: email, cargadoEn: new Date().toISOString(),
+      huellaDataset: HUELLA_DATASET,
+    })
+    setCargados(await getLimites(clinicId))
+  }
+
+  /**
+   * Confirmar un propuesto lo guarda como cualquier otro tope, con la fuente
+   * apuntando a la frase EXACTA del dataset de la que salió. Así, si mañana
+   * alguien discute el número, se ve de dónde vino sin abrir el JSON.
+   */
+  async function confirmar(t: TopePropuesto) {
+    if (!clinicId) return
+    await guardarLimite(clinicId, {
+      farmaco: t.farmaco, indicacion: t.indicacion,
+      limites: {
+        usualMaxPorDosis: t.usualMaxPorDosis, usualMaxPorDia: t.usualMaxPorDia,
+        absolutoMaxPorDosis: t.absolutoMaxPorDosis, absolutoMaxPorDia: t.absolutoMaxPorDia,
+        tipoMaximo: t.tipoMaximo, unidad: t.unidad,
+      },
+      fuente: `Dataset V3 (${t.fuenteIds.join(' · ')}): «${t.textoFuente}»`,
+      cargadoPor: email, cargadoEn: new Date().toISOString(),
+      huellaDataset: t.huellaDataset,
+    })
+    setCargados(await getLimites(clinicId))
+  }
 
   async function guardar() {
     if (problemas.length > 0 || !clinicId) return
@@ -163,14 +209,16 @@ export default function AntimicrobianosPage() {
         {METADATA.important_disclaimer}
       </p>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
-        {(['caso', 'topes'] as const).map(p => (
+      <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
+        {(['caso', 'propuestos', 'topes'] as const).map(p => (
           <button key={p} onClick={() => setPestana(p)} style={{
             padding: '7px 14px', borderRadius: 8, fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
             border: '1px solid ' + (pestana === p ? 'var(--nexus, #3d5afe)' : 'var(--border, #e5e7eb)'),
             background: pestana === p ? 'var(--nexus, #3d5afe)' : 'transparent',
             color: pestana === p ? '#fff' : 'var(--text, #0f172a)',
-          }}>{p === 'caso' ? 'Probar un caso' : `Cargar topes (${av.conLimite}/${av.total})`}</button>
+          }}>{p === 'caso' ? 'Probar un caso'
+            : p === 'propuestos' ? `Confirmar de un clic (${sinConfirmar.length + propuestasPend.length})`
+            : `Cargar a mano (${av.conLimite}/${av.total})`}</button>
         ))}
       </div>
 
@@ -272,6 +320,125 @@ export default function AntimicrobianosPage() {
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {pestana === 'propuestos' && (
+        <div>
+          <div style={{ ...S.card, marginBottom: 14 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text, #0f172a)' }}>
+              {sinConfirmar.length} topes transcritos de tu dataset
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--text2, #334155)', margin: '6px 0 0', lineHeight: 1.55 }}>
+              No son una opinión: es la pauta que <strong>ya está escrita</strong> en tu dataset,
+              pasada a números. «2 g IV q8h» son 2 000 mg por dosis y 6 000 al día. Cada uno
+              trae la frase de la que salió — confirmar es leer una línea, no teclear seis campos.
+            </p>
+            <p style={{ fontSize: 12.5, color: 'var(--text3, #64748b)', margin: '8px 0 0', lineHeight: 1.55 }}>
+              Sólo salen {PROPUESTOS.length} de {FARMACOS.length} porque el resto del texto describe
+              MÁS DE UNA pauta, y las lecturas que fallaron fallaban todas hacia un tope
+              demasiado bajo — que es la peor dirección: una alerta que salta en lo que haces
+              todos los días enseña a ignorarla.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gap: 10 }}>
+            {sinConfirmar.length === 0 && (
+              <div style={{ ...S.card, fontSize: 13, color: 'var(--text3, #64748b)' }}>
+                Ya los confirmaste todos. Los {SIN_PROPONER.length} restantes se cargan a mano
+                en la otra pestaña.
+              </div>
+            )}
+            {sinConfirmar.map(t => (
+              <div key={t.farmaco} style={S.card}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                  <div style={{ flex: '1 1 320px' }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text, #0f172a)' }}>{t.farmaco}</div>
+                    <div style={{ fontSize: 13.5, color: 'var(--text2, #334155)', marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>
+                      habitual <strong>{t.usualMaxPorDosis}</strong> {t.unidad}/dosis ·{' '}
+                      <strong>{t.usualMaxPorDia}</strong> {t.unidad}/día
+                      {t.absolutoMaxPorDia ? <> · tope <strong>{t.absolutoMaxPorDia}</strong> {t.unidad}/día</> : null}
+                    </div>
+                    <div style={{ fontSize: 12.5, color: 'var(--text3, #64748b)', marginTop: 6, lineHeight: 1.5, fontStyle: 'italic' }}>
+                      «{t.textoFuente}»
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text3, #64748b)', marginTop: 3 }}>{t.fuenteIds.join(' · ')}</div>
+                  </div>
+                  <button onClick={() => void confirmar(t)} disabled={!clinicId} style={{
+                    padding: '9px 18px', borderRadius: 9, fontSize: 13.5, fontWeight: 700,
+                    border: 'none', cursor: 'pointer', background: 'var(--nexus, #3d5afe)', color: '#fff',
+                  }}>Confirmar</button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ ...S.card, margin: '22px 0 12px', borderLeft: '4px solid #d97706' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text, #0f172a)' }}>
+              {propuestasPend.length} propuestos desde el etiquetado — revísalos con más calma
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--text2, #334155)', margin: '6px 0 0', lineHeight: 1.55 }}>
+              Éstos <strong>no salen de una frase de tu dataset</strong>: son la pauta adulta de uso
+              corriente puesta en números. Van aparte y en otro color porque no tienen el mismo
+              respaldo — si los mezclara con los de arriba, los dos parecerían igual de firmes.
+              No se cita ninguna tabla ni PMID: una cita inventada da por comprobado lo que
+              nadie comprobó.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gap: 10 }}>
+            {propuestasPend.map(t => (
+              <div key={t.farmaco} style={{ ...S.card, borderLeft: '4px solid #d97706' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                  <div style={{ flex: '1 1 320px' }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text, #0f172a)' }}>{t.farmaco}</div>
+                    <div style={{ fontSize: 13.5, color: 'var(--text2, #334155)', marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>
+                      habitual <strong>{t.usualMaxPorDosis ?? '—'}</strong>/<strong>{t.usualMaxPorDia ?? '—'}</strong>
+                      {t.contextualMaxPorDia ? <> · contexto <strong>{t.contextualMaxPorDosis ?? '—'}</strong>/<strong>{t.contextualMaxPorDia}</strong></> : null}
+                      {t.absolutoMaxPorDia ? <> · techo <strong>{t.absolutoMaxPorDia}</strong></> : null} {t.unidad}
+                    </div>
+                    <div style={{ fontSize: 12.5, color: 'var(--text2, #334155)', marginTop: 6, lineHeight: 1.5 }}>{t.razon}</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text3, #64748b)', marginTop: 3 }}>{t.fuente}</div>
+                  </div>
+                  <button onClick={() => void confirmarPropuesta(t)} disabled={!clinicId} style={{
+                    padding: '9px 18px', borderRadius: 9, fontSize: 13.5, fontWeight: 700,
+                    border: '1px solid #d97706', cursor: 'pointer', background: 'transparent', color: '#b45309',
+                  }}>Confirmar</button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ ...S.card, marginTop: 22 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text, #0f172a)' }}>
+              {SIN_CIFRA.length} en los que una cifra sería falsa
+            </div>
+            <p style={{ fontSize: 12.5, color: 'var(--text3, #64748b)', margin: '6px 0 10px', lineHeight: 1.55 }}>
+              No es cautela: la cifra depende de un dato del paciente que el motor no tiene, o de
+              una unidad que primero hay que declarar. Poner un mg fijo a una amikacina es
+              inventarle el peso al enfermo.
+            </p>
+            <div style={{ display: 'grid', gap: 8 }}>
+              {SIN_CIFRA.map(s2 => (
+                <div key={s2.farmaco} style={{ fontSize: 12.5, color: 'var(--text2, #334155)', lineHeight: 1.5 }}>
+                  <strong>{s2.farmaco}</strong> — {s2.porQue}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <details style={{ marginTop: 18 }}>
+            <summary style={{ fontSize: 13, cursor: 'pointer', color: 'var(--text2, #334155)' }}>
+              Detalle técnico: los {SIN_PROPONER.length} que el extractor no pudo leer
+            </summary>
+            <div style={{ marginTop: 10, display: 'grid', gap: 6 }}>
+              {SIN_PROPONER.map(p => (
+                <div key={p.farmaco} style={{ fontSize: 12.5, color: 'var(--text2, #334155)', lineHeight: 1.5 }}>
+                  <strong>{p.farmaco}</strong> — {p.porQue}
+                </div>
+              ))}
+            </div>
+          </details>
         </div>
       )}
 
