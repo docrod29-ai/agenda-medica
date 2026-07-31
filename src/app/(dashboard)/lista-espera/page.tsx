@@ -152,7 +152,7 @@ export default function ListaEsperaPage() {
                     {entry.rangoHorario && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Clock size={11} className="ds-icon" /> {entry.rangoHorario}</span>}
                   </div>
                   {entry.notas && (
-                    <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 2, fontStyle: 'italic' }}>"{entry.notas}"</div>
+                    <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 2, fontStyle: 'italic' }}>&laquo;{entry.notas}&raquo;</div>
                   )}
                 </div>
 

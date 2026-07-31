@@ -698,7 +698,7 @@ export default function GeneradorRecetaPage() {
 
             {medicamentos.length === 0 && (
               <div style={{ padding: 14, background: 'var(--s2)', border: '1px dashed var(--border)', borderRadius: 8, color: 'var(--text3)', fontSize: 13, textAlign: 'center' }}>
-                Sin medicamentos. Agrega uno o usa "Solo indicaciones".
+                Sin medicamentos. Agrega uno o usa &laquo;Solo indicaciones&raquo;.
               </div>
             )}
             {medicamentos.map((m, i) => (
