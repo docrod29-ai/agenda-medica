@@ -8,6 +8,7 @@
  * El plan queda para el médico. El texto es un BORRADOR que el médico revisa y firma.
  */
 import { repartirPorSistemas, type ClaveSistema } from '@/lib/uci/reparto-sistemas'
+import { sinLabsDuplicados, type LabMedido } from '@/lib/uci/labs-nota'
 import { analizarVentilacion, esModoEspontaneo, esModoInvasivo } from './ventilacion'
 import { analizarGasometria } from './gasometria'
 import { cantidadDesde } from '@/types/clinical-quantity'
@@ -44,7 +45,7 @@ const join = (xs: (string | null | undefined)[]): string => xs.filter((x): x is 
  * Construye las 10 secciones de la nota de evolución UCI desde los valores crudos.
  * `opts.dia` (día de UCI), `opts.discusion` (pase multi-voz etiquetado por rol).
  */
-export function construirSeccionesUCI(v: Campos, opts?: { dia?: string; discusion?: string }): SeccionNota[] {
+export function construirSeccionesUCI(v: Campos, opts?: { dia?: string; discusion?: string; labs?: string; labsCapturados?: readonly LabMedido[] }): SeccionNota[] {
   const n = (k: string) => val(v, k)
 
   const vent = analizarVentilacion({
@@ -212,6 +213,9 @@ export function construirSeccionesUCI(v: Campos, opts?: { dia?: string; discusio
   const hemato = join([
     n('plaquetas') ? `Plaquetas ${v.plaquetas} ×10³.` : null,
     n('bili') ? `Bilirrubina ${v.bili} mg/dL.` : null,
+    // Los laboratorios FUERA DE RANGO, abreviados. Lo normal no se pierde: vive
+    // en el apartado de laboratorio, con su gráfica.
+    opts?.labs ? `Labs: ${opts.labs}.` : null,
   ])
 
   /**
@@ -226,7 +230,11 @@ export function construirSeccionesUCI(v: Campos, opts?: { dia?: string; discusio
    * Lo que no cae bajo ningún encabezado se queda en el plan: si el médico no
    * dijo a qué aparato pertenece, no se adivina.
    */
-  const dicho = repartirPorSistemas(opts?.discusion ?? '')
+  // El pase, SIN los renglones de laboratorio que ya viajan en el resumen: sin
+  // esto la nota decía «Plaquetas» tres veces —panel, resumen y texto crudo—,
+  // que es la misma duplicación de los aparatos pero con cifras.
+  const dicho = repartirPorSistemas(
+    sinLabsDuplicados(opts?.discusion ?? '', opts?.labsCapturados ?? []))
   /** Los valores calculados primero; debajo, las palabras del médico. */
   const con = (calculado: string, clave: ClaveSistema) =>
     [calculado, dicho[clave]].filter(x => x && x.trim()).join('\n\n')

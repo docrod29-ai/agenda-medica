@@ -12,7 +12,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   lineaDeNota, paraLaNota, resumen, evaluar, desconocidos, nombreCorto,
-  analitosConAbreviatura,
+  analitosConAbreviatura, esLineaDeLabCapturado, sinLabsDuplicados,
 } from '@/lib/uci/labs-nota'
 import { analitoPorClave } from '@/lib/expediente/laboratorio/analitos'
 
@@ -93,6 +93,37 @@ describe('Las abreviaturas son nomenclatura, no medicina', () => {
       expect(previa, `«${corto}» es ${previa} y ${clave}`).toBeUndefined()
       vistas.set(corto, clave)
     }
+  })
+})
+
+describe('Un lab no se dice dos veces', () => {
+  const capturados = [{ clave: 'plaquetas', valor: 118 }, { clave: 'glucosa', valor: 214 }]
+
+  it('el renglón crudo desaparece si ya viaja en el resumen', () => {
+    expect(esLineaDeLabCapturado('* Plaquetas: 118,000/µL.', capturados)).toBe(true)
+    expect(esLineaDeLabCapturado('Glucosa: 214 mg/dL.', capturados)).toBe(true)
+  })
+
+  it('pero NO si el médico añadió algo que el resumen no dice', () => {
+    // Aquí hay una conducta, no sólo una cifra.
+    expect(esLineaDeLabCapturado('Plaquetas 118, se transfunde si baja de 50.', capturados)).toBe(false)
+    expect(esLineaDeLabCapturado('Glucosa 214; se inicia insulina IV.', capturados)).toBe(false)
+  })
+
+  it('ni si el analito NO fue capturado', () => {
+    expect(esLineaDeLabCapturado('Fibrinógeno: 310 mg/dL.', capturados)).toBe(false)
+  })
+
+  it('dos labs en un mismo renglón NO se tocan: se perdería uno', () => {
+    expect(esLineaDeLabCapturado('Sodio: 138. Creatinina: 2.4 mg/dL.', capturados)).toBe(false)
+  })
+
+  it('sinLabsDuplicados deja el resto del pase intacto', () => {
+    const t = 'Paciente estable.\n* Plaquetas: 118,000/µL.\nSe continúa el esquema.'
+    const r = sinLabsDuplicados(t, capturados)
+    expect(r).toContain('Paciente estable.')
+    expect(r).toContain('Se continúa el esquema.')
+    expect(r).not.toContain('118,000')
   })
 })
 

@@ -14,12 +14,15 @@ import ResumenPase from './ResumenPase'
 import Verificacion from './Verificacion'
 import MarPaciente from './MarPaciente'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Activity, Wind, Droplets, HeartPulse, ShieldAlert, Info, Mic, Square, Waves, BedDouble, AlertTriangle, FileText, Calculator, Brain, Sparkles, ThumbsUp, ThumbsDown, ArrowLeft } from 'lucide-react'
+import { Activity, Wind, Droplets, HeartPulse, ShieldAlert, Info, Mic, Square, Waves, BedDouble, AlertTriangle, FileText, Calculator, Brain, Sparkles, ThumbsUp, ThumbsDown, ArrowLeft, FlaskConical } from 'lucide-react'
 import { useClinic } from '@/context/ClinicContext'
 import { useToast } from '@/context/ToastContext'
 import { fetchAutenticado } from '@/lib/auth-client'
 import type { FusionCopilot } from '@/lib/uci/copilot'
 import { formatear, type FormatoNota } from '@/lib/uci/formato-nota'
+import { resumen as resumenLabs, type LabMedido } from '@/lib/uci/labs-nota'
+import { ANALITOS, valorPlausible } from '@/lib/expediente/laboratorio/analitos'
+import { PanelLaboratorios } from '@/components/laboratorio/PanelLaboratorios'
 import { MOTORES, COPILOT_UCI_POR_MOTOR, type ClaveMotor } from '@/lib/planes-ia'
 import { getInternamiento } from '@/lib/hospital/firestore'
 import { getPatient } from '@/lib/firestore'
@@ -505,7 +508,27 @@ export default function UciPanelPage() {
     try { localStorage.setItem('nx.uci.formatoNota', f) } catch { /* */ }
   }
 
-  const notaCruda = useMemo(() => construirSeccionesUCI(v, { discusion: discusionTxt || undefined }), [v, discusionTxt])
+  /**
+   * Los laboratorios que el médico DICTÓ en el pase.
+   *
+   * Se leen del mismo texto del pase y se filtran contra el catálogo de
+   * analitos: a la nota va sólo lo que está fuera de rango, abreviado. Lo normal
+   * no se pierde — sigue completo abajo, en el apartado de laboratorio, que es el
+   * MISMO al que llegan los PDF que subes. Un solo sitio para los dos caminos.
+   */
+  const labsDictados = useMemo(() => {
+    const out: LabMedido[] = []
+    for (const a of ANALITOS) {
+      const m = discusionTxt.match(new RegExp(`${a.patron.source}\\s*[:=]?\\s*(\\d+(?:[.,]\\d+)?)`, 'i'))
+      if (!m) continue
+      const n = Number(String(m[m.length - 1]).replace(',', '.'))
+      if (Number.isFinite(n) && valorPlausible(a.clave, n)) out.push({ clave: a.clave, valor: n })
+    }
+    return out
+  }, [discusionTxt])
+  const labs = useMemo(() => resumenLabs(labsDictados), [labsDictados])
+
+  const notaCruda = useMemo(() => construirSeccionesUCI(v, { discusion: discusionTxt || undefined, labs: labs.linea || undefined, labsCapturados: labsDictados }), [v, discusionTxt, labs.linea, labsDictados])
   const notaSecciones = useMemo(() => formatear(notaCruda, formatoNota), [notaCruda, formatoNota])
   const notaLlenas = notaSecciones.filter(s => s.value.trim() !== '')
 
@@ -766,6 +789,26 @@ export default function UciPanelPage() {
               </div>
             ))}
           </div>
+        </details>
+      )}
+
+      {/* LABORATORIO: el MISMO apartado del expediente. Lo que subes en PDF y lo
+          que dictas en el pase caen aquí, y las gráficas salen del conjunto.
+          Sin esto había dos sitios para lo mismo y ninguno completo. */}
+      {inter?.pacienteId && clinicId && (
+        <details style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: '4px 16px 14px', marginBottom: 16 }}>
+          <summary style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0', fontWeight: 600, fontSize: 14 }}>
+            <FlaskConical size={16} style={{ color: 'var(--nexus)' }} /> Laboratorio · historial y tendencias
+            {labs.omitidos > 0 && (
+              <span style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--text3)', fontWeight: 400 }}>
+                {labs.omitidos} en rango no van en la nota; están aquí
+              </span>
+            )}
+          </summary>
+          {labs.aviso && (
+            <p style={{ fontSize: 11.5, color: 'var(--text3)', lineHeight: 1.5, margin: '0 0 8px' }}>{labs.aviso}</p>
+          )}
+          <PanelLaboratorios clinicId={clinicId} patientId={inter.pacienteId} />
         </details>
       )}
 

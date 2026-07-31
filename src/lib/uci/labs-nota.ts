@@ -167,6 +167,42 @@ export function resumen(labs: readonly LabMedido[]): {
   return { linea: lineaDeNota(labs), enNota, omitidos, sinCatalogo, aviso: partes.join(' ') }
 }
 
+/**
+ * ¿Esta línea del pase es SÓLO un laboratorio que ya está en el resumen?
+ *
+ * Sin esto la nota decía el mismo dato tres veces: «Plaquetas 118 ×10³» del
+ * panel, «Plq 118↓» del resumen, y «* Plaquetas: 118,000/µL» del texto dictado.
+ * Es la misma duplicación que el Dr. señaló con los aparatos, ahora con las
+ * cifras.
+ *
+ * Se exige que la línea sea SÓLO eso: el nombre del analito, su número y a lo
+ * sumo su unidad. Una línea que además dice algo —«Plaquetas 118, se transfunde
+ * si baja de 50»— NO se toca, porque ahí el médico añadió información que el
+ * resumen no lleva.
+ */
+export function esLineaDeLabCapturado(linea: string, capturados: readonly LabMedido[]): boolean {
+  const l = linea.trim().replace(/^[*·•-]\s*/, '')
+  if (!l) return false
+  // Nombre + separador + número + unidad opcional, y NADA más.
+  const m = l.match(/^([A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 ()\/]+?)\s*[:=]\s*([\d.,]+)\s*(?:[A-Za-zµ%\/³×0-9.]+)?\s*\.?$/)
+  if (!m) return false
+  const a = ANALITOS.find(x => x.patron.test(m[1]))
+  if (!a) return false
+  const num = Number(m[2].replace(/,(?=\d{3}\b)/g, '').replace(',', '.'))
+  if (!Number.isFinite(num)) return false
+  // Sólo se quita si ESE analito ya viajó al resumen, con el valor que sea: la
+  // conversión de unidades pudo cambiar la cifra (118,000/µL → 118).
+  return capturados.some(c => c.clave === a.clave)
+}
+
+/** Quita del pase los renglones que ya viajan en el resumen de laboratorio. */
+export function sinLabsDuplicados(texto: string, capturados: readonly LabMedido[]): string {
+  if (!texto || capturados.length === 0) return texto
+  return texto.split('\n')
+    .filter(l => !esLineaDeLabCapturado(l, capturados))
+    .join('\n').replace(/\n{3,}/g, '\n\n')
+}
+
 /** Los analitos que este módulo sabe abreviar. Para el golden y para la pantalla. */
 export function analitosConAbreviatura(): { clave: string; corto: string }[] {
   return ANALITOS.filter(a => CORTA[a.clave]).map(a => ({ clave: a.clave, corto: CORTA[a.clave] }))
