@@ -21,6 +21,7 @@ import { fetchAutenticado } from '@/lib/auth-client'
 import type { FusionCopilot } from '@/lib/uci/copilot'
 import { formatear, type FormatoNota } from '@/lib/uci/formato-nota'
 import { resumen as resumenLabs, type LabMedido } from '@/lib/uci/labs-nota'
+import { planDesdeCopilot } from '@/lib/uci/plan-desde-copilot'
 import { ANALITOS, valorPlausible } from '@/lib/expediente/laboratorio/analitos'
 import { PanelLaboratorios } from '@/components/laboratorio/PanelLaboratorios'
 import { MOTORES, COPILOT_UCI_POR_MOTOR, type ClaveMotor } from '@/lib/planes-ia'
@@ -500,6 +501,13 @@ export default function UciPanelPage() {
    * leer.
    */
   const [formatoNota, setFormatoNota] = useState<FormatoNota>('narrativa')
+  /**
+   * El plan que propuso el Copilot, sólo si el médico lo pidió.
+   *
+   * No se pega solo al generar la síntesis: hay un botón. Nada que escribió una
+   * máquina entra en una nota que se firma sin que alguien lo decida.
+   */
+  const [planCopilot, setPlanCopilot] = useState('')
   useEffect(() => {
     try { const g = localStorage.getItem('nx.uci.formatoNota'); if (g === 'lista' || g === 'narrativa') setFormatoNota(g) } catch { /* */ }
   }, [])
@@ -528,7 +536,7 @@ export default function UciPanelPage() {
   }, [discusionTxt])
   const labs = useMemo(() => resumenLabs(labsDictados), [labsDictados])
 
-  const notaCruda = useMemo(() => construirSeccionesUCI(v, { discusion: discusionTxt || undefined, labs: labs.linea || undefined, labsCapturados: labsDictados }), [v, discusionTxt, labs.linea, labsDictados])
+  const notaCruda = useMemo(() => construirSeccionesUCI(v, { discusion: discusionTxt || undefined, labs: labs.linea || undefined, labsCapturados: labsDictados, planPropuesto: planCopilot || undefined }), [v, discusionTxt, labs.linea, labsDictados, planCopilot])
   const notaSecciones = useMemo(() => formatear(notaCruda, formatoNota), [notaCruda, formatoNota])
   const notaLlenas = notaSecciones.filter(s => s.value.trim() !== '')
 
@@ -1033,6 +1041,30 @@ export default function UciPanelPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 14 }}>
             <Brain size={17} style={{ color: 'var(--nexus)' }} /> Copilot IA · síntesis por sistemas
           </div>
+          {copilot && (() => {
+            const prop = planDesdeCopilot(copilot)
+            if (!prop.texto) return null
+            const yaEsta = planCopilot === prop.texto
+            return (
+              <button
+                onClick={() => setPlanCopilot(yaEsta ? '' : prop.texto)}
+                title={yaEsta
+                  ? 'Quitar de la nota el plan propuesto'
+                  : 'Lleva el razonamiento del Copilot a la sección «Plan por sistema». Va marcado como propuesta: lo revisas, lo corriges y lo firmas.'}
+                style={{
+                  marginRight: 8, padding: '6px 12px', borderRadius: 7, fontSize: 12.5,
+                  cursor: 'pointer', fontWeight: 600,
+                  border: '1px solid ' + (yaEsta ? 'var(--teal)' : 'var(--border2)'),
+                  background: yaEsta ? 'var(--teal)' : 'transparent',
+                  color: yaEsta ? '#fff' : 'var(--text2)',
+                }}
+              >
+                {yaEsta
+                  ? '✓ Plan en la nota'
+                  : `Pasar el plan a la nota (${prop.problemas}${prop.divergencias ? ` + ${prop.divergencias}` : ''})`}
+              </button>
+            )
+          })()}
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginRight: 8 }}>
             {(['rapida', 'estandar', 'maxima'] as const).map(k => {
               const m = MOTORES[k]
