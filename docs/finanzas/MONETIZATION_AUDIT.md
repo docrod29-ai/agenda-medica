@@ -1,3 +1,55 @@
+# Auditoría de monetización — Master Loop V3
+
+> **ESTADO AL 30-JUL-2026, 23:35.** Fase 0 (auditoría) y Fase 1 completas y
+> desplegadas, v739 → v745. Lo que sigue abajo es el diagnóstico original; esta
+> cabecera dice qué quedó cerrado y qué no.
+>
+> ## Cerrado y en producción
+>
+> | # | Qué era | Dónde quedó |
+> |---|---|---|
+> | P0-1 | El costo real era **desconocido**: los proveedores devolvían los tokens en cada respuesta y se tiraban | Libro de costos (`platform_cost_ledger`) + tablero en `/superadmin/costos` |
+> | P0-2 | **Dos catálogos de precios que se contradecían** (349/899/3499 contra 399/699/999/1799) | Catálogo único en `planes-ia.ts` |
+> | P1-1 | Dieciséis rutas llamaban a los proveedores por su cuenta | Gateway (`src/lib/ia/`). **5 enrutadas, 11 con asiento.** Ver «lo que falta» |
+> | P1-2 | Los créditos se contaban **después** de gastarlos | Cartera reservar → confirmar → devolver |
+> | P1-3 | **Nada impedía vender un módulo en construcción** | Estados de producto + rechazo en `/api/stripe/checkout` |
+> | P1-4 | El fundador y un cliente de cortesía eran la misma cuenta | Tres clases: fundador · cortesía · cliente |
+>
+> ## Lo que falta, y por qué se dejó
+>
+> **1. Cargar las tarifas de los modelos.** `src/lib/finanzas/precios-modelo.ts`
+> nace **vacío a propósito**: escribir un precio de memoria daría un tablero que
+> parece exacto y miente. Los tokens ya se registran completos; falta el precio.
+> El tablero dice cuántas llamadas quedan sin costo y qué modelos son. **Es lo
+> primero que hay que hacer, y no lo puede hacer nadie más que quien mire la
+> página de precios del proveedor.**
+>
+> **2. Enrutar las once rutas que sólo anotan.** `expediente/procesar` —la nota
+> de consulta— hace descubrimiento de modelos contra `/v1/models`, usa
+> razonamiento extendido y reintenta sin él ante un 400. Migrarla cambiaría de
+> callado cómo razona la nota que se firma, y eso se revisa despierto. Mientras
+> tanto su costo **sí** se ve.
+>
+> **3. Las fases 2 a 16** (organizaciones y asientos, facturación, estado
+> clínico del paciente, motor de riesgo, enrutadores, simulador, benchmarks).
+> Tocan esquema de datos o comportamiento clínico: no se hacen sin revisión.
+>
+> ## Decisiones que quedaron escritas en el código
+>
+> · Costo desconocido es `null`, **nunca** `0`. Un cero se suma en los totales y
+>   hace pasar por gratis lo que sólo es desconocido.
+> · En el libro de costos **no entra nada clínico**: ni prompt, ni respuesta, ni
+>   paciente. Sólo tokens, modelo, latencia y precio.
+> · Que el fundador pueda **usar** un módulo no lo pone **a la venta**. No es
+>   diferencia de permisos: es de promesa.
+> · El gasto del fundador es I+D, el de una cortesía es costo de servir. Los dos
+>   entran sin pagar y ahí se acaba el parecido.
+> · La cartera falla **abierto**: dejar a un intensivista sin su nota a las tres
+>   de la mañana es peor que regalar unos créditos. Cobrar por una llamada que
+>   falló no se hace nunca.
+
+---
+
 # MONETIZATION AUDIT — Fase 0 del Master Loop V3
 
 **Fecha:** 30-jul-2026 · **Alcance:** estado actual, sin modificar nada.
