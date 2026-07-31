@@ -30,7 +30,48 @@ const UNIDADES: { canonica: string; variantes: string[] }[] = [
   { canonica: 'L/min',      variantes: ['l/min', 'litros por minuto'] },
 ]
 
-const norm = (s: string): string => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim()
+/**
+ * SUBÍNDICES Y SUPERÍNDICES → dígitos normales.
+ *
+ * Un pase escrito o pegado trae «PaO₂», «PaCO₂», «FiO₂», «SpO₂», «HCO₃»,
+ * «cmH₂O». El extractor busca `pao2`, `fio2`, `hco3`… y NINGUNO casaba: el «₂»
+ * es U+2082, no el «2» de siempre.
+ *
+ * Consecuencia real, vista en producción el 30-jul-2026: el Dr. dictó un pase de
+ * UCI completo —pH, PaCO₂, PaO₂, FiO₂, PEEP, lactato— y la pantalla le respondió
+ * «no se puede calcular el índice de Kirby: falta PaO₂ y FiO₂». Los había dado
+ * los dos. El panel quedó vacío, los motores no calcularon nada y todo el
+ * dictado se volcó en crudo al final de la nota.
+ */
+const SUBINDICES: Record<string, string> = {
+  '₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4',
+  '₅': '5', '₆': '6', '₇': '7', '₈': '8', '₉': '9',
+  '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4',
+  '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9',
+}
+
+const norm = (s: string): string => (s || '')
+  .replace(/[₀-₉⁰-⁹]/g, c => SUBINDICES[c] ?? c)
+  // El menos de verdad (U+2212) y los guiones tipográficos: un «RASS: −4» venía
+  // con el signo matemático, no con el guion del teclado, y no casaba nunca.
+  .replace(/[\u2212\u2013\u2014]/g, '-')
+  // Menos y más en superíndice de la nomenclatura química: «HCO₃⁻», «Na⁺».
+  .replace(/[\u207b\u207a]/g, '')
+  // Separador de MILLAR: «118,000/µL» y «17,800/µL». Sin esto se leía 118 y 17.
+  .replace(/(?<=\d),(?=\d{3}\b)/g, '')
+  .toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .replace(/\s+/g, ' ').trim()
+
+/**
+ * Separadores que pueden ir entre el nombre del dato y su número.
+ *
+ * El regex original sólo aceptaba ESPACIO (y algunas palabras: «de», «a», «en»).
+ * Un pase escrito usa dos puntos —«pH: 7.19», «PEEP: 8 cmH₂O»— y ninguno casaba.
+ * Se aceptan también `=` y la flecha de una tendencia, que es como se escribe un
+ * cambio: «lactato 8.7 → 5.9» (se toma el PRIMER número; la tendencia es otra
+ * cosa y no se adivina).
+ */
+const SEP = '(?:\\s*[:=]\\s*|\\s+(?:de|a|en|es|fue|esta en)\\s+|\\s*[*\u2022\u2013\u2014-]\\s*|\\s+)'
 
 /** Devuelve la unidad canónica reconocida, o null si no la identifica. */
 export function interpretarUnidad(texto?: string): string | null {
@@ -120,19 +161,20 @@ const CAMPOS_UCI: { campo: string; alias: string[] }[] = [
   // Mapearlo a PEEP corrompía el driving pressure (Pplat − PEEP).
   { campo: 'peep', alias: ['peep', 'pip peep', 'peep total'] },
   { campo: 'autoPeep', alias: ['auto peep', 'autopeep', 'peep intrinseco', 'peep intrínseco'] },
-  { campo: 'ppico', alias: ['presion pico', 'presión pico', 'pico inspiratoria', 'ppico', 'pip', 'presion inspiratoria pico'] },
+  { campo: 'ppico', alias: ['presion pico', 'presión pico', 'p pico', 'pico inspiratoria', 'ppico', 'pip', 'presion inspiratoria pico'] },
   { campo: 'pplat', alias: ['plateau', 'presion plateau', 'presion meseta', 'pplat', 'presion plato'] },
   { campo: 'psoporte', alias: ['presion soporte', 'presión de soporte', 'presion de soporte', 'soporte de presion'] },
-  { campo: 'fr', alias: ['frecuencia respiratoria', 'efe erre'] },
-  { campo: 'vt', alias: ['volumen corriente', 'volumen tidal'] },
+  { campo: 'fr', alias: ['frecuencia respiratoria', 'efe erre', 'fr'] },
+  { campo: 'vt', alias: ['volumen corriente', 'volumen tidal', 'vt'] },
   { campo: 'pao2', alias: ['pao2', 'pao dos', 'presion arterial de oxigeno'] },
   { campo: 'paco2', alias: ['paco2', 'paco dos', 'pco2', 'pco dos'] },
   { campo: 'hco3', alias: ['bicarbonato', 'hco3', 'hache ce o tres'] },
   { campo: 'ph', alias: ['ph', 'pe hache'] },
+  { campo: 'fc', alias: ['frecuencia cardiaca', 'fc'] },
   { campo: 'lactato', alias: ['lactato'] },
   { campo: 'pas', alias: ['presion sistolica', 'sistolica', 'tension sistolica'] },
   { campo: 'pad', alias: ['presion diastolica', 'diastolica', 'tension diastolica'] },
-  { campo: 'norepi', alias: ['norepinefrina', 'noradrenalina', 'norepi'] },
+  { campo: 'norepi', alias: ['norepinefrina', 'noradrenalina', 'norepi', 'nora'] },
   { campo: 'dopa', alias: ['dopamina'] },
   { campo: 'dobu', alias: ['dobutamina'] },
   { campo: 'epi', alias: ['epinefrina', 'adrenalina'] },
@@ -143,7 +185,7 @@ const CAMPOS_UCI: { campo: string; alias: string[] }[] = [
   { campo: 'cl', alias: ['cloro'] },
   { campo: 'alb', alias: ['albumina', 'albúmina'] },
   { campo: 'glucosa', alias: ['glucosa', 'glucemia'] },
-  { campo: 'spo2', alias: ['saturacion de oxigeno', 'saturacion', 'spo2', 'sato dos'] },
+  { campo: 'spo2', alias: ['saturacion de oxigeno', 'saturacion', 'spo2', 'sato dos', 'sato2', 'sao2'] },
   { campo: 'plaquetas', alias: ['plaquetas'] },
   { campo: 'bili', alias: ['bilirrubina'] },
   { campo: 'talla', alias: ['talla', 'estatura'] },
@@ -184,10 +226,21 @@ export function extraerCategoricosUCI(texto: string): Record<string, string> {
   else if (tiene(/\bgaso\w*\s+capilar\b/) || tiene(/\bmuestra\s+capilar\b/)) out.muestra = 'capilar'
 
   // Modo ventilatorio + soporte
+  /**
+   * Los modos también se ESCRIBEN abreviados, y así es como llegan de un pase
+   * tecleado: «Modo: VC-AC», «PCV», «VCV», «PRVC». Sin estas formas, un paciente
+   * INTUBADO en volumen control caía al `else if` de «no invasiva» —porque el
+   * texto mencionaba una VNI en el plan de destete— y la nota afirmaba
+   * «Ventilación no invasiva (BiPAP)» sobre alguien intubado y en ECMO.
+   * Visto en producción el 30-jul-2026.
+   *
+   * Lo específico va ANTES que lo genérico: `vc-ac` antes que `no invasiva`.
+   */
   if (tiene(/\baprv\b|bivent/)) out.modo = 'APRV'
   else if (tiene(/\bsimv\b/)) out.modo = 'SIMV'
-  else if (tiene(/presion control|control por presion|a\/?c\s+presion|asistido controlado por presion/)) out.modo = 'AC-PC'
-  else if (tiene(/volumen control|control por volumen|a\/?c\s+volumen|asistido controlado por volumen/)) out.modo = 'AC-VC'
+  else if (tiene(/\bprvc\b|volumen control regulado por presion/)) out.modo = 'AC-VC'
+  else if (tiene(/presion control|control por presion|a\/?c\s+presion|asistido controlado por presion|\bpcv\b|\bpc[\s-]?ac\b|\bac[\s-]?pc\b/)) out.modo = 'AC-PC'
+  else if (tiene(/volumen control|control por volumen|a\/?c\s+volumen|asistido controlado por volumen|\bvcv\b|\bvc[\s-]?ac\b|\bac[\s-]?vc\b/)) out.modo = 'AC-VC'
   else if (tiene(/presion soporte|ventilacion espontanea|\bpsv\b|\bp's\b/)) out.modo = 'PSV'
   else if (tiene(/\bcpap\b/)) out.modo = 'CPAP'
   else if (tiene(/no invasiva|\bvni\b|\bbipap\b/)) out.modo = 'VNI'
@@ -287,7 +340,7 @@ export function extraerValoresUCIConAvisos(texto: string): { valores: Record<str
       // <alias> [de|a|en] <numero>  → primera coincidencia
       // \b tras cada token numérico: sin él la alternación (ordenada) captura el
       // prefijo — "cien" de "ciento", "dos" de "doscientos" → valor truncado.
-      const re = new RegExp(`\\b${an}\\b(?:\\s+(?:de|a|en|es|fue|esta en))?\\s+((?:\\d+(?:\\.\\d+)?)|(?:${NUM_RE})\\b(?:\\s+(?:y|punto|(?:${NUM_RE})\\b))*)`, 'i')
+      const re = new RegExp(`\\b${an}\\b${SEP}((?:\\d+(?:\\.\\d+)?)|(?:${NUM_RE})\\b(?:\\s+(?:y|punto|(?:${NUM_RE})\\b))*)`, 'i')
       const m = t.match(re)
       if (m) {
         const crudo = m[1]
@@ -309,7 +362,7 @@ export function extraerValoresUCIConAvisos(texto: string): { valores: Record<str
       }
       // ¿alias seguido de "punto <n>" sin entero? → decimal ambiguo (0.x vs x)
       if (ambNum === null) {
-        const ma = t.match(new RegExp(`\\b${an}\\b(?:\\s+(?:de|a|en|es|fue|esta en))?\\s+punto\\s+(${NUM_RE})`, 'i'))
+        const ma = t.match(new RegExp(`\\b${an}\\b${SEP}punto\\s+(${NUM_RE})`, 'i'))
         if (ma) ambNum = ma[1]
       }
     }
@@ -324,7 +377,7 @@ export function extraerValoresUCIConAvisos(texto: string): { valores: Record<str
   // RASS es la única escala que puede ser NEGATIVA ("menos 3"); no cabe en el
   // parser numérico general. Se extrae aparte y se acota a [−5, +4].
   if (!('rass' in valores)) {
-    const mr = t.match(/\brass\b(?:\s+(?:de|en|es|fue|esta en))?\s+(menos\s+|negativ[oa]\s+|-)?\s*(\d|cero|uno|dos|tres|cuatro|cinco)\b/i)
+    const mr = t.match(new RegExp(`\\brass\\b${SEP}(menos\\s+|negativ[oa]\\s+|-)?\\s*(\\d|cero|uno|dos|tres|cuatro|cinco)\\b`, 'i'))
     if (mr) {
       const mag = /^\d$/.test(mr[2]) ? Number(mr[2]) : Number(parsearNumeroEs(mr[2]))
       if (Number.isFinite(mag) && mag >= 0 && mag <= 5) {

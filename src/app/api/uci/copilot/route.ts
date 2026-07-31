@@ -28,7 +28,20 @@ const ANTHROPIC_VERSION = '2023-06-01'
 const MODELOS_CLAUDE = ['claude-opus-4-8', 'claude-sonnet-5', 'claude-sonnet-4-5', 'claude-3-5-sonnet-latest']
 const MODELOS_OPENAI = ['gpt-5', 'gpt-4o']
 
-async function llamarClaude(key: string, user: string): Promise<{ texto: string; model: string } | null> {
+/**
+ * Por qué esto devuelve el MOTIVO y no `null`.
+ *
+ * El 30-jul-2026 el Dr. vio en producción «ambos modelos fallaron o no hay llaves
+ * válidas» y ese mensaje mezcla TRES cosas distintas que se arreglan de tres
+ * formas distintas: la llave no sirve (401), el proveedor cortó (429/5xx), o el
+ * modelo contestó pero no en el JSON que esperamos. Un error que no distingue
+ * entre esos tres no es un error: es un encogimiento de hombros.
+ */
+type FalloIA = { ok: false; motivo: string }
+type ExitoIA = { ok: true; texto: string; model: string }
+type ResultadoIA = ExitoIA | FalloIA
+
+async function llamarClaude(key: string, user: string): Promise<ResultadoIA> {
   async function intento(model: string) {
     return fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -43,14 +56,30 @@ async function llamarClaude(key: string, user: string): Promise<{ texto: string;
   try {
     let res = await intento(MODELOS_CLAUDE[0])
     for (let i = 1; i < MODELOS_CLAUDE.length && (res.status === 404 || res.status === 400); i++) res = await intento(MODELOS_CLAUDE[i])
-    if (!res.ok) return null
+    if (!res.ok) {
+      const cuerpo = await res.text().catch(() => '')
+      safeLog.error('[uci-copilot] anthropic', { status: res.status, cuerpo: cuerpo.slice(0, 300) })
+      return { ok: false, motivo: motivoHttp('Anthropic', res.status) }
+    }
     const data = await res.json()
     const texto: string = (data.content ?? []).filter((b: { type: string }) => b.type === 'text').map((b: { text: string }) => b.text).join('') ?? ''
-    return { texto, model: data.model ?? MODELOS_CLAUDE[0] }
-  } catch { return null }
+    return { ok: true, texto, model: data.model ?? MODELOS_CLAUDE[0] }
+  } catch (e) {
+    safeLog.error('[uci-copilot] anthropic red', e)
+    return { ok: false, motivo: 'Anthropic: no se pudo conectar.' }
+  }
 }
 
-async function llamarOpenAI(key: string, user: string): Promise<{ texto: string; model: string } | null> {
+/** Traduce un código HTTP a algo que se pueda ACCIONAR. */
+function motivoHttp(proveedor: string, status: number): string {
+  if (status === 401 || status === 403) return `${proveedor}: la llave no es válida o fue revocada (${status}).`
+  if (status === 429) return `${proveedor}: límite de uso alcanzado (429). Espera un momento o revisa el saldo de tu cuenta.`
+  if (status === 402) return `${proveedor}: sin saldo en la cuenta (402).`
+  if (status >= 500) return `${proveedor}: el proveedor está caído (${status}).`
+  return `${proveedor}: rechazó la solicitud (${status}).`
+}
+
+async function llamarOpenAI(key: string, user: string): Promise<ResultadoIA> {
   async function intento(model: string) {
     return fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -61,10 +90,17 @@ async function llamarOpenAI(key: string, user: string): Promise<{ texto: string;
   try {
     let res = await intento(MODELOS_OPENAI[0])
     for (let i = 1; i < MODELOS_OPENAI.length && (res.status === 404 || res.status === 400); i++) res = await intento(MODELOS_OPENAI[i])
-    if (!res.ok) return null
+    if (!res.ok) {
+      const cuerpo = await res.text().catch(() => '')
+      safeLog.error('[uci-copilot] openai', { status: res.status, cuerpo: cuerpo.slice(0, 300) })
+      return { ok: false, motivo: motivoHttp('OpenAI', res.status) }
+    }
     const data = await res.json()
-    return { texto: data.choices?.[0]?.message?.content ?? '', model: data.model ?? MODELOS_OPENAI[0] }
-  } catch { return null }
+    return { ok: true, texto: data.choices?.[0]?.message?.content ?? '', model: data.model ?? MODELOS_OPENAI[0] }
+  } catch (e) {
+    safeLog.error('[uci-copilot] openai red', e)
+    return { ok: false, motivo: 'OpenAI: no se pudo conectar.' }
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -136,14 +172,30 @@ export async function POST(req: NextRequest) {
   }
 
   const [rc, ro] = await Promise.all([
-    anthropic.key ? llamarClaude(anthropic.key, user) : Promise.resolve(null),
-    openai.key ? llamarOpenAI(openai.key, user) : Promise.resolve(null),
+    anthropic.key ? llamarClaude(anthropic.key, user) : Promise.resolve<ResultadoIA>({ ok: false, motivo: 'Anthropic: sin llave configurada.' }),
+    openai.key ? llamarOpenAI(openai.key, user) : Promise.resolve<ResultadoIA>({ ok: false, motivo: 'OpenAI: sin llave configurada.' }),
   ])
-  const primario = rc ? parseSalidaCopilot(rc.texto) : null
-  const segunda = ro ? parseSalidaCopilot(ro.texto) : null
+  const primario = rc.ok ? parseSalidaCopilot(rc.texto) : null
+  const segunda = ro.ok ? parseSalidaCopilot(ro.texto) : null
 
   if (!primario && !segunda) {
-    return NextResponse.json({ error: 'El Copilot no pudo generar la síntesis (ambos modelos fallaron o no hay llaves válidas).' }, { status: 502 })
+    /**
+     * Se dice QUÉ pasó, por proveedor.
+     *
+     * «Ambos modelos fallaron o no hay llaves válidas» era un encogimiento de
+     * hombros: mezclaba llave inválida, proveedor caído y respuesta que no se
+     * pudo leer — tres cosas que se arreglan de tres formas distintas. Ahora cada
+     * proveedor dice lo suyo, y si contestó pero su salida no era el JSON
+     * esperado, se dice ESO, que es un fallo nuestro y no suyo.
+     */
+    const motivos = [
+      rc.ok ? 'Anthropic: respondió, pero su salida no se pudo leer como JSON.' : rc.motivo,
+      ro.ok ? 'OpenAI: respondió, pero su salida no se pudo leer como JSON.' : ro.motivo,
+    ]
+    return NextResponse.json({
+      error: `El Copilot no pudo generar la síntesis. ${motivos.join(' ')}`,
+      detalle: motivos,
+    }, { status: 502 })
   }
 
   // MEDIDOR DE CRÉDITOS: el Copilot UCI es la acción MÁS CARA (Opus + GPT en
@@ -158,8 +210,8 @@ export async function POST(req: NextRequest) {
 
   // Si el primario (Anthropic) falló pero GPT respondió, GPT pasa a ser el primario.
   const fusion = primario
-    ? fusionarCopilot(primario, segunda, { primario: rc?.model ?? null, segunda: ro?.model ?? null })
-    : fusionarCopilot(segunda, null, { primario: ro?.model ?? null, segunda: null })
+    ? fusionarCopilot(primario, segunda, { primario: rc.ok ? rc.model : null, segunda: ro.ok ? ro.model : null })
+    : fusionarCopilot(segunda, null, { primario: ro.ok ? ro.model : null, segunda: null })
 
   return NextResponse.json({ ok: true, version: COPILOT_VERSION, ...fusion })
 }
