@@ -25,6 +25,7 @@ import { nivelIADe } from '@/lib/ai-keys'
 import { snapshotUCI, buildCopilotUser, COPILOT_SYSTEM, parseSalidaCopilot, fusionarCopilot, COPILOT_VERSION } from '@/lib/uci/copilot'
 import { safeLog } from '@/lib/security/sanitize'
 import { registrarCosto } from '@/lib/finanzas/cost-ledger-server'
+import { esFundador as fundador } from '@/lib/authz/fundador'
 import { usoDe, trajoUso } from '@/lib/finanzas/medir-ia'
 
 const ANTHROPIC_VERSION = '2023-06-01'
@@ -236,8 +237,10 @@ export async function POST(req: NextRequest) {
    */
   const ts = new Date().toISOString()
   const reqId = req.headers.get('x-vercel-id') || `uci-${acceso.uid}-${Date.now()}`
-  const esFundador = (process.env.SUPERADMIN_EMAILS ?? 'docrod29@gmail.com')
-    .split(',').map(x => x.trim().toLowerCase()).includes((acceso.email ?? '').toLowerCase())
+  // Una sola definición de «fundador» para toda la plataforma: aquí vivía una
+  // copia suelta de la lista de correos, y dos listas se desincronizan el día
+  // que se agregue un socio.
+  const esFundador = fundador(acceso.email, process.env.SUPERADMIN_EMAILS)
   for (const [prov, r, fuente] of [
     ['anthropic', rc, anthropic.fuente], ['openai', ro, openai.fuente],
   ] as const) {

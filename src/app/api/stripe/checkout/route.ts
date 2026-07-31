@@ -12,6 +12,7 @@ import { safeLog } from '@/lib/security/sanitize'
 import { stripe, priceIdDe, PlanKey, type Ciclo } from '@/lib/stripe'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarCapacidad } from '@/lib/authz/verificar'
+import { planSeVende, loQueFrena, productoDe } from '@/lib/finanzas/estado-producto'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.vercel.app'
 
@@ -29,6 +30,22 @@ export async function POST(req: NextRequest) {
     }
     const acceso = await verificarCapacidad(req, clinicId, 'administrar')
     if (!acceso.ok) return acceso.response
+
+    // No se cobra un plan que entrega módulos en construcción (§BH).
+    //
+    // Este gate va en el SERVIDOR y no en la página de precios a propósito: la
+    // página ya dejó de enseñar «Hospital + UCI», pero esconder una tarjeta no
+    // cierra una ruta HTTP — este endpoint acepta el `plan` que venga en el
+    // cuerpo, y basta un POST para comprar lo que la interfaz no ofrece.
+    if (!planSeVende(plan)) {
+      const frenan = loQueFrena(plan).map(c => productoDe(c)?.nombre ?? c)
+      return NextResponse.json({
+        error: frenan.length
+          ? `El plan ${plan} todavía no está a la venta: ${frenan.join(' y ')} en desarrollo.`
+          : `El plan ${plan} no está a la venta.`,
+        enDesarrollo: frenan,
+      }, { status: 409 })
+    }
 
     const cicloEfectivo: Ciclo = ciclo === 'anual' ? 'anual' : 'mensual'
     const priceId = priceIdDe(plan, cicloEfectivo)

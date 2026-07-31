@@ -11,6 +11,7 @@
  * Solo superadmin.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { claseDeCuenta, cuentaComoIngreso } from '@/lib/authz/fundador'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarSuperadmin } from '@/lib/superadmin'
 import { PLANES, type ClavePlan } from '@/lib/planes-ia'
@@ -83,7 +84,15 @@ export async function GET(req: NextRequest) {
       const c = d.data() as Any
       const cid = d.id
       const plan = String(c.plan ?? 'trial')
-      const activa = String(c.status ?? '') === 'active' && c.paseLibre !== true
+      // El fundador y las cortesías no son ingreso, pero no son lo mismo: la
+      // cortesía es un cliente al que se sirve gratis (su costo SÍ es de
+      // operación), el fundador está construyendo el producto (I+D). Antes ambos
+      // caían en el mismo `paseLibre !== true` y el margen salía revuelto.
+      // El documento de la clínica guarda `ownerId`, no correo: al fundador se
+      // le reconoce porque la clínica es SUYA — el mismo criterio que ya usa el
+      // botón «Entrar con mi cuenta» de la consola.
+      const clase = claseDeCuenta(c, String(c.ownerId ?? '') === acc.uid)
+      const activa = String(c.status ?? '') === 'active' && cuentaComoIngreso(clase)
       let creditos = 0
       try {
         const ia = (await adminDb.doc(`clinics/${cid}/secretos/ia`).get()).data()
