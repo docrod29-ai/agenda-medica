@@ -395,6 +395,23 @@ service cloud.firestore {
       match /config/firma {
         allow read, write: if isMedico(clinicId);
       }
+
+      /**
+       * Validación médica del dataset de dosificación.
+       *
+       * Una firma dice «yo, médico responsable, cotejé esta regla contra su
+       * fuente». Sólo un MÉDICO puede firmarla: recepción o farmacia pueden
+       * necesitar LEER qué está validado, pero validar una dosis es un acto
+       * clínico y lleva nombre.
+       *
+       * Se permite `delete` a propósito, y es la única concesión: un médico tiene
+       * que poder decir «me equivoqué al validar esto». Dejarlo marcado como
+       * validado por no poder deshacerlo sería peor que borrarlo.
+       */
+      match /dosing_validations/{farmacoId} {
+        allow read: if isMember(clinicId);
+        allow write, delete: if isMedico(clinicId);
+      }
       match /config/{docId} {
         allow read: if isMember(clinicId) && docId != 'firma';
         allow create: if isMedico(clinicId);

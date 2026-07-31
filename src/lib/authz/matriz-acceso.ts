@@ -246,6 +246,13 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     porQue: 'REG-014. La firma y el sello viven en su propio documento: quien pueda escribirlos puede emitir recetas a nombre del médico, incluidas las de controlados.',
   },
   {
+    ruta: 'clinics/{clinicId}/dosing_validations/{farmacoId}',
+    clase: 'identidad_profesional',
+    guardaLectura: 'isMember',
+    guardaEscritura: 'isMedico',
+    porQue: 'La firma con la que un MEDICO declara que coteje una regla de dosificacion contra su fuente. Lectura para todo el consultorio (farmacia y enfermeria necesitan saber que esta validado y que no); escritura solo de medico, porque validar una dosis es un acto clinico y lleva nombre. Se permite delete a proposito: un medico tiene que poder retirar una validacion equivocada, y dejarla puesta por no poder deshacerla seria peor.',
+  },
+  {
     ruta: 'clinics/{clinicId}/config/{docId}',
     clase: 'administrativo',
     guardaLectura: 'isMember',
