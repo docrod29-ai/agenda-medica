@@ -64,3 +64,61 @@ describe('FHIR — export del internamiento (interoperabilidad)', () => {
     expect(fc.valueQuantity.code).toBe('/min')
   })
 })
+
+describe('Ningún signo se queda fuera del bundle', () => {
+  /**
+   * La auditoría maestra listó como pendiente clínico que el export perdía
+   * dolor/EVA, conciencia/ACVPU y aporte de O₂. Comprobado hoy: **los emite
+   * todos, con su código LOINC**. Lo que faltaba era el caso que lo demuestre.
+   *
+   * Sin él, borrar esas tres líneas del exportador no rompía nada: el fixture
+   * de arriba sólo manda TA, FC y temperatura, así que la mitad del vocabulario
+   * de signos no estaba cubierta. Un dato que sale del sistema sin que nadie
+   * compruebe que salió es un dato que se pierde el día que alguien refactoriza.
+   */
+  const completos = [{
+    id: 's9', fecha: '2026-07-01T12:00:00.000Z',
+    ta: '120/80', fc: 88, fr: 24, temp: 38.2, spo2: 91, glucosa: 180,
+    dolor: 7, conciencia: 'V' as const, oxigeno: true, oxigenoFlujoLpm: 3,
+  }]
+  const b = exportarInternamientoAFhir({ paciente, internamiento, notas: [], signos: completos, config: null })
+  const codigos = b.entry
+    .filter(e => e.resource.resourceType === 'Observation')
+    .map(e => (e.resource as { code?: { coding?: { code?: string }[] } }).code?.coding?.[0]?.code)
+
+  it('los diez signos salen, cada uno con su LOINC', () => {
+    for (const [loinc, que] of [
+      ['85354-9', 'tensión arterial'], ['8867-4', 'frecuencia cardiaca'],
+      ['9279-1', 'frecuencia respiratoria'], ['8310-5', 'temperatura'],
+      ['2708-6', 'saturación'], ['2339-0', 'glucosa'],
+      ['72514-3', 'dolor/EVA'], ['80288-4', 'conciencia/ACVPU'],
+      ['3150-1', 'O₂ suplementario'], ['3151-8', 'flujo de O₂'],
+    ] as const) {
+      expect(codigos, `falta ${que} (${loinc})`).toContain(loinc)
+    }
+  })
+
+  it('el valor viaja, no sólo el código', () => {
+    // Un Observation con su LOINC y sin valor pasa por completo y no dice nada.
+    const de = (loinc: string) => b.entry.find(e =>
+      (e.resource as { code?: { coding?: { code?: string }[] } }).code?.coding?.[0]?.code === loinc)?.resource as Record<string, unknown>
+    expect((de('72514-3').valueQuantity as { value?: number })?.value).toBe(7)
+    expect(de('80288-4').valueString).toBe('V')
+    expect(de('3150-1').valueBoolean).toBe(true)
+    expect((de('3151-8').valueQuantity as { value?: number })?.value).toBe(3)
+  })
+
+  it('un signo ausente NO inventa un cero', () => {
+    // «Vacío no es 0»: exportar un dolor 0 que nadie midió afirma que no dolía.
+    const soloTa = exportarInternamientoAFhir({
+      paciente, internamiento, notas: [],
+      signos: [{ id: 's8', fecha: '2026-07-01T12:00:00.000Z', ta: '120/80' }],
+      config: null,
+    })
+    const cods = soloTa.entry
+      .filter(e => e.resource.resourceType === 'Observation')
+      .map(e => (e.resource as { code?: { coding?: { code?: string }[] } }).code?.coding?.[0]?.code)
+    expect(cods).not.toContain('72514-3')
+    expect(cods).not.toContain('80288-4')
+  })
+})

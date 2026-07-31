@@ -206,8 +206,16 @@ function EstadoCumplimiento({ clinicId, bitacora, arcoList, onCopiarLink }: { cl
 function Seguridad2FAResumen() {
   const [activo, setActivo] = useState(false)
   useEffect(() => {
-    import('firebase/auth').then(({ multiFactor }) => {
-      const u = (require('@/lib/firebase') as { auth: { currentUser: unknown } }).auth.currentUser
+    /**
+     * Los DOS por import dinámico.
+     *
+     * Aquí había un `require()` colgado dentro del `then`, que además de estar
+     * prohibido por el analizador mezclaba dos formas de cargar en la misma
+     * línea. Se resuelven juntos: la promesa espera a los dos y no hay carga
+     * síncrona escondida en medio de una asíncrona.
+     */
+    void Promise.all([import('firebase/auth'), import('@/lib/firebase')]).then(([{ multiFactor }, { auth }]) => {
+      const u = auth.currentUser
       if (!u) return
       try {
         const mfa = multiFactor(u as Parameters<typeof multiFactor>[0])

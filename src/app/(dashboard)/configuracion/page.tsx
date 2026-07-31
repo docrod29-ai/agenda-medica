@@ -2277,7 +2277,7 @@ function EmbedSnippets({ url, clinicNombre }: { url: string; clinicNombre: strin
 
       <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8 }}>
         <Lightbulb size={12} className="ds-icon" style={{ display: 'inline', verticalAlign: '-2px' }} /> Tip: Si usas <strong>WordPress</strong>, pega el código en un bloque <em>HTML personalizado</em>.
-        En <strong>Wix/Squarespace</strong> busca el elemento "Código embebido".
+        En <strong>Wix/Squarespace</strong> busca el elemento &laquo;Código embebido&raquo;.
       </div>
     </div>
   )

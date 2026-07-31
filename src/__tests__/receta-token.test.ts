@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { createHmac } from 'node:crypto'
 import { crearTokenReceta, verificarTokenReceta, linkVerificacionReceta } from '@/lib/receta-token'
 
 const base = { clinicId: 'clinicA', notaId: 'nota123', folio: 'R-0001', doctorNombre: 'Dr. Prueba', cedula: '1234567' }
@@ -56,7 +57,6 @@ describe('receta-token', () => {
     const t = crearTokenReceta(base)
     const [payloadB64] = t.split('.')
     // firma SIN el prefijo de dominio → inválida
-    const { createHmac } = require('node:crypto') as typeof import('node:crypto')
     const secret = process.env.PORTAL_PACIENTE_SECRET || 'dev-portal-secret-no-usar-en-produccion-0123456789'
     const firmaSinDominio = createHmac('sha256', secret).update(payloadB64).digest('base64url')
     expect(verificarTokenReceta(`${payloadB64}.${firmaSinDominio}`)).toBeNull()
@@ -100,7 +100,6 @@ describe('receta-token', () => {
    * o esos QRs dirían "No verificable" de un día para otro.
    */
   it('un token LEGADO v=1 (payload armado a mano) sigue verificando', () => {
-    const { createHmac } = require('node:crypto') as typeof import('node:crypto')
     const secret = process.env.PORTAL_PACIENTE_SECRET || 'dev-portal-secret-no-usar-en-produccion-0123456789'
     const ahora = Math.floor(Date.now() / 1000)
     const payload = { v: 1, c: 'clinicA', n: 'nota123', f: 'R-0001', dn: 'Dr. Prueba', dc: '1234567', i: ahora, e: ahora + 86400 }
