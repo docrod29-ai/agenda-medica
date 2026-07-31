@@ -20,7 +20,8 @@ import admin, { adminDb } from '@/lib/firebase-admin'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA, registrarUso, registrarCreditos, creditosAgotados, pruebaAgotada } from '@/lib/ai-keys'
-import { COSTO_CREDITOS } from '@/lib/planes-ia'
+import { COSTO_CREDITOS, COPILOT_UCI_POR_MOTOR, motorPorClave, motorPorDefecto } from '@/lib/planes-ia'
+import { nivelIADe } from '@/lib/ai-keys'
 import { snapshotUCI, buildCopilotUser, COPILOT_SYSTEM, parseSalidaCopilot, fusionarCopilot, COPILOT_VERSION } from '@/lib/uci/copilot'
 import { safeLog } from '@/lib/security/sanitize'
 
@@ -41,7 +42,14 @@ type FalloIA = { ok: false; motivo: string }
 type ExitoIA = { ok: true; texto: string; model: string; truncado?: boolean }
 type ResultadoIA = ExitoIA | FalloIA
 
-async function llamarClaude(key: string, user: string): Promise<ResultadoIA> {
+const MODELOS_POR_MOTOR: Record<string, string[]> = {
+  rapida: ['claude-haiku-4-5-20251001', 'claude-haiku-4-5', 'claude-sonnet-5'],
+  estandar: ['claude-sonnet-5', 'claude-sonnet-4-6', 'claude-sonnet-4-5'],
+  maxima: MODELOS_CLAUDE,
+}
+
+async function llamarClaude(key: string, user: string, motorClave = 'maxima'): Promise<ResultadoIA> {
+  const lista = MODELOS_POR_MOTOR[motorClave] ?? MODELOS_CLAUDE
   async function intento(model: string) {
     return fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -66,8 +74,8 @@ async function llamarClaude(key: string, user: string): Promise<ResultadoIA> {
     })
   }
   try {
-    let res = await intento(MODELOS_CLAUDE[0])
-    for (let i = 1; i < MODELOS_CLAUDE.length && (res.status === 404 || res.status === 400); i++) res = await intento(MODELOS_CLAUDE[i])
+    let res = await intento(lista[0])
+    for (let i = 1; i < lista.length && (res.status === 404 || res.status === 400); i++) res = await intento(lista[i])
     if (!res.ok) {
       const cuerpo = await res.text().catch(() => '')
       safeLog.error('[uci-copilot] anthropic', { status: res.status, cuerpo: cuerpo.slice(0, 300) })
@@ -78,9 +86,9 @@ async function llamarClaude(key: string, user: string): Promise<ResultadoIA> {
     // Si el modelo se quedó sin espacio, se dice — no se hace pasar por «no se
     // pudo leer», que apunta al sitio equivocado.
     if (data.stop_reason === 'max_tokens') {
-      return { ok: true, texto, model: data.model ?? MODELOS_CLAUDE[0], truncado: true }
+      return { ok: true, texto, model: data.model ?? lista[0], truncado: true }
     }
-    return { ok: true, texto, model: data.model ?? MODELOS_CLAUDE[0] }
+    return { ok: true, texto, model: data.model ?? lista[0] }
   } catch (e) {
     safeLog.error('[uci-copilot] anthropic red', e)
     return { ok: false, motivo: 'Anthropic: no se pudo conectar.' }
@@ -132,6 +140,8 @@ export async function POST(req: NextRequest) {
     campos?: Record<string, string>
     discusion?: string
     tendencias?: string
+    /** ⚡ rapida · ⭐ estandar · 💎 maxima. Igual que en la nota de consulta. */
+    motor?: string
     internamientoId?: string
     feedback?: { rating?: 'up' | 'down'; preferencia?: string; snapshotHash?: string }
   }
@@ -188,9 +198,29 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  /**
+   * EL MÉDICO ELIGE EL MOTOR, igual que en la nota de consulta.
+   *
+   * Antes el Copilot tenía UN solo precio: Opus y GPT-5 en paralelo, siempre, 7
+   * créditos. Eso hacía que un pase de rutina pagara lo mismo que el caso
+   * difícil, y con 500 créditos daba para 59 pases si se usaba en todos.
+   *
+   * Lo que se paga de más NO es «un modelo mejor»: es un SEGUNDO CEREBRO. Pedirle
+   * a dos modelos distintos que razonen el mismo caso y enseñar sus desacuerdos
+   * vale para el paciente complicado y sobra para confirmar que un
+   * postoperatorio va bien. Ahora eso se elige.
+   */
+  const nivel = await nivelIADe(acceso.clinicId ?? null).catch(() => 'pro' as const)
+  const motor = body.motor ? motorPorClave(body.motor) : motorPorDefecto(nivel)
+  const cfg = COPILOT_UCI_POR_MOTOR[motor.clave]
+
   const [rc, ro] = await Promise.all([
-    anthropic.key ? llamarClaude(anthropic.key, user) : Promise.resolve<ResultadoIA>({ ok: false, motivo: 'Anthropic: sin llave configurada.' }),
-    openai.key ? llamarOpenAI(openai.key, user) : Promise.resolve<ResultadoIA>({ ok: false, motivo: 'OpenAI: sin llave configurada.' }),
+    (cfg.anthropic && anthropic.key)
+      ? llamarClaude(anthropic.key, user, motor.clave)
+      : Promise.resolve<ResultadoIA>({ ok: false, motivo: cfg.anthropic ? 'Anthropic: sin llave configurada.' : 'Anthropic: no se pidió en este motor.' }),
+    (cfg.openai && openai.key)
+      ? llamarOpenAI(openai.key, user)
+      : Promise.resolve<ResultadoIA>({ ok: false, motivo: cfg.openai ? 'OpenAI: sin llave configurada.' : 'Segunda opinión: no se pidió en este motor (sólo en 💎 Máxima).' }),
   ])
   const primario = rc.ok ? parseSalidaCopilot(rc.texto) : null
   const segunda = ro.ok ? parseSalidaCopilot(ro.texto) : null
@@ -222,7 +252,7 @@ export async function POST(req: NextRequest) {
   // paralelo, ~$10/turno). Se cobra su costo real en créditos (antes valía 0 = la
   // mayor fuga de dinero). Se cobra una vez por turno cuando respondió ≥1 modelo.
   if (acceso.clinicId && (rc || ro)) {
-    registrarCreditos(acceso.clinicId, COSTO_CREDITOS.copilotUci).catch(() => {})
+    registrarCreditos(acceso.clinicId, cfg.creditos).catch(() => {})
     // Atribuir el uso a la fuente del modelo que REALMENTE respondió (si Anthropic
     // no tenía llave pero OpenAI sí consumió la env del dueño, no marcarlo 'ninguna').
     registrarUso(acceso.clinicId, rc ? anthropic.fuente : openai.fuente).catch(() => {})

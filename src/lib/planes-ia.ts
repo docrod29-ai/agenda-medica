@@ -85,6 +85,24 @@ export const motorPorClave = (c?: string): Motor => MOTORES[(c as ClaveMotor)] ?
 export const motorPorDefecto = (n: NivelIA): Motor => (n === 'premium' ? MOTORES.maxima : MOTORES.estandar)
 
 /**
+ * Qué modelos usa el Copilot de UCI en cada motor.
+ *
+ * La diferencia que se paga NO es «un modelo mejor»: es cuántos cerebros
+ * razonan el caso. En Máxima son dos modelos distintos en paralelo y sus
+ * desacuerdos se muestran; en Rápida es uno solo y rápido.
+ */
+export const COPILOT_UCI_POR_MOTOR: Record<ClaveMotor, {
+  creditos: number; anthropic: boolean; openai: boolean; descripcion: string
+}> = {
+  rapida: { creditos: 1, anthropic: true, openai: false,
+    descripcion: 'Un modelo veloz. Para el pase de rutina.' },
+  estandar: { creditos: 3, anthropic: true, openai: false,
+    descripcion: 'Un modelo de razonamiento. Para el paciente que se mueve.' },
+  maxima: { creditos: 7, anthropic: true, openai: true,
+    descripcion: 'Dos modelos en paralelo y sus desacuerdos a la vista. Para el caso difícil.' },
+}
+
+/**
  * COSTO EN CRÉDITOS de acciones que NO son la nota. El Consultor de evidencia
  * (doble cerebro Claude+GPT) es ligero; gasta del MISMO bote pero poco.
  */
@@ -94,6 +112,22 @@ export const COSTO_CREDITOS = {
   // El Copilot de UCI llama a Opus + GPT EN PARALELO por turno (dual-model, ~$10):
   // es la acción más cara del sistema. NO puede valer 0 créditos (era la mayor fuga).
   copilotUci: 7,
+  /**
+   * El Copilot de UCI, POR MOTOR — el médico elige, igual que en la nota.
+   *
+   * Antes sólo existía un precio: 7 créditos, con Opus y GPT-5 en paralelo
+   * SIEMPRE. Eso convertía la acción más cara del sistema en la única sin
+   * alternativa: un pase de rutina pagaba lo mismo que el caso difícil, y con
+   * 500 créditos daba para 59 pases si se usaba en todos.
+   *
+   * Ahora la síntesis rutinaria cuesta 1 y la de máximo razonamiento 7. La
+   * diferencia real está en la SEGUNDA OPINIÓN: pedirle a dos modelos distintos
+   * que razonen el mismo caso vale para el paciente complicado y sobra para
+   * confirmar que un postoperatorio va bien.
+   */
+  copilotUciRapida: 1,
+  copilotUciEstandar: 3,
+  copilotUciMaxima: 7,
   // ── Acciones de IA que antes valían 0 créditos (fuga de dinero icu-007) ──
   // Cada llamada a un modelo/proveedor tiene costo real que corría con la llave del
   // dueño sin cobrarse. Ahora cada acción quema créditos (passthrough del gasto).

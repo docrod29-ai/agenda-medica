@@ -19,6 +19,7 @@ import { useClinic } from '@/context/ClinicContext'
 import { useToast } from '@/context/ToastContext'
 import { fetchAutenticado } from '@/lib/auth-client'
 import type { FusionCopilot } from '@/lib/uci/copilot'
+import { MOTORES, COPILOT_UCI_POR_MOTOR, type ClaveMotor } from '@/lib/planes-ia'
 import { getInternamiento } from '@/lib/hospital/firestore'
 import { getPatient } from '@/lib/firestore'
 import { construirSeccionesUCI } from '@/lib/uci/nota'
@@ -392,12 +393,24 @@ export default function UciPanelPage() {
         toast('La lectura se guardó en este dispositivo, pero no se pudo enviar al expediente', 'error')
       })
   }
+  /**
+   * El médico elige con qué motor razona el Copilot, igual que en la nota.
+   *
+   * ⚡ un modelo veloz (1 crédito) · ⭐ un modelo de razonamiento (3) ·
+   * 💎 dos modelos en paralelo con sus desacuerdos a la vista (7).
+   *
+   * Lo que se paga de más no es «un modelo mejor»: es un SEGUNDO CEREBRO, y eso
+   * vale para el caso difícil y sobra para confirmar que un postoperatorio va
+   * bien. Antes no se podía elegir: todo pase costaba lo del caso difícil.
+   */
+  const [motorCopilot, setMotorCopilot] = useState<ClaveMotor>('estandar')
+
   const pedirCopilot = async () => {
     setCopilotCargando(true); setCopilotError(''); setCopilot(null); setFeedbackDado(null)
     try {
       const res = await fetchAutenticado('/api/uci/copilot', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'generar', campos: v, discusion: discusionTxt || undefined, tendencias: resumenCambios(cambios) || undefined, internamientoId }),
+        body: JSON.stringify({ action: 'generar', motor: motorCopilot, campos: v, discusion: discusionTxt || undefined, tendencias: resumenCambios(cambios) || undefined, internamientoId }),
       })
       const j = await res.json()
       if (!res.ok) { setCopilotError(j?.error || 'No se pudo generar la síntesis'); return }
@@ -938,6 +951,24 @@ export default function UciPanelPage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 14 }}>
             <Brain size={17} style={{ color: 'var(--nexus)' }} /> Copilot IA · síntesis por sistemas
+          </div>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginRight: 8 }}>
+            {(['rapida', 'estandar', 'maxima'] as const).map(k => {
+              const m = MOTORES[k]
+              const c = COPILOT_UCI_POR_MOTOR[k]
+              return (
+                <button
+                  key={k} onClick={() => setMotorCopilot(k)}
+                  title={`${c.descripcion} · ${c.creditos} ${c.creditos === 1 ? 'crédito' : 'créditos'}`}
+                  style={{
+                    padding: '5px 10px', borderRadius: 6, fontSize: 12, cursor: 'pointer',
+                    border: '1px solid var(--border2)',
+                    background: motorCopilot === k ? 'var(--teal)' : 'transparent',
+                    color: motorCopilot === k ? '#fff' : 'var(--text2)',
+                  }}
+                >{m.emoji} {m.nombre} · {c.creditos}</button>
+              )
+            })}
           </div>
           <button onClick={pedirCopilot} disabled={copilotCargando} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, opacity: copilotCargando ? 0.7 : 1 }}>
             <Sparkles size={15} />{copilotCargando ? 'Razonando…' : copilot ? 'Regenerar' : 'Generar síntesis'}
