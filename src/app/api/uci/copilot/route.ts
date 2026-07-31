@@ -38,7 +38,7 @@ const MODELOS_OPENAI = ['gpt-5', 'gpt-4o']
  * entre esos tres no es un error: es un encogimiento de hombros.
  */
 type FalloIA = { ok: false; motivo: string }
-type ExitoIA = { ok: true; texto: string; model: string }
+type ExitoIA = { ok: true; texto: string; model: string; truncado?: boolean }
 type ResultadoIA = ExitoIA | FalloIA
 
 async function llamarClaude(key: string, user: string): Promise<ResultadoIA> {
@@ -47,7 +47,19 @@ async function llamarClaude(key: string, user: string): Promise<ResultadoIA> {
       method: 'POST',
       headers: { 'x-api-key': key, 'anthropic-version': ANTHROPIC_VERSION, 'content-type': 'application/json' },
       body: JSON.stringify({
-        model, max_tokens: 4000,
+        /**
+         * 16 000, no 4 000.
+         *
+         * Con el panel VACÍO la síntesis cabía y el Copilot funcionaba. Con el
+         * panel LLENO —21 campos, seis alertas, las escalas calculadas— la
+         * respuesta se pasaba de 4 000 tokens y llegaba **cortada a media
+         * llave**: un JSON truncado no se puede leer, y el médico veía «el
+         * Copilot no pudo generar la síntesis» justo cuando había MÁS datos que
+         * sintetizar. Al revés de lo que uno esperaría, y por eso costó verlo.
+         *
+         * La nota de consulta ya usaba 24 000 por la misma razón.
+         */
+        model, max_tokens: 16000,
         system: [{ type: 'text', text: COPILOT_SYSTEM, cache_control: { type: 'ephemeral' } }],
         messages: [{ role: 'user', content: user }],
       }),
@@ -63,6 +75,11 @@ async function llamarClaude(key: string, user: string): Promise<ResultadoIA> {
     }
     const data = await res.json()
     const texto: string = (data.content ?? []).filter((b: { type: string }) => b.type === 'text').map((b: { text: string }) => b.text).join('') ?? ''
+    // Si el modelo se quedó sin espacio, se dice — no se hace pasar por «no se
+    // pudo leer», que apunta al sitio equivocado.
+    if (data.stop_reason === 'max_tokens') {
+      return { ok: true, texto, model: data.model ?? MODELOS_CLAUDE[0], truncado: true }
+    }
     return { ok: true, texto, model: data.model ?? MODELOS_CLAUDE[0] }
   } catch (e) {
     safeLog.error('[uci-copilot] anthropic red', e)
@@ -84,7 +101,7 @@ async function llamarOpenAI(key: string, user: string): Promise<ResultadoIA> {
     return fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages: [{ role: 'system', content: COPILOT_SYSTEM }, { role: 'user', content: user }], response_format: { type: 'json_object' }, max_completion_tokens: 4000 }),
+      body: JSON.stringify({ model, messages: [{ role: 'system', content: COPILOT_SYSTEM }, { role: 'user', content: user }], response_format: { type: 'json_object' }, max_completion_tokens: 16000 }),
     })
   }
   try {
@@ -188,9 +205,12 @@ export async function POST(req: NextRequest) {
      * proveedor dice lo suyo, y si contestó pero su salida no era el JSON
      * esperado, se dice ESO, que es un fallo nuestro y no suyo.
      */
+    const ilegible = (p: string, r: ExitoIA) => r.truncado
+      ? `${p}: la respuesta se cortó por longitud antes de cerrar.`
+      : `${p}: respondió, pero su salida no se pudo leer como JSON.`
     const motivos = [
-      rc.ok ? 'Anthropic: respondió, pero su salida no se pudo leer como JSON.' : rc.motivo,
-      ro.ok ? 'OpenAI: respondió, pero su salida no se pudo leer como JSON.' : ro.motivo,
+      rc.ok ? ilegible('Anthropic', rc) : rc.motivo,
+      ro.ok ? ilegible('OpenAI', ro) : ro.motivo,
     ]
     return NextResponse.json({
       error: `El Copilot no pudo generar la síntesis. ${motivos.join(' ')}`,

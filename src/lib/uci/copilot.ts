@@ -141,11 +141,66 @@ export interface SalidaCopilot {
 }
 
 /** Extrae el JSON de una respuesta de modelo (tolerante a texto alrededor). */
+/**
+ * Cierra un JSON que se quedó a medias.
+ *
+ * Cuando el modelo se queda sin espacio, la respuesta llega cortada a media
+ * llave y `JSON.parse` la rechaza entera: ocho problemas bien razonados se
+ * tiraban a la basura porque el noveno venía partido. Aquí se recorta hasta el
+ * último elemento COMPLETO y se cierran las estructuras abiertas.
+ *
+ * No se inventa contenido: sólo se cierran comillas, corchetes y llaves que el
+ * modelo dejó abiertos, y lo que quedó a medias se descarta. Es preferible una
+ * síntesis parcial y declarada a ninguna síntesis.
+ */
+function cerrarJsonTruncado(t: string): string | null {
+  let dentroDeTexto = false, escapado = false
+  const pila: string[] = []
+  let ultimoCompleto = -1
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i]
+    if (escapado) { escapado = false; continue }
+    if (c === '\\') { escapado = true; continue }
+    if (c === '"') { dentroDeTexto = !dentroDeTexto; continue }
+    if (dentroDeTexto) continue
+    if (c === '{' || c === '[') pila.push(c === '{' ? '}' : ']')
+    else if (c === '}' || c === ']') {
+      pila.pop()
+      // Un elemento de primer nivel dentro de un arreglo acaba de cerrarse.
+      if (pila.length <= 2) ultimoCompleto = i
+    }
+  }
+  if (pila.length === 0) return t                    // no estaba truncado
+  if (ultimoCompleto < 0) return null                // no hay nada completo que salvar
+  let salvado = t.slice(0, ultimoCompleto + 1)
+  // Recalcular lo que queda abierto tras el recorte.
+  const abiertas: string[] = []
+  let str = false, esc = false
+  for (const c of salvado) {
+    if (esc) { esc = false; continue }
+    if (c === '\\') { esc = true; continue }
+    if (c === '"') { str = !str; continue }
+    if (str) continue
+    if (c === '{') abiertas.push('}')
+    else if (c === '[') abiertas.push(']')
+    else if (c === '}' || c === ']') abiertas.pop()
+  }
+  while (abiertas.length) salvado += abiertas.pop()
+  return salvado
+}
+
 export function parseSalidaCopilot(texto: string): SalidaCopilot | null {
-  const m = texto.match(/\{[\s\S]*\}/)
+  const m = texto.match(/\{[\s\S]*\}/) ?? texto.match(/\{[\s\S]*/)
   if (!m) return null
+  const crudo = m[0]
+  let fuente = crudo
+  try { JSON.parse(crudo) } catch {
+    const reparado = cerrarJsonTruncado(crudo)
+    if (!reparado) return null
+    fuente = reparado
+  }
   try {
-    const o = JSON.parse(m[0]) as Partial<SalidaCopilot>
+    const o = JSON.parse(fuente) as Partial<SalidaCopilot>
     return {
       resumen: typeof o.resumen === 'string' ? o.resumen : '',
       problemas: Array.isArray(o.problemas) ? o.problemas as ProblemaCopilot[] : [],
