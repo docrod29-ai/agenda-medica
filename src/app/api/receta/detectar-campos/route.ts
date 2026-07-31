@@ -3,7 +3,7 @@ import { esFundador } from '@/lib/authz/fundador'
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { resolverClaveIA, creditosAgotados } from '@/lib/ai-keys'
+import { resolverClaveIA, gateCreditos } from '@/lib/ai-keys'
 
 /**
  * IA de visión: recibe la imagen del FORMATO de receta del médico y detecta dónde
@@ -50,9 +50,15 @@ export async function POST(req: NextRequest) {
 
   const { key, fuente, clinicId } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
   if (!key) return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada.' }, { status: 503 })
-  if (fuente === 'prueba' && await creditosAgotados(clinicId)) {
-    return NextResponse.json({ ok: false, sinCreditos: true, error: 'Se acabaron tus créditos con IA del mes. Compra más o sube de plan.' }, { status: 402 })
-  }
+  /**
+   * El gate COMPARTIDO, no uno propio.
+   *
+   * Aquí había una comprobación a mano de `creditosAgotados` que se saltaba el
+   * tope de PRUEBA: una cuenta en cortesía con el cupo consumido seguía llamando
+   * a la API del dueño. `gateCreditos` mira las dos cosas, y es el mismo criterio
+   * que el resto de las rutas — dos gates distintos acaban discrepando.
+   */
+  const _corte = await gateCreditos(clinicId, fuente); if (_corte) return _corte
 
   let body: { imagenBase64?: string; mediaType?: string }
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }

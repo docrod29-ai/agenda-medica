@@ -8,8 +8,9 @@
  * que la UI pida confirmación. Reutiliza el parseo de números en español.
  */
 import { parsearNumeroEs } from '@/lib/voz/comandos-uci'
+import { num } from '@/lib/uci/num'
 
-export const EXTRACCION_UCI_VERSION = '1.1.0'  // icu-005: plausibilidad + firewall de ambigüedad
+export const EXTRACCION_UCI_VERSION = '1.2.0'  // A5: la coma decimal mexicana ya no se trunca («pH 7,35» era 7)
 
 /** Unidades canónicas de UCI y sus variantes dictadas/escritas. */
 const UNIDADES: { canonica: string; variantes: string[] }[] = [
@@ -126,10 +127,24 @@ export function parsearValorClinico(texto: string): ValorClinico {
 
   // Extraer el número embebido en la frase (dígitos o palabras, con "punto").
   // El dígito debe estar SUELTO: el "2" de "FiO2" no es un valor (va pegado a letra).
-  const mDig = t.match(/(?<![a-z])(\d+(?:\.\d+)?)(?![a-z])/)
+  /**
+   * La COMA también es separador decimal.
+   *
+   * Antes el patrón sólo aceptaba el punto, así que «pH 7,35» extraía **7** y
+   * «peso 82,4 kg» extraía **82**: el decimal se perdía en silencio y el valor
+   * quedaba plausible, que es lo peor. Un pH de 7 en vez de 7.35 es la
+   * diferencia entre una acidosis grave y un paciente normal, y nada en la
+   * pantalla decía que se había recortado.
+   *
+   * La conversión va por `num()`, que ya sabe distinguir la coma decimal de la
+   * de miles: «12,5» es 12.5 pero «1,200» es 1200 — tres dígitos exactos detrás
+   * de la coma son miles, y una glucosa de 1,200 leída como 1.2 dispararía una
+   * alerta de hipoglucemia en plena hiperglucemia.
+   */
+  const mDig = t.match(/(?<![a-z])(\d+(?:[.,]\d+)?)(?![a-z])/)
   let valor: number | null = null
   if (mDig) {
-    valor = Number(mDig[1])
+    valor = num(mDig[1])
   } else {
     // Busca una secuencia de palabras-número (p.ej. "ocho", "cero punto cuatro",
     // "treinta y cinco") aunque venga precedida de la etiqueta ("peep ocho").
@@ -137,7 +152,7 @@ export function parsearValorClinico(texto: string): ValorClinico {
     const m = t.match(new RegExp(`\\b(?:${NUM})(?:\\s+(?:y|punto|${NUM}))*`))
     if (m) {
       const s = parsearNumeroEs(m[0])
-      if (s !== null) valor = Number(s)
+      if (s !== null) valor = num(s)
     }
   }
 

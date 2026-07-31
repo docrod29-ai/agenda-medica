@@ -52,3 +52,30 @@ describe('parsearValorClinico', () => {
     expect(r.ambiguo).toBe(true)
   })
 })
+
+describe('La coma decimal mexicana no se pierde', () => {
+  it('«pH 7,35» es 7.35, no 7', () => {
+    /**
+     * A5 de la auditoría maestra. El patrón sólo aceptaba el punto, así que el
+     * decimal se truncaba **en silencio** y el valor quedaba plausible — que es
+     * lo peor que puede pasar: un pH de 7 en lugar de 7.35 es la diferencia
+     * entre una acidosis grave y un paciente normal, y nada en la pantalla
+     * decía que se había recortado.
+     */
+    expect(parsearValorClinico('pH 7,35').valor).toBe(7.35)
+    expect(parsearValorClinico('PEEP 12,5').valor).toBe(12.5)
+    expect(parsearValorClinico('peso 82,4 kg').valor).toBe(82.4)
+  })
+
+  it('pero «1,200» siguen siendo mil doscientos', () => {
+    // Tres dígitos exactos detrás de la coma son MILES. Leerlo como 1.2
+    // dispararía una alerta de hipoglucemia en plena hiperglucemia.
+    expect(parsearValorClinico('glucosa 1,200').valor).toBe(1200)
+    expect(parsearValorClinico('plaquetas 118,000').valor).toBe(118000)
+  })
+
+  it('y el punto sigue funcionando igual', () => {
+    expect(parsearValorClinico('12.5').valor).toBe(12.5)
+    expect(parsearValorClinico('FiO2 60').valor).toBe(60)
+  })
+})

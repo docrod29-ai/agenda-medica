@@ -108,5 +108,25 @@ jobs:
           NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ci-build.appspot.com
           NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '000000000000'
           NEXT_PUBLIC_FIREBASE_APP_ID: '1:000000000000:web:0000000000000000000000'
-# NOTA: `npm run lint` aún NO se agrega como gate: el repo tiene ~128 errores de lint
-# pendientes de limpieza (P2). Meterlo bloquearía el CI. Se añadirá tras la limpieza.
+
+  # ── A1 de la auditoría maestra: el lint YA es un gate ─────────────────────
+  #
+  # Exigir cero errores haría nacer el gate en rojo, y un gate que nadie puede
+  # poner en verde se marca `continue-on-error` y deja de proteger — es lo que
+  # pasó con el de ADRs hasta que se le puso trinquete.
+  #
+  # Así que la deuda se CONGELA en `docs/audit/lint-techo.json` y sólo puede
+  # bajar. Si sube, el CI dice EN QUÉ ARCHIVO se añadió. Si baja, también falla:
+  # pide apretar el trinquete, porque un margen que no se aprieta se lo come el
+  # siguiente descuido.
+  lint:
+    name: lint (trinquete)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node scripts/lint-trinquete.mjs
