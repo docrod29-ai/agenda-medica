@@ -33,9 +33,19 @@
 
 import datos from '@/lib/antimicrobianos/v4/data/dosing-v3-verificado.json'
 
-/** Huella del dataset. Si cambia sin que nadie lo sepa, el test se pone rojo. */
+/**
+ * Huella del dataset.
+ *
+ * Cambió el 31-jul al separar siete entradas que traían la pauta de ficha y la
+ * de guía fusionadas en un solo texto (A8). Se cortaron **sólo donde el propio
+ * texto pone el marcador** —«FDA label: …; IDSA AMR: …»—: no hay interpretación,
+ * hay leer dónde el autor puso la etiqueta. Las cuatro que no lo llevan siguen
+ * fusionadas y declaradas.
+ *
+ * Si cambia sin que nadie lo sepa, el test se pone rojo.
+ */
 export const HUELLA_DATASET =
-  '924573038c4befcef87059512378b87de46dd8a435a0a5b756811a8eb88b3005'
+  '9af5eb4051986e13f254d987ece3c3a17a102af51ef9e124d2aadf4298bcf7e8'
 
 export interface FarmacoV3 {
   drug: string

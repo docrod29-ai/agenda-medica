@@ -43,14 +43,15 @@ describe('RULE_SOURCE_SEPARATION: la ficha y la guía no se fusionan', () => {
   })
 
   it('cuando difieren de verdad, se dice', () => {
+    // De 3 a 10 al separar las siete entradas que venían fusionadas (A8).
     const distintos = FARMACOS.filter(f => f.label_regimen.trim() !== f.guideline_regimen.trim())
-    expect(distintos.length).toBe(3)   // sólo 3 de 49 hoy
+    expect(distintos.length).toBe(10)
     for (const f of distintos) {
       expect(reglas(resolveDoseRule({ farmaco: f.drug }))).toContain('RULE_SOURCE_SEPARATION')
     }
   })
 
-  it('DEFECTO DEL DATASET: 11 entradas traen ficha y guía FUSIONADAS', () => {
+  it('DEFECTO DEL DATASET: quedan 4 entradas con ficha y guía FUSIONADAS', () => {
     /**
      * `RULE_SOURCE_SEPARATION` es una regla HARD del propio dataset —«guardar la
      * dosis de ficha y la de guía en campos SEPARADOS; si difieren, mostrar las
@@ -67,21 +68,33 @@ describe('RULE_SOURCE_SEPARATION: la ficha y la guía no se fusionan', () => {
      * La lista va explícita: si mañana se arregla una, este caso se pone rojo y
      * hay que bajar el número a conciencia — que es lo que se quiere.
      */
+    /**
+     * Eran once. Siete se separaron cortando **donde el propio texto pone el
+     * marcador** («FDA label: …; IDSA AMR: …»): ahí no hay que interpretar nada,
+     * hay que leer dónde el autor puso la etiqueta.
+     *
+     * Las cuatro que quedan no lo llevan. Ceftriaxona dice «Meningitis commonly
+     * uses 2 g q12h (syndrome-specific guideline/label context)» — «guideline/
+     * label» A LA VEZ: no se sabe de cuál es, y adivinarlo sería justo lo que la
+     * regla prohíbe.
+     */
     const fus = FARMACOS.filter(fusionadas).map(f => f.drug).sort()
-    expect(fus).toHaveLength(11)
-    expect(fus).toContain('Ceftazidime-avibactam')
-    expect(fus).toContain('Ceftriaxone')
+    expect(fus).toEqual([
+      'Ampicillin-sulbactam', 'Ceftriaxone', 'Fosfomycin IV', 'Nafcillin/Oxacillin class pathway',
+    ])
     for (const d of fus) {
       const r = resolveDoseRule({ farmaco: d })
       expect(r.avisos.some(a => /fusionadas/.test(a.texto)), d).toBe(true)
     }
   })
 
-  it('46 de 49 tienen los dos campos IDÉNTICOS: la regla casi no se ejercita', () => {
-    // No es un error por sí solo, pero explica por qué la separación de fuentes
-    // todavía no aporta nada en la práctica: la V4 tiene que llenarla.
+  it('la separación de fuentes ya se ejercita en 10 entradas, no en 3', () => {
+    // Antes 46 de 49 tenían los dos campos idénticos y la regla no servía de
+    // nada en la práctica. Ahora hay diez pares distintos de verdad — entre
+    // ellos tigeciclina (50 mg de ficha contra 100 de la pauta alta) y
+    // pivmecilinam (185 contra 370), donde confundirlos importa.
     const iguales = FARMACOS.filter(f => f.label_regimen.trim() === f.guideline_regimen.trim())
-    expect(iguales).toHaveLength(46)
+    expect(iguales).toHaveLength(39)
   })
 })
 
