@@ -1,5 +1,5 @@
 'use client'
-import { createContext, useContext, useRef, useCallback, useSyncExternalStore } from 'react'
+import { createContext, useContext, useRef, useCallback, useSyncExternalStore, useState } from 'react'
 
 /**
  * Almacén REACTIVO de tareas en curso (pensamientos de IA) que vive en el layout
@@ -32,7 +32,16 @@ class TareaStore {
 const Ctx = createContext<TareaStore | null>(null)
 
 export function TareasProvider({ children }: { children: React.ReactNode }) {
-  const store = useRef<TareaStore>(new TareaStore()).current
+  /**
+   * `useState` con función, no `useRef(new …)`.
+   *
+   * `useRef(new TareaStore())` construye un store EN CADA RENDER y tira todos
+   * menos el primero — desperdicio silencioso—, y además lee `.current` durante
+   * el render, que es lo que React prohíbe. Con `useState(() => …)` el
+   * constructor corre UNA vez y la identidad del objeto es la misma durante toda
+   * la vida del componente, que es exactamente lo que se buscaba.
+   */
+  const [store] = useState(() => new TareaStore())
   return <Ctx.Provider value={store}>{children}</Ctx.Provider>
 }
 

@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { validarNOM004 } from '@/lib/expediente/nom004'
-import type { NotaMedica } from '@/types/expediente'
+/**
+ * Los fixtures son PARCIALES A PROPÓSITO: el test comprueba qué campos FALTAN,
+ * así que el objeto incompleto ES el caso de prueba. Se afirma el tipo real en
+ * vez de `any` para que un cambio del modelo rompa aquí y no en producción.
+ */
+import type { NotaMedica, MetadataNOM024, Medicamento } from '@/types/expediente'
 
 /** Fabrica una nota mínima válida; cada prueba sobreescribe lo que necesita.
  *  Se castea porque el validador solo lee un subconjunto de NotaMedica. */
@@ -28,13 +33,13 @@ describe('validarNOM004 — campos obligatorios', () => {
   })
 
   it('exige identificación del médico', () => {
-    const r = validarNOM004(nota({ metadata: { cedulaProfesional: '123' } as any }))
+    const r = validarNOM004(nota({ metadata: { cedulaProfesional: '123' } as MetadataNOM024 }))
     expect(r.valida).toBe(false)
     expect(r.errores).toContain('Falta identificación del médico')
   })
 
   it('exige cédula profesional', () => {
-    const r = validarNOM004(nota({ metadata: { medicoId: 'm' } as any }))
+    const r = validarNOM004(nota({ metadata: { medicoId: 'm' } as MetadataNOM024 }))
     expect(r.errores).toContain('Falta cédula profesional del médico')
   })
 
@@ -45,7 +50,7 @@ describe('validarNOM004 — campos obligatorios', () => {
 
   it('marca sección obligatoria vacía con su label', () => {
     const r = validarNOM004(nota({
-      secciones: [{ key: 'subjetivo', label: 'Subjetivo', value: '   ', obligatorio: true } as any],
+      secciones: [{ key: 'subjetivo', label: 'Subjetivo', value: '   ', obligatorio: true } as never],
     }))
     expect(r.errores).toContain('Falta: Subjetivo')
   })
@@ -60,8 +65,8 @@ describe('validarNOM004 — cruce alergia↔medicamento (regresión del bug de a
   it('BUG FIX: una alergia con alérgeno vacío NO marca falsa alergia en cada medicamento', () => {
     const r = validarNOM004(nota({
       medicamentos: [
-        { nombre: 'Paracetamol', dosis: '500 mg', via: 'oral', frecuencia: 'c/8h', duracion: '5 días' } as any,
-        { nombre: 'Omeprazol', dosis: '20 mg', via: 'oral', frecuencia: 'c/24h', duracion: '14 días' } as any,
+        { nombre: 'Paracetamol', dosis: '500 mg', via: 'oral', frecuencia: 'c/8h', duracion: '5 días' } as Medicamento,
+        { nombre: 'Omeprazol', dosis: '20 mg', via: 'oral', frecuencia: 'c/24h', duracion: '14 días' } as Medicamento,
       ],
       alergias: [{ alergeno: '', tipo: 'medicamento', reaccion: '', severidad: 'leve', confirmada: false }],
     }))
@@ -73,7 +78,7 @@ describe('validarNOM004 — cruce alergia↔medicamento (regresión del bug de a
 
   it('una alergia real SÍ marca el medicamento correspondiente', () => {
     const r = validarNOM004(nota({
-      medicamentos: [{ nombre: 'Penicilina G', dosis: '1 MU', via: 'iv', frecuencia: 'c/6h', duracion: '7 días' } as any],
+      medicamentos: [{ nombre: 'Penicilina G', dosis: '1 MU', via: 'iv', frecuencia: 'c/6h', duracion: '7 días' } as Medicamento],
       alergias: [{ alergeno: 'Penicilina', tipo: 'medicamento', reaccion: 'rash', severidad: 'moderada', confirmada: true }],
     }))
     expect(r.errores.some(e => e.includes('Posible alergia'))).toBe(true)
@@ -82,7 +87,7 @@ describe('validarNOM004 — cruce alergia↔medicamento (regresión del bug de a
 
   it('SEGURIDAD CRUZADA: alergia a penicilina + cefalosporina bloquea la firma (antes se escapaba)', () => {
     const r = validarNOM004(nota({
-      medicamentos: [{ nombre: 'Cefalexina', dosis: '500 mg', via: 'oral', frecuencia: 'c/8h', duracion: '7 días' } as any],
+      medicamentos: [{ nombre: 'Cefalexina', dosis: '500 mg', via: 'oral', frecuencia: 'c/8h', duracion: '7 días' } as Medicamento],
       alergias: [{ alergeno: 'Penicilina', tipo: 'medicamento', reaccion: 'urticaria', severidad: 'moderada', confirmada: true }],
     }))
     // El match por subcadena NO ve "penicilina" en "cefalexina"; el matcher por familias sí.
@@ -92,7 +97,7 @@ describe('validarNOM004 — cruce alergia↔medicamento (regresión del bug de a
 
   it('un alérgeno de una o dos letras no dispara falsos positivos', () => {
     const r = validarNOM004(nota({
-      medicamentos: [{ nombre: 'Amoxicilina', dosis: '500 mg', via: 'oral', frecuencia: 'c/8h', duracion: '7 días' } as any],
+      medicamentos: [{ nombre: 'Amoxicilina', dosis: '500 mg', via: 'oral', frecuencia: 'c/8h', duracion: '7 días' } as Medicamento],
       alergias: [{ alergeno: 'a', tipo: 'medicamento', reaccion: '', severidad: 'leve', confirmada: false }],
     }))
     expect(r.errores.some(e => e.includes('Posible alergia'))).toBe(false)
@@ -108,7 +113,7 @@ describe('validarNOM004 — advertencias y completitud', () => {
   it('advierte diagnóstico infeccioso sin antimicrobiano en primera vez', () => {
     const r = validarNOM004(nota({
       tipo: 'primera_vez',
-      diagnosticos: [{ descripcion: 'Neumonía adquirida en comunidad', tipo: 'definitivo', estado: 'activo' } as any],
+      diagnosticos: [{ descripcion: 'Neumonía adquirida en comunidad', tipo: 'definitivo', estado: 'activo' } as never],
       medicamentos: [],
     }))
     expect(r.advertencias.some(a => a.includes('sin tratamiento antimicrobiano'))).toBe(true)
