@@ -85,6 +85,37 @@ export const PROPUESTAS: readonly PropuestaAsistente[] = [
     unidad: 'mg', tipoMaximo: 'CONTEXTUAL',
     fuente: 'Etiquetado adulto estándar',
     razon: '2 g q12h habitual (4 g/día); 2 g q8h en neutropenia febril y pseudomonas (6 g/día), techo del etiquetado.' },
+  /**
+   * MENINGITIS tiene su propia entrada, y por eso existe todo este motor.
+   *
+   * Con sólo el tope general, 2 g cada 12 h —la pauta de libro en el SNC— salía
+   * como «por encima de lo habitual» cada vez. Verificado en pantalla el
+   * 31-jul. Una alerta que salta en lo que se hace siempre enseña a ignorarla, y
+   * el día que la alerta tenga razón tampoco se va a leer.
+   *
+   * Las cifras salen del propio dataset: «Meningitis commonly uses 2 g q12h» y
+   * «max 4 g/day», que son 4 000 mg y coinciden.
+   */
+  { farmaco: 'Ceftriaxone', indicacion: 'meningitis',
+    usualMaxPorDosis: 2000, usualMaxPorDia: 4000, absolutoMaxPorDia: 4000,
+    unidad: 'mg', tipoMaximo: 'CONTEXTUAL',
+    fuente: 'Dataset V3: «Meningitis commonly uses 2 g q12h» + «max 4 g/day»',
+    razon: '2 g cada 12 h son 4 g/día, que es exactamente el máximo escrito. Es la pauta habitual EN ESTA indicación, no una dosis alta.' },
+  { farmaco: 'Cefepime', indicacion: 'neutropenia febril',
+    usualMaxPorDosis: 2000, usualMaxPorDia: 6000, absolutoMaxPorDia: 6000,
+    unidad: 'mg', tipoMaximo: 'CONTEXTUAL',
+    fuente: 'Etiquetado adulto estándar',
+    razon: '2 g cada 8 h son 6 g/día: la pauta de la indicación, no una excepción. Sin esta entrada saltaría un aviso en cada neutropénico.' },
+  { farmaco: 'Meropenem', indicacion: 'meningitis',
+    usualMaxPorDosis: 2000, usualMaxPorDia: 6000, absolutoMaxPorDia: 6000,
+    unidad: 'mg', tipoMaximo: 'CONTEXTUAL',
+    fuente: 'Etiquetado adulto estándar + IDSA 2026 AMR',
+    razon: '2 g cada 8 h son 6 g/día, que es la pauta del SNC y a la vez el techo del etiquetado.' },
+  { farmaco: 'Ceftolozane-tazobactam', indicacion: 'neumonía nosocomial',
+    usualMaxPorDosis: 3000, usualMaxPorDia: 9000, absolutoMaxPorDia: 9000,
+    unidad: 'mg', tipoMaximo: 'CONTEXTUAL',
+    fuente: 'Etiquetado adulto estándar',
+    razon: '3 g cada 8 h en HABP/VABP: el DOBLE que en vía urinaria. Sin esta entrada, cada neumonía nosocomial daría aviso.' },
   { farmaco: 'Ceftriaxone', indicacion: '*',
     usualMaxPorDosis: 2000, usualMaxPorDia: 2000,
     contextualMaxPorDosis: 2000, contextualMaxPorDia: 4000, absolutoMaxPorDia: 4000,
