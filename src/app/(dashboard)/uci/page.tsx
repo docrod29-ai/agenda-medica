@@ -8,7 +8,7 @@
  * panel SEPARADO de la nota. Ningún cálculo lo hace la IA. Si falta un dato, el
  * motor lo declara y no inventa. Gateado bajo el módulo de Expediente (consulta).
  */
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import LandingUci from './LandingUci'
 import ResumenPase from './ResumenPase'
 import Verificacion from './Verificacion'
@@ -508,6 +508,25 @@ export default function UciPanelPage() {
    * máquina entra en una nota que se firma sin que alguien lo decida.
    */
   const [planCopilot, setPlanCopilot] = useState('')
+
+  /**
+   * ¿Este paciente tiene CKRT / ECMO?
+   *
+   * El Dr., viendo el panel: «siento que es algo confuso y debe ayudar al médico,
+   * no confundirlo». Tenía razón, y la causa no era falta de IA: eran TREINTA
+   * campos vacíos y tres «bloqueado» de un soporte que este paciente NO LLEVA.
+   *
+   * Un panel que pregunta por el flujo del dializado de alguien que no está
+   * dializado no está pidiendo un dato: está ocupando la pantalla.
+   *
+   * Se muestra el formulario cuando el soporte está DECLARADO en el episodio o
+   * cuando ya hay algún dato suyo capturado — porque si el médico lo dictó, lo
+   * quiere ver aunque nadie haya marcado la casilla.
+   */
+  const hayDato = useCallback((prefijo: string) =>
+    Object.entries(v).some(([k, val]) => k.startsWith(prefijo) && String(val ?? '').trim() !== ''), [v])
+  const usaCkrt = (soportes?.includes('ckrt') ?? false) || hayDato('ckrt') || hayDato('ciCa')
+  const usaEcmo = (soportes?.includes('ecmo') ?? false) || hayDato('ecmo')
   useEffect(() => {
     try { const g = localStorage.getItem('nx.uci.formatoNota'); if (g === 'lista' || g === 'narrativa') setFormatoNota(g) } catch { /* */ }
   }, [])
@@ -1183,7 +1202,14 @@ export default function UciPanelPage() {
           <Waves size={16} style={{ color: 'var(--nexus)' }} /> Soportes extracorpóreos · CKRT / PRISMA · ECMO
         </summary>
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 14 }} className="nx-uci-grid">
-          {/* CKRT */}
+          {/* CKRT — sólo si el paciente la lleva. Ver `usaCkrt`. */}
+          {!usaCkrt ? (
+            <SoporteApagado
+              icon={Droplets} titulo="CKRT / PRISMA"
+              descripcion="Este paciente no tiene terapia continua registrada."
+              onEncender={() => alternarSoporte('ckrt')}
+            />
+          ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <Bloque icon={Droplets} titulo="CKRT / PRISMA">
               <Selector label="Modalidad" k="ckrtMod" v={v} set={set} w={130} opciones={[
@@ -1210,8 +1236,16 @@ export default function UciPanelPage() {
               <Campo label="Ca total" k="ciCaTot" v={v} set={set} sufijo="mmol/L" w={110} />
             </Bloque>
           </div>
+          )}
 
-          {/* ECMO */}
+          {/* ECMO — sólo si el paciente lo lleva. */}
+          {!usaEcmo ? (
+            <SoporteApagado
+              icon={HeartPulse} titulo="ECMO / ECLS"
+              descripcion="Este paciente no tiene soporte extracorpóreo registrado."
+              onEncender={() => alternarSoporte('ecmo')}
+            />
+          ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <Bloque icon={HeartPulse} titulo="ECMO / ECLS">
               <Selector label="Configuración" k="ecmoConf" v={v} set={set} w={130} opciones={[
@@ -1256,11 +1290,46 @@ export default function UciPanelPage() {
               </div>
             </div>
           </div>
+          )}
         </div>
       </details>
       </>)}
 
       <style>{`@media (max-width: 820px){ .nx-uci-grid { grid-template-columns: 1fr !important; } }`}</style>
     </main>
+  )
+}
+
+/**
+ * Un soporte que este paciente NO lleva.
+ *
+ * En vez de treinta campos vacíos y tres «bloqueado», una línea que dice lo que
+ * pasa y un botón para encenderlo si hace falta. El panel deja de preguntar por
+ * el flujo del dializado de alguien que no está dializado.
+ */
+function SoporteApagado({ icon: Icon, titulo, descripcion, onEncender }: {
+  icon: typeof Droplets
+  titulo: string
+  descripcion: string
+  onEncender: () => void
+}) {
+  return (
+    <div style={{
+      background: 'var(--s1)', border: '1px dashed var(--border2)', borderRadius: 14,
+      padding: 16, display: 'flex', flexDirection: 'column', gap: 8,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 13.5, color: 'var(--text2)' }}>
+        <Icon size={15} style={{ color: 'var(--text3)' }} /> {titulo}
+      </div>
+      <div style={{ fontSize: 12.5, color: 'var(--text3)', lineHeight: 1.5 }}>{descripcion}</div>
+      <button
+        onClick={onEncender}
+        style={{
+          alignSelf: 'flex-start', padding: '6px 12px', borderRadius: 7, fontSize: 12.5,
+          border: '1px solid var(--border2)', background: 'transparent',
+          color: 'var(--text2)', cursor: 'pointer',
+        }}
+      >Activar {titulo.split(' ')[0]}</button>
+    </div>
   )
 }
