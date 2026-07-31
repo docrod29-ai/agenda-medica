@@ -5,6 +5,8 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { esSuperadminCliente } from '@/lib/superadmin-client'
 import { limpiarBorradoresLocales, limpiarAudioLocal } from '@/lib/mobile/local-drafts'
+import { limpiarZonaConsultorio, fijarZonaConsultorio } from '@/lib/timezone'
+import { getConfig } from '@/lib/firestore'
 import { useClinic } from '@/context/ClinicContext'
 import { Sidebar } from '@/components/Sidebar'
 import { ToastProvider } from '@/context/ToastContext'
@@ -196,7 +198,7 @@ function AccesoGate({ estado, clinicId, esMedico, email }: { estado: 'sin_tarjet
             Pago seguro con Stripe · Cancela cuando quieras · ¿Tienes código <strong>FUNDADOR</strong>? Aplícalo en el pago.
           </div>
         )}
-        <button onClick={() => { limpiarBorradoresLocales(); limpiarAudioLocal(); import('@/lib/firebase').then(({ auth }) => auth.signOut()) }}
+        <button onClick={() => { limpiarBorradoresLocales(); limpiarAudioLocal(); limpiarZonaConsultorio(); import('@/lib/firebase').then(({ auth }) => auth.signOut()) }}
           style={{ marginTop: 22, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}>
           Cerrar sesión
         </button>
@@ -227,6 +229,26 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
     loginRegistradoRef.current = marca
     logAudit({ evento: 'login_exitoso', clinicId, meta: { rol: role ?? null } }).catch(() => {})
   }, [user, clinicId, role])
+
+  /**
+   * Publica la zona horaria del consultorio en cuanto hay sesión.
+   *
+   * `useConfig` ya la publica, pero sólo lo usan 22 de las pantallas: una que no
+   * lo llame se quedaba con México central en su PRIMERA carga. Aquí se hace una
+   * vez por sesión, en el layout que todas comparten, y queda recordada para las
+   * siguientes cargas de ese navegador.
+   *
+   * Es una lectura del mismo documento que ya leen esas 22 pantallas, así que el
+   * SDK la sirve de su caché.
+   */
+  const zonaFijadaRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!clinicId || zonaFijadaRef.current === clinicId) return
+    zonaFijadaRef.current = clinicId
+    getConfig(clinicId)
+      .then(c => { fijarZonaConsultorio(c?.zonaHoraria) })
+      .catch(() => { /* sin zona: se sigue con TZ_DEFAULT, como hasta ahora */ })
+  }, [clinicId])
   const { mode } = useMode()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -308,7 +330,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
               Reintentar
             </button>
             <button
-              onClick={() => { limpiarBorradoresLocales(); limpiarAudioLocal(); import('@/lib/firebase').then(({ auth }) => auth.signOut()).finally(() => { window.location.href = '/login' }) }}
+              onClick={() => { limpiarBorradoresLocales(); limpiarAudioLocal(); limpiarZonaConsultorio(); import('@/lib/firebase').then(({ auth }) => auth.signOut()).finally(() => { window.location.href = '/login' }) }}
               style={{
                 background: 'none', border: '1px solid var(--border)', color: 'var(--text2)',
                 borderRadius: 10, padding: '11px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer',

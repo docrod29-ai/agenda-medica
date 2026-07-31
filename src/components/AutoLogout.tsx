@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { limpiarBorradoresLocales, limpiarAudioLocal } from '@/lib/mobile/local-drafts'
+import { limpiarZonaConsultorio } from '@/lib/timezone'
 
 /**
  * Cierre automático de sesión por inactividad (control de seguridad LFPDPPP /
@@ -45,6 +46,7 @@ export function AutoLogout() {
     // …2º dejarle un momento, y solo entonces purgar lo local y salir.
     setTimeout(() => {
       limpiarBorradoresLocales() // localStorage + pestillo anti-resurrección
+      limpiarZonaConsultorio()   // si entra otro consultorio, no hereda la zona del anterior
       import('@/lib/firebase').then(async ({ auth, limpiarCacheFirestore }) => {
         try { await auth.signOut() } finally {
           // Grueso del PHI en disco: audio crudo + caché offline de Firestore (IndexedDB).

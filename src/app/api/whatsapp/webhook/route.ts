@@ -31,7 +31,7 @@ import {
 } from '@/lib/whatsapp/consent'
 import { registrarEntrante } from '@/lib/whatsapp/contacts'
 import { parsearStatuses, registrarStatus } from '@/lib/whatsapp/status'
-import { hoyISO, sumarDiasISO } from '@/lib/timezone'
+import { hoyISO, sumarDiasISO, TZ_DEFAULT } from '@/lib/timezone'
 // Del NÚCLEO PURO: ruta de SERVIDOR — ver el comentario de cabecera de
 // time-blocks-core.ts (el SDK del cliente se inicializa al importarse).
 import { estaBloqueado, type TimeBlock } from '@/lib/time-blocks-core'
@@ -128,8 +128,16 @@ function formatDate(fecha: string): string {
   return d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
-function todayStr(): string {
-  return hoyISO()  // zona MX, no UTC del servidor (Vercel corre en UTC)
+/**
+ * Hoy en la zona del CONSULTORIO.
+ *
+ * `tz` es obligatoria a propósito: esto corre en el servidor, donde una misma
+ * función atiende a muchos consultorios y no existe «la zona actual». Sin ella,
+ * el bot ofrecía los días libres contando desde el día de México central: en
+ * Tijuana (UTC-8), a partir de las 22:00 locales ya proponía el día siguiente.
+ */
+function todayStr(tz: string): string {
+  return hoyISO(tz)  // no el UTC del servidor: Vercel corre en UTC
 }
 
 function addDays(dateStr: string, n: number): string {
@@ -801,7 +809,7 @@ async function getAvailableDays(clinicId: string, duracionStr: string, config: C
   if (!config) return []
   const duracion = parseInt(duracionStr || '30')
   const days: string[] = []
-  let cursor = todayStr()
+  let cursor = todayStr(config.zonaHoraria || TZ_DEFAULT)
 
   // Get all appointments for next 14 days
   const endDate = addDays(cursor, 14)

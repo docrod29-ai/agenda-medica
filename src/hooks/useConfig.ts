@@ -4,6 +4,7 @@ import { doc, onSnapshot } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { ClinicConfig, DEFAULT_CONFIG } from '@/types'
 import { useClinic } from '@/context/ClinicContext'
+import { fijarZonaConsultorio } from '@/lib/timezone'
 
 export function useConfig() {
   const { clinicId } = useClinic()
@@ -28,7 +29,24 @@ export function useConfig() {
     const unsub = onSnapshot(
       doc(db, 'clinics', clinicId, 'config', 'main'),
       (snap) => {
-        if (snap.exists()) setConfig({ ...DEFAULT_CONFIG, ...snap.data() } as ClinicConfig)
+        if (snap.exists()) {
+          const cfg = { ...DEFAULT_CONFIG, ...snap.data() } as ClinicConfig
+          setConfig(cfg)
+          /**
+           * Publica la zona del consultorio para TODA la app.
+           *
+           * Sin esto, 40 llamadas a `hoyISO()`, `fechaISOLocal()` y compañía caían
+           * a México/UTC-6 aunque el consultorio estuviera en Tijuana (UTC-8) o
+           * Hermosillo (UTC-7) — zonas que la propia pantalla de configuración
+           * ofrece. Nadie veía un error: sólo el corte de caja cerrando el día
+           * equivocado y «hoy» saltando a mañana un par de horas antes.
+           *
+           * Se hace SÓLO cuando el documento existe: con la config por omisión
+           * todavía no sabemos dónde está el consultorio, y publicar una suposición
+           * es peor que no publicar nada.
+           */
+          fijarZonaConsultorio(cfg.zonaHoraria)
+        }
         setError(null)
         setLoading(false)
       },

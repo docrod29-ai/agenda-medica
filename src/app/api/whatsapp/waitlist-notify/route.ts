@@ -17,7 +17,7 @@ import { verificarMiembro } from '@/lib/auth-server'
 import { ClinicConfig, WaitlistEntry } from '@/types'
 import { enviarProactivo } from '@/lib/whatsapp/proactivo'
 import { encolarReintento } from '@/lib/whatsapp/outbox'
-import { hoyISO } from '@/lib/timezone'
+import { hoyISO, TZ_DEFAULT } from '@/lib/timezone'
 import { normalizarTelefonoWa } from '@/lib/whatsapp/consent'
 
 function formatDate(fecha: string): string {
@@ -106,7 +106,9 @@ export async function POST(req: NextRequest) {
         textoLibre: msg,
         waConfig,
         ahoraMs: Date.now(),
-        fechaHoyMx: hoyISO(),
+        // La zona REAL del consultorio: el tope diario por contacto se cuenta
+        // por su día, no por el de México central (Tijuana cierra 2 h antes).
+        fechaHoyMx: hoyISO(config.zonaHoraria || TZ_DEFAULT),
       })
       if (resultado === 'enviado') {
         notified++

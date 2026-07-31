@@ -9,7 +9,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
-import { instanteMX } from '@/lib/timezone'
+import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 import { adminDb } from '@/lib/firebase-admin'
 import { getDaySchedule, validarHorarioDia } from '@/lib/availability'
 // Del NÚCLEO PURO: esta ruta corre en el SERVIDOR y `time-blocks` arrastra el SDK
@@ -81,14 +81,6 @@ export async function POST(req: NextRequest) {
      * `instanteMX` ya existe justo para esto — el cron de recordatorios tuvo el
      * mismo bug y así se resolvió.
      */
-    // Nota: la config aún no se ha cargado aquí; la validación de "fecha pasada"
-    // usa la zona por defecto (México central). El bloqueo (abajo) sí usa la zona
-    // real de la clínica, que es donde importa el desfase del norte.
-    const fechaHoraDt = instanteMX(fecha, hora)
-    if (isNaN(fechaHoraDt.getTime()) || fechaHoraDt.getTime() < Date.now()) {
-      return NextResponse.json({ ok: false, error: 'No se puede agendar en el pasado' }, { status: 400 })
-    }
-
     const clinicRef = adminDb.collection('clinics').doc(clinicId)
     // Resiliencia (igual que /api/public/clinic): el doc padre puede ser
     // "virtual" en Firestore aunque la config exista. Validamos por config.
@@ -120,6 +112,26 @@ export async function POST(req: NextRequest) {
     }
     const duracion = Number((cfg.duraciones ?? {})[tipo] ?? 30)
 
+    /**
+     * La validación de «fecha pasada» va AQUÍ, no arriba con las de forma.
+     *
+     * Arriba la configuración todavía no se ha leído, así que `instanteMX` caía a
+     * México central. El propio comentario que había lo declaraba y lo dejaba
+     * pasar: «el bloqueo sí usa la zona real, que es donde importa». No es cierto
+     * — en Tijuana (UTC-8) esta comprobación va dos horas adelantada, y el día que
+     * se habiliten reservas del mismo día rechazaría como «pasado» un hueco que
+     * todavía no ha llegado.
+     *
+     * Movida aquí, ya se conoce `cfg.zonaHoraria`. El coste es una lectura de
+     * Firestore antes de rechazar una fecha pasada; el límite de peticiones ya se
+     * aplicó mucho antes, así que no abre nada.
+     */
+    const tzClinica = cfg.zonaHoraria || TZ_DEFAULT
+    const fechaHoraDt = instanteMX(fecha, hora, tzClinica)
+    if (isNaN(fechaHoraDt.getTime()) || fechaHoraDt.getTime() < Date.now()) {
+      return NextResponse.json({ ok: false, error: 'No se puede agendar en el pasado' }, { status: 400 })
+    }
+
     const fechaHora = `${fecha} ${hora}`
 
     // RE-VALIDAR el slot en el SERVIDOR (no confiar en que el cliente solo mande
@@ -134,7 +146,7 @@ export async function POST(req: NextRequest) {
     }
     const bloquesSnap = await clinicRef.collection('time_blocks').get()
     const bloques = bloquesSnap.docs.map(d => ({ id: d.id, ...d.data() })) as unknown as import('@/lib/time-blocks-core').TimeBlock[]
-    if (estaBloqueado(fechaHora, bloques, medicoId, cfg.zonaHoraria || 'America/Mexico_City')) {
+    if (estaBloqueado(fechaHora, bloques, medicoId, tzClinica)) {
       return NextResponse.json({ ok: false, error: 'Ese horario no está disponible (bloqueo/ausencia)' }, { status: 409 })
     }
 
