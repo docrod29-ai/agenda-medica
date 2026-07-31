@@ -349,10 +349,21 @@ export interface EstadoClaves {
   /** Medidor de CRÉDITOS del mes (L1 auditoría maestra): antes el cliente solo veía
    *  'total'/'prueba' (telemetría), nunca cuánto llevaba del BOTE de créditos. */
   creditos: { usados: number; extra: number; limite: number }
+  /**
+   * QUÉ LLAVE SE ESTÁ USANDO DE VERDAD.
+   *
+   * Sin esto, la pantalla decía «configurada ····igAA» y nada más — nunca decía
+   * si esa llave era la que efectivamente se llamaba. El 31-jul-2026 esa
+   * ambigüedad costó una tarde: la de Vercel estaba rotada y al día, la del
+   * consultorio estaba muerta y ganaba, y desde la pantalla no había forma de
+   * saberlo. Y para el dueño el estado «○ modo prueba» era directamente falso:
+   * corre sobre la llave de la plataforma SIN tope, que es otra cosa.
+   */
+  fuenteEfectiva: Record<ProveedorIA, FuenteLlave>
 }
 
 /** Estado ENMASCARADO de las llaves + uso del mes (lo que sí puede ver el cliente). */
-export async function estadoClavesIA(clinicId: string): Promise<EstadoClaves> {
+export async function estadoClavesIA(clinicId: string, uid?: string): Promise<EstadoClaves> {
   const d = (await docIA(clinicId).get()).data() ?? {}
   const mk = (k?: string) => (k && k.trim())
     ? { configurada: true, hint: '····' + k.trim().slice(-4) }
@@ -367,9 +378,27 @@ export async function estadoClavesIA(clinicId: string): Promise<EstadoClaves> {
     ])
     creditos = { usados: Math.round(usados * 10) / 10, extra, limite: ent.limiteCreditos }
   } catch { /* si falla la lectura, medidor en 0 (no bloquea la config) */ }
+  /**
+   * La MISMA cascada que `resolverClaveIA`, no una copia con buena intención.
+   * Si la pantalla dedujera la fuente por su cuenta, acabaría diciendo una cosa
+   * mientras el servidor hace otra — que es exactamente el fallo que se está
+   * arreglando aquí, sólo que un nivel más arriba.
+   */
+  const fundador = await uidEsFundador(uid)
+  const deLaPlataforma: FuenteLlave = fundador ? 'fundador' : 'prueba'
+  const efectiva = (propia: unknown, env?: string): FuenteLlave =>
+    (typeof propia === 'string' && propia.trim()) ? 'clinica'
+      : (env && env.trim()) ? deLaPlataforma
+        : 'ninguna'
+
   return {
     claves: {
       anthropic: mk(d.anthropic), assemblyai: mk(d.assemblyai), openai: mk(d.openai),
+    },
+    fuenteEfectiva: {
+      anthropic: efectiva(d.anthropic, process.env.ANTHROPIC_API_KEY),
+      assemblyai: efectiva(d.assemblyai, process.env.ASSEMBLYAI_API_KEY),
+      openai: efectiva(d.openai, process.env.OPENAI_API_KEY),
     },
     uso: { total: u.total ?? 0, prueba: u.prueba ?? 0, limitePrueba: LIMITE_PRUEBA },
     creditos,

@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
   const acceso = await verificarMiembro(req, clinicId)
   if (!acceso.ok) return acceso.response
   try {
-    return NextResponse.json({ ok: true, ...(await estadoClavesIA(clinicId)) })
+    return NextResponse.json({ ok: true, ...(await estadoClavesIA(clinicId, acceso.uid)) })
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })
   }
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
   if (!acceso.ok) return acceso.response
   try {
     await guardarClaveIA(clinicId, proveedor as ProveedorIA, key ?? '')
-    return NextResponse.json({ ok: true, ...(await estadoClavesIA(clinicId)) })
+    return NextResponse.json({ ok: true, ...(await estadoClavesIA(clinicId, acceso.uid)) })
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })
   }
