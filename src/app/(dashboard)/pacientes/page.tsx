@@ -1,7 +1,7 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
-import { Patient } from '@/types'
-import { getPatients, createPatient, updatePatient } from '@/lib/firestore'
+import { useState, useEffect, useMemo, useRef } from 'react'
+import { Patient, type ClinicConfig } from '@/types'
+import { getPatients, createPatient, updatePatient, getConfig } from '@/lib/firestore'
 import { getNotas } from '@/lib/expediente/firestore'
 import { edadEnAnios } from '@/lib/expediente/pediatria'
 import { getCenso } from '@/lib/hospital/firestore'
@@ -13,6 +13,7 @@ import { Plus, Search, X, Users, Phone, AlertCircle, FileText, Calendar, Pencil,
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { PageHeader, Button, EmptyState, Spinner, Modal } from '@/components/ui'
+import { AvisoPrivacidadModal } from '@/components/AvisoPrivacidadModal'
 import { ExpedienteVacio } from '@/components/brand/EmptyArt'
 import { avatarColor } from '@/lib/avatar-color'
 
@@ -361,6 +362,30 @@ function PatientModal({ patient, onClose, onSaved, userEmail }: {
   const { clinicId } = useClinic()
   const { mode } = useMode()
   const [saving, setSaving] = useState(false)
+  /**
+   * El modal se resuelve con una promesa para poder ESPERARLO dentro del
+   * guardado, en vez de partir el flujo en dos caminos.
+   */
+  const [avisoAbierto, setAvisoAbierto] = useState(false)
+  /**
+   * La configuración del consultorio, para que el aviso lleve SU razón social y
+   * SU domicilio. El modal acepta `null` y cae a un texto genérico, pero un
+   * aviso de privacidad sin el nombre del responsable del tratamiento no
+   * identifica a nadie — que es justo lo que el aviso tiene que hacer.
+   */
+  const [config, setConfig] = useState<ClinicConfig | null>(null)
+  useEffect(() => {
+    if (!clinicId) return
+    void getConfig(clinicId).then(setConfig).catch(() => setConfig(null))
+  }, [clinicId])
+  const resolverAviso = useRef<((v: Patient['avisoPrivacidad'] | null) => void) | null>(null)
+  const pedirAviso = (): Promise<Patient['avisoPrivacidad'] | null> =>
+    new Promise(res => { resolverAviso.current = res; setAvisoAbierto(true) })
+  const cerrarAviso = (v: Patient['avisoPrivacidad'] | null) => {
+    setAvisoAbierto(false)
+    resolverAviso.current?.(v)
+    resolverAviso.current = null
+  }
   const [f, setF] = useState({
     nombre: patient?.nombre ?? '',
     telefono: patient?.telefono ?? '',
@@ -457,8 +482,25 @@ function PatientModal({ patient, onClose, onSaved, userEmail }: {
           )
           if (!seguir) { setSaving(false); return }
         }
-        await createPatient(clinicId!, payload)
-        toast('Paciente registrado', 'success')
+        /**
+         * AVISO DE PRIVACIDAD antes de crear el expediente.
+         *
+         * El portal público SÍ lo pedía; el alta EN EL CONSULTORIO no, y es la
+         * puerta por la que entran casi todos. El modal existía desde hace
+         * tiempo —con `medioInicial: 'presencial'` de fábrica, o sea escrito
+         * justo para esto— y no lo montaba ninguna pantalla.
+         *
+         * LFPDPPP Art. 9: los datos de salud son sensibles y exigen
+         * consentimiento EXPRESO. Un expediente abierto sin él es un
+         * incumplimiento que no se ve, porque el sistema funciona igual.
+         *
+         * No bloquea: si se cancela, el paciente se registra igual y queda SIN
+         * consentimiento anotado, que es la verdad. Fingir uno que no se dio
+         * sería peor que no tenerlo.
+         */
+        const consentimiento = await pedirAviso()
+        await createPatient(clinicId!, consentimiento ? { ...payload, avisoPrivacidad: consentimiento } : payload)
+        toast(consentimiento ? 'Paciente registrado' : 'Paciente registrado — sin aviso de privacidad', consentimiento ? 'success' : 'info')
       }
       onSaved()
     } catch {
@@ -551,6 +593,14 @@ function PatientModal({ patient, onClose, onSaved, userEmail }: {
               </div>
             )}
           </div>
+    {avisoAbierto && (
+      <AvisoPrivacidadModal
+        config={config}
+        onAceptar={d => cerrarAviso(d)}
+        onCancelar={() => cerrarAviso(null)}
+      />
+    )}
+
     </Modal>
   )
 }
