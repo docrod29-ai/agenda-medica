@@ -103,8 +103,36 @@ export function numerosADigitos(texto: string): string {
 
   const cerrar = () => { if (acc !== null) { out.push(String(acc)); acc = null } }
 
+  /**
+   * Palabras de unidad, sacadas de `UNIDADES_HABLADAS`. Se usan para decidir si
+   * un «un» suelto es el número 1 o el artículo.
+   */
+  const PALABRAS_DE_UNIDAD = new Set(
+    Object.values(UNIDADES_HABLADAS).flat().flatMap(f => f.split(' ')),
+  )
+
   for (let i = 0; i < ws.length; i++) {
     const w = ws[i]
+    /**
+     * «un miligramo» es 1 mg; «un paciente» no es «1 paciente».
+     *
+     * `UNIDADES` ya traía `una: 1` pero no `un`, así que «epinefrina un
+     * miligramo» no formaba el número y el comparador contaba como PERDIDO un
+     * término que el pipeline había convertido bien a «1 mg» — que es
+     * exactamente lo que piden las reglas de normalización del documento
+     * («números escritos ↔ dígitos», «mg ↔ miligramos»).
+     *
+     * Es la misma regla que ya usa la normalización del pipeline: «un» cuenta
+     * como número sólo delante de una unidad o de otro número. Si aquí se
+     * aceptara siempre, «un catéter» se compararía como «1 catéter».
+     */
+    if ((w === 'un' || w === 'una') && acc === null) {
+      const sig = ws[i + 1]
+      const esNumero = sig !== undefined && (UNIDADES[sig] !== undefined || DECENAS[sig] !== undefined)
+      if (sig !== undefined && (PALABRAS_DE_UNIDAD.has(sig) || esNumero)) { acc = 1; continue }
+      out.push(w)
+      continue
+    }
     if (w === 'y' && acc !== null && i + 1 < ws.length && (DECENAS[ws[i + 1]] || UNIDADES[ws[i + 1]] !== undefined)) continue
     if (w === 'punto' && acc !== null && (UNIDADES[ws[i + 1]] !== undefined || DECENAS[ws[i + 1]] !== undefined)) {
       /**
@@ -241,6 +269,24 @@ export function tieneUnidad(termino: string): boolean {
  */
 export const EQUIVALENCIAS: Readonly<Record<string, readonly string[]>> = {
   ckrt: ['terapia de reemplazo renal continua', 'terapia de reemplazo renal'],
+  /**
+   * ECMO: la sigla y su forma hablada, declaradas en `config/aliases.json` del
+   * paquete del Dr. («ECMO VV»: ["ECMO veno venoso", "ECMO venovenoso"]).
+   *
+   * Sin esto el medidor cuenta como TÉRMINO PERDIDO lo que el pipeline hace
+   * bien: «ECMO veno venoso» sale como «ECMO VV», que es la ortografía que el
+   * propio documento pide. Sobre el corpus CORAL de 6 000 eso eran 55 de los 56
+   * fallos — una métrica que castiga al pipeline por obedecer manda a corregir
+   * lo que ya estaba bien.
+   *
+   * VV y VA van por separado y no se cruzan NUNCA: confundirlos es uno de los
+   * errores críticos del documento, y un medidor que los diera por equivalentes
+   * dejaría de ver justo lo que tiene que vigilar.
+   */
+  'veno venoso': ['ecmo vv'],
+  venovenoso: ['ecmo vv'],
+  'veno arterial': ['ecmo va'],
+  venoarterial: ['ecmo va'],
 }
 
 /** Términos cuya pérdida o sustitución es error clínico por regla del documento. */

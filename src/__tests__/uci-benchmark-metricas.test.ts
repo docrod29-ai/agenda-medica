@@ -89,10 +89,16 @@ describe('las equivalencias salen del DOCUMENTO, no de mí', () => {
     expect(terminoPresente('CVVHDF', 'terapia de reemplazo renal continua').ok).toBe(false)
   })
 
-  it('no hay más equivalencias que la única que el documento permite', () => {
+  it('no hay más equivalencias que las que declaran los documentos', () => {
     // Si el transcriptor cambia un término por otro que a mí me parezca sinónimo,
     // cuenta como fallo. Yo no decido qué es equivalente en clínica.
-    expect(Object.keys(EQUIVALENCIAS)).toEqual(['ckrt'])
+    //
+    // Las cuatro de ECMO salen de `config/aliases.json` del paquete del Dr.
+    // («ECMO VV»: ["ECMO veno venoso", "ECMO venovenoso"]), no de mí. Esta lista
+    // es la lista completa: cualquier añadido tiene que citar su documento.
+    expect(Object.keys(EQUIVALENCIAS)).toEqual([
+      'ckrt', 'veno venoso', 'venovenoso', 'veno arterial', 'venoarterial',
+    ])
   })
 })
 
@@ -245,5 +251,51 @@ describe('el evaluador NO culpa al transcriptor de sus propios huecos', () => {
       fila({ key_terms: '999 zz/qq', canonical_text: 'el paciente está estable' }),
       'el paciente está estable')
     expect(r.erroresCriticos).toEqual([])
+  })
+})
+
+describe('ECMO: la sigla y su forma hablada son el mismo concepto — VV y VA no', () => {
+  it('«veno venoso» se reconoce en «ECMO VV», que es lo que pide el documento', () => {
+    // 55 de los 56 «términos perdidos» del corpus CORAL de 6 000 eran esto: el
+    // medidor castigaba al pipeline por escribir la sigla que el propio
+    // aliases.json declara.
+    expect(terminoPresente('veno venoso', 'ECMO VV con flujo de 4.2 L/min.').ok).toBe(true)
+    expect(terminoPresente('venovenoso', 'Se inicia ECMO VV.').ok).toBe(true)
+    expect(terminoPresente('veno arterial', 'ECMO VA por choque cardiogénico.').ok).toBe(true)
+  })
+
+  it('pero VV y VA NUNCA se dan por equivalentes', () => {
+    // Confundirlos es uno de los errores críticos del documento. Un medidor que
+    // los cruzara dejaría de ver justo lo que tiene que vigilar.
+    expect(terminoPresente('veno venoso', 'ECMO VA por choque cardiogénico.').ok).toBe(false)
+    expect(terminoPresente('veno arterial', 'ECMO VV con flujo de 4.2 L/min.').ok).toBe(false)
+    expect(terminoPresente('venovenoso', 'Se cambió a ECMO VA.').ok).toBe(false)
+    expect(terminoPresente('venoarterial', 'Se mantiene ECMO VV.').ok).toBe(false)
+  })
+})
+
+describe('«un» delante de una unidad es el número 1; delante de un sustantivo no', () => {
+  it('«un miligramo» es 1 mg — el pipeline hace bien en convertirlo', () => {
+    /**
+     * Era el ÚNICO término «perdido» que quedaba en el corpus CORAL de 6 000
+     * tras arreglar lo de ECMO, y también era del medidor: `UNIDADES` traía
+     * `una: 1` pero no `un`, así que «epinefrina un miligramo» no formaba el
+     * número y se contaba como pérdida lo que el pipeline convertía a «1 mg» —
+     * justo lo que piden las reglas de normalización del documento.
+     */
+    expect(numerosADigitos('un miligramo')).toBe('1 miligramo')
+    expect(numerosADigitos('una hora')).toBe('1 hora')
+    expect(
+      terminoPresente('un miligramo', 'Se administra epinefrina 1 mg intravenoso durante el paro.').ok,
+    ).toBe(true)
+  })
+
+  it('pero «un paciente» no es «1 paciente»', () => {
+    // Si «un» contara siempre como número, un artículo cualquiera se volvería
+    // una cifra y el comparador empezaría a dar por buenos emparejamientos que
+    // no lo son.
+    expect(numerosADigitos('un paciente')).toBe('un paciente')
+    expect(numerosADigitos('un cateter venoso central')).toBe('un cateter venoso central')
+    expect(terminoPresente('un miligramo', 'Se coloca 1 cateter.').ok).toBe(false)
   })
 })
