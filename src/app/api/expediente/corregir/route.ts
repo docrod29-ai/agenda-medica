@@ -10,6 +10,8 @@
  * Resp: { ok, resumenEjecutivo, secciones, diagnosticos, medicamentos, alergias, signosVitales } | { ok:false, error }
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { anotarLlamada, type Contexto } from '@/lib/ia/gateway'
+import { esFundador } from '@/lib/authz/fundador'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { gateCreditos, resolverClaveIA, nivelIADe, registrarCreditos } from '@/lib/ai-keys'
@@ -98,6 +100,16 @@ export async function POST(req: NextRequest) {
 
   const { key: API_KEY, clinicId, fuente } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
   const _corte = await gateCreditos(clinicId, fuente); if (_corte) return _corte
+
+  // Contexto del libro de costos. La ruta conserva su cascada; el gasto deja
+  // de ser invisible, que era lo que hacía falta.
+  const ctxCosto: Contexto = {
+    feature: 'corregir-transcripcion',
+    requestId: req.headers.get('x-vercel-id') || `co-${acceso.uid}-${Date.now()}`,
+    clinicId: clinicId ?? null, uid: acceso.uid, creditos: 0, fuente,
+    esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
+  }
+  const t0Costo = Date.now()
   if (!API_KEY) return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada (Configuración → Llaves de IA).' }, { status: 503 })
 
   const userMsg = `NOTA ACTUAL (JSON):\n${JSON.stringify(body.nota)}\n\nCONTEXTO DEL PACIENTE (referencia, no lo metas a la nota salvo que se pida):\n${JSON.stringify(body.contexto ?? {})}\n\nINSTRUCCIÓN DE CORRECCIÓN DEL MÉDICO:\n"${instruccion}"\n\nDevuelve la nota corregida en JSON aplicando SOLO ese cambio.`
@@ -134,6 +146,8 @@ export async function POST(req: NextRequest) {
         continue
       }
       const data = await res.json()
+      // Asiento del libro de costos: esta ruta no dejaba ninguno.
+      anotarLlamada(ctxCosto, 'anthropic', String(data?.model ?? model), data, Date.now() - t0Costo)
       // Con thinking, el texto va en el bloque type==='text' (tras los de razonamiento).
       const bloques: { type?: string; text?: string }[] = Array.isArray(data?.content) ? data.content : []
       const texto = (bloques.find(b => b?.type === 'text')?.text ?? bloques[0]?.text ?? '') as string

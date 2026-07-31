@@ -10,6 +10,8 @@
  * Output: { ok, razonamiento, segundaOpinion?, modelos } | { ok:false, error }
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { anotarLlamada, type Contexto } from '@/lib/ia/gateway'
+import { esFundador } from '@/lib/authz/fundador'
 import { validarRazonamiento } from '@/lib/expediente/antibiograma/validar-razonamiento'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
@@ -27,7 +29,8 @@ const MODELOS_OPUS = ['claude-opus-4-8', 'claude-sonnet-5']
 const MODELOS_SONNET = ['claude-sonnet-5', 'claude-sonnet-4-6', 'claude-3-5-sonnet-latest']
 const MODELOS_HAIKU = ['claude-haiku-4-5-20251001', 'claude-3-5-haiku-latest']
 
-async function claude(key: string, modelos: string[], system: string, user: string): Promise<{ texto: string; modelo: string } | { error: string }> {
+async function claude(key: string, modelos: string[], system: string, user: string, ctx?: Contexto): Promise<{ texto: string; modelo: string } | { error: string }> {
+  const t0 = Date.now()
   for (const model of modelos) {
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -38,6 +41,8 @@ async function claude(key: string, modelos: string[], system: string, user: stri
       })
       if (res.ok) {
         const d = await res.json()
+        // El asiento del libro de costos: esta ruta no dejaba ninguno.
+        if (ctx) anotarLlamada(ctx, 'anthropic', String(d?.model ?? model), d, Date.now() - t0)
         const t = (d.content?.[0]?.text ?? '').trim()
         if (t) return { texto: t, modelo: model }
       } else if (res.status !== 404 && res.status !== 400) {
@@ -49,7 +54,8 @@ async function claude(key: string, modelos: string[], system: string, user: stri
   return { error: 'ningún modelo disponible' }
 }
 
-async function gpt(key: string, system: string, user: string): Promise<string | null> {
+async function gpt(key: string, system: string, user: string, ctx?: Contexto): Promise<string | null> {
+  const t1 = Date.now()
   for (const model of ['gpt-5', 'gpt-4o']) {
     try {
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -60,6 +66,7 @@ async function gpt(key: string, system: string, user: string): Promise<string | 
       })
       if (res.ok) {
         const d = await res.json()
+        if (ctx) anotarLlamada(ctx, 'openai', String(d?.model ?? model), d, Date.now() - t1)
         const t = (d.choices?.[0]?.message?.content ?? '').trim()
         if (t) return t
       }
@@ -76,6 +83,19 @@ export async function POST(req: NextRequest) {
 
   const { key: API_KEY, clinicId, fuente } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
   const _corte = await gateCreditos(clinicId, fuente); if (_corte) return _corte
+
+  /**
+   * Contexto del libro de costos. La ruta conserva su propia cascada —migrarla
+   * entera es otro trabajo— pero el gasto ya no es invisible: una llamada sin
+   * asiento no se ve como un error, se ve como una plataforma que gasta menos
+   * de lo que gasta.
+   */
+  const ctxCosto: Contexto = {
+    feature: 'antibiograma-razonar',
+    requestId: req.headers.get('x-vercel-id') || `ar-${acceso.uid}-${Date.now()}`,
+    clinicId: clinicId ?? null, uid: acceso.uid, creditos: 0, fuente,
+    esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
+  }
   if (!API_KEY) return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada (Configuración → Llaves de IA).' }, { status: 503 })
 
   let body: { organismo?: string; resultados?: EntradaAntibiograma['resultados']; sitio?: EntradaAntibiograma['sitio']; pruebas?: EntradaAntibiograma['pruebas']; motor?: string }
@@ -104,8 +124,8 @@ export async function POST(req: NextRequest) {
     const { key: OPENAI_KEY } = await resolverClaveIA(acceso.uid, 'openai', ENV_OPENAI)
     const quiereGPT = !!OPENAI_KEY && body.motor === 'maxima'
     const [rc, gptTexto] = await Promise.all([
-      claude(API_KEY, modelos, RAZONAR_SYSTEM, user),
-      quiereGPT ? gpt(OPENAI_KEY as string, RAZONAR_SYSTEM, user) : Promise.resolve(null),
+      claude(API_KEY, modelos, RAZONAR_SYSTEM, user, ctxCosto),
+      quiereGPT ? gpt(OPENAI_KEY as string, RAZONAR_SYSTEM, user, ctxCosto) : Promise.resolve(null),
     ])
 
     if ('error' in rc) {
