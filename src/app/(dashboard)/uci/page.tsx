@@ -1068,8 +1068,8 @@ export default function UciPanelPage() {
               <button
                 onClick={() => setPlanCopilot(yaEsta ? '' : prop.texto)}
                 title={yaEsta
-                  ? 'Quitar de la nota el plan propuesto'
-                  : 'Lleva el razonamiento del Copilot a la sección «Plan por sistema». Va marcado como propuesta: lo revisas, lo corriges y lo firmas.'}
+                  ? 'Quitar de la nota el análisis propuesto'
+                  : 'Lleva el razonamiento del Copilot a la sección «Análisis». El PLAN son indicaciones y lo escribes tú: lo firmas y alguien lo va a ejecutar.'}
                 style={{
                   marginRight: 8, padding: '6px 12px', borderRadius: 7, fontSize: 12.5,
                   cursor: 'pointer', fontWeight: 600,
@@ -1079,8 +1079,8 @@ export default function UciPanelPage() {
                 }}
               >
                 {yaEsta
-                  ? '✓ Plan en la nota'
-                  : `Pasar el plan a la nota (${prop.problemas}${prop.divergencias ? ` + ${prop.divergencias}` : ''})`}
+                  ? '✓ Análisis en la nota'
+                  : `Pasar el análisis a la nota (${prop.problemas}${prop.divergencias ? ` + ${prop.divergencias}` : ''})`}
               </button>
             )
           })()}

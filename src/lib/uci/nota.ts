@@ -46,7 +46,7 @@ const join = (xs: (string | null | undefined)[]): string => xs.filter((x): x is 
  * Construye las 10 secciones de la nota de evolución UCI desde los valores crudos.
  * `opts.dia` (día de UCI), `opts.discusion` (pase multi-voz etiquetado por rol).
  */
-export function construirSeccionesUCI(v: Campos, opts?: { dia?: string; discusion?: string; labs?: string; labsCapturados?: readonly LabMedido[]; planPropuesto?: string }): SeccionNota[] {
+export function construirSeccionesUCI(v: Campos, opts?: { dia?: string; discusion?: string; labs?: string; labsCapturados?: readonly LabMedido[]; planPropuesto?: string; plan?: string }): SeccionNota[] {
   const n = (k: string) => val(v, k)
 
   const vent = analizarVentilacion({
@@ -249,11 +249,26 @@ export function construirSeccionesUCI(v: Campos, opts?: { dia?: string; discusio
     { key: 'hidrometabolico', label: 'Hidrometabólico', value: con(hidrometabolico, 'hidrometabolico') },
     { key: 'hematoinfeccioso', label: 'Hematoinfeccioso', value: con(hemato, 'hematoinfeccioso') },
     { key: 'musculoesqueletico', label: 'Musculoesquelético', value: dicho.musculoesqueletico },
-    // El plan del médico primero; debajo, lo que propuso el Copilot si él lo pidió.
-    // Sobrescribir lo que escribió un médico en su nota no se hace nunca.
-    { key: 'plan', label: 'Plan por sistema', value: combinarPlan(dicho.plan, {
+    /**
+     * ANÁLISIS y PLAN son DOS SECCIONES, no una.
+     *
+     * El Dr.: «el plan deben ser indicaciones; lo que pasas es el ANÁLISIS».
+     * Tiene razón y la distinción es de documentación clínica:
+     *
+     *   · Análisis — qué está pasando y por qué. Razonamiento.
+     *   · Plan — qué se va a HACER. Fármaco, dosis, parámetro, estudio. Se ejecuta.
+     *
+     * Meter el razonamiento del Copilot en la sección de indicaciones no era sólo
+     * desordenado: hacía que la nota pareciera ORDENAR algo que nadie ordenó.
+     *
+     * El análisis del médico va primero; debajo, el propuesto si él lo pidió.
+     * Sobrescribir lo que escribió un médico en su nota no se hace nunca.
+     */
+    { key: 'analisis', label: 'Análisis', value: combinarPlan(dicho.plan, {
       texto: opts?.planPropuesto ?? '', problemas: 0, divergencias: 0, encabezado: '',
     }) },
+    // El plan lo escribe el MÉDICO: lo firma él y alguien lo va a ejecutar.
+    { key: 'plan', label: 'Plan e indicaciones', value: opts?.plan ?? '' },
   ]
   return secciones
 }

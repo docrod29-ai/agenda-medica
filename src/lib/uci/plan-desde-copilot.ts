@@ -1,5 +1,5 @@
 /**
- * EL PLAN DE LA NOTA, DESDE EL COPILOT — que su razonamiento llegue al documento.
+ * EL ANÁLISIS DE LA NOTA, DESDE EL COPILOT.
  *
  * El Dr., el 30-jul-2026: «que funcione el copiloto CON la nota… y genere la
  * mejor nota con las mejores recomendaciones y plan incluido, ya para cuando
@@ -44,6 +44,16 @@ const SISTEMA: Readonly<Record<string, string>> = {
 
 const ORDEN = ['alta', 'media', 'baja'] as const
 
+/** El orden en que se recorre un pase de UCI. Lo que no esté, al final. */
+const ORDEN_SISTEMAS = [
+  'neurologico', 'respiratorio', 'hemodinamico', 'abdominodigestivo',
+  'hidrometabolico', 'hematoinfeccioso', 'musculoesqueletico',
+]
+const indiceSistema = (s: string) => {
+  const i = ORDEN_SISTEMAS.indexOf(s)
+  return i === -1 ? ORDEN_SISTEMAS.length : i
+}
+
 export interface PlanPropuesto {
   /** Texto listo para la sección «Plan por sistema». Vacío si no hay nada. */
   texto: string
@@ -55,8 +65,28 @@ export interface PlanPropuesto {
   encabezado: string
 }
 
+/**
+ * ── EL ERROR QUE ESTO CORRIGE ────────────────────────────────────────────────
+ *
+ * La primera versión metía esto en «Plan por sistema». El Dr.: «el plan deben ser
+ * indicaciones; cuando pasas el plan a la nota lo mandas todo reborujado — más
+ * bien lo que pasas es el ANÁLISIS, pero debe ser ordenado».
+ *
+ * Tiene razón y la distinción es de documentación clínica, no de estilo:
+ *
+ *   · **Análisis** — qué está pasando y por qué. Razonamiento.
+ *   · **Plan** — qué se va a HACER. Indicaciones: fármaco, dosis, parámetro,
+ *     estudio a solicitar. Se ejecuta.
+ *
+ * El Copilot está construido para razonar y para señalar qué verificar, NO para
+ * dar órdenes. Así que su salida es análisis y va al análisis. El plan lo escribe
+ * el médico, porque el plan lo firma el médico y alguien lo va a ejecutar.
+ *
+ * Meter razonamiento en la sección de indicaciones no era sólo desordenado: hacía
+ * que una nota pareciera ordenar algo que nadie ordenó.
+ */
 export const ENCABEZADO_PROPUESTA =
-  'PLAN PROPUESTO POR EL COPILOT — revisar, corregir y firmar. No es una indicación.'
+  'ANÁLISIS PROPUESTO POR EL COPILOT — revisar y corregir. No son indicaciones.'
 
 /**
  * Un problema del Copilot, como renglón de plan.
@@ -87,16 +117,25 @@ export function planDesdeCopilot(f: FusionCopilot | null): PlanPropuesto {
   const divergencias = f.divergencias ?? []
   if (problemas.length === 0 && divergencias.length === 0) return vacio
 
-  // Por sistema, y dentro de cada uno por prioridad: el pase se recorre así.
+  /**
+   * En el ORDEN DEL PASE, no en el que los devolvió el modelo.
+   *
+   * De ahí venía el «reborujado»: un `Map` conserva el orden de llegada, así que
+   * la nota salía hidrometabólico, luego neuro, luego respiratorio… según lo que
+   * al modelo se le ocurriera primero. Un pase de UCI se recorre siempre igual —
+   * neuro, respiratorio, hemodinámico— y la nota tiene que leerse así.
+   */
   const porSistema = new Map<string, ProblemaCopilot[]>()
   for (const p of problemas) {
     const k = p.sistema || 'otro'
     if (!porSistema.has(k)) porSistema.set(k, [])
     porSistema.get(k)!.push(p)
   }
+  const sistemasOrdenados = [...porSistema.entries()].sort(
+    (a, b) => indiceSistema(a[0]) - indiceSistema(b[0]))
 
   const bloques: string[] = [ENCABEZADO_PROPUESTA, '']
-  for (const [sistema, ps] of porSistema) {
+  for (const [sistema, ps] of sistemasOrdenados) {
     ps.sort((a, b) => ORDEN.indexOf(a.prioridad) - ORDEN.indexOf(b.prioridad))
     bloques.push(`${SISTEMA[sistema] ?? sistema}`)
     for (const p of ps) bloques.push(`· ${comoPlan(p)}`)
@@ -130,14 +169,14 @@ export function planDesdeCopilot(f: FusionCopilot | null): PlanPropuesto {
  * Si él ya redactó un plan, el del Copilot va DEBAJO. Sobrescribir lo que
  * escribió un médico en su nota no se hace nunca.
  */
-export function combinarPlan(planDelMedico: string, propuesto: PlanPropuesto): string {
-  if (!propuesto.texto) return planDelMedico
-  if (!planDelMedico.trim()) return propuesto.texto
-  return `${planDelMedico.trim()}\n\n${propuesto.texto}`
+export function combinarPlan(analisisDelMedico: string, propuesto: PlanPropuesto): string {
+  if (!propuesto.texto) return analisisDelMedico
+  if (!analisisDelMedico.trim()) return propuesto.texto
+  return `${analisisDelMedico.trim()}\n\n${propuesto.texto}`
 }
 
 export const POR_QUE_NO_SE_PEGA_SOLO =
-  'El plan del Copilot NO entra en la nota al generarse: hay un botón. Y llega ' +
+  'El análisis del Copilot NO entra en la nota al generarse: hay un botón. Y llega ' +
   'marcado como propuesta, para que quien lea la nota —o quien la audite mañana— ' +
   'sepa qué escribió una máquina y qué escribió el médico. Él edita y firma; la ' +
   'firma sigue siendo suya. Y si ya había escrito un plan, el propuesto va DEBAJO: ' +

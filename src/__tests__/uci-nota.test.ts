@@ -10,8 +10,22 @@ describe('construirSeccionesUCI', () => {
     const s = construirSeccionesUCI({})
     expect(s.map(x => x.key)).toEqual([
       'contexto', 'neurologico', 'respiratorio', 'hemodinamico', 'abdominodigestivo',
-      'hidrometabolico', 'hematoinfeccioso', 'musculoesqueletico', 'plan',
+      'hidrometabolico', 'hematoinfeccioso', 'musculoesqueletico', 'analisis', 'plan',
     ])
+  })
+
+  it('ANÁLISIS y PLAN son dos secciones distintas', () => {
+    /**
+     * El Dr.: «el plan deben ser indicaciones; lo que pasas es el análisis».
+     *
+     * Analisis = que esta pasando y por que. Plan = que se va a HACER: farmaco,
+     * dosis, parametro, estudio. Alguien lo ejecuta. Meter razonamiento en la
+     * seccion de indicaciones hacia que la nota pareciera ORDENAR algo que nadie
+     * ordeno.
+     */
+    const s = construirSeccionesUCI({})
+    expect(s.find(x => x.key === 'analisis')!.label).toBe('Análisis')
+    expect(s.find(x => x.key === 'plan')!.label).toBe('Plan e indicaciones')
   })
 
   it('sin datos: las secciones clínicas quedan vacías (no inventa)', () => {
@@ -44,9 +58,11 @@ describe('construirSeccionesUCI', () => {
     expect(hemo).toMatch(/no respondedor/)
   })
 
-  it('la discusión del pase va al plan', () => {
+  it('la discusión del pase va al ANÁLISIS, no a las indicaciones', () => {
     const s = construirSeccionesUCI({}, { discusion: 'Adscrito: bajar volumen' })
-    expect(s.find(x => x.key === 'plan')!.value).toMatch(/Adscrito: bajar volumen/)
+    expect(s.find(x => x.key === 'analisis')!.value).toMatch(/Adscrito: bajar volumen/)
+    // El plan queda para lo que el medico ORDENA, y lo escribe el.
+    expect(s.find(x => x.key === 'plan')!.value).toBe('')
   })
 
   it('CKRT va a hidrometabólico y ECMO VA a hemodinámico', () => {

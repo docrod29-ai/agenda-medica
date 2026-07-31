@@ -1,5 +1,5 @@
 /**
- * GOLDEN — el plan de la nota, desde el Copilot.
+ * GOLDEN — el ANÁLISIS de la nota, desde el Copilot.
  *
  * El Dr.: «que funcione el copiloto CON la nota… y genere la mejor nota con las
  * mejores recomendaciones y plan incluido, ya para cuando pasa a revisar y
@@ -50,11 +50,49 @@ describe('El razonamiento del Copilot llega al plan', () => {
   })
 })
 
+describe('ANÁLISIS y PLAN son cosas distintas', () => {
+  it('lo que pasa el Copilot es ANÁLISIS, y lo dice', () => {
+    // El Dr.: «el plan deben ser indicaciones; lo que pasas es el analisis».
+    // Meter razonamiento en la seccion de indicaciones hacia que la nota
+    // pareciera ORDENAR algo que nadie ordeno.
+    expect(ENCABEZADO_PROPUESTA).toMatch(/AN[ÁA]LISIS/i)
+    expect(ENCABEZADO_PROPUESTA).toMatch(/no son indicaciones/i)
+  })
+})
+
+describe('Sale en el ORDEN DEL PASE, no en el que lo devolvió el modelo', () => {
+  const desordenado = planDesdeCopilot(fusion({
+    primario: { resumen: '', faltantesClave: [], seguridad: [], problemas: [
+      p({ sistema: 'hidrometabolico', titulo: 'Acidemia' }),
+      p({ sistema: 'neurologico', titulo: 'Sedacion' }),
+      p({ sistema: 'hemodinamico', titulo: 'Choque' }),
+      p({ sistema: 'respiratorio', titulo: 'SDRA' }),
+    ] },
+  })).texto
+
+  it('neuro antes que respiratorio, respiratorio antes que hemodinámico', () => {
+    // De aqui venia el «reborujado»: un Map conserva el orden de llegada, asi
+    // que la nota salia segun lo que al modelo se le ocurriera primero.
+    expect(desordenado.indexOf('Neurológico')).toBeLessThan(desordenado.indexOf('Respiratorio'))
+    expect(desordenado.indexOf('Respiratorio')).toBeLessThan(desordenado.indexOf('Hemodinámico'))
+    expect(desordenado.indexOf('Hemodinámico')).toBeLessThan(desordenado.indexOf('Hidrometabólico'))
+  })
+
+  it('un sistema desconocido va al final, no al principio', () => {
+    const t = planDesdeCopilot(fusion({
+      primario: { resumen: '', faltantesClave: [], seguridad: [], problemas: [
+        p({ sistema: 'raro', titulo: 'Otro' }), p({ sistema: 'neurologico', titulo: 'Neuro' }),
+      ] },
+    })).texto
+    expect(t.indexOf('Neurológico')).toBeLessThan(t.indexOf('raro'))
+  })
+})
+
 describe('Se distingue de lo que escribió el médico', () => {
-  it('va encabezado como PROPUESTA y dice que no es una indicación', () => {
+  it('va encabezado como PROPUESTA y dice que NO son indicaciones', () => {
     expect(planDesdeCopilot(fusion()).texto).toContain(ENCABEZADO_PROPUESTA)
-    expect(ENCABEZADO_PROPUESTA).toMatch(/no es una indicaci[oó]n/i)
-    expect(ENCABEZADO_PROPUESTA).toMatch(/firmar/i)
+    expect(ENCABEZADO_PROPUESTA).toMatch(/no son indicaciones/i)
+    expect(ENCABEZADO_PROPUESTA).toMatch(/revisar y corregir/i)
   })
 
   it('las divergencias van APARTE y se dicen como tales', () => {
