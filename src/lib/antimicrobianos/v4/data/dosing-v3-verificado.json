@@ -1,0 +1,1438 @@
+{
+  "metadata": {
+    "title": "NexusMED Antibacterial Dosing Engine V3 - Evidence Verified Core",
+    "version": "3.0.0",
+    "release_date": "2026-07-30",
+    "evidence_scope": "Adult hospital/ICU antibacterial dosing core. Pediatric dosing is out of scope for this V3 unless explicitly present in a label; do not infer.",
+    "verification_method": "Current FDA/DailyMed official labeling + IDSA 2026 AMR guidance + CLSI M100 Ed36 + EUCAST v16.1 + high-level PubMed consensus/meta-analysis for PK/PD/TDM.",
+    "important_disclaimer": "Clinical decision support dataset, not autonomous prescribing. Rules require local formulary, microbiology standard, patient-specific validation and clinician oversight.",
+    "sanford_note": "Sanford Guide was NOT used as an unseen source because no licensed Sanford dataset was directly accessible in this session. Do not claim Sanford cross-validation unless Nexus has a licensed integration.",
+    "source_policy": "No Wikipedia, blogs, commercial SEO dosing pages, or unsourced web pages are accepted as source-of-truth.",
+    "counts": {
+      "drug_records": 49,
+      "next_priority_for_v3_1": 20
+    }
+  },
+  "engine_rules": [
+    {
+      "id": "RULE_SOURCE_SEPARATION",
+      "severity": "HARD",
+      "text": "Store FDA/label dosing and guideline/PK-PD dosing in separate fields. If they differ, display both with context; never silently overwrite."
+    },
+    {
+      "id": "RULE_RENAL_ESTIMATOR",
+      "severity": "HARD",
+      "text": "Use the renal estimator specified by the source/label (e.g., Cockcroft-Gault CrCl vs eGFR). Never silently substitute one estimator for another."
+    },
+    {
+      "id": "RULE_UNSTABLE_AKI",
+      "severity": "HARD",
+      "text": "If renal function is rapidly changing, do not auto-maintain from a single steady-state CrCl. Flag frequent reassessment and TDM when available."
+    },
+    {
+      "id": "RULE_RRT_INPUTS",
+      "severity": "HARD",
+      "text": "Before any RRT dose: require IHD vs SLED/PIRRT vs CVVH/CVVHD/CVVHDF, effective effluent, downtime, residual urine/renal function and timing relative to dialysis."
+    },
+    {
+      "id": "RULE_CRRT_NO_GENERIC",
+      "severity": "HARD",
+      "text": "Never use the CrCl <10 regimen as a surrogate for CRRT. Use agent-specific CRRT evidence only; otherwise SPECIALIST_REVIEW."
+    },
+    {
+      "id": "RULE_ARC",
+      "severity": "WARNING",
+      "text": "Screen critically ill patients for augmented renal clearance. CrCl >=130 mL/min is a common ARC threshold, but drug-specific thresholds take priority (e.g., cefiderocol >=120)."
+    },
+    {
+      "id": "RULE_BETA_LACTAM_INFUSION",
+      "severity": "GUIDELINE",
+      "text": "In critically ill adults with sepsis/septic shock, prolonged beta-lactam infusion is supported by randomized-trial meta-analysis; use drug stability/compatibility and a validated regimen."
+    },
+    {
+      "id": "RULE_AST_VERSION",
+      "severity": "HARD",
+      "text": "AST interpretation must be versioned separately (CLSI M100 Ed36 2026 or EUCAST v16.1 2026). Do not mix breakpoint standards inside one result."
+    },
+    {
+      "id": "RULE_MIC_CONTEXT",
+      "severity": "HARD",
+      "text": "Dose selection is not susceptibility interpretation. Require organism, site, MIC/AST method and selected breakpoint standard before MIC-based claims."
+    },
+    {
+      "id": "RULE_WEIGHT",
+      "severity": "HARD",
+      "text": "For mg/kg dosing require documented weight and drug-specific scalar (TBW/IBW/AdjBW/LBW). Block lb interpreted as kg."
+    },
+    {
+      "id": "RULE_TDM",
+      "severity": "HARD",
+      "text": "For vancomycin and repeated aminoglycoside therapy, TDM is part of the dosing rule, not optional metadata."
+    },
+    {
+      "id": "RULE_HUMAN_OVERSIGHT",
+      "severity": "HARD",
+      "text": "LLM may interpret clinical context but must not generate a dose absent an executable verified rule. Missing rule -> SPECIALIST_REVIEW, not a guessed number."
+    }
+  ],
+  "source_registry": {
+    "IDSA_AMR_2026": {
+      "type": "Guideline",
+      "title": "IDSA 2026 Guidance on the Treatment of Antimicrobial Resistant Gram-Negative Infections",
+      "date": "2026-07-30",
+      "url": "https://www.idsociety.org/practice-guideline/amr-guidance/?s=09",
+      "note": "Current guidance; evidence/consensus current through 2026-03-01."
+    },
+    "IDSA_TABLE1_2026": {
+      "type": "Guideline dosing table",
+      "title": "IDSA 2026 AMR Guidance Table 1 - Adult Dosing Suggestions",
+      "date": "2026-07-30",
+      "url": "https://www.idsociety.org/globalassets/idsa/practice-guidelines/amr-guidance/5.0/table-1.pdf",
+      "note": "Normal renal/hepatic function; several suggested doses differ from FDA label."
+    },
+    "IDSA_TABLE2_2026": {
+      "type": "AST table",
+      "title": "IDSA 2026 AMR Guidance Table 2 - 2026 CLSI susceptible breakpoints",
+      "date": "2026-07-30",
+      "url": "https://www.idsociety.org/globalassets/idsa/practice-guidelines/amr-guidance/5.0/table-2.pdf",
+      "note": "Selected Gram-negative breakpoints; full AST source is CLSI M100 Ed36."
+    },
+    "CLSI_M100_36": {
+      "type": "AST standard",
+      "title": "CLSI M100 Performance Standards for Antimicrobial Susceptibility Testing, 36th ed.",
+      "date": "2026-01-26",
+      "url": "https://clsi.org/shop/standards/m100/",
+      "note": "Current CLSI standard in 2026."
+    },
+    "EUCAST_16_1": {
+      "type": "AST standard",
+      "title": "EUCAST Clinical Breakpoint Tables v16.1",
+      "date": "2026-06-24",
+      "url": "https://www.eucast.org/news-detail/publication-of-updated-clinical-breakpoint-tables-version-161/",
+      "note": "Current EUCAST breakpoint release; dosage tab remains v16.0."
+    },
+    "JAMA_BLI_2024": {
+      "type": "Systematic review/meta-analysis of RCTs",
+      "title": "Prolonged vs intermittent infusion of beta-lactam antibiotics in critically ill adults with sepsis or septic shock",
+      "date": "2024",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38864162/",
+      "note": "18 RCTs/9108 patients; supports prolonged infusion in critical illness."
+    },
+    "VANCO_AUC_2020": {
+      "type": "Consensus guideline",
+      "title": "ASHP/IDSA/PIDS/SIDP vancomycin therapeutic monitoring consensus",
+      "date": "2020",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/32227354/",
+      "note": "Serious MRSA: target AUC24/MIC 400-600; AUC-guided monitoring preferred."
+    },
+    "POLYMYXIN_2019": {
+      "type": "International consensus guideline",
+      "title": "International Consensus Guidelines for the Optimal Use of the Polymyxins",
+      "date": "2019",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30710469/",
+      "note": "Endorsed by ACCP/ESCMID/IDSA/ISAP/SCCM/SIDP."
+    },
+    "FDA_FETROJA_2025": {
+      "type": "FDA label",
+      "title": "FETROJA (cefiderocol) Prescribing Information",
+      "date": "2025",
+      "url": "https://www.accessdata.fda.gov/drugsatfda_docs/label/2025/209445s009lbl.pdf",
+      "note": "Includes ARC and CRRT effluent-based dosing."
+    },
+    "FDA_EMBLAVEO_2025": {
+      "type": "FDA label",
+      "title": "EMBLAVEO (aztreonam-avibactam) Prescribing Information",
+      "date": "2025",
+      "url": "https://www.accessdata.fda.gov/drugsatfda_docs/label/2025/217906Orig1s000lbl.pdf",
+      "note": "Includes loading dose and CrCl/IHD adjustment."
+    },
+    "FDA_EXBLIFEP_2024": {
+      "type": "FDA label",
+      "title": "EXBLIFEP (cefepime-enmetazobactam) Prescribing Information",
+      "date": "2024",
+      "url": "https://www.accessdata.fda.gov/drugsatfda_docs/label/2024/216165s000lbl.pdf",
+      "note": "Includes eGFR >=130 prolonged infusion and renal/IHD adjustments."
+    },
+    "FDA_XACDURO_2023": {
+      "type": "FDA label",
+      "title": "XACDURO (sulbactam-durlobactam) Prescribing Information",
+      "date": "2023",
+      "url": "https://www.accessdata.fda.gov/drugsatfda_docs/label/2023/216974s000lbl.pdf",
+      "note": "Includes CrCl >=130 q4h and renal/IHD adjustments."
+    },
+    "FDA_UTEBZI_2026": {
+      "type": "FDA label",
+      "title": "UTEBZI (tebipenem pivoxil) Prescribing Information",
+      "date": "2026",
+      "url": "https://www.accessdata.fda.gov/drugsatfda_docs/label/2026/215960Origs000lbl.pdf",
+      "note": "New oral carbapenem; cUTI/pyelo adult label."
+    },
+    "FDA_CONTEPO_2025": {
+      "type": "FDA label",
+      "title": "CONTEPO (fosfomycin IV) Prescribing Information",
+      "date": "2025",
+      "url": "https://www.accessdata.fda.gov/drugsatfda_docs/label/2025/212271s000lbl.pdf",
+      "note": "cUTI/pyelonephritis; renal table through CrCl 11-20; no validated auto-rule <=10 in label."
+    },
+    "FDA_BLUJEPA_2025": {
+      "type": "FDA label",
+      "title": "BLUJEPA (gepotidacin) Prescribing Information",
+      "date": "2025",
+      "url": "https://www.accessdata.fda.gov/drugsatfda_docs/label/2025/218230s001lbl.pdf",
+      "note": "uUTI and gonorrhea label; renal and QT precautions."
+    },
+    "FDA_PIVYA_2024": {
+      "type": "FDA label",
+      "title": "PIVYA (pivmecillinam) Prescribing Information",
+      "date": "2024",
+      "url": "https://www.accessdata.fda.gov/drugsatfda_docs/label/2024/216483s000lbl.pdf",
+      "note": "FDA uUTI adult women; label dose differs from IDSA AMR 2026 suggested dose."
+    },
+    "FDA_ORLYNVAH_2025": {
+      "type": "FDA label",
+      "title": "ORLYNVAH (sulopenem etzadroxil/probenecid) Prescribing Information",
+      "date": "2025",
+      "url": "https://www.accessdata.fda.gov/drugsatfda_docs/label/2025/213972s002lbl.pdf",
+      "note": "uUTI adult women; not for cUTI or step-down after cUTI/cIAI."
+    },
+    "FDA_ZERBAXA_2026": {
+      "type": "FDA label",
+      "title": "ZERBAXA (ceftolozane-tazobactam) Prescribing Information",
+      "date": "2026-05",
+      "url": "https://www.accessdata.fda.gov/drugsatfda_docs/label/2026/206829s023lbl.pdf",
+      "note": "Current label with adult renal/IHD table and ARC PK statement."
+    },
+    "FDA_AVYCAZ_2025": {
+      "type": "FDA label",
+      "title": "AVYCAZ (ceftazidime-avibactam) Prescribing Information",
+      "date": "2025",
+      "url": "https://www.accessdata.fda.gov/drugsatfda_docs/label/2025/206494s013lbl.pdf",
+      "note": "Renal adjustment; changing renal function should be checked at least daily."
+    },
+    "FDA_ZEVTERA_2024": {
+      "type": "FDA label",
+      "title": "ZEVTERA (ceftobiprole medocaril) Prescribing Information",
+      "date": "2024",
+      "url": "https://www.accessdata.fda.gov/drugsatfda_docs/label/2024/218275s000lbl.pdf",
+      "note": "Includes adult SAB, ABSSSI, CABP and renal dosing."
+    },
+    "DML_VABOMERE_2026": {
+      "type": "DailyMed official label",
+      "title": "VABOMERE (meropenem-vaborbactam)",
+      "date": "2026-02",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/fda/fdaDrugXsl.cfm?setid=e237fd0f-3050-42a3-b43e-b6fb4824e93d",
+      "note": "Current DailyMed label."
+    },
+    "FDA_RECARBRIO_2025": {
+      "type": "FDA label",
+      "title": "RECARBRIO (imipenem/cilastatin/relebactam)",
+      "date": "2025",
+      "url": "https://www.accessdata.fda.gov/drugsatfda_docs/label/2025/212819s008lbl.pdf",
+      "note": "Renal adjustment begins below CrCl 90."
+    },
+    "DML_ZEMDRI": {
+      "type": "DailyMed official label",
+      "title": "ZEMDRI (plazomicin)",
+      "date": "current retrieved 2026-07-30",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=1243fcd3-de84-428b-901e-d83d65e4d98c",
+      "note": "Weight, renal and TDM provisions."
+    },
+    "DML_MEROPENEM": {
+      "type": "DailyMed official label",
+      "title": "Meropenem for injection",
+      "date": "current retrieved 2026-07-30",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=d54fdbad-ca93-467c-92d7-c1bd88f3bbe3",
+      "note": "FDA-label renal schedule; HD evidence insufficient in label."
+    },
+    "DML_CEFEPIME_2026": {
+      "type": "DailyMed official label",
+      "title": "Cefepime for injection",
+      "date": "2026-06",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=be5f8ca6-7232-423a-a2d5-cccb7abe7921",
+      "note": "Current label retrieved 2026."
+    },
+    "DML_ZOSYN_2026": {
+      "type": "DailyMed official label",
+      "title": "ZOSYN (piperacillin-tazobactam)",
+      "date": "2026-05",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=8db6bd91-2106-4bfd-8cc8-38aaf1e18d17",
+      "note": "Current label; renal/IHD dosing."
+    },
+    "DML_CEFAZOLIN": {
+      "type": "DailyMed official label",
+      "title": "Cefazolin for injection",
+      "date": "current retrieved 2026-07-30",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/fda/fdaDrugXsl.cfm?setid=79787707-c84f-f229-e053-2a91aa0a1f16&type=display",
+      "note": "Includes adult severity dosing and renal adjustment."
+    },
+    "DML_CEFTRIAXONE": {
+      "type": "DailyMed official label",
+      "title": "Ceftriaxone for injection",
+      "date": "current retrieved 2026-07-30",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/fda/fdaDrugXsl.cfm?setid=467f49f7-1a35-49c1-88aa-acc2f27adc2b",
+      "note": "Usual 1-2 g/day; no renal adjustment alone; max 2 g/day if significant renal + hepatic dysfunction."
+    },
+    "DML_CEFTAROLINE": {
+      "type": "DailyMed official label",
+      "title": "TEFLARO (ceftaroline fosamil)",
+      "date": "2024-11",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/fda/fdaDrugXsl.cfm?setid=3ecde48b-75a2-4beb-9999-369f3f61bb8a",
+      "note": "Adult renal/IHD adjustment."
+    },
+    "DML_AZTREONAM": {
+      "type": "DailyMed official label",
+      "title": "Aztreonam for injection",
+      "date": "current retrieved 2026-07-30",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=d4500795-3b07-4a7d-b432-73cafbb3dbc6",
+      "note": "Renal adjustment: halve at CrCl 10-30 after loading; quarter dose at <10/HD."
+    },
+    "DML_GENTAMICIN": {
+      "type": "DailyMed official label",
+      "title": "Gentamicin sulfate injection",
+      "date": "2025/2026 current retrieved",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/fda/fdaDrugXsl.cfm?setid=913a36c3-50d6-429a-a8dd-a03126d2ca08",
+      "note": "Legacy divided-dose label; requires levels; HD post-dose described."
+    },
+    "DML_TOBRAMYCIN": {
+      "type": "DailyMed official label",
+      "title": "Tobramycin injection",
+      "date": "current retrieved 2026-07-30",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/fda/fdaDrugXsl.cfm?setid=a384641c-04e3-4ab5-b152-7408cd07b64d",
+      "note": "Legacy divided-dose label; TDM essential."
+    },
+    "DML_BACTRIM": {
+      "type": "DailyMed official label",
+      "title": "BACTRIM DS (trimethoprim-sulfamethoxazole)",
+      "date": "current retrieved 2026-07-30",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=0138a156-859a-48a3-bf5a-e2db0cc7f2f9",
+      "note": "Renal: >30 usual; 15-30 half; <15 not recommended in label."
+    },
+    "DML_DAPTOMYCIN": {
+      "type": "DailyMed official label",
+      "title": "Daptomycin for injection",
+      "date": "current retrieved 2026-07-30",
+      "url": "https://dailymed.nlm.nih.gov/",
+      "note": "Label: cSSSI 4 mg/kg q24h; S. aureus bacteremia 6 mg/kg q24h; CrCl <30/IHD/CAPD q48h."
+    },
+    "DML_LINEZOLID": {
+      "type": "DailyMed official label",
+      "title": "Linezolid",
+      "date": "current retrieved 2026-07-30",
+      "url": "https://dailymed.nlm.nih.gov/",
+      "note": "600 mg IV/PO q12h for key adult serious indications; no renal dose adjustment; administer after HD."
+    },
+    "DML_TIGECYCLINE": {
+      "type": "DailyMed official label",
+      "title": "Tigecycline for injection",
+      "date": "2025/2026 current retrieved",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=230484a8-408c-dcc1-d0c4-d9dd9a46831b",
+      "note": "Label 100 mg load then 50 mg q12h; Child-Pugh C 25 mg q12h. IDSA AMR uses higher dose for resistant infections."
+    },
+    "DML_DOXYCYCLINE": {
+      "type": "DailyMed official label",
+      "title": "Doxycycline for injection",
+      "date": "2026 current retrieved",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=acb84610-5e26-4b0c-89e5-42bc0f8fa00d",
+      "note": "200 mg day 1, then 100-200 mg/day; no excessive accumulation at usual doses in renal impairment."
+    },
+    "DML_NAFCILLIN": {
+      "type": "DailyMed official label",
+      "title": "Nafcillin for injection",
+      "date": "2025/2026 current retrieved",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=090fda61-b9c8-640e-e063-6294a90a7363",
+      "note": "500 mg q4h usual; 1 g q4h severe; no renal/HD adjustment."
+    },
+    "DML_PEN_G": {
+      "type": "DailyMed official label",
+      "title": "Penicillin G potassium for injection",
+      "date": "2026 current retrieved",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=56ab659e-ad28-028f-e063-6394a90a6943",
+      "note": "Renal adjustment only in severe renal impairment; high potassium/sodium load formulation considerations."
+    }
+  },
+  "drugs": [
+    {
+      "drug": "Aztreonam-avibactam",
+      "class": "monobactam + beta-lactamase inhibitor",
+      "verification_tier": "A1",
+      "auto_dose_status": "READY",
+      "core_regimen": "Load 2.67 g IV over 3 h once, then 2 g IV q6h over 3 h.",
+      "label_regimen": "Load 2.67 g IV over 3 h once, then 2 g IV q6h over 3 h.",
+      "guideline_regimen": "IDSA 2026: preferred/important option for NDM-producing Enterobacterales; slight preference over ceftazidime-avibactam + aztreonam in that setting.",
+      "renal_adjustment": "CrCl >50: maintenance 2 g q6h; >30-50: 1 g q6h; >15-30: 0.9 g q8h; <=15 including IHD: 0.9 g q12h after a renal-specific loading dose. Use FDA component-specific loading doses.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "CrCl <=15/IHD: FDA regimen includes 0.9 g q12h maintenance; administer after HD on HD days.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "Beta-lactam PK/PD: fT>MIC; consider beta-lactam TDM in unstable critical illness when available.",
+      "hard_stops": "Do not substitute aztreonam alone. For cIAI FDA label requires metronidazole. Confirm indication and AST.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "FDA_EMBLAVEO_2025",
+        "IDSA_AMR_2026",
+        "IDSA_TABLE1_2026",
+        "CLSI_M100_36"
+      ]
+    },
+    {
+      "drug": "Cefepime-enmetazobactam",
+      "class": "cephalosporin + beta-lactamase inhibitor",
+      "verification_tier": "A1",
+      "auto_dose_status": "READY",
+      "core_regimen": "2.5 g IV q8h over 2 h.",
+      "label_regimen": "2.5 g IV q8h over 2 h.",
+      "guideline_regimen": "2.5 g IV q8h over 2 h.",
+      "renal_adjustment": "eGFR >=130: 2.5 g q8h over 4 h; 90-129 and 60-89: 2.5 g q8h over 2 h; 30-59: 1.25 g q8h; 15-29: 1.25 g q12h; <15/IHD: load 1.25 g day 1 then 0.625 g q24h, post-HD.",
+      "arc": "eGFR >=130: prolong each dose to 4 h per FDA/IDSA.",
+      "ihd": "<15/IHD: 1.25 g loading dose then 0.625 g q24h; give after HD.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "fT>MIC; TDM may be considered in critically ill patients.",
+      "hard_stops": "Estimator in label is eGFR-based; do not silently replace with Cockcroft-Gault CrCl.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "FDA_EXBLIFEP_2024",
+        "IDSA_TABLE1_2026",
+        "IDSA_AMR_2026",
+        "CLSI_M100_36"
+      ]
+    },
+    {
+      "drug": "Cefiderocol",
+      "class": "siderophore cephalosporin",
+      "verification_tier": "A1",
+      "auto_dose_status": "READY",
+      "core_regimen": "2 g IV q8h over 3 h.",
+      "label_regimen": "2 g IV q8h over 3 h.",
+      "guideline_regimen": "IDSA 2026 includes cefiderocol across selected CRE/DTR Pseudomonas/CRAB contexts; preferred monotherapy for invasive S. maltophilia with very limited supportive clinical data acknowledged.",
+      "renal_adjustment": "CrCl >=120: 2 g q6h; 60-119: 2 g q8h; 30-59: 1.5 g q8h; 15-29: 1 g q8h; <15 incl IHD: 0.75 g q12h, post-HD.",
+      "arc": "CrCl >=120: 2 g q6h over 3 h.",
+      "ihd": "<15/IHD: 0.75 g q12h; administer after HD on HD days.",
+      "crrt": "FDA effluent-based CRRT: <=2 L/h 1.5 g q12h; 2.1-3 L/h 2 g q12h; 3.1-4 L/h 1.5 g q8h; >=4.1 L/h 2 g q8h. Verify exact CRRT modality/effective effluent.",
+      "tdm_pkpd": "fT>MIC; beta-lactam TDM if available in critical illness.",
+      "hard_stops": "Do not use a generic CrCl<15 rule for CRRT. Confirm organism/site; use current AST breakpoints.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "FDA_FETROJA_2025",
+        "IDSA_AMR_2026",
+        "IDSA_TABLE1_2026",
+        "CLSI_M100_36"
+      ]
+    },
+    {
+      "drug": "Sulbactam-durlobactam",
+      "class": "beta-lactam + beta-lactamase inhibitor",
+      "verification_tier": "A1",
+      "auto_dose_status": "READY",
+      "core_regimen": "2 g (1 g/1 g) IV q6h over 3 h.",
+      "label_regimen": "2 g (1 g/1 g) IV q6h over 3 h.",
+      "guideline_regimen": "IDSA 2026: priority therapy for invasive CRAB is sulbactam-durlobactam + carbapenem; alternatives are bridge therapy if unavailable.",
+      "renal_adjustment": "CrCl >=130: 2 g q4h; 45-129: q6h; 30-44: q8h; 15-29: q12h; <15: regimen changes to q24h after initial q12h sequence per FDA label.",
+      "arc": "CrCl >=130: 2 g q4h over 3 h.",
+      "ihd": "FDA provides <15/IHD schedule; dose after HD on HD days.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "No routine TDM standard; monitor renal function closely.",
+      "hard_stops": "For invasive CRAB, IDSA 2026 prioritizes sulbactam-durlobactam in combination with a carbapenem. Do not use colonization as indication.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "FDA_XACDURO_2023",
+        "IDSA_AMR_2026",
+        "IDSA_TABLE1_2026",
+        "CLSI_M100_36"
+      ]
+    },
+    {
+      "drug": "Ceftazidime-avibactam",
+      "class": "cephalosporin + beta-lactamase inhibitor",
+      "verification_tier": "A1",
+      "auto_dose_status": "READY",
+      "core_regimen": "FDA label: 2.5 g IV q8h over 2 h when CrCl >50; IDSA AMR suggests 2.5 g q8h over 3 h for AMR infections.",
+      "label_regimen": "FDA label: 2.5 g IV q8h over 2 h when CrCl >50; IDSA AMR suggests 2.5 g q8h over 3 h for AMR infections.",
+      "guideline_regimen": "FDA label: 2.5 g IV q8h over 2 h when CrCl >50; IDSA AMR suggests 2.5 g q8h over 3 h for AMR infections.",
+      "renal_adjustment": "CrCl 31-50: 1.25 g q8h; 16-30: 0.94 g q12h; 6-15: 0.94 g q24h; <=5: 0.94 g q48h. Monitor changing renal function at least daily.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "Administer after HD on HD days; both components are hemodialyzable.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "fT>MIC; consider TDM in critical illness where available.",
+      "hard_stops": "LABEL vs GUIDELINE infusion time must remain separate; never overwrite the FDA 2 h label with the IDSA 3 h AMR suggestion.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "FDA_AVYCAZ_2025",
+        "IDSA_TABLE1_2026",
+        "IDSA_AMR_2026",
+        "CLSI_M100_36",
+        "JAMA_BLI_2024"
+      ]
+    },
+    {
+      "drug": "Ceftolozane-tazobactam",
+      "class": "cephalosporin + beta-lactamase inhibitor",
+      "verification_tier": "A1",
+      "auto_dose_status": "READY",
+      "core_regimen": "cUTI/cIAI: 1.5 g IV q8h over 1 h. HABP/VABP: 3 g IV q8h over 1 h. IDSA AMR uses 3 g q8h over 3 h for non-uUTI resistant infections.",
+      "label_regimen": "cUTI/cIAI: 1.5 g IV q8h over 1 h. HABP/VABP: 3 g IV q8h over 1 h. IDSA AMR uses 3 g q8h over 3 h for non-uUTI resistant infections.",
+      "guideline_regimen": "cUTI/cIAI: 1.5 g IV q8h over 1 h. HABP/VABP: 3 g IV q8h over 1 h. IDSA AMR uses 3 g q8h over 3 h for non-uUTI resistant infections.",
+      "renal_adjustment": "CrCl 30-50: 750 mg q8h for cUTI/cIAI; 1.5 g q8h for HABP/VABP. CrCl 15-29: 375 mg q8h or 750 mg q8h for HABP/VABP. <15 not on IHD: dose not established in 2026 label.",
+      "arc": "HABP/VABP: FDA 2026 notes no dose adjustment is recommended even with CrCl >=180 mL/min.",
+      "ihd": "cUTI/cIAI: load 750 mg then 150 mg q8h; HABP/VABP: load 2.25 g then 450 mg q8h; dose after HD.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "fT>MIC; consider TDM in critical illness.",
+      "hard_stops": "Indication-specific dose differs 2-fold. Do not use the cUTI/cIAI dose for HABP/VABP.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "FDA_ZERBAXA_2026",
+        "IDSA_TABLE1_2026",
+        "IDSA_AMR_2026",
+        "CLSI_M100_36",
+        "JAMA_BLI_2024"
+      ]
+    },
+    {
+      "drug": "Meropenem-vaborbactam",
+      "class": "carbapenem + beta-lactamase inhibitor",
+      "verification_tier": "A1",
+      "auto_dose_status": "READY",
+      "core_regimen": "4 g (2 g/2 g) IV q8h over 3 h when eGFR >=50.",
+      "label_regimen": "4 g (2 g/2 g) IV q8h over 3 h when eGFR >=50.",
+      "guideline_regimen": "4 g (2 g/2 g) IV q8h over 3 h when eGFR >=50.",
+      "renal_adjustment": "eGFR 30-49: 2 g q8h; 15-29: 2 g q12h; <15: 1 g q12h.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "Use current label timing relative to HD; renal doses are based on eGFR and dialysis status.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "fT>MIC; consider beta-lactam TDM in critical illness.",
+      "hard_stops": "Keep eGFR-based label logic separate from Cockcroft-Gault-only modules.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "DML_VABOMERE_2026",
+        "IDSA_TABLE1_2026",
+        "IDSA_AMR_2026",
+        "CLSI_M100_36"
+      ]
+    },
+    {
+      "drug": "Imipenem-cilastatin-relebactam",
+      "class": "carbapenem + beta-lactamase inhibitor",
+      "verification_tier": "A1",
+      "auto_dose_status": "READY",
+      "core_regimen": "1.25 g IV q6h over 30 min with normal renal function.",
+      "label_regimen": "1.25 g IV q6h over 30 min with normal renal function.",
+      "guideline_regimen": "1.25 g IV q6h over 30 min with normal renal function.",
+      "renal_adjustment": "CrCl 60-89: 1 g q6h; 30-59: 0.75 g q6h; 15-29: 0.5 g q6h. CrCl <15 without HD: not recommended per label.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "Use label-specific HD schedule and administer after HD; do not infer from CrCl 15-29.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "fT>MIC.",
+      "hard_stops": "Renal adjustment begins below CrCl 90 mL/min.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "FDA_RECARBRIO_2025",
+        "IDSA_TABLE1_2026",
+        "IDSA_AMR_2026",
+        "CLSI_M100_36"
+      ]
+    },
+    {
+      "drug": "Ceftobiprole medocaril",
+      "class": "anti-MRSA cephalosporin",
+      "verification_tier": "A1",
+      "auto_dose_status": "CONDITIONAL",
+      "core_regimen": "ABSSSI/CABP: 667 mg IV q8h over 2 h. Adult S. aureus bacteremia: 667 mg q6h days 1-8 then q8h from day 9 (label regimen).",
+      "label_regimen": "ABSSSI/CABP: 667 mg IV q8h over 2 h. Adult S. aureus bacteremia: 667 mg q6h days 1-8 then q8h from day 9 (label regimen).",
+      "guideline_regimen": "ABSSSI/CABP: 667 mg IV q8h over 2 h. Adult S. aureus bacteremia: 667 mg q6h days 1-8 then q8h from day 9 (label regimen).",
+      "renal_adjustment": "Dose adjustment required by CrCl; label includes reduced schedules below 50 and post-HD. Nexus should use the current indication-specific FDA table.",
+      "arc": "CrCl >150: label includes 667 mg q6h for relevant adult indications.",
+      "ihd": "Use indication-specific FDA renal table; give post-HD when specified.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "No routine TDM standard.",
+      "hard_stops": "SAB regimen differs from ABSSSI/CABP. Do not collapse indications.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "FDA_ZEVTERA_2024"
+      ]
+    },
+    {
+      "drug": "Meropenem",
+      "class": "carbapenem",
+      "verification_tier": "A1",
+      "auto_dose_status": "READY",
+      "core_regimen": "Label standard: 1 g IV q8h for major adult severe indications; IDSA AMR: uUTI 1 g q8h over 30 min; other AMR infections 1-2 g q8h over 3 h.",
+      "label_regimen": "Label standard: 1 g IV q8h for major adult severe indications; IDSA AMR: uUTI 1 g q8h over 30 min; other AMR infections 1-2 g q8h over 3 h.",
+      "guideline_regimen": "Label standard: 1 g IV q8h for major adult severe indications; IDSA AMR: uUTI 1 g q8h over 30 min; other AMR infections 1-2 g q8h over 3 h.",
+      "renal_adjustment": "Label: CrCl >50 full dose q8h; 26-50 full dose q12h; 10-25 half dose q12h; <10 half dose q24h.",
+      "arc": "IDSA 2026: 2 g q8h over 3 h preferred for CrCl >=130, obesity, CNS infection or ECMO in AMR context.",
+      "ihd": "FDA label does not establish a complete HD regimen; use an institutionally validated HD protocol/TDM rather than inventing.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "Beta-lactam TDM is preferred when available in unstable critical illness/ARC; target is exposure-based, not a fixed serum concentration in all patients.",
+      "hard_stops": "Do not reduce the initial dose solely because maintenance renal function is impaired when a loading dose is clinically indicated; reassess rapidly changing AKI.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "DML_MEROPENEM",
+        "IDSA_TABLE1_2026",
+        "IDSA_AMR_2026",
+        "JAMA_BLI_2024"
+      ]
+    },
+    {
+      "drug": "Cefepime",
+      "class": "4th-gen cephalosporin",
+      "verification_tier": "A1",
+      "auto_dose_status": "CONDITIONAL",
+      "core_regimen": "IDSA AMR: uUTI 1 g IV q8h over 30 min; all other AMR infections: 2 g loading over 30 min, then 2 g q8h over 3 h.",
+      "label_regimen": "IDSA AMR: uUTI 1 g IV q8h over 30 min; all other AMR infections: 2 g loading over 30 min, then 2 g q8h over 3 h.",
+      "guideline_regimen": "IDSA AMR: uUTI 1 g IV q8h over 30 min; all other AMR infections: 2 g loading over 30 min, then 2 g q8h over 3 h.",
+      "renal_adjustment": "Use current FDA/DailyMed renal table; dose reduction is mandatory in renal dysfunction.",
+      "arc": "High-clearance critical illness may need the IDSA high-exposure regimen; do not simply shorten interval outside a validated rule.",
+      "ihd": "Use current label/post-HD schedule; neurotoxicity risk rises with renal accumulation.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "fT>MIC; beta-lactam TDM can be useful in ICU.",
+      "hard_stops": "Hard stop: renal function required; warn for encephalopathy/myoclonus/seizures and changing renal function.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "DML_CEFEPIME_2026",
+        "IDSA_TABLE1_2026",
+        "JAMA_BLI_2024",
+        "CLSI_M100_36"
+      ]
+    },
+    {
+      "drug": "Piperacillin-tazobactam",
+      "class": "antipseudomonal penicillin + beta-lactamase inhibitor",
+      "verification_tier": "A1",
+      "auto_dose_status": "READY",
+      "core_regimen": "Label: 3.375 g IV q6h for most adult indications; nosocomial pneumonia 4.5 g q6h. Extended-infusion ICU regimens should be maintained as a separate PK/PD pathway.",
+      "label_regimen": "Label: 3.375 g IV q6h for most adult indications; nosocomial pneumonia 4.5 g q6h. Extended-infusion ICU regimens should be maintained as a separate PK/PD pathway.",
+      "guideline_regimen": "Label: 3.375 g IV q6h for most adult indications; nosocomial pneumonia 4.5 g q6h. Extended-infusion ICU regimens should be maintained as a separate PK/PD pathway.",
+      "renal_adjustment": "CrCl 20-40: 2.25 g q6h (most) / 3.375 g q6h (nosocomial pneumonia); <20: 2.25 g q8h / 2.25 g q6h; IHD: 2.25 g q12h / q8h plus 0.75 g post-HD.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "See renal field; includes post-HD supplemental dose.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "fT>MIC; prolonged infusion supported in critical illness when feasible.",
+      "hard_stops": "Do not substitute a prolonged-infusion hospital protocol for the FDA label without tagging it as guideline/PK-PD. Check sodium load.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "DML_ZOSYN_2026",
+        "JAMA_BLI_2024",
+        "IDSA_AMR_2026",
+        "CLSI_M100_36"
+      ]
+    },
+    {
+      "drug": "Imipenem-cilastatin",
+      "class": "carbapenem",
+      "verification_tier": "A2",
+      "auto_dose_status": "CONDITIONAL",
+      "core_regimen": "IDSA AMR: uUTI 500 mg imipenem IV q6h over 30 min; other AMR infections 500 mg q6h over 3 h if feasible OR 1 g q8h over 1 h; CrCl >=90 may use 1 g q6h over 1 h in selected AMR contexts.",
+      "label_regimen": "IDSA AMR: uUTI 500 mg imipenem IV q6h over 30 min; other AMR infections 500 mg q6h over 3 h if feasible OR 1 g q8h over 1 h; CrCl >=90 may use 1 g q6h over 1 h in selected AMR contexts.",
+      "guideline_regimen": "IDSA AMR: uUTI 500 mg imipenem IV q6h over 30 min; other AMR infections 500 mg q6h over 3 h if feasible OR 1 g q8h over 1 h; CrCl >=90 may use 1 g q6h over 1 h in selected AMR contexts.",
+      "renal_adjustment": "Dose must be reduced below CrCl 90 per current label; exact table should be applied by regimen and renal stratum.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "Use current label-specific HD regimen; seizure risk and accumulation matter.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "fT>MIC.",
+      "hard_stops": "Dose is based on imipenem component with equivalent cilastatin. Hard stop for renal function and seizure risk.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "IDSA_TABLE1_2026",
+        "IDSA_AMR_2026",
+        "CLSI_M100_36"
+      ]
+    },
+    {
+      "drug": "Ertapenem",
+      "class": "carbapenem",
+      "verification_tier": "A2",
+      "auto_dose_status": "CONDITIONAL",
+      "core_regimen": "1 g IV q24h over 30 min.",
+      "label_regimen": "1 g IV q24h over 30 min.",
+      "guideline_regimen": "1 g IV q24h over 30 min.",
+      "renal_adjustment": "CrCl >30: 1 g q24h; <=30/ESRD: use current label reduced dose (500 mg q24h in US label).",
+      "arc": "No automatic ARC modification.",
+      "ihd": "Give label-recommended reduced regimen with post-HD supplemental strategy when indicated by current label.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "No routine TDM; consider alternative carbapenem for critical illness with high MIC/ARC because ertapenem is highly protein bound.",
+      "hard_stops": "Hard stop: not active against Pseudomonas/Acinetobacter/Enterococcus. Avoid auto-selection for those pathogens.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "IDSA_TABLE1_2026"
+      ]
+    },
+    {
+      "drug": "Ampicillin-sulbactam",
+      "class": "aminopenicillin + beta-lactamase inhibitor",
+      "verification_tier": "B1",
+      "auto_dose_status": "CONDITIONAL",
+      "core_regimen": "Standard label regimens are indication-dependent. For invasive CRAB when sulbactam-durlobactam is unavailable, IDSA 2026 high-dose target is total sulbactam 9 g/day: 9 g amp/sulb (6/3) IV q8h over 4 h OR 27 g/24 h continuous infusion.",
+      "label_regimen": "Standard label regimens are indication-dependent. For invasive CRAB when sulbactam-durlobactam is unavailable, IDSA 2026 high-dose target is total sulbactam 9 g/day: 9 g amp/sulb (6/3) IV q8h over 4 h OR 27 g/24 h continuous infusion.",
+      "guideline_regimen": "Standard label regimens are indication-dependent. For invasive CRAB when sulbactam-durlobactam is unavailable, IDSA 2026 high-dose target is total sulbactam 9 g/day: 9 g amp/sulb (6/3) IV q8h over 4 h OR 27 g/24 h continuous infusion.",
+      "renal_adjustment": "Standard formulation requires renal adjustment. High-dose CRAB renal/RRT adjustment must be protocol/TDM driven and not inferred from standard label tables.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "No automatic IHD rule unless explicitly stated.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "fT>MIC; prolonged/continuous infusion may be used for the high-dose CRAB strategy.",
+      "hard_stops": "CRAB high-dose is indication-specific bridge therapy; IDSA 2026 prioritizes sulbactam-durlobactam + carbapenem when available.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "IDSA_AMR_2026",
+        "IDSA_TABLE1_2026",
+        "JAMA_BLI_2024"
+      ]
+    },
+    {
+      "drug": "Aztreonam",
+      "class": "monobactam",
+      "verification_tier": "A1",
+      "auto_dose_status": "READY",
+      "core_regimen": "Usual adult dose depends on site/severity; severe systemic/Pseudomonas infections often use 2 g IV q6-8h within label limits.",
+      "label_regimen": "Usual adult dose depends on site/severity; severe systemic/Pseudomonas infections often use 2 g IV q6-8h within label limits.",
+      "guideline_regimen": "Usual adult dose depends on site/severity; severe systemic/Pseudomonas infections often use 2 g IV q6-8h within label limits.",
+      "renal_adjustment": "CrCl 10-30: after 1-2 g loading dose, give one-half of usual dose at usual interval. CrCl <10/HD: after usual loading, one-quarter of usual dose at usual interval.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "Label applies severe renal/HD rule; HD can remove drug, so institutional post-HD timing should be explicit.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "fT>MIC.",
+      "hard_stops": "Aztreonam alone is hydrolyzed by ESBL/AmpC and is not a substitute for aztreonam-avibactam in MBL producers.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "DML_AZTREONAM",
+        "IDSA_AMR_2026",
+        "CLSI_M100_36"
+      ]
+    },
+    {
+      "drug": "Cefazolin",
+      "class": "1st-gen cephalosporin",
+      "verification_tier": "A1",
+      "auto_dose_status": "READY",
+      "core_regimen": "Moderate-severe: 0.5-1 g IV q6-8h; severe/life-threatening (e.g. septicemia/endocarditis label): 1-1.5 g q6h. Rare label experience up to 12 g/day.",
+      "label_regimen": "Moderate-severe: 0.5-1 g IV q6-8h; severe/life-threatening (e.g. septicemia/endocarditis label): 1-1.5 g q6h. Rare label experience up to 12 g/day.",
+      "guideline_regimen": "Moderate-severe: 0.5-1 g IV q6-8h; severe/life-threatening (e.g. septicemia/endocarditis label): 1-1.5 g q6h. Rare label experience up to 12 g/day.",
+      "renal_adjustment": "CrCl >=55: full dose; 35-54: full dose at >=q8h; 11-34: half usual dose q12h; <=10: half usual dose q18-24h, after an appropriate loading dose.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "Label does not provide a modern universal IHD algorithm in this table; use a validated post-HD protocol for chronic HD.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "",
+      "hard_stops": "Endocarditis/MSSA definitive therapy should be syndrome-guideline driven; do not use label maximum as routine dose.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "DML_CEFAZOLIN"
+      ]
+    },
+    {
+      "drug": "Ceftriaxone",
+      "class": "3rd-gen cephalosporin",
+      "verification_tier": "A1",
+      "auto_dose_status": "READY",
+      "core_regimen": "Usual adult: 1-2 g IV q24h or divided q12h; max 4 g/day. Meningitis commonly uses 2 g q12h (syndrome-specific guideline/label context).",
+      "label_regimen": "Usual adult: 1-2 g IV q24h or divided q12h; max 4 g/day. Meningitis commonly uses 2 g q12h (syndrome-specific guideline/label context).",
+      "guideline_regimen": "Usual adult: 1-2 g IV q24h or divided q12h; max 4 g/day. Meningitis commonly uses 2 g q12h (syndrome-specific guideline/label context).",
+      "renal_adjustment": "Renal failure alone usually requires no adjustment at usual doses. If significant renal + hepatic dysfunction coexist, do not exceed 2 g/day without specialist assessment.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "No routine post-HD supplemental dose for standard ceftriaxone pathways; account for combined organ dysfunction.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "",
+      "hard_stops": "Hard stop for IV calcium-containing solutions in neonates; adult calcium compatibility follows product-specific administration rules.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "DML_CEFTRIAXONE"
+      ]
+    },
+    {
+      "drug": "Ceftazidime",
+      "class": "3rd-gen antipseudomonal cephalosporin",
+      "verification_tier": "A2",
+      "auto_dose_status": "CONDITIONAL",
+      "core_regimen": "Severe infections: 2 g IV q8h is a label-supported adult regimen.",
+      "label_regimen": "Severe infections: 2 g IV q8h is a label-supported adult regimen.",
+      "guideline_regimen": "Severe infections: 2 g IV q8h is a label-supported adult regimen.",
+      "renal_adjustment": "Label examples: CrCl 31-50: 1 g q12h; 16-30: 1 g q24h; 6-15: 500 mg q24h; <5: 500 mg q48h. Higher-exposure ICU protocols must be tagged as non-label and TDM/PK-PD based.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "Use current label-specific HD supplement/timing.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "fT>MIC; consider TDM in ICU.",
+      "hard_stops": "Do not silently substitute ceftazidime-avibactam doses.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "CLSI_M100_36",
+        "JAMA_BLI_2024"
+      ]
+    },
+    {
+      "drug": "Ceftaroline fosamil",
+      "class": "anti-MRSA cephalosporin",
+      "verification_tier": "A1",
+      "auto_dose_status": "READY",
+      "core_regimen": "FDA label standard adult ABSSSI/CABP: 600 mg IV q12h (infusion duration per label).",
+      "label_regimen": "FDA label standard adult ABSSSI/CABP: 600 mg IV q12h (infusion duration per label).",
+      "guideline_regimen": "FDA label standard adult ABSSSI/CABP: 600 mg IV q12h (infusion duration per label).",
+      "renal_adjustment": "CrCl >50: no adjustment; >30-50: 400 mg q12h; 15-30: 300 mg q12h; ESRD/HD: 200 mg q12h, after HD.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "200 mg q12h; administer after HD on dialysis days.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "",
+      "hard_stops": "Higher-frequency q8h regimens used for selected severe infections are off-label and must live in a separate specialist pathway.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "DML_CEFTAROLINE"
+      ]
+    },
+    {
+      "drug": "Nafcillin",
+      "class": "antistaphylococcal penicillin",
+      "verification_tier": "A1",
+      "auto_dose_status": "READY",
+      "core_regimen": "500 mg IV q4h usual; 1 g IV q4h for severe infections per current label.",
+      "label_regimen": "500 mg IV q4h usual; 1 g IV q4h for severe infections per current label.",
+      "guideline_regimen": "500 mg IV q4h usual; 1 g IV q4h for severe infections per current label.",
+      "renal_adjustment": "No dosage alteration required for renal dysfunction, including hemodialysis, per label.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "No renal/HD adjustment per label; HD does not accelerate clearance.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "",
+      "hard_stops": "Hepatic dysfunction and sodium load/interstitial nephritis are relevant. Syndrome-specific MSSA endocarditis dosing may exceed generic label pathway and should be guideline-driven.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "DML_NAFCILLIN"
+      ]
+    },
+    {
+      "drug": "Penicillin G potassium",
+      "class": "natural penicillin",
+      "verification_tier": "A1",
+      "auto_dose_status": "CONDITIONAL",
+      "core_regimen": "Dose is syndrome-specific and often expressed in million units/day divided q4-6h; meningococcal meningitis/septicemia may use q2h. Nexus must select a syndrome table rather than one universal dose.",
+      "label_regimen": "Dose is syndrome-specific and often expressed in million units/day divided q4-6h; meningococcal meningitis/septicemia may use q2h. Nexus must select a syndrome table rather than one universal dose.",
+      "guideline_regimen": "Dose is syndrome-specific and often expressed in million units/day divided q4-6h; meningococcal meningitis/septicemia may use q2h. Nexus must select a syndrome table rather than one universal dose.",
+      "renal_adjustment": "Severe renal impairment: CrCl <10 - full loading dose then half the loading dose q8-10h; uremic CrCl >10 - full loading then half q4-5h; additional modification if hepatic + renal disease.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "HD may reduce blood levels but effectiveness is variable; do not invent a universal post-HD supplement.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "",
+      "hard_stops": "Hard stop: product potassium load. High-dose IV penicillin can cause neurotoxicity and hyperkalemia, especially in severe renal impairment.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "DML_PEN_G"
+      ]
+    },
+    {
+      "drug": "Amikacin",
+      "class": "aminoglycoside",
+      "verification_tier": "B1",
+      "auto_dose_status": "CONDITIONAL",
+      "core_regimen": "IDSA AMR: uUTI 15 mg/kg IV once; cUTI 15 mg/kg IV once, then subsequent doses/interval by PK evaluation.",
+      "label_regimen": "IDSA AMR: uUTI 15 mg/kg IV once; cUTI 15 mg/kg IV once, then subsequent doses/interval by PK evaluation.",
+      "guideline_regimen": "IDSA AMR: uUTI 15 mg/kg IV once; cUTI 15 mg/kg IV once, then subsequent doses/interval by PK evaluation.",
+      "renal_adjustment": "After initial dose, repeated dosing requires renal function + TDM/PK model. Do not use a fixed renal table in unstable AKI.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "Use post-HD/TDM pathway; do not auto-dose from CrCl alone.",
+      "crrt": "Require CRRT modality, effluent and TDM; no generic CRRT interval in V3.",
+      "tdm_pkpd": "Mandatory for repeated systemic therapy. Prefer exposure/AUC-informed monitoring when validated locally.",
+      "hard_stops": "Hard stop: mg/kg needs documented weight scalar; nephrotoxicity/ototoxicity; avoid automatic extended-interval nomogram in excluded populations.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "IDSA_TABLE1_2026"
+      ]
+    },
+    {
+      "drug": "Gentamicin",
+      "class": "aminoglycoside",
+      "verification_tier": "A1",
+      "auto_dose_status": "CONDITIONAL",
+      "core_regimen": "IDSA AMR: uUTI 5 mg/kg IV once; cUTI 7 mg/kg IV once then PK-guided. Legacy FDA label: 3 mg/kg/day divided q8h for serious infection; up to 5 mg/kg/day for life-threatening infection with monitoring.",
+      "label_regimen": "IDSA AMR: uUTI 5 mg/kg IV once; cUTI 7 mg/kg IV once then PK-guided. Legacy FDA label: 3 mg/kg/day divided q8h for serious infection; up to 5 mg/kg/day for life-threatening infection with monitoring.",
+      "guideline_regimen": "IDSA AMR: uUTI 5 mg/kg IV once; cUTI 7 mg/kg IV once then PK-guided. Legacy FDA label: 3 mg/kg/day divided q8h for serious infection; up to 5 mg/kg/day for life-threatening infection with monitoring.",
+      "renal_adjustment": "Repeated dosing must be individualized by levels. Legacy label provides percentage dose reduction by renal function; modern Nexus should prefer TDM over crude SCr-based percentage tables.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "Legacy label: 1-1.7 mg/kg at end of each HD session depending on infection severity; TDM remains required.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "Mandatory for repeated therapy; monitor SCr, auditory/vestibular toxicity.",
+      "hard_stops": "Do not mix legacy divided-dose and modern extended-interval pathways. Weight scalar required.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "IDSA_TABLE1_2026",
+        "DML_GENTAMICIN"
+      ]
+    },
+    {
+      "drug": "Tobramycin",
+      "class": "aminoglycoside",
+      "verification_tier": "A1",
+      "auto_dose_status": "CONDITIONAL",
+      "core_regimen": "IDSA AMR: uUTI 5 mg/kg IV once; cUTI 7 mg/kg IV once then PK-guided. Label: 3 mg/kg/day divided q8h; up to 5 mg/kg/day in life-threatening infection with monitoring.",
+      "label_regimen": "IDSA AMR: uUTI 5 mg/kg IV once; cUTI 7 mg/kg IV once then PK-guided. Label: 3 mg/kg/day divided q8h; up to 5 mg/kg/day in life-threatening infection with monitoring.",
+      "guideline_regimen": "IDSA AMR: uUTI 5 mg/kg IV once; cUTI 7 mg/kg IV once then PK-guided. Label: 3 mg/kg/day divided q8h; up to 5 mg/kg/day in life-threatening infection with monitoring.",
+      "renal_adjustment": "Repeated therapy requires TDM and renal individualization; no generic auto renal schedule in V3.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "Use dialysis/TDM pathway; do not infer from CrCl.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "Mandatory for repeated systemic therapy.",
+      "hard_stops": "Weight scalar required; nephrotoxicity/ototoxicity hard warning.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "IDSA_TABLE1_2026",
+        "DML_TOBRAMYCIN"
+      ]
+    },
+    {
+      "drug": "Plazomicin",
+      "class": "aminoglycoside",
+      "verification_tier": "A1",
+      "auto_dose_status": "READY",
+      "core_regimen": "CrCl >=60-90+ label pathway: 15 mg/kg IV q24h over 30 min; IDSA AMR: uUTI 15 mg/kg once; cUTI 15 mg/kg once then PK-guided.",
+      "label_regimen": "CrCl >=60-90+ label pathway: 15 mg/kg IV q24h over 30 min; IDSA AMR: uUTI 15 mg/kg once; cUTI 15 mg/kg once then PK-guided.",
+      "guideline_regimen": "CrCl >=60-90+ label pathway: 15 mg/kg IV q24h over 30 min; IDSA AMR: uUTI 15 mg/kg once; cUTI 15 mg/kg once then PK-guided.",
+      "renal_adjustment": "CrCl 30-<60: 10 mg/kg q24h; 15-<30: 10 mg/kg q48h. <15 or RRT: insufficient data for a universal auto-regimen.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "No auto-dose for RRT in V3 due insufficient label data; require specialist/TDM.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "For CrCl 15-<90, label recommends TDM to maintain trough <3 mcg/mL before second dose. Use adjusted body weight when TBW >=25% above IBW.",
+      "hard_stops": "Hard stop if no weight/renal function. Nephrotoxicity, ototoxicity, neuromuscular blockade warnings.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "DML_ZEMDRI",
+        "IDSA_TABLE1_2026"
+      ]
+    },
+    {
+      "drug": "Fosfomycin IV",
+      "class": "phosphonic acid antibiotic",
+      "verification_tier": "A1",
+      "auto_dose_status": "READY",
+      "core_regimen": "cUTI: 6 g IV q8h over 1 h when CrCl >50 (FDA CONTEPO; IDSA 2026).",
+      "label_regimen": "cUTI: 6 g IV q8h over 1 h when CrCl >50 (FDA CONTEPO; IDSA 2026).",
+      "guideline_regimen": "cUTI: 6 g IV q8h over 1 h when CrCl >50 (FDA CONTEPO; IDSA 2026).",
+      "renal_adjustment": "CrCl 41-50: load 6 g then 4 g q8h; 31-40: load 6 then 3 g q8h; 21-30: load 6 then 5 g q24h; 11-20: load 6 then 3 g q24h. <=10: no FDA auto-rule in V3.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "HD removes a substantial fraction; current FDA label does not provide a complete universal maintenance table for <=10/IHD -> SPECIALIST_REVIEW.",
+      "crrt": "No auto-rule in V3.",
+      "tdm_pkpd": "",
+      "hard_stops": "High sodium load: each 6 g vial ~1.98 g sodium. Monitor Na/K and volume status. No invented dose for CrCl <=10.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "FDA_CONTEPO_2025",
+        "IDSA_TABLE1_2026",
+        "IDSA_AMR_2026"
+      ]
+    },
+    {
+      "drug": "Fosfomycin tromethamine PO",
+      "class": "phosphonic acid antibiotic",
+      "verification_tier": "B1",
+      "auto_dose_status": "READY",
+      "core_regimen": "uUTI: 3 g PO once (IDSA AMR; organism/site restrictions apply).",
+      "label_regimen": "uUTI: 3 g PO once (IDSA AMR; organism/site restrictions apply).",
+      "guideline_regimen": "uUTI: 3 g PO once (IDSA AMR; organism/site restrictions apply).",
+      "renal_adjustment": "Do not extrapolate oral single-dose regimen to pyelonephritis/cUTI.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "No automatic IHD rule unless explicitly stated.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "",
+      "hard_stops": "Not an IV-equivalent regimen. IDSA 2026 describes oral fosfomycin as an alternative for uUTI caused by ESBL-producing E. coli.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "IDSA_TABLE1_2026",
+        "IDSA_AMR_2026"
+      ]
+    },
+    {
+      "drug": "Gepotidacin",
+      "class": "triazaacenaphthylene antibacterial",
+      "verification_tier": "A1",
+      "auto_dose_status": "READY",
+      "core_regimen": "uUTI: 1.5 g PO q12h for 5 days after a meal per label context; gonorrhea limited/no alternatives: 3 g PO then second 3 g ~12 h later.",
+      "label_regimen": "uUTI: 1.5 g PO q12h for 5 days after a meal per label context; gonorrhea limited/no alternatives: 3 g PO then second 3 g ~12 h later.",
+      "guideline_regimen": "uUTI: 1.5 g PO q12h for 5 days after a meal per label context; gonorrhea limited/no alternatives: 3 g PO then second 3 g ~12 h later.",
+      "renal_adjustment": "No adjustment eGFR 30-89; avoid/not recommended eGFR <30 including dialysis per label.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "No automatic IHD rule unless explicitly stated.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "",
+      "hard_stops": "QT and drug-interaction screening required; severe hepatic impairment (Child-Pugh C) avoid. Indication-specific regimen.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "FDA_BLUJEPA_2025",
+        "IDSA_AMR_2026",
+        "IDSA_TABLE1_2026"
+      ]
+    },
+    {
+      "drug": "Pivmecillinam",
+      "class": "amidino-penicillin",
+      "verification_tier": "A1",
+      "auto_dose_status": "CONDITIONAL",
+      "core_regimen": "FDA uUTI adult women: 185 mg pivmecillinam PO TID for 3-7 days. IDSA AMR 2026 for ESBL uUTI: 370 mg pivmecillinam PO q8h.",
+      "label_regimen": "FDA uUTI adult women: 185 mg pivmecillinam PO TID for 3-7 days. IDSA AMR 2026 for ESBL uUTI: 370 mg pivmecillinam PO q8h.",
+      "guideline_regimen": "FDA uUTI adult women: 185 mg pivmecillinam PO TID for 3-7 days. IDSA AMR 2026 for ESBL uUTI: 370 mg pivmecillinam PO q8h.",
+      "renal_adjustment": "Do not invent advanced renal regimens outside current label; preserve FDA and IDSA dose pathways separately.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "No automatic IHD rule unless explicitly stated.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "",
+      "hard_stops": "Hard stop: FDA and IDSA doses differ. Display source/indication with the recommendation.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "FDA_PIVYA_2024",
+        "IDSA_TABLE1_2026",
+        "IDSA_AMR_2026"
+      ]
+    },
+    {
+      "drug": "Sulopenem etzadroxil/probenecid",
+      "class": "oral penem + probenecid",
+      "verification_tier": "A1",
+      "auto_dose_status": "READY",
+      "core_regimen": "500/500 mg PO q12h with food for 5 days (adult women with uUTI in label context).",
+      "label_regimen": "500/500 mg PO q12h with food for 5 days (adult women with uUTI in label context).",
+      "guideline_regimen": "500/500 mg PO q12h with food for 5 days (adult women with uUTI in label context).",
+      "renal_adjustment": "No adjustment CrCl >=15; not recommended CrCl <15 or hemodialysis.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "No automatic IHD rule unless explicitly stated.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "",
+      "hard_stops": "Not indicated for cUTI or as oral step-down after cUTI/cIAI. Check probenecid interactions.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "FDA_ORLYNVAH_2025",
+        "IDSA_TABLE1_2026",
+        "IDSA_AMR_2026"
+      ]
+    },
+    {
+      "drug": "Tebipenem pivoxil",
+      "class": "oral carbapenem",
+      "verification_tier": "A1",
+      "auto_dose_status": "READY",
+      "core_regimen": "600 mg PO q6h for 7-10 days when eGFR 60-150 in FDA cUTI/pyelonephritis label context.",
+      "label_regimen": "600 mg PO q6h for 7-10 days when eGFR 60-150 in FDA cUTI/pyelonephritis label context.",
+      "guideline_regimen": "600 mg PO q6h for 7-10 days when eGFR 60-150 in FDA cUTI/pyelonephritis label context.",
+      "renal_adjustment": "eGFR 30-59: 300 mg q6h; 15-29: 300 mg q12h. eGFR >150: not recommended due low exposure. <15/IHD: insufficient data/no auto-dose.",
+      "arc": "eGFR >150: label says not recommended; do not compensate by an unvalidated higher dose.",
+      "ihd": "No automatic IHD rule unless explicitly stated.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "",
+      "hard_stops": "New 2026 oral carbapenem: enforce indication, renal estimator, stewardship and local regulatory availability.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "FDA_UTEBZI_2026"
+      ]
+    },
+    {
+      "drug": "Nitrofurantoin",
+      "class": "nitrofuran",
+      "verification_tier": "B1",
+      "auto_dose_status": "CONDITIONAL",
+      "core_regimen": "Macrobid 100 mg PO q12h for uUTI; oral suspension 50 mg q6h in IDSA AMR table.",
+      "label_regimen": "Macrobid 100 mg PO q12h for uUTI; oral suspension 50 mg q6h in IDSA AMR table.",
+      "guideline_regimen": "Macrobid 100 mg PO q12h for uUTI; oral suspension 50 mg q6h in IDSA AMR table.",
+      "renal_adjustment": "Use current label/geriatric renal restrictions and local policy; not an auto-selected drug for reduced renal function without explicit threshold validation.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "No automatic IHD rule unless explicitly stated.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "",
+      "hard_stops": "Hard stop: not for pyelonephritis, bacteremia or systemic infection.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "IDSA_TABLE1_2026",
+        "IDSA_AMR_2026"
+      ]
+    },
+    {
+      "drug": "Ciprofloxacin",
+      "class": "fluoroquinolone",
+      "verification_tier": "B1",
+      "auto_dose_status": "CONDITIONAL",
+      "core_regimen": "IDSA AMR: uUTI 400 mg IV q12h OR 500 mg PO q12h; other AMR infections 400 mg IV q8h OR 750 mg PO q12h.",
+      "label_regimen": "IDSA AMR: uUTI 400 mg IV q12h OR 500 mg PO q12h; other AMR infections 400 mg IV q8h OR 750 mg PO q12h.",
+      "guideline_regimen": "IDSA AMR: uUTI 400 mg IV q12h OR 500 mg PO q12h; other AMR infections 400 mg IV q8h OR 750 mg PO q12h.",
+      "renal_adjustment": "Renal adjustment required in impaired renal function; current label-specific table should be applied before auto-dosing maintenance.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "No automatic IHD rule unless explicitly stated.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "No routine TDM.",
+      "hard_stops": "QT, tendinopathy, aortic/neurologic adverse-effect warnings and major chelation interactions; use only when susceptibility and benefit justify.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "IDSA_TABLE1_2026",
+        "CLSI_M100_36"
+      ]
+    },
+    {
+      "drug": "Levofloxacin",
+      "class": "fluoroquinolone",
+      "verification_tier": "B1",
+      "auto_dose_status": "CONDITIONAL",
+      "core_regimen": "750 mg IV/PO q24h in IDSA AMR table.",
+      "label_regimen": "750 mg IV/PO q24h in IDSA AMR table.",
+      "guideline_regimen": "750 mg IV/PO q24h in IDSA AMR table.",
+      "renal_adjustment": "Requires renal adjustment below normal renal function; exact current label table must be applied in production.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "No automatic IHD rule unless explicitly stated.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "",
+      "hard_stops": "QT, tendinopathy, neuropathy/CNS effects; hard stop for unadjusted repeated dosing in renal impairment.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "IDSA_TABLE1_2026",
+        "CLSI_M100_36"
+      ]
+    },
+    {
+      "drug": "Trimethoprim-sulfamethoxazole",
+      "class": "folate antagonists",
+      "verification_tier": "A1",
+      "auto_dose_status": "READY",
+      "core_regimen": "uUTI: 160 mg TMP component IV/PO q12h. Other selected AMR infections: 8-15 mg TMP/kg/day divided q8-12h.",
+      "label_regimen": "uUTI: 160 mg TMP component IV/PO q12h. Other selected AMR infections: 8-15 mg TMP/kg/day divided q8-12h.",
+      "guideline_regimen": "uUTI: 160 mg TMP component IV/PO q12h. Other selected AMR infections: 8-15 mg TMP/kg/day divided q8-12h.",
+      "renal_adjustment": "Label: CrCl >30 usual; 15-30 half usual regimen; <15 use not recommended. High-dose PCP/Nocardia pathways require separate syndrome-specific rules.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "No automatic IHD rule unless explicitly stated.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "Monitor K, SCr, CBC; consider folate status and interactions.",
+      "hard_stops": "All weight-based dosing is by TMP component unless explicitly stated. Hard stop if app confuses TMP with SMX dose.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "IDSA_TABLE1_2026",
+        "DML_BACTRIM"
+      ]
+    },
+    {
+      "drug": "Vancomycin IV",
+      "class": "glycopeptide",
+      "verification_tier": "A1",
+      "auto_dose_status": "CONDITIONAL",
+      "core_regimen": "Serious MRSA: use weight-based loading when clinically indicated, then AUC-guided maintenance rather than a fixed universal maintenance dose.",
+      "label_regimen": "Serious MRSA: use weight-based loading when clinically indicated, then AUC-guided maintenance rather than a fixed universal maintenance dose.",
+      "guideline_regimen": "Serious MRSA: use weight-based loading when clinically indicated, then AUC-guided maintenance rather than a fixed universal maintenance dose.",
+      "renal_adjustment": "Maintenance must be individualized to clearance and AUC; unstable AKI and RRT require dynamic reassessment.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "Use AUC/TDM HD protocol; do not map ESRD to a fixed q24/q48 interval.",
+      "crrt": "Require modality/effluent + TDM/AUC model.",
+      "tdm_pkpd": "Consensus target for serious MRSA: AUC24/MIC 400-600 (assuming MIC 1 mg/L for empiric AUC targeting). Bayesian AUC preferred where available.",
+      "hard_stops": "Hard stop: trough-only 15-20 mg/L must not be treated as the primary universal target. Check infusion reaction and nephrotoxicity risk.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "VANCO_AUC_2020"
+      ]
+    },
+    {
+      "drug": "Vancomycin PO",
+      "class": "glycopeptide",
+      "verification_tier": "B1",
+      "auto_dose_status": "CONDITIONAL",
+      "core_regimen": "C. difficile infection: 125 mg PO q6h for 10 days for a standard initial episode pathway; recurrent/fulminant regimens are separate guideline rules.",
+      "label_regimen": "C. difficile infection: 125 mg PO q6h for 10 days for a standard initial episode pathway; recurrent/fulminant regimens are separate guideline rules.",
+      "guideline_regimen": "C. difficile infection: 125 mg PO q6h for 10 days for a standard initial episode pathway; recurrent/fulminant regimens are separate guideline rules.",
+      "renal_adjustment": "No systemic renal adjustment for standard oral CDI therapy; systemic absorption can increase with severe colitis/renal failure.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "No automatic IHD rule unless explicitly stated.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "",
+      "hard_stops": "Oral vancomycin does not treat systemic MRSA infection.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": []
+    },
+    {
+      "drug": "Daptomycin",
+      "class": "lipopeptide",
+      "verification_tier": "A1",
+      "auto_dose_status": "READY",
+      "core_regimen": "Label: cSSSI 4 mg/kg IV q24h; S. aureus bacteremia 6 mg/kg q24h. Higher 8-12 mg/kg regimens are off-label/syndrome/resistance specific and must be separately sourced.",
+      "label_regimen": "Label: cSSSI 4 mg/kg IV q24h; S. aureus bacteremia 6 mg/kg q24h. Higher 8-12 mg/kg regimens are off-label/syndrome/resistance specific and must be separately sourced.",
+      "guideline_regimen": "Label: cSSSI 4 mg/kg IV q24h; S. aureus bacteremia 6 mg/kg q24h. Higher 8-12 mg/kg regimens are off-label/syndrome/resistance specific and must be separately sourced.",
+      "renal_adjustment": "CrCl <30, IHD or CAPD: label regimens use q48h interval for 4 or 6 mg/kg pathways.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "Dose after HD when feasible using label/institutional schedule.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "Monitor CPK at least weekly; more frequently with renal dysfunction/statins or symptoms.",
+      "hard_stops": "HARD STOP: not for pneumonia because pulmonary surfactant inactivates daptomycin. Warn eosinophilic pneumonia/myopathy.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "DML_DAPTOMYCIN"
+      ]
+    },
+    {
+      "drug": "Linezolid",
+      "class": "oxazolidinone",
+      "verification_tier": "A1",
+      "auto_dose_status": "READY",
+      "core_regimen": "600 mg IV/PO q12h for major adult serious indications (pneumonia, cSSSI, VRE pathways).",
+      "label_regimen": "600 mg IV/PO q12h for major adult serious indications (pneumonia, cSSSI, VRE pathways).",
+      "guideline_regimen": "600 mg IV/PO q12h for major adult serious indications (pneumonia, cSSSI, VRE pathways).",
+      "renal_adjustment": "No label dose adjustment for renal impairment; metabolites accumulate. Toxicity monitoring is critical in prolonged therapy.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "Administer after HD on dialysis days.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "Consider TDM for prolonged courses, renal dysfunction, extremes of exposure or toxicity where available.",
+      "hard_stops": "CBC, thrombocytopenia, neuropathy/optic toxicity, lactic acidosis, MAOI/serotonergic interaction assessment.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "DML_LINEZOLID"
+      ]
+    },
+    {
+      "drug": "Doxycycline",
+      "class": "tetracycline",
+      "verification_tier": "A1",
+      "auto_dose_status": "READY",
+      "core_regimen": "IV: 200 mg on day 1 in one or two infusions; then 100-200 mg/day depending on severity. Common serious-infection pathway: 100 mg q12h.",
+      "label_regimen": "IV: 200 mg on day 1 in one or two infusions; then 100-200 mg/day depending on severity. Common serious-infection pathway: 100 mg q12h.",
+      "guideline_regimen": "IV: 200 mg on day 1 in one or two infusions; then 100-200 mg/day depending on severity. Common serious-infection pathway: 100 mg q12h.",
+      "renal_adjustment": "Usual doses do not lead to excessive accumulation in renal impairment per current label.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "No automatic IHD rule unless explicitly stated.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "",
+      "hard_stops": "Rapid IV administration avoided; switch to oral when feasible. Esophagitis/photosensitivity and cation interactions for PO.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "DML_DOXYCYCLINE"
+      ]
+    },
+    {
+      "drug": "Minocycline",
+      "class": "tetracycline",
+      "verification_tier": "B1",
+      "auto_dose_status": "CONDITIONAL",
+      "core_regimen": "IDSA AMR: 200 mg IV/PO q12h for selected resistant Gram-negative infections.",
+      "label_regimen": "IDSA AMR: 200 mg IV/PO q12h for selected resistant Gram-negative infections.",
+      "guideline_regimen": "IDSA AMR: 200 mg IV/PO q12h for selected resistant Gram-negative infections.",
+      "renal_adjustment": "Renal impairment requires caution; label limits/exposure considerations should be applied. Do not automatically use 400 mg/day in severe renal dysfunction without specialist review.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "No automatic IHD rule unless explicitly stated.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "",
+      "hard_stops": "Vestibular effects, hepatotoxicity, pigmentation; AMR use is off-label/site-specific.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "IDSA_TABLE1_2026",
+        "IDSA_AMR_2026"
+      ]
+    },
+    {
+      "drug": "Tigecycline",
+      "class": "glycylcycline",
+      "verification_tier": "A1",
+      "auto_dose_status": "CONDITIONAL",
+      "core_regimen": "FDA label: load 100 mg IV, then 50 mg q12h. IDSA AMR 2026 high-dose pathway: load 200 mg, then 100 mg q12h for selected resistant infections.",
+      "label_regimen": "FDA label: load 100 mg IV, then 50 mg q12h. IDSA AMR 2026 high-dose pathway: load 200 mg, then 100 mg q12h for selected resistant infections.",
+      "guideline_regimen": "FDA label: load 100 mg IV, then 50 mg q12h. IDSA AMR 2026 high-dose pathway: load 200 mg, then 100 mg q12h for selected resistant infections.",
+      "renal_adjustment": "No renal adjustment pathway needed in usual label use; hepatic function matters.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "No automatic IHD rule unless explicitly stated.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "No routine TDM.",
+      "hard_stops": "Child-Pugh C: label maintenance 25 mg q12h after 100 mg load. Boxed mortality signal; not indicated for HAP/VAP. Keep label and AMR high-dose pathways separate.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "DML_TIGECYCLINE",
+        "IDSA_TABLE1_2026",
+        "IDSA_AMR_2026"
+      ]
+    },
+    {
+      "drug": "Eravacycline",
+      "class": "fluorocycline",
+      "verification_tier": "B1",
+      "auto_dose_status": "CONDITIONAL",
+      "core_regimen": "1 mg/kg IV q12h (IDSA AMR table).",
+      "label_regimen": "1 mg/kg IV q12h (IDSA AMR table).",
+      "guideline_regimen": "1 mg/kg IV q12h (IDSA AMR table).",
+      "renal_adjustment": "No generic renal auto-adjustment in V3; follow current label.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "No automatic IHD rule unless explicitly stated.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "",
+      "hard_stops": "Not for UTI because urinary exposure is inadequate; indication/site hard stop.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "IDSA_TABLE1_2026"
+      ]
+    },
+    {
+      "drug": "Polymyxin B",
+      "class": "polymyxin",
+      "verification_tier": "A1",
+      "auto_dose_status": "CONDITIONAL",
+      "core_regimen": "Consensus systemic regimen: loading 2.0-2.5 mg/kg (20,000-25,000 IU/kg) TBW, then 1.25-1.5 mg/kg (12,500-15,000 IU/kg) q12h; verify product units.",
+      "label_regimen": "Consensus systemic regimen: loading 2.0-2.5 mg/kg (20,000-25,000 IU/kg) TBW, then 1.25-1.5 mg/kg (12,500-15,000 IU/kg) q12h; verify product units.",
+      "guideline_regimen": "Consensus systemic regimen: loading 2.0-2.5 mg/kg (20,000-25,000 IU/kg) TBW, then 1.25-1.5 mg/kg (12,500-15,000 IU/kg) q12h; verify product units.",
+      "renal_adjustment": "International consensus recommends not reducing maintenance solely for renal impairment; toxicity monitoring remains essential.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "Do not automatically reduce by HD; specialist/TDM pathway preferred.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "TDM where available; narrow therapeutic window.",
+      "hard_stops": "CRITICAL UNIT HARD STOP: mg polymyxin B vs IU. Nephrotoxicity/neurotoxicity; reserve for limited options.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "POLYMYXIN_2019",
+        "IDSA_TABLE1_2026"
+      ]
+    },
+    {
+      "drug": "Colistimethate sodium (colistin)",
+      "class": "polymyxin prodrug",
+      "verification_tier": "A1",
+      "auto_dose_status": "SPECIALIST_REVIEW",
+      "core_regimen": "Use international consensus calculator based on colistin base activity (CBA) or million IU; loading dose is generally required for systemic therapy.",
+      "label_regimen": "Use international consensus calculator based on colistin base activity (CBA) or million IU; loading dose is generally required for systemic therapy.",
+      "guideline_regimen": "Use international consensus calculator based on colistin base activity (CBA) or million IU; loading dose is generally required for systemic therapy.",
+      "renal_adjustment": "Maintenance is renal-function dependent; exact consensus table/calculator required. Do not hardcode a single dose.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "Use consensus HD-specific dosing; supplemental post-HD dose depends on dialysis exposure.",
+      "crrt": "Use consensus CRRT-specific pathway; do not map from CrCl.",
+      "tdm_pkpd": "TDM where available.",
+      "hard_stops": "CRITICAL UNIT HARD STOP: mg CBA vs mg colistimethate vs million IU are not interchangeable. High nephro/neurotoxicity.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "POLYMYXIN_2019",
+        "IDSA_TABLE1_2026"
+      ]
+    },
+    {
+      "drug": "Ceftazidime-avibactam + aztreonam",
+      "class": "combination strategy",
+      "verification_tier": "B1",
+      "auto_dose_status": "CONDITIONAL",
+      "core_regimen": "IDSA AMR: ceftazidime-avibactam 2.5 g IV q8h over 3 h PLUS aztreonam 2 g IV q8h over 3 h, administered simultaneously via Y-site when feasible.",
+      "label_regimen": "IDSA AMR: ceftazidime-avibactam 2.5 g IV q8h over 3 h PLUS aztreonam 2 g IV q8h over 3 h, administered simultaneously via Y-site when feasible.",
+      "guideline_regimen": "IDSA AMR: ceftazidime-avibactam 2.5 g IV q8h over 3 h PLUS aztreonam 2 g IV q8h over 3 h, administered simultaneously via Y-site when feasible.",
+      "renal_adjustment": "Both components require renal adjustment; use synchronized validated renal tables. Do not adjust one component and leave the other unchanged.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "No automatic IHD rule unless explicitly stated.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "fT>MIC.",
+      "hard_stops": "Combination pathway, not a single product. Check line compatibility and renal function daily when unstable.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "IDSA_TABLE1_2026",
+        "IDSA_AMR_2026"
+      ]
+    },
+    {
+      "drug": "Metronidazole",
+      "class": "nitroimidazole",
+      "verification_tier": "B1",
+      "auto_dose_status": "CONDITIONAL",
+      "core_regimen": "Common severe anaerobic infection pathway: 500 mg IV/PO q8h; indication-specific regimens vary.",
+      "label_regimen": "Common severe anaerobic infection pathway: 500 mg IV/PO q8h; indication-specific regimens vary.",
+      "guideline_regimen": "Common severe anaerobic infection pathway: 500 mg IV/PO q8h; indication-specific regimens vary.",
+      "renal_adjustment": "Single-dose PK is not materially altered by renal impairment; metabolites accumulate in ESRD. HD removes ~40-65% of a dose; schedule around HD when prolonged therapy.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "No automatic IHD rule unless explicitly stated.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "",
+      "hard_stops": "Severe hepatic impairment: reduce dose by 50% per label pathway. Check alcohol/disulfiram-like warning and warfarin interaction.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": []
+    },
+    {
+      "drug": "Nafcillin/Oxacillin class pathway",
+      "class": "antistaphylococcal penicillin",
+      "verification_tier": "A1",
+      "auto_dose_status": "SELECT_AGENT",
+      "core_regimen": "For MSSA severe infection, use agent-specific current label/guideline. Nafcillin current label: 1 g IV q4h for severe infection.",
+      "label_regimen": "For MSSA severe infection, use agent-specific current label/guideline. Nafcillin current label: 1 g IV q4h for severe infection.",
+      "guideline_regimen": "For MSSA severe infection, use agent-specific current label/guideline. Nafcillin current label: 1 g IV q4h for severe infection.",
+      "renal_adjustment": "Nafcillin: no renal/HD adjustment per label. Oxacillin must remain a separate product record before production because sodium content/hepatic adverse effects differ.",
+      "arc": "No automatic ARC modification.",
+      "ihd": "No automatic IHD rule unless explicitly stated.",
+      "crrt": "No automatic CRRT rule; require modality + effluent + residual renal function and agent-specific evidence.",
+      "tdm_pkpd": "",
+      "hard_stops": "Do not collapse nafcillin and oxacillin in final eMAR prescription; this row is a clinical class selector only.",
+      "ast_governance": "Use local AST standard; do not infer susceptibility from dose.",
+      "notes": "",
+      "source_ids": [
+        "DML_NAFCILLIN"
+      ]
+    }
+  ],
+  "next_priority_for_v3_1": [
+    "Ampicillin",
+    "Amoxicillin",
+    "Amoxicillin-clavulanate",
+    "Oxacillin",
+    "Cefuroxime",
+    "Cefotaxime",
+    "Moxifloxacin",
+    "Azithromycin",
+    "Clindamycin",
+    "Tedizolid",
+    "Dalbavancin",
+    "Oritavancin",
+    "Telavancin",
+    "Omadacycline",
+    "Delafloxacin",
+    "Fidaxomicin",
+    "Rifampin",
+    "Rifabutin",
+    "Cefmetazole",
+    "Cefoxitin"
+  ],
+  "claude_contract": {
+    "llm_role": "Extract indication, site, organism, MIC/AST, weight, renal/hepatic status, critical illness, RRT/ECMO and request a deterministic rule.",
+    "llm_prohibited": [
+      "Invent dose",
+      "Merge label and guideline doses",
+      "Use eGFR when source requires CrCl without conversion policy",
+      "Use ESRD dose as CRRT dose",
+      "Infer susceptibility from dose",
+      "Hide uncertainty"
+    ],
+    "engine_output_required": [
+      "dose/regimen",
+      "indication",
+      "renal estimator/value",
+      "RRT/ARC context",
+      "source IDs",
+      "verification tier",
+      "last verified date",
+      "warnings/hard stops"
+    ]
+  }
+}
