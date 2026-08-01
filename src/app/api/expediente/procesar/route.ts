@@ -123,10 +123,24 @@ async function llamarClaude(key: string, model: string, system: string, userMsg:
   // (mejor diagnóstico diferencial, dosis, coherencia). Solo en modelos que lo
   // soportan; el JSON final sale igual, solo mejor razonado.
   if (pienso) body.thinking = { type: 'enabled', budget_tokens: 6000 }
+  /**
+   * TOPE DE ESPERA: 90 s por intento.
+   *
+   * Esta llamada era la única del repo sin `AbortSignal.timeout` (el consultor
+   * usa 55 s y la evidencia 40 s). Con `maxDuration = 300` y hasta tres intentos,
+   * una conexión colgada de Anthropic dejaba al médico mirando el spinner cinco
+   * minutos con un paciente enfrente, hasta que Vercel cortaba en seco.
+   *
+   * 90 s es holgado para una nota larga con razonamiento extendido y corta muy
+   * por debajo del techo de la función, así que el fallback determinista —el
+   * parser local, que no necesita red— llega a ejecutarse y el médico recibe una
+   * nota, no una pantalla parada.
+   */
   return fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: headersAnthropic(key),
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(90_000),
   })
 }
 
@@ -136,10 +150,29 @@ async function llamarClaude(key: string, model: string, system: string, userMsg:
  * intento hacía que la nota cayera al parser local "porque sí".
  */
 async function llamarClaudeConReintentos(key: string, model: string, system: string, userMsg: string, conThinking = false, maxOverride?: number) {
-  let res = await llamarClaude(key, model, system, userMsg, conThinking, maxOverride)
-  for (let intento = 1; intento <= 2 && STATUS_REINTENTABLE.has(res.status); intento++) {
+  /**
+   * Un TIMEOUT o un fallo de red no llegan como `res.status`: llegan como
+   * excepción. Sin esto, el tope de espera recién puesto se saltaba el bucle de
+   * reintentos y subía directo al catch general, donde el médico veía el texto
+   * crudo del error de JavaScript.
+   *
+   * Se convierte en un 504 sintético para que caiga por el MISMO camino que
+   * cualquier otro error HTTP: el que ya clasifica el fallo, avisa al dueño si
+   * la llave es de la plataforma y le escribe al médico una frase que se puede
+   * leer.
+   */
+  const intentar = async (): Promise<Response> => {
+    try {
+      return await llamarClaude(key, model, system, userMsg, conThinking, maxOverride)
+    } catch (e) {
+      safeLog.warn('[expediente/procesar] Claude no respondió a tiempo o falló la red', e)
+      return new Response('timeout', { status: 504 })
+    }
+  }
+  let res = await intentar()
+  for (let intento = 1; intento <= 2 && (STATUS_REINTENTABLE.has(res.status) || res.status === 504); intento++) {
     await sleep(intento * 700)
-    res = await llamarClaude(key, model, system, userMsg, conThinking, maxOverride)
+    res = await intentar()
   }
   return res
 }

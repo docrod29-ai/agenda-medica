@@ -205,6 +205,24 @@ export async function POST(req: NextRequest) {
           } catch {
             break  // ya procesado (o carrera perdida) → NO registrar de nuevo
           }
+          /**
+           * SI EL EFECTO FALLA, LA MARCA SE RETIRA.
+           *
+           * La marca se escribe ANTES de registrar el cobro (tiene que ser así:
+           * es lo que hace atómica la exclusión entre dos entregas simultáneas
+           * del mismo evento). Pero eso abre una ventana: si Firestore falla
+           * entre la marca y el cobro, Stripe reintenta, la marca ya existe, se
+           * hace `break`… y el cobro no se registra NUNCA.
+           *
+           * El dinero está cobrado en Stripe, la marca dice «procesado» y en
+           * Finanzas no existe. Dinero invisible, que es el peor estado posible.
+           *
+           * Retirar la marca al fallar devuelve el evento a «no procesado» y el
+           * reintento de Stripe —que llega solo, porque devolvemos 500— lo hace
+           * de nuevo. Si el borrado también falla, al menos queda el error en el
+           * log con el `session.id` para reconciliar a mano.
+           */
+          try {
           const ahora = new Date()
           const iso = ahora.toISOString()
           const dia = new Intl.DateTimeFormat('en-CA', {
@@ -220,7 +238,7 @@ export async function POST(req: NextRequest) {
           // da por cobrada (corte-caja: concepto 'abono' NO salda).
           const esperado = Number(cita?.pagoMonto) || 0
           const cubre = esperado <= 0 || monto + 0.01 >= esperado
-          await adminDb.collection('clinics').doc(clinicId).collection('cobros').add({
+          const cobroRef = await adminDb.collection('clinics').doc(clinicId).collection('cobros').add({
             fecha: iso, dia, mes: dia.slice(0, 7),
             monto, metodo: 'tarjeta', concepto: cubre ? 'consulta' : 'abono',
             descripcion: cubre ? 'Anticipo pagado en línea por el paciente' : 'Abono parcial pagado en línea por el paciente',
@@ -233,9 +251,31 @@ export async function POST(req: NextRequest) {
             referenciaExterna: session.id,
             createdAt: iso, creadoPor: 'stripe:anticipo', cancelado: false,
           })
+          /**
+           * EL `cobroId` ES EL CANDADO CONTRA EL DOBLE COBRO, Y FALTABA.
+           *
+           * Aquí se marcaba la cita como `pagada` pero SIN `cobroId`. Y el
+           * candado de `registrarCobro` (lib/cobros.ts) es exactamente ese
+           * campo, igual que la condición que oculta el botón "Cobrar" en la
+           * lista de citas.
+           *
+           * Resultado real, no hipotético: el paciente pagaba su anticipo por
+           * el portal, llegaba al consultorio, la asistente seguía viendo el
+           * botón "Cobrar" activo y le cobraba otra vez. Nada lo impedía, y el
+           * corte de caja sumaba los dos.
+           *
+           * En el ABONO no se pone: un pago parcial no salda la cita y tiene
+           * que poder cobrarse el resto. Es la misma regla que ya aplica
+           * `registrarCobro` para los abonos de ventanilla.
+           */
           if (citaRef) await citaRef.update(cubre
-            ? { estado: 'pagada', pagadoEn: iso, updatedAt: iso }
+            ? { estado: 'pagada', pagadoEn: iso, cobroId: cobroRef.id, cobradoEn: iso, updatedAt: iso }
             : { estado: 'pendiente-pago', saldoPendiente: Math.max(0, esperado - monto), abonadoEn: iso, updatedAt: iso })
+          } catch (e) {
+            await marca.delete().catch(() => { /* ver arriba: queda el error abajo para reconciliar */ })
+            console.error('[stripe] anticipo NO registrado, marca retirada para que Stripe reintente', session.id, e)
+            throw e  // 500 → Stripe reintenta
+          }
           break
         }
 

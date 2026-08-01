@@ -335,13 +335,25 @@ async function transcribirBlobSimple(blob: Blob, ext: string, contexto: CtxDicta
       // Antes se ignoraba y solo salía "OpenAI HTTP 502" → causa invisible.
       let msgServidor = ''
       try { msgServidor = String(JSON.parse(body)?.error || '') } catch { /* body no-JSON */ }
+      /**
+       * EL MENSAJE DEL SERVIDOR VA PRIMERO, Y NO ES UN DETALLE DE ORDEN.
+       *
+       * Sólo el servidor sabe QUIÉN PAGA esa llamada, y de eso depende qué se le
+       * puede decir al médico. Aquí se adivinaba por el cuerpo de la respuesta y
+       * salían frases como «SIN SALDO en OpenAI, carga créditos» o «llave
+       * inválida» a un médico cuyo plan usa la llave de la plataforma: ni es su
+       * saldo, ni es su llave, ni puede hacer nada con esa información.
+       *
+       * El 413 sí se queda arriba: el audio demasiado grande es un hecho de este
+       * lado, y el servidor ni siquiera llega a verlo.
+       */
       motivoFalloTranscripcion =
         res.status === 413 ? 'audio demasiado grande para el servidor'
-        : /credit|balance|quota|insufficient|billing|saldo/i.test(body) ? 'SIN SALDO en OpenAI (carga créditos en platform.openai.com)'
-        : res.status === 401 ? 'llave de OpenAI inválida'
-        : msgServidor ? msgServidor.slice(0, 140)   // ← causa REAL del servidor
-        : res.status === 503 ? 'OPENAI_API_KEY no configurada en Vercel'
-        : `OpenAI HTTP ${res.status}`
+        : msgServidor ? msgServidor.slice(0, 140)   // ← causa REAL, con dueño correcto
+        : /credit|balance|quota|insufficient|billing|saldo/i.test(body) ? 'el servicio de transcripción no está disponible ahora mismo'
+        : res.status === 401 ? 'el servicio de transcripción rechazó la conexión'
+        : res.status === 503 ? 'el servicio de transcripción no está configurado'
+        : `el servicio de transcripción falló (HTTP ${res.status})`
       return ''                                     // 413 (límite Vercel) / 5xx / HTML → sin texto
     }
     const data = await res.json().catch(() => null)

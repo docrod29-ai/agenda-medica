@@ -3,12 +3,12 @@ import { useState, useRef, useEffect } from 'react'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useClinic } from '@/context/ClinicContext'
 import { getPatients } from '@/lib/firestore'
-import { Sparkles, Send, Loader2, FlaskConical, BookOpen, X, UserRound } from 'lucide-react'
+import { Sparkles, Send, Loader2, FlaskConical, BookOpen, X, UserRound, AlertTriangle } from 'lucide-react'
 import { MiniMarkdown } from '@/components/MiniMarkdown'
 import { useTarea } from '@/context/TareasContext'
 
 interface Articulo { pmid: string; titulo: string; revista: string; anio: string; url: string; tipo?: string; doi?: string }
-interface Turno { pregunta: string; respuesta: string; articulos: Articulo[]; cenetecUrl?: string; modelos?: string[]; fechaBusqueda?: string; cargando?: boolean }
+interface Turno { pregunta: string; respuesta: string; articulos: Articulo[]; cenetecUrl?: string; modelos?: string[]; fechaBusqueda?: string; cargando?: boolean; sinCitas?: boolean }
 
 /** Nivel de evidencia orientativo por DISEÑO del estudio (proxy tipo GRADE, no un grado GRADE formal). */
 function nivelEvidencia(tipo?: string): { label: string; color: string } | null {
@@ -101,9 +101,9 @@ export default function ConsultorPage() {
         const lineas = buf.split('\n'); buf = lineas.pop() ?? ''
         for (const linea of lineas) {
           const s = linea.trim(); if (!s) continue
-          let ev: { type?: string; text?: string; error?: string; articulos?: Articulo[]; cenetecUrl?: string; modelos?: string[]; fechaBusqueda?: string }
+          let ev: { type?: string; text?: string; error?: string; articulos?: Articulo[]; cenetecUrl?: string; modelos?: string[]; fechaBusqueda?: string; sinCitas?: boolean }
           try { ev = JSON.parse(s) } catch { continue }
-          if (ev.type === 'meta') patch({ articulos: ev.articulos ?? [], cenetecUrl: ev.cenetecUrl, modelos: ev.modelos, fechaBusqueda: ev.fechaBusqueda, cargando: false })
+          if (ev.type === 'meta') patch({ articulos: ev.articulos ?? [], cenetecUrl: ev.cenetecUrl, modelos: ev.modelos, fechaBusqueda: ev.fechaBusqueda, sinCitas: ev.sinCitas === true, cargando: false })
           else if (ev.type === 'delta') { acc += ev.text ?? ''; patch({ respuesta: acc, cargando: false }) }
           else if (ev.type === 'error') { acc = acc || `⚠️ ${ev.error}`; patch({ respuesta: acc, cargando: false }) }
         }
@@ -169,15 +169,42 @@ export default function ConsultorPage() {
                   </div>
                 ) : (
                   <>
+                    {/*
+                      EL AVISO DE «SIN CITAS» LO ESCRIBE LA PANTALLA, NO EL MODELO.
+                      El servidor manda `sinCitas: true` de forma determinista
+                      cuando PubMed no devolvió nada. Antes la honestidad dependía
+                      de que el modelo obedeciera una instrucción del prompt
+                      («empieza con una línea honesta…»): si la omitía o la
+                      reformulaba, la respuesta se leía idéntica a una respaldada
+                      por literatura. El dato ya existía; sólo que nadie lo usaba.
+                    */}
+                    {t.sinCitas && !t.cargando && (
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10, fontSize: 12, borderRadius: 8, padding: '8px 10px', color: '#b45309', background: 'rgba(180,83,9,0.10)', border: '1px solid rgba(180,83,9,0.3)' }}>
+                        <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+                        <span>Sin resultados de PubMed para esta pregunta. Lo de abajo es razonamiento clínico, no literatura citada — verifica antes de aplicarlo.</span>
+                      </div>
+                    )}
                     <MiniMarkdown texto={t.respuesta} />
-                    {t.articulos.length > 0 && !t.cargando && t.respuesta && (() => {
+                    {/*
+                      LA VERIFICACIÓN CORRE SIEMPRE, TAMBIÉN SIN ARTÍCULOS.
+                      Estaba condicionada a `articulos.length > 0`, así que en la
+                      rama sin evidencia —justo la del fallo de PubMed— cualquier
+                      «[1]» del modelo se pintaba con estilo de cita, sin lista de
+                      fuentes y sin una sola advertencia. Con cero artículos, toda
+                      cita está fuera de rango por definición: eso es lo que dice.
+                    */}
+                    {!t.cargando && t.respuesta && (() => {
                       const citadas = citasEnTexto(t.respuesta)
                       if (citadas.length === 0) return null
                       const fuera = citadas.filter(n => n < 1 || n > t.articulos.length)
                       const ok = fuera.length === 0
                       return (
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, marginRight: 6, fontSize: 11, fontWeight: 600, borderRadius: 8, padding: '4px 9px', color: ok ? '#16a34a' : '#b45309', background: ok ? 'rgba(22,163,74,0.10)' : 'rgba(180,83,9,0.10)', border: `1px solid ${ok ? 'rgba(22,163,74,0.3)' : 'rgba(180,83,9,0.3)'}` }}>
-                          {ok ? `✓ ${citadas.length} cita${citadas.length === 1 ? '' : 's'} verificada${citadas.length === 1 ? '' : 's'} contra las fuentes` : `⚠ ${fuera.length} cita${fuera.length === 1 ? '' : 's'} fuera de rango`}
+                          {ok
+                            ? `✓ ${citadas.length} cita${citadas.length === 1 ? '' : 's'} verificada${citadas.length === 1 ? '' : 's'} contra las fuentes`
+                            : t.articulos.length === 0
+                              ? `⚠ ${fuera.length} cita${fuera.length === 1 ? '' : 's'} sin fuente: no hay artículos contra los que comprobarlas`
+                              : `⚠ ${fuera.length} cita${fuera.length === 1 ? '' : 's'} fuera de rango`}
                         </div>
                       )
                     })()}
