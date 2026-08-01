@@ -14,6 +14,7 @@ import { adminDb } from '@/lib/firebase-admin'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { verificarTokenPaciente } from '@/lib/patient-token'
 import { verificarMiembro } from '@/lib/auth-server'
+import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 
 const DAILY_API_KEY = process.env.DAILY_API_KEY ?? ''
 
@@ -76,8 +77,22 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // Calcular ventana de validez: 30 min antes hasta 2 horas después
-    const fechaHora = new Date((cita.fechaHora as string).replace(' ', 'T')).getTime()
+    /**
+     * VENTANA DE VALIDEZ: 30 min antes de la cita, hasta 2 h después.
+     *
+     * `cita.fechaHora` es HORA DE PARED («2026-08-10 10:00»), sin zona. Se
+     * parseaba con `new Date(...)`, que en Vercel corre con TZ=UTC: la sala
+     * quedaba abierta de 09:30 a 12:00 UTC mientras la consulta de las 10:00 de
+     * México ocurre a las 16:00 UTC. Es decir, médico y paciente entraban a su
+     * teleconsulta y la sala llevaba cuatro horas caducada.
+     *
+     * `instanteMX` con la zona del consultorio es el mismo patrón que ya usa el
+     * cron de recordatorios; éste era el último sitio que parseaba a mano.
+     */
+    const cfgSnap = await adminDb.collection('clinics').doc(clinicId).collection('config').doc('main').get()
+    const tzClinica = (cfgSnap.data()?.zonaHoraria as string) || TZ_DEFAULT
+    const [fechaParte, horaParte] = String(cita.fechaHora ?? '').split(/[ T]/)
+    const fechaHora = instanteMX(fechaParte ?? '', (horaParte ?? '00:00').slice(0, 5), tzClinica).getTime()
     const nbf = Math.floor((fechaHora - 30 * 60_000) / 1000)
     const exp = Math.floor((fechaHora + 2 * 60 * 60_000) / 1000)
 

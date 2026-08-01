@@ -3,7 +3,9 @@ import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarTokenPaciente } from '@/lib/patient-token'
 import { getAvailableSlots } from '@/lib/availability'
+import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 import type { Appointment, ClinicConfig } from '@/types'
+import type { TimeBlock } from '@/lib/time-blocks-core'
 import type { NotaMedica } from '@/types/expediente'
 
 /**
@@ -16,9 +18,17 @@ import type { NotaMedica } from '@/types/expediente'
 
 const MIN_HORAS_DEFECTO = 24
 
-function horasHasta(fechaHora: string): number {
-  // fechaHora = 'YYYY-MM-DD HH:mm' en hora de México (UTC-6, sin DST)
-  const t = new Date(fechaHora.replace(' ', 'T') + ':00-06:00').getTime()
+/**
+ * EL OFFSET DEL CONSULTORIO, NO UN -06:00 QUEMADO.
+ *
+ * Este cálculo decide si el paciente todavía llega a la política de «reagenda
+ * hasta 24 h antes». Con el offset fijo, un consultorio en Tijuana (UTC-8)
+ * cerraba la puerta dos horas antes de lo que debía, y en Cancún (UTC-5, y es
+ * mercado real) dos horas después. El resto del repo ya usa `instanteMX`.
+ */
+function horasHasta(fechaHora: string, tz: string): number {
+  const s = String(fechaHora ?? '')
+  const t = instanteMX(s.slice(0, 10), s.slice(11, 16), tz).getTime()
   return (t - Date.now()) / 3_600_000
 }
 
@@ -69,6 +79,19 @@ async function leerConfig(clinicId: string): Promise<ClinicConfig | null> {
   return snap.exists ? (snap.data() as ClinicConfig) : null
 }
 
+/**
+ * LOS BLOQUEOS DEL CONSULTORIO, QUE ESTA RUTA IGNORABA.
+ *
+ * `getAvailableSlots` recibía `[]` como lista de bloqueos en los dos sitios que
+ * calculan huecos aquí. Era la ÚNICA vía de escritura de citas que no consultaba
+ * `time_blocks` en ningún punto: el médico bloqueaba la semana por vacaciones y
+ * un paciente con su enlace se reagendaba al miércoles, confirmado y sin aviso.
+ */
+async function leerBloques(clinicId: string): Promise<TimeBlock[]> {
+  const snap = await adminDb.collection('clinics').doc(clinicId).collection('time_blocks').get()
+  return snap.docs.map(d => ({ id: d.id, ...d.data() })) as unknown as TimeBlock[]
+}
+
 async function leerCita(clinicId: string, citaId: string): Promise<Appointment | null> {
   const snap = await adminDb.collection('clinics').doc(clinicId).collection('appointments').doc(citaId).get()
   return snap.exists ? ({ id: snap.id, ...(snap.data() as Omit<Appointment, 'id'>) }) : null
@@ -112,6 +135,9 @@ export async function POST(req: NextRequest) {
             direccion: config.direccion || '',
           } : null,
           minHoras: (config as { politicaCancelacionHoras?: number } | null)?.politicaCancelacionHoras ?? MIN_HORAS_DEFECTO,
+          // La pantalla del paciente también decide «próximas vs pasadas» con una
+          // hora de pared: sin la zona del consultorio lo hacía con -06:00 fijo.
+          zonaHoraria: config?.zonaHoraria || TZ_DEFAULT,
           anticipo: config?.anticipoLink ? { link: config.anticipoLink, monto: config.anticipoMonto ?? 0 } : null,
           citas: citas.sort((a, b) => a.fechaHora.localeCompare(b.fechaHora)),
         })
@@ -141,7 +167,7 @@ export async function POST(req: NextRequest) {
         }
         const config = await leerConfig(clinicId)
         const minHoras = (config as { politicaCancelacionHoras?: number } | null)?.politicaCancelacionHoras ?? MIN_HORAS_DEFECTO
-        if (horasHasta(cita.fechaHora) < minHoras) {
+        if (horasHasta(cita.fechaHora, config?.zonaHoraria || TZ_DEFAULT) < minHoras) {
           return NextResponse.json({ error: `Cancelación en línea hasta ${minHoras}h antes. Llama al consultorio.` }, { status: 422 })
         }
         await adminDb.collection('clinics').doc(clinicId).collection('appointments').doc(cita.id).update({
@@ -164,7 +190,7 @@ export async function POST(req: NextRequest) {
           .where('fechaHora', '<=', `${body.fecha} 23:59`)
           .get()
         const citasDia = snapDia.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Appointment, 'id'>) }))
-        const slots = getAvailableSlots(body.fecha, cita.duracion || 30, citasDia, config, cita.id, [], cita.medicoId)
+        const slots = getAvailableSlots(body.fecha, cita.duracion || 30, citasDia, config, cita.id, await leerBloques(clinicId), cita.medicoId)
         return NextResponse.json({ slots })
       }
 
@@ -176,7 +202,7 @@ export async function POST(req: NextRequest) {
         }
         const config = await leerConfig(clinicId)
         const minHoras = (config as { politicaCancelacionHoras?: number } | null)?.politicaCancelacionHoras ?? MIN_HORAS_DEFECTO
-        if (horasHasta(cita.fechaHora) < minHoras) {
+        if (horasHasta(cita.fechaHora, config?.zonaHoraria || TZ_DEFAULT) < minHoras) {
           return NextResponse.json({ error: `Reagenda en línea hasta ${minHoras}h antes. Llama al consultorio.` }, { status: 422 })
         }
         if (!body.nuevaFechaHora || !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(body.nuevaFechaHora)) {
@@ -189,6 +215,18 @@ export async function POST(req: NextRequest) {
           .where('fechaHora', '>=', `${fecha} 00:00`)
           .where('fechaHora', '<=', `${fecha} 23:59`)
         const citaRef = adminDb.collection('clinics').doc(clinicId).collection('appointments').doc(cita.id)
+        /**
+         * SIN CONFIGURACIÓN NO SE REAGENDA.
+         *
+         * El `if (config)` de más abajo dejaba pasar la escritura SIN validar
+         * nada cuando la lectura de config fallaba o el documento no existía:
+         * el hueco se aceptaba tal cual llegó del navegador. Un fallo de lectura
+         * no puede convertirse en «cualquier hora vale».
+         */
+        if (!config) {
+          return NextResponse.json({ error: 'No se pudo leer el horario del consultorio. Intenta de nuevo o llama al consultorio.' }, { status: 503 })
+        }
+        const bloques = await leerBloques(clinicId)
 
         // Transacción: re-leer el día y escribir de forma atómica (sin carrera check-then-write)
         const CONFLICTO = Symbol('conflicto')
@@ -201,10 +239,8 @@ export async function POST(req: NextRequest) {
             await tx.get(diaRef)
             const snapDia = await tx.get(dayQuery)
             const citasDia = snapDia.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Appointment, 'id'>) }))
-            if (config) {
-              const libres = getAvailableSlots(fecha, cita.duracion || 30, citasDia, config, cita.id, [], cita.medicoId)
-              if (!libres.includes(hhmm)) throw CONFLICTO
-            }
+            const libres = getAvailableSlots(fecha, cita.duracion || 30, citasDia, config, cita.id, bloques, cita.medicoId)
+            if (!libres.includes(hhmm)) throw CONFLICTO
             tx.set(diaRef, { ultimaReserva: new Date().toISOString() }, { merge: true })
             tx.update(citaRef, {
               fechaHora: nuevaFechaHora,

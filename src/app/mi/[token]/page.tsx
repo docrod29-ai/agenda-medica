@@ -6,6 +6,7 @@ import {
   Loader2, Phone, CalendarPlus, AlertTriangle, Download, Pill, ShieldCheck, CreditCard,
 } from 'lucide-react'
 import { descargarRecetaWord } from '@/lib/receta-word'
+import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 import type { Medicamento } from '@/types/expediente'
 
 interface DocReceta {
@@ -44,6 +45,8 @@ interface Sesion {
   minHoras: number
   anticipo: { link: string; monto: number } | null
   citas: Cita[]
+  /** Zona del consultorio: las horas de las citas son hora de pared, sin offset. */
+  zonaHoraria?: string
 }
 
 const API = '/api/portal'
@@ -63,8 +66,10 @@ function fmtFecha(fh: string): { dia: string; fecha: string; hora: string } {
   return { dia: dia.charAt(0).toUpperCase() + dia.slice(1), fecha, hora }
 }
 
-function gcalLink(c: Cita): string {
-  const start = new Date(c.fechaHora.replace(' ', 'T') + ':00-06:00')
+function gcalLink(c: Cita, tz: string): string {
+  // El evento que el paciente se guarda en su calendario: con el offset fijo,
+  // un consultorio fuera del centro se lo agendaba a la hora equivocada.
+  const start = instanteMX(c.fechaHora.slice(0, 10), c.fechaHora.slice(11, 16), tz)
   const end = new Date(start.getTime() + (c.duracion || 30) * 60000)
   const f = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
   const txt = encodeURIComponent(`Cita médica — ${c.medicoNombre}`)
@@ -162,7 +167,8 @@ export default function MiPortalPage() {
    * otra sola, delante del paciente — y para él eso se ve como que su cita
    * desapareció.
    */
-  const proximas = sesion.citas.filter(c => !ESTADO_TERMINAL.has(c.estado) && new Date(c.fechaHora.replace(' ', 'T') + ':00-06:00').getTime() > ahora)
+  const tzClinica = sesion.zonaHoraria || TZ_DEFAULT
+  const proximas = sesion.citas.filter(c => !ESTADO_TERMINAL.has(c.estado) && instanteMX(c.fechaHora.slice(0, 10), c.fechaHora.slice(11, 16), tzClinica).getTime() > ahora)
   const pasadas = sesion.citas.filter(c => !proximas.includes(c)).reverse()
 
   return (
@@ -213,7 +219,7 @@ export default function MiPortalPage() {
                     <button onClick={() => { if (confirm('¿Cancelar esta cita?')) accionCita('cancelar', c.id) }} disabled={!!accion} className="btn btn-secondary btn-sm" style={{ color: 'var(--red)' }}>
                       {accion === c.id + 'cancelar' ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <XCircle size={14} />} Cancelar
                     </button>
-                    <a href={gcalLink(c)} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }}>
+                    <a href={gcalLink(c, tzClinica)} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }}>
                       <CalendarPlus size={14} /> Agendar
                     </a>
                   </div>

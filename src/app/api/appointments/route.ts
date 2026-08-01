@@ -103,6 +103,31 @@ export async function POST(req: NextRequest) {
     if (!vh.valido || start < vh.startMin || end > vh.endMin) {
       return NextResponse.json({ error: `Fuera del horario de ese día (${schedule.inicio}–${schedule.fin})` }, { status: 409 })
     }
+
+    /**
+     * LOS BLOQUEOS TAMBIÉN SE VALIDAN AQUÍ, NO SÓLO EN EL NAVEGADOR.
+     *
+     * Quien comprobaba vacaciones, ausencias y quirófano era el modal, con la
+     * lista de bloqueos que cargó AL ABRIRSE. El borde era asimétrico: el
+     * booking público sí lo verifica en el servidor; el panel no.
+     *
+     * El caso que lo rompe no es raro: la asistente deja el modal abierto, el
+     * médico crea un bloqueo por cirugía, y veinte minutos después la asistente
+     * guarda encima del quirófano con el servidor diciendo que sí.
+     *
+     * Se responde 409 con el mismo lenguaje que el portal público, para que el
+     * mensaje diga qué pasó y no «error».
+     */
+    const bloquesSnap = await adminDb.collection('clinics').doc(clinicId).collection('time_blocks').get()
+    const bloques = bloquesSnap.docs.map(d => ({ id: d.id, ...d.data() })) as unknown as import('@/lib/time-blocks-core').TimeBlock[]
+    if (bloques.length) {
+      const { estaBloqueado } = await import('@/lib/time-blocks-core')
+      const tzClinica = (cfgEfectiva.zonaHoraria as string) || (await import('@/lib/timezone')).TZ_DEFAULT
+      const bloque = estaBloqueado(appointment.fechaHora, bloques, medicoId, tzClinica)
+      if (bloque) {
+        return NextResponse.json({ error: `Ese horario está bloqueado (${bloque.motivo || bloque.tipo || 'ausencia'})` }, { status: 409 })
+      }
+    }
   }
 
   const CONFLICTO = Symbol('conflicto')

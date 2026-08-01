@@ -14,6 +14,8 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
+import { claseDeFallo, quienPaga, avisoAlMedico } from '@/lib/ia/fallo-proveedor'
+import { reportarFalloIA } from '@/lib/ia/incidentes-servidor'
 import { anotarLlamada } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
 import { WHISPER_PROMPT_MEDICO, WHISPER_PROMPT_UCI } from '@/lib/expediente/medical-vocabulary'
@@ -212,9 +214,21 @@ export async function POST(req: NextRequest) {
       ultimoStatus = res.status
       ultimoError = (await res.text()).slice(0, 300)
       safeLog.warn(`[transcribir] ${model} respondió ${res.status} — probando siguiente modelo`)
-      // La llave es inválida/expiró → ningún modelo servirá: abortar de una vez.
+      /**
+       * La llave es inválida/expiró → ningún modelo servirá: abortar de una vez.
+       *
+       * QUIÉN PAGA DECIDE QUÉ SE LE DICE AL MÉDICO. El mensaje anterior era
+       * «Revísala en Vercel» SIEMPRE — una consola a la que el médico no tiene
+       * acceso, por una llave que en el plan de plataforma ni siquiera es suya.
+       * Es exactamente lo que `fallo-proveedor.ts` prohíbe («con llave de la
+       * PLATAFORMA, al médico jamás se le echa la culpa ni se le manda a
+       * pagar»); `procesar` ya lo hacía bien y esta ruta se había quedado atrás.
+       */
       if (res.status === 401) {
-        return NextResponse.json({ ok: false, error: 'La API key de OpenAI es inválida o expiró. Revísala en Vercel.' }, { status: 502 })
+        const quien = quienPaga(fuente)
+        const clase = claseDeFallo(res.status, ultimoError)
+        reportarFalloIA({ clase, quien, proveedor: 'openai', feature: 'transcripcion', status: res.status })
+        return NextResponse.json({ ok: false, error: avisoAlMedico(clase, quien, 'openai').texto }, { status: 502 })
       }
       // CUALQUIER otro error (400/404/429/500/502/503/529): NO abortar — probar el
       // SIGUIENTE modelo. whisper-1 (el último) es el más estable y casi nunca da

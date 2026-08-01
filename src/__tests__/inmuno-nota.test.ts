@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { construirNotaInmuno, estudiosDe } from '@/lib/inmuno/nota'
+import { construirNotaInmuno, estudiosDe, farmacosCandidatos } from '@/lib/inmuno/nota'
 
 describe('inmuno — construirNotaInmuno (puente a la nota clínica)', () => {
   it('arma motivo/huésped desde los campos de cabecera', () => {
@@ -14,18 +14,61 @@ describe('inmuno — construirNotaInmuno (puente a la nota clínica)', () => {
     expect(n.secciones.motivoHuesped).toContain('2026-01-10')
   })
 
-  it('SOT en curso → sugiere trimetoprima/sulfametoxazol (PJP) sin dosis', () => {
+  /**
+   * NINGÚN FÁRMACO ENTRA A LA RECETA SIN UN CLIC.
+   *
+   * El test anterior afirmaba lo contrario —que un fármaco nombrado en la prosa
+   * aparecía solo en `medicamentos`— y por eso el defecto pasaba verde: la
+   * suite estaba defendiendo el bug. Nombrar un fármaco no es indicarlo, y de
+   * `medicamentos` sale la receta sin pasar por la compuerta de firma.
+   */
+  it('SOT en curso → NO mete ningún fármaco a la receta por su cuenta', () => {
     const n = construirNotaInmuno({ hc_huesped: 'SOT — Renal', hc_is_estado: 'En curso' }, { nowMs: 0 })
-    const tmp = n.medicamentos.find((m) => /trimetoprima/i.test(m.nombre))
+    expect(n.medicamentos).toEqual([])
+    expect(n.secciones.planProfilaxis).toContain('Pneumocystis')   // la recomendación SÍ se ve
+  })
+
+  it('el fármaco entra sólo si el médico lo marcó, y sin dosis inventada', () => {
+    const v = { hc_huesped: 'SOT — Renal', hc_is_estado: 'En curso' }
+    const cand = farmacosCandidatos(v, 0)
+    const tmp = cand.find((c) => /trimetoprima/i.test(c.nombre))
     expect(tmp).toBeTruthy()
-    expect(tmp!.dosis).toBe('')          // el motor NO inventa dosis
-    expect(n.secciones.planProfilaxis).toContain('Pneumocystis')
+    expect(tmp!.porQue).toContain('Pneumocystis')   // se enseña la frase que lo nombró
+
+    const n = construirNotaInmuno(v, { nowMs: 0, farmacosElegidos: [tmp!.nombre] })
+    expect(n.medicamentos).toHaveLength(1)
+    expect(n.medicamentos[0].dosis).toBe('')        // el motor NO inventa dosis
+  })
+
+  it('un fármaco marcado que ya no es candidato no se cuela', () => {
+    const n = construirNotaInmuno({ hc_huesped: 'SOT — Renal', hc_is_estado: 'En curso' },
+      { nowMs: 0, farmacosElegidos: ['Rifampicina'] })   // no está en la tabla de candidatos
+    expect(n.medicamentos).toEqual([])
   })
 
   it('no duplica un fármaco aunque aparezca en varias recomendaciones', () => {
-    const n = construirNotaInmuno({ hc_huesped: 'SOT — Renal', hc_is_estado: 'En curso', hc_res_cmvpcr: 'Positivo' }, { nowMs: 0 })
-    const nombres = n.medicamentos.map((m) => m.nombre.toLowerCase())
+    const v = { hc_huesped: 'SOT — Renal', hc_is_estado: 'En curso', hc_res_cmvpcr: 'Positivo' }
+    const nombres = farmacosCandidatos(v, 0).map((c) => c.nombre.toLowerCase())
     expect(new Set(nombres).size).toBe(nombres.length)
+  })
+
+  /**
+   * LOS TRES FALSOS POSITIVOS QUE MOTIVARON EL CAMBIO.
+   * Siguen apareciendo como candidatos —la prosa los nombra— pero ya no llegan
+   * a la receta solos, que era el daño.
+   */
+  it('un TAMIZAJE de tuberculosis no prescribe isoniazida', () => {
+    const v = { hc_huesped: 'Biológicos / inmunomoduladores', hc_is_estado: 'Va a iniciar (pre-protocolo)' }
+    const n = construirNotaInmuno(v, { nowMs: 0 })
+    expect(n.medicamentos.some((m) => /isoniazida/i.test(m.nombre))).toBe(false)
+    // Y la frase que lo nombraba se le enseña al médico tal cual, para que juzgue.
+    const cand = farmacosCandidatos(v, 0).find((c) => /isoniazida/i.test(c.nombre))
+    if (cand) expect(cand.porQue).toMatch(/tuberculosis latente/i)
+  })
+
+  it('una condición NO cumplida (déficit de G6PD) no prescribe atovacuona', () => {
+    const n = construirNotaInmuno({ hc_huesped: 'SOT — Renal', hc_is_estado: 'En curso' }, { nowMs: 0 })
+    expect(n.medicamentos.some((m) => /atovacuona/i.test(m.nombre))).toBe(false)
   })
 
   it('estudios seleccionados → etiquetas legibles para la orden', () => {

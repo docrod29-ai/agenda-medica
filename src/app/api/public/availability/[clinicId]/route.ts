@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { validarHorarioDia } from '@/lib/availability'
+import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 
 const MAX_SLOTS_POR_DIA = 24
 const DURACION_MIN_SEGURA = 5
@@ -116,8 +117,21 @@ export async function GET(
 
     // 5. Generar slots
     const slots: string[] = []
-    const baseDate = fecha + 'T00:00:00'
-    const baseTs = new Date(baseDate).getTime()
+    /**
+     * LA MEDIANOCHE ES LA DEL CONSULTORIO, NO LA DEL SERVIDOR.
+     *
+     * `new Date(fecha + 'T00:00:00')` se interpreta en la zona del proceso, y en
+     * Vercel esa zona es UTC: la medianoche quedaba 6-8 h corrida. Los bloqueos
+     * SÍ están guardados como instantes absolutos (`.toISOString()`), así que la
+     * comparación enfrentaba un instante correcto contra uno desplazado.
+     *
+     * Efecto real: el médico bloqueaba «10-ago 14:00-18:00, congreso» y el
+     * portal seguía ofreciendo esas horas —el paciente llenaba el formulario
+     * entero para chocar con un 409 al final— mientras escondía como ocupadas
+     * horas que estaban libres.
+     */
+    const tzClinica = (cfg.zonaHoraria as string) || TZ_DEFAULT
+    const baseTs = instanteMX(fecha, '00:00', tzClinica).getTime()
     for (let m = startMin; m + duracion <= endMin; m += interval) {
       // Tope absoluto: nunca devolver > MAX_SLOTS_POR_DIA al cliente público
       if (slots.length >= MAX_SLOTS_POR_DIA) {

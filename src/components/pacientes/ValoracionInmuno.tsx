@@ -19,7 +19,7 @@ import type { Patient } from '@/types'
 import { TX_CHIPS, TX_EST_CATS, TX_EST_QUANT, TX_MOT_TIT, hostFlags } from '@/lib/inmuno/catalogos'
 import { compose } from '@/lib/inmuno/compose'
 import { recomendaciones, type Sev } from '@/lib/inmuno/recomendaciones'
-import { construirNotaInmuno, type NotaInmuno } from '@/lib/inmuno/nota'
+import { construirNotaInmuno, farmacosCandidatos, type NotaInmuno } from '@/lib/inmuno/nota'
 
 type V = Record<string, string>
 type Modo = 'inicial' | 'seguimiento'
@@ -77,6 +77,8 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
   const [iaTexto, setIaTexto] = useState('')
   const [iaLoading, setIaLoading] = useState(false)
   const [status, setStatus] = useState('')
+  /** Fármacos que el médico marcó para llevar a la receta. Nace VACÍO a propósito. */
+  const [elegidos, setElegidos] = useState<string[]>([])
   // Espejo del estado para poder guardar lo pendiente desde el cleanup del efecto,
   // donde `v` estaría capturado en una versión vieja.
   const vRef = useRef(v)
@@ -116,6 +118,7 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
   const huesped = v.hc_huesped || ''
   const flags = useMemo(() => hostFlags(huesped), [huesped])
   const recs = useMemo(() => recomendaciones({ v }), [v])
+  const candidatos = useMemo(() => farmacosCandidatos(v, ahoraMs), [v, ahoraMs])
   const estudiosSolicitados = useMemo(() => Object.keys(v).filter((k) => k.startsWith('hc_est_') && v[k] === '1').map((k) => k.slice(7)), [v])
 
   // Resultados en seguimiento: estudios solicitados + serologías basales (siempre).
@@ -373,10 +376,43 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
               </Card>
             )}
 
+            {/*
+              FÁRMACOS: SE MARCAN, NO SE HEREDAN.
+              Antes cualquier fármaco NOMBRADO en la prosa de una recomendación
+              entraba solo a la receta — incluido el de un tamizaje («descartar
+              tuberculosis latente») o el de una condición no cumplida («usar
+              atovacuona SI hay déficit de G6PD»). Se enseña la frase que lo
+              nombró para que se vea si lo indica o sólo lo menciona.
+            */}
+            {onAplicarNota && candidatos.length > 0 && (
+              <Card padding={14}>
+                <div className="text-sm font-semibold mb-1 flex items-center gap-1.5">
+                  <ClipboardPlus size={15} style={{ color: 'var(--teal)' }} /> Fármacos nombrados en las recomendaciones
+                </div>
+                <div className="text-xs mb-2" style={{ color: 'var(--text3)' }}>
+                  Marca los que quieras llevar a la receta. Ninguno se agrega solo: nombrar no es indicar.
+                </div>
+                {candidatos.map(c => (
+                  <label key={c.nombre} className="flex items-start gap-2 mb-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={elegidos.includes(c.nombre)}
+                      onChange={e => setElegidos(prev => e.target.checked ? [...prev, c.nombre] : prev.filter(n => n !== c.nombre))}
+                      style={{ marginTop: 3 }}
+                    />
+                    <span className="text-xs" style={{ color: 'var(--text2)' }}>
+                      <strong style={{ color: 'var(--text)' }}>{c.nombre}</strong> — {c.indicacion}
+                      <span className="block" style={{ color: 'var(--text3)', marginTop: 2 }}>De: «{c.porQue}»</span>
+                    </span>
+                  </label>
+                ))}
+              </Card>
+            )}
+
             {/* Acciones */}
             <div className="flex flex-wrap gap-2">
               {onAplicarNota && (
-                <Button variant="primary" size="sm" icon={<ClipboardPlus size={15} />} onClick={() => { onAplicarNota(construirNotaInmuno(v, iaTexto ? { iaTexto } : undefined)); setStatus(iaTexto ? 'Valoración + redacción por IA aplicadas a la nota (secciones, medicamentos, estudios y citas)' : 'Valoración aplicada a la nota. Tip: pulsa «Redactar con IA» antes para una impresión más profesional.') }}>
+                <Button variant="primary" size="sm" icon={<ClipboardPlus size={15} />} onClick={() => { onAplicarNota(construirNotaInmuno(v, { ...(iaTexto ? { iaTexto } : {}), farmacosElegidos: elegidos })); setStatus(`Valoración aplicada a la nota${elegidos.length ? ` con ${elegidos.length} fármaco${elegidos.length === 1 ? '' : 's'}` : ' (sin fármacos: no marcaste ninguno)'}.`) }}>
                   Aplicar a la nota clínica
                 </Button>
               )}
