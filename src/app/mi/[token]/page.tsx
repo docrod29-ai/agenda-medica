@@ -79,6 +79,8 @@ export default function MiPortalPage() {
   const [docs, setDocs] = useState<DocReceta[] | null>(null)
   const [docsBloqueados, setDocsBloqueados] = useState(false)
   const [cargando, setCargando] = useState(true)
+  /** La frontera entre «próximas» y «pasadas», congelada al abrir. Ver abajo. */
+  const [ahora] = useState(() => Date.now())
   const [error, setError] = useState('')
   const [accion, setAccion] = useState<string>('') // id de cita con acción en curso
   const [reagendando, setReagendando] = useState<string>('') // id de cita en modo reagenda
@@ -152,7 +154,14 @@ export default function MiPortalPage() {
     )
   }
 
-  const ahora = Date.now()
+  /**
+   * La hora se congela al abrir la pantalla, no se relee en cada pintado.
+   *
+   * Es la frontera entre «próximas» y «pasadas». Leída del reloj en el cuerpo
+   * del componente, una cita justo en el límite podía saltar de una lista a la
+   * otra sola, delante del paciente — y para él eso se ve como que su cita
+   * desapareció.
+   */
   const proximas = sesion.citas.filter(c => !ESTADO_TERMINAL.has(c.estado) && new Date(c.fechaHora.replace(' ', 'T') + ':00-06:00').getTime() > ahora)
   const pasadas = sesion.citas.filter(c => !proximas.includes(c)).reverse()
 

@@ -143,9 +143,26 @@ pruebas en verde, y ningún efecto en la realidad.
 | ~~**P1-2**~~ | **CERRADO en GA-012 (v777).** El gesto del médico ya existía (panel de revisión) pero se guardaba como un número suelto: «camposAprobados: 3» dice cuántos aceptó, no CUÁLES. Ahora el sello lo lleva campo por campo, con distintivo aparte del de origen — un dato puede venir del dictado Y estar aceptado. **La trampa**: el panel numera sobre la extracción y el sello sobre la nota final; comparar índices habría dado por aceptado el diagnóstico equivocado. Se cruza por el índice de la extracción. `confirmados` es opcional: en las notas viejas «no consta» ≠ «cero» |
 | ~~**P1-3**~~ | **CERRADO en GA-012 (v777).** Precio y créditos derivados de `PLANES` + centinela `planes-precios.test.ts`. Salió una **mentira viva**: el plan Hospital anunciaba «400 créditos/mes» y son **500** |
 
+### Encontrado y reparado esta noche (no estaba en la auditoría)
+
+| Qué | Dónde |
+|---|---|
+| **La importación borraba pacientes en silencio.** Una fila marcada «duplicado» no se importa y el reporte la cuenta como acierto. La regla era el teléfono a solas: con la madre ya registrada, sus hijos con el mismo celular se perdían. Es el caso normal en México, no uno raro | GA-017 (v782) |
+| **La vista previa de la importación cortaba a 200 filas** sin priorizar: un paciente omitido podía quedar fuera del corte y perderse sin que nadie pudiera verlo. Ahora los omitidos van primero | GA-017 (v782) |
+| **El folio de respaldo de la receta y de la orden salía del reloj dentro de un `useMemo`** — podía cambiar entre dos pintados de la misma hoja, y el QR dejaría de verificar el papel que el paciente tiene en la mano | GA-016 (v781) |
+| **En el portal del paciente, la frontera «próximas/pasadas» se leía del reloj al pintar**: una cita en el límite podía saltar de lista sola, delante del paciente | GA-016 (v781) |
+| **Los «días post-trasplante» del panel inmuno** se recalculaban al pintar. Es lo que ordena el riesgo de infección por etapas; una cifra que se mueve sola no se puede citar en una nota | GA-016 (v781) |
+| **El tipo `Proveedor` era `'anthropic' \| 'openai'`** y la app le paga a tres. Un proveedor que no cabe en el tipo es un proveedor que no se factura | GA-013 (v778) |
+
 ### Deuda técnica congelada
 
-- **Lint: 104 errores** en el trinquete (`docs/audit/lint-techo.json`). Bajó de 105 en GA-009 al arreglar un `Date.now()` impuro en el render.
+- **Lint: 99 errores** en el trinquete (`docs/audit/lint-techo.json`). 105 → 104 en
+  GA-009 y **104 → 99 en GA-016**, arreglando los cuatro `Date.now()` leídos
+  durante el pintado (dos de ellos eran el folio impreso de la receta y de la
+  orden) más un `let` que nunca se reasigna. Los 99 que quedan son casi todos
+  `set-state-in-effect`: patrón de rendimiento, no de corrección, y tocarlos son
+  81 cambios de comportamiento en una app médica en producción — se hacen por
+  lotes verificables, no de golpe.
 - **CSP: la observación YA CORRE** (GA-014, v779). Sigue en modo aviso —eso no
   cambia hasta tener datos— pero la razón por la que no podía terminar era que
   los reportes iban a un log que nadie lee y que caduca. Ahora se acumulan y

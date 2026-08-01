@@ -355,10 +355,17 @@ export default function GeneradorOrdenPage() {
    * Ahora sale del `notaId`, que es único y no cambia. Sin nota (caso raro) se cae
    * al reloj, que es mejor que nada.
    */
+  /**
+   * Igual que en la receta: el respaldo se congela al abrir.
+   *
+   * Un `Date.now()` dentro de `useMemo` da un folio que puede cambiar entre dos
+   * pintados de la misma orden, y el folio es lo que la liga con el papel.
+   */
+  const [semillaFolio] = useState(() => Date.now().toString(36).toUpperCase().slice(-7))
   const folio = useMemo(() => {
     const base = (notaId ?? '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
-    return `OM-${base ? base.slice(-7) : Date.now().toString(36).toUpperCase().slice(-7)}`
-  }, [notaId])
+    return `OM-${base ? base.slice(-7) : semillaFolio}`
+  }, [notaId, semillaFolio])
 
   useEffect(() => {
     if (!clinicId || !patientId || !notaId) return

@@ -100,9 +100,21 @@ export default function GeneradorRecetaPage() {
    * exactamente la misma función al acuñar el QR. Si cada lado calculara lo suyo,
    * el papel y el certificado podrían llevar folios distintos.
    */
+  /**
+   * El respaldo del folio se congela AL ABRIR, no se lee del reloj al pintar.
+   *
+   * `useMemo` puede recalcularse cuando React quiera, así que un `Date.now()`
+   * dentro daba un folio capaz de cambiar entre dos pintados de la MISMA receta.
+   * Es justo lo que el comentario de arriba dice que no puede pasar: el papel y
+   * el certificado llevarían folios distintos, y el QR dejaría de verificar la
+   * hoja que el paciente tiene en la mano.
+   *
+   * El inicializador perezoso de `useState` corre una sola vez.
+   */
+  const [semillaFolio] = useState(() => Date.now().toString(36).toUpperCase().slice(-7))
   const folio = useMemo(
-    () => folioDeNota(notaId) || `RX-${Date.now().toString(36).toUpperCase().slice(-7)}`,
-    [notaId],
+    () => folioDeNota(notaId) || `RX-${semillaFolio}`,
+    [notaId, semillaFolio],
   )
 
   // URL de verificación firmada (destino del QR): /verificar/<token HMAC>. Se pide

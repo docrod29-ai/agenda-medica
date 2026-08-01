@@ -70,6 +70,8 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
   const { clinicId, clinic } = useClinic()
   const [v, setV] = useState<V>(() => ({ ...(patient.txValoracion || {}) }))
   const [modo, setModo] = useState<Modo>('inicial')
+  /** La hora, congelada al abrir. Se usa para «días post-trasplante» (ver abajo). */
+  const [ahoraMs] = useState(() => Date.now())
   const [hist, setHist] = useState<HistEntry[]>(() => [...(patient.txValoracionHist || [])])
   const [iaTexto, setIaTexto] = useState('')
   const [iaLoading, setIaLoading] = useState(false)
@@ -198,7 +200,15 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
   const countGrupo = (gk: string) => Object.keys(TX_CHIPS[gk].items).filter((ck) => v['hc_cb_' + gk + '_' + ck] === '1').length
   const farmSel = Object.keys(TX_CHIPS.inmuno.items).filter((ck) => v['hc_cb_inmuno_' + ck] === '1')
   const cargaIS = farmSel.some((f) => ALTA_CARGA.includes(f)) ? 'alta' : farmSel.length ? 'media' : 'baja'
-  const diasTx = (() => { if (!v.hc_fechatx) return null; const d = Math.floor((Date.now() - new Date(v.hc_fechatx).getTime()) / 86400000); return isNaN(d) ? null : d })()
+  /**
+   * Los días desde el trasplante se cuentan contra una hora CONGELADA al abrir.
+   *
+   * Leer el reloj en el cuerpo del componente es impuro: React re-pinta cuando le
+   * conviene y el número cambiaría solo. Aquí eso importa más de lo normal —
+   * «días post-trasplante» es lo que ordena el riesgo de infección por etapas, y
+   * una cifra que se mueve sola delante del médico no se puede citar en una nota.
+   */
+  const diasTx = (() => { if (!v.hc_fechatx) return null; const d = Math.floor((ahoraMs - new Date(v.hc_fechatx).getTime()) / 86400000); return isNaN(d) ? null : d })()
   const isEstado = v.hc_is_estado && v.hc_is_estado !== '—' ? v.hc_is_estado : ''
   const recCounts = { alta: recs.filter((r) => r.sev === 'alta').length, media: recs.filter((r) => r.sev === 'media').length, baja: recs.filter((r) => r.sev === 'baja').length }
 

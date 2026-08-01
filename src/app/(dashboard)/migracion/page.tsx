@@ -157,8 +157,9 @@ export default function MigracionPage() {
             <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>Importar pacientes</div>
             <div style={{ fontSize: 13.5, color: 'var(--text2)', margin: '4px 0 14px', lineHeight: 1.5 }}>
               Sube un CSV o Excel exportado desde tu sistema actual (o desde Google Contactos). Detectamos las
-              columnas automáticamente y <strong>omitimos los pacientes duplicados</strong> por teléfono. Solo
-              necesitas una columna de <strong>Nombre</strong>.
+              columnas automáticamente y <strong>omitimos los que ya tienes</strong>. Una familia que comparte
+              teléfono se importa entera: para omitir a alguien tiene que parecerse el <strong>nombre</strong>,
+              no sólo el número. Solo necesitas una columna de <strong>Nombre</strong>.
             </div>
 
             <label className="btn btn-secondary btn-sm" style={{ marginBottom: 12, cursor: 'pointer' }}>
@@ -202,8 +203,16 @@ export default function MigracionPage() {
                     {conteo.duplicado} duplicados (se omiten)
                   </span>
                 </div>
+                {/*
+                  LOS OMITIDOS SE ENSEÑAN SIEMPRE, AUNQUE LA LISTA SE CORTE.
+                  Una fila marcada como duplicada NO se importa, y el reporte final
+                  la cuenta como un acierto. Si además queda fuera del recorte de la
+                  vista previa, el paciente se pierde sin que nadie pueda verlo. Los
+                  nuevos son los que sobran si hay que recortar algo.
+                */}
                 <div style={{ maxHeight: 260, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 10 }}>
-                  {clasificadas!.slice(0, 200).map((c, i) => (
+                  {[...clasificadas!.filter(c => c.estado !== 'nuevo'),
+                    ...clasificadas!.filter(c => c.estado === 'nuevo')].slice(0, 200).map((c, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderBottom: '1px solid var(--border)', opacity: c.estado === 'nuevo' ? 1 : 0.55 }}>
                       {c.estado === 'nuevo'
                         ? <CheckCircle2 size={15} style={{ color: '#16a34a', flexShrink: 0 }} />
