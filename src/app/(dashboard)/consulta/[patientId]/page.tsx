@@ -1512,7 +1512,11 @@ export default function ConsultaActivaPage() {
       } catch { /* almacenamiento lleno: no es crítico */ }
     }, 1500)
     return () => clearTimeout(id)
-  }, [firmada, tipo, resumen, secciones, signos, diagnosticos, medicamentos, voz.transcripcion, respaldoKey])
+    // `estudiosOrden` y `preop` FALTABAN en las deps: añadir ocho estudios a la
+    // orden o llenar el bloque preoperatorio, sin tocar nada más, no re-armaba
+    // el debounce y el respaldo local se quedaba en la versión anterior. Con un
+    // cierre forzado del navegador (sin desmonte, sin `pagehide`) eso se pierde.
+  }, [firmada, tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, voz.transcripcion, respaldoKey])
 
   // Al abrir: si hay respaldo local, RESTÁURALO SOLO (sin que tengas que ver un
   // banner) — salvo que estés abriendo otra nota (?nota=) o que el formulario ya
@@ -1701,6 +1705,18 @@ export default function ConsultaActivaPage() {
       if (Array.isArray(b.diagnosticos)) setDiagnosticos(b.diagnosticos)
       if (Array.isArray(b.medicamentos)) setMedicamentos(b.medicamentos)
       if (b.transcripcion) voz.setTranscripcion(b.transcripcion)
+      /**
+       * REPONER EL `notaId`, que faltaba SÓLO en esta ruta.
+       *
+       * La restauración automática ya lo hacía, con su comentario explicando por
+       * qué: «sin esto se creaba una gemela en el expediente y, al firmar una, la
+       * otra quedaba huérfana». El botón del banner —la ruta manual— se quedó sin
+       * el arreglo. Mismo bug, misma consecuencia.
+       */
+      if (typeof b.notaId === 'string' && b.notaId) {
+        notaIdRef.current = b.notaId
+        setNotaId(b.notaId)
+      }
       setRespaldoDisponible(false)
       toast('Respaldo local restaurado', 'success')
     } catch { toast('No se pudo restaurar el respaldo', 'error') }

@@ -28,12 +28,71 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
 | v807 | Sobreagendar sólo el médico |
 | v808 | Reparto de la asistente: factura sí, borrar/sobreagendar/teleconsulta no |
 | v809 | La «C» de ARCO con camino técnico real (supresión o bloqueo) |
+| v810 | El tope de 24 huecos borraba la tarde · WhatsApp del bot sin rastro |
+| v811 | Al cerrar sesión se borraba lo no guardado (las 4 salidas) · precio falso de $499 |
+| v812 | Cambiar de plan cancelaba la clínica · valoración inmuno se borraba sola · censo en spinner eterno |
+| v813 | Recarga pagada sin créditos · rebote mudo del plan · dos fugas del respaldo local |
+| v814 | Cobrar un ciclo distinto del ofrecido · adivinar mal el plan por importe |
+| v815 | Médicos habilitados sin cobrar · pagos huérfanos invisibles |
+| v816 | Teléfono del alta era campo muerto · recordatorios en verde sin WhatsApp conectado |
 
 ---
 
 ## EN CURSO — seguir por aquí
 
-### 1. El tope de 24 huecos corta la tarde en silencio
+### Cola nueva de los auditores de la tarde (verificar cada uno antes de tocar)
+
+**Lanzamiento comercial** (`docs` del auditor de flujo):
+1. **El gate de tarjeta bloquea la app entera a un médico nuevo**, pese a que
+   `/registro` y `/setup` prometen «14 días de prueba, sin tarjeta».
+   `src/app/(dashboard)/layout.tsx:148-154` — `estadoAcceso` devuelve
+   `'sin_tarjeta'` para `status: 'trial'`. Y hay un sistema de prueba COMPLETO y
+   muerto en `src/lib/finanzas/paywall-prueba.ts`: el `TrialBanner` sólo se pinta
+   con `status === 'trial'`, que es exactamente el estado que ya bloqueó la app.
+   **Decisión comercial del Dr: ¿la prueba es sin tarjeta o con tarjeta?** El
+   código promete una cosa en tres sitios y hace la contraria.
+2. ~~Plan Agenda: rebote mudo~~ — HECHO (v813).
+   `src/lib/modulos.ts:58` (`/pacientes` es core, `/expediente` no) +
+   `src/app/(dashboard)/layout.tsx:404-406` (`router.replace` mudo). La entrada
+   del menú se llama «Consulta». Parece la app rota, no un límite de plan.
+3. **No existe verificación de correo.** `grep sendEmailVerification` → cero.
+   Un correo mal tecleado = cuenta irrecuperable sin soporte humano.
+4. ~~Recordatorios encendidos sin proveedor~~ — HECHO (v816).
+   (`src/types/index.ts:648`): dos interruptores en verde que no mandan nada.
+5. ~~Teléfono del alta~~ — HECHO (v816). `src/app/setup/page.tsx:25`
+   tiene el campo en el estado y NINGÚN input; el impreso lee `telefonoAdmin`.
+6. **El precio de consulta está escondido** bajo «Portal de auto-agenda».
+7. **El dueño no puede reproducir nada de esto**: `layout.tsx:475` le da pase
+   libre. Para validar el lanzamiento hace falta una cuenta con correo ajeno.
+
+**Pérdida de datos** (auditor de pérdida):
+8. **El Panel UCI no persiste NADA de lo dictado**: salir de la ruta borra el
+   pase completo. `src/app/(dashboard)/uci/page.tsx:124` — y tampoco escucha
+   `EVENTO_GUARDAR_TODO`. Agrava que el audio se borra de IndexedDB en cuanto
+   llega el texto.
+9. **Escape o clic fuera tiran los resultados de laboratorio ya tecleados**, y
+   reabrir los pone en blanco. `hospitalizacion/[internamientoId]/page.tsx:772`.
+10. **El historial de versiones se escribe y no se puede leer**: `getVersionesNota`
+    no tiene llamadores, y `updateNota` no tiene guardia de concurrencia.
+11. ~~Respaldo local sin estudios/preop~~ — HECHO (v813). Antes decía:
+    estudios o preop (faltan en las deps). `consulta/[patientId]/page.tsx:1496`.
+12. ~~restaurarRespaldo sin notaId~~ — HECHO (v813). — el mismo bug que ya se
+    arregló en la ruta automática.
+
+**Stripe** (auditor de suscripciones):
+13. ~~Anual que acaba en mensual~~ — HECHO (v814). Queda el 2º camino: Configuración no manda `ciclo` al cambiar de plan, así que un cliente anual pasa a mensual y pierde lo pagado del año, sin nota ni abono.
+14. ~~Recarga sin créditos~~ — HECHO (v813). Antes: (`ai-keys.ts:205` se traga
+    su propio error y el webhook responde 200).
+15. Los metadatos de Stripe quedan congelados en el plan de la compra original.
+16. ~~planPorMonto se equivoca~~ — HECHO (v814).
+17. La prueba de 14 días se puede repetir indefinidamente.
+18. ~~Asiento sin cobrar~~ — HECHO (v815).
+19. Un miembro puede reatribuir el médico de un cobro por la puerta de «vincular
+    factura» y mover comisiones (`firestore.rules:619`).
+20. `pagoVencido` y `disputaAbierta` no los lee NADIE.
+21. ~~Pagos huérfanos~~ — HECHO (v815).
+
+### 1. El tope de 24 huecos corta la tarde en silencio — HECHO (v810)
 - `src/lib/availability.ts:15` — `MAX_SLOTS_POR_DIA = 24`, y `:135` corta con `break`
   y un `console.warn` que sólo ve el servidor.
 - Duplicado en `src/app/api/public/availability/[clinicId]/route.ts:121`.

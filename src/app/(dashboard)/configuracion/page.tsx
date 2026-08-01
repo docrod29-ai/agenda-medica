@@ -46,7 +46,7 @@ type Tab = 'general' | 'horario' | 'duraciones' | 'bloqueos' | 'notificaciones' 
 export default function ConfiguracionPage() {
   const { config, loading, error: configError } = useConfig()
   const { activeDoctors } = useDoctors()
-  const { clinicId } = useClinic()
+  const { clinicId, clinic } = useClinic()
   const { toast } = useToast()
   const { user: authUser } = useAuth()
   const searchParams = useSearchParams()
@@ -617,6 +617,32 @@ export default function ConfiguracionPage() {
       {/* Notificaciones */}
       {tab === 'notificaciones' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/*
+            DOS INTERRUPTORES EN VERDE QUE NO MANDABAN NADA.
+            `recordatorio24h` y `recordatorioMismoDia` nacen en `true` por
+            omisión, y sin proveedor de WhatsApp conectado `sendWhatsApp`
+            devuelve «No WhatsApp provider configured». El médico veía dos
+            casillas marcadas que decían «Enviar recordatorio al paciente el día
+            anterior», daba por hecho que estaba cubierto, y lo descubría cuando
+            tres pacientes no llegaban. Y la página de registro se lo había
+            vendido explícitamente.
+            No se apagan solos —apagarle una preferencia al médico sin avisar es
+            otra forma de mentir—: se le dice la verdad y se le enseña dónde
+            conectarlo.
+          */}
+          {!clinic?.whatsapp?.provider || clinic.whatsapp.provider === 'none' ? (
+            <div style={{
+              padding: 14, borderRadius: 10, background: 'var(--s2)',
+              border: '1px solid var(--amber)', display: 'flex', gap: 10, alignItems: 'flex-start',
+            }}>
+              <AlertTriangle size={16} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 2 }} />
+              <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+                <strong style={{ color: 'var(--text)' }}>WhatsApp no está conectado todavía.</strong> Estos
+                avisos están activados, pero <strong>no se está enviando ninguno</strong> hasta que conectes
+                el número del consultorio en la pestaña <em>WhatsApp</em>.
+              </div>
+            </div>
+          ) : null}
           <div style={{ padding: 16, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>Recordatorio 24 horas antes</div>

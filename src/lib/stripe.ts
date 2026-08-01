@@ -45,9 +45,34 @@ export const STRIPE_PRICES_ANUAL = {
 
 export type Ciclo = 'mensual' | 'anual'
 
-/** Price ID de suscripción según plan + ciclo (cae a mensual si no hay anual configurado). */
+/**
+ * Price ID de suscripción según plan + ciclo.
+ *
+ * ── YA NO CAE A MENSUAL EN SILENCIO ──────────────────────────────────────────
+ *
+ * Hacía `STRIPE_PRICES_ANUAL[plan] || STRIPE_PRICES[plan]`, y los precios
+ * anuales están declarados como «opcionales». Si faltaba la variable, el cliente
+ * compraba ANUAL —la pantalla ya le había enseñado el precio del año y «2 meses
+ * gratis»— y Stripe le abría una suscripción MENSUAL, con los metadatos
+ * afirmando `ciclo: 'anual'`.
+ *
+ * Nadie se enteraba hasta el segundo cargo. Y para entonces hay que devolver
+ * dinero y explicar por qué la aplicación cobró algo distinto de lo que dijo.
+ *
+ * Cobrar un ciclo distinto del que se ofreció no es un fallback: es cobrar otra
+ * cosa. Mejor no dejar comprar y que el dueño configure el precio.
+ */
 export function priceIdDe(plan: PlanKey, ciclo: Ciclo): string {
-  if (ciclo === 'anual') return STRIPE_PRICES_ANUAL[plan] || STRIPE_PRICES[plan]
+  if (ciclo === 'anual') {
+    const anual = STRIPE_PRICES_ANUAL[plan]
+    if (!anual) {
+      throw new Error(
+        `El plan ${plan} no tiene precio ANUAL configurado en Stripe. ` +
+        'No se abre una suscripción mensual en su lugar: sería cobrar un ciclo distinto del que se ofreció.',
+      )
+    }
+    return anual
+  }
   return STRIPE_PRICES[plan]
 }
 
