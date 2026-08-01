@@ -28,12 +28,67 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
 | v807 | Sobreagendar sólo el médico |
 | v808 | Reparto de la asistente: factura sí, borrar/sobreagendar/teleconsulta no |
 | v809 | La «C» de ARCO con camino técnico real (supresión o bloqueo) |
+| v810 | El tope de 24 huecos borraba la tarde · WhatsApp del bot sin rastro |
+| v811 | Al cerrar sesión se borraba lo no guardado (las 4 salidas) · precio falso de $499 |
+| v812 | Cambiar de plan cancelaba la clínica · valoración inmuno se borraba sola · censo en spinner eterno |
 
 ---
 
 ## EN CURSO — seguir por aquí
 
-### 1. El tope de 24 huecos corta la tarde en silencio
+### Cola nueva de los auditores de la tarde (verificar cada uno antes de tocar)
+
+**Lanzamiento comercial** (`docs` del auditor de flujo):
+1. **El gate de tarjeta bloquea la app entera a un médico nuevo**, pese a que
+   `/registro` y `/setup` prometen «14 días de prueba, sin tarjeta».
+   `src/app/(dashboard)/layout.tsx:148-154` — `estadoAcceso` devuelve
+   `'sin_tarjeta'` para `status: 'trial'`. Y hay un sistema de prueba COMPLETO y
+   muerto en `src/lib/finanzas/paywall-prueba.ts`: el `TrialBanner` sólo se pinta
+   con `status === 'trial'`, que es exactamente el estado que ya bloqueó la app.
+   **Decisión comercial del Dr: ¿la prueba es sin tarjeta o con tarjeta?** El
+   código promete una cosa en tres sitios y hace la contraria.
+2. **Plan Agenda: pulsar un paciente rebota al Dashboard sin explicar nada.**
+   `src/lib/modulos.ts:58` (`/pacientes` es core, `/expediente` no) +
+   `src/app/(dashboard)/layout.tsx:404-406` (`router.replace` mudo). La entrada
+   del menú se llama «Consulta». Parece la app rota, no un límite de plan.
+3. **No existe verificación de correo.** `grep sendEmailVerification` → cero.
+   Un correo mal tecleado = cuenta irrecuperable sin soporte humano.
+4. **Recordatorios de WhatsApp ENCENDIDOS por defecto sin proveedor conectado**
+   (`src/types/index.ts:648`): dos interruptores en verde que no mandan nada.
+5. **El teléfono del alta nunca llega a la receta.** `src/app/setup/page.tsx:25`
+   tiene el campo en el estado y NINGÚN input; el impreso lee `telefonoAdmin`.
+6. **El precio de consulta está escondido** bajo «Portal de auto-agenda».
+7. **El dueño no puede reproducir nada de esto**: `layout.tsx:475` le da pase
+   libre. Para validar el lanzamiento hace falta una cuenta con correo ajeno.
+
+**Pérdida de datos** (auditor de pérdida):
+8. **El Panel UCI no persiste NADA de lo dictado**: salir de la ruta borra el
+   pase completo. `src/app/(dashboard)/uci/page.tsx:124` — y tampoco escucha
+   `EVENTO_GUARDAR_TODO`. Agrava que el audio se borra de IndexedDB en cuanto
+   llega el texto.
+9. **Escape o clic fuera tiran los resultados de laboratorio ya tecleados**, y
+   reabrir los pone en blanco. `hospitalizacion/[internamientoId]/page.tsx:772`.
+10. **El historial de versiones se escribe y no se puede leer**: `getVersionesNota`
+    no tiene llamadores, y `updateNota` no tiene guardia de concurrencia.
+11. **El respaldo local no se reescribe** cuando lo único que cambia son
+    estudios o preop (faltan en las deps). `consulta/[patientId]/page.tsx:1496`.
+12. **`restaurarRespaldo` no repone el `notaId`** — el mismo bug que ya se
+    arregló en la ruta automática.
+
+**Stripe** (auditor de suscripciones):
+13. Compra ANUAL que acaba en suscripción MENSUAL, por dos caminos.
+14. Recarga pagada que puede no abonar créditos nunca (`ai-keys.ts:205` se traga
+    su propio error y el webhook responde 200).
+15. Los metadatos de Stripe quedan congelados en el plan de la compra original.
+16. `planPorMonto` se equivoca con lo anual y con el ítem de asiento.
+17. La prueba de 14 días se puede repetir indefinidamente.
+18. Asiento marcado como contratado sin que Stripe lo cobre.
+19. Un miembro puede reatribuir el médico de un cobro por la puerta de «vincular
+    factura» y mover comisiones (`firestore.rules:619`).
+20. `pagoVencido` y `disputaAbierta` no los lee NADIE.
+21. Pagos huérfanos con `clinicId: ''` que desaparecen del detalle.
+
+### 1. El tope de 24 huecos corta la tarde en silencio — HECHO (v810)
 - `src/lib/availability.ts:15` — `MAX_SLOTS_POR_DIA = 24`, y `:135` corta con `break`
   y un `console.warn` que sólo ve el servidor.
 - Duplicado en `src/app/api/public/availability/[clinicId]/route.ts:121`.
