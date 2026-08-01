@@ -68,6 +68,23 @@ en `/superadmin/costos`, y la pantalla que dice **qué llave se usa de verdad**
 | 3 | Buscar tarifas de Anthropic/OpenAI, presentarlas, cargarlas **sólo con su confirmación** | pendiente |
 | 5 | Fin del trial: bloquear IA, agenda y expediente en solo lectura | pendiente |
 
+### ⚠️ Acción del Dr. — sin ella, GA-004 no sirve de nada
+
+**Hay que habilitar los tres eventos nuevos en el panel de Stripe.** Stripe sólo
+envía los eventos a los que el endpoint está suscrito: el código ya sabe
+atenderlos, pero si no están marcados **nunca llegan**, y el resultado sería
+idéntico a no haberlo programado.
+
+`dashboard.stripe.com` → Developers → Webhooks → el endpoint de
+`agenda-medica-one.vercel.app/api/stripe/webhook` → **Add events**:
+
+    charge.refunded
+    charge.dispute.created
+    charge.dispute.closed
+
+Es exactamente el fallo de «escrito, probado y sin conectar»: código correcto,
+pruebas en verde, y ningún efecto en la realidad.
+
 ### P0 de la auditoría todavía sin abordar
 
 | # | Qué | Bloqueado en |
