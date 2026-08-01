@@ -7,7 +7,7 @@
 > Un informe de auditoría que sólo lista aciertos no sirve para decidir dónde
 > mirar la próxima vez.
 
-Última actualización: **31-jul-2026**, tras PRACTICE-GA-004.
+Última actualización: **31-jul-2026**, tras PRACTICE-GA-005.
 
 ---
 
@@ -40,6 +40,13 @@ incompatibles** —el ingreso total descartaba los negativos, el pagado-por-clie
 los incluía—. Sin arreglar eso, escribir los reembolsos los habría dejado
 invisibles justo en el número grande.
 
+**P0-2 estaba mal CONTADO.** Dije «4 motores pendientes»: eran los del flujo de
+consulta que yo había mirado. El registro tiene **24 sin validar** (23
+`pendiente_validacion` + 1 `experimental`). Y el hallazgo de fondo era otro: ese
+estado **lo leían sólo las pruebas** — ninguna pantalla consultaba el registro,
+así que para el médico la clasificación no existía. Escrito, probado y sin
+conectar.
+
 ---
 
 ## 2. Cerrado
@@ -49,6 +56,7 @@ invisibles justo en el número grande.
 | **GA-002** | Muro de la primera firma (cédula), zona horaria adivinada del navegador, especialidad que se perdía | v766 |
 | **GA-003** | Anti-encuadre en las 4 rutas del paciente con PHI; corregido el malentendido de `frame-ancestors` en teleconsulta | v767 |
 | **GA-004** | Reembolsos y contracargos en el webhook + ingreso NETO con una sola definición de signo | v768 |
+| **GA-005** | El estado de validación clínica llega por fin a la pantalla: sello junto al resultado + hoja de revisión en `/cumplimiento/motores` | v769 |
 
 Fuera del programa, el mismo día: gateway de fallos de IA (`fallo-proveedor.ts`),
 exención de fundador (`fuente: 'fundador'`), incidencias de plataforma visibles
@@ -64,7 +72,7 @@ en `/superadmin/costos`, y la pantalla que dice **qué llave se usa de verdad**
 | # | Qué | Estado |
 |---|---|---|
 | 7 | ~~Reembolsos y contracargos en el webhook de Stripe~~ | ✅ GA-004 |
-| 2 | Sello «no validado clínicamente» en los 4 motores pendientes + hoja de reglas para revisarlos | pendiente |
+| 2 | ~~Sello «no validado clínicamente» + hoja de reglas~~ | ✅ GA-005 |
 | 3 | Buscar tarifas de Anthropic/OpenAI, presentarlas, cargarlas **sólo con su confirmación** | pendiente |
 | 5 | Fin del trial: bloquear IA, agenda y expediente en solo lectura | pendiente |
 
@@ -89,7 +97,7 @@ pruebas en verde, y ningún efecto en la realidad.
 
 | # | Qué | Bloqueado en |
 |---|---|---|
-| **P0-2** | 4 motores en `pendiente_validacion`, dos de ellos en el camino de la receta (`Prescripción segura`, `Farmacovigilancia`) | **Criterio clínico del Dr.** — `NEEDS_CLINICAL_REVIEW` |
+| **P0-2** | **24** motores sin validar (23 `pendiente_validacion` + 1 `experimental`), varios en el camino de la receta. Ya son VISIBLES en pantalla y listados en `/cumplimiento/motores` con su pregunta pendiente | **Criterio clínico del Dr.** — `NEEDS_CLINICAL_REVIEW`. El trinquete de `clinical-sellos.test.ts` obliga a bajar el techo cuando valide alguno |
 | **P0-5** | No existe el E2E del Golden Flow; Playwright tiene 2 specs y **no corre en CI** | mí |
 | **P0-6** | Backup / PITR / restore drill: cero evidencia | consola de Firebase (él) + documentar (yo) |
 | **P0-7** | `TARIFAS` es un array vacío → sin COGS ni margen | sus cifras (cola #3) |

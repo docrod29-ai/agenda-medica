@@ -62,6 +62,7 @@ import { PanelLaboratorios } from '@/components/laboratorio/PanelLaboratorios'
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
 import { detectarInteracciones, detectarControlados } from '@/lib/expediente/farmacovigilancia'
+import { SelloMotor } from '@/components/SelloMotor'
 import { construirPlanPROA } from '@/lib/expediente/proa'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { validarNOM004 } from '@/lib/expediente/nom004'
@@ -2825,8 +2826,16 @@ export default function ConsultaActivaPage() {
                 ))}
               </Alert>
             )}
+            {/*
+              El sello va en el TÍTULO, junto al resultado — no arriba de la
+              pantalla ni en un modal. Estas alertas salen de `farmacovigilancia`,
+              que el registro clínico marca como `pendiente_validacion`: el médico
+              tiene derecho a saber que las reglas todavía no las revisó un
+              responsable, sin que eso le interrumpa la consulta. Si el motor pasa
+              a validado, la etiqueta desaparece sola.
+            */}
             {interacciones.length > 0 && (
-              <Alert tone="warning" title="Posibles interacciones farmacológicas">
+              <Alert tone="warning" title={<>Posibles interacciones farmacológicas <SelloMotor id="farmacovigilancia" /></>}>
                 {interacciones.map((it, i) => (
                   <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginTop: i ? 4 : 0 }}>
                     <strong>{it.titulo}</strong>{it.severidad === 'mayor' ? ' (mayor)' : ''} — {it.detalle}
@@ -2835,7 +2844,7 @@ export default function ConsultaActivaPage() {
               </Alert>
             )}
             {controlados.length > 0 && (
-              <Alert tone="cobalt" icon={<Lock size={16} />} title="Controlado(s) — requisito COFEPRIS">
+              <Alert tone="cobalt" icon={<Lock size={16} />} title={<>Controlado(s) — requisito COFEPRIS <SelloMotor id="farmacovigilancia" /></>}>
                 {controlados.map((c, i) => (
                   <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginTop: i ? 4 : 0 }}>
                     <strong>{c.farmaco}</strong> — {c.requisito}

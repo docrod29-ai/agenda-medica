@@ -19,8 +19,9 @@ import {
 } from '@/lib/arco'
 import type { AuditEvento } from '@/lib/expediente/audit-log'
 import {
-  ShieldCheck, FileSearch, Inbox, Copy, ExternalLink, AlertTriangle, Check, Clock, Shield,
+  ShieldCheck, FileSearch, Inbox, Copy, ExternalLink, AlertTriangle, Check, Clock, Shield, FlaskConical,
 } from 'lucide-react'
+import { motoresSinValidar } from '@/components/SelloMotor'
 import { Tabs, Spinner, EmptyState } from '@/components/ui'
 import { useToast } from '@/context/ToastContext'
 
@@ -198,6 +199,7 @@ function EstadoCumplimiento({ clinicId, bitacora, arcoList, onCopiarLink }: { cl
       />
       <Seguridad2FAResumen />
       <RetencionResumen clinicId={clinicId} />
+      <MotoresResumen />
     </div>
   )
 }
@@ -233,6 +235,32 @@ function Seguridad2FAResumen() {
       accion={
         <a href="/cumplimiento/seguridad" className="btn btn-secondary" style={{ fontSize: 12 }}>
           <Shield size={12} /> {activo ? 'Administrar' : 'Activar 2FA'}
+        </a>
+      }
+    />
+  )
+}
+
+/**
+ * Cuántos motores clínicos esperan la revisión del médico.
+ *
+ * El registro clasificaba los 89 motores desde hace meses y lo leían SÓLO las
+ * pruebas: ninguna pantalla lo consultaba, así que la clasificación no llegaba a
+ * quien decide. El número sale del mapa delgado (`sellos.json`), el mismo que
+ * usa la etiqueta que aparece junto a los resultados.
+ */
+function MotoresResumen() {
+  const pendientes = motoresSinValidar().length
+  return (
+    <Resumen
+      ok={pendientes === 0}
+      titulo="Motores clínicos sin validar"
+      descripcion={pendientes === 0
+        ? 'Todos los cálculos clínicos tienen validación de un médico responsable.'
+        : `${pendientes} cálculos funcionan y tienen pruebas, pero sus reglas todavía no las ha revisado un médico responsable. Sus resultados salen marcados en pantalla; ninguno se oculta ni se bloquea.`}
+      accion={
+        <a href="/cumplimiento/motores" className="btn btn-secondary" style={{ fontSize: 12 }}>
+          <FlaskConical size={12} /> Revisar
         </a>
       }
     />
