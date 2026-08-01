@@ -26,6 +26,20 @@ export async function getTokensFromCode(code: string) {
   return tokens
 }
 
+/**
+ * Iniciales de un nombre: «Juan Pérez García» → «J.P.G.»
+ *
+ * Suficiente para reconocer de quién es la cita entre las del día, insuficiente
+ * para identificar a nadie desde fuera. Si el nombre viene vacío se devuelve una
+ * etiqueta neutra en vez de una cadena vacía, porque un evento titulado
+ * «Seguimiento — » parece un error y no lo es.
+ */
+export function iniciales(nombre: string | undefined | null): string {
+  const partes = String(nombre ?? '').trim().split(/\s+/).filter(Boolean)
+  if (!partes.length) return 'Paciente'
+  return partes.slice(0, 3).map(p => p[0].toUpperCase() + '.').join('')
+}
+
 export function buildCalendarEvent(appt: Appointment, config: ClinicConfig) {
   // Hora LOCAL "flotante" (sin Z) + timeZone → Google la interpreta en la zona de
   // la clínica. Antes se hacía toISOString() en la zona del SERVIDOR (UTC en
@@ -45,14 +59,44 @@ export function buildCalendarEvent(appt: Appointment, config: ClinicConfig) {
     'otro': 'Otro',
   }
 
+  /**
+   * EL CALENDARIO LLEVA UN PUNTERO, NO EL EXPEDIENTE.
+   *
+   * ── LO QUE SALÍA ANTES ───────────────────────────────────────────────────
+   *
+   *   summary:     «Seguimiento — Juan Pérez García»
+   *   description: «Motivo: dolor torácico\nTeléfono: 614 123 4567»
+   *
+   * Nombre completo, teléfono y MOTIVO DE CONSULTA en claro, hacia Google. Era
+   * el flujo con más datos identificados saliendo del sistema y el que menos
+   * aparecía declarado en el aviso de privacidad. Y el evento vive en un
+   * calendario que se puede compartir con una asistente, con la familia o con
+   * quien tenga el enlace — sitios donde el motivo de consulta de un paciente
+   * no debería poder leerse nunca.
+   *
+   * ── LO QUE SALE AHORA ────────────────────────────────────────────────────
+   *
+   *   summary:     «Seguimiento — J.P.G.»
+   *   description: «Abrir en NexusMED: https://…/citas?cita=abc123»
+   *
+   * Las iniciales bastan para reconocer la cita de un vistazo entre las demás
+   * del día —que es para lo que sirve el calendario— y no identifican a nadie
+   * fuera de la consulta. El resto vive donde tiene que vivir: en el
+   * expediente, detrás de la sesión del médico. El enlace es un puntero, no un
+   * dato: sin sesión no abre nada.
+   *
+   * El lugar y el estado se quedan: no son del paciente, son de la agenda.
+   */
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.vercel.app'
   return {
-    summary: `${tipoLabel[appt.tipo] ?? appt.tipo} — ${appt.pacienteNombre}`,
+    summary: `${tipoLabel[appt.tipo] ?? appt.tipo} — ${iniciales(appt.pacienteNombre)}`,
     description: [
-      appt.motivo ? `Motivo: ${appt.motivo}` : null,
-      `Teléfono: ${appt.pacienteTelefono}`,
+      appt.id ? `Abrir en NexusMED: ${APP_URL}/citas?cita=${appt.id}` : null,
       appt.lugar ? `Lugar: ${appt.lugar}` : null,
       `Estado: ${appt.estado}`,
-    ].filter(Boolean).join('\n'),
+      '',
+      'Los datos del paciente no salen del expediente: este evento sólo apunta a la cita.',
+    ].filter(v => v !== null).join('\n'),
     start: {
       dateTime: startNaive,
       timeZone: config.zonaHoraria ?? 'America/Chihuahua',
