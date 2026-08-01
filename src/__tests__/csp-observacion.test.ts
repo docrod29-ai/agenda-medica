@@ -13,7 +13,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import {
-  rutaSegura, gruposDeReporte, idDocumento, veredictoEnforce,
+  rutaSegura, gruposDeReporte, idDocumento, veredictoEnforce, esDePrueba,
   MAXIMO_GRUPOS_POR_PETICION, MAXIMO_LARGO_CAMPO, DIAS_MINIMOS_DE_OBSERVACION,
 } from '@/lib/security/csp-observacion'
 
@@ -196,5 +196,53 @@ describe('el recurso bloqueado también se redacta si es NUESTRO', () => {
     }, HOY, PROPIO)
     expect(g[0].bloqueado).toBe('https://agenda-medica-one.vercel.app/api/…')
     expect(JSON.stringify(g)).not.toMatch(/PACIENTE-9/)
+  })
+})
+
+
+describe('un reporte de prueba no puede bloquear el veredicto una semana', () => {
+  /**
+   * Pasó de verdad: la comprobación con la que verifiqué el buzón dejó una fila,
+   * y la pantalla decía «todavía no se puede pasar a bloquear» por culpa de ella.
+   * O sea, la prueba con la que se comprueba el buzón impedía usar lo que
+   * comprueba.
+   *
+   * `.example`, `.test` e `.invalid` están reservados por la RFC 2606 justo para
+   * esto: no existen ni pueden registrarse.
+   */
+  it('reconoce los dominios reservados para pruebas', () => {
+    expect(esDePrueba('https://cdn-de-prueba.example/x.js', 'https://app.mx/')).toBe(true)
+    expect(esDePrueba('https://algo.test/x', 'https://app.mx/')).toBe(true)
+    expect(esDePrueba('https://algo.invalid/x', 'https://app.mx/')).toBe(true)
+    expect(esDePrueba('http://localhost:3000/x', 'https://app.mx/')).toBe(true)
+  })
+
+  it('y NO confunde un dominio real que los lleve dentro', () => {
+    // «testlab.com» o «exampleclinic.mx» son dominios reales: el filtro mira
+    // etiquetas completas, no subcadenas.
+    expect(esDePrueba('https://testlab.com/x.js', 'https://app.mx/')).toBe(false)
+    expect(esDePrueba('https://exampleclinic.mx/a.png', 'https://app.mx/')).toBe(false)
+  })
+
+  it('no llega a guardarse', () => {
+    const g = gruposDeReporte({
+      'csp-report': {
+        'violated-directive': 'script-src',
+        'blocked-uri': 'https://cdn-de-prueba.example/x.js',
+        'document-uri': 'https://agenda-medica-one.vercel.app/mi/TOKEN',
+      },
+    }, HOY, ['https://agenda-medica-one.vercel.app'])
+    expect(g).toEqual([])
+  })
+
+  it('lo real sigue entrando', () => {
+    const g = gruposDeReporte({
+      'csp-report': {
+        'violated-directive': 'script-src',
+        'blocked-uri': 'https://cdn.jsdelivr.net/x.js',
+        'document-uri': 'https://agenda-medica-one.vercel.app/agenda',
+      },
+    }, HOY, ['https://agenda-medica-one.vercel.app'])
+    expect(g).toHaveLength(1)
   })
 })

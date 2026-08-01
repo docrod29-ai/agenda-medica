@@ -17,7 +17,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarSuperadmin } from '@/lib/superadmin'
 import { safeLog } from '@/lib/security/sanitize'
-import { veredictoEnforce, DIAS_MINIMOS_DE_OBSERVACION } from '@/lib/security/csp-observacion'
+import { veredictoEnforce, esDePrueba, DIAS_MINIMOS_DE_OBSERVACION } from '@/lib/security/csp-observacion'
 
 export const runtime = 'nodejs'
 
@@ -53,9 +53,18 @@ export async function GET(req: NextRequest) {
       }
     })
 
-    const dias = new Set(filas.map(f => f.dia).filter(Boolean))
+    /**
+     * Lo sintético se filtra TAMBIÉN al leer, no sólo al escribir.
+     *
+     * Al escribir evita que se acumule de aquí en adelante; al leer hace
+     * desaparecer lo que ya se guardó antes de que existiera el filtro — que en
+     * este caso era mi propia comprobación del buzón, contando como violación
+     * reciente y bloqueando el veredicto siete días.
+     */
+    const reales = filas.filter(f => !esDePrueba(f.bloqueado, f.pagina))
+    const dias = new Set(reales.map(f => f.dia).filter(Boolean))
     const hace7 = new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10)
-    const recientes = filas.filter(f => f.dia >= hace7)
+    const recientes = reales.filter(f => f.dia >= hace7)
     const violacionesRecientes = recientes.reduce((s, f) => s + f.veces, 0)
 
     /**
@@ -74,7 +83,7 @@ export async function GET(req: NextRequest) {
       diasMinimos: DIAS_MINIMOS_DE_OBSERVACION,
       violacionesRecientes,
       // Lo más frecuente primero: es lo que hay que resolver o permitir.
-      grupos: filas.sort((a, b) => b.veces - a.veces).slice(0, 100),
+      grupos: reales.sort((a, b) => b.veces - a.veces).slice(0, 100),
       veredicto: veredictoEnforce(dias.size, violacionesRecientes),
     })
   } catch (e) {

@@ -86,6 +86,46 @@ export function rutaSegura(url: unknown): string {
   }
 }
 
+/**
+ * Dominios que NUNCA son un hallazgo real.
+ *
+ * `.example`, `.test` e `.invalid` están reservados por la RFC 2606 justo para
+ * esto: no existen ni pueden registrarse, así que un reporte que los mencione
+ * viene de una prueba. `localhost` igual.
+ *
+ * Se filtran porque un reporte de prueba en esta colección no es ruido inocente:
+ * cuenta como violación reciente y bloquea el veredicto siete días — o sea que
+ * la prueba con la que se comprueba el buzón impediría usar lo que comprueba.
+ * Pasó: la comprobación de anoche dejó una fila y la pantalla decía «todavía no
+ * se puede pasar a bloquear» por culpa de ella.
+ */
+const TLD_DE_PRUEBA = new Set(['example', 'test', 'invalid', 'localhost'])
+
+/**
+ * La ÚLTIMA etiqueta del dominio, o '' si no hay dominio que mirar.
+ *
+ * Se parsea la URL en vez de buscar la palabra en la cadena entera. Una búsqueda
+ * de texto habría marcado `testlab.com` y `exampleclinic.mx` —dominios
+ * perfectamente reales— y, al revés, se le habría escapado
+ * `cdn-de-prueba.example/x.js`, porque después del dominio viene una barra y no
+ * un punto. Ese fue justo el error de la primera versión, y lo cazó la prueba de
+ * no-marcar-de-más.
+ */
+function ultimaEtiqueta(url: string): string {
+  try {
+    const h = new URL(url).hostname.toLowerCase()
+    const partes = h.split('.').filter(Boolean)
+    return partes[partes.length - 1] ?? ''
+  } catch {
+    return ''
+  }
+}
+
+/** ¿Este reporte viene de una prueba y no de un usuario real? */
+export function esDePrueba(bloqueado: string, pagina: string): boolean {
+  return TLD_DE_PRUEBA.has(ultimaEtiqueta(bloqueado)) || TLD_DE_PRUEBA.has(ultimaEtiqueta(pagina))
+}
+
 const recortar = (v: unknown): string => String(v ?? '').slice(0, MAXIMO_LARGO_CAMPO)
 
 /** Los dos formatos que existen: `report-uri` (con guiones) y `report-to` (camelCase). */
@@ -136,6 +176,8 @@ export function gruposDeReporte(
     if (origenesPropios.length && !origenesPropios.some(o => pagina.startsWith(o))) continue
 
     const dest = rutaSegura(bloqueado) || 'desconocido'
+    // Un reporte de prueba no puede bloquear el veredicto durante una semana.
+    if (esDePrueba(dest, pagina)) continue
     const clave = `${directiva}|${dest}|${dia}`
     if (vistos.has(clave)) continue         // dentro de una misma petición ya se agrupó
     vistos.add(clave)
