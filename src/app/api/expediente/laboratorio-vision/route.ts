@@ -27,7 +27,7 @@ import { validarPanel, type FilaCruda } from '@/lib/expediente/laboratorio/extra
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const ANTHROPIC_VERSION = '2023-06-01'
-const MODELOS_VISION = ['claude-sonnet-4-5', 'claude-sonnet-4-5-20250929', 'claude-3-7-sonnet-latest', 'claude-3-5-sonnet-latest']
+const MODELOS_VISION = ['claude-sonnet-4-5', 'claude-sonnet-4-5-20250929']
 let modeloCache = ''
 
 async function resolverModelo(key: string): Promise<string> {

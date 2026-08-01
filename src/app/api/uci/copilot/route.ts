@@ -27,7 +27,7 @@ import { safeLog } from '@/lib/security/sanitize'
 import { esFundador as fundador } from '@/lib/authz/fundador'
 import { llamarIA, type Contexto } from '@/lib/ia/gateway'
 
-const MODELOS_CLAUDE = ['claude-opus-4-8', 'claude-sonnet-5', 'claude-sonnet-4-5', 'claude-3-5-sonnet-latest']
+const MODELOS_CLAUDE = ['claude-opus-4-8', 'claude-sonnet-5', 'claude-sonnet-4-5']
 const MODELOS_OPENAI = ['gpt-5', 'gpt-4o']
 
 /**

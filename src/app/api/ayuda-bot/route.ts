@@ -17,7 +17,7 @@ import { llamarIA } from '@/lib/ia/gateway'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
-const MODELOS = ['claude-haiku-4-5-20251001', 'claude-3-5-haiku-latest', 'claude-sonnet-5']
+const MODELOS = ['claude-haiku-4-5-20251001', 'claude-sonnet-5']
 
 export async function POST(req: NextRequest) {
   const acceso = await verificarUsuario(req)

@@ -25,7 +25,7 @@ import { COSTO_CREDITOS } from '@/lib/planes-ia'
 export const runtime = 'nodejs'
 export const maxDuration = 30
 
-const MODELOS = ['claude-sonnet-5', 'claude-sonnet-4-6', 'claude-sonnet-4-5', 'claude-3-5-sonnet-latest']
+const MODELOS = ['claude-sonnet-5', 'claude-sonnet-4-6', 'claude-sonnet-4-5']
 const ROLES_VALIDOS = new Set(['Médico', 'Paciente', 'Acompañante'])
 
 export async function POST(req: NextRequest) {

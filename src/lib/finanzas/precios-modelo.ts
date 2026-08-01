@@ -32,6 +32,23 @@ export interface TarifaModelo {
   salidaUsdPorMillon: number
   /** USD por millón de tokens de entrada servidos desde caché. Opcional. */
   entradaCacheUsdPorMillon?: number
+  /**
+   * USD por MINUTO de audio. Sólo para modelos de transcripción.
+   *
+   * ── POR QUÉ HAY DOS UNIDADES EN LA MISMA TABLA ───────────────────────────
+   *
+   * La transcripción **no se cobra por token, se cobra por minuto**: Whisper y
+   * `gpt-4o-transcribe` van a $0.006 el minuto. Un motor que sólo sabe de
+   * tokens no puede representar eso, y el resultado era que el audio no
+   * aparecía en ningún lado — con cada consulta dictada, probablemente el
+   * renglón más grande del consultorio.
+   *
+   * Se resuelve con un campo más y no con una tabla aparte porque el ledger ya
+   * indexa por `modelo`: dos tablas obligarían a cada llamador a saber de
+   * antemano qué clase de modelo está usando, y ésa es exactamente la clase de
+   * decisión que se olvida en una ruta nueva.
+   */
+  usdPorMinuto?: number
   /** De dónde salió y cuándo se miró. Sin esto la tarifa no se acepta. */
   fuente: string
   /** ISO. La tarifa se revisa periódicamente: los proveedores las cambian. */
@@ -39,24 +56,75 @@ export interface TarifaModelo {
 }
 
 /**
- * Tarifas cargadas.
+ * Tarifas cargadas — 31-jul-2026, leídas de la página de cada proveedor.
  *
- * **VACÍO A PROPÓSITO.** Para llenarlo: entrar a la página de precios del
- * proveedor, copiar la tarifa del modelo exacto que se usa, y añadir la entrada
- * con su `fuente` y su `consultado`. No se acepta una tarifa sin las dos cosas
- * — un test lo comprueba.
+ * Nació vacío a propósito y se llenó con la regla intacta: cada cifra viene de
+ * la página del proveedor, con su URL y la fecha en que se miró. Ninguna se
+ * dedujo, se recordó ni se promedió.
  *
- * Mientras esté vacío, el ledger registra tokens y deja el costo en `null`. Eso
- * es correcto y es visible: el dashboard dirá `sin_tarifa`, no `$0`.
+ * Para añadir un modelo: entrar a la página de precios, copiar la tarifa del id
+ * EXACTO que se usa, y poner `fuente` y `consultado`. Sin las dos, un test lo
+ * rechaza. Un modelo sin tarifa registra sus tokens igual y deja el costo en
+ * `null`, marcado `sin_tarifa` — nunca `$0`.
+ *
+ * **Los proveedores cambian precios.** `consultado` existe para que se note
+ * cuándo esta tabla envejeció.
  */
+const FUENTE_ANTHROPIC = 'https://platform.claude.com/docs/en/about-claude/models/overview'
+const FUENTE_OPENAI = 'https://developers.openai.com/api/docs/pricing'
+const CONSULTADO = '2026-07-31'
+
 export const TARIFAS: readonly TarifaModelo[] = [
-  // Ejemplo del formato — descomentar y CORREGIR con la tarifa real antes de usar:
-  // {
-  //   modelo: 'claude-opus-4-8', proveedor: 'anthropic',
-  //   entradaUsdPorMillon: 0, salidaUsdPorMillon: 0,
-  //   fuente: 'https://www.anthropic.com/pricing', consultado: '2026-07-30',
-  // },
+  // ── Anthropic ────────────────────────────────────────────────────────────
+  { modelo: 'claude-opus-4-8', proveedor: 'anthropic', entradaUsdPorMillon: 5, salidaUsdPorMillon: 25, fuente: FUENTE_ANTHROPIC, consultado: CONSULTADO },
+  { modelo: 'claude-opus-5', proveedor: 'anthropic', entradaUsdPorMillon: 5, salidaUsdPorMillon: 25, fuente: FUENTE_ANTHROPIC, consultado: CONSULTADO },
+  /**
+   * Sonnet 5 va al PRECIO DE LISTA, no al de lanzamiento.
+   *
+   * Anthropic cobra hoy $2/$10 como promoción y sube a $3/$15 el 1-sep-2026.
+   * Es el modelo más usado de la app (16 sitios), y este motor no sabe de
+   * fechas de vigencia.
+   *
+   * Cargar el precio promocional dejaría el tablero exacto hoy y **mintiendo en
+   * silencio desde septiembre**, justo cuando empiece a haber clientes. Con el
+   * de lista pasa lo contrario: hoy el margen se ve PEOR de lo que es, y en
+   * septiembre queda exacto sin que nadie tenga que acordarse de nada.
+   *
+   * Equivocarse hacia el margen pesimista no produce una mala decisión de
+   * precio. Hacia el optimista, sí.
+   */
+  { modelo: 'claude-sonnet-5', proveedor: 'anthropic', entradaUsdPorMillon: 3, salidaUsdPorMillon: 15, fuente: FUENTE_ANTHROPIC, consultado: CONSULTADO },
+  { modelo: 'claude-sonnet-4-6', proveedor: 'anthropic', entradaUsdPorMillon: 3, salidaUsdPorMillon: 15, fuente: FUENTE_ANTHROPIC, consultado: CONSULTADO },
+  { modelo: 'claude-sonnet-4-5', proveedor: 'anthropic', entradaUsdPorMillon: 3, salidaUsdPorMillon: 15, fuente: FUENTE_ANTHROPIC, consultado: CONSULTADO },
+  { modelo: 'claude-haiku-4-5', proveedor: 'anthropic', entradaUsdPorMillon: 1, salidaUsdPorMillon: 5, fuente: FUENTE_ANTHROPIC, consultado: CONSULTADO },
+
+  // ── OpenAI: texto ────────────────────────────────────────────────────────
+  { modelo: 'gpt-5', proveedor: 'openai', entradaUsdPorMillon: 1.25, salidaUsdPorMillon: 10, fuente: FUENTE_OPENAI, consultado: CONSULTADO },
+  { modelo: 'gpt-4o', proveedor: 'openai', entradaUsdPorMillon: 2.5, salidaUsdPorMillon: 10, fuente: FUENTE_OPENAI, consultado: CONSULTADO },
+
+  // ── OpenAI: transcripción — POR MINUTO, no por token ─────────────────────
+  // Los tres llevan las tarifas de token en 0 a propósito: el cobro real es por
+  // minuto de audio. Poner aquí una cifra por token sería inventar.
+  { modelo: 'whisper-1', proveedor: 'openai', entradaUsdPorMillon: 0, salidaUsdPorMillon: 0, usdPorMinuto: 0.006, fuente: FUENTE_OPENAI, consultado: CONSULTADO },
+  { modelo: 'gpt-4o-transcribe', proveedor: 'openai', entradaUsdPorMillon: 0, salidaUsdPorMillon: 0, usdPorMinuto: 0.006, fuente: FUENTE_OPENAI, consultado: CONSULTADO },
+  { modelo: 'gpt-4o-mini-transcribe', proveedor: 'openai', entradaUsdPorMillon: 0, salidaUsdPorMillon: 0, usdPorMinuto: 0.003, fuente: FUENTE_OPENAI, consultado: CONSULTADO },
 ]
+
+/**
+ * HUECO DECLARADO: la tarifa de caché.
+ *
+ * Ninguna entrada trae `entradaCacheUsdPorMillon`, así que la lectura de caché
+ * se cobra al precio de entrada COMPLETO — cuando en realidad cuesta una
+ * fracción. El costo sale sobreestimado.
+ *
+ * Se deja así a propósito y no en cero: el error va hacia el margen pesimista,
+ * que es el lado seguro, y queda anotado para cargarlo con su fuente en vez de
+ * deducirlo. Un cero habría dicho «la caché es gratis», que es falso.
+ */
+export const POR_QUE_FALTA_LA_TARIFA_DE_CACHE =
+  'Las lecturas de caché se cobran a fracción del precio de entrada, pero aquí ' +
+  'se cobran completas: el costo sale sobreestimado. Es el lado seguro del ' +
+  'error y está declarado — se carga con su fuente, no se deduce.'
 
 const norm = (s: string) => s.trim().toLowerCase()
 
@@ -82,6 +150,11 @@ export interface Uso {
   salida: number
   /** Entrada servida desde caché, si el proveedor la reporta aparte. */
   entradaCache?: number
+  /**
+   * Minutos de audio transcritos. La transcripción se cobra por minuto, no por
+   * token: sin este campo el gasto de dictado no existía para el motor.
+   */
+  minutosAudio?: number
 }
 
 export interface CostoCalculado {
@@ -104,13 +177,24 @@ export function costoUsd(modelo: string, uso: Uso): CostoCalculado {
   const ent = Math.max(0, uso.entrada || 0)
   const sal = Math.max(0, uso.salida || 0)
   const cache = Math.max(0, uso.entradaCache || 0)
-  if (ent + sal + cache === 0) return { usd: null, motivo: 'sin_uso', tarifa }
+  const min = Math.max(0, uso.minutosAudio || 0)
+  /**
+   * Los MINUTOS cuentan como uso.
+   *
+   * Sin ellos en esta comprobación, una transcripción —que no tiene tokens,
+   * sólo minutos— salía como `sin_uso` y su costo se perdía entero. Es el
+   * gasto de cada consulta dictada.
+   */
+  if (ent + sal + cache + min === 0) return { usd: null, motivo: 'sin_uso', tarifa }
 
   const tarifaCache = tarifa.entradaCacheUsdPorMillon ?? tarifa.entradaUsdPorMillon
   const usd =
     (ent / 1_000_000) * tarifa.entradaUsdPorMillon +
     (cache / 1_000_000) * tarifaCache +
-    (sal / 1_000_000) * tarifa.salidaUsdPorMillon
+    (sal / 1_000_000) * tarifa.salidaUsdPorMillon +
+    // Los modelos de texto no traen `usdPorMinuto` y los de audio traen 0 en las
+    // tarifas por token: cada uno aporta sólo su propio término.
+    min * (tarifa.usdPorMinuto ?? 0)
   // 6 decimales: una llamada barata cuesta millonésimas y redondear a centavos
   // las borra. El total mensual se redondea al presentarlo, no al guardarlo.
   return { usd: Number(usd.toFixed(6)), tarifa }

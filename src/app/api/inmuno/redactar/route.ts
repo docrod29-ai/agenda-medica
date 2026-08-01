@@ -16,7 +16,7 @@ import { esFundador } from '@/lib/authz/fundador'
 import { resolverClaveIA, creditosAgotados, registrarUso } from '@/lib/ai-keys'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
-const MODELOS = ['claude-sonnet-4-6', 'claude-sonnet-4-5', 'claude-3-7-sonnet-latest', 'claude-3-5-sonnet-latest']
+const MODELOS = ['claude-sonnet-4-6', 'claude-sonnet-4-5']
 
 const SYSTEM = `Eres infectólogo de trasplantes y huésped inmunocomprometido. Redacta una NOTA DE VALORACIÓN INFECTOLÓGICA de nivel de publicación, en prosa profesional, lista para el expediente y para entregar a quien solicitó la interconsulta (nefrología, hematología, hepatología, reumatología, etc.). Debe leerse como escrita por un especialista y dejar impresionado al que la lea.
 

@@ -43,18 +43,15 @@ const MODELOS_PREMIUM = [
   'claude-sonnet-5',
   'claude-sonnet-4-6',
   'claude-sonnet-4-5',
-  'claude-3-7-sonnet-latest',
 ]
 const MODELOS_PRO = [
   'claude-sonnet-5',
   'claude-sonnet-4-6',
   'claude-sonnet-4-5',
-  'claude-3-5-sonnet-latest',
 ]
 const MODELOS_LIVE = [
   'claude-haiku-4-5-20251001',
   'claude-haiku-4-5',
-  'claude-3-5-haiku-latest',
   'claude-sonnet-5',   // respaldo si la cuenta no tiene Haiku
 ]
 type Perfil = 'live' | 'pro' | 'premium'

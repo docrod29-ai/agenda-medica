@@ -7,7 +7,7 @@
 > Un informe de auditoría que sólo lista aciertos no sirve para decidir dónde
 > mirar la próxima vez.
 
-Última actualización: **31-jul-2026**, tras PRACTICE-GA-005.
+Última actualización: **31-jul-2026**, tras PRACTICE-GA-006.
 
 ---
 
@@ -40,6 +40,17 @@ incompatibles** —el ingreso total descartaba los negativos, el pagado-por-clie
 los incluía—. Sin arreglar eso, escribir los reembolsos los habría dejado
 invisibles justo en el número grande.
 
+**P0-3 escondía DOS defectos más, ninguno en la auditoría.** Al implementar los
+reembolsos apareció que la consola sumaba de dos formas incompatibles. Y al
+cargar las tarifas (GA-006) apareció que la transcripción **se cobra por minuto,
+no por token**, que el motor sólo sabía de tokens, y que la ruta de dictado no
+dejaba asiento: con cada consulta dictada, el renglón probablemente más grande de
+la plataforma valía **$0** en el tablero.
+
+En el mismo trabajo, `usoDe` ignoraba los minutos que la ruta le mandaba —
+escrito y sin conectar, otra vez, y TypeScript no lo cazó porque el parámetro es
+`unknown`. Sólo apareció al mirarlo.
+
 **P0-2 estaba mal CONTADO.** Dije «4 motores pendientes»: eran los del flujo de
 consulta que yo había mirado. El registro tiene **24 sin validar** (23
 `pendiente_validacion` + 1 `experimental`). Y el hallazgo de fondo era otro: ese
@@ -57,6 +68,7 @@ conectar.
 | **GA-003** | Anti-encuadre en las 4 rutas del paciente con PHI; corregido el malentendido de `frame-ancestors` en teleconsulta | v767 |
 | **GA-004** | Reembolsos y contracargos en el webhook + ingreso NETO con una sola definición de signo | v768 |
 | **GA-005** | El estado de validación clínica llega por fin a la pantalla: sello junto al resultado + hoja de revisión en `/cumplimiento/motores` | v769 |
+| **GA-006** | Tarifas cargadas de la fuente + el audio se mide por minuto + 25 referencias a modelos retirados | v770 |
 
 Fuera del programa, el mismo día: gateway de fallos de IA (`fallo-proveedor.ts`),
 exención de fundador (`fuente: 'fundador'`), incidencias de plataforma visibles
@@ -73,7 +85,7 @@ en `/superadmin/costos`, y la pantalla que dice **qué llave se usa de verdad**
 |---|---|---|
 | 7 | ~~Reembolsos y contracargos en el webhook de Stripe~~ | ✅ GA-004 |
 | 2 | ~~Sello «no validado clínicamente» + hoja de reglas~~ | ✅ GA-005 |
-| 3 | Buscar tarifas de Anthropic/OpenAI, presentarlas, cargarlas **sólo con su confirmación** | pendiente |
+| 3 | ~~Tarifas de Anthropic/OpenAI, presentadas y cargadas con su confirmación~~ | ✅ GA-006 |
 | 5 | Fin del trial: bloquear IA, agenda y expediente en solo lectura | pendiente |
 
 ### ⚠️ Acción del Dr. — sin ella, GA-004 no sirve de nada
@@ -100,7 +112,7 @@ pruebas en verde, y ningún efecto en la realidad.
 | **P0-2** | **24** motores sin validar (23 `pendiente_validacion` + 1 `experimental`), varios en el camino de la receta. Ya son VISIBLES en pantalla y listados en `/cumplimiento/motores` con su pregunta pendiente | **Criterio clínico del Dr.** — `NEEDS_CLINICAL_REVIEW`. El trinquete de `clinical-sellos.test.ts` obliga a bajar el techo cuando valide alguno |
 | **P0-5** | No existe el E2E del Golden Flow; Playwright tiene 2 specs y **no corre en CI** | mí |
 | **P0-6** | Backup / PITR / restore drill: cero evidencia | consola de Firebase (él) + documentar (yo) |
-| **P0-7** | `TARIFAS` es un array vacío → sin COGS ni margen | sus cifras (cola #3) |
+| ~~P0-7~~ | ~~`TARIFAS` vacío~~ — **CERRADO en GA-006.** 11 tarifas cargadas de la página de cada proveedor, con URL y fecha | — |
 
 ### P1
 
@@ -117,6 +129,12 @@ pruebas en verde, y ningún efecto en la realidad.
   días de observación de reportes; la observación **no se ha arrancado**.
 - **A7**: 13 de 16 rutas de IA con asiento en el libro; 5 de 16 enrutadas al gateway.
 - **A8**: el dataset V3 de antimicrobianos fusiona ficha y guía en 11 de 49 entradas.
+- **Tarifa de caché sin cargar** (GA-006): las lecturas de caché se cobran al
+  precio de entrada completo, cuando cuestan una fracción. El costo sale
+  **sobreestimado** — el lado seguro del error, y declarado en el código.
+- **Sonnet 5 a precio de LISTA** ($3/$15), no al promocional ($2/$10 hasta el
+  31-ago-2026). El motor no sabe de vigencias: hoy el margen se ve peor de lo que
+  es y en septiembre queda exacto solo.
 
 ---
 

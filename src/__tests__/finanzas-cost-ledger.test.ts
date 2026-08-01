@@ -20,20 +20,40 @@ import { usoDe, trajoUso } from '@/lib/finanzas/medir-ia'
 
 const base = (o: Partial<EntradaLedger> = {}): EntradaLedger => ({
   requestId: 'r1', clinicId: 'c1', uid: 'u1', feature: 'nota',
-  proveedor: 'anthropic', modelo: 'claude-opus-4-8',
+  /**
+   * Modelo INVENTADO a propósito.
+   *
+   * Este fixture usaba `claude-opus-4-8`, que era correcto mientras la tabla de
+   * tarifas estaba vacía — pero acopló la prueba a ese vacío. Al cargarse las
+   * tarifas reales (31-jul-2026), seis pruebas cayeron sin que el invariante que
+   * defienden se hubiera roto.
+   *
+   * El invariante es «un modelo SIN tarifa cuesta null, nunca cero», y para
+   * probarlo hace falta un modelo que no vaya a tener tarifa jamás.
+   */
+  proveedor: 'anthropic', modelo: 'modelo-sin-tarifa-de-prueba',
   uso: { entrada: 3200, salida: 2000, entradaCache: 0 },
   latenciaMs: 4200, creditos: 3, fuente: 'prueba', ts: '2026-07-30T22:00:00.000Z', ...o,
 })
 
 describe('Sin tarifa cargada, el costo es NULL — nunca cero', () => {
-  it('el archivo de tarifas nace vacío a propósito', () => {
-    // Escribir aquí un número «de memoria» daría un dashboard que parece exacto
-    // y miente. Se llena con la tarifa publicada, su fuente y su fecha.
-    expect(TARIFAS.length).toBe(0)
+  it('ninguna tarifa se acepta sin su fuente y su fecha', () => {
+    /**
+     * Esta prueba decía `TARIFAS.length === 0` — «nace vacío a propósito». Se
+     * cumplió su función: las tarifas se cargaron el 31-jul-2026 desde la página
+     * de cada proveedor. Lo que ya no se puede aflojar no es el vacío, es la
+     * REGLA: una cifra sin procedencia es una cifra inventada, y un tablero
+     * financiero que parece exacto y miente es peor que uno que dice «no sé».
+     */
+    expect(TARIFAS.length).toBeGreaterThan(0)
+    for (const t of TARIFAS) {
+      expect(t.fuente, `${t.modelo} sin fuente`).toMatch(/^https?:\/\//)
+      expect(t.consultado, `${t.modelo} sin fecha`).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    }
   })
 
   it('un modelo sin tarifa da null y dice por qué', () => {
-    const c = costoUsd('claude-opus-4-8', { entrada: 1000, salida: 500 })
+    const c = costoUsd('modelo-sin-tarifa-de-prueba', { entrada: 1000, salida: 500 })
     expect(c.usd).toBeNull()
     expect(c.motivo).toBe('sin_tarifa')
   })
@@ -57,9 +77,10 @@ describe('Sin tarifa cargada, el costo es NULL — nunca cero', () => {
   })
 
   it('y se puede saber qué tarifas faltan por cargar', () => {
-    const r = resumir([asiento(base()), asiento(base({ requestId: 'r2', modelo: 'gpt-5' }))])
-    expect(r.modelosSinTarifa.sort()).toEqual(['claude-opus-4-8', 'gpt-5'])
-    expect(modelosSinTarifa(['claude-opus-4-8', 'x', ''])).toEqual(['claude-opus-4-8', 'x'])
+    const r = resumir([asiento(base()), asiento(base({ requestId: 'r2', modelo: 'otro-inventado' }))])
+    expect(r.modelosSinTarifa.sort()).toEqual(['modelo-sin-tarifa-de-prueba', 'otro-inventado'])
+    // Y los que SÍ tienen tarifa no aparecen como pendientes.
+    expect(modelosSinTarifa(['claude-opus-4-8', 'x', ''])).toEqual(['x'])
   })
 
   it('INSUFFICIENT_DATA: no se afirma un total con media cobertura', () => {

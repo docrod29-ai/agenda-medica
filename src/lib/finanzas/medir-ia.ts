@@ -9,6 +9,12 @@
  *   Anthropic → usage.input_tokens · output_tokens · cache_read_input_tokens
  *   OpenAI    → usage.prompt_tokens · completion_tokens
  *
+ * Y una TERCERA unidad que no son tokens: la TRANSCRIPCIÓN se cobra por minuto
+ * de audio. El proveedor no la devuelve en `usage`, así que la ruta la adjunta
+ * al objeto que pasa aquí. Sin leerla, el gasto de dictado —probablemente el
+ * más grande de la plataforma, porque cada consulta se dicta— seguiría siendo
+ * cero en el libro.
+ *
  * Módulo PURO.
  */
 import type { Uso } from '@/lib/finanzas/precios-modelo'
@@ -25,10 +31,19 @@ export function usoDe(respuesta: unknown): Uso {
   const entradaCache =
     num(u.cache_read_input_tokens) ||
     num((u.prompt_tokens_details as Json | undefined)?.cached_tokens)
-  return { entrada, salida, entradaCache }
+  // Los minutos no vienen dentro de `usage`: los adjunta la ruta de
+  // transcripción al nivel superior, porque el proveedor no los reporta.
+  const minutosAudio = num(r.minutosAudio) || undefined
+  return { entrada, salida, entradaCache, minutosAudio }
 }
 
-/** ¿La respuesta traía uso? Si no, hay que enterarse: significa que se perdió. */
+/**
+ * ¿La respuesta traía uso? Si no, hay que enterarse: significa que se perdió.
+ *
+ * Los MINUTOS cuentan. Una transcripción no tiene tokens —sólo minutos— así que
+ * sin ellos aquí, cada dictado se contabilizaba como «llamada sin uso» y su
+ * costo se perdía entero.
+ */
 export function trajoUso(u: Uso): boolean {
-  return u.entrada + u.salida + (u.entradaCache ?? 0) > 0
+  return u.entrada + u.salida + (u.entradaCache ?? 0) + (u.minutosAudio ?? 0) > 0
 }

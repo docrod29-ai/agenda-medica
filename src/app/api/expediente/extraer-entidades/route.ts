@@ -30,8 +30,6 @@ const ANTHROPIC_VERSION = '2023-06-01'
 const MODELOS_CANDIDATOS = [
   'claude-sonnet-4-5',
   'claude-sonnet-4-5-20250929',
-  'claude-3-7-sonnet-latest',
-  'claude-3-5-sonnet-latest',
 ]
 
 let modeloCache = ''

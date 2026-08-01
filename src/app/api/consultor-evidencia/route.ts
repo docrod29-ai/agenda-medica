@@ -190,7 +190,7 @@ export async function POST(req: NextRequest) {
     //  seguridad, comparación) en inglés — cada una en su línea. Más ángulos =
     //  mejor cobertura de la evidencia. La 1ª sirve además para detectar fármacos.
     let subQueries: string[] = [pregunta]
-    const MODELOS_TRAD = ['claude-3-5-haiku-latest', 'claude-haiku-4-5-20251001', 'claude-sonnet-5', 'claude-3-5-sonnet-latest']
+    const MODELOS_TRAD = ['claude-haiku-4-5-20251001', 'claude-sonnet-5']
     const sysTrad = 'Descompón la pregunta clínica en 1-3 SUB-BÚSQUEDAS de PubMed en INGLÉS, cada una en su PROPIA LÍNEA. Cada línea: solo 2-6 términos clave en inglés (fármacos/enfermedades en su forma inglesa, ej. "finerenona"→"finerenone"), unidos con AND/OR si aplica. Usa ángulos distintos cuando ayude (eficacia; seguridad/efectos adversos; comparación entre opciones). Sin numeración, sin comillas, sin explicación, sin field tags. Máximo 3 líneas.'
     const usrTrad = `${paciente ? 'Paciente: ' + paciente + '\n' : ''}${contexto ? contexto + '\n' : ''}Pregunta: ${pregunta}`
     for (const m of MODELOS_TRAD) {
