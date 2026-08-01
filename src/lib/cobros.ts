@@ -363,6 +363,23 @@ export async function listarCobros(
     .filter(c => incluirCancelados || !c.cancelado)
 }
 
+/**
+ * Todos los cobros de UNA cita, incluidos los anulados.
+ *
+ * Los anulados vienen a propósito: sin ellos no se puede distinguir «nadie ha
+ * pagado» de «el cobro se anuló», y esas dos situaciones piden cosas distintas
+ * —una cobrar, la otra averiguar qué pasó—.
+ *
+ * Es una consulta por `citaId`, no por rango de fechas: un abono de hace tres
+ * semanas tiene que aparecer cuando el paciente vuelve a pagar hoy. Filtrar por
+ * el día habría escondido exactamente el saldo que se quiere enseñar.
+ */
+export async function cobrosDeCita(clinicId: string, citaId: string): Promise<Cobro[]> {
+  if (!clinicId || !citaId) return []
+  const snap = await getDocs(query(COL(clinicId), where('citaId', '==', citaId)))
+  return snap.docs.map(d => ({ ...d.data(), id: d.id } as Cobro))
+}
+
 /** Último día de un mes YYYY-MM, en formato YYYY-MM-DD. */
 function ultimoDiaDelMes(mes: string): string {
   const [y, m] = mes.split('-').map(Number)

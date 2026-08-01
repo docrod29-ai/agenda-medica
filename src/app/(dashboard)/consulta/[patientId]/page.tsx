@@ -73,6 +73,7 @@ import type { TipoNota, NotaMedica, NotaSeccion, Diagnostico, Medicamento, Signo
 import type { Patient } from '@/types'
 import { Cie10Autocomplete } from '@/components/Cie10Autocomplete'
 import { CobrarModal } from '@/components/CobrarModal'
+import { precioSugerido } from '@/lib/finanzas/precio-consulta'
 import { PanelRazonamiento } from '@/components/PanelRazonamiento'
 import { DialogoDiarizado, Section, S } from './consulta-ui'
 import {
@@ -394,13 +395,16 @@ export default function ConsultaActivaPage() {
       .sort((a: Appointment, b: Appointment) => a.fechaHora.localeCompare(b.fechaHora))[0] ?? null
   }, [citasDelPaciente])
 
-  const montoSugerido = useMemo(() => {
-    const precios = config?.preciosPublicos ?? []
-    if (!precios.length) return undefined
-    const tipoCita = (citaDeHoy?.tipo ?? '').toLowerCase()
-    const coincide = precios.find(p => tipoCita && p.servicio.toLowerCase().includes(tipoCita.split('-')[0]))
-    return (coincide ?? precios[0])?.precio
-  }, [config?.preciosPublicos, citaDeHoy?.tipo])
+  /**
+   * La regla salió de aquí a `lib/finanzas/precio-consulta`. Vivía dentro de esta
+   * pantalla, así que al cobrar desde CITAS —por donde cobra la asistente, o sea
+   * la mayoría de las veces— el importe abría vacío… y sin precio tampoco se
+   * podía restar lo ya abonado.
+   */
+  const montoSugerido = useMemo(
+    () => precioSugerido(config?.preciosPublicos, citaDeHoy?.tipo),
+    [config?.preciosPublicos, citaDeHoy?.tipo],
+  )
 
   /**
    * Se declara aquí, antes del memo del copiloto, porque el copiloto consume los

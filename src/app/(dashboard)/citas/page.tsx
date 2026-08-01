@@ -12,6 +12,7 @@ import type { Patient } from '@/types'
 import { AppointmentModal } from '@/components/AppointmentModal'
 import { DoctorFilter, useFiltroMedico, colorMedico } from '@/components/DoctorFilter'
 import { CobrarModal } from '@/components/CobrarModal'
+import { precioSugerido } from '@/lib/finanzas/precio-consulta'
 import { quitarExencion } from '@/lib/cobros'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { useAuth } from '@/hooks/useAuth'
@@ -439,6 +440,15 @@ export default function CitasPage() {
             medicoId: cobrarAppt.medicoId,
             medicoNombre: cobrarAppt.medicoNombre,
             concepto: cobrarAppt.tipo === 'teleconsulta' ? 'teleconsulta' : 'consulta',
+            /**
+             * EL PRECIO, QUE AQUÍ NO LLEGABA.
+             *
+             * Ésta es la puerta por la que cobra la asistente —la mayoría de los
+             * cobros— y el importe abría en blanco. Sin precio tampoco había
+             * contra qué restar un abono previo, así que el saldo pendiente no
+             * podía enseñarse justo donde más falta hace.
+             */
+            monto: precioSugerido(config?.preciosPublicos, cobrarAppt.tipo),
           }}
           onClose={() => setCobrarAppt(null)}
           onCobrado={() => setCobrarAppt(null)}
