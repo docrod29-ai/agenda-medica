@@ -104,13 +104,13 @@ function paresConCapacidad(): { clave: string; metodo: Metodo; e: ExigenciaRuta 
 }
 
 describe('E0-07 · el escaneo encuentra rutas de verdad', () => {
-  it('hay 78 rutas en disco (un guardián que no encuentra archivos pasa vacío y no protege nada)', () => {
+  it('hay 79 rutas en disco (un guardián que no encuentra archivos pasa vacío y no protege nada)', () => {
     // Si este número cambia es porque se añadió o quitó una ruta: hay que declararla
     // en REGISTRO_RUTAS y ajustar el conteo, a propósito y a mano.
     //
     // 76 → 77 al añadir `superadmin/csp` (la observación de la política de
     // seguridad). Una ruta, un método, un `verificarSuperadmin`.
-    expect(CLAVES_DISCO.length).toBe(78)
+    expect(CLAVES_DISCO.length).toBe(79)
   })
 })
 
@@ -357,6 +357,8 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
     // UNA ruta con UNA llamada. Las dos cifras suben en uno — si sólo subiera la
     // de llamadas, querría decir que una ruta se quedó sin guardián.
     //
+    // 78 → 79 al añadir `planes` (el catálogo público de precios).
+    //
     // 78 → 80 y 64 → 65 al añadir `superadmin/planes`: aquí las llamadas suben
     // DOS y las rutas UNA, y está bien — la ruta tiene GET y PUT, y cada método
     // lleva su `verificarSuperadmin`. Lo que sería alarmante es lo contrario:
@@ -395,7 +397,7 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
     expect(desajustes).toEqual([])
   })
 
-  it('las rutas SIN guardián de sesión son exactamente las 13 declaradas públicas/webhook/cron', () => {
+  it('las rutas SIN guardián de sesión son exactamente las 14 declaradas públicas/webhook/cron', () => {
     const GUARDIANES = /verificar(Usuario|Miembro|Medico|Capacidad|ModuloIA|ModuloYCapacidad|Superadmin|TokenPaciente)\s*\(/
     const sinGuardia = [...FUENTE].filter(([, src]) => !GUARDIANES.test(src)).map(([c]) => c).sort()
     const exentas = new Set(['publica', 'webhook', 'cron'])
@@ -404,12 +406,21 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
       expect(e, `${c} no está declarada`).toBeTruthy()
       expect(exentas, `${c} no tiene guardián y NO está declarada como exenta (${e!.tipo})`).toContain(e!.tipo)
     }
-    // Congelado: si aparece una 14.ª ruta sin guardián, hay que justificarla a mano.
+    /**
+     * Congelado: si aparece una 15.ª ruta sin guardián, hay que justificarla a mano.
+     *
+     * 13 → 14 al añadir `planes`: el catálogo de precios vigente. Es público
+     * porque un precio de lista no es un secreto —está impreso en /precios y se
+     * le dice a quien pregunte— y porque la página pública y el gate de pago lo
+     * necesitan sin sesión. Sólo devuelve nombre, precio y créditos; nada de
+     * `modulos` ni `nivelIA`, que son permisos.
+     */
     expect(sinGuardia).toEqual([
       'calendar/callback',
       'cron/reminders',
       'csp-report',
       'demo/evidencia',
+      'planes',
       'public/availability/[clinicId]',
       'public/booking',
       'public/clinic/[clinicId]',
