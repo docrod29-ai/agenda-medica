@@ -29,9 +29,17 @@ interface Resumen {
   modelosSinTarifa: string[]; latenciaP50: number | null; latenciaP95: number | null
 }
 interface Grupo { clave: string; resumen: Resumen }
+/** Una caída de la IA de la plataforma, agrupada por proveedor, clase y hora. */
+interface Incidente {
+  id: string; proveedor?: string; clase?: string; urgente?: boolean
+  titulo?: string; queHacer?: string; veces?: number; hora?: string
+  features?: string[]; ultimoStatus?: number
+}
 interface Datos {
   ok: true; mes: string; total: Resumen; cogs: Resumen; confiable: boolean
   porFeature: Grupo[]; porModelo: Grupo[]; porClase: Grupo[]; truncado: boolean
+  incidentes?: Incidente[]; hayUrgente?: boolean
+  webhook?: { configurado: boolean; faltantes: string[]; faltanCriticos: string[]; aviso: string; modo?: 'prueba' | 'produccion' | 'sin_llave'; avisoModo?: string } | null
 }
 
 const mesActual = () => new Date().toISOString().slice(0, 7)
@@ -98,6 +106,82 @@ export default function CostosPage() {
 
       {datos && !cargando && (
         <>
+          {/*
+            EL WEBHOOK DE STRIPE, PRIMERO DE TODO.
+
+            El código sabe atender un reembolso; si nadie marcó la casilla en el
+            panel de Stripe, el evento no llega NUNCA y el dinero se devuelve con
+            la suscripción viva. Esa casilla está fuera del repositorio, así que
+            ningún test la ve — se le pregunta a Stripe y se muestra aquí.
+          */}
+          {/*
+            EL MODO VA PRIMERO Y EN TONO NEUTRO.
+
+            Estar en prueba no es un fallo: es lo correcto mientras no se venda.
+            Pintarlo en rojo enseñaría a ignorar el rojo. Lo que sí tiene que
+            quedar claro es la consecuencia — que un pago «exitoso» en este modo
+            no mueve un peso — y que los eventos se configuran por separado en
+            cada modo, que es de donde vendría la sorpresa al pasar a producción.
+          */}
+          {datos.webhook?.avisoModo && (
+            <div style={{
+              border: '1px solid var(--border, #e5e7eb)', background: 'var(--panel, #f8fafc)',
+              borderRadius: 10, padding: '12px 14px', margin: '18px 0 8px',
+            }}>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text, #0f172a)' }}>
+                Stripe: modo {datos.webhook.modo === 'prueba' ? 'de prueba' : datos.webhook.modo === 'sin_llave' ? 'sin configurar' : 'producción'}
+              </div>
+              <div style={{ fontSize: 12.5, color: 'var(--text2, #334155)', marginTop: 4, lineHeight: 1.55 }}>{datos.webhook.avisoModo}</div>
+            </div>
+          )}
+
+          {datos.webhook?.aviso && (
+            <div style={{
+              border: `1px solid ${datos.webhook.faltanCriticos.length ? '#dc2626' : 'var(--border)'}`,
+              background: datos.webhook.faltanCriticos.length ? 'rgba(220,38,38,.07)' : 'var(--panel, #f8fafc)',
+              borderRadius: 10, padding: '13px 15px', margin: '18px 0 4px',
+            }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: datos.webhook.faltanCriticos.length ? '#b91c1c' : 'var(--text, #0f172a)' }}>
+                {datos.webhook.faltanCriticos.length ? '⚠︎ ' : ''}Webhook de Stripe
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text2, #334155)', marginTop: 5, lineHeight: 1.55 }}>{datos.webhook.aviso}</div>
+              <a href="https://dashboard.stripe.com/webhooks" target="_blank" rel="noopener noreferrer"
+                 style={{ display: 'inline-block', marginTop: 9, fontSize: 12.5, fontWeight: 600, color: 'var(--nexus, #3d5afe)' }}>
+                Abrir el panel de Stripe ↗
+              </a>
+            </div>
+          )}
+
+          {/*
+            LO QUE ESTÁ CAÍDO VA ANTES QUE LO QUE CUESTA.
+            El 31-jul-2026 la IA estuvo caída y la única señal apareció cuando el
+            dueño la probó a mano. Aquí ya no hay que ir a buscarla.
+          */}
+          {(datos.incidentes?.length ?? 0) > 0 && (
+            <div style={{ margin: '18px 0 4px' }}>
+              <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 8px', color: 'var(--text, #0f172a)' }}>
+                Incidencias de la llave de la plataforma
+              </h2>
+              {datos.incidentes!.map(i => (
+                <div key={i.id} style={{
+                  border: `1px solid ${i.urgente ? '#dc2626' : 'var(--border, #e5e7eb)'}`,
+                  background: i.urgente ? 'rgba(220,38,38,.07)' : 'var(--panel, #f8fafc)',
+                  borderRadius: 10, padding: '12px 14px', marginBottom: 8,
+                }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: i.urgente ? '#b91c1c' : 'var(--text, #0f172a)' }}>
+                    {i.urgente ? '⚠︎ ' : ''}{i.titulo}
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--text2, #334155)', marginTop: 4, lineHeight: 1.5 }}>{i.queHacer}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3, #64748b)', marginTop: 6 }}>
+                    {n(i.veces ?? 0)} {(i.veces ?? 0) === 1 ? 'vez' : 'veces'} · {i.hora?.replace('T', ' a las ')} h
+                    {i.features?.length ? ` · afectó: ${i.features.join(', ')}` : ''}
+                    {i.ultimoStatus ? ` · HTTP ${i.ultimoStatus}` : ''}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {datos.total.llamadas === 0 && (
             <Aviso tono="neutro">
               No hay llamadas registradas en {datos.mes}. El libro empezó a llenarse el 30 de julio de 2026:

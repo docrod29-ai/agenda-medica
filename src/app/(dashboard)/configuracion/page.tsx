@@ -8,6 +8,7 @@ import { SeguridadTab } from './secciones-seguridad'
 import { cfgInput, cfgLabel } from './estilos'
 import { RecetasTab } from './secciones-recetas'
 import { LlavesIASection, FirmaUploadSection, MembreteNotaSection, MiembrosActivos } from './secciones-cuenta'
+import { PLANES, PLANES_ORDEN, precioTexto } from '@/lib/planes-ia'
 import { ESPECIALIDADES_CLINICAS, ESPECIALIDADES_QUIRURGICAS, ESPECIALIDADES_DIAGNOSTICAS, OTROS_PROFESIONALES } from '@/lib/especialidades'
 import { X as IconX } from 'lucide-react'
 import { fetchAutenticado } from '@/lib/auth-client'
@@ -1458,20 +1459,36 @@ function MedicosTab() {
 }
 
 /* ── Suscripción Tab ─────────────────────────────────────────── */
+/**
+ * El precio sale de `PLANES`; aquí sólo vive lo que es de esta pantalla: el
+ * color del distintivo y el «Plan …» delante del nombre.
+ *
+ * Estaban los cuatro precios escritos a mano, y esta es LA pantalla donde el
+ * médico va a comprobar qué está pagando. Un número tecleado aquí no se entera
+ * de una subida de tarifa — y quien lo descubre es él, comparando con su recibo.
+ */
+const COLOR_PLAN: Record<string, string> = {
+  trial: 'var(--amber)', agenda: '#60a5fa', clinica: '#3D5AFE', premium: '#a78bfa', hospital: '#7c5cd6',
+}
 const PLAN_DISPLAY: Record<string, { label: string; color: string; price: string }> = {
-  trial:    { label: 'Prueba gratuita', color: 'var(--amber)', price: '$0 MXN/mes' },
-  agenda:   { label: 'Plan Agenda',     color: '#60a5fa', price: '$349 MXN/mes' },
-  clinica:  { label: 'Plan Clínica',    color: '#3D5AFE', price: '$899 MXN/mes' },
-  premium:  { label: 'Plan Pro',        color: '#a78bfa', price: '$1,590 MXN/mes' },
-  hospital: { label: 'Plan Hospital',   color: '#7c5cd6', price: '$3,499 MXN/mes' },
+  trial: { label: 'Prueba gratuita', color: COLOR_PLAN.trial, price: '$0 MXN/mes' },
+  ...Object.fromEntries(PLANES_ORDEN.map(c => [c, {
+    label: `Plan ${PLANES[c].nombre}`,
+    color: COLOR_PLAN[c],
+    price: `${precioTexto(PLANES[c])} MXN/mes`,
+  }])),
 }
 
 const PLAN_FEATURES: Record<string, string[]> = {
   trial:    ['14 días gratuitos', 'Todas las funciones', 'Sin tarjeta de crédito'],
   agenda:   ['Agenda y calendario', 'Recordatorios por WhatsApp', 'Expediente básico', 'Portal del paciente'],
-  clinica:  ['200 créditos de IA/mes', 'Nota por voz + separación de voces', 'Menú de IA (⚡/⭐/💎)', 'Consultor de evidencia', 'Todo el plan Agenda'],
-  premium:  ['450 créditos/mes', 'IA de máximo razonamiento clínico por defecto', 'Revisión de seguridad clínica automática', 'Soporte prioritario', 'Todo el plan Clínica'],
-  hospital: ['Módulo de Hospitalización', '400 créditos/mes', 'Censo, camas, MAR, NEWS2', 'Notas de ingreso/evolución/egreso'],
+  // Los créditos también se leen de `PLANES`. Hospital decía «400 créditos/mes»
+  // y son 500: el número se quedó de una versión anterior de la oferta y nadie
+  // volvió a mirarlo. Prometer de menos en la pantalla donde se decide pagar es
+  // tan malo como prometer de más.
+  clinica:  [`${PLANES.clinica.creditos} créditos de IA/mes`, 'Nota por voz + separación de voces', 'Menú de IA (⚡/⭐/💎)', 'Consultor de evidencia', 'Todo el plan Agenda'],
+  premium:  [`${PLANES.premium.creditos} créditos/mes`, 'IA de máximo razonamiento clínico por defecto', 'Revisión de seguridad clínica automática', 'Soporte prioritario', 'Todo el plan Clínica'],
+  hospital: ['Módulo de Hospitalización', `${PLANES.hospital.creditos} créditos/mes`, 'Censo, camas, MAR, NEWS2', 'Notas de ingreso/evolución/egreso'],
 }
 
 function SuscripcionTab({ clinicId }: { clinicId: string | null }) {

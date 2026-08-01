@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { claseDeCuenta, cuentaComoIngreso } from '@/lib/authz/fundador'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarSuperadmin } from '@/lib/superadmin'
+import { efectivoDe, esDineroReal, tipoDeAsiento, type EstadoDisputa } from '@/lib/finanzas/movimientos'
 import { PLANES, type ClavePlan } from '@/lib/planes-ia'
 
 type Any = Record<string, unknown>
@@ -53,18 +54,40 @@ export async function GET(req: NextRequest) {
     ])
 
     // ── Ingresos por mes (histórico) + pagos del mes seleccionado ──
+    /**
+     * INGRESO **NETO**: cobros menos reembolsos menos contracargos.
+     *
+     * Antes esto hacía `if (!(monto > 0)) return`, es decir, descartaba todo lo
+     * que no fuera un cobro — mientras `pagadoPorClinica`, veinte líneas más
+     * abajo, sí sumaba los negativos. Dos respuestas a «cuánto entró», y la que
+     * se mira primero era la optimista.
+     *
+     * Con el webhook asentando ya reembolsos y contracargos (P0-3), esa asimetría
+     * habría dejado las devoluciones INVISIBLES justo en el número grande. El
+     * signo lo pone `efectivoDe`, que es el único sitio donde se define.
+     */
     const ingresoPorMes = new Map<string, number>()
     let numPagosMes = 0
     let ingresoTotalHist = 0
+    let devueltoHist = 0
+    let disputasAbiertas = 0
     paysSnap.docs.forEach(d => {
       const p = d.data() as Any
-      if (p.livemode !== true) return  // solo ingresos REALES (excluye pagos de prueba)
-      const monto = Number(p.monto ?? 0)
-      if (!(monto > 0)) return
+      if (!esDineroReal(p)) return  // solo dinero REAL (excluye Stripe en modo prueba)
+      // Los asientos anteriores a este cambio no llevan `tipo`: eran todos cobros
+      // y así se leen. Tratarlos como desconocidos mostraría una caída de ingresos
+      // que nunca ocurrió.
+      const tipo = tipoDeAsiento(p)
+      const efectivo = efectivoDe({ tipo, monto: Number(p.monto ?? 0), estadoDisputa: p.estadoDisputa as EstadoDisputa | undefined })
+      if (efectivo === 0 && tipo === 'cobro') return
       const mes = mesDe(String(p.fecha ?? p.createdAt ?? ''))
-      ingresoPorMes.set(mes, (ingresoPorMes.get(mes) ?? 0) + monto)
-      ingresoTotalHist += monto
-      if (mes === mesSel) numPagosMes++
+      ingresoPorMes.set(mes, (ingresoPorMes.get(mes) ?? 0) + efectivo)
+      ingresoTotalHist += efectivo
+      if (efectivo < 0) devueltoHist += -efectivo
+      if (tipo === 'contracargo' && p.estadoDisputa === 'abierta') disputasAbiertas++
+      // Un reembolso NO es un pago: si contara aquí, «pagos del mes» subiría cada
+      // vez que se devuelve dinero.
+      if (mes === mesSel && tipo === 'cobro') numPagosMes++
     })
     const ingresoMes = ingresoPorMes.get(mesSel) ?? 0
     const porMes = ultimosMeses(12, mesSel).map(mes => ({ mes, ingresos: Math.round(ingresoPorMes.get(mes) ?? 0) }))
@@ -73,8 +96,22 @@ export async function GET(req: NextRequest) {
     const pagadoPorClinica = new Map<string, number>()
     paysSnap.docs.forEach(d => {
       const p = d.data() as Any
-      if (p.livemode !== true) return  // solo pagos REALES confirmados (Stripe en prueba → livemode:false o ausente → no es ingreso real)
-      pagadoPorClinica.set(String(p.clinicId ?? ''), (pagadoPorClinica.get(String(p.clinicId ?? '')) ?? 0) + Number(p.monto ?? 0))
+      if (!esDineroReal(p)) return  // solo pagos REALES (Stripe en prueba no es ingreso)
+      /**
+       * MISMA definición de signo que el ingreso global, y por el MISMO motivo.
+       *
+       * Aquí se sumaba `Number(p.monto)` en crudo. Los movimientos se guardan
+       * SIEMPRE en positivo —el signo lo decide el tipo, no quien escribe— así
+       * que sin esta línea un reembolso habría subido el "ingreso histórico" del
+       * cliente al que se le devolvió el dinero. Es la asimetría que este cambio
+       * vino a cerrar, reaparecida veinte líneas más abajo.
+       */
+      const efectivo = efectivoDe({
+        tipo: tipoDeAsiento(p),
+        monto: Number(p.monto ?? 0),
+        estadoDisputa: p.estadoDisputa as EstadoDisputa | undefined,
+      })
+      pagadoPorClinica.set(String(p.clinicId ?? ''), (pagadoPorClinica.get(String(p.clinicId ?? '')) ?? 0) + efectivo)
     })
 
     let creditosMesTotal = 0
@@ -152,6 +189,15 @@ export async function GET(req: NextRequest) {
         clinicas: clientes.length,
         creditosMes: Math.round(creditosMesTotal * 10) / 10,
         ingresoTotalHist: Math.round(ingresoTotalHist),
+        /**
+         * Lo devuelto se publica APARTE, no sólo restado.
+         *
+         * Un neto más bajo sin decir por qué se lee como «vendimos menos». Que
+         * el dueño vea la cifra de devoluciones y las disputas sin resolver es
+         * la diferencia entre un mal mes y un problema de cobranza.
+         */
+        devueltoHist: Math.round(devueltoHist),
+        disputasAbiertas,
         numPagosMes,
       },
       porMes,

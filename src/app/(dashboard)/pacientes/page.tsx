@@ -16,6 +16,7 @@ import { PageHeader, Button, EmptyState, Spinner, Modal } from '@/components/ui'
 import { AvisoPrivacidadModal } from '@/components/AvisoPrivacidadModal'
 import { ExpedienteVacio } from '@/components/brand/EmptyArt'
 import { avatarColor } from '@/lib/avatar-color'
+import { buscarPosiblesDuplicados } from '@/lib/pacientes/duplicados'
 
 export default function PacientesPage() {
   const { toast } = useToast()
@@ -276,6 +277,17 @@ export default function PacientesPage() {
           onClose={() => { setModalOpen(false); setEditPatient(null) }}
           onSaved={onSaved}
           userEmail={user?.email ?? ''}
+          /*
+            La lista YA cargada, para poder avisar de un posible duplicado
+            mientras se escribe el nombre en vez de al terminar el formulario.
+            Es la misma lista que se ve detrás del modal: cero peticiones nuevas.
+          */
+          existentes={patients}
+          onAbrirExistente={p => {
+            setModalOpen(false); setEditPatient(null)
+            if (mode === 'medico') router.push(`/expediente/${p.id}`)
+            else openEdit(p)
+          }}
         />
       )}
     </div>
@@ -352,11 +364,13 @@ function PacienteRow({ p, mode, internado, onAbrir, onEditar }: {
   )
 }
 
-function PatientModal({ patient, onClose, onSaved, userEmail }: {
+function PatientModal({ patient, onClose, onSaved, userEmail, existentes, onAbrirExistente }: {
   patient: Patient | null
   onClose: () => void
   onSaved: () => void
   userEmail: string
+  existentes: Patient[]
+  onAbrirExistente: (p: Patient) => void
 }) {
   const { toast, confirm } = useToast()
   const { clinicId } = useClinic()
@@ -402,6 +416,38 @@ function PatientModal({ patient, onClose, onSaved, userEmail }: {
 
   const upd = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setF(prev => ({ ...prev, [key]: e.target.value }))
+
+  /**
+   * POSIBLES DUPLICADOS, MIENTRAS SE ESCRIBE.
+   *
+   * El aviso llegaba al final, al pulsar Registrar: después de teclear el
+   * formulario entero. Llegar tarde lo convierte en un obstáculo — a esas alturas
+   * lo que se quiere es guardar, no descubrir que había que hacer otra cosa.
+   *
+   * Aquí sale en cuanto el nombre tiene forma de nombre, y lo que ofrece es un
+   * ATAJO: «abrir su expediente». Ese es el gesto que de verdad quería hacer
+   * quien empezó a dar de alta a alguien que ya estaba.
+   *
+   * Sobre la lista YA cargada: no hay petición nueva ni espera. La comprobación
+   * contra datos frescos —la que caza el alta hecha hace diez segundos en otro
+   * dispositivo— sigue estando en `handleSave`, que es donde sí se puede pagar
+   * una lectura.
+   */
+  const [descartados, setDescartados] = useState<Set<string>>(new Set())
+  const posiblesDuplicados = useMemo(() => {
+    if (patient) return []                       // editando: no se está creando nada
+    if (f.nombre.trim().length < 5) return []     // aún no hay nombre que comparar
+    return buscarPosiblesDuplicados(
+      {
+        nombre: f.nombre,
+        telefono: f.telefono,
+        curp: f.curp,
+        fechaNacimiento: f.fechaNacimiento,
+        edad: f.edad ? Number(f.edad) : undefined,
+      },
+      existentes,
+    ).filter(c => !descartados.has(c.paciente.id))
+  }, [patient, f.nombre, f.telefono, f.curp, f.fechaNacimiento, f.edad, existentes, descartados])
 
   /**
    * La fecha de nacimiento CALCULA la edad — auditoría en vivo 2026-07.
@@ -455,29 +501,31 @@ function PatientModal({ patient, onClose, onSaved, userEmail }: {
         toast('Paciente actualizado', 'success')
       } else {
         /**
-         * GUARDIA ANTI-DUPLICADO.
+         * LA SEGUNDA RED, CONTRA DATOS FRESCOS.
          *
-         * La lista de pacientes se cachea 30 s en memoria, y esa caché solo la
-         * invalida la pestaña que escribe. Secuencia real de consultorio: la
-         * asistente da de alta a "María López" en la tablet; en la laptop del
-         * médico la caché es de hace 20 s, así que al buscarla NO aparece y se
-         * crea otra vez. Resultado: dos expedientes del mismo paciente con el
-         * historial clínico partido en dos. No se ve como un error — se ve como
-         * un paciente nuevo, que es lo que lo hace peligroso.
+         * La tarjeta de arriba compara contra la lista ya cargada, y esa lista se
+         * cachea 30 s en memoria — caché que sólo invalida la pestaña que
+         * escribe. Secuencia real de consultorio: la asistente da de alta a
+         * «María López» en la tablet; en la laptop del médico la caché es de hace
+         * 20 s, así que ni al buscarla ni en la tarjeta aparece, y se crea otra
+         * vez. El historial queda partido en dos y no se ve como un error: se ve
+         * como un paciente nuevo.
          *
-         * Antes de crear se relee SIN caché y se compara por teléfono (o por
-         * nombre si no hay teléfono). No se bloquea: se pregunta, porque dos
-         * personas pueden llamarse igual de verdad.
+         * Por eso aquí se relee SIN caché. Y sólo se interrumpe cuando el motor
+         * está SEGURO: un «probable» ya se ofreció arriba y detenerlo dos veces
+         * sería castigar a quien ya decidió.
          */
         const frescos = await getPatients(clinicId!, { force: true })
-        const telNuevo = payload.telefono
-        const posible = frescos.find(p =>
-          (telNuevo && p.telefono?.replace(/\D/g, '') === telNuevo) ||
-          (!telNuevo && p.nombre?.trim().toLowerCase() === payload.nombre.toLowerCase()),
-        )
-        if (posible) {
+        const seguros = buscarPosiblesDuplicados(
+          payload,
+          // Se respeta el «es otra persona» de la tarjeta: quien ya lo descartó
+          // arriba no merece que se lo vuelvan a preguntar al guardar.
+          frescos.filter(p => !descartados.has(p.id)),
+        ).filter(c => c.certeza === 'seguro')
+        if (seguros.length) {
+          const d = seguros[0]
           const seguir = await confirm(
-            `Ya existe "${posible.nombre}" con esos datos. Si lo creas otra vez, su historial quedará partido en dos expedientes. ¿Crearlo de todas formas?`,
+            `Ya existe "${d.paciente.nombre}" — ${d.motivo.toLowerCase()}. Si lo creas otra vez, su historial quedará partido en dos expedientes. ¿Crearlo de todas formas?`,
             { peligro: true, confirmar: 'Crear de todas formas' },
           )
           if (!seguir) { setSaving(false); return }
@@ -523,6 +571,63 @@ function PatientModal({ patient, onClose, onSaved, userEmail }: {
         </>
       )}
     >
+          {/*
+            «¿ES ESTE?» — antes de seguir llenando, no después.
+
+            No bloquea nada: el formulario sigue debajo y se puede ignorar. Lo que
+            hace es poner a un clic el gesto que de verdad se quería hacer —abrir
+            el expediente que ya existe— en el único momento en que sirve, que es
+            antes de haberlo tecleado todo.
+          */}
+          {posiblesDuplicados.length > 0 && (
+            <div style={{
+              marginBottom: 16, padding: '12px 14px', borderRadius: 10,
+              border: '1px solid var(--warn-border, #f0c36d)', background: 'var(--warn-bg, #fff8e6)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <AlertCircle size={16} style={{ color: 'var(--warn-text, #8a6100)', flexShrink: 0 }} />
+                <strong style={{ fontSize: 13.5, color: 'var(--warn-text, #8a6100)' }}>
+                  {posiblesDuplicados.length === 1 ? 'Puede que ya esté registrado' : 'Puede que ya estén registrados'}
+                </strong>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {posiblesDuplicados.map(c => (
+                  <div key={c.paciente.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+                    padding: '8px 10px', borderRadius: 8, background: 'var(--s1)', border: '1px solid var(--border)',
+                  }}>
+                    <div style={{ flex: 1, minWidth: 180 }}>
+                      <div style={{ fontWeight: 600, fontSize: 13.5 }}>{c.paciente.nombre}</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>
+                        {c.motivo}
+                        {c.paciente.edad ? ` · ${c.paciente.edad} años` : ''}
+                        {c.paciente.ultimaCita ? ` · última cita ${c.paciente.ultimaCita.slice(0, 10)}` : ''}
+                      </div>
+                    </div>
+                    <Button size="sm" onClick={() => onAbrirExistente(c.paciente)}>
+                      Abrir su expediente
+                    </Button>
+                    {/*
+                      «Es otra persona» es tan importante como el aviso. Sin salida,
+                      la tarjeta se queda encima del formulario de dos homónimos
+                      reales —que existen— y pasa de ayuda a estorbo.
+                    */}
+                    <button
+                      type="button"
+                      onClick={() => setDescartados(prev => new Set(prev).add(c.paciente.id))}
+                      style={{
+                        background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px',
+                        fontSize: 12, color: 'var(--text3)', textDecoration: 'underline',
+                      }}
+                    >
+                      Es otra persona
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/*
             FORMULARIO CORTO — petición del médico dueño (29-jul-2026).
             Solo lo que se llena de verdad al dar de alta a alguien en el consultorio:

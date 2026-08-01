@@ -22,6 +22,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import admin, { adminDb } from './firebase-admin'
 import { tieneModulo, MODULOS_OPT_IN } from './modulos'
+import { estadoPaywall } from './finanzas/paywall-prueba'
 
 export interface AccesoOk {
   ok: true
@@ -110,9 +111,32 @@ export async function verificarModuloIA(req: NextRequest, modulo: string): Promi
     const clinicId = miembro.data()?.clinicId as string | undefined
     if (!clinicId) return err(403, 'Aún no tienes un consultorio configurado.')
     const clinicSnap = await adminDb.collection('clinics').doc(clinicId).get()
-    const clinic = clinicSnap.data() as { plan?: string; modulos?: string[]; paseLibre?: boolean } | undefined
+    const clinic = clinicSnap.data() as
+      { plan?: string; modulos?: string[]; paseLibre?: boolean; status?: string; trialEndsAtMs?: number } | undefined
     if (!tieneModulo(clinic ?? null, modulo)) {
       return err(403, 'Tu plan no incluye la IA de consulta. Mejora a Clínica o Pro para usar esta función.')
+    }
+    /**
+     * PRUEBA VENCIDA → SE CORTA LA IA.
+     *
+     * Las reglas de Firestore ya cortan las escrituras del cliente, pero estas
+     * rutas corren con Admin SDK, que las IGNORA: un consultorio con la prueba
+     * vencida seguía quemando la llave del dueño indefinidamente, y eso es
+     * dinero saliendo en tiempo real.
+     *
+     * Se comprueba aquí y no en cada ruta porque son 23 las que resuelven una
+     * llave de IA — un corte que hay que acordarse de poner 23 veces se olvida
+     * en la 24. Y no cuesta una lectura extra: el documento de la clínica ya se
+     * leyó dos líneas arriba para los módulos.
+     *
+     * `estadoPaywall` es el ESPEJO de `clinicaPuedeEscribir` en firestore.rules
+     * — misma regla, mismo día de gracia, y un test que compara los dos.
+     */
+    const paywall = estadoPaywall(clinic ?? null, Date.now())
+    if (!paywall.puedeUsarIA) {
+      // 402 y no 403: no es «no tienes permiso», es «hay que pagar». El cliente
+      // ya distingue ese código para ofrecer el plan en vez de un error seco.
+      return err(402, paywall.mensaje)
     }
     return { ok: true, uid: u.uid, email: u.email, clinicId, role: miembro.data()?.role }
   } catch {

@@ -25,6 +25,31 @@ interface EstadoIA {
   claves: { anthropic: EstadoLlave; assemblyai: EstadoLlave; openai: EstadoLlave }
   uso: { total: number; prueba: number; limitePrueba: number }
   creditos?: { usados: number; extra: number; limite: number }
+  /** Cuál llave se llama DE VERDAD para cada proveedor. La calcula el servidor. */
+  fuenteEfectiva?: Record<string, 'clinica' | 'fundador' | 'prueba' | 'ninguna'>
+}
+
+/**
+ * El estado de una llave, dicho por lo que PASA y no por lo que hay guardado.
+ *
+ * Antes había dos etiquetas: «configurada ····1234» y «modo prueba». Ninguna
+ * decía cuál se estaba usando, y el 31-jul-2026 esa ambigüedad costó una tarde
+ * entera: la de Vercel estaba rotada y al día, la del consultorio estaba muerta
+ * y le ganaba, y desde esta pantalla no había forma de verlo.
+ *
+ * Para el dueño «modo prueba» era además FALSO: corre sobre la llave de la
+ * plataforma y sin tope, que no es una prueba.
+ */
+function etiquetaLlave(fuente: string | undefined, hint: string): { texto: string; color: string } {
+  switch (fuente) {
+    case 'clinica':  return { texto: `● tu llave ${hint} — en uso`, color: '#10b981' }
+    case 'fundador': return { texto: '● llave de la plataforma — sin tope (dueño)', color: '#10b981' }
+    case 'prueba':   return { texto: '○ llave de la plataforma — prueba con tope', color: 'var(--text3)' }
+    case 'ninguna':  return { texto: '⚠ sin llave: la IA no puede funcionar', color: '#dc2626' }
+    // Servidor viejo o respuesta a medias: NO se inventa un estado. Se dice que
+    // no se sabe, que es distinto de decir «prueba» y equivocarse.
+    default:         return { texto: hint ? `● configurada ${hint}` : '○ sin llave propia', color: 'var(--text3)' }
+  }
 }
 const PROVEEDORES_IA = [
   { id: 'anthropic', nombre: 'Claude (ordenar la nota)', url: 'https://console.anthropic.com', placeholder: 'sk-ant-...' },
@@ -126,9 +151,10 @@ export function LlavesIASection({ clinicId }: { clinicId: string }) {
             <div key={p.id} style={{ display: 'grid', gap: 5 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text2)' }}>{p.nombre}</span>
-                {st?.configurada
-                  ? <span style={{ fontSize: 11, fontWeight: 700, color: '#10b981' }}>● configurada {st.hint}</span>
-                  : <span style={{ fontSize: 11, color: 'var(--text3)' }}>○ modo prueba</span>}
+                {(() => {
+                  const e = etiquetaLlave(estado?.fuenteEfectiva?.[p.id], st?.hint ?? '')
+                  return <span style={{ fontSize: 11, fontWeight: e.color === '#10b981' ? 700 : 400, color: e.color }}>{e.texto}</span>
+                })()}
                 <a href={p.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--nexus)', marginLeft: 'auto' }}>obtener llave ↗</a>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>

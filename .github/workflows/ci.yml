@@ -58,9 +58,13 @@ jobs:
           java-version: '21'
       - name: Instalar dependencias
         run: npm ci
-      - name: Aislamiento cross-tenant contra el emulador real
+      - name: Aislamiento cross-tenant y GOLDEN FLOW contra el emulador real
         # El projectId `demo-nexusmed-test` hace que el SDK se NIEGUE a contactar un
         # proyecto real: este job no puede tocar datos de ningún consultorio.
+        #
+        # Desde P0-5 aquí corre también `golden-flow.emu.test.ts`: el camino que se
+        # vende —paciente → cita → nota → firma → cobro— recorrido entero contra las
+        # reglas REALES. Antes nadie comprobaba esa secuencia de punta a punta.
         run: npm run test:emulador
 
   verificar:
@@ -130,3 +134,38 @@ jobs:
           cache: npm
       - run: npm ci
       - run: node scripts/lint-trinquete.mjs
+
+  # ── P0-5: el smoke público NO corría en ningún lado ───────────────────────
+  #
+  # `playwright.config.ts` y dos specs existían desde hace tiempo, pero ningún
+  # workflow los ejecutaba: sólo corrían si alguien se acordaba de lanzarlos a
+  # mano. Una prueba que nadie corre no protege nada — es documentación con
+  # sintaxis de código.
+  #
+  # Corre contra PRODUCCIÓN a propósito: son comprobaciones de solo lectura del
+  # camino público (landing, cabeceras de seguridad, portal sin sesión) y ahí es
+  # donde importa que estén bien. No toca datos y no necesita credenciales.
+  #
+  # `continue-on-error: false` — si esto se pone en amarillo deja de proteger,
+  # que es como murió el gate de ADRs antes de que se le pusiera trinquete.
+  e2e-publico:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Los cinco proyectos del config cubren Chrome, Firefox, Safari, iPhone y
+      # Android. En el CI se corre SÓLO chromium y se instala SÓLO chromium: los
+      # cinco tardan y descargan tres motores, y lo que este gate protege —que la
+      # landing cargue y que las cabeceras de seguridad estén puestas— no depende
+      # del motor. La matriz completa se lanza a mano cuando se toca el diseño.
+      #
+      # Instalar un navegador que luego no se usa (o al revés) es el fallo obvio
+      # aquí: `--project=chromium` y `install chromium` van juntos o el job muere.
+      - name: Instalar Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Smoke público + cabeceras de seguridad
+        run: npx playwright test --project=chromium e2e/smoke-publico.spec.ts e2e/seguridad.spec.ts

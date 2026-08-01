@@ -18,6 +18,7 @@ import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { gateCreditos, resolverClaveIA, registrarUso, nivelIADe, registrarCreditos } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
+import type { FuenteLlave } from '@/lib/finanzas/cost-ledger'
 import { buscarEvidenciaMulti, type ArticuloPubMed } from '@/lib/evidencia/pubmed'
 import { traducirBasico } from '@/lib/evidencia/traducir-medico'
 
@@ -25,8 +26,8 @@ export const runtime = 'nodejs'
 export const maxDuration = 60
 const ANTHROPIC_VERSION = '2023-06-01'
 const MODELOS_PREMIUM = ['claude-opus-4-8', 'claude-sonnet-5', 'claude-sonnet-4-6']
-const MODELOS_PRO = ['claude-sonnet-5', 'claude-sonnet-4-6', 'claude-3-5-sonnet-latest']
-const MODELOS_HAIKU_ANALISIS = ['claude-haiku-4-5-20251001', 'claude-3-5-haiku-latest']
+const MODELOS_PRO = ['claude-sonnet-5', 'claude-sonnet-4-6']
+const MODELOS_HAIKU_ANALISIS = ['claude-haiku-4-5-20251001', 'claude-haiku-4-5']
 
 export async function POST(req: NextRequest) {
   const acceso = await verificarModuloIA(req, 'expediente')
@@ -38,7 +39,9 @@ export async function POST(req: NextRequest) {
   // si algo falla, devolvemos el ERROR REAL (no un toast mudo). Ver bug 2026-07.
   try {
   let key = ''
-  let fuente: 'clinica' | 'prueba' | 'ninguna' = 'ninguna'
+  // El tipo se IMPORTA, no se reescribe: esta copia a mano se quedó sin
+  // `'fundador'` el día que la union creció, y era la cuarta lista igual.
+  let fuente: FuenteLlave = 'ninguna'
   let clinicId = ''
   try {
     const r = await resolverClaveIA(acceso.uid, 'anthropic', process.env.ANTHROPIC_API_KEY ?? '')
@@ -75,7 +78,12 @@ export async function POST(req: NextRequest) {
 
   // Constructor de consulta con HAIKU (tarea trivial → rápido, ~2-3s en vez de ~12s
   // con Sonnet). Fallback de modelos por si la cuenta no tiene ese id.
-  const MODELOS_HAIKU = ['claude-haiku-4-5-20251001', 'claude-3-5-haiku-latest']
+  /**
+   * El respaldo era `claude-3-5-haiku-latest`, RETIRADO por Anthropic en
+   * feb-2026: la segunda llamada devolvía 404 y esta función se quedaba sin
+   * consultas. Se sustituye por el alias de familia, que sí existe.
+   */
+  const MODELOS_HAIKU = ['claude-haiku-4-5-20251001', 'claude-haiku-4-5']
   async function consultasIA(): Promise<string[]> {
     const sys = 'Eres experto en búsqueda en PubMed. Genera 2 o 3 consultas MUY CORTAS en INGLÉS (2 a 4 palabras clave / términos MeSH cada una — NO frases largas, que traen 0 resultados), PRIORIZANDO el MOTIVO DE CONSULTA (problema activo de HOY); comorbilidades solo si son directamente relevantes. Traduce abreviaturas MX (IVU/ITU=urinary tract infection, DM2=type 2 diabetes, HAS/HTA=hypertension, ERC=chronic kidney disease). Devuelve SOLO un arreglo JSON de strings, la 1ª del motivo. Ej "IVU recurrente": ["recurrent urinary tract infection","recurrent UTI prophylaxis","recurrent UTI diabetes"]'
     const user = `MOTIVO (principal): ${motivo || dx[0] || '—'}\nComorbilidades: ${dx.join('; ') || '—'}\nTratamiento: ${meds.join('; ') || '—'}`

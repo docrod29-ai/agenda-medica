@@ -17,7 +17,7 @@ export const maxDuration = 300  // visión IA; sin esto se cortaba a 60s en Verc
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL ?? ''
 const ANTHROPIC_VERSION = '2023-06-01'
-const MODELOS = ['claude-sonnet-4-6', 'claude-sonnet-4-5', 'claude-3-7-sonnet-latest', 'claude-3-5-sonnet-latest']
+const MODELOS = ['claude-sonnet-4-6', 'claude-sonnet-4-5']
 
 const headers = (key: string) => ({ 'x-api-key': key, 'anthropic-version': ANTHROPIC_VERSION, 'Content-Type': 'application/json' })
 

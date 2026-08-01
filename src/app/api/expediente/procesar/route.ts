@@ -19,6 +19,8 @@ import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { anotarLlamada } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
+import { claseDeFallo, quienPaga, avisoAlMedico } from '@/lib/ia/fallo-proveedor'
+import { reportarFalloIA } from '@/lib/ia/incidentes-servidor'
 import { gateCreditos, resolverClaveIA, registrarUso, nivelIADe, registrarCreditos, registrarConsultaEconomica, economicasDelMes, entitlementsDe, creditosUsadosDelMes, creditosExtraDelMes  } from '@/lib/ai-keys'
 import { planDeNivel, estadoUso, MOTORES, motorPorClave, motorPorDefecto, topeEconomicoDe } from '@/lib/planes-ia'
 import type { TipoNota, PacienteContexto } from '@/types/expediente'
@@ -41,18 +43,15 @@ const MODELOS_PREMIUM = [
   'claude-sonnet-5',
   'claude-sonnet-4-6',
   'claude-sonnet-4-5',
-  'claude-3-7-sonnet-latest',
 ]
 const MODELOS_PRO = [
   'claude-sonnet-5',
   'claude-sonnet-4-6',
   'claude-sonnet-4-5',
-  'claude-3-5-sonnet-latest',
 ]
 const MODELOS_LIVE = [
   'claude-haiku-4-5-20251001',
   'claude-haiku-4-5',
-  'claude-3-5-haiku-latest',
   'claude-sonnet-5',   // respaldo si la cuenta no tiene Haiku
 ]
 type Perfil = 'live' | 'pro' | 'premium'
@@ -317,18 +316,29 @@ export async function POST(req: NextRequest) {
       safeLog.error('[expediente/procesar] Claude HTTP error:', res.status, redactarString(err.slice(0, 500)))
       // Distingue saldo (credit balance) de otros 400 para no mandar al Dr a
       // "revisar créditos" cuando en realidad es un parámetro.
-      const esSaldo = /credit|balance|quota|billing|insufficient/i.test(err)
-      const pista = res.status === 401 ? ' — llave inválida'
-        : res.status === 403 ? ' — llave sin permiso'
-        : res.status === 429 ? ' — sin créditos o saturada (carga saldo en console.anthropic.com)'
-        : res.status === 400 && esSaldo ? ' — SIN SALDO: carga créditos en console.anthropic.com'
-        : res.status === 400 ? ` — ${err.slice(0, 120)}`
-        : ''
+      /**
+       * QUIÉN PAGA LA LLAVE DECIDE QUÉ SE LE DICE AL MÉDICO.
+       *
+       * Aquí decía «IA de estructura no disponible: Anthropic respondió HTTP 401
+       * — llave inválida» y, para el 429, «carga saldo en console.anthropic.com».
+       * Con la llave de la PLATAFORMA eso es doblemente malo: le filtra al cliente
+       * un problema interno nuestro y lo manda a pagar en una consola que no es
+       * suya y a la que no tiene acceso. Regla del dueño, literal: «no quiero que
+       * a mis clientes les pase eso, está prohibido».
+       *
+       * Con llave PROPIA del consultorio sí se le dice todo, porque ahí sí lo
+       * arregla él. Ver `fallo-proveedor.ts`.
+       */
+      const quien = quienPaga(fuente)
+      const clase = claseDeFallo(res.status, err)
+      reportarFalloIA({ clase, quien, proveedor: 'anthropic', feature: 'nota', status: res.status })
       return fallbackVisible(
         transcripcion, tipo,
-        `IA de estructura no disponible: Anthropic respondió HTTP ${res.status}${pista}.`,
+        avisoAlMedico(clase, quien, 'anthropic').texto,
         'http_error',
-        `Claude ${res.status} en modelo ${model}`,
+        // El detalle técnico sigue existiendo para el registro y el soporte; lo
+        // que cambia es que ya no es lo que ve el médico.
+        `Claude ${res.status} (${clase}) en modelo ${model}`,
       )
     }
 

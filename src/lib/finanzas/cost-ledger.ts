@@ -29,8 +29,19 @@
 
 import { costoUsd, type Uso } from '@/lib/finanzas/precios-modelo'
 
-/** De dónde salió la llave, que decide de quién es el costo. */
-export type FuenteLlave = 'clinica' | 'prueba' | 'ninguna'
+/**
+ * De dónde salió la llave, que decide de quién es el costo.
+ *
+ * **Definición canónica.** `ClaveResuelta['fuente']` en `ai-keys.ts` es este
+ * mismo tipo, importado: antes eran dos uniones escritas a mano con los mismos
+ * tres valores, y el día que a una le creció `'fundador'` la otra no se enteró.
+ * El compilador lo cazó, pero sólo porque los valores se cruzan por un
+ * parámetro; una divergencia entre dos listas que nunca se tocan pasa callada.
+ *
+ * La dirección de la dependencia es a propósito: este módulo es PURO, así que
+ * puede ser la fuente de verdad de un módulo de servidor sin arrastrarlo.
+ */
+export type FuenteLlave = 'clinica' | 'fundador' | 'prueba' | 'ninguna'
 
 /**
  * A quién se le carga el gasto.
@@ -100,7 +111,19 @@ export interface EntradaLedger {
  */
 export function claseDe(fuente: FuenteLlave, esFundador?: boolean): ClaseCosto {
   if (fuente === 'clinica') return 'llave_propia'
-  return esFundador ? 'rnd' : 'customer'
+  /**
+   * Los dos caminos dicen lo mismo y por eso se aceptan los dos, en OR.
+   *
+   * `fuente === 'fundador'` sale de resolver el uid contra Firebase Auth, y esa
+   * resolución falla CERRADO: si Auth no responde, el dueño llega aquí como
+   * `'prueba'`. El booleano viene del correo verificado del token, que el
+   * llamador ya tiene en la mano.
+   *
+   * Preferir el OR sobre elegir uno es deliberado: el error caro en esta función
+   * es clasificar el gasto de I+D del dueño como COGS —§CD: infla el costo de
+   * servir y las decisiones de precio salen mal— y no al revés.
+   */
+  return (fuente === 'fundador' || esFundador) ? 'rnd' : 'customer'
 }
 
 /** Convierte una llamada en un asiento del libro. */

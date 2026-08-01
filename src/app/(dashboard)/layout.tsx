@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { logAudit } from '@/lib/expediente/audit-log'
+import { estadoPaywall } from '@/lib/finanzas/paywall-prueba'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { esSuperadminCliente } from '@/lib/superadmin-client'
@@ -29,6 +30,7 @@ import { AutoLogout } from '@/components/AutoLogout'
 import { PaletteBusqueda } from '@/components/PaletteBusqueda'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { rutaPermitida } from '@/lib/modulos'
+import { PLANES, precioTexto } from '@/lib/planes-ia'
 
 function ModeBanner() {
   const { mode } = useMode()
@@ -47,11 +49,69 @@ function ModeBanner() {
 
 function TrialBanner() {
   const { clinic } = useClinic()
+  /**
+   * La hora se lee UNA vez al montar, no en cada render.
+   *
+   * `Date.now()` dentro del cuerpo del componente es impuro: React puede
+   * re-renderizar cuando le convenga y el resultado cambiaría solo, además de
+   * discrepar entre el servidor y el navegador al hidratar. Aquí el efecto sería
+   * un banner que parpadea entre «te quedan 2 días» y «1 día».
+   *
+   * El inicializador perezoso de `useState` corre una sola vez. Para un aviso de
+   * prueba, congelar la hora al abrir la pantalla es además lo correcto: nadie
+   * necesita que el contador baje a medianoche con la pestaña abierta.
+   */
+  const [ahora] = useState(() => Date.now())
   if (!clinic || clinic.plan !== 'trial' || clinic.status !== 'trial') return null
   const trialEnds = clinic.trialEndsAt ? new Date(clinic.trialEndsAt) : null
   const daysLeft = trialEnds
-    ? Math.max(0, Math.ceil((trialEnds.getTime() - Date.now()) / 86400000))
+    ? Math.max(0, Math.ceil((trialEnds.getTime() - ahora) / 86400000))
     : 14
+
+  /**
+   * Cuando la prueba VENCIÓ, el banner deja de ser un recordatorio y pasa a ser
+   * la explicación de por qué las cosas dejaron de responder.
+   *
+   * Antes decía «tu prueba gratuita ha terminado» y punto. El resto el médico lo
+   * descubría a golpes: intentaba guardar una nota y Firestore le devolvía un
+   * error de permisos genérico. Enterarse de lo que dejó de funcionar
+   * probándolo, con un paciente enfrente, es la peor forma posible.
+   *
+   * El texto dice PRIMERO lo que conserva. Al revés suena a amenaza, y lo que
+   * necesita saber en ese segundo es que sus expedientes están enteros.
+   */
+  const paywall = estadoPaywall(
+    { status: clinic.status, trialEndsAtMs: clinic.trialEndsAtMs, paseLibre: clinic.paseLibre },
+    ahora,
+  )
+  if (paywall.vencida) {
+    return (
+      <div style={{
+        background: 'rgba(245,158,11,0.08)', borderBottom: '1px solid rgba(245,158,11,0.25)',
+        padding: '11px 20px',
+      }}>
+        <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+          <AlertTriangle size={15} color="#f59e0b" style={{ flexShrink: 0, marginTop: 2 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
+              Tu prueba terminó — conservas todo
+            </div>
+            <div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.55, marginTop: 3 }}>
+              Puedes seguir viendo, imprimiendo y exportando tus expedientes, tu agenda y tus
+              documentos. Lo que se detuvo es escribir cosas nuevas y usar la IA. Se reactiva en
+              cuanto actives tu plan: <strong>no se pierde nada</strong>.
+            </div>
+            <Link href="/configuracion?tab=suscripcion" style={{
+              display: 'inline-block', marginTop: 8, background: '#f59e0b', color: '#000',
+              fontSize: 12, fontWeight: 700, padding: '6px 13px', borderRadius: 7, textDecoration: 'none',
+            }}>
+              Activar mi plan
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
   return (
     <div style={{
       background: daysLeft <= 3 ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.08)',
@@ -93,13 +153,31 @@ function estadoAcceso(clinic: { status?: string; paseLibre?: boolean; plan?: str
   return 'sin_tarjeta'   // 'trial' o cuenta nueva → necesita tarjeta para iniciar
 }
 
-// Precios/créditos = fuente única PLANES en @/lib/planes-ia. Antes divergían aquí
-// (Pro $1,899 vs $1,590 canónico, Clínica 160 vs 200) → desync visible (auditoría P2).
-const PLANES_GATE = [
-  { key: 'agenda',  label: 'Agenda',  price: '$349',   nota: 'Agenda + expediente · sin IA' },
-  { key: 'clinica', label: 'Clínica', price: '$899',   nota: '200 créditos de IA/mes', destacado: true },
-  { key: 'premium', label: 'Pro',     price: '$1,590', nota: '450 créditos · IA máxima (Opus + GPT-5)' },
-]
+/**
+ * Los tres planes del gate, con el NOMBRE y el PRECIO leídos de `PLANES`.
+ *
+ * El comentario anterior ya decía «fuente única PLANES» — y justo debajo estaban
+ * los tres precios escritos a mano. Coincidían por casualidad: nada los ataba.
+ * El día que se suba una tarifa, esta pantalla —la que ve alguien a punto de
+ * pagar— seguiría enseñando la vieja, y el desajuste no lo nota nadie hasta que
+ * un médico compara lo que leyó con lo que le cobraron.
+ *
+ * Lo único que se conserva escrito aquí es la NOTA de una línea, porque es
+ * redacción comercial y no un dato: `incluye` de cada plan trae diez viñetas y
+ * en un botón no caben. `planes-precios.test.ts` vigila que no vuelva a
+ * colarse un precio.
+ */
+const PLANES_GATE = (['agenda', 'clinica', 'premium'] as const).map(clave => ({
+  key: clave,
+  label: PLANES[clave].nombre,
+  price: precioTexto(PLANES[clave]),
+  destacado: PLANES[clave].destacado,
+  nota: {
+    agenda:  'Agenda + expediente · sin IA',
+    clinica: `${PLANES.clinica.creditos} créditos de IA/mes`,
+    premium: `${PLANES.premium.creditos} créditos · IA máxima (Opus + GPT-5)`,
+  }[clave],
+}))
 
 /** Tras pagar, el webhook tarda unos segundos. Clínica en vivo → el gate se quita
  *  solo al activarse. Fallback: recargar una vez por si el webhook se retrasa. */

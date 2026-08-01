@@ -15,6 +15,7 @@ import { adminDb } from '@/lib/firebase-admin'
 import { agregarCreditosExtra, guardarNivelIA } from '@/lib/ai-keys'
 import { MODULOS_DE_PLAN } from '@/lib/modulos'
 import type { PlanKey } from '@/lib/stripe'
+import type { EstadoDisputa } from '@/lib/finanzas/movimientos'
 
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET ?? ''
 
@@ -36,6 +37,37 @@ async function getClinicIdByCustomer(customerId: string): Promise<string | null>
 }
 
 /* ── Stripe → nuestro plan (por monto MXN, respaldo si no viene en metadata) ── */
+/**
+ * Asienta una disputa. Idempotente: UN documento por disputa, reescrito con su
+ * estado actual, así que `created` y `closed` acaban en el mismo sitio y los
+ * reintentos de Stripe no la duplican.
+ *
+ * El signo del dinero NO se decide aquí: lo pone `efectivoDe` a partir del tipo
+ * y el estado (`src/lib/finanzas/movimientos.ts`), que es el único sitio donde
+ * se define «cuánto entró».
+ */
+async function registrarDisputa(
+  d: import('stripe').Stripe.Dispute,
+  estado: EstadoDisputa,
+  clinicId: string | null,
+  livemode: boolean,
+) {
+  await adminDb.collection('platform_payments').doc(`dispute_${d.id}`).set({
+    tipo: 'contracargo',
+    estadoDisputa: estado,
+    clinicId: clinicId ?? '',
+    disputeId: d.id,
+    chargeId: typeof d.charge === 'string' ? d.charge : (d.charge?.id ?? ''),
+    monto: (d.amount ?? 0) / 100,
+    moneda: (d.currency ?? 'mxn').toUpperCase(),
+    motivo: d.reason ?? '',
+    fecha: new Date((d.created ?? Math.floor(Date.now() / 1000)) * 1000).toISOString(),
+    descripcion: `Contracargo (${d.reason ?? 'sin motivo'})`,
+    livemode,
+    createdAt: new Date().toISOString(),
+  }, { merge: true })
+}
+
 function planPorMonto(amount: number): PlanKey {
   // Precios (centavos MXN): 34900 Agenda · 89900 Clínica · 159000 Pro · 349900 Hospital (ver PLANES en @/lib/planes-ia)
   if (amount <= 50000) return 'agenda'
@@ -259,6 +291,89 @@ export async function POST(req: NextRequest) {
           stripeSubscriptionId: null,
           stripeSubscriptionStatus: 'canceled',
         })
+        break
+      }
+
+      /* ── DEVOLUCIÓN → el dinero SALE ────────────────────────────────
+       *
+       * Ninguno de estos tres eventos se manejaba (P0-3 de la auditoría). Si un
+       * cliente pedía el dinero de vuelta, o lo reclamaba a su banco, Stripe se
+       * lo devolvía y en NexusMED no pasaba NADA: el ingreso seguía contado y la
+       * suscripción seguía activa. Le devuelves el dinero y se queda con el
+       * producto.
+       *
+       * NO se cancela el plan automáticamente. Un reembolso puede ser parcial o
+       * de cortesía, y cortarle el acceso a un cliente al que se le devolvió una
+       * parte por un error de facturación sería peor que el problema. La decisión
+       * es del dueño; lo que hace el código es dejar de mentirle sobre la caja y
+       * ponerle el caso delante en la consola.
+       */
+      case 'charge.refunded': {
+        const charge = event.data.object as import('stripe').Stripe.Charge
+        const clinicId = await getClinicIdByCustomer(String(charge.customer ?? ''))
+        /**
+         * UN DOCUMENTO POR CARGO, con el total ACUMULADO — no uno por evento.
+         *
+         * `charge.amount_refunded` es el acumulado del cargo, así que reescribir
+         * el mismo documento con ese valor es idempotente por construcción: dan
+         * igual los reintentos de Stripe y los reembolsos parciales sucesivos.
+         * Un documento por evento habría duplicado la devolución en cada
+         * reentrega, que es justo lo que el candado de `invoice.paid` ya evita
+         * para los cobros.
+         */
+        await adminDb.collection('platform_payments').doc(`refund_${charge.id}`).set({
+          tipo: 'reembolso',
+          clinicId: clinicId ?? '',
+          stripeCustomerId: charge.customer ?? '',
+          chargeId: charge.id,
+          monto: (charge.amount_refunded ?? 0) / 100,
+          moneda: (charge.currency ?? 'mxn').toUpperCase(),
+          fecha: new Date((charge.created ?? Math.floor(Date.now() / 1000)) * 1000).toISOString(),
+          descripcion: 'Reembolso',
+          reembolsoTotal: charge.refunded === true,
+          livemode: event.livemode === true,
+          createdAt: new Date().toISOString(),
+        }, { merge: true })
+        break
+      }
+
+      /* ── CONTRACARGO abierto → el banco retira el dinero ya ───────── */
+      case 'charge.dispute.created': {
+        const d = event.data.object as import('stripe').Stripe.Dispute
+        const clinicId = await getClinicIdByCustomer(
+          String((d.charge as unknown as { customer?: string })?.customer ?? ''),
+        )
+        await registrarDisputa(d, 'abierta', clinicId, event.livemode === true)
+        /**
+         * Se MARCA la clínica, no se le suspende.
+         *
+         * Suspender por una disputa abierta castigaría a quien todavía puede
+         * ganarla —y las disputas por fraude las abre a veces el banco sin que el
+         * cliente sepa—. Pero el dueño tiene que verlo el mismo día: es dinero ya
+         * retirado más una comisión, y hay un plazo para responder con pruebas.
+         */
+        if (clinicId) {
+          try {
+            await updateClinic(clinicId, { disputaAbierta: true, disputaDesde: new Date().toISOString() })
+          } catch { /* no-bloqueante: el movimiento ya quedó asentado */ }
+        }
+        break
+      }
+
+      /* ── CONTRACARGO cerrado → o vuelve el dinero, o se perdió ────── */
+      case 'charge.dispute.closed': {
+        const d = event.data.object as import('stripe').Stripe.Dispute
+        const clinicId = await getClinicIdByCustomer(
+          String((d.charge as unknown as { customer?: string })?.customer ?? ''),
+        )
+        // `won` devuelve el importe; cualquier otro desenlace lo deja fuera.
+        const estado = d.status === 'won' ? 'ganada' : 'perdida'
+        await registrarDisputa(d, estado, clinicId, event.livemode === true)
+        if (clinicId) {
+          try {
+            await updateClinic(clinicId, { disputaAbierta: false, ultimaDisputa: estado })
+          } catch { /* no-bloqueante */ }
+        }
         break
       }
 

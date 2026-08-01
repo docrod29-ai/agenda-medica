@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { Stethoscope, Loader2, ArrowRight } from 'lucide-react'
+import { zonaDelNavegador } from '@/lib/zona-horaria-mx'
 
 export default function SetupPage() {
   const { user, loading: authLoading } = useAuth()
@@ -22,6 +23,19 @@ export default function SetupPage() {
     nombreClinica: '',
     especialidad: '',
     telefono: '',
+    /**
+     * La cédula se pide AQUÍ y es opcional.
+     *
+     * Sin ella, `validarNOM004` mete «Falta cédula profesional» como ERROR y el
+     * botón de Firmar nace apagado: todo médico nuevo llegaba a su primera nota
+     * con un paciente enfrente y un botón muerto que no dice a dónde ir.
+     *
+     * Pero OPCIONAL, no obligatoria: un campo que frena el alta cuesta médicos
+     * que ni llegan a ver el producto, y el que la deje en blanco se la
+     * encuentra resuelta en un clic dentro de la propia nota. Se pide donde es
+     * barato preguntarla y se rescata donde duele que falte.
+     */
+    cedulaProfesional: '',
   })
 
   useEffect(() => {
@@ -51,6 +65,17 @@ export default function SetupPage() {
           nombreMedico: form.nombreMedico.trim(),
           especialidad: form.especialidad.trim(),
           telefono: form.telefono.trim(),
+          cedulaProfesional: form.cedulaProfesional.trim(),
+          /**
+           * La zona horaria se ADIVINA, no se pregunta.
+           *
+           * `DEFAULT_CONFIG` daba `America/Chihuahua` —la del dueño— a todo
+           * consultorio nuevo, así que un médico en CDMX tenía la agenda corrida
+           * una hora sin que nada fallara de forma visible. El navegador ya lo
+           * sabe; poner una pantalla más aquí sería fricción que cuesta médicos.
+           * El servidor valida contra la lista de zonas conocidas.
+           */
+          zonaHoraria: zonaDelNavegador(),
         }),
       })
       const r = await res.json().catch(() => ({}))
@@ -104,7 +129,7 @@ export default function SetupPage() {
           ¡Bienvenido!
         </h1>
         <p style={{ fontSize: 14, color: 'var(--text2)', marginBottom: 32, lineHeight: 1.6 }}>
-          Vamos a configurar tu consultorio. Solo necesitas 2 datos para empezar — el resto lo puedes ajustar después.
+          Solo tu nombre y el del consultorio. Todo lo demás ya viene listo y lo puedes ajustar cuando quieras.
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -145,6 +170,49 @@ export default function SetupPage() {
               onFocus={e => e.currentTarget.style.borderColor = 'var(--teal)'}
               onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'}
             />
+          </div>
+
+          {/*
+            LOS DOS OPCIONALES VAN AQUÍ, EN LA MISMA PANTALLA.
+            ──────────────────────────────────────────────────────────────────
+            Sin pasos, sin "siguiente", sin bloquear el botón. La especialidad ya
+            se enviaba al servidor pero NUNCA se pintaba: viajaba siempre vacía y
+            se perdía en silencio, y de ella dependen la firma de la nota y cómo
+            redacta la IA. La cédula evita que la primera firma nazca bloqueada.
+            Los dos se pueden dejar en blanco y seguir.
+          */}
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+            <div style={{ flex: '1 1 180px', minWidth: 150 }}>
+              <label htmlFor="setup-especialidad" style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', display: 'block', marginBottom: 8 }}>
+                Especialidad <span style={{ color: 'var(--text3)', fontWeight: 400 }}>(opcional)</span>
+              </label>
+              <input
+                id="setup-especialidad"
+                value={form.especialidad}
+                onChange={e => setForm(f => ({ ...f, especialidad: e.target.value }))}
+                placeholder="Medicina Interna"
+                style={{
+                  width: '100%', background: 'var(--s2)', border: '1px solid var(--border)',
+                  borderRadius: 10, padding: '12px 16px', fontSize: 14, color: 'var(--text)', outline: 'none',
+                }}
+              />
+            </div>
+            <div style={{ flex: '1 1 180px', minWidth: 150 }}>
+              <label htmlFor="setup-cedula" style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', display: 'block', marginBottom: 8 }}>
+                Cédula profesional <span style={{ color: 'var(--text3)', fontWeight: 400 }}>(opcional)</span>
+              </label>
+              <input
+                id="setup-cedula"
+                value={form.cedulaProfesional}
+                onChange={e => setForm(f => ({ ...f, cedulaProfesional: e.target.value }))}
+                placeholder="1234567"
+                inputMode="numeric"
+                style={{
+                  width: '100%', background: 'var(--s2)', border: '1px solid var(--border)',
+                  borderRadius: 10, padding: '12px 16px', fontSize: 14, color: 'var(--text)', outline: 'none',
+                }}
+              />
+            </div>
           </div>
 
           {error && (

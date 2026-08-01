@@ -17,6 +17,30 @@ import { adminDb } from '@/lib/firebase-admin'
 import { verificarSuperadmin } from '@/lib/superadmin'
 import { safeLog } from '@/lib/security/sanitize'
 import { resumir, soloCogs, porClave, suficiente, type EventoCosto } from '@/lib/finanzas/cost-ledger'
+import { incidentesRecientes } from '@/lib/ia/incidentes-servidor'
+import { stripe } from '@/lib/stripe'
+import { evaluarWebhook, modoDeLaLlave, type SaludWebhook } from '@/lib/finanzas/webhook-stripe-salud'
+
+/**
+ * Le pregunta a Stripe a qué eventos está suscrito el webhook de esta app.
+ *
+ * Nunca lanza: si Stripe no responde —o la llave no tiene permiso de leer
+ * endpoints— la consola sigue mostrando los costos. Un fallo de esta lectura no
+ * puede tumbar el tablero, pero tampoco puede fingir que todo está bien: se
+ * devuelve `null` y quien pinta decide qué decir.
+ */
+async function saludDelWebhook(): Promise<SaludWebhook | null> {
+  try {
+    const { data } = await stripe.webhookEndpoints.list({ limit: 100 })
+    // El endpoint de esta app, no cualquiera: una cuenta de Stripe puede servir
+    // a varios sitios y mirar el ajeno daría un verde falso.
+    const mio = data.find(e => e.url.includes('/api/stripe/webhook'))
+    // El modo sale del PREFIJO de la llave, nunca de la llave.
+    return evaluarWebhook(mio ? mio.enabled_events : null, modoDeLaLlave(process.env.STRIPE_SECRET_KEY))
+  } catch {
+    return null
+  }
+}
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -41,9 +65,33 @@ export async function GET(req: NextRequest) {
     const cogs = soloCogs(eventos)
     const total = resumir(eventos)
 
+    /**
+     * Incidencias de la llave de la PLATAFORMA, en la misma respuesta.
+     *
+     * Viven aquí y no en una ruta nueva a propósito: el dueño ya abre esta
+     * pantalla para ver lo que gasta, y «la IA está caída» es exactamente la
+     * clase de cosa que tiene que encontrarse sin ir a buscarla. Una alerta que
+     * vive en su propia pantalla es una alerta que nadie ve.
+     */
+    const [incidentes, webhook] = await Promise.all([
+      incidentesRecientes(20),
+      saludDelWebhook(),
+    ])
+
     return NextResponse.json({
       ok: true,
       mes,
+      incidentes,
+      /** ¿Hay algo caído AHORA que le cueste dinero o clientes? */
+      hayUrgente: incidentes.some(i => i.urgente === true),
+      /**
+       * Estado del webhook de Stripe. `null` si no se pudo preguntar.
+       *
+       * El código puede saber atender un reembolso y no recibirlo nunca porque
+       * nadie marcó la casilla en el panel. Esa casilla no la ve ningún test —
+       * está fuera del repositorio— así que se pregunta y se muestra.
+       */
+      webhook,
       // El total de TODO y el de COGS son distintos a propósito: el gasto de I+D
       // del fundador no es costo de servir a ningún cliente (§CD).
       total,

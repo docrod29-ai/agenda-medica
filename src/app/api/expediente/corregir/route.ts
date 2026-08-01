@@ -21,7 +21,7 @@ const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL ?? ''
 const ANTHROPIC_VERSION = '2023-06-01'
 // Mismo nivel de razonamiento que la generación de la nota: Opus 4.8 primero.
-const MODELOS = [MODEL_OVERRIDE, 'claude-opus-4-8', 'claude-opus-4-6', 'claude-sonnet-5', 'claude-sonnet-4-6', 'claude-sonnet-4-5', 'claude-3-7-sonnet-latest', 'claude-3-5-sonnet-latest'].filter(Boolean)
+const MODELOS = [MODEL_OVERRIDE, 'claude-opus-4-8', 'claude-opus-4-6', 'claude-sonnet-5', 'claude-sonnet-4-6', 'claude-sonnet-4-5'].filter(Boolean)
 
 /** Modelos que soportan "extended thinking" (razonamiento previo). 3.5 no. */
 function soportaThinking(model: string): boolean {

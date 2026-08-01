@@ -297,6 +297,14 @@ let motivoFalloTranscripcion = ''
  * (Antes, res.json() sobre una página de error HTML tiraba SyntaxError.)
  */
 interface CtxDictado {
+  /**
+   * Segundos grabados, medidos por el propio grabador.
+   *
+   * Viaja al servidor SÓLO para el libro de costos: la transcripción se cobra
+   * por minuto de audio y sin este dato el gasto de cada consulta dictada no
+   * existía para el tablero. No decide nada clínico ni cobra al paciente.
+   */
+  duracionSeg?: number
   contexto?: string
   especialidades?: readonly string[]
   medicamentos?: readonly string[]
@@ -305,6 +313,9 @@ interface CtxDictado {
 
 /** Añade el vocabulario del paciente al formulario, si lo hay. */
 function anexarContexto(fd: FormData, c: CtxDictado): void {
+  // Los minutos son lo que se cobra en transcripción: sin ellos el servidor no
+  // puede asentar el costo del dictado.
+  if (typeof c.duracionSeg === 'number' && c.duracionSeg > 0) fd.append('duracionSeg', String(Math.round(c.duracionSeg)))
   if (c.contexto) fd.append('contexto', c.contexto)
   for (const [k, v] of [['especialidades', c.especialidades], ['medicamentos', c.medicamentos], ['problemas', c.problemas]] as const) {
     if (v && v.length > 0) fd.append(k, JSON.stringify([...v]))
@@ -432,6 +443,16 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   const [soportado] = useState(() => typeof window !== 'undefined' && typeof MediaRecorder !== 'undefined')
   const [estado, setEstado] = useState<Estado>('inactivo')
   const [duracion, setDuracion] = useState(0)
+  /**
+   * Espejo de `duracion` en una referencia, para el libro de costos.
+   *
+   * La subida ocurre dentro de un callback creado en un render anterior, así que
+   * leer el estado ahí devuelve el valor congelado de ese render — típicamente 0
+   * si el callback se creó al empezar a grabar. Un cero no se ve como un error:
+   * se ve como una consulta que no costó nada. La referencia siempre trae el
+   * último valor.
+   */
+  const duracionRef = useRef(0)
   const [transcripcion, setTranscripcion] = useState('')
   const [utterances, setUtterances] = useState<Utterance[]>([])
   const [transcripcionParcial, setTranscripcionParcial] = useState('')
@@ -517,7 +538,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   const reset = useCallback(() => {
     const rk = recoveryKeyRef.current
     liberarRecursos()
-    setEstado('inactivo'); setDuracion(0); setTranscripcion(''); setError('')
+    setEstado('inactivo'); duracionRef.current = 0; setDuracion(0); setTranscripcion(''); setError('')
     setCorrecciones([]); setUtterances([]); setAlertasDictado([])
     if (rk) borrarChunks(rk)
     recoveryKeyRef.current = ''
@@ -685,7 +706,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       pausaTotalMsRef.current = 0
       timerRef.current = setInterval(() => {
         const transcurrido = Date.now() - startRef.current - pausaTotalMsRef.current
-        setDuracion(Math.floor(transcurrido / 1000))
+        { const seg = Math.floor(transcurrido / 1000); duracionRef.current = seg; setDuracion(seg) }
       }, 500)
 
       // Streaming: flush periódico al endpoint
@@ -732,7 +753,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       pausaInicioRef.current = 0
       timerRef.current = setInterval(() => {
         const transcurrido = Date.now() - startRef.current - pausaTotalMsRef.current
-        setDuracion(Math.floor(transcurrido / 1000))
+        { const seg = Math.floor(transcurrido / 1000); duracionRef.current = seg; setDuracion(seg) }
       }, 500)
       if (streamingActivoRef.current) {
         chunkFlushRef.current = setInterval(flushChunks, INTERVALO_CHUNK_DEFAULT_MS)
@@ -823,9 +844,17 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     }
 
     // 2) Transcripción robusta (en partes si es grande). Nunca lanza.
+    /**
+     * Los segundos grabados viajan con el contexto SÓLO para el libro de costos.
+     *
+     * Se leen de `duracionRef` y no del estado: en el momento de subir, el
+     * componente puede haberse desmontado y el estado quedaría en su valor
+     * inicial — el gasto se anotaría como cero, que es peor que no anotarlo.
+     */
+    const ctxConDuracion: CtxDictado = { ...contextoRef.current, duracionSeg: duracionRef.current }
     const porPartes = GRANDE
-      ? await transcribirEnPartes(allChunks, rec.mimeType, ext, contextoRef.current)
-      : { texto: await transcribirBlobSimple(blob, ext, contextoRef.current), lotesFallidos: 0 }
+      ? await transcribirEnPartes(allChunks, rec.mimeType, ext, ctxConDuracion)
+      : { texto: await transcribirBlobSimple(blob, ext, ctxConDuracion), lotesFallidos: 0 }
     const texto = porPartes.texto
 
     if (texto.trim()) {

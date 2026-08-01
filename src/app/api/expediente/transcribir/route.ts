@@ -14,6 +14,8 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
+import { anotarLlamada } from '@/lib/ia/gateway'
+import { esFundador } from '@/lib/authz/fundador'
 import { WHISPER_PROMPT_MEDICO, WHISPER_PROMPT_UCI } from '@/lib/expediente/medical-vocabulary'
 import { construir as construirLexicon } from '@/lib/asr/lexicon'
 import { verificarModuloIA } from '@/lib/auth-server'
@@ -38,6 +40,7 @@ export async function POST(req: NextRequest) {
   // créditos agotados seguía quemando la llave del dueño indefinidamente.
   // `gateCreditos` sólo corta cuando la llave es la del dueño (`prueba`):
   // con llave propia del consultorio NO se corta, porque paga su propia API.
+  const t0Costo = Date.now()
   const corteCreditos = await gateCreditos(clinicId, fuente)
   if (corteCreditos) return corteCreditos
   if (!apiKey) {
@@ -63,6 +66,19 @@ export async function POST(req: NextRequest) {
    * modelo. Si no viene, se usa el de consulta — el comportamiento de siempre.
    */
   const contexto = String(formData.get('contexto') ?? '')
+  /**
+   * MINUTOS DE AUDIO — lo que de verdad se cobra en transcripción.
+   *
+   * La duración la reporta el grabador del cliente, que es quien la conoce con
+   * precisión. Se acota a 4 horas: es telemetría de COSTO, no una factura al
+   * paciente, pero un valor absurdo (o manipulado) ensuciaría el tablero del
+   * dueño y no vale nada dejarlo abierto.
+   *
+   * Sin este dato el gasto de dictado NO EXISTÍA en el libro: la ruta sólo
+   * descontaba créditos. Con cada consulta dictada, era probablemente el renglón
+   * más grande de la plataforma, invisible.
+   */
+  const minutosAudio = Math.min(240, Math.max(0, Number(formData.get('duracionSeg') ?? 0) / 60)) || undefined
   /**
    * VOCABULARIO DE ESTE PACIENTE.
    *
@@ -167,6 +183,25 @@ export async function POST(req: NextRequest) {
         const data = await res.json()
         void registrarUso(clinicId, fuente)
         void registrarCreditos(clinicId, COSTO_CREDITOS.transcribir)
+        /**
+         * El asiento en el libro de costos, que esta ruta no dejaba.
+         *
+         * La transcripción no devuelve tokens —se cobra por minuto— así que el
+         * uso viaja en `minutosAudio`. Sin esto, /superadmin/costos ignoraba
+         * por completo el gasto de voz.
+         */
+        anotarLlamada(
+          {
+            feature: 'transcribir',
+            requestId: req.headers.get('x-vercel-id') || `tr-${acceso.uid}-${Date.now()}`,
+            clinicId: clinicId ?? null, uid: acceso.uid,
+            creditos: COSTO_CREDITOS.transcribir, fuente,
+            esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
+          },
+          'openai', model,
+          { usage: { input_tokens: 0, output_tokens: 0 }, minutosAudio },
+          Date.now() - t0Costo,
+        )
         return NextResponse.json({
           ok: true,
           text: data.text ?? '',

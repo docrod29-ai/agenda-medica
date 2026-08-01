@@ -17,6 +17,8 @@ import { esFundador } from '@/lib/authz/fundador'
 import { NextRequest, NextResponse } from 'next/server'
 import { NER_SYSTEM_PROMPT, buildNerUserPrompt, EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { safeLog } from '@/lib/security/sanitize'
+import { claseDeFallo, quienPaga, avisoAlMedico } from '@/lib/ia/fallo-proveedor'
+import { reportarFalloIA } from '@/lib/ia/incidentes-servidor'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { gateCreditos, resolverClaveIA, registrarCreditos } from '@/lib/ai-keys'
@@ -28,8 +30,6 @@ const ANTHROPIC_VERSION = '2023-06-01'
 const MODELOS_CANDIDATOS = [
   'claude-sonnet-4-5',
   'claude-sonnet-4-5-20250929',
-  'claude-3-7-sonnet-latest',
-  'claude-3-5-sonnet-latest',
 ]
 
 let modeloCache = ''
@@ -141,7 +141,12 @@ export async function POST(req: NextRequest) {
     if (!res.ok) {
       const err = await res.text()
       safeLog.error('[extraer-entidades] Claude error:', res.status, err.slice(0, 300))
-      return NextResponse.json({ ok: false, error: `Claude ${res.status}` }, { status: 502 })
+      // «Claude 401» no le dice nada al médico y, si la llave es nuestra, le
+      // enseña un problema interno. El mensaje sale del clasificador compartido.
+      const quien = quienPaga(fuente)
+      const clase = claseDeFallo(res.status, err)
+      reportarFalloIA({ clase, quien, proveedor: 'anthropic', feature: 'entidades', status: res.status })
+      return NextResponse.json({ ok: false, error: avisoAlMedico(clase, quien, 'anthropic').texto }, { status: 502 })
     }
 
     const data = await res.json()

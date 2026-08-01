@@ -1,0 +1,625 @@
+[
+  {
+    "id": "ajuste-renal-antimicrobianos",
+    "nombre": "Ajuste renal de antimicrobianos",
+    "especialidad": "Infectología/PROA",
+    "estado": "pendiente_validacion",
+    "referencia": "Umbrales por fármaco declarados en el propio módulo (núcleo PROA)"
+  },
+  {
+    "id": "alergias-gate",
+    "nombre": "Compuerta de alergias",
+    "especialidad": "Seguridad del paciente",
+    "estado": "validado",
+    "referencia": "Normalización estructurada de alergias para el cruce de seguridad y FHIR"
+  },
+  {
+    "id": "antibiograma-motor",
+    "nombre": "Motor de interpretación de antibiogramas",
+    "especialidad": "Infectología/Microbiología",
+    "estado": "validado",
+    "referencia": "CLSI M100-Ed35 (2025); Torres & Cercenado 2010; Navarro 2010; Vila & Marco 2010; Bush & Bradford 2019; Magiorakos 2012; EUCAST Expert Rules 2013; NOM-045"
+  },
+  {
+    "id": "antimicrobianos-v4",
+    "nombre": "Motor de inteligencia antimicrobiana V4 (Safety Kernel + resolver)",
+    "especialidad": "Infectologia / PROA",
+    "estado": "pendiente_validacion",
+    "referencia": "Dataset del Dr. verificado contra FDA/DailyMed, IDSA 2026, CLSI M100 Ed36 y EUCAST v16.1 (SHA-256 sellado). Sanford NO se uso."
+  },
+  {
+    "id": "apache-ii",
+    "nombre": "APACHE II",
+    "especialidad": "Medicina crítica",
+    "estado": "validado",
+    "referencia": "Knaus WA et al. Crit Care Med 1985"
+  },
+  {
+    "id": "apfel",
+    "nombre": "Apfel (NVPO)",
+    "especialidad": "Anestesiología",
+    "estado": "validado",
+    "referencia": "Apfel CC et al. Anesthesiology 1999"
+  },
+  {
+    "id": "asa-estado-fisico",
+    "nombre": "ASA — estado físico",
+    "especialidad": "Anestesiología",
+    "estado": "validado",
+    "referencia": "ASA Physical Status Classification System (tabla transcrita en el archivo)"
+  },
+  {
+    "id": "asr-guardian-sustituciones",
+    "nombre": "Guardian de sustituciones del dictado",
+    "especialidad": "Seguridad del dictado clinico (todas las especialidades)",
+    "estado": "validado",
+    "referencia": "critical-error-policy.json y units-and-numbers.json del paquete NexusMED_CLINICAL_ASR_PIPELINE_V1 entregado por el Dr. (2026-07-30). Las 14 clases de error critico, los pares never_autocorrect/dangerous_confusions y los seis motivos de confirmacion son suyos; no se anade ninguna clase que el no haya declarado. Sin fuente clinica: es politica de seguridad de software sobre la salida del reconocedor."
+  },
+  {
+    "id": "asr-lexicon",
+    "nombre": "Lexico dinamico del dictado (presupuesto de 224 tokens)",
+    "especialidad": "Seguridad del dictado clinico (todas las especialidades)",
+    "estado": "validado",
+    "referencia": "specialty-context-map.json del paquete del Dr. (2026-07-30): 79 especialidades, 1400 terminos, y su strategy (max_active_contexts 4, merge_global_critical_lexicon, «no inyectar el diccionario completo»). Copiado a src/lib/asr/data/especialidades.json. El limite de 224 tokens es del reconocedor, no suyo."
+  },
+  {
+    "id": "asr-normalizacion",
+    "nombre": "Normalizacion de cifras y unidades del dictado",
+    "especialidad": "Seguridad del dictado clinico (todas las especialidades)",
+    "estado": "validado",
+    "referencia": "units-and-numbers.json del paquete NexusMED_CLINICAL_ASR_PIPELINE_V1 del Dr. (2026-07-30) y el caso 1 de sus critical-test-cases.json («cero punto quince microgramos por kilo por minuto» -> 0.15 mcg/kg/min). Los nombres hablados salen de ese archivo y del corpus de 498 audios. Sin fuente clinica: es ortografia de cantidades."
+  },
+  {
+    "id": "asr-pipeline",
+    "nombre": "Pipeline clinico de dictado (orquestador)",
+    "especialidad": "Seguridad del dictado clinico (todas las especialidades)",
+    "estado": "validado",
+    "referencia": "PARA_CLAUDE_CODE.md del paquete del Dr. (2026-07-30), que fija el flujo obligatorio de nueve etapas y sus seis prohibiciones, y sus critical-test-cases.json como criterios de aceptacion."
+  },
+  {
+    "id": "asr-siglas",
+    "nombre": "Siglas del dictado (ortografia, no significado)",
+    "especialidad": "Seguridad del dictado clinico (todas las especialidades)",
+    "estado": "validado",
+    "referencia": "aliases.json del paquete del Dr. (2026-07-30): 35 siglas con sus formas habladas, copiado a src/lib/asr/data/aliases.json. Un caso del golden comprueba contra ese JSON que esten las 35, ni una mas ni una menos."
+  },
+  {
+    "id": "bed-assignment",
+    "nombre": "Asignacion de camas append-only",
+    "especialidad": "Hospitalizacion / cuidados criticos",
+    "estado": "validado",
+    "referencia": "Charter NEXUSMED CRITICAL CARE OS, secciones 1 y 2 (Dr. David Alonso Rodriguez Luna). Los cinco flujos A-E son el criterio de aceptacion."
+  },
+  {
+    "id": "biomarcadores-lipidicos",
+    "nombre": "Biomarcadores lipídicos (apoB, Lp(a), no-HDL, remanente)",
+    "especialidad": "Cardiología/Prevención",
+    "estado": "pendiente_validacion",
+    "referencia": "Metas y cortes citados en el encabezado del módulo (complemento de la guía de dislipidemia)"
+  },
+  {
+    "id": "braden",
+    "nombre": "Braden (riesgo de úlceras por presión)",
+    "especialidad": "Enfermería/Hospital",
+    "estado": "validado",
+    "referencia": "Bergstrom N, Braden BJ et al. Nurs Res 1987"
+  },
+  {
+    "id": "calculadoras-contextuales",
+    "nombre": "Calculadoras clínicas contextuales",
+    "especialidad": "Medicina interna/Urgencias",
+    "estado": "validado",
+    "referencia": "Cada escala cita su publicación en subMotores (campo `referencia` de CALCULADORAS)"
+  },
+  {
+    "id": "caprini",
+    "nombre": "Caprini (riesgo de ETV)",
+    "especialidad": "Cirugía/Medicina perioperatoria",
+    "estado": "validado",
+    "referencia": "Caprini JA, Dis Mon 2005"
+  },
+  {
+    "id": "cds-punto-de-orden",
+    "nombre": "CDS en el punto de orden",
+    "especialidad": "Hospital/Farmacia clínica",
+    "estado": "pendiente_validacion",
+    "referencia": "Diseño de alta especificidad para evitar fatiga de alertas (ver encabezado del archivo)"
+  },
+  {
+    "id": "ckd-epi-2021",
+    "nombre": "CKD-EPI 2021 (TFG, race-free)",
+    "especialidad": "Nefrología",
+    "estado": "validado",
+    "referencia": "Inker LA et al. NEJM 2021 (CKD-EPI creatinine, sin raza)"
+  },
+  {
+    "id": "ckrt-prisma",
+    "nombre": "CKRT/PRISMA (terapia de reemplazo renal)",
+    "especialidad": "Nefrología/Medicina crítica",
+    "estado": "validado",
+    "referencia": "KDIGO AKI 2012 + dosis de efluente mL/kg/h"
+  },
+  {
+    "id": "cockcroft-gault",
+    "nombre": "Cockcroft-Gault (ClCr)",
+    "especialidad": "Nefrología/Farmacología",
+    "estado": "validado",
+    "referencia": "Cockcroft & Gault, Nephron 1976"
+  },
+  {
+    "id": "copiloto-clinico",
+    "nombre": "Copiloto clínico (orquestador determinista)",
+    "especialidad": "Medicina general",
+    "estado": "validado",
+    "referencia": "No introduce criterio propio: orquesta los motores ya citados (TFG, dosis, alergias, escalas)"
+  },
+  {
+    "id": "crecimiento-oms-lms",
+    "nombre": "Crecimiento OMS (LMS → puntuación z)",
+    "especialidad": "Pediatría",
+    "estado": "validado",
+    "referencia": "WHO Child Growth Standards — tablas ampliadas de puntuación z publicadas por la OMS (cdn.who.int); archivo GENERADO, no editar a mano"
+  },
+  {
+    "id": "cruce-alergia-farmaco-lexico",
+    "nombre": "Cruce alergia ↔ medicamento (léxico)",
+    "especialidad": "Seguridad del paciente",
+    "estado": "validado",
+    "referencia": "Familias farmacológicas declaradas en el módulo (FAMILIA_BETALACTAMICOS, FARMACOS_CRITICOS)"
+  },
+  {
+    "id": "dislipidemia-accaha-2026",
+    "nombre": "Dislipidemia (metas e intensidad de estatina)",
+    "especialidad": "Cardiología/Prevención",
+    "estado": "validado",
+    "referencia": "2026 ACC/AHA Guideline on the Management of Dyslipidemia. J Am Coll Cardiol. 2026;87(19):2624-2757. doi:10.1016/j.jacc.2025.11.016"
+  },
+  {
+    "id": "dosing-motor",
+    "nombre": "Motor de dosificacion adulto hospital/UCI (54 farmacos)",
+    "especialidad": "Cuidados criticos / infectologia / farmacia clinica",
+    "estado": "validado",
+    "referencia": "NexusMED_UCI_Drug_Dosing_V2_REAL_DOSING.json entregado por el Dr. el 30-jul-2026: 54 farmacos de adulto hospital/UCI, 12 reglas duras globales y 22 fuentes (UCSF IDMP no-dialisis/RRT/meropenem, consenso de vancomicina ASHP-IDSA-PIDS-SIDP 2020, consenso internacional de betalactamicos en infusion prolongada 2023, Surviving Sepsis 2026, PADIS 2025 y fichas de producto). El Excel Drug_Master_v1 NO se usa para dosificar: cada fila declara «Seed catalog only. Numeric dosing NEEDS_VALIDATION»."
+  },
+  {
+    "id": "dosing-validacion",
+    "nombre": "Validacion medica del dataset de dosis",
+    "especialidad": "Gobernanza clinica",
+    "estado": "validado",
+    "referencia": "Sin fuente clinica: es el registro de quien comprobo que. Nace de la peticion del Dr. el 30-jul-2026."
+  },
+  {
+    "id": "dosis-adulto-techos",
+    "nombre": "Techos de dosis del adulto",
+    "especialidad": "Farmacología/Seguridad del paciente",
+    "estado": "pendiente_validacion",
+    "referencia": "CATALOGO: semilla de valores de referencia comunes, declarada como PENDIENTE de validación en su propio encabezado"
+  },
+  {
+    "id": "dosis-pediatrica",
+    "nombre": "Dosis pediátrica por peso",
+    "especialidad": "Pediatría/Farmacología",
+    "estado": "validado",
+    "referencia": "Referencias por fármaco + topes validados por el médico responsable"
+  },
+  {
+    "id": "ecmo",
+    "nombre": "ECMO (soporte VA/VV)",
+    "especialidad": "Medicina crítica/ECMO",
+    "estado": "validado",
+    "referencia": "ELSO guidelines"
+  },
+  {
+    "id": "esquema-vacunacion-mx",
+    "nombre": "Esquema de vacunación de México",
+    "especialidad": "Pediatría/Salud pública",
+    "estado": "pendiente_validacion",
+    "referencia": "Esquema nacional de vacunación de México transcrito en ESQUEMA_MX"
+  },
+  {
+    "id": "estados-cama",
+    "nombre": "Estados de cama y capacidad real",
+    "especialidad": "Hospitalizacion / gestion de camas",
+    "estado": "validado",
+    "referencia": "Charter NEXUSMED CRITICAL CARE OS seccion 2 via ICU-001 + decision del Dr. (2026-07-30) sobre rotacion de cama, fundamentada por el en las recomendaciones de CDC sobre limpieza terminal tras traslado o egreso. Fundamento aportado por el medico, no verificado contra la fuente primaria."
+  },
+  {
+    "id": "farmacovigilancia",
+    "nombre": "Farmacovigilancia de la receta",
+    "especialidad": "Farmacología clínica/COFEPRIS",
+    "estado": "pendiente_validacion",
+    "referencia": "Pares de interacción y catálogo de controlados declarados en el módulo (cumplimiento COFEPRIS)"
+  },
+  {
+    "id": "fib-4",
+    "nombre": "FIB-4 (fibrosis hepática)",
+    "especialidad": "Hepatología/MASLD",
+    "estado": "validado",
+    "referencia": "Sterling RK et al. Hepatology 2006"
+  },
+  {
+    "id": "gasometria-acidobase",
+    "nombre": "Gasometría / ácido-base",
+    "especialidad": "Medicina crítica",
+    "estado": "validado",
+    "referencia": "Fisiología estándar: Winters; compensaciones aguda/crónica; anion gap y delta-delta"
+  },
+  {
+    "id": "gineco-obstetricia",
+    "nombre": "Gestación, Bishop y profilaxis de preeclampsia",
+    "especialidad": "Ginecología y obstetricia",
+    "estado": "pendiente_validacion",
+    "referencia": "NOM-007 / OMS (control prenatal); ACOG-USPSTF (aspirina en preeclampsia); Bishop EH, Obstet Gynecol 1964"
+  },
+  {
+    "id": "hemodinamia-pam",
+    "nombre": "PAM e índice de choque",
+    "especialidad": "Medicina crítica",
+    "estado": "pendiente_validacion",
+    "referencia": "Fisiología estándar (PAM = PAS + 2·PAD / 3); índice de choque = FC/PAS"
+  },
+  {
+    "id": "hospital-indicadores-episodio",
+    "nombre": "Indicadores del episodio (dias por tipo, boarding, reingreso)",
+    "especialidad": "Administracion hospitalaria / costeo por paquete",
+    "estado": "validado",
+    "referencia": "Ninguna fuente clinica: son cuentas sobre hechos ya registrados. Las habilita hospital-unidades: con el servicio como texto libre no se podian hacer."
+  },
+  {
+    "id": "hospital-unidades",
+    "nombre": "Unidades: nombre del hospital vs TIPO",
+    "especialidad": "Hospitalizacion / arquitectura de unidades",
+    "estado": "validado",
+    "referencia": "Pregunta del Dr. (2026-07-30) sobre hospitales que no se dividen por nombre de servicio. Modelo HL7/FHIR: Location con tipo fisico separado del nombre. No es una regla clinica."
+  },
+  {
+    "id": "infusion-library",
+    "nombre": "Biblioteca de preparaciones de infusion (3 capas)",
+    "especialidad": "Cuidados criticos / farmacologia",
+    "estado": "pendiente_validacion",
+    "referencia": "Decisiones Q2 e ICU-Q4.3 del medico dueno, 29-jul-2026. La capa de referencia NO se cargo: exige fuente externa citada y licencia revisada."
+  },
+  {
+    "id": "infusiones-dosis-rate",
+    "nombre": "Infusiones continuas — dosis ↔ mL/h",
+    "especialidad": "Medicina crítica/Farmacología",
+    "estado": "validado",
+    "referencia": "Diluciones estándar declaradas en CATALOGO_INFUSIONES (aritmética de concentración)"
+  },
+  {
+    "id": "inmuno-farmacos",
+    "nombre": "Reglas por fármaco inmunosupresor",
+    "especialidad": "Infectología/Trasplante",
+    "estado": "pendiente_validacion",
+    "referencia": "Guía/artículo citado por regla en el campo `fuente` de cada recomendación"
+  },
+  {
+    "id": "inmuno-recomendaciones",
+    "nombre": "Recomendaciones del huésped inmunocomprometido",
+    "especialidad": "Infectología/Trasplante",
+    "estado": "pendiente_validacion",
+    "referencia": "Guía/artículo citado por recomendación en el campo `fuente`"
+  },
+  {
+    "id": "lab-analitos-plausibilidad",
+    "nombre": "Analitos de laboratorio — clave canónica y plausibilidad",
+    "especialidad": "Laboratorio clínico",
+    "estado": "validado",
+    "referencia": "Catálogo de analitos con unidad canónica y rango plausible declarado en el módulo"
+  },
+  {
+    "id": "lab-criticos",
+    "nombre": "Valores críticos de laboratorio (valores de pánico)",
+    "especialidad": "Hospital/Laboratorio",
+    "estado": "pendiente_validacion",
+    "referencia": "Umbrales heredados del propio módulo, SIN fuente citada (declarado en su encabezado)"
+  },
+  {
+    "id": "masld-estadificacion",
+    "nombre": "MASLD — criterios y estadificación",
+    "especialidad": "Hepatología/MASLD",
+    "estado": "pendiente_validacion",
+    "referencia": "ADA. MASLD in People With Diabetes. Diabetes Care 2025;48:1057-1082 (leída íntegra; ver encabezado del archivo)"
+  },
+  {
+    "id": "medicina-preventiva",
+    "nombre": "Tamizaje preventivo por edad y sexo",
+    "especialidad": "Medicina preventiva",
+    "estado": "experimental",
+    "referencia": "ADVERTENCIA declarada en el propio módulo: las recomendaciones NO se construyeron leyendo los documentos originales"
+  },
+  {
+    "id": "meld",
+    "nombre": "MELD (UNOS)",
+    "especialidad": "Hepatología",
+    "estado": "validado",
+    "referencia": "Kamath PS et al. Hepatology 2001 (variante UNOS con pisos)"
+  },
+  {
+    "id": "morse",
+    "nombre": "Morse (riesgo de caídas)",
+    "especialidad": "Enfermería/Hospital",
+    "estado": "validado",
+    "referencia": "Morse JM et al. Can J Aging 1989"
+  },
+  {
+    "id": "nee",
+    "nombre": "Equivalente de norepinefrina",
+    "especialidad": "Medicina crítica",
+    "estado": "validado",
+    "referencia": "Kotani/Goradia norepinephrine equivalents"
+  },
+  {
+    "id": "neurocritico-ppc",
+    "nombre": "Neurocrítico (PPC, RASS, banderas)",
+    "especialidad": "Medicina crítica/Neurointensivismo",
+    "estado": "validado",
+    "referencia": "Brain Trauma Foundation 2016 (metas de PPC y PIC) + práctica estándar"
+  },
+  {
+    "id": "news2",
+    "nombre": "NEWS2 (deterioro clínico)",
+    "especialidad": "Hospital/Medicina interna",
+    "estado": "validado",
+    "referencia": "Royal College of Physicians, NEWS2 2017"
+  },
+  {
+    "id": "news2-set",
+    "nombre": "NEWS2 sobre conjunto contemporaneo de observaciones",
+    "especialidad": "Medicina interna / deterioro clinico",
+    "estado": "validado",
+    "referencia": "Decision ICU-Q4.1 del medico dueno, 29-jul-2026. La FORMULA es del Royal College (NEWS2, Scale 1/Scale 2) y vive en src/lib/hospital/news2.ts: este motor NO la toca."
+  },
+  {
+    "id": "obesidad-abcd",
+    "nombre": "Obesidad — estadificación ABCD",
+    "especialidad": "Endocrinología/Obesidad",
+    "estado": "validado",
+    "referencia": "AACE Consensus Statement: Algorithm for the Evaluation and Treatment of Adults with Obesity/ABCD — 2025 Update. Endocr Pract. 2025;31:1351-1394"
+  },
+  {
+    "id": "observacion-version",
+    "nombre": "Observación versionada (vigencia clínica y temporal)",
+    "especialidad": "Transversal / integridad del expediente",
+    "estado": "pendiente_validacion",
+    "referencia": "Decisión ICU-Q3 del médico dueño, 29-jul-2026 (cierra E0-09/Q1). Alineado con effectiveDateTime/issued de HL7 FHIR Observation."
+  },
+  {
+    "id": "pocus-critico",
+    "nombre": "POCUS crítico (VD, VCI, LUS, PLR)",
+    "especialidad": "Medicina crítica/POCUS",
+    "estado": "pendiente_validacion",
+    "referencia": "Umbrales verificados de las guías provistas (Soliman 2026, Rowe 2026, Kok 2022; ver src/lib/uci/evidencia.ts)"
+  },
+  {
+    "id": "preop-escalas-complementarias",
+    "nombre": "Escalas perioperatorias complementarias",
+    "especialidad": "Medicina perioperatoria",
+    "estado": "pendiente_validacion",
+    "referencia": "Cada escala cita su publicación en subMotores (ver el encabezado de preop.ts, guía AHA/ACC 2024)"
+  },
+  {
+    "id": "prescripcion-segura",
+    "nombre": "Prescripción segura (renal, hepática, embarazo)",
+    "especialidad": "Farmacología clínica",
+    "estado": "pendiente_validacion",
+    "referencia": "Tablas AJUSTE_RENAL, RIESGO_HEPATICO y EMBARAZO_LACTANCIA declaradas en el módulo"
+  },
+  {
+    "id": "prevent-ascvd",
+    "nombre": "PREVENT-ASCVD (riesgo a 10 y 30 años)",
+    "especialidad": "Cardiología/Prevención",
+    "estado": "validado",
+    "referencia": "Khan SS et al. Development and Validation of the AHA PREVENT Equations. Circulation. 2024;149:430-449"
+  },
+  {
+    "id": "proa-reevaluacion",
+    "nombre": "PROA — reevaluación a 48-72 h",
+    "especialidad": "Infectología/PROA",
+    "estado": "pendiente_validacion",
+    "referencia": "Estándar de antimicrobial stewardship (reevaluación, desescalamiento, switch IV→VO, duración)"
+  },
+  {
+    "id": "profilaxis-quirurgica",
+    "nombre": "Profilaxis antibiótica quirúrgica (con redosificación)",
+    "especialidad": "Cirugía/Infectología",
+    "estado": "pendiente_validacion",
+    "referencia": "Esquemas por tipo de cirugía transcritos en el archivo (ver ESQUEMAS_POR_CIRUGIA) + checklist OMS"
+  },
+  {
+    "id": "rcri",
+    "nombre": "RCRI (riesgo cardiaco perioperatorio)",
+    "especialidad": "Medicina perioperatoria",
+    "estado": "validado",
+    "referencia": "Lee TH et al. Circulation 1999 (revisado, guía AHA/ACC 2024)"
+  },
+  {
+    "id": "sofa",
+    "nombre": "SOFA (disfunción orgánica)",
+    "especialidad": "Medicina crítica",
+    "estado": "validado",
+    "referencia": "Vincent JL et al. Intensive Care Med 1996"
+  },
+  {
+    "id": "traza-razonamiento",
+    "nombre": "Traza visible del razonamiento clínico",
+    "especialidad": "Medicina general",
+    "estado": "validado",
+    "referencia": "No añade criterio: hace visible lo que el copiloto ya calculó"
+  },
+  {
+    "id": "uci-alertas-seguridad",
+    "nombre": "Alertas jerarquizadas de UCI",
+    "especialidad": "Medicina crítica",
+    "estado": "validado",
+    "referencia": "ESICM 2025 (PAM), AHA-CICU 2020 / ARDSNet, McClave/ASPEN 2016, PADIS 2018, Nates 2016 (ver src/lib/uci/evidencia.ts)"
+  },
+  {
+    "id": "uci-benchmark-metricas",
+    "nombre": "Metricas del corpus de 498 audios",
+    "especialidad": "Cuidados criticos / reconocimiento de voz",
+    "estado": "validado",
+    "referencia": "PARA_CLAUDE.md y MANIFEST_498.csv del corpus del Dr. (2026-07-30): 83 frases x 6 condiciones de voz. Metricas estandar de ASR; ninguna fuente clinica."
+  },
+  {
+    "id": "uci-benchmark-voz",
+    "nombre": "Benchmark de voz de UCI",
+    "especialidad": "Cuidados criticos / reconocimiento de voz",
+    "estado": "validado",
+    "referencia": "Charter NEXUSMED CRITICAL CARE OS seccion 41. Metrica de ASR: WER sobre palabras (literatura estandar) + exactitud por termino clinico, que es la que manda."
+  },
+  {
+    "id": "uci-confirmacion",
+    "nombre": "Confirmacion basada en riesgo (voz de UCI)",
+    "especialidad": "Cuidados criticos / seguridad del dictado",
+    "estado": "pendiente_validacion",
+    "referencia": "Decision ICU-Q4.4 del medico dueno, 29-jul-2026. Los cuatro niveles y las dos listas de conceptos estan transcritos LITERALMENTE de esa decision, sin anadidos."
+  },
+  {
+    "id": "uci-contexto-vocabulario",
+    "nombre": "Vocabulario por contexto (voz de UCI)",
+    "especialidad": "Cuidados criticos / reconocimiento de voz",
+    "estado": "validado",
+    "referencia": "Charter NEXUSMED CRITICAL CARE OS seccion 8. Las CUATRO listas son del medico dueno, palabra por palabra; el seccion 10 prohibe crear aliases clinicamente incorrectos."
+  },
+  {
+    "id": "uci-correlacion",
+    "nombre": "Cambio y correlación temporal en UCI",
+    "especialidad": "Medicina crítica",
+    "estado": "validado",
+    "referencia": "Comparación de lecturas seriadas con delta mínimo relevante por métrica (METRICAS_UCI)"
+  },
+  {
+    "id": "uci-dato-faltante",
+    "nombre": "Motor de dato faltante (UCI)",
+    "especialidad": "Cuidados criticos / integridad del dato",
+    "estado": "validado",
+    "referencia": "Charter NEXUSMED CRITICAL CARE OS seccion 31. NINGUNA formula se implementa aqui: cada derivacion cita el motor real que la calcula, y un caso del golden lo verifica."
+  },
+  {
+    "id": "uci-dosificacion-critica",
+    "nombre": "Dosificacion de meropenem en el adulto critico",
+    "especialidad": "Cuidados criticos / infectologia / PK-PD",
+    "estado": "validado",
+    "referencia": "Algoritmo entregado por el Dr. (2026-07-30) con su tabla por funcion renal, cuatro escenarios de reemplazo y criterios de alta exposicion. El cita ficha FDA mayo-2025 (ajuste con CrCl <=50), esquema UCSF, consenso ACCP/BSAC/ESCMID/IDSA/SCCM/SIDP sobre infusiones prolongadas, simulaciones de PTA en ARC y datos PIRRT 2026. FUNDAMENTO APORTADO POR EL MEDICO, no verificado contra las fuentes primarias."
+  },
+  {
+    "id": "uci-dosis-sin-numero",
+    "nombre": "Dosis que perdio su numero (deteccion)",
+    "especialidad": "Cuidados criticos / seguridad del dictado",
+    "estado": "validado",
+    "referencia": "Medido en el corpus de 498 audios del Dr. (2026-07-30): «Meropenem DOS gramos» se transcribe «Meropenem gramos» 6 de 6 veces, en las tres voces. Sin fuente clinica: es un patron de fallo del reconocedor."
+  },
+  {
+    "id": "uci-enfermeria",
+    "nombre": "Turno de enfermeria de UCI",
+    "especialidad": "Cuidados criticos / enfermeria",
+    "estado": "validado",
+    "referencia": "Charter NEXUSMED CRITICAL CARE OS seccion 40 via ICU-001, con su condicion: «despues del core medico». Compone el MAR (seccion 37) y la antiguedad de la ultima toma (seccion 3); no inventa ningun motor."
+  },
+  {
+    "id": "uci-estancia",
+    "nombre": "Dia de UCI y estancia",
+    "especialidad": "Cuidados criticos / tiempo clinico",
+    "estado": "validado",
+    "referencia": "Decision del Dr. (2026-07-30): NO elegir entre bloques de 24 h y dia de calendario — guardar los tres datos. Fundamento aportado por el medico (uso de dias naturales en flujos clinicos y administrativos), no verificado contra la fuente primaria."
+  },
+  {
+    "id": "uci-extraccion-plausibilidad",
+    "nombre": "Extracción de UCI — unidad, sinónimo y plausibilidad",
+    "especialidad": "Medicina crítica",
+    "estado": "validado",
+    "referencia": "Unidades canónicas de UCI declaradas en el propio módulo (firewall de ambigüedad)"
+  },
+  {
+    "id": "uci-handoff",
+    "nombre": "ICU Handoff (entrega de turno)",
+    "especialidad": "Cuidados criticos / continuidad",
+    "estado": "validado",
+    "referencia": "Charter NEXUSMED CRITICAL CARE OS seccion 36: «Siempre revisado por medico.» Compone secciones que otros motores ya redactaron y NO reescribe ninguna."
+  },
+  {
+    "id": "uci-infusion-registro",
+    "nombre": "La infusion como REGISTRO (UCI)",
+    "especialidad": "Cuidados criticos / farmacologia",
+    "estado": "pendiente_validacion",
+    "referencia": "Charter secciones 13, 19 y 20 + decision ICU-Q4.3. No implementa formulas: el calculo es infusiones.ts y la eleccion de preparacion es infusion-library.ts."
+  },
+  {
+    "id": "uci-linea-tiempo",
+    "nombre": "Linea de tiempo unica (UCI)",
+    "especialidad": "Cuidados criticos / cronologia clinica",
+    "estado": "validado",
+    "referencia": "Charter NEXUSMED CRITICAL CARE OS seccion 33. La INTERPRETACION de secuencias ya vive en correlacion.ts (seccion 34), que nunca afirma causalidad: este modulo es anterior a eso."
+  },
+  {
+    "id": "uci-mar",
+    "nombre": "MAR de UCI (registro de administracion)",
+    "especialidad": "Cuidados criticos / enfermeria",
+    "estado": "validado",
+    "referencia": "Charter NEXUSMED CRITICAL CARE OS seccion 37 segun ICU-001: «Vista MAR de UCI sobre la farmacia existente, SIN duplicar inventario». Lee Indicacion[]/Administracion[] de src/types/hospital.ts."
+  },
+  {
+    "id": "uci-metas-diarias",
+    "nombre": "Metas diarias (UCI)",
+    "especialidad": "Cuidados criticos / plan del dia",
+    "estado": "validado",
+    "referencia": "Charter NEXUSMED CRITICAL CARE OS seccion 35: «El copiloto compara datos contra objetivos definidos. NO INVENTAR OBJETIVOS.» Este modulo no contiene un solo valor objetivo."
+  },
+  {
+    "id": "uci-morning-brief",
+    "nombre": "Morning Brief (UCI)",
+    "especialidad": "Cuidados criticos / sintesis clinica",
+    "estado": "pendiente_validacion",
+    "referencia": "Charter NEXUSMED CRITICAL CARE OS seccion 30, con su regla transversal: TODAS las frases deben vincularse a datos reales."
+  },
+  {
+    "id": "uci-reconciliacion",
+    "nombre": "Reconciliacion dictado vs calculado (UCI)",
+    "especialidad": "Cuidados criticos / integridad del dato",
+    "estado": "validado",
+    "referencia": "Charter NEXUSMED CRITICAL CARE OS seccion 24 + regla antifatiga de la decision ICU-Q4.4. Las FORMULAS viven en sus motores; este modulo no las reimplementa."
+  },
+  {
+    "id": "uci-resumen",
+    "nombre": "Puente tomas -> motores del pase",
+    "especialidad": "Cuidados criticos / integracion de datos",
+    "estado": "validado",
+    "referencia": "Sin fuente clinica: convierte las TomaUci persistidas en lo que esperan uci-morning-brief (charter 30) y uci-linea-tiempo (charter 33). Toda la interpretacion sigue en esos motores."
+  },
+  {
+    "id": "uci-tarjetas",
+    "nombre": "Landing de UCI (tarjeta por paciente)",
+    "especialidad": "Cuidados criticos / triaje de atencion",
+    "estado": "validado",
+    "referencia": "Charter NEXUSMED CRITICAL CARE OS seccion 3 via ICU-001: «Landing de UCI con tarjetas». Solo hechos ya registrados en el episodio y en las tomas persistidas."
+  },
+  {
+    "id": "uci-tendencias",
+    "nombre": "Tendencias de UCI",
+    "especialidad": "Medicina crítica",
+    "estado": "validado",
+    "referencia": "Aritmética de serie temporal (delta y delta %); no interpreta mejoría/deterioro"
+  },
+  {
+    "id": "ventilacion-protectora",
+    "nombre": "Ventilación protectora (PBW, Kirby, driving pressure)",
+    "especialidad": "Medicina crítica",
+    "estado": "validado",
+    "referencia": "ARDSNet / fórmula de Devine para PBW; PaO₂/FiO₂ (Kirby)"
+  },
+  {
+    "id": "vexus",
+    "nombre": "VExUS (congestión venosa)",
+    "especialidad": "Medicina crítica/POCUS",
+    "estado": "validado",
+    "referencia": "Beaubien-Souligny W et al. Ultrasound J 2020"
+  },
+  {
+    "id": "via-parenteral",
+    "nombre": "Corrección de vía parenteral",
+    "especialidad": "Seguridad del paciente",
+    "estado": "validado",
+    "referencia": "Lista de fármacos sin presentación oral declarada en el módulo"
+  }
+]

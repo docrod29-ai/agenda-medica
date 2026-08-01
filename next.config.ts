@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 import bundleAnalyzer from "@next/bundle-analyzer";
-import { RE_RUTAS_PRIVADAS } from "./src/lib/security/rutas-privadas";
+import { RE_RUTAS_PRIVADAS, RE_RUTAS_PACIENTE } from "./src/lib/security/rutas-privadas";
 
 // Medición del bundle (opt-in): `ANALYZE=true npm run build` abre el reporte.
 // Sin la variable, es un passthrough → el build normal/producción no cambia.
@@ -308,11 +308,23 @@ const nextConfig: NextConfig = {
       // 'no-referrer' de estas rutas gana sobre el 'strict-origin-when-cross-origin'
       // global, cumpliendo la garantía de que el token no viaje ni en referers
       // same-origin. Aplica a /mi/[token], /resena/[token] y /verificar/[token].
+      //
+      // Y ANTI-CLICKJACKING, que aquí faltaba. Medido contra producción, estas
+      // rutas viajaban sin `X-Frame-Options` y sin `frame-ancestors`: quedaron
+      // fuera de RUTAS_PRIVADAS por estar catalogadas como "superficie pública/
+      // paciente", pero pública describe cómo se ENTRA, no qué se VE. Dentro de
+      // /mi están las recetas del paciente y los botones de cancelar su cita:
+      // encuadrarlo en un iframe invisible convierte un clic cualquiera en una
+      // cancelación. `teleconsulta` entra también — `frame-ancestors` limita
+      // quién nos embebe, no lo que embebemos, así que la sala de Daily (que va
+      // por `frame-src`) no se toca. Ver src/lib/security/rutas-privadas.ts.
       {
-        source: "/(mi|resena|verificar)/:path*",
+        source: RE_RUTAS_PACIENTE,
         headers: [
           { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive, nosnippet" },
           { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Frame-Options", value: "DENY" },
+          ...cabecerasCsp("ninguno"),
         ],
       },
     ];

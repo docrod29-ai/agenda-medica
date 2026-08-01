@@ -23,7 +23,9 @@ describe('Sello de procedencia', () => {
     expect(m.campos.find(c => c.valor.startsWith('Neumonía'))!.cita).toContain('flema')
     expect(m.campos.find(c => c.valor === 'Hipertensión')!.origen).toBe('ia')
     expect(by['Penicilina']).toBe('manual')
-    expect(m.resumen).toEqual({ dictado: 2, ia: 1, manual: 1, total: 4 })
+    // `confirmados: 0` porque a esta llamada no se le pasan los vistos buenos del
+    // médico — que es como quedan las notas anteriores a que existieran.
+    expect(m.resumen).toEqual({ dictado: 2, ia: 1, manual: 1, confirmados: 0, total: 4 })
   })
 
   it('coincidencia laxa: "cefalea" del dictado cubre "cefalea tensional" final', () => {
@@ -47,5 +49,106 @@ describe('Sello de procedencia', () => {
 
   it('normaliza quita acentos y baja a minúsculas', () => {
     expect(normaliza('  Neumonía Atípica ')).toBe('neumonia atipica')
+  })
+})
+
+/**
+ * «LO ACEPTÓ EL MÉDICO» — la mitad que faltaba del sello.
+ *
+ * De dónde salió un dato y si un humano lo hizo suyo son dos preguntas
+ * distintas, y el registro sólo respondía la primera. Guardaba `camposAprobados: 3`,
+ * un número suelto: sabía CUÁNTOS había aceptado el médico y no CUÁLES. Ante una
+ * revisión, «aprobó tres cosas» no dice nada de la que se discute.
+ *
+ * La prueba que manda de este bloque es la del DESFASE DE ÍNDICES. Registrar un
+ * visto bueno en el diagnóstico equivocado sería un dato falso en el expediente,
+ * con la firma del médico encima — peor que no registrar nada.
+ */
+describe('confirmación del médico, campo por campo', () => {
+  const extraction = {
+    diagnosticos: [
+      { descripcion: 'Faringitis aguda', source_quote: 'le duele la garganta' },
+      { descripcion: 'Hipertensión', source_quote: 'trae la presión alta' },
+    ],
+    medicamentos: [{ nombre: 'Amoxicilina', source_quote: 'le doy amoxicilina' }],
+  }
+
+  it('lo aceptado se marca; lo no aceptado queda en `false`, no en indefinido', () => {
+    // La diferencia entre «nadie lo aceptó» y «no aplica» es justo la que importa.
+    const m = construirManifiesto(
+      { diagnosticos: [{ descripcion: 'Faringitis aguda' }, { descripcion: 'Hipertensión' }] },
+      extraction,
+      new Set(['dx:0']),
+    )
+    expect(m.campos[0].confirmado).toBe(true)
+    expect(m.campos[1].confirmado).toBe(false)
+    expect(m.resumen.confirmados).toBe(1)
+  })
+
+  it('lo escrito a mano no se pregunta: no hay nada que aceptar', () => {
+    const m = construirManifiesto(
+      { diagnosticos: [{ descripcion: 'Lumbalgia mecánica' }] },
+      extraction,
+      new Set(['dx:0']),
+    )
+    expect(m.campos[0].origen).toBe('manual')
+    expect(m.campos[0].confirmado).toBeUndefined()
+  })
+
+  it('EL DESFASE DE ÍNDICES: el visto bueno no puede saltar de diagnóstico', () => {
+    /**
+     * El panel numera sobre la lista de la EXTRACCIÓN; el manifiesto, sobre la
+     * lista FINAL. Si el médico rechaza el primer diagnóstico, «Hipertensión»
+     * pasa a ser `dx:0` en la nota pero sigue siendo `dx:1` en el panel.
+     *
+     * Comparar los índices a secas daría por aceptada la Hipertensión con el
+     * visto bueno que el médico le dio a la Faringitis. Aquí se comprueba lo
+     * contrario: el `dx:0` aprobado corresponde a un diagnóstico que ya NO está
+     * en la nota, así que no confirma nada.
+     */
+    const m = construirManifiesto(
+      { diagnosticos: [{ descripcion: 'Hipertensión' }] },   // rechazó la faringitis
+      extraction,
+      new Set(['dx:0']),                                     // aprobó la FARINGITIS
+    )
+    expect(m.campos[0].valor).toBe('Hipertensión')
+    expect(m.campos[0].confirmado).toBe(false)
+    expect(m.resumen.confirmados).toBe(0)
+  })
+
+  it('…y con el visto bueno correcto sí se registra', () => {
+    const m = construirManifiesto(
+      { diagnosticos: [{ descripcion: 'Hipertensión' }] },
+      extraction,
+      new Set(['dx:1']),
+    )
+    expect(m.campos[0].confirmado).toBe(true)
+  })
+
+  it('los signos vitales se identifican por nombre: ahí no hay desfase posible', () => {
+    const m = construirManifiesto(
+      { signosVitales: { ta: '120/80' } },
+      { signosVitales: { ta: { value: '120/80', source_quote: 'ciento veinte sobre ochenta' } } },
+      new Set(['sv:ta']),
+    )
+    expect(m.campos[0].confirmado).toBe(true)
+  })
+
+  it('SIN el conjunto de aprobados, el sello es exactamente el de antes', () => {
+    // Compatibilidad: las notas viejas no lo llevan y no deben ganar un `false`
+    // que se leería como «el médico no aceptó nada».
+    const m = construirManifiesto({ diagnosticos: [{ descripcion: 'Faringitis aguda' }] }, extraction)
+    expect(m.campos[0].confirmado).toBeUndefined()
+    expect(m.resumen.confirmados).toBe(0)
+  })
+
+  it('la frase del sello nombra al médico sólo cuando hubo vistos buenos', () => {
+    const con = construirManifiesto(
+      { diagnosticos: [{ descripcion: 'Faringitis aguda' }] }, extraction, new Set(['dx:0']),
+    )
+    expect(resumenProcedencia(con.resumen)).toMatch(/aceptados por el médico/)
+
+    const sin = construirManifiesto({ diagnosticos: [{ descripcion: 'Faringitis aguda' }] }, extraction)
+    expect(resumenProcedencia(sin.resumen)).not.toMatch(/aceptados/)
   })
 })

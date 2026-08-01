@@ -24,6 +24,9 @@ import { buscarEvidencia, buscarEvidenciaMulti, textoCompletoPMC, type ArticuloP
 import { traducirBasico, farmacosDetectados } from '@/lib/evidencia/traducir-medico'
 import { dosisFDA } from '@/lib/evidencia/openfda'
 import { leerMemoriaMedico, textoMemoria, aprenderDeMedico } from '@/lib/memoria-medico'
+import { claseDeFallo, quienPaga, avisoAlMedico } from '@/lib/ia/fallo-proveedor'
+import { reportarFalloIA } from '@/lib/ia/incidentes-servidor'
+import type { FuenteLlave } from '@/lib/finanzas/cost-ledger'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300  // el Consultor encadena varios modelos; margen amplio (se topa al plan de Vercel)
@@ -69,7 +72,19 @@ async function* anthropicStream(key: string, model: string, system: string, user
     body: JSON.stringify({ model, max_tokens: maxTokens, system, stream: true, messages: [{ role: 'user', content: user }] }),
     signal: AbortSignal.timeout(120000),
   })
-  if (!r.ok || !r.body) throw new Error(`anthropic stream HTTP ${r.status}`)
+  /**
+   * El fallo viaja con su CÓDIGO y su CUERPO, no como un texto suelto.
+   *
+   * Antes esto lanzaba `Error('anthropic stream HTTP 401')` y el catch de abajo
+   * lo tiraba entero, así que un 401 —llave muerta, no se arregla nunca— acababa
+   * indistinguible de un 529 —saturación, se arregla sola en un minuto—. El
+   * médico recibía «intenta de nuevo» para los dos. El cuerpo también hace falta:
+   * el saldo agotado de Anthropic llega como 400.
+   */
+  if (!r.ok || !r.body) {
+    const cuerpo = await r.text().catch(() => '')
+    throw Object.assign(new Error(`anthropic stream HTTP ${r.status}`), { status: r.status, cuerpo })
+  }
   const reader = r.body.getReader()
   const dec = new TextDecoder()
   let buf = ''
@@ -92,25 +107,48 @@ async function* anthropicStream(key: string, model: string, system: string, user
   }
 }
 
+/**
+ * De un fallo del proveedor al texto que ve el médico.
+ *
+ * El texto viejo era «No pude responder ahora; intenta de nuevo» pasara lo que
+ * pasara — y el 31-jul-2026 lo que pasaba era que la llave estaba revocada: no
+ * había ningún «ahora» en el que fuera a funcionar, y el médico lo repitió con
+ * un paciente enfrente. Ver `fallo-proveedor.ts` para la regla completa; el
+ * resumen es que con llave de la plataforma al médico no se le culpa ni se le
+ * manda a pagar, porque no es suya.
+ */
+function explicar(fallo: { status: number; cuerpo: string } | null, fuente: FuenteLlave): string {
+  const quien = quienPaga(fuente)
+  const clase = fallo ? claseDeFallo(fallo.status, fallo.cuerpo) : 'otro'
+  if (fallo) reportarFalloIA({ clase, quien, proveedor: 'anthropic', feature: 'consultor-evidencia', status: fallo.status })
+  return avisoAlMedico(clase, quien, 'anthropic').texto
+}
+
 interface MetaStream { articulos: unknown[]; cenetecUrl?: string; modelos: string[]; sinCitas?: boolean; dosisFDA?: unknown; fechaBusqueda?: string }
 /** Devuelve una respuesta STREAM (NDJSON): 1ª línea meta (fuentes), luego deltas de texto. */
-function responderStream(opts: { key: string; model: string; system: string; user: string; maxTokens: number; meta: MetaStream; onDone: (texto: string) => void }): Response {
+function responderStream(opts: { key: string; model: string; system: string; user: string; maxTokens: number; fuente: FuenteLlave; meta: MetaStream; onDone: (texto: string) => void }): Response {
   const enc = new TextEncoder()
   const stream = new ReadableStream({
     async start(controller) {
       const send = (o: unknown) => controller.enqueue(enc.encode(JSON.stringify(o) + '\n'))
       send({ type: 'meta', ...opts.meta })
       let full = ''
+      /** Último fallo REAL del proveedor, para poder decir la verdad al final. */
+      let ultimo: { status: number; cuerpo: string } | null = null
       try {
         for await (const t of anthropicStream(opts.key, opts.model, opts.system, opts.user, opts.maxTokens)) { full += t; send({ type: 'delta', text: t }) }
         if (!full.trim()) throw new Error('vacío')
-      } catch {
+      } catch (e) {
+        const s = (e as { status?: number })?.status
+        if (typeof s === 'number') ultimo = { status: s, cuerpo: String((e as { cuerpo?: string }).cuerpo ?? '') }
         try {
           let r = await claude(opts.key, opts.model, opts.system, opts.user, opts.maxTokens)
           if (r.status === 404 || r.status === 400) r = await claude(opts.key, 'claude-sonnet-5', opts.system, opts.user, opts.maxTokens)
+          if (!r.ok) ultimo = { status: r.status, cuerpo: await r.clone().text().catch(() => '') }
           const txt = r.ok ? textoDe(await r.json()).trim() : ''
-          if (txt) { full = txt; send({ type: 'delta', text: txt }) } else send({ type: 'error', error: 'No pude responder ahora; intenta de nuevo.' })
-        } catch { send({ type: 'error', error: 'No pude responder ahora; intenta de nuevo.' }) }
+          if (txt) { full = txt; send({ type: 'delta', text: txt }) }
+          else send({ type: 'error', error: explicar(ultimo, opts.fuente) })
+        } catch { send({ type: 'error', error: explicar(ultimo, opts.fuente) }) }
       }
       send({ type: 'done' })
       controller.close()
@@ -152,7 +190,7 @@ export async function POST(req: NextRequest) {
     //  seguridad, comparación) en inglés — cada una en su línea. Más ángulos =
     //  mejor cobertura de la evidencia. La 1ª sirve además para detectar fármacos.
     let subQueries: string[] = [pregunta]
-    const MODELOS_TRAD = ['claude-3-5-haiku-latest', 'claude-haiku-4-5-20251001', 'claude-sonnet-5', 'claude-3-5-sonnet-latest']
+    const MODELOS_TRAD = ['claude-haiku-4-5-20251001', 'claude-sonnet-5']
     const sysTrad = 'Descompón la pregunta clínica en 1-3 SUB-BÚSQUEDAS de PubMed en INGLÉS, cada una en su PROPIA LÍNEA. Cada línea: solo 2-6 términos clave en inglés (fármacos/enfermedades en su forma inglesa, ej. "finerenona"→"finerenone"), unidos con AND/OR si aplica. Usa ángulos distintos cuando ayude (eficacia; seguridad/efectos adversos; comparación entre opciones). Sin numeración, sin comillas, sin explicación, sin field tags. Máximo 3 líneas.'
     const usrTrad = `${paciente ? 'Paciente: ' + paciente + '\n' : ''}${contexto ? contexto + '\n' : ''}Pregunta: ${pregunta}`
     for (const m of MODELOS_TRAD) {
@@ -208,6 +246,7 @@ export async function POST(req: NextRequest) {
       const usrSC = `${memTxt ? 'PERFIL DEL MÉDICO (memoria):\n' + memTxt + '\n\n' : ''}${paciente ? 'PACIENTE (contexto):\n' + paciente + '\n\n' : ''}${contexto ? 'Conversación previa:\n' + contexto + '\n\n' : ''}PREGUNTA: ${pregunta}`
       return responderStream({
         key, model, system: sysSC, user: usrSC, maxTokens: 2600,
+        fuente,
         meta: { articulos: [], sinCitas: true, cenetecUrl, modelos: [nivel === 'premium' ? 'Claude Opus 4.8' : 'Claude Sonnet 5'] },
         onDone: (txt) => {
           void registrarUso(clinicId, fuente)
@@ -243,6 +282,7 @@ export async function POST(req: NextRequest) {
     const articulosMin = articulos.map(a => ({ pmid: a.pmid, titulo: a.titulo, revista: a.revista, anio: a.anio, url: a.url, tipo: a.tipo, doi: a.doi }))
     return responderStream({
       key, model, system, user, maxTokens: 3200,
+      fuente,
       meta: { articulos: articulosMin, cenetecUrl, dosisFDA: dosis, sinCitas: false, fechaBusqueda: new Date().toISOString().slice(0, 10), modelos: [nivel === 'premium' ? 'Claude Opus 4.8' : 'Claude Sonnet 5'] },
       onDone: (txt) => {
         void registrarUso(clinicId, fuente)

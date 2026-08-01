@@ -20,12 +20,14 @@ import { limitarOResponder } from '@/lib/rate-limit'
 import { gateCreditos, resolverClaveIA, registrarCreditos } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { safeLog } from '@/lib/security/sanitize'
+import { claseDeFallo, quienPaga, avisoAlMedico } from '@/lib/ia/fallo-proveedor'
+import { reportarFalloIA } from '@/lib/ia/incidentes-servidor'
 import { LAB_VISION_SYSTEM, buildLabVisionPrompt } from '@/lib/expediente/laboratorio/vision'
 import { validarPanel, type FilaCruda } from '@/lib/expediente/laboratorio/extraccion'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const ANTHROPIC_VERSION = '2023-06-01'
-const MODELOS_VISION = ['claude-sonnet-4-5', 'claude-sonnet-4-5-20250929', 'claude-3-7-sonnet-latest', 'claude-3-5-sonnet-latest']
+const MODELOS_VISION = ['claude-sonnet-4-5', 'claude-sonnet-4-5-20250929']
 let modeloCache = ''
 
 async function resolverModelo(key: string): Promise<string> {
@@ -113,8 +115,10 @@ export async function POST(req: NextRequest) {
     if (!res.ok) {
       const err = await res.text()
       safeLog.error('[laboratorio-vision] Claude error:', res.status, err.slice(0, 300))
-      const pista = res.status === 401 ? 'llave de IA inválida' : res.status === 429 ? 'sin créditos/límite' : res.status === 404 ? 'modelo de visión no disponible' : `error ${res.status}`
-      return NextResponse.json({ ok: false, error: `IA de visión: ${pista}.` }, { status: 502 })
+      const quien = quienPaga(fuente)
+      const clase = claseDeFallo(res.status, err)
+      reportarFalloIA({ clase, quien, proveedor: 'anthropic', feature: 'laboratorio-vision', status: res.status })
+      return NextResponse.json({ ok: false, error: avisoAlMedico(clase, quien, 'anthropic').texto }, { status: 502 })
     }
     const data = await res.json()
     anotarLlamada(ctxCosto, 'anthropic', String(data?.model ?? ''), data, Date.now() - t0Costo)

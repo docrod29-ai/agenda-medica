@@ -220,6 +220,23 @@ export const planPorNivel = (n: NivelIA): PlanCreditos => (n === 'premium' ? PLA
 export const RECARGA = { creditos: 100, precioMXN: 399 }
 
 /**
+ * El precio, ya escrito para pantalla: `$1,590`.
+ *
+ * Existe porque el precio se pinta en varios sitios y en todos hacía falta el
+ * mismo formateo — así que en varios sitios se acabó escribiendo el número a
+ * mano al lado de un comentario que decía «fuente única: PLANES». Los valores
+ * coincidían por casualidad; el día que se suba una tarifa, coincidir deja de
+ * ser gratis y la divergencia no la ve nadie hasta que un médico compara la
+ * pantalla con su recibo.
+ *
+ * `es-MX` pone el separador de miles donde va. Se declara el `minimumFractionDigits`
+ * a 0 a propósito: los planes son cifras cerradas y «$1,590.00» en un botón
+ * sobra.
+ */
+export const precioTexto = (p: PlanCreditos): string =>
+  `$${p.precioMXN.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+
+/**
  * ORDEN COMERCIAL de los planes y qué módulos abre cada uno.
  *
  * Vive aquí, con los precios, porque el P0-2 de la auditoría fue exactamente

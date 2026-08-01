@@ -28,7 +28,20 @@ export interface Clinic {
   nombreMedico: string
   plan: ClinicPlan
   status: ClinicStatus
-  trialEndsAt?: string          // ISO date
+  trialEndsAt?: string          // ISO date — lo lee la interfaz
+  /**
+   * El MISMO instante en epoch-ms. No es un duplicado por descuido.
+   *
+   * Las reglas de Firestore no saben parsear una fecha ISO, así que el paywall
+   * del servidor compara contra este número. `/api/clinic/crear` escribe los dos
+   * a la vez y `firestore.rules` prohíbe que el cliente toque cualquiera de
+   * ellos — si se pudieran editar, cualquiera se regalaría prueba infinita.
+   *
+   * Faltaba en este tipo aunque el servidor llevaba tiempo escribiéndolo: el
+   * tipo describía menos de lo que había, que es la clase de hueco que hace que
+   * una pantalla lea `undefined` y decida mal sin que nadie se entere.
+   */
+  trialEndsAtMs?: number
   stripeCustomerId?: string
   stripeSubscriptionId?: string
   stripeSubscriptionStatus?: string

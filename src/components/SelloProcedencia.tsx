@@ -8,7 +8,7 @@
  * dictado cuando existe. Es solo lectura: no cambia ningún valor clínico.
  */
 import { useMemo, useState } from 'react'
-import { Fingerprint, Mic, Sparkles, PenLine, ChevronDown, Quote } from 'lucide-react'
+import { Fingerprint, Mic, Sparkles, PenLine, ChevronDown, Quote, CheckCircle2 } from 'lucide-react'
 import { construirManifiesto, resumenProcedencia, etiquetaOrigen, type OrigenCampo } from '@/lib/expediente/procedencia'
 
 interface FinalNota {
@@ -21,6 +21,12 @@ interface FinalNota {
 interface Props {
   final: FinalNota
   extraction?: unknown
+  /**
+   * Los vistos buenos del panel de revisión, para poder distinguir «la IA lo
+   * propuso» de «la IA lo propuso Y el médico lo aceptó». Opcional: sin él, el
+   * sello es exactamente el de antes.
+   */
+  aprobados?: ReadonlySet<string>
 }
 
 const ESTILO: Record<OrigenCampo, { color: string; Icon: typeof Mic }> = {
@@ -29,11 +35,11 @@ const ESTILO: Record<OrigenCampo, { color: string; Icon: typeof Mic }> = {
   manual:  { color: 'var(--text3)', Icon: PenLine },
 }
 
-export function SelloProcedencia({ final, extraction }: Props) {
+export function SelloProcedencia({ final, extraction, aprobados }: Props) {
   const [abierto, setAbierto] = useState(false)
   const manifiesto = useMemo(
-    () => construirManifiesto(final, extraction as never),
-    [final, extraction],
+    () => construirManifiesto(final, extraction as never, aprobados),
+    [final, extraction, aprobados],
   )
   if (manifiesto.resumen.total === 0) return null
   const { resumen, campos } = manifiesto
@@ -67,6 +73,16 @@ export function SelloProcedencia({ final, extraction }: Props) {
                   <span style={{ fontSize: 10, fontWeight: 700, color, background: 'color-mix(in srgb, currentColor 12%, transparent)', padding: '2px 7px', borderRadius: 100 }}>
                     {etiquetaOrigen(c.origen)}
                   </span>
+                  {/*
+                    El distintivo del médico va APARTE del de origen, no en su
+                    lugar: de dónde salió un dato y si un humano lo hizo suyo son
+                    dos cosas distintas, y en una revisión la segunda pesa más.
+                  */}
+                  {c.confirmado === true && (
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal, #2dd4bf)', display: 'inline-flex', alignItems: 'center', gap: 3, background: 'color-mix(in srgb, currentColor 12%, transparent)', padding: '2px 7px', borderRadius: 100 }}>
+                      <CheckCircle2 size={10} /> lo aceptaste
+                    </span>
+                  )}
                 </div>
                 {c.cita && (
                   <div style={{ marginTop: 5, display: 'flex', gap: 5, fontSize: 11.5, color: 'var(--text2)', fontStyle: 'italic' }}>
