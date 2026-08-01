@@ -60,7 +60,7 @@ export const RUTAS_CORE = ['/dashboard', '/configuracion', '/chat', '/pacientes'
 /** Catálogo de módulos vendibles. El dueño combina estos en paquetes. */
 export const MODULOS: ModuloDef[] = [
   { key: 'agenda',         label: 'Agenda y citas',          precioMedico: 349,  descripcion: 'Agendar, calendario, recordatorios, lista de espera', rutas: ['/asistente', '/citas', '/calendario', '/lista-espera', '/waitlist'] },
-  { key: 'expediente',     label: 'Expediente de consulta',  precioMedico: 700,  descripcion: 'Consulta ambulatoria: notas, recetas, órdenes, referencias, consultor', rutas: ['/consulta', '/expediente', '/expedientes', '/nota', '/orden', '/receta', '/referencia', '/consultor'] },
+  { key: 'expediente',     label: 'Expediente de consulta',  precioMedico: 700,  descripcion: 'Consulta ambulatoria: notas, recetas, órdenes, referencias, consultor', rutas: ['/consulta', '/expediente', '/expedientes', '/nota', '/orden', '/receta', '/referencia', '/consultor', '/pendientes'] },
   { key: 'hospitalizacion', label: 'Hospitalización',        precioMedico: 1200, descripcion: 'Censo, internamientos, indicaciones/MAR, camas (hospital y UCI)', rutas: ['/hospitalizacion'] },
   // UCI OS = módulo/entitlement PROPIO (la joya sin competencia). Trae SU PROPIO
   // censo/camas (rutas de hospitalización) para que "consulta + UCI" o "solo UCI"

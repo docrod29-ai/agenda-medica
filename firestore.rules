@@ -540,6 +540,28 @@ service cloud.firestore {
       }
       // Cobros (registro contable)
       // Solo se permite crear y leer; cancelar = update con cancelado=true (no delete).
+      /**
+       * TAREAS CLÍNICAS — los cabos sueltos de la consulta.
+       *
+       * Viven a nivel de consultorio y no colgando del paciente, para poder
+       * responder «¿qué queda pendiente HOY, de todos mis pacientes?» sin
+       * recorrer los expedientes uno por uno.
+       *
+       * SECRETO MÉDICO: el título de una tarea es «Perfil tiroideo» junto al
+       * nombre del paciente — eso es información clínica, así que sólo personal
+       * clínico. La asistente no entra, igual que en las notas.
+       *
+       * NO SE BORRAN. Un pendiente que desaparece sin dejar rastro es
+       * indistinguible de uno que nunca existió, y la constancia de que algo se
+       * dejó de hacer es justo lo que hace falta si un día se revisa el caso. Se
+       * cancela con motivo, que es un estado, no un borrado.
+       */
+      match /tareas_clinicas/{tareaId} {
+        allow read: if isMedico(clinicId);
+        allow create, update: if isMedico(clinicId) && clinicaPuedeEscribir(clinicId);
+        allow delete: if false;
+      }
+
       match /cobros/{cobroId} {
         allow read: if isMember(clinicId);
         /**

@@ -75,6 +75,8 @@ import { Cie10Autocomplete } from '@/components/Cie10Autocomplete'
 import { CobrarModal } from '@/components/CobrarModal'
 import { precioSugerido } from '@/lib/finanzas/precio-consulta'
 import { PanelRazonamiento } from '@/components/PanelRazonamiento'
+import { tareasDeNota } from '@/lib/tareas-clinicas/derivar'
+import { crearTareas } from '@/lib/tareas-clinicas/firestore'
 import { DialogoDiarizado, Section, S } from './consulta-ui'
 import {
 
@@ -1829,6 +1831,32 @@ export default function ConsultaActivaPage() {
         medicoUid: auth.currentUser?.uid, medicoEmail: auth.currentUser?.email ?? undefined,
         meta: { tipo, aprobadosIA: aprobados.size, diagnosticos: diagnosticos.length, medicamentos: medicamentos.length },
       })
+
+      /**
+       * LOS CABOS SUELTOS SALEN DE LA NOTA Y SE VUELVEN PENDIENTES CON DUEÑO.
+       *
+       * Hasta aquí, «solicito biometría» vivía dentro de una nota firmada — un
+       * documento que por definición ya no se toca y que nadie relee salvo que
+       * sospeche algo. El estudio se hacía, el resultado llegaba, y ahí moría.
+       *
+       * Firmar es el único instante en que se sabe, a la vez, QUÉ quedó pedido y
+       * QUIÉN lo pidió. Por eso las tareas nacen aquí y no antes: en un borrador
+       * la lista de estudios todavía cambia, y derivar de un borrador llenaría el
+       * worklist de pendientes de cosas que el médico acabó quitando.
+       *
+       * No bloquea ni revierte nada: la nota ya está firmada y sellada. Si esto
+       * falla, se pierde el worklist de esa consulta, no la consulta.
+       */
+      if (clinicId) {
+        void crearTareas(clinicId, tareasDeNota({
+          id, clinicId, pacienteId: patientId,
+          pacienteNombre: patient?.nombre,
+          estudiosOrden,
+          medicamentos: medicamentos.map(m => ({ nombre: m.nombre })),
+          medicoUid: auth.currentUser?.uid,
+          medicoNombre: config.nombreMedico,
+        }, Date.now())).catch(() => { /* ver arriba: no puede tumbar la firma */ })
+      }
       /**
        * FIRMAR MARCA LA CITA COMO ATENDIDA.
        *
