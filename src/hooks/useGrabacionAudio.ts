@@ -453,6 +453,16 @@ export function useGrabacionAudio(): UseGrabacionAudio {
    * último valor.
    */
   const duracionRef = useRef(0)
+  /**
+   * Cuántos segundos llevaba grabados el ÚLTIMO trozo que se mandó.
+   *
+   * La resta contra `duracionRef` da los segundos de audio del trozo actual, que
+   * es lo que el libro de costos necesita: la transcripción se cobra por MINUTO.
+   * Se calcula así, y no con el reloj de pared, porque `duracionRef` ya descuenta
+   * las pausas — con el reloj, una pausa de tres minutos se facturaría como
+   * audio que nunca se grabó ni se mandó.
+   */
+  const duracionUltimoTrozoRef = useRef(0)
   const [transcripcion, setTranscripcion] = useState('')
   const [utterances, setUtterances] = useState<Utterance[]>([])
   const [transcripcionParcial, setTranscripcionParcial] = useState('')
@@ -538,7 +548,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   const reset = useCallback(() => {
     const rk = recoveryKeyRef.current
     liberarRecursos()
-    setEstado('inactivo'); duracionRef.current = 0; setDuracion(0); setTranscripcion(''); setError('')
+    setEstado('inactivo'); duracionRef.current = 0; duracionUltimoTrozoRef.current = 0; setDuracion(0); setTranscripcion(''); setError('')
     setCorrecciones([]); setUtterances([]); setAlertasDictado([])
     if (rk) borrarChunks(rk)
     recoveryKeyRef.current = ''
@@ -564,6 +574,17 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       const fd = new FormData()
       fd.append('audio', blob, `chunk-${idx}.webm`)
       fd.append('chunkIdx', String(idx))
+      /**
+       * Los segundos de audio de este trozo, sólo para el libro de costos.
+       *
+       * El servidor no puede deducirlos: recibe un blob de webm, no una duración.
+       * Y sin ellos no hay costo que calcular — esta ruta se dispara cada ~20 s
+       * de cada consulta y era el gasto de IA más frecuente y más invisible de
+       * toda la aplicación.
+       */
+      const segTrozo = Math.max(0, duracionRef.current - duracionUltimoTrozoRef.current)
+      duracionUltimoTrozoRef.current = duracionRef.current
+      if (segTrozo > 0) fd.append('duracionSeg', String(Math.round(segTrozo)))
       if (prevContext) fd.append('prevContext', prevContext)
       const res = await fetchAutenticado('/api/expediente/transcribir-chunk', { method: 'POST', body: fd })
       if (!res.ok) return                              // 413/5xx/HTML → no parsear (evita SyntaxError)

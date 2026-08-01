@@ -27,7 +27,19 @@
  * llamada. El `fetch` vive en `gateway.ts`.
  */
 
-export type Proveedor = 'anthropic' | 'openai'
+/**
+ * A quién se le paga.
+ *
+ * Eran dos, y la aplicación le paga a TRES: la separación de voces la hace
+ * AssemblyAI. Ese hueco en el tipo no era cosmético — al no caber en la union,
+ * la ruta de diarización no podía dejar asiento en el libro de costos, así que
+ * su gasto no aparecía por ninguna parte. Un proveedor que no está en el tipo
+ * es un proveedor que no se factura.
+ *
+ * AssemblyAI no pasa por el gateway (no es una API de mensajes: es una cola de
+ * trabajos con su propio ciclo), pero sí tiene que poder anotarse.
+ */
+export type Proveedor = 'anthropic' | 'openai' | 'assemblyai'
 
 /** Lo que salió mal, en términos de qué hacer al respecto. */
 export type ClaseFallo =
@@ -70,7 +82,7 @@ export type Resultado = Exito | Fallo
    Errores: de un número HTTP a algo que alguien pueda arreglar
    ════════════════════════════════════════════════════════════════════════ */
 
-const NOMBRE: Record<Proveedor, string> = { anthropic: 'Anthropic', openai: 'OpenAI' }
+const NOMBRE: Record<Proveedor, string> = { anthropic: 'Anthropic', openai: 'OpenAI', assemblyai: 'AssemblyAI' }
 
 /** Clasifica un código HTTP. La clase es lo que decide qué se hace después. */
 export function claseDe(status: number): ClaseFallo {

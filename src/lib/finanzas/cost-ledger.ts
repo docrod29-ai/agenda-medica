@@ -128,7 +128,10 @@ export function claseDe(fuente: FuenteLlave, esFundador?: boolean): ClaseCosto {
 
 /** Convierte una llamada en un asiento del libro. */
 export function asiento(e: EntradaLedger): EventoCosto {
-  const c = costoUsd(e.modelo, e.uso)
+  // La FECHA de la llamada decide la tarifa: hay precios de introducción con
+  // caducidad (Sonnet 5, $2/$10 hasta el 31-ago-2026). Sin ella, un asiento de
+  // agosto se valoraría con el precio de septiembre.
+  const c = costoUsd(e.modelo, e.uso, e.ts)
   return {
     requestId: e.requestId,
     clinicId: e.clinicId,

@@ -41,9 +41,20 @@ import {
 
 const ANTHROPIC_VERSION = '2023-06-01'
 
+/**
+ * A dónde va la petición de cada proveedor.
+ *
+ * AssemblyAI queda en blanco a propósito: no es una API de mensajes sino una
+ * cola de trabajos con su propio ciclo (enviar → sondear → recoger), así que no
+ * pasa por esta puerta. Sí puede ANOTARSE en el libro con `anotarLlamada`, que
+ * es lo único que necesita de aquí. Se deja en el mapa —en vez de dejar el tipo
+ * fuera— para que el compilador obligue a decidir qué hacer con el siguiente
+ * proveedor que aparezca, en lugar de olvidarlo en silencio.
+ */
 const URL: Record<Proveedor, string> = {
   anthropic: 'https://api.anthropic.com/v1/messages',
   openai: 'https://api.openai.com/v1/chat/completions',
+  assemblyai: '',
 }
 
 /** Quién pide, para qué, y a cuenta de quién. Lo que el libro de costos necesita. */
@@ -81,6 +92,12 @@ export interface Opciones extends Omit<Peticion, 'modelo'> {
  * tamaño de problema.
  */
 export async function llamarIA(o: Opciones, ctx: Contexto): Promise<Resultado> {
+  // AssemblyAI no habla este protocolo: es una cola de trabajos, no una API de
+  // mensajes. Se corta AQUÍ, con un motivo legible, en vez de dejar que salga un
+  // `fetch('')` cuyo error no diría nada de lo que pasó de verdad.
+  if (!URL[o.proveedor]) {
+    return { ok: false, clase: 'respuesta', motivo: `${o.proveedor} no se llama por esta puerta; anótalo con anotarLlamada.` }
+  }
   if (!o.clave) {
     return { ok: false, clase: 'llave', motivo: `${o.proveedor === 'anthropic' ? 'Anthropic' : 'OpenAI'}: no hay llave configurada.` }
   }

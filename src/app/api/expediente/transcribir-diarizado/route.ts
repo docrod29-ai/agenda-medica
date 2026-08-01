@@ -18,6 +18,8 @@ import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA, creditosAgotados, registrarUso, registrarCreditos } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
+import { anotarLlamada } from '@/lib/ia/gateway'
+import { esFundador } from '@/lib/authz/fundador'
 import { WORD_BOOST_MEDICO } from '@/lib/expediente/medical-vocabulary'
 import { adminDb } from '@/lib/firebase-admin'
 
@@ -35,6 +37,7 @@ export async function POST(req: NextRequest) {
   if (_rl) return _rl
 
   const { key, fuente, clinicId } = await resolverClaveIA(acceso.uid, 'assemblyai', process.env.ASSEMBLYAI_API_KEY)
+  const t0Costo = Date.now()
   if (!key) {
     return NextResponse.json(
       { ok: false, sinClave: true, error: 'ASSEMBLYAI_API_KEY no configurada. Se usa transcripción sin diarización.' },
@@ -102,6 +105,35 @@ export async function POST(req: NextRequest) {
     if (id) void adminDb.collection('transcript_owners').doc(String(id)).set({ clinicId, uid: acceso.uid, at: new Date().toISOString() }).catch(() => {})
     void registrarUso(clinicId, fuente)   // un job = un uso
     void registrarCreditos(clinicId, COSTO_CREDITOS.transcribirDiarizado)
+    /**
+     * EL ASIENTO — Y LO QUE DELIBERADAMENTE NO TRAE.
+     *
+     * La separación de voces la hace AssemblyAI, un tercer proveedor que no está
+     * en la tabla de tarifas: sus precios no los he leído de su página y no los
+     * voy a deducir. El motor de precios devolverá NULO para este renglón, que
+     * es la verdad —«no sé cuánto costó»— y no un cero, que se leería como
+     * «fue gratis» y dejaría el gasto de la diarización fuera del margen sin
+     * que nadie lo notara.
+     *
+     * Se anota igual porque la LLAMADA sí es un hecho: aparece en el tablero,
+     * con su modelo y su fecha, marcada como sin tarifa. Cargar el precio real
+     * de AssemblyAI es un pendiente declarado, no un olvido.
+     *
+     * Tampoco viajan minutos: en este punto sólo se ENVÍA el audio a la cola;
+     * la duración se conocería al recogerlo en el GET.
+     */
+    anotarLlamada(
+      {
+        feature: 'transcribir-diarizado',
+        requestId: req.headers.get('x-vercel-id') || `td-${acceso.uid}-${Date.now()}`,
+        clinicId: clinicId ?? null, uid: acceso.uid,
+        creditos: COSTO_CREDITOS.transcribirDiarizado, fuente,
+        esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
+      },
+      'assemblyai', 'best',
+      { usage: { input_tokens: 0, output_tokens: 0 } },
+      Date.now() - t0Costo,
+    )
     return NextResponse.json({ ok: true, id })
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })
