@@ -145,7 +145,13 @@ pruebas en verde, y ningún efecto en la realidad.
 
 ### Deuda técnica congelada
 
-- **Lint: 104 errores** en el trinquete (`docs/audit/lint-techo.json`). Bajó de 105 en GA-009 al arreglar un `Date.now()` impuro en el render.
+- **Lint: 99 errores** en el trinquete (`docs/audit/lint-techo.json`). 105 → 104 en
+  GA-009 y **104 → 99 en GA-016**, arreglando los cuatro `Date.now()` leídos
+  durante el pintado (dos de ellos eran el folio impreso de la receta y de la
+  orden) más un `let` que nunca se reasigna. Los 99 que quedan son casi todos
+  `set-state-in-effect`: patrón de rendimiento, no de corrección, y tocarlos son
+  81 cambios de comportamiento en una app médica en producción — se hacen por
+  lotes verificables, no de golpe.
 - **CSP: la observación YA CORRE** (GA-014, v779). Sigue en modo aviso —eso no
   cambia hasta tener datos— pero la razón por la que no podía terminar era que
   los reportes iban a un log que nadie lee y que caduca. Ahora se acumulan y

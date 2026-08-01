@@ -103,7 +103,7 @@ export async function GET(req: NextRequest) {
 
     // ── Step 2: Get phone number info ─────────────────────────────
     let phoneNumber = ''
-    let phoneNumberId = channelId
+    const phoneNumberId = channelId
     try {
       const infoRes = await fetch('https://waba.360dialog.io/v1/settings/business/profile', {
         headers: { 'D360-API-KEY': apiKey },
