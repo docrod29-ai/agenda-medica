@@ -30,6 +30,7 @@ import { AutoLogout } from '@/components/AutoLogout'
 import { PaletteBusqueda } from '@/components/PaletteBusqueda'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { rutaPermitida } from '@/lib/modulos'
+import { PLANES, precioTexto } from '@/lib/planes-ia'
 
 function ModeBanner() {
   const { mode } = useMode()
@@ -152,13 +153,31 @@ function estadoAcceso(clinic: { status?: string; paseLibre?: boolean; plan?: str
   return 'sin_tarjeta'   // 'trial' o cuenta nueva → necesita tarjeta para iniciar
 }
 
-// Precios/créditos = fuente única PLANES en @/lib/planes-ia. Antes divergían aquí
-// (Pro $1,899 vs $1,590 canónico, Clínica 160 vs 200) → desync visible (auditoría P2).
-const PLANES_GATE = [
-  { key: 'agenda',  label: 'Agenda',  price: '$349',   nota: 'Agenda + expediente · sin IA' },
-  { key: 'clinica', label: 'Clínica', price: '$899',   nota: '200 créditos de IA/mes', destacado: true },
-  { key: 'premium', label: 'Pro',     price: '$1,590', nota: '450 créditos · IA máxima (Opus + GPT-5)' },
-]
+/**
+ * Los tres planes del gate, con el NOMBRE y el PRECIO leídos de `PLANES`.
+ *
+ * El comentario anterior ya decía «fuente única PLANES» — y justo debajo estaban
+ * los tres precios escritos a mano. Coincidían por casualidad: nada los ataba.
+ * El día que se suba una tarifa, esta pantalla —la que ve alguien a punto de
+ * pagar— seguiría enseñando la vieja, y el desajuste no lo nota nadie hasta que
+ * un médico compara lo que leyó con lo que le cobraron.
+ *
+ * Lo único que se conserva escrito aquí es la NOTA de una línea, porque es
+ * redacción comercial y no un dato: `incluye` de cada plan trae diez viñetas y
+ * en un botón no caben. `planes-precios.test.ts` vigila que no vuelva a
+ * colarse un precio.
+ */
+const PLANES_GATE = (['agenda', 'clinica', 'premium'] as const).map(clave => ({
+  key: clave,
+  label: PLANES[clave].nombre,
+  price: precioTexto(PLANES[clave]),
+  destacado: PLANES[clave].destacado,
+  nota: {
+    agenda:  'Agenda + expediente · sin IA',
+    clinica: `${PLANES.clinica.creditos} créditos de IA/mes`,
+    premium: `${PLANES.premium.creditos} créditos · IA máxima (Opus + GPT-5)`,
+  }[clave],
+}))
 
 /** Tras pagar, el webhook tarda unos segundos. Clínica en vivo → el gate se quita
  *  solo al activarse. Fallback: recargar una vez por si el webhook se retrasa. */

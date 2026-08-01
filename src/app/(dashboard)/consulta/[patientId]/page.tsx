@@ -1312,6 +1312,11 @@ export default function ConsultaActivaPage() {
         procedencia: construirManifiesto(
           { diagnosticos, medicamentos, alergias: alergiasArray(patient?.alergias), signosVitales: signosNum as unknown as Record<string, unknown> },
           extraction as never,
+          // Los vistos buenos del panel de revisión. Ya se guardaban como un
+          // número suelto (`camposAprobados`), que dice cuántos aceptó el médico
+          // pero no CUÁLES: ante una revisión, «aprobó tres cosas» no dice nada
+          // de la que se discute. Ahora el sello lo lleva campo por campo.
+          aprobados,
         ).resumen,
         procesadoEn: now,
         aprobadoPor: estado === 'firmada' ? (auth.currentUser?.email ?? '') : undefined,
@@ -2896,6 +2901,7 @@ export default function ConsultaActivaPage() {
         <SelloProcedencia
           final={{ diagnosticos, medicamentos, alergias: alergiasArray(patient?.alergias), signosVitales: signosNum as unknown as Record<string, unknown> }}
           extraction={extraction}
+          aprobados={aprobados}
         />
       )}
 
