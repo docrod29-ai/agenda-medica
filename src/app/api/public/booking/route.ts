@@ -16,6 +16,7 @@ import { getDaySchedule, validarHorarioDia } from '@/lib/availability'
 // del navegador, que se inicializa al importarse y revienta el build sin variables.
 import { estaBloqueado } from '@/lib/time-blocks-core'
 import { limitarOResponder } from '@/lib/rate-limit'
+import { elegirExpedienteParaCita } from '@/lib/pacientes/duplicados'
 
 interface Body {
   clinicId: string
@@ -150,12 +151,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Ese horario no está disponible (bloqueo/ausencia)' }, { status: 409 })
     }
 
-    // Buscar/crear paciente por teléfono (fuera de la transacción de la cita)
+    /**
+     * BUSCAR O CREAR EL PACIENTE — y no colgarle la cita a quien no es.
+     *
+     * Esto buscaba por TELÉFONO, tomaba el PRIMERO y le colgaba la cita. Sin
+     * mirar el nombre en ningún momento. En México el celular es de la casa, así
+     * que la reserva de un hijo aterrizaba en el expediente de quien se hubiera
+     * registrado antes con ese número — y con ella la nota, el diagnóstico y la
+     * receta que se escribieran después.
+     *
+     * No es un expediente partido: es información clínica en la persona
+     * equivocada, y encima por la puerta más expuesta de todas, donde el
+     * paciente reserva solo y no hay nadie mirando.
+     *
+     * Se sigue consultando por teléfono —es lo que el índice sabe hacer barato—
+     * pero ahora se traen VARIOS candidatos y decide el mismo motor que el resto
+     * de la aplicación, que exige parecido de NOMBRE. Si ninguno encaja, se crea
+     * uno nuevo: de los dos errores posibles, el duplicado es el barato.
+     */
     const tel = paciente.telefono.replace(/\D/g, '')
-    const pacientesSnap = await clinicRef.collection('patients').where('telefono', '==', tel).limit(1).get()
+    // `limit(10)` y no `limit(1)`: una familia con el mismo número son varios
+    // documentos, y con uno solo se decidía sobre el primero que apareciera.
+    const pacientesSnap = await clinicRef.collection('patients').where('telefono', '==', tel).limit(10).get()
+    const candidatos = pacientesSnap.docs.map(d => {
+      const x = d.data() as { nombre?: string; telefono?: string; whatsapp?: string; curp?: string; fechaNacimiento?: string; edad?: number }
+      return { id: d.id, nombre: x.nombre, telefono: x.telefono, whatsapp: x.whatsapp, curp: x.curp, fechaNacimiento: x.fechaNacimiento, edad: x.edad }
+    })
+    const elegido = elegirExpedienteParaCita({ nombre: paciente.nombre, telefono: tel }, candidatos)
     let pacienteId = ''
-    if (!pacientesSnap.empty) {
-      pacienteId = pacientesSnap.docs[0].id
+    if (elegido) {
+      pacienteId = elegido.id
     } else {
       const newP = await clinicRef.collection('patients').add({
         nombre: paciente.nombre.trim(),

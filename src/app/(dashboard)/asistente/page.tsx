@@ -13,6 +13,7 @@ import { useFiltroMedico, colorMedico } from '@/components/DoctorFilter'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { useToast } from '@/context/ToastContext'
 import { getPatients, createPatient } from '@/lib/firestore'
+import { elegirExpedienteParaCita } from '@/lib/pacientes/duplicados'
 import { normalizarNombre } from '@/lib/csv-pacientes'
 import type { Patient } from '@/types'
 import { fetchAutenticado } from '@/lib/auth-client'
@@ -186,21 +187,32 @@ function AsistenteInner() {
       let avisoSinExpediente = false
       try {
         const pacientes = await getPatients(clinicId!)
-        // Prioriza el TELÉFONO. Solo funde por nombre si NO hay teléfono en
-        // conflicto (dos personas con el mismo nombre y teléfonos distintos NO se
-        // fusionan → se crea uno nuevo, evita mezclar expedientes).
-        // AUDITORÍA (PHI): una reserva SIN teléfono NO debe fundirse con un
-        // homónimo que SÍ tiene teléfono (no hay forma de confirmar que es la
-        // misma persona) → antes el disyunto `!tel` lo permitía y la cita/el
-        // expediente caían bajo la persona equivocada. Ahora sólo funde por
-        // nombre cuando el existente no tiene teléfono o coincide con el dado.
-        const dig = (t?: string) => (t ?? '').replace(/\D/g, '')
-        const existente =
-          (tel && pacientes.find(p => dig(p.telefono) === tel)) ||
-          pacientes.find(p =>
-            p.nombre.toLowerCase().trim() === nombreLimpio.toLowerCase() &&
-            (!dig(p.telefono) || dig(p.telefono) === tel)
-          )
+        /**
+         * CON QUÉ EXPEDIENTE SE FUNDE ESTA CITA.
+         *
+         * La regla anterior tenía dos ramas y la PRIMERA fundía por TELÉFONO A
+         * SOLAS, sin mirar el nombre. En México el celular es de la casa: con la
+         * madre registrada con el número de casa, la cita del hijo se colgaba del
+         * expediente de ELLA — y con ella la nota, el diagnóstico y la receta que
+         * se escribieran después.
+         *
+         * No es un expediente partido, que se arregla: es información clínica en
+         * la persona equivocada, y no se ve como un error. Se ve como un paciente
+         * que vino a consulta.
+         *
+         * El comentario que había aquí se preocupaba justo de eso —«la cita/el
+         * expediente caían bajo la persona equivocada»— pero sólo se había
+         * endurecido la segunda rama. La primera seguía abierta.
+         *
+         * Ahora decide `elegirExpedienteParaCita`, que exige DOS cosas: que los
+         * nombres se parezcan (el teléfono nunca basta solo) y que los teléfonos
+         * no se contradigan. Ante la duda crea uno nuevo, porque de los dos
+         * errores posibles el duplicado es el barato.
+         */
+        const existente = elegirExpedienteParaCita(
+          { nombre: nombreLimpio, telefono: tel },
+          pacientes,
+        )
         if (existente) {
           pacienteId = existente.id
         } else {

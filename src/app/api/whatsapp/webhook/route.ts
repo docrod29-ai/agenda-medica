@@ -25,6 +25,7 @@ import { ClinicConfig, Doctor, Appointment, AppointmentType } from '@/types'
 import { sendWhatsApp } from '@/lib/whatsapp-send'
 import { marcarProcesado, telefonoRedactado } from '@/lib/whatsapp/dedup'
 import { permiteFallbackUnicoTenant } from '@/lib/whatsapp/tenant'
+import { elegirExpedienteParaCita } from '@/lib/pacientes/duplicados'
 import {
   esPalabraBaja, esPalabraAlta, registrarBaja, registrarAlta,
   MENSAJE_BAJA_OK, MENSAJE_ALTA_OK, normalizarTelefonoWa,
@@ -61,8 +62,38 @@ async function resolverPacienteBot(clinicId: string, telefonoRaw: string, nombre
       [diez, canonico, `521${diez}`, telefonoRaw.replace(/\D/g, '')].filter(Boolean),
     )).slice(0, 10)
     const pRef = adminDb.collection('clinics').doc(clinicId).collection('patients')
-    const snap = await pRef.where('telefono', 'in', candidatos).limit(1).get()
-    if (!snap.empty) return snap.docs[0].id
+    // `limit(10)` y no `limit(1)`: una familia comparte el WhatsApp de la casa, y
+    // con un solo documento se decidía sobre el primero que devolviera el índice.
+    const snap = await pRef.where('telefono', 'in', candidatos).limit(10).get()
+    if (!snap.empty) {
+      /**
+       * AQUÍ EL TELÉFONO SÍ ES LA IDENTIDAD… HASTA QUE HAY UN NOMBRE.
+       *
+       * El mensaje viene DE ese número, así que emparejar por teléfono es más
+       * defendible que en el resto de la aplicación. Pero el WhatsApp es de la
+       * casa: la madre escribe para agendar a su hijo, y con la regla vieja
+       * —tomar el primer expediente con ese número— la cita del hijo aterrizaba
+       * en el expediente de ella, y con ella todo lo que se escribiera después.
+       *
+       * Cuando el bot SÍ tiene un nombre, decide el mismo motor que el resto:
+       * exige que se parezca. Si ninguno de los expedientes de esa casa es esta
+       * persona, se crea uno nuevo.
+       *
+       * Cuando NO hay nombre utilizable, se cae al comportamiento de antes a
+       * propósito: sin nombre no hay forma de distinguir a dos miembros de la
+       * misma casa, y crear un expediente en cada mensaje llenaría el consultorio
+       * de registros vacíos, que es peor que el riesgo que se evitaría.
+       */
+      const candidatosPac = snap.docs.map(d => {
+        const x = d.data() as { nombre?: string; telefono?: string; whatsapp?: string; curp?: string; fechaNacimiento?: string; edad?: number }
+        return { id: d.id, nombre: x.nombre, telefono: x.telefono, whatsapp: x.whatsapp, curp: x.curp, fechaNacimiento: x.fechaNacimiento, edad: x.edad }
+      })
+      const nombreUtil = (nombre || '').trim()
+      if (nombreUtil.length < 4) return candidatosPac[0].id
+      const elegido = elegirExpedienteParaCita({ nombre: nombreUtil, telefono: diez }, candidatosPac)
+      if (elegido) return elegido.id
+      // Hay expedientes con ese número, pero ninguno es esta persona → se crea.
+    }
     const np = await pRef.add({
       nombre: (nombre || '').trim(),
       telefono: diez,   // se guarda en 10 dígitos (como el panel), para futuros matches
