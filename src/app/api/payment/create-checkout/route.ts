@@ -80,11 +80,34 @@ export async function POST(req: NextRequest) {
       metadata: { clinicId, citaId, tipo: 'paciente_anticipo' },
     })
 
-    // Marcar la cita como pendiente-pago para tracking
+    /**
+     * NO SE PISA LA TARIFA CON EL ANTICIPO.
+     *
+     * Aquí se escribía `pagoMonto: montoMXN`, y `montoMXN` es lo que se va a
+     * cobrar AHORA (la tarifa si existe, si no el anticipo del consultorio).
+     * Después el webhook decide si el pago salda la cita comparando contra ese
+     * mismo campo:
+     *
+     *     const esperado = Number(cita?.pagoMonto) || 0
+     *     const cubre = esperado <= 0 || monto + 0.01 >= esperado
+     *
+     * Como el campo acababa de reescribirse con lo cobrado, `cubre` salía
+     * SIEMPRE true y la rama de abono era inalcanzable por construcción.
+     *
+     * En la práctica: consulta de $800 con anticipo de $200 → cobro de $200
+     * registrado como 'consulta', cita 'pagada', botón «Cobrar» oculto y fuera
+     * de cuentas por cobrar. Los $600 desaparecían sin que nadie los viera.
+     *
+     * Ahora la tarifa esperada se conserva y lo cobrado va en su propio campo.
+     */
+    const yaHabiaTarifa = Number(citaSnap.data()?.pagoMonto) > 0
     await citaRef.update({
       estado: 'pendiente-pago',
       pagoStripeSessionId: session.id,
-      pagoMonto: montoMXN,
+      // Sólo se escribe si NO había tarifa: en ese caso el importe cobrado es lo
+      // único que este sistema sabe, y el webhook lo declarará como tal.
+      ...(yaHabiaTarifa ? {} : { pagoMonto: montoMXN, pagoMontoEsAnticipoSinTarifa: true }),
+      pagoCobrado: montoMXN,
       pagoMoneda: currency,
       updatedAt: new Date().toISOString(),
     })

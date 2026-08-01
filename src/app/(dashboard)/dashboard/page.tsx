@@ -60,7 +60,7 @@ function nombreSaludo(
 }
 
 export default function DashboardPage() {
-  const { appointments, loading } = useAppointments()
+  const { appointments, loading, error: errorCitas } = useAppointments()
   const { config } = useConfig()
   const { user } = useAuth()
   const { role } = useClinic()
@@ -192,6 +192,15 @@ export default function DashboardPage() {
           </div>
           {loading ? (
             <Spinner center label="Cargando citas…" />
+          ) : errorCitas ? (
+            /* «Tu agenda de hoy está libre» con la red caída es la frase más
+               peligrosa de esta pantalla: el médico la lee y se va. */
+            <EmptyState
+              icon={<CalendarDays size={22} />}
+              title="No se pudo cargar la agenda"
+              description="No es que no tengas citas: no se pudieron leer. Revisa tu conexión."
+              action={<Button variant="secondary" size="sm" onClick={() => window.location.reload()}>Reintentar</Button>}
+            />
           ) : todayAppts.length === 0 ? (
             <EmptyState
               icon={<CalendarDays size={22} />}

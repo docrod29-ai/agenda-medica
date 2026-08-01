@@ -218,6 +218,13 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     porQue: 'Los cabos sueltos de la consulta: estudios pedidos, resultados por revisar, seguimientos. El título de una tarea es «Perfil tiroideo» junto al nombre del paciente — información clínica, así que la asistente no entra, igual que en las notas. No se borran: la constancia de que algo se dejó de hacer es justo lo que hace falta si un día se revisa el caso.',
   },
   {
+    ruta: 'clinics/{clinicId}/alertas_no_entregadas/{alertaId}',
+    clase: 'clinico',
+    guardaLectura: 'isMedico',
+    guardaEscritura: 'servidor',
+    porQue: 'Alertas críticas (lab crítico, NEWS2, interconsulta) que NO llegaron. Las escribe sólo el servidor; desde el navegador se leen y nada más. Poder borrarlas convertiría «no llegó la alerta» en algo que se puede hacer desaparecer, que es justo lo que hay que poder revisar después.',
+  },
+  {
     ruta: 'clinics/{clinicId}/laboratorio/{ordenId}',
     clase: 'clinico',
     guardaLectura: 'isClinicoHospital',

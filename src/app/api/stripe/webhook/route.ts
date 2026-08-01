@@ -236,12 +236,36 @@ export async function POST(req: NextRequest) {
           // pagoMonto). Un pago parcial se registra como 'abono' y la cita queda
           // 'pendiente-pago' con el saldo, no como 'pagada'. Así corte-caja no la
           // da por cobrada (corte-caja: concepto 'abono' NO salda).
+          /**
+           * ¿ESTE PAGO SALDA LA CONSULTA, O ES UN ABONO?
+           *
+           * `pagoMonto` es la tarifa que fijó el servidor. Cuando el consultorio
+           * NO tenía tarifa para esa cita, el checkout escribió ahí el anticipo
+           * y lo marcó: en ese caso el sistema NO sabe cuánto vale la consulta,
+           * así que no puede afirmar que quede saldada — sólo puede decirlo.
+           */
+          const sinTarifaConocida = cita?.pagoMontoEsAnticipoSinTarifa === true
           const esperado = Number(cita?.pagoMonto) || 0
           const cubre = esperado <= 0 || monto + 0.01 >= esperado
           const cobroRef = await adminDb.collection('clinics').doc(clinicId).collection('cobros').add({
             fecha: iso, dia, mes: dia.slice(0, 7),
-            monto, metodo: 'tarjeta', concepto: cubre ? 'consulta' : 'abono',
-            descripcion: cubre ? 'Anticipo pagado en línea por el paciente' : 'Abono parcial pagado en línea por el paciente',
+            /**
+             * `metodo` TIENE que ser un MetodoPago válido.
+             *
+             * Estaba escrito 'tarjeta', que NO existe en el catálogo (las claves
+             * son tarjeta_debito, tarjeta_credito, stripe…). Dos daños: en el
+             * desglose por forma de pago del corte la fila salía sin etiqueta, y
+             * la exportación a CSV reventaba con TypeError al hacer
+             * `METODO_LABEL[c.metodo].replace(...)` — o sea, cualquier periodo
+             * con un anticipo en línea no se podía descargar, que es justo el
+             * archivo que se le manda al contador.
+             */
+            monto, metodo: 'stripe', concepto: cubre ? 'consulta' : 'abono',
+            descripcion: cubre
+              ? (sinTarifaConocida
+                  ? 'Anticipo pagado en línea (el consultorio no tenía tarifa fijada para esta cita)'
+                  : 'Pago en línea del paciente')
+              : 'Abono parcial pagado en línea por el paciente',
             citaId: citaId || undefined,
             patientId: (cita?.pacienteId as string) || undefined,
             patientNombre: (cita?.pacienteNombre as string) || undefined,

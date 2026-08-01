@@ -46,6 +46,12 @@ export type AuditEvento =
   | 'login_fallido'              // intento de login fallido
   | 'export_datos'               // se exportaron datos del paciente
   | 'cobro_exento'               // se marcó una cita como cortesía (no cobrar), con motivo
+  // === Agenda (trazabilidad NOM-024) ===
+  // Cancelar, marcar "no asistió" y BORRAR una cita se hacían sin dejar rastro,
+  // mientras el booking público sí registraba. Borrar además destruye el
+  // documento: sin bitácora no queda ni la constancia de que existió.
+  | 'cita_estado_cambiado'       // cancelada / no-asistió / confirmada / atendida
+  | 'cita_borrada'               // se eliminó una cita del calendario
   // === Hospitalización (trazabilidad NOM-004) ===
   | 'hosp_ingreso'               // ingreso hospitalario
   | 'hosp_egreso'                // egreso hospitalario

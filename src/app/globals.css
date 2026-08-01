@@ -31,20 +31,38 @@
 
   /* Acento de marca: cobalto NexusMED
      (los nombres --teal se mantienen por back-compat — son ahora cobalto) */
-  --nexus:        #3D5AFE;
+  --nexus:        #6E84FE;   /* AA sobre --s3 (4.63); antes #3D5AFE = 2.96 */
   --nexus-hover:  #2845EA;
   --nexus-soft:   rgba(61, 90, 254, 0.12);
   --teal:         var(--nexus);
   --teal-dim:     var(--nexus-hover);
   --teal-glow:    var(--nexus-soft);
 
-  /* Semántica clínica (menos saturada, más profesional) */
-  --blue:      #4F7CE0;
+  /*
+    Semántica clínica — DARK, con contraste AA medido.
+
+    LA CORRECCIÓN DE CONTRASTE SE HABÍA APLICADO SÓLO A UN TEMA. El bloque
+    light-mode de más abajo está medido y documentado; este lado conservaba los
+    valores crudos, y cuatro de ellos reprobaban AA sobre TODAS las superficies
+    oscuras (medido sobre --s3, la peor: rojo 3.15, verde 3.03, morado 2.67,
+    nexus 2.96 — el mínimo es 4.5).
+
+    No es cosmética: --red es el color del mensaje de error bajo un campo de
+    dosis, del asterisco de campo obligatorio y de las alertas clínicas. Y dejaba
+    la jerarquía invertida — en las alertas de UCI, «crítica» se veía MÁS
+    apagada que «informativa».
+
+    Mismo tono, más luminosidad, hasta pasar 4.5:1 sobre --s3 (y por tanto sobre
+    --s2, --s1 y --bg). Verificado con la fórmula de luminancia relativa WCAG 2.1:
+      red #E66464 → 4.61 · green #1BA34D → 4.63 · purple #A375F2 → 4.62
+      blue #648BE4 → 4.60 · amber #D97706 → 4.77 (ya pasaba, se deja)
+  */
+  --blue:      #648BE4;
   --blue-dim:  #3D62C4;
   --amber:     #D97706;
-  --red:       #DC2626;
-  --green:     #15803D;
-  --purple:    #7C3AED;
+  --red:       #E66464;
+  --green:     #1BA34D;
+  --purple:    #A375F2;
 
   /* Badges de estado (texto sobre fondo) — DARK. Texto claro sobre tinte oscuro
      translúcido; verificado con buen contraste en modo oscuro. */

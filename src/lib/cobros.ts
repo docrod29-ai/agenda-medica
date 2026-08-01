@@ -494,11 +494,24 @@ export function cobrosACSV(cobros: Cobro[]): string {
   const rows = cobros.map(c => [
     c.folio ?? '',
     c.fecha,
-    CONCEPTO_LABEL[c.concepto],
+    CONCEPTO_LABEL[c.concepto] ?? String(c.concepto ?? ''),
     csv(c.descripcion ?? ''),
     csv(c.patientNombre ?? ''),
     csv(c.medicoNombre ?? ''),
-    METODO_LABEL[c.metodo].replace(/[💵💳🏦📃]/g, '').trim(),
+    /**
+     * UNA ETIQUETA QUE FALTA NO PUEDE TUMBAR LA EXPORTACIÓN ENTERA.
+     *
+     * Esto era `METODO_LABEL[c.metodo].replace(...)`. El webhook del anticipo
+     * escribía `metodo: 'tarjeta'`, que NO existe en el catálogo, así que la
+     * búsqueda daba `undefined` y el `.replace` lanzaba TypeError: cualquier
+     * periodo que contuviera un anticipo en línea NO SE PODÍA DESCARGAR — y ése
+     * es justo el archivo que se le manda al contador.
+     *
+     * El origen ya está arreglado (ahora escribe 'stripe'), pero los cobros
+     * viejos con 'tarjeta' siguen en la base: sin esta guarda, el contador
+     * seguiría sin poder bajar los meses pasados.
+     */
+    (METODO_LABEL[c.metodo] ?? String(c.metodo ?? 'otro')).replace(/[💵💳🏦📃]/g, '').trim(),
     c.monto.toFixed(2),
     c.citaId ?? '',
     c.facturaUuid ?? '',

@@ -562,6 +562,17 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      /**
+       * Alertas críticas que NO se pudieron entregar. Las escribe SÓLO el
+       * servidor (Admin SDK, que no pasa por estas reglas); desde el navegador
+       * se leen y nada más. Que el propio consultorio pudiera borrarlas
+       * convertiría «no llegó la alerta» en algo que se puede hacer desaparecer.
+       */
+      match /alertas_no_entregadas/{alertaId} {
+        allow read: if isMedico(clinicId);
+        allow write: if false;
+      }
+
       match /cobros/{cobroId} {
         allow read: if isMember(clinicId);
         /**

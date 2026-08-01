@@ -33,6 +33,12 @@ const EVENTOS = new Set([
   'aviso_privacidad_aceptado', 'arco_solicitud_recibida', 'arco_solicitud_resuelta',
   'login_exitoso', 'login_fallido', 'export_datos',
   'hosp_ingreso', 'hosp_egreso', 'hosp_administracion', 'hosp_traslado', 'hosp_lab_resultado',
+  // 'cobro_exento' EXISTÍA en el tipo pero faltaba aquí: la marca de cortesía se
+  // registraba desde la pantalla y el servidor la descartaba en silencio (400),
+  // con `logAudit` tragándose el error a propósito para no romper la operación.
+  // O sea: había bitácora de cortesías en el código y ninguna en la base.
+  'cobro_exento',
+  'cita_estado_cambiado', 'cita_borrada',
 ])
 
 /** Recorta a texto corto: la bitácora no es sitio para volcar contenido clínico. */
