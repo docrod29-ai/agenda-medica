@@ -351,7 +351,16 @@ export async function POST(req: NextRequest) {
         if (session.mode !== 'subscription') break
         const plan = ES_PLAN(session.metadata?.plan) ? session.metadata!.plan as PlanKey : 'clinica'
         const nuevaSubId = String(session.subscription ?? '')
-        await activarPlan(clinicId, plan, { stripeSubscriptionId: nuevaSubId })
+        /**
+         * EL CICLO SE GUARDA EN LA CLÍNICA.
+         *
+         * No se persistía en ninguna parte —sólo viajaba en los metadatos de
+         * Stripe—, así que nada en la aplicación distinguía un cliente anual de
+         * uno mensual: ni la pantalla de plan, ni el MRR de la consola. Y al
+         * cambiar de plan, la pantalla no sabía qué ciclo conservar.
+         */
+        const cicloComprado = session.metadata?.ciclo === 'anual' ? 'anual' : 'mensual'
+        await activarPlan(clinicId, plan, { stripeSubscriptionId: nuevaSubId, ciclo: cicloComprado })
         // Evita empalme: cancela cualquier otra suscripción activa del cliente.
         if (session.customer && nuevaSubId) {
           await cancelarOtrasSuscripciones(String(session.customer), nuevaSubId)

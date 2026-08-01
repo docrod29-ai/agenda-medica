@@ -4,7 +4,7 @@
 //  · Resumen/Notas  · Indicaciones + MAR  · Signos vitales  · Interconsultas
 // Rol (médico/enfermería/admin) filtra las acciones visibles (vista, no seguridad).
 // ══════════════════════════════════════════════════════════════
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { proyectarSignos, acvpu, concienciaExigeReSeleccion } from '@/lib/hospital/eventos'
 import { useParams, useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
@@ -150,6 +150,8 @@ export default function EpisodioPage() {
   const [labExtra, setLabExtra] = useState('')
   const [cargandoRes, setCargandoRes] = useState<SolicitudLab | null>(null)  // orden a la que se le cargan resultados
   const [resForm, setResForm] = useState<ResultadoLab[]>([])
+  /** De qué solicitud son los valores que hay en `resForm` ahora mismo. */
+  const resSolicitudRef = useRef<string | null>(null)
   const [modalImport, setModalImport] = useState(false)
   const [importTxt, setImportTxt] = useState('')
   const [modalConcil, setModalConcil] = useState(false)
@@ -769,7 +771,22 @@ export default function EpisodioPage() {
                 )}
                 {((rol === 'laboratorio' || rol === 'medico') && l.estado !== 'resultado') || (esMedico && l.estado === 'solicitada' && !egresado) ? (
                   <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {(rol === 'laboratorio' || rol === 'medico') && <Button size="sm" variant="secondary" onClick={() => { setResForm(l.estudios.map(e => ({ estudio: e, valor: '', unidad: '', critico: false }))); setCargandoRes(l) }}>Cargar resultados</Button>}
+                    {(rol === 'laboratorio' || rol === 'medico') && <Button size="sm" variant="secondary" onClick={() => {
+                      /*
+                        NO SE REINICIALIZA SI YA HAY ALGO TECLEADO PARA ESTA MISMA
+                        SOLICITUD. Antes se rellenaba de vacío en CADA apertura, así
+                        que cerrar el diálogo (Escape, o un clic fuera al querer
+                        quitar un tooltip) y volver a abrir dejaba en blanco los 14
+                        valores de una biometría y una química recién capturados.
+                      */
+                      const mismaSolicitud = resSolicitudRef.current === l.id
+                      const hayCapturado = resForm.some(r => r.valor.trim())
+                      if (!mismaSolicitud || !hayCapturado) {
+                        setResForm(l.estudios.map(e => ({ estudio: e, valor: '', unidad: '', critico: false })))
+                      }
+                      resSolicitudRef.current = l.id
+                      setCargandoRes(l)
+                    }}>Cargar resultados</Button>}
                     {/* Cancelar SOLO mientras esté 'solicitada' (aún no la procesa el laboratorio). */}
                     {esMedico && l.estado === 'solicitada' && !egresado && <Button size="sm" variant="secondary" icon={<Trash2 size={13} />} onClick={async () => { if (!clinicId || !(await confirm('¿Cancelar esta orden de laboratorio?', { peligro: true, confirmar: 'Cancelar orden' }))) return; try { await borrarSolicitudLab(clinicId, l.id); toast('Orden cancelada', 'success'); cargar() } catch (e) { toast(e instanceof Error ? e.message : 'No se pudo cancelar', 'error') } }}>Cancelar orden</Button>}
                   </div>
@@ -1134,8 +1151,13 @@ export default function EpisodioPage() {
       </Modal>
 
       {/* Cargar resultados de laboratorio */}
+      {/*
+        Cerrar CONSERVA lo tecleado (ver el botón «Cargar resultados»): el
+        diálogo se cierra pero los valores siguen ahí al volver a abrirlo. Sin
+        eso, un Escape tiraba una biometría y una química enteras.
+      */}
       <Modal open={!!cargandoRes} onClose={() => setCargandoRes(null)} title="Cargar resultados"
-        footer={<><Button variant="secondary" onClick={() => setCargandoRes(null)}>Cancelar</Button><Button loading={busy} onClick={async () => {
+        footer={<><Button variant="secondary" onClick={() => setCargandoRes(null)}>Cerrar (se conserva lo escrito)</Button><Button loading={busy} onClick={async () => {
           if (!clinicId || !cargandoRes || !inter) return; setBusy(true)
           // Respaldo determinista: marca crítico por rango aunque no se haya marcado a mano.
           const resultados = resForm.filter(r => r.valor.trim()).map(r => ({ ...r, critico: r.critico || esCriticoLab(r.estudio, r.valor, r.unidad) }))

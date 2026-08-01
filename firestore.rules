@@ -634,6 +634,26 @@ service cloud.firestore {
           && request.resource.data.citaId == resource.data.citaId
           && request.resource.data.patientId == resource.data.patientId
           && request.resource.data.creadoPor == resource.data.creadoPor
+          /**
+           * EL MÉDICO DEL COBRO TAMBIÉN SE CONGELA.
+           *
+           * `medicoId` y `medicoNombre` NO estaban en esta lista, y la rama (b)
+           * sólo exige que `facturaUuid` sea un string —vale la cadena vacía—.
+           * O sea: cualquier miembro, incluida recepción, podía mandar un update
+           * con `facturaUuid: ''` y el `medicoId` cambiado, y el cobro pasaba de
+           * un médico a otro.
+           *
+           * Eso MUEVE DINERO: la base comisionable se acumula exactamente por
+           * `medicoId`. Y a diferencia de la anulación, esta rama no deja ningún
+           * campo de autoría, así que el traslado no se podía rastrear.
+           *
+           * `referenciaExterna` y `folio` entran por el mismo motivo: son los
+           * únicos hilos que atan un cobro en línea con su operación en Stripe.
+           */
+          && request.resource.data.get('medicoId', '') == resource.data.get('medicoId', '')
+          && request.resource.data.get('medicoNombre', '') == resource.data.get('medicoNombre', '')
+          && request.resource.data.get('referenciaExterna', '') == resource.data.get('referenciaExterna', '')
+          && request.resource.data.get('folio', '') == resource.data.get('folio', '')
           && (
             // (a) ANULAR: false/ausente → true, con autor, fecha y motivo.
             (resource.data.cancelado != true

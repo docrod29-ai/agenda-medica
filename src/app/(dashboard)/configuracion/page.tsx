@@ -1522,6 +1522,11 @@ function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null)
+  /**
+   * El ciclo que el consultorio tiene HOY, para conservarlo al cambiar de plan.
+   * Se guarda en la clínica al activar (ver el webhook); si no está, mensual.
+   */
+  const cicloActual: 'mensual' | 'anual' = (clinic as { ciclo?: string } | null)?.ciclo === 'anual' ? 'anual' : 'mensual'
 
   const plan    = clinic?.plan    ?? 'trial'
   const status  = clinic?.status  ?? 'trial'
@@ -1555,7 +1560,14 @@ function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
       const res = await fetchAutenticado('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clinicId, plan: targetPlan, email: user?.email ?? '' }),
+        /**
+         * EL CICLO VIAJA. Antes NO se mandaba, así que el servidor lo forzaba a
+         * 'mensual': un cliente que había contratado ANUAL y cambiaba de plan
+         * desde aquí pasaba a mensual, y su suscripción anual se cancelaba sin
+         * prorrateo — perdía los meses del año que ya había pagado, sin nota ni
+         * abono en ninguna parte.
+         */
+        body: JSON.stringify({ clinicId, plan: targetPlan, email: user?.email ?? '', ciclo: cicloActual }),
       })
       const data = await res.json()
       if (data.url) window.location.href = data.url

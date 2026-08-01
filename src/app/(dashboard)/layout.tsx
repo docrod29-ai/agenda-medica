@@ -48,6 +48,46 @@ function ModeBanner() {
   )
 }
 
+/**
+ * AVISO DE COBRO PENDIENTE — el campo que nadie leía.
+ *
+ * El webhook escribe `pagoVencido: true` en el primer intento fallido del ciclo
+ * (y `disputaAbierta` en un contracargo), y `grep` decía que **nadie** los lee:
+ * ni un banner, ni un correo, ni una tarjeta en la consola del dueño.
+ *
+ * Eso importa porque `past_due` se mapea a «activo» a propósito —durante el
+ * dunning de Stripe no se corta el acceso, lo cual es correcto: un rechazo
+ * transitorio no puede dejar al médico sin los expedientes de sus pacientes—.
+ * Pero si la configuración de reintentos de Stripe termina dejando la
+ * suscripción en `past_due` en vez de `unpaid`, la clínica se queda con acceso
+ * total, sin pagar, indefinidamente, y el único indicio vive en un campo que
+ * nada consulta.
+ *
+ * Con el aviso, el médico puede arreglarlo antes de que se corte de verdad.
+ */
+function AvisoCobroPendiente() {
+  const { clinic } = useClinic()
+  const c = clinic as { pagoVencido?: boolean; disputaAbierta?: boolean } | null
+  if (!c?.pagoVencido && !c?.disputaAbierta) return null
+  const esDisputa = !!c.disputaAbierta
+  return (
+    <div role="status" style={{
+      padding: '10px 16px', background: 'var(--s2)', borderBottom: '1px solid var(--amber)',
+      fontSize: 13, color: 'var(--text2)', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap',
+    }}>
+      <AlertTriangle size={15} style={{ color: 'var(--amber)', flexShrink: 0 }} />
+      <span>
+        {esDisputa
+          ? <>Hay un <strong>contracargo abierto</strong> sobre un pago de tu suscripción.</>
+          : <>No se pudo cobrar tu suscripción. <strong>Stripe lo volverá a intentar</strong>, y mientras tanto conservas el acceso.</>}
+      </span>
+      <Link href="/configuracion?tab=suscripcion" style={{ color: 'var(--teal)', fontWeight: 600, textDecoration: 'none' }}>
+        Revisar el método de pago
+      </Link>
+    </div>
+  )
+}
+
 function TrialBanner() {
   const { clinic } = useClinic()
   /**
@@ -565,6 +605,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
 
         <OfflineBanner />
         <ModeBanner />
+        <AvisoCobroPendiente />
         <TrialBanner />
         <NotificacionesPushOptIn />
         <FirmadorDisenos />
