@@ -5,7 +5,6 @@ import { estadoPaywall } from '@/lib/finanzas/paywall-prueba'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { esSuperadminCliente } from '@/lib/superadmin-client'
-import { limpiarBorradoresLocales, limpiarAudioLocal } from '@/lib/mobile/local-drafts'
 import { limpiarZonaConsultorio, fijarZonaConsultorio } from '@/lib/timezone'
 import { getConfig } from '@/lib/firestore'
 import { useClinic } from '@/context/ClinicContext'
@@ -31,6 +30,7 @@ import { PaletteBusqueda } from '@/components/PaletteBusqueda'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { rutaPermitida } from '@/lib/modulos'
 import { PLANES, precioTexto, type PlanCreditos } from '@/lib/planes-ia'
+import { salirSeguro } from '@/lib/salir-seguro'
 
 function ModeBanner() {
   const { mode } = useMode()
@@ -321,7 +321,12 @@ function AccesoGate({ estado, clinicId, esMedico, email }: { estado: 'sin_tarjet
             Pago seguro con Stripe · Cancela cuando quieras · ¿Tienes código <strong>FUNDADOR</strong>? Aplícalo en el pago.
           </div>
         )}
-        <button onClick={() => { limpiarBorradoresLocales(); limpiarAudioLocal(); limpiarZonaConsultorio(); import('@/lib/firebase').then(({ auth }) => auth.signOut()) }}
+        {/*
+          Purgaba los borradores SIN pedir guardar antes. Ahora usa la misma
+          salida segura que el Sidebar: espera el acuse y no borra lo local si
+          el trabajo no llegó al servidor.
+        */}
+        <button onClick={() => { void salirSeguro('/login') }}
           style={{ marginTop: 22, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}>
           Cerrar sesión
         </button>
@@ -453,7 +458,17 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
               Reintentar
             </button>
             <button
-              onClick={() => { limpiarBorradoresLocales(); limpiarAudioLocal(); limpiarZonaConsultorio(); import('@/lib/firebase').then(({ auth }) => auth.signOut()).finally(() => { window.location.href = '/login' }) }}
+              /*
+                ESTE ERA EL PEOR DE LOS DOS.
+                Vive en la pantalla «No pudimos cargar tu consultorio», que se
+                muestra justo cuando NO hay conexión — o sea, justo cuando el
+                borrador sólo existe en el disco. El médico hacía lo natural,
+                cerrar sesión para volver a entrar, y se borraba lo único que
+                quedaba de su consulta. El mensaje de esa misma pantalla decía
+                «Tus datos están a salvo en el servidor», que en ese caso es
+                exactamente falso.
+              */
+              onClick={() => { void salirSeguro('/login') }}
               style={{
                 background: 'none', border: '1px solid var(--border)', color: 'var(--text2)',
                 borderRadius: 10, padding: '11px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer',

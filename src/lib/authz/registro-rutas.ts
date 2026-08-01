@@ -195,10 +195,18 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
     motivo: 'Gateway de mutaciones del internamiento: la capacidad depende de la acción del body (18 acciones), no del verbo HTTP.',
   },
 
+  /**
+   * La «C» de ARCO. `administrar` porque suprimir o bloquear un expediente es
+   * decisión del responsable del tratamiento de los datos, no del mostrador.
+   */
+  'arco/cancelar': { tipo: 'capacidad', capacidad: 'administrar' },
+
   // ── cobro y facturación ──────────────────────────────────────────────────
   'facturacion/descargar': {
     tipo: 'capacidad', capacidad: 'facturar',
-    activacionPendiente: 'Q4 — ¿la asistente descarga CFDI o solo cobra? Activar `facturar` la deja fuera.',
+    // RESUELTO 2026-08-01 (Q4): la asistente FACTURA, no sólo cobra. Timbrar el
+    // CFDI del cobro que acaba de registrar es el mismo trabajo, en el mismo
+    // mostrador, y el paciente pide la factura ahí mismo.
   },
   'facturacion/pagos': {
     tipo: 'capacidad', capacidad: 'cobrar',
@@ -257,10 +265,9 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
       'miembro autenticado. El token se evalúa PRIMERO y el fallo devuelve 404, no ' +
       '403, para no confirmar que el citaId existe (fuga cerrada en la auditoría ' +
       'maestra 2026-07).',
-    activacionPendiente:
-      'La rama del equipo sigue en `verificarMiembro`. Activar `clinico.leer` ' +
-      'estrecharía a `secretaria`, que hoy puede abrir la sala desde /teleconsulta. ' +
-      'Falta confirmar con el dueño si el mostrador entra a la sala.',
+    // RESUELTO 2026-08-01: el dueño confirmó que el mostrador NO entra a la sala.
+    // Entrar a la teleconsulta es asistir al paciente, no agendarlo. La rama del
+    // equipo ya exige `clinico.leer`; `secretaria` queda fuera a propósito.
   },
   'telesalud/token': { tipo: 'capacidad', capacidad: 'clinico.escribir' },
 

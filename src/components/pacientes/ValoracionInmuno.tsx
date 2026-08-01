@@ -85,8 +85,32 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
   useEffect(() => { vRef.current = v }, [v])
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  /**
+   * EL PANEL SE REMONTABA VACÍO Y EL SIGUIENTE TECLEO BORRABA TODO.
+   *
+   * `useState(() => ({ ...patient.txValoracion }))` sólo corre AL MONTAR, y este
+   * componente se desmonta al cambiar el tipo de nota. El `patient` de la
+   * consulta se carga una vez y nunca se refresca, así que al volver el panel
+   * renacía desde una copia VIEJA —normalmente vacía—. Y como `persist` escribe
+   * el objeto COMPLETO, la primera tecla sobrescribía en Firestore todo lo
+   * capturado antes: huésped, CD4, serologías y las ALERGIAS a antimicrobianos.
+   *
+   * `cargadoRef` guarda lo que había cuando este componente nació. Si la
+   * pantalla está vacía y en el expediente sí hay datos, no se escribe: es la
+   * señal de que se remontó, no de que el médico borró algo.
+   */
+  const cargadoRef = useRef<V>({ ...(patient.txValoracion || {}) })
+
   const persist = useCallback((next: V) => {
     if (!clinicId) { setStatus('No se pudo guardar: falta la clínica.'); return }
+    const habiaAntes = Object.values(cargadoRef.current).filter(x => String(x ?? '').trim()).length
+    const hayAhora = Object.values(next).filter(x => String(x ?? '').trim()).length
+    if (habiaAntes > 0 && hayAhora < habiaAntes / 2) {
+      // Perder de golpe más de la mitad de lo capturado no es una edición: es un
+      // remontaje. Se avisa en vez de escribir el borrado en el expediente.
+      setStatus('⚠ La valoración se recargó incompleta y NO se guardó, para no borrar lo que ya estaba. Vuelve a abrir el expediente del paciente.')
+      return
+    }
     if (saveTimer.current) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(() => {
       // El fallo NO puede quedarse callado: era la única escritura de txValoracion
@@ -105,8 +129,15 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
     if (saveTimer.current) {
       clearTimeout(saveTimer.current)
       if (clinicId) {
+        /**
+         * El `catch` vacío era el mismo bug que `persist` ya había arreglado
+         * arriba: los últimos ~900 ms de captura se perdían sin ninguna señal.
+         * El componente ya está desmontado y no hay `setStatus` posible, así que
+         * queda en la consola con el id del paciente para poder rastrearlo.
+         */
         updateDoc(doc(db, 'clinics', clinicId, 'patients', patient.id),
-          { txValoracion: vRef.current, txValoracionAt: new Date().toISOString() }).catch(() => {})
+          { txValoracion: vRef.current, txValoracionAt: new Date().toISOString() })
+          .catch(e => console.error('[ValoracionInmuno] se perdió lo último capturado del paciente', patient.id, e))
       }
     }
   }, [clinicId, patient.id])

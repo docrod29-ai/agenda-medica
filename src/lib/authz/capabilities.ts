@@ -79,6 +79,15 @@ export const CAPACIDADES = [
   // ── operativas ───────────────────────────────────────────────────────────
   /** Citas, sync de calendario, lista de espera, magic-link del portal. */
   'agenda.gestionar',
+  /**
+   * BORRAR una cita (no cancelarla) y agendar ENCIMA de otra.
+   *
+   * Separada de `agenda.gestionar` por decisión del dueño (2026-08-01): las dos
+   * destruyen algo —el registro de la cita, o el tiempo de consulta de un
+   * paciente que ya lo tenía— y ésas las decide quien atiende, no el mostrador.
+   * Cancelar, reagendar y marcar no-asistió siguen siendo de `agenda.gestionar`.
+   */
+  'agenda.destruir',
   /** WhatsApp saliente al paciente. */
   'mensajeria.enviar',
   /** Registrar cobro o abono. */
@@ -116,17 +125,27 @@ export const CAPACIDADES_POR_ROL: Readonly<Record<Rol, readonly Capacidad[]>> = 
   admin: [
     'clinico.leer', 'clinico.escribir', 'firmar', 'prescribir', 'medicamento.administrar',
     'pase.registrar', 'farmacia.verificar',
-    'agenda.gestionar', 'mensajeria.enviar', 'cobrar', 'facturar', 'equipo.leer',
+    'agenda.gestionar', 'agenda.destruir', 'mensajeria.enviar', 'cobrar', 'facturar', 'equipo.leer',
     'administrar', 'auditoria.registrar',
   ],
   medico: [
     'clinico.leer', 'clinico.escribir', 'firmar', 'prescribir', 'medicamento.administrar',
     'pase.registrar', 'farmacia.verificar',
-    'agenda.gestionar', 'mensajeria.enviar', 'cobrar', 'facturar', 'equipo.leer',
+    'agenda.gestionar', 'agenda.destruir', 'mensajeria.enviar', 'cobrar', 'facturar', 'equipo.leer',
     'administrar', 'auditoria.registrar',
   ],
-  // La asistente del mostrador: agenda, WhatsApp, cobro y directorio. NUNCA clínico.
-  secretaria: ['agenda.gestionar', 'mensajeria.enviar', 'cobrar', 'equipo.leer', 'auditoria.registrar'],
+  /**
+   * La asistente del mostrador: agenda, WhatsApp, cobro, FACTURACIÓN y
+   * directorio. NUNCA clínico, y NUNCA `agenda.destruir`.
+   *
+   * Decisión del dueño (2026-08-01), en las dos direcciones:
+   *  · SE AMPLÍA con `facturar`. Cobrar y no poder timbrar el CFDI del cobro
+   *    que acabas de registrar era un corte artificial: el trabajo es el mismo
+   *    y la factura la pedía el paciente en el mostrador.
+   *  · SE ESTRECHA quitando el borrado de citas y el sobreagendamiento
+   *    (`agenda.destruir`), que destruyen registro o tiempo clínico.
+   */
+  secretaria: ['agenda.gestionar', 'mensajeria.enviar', 'cobrar', 'facturar', 'equipo.leer', 'auditoria.registrar'],
   // Rol declarado y todavía no asignable (ver ROLES_ASIGNABLES).
   recepcion: ['agenda.gestionar', 'mensajeria.enviar', 'auditoria.registrar'],
   facturacion: ['cobrar', 'facturar', 'auditoria.registrar'],

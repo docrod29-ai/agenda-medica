@@ -5,6 +5,18 @@ import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, sign
 import { auth } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import { Stethoscope, Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react'
+/**
+ * EL PRECIO SALE DEL CATÁLOGO, NO DE UN NÚMERO ESCRITO A MANO.
+ *
+ * Aquí decía «Después solo $499 MXN/mes» y **no existe ningún plan de $499**:
+ * ése es el precio de un MÉDICO ADICIONAL. Los planes reales empiezan en $349
+ * (Agenda) y el que trae IA cuesta $899.
+ *
+ * O sea: el número que convencía al médico de registrarse era falso, y lo
+ * descubría en el peor momento posible — con la tarjeta en la mano, al final del
+ * alta. Leerlo de `PLANES` hace imposible que vuelva a desincronizarse.
+ */
+import { PLANES } from '@/lib/planes-ia'
 import { MarcaAuth } from '@/components/brand/MarcaAuth'
 import Link from 'next/link'
 import { MetaPixel, trackConversion } from '@/components/MetaPixel'
@@ -178,7 +190,7 @@ function RegistroInner() {
               14 días de prueba gratis
             </div>
             <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6, letterSpacing: '-0.005em' }}>
-              Sin tarjeta de crédito. Después solo $499 MXN/mes.
+              Sin tarjeta de crédito. Después, desde ${PLANES.agenda.precioMXN.toLocaleString('es-MX')} MXN/mes.
               Cancela cuando quieras.
             </div>
           </div>

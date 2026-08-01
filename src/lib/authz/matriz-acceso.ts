@@ -218,6 +218,17 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     porQue: 'Los cabos sueltos de la consulta: estudios pedidos, resultados por revisar, seguimientos. El título de una tarea es «Perfil tiroideo» junto al nombre del paciente — información clínica, así que la asistente no entra, igual que en las notas. No se borran: la constancia de que algo se dejó de hacer es justo lo que hace falta si un día se revisa el caso.',
   },
   {
+    ruta: 'clinics/{clinicId}/whatsapp_no_entregados/{envioId}',
+    // 'administrativo': identifica y contacta (4 dígitos del teléfono y el
+    // arranque del mensaje), pero no revela salud. Por eso guarda un extracto y
+    // no el texto entero: un recordatorio de cita no dice nada clínico, pero la
+    // confirmación de una consulta sí puede llevar el motivo.
+    clase: 'administrativo',
+    guardaLectura: 'isMember',
+    guardaEscritura: 'servidor',
+    porQue: 'Mensajes de WhatsApp que no salieron (confirmaciones del bot y del portal). Los lee todo el equipo porque el seguimiento es trabajo del mostrador: hay que llamar por teléfono. Sólo los escribe el servidor y no se borran: un fallo de entrega que se puede hacer desaparecer no sirve para nada. Guarda los últimos 4 dígitos del teléfono y las primeras palabras del mensaje, no el texto completo.',
+  },
+  {
     ruta: 'clinics/{clinicId}/alertas_no_entregadas/{alertaId}',
     clase: 'clinico',
     guardaLectura: 'isMedico',

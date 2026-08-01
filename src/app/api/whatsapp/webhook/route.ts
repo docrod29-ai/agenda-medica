@@ -378,8 +378,24 @@ const TIPO_OPTIONS: { key: AppointmentType; label: string; n: string }[] = [
 export async function handleMessage(from: string, body: string, clinicId: string): Promise<void> {
   // send() local: captura clinicId de ESTA invocación (sin estado de módulo
   // compartido → seguro ante peticiones concurrentes de distintas clínicas).
+  /**
+   * EL FALLO SE REGISTRA AQUÍ, NO EN LAS 36 LLAMADAS.
+   *
+   * `send` devuelve un booleano y las 36 llamadas de esta máquina de estados lo
+   * DESCARTAN. El caso que duele: el paciente agenda por WhatsApp, la
+   * confirmación falla, la cita queda creada y él no se entera — no se presenta,
+   * o se presenta a una hora que cree otra, y en el consultorio nadie supo nunca
+   * que hubo un problema.
+   *
+   * Arreglar 36 sitios habría sido 36 oportunidades de olvidar uno. Poniéndolo
+   * en el helper, quedan cubiertas todas, y también las que se escriban mañana.
+   */
   const send = async (to: string, msg: string): Promise<boolean> => {
     const { ok } = await sendWhatsApp(clinicId, to, msg)
+    if (!ok) {
+      const { registrarNoEntregado } = await import('@/lib/whatsapp/no-entregados')
+      await registrarNoEntregado(clinicId, to, msg, 'bot')
+    }
     return ok
   }
   const text = body.trim()

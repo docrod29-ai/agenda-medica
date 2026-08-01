@@ -90,11 +90,20 @@ export default function CensoPage() {
   const [modalTel, setModalTel] = useState(false)
   const [tel, setTel] = useState('')
   const [telGuardando, setTelGuardando] = useState(false)
+  const [errorCenso, setErrorCenso] = useState('')
 
   useEffect(() => {
     if (!clinicId) return
     // Censo EN VIVO: ingresos/egresos/traslados de cualquier usuario aparecen solos.
-    const unsub = suscribirCenso(clinicId, c => { setCenso(c); setLoading(false) })
+    const unsub = suscribirCenso(
+      clinicId,
+      c => { setCenso(c); setLoading(false); setErrorCenso('') },
+      // `setLoading(false)` vivía SÓLO en el callback de éxito: si la lectura
+      // fallaba, la pantalla se quedaba girando para siempre, sin mensaje y sin
+      // reintentar. Y un censo que no dice qué pasó es indistinguible de haber
+      // perdido a todos los internados — el susto que este consultorio ya tuvo.
+      () => { setLoading(false); setErrorCenso('No se pudo leer el censo en vivo. Esto NO significa que no haya pacientes internados: no se pudieron leer.') },
+    )
     // Inventario de camas para ofrecer las reales al ingresar (ver el campo Cama).
     getCamas(clinicId).then(setCamasInventario).catch(() => { /* el campo sigue siendo libre */ })
     return unsub
@@ -187,6 +196,12 @@ export default function CensoPage() {
 
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}><Spinner /></div>
+      ) : errorCenso ? (
+        <EmptyState
+          title="No se pudo cargar el censo"
+          description={errorCenso}
+          action={<Button variant="secondary" size="sm" onClick={() => window.location.reload()}>Reintentar</Button>}
+        />
       ) : censo.length === 0 ? (
         <EmptyState illustration={<CensoVacio />} title="Sin pacientes internados" description="Cuando registres un ingreso, aparecerá aquí el censo." />
       ) : (

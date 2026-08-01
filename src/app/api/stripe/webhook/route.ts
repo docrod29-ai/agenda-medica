@@ -350,6 +350,37 @@ export async function POST(req: NextRequest) {
 
         if (!clinicId) break
 
+        /**
+         * SÓLO SE CANCELA SI LA SUSCRIPCIÓN BORRADA ES LA QUE ESTÁ ACTIVA.
+         *
+         * ── EL FALLO, QUE ERA EL PEOR DE TODO EL CICLO DE COBRO ────────────
+         *
+         * Al cambiar de plan, `checkout.session.completed` activa el plan nuevo
+         * y acto seguido llama a `cancelarOtrasSuscripciones`, que cancela la
+         * VIEJA en Stripe. Stripe emite entonces este evento — de la vieja — y
+         * aquí no se comparaba nada: se ponía `status: 'cancelled'` y
+         * `stripeSubscriptionId: null` sin condición.
+         *
+         * O sea: el médico pulsaba «Cambiar a Pro», pagaba, y segundos después
+         * su consultorio quedaba CANCELADO. Con eso pierde todas las escrituras
+         * (el paywall corta), ve el muro de «Reactiva tu suscripción», y encima
+         * se borra el vínculo con la suscripción que acaba de pagar, así que el
+         * portal de facturación y los asientos dejan de encontrarla.
+         *
+         * Y no se recupera solo: `invoice.paid` sólo restaura desde
+         * 'suspended', nunca desde 'cancelled'.
+         *
+         * La comparación con lo que la clínica tiene guardado convierte el
+         * evento en lo que siempre debió ser: «se canceló TU suscripción», no
+         * «se canceló una suscripción cualquiera de este cliente».
+         */
+        const clinicSnap = await adminDb.collection('clinics').doc(clinicId).get()
+        const subActual = String(clinicSnap.data()?.stripeSubscriptionId ?? '')
+        if (subActual && subActual !== sub.id) {
+          safeLog.info(`[Stripe Webhook] subscription.deleted de una suscripción VIEJA (${sub.id}); la clínica ya está en ${subActual}. No se cancela.`)
+          break
+        }
+
         await updateClinic(clinicId, {
           status: 'cancelled',
           stripeSubscriptionId: null,

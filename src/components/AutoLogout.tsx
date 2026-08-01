@@ -1,7 +1,6 @@
 'use client'
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { limpiarBorradoresLocales, limpiarAudioLocal } from '@/lib/mobile/local-drafts'
-import { limpiarZonaConsultorio } from '@/lib/timezone'
+import { salirSeguro } from '@/lib/salir-seguro'
 
 /**
  * Cierre automático de sesión por inactividad (control de seguridad LFPDPPP /
@@ -23,8 +22,12 @@ import { limpiarZonaConsultorio } from '@/lib/timezone'
  * abierta para persistir en Firestore, que es la fuente de verdad.
  */
 
-/** Evento que pide a la pantalla activa que persista lo que tenga, ya. */
-export const EVENTO_GUARDAR_TODO = 'nx:guardar-todo'
+/**
+ * Se re-exporta desde su nuevo hogar (`lib/salir-seguro`) para no romper los
+ * imports existentes. La lógica de guardar-y-esperar vive allí, no aquí: la
+ * necesitan también el Sidebar y las dos salidas del layout.
+ */
+export { EVENTO_GUARDAR_TODO } from '@/lib/salir-seguro'
 
 const INACTIVIDAD_MIN = 30           // minutos sin actividad
 const AVISO_SEG = 60                 // segundos de aviso antes de cerrar
@@ -40,22 +43,15 @@ export function AutoLogout() {
   // aviso, matando el countdown → el cierre por inactividad nunca ocurría).
   const avisandoRef = useRef(false)
 
+  /**
+   * La espera fija de 1200 ms se fue: ahora `salirSeguro` ESPERA el acuse del
+   * guardado y sólo purga lo local si el trabajo llegó al servidor. Ver
+   * `lib/salir-seguro.ts` para el porqué completo — en resumen, con la red
+   * lenta se borraba a la vez el borrador, la cola de escrituras pendientes de
+   * Firestore y el audio, mientras el aviso prometía lo contrario.
+   */
   const cerrarSesion = useCallback(() => {
-    // 1º pedir a la consulta abierta que guarde en el servidor…
-    window.dispatchEvent(new CustomEvent(EVENTO_GUARDAR_TODO))
-    // …2º dejarle un momento, y solo entonces purgar lo local y salir.
-    setTimeout(() => {
-      limpiarBorradoresLocales() // localStorage + pestillo anti-resurrección
-      limpiarZonaConsultorio()   // si entra otro consultorio, no hereda la zona del anterior
-      import('@/lib/firebase').then(async ({ auth, limpiarCacheFirestore }) => {
-        try { await auth.signOut() } finally {
-          // Grueso del PHI en disco: audio crudo + caché offline de Firestore (IndexedDB).
-          limpiarAudioLocal()
-          await limpiarCacheFirestore()
-          window.location.href = '/login?motivo=inactividad'
-        }
-      }).catch(() => { window.location.href = '/login?motivo=inactividad' })
-    }, 1200)
+    void salirSeguro('/login?motivo=inactividad')
   }, [])
 
   const limpiar = () => {

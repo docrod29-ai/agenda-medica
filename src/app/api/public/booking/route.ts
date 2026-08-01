@@ -277,7 +277,16 @@ export async function POST(req: NextRequest) {
     try {
       const { sendWhatsApp } = await import('@/lib/whatsapp-send')
       const msg = `¡Hola ${paciente.nombre.split(' ')[0]}! 👋\n\nRecibimos tu solicitud de cita en ${cfg.nombreClinica ?? 'el consultorio'}:\n\n📅 ${fecha} · 🕐 ${hora} h\n\nTe contactaremos para confirmar. Gracias.`
-      await sendWhatsApp(clinicId, tel, msg).catch(() => {})
+      /**
+       * La confirmación del portal público iba con `.catch(() => {})`: si no
+       * salía, el paciente reservaba y no recibía nada, y el consultorio no
+       * tenía forma de saberlo. Ahora queda escrito para que se pueda llamar.
+       */
+      const r = await sendWhatsApp(clinicId, tel, msg).catch(() => ({ ok: false }))
+      if (!r?.ok) {
+        const { registrarNoEntregado } = await import('@/lib/whatsapp/no-entregados')
+        await registrarNoEntregado(clinicId, tel, msg, 'confirmacion-portal')
+      }
     } catch { /* no romper si la notificación falla */ }
 
     return NextResponse.json({ ok: true, citaId, fecha, hora, duracion })

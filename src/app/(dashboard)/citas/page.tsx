@@ -33,6 +33,7 @@ import { fetchAutenticado } from '@/lib/auth-client'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { Button, EmptyState, Spinner } from '@/components/ui'
 import { AgendaVacia } from '@/components/brand/EmptyArt'
+import { useMode } from '@/context/ModeContext'
 
 const STATUS_FILTERS: { label: string; value: AppointmentStatus | 'todas' }[] = [
   { label: 'Todas', value: 'todas' },
@@ -530,6 +531,9 @@ function AppointmentRowFull({
   deleting: boolean
 }) {
   const { clinicId: rowClinicId } = useClinic()
+  // El ROL, no el modo de pantalla: un médico viendo la app «como secretaria»
+  // sigue siendo el médico.
+  const { esMedicoReal } = useMode()
   const hora = appt.fechaHora.slice(11, 16)
   const typeCfg = APPOINTMENT_TYPE_CONFIG[appt.tipo]
   // Riesgo de no-show — solo mostrar para citas pendientes/confirmadas (no las ya atendidas)
@@ -755,17 +759,36 @@ function AppointmentRowFull({
               {s}
             </button>
           ))}
+          {/*
+            ELIMINAR ES DEL MÉDICO (decisión del dueño, 2026-08-01).
+
+            Cancelar conserva el registro; eliminar lo destruye, y el mostrador
+            no necesita destruir nada para trabajar: una cita que ya no va se
+            cancela, con su motivo y su rastro. Las reglas de Firestore son el
+            borde real (`allow delete: if isMedico`); esto sólo evita ofrecer un
+            botón que va a fallar.
+
+            A la asistente se le dice qué hacer en su lugar, en vez de dejar un
+            hueco en el menú sin explicación.
+          */}
           <div style={{ height: 1, background: 'var(--border)', margin: '6px 0' }} />
-          <button
-            onClick={onDelete}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6, width: '100%', textAlign: 'left',
-              padding: '7px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
-              fontSize: 13, color: 'var(--red)', background: 'transparent',
-            }}
-          >
-            <Trash2 size={13} /> Eliminar cita
-          </button>
+          {esMedicoReal ? (
+            <button
+              onClick={onDelete}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6, width: '100%', textAlign: 'left',
+                padding: '7px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                fontSize: 13, color: 'var(--red)', background: 'transparent',
+              }}
+            >
+              <Trash2 size={13} /> Eliminar cita
+            </button>
+          ) : (
+            <div style={{ padding: '7px 10px', fontSize: 11.5, color: 'var(--text3)', lineHeight: 1.5 }}>
+              Para quitarla de la agenda, <strong>cancélala</strong>: así queda el registro.
+              Eliminarla del todo lo hace el médico.
+            </div>
+          )}
         </div>
       )}
     </div>
