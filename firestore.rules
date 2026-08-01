@@ -133,7 +133,15 @@ service cloud.firestore {
 
       match /appointments/{docId} {
         allow read: if isMember(clinicId);
-        allow delete: if isMember(clinicId);
+        /**
+         * BORRAR UNA CITA ES DEL MÉDICO (decisión del dueño, 2026-08-01).
+         *
+         * Cancelar CONSERVA el registro; borrar lo destruye, y el mostrador no
+         * necesita destruir nada para hacer su trabajo: una cita que ya no va se
+         * cancela, con su motivo y su rastro. La asistente conserva `update`, o
+         * sea cancelar, marcar no-asistió y reagendar.
+         */
+        allow delete: if isMedico(clinicId);
         // Captura nueva sujeta al paywall; leer/actualizar/borrar lo existente no.
         // ANTI-FRAUDE DE CORTESÍA: marcar una cita como exenta (no cobrar) oculta una
         // deuda; por eso, al pasar `cobroExento` de false→true, se EXIGE que quede el

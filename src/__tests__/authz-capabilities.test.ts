@@ -150,15 +150,51 @@ describe('E0-07 · Fase B: migrar `verificarMedico` no cambia quién pasa', () =
     expect(mismoConjunto(rolesCon(capacidad), ['admin', 'medico'])).toBe(true)
   })
 
-  it('INVARIANTE: ninguna ampliación alcanza a un usuario real', () => {
-    // Cualquier rol que gane acceso respecto al gate viejo ({medico, admin}) tiene
-    // que ser un rol NO ASIGNABLE. Es lo que hace segura la Fase B con la matriz
-    // completa de 8 roles: se escribe la política definitiva sin dar acceso a nadie.
+  /**
+   * AMPLIACIONES DECIDIDAS POR EL DUEÑO, UNA POR UNA.
+   *
+   * La invariante original era «ninguna ampliación alcanza a un usuario real»:
+   * la política se escribía completa sin dar acceso a nadie todavía. Eso ya no
+   * es cierto, y no por descuido — el 2026-08-01 el médico dueño resolvió la
+   * pregunta que el propio registro de rutas dejó abierta («Q4: ¿la asistente
+   * descarga CFDI o sólo cobra?»): la asistente FACTURA.
+   *
+   * El razonamiento: cobrar y no poder timbrar el CFDI del cobro que acabas de
+   * registrar era un corte artificial. Es el mismo trabajo, en el mismo
+   * mostrador, y la factura la pide el paciente ahí mismo.
+   *
+   * Cada excepción se lista con su fecha y su motivo. Una ampliación que NO
+   * esté aquí sigue rompiendo la prueba, que es justo lo que se quiere: nadie
+   * gana acceso por accidente ni por un refactor.
+   */
+  const AMPLIACIONES_AUTORIZADAS: Record<string, { rol: Rol; decidido: string; porQue: string }[]> = {
+    'facturacion/solicitar POST': [{
+      rol: 'secretaria',
+      decidido: '2026-08-01',
+      porQue: 'El dueño resolvió Q4: la asistente factura, no sólo cobra. Timbrar el CFDI del cobro que acaba de registrar es el mismo trabajo.',
+    }],
+  }
+
+  it('INVARIANTE: ninguna ampliación alcanza a un usuario real sin decisión escrita', () => {
     const rolesHoy = new Set<Rol>(['admin', 'medico'])
     for (const [ruta, capacidad] of FASE_B) {
       const ganan = rolesCon(capacidad).filter(r => !rolesHoy.has(r))
+      const autorizadas = new Set((AMPLIACIONES_AUTORIZADAS[ruta] ?? []).map(a => a.rol))
       for (const r of ganan) {
-        expect(ROLES_ASIGNABLES, `${ruta} amplía a ${r}, que SÍ es asignable`).not.toContain(r)
+        if (autorizadas.has(r)) continue
+        expect(ROLES_ASIGNABLES, `${ruta} amplía a ${r}, que SÍ es asignable, y no hay decisión escrita`).not.toContain(r)
+      }
+    }
+  })
+
+  it('toda ampliación autorizada sigue vigente (si se revierte, sobra la excepción)', () => {
+    // Si alguien quita la capacidad y olvida borrar la excepción, esta prueba lo
+    // dice: una lista de permisos con excepciones muertas deja de leerse.
+    for (const [ruta, casos] of Object.entries(AMPLIACIONES_AUTORIZADAS)) {
+      const capacidad = FASE_B.find(([r]) => r === ruta)?.[1]
+      expect(capacidad, `${ruta} ya no está en FASE_B: borra la excepción`).toBeDefined()
+      for (const c of casos) {
+        expect(rolesCon(capacidad!), `${ruta}: la excepción para ${c.rol} ya no aplica`).toContain(c.rol)
       }
     }
   })
@@ -228,10 +264,23 @@ describe('E0-07 · `permissions.ts` DERIVA de la matriz sin cambiar una casilla'
       firmarNota: true, verCRM: true, verFinanzas: true, configurarClinica: true,
       invitarMiembros: true, moderarResenas: true, manejarPagos: false, cobrarPagos: true,
     },
+    /**
+     * `manejarPagos: true` desde el 2026-08-01 por decisión del médico dueño:
+     * la asistente FACTURA, no sólo cobra. Cobrar y no poder timbrar el CFDI
+     * del cobro que acaba de registrar era un corte artificial — mismo trabajo,
+     * mismo mostrador, y el paciente pide la factura ahí mismo.
+     *
+     * `verFinanzas` se enciende como consecuencia, y es lo correcto: el CORTE
+     * DE CAJA vive en esa pantalla y es trabajo del mostrador — quien cuenta el
+     * cajón al cerrar tiene que poder ver lo que cobró.
+     *
+     * Lo que NO cambia: `verExpediente` y `editarExpediente` siguen en false.
+     * La ampliación es administrativa, no clínica.
+     */
     secretaria: {
       verAgenda: true, editarAgenda: true, verExpediente: false, editarExpediente: false,
-      firmarNota: false, verCRM: true, verFinanzas: false, configurarClinica: false,
-      invitarMiembros: false, moderarResenas: false, manejarPagos: false, cobrarPagos: true,
+      firmarNota: false, verCRM: true, verFinanzas: true, configurarClinica: false,
+      invitarMiembros: false, moderarResenas: false, manejarPagos: true, cobrarPagos: true,
     },
     recepcion: {
       verAgenda: true, editarAgenda: true, verExpediente: false, editarExpediente: false,

@@ -6,7 +6,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
-import { verificarMiembro } from '@/lib/auth-server'
+import { verificarCapacidad } from '@/lib/authz/verificar'
 import { descargarCFDI } from '@/lib/facturama'
 
 type Any = Record<string, unknown>
@@ -17,7 +17,19 @@ export async function GET(req: NextRequest) {
   const tipo = (req.nextUrl.searchParams.get('tipo') === 'xml' ? 'xml' : 'pdf') as 'pdf' | 'xml'
   if (!clinicId || !pagoId) return NextResponse.json({ ok: false, error: 'Faltan datos' }, { status: 400 })
 
-  const acceso = await verificarMiembro(req, clinicId)
+  /**
+   * DESCARGAR EL CFDI EXIGE `facturar` (decisión del dueño, 2026-08-01).
+   *
+   * Estaba en `verificarMiembro`: cualquier miembro —enfermería, farmacia,
+   * laboratorio— podía bajarse las facturas del consultorio. La capacidad ya
+   * estaba DECLARADA en el registro de rutas y sólo faltaba activarla, esperando
+   * la respuesta a «¿la asistente descarga CFDI o sólo cobra?».
+   *
+   * Respondida: la asistente factura. Con eso, activar el guard estrecha hacia
+   * {médico, admin, secretaria, facturación} y deja fuera al staff clínico, que
+   * no tiene nada que hacer en la facturación.
+   */
+  const acceso = await verificarCapacidad(req, clinicId, 'facturar')
   if (!acceso.ok) return acceso.response
 
   try {

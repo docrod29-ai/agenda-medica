@@ -201,13 +201,20 @@ describe('E0-07 · `verificarMiembro` solo donde está DECLARADO que sigue', () 
       'calendar/sync',
       'clinic/ai-keys',
       'clinic/miembros',
-      'facturacion/descargar',
+      // `facturacion/descargar` SALIÓ el 2026-08-01: su capacidad `facturar` ya
+      // estaba declarada y sólo esperaba la respuesta del dueño a «¿la asistente
+      // descarga CFDI o sólo cobra?». Respondida (sí factura), se activó el
+      // guard: enfermería, farmacia y laboratorio dejan de poder bajarse las
+      // facturas del consultorio. Otro ESTRECHAMIENTO.
       'facturacion/pagos',
       'hl7/convertir',
       'hospital/mutar',
       'portal/link',
       'stripe/asientos',
-      'telesalud/sala',
+      // `telesalud/sala` SALIÓ de esta lista el 2026-08-01: el dueño confirmó que
+      // el mostrador NO entra a la sala de video, así que la rama del equipo pasó
+      // de `verificarMiembro` (cualquier miembro) a `clinico.leer`. Es un
+      // ESTRECHAMIENTO, que es la dirección que esta prueba quiere proteger.
       'whatsapp/entregas',
       'whatsapp/waitlist-notify',
     ])
@@ -369,7 +376,10 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
     // con su guardián.
     expect(llamadas.length).toBe(83)
     expect(rutasConGuardia).toBe(67)
-    expect(conVocabulario).toBe(40)
+    // 40 → 42 el 2026-08-01: `telesalud/sala` y `facturacion/descargar` pasaron
+    // de `verificarMiembro` a `verificarCapacidad`, así que ahora usan el
+    // vocabulario de capacidades. Dos activaciones que ESTRECHAN.
+    expect(conVocabulario).toBe(42)
   })
 
   it('el avance se cuenta DEL REGISTRO, no de la prosa del expediente', () => {
@@ -377,15 +387,17 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
     // número se calcula: pares (ruta, método) que declaran capacidad.
     // `uci/estancia` suma 2 declarados y 2 ACTIVOS: nace llamando a
     // `verificarCapacidad` en el código, no en la cola de activación pendiente.
+    // 2026-08-01: dos activaciones (telesalud/sala y facturacion/descargar) al
+    // resolver el dueño quién entra a la sala y quién descarga CFDI.
     expect(resumenActivacion(METODOS_POR_RUTA)).toEqual({
-      declarados: 51, activos: 22, pendientes: 29,
+      declarados: 51, activos: 24, pendientes: 27,
     })
     // 29 PARES = 28 RUTAS distintas: `expediente/transcribir-diarizado` exporta GET y
     // POST y los dos siguen en `verificarModuloIA`. Ésa es la cifra del verificador.
     const rutasPendientes = new Set(
       paresConCapacidad().filter(({ e, metodo }) => !activaEnCodigoMetodo(e, metodo)).map(p => p.clave),
     )
-    expect(rutasPendientes.size).toBe(28)
+    expect(rutasPendientes.size).toBe(26)
   })
 
   it('cada tipo de exención se corresponde con el guardián que dice usar', () => {

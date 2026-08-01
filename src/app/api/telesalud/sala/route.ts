@@ -13,7 +13,7 @@ import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { verificarTokenPaciente } from '@/lib/patient-token'
-import { verificarMiembro } from '@/lib/auth-server'
+import { verificarCapacidad } from '@/lib/authz/verificar'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 
 const DAILY_API_KEY = process.env.DAILY_API_KEY ?? ''
@@ -46,10 +46,25 @@ export async function POST(req: NextRequest) {
      * paciente (peor: la sala existente se devolvía ANTES de comprobar nada). Se
      * elimina ese camino; si un enlace viejo no trae token, el médico lo regenera.
      */
+    /**
+     * LA RAMA DEL EQUIPO EXIGE ROL CLÍNICO (decisión del dueño, 2026-08-01).
+     *
+     * Estaba en `verificarMiembro`, o sea CUALQUIER miembro: la asistente del
+     * mostrador podía abrir la sala de video de una consulta. El propio registro
+     * de rutas lo tenía anotado como pendiente de confirmar.
+     *
+     * Ya está confirmado: entrar a la teleconsulta es asistir al paciente, no
+     * agendarlo. `clinico.leer` deja dentro a médico, admin y al staff clínico
+     * hospitalario, y fuera al mostrador.
+     *
+     * La rama del PACIENTE no se toca: su token HMAC sigue siendo la primera
+     * comprobación, y su fallo sigue devolviendo 404 para no confirmar que el
+     * citaId existe.
+     */
     const autorizadoPorToken = !!tk && tk.clinicId === clinicId && !!tk.patientId && tk.patientId === cita.pacienteId
     let autorizadoPorMiembro = false
     if (!autorizadoPorToken) {
-      const acc = await verificarMiembro(req, clinicId)
+      const acc = await verificarCapacidad(req, clinicId, 'clinico.leer')
       autorizadoPorMiembro = acc.ok
     }
     if (!autorizadoPorToken && !autorizadoPorMiembro) {
