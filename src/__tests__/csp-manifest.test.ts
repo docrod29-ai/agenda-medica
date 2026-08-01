@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { RE_RUTAS_PRIVADAS } from '@/lib/security/rutas-privadas'
+import { RE_RUTAS_PRIVADAS, RE_RUTAS_PACIENTE } from '@/lib/security/rutas-privadas'
 
 /**
  * Un paso MÁS CERCA de producción que `csp-guard.test.ts` (unidad Nexus OS E0-10).
@@ -95,12 +95,27 @@ describe('E0-10 · el routes-manifest del build emite la CSP del modo con el que
     expect(cspDe(reservar!, claveQueBloquea).some(v => v.includes('frame-ancestors *'))).toBe(true)
   })
 
-  it('las rutas con token del paciente siguen sin referer y sin indexar', () => {
-    const token = bloques.find(b => b.source === '/(mi|resena|verificar)/:path*')
+  it('las rutas del paciente: sin referer, sin indexar y SIN DEJARSE ENCUADRAR', () => {
+    /**
+     * La ruta sale de la constante y no escrita a mano: tenerla a mano aquí es
+     * lo que rompió esta prueba al añadir `teleconsulta` al grupo, y es el mismo
+     * defecto que `rutas-privadas.ts` vino a arreglar.
+     */
+    const token = bloques.find(b => b.source === RE_RUTAS_PACIENTE)
     expect(token, 'el bloque de magic links desapareció del build').toBeDefined()
     expect(token!.headers.find(h => h.key === 'Referrer-Policy')?.value).toBe('no-referrer')
     expect(token!.headers.find(h => h.key === 'X-Robots-Tag')?.value).toContain('noindex')
+
+    /**
+     * Y anti-clickjacking, comprobado sobre el MANIFIESTO DEL BUILD — no sobre
+     * la función de config. Estas rutas viajaban sin `X-Frame-Options` y sin
+     * `frame-ancestors`: dentro de /mi están las recetas del paciente y los
+     * botones de cancelar su cita.
+     */
+    expect(token!.headers.find(h => h.key === 'X-Frame-Options')?.value).toBe('DENY')
+    expect(cspDe(token!, claveQueBloquea).some(v => v.includes("frame-ancestors 'none'"))).toBe(true)
+
     // Y va AL FINAL: cuando dos reglas fijan la misma cabecera, gana la última.
-    expect(bloques[bloques.length - 1].source).toBe('/(mi|resena|verificar)/:path*')
+    expect(bloques[bloques.length - 1].source).toBe(RE_RUTAS_PACIENTE)
   })
 })
