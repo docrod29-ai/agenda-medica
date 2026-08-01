@@ -21,7 +21,7 @@ import { useGrabacionAudio } from '@/hooks/useGrabacionAudio'
 import { useComandoVoz } from '@/hooks/useComandoVoz'
 import { ofuscar, desofuscar, secretoLocal } from '@/lib/seguridad/ofuscar-local'
 import { borradoresBloqueados } from '@/lib/mobile/local-drafts'
-import { EVENTO_GUARDAR_TODO } from '@/components/AutoLogout'
+import { EVENTO_GUARDAR_TODO } from '@/lib/salir-seguro'
 import { usePorcupineComando, type PicovoiceConfig } from '@/hooks/usePorcupineComando'
 import {
   createNota, updateNota, getNota, deleteNota, getUltimasNotasResumen,
@@ -1661,13 +1661,27 @@ export default function ConsultaActivaPage() {
   // Aquí se aprovecha para dejar la nota en el servidor, que es lo único que
   // sobrevive al cierre. Sin esto, una consulta dictada y no guardada se perdía.
   useEffect(() => {
-    const alGuardarTodo = () => {
+    const alGuardarTodo = (ev: Event) => {
       const e = estadoVivoRef.current
       if (e.firmada) return
       const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) ||
         e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim() ||
         signosConValor(e.signos) || (e.estudiosOrden?.length ?? 0) > 0 || !!e.preop
-      if (hay) guardarBorrador(true)
+      if (!hay) return
+      /**
+       * SE ENTREGA LA PROMESA, NO SÓLO SE DISPARA EL GUARDADO.
+       *
+       * Antes esto llamaba a `guardarBorrador(true)` y nadie esperaba el
+       * resultado: quien cerraba la sesión dormía 1200 ms fijos y después
+       * purgaba los borradores locales Y la caché de Firestore —donde vive la
+       * escritura pendiente cuando la red va lenta—. La nota desaparecía de los
+       * tres sitios a la vez.
+       *
+       * Ahora quien cierra sabe si esto terminó, y si no terminó NO purga.
+       */
+      const p = guardarBorrador(true)
+      const detalle = (ev as CustomEvent<{ esperar?: (q: Promise<unknown>) => void }>).detail
+      if (p && typeof detalle?.esperar === 'function') detalle.esperar(Promise.resolve(p))
     }
     window.addEventListener(EVENTO_GUARDAR_TODO, alGuardarTodo)
     return () => window.removeEventListener(EVENTO_GUARDAR_TODO, alGuardarTodo)

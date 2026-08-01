@@ -1,0 +1,150 @@
+'use client'
+/**
+ * CERRAR SESIÓN SIN PERDER LO QUE NO SE HABÍA GUARDADO.
+ *
+ * ── EL FALLO QUE ESTO CIERRA ─────────────────────────────────────────────────
+ *
+ * Al salir —por inactividad o a mano— se pedía a la pantalla abierta que
+ * guardara, se esperaban **1200 ms fijos**, y después se purgaba todo: los
+ * borradores de `localStorage`, el audio, y la caché de Firestore con
+ * `terminate` + `clearIndexedDbPersistence`.
+ *
+ * Nadie esperaba la promesa del guardado. Y esa última purga borra la COLA DE
+ * ESCRITURAS PENDIENTES de Firestore, que es donde vive una nota cuando la red
+ * va lenta o está caída.
+ *
+ * O sea: con el wifi del consultorio lento, a los 1200 ms se borraba a la vez
+ * (a) el respaldo local, (b) la cola que aún no había llegado al servidor y
+ * (c) el audio. **La nota desaparecía de los tres sitios al mismo tiempo**,
+ * mientras el aviso decía «Guardaremos tu nota en el servidor antes de cerrar».
+ *
+ * Y dictar no genera ratón ni teclas, así que el cierre por inactividad a los 30
+ * minutos cae justo en mitad de una consulta dictada. Es el caso normal, no el
+ * raro.
+ *
+ * ── LO QUE HACE AHORA ────────────────────────────────────────────────────────
+ *
+ * El evento deja de ser un grito al vacío y pasa a ser un ACUSE: quien escucha
+ * entrega su promesa de guardado, y aquí se espera de verdad.
+ *
+ * Y lo más importante: **si el guardado no se pudo confirmar, NO se purga lo
+ * local**. Cuando el servidor no recibió la nota, el borrador del navegador es
+ * la única copia que queda; borrarlo «por seguridad» convierte un problema de
+ * red en una pérdida definitiva. La sesión se cierra igual —eso sí es
+ * seguridad— pero el trabajo se queda en el disco para la próxima entrada.
+ */
+
+/** Evento que pide a la pantalla activa que persista lo que tenga, ya. */
+export const EVENTO_GUARDAR_TODO = 'nx:guardar-todo'
+
+/**
+ * Lo que viaja en el evento. Quien escuche llama a `esperar(promesa)` y así
+ * quien cierra la sesión sabe cuándo terminó de verdad.
+ *
+ * Es opcional a propósito: una pantalla que no lo use sigue funcionando como
+ * antes, sólo que sin acuse.
+ */
+export interface DetalleGuardarTodo {
+  esperar: (p: Promise<unknown>) => void
+}
+
+/** Margen para que un listener reaccione cuando NADIE entrega promesa. */
+const ESPERA_SIN_ACUSE_MS = 1200
+
+/** Tope duro: nadie se queda encerrado esperando un guardado que no vuelve. */
+const TOPE_MS = 10_000
+
+const dormir = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+export interface ResultadoGuardado {
+  /** ¿Hubo alguien escuchando que entregara una promesa? */
+  huboAcuse: boolean
+  /** ¿Todo lo que se estaba guardando terminó bien? */
+  todoGuardado: boolean
+  /** Se agotó el tope antes de que respondieran. */
+  seAgotoElTiempo: boolean
+}
+
+/**
+ * Pide guardar y ESPERA. Devuelve si se pudo confirmar.
+ *
+ * Sin acuse (nadie escuchaba, o la pantalla es vieja) se conserva la espera
+ * corta de antes y se responde `todoGuardado: false`: no se pudo confirmar, así
+ * que se trata con la misma prudencia que un fallo.
+ */
+export async function guardarTodoYEsperar(topeMs = TOPE_MS): Promise<ResultadoGuardado> {
+  const promesas: Promise<unknown>[] = []
+  const detalle: DetalleGuardarTodo = { esperar: p => { promesas.push(p) } }
+  window.dispatchEvent(new CustomEvent(EVENTO_GUARDAR_TODO, { detail: detalle }))
+
+  if (promesas.length === 0) {
+    await dormir(ESPERA_SIN_ACUSE_MS)
+    return { huboAcuse: false, todoGuardado: false, seAgotoElTiempo: false }
+  }
+
+  let seAgotoElTiempo = false
+  const resultados = await Promise.race([
+    Promise.allSettled(promesas),
+    dormir(topeMs).then(() => { seAgotoElTiempo = true; return null }),
+  ])
+
+  if (seAgotoElTiempo || resultados === null) {
+    return { huboAcuse: true, todoGuardado: false, seAgotoElTiempo: true }
+  }
+  return {
+    huboAcuse: true,
+    todoGuardado: resultados.every(r => r.status === 'fulfilled'),
+    seAgotoElTiempo: false,
+  }
+}
+
+/**
+ * Cierra la sesión, purgando lo local SÓLO si el trabajo quedó a salvo.
+ *
+ * `destino` es adónde ir después. `motivo` sólo se usa para el aviso.
+ */
+export async function salirSeguro(destino = '/login'): Promise<void> {
+  const r = await guardarTodoYEsperar()
+
+  const { auth, limpiarCacheFirestore } = await import('@/lib/firebase')
+  const { limpiarBorradoresLocales, limpiarAudioLocal } = await import('@/lib/mobile/local-drafts')
+  const { limpiarZonaConsultorio } = await import('@/lib/timezone')
+
+  limpiarZonaConsultorio()   // si entra otro consultorio, no hereda la zona del anterior
+
+  /**
+   * LA PURGA ES CONDICIONAL, Y ÉSTE ES EL CAMBIO QUE IMPORTA.
+   *
+   * Purgar es el control de PHI en dispositivo compartido y se mantiene cuando
+   * el trabajo YA está en el servidor. Cuando no se pudo confirmar, el borrador
+   * local es la única copia: se conserva, y con él la caché de Firestore, que
+   * es donde espera la escritura pendiente para reintentarse al volver.
+   */
+  if (r.todoGuardado) {
+    limpiarBorradoresLocales()
+    try { await auth.signOut() } finally {
+      limpiarAudioLocal()
+      await limpiarCacheFirestore()
+      window.location.href = destino
+    }
+    return
+  }
+
+  try {
+    await auth.signOut()
+  } finally {
+    // El audio crudo sí se va: es el PHI más pesado del disco y el texto ya
+    // transcrito vive en el borrador que se está conservando.
+    limpiarAudioLocal()
+    const aviso = r.seAgotoElTiempo
+      ? 'guardado_lento'
+      : r.huboAcuse ? 'guardado_fallido' : 'sin_confirmar'
+    window.location.href = `${destino}${destino.includes('?') ? '&' : '?'}pendiente=${aviso}`
+  }
+}
+
+export const POR_QUE_NO_SE_PURGA_SI_FALLA =
+  'Porque cuando el servidor no recibió la nota, el borrador del navegador es la ' +
+  'única copia que queda. Borrarlo «por seguridad» convierte un problema de red ' +
+  'en una pérdida definitiva. La sesión se cierra igual —eso sí es seguridad—, ' +
+  'pero el trabajo se queda en el disco para la próxima entrada.'

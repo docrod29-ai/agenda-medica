@@ -1,7 +1,6 @@
 'use client'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { signOut } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useMode } from '@/context/ModeContext'
 import { useConfig } from '@/hooks/useConfig'
@@ -15,10 +14,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
 import { rutaPermitida } from '@/lib/modulos'
 import { suscribirMensajes, suscribirLectura, contarNoLeidos, type ChatMessage } from '@/lib/chat'
-import { limpiarBorradoresLocales, limpiarAudioLocal } from '@/lib/mobile/local-drafts'
-import { limpiarZonaConsultorio } from '@/lib/timezone'
-import { limpiarCacheFirestore } from '@/lib/firebase'
-import { EVENTO_GUARDAR_TODO } from '@/components/AutoLogout'
+import { salirSeguro } from '@/lib/salir-seguro'
 
 // Cada item declara en qué modos aparece:
 //   medico       → solo cuando el usuario está en modo Médico
@@ -85,20 +81,10 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
     && rutaPermitida(clinic, item.href)
   )
 
-  const handleLogout = async () => {
-    // Pide a la pantalla abierta que persista antes de purgar lo local: si el
-    // médico cierra sesión con una consulta dictada sin guardar, se guarda.
-    window.dispatchEvent(new CustomEvent(EVENTO_GUARDAR_TODO))
-    await new Promise(r => setTimeout(r, 1200))
-    limpiarBorradoresLocales() // borradores en localStorage (+ pestillo anti-resurrección)
-    limpiarZonaConsultorio()   // si entra otro consultorio, no hereda la zona del anterior
-    await signOut(auth)
-    // Limpia el grueso del PHI en disco (dispositivo compartido): audio crudo y la
-    // caché offline de Firestore en IndexedDB. Antes solo se borraba localStorage.
-    limpiarAudioLocal()
-    await limpiarCacheFirestore()
-    router.replace('/login')
-  }
+  // Misma historia que en AutoLogout: se esperaba 1200 ms fijos y se purgaba
+  // pasara lo que pasara. `salirSeguro` espera el acuse y sólo purga si el
+  // trabajo quedó a salvo.
+  const handleLogout = async () => { await salirSeguro('/login') }
 
   return (
     <aside className="sidebar">
