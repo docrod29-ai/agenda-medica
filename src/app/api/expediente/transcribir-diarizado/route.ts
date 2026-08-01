@@ -14,6 +14,7 @@
  * Costo aproximado: ~$0.01–0.015 USD por minuto de audio.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA, creditosAgotados, registrarUso, registrarCreditos } from '@/lib/ai-keys'
@@ -170,7 +171,35 @@ export async function GET(req: NextRequest) {
       const utterances: UtteranceAAI[] = (d.utterances ?? []).map(
         (u: { speaker: string; text: string }) => ({ speaker: u.speaker, text: u.text }),
       )
-      return NextResponse.json({ ok: true, status: 'completed', text: d.text ?? '', utterances })
+      /**
+       * ENTREGADO EL TEXTO, SE PURGA EL AUDIO DEL TERCERO.
+       *
+       * Lo que sale de aquí es la conversación ÍNTEGRA de una consulta, con los
+       * nombres dichos en voz alta: es el dato más identificable del sistema y
+       * el único que no se puede desidentificar antes de mandarlo —para saber
+       * qué se dijo hay que transcribirlo primero—.
+       *
+       * Lo que sí se puede es que no se quede allá. Hasta ahora la transcripción
+       * y su audio vivían en AssemblyAI indefinidamente después de que nosotros
+       * ya teníamos el texto. `DELETE /v2/transcript/{id}` elimina de forma
+       * permanente los datos de esa transcripción.
+       *
+       * Va DESPUÉS de construir la respuesta y sin esperar: si el borrado falla,
+       * el médico recibe su dictado igual. Y es seguro borrar aquí porque el
+       * cliente deja de consultar en cuanto ve `completed` (useGrabacionAudio),
+       * así que nadie vuelve a pedir este id.
+       *
+       * El camino de audio largo ya borraba su copia de Firebase Storage; esta
+       * era la mitad que faltaba.
+       */
+      const respuesta = NextResponse.json({ ok: true, status: 'completed', text: d.text ?? '', utterances })
+      void fetch(`${AAI}/transcript/${id}`, { method: 'DELETE', headers: { authorization: key } })
+        .then(r => { if (!r.ok) safeLog.warn(`[diarizado] no se pudo purgar la transcripción en el proveedor (HTTP ${r.status})`) })
+        .catch(e => safeLog.warn('[diarizado] no se pudo purgar la transcripción en el proveedor', e))
+      // El puntero local tampoco hace falta ya: sólo servía para comprobar de
+      // quién era el transcript mientras existía.
+      void adminDb.collection('transcript_owners').doc(id).delete().catch(() => { /* no bloquea */ })
+      return respuesta
     }
     if (d.status === 'error') {
       return NextResponse.json({ ok: false, status: 'error', error: d.error ?? 'AssemblyAI error' })

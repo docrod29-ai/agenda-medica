@@ -67,10 +67,34 @@ export default function PrivacidadGeneralPage() {
         comparten datos con Meta para publicidad ni para fines distintos al envío del mensaje solicitado.
       </Section>
 
-      <Section titulo="7. Transferencias">
-        No se venden ni comercializan datos personales. Solo se comparten con los proveedores estrictamente necesarios para
-        operar el servicio (por ejemplo, infraestructura en la nube y la mensajería de WhatsApp), quienes actúan como
-        encargados y están obligados a la confidencialidad.
+      {/*
+        LA LISTA DICE LO QUE EL CÓDIGO HACE, NO UNA GENERALIDAD.
+        Antes esta sección nombraba «infraestructura en la nube y la mensajería
+        de WhatsApp» y ya. El sistema manda datos además a los proveedores de
+        transcripción, de modelos de lenguaje, de video y de pagos: un aviso que
+        no los nombra no informa de nada. Cada línea corresponde a una llamada
+        real que se puede señalar en el código.
+      */}
+      <Section titulo="7. Transferencias y encargados">
+        No se venden ni comercializan datos personales. Se comparten únicamente con los proveedores necesarios para operar
+        el servicio, que actúan como encargados y están obligados a la confidencialidad. Estos son, y para qué:
+        <ul style={{ margin: '10px 0 0', paddingLeft: 18, lineHeight: 1.7 }}>
+          <li><strong>Infraestructura en la nube</strong> (Google Firebase / Vercel): alojamiento del expediente y de la agenda.</li>
+          <li><strong>Transcripción de voz</strong> (OpenAI, AssemblyAI): el audio del dictado de la consulta. La transcripción se
+            elimina del proveedor en cuanto el texto llega al expediente.</li>
+          <li><strong>Asistencia por inteligencia artificial</strong> (Anthropic, OpenAI): el texto clínico para redactar y estructurar
+            la nota. <strong>No se envía el nombre del paciente</strong>: sólo edad, sexo, alergias y el contenido clínico.</li>
+          <li><strong>Mensajería</strong> (WhatsApp Business de Meta): teléfono y contenido del recordatorio o aviso.</li>
+          <li><strong>Videoconsulta</strong> (Daily.co): sólo cuando hay teleconsulta, para establecer la sala.</li>
+          <li><strong>Pagos</strong> (Stripe): importe y datos de la operación cuando se paga en línea. El consultorio no almacena
+            números de tarjeta.</li>
+          <li><strong>Calendario externo</strong> (Google Calendar), sólo si el consultorio lo conecta: se envía el tipo de cita, la
+            hora y las <strong>iniciales</strong> del paciente. <strong>No se envía el nombre completo, ni el teléfono, ni el motivo
+            de consulta.</strong></li>
+        </ul>
+        <p style={{ marginTop: 10 }}>
+          La búsqueda de literatura médica (PubMed) se hace con términos clínicos: <strong>no se envía ningún dato del paciente</strong>.
+        </p>
       </Section>
 
       <Section titulo="8. Seguridad">
