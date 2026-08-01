@@ -35,7 +35,7 @@ import { descargarPaginasComoPDF } from '@/lib/pdf-download'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
 import { detectarInteracciones, detectarControlados } from '@/lib/expediente/farmacovigilancia'
 import { alergiasDe } from '@/lib/seguridad/alergias'
-import { revisarDosis, extraerMg, extraerTomasDia, esDosisPorKg, type AlertaDosis } from '@/lib/seguridad/dosis'
+import { revisarDosis, revisarUnidadDosis, extraerMg, extraerTomasDia, esDosisPorKg, type AlertaDosis } from '@/lib/seguridad/dosis'
 import { evaluarFuncionRenal, ajusteRenalFarmacos } from '@/lib/expediente/funcion-renal'
 // E0-05: `kg` se importa con alias porque en este archivo `mg` ya es una variable
 // local del bucle de dosis; el alias evita cualquier sombra accidental.
@@ -151,7 +151,22 @@ export default function GeneradorRecetaPage() {
     const pesoNota = Number(nota?.signosVitales?.peso ?? 0)
     const pesoParaDosis = esPediatrico && pesoNota > 0 ? pesoNota : undefined
     for (const m of medicamentos) {
-      if (!m.nombre?.trim() || !m.dosis?.trim()) continue
+      if (!m.nombre?.trim()) continue     // renglón en blanco que se está escribiendo
+      /**
+       * LA UNIDAD QUE FALTA — antes de cualquier otra comprobación.
+       *
+       * Iba dentro del `continue`: sin dosis se saltaba el renglón entero, y sin
+       * unidad `extraerMg` asumía MILIGRAMOS en silencio. «Levotiroxina 100» son
+       * 100 mcg en la vida real y 100 mg en el papel — mil veces — y lo que se
+       * imprime, firmado, es el texto tal cual.
+       *
+       * Se comprueba primero porque es lo único que se puede saber SIEMPRE: no
+       * depende de que el fármaco esté en el catálogo ni de que la cifra sea
+       * interpretable. Es un hecho del texto.
+       */
+      const faltaUnidad = revisarUnidadDosis(m.nombre, m.dosis)
+      if (faltaUnidad) out.push({ med: m.nombre, alertas: [faltaUnidad] })
+      if (!m.dosis?.trim()) continue
       const mg = extraerMg(m.dosis)
       if (mg == null) continue
       const tomas = extraerTomasDia(m.frecuencia || '') ?? undefined

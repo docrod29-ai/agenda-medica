@@ -25,6 +25,10 @@ export interface AlertaDosis {
     | 'pediatrico_sobre_mgkg' | 'sin_referencia' | 'dosis_extrema' | 'via_edad_no_aprobada'
     /** Zona AMARILLA: por encima del máximo habitual pero dentro del absoluto. */
     | 'dosis_alta_verificar'
+    /** La cifra va sin unidad: «Levotiroxina 100» son 100 mcg o 100 mg. */
+    | 'dosis_sin_unidad'
+    /** No hay cifra: «Paracetamol, cada 8 horas» no se puede dispensar. */
+    | 'dosis_sin_cifra'
   mensaje: string
 }
 
@@ -335,5 +339,100 @@ export function peorSeveridad(alertas: AlertaDosis[]): Severidad | null {
   if (alertas.some(a => a.severidad === 'critica')) return 'critica'
   if (alertas.some(a => a.severidad === 'alta')) return 'alta'
   if (alertas.some(a => a.severidad === 'info')) return 'info'
+  return null
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   LA UNIDAD QUE FALTA — un hecho del TEXTO, no un juicio clínico
+   ════════════════════════════════════════════════════════════════════════════
+
+   `revisarDosis` recibe una cantidad con su unidad ya resuelta, así que nunca
+   puede ver este problema: cuando llega, la ambigüedad ya se resolvió a la
+   fuerza. Y se resolvía hacia un lado — `extraerMg` asume MILIGRAMOS cuando no
+   encuentra unidad («500» → 500 mg).
+
+   Para casi todo eso es razonable. Para lo que se dosifica en microgramos no lo
+   es en absoluto: **«Levotiroxina 100» son 100 mcg en la vida real y 100 mg en
+   el papel**. Mil veces. Lo mismo con fentanilo, digoxina, clonidina o
+   levonorgestrel.
+
+   Y esto se IMPRIME tal cual. El motor de dosis puede protestar internamente,
+   pero lo que sale por la impresora, firmado, es el texto que escribió el
+   médico. Quien lo lee en la farmacia tiene que adivinar.
+
+   El módulo de antimicrobianos ya lo exigía —«una cifra sin unidad no se puede
+   comparar con nada»— y la receta de todos los días, que es la que se usa cien
+   veces más, no. Esto iguala las dos.
+
+   NO es una decisión médica: no se propone una dosis, no se elige una unidad,
+   no se corrige nada. Sólo se dice que falta un dato, que es un hecho
+   comprobable del texto.
+*/
+
+/** Unidades de MASA: la cifra queda determinada. */
+const RE_MASA = /\d\s*(mcg|µg|ug|mg|g|gr|gramos?|kg)\b/i
+/** Unidades de VOLUMEN: otro problema (hace falta la concentración), no éste. */
+const RE_VOLUMEN = /\d\s*(ml|mililitros?|l|litros?|c\.?\s?c\.?|cc|gotas?|gts)\b/i
+/**
+ * Formas farmacéuticas y unidades biológicas: «1 tableta» no es ambiguo — la
+ * presentación lleva la dosis y quien dispensa sabe cuál es.
+ */
+const RE_FORMA = /\d\s*(tabletas?|tabs?|comprimidos?|caps?|c[áa]psulas?|grageas?|[áa]mpulas?|ampolletas?|frascos?|sobres?|sachets?|supositorios?|[óo]vulos?|parches?|puffs?|disparos?|inhalaci[óo]n(?:es)?|aplicaci[óo]n(?:es)?|nebulizaci[óo]n(?:es)?|u\.?i\.?|ui|unidades?|meq|mmol)\b/i
+/**
+ * El porcentaje va aparte y SIN `\b`.
+ *
+ * `%` no es un carácter de palabra, así que un límite de palabra detrás de él
+ * exige otra letra al lado: «1%» al final de la cadena no casaba y una crema al
+ * 1% salía como «cantidad sin unidad». Lo cazó la prueba de no-avisar-de-más,
+ * que es justo para lo que está.
+ */
+const RE_PORCENTAJE = /\d\s*%/
+/** Un número, en cualquier forma («0.5», «1,5», «100»). */
+const RE_CIFRA = /\d/
+
+export type ClaseUnidadDosis = 'masa' | 'volumen' | 'forma' | 'sin_unidad' | 'sin_cifra'
+
+/**
+ * Qué clase de dosis es este texto. Puro: sólo mira la cadena.
+ *
+ * El orden importa. La MASA se comprueba primero porque determina la cifra por
+ * completo; la FORMA antes que el volumen porque «2 gotas» es una presentación
+ * (y ya viene contemplada en el volumen por comodidad de lectura).
+ */
+export function claseDeUnidad(texto: string | null | undefined): ClaseUnidadDosis {
+  const t = String(texto ?? '').trim()
+  if (!t || !RE_CIFRA.test(t)) return 'sin_cifra'
+  if (RE_MASA.test(t)) return 'masa'
+  if (RE_FORMA.test(t) || RE_PORCENTAJE.test(t)) return 'forma'
+  if (RE_VOLUMEN.test(t)) return 'volumen'
+  return 'sin_unidad'
+}
+
+/**
+ * La alerta por dosis incompleta, o `null` si el texto está completo.
+ *
+ * Severidad `alta` y no `critica`: se puede firmar igual, porque hay recetas
+ * legítimas donde el médico escribe la posología en las indicaciones y el
+ * sistema no puede saberlo. Bloquear la firma por esto convertiría la compuerta
+ * de seguridad en un obstáculo que se aprende a saltar, y entonces tampoco
+ * frenaría lo que sí importa.
+ */
+export function revisarUnidadDosis(farmaco: string, dosis: string | null | undefined): AlertaDosis | null {
+  const clase = claseDeUnidad(dosis)
+  const nombre = String(farmaco ?? '').trim() || 'el medicamento'
+  if (clase === 'sin_cifra') {
+    return {
+      severidad: 'alta',
+      codigo: 'dosis_sin_cifra',
+      mensaje: `${nombre}: la receta no lleva cantidad. Quien la surta no puede saber cuánto dispensar.`,
+    }
+  }
+  if (clase === 'sin_unidad') {
+    return {
+      severidad: 'alta',
+      codigo: 'dosis_sin_unidad',
+      mensaje: `${nombre}: la cantidad va sin unidad. Escribe mg, mcg, g o mL — «100» se lee como 100 mg, y en lo que se dosifica en microgramos eso son mil veces la dosis.`,
+    }
+  }
   return null
 }
