@@ -56,6 +56,7 @@ async function registrarDisputa(
     tipo: 'contracargo',
     estadoDisputa: estado,
     clinicId: clinicId ?? '',
+    huerfano: !clinicId,
     disputeId: d.id,
     chargeId: typeof d.charge === 'string' ? d.charge : (d.charge?.id ?? ''),
     monto: (d.amount ?? 0) / 100,
@@ -487,6 +488,7 @@ export async function POST(req: NextRequest) {
         await adminDb.collection('platform_payments').doc(`refund_${charge.id}`).set({
           tipo: 'reembolso',
           clinicId: clinicId ?? '',
+          huerfano: !clinicId,
           stripeCustomerId: charge.customer ?? '',
           chargeId: charge.id,
           monto: (charge.amount_refunded ?? 0) / 100,
@@ -564,9 +566,26 @@ export async function POST(req: NextRequest) {
         const clinicId = await getClinicIdByCustomer(invoice.customer as string)
         const amount = (invoice.amount_paid ?? 0) / 100  // centavos → MXN
         if (amount <= 0) break
+        /**
+         * UN PAGO SIN CLÍNICA SE MARCA COMO HUÉRFANO, NO SE DISFRAZA DE NORMAL.
+         *
+         * Se guardaba con `clinicId: ''` y se respondía 200. En la consola del
+         * dueño ese dinero cae en un bucket con clave vacía que NO se muestra en
+         * ninguna parte —la tabla por cliente recorre los consultorios—, así que
+         * entra en el ingreso global y desaparece del detalle: un descuadre que
+         * nadie puede explicar porque nadie lo ve.
+         *
+         * Pasa cuando la clínica no tiene `stripeCustomerId`, cuando su documento
+         * se recreó, o cuando el customer se creó a mano en Stripe. La bandera
+         * permite listarlos y reconciliarlos.
+         */
+        if (!clinicId) {
+          safeLog.warn(`[Stripe Webhook] pago SIN clínica (customer ${invoice.customer}); queda marcado como huérfano para reconciliar`)
+        }
         // Registro idempotente por invoice.id (Stripe reintenta el webhook).
         await adminDb.collection('platform_payments').doc(invoice.id ?? `pay_${event.id}`).set({
           clinicId: clinicId ?? '',
+          huerfano: !clinicId,
           stripeCustomerId: invoice.customer ?? '',
           invoiceId: invoice.id ?? '',
           monto: amount,

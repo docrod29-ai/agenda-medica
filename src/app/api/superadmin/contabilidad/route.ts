@@ -206,6 +206,19 @@ export async function GET(req: NextRequest) {
         .map(([plan, v]) => ({ plan, label: labelPlan(plan), cantidad: v.cantidad, mrr: Math.round(v.mrr) }))
         .sort((a, b) => b.mrr - a.mrr),
       clientes,
+      /**
+       * DINERO QUE NO SE PUEDE ATRIBUIR A NADIE.
+       *
+       * Los pagos sin clínica caían en un bucket con clave vacía que la tabla
+       * por cliente no recorre: entraban en el ingreso global y desaparecían del
+       * detalle. Un descuadre invisible es peor que uno grande, porque no se
+       * puede investigar. Ahora se cuentan y se dicen.
+       */
+      huerfanos: (() => {
+        const importe = pagadoPorClinica.get('') ?? 0
+        const n = paysSnap.docs.filter(d => !String((d.data() as Any).clinicId ?? '')).length
+        return { cantidad: n, importe, nota: n ? 'Hay pagos que no se pudieron atribuir a ningún consultorio. Están sumados en el ingreso global pero no aparecen en la tabla por cliente.' : '' }
+      })(),
       supuestos: { costoPorCreditoMXN: COSTO_CREDITO_MXN, infraMensualMXN: INFRA_MENSUAL_MXN, stripePct: STRIPE_PCT, iva: IVA },
     })
   } catch (e) {
