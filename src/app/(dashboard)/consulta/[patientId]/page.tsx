@@ -2063,8 +2063,16 @@ export default function ConsultaActivaPage() {
         border: `1px solid ${patient?.alergias ? 'rgba(239,68,68,0.35)' : 'var(--border)'}`,
         borderRadius: 10, padding: '9px 13px',
       }}>
-        <AlertTriangle size={16} color={patient?.alergias ? '#f87171' : 'var(--text3)'} style={{ flexShrink: 0 }} />
-        <strong style={{ flexShrink: 0, fontSize: 13, color: patient?.alergias ? '#f87171' : 'var(--text2)' }}>Alergias:</strong>
+        {/*
+          `#f87171` era el rosa PARA FONDO OSCURO, quemado aquí. En tema claro,
+          sobre el fondo rojizo de esta misma línea, quedaba en 2.42:1 — la mitad
+          del mínimo legible, y en el dato más letal de la aplicación. Va por
+          token, que está medido en los dos temas. Y es el MISMO rojo que el chip
+          de resumen de 56 líneas más abajo, que usaba otro: mismo concepto
+          clínico, misma pantalla, dos rojos que el médico no puede aprender.
+        */}
+        <AlertTriangle size={16} color={patient?.alergias ? 'var(--red)' : 'var(--text3)'} style={{ flexShrink: 0 }} />
+        <strong style={{ flexShrink: 0, fontSize: 13, color: patient?.alergias ? 'var(--red)' : 'var(--text2)' }}>Alergias:</strong>
         <input
           value={patient?.alergias ?? ''}
           onChange={e => setPatient(prev => prev ? { ...prev, alergias: e.target.value } : prev)}
@@ -2120,7 +2128,7 @@ export default function ConsultaActivaPage() {
                 background: sin ? 'var(--s2)' : 'rgba(220,38,38,0.10)',
                 border: `1px solid ${sin ? 'var(--border)' : 'rgba(220,38,38,0.4)'}`,
                 borderRadius: 999, padding: '4px 12px', fontSize: 12.5,
-                color: sin ? 'var(--text2)' : '#dc2626', fontWeight: 600,
+                color: sin ? 'var(--text2)' : 'var(--red)', fontWeight: 600,
               }}>
                 <AlertTriangle size={13} /> Alergias: <span style={{ fontWeight: 700 }}>{a}</span>
               </div>

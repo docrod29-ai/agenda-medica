@@ -287,7 +287,18 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
             <div>
               <label style={lbl}>Concepto</label>
               <select value={concepto} onChange={(e) => setConcepto(e.target.value as ConceptoCobro)} style={inp}>
-                {(Object.keys(CONCEPTO_LABEL) as ConceptoCobro[]).map(k => (
+                {/*
+                  «Reembolso» NO se ofrece: no se puede registrar.
+                  El selector lo listaba, aquí abajo se exige monto negativo, el
+                  input tiene min="0" y `registrarCobro` rechaza a propósito
+                  cualquier monto < 0 (REG-015: una devolución es su propio tipo
+                  de transacción, con traza al cobro original, no un signo
+                  menos). El médico lo elegía, escribía un número y se quedaba
+                  con un error hiciera lo que hiciera. Hasta que exista la
+                  operación de devolución, no se ofrece la opción — y la fila
+                  «Reembolsos» del corte sigue en cero por el mismo motivo.
+                */}
+                {(Object.keys(CONCEPTO_LABEL) as ConceptoCobro[]).filter(k => k !== 'reembolso').map(k => (
                   <option key={k} value={k}>{CONCEPTO_LABEL[k]}</option>
                 ))}
               </select>

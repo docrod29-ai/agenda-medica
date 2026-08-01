@@ -58,7 +58,7 @@ export default function CitasPage() {
   const [selectedDate, setSelectedDate] = useState(todayStr())
   // Pide la ventana desde el día que estás viendo: retroceder de día en día
   // sigue trayendo las citas de esas fechas en vez de mostrar el día vacío.
-  const { appointments, loading } = useAppointments(`${selectedDate} 00:00`)
+  const { appointments, loading, error: errorCitas } = useAppointments(`${selectedDate} 00:00`)
   const { config } = useConfig()
   const { user } = useAuth()
   const [medicoFiltro, setMedicoFiltro] = useFiltroMedico()
@@ -399,6 +399,21 @@ export default function CitasPage() {
       <div className="card" style={{ padding: 0 }}>
         {loading ? (
           <Spinner center label="Cargando citas…" />
+        ) : errorCitas ? (
+          /*
+            UN FALLO DE CARGA NO PUEDE VERSE COMO «HOY NO HAY NADA».
+            El hook ya distinguía las dos cosas y ninguna pantalla leía `error`:
+            con la red caída o un permiso denegado, la lista llegaba vacía y aquí
+            se pintaba «No hay citas para este filtro». Para este consultorio esa
+            pantalla es indistinguible de una pérdida de datos — y el propio hook
+            lo tenía escrito en un comentario, para el otro caso.
+          */
+          <EmptyState
+            icon={<CalendarDays size={22} />}
+            title="No se pudo cargar la agenda"
+            description="Esto NO significa que no tengas citas: no se pudieron leer. Revisa tu conexión y reintenta."
+            action={<Button variant="secondary" size="sm" onClick={() => window.location.reload()}>Reintentar</Button>}
+          />
         ) : filtered.length === 0 ? (
           <EmptyState
             illustration={<AgendaVacia />}

@@ -54,8 +54,19 @@ import { useGrabacionAudio } from '@/hooks/useGrabacionAudio'
 
 type Campos = Record<string, string>
 
+/**
+ * LA JERARQUÍA ESTABA INVERTIDA, Y MEDIDA.
+ *
+ * Con los hex quemados, sobre el fondo real de esas filas (--s2) en tema oscuro:
+ * crítica 3.50 · alta 5.31 · moderada 3.30 · informativa 5.21. O sea, el nivel
+ * más peligroso era el SEGUNDO MENOS VISIBLE y el más inocuo el segundo más
+ * visible. En un pase de visita con diez alertas en pantalla, lo que salta a la
+ * vista es una nota informativa.
+ *
+ * Por token: los tres primeros ya están medidos AA en los dos temas.
+ */
 const colorNivel: Record<NivelAlerta, string> = {
-  critica: '#dc2626', alta: '#d97706', moderada: 'var(--nexus)', informativa: 'var(--text3)',
+  critica: 'var(--red)', alta: 'var(--amber)', moderada: 'var(--nexus)', informativa: 'var(--text3)',
 }
 
 function Campo({ label, k, v, set, sufijo, w }: { label: string; k: string; v: Campos; set: (k: string, val: string) => void; sufijo?: string; w?: number }) {
@@ -674,7 +685,7 @@ export default function UciPanelPage() {
             )}
           </div>
           {alergias.lista.length > 0 && !alergias.negadas && (
-            <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 10, padding: '7px 11px', borderRadius: 9, border: '1px solid rgba(220,38,38,.45)', background: 'rgba(220,38,38,.12)', color: '#dc2626' }}>
+            <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 10, padding: '7px 11px', borderRadius: 9, border: '1px solid rgba(220,38,38,.45)', background: 'rgba(220,38,38,.12)', color: 'var(--red)' }}>
               <AlertTriangle size={14} style={{ flexShrink: 0 }} />
               <span style={{ fontSize: 12.5, fontWeight: 700 }}>ALERGIAS:</span>
               <span style={{ fontSize: 12.5, fontWeight: 600 }}>{alergias.lista.join(' · ')}</span>
