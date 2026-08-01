@@ -200,7 +200,13 @@ export async function POST(req: NextRequest) {
   // créditos agotados seguía quemando la llave del dueño indefinidamente.
   // `gateCreditos` sólo corta cuando la llave es la del dueño (`prueba`):
   // con llave propia del consultorio NO se corta, porque paga su propia API.
-  const corteCreditos = await gateCreditos(clinicId, fuente)
+  /**
+   * `permiteEconomico`: esta ruta SÍ sabe seguir sin créditos, bajando a ⚡
+   * Rápida — que es justo lo que promete la página de precios. Sin esta bandera
+   * el portero cortaba aquí y el respaldo, cincuenta líneas más abajo, no se
+   * alcanzaba nunca.
+   */
+  const corteCreditos = await gateCreditos(clinicId, fuente, { permiteEconomico: true })
   if (corteCreditos) return corteCreditos
   if (!API_KEY) {
     return NextResponse.json(

@@ -133,7 +133,35 @@ export function debeCortarCreditos(fuente: ClaveResuelta['fuente'], clinicId: st
   return fuente === 'prueba' && !!clinicId && agotado
 }
 
-export async function gateCreditos(clinicId: string | null, fuente: ClaveResuelta['fuente']): Promise<NextResponse | null> {
+export interface OpcionesGate {
+  /**
+   * La ruta sabe seguir en MODO ECONÓMICO cuando se acaban los créditos.
+   *
+   * ── EL FALLO QUE ESTO CIERRA ───────────────────────────────────────────────
+   *
+   * La página de precios promete, con estas palabras: «Al agotarlos sigue en
+   * ⚡ Rápida sin costo hasta 120 notas más/mes; luego se pausa y recargas o
+   * subes de plan». La nota tiene ese respaldo implementado… y NUNCA se
+   * alcanzaba.
+   *
+   * El orden lo impedía: este portero corta con un 402 al principio de la ruta,
+   * y la decisión de bajar a modo económico ocurre cincuenta líneas después. El
+   * médico que agotaba sus créditos —pagando— recibía «se acabaron tus créditos»
+   * con un paciente enfrente, cuando el producto tenía ciento veinte notas más
+   * esperándolo.
+   *
+   * Con esta opción el portero deja pasar mientras quede cupo económico, y sólo
+   * corta cuando de verdad no queda nada. Las rutas SIN respaldo (visión,
+   * evidencia) siguen cortando igual que antes, porque ahí sí se acabó.
+   */
+  permiteEconomico?: boolean
+}
+
+export async function gateCreditos(
+  clinicId: string | null,
+  fuente: ClaveResuelta['fuente'],
+  opciones: OpcionesGate = {},
+): Promise<NextResponse | null> {
   // QUIÉN PAGA decide si se corta: con llave propia del consultorio NO se corta,
   // paga su propia API y cortarle sería quitarle algo que ya pagó.
   if (fuente !== 'prueba' || !clinicId) return null
@@ -152,13 +180,25 @@ export async function gateCreditos(clinicId: string | null, fuente: ClaveResuelt
     creditosAgotados(clinicId).catch(() => false),
     pruebaAgotada(clinicId).catch(() => false),
   ])
-  if (prueba || debeCortarCreditos(fuente, clinicId, agotados)) {
+  /**
+   * El tope de la PRUEBA sí corta siempre: ahí no hay plan que respalde nada.
+   */
+  if (prueba) {
     return NextResponse.json(
-      { ok: false, sinCreditos: true, error: 'Se acabaron tus créditos de IA del mes. Recarga créditos o configura tu propia llave de IA en Configuración para seguir.' },
+      { ok: false, sinCreditos: true, error: 'Se acabó la IA incluida en tu prueba. Activa un plan para seguir usándola — tus expedientes no se tocan.' },
       { status: 402 },
     )
   }
-  return null
+  if (!debeCortarCreditos(fuente, clinicId, agotados)) return null
+
+  // Créditos agotados, PERO la ruta sabe seguir en modo económico: se deja pasar
+  // y que ella decida. El corte de verdad lo hace su propio tope.
+  if (opciones.permiteEconomico) return null
+
+  return NextResponse.json(
+    { ok: false, sinCreditos: true, error: 'Se acabaron tus créditos de IA del mes. Puedes seguir dictando y escribir la nota a mano; para recuperar la IA, recarga créditos, sube de plan o usa tu propia llave en Configuración.' },
+    { status: 402 },
+  )
 }
 
 /** Suma consultas EXTRA al mes (lo llama el webhook de Stripe al comprar recarga). */
