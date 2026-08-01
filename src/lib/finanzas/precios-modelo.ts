@@ -76,8 +76,8 @@ const CONSULTADO = '2026-07-31'
 
 export const TARIFAS: readonly TarifaModelo[] = [
   // ── Anthropic ────────────────────────────────────────────────────────────
-  { modelo: 'claude-opus-4-8', proveedor: 'anthropic', entradaUsdPorMillon: 5, salidaUsdPorMillon: 25, fuente: FUENTE_ANTHROPIC, consultado: CONSULTADO },
-  { modelo: 'claude-opus-5', proveedor: 'anthropic', entradaUsdPorMillon: 5, salidaUsdPorMillon: 25, fuente: FUENTE_ANTHROPIC, consultado: CONSULTADO },
+  { modelo: 'claude-opus-4-8', proveedor: 'anthropic', entradaUsdPorMillon: 5, salidaUsdPorMillon: 25, entradaCacheUsdPorMillon: 0.5, fuente: FUENTE_ANTHROPIC, consultado: CONSULTADO },
+  { modelo: 'claude-opus-5', proveedor: 'anthropic', entradaUsdPorMillon: 5, salidaUsdPorMillon: 25, entradaCacheUsdPorMillon: 0.5, fuente: FUENTE_ANTHROPIC, consultado: CONSULTADO },
   /**
    * Sonnet 5 va al PRECIO DE LISTA, no al de lanzamiento.
    *
@@ -93,10 +93,10 @@ export const TARIFAS: readonly TarifaModelo[] = [
    * Equivocarse hacia el margen pesimista no produce una mala decisión de
    * precio. Hacia el optimista, sí.
    */
-  { modelo: 'claude-sonnet-5', proveedor: 'anthropic', entradaUsdPorMillon: 3, salidaUsdPorMillon: 15, fuente: FUENTE_ANTHROPIC, consultado: CONSULTADO },
-  { modelo: 'claude-sonnet-4-6', proveedor: 'anthropic', entradaUsdPorMillon: 3, salidaUsdPorMillon: 15, fuente: FUENTE_ANTHROPIC, consultado: CONSULTADO },
-  { modelo: 'claude-sonnet-4-5', proveedor: 'anthropic', entradaUsdPorMillon: 3, salidaUsdPorMillon: 15, fuente: FUENTE_ANTHROPIC, consultado: CONSULTADO },
-  { modelo: 'claude-haiku-4-5', proveedor: 'anthropic', entradaUsdPorMillon: 1, salidaUsdPorMillon: 5, fuente: FUENTE_ANTHROPIC, consultado: CONSULTADO },
+  { modelo: 'claude-sonnet-5', proveedor: 'anthropic', entradaUsdPorMillon: 3, salidaUsdPorMillon: 15, entradaCacheUsdPorMillon: 0.3, fuente: FUENTE_ANTHROPIC, consultado: CONSULTADO },
+  { modelo: 'claude-sonnet-4-6', proveedor: 'anthropic', entradaUsdPorMillon: 3, salidaUsdPorMillon: 15, entradaCacheUsdPorMillon: 0.3, fuente: FUENTE_ANTHROPIC, consultado: CONSULTADO },
+  { modelo: 'claude-sonnet-4-5', proveedor: 'anthropic', entradaUsdPorMillon: 3, salidaUsdPorMillon: 15, entradaCacheUsdPorMillon: 0.3, fuente: FUENTE_ANTHROPIC, consultado: CONSULTADO },
+  { modelo: 'claude-haiku-4-5', proveedor: 'anthropic', entradaUsdPorMillon: 1, salidaUsdPorMillon: 5, entradaCacheUsdPorMillon: 0.1, fuente: FUENTE_ANTHROPIC, consultado: CONSULTADO },
 
   // ── OpenAI: texto ────────────────────────────────────────────────────────
   { modelo: 'gpt-5', proveedor: 'openai', entradaUsdPorMillon: 1.25, salidaUsdPorMillon: 10, fuente: FUENTE_OPENAI, consultado: CONSULTADO },
@@ -111,20 +111,26 @@ export const TARIFAS: readonly TarifaModelo[] = [
 ]
 
 /**
- * HUECO DECLARADO: la tarifa de caché.
+ * LA CACHÉ DE ANTHROPIC, CARGADA — y por qué importa aquí.
  *
- * Ninguna entrada trae `entradaCacheUsdPorMillon`, así que la lectura de caché
- * se cobra al precio de entrada COMPLETO — cuando en realidad cuesta una
- * fracción. El costo sale sobreestimado.
+ * La lectura de caché cuesta **0.1× la entrada** (verificado en la página de
+ * precios, 31-jul-2026). Sin esta tarifa se cobraba al precio de entrada
+ * COMPLETO: un error de 10× sobre los tokens cacheados.
  *
- * Se deja así a propósito y no en cero: el error va hacia el margen pesimista,
- * que es el lado seguro, y queda anotado para cargarlo con su fuente en vez de
- * deducirlo. Un cero habría dicho «la caché es gratis», que es falso.
+ * Y no es un detalle: el prompt del sistema de la nota va con `cache_control`,
+ * así que **desde la segunda nota casi toda la entrada es lectura de caché**.
+ * El renglón más grande del costo de texto se estaba contando diez veces más
+ * caro de lo que vale.
+ *
+ * En OpenAI la caché sigue cayendo al precio de entrada completo: `usoDe` sí
+ * lee `prompt_tokens_details.cached_tokens`, pero la tarifa no está cargada.
+ * Queda declarado, no deducido — y el error va hacia el margen pesimista.
  */
-export const POR_QUE_FALTA_LA_TARIFA_DE_CACHE =
-  'Las lecturas de caché se cobran a fracción del precio de entrada, pero aquí ' +
-  'se cobran completas: el costo sale sobreestimado. Es el lado seguro del ' +
-  'error y está declarado — se carga con su fuente, no se deduce.'
+export const POR_QUE_LA_CACHE_ESTABA_INFLANDO_EL_COSTO =
+  'La lectura de caché cuesta la décima parte de la entrada. Sin su tarifa se ' +
+  'cobraba completa, y como el prompt de la nota va cacheado, desde la segunda ' +
+  'nota casi toda la entrada es caché: el renglón grande del costo de texto ' +
+  'salía diez veces más caro de lo que vale.'
 
 const norm = (s: string) => s.trim().toLowerCase()
 

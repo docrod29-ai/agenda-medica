@@ -39,6 +39,7 @@ interface Datos {
   ok: true; mes: string; total: Resumen; cogs: Resumen; confiable: boolean
   porFeature: Grupo[]; porModelo: Grupo[]; porClase: Grupo[]; truncado: boolean
   incidentes?: Incidente[]; hayUrgente?: boolean
+  webhook?: { configurado: boolean; faltantes: string[]; faltanCriticos: string[]; aviso: string } | null
 }
 
 const mesActual = () => new Date().toISOString().slice(0, 7)
@@ -105,6 +106,31 @@ export default function CostosPage() {
 
       {datos && !cargando && (
         <>
+          {/*
+            EL WEBHOOK DE STRIPE, PRIMERO DE TODO.
+
+            El código sabe atender un reembolso; si nadie marcó la casilla en el
+            panel de Stripe, el evento no llega NUNCA y el dinero se devuelve con
+            la suscripción viva. Esa casilla está fuera del repositorio, así que
+            ningún test la ve — se le pregunta a Stripe y se muestra aquí.
+          */}
+          {datos.webhook?.aviso && (
+            <div style={{
+              border: `1px solid ${datos.webhook.faltanCriticos.length ? '#dc2626' : 'var(--border)'}`,
+              background: datos.webhook.faltanCriticos.length ? 'rgba(220,38,38,.07)' : 'var(--panel, #f8fafc)',
+              borderRadius: 10, padding: '13px 15px', margin: '18px 0 4px',
+            }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: datos.webhook.faltanCriticos.length ? '#b91c1c' : 'var(--text, #0f172a)' }}>
+                {datos.webhook.faltanCriticos.length ? '⚠︎ ' : ''}Webhook de Stripe
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text2, #334155)', marginTop: 5, lineHeight: 1.55 }}>{datos.webhook.aviso}</div>
+              <a href="https://dashboard.stripe.com/webhooks" target="_blank" rel="noopener noreferrer"
+                 style={{ display: 'inline-block', marginTop: 9, fontSize: 12.5, fontWeight: 600, color: 'var(--nexus, #3d5afe)' }}>
+                Abrir el panel de Stripe ↗
+              </a>
+            </div>
+          )}
+
           {/*
             LO QUE ESTÁ CAÍDO VA ANTES QUE LO QUE CUESTA.
             El 31-jul-2026 la IA estuvo caída y la única señal apareció cuando el

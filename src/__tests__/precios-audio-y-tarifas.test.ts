@@ -54,6 +54,28 @@ describe('las tarifas cargadas', () => {
     expect(tarifaDe('claude-haiku-4-5-20251001')?.modelo).toBe('claude-haiku-4-5')
   })
 
+  it('la lectura de caché cuesta la DÉCIMA parte de la entrada', () => {
+    /**
+     * Sin esta tarifa, la caché se cobraba al precio de entrada completo: un
+     * error de 10×. Y no es marginal — el prompt del sistema de la nota va con
+     * `cache_control`, así que desde la segunda nota casi toda la entrada es
+     * lectura de caché. El renglón grande del costo de texto salía diez veces
+     * más caro de lo que vale.
+     */
+    for (const [m, entrada, cache] of [
+      ['claude-opus-4-8', 5, 0.5], ['claude-sonnet-5', 3, 0.3], ['claude-haiku-4-5', 1, 0.1],
+    ] as const) {
+      const t = tarifaDe(m)!
+      expect(t.entradaCacheUsdPorMillon, m).toBe(cache)
+      expect(t.entradaCacheUsdPorMillon! * 10, `${m}: la caché debe ser 0.1x`).toBeCloseTo(entrada, 6)
+    }
+  })
+
+  it('un millón de tokens cacheados en Opus cuesta $0.50, no $5', () => {
+    const r = costoUsd('claude-opus-4-8', { entrada: 0, salida: 0, entradaCache: 1_000_000 })
+    expect(r.usd).toBeCloseTo(0.5, 6)
+  })
+
   it('un modelo sin tarifa NO cuesta cero: cuesta desconocido', () => {
     const r = costoUsd('modelo-que-no-existe', { entrada: 1000, salida: 1000 })
     expect(r.usd).toBeNull()

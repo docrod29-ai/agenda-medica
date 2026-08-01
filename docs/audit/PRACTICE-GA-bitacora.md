@@ -7,7 +7,7 @@
 > Un informe de auditoría que sólo lista aciertos no sirve para decidir dónde
 > mirar la próxima vez.
 
-Última actualización: **31-jul-2026**, tras PRACTICE-GA-006.
+Última actualización: **31-jul-2026**, tras PRACTICE-GA-007.
 
 ---
 
@@ -69,6 +69,7 @@ conectar.
 | **GA-004** | Reembolsos y contracargos en el webhook + ingreso NETO con una sola definición de signo | v768 |
 | **GA-005** | El estado de validación clínica llega por fin a la pantalla: sello junto al resultado + hoja de revisión en `/cumplimiento/motores` | v769 |
 | **GA-006** | Tarifas cargadas de la fuente + el audio se mide por minuto + 25 referencias a modelos retirados | v770 |
+| **GA-007** | Cerrados los dos huecos que GA-006 dejó declarados: tarifa de caché cargada y el webhook de Stripe se comprueba solo | v771 |
 
 Fuera del programa, el mismo día: gateway de fallos de IA (`fallo-proveedor.ts`),
 exención de fundador (`fuente: 'fundador'`), incidencias de plataforma visibles
@@ -87,6 +88,13 @@ en `/superadmin/costos`, y la pantalla que dice **qué llave se usa de verdad**
 | 2 | ~~Sello «no validado clínicamente» + hoja de reglas~~ | ✅ GA-005 |
 | 3 | ~~Tarifas de Anthropic/OpenAI, presentadas y cargadas con su confirmación~~ | ✅ GA-006 |
 | 5 | Fin del trial: bloquear IA, agenda y expediente en solo lectura | pendiente |
+
+### ⚠️ Acción del Dr. — y ahora la app la comprueba sola
+
+**GA-007:** `/superadmin/costos` le pregunta a Stripe a qué eventos está suscrito
+el webhook y avisa en rojo si faltan los tres de devolución. Ya no depende de que
+nadie se acuerde. Sigue haciendo falta picarle en el panel — eso no lo puedo
+hacer yo — pero deja de ser invisible.
 
 ### ⚠️ Acción del Dr. — sin ella, GA-004 no sirve de nada
 
@@ -129,9 +137,13 @@ pruebas en verde, y ningún efecto en la realidad.
   días de observación de reportes; la observación **no se ha arrancado**.
 - **A7**: 13 de 16 rutas de IA con asiento en el libro; 5 de 16 enrutadas al gateway.
 - **A8**: el dataset V3 de antimicrobianos fusiona ficha y guía en 11 de 49 entradas.
-- **Tarifa de caché sin cargar** (GA-006): las lecturas de caché se cobran al
-  precio de entrada completo, cuando cuestan una fracción. El costo sale
-  **sobreestimado** — el lado seguro del error, y declarado en el código.
+- ~~**Tarifa de caché sin cargar**~~ — **CERRADO en GA-007.** Era 0.1× la entrada
+  y estaba cobrándose completa: un error de 10× sobre el renglón más grande del
+  costo de texto, porque el prompt de la nota va cacheado. Declararlo en vez de
+  ir a buscarlo fue pereza mía; el Dr. lo señaló.
+- **Caché de OpenAI**: sigue cayendo al precio de entrada completo. `usoDe` sí
+  lee `cached_tokens`, pero la tarifa no está cargada. Error hacia el margen
+  pesimista.
 - **Sonnet 5 a precio de LISTA** ($3/$15), no al promocional ($2/$10 hasta el
   31-ago-2026). El motor no sabe de vigencias: hoy el margen se ve peor de lo que
   es y en septiembre queda exacto solo.
