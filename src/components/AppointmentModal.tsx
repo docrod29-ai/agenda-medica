@@ -18,6 +18,7 @@ import { fetchAutenticado } from '@/lib/auth-client'
 import { crearSolicitudResena } from '@/lib/reviews'
 import { Modal, Button } from '@/components/ui'
 import { Send, Star } from 'lucide-react'
+import { useMode } from '@/context/ModeContext'
 
 const ESTADOS_POST_VISITA = new Set<AppointmentStatus>(['atendida', 'finalizada', 'pagada'])
 
@@ -86,6 +87,13 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
    * «accidental»: nadie escribe una justificación por error.
    */
   const [motivoSobreagenda, setMotivoSobreagenda] = useState('')
+  /**
+   * `esMedicoReal` mira el ROL, no el modo de la pantalla: un médico que está
+   * viendo la app «como secretaria» sigue pudiendo autorizar, y una asistente no
+   * gana el permiso cambiando de modo. El servidor lo vuelve a comprobar; esto
+   * es sólo para no ofrecer un botón que va a devolver 403.
+   */
+  const { esMedicoReal } = useMode()
   const [bloques, setBloques]     = useState<TimeBlock[]>([])
   const [medicoId, setMedicoId]   = useState<string>('')  // médico al que se agenda la cita
 
@@ -181,6 +189,10 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
   const handleSave = async () => {
     if (!nombre.trim()) { toast('Ingresa el nombre del paciente', 'error'); return }
     if (!fecha || !hora) { toast('Selecciona fecha y hora', 'error'); return }
+    if (conflict && !esMedicoReal) {
+      toast('Ese horario ya está ocupado. Sólo el médico puede agendar encima: pídeselo y él lo autoriza.', 'error')
+      return
+    }
     if (conflict && motivoSobreagenda.trim().length < 5) {
       toast('Ese horario ya está ocupado. Si es deliberado, escribe el motivo para sobreagendar.', 'error')
       return
@@ -384,7 +396,7 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
             </div>
           )}
           <Button variant="secondary" onClick={onClose} disabled={saving}>Cancelar</Button>
-          <Button onClick={handleSave} loading={saving} disabled={saving || (conflict && motivoSobreagenda.trim().length < 5)}>{isEdit ? 'Guardar cambios' : 'Agendar cita'}</Button>
+          <Button onClick={handleSave} loading={saving} disabled={saving || (conflict && (!esMedicoReal || motivoSobreagenda.trim().length < 5))}>{isEdit ? 'Guardar cambios' : 'Agendar cita'}</Button>
         </>
       )}
     >
@@ -467,21 +479,32 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
                     <AlertCircle size={13} /> Ese horario ya está ocupado
                   </div>
                   {/*
-                    La salida autorizada, no un muro. Queda escrita en la cita y
-                    en la bitácora: después se puede preguntar quién sobreagendó
-                    y por qué.
+                    La salida autorizada, no un muro — y sólo para el médico.
+                    A la asistente se le dice POR QUÉ no puede, en vez de
+                    esconderle el botón: un límite que no se explica se rodea,
+                    y la forma de rodearlo aquí es teclear «10:05» a mano, que
+                    es justo lo que esto vino a evitar.
                   */}
-                  <input
-                    className="input"
-                    style={{ marginTop: 6 }}
-                    value={motivoSobreagenda}
-                    onChange={e => setMotivoSobreagenda(e.target.value)}
-                    placeholder="Motivo para sobreagendar (urgencia, indicación del médico…)"
-                    maxLength={200}
-                  />
-                  <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
-                    Sin motivo no se agenda encima. Con motivo, queda registrado quién y por qué.
-                  </div>
+                  {esMedicoReal ? (
+                    <>
+                      <input
+                        className="input"
+                        style={{ marginTop: 6 }}
+                        value={motivoSobreagenda}
+                        onChange={e => setMotivoSobreagenda(e.target.value)}
+                        placeholder="Motivo para sobreagendar (urgencia, indicación del médico…)"
+                        maxLength={200}
+                      />
+                      <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
+                        Sin motivo no se agenda encima. Con motivo, queda registrado quién y por qué.
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 6 }}>
+                      Agendar encima de otra cita lo autoriza el médico desde su sesión: es una decisión
+                      sobre su tiempo de consulta. Elige otro horario o pídeselo.
+                    </div>
+                  )}
                 </div>
               )}
             </div>

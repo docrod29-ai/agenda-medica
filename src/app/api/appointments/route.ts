@@ -58,8 +58,25 @@ export async function POST(req: NextRequest) {
    * teclea una justificación por error. Se guarda en la cita y va a la
    * bitácora, así que después se puede preguntar quién sobreagendó y por qué.
    */
+  /**
+   * SOBREAGENDAR ES DEL MÉDICO, NO DE TODO EL MOSTRADOR (decisión del dueño).
+   *
+   * Poner una cita encima de otra decide que un paciente esperará y que la
+   * consulta se comprimirá: es una decisión sobre el tiempo clínico, no sobre
+   * la agenda. Quien la toma es quien va a atender.
+   *
+   * La asistente sigue viendo el choque y la razón por la que no puede
+   * saltárselo — no se le esconde el botón sin explicación, que es como se
+   * aprende a rodear un sistema.
+   */
   const motivoSobreagenda = String(body.sobreagendarMotivo ?? '').trim().slice(0, 200)
-  const quiereSobreagendar = motivoSobreagenda.length >= 5
+  const esMedico = acc.role === 'medico' || acc.role === 'admin'
+  const quiereSobreagendar = motivoSobreagenda.length >= 5 && esMedico
+  if (motivoSobreagenda.length >= 5 && !esMedico) {
+    return NextResponse.json({
+      error: 'Sólo el médico puede agendar encima de otra cita. Pídeselo y él lo autoriza desde su sesión.',
+    }, { status: 403 })
+  }
 
   const limpia: Record<string, unknown> = {}
   for (const k of CAMPOS_CITA) {
@@ -217,7 +234,7 @@ export async function POST(req: NextRequest) {
     if (e === CONFLICTO) {
       // `sobreagendable` le dice a la pantalla que existe una salida autorizada,
       // en vez de dejar al usuario contra un muro.
-      return NextResponse.json({ error: 'Ese horario ya está ocupado.', sobreagendable: true }, { status: 409 })
+      return NextResponse.json({ error: 'Ese horario ya está ocupado.', sobreagendable: esMedico }, { status: 409 })
     }
     throw e
   }
