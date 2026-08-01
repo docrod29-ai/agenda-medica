@@ -13,7 +13,7 @@ import { describe, it, expect } from 'vitest'
 import {
   normalizarNombre, telefonoComparable, similitudNombre,
   compararPacientes, buscarPosiblesDuplicados, hayQuePreguntar,
-  barrerDuplicados, UMBRAL_NOMBRE,
+  barrerDuplicados, elegirExpedienteParaCita, UMBRAL_NOMBRE,
 } from '@/lib/pacientes/duplicados'
 
 describe('normalizarNombre', () => {
@@ -347,5 +347,95 @@ describe('barrer los duplicados que ya existen', () => {
     }))
     const r = barrerDuplicados(muchos)
     expect(r.bloquesIgnorados.length).toBeGreaterThan(0)
+  })
+})
+
+/**
+ * FUNDIR CON QUIEN NO ES — el error que ningún barrido puede encontrar después.
+ *
+ * Cuando alguien agenda desde el asistente no hay nadie a quien preguntar: hay
+ * que decidir solo si es un paciente que ya existe o uno nuevo. Y los dos
+ * errores posibles NO son comparables:
+ *
+ *  · Crear un duplicado parte el historial. Es malo y es RECUPERABLE.
+ *  · Fundir con quien no es cuelga la cita —y después la nota y la receta— del
+ *    expediente de OTRA PERSONA. No se ve como un error: se ve como un paciente
+ *    que vino a consulta.
+ *
+ * Todo este bloque existe para que, ante la duda, se cree.
+ */
+describe('elegir expediente para una cita del asistente', () => {
+  it('EL HIJO QUE AGENDA CON EL CELULAR DE SU MADRE', () => {
+    /**
+     * Éste era el fallo, y es el peor de toda la serie. La regla vieja fundía por
+     * TELÉFONO A SOLAS, sin mirar el nombre: con la madre registrada con el
+     * número de la casa, la cita del hijo se colgaba del expediente de ella. Todo
+     * lo que se escribiera después —diagnóstico, alergias, prescripción— quedaba
+     * en la persona equivocada, con la firma del médico encima.
+     */
+    const existentes = [{ id: 'madre', nombre: 'Rosa Hernández Cruz', telefono: '6645551234' }]
+    const r = elegirExpedienteParaCita(
+      { nombre: 'Diego Hernández Cruz', telefono: '6645551234' },
+      existentes,
+    )
+    expect(r).toBeNull()
+  })
+
+  it('el paciente que vuelve SÍ se reconoce, aunque escriba distinto su nombre', () => {
+    const existentes = [{ id: 'p1', nombre: 'María López García', telefono: '6641234567' }]
+    const r = elegirExpedienteParaCita(
+      { nombre: 'Lopez Garcia, Maria', telefono: '664 123 4567' },
+      existentes,
+    )
+    expect(r?.id).toBe('p1')
+  })
+
+  it('mismo nombre pero teléfonos que se contradicen → se crea uno nuevo', () => {
+    /**
+     * Aquí se acepta a propósito crear un duplicado del mismo paciente —el que
+     * llamó desde otro número—. Sin nadie a quien preguntar, dos homónimos con
+     * números distintos son dos personas: el duplicado se arregla después, y
+     * escribir en el paciente equivocado no.
+     */
+    const existentes = [{ id: 'p1', nombre: 'Juan Pérez López', telefono: '6641112222' }]
+    const r = elegirExpedienteParaCita(
+      { nombre: 'Juan Pérez López', telefono: '6649998888' },
+      existentes,
+    )
+    expect(r).toBeNull()
+  })
+
+  it('si al existente le falta el teléfono, no hay contradicción: se funde', () => {
+    const existentes = [{ id: 'p1', nombre: 'Ana Ruiz Peña', telefono: '' }]
+    const r = elegirExpedienteParaCita({ nombre: 'Ana Ruiz Peña', telefono: '6647778899' }, existentes)
+    expect(r?.id).toBe('p1')
+  })
+
+  it('DOS CANDIDATOS IGUAL DE BUENOS → se crea uno nuevo', () => {
+    // Elegir «el primero» entre dos expedientes indistinguibles es echarlo a
+    // cara o cruz con el expediente de alguien.
+    const existentes = [
+      { id: 'a', nombre: 'Juan Pérez López' },
+      { id: 'b', nombre: 'Juan Pérez López' },
+    ]
+    expect(elegirExpedienteParaCita({ nombre: 'Juan Pérez López' }, existentes)).toBeNull()
+  })
+
+  it('un homónimo con distinta fecha de nacimiento tampoco se funde', () => {
+    const existentes = [{ id: 'padre', nombre: 'José Martínez Soto', fechaNacimiento: '1962-08-01' }]
+    const r = elegirExpedienteParaCita(
+      { nombre: 'José Martínez Soto', fechaNacimiento: '1990-08-01' },
+      existentes,
+    )
+    expect(r).toBeNull()
+  })
+
+  it('sin nada parecido, se crea', () => {
+    const existentes = [{ id: 'p1', nombre: 'Ana Ruiz Peña', telefono: '6641112233' }]
+    expect(elegirExpedienteParaCita({ nombre: 'Fernanda Quiroz Ibarra', telefono: '6641112233' }, existentes)).toBeNull()
+  })
+
+  it('lista vacía: no hay con qué fundir', () => {
+    expect(elegirExpedienteParaCita({ nombre: 'Ana Ruiz Peña' }, [])).toBeNull()
   })
 })

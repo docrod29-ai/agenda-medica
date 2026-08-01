@@ -405,3 +405,76 @@ export function barrerDuplicados<T extends PacienteComparable>(
   pares.sort((x, y) => y.puntaje - x.puntaje)
   return { pares, revisados: pacientes.length, bloquesIgnorados }
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   FUNDIR CONTRA UN EXPEDIENTE EXISTENTE — la decisión MÁS peligrosa de todas
+   ════════════════════════════════════════════════════════════════════════════
+
+   Todo lo anterior avisa. Esto DECIDE, y sin nadie delante: cuando alguien
+   agenda desde el asistente, hay que resolver solo si es un paciente que ya
+   existe o uno nuevo.
+
+   ── LOS DOS ERRORES NO SON COMPARABLES ─────────────────────────────────────
+
+   · **Crear un duplicado** parte el historial. Es malo, es recuperable, y el
+     barrido de la pantalla de Pacientes lo encuentra.
+   · **Fundir con quien no es** cuelga la cita —y después la nota, y la receta—
+     del expediente de OTRA PERSONA. No hay barrido que lo encuentre, porque no
+     se ve como un error: se ve como un paciente que vino a consulta.
+
+   Por eso ante la duda se CREA. Siempre.
+
+   ── EL FALLO QUE ESTO REPARA ───────────────────────────────────────────────
+
+   La regla anterior fundía por TELÉFONO A SOLAS, sin mirar el nombre. En México
+   el celular es de la casa: con la madre registrada con el número de casa, su
+   hijo agendaba y la cita se colgaba del expediente de la madre. Lo que se
+   escribiera después —diagnóstico, alergias, prescripción— quedaba en la
+   persona equivocada, con su firma encima.
+*/
+
+/**
+ * ¿Con qué expediente existente se funde esta reserva? `null` = crear uno nuevo.
+ *
+ * DOS condiciones, las dos necesarias:
+ *
+ *  1. El motor tiene que reconocerlos como la misma persona — o sea, los nombres
+ *     se parecen. El teléfono NUNCA basta por sí solo.
+ *  2. Los teléfonos no pueden CONTRADECIRSE. Si los dos tienen número y no
+ *     coinciden, se crea uno nuevo aunque el nombre sea idéntico: sin nadie a
+ *     quien preguntar, dos homónimos con números distintos son dos personas
+ *     hasta que alguien diga lo contrario.
+ *
+ * La segunda condición hace que a veces se cree un duplicado del mismo paciente
+ * —el que llamó desde otro número—. Es el error barato, y es el que se elige.
+ */
+export function elegirExpedienteParaCita<T extends PacienteComparable>(
+  reserva: PacienteComparable,
+  existentes: readonly T[],
+): T | null {
+  const telReserva = telefonosDe(reserva)
+  const candidatos: { p: T; puntaje: number }[] = []
+
+  for (const p of existentes) {
+    const r = compararPacientes(reserva, p)
+    if (!r) continue                                    // los nombres no se parecen
+    const telExistente = telefonosDe(p)
+    const seContradicen =
+      telReserva.length > 0 && telExistente.length > 0 &&
+      !telReserva.some(t => telExistente.includes(t))
+    if (seContradicen) continue
+    candidatos.push({ p, puntaje: r.puntaje })
+  }
+
+  if (candidatos.length === 0) return null
+  /**
+   * DOS candidatos igual de buenos → se crea uno nuevo.
+   *
+   * Elegir «el primero» entre dos expedientes indistinguibles es echarlo a
+   * cara o cruz con el expediente de alguien. Un duplicado se arregla; escribir
+   * en el paciente equivocado, no.
+   */
+  candidatos.sort((a, b) => b.puntaje - a.puntaje)
+  if (candidatos.length > 1 && candidatos[0].puntaje === candidatos[1].puntaje) return null
+  return candidatos[0].p
+}
