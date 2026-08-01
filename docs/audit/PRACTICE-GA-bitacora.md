@@ -143,6 +143,14 @@ pruebas en verde, y ningún efecto en la realidad.
 | ~~**P1-2**~~ | **CERRADO en GA-012 (v777).** El gesto del médico ya existía (panel de revisión) pero se guardaba como un número suelto: «camposAprobados: 3» dice cuántos aceptó, no CUÁLES. Ahora el sello lo lleva campo por campo, con distintivo aparte del de origen — un dato puede venir del dictado Y estar aceptado. **La trampa**: el panel numera sobre la extracción y el sello sobre la nota final; comparar índices habría dado por aceptado el diagnóstico equivocado. Se cruza por el índice de la extracción. `confirmados` es opcional: en las notas viejas «no consta» ≠ «cero» |
 | ~~**P1-3**~~ | **CERRADO en GA-012 (v777).** Precio y créditos derivados de `PLANES` + centinela `planes-precios.test.ts`. Salió una **mentira viva**: el plan Hospital anunciaba «400 créditos/mes» y son **500** |
 
+### Del charter — iteraciones ejecutadas
+
+| # | Qué | Versión |
+|---|---|---|
+| **P9** | Modelo financiero. El abono del mostrador no tenía saldo: «por cobrar» era indistinguible de «no ha pagado nada» y el paciente que dejó $300 de $800 acababa pagando $1,100. El estado se DERIVA de los cobros, nunca se guarda. Salió además que la regla del precio sugerido sólo existía en la pantalla de Consulta, así que al cobrar desde Citas el importe abría vacío | v784 |
+| **P10** | Arquitectura de pagos. **Comprobado antes de refactorizar**: «el frontend no determina si un pago existe» YA se cumple, y no por el código sino porque `firestore.rules` congela los campos de facturación. Por eso NO hice el `StripeAdapter`: habría movido código sin cerrar riesgo. Lo que faltaba era el candado sobre el candado — 17 casos contra el emulador, cada uno diciendo qué se abriría si cayera | v785 |
+| **P7/P8** | «Levotiroxina 100»: sin unidad, `extraerMg` asume miligramos. Mil veces la dosis, impresa y firmada tal cual. El módulo de antimicrobianos ya lo exigía; la receta diaria no | v786 |
+
 ### Encontrado y reparado esta noche (no estaba en la auditoría)
 
 | Qué | Dónde |
