@@ -8,7 +8,7 @@ import { useConfig } from '@/hooks/useConfig'
 import {
   LayoutDashboard, CalendarDays, Calendar, Users, Clock,
   Settings, LogOut, Stethoscope, Shield, Bot, UserSquare2, FileText, Search,
-  MessageCircle, TrendingUp, Star, ShieldCheck, Pill, BedDouble, BookOpen, FlaskConical, ArrowLeftRight, HeartHandshake, Bug, CreditCard, Activity,
+  MessageCircle, TrendingUp, Star, ShieldCheck, Pill, BedDouble, BookOpen, FlaskConical, ArrowLeftRight, HeartHandshake, Bug, CreditCard, Activity, ClipboardList,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
@@ -30,6 +30,10 @@ const NAV: { href: string; label: string; icon: typeof LayoutDashboard; modos: '
   { href: '/citas',         label: 'Citas',          icon: CalendarDays,    modos: 'ambos' },
   { href: '/calendario',    label: 'Calendario',     icon: Calendar,        modos: 'ambos' },
   { href: '/pacientes',     label: 'Consulta',       icon: Users,           modos: 'ambos' },
+  // Los cabos sueltos de las consultas firmadas. Va junto a Consulta porque es
+  // de donde salen, y en 'ambos' porque reclamar un estudio pedido es trabajo
+  // de la asistente tanto como del médico.
+  { href: '/pendientes',    label: 'Pendientes',     icon: ClipboardList,   modos: 'ambos' },
   { href: '/hospitalizacion', label: 'Hospitalización', icon: BedDouble,     modos: 'ambos' },
   { href: '/uci',           label: 'UCI',            icon: Activity,        modos: 'medico' },   // /uci es el expediente de terapia, no la calculadora
   { href: '/consultor',     label: 'Consultor IA',   icon: FlaskConical,    modos: 'medico' },

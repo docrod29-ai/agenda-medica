@@ -211,6 +211,13 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     porQue: 'Rol hospitalario por usuario. La escritura NO puede ser de todo el staff: sería auto-escalada de privilegios.',
   },
   {
+    ruta: 'clinics/{clinicId}/tareas_clinicas/{tareaId}',
+    clase: 'clinico',
+    guardaLectura: 'isMedico',
+    guardaEscritura: 'isMedico',
+    porQue: 'Los cabos sueltos de la consulta: estudios pedidos, resultados por revisar, seguimientos. El título de una tarea es «Perfil tiroideo» junto al nombre del paciente — información clínica, así que la asistente no entra, igual que en las notas. No se borran: la constancia de que algo se dejó de hacer es justo lo que hace falta si un día se revisa el caso.',
+  },
+  {
     ruta: 'clinics/{clinicId}/laboratorio/{ordenId}',
     clase: 'clinico',
     guardaLectura: 'isClinicoHospital',

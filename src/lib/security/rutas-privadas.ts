@@ -64,6 +64,8 @@ export const RUTAS_PRIVADAS = [
   'nota',
   'orden',
   'pacientes',
+  // El worklist enseña nombre de paciente y qué se le pidió: es PHI en pantalla.
+  'pendientes',
   'reactivacion',
   'receta',
   'referencia',
