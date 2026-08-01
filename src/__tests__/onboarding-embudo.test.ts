@@ -116,3 +116,36 @@ describe('duracionCorta', () => {
     expect(duracionCorta(null)).toBe('—')
   })
 })
+
+describe('un hito que no se puede medir no es un hito donde alguien se atora', () => {
+  /**
+   * Se vio en la pantalla real: «primer paciente» no tiene señal desde fuera del
+   * expediente, así que TODOS los consultorios salían atorados ahí y el número
+   * más grande —«7 se quedan en primer paciente»— era un artefacto de la
+   * medición presentado como un hallazgo.
+   *
+   * Un tablero que convierte su propia limitación en una conclusión manda a
+   * arreglar una pantalla que no está rota.
+   */
+  it('el hito mudo se salta al buscar dónde se quedó', () => {
+    const e = embudoDe({ cuenta: T0, cita: min(9) }, ['paciente'])
+    expect(e.atoradoEn?.clave).toBe('consulta')
+  })
+
+  it('sin hitos mudos se comporta como antes', () => {
+    const e = embudoDe({ cuenta: T0, cita: min(9) })
+    expect(e.atoradoEn?.clave).toBe('paciente')
+  })
+
+  it('el hito mudo SIGUE saliendo como no alcanzado en la tabla', () => {
+    // Se salta para el veredicto, no se disimula: la columna debe seguir vacía
+    // para que se vea que no se midió.
+    const e = embudoDe({ cuenta: T0, cita: min(9) }, ['paciente'])
+    expect(e.pasos.find(p => p.hito.clave === 'paciente')!.alcanzado).toBe(false)
+  })
+
+  it('si TODO lo medible se alcanzó, no hay atasco aunque falten los mudos', () => {
+    const e = embudoDe({ cuenta: T0, cita: min(9), consulta: min(40) }, ['paciente', 'receta', 'cobro'])
+    expect(e.atoradoEn).toBeNull()
+  })
+})

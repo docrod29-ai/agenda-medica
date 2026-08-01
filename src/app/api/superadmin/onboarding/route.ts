@@ -38,6 +38,15 @@ export const runtime = 'nodejs'
  * ausente en vez de inventarle una, porque un hito medido con la señal de otro
  * miente en la dirección optimista.
  */
+/**
+ * Los hitos que NO se pueden medir sin entrar al expediente.
+ *
+ * Se declaran aquí y viajan al motor: sin esto, todos los consultorios salían
+ * «atorados en primer paciente» y el número más visible de la pantalla era un
+ * artefacto de la medición, no un hallazgo.
+ */
+const SIN_SEÑAL: ClaveHito[] = ['paciente', 'receta', 'cobro']
+
 const FEATURE_DE_HITO: Partial<Record<ClaveHito, string[]>> = {
   cita: ['transcribir-chunk'],
   consulta: ['procesar', 'transcribir'],
@@ -90,7 +99,7 @@ export async function GET(req: NextRequest) {
         receta: null,
         cobro: null,
       }
-      const e = embudoDe(instantes)
+      const e = embudoDe(instantes, SIN_SEÑAL)
       return {
         clinicId: id,
         nombre: String(d.get('nombre') ?? id),
@@ -105,7 +114,7 @@ export async function GET(req: NextRequest) {
       ok: true,
       hitos: HITOS,
       /** Los que NO se pueden medir sin entrar al expediente. Se dice, no se esconde. */
-      hitosSinSeñal: ['paciente', 'receta', 'cobro'],
+      hitosSinSeñal: SIN_SEÑAL,
       consultorios: filas.map(f => ({
         clinicId: f.clinicId, nombre: f.nombre, plan: f.plan, estado: f.estado, creada: f.creada,
         atoradoEn: f.embudo.atoradoEn?.clave ?? null,

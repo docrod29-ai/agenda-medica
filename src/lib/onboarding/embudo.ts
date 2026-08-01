@@ -87,8 +87,9 @@ const ms = (v: unknown): number | null => {
  * paciente «propio» nunca existe— y maquillarlo escondería justo la anomalía
  * que hay que entender.
  */
-export function embudoDe(instantes: Instantes): Embudo {
+export function embudoDe(instantes: Instantes, sinSeñal: readonly ClaveHito[] = []): Embudo {
   const origen = ms(instantes.cuenta)
+  const mudo = new Set(sinSeñal)
   const pasos: PasoEmbudo[] = HITOS.map(hito => {
     const t = ms(instantes[hito.clave])
     return {
@@ -97,7 +98,18 @@ export function embudoDe(instantes: Instantes): Embudo {
       desdeCuentaMs: t != null && origen != null ? Math.max(0, t - origen) : null,
     }
   })
-  const primeroPendiente = pasos.find(p => !p.alcanzado)
+  /**
+   * UN HITO QUE NO SE PUEDE MEDIR NO ES UN HITO DONDE ALGUIEN SE ATORA.
+   *
+   * Se vio en la pantalla real: como «primer paciente» no tiene señal desde
+   * fuera del expediente, TODOS los consultorios salían atorados ahí y el número
+   * más grande de la pantalla —«7 se quedan en primer paciente»— era un artefacto
+   * de la medición presentado como un hallazgo.
+   *
+   * Un tablero que convierte su propia limitación en una conclusión es peor que
+   * no tener tablero: manda a arreglar una pantalla que no está rota.
+   */
+  const primeroPendiente = pasos.find(p => !p.alcanzado && !mudo.has(p.hito.clave))
   return {
     pasos,
     atoradoEn: primeroPendiente ? primeroPendiente.hito : null,
