@@ -16,6 +16,9 @@ import MarPaciente from './MarPaciente'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Activity, Wind, Droplets, HeartPulse, ShieldAlert, Info, Mic, Square, Waves, BedDouble, AlertTriangle, FileText, Calculator, Brain, Sparkles, ThumbsUp, ThumbsDown, ArrowLeft, FlaskConical } from 'lucide-react'
 import { useClinic } from '@/context/ClinicContext'
+import { auth } from '@/lib/firebase'
+import { ofuscar, desofuscar, secretoLocal } from '@/lib/seguridad/ofuscar-local'
+import { EVENTO_GUARDAR_TODO } from '@/lib/salir-seguro'
 import { useToast } from '@/context/ToastContext'
 import { fetchAutenticado } from '@/lib/auth-client'
 import type { FusionCopilot } from '@/lib/uci/copilot'
@@ -211,6 +214,91 @@ export default function UciPanelPage() {
   const [modoAvanzado, setModoAvanzado] = useState(false) // false = simple (dictado + nota); true = grid de campos
   const [avisoPase, setAvisoPase] = useState('')       // confirmación tras "Generar nota"
   const procesadoRef = useRef('')
+
+  /**
+   * ── RESPALDO LOCAL DEL PASE ────────────────────────────────────────────────
+   *
+   * Este panel NO persistía NADA de lo dictado. Ni los campos, ni el texto del
+   * pase, ni la discusión, ni los valores extraídos: todo vivía en `useState` y
+   * salir de la ruta lo borraba.
+   *
+   * Y agravaba: tras una diarización exitosa se borra el audio crudo de
+   * IndexedDB en cuanto el texto llega a la pantalla. Así que un pase de visita
+   * de quince minutos, ya transcrito, desaparecía por completo con tocar
+   * «Hospitalización» —un botón de esta misma pantalla— sin forma de
+   * recuperarlo. En la consulta hay red de respaldo desde hace tiempo; aquí no
+   * había ninguna.
+   *
+   * Se guarda con la misma ofuscación y el mismo prefijo (`nx.uci.`) que ya
+   * reconoce la purga de PHI al cerrar sesión, así que el respaldo hereda esa
+   * política sin inventar una nueva.
+   */
+  const claveRespaldo = `nx.uci.pase.${internamientoId ?? 'sin-paciente'}`
+  const restauradoRef = useRef(false)
+
+  useEffect(() => {
+    if (restauradoRef.current) return
+    restauradoRef.current = true
+    // La LECTURA del disco va aquí (es un sistema externo); la aplicación del
+    // estado se difiere para no encadenar renders dentro del efecto.
+    let b: Record<string, unknown> | null = null
+    try {
+      const crudo = localStorage.getItem(claveRespaldo)
+      if (!crudo) return
+      b = JSON.parse(desofuscar(crudo, secretoLocal(auth.currentUser?.uid)) ?? crudo)
+    } catch { /* respaldo ilegible: se sigue con la pantalla en blanco */ }
+    if (!b || typeof b !== 'object') return
+    const datos = b
+    void Promise.resolve().then(() => {
+      if (datos.v && typeof datos.v === 'object') setV(datos.v as Campos)
+      if (typeof datos.paseTexto === 'string') setPaseTexto(datos.paseTexto)
+      if (typeof datos.discusionTxt === 'string') setDiscusionTxt(datos.discusionTxt)
+      if (Array.isArray(datos.detectados)) setDetectados(datos.detectados as string[])
+    })
+  }, [claveRespaldo])
+
+  // Espejo para poder guardar desde el cleanup y desde el cierre de sesión sin
+  // meter todo el estado en las dependencias.
+  const vivoRef = useRef({ v, paseTexto, discusionTxt, detectados })
+  useEffect(() => { vivoRef.current = { v, paseTexto, discusionTxt, detectados } })
+
+  const guardarRespaldo = useCallback(() => {
+    const e = vivoRef.current
+    const hay = Object.values(e.v).some(x => String(x ?? '').trim()) || e.paseTexto.trim() || e.discusionTxt.trim()
+    try {
+      if (!hay) { localStorage.removeItem(claveRespaldo); return }
+      localStorage.setItem(claveRespaldo, ofuscar(JSON.stringify({ ...e, ts: Date.now() }), secretoLocal(auth.currentUser?.uid)))
+    } catch { /* almacenamiento lleno: no es crítico */ }
+  }, [claveRespaldo])
+
+  // Debounce mientras se trabaja.
+  useEffect(() => {
+    const id = setTimeout(guardarRespaldo, 1200)
+    return () => clearTimeout(id)
+  }, [v, paseTexto, discusionTxt, detectados, guardarRespaldo])
+
+  // Al DESMONTAR (tocar «Hospitalización», el Sidebar, atrás…) y al cerrar la
+  // pestaña: el debounce pendiente se pierde si no se fuerza aquí.
+  useEffect(() => {
+    const alSalir = () => guardarRespaldo()
+    window.addEventListener('pagehide', alSalir)
+    return () => { window.removeEventListener('pagehide', alSalir); guardarRespaldo() }
+  }, [guardarRespaldo])
+
+  /**
+   * El cierre de sesión pide guardar a la pantalla activa. Este panel no
+   * escuchaba, así que un cierre por inactividad se llevaba el pase sin
+   * intentar siquiera salvarlo — y la purga de `nx.uci.*` lo remataba.
+   */
+  useEffect(() => {
+    const alGuardarTodo = (ev: Event) => {
+      guardarRespaldo()
+      const d = (ev as CustomEvent<{ esperar?: (p: Promise<unknown>) => void }>).detail
+      d?.esperar?.(Promise.resolve())
+    }
+    window.addEventListener(EVENTO_GUARDAR_TODO, alGuardarTodo)
+    return () => window.removeEventListener(EVENTO_GUARDAR_TODO, alGuardarTodo)
+  }, [guardarRespaldo])
 
   // Procesa el texto del pase (dictado o escrito): arma la discusión por roles y
   // extrae los valores hacia el panel/nota. Reutilizado por la voz y por el botón
