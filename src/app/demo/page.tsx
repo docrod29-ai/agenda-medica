@@ -241,10 +241,19 @@ export default function DemoPage() {
 
         {/* Video del producto (reel vertical 9:16) */}
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 52 }}>
+          {/*
+            PORTADA. Sin ella, quien entra a la página que existe para convencerlo
+            ve un rectángulo NEGRO con un spinner mientras cargan 8.5 MB de vídeo
+            — y en una conexión de consultorio eso son varios segundos delante de
+            la primera impresión del producto.
+            El fotograma es el gancho de la campaña («Son las 9 pm. Y me faltan 12
+            notas»), así que la espera pasa de un vacío a un argumento. 52 KB.
+          */}
           <video
             controls
             playsInline
             preload="metadata"
+            poster="/videos/demo-nota-portada.jpg"
             style={{
               width: '100%', maxWidth: 340, aspectRatio: '9 / 16', borderRadius: 20,
               background: '#000', border: '1px solid var(--border)', boxShadow: '0 20px 50px rgba(0,0,0,0.35)',
