@@ -35,6 +35,9 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
 | v814 | Cobrar un ciclo distinto del ofrecido · adivinar mal el plan por importe |
 | v815 | Médicos habilitados sin cobrar · pagos huérfanos invisibles |
 | v816 | Teléfono del alta era campo muerto · recordatorios en verde sin WhatsApp conectado |
+| v817 | El pase de UCI se evaporaba (respaldo local + acuse) · resultados de laboratorio con Escape |
+| v818 | Se podía mover dinero entre médicos por «vincular factura» (reglas + 3 tests de emulador) |
+| v819 | pagoVencido/disputaAbierta que nadie leía · el año pagado que se perdía al cambiar de plan |
 
 ---
 
@@ -66,11 +69,11 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
    libre. Para validar el lanzamiento hace falta una cuenta con correo ajeno.
 
 **Pérdida de datos** (auditor de pérdida):
-8. **El Panel UCI no persiste NADA de lo dictado**: salir de la ruta borra el
+8. ~~Panel UCI sin persistir~~ — HECHO (v817). Antes:: salir de la ruta borra el
    pase completo. `src/app/(dashboard)/uci/page.tsx:124` — y tampoco escucha
    `EVENTO_GUARDAR_TODO`. Agrava que el audio se borra de IndexedDB en cuanto
    llega el texto.
-9. **Escape o clic fuera tiran los resultados de laboratorio ya tecleados**, y
+9. ~~Resultados de laboratorio con Escape~~ — HECHO (v817)., y
    reabrir los pone en blanco. `hospitalizacion/[internamientoId]/page.tsx:772`.
 10. **El historial de versiones se escribe y no se puede leer**: `getVersionesNota`
     no tiene llamadores, y `updateNota` no tiene guardia de concurrencia.
@@ -85,11 +88,11 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
     su propio error y el webhook responde 200).
 15. Los metadatos de Stripe quedan congelados en el plan de la compra original.
 16. ~~planPorMonto se equivoca~~ — HECHO (v814).
-17. La prueba de 14 días se puede repetir indefinidamente.
+17. La prueba de 14 días se puede repetir indefinidamente. **PENDIENTE — decisión comercial del Dr: ¿se permite repetir la prueba?**
 18. ~~Asiento sin cobrar~~ — HECHO (v815).
-19. Un miembro puede reatribuir el médico de un cobro por la puerta de «vincular
+19. ~~Reatribuir el médico de un cobro~~ — HECHO (v818). Antes:
     factura» y mover comisiones (`firestore.rules:619`).
-20. `pagoVencido` y `disputaAbierta` no los lee NADIE.
+20. ~~pagoVencido/disputaAbierta sin lector~~ — HECHO (v819).
 21. ~~Pagos huérfanos~~ — HECHO (v815).
 
 ### 1. El tope de 24 huecos corta la tarde en silencio — HECHO (v810)
