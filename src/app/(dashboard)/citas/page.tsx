@@ -30,6 +30,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { hoyISO, sumarDiasISO } from '@/lib/timezone'
 import { fetchAutenticado } from '@/lib/auth-client'
+import { logAudit } from '@/lib/expediente/audit-log'
 import { Button, EmptyState, Spinner } from '@/components/ui'
 import { AgendaVacia } from '@/components/brand/EmptyArt'
 
@@ -166,6 +167,16 @@ export default function CitasPage() {
       // Contadores del paciente: sin esto, marcar "no asistió" no dejaba rastro y
       // el motor de riesgo de no-show operaba con su señal principal en cero.
       actualizarContadoresPaciente(clinicId!, appt.pacienteId, appt.estado, newStatus, appt.fechaHora)
+      /**
+       * BITÁCORA. Cancelar una cita desde este menú no dejaba ninguna entrada,
+       * mientras que agendar desde el portal público sí la deja. Con dos
+       * personas trabajando la misma agenda —médico y asistente— «¿quién canceló
+       * esto y cuándo?» no tenía respuesta en ningún sitio.
+       */
+      logAudit({
+        evento: 'cita_estado_cambiado', clinicId: clinicId!, patientId: appt.pacienteId,
+        meta: { citaId: appt.id, de: appt.estado, a: newStatus, fechaHora: appt.fechaHora },
+      })
       toast(`Estado actualizado: ${newStatus}`, 'success')
       setMenuId(null)
       // Si se liberó el slot (cancelar/no-asistió), avisar a la lista de espera.
@@ -247,6 +258,15 @@ export default function CitasPage() {
     const apptBorrada = appointments.find(a => a.id === id)   // capturar antes de borrar (trae el eventId de Google)
     try {
       await deleteAppointment(clinicId!, id)
+      /**
+       * Borrar DESTRUYE el documento: sin esta entrada no queda ni constancia de
+       * que la cita existió. Se registra lo mínimo que permite reconstruir el
+       * hecho (a quién, cuándo era, quién la borró) sin volcar datos clínicos.
+       */
+      logAudit({
+        evento: 'cita_borrada', clinicId: clinicId!, patientId: apptBorrada?.pacienteId,
+        meta: { citaId: id, fechaHora: apptBorrada?.fechaHora, estado: apptBorrada?.estado },
+      })
       // Borrar también el evento en Google Calendar.
       //
       // Antes esto iba con .catch(() => {}) y sin mirar res.ok, y el toast decía

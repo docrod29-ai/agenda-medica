@@ -74,14 +74,42 @@ export async function POST(req: NextRequest) {
     } catch { /* sin config → sin envío */ }
   }
 
-  if (!telefono) return NextResponse.json({ ok: true, enviado: false, motivo: 'sin-telefono' })
+  /**
+   * UNA ALERTA QUE NO SALE TIENE QUE DEJAR RASTRO.
+   *
+   * Esta ruta avisa de un valor crítico de laboratorio, un NEWS2 alto o una
+   * interconsulta. Cuando el envío fallaba, la respuesta lo decía honestamente
+   * (`enviado: false`) y ahí terminaba todo: nadie recibía la alerta y nadie se
+   * enteraba de que no había llegado. Un fallo silencioso en un aviso crítico es
+   * peor que no tener el aviso, porque el equipo cree que ya avisó.
+   *
+   * No se puede reintentar como los recordatorios —fuera de la ventana de 24 h
+   * haría falta una plantilla aprobada en Meta, que es un trámite del dueño— así
+   * que lo que sí se puede hacer es que quede escrito y se vea.
+   */
+  const registrarFallo = async (motivo: string) => {
+    try {
+      await clinicRef.collection('alertas_no_entregadas').add({
+        motivo, destino, telefono: telefono ? `…${telefono.slice(-4)}` : '',
+        texto: String(mensaje).slice(0, 300),
+        createdAt: new Date().toISOString(),
+      })
+    } catch { /* si ni esto se puede escribir, queda el `enviado:false` de la respuesta */ }
+  }
+
+  if (!telefono) {
+    await registrarFallo('sin-telefono')
+    return NextResponse.json({ ok: true, enviado: false, motivo: 'sin-telefono' })
+  }
 
   // Cap de longitud (anti-abuso): la alerta es un texto breve.
   const texto = String(mensaje).slice(0, 500)
   try {
     const { ok } = await sendWhatsApp(clinicId, telefono, texto)
+    if (!ok) await registrarFallo('envio-rechazado')
     return NextResponse.json({ ok: true, enviado: ok, destino })
   } catch {
+    await registrarFallo('whatsapp-no-disponible')
     return NextResponse.json({ ok: true, enviado: false, motivo: 'whatsapp-no-disponible' })
   }
 }
