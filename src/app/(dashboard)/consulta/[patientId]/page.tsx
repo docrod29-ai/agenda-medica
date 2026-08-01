@@ -15,7 +15,7 @@ import { hoyISO } from '@/lib/timezone'
 import type { Appointment } from '@/types'
 import { useToast } from '@/context/ToastContext'
 import { auth } from '@/lib/firebase'
-import { getPatient, getPatients, updatePatient, updateAppointment } from '@/lib/firestore'
+import { getPatient, getPatients, updatePatient, updateAppointment, saveConfigPartial } from '@/lib/firestore'
 import { useGrabacionVoz } from '@/hooks/useGrabacionVoz'
 import { useGrabacionAudio } from '@/hooks/useGrabacionAudio'
 import { useComandoVoz } from '@/hooks/useComandoVoz'
@@ -1976,6 +1976,38 @@ export default function ConsultaActivaPage() {
 
   // useMemo: construirNota no es barato y esto corría en CADA render.
   const validacion = useMemo(() => validarNOM004(construirNota('borrador')), [construirNota])
+
+  /**
+   * ¿El bloqueo de la firma es SÓLO la cédula que falta?
+   *
+   * Se mira la config, no el texto del error: comparar cadenas se rompe en
+   * silencio en cuanto alguien reescriba el mensaje en `nom004.ts`, y el fallo
+   * sería que el médico nuevo vuelve a quedarse con el botón muerto — el mismo
+   * defecto, resucitado por un cambio de redacción.
+   */
+  const faltaCedula = !config?.cedulaProfesional?.trim() && !firmada
+  const [cedulaRapida, setCedulaRapida] = useState('')
+  const [guardandoCedula, setGuardandoCedula] = useState(false)
+
+  const guardarCedulaRapida = useCallback(async () => {
+    const ced = cedulaRapida.trim()
+    if (!ced || !clinicId) return
+    setGuardandoCedula(true)
+    try {
+      await saveConfigPartial(clinicId, { cedulaProfesional: ced })
+      // No se toca el estado local: `useConfig` escucha con onSnapshot, así que
+      // la config llega sola y la validación se recalcula. Escribirlo también
+      // aquí crearía una segunda copia de la verdad que puede discrepar.
+      toast('Cédula guardada. Ya puedes firmar.', 'success')
+    } catch (e) {
+      // Que se vea el motivo: un fallo mudo aquí deja al médico picando un botón
+      // que no responde, que es exactamente de lo que veníamos.
+      toast(`No se pudo guardar la cédula: ${(e as Error)?.message ?? 'error desconocido'}`, 'error')
+    } finally {
+      setGuardandoCedula(false)
+    }
+  }, [cedulaRapida, clinicId])
+
   const mmss = `${String(Math.floor(voz.duracion / 60)).padStart(2, '0')}:${String(voz.duracion % 60).padStart(2, '0')}`
 
   return (
@@ -3183,6 +3215,48 @@ export default function ConsultaActivaPage() {
           {validacion.errores.length > 0 && (
             <div style={S.valBox('error')}>
               {validacion.errores.map((e, i) => <div key={i} style={{ display: 'flex', gap: 6 }}><AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 2 }} /> {e}</div>)}
+            </div>
+          )}
+
+          {/*
+            EL ÚNICO ERROR QUE SE ARREGLA AQUÍ MISMO.
+            ────────────────────────────────────────────────────────────────────
+            La cédula profesional nace vacía (`DEFAULT_CONFIG`) y el alta no la
+            pide, así que TODO médico nuevo llegaba a su primera nota con el
+            botón de Firmar apagado y un renglón rojo que no dice a dónde ir. Con
+            un paciente enfrente, eso es abandonar la app.
+
+            Es además el único error de la lista que no es clínico: los demás
+            —falta un diagnóstico, falta una sección— se arreglan escribiendo la
+            nota, que es lo que el médico está haciendo. Éste se arregla con un
+            dato administrativo que sólo hay que teclear una vez en la vida.
+
+            Se resuelve donde aparece. Nada de mandarlo a Configuración a buscar.
+          */}
+          {faltaCedula && (
+            <div style={{ ...S.valBox('error'), display: 'block' }}>
+              <div style={{ fontWeight: 700, marginBottom: 8 }}>Tu cédula profesional, una sola vez</div>
+              <div style={{ marginBottom: 10, lineHeight: 1.5 }}>
+                La nota la exige la NOM-004. Escríbela aquí y queda guardada para siempre — no te la vuelvo a pedir.
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <input
+                  value={cedulaRapida}
+                  onChange={e => setCedulaRapida(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') void guardarCedulaRapida() }}
+                  placeholder="Ej. 1234567"
+                  inputMode="numeric"
+                  aria-label="Cédula profesional"
+                  style={{ flex: '1 1 180px', minWidth: 140, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 9, padding: '10px 14px', fontSize: 14, color: 'var(--text)' }}
+                />
+                <button
+                  onClick={() => void guardarCedulaRapida()}
+                  disabled={!cedulaRapida.trim() || guardandoCedula}
+                  style={{ background: (!cedulaRapida.trim() || guardandoCedula) ? 'var(--s3)' : 'var(--nexus, #3d5afe)', color: '#fff', border: 'none', borderRadius: 9, padding: '10px 18px', fontSize: 13.5, fontWeight: 700, cursor: (!cedulaRapida.trim() || guardandoCedula) ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                >
+                  {guardandoCedula ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Guardando…</> : 'Guardar y seguir'}
+                </button>
+              </div>
             </div>
           )}
           {validacion.advertencias.length > 0 && (

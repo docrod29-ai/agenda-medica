@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarUsuario } from '@/lib/auth-server'
 import { DEFAULT_CONFIG } from '@/types'
+import { zonaMXDe } from '@/lib/zona-horaria-mx'
 
 /**
  * Alta del consultorio, ATÓMICA.
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
   const acceso = await verificarUsuario(req)
   if (!acceso.ok) return acceso.response
 
-  let body: { nombreClinica?: string; nombreMedico?: string; especialidad?: string; telefono?: string }
+  let body: { nombreClinica?: string; nombreMedico?: string; especialidad?: string; telefono?: string; cedulaProfesional?: string; zonaHoraria?: string }
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }
 
   const nombreClinica = String(body.nombreClinica ?? '').trim().slice(0, 160)
@@ -38,6 +39,23 @@ export async function POST(req: NextRequest) {
   // la especialidad alimenta después la firma de la nota y el PDF.
   const especialidad = String(body.especialidad ?? '').trim().slice(0, 120)
   const telefono = String(body.telefono ?? '').replace(/\D/g, '').slice(0, 20)
+  /**
+   * La cédula, si la escribió. Sin ella `validarNOM004` bloquea la firma de la
+   * PRIMERA nota, así que se pide en el alta (opcional) y se rescata con un
+   * arreglo de un clic dentro de la propia consulta.
+   */
+  const cedulaProfesional = String(body.cedulaProfesional ?? '').trim().slice(0, 40)
+  /**
+   * La zona horaria la manda el navegador y se NORMALIZA aquí.
+   *
+   * No se confía en lo que llegue: la agenda, los recordatorios y el corte de
+   * caja asumen una zona de México, y un `Europe/Madrid` de un portátil mal
+   * configurado se propagaría a todos esos cálculos. `zonaMXDe` acepta las cinco
+   * conocidas, traduce los nombres que la IANA retiró, y cae a CDMX ante
+   * cualquier otra cosa. El valor de `DEFAULT_CONFIG` era la zona del DUEÑO, que
+   * dejaba la agenda corrida una hora a todo médico de otra zona.
+   */
+  const zonaHoraria = zonaMXDe(String(body.zonaHoraria ?? ''))
   if (!nombreClinica || !nombreMedico) {
     return NextResponse.json({ ok: false, error: 'Faltan el nombre del consultorio y el del médico' }, { status: 400 })
   }
@@ -70,9 +88,10 @@ export async function POST(req: NextRequest) {
       })
       tx.set(miembroRef, { clinicId: clinicaRef.id, role: 'admin', createdAt: ahora })
       tx.set(clinicaRef.collection('config').doc('main'), {
-        ...DEFAULT_CONFIG, nombreClinica, nombreMedico,
+        ...DEFAULT_CONFIG, nombreClinica, nombreMedico, zonaHoraria,
         ...(especialidad ? { especialidad } : {}),
         ...(telefono ? { telefono } : {}),
+        ...(cedulaProfesional ? { cedulaProfesional } : {}),
         createdAt: ahora, updatedAt: ahora,
       })
       return clinicaRef.id
