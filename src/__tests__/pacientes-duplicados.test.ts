@@ -13,7 +13,7 @@ import { describe, it, expect } from 'vitest'
 import {
   normalizarNombre, telefonoComparable, similitudNombre,
   compararPacientes, buscarPosiblesDuplicados, hayQuePreguntar,
-  UMBRAL_NOMBRE,
+  barrerDuplicados, UMBRAL_NOMBRE,
 } from '@/lib/pacientes/duplicados'
 
 describe('normalizarNombre', () => {
@@ -230,5 +230,122 @@ describe('buscarPosiblesDuplicados', () => {
   it('sólo se frena cuando hay una SEGURA', () => {
     expect(hayQuePreguntar(buscarPosiblesDuplicados({ nombre: 'Maria Lopez Garcia', fechaNacimiento: '1990-04-12' }, lista))).toBe(true)
     expect(hayQuePreguntar(buscarPosiblesDuplicados({ nombre: 'María López' }, lista))).toBe(false)
+  })
+})
+
+/**
+ * BARRIDO DE LO QUE YA ESTÁ DENTRO.
+ *
+ * El motor de arriba evita duplicados NUEVOS. Estos son los que ya llevan meses
+ * acumulados — y son los que de verdad tienen el historial partido: las alergias
+ * en un expediente y las notas recientes en el otro.
+ *
+ * La prueba que manda de este bloque es la del TIEMPO. Comparar todos contra
+ * todos es cuadrático: con mil pacientes son medio millón de comparaciones con
+ * distancia de edición dentro, y eso congela el navegador del médico. Si alguien
+ * quita el bloqueo, esa prueba se cae — no se queda «un poco más lenta».
+ */
+describe('barrer los duplicados que ya existen', () => {
+  it('encuentra el par, una sola vez', () => {
+    const r = barrerDuplicados([
+      { id: 'p1', nombre: 'María López García', fechaNacimiento: '1990-04-12' },
+      { id: 'p2', nombre: 'Lopez Garcia, Maria', fechaNacimiento: '1990-04-12' },
+      { id: 'p3', nombre: 'Roberto Sánchez', edad: 50 },
+    ])
+    expect(r.pares).toHaveLength(1)
+    expect(r.pares[0].certeza).toBe('seguro')
+    expect(r.revisados).toBe(3)
+  })
+
+  it('UN PAR NO SE REPITE aunque coincida por varias señales', () => {
+    // Comparten teléfono Y fecha Y apellido: cae en tres bloques. Si saliera una
+    // vez por bloque, la pantalla diría que hay tres duplicados donde hay uno.
+    const r = barrerDuplicados([
+      { id: 'p1', nombre: 'Ana Ruiz Peña', telefono: '6641112233', fechaNacimiento: '1985-02-02' },
+      { id: 'p2', nombre: 'Ana Ruiz Peña', telefono: '6641112233', fechaNacimiento: '1985-02-02' },
+    ])
+    expect(r.pares).toHaveLength(1)
+  })
+
+  it('lo más seguro primero: es el orden en que hay que mirarlos', () => {
+    const r = barrerDuplicados([
+      { id: 'a1', nombre: 'Juan Pérez López' },
+      { id: 'a2', nombre: 'Juan Pérez López' },                                   // probable
+      { id: 'b1', nombre: 'Sofía Ramírez Cruz', fechaNacimiento: '1979-09-09' },
+      { id: 'b2', nombre: 'Sofia Ramirez Cruz', fechaNacimiento: '1979-09-09' },  // seguro
+    ])
+    expect(r.pares[0].certeza).toBe('seguro')
+  })
+
+  it('la familia que comparte celular NO sale como duplicado', () => {
+    const r = barrerDuplicados([
+      { id: 'm', nombre: 'Rosa Hernández Cruz', telefono: '6645551234' },
+      { id: 'h1', nombre: 'Diego Hernández Cruz', telefono: '6645551234' },
+      { id: 'h2', nombre: 'Sofía Hernández Cruz', telefono: '6645551234' },
+    ])
+    expect(r.pares).toEqual([])
+  })
+
+  it('un padre y un hijo con el mismo nombre tampoco', () => {
+    const r = barrerDuplicados([
+      { id: 'p', nombre: 'José Martínez Soto', fechaNacimiento: '1962-08-01' },
+      { id: 'h', nombre: 'José Martínez Soto', fechaNacimiento: '1990-08-01' },
+    ])
+    expect(r.pares).toEqual([])
+  })
+
+  it('una lista sin duplicados devuelve vacío, no ruido', () => {
+    const r = barrerDuplicados([
+      { id: '1', nombre: 'Ana Ruiz Peña' },
+      { id: '2', nombre: 'Fernanda Quiroz Ibarra' },
+      { id: '3', nombre: 'Roberto Sánchez Melo' },
+    ])
+    expect(r.pares).toEqual([])
+  })
+
+  it('sin id no se compara: no habría expediente que abrir', () => {
+    const r = barrerDuplicados([
+      { nombre: 'Ana Ruiz Peña' },
+      { nombre: 'Ana Ruiz Peña' },
+    ])
+    expect(r.pares).toEqual([])
+  })
+
+  it('EL BLOQUEO ES LO QUE LO HACE VIABLE — 3000 pacientes en menos de 2 s', () => {
+    /**
+     * Sin bloquear, 3000 pacientes son 4.5 millones de comparaciones con
+     * distancia de edición dentro: el navegador se queda colgado y el médico
+     * cierra la aplicación. Esta prueba es el techo que impide que alguien
+     * «simplifique» quitando los bloques.
+     */
+    const muchos = Array.from({ length: 3000 }, (_, i) => ({
+      id: `p${i}`,
+      nombre: `Nombre${i} Apellido${i % 97} Segundo${i % 89}`,
+      telefono: `66400${String(i).padStart(5, '0')}`,
+    }))
+    // Dos que SÍ son el mismo, escondidos entre los tres mil.
+    muchos.push({ id: 'x1', nombre: 'Guadalupe Villaseñor Ochoa', telefono: '6649990000' })
+    muchos.push({ id: 'x2', nombre: 'Villasenor Ochoa, Guadalupe', telefono: '6649990000' })
+
+    const t0 = Date.now()
+    const r = barrerDuplicados(muchos)
+    const ms = Date.now() - t0
+
+    expect(ms).toBeLessThan(2000)
+    expect(r.pares.some(p => (p.a.id === 'x1' && p.b.id === 'x2') || (p.a.id === 'x2' && p.b.id === 'x1'))).toBe(true)
+  })
+
+  it('un bloque gigante se salta, y SE DICE', () => {
+    /**
+     * Doscientos pacientes con el mismo apellido no son doscientos duplicados:
+     * es un bloque inútil que devolvería el coste cuadrático. Se descarta
+     * entero — pero se declara en `bloquesIgnorados`, porque un recorte
+     * silencioso se lee como «no había nada».
+     */
+    const muchos = Array.from({ length: 200 }, (_, i) => ({
+      id: `g${i}`, nombre: `Nombre${i} Garcia Lopez`,
+    }))
+    const r = barrerDuplicados(muchos)
+    expect(r.bloquesIgnorados.length).toBeGreaterThan(0)
   })
 })
