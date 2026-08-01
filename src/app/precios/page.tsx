@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { PLANES, RECARGA, MOTORES, TOPE_ECONOMICO, precioAnual, type PlanCreditos } from '@/lib/planes-ia'
+import { PLANES, RECARGA, MOTORES, TOPE_ECONOMICO, precioAnual, consultasIncluidasTexto, type PlanCreditos } from '@/lib/planes-ia'
 import { adminDb } from '@/lib/firebase-admin'
 import { catalogoEfectivo, type CatalogoGuardado } from '@/lib/finanzas/catalogo-planes'
 import { TablaNivelesIA } from '@/components/TablaNivelesIA'
@@ -38,9 +38,22 @@ function Card({ plan }: { plan: PlanCreditos }) {
         <span style={{ fontSize: 38, fontWeight: 800, color: 'var(--text, #0f172a)', letterSpacing: -1 }}>${plan.precioMXN.toLocaleString('es-MX')}</span>
         <span style={{ fontSize: 15, color: 'var(--text3, #64748b)' }}>MXN/mes</span>
       </div>
-      <div style={{ fontSize: 12, color: 'var(--text3, #64748b)', marginTop: 2, minHeight: 18 }}>
-        {plan.creditos > 0 ? `${plan.creditos} créditos de IA al mes · por médico` : 'sin IA · por médico'}
+      {/*
+        LO QUE COMPRA UN MÉDICO SON CONSULTAS, NO CRÉDITOS.
+        «200 créditos al mes» no dice si alcanza para la semana o para el mes, y
+        averiguarlo exige aprender cuánto cuesta cada motor. Nadie evalúa un
+        producto haciendo esa cuenta: cierra la pestaña.
+        El crédito no desaparece —es la unidad interna, y la honesta, porque una
+        nota Máxima cuesta diez veces una Rápida— pero baja al segundo renglón.
+      */}
+      <div style={{ fontSize: 13, color: 'var(--text2, #475569)', fontWeight: 600, marginTop: 4, minHeight: 18 }}>
+        {consultasIncluidasTexto(plan)}
       </div>
+      {plan.creditos > 0 && (
+        <div style={{ fontSize: 11.5, color: 'var(--text3, #64748b)', marginTop: 1 }}>
+          {plan.creditos} créditos · por médico
+        </div>
+      )}
       <div style={{ fontSize: 11.5, color: '#14b8a6', fontWeight: 600, marginTop: 4 }}>
         o ${precioAnual(plan).toLocaleString('es-MX')}/año · 2 meses gratis
       </div>

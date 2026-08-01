@@ -329,3 +329,51 @@ export function estadoUso(usadas: number, limite: number): EstadoUso {
   const pct = limite > 0 ? Math.round((usadas / limite) * 100) : 0
   return { usadas, limite, restantes: Math.max(0, limite - usadas), porcentaje: pct, alerta: pct >= 100 ? 'excedido' : pct >= 80 ? 'cerca' : 'ok' }
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CUÁNTAS CONSULTAS, NO CUÁNTOS CRÉDITOS
+   ════════════════════════════════════════════════════════════════════════════
+
+   Un médico no compra créditos: compra consultas documentadas. «200 créditos de
+   IA al mes» no le dice nada — no sabe si le alcanza para su semana o para su
+   mes, y averiguarlo exige que aprenda cuánto cuesta cada motor. Nadie evalúa un
+   producto haciendo esa cuenta: cierra la pestaña.
+
+   El crédito NO desaparece: sigue siendo la unidad interna, y es la honesta,
+   porque una nota Máxima cuesta diez veces una Rápida y cobrar igual las dos
+   sería mentir en una dirección o en la otra. Lo que cambia es cuál se enseña
+   PRIMERO: fuera el número comercial es la consulta; el crédito queda debajo,
+   para quien quiera hacer la cuenta.
+
+   Estas funciones son la traducción, y es una división: nada que decidir.
+*/
+
+/** Con cuántas notas de un motor alcanza un paquete de créditos. */
+export function consultasCon(creditos: number, motor: ClaveMotor = 'estandar'): number {
+  const costo = MOTORES[motor]?.creditos ?? MOTORES.estandar.creditos
+  if (!(costo > 0) || !(creditos > 0)) return 0
+  return Math.floor(creditos / costo)
+}
+
+/**
+ * La frase comercial de un plan: «~66 consultas con IA Estándar al mes».
+ *
+ * Lleva la tilde de aproximación a propósito. Es una división exacta, pero el
+ * número REAL depende de qué motor elija el médico en cada nota, y prometer una
+ * cifra cerrada que luego no se cumple es peor que no dar ninguna — sobre todo
+ * cuando la diferencia la nota él al final del mes.
+ */
+export function consultasIncluidasTexto(plan: PlanCreditos): string {
+  if (plan.creditos <= 0) return 'Sin IA de voz ni notas'
+  const motor: ClaveMotor = plan.nivelIA === 'premium' ? 'maxima' : 'estandar'
+  const n = consultasCon(plan.creditos, motor)
+  return `~${n} consultas con IA ${MOTORES[motor].nombre} al mes`
+}
+
+export const POR_QUE_NO_SE_VENDE_EN_CREDITOS =
+  'Porque un médico no compra créditos: compra consultas documentadas. «200 ' +
+  'créditos» no le dice si le alcanza para su semana o su mes, y averiguarlo ' +
+  'exige aprender cuánto cuesta cada motor. Nadie evalúa un producto haciendo ' +
+  'esa cuenta. El crédito sigue siendo la unidad interna —y la honesta, porque ' +
+  'una nota Máxima cuesta diez veces una Rápida— pero deja de ser lo primero ' +
+  'que se lee.'
