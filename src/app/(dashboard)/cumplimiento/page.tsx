@@ -22,8 +22,9 @@ import {
   ShieldCheck, FileSearch, Inbox, Copy, ExternalLink, AlertTriangle, Check, Clock, Shield, FlaskConical,
 } from 'lucide-react'
 import { motoresSinValidar } from '@/components/SelloMotor'
-import { Tabs, Spinner, EmptyState } from '@/components/ui'
+import { Tabs, Spinner, EmptyState, Modal, Button } from '@/components/ui'
 import { useToast } from '@/context/ToastContext'
+import { fetchAutenticado } from '@/lib/auth-client'
 
 interface AuditEntry {
   id: string
@@ -70,6 +71,9 @@ export default function CumplimientoPage() {
   const [tab, setTab] = useState<Tab>('estado')
   const [bitacora, setBitacora] = useState<AuditEntry[]>([])
   const [arcoList, setArcoList] = useState<ArcoRequest[]>([])
+  const [porCancelar, setPorCancelar] = useState<ArcoRequest | null>(null)
+  const [ejecutando, setEjecutando] = useState(false)
+  const [veredicto, setVeredicto] = useState<{ camino: string; queOcurre: string; porQueNoSeBorra: string } | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -89,6 +93,60 @@ export default function CumplimientoPage() {
     const url = `${window.location.origin}/privacidad/${clinicId}`
     navigator.clipboard.writeText(url)
     toast('Link copiado', 'success')
+  }
+
+  /**
+   * EJECUTAR UNA CANCELACIÓN ARCO.
+   *
+   * Se pregunta PRIMERO al servidor qué camino aplica —suprimir o bloquear— y
+   * se le enseña al médico lo que va a pasar ANTES de confirmar, porque una de
+   * las dos ramas es irreversible. Nadie debería enterarse de que el expediente
+   * era imborrable después de haber pulsado el botón.
+   */
+  /** Pregunta al servidor qué camino aplica, sin ejecutar nada. */
+  const consultarCamino = async (req: ArcoRequest) => {
+    setPorCancelar(req)
+    setVeredicto(null)
+    if (!clinicId || !req.patientId) return
+    try {
+      const res = await fetchAutenticado('/api/arco/cancelar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicId, patientId: req.patientId, simular: true }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (res.ok && d.ok) setVeredicto({ camino: d.camino, queOcurre: d.queOcurre, porQueNoSeBorra: d.porQueNoSeBorra })
+      else toast(d.error || 'No se pudo consultar el expediente', 'error')
+    } catch { toast('No se pudo consultar el expediente', 'error') }
+  }
+
+  const ejecutarCancelacion = async () => {
+    const req = porCancelar
+    if (!clinicId || !req?.patientId || !req.id) return
+    setEjecutando(true)
+    try {
+      const res = await fetchAutenticado('/api/arco/cancelar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicId, patientId: req.patientId, solicitudId: req.id, motivo: req.descripcion }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok || !d.ok) { toast(d.error || 'No se pudo ejecutar la cancelación', 'error'); return }
+      const resumen = d.camino === 'supresion'
+        ? `Expediente suprimido (${d.borradas?.notas ?? 0} notas, ${d.borradas?.citas ?? 0} citas).`
+        : 'Expediente bloqueado: se conserva por obligación legal, pero deja de usarse para contacto.'
+      // Se deja la constancia en la propia solicitud, con lo que REALMENTE pasó.
+      if (user?.uid) {
+        await resolverSolicitudArco(clinicId, req.id, { estado: 'resuelta', resolucion: resumen, resueltoPor: user.uid }).catch(() => {})
+      }
+      toast(resumen, 'success')
+      setPorCancelar(null)
+      setArcoList(await listarSolicitudesArco(clinicId))
+    } catch {
+      toast('No se pudo ejecutar la cancelación', 'error')
+    } finally {
+      setEjecutando(false)
+    }
   }
 
   const resolverArco = async (req: ArcoRequest, estado: 'resuelta' | 'rechazada') => {
@@ -148,8 +206,59 @@ export default function CumplimientoPage() {
       )}
 
       {tab === 'arco' && (
-        <ArcoPanel requests={arcoList} loading={loading} onResolver={resolverArco} />
+        <ArcoPanel requests={arcoList} loading={loading} onResolver={resolverArco} onCancelar={consultarCamino} />
       )}
+
+      {/*
+        EL VEREDICTO SE ENSEÑA ANTES, NO DESPUÉS.
+        Una de las dos ramas es irreversible. El servidor dice cuál aplica —lo
+        decide un hecho comprobable, si hay una nota firmada— y aquí se lee
+        antes de confirmar. Enterarse de que el expediente era imborrable
+        después de pulsar el botón sería exactamente al revés.
+      */}
+      <Modal
+        open={!!porCancelar}
+        onClose={() => { setPorCancelar(null); setVeredicto(null) }}
+        title="Ejecutar cancelación ARCO"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => { setPorCancelar(null); setVeredicto(null) }}>Volver</Button>
+            <Button
+              disabled={!veredicto || ejecutando}
+              loading={ejecutando}
+              onClick={ejecutarCancelacion}
+            >
+              {veredicto?.camino === 'supresion' ? 'Suprimir el expediente' : 'Bloquear el expediente'}
+            </Button>
+          </>
+        }
+      >
+        {!veredicto ? (
+          <Spinner center label="Revisando el expediente…" />
+        ) : (
+          <div style={{ display: 'grid', gap: 12 }}>
+            <div style={{
+              padding: 12, borderRadius: 8,
+              border: `1px solid ${veredicto.camino === 'supresion' ? 'var(--red)' : 'var(--amber)'}`,
+              background: 'var(--s2)',
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: veredicto.camino === 'supresion' ? 'var(--red)' : 'var(--amber)', marginBottom: 6 }}>
+                {veredicto.camino === 'supresion' ? 'Se puede suprimir' : 'Sólo se puede bloquear'}
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>{veredicto.queOcurre}</div>
+            </div>
+            {veredicto.porQueNoSeBorra && (
+              <div style={{ fontSize: 12.5, color: 'var(--text3)', lineHeight: 1.6 }}>
+                <strong style={{ color: 'var(--text2)' }}>Por qué no se puede borrar:</strong> {veredicto.porQueNoSeBorra}
+              </div>
+            )}
+            <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>
+              Queda registrado en la bitácora quién lo hizo y cuándo. El plazo de respuesta al
+              paciente y la redacción de esa respuesta los define tu abogado.
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }
@@ -356,7 +465,7 @@ function Bitacora({ entries, loading }: { entries: AuditEntry[]; loading: boolea
   )
 }
 
-function ArcoPanel({ requests, loading, onResolver }: { requests: ArcoRequest[]; loading: boolean; onResolver: (req: ArcoRequest, estado: 'resuelta' | 'rechazada') => void }) {
+function ArcoPanel({ requests, loading, onResolver, onCancelar }: { requests: ArcoRequest[]; loading: boolean; onResolver: (req: ArcoRequest, estado: 'resuelta' | 'rechazada') => void; onCancelar?: (req: ArcoRequest) => void }) {
   if (loading) return <Spinner center label="Cargando…" />
   if (requests.length === 0) {
     return (
@@ -402,7 +511,20 @@ function ArcoPanel({ requests, loading, onResolver }: { requests: ArcoRequest[];
                 )}
               </span>
               {pendiente && (
-                <div style={{ display: 'flex', gap: 6 }}>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {/*
+                    LA «C» DE ARCO, QUE ANTES NO TENÍA CAMINO TÉCNICO.
+                    «Marcar resuelta» sólo escribía un texto: el derecho se
+                    atendía en prosa y los datos del paciente seguían igual.
+                    Este botón lo EJECUTA — suprime si se puede, y si hay una
+                    nota firmada bloquea el expediente y explica por qué no se
+                    puede borrar.
+                  */}
+                  {r.tipo === 'cancelacion' && r.patientId && onCancelar && (
+                    <button onClick={() => onCancelar(r)} style={{ background: 'transparent', border: '1px solid rgba(239,68,68,0.5)', color: 'var(--red)', borderRadius: 6, padding: '4px 10px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
+                      Ejecutar cancelación…
+                    </button>
+                  )}
                   <button onClick={() => onResolver(r, 'rechazada')} style={{ background: 'transparent', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--red)', borderRadius: 6, padding: '4px 10px', fontSize: 11.5, cursor: 'pointer' }}>
                     Rechazar
                   </button>

@@ -110,7 +110,8 @@ describe('E0-07 · el escaneo encuentra rutas de verdad', () => {
     //
     // 76 → 77 al añadir `superadmin/csp` (la observación de la política de
     // seguridad). Una ruta, un método, un `verificarSuperadmin`.
-    expect(CLAVES_DISCO.length).toBe(81)
+    // 81 → 82 al añadir `arco/cancelar` (la «C» de ARCO, que no tenía camino técnico).
+    expect(CLAVES_DISCO.length).toBe(82)
   })
 })
 
@@ -374,12 +375,13 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
     // 80 → 81 y 65 → 66 al añadir `superadmin/onboarding`: una ruta, un GET.
     // 81 → 83 y 66 → 67 al añadir `superadmin/simulador`: GET y PUT, cada uno
     // con su guardián.
-    expect(llamadas.length).toBe(83)
-    expect(rutasConGuardia).toBe(67)
+    // 83 → 84: `arco/cancelar` con su único POST y su guardián.
+    expect(llamadas.length).toBe(84)
+    expect(rutasConGuardia).toBe(68)
     // 40 → 42 el 2026-08-01: `telesalud/sala` y `facturacion/descargar` pasaron
     // de `verificarMiembro` a `verificarCapacidad`, así que ahora usan el
     // vocabulario de capacidades. Dos activaciones que ESTRECHAN.
-    expect(conVocabulario).toBe(42)
+    expect(conVocabulario).toBe(43)
   })
 
   it('el avance se cuenta DEL REGISTRO, no de la prosa del expediente', () => {
@@ -390,7 +392,7 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
     // 2026-08-01: dos activaciones (telesalud/sala y facturacion/descargar) al
     // resolver el dueño quién entra a la sala y quién descarga CFDI.
     expect(resumenActivacion(METODOS_POR_RUTA)).toEqual({
-      declarados: 51, activos: 24, pendientes: 27,
+      declarados: 52, activos: 25, pendientes: 27,
     })
     // 29 PARES = 28 RUTAS distintas: `expediente/transcribir-diarizado` exporta GET y
     // POST y los dos siguen en `verificarModuloIA`. Ésa es la cifra del verificador.
@@ -485,7 +487,10 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
     // la estancia bajo `internamientos`, y está bajo capacidad clínica.
     const conPHI = [...FUENTE].filter(([, src]) =>
       COLECCIONES_CLINICAS.some(c => src.includes(`collection('${c}')`))).map(([c]) => c).sort()
-    expect(conPHI).toEqual(['fhir/paciente/[patientId]', 'hospital/mutar', 'portal', 'uci/estancia'])
+    // `arco/cancelar` entra a la lista: para decidir si un expediente se suprime
+    // o sólo se bloquea tiene que CONTAR las notas firmadas. Es lectura de PHI
+    // clínico, y está bajo `administrar`.
+    expect(conPHI).toEqual(['arco/cancelar', 'fhir/paciente/[patientId]', 'hospital/mutar', 'portal', 'uci/estancia'])
   })
 
   it('las rutas que tocan la IDENTIDAD del paciente están congeladas (segundo nivel de PHI)', () => {
@@ -496,6 +501,8 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
     const conPaciente = [...FUENTE].filter(([, src]) =>
       COLECCIONES_PACIENTE.some(c => src.includes(`collection('${c}')`))).map(([c]) => c).sort()
     expect(conPaciente).toEqual([
+      // Toca la identidad porque la SUPRIME o la bloquea: es su razón de ser.
+      'arco/cancelar',
       'fhir/paciente/[patientId]',
       'mantenimiento/backfill-contadores',
       'portal',

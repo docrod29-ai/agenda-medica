@@ -195,6 +195,12 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
     motivo: 'Gateway de mutaciones del internamiento: la capacidad depende de la acción del body (18 acciones), no del verbo HTTP.',
   },
 
+  /**
+   * La «C» de ARCO. `administrar` porque suprimir o bloquear un expediente es
+   * decisión del responsable del tratamiento de los datos, no del mostrador.
+   */
+  'arco/cancelar': { tipo: 'capacidad', capacidad: 'administrar' },
+
   // ── cobro y facturación ──────────────────────────────────────────────────
   'facturacion/descargar': {
     tipo: 'capacidad', capacidad: 'facturar',
