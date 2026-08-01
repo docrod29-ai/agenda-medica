@@ -90,7 +90,15 @@ export async function POST(req: NextRequest) {
       tx.set(clinicaRef.collection('config').doc('main'), {
         ...DEFAULT_CONFIG, nombreClinica, nombreMedico, zonaHoraria,
         ...(especialidad ? { especialidad } : {}),
-        ...(telefono ? { telefono } : {}),
+        /**
+         * EL TELÉFONO SE GUARDA DONDE EL IMPRESO LO BUSCA.
+         *
+         * Se guardaba sólo como `config.telefono`, y la receta lee
+         * `telefonoAdmin || whatsappConsultorio`. Resultado: el dato existía,
+         * viajaba, se persistía… y la primera receta del médico salía SIN
+         * teléfono. Se conserva `telefono` para no romper lo ya guardado.
+         */
+        ...(telefono ? { telefono, telefonoAdmin: telefono } : {}),
         ...(cedulaProfesional ? { cedulaProfesional } : {}),
         createdAt: ahora, updatedAt: ahora,
       })

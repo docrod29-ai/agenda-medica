@@ -197,6 +197,29 @@ export default function SetupPage() {
                 }}
               />
             </div>
+            {/*
+              EL CAMPO QUE FALTABA.
+              `telefono` estaba en el estado del formulario, el servidor lo
+              aceptaba y lo guardaba… y no había NINGÚN input que lo pintara.
+              Campo muerto: el médico nunca podía escribirlo, y su primera
+              receta salía sin teléfono de contacto.
+            */}
+            <div style={{ flex: '1 1 180px', minWidth: 150 }}>
+              <label htmlFor="setup-telefono" style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', display: 'block', marginBottom: 8 }}>
+                Teléfono del consultorio <span style={{ color: 'var(--text3)', fontWeight: 400 }}>(sale en la receta)</span>
+              </label>
+              <input
+                id="setup-telefono"
+                value={form.telefono}
+                onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))}
+                placeholder="614 123 4567"
+                inputMode="tel"
+                style={{
+                  width: '100%', background: 'var(--s2)', border: '1px solid var(--border)',
+                  borderRadius: 10, padding: '12px 16px', fontSize: 14, color: 'var(--text)', outline: 'none',
+                }}
+              />
+            </div>
             <div style={{ flex: '1 1 180px', minWidth: 150 }}>
               <label htmlFor="setup-cedula" style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', display: 'block', marginBottom: 8 }}>
                 Cédula profesional <span style={{ color: 'var(--text3)', fontWeight: 400 }}>(opcional)</span>
