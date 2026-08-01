@@ -7,6 +7,7 @@
 // citas de guías. Redacción por IA (api/inmuno/redactar), historial fechado y Word.
 // ════════════════════════════════════════════════════════════════════
 import { useCallback, useMemo, useRef, useState, type ReactNode, useEffect} from 'react'
+import { diasDesde } from '@/lib/fecha-local'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useClinic } from '@/context/ClinicContext'
@@ -208,7 +209,7 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
    * «días post-trasplante» es lo que ordena el riesgo de infección por etapas, y
    * una cifra que se mueve sola delante del médico no se puede citar en una nota.
    */
-  const diasTx = (() => { if (!v.hc_fechatx) return null; const d = Math.floor((ahoraMs - new Date(v.hc_fechatx).getTime()) / 86400000); return isNaN(d) ? null : d })()
+  const diasTx = diasDesde(v.hc_fechatx, ahoraMs)
   const isEstado = v.hc_is_estado && v.hc_is_estado !== '—' ? v.hc_is_estado : ''
   const recCounts = { alta: recs.filter((r) => r.sev === 'alta').length, media: recs.filter((r) => r.sev === 'media').length, baja: recs.filter((r) => r.sev === 'baja').length }
 

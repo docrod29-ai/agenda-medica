@@ -6,6 +6,7 @@
 // ════════════════════════════════════════════════════════════════════
 
 import { recsFarmacos } from './farmacos'
+import { diasDesde } from '@/lib/fecha-local'
 
 export type Sev = 'alta' | 'media' | 'baja'
 /** `fuente` = guía/artículo de donde proviene la recomendación (para citarla en la nota). */
@@ -60,8 +61,14 @@ export function recomendaciones(input: RecInput): Rec[] {
   } else if (activeIS) {
     const fx = g('hc_fechatx')
     if (isTx && fx) {
-      const d = Math.floor(((input.nowMs ?? Date.now()) - new Date(fx).getTime()) / 86400000)
-      if (!isNaN(d) && d >= 0) {
+      /**
+       * La fecha del trasplante se captura como `AAAA-MM-DD`, y leída como
+       * medianoche UTC se corría un día en México. Las fases de riesgo están en
+       * los días 30, 100 y 180: un paciente en el día 29 podía reportarse en el
+       * 30 y saltar de fase, cambiando los patógenos esperados que se listan.
+       */
+      const d = diasDesde(fx, input.nowMs ?? Date.now())
+      if (d != null && d >= 0) {
         const faseTxt = isTCMH
           ? (d < 30 ? 'fase preinjerto/neutropénica (menos de 30 días): bacterias gramnegativas y grampositivas, Candida y reactivación de herpes simple.' : (d < 100 ? 'fase temprana (30 a 100 días): citomegalovirus, Aspergillus, Pneumocystis y adenovirus.' : 'fase tardía (más de 100 días): bacterias encapsuladas, varicela zóster, citomegalovirus tardío y Pneumocystis, sobre todo con enfermedad injerto contra huésped crónica.'))
           : (d < 30 ? 'primer mes: infecciones nosocomiales y por multirresistentes, candidiasis, infecciones derivadas del donante, del sitio quirúrgico y reactivación de herpes simple.' : (d < 180 ? 'periodo de 1 a 6 meses: infecciones oportunistas — Pneumocystis, citomegalovirus, hongos, reactivación de virus BK, hepatitis B o tuberculosis, Listeria y Nocardia.' : 'más de 6 meses: predominan las infecciones adquiridas en la comunidad; persisten las oportunistas si la inmunosupresión sigue siendo intensa.'))
