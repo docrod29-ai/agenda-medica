@@ -3,11 +3,12 @@
  * Modal de cobro rápido — se abre desde la lista de citas o desde finanzas.
  * Pre-llena datos cuando se invoca desde una cita específica.
  */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
-  registrarCobro, exentarCobro, METODO_LABEL, CONCEPTO_LABEL,
+  registrarCobro, exentarCobro, cobrosDeCita, METODO_LABEL, CONCEPTO_LABEL,
   type MetodoPago, type ConceptoCobro,
 } from '@/lib/cobros'
+import { situacionDeCobro, type SituacionCobro } from '@/lib/finanzas/estado-cobro'
 import { updateAppointment } from '@/lib/firestore'
 import { auth } from '@/lib/firebase'
 import { logAudit } from '@/lib/expediente/audit-log'
@@ -36,6 +37,38 @@ export interface CobrarModalProps {
 export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }: CobrarModalProps) {
   const { toast } = useToast()
   const [monto, setMonto] = useState(String(prefill?.monto ?? ''))
+  /**
+   * LO QUE YA ABONÓ ESTE PACIENTE POR ESTA CITA.
+   *
+   * El abono en el mostrador ya se registraba y —a propósito— no marcaba la cita
+   * como saldada, así que seguía apareciendo «por cobrar». Correcto, y a la vez
+   * indistinguible de una consulta donde nadie pagó nada: quien cobra veía lo
+   * mismo en los dos casos y cobraba el precio completo. El paciente que dejó
+   * $300 de una consulta de $800 acababa pagando $1,100.
+   *
+   * Aquí se leen los cobros de ESTA cita —incluidos los anulados, que son los
+   * que distinguen «no ha pagado» de «se anuló»— y se pone el SALDO en la caja
+   * del importe, no el precio de lista.
+   */
+  const [situacion, setSituacion] = useState<SituacionCobro | null>(null)
+  useEffect(() => {
+    const citaId = prefill?.citaId
+    if (!clinicId || !citaId) return
+    let vivo = true
+    cobrosDeCita(clinicId, citaId)
+      .then(cobros => {
+        if (!vivo || cobros.length === 0) return
+        const s = situacionDeCobro(prefill?.monto ?? null, cobros)
+        setSituacion(s)
+        // El importe se ajusta al saldo SÓLO si queda algo por cobrar; si ya
+        // está saldada se deja lo que había, para no sugerir un cobro de $0.
+        if (s.saldo > 0) setMonto(String(s.saldo))
+      })
+      // Un fallo de lectura no puede bloquear el cobro: se sigue con el precio
+      // de lista, que es lo que había antes de existir esto.
+      .catch(() => { /* sin aviso: el modal sigue siendo usable */ })
+    return () => { vivo = false }
+  }, [clinicId, prefill?.citaId, prefill?.monto])
   const [concepto, setConcepto] = useState<ConceptoCobro>(prefill?.concepto ?? 'consulta')
   const [metodo, setMetodo] = useState<MetodoPago>('efectivo')
   const [descripcion, setDescripcion] = useState('')
@@ -206,6 +239,30 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
                 Médico: {prefill.medicoNombre}
               </div>
             )}
+          </div>
+        )}
+
+        {/*
+          LO QUE YA PAGÓ, ANTES DE TECLEAR EL IMPORTE.
+          Va arriba de la caja a propósito: si estuviera debajo se lee después de
+          haber escrito, que es tarde. Sólo aparece cuando hay algo que decir —un
+          aviso que sale siempre deja de leerse.
+        */}
+        {situacion && situacion.pagado > 0 && (
+          <div style={{
+            margin: '0 0 12px', padding: '9px 12px', borderRadius: 9,
+            border: '1px solid var(--border)', background: 'var(--s1)',
+            display: 'flex', alignItems: 'center', gap: 9,
+          }}>
+            <DollarSign size={15} style={{ color: 'var(--teal)', flexShrink: 0 }} />
+            <div style={{ fontSize: 13, lineHeight: 1.5 }}>
+              <strong>{situacion.resumen}</strong>
+              {situacion.saldo > 0 && (
+                <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>
+                  El importe ya viene con el saldo, no con el precio completo.
+                </div>
+              )}
+            </div>
           </div>
         )}
 
