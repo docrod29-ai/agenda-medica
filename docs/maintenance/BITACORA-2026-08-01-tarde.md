@@ -40,6 +40,9 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
 | v819 | pagoVencido/disputaAbierta que nadie leía · el año pagado que se perdía al cambiar de plan |
 | v820 | Dos pestañas sobre la misma nota se pisaban: guardia de concurrencia |
 | v821 | El historial de versiones ya se puede leer · dónde están las tarifas de consulta |
+| v822 | Verificación de correo (no existía en ninguna parte) |
+| v823 | Borrar expediente desde el navegador: cerrado (la protección NOM-004 vivía en código muerto) |
+| v824 | La bitácora se quedaba con huecos: cola de reintento con fallos permanentes descartados |
 
 ---
 
@@ -60,7 +63,7 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
    `src/lib/modulos.ts:58` (`/pacientes` es core, `/expediente` no) +
    `src/app/(dashboard)/layout.tsx:404-406` (`router.replace` mudo). La entrada
    del menú se llama «Consulta». Parece la app rota, no un límite de plan.
-3. **No existe verificación de correo.** `grep sendEmailVerification` → cero.
+3. ~~Verificación de correo~~ — HECHO (v822), sin bloquear el acceso. `grep sendEmailVerification` → cero.
    Un correo mal tecleado = cuenta irrecuperable sin soporte humano.
 4. ~~Recordatorios encendidos sin proveedor~~ — HECHO (v816).
    (`src/types/index.ts:648`): dos interruptores en verde que no mandan nada.
@@ -137,7 +140,7 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
 6. **`invoice.paid` sin clínica guarda `clinicId: ''`** — ingreso huérfano.
 7. **Las reglas dejan reatribuir `medicoId` al vincular factura** — `firestore.rules:611`,
    lo que mueve el reparto de comisiones.
-8. **`logAudit` falla en silencio, sin cola ni reintento** — `src/lib/expediente/audit-log.ts:84`.
+8. ~~logAudit en silencio~~ — HECHO (v824). — `src/lib/expediente/audit-log.ts:84`.
 9. **El portal ARCO público no verifica identidad** — `src/app/privacidad/[clinicId]/page.tsx:70`.
 10. **Horario partido / descansos / festivos recurrentes no existen en el modelo** —
     `src/types/index.ts:408` (`DaySchedule` es un solo tramo).
