@@ -10,6 +10,7 @@ import { getConfig } from '@/lib/firestore'
 import { useClinic } from '@/context/ClinicContext'
 import { Sidebar } from '@/components/Sidebar'
 import { ToastProvider } from '@/context/ToastContext'
+import { AvisoModuloBloqueado, EVENTO_MODULO_BLOQUEADO } from '@/components/AvisoModuloBloqueado'
 import { ModeProvider } from '@/context/ModeContext'
 import { ClinicProvider } from '@/context/ClinicContext'
 import { BorradorProvider } from '@/context/BorradorContext'
@@ -28,7 +29,7 @@ import { OnboardingTour } from '@/components/OnboardingTour'
 import { AutoLogout } from '@/components/AutoLogout'
 import { PaletteBusqueda } from '@/components/PaletteBusqueda'
 import { fetchAutenticado } from '@/lib/auth-client'
-import { rutaPermitida } from '@/lib/modulos'
+import { rutaPermitida, moduloDeRuta } from '@/lib/modulos'
 import { PLANES, precioTexto, type PlanCreditos } from '@/lib/planes-ia'
 import { salirSeguro } from '@/lib/salir-seguro'
 
@@ -404,9 +405,20 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
       router.replace('/dashboard')
       return
     }
-    // Bloqueo por MÓDULOS contratados (paquete de la clínica): si intenta entrar
-    // directo a una ruta que su paquete no incluye, lo regresa al inicio.
+    /**
+     * Bloqueo por MÓDULOS contratados. Ahora DICE POR QUÉ.
+     *
+     * El rebote mudo hacía que el plan Agenda pareciera una app rota: se pulsa
+     * «Consulta» en el menú (que existe: `/pacientes` es ruta core), se ve la
+     * lista de pacientes, se hace clic en uno, y la pantalla parpadea de vuelta
+     * al Dashboard sin una sola palabra.
+     */
     if (pathname && !rutaPermitida(clinic, pathname)) {
+      const mod = moduloDeRuta(pathname)
+      // Se avisa por evento y no por estado local: el aviso tiene que sobrevivir
+      // al `router.replace` que viene justo después, y quien lo pinta vive dentro
+      // del ToastProvider, que se monta más abajo en este mismo archivo.
+      window.dispatchEvent(new CustomEvent(EVENTO_MODULO_BLOQUEADO, { detail: { modulo: mod?.label ?? '' } }))
       router.replace('/dashboard')
     }
   }, [user, authLoading, clinicId, clinicLoading, needsSetup, router, esMedicoReal, pathname, clinic])
@@ -580,6 +592,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <ClinicProvider>
       <ModeProvider>
         <ToastProvider>
+          {/* Escucha el bloqueo por módulo y lo dice. Ver el componente. */}
+          <AvisoModuloBloqueado />
           <BorradorProvider>
             <TareasProvider>
               <DashboardInner>{children}</DashboardInner>

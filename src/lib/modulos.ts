@@ -73,6 +73,21 @@ export const MODULOS: ModuloDef[] = [
 ]
 
 export const MODULO_LABEL: Record<string, string> = Object.fromEntries(MODULOS.map(m => [m.key, m.label]))
+
+/**
+ * Qué módulo hace falta para entrar a una ruta. `null` si la ruta es core o no
+ * pertenece a ninguno.
+ *
+ * Existe porque el bloqueo por módulo era MUDO: `router.replace('/dashboard')`
+ * sin toast, sin modal, sin nada. Un médico con el plan Agenda pulsaba
+ * «Consulta» en el menú, veía su lista de pacientes, hacía clic en uno… y la
+ * pantalla parpadeaba de vuelta al inicio. Repetía. Volvía a rebotar. Eso no se
+ * lee como «tu plan no incluye expediente»: se lee como una aplicación rota.
+ */
+export function moduloDeRuta(ruta: string): ModuloDef | null {
+  if (RUTAS_CORE.some(r => ruta.startsWith(r))) return null
+  return MODULOS.find(m => m.rutas.some(r => ruta.startsWith(r))) ?? null
+}
 export const PRECIO_MODULO: Record<string, number> = Object.fromEntries(MODULOS.map(m => [m.key, m.precioMedico]))
 
 /**

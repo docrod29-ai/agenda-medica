@@ -171,7 +171,20 @@ export async function POST(req: NextRequest) {
             } catch {
               break  // ya procesada (o carrera perdida) → NO abonar de nuevo
             }
-            await agregarCreditosExtra(clinicId, n)
+            /**
+             * SI EL ABONO FALLA, LA MARCA SE RETIRA — igual que en el anticipo.
+             *
+             * Antes `agregarCreditosExtra` se tragaba su propio error: el
+             * webhook respondía 200, Stripe no reintentaba, la marca decía
+             * «procesada» y el médico había pagado su recarga por cero créditos.
+             */
+            try {
+              await agregarCreditosExtra(clinicId, n)
+            } catch (e) {
+              await marca.delete().catch(() => { /* queda el error abajo para reconciliar */ })
+              safeLog.error('[stripe] recarga NO abonada, marca retirada para que Stripe reintente', session.id, e)
+              throw e  // 500 → Stripe reintenta
+            }
           }
           break
         }

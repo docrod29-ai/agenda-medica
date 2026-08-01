@@ -201,13 +201,25 @@ export async function gateCreditos(
   )
 }
 
-/** Suma consultas EXTRA al mes (lo llama el webhook de Stripe al comprar recarga). */
+/**
+ * Suma consultas EXTRA al mes (lo llama el webhook de Stripe al comprar recarga).
+ *
+ * ── POR QUÉ YA NO SE TRAGA EL ERROR ──────────────────────────────────────────
+ *
+ * Tenía `catch { /* no-bloqueante *\/ }` y devolvía `void`. El webhook de Stripe
+ * la llama DESPUÉS de escribir la marca de idempotencia, así que si la escritura
+ * fallaba: el webhook respondía 200, Stripe no reintentaba, la marca decía
+ * «procesada» y el médico había pagado su recarga por CERO créditos. Sin error
+ * en ninguna parte.
+ *
+ * Es exactamente el fallo que la rama del anticipo ya documenta como reparado
+ * —allí se retira la marca y se lanza para que Stripe reintente—; ésta se quedó
+ * sin esa red. Ahora lanza, y quien la llama decide qué hacer.
+ */
 export async function agregarCreditosExtra(clinicId: string, n: number): Promise<void> {
-  try {
-    await docIA(clinicId).set({
-      uso: { [mesActual()]: { extra: admin.firestore.FieldValue.increment(n) } },
-    }, { merge: true })
-  } catch { /* no-bloqueante */ }
+  await docIA(clinicId).set({
+    uso: { [mesActual()]: { extra: admin.firestore.FieldValue.increment(n) } },
+  }, { merge: true })
 }
 
 /**
