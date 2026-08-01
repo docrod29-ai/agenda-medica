@@ -27,9 +27,47 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Facturación no configurada. Contacta al proveedor.' }, { status: 503 })
   }
 
-  // Validar datos fiscales mínimos.
-  const faltan = (['rfc', 'nombre', 'regimenFiscal', 'usoCfdi', 'cp'] as const).filter(k => !String(receptor[k] ?? '').trim())
+  /**
+   * DATOS FISCALES: PRESENTES **Y** CON FORMA VÁLIDA.
+   *
+   * Antes sólo se comprobaba que no estuvieran vacíos — y nunca lo estaban,
+   * porque el formulario los nacía pre-llenados con régimen 612 (persona
+   * FÍSICA) y uso G03. Una persona moral que no tocaba los desplegables se
+   * facturaba con el régimen de una persona física: el PAC lo rechaza, o peor,
+   * timbra y hay que cancelar.
+   *
+   * `formaPago` entra a la validación porque hasta ahora iba QUEMADA como '04'
+   * (tarjeta de crédito) en todas las facturas, se hubiera pagado por SPEI o
+   * por débito. Eso descuadra contra el estado de cuenta y es motivo habitual
+   * de cancelación.
+   *
+   * La validación es de FORMA, no fiscal: qué régimen o qué uso corresponde a
+   * cada contribuyente lo decide su contador, no este archivo.
+   */
+  const faltan = (['rfc', 'nombre', 'regimenFiscal', 'usoCfdi', 'cp', 'formaPago'] as const)
+    .filter(k => !String(receptor[k] ?? '').trim())
   if (faltan.length) return NextResponse.json({ ok: false, error: `Faltan datos fiscales: ${faltan.join(', ')}` }, { status: 400 })
+
+  const rfc = String(receptor.rfc).trim().toUpperCase()
+  // Física 13 caracteres, moral 12. Es el formato oficial; no valida existencia.
+  if (!/^[A-ZÑ&]{3,4}\d{6}[A-Z\d]{3}$/.test(rfc)) {
+    return NextResponse.json({ ok: false, error: 'El RFC no tiene un formato válido (12 caracteres para persona moral, 13 para física).' }, { status: 400 })
+  }
+  if (!/^\d{5}$/.test(String(receptor.cp).trim())) {
+    return NextResponse.json({ ok: false, error: 'El código postal debe tener 5 dígitos.' }, { status: 400 })
+  }
+  // Longitud vs régimen: un régimen de persona física con un RFC de 12 (moral)
+  // —o al revés— es el error que produce el rechazo CFDI40157 del SAT.
+  const esMoral = rfc.length === 12
+  const REGIMENES_MORALES = new Set(['601', '603', '609', '620', '622', '623', '624', '628'])
+  const REGIMENES_FISICAS = new Set(['605', '606', '607', '608', '610', '611', '612', '614', '615', '616', '621', '625', '626'])
+  const reg = String(receptor.regimenFiscal).trim()
+  if (esMoral && REGIMENES_FISICAS.has(reg)) {
+    return NextResponse.json({ ok: false, error: `El RFC es de persona moral (12 caracteres) y el régimen ${reg} es de persona física. Revísalo con tu contador.` }, { status: 400 })
+  }
+  if (!esMoral && REGIMENES_MORALES.has(reg)) {
+    return NextResponse.json({ ok: false, error: `El RFC es de persona física (13 caracteres) y el régimen ${reg} es de persona moral. Revísalo con tu contador.` }, { status: 400 })
+  }
 
   try {
     const pagoRef = adminDb.collection('platform_payments').doc(pagoId)
@@ -41,6 +79,21 @@ export async function POST(req: NextRequest) {
     // Ya facturado → regresa el existente (no se timbra dos veces).
     if (pago.cfdiUuid) {
       return NextResponse.json({ ok: true, yaFacturado: true, uuid: String(pago.cfdiUuid), cfdiId: String(pago.cfdiId ?? '') })
+    }
+
+    /**
+     * NI REEMBOLSOS NI CONTRACARGOS NI PRUEBAS.
+     *
+     * La lista ya no los ofrece, pero esta ruta acepta un `pagoId` cualquiera:
+     * el candado tiene que estar también aquí, no sólo en la pantalla. Un CFDI
+     * de ingreso por dinero devuelto es un problema fiscal, no un detalle.
+     */
+    const tipoPago = String(pago.tipo ?? '')
+    if (tipoPago === 'reembolso' || tipoPago === 'contracargo') {
+      return NextResponse.json({ ok: false, error: 'Un reembolso o un contracargo no se factura como ingreso.' }, { status: 400 })
+    }
+    if (pago.livemode === false) {
+      return NextResponse.json({ ok: false, error: 'Ese movimiento es de prueba: no corresponde a dinero real y no se puede facturar.' }, { status: 400 })
     }
 
     const monto = Number(pago.monto ?? 0)
@@ -72,7 +125,7 @@ export async function POST(req: NextRequest) {
 
     let cfdi
     try {
-      cfdi = await emitirCFDI(monto, descripcion, receptor)
+      cfdi = await emitirCFDI(monto, descripcion, receptor, String(receptor.formaPago).trim())
     } catch (e) {
       // Liberar el lock para permitir reintento; si no, el pago quedaría bloqueado 60s.
       await pagoRef.set({ cfdiLockAt: '' }, { merge: true }).catch(() => {})

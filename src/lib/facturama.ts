@@ -52,6 +52,16 @@ export interface DatosReceptor {
   regimenFiscal: string   // ej. '612', '601', '626'
   usoCfdi: string         // ej. 'G03'
   cp: string              // código postal del receptor
+  /**
+   * Clave del catálogo de formas de pago del SAT ('01' efectivo, '03'
+   * transferencia, '04' tarjeta de crédito, '28' débito…).
+   *
+   * Iba QUEMADA como '04' dentro de `emitirCFDI`, así que TODA factura decía
+   * «tarjeta de crédito» aunque el cobro hubiera sido SPEI o débito. Eso
+   * descuadra contra el estado de cuenta y es motivo habitual de cancelación.
+   * Ahora la elige quien factura, que es quien sabe cómo se le cobró.
+   */
+  formaPago?: string
 }
 
 export interface CfdiEmitido {
@@ -69,8 +79,13 @@ export async function emitirCFDI(
   montoConIva: number,
   descripcion: string,
   receptor: DatosReceptor,
-  formaPago = '04', // 04 = tarjeta de crédito
+  // Sin valor por omisión A PROPÓSITO: un default aquí es una factura que
+  // AFIRMA una forma de pago que nadie eligió. Quien llama tiene que decidirla.
+  formaPago: string = receptor.formaPago ?? '',
 ): Promise<CfdiEmitido> {
+  if (!String(formaPago).trim()) {
+    throw new Error('Falta la forma de pago (catálogo del SAT): no se timbra una factura afirmando una que nadie eligió.')
+  }
   const subtotal = Math.round((montoConIva / 1.16) * 100) / 100
   const iva = Math.round((montoConIva - subtotal) * 100) / 100
 

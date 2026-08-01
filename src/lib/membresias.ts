@@ -12,7 +12,7 @@
  *   clinics/{id}/memberships/{membershipId}  → paciente ↔ plan (con ciclo)
  */
 import {
-  collection, addDoc, updateDoc, doc, getDocs, query, orderBy, where,
+  collection, addDoc, updateDoc, doc, getDocs, query, orderBy, where, runTransaction,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { registrarCobro } from '@/lib/cobros'
@@ -131,24 +131,56 @@ export async function cobrarMembresia(
   m: Membresia,
   opts: { metodo: import('@/lib/cobros').MetodoPago; creadoPor: string; medicoId?: string; medicoNombre?: string },
 ): Promise<string> {
-  const cobroId = await registrarCobro(clinicId, {
-    monto: m.precio,
-    metodo: opts.metodo,
-    concepto: 'membresia',
-    descripcion: `Membresía: ${m.planNombre}`,
-    patientId: m.pacienteId,
-    patientNombre: m.pacienteNombre,
-    medicoId: opts.medicoId,
-    medicoNombre: opts.medicoNombre,
-    creadoPor: opts.creadoPor,
-  })
+  /**
+   * EL CICLO SE AVANZA PRIMERO, Y DE FORMA ATÓMICA. ÉSE ES EL CANDADO.
+   *
+   * Antes se registraba el cobro y DESPUÉS se avanzaba el ciclo, con dos
+   * escrituras sueltas. El único freno contra cobrar dos veces era el
+   * `useState` del botón en la pantalla, que no cruza pestañas ni dispositivos:
+   * la asistente en su equipo y el médico en el suyo cobraban la misma cuota
+   * dos veces, y el segundo cobro entraba por el `addDoc` suelto de
+   * `registrarCobro` (sin `citaId` no pasa por la transacción anti-doble-cobro).
+   *
+   * Avanzar el ciclo PRIMERO, comprobando dentro de la transacción que nadie lo
+   * haya movido, convierte la fecha de cobro en el candado: el segundo intento
+   * lee una fecha distinta y se rechaza antes de tocar el dinero.
+   *
+   * Si el cobro falla después, se DESHACE el avance. Esa compensación también
+   * puede fallar —es una escritura más— y por eso se registra con el id de la
+   * membresía: una cuota que quedó adelantada sin cobrar es un problema
+   * visible y arreglable; un cobro duplicado es dinero del paciente.
+   */
   const base = m.proximoCobro && m.proximoCobro >= '2000-01-01' ? m.proximoCobro : hoyISO()
   const siguiente = sumarMesesISO(base, PERIODICIDAD_MESES[m.periodicidad])
-  await updateDoc(doc(MEMB_COL(clinicId), m.id!), {
-    proximoCobro: siguiente,
-    ultimoCobroEn: new Date().toISOString(),
+  const ref = doc(MEMB_COL(clinicId), m.id!)
+
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref)
+    if (!snap.exists()) throw new Error('La membresía ya no existe.')
+    const actual = snap.data() as { proximoCobro?: string }
+    if ((actual.proximoCobro ?? '') !== (m.proximoCobro ?? '')) {
+      throw new Error('Esta cuota ya se cobró desde otro dispositivo. Recarga la lista antes de volver a intentar.')
+    }
+    tx.update(ref, { proximoCobro: siguiente, ultimoCobroEn: new Date().toISOString() })
   })
-  return cobroId
+
+  try {
+    return await registrarCobro(clinicId, {
+      monto: m.precio,
+      metodo: opts.metodo,
+      concepto: 'membresia',
+      descripcion: `Membresía: ${m.planNombre}`,
+      patientId: m.pacienteId,
+      patientNombre: m.pacienteNombre,
+      medicoId: opts.medicoId,
+      medicoNombre: opts.medicoNombre,
+      creadoPor: opts.creadoPor,
+    })
+  } catch (e) {
+    await updateDoc(ref, { proximoCobro: m.proximoCobro ?? base, ultimoCobroEn: m.ultimoCobroEn ?? '' })
+      .catch(() => console.error('[membresias] el ciclo quedó adelantado SIN cobro; membresía', m.id))
+    throw e
+  }
 }
 
 // ── Puro: ¿a quién le toca cobrar? (para el worklist) ───────────────────────

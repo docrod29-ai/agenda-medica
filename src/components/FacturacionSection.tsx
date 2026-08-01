@@ -19,6 +19,16 @@ const REGIMENES = [
   ['603', '603 · Personas Morales con Fines no Lucrativos'],
   ['621', '621 · Incorporación Fiscal'],
 ]
+/** Catálogo del SAT (c_FormaPago). Sólo las que aplican a este cobro. */
+const FORMAS_PAGO = [
+  ['04', '04 · Tarjeta de crédito'],
+  ['28', '28 · Tarjeta de débito'],
+  ['03', '03 · Transferencia electrónica (SPEI)'],
+  ['01', '01 · Efectivo'],
+  ['02', '02 · Cheque nominativo'],
+  ['99', '99 · Por definir'],
+] as const
+
 const USOS = [
   ['G03', 'G03 · Gastos en general'],
   ['G01', 'G01 · Adquisición de mercancías'],
@@ -27,7 +37,7 @@ const USOS = [
 ]
 
 interface Pago { id: string; monto: number; moneda: string; fecha: string; descripcion: string; facturado: boolean; cfdiUuid: string | null; cfdiId: string | null }
-interface Fiscales { rfc?: string; nombre?: string; regimenFiscal?: string; usoCfdi?: string; cp?: string }
+interface Fiscales { rfc?: string; nombre?: string; regimenFiscal?: string; usoCfdi?: string; cp?: string; formaPago?: string }
 
 export default function FacturacionSection({ clinicId }: { clinicId: string }) {
   const [pagos, setPagos] = useState<Pago[]>([])
@@ -36,7 +46,21 @@ export default function FacturacionSection({ clinicId }: { clinicId: string }) {
   const [abierto, setAbierto] = useState<string | null>(null)   // pagoId con el form abierto
   const [enviando, setEnviando] = useState(false)
   const [msg, setMsg] = useState('')
-  const [f, setF] = useState<Fiscales>({ regimenFiscal: '612', usoCfdi: 'G03' })
+  /**
+   * LOS DATOS FISCALES NACEN VACÍOS. A PROPÓSITO.
+   *
+   * Venían pre-llenados con régimen 612 (persona FÍSICA con actividad
+   * empresarial) y uso G03. Y la validación —cliente y servidor— sólo
+   * comprobaba que no estuvieran vacíos, cosa que nunca ocurría. Una persona
+   * moral que no tocaba los desplegables se facturaba con el régimen de una
+   * persona física: el PAC lo rechaza (CFDI40157) o, peor, timbra y hay que
+   * cancelar.
+   *
+   * Es la misma regla que la tabla de tarifas y el simulador: un default
+   * silencioso en un campo que nadie eligió produce un dato que PARECE
+   * correcto. Aquí además lo firma el SAT.
+   */
+  const [f, setF] = useState<Fiscales>({})
 
   const cargar = useCallback(() => {
     setCargando(true)
@@ -135,8 +159,15 @@ export default function FacturacionSection({ clinicId }: { clinicId: string }) {
                 <div><label style={lbl}>RFC</label><input value={f.rfc ?? ''} onChange={e => setF({ ...f, rfc: e.target.value.toUpperCase() })} placeholder="XAXX010101000" style={inp} /></div>
                 <div><label style={lbl}>Razón social (como en el SAT)</label><input value={f.nombre ?? ''} onChange={e => setF({ ...f, nombre: e.target.value })} placeholder="Nombre o empresa" style={inp} /></div>
                 <div><label style={lbl}>Código postal fiscal</label><input value={f.cp ?? ''} onChange={e => setF({ ...f, cp: e.target.value })} placeholder="00000" style={inp} /></div>
-                <div><label style={lbl}>Régimen fiscal</label><select value={f.regimenFiscal ?? '612'} onChange={e => setF({ ...f, regimenFiscal: e.target.value })} style={inp}>{REGIMENES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
-                <div><label style={lbl}>Uso del CFDI</label><select value={f.usoCfdi ?? 'G03'} onChange={e => setF({ ...f, usoCfdi: e.target.value })} style={inp}>{USOS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+                <div><label style={lbl}>Régimen fiscal</label><select value={f.regimenFiscal ?? ''} onChange={e => setF({ ...f, regimenFiscal: e.target.value })} style={inp}><option value="">Elige tu régimen…</option>{REGIMENES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+                <div><label style={lbl}>Uso del CFDI</label><select value={f.usoCfdi ?? ''} onChange={e => setF({ ...f, usoCfdi: e.target.value })} style={inp}><option value="">Elige el uso…</option>{USOS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+                {/*
+                  FORMA DE PAGO: iba quemada como '04' (tarjeta de crédito) en
+                  TODAS las facturas, se hubiera pagado por SPEI o por débito.
+                  Descuadra contra el estado de cuenta y es motivo habitual de
+                  cancelación. La elige quien sabe cómo se le cobró.
+                */}
+                <div><label style={lbl}>Forma de pago</label><select value={f.formaPago ?? ''} onChange={e => setF({ ...f, formaPago: e.target.value })} style={inp}><option value="">¿Cómo se pagó?…</option>{FORMAS_PAGO.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
               </div>
               {msg && <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 8 }}>{msg}</div>}
               <button onClick={() => solicitar(p.id)} disabled={enviando}
