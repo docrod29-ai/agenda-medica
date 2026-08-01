@@ -311,6 +311,9 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   // qué recursos externos usa la aplicación — eso es información de seguridad y
   // no se enseña a un cliente.
   'superadmin/csp': { tipo: 'superadmin' },
+  // El catálogo de precios. Escritura del dueño y de nadie más: un precio es
+  // dinero de todos los consultorios a la vez.
+  'superadmin/planes': { tipo: 'superadmin' },
   'superadmin/paquetes': { tipo: 'superadmin' },
 
   // ── tareas programadas ───────────────────────────────────────────────────
