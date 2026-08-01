@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithRedirect, getRedirectResult } from 'firebase/auth'
+import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification, GoogleAuthProvider, signInWithRedirect, getRedirectResult } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import { Stethoscope, Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react'
@@ -77,6 +77,26 @@ function RegistroInner() {
     try {
       const cred = await createUserWithEmailAndPassword(auth, email.trim(), password)
       await updateProfile(cred.user, { displayName: nombre.trim() })
+      /**
+       * VERIFICACIÓN DE CORREO — no existía en ninguna parte.
+       *
+       * `sendEmailVerification` no aparecía ni una vez en el repo, y este mismo
+       * archivo declaraba un estado `'verifying'` que nunca se usaba.
+       *
+       * Si el médico teclea mal su correo, la cuenta se crea igual, el
+       * consultorio se crea igual, y el día que pierda la contraseña el correo
+       * de recuperación va a una dirección que no existe. No hay recuperación
+       * posible sin soporte humano — justo lo que el producto quiere evitar.
+       *
+       * NO se bloquea el acceso con esto: un médico que acaba de registrarse
+       * tiene que poder entrar y ver la aplicación. Se manda el correo y se
+       * avisa desde dentro. Bloquear sería cambiar la promesa comercial, y esa
+       * decisión no es mía.
+       */
+      void sendEmailVerification(cred.user).catch(() => {
+        // Si el envío falla no se rompe el alta: el médico ya tiene cuenta.
+        console.warn('[registro] no se pudo enviar la verificación de correo')
+      })
       trackConversion('CompleteRegistration')  // conversión Meta: registro completado
       router.replace(destinoTrasRegistro)
     } catch (err: unknown) {
