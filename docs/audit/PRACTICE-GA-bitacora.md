@@ -139,7 +139,7 @@ pruebas en verde, y ningún efecto en la realidad.
 
 | # | Qué |
 |---|---|
-| **P1-1** | Sin detección de pacientes duplicados: el mismo paciente entra dos veces con dos expedientes |
+| ~~**P1-1**~~ | **CERRADO en GA-011 (v776).** Motor puro `lib/pacientes/duplicados.ts` + 29 pruebas. La regla vieja fallaba en las dos direcciones: se le escapaban los duplicados reales (acentos, apellidos invertidos, y el nombre NI SE COMPARABA cuando había teléfono) y alarmaba de lo que no lo era (la familia que comparte celular). Dos reglas nuevas: el teléfono nunca basta solo, y la fecha de nacimiento SEPARA. El aviso salió del guardado y ahora aparece mientras se escribe, ofreciendo «abrir su expediente». Misma red añadida al alta de Hospitalización. **Queda declarado, a propósito**: el alta desde el Asistente sigue fundiendo sólo por coincidencia EXACTA. Ahí no hay nadie a quien preguntar, y fundir a dos personas distintas es peor que un duplicado |
 | **P1-2** | Provenance de 3 estados (`dictado \| ia \| manual`). Falta **`PHYSICIAN_CONFIRMED`**: no queda registrado si el médico confirmó lo que la IA propuso |
 | **P1-3** | Precios `$349/$899` cableados en `layout.tsx` y `configuracion/page.tsx` |
 

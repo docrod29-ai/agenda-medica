@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
+import { buscarPosiblesDuplicados } from '@/lib/pacientes/duplicados'
 import { auth } from '@/lib/firebase'
 import { getPatients, createPatient } from '@/lib/firestore'
 import { suscribirCenso, crearInternamiento, getTelefonoAlertas, setTelefonoAlertas, getCamas } from '@/lib/hospital/firestore'
@@ -26,7 +27,7 @@ export default function CensoPage() {
   const router = useRouter()
   const { clinicId } = useClinic()
   const { config } = useConfig()
-  const { toast } = useToast()
+  const { toast, confirm } = useToast()
 
   const [censo, setCenso] = useState<Internamiento[]>([])
   const [loading, setLoading] = useState(true)
@@ -297,6 +298,34 @@ export default function CensoPage() {
                   if (!clinicId) return
                   if (!np.nombre.trim()) { toast('El nombre es requerido', 'error'); return }
                   if (!np.edad.trim() && !np.fechaNacimiento) { toast('Pon la edad o la fecha de nacimiento', 'error'); return }
+                  /**
+                   * MISMA RED QUE EN CONSULTA.
+                   *
+                   * Este alta no comprobaba nada, y es por donde entra el paciente
+                   * en el peor momento posible: llega a ingresar, se captura de
+                   * prisa, y sus alergias y antecedentes se quedan en el
+                   * expediente viejo mientras se prescribe desde el nuevo.
+                   *
+                   * Sólo frena ante una coincidencia SEGURA, y ni así bloquea:
+                   * pregunta. Un ingreso no se puede detener por una duda.
+                   */
+                  const yaExiste = buscarPosiblesDuplicados(
+                    {
+                      nombre: np.nombre,
+                      telefono: np.telefono,
+                      fechaNacimiento: np.fechaNacimiento,
+                      edad: np.edad ? Number(np.edad) : undefined,
+                    },
+                    pacientes,
+                  ).filter(c => c.certeza === 'seguro')
+                  if (yaExiste.length) {
+                    const d = yaExiste[0]
+                    const seguir = await confirm(
+                      `Ya existe "${d.paciente.nombre}" — ${d.motivo.toLowerCase()}. Si lo creas otra vez, sus alergias y antecedentes quedarán en el otro expediente. ¿Crearlo de todas formas?`,
+                      { peligro: true, confirmar: 'Crear de todas formas' },
+                    )
+                    if (!seguir) return
+                  }
                   setGuardando(true)
                   try {
                     const tel = np.telefono.replace(/\D/g, '')
