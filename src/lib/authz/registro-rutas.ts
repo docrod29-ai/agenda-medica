@@ -314,6 +314,9 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   // El catálogo de precios. Escritura del dueño y de nadie más: un precio es
   // dinero de todos los consultorios a la vez.
   'superadmin/planes': { tipo: 'superadmin' },
+  // El embudo de alta. Cuenta fechas de todos los consultorios: es información
+  // del negocio del dueño, no de un cliente.
+  'superadmin/onboarding': { tipo: 'superadmin' },
   // El catálogo vigente, de sólo lectura. Un precio de lista no es un secreto:
   // está impreso en la página de precios y se le dice a quien pregunte.
   'planes': { tipo: 'publica', motivo: 'Precios de lista: información pública por definición, la misma que se imprime en /precios.' },

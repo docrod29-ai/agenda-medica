@@ -104,13 +104,13 @@ function paresConCapacidad(): { clave: string; metodo: Metodo; e: ExigenciaRuta 
 }
 
 describe('E0-07 · el escaneo encuentra rutas de verdad', () => {
-  it('hay 79 rutas en disco (un guardián que no encuentra archivos pasa vacío y no protege nada)', () => {
+  it('hay 80 rutas en disco (un guardián que no encuentra archivos pasa vacío y no protege nada)', () => {
     // Si este número cambia es porque se añadió o quitó una ruta: hay que declararla
     // en REGISTRO_RUTAS y ajustar el conteo, a propósito y a mano.
     //
     // 76 → 77 al añadir `superadmin/csp` (la observación de la política de
     // seguridad). Una ruta, un método, un `verificarSuperadmin`.
-    expect(CLAVES_DISCO.length).toBe(79)
+    expect(CLAVES_DISCO.length).toBe(80)
   })
 })
 
@@ -364,8 +364,9 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
     // lleva su `verificarSuperadmin`. Lo que sería alarmante es lo contrario:
     // una ruta con dos métodos y un solo guardián significa que uno de los dos
     // entra sin comprobar nada.
-    expect(llamadas.length).toBe(80)
-    expect(rutasConGuardia).toBe(65)
+    // 80 → 81 y 65 → 66 al añadir `superadmin/onboarding`: una ruta, un GET.
+    expect(llamadas.length).toBe(81)
+    expect(rutasConGuardia).toBe(66)
     expect(conVocabulario).toBe(40)
   })
 
