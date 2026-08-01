@@ -19,7 +19,7 @@ import { safeLog } from '@/lib/security/sanitize'
 import { resumir, soloCogs, porClave, suficiente, type EventoCosto } from '@/lib/finanzas/cost-ledger'
 import { incidentesRecientes } from '@/lib/ia/incidentes-servidor'
 import { stripe } from '@/lib/stripe'
-import { evaluarWebhook, type SaludWebhook } from '@/lib/finanzas/webhook-stripe-salud'
+import { evaluarWebhook, modoDeLaLlave, type SaludWebhook } from '@/lib/finanzas/webhook-stripe-salud'
 
 /**
  * Le pregunta a Stripe a qué eventos está suscrito el webhook de esta app.
@@ -35,7 +35,8 @@ async function saludDelWebhook(): Promise<SaludWebhook | null> {
     // El endpoint de esta app, no cualquiera: una cuenta de Stripe puede servir
     // a varios sitios y mirar el ajeno daría un verde falso.
     const mio = data.find(e => e.url.includes('/api/stripe/webhook'))
-    return evaluarWebhook(mio ? mio.enabled_events : null)
+    // El modo sale del PREFIJO de la llave, nunca de la llave.
+    return evaluarWebhook(mio ? mio.enabled_events : null, modoDeLaLlave(process.env.STRIPE_SECRET_KEY))
   } catch {
     return null
   }

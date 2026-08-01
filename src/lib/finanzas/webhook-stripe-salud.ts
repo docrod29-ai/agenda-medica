@@ -51,6 +51,44 @@ export const EVENTOS_CRITICOS = [
   'charge.dispute.closed',
 ] as const
 
+/**
+ * ¿La app está cobrando de verdad, o en el mundo de mentira de Stripe?
+ *
+ * Stripe tiene dos universos separados: PRUEBA (tarjetas falsas, dinero falso,
+ * su propio webhook) y PRODUCCIÓN. Se distinguen por el prefijo de la llave.
+ *
+ * Importa saberlo porque la confusión es silenciosa y cara: con una llave de
+ * prueba en producción, la app **parece** cobrar —el checkout se abre, el pago
+ * «pasa», la suscripción se activa— y no entra un solo peso. Nadie se entera
+ * hasta que alguien va a mirar el banco.
+ *
+ * Y los eventos del webhook se configuran POR SEPARADO en cada universo:
+ * marcarlos en prueba no los marca en producción.
+ */
+export type ModoStripe = 'prueba' | 'produccion' | 'sin_llave'
+
+/**
+ * Lee el modo del PREFIJO de la llave, nunca la llave.
+ *
+ * `sk_live_…` es producción, `sk_test_…` es prueba. Sólo se mira el principio y
+ * lo que sale de aquí es una palabra de tres opciones: el secreto no viaja ni a
+ * la pantalla ni a los registros.
+ */
+export function modoDeLaLlave(llave: string | undefined | null): ModoStripe {
+  const k = (llave ?? '').trim()
+  if (!k) return 'sin_llave'
+  return k.startsWith('sk_live') || k.startsWith('rk_live') ? 'produccion' : 'prueba'
+}
+
+/** Qué decirle al dueño sobre el modo. Vacío cuando no hay nada que decir. */
+export function avisoDeModo(modo: ModoStripe): string {
+  if (modo === 'produccion') return ''
+  if (modo === 'sin_llave') {
+    return 'No hay llave de Stripe configurada: la aplicación no puede cobrar nada.'
+  }
+  return 'La aplicación está usando la llave de PRUEBA de Stripe. Los pagos se simulan: el checkout se abre, la suscripción se activa y NO entra dinero. Además, los eventos del webhook se configuran por separado en cada modo — lo que marques en prueba no aplica en producción.'
+}
+
 export interface SaludWebhook {
   /** El endpoint está dado de alta en Stripe. */
   configurado: boolean
@@ -60,6 +98,10 @@ export interface SaludWebhook {
   faltanCriticos: string[]
   /** Qué decirle al dueño. Vacío cuando no hay nada que decir. */
   aviso: string
+  /** ¿Prueba o producción? Sale del prefijo de la llave, nunca de la llave. */
+  modo: ModoStripe
+  /** Aviso sobre el modo. Vacío en producción. */
+  avisoModo: string
 }
 
 /**
@@ -70,17 +112,19 @@ export interface SaludWebhook {
  * marcado los nueve como faltantes en una cuenta perfectamente configurada — un
  * falso positivo que enseña a ignorar el aviso.
  */
-export function evaluarWebhook(suscritos: readonly string[] | null): SaludWebhook {
+export function evaluarWebhook(suscritos: readonly string[] | null, modo: ModoStripe = 'sin_llave'): SaludWebhook {
+  const avisoModo = avisoDeModo(modo)
   if (suscritos === null) {
     return {
       configurado: false,
       faltantes: [...EVENTOS_QUE_ATENDEMOS],
       faltanCriticos: [...EVENTOS_CRITICOS],
       aviso: 'No se encontró ningún webhook de Stripe apuntando a esta aplicación. Sin él, NADA de lo que pasa en Stripe llega a NexusMED: ni altas, ni pagos, ni reembolsos.',
+      modo, avisoModo,
     }
   }
   if (suscritos.includes('*')) {
-    return { configurado: true, faltantes: [], faltanCriticos: [], aviso: '' }
+    return { configurado: true, faltantes: [], faltanCriticos: [], aviso: '', modo, avisoModo }
   }
 
   const set = new Set(suscritos)
@@ -91,15 +135,17 @@ export function evaluarWebhook(suscritos: readonly string[] | null): SaludWebhoo
     return {
       configurado: true, faltantes, faltanCriticos,
       aviso: `Faltan ${faltanCriticos.length} evento(s) de devolución en tu webhook de Stripe: ${faltanCriticos.join(', ')}. El código ya sabe atenderlos, pero Stripe no los envía si no están marcados — hoy un reembolso o un contracargo deja la suscripción activa y el ingreso contado. Actívalos en Developers → Webhooks → Add events.`,
+      modo, avisoModo,
     }
   }
   if (faltantes.length > 0) {
     return {
       configurado: true, faltantes, faltanCriticos: [],
       aviso: `Tu webhook de Stripe no está suscrito a: ${faltantes.join(', ')}. El código los atiende, pero no llegan.`,
+      modo, avisoModo,
     }
   }
-  return { configurado: true, faltantes: [], faltanCriticos: [], aviso: '' }
+  return { configurado: true, faltantes: [], faltanCriticos: [], aviso: '', modo, avisoModo }
 }
 
 export const POR_QUE_NO_BASTA_UN_TEST =

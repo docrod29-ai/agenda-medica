@@ -12,7 +12,8 @@
  */
 import { describe, it, expect } from 'vitest'
 import {
-  evaluarWebhook, EVENTOS_QUE_ATENDEMOS, EVENTOS_CRITICOS,
+  evaluarWebhook, modoDeLaLlave, avisoDeModo,
+  EVENTOS_QUE_ATENDEMOS, EVENTOS_CRITICOS,
 } from '@/lib/finanzas/webhook-stripe-salud'
 
 describe('evaluarWebhook', () => {
@@ -68,5 +69,42 @@ describe('evaluarWebhook', () => {
   it('la lista que pedimos es la que el webhook atiende de verdad', () => {
     // El contrato: si el código deja de manejar un evento, deja de pedirse.
     for (const e of EVENTOS_CRITICOS) expect([...EVENTOS_QUE_ATENDEMOS]).toContain(e)
+  })
+})
+
+describe('prueba o producción', () => {
+  it('lo decide el PREFIJO, y nunca devuelve la llave', () => {
+    expect(modoDeLaLlave('sk_live_abc123')).toBe('produccion')
+    expect(modoDeLaLlave('sk_test_abc123')).toBe('prueba')
+    expect(modoDeLaLlave('')).toBe('sin_llave')
+    expect(modoDeLaLlave(undefined)).toBe('sin_llave')
+  })
+
+  it('lo desconocido cae a PRUEBA, no a producción', () => {
+    /**
+     * Fallar hacia «prueba» es el lado seguro: en el peor caso se avisa de más.
+     * Al revés —dar por producción una llave que no se reconoce— haría creer que
+     * la app cobra de verdad cuando quizá no.
+     */
+    expect(modoDeLaLlave('algo_raro')).toBe('prueba')
+  })
+
+  it('en producción no hay nada que decir', () => {
+    expect(avisoDeModo('produccion')).toBe('')
+  })
+
+  it('en prueba avisa de LAS DOS cosas: no entra dinero y los eventos son aparte', () => {
+    // La segunda es la que muerde al pasar a producción: marcar los eventos en
+    // prueba no los marca en la cuenta real.
+    const a = avisoDeModo('prueba')
+    expect(a).toMatch(/NO entra dinero/i)
+    expect(a).toMatch(/por separado en cada modo/i)
+  })
+
+  it('el modo viaja en el resultado del webhook', () => {
+    const r = evaluarWebhook([...EVENTOS_QUE_ATENDEMOS], 'prueba')
+    expect(r.modo).toBe('prueba')
+    expect(r.aviso).toBe('')          // los eventos están completos…
+    expect(r.avisoModo).not.toBe('')  // …pero el modo sigue mereciendo una nota
   })
 })

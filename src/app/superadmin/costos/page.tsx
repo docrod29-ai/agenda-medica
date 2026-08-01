@@ -39,7 +39,7 @@ interface Datos {
   ok: true; mes: string; total: Resumen; cogs: Resumen; confiable: boolean
   porFeature: Grupo[]; porModelo: Grupo[]; porClase: Grupo[]; truncado: boolean
   incidentes?: Incidente[]; hayUrgente?: boolean
-  webhook?: { configurado: boolean; faltantes: string[]; faltanCriticos: string[]; aviso: string } | null
+  webhook?: { configurado: boolean; faltantes: string[]; faltanCriticos: string[]; aviso: string; modo?: 'prueba' | 'produccion' | 'sin_llave'; avisoModo?: string } | null
 }
 
 const mesActual = () => new Date().toISOString().slice(0, 7)
@@ -114,6 +114,27 @@ export default function CostosPage() {
             la suscripción viva. Esa casilla está fuera del repositorio, así que
             ningún test la ve — se le pregunta a Stripe y se muestra aquí.
           */}
+          {/*
+            EL MODO VA PRIMERO Y EN TONO NEUTRO.
+
+            Estar en prueba no es un fallo: es lo correcto mientras no se venda.
+            Pintarlo en rojo enseñaría a ignorar el rojo. Lo que sí tiene que
+            quedar claro es la consecuencia — que un pago «exitoso» en este modo
+            no mueve un peso — y que los eventos se configuran por separado en
+            cada modo, que es de donde vendría la sorpresa al pasar a producción.
+          */}
+          {datos.webhook?.avisoModo && (
+            <div style={{
+              border: '1px solid var(--border, #e5e7eb)', background: 'var(--panel, #f8fafc)',
+              borderRadius: 10, padding: '12px 14px', margin: '18px 0 8px',
+            }}>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text, #0f172a)' }}>
+                Stripe: modo {datos.webhook.modo === 'prueba' ? 'de prueba' : datos.webhook.modo === 'sin_llave' ? 'sin configurar' : 'producción'}
+              </div>
+              <div style={{ fontSize: 12.5, color: 'var(--text2, #334155)', marginTop: 4, lineHeight: 1.55 }}>{datos.webhook.avisoModo}</div>
+            </div>
+          )}
+
           {datos.webhook?.aviso && (
             <div style={{
               border: `1px solid ${datos.webhook.faltanCriticos.length ? '#dc2626' : 'var(--border)'}`,
