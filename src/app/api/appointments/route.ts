@@ -14,7 +14,7 @@ import type { Appointment } from '@/types'
  * cada path conserva su comportamiento actual, solo que ahora es atómico.
  */
 export async function POST(req: NextRequest) {
-  let body: { clinicId?: string; appointment?: Omit<Appointment, 'id'>; reagendarId?: string }
+  let body: { clinicId?: string; appointment?: Omit<Appointment, 'id'>; reagendarId?: string; sobreagendarMotivo?: string }
   try {
     body = await req.json()
   } catch {
@@ -42,6 +42,25 @@ export async function POST(req: NextRequest) {
     'tipo', 'motivo', 'estado', 'origen', 'medicoNombre', 'medicoId', 'lugar',
     'notasInternas', 'consentimientoMensajes', 'doctorId', 'branchId',
   ] as const
+  /**
+   * SOBREAGENDAR: LO QUE EL CHARTER PEDÍA Y NO EXISTÍA.
+   *
+   * «Doble reserva accidental = BLOQUEAR. Anulación manual autorizada =
+   * permitida + auditada.» De esa pareja sólo estaba la primera mitad: el
+   * empalme se rechazaba SIEMPRE, sin vía autorizada.
+   *
+   * Y eso no evita el sobreagendamiento, lo esconde: llega una urgencia a las
+   * 10:00 y esa hora está ocupada, así que el médico acaba escribiendo «10:05»
+   * a mano en el campo libre, o cancelando la otra cita sin dejar rastro de
+   * quién ni por qué. El empalme ocurre igual y el sistema no se entera.
+   *
+   * El motivo ESCRITO es lo que separa «autorizado» de «accidental»: nadie
+   * teclea una justificación por error. Se guarda en la cita y va a la
+   * bitácora, así que después se puede preguntar quién sobreagendó y por qué.
+   */
+  const motivoSobreagenda = String(body.sobreagendarMotivo ?? '').trim().slice(0, 200)
+  const quiereSobreagendar = motivoSobreagenda.length >= 5
+
   const limpia: Record<string, unknown> = {}
   for (const k of CAMPOS_CITA) {
     const v = (appointment as Record<string, unknown>)[k]
@@ -168,7 +187,15 @@ export async function POST(req: NextRequest) {
         const aEnd = aStart + (a.duracion ?? 30)
         if (start < aEnd && end > aStart) conflicto = true
       })
-      if (conflicto) throw CONFLICTO
+      if (conflicto && !quiereSobreagendar) throw CONFLICTO
+      if (conflicto) {
+        // Queda EN LA CITA, no sólo en la bitácora: quien la abra mañana tiene
+        // que ver que se puso encima de otra y por qué.
+        limpia.sobreagendada = true
+        limpia.sobreagendadaMotivo = motivoSobreagenda
+        limpia.sobreagendadaPor = acc.uid
+        limpia.sobreagendadaEn = now
+      }
 
       tx.set(diaRef, { ultimaReserva: now }, { merge: true })  // write: invalida la tx concurrente
       if (reagendarId) {
@@ -188,9 +215,11 @@ export async function POST(req: NextRequest) {
     })
   } catch (e) {
     if (e === CONFLICTO) {
-      return NextResponse.json({ error: 'Ese horario acaba de ocuparse. Elige otro.' }, { status: 409 })
+      // `sobreagendable` le dice a la pantalla que existe una salida autorizada,
+      // en vez de dejar al usuario contra un muro.
+      return NextResponse.json({ error: 'Ese horario ya está ocupado.', sobreagendable: true }, { status: 409 })
     }
     throw e
   }
-  return NextResponse.json({ id })
+  return NextResponse.json({ id, sobreagendada: quiereSobreagendar })
 }

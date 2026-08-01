@@ -75,6 +75,17 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
   const [consent, setConsent]     = useState(true)
   const [saving, setSaving]       = useState(false)
   const [conflict, setConflict]   = useState(false)
+  /**
+   * Motivo para poner una cita ENCIMA de otra.
+   *
+   * El charter pide bloquear el empalme accidental y permitir la anulación
+   * manual AUTORIZADA Y AUDITADA. Sólo estaba la primera mitad, y eso no evita
+   * el sobreagendamiento: lo esconde. Llega una urgencia a una hora ocupada y
+   * el médico acaba escribiendo «10:05» a mano, o cancelando la otra cita sin
+   * dejar rastro. Teclear un motivo es el gesto que separa «autorizado» de
+   * «accidental»: nadie escribe una justificación por error.
+   */
+  const [motivoSobreagenda, setMotivoSobreagenda] = useState('')
   const [bloques, setBloques]     = useState<TimeBlock[]>([])
   const [medicoId, setMedicoId]   = useState<string>('')  // médico al que se agenda la cita
 
@@ -85,6 +96,9 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
   // Populate on edit
   useEffect(() => {
     if (!open) return
+    // Un motivo de sobreagenda tecleado para OTRA cita no puede viajar con ésta:
+    // sería una autorización heredada, que es justo lo contrario de deliberada.
+    setMotivoSobreagenda('')
     if (appointment) {
       setNombre(appointment.pacienteNombre)
       setTelefono(appointment.pacienteTelefono)
@@ -167,7 +181,10 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
   const handleSave = async () => {
     if (!nombre.trim()) { toast('Ingresa el nombre del paciente', 'error'); return }
     if (!fecha || !hora) { toast('Selecciona fecha y hora', 'error'); return }
-    if (conflict) { toast('Hay un conflicto de horario', 'error'); return }
+    if (conflict && motivoSobreagenda.trim().length < 5) {
+      toast('Ese horario ya está ocupado. Si es deliberado, escribe el motivo para sobreagendar.', 'error')
+      return
+    }
 
     setSaving(true)
     try {
@@ -214,7 +231,7 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
         const res = await fetchAutenticado('/api/appointments', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ clinicId, appointment: payload, reagendarId: appointment.id }),
+          body: JSON.stringify({ clinicId, appointment: payload, reagendarId: appointment.id, sobreagendarMotivo: conflict ? motivoSobreagenda.trim() : undefined }),
         })
         if (!res.ok) {
           const j = await res.json().catch(() => ({}))
@@ -265,6 +282,7 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
           body: JSON.stringify({
             clinicId,
             appointment: { ...payload, recordatorio24hEnviado: false, recordatorioMismoDiaEnviado: false },
+            sobreagendarMotivo: conflict ? motivoSobreagenda.trim() : undefined,
           }),
         })
         const data = await res.json().catch(() => ({}))
@@ -366,7 +384,7 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
             </div>
           )}
           <Button variant="secondary" onClick={onClose} disabled={saving}>Cancelar</Button>
-          <Button onClick={handleSave} loading={saving} disabled={saving || conflict}>{isEdit ? 'Guardar cambios' : 'Agendar cita'}</Button>
+          <Button onClick={handleSave} loading={saving} disabled={saving || (conflict && motivoSobreagenda.trim().length < 5)}>{isEdit ? 'Guardar cambios' : 'Agendar cita'}</Button>
         </>
       )}
     >
@@ -444,8 +462,26 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
                 <input className="input" type="time" value={hora} onChange={e => setHora(e.target.value)} />
               )}
               {conflict && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--red)', marginTop: 4 }}>
-                  <AlertCircle size={13} /> Conflicto con otra cita
+                <div style={{ marginTop: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--red)' }}>
+                    <AlertCircle size={13} /> Ese horario ya está ocupado
+                  </div>
+                  {/*
+                    La salida autorizada, no un muro. Queda escrita en la cita y
+                    en la bitácora: después se puede preguntar quién sobreagendó
+                    y por qué.
+                  */}
+                  <input
+                    className="input"
+                    style={{ marginTop: 6 }}
+                    value={motivoSobreagenda}
+                    onChange={e => setMotivoSobreagenda(e.target.value)}
+                    placeholder="Motivo para sobreagendar (urgencia, indicación del médico…)"
+                    maxLength={200}
+                  />
+                  <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
+                    Sin motivo no se agenda encima. Con motivo, queda registrado quién y por qué.
+                  </div>
                 </div>
               )}
             </div>

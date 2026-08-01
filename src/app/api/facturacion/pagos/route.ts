@@ -19,7 +19,26 @@ export async function GET(req: NextRequest) {
 
   try {
     const snap = await adminDb.collection('platform_payments').where('clinicId', '==', clinicId).get()
-    const pagos = snap.docs.map(d => {
+    const pagos = snap.docs.filter(d => {
+      /**
+       * SÓLO SE PUEDE FACTURAR LO QUE ENTRÓ.
+       *
+       * `platform_payments` guarda en la MISMA colección los cobros, los
+       * reembolsos (`refund_*`) y los contracargos (`dispute_*`), todos con
+       * `monto` positivo. Esta lista no filtraba nada, así que el consultorio
+       * veía su propio reembolso entre los «pagos» y podía timbrar un CFDI de
+       * INGRESO por dinero que se le devolvió. Es el mismo hueco que la consola
+       * ya había cerrado para sus reportes, abierto en la puerta fiscal.
+       *
+       * Y los pagos de PRUEBA de Stripe (`livemode: false`) tampoco son
+       * facturables: no existió el dinero.
+       */
+      const p = d.data() as Any
+      const tipo = String(p.tipo ?? '')
+      if (tipo === 'reembolso' || tipo === 'contracargo') return false
+      if (p.livemode === false) return false
+      return true
+    }).map(d => {
       const p = d.data() as Any
       return {
         id: d.id,

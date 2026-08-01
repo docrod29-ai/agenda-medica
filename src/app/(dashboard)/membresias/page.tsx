@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/context/ToastContext'
 import { getPatients } from '@/lib/firestore'
 import { hoyISO } from '@/lib/timezone'
-import { fmtMXN } from '@/lib/cobros'
+import { fmtMXN, METODO_LABEL, type MetodoPago } from '@/lib/cobros'
 import { PageHeader, Button, Spinner, Modal, Input, Select } from '@/components/ui'
 import {
   crearPlan, listarPlanes, asignarMembresia, listarMembresias, cambiarEstadoMembresia,
@@ -26,6 +26,8 @@ export default function MembresiasPage() {
   const { toast, confirm } = useToast()
   const [planes, setPlanes] = useState<PlanMembresia[]>([])
   const [membs, setMembs] = useState<Membresia[]>([])
+  const [cuotaACobrar, setCuotaACobrar] = useState<Membresia | null>(null)
+  const [metodoCobro, setMetodoCobro] = useState<MetodoPago>('efectivo')
   const [pacientes, setPacientes] = useState<Patient[]>([])
   const [loading, setLoading] = useState(true)
   const [modalPlan, setModalPlan] = useState(false)
@@ -48,16 +50,36 @@ export default function MembresiasPage() {
 
   const worklist = useMemo(() => porCobrar(membs, hoyISO()), [membs])
 
+  /**
+   * EL MÉTODO DE PAGO SE PREGUNTA. NO ERA «EFECTIVO» SIEMPRE.
+   *
+   * Iba quemado como `metodo: 'efectivo'` y no había ningún selector, así que
+   * TODA cuota de membresía entraba al libro como efectivo aunque se hubiera
+   * pagado por transferencia o con tarjeta. Eso corrompe exactamente el número
+   * que sirve para cuadrar el cajón físico al cerrar el día, y el desglose por
+   * forma de pago del corte.
+   */
   const cobrar = async (m: Membresia) => {
     if (!clinicId || !user || cobrandoId) return   // ya hay un cobro en curso
-    const ok = await confirm(`¿Registrar el cobro de ${fmtMXN(m.precio)} de la membresía de ${m.pacienteNombre}?`, { confirmar: 'Cobrar' })
-    if (!ok) return
+    setCuotaACobrar(m)
+    setMetodoCobro('efectivo')
+  }
+
+  const confirmarCobro = async () => {
+    const m = cuotaACobrar
+    if (!clinicId || !user || !m) return
+    setCuotaACobrar(null)
     setCobrandoId(m.id ?? null)
     try {
-      await cobrarMembresia(clinicId, m, { metodo: 'efectivo', creadoPor: user.uid })
+      await cobrarMembresia(clinicId, m, { metodo: metodoCobro, creadoPor: user.uid })
       toast('Cuota cobrada y ciclo avanzado', 'success')
       await recargar()
-    } catch { toast('No se pudo cobrar', 'error') }
+    } catch (e) {
+      // El motivo importa: «ya se cobró desde otro dispositivo» no es lo mismo
+      // que «falló la red», y antes las dos decían «No se pudo cobrar».
+      toast(e instanceof Error ? e.message : 'No se pudo cobrar', 'error')
+      await recargar()
+    }
     finally { setCobrandoId(null) }
   }
 
@@ -149,6 +171,42 @@ export default function MembresiasPage() {
           try { await asignarMembresia(clinicId!, { pacienteId: pac.id!, pacienteNombre: pac.nombre, plan, creadoPor: user!.uid }); toast('Membresía asignada', 'success'); setAsignar(false); recargar() }
           catch { toast('No se pudo asignar la membresía', 'error') }
         }} />}
+
+      {/*
+        COBRAR UNA CUOTA PREGUNTA CÓMO SE PAGÓ.
+        Antes iba directo con `metodo: 'efectivo'` quemado, sin selector: toda
+        cuota entraba al libro como efectivo aunque se hubiera pagado por
+        transferencia. Eso corrompe justo el número con el que se cuadra el
+        cajón físico al cerrar el día.
+      */}
+      <Modal
+        open={!!cuotaACobrar}
+        onClose={() => setCuotaACobrar(null)}
+        title="Cobrar cuota de membresía"
+        footer={
+          <><Button variant="secondary" onClick={() => setCuotaACobrar(null)}>Cancelar</Button>
+          <Button onClick={confirmarCobro}>Registrar cobro</Button></>
+        }
+      >
+        {cuotaACobrar && (
+          <div style={{ display: 'grid', gap: 12 }}>
+            <div style={{ fontSize: 14, color: 'var(--text)' }}>
+              <strong>{fmtMXN(cuotaACobrar.precio)}</strong> · {cuotaACobrar.planNombre}
+              <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 2 }}>{cuotaACobrar.pacienteNombre}</div>
+            </div>
+            <label style={lbl}>¿Cómo se pagó?
+              <Select value={metodoCobro} onChange={e => setMetodoCobro(e.target.value as MetodoPago)}>
+                {(Object.keys(METODO_LABEL) as MetodoPago[]).map(k => (
+                  <option key={k} value={k}>{METODO_LABEL[k]}</option>
+                ))}
+              </Select>
+            </label>
+            <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>
+              Al registrarlo, el ciclo avanza a la siguiente fecha de cobro.
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }
