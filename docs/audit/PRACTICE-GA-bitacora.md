@@ -132,7 +132,7 @@ pruebas en verde, y ningún efecto en la realidad.
 |---|---|---|
 | **P0-2** | **24** motores sin validar (23 `pendiente_validacion` + 1 `experimental`), varios en el camino de la receta. Ya son VISIBLES en pantalla y listados en `/cumplimiento/motores` con su pregunta pendiente | **Criterio clínico del Dr.** — `NEEDS_CLINICAL_REVIEW`. El trinquete de `clinical-sellos.test.ts` obliga a bajar el techo cuando valide alguno |
 | **P0-5** | **CERRADO en GA-010** para la capa que sí se puede probar hoy: `golden-flow.emu.test.ts` recorre paciente → cita → nota → firma → cobro contra las reglas REALES, y Playwright entró al CI. **Sigue pendiente el E2E de NAVEGADOR**: necesita una cuenta de médico con contraseña en los secretos del CI — decisión del Dr., no mía | él (cuenta de prueba) |
-| **P0-6** | Backup / PITR / restore drill: cero evidencia | consola de Firebase (él) + documentar (yo) |
+| **P0-6** | **Mi parte, hecha (GA-014, v779)**: `npm run respaldos:verificar` responde si PITR está encendida, si hay programación y **de cuándo es el último respaldo real** — la programación puede estar puesta y fallando en silencio. Solo lectura, verificado con las dos ramas simuladas. Más `docs/SIMULACRO_RESTAURACION.md`, porque un respaldo que nunca se restauró es una hipótesis | **Él**: correr el comando y hacer el primer simulacro. La primera entrada en el historial de ese documento es lo que cierra el P0-6 |
 | ~~P0-7~~ | ~~`TARIFAS` vacío~~ — **CERRADO en GA-006.** 11 tarifas cargadas de la página de cada proveedor, con URL y fecha | — |
 
 ### P1
@@ -146,8 +146,11 @@ pruebas en verde, y ningún efecto en la realidad.
 ### Deuda técnica congelada
 
 - **Lint: 104 errores** en el trinquete (`docs/audit/lint-techo.json`). Bajó de 105 en GA-009 al arreglar un `Date.now()` impuro en el render.
-- **CSP sigue en report-only** salvo `frame-ancestors`. Pasarla a enforce exige
-  días de observación de reportes; la observación **no se ha arrancado**.
+- **CSP: la observación YA CORRE** (GA-014, v779). Sigue en modo aviso —eso no
+  cambia hasta tener datos— pero la razón por la que no podía terminar era que
+  los reportes iban a un log que nadie lee y que caduca. Ahora se acumulan y
+  `/superadmin/csp` dice cuántos días van, qué está saltando y si ya se puede
+  poner `CSP_MODE=enforce`. **Pendiente: mirar esa pantalla dentro de una semana.**
 - ~~**A7**~~ — **CERRADO en GA-013 (v778).** **Todas** las rutas que gastan dejan
   asiento, y hay un centinela (`libro-costos-cobertura.test.ts`) que recorre el
   disco y falla si aparece una nueva sin él. El peor hueco era

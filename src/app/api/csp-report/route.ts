@@ -1,66 +1,97 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { safeLog } from '@/lib/security/sanitize'
-
 /**
- * Receptor de reportes de CSP (Content-Security-Policy) en modo Report-Only.
+ * Buzón de reportes de la CSP (política de seguridad de contenido).
  *
- * La CSP global va como `Content-Security-Policy-Report-Only` (ver next.config.ts):
- * NO bloquea nada, solo AVISA aquí cada vez que algo se saldría de la política.
- * Con una semana de estos reportes sabremos qué orígenes usa de verdad la app
- * y podremos apretar la lista antes de cambiar a modo enforce.
+ * La política va en modo AVISO (`Content-Security-Policy-Report-Only`, ver
+ * `next.config.ts`): no bloquea nada, sólo avisa aquí cada vez que algo se
+ * saldría de ella. Pasar a bloquear de verdad sin ese dato es lo que rompe
+ * pantallas legítimas de golpe.
  *
- * PRIVACIDAD: el navegador manda `document-uri`/`referrer`, que en esta app pueden
- * traer el token del magic-link (/mi/{token}) o un id de paciente (/expediente/{id}).
- * Por eso NO se registran completos: solo origen + primer segmento de ruta, el resto
- * se redacta. Nunca se loguea PHI ni tokens.
+ * ── LO QUE CAMBIÓ, Y POR QUÉ NO ERA UN DETALLE ───────────────────────────────
+ *
+ * Antes esto escribía una línea en el log del servidor y ya está. Nadie lee ese
+ * log y además caduca, así que la «semana de observación» no podía terminar — ni
+ * empezar: una semana después no habría nada que mirar. La CSP se quedaba en
+ * modo aviso para siempre, que es la seguridad de la que todo el mundo habla y
+ * nadie enciende.
+ *
+ * Ahora se ACUMULA, agrupado por directiva + recurso + día, con un contador. Mil
+ * violaciones iguales son un renglón que dice «mil veces», no mil renglones.
+ *
+ * ── ESTE BUZÓN ES PÚBLICO ────────────────────────────────────────────────────
+ *
+ * Lo llama el navegador sin autenticación: tiene que ser así. Las defensas
+ * —agrupar, descartar lo ajeno, recortar, tope por petición— viven en
+ * `csp-observacion.ts`, que es puro y está probado. Aquí sólo se escribe.
+ *
+ * PRIVACIDAD: nunca se guarda una dirección completa. En esta aplicación la URL
+ * de la página ES un dato sensible (el portal del paciente lleva su token en la
+ * ruta, el expediente lleva el id del paciente), así que se recorta a origen +
+ * primer segmento antes de tocar nada.
  */
+import { NextRequest, NextResponse } from 'next/server'
+import admin from 'firebase-admin'
+import { adminDb } from '@/lib/firebase-admin'
+import { safeLog } from '@/lib/security/sanitize'
+import { gruposDeReporte, idDocumento } from '@/lib/security/csp-observacion'
 
 export const runtime = 'nodejs'
 
-/** Deja origen + primer segmento de la ruta; redacta el resto (tokens, ids de paciente). */
-function rutaSegura(url: unknown): string {
-  if (typeof url !== 'string' || !url) return ''
-  try {
-    const u = new URL(url)
-    const seg = u.pathname.split('/').filter(Boolean)
-    const primero = seg.length ? '/' + seg[0] : '/'
-    const resto = seg.length > 1 ? '/…' : ''
-    return u.origin + primero + resto
-  } catch {
-    return '[url no parseable]'
-  }
+/** Dónde se acumula. Sin PHI: sólo directivas, orígenes y contadores. */
+export const COLECCION_CSP = 'platform_csp'
+
+/**
+ * Los orígenes de esta aplicación, para descartar los reportes ajenos.
+ *
+ * `VERCEL_URL` no trae el esquema; `NEXT_PUBLIC_APP_URL` sí cuando está puesta.
+ * Si no hay ninguna la lista queda vacía y NO se filtra: perder la observación
+ * entera por una variable sin configurar sería peor que aceptar algo de ruido.
+ */
+function origenesPropios(): string[] {
+  const l: string[] = []
+  const publica = process.env.NEXT_PUBLIC_APP_URL?.trim()
+  if (publica) l.push(publica.replace(/\/+$/, ''))
+  const vercel = process.env.VERCEL_URL?.trim()
+  if (vercel) l.push(`https://${vercel.replace(/^https?:\/\//, '').replace(/\/+$/, '')}`)
+  return l
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const ct = req.headers.get('content-type') || ''
-    const body = await req.json().catch(() => null)
-    if (!body) return new NextResponse(null, { status: 204 })
+    const cuerpo = await req.json().catch(() => null)
+    if (!cuerpo) return new NextResponse(null, { status: 204 })
 
-    // Dos formatos: report-uri => { "csp-report": {...} }; report-to => [ { body: {...} }, ... ]
-    const reportes: Record<string, unknown>[] = []
-    if (Array.isArray(body)) {
-      for (const r of body) {
-        const b = (r?.body ?? r) as Record<string, unknown>
-        if (b) reportes.push(b)
-      }
-    } else if (body['csp-report']) {
-      reportes.push(body['csp-report'] as Record<string, unknown>)
-    } else {
-      reportes.push(body as Record<string, unknown>)
-    }
+    const ahora = new Date()
+    const dia = ahora.toISOString().slice(0, 10)
+    const grupos = gruposDeReporte(cuerpo, dia, origenesPropios())
+    if (grupos.length === 0) return new NextResponse(null, { status: 204 })
 
-    for (const r of reportes) {
-      // Nombres varían entre report-uri (guiones) y report-to (camelCase).
-      const directiva = r['violated-directive'] ?? r['effectiveDirective'] ?? r['effective-directive'] ?? '?'
-      const bloqueado = r['blocked-uri'] ?? r['blockedURL'] ?? r['blocked-url'] ?? '?'
-      const doc = rutaSegura(r['document-uri'] ?? r['documentURL'] ?? r['document-url'])
-      // Solo el ORIGEN del recurso bloqueado (sin ruta/query, para no arrastrar PHI).
-      const bloqueadoOrigen = rutaSegura(bloqueado) || String(bloqueado)
-      safeLog.warn(`[CSP-RO] directiva=${directiva} bloqueado=${bloqueadoOrigen} en=${doc} (ct=${ct})`)
+    /**
+     * Un `set(merge)` por grupo, con id determinista.
+     *
+     * El id sale del contenido, así que dos reportes iguales del mismo día caen
+     * en el MISMO documento y sólo mueven el contador. Eso es lo que acota
+     * cuánto puede crecer esta colección: violaciones DISTINTAS por día, no
+     * número de reportes — y es la diferencia entre una estadística y una puerta
+     * abierta para inflar la factura desde internet.
+     *
+     * Sin `await` a propósito: el navegador no espera la respuesta de un buzón
+     * de reportes, y pagar latencia por escribir una estadística sería pagarla
+     * para nada.
+     */
+    for (const g of grupos) {
+      void adminDb.collection(COLECCION_CSP).doc(idDocumento(g.clave)).set({
+        directiva: g.directiva,
+        bloqueado: g.bloqueado,
+        pagina: g.pagina,
+        dia: g.dia,
+        veces: admin.firestore.FieldValue.increment(1),
+        ultimaVez: ahora.toISOString(),
+      }, { merge: true }).catch(e => safeLog.warn('[CSP] no se pudo acumular:', String(e).slice(0, 120)))
+      safeLog.warn(`[CSP-RO] ${g.directiva} · ${g.bloqueado} · en ${g.pagina}`)
     }
   } catch {
-    // Nunca fallar por un reporte mal formado.
+    // Un reporte mal formado NUNCA puede tumbar el buzón: dejaría de llegar el
+    // resto y la observación se quedaría muda sin que nadie se enterara.
   }
   return new NextResponse(null, { status: 204 })
 }

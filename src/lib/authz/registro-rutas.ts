@@ -307,6 +307,10 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   'superadmin/clientes': { tipo: 'superadmin' },
   'superadmin/contabilidad': { tipo: 'superadmin' },
   'superadmin/costos': { tipo: 'superadmin' },
+  // Lo que la política de seguridad habría bloqueado. No lleva PHI, pero sí dice
+  // qué recursos externos usa la aplicación — eso es información de seguridad y
+  // no se enseña a un cliente.
+  'superadmin/csp': { tipo: 'superadmin' },
   'superadmin/paquetes': { tipo: 'superadmin' },
 
   // ── tareas programadas ───────────────────────────────────────────────────

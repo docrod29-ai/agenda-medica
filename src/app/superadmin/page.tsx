@@ -103,6 +103,14 @@ export default function SuperadminPage() {
           <a href="/superadmin/costos" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--s2)', color: 'var(--text)', textDecoration: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 13px', fontSize: 13, fontWeight: 700 }}>
             <Coins size={14} /> Costo de la IA
           </a>
+          {/*
+            La observación de la CSP tiene que estar A LA VISTA o no termina
+            nunca: es un proceso que sólo avanza si alguien lo mira. Escondida
+            detrás de una URL que hay que recordar, equivale a no existir.
+          */}
+          <a href="/superadmin/csp" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--s2)', color: 'var(--text)', textDecoration: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 13px', fontSize: 13, fontWeight: 700 }}>
+            <ShieldCheck size={14} /> Seguridad web
+          </a>
           <a href="/superadmin/contabilidad" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#000', textDecoration: 'none', borderRadius: 8, padding: '7px 13px', fontSize: 13, fontWeight: 700 }}>
             <TrendingUp size={14} /> Contabilidad
           </a>
