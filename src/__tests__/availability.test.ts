@@ -12,7 +12,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
-  validarHorarioDia, getDaySchedule, getAvailableSlots, hasConflict, getWeekDates,
+  validarHorarioDia, getDaySchedule, getAvailableSlots, hasConflict, getWeekDates, diagnosticoDeHuecos,
 } from '@/lib/availability'
 import type { ClinicConfig, Appointment } from '@/types'
 
@@ -144,5 +144,88 @@ describe('La semana', () => {
     const semana = getWeekDates(new Date('2026-08-05T12:00:00'))
     expect(semana).toHaveLength(7)
     expect(semana[0].getDay()).toBe(1)
+  })
+})
+
+/**
+ * EL TOPE QUE BORRABA LA TARDE.
+ *
+ * Existía un tope fijo de 24 huecos por día, justificado como «12 horas con
+ * citas de 30 min». Pero cuenta huecos OFRECIDOS y corta en orden cronológico,
+ * así que a una agenda legítima con citas cortas le desaparecía el final del
+ * día: un dentista de 09:00 a 19:00 cada 15 minutos tiene 40 huecos, y la
+ * agenda ofrecía hasta las ~15:00. El único aviso era un console.warn.
+ *
+ * Estos tests no existían — por eso el defecto vivió tanto. El caso de abajo es
+ * exactamente el que se rompía.
+ */
+describe('El día completo se ofrece entero', () => {
+  const jornadaLarga = (over: Partial<ClinicConfig> = {}): ClinicConfig => ({
+    ...cfg(over),
+    intervaloMinutos: 15,
+    horario: {
+      lunes:     { activo: true, inicio: '09:00', fin: '19:00' },
+      martes:    { activo: true, inicio: '09:00', fin: '19:00' },
+      miercoles: { activo: true, inicio: '09:00', fin: '19:00' },
+      jueves:    { activo: true, inicio: '09:00', fin: '19:00' },
+      viernes:   { activo: true, inicio: '09:00', fin: '19:00' },
+      sabado:    { activo: false, inicio: '09:00', fin: '13:00' },
+      domingo:   { activo: false, inicio: '09:00', fin: '13:00' },
+    },
+  } as ClinicConfig)
+
+  it('un dentista de 09:00 a 19:00 cada 15 min ve las 40 horas, no 24', () => {
+    const slots = getAvailableSlots(LUNES, 15, [], jornadaLarga())
+    expect(slots.length).toBe(40)
+  })
+
+  it('y la TARDE existe: la última hora es de la tarde, no de media mañana', () => {
+    const slots = getAvailableSlots(LUNES, 15, [], jornadaLarga())
+    // Con el tope viejo el último hueco caía sobre las 14:45 y el resto del día
+    // se anunciaba como «sin lugares», en el panel y en el portal público.
+    expect(slots[slots.length - 1]).toBe('18:45')
+    expect(slots).toContain('17:00')
+  })
+
+  it('una config corrupta la para la regla de las 14 h, no el freno final', () => {
+    // Comprobado ejecutando el módulo: una jornada de 00:00 a 23:59 se rechaza
+    // ANTES de entrar al bucle («Jornada de 24.0h parece un error»). Por eso el
+    // freno anti-desbocado es defensa en profundidad y no la defensa principal:
+    // con jornada máxima de 14 h e intervalo mínimo de 5 min, el techo real son
+    // 168 huecos y nunca se llega a 200.
+    const corrupta = {
+      ...cfg(),
+      intervaloMinutos: 1,
+      horario: {
+        lunes: { activo: true, inicio: '00:00', fin: '23:59' },
+        martes: dia, miercoles: dia, jueves: dia, viernes: dia,
+        sabado: { activo: false, inicio: '09:00', fin: '13:00' },
+        domingo: { activo: false, inicio: '09:00', fin: '13:00' },
+      },
+    } as ClinicConfig
+    expect(getAvailableSlots(LUNES, 5, [], corrupta)).toEqual([])
+  })
+
+  it('el día MÁS LARGO admisible se ofrece entero: 168 huecos, sin recorte', () => {
+    // 14 h con el intervalo mínimo. Es el peor caso que las reglas permiten, y
+    // tiene que salir completo — es justo el caso que el tope de 24 mutilaba.
+    const catorceHoras = {
+      ...cfg(),
+      intervaloMinutos: 5,
+      horario: {
+        lunes: { activo: true, inicio: '07:00', fin: '21:00' },
+        martes: dia, miercoles: dia, jueves: dia, viernes: dia,
+        sabado: { activo: false, inicio: '09:00', fin: '13:00' },
+        domingo: { activo: false, inicio: '09:00', fin: '13:00' },
+      },
+    } as ClinicConfig
+    const slots = getAvailableSlots(LUNES, 5, [], catorceHoras)
+    expect(slots.length).toBe(168)
+    expect(diagnosticoDeHuecos()?.truncado).toBe(false)
+  })
+
+  it('una jornada normal NO se declara truncada', () => {
+    getAvailableSlots(LUNES, 15, [], jornadaLarga())
+    expect(diagnosticoDeHuecos()?.truncado).toBe(false)
   })
 })

@@ -576,6 +576,16 @@ service cloud.firestore {
        * se leen y nada más. Que el propio consultorio pudiera borrarlas
        * convertiría «no llegó la alerta» en algo que se puede hacer desaparecer.
        */
+      /**
+       * Mensajes de WhatsApp que NO salieron. Mismo trato que las alertas: los
+       * escribe sólo el servidor y no se borran desde el navegador. Un fallo de
+       * entrega que se puede hacer desaparecer no sirve para nada.
+       */
+      match /whatsapp_no_entregados/{envioId} {
+        allow read: if isMember(clinicId);
+        allow write: if false;
+      }
+
       match /alertas_no_entregadas/{alertaId} {
         allow read: if isMedico(clinicId);
         allow write: if false;

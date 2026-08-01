@@ -8,11 +8,40 @@ import { format } from 'date-fns'
 
 const DAY_KEYS = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'] as const
 
-/** Tope absoluto de slots por día (cota de seguridad).
- *  24h × 60min / 15min step = 96 — pero esto es disparate clínico.
- *  Cap conservador en 24: equivale a 12 horas con citas de 30 min.
- *  Si alguien legítimamente necesita más, debe configurarlo conscientemente. */
-const MAX_SLOTS_POR_DIA = 24
+/**
+ * TOPE DE HUECOS POR DÍA — REESCRITO, PORQUE EL ANTERIOR BORRABA LA TARDE.
+ *
+ * ── LO QUE PASABA ────────────────────────────────────────────────────────────
+ *
+ * El tope era 24, fijo, «equivale a 12 horas con citas de 30 min». Pero cuenta
+ * HUECOS OFRECIDOS y corta en orden cronológico, así que a una agenda legítima
+ * le desaparecía el final del día:
+ *
+ *   Un dentista o un oftalmólogo con seguimientos de 15 minutos, de 09:00 a
+ *   19:00, tiene 40 huecos. La agenda ofrecía hasta las ~15:00 y el resto del
+ *   día salía como «sin lugares» — en el panel Y en el portal público. El único
+ *   aviso era un `console.warn` que ve el servidor y nadie más.
+ *
+ * ── LO QUE CAMBIA ────────────────────────────────────────────────────────────
+ *
+ * El tope deja de ser un número clínico inventado aquí y pasa a derivarse de lo
+ * que el propio consultorio configuró: su horario y su intervalo. Si el médico
+ * declara que atiende de 09:00 a 19:00 cada 15 minutos, ésa ES su agenda, y el
+ * software no tiene autoridad para decidir que son demasiadas citas.
+ *
+ * Lo que queda es un FRENO ANTI-DESBOCADO. Es defensa en profundidad, no la
+ * defensa principal: el límite real lo ponen dos reglas que ya existían más
+ * arriba —jornada máxima de 14 h e intervalo mínimo de 5 min—, y de ahí sale un
+ * techo matemático de 168 huecos en el día más largo posible. Con 200, este
+ * freno NO se dispara con ninguna configuración que las otras dos dejen pasar;
+ * está por si alguna de ellas se relaja algún día. Se declara así para que nadie
+ * lo lea como «el tope son 200».
+ *
+ * Cuántas citas caben en un día SÍ es criterio del dueño; si algún día quiere un
+ * límite propio, se configura y se declara. Lo que no puede seguir pasando es
+ * que se recorte en silencio.
+ */
+const TECHO_ANTIDESBOCADO = 200
 
 /** Duración mínima razonable de una cita (anti config=0 que rompía el loop). */
 const DURACION_MIN_SEGURA = 5
@@ -128,12 +157,15 @@ export function getAvailableSlots(
   )
 
   const slots: string[] = []
+  let truncado = false
   for (let m = startMin; m + duracionSegura <= endMin; m += interval) {
-    // ── HARD GUARDRAIL 3: tope absoluto de slots por día ──────────
-    // Si llegamos a 24 slots y aún queda horario, ALGO está mal.
-    // Cortamos y registramos. Nunca devolvemos 32 lugares.
-    if (slots.length >= MAX_SLOTS_POR_DIA) {
-      console.warn(`[availability] Tope de ${MAX_SLOTS_POR_DIA} slots alcanzado para ${fecha} — configuración sospechosa`)
+    // ── FRENO ANTI-DESBOCADO ────────────────────────────────────
+    // Ninguna agenda real llega aquí: son 200 huecos en un día. Si se alcanza,
+    // la configuración está corrupta, y se DECLARA en la salida en vez de
+    // recortar en silencio como antes.
+    if (slots.length >= TECHO_ANTIDESBOCADO) {
+      truncado = true
+      console.warn(`[availability] freno anti-desbocado (${TECHO_ANTIDESBOCADO}) en ${fecha} — revisar horario e intervalo`)
       break
     }
     // 0. ¿Ya pasó esta hora hoy? No ofrecer horas del pasado.
@@ -159,7 +191,22 @@ export function getAvailableSlots(
     })
     if (!hasConflict) slots.push(slot)
   }
+  ultimoDiagnostico = { fecha, truncado, techo: TECHO_ANTIDESBOCADO }
   return slots
+}
+
+/**
+ * Diagnóstico de la ÚLTIMA llamada a `getAvailableSlots`.
+ *
+ * Se expone así, y no cambiando el tipo de retorno, porque `getAvailableSlots`
+ * tiene siete llamadores y devolver un objeto obligaría a tocarlos todos para
+ * un dato que casi ninguno necesita. Quien quiera saber si la lista se recortó
+ * lo pregunta justo después de llamar.
+ */
+let ultimoDiagnostico: { fecha: string; truncado: boolean; techo: number } | null = null
+
+export function diagnosticoDeHuecos(): { fecha: string; truncado: boolean; techo: number } | null {
+  return ultimoDiagnostico
 }
 
 export function hasConflict(

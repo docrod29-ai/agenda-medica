@@ -13,7 +13,16 @@ import { adminDb } from '@/lib/firebase-admin'
 import { validarHorarioDia } from '@/lib/availability'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 
-const MAX_SLOTS_POR_DIA = 24
+/**
+ * Mismo cambio que en `lib/availability.ts`, y por el mismo motivo: el tope de
+ * 24 recortaba la TARDE de cualquier agenda con citas cortas, y aquí el daño era
+ * peor porque es el portal que ve el PACIENTE — la mitad del día simplemente no
+ * existía para quien intentaba agendar.
+ *
+ * Queda un freno anti-desbocado que ninguna agenda real alcanza, para que una
+ * configuración corrupta no genere miles de huecos.
+ */
+const TECHO_ANTIDESBOCADO = 200
 const DURACION_MIN_SEGURA = 5
 
 const DAY_KEYS = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'] as const
@@ -133,9 +142,8 @@ export async function GET(
     const tzClinica = (cfg.zonaHoraria as string) || TZ_DEFAULT
     const baseTs = instanteMX(fecha, '00:00', tzClinica).getTime()
     for (let m = startMin; m + duracion <= endMin; m += interval) {
-      // Tope absoluto: nunca devolver > MAX_SLOTS_POR_DIA al cliente público
-      if (slots.length >= MAX_SLOTS_POR_DIA) {
-        safeLog.warn(`[public/availability] tope ${MAX_SLOTS_POR_DIA} alcanzado para ${clinicId} ${fecha}`)
+      if (slots.length >= TECHO_ANTIDESBOCADO) {
+        safeLog.warn(`[public/availability] freno anti-desbocado (${TECHO_ANTIDESBOCADO}) en ${clinicId} ${fecha} — revisar horario e intervalo`)
         break
       }
       const ts = baseTs + m * 60 * 1000
