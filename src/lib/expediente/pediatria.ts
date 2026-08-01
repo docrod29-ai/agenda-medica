@@ -370,9 +370,39 @@ export function vacunasSegunEdad(edadMeses: number, aplicadas: string[] = []): E
   })
 }
 
+/**
+ * Una fecha `YYYY-MM-DD` leída como día LOCAL, no como medianoche UTC.
+ *
+ * ── EL FALLO QUE CIERRA ──────────────────────────────────────────────────────
+ *
+ * `new Date('2020-03-15')` NO es el 15 de marzo: el estándar obliga a leer una
+ * fecha suelta como medianoche **UTC**, y en México (UTC−6) eso cae el **14 de
+ * marzo a las 18:00** hora local. Como `getDate()` devuelve el día local, la
+ * fecha de nacimiento se corría un día hacia atrás.
+ *
+ * Efecto medido: un niño nacido el 15 de marzo de 2020 «cumplía 2 años» el 14 de
+ * marzo de 2022. Un día antes, todos los años, para todos los pacientes.
+ *
+ * No es cosmético. De esta edad comen la dosis pediátrica por bandas, las
+ * contraindicaciones por edad y el calendario de vacunación: cruzar un umbral un
+ * día antes es cruzarlo mal, y nadie lo iba a notar porque la cifra se ve
+ * perfectamente razonable.
+ *
+ * Sólo aplica a la fecha SUELTA. Una marca de tiempo completa («…T12:00:00»)
+ * lleva su propia hora y se respeta tal cual.
+ */
+export function fechaLocalDesdeISO(iso: string): Date {
+  const s = String(iso ?? '').trim()
+  const soloFecha = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s)
+  if (soloFecha) {
+    return new Date(Number(soloFecha[1]), Number(soloFecha[2]) - 1, Number(soloFecha[3]))
+  }
+  return new Date(s)
+}
+
 /** Edad en meses a partir de la fecha de nacimiento (ISO) y una fecha de corte. */
 export function edadEnMeses(fechaNacimientoISO: string, hoyISO: string): number {
-  const n = new Date(fechaNacimientoISO), h = new Date(hoyISO)
+  const n = fechaLocalDesdeISO(fechaNacimientoISO), h = fechaLocalDesdeISO(hoyISO)
   if (isNaN(n.getTime()) || isNaN(h.getTime())) return 0
   let meses = (h.getFullYear() - n.getFullYear()) * 12 + (h.getMonth() - n.getMonth())
   if (h.getDate() < n.getDate()) meses--
@@ -382,8 +412,8 @@ export function edadEnMeses(fechaNacimientoISO: string, hoyISO: string): number 
 /** Edad en años cumplidos a partir de la fecha de nacimiento (ISO). null si inválida. */
 export function edadEnAnios(fechaNacimientoISO: string | undefined | null, hoyISO?: string): number | null {
   if (!fechaNacimientoISO) return null
-  const n = new Date(fechaNacimientoISO)
-  const h = hoyISO ? new Date(hoyISO) : new Date()
+  const n = fechaLocalDesdeISO(fechaNacimientoISO)
+  const h = hoyISO ? fechaLocalDesdeISO(hoyISO) : new Date()
   if (isNaN(n.getTime()) || isNaN(h.getTime())) return null
   let a = h.getFullYear() - n.getFullYear()
   if (h.getMonth() < n.getMonth() || (h.getMonth() === n.getMonth() && h.getDate() < n.getDate())) a--
