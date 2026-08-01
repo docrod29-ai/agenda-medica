@@ -147,6 +147,10 @@ pruebas en verde, y ningún efecto en la realidad.
 
 | Qué | Dónde |
 |---|---|
+| **LA CITA SE COLGABA DEL PACIENTE EQUIVOCADO.** Tres caminos —asistente, reserva pública y bot de WhatsApp— buscaban por teléfono y se quedaban con el primero, sin mirar el nombre. La reserva de un hijo aterrizaba en el expediente de su madre, y con ella la nota y la receta. **No es un expediente partido: es información clínica en otra persona**, y no se ve como un error | GA-018 (v783) |
+
+| Qué | Dónde |
+|---|---|
 | **La importación borraba pacientes en silencio.** Una fila marcada «duplicado» no se importa y el reporte la cuenta como acierto. La regla era el teléfono a solas: con la madre ya registrada, sus hijos con el mismo celular se perdían. Es el caso normal en México, no uno raro | GA-017 (v782) |
 | **La vista previa de la importación cortaba a 200 filas** sin priorizar: un paciente omitido podía quedar fuera del corte y perderse sin que nadie pudiera verlo. Ahora los omitidos van primero | GA-017 (v782) |
 | **El folio de respaldo de la receta y de la orden salía del reloj dentro de un `useMemo`** — podía cambiar entre dos pintados de la misma hoja, y el QR dejaría de verificar el papel que el paciente tiene en la mano | GA-016 (v781) |
