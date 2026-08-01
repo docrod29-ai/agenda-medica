@@ -132,22 +132,25 @@ pruebas en verde, y ningún efecto en la realidad.
 |---|---|---|
 | **P0-2** | **24** motores sin validar (23 `pendiente_validacion` + 1 `experimental`), varios en el camino de la receta. Ya son VISIBLES en pantalla y listados en `/cumplimiento/motores` con su pregunta pendiente | **Criterio clínico del Dr.** — `NEEDS_CLINICAL_REVIEW`. El trinquete de `clinical-sellos.test.ts` obliga a bajar el techo cuando valide alguno |
 | **P0-5** | **CERRADO en GA-010** para la capa que sí se puede probar hoy: `golden-flow.emu.test.ts` recorre paciente → cita → nota → firma → cobro contra las reglas REALES, y Playwright entró al CI. **Sigue pendiente el E2E de NAVEGADOR**: necesita una cuenta de médico con contraseña en los secretos del CI — decisión del Dr., no mía | él (cuenta de prueba) |
-| **P0-6** | Backup / PITR / restore drill: cero evidencia | consola de Firebase (él) + documentar (yo) |
+| **P0-6** | **Mi parte, hecha (GA-014, v779)**: `npm run respaldos:verificar` responde si PITR está encendida, si hay programación y **de cuándo es el último respaldo real** — la programación puede estar puesta y fallando en silencio. Solo lectura, verificado con las dos ramas simuladas. Más `docs/SIMULACRO_RESTAURACION.md`, porque un respaldo que nunca se restauró es una hipótesis | **Él**: correr el comando y hacer el primer simulacro. La primera entrada en el historial de ese documento es lo que cierra el P0-6 |
 | ~~P0-7~~ | ~~`TARIFAS` vacío~~ — **CERRADO en GA-006.** 11 tarifas cargadas de la página de cada proveedor, con URL y fecha | — |
 
 ### P1
 
 | # | Qué |
 |---|---|
-| ~~**P1-1**~~ | **CERRADO en GA-011 (v776).** Motor puro `lib/pacientes/duplicados.ts` + 29 pruebas. La regla vieja fallaba en las dos direcciones: se le escapaban los duplicados reales (acentos, apellidos invertidos, y el nombre NI SE COMPARABA cuando había teléfono) y alarmaba de lo que no lo era (la familia que comparte celular). Dos reglas nuevas: el teléfono nunca basta solo, y la fecha de nacimiento SEPARA. El aviso salió del guardado y ahora aparece mientras se escribe, ofreciendo «abrir su expediente». Misma red añadida al alta de Hospitalización. **Queda declarado, a propósito**: el alta desde el Asistente sigue fundiendo sólo por coincidencia EXACTA. Ahí no hay nadie a quien preguntar, y fundir a dos personas distintas es peor que un duplicado |
+| ~~**P1-1**~~ | **CERRADO en GA-011 (v776).** Motor puro `lib/pacientes/duplicados.ts` + 29 pruebas. La regla vieja fallaba en las dos direcciones: se le escapaban los duplicados reales (acentos, apellidos invertidos, y el nombre NI SE COMPARABA cuando había teléfono) y alarmaba de lo que no lo era (la familia que comparte celular). Dos reglas nuevas: el teléfono nunca basta solo, y la fecha de nacimiento SEPARA. El aviso salió del guardado y ahora aparece mientras se escribe, ofreciendo «abrir su expediente». Misma red añadida al alta de Hospitalización. **Queda declarado, a propósito**: el alta desde el Asistente sigue fundiendo sólo por coincidencia EXACTA. Ahí no hay nadie a quien preguntar, y fundir a dos personas distintas es peor que un duplicado. **Ampliado en GA-015 (v780)**: `barrerDuplicados` encuentra los que YA estaban dentro (los de meses atrás, incluidos los del Asistente) y la pantalla de Pacientes avisa. No fusiona: abre los dos y decide el médico. Viable por BLOQUEO — prueba con 3000 pacientes y tope de 2 s |
 | ~~**P1-2**~~ | **CERRADO en GA-012 (v777).** El gesto del médico ya existía (panel de revisión) pero se guardaba como un número suelto: «camposAprobados: 3» dice cuántos aceptó, no CUÁLES. Ahora el sello lo lleva campo por campo, con distintivo aparte del de origen — un dato puede venir del dictado Y estar aceptado. **La trampa**: el panel numera sobre la extracción y el sello sobre la nota final; comparar índices habría dado por aceptado el diagnóstico equivocado. Se cruza por el índice de la extracción. `confirmados` es opcional: en las notas viejas «no consta» ≠ «cero» |
 | ~~**P1-3**~~ | **CERRADO en GA-012 (v777).** Precio y créditos derivados de `PLANES` + centinela `planes-precios.test.ts`. Salió una **mentira viva**: el plan Hospital anunciaba «400 créditos/mes» y son **500** |
 
 ### Deuda técnica congelada
 
 - **Lint: 104 errores** en el trinquete (`docs/audit/lint-techo.json`). Bajó de 105 en GA-009 al arreglar un `Date.now()` impuro en el render.
-- **CSP sigue en report-only** salvo `frame-ancestors`. Pasarla a enforce exige
-  días de observación de reportes; la observación **no se ha arrancado**.
+- **CSP: la observación YA CORRE** (GA-014, v779). Sigue en modo aviso —eso no
+  cambia hasta tener datos— pero la razón por la que no podía terminar era que
+  los reportes iban a un log que nadie lee y que caduca. Ahora se acumulan y
+  `/superadmin/csp` dice cuántos días van, qué está saltando y si ya se puede
+  poner `CSP_MODE=enforce`. **Pendiente: mirar esa pantalla dentro de una semana.**
 - ~~**A7**~~ — **CERRADO en GA-013 (v778).** **Todas** las rutas que gastan dejan
   asiento, y hay un centinela (`libro-costos-cobertura.test.ts`) que recorre el
   disco y falla si aparece una nueva sin él. El peor hueco era

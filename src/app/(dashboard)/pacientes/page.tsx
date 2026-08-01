@@ -16,7 +16,7 @@ import { PageHeader, Button, EmptyState, Spinner, Modal } from '@/components/ui'
 import { AvisoPrivacidadModal } from '@/components/AvisoPrivacidadModal'
 import { ExpedienteVacio } from '@/components/brand/EmptyArt'
 import { avatarColor } from '@/lib/avatar-color'
-import { buscarPosiblesDuplicados } from '@/lib/pacientes/duplicados'
+import { buscarPosiblesDuplicados, barrerDuplicados, type ParDuplicado } from '@/lib/pacientes/duplicados'
 
 export default function PacientesPage() {
   const { toast } = useToast()
@@ -129,6 +129,31 @@ export default function PacientesPage() {
     return Array.from(map.entries())
   }, [patients])
 
+  /**
+   * LOS DUPLICADOS QUE YA ESTABAN DENTRO.
+   *
+   * La tarjeta del formulario evita los NUEVOS. Los que llevan meses acumulados
+   * —de antes de que existiera, o creados desde el asistente— siguen ahí, con el
+   * historial partido: las alergias en un expediente y las notas recientes en el
+   * otro. Nadie los va a encontrar buscando, porque para encontrarlos hay que
+   * sospechar primero que existen.
+   *
+   * El barrido corre DESPUÉS de pintar la lista, no durante. Sobre miles de
+   * pacientes son unas décimas de trabajo, y pagarlas antes del primer pintado
+   * haría que la pantalla tardara en abrir — justo la impresión que no se puede
+   * dar en el sitio al que se entra veinte veces al día.
+   */
+  const [duplicados, setDuplicados] = useState<ParDuplicado<Patient>[]>([])
+  const [revisandoDuplicados, setRevisandoDuplicados] = useState(false)
+  useEffect(() => {
+    // Todo el `setState` dentro del temporizador, ninguno en el cuerpo del
+    // efecto: lo segundo encadena renders y el linter lo marca con razón.
+    const t = setTimeout(() => {
+      setDuplicados(patients.length < 2 ? [] : barrerDuplicados(patients).pares)
+    }, 0)
+    return () => clearTimeout(t)
+  }, [patients])
+
   const openEdit = (p: Patient) => { setEditPatient(p); setModalOpen(true) }
   const openNew = () => { setEditPatient(null); setModalOpen(true) }
 
@@ -162,6 +187,76 @@ export default function PacientesPage() {
           </>
         )}
       />
+
+      {/*
+        El aviso NO es una alarma: es un hallazgo. Por eso va discreto, con el
+        número exacto y un solo botón. Un banner rojo permanente sobre algo que
+        no es urgente se aprende a ignorar en dos días, y entonces tampoco se ve
+        el día que importa.
+      */}
+      {duplicados.length > 0 && (
+        <div style={{
+          marginBottom: 14, padding: '11px 14px', borderRadius: 10,
+          border: '1px solid var(--border)', background: 'var(--s1)',
+          display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+        }}>
+          <AlertCircle size={16} style={{ color: 'var(--amber, #f59e0b)', flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 600 }}>
+              {duplicados.length === 1
+                ? 'Hay 1 pareja de expedientes que podrían ser la misma persona'
+                : `Hay ${duplicados.length} parejas de expedientes que podrían ser la misma persona`}
+            </div>
+            <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>
+              Cuando un paciente tiene dos expedientes, su historial queda partido: las alergias en uno y las notas en el otro.
+            </div>
+          </div>
+          <Button size="sm" variant="secondary" onClick={() => setRevisandoDuplicados(true)}>Revisar</Button>
+        </div>
+      )}
+
+      {revisandoDuplicados && (
+        <Modal
+          open
+          onClose={() => setRevisandoDuplicados(false)}
+          size="wide"
+          title="Posibles expedientes repetidos"
+          footer={<Button variant="secondary" onClick={() => setRevisandoDuplicados(false)}>Cerrar</Button>}
+        >
+          <p style={{ fontSize: 12.5, color: 'var(--text3)', lineHeight: 1.6, marginTop: 0 }}>
+            Abre los dos y compáralos. <strong>Nada se junta ni se borra solo</strong>: decidir que dos
+            expedientes son la misma persona —y cuál se queda— es tuyo, y equivocarse mezclaría el
+            historial de dos pacientes distintos.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {duplicados.map(par => (
+              <div key={`${par.a.id}|${par.b.id}`} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px' }}>
+                <div style={{ fontSize: 11.5, color: 'var(--text3)', marginBottom: 8 }}>
+                  {par.motivo}
+                  {par.certeza === 'seguro' && <strong style={{ color: 'var(--amber, #f59e0b)' }}> · muy probable</strong>}
+                </div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {[par.a, par.b].map(p => (
+                    <div key={p.id} style={{ flex: '1 1 220px', minWidth: 200, padding: '8px 10px', borderRadius: 8, background: 'var(--s1)', border: '1px solid var(--border)' }}>
+                      <div style={{ fontWeight: 600, fontSize: 13 }}>{p.nombre}</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--text3)', margin: '2px 0 7px' }}>
+                        {p.edad ? `${p.edad} años` : 'sin edad'}
+                        {p.telefono ? ` · ${p.telefono}` : ''}
+                        {p.ultimaCita ? ` · última cita ${p.ultimaCita.slice(0, 10)}` : ' · sin citas'}
+                      </div>
+                      <Button size="sm" variant="secondary" onClick={() => {
+                        setRevisandoDuplicados(false)
+                        if (mode === 'medico') router.push(`/expediente/${p.id}`)
+                        else openEdit(p)
+                      }}>Abrir</Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Modal>
+      )}
 
       {/* Search */}
       <div style={{ position: 'relative', marginBottom: 12, maxWidth: 420 }}>

@@ -286,3 +286,122 @@ export function buscarPosiblesDuplicados<T extends PacienteComparable>(
 export function hayQuePreguntar(c: readonly Coincidencia[]): boolean {
   return c.some(x => x.certeza === 'seguro')
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   BARRIDO DE LO QUE YA ESTÁ DENTRO
+   ════════════════════════════════════════════════════════════════════════════
+
+   Todo lo de arriba evita duplicados NUEVOS. No hace nada con los que ya se
+   acumularon durante meses — y ésos son los que tienen historial partido: el
+   paciente lleva dos expedientes desde hace tiempo, con las alergias en uno y
+   las notas recientes en el otro.
+
+   ── POR QUÉ NO SE COMPARAN TODOS CONTRA TODOS ──────────────────────────────
+
+   Con mil pacientes, todos contra todos son medio millón de comparaciones, y
+   cada una hace distancia de edición sobre varias palabras. En el navegador del
+   médico eso congela la pantalla; con tres mil pacientes ya no termina.
+
+   La solución es la de siempre en emparejamiento de registros: **BLOQUEAR**. Dos
+   personas que son la misma comparten alguna señal barata —el teléfono, la fecha
+   de nacimiento, el principio de un apellido—, así que sólo se comparan las
+   parejas que caen en el mismo bloque. Se pasa de cuadrático a casi lineal.
+
+   Los bloques se solapan a propósito: un duplicado con el teléfono de un
+   familiar no cae en el bloque del teléfono, pero sí en el del apellido. Basta
+   con que caiga en UNO.
+*/
+
+/** Un par de expedientes que parecen la misma persona. */
+export interface ParDuplicado<T = PacienteComparable> {
+  a: T
+  b: T
+  certeza: Certeza
+  motivo: string
+  puntaje: number
+}
+
+/**
+ * Las señales por las que dos expedientes pueden acabar comparándose.
+ *
+ * Ninguna decide nada: sólo sirven para no comparar a todo el mundo con todo el
+ * mundo. Quien decide sigue siendo `compararPacientes`, con sus mismas reglas.
+ */
+function clavesDeBloqueo(p: PacienteComparable): string[] {
+  const claves: string[] = []
+  for (const t of telefonosDe(p)) claves.push(`t:${t}`)
+  const f = fechaNac(p)
+  if (f) claves.push(`f:${f}`)
+  const c = curpDe(p)
+  if (c) claves.push(`c:${c}`)
+  // Las primeras letras de cada palabra del nombre. Aguanta el apellido que
+  // falta, el orden invertido y los acentos, porque el nombre ya viene
+  // normalizado — y aguanta el dedazo del final, que es el más común.
+  for (const palabra of normalizarNombre(p.nombre).split(' ')) {
+    if (palabra.length >= 4) claves.push(`n:${palabra.slice(0, 4)}`)
+  }
+  return claves
+}
+
+/**
+ * Cuántos expedientes puede tener un bloque antes de considerarse inútil.
+ *
+ * Un bloque enorme —«todos los que empiezan por GARC»— no ahorra nada y sí
+ * vuelve a costar tiempo cuadrático. Se descarta entero: los duplicados que
+ * vivan sólo ahí se pierden, y eso es preferible a una pantalla congelada. Se
+ * declara en `bloquesIgnorados` para que no sea un silencio.
+ */
+export const MAXIMO_POR_BLOQUE = 60
+
+export interface BarridoDuplicados<T = PacienteComparable> {
+  pares: ParDuplicado<T>[]
+  /** Cuántos expedientes se revisaron. Para poder decir «de N». */
+  revisados: number
+  /** Bloques demasiado grandes que se saltaron. Vacío casi siempre. */
+  bloquesIgnorados: string[]
+}
+
+/**
+ * Encuentra los duplicados que YA están en la lista.
+ *
+ * Cada par sale UNA vez (A-B, nunca también B-A) y ordenados por certeza, así
+ * que lo primero de la lista es lo primero que hay que mirar.
+ */
+export function barrerDuplicados<T extends PacienteComparable>(
+  pacientes: readonly T[],
+): BarridoDuplicados<T> {
+  const bloques = new Map<string, T[]>()
+  for (const p of pacientes) {
+    for (const k of clavesDeBloqueo(p)) {
+      const l = bloques.get(k)
+      if (l) l.push(p)
+      else bloques.set(k, [p])
+    }
+  }
+
+  const bloquesIgnorados: string[] = []
+  const yaVistos = new Set<string>()
+  const pares: ParDuplicado<T>[] = []
+
+  for (const [clave, grupo] of bloques) {
+    if (grupo.length < 2) continue
+    if (grupo.length > MAXIMO_POR_BLOQUE) { bloquesIgnorados.push(clave); continue }
+    for (let i = 0; i < grupo.length; i++) {
+      for (let j = i + 1; j < grupo.length; j++) {
+        const a = grupo[i], b = grupo[j]
+        if (!a.id || !b.id || a.id === b.id) continue
+        // Un par puede caer en varios bloques (teléfono Y apellido): se compara
+        // una vez. Sin esto, el mismo duplicado saldría repetido en la pantalla
+        // y parecería que hay más de los que hay.
+        const par = a.id < b.id ? `${a.id}|${b.id}` : `${b.id}|${a.id}`
+        if (yaVistos.has(par)) continue
+        yaVistos.add(par)
+        const r = compararPacientes(a, b)
+        if (r) pares.push({ a, b, ...r })
+      }
+    }
+  }
+
+  pares.sort((x, y) => y.puntaje - x.puntaje)
+  return { pares, revisados: pacientes.length, bloquesIgnorados }
+}
