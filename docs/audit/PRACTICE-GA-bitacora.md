@@ -7,7 +7,7 @@
 > Un informe de auditoría que sólo lista aciertos no sirve para decidir dónde
 > mirar la próxima vez.
 
-Última actualización: **31-jul-2026**, tras PRACTICE-GA-007.
+Última actualización: **31-jul-2026**, tras PRACTICE-GA-008.
 
 ---
 
@@ -70,6 +70,7 @@ conectar.
 | **GA-005** | El estado de validación clínica llega por fin a la pantalla: sello junto al resultado + hoja de revisión en `/cumplimiento/motores` | v769 |
 | **GA-006** | Tarifas cargadas de la fuente + el audio se mide por minuto + 25 referencias a modelos retirados | v770 |
 | **GA-007** | Cerrados los dos huecos que GA-006 dejó declarados: tarifa de caché cargada y el webhook de Stripe se comprueba solo | v771 |
+| **GA-008** | Caché de OpenAI cargada. **Cero huecos declarados en el motor de costos.** | v772 |
 
 Fuera del programa, el mismo día: gateway de fallos de IA (`fallo-proveedor.ts`),
 exención de fundador (`fuente: 'fundador'`), incidencias de plataforma visibles
@@ -141,9 +142,10 @@ pruebas en verde, y ningún efecto en la realidad.
   y estaba cobrándose completa: un error de 10× sobre el renglón más grande del
   costo de texto, porque el prompt de la nota va cacheado. Declararlo en vez de
   ir a buscarlo fue pereza mía; el Dr. lo señaló.
-- **Caché de OpenAI**: sigue cayendo al precio de entrada completo. `usoDe` sí
-  lee `cached_tokens`, pero la tarifa no está cargada. Error hacia el margen
-  pesimista.
+- ~~**Caché de OpenAI**~~ — **CERRADO en GA-008.** Y con una lección: su
+  proporción **no es la de Anthropic**. `gpt-5` va a 0.1×, pero `gpt-4o` va a
+  **0.5×**. Deducirla en vez de leerla habría metido un error de 5× en gpt-4o.
+  Hay una prueba con ese nombre.
 - **Sonnet 5 a precio de LISTA** ($3/$15), no al promocional ($2/$10 hasta el
   31-ago-2026). El motor no sabe de vigencias: hoy el margen se ve peor de lo que
   es y en septiembre queda exacto solo.

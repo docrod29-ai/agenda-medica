@@ -76,6 +76,31 @@ describe('las tarifas cargadas', () => {
     expect(r.usd).toBeCloseTo(0.5, 6)
   })
 
+  it('la proporción de la caché NO se puede deducir: gpt-4o rompe la regla', () => {
+    /**
+     * En Anthropic la caché es 0.1× la entrada en todos los modelos, y `gpt-5`
+     * también. Es tentador dar la regla por universal — y es falsa: `gpt-4o` va
+     * a **0.5×** ($1.25 sobre $2.50).
+     *
+     * Deducirla en vez de leerla habría metido un error de 5× en gpt-4o. Esta
+     * prueba existe para que la próxima tarifa se lea de su página y no se
+     * calcule a partir de otra.
+     */
+    expect(tarifaDe('gpt-5')!.entradaCacheUsdPorMillon).toBe(0.125)   // 0.1×
+    expect(tarifaDe('gpt-4o')!.entradaCacheUsdPorMillon).toBe(1.25)   // 0.5×, no 0.25
+  })
+
+  it('todo modelo de TEXTO tiene su tarifa de caché cargada', () => {
+    // El trinquete: si mañana se añade un modelo de texto sin ella, su caché se
+    // cobraría al precio de entrada completo y nadie se enteraría.
+    for (const t of TARIFAS) {
+      if (t.usdPorMinuto) continue   // los de audio no cachean
+      expect(t.entradaCacheUsdPorMillon, `${t.modelo} sin tarifa de caché`).toBeGreaterThan(0)
+      expect(t.entradaCacheUsdPorMillon!, `${t.modelo}: la caché no puede costar más que la entrada`)
+        .toBeLessThan(t.entradaUsdPorMillon)
+    }
+  })
+
   it('un modelo sin tarifa NO cuesta cero: cuesta desconocido', () => {
     const r = costoUsd('modelo-que-no-existe', { entrada: 1000, salida: 1000 })
     expect(r.usd).toBeNull()

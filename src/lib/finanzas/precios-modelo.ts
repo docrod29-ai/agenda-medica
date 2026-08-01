@@ -99,8 +99,19 @@ export const TARIFAS: readonly TarifaModelo[] = [
   { modelo: 'claude-haiku-4-5', proveedor: 'anthropic', entradaUsdPorMillon: 1, salidaUsdPorMillon: 5, entradaCacheUsdPorMillon: 0.1, fuente: FUENTE_ANTHROPIC, consultado: CONSULTADO },
 
   // ── OpenAI: texto ────────────────────────────────────────────────────────
-  { modelo: 'gpt-5', proveedor: 'openai', entradaUsdPorMillon: 1.25, salidaUsdPorMillon: 10, fuente: FUENTE_OPENAI, consultado: CONSULTADO },
-  { modelo: 'gpt-4o', proveedor: 'openai', entradaUsdPorMillon: 2.5, salidaUsdPorMillon: 10, fuente: FUENTE_OPENAI, consultado: CONSULTADO },
+  /**
+   * OJO CON LA CACHÉ: aquí la proporción NO es la de Anthropic.
+   *
+   * En Anthropic la lectura de caché es 0.1× la entrada en todos los modelos, y
+   * es tentador dar por hecho que en OpenAI pasa igual. No pasa: `gpt-5` sí va a
+   * 0.1× ($0.125 sobre $1.25), pero `gpt-4o` va a **0.5×** ($1.25 sobre $2.50).
+   *
+   * Deducir la proporción en vez de leerla habría metido un error de 5× en
+   * gpt-4o. Las dos cifras están verificadas en la página de precios, y por eso
+   * se leen una por una en lugar de calcularse.
+   */
+  { modelo: 'gpt-5', proveedor: 'openai', entradaUsdPorMillon: 1.25, salidaUsdPorMillon: 10, entradaCacheUsdPorMillon: 0.125, fuente: FUENTE_OPENAI, consultado: CONSULTADO },
+  { modelo: 'gpt-4o', proveedor: 'openai', entradaUsdPorMillon: 2.5, salidaUsdPorMillon: 10, entradaCacheUsdPorMillon: 1.25, fuente: FUENTE_OPENAI, consultado: CONSULTADO },
 
   // ── OpenAI: transcripción — POR MINUTO, no por token ─────────────────────
   // Los tres llevan las tarifas de token en 0 a propósito: el cobro real es por
@@ -122,15 +133,17 @@ export const TARIFAS: readonly TarifaModelo[] = [
  * El renglón más grande del costo de texto se estaba contando diez veces más
  * caro de lo que vale.
  *
- * En OpenAI la caché sigue cayendo al precio de entrada completo: `usoDe` sí
- * lee `prompt_tokens_details.cached_tokens`, pero la tarifa no está cargada.
- * Queda declarado, no deducido — y el error va hacia el margen pesimista.
+ * OpenAI también está cargada, y con una lección: **su proporción no es la
+ * misma**. `gpt-5` va a 0.1× como Anthropic, pero `gpt-4o` va a 0.5×. Deducirla
+ * de la regla de Anthropic habría metido un error de 5× en gpt-4o — la razón
+ * exacta por la que cada cifra se lee de su página en vez de calcularse.
  */
 export const POR_QUE_LA_CACHE_ESTABA_INFLANDO_EL_COSTO =
-  'La lectura de caché cuesta la décima parte de la entrada. Sin su tarifa se ' +
+  'La lectura de caché cuesta una fracción de la entrada. Sin su tarifa se ' +
   'cobraba completa, y como el prompt de la nota va cacheado, desde la segunda ' +
   'nota casi toda la entrada es caché: el renglón grande del costo de texto ' +
-  'salía diez veces más caro de lo que vale.'
+  'salía muy por encima de lo que vale. Y la fracción NO es la misma en los dos ' +
+  'proveedores: 0.1x en Anthropic y en gpt-5, pero 0.5x en gpt-4o.'
 
 const norm = (s: string) => s.trim().toLowerCase()
 
