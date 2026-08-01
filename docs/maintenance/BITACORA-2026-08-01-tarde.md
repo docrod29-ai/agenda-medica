@@ -38,6 +38,8 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
 | v817 | El pase de UCI se evaporaba (respaldo local + acuse) · resultados de laboratorio con Escape |
 | v818 | Se podía mover dinero entre médicos por «vincular factura» (reglas + 3 tests de emulador) |
 | v819 | pagoVencido/disputaAbierta que nadie leía · el año pagado que se perdía al cambiar de plan |
+| v820 | Dos pestañas sobre la misma nota se pisaban: guardia de concurrencia |
+| v821 | El historial de versiones ya se puede leer · dónde están las tarifas de consulta |
 
 ---
 
@@ -64,7 +66,7 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
    (`src/types/index.ts:648`): dos interruptores en verde que no mandan nada.
 5. ~~Teléfono del alta~~ — HECHO (v816). `src/app/setup/page.tsx:25`
    tiene el campo en el estado y NINGÚN input; el impreso lee `telefonoAdmin`.
-6. **El precio de consulta está escondido** bajo «Portal de auto-agenda».
+6. ~~Precio de consulta escondido~~ — PARCIAL (v821): el cobro ahora dice dónde fijarlo. Moverlo de sitio sigue pendiente.
 7. **El dueño no puede reproducir nada de esto**: `layout.tsx:475` le da pase
    libre. Para validar el lanzamiento hace falta una cuenta con correo ajeno.
 
@@ -75,8 +77,7 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
    llega el texto.
 9. ~~Resultados de laboratorio con Escape~~ — HECHO (v817)., y
    reabrir los pone en blanco. `hospitalizacion/[internamientoId]/page.tsx:772`.
-10. **El historial de versiones se escribe y no se puede leer**: `getVersionesNota`
-    no tiene llamadores, y `updateNota` no tiene guardia de concurrencia.
+10. ~~Historial ilegible + sin guardia de concurrencia~~ — HECHO (v820 + v821).
 11. ~~Respaldo local sin estudios/preop~~ — HECHO (v813). Antes decía:
     estudios o preop (faltan en las deps). `consulta/[patientId]/page.tsx:1496`.
 12. ~~restaurarRespaldo sin notaId~~ — HECHO (v813). — el mismo bug que ya se
@@ -152,6 +153,18 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
     y `src/lib/inmuno/`: pasar a voz informativa es software; las CIFRAS son del Dr.
 
 ---
+
+## DECISIONES COMERCIALES QUE FALTAN (no las tomo yo)
+
+- **¿La prueba de 14 días es con tarjeta o sin ella?** El código promete «sin
+  tarjeta» en `/registro` y en `/setup`, y el gate de `layout.tsx` bloquea la app
+  entera a quien está en `trial`. Además hay un sistema de prueba COMPLETO y
+  muerto en `lib/finanzas/paywall-prueba.ts`. Los dos modelos conviven y se
+  contradicen; hay que elegir uno.
+- **¿Se puede repetir la prueba?** Hoy sí, indefinidamente: `trial_period_days:
+  14` es incondicional en cada checkout.
+- **Verificación de correo**: no existe (`sendEmailVerification` no aparece en el
+  repo). Un correo mal tecleado deja la cuenta irrecuperable sin soporte humano.
 
 ## BLOQUEADO EN EL DR. (lo último, por su instrucción)
 
