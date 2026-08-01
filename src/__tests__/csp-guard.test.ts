@@ -1,7 +1,7 @@
 import { describe, it, expect, afterAll } from 'vitest'
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { resolve, join } from 'node:path'
-import { RUTAS_PRIVADAS, RE_RUTAS_PRIVADAS } from '@/lib/security/rutas-privadas'
+import { RUTAS_PRIVADAS, RE_RUTAS_PRIVADAS, RUTAS_PACIENTE_CON_PHI, RE_RUTAS_PACIENTE } from '@/lib/security/rutas-privadas'
 import nextConfig from '../../next.config'
 
 /**
@@ -475,7 +475,9 @@ describe('E0-10 · el interruptor CSP_MODE se comporta', () => {
     expect(idx('/:path*')).toBeLessThan(idx(RE_RUTAS_PRIVADAS))
     expect(idx('/:path*')).toBeLessThan(idx('/reservar/:path*'))
     // Y las rutas con token del paciente, al final del todo (no-referrer gana).
-    expect(idx('/(mi|resena|verificar)/:path*')).toBe(bloquesRO.length - 1)
+    // La ruta sale de la constante, no escrita a mano: escribirla aquí es lo que
+    // rompió esta prueba al añadir 'teleconsulta' al grupo.
+    expect(idx(RE_RUTAS_PACIENTE)).toBe(bloquesRO.length - 1)
   })
 })
 
@@ -529,5 +531,66 @@ describe('REG-062 · el escáner de iframes no se burla con un tag largo', () =>
 
   it('la regex NO tiene cota de longitud (si vuelve, este caso avisa)', () => {
     expect(RE_APERTURA_IFRAME.source).not.toMatch(/\{\d+,\d+\}/)
+  })
+})
+
+/**
+ * PRACTICE-GA-003 · el portal del paciente también lleva PHI.
+ *
+ * Estas cuatro rutas quedaron fuera de `RUTAS_PRIVADAS` por estar catalogadas
+ * como «superficie pública/paciente», y medido contra producción viajaban SIN
+ * `X-Frame-Options` y SIN `frame-ancestors`.
+ *
+ * Pero público describe cómo se ENTRA, no qué se VE: dentro de `/mi/[token]`
+ * están las recetas del paciente y los botones de reagendar y cancelar su cita.
+ * Encuadrarlo en un iframe invisible convierte un clic cualquiera en una
+ * cancelación.
+ */
+describe('PRACTICE-GA-003 · las rutas del paciente no se dejan encuadrar', () => {
+  const bloque = bloquesRO.find(b => b.source === RE_RUTAS_PACIENTE)
+
+  it('existe un bloque de cabeceras para ellas', () => {
+    expect(bloque, `no hay bloque para ${RE_RUTAS_PACIENTE}`).toBeDefined()
+  })
+
+  it('cubre el portal, la reseña, la verificación y la teleconsulta', () => {
+    expect([...RUTAS_PACIENTE_CON_PHI]).toEqual(['mi', 'resena', 'verificar', 'teleconsulta'])
+  })
+
+  it('manda X-Frame-Options: DENY', () => {
+    const xfo = bloque!.headers.find(h => /^x-frame-options$/i.test(h.key))
+    expect(xfo?.value).toBe('DENY')
+  })
+
+  it('el frame-ancestors va en modo ENFORCE, no sólo reportado', () => {
+    /**
+     * Es la mitad que de verdad bloquea. Una CSP en report-only *avisa* de que
+     * alguien nos encuadró — después de que ya ocurrió. `cabecerasCsp` emite
+     * aparte una `Content-Security-Policy` real sólo con `frame-ancestors`; si
+     * alguien la quita, esta prueba cae.
+     */
+    const enforce = politicasDe(bloque!, /^content-security-policy$/i)
+    // `.includes` sobre el valor y no `directiva()`: la CSP de enforce se emite
+    // como `frame-ancestors 'none';` —con punto y coma— y el troceo por directivas
+    // devolvería "'none';". Mismo criterio que usa la prueba de la zona privada.
+    expect(enforce.some(v => v.includes("frame-ancestors 'none'"))).toBe(true)
+  })
+
+  it('NO se protege lo que se embebe a propósito', () => {
+    // El widget de reservas y el aviso de privacidad se pegan en la web del
+    // consultorio: cerrarlos rompería una función que se vende.
+    expect([...RUTAS_PACIENTE_CON_PHI]).not.toContain('reservar')
+    expect([...RUTAS_PACIENTE_CON_PHI]).not.toContain('privacidad')
+  })
+
+  it('proteger la teleconsulta NO toca la sala de Daily', () => {
+    /**
+     * La razón por la que estaba excluida era un malentendido: `frame-ancestors`
+     * limita quién nos embebe A NOSOTROS; lo que nosotros metemos dentro lo
+     * gobierna `frame-src`. Si alguien vuelve a sacar Daily de `frame-src`
+     * creyendo que sobra, la videoconsulta sale en blanco bajo enforce.
+     */
+    const politica = politicasDe(bloque!).find(p => p.includes('frame-src')) ?? ''
+    expect(directiva(politica, 'frame-src').some(o => o.includes('daily.co'))).toBe(true)
   })
 })
