@@ -75,10 +75,16 @@ export default function PendientesPage() {
     let vivo = true
     tareasVivas(clinicId)
       .then(t => { if (vivo) { setTareas(t); setErrorCarga(''); setAhora(Date.now()) } })
-      .catch(() => {
+      .catch(e => {
         // Un fallo de lectura NO puede verse igual que «no hay pendientes»:
         // en esta pantalla eso se lee como «todo está al día», que es la
         // conclusión más peligrosa posible aquí.
+        //
+        // Y se REGISTRA la causa: al abrir esta pantalla por primera vez en
+        // producción salió el error genérico y la consola estaba muda, porque
+        // este catch se tragaba el motivo. Diagnosticar a ciegas costó más que
+        // escribir esta línea.
+        console.error('[pendientes] no se pudo leer el worklist', e)
         if (vivo) setErrorCarga('No se pudieron cargar los pendientes. Revisa tu conexión y reintenta.')
       })
       .finally(() => { if (vivo) setCargando(false) })
@@ -101,26 +107,34 @@ export default function PendientesPage() {
     setRecarga(n => n + 1)
   }, [clinicId, toast])
 
+  /*
+    LOS TOKENS SON LOS DE ESTA APP, NO LOS GENÉRICOS.
+    La primera versión usaba --danger, --primary, --warning y --text-muted, que
+    NO existen aquí: en el navegador real las tarjetas salían con colores
+    inválidos —texto sin color propio y urgencia invisible— y ninguna prueba lo
+    veía, porque ningún test resuelve variables CSS. Los de verdad son --red,
+    --teal, --amber y --text3.
+  */
   const Tarjeta = ({ t }: { t: TareaClinica }) => {
     const esc = debeEscalar(t, ahora)
     const vencida = estaVencida(t, ahora)
     const paso = siguientePaso(t)
     return (
       <div style={{
-        border: `1px solid ${esc.escalar ? 'var(--danger)' : 'var(--border)'}`,
-        borderLeft: `4px solid ${t.prioridad === 'critica' ? 'var(--danger)' : t.prioridad === 'alta' ? 'var(--warning, #d97706)' : 'var(--border)'}`,
+        border: `1px solid ${esc.escalar ? 'var(--red)' : 'var(--border)'}`,
+        borderLeft: `4px solid ${t.prioridad === 'critica' ? 'var(--red)' : t.prioridad === 'alta' ? 'var(--amber)' : 'var(--border)'}`,
         borderRadius: 10, padding: 14, background: 'var(--panel)', display: 'grid', gap: 8,
       }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--text-muted)' }}>
+          <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--text3)' }}>
             {ETIQUETA_TIPO[t.tipo] ?? 'Pendiente'}
           </span>
           <strong style={{ color: 'var(--text)', fontSize: 15 }}>{t.titulo}</strong>
         </div>
 
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 13, color: 'var(--text-muted)' }}>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 13, color: 'var(--text3)' }}>
           {t.patientNombre && (
-            <Link href={`/expediente/${t.patientId}`} style={{ color: 'var(--primary)', textDecoration: 'none' }}>
+            <Link href={`/expediente/${t.patientId}`} style={{ color: 'var(--teal)', textDecoration: 'none' }}>
               {t.patientNombre}
             </Link>
           )}
@@ -128,16 +142,16 @@ export default function PendientesPage() {
             <User size={13} /> {t.ownerNombre || 'sin dueño'}
           </span>
           {t.venceEn && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: vencida ? 'var(--danger)' : undefined }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: vencida ? 'var(--red)' : undefined }}>
               <Clock size={13} /> {vencida ? 'venció' : 'vence'} {fechaCorta(t.venceEn)}
             </span>
           )}
         </div>
 
-        {t.detalle && <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>{t.detalle}</p>}
+        {t.detalle && <p style={{ margin: 0, fontSize: 13, color: 'var(--text3)' }}>{t.detalle}</p>}
 
         {esc.escalar && (
-          <p style={{ margin: 0, fontSize: 13, color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--red)', display: 'flex', alignItems: 'center', gap: 6 }}>
             <AlertTriangle size={14} /> {esc.motivo}
           </p>
         )}
@@ -153,7 +167,7 @@ export default function PendientesPage() {
             </Button>
           )}
           {t.estado === 'completada' && (
-            <span style={{ fontSize: 12, color: 'var(--text-muted)', alignSelf: 'center' }}>
+            <span style={{ fontSize: 12, color: 'var(--text3)', alignSelf: 'center' }}>
               Hecha, pero nadie la ha revisado todavía.
             </span>
           )}
@@ -180,7 +194,7 @@ export default function PendientesPage() {
       </div>
 
       {cargando ? <Spinner /> : errorCarga ? (
-        <div style={{ padding: 16, border: '1px solid var(--danger)', borderRadius: 10, color: 'var(--danger)' }}>
+        <div style={{ padding: 16, border: '1px solid var(--red)', borderRadius: 10, color: 'var(--red)' }}>
           {errorCarga}
         </div>
       ) : !visibles.length ? (
@@ -193,7 +207,7 @@ export default function PendientesPage() {
         <div style={{ display: 'grid', gap: 20 }}>
           {urgentes.length > 0 && (
             <section style={{ display: 'grid', gap: 10 }}>
-              <h2 style={{ fontSize: 14, margin: 0, color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <h2 style={{ fontSize: 14, margin: 0, color: 'var(--red)', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <AlertTriangle size={15} /> Requiere atención ({urgentes.length})
               </h2>
               {urgentes.map(t => <Tarjeta key={t.id} t={t} />)}
@@ -201,7 +215,7 @@ export default function PendientesPage() {
           )}
           {resto.length > 0 && (
             <section style={{ display: 'grid', gap: 10 }}>
-              <h2 style={{ fontSize: 14, margin: 0, color: 'var(--text-muted)' }}>Abiertos ({resto.length})</h2>
+              <h2 style={{ fontSize: 14, margin: 0, color: 'var(--text3)' }}>Abiertos ({resto.length})</h2>
               {resto.map(t => <Tarjeta key={t.id} t={t} />)}
             </section>
           )}
@@ -214,7 +228,7 @@ export default function PendientesPage() {
       */}
       <Modal open={!!cancelando} onClose={() => setCancelando(null)} title="¿Por qué ya no aplica?">
         <div style={{ display: 'grid', gap: 12 }}>
-          <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--text3)' }}>
             Queda constancia de quién lo canceló y por qué. Un pendiente cancelado no revive.
           </p>
           <Textarea

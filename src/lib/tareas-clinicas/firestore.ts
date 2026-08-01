@@ -11,7 +11,7 @@
  * El `patientId` va dentro, así que el camino inverso —los pendientes de ESTE
  * paciente— sigue siendo una consulta directa.
  */
-import { collection, doc, addDoc, updateDoc, getDocs, query, where, orderBy, limit } from 'firebase/firestore'
+import { collection, doc, addDoc, updateDoc, getDocs, query, where, limit } from 'firebase/firestore'
 import { db, auth } from '@/lib/firebase'
 import { puedeTransicionar, type TareaClinica, type EstadoTarea } from './modelo'
 
@@ -39,10 +39,22 @@ export async function crearTareas(clinicId: string, tareas: readonly Omit<TareaC
 /** Las tareas VIVAS del consultorio. El worklist. */
 export async function tareasVivas(clinicId: string, tope = 200): Promise<TareaClinica[]> {
   if (!clinicId) return []
+  /**
+   * SIN `orderBy`: EL ORDEN LO PONE EL WORKLIST, NO FIRESTORE.
+   *
+   * La consulta llevaba `orderBy('creadaEn')` junto al `where … in …`, y esa
+   * combinación exige un índice compuesto que hay que crear a mano en la consola.
+   * Mientras no existe, la lectura falla entera — que es como se abrió esta
+   * pantalla por primera vez en producción: error, no lista vacía.
+   *
+   * Y el `orderBy` era además redundante: `ordenWorklist` reordena todo en el
+   * cliente (primero lo que hay que escalar, luego por prioridad, luego por
+   * antigüedad), así que el orden que devolviera Firestore se perdía igual.
+   * Quitarlo elimina la dependencia del índice sin cambiar lo que se ve.
+   */
   const q = query(
     COL(clinicId),
     where('estado', 'in', ['solicitada', 'aceptada', 'en_curso', 'completada']),
-    orderBy('creadaEn', 'asc'),
     limit(tope),
   )
   const snap = await getDocs(q)
