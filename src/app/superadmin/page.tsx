@@ -12,7 +12,7 @@ import { Modal, Button, Spinner } from '@/components/ui'
 import { MODULOS, MODULO_LABEL } from '@/lib/modulos'
 import { PLANES, PLANES_ORDEN, MODULOS_POR_PLAN } from '@/lib/planes-ia'
 import { type ModeloPrecio, explicarPrecio } from '@/lib/pricing'
-import { Tag, ShieldCheck, Search, Gift, Ban, Play, CalendarPlus, StickyNote, Lock, RefreshCw, Package, Plus, Trash2, Boxes, Sparkles, TrendingUp, LogIn, LifeBuoy, Bug, Coins } from 'lucide-react'
+import { Route, Tag, ShieldCheck, Search, Gift, Ban, Play, CalendarPlus, StickyNote, Lock, RefreshCw, Package, Plus, Trash2, Boxes, Sparkles, TrendingUp, LogIn, LifeBuoy, Bug, Coins } from 'lucide-react'
 
 interface Cliente {
   id: string; esMio?: boolean; nombreClinica: string; nombreMedico: string
@@ -108,6 +108,9 @@ export default function SuperadminPage() {
             nunca: es un proceso que sólo avanza si alguien lo mira. Escondida
             detrás de una URL que hay que recordar, equivale a no existir.
           */}
+          <a href="/superadmin/onboarding" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--s2)', color: 'var(--text)', textDecoration: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 13px', fontSize: 13, fontWeight: 700 }}>
+            <Route size={14} /> Dónde se atoran
+          </a>
           <a href="/superadmin/planes" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--s2)', color: 'var(--text)', textDecoration: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 13px', fontSize: 13, fontWeight: 700 }}>
             <Tag size={14} /> Precios
           </a>
