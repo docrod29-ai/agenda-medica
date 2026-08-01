@@ -14,7 +14,7 @@ import {
 } from 'firebase/firestore'
 import { db, auth } from '@/lib/firebase'
 import { celdaSegura } from '@/lib/csv-seguro'
-import { instanteMX, sumarDiasISO, fechaISOLocal, TZ_DEFAULT } from '@/lib/timezone'
+import { instanteMX, sumarDiasISO, fechaISOLocal, TZ_DEFAULT, zonaActiva } from '@/lib/timezone'
 
 /**
  * Límites de un día LOCAL del consultorio, en instantes UTC.
@@ -324,8 +324,27 @@ export async function cancelarCobro(
       canceladoEn: new Date().toISOString(),
     })
     if (citaId) {
-      // Liberar la cita: reaparece el botón "Cobrar" y sale de "Por cobrar".
-      tx.update(doc(db, 'clinics', clinicId, 'appointments', citaId), { cobroId: '', cobradoEn: '' })
+      /**
+       * SÓLO SE LIBERA LA CITA SI EL COBRO ANULADO ES EL QUE LA TENÍA TOMADA.
+       *
+       * Antes se limpiaba `cobroId` con sólo ver que el cobro apuntara a esa
+       * cita, sin comprobar que fuera EL MISMO. Y los abonos apuntan a la cita
+       * pero NO reservan `cobroId` (a propósito: un pago parcial no la salda).
+       *
+       * Camino real: el paciente abona $300, luego paga $500 de cierre
+       * (`cobroId = A`). Si se anula el abono por un error de captura, la cita
+       * perdía el vínculo con A: reaparecía el botón «Cobrar», volvía a cuentas
+       * por cobrar, y se le podía cobrar otra vez una consulta ya saldada.
+       *
+       * La lectura va dentro de la transacción, así que si otro cobro toma la
+       * cita mientras tanto, Firestore reintenta con el valor nuevo.
+       */
+      const citaRef = doc(db, 'clinics', clinicId, 'appointments', citaId)
+      const citaSnap = await tx.get(citaRef)
+      if (citaSnap.exists() && citaSnap.data()?.cobroId === cobroId) {
+        // Liberar la cita: reaparece el botón "Cobrar" y sale de "Por cobrar".
+        tx.update(citaRef, { cobroId: '', cobradoEn: '' })
+      }
     }
   })
 }
@@ -342,13 +361,25 @@ export async function vincularFactura(
 /**
  * Lista cobros de un rango de fechas (YYYY-MM-DD).
  * Excluye cancelados por default — para reportes "limpios".
+ *
+ * LA ZONA POR OMISIÓN ES LA DEL CONSULTORIO, NO UNA CONSTANTE.
+ *
+ * El default era `TZ_DEFAULT` (la constante de Ciudad de México). Corte de caja
+ * sí pasaba la zona real; Finanzas no la pasaba en ninguna de sus cinco
+ * llamadas. Resultado en Tijuana (UTC-8): la ventana de «Hoy» de Finanzas iba de
+ * las 22:00 de ayer a las 22:00 de hoy, mientras la etiqueta del día usaba la
+ * zona publicada — dos pantallas con dos totales distintos para el mismo día, y
+ * los cobros de la última hora de consulta cayendo al día siguiente en una.
+ *
+ * `zonaActiva()` es la zona publicada del consultorio, con la constante como
+ * último recurso. Quien quiera otra la sigue pudiendo pasar.
  */
 export async function listarCobros(
   clinicId: string,
   desde: string,
   hasta: string,
   incluirCancelados = false,
-  tz: string = TZ_DEFAULT,            // zona de la clínica (config.zonaHoraria)
+  tz: string = zonaActiva(),
 ): Promise<Cobro[]> {
   const { ini, fin } = limitesDelDia(desde, hasta, tz)
   const q = query(
@@ -387,7 +418,8 @@ function ultimoDiaDelMes(mes: string): string {
 }
 
 /** Cobros de un mes completo (YYYY-MM) */
-export async function cobrosDelMes(clinicId: string, mes: string, tz: string = TZ_DEFAULT): Promise<Cobro[]> {
+// Misma razón que `listarCobros`: la zona por omisión es la del consultorio.
+export async function cobrosDelMes(clinicId: string, mes: string, tz: string = zonaActiva()): Promise<Cobro[]> {
   // Por instante, no por la etiqueta `mes` (misma razón que `limitesDelDia`).
   const { ini, fin } = limitesDelDia(`${mes}-01`, ultimoDiaDelMes(mes), tz)
   const q = query(

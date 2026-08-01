@@ -15,6 +15,7 @@
  */
 import { collection, addDoc, getDocs, doc, updateDoc, query, orderBy, where } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { logAudit } from '@/lib/expediente/audit-log'
 
 export type ArcoTipo = 'acceso' | 'rectificacion' | 'cancelacion' | 'oposicion' | 'revocacion'
 
@@ -74,6 +75,17 @@ export async function crearSolicitudArco(req: Omit<ArcoRequest, 'id' | 'estado' 
     fechaLimiteRespuesta: calcularFechaLimite(fechaSolicitud),
   }
   const ref = await addDoc(collection(db, 'clinics', req.clinicId, 'arco_requests'), payload)
+  /**
+   * BITÁCORA. Los eventos `arco_solicitud_recibida` y `arco_solicitud_resuelta`
+   * existían en el catálogo, en la lista blanca del servidor y en las etiquetas
+   * del panel de Cumplimiento — pero NADIE los emitía. El panel enseñaba
+   * categorías que no se llenaban nunca, y el ejercicio de un derecho ARCO
+   * quedaba sin constancia de cuándo entró ni de cuándo se contestó.
+   */
+  void logAudit({
+    evento: 'arco_solicitud_recibida', clinicId: req.clinicId,
+    patientId: req.patientId, meta: { solicitudId: ref.id, tipo: req.tipo, fechaLimite: payload.fechaLimiteRespuesta },
+  })
   return ref.id
 }
 
@@ -104,5 +116,11 @@ export async function resolverSolicitudArco(
   await updateDoc(doc(db, 'clinics', clinicId, 'arco_requests', requestId), {
     ...resolucion,
     fechaResolucion: new Date().toISOString(),
+  })
+  // El plazo de respuesta se cuenta desde la solicitud: sin este asiento no hay
+  // forma de demostrar que se contestó dentro de él.
+  void logAudit({
+    evento: 'arco_solicitud_resuelta', clinicId,
+    meta: { solicitudId: requestId, estado: resolucion.estado },
   })
 }

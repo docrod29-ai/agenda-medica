@@ -1,4 +1,4 @@
-import { forwardRef } from 'react'
+import { forwardRef, useId } from 'react'
 import type { InputHTMLAttributes, TextareaHTMLAttributes, SelectHTMLAttributes, ReactNode } from 'react'
 
 interface FieldShellProps {
@@ -43,10 +43,24 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   { label, hint, error, required, className, id, ...rest },
   ref,
 ) {
+  /**
+   * SIN `id`, LA ETIQUETA NO SEÑALA A NADA.
+   *
+   * `Field` recibe `htmlFor={id}`, pero `id` es opcional y NINGÚN uso de estos
+   * controles en el repo lo pasa: `htmlFor` quedaba `undefined` y el `<label>`
+   * no se asociaba a ningún campo. Tocar la palabra «Teléfono» no enfocaba el
+   * campo —en móvil eso son toques perdidos— y un lector de pantalla anunciaba
+   * el control sin nombre.
+   *
+   * `useId()` da un identificador estable entre servidor y cliente; el `id`
+   * explícito, si llega, sigue mandando.
+   */
+  const idAuto = useId()
+  const idFinal = id ?? idAuto
   const control = (
     <input
       ref={ref}
-      id={id}
+      id={idFinal}
       className={['input', error ? 'input-error' : '', className].filter(Boolean).join(' ')}
       required={required}
       {...rest}
@@ -54,7 +68,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   )
   if (!label && !hint && !error) return control
   return (
-    <Field label={label} hint={hint} error={error} required={required} htmlFor={id}>
+    <Field label={label} hint={hint} error={error} required={required} htmlFor={idFinal}>
       {control}
     </Field>
   )
@@ -70,10 +84,12 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
   { label, hint, error, required, className, id, ...rest },
   ref,
 ) {
+  const idAuto = useId()
+  const idFinal = id ?? idAuto
   const control = (
     <textarea
       ref={ref}
-      id={id}
+      id={idFinal}
       className={['input', className].filter(Boolean).join(' ')}
       required={required}
       {...rest}
@@ -81,7 +97,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
   )
   if (!label && !hint && !error) return control
   return (
-    <Field label={label} hint={hint} error={error} required={required} htmlFor={id}>
+    <Field label={label} hint={hint} error={error} required={required} htmlFor={idFinal}>
       {control}
     </Field>
   )
@@ -98,10 +114,12 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
   { label, hint, error, required, className, id, children, ...rest },
   ref,
 ) {
+  const idAuto = useId()
+  const idFinal = id ?? idAuto
   const control = (
     <select
       ref={ref}
-      id={id}
+      id={idFinal}
       className={['input', className].filter(Boolean).join(' ')}
       required={required}
       {...rest}
@@ -111,7 +129,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
   )
   if (!label && !hint && !error) return control
   return (
-    <Field label={label} hint={hint} error={error} required={required} htmlFor={id}>
+    <Field label={label} hint={hint} error={error} required={required} htmlFor={idFinal}>
       {control}
     </Field>
   )

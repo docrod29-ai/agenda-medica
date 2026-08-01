@@ -17,6 +17,7 @@ import { AvisoPrivacidadModal } from '@/components/AvisoPrivacidadModal'
 import { ExpedienteVacio } from '@/components/brand/EmptyArt'
 import { avatarColor } from '@/lib/avatar-color'
 import { buscarPosiblesDuplicados, barrerDuplicados, type ParDuplicado } from '@/lib/pacientes/duplicados'
+import { logAudit } from '@/lib/expediente/audit-log'
 
 export default function PacientesPage() {
   const { toast } = useToast()
@@ -642,7 +643,23 @@ function PatientModal({ patient, onClose, onSaved, userEmail, existentes, onAbri
          * sería peor que no tenerlo.
          */
         const consentimiento = await pedirAviso()
-        await createPatient(clinicId!, consentimiento ? { ...payload, avisoPrivacidad: consentimiento } : payload)
+        const nuevoId = await createPatient(clinicId!, consentimiento ? { ...payload, avisoPrivacidad: consentimiento } : payload)
+        /**
+         * BITÁCORA DEL CONSENTIMIENTO.
+         *
+         * `aviso_privacidad_aceptado` existía en el catálogo de eventos, en la
+         * lista blanca del servidor y en las etiquetas del panel de Cumplimiento
+         * — y nadie lo emitía. El dato quedaba dentro del expediente del
+         * paciente, así que para responder «¿de cuántos pacientes tengo
+         * consentimiento?» había que recorrerlos todos.
+         */
+        if (consentimiento) {
+          void logAudit({
+            evento: 'aviso_privacidad_aceptado', clinicId: clinicId!,
+            patientId: typeof nuevoId === 'string' ? nuevoId : undefined,
+            meta: { version: consentimiento.versionAviso, medio: consentimiento.medioAceptacion, conHuella: !!consentimiento.hashTexto },
+          })
+        }
         toast(consentimiento ? 'Paciente registrado' : 'Paciente registrado — sin aviso de privacidad', consentimiento ? 'success' : 'info')
       }
       onSaved()
