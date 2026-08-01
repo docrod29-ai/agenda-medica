@@ -706,12 +706,25 @@ tbody tr:last-child { border-bottom: none; }
    aplica SOLO a puntero grueso para no engordar la interfaz de escritorio.
    Los íconos-botón sueltos también reciben un área mínima. */
 @media (pointer: coarse) {
-  .btn, button.btn, .btn-sm { min-height: 44px; }
-  select, .input, input[type="date"], input[type="number"], input[type="text"], input[type="tel"], input[type="email"], textarea { min-height: 44px; }
+  /*
+    EL !important NO ES PEREZA: SIN ÉL LA REGLA NO GANABA NUNCA.
+
+    Un `style={{ minHeight: 30 }}` inline vence siempre a una hoja de estilos, y
+    esta regla se escribió sin `!important`. Resultado: los botones de soporte
+    ventilatorio del pase de UCI (VMI, VNI, vasopresor) seguían en 30 px, que es
+    donde más se necesitan los 44 — de pie, con tableta y con guantes.
+
+    `.btn-icon` entra también: estaba excluido aquí y sólo lo cubría la regla de
+    `max-width: 768px`, así que en iPad horizontal (1024 px, puntero grueso) el
+    botón de cerrar de los diálogos se quedaba en 36×36.
+  */
+  .btn, button.btn, .btn-sm { min-height: 44px !important; }
+  select, .input, input[type="date"], input[type="number"], input[type="text"], input[type="tel"], input[type="email"], textarea { min-height: 44px !important; }
+  .btn-icon { min-height: 44px !important; min-width: 44px !important; }
   /* Objetivo táctil mínimo (WCAG 2.5.5) para TODOS los botones, no solo los .btn.
      La mayoría de los paneles clínicos y calculadoras usan <button style={...}>
-     inline (22-30px) y no recibían el mínimo. Se excluyen los que ya lo traen. */
-  button:not(.btn):not(.btn-sm):not(.btn-icon):not(.mobile-topbar-btn) { min-height: 44px; }
+     inline (22-30px) y no recibían el mínimo. */
+  button:not(.mobile-topbar-btn) { min-height: 44px !important; }
 }
 
 /* Áreas seguras (notch / home indicator de iPhone) */

@@ -10,6 +10,7 @@ import type { ClinicConfig } from '@/types'
 import { generarAvisoPrivacidad, generarAvisoResumido, VERSION_AVISO } from '@/lib/aviso-privacidad'
 import { Check, FileText, Download } from 'lucide-react'
 import { Modal, Button } from '@/components/ui'
+import { sha256Hex } from '@/lib/expediente/integrity'
 
 export interface AvisoPrivacidadModalProps {
   config: ClinicConfig | null
@@ -28,13 +29,19 @@ export function AvisoPrivacidadModal({ config, onAceptar, onCancelar, medioInici
   const textoCompleto = generarAvisoPrivacidad(config)
   const textoResumen = generarAvisoResumido(config)
 
-  const aceptar = () => {
+  const aceptar = async () => {
     if (!acepta) return
+    // Huella del texto EXACTO que se le enseñó (ver el tipo). Si el hash falla
+    // —navegador sin crypto.subtle en contexto inseguro— se acepta igual sin
+    // huella: un consentimiento sin huella vale más que ninguno.
+    let hashTexto: string | undefined
+    try { hashTexto = await sha256Hex(textoCompleto) } catch { hashTexto = undefined }
     onAceptar({
       aceptado: true,
       fechaAceptacion: new Date().toISOString(),
       versionAviso: VERSION_AVISO,
       medioAceptacion: medio,
+      ...(hashTexto ? { hashTexto } : {}),
     })
   }
 

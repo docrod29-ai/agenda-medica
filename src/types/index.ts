@@ -228,6 +228,18 @@ export interface Patient {
     /** 'verbal' se retiró del formulario (Art. 9 LFPDPPP exige por escrito);
      *  se mantiene en el tipo para no romper los registros ya guardados. */
     medioAceptacion: 'presencial' | 'portal' | 'whatsapp' | 'verbal'
+    /**
+     * Huella SHA-256 del TEXTO que el paciente aceptó.
+     *
+     * `versionAviso` es una constante del código, pero el texto se genera en
+     * vivo desde la configuración del consultorio (razón social, domicilio,
+     * responsable). Si el médico cambia cualquiera de esos datos, el aviso que
+     * el paciente aceptó deja de ser reproducible y la versión NO cambia: queda
+     * un consentimiento que no se puede demostrar. La huella lo fija.
+     *
+     * Opcional: los consentimientos anteriores a este campo no la tienen.
+     */
+    hashTexto?: string
   }
   // === Valoración infectológica del inmunocomprometido (módulo portado de StewardMX) ===
   /** Campos del formulario hc_* (chips, estudios, resultados, textos). */

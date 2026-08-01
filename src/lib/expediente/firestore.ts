@@ -8,6 +8,7 @@ import type { NotaMedica, Adenda } from '@/types/expediente'
 // `stripUndefined` se mudó a un módulo puro (sin SDK) para poder simular el viaje
 // a Firestore en los tests del sello de integridad. Ver serializacion.ts.
 import { stripUndefined } from './serializacion'
+import { logAudit } from './audit-log'
 
 /**
  * Notas clínicas viven en:
@@ -97,6 +98,19 @@ export async function deleteNota(
   notaId: string,
 ): Promise<void> {
   await deleteDoc(notaDoc(clinicId, patientId, notaId))
+  /**
+   * BITÁCORA DEL BORRADO (trazabilidad NOM-024).
+   *
+   * El evento `nota_borrada` existía en el catálogo y en la lista blanca del
+   * servidor, y ningún sitio lo emitía. Borrar destruye el documento: sin este
+   * asiento no queda NADA — ni que la nota existió, ni quién la quitó.
+   *
+   * Va aquí y no en las pantallas porque hay dos caminos que borran (descartar
+   * la consulta y eliminar el borrador desde el expediente) y ninguno de los dos
+   * lo hacía. Poniéndolo en la función, los dos quedan cubiertos y los futuros
+   * también.
+   */
+  void logAudit({ evento: 'nota_borrada', clinicId, patientId, notaId })
 }
 
 /**

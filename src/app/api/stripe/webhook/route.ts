@@ -392,7 +392,24 @@ export async function POST(req: NextRequest) {
           chargeId: charge.id,
           monto: (charge.amount_refunded ?? 0) / 100,
           moneda: (charge.currency ?? 'mxn').toUpperCase(),
-          fecha: new Date((charge.created ?? Math.floor(Date.now() / 1000)) * 1000).toISOString(),
+          /**
+           * LA FECHA ES LA DE LA DEVOLUCIÓN, NO LA DEL CARGO.
+           *
+           * Aquí iba `charge.created`, que es cuándo se COBRÓ. Un reembolso
+           * hecho en agosto sobre un cargo de junio restaba en JUNIO: un mes ya
+           * cerrado y declarado. Y como el documento se reescribe con el
+           * acumulado, cada reembolso parcial sucesivo volvía a mover ese mismo
+           * mes viejo.
+           *
+           * Se toma la devolución más reciente del cargo; si Stripe no expandió
+           * la lista, se usa el instante del evento, que es lo más cercano a la
+           * verdad que hay disponible.
+           */
+          fecha: new Date(
+            (charge.refunds?.data?.reduce((max, r) => Math.max(max, r.created ?? 0), 0) || event.created || Math.floor(Date.now() / 1000)) * 1000,
+          ).toISOString(),
+          /** Cuándo se cobró originalmente. Se conserva para poder conciliar. */
+          fechaCargoOriginal: new Date((charge.created ?? 0) * 1000).toISOString(),
           descripcion: 'Reembolso',
           reembolsoTotal: charge.refunded === true,
           livemode: event.livemode === true,
