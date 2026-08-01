@@ -7,7 +7,7 @@
 > Un informe de auditoría que sólo lista aciertos no sirve para decidir dónde
 > mirar la próxima vez.
 
-Última actualización: **31-jul-2026**, tras PRACTICE-GA-009.
+Última actualización: **31-jul-2026**, tras PRACTICE-GA-010.
 
 ---
 
@@ -82,6 +82,7 @@ conectar.
 | **GA-008** | Caché de OpenAI cargada. **Cero huecos declarados en el motor de costos.** | v772 |
 | **GA-008b** | La consola dice si Stripe está en prueba o en producción | v773 |
 | **GA-009** | Fin del trial: se corta la IA (dinero que se fugaba) y el médico entiende qué conserva | v774 |
+| **GA-010** | Golden Flow contra las reglas reales + Playwright por fin dentro del CI | v775 |
 
 Fuera del programa, el mismo día: gateway de fallos de IA (`fallo-proveedor.ts`),
 exención de fundador (`fuente: 'fundador'`), incidencias de plataforma visibles
@@ -130,7 +131,7 @@ pruebas en verde, y ningún efecto en la realidad.
 | # | Qué | Bloqueado en |
 |---|---|---|
 | **P0-2** | **24** motores sin validar (23 `pendiente_validacion` + 1 `experimental`), varios en el camino de la receta. Ya son VISIBLES en pantalla y listados en `/cumplimiento/motores` con su pregunta pendiente | **Criterio clínico del Dr.** — `NEEDS_CLINICAL_REVIEW`. El trinquete de `clinical-sellos.test.ts` obliga a bajar el techo cuando valide alguno |
-| **P0-5** | No existe el E2E del Golden Flow; Playwright tiene 2 specs y **no corre en CI** | mí |
+| **P0-5** | **CERRADO en GA-010** para la capa que sí se puede probar hoy: `golden-flow.emu.test.ts` recorre paciente → cita → nota → firma → cobro contra las reglas REALES, y Playwright entró al CI. **Sigue pendiente el E2E de NAVEGADOR**: necesita una cuenta de médico con contraseña en los secretos del CI — decisión del Dr., no mía | él (cuenta de prueba) |
 | **P0-6** | Backup / PITR / restore drill: cero evidencia | consola de Firebase (él) + documentar (yo) |
 | ~~P0-7~~ | ~~`TARIFAS` vacío~~ — **CERRADO en GA-006.** 11 tarifas cargadas de la página de cada proveedor, con URL y fecha | — |
 
