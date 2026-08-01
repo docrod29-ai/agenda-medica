@@ -7,7 +7,7 @@
 > Un informe de auditoría que sólo lista aciertos no sirve para decidir dónde
 > mirar la próxima vez.
 
-Última actualización: **31-jul-2026**, tras PRACTICE-GA-008.
+Última actualización: **31-jul-2026**, tras PRACTICE-GA-009.
 
 ---
 
@@ -51,6 +51,15 @@ En el mismo trabajo, `usoDe` ignoraba los minutos que la ruta le mandaba —
 escrito y sin conectar, otra vez, y TypeScript no lo cazó porque el parámetro es
 `unknown`. Sólo apareció al mirarlo.
 
+**#5 estaba a MEDIAS, y la mitad que faltaba costaba dinero.** El «solo lectura»
+ya existía y bien hecho: `clinicaPuedeEscribir` en `firestore.rules` corta las
+escrituras con la prueba vencida y **nunca** la lectura, con el motivo escrito
+(NOM-004: el expediente es del paciente). Lo que faltaba: las rutas de IA corren
+con Admin SDK, que **ignora** esas reglas, así que un consultorio vencido seguía
+quemando la llave del dueño indefinidamente. Y el médico sólo veía «tu prueba
+terminó» — el resto lo descubría a golpes, con un error de permisos genérico al
+intentar guardar.
+
 **P0-2 estaba mal CONTADO.** Dije «4 motores pendientes»: eran los del flujo de
 consulta que yo había mirado. El registro tiene **24 sin validar** (23
 `pendiente_validacion` + 1 `experimental`). Y el hallazgo de fondo era otro: ese
@@ -71,6 +80,8 @@ conectar.
 | **GA-006** | Tarifas cargadas de la fuente + el audio se mide por minuto + 25 referencias a modelos retirados | v770 |
 | **GA-007** | Cerrados los dos huecos que GA-006 dejó declarados: tarifa de caché cargada y el webhook de Stripe se comprueba solo | v771 |
 | **GA-008** | Caché de OpenAI cargada. **Cero huecos declarados en el motor de costos.** | v772 |
+| **GA-008b** | La consola dice si Stripe está en prueba o en producción | v773 |
+| **GA-009** | Fin del trial: se corta la IA (dinero que se fugaba) y el médico entiende qué conserva | v774 |
 
 Fuera del programa, el mismo día: gateway de fallos de IA (`fallo-proveedor.ts`),
 exención de fundador (`fuente: 'fundador'`), incidencias de plataforma visibles
@@ -88,7 +99,7 @@ en `/superadmin/costos`, y la pantalla que dice **qué llave se usa de verdad**
 | 7 | ~~Reembolsos y contracargos en el webhook de Stripe~~ | ✅ GA-004 |
 | 2 | ~~Sello «no validado clínicamente» + hoja de reglas~~ | ✅ GA-005 |
 | 3 | ~~Tarifas de Anthropic/OpenAI, presentadas y cargadas con su confirmación~~ | ✅ GA-006 |
-| 5 | Fin del trial: bloquear IA, agenda y expediente en solo lectura | pendiente |
+| 5 | ~~Fin del trial: bloquear IA, agenda y expediente en solo lectura~~ | ✅ GA-009 |
 
 ### ⚠️ Acción del Dr. — y ahora la app la comprueba sola
 
@@ -133,7 +144,7 @@ pruebas en verde, y ningún efecto en la realidad.
 
 ### Deuda técnica congelada
 
-- **Lint: 105 errores** en el trinquete (`docs/audit/lint-techo.json`). Sólo puede bajar.
+- **Lint: 104 errores** en el trinquete (`docs/audit/lint-techo.json`). Bajó de 105 en GA-009 al arreglar un `Date.now()` impuro en el render.
 - **CSP sigue en report-only** salvo `frame-ancestors`. Pasarla a enforce exige
   días de observación de reportes; la observación **no se ha arrancado**.
 - **A7**: 13 de 16 rutas de IA con asiento en el libro; 5 de 16 enrutadas al gateway.

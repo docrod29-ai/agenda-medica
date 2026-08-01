@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { logAudit } from '@/lib/expediente/audit-log'
+import { estadoPaywall } from '@/lib/finanzas/paywall-prueba'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { esSuperadminCliente } from '@/lib/superadmin-client'
@@ -47,11 +48,69 @@ function ModeBanner() {
 
 function TrialBanner() {
   const { clinic } = useClinic()
+  /**
+   * La hora se lee UNA vez al montar, no en cada render.
+   *
+   * `Date.now()` dentro del cuerpo del componente es impuro: React puede
+   * re-renderizar cuando le convenga y el resultado cambiaría solo, además de
+   * discrepar entre el servidor y el navegador al hidratar. Aquí el efecto sería
+   * un banner que parpadea entre «te quedan 2 días» y «1 día».
+   *
+   * El inicializador perezoso de `useState` corre una sola vez. Para un aviso de
+   * prueba, congelar la hora al abrir la pantalla es además lo correcto: nadie
+   * necesita que el contador baje a medianoche con la pestaña abierta.
+   */
+  const [ahora] = useState(() => Date.now())
   if (!clinic || clinic.plan !== 'trial' || clinic.status !== 'trial') return null
   const trialEnds = clinic.trialEndsAt ? new Date(clinic.trialEndsAt) : null
   const daysLeft = trialEnds
-    ? Math.max(0, Math.ceil((trialEnds.getTime() - Date.now()) / 86400000))
+    ? Math.max(0, Math.ceil((trialEnds.getTime() - ahora) / 86400000))
     : 14
+
+  /**
+   * Cuando la prueba VENCIÓ, el banner deja de ser un recordatorio y pasa a ser
+   * la explicación de por qué las cosas dejaron de responder.
+   *
+   * Antes decía «tu prueba gratuita ha terminado» y punto. El resto el médico lo
+   * descubría a golpes: intentaba guardar una nota y Firestore le devolvía un
+   * error de permisos genérico. Enterarse de lo que dejó de funcionar
+   * probándolo, con un paciente enfrente, es la peor forma posible.
+   *
+   * El texto dice PRIMERO lo que conserva. Al revés suena a amenaza, y lo que
+   * necesita saber en ese segundo es que sus expedientes están enteros.
+   */
+  const paywall = estadoPaywall(
+    { status: clinic.status, trialEndsAtMs: clinic.trialEndsAtMs, paseLibre: clinic.paseLibre },
+    ahora,
+  )
+  if (paywall.vencida) {
+    return (
+      <div style={{
+        background: 'rgba(245,158,11,0.08)', borderBottom: '1px solid rgba(245,158,11,0.25)',
+        padding: '11px 20px',
+      }}>
+        <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+          <AlertTriangle size={15} color="#f59e0b" style={{ flexShrink: 0, marginTop: 2 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
+              Tu prueba terminó — conservas todo
+            </div>
+            <div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.55, marginTop: 3 }}>
+              Puedes seguir viendo, imprimiendo y exportando tus expedientes, tu agenda y tus
+              documentos. Lo que se detuvo es escribir cosas nuevas y usar la IA. Se reactiva en
+              cuanto actives tu plan: <strong>no se pierde nada</strong>.
+            </div>
+            <Link href="/configuracion?tab=suscripcion" style={{
+              display: 'inline-block', marginTop: 8, background: '#f59e0b', color: '#000',
+              fontSize: 12, fontWeight: 700, padding: '6px 13px', borderRadius: 7, textDecoration: 'none',
+            }}>
+              Activar mi plan
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
   return (
     <div style={{
       background: daysLeft <= 3 ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.08)',

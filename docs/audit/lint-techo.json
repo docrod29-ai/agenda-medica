@@ -1,5 +1,5 @@
 {
-  "errores": 105,
+  "errores": 104,
   "porArchivo": {
     "src/app/(dashboard)/asistente/page.tsx": 2,
     "src/app/(dashboard)/citas/page.tsx": 2,
@@ -18,7 +18,7 @@
     "src/app/(dashboard)/finanzas/page.tsx": 2,
     "src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx": 3,
     "src/app/(dashboard)/hospitalizacion/page.tsx": 1,
-    "src/app/(dashboard)/layout.tsx": 2,
+    "src/app/(dashboard)/layout.tsx": 1,
     "src/app/(dashboard)/lista-espera/page.tsx": 1,
     "src/app/(dashboard)/orden/[patientId]/[notaId]/page.tsx": 1,
     "src/app/(dashboard)/pacientes/page.tsx": 1,
