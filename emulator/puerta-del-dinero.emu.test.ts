@@ -160,3 +160,62 @@ describe('crearse una clínica no es una puerta trasera', () => {
     )
   })
 })
+
+/**
+ * EL MÉDICO DE UN COBRO NO SE PUEDE CAMBIAR — porque eso mueve comisiones.
+ *
+ * La regla de `cobros` congela monto, método, concepto, fecha y los vínculos con
+ * la cita y el paciente… pero NO congelaba `medicoId`. Y la rama que permite
+ * «vincular factura» sólo exige que `facturaUuid` sea un string, valiendo la
+ * cadena vacía.
+ *
+ * O sea: cualquier miembro podía mandar un update con `facturaUuid: ''` y el
+ * `medicoId` cambiado, y el cobro pasaba de un médico a otro. La base
+ * comisionable se acumula exactamente por ese campo, así que es un traslado de
+ * dinero entre personas — y esa rama no deja ningún rastro de autoría.
+ */
+describe('El médico de un cobro está congelado', () => {
+  const cobroId = 'cobro-comisiones'
+
+  beforeAll(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await ctx.firestore().doc(`clinics/${TENANT_A}/cobros/${cobroId}`).set({
+        monto: 800, metodo: 'efectivo', concepto: 'consulta',
+        fecha: '2026-08-01T10:00:00.000Z', dia: '2026-08-01', mes: '2026-08',
+        citaId: 'cita-1', patientId: 'pac-1',
+        medicoId: 'medico-uno', medicoNombre: 'Dr. Uno',
+        folio: 'CB-0001', referenciaExterna: 'cs_test_1',
+        creadoPor: 'uid-admin-clinica-alfa', cancelado: false, tipo: 'PAYMENT',
+      })
+    })
+  })
+
+  it('NO se puede reatribuir el cobro a otro médico por la puerta de «vincular factura»', async () => {
+    await assertFails(
+      db(TENANT_A, 'admin').doc(`clinics/${TENANT_A}/cobros/${cobroId}`).update({
+        facturaUuid: '', medicoId: 'medico-dos', medicoNombre: 'Dr. Dos',
+      }),
+    )
+  })
+
+  it('NO se puede borrar el hilo con Stripe (referenciaExterna ni folio)', async () => {
+    await assertFails(
+      db(TENANT_A, 'admin').doc(`clinics/${TENANT_A}/cobros/${cobroId}`).update({
+        facturaUuid: 'uuid-1', referenciaExterna: '',
+      }),
+    )
+    await assertFails(
+      db(TENANT_A, 'admin').doc(`clinics/${TENANT_A}/cobros/${cobroId}`).update({
+        facturaUuid: 'uuid-1', folio: 'CB-9999',
+      }),
+    )
+  })
+
+  it('pero SÍ se puede vincular la factura, que es para lo que existe esa rama', async () => {
+    await assertSucceeds(
+      db(TENANT_A, 'admin').doc(`clinics/${TENANT_A}/cobros/${cobroId}`).update({
+        facturaUuid: 'uuid-real-del-sat',
+      }),
+    )
+  })
+})
