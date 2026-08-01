@@ -529,6 +529,12 @@ export default function ConsultaActivaPage() {
   // Ref síncrona del notaId + cadena de guardados serializada: evita que dos
   // autoguardados creen notas DUPLICADAS (setNotaId es asíncrono).
   const notaIdRef = useRef<string | null>(notaIdParam)
+  /**
+   * La marca de modificación que ESTA pestaña vio por última vez. Es el testigo
+   * de la guardia de concurrencia de `updateNota`: si en Firestore hay otra, es
+   * que alguien más escribió mientras tanto.
+   */
+  const vistoEnRef = useRef<string | undefined>(undefined)
   useEffect(() => { notaIdRef.current = notaId }, [notaId])
   const fallosGuardadoRef = useRef(0)
   const cadenaGuardadoRef = useRef<Promise<unknown>>(Promise.resolve())
@@ -660,6 +666,9 @@ export default function ConsultaActivaPage() {
         return
       }
       setErrorCargaNota('')
+      // El testigo de concurrencia arranca en lo que había AL ABRIR. Todo lo que
+      // aparezca distinto en Firestore a partir de aquí es de otra sesión.
+      vistoEnRef.current = n.metadata?.fechaModificacion
       setTipo(n.tipo)
       setSecciones(n.secciones)
       setSignos(n.signosVitales ?? {})
@@ -1384,16 +1393,37 @@ export default function ConsultaActivaPage() {
            * Se queda la de `updateNota`, que es la correcta: preserva lo que se va
            * a pisar, que es el sentido de una versión histórica.
            */
-          await updateNota(clinicId, patientId, idActual, nota)
+          /**
+           * `vistoEnRef` es la marca de modificación que ESTA pestaña vio la
+           * última vez. Si en Firestore hay otra distinta, alguien más escribió
+           * y `updateNota` se niega en vez de pisarlo.
+           *
+           * Sin esto, dos pestañas sobre la misma nota autoguardaban cada 30 s
+           * el estado completo de cada una y se pisaban alternándose: ganaba el
+           * último tick, normalmente el de la pestaña olvidada desde la mañana.
+           */
+          await updateNota(clinicId, patientId, idActual, nota, vistoEnRef.current)
+          vistoEnRef.current = nota.metadata?.fechaModificacion ?? vistoEnRef.current
         } else {
           const id = await createNota(clinicId, patientId, nota)
           notaIdRef.current = id   // marca síncrona ANTES de re-render
           setNotaId(id)
+          vistoEnRef.current = nota.metadata?.fechaModificacion
         }
         fallosGuardadoRef.current = 0
         if (!silencioso) toast('Borrador guardado', 'success')
       } catch (e) {
         console.error('[consulta] error guardando borrador:', e)
+        /**
+         * CONFLICTO DE VERSIÓN: no es un fallo de red, es otra sesión trabajando
+         * sobre la misma nota. Se dice con esas palabras, porque «revisa tu
+         * conexión» mandaría al médico a mirar el wifi mientras su compañero le
+         * está sobrescribiendo la nota.
+         */
+        if ((e as { code?: string })?.code === 'conflicto-de-version') {
+          toast('Otra sesión modificó esta nota. NO se guardó, para no pisar su trabajo. Copia lo tuyo y vuelve a abrirla.', 'error')
+          return
+        }
         /**
          * EL AVISO TIENE QUE DECIR LA CAUSA, NO SUPONERLA.
          *

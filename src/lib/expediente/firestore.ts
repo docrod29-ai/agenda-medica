@@ -187,11 +187,37 @@ export async function deletePatientExpediente(
 }
 
 /** Solo se permite actualizar borradores (NOM-024: las firmadas son inmutables) */
+/** Error de una escritura que habría pisado el trabajo de otro. */
+export class ConflictoDeVersion extends Error {
+  readonly code = 'conflicto-de-version'
+  constructor(public readonly modificadaEn: string) {
+    super('Otra sesión modificó esta nota después de que la abriste. No se guardó para no pisar su trabajo.')
+  }
+}
+
 export async function updateNota(
   clinicId: string,
   patientId: string,
   notaId: string,
   data: Partial<NotaMedica>,
+  /**
+   * GUARDIA DE CONCURRENCIA — la marca de modificación que el llamador vio la
+   * última vez.
+   *
+   * `updateNota` no comparaba NADA antes de escribir. Con la caché
+   * multi-pestaña activa, dos pestañas abiertas sobre la misma nota autoguardan
+   * cada 30 s el estado COMPLETO de cada una: la que se quedó atrás pisa a la
+   * que está trabajando, y van alternando. Gana el último tick.
+   *
+   * El caso real no es rebuscado: una pestaña olvidada abierta desde la mañana
+   * y otra donde se dicta ahora. El médico ve su nota mutilada y —como el
+   * historial de versiones se escribe pero no se puede leer desde ninguna
+   * pantalla— no tiene ningún botón para recuperar lo que había.
+   *
+   * Opcional a propósito: quien no la pase se comporta como antes. Los
+   * autoguardados de la consulta SÍ la pasan.
+   */
+  vistoEn?: string,
 ): Promise<void> {
   // Strip 'id' del payload — solo el doc.id es la fuente de verdad.
   const { id: _ignorado, ...sinId } = data as Partial<NotaMedica>
@@ -200,8 +226,13 @@ export async function updateNota(
   // NOM-024 Art. 6.4 — versionado: antes de sobrescribir un borrador,
   // guardamos el snapshot actual como versión histórica.
   // Solo para borradores; las notas firmadas son inmutables (no llegan aquí).
+  //
+  // La lectura sirve además para la guardia de concurrencia: se hace una sola
+  // vez y se aprovecha para las dos cosas.
+  let prevLeida: import('firebase/firestore').DocumentSnapshot | null = null
   try {
-    const prev = await getDoc(notaDoc(clinicId, patientId, notaId))
+    prevLeida = await getDoc(notaDoc(clinicId, patientId, notaId))
+    const prev = prevLeida
     if (prev.exists() && prev.data().estado !== 'firmada') {
       await addDoc(
         collection(db, 'clinics', clinicId, 'patients', patientId, 'notas', notaId, 'versions'),
@@ -216,6 +247,23 @@ export async function updateNota(
       )
     }
   } catch { /* nunca romper la operación clínica */ }
+
+  /**
+   * LA GUARDIA. Va DESPUÉS del versionado a propósito: si hay conflicto, el
+   * estado que se estaba a punto de pisar ya quedó guardado como versión, así
+   * que no se pierde por haber detectado el choque.
+   *
+   * Si la lectura falló (`prevLeida` nulo), NO se bloquea la escritura: quedarse
+   * sin guardar por un hipo de red sería peor que el riesgo que esto cubre.
+   */
+  if (vistoEn && prevLeida?.exists()) {
+    const actual = String(
+      (prevLeida.data() as { metadata?: { fechaModificacion?: string }; updatedAt?: string })?.metadata?.fechaModificacion
+      ?? (prevLeida.data() as { updatedAt?: string })?.updatedAt
+      ?? '',
+    )
+    if (actual && actual !== vistoEn) throw new ConflictoDeVersion(actual)
+  }
 
   const payload = stripUndefined({ ...sinId, updatedAt: new Date().toISOString() })
 
