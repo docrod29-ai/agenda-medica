@@ -12,6 +12,7 @@ import { entradaPorMedico, membreteValido, firmaValida } from '@/lib/impreso-med
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { getNota, agregarAdenda, getAdendas } from '@/lib/expediente/firestore'
+import { HistorialVersiones } from '@/components/expediente/HistorialVersiones'
 import { getPatient } from '@/lib/firestore'
 import { useAuth } from '@/hooks/useAuth'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
@@ -589,6 +590,16 @@ export default function NotaImprimiblePage() {
             </div>
           )}
         </div>
+      )}
+
+      {/*
+        HISTORIAL DE VERSIONES. Existía el dato —una versión por autoguardado— y
+        no existía la pantalla: `getVersionesNota` no tenía un solo llamador, así
+        que toda sobrescritura era irrecuperable PARA EL MÉDICO aunque siguiera
+        intacta en Firestore.
+      */}
+      {clinicId && (
+        <HistorialVersiones clinicId={clinicId} patientId={patientId} notaId={notaId} />
       )}
 
       {/* Modal de adenda */}

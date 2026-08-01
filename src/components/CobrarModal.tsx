@@ -281,6 +281,24 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
                 fontFamily: 'monospace', boxSizing: 'border-box',
               }}
             />
+            {/*
+              EL PRECIO SE TECLEA A MANO CADA VEZ, Y NO ES CULPA DEL MÉDICO.
+              El monto sugerido sale de `config.preciosPublicos`, que NO viene en
+              la configuración por omisión y sólo se edita bajo «Portal de
+              auto-agenda → Tu perfil público». Nadie busca ahí el precio de su
+              consulta: se busca en Finanzas o en Datos del consultorio, y en
+              ninguno de los dos está. Así que el campo sale vacío en cada cobro
+              y el médico lo teclea otra vez.
+              Se dice dónde está, en el momento exacto en que hace falta.
+            */}
+            {!monto.trim() && (
+              <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 6, lineHeight: 1.5 }}>
+                ¿Quieres que este monto se llene solo? Fija tus tarifas en{' '}
+                <a href="/configuracion?tab=portal" style={{ color: 'var(--teal)', fontWeight: 600, textDecoration: 'none' }}>
+                  Configuración → Portal de auto-agenda
+                </a>.
+              </div>
+            )}
           </div>
 
           <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
