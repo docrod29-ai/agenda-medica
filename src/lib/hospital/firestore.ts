@@ -62,17 +62,40 @@ export async function getCenso(clinicId: string): Promise<Internamiento[]> {
 
 /** CENSO en VIVO: se actualiza solo cuando alguien ingresa/egresa/traslada (onSnapshot).
  *  Devuelve la función para des-suscribir. */
-export function suscribirCenso(clinicId: string, cb: (censo: Internamiento[]) => void): () => void {
+export function suscribirCenso(
+  clinicId: string,
+  cb: (censo: Internamiento[]) => void,
+  /**
+   * QUÉ HACER SI LA LECTURA FALLA. Sin esto, la pantalla del censo se quedaba en
+   * un spinner PARA SIEMPRE: `setLoading(false)` vivía sólo dentro del callback
+   * de éxito y el de error estaba vacío. Un token vencido, una regla o App Check
+   * dejaban al médico mirando girar un círculo, sin mensaje y sin reintentar.
+   *
+   * Y en este consultorio eso importa el doble: una pantalla que no dice qué
+   * pasó es indistinguible de haber perdido a todos los internados.
+   */
+  alFallar?: (e: unknown) => void,
+): () => void {
   return onSnapshot(query(internamientosCol(clinicId), where('estado', '==', 'activo')), snap => {
     cb(snap.docs.map(d => ({ ...d.data(), id: d.id } as Internamiento)).sort((a, b) => (a.fechaIngreso < b.fechaIngreso ? 1 : -1)))
-  }, () => { /* error de permisos/red: se conserva el último estado */ })
+  }, e => {
+    console.error('[hospital] no se pudo leer el censo en vivo', e)
+    alFallar?.(e)
+  })
 }
 
 /** UN internamiento en VIVO: refleja indicaciones/MAR/interconsultas/traslados de otros usuarios. */
-export function suscribirInternamiento(clinicId: string, id: string, cb: (inter: Internamiento | null) => void): () => void {
+export function suscribirInternamiento(
+  clinicId: string, id: string,
+  cb: (inter: Internamiento | null) => void,
+  alFallar?: (e: unknown) => void,
+): () => void {
   return onSnapshot(internamientoDoc(clinicId, id), snap => {
     cb(snap.exists() ? ({ ...snap.data(), id: snap.id } as Internamiento) : null)
-  }, () => { /* error: se conserva el último estado */ })
+  }, e => {
+    console.error('[hospital] se perdió el vivo del internamiento', id, e)
+    alFallar?.(e)
+  })
 }
 
 /** Signos vitales seriados en VIVO (subcolección). */
@@ -81,10 +104,24 @@ export function suscribirInternamiento(clinicId: string, id: string, cb: (inter:
  * subcolección entera y, al abrirse a la vez que `getSignos`, la ficha bajaba dos
  * veces todos los registros de la estancia.
  */
-export function suscribirSignos(clinicId: string, iid: string, cb: (signos: RegistroSignos[]) => void, tope = TOPE_SIGNOS): () => void {
+export function suscribirSignos(
+  clinicId: string, iid: string,
+  cb: (signos: RegistroSignos[]) => void,
+  tope = TOPE_SIGNOS,
+  /**
+   * Aquí el silencio era especialmente malo: al caerse la suscripción, los
+   * signos vitales se quedan CONGELADOS en lo último que se leyó, con aspecto
+   * de estar en vivo. Alguien puede tomar una decisión sobre una tensión de
+   * hace media hora creyendo que es de ahora.
+   */
+  alFallar?: (e: unknown) => void,
+): () => void {
   return onSnapshot(query(signosCol(clinicId, iid), orderBy('fecha', 'desc'), limit(tope)), snap => {
     cb(snap.docs.map(d => ({ ...d.data(), id: d.id } as RegistroSignos)).reverse())
-  }, () => { /* error: se conserva el último estado */ })
+  }, e => {
+    console.error('[hospital] se perdió el vivo de signos', iid, e)
+    alFallar?.(e)
+  })
 }
 
 /** Todos los internamientos (activos + egresados) — para el histórico. */
