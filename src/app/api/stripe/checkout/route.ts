@@ -48,7 +48,20 @@ export async function POST(req: NextRequest) {
     }
 
     const cicloEfectivo: Ciclo = ciclo === 'anual' ? 'anual' : 'mensual'
-    const priceId = priceIdDe(plan, cicloEfectivo)
+    /**
+     * `priceIdDe` ahora LANZA si falta el precio anual, en vez de abrir una
+     * suscripción mensual con los metadatos diciendo «anual». Se traduce a un
+     * mensaje que el médico pueda entender: el problema es de configuración del
+     * consultorio, no suyo.
+     */
+    let priceId: string
+    try {
+      priceId = priceIdDe(plan, cicloEfectivo)
+    } catch {
+      return NextResponse.json({
+        error: `El cobro anual del plan ${plan} todavía no está configurado. Elige el cobro mensual, o avísanos para habilitarlo.`,
+      }, { status: 409 })
+    }
     if (!priceId) {
       return NextResponse.json({ error: `No price configured for plan: ${plan} (${cicloEfectivo})` }, { status: 400 })
     }

@@ -10,7 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
-import { stripe, nivelDePlan } from '@/lib/stripe'
+import { stripe, nivelDePlan, STRIPE_PRICES as PRECIOS_DE_PLAN } from '@/lib/stripe'
 import { adminDb } from '@/lib/firebase-admin'
 import { agregarCreditosExtra, guardarNivelIA } from '@/lib/ai-keys'
 import { MODULOS_DE_PLAN } from '@/lib/modulos'
@@ -68,12 +68,35 @@ async function registrarDisputa(
   }, { merge: true })
 }
 
-function planPorMonto(amount: number): PlanKey {
+/**
+ * Respaldo por importe cuando NO vienen metadatos. Devuelve `null` cuando no
+ * puede afirmar nada, en vez de inventarse un plan.
+ *
+ * ── POR QUÉ DEVOLVER `null` ──────────────────────────────────────────────────
+ *
+ * Los cortes están calibrados en centavos de plan MENSUAL. Una suscripción
+ * ANUAL de Agenda son 349 × 10 = $3,490, o sea 349000 centavos, que caía en el
+ * último tramo y devolvía **'hospital'**: el que paga el plan más barato se
+ * llevaba hospitalización, UCI e IA premium.
+ *
+ * Y quien lo llamaba tomaba `items.data[0]`, cuyo orden Stripe no garantiza: con
+ * un ítem de médico adicional en la suscripción, el importe leído podía ser el
+ * del asiento y devolver 'agenda' — dejando a un cliente de Clínica o Pro con
+ * `modulos: ['agenda']`, o sea pagando y sin expediente.
+ *
+ * Adivinar mal el plan cambia lo que el cliente puede usar, en las dos
+ * direcciones. Cuando no se sabe, lo correcto es no tocar el plan y dejar
+ * constancia para revisarlo.
+ */
+function planPorMonto(amount: number): PlanKey | null {
   // Precios (centavos MXN): 34900 Agenda · 89900 Clínica · 159000 Pro · 349900 Hospital (ver PLANES en @/lib/planes-ia)
-  if (amount <= 50000) return 'agenda'
-  if (amount <= 120000) return 'clinica'
-  if (amount <= 220000) return 'premium'
-  return 'hospital'
+  // Con margen de ±15% para promociones y prorrateos; fuera de esos rangos no se afirma nada.
+  const cerca = (esperado: number) => amount >= esperado * 0.85 && amount <= esperado * 1.15
+  if (cerca(34900)) return 'agenda'
+  if (cerca(89900)) return 'clinica'
+  if (cerca(159000)) return 'premium'
+  if (cerca(349900)) return 'hospital'
+  return null
 }
 const ES_PLAN = (p: unknown): p is PlanKey => p === 'agenda' || p === 'clinica' || p === 'premium' || p === 'hospital'
 
@@ -343,14 +366,46 @@ export async function POST(req: NextRequest) {
 
         if (!clinicId) break
 
-        const item = sub.items.data[0]
-        const plan = ES_PLAN(sub.metadata?.plan) ? sub.metadata!.plan as PlanKey : planPorMonto(item.price.unit_amount ?? 0)
+        /**
+         * El ítem del PLAN, no `items.data[0]`.
+         *
+         * Stripe no garantiza el orden de los ítems. Con un asiento de médico
+         * adicional en la suscripción, `data[0]` podía ser el precio del asiento
+         * y el plan se deducía de un importe que no era el del plan.
+         */
+        const idsDePlan = new Set(Object.values(PRECIOS_DE_PLAN).filter(Boolean))
+        const itemPlan = sub.items.data.find(i => idsDePlan.has(String(i.price?.id ?? '')))
+          ?? sub.items.data.find(i => (i.quantity ?? 1) === 1 && !String(i.price?.nickname ?? '').toLowerCase().includes('medico'))
+          ?? sub.items.data[0]
+
+        const planDeducido = ES_PLAN(sub.metadata?.plan)
+          ? sub.metadata!.plan as PlanKey
+          : planPorMonto(itemPlan?.price?.unit_amount ?? 0)
         const status = estadoDeSuscripcion(sub.status)
 
+        /**
+         * SI NO SE SABE EL PLAN, NO SE TOCA EL PLAN.
+         *
+         * Antes se adivinaba siempre, y adivinar mal cambia qué módulos tiene el
+         * cliente: podía quedarse sin expediente pagando Pro, o con UCI pagando
+         * Agenda. El estado de la suscripción sí se actualiza —eso se sabe— y el
+         * plan se deja como está, con el aviso en el log para revisarlo.
+         */
+        if (!planDeducido) {
+          safeLog.warn(`[Stripe Webhook] no se pudo deducir el plan de ${sub.id} (importe ${itemPlan?.price?.unit_amount}). Se conserva el plan actual.`)
+          await updateClinic(clinicId, {
+            status: status === 'active' ? 'active' : status,
+            stripeSubscriptionId: sub.id,
+            stripeSubscriptionStatus: sub.status,
+            planSinDeducir: true,
+          })
+          break
+        }
+
         if (status === 'active') {
-          await activarPlan(clinicId, plan, { stripeSubscriptionId: sub.id, stripeSubscriptionStatus: sub.status })
+          await activarPlan(clinicId, planDeducido, { stripeSubscriptionId: sub.id, stripeSubscriptionStatus: sub.status, planSinDeducir: false })
         } else {
-          await updateClinic(clinicId, { plan, status, stripeSubscriptionId: sub.id, stripeSubscriptionStatus: sub.status })
+          await updateClinic(clinicId, { plan: planDeducido, status, stripeSubscriptionId: sub.id, stripeSubscriptionStatus: sub.status })
         }
         break
       }
