@@ -148,7 +148,17 @@ pruebas en verde, y ningún efecto en la realidad.
 - **Lint: 104 errores** en el trinquete (`docs/audit/lint-techo.json`). Bajó de 105 en GA-009 al arreglar un `Date.now()` impuro en el render.
 - **CSP sigue en report-only** salvo `frame-ancestors`. Pasarla a enforce exige
   días de observación de reportes; la observación **no se ha arrancado**.
-- **A7**: 13 de 16 rutas de IA con asiento en el libro; 5 de 16 enrutadas al gateway.
+- ~~**A7**~~ — **CERRADO en GA-013 (v778).** **Todas** las rutas que gastan dejan
+  asiento, y hay un centinela (`libro-costos-cobertura.test.ts`) que recorre el
+  disco y falla si aparece una nueva sin él. El peor hueco era
+  `transcribir-chunk` —el texto en vivo, cada ~20 s de cada consulta—: el gasto
+  de voz salía sistemáticamente por debajo del real. El centinela encontró tres
+  más en su primera ejecución. La causa de fondo era el tipo: `Proveedor` era
+  `'anthropic' | 'openai'` y la app le paga a **tres** (AssemblyAI hace la
+  separación de voces). **Queda declarado**: la tarifa de AssemblyAI NO está
+  cargada —no la he leído de su página— así que su costo sale **nulo**, nunca
+  cero. Lo de «5 de 16 por el gateway» sigue igual y ya no importa para el
+  dinero: el asiento está garantizado por las dos vías.
 - **A8**: el dataset V3 de antimicrobianos fusiona ficha y guía en 11 de 49 entradas.
 - ~~**Tarifa de caché sin cargar**~~ — **CERRADO en GA-007.** Era 0.1× la entrada
   y estaba cobrándose completa: un error de 10× sobre el renglón más grande del
@@ -158,9 +168,12 @@ pruebas en verde, y ningún efecto en la realidad.
   proporción **no es la de Anthropic**. `gpt-5` va a 0.1×, pero `gpt-4o` va a
   **0.5×**. Deducirla en vez de leerla habría metido un error de 5× en gpt-4o.
   Hay una prueba con ese nombre.
-- **Sonnet 5 a precio de LISTA** ($3/$15), no al promocional ($2/$10 hasta el
-  31-ago-2026). El motor no sabe de vigencias: hoy el margen se ve peor de lo que
-  es y en septiembre queda exacto solo.
+- ~~**Sonnet 5 a precio de LISTA**~~ — **CERRADO en GA-013 (v778).** La tarifa
+  ahora admite una ventana con fecha, y el asiento se valora con el `ts` de la
+  llamada: una nota de agosto cuesta $2 y una de septiembre $3, que es la verdad
+  de cada una. Sin fecha se cae al precio de LISTA a propósito — sobrestimar el
+  costo hace cobrar de más, subestimarlo hace vender por debajo del costo sin
+  enterarse, y sólo uno de los dos errores quiebra un negocio.
 
 ---
 

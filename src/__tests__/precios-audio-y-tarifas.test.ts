@@ -162,3 +162,66 @@ describe('la cadena completa: respuesta → uso → costo', () => {
     expect(costoUsd('claude-opus-4-8', usoDe(respuesta)).usd).toBeCloseTo(30, 6)
   })
 })
+
+/**
+ * UN PRECIO CON FECHA DE CADUCIDAD.
+ *
+ * Sonnet 5 está a $2/$10 de introducción hasta el 31-ago-2026 y luego pasa a
+ * $3/$15. La tabla llevaba el precio de LISTA porque el motor no sabía de
+ * vigencias: el costo salía POR ENCIMA del real y el margen se veía peor de lo
+ * que es. Es el error contrario al habitual y, para decidir a cuánto vender el
+ * crédito, igual de malo.
+ *
+ * Se modela como una ventana y no cambiando el número porque las dos cifras son
+ * verdad, cada una en su periodo. Corregirlo sin fecha rompería el histórico; no
+ * corregirlo rompe el presente.
+ */
+describe('promoción con vigencia', () => {
+  const UN_MILLON = { entrada: 1_000_000, salida: 0 }
+
+  it('dentro de la ventana cobra el precio de introducción', () => {
+    expect(costoUsd('claude-sonnet-5', UN_MILLON, '2026-08-15T10:00:00.000Z').usd).toBeCloseTo(2, 6)
+  })
+
+  it('el último día ESTÁ incluido', () => {
+    // «hasta el 31 de agosto» significa que el 31 todavía cuenta.
+    expect(costoUsd('claude-sonnet-5', UN_MILLON, '2026-08-31T23:59:00.000Z').usd).toBeCloseTo(2, 6)
+  })
+
+  it('al día siguiente vuelve al precio de lista, solo', () => {
+    expect(costoUsd('claude-sonnet-5', UN_MILLON, '2026-09-01T00:01:00.000Z').usd).toBeCloseTo(3, 6)
+  })
+
+  it('SIN FECHA cae al precio de LISTA, no al promocional', () => {
+    /**
+     * El lado conservador: sobrestimar el costo, como mucho, hace cobrar de más;
+     * subestimarlo hace vender por debajo del costo sin enterarse. Sólo uno de
+     * los dos errores quiebra un negocio.
+     */
+    expect(costoUsd('claude-sonnet-5', UN_MILLON).usd).toBeCloseTo(3, 6)
+  })
+
+  it('la caché promocional también baja', () => {
+    const r = costoUsd('claude-sonnet-5', { entrada: 0, salida: 0, entradaCache: 1_000_000 }, '2026-08-15T00:00:00.000Z')
+    expect(r.usd).toBeCloseTo(0.2, 6)
+  })
+
+  it('un modelo sin promoción no cambia con la fecha', () => {
+    const a = costoUsd('claude-opus-4-8', UN_MILLON, '2026-08-15T00:00:00.000Z').usd
+    const b = costoUsd('claude-opus-4-8', UN_MILLON, '2027-01-01T00:00:00.000Z').usd
+    expect(a).toBe(b)
+  })
+
+  it('una fecha basura no activa la promoción', () => {
+    // Fallar hacia el precio de lista también aquí.
+    expect(costoUsd('claude-sonnet-5', UN_MILLON, 'ayer').usd).toBeCloseTo(3, 6)
+  })
+
+  it('toda promoción trae su fuente y su fecha de fin', () => {
+    for (const t of TARIFAS) {
+      if (!t.promocion) continue
+      expect(t.promocion.fuente, t.modelo).toMatch(/^https?:\/\//)
+      expect(t.promocion.hasta, t.modelo).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    }
+  })
+})

@@ -49,6 +49,28 @@ export interface TarifaModelo {
    * decisión que se olvida en una ruta nueva.
    */
   usdPorMinuto?: number
+  /**
+   * PRECIO PROMOCIONAL CON FECHA DE CADUCIDAD.
+   *
+   * Sonnet 5 está a $2/$10 de introducción hasta el 31-ago-2026, y después pasa
+   * a $3/$15. El motor no sabía de vigencias, así que la tabla llevaba el precio
+   * de LISTA: el costo salía por encima del real y el margen se veía peor de lo
+   * que es — justo al revés del error habitual, pero igual de malo para decidir
+   * a cuánto vender el crédito.
+   *
+   * Se modela como una ventana con fecha en vez de cambiar el número porque las
+   * dos cosas son verdad, cada una en su periodo: una nota de agosto costó $2 y
+   * una de septiembre costará $3. Sin la fecha, corregirlo hoy rompería el
+   * histórico, y no corregirlo rompe el presente.
+   */
+  promocion?: {
+    entradaUsdPorMillon: number
+    salidaUsdPorMillon: number
+    entradaCacheUsdPorMillon?: number
+    /** ISO. Último día INCLUIDO en la promoción. */
+    hasta: string
+    fuente: string
+  }
   /** De dónde salió y cuándo se miró. Sin esto la tarifa no se acepta. */
   fuente: string
   /** ISO. La tarifa se revisa periódicamente: los proveedores las cambian. */
@@ -93,7 +115,10 @@ export const TARIFAS: readonly TarifaModelo[] = [
    * Equivocarse hacia el margen pesimista no produce una mala decisión de
    * precio. Hacia el optimista, sí.
    */
-  { modelo: 'claude-sonnet-5', proveedor: 'anthropic', entradaUsdPorMillon: 3, salidaUsdPorMillon: 15, entradaCacheUsdPorMillon: 0.3, fuente: FUENTE_ANTHROPIC, consultado: CONSULTADO },
+  // Lista $3/$15; introducción $2/$10 hasta el 31-ago-2026 inclusive. Las dos
+  // cifras están en la misma página del proveedor.
+  { modelo: 'claude-sonnet-5', proveedor: 'anthropic', entradaUsdPorMillon: 3, salidaUsdPorMillon: 15, entradaCacheUsdPorMillon: 0.3, fuente: FUENTE_ANTHROPIC, consultado: CONSULTADO,
+    promocion: { entradaUsdPorMillon: 2, salidaUsdPorMillon: 10, entradaCacheUsdPorMillon: 0.2, hasta: '2026-08-31', fuente: FUENTE_ANTHROPIC } },
   { modelo: 'claude-sonnet-4-6', proveedor: 'anthropic', entradaUsdPorMillon: 3, salidaUsdPorMillon: 15, entradaCacheUsdPorMillon: 0.3, fuente: FUENTE_ANTHROPIC, consultado: CONSULTADO },
   { modelo: 'claude-sonnet-4-5', proveedor: 'anthropic', entradaUsdPorMillon: 3, salidaUsdPorMillon: 15, entradaCacheUsdPorMillon: 0.3, fuente: FUENTE_ANTHROPIC, consultado: CONSULTADO },
   { modelo: 'claude-haiku-4-5', proveedor: 'anthropic', entradaUsdPorMillon: 1, salidaUsdPorMillon: 5, entradaCacheUsdPorMillon: 0.1, fuente: FUENTE_ANTHROPIC, consultado: CONSULTADO },
@@ -184,15 +209,42 @@ export interface CostoCalculado {
 }
 
 /**
+ * La tarifa que estaba vigente EN LA FECHA DE LA LLAMADA.
+ *
+ * Se compara sólo la parte `YYYY-MM-DD` para no meter husos horarios en una
+ * decisión de precio: la promoción de un proveedor caduca por día de calendario,
+ * no a una hora concreta de un meridiano.
+ *
+ * **Sin fecha se cae al precio de LISTA, no al promocional.** Es el lado
+ * conservador: sobrestimar el costo puede hacer que se cobre de más, y
+ * subestimarlo hace vender por debajo del costo sin enterarse. Sólo uno de los
+ * dos errores quiebra un negocio.
+ */
+export function tarifaVigente(t: TarifaModelo, fechaISO?: string): TarifaModelo {
+  const p = t.promocion
+  if (!p || !fechaISO) return t
+  const dia = String(fechaISO).slice(0, 10)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dia) || dia > p.hasta) return t
+  return {
+    ...t,
+    entradaUsdPorMillon: p.entradaUsdPorMillon,
+    salidaUsdPorMillon: p.salidaUsdPorMillon,
+    entradaCacheUsdPorMillon: p.entradaCacheUsdPorMillon ?? t.entradaCacheUsdPorMillon,
+    fuente: p.fuente,
+  }
+}
+
+/**
  * Costo en USD de una llamada.
  *
  * @returns `usd: null` con su motivo cuando no se puede calcular. **Nunca 0 por
  *   defecto**: un cero se suma en los totales y hace pasar por gratis lo que
  *   simplemente no se sabe.
  */
-export function costoUsd(modelo: string, uso: Uso): CostoCalculado {
-  const tarifa = tarifaDe(modelo)
-  if (!tarifa) return { usd: null, motivo: 'sin_tarifa', tarifa: null }
+export function costoUsd(modelo: string, uso: Uso, fechaISO?: string): CostoCalculado {
+  const tarifaBase = tarifaDe(modelo)
+  if (!tarifaBase) return { usd: null, motivo: 'sin_tarifa', tarifa: null }
+  const tarifa = tarifaVigente(tarifaBase, fechaISO)
   const ent = Math.max(0, uso.entrada || 0)
   const sal = Math.max(0, uso.salida || 0)
   const cache = Math.max(0, uso.entradaCache || 0)

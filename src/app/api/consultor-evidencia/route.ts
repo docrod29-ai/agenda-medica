@@ -19,6 +19,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { gateCreditos, resolverClaveIA, registrarUso, nivelIADe, registrarConsultor, creditosUsadosDelMes, creditosExtraDelMes  } from '@/lib/ai-keys'
+import { anotarLlamada } from '@/lib/ia/gateway'
+import { esFundador } from '@/lib/authz/fundador'
 import { costoConsultor, planPorNivel } from '@/lib/planes-ia'
 import { buscarEvidencia, buscarEvidenciaMulti, textoCompletoPMC, type ArticuloPubMed } from '@/lib/evidencia/pubmed'
 import { traducirBasico, farmacosDetectados } from '@/lib/evidencia/traducir-medico'
@@ -65,7 +67,16 @@ async function extraerAprendizajes(key: string, pregunta: string, respuesta: str
 }
 
 // ── Streaming: SSE de Anthropic → NDJSON al cliente ───────────────
-async function* anthropicStream(key: string, model: string, system: string, user: string, maxTokens: number): AsyncGenerator<string> {
+/**
+ * `onUso` recibe el consumo que Anthropic manda DENTRO del propio SSE.
+ *
+ * En streaming no hay un JSON final del que leerlo: los tokens de entrada llegan
+ * en `message_start` y el total de salida en `message_delta`. Si no se recogen
+ * al vuelo, se pierden — y ésta es la llamada más cara de la aplicación (Opus
+ * con la pregunta del médico entera), así que perderla sesga el costo hacia
+ * abajo justo por arriba.
+ */
+async function* anthropicStream(key: string, model: string, system: string, user: string, maxTokens: number, onUso?: (u: Record<string, unknown>) => void): AsyncGenerator<string> {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': key, 'anthropic-version': AV, 'content-type': 'application/json' },
@@ -88,6 +99,8 @@ async function* anthropicStream(key: string, model: string, system: string, user
   const reader = r.body.getReader()
   const dec = new TextDecoder()
   let buf = ''
+  let uso: Record<string, unknown> = {}
+  try {
   for (;;) {
     const { done, value } = await reader.read()
     if (done) break
@@ -101,10 +114,16 @@ async function* anthropicStream(key: string, model: string, system: string, user
       if (payload === '[DONE]') return
       try {
         const j = JSON.parse(payload)
+        if (j.type === 'message_start' && j.message?.usage) uso = { ...j.message.usage }
+        if (j.type === 'message_delta' && j.usage) uso = { ...uso, ...j.usage }
         if (j.type === 'content_block_delta' && j.delta?.type === 'text_delta') yield j.delta.text as string
       } catch { /* keepalive / evento sin texto */ }
     }
   }
+  // `finally` y no al final del bucle: si el cliente se va a medio camino, el
+  // generador se cierra por abandono y el `return` de más abajo no llega a
+  // correr. El dinero ya salió igual.
+  } finally { onUso?.(uso) }
 }
 
 /**
@@ -126,17 +145,20 @@ function explicar(fallo: { status: number; cuerpo: string } | null, fuente: Fuen
 
 interface MetaStream { articulos: unknown[]; cenetecUrl?: string; modelos: string[]; sinCitas?: boolean; dosisFDA?: unknown; fechaBusqueda?: string }
 /** Devuelve una respuesta STREAM (NDJSON): 1ª línea meta (fuentes), luego deltas de texto. */
-function responderStream(opts: { key: string; model: string; system: string; user: string; maxTokens: number; fuente: FuenteLlave; meta: MetaStream; onDone: (texto: string) => void }): Response {
+function responderStream(opts: { key: string; model: string; system: string; user: string; maxTokens: number; fuente: FuenteLlave; meta: MetaStream; asiento: { uid: string; email?: string; clinicId: string | null; creditos: number }; onDone: (texto: string) => void }): Response {
   const enc = new TextEncoder()
   const stream = new ReadableStream({
     async start(controller) {
       const send = (o: unknown) => controller.enqueue(enc.encode(JSON.stringify(o) + '\n'))
       send({ type: 'meta', ...opts.meta })
       let full = ''
+      /** El consumo real, venga del stream o del respaldo sin streaming. */
+      let uso: Record<string, unknown> = {}
+      const t0Costo = Date.now()
       /** Último fallo REAL del proveedor, para poder decir la verdad al final. */
       let ultimo: { status: number; cuerpo: string } | null = null
       try {
-        for await (const t of anthropicStream(opts.key, opts.model, opts.system, opts.user, opts.maxTokens)) { full += t; send({ type: 'delta', text: t }) }
+        for await (const t of anthropicStream(opts.key, opts.model, opts.system, opts.user, opts.maxTokens, u => { uso = u })) { full += t; send({ type: 'delta', text: t }) }
         if (!full.trim()) throw new Error('vacío')
       } catch (e) {
         const s = (e as { status?: number })?.status
@@ -145,13 +167,39 @@ function responderStream(opts: { key: string; model: string; system: string; use
           let r = await claude(opts.key, opts.model, opts.system, opts.user, opts.maxTokens)
           if (r.status === 404 || r.status === 400) r = await claude(opts.key, 'claude-sonnet-5', opts.system, opts.user, opts.maxTokens)
           if (!r.ok) ultimo = { status: r.status, cuerpo: await r.clone().text().catch(() => '') }
-          const txt = r.ok ? textoDe(await r.json()).trim() : ''
+          // El respaldo sin streaming SÍ devuelve el consumo en el JSON; si se
+          // llegó hasta aquí es que el stream falló y no dejó ninguno.
+          const j = r.ok ? await r.json() : null
+          if (j?.usage) uso = j.usage
+          const txt = j ? textoDe(j).trim() : ''
           if (txt) { full = txt; send({ type: 'delta', text: txt }) }
           else send({ type: 'error', error: explicar(ultimo, opts.fuente) })
         } catch { send({ type: 'error', error: explicar(ultimo, opts.fuente) }) }
       }
       send({ type: 'done' })
       controller.close()
+      /**
+       * EL ASIENTO DE LA LLAMADA MÁS CARA DE LA APLICACIÓN.
+       *
+       * El consultor manda la pregunta del médico, el contexto del paciente y
+       * los resúmenes de PubMed a Opus. Es, con diferencia, la petición con más
+       * tokens de entrada de todo el producto — y era una de las que no dejaba
+       * rastro en el libro de costos.
+       *
+       * Se anota SIEMPRE que se llegue aquí, con éxito o sin él: si el proveedor
+       * respondió y luego el texto salió vacío, el dinero salió igual.
+       */
+      anotarLlamada(
+        {
+          feature: 'consultor-evidencia',
+          requestId: `ce-${opts.asiento.uid}-${t0Costo}`,
+          clinicId: opts.asiento.clinicId || null, uid: opts.asiento.uid,
+          creditos: opts.asiento.creditos, fuente: opts.fuente,
+          esFundador: esFundador(opts.asiento.email, process.env.SUPERADMIN_EMAILS),
+        },
+        'anthropic', opts.model,
+        { usage: uso }, Date.now() - t0Costo,
+      )
       try { opts.onDone(full) } catch { /* no-op */ }
     },
   })
@@ -247,6 +295,7 @@ export async function POST(req: NextRequest) {
       return responderStream({
         key, model, system: sysSC, user: usrSC, maxTokens: 2600,
         fuente,
+        asiento: { uid: acceso.uid, email: acceso.email ?? undefined, clinicId, creditos: costo },
         meta: { articulos: [], sinCitas: true, cenetecUrl, modelos: [nivel === 'premium' ? 'Claude Opus 4.8' : 'Claude Sonnet 5'] },
         onDone: (txt) => {
           void registrarUso(clinicId, fuente)
@@ -283,6 +332,7 @@ export async function POST(req: NextRequest) {
     return responderStream({
       key, model, system, user, maxTokens: 3200,
       fuente,
+      asiento: { uid: acceso.uid, email: acceso.email ?? undefined, clinicId, creditos: costo },
       meta: { articulos: articulosMin, cenetecUrl, dosisFDA: dosis, sinCitas: false, fechaBusqueda: new Date().toISOString().slice(0, 10), modelos: [nivel === 'premium' ? 'Claude Opus 4.8' : 'Claude Sonnet 5'] },
       onDone: (txt) => {
         void registrarUso(clinicId, fuente)

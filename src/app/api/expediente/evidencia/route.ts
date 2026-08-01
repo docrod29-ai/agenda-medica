@@ -18,6 +18,8 @@ import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { gateCreditos, resolverClaveIA, registrarUso, nivelIADe, registrarCreditos } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
+import { anotarLlamada } from '@/lib/ia/gateway'
+import { esFundador } from '@/lib/authz/fundador'
 import type { FuenteLlave } from '@/lib/finanzas/cost-ledger'
 import { buscarEvidenciaMulti, type ArticuloPubMed } from '@/lib/evidencia/pubmed'
 import { traducirBasico } from '@/lib/evidencia/traducir-medico'
@@ -34,6 +36,10 @@ export async function POST(req: NextRequest) {
   if (!acceso.ok) return acceso.response
   const _rl = await limitarOResponder(`evidencia:${acceso.uid}`, 30, 60)
   if (_rl) return _rl
+  // Se copian aquí porque el asiento se deja DENTRO de `analizarClaude`, y
+  // TypeScript no conserva ahí el afinado de tipo que hizo el `if (!acceso.ok)`.
+  const uid = acceso.uid
+  const email = acceso.email
 
   // RED DE SEGURIDAD TOTAL: nada dentro puede tumbar el endpoint con un 500;
   // si algo falla, devolvemos el ERROR REAL (no un toast mudo). Ver bug 2026-07.
@@ -95,6 +101,21 @@ export async function POST(req: NextRequest) {
       if (r.status === 404 || r.status === 400) r = await llamar(MODELOS_HAIKU[1])
       if (!r.ok) return []
       const d = await r.json()
+      // Esta ruta hace DOS llamadas de pago: ésta, que arma las consultas de
+      // PubMed con Haiku, y el análisis grande. La pequeña es barata, pero corre
+      // en cada petición de evidencia — un renglón barato que ocurre siempre
+      // acaba pesando más que uno caro que ocurre poco.
+      anotarLlamada(
+        {
+          feature: 'evidencia-consultas',
+          requestId: req.headers.get('x-vercel-id') || `evq-${uid}-${Date.now()}`,
+          clinicId: clinicId ?? null, uid,
+          creditos: 0, fuente,
+          esFundador: esFundador(email, process.env.SUPERADMIN_EMAILS),
+        },
+        'anthropic', String(d.model ?? MODELOS_HAIKU[0]),
+        d, 0,
+      )
       const t: string = (Array.isArray(d.content) ? d.content : []).find((b: { type?: string }) => b?.type === 'text')?.text ?? ''
       const mm = t.match(/\[[\s\S]*\]/)
       const arr = mm ? JSON.parse(mm[0]) : []
@@ -172,6 +193,8 @@ export async function POST(req: NextRequest) {
   })
 
   const diag: string[] = []   // motivos de fallo de cada modelo (para que el aviso sea claro)
+  /** Reloj para medir la latencia que va al libro de costos. */
+  const t0Costo = Date.now()
   const pista = (s: number) => s === 401 ? 'llave inválida' : s === 403 ? 'llave sin permiso' : s === 429 ? 'sin créditos o saturada' : s === 404 ? 'modelo no disponible' : `HTTP ${s}`
 
   // Análisis con Claude (Opus premium / Sonnet pro) — con razonamiento si premium.
@@ -190,6 +213,31 @@ export async function POST(req: NextRequest) {
       for (let i = 1; i < modelos.length && (res.status === 404 || res.status === 400); i++) res = await llamar(modelos[i])
       if (!res.ok) { diag.push(`Claude: ${pista(res.status)}`); return null }
       const data = await res.json()
+      /**
+       * EL ASIENTO SE DEJA AQUÍ, NO DESPUÉS DE PARSEAR.
+       *
+       * Anthropic ya cobró en cuanto respondió. Si el JSON viene mal formado y
+       * la función devuelve `null`, el dinero salió igual — anotarlo sólo en el
+       * camino feliz haría que los fallos de formato fueran, en el tablero,
+       * gratis. Es de los pocos sitios donde el orden de dos líneas cambia si un
+       * número es verdad o no.
+       *
+       * Este análisis va con `cache_control`, así que buena parte de la entrada
+       * se cobra a un décimo: `usoDe` lee `cache_read_input_tokens` y el motor
+       * de precios la aplica. Sumarla como entrada completa era el error de 10×
+       * que ya costó una corrección.
+       */
+      anotarLlamada(
+        {
+          feature: 'evidencia',
+          requestId: req.headers.get('x-vercel-id') || `ev-${uid}-${Date.now()}`,
+          clinicId: clinicId ?? null, uid,
+          creditos: COSTO_CREDITOS.evidencia, fuente,
+          esFundador: esFundador(email, process.env.SUPERADMIN_EMAILS),
+        },
+        'anthropic', String(data.model ?? modelos[0]),
+        data, Date.now() - t0Costo,
+      )
       const bloques: { type?: string; text?: string }[] = Array.isArray(data.content) ? data.content : []
       return soloJSON(bloques.find(b => b?.type === 'text')?.text ?? bloques[0]?.text ?? '')
     } catch (e) { diag.push(`Claude: ${String(e instanceof Error ? e.message : e).slice(0, 40)}`); return null }

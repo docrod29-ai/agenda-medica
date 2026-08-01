@@ -23,6 +23,8 @@ import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { gateCreditos, resolverClaveIA, registrarCreditos  } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
+import { anotarLlamada } from '@/lib/ia/gateway'
+import { esFundador } from '@/lib/authz/fundador'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -33,8 +35,9 @@ export async function POST(req: NextRequest) {
   const _rl = await limitarOResponder(`transcribir-chunk:${acceso.uid}`, 120, 60)
   if (_rl) return _rl
 
-  // Usa la llave del consultorio si la tiene. No cuenta ni aplica tope: es el
-  // preview en vivo de UNA consulta que se cuenta al transcribir/procesar final.
+  // Usa la llave del consultorio si la tiene, cuenta créditos y aplica tope.
+  // (El comentario que había aquí decía lo contrario — «no cuenta ni aplica
+  //  tope» — y llevaba desactualizado desde que se añadió `gateCreditos`.)
   const { key: apiKey, clinicId, fuente } = await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY)
   // TOPE DE CRÉDITOS (auditoría 26-jul): sin esto, un consultorio con los
   // créditos agotados seguía quemando la llave del dueño indefinidamente.
@@ -67,6 +70,15 @@ export async function POST(req: NextRequest) {
 
   const chunkIdx = Number(formData.get('chunkIdx') ?? 0)
   const prevContext = String(formData.get('prevContext') ?? '').slice(0, 500)
+  /**
+   * Segundos de audio de ESTE trozo, que manda el cliente.
+   *
+   * Se acota a 10 minutos: un valor absurdo llegado del navegador no puede
+   * inflar el libro de costos. Y si no viene, se queda en `undefined` a
+   * propósito — un 0 se traduciría en «costó nada», que es peor que no saberlo.
+   */
+  const minutosAudio = Math.min(10, Math.max(0, Number(formData.get('duracionSeg') ?? 0) / 60)) || undefined
+  const t0Costo = Date.now()
 
   // Mismo cascade de modelos que el endpoint principal
   const modeloOverride = process.env.OPENAI_TRANSCRIBE_MODEL
@@ -100,6 +112,38 @@ export async function POST(req: NextRequest) {
       if (res.ok) {
         const data = await res.json()
         void registrarCreditos(clinicId, COSTO_CREDITOS.transcribirChunk)
+        /**
+         * EL ASIENTO QUE FALTABA — y faltaba justo donde más se gasta.
+         *
+         * Esta ruta se dispara CADA ~20 SEGUNDOS de cada consulta, en paralelo,
+         * para pintar el texto en vivo. Es la llamada de IA más frecuente de toda
+         * la aplicación y era la única que no dejaba rastro en el libro de
+         * costos: el tablero de /superadmin/costos enseñaba el gasto de la
+         * transcripción FINAL y se saltaba entero el de la transcripción en
+         * vivo, que ocurre decenas de veces por cada una de aquéllas.
+         *
+         * El efecto no era que faltara un renglón: era que el costo de la voz
+         * salía sistemáticamente por debajo del real. Y de eso come la decisión
+         * de a cuánto vender el crédito.
+         *
+         * La transcripción se cobra POR MINUTO, no por tokens, así que el uso
+         * viaja en `minutosAudio`. Sin la duración no hay costo que calcular: se
+         * anota igual —queda constancia de la llamada— pero el motor de precios
+         * devuelve nulo en vez de cero, que es la diferencia entre «no lo sé» y
+         * «fue gratis».
+         */
+        anotarLlamada(
+          {
+            feature: 'transcribir-chunk',
+            requestId: req.headers.get('x-vercel-id') || `trc-${acceso.uid}-${chunkIdx}-${Date.now()}`,
+            clinicId: clinicId ?? null, uid: acceso.uid,
+            creditos: COSTO_CREDITOS.transcribirChunk, fuente,
+            esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
+          },
+          'openai', model,
+          { usage: { input_tokens: 0, output_tokens: 0 }, minutosAudio },
+          Date.now() - t0Costo,
+        )
         return NextResponse.json({
           ok: true,
           text: data.text ?? '',
