@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { estadoPaywall } from '@/lib/finanzas/paywall-prueba'
 import { useRouter, usePathname } from 'next/navigation'
@@ -30,7 +30,7 @@ import { AutoLogout } from '@/components/AutoLogout'
 import { PaletteBusqueda } from '@/components/PaletteBusqueda'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { rutaPermitida } from '@/lib/modulos'
-import { PLANES, precioTexto } from '@/lib/planes-ia'
+import { PLANES, precioTexto, type PlanCreditos } from '@/lib/planes-ia'
 
 function ModeBanner() {
   const { mode } = useMode()
@@ -167,17 +167,59 @@ function estadoAcceso(clinic: { status?: string; paseLibre?: boolean; plan?: str
  * en un botón no caben. `planes-precios.test.ts` vigila que no vuelva a
  * colarse un precio.
  */
-const PLANES_GATE = (['agenda', 'clinica', 'premium'] as const).map(clave => ({
-  key: clave,
-  label: PLANES[clave].nombre,
-  price: precioTexto(PLANES[clave]),
-  destacado: PLANES[clave].destacado,
-  nota: {
-    agenda:  'Agenda + expediente · sin IA',
-    clinica: `${PLANES.clinica.creditos} créditos de IA/mes`,
-    premium: `${PLANES.premium.creditos} créditos · IA máxima (Opus + GPT-5)`,
-  }[clave],
-}))
+const CLAVES_GATE = ['agenda', 'clinica', 'premium'] as const
+
+/** La nota de una línea es redacción comercial, no un dato: no se edita en la consola. */
+const NOTA_GATE = (creditosClinica: number, creditosPremium: number) => ({
+  agenda:  'Agenda + expediente · sin IA',
+  clinica: `${creditosClinica} créditos de IA/mes`,
+  premium: `${creditosPremium} créditos · IA máxima (Opus + GPT-5)`,
+})
+
+function planesGate(planes: Record<string, PlanCreditos>) {
+  const nota = NOTA_GATE(planes.clinica.creditos, planes.premium.creditos)
+  return CLAVES_GATE.map(clave => ({
+    key: clave,
+    label: planes[clave].nombre,
+    price: precioTexto(planes[clave]),
+    destacado: planes[clave].destacado,
+    nota: nota[clave],
+  }))
+}
+
+/**
+ * EL PRECIO SE PIDE AL SERVIDOR, NO SE LEE DE LA CONSTANTE.
+ *
+ * Ésta es la pantalla que ve alguien con la tarjeta en la mano. Si el dueño sube
+ * una tarifa en la consola y aquí sigue el precio del código, el médico lee uno
+ * y le cobran otro — y se entera después de haber pagado.
+ *
+ * Mientras llega la respuesta se pinta el de fábrica, que es lo que había antes
+ * de existir esto: enseñar la pantalla vacía por esperar un precio sería peor
+ * que enseñar el anterior durante un instante.
+ */
+function usePlanesGate() {
+  const [planes, setPlanes] = useState<Record<string, PlanCreditos>>(PLANES)
+  useEffect(() => {
+    let vivo = true
+    fetch('/api/planes')
+      .then(r => r.json())
+      .then(x => {
+        if (!vivo || !x?.ok || !Array.isArray(x.planes)) return
+        setPlanes(prev => {
+          const mezcla = { ...prev }
+          for (const p of x.planes) {
+            if (mezcla[p.clave]) mezcla[p.clave] = { ...mezcla[p.clave], precioMXN: p.precioMXN, creditos: p.creditos }
+          }
+          return mezcla
+        })
+      })
+      // Sin catálogo se sigue con el de fábrica; el gate NO puede quedarse mudo.
+      .catch(() => { /* silencio deliberado */ })
+    return () => { vivo = false }
+  }, [])
+  return useMemo(() => planesGate(planes), [planes])
+}
 
 /** Tras pagar, el webhook tarda unos segundos. Clínica en vivo → el gate se quita
  *  solo al activarse. Fallback: recargar una vez por si el webhook se retrasa. */
@@ -198,6 +240,9 @@ function ActivandoCuenta() {
 function AccesoGate({ estado, clinicId, esMedico, email }: { estado: 'sin_tarjeta' | 'vencido'; clinicId: string | null; esMedico: boolean; email: string }) {
   const [cargando, setCargando] = useState<string | null>(null)
   const [ciclo, setCiclo] = useState<'mensual' | 'anual'>('mensual')
+  // Los precios vigentes, no los del código: ésta es la pantalla que ve alguien
+  // con la tarjeta en la mano.
+  const planesGate_ = usePlanesGate()
   const nuevo = estado === 'sin_tarjeta'
   const iniciar = async (plan: string) => {
     if (!clinicId) return
@@ -247,7 +292,7 @@ function AccesoGate({ estado, clinicId, esMedico, email }: { estado: 'sin_tarjet
         )}
         {esMedico && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 14, maxWidth: 660, margin: '0 auto' }}>
-            {PLANES_GATE.map(p => {
+            {planesGate_.map(p => {
               const pr = precioMostrar(p.price)
               return (
               <div key={p.key} style={{

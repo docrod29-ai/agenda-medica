@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { PLANES, RECARGA, MOTORES, TOPE_ECONOMICO, precioAnual, type PlanCreditos } from '@/lib/planes-ia'
+import { adminDb } from '@/lib/firebase-admin'
+import { catalogoEfectivo, type CatalogoGuardado } from '@/lib/finanzas/catalogo-planes'
 import { TablaNivelesIA } from '@/components/TablaNivelesIA'
 
 export const metadata = {
@@ -60,7 +62,36 @@ function Card({ plan }: { plan: PlanCreditos }) {
   )
 }
 
-export default function PreciosPage() {
+/**
+ * Se revalida cada 60 s: un precio no cambia cada minuto, y así la página sigue
+ * siendo estática para quien la visita. Ése es el retraso máximo entre que el
+ * dueño guarda un precio nuevo y el mundo lo ve.
+ */
+export const revalidate = 60
+
+/**
+ * LOS PRECIOS QUE SE PINTAN SALEN DEL CATÁLOGO VIGENTE, NO DE LA CONSTANTE.
+ *
+ * Es lo que faltaba para que el catálogo editable sirviera de algo: se podía
+ * cambiar un precio en la consola del dueño y esta página —la que ve quien está
+ * a punto de comprar— seguía enseñando el del código. Un ajuste que no llega al
+ * cliente no es un ajuste.
+ *
+ * Si la base no responde se usan los valores de fábrica. Es la respuesta menos
+ * mala: un precio de hace un mes es mucho mejor que una página de precios en
+ * blanco delante de alguien decidiendo si paga.
+ */
+async function planesVigentes() {
+  try {
+    const snap = await adminDb.collection('platform_config').doc('catalogo_planes').get()
+    return catalogoEfectivo(snap.exists ? (snap.data() as CatalogoGuardado) : null).planes
+  } catch {
+    return PLANES
+  }
+}
+
+export default async function PreciosPage() {
+  const planes = await planesVigentes()
   return (
     <div style={{ background: 'var(--bg, #f8fafc)', minHeight: '100vh', padding: '56px 20px 80px' }}>
       <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
@@ -76,9 +107,9 @@ export default function PreciosPage() {
       </div>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, justifyContent: 'center', alignItems: 'stretch', marginTop: 44 }}>
-        <Card plan={PLANES.agenda} />
-        <Card plan={PLANES.clinica} />
-        <Card plan={PLANES.premium} />
+        <Card plan={planes.agenda} />
+        <Card plan={planes.clinica} />
+        <Card plan={planes.premium} />
       </div>
 
       {/* ── Menú de IA: los 3 motores ── */}
