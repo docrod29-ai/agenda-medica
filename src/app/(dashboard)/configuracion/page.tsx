@@ -14,6 +14,10 @@ import { X as IconX } from 'lucide-react'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useConfig } from '@/hooks/useConfig'
 import { descansosEnMinutos, pisaDescanso } from '@/lib/availability'
+import { instanteMX } from '@/lib/timezone'
+
+/** Si el consultorio no declaró zona, la misma que usa el resto del producto. */
+const TZ_CONSULTORIO_DEFECTO = 'America/Mexico_City'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
 import { useDoctors } from '@/hooks/useDoctors'
 import { useToast } from '@/context/ToastContext'
@@ -878,7 +882,7 @@ export default function ConfiguracionPage() {
       {tab === 'equipo' && <EquipoTab clinicId={clinicId} clinicNombre={form.nombreClinica || 'tu clínica'} />}
 
       {/* Bloqueos de horario */}
-      {tab === 'bloqueos' && <BloqueosTab clinicId={clinicId} />}
+      {tab === 'bloqueos' && <BloqueosTab clinicId={clinicId} zonaHoraria={form.zonaHoraria} />}
 
       {/* Portal del paciente */}
       {tab === 'portal' && <PortalTab clinicId={clinicId} clinicNombre={form.nombreClinica || 'tu clínica'} />}
@@ -1965,7 +1969,7 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
 
 
 /* ── Bloqueos de horario ─────────────────────────────────── */
-function BloqueosTab({ clinicId }: { clinicId: string | null }) {
+function BloqueosTab({ clinicId, zonaHoraria }: { clinicId: string | null; zonaHoraria?: string }) {
   const { user } = useAuth()
   const { toast, confirm } = useToast()
   const [bloques, setBloques] = useState<TimeBlock[]>([])
@@ -1988,9 +1992,21 @@ function BloqueosTab({ clinicId }: { clinicId: string | null }) {
     if (!desde || !hasta) { toast("Indica fecha y hora de inicio y fin", "error"); return }
     setSaving(true)
     try {
+      /**
+       * LA HORA ES LA DEL CONSULTORIO, NO LA DEL NAVEGADOR.
+       *
+       * `new Date('2026-08-10T14:00')` interpreta ese texto en la zona de QUIEN
+       * lo teclea. Todo lo que consume estos bloqueos ancla la hora de pared a
+       * `config.zonaHoraria`, así que un médico creando el bloqueo desde otro
+       * huso —de viaje, o simplemente con el equipo mal configurado— lo guardaba
+       * corrido: escribía 14:00–18:00 y quedaba 13:00–17:00 del consultorio. Las
+       * 17:00 seguían reservables y las 13:00 desaparecían.
+       */
+      const tz = zonaHoraria || TZ_CONSULTORIO_DEFECTO
+      const aInstante = (v: string) => instanteMX(v.slice(0, 10), v.slice(11, 16), tz).toISOString()
       await crearBloque(clinicId, {
-        desde: new Date(desde).toISOString(),
-        hasta: new Date(hasta).toISOString(),
+        desde: aInstante(desde),
+        hasta: aInstante(hasta),
         tipo, motivo: motivo.trim() || undefined,
         creadoPor: user.email ?? "",
       })

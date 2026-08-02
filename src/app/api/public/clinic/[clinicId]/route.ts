@@ -82,6 +82,10 @@ export async function GET(
       medicos,
       tiposCita: Object.entries(config.duraciones ?? {}).map(([k, v]) => ({ tipo: k, duracion: v })),
       horarios: config.horario ?? {},
+      // La ZONA del consultorio. Sin ella el portal armaba la lista de días con
+      // el reloj del paciente: alguien en otro huso perdía un día entero de la
+      // agenda sin ningún aviso.
+      zonaHoraria: config.zonaHoraria ?? 'America/Mexico_City',
     })
   } catch (err) {
     safeLog.error('[public/clinic] Error:', err)

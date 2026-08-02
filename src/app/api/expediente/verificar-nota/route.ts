@@ -66,7 +66,27 @@ export async function POST(req: NextRequest) {
   const alergias = Array.isArray(ctx.alergias) ? (ctx.alergias as string[]).join(', ') : (ctx.alergias ?? 'no referidas')
 
   const system = GUARDA_INYECCION + '\n\n' + 'Eres un médico revisor experto en seguridad del paciente. Revisas una nota clínica ya redactada contra la transcripción de la consulta y los datos del paciente. Señala SOLO problemas de seguridad o congruencia REALES: dosis peligrosas o fuera de rango, interacciones farmacológicas, fármaco recetado contra una alergia del paciente, contradicciones entre la nota y lo dicho, diagnósticos sin sustento en la transcripción, o datos críticos faltantes. NO reescribas la nota. NO inventes problemas si no los hay. Responde SOLO un objeto JSON: {"hallazgos":[{"severidad":"alta|media|baja","tema":"...","problema":"...","sugerencia":"..."}]}. Si todo está correcto, devuelve {"hallazgos":[]}.'
-  const userMsg = `PACIENTE: edad ${ctx.edad ?? '?'}, sexo ${ctx.sexo ?? '?'}, alergias: ${alergias}.\n\nTRANSCRIPCIÓN DE LA CONSULTA:\n${delimitar((body.transcripcion ?? '').slice(0, 12000))}\n\nNOTA GENERADA A REVISAR:\n${notaTexto.slice(0, 12000)}\n\nDevuelve solo el JSON de hallazgos.`
+  /**
+   * EL RECORTE NO PUEDE SER SILENCIOSO.
+   *
+   * La transcripción y la nota se recortaban a 12 000 caracteres cada una sin
+   * ninguna marca. Pasado ese punto la revisora de seguridad no ve la cola de la
+   * consulta —donde suele estar el plan y la receta— y puede responder
+   * `{"hallazgos":[]}`, que el cliente pinta como «revisado y limpio».
+   *
+   * Esta ruta YA tiene un canal honesto para «no se pudo revisar»
+   * (`incompleto: true`), puesto por una auditoría anterior para el caso del
+   * JSON ilegible. El truncamiento no lo usaba.
+   */
+  const TOPE = 12000
+  const transcripcionCompleta = body.transcripcion ?? ''
+  if (transcripcionCompleta.length > TOPE || notaTexto.length > TOPE) {
+    return NextResponse.json({
+      ok: false, incompleto: true, hallazgos: [],
+      error: `La consulta es más larga de lo que la segunda opinión puede revisar de una vez (${Math.max(transcripcionCompleta.length, notaTexto.length).toLocaleString('es-MX')} caracteres, tope ${TOPE.toLocaleString('es-MX')}). La nota NO fue verificada — revísala tú.`,
+    }, { status: 200 })
+  }
+  const userMsg = `PACIENTE: edad ${ctx.edad ?? '?'}, sexo ${ctx.sexo ?? '?'}, alergias: ${alergias}.\n\nTRANSCRIPCIÓN DE LA CONSULTA:\n${delimitar(transcripcionCompleta)}\n\nNOTA GENERADA A REVISAR:\n${notaTexto}\n\nDevuelve solo el JSON de hallazgos.`
 
   /**
    * Por el gateway (§P–T): aquí vivía la misma cascada de modelos y el mismo
