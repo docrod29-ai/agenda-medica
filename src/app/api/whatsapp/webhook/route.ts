@@ -37,6 +37,7 @@ import { hoyISO, sumarDiasISO, TZ_DEFAULT } from '@/lib/timezone'
 // time-blocks-core.ts (el SDK del cliente se inicializa al importarse).
 import { estaBloqueado, type TimeBlock } from '@/lib/time-blocks-core'
 import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
+import { dondeEsLaCita } from '@/lib/telesalud/donde-es'
 import { getAvailableSlots, getDaySchedule, validarHorarioDia, descansosEnMinutos, pisaDescanso } from '@/lib/availability'
 
 /**
@@ -656,8 +657,16 @@ export async function handleMessage(from: string, body: string, clinicId: string
       `📋 *Tipo:* ${tipoLabel}`,
       `📅 *Fecha:* ${formatDate(datos.fecha)}`,
       `🕐 *Hora:* ${datos.hora} hrs`,
-      `🏥 *Consultorio:* ${clinicName}`,
-      config?.direccion ? `📍 *Dirección:* ${config.direccion}` : '',
+      /**
+       * DÓNDE, SEGÚN EL TIPO. El bot ofrece «5️⃣ Teleconsulta» en su propio menú
+       * y luego imprimía el consultorio y la dirección igual que a una cita
+       * presencial, sin el enlace de la sala por ningún lado. Ver
+       * `lib/telesalud/donde-es.ts`; aquí todavía no hay id de cita —no existe—
+       * así que el enlace llega en el mensaje de después.
+       */
+      ...(datos.tipo === 'teleconsulta'
+        ? ['💻 *Es una videoconsulta*: no necesita acudir al consultorio.']
+        : [`🏥 *Consultorio:* ${clinicName}`, config?.direccion ? `📍 *Dirección:* ${config.direccion}` : '']),
       ``,
       `Responda *SÍ* para confirmar o *NO* para cancelar.`,
     ].filter(l => l !== '').join('\n')
@@ -758,8 +767,12 @@ export async function handleMessage(from: string, body: string, clinicId: string
         `🎉 *¡Su cita ha sido registrada!*`,
         ``,
         `📅 ${formatDate(datos.fecha)} a las ${datos.hora} hrs`,
-        `🏥 ${clinicName}`,
-        config?.direccion ? `📍 ${config.direccion}` : '',
+        // Ya existe la cita, así que aquí SÍ se puede dar el enlace de la sala.
+        ...dondeEsLaCita({
+          tipo: datos.tipo, citaId: nuevoFolio, clinicId,
+          direccion: config?.direccion, googleMapsUrl: config?.googleMapsUrl,
+          baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+        }).lineas.map(l => l),
         ``,
         `Recibirá un recordatorio el día anterior. Para cambios, comuníquese al ${adminPhone}.`,
         ``,
@@ -847,6 +860,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
       const [sh, sm] = slotHora.split(':').map(Number)
       const sStart = sh * 60 + sm, sEnd = sStart + duracion
       const diaRefLE = adminDb.collection('clinics').doc(clinicId).collection('slot_locks').doc(slotFecha)
+      let citaIdListaEspera = ''
       let ocupadoLE = false
       try {
         await adminDb.runTransaction(async (tx) => {
@@ -863,7 +877,11 @@ export async function handleMessage(from: string, body: string, clinicId: string
           })
           if (conflicto) throw new Error('CONFLICTO')
           tx.set(diaRefLE, { ultimaReserva: now }, { merge: true })
-          tx.set(apptsColLE.doc(), {
+          // El id se toma ANTES de escribir: es lo que permite darle al paciente
+          // el enlace de su sala si la cita es una teleconsulta.
+          const refLE = apptsColLE.doc()
+          citaIdListaEspera = refLE.id
+          tx.set(refLE, {
             pacienteId: pacienteIdLE,
             pacienteNombre: datos.nombre,
             pacienteTelefono: from,
@@ -911,7 +929,21 @@ export async function handleMessage(from: string, body: string, clinicId: string
         }
       }
 
-      await send(from, `✅ ¡Cita agendada!\n\n📅 ${formatDate(slotFecha)} a las ${slotHora} hrs\n🏥 ${clinicName}\n${config?.direccion || ''}\n\nLe enviaremos un recordatorio. ¡Hasta pronto! 😊`)
+      {
+        const donde = dondeEsLaCita({
+          tipo: datos.tipo, citaId: citaIdListaEspera, clinicId,
+          direccion: config?.direccion, googleMapsUrl: config?.googleMapsUrl,
+          baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+        })
+        await send(from, [
+          `✅ ¡Cita agendada!`, ``,
+          `📅 ${formatDate(slotFecha)} a las ${slotHora} hrs`,
+          ...(donde.esVideo ? [] : [`🏥 ${clinicName}`]),
+          ...donde.lineas,
+          ``,
+          `Le enviaremos un recordatorio. ¡Hasta pronto! 😊`,
+        ].filter(l => l !== undefined).join('\n'))
+      }
 
       if (adminPhone) {
         await send(adminPhone, `🔔 Paciente de lista de espera confirmó cita:\n${datos.nombre} – ${slotFecha} ${slotHora}`)
