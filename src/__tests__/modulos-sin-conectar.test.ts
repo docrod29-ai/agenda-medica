@@ -62,7 +62,7 @@ const HUERFANOS_ACEPTADOS: Record<string, string> = {
   'src/lib/i18n.ts': 'Internacionalización ligera: base para LATAM, sin segundo idioma en uso.',
   'src/lib/permissions.ts': 'Permisos por rol en aplicación. La autorización REAL está en Firestore rules.',
   'src/components/DoctorOnboarding.tsx': 'Alta guiada del médico: escrita, sin pantalla que la monte todavía.',
-  'src/lib/branches.ts': 'Multi-sucursal: el modelo existe, la interfaz no.',
+  'src/lib/branches.ts': 'Multi-sucursal: el modelo existe, la interfaz y el motor de agenda no. Desde v847 la API TAMPOCO acepta `branchId`: aceptar un campo que se ignora es prometer una función que no existe.',
   'src/lib/curp.ts': 'Validación de CURP: el campo salió del formulario corto y quedó sin consumidor.',
   'src/lib/whatsapp/adapter.ts': 'Adaptador de proveedor de WhatsApp: hoy se usa 360dialog directo.',
 }
