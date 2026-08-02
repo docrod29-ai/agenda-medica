@@ -8,6 +8,7 @@ import { enviarProactivo } from '@/lib/whatsapp/proactivo'
 import { entradasVencidas, resolverEntrada, reprogramarEntrada } from '@/lib/whatsapp/outbox'
 import { normalizarTelefonoWa } from '@/lib/whatsapp/telefono'
 import { instanteMX, hoyISO, sumarDiasISO, ahoraMinutosDelDia, TZ_DEFAULT } from '@/lib/timezone'
+import { dondeEsLaCita } from '@/lib/telesalud/donde-es'
 
 const CRON_SECRET = process.env.CRON_SECRET
 
@@ -143,11 +144,20 @@ export async function GET(req: NextRequest) {
 
         const appointments = snap.docs.map(d => ({ id: d.id, ...d.data() } as Appointment))
 
+        /**
+         * `{donde}` EN LUGAR DE `{direccion}`, Y `{cierre}` EN LUGAR DE «Te esperamos».
+         *
+         * Estas plantillas se escribieron cuando todas las citas eran
+         * presenciales: a un paciente de TELECONSULTA le llegaba la dirección
+         * del consultorio y «te esperamos», sin el enlace de la sala por ningún
+         * lado. En el mejor caso llama para preguntar; en el peor conduce hasta
+         * allá. Lo decide `lib/telesalud/donde-es.ts`, por tipo de cita.
+         */
         const template24h =
-          `Hola {paciente} 👋\n\nTe recordamos que tienes una cita *mañana* con {medico}.\n\n📅 {fecha}\n🕐 {hora}\n📍 {clinica}\n{direccion}\n\n¿Confirmas tu asistencia? Responde *SÍ* para confirmar o *NO* para cancelar.\n\nConsultorio: {telefono}`
+          `Hola {paciente} 👋\n\nTe recordamos que tienes una cita *mañana* con {medico}.\n\n📅 {fecha}\n🕐 {hora}\n{clinicaLinea}{donde}\n\n¿Confirmas tu asistencia? Responde *SÍ* para confirmar o *NO* para cancelar.\n\nConsultorio: {telefono}`
 
         const templateSameDay =
-          `Buenos días {paciente} ☀️\n\nHoy tienes tu cita con {medico}:\n\n🕐 {hora}\n📍 {clinica}\n{direccion}\n\nTe esperamos. Cualquier duda: {telefono}`
+          `Buenos días {paciente} ☀️\n\nHoy tienes tu cita con {medico}:\n\n🕐 {hora}\n{clinicaLinea}{donde}\n\n{cierre} Cualquier duda: {telefono}`
 
         for (const appt of appointments) {
           if (!appt.consentimientoMensajes) { totals.skipped++; continue }
@@ -160,6 +170,14 @@ export async function GET(req: NextRequest) {
           const apptDateObj = instanteMX(apptDate, apptHour, tzClinica)
           const diffHours = (apptDateObj.getTime() - now.getTime()) / (1000 * 60 * 60)
 
+          const lugar = dondeEsLaCita({
+            tipo: appt.tipo,
+            citaId: appt.id,
+            clinicId,
+            direccion: config.direccion,
+            googleMapsUrl: config.googleMapsUrl,
+            baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+          })
           const msgData = {
             paciente: appt.pacienteNombre,
             fecha: formatDateES(apptDate),
@@ -167,6 +185,11 @@ export async function GET(req: NextRequest) {
             // El médico de LA CITA, no el titular de la clínica (multi-médico).
             medico: appt.medicoNombre || config.nombreMedico || 'el médico',
             clinica: config.nombreClinica,
+            // El nombre del consultorio tampoco va en una videoconsulta: sobra y
+            // sugiere que hay que ir.
+            clinicaLinea: lugar.esVideo ? '' : `📍 ${config.nombreClinica ?? ''}\n`,
+            donde: lugar.lineas.join('\n'),
+            cierre: lugar.cierre,
             direccion: config.direccion || '',
             telefono: config.whatsappConsultorio || config.telefonoAdmin,
           }

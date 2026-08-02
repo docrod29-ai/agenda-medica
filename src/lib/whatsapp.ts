@@ -1,16 +1,36 @@
 import { Appointment, ClinicConfig, WaitlistEntry } from '@/types'
+import { dondeEsLaCita } from '@/lib/telesalud/donde-es'
+
+/**
+ * DÓNDE ES LA CITA — el bloque que antes era siempre la dirección.
+ *
+ * Los tres mensajes de abajo se escribieron cuando todas las citas eran
+ * presenciales y nunca miraron el tipo: a un paciente de TELECONSULTA se le
+ * mandaba la dirección del consultorio y «te esperamos», sin darle jamás el
+ * enlace de la sala. Ver `lib/telesalud/donde-es.ts`.
+ */
+function lugarDe(cita: Appointment, config: ClinicConfig) {
+  return dondeEsLaCita({
+    tipo: cita.tipo,
+    citaId: cita.id,
+    clinicId: (cita as { clinicId?: string }).clinicId || (config as { clinicId?: string }).clinicId,
+    direccion: config.direccion,
+    googleMapsUrl: config.googleMapsUrl,
+    baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+  })
+}
 
 // ── Generadores de mensajes ───────────────────────────────────
 
 export function msgConfirmacion(cita: Appointment, config: ClinicConfig): string {
   const fecha = formatFechaWA(cita.fechaHora)
   const hora = cita.fechaHora.slice(11, 16)
+  const lugar = lugarDe(cita, config)
   return [
     `Hola ${cita.pacienteNombre}, su cita con ${config.nombreMedico || 'el médico'} ha sido agendada.`,
     ``,
     `📅 *${fecha}* a las *${hora} hrs*`,
-    config.direccion ? `📍 ${config.direccion}` : '',
-    config.googleMapsUrl ? `🗺 ${config.googleMapsUrl}` : '',
+    ...lugar.lineas,
     ``,
     `Responda:`,
     `✅ *CONFIRMAR* — para confirmar asistencia`,
@@ -21,11 +41,13 @@ export function msgConfirmacion(cita: Appointment, config: ClinicConfig): string
 
 export function msgRecordatorio24h(cita: Appointment, config: ClinicConfig): string {
   const hora = cita.fechaHora.slice(11, 16)
+  const lugar = lugarDe(cita, config)
   return [
     `Hola ${cita.pacienteNombre} 👋`,
     ``,
     `Le recordamos su cita médica *mañana a las ${hora} hrs* con ${config.nombreMedico || 'el médico'}.`,
-    config.direccion ? `\n📍 ${config.direccion}` : '',
+    ``,
+    ...lugar.lineas,
     ``,
     `Favor de confirmar su asistencia respondiendo *CONFIRMAR*, o avisarnos si necesita cambiar su cita.`,
   ].join('\n').replace(/\n{3,}/g, '\n\n').trim()
@@ -33,12 +55,17 @@ export function msgRecordatorio24h(cita: Appointment, config: ClinicConfig): str
 
 export function msgRecordatorioDia(cita: Appointment, config: ClinicConfig): string {
   const hora = cita.fechaHora.slice(11, 16)
+  const lugar = lugarDe(cita, config)
   return [
     `Hola ${cita.pacienteNombre} 👋`,
     ``,
     `*Hoy tiene cita médica a las ${hora} hrs* con ${config.nombreMedico || 'el médico'}.`,
-    `Favor de acudir puntualmente.`,
-    config.direccion ? `\n📍 ${config.direccion}` : '',
+    ``,
+    ...lugar.lineas,
+    ``,
+    // «Favor de acudir puntualmente» le decía a quien tiene una videoconsulta
+    // que se presentara en el consultorio.
+    lugar.cierre,
   ].join('\n').replace(/\n{3,}/g, '\n\n').trim()
 }
 
