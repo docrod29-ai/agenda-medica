@@ -12,10 +12,8 @@
 import { useMemo } from 'react'
 import { Pill, AlertTriangle, Info } from 'lucide-react'
 import { vistaMar, ESTADOS_SIN_ATRASO, type EstadoMar } from '@/lib/uci/mar'
+import { graciaMar } from '@/lib/uci/gracia'
 import type { Indicacion } from '@/types/hospital'
-
-/** Margen operativo de la unidad, no clínico. Ver `FALTA_GRACIA` en el motor. */
-const GRACIA_MIN = 30
 
 const COLOR: Record<EstadoMar, string> = {
   atrasado: '#dc2626',
@@ -41,11 +39,17 @@ const ETIQUETA: Record<EstadoMar, string> = {
   suspendido: 'Suspendido',
 }
 
-export default function MarPaciente({ indicaciones }: { indicaciones: readonly Indicacion[] }) {
+export default function MarPaciente(
+  { indicaciones, graciaMinDeclarada }: { indicaciones: readonly Indicacion[]; graciaMinDeclarada?: number },
+) {
+  // Un solo sitio decide el margen: estaba escrito a mano aquí y otra vez en el
+  // turno de enfermería, y dos copias de un número operativo son la garantía de
+  // que un día dirán cosas distintas del mismo paciente.
+  const gracia = graciaMar(graciaMinDeclarada)
   // El instante se congela al montar: recalcularlo en cada render movería los
   // estados bajo los pies de quien está leyendo la lista.
   const ahora = useMemo(() => new Date().toISOString(), [])
-  const v = useMemo(() => vistaMar(indicaciones, ahora, GRACIA_MIN), [indicaciones, ahora])
+  const v = useMemo(() => vistaMar(indicaciones, ahora, gracia), [indicaciones, ahora, gracia])
 
   if (indicaciones.length === 0) {
     return (
@@ -103,7 +107,7 @@ export default function MarPaciente({ indicaciones }: { indicaciones: readonly I
           —infusión continua, PRN, dosis única ya dada, orden suspendida y horario ilegible—
           y por eso no salen en rojo. Si lo hicieran cada hora, el rojo dejaría de significar algo
           y la dosis que sí se pasó se perdería en el ruido.
-          El margen antes de marcar una dosis atrasada es de {GRACIA_MIN} min: un valor
+          El margen antes de marcar una dosis atrasada es de {gracia} min: un valor
           operativo de la unidad, no clínico.
         </div>
       </div>
