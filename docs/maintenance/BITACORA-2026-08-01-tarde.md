@@ -214,6 +214,45 @@ cuatro en los valores del tema claro.
 
 ---
 
+## QUINCUAGÉSIMA TANDA — v901
+
+### Cuando el paciente reagendaba o cancelaba, el calendario del médico se quedaba como estaba
+
+El paciente movía su cita de martes a jueves desde su enlace: Nexus decía jueves
+y el calendario del consultorio —y el del paciente, si estaba invitado— **seguía
+diciendo martes**. Cancelaba, y el evento se quedaba vivo: el médico veía ocupada
+una hora que ya estaba libre, no se la ofrecía a nadie, y el paciente seguía
+recibiendo el recordatorio de una cita que ya había cancelado.
+
+No se sincronizaba **a propósito**, y el motivo estaba escrito ahí mismo: el
+token de Google vive por `uid` y quien reagenda es el paciente, así que no había
+forma de saber cuál de los médicos conectó ese calendario — y escribir en el
+equivocado le mete una cita ajena en su agenda a otro médico y le borra la suya.
+
+**Ese motivo dejó de ser cierto.** v875 empezó a escribir el vínculo
+`doctors/{id}.uid`, v899 lo rellenó para los que ya estaban conectados, y desde
+v876 la disponibilidad pública ya LEE el freebusy con él. Ahora se usa el mismo
+vínculo para escribir.
+
+Sigue sin adivinarse nada: sin vínculo no se toca ningún calendario, sin evento
+no se inventa uno, el portal mueve y borra pero **nunca da de alta**, y un fallo
+de Google no tumba lo que el paciente ya hizo —la cita ya está en Nexus, que es
+la fuente de verdad—, sólo queda marcada.
+
+### Y un hallazgo de paso: un estado fuera de su propia unión
+
+El portal escribía `googleCalendarSyncStatus: 'desincronizado'`, y el tipo
+declara `'pending' | 'synced' | 'error'`. El SDK de admin no tipa `update()`, así
+que nadie se quejó — pero **ningún lector que compare contra la unión declarada
+podría reconocer ese valor nunca**. Era una marca que no podía leerse, en un
+campo que hoy tampoco lee ninguna pantalla.
+
+- `src/lib/calendario/sincronizar-servidor.ts` (nuevo)
+- `src/app/api/portal/route.ts` (reagendar y cancelar)
+- `src/__tests__/sincronizar-portal.test.ts` — 10 pruebas. Total 4791.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
@@ -255,8 +294,10 @@ cuatro en los valores del tema claro.
     conectados**: el vínculo se rellena solo la próxima vez que el médico abre su
     configuración, con las mismas reglas, sin recalcular uno existente y
     diciéndoselo si no se pudo.
-    **Queda**: la sincronización de escritura desde el portal sigue sin hacerse
-    (ver el comentario en `api/portal/route.ts`).
+    **v901 cerró lo que faltaba**: el portal ya mueve y borra el evento de Google
+    al reagendar y cancelar, con ese mismo vínculo. **Queda**: ninguna pantalla
+    LEE todavía `googleCalendarSyncStatus`, así que una cita marcada en `error`
+    no se le enseña al médico en ningún lado.
 13. ~~Fragmentación cromática~~ — HECHO (v872 + v900): los 124 usos de PRIMER
     PLANO migrados a `--red`/`--amber` con trinquete en 0, y **v900 migró los 277
     de FONDO y BORDE** a `color-mix` con el token, con su propio techo en 0. El
