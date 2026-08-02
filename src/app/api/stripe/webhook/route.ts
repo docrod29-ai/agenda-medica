@@ -11,7 +11,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { decidirCobroAnticipo } from '@/lib/finanzas/anticipo'
 import { safeLog } from '@/lib/security/sanitize'
-import { stripe, nivelDePlan, STRIPE_PRICES as PRECIOS_DE_PLAN } from '@/lib/stripe'
+import { stripe, nivelDePlan, STRIPE_PRICES as PRECIOS_DE_PLAN, STRIPE_PRICES_ANUAL } from '@/lib/stripe'
+import { planDeSuscripcion, esClavePlan } from '@/lib/finanzas/plan-de-suscripcion'
 import { adminDb } from '@/lib/firebase-admin'
 import { agregarCreditosExtra, guardarNivelIA } from '@/lib/ai-keys'
 import { MODULOS_DE_PLAN } from '@/lib/modulos'
@@ -90,17 +91,21 @@ async function registrarDisputa(
  * direcciones. Cuando no se sabe, lo correcto es no tocar el plan y dejar
  * constancia para revisarlo.
  */
-function planPorMonto(amount: number): PlanKey | null {
-  // Precios (centavos MXN): 34900 Agenda · 89900 Clínica · 159000 Pro · 349900 Hospital (ver PLANES en @/lib/planes-ia)
-  // Con margen de ±15% para promociones y prorrateos; fuera de esos rangos no se afirma nada.
-  const cerca = (esperado: number) => amount >= esperado * 0.85 && amount <= esperado * 1.15
-  if (cerca(34900)) return 'agenda'
-  if (cerca(89900)) return 'clinica'
-  if (cerca(159000)) return 'premium'
-  if (cerca(349900)) return 'hospital'
-  return null
+/**
+ * price id → plan, para los precios CONFIGURADOS: mensuales y ANUALES.
+ *
+ * Es la única comparación exacta que hay. La tabla de importes de
+ * `lib/finanzas/plan-de-suscripcion.ts` es mensual por construcción, y aplicarla
+ * a un cobro anual leía Agenda-al-año como Hospital.
+ */
+function preciosConocidos(): Record<string, PlanKey> {
+  const m: Record<string, PlanKey> = {}
+  for (const [plan, id] of Object.entries(PRECIOS_DE_PLAN)) if (id) m[id] = plan as PlanKey
+  for (const [plan, id] of Object.entries(STRIPE_PRICES_ANUAL)) if (id) m[id] = plan as PlanKey
+  return m
 }
-const ES_PLAN = (p: unknown): p is PlanKey => p === 'agenda' || p === 'clinica' || p === 'premium' || p === 'hospital'
+
+const ES_PLAN = esClavePlan
 
 /**
  * Estado interno del consultorio a partir del estado de la suscripción de Stripe.
@@ -389,7 +394,8 @@ export async function POST(req: NextRequest) {
          * adicional en la suscripción, `data[0]` podía ser el precio del asiento
          * y el plan se deducía de un importe que no era el del plan.
          */
-        const idsDePlan = new Set(Object.values(PRECIOS_DE_PLAN).filter(Boolean))
+        const conocidos = preciosConocidos()
+        const idsDePlan = new Set(Object.keys(conocidos))
         const itemPlan = sub.items.data.find(i => idsDePlan.has(String(i.price?.id ?? '')))
           ?? sub.items.data.find(i => (i.quantity ?? 1) === 1 && !String(i.price?.nickname ?? '').toLowerCase().includes('medico'))
           ?? sub.items.data[0]
@@ -411,9 +417,19 @@ export async function POST(req: NextRequest) {
          * (promociones, prorrateos raros), y entonces se corrige en Stripe para
          * que la próxima vez no haga falta deducir nada.
          */
-        const porPrecio = planPorMonto(itemPlan?.price?.unit_amount ?? 0)
+        const deduccion = planDeSuscripcion({
+          priceId: itemPlan?.price?.id,
+          importe: itemPlan?.price?.unit_amount,
+          intervalo: itemPlan?.price?.recurring?.interval,
+          intervalos: itemPlan?.price?.recurring?.interval_count,
+          metadatoPlan: sub.metadata?.plan,
+          preciosConocidos: conocidos,
+        })
+        const planDeducido = deduccion.plan
         const porMetadato = ES_PLAN(sub.metadata?.plan) ? sub.metadata!.plan as PlanKey : null
-        const planDeducido = porPrecio ?? porMetadato
+        // Sólo se corrige el metadato cuando el plan se supo por el COBRO. Si el
+        // propio metadato fue la fuente, reescribirlo no dice nada nuevo.
+        const porPrecio = deduccion.como === 'metadato' ? null : planDeducido
 
         if (porPrecio && porMetadato && porPrecio !== porMetadato) {
           safeLog.warn(`[Stripe Webhook] ${sub.id}: el metadato decía '${porMetadato}' y el precio cobrado es '${porPrecio}'. Manda el precio; se corrige el metadato.`)
@@ -433,7 +449,7 @@ export async function POST(req: NextRequest) {
          * plan se deja como está, con el aviso en el log para revisarlo.
          */
         if (!planDeducido) {
-          safeLog.warn(`[Stripe Webhook] no se pudo deducir el plan de ${sub.id} (importe ${itemPlan?.price?.unit_amount}). Se conserva el plan actual.`)
+          safeLog.warn(`[Stripe Webhook] no se pudo deducir el plan de ${sub.id} (precio ${itemPlan?.price?.id}, importe ${itemPlan?.price?.unit_amount}, intervalo ${itemPlan?.price?.recurring?.interval}). Se conserva el plan actual.`)
           await updateClinic(clinicId, {
             status: status === 'active' ? 'active' : status,
             stripeSubscriptionId: sub.id,

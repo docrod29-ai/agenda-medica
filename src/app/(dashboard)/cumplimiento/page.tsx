@@ -558,6 +558,11 @@ function ArcoPanel({ requests, loading, onResolver, onCancelar }: { requests: Ar
                 <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>
                   {r.solicitante.nombre} · {r.solicitante.telefono}
                   {r.solicitante.email && <> · {r.solicitante.email}</>}
+                  {r.origen === 'portal-publico' && !r.identidadVerificada && (
+                    <span style={{ marginLeft: 8, padding: '1px 7px', borderRadius: 9999, fontSize: 10.5, fontWeight: 700, background: 'rgba(217,119,6,0.12)', color: '#d97706' }}>
+                      Identidad sin verificar
+                    </span>
+                  )}
                 </div>
               </div>
               <EstadoBadge estado={r.estado} />
@@ -588,6 +593,22 @@ function ArcoPanel({ requests, loading, onResolver, onCancelar }: { requests: Ar
                     <button onClick={() => onCancelar(r)} style={{ background: 'transparent', border: '1px solid rgba(239,68,68,0.5)', color: 'var(--red)', borderRadius: 6, padding: '4px 10px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
                       Ejecutar cancelación…
                     </button>
+                  )}
+                  {/*
+                    SIN EXPEDIENTE LIGADO NO HAY BOTÓN — Y AHORA SE DICE.
+                    Una solicitud del portal público no puede traer `patientId`
+                    (las reglas lo impiden: si pudiera, cualquiera desde
+                    internet señalaría el expediente de un tercero y el panel
+                    ofrecería suprimirlo de un clic). Antes el botón
+                    simplemente no aparecía y nadie sabía por qué.
+                  */}
+                  {r.tipo === 'cancelacion' && !r.patientId && (
+                    <span style={{ fontSize: 11, color: 'var(--text3)', maxWidth: 420, lineHeight: 1.5 }}>
+                      Llegó sin expediente ligado. Identifica al paciente con su identificación
+                      delante y ejecuta la cancelación desde su expediente: una solicitud del
+                      portal público dice quién <em>dice</em> ser el solicitante, no a qué
+                      expediente corresponde.
+                    </span>
                   )}
                   <button onClick={() => onResolver(r, 'rechazada')} style={{ background: 'transparent', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--red)', borderRadius: 6, padding: '4px 10px', fontSize: 11.5, cursor: 'pointer' }}>
                     Rechazar
