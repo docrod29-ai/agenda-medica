@@ -33,7 +33,7 @@ import { getPatient } from '@/lib/firestore'
 import { construirSeccionesUCI } from '@/lib/uci/nota'
 import { guardarToma, getTomas, serieTomas } from '@/lib/uci/observaciones'
 import { getEstanciaUci, guardarSoportesUci, fijarPesoDosificacion } from '@/lib/uci/estancia-cliente'
-import { validarPeso, pesoParaCalcular, avisoSinPeso, TIPOS_PESO, ETIQUETA_TIPO_PESO, type PesoFijado, type TipoPesoDosificacion } from '@/lib/uci/peso-dosificacion'
+import { validarPeso, pesoParaCalcular, avisoSinPeso, validarTalla, tallaParaCalcular, TIPOS_PESO, ETIQUETA_TIPO_PESO, type PesoFijado, type TipoPesoDosificacion } from '@/lib/uci/peso-dosificacion'
 import { SOPORTES_ACTIVOS, SOPORTE_LABEL, type SoporteActivo } from '@/types/hospital'
 import { medirEstancia } from '@/lib/uci/estancia'
 import { useConfig } from '@/hooks/useConfig'
@@ -180,13 +180,16 @@ export default function UciPanelPage() {
   const [pesoBorrador, setPesoBorrador] = useState('')
   const [tipoPesoBorrador, setTipoPesoBorrador] = useState<TipoPesoDosificacion>('actual')
   const [fijandoPeso, setFijandoPeso] = useState(false)
+  /** La talla de la estancia (charter §31): de ella salen PBW y VT/PBW. */
+  const [tallaFijada, setTallaFijada] = useState<number | null>(null)
+  const [tallaBorrador, setTallaBorrador] = useState('')
   const [guardandoSoportes, setGuardandoSoportes] = useState(false)
   const [ingresoUci, setIngresoUci] = useState<string | null>(null)
   useEffect(() => {
     if (!clinicId || !internamientoId) { setSoportes(null); setIngresoUci(null); return }
     let vivo = true
     getEstanciaUci(clinicId, internamientoId)
-      .then(e => { if (vivo) { setSoportes((e?.soportes ?? []) as SoporteActivo[]); setIngresoUci(e?.fechaIngresoUci ?? null); setPesoFijado(e?.pesoDosificacion ?? null) } })
+      .then(e => { if (vivo) { setSoportes((e?.soportes ?? []) as SoporteActivo[]); setIngresoUci(e?.fechaIngresoUci ?? null); setPesoFijado(e?.pesoDosificacion ?? null); setTallaFijada(e?.tallaCm ?? null) } })
       .catch(() => { if (vivo) setSoportes([]) })
     return () => { vivo = false }
   }, [clinicId, internamientoId])
@@ -362,7 +365,11 @@ export default function UciPanelPage() {
   const grabando = audio.estado === 'grabando' || audio.estado === 'pausado'
 
   const vent = useMemo(() => analizarVentilacion({
-    sexo: v.sexo === 'F' ? 'F' : v.sexo === 'M' ? 'M' : undefined, tallaCm: n('talla'), vtMl: n('vt'),
+    // La talla FIJADA de la estancia va por debajo de lo que se teclee aquí:
+    // así el VT/PBW no cambia según qué pantalla se abrió (charter §31).
+    sexo: v.sexo === 'F' ? 'F' : v.sexo === 'M' ? 'M' : undefined,
+    tallaCm: n('talla') ?? tallaParaCalcular(tallaFijada) ?? undefined,
+    vtMl: n('vt'),
     fio2: n('fio2'), fio2Unidad: '%', pplat: n('pplat'), peep: n('peep'), autoPeep: n('autoPeep'),
     esfuerzoEspontaneo: esModoEspontaneo(v.modo),
     pao2: n('pao2'), muestraGasometria: (v.muestra as 'arterial' | 'venosa' | 'capilar') || undefined,
@@ -888,6 +895,41 @@ export default function UciPanelPage() {
                 } finally { setFijandoPeso(false) }
               }}
             >{pesoFijado ? 'Cambiar el peso' : 'Fijar el peso'}</button>
+          </div>
+
+          {/*
+            LA TALLA, al lado del peso porque comparte destino: de ella salen el
+            peso predicho y el VT/PBW. No cambia durante la estancia, así que
+            re-teclearla en cada pase es re-arriesgar la meta de ventilación
+            protectora cada vez.
+          */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+            <span style={{ fontSize: 12.5, color: 'var(--text2)' }}>
+              Talla{tallaFijada ? <strong style={{ color: 'var(--text)' }}>: {tallaFijada} cm</strong> : ' (para PBW y VT/PBW)'}
+            </span>
+            <input
+              type="number" inputMode="decimal" min={0} step="any" placeholder="cm"
+              value={tallaBorrador} onChange={e => setTallaBorrador(e.target.value)}
+              aria-label="Talla en centímetros"
+              style={{ width: 100, padding: '8px 10px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 14, minHeight: 40 }}
+            />
+            <button
+              type="button" className="btn btn-secondary btn-sm" disabled={fijandoPeso}
+              onClick={async () => {
+                if (!clinicId) return
+                const v = validarTalla(tallaBorrador)
+                if (!v.ok) { toast(v.mensaje ?? 'Revisa la talla', 'error'); return }
+                setFijandoPeso(true)
+                try {
+                  const e = await fijarPesoDosificacion(clinicId, internamientoId, null, soportes ?? [], undefined, Number(tallaBorrador))
+                  setTallaFijada(e?.tallaCm ?? null)
+                  setTallaBorrador('')
+                  toast('Talla fijada', 'success')
+                } catch (err) {
+                  toast(err instanceof Error ? err.message : 'No se pudo fijar la talla', 'error')
+                } finally { setFijandoPeso(false) }
+              }}
+            >{tallaFijada ? 'Cambiar' : 'Fijar'}</button>
           </div>
         </div>
       )}
