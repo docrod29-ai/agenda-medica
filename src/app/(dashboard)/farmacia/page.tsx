@@ -11,16 +11,17 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useClinic } from '@/context/ClinicContext'
 import { useAuth } from '@/hooks/useAuth'
+import { getPatients } from '@/lib/firestore'
 import { useToast } from '@/context/ToastContext'
 import {
-  listarItems, crearItem, actualizarItem, borrarItem, registrarMovimiento,
+  listarItems, crearItem, actualizarItem, borrarItem, registrarMovimiento, listarMovimientos,
   CATEGORIA_LABEL,
   bajoMinimo, caducaEnDias, estaCaducado, caducaPronto,
-  type FarmaciaItem, type FarmaciaCategoria,
+  type FarmaciaItem, type FarmaciaCategoria, type MovimientoFarmacia,
 } from '@/lib/farmacia'
 import {
   Pill, Search, Plus, AlertTriangle, Clock, Edit2, Trash2,
-  Package, ArrowUpCircle, ArrowDownCircle, MapPin,
+  Package, ArrowUpCircle, ArrowDownCircle, MapPin, History,
 } from 'lucide-react'
 import { Button, EmptyState, Spinner, Modal } from '@/components/ui'
 import { SinResultados } from '@/components/brand/EmptyArt'
@@ -36,6 +37,10 @@ export default function FarmaciaPage() {
   const [editando, setEditando] = useState<FarmaciaItem | null>(null)
   const [creando, setCreando] = useState(false)
   const [moviendo, setMoviendo] = useState<{ item: FarmaciaItem; tipo: 'entrada' | 'salida' } | null>(null)
+  /** Para poder decir a QUIÉN se dispensó (trazabilidad lote → paciente). */
+  const [pacientes, setPacientes] = useState<{ id: string; nombre: string }[]>([])
+  /** El libro de movimientos de un ítem, que hasta ahora no se podía abrir. */
+  const [verMovimientos, setVerMovimientos] = useState<FarmaciaItem | null>(null)
 
   const recargar = async () => {
     if (!clinicId) return
@@ -55,6 +60,13 @@ export default function FarmaciaPage() {
   }
 
   useEffect(() => { recargar() /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [clinicId])
+
+  useEffect(() => {
+    if (!clinicId) return
+    getPatients(clinicId)
+      .then(ps => setPacientes(ps.map(p => ({ id: p.id!, nombre: p.nombre }))))
+      .catch(() => { /* sin lista, la dispensación sigue pudiéndose registrar sin paciente */ })
+  }, [clinicId])
 
   // Filtrar + buscar
   const visibles = useMemo(() => {
@@ -152,6 +164,7 @@ export default function FarmaciaPage() {
               key={item.id}
               item={item}
               onEditar={() => setEditando(item)}
+              onMovimientos={() => setVerMovimientos(item)}
               onEntrada={() => setMoviendo({ item, tipo: 'entrada' })}
               onSalida={() => setMoviendo({ item, tipo: 'salida' })}
               onBorrar={async () => {
@@ -194,20 +207,33 @@ export default function FarmaciaPage() {
         />
       )}
 
+      {verMovimientos && clinicId && (
+        <ModalHistorial
+          clinicId={clinicId}
+          item={verMovimientos}
+          pacientes={pacientes}
+          onClose={() => setVerMovimientos(null)}
+        />
+      )}
+
       {/* Modal de movimiento (entrada/salida) */}
       {moviendo && (
         <ModalMovimiento
           item={moviendo.item}
           tipo={moviendo.tipo}
+          pacientes={pacientes}
           onClose={() => setMoviendo(null)}
-          onConfirmar={async (cantidad, motivo) => {
+          onConfirmar={async (cantidad, motivo, extra) => {
             if (!clinicId) return
             try {
               const aplicada = await registrarMovimiento(clinicId, moviendo.item, {
                 itemId: moviendo.item.id!,
-                tipo: moviendo.tipo,
+                // La clase real de la salida: dispensada, caducada o merma. Para
+                // el inventario bajan las tres; para una revisión no son lo mismo.
+                tipo: extra.tipoReal,
                 cantidad,
                 motivo,
+                ...(extra.patientId ? { patientId: extra.patientId } : {}),
                 realizadoPor: user?.uid ?? '',
               })
               // Refleja la cantidad REALMENTE aplicada (puede ser menor por falta de
@@ -242,13 +268,14 @@ function ResumenTarjeta({ titulo, valor, color, icon }: { titulo: string; valor:
 }
 
 function ItemRow({
-  item, onEditar, onEntrada, onSalida, onBorrar,
+  item, onEditar, onEntrada, onSalida, onBorrar, onMovimientos,
 }: {
   item: FarmaciaItem
   onEditar: () => void
   onEntrada: () => void
   onSalida: () => void
   onBorrar: () => void
+  onMovimientos: () => void
 }) {
   const dias = caducaEnDias(item)
   const caducado = estaCaducado(item)
@@ -311,6 +338,11 @@ function ItemRow({
         </button>
         <button onClick={onSalida} title="Salida" style={btnIcon('#f59e0b')}>
           <ArrowDownCircle size={14} />
+        </button>
+        {/* El libro de movimientos existía y no había forma de abrirlo: era una
+            colección de sólo escritura, justo lo contrario de para qué sirve. */}
+        <button onClick={onMovimientos} title="Ver movimientos" style={btnIcon('var(--text3)')}>
+          <History size={13} />
         </button>
         <button onClick={onEditar} title="Editar" style={btnIcon('var(--text3)')}>
           <Edit2 size={13} />
@@ -437,20 +469,49 @@ function ModalItem({ item, onClose, onGuardar }: {
   )
 }
 
-function ModalMovimiento({ item, tipo, onClose, onConfirmar }: {
+function ModalMovimiento({ item, tipo, pacientes, onClose, onConfirmar }: {
   item: FarmaciaItem
   tipo: 'entrada' | 'salida'
+  pacientes: { id: string; nombre: string }[]
   onClose: () => void
-  onConfirmar: (cantidad: number, motivo?: string) => Promise<void>
+  onConfirmar: (cantidad: number, motivo: string | undefined, extra: { patientId?: string; tipoReal: MovimientoFarmacia['tipo'] }) => Promise<void>
 }) {
   const [cantidad, setCantidad] = useState('1')
   const [motivo, setMotivo] = useState('')
+  /**
+   * A QUIÉN SE LE DIO — el dato que la NOM-220 pide y que nadie escribía.
+   *
+   * `MovimientoFarmacia.patientId` existía en el tipo desde el principio, el
+   * encabezado del módulo invoca la trazabilidad lote→paciente… y ninguna
+   * pantalla lo llenaba: el campo iba SIEMPRE vacío. Un libro de movimientos que
+   * no dice a quién se le dio no sirve para lo único que se le pide.
+   */
+  const [patientId, setPatientId] = useState('')
+  /**
+   * QUÉ CLASE DE SALIDA ES.
+   *
+   * El tipo ya distinguía `salida`, `caducidad`, `merma` y `ajuste`, y el modal
+   * sólo ofrecía entrada/salida: tirar un lote vencido quedaba indistinguible de
+   * dispensarlo a un paciente. Para el inventario da igual —bajan las dos— pero
+   * para una revisión de controlados no: una es una merma y la otra es una
+   * persona que se llevó el medicamento.
+   */
+  const [claseSalida, setClaseSalida] = useState<'salida' | 'caducidad' | 'merma'>('salida')
   const [saving, setSaving] = useState(false)
   const { toast, confirm } = useToast()
+
+  const tipoReal: MovimientoFarmacia['tipo'] = tipo === 'entrada' ? 'entrada' : claseSalida
+  const esDispensacion = tipoReal === 'salida'
 
   const confirmar = async () => {
     const n = parseInt(cantidad)
     if (!n || n <= 0) { toast('Cantidad inválida', 'error'); return }
+    // Un CONTROLADO que sale hacia un paciente tiene que decir hacia CUÁL: es el
+    // registro que se exhibe en una revisión, y sin él la salida no se sostiene.
+    if (esDispensacion && item.controlado && !patientId) {
+      toast('Es un medicamento controlado: indica a qué paciente se dispensa.', 'error')
+      return
+    }
     if (tipo === 'salida' && n > item.cantidad) {
       if (!(await confirm(`Estás sacando ${n} pero solo tienes ${item.cantidad}. ¿Continuar?`))) return
     }
@@ -460,7 +521,9 @@ function ModalMovimiento({ item, tipo, onClose, onConfirmar }: {
       if (!(await confirm(`⚠ Este lote está CADUCADO${item.caducidad ? ` (venció ${new Date(item.caducidad).toLocaleDateString('es-MX')})` : ''}. Dispensar medicamento caducado es un riesgo. ¿Continuar de todos modos?`))) return
     }
     setSaving(true)
-    try { await onConfirmar(n, motivo.trim() || undefined) } finally { setSaving(false) }
+    try {
+      await onConfirmar(n, motivo.trim() || undefined, { patientId: patientId || undefined, tipoReal })
+    } finally { setSaving(false) }
   }
 
   return (
@@ -479,6 +542,52 @@ function ModalMovimiento({ item, tipo, onClose, onConfirmar }: {
           {item.nombre} · Actual: <strong>{item.cantidad}</strong> {item.unidadMedida ?? 'unidades'}
         </div>
         <Field label="Cantidad" value={cantidad} onChange={setCantidad} type="number" />
+
+        {tipo === 'salida' && (
+          <div style={{ marginTop: 10 }}>
+            <label style={lbl}>Qué clase de salida</label>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {([
+                { v: 'salida' as const, t: 'Se dispensó', a: 'Se le dio a un paciente' },
+                { v: 'caducidad' as const, t: 'Caducó', a: 'Se retiró por fecha' },
+                { v: 'merma' as const, t: 'Merma', a: 'Se rompió, se perdió' },
+              ]).map(o => (
+                <button
+                  key={o.v}
+                  type="button"
+                  onClick={() => setClaseSalida(o.v)}
+                  style={{
+                    flex: '1 1 130px', textAlign: 'left', padding: '8px 10px', borderRadius: 8, cursor: 'pointer',
+                    background: claseSalida === o.v ? 'var(--s2)' : 'transparent',
+                    border: `1px solid ${claseSalida === o.v ? 'var(--teal)' : 'var(--border)'}`,
+                    color: 'var(--text)',
+                  }}
+                >
+                  <div style={{ fontSize: 12.5, fontWeight: 600 }}>{o.t}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 1 }}>{o.a}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {esDispensacion && (
+          <div style={{ marginTop: 10 }}>
+            <label style={lbl}>
+              A qué paciente {item.controlado
+                ? <span style={{ color: 'var(--red)' }}>· obligatorio, es controlado</span>
+                : <span style={{ color: 'var(--text3)' }}>(opcional)</span>}
+            </label>
+            <select value={patientId} onChange={e => setPatientId(e.target.value)} style={inp}>
+              <option value="">— sin paciente —</option>
+              {pacientes.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+            </select>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4, lineHeight: 1.45 }}>
+              Queda en el libro de movimientos: es la trazabilidad lote → paciente que se exhibe en una revisión.
+            </div>
+          </div>
+        )}
+
         <div style={{ marginTop: 10 }}>
           <label style={lbl}>Motivo (opcional)</label>
           <input
@@ -506,4 +615,68 @@ const inp: React.CSSProperties = {
   width: '100%', padding: '8px 10px', borderRadius: 6,
   border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)',
   fontSize: 13, boxSizing: 'border-box',
+}
+
+/**
+ * EL LIBRO DE MOVIMIENTOS DE UN ÍTEM.
+ *
+ * `listarMovimientos` existía desde el principio y **no lo llamaba ninguna
+ * pantalla**: la colección era de sólo escritura. Un libro que no se puede leer
+ * no sirve para lo único que se le pide —enseñar qué entró, qué salió y a quién—
+ * y en controlados es justo lo que se exhibe en una revisión.
+ */
+function ModalHistorial({ clinicId, item, pacientes, onClose }: {
+  clinicId: string
+  item: FarmaciaItem
+  pacientes: { id: string; nombre: string }[]
+  onClose: () => void
+}) {
+  const [movs, setMovs] = useState<MovimientoFarmacia[] | null>(null)
+  const [fallo, setFallo] = useState(false)
+
+  useEffect(() => {
+    let vivo = true
+    listarMovimientos(clinicId, item.id!)
+      .then(m => { if (vivo) setMovs(m) })
+      // Un fallo de lectura NO es «no hay movimientos»: se dice, en vez de
+      // enseñar una lista vacía que se lee como un inventario sin historia.
+      .catch(() => { if (vivo) { setMovs([]); setFallo(true) } })
+    return () => { vivo = false }
+  }, [clinicId, item.id])
+
+  const nombreDe = (id?: string) => pacientes.find(p => p.id === id)?.nombre
+
+  const ETIQUETA: Record<MovimientoFarmacia['tipo'], string> = {
+    entrada: 'Entrada', salida: 'Dispensado', ajuste: 'Ajuste', caducidad: 'Caducado', merma: 'Merma',
+  }
+
+  return (
+    <Modal open onClose={onClose} title={`Movimientos · ${item.nombre}`}>
+      {movs === null && <div style={{ fontSize: 13, color: 'var(--text3)' }}>Cargando…</div>}
+      {fallo && (
+        <div style={{ fontSize: 12.5, color: 'var(--amber)', marginBottom: 10 }}>
+          No se pudo leer el historial. Esto <strong>no</strong> significa que no haya movimientos.
+        </div>
+      )}
+      {movs && movs.length === 0 && !fallo && (
+        <div style={{ fontSize: 13, color: 'var(--text3)' }}>
+          Sin movimientos registrados para este ítem.
+        </div>
+      )}
+      {movs && movs.map(m => (
+        <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 12.5, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+          <div>
+            <div style={{ color: 'var(--text)', fontWeight: 600 }}>
+              {ETIQUETA[m.tipo] ?? m.tipo} · {m.cantidad}
+            </div>
+            <div style={{ color: 'var(--text3)', fontSize: 11.5, marginTop: 2 }}>
+              {m.fecha?.slice(0, 16).replace('T', ' ')}
+              {m.patientId ? ` · ${nombreDe(m.patientId) ?? 'paciente ' + m.patientId.slice(0, 6)}` : ''}
+              {m.motivo ? ` · ${m.motivo}` : ''}
+            </div>
+          </div>
+        </div>
+      ))}
+    </Modal>
+  )
 }
