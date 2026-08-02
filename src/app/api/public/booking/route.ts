@@ -337,7 +337,21 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, citaId, fecha, hora, duracion })
   } catch (err) {
+    /**
+     * AL PÚBLICO NO SE LE SIRVE EL ERROR CRUDO.
+     *
+     * Esta ruta la llama CUALQUIERA desde internet, sin sesión, y devolvía
+     * `String(err)` tal cual: nombres de colecciones de Firestore, rutas de
+     * documentos, mensajes del Admin SDK, y a veces el dato que provocó el
+     * fallo. Es reconocimiento gratis para quien esté sondeando, y no le sirve
+     * de nada al paciente que sólo quiere su cita.
+     *
+     * El error completo se conserva donde debe estar: en el log del servidor.
+     */
     safeLog.error('[public/booking]', err)
-    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
+    return NextResponse.json(
+      { ok: false, error: 'No se pudo agendar en este momento. Intenta de nuevo o llama al consultorio.' },
+      { status: 500 },
+    )
   }
 }

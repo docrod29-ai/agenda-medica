@@ -387,6 +387,18 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 |---|---|
 | **862** | **Las tomas del pase se firmaban con el nombre del médico tratante** aunque las capturara otra persona —y en blanco si fallaba la lectura del internamiento—: el mismo defecto ya reparado en el MAR. Ahora el autor lo sella la sesión, con `uid`, y la hora del **servidor** va al lado de la del dispositivo. **La entrega de turno imprimía «No hay dispositivos invasivos registrados»** en un paciente con catéter y ventilador, porque esa sección no tiene quién la alimente: una sección declarada **sin fuente** ya dice que el sistema no lo sabe. **El turno de enfermería ocultaba pacientes** de una unidad sin tipo configurado y afirmaba que no había nada pendiente. |
 
+## DUODÉCIMA TANDA — v863 (lo que el portal no le contaba a nadie)
+
+| v | Qué se reparó |
+|---|---|
+| **863** | **Cancelar o reagendar desde el enlace del paciente mutaba el estado y ahí terminaba todo.** El hueco liberado **no se le ofrecía a nadie**: la oferta vivía dentro de `api/whatsapp/waitlist-notify`, detrás de `verificarMiembro`, así que sólo el consultorio podía dispararla — y justo la cancelación del paciente es la que nadie del equipo ve. Ahora vive en `src/lib/whatsapp/ofrecer-hueco.ts` y la llaman los dos caminos, con el `medicoId` (sin él, el hueco de una doctora se le ofrecía a quien espera con otro). **No quedaba asiento en la bitácora** aunque el estado se mutara con `updatedPor: 'paciente'` (NOM-024): ambas acciones escriben ya el de/a en `audit_log`. Y **fuera de la ventana de 24 h sin plantilla HSM** el mensaje se descartaba en silencio mientras el contador decía «notificados N»: ahora cuenta como omitido y se registra como no entregado con su motivo. |
+
+## DECIMOTERCERA TANDA — v864 (lo que se perdía sin que nadie lo viera)
+
+| v | Qué se reparó |
+|---|---|
+| **864** | **Un cobro suelto no era de nadie.** Abierto desde Finanzas no hay cita de la que sacar el médico y el modal tampoco preguntaba: el cobro caía en la fila «sin atribuir» del reparto de comisiones — dinero cobrado y depositado que al repartir no es de nadie, y que nadie reclama porque no aparece en la fila de ningún médico. Con un solo médico no se pregunta (es suyo); con varios se pregunta y es obligatorio, sin preseleccionar al primero de la lista (`lib/finanzas/cobro-suelto.ts`, 6 pruebas). **Cancelar desde el enlace no contaba como cancelación**: `cancelacionCount` alimenta el riesgo de no-show y el CRM, el menú de Citas sí lo incrementa y el portal no — el motor veía a un paciente impecable. **El alta pública le servía el error crudo a cualquiera**: `String(err)` con nombres de colecciones, rutas de documentos y mensajes del Admin SDK, a internet abierto y sin sesión. |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.
@@ -397,8 +409,9 @@ Por orden de daño. Todo con archivo:línea, verificable.
 2. ~~Consultas pagadas como cuentas por cobrar~~ — HECHO (v854).
 3. ~~Anular reescribe un corte cerrado sin nota~~ — HECHO (v857).
 4. ~~«Reembolsos $0.00»~~ — HECHO (v857): ahora dice «Anulados».
-5. **Un cobro suelto no tiene médico** → cae en `sinAtribuir` y desaparece del
-   desglose (`CobrarModal.tsx:126`).
+5. ~~Un cobro suelto no tiene médico~~ — HECHO (v864): el modal pregunta cuando
+   hay más de un médico. **Queda**: los cobros VIEJOS sin atribuir siguen sin
+   atribuir; unirlos es una decisión contable del Dr.
 
 ### Farmacia
 6. ~~«Eliminar» no elimina nada visible~~ — HECHO (v856).
@@ -427,3 +440,7 @@ Por orden de daño. Todo con archivo:línea, verificable.
 19. ~~«Mis recetas» imprime "Invalid Date"~~ — HECHO (v859).
 20. ~~«Pagar anticipo» no aseguraba nada~~ — HECHO (v861).
 21. ~~Aviso de lista de espera sin `medicoId`~~ — HECHO (v861).
+22. ~~Cancelar/reagendar desde el portal no ofrece el hueco, no avisa y no deja
+    rastro~~ — HECHO (v863). **Queda**: el consultorio sigue sin recibir un
+    aviso propio de la cancelación (hoy sólo lo ve en la agenda y en la
+    bitácora); hace falta decidir por qué canal se le avisa.

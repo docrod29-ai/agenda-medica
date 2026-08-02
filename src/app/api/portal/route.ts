@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
-import { adminDb } from '@/lib/firebase-admin'
+import admin, { adminDb } from '@/lib/firebase-admin'
 import { puedeTocarDesdeElPortal, MENSAJE_ESTADO_NO_TOCABLE } from '@/lib/portal/estados'
 import { ofrecerHuecoLiberado } from '@/lib/whatsapp/ofrecer-hueco'
 import { verificarTokenPaciente, tokenVigente } from '@/lib/patient-token'
@@ -229,6 +229,20 @@ export async function POST(req: NextRequest) {
           // con otro: el mismo fallo que ya se reparó en el modal de citas.
           medicoId: cita.medicoId,
         }).catch(() => { /* ídem */ })
+
+        /**
+         * Y cuenta como cancelación del paciente.
+         *
+         * `cancelacionCount` alimenta el badge de riesgo de no-show y el CRM, y
+         * el menú de Citas SÍ lo incrementa (`lib/agenda/contadores-paciente`).
+         * Cancelando desde el enlace —el camino que el paciente usa cuando de
+         * verdad no va a venir— no se incrementaba nunca: el motor de riesgo veía
+         * a un paciente impecable.
+         */
+        void adminDb.collection('clinics').doc(clinicId).collection('patients').doc(patientId).update({
+          cancelacionCount: admin.firestore.FieldValue.increment(1),
+          updatedAt: new Date().toISOString(),
+        }).catch(() => { /* el contador no puede tumbar la cancelación */ })
 
         return NextResponse.json({ ok: true })
       }
