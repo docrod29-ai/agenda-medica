@@ -31,7 +31,7 @@ import { verificarCapacidad } from '@/lib/authz/verificar'
 import { caminoDeCancelacion, marcaDeBloqueo } from '@/lib/arco/cancelacion'
 
 export async function POST(req: NextRequest) {
-  let body: { clinicId?: string; patientId?: string; solicitudId?: string; motivo?: string; simular?: boolean }
+  let body: { clinicId?: string; patientId?: string; solicitudId?: string; motivo?: string; simular?: boolean; identidadVerificada?: boolean }
   try {
     body = await req.json()
   } catch {
@@ -77,6 +77,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, simulado: true, ...veredicto, notasFirmadas: firmadas })
     }
 
+    /**
+     * SIN ACREDITAR AL TITULAR NO SE EJECUTA.
+     *
+     * El portal público pide la identificación como TEXTO LIBRE y nadie la
+     * comprueba: cualquiera puede abrir una solicitud a nombre de otro. El
+     * candado no puede estar en el formulario —un impostor teclea lo que sea—,
+     * así que está aquí: el médico afirma que verificó, y esa afirmación queda
+     * en la bitácora con su nombre.
+     */
+    if (body.identidadVerificada !== true) {
+      return NextResponse.json({
+        ok: false,
+        error: 'Antes de ejecutar hay que acreditar que quien pide es el titular. El formulario público no lo comprueba.',
+      }, { status: 400 })
+    }
+
     if (veredicto.camino === 'bloqueo') {
       const marca = marcaDeBloqueo({ ahoraMs: Date.now(), uid: acceso.uid!, solicitudId, motivo })
       await pacienteRef.set({ arcoBloqueo: marca }, { merge: true })
@@ -101,7 +117,7 @@ export async function POST(req: NextRequest) {
       await clinicRef.collection('audit_log').add({
         evento: 'arco_solicitud_resuelta', clinicId, patientId,
         medicoUid: acceso.uid, medicoEmail: acceso.email ?? '',
-        meta: { accion: 'bloqueo', solicitudId, notasFirmadas: firmadas, bajaWhatsapp: !!tel },
+        meta: { accion: 'bloqueo', solicitudId, notasFirmadas: firmadas, bajaWhatsapp: !!tel, identidadVerificadaPor: acceso.uid },
         timestamp: new Date().toISOString(),
       }).catch(() => { /* la bitácora no puede tumbar el derecho del paciente */ })
 
@@ -133,7 +149,7 @@ export async function POST(req: NextRequest) {
     await clinicRef.collection('audit_log').add({
       evento: 'paciente_borrado', clinicId, patientId,
       medicoUid: acceso.uid, medicoEmail: acceso.email ?? '',
-      meta: { accion: 'supresion_arco', solicitudId, notas: notasSnap.size, citas: citasSnap.size },
+      meta: { accion: 'supresion_arco', solicitudId, notas: notasSnap.size, citas: citasSnap.size, identidadVerificadaPor: acceso.uid },
       timestamp: new Date().toISOString(),
     }).catch(() => { /* ídem */ })
 

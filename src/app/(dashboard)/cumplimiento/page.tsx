@@ -74,6 +74,8 @@ export default function CumplimientoPage() {
   const [porCancelar, setPorCancelar] = useState<ArcoRequest | null>(null)
   const [ejecutando, setEjecutando] = useState(false)
   const [veredicto, setVeredicto] = useState<{ camino: string; queOcurre: string; porQueNoSeBorra: string } | null>(null)
+  /** El médico afirma que verificó al titular. Nace en false SIEMPRE. */
+  const [identidadOk, setIdentidadOk] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -107,6 +109,7 @@ export default function CumplimientoPage() {
   const consultarCamino = async (req: ArcoRequest) => {
     setPorCancelar(req)
     setVeredicto(null)
+    setIdentidadOk(false)   // cada solicitud se verifica por separado
     if (!clinicId || !req.patientId) return
     try {
       const res = await fetchAutenticado('/api/arco/cancelar', {
@@ -128,7 +131,7 @@ export default function CumplimientoPage() {
       const res = await fetchAutenticado('/api/arco/cancelar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clinicId, patientId: req.patientId, solicitudId: req.id, motivo: req.descripcion }),
+        body: JSON.stringify({ clinicId, patientId: req.patientId, solicitudId: req.id, motivo: req.descripcion, identidadVerificada: true }),
       })
       const d = await res.json().catch(() => ({}))
       if (!res.ok || !d.ok) { toast(d.error || 'No se pudo ejecutar la cancelación', 'error'); return }
@@ -224,7 +227,7 @@ export default function CumplimientoPage() {
           <>
             <Button variant="secondary" onClick={() => { setPorCancelar(null); setVeredicto(null) }}>Volver</Button>
             <Button
-              disabled={!veredicto || ejecutando}
+              disabled={!veredicto || ejecutando || !identidadOk}
               loading={ejecutando}
               onClick={ejecutarCancelacion}
             >
@@ -252,6 +255,30 @@ export default function CumplimientoPage() {
                 <strong style={{ color: 'var(--text2)' }}>Por qué no se puede borrar:</strong> {veredicto.porQueNoSeBorra}
               </div>
             )}
+            {/*
+              LA IDENTIDAD LA ACREDITA UNA PERSONA, NO UN FORMULARIO.
+              El portal público pide nombre, teléfono, CURP e «identificación
+              oficial» como TEXTO LIBRE, sin validación ni adjunto: cualquiera
+              puede abrir una solicitud a nombre de otro. Bloquear el formulario
+              no sirve —un impostor teclea cualquier cosa igual—, así que el
+              candado va donde de verdad importa: en el acto irreversible.
+              El médico afirma que verificó al titular, y esa afirmación queda
+              en la bitácora con su nombre.
+            */}
+            <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12.5, color: 'var(--text2)', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={identidadOk}
+                onChange={e => setIdentidadOk(e.target.checked)}
+                style={{ marginTop: 3 }}
+              />
+              <span>
+                Verifiqué la identidad del titular (o de su representante) por un medio fiable.
+                <span style={{ display: 'block', color: 'var(--text3)', marginTop: 2 }}>
+                  El formulario público no la comprueba: quien lo llena escribe lo que quiera.
+                </span>
+              </span>
+            </label>
             <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>
               Queda registrado en la bitácora quién lo hizo y cuándo. El plazo de respuesta al
               paciente y la redacción de esa respuesta los define tu abogado.
