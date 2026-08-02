@@ -1117,9 +1117,12 @@ export default function EpisodioPage() {
           {alertasCDS.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {alertasCDS.map((a, i) => {
-                const color = a.nivel === 'critica' ? '#dc2626' : a.nivel === 'alta' ? '#d97706' : '#0d9488'
+                // Tokens, no hexadecimales: son las alertas del apoyo a la decisión
+                // clínica y el trinquete no las veía porque no están escritas como
+                // `color: '#...'` sino como un ternario.
+                const color = a.nivel === 'critica' ? 'var(--red)' : a.nivel === 'alta' ? 'var(--amber)' : 'var(--green)'
                 return (
-                  <div key={i} style={{ display: 'flex', gap: 7, alignItems: 'flex-start', fontSize: 12.5, padding: '8px 10px', borderRadius: 8, background: color + '14', border: `1px solid ${color}44`, color }}>
+                  <div key={i} style={{ display: 'flex', gap: 7, alignItems: 'flex-start', fontSize: 12.5, padding: '8px 10px', borderRadius: 8, background: `color-mix(in srgb, ${color} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${color} 27%, transparent)`, color }}>
                     <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} /> <span>{a.texto}</span>
                   </div>
                 )

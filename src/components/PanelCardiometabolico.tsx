@@ -498,7 +498,7 @@ function Bloque({ t, children }: { t: string; children: React.ReactNode }) {
 }
 function Res({ color, titulo, children }: { color: string; titulo: string; children: React.ReactNode }) {
   return (
-    <div style={{ border: `1px solid ${color}55`, background: `${color}18`, borderRadius: 9, padding: '10px 12px' }}>
+    <div style={{ border: `1px solid color-mix(in srgb, ${color} 33%, transparent)`, background: `color-mix(in srgb, ${color} 9%, transparent)`, borderRadius: 9, padding: '10px 12px' }}>
       <div style={{ fontSize: 13, fontWeight: 800, color }}>{titulo}</div>
       {children}
     </div>

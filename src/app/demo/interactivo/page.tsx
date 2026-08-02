@@ -564,7 +564,7 @@ function ModAntibiograma() {
     ['Oxacilina', 'R'], ['Cefoxitina', 'R'], ['Vancomicina', 'S'],
     ['Clindamicina', 'S'], ['TMP-SMX', 'S'], ['Ciprofloxacino', 'R'],
   ]
-  const colorSIR = (v: string) => v === 'S' ? '#16a34a' : v === 'R' ? '#dc2626' : '#d97706'
+  const colorSIR = (v: string) => v === 'S' ? 'var(--green)' : v === 'R' ? 'var(--red)' : 'var(--amber)'
   return (
     <div style={{ ...card }}>
       <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 12 }}>

@@ -260,7 +260,7 @@ function KpiCard({ icon, label, value, sub, accentColor, delay = 0 }: {
     <div className="kpi-card nx-reveal" style={{ animationDelay: `${delay}ms` }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span className="kpi-label">{label}</span>
-        <div style={{ width: 36, height: 36, borderRadius: 10, background: `${accentColor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 36, height: 36, borderRadius: 10, background: `color-mix(in srgb, ${accentColor} 9%, transparent)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {icon}
         </div>
       </div>

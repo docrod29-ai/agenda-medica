@@ -127,7 +127,7 @@ export default function EnfermeriaUciPage() {
           {Object.keys(resumen.conteo).length > 0 && (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
               {(Object.entries(resumen.conteo) as [TipoTarea, number][]).map(([tipo, n]) => (
-                <span key={tipo} style={{ fontSize: 12, fontWeight: 700, padding: '5px 10px', borderRadius: 7, border: `1px solid ${COLOR[tipo]}55`, background: COLOR[tipo] + '14', color: COLOR[tipo] }}>
+                <span key={tipo} style={{ fontSize: 12, fontWeight: 700, padding: '5px 10px', borderRadius: 7, border: `1px solid color-mix(in srgb, ${COLOR[tipo]} 33%, transparent)`, background: COLOR[tipo] + '14', color: COLOR[tipo] }}>
                   {TAREA_LABEL[tipo]}: {n}
                 </span>
               ))}
@@ -160,7 +160,7 @@ export default function EnfermeriaUciPage() {
                 <div
                   key={`${t.internamientoId}-${i}`}
                   onClick={() => router.push(`/uci?internamiento=${t.internamientoId}`)}
-                  style={{ display: 'flex', gap: 11, alignItems: 'flex-start', padding: '11px 13px', borderRadius: 11, cursor: 'pointer', border: `1px solid ${COLOR[t.tipo]}44`, background: COLOR[t.tipo] + '0d' }}
+                  style={{ display: 'flex', gap: 11, alignItems: 'flex-start', padding: '11px 13px', borderRadius: 11, cursor: 'pointer', border: `1px solid color-mix(in srgb, ${COLOR[t.tipo]} 27%, transparent)`, background: COLOR[t.tipo] + '0d' }}
                 >
                   <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.03em', color: COLOR[t.tipo], minWidth: 96, paddingTop: 2 }}>
                     {TAREA_LABEL[t.tipo]}

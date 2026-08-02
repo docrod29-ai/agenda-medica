@@ -131,6 +131,24 @@ describe('trinquete de color', () => {
     expect(culpables, culpables.slice(0, 12).join('\n')).toHaveLength(TECHO_FONDO)
   })
 
+  it('un color clínico no se escoge con un hexadecimal en un ternario', () => {
+    /**
+     * `const color = nivel === 'critica' ? '#dc2626' : …` no lo veía el patrón
+     * `color:` de arriba, así que las alertas del apoyo a la decisión clínica
+     * seguían con hexadecimales que no cambian de tema. Es el mismo fallo por
+     * un hueco de sintaxis.
+     */
+    const pat = /(?:const|let)\s+\w*[cC]olor\w*\s*=\s*[^\n]*\?[^\n]*'(#[0-9a-fA-F]{6})'/g
+    const culpables: string[] = []
+    for (const p of archivos) {
+      for (const m of readFileSync(p, 'utf8').matchAll(pat)) {
+        if (CRUDOS.test(m[1])) culpables.push(`${p} → ${m[1]}`)
+        CRUDOS.lastIndex = 0
+      }
+    }
+    expect(culpables, culpables.join('\n')).toEqual([])
+  })
+
   it('nadie le pega un sufijo de alfa a un color', () => {
     /**
      * EL FALLO QUE ESTE GUARDIÁN VIENE A IMPEDIR, Y QUE YO MISMO COMETÍ.
@@ -144,7 +162,14 @@ describe('trinquete de color', () => {
      * v913 convirtió esos mapas a tokens y dejó dos concatenaciones vivas. Lo
      * correcto es `color-mix`, que sí acepta una variable.
      */
-    const pat = /\.color\s*\+\s*'[0-9a-fA-F]{2}'/g
+    /**
+     * Las DOS formas de escribirlo. La primera versión de esta prueba sólo
+     * miraba `color + '18'`, y el mismo fallo escrito como plantilla
+     * —`${color}55`— seguía pasando: había once, uno de ellos en el panel
+     * cardiometabólico, roto desde v872 sin que nadie lo notara, porque un
+     * borde que no se pinta no se queja.
+     */
+    const pat = /\.?color\s*\+\s*'[0-9a-fA-F]{2}'|\$\{[A-Za-z_][\w.]*\}[0-9a-fA-F]{2}\b/gi
     const culpables: string[] = []
     for (const p of archivos) {
       for (const m of readFileSync(p, 'utf8').matchAll(pat)) culpables.push(`${p} → ${m[0]}`)

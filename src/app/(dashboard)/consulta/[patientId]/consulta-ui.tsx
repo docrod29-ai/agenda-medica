@@ -55,7 +55,7 @@ export function DialogoDiarizado({ utterances, rolesIniciales, onRolesChange }: 
           const c = colorHablante(s)
           return (
             <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: c, background: `${c}1f`, borderRadius: 6, padding: '2px 8px' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: c, background: `color-mix(in srgb, ${c} 12%, transparent)`, borderRadius: 6, padding: '2px 8px' }}>
                 Hablante {s}
               </span>
               <span style={{ fontSize: 11, color: 'var(--text3)' }}>es:</span>
@@ -73,7 +73,7 @@ export function DialogoDiarizado({ utterances, rolesIniciales, onRolesChange }: 
                     style={{
                       fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 100, cursor: 'pointer',
                       border: '1px solid ' + (activo ? c : 'var(--border)'),
-                      background: activo ? `${c}22` : 'var(--s2)',
+                      background: activo ? `color-mix(in srgb, ${c} 13%, transparent)` : 'var(--s2)',
                       color: activo ? c : 'var(--text3)',
                     }}>
                     {r}
@@ -93,7 +93,7 @@ export function DialogoDiarizado({ utterances, rolesIniciales, onRolesChange }: 
             <div key={i} style={{ display: 'flex', gap: 8 }}>
               <span style={{
                 flexShrink: 0, fontSize: 10.5, fontWeight: 700, color: c,
-                background: `${c}1f`, borderRadius: 6, padding: '2px 7px', height: 'fit-content',
+                background: `color-mix(in srgb, ${c} 12%, transparent)`, borderRadius: 6, padding: '2px 7px', height: 'fit-content',
               }}>
                 {etiqueta(u.speaker)}
               </span>

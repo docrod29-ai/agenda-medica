@@ -70,7 +70,7 @@ export default function MarPaciente(
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
           {v.lineas.map(l => (
-            <div key={l.indicacionId} style={{ display: 'flex', gap: 11, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 10, border: `1px solid ${COLOR[l.estado]}33`, background: COLOR[l.estado] + '0b' }}>
+            <div key={l.indicacionId} style={{ display: 'flex', gap: 11, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 10, border: `1px solid color-mix(in srgb, ${COLOR[l.estado]} 20%, transparent)`, background: COLOR[l.estado] + '0b' }}>
               <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.03em', color: COLOR[l.estado], minWidth: 104, paddingTop: 2 }}>
                 {ETIQUETA[l.estado]}
               </span>

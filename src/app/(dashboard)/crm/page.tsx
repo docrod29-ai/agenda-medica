@@ -200,7 +200,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 function PipeStep({ label, count, color }: { label: string; count: number; color: string }) {
   return (
-    <div style={{ background: 'var(--s1)', border: `1px solid ${color}33`, borderRadius: 10, padding: '12px 14px' }}>
+    <div style={{ background: 'var(--s1)', border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`, borderRadius: 10, padding: '12px 14px' }}>
       <div style={{ fontSize: 11, color: 'var(--text3)' }}>{label}</div>
       <div style={{ fontSize: 22, fontWeight: 700, color, marginTop: 4 }}>{count}</div>
     </div>
@@ -209,7 +209,7 @@ function PipeStep({ label, count, color }: { label: string; count: number; color
 function Retencion({ label, count, color, icon }: { label: string; count: number; color: string; icon: React.ReactNode }) {
   return (
     <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
-      <div style={{ width: 32, height: 32, borderRadius: 8, background: `${color}1A`, color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</div>
+      <div style={{ width: 32, height: 32, borderRadius: 8, background: `color-mix(in srgb, ${color} 10%, transparent)`, color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</div>
       <div>
         <div style={{ fontSize: 11, color: 'var(--text3)' }}>{label}</div>
         <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>{count}</div>
