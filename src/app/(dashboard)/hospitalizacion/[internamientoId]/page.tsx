@@ -145,6 +145,27 @@ export default function EpisodioPage() {
    */
   const [corrigiendoId, setCorrigiendoId] = useState<string | null>(null)
   /**
+   * POR QUÉ SE CORRIGE, Y CUÁNDO SE MIDIÓ DE VERDAD.
+   *
+   * `RegistroSignos` declara `motivoCorreccion` («por qué se corrigió») y
+   * `fechaEfectiva` («cuándo OCURRIÓ la medición; una corrección hereda la del
+   * original»), los dos con su decisión escrita detrás — E0-09/Q4 e ICU-Q3. Y
+   * este formulario **no escribía ninguno de los dos**.
+   *
+   * Consecuencias, las dos reales:
+   *
+   *  · el expediente registraba que un signo vital cambió y NUNCA por qué. En
+   *    una revisión —o en un juicio— un valor corregido sin justificación es
+   *    exactamente lo que se pregunta;
+   *  · y la corrección de las 08:03 de un signo tomado a las 08:00 se guardaba
+   *    con la hora de la corrección, así que un NEWS2 retrospectivo de las 08:00
+   *    no la encontraba. Es, palabra por palabra, el fallo que ICU-002b añadió
+   *    esos campos para reparar: se añadieron al tipo y nadie los escribió.
+   */
+  const [motivoCorr, setMotivoCorr] = useState('')
+  /** Hora de medición del registro que se corrige, para heredarla. */
+  const [medidoOriginal, setMedidoOriginal] = useState<string | null>(null)
+  /**
    * true cuando el registro que se corrige guardaba la conciencia en el formato
    * heredado 'alterada', que NO equivale a un solo nivel ACVPU: puede ser C, V, P
    * o U. Elegir uno por el clínico sería inventar un dato clínico, así que el
@@ -756,7 +777,10 @@ export default function EpisodioPage() {
                     // atenuado y tachado, porque el expediente debe conservar lo
                     // que se capturó Y lo que se corrigió.
                     ...(estado === 'corregido' ? { opacity: 0.5, textDecoration: 'line-through' } : {}) }}>
-                    <td style={{ padding: '7px 10px', whiteSpace: 'nowrap' }}>{new Date(s.fecha).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
+                    {/* La hora que importa en una gráfica de signos es la de la
+                        MEDICIÓN, no la de captura: una corrección hecha a las
+                        08:03 de un signo tomado a las 08:00 pertenece a las 08:00. */}
+                    <td style={{ padding: '7px 10px', whiteSpace: 'nowrap' }}>{new Date(s.fechaEfectiva ?? s.fecha).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
                     <td style={{ padding: '7px 10px', ...colorSigno('sys', sistolicaDe(s.ta)) }}>{s.ta ?? '—'}</td>
                     <td style={{ padding: '7px 10px', ...colorSigno('fc', s.fc) }}>{s.fc ?? '—'}</td>
                     <td style={{ padding: '7px 10px', ...colorSigno('fr', s.fr) }}>{s.fr ?? '—'}</td>
@@ -765,7 +789,10 @@ export default function EpisodioPage() {
                     <td style={{ padding: '7px 10px' }}>{s.glucosa ?? '—'}</td>
                     <td style={{ padding: '7px 10px' }}>{s.dolor != null ? `${s.dolor}/10` : '—'}</td>
                     {puedeEnfermeria && !egresado && <td style={{ padding: '7px 10px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      {corrigeA && <span title="Este registro corrige a uno anterior" style={{ fontSize: 10.5, color: 'var(--text3)', marginRight: 8 }}>corrección</span>}
+                      {/* El motivo se ENSEÑA, y su ausencia también: un valor
+                          corregido sin justificación es justo lo que se pregunta
+                          en una revisión del expediente. */}
+                      {corrigeA && <span title={s.motivoCorreccion || 'Corrige a un registro anterior. No se declaró el motivo.'} style={{ fontSize: 10.5, color: s.motivoCorreccion ? 'var(--text3)' : 'var(--amber)', marginRight: 8 }}>corrección{s.motivoCorreccion ? `: ${s.motivoCorreccion}` : ' · sin motivo declarado'}</span>}
                       {/* Corregir, NO borrar. El bote de basura que había aquí llamaba a
                           borrarSignos, que `firestore.rules` rechaza con `allow delete: if false`:
                           la enfermera recibía "No se pudo borrar" SIEMPRE. Ahora se anexa un
@@ -773,6 +800,11 @@ export default function EpisodioPage() {
                           (decisión del médico dueño, 29-jul-2026) y nada se sobrescribe. */}
                       {estado !== 'corregido' && <button title="Corregir este registro (se conserva el original)" onClick={() => {
                         setCorrigiendoId(s.id)
+                        // La corrección HEREDA la hora de medición del original
+                        // (ICU-Q3): si se guardara con la suya, un NEWS2
+                        // retrospectivo de las 08:00 no la encontraría.
+                        setMedidoOriginal(s.fechaEfectiva ?? s.fecha)
+                        setMotivoCorr('')
                         setSg({ ta: s.ta ?? '', fc: s.fc != null ? String(s.fc) : '', fr: s.fr != null ? String(s.fr) : '', temp: s.temp != null ? String(s.temp) : '', spo2: s.spo2 != null ? String(s.spo2) : '', glucosa: s.glucosa != null ? String(s.glucosa) : '', dolor: s.dolor != null ? String(s.dolor) : '', conciencia: acvpu(s.conciencia), oxigeno: !!s.oxigeno })
                         setConcienciaSinMapeo(concienciaExigeReSeleccion(s.conciencia))
                         setModalSignos(true)
@@ -1427,24 +1459,57 @@ export default function EpisodioPage() {
       </Modal>
 
       {/* Registrar signos */}
-      <Modal open={modalSignos} onClose={() => { setModalSignos(false); setCorrigiendoId(null); setConcienciaSinMapeo(false) }} title={corrigiendoId ? "Corregir signos vitales" : "Registrar signos vitales"}
-        footer={<><Button variant="secondary" onClick={() => { setModalSignos(false); setCorrigiendoId(null); setConcienciaSinMapeo(false) }}>Cancelar</Button><Button loading={busy} onClick={async () => {
+      <Modal open={modalSignos} onClose={() => { setModalSignos(false); setCorrigiendoId(null); setConcienciaSinMapeo(false); setMotivoCorr(''); setMedidoOriginal(null) }} title={corrigiendoId ? "Corregir signos vitales" : "Registrar signos vitales"}
+        footer={<><Button variant="secondary" onClick={() => { setModalSignos(false); setCorrigiendoId(null); setConcienciaSinMapeo(false); setMotivoCorr(''); setMedidoOriginal(null) }}>Cancelar</Button><Button loading={busy} onClick={async () => {
           if (!clinicId) return; setBusy(true)
           const num = (x: string) => x.trim() ? Number(x) : undefined
           try {
             const datos = { fecha: new Date().toISOString(), ta: sg.ta.trim() || undefined, fc: num(sg.fc), fr: num(sg.fr), temp: num(sg.temp), spo2: num(sg.spo2), glucosa: num(sg.glucosa), dolor: num(sg.dolor), conciencia: sg.conciencia, oxigeno: sg.oxigeno || undefined, por: config?.nombreMedico ?? '' }
-            if (corrigiendoId) await corregirSignos(clinicId, internamientoId, corrigiendoId, datos)
-            else await agregarSignos(clinicId, internamientoId, datos)
+            if (corrigiendoId) {
+              /**
+               * Una corrección lleva DOS cosas que el formulario no escribía:
+               * por qué se corrige, y la hora en que se midió el original.
+               * `fecha` sigue siendo la de captura de ESTE documento, tal como
+               * declara el tipo — lo que se hereda es `fechaEfectiva`.
+               */
+              await corregirSignos(clinicId, internamientoId, corrigiendoId, {
+                ...datos,
+                fechaEfectiva: medidoOriginal ?? datos.fecha,
+                fechaRegistro: datos.fecha,
+                motivoCorreccion: motivoCorr.trim() || undefined,
+              })
+            } else await agregarSignos(clinicId, internamientoId, datos)
             // Alerta por deterioro: NEWS2 alto O parámetro individual en rojo (criterio Royal College)
             const n2 = calcularNews2({ ta: sg.ta, fc: num(sg.fc), fr: num(sg.fr), temp: num(sg.temp), spo2: num(sg.spo2), conciencia: sg.conciencia, oxigeno: sg.oxigeno })
             if (n2 && (n2.riesgo === 'alto' || n2.parametroRojo) && inter) await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'news2', titulo: `Deterioro clínico — NEWS2 ${n2.total} (${n2.riesgo})`, detalle: n2.recomendacion })
-            toast(corrigiendoId ? 'Corrección registrada — el original se conserva' : 'Signos registrados', 'success'); setModalSignos(false); setCorrigiendoId(null); setConcienciaSinMapeo(false); setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'A', oxigeno: false }); cargar()
+            toast(corrigiendoId ? 'Corrección registrada — el original se conserva' : 'Signos registrados', 'success'); setModalSignos(false); setCorrigiendoId(null); setConcienciaSinMapeo(false); setMotivoCorr(''); setMedidoOriginal(null); setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'A', oxigeno: false }); cargar()
           } catch (e) {
             // Sin catch, el modal quedaba abierto y sin mensaje: parecía que no pasó
             // nada y el dato clínico simplemente no se guardaba.
             toast(e instanceof Error ? e.message : 'NO se guardaron los signos vitales. Reintenta.', 'error')
           } finally { setBusy(false) }
         }}>Guardar</Button></>}>
+        {/*
+          POR QUÉ SE CORRIGE — sólo al corregir, nunca al capturar.
+
+          El expediente registraba que un signo vital cambió y nunca por qué. No
+          se BLOQUEA el guardado si se deja vacío: si el motivo es obligatorio o
+          no es política del expediente (E0-09/Q4), y eso lo decide el médico
+          dueño, no esta pantalla. Lo que sí se hace es no callarlo: sin motivo,
+          la tabla dirá «sin motivo declarado» en vez de nada.
+        */}
+        {corrigiendoId && (
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ fontSize: 12, color: 'var(--text3)' }}>¿Por qué se corrige?</label>
+            <input className={inputCls} value={motivoCorr} onChange={e => setMotivoCorr(e.target.value)}
+              placeholder="Ej.: dedazo al capturar la SpO₂" maxLength={200} />
+            {medidoOriginal && (
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
+                Se guardará con la hora de la medición original ({new Date(medidoOriginal).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}), no con la de ahora.
+              </div>
+            )}
+          </div>
+        )}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {([['ta', 'TA (120/80)'], ['fc', 'FC (lpm)'], ['fr', 'FR (rpm)'], ['temp', 'T° (°C)'], ['spo2', 'SpO₂ (%)'], ['glucosa', 'Glucosa'], ['dolor', 'Dolor (0-10)']] as ['ta' | 'fc' | 'fr' | 'temp' | 'spo2' | 'glucosa' | 'dolor', string][]).map(([k, label]) => (
             <div key={k}><label style={{ fontSize: 12, color: 'var(--text3)' }}>{label}</label>
