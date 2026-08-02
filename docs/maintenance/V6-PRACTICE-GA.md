@@ -63,14 +63,22 @@ Bitácora de versiones desplegadas: `BITACORA-2026-08-01-tarde.md`.
 
 ## FASES 6–12 — SANDBOX, HOSPITAL OS, CRITICAL CARE, IA PLATFORM
 
-Existe mucho ya construido (sandbox en `/demo`, hospitalización completa, Panel
-UCI con ventilación/gasometría/SOFA/CKRT/ECMO/POCUS, HL7, motores de UCI). Lo que
-el charter añade sobre eso son piezas grandes y NUEVAS —`ICUStay` separado de la
-cama, `Infusion` con jerarquía de preparación, motor de confirmación por riesgo,
-`ADT`, closed loops, process mining, adaptadores de dispositivos, router de IA—
-que **no deben empezarse antes de cerrar PRACTICE GA**, por instrucción del propio
-charter: «no implementar funciones futuras antes de cerrar los bloqueadores
-actuales».
+**Verificado pieza por pieza el 2026-08-02, contra el código.** De las siete que
+el charter llamaba «grandes y NUEVAS», **seis ya estaban construidas**:
+
+| Pieza | Dónde está |
+|---|---|
+| `ICUStay` separado de la cama | `types/hospital.ts` + `icu_stays`, con archivado de la estancia previa al reingreso (v855) |
+| `Infusion` con jerarquía de preparación | `lib/clinical/infusion-library.ts` (3 capas, y REFERENCIA nace vacía a propósito) + `lib/uci/infusiones.ts`, conectado al panel de UCI y a la verificación |
+| Motor de confirmación por riesgo | `lib/uci/confirmacion.ts` |
+| `ADT` | `lib/hospital/bed-assignment.ts` + traslados/egreso del gateway |
+| Process mining de episodio | `lib/hospital/indicadores-episodio.ts` |
+| Router de IA | `lib/ia/gateway.ts` |
+| **Adaptadores de dispositivos** | **FALTABA — hecho en v891**: `lib/dispositivos/vitales-hl7.ts`, conectado a `api/hl7/convertir` |
+
+Lo que queda de estas fases son **closed loops** (cerrar el círculo orden →
+administración → efecto → ajuste), que es trabajo clínico del Dr. antes que
+software: define qué lazo se cierra solo y cuál no.
 
 ---
 

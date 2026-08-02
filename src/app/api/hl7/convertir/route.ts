@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { verificarMiembro } from '@/lib/auth-server'
 import { parsearORU, parsearADT, oruAFHIR, construirACK } from '@/lib/hl7/v2'
+import { traducirVitales, hayVitales } from '@/lib/dispositivos/vitales-hl7'
 
 export async function POST(req: NextRequest) {
   const clinicId = req.nextUrl.searchParams.get('clinicId')
@@ -31,10 +32,33 @@ export async function POST(req: NextRequest) {
     }
     const oru = parsearORU(mensaje)
     const observations = oruAFHIR(oru, oru.paciente.id ? `Patient/${oru.paciente.id}` : 'Patient/desconocido')
+
+    /**
+     * ADAPTADOR DE DISPOSITIVOS: los signos vitales que trae el mensaje.
+     *
+     * Casi todos los monitores de cabecera hablan HL7 y mandan un `OBX` por
+     * parámetro. El convertidor sólo devolvía FHIR genérico; ahora también
+     * traduce lo que es un signo vital al mismo `RegistroSignos` que usan el
+     * censo, NEWS2 y la nota — con la unidad VALIDADA y la hora del aparato.
+     *
+     * Lo que no se entiende se DECLARA en `descartados` en vez de colarse: una
+     * temperatura en Fahrenheit leída como Celsius es 37 donde había 98.6, y
+     * NEWS2 puntúa con ese número. Ver `lib/dispositivos/vitales-hl7.ts`.
+     */
+    const vitales = traducirVitales(oru.resultados.map(r => ({
+      codigo: r.codigo, valor: r.valor, unidad: r.unidad, medidoEn: r.medidoEn,
+    })))
+
     return NextResponse.json({
       ok: true,
       tipo: 'oru',
       oru,
+      vitales: {
+        ...vitales,
+        // Que quien lo guarde no pueda confundirlo con algo que tecleó alguien.
+        fuente: 'dispositivo',
+        hay: hayVitales(vitales),
+      },
       fhir: { resourceType: 'Bundle', type: 'collection', total: observations.length, entry: observations.map(r => ({ resource: r })) },
       ack: construirACK(oru.mensajeControlId || ''),
     })

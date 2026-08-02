@@ -33,6 +33,14 @@ export interface ResultadoLab {
   unidad?: string
   rango?: string        // rango de referencia
   flag?: string         // H/L/HH/LL/N/A (anormal)
+  /**
+   * `OBX-14` — cuándo se OBSERVÓ, según el aparato que lo midió.
+   *
+   * Hacía falta para el adaptador de dispositivos: un mensaje que llega con
+   * retraso escribiría signos «de ahora» que son de hace dos horas, y la gráfica
+   * de tendencia mentiría. Ver `lib/dispositivos/vitales-hl7.ts`.
+   */
+  medidoEn?: string
 }
 
 export interface OruParseado {
@@ -59,6 +67,7 @@ export function parsearORU(mensaje: string): OruParseado {
         unidad: componentes(obx.campos[6])[0] || undefined,
         rango: (obx.campos[7] ?? '') || undefined,
         flag: (obx.campos[8] ?? '') || undefined,
+        medidoEn: (obx.campos[13] ?? '') || undefined,
       }
     })
     .filter(r => r.codigo || r.nombre)
