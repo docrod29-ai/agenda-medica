@@ -564,6 +564,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 |---|---|
 | **886** | **El menú de información prometía números que no existían — y llevaban al sitio equivocado.** Terminaba con «O responda con el número de su interés» sin listar ninguno, y como el estado seguía siendo `menu`, quien escribía «1» acababa en el **alta de cita** y «3» en cancelar: el paciente que quería saber el horario terminaba dando su nombre completo para agendar. Ahora los cinco temas están numerados, el menú tiene su propio estado y «0» vuelve. Además el estado del **aviso de privacidad** ya no se secuestra: si una pregunta frecuente contestaba encima, el paciente acababa dando sus datos sin haber contestado si acepta. |
 
+## TRIGÉSIMA SEXTA TANDA — v887 (el contacto que nadie sabía que debía hacer)
+
+| v | Qué se reparó |
+|---|---|
+| **887** | **El portal público no le avisaba a nadie del consultorio.** Le contesta al paciente «Te contactaremos para confirmar» y la cita se queda en `solicitada`: si la asistente no recarga la agenda —o mira sólo las confirmadas— el paciente espera una llamada que no va a llegar y el consultorio pierde la cita sin enterarse de que la tuvo. El bot **sí** manda su «🔔 Nueva cita»: dos caminos, dos criterios. Lo mismo con la cancelación desde el enlace (v863 dejó bitácora y oferta del hueco, pero ningún aviso). Ahora los dos avisan por el mismo helper, el fallo queda **registrado** como no entregado, y ninguno espera al aviso — la respuesta al paciente ya salió. |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.
@@ -608,6 +614,5 @@ Por orden de daño. Todo con archivo:línea, verificable.
 20. ~~«Pagar anticipo» no aseguraba nada~~ — HECHO (v861).
 21. ~~Aviso de lista de espera sin `medicoId`~~ — HECHO (v861).
 22. ~~Cancelar/reagendar desde el portal no ofrece el hueco, no avisa y no deja
-    rastro~~ — HECHO (v863). **Queda**: el consultorio sigue sin recibir un
-    aviso propio de la cancelación (hoy sólo lo ve en la agenda y en la
-    bitácora); hace falta decidir por qué canal se le avisa.
+    rastro~~ — HECHO (v863) **y el aviso al consultorio en v887**, por WhatsApp,
+    con el fallo registrado si no sale.
