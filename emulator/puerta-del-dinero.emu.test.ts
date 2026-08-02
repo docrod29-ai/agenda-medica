@@ -219,3 +219,43 @@ describe('El médico de un cobro está congelado', () => {
     )
   })
 })
+
+/**
+ * UN EXPEDIENTE NO SE BORRA DESDE EL NAVEGADOR.
+ *
+ * Las reglas permitían al admin borrar el documento del paciente, y la
+ * salvaguarda que impide hacerlo cuando hay NOTAS FIRMADAS vivía en
+ * `deletePatientExpediente` — una función sin un solo llamador. La protección
+ * NOM-004 estaba en código muerto y la puerta abierta en el único borde real.
+ *
+ * Además, borrando sólo el paciente las notas firmadas quedaban huérfanas:
+ * siguen protegidas, pero ya no cuelgan de nadie.
+ *
+ * El borrado legítimo pasa por `/api/arco/cancelar`, con el SDK admin: cuenta
+ * las notas firmadas, decide entre supresión y bloqueo, y deja asiento.
+ */
+describe('El expediente del paciente no se borra desde el cliente', () => {
+  const pacienteId = 'pac-no-borrable'
+
+  beforeAll(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await ctx.firestore().doc(`clinics/${TENANT_A}/patients/${pacienteId}`).set({
+        nombre: 'Paciente Sintético', telefono: '6140000000',
+      })
+    })
+  })
+
+  it('ni siquiera el admin puede borrarlo', async () => {
+    await assertFails(db(TENANT_A, 'admin').doc(`clinics/${TENANT_A}/patients/${pacienteId}`).delete())
+  })
+
+  it('la asistente tampoco, claro', async () => {
+    await assertFails(db(TENANT_A, 'secretaria').doc(`clinics/${TENANT_A}/patients/${pacienteId}`).delete())
+  })
+
+  it('pero EDITAR sus datos de contacto sigue siendo trabajo del mostrador', async () => {
+    await assertSucceeds(
+      db(TENANT_A, 'secretaria').doc(`clinics/${TENANT_A}/patients/${pacienteId}`).update({ telefono: '6141111111' }),
+    )
+  })
+})

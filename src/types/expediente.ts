@@ -49,6 +49,33 @@ export interface Diagnostico {
   fechaDiagnostico?: string
 }
 
+/**
+ * Estado de una orden de medicamento dentro de su ciclo de vida (V6 · P-008).
+ *
+ * ── POR QUÉ HACÍA FALTA ──────────────────────────────────────────────────────
+ *
+ * La orden no tenía estado: un fármaco estaba en la lista o no estaba. Eso deja
+ * sin representar dos situaciones que ocurren todos los días en consulta:
+ *
+ *  · **Suspender sin borrar.** «Deja el ibuprofeno mientras te dure la gastritis»
+ *    no es lo mismo que «nunca tomaste ibuprofeno». Borrarlo de la lista pierde
+ *    la historia; dejarlo activo miente sobre lo que el paciente está tomando.
+ *  · **Retirar lo que nunca debió indicarse.** Si se prescribe por error y se
+ *    detecta antes de que el paciente lo tome, «cancelada» y «terminada» son
+ *    hechos clínicos distintos y el expediente tiene que distinguirlos.
+ *
+ * `borrador` existe porque la nota se autoguarda cada 30 segundos: un fármaco a
+ * medio teclear —con el nombre puesto y la dosis todavía no— no es una
+ * prescripción, y contarlo como tal en cualquier lectura del expediente afirmaría
+ * algo que el médico no ha decidido.
+ */
+export type EstadoOrdenMedicamento =
+  | 'borrador'    // se está capturando; la nota no está firmada
+  | 'activa'      // prescrita y vigente
+  | 'suspendida'  // se detuvo, puede reanudarse
+  | 'terminada'   // completó su duración
+  | 'cancelada'   // se retiró; no debió administrarse
+
 export interface Medicamento {
   nombre: string                // DCI / genérico
   nombreComercial?: string
@@ -58,6 +85,15 @@ export interface Medicamento {
   duracion: string              // "7 días" / "indefinido"
   indicacion?: string
   instruccionesEspeciales?: string
+  /**
+   * OPCIONAL a propósito: todo lo prescrito antes de que esto existiera no lo
+   * lleva. Ponerlo obligatorio obligaría a rellenar miles de órdenes viejas con
+   * un valor que nadie decidió — y `estadoDeOrden()` ya trata la ausencia como
+   * «activa», que es lo que esas órdenes significaban cuando se escribieron.
+   */
+  estado?: EstadoOrdenMedicamento
+  /** Por qué se suspendió o se canceló. Sin esto, el cambio de estado no informa. */
+  motivoEstado?: string
 }
 
 /**

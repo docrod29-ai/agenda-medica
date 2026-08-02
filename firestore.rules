@@ -170,11 +170,27 @@ service cloud.firestore {
       }
       match /patients/{docId} {
         allow read: if isMember(clinicId);
-        // La asistente puede EDITAR datos del paciente (contacto, demografía), pero
-        // BORRAR un expediente completo es irreversible y sensible a pérdida de datos
-        // (NOM-004): solo el Admin/dueño. Antes cualquier miembro podía eliminarlo.
+        // La asistente puede EDITAR datos del paciente (contacto, demografía).
         allow update: if isMember(clinicId);
-        allow delete: if isAdmin(clinicId);
+        /**
+         * BORRAR UN EXPEDIENTE NO SE HACE DESDE EL NAVEGADOR. PUNTO.
+         *
+         * Estaba permitido al admin, y la salvaguarda que impide borrar un
+         * expediente CON NOTAS FIRMADAS vivía en `deletePatientExpediente`… una
+         * función sin un solo llamador. O sea: la protección NOM-004 estaba en
+         * código muerto y la puerta abierta en las reglas, que es el único borde
+         * real. Además, borrando sólo el paciente las notas firmadas quedaban
+         * huérfanas: siguen protegidas, pero ya no cuelgan de nadie.
+         *
+         * El borrado legítimo existe y pasa por `/api/arco/cancelar`, que usa el
+         * SDK admin: cuenta las notas firmadas, decide entre supresión y
+         * bloqueo, y deja asiento en la bitácora. Ese camino no pasa por aquí.
+         *
+         * Nada en la interfaz borra pacientes desde el cliente, así que cerrar
+         * esto no quita ninguna función: quita una puerta que sólo servía para
+         * una consola del navegador.
+         */
+        allow delete: if false;
         allow create: if isMember(clinicId) && clinicaPuedeEscribir(clinicId);
 
         // Expediente Clínico Electrónico — notas del paciente

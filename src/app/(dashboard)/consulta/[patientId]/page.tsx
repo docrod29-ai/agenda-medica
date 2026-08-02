@@ -24,7 +24,7 @@ import { borradoresBloqueados } from '@/lib/mobile/local-drafts'
 import { EVENTO_GUARDAR_TODO } from '@/lib/salir-seguro'
 import { usePorcupineComando, type PicovoiceConfig } from '@/hooks/usePorcupineComando'
 import {
-  createNota, updateNota, getNota, deleteNota, getUltimasNotasResumen,
+  createNota, updateNota, getNota, getNotas, deleteNota, getUltimasNotasResumen,
 } from '@/lib/expediente/firestore'
 import { seccionesVacias, requiereSignosVitales, esPreoperatoria, esInmuno } from '@/lib/expediente/templates'
 import { sanitizarProsa } from '@/lib/expediente/sanitizar-prosa'
@@ -78,8 +78,8 @@ import { PanelRazonamiento } from '@/components/PanelRazonamiento'
 import { tareasDeNota } from '@/lib/tareas-clinicas/derivar'
 import { crearTareas } from '@/lib/tareas-clinicas/firestore'
 import { DialogoDiarizado, Section, S } from './consulta-ui'
+import { medicamentosVigentes, type OrdenVigente } from '@/lib/expediente/ordenes-medicamento'
 import {
-
   ArrowLeft, Mic, Square, Sparkles, Loader2, AlertTriangle, CheckCircle2,
   Trash2, Plus, ShieldCheck, Pill, Stethoscope, FileSignature, Headphones,
   Lock, Bug, FlaskConical, Lightbulb, FileText, ChevronDown, ChevronUp, Volume2, BedDouble,
@@ -549,6 +549,16 @@ export default function ConsultaActivaPage() {
   const [modalConsentimiento, setModalConsentimiento] = useState(false)
   const ultimasNotasRef = useRef('')
   const [contextoPrevio, setContextoPrevio] = useState('')
+  /**
+   * QUÉ ESTÁ TOMANDO EL PACIENTE HOY (V6 · P-005 y P-008).
+   *
+   * Es la primera pregunta de cualquier consulta y el encabezado no la
+   * respondía: los medicamentos viven dentro de cada nota, así que «lo que
+   * toma» era «lo que escribí la última vez que lo vi» — y una suspensión
+   * anotada en la consulta anterior no aparecía en ningún sitio salvo leyendo
+   * esa nota entera.
+   */
+  const [vigentes, setVigentes] = useState<OrdenVigente[]>([])
 
   // Constraints para capturar TODA la conversación (médico + paciente) en el modo
   // Whisper: sin supresión de ruido ni cancelación de eco (borran al paciente),
@@ -645,6 +655,14 @@ export default function ConsultaActivaPage() {
     getUltimasNotasResumen(clinicId, patientId)
       .then(r => { ultimasNotasRef.current = r; setContextoPrevio(r) })
       .catch(e => console.error('contexto de visitas previas:', e))  // degrada sin romper la nota
+    // La medicación vigente sale de TODAS las notas, no sólo de la última: manda
+    // lo que se dijo por última vez de CADA fármaco (ver `ordenes-medicamento`).
+    getNotas(clinicId, patientId)
+      .then(ns => setVigentes(medicamentosVigentes(
+        ns.filter(n => n.estado === 'firmada')
+          .map(n => ({ fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '', medicamentos: n.medicamentos })),
+      )))
+      .catch(e => console.error('medicación vigente:', e))   // degrada sin romper la nota
   }, [clinicId, patientId])
 
   // ── Cargar nota existente (borrador) si viene ?nota= ───────────
@@ -2142,6 +2160,29 @@ export default function ConsultaActivaPage() {
           style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 14 }}
         />
       </div>
+
+      {/*
+        MEDICACIÓN VIGENTE. Va justo bajo las alergias porque son las dos cosas
+        que hay que saber ANTES de prescribir, y estaban a distinta distancia:
+        las alergias arriba del todo y la medicación enterrada en la nota
+        anterior.
+      */}
+      {vigentes.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 12,
+          background: 'var(--s2)', border: '1px solid var(--border)',
+          borderRadius: 10, padding: '9px 13px',
+        }}>
+          <Pill size={16} color="var(--text3)" style={{ flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+            <strong style={{ color: 'var(--text)' }}>Está tomando:</strong>{' '}
+            {vigentes.map(v => [v.medicamento.nombre, v.medicamento.dosis].filter(Boolean).join(' ')).join(' · ')}
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>
+              De lo último que se dijo de cada fármaco en sus notas firmadas. No mencionarlo en una consulta no lo suspende.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Continuidad: contexto de las últimas visitas (solo lectura) */}
       {contextoPrevio && (

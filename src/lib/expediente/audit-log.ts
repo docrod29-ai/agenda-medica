@@ -71,23 +71,103 @@ export interface AuditPayload {
   meta?: Record<string, unknown>  // datos no sensibles (counts, ids, etc.)
 }
 
-export async function logAudit(p: AuditPayload): Promise<void> {
-  if (!p.clinicId) return
+/**
+ * COLA LOCAL DE ASIENTOS QUE NO SE PUDIERON ESCRIBIR.
+ *
+ * ── EL PROBLEMA ──────────────────────────────────────────────────────────────
+ *
+ * `logAudit` se tragaba el error por diseño —«nunca debe romper la operación
+ * clínica», que es correcto— pero eso significaba que un 4xx por un evento no
+ * reconocido, o la red caída, producían una bitácora CON HUECOS que nadie
+ * detecta. Ya pasó de verdad: el evento `cobro_exento` se registraba desde la
+ * pantalla, el servidor lo rechazaba, y en la base no había ni una cortesía.
+ *
+ * Una bitácora es una promesa de trazabilidad; con huecos silenciosos no la
+ * cumple, y encima nadie sabe que no la cumple.
+ *
+ * ── LA SOLUCIÓN, CON SU LÍMITE DECLARADO ─────────────────────────────────────
+ *
+ * Los fallos TRANSITORIOS (red, 5xx) se guardan y se reintentan en la siguiente
+ * escritura. Los fallos PERMANENTES (4xx: evento no reconocido, sin permiso) NO
+ * se encolan: reintentarlos sería llenar el disco con algo que nunca va a
+ * entrar. Ésos van a la consola con el evento, que es lo que permite arreglarlos.
+ *
+ * La cola es acotada: 50 asientos. Un fallo prolongado no puede convertirse en
+ * un problema de almacenamiento, y perder los más viejos es preferible a perder
+ * la aplicación.
+ */
+const CLAVE_COLA = 'nx.audit.pendientes'
+const TOPE_COLA = 50
+
+type Pendiente = { cuerpo: Record<string, unknown>; intentos: number }
+
+function leerCola(): Pendiente[] {
   try {
-    await fetchAutenticado('/api/auditoria/registrar', {
+    const v = JSON.parse(localStorage.getItem(CLAVE_COLA) ?? '[]')
+    return Array.isArray(v) ? v.slice(-TOPE_COLA) : []
+  } catch { return [] }
+}
+
+function escribirCola(cola: Pendiente[]): void {
+  try {
+    if (!cola.length) localStorage.removeItem(CLAVE_COLA)
+    else localStorage.setItem(CLAVE_COLA, JSON.stringify(cola.slice(-TOPE_COLA)))
+  } catch { /* almacenamiento lleno: se pierde la cola, no la operación */ }
+}
+
+/** Manda un asiento. Devuelve si se puede reintentar cuando falla. */
+async function enviarAsiento(cuerpo: Record<string, unknown>): Promise<{ ok: boolean; reintentable: boolean }> {
+  try {
+    const res = await fetchAutenticado('/api/auditoria/registrar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // medicoUid/medicoEmail NO se mandan: los pone el servidor desde el token.
-      body: JSON.stringify({
-        evento: p.evento,
-        clinicId: p.clinicId,
-        patientId: p.patientId,
-        notaId: p.notaId,
-        meta: p.meta,
-        timestampCliente: new Date().toISOString(),
-      }),
+      body: JSON.stringify(cuerpo),
     })
+    if (res.ok) return { ok: true, reintentable: false }
+    // 4xx = el asiento está mal formado o no está permitido: reintentar no lo arregla.
+    const permanente = res.status >= 400 && res.status < 500
+    if (permanente) {
+      console.error('[auditoria] asiento RECHAZADO y descartado', cuerpo.evento, res.status)
+    }
+    return { ok: false, reintentable: !permanente }
   } catch {
-    // silencioso: nunca debe romper la operación clínica
+    return { ok: false, reintentable: true }   // red caída
   }
+}
+
+/** Vacía lo que se pueda de la cola. No bloquea a quien la llama. */
+async function drenarCola(): Promise<void> {
+  const cola = leerCola()
+  if (!cola.length) return
+  const quedan: Pendiente[] = []
+  for (const p of cola) {
+    const r = await enviarAsiento(p.cuerpo)
+    if (!r.ok && r.reintentable && p.intentos < 5) quedan.push({ ...p, intentos: p.intentos + 1 })
+  }
+  escribirCola(quedan)
+}
+
+export async function logAudit(p: AuditPayload): Promise<void> {
+  if (!p.clinicId) return
+  const cuerpo = {
+    evento: p.evento,
+    clinicId: p.clinicId,
+    patientId: p.patientId,
+    notaId: p.notaId,
+    meta: p.meta,
+    timestampCliente: new Date().toISOString(),
+  }
+  // medicoUid/medicoEmail NO se mandan: los pone el servidor desde el token.
+  const r = await enviarAsiento(cuerpo)
+  if (!r.ok && r.reintentable) {
+    escribirCola([...leerCola(), { cuerpo, intentos: 1 }])
+  }
+  // Aprovecha esta llamada para vaciar lo que quedó pendiente de antes. Va sin
+  // esperar: la bitácora nunca puede frenar la operación clínica.
+  void drenarCola()
+}
+
+/** Cuántos asientos están esperando. Para poder DECIRLO en pantalla. */
+export function asientosPendientes(): number {
+  return leerCola().length
 }

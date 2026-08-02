@@ -11,6 +11,7 @@ import { useClinic } from '@/context/ClinicContext'
 import { Sidebar } from '@/components/Sidebar'
 import { ToastProvider } from '@/context/ToastContext'
 import { AvisoModuloBloqueado, EVENTO_MODULO_BLOQUEADO } from '@/components/AvisoModuloBloqueado'
+import { AvisoCorreoSinVerificar } from '@/components/AvisoCorreoSinVerificar'
 import { ModeProvider } from '@/context/ModeContext'
 import { ClinicProvider } from '@/context/ClinicContext'
 import { BorradorProvider } from '@/context/BorradorContext'
@@ -605,6 +606,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
 
         <OfflineBanner />
         <ModeBanner />
+        <AvisoCorreoSinVerificar />
         <AvisoCobroPendiente />
         <TrialBanner />
         <NotificacionesPushOptIn />

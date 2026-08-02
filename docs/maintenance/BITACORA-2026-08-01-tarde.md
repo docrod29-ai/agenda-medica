@@ -1,5 +1,10 @@
 # Bitácora reanudable — tarde del 2026-08-01
 
+**El objetivo del Dr. es terminar el MASTER EXECUTION LOOP V6 completo.** El
+estado fase por fase, verificado contra el código, está en
+**`V6-PRACTICE-GA.md`** — léelo también: dice qué falta de cada P y en qué orden
+seguir. Este archivo es el registro de versiones y la cola fina.
+
 **Para retomar:** lee este archivo primero. Cada punto dice si está HECHO, EN CURSO
 o PENDIENTE, y lo pendiente trae el archivo y la línea por donde entrar.
 
@@ -40,6 +45,11 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
 | v819 | pagoVencido/disputaAbierta que nadie leía · el año pagado que se perdía al cambiar de plan |
 | v820 | Dos pestañas sobre la misma nota se pisaban: guardia de concurrencia |
 | v821 | El historial de versiones ya se puede leer · dónde están las tarifas de consulta |
+| v822 | Verificación de correo (no existía en ninguna parte) |
+| v823 | Borrar expediente desde el navegador: cerrado (la protección NOM-004 vivía en código muerto) |
+| v824 | La bitácora se quedaba con huecos: cola de reintento con fallos permanentes descartados |
+| v825 | Bajar de plan en el portal de Stripe dejaba los módulos caros (manda el precio, no el metadato) |
+| v826 | El portal ARCO no verificaba a nadie, y la solicitud ya ejecuta: acreditación del titular antes del acto irreversible |
 
 ---
 
@@ -60,7 +70,7 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
    `src/lib/modulos.ts:58` (`/pacientes` es core, `/expediente` no) +
    `src/app/(dashboard)/layout.tsx:404-406` (`router.replace` mudo). La entrada
    del menú se llama «Consulta». Parece la app rota, no un límite de plan.
-3. **No existe verificación de correo.** `grep sendEmailVerification` → cero.
+3. ~~Verificación de correo~~ — HECHO (v822), sin bloquear el acceso. `grep sendEmailVerification` → cero.
    Un correo mal tecleado = cuenta irrecuperable sin soporte humano.
 4. ~~Recordatorios encendidos sin proveedor~~ — HECHO (v816).
    (`src/types/index.ts:648`): dos interruptores en verde que no mandan nada.
@@ -137,7 +147,7 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
 6. **`invoice.paid` sin clínica guarda `clinicId: ''`** — ingreso huérfano.
 7. **Las reglas dejan reatribuir `medicoId` al vincular factura** — `firestore.rules:611`,
    lo que mueve el reparto de comisiones.
-8. **`logAudit` falla en silencio, sin cola ni reintento** — `src/lib/expediente/audit-log.ts:84`.
+8. ~~logAudit en silencio~~ — HECHO (v824). — `src/lib/expediente/audit-log.ts:84`.
 9. **El portal ARCO público no verifica identidad** — `src/app/privacidad/[clinicId]/page.tsx:70`.
 10. **Horario partido / descansos / festivos recurrentes no existen en el modelo** —
     `src/types/index.ts:408` (`DaySchedule` es un solo tramo).

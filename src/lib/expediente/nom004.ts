@@ -2,6 +2,7 @@ import type { NotaMedica, ValidationResult } from '@/types/expediente'
 import { requiereSignosVitales } from './templates'
 import { validarAlergiasVsMedicamentos } from './medical-dictionary'
 import { validarFormatoCie10 } from '../cie10'
+import { desdeSeveridadHeredada, etiquetaDe, detiene } from '@/lib/seguridad/clasificacion'
 
 /**
  * Validación NOM-004-SSA3-2012.
@@ -64,11 +65,26 @@ export function validarNOM004(nota: NotaMedica): ValidationResult {
   // p. ej. alergia a penicilina + prescripción de cefalexina NO se detectaba con
   // el match por subcadena de arriba, pero sí aquí.
   for (const alerta of validarAlergiasVsMedicamentos(nota.alergias, nota.medicamentos)) {
-    if (alerta.severidad === 'critica') {
+    /**
+     * LA ALERTA DICE QUÉ ES, NO SÓLO QUE ES ROJA.
+     *
+     * Antes todas las críticas salían igual: un renglón rojo indistinguible.
+     * Con `info | advertencia | critica`, «contraindicado», «ajusta la dosis» y
+     * «vigila el potasio» eran la misma cosa en pantalla — y cuando todo es
+     * crítico, nada lo es.
+     *
+     * La traducción es CONSERVADORA a propósito (ver `clasificacion.ts`): cada
+     * severidad heredada conserva exactamente la conducta que ya tenía. Lo único
+     * que cambia hoy es que la alerta se NOMBRA. El detalle fino de qué fármaco
+     * es BLOCK y cuál es AVOID lo asigna el médico, no este archivo.
+     */
+    const clase = desdeSeveridadHeredada(alerta.severidad)
+    const nombrada = `[${etiquetaDe(clase)}] ${alerta.mensaje}`
+    if (detiene(clase)) {
       // Evita duplicar si el match exacto de arriba ya lo reportó.
-      if (!errores.some(e => e.includes(alerta.mensaje))) errores.push(`⚠️ ${alerta.mensaje}`)
+      if (!errores.some(e => e.includes(alerta.mensaje))) errores.push(`⚠️ ${nombrada}`)
     } else if (alerta.severidad === 'advertencia') {
-      advertencias.push(alerta.mensaje)
+      advertencias.push(nombrada)
     }
   }
   // Diagnóstico de infección sin antibiótico (alerta blanda)
