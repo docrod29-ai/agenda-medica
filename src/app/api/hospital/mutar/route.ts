@@ -298,10 +298,14 @@ export async function POST(req: NextRequest) {
 
     if (!internamientoId) return NextResponse.json({ ok: false, error: 'internamientoId requerido' }, { status: 400 })
     const ref = col.doc(internamientoId)
+    /** Hilo del expediente para la bitácora; se llena dentro de la transacción. */
+    let pacienteIdDelEpisodio = ''
     await adminDb.runTransaction(async (tx) => {
       const snap = await tx.get(ref)
       if (!snap.exists) throw new Error('no-existe')
       const inter = { id: snap.id, ...(snap.data() as Any) }
+      // Para la bitácora: el hilo del expediente sale del episodio, no del body.
+      pacienteIdDelEpisodio = String((inter as Any).pacienteId ?? '')
       // Traslado a una cama ya ocupada por OTRO internamiento activo → rechazar.
       // (Lectura antes de la escritura, como exige la transacción.)
       if (accion === 'trasladar' && payload.cama) {
@@ -518,6 +522,52 @@ export async function POST(req: NextRequest) {
       const durable = registroDurable(accion, payload, now, actor.nombre)
       if (durable) tx.set(ref.collection('registros').doc(), durable)
     })
+
+    /**
+     * LA BITÁCORA DE LO QUE MUEVE O DESTRUYE.
+     *
+     * Aquí sólo entran las acciones que **cambian dónde está el paciente o hacen
+     * desaparecer algo del episodio**, no todas: una bitácora que registra cada
+     * pulsación no se lee, y una que no registra un borrado no sirve.
+     *
+     *  · `hosp_traslado` estaba DECLARADO en el tipo, permitido en la ruta de
+     *    auditoría… y no lo escribía nadie. El movimiento sí quedaba dentro del
+     *    episodio (`movimientos[]`), pero la bitácora de cumplimiento —la que se
+     *    consulta para saber quién tocó a un paciente— no se enteraba.
+     *  · Borrar una indicación o una interconsulta desaparecía sin dejar nada.
+     *    La ruta ya lo impide en cuanto hay administración o respuesta, pero una
+     *    orden suspendida sigue viéndose y una borrada se esfuma entera. Es el
+     *    mismo criterio que ya obligaba a registrar el borrado de un laboratorio
+     *    o de una foto clínica: no se prohíbe, pero tiene que quedar quién.
+     *
+     * Sin PHI en `meta`: servicio y cama son ubicación, no diagnóstico, y el
+     * paciente va por `patientId`.
+     */
+    const EVENTO_DE: Record<string, string> = {
+      trasladar: 'hosp_traslado',
+      cambiar_tratante: 'hosp_traslado',
+      indicacion_borrar: 'hosp_indicacion_borrada',
+      interconsulta_borrar: 'hosp_interconsulta_borrada',
+    }
+    const evento = EVENTO_DE[accion]
+    if (evento) {
+      void adminDb.collection('clinics').doc(clinicId).collection('audit_log').add({
+        evento,
+        clinicId,
+        patientId: pacienteIdDelEpisodio,
+        timestamp: new Date().toISOString(),
+        medicoUid: acc.uid,
+        medicoEmail: acc.email ?? '',
+        meta: {
+          internamientoId,
+          accion,
+          ...(accion === 'trasladar' ? { servicio: payload.servicio ?? '', cama: payload.cama ?? '' } : {}),
+          ...(accion === 'indicacion_borrar' ? { indId: payload.indId ?? '' } : {}),
+          ...(accion === 'interconsulta_borrar' ? { icId: payload.icId ?? '' } : {}),
+        },
+      }).catch(() => { /* la bitácora no revierte un cambio clínico ya aplicado */ })
+    }
+
     return NextResponse.json({ ok: true })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'error'

@@ -86,6 +86,20 @@ export type AuditEvento =
   | 'hosp_traslado'              // traslado de cama/servicio o cambio de tratante
   | 'hosp_lab_resultado'         // se cargó resultado de laboratorio
   /**
+   * LO QUE SE BORRA DEL EPISODIO.
+   *
+   * Una indicación médica sin administrar y una interconsulta sin responder SÍ
+   * se pueden borrar —a veces se teclean en el paciente equivocado— y la ruta ya
+   * lo impide en cuanto hay MAR o respuesta. Pero se borraban **sin dejar nada**:
+   * una orden suspendida sigue viéndose y una borrada desaparece entera.
+   *
+   * Es exactamente el mismo criterio que ya obligaba a registrar el borrado de un
+   * laboratorio o de una foto clínica: no se prohíbe, pero tiene que quedar quién
+   * y cuándo.
+   */
+  | 'hosp_indicacion_borrada'    // se eliminó una indicación aún no administrada
+  | 'hosp_interconsulta_borrada' // se eliminó una interconsulta aún sin responder
+  /**
    * === Lo que hace el PACIENTE por su cuenta (portal y bot) ===
    *
    * Estos cinco se escribían directo con el Admin SDK desde las rutas, sin pasar
@@ -288,6 +302,8 @@ export const EVENTO_LABEL: Record<AuditEvento, string> = {
   hosp_administracion: 'Administró medicamento',
   hosp_traslado: 'Traslado de cama o tratante',
   hosp_lab_resultado: 'Cargó resultado de laboratorio',
+  hosp_indicacion_borrada: 'Borró indicación médica',
+  hosp_interconsulta_borrada: 'Borró interconsulta',
   // Lo que hace el paciente por su cuenta se nombra DICIENDO que fue él: en una
   // revisión, «canceló» sin sujeto se lee como que lo hizo el consultorio.
   cita_solicitada_portal: 'El paciente reservó (portal)',

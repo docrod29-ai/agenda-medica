@@ -541,6 +541,43 @@ Tres cuidados:
 
 ---
 
+## QUINCUAGÉSIMA NOVENA TANDA — v910
+
+### Dos huecos en la bitácora del episodio: el traslado no se escribía nunca y los borrados no dejaban nada
+
+**1. `hosp_traslado` estaba declarado y no lo escribía nadie.** Estaba en el
+tipo, estaba permitido en la ruta de auditoría… y ninguna vía lo emitía. El
+movimiento sí quedaba dentro del episodio (`movimientos[]`), pero la bitácora de
+cumplimiento —la que se consulta para saber quién tocó a un paciente— no se
+enteraba de que alguien lo cambió de servicio, de cama o de médico tratante.
+
+**2. Borrar una indicación médica o una interconsulta desaparecía sin dejar
+nada.** La ruta ya lo impide en cuanto hay administración o respuesta, y eso
+estaba bien; pero una orden **suspendida** sigue viéndose en el expediente y una
+**borrada** se esfuma entera.
+
+Es el mismo criterio que el propio tipo escribió para `laboratorio_borrado` y
+`foto_clinica_borrada`: *«no se prohíbe —a veces hay que quitar una foto subida
+al expediente equivocado— pero tiene que quedar quién y cuándo»*. Lo que faltaba
+era aplicarlo a lo que sí es una orden médica.
+
+Ahora las cuatro acciones dejan asiento. **Sólo esas**: una bitácora que registra
+cada pulsación no se lee, y una que no registra un borrado no sirve.
+
+Tres cuidados:
+
+- el **autor** sale de la sesión verificada;
+- el **paciente sale del episodio**, no del cuerpo de la petición: si saliera del
+  body, un llamador podría colgar el asiento del expediente de otro;
+- **sin PHI de más** — servicio y cama son ubicación, no diagnóstico; no viajan
+  descripción, motivo ni nombre.
+
+- `src/lib/expediente/audit-log.ts` (+2 eventos con etiqueta)
+- `src/app/api/hospital/mutar/route.ts`
+- `src/__tests__/bitacora-hospital.test.ts` — 8 pruebas. Total 4870.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
