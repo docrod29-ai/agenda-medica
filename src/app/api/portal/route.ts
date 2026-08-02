@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import admin, { adminDb } from '@/lib/firebase-admin'
 import { puedeTocarDesdeElPortal, MENSAJE_ESTADO_NO_TOCABLE } from '@/lib/portal/estados'
+import { sincronizarCitaDelPortal, estadoDeSync } from '@/lib/calendario/sincronizar-servidor'
 import { ofrecerHuecoLiberado } from '@/lib/whatsapp/ofrecer-hueco'
 import { avisarAlConsultorio, telefonoDelConsultorio } from '@/lib/whatsapp/avisar-consultorio'
 import { limpiarRespuestas, tieneContenido } from '@/lib/portal/formulario-previo'
@@ -225,6 +226,26 @@ export async function POST(req: NextRequest) {
          * Nada de esto puede tumbar la cancelación: el paciente ya la pidió y
          * ya está hecha.
          */
+        /**
+         * Y EL EVENTO DE GOOGLE, QUE SE QUEDABA VIVO.
+         *
+         * Cancelar en Nexus dejaba el evento en el calendario del médico: él ve
+         * ocupada una hora que ya está libre, no se la ofrece a nadie, y si el
+         * paciente estaba invitado sigue con el recordatorio de una cita que ya
+         * canceló. Es la cara opuesta del mismo hueco que el reagendado.
+         *
+         * Sin vínculo médico ↔ calendario no se toca nada: el estado queda en
+         * `error` y el médico lo resuelve desde su sesión, donde sí hay token.
+         */
+        if (cita.googleCalendarEventId) {
+          const r = await sincronizarCitaDelPortal(clinicId, cita, 'borrar', config)
+          const estado = estadoDeSync(r)
+          if (estado) {
+            await adminDb.collection('clinics').doc(clinicId).collection('appointments')
+              .doc(cita.id).update({ googleCalendarSyncStatus: estado }).catch(() => {})
+          }
+        }
+
         void adminDb.collection('clinics').doc(clinicId).collection('audit_log').add({
           evento: 'cita_cancelada_portal',
           clinicId, patientId, citaId: cita.id,
@@ -367,19 +388,29 @@ export async function POST(req: NextRequest) {
          *
          * El paciente reagenda de martes a jueves desde su enlace: Nexus dice
          * jueves y el calendario del consultorio —y el del paciente, si está
-         * invitado— sigue diciendo martes.
+         * invitado— seguía diciendo martes.
          *
-         * NO se sincroniza desde aquí a propósito. El token de Google está guardado
-         * POR USUARIO (`googleTokens/{uid}`), y quien reagenda es el paciente: no
-         * hay forma de saber cuál de los médicos conectó ese calendario, y escribir
-         * en el equivocado sería peor que no escribir. Adivinar con el dueño de la
-         * clínica funcionaría solo si fue él quien lo conectó.
+         * ANTES no se sincronizaba a propósito, y el motivo estaba escrito aquí:
+         * el token vive en `googleTokens/{uid}` y quien reagenda es el paciente,
+         * así que no había forma de saber cuál de los médicos conectó ese
+         * calendario. **Ese motivo dejó de ser cierto**: v875 empezó a escribir
+         * el vínculo `doctors/{id}.uid`, v899 lo rellenó para los que ya estaban
+         * conectados, y desde v876 la disponibilidad pública ya LEE el freebusy
+         * con él. Ahora se usa el mismo vínculo para escribir.
          *
-         * Se marca como DESINCRONIZADA, que es la verdad, para que el panel pueda
-         * mostrarlo y el médico lo arregle con un clic desde su sesión.
+         * Sigue sin adivinarse nada: sin vínculo no se toca ningún calendario y
+         * la cita queda marcada, que es la verdad. Y esto no puede tumbar el
+         * reagendado — ya está hecho en Nexus, que es la fuente de verdad.
          */
         if (cita.googleCalendarEventId) {
-          await citaRef.update({ googleCalendarSyncStatus: 'desincronizado' }).catch(() => {})
+          const r = await sincronizarCitaDelPortal(
+            clinicId,
+            { ...cita, fechaHora: nuevaFechaHora },
+            'mover',
+            config,
+          )
+          const estado = estadoDeSync(r)
+          if (estado) await citaRef.update({ googleCalendarSyncStatus: estado }).catch(() => {})
         }
 
         // Reagendar TAMBIÉN libera un hueco —el viejo— y también hay que dejar
