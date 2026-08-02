@@ -14,6 +14,7 @@ import { describe, it, expect } from 'vitest'
 import {
   mensajeAviso, aceptoElAviso, rechazoElAviso, consentimientoDelBot, selloExpediente, VERSION_AVISO,
 } from '@/lib/whatsapp/aviso-bot'
+import type { ClinicConfig } from '@/types'
 
 describe('mensajeAviso', () => {
   const msg = mensajeAviso('Consultorio Luna', 'clin-1', 'https://app.example')
@@ -88,7 +89,9 @@ describe('consentimientoDelBot', () => {
  * WhatsApp seguía apareciendo SIN aviso en su expediente, igual que antes.
  */
 describe('selloExpediente', () => {
-  const cfg = { nombreClinica: 'Consultorio Luna', direccion: 'Av. 1' } as never
+  // `Partial<ClinicConfig>` y no `as never`: hacer spread de `never` no compila,
+  // y el módulo sólo lee los campos del membrete.
+  const cfg = { nombreClinica: 'Consultorio Luna', direccion: 'Av. 1' } as unknown as ClinicConfig
 
   it('lleva versión, medio y huella del texto', () => {
     const s = selloExpediente(cfg, '2026-08-02T10:00:00.000Z')
@@ -104,7 +107,7 @@ describe('selloExpediente', () => {
     // razón social y el domicilio: sin la huella no habría forma de demostrar
     // cuál aviso aceptó cada paciente.
     const a = selloExpediente(cfg, '2026-08-02T10:00:00.000Z')
-    const b = selloExpediente({ ...cfg, nombreClinica: 'Otro nombre' } as never, '2026-08-02T10:00:00.000Z')
+    const b = selloExpediente({ ...cfg, nombreClinica: 'Otro nombre' }, '2026-08-02T10:00:00.000Z')
     expect(a.hashTexto).not.toBe(b.hashTexto)
   })
 
