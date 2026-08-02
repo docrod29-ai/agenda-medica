@@ -36,6 +36,7 @@ import { buscarMed } from '@/lib/hospital/medicamentos-catalogo'
 import { esCriticoLab } from '@/lib/hospital/lab-criticos'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { nivelDeSigno, calcularNews2 } from '@/lib/hospital/news2'
+import { encuadrarNews2 } from '@/lib/hospital/news2-encuadre'
 import { GraficaSignos, type PuntoSigno } from '@/components/hospital/GraficaSignos'
 import { PanelEnfermeria } from '@/components/hospital/PanelEnfermeria'
 import {
@@ -279,12 +280,27 @@ export default function EpisodioPage() {
     return cdsMedicamento({ nombre: indForm.descripcion, alergias: patient?.alergias, medsActivos })
   }, [indForm.tipo, indForm.descripcion, patient?.alergias, medsActivos])
 
-  // NEWS2 (deterioro) del último registro de signos + series para las gráficas
+  /**
+   * NEWS2 — QUÉ SE PUNTÚA Y CÓMO SE LLAMA (decisión ICU-Q4.1 del Dr).
+   *
+   * Antes se tomaba el último registro, se puntuaba y se enseñaba el número. Si
+   * esa toma estaba a medias, la cabecera decía «NEWS2 2» en verde: el aviso de
+   * score incompleto viajaba sólo en el `title`, que en un teléfono nadie ve. Es
+   * la subestimación del deterioro que el score existe para evitar.
+   *
+   * `encuadrarNews2` decide cuál registro se puntúa y con qué encuadre —«NEWS2»
+   * cuando la toma está completa, «Último NEWS2 válido · 08:00» cuando no— sin
+   * rellenar nunca una variable ausente con historia. La fórmula no cambia.
+   */
   const ultimoSignos = signos.length ? signos[signos.length - 1] : null
-  const news2 = useMemo(
-    () => ultimoSignos ? calcularNews2({ fr: ultimoSignos.fr, spo2: ultimoSignos.spo2, temp: ultimoSignos.temp, ta: ultimoSignos.ta, fc: ultimoSignos.fc, conciencia: ultimoSignos.conciencia, oxigeno: ultimoSignos.oxigeno }) : null,
-    [ultimoSignos],
+  const encuadre = useMemo(
+    () => encuadrarNews2(signos, new Date().toISOString()),
+    [signos],
   )
+  const news2 = useMemo(() => {
+    const r = encuadre.registro
+    return r ? calcularNews2({ fr: r.fr, spo2: r.spo2, temp: r.temp, ta: r.ta, fc: r.fc, conciencia: r.conciencia, oxigeno: r.oxigeno }) : null
+  }, [encuadre])
   const serie = (k: 'fc' | 'fr' | 'temp' | 'spo2' | 'glucosa'): PuntoSigno[] =>
     signos.filter(s => s[k] != null).map(s => ({ fecha: s.fecha, valor: Number(s[k]) }))
   const serieSistolica: PuntoSigno[] = signos
@@ -432,7 +448,7 @@ export default function EpisodioPage() {
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button onClick={imprimirBrazalete} title="Imprimir brazalete con código de barras" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)', cursor: 'pointer' }}><Printer size={13} /> Brazalete</button>
             <button onClick={exportarFHIR} title="Exportar el internamiento en HL7 FHIR R4 (interoperabilidad)" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)', cursor: 'pointer' }}><Send size={13} /> FHIR</button>
-            {news2 && <button onClick={() => setTab('signos')} title={news2.recomendacion} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, padding: '5px 11px', borderRadius: 100, border: `1px solid ${news2.color}`, background: news2.color + '1f', color: news2.color, cursor: 'pointer' }}><HeartPulse size={13} /> NEWS2 {news2.total}</button>}
+            {news2 && <button onClick={() => setTab('signos')} title={encuadre.aviso || news2.recomendacion} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, padding: '5px 11px', borderRadius: 100, border: `1px solid ${news2.color}`, background: news2.color + '1f', color: news2.color, cursor: 'pointer' }}><HeartPulse size={13} /> {encuadre.etiqueta} {news2.total}{encuadre.encuadre !== 'actual' && <AlertTriangle size={12} className="ds-icon" />}</button>}
             <span style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 12px', borderRadius: 100, background: egresado ? 'var(--s2)' : 'rgba(13,148,136,.15)', color: egresado ? 'var(--text3)' : '#0d9488', border: `1px solid ${egresado ? 'var(--border)' : 'rgba(13,148,136,.4)'}` }}>{egresado ? 'Egresado' : 'Internado'}</span>
           </div>
         </div>
@@ -685,10 +701,24 @@ export default function EpisodioPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 14, padding: '12px 14px', borderRadius: 12, border: `1px solid ${news2.color}55`, background: news2.color + '12' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 64 }}>
                 <span style={{ fontSize: 26, fontWeight: 800, color: news2.color, lineHeight: 1 }}>{news2.total}</span>
-                <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: news2.color }}>NEWS2 · {news2.riesgo}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: news2.color, textAlign: 'center' }}>{encuadre.etiqueta} · {news2.riesgo}</span>
               </div>
               <div style={{ flex: 1, minWidth: 200 }}>
-                <div style={{ fontSize: 12.5, color: 'var(--text2)', marginBottom: 4 }}>{news2.recomendacion}{news2.parcial ? ' (parcial: sin conciencia/O₂)' : ''}</div>
+                {/*
+                  EL ENCUADRE VA ANTES QUE LA RECOMENDACIÓN.
+
+                  Si este número no describe el estado de AHORA, saberlo cambia
+                  qué hacer con él. El texto sale de `encuadrarNews2`, que nombra
+                  las variables que de verdad faltan — antes decía siempre
+                  «(parcial: sin conciencia/O₂)», también cuando lo ausente era la
+                  FR y la SpO₂, o sea que le afirmaba al médico algo falso.
+                */}
+                {encuadre.aviso && (
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--amber)', marginBottom: 4, display: 'flex', alignItems: 'flex-start', gap: 5 }}>
+                    <AlertTriangle size={13} className="ds-icon" style={{ flexShrink: 0, marginTop: 1 }} /> {encuadre.aviso}
+                  </div>
+                )}
+                <div style={{ fontSize: 12.5, color: 'var(--text2)', marginBottom: 4 }}>{news2.recomendacion}</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                   {news2.detalle.filter(d => d.puntos > 0).map((d, i) => <span key={i} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 100, background: 'var(--s2)', color: 'var(--text3)', border: '1px solid var(--border)' }}>{d.param} {d.valor} · +{d.puntos}</span>)}
                 </div>
