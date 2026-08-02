@@ -132,6 +132,15 @@ export interface Cobro {
   motivoCancelacion?: string
   /** Quién y cuándo anuló — obligatorio al cancelar (auditoría anti-fraude). */
   canceladoPor?: string
+  /**
+   * Nombre de quien anuló, sellado al anular.
+   *
+   * `canceladoPor` es un uid, y un uid no le dice nada a la persona que cuadra
+   * la caja: el control de una anulación es poder preguntarle a alguien, y para
+   * eso hace falta un nombre. Es lo mismo que ya hacía la cortesía con
+   * `exentoPorNombre`.
+   */
+  canceladoPorNombre?: string
   canceladoEn?: string
   /** Notas */
   notas?: string
@@ -352,6 +361,7 @@ export async function cancelarCobro(
   cobroId: string,
   motivo: string,
   autorUid: string,
+  autorNombre = '',
 ): Promise<void> {
   const m = (motivo || '').trim()
   if (!m) throw new Error('La anulación de un cobro requiere un motivo.')
@@ -371,6 +381,9 @@ export async function cancelarCobro(
       cancelado: true,
       motivoCancelacion: m,
       canceladoPor: autorUid,
+      // El nombre, además del uid: quien cuadra la caja necesita saber a quién
+      // preguntarle, y un uid no es una persona.
+      canceladoPorNombre: (autorNombre || '').trim(),
       canceladoEn: new Date().toISOString(),
     })
     if (citaId) {

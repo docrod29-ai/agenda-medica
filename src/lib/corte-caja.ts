@@ -209,3 +209,39 @@ export const POR_QUE_LA_CORTESIA_SE_ENSEÑA =
   'Porque una consulta que no se cobra a propósito y una que se quedó sin cobrar ' +
   'se ven igual en la caja si nadie las separa. El sistema ya guardaba quién la ' +
   'autorizó, cuándo y por qué; sólo faltaba enseñarlo.'
+
+
+/* ─── Quién anuló un cobro ─── */
+
+/**
+ * `cancelarCobro` exige autor —«sin ellos una anulación es dinero que se esfuma
+ * del corte sin nadie a quien preguntar», dice su comentario, y las reglas de
+ * Firestore lo sellan contra el uid de quien firma—. Pero el corte de caja
+ * enseñaba el importe, el paciente, el motivo y la fecha… **y no quién**.
+ *
+ * O sea que el campo anti-fraude estaba guardado, validado en el servidor, y
+ * ausente justo en la pantalla donde alguien cuadra el dinero. El control existe
+ * cuando se puede preguntar; si nadie ve el nombre, no se puede preguntar.
+ *
+ * Un uid tampoco sirve para eso, así que desde v907 se sella también el nombre.
+ * Para los cobros anulados ANTES, se traduce el uid con la lista del consultorio,
+ * y si no aparece se enseña el uid recortado: rastreable es peor que un nombre,
+ * pero infinitamente mejor que nada.
+ */
+export function quienAnulo(
+  cobro: { canceladoPorNombre?: string; canceladoPor?: string },
+  nombrePorUid: Readonly<Record<string, string>> = {},
+): string {
+  const sellado = (cobro.canceladoPorNombre ?? '').trim()
+  if (sellado) return sellado
+
+  const uid = (cobro.canceladoPor ?? '').trim()
+  if (!uid) return 'sin autor registrado'
+
+  const resuelto = (nombrePorUid[uid] ?? '').trim()
+  if (resuelto) return resuelto
+
+  // Ni nombre sellado ni traducible: se enseña algo con lo que se pueda buscar,
+  // en vez de un hueco que parece que nadie lo anuló.
+  return `usuario ${uid.slice(0, 6)}…`
+}

@@ -439,6 +439,38 @@ lado para que se pueda cuadrar con lo de antes.
 
 ---
 
+## QUINCUAGÉSIMA SEXTA TANDA — v907
+
+### El corte de caja enseñaba el cobro anulado, pero no quién lo anuló
+
+`cancelarCobro` exige autor, y su propio comentario dice por qué: *«sin ellos una
+anulación es dinero que se esfuma del corte sin nadie a quien preguntar»*. Las
+reglas de Firestore lo sellan además contra el uid de quien firma, con un
+comentario que llama a lo contrario *«sustracción de efectivo indetectable»*.
+
+Y el corte de caja —la **única** pantalla donde alguien cuadra el dinero—
+enseñaba el importe, el paciente, el motivo y la fecha… **y no quién**.
+
+O sea: el campo anti-fraude estaba guardado, validado en el servidor, y ausente
+justo donde servía. El control existe cuando se puede preguntar.
+
+Ahora se enseña. Y como `canceladoPor` es un uid, y un uid no es una persona,
+desde v907 **se sella también el nombre** al anular —lo mismo que ya hacía la
+cortesía con `exentoPorNombre`—. Para las anulaciones anteriores se traduce el
+uid con la lista del consultorio (el vínculo `doctors/{id}.uid` que v875/v899
+escribieron), y si no aparece se enseña el uid recortado, que es buscable: **un
+hueco se lee como «nadie lo anuló»**, que es justo la impresión que este campo
+existe para impedir.
+
+Las reglas no cambian: la rama de anulación no usa `hasOnly`, así que el campo
+nuevo pasa sin tocar `firestore.rules`.
+
+- `src/lib/cobros.ts` (`canceladoPorNombre`), `src/lib/corte-caja.ts` (`quienAnulo`)
+- `src/app/(dashboard)/corte-caja/page.tsx`, `finanzas/page.tsx`
+- `src/__tests__/quien-anulo.test.ts` — 9 pruebas. Total 4849.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
