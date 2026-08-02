@@ -41,7 +41,7 @@ import { dondeEsLaCita } from '@/lib/telesalud/donde-es'
 import { intencionDelMensaje } from '@/lib/whatsapp/intencion'
 import { clasificarCitas, mensajeBloqueada, type CitaMinima } from '@/lib/whatsapp/citas-cancelables'
 import { horarioLegible, type DiaHorario } from '@/lib/whatsapp/horario-legible'
-import { mensajeAviso, aceptoElAviso, rechazoElAviso, consentimientoDelBot } from '@/lib/whatsapp/aviso-bot'
+import { mensajeAviso, aceptoElAviso, rechazoElAviso, consentimientoDelBot, selloExpediente, VERSION_AVISO } from '@/lib/whatsapp/aviso-bot'
 import { getAvailableSlots, getDaySchedule, validarHorarioDia, descansosEnMinutos, pisaDescanso } from '@/lib/availability'
 
 /**
@@ -963,6 +963,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
             // Lo que el paciente aceptó, con su versión y su hora: el portal web
             // lo guarda desde siempre y este camino no guardaba nada.
             consentimientos: consentimientoDelBot(String(datos.avisoEn || now)),
+            versionAviso: VERSION_AVISO,
             createdAt: now, updatedAt: now, creadoPor: 'bot', updatedPor: 'bot',
           })
         })
@@ -974,6 +975,30 @@ export async function handleMessage(from: string, body: string, clinicId: string
         await send(from, `Lo sentimos, ese horario acaba de ocuparse. Por favor elija otro escribiendo *agendar* de nuevo. 🙏`)
         await saveSession(clinicId, from, { estado: 'menu', datos: {} })
         return
+      }
+
+      /**
+       * EL SELLO TAMBIÉN EN EL EXPEDIENTE — donde lo mira el panel de Pacientes.
+       *
+       * El portal público guarda en `patients/{id}.avisoPrivacidad` un sello con
+       * la versión, el medio y el HASH del texto aceptado; v884 dejó el
+       * consentimiento del bot sólo en la cita, así que el paciente que llega
+       * por WhatsApp seguía apareciendo sin aviso en su expediente.
+       *
+       * No se pisa uno anterior: el PRIMERO es el que vale, y machacarlo
+       * borraría la fecha real en que aceptó.
+       */
+      if (pacienteIdBot) {
+        try {
+          const pacRef = adminDb.collection('clinics').doc(clinicId).collection('patients').doc(pacienteIdBot)
+          const yaTiene = !!(await pacRef.get()).data()?.avisoPrivacidad
+          if (!yaTiene) {
+            await pacRef.set({
+              avisoPrivacidad: selloExpediente(config, String(datos.avisoEn || now)),
+              updatedAt: now,
+            }, { merge: true })
+          }
+        } catch { /* la cita ya quedó; el sello no la tumba */ }
       }
 
       const tipoLabel = TIPO_OPTIONS.find(t => t.key === datos.tipo)?.label || datos.tipo
