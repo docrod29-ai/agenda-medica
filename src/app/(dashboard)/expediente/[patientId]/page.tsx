@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { useClinic } from '@/context/ClinicContext'
 import { useExpediente } from '@/hooks/useExpediente'
-import { getPatient } from '@/lib/firestore'
+import { getPatient, updatePatient } from '@/lib/firestore'
 import { deleteNota } from '@/lib/expediente/firestore'
 import { useToast } from '@/context/ToastContext'
 import { useAuth } from '@/hooks/useAuth'
@@ -15,7 +15,7 @@ import {
   ArrowLeft, Mic, FileText, Loader2, AlertTriangle, CheckCircle2,
   Clock, ChevronDown, ChevronUp, Plus, Printer, Trash2, Send, Pill, ClipboardList, Pencil, Upload,
   Stethoscope, Activity, LogIn, LogOut, UserPlus, ClipboardCheck, ShieldPlus, type LucideIcon,
-  Camera, FlaskConical,
+  Camera, FlaskConical, Link2Off,
 } from 'lucide-react'
 import { Button, EmptyState, Spinner, Badge } from '@/components/ui'
 import { FotosClinicas } from '@/components/FotosClinicas'
@@ -192,7 +192,23 @@ export default function ExpedientePage() {
       <ResumenPaciente patient={patient} notas={notas} />
 
       {/* Datos del paciente (contacto) — plegado, para editar cuando haga falta. */}
-      <DatosPaciente patient={patient} onEditar={() => router.push('/pacientes')} />
+      <DatosPaciente
+        patient={patient}
+        onEditar={() => router.push('/pacientes')}
+        onRevocar={async () => {
+          if (!clinicId || !patientId) return
+          if (!(await confirm(
+            'Los enlaces del portal que ya le enviaste a este paciente dejarán de funcionar. Tendrás que mandarle uno nuevo. ¿Continuar?',
+            { peligro: true, confirmar: 'Invalidar' },
+          ))) return
+          try {
+            await updatePatient(clinicId, patientId, { portalTokenVersion: (patient?.portalTokenVersion ?? 0) + 1 })
+            toast('Listo: los enlaces anteriores ya no sirven.', 'success')
+          } catch {
+            toast('No se pudieron invalidar. Revisa tu conexión.', 'error')
+          }
+        }}
+      />
 
       {/* Herramientas del expediente en UN SOLO bloque (antes eran dos cajas
           separadas, cada una con su encabezado "Herramientas clínicas" — se veían
@@ -321,7 +337,7 @@ export default function ExpedientePage() {
 
 /** Tarjeta colapsable con los datos de contacto del paciente (unificación
  *  de Pacientes + Expedientes en una sola pantalla). */
-function DatosPaciente({ patient, onEditar }: { patient: Patient | null; onEditar: () => void }) {
+function DatosPaciente({ patient, onEditar, onRevocar }: { patient: Patient | null; onEditar: () => void; onRevocar: () => void }) {
   const [abierto, setAbierto] = useState(false)
   if (!patient) return null
   const campos: Array<[string, string | undefined]> = [
@@ -360,9 +376,21 @@ function DatosPaciente({ patient, onEditar }: { patient: Patient | null; onEdita
               <div style={{ fontSize: 13, color: 'var(--text3)' }}>Sin datos de contacto capturados.</div>
             )}
           </div>
-          <button onClick={onEditar} className="btn btn-secondary btn-sm" style={{ marginTop: 14 }}>
-            <Pencil size={13} /> Editar datos
-          </button>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
+            <button onClick={onEditar} className="btn btn-secondary btn-sm">
+              <Pencil size={13} /> Editar datos
+            </button>
+            {/*
+              REVOCAR LOS ENLACES DEL PORTAL.
+              El magic-link va firmado y con fecha, y no había forma de
+              invalidar uno ya emitido: un teléfono perdido, un número reciclado
+              o un mensaje reenviado a un grupo valían hasta caducar, y la única
+              salida era esperar.
+            */}
+            <button onClick={onRevocar} className="btn btn-secondary btn-sm" title="Invalida todos los enlaces del portal enviados a este paciente">
+              <Link2Off size={13} /> Invalidar enlaces del portal
+            </button>
+          </div>
         </div>
       )}
     </div>

@@ -225,6 +225,18 @@ export interface Patient {
   tags?: PatientTag[]
   ultimaCita?: string
   proximoSeguimiento?: string
+  /**
+   * VERSIÓN DE LOS ENLACES DEL PORTAL — sube para revocarlos todos.
+   *
+   * El magic-link va firmado y con fecha, y hasta ahora no había forma de
+   * invalidar uno ya emitido: un teléfono perdido, un número reciclado o un
+   * mensaje reenviado valían hasta caducar. Subir este contador tumba de golpe
+   * todos los enlaces emitidos para este paciente.
+   *
+   * Ausente = 0, que es lo que declaran los enlaces anteriores a esto: siguen
+   * valiendo hasta que alguien revoque.
+   */
+  portalTokenVersion?: number
   noShowCount: number
   cancelacionCount: number
   // === Cumplimiento NOM-024 + LFPDPPP ===

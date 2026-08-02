@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { puedeTocarDesdeElPortal, MENSAJE_ESTADO_NO_TOCABLE } from '@/lib/portal/estados'
-import { verificarTokenPaciente } from '@/lib/patient-token'
+import { verificarTokenPaciente, tokenVigente } from '@/lib/patient-token'
 import { getAvailableSlots } from '@/lib/availability'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 import type { Appointment, ClinicConfig } from '@/types'
@@ -111,6 +111,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Enlace inválido o vencido' }, { status: 401 })
   }
   const { clinicId, patientId, alcance } = sesion
+
+  /**
+   * ¿SIGUE VIGENTE ESTE ENLACE?
+   *
+   * La firma y la caducidad no bastaban: no había forma de invalidar un enlace
+   * ya emitido —teléfono perdido, número reciclado, mensaje reenviado— y la
+   * única salida era esperar a que caducara. El expediente lleva ahora un
+   * contador; subirlo tumba de golpe todos los enlaces anteriores.
+   *
+   * Si la lectura falla se deja pasar: dejar al paciente fuera de su propia
+   * agenda por un mal minuto de Firestore es peor que el riesgo que esto acota,
+   * y la firma y la caducidad siguen protegiendo.
+   */
+  try {
+    const pSnap = await adminDb.collection('clinics').doc(clinicId).collection('patients').doc(patientId).get()
+    const vPaciente = (pSnap.data() as { portalTokenVersion?: number } | undefined)?.portalTokenVersion
+    if (!tokenVigente(sesion.version, vPaciente)) {
+      return NextResponse.json({ error: 'Este enlace ya no es válido. Pídele uno nuevo al consultorio.' }, { status: 401 })
+    }
+  } catch { /* ver arriba */ }
 
   // Helper: asegura que la cita pertenezca a este paciente
   const citaDelPaciente = async (citaId?: string): Promise<Appointment | NextResponse> => {

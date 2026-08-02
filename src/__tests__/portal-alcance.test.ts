@@ -106,7 +106,7 @@ describe('E0-06 · el alcance viaja en el token y falla-cerrado', () => {
 
   it('un token emitido con alcance `clinico` lo conserva', () => {
     const t = crearTokenPaciente(CLINICA, PACIENTE, 1, 'clinico')
-    expect(verificarTokenPaciente(t)).toEqual({ clinicId: CLINICA, patientId: PACIENTE, alcance: 'clinico' })
+    expect(verificarTokenPaciente(t)).toEqual({ clinicId: CLINICA, patientId: PACIENTE, alcance: 'clinico', version: 0 })
   })
 
   it('manipular el alcance rompe la firma', () => {

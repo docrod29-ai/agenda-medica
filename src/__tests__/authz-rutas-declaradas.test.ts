@@ -506,6 +506,10 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
       'fhir/paciente/[patientId]',
       'mantenimiento/backfill-contadores',
       'portal',
+      // +1 el 2026-08-02: emite el enlace con la VERSIÓN del paciente, para que
+      // una revocación posterior lo tumbe. Lee `portalTokenVersion` y nada más
+      // — ni nombre, ni teléfono, ni un solo dato clínico.
+      'portal/link',
       'public/booking',
       'telesalud/token',
       'whatsapp/webhook',
