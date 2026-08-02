@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { PageHeader, Button, Spinner, Input } from '@/components/ui'
 import { useClinic } from '@/context/ClinicContext'
 import { listarCobros, fmtMXN } from '@/lib/cobros'
+import { cortesiasDelDia } from '@/lib/corte-caja'
 import { getAppointments, getConfig } from '@/lib/firestore'
 import { where } from 'firebase/firestore'
 import type { Cobro } from '@/lib/cobros'
@@ -99,6 +100,7 @@ export function CorteCajaContenido({ embedded = false }: { embedded?: boolean })
   const corte = useMemo(() => corteDeCaja(vivos), [vivos])
   const embudo = useMemo(() => embudoCobro(citas, vivos), [citas, vivos])
   const porCobrar = useMemo(() => cuentasPorCobrar(citas, vivos), [citas, vivos])
+  const cortesias = useMemo(() => cortesiasDelDia(citas), [citas])
 
   return (
     <div style={{ padding: embedded ? 0 : 24, maxWidth: 920, margin: '0 auto' }}>
@@ -191,12 +193,43 @@ export function CorteCajaContenido({ embedded = false }: { embedded?: boolean })
               <Etapa n={embudo.atendidas} label="Atendidas" sub={`${Math.round(embudo.tasaAsistencia * 100)}% asistencia`} />
               <Etapa n={embudo.cobradas} label="Cobradas" sub={`${Math.round(embudo.tasaCobro * 100)}% cobro`} />
             </div>
-            {embudo.noAsistio > 0 && (
+            {(embudo.noAsistio > 0 || embudo.cortesias > 0) && (
               <div style={{ fontSize: 12.5, color: 'var(--text3)', marginTop: 12, textAlign: 'center' }}>
-                {embudo.noAsistio} no asistió · Cobrado hoy en consultas: {fmtMXN(embudo.montoCobrado)}
+                {embudo.noAsistio > 0 && `${embudo.noAsistio} no asistió · `}
+                {/* La cortesía sale del denominador de la tasa: es una decisión,
+                    no una cobranza fallida. Pero se DICE, que es distinto de
+                    esconderla. */}
+                {embudo.cortesias > 0 && `${embudo.cortesias} de cortesía (fuera de la tasa) · `}
+                Cobrado hoy en consultas: {fmtMXN(embudo.montoCobrado)}
               </div>
             )}
           </Panel>
+
+          {/*
+            CORTESÍAS DEL DÍA — la decisión que nadie veía.
+
+            `exentarCobro` guarda con todo cuidado quién autorizó la cortesía,
+            cuándo y por qué («una decisión deliberada y AUDITADA», dice su
+            comentario), y esos tres campos no los leía ninguna pantalla. La caja
+            ni las mencionaba: diez atendidos, ocho cobrados, dos de cortesía, y
+            el corte mostraba ocho sin rastro de los otros dos. Quien cuadra el
+            dinero no podía distinguir «dos que autorizó el doctor» de «dos que a
+            alguien se le olvidó cobrar».
+          */}
+          {cortesias.length > 0 && (
+            <Panel titulo={`Cortesías (${cortesias.length})`}>
+              <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 10 }}>
+                Consultas que se decidió NO cobrar. No son deuda y no cuentan en la tasa de cobro.
+              </div>
+              {cortesias.map(c => (
+                <Fila key={c.citaId}
+                  izq={c.paciente}
+                  der={c.fechaHora.slice(11, 16)}
+                  sub={`${c.motivo}${c.autorizadaPor ? ` · autorizó ${c.autorizadaPor}` : ' · sin autor registrado'}`}
+                />
+              ))}
+            </Panel>
+          )}
 
           {/* Cuentas por cobrar */}
           <Panel titulo={`Cuentas por cobrar (${porCobrar.length})`}>
