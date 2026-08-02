@@ -253,6 +253,42 @@ campo que hoy tampoco lee ninguna pantalla.
 
 ---
 
+## QUINCUAGÉSIMA PRIMERA TANDA — v902
+
+### La marca de «calendario descuadrado» se escribía en cinco sitios y no la leía ninguna pantalla
+
+`googleCalendarSyncStatus` es un campo **escrito y nunca leído**, y eso no es una
+función a medias: es una promesa. El comentario del portal decía literalmente que
+la cita se marcaba «para que el panel pueda mostrarlo y el médico lo arregle con
+un clic desde su sesión» — **y ese panel no existía**.
+
+O sea que cuando el paciente reagendaba y Google fallaba, o cuando el médico no
+tenía su calendario ligado, la cita quedaba marcada… y él seguía con un evento
+equivocado en su calendario sin ninguna forma de enterarse. Exactamente el estado
+que la marca existía para evitar.
+
+Ahora la agenda lo **enseña** y lo repara con un clic desde su sesión, que es
+donde sí hay token propio (`/api/calendar/sync` escribe con el
+`googleTokens/{uid}` del que está en sesión — justo lo que al portal le falta
+cuando no hay vínculo).
+
+Con criterio en los bordes:
+
+- una cita **cancelada se borra** del calendario, no se «actualiza»: en el suyo
+  —y en el del paciente, si estaba invitado— no debe quedar nada;
+- **sin evento no se enseña nada**: nunca estuvo en el calendario, e inventar un
+  aviso enseña al médico a ignorar los avisos;
+- **`pending` tampoco**: es una escritura en vuelo, no un fallo;
+- el aviso dice la **consecuencia** («sigue viva en Google y te ocupa la hora»),
+  no «hubo un error», y si vuelve a fallar dice qué revisar en vez de invitar a
+  reintentar algo que no se arregla reintentando.
+
+- `src/lib/calendario/reparar-sync.ts` (nuevo, puro)
+- `src/app/(dashboard)/citas/page.tsx` (la marca y el botón)
+- `src/__tests__/reparar-sync.test.ts` — 12 pruebas. Total 4803.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
@@ -295,9 +331,9 @@ campo que hoy tampoco lee ninguna pantalla.
     configuración, con las mismas reglas, sin recalcular uno existente y
     diciéndoselo si no se pudo.
     **v901 cerró lo que faltaba**: el portal ya mueve y borra el evento de Google
-    al reagendar y cancelar, con ese mismo vínculo. **Queda**: ninguna pantalla
-    LEE todavía `googleCalendarSyncStatus`, así que una cita marcada en `error`
-    no se le enseña al médico en ningún lado.
+    al reagendar y cancelar, con ese mismo vínculo. **v902 cerró lo último**: la agenda ya
+    LEE `googleCalendarSyncStatus`, enseña la cita descuadrada y la repara con un
+    clic desde la sesión del médico. Punto 12 **cerrado**.
 13. ~~Fragmentación cromática~~ — HECHO (v872 + v900): los 124 usos de PRIMER
     PLANO migrados a `--red`/`--amber` con trinquete en 0, y **v900 migró los 277
     de FONDO y BORDE** a `color-mix` con el token, con su propio techo en 0. El
