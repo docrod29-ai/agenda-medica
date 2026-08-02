@@ -94,10 +94,13 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
     arregló en la ruta automática.
 
 **Stripe** (auditor de suscripciones):
-13. ~~Anual que acaba en mensual~~ — HECHO (v814). Queda el 2º camino: Configuración no manda `ciclo` al cambiar de plan, así que un cliente anual pasa a mensual y pierde lo pagado del año, sin nota ni abono.
+13. ~~Anual que acaba en mensual~~ — HECHO (v814) **y el 2º camino también**:
+    verificado el 2026-08-02 en `configuracion/page.tsx:startCheckout` — el
+    `ciclo` YA viaja (`ciclo: cicloActual`), con el porqué escrito al lado.
 14. ~~Recarga sin créditos~~ — HECHO (v813). Antes: (`ai-keys.ts:205` se traga
     su propio error y el webhook responde 200).
-15. Los metadatos de Stripe quedan congelados en el plan de la compra original.
+15. ~~Los metadatos de Stripe quedan congelados~~ — HECHO (v825 + v870): manda el
+    COBRO, y el metadato se corrige en Stripe cuando el plan se supo por el precio.
 16. ~~planPorMonto se equivoca~~ — HECHO (v814).
 17. La prueba de 14 días se puede repetir indefinidamente. **PENDIENTE — decisión comercial del Dr: ¿se permite repetir la prueba?**
 18. ~~Asiento sin cobrar~~ — HECHO (v815).
@@ -116,7 +119,14 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
 - **Lo que SÍ es mío:** que el corte sea VISIBLE. Hoy es silencioso.
 - **Lo que es del Dr:** cuál debe ser el número (o si debe haber tope).
 
-### 2. Los envíos de WhatsApp se pierden sin dejar rastro
+### 2. ~~Los envíos de WhatsApp se pierden sin dejar rastro~~ — HECHO
+Verificado el 2026-08-02: el helper `send()` del webhook registra el fallo en
+`no-entregados` para las 42 llamadas (se arregló en el helper, no en 42 sitios),
+y `public/booking` ya no se traga la confirmación. Lo de abajo es el diagnóstico
+original, se conserva por contexto.
+
+<details><summary>Diagnóstico original</summary>
+
 - `src/lib/whatsapp/outbox.ts:44` (`encolarReintento`) tiene UN solo llamador:
   `src/app/api/whatsapp/waitlist-notify/route.ts:163`.
 - `src/app/api/whatsapp/webhook/route.ts:381` — el helper `send()` devuelve booleano
@@ -127,6 +137,7 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
 - **Nota:** reintentar fuera de la ventana de 24 h exige plantilla aprobada en Meta
   (pendiente del Dr). Lo que sí se puede hacer sin él: que el fallo quede REGISTRADO
   y visible, como ya se hizo con `alertas_no_entregadas`.
+</details>
 
 ---
 
@@ -152,18 +163,28 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
    ligar expediente ni declararse verificado, y el panel lo declara. La
    verificación en sí sigue siendo un acto humano de la clínica, como manda el
    Art. 29 LFPDPPP.
-10. **Horario partido / descansos / festivos recurrentes no existen en el modelo** —
-    `src/types/index.ts:408` (`DaySchedule` es un solo tramo).
+10. ~~Horario partido / descansos / festivos recurrentes~~ — HECHO (v829):
+    `DaySchedule.descansos` existe y los festivos aceptan `MM-DD` recurrente, con
+    su editor en Configuración. Verificado el 2026-08-02.
 11. **Las sucursales son decorativas en la agenda** — `branchId` está en la lista blanca
     pero ninguna interfaz lo escribe y ni `getAvailableSlots` ni `hasConflict` lo miran.
-12. **Google Calendar es unidireccional** — no hay `freebusy`: un evento creado en
-    Google no bloquea la agenda.
+12. **Google Calendar: freebusy sólo en el modal del consultorio** — HECHO A
+    MEDIAS. `api/calendar/ocupado` existe y lo consume `AppointmentModal`, que
+    además DECLARA si la consulta falló. **Queda**: el portal público, el bot y
+    el reagendado del paciente NO lo consultan, así que un paciente puede
+    reservar encima de un evento de Google. Motivo real, no pereza: el token es
+    por `uid` (`googleTokens/{uid}`) y los caminos públicos no tienen sesión ni
+    forma fiable de mapear `medicoId` → `uid` (los documentos de `doctors` no
+    guardan el uid). Antes de conectarlo hay que escribir ese vínculo al
+    conectar el calendario.
 13. ~~Fragmentación cromática~~ — HECHO A MEDIAS (v872): los 124 usos de PRIMER
     PLANO migrados a `--red`/`--amber` y **trinquete con techo 0**. **Queda**:
     los mismos colores usados como FONDO y BORDE (`rgba(239,68,68,0.1)` y
     familia), que no rompen contraste de texto pero siguen sin cambiar de tema.
-14. **`BLOQUEA_RECETA` promete una barrera que no existe** — `src/lib/expediente/medical-ner.ts:176`:
-    lo decide el LLM y no bloquea nada, sólo se pinta.
+14. ~~`BLOQUEA_RECETA` promete una barrera que no existe~~ — HECHO: se llama
+    `RIESGO_MAXIMO` y el comentario dice qué es y qué no; la compuerta real es el
+    motor determinista. Y `alergia_conflicto` ya está en el esquema zod, así que
+    el aviso sí sale del servidor. Verificado el 2026-08-02.
 15. ~~Textos clínicos sin fuente~~ — HECHO A MEDIAS (v873): la cita ya se
     ENSEÑA en el panel, en la nota y en el HTML, y su ausencia se declara.
     **Queda, y es del Dr.**: las 42 recomendaciones de
