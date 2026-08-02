@@ -14,6 +14,7 @@ import {
   query, orderBy, where, runTransaction,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { instanteMX } from '@/lib/timezone'
 
 export type FarmaciaCategoria =
   | 'medicamento'
@@ -163,15 +164,38 @@ export async function listarMovimientos(clinicId: string, itemId: string): Promi
   return snap.docs.map(d => ({ ...d.data(), id: d.id } as MovimientoFarmacia))
 }
 
-/** Helpers de alerta */
+/**
+ * ¿HAY QUE REPONER ESTE ÍTEM?
+ *
+ * Exigía que hubiera un mínimo CAPTURADO, y el formulario deja ese campo vacío
+ * por omisión. Un consultorio que nunca captura mínimos —la mayoría— veía
+ * siempre **«Bajo stock: 0»** con cero cajas en el anaquel: un contador en cero
+ * se lee como «no falta nada», que es lo contrario de la verdad.
+ *
+ * Sin mínimo declarado el piso es CERO: quedarse sin existencias es quedarse
+ * bajo mínimo en cualquier consultorio, se haya configurado o no. Con mínimo, se
+ * respeta el que puso el médico.
+ */
 export function bajoMinimo(item: FarmaciaItem): boolean {
-  return item.cantidadMinima !== undefined && item.cantidad <= item.cantidadMinima
+  return item.cantidad <= (item.cantidadMinima ?? 0)
 }
 
+/**
+ * Días que faltan para la caducidad, contando el día completo.
+ *
+ * `new Date('2026-08-02')` es medianoche **UTC**: en México ese lote aparecía
+ * CADUCADO desde las 18:00 del día 1 —y disparaba la confirmación de riesgo al
+ * dispensarlo— cuando todavía le quedaba el día entero. Un lote vence al FINAL
+ * de su día, no al principio del anterior.
+ */
 export function caducaEnDias(item: FarmaciaItem): number | null {
   if (!item.caducidad) return null
-  const ms = new Date(item.caducidad).getTime() - Date.now()
-  return Math.floor(ms / (1000 * 60 * 60 * 24))
+  const f = String(item.caducidad).slice(0, 10)
+  const fin = /^\d{4}-\d{2}-\d{2}$/.test(f)
+    ? instanteMX(f, '23:59').getTime()
+    : new Date(item.caducidad).getTime()
+  if (!Number.isFinite(fin)) return null
+  return Math.floor((fin - Date.now()) / (1000 * 60 * 60 * 24))
 }
 
 export function estaCaducado(item: FarmaciaItem): boolean {
