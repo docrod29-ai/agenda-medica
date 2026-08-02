@@ -49,7 +49,6 @@ const HUERFANOS_ACEPTADOS: Record<string, string> = {
   // Éstos son los que de verdad duelen: trabajo clínico terminado y probado
   // que todavía no le llega al médico.
   'src/lib/clinical/news2-set.ts': 'NEWS2 sobre conjunto contemporáneo: probado, pero ninguna pantalla lo usa todavía.',
-  'src/lib/uci/dosificacion-critica.ts': 'Dosificación en el adulto crítico (algoritmo del Dr.): sin pantalla que la exponga.',
   'src/lib/ia/evaluacion.ts': 'Arnés de validación de la IA clínica: se corre a mano, sin tablero que lo enseñe.',
   'src/lib/mobile/consulta-cierre.ts': 'Núcleo del cierre de consulta: dos funciones puras esperando su interfaz.',
 
