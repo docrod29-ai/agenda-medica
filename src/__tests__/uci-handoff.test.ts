@@ -195,3 +195,42 @@ describe('§36 · compone lo que ya existe, sin re-redactarlo', () => {
     expect(soportes).toHaveLength(1)
   })
 })
+
+/**
+ * GOLDEN — «No hay dispositivos invasivos registrados» en un paciente con
+ * catéter central y ventilador.
+ *
+ * La tarjeta de entrega de turno imprimía esa frase SIEMPRE, para todo paciente,
+ * porque `pendientes` y `dispositivos` no tienen quién los alimente: no existe
+ * ninguna función que los produzca. En una entrega, esa frase se lee como una
+ * afirmación clínica de quien entrega — y no comprobó nada.
+ */
+describe('secciones que el sistema no alimenta', () => {
+  const base = { pacienteId: 'p1', generadoEn: '2026-08-02T07:00:00.000Z' }
+
+  it('sin declarar, una sección vacía AFIRMA que no hay', () => {
+    const h = construirHandoff(base)
+    const d = h.ausentes.find(a => a.seccion === 'dispositivos')!
+    expect(d.motivo).toMatch(/No hay dispositivos invasivos registrados/)
+  })
+
+  it('declarada SIN FUENTE, dice que el sistema no lo sabe', () => {
+    const h = construirHandoff(base, ['dispositivos', 'pendientes'])
+    const d = h.ausentes.find(a => a.seccion === 'dispositivos')!
+    expect(d.motivo).toMatch(/NO significa que no haya/)
+    const p = h.ausentes.find(a => a.seccion === 'pendientes')!
+    expect(p.motivo).toMatch(/NO significa que no haya/)
+  })
+
+  it('lo que SÍ tiene fuente conserva su afirmación', () => {
+    // `soportes` sí se alimenta desde la estancia: si está vacío, está vacío.
+    const h = construirHandoff(base, ['dispositivos'])
+    const s = h.ausentes.find(a => a.seccion === 'soportes')!
+    expect(s.motivo).toMatch(/No hay soportes activos registrados/)
+  })
+
+  it('una sección CON datos no aparece como ausente aunque se declare sin fuente', () => {
+    const h = construirHandoff({ ...base, dispositivos: ['Catéter venoso central subclavio'] }, ['dispositivos'])
+    expect(h.ausentes.find(a => a.seccion === 'dispositivos')).toBeUndefined()
+  })
+})

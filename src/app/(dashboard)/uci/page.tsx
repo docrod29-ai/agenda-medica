@@ -486,7 +486,9 @@ export default function UciPanelPage() {
       medidoEn: iso,
       registradoEn: iso,
       estado: 'CONFIRMED',
-      por: inter?.medicoTratanteNombre ?? '',
+      // `por` lo sella `guardarToma` desde la sesión: mandar aquí el nombre del
+      // médico TRATANTE firmaba la lectura con quien no la hizo.
+      por: '',
       fuente: 'panel-uci',
       medidas: lecturaActual as unknown as Record<string, unknown>,
     })

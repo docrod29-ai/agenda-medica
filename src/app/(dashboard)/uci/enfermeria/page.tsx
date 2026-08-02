@@ -16,7 +16,7 @@ import { useSmartBack } from '@/hooks/useSmartBack'
 import { useClinic } from '@/context/ClinicContext'
 import { suscribirCenso, getUnidades } from '@/lib/hospital/firestore'
 import { getTomas, serieTomas } from '@/lib/uci/observaciones'
-import { esCritica, type Unidad } from '@/lib/hospital/unidades'
+import { esCritica, sinTipoConfigurado, AVISO_SIN_TIPO, type Unidad } from '@/lib/hospital/unidades'
 import {
   turnoDeEnfermeria, TAREA_LABEL, NO_PRIORIZA_CLINICAMENTE,
   type ResumenEnfermeria, type TipoTarea,
@@ -44,11 +44,25 @@ export default function EnfermeriaUciPage() {
   const { clinicId } = useClinic()
   const [unidades, setUnidades] = useState<Unidad[] | null>(null)
   const [resumen, setResumen] = useState<ResumenEnfermeria | null>(null)
+  /**
+   * SERVICIOS QUE EL HOSPITAL NO HA CLASIFICADO.
+   *
+   * `esCritica` devuelve `false` para un servicio sin tipo —y el módulo dice que
+   * el llamador DEBE declararlo con `sinTipoConfigurado`—. El landing de UCI lo
+   * hace; esta pantalla no: un hospital que llamó a su unidad «UTI Adultos» (que
+   * no está en el catálogo de fábrica) veía la lista vacía y el cartel «No hay
+   * nada pendiente en terapia», con antibióticos atrasados en la unidad.
+   */
+  const [sinTipo, setSinTipo] = useState<string[]>([])
+  /** Y si ni siquiera se pudo leer el catálogo, tampoco se afirma que no haya nada. */
+  const [falloUnidades, setFalloUnidades] = useState(false)
 
   useEffect(() => {
     if (!clinicId) return
     let vivo = true
-    getUnidades(clinicId).then(u => { if (vivo) setUnidades(u) }).catch(() => { if (vivo) setUnidades([]) })
+    getUnidades(clinicId)
+      .then(u => { if (vivo) setUnidades(u) })
+      .catch(() => { if (vivo) { setUnidades([]); setFalloUnidades(true) } })
     return () => { vivo = false }
   }, [clinicId])
 
@@ -57,6 +71,7 @@ export default function EnfermeriaUciPage() {
     let vivo = true
     const off = suscribirCenso(clinicId, async censo => {
       const uci = censo.filter(i => esCritica(i.servicio, unidades))
+      if (vivo) setSinTipo(sinTipoConfigurado(censo.map(i => i.servicio), unidades))
       const ahora = new Date().toISOString()
       const pacientes = await Promise.all(uci.map(async i => {
         const tomas = await getTomas(clinicId, i.id, TOPE_TOMAS_LISTA).catch(() => [])
@@ -106,10 +121,23 @@ export default function EnfermeriaUciPage() {
             </div>
           )}
 
+          {(sinTipo.length > 0 || falloUnidades) && (
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'rgba(217,119,6,0.09)', border: '1px solid rgba(217,119,6,0.4)', borderRadius: 12, padding: '13px 15px', marginBottom: 14 }}>
+              <AlertTriangle size={17} style={{ color: '#d97706', flexShrink: 0, marginTop: 1 }} />
+              <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text)' }}>
+                {falloUnidades
+                  ? <><strong>No se pudo leer la configuración de unidades.</strong> Esta lista puede estar incompleta: no significa que no haya pendientes.</>
+                  : <><strong>Servicios sin tipo de unidad: {sinTipo.join(' · ')}.</strong> {AVISO_SIN_TIPO}</>}
+              </div>
+            </div>
+          )}
+
           {resumen.tareas.length === 0 ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 13, color: 'var(--text3)', padding: 24, justifyContent: 'center', border: '1px dashed var(--border)', borderRadius: 12 }}>
               <CheckCircle2 size={17} style={{ color: '#0d9488' }} />
-              No hay nada pendiente en terapia según el registro.
+              {sinTipo.length > 0 || falloUnidades
+                ? 'Sin pendientes entre los pacientes que esta pantalla alcanza a ver (mira el aviso de arriba).'
+                : 'No hay nada pendiente en terapia según el registro.'}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
