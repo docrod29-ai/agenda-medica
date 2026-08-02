@@ -417,6 +417,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 |---|---|
 | **867** | **El margen del MAR estaba escrito dos veces y donde el hospital no puede tocarlo.** `const GRACIA_MIN = 30` vivía en el MAR del paciente y otra vez en el turno de enfermería: dos pantallas que leen el mismo motor y le dicen a la misma enfermera si una dosis va atrasada. El propio motor declara (`FALTA_GRACIA`) que la gracia es una decisión **operativa de la unidad**, no un umbral clínico — y estaba clavada en el código. Un solo módulo (`lib/uci/gracia.ts`) con el valor de fábrica de siempre (30 min, sin cambiar nada en silencio) y `config.graciaMarMin` para la unidad; un valor imposible cae al de fábrica en vez de reventar el MAR o inventar un margen (4 pruebas). |
 
+## DECIMOSÉPTIMA TANDA — v868 (la primera cama que no existía)
+
+| v | Qué se reparó |
+|---|---|
+| **868** | **El ingreso no abría la asignación de cama.** El traslado y el egreso escribían en `bed_assignments`; el ingreso no — el mismo agujero que ya se reparó con la estancia de UCI, en la colección de al lado. La primera cama de cada episodio no existía en la historia, y el primer traslado anotaba «el episodio venía de antes de que existiera la historia de camas» de un paciente ingresado esa misma mañana: el historial empezaba en la **segunda** cama y `ocupantesDe` no veía a nadie en la primera. **Y esa historia no la leía nadie**: `historialCamas` y `ocupantesDe`, escritos y probados, sin un solo llamador. Al abrir el traslado se enseñan ya las camas del episodio con fechas y motivo (`getAsignacionesCama`). |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.
@@ -440,6 +446,8 @@ Por orden de daño. Todo con archivo:línea, verificable.
 9. ~~Caducidad evaluada en UTC~~ — HECHO (v856).
 
 ### Hospital / UCI
+0. ~~`bed_assignments` no se abre al ingresar; `historialCamas`/`ocupantesDe` sin
+   lectores~~ — HECHO (v868).
 10. ~~Un reingreso borra la estancia anterior~~ — HECHO (v855), junto con el
     cierre de la estancia al egresar (punto 10 del informe de UCI).
 11. ~~La limpieza terminal no se aplica al egreso~~ — HECHO (v861).

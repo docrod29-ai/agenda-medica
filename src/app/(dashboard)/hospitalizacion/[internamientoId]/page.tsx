@@ -23,9 +23,10 @@ import {
   agregarSignos, corregirSignos, getSignos, getRolUsuario, setRolUsuario,
   crearSolicitudLab, getSolicitudesLabDeEpisodio, cargarResultadosLab, borrarSolicitudLab, crearAlerta, type AlertaHospital,
   trasladarInternamiento, cambiarTratante,
-  suscribirInternamiento, suscribirSignos,
+  suscribirInternamiento, suscribirSignos, getAsignacionesCama,
 } from '@/lib/hospital/firestore'
-import { ESTUDIOS_LAB_RAPIDOS, SERVICIOS_HOSPITAL, type SolicitudLab, type ResultadoLab } from '@/types/hospital'
+import { historialCamas } from '@/lib/hospital/bed-assignment'
+import { ESTUDIOS_LAB_RAPIDOS, SERVICIOS_HOSPITAL, type SolicitudLab, type ResultadoLab, type BedAssignment } from '@/types/hospital'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { getNotas } from '@/lib/expediente/firestore'
 import { getPatient, getDoctors } from '@/lib/firestore'
@@ -160,6 +161,20 @@ export default function EpisodioPage() {
   // servidor rechace si alguien más la actualizó en medio (bloqueo optimista).
   const [conciliadoAlVisto, setConciliadoAlVisto] = useState<string | null>(null)
   const [modalTraslado, setModalTraslado] = useState(false)
+  /**
+   * La historia de camas del episodio. Se lee al abrir el traslado, que es
+   * cuando importa: si falla, el modal sigue siendo usable y simplemente no se
+   * enseña —no se afirma que el paciente no haya estado en ninguna otra cama—.
+   */
+  const [camas, setCamas] = useState<BedAssignment[]>([])
+  useEffect(() => {
+    if (!modalTraslado || !clinicId || !internamientoId) return
+    let vivo = true
+    getAsignacionesCama(clinicId, internamientoId)
+      .then(a => { if (vivo) setCamas(a) })
+      .catch(() => { /* sin historia visible, no una historia inventada */ })
+    return () => { vivo = false }
+  }, [modalTraslado, clinicId, internamientoId])
   // Los indicadores del episodio necesitan el TIPO de cada unidad. Sin unidades
   // configuradas se usa el catálogo de fábrica y el tiempo sin clasificar se
   // declara aparte: nunca se reparte entre los demás tipos.
@@ -1121,6 +1136,28 @@ export default function EpisodioPage() {
           </div>
           <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Médico tratante</label>
             <input className={inputCls} placeholder="Nombre del médico responsable" value={trForm.tratante} onChange={e => setTrForm(f => ({ ...f, tratante: e.target.value }))} /></div>
+          {/*
+            HISTORIA DE CAMAS. Se escribía y no la leía nadie: `historialCamas`
+            estaba probado y sin llamador. Quien traslada necesita ver de dónde
+            viene el paciente — y si la primera cama falta, se nota aquí.
+          */}
+          {camas.length > 0 && (
+            <div>
+              <div style={{ fontSize: 12.5, color: 'var(--text2)', marginBottom: 5 }}>Camas de este episodio</div>
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {historialCamas(camas).map(a => (
+                  <li key={a.id} style={{ fontSize: 12, color: 'var(--text3)' }}>
+                    <strong style={{ color: 'var(--text)' }}>{a.camaId}</strong>{' · '}
+                    {new Date(a.desde).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    {a.hasta
+                      ? ` → ${new Date(a.hasta).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}`
+                      : ' → actual'}
+                    {' · '}{a.motivo}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <p style={{ fontSize: 11.5, color: 'var(--text3)' }}>Los cambios quedan registrados en el historial de movimientos del episodio.</p>
         </div>
       </Modal>
