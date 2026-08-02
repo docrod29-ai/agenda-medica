@@ -435,6 +435,44 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      /**
+       * LA CAMA DEL ALTA TAMBIÉN VA A LIMPIEZA TERMINAL.
+       *
+       * `POLITICA_CAMAS_SEGURA` declara `requiereLimpiezaTerminalAlEgreso: true`
+       * y el módulo lo dice con estas palabras: «tras alta **o traslado**… nunca
+       * `ocupada → libre` por omisión». Pero el bloque de camas estaba
+       * condicionado a `accion === 'trasladar'`.
+       *
+       * Efecto real: al egresar, el internamiento sale del censo, la cama deja
+       * de tener ocupante, y como el estado guardado seguía siendo `libre`, se
+       * contaba **disponible en el mismo instante del alta** — sin paso de
+       * limpieza. Con un traslado, la misma cama sí pasaba a `limpieza`: dos
+       * caminos, dos resultados opuestos, para el mismo hecho físico.
+       */
+      if (accion === 'egresar') {
+        const camaAlta = String((inter as Any).cama ?? '')
+        if (camaAlta !== '') {
+          const camasSnap = await tx.get(
+            adminDb.collection('clinics').doc(clinicId).collection('camas')
+              .where('etiqueta', '==', camaAlta))
+          for (const d of camasSnap.docs) {
+            const actualEstado = ((d.data() as Any).estado ?? 'ocupada') as EstadoCama
+            const r = transicionar(actualEstado, 'limpieza', POLITICA_CAMAS_SEGURA)
+            if (r.permitida) tx.set(d.ref, { estado: 'limpieza' }, { merge: true })
+          }
+        }
+        // La asignación de cama vigente se CIERRA: si no, el historial diría que
+        // el paciente sigue en esa cama después de haberse ido.
+        try {
+          const asigCol = ref.collection('bed_assignments')
+          const asigSnap = await tx.get(asigCol)
+          for (const d of asigSnap.docs) {
+            const a = d.data() as Any
+            if (a.hasta === undefined || a.hasta === null) tx.set(d.ref, { hasta: now }, { merge: true })
+          }
+        } catch { /* el alta clínica no se detiene por el historial de camas */ }
+      }
+
       tx.update(ref, { ...patch(accion, inter, payload, now, actor), updatedAt: now })
       // Además del array-caché en el doc, persiste el registro clínico COMPLETO
       // a la subcolección append-only (sin truncar) → no se pierde nada (NOM-004).

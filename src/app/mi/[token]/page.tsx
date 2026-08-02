@@ -100,6 +100,9 @@ export default function MiPortalPage() {
   const [error, setError] = useState('')
   const [accion, setAccion] = useState<string>('') // id de cita con acción en curso
   const [reagendando, setReagendando] = useState<string>('') // id de cita en modo reagenda
+  /** Pago del anticipo: se abre el Checkout de Stripe atado a la cita. */
+  const [pagando, setPagando] = useState(false)
+  const [errorPago, setErrorPago] = useState('')
 
   const cargar = useCallback(async () => {
     try {
@@ -153,6 +156,27 @@ export default function MiPortalPage() {
   }
   if (error || !sesion) {
     return <Centro><AlertTriangle size={28} color="var(--amber)" /><p style={{ color: 'var(--text2)', marginTop: 12, maxWidth: 320 }}>{error || 'No encontramos tu información.'}</p></Centro>
+  }
+
+  /**
+   * Manda al Checkout de Stripe ATADO a la cita. El monto lo pone el servidor
+   * —nunca el navegador del paciente—, y el webhook deja el cobro y el estado.
+   */
+  const pagarAnticipo = async (cita: Cita) => {
+    setPagando(true); setErrorPago('')
+    try {
+      const r = await fetch('/api/payment/create-checkout', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, citaId: cita.id }),
+      })
+      const d = await r.json().catch(() => ({}))
+      if (r.ok && d?.url) { window.location.assign(String(d.url)); return }
+      // Se DICE por qué no se pudo, en vez de abrir un enlace suelto haciendo
+      // creer que el pago quedó ligado a la cita.
+      setErrorPago(d?.error || 'No se pudo abrir el pago en línea.')
+    } catch {
+      setErrorPago('No se pudo abrir el pago en línea. Revisa tu conexión.')
+    } finally { setPagando(false) }
   }
 
   const descargarReceta = (doc: DocReceta) => {
@@ -249,22 +273,51 @@ export default function MiPortalPage() {
           )
         })}
 
-        {/* Anticipo / pago en línea */}
+        {/*
+          ANTICIPO — el botón que decía «Asegura tu lugar» y no aseguraba nada.
+          Abría un enlace externo suelto: sin retorno, sin webhook, sin cambio de
+          estado y sin cobro registrado. El paciente pagaba y su cita seguía
+          exactamente igual — y el importe del cartel podía no ser el que cobraba
+          el enlace, porque eran dos números distintos.
+          La ruta que SÍ lo registra (`/api/payment/create-checkout`) existía y no
+          la llamaba nadie: lee el monto en el SERVIDOR, ata el pago a la cita y
+          su webhook deja el cobro y el estado. Ahora se usa ésa, y el enlace
+          externo queda sólo como respaldo declarado.
+        */}
         {sesion.anticipo && proximas.length > 0 && (
-          <a href={sesion.anticipo.link} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', display: 'block', marginTop: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--nexus-soft)', border: '1px solid color-mix(in srgb, var(--nexus) 30%, transparent)', borderRadius: 12, padding: 14 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--nexus)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <CreditCard size={17} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
-                  Pagar anticipo{sesion.anticipo.monto > 0 ? ` · $${sesion.anticipo.monto} MXN` : ''}
+          <div style={{ marginTop: 16 }}>
+            <button
+              type="button"
+              disabled={!!pagando}
+              onClick={() => pagarAnticipo(proximas[0])}
+              style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: pagando ? 'default' : 'pointer' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--nexus-soft)', border: '1px solid color-mix(in srgb, var(--nexus) 30%, transparent)', borderRadius: 12, padding: 14 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--nexus)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <CreditCard size={17} />
                 </div>
-                <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Asegura tu lugar y agiliza tu llegada</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+                    Pagar anticipo{sesion.anticipo.monto > 0 ? ` · $${sesion.anticipo.monto} MXN` : ''}
+                  </div>
+                  <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>
+                    Se aplica a tu próxima cita y queda registrado en el consultorio
+                  </div>
+                </div>
+                <span style={{ color: 'var(--nexus)', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
+                  {pagando ? 'Abriendo…' : 'Pagar →'}
+                </span>
               </div>
-              <span style={{ color: 'var(--nexus)', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>Pagar →</span>
-            </div>
-          </a>
+            </button>
+            {errorPago && (
+              <div style={{ fontSize: 12.5, color: 'var(--amber)', marginTop: 8, lineHeight: 1.5 }}>
+                {errorPago}
+                {sesion.anticipo.link && (
+                  <> <a href={sesion.anticipo.link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--nexus)' }}>Pagar por el enlace del consultorio</a> — avísales para que lo registren.</>
+                )}
+              </div>
+            )}
+          </div>
         )}
 
         {/* Pasadas */}

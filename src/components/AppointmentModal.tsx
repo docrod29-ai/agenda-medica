@@ -6,6 +6,7 @@ import { useAppointments } from '@/hooks/useAppointments'
 import { useDoctors } from '@/hooks/useDoctors'
 import { useFiltroMedico } from '@/components/DoctorFilter'
 import { configParaMedico } from '@/lib/horario-medico'
+import { instanteMX } from '@/lib/timezone'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/context/ToastContext'
 import { getAvailableSlots, hasConflict } from '@/lib/availability'
@@ -302,7 +303,14 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
         // horario liberado es futuro, para no mandar "se liberó un horario [ayer]".
         const liberaHueco = ['cancelada', 'reagendada'].includes(estado) &&
           !['cancelada', 'reagendada', 'no-asistio'].includes(appointment.estado)
-        const esFuturo = new Date(appointment.fechaHora.replace(' ', 'T')).getTime() > Date.now()
+        /**
+         * «Futuro» CON EL RELOJ DEL CONSULTORIO, no el del navegador.
+         *
+         * `new Date('2026-08-06T09:00')` se interpreta en la zona de quien mira
+         * la pantalla. Desde otro huso, una cita de esta tarde podía parecer
+         * pasada —y no se avisaba a nadie del hueco— o al revés.
+         */
+        const esFuturo = instanteMX(appointment.fechaHora.slice(0, 10), appointment.fechaHora.slice(11, 16), cfgAgenda.zonaHoraria).getTime() > Date.now()
         const wasCancelled = liberaHueco && esFuturo
         if (wasCancelled) {
           fetchAutenticado('/api/whatsapp/waitlist-notify', {
@@ -313,6 +321,17 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
               hora: appointment.fechaHora.slice(11, 16),
               clinicId,
               tipo: appointment.tipo,
+              /**
+               * EL MÉDICO DEL HUECO — que aquí no viajaba.
+               *
+               * Sin `medicoId`, el bot cae al «primer médico activo» del
+               * consultorio: se cancelaba una cita de la Dra. B desde este modal,
+               * el paciente de la lista aceptaba, y la cita se creaba con el
+               * Dr. A en un hueco que la Dra. B había liberado. La otra ruta que
+               * avisa (la lista de Citas) sí lo mandaba: eran dos caminos con
+               * dos comportamientos.
+               */
+              medicoId: appointment.medicoId,
             }),
           }).catch(() => {/* non-critical */})
         }
