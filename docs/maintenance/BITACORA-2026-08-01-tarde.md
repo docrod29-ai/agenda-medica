@@ -362,6 +362,13 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 |---|---|
 | **857** | **Un corte reimpreso bajaba de total sin una sola nota.** Anular un cobro no tiene restricción de fecha —se anula el jueves uno del lunes— y la pantalla excluía los anulados: el corte del lunes reimpreso daba otro número y nadie podía saber qué cambió. Ahora se listan **aparte**, con motivo y fecha de anulación, sin entrar en ningún total. Y el KPI **«Reembolsos» estaba condenado a $0.00** (los negativos se rechazan en el origen y la devolución no existe como operación): ese cero se leía como «no hubo devoluciones». Ahora dice **«Anulados»**, que es lo que de verdad baja el día. Verificado en producción. |
 
+## OCTAVA TANDA — v858 a v859 (farmacia y las promesas al paciente)
+
+| v | Qué se reparó |
+|---|---|
+| **858** | **La farmacia deja de ser una isla sin memoria.** El libro de movimientos era de **sólo escritura** —`listarMovimientos` no lo llamaba ninguna pantalla— y ya se abre desde cada ítem. El `patientId` iba **siempre vacío** pese a que el módulo invoca la trazabilidad lote→paciente de la NOM-220: ahora la dispensación pide a qué paciente, y en un **controlado es obligatorio**. Y tirar un lote vencido era indistinguible de dispensarlo: se separan *dispensado / caducó / merma*. |
+| **859** | **Tres promesas al paciente que el código no cumplía.** El recordatorio dice «Responde SÍ para confirmar» y **nada lo implementaba** (el bot contestaba el menú); ahora el envío deja la sesión esperando esa respuesta con la cita concreta, y va **antes** del detector de FAQ porque «sí, esa *hora* me sirve» se lo quedaba. «Responda NO y le quitamos de la lista» **no daba de baja a nadie**. Y quien recibía una oferta y no contestaba quedaba `contactado` y **no volvía a recibir ninguna nunca**. Además «Mis recetas» imprimía «Invalid Date» y Descargar lanzaba un error que el paciente no veía. |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.
@@ -378,9 +385,9 @@ Por orden de daño. Todo con archivo:línea, verificable.
 ### Farmacia
 6. ~~«Eliminar» no elimina nada visible~~ — HECHO (v856).
 7. ~~«Bajo stock: 0» con el anaquel vacío~~ — HECHO (v856).
-8. **La farmacia es una isla**: dispensar no descuenta ni cobra, `patientId` y
-   `notaId` del movimiento no los escribe nadie (NOM-220 lote→paciente), y
-   `listarMovimientos` no tiene ni una pantalla que lo llame.
+8. ~~La farmacia es una isla~~ — HECHO A MEDIAS (v858): el libro ya se lee y la
+   dispensación ya dice a quién. **Queda**: dispensar desde la CONSULTA no
+   descuenta inventario ni genera cobro — sigue siendo una captura aparte.
 9. ~~Caducidad evaluada en UTC~~ — HECHO (v856).
 
 ### Hospital / UCI
@@ -402,15 +409,10 @@ Por orden de daño. Todo con archivo:línea, verificable.
 15. **El enlace mágico no se puede revocar** ni caduca antes de 30 días
     (`lib/patient-token.ts:85`): quien lo tenga lee citas y motivo, y puede
     cancelar y reagendar.
-16. **El recordatorio promete «Responde SÍ para confirmar»** y nada lo
-    implementa (`cron/reminders/route.ts:146`): el bot contesta el menú.
-17. **Lista de espera**: «responda NO y le quitamos de la lista» no da de baja, y
-    quien no contesta queda marcado `contactado` y **nunca vuelve a recibir otra
-    oferta** (`waitlist-notify:159`).
-18. **El detector de FAQ secuestra las confirmaciones**: «sí, esa **hora** me
-    sirve» responde el horario de atención y pierde el hueco (`webhook:305`).
-19. **«Mis recetas» del portal imprime "Invalid Date" y el botón Descargar no
-    descarga** (`mi/[token]/page.tsx:62`, formato ISO vs. `YYYY-MM-DD HH:MM`).
+16. ~~El recordatorio promete «Responde SÍ»~~ — HECHO (v859).
+17. ~~Lista de espera: el NO no daba de baja y el silencio desterraba~~ — HECHO (v859).
+18. ~~El detector de FAQ secuestra las confirmaciones~~ — HECHO (v859).
+19. ~~«Mis recetas» imprime "Invalid Date"~~ — HECHO (v859).
 20. **«Pagar anticipo · Asegura tu lugar» no asegura nada**: abre un enlace
     externo suelto sin retorno ni registro; la ruta que sí lo registraría no
     tiene ni un llamador.
