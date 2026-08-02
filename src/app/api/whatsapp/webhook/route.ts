@@ -36,14 +36,38 @@ import { hoyISO, sumarDiasISO, TZ_DEFAULT } from '@/lib/timezone'
 // Del NÚCLEO PURO: ruta de SERVIDOR — ver el comentario de cabecera de
 // time-blocks-core.ts (el SDK del cliente se inicializa al importarse).
 import { estaBloqueado, type TimeBlock } from '@/lib/time-blocks-core'
+import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
 import { getAvailableSlots, getDaySchedule, validarHorarioDia, descansosEnMinutos, pisaDescanso } from '@/lib/availability'
 
-/** Carga los bloqueos (vacaciones/ausencias) de la clínica para el bot. */
-async function cargarBloques(clinicId: string): Promise<TimeBlock[]> {
+/**
+ * Carga los bloqueos (vacaciones/ausencias) de la clínica para el bot — y lo que
+ * el médico tenga ocupado en su Google Calendar.
+ *
+ * ── POR QUÉ AQUÍ Y NO EN CADA SITIO ──────────────────────────────────────────
+ *
+ * El bot mira los huecos en TRES momentos: al listar, al revalidar antes de
+ * confirmar, y al buscar «el próximo disponible». Los tres pasan por esta
+ * función, así que añadir el calendario aquí los cubre a los tres — y cubre
+ * también el cuarto que alguien escriba mañana. Es la misma lección que dejó el
+ * generador de huecos con cinco implementaciones.
+ *
+ * `fecha` y `medicoId` son opcionales para no romper a ningún llamador: sin
+ * ellos se comporta exactamente como antes (sólo los bloqueos del consultorio).
+ */
+async function cargarBloques(clinicId: string, fecha?: string, medicoId?: string, cfg?: ClinicConfig): Promise<TimeBlock[]> {
+  let propios: TimeBlock[] = []
   try {
     const snap = await adminDb.collection('clinics').doc(clinicId).collection('time_blocks').get()
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }) as TimeBlock)
-  } catch { return [] }
+    propios = snap.docs.map(d => ({ id: d.id, ...d.data() }) as TimeBlock)
+  } catch { propios = [] }
+
+  if (!fecha || !medicoId) return propios
+  // Si Google no contesta, se sigue con los bloqueos del consultorio: el bot no
+  // se queda sin agenda porque el calendario tenga un mal día.
+  const g = await ocupadoEnGoogle(clinicId, medicoId, fecha, {
+    zonaHoraria: cfg?.zonaHoraria, googleCalendarId: cfg?.googleCalendarId,
+  })
+  return [...propios, ...g.bloqueos]
 }
 
 /**
@@ -592,7 +616,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
       .where('fechaHora', '<=', fecha + ' 23:59')
       .get()
     const appts = apptSnap.docs.map(d => ({ id: d.id, ...d.data() } as Appointment))
-    const bloques = await cargarBloques(clinicId)
+    const bloques = await cargarBloques(clinicId, fecha, doctor?.id, config!)
 
     const slots = getAvailableSlotsForDate(fecha, duracion, config!, appts, bloques, doctor?.id)
 
@@ -672,7 +696,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
           .where('fechaHora', '<=', datos.fecha + ' 23:59')
           .get()
         const apptsRV = apptSnapRV.docs.map(d => ({ id: d.id, ...d.data() } as Appointment))
-        const bloquesRV = await cargarBloques(clinicId)
+        const bloquesRV = await cargarBloques(clinicId, datos.fecha, doctor?.id, config!)
         const vigentes = getAvailableSlotsForDate(datos.fecha, duracion, config!, apptsRV, bloquesRV, doctor?.id)
         if (!vigentes.includes(datos.hora)) {
           await send(from, `Ese horario ya no está disponible. Por favor elija otro escribiendo *agendar* de nuevo. 🙏`)
@@ -950,6 +974,17 @@ async function getAvailableDays(clinicId: string, duracionStr: string, config: C
     .where('fechaHora', '<=', endDate + ' 23:59')
     .get()
   const appts = snap.docs.map(d => ({ id: d.id, ...d.data() } as Appointment))
+  /**
+   * AQUÍ NO SE CONSULTA GOOGLE, Y ES A PROPÓSITO.
+   *
+   * Esto recorre CATORCE días para proponer los primeros con hueco: consultar el
+   * calendario día por día serían catorce llamadas dentro de un webhook, que
+   * tiene que contestar rápido o WhatsApp reintenta el mensaje.
+   *
+   * No abre un agujero: esto sólo PROPONE días. Al elegir uno se listan sus
+   * horas —ahí sí con Google— y al confirmar se revalida otra vez. Lo peor que
+   * puede pasar es que se ofrezca un día que al abrirlo tenga menos huecos.
+   */
   const bloques = await cargarBloques(clinicId)
 
   for (let i = 0; i < 14 && days.length < 5; i++) {

@@ -14,6 +14,7 @@ import { validarHorarioDia, descansosEnMinutos, pisaDescanso } from '@/lib/avail
 import { configParaMedico } from '@/lib/horario-medico'
 import { esFestivo } from '@/lib/availability'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
+import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
 
 /**
  * Mismo cambio que en `lib/availability.ts`, y por el mismo motivo: el tope de
@@ -58,13 +59,9 @@ export async function GET(
     let cfg = configSnap.data()!
     // Horario POR MÉDICO: si se pide disponibilidad de un médico concreto, sus
     // horario/duraciones/intervalo pisan a los de la clínica (coherente con el panel).
-    let uidDelMedico = ''
     if (medicoId) {
       const docSnap = await adminDb.collection('clinics').doc(clinicId).collection('doctors').doc(medicoId).get()
       cfg = configParaMedico(cfg as unknown as import('@/types').ClinicConfig, docSnap.data()) as unknown as typeof cfg
-      // El vínculo que escribe `calendar/callback` al conectar (v875). Sin él no
-      // se puede saber de quién es el calendario, y adivinar sería peor.
-      uidDelMedico = String((docSnap.data() as { uid?: string } | undefined)?.uid ?? '')
     }
 
     // 2. Horario del día
@@ -149,30 +146,16 @@ export async function GET(
      *  · no viaja nada del evento: sólo el intervalo ocupado. El paciente no ve
      *    qué tiene el médico, sólo que esa hora no está.
      */
-    if (uidDelMedico) {
-      try {
-        const tokSnap = await adminDb.collection('googleTokens').doc(uidDelMedico).get()
-        const refreshToken = (tokSnap.data() as { refreshToken?: string } | undefined)?.refreshToken
-        if (refreshToken) {
-          const { intervalosOcupados } = await import('@/lib/google-calendar')
-          const desdeIso = instanteMX(fecha, '00:00', (cfg.zonaHoraria as string) || TZ_DEFAULT).toISOString()
-          const hastaIso = instanteMX(fecha, '23:59', (cfg.zonaHoraria as string) || TZ_DEFAULT).toISOString()
-          const r = await intervalosOcupados(refreshToken, (cfg.googleCalendarId as string) || 'primary', desdeIso, hastaIso)
-          if (r.ok) {
-            for (const iv of r.intervalos) {
-              const desde = Date.parse(String(iv.start ?? ''))
-              const hasta = Date.parse(String(iv.end ?? ''))
-              if (Number.isFinite(desde) && Number.isFinite(hasta) && hasta > desde) {
-                bloques.push({ desde, hasta, medicoId })
-              }
-            }
-          } else {
-            safeLog.warn(`[public/availability] ${clinicId} ${fecha}: no se pudo leer Google Calendar del médico; los huecos NO lo tienen en cuenta.`)
-          }
-        }
-      } catch (e) {
-        // Igual que arriba: la agenda pública no se cae por Google.
-        safeLog.warn('[public/availability] freebusy falló', e)
+    if (medicoId) {
+      const g = await ocupadoEnGoogle(clinicId, medicoId, fecha, {
+        zonaHoraria: cfg.zonaHoraria as string | undefined,
+        googleCalendarId: cfg.googleCalendarId as string | undefined,
+      })
+      for (const b of g.bloqueos) {
+        bloques.push({ desde: Date.parse(b.desde), hasta: Date.parse(b.hasta), medicoId })
+      }
+      if (g.fallo) {
+        safeLog.warn(`[public/availability] ${clinicId} ${fecha}: no se pudo leer el Google Calendar del médico; los huecos NO lo tienen en cuenta.`)
       }
     }
 
