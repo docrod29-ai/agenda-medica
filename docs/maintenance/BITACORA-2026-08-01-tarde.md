@@ -369,6 +369,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 | **858** | **La farmacia deja de ser una isla sin memoria.** El libro de movimientos era de **sólo escritura** —`listarMovimientos` no lo llamaba ninguna pantalla— y ya se abre desde cada ítem. El `patientId` iba **siempre vacío** pese a que el módulo invoca la trazabilidad lote→paciente de la NOM-220: ahora la dispensación pide a qué paciente, y en un **controlado es obligatorio**. Y tirar un lote vencido era indistinguible de dispensarlo: se separan *dispensado / caducó / merma*. |
 | **859** | **Tres promesas al paciente que el código no cumplía.** El recordatorio dice «Responde SÍ para confirmar» y **nada lo implementaba** (el bot contestaba el menú); ahora el envío deja la sesión esperando esa respuesta con la cita concreta, y va **antes** del detector de FAQ porque «sí, esa *hora* me sirve» se lo quedaba. «Responda NO y le quitamos de la lista» **no daba de baja a nadie**. Y quien recibía una oferta y no contestaba quedaba `contactado` y **no volvía a recibir ninguna nunca**. Además «Mis recetas» imprimía «Invalid Date» y Descargar lanzaba un error que el paciente no veía. |
 
+## NOVENA TANDA — v860 (el enlace del paciente)
+
+| v | Qué se reparó |
+|---|---|
+| **860** | **El enlace del portal no se podía revocar, y duraba 30 días.** Firmado y con fecha, no había forma de invalidar uno ya emitido: teléfono perdido, número reciclado o mensaje reenviado valían hasta caducar — y ese enlace da acceso a las citas del paciente (motivo incluido, que es texto clínico) y permite cancelar y reagendar. Ahora el expediente lleva un **contador de versión**: subirlo tumba de golpe todos los enlaces de ese paciente, desde un botón en su expediente. TTL de 30 → **7 días**, y el mensaje ya le advierte que es personal y caduca. Botón verificado en producción. |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.
@@ -406,9 +412,7 @@ Por orden de daño. Todo con archivo:línea, verificable.
     llamador: el estado REVISADO es inalcanzable.
 
 ### Portal y mensajería
-15. **El enlace mágico no se puede revocar** ni caduca antes de 30 días
-    (`lib/patient-token.ts:85`): quien lo tenga lee citas y motivo, y puede
-    cancelar y reagendar.
+15. ~~El enlace mágico no se puede revocar~~ — HECHO (v860).
 16. ~~El recordatorio promete «Responde SÍ»~~ — HECHO (v859).
 17. ~~Lista de espera: el NO no daba de baja y el silencio desterraba~~ — HECHO (v859).
 18. ~~El detector de FAQ secuestra las confirmaciones~~ — HECHO (v859).
