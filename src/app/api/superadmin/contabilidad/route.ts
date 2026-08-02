@@ -11,6 +11,7 @@
  * Solo superadmin.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { churnDelMes } from '@/lib/finanzas/churn'
 import { claseDeCuenta, cuentaComoIngreso } from '@/lib/authz/fundador'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarSuperadmin } from '@/lib/superadmin'
@@ -199,6 +200,20 @@ export async function GET(req: NextRequest) {
         devueltoHist: Math.round(devueltoHist),
         disputasAbiertas,
         numPagosMes,
+        /**
+         * BAJAS DEL MES — la cifra que faltaba al lado del MRR.
+         *
+         * El MRR dice cuánto entra; esto dice si se sostiene. Un producto con
+         * MRR creciente y bajas altas está reemplazando clientes tan rápido
+         * como los pierde, y eso no se ve en ninguna suma: se ve dividiendo.
+         */
+        churn: churnDelMes(
+          clinicsSnap.docs.map(d => {
+            const c = d.data() as Any
+            return { status: String(c.status ?? ''), canceladaEn: c.canceladaEn ? String(c.canceladaEn) : null, mrr: precioPlan(String(c.plan ?? 'trial')) }
+          }),
+          mesSel,
+        ),
       },
       porMes,
       porPlan: [...porPlan.entries()]

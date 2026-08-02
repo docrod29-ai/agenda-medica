@@ -1,4 +1,5 @@
 'use client'
+import { tasaLegible } from '@/lib/finanzas/churn'
 /**
  * Panel de CONTABILIDAD del dueño (solo superadmin). Ingresos, IVA, costos,
  * utilidad y margen — global, por mes, por plan y por cliente. Con exportación a
@@ -24,7 +25,7 @@ function ultimos12(): string[] {
 interface Cliente { id: string; nombre: string; plan: string; planLabel: string; activa: boolean; mrr: number; ingresoTotal: number; creditos: number; costoIA: number; margen: number | null }
 interface Data {
   ok: boolean; mes: string
-  resumen: { ingresoMes: number; ivaMes: number; ingresoSinIva: number; costoIA: number; costoStripe: number; costoInfra: number; costoTotal: number; utilidad: number; margen: number; mrr: number; activas: number; clinicas: number; creditosMes: number; ingresoTotalHist: number; numPagosMes: number }
+  resumen: { ingresoMes: number; ivaMes: number; ingresoSinIva: number; costoIA: number; costoStripe: number; costoInfra: number; costoTotal: number; utilidad: number; margen: number; mrr: number; activas: number; clinicas: number; creditosMes: number; ingresoTotalHist: number; numPagosMes: number; churn?: { bajasDelMes: number; base: number; tasa: number | null; mrrPerdido: number; bajasSinFecha: number } }
   porMes: { mes: string; ingresos: number }[]
   porPlan: { plan: string; label: string; cantidad: number; mrr: number }[]
   clientes: Cliente[]
@@ -128,6 +129,20 @@ export default function ContabilidadPage() {
               { lab: 'Costo total', val: mxn(data.resumen.costoTotal), foot: `IA ${mxn(data.resumen.costoIA)} · Stripe ${mxn(data.resumen.costoStripe)}` },
               { lab: 'Utilidad neta', val: mxn(data.resumen.utilidad), foot: 'sin IVA − costos', hero: true },
               { lab: 'Margen', val: data.resumen.margen + '%', foot: `MRR ${mxn(data.resumen.mrr)}` },
+              /*
+                BAJAS DEL MES. El MRR dice cuánto entra; esto dice si se
+                sostiene. Se mide contra quienes PODÍAN irse (activos + bajas
+                del mes), no contra los que quedan: ese denominador infla la
+                cifra justo cuando peor van las cosas.
+              */
+              {
+                lab: 'Bajas del mes',
+                val: tasaLegible(data.resumen.churn?.tasa ?? null),
+                foot: data.resumen.churn
+                  ? `${data.resumen.churn.bajasDelMes} de ${data.resumen.churn.base} · −${mxn(data.resumen.churn.mrrPerdido)}/mes` +
+                    (data.resumen.churn.bajasSinFecha > 0 ? ` · ${data.resumen.churn.bajasSinFecha} sin fecha, fuera del cálculo` : '')
+                  : 'sin datos',
+              },
             ].map((k, i) => (
               <div key={i} style={{ background: k.hero ? 'linear-gradient(160deg,#0e1524,#182338)' : 'var(--s1)', border: '1px solid ' + (k.hero ? '#0e1524' : 'var(--border)'), borderRadius: 13, padding: '14px 15px' }}>
                 <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.05em', fontWeight: 600, color: k.hero ? '#8ea0c0' : 'var(--text3)' }}>{k.lab}</div>
