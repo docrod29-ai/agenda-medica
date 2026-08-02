@@ -105,3 +105,30 @@ describe('el formulario no puntúa nada', () => {
     for (const c of CAMPOS_PREVIOS) expect(c.etiqueta).toMatch(/\?$|\?/)
   })
 })
+
+/**
+ * Y EL CONSULTORIO SE ENTERA — el hueco que v887 cerró para las citas y que
+ * v889 volvió a abrir aquí.
+ *
+ * El paciente escribe lo suyo la noche antes y el médico sólo lo ve si abre la
+ * consulta y mira la tarjeta. Un formulario que dice «soy alérgico a la
+ * penicilina» merece que alguien lo sepa ANTES de tenerlo sentado enfrente.
+ */
+describe('el formulario avisa al consultorio', () => {
+  const s = leer('src', 'app', 'api', 'portal', 'route.ts')
+
+  it('manda el aviso', () => {
+    expect(s).toContain('Un paciente llenó su información previa')
+    expect(s).toContain("'formulario-previo'")
+  })
+
+  it('NO manda el contenido: son datos de salud por un canal externo', () => {
+    // Sólo que llegó y de quién; lo demás se lee en el expediente, protegido.
+    const i = s.indexOf('Un paciente llenó su información previa')
+    const bloque = s.slice(i - 400, i + 600)
+    expect(bloque).toContain('NO viaja por aquí porque son datos de salud')
+    for (const campo of ['motivo', 'alergias', 'medicamentos', 'antecedentes']) {
+      expect(bloque).not.toContain(`respuestas.${campo}`)
+    }
+  })
+})

@@ -630,6 +630,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 |---|---|
 | **897** | **Los signos importados del monitor entraban sin disparar la alerta de deterioro.** Registrar signos a mano calcula NEWS2 y avisa al médico tratante si hay riesgo alto o parámetro en rojo; los importados en v893 no hacían nada de eso. Un paciente que se deteriora podía quedar registrado sin que nadie se enterara — y son justo los signos que llegan **sin que una persona los mire**. Un canal nuevo que se salta la alerta del viejo da sensación de cobertura sin darla. Ahora pasa por el mismo motor y la misma alerta, con el título diciendo que viene del monitor. Lo que el monitor no manda (conciencia, O₂) **no se inventa**. |
 
+## CUADRAGÉSIMA SÉPTIMA TANDA — v898 (segundo fallo mío del día)
+
+| v | Qué se reparó |
+|---|---|
+| **898** | **El formulario previo llegaba y nadie se enteraba.** v887 hizo que el consultorio supiera de las citas y cancelaciones del portal, y **v889 volvió a abrir el hueco** con el formulario. El paciente lo llena la noche antes y el médico sólo lo ve si abre la consulta y mira la tarjeta — uno que dice «soy alérgico a la penicilina» merece saberse **antes** de tenerlo enfrente. Ahora avisa por el mismo helper. **No viaja el contenido**: son datos de salud por un canal externo; el aviso dice que llegó y de quién, lo demás se lee en el expediente. Encontrado revisando mi propio trabajo del día. |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.
