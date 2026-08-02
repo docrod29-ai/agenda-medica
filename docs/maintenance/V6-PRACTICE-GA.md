@@ -20,7 +20,7 @@ Bitácora de versiones desplegadas: `BITACORA-2026-08-01-tarde.md`.
 | P-003 | Agenda completa | **PARCIAL** — sobreagendar autorizado y auditado (v806-v807), bloqueos validados en servidor, zonas horarias, tope de huecos (v810). **FALTA**: horario partido y descansos no existen en el modelo (`DaySchedule` es un solo tramo, `src/types/index.ts:408`); festivos no recurrentes; sucursales decorativas (`branchId` no lo escribe ninguna interfaz ni lo mira `getAvailableSlots`); calendario externo unidireccional (no hay `freebusy`, un evento de Google no bloquea la agenda). |
 | P-004 | Master Patient Record + duplicados | **HECHO** — detección de duplicados con bloqueo, nunca fusión automática, y la cita ya no cae en el paciente equivocado. |
 | P-005 | Consultation workspace | **PARCIAL** — la consulta ya es una sola pantalla con dictado, secciones, dx, plan, receta, órdenes, copiloto y evidencia. **FALTA**: el header no muestra problemas activos ni medicamentos vigentes ni «última consulta» de un vistazo. |
-| P-006 | Voice + Note engine con provenance | **PARCIAL** — pipeline completo, marca `[IA — no dictado]`, compuerta de firma, purga del audio en el proveedor (v805). **FALTA**: la provenance es por PREFIJO DE TEXTO, no por campo; nada verifica que una línea sin marca haya salido de la voz. El charter pide `DICTATED/MANUAL/IMPORTED/CALCULATED/INFERRED/AI_SUGGESTED/PHYSICIAN_CONFIRMED` por dato. |
+| P-006 | Voice + Note engine con provenance | **CASI HECHO — corregido tras leer el código.** Mi primera lectura fue injusta: `lib/expediente/procedencia.ts` YA hace provenance POR CAMPO, y bien. No la declara: la **deriva de evidencia** — si el dato coincide con la extracción y trae `source_quote`, es `dictado` (y se puede leer la frase exacta); si coincide sin cita, es `ia`; si no coincide, lo escribió el médico. Además registra `confirmado` por campo, con un detalle fino: no compara índices entre las dos listas porque se desfasan al rechazar un ítem, y dar por confirmado un diagnóstico con el visto bueno de OTRO sería un dato falso en el registro. **FALTA sólo el vocabulario**: `CALCULATED` e `IMPORTED` no se distinguen de `manual`. Es un matiz, no un agujero. |
 | P-007 | Clinical safety | **PARCIAL** — motores deterministas, dosis con unidad obligatoria, alergias, pediatría, embarazo. **FALTA**: la clasificación `BLOCK/CONTRAINDICATED/AVOID/NOT_RECOMMENDED/DOSE_ADJUST/MONITOR/PASSIVE/INFORMATION` no existe como tipo; hoy es `critica/media/baja`. Asignar cada fármaco es **DEL DR.**, pero el ESQUEMA es mío y falta. Y `BLOQUEA_RECETA` lo decide el LLM y no bloquea nada (`medical-ner.ts:176`). |
 | P-008 | Medication engine | **PARCIAL** — modelo con dosis/unidad/vía/frecuencia/duración/indicación, chequeo renal y de alergias. **FALTA**: `Status` y `Provenance` en `MedicationOrder`. |
 | P-009 | Task engine | **HECHO** — `lib/tareas-clinicas/` + `/pendientes` (v799). Estados del charter, escalación, dueño y fecha. |
@@ -78,7 +78,8 @@ actuales».
 
 1. Esquema de clasificación de seguridad clínica (P-007) — el TIPO, no los fármacos.
 2. `Status` y `Provenance` en la orden de medicamento (P-008).
-3. Provenance por campo en la nota, no por prefijo de texto (P-006).
+3. ~~Provenance por campo~~ — YA EXISTÍA (`procedencia.ts`). Falta sólo distinguir
+   `CALCULATED` e `IMPORTED` de `manual`, que es un matiz de vocabulario.
 4. Header de la consulta con problemas activos, medicamentos y última visita (P-005).
 5. Horario partido y descansos (P-003).
 6. Métricas `timeToFirst*` del onboarding (P-002).
