@@ -20,6 +20,9 @@ export async function GET(req: NextRequest) {
     const nonce = randomUUID()
     await adminDb.collection('oauthStates').doc(nonce).set({
       uid: acc.uid,
+      // El correo VERIFICADO de la sesión, no el que mande el navegador: es con
+      // lo que el callback liga este calendario a la ficha del médico.
+      email: acc.email ?? '',
       proveedor: 'google-calendar',
       exp: Date.now() + STATE_TTL_MIN * 60_000,
       createdAt: new Date().toISOString(),

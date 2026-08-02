@@ -161,6 +161,46 @@ export async function POST(req: NextRequest) {
     }
 
     /**
+     * Y TAMPOCO ENCIMA DE LO QUE EL MÉDICO TIENE EN SU GOOGLE CALENDAR.
+     *
+     * Mismo motivo que el descanso de arriba: el GET ya dejó de ofrecer esas
+     * horas (v876), pero éste es un endpoint PÚBLICO — una pestaña abierta desde
+     * antes, o una petición directa, mete la cita igual. «No ofrecer» y «no
+     * aceptar» son dos cosas distintas, y ya nos costó una vez.
+     *
+     * Si Google no se puede consultar, se sigue: rechazar una cita real por un
+     * fallo de red sería peor que el solape que esto evita.
+     */
+    if (medicoId) {
+      try {
+        const medSnap = await clinicRef.collection('doctors').doc(medicoId).get()
+        const uidMedico = String((medSnap.data() as { uid?: string } | undefined)?.uid ?? '')
+        if (uidMedico) {
+          const tokSnap = await adminDb.collection('googleTokens').doc(uidMedico).get()
+          const refreshToken = (tokSnap.data() as { refreshToken?: string } | undefined)?.refreshToken
+          if (refreshToken) {
+            const { intervalosOcupados } = await import('@/lib/google-calendar')
+            const iniSlot = instanteMX(fecha, hora, tzClinica).getTime()
+            const finSlot = iniSlot + duracion * 60_000
+            const r = await intervalosOcupados(
+              refreshToken, (cfg.googleCalendarId as string) || 'primary',
+              new Date(iniSlot).toISOString(), new Date(finSlot).toISOString(),
+            )
+            const choca = r.ok && r.intervalos.some(iv => {
+              const d0 = Date.parse(String(iv.start ?? '')), d1 = Date.parse(String(iv.end ?? ''))
+              return Number.isFinite(d0) && Number.isFinite(d1) && iniSlot < d1 && finSlot > d0
+            })
+            if (choca) {
+              return NextResponse.json({ ok: false, error: 'Ese horario ya no está disponible' }, { status: 409 })
+            }
+          }
+        }
+      } catch (e) {
+        safeLog.warn('[public/booking] no se pudo consultar Google Calendar; se sigue sin él', e)
+      }
+    }
+
+    /**
      * BUSCAR O CREAR EL PACIENTE — y no colgarle la cita a quien no es.
      *
      * Esto buscaba por TELÉFONO, tomaba el PRIMERO y le colgaba la cita. Sin

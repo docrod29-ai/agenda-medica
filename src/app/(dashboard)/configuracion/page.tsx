@@ -87,6 +87,16 @@ export default function ConfiguracionPage() {
     const tabParam = searchParams.get('tab') as Tab | null
     if (gcal === 'connected') {
       toast('Google Calendar conectado', 'success')
+      /**
+       * SI NO SE PUDO LIGAR A TU FICHA, SE DICE.
+       *
+       * El calendario queda conectado igual —el médico ya ve sus horas ocupadas
+       * al agendar—, pero sin el vínculo `médico ↔ uid` la agenda PÚBLICA no
+       * puede tenerlo en cuenta: un paciente podría reservar encima de algo que
+       * ya tiene apuntado. Callarlo dejaría al médico creyendo que sí.
+       */
+      const motivoVinculo = searchParams.get('vinculo')
+      if (motivoVinculo) toast(motivoVinculo, 'error')
       setGcalConnected(true)
       setTab('integraciones')
       const uid = auth.currentUser?.uid
