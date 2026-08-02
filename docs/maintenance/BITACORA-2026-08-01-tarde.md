@@ -403,6 +403,42 @@ Dos cuidados:
 
 ---
 
+## QUINCUAGÉSIMA QUINTA TANDA — v906
+
+### La cortesía no aparecía en la caja, y la tasa de cobro la castigaba como si fuera un descuido
+
+`exentarCobro` guarda con todo cuidado **quién** autorizó la cortesía, **cuándo**
+y **por qué** — «una decisión deliberada y AUDITADA, no un cobro de $0 que
+ensucie el corte de caja», dice su propio comentario. Y esos tres campos
+(`exentoPor`, `exentoPorNombre`, `exentoEn`) no los leía **ninguna pantalla**.
+
+Dos consecuencias, las dos sobre dinero:
+
+1. **El corte de caja ni las mencionaba.** Diez atendidos, ocho cobrados, dos de
+   cortesía, y la caja mostraba ocho sin rastro de los otros dos. Quien cuadra el
+   dinero no podía distinguir «dos que autorizó el doctor» de «dos que a alguien
+   se le olvidó cobrar» — que es exactamente la diferencia entre un control y un
+   hueco.
+2. **La tasa de cobro las contaba como cobranza fallida.** `cuentasPorCobrar` ya
+   las excluía —«el médico decidió no cobrarlas, no son deuda»—, pero el
+   porcentaje bajaba igual que con un olvido: la pantalla castigaba una decisión
+   deliberada y la presentaba con la misma cara que un descuido.
+
+Ahora la tasa responde «de lo que **sí tocaba** cobrar, cuánto se cobró», las
+cortesías se cuentan aparte y **se dice** que están fuera de la tasa, y hay un
+panel con el rastro completo: paciente, hora, motivo y quién la autorizó. Un
+registro viejo sin motivo dice «Sin motivo registrado» en vez de inventar uno.
+
+⚠️ **Cambia un número que quizá esté siguiendo**: la tasa de cobro sube en los
+días con cortesías, porque ya no las cuenta como fallos. El conteo aparece al
+lado para que se pueda cuadrar con lo de antes.
+
+- `src/lib/corte-caja.ts` (`Embudo.cortesias`, `cortesiasDelDia`)
+- `src/app/(dashboard)/corte-caja/page.tsx`
+- `src/__tests__/cortesias-corte.test.ts` — 9 pruebas. Total 4840.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:

@@ -46,9 +46,16 @@ export interface Embudo {
   atendidas: number
   noAsistio: number
   cobradas: number       // citas atendidas con al menos un cobro activo vinculado
+  /**
+   * Consultas de CORTESÍA: el médico decidió no cobrarlas, con su motivo y su
+   * autor. No son deuda ni descuido, y por eso salen del denominador de la tasa
+   * de cobro — pero se cuentan aparte, que es distinto de esconderlas.
+   */
+  cortesias: number
   montoCobrado: number
   tasaAsistencia: number // atendidas / agendadas (0-1)
-  tasaCobro: number      // cobradas / atendidas (0-1)
+  /** cobradas / (atendidas − cortesías): de lo que SÍ tocaba cobrar. */
+  tasaCobro: number
 }
 
 /**
@@ -94,6 +101,20 @@ export function embudoCobro(citas: Appointment[], cobros: Cobro[]): Embudo {
   const atendidas = agendables.filter(c => ATENDIDAS.includes(c.estado))
   const noAsistio = citas.filter(c => c.estado === 'no-asistio').length
   const cobradas = atendidas.filter(c => estaSaldada(c, conCobro))
+  /**
+   * LA CORTESÍA NO ES UNA COBRANZA FALLIDA.
+   *
+   * `cuentasPorCobrar` ya las excluía —«el médico decidió no cobrarlas, no son
+   * deuda»—, pero la TASA DE COBRO seguía contándolas en el denominador: una
+   * consulta de cortesía no está saldada, así que bajaba el porcentaje
+   * exactamente igual que una que se olvidaron de cobrar.
+   *
+   * O sea que la pantalla castigaba una decisión deliberada y la presentaba con
+   * la misma cara que un descuido. Ahora salen del denominador y se cuentan
+   * aparte: la tasa responde «de lo que SÍ tocaba cobrar, cuánto se cobró».
+   */
+  const cortesias = atendidas.filter(c => c.cobroExento && !estaSaldada(c, conCobro))
+  const cobrables = atendidas.length - cortesias.length
   // El dinero cobrado SÍ incluye los abonos: entró a caja aunque no salde la cita.
   // (La cita sigue contando como no cobrada arriba; son dos preguntas distintas:
   //  cuánto entró vs. qué consultas quedan por saldar.)
@@ -105,9 +126,10 @@ export function embudoCobro(citas: Appointment[], cobros: Cobro[]): Embudo {
     atendidas: atendidas.length,
     noAsistio,
     cobradas: cobradas.length,
+    cortesias: cortesias.length,
     montoCobrado,
     tasaAsistencia: agendables.length ? atendidas.length / agendables.length : 0,
-    tasaCobro: atendidas.length ? cobradas.length / atendidas.length : 0,
+    tasaCobro: cobrables > 0 ? cobradas.length / cobrables : 0,
   }
 }
 
@@ -134,3 +156,56 @@ export function cuentasPorCobrar(citas: Appointment[], cobros: Cobro[]): CuentaP
     }))
     .sort((a, b) => b.fechaHora.localeCompare(a.fechaHora))
 }
+
+
+/* ─── Cortesías del día: la decisión que nadie veía ─── */
+
+/**
+ * `exentarCobro` guarda con todo cuidado QUIÉN autorizó la cortesía, CUÁNDO y
+ * POR QUÉ — «es una decisión deliberada y AUDITADA, no un cobro de $0 que
+ * ensucie el corte de caja», dice su comentario.
+ *
+ * Y esos tres campos no los leía **ninguna pantalla**. El corte de caja ni
+ * siquiera mencionaba las cortesías: diez pacientes atendidos, ocho cobrados,
+ * dos de cortesía, y la caja mostraba ocho sin rastro de los otros dos. Quien
+ * cuadra el dinero no podía distinguir «dos cortesías que autorizó el doctor» de
+ * «dos consultas que a alguien se le olvidó cobrar» — que es justo la diferencia
+ * entre un control y un hueco.
+ */
+export interface CortesiaDelDia {
+  citaId: string
+  paciente: string
+  fechaHora: string
+  medico?: string
+  motivo: string
+  /** Nombre de quien la autorizó; vacío si el registro es anterior a que se guardara. */
+  autorizadaPor: string
+  autorizadaEn: string
+}
+
+export function cortesiasDelDia(citas: Appointment[]): CortesiaDelDia[] {
+  return citas
+    .filter(c => ATENDIDAS.includes(c.estado) && c.cobroExento)
+    .map(c => {
+      const x = c as Appointment & {
+        exentoMotivo?: string; exentoPorNombre?: string; exentoEn?: string
+      }
+      return {
+        citaId: c.id,
+        paciente: c.pacienteNombre,
+        fechaHora: c.fechaHora,
+        medico: c.medicoNombre,
+        // Sin motivo NO se inventa uno: `exentarCobro` lo exige, así que un vacío
+        // aquí es un registro viejo, y decirlo es mejor que dejar el hueco mudo.
+        motivo: (x.exentoMotivo ?? '').trim() || 'Sin motivo registrado',
+        autorizadaPor: (x.exentoPorNombre ?? '').trim(),
+        autorizadaEn: x.exentoEn ?? '',
+      }
+    })
+    .sort((a, b) => b.fechaHora.localeCompare(a.fechaHora))
+}
+
+export const POR_QUE_LA_CORTESIA_SE_ENSEÑA =
+  'Porque una consulta que no se cobra a propósito y una que se quedó sin cobrar ' +
+  'se ven igual en la caja si nadie las separa. El sistema ya guardaba quién la ' +
+  'autorizó, cuándo y por qué; sólo faltaba enseñarlo.'
