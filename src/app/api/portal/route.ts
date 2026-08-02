@@ -150,6 +150,11 @@ export async function POST(req: NextRequest) {
         const paciente = citas[0]?.pacienteNombre ?? ''
         return NextResponse.json({
           paciente,
+          // La sala de teleconsulta se abre con `/teleconsulta/{citaId}?c={clinicId}`,
+          // y el portal no tenía el clinicId: por eso el paciente no tenía puerta
+          // de entrada a su videoconsulta. No es un dato sensible — ya viaja en la
+          // URL pública de reserva.
+          clinicId,
           clinica: config ? {
             nombre: config.nombreClinica || config.nombreMedico || 'Consultorio',
             medico: config.nombreMedico || '',
