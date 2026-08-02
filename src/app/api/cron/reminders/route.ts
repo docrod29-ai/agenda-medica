@@ -6,6 +6,7 @@ import { Appointment, ClinicConfig } from '@/types'
 import { sendWhatsApp as sendWA } from '@/lib/whatsapp-send'
 import { enviarProactivo } from '@/lib/whatsapp/proactivo'
 import { entradasVencidas, resolverEntrada, reprogramarEntrada } from '@/lib/whatsapp/outbox'
+import { normalizarTelefonoWa } from '@/lib/whatsapp/telefono'
 import { instanteMX, hoyISO, sumarDiasISO, ahoraMinutosDelDia, TZ_DEFAULT } from '@/lib/timezone'
 
 const CRON_SECRET = process.env.CRON_SECRET
@@ -183,6 +184,30 @@ export async function GET(req: NextRequest) {
                   estado: appt.estado === 'confirmada' ? 'recordatorio-enviado' : appt.estado,
                   updatedAt: now.toISOString(),
                 })
+              /**
+               * EL «SÍ» DEL PACIENTE TIENE QUE LLEGAR A ALGÚN SITIO.
+               *
+               * El mensaje dice, con estas palabras, «Responde SÍ para confirmar
+               * o NO para cancelar» — y no había NADA que lo implementara: sin
+               * sesión previa el bot caía en el saludo y contestaba el menú de
+               * bienvenida. El paciente confirmaba y su cita seguía sin
+               * confirmar; decía NO queriendo cancelar y la cita seguía viva
+               * ocupando el hueco.
+               *
+               * Se deja la sesión esperando esa respuesta, con la cita concreta.
+               * `merge: true` para no pisar una conversación en curso más que en
+               * lo necesario.
+               */
+              await adminDb.collection('clinics').doc(clinicId)
+                .collection('bot_sessions').doc(normalizarTelefonoWa(phone))
+                .set({
+                  telefono: normalizarTelefonoWa(phone),
+                  estado: 'confirmando_cita',
+                  datos: { citaId: appt.id, fecha: apptDate, hora: apptHour },
+                  lastMessageAt: now.toISOString(),
+                  createdAt: now.toISOString(),
+                }, { merge: true })
+                .catch(() => { /* el recordatorio ya salió: esto no puede tumbarlo */ })
               totals.sent++
             } else if (resultado === 'fallo') { totals.failed++ }
             else { totals.skipped++ } // omitido (sin plantilla fuera de ventana) / optout
