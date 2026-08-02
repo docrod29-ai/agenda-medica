@@ -456,6 +456,32 @@ export async function POST(req: NextRequest) {
           meta: { campos: Object.keys(respuestas), origen: 'portal-paciente' },
         }).catch(() => {})
 
+        /**
+         * Y SE LE AVISA AL CONSULTORIO — el mismo hueco que v887 cerró para las
+         * citas, y que yo volví a abrir en v889.
+         *
+         * El paciente escribe lo suyo la noche antes y el médico sólo lo ve si
+         * abre la consulta y mira la tarjeta. Un formulario que llega el día
+         * antes con «soy alérgico a la penicilina» merece que alguien lo sepa
+         * ANTES de que el paciente esté sentado enfrente.
+         *
+         * No viaja el contenido: es dato de salud y WhatsApp es un canal
+         * externo. Sólo que llegó y de quién — lo demás se lee en el expediente,
+         * donde está protegido.
+         */
+        void avisarAlConsultorio(
+          clinicId,
+          telefonoDelConsultorio(await leerConfig(clinicId)),
+          [
+            `📝 *Un paciente llenó su información previa*`,
+            ``,
+            `👤 ${(await leerCitasPaciente(clinicId, patientId))[0]?.pacienteNombre ?? 'Paciente del portal'}`,
+            ``,
+            `Lo escribió antes de su consulta. Ábrelo en su expediente: NO viaja por aquí porque son datos de salud.`,
+          ].join('\n'),
+          'formulario-previo',
+        )
+
         return NextResponse.json({ ok: true, enviadoEn: ahora })
       }
 
