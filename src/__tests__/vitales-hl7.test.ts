@@ -184,3 +184,29 @@ describe('importar del monitor desde la ficha', () => {
     expect(s).toContain('hl7Previo.medidoEn ?? new Date().toISOString()')
   })
 })
+
+/**
+ * UN CANAL NUEVO NO PUEDE SALTARSE LA ALERTA DEL CANAL VIEJO.
+ *
+ * v893 trajo los signos del monitor pero no disparaba el NEWS2; la vía manual
+ * sí lo hace. Unos signos importados podían entrar con un deterioro dentro y no
+ * avisarle a nadie — y son justo los que llegan sin que una persona los mire.
+ */
+describe('la importación del monitor alerta igual que el registro manual', () => {
+  it('calcula NEWS2 y dispara la alerta de deterioro', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const s = readFileSync(join(process.cwd(), 'src', 'app', '(dashboard)', 'hospitalizacion', '[internamientoId]', 'page.tsx'), 'utf8')
+    // Las dos vías tienen que llamar al mismo motor y a la misma alerta.
+    expect((s.match(/calcularNews2\(/g) ?? []).length).toBeGreaterThanOrEqual(2)
+    expect((s.match(/tipo: 'news2'/g) ?? []).length).toBeGreaterThanOrEqual(2)
+    expect(s).toContain('importado del monitor')
+  })
+
+  it('no inventa la conciencia que el monitor no manda', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const s = readFileSync(join(process.cwd(), 'src', 'app', '(dashboard)', 'hospitalizacion', '[internamientoId]', 'page.tsx'), 'utf8')
+    expect(s).toContain('no se inventa un «alerta»')
+  })
+})
