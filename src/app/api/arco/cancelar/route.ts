@@ -107,11 +107,38 @@ export async function POST(req: NextRequest) {
        * barrido aprenda a mirar el campo nuevo.
        */
       const tel = String(paciente.telefono ?? '').trim()
+      /**
+       * SI LA BAJA NO SE PUDO ESCRIBIR, SE DICE.
+       *
+       * Esto tragaba el fallo con un `warn` y respondía `ok: true`. El médico
+       * leía «listo» y el paciente seguía recibiendo mensajes. Un derecho
+       * ejercido a medias hay que declararlo: el bloqueo del expediente SÍ
+       * quedó, y lo que falta es una acción concreta que alguien puede hacer.
+       */
+      const avisos: string[] = []
       if (tel) {
         const { registrarBaja } = await import('@/lib/whatsapp/consent')
         await registrarBaja(clinicId, tel, 'arco_cancelacion').catch(() => {
           safeLog.warn('[arco/cancelar] bloqueo escrito, baja de WhatsApp no persistida')
+          avisos.push('No se pudo registrar la baja de WhatsApp. El expediente quedó bloqueado, pero hay que dar de baja el teléfono a mano en Configuración → Entregas.')
         })
+      } else {
+        avisos.push('El paciente no tiene teléfono registrado, así que no había baja de WhatsApp que dar. Si le escriben por otro número, hay que bloquearlo a mano.')
+      }
+
+      /**
+       * CERRAR LA SOLICITUD.
+       *
+       * La ejecución no tocaba `arco_requests`: el dato quedaba cancelado y la
+       * solicitud legal seguía figurando como «recibida», con su plazo de 20
+       * días corriendo sobre algo ya resuelto.
+       */
+      if (solicitudId) {
+        await clinicRef.collection('arco_requests').doc(solicitudId).set({
+          estado: 'resuelta', fechaResolucion: new Date().toISOString(),
+          resueltoPor: acceso.uid ?? '',
+          resolucion: 'Cancelación ejecutada por BLOQUEO: el expediente conserva las notas firmadas (conservación mínima obligatoria) y queda marcado como no contactable.',
+        }, { merge: true }).catch(() => { /* no puede tumbar el derecho */ })
       }
 
       await clinicRef.collection('audit_log').add({
@@ -121,7 +148,7 @@ export async function POST(req: NextRequest) {
         timestamp: new Date().toISOString(),
       }).catch(() => { /* la bitácora no puede tumbar el derecho del paciente */ })
 
-      return NextResponse.json({ ok: true, camino: 'bloqueo', notasFirmadas: firmadas, queOcurre: veredicto.queOcurre })
+      return NextResponse.json({ ok: true, camino: 'bloqueo', notasFirmadas: firmadas, queOcurre: veredicto.queOcurre, avisos })
     }
 
     /**
@@ -130,16 +157,30 @@ export async function POST(req: NextRequest) {
      * un expediente a medias con citas huérfanas.
      */
     const citasSnap = await clinicRef.collection('appointments').where('pacienteId', '==', patientId).get()
-    const refs = [
-      ...notasSnap.docs.map(d => d.ref),
-      ...citasSnap.docs.map(d => d.ref),
-      pacienteRef,
-    ]
-    for (let i = 0; i < refs.length; i += 450) {
-      const lote = adminDb.batch()
-      for (const ref of refs.slice(i, i + 450)) lote.delete(ref)
-      await lote.commit()
+
+    /**
+     * BORRADO EN CASCADA — Firestore NO borra las subcolecciones.
+     *
+     * Esto borraba las notas, las citas y el documento del paciente con un
+     * `batch.delete()`. En Firestore eso deja VIVO todo lo que cuelga debajo:
+     *
+     *   · `notas/{id}/versions` y `notas/{id}/adendas`
+     *   · `pacientes/{id}/laboratorios`, `/fotos` y `/clinico/resumen`
+     *     (alergias, antecedentes, valoración del inmunocomprometido)
+     *
+     * Y al médico y al titular se les decía, con estas palabras, «se elimina el
+     * expediente completo». Quedaba PHI legible por ruta directa, sin colgar ya
+     * de ningún expediente: lo peor de los dos mundos —el dato sigue ahí y nadie
+     * sabe que sigue ahí—.
+     *
+     * `recursiveDelete` baja por todo el árbol. Las citas no tienen
+     * subcolecciones, pero se borran igual por la misma vía para no mantener dos
+     * mecanismos de borrado.
+     */
+    for (const ref of [...notasSnap.docs.map(d => d.ref), ...citasSnap.docs.map(d => d.ref)]) {
+      await adminDb.recursiveDelete(ref)
     }
+    await adminDb.recursiveDelete(pacienteRef)   // arrastra laboratorios, fotos y clinico
 
     /**
      * La bitácora se escribe DESPUÉS y sin `patientId` en el cuerpo del meta más
@@ -152,6 +193,14 @@ export async function POST(req: NextRequest) {
       meta: { accion: 'supresion_arco', solicitudId, notas: notasSnap.size, citas: citasSnap.size, identidadVerificadaPor: acceso.uid },
       timestamp: new Date().toISOString(),
     }).catch(() => { /* ídem */ })
+
+    if (solicitudId) {
+      await clinicRef.collection('arco_requests').doc(solicitudId).set({
+        estado: 'resuelta', fechaResolucion: new Date().toISOString(),
+        resueltoPor: acceso.uid ?? '',
+        resolucion: 'Cancelación ejecutada por SUPRESIÓN: expediente, notas, citas y todo lo que colgaba de ellos borrados en cascada.',
+      }, { merge: true }).catch(() => { /* ídem */ })
+    }
 
     return NextResponse.json({
       ok: true, camino: 'supresion',

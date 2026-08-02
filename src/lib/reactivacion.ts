@@ -1,4 +1,5 @@
 import type { Patient } from '@/types'
+import { estaBloqueadoArco, type MarcaBloqueo } from '@/lib/arco/cancelacion'
 
 /**
  * Núcleo puro para reactivación de pacientes (Lote 11): identifica pacientes que
@@ -48,6 +49,20 @@ export function pacientesParaReactivar(
   const out: CandidatoReactivacion[] = []
   for (const p of pacientes) {
     if (!(p.telefono || p.whatsapp)) continue
+    /**
+     * BLOQUEO ARCO — y por qué NO es política del llamador.
+     *
+     * Al ejecutar una cancelación ARCO por bloqueo, al médico y al titular se
+     * les dice, con estas palabras, que el paciente «no vuelve a recibir
+     * recordatorios, ni reactivación, ni campañas». El campo `arcoBloqueo` se
+     * escribía y no lo miraba NADIE: `estaBloqueadoArco` no tenía un solo
+     * llamador en producción, así que lo único que mordía era la baja de
+     * WhatsApp — y sólo si el paciente tenía teléfono.
+     *
+     * Va aquí dentro y no en el predicado `excluir` a propósito: un derecho
+     * ejercido no puede depender de que cada pantalla se acuerde de aplicarlo.
+     */
+    if (estaBloqueadoArco(p as { arcoBloqueo?: MarcaBloqueo | null })) continue
     if (excluir?.(p)) continue
     const ult = soloDia(p.ultimaCita)
     if (ult) {
