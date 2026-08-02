@@ -582,6 +582,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 |---|---|
 | **889** | **P-019 del charter — la última pieza del portal que faltaba en la fase 3.** Desde su enlace, el paciente llena con calma lo que hoy el médico reconstruye a las prisas: qué le pasa, desde cuándo, qué toma, a qué es alérgico. **La regla que lo hace seguro: lo que dice el paciente NO pisa el expediente** — si escribiera en `patient.alergias`, un «no» suyo borraría una alergia a penicilina documentada, y de ese campo dependen la compuerta de la receta y el cruce de la nota. Tampoco puntúa ni calcula nada: es una declaración, no una valoración. Las reglas cierran la escritura desde el navegador y la lectura es `isMedico` (lo cazó el guardián de la matriz cuando lo puse en `isMember`). La consulta lo enseña separado y declarado. **Reglas desplegadas aparte.** |
 
+## TRIGÉSIMA NOVENA TANDA — v890 (el criterio que nadie podía consultar)
+
+| v | Qué se reparó |
+|---|---|
+| **890** | **La CSP lleva meses sin proteger nada y el criterio para activarla no se podía consultar.** La política va en *report-only*: el navegador avisa y no bloquea. Pasarla a bloqueo es una variable (`CSP_MODE=enforce`) y el criterio estaba escrito y probado —7 días y cero violaciones recientes— pero **nadie leía los reportes**: se acumulaban en `platform_csp` sin una sola pantalla que dijera cuántos días llevan ni cuántas violaciones hay. Ahora Cumplimiento enseña el veredicto, los días, las violaciones y **qué** chocaría, para arreglarlo en vez de sólo esperar. **Cero reportes no se lee como «todo bien»**: puede ser que el buzón no reciba. Cierra un punto de **P-020**. |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.

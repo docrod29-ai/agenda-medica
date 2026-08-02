@@ -312,6 +312,7 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
 
   // ── soporte, telemetría y consola del dueño ──────────────────────────────
   'ayuda-bot': { tipo: 'sesion', motivo: 'Asistente de ayuda de la propia app; no lee PHI ni datos de la clínica.' },
+  'seguridad/csp-estado': { tipo: 'capacidad', capacidad: 'administrar' },
   'csp-report': { tipo: 'publica', motivo: 'Endpoint de reportes CSP del navegador: por especificación llega sin credenciales.' },
   'demo/evidencia': { tipo: 'publica', motivo: 'Sandbox público de demostración con datos ficticios.' },
   'errores': { tipo: 'sesion', motivo: 'POST reporta un error del propio usuario; GET/PATCH (la bandeja) ya exigen superadmin dentro de la ruta.' },
