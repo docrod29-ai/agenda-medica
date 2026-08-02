@@ -88,6 +88,50 @@ export function vincularMedico(
   return { como: 'sin-vinculo', motivo: candidatos.length === 0 ? NINGUNO : VARIOS }
 }
 
+/**
+ * ── EL HUECO QUE DEJÓ ESTO: LOS QUE YA ESTABAN CONECTADOS ────────────────────
+ *
+ * El vínculo se escribe al conectar el calendario… y quien lo conectó ANTES de
+ * que esto existiera no tiene ninguno. Su calendario sigue conectado, todo
+ * parece bien, y la agenda pública sigue sin poder tener en cuenta sus eventos:
+ * exactamente el fallo que se venía a reparar, sólo que ahora invisible, porque
+ * la pantalla dice «conectado».
+ *
+ * Pedirle a cada médico que desconecte y vuelva a conectar es pedirle que
+ * arregle a mano algo que él no rompió, y sobre todo: **nadie se lo va a pedir,
+ * porque nadie sabe que le falta**. Así que se rellena solo la próxima vez que
+ * abra su configuración, con las MISMAS reglas —correo exacto, un solo
+ * candidato— y sin tocar un vínculo que ya exista.
+ */
+
+/** Lo poco que hace falta mirar del token guardado para saber si falta ligarlo. */
+export interface TokenDeCalendario {
+  refreshToken?: string
+  medicoId?: string
+  clinicId?: string
+}
+
+export type EstadoVinculo = 'sin-calendario' | 'ya-ligado' | 'falta'
+
+/**
+ * ¿Hay que rellenar el vínculo de este token?
+ *
+ * `sin-calendario` cuando no hay nada conectado —no se inventa un token—, y
+ * `ya-ligado` cuando ya tiene médico: un vínculo hecho NO se recalcula, porque
+ * recalcularlo podría moverlo si entretanto cambiaron los correos.
+ */
+export function estadoDelVinculo(token: TokenDeCalendario | null | undefined): EstadoVinculo {
+  if (!token || !String(token.refreshToken ?? '').trim()) return 'sin-calendario'
+  return String(token.medicoId ?? '').trim() ? 'ya-ligado' : 'falta'
+}
+
+/** Lo que se le enseña al médico cuando su calendario está conectado pero suelto. */
+export const AVISO_SIN_VINCULO =
+  'Tu Google Calendar está conectado, pero no pudimos ligarlo a tu ficha de ' +
+  'médico: la agenda pública todavía no puede tener en cuenta tus eventos, así ' +
+  'que un paciente podría reservar encima de algo que ya tienes apuntado. ' +
+  'Revisa que el correo de tu ficha sea el mismo con el que conectaste Google.'
+
 export const POR_QUE_IMPORTA =
   'Porque sin este vínculo el portal público y el bot no pueden consultar el ' +
   'calendario del médico: el token vive por uid y la agenda razona por ' +

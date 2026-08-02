@@ -141,6 +141,43 @@ original, se conserva por contexto.
 
 ---
 
+## CUADRAGÉSIMA OCTAVA TANDA — v899
+
+### El calendario de Google de los que YA estaban conectados seguía suelto
+
+v875 empezó a escribir el vínculo `médico ↔ uid` **al conectar** Google, y
+v876/v877 lo consumieron para que el portal público y el bot descuenten los
+eventos del calendario al ofrecer huecos.
+
+Eso sólo cubre a quien **conecte de ahí en adelante**. El que ya estaba
+conectado no tiene vínculo: su pantalla dice «Conectado» con su palomita verde,
+y la agenda pública sigue ofreciendo huecos encima de su quirófano. Es peor que
+el fallo original, porque ahora es invisible — y **nadie va a reconectar por su
+cuenta algo que no sabe que le falta**.
+
+Ahora se rellena solo la próxima vez que abre su configuración: esa ruta la
+llama su propia sesión, que es justo el momento en que se sabe con certeza quién
+es. Con las MISMAS reglas —correo exacto, un solo candidato, si hay duda no se
+adivina— y en un solo módulo compartido con el momento de conectar
+(`lib/calendario/ligar-en-servidor.ts`), para que afinar una no deje la otra atrás.
+
+Dos cuidados: un vínculo que YA existe **no se recalcula** (moverlo sería
+reasignar las horas ocupadas de un médico a otro sin que nadie lo pidiera), y el
+relleno **nunca crea** el documento del token: si no hay calendario conectado, no
+hay nada que ligar.
+
+Y si aun así no se puede ligar, la pantalla lo **dice, con la consecuencia**:
+«un paciente puede reservar encima de algo que ya tienes apuntado», en vez de
+dejar la palomita verde prometiendo una cobertura que no existe.
+
+- `src/lib/calendario/ligar-en-servidor.ts` (nuevo), `vinculo-medico.ts`
+  (`estadoDelVinculo`, `AVISO_SIN_VINCULO`)
+- `src/app/api/calendar/status/route.ts`, `callback/route.ts` (ahora comparten resolvedor)
+- `src/app/(dashboard)/configuracion/page.tsx` (el aviso)
+- `src/__tests__/vinculo-relleno.test.ts` — 10 pruebas. Total 4779.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
@@ -178,9 +215,11 @@ original, se conserva por contexto.
     conectar el calendario (`doctors/{id}.uid` + `googleTokens/{uid}.medicoId`),
     que era el prerrequisito, y **v876 lo consumió**: la disponibilidad pública
     descuenta el freebusy del médico, el alta lo revalida y **v877 llevó lo mismo
-    al bot**, con la consulta en un solo módulo. **Queda**: esto sólo aplica a
-    quien RECONECTE su calendario — los ya conectados no tienen el vínculo
-    escrito. Y la sincronización de escritura desde el portal sigue sin hacerse
+    al bot**, con la consulta en un solo módulo. **v899 cerró el hueco de los ya
+    conectados**: el vínculo se rellena solo la próxima vez que el médico abre su
+    configuración, con las mismas reglas, sin recalcular uno existente y
+    diciéndoselo si no se pudo.
+    **Queda**: la sincronización de escritura desde el portal sigue sin hacerse
     (ver el comentario en `api/portal/route.ts`).
 13. ~~Fragmentación cromática~~ — HECHO A MEDIAS (v872): los 124 usos de PRIMER
     PLANO migrados a `--red`/`--amber` y **trinquete con techo 0**. **Queda**:

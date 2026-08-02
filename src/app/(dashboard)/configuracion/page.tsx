@@ -62,6 +62,8 @@ export default function ConfiguracionPage() {
   const [gcalConnected, setGcalConnected] = useState<boolean | null>(null)
   const [gcalLoading, setGcalLoading] = useState(false)
   const [gcalCalendars, setGcalCalendars] = useState<{ id: string; summary: string; primary: boolean }[]>([])
+  // Conectado pero suelto: por qué la agenda pública todavía no lo tiene en cuenta.
+  const [gcalAviso, setGcalAviso] = useState('')
 
   // Check Google Calendar status on mount
   useEffect(() => {
@@ -73,6 +75,17 @@ export default function ConfiguracionPage() {
         if (!res.ok) { setGcalConnected(false); return }
         const data = await res.json().catch(() => null)
         setGcalConnected(!!data?.connected)
+        /**
+         * «Conectado» no es lo mismo que «la agenda pública ya te tiene en
+         * cuenta». Si el calendario está conectado pero no se pudo ligar a la
+         * ficha del médico, un paciente puede reservar encima de algo que él ya
+         * tiene apuntado — y la pantalla, callándolo, le haría creer que no.
+         */
+        if (data?.connected && data?.vinculado === false && data?.aviso) {
+          setGcalAviso(String(data.aviso))
+        } else {
+          setGcalAviso('')
+        }
         if (data?.connected) loadCalendars(uid)
       } catch {
         setGcalConnected(false)
@@ -841,6 +854,28 @@ export default function ConfiguracionPage() {
                 )}
               </div>
             </div>
+
+            {/*
+              CONECTADO NO ES LO MISMO QUE «LA AGENDA PÚBLICA YA TE VE».
+
+              Sin el vínculo médico ↔ calendario, el portal y el bot no pueden
+              descontar los eventos de Google al ofrecer huecos: un paciente
+              puede reservar encima de algo que el médico ya tiene apuntado. La
+              insignia verde de arriba, sola, le haría creer que está cubierto.
+            */}
+            {gcalAviso && (
+              <div
+                className="alert alert-amber"
+                role="status"
+                style={{ marginTop: 12, fontSize: 12, lineHeight: 1.5 }}
+              >
+                <AlertTriangle size={15} className="alert-icon" />
+                <div>
+                  <div className="alert-title">Conectado, pero sin ligar a tu ficha</div>
+                  {gcalAviso}
+                </div>
+              </div>
+            )}
 
             <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               {gcalConnected ? (
