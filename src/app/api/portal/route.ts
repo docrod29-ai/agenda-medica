@@ -4,6 +4,7 @@ import admin, { adminDb } from '@/lib/firebase-admin'
 import { puedeTocarDesdeElPortal, MENSAJE_ESTADO_NO_TOCABLE } from '@/lib/portal/estados'
 import { ofrecerHuecoLiberado } from '@/lib/whatsapp/ofrecer-hueco'
 import { avisarAlConsultorio, telefonoDelConsultorio } from '@/lib/whatsapp/avisar-consultorio'
+import { limpiarRespuestas, tieneContenido } from '@/lib/portal/formulario-previo'
 import { verificarTokenPaciente, tokenVigente } from '@/lib/patient-token'
 import { getAvailableSlots } from '@/lib/availability'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
@@ -16,7 +17,7 @@ import type { NotaMedica } from '@/types/expediente'
  * POST con { action, token, ... }. El token (HMAC) ata la sesión a UN paciente
  * de UNA clínica; toda lectura/escritura se filtra por ese patientId.
  *
- * Acciones: session | confirmar | cancelar | slots | reagendar
+ * Acciones: session | confirmar | cancelar | slots | reagendar | formulario | documentos
  */
 
 const MIN_HORAS_DEFECTO = 24
@@ -101,7 +102,11 @@ async function leerCita(clinicId: string, citaId: string): Promise<Appointment |
 }
 
 export async function POST(req: NextRequest) {
-  let body: { action?: string; token?: string; citaId?: string; fecha?: string; nuevaFechaHora?: string }
+  let body: {
+    action?: string; token?: string; citaId?: string; fecha?: string; nuevaFechaHora?: string
+    /** Formulario previo a la consulta (P-019): lo escribe el paciente. */
+    respuestas?: unknown
+  }
   try {
     body = await req.json()
   } catch {
@@ -420,6 +425,38 @@ export async function POST(req: NextRequest) {
         )
 
         return NextResponse.json({ ok: true })
+      }
+
+      /**
+       * FORMULARIO PREVIO A LA CONSULTA (P-019).
+       *
+       * Lo escribe el paciente en su casa, con calma, y NO toca el expediente:
+       * se guarda en su propia subcolección marcado como dicho por él. Si
+       * escribiera en `patient.alergias`, un «no» suyo borraría una alergia a
+       * penicilina documentada — y de ese campo dependen la compuerta de la
+       * receta y el cruce de la nota. Ver `lib/portal/formulario-previo.ts`.
+       */
+      case 'formulario': {
+        const respuestas = limpiarRespuestas(body.respuestas)
+        if (!tieneContenido(respuestas)) {
+          return NextResponse.json({ error: 'No hay nada que guardar.' }, { status: 400 })
+        }
+        const ahora = new Date().toISOString()
+        // Uno por PACIENTE, reescribible: el paciente puede corregir lo que puso
+        // hasta que entre a consulta. Si se guardara uno por envío, el médico
+        // tendría que adivinar cuál es el bueno.
+        await adminDb.collection('clinics').doc(clinicId)
+          .collection('patients').doc(patientId)
+          .collection('formularios_previos').doc('actual')
+          .set({ respuestas, enviadoEn: ahora, origen: 'paciente' }, { merge: false })
+
+        void adminDb.collection('clinics').doc(clinicId).collection('audit_log').add({
+          evento: 'formulario_previo_enviado',
+          clinicId, patientId, timestamp: ahora,
+          meta: { campos: Object.keys(respuestas), origen: 'portal-paciente' },
+        }).catch(() => {})
+
+        return NextResponse.json({ ok: true, enviadoEn: ahora })
       }
 
       case 'documentos': {

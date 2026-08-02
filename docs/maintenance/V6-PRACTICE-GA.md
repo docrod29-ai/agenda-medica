@@ -43,7 +43,7 @@ Bitácora de versiones desplegadas: `BITACORA-2026-08-01-tarde.md`.
 | # | Charter | Estado |
 |---|---|---|
 | P-018 | WhatsApp engine | **PARCIAL** — consentimiento, opt-out, ventana de 24 h, plantillas, entregabilidad, outbox. **FALTA**: el outbox tiene un solo llamador; los fallos ya quedan registrados (v810) pero sin reintento — necesita plantillas aprobadas en Meta (**DEL DR.**). |
-| P-019 | Portal del paciente | **PARCIAL** — citas, recetas, documentos, pagos, reagendar. **FALTA**: formularios previos a la consulta. |
+| P-019 | Portal del paciente | **HECHO** (v889) — citas, recetas, documentos, pagos, reagendar **y formulario previo a la consulta**. Lo que el paciente escribe NO pisa el expediente: se guarda aparte, marcado como dicho por él, y el médico decide qué pasa a la nota — si escribiera en `patient.alergias`, un «no» suyo borraría una alergia documentada. No puntúa ni calcula nada: es una declaración, no una valoración. |
 
 ## FASE 4 — SEGURIDAD Y CONFIABILIDAD
 

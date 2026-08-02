@@ -9,6 +9,7 @@ import { descargarRecetaWord } from '@/lib/receta-word'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 import { fechaFlexible } from '@/lib/portal/fechas'
 import { ventanaDeSala, enlaceSalaPaciente } from '@/lib/telesalud/ventana-sala'
+import { CAMPOS_PREVIOS, MAX_CARACTERES, AVISO_URGENCIA } from '@/lib/portal/formulario-previo'
 import type { Medicamento } from '@/types/expediente'
 
 interface DocReceta {
@@ -307,6 +308,14 @@ export default function MiPortalPage() {
         })}
 
         {/*
+          FORMULARIO PREVIO A LA CONSULTA (P-019).
+          Lo llena el paciente con calma en su casa; en la consulta el médico
+          reconstruye a las prisas lo que aquí se escribe sin presión. NO toca su
+          expediente: es su declaración, y el médico decide qué pasa a la nota.
+        */}
+        {proximas.length > 0 && <FormularioPrevio token={token} />}
+
+        {/*
           ANTICIPO — el botón que decía «Asegura tu lugar» y no aseguraba nada.
           Abría un enlace externo suelto: sin retorno, sin webhook, sin cambio de
           estado y sin cobro registrado. El paciente pagaba y su cita seguía
@@ -471,6 +480,97 @@ function Centro({ children }: { children: React.ReactNode }) {
     <div style={{ minHeight: '100dvh', background: 'var(--bg)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 24 }}>
       {children}
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  )
+}
+
+
+/**
+ * FORMULARIO PREVIO A LA CONSULTA.
+ *
+ * Preguntas abiertas a propósito: encasillar las respuestas sería decidir por el
+ * médico qué es relevante. Y nada de esto puntúa ni calcula: es una declaración
+ * del paciente, no una valoración.
+ */
+function FormularioPrevio({ token }: { token: string }) {
+  const [abierto, setAbierto] = useState(false)
+  const [valores, setValores] = useState<Record<string, string>>({})
+  const [enviando, setEnviando] = useState(false)
+  const [enviado, setEnviado] = useState(false)
+  const [error, setError] = useState('')
+
+  const enviar = async () => {
+    setEnviando(true); setError('')
+    try {
+      const r = await fetch(API, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'formulario', token, respuestas: valores }),
+      })
+      const d = await r.json().catch(() => ({}))
+      if (r.ok && d.ok) { setEnviado(true); setAbierto(false) }
+      else setError(d.error || 'No se pudo guardar. Intenta de nuevo.')
+    } catch {
+      setError('Sin conexión. Intenta de nuevo.')
+    } finally { setEnviando(false) }
+  }
+
+  if (enviado) {
+    return (
+      <div style={{ marginTop: 16, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 16, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+        <CheckCircle2 size={18} style={{ color: 'var(--green)', flexShrink: 0, marginTop: 1 }} />
+        <div style={{ fontSize: 13.5, color: 'var(--text2)', lineHeight: 1.6 }}>
+          Gracias, tu médico lo verá antes de la consulta. Puedes volver a llenarlo si algo cambia.
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ marginTop: 16, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
+      <button
+        type="button"
+        onClick={() => setAbierto(v => !v)}
+        style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+      >
+        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Cuéntale a tu médico antes de la consulta</div>
+        <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 4, lineHeight: 1.5 }}>
+          Con calma, desde tu casa. Le ayuda a aprovechar mejor el tiempo contigo.
+        </div>
+      </button>
+
+      {abierto && (
+        <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ fontSize: 12, color: 'var(--amber)', lineHeight: 1.5 }}>{AVISO_URGENCIA}</div>
+          {CAMPOS_PREVIOS.map(c => (
+            <div key={c.clave}>
+              <label htmlFor={`fp-${c.clave}`} style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
+                {c.etiqueta}
+              </label>
+              {'ayuda' in c && c.ayuda && (
+                <div style={{ fontSize: 11.5, color: 'var(--text3)', marginBottom: 5 }}>{c.ayuda}</div>
+              )}
+              <textarea
+                id={`fp-${c.clave}`}
+                rows={'largo' in c && c.largo ? 3 : 1}
+                maxLength={MAX_CARACTERES}
+                value={valores[c.clave] ?? ''}
+                onChange={e => setValores(v => ({ ...v, [c.clave]: e.target.value }))}
+                style={{ width: '100%', padding: '9px 11px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 14, resize: 'vertical' }}
+              />
+            </div>
+          ))}
+          {error && <div style={{ fontSize: 13, color: 'var(--red)' }}>{error}</div>}
+          <button
+            type="button"
+            onClick={enviar}
+            disabled={enviando || !Object.values(valores).some(v => v.trim())}
+            className="btn btn-primary btn-sm"
+            style={{ alignSelf: 'flex-start' }}
+          >
+            {enviando ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <CheckCircle2 size={14} />} Enviar a mi médico
+          </button>
+        </div>
+      )}
     </div>
   )
 }

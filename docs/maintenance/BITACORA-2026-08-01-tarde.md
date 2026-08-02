@@ -576,6 +576,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 |---|---|
 | **888** | **Reagendar desde el portal seguía sin avisarle a nadie.** v887 cubrió altas y cancelaciones; mover la cita no. Y aquí importa más: la cita **no desapareció, se movió** — quien tenga la lista del día sigue esperando al paciente a la hora vieja, y a la hora nueva le llega alguien que «no estaba». La cancelación deja un hueco visible; un reagendado silencioso deja **dos** errores. Además vuelve a `pendiente-confirmar` y nadie sabía que había que confirmarla otra vez. **Segundo**: una teleconsulta no tiene lugar físico y el portal imprime «Teleconsulta · {lugar}» — el alta pública y el bot escribían ahí el nombre del consultorio, enseñándole a dónde ir a quien no tiene que ir. |
 
+## TRIGÉSIMA OCTAVA TANDA — v889 (P-019: el formulario previo a la consulta)
+
+| v | Qué se reparó |
+|---|---|
+| **889** | **P-019 del charter — la última pieza del portal que faltaba en la fase 3.** Desde su enlace, el paciente llena con calma lo que hoy el médico reconstruye a las prisas: qué le pasa, desde cuándo, qué toma, a qué es alérgico. **La regla que lo hace seguro: lo que dice el paciente NO pisa el expediente** — si escribiera en `patient.alergias`, un «no» suyo borraría una alergia a penicilina documentada, y de ese campo dependen la compuerta de la receta y el cruce de la nota. Tampoco puntúa ni calcula nada: es una declaración, no una valoración. Las reglas cierran la escritura desde el navegador y la lectura es `isMedico` (lo cazó el guardián de la matriz cuando lo puse en `isMember`). La consulta lo enseña separado y declarado. **Reglas desplegadas aparte.** |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.
