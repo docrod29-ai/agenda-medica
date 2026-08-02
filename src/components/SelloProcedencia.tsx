@@ -8,7 +8,7 @@
  * dictado cuando existe. Es solo lectura: no cambia ningún valor clínico.
  */
 import { useMemo, useState } from 'react'
-import { Fingerprint, Mic, Sparkles, PenLine, ChevronDown, Quote, CheckCircle2 } from 'lucide-react'
+import { Fingerprint, Mic, Sparkles, PenLine, ChevronDown, Quote, CheckCircle2, Calculator, Activity } from 'lucide-react'
 import { construirManifiesto, resumenProcedencia, etiquetaOrigen, type OrigenCampo } from '@/lib/expediente/procedencia'
 
 interface FinalNota {
@@ -31,10 +31,18 @@ interface Props {
   transcripcion?: string
 }
 
+/**
+ * Los dos orígenes SIN AUTOR HUMANO van con su propio icono a propósito: quien
+ * mira el sello tiene que distinguir de un vistazo lo que afirmó una persona de
+ * lo que midió un aparato o dedujo una fórmula. Meterlos en el icono de «a
+ * mano» sería decir que el médico lo escribió.
+ */
 const ESTILO: Record<OrigenCampo, { color: string; Icon: typeof Mic }> = {
-  dictado: { color: 'var(--teal, #2dd4bf)', Icon: Mic },
-  ia:      { color: 'var(--nexus, #3d5afe)', Icon: Sparkles },
-  manual:  { color: 'var(--text3)', Icon: PenLine },
+  dictado:   { color: 'var(--teal, #2dd4bf)', Icon: Mic },
+  ia:        { color: 'var(--nexus, #3d5afe)', Icon: Sparkles },
+  manual:    { color: 'var(--text3)', Icon: PenLine },
+  calculado: { color: 'var(--blue)', Icon: Calculator },
+  importado: { color: 'var(--purple)', Icon: Activity },
 }
 
 export function SelloProcedencia({ final, extraction, aprobados, transcripcion }: Props) {

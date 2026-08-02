@@ -13,6 +13,7 @@ import { safeLog } from '@/lib/security/sanitize'
 import { verificarMiembro } from '@/lib/auth-server'
 import { parsearORU, parsearADT, oruAFHIR, construirACK } from '@/lib/hl7/v2'
 import { traducirVitales, hayVitales } from '@/lib/dispositivos/vitales-hl7'
+import { origenDesdeFuente } from '@/lib/expediente/procedencia'
 
 export async function POST(req: NextRequest) {
   const clinicId = req.nextUrl.searchParams.get('clinicId')
@@ -55,8 +56,11 @@ export async function POST(req: NextRequest) {
       oru,
       vitales: {
         ...vitales,
-        // Que quien lo guarde no pueda confundirlo con algo que tecleó alguien.
+        // Que quien lo guarde no pueda confundirlo con algo que tecleó alguien:
+        // la fuente Y su equivalente en el vocabulario de procedencia de la nota,
+        // donde `manual` significa literalmente «lo escribió el médico».
         fuente: 'dispositivo',
+        origenProcedencia: origenDesdeFuente('dispositivo'),
         hay: hayVitales(vitales),
       },
       fhir: { resourceType: 'Bundle', type: 'collection', total: observations.length, entry: observations.map(r => ({ resource: r })) },
