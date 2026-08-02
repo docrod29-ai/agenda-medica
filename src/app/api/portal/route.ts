@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { puedeTocarDesdeElPortal, MENSAJE_ESTADO_NO_TOCABLE } from '@/lib/portal/estados'
+import { ofrecerHuecoLiberado } from '@/lib/whatsapp/ofrecer-hueco'
 import { verificarTokenPaciente, tokenVigente } from '@/lib/patient-token'
 import { getAvailableSlots } from '@/lib/availability'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
@@ -196,6 +197,39 @@ export async function POST(req: NextRequest) {
           updatedAt: new Date().toISOString(),
           updatedPor: 'paciente',
         })
+
+        /**
+         * TRES COSAS QUE NO PASABAN CUANDO CANCELABA EL PACIENTE.
+         *
+         * La cancelación desde el portal mutaba el estado y ahí terminaba:
+         *
+         *  · el hueco quedaba libre y NO se le ofrecía a nadie —la oferta vivía
+         *    detrás de `verificarMiembro`, así que sólo el consultorio podía
+         *    dispararla y esta cancelación es justo la que nadie del equipo ve—;
+         *  · no quedaba asiento en la bitácora, pese a mutar el estado con
+         *    `updatedPor: 'paciente'` (trazabilidad NOM-024); el alta pública sí
+         *    lo escribe, así que eran dos caminos con dos criterios;
+         *  · y el consultorio no se enteraba hasta mirar la agenda.
+         *
+         * Nada de esto puede tumbar la cancelación: el paciente ya la pidió y
+         * ya está hecha.
+         */
+        void adminDb.collection('clinics').doc(clinicId).collection('audit_log').add({
+          evento: 'cita_cancelada_portal',
+          clinicId, patientId, citaId: cita.id,
+          timestamp: new Date().toISOString(),
+          meta: { fechaHora: cita.fechaHora, tipo: cita.tipo, medicoId: cita.medicoId ?? '', origen: 'portal-paciente' },
+        }).catch(() => { /* la bitácora no puede tumbar el derecho del paciente */ })
+
+        void ofrecerHuecoLiberado(clinicId, {
+          fecha: cita.fechaHora.slice(0, 10),
+          hora: cita.fechaHora.slice(11, 16),
+          tipo: cita.tipo,
+          // Sin médico, el hueco de una doctora se le ofrecería a quien espera
+          // con otro: el mismo fallo que ya se reparó en el modal de citas.
+          medicoId: cita.medicoId,
+        }).catch(() => { /* ídem */ })
+
         return NextResponse.json({ ok: true })
       }
 
@@ -299,6 +333,23 @@ export async function POST(req: NextRequest) {
         if (cita.googleCalendarEventId) {
           await citaRef.update({ googleCalendarSyncStatus: 'desincronizado' }).catch(() => {})
         }
+
+        // Reagendar TAMBIÉN libera un hueco —el viejo— y también hay que dejar
+        // rastro de quién movió qué. Mismo criterio que cancelar.
+        void adminDb.collection('clinics').doc(clinicId).collection('audit_log').add({
+          evento: 'cita_reagendada_portal',
+          clinicId, patientId, citaId: cita.id,
+          timestamp: new Date().toISOString(),
+          meta: { de: cita.fechaHora, a: nuevaFechaHora, tipo: cita.tipo, medicoId: cita.medicoId ?? '', origen: 'portal-paciente' },
+        }).catch(() => {})
+
+        void ofrecerHuecoLiberado(clinicId, {
+          fecha: cita.fechaHora.slice(0, 10),
+          hora: cita.fechaHora.slice(11, 16),
+          tipo: cita.tipo,
+          medicoId: cita.medicoId,
+        }).catch(() => {})
+
         return NextResponse.json({ ok: true })
       }
 
