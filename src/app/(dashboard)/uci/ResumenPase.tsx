@@ -91,11 +91,19 @@ export default function ResumenPase({ clinicId, internamientoId, vista, zonaHora
 
   const handoff = useMemo(() => {
     if (!brief) return null
+    /**
+     * `pendientes` y `dispositivos` NO tienen quién los alimente todavía: no
+     * existe ninguna función que los produzca. Se declaran como SIN FUENTE para
+     * que la tarjeta diga «el sistema no lo sabe» en vez de afirmar «no hay
+     * dispositivos invasivos registrados» en un paciente con catéter y
+     * ventilador — que en una entrega de turno se lee como una afirmación
+     * clínica de quien entrega.
+     */
     return construirHandoff({
       pacienteId: internamientoId, generadoEn: ahora,
       cama, diaUci, diaVm, soportes,
       cambios: brief.cambios.map(c => c.texto),
-    })
+    }, ['pendientes', 'dispositivos'])
   }, [brief, ahora, cama, diaUci, diaVm, soportes, internamientoId])
 
   if (tomas === null) {

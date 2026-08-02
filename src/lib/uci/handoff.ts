@@ -104,7 +104,21 @@ export const MOTIVO_CONTINGENCIAS_VACIAS =
  * se documentó» de «no lo propone el sistema». En un handoff, un hueco silencioso
  * se lee como «no hay nada».
  */
-export function construirHandoff(e: EntradaHandoff): Handoff {
+/**
+ * Secciones que HOY no tienen quién las alimente en la aplicación.
+ *
+ * No es lo mismo «se revisó y no hay» que «el sistema no lo sabe». La tarjeta
+ * imprimía «No hay dispositivos invasivos registrados» en un paciente con
+ * catéter central y ventilador, porque nadie escribe esa sección — y eso, en una
+ * entrega de turno, se lee como una afirmación clínica del que entrega.
+ */
+export type SeccionSinFuente = 'pendientes' | 'dispositivos' | 'cambios' | 'soportes'
+
+const MOTIVO_SIN_FUENTE =
+  'El sistema todavía no registra esta sección: NO significa que no haya. ' +
+  'Pregúntalo en la entrega.'
+
+export function construirHandoff(e: EntradaHandoff, sinFuente: readonly SeccionSinFuente[] = []): Handoff {
   if (Number.isNaN(Date.parse(e.generadoEn))) {
     throw new Error(`construirHandoff: fecha inválida «${e.generadoEn}»`)
   }
@@ -119,10 +133,19 @@ export function construirHandoff(e: EntradaHandoff): Handoff {
   const problemasActivos = [...(e.problemasActivos ?? [])]
   const contingencias = [...(e.contingencias ?? [])]
 
-  if (soportes.length === 0) anota('soportes', 'No hay soportes activos registrados en la estancia.')
-  if (cambios.length === 0) anota('cambios', 'No hay cambios documentados en la ventana del reporte.')
-  if (pendientes.length === 0) anota('pendientes', 'No hay metas incumplidas ni tareas abiertas.')
-  if (dispositivos.length === 0) anota('dispositivos', 'No hay dispositivos invasivos registrados.')
+  /**
+   * Una sección declarada SIN FUENTE nunca afirma ausencia: dice que el sistema
+   * no la sabe. Afirmar «no hay dispositivos invasivos» sobre una sección que
+   * nadie escribe es poner en boca del que entrega algo que no comprobó.
+   */
+  const noSabe = new Set<string>(sinFuente)
+  const motivoDe = (seccion: SeccionSinFuente, siHayFuente: string) =>
+    noSabe.has(seccion) ? MOTIVO_SIN_FUENTE : siHayFuente
+
+  if (soportes.length === 0) anota('soportes', motivoDe('soportes', 'No hay soportes activos registrados en la estancia.'))
+  if (cambios.length === 0) anota('cambios', motivoDe('cambios', 'No hay cambios documentados en la ventana del reporte.'))
+  if (pendientes.length === 0) anota('pendientes', motivoDe('pendientes', 'No hay metas incumplidas ni tareas abiertas.'))
+  if (dispositivos.length === 0) anota('dispositivos', motivoDe('dispositivos', 'No hay dispositivos invasivos registrados.'))
   if (problemasActivos.length === 0) anota('problemas activos', MOTIVO_PROBLEMAS_VACIOS)
   if (contingencias.length === 0) anota('contingencias', MOTIVO_CONTINGENCIAS_VACIAS)
 

@@ -37,9 +37,9 @@
  */
 
 import {
-  collection, addDoc, getDocs, updateDoc, doc, query, orderBy, limit,
+  collection, addDoc, getDocs, updateDoc, doc, query, orderBy, limit, serverTimestamp,
 } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { db, auth } from '@/lib/firebase'
 import {
   vigenteEn, serieVigente,
   type EstadoObservacion, type ObservacionVersionada,
@@ -62,8 +62,18 @@ export interface TomaUci {
   /** id de la toma que ESTA corrige. Ausente ⇒ toma nueva, no corrección. */
   corrigeA?: string
   motivoCorreccion?: string
-  /** Quién la capturó. */
+  /**
+   * Quién la capturó — lo pone la SESIÓN, no el llamador.
+   *
+   * El panel mandaba `inter.medicoTratanteNombre`: la lectura del pase quedaba
+   * firmada con el nombre del médico TITULAR aunque la capturara el residente o
+   * la enfermera, y si la lectura del internamiento fallaba quedaba en blanco.
+   * Es el mismo defecto que ya se reparó en el MAR («la enfermera que administró
+   * quedaba registrada con el nombre del médico titular»).
+   */
   por: string
+  /** El uid de quien la capturó. Es lo único que no se puede declarar por error. */
+  porUid?: string
   /** De dónde vino: dictado, teclado, importación… (charter §50, procedencia). */
   fuente: string
   medidas: Record<string, unknown>
@@ -87,7 +97,25 @@ export async function guardarToma(
   internamientoId: string,
   toma: Omit<TomaUci, 'id'>,
 ): Promise<string> {
-  const ref = await addDoc(col(clinicId, internamientoId), limpiar(toma))
+  /**
+   * AUTOR Y HORA DE REGISTRO, SELLADOS AQUÍ.
+   *
+   * Lo que mande el llamador en `por` se IGNORA: venía el nombre del médico
+   * tratante, así que la toma del pase quedaba firmada por quien no la hizo.
+   * Y `registradoEn` lo ponía el reloj de la tablet, que es manipulable — se
+   * conserva (el panel lo usa para ordenar sin esperar al servidor) pero al
+   * lado va la hora del SERVIDOR, que es la que vale para una revisión.
+   */
+  const u = auth.currentUser
+  const completa = {
+    ...toma,
+    por: u?.displayName || u?.email || toma.por || '',
+    porUid: u?.uid ?? '',
+  }
+  const ref = await addDoc(col(clinicId, internamientoId), {
+    ...limpiar(completa),
+    registradoEnServidor: serverTimestamp(),
+  })
   return ref.id
 }
 
